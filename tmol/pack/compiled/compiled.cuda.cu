@@ -45,6 +45,18 @@ namespace tmol {
 namespace pack {
 namespace compiled {
 
+template<tmol::Device D, typename Int, typename Real>
+struct InteractionGraph {
+public:
+  TView<Int, 1, D> nrotamers_for_res;
+  TView<Int, 1, D> oneb_offsets;
+  TView<Int, 1, D> res_for_rot;
+  TView<Int, 2, D> nenergies;
+  TView<int64_t, 2, D> twob_offsets;
+  TView<Real, 1, D> energy1b;
+  TView<Real, 1, D> energy2b;
+};
+
 
 /// @brief Return a uniformly-distributed integer in the range
 /// between 0 and n-1.
@@ -214,23 +226,17 @@ __device__
 Real
 total_energy_for_assignment_parallel(
   cooperative_groups::thread_block_tile<nthreads> g,
-  TView<Int, 1, D> nrotamers_for_res,
-  TView<Int, 1, D> oneb_offsets,
-  TView<Int, 1, D> res_for_rot,
-  TView<Int, 2, D> nenergies,
-  TView<int64_t, 2, D> twob_offsets,
-  TView<Real, 1, D> energy1b,
-  TView<Real, 1, D> energy2b,
+  InteractionGraph<D, Int, Real> ig,
   TensorAccessor<Int, 1, D> rotamer_assignment
 )
 {
   Real totalE = 0;
-  int const nres = nrotamers_for_res.size(0);
+  int const nres = ig.nrotamers_for_res.size(0);
   for (int i = g.thread_rank(); i < nres; i += nthreads) {
     int const irot_local = rotamer_assignment[i];
-    int const irot_global = irot_local + oneb_offsets[i];
+    int const irot_global = irot_local + ig.oneb_offsets[i];
 
-    totalE += energy1b[irot_global];
+    totalE += ig.energy1b[irot_global];
   }
 
   for (int i = g.thread_rank(); i < nres; i += nthreads) {
@@ -238,12 +244,12 @@ total_energy_for_assignment_parallel(
 
     for (int j = i+1; j < nres; ++j) {
       int const jrot_local = rotamer_assignment[j];
-      if (nenergies[i][j] == 0) {
+      if (ig.nenergies[i][j] == 0) {
         continue;
       }
-      float ij_energy = energy2b[
-        twob_offsets[i][j]
-        + nrotamers_for_res[j] * irot_local
+      float ij_energy = ig.energy2b[
+        ig.twob_offsets[i][j]
+        + ig.nrotamers_for_res[j] * irot_local
         + jrot_local
       ];
       totalE += ij_energy;
@@ -264,13 +270,7 @@ float
 warp_wide_sim_annealing(
   curandStatePhilox4_32_10_t * state,
   cooperative_groups::thread_block_tile<nthreads> g,
-  TView<Int, 1, D> nrotamers_for_res,
-  TView<Int, 1, D> oneb_offsets,
-  TView<Int, 1, D> res_for_rot,
-  TView<Int, 2, D> nenergies,
-  TView<int64_t, 2, D> twob_offsets,
-  TView<Real, 1, D> energy1b,
-  TView<Real, 1, D> energy2b,
+  InteractionGraph<D, Int, Real> ig,
   int warp_id,
   TensorAccessor<Int, 1, D> rotamer_assignments,
   TensorAccessor<Int, 1, D> best_rotamer_assignments,
@@ -284,14 +284,11 @@ warp_wide_sim_annealing(
   bool quench_lite
 )
 {
-  int const nres = nrotamers_for_res.size(0);
-  int const nrotamers = res_for_rot.size(0);
+  int const nres = ig.nrotamers_for_res.size(0);
+  int const nrotamers = ig.res_for_rot.size(0);
 
   float temperature = hi_temp;
-  float best_energy = total_energy_for_assignment_parallel(g,
-    nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
-    energy1b, energy2b, rotamer_assignments
-  );
+  float best_energy = total_energy_for_assignment_parallel(g, ig, rotamer_assignments);
   float current_total_energy = best_energy;
   int ntrials = 0;
   for (int i = 0; i < n_outer_iterations; ++i) {
@@ -312,10 +309,7 @@ warp_wide_sim_annealing(
       for (int j = g.thread_rank(); j < nres; j += 32) {
         rotamer_assignments[j] = best_rotamer_assignments[j];
       }
-      current_total_energy = total_energy_for_assignment_parallel(g,
-        nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
-        energy1b, energy2b, rotamer_assignments
-      );
+      current_total_energy = total_energy_for_assignment_parallel(g, ig, rotamer_assignments);
     }
 
     for (int j = 0; j < i_n_inner_iterations; ++j) {
@@ -326,7 +320,7 @@ warp_wide_sim_annealing(
           if (j % quench_period == 0) {
             if (quench_lite) {
               quench_period = set_quench_32_order(
-                nrotamers_for_res, oneb_offsets,
+                ig.nrotamers_for_res, ig.oneb_offsets,
                 quench_order, state);
               i_n_inner_iterations = quench_period;
             } else {
@@ -349,10 +343,10 @@ warp_wide_sim_annealing(
         ran_rot = g.shfl(ran_rot, 0);
         accept_prob = g.shfl(accept_prob, 0);
       }
-      int const ran_res = res_for_rot[ran_rot];
+      int const ran_res = ig.res_for_rot[ran_rot];
       int const local_prev_rot = rotamer_assignments[ran_res];
-      int const ran_res_nrots = nrotamers_for_res[ran_res];
-      int const ran_res_rotamer_offset = oneb_offsets[ran_res];
+      int const ran_res_nrots = ig.nrotamers_for_res[ran_res];
+      int const ran_res_rotamer_offset = ig.oneb_offsets[ran_res];
 
       bool prev_rot_in_range = false;
       int thread_w_prev_rot = 0;
@@ -380,21 +374,21 @@ warp_wide_sim_annealing(
 
       float new_e = 9999;
       if (this_thread_active) {
-        new_e = energy1b[ran_rot];
+        new_e = ig.energy1b[ran_rot];
       }
 
       // Temp: iterate across all residues instead of just the
       // neighbors of ran_rot_res
       if (this_thread_active) {
         for (int k=0; k < nres; ++k) {
-          if (k == ran_res || nenergies[ran_res][k] == 0) {
+          if (k == ran_res || ig.nenergies[ran_res][k] == 0) {
             // alt_energies[k][warp_id] = 0;
             continue;
           }
           int const local_k_rot = rotamer_assignments[k];
 
-          int64_t const k_ran_offset = twob_offsets[k][ran_res];
-          new_e += energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_ran_rot];
+          int64_t const k_ran_offset = ig.twob_offsets[k][ran_res];
+          new_e += ig.energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_ran_rot];
         }
       }
 
@@ -473,9 +467,7 @@ warp_wide_sim_annealing(
       ++ntrials;
       if (ntrials > 1000) {
         ntrials = 0;
-        current_total_energy = total_energy_for_assignment_parallel(g,
-          nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
-          energy1b, energy2b, rotamer_assignments);
+        current_total_energy = total_energy_for_assignment_parallel(g, ig, rotamer_assignments);
         // if (g.thread_rank() == 0) {
         //   printf("refresh total energy currentE %f\n", current_total_energy);
         // }
@@ -492,10 +484,7 @@ warp_wide_sim_annealing(
   } // end outer loop
 
 
-  float totalE = total_energy_for_assignment_parallel(g,
-    nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
-    energy1b, energy2b, rotamer_assignments
-  );
+  float totalE = total_energy_for_assignment_parallel(g, ig, rotamer_assignments);
 
   return totalE;
 }
@@ -513,25 +502,17 @@ float
 spbr(
   curandStatePhilox4_32_10_t * state,
   cooperative_groups::thread_block_tile<nthreads> g,
-  TView<Int, 1, D> nrotamers_for_res,
-  TView<Int, 1, D> oneb_offsets,
-  TView<Int, 1, D> res_for_rot,
-  TView<Int, 2, D> nenergies,
-  TView<int64_t, 2, D> twob_offsets,
-  TView<Real, 1, D> energy1b,
-  TView<Real, 1, D> energy2b,
+  InteractionGraph<D, Int, Real> ig,
   int warp_id,
   int n_spbr,
   TView<int, 2, D> spbr_rotamer_assignments,
   TView<int, 2, D> spbr_perturbed_assignments
 )
 {
-  int const nres = nrotamers_for_res.size(0);
-  int const nrotamers = res_for_rot.size(0);
+  int const nres = ig.nrotamers_for_res.size(0);
+  int const nrotamers = ig.res_for_rot.size(0);
   
-  float energy = total_energy_for_assignment_parallel(g,
-    nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
-    energy1b, energy2b, spbr_rotamer_assignments[warp_id]);
+  float energy = total_energy_for_assignment_parallel(g, ig, spbr_rotamer_assignments[warp_id]);
 
   for (int spbr_iteration = 0; spbr_iteration < n_spbr; ++spbr_iteration) {
     // 1. pick a rotamer
@@ -541,9 +522,9 @@ spbr(
       ran_rot = int(rand_num * nrotamers) % nrotamers;
     }
     ran_rot = g.shfl(ran_rot, 0);
-    int const ran_res = res_for_rot[ran_rot];
-    int const ran_res_nrots = nrotamers_for_res[ran_res];
-    int const ran_rot_local = ran_rot - oneb_offsets[ran_res];
+    int const ran_res = ig.res_for_rot[ran_rot];
+    int const ran_res_nrots = ig.nrotamers_for_res[ran_res];
+    int const ran_rot_local = ran_rot - ig.oneb_offsets[ran_res];
 
     // initialize the perturbed assignments array for this iteration.
     // many of these will be overwritten, but for memory access efficiency
@@ -557,23 +538,23 @@ spbr(
     // 2. relax the neighbors of this residue
     for (int i = 0; i < nres; ++i) {
       // 4a. Find the lowest energy rotamer for residue i
-      if (ran_res == i || nenergies[ran_res][i] == 0) {
+      if (ran_res == i || ig.nenergies[ran_res][i] == 0) {
         continue;
       }
 
       int my_best_rot = 0;
       float my_best_rot_E = 9999;
-      int i_nrots = nrotamers_for_res[i];
+      int i_nrots = ig.nrotamers_for_res[i];
       for (int j = g.thread_rank(); j < i_nrots; j += 32) {
-        int const j_global = j + oneb_offsets[i];
-        float jE = energy1b[j_global];
+        int const j_global = j + ig.oneb_offsets[i];
+        float jE = ig.energy1b[j_global];
         for (int k = 0; k < nres; ++k) {
-          if (k == i || nenergies[k][i] == 0) continue;
+          if (k == i || ig.nenergies[k][i] == 0) continue;
 
           int const k_rotamer = k == ran_res ?
             ran_rot_local : spbr_rotamer_assignments[warp_id][k];
-          jE += energy2b[
-            twob_offsets[k][i] +
+          jE += ig.energy2b[
+            ig.twob_offsets[k][i] +
             i_nrots * k_rotamer + j];
         }
 
@@ -597,9 +578,7 @@ spbr(
     }
 
     // 5. compute the new total energy after relaxation
-    float alt_energy = total_energy_for_assignment_parallel(g,
-      nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
-      energy1b, energy2b, spbr_perturbed_assignments[warp_id]);
+    float alt_energy = total_energy_for_assignment_parallel(g, ig, spbr_perturbed_assignments[warp_id]);
 
     // 6. if the energy decreases, accept the perturbed conformation
     if (alt_energy < energy) {
@@ -640,6 +619,15 @@ struct AnnealerDispatch
   {
     clock_t start = clock();
 
+    InteractionGraph<D, int, float> ig({
+	nrotamers_for_res,
+        oneb_offsets,
+        res_for_rot,
+        nenergies,
+        twob_offsets,
+        energy1b,
+        energy2b});
+    
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
@@ -759,13 +747,14 @@ struct AnnealerDispatch
       float rotstate_energy_after_high_temp = warp_wide_sim_annealing(
         &state,
         g,
-        nrotamers_for_res,
-        oneb_offsets,
-        res_for_rot,
-        nenergies,
-        twob_offsets,
-        energy1b,
-        energy2b,
+	ig,
+        // nrotamers_for_res,
+        // oneb_offsets,
+        // res_for_rot,
+        // nenergies,
+        // twob_offsets,
+        // energy1b,
+        // energy2b,
         warp_id,
         rotamer_assignments_hitemp[warp_id],
         best_rotamer_assignments_hitemp[warp_id],
@@ -785,22 +774,21 @@ struct AnnealerDispatch
         rotamer_assignments_hitemp[warp_id][i] = i_assignment;
         rotamer_assignments_hitemp_quenchlite[warp_id][i] = i_assignment;
       }
-      float best_energy_after_high_temp = total_energy_for_assignment_parallel(g,
-        nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
-        energy1b, energy2b, best_rotamer_assignments_hitemp[warp_id]);
+      float best_energy_after_high_temp = total_energy_for_assignment_parallel(g, ig, best_rotamer_assignments_hitemp[warp_id]);
 
       // ok, run quench lite as a way to predict where this rotamer assignment will
       // end up after low-temperature annealing
       float after_first_quench_lite_totalE = warp_wide_sim_annealing(
         &state,
         g,
-        nrotamers_for_res,
-        oneb_offsets,
-        res_for_rot,
-        nenergies,
-        twob_offsets,
-        energy1b,
-        energy2b,
+	ig,
+        // nrotamers_for_res,
+        // oneb_offsets,
+        // res_for_rot,
+        // nenergies,
+        // twob_offsets,
+        // energy1b,
+        // energy2b,
         warp_id,
         rotamer_assignments_hitemp_quenchlite[warp_id],
         best_rotamer_assignments_hitemp[warp_id],
@@ -858,13 +846,14 @@ struct AnnealerDispatch
       float low_temp_totalE = warp_wide_sim_annealing(
         &state,
         g,
-        nrotamers_for_res,
-        oneb_offsets,
-        res_for_rot,
-        nenergies,
-        twob_offsets,
-        energy1b,
-        energy2b,
+	ig,
+        // nrotamers_for_res,
+        // oneb_offsets,
+        // res_for_rot,
+        // nenergies,
+        // twob_offsets,
+        // energy1b,
+        // energy2b,
         warp_id,
         rotamer_assignments_lotemp[warp_id],
         best_rotamer_assignments_lotemp[warp_id],
@@ -887,13 +876,14 @@ struct AnnealerDispatch
       float after_lotemp_quench_lite_totalE = warp_wide_sim_annealing(
         &state,
         g,
-        nrotamers_for_res,
-        oneb_offsets,
-        res_for_rot,
-        nenergies,
-        twob_offsets,
-        energy1b,
-        energy2b,
+	ig,
+        // nrotamers_for_res,
+        // oneb_offsets,
+        // res_for_rot,
+        // nenergies,
+        // twob_offsets,
+        // energy1b,
+        // energy2b,
         warp_id,
         rotamer_assignments_lotemp[warp_id],
         best_rotamer_assignments_lotemp[warp_id],
@@ -941,13 +931,14 @@ struct AnnealerDispatch
 	after_full_quench_totalE = warp_wide_sim_annealing(
         &state,
         g,
-        nrotamers_for_res,
-        oneb_offsets,
-        res_for_rot,
-        nenergies,
-        twob_offsets,
-        energy1b,
-        energy2b,
+	ig,
+        // nrotamers_for_res,
+        // oneb_offsets,
+        // res_for_rot,
+        // nenergies,
+        // twob_offsets,
+        // energy1b,
+        // energy2b,
         warp_id,
         rotamer_assignments_fullquench[warp_id],
         best_rotamer_assignments_fullquench[warp_id],

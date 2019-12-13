@@ -132,6 +132,7 @@ def test_run_sim_annealing(torch_device):
     fname = "1ubq_ig"
     oneb, twob = load_ig_from_file(fname)
     et = create_twobody_energy_table(oneb, twob)
+
     print("nrotamers", et.res_for_rot.shape[0])
     et_dev = et.to(torch_device)
 
@@ -228,6 +229,11 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
         et = create_twobody_energy_table(oneb, twob)
         #print("energy2b", et.energy2b.shape[0])
         #print("nrotamers", et.res_for_rot.shape[0])
+        # nz = torch.nonzero(et.energy2b)
+        # big = torch.nonzero(et.energy2b > 5)
+        # print(fname, "number non-zero enties in energy2b:", nz.shape[0] / 2, "big", big.shape[0] / 2, "vs",
+        #       et.energy2b.shape[0] / 2
+        # )
         et_dev = et.to(torch_device)
 
         print("running sim annealing on", fname)
