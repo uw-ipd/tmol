@@ -137,7 +137,7 @@ def test_run_sim_annealing(torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(et_dev)
 
-    sort_scores, sort_inds = scores[1,:].sort()
+    sort_scores, sort_inds = scores[0,:].sort()
     nkeep = min(scores.shape[0], 20)
     best_scores = sort_scores[0:nkeep].cpu()
     best_score_inds = sort_inds[0:nkeep]
@@ -218,9 +218,9 @@ def test_run_sim_annealing_on_repacking_jobs():
 
 def test_run_sim_annealing_on_redes_ex1ex2_jobs():
     torch_device = torch.device("cuda")
-    # fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
-    # fnames = ["1qtxFHB"]
-    fnames = ["1u36FHA", "1w0nFHA"]
+    fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    # fnames = ["1w0nFHA"]
+    # fnames = ["1u36FHA", "1w0nFHA"]
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
         oneb, twob = load_ig_from_file(path_to_zarr_file)
@@ -236,11 +236,11 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
         scores_temp = scores
         scores = scores.cpu().numpy()
         numpy.set_printoptions(threshold=1e5)
-        print("scores", fname)
-        for i in range(scores.shape[1]):
-            print(" ".join([str(val) for val in scores[:, i]]))
+        # print("scores", fname)
+        # for i in range(scores.shape[1]):
+        #     print(" ".join([str(val) for val in scores[:, i]]))
 
-        scores = scores_temp[6,:]
+        scores = scores_temp[0,:]
         sort_scores, sort_inds = scores.sort()
         nkeep = min(scores.shape[0], 5)
         best_scores = sort_scores[0:nkeep]
