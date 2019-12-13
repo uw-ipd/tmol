@@ -307,6 +307,8 @@ warp_wide_sim_annealing(
       i_n_inner_iterations = n_quench_iterations;
       quench = true;
       temperature = 1e-20;
+      // recover the lowest energy rotamer assignment encountered
+      // and begin quench from there
       for (int j = g.thread_rank(); j < nres; j += 32) {
         rotamer_assignments[j] = best_rotamer_assignments[j];
       }
