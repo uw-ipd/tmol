@@ -2,6 +2,7 @@ import zarr
 import numpy
 import torch
 import attr
+import os
 
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
@@ -13,19 +14,22 @@ def load_ig_from_file(fname):
     zgroup = zarr.group(store=store)
     nres = zgroup.attrs["nres"]
     oneb_energies = {}
+    restype_groups = {}
     twob_energies = {}
     for i in range(1,nres+1):
         oneb_arrname = "%d" % i
+        restype_group_arrname = "%d_rtgroups" % i
         oneb_energies[oneb_arrname] = numpy.array(zgroup[oneb_arrname], dtype=float)
+        restype_groups[oneb_arrname] = numpy.array(zgroup[restype_group_arrname], dtype=int)
         for j in range(i+1,nres+1):
             twob_arrname = "%d-%d" % (i, j)
             if twob_arrname in zgroup:
                 twob_energies[twob_arrname] = numpy.array(zgroup[twob_arrname], dtype=float)
-    return oneb_energies, twob_energies
+    return oneb_energies, restype_groups, twob_energies
 
 def test_load_ig():
     fname = "1ubq_ig"
-    oneb, twob = load_ig_from_file(fname)
+    oneb, restype_groups, twob = load_ig_from_file(fname)
     assert len(oneb) == 76
     nrots = numpy.zeros((76,), dtype=int)
     for i in range(76):
@@ -38,7 +42,185 @@ def test_load_ig():
                 assert nrots[i] == twob[arrname].shape[0]
                 assert nrots[j] == twob[arrname].shape[1]
 
-def count_table_size(twob):
+                
+def aa_neighb_nonzero_submatrix(twob, rtg1, rtg2):
+    # rtg1 = exclusive_cumsum(rtg1_start)
+    # rtg2 = exclusive_cumsum(rtg2_start)
+
+    rtg1_start = numpy.concatenate(
+        (numpy.ones(1, dtype=int), rtg1[1:] - rtg1[:-1]))
+    rtg2_start = numpy.concatenate(
+        (numpy.ones(1, dtype=int), rtg2[1:] - rtg2[:-1]))
+
+    n_rtg1 = numpy.sum(rtg1_start)
+    n_rtg2 = numpy.sum(rtg2_start)
+
+    rtg1_offsets = numpy.nonzero(rtg1_start)[0]
+    rtg2_offsets = numpy.nonzero(rtg2_start)[0]
+
+    rtg_nrots1 = numpy.concatenate(
+        (rtg1_offsets[1:] - rtg1_offsets[:-1],
+         numpy.full((1,), rtg1_start.shape[0] - rtg1_offsets[-1], dtype=int)))
+    rtg_nrots2 = numpy.concatenate(
+        (rtg2_offsets[1:] - rtg2_offsets[:-1],
+         numpy.full((1,), rtg2_start.shape[0] - rtg2_offsets[-1], dtype=int)))
+    #print(rtg_nrots1)
+    #print(rtg_nrots2)
+
+    fine_offsets = numpy.full((n_rtg1, n_rtg2), -1, dtype=int)
+    count = 0
+    for i in range(n_rtg1):
+        i_slice = slice(rtg1_offsets[i],(rtg1_offsets[i] + rtg_nrots1[i]))
+        for j in range(n_rtg2):
+            j_slice = slice(rtg2_offsets[j],(rtg2_offsets[j] + rtg_nrots2[j]))
+            e2b_slice = twob[i_slice,j_slice]
+            # print(i, rtg_nrots1[i], j, rtg_nrots2[j], e2b_slice.shape)
+            assert (rtg_nrots1[i],rtg_nrots2[j]) == e2b_slice.shape
+            if numpy.any(e2b_slice != 0):
+                fine_offsets[i,j] = count
+                count += rtg_nrots1[i] * rtg_nrots2[j]
+    rtg_sparse_matrix = numpy.zeros((count,), dtype=float)
+    for i in range(n_rtg1):
+        i_slice = slice(rtg1_offsets[i],(rtg1_offsets[i] + rtg_nrots1[i]))
+        for j in range(n_rtg2):
+            j_slice = slice(rtg2_offsets[j],(rtg2_offsets[j] + rtg_nrots2[j]))
+            ij_offset = fine_offsets[i,j]
+            if ij_offset >= 0:
+                e2b_slice = twob[i_slice,j_slice].reshape(-1)
+                insert_slice = slice(ij_offset,(ij_offset + rtg_nrots1[i]*rtg_nrots2[j]))
+                rtg_sparse_matrix[insert_slice] = e2b_slice
+    return fine_offsets, rtg_sparse_matrix
+
+def count_aa_sparse_memory_usage(oneb, restype_groups, twob):
+    nres = len(oneb)
+
+    count_sparse = 0
+    count_dense = 0
+    count_nonzero = 0
+    for i in range(nres):
+        for j in range(i+1,nres):
+           one_name = "{}".format(i+1)
+           two_name = "{}".format(j+1)
+           onetwo_name = "{}-{}".format(i+1, j+1)
+           if onetwo_name in twob:
+               onetwo_twob = twob[onetwo_name]
+               fine_offsets, rtg_sparse_matrix = aa_neighb_nonzero_submatrix( onetwo_twob, restype_groups[one_name], restype_groups[two_name])
+               count_dense += onetwo_twob.shape[0] * onetwo_twob.shape[1]
+               count_sparse += rtg_sparse_matrix.shape[0]
+               count_nonzero += numpy.nonzero(rtg_sparse_matrix)[0].shape[0]
+    return count_dense, count_sparse, count_nonzero
+
+
+def test_nonzero_submatrix():
+    fname = "1ubq_redes_noex.zarr"
+    oneb, restype_groups, twob = load_ig_from_file(fname)
+
+    dense, sparse, nonzero = count_aa_sparse_memory_usage(oneb, restype_groups, twob)
+    print(dense, sparse, nonzero)
+    
+def test_aasparse_mat_repack():
+    fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    for fname in fnames:
+        path_to_zarr_file = "zarr_igs2/repack/" + fname + "_repack_noex.zarr"
+        assert os.path.isfile(path_to_zarr_file)
+        oneb, restype_groups, twob = load_ig_from_file(path_to_zarr_file)
+        dense, sparse, nonzero = count_aa_sparse_memory_usage(oneb, restype_groups, twob)
+        print(dense, sparse, nonzero, nonzero/dense, sparse/dense, nonzero/sparse)
+        
+def test_aasparse_mat_redes_ex1ex2():
+    fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    for fname in fnames:
+        path_to_zarr_file = "zarr_igs2/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
+        assert os.path.isfile(path_to_zarr_file)
+        oneb, restype_groups, twob = load_ig_from_file(path_to_zarr_file)
+        dense, sparse, nonzero = count_aa_sparse_memory_usage(oneb, restype_groups, twob)
+        print(dense, sparse, nonzero, nonzero/dense, sparse/dense, nonzero/sparse)
+
+def chunk_nonzero_submatrix(twob, chunk_size):
+
+    n_rots1 = twob.shape[0]
+    n_rots2 = twob.shape[1]
+    n_chunks1 = int((n_rots1 - 1) / chunk_size + 1)
+    n_chunks2 = int((n_rots2 - 1) / chunk_size + 1)
+    
+    fine_offsets = numpy.full((n_chunks1, n_chunks2), -1, dtype=int)
+    count = 0
+    for i in range(n_chunks1):
+        i_nrots = min(n_rots1 - i*chunk_size, chunk_size)
+        i_slice = slice(i*chunk_size,i*chunk_size + i_nrots)
+        for j in range(n_chunks2):
+            j_nrots = min(n_rots2 - j*chunk_size, chunk_size)
+            j_slice = slice(j*chunk_size, j*chunk_size + j_nrots)
+            e2b_slice = twob[i_slice,j_slice]
+            # print(i, rtg_nrots1[i], j, rtg_nrots2[j], e2b_slice.shape)
+            assert (i_nrots,j_nrots) == e2b_slice.shape
+            if numpy.any(e2b_slice != 0):
+                fine_offsets[i,j] = count
+                count += i_nrots * j_nrots
+    rtg_sparse_matrix = numpy.zeros((count,), dtype=float)
+    for i in range(n_chunks1):
+        i_nrots = min(n_rots1 - i*chunk_size, chunk_size)
+        i_slice = slice(i*chunk_size,i*chunk_size + i_nrots)
+        for j in range(n_chunks2):
+            j_nrots = min(n_rots2 - j*chunk_size, chunk_size)
+            j_slice = slice(j*chunk_size, j*chunk_size + j_nrots)
+            ij_offset = fine_offsets[i,j]
+            if ij_offset >= 0:
+                e2b_slice = twob[i_slice,j_slice].reshape(-1)
+                insert_slice = slice(ij_offset,(ij_offset + i_nrots*j_nrots))
+                rtg_sparse_matrix[insert_slice] = e2b_slice
+    return fine_offsets, rtg_sparse_matrix
+
+def count_chunk_sparse_memory_usage(oneb, twob, chunk_size):
+    nres = len(oneb)
+
+    count_sparse = 0
+    count_dense = 0
+    count_nonzero = 0
+    for i in range(nres):
+        for j in range(i+1,nres):
+           one_name = "{}".format(i+1)
+           two_name = "{}".format(j+1)
+           onetwo_name = "{}-{}".format(i+1, j+1)
+           if onetwo_name in twob:
+               onetwo_twob = twob[onetwo_name]
+               fine_offsets, rtg_sparse_matrix = chunk_nonzero_submatrix( onetwo_twob, chunk_size)
+               count_dense += onetwo_twob.shape[0] * onetwo_twob.shape[1]
+               count_sparse += rtg_sparse_matrix.shape[0]
+               count_nonzero += numpy.nonzero(rtg_sparse_matrix)[0].shape[0]
+    return count_dense, count_sparse, count_nonzero
+
+def test_aasparse_mat_repack():
+    fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    for fname in fnames:
+        path_to_zarr_file = "zarr_igs2/repack/" + fname + "_repack_noex.zarr"
+        assert os.path.isfile(path_to_zarr_file)
+        oneb, restype_groups, twob = load_ig_from_file(path_to_zarr_file)
+        dense, sparse, nonzero = count_aa_sparse_memory_usage(oneb, restype_groups, twob)
+        print(dense, sparse, nonzero, nonzero/dense, sparse/dense, nonzero/sparse)
+        
+def test_aasparse_mat_redes_ex1ex2():
+    fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    results = {}
+    for fname in fnames:
+        print(fname)
+        path_to_zarr_file = "zarr_igs2/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
+        assert os.path.isfile(path_to_zarr_file)
+        oneb, restype_groups, twob = load_ig_from_file(path_to_zarr_file)
+        for chunk in [8, 16, 32, 64]:
+            results[(fname,chunk)] = count_chunk_sparse_memory_usage(oneb, twob, chunk)
+            print(results[(fname,chunk)])
+    print()
+    print()
+    for chunk in [8, 16, 32, 64]:
+        print(chunk)
+        for fname in fnames:
+            dense, sparse, nonzero = results[(fname, chunk)]
+            print(dense, sparse, nonzero, nonzero/dense, sparse/dense, nonzero/sparse)
+
+        
+def count_table_size(twob, restype_groups):
+    rtg_start = [1] + restype
     count = 0
     for tabname in twob:
         shape = twob[tabname].shape
