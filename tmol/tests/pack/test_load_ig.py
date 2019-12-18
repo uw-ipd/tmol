@@ -278,7 +278,7 @@ def create_twobody_energy_table(oneb, twob):
 
 def test_energy_table_construction():
     fname = "1ubq_ig"
-    oneb, twob = load_ig_from_file(fname)
+    oneb, _, twob = load_ig_from_file(fname)
     energy_tables = create_twobody_energy_table(oneb, twob)
     et = energy_tables
 
@@ -311,8 +311,8 @@ def test_energy_table_construction():
 def test_run_sim_annealing(torch_device):
     # torch_device = torch.device("cpu")
 
-    fname = "1ubq_ig"
-    oneb, twob = load_ig_from_file(fname)
+    fname = "1ubq_redes_noex.zarr"
+    oneb, _, twob = load_ig_from_file(fname)
     et = create_twobody_energy_table(oneb, twob)
 
     print("nrotamers", et.res_for_rot.shape[0])
@@ -357,7 +357,7 @@ def test_run_sim_annealing_on_repacking_jobs():
     # fnames = ["1u36FHA"]
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/repack/" + fname + "_repack.zarr"
-        oneb, twob = load_ig_from_file(path_to_zarr_file)
+        oneb, _, twob = load_ig_from_file(path_to_zarr_file)
         et = create_twobody_energy_table(oneb, twob)
         # print("nrotamers", et.res_for_rot.shape[0])
         # print("table size", count_table_size(twob))
@@ -406,7 +406,7 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
     # fnames = ["1u36FHA", "1w0nFHA"]
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
-        oneb, twob = load_ig_from_file(path_to_zarr_file)
+        oneb, _, twob = load_ig_from_file(path_to_zarr_file)
         #print("table size", count_table_size(twob))
         et = create_twobody_energy_table(oneb, twob)
         #print("energy2b", et.energy2b.shape[0])
