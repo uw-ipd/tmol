@@ -8,17 +8,11 @@ from tmol.types.torch import Tensor
 
 
 @validate_args
-def exclusive_cumsum(
-    inds: NDArray(int)[:]
-) -> NDArray(int)[:] :
+def exclusive_cumsum(inds: NDArray(int)[:]) -> NDArray(int)[:]:
     """Calculate exclusive cumulative sum over input array
     """
-    return (
-        numpy.concatenate((
-            numpy.zeros((1,), dtype=int),
-            numpy.cumsum(inds)[:-1]
-        ))
-    )
+    return numpy.concatenate((numpy.zeros((1,), dtype=int), numpy.cumsum(inds)[:-1]))
+
 
 @validate_args
 def exclusive_cumsum1d(inds: Tensor(torch.int32)[:]) -> Tensor(torch.int32)[:]:
