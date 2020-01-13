@@ -175,15 +175,15 @@ def test_aasparse_mat_redes_ex1ex2():
         print(dense, sparse, nonzero, nonzero / dense, sparse / dense, nonzero / sparse)
 
 
-def chunk_nonzero_submatrix(twob, chunk_size):
+def find_nonzero_submatrix_chunks(twob, chunk_size):
 
     n_rots1 = twob.shape[0]
     n_rots2 = twob.shape[1]
-    n_chunks1 = int((n_rots1 - 1) / chunk_size + 1)
-    n_chunks2 = int((n_rots2 - 1) / chunk_size + 1)
+    n_chunks1 = int((n_rots1 - 1) // chunk_size + 1)
+    n_chunks2 = int((n_rots2 - 1) // chunk_size + 1)
 
-    fine_offsets = numpy.full((n_chunks1, n_chunks2), -1, dtype=int)
-    count = 0
+    #fine_offsets = numpy.full((n_chunks1, n_chunks2), -1, dtype=int)
+    chunk_pair_nenergies = numpy.full((n_chunks1, n_chunks2), 0, dtype=int)
     for i in range(n_chunks1):
         i_nrots = min(n_rots1 - i * chunk_size, chunk_size)
         i_slice = slice(i * chunk_size, i * chunk_size + i_nrots)
@@ -194,9 +194,21 @@ def chunk_nonzero_submatrix(twob, chunk_size):
             # print(i, rtg_nrots1[i], j, rtg_nrots2[j], e2b_slice.shape)
             assert (i_nrots, j_nrots) == e2b_slice.shape
             if numpy.any(e2b_slice != 0):
-                fine_offsets[i, j] = count
-                count += i_nrots * j_nrots
-    rtg_sparse_matrix = numpy.zeros((count,), dtype=float)
+                chunk_pair_nenergies[i, j] = i_nrots * j_nrots
+    return chunk_pair_nenergies
+
+
+def chunk_nonzero_submatrix(twob, chunk_pair_nenergies, chunk_size):
+    n_rots1 = twob.shape[0]
+    n_rots2 = twob.shape[1]
+    n_chunks1 = int((n_rots1 - 1) // chunk_size + 1)
+    n_chunks2 = int((n_rots2 - 1) // chunk_size + 1)
+
+    nenergies = numpy.sum(chunk_pair_nenergies)
+    fine_offsets = exclusive_cumsum(
+        chunk_pair_nenergies.reshape(-1)).reshape(chunk_pair_nenergies.shape)
+    fine_offsets[chunk_pair_nenergies == 0] = -1
+    rtg_sparse_matrix = numpy.zeros((nenergies,), dtype=float)
     for i in range(n_chunks1):
         i_nrots = min(n_rots1 - i * chunk_size, chunk_size)
         i_slice = slice(i * chunk_size, i * chunk_size + i_nrots)
@@ -224,11 +236,13 @@ def count_chunk_sparse_memory_usage(oneb, twob, chunk_size):
             onetwo_name = "{}-{}".format(i + 1, j + 1)
             if onetwo_name in twob:
                 onetwo_twob = twob[onetwo_name]
-                fine_offsets, rtg_sparse_matrix = chunk_nonzero_submatrix(
-                    onetwo_twob, chunk_size
-                )
+                chunk_pair_nenergies = find_nonzero_submatrix_chunks(twob, chunk_size)
+                
+                # fine_offsets, rtg_sparse_matrix = chunk_nonzero_submatrix(
+                #     onetwo_twob, chunk_pair_nenergies, chunk_size
+                # )
                 count_dense += onetwo_twob.shape[0] * onetwo_twob.shape[1]
-                count_sparse += rtg_sparse_matrix.shape[0]
+                count_sparse += numpy.sum(chunk_pair_nenergies) # rtg_sparse_matrix.shape[0]
                 count_nonzero += numpy.nonzero(rtg_sparse_matrix)[0].shape[0]
     return count_dense, count_sparse, count_nonzero
 
@@ -354,7 +368,6 @@ def create_twobody_energy_table(oneb, twob):
 def create_chunk_twobody_energy_table(oneb, twob, chunk_size):
     nres = len(oneb)
     offsets = numpy.zeros((nres, nres), dtype=numpy.int64)
-    nenergies = numpy.zeros((nres, nres), dtype=int)
     nrotamers_for_res = numpy.array(
         [oneb["{}".format(i + 1)].shape[0] for i in range(nres)], dtype=int
     )
@@ -370,71 +383,160 @@ def create_chunk_twobody_energy_table(oneb, twob, chunk_size):
         energy1b[(start) : (start + table.shape[0])] = table
         res_for_rot[(start) : (start + table.shape[0])] = i
 
+    # sparse_tables = {}
+    # fine_offsets = {}
+    chunk_pair_nenergies = {}
+    respair_nenergies = numpy.zeros((nres, nres), dtype=int)
+    respair_nchunkpairs = numpy.zeros((nres, nres), dtype=int)
     for i in range(nres):
         for j in range(i + 1, nres):
             tabname = "{}-{}".format(i + 1, j + 1)
             if tabname in twob:
-                nenergies[i, j] = nrotamers_for_res[i] * nrotamers_for_res[j]
-                nenergies[j, i] = nrotamers_for_res[i] * nrotamers_for_res[j]
+                ij_chunk_pair_nenergies = find_nonzero_submatrix_chunks(
+                    twob[tabname], chunk_size)
+                chunk_pair_nenergies[(i,j)] = ij_chunk_pair_nenergies
+                ij_nenergies = numpy.sum(ij_chunk_pair_nenergies)
+                respair_nenergies[i, j] = ij_nenergies
+                respair_nenergies[j, i] = ij_nenergies
+                ij_n_sparse_pairs = (
+                    ij_chunk_pair_nenergies.shape[0] * ij_chunk_pair_nenergies.shape[1]
+                )
+                respair_nchunkpairs[i, j] = ij_n_sparse_pairs
+                respair_nchunkpairs[j, i] = ij_n_sparse_pairs
+                
 
-    twob_offsets = exclusive_cumsum(nenergies.reshape(-1)).reshape(nenergies.shape)
-    n_rpes_total = numpy.sum(nenergies)
+    twob_offsets = exclusive_cumsum(
+        respair_nenergies.reshape(-1)).reshape(respair_nenergies.shape)
+    chunk_offset_offsets = exclusive_cumsum(
+        respair_nchunkpairs.reshape(-1)).reshape(respair_nchunkpairs.shape)
+
+    n_rpes_total = numpy.sum(respair_nenergies)
+    n_chunk_offsets_total = numpy.sum(respair_nchunkpairs)
+
     energy2b = numpy.zeros(n_rpes_total, dtype=float)
+    fine_chunk_offsets = numpy.zeros(n_chunk_offsets_total, dtype=int)
+
     for i in range(nres):
+        i_nrotamers = nrotamers_for_res[i]
+        i_nchunks = int((i_nrotamers - 1) // chunk_size + 1)
         for j in range(i + 1, nres):
-            if nenergies[i, j] == 0:
+            if respair_nenergies[i, j] == 0:
                 continue
             tabname = "{}-{}".format(i + 1, j + 1)
-            table = twob[tabname]
+            ij_twob = twob[tabname]
+            
+            j_nrotamers = nrotamers_for_res[j]
+            j_nchunks = int((j_nrotamers - 1) // chunk_size + 1)
+
             start_ij = twob_offsets[i, j]
-            extent = nenergies[i, j]
-            energy2b[start_ij : (start_ij + extent)] = table.reshape(-1)
             start_ji = twob_offsets[j, i]
-            energy2b[start_ji : (start_ji + extent)] = table.T.reshape(-1)
+
+            ij_chunk_pair_nenergies = chunk_pair_nenergies[(i,j)]
+            
+            assert (i_nchunks, j_nchunks) == ij_chunk_pair_nenergies.shape
+
+            ij_fine_offsets, ij_sparse_matrix = chunk_nonzero_submatrix(
+                ij_twob,  ij_chunk_pair_nenergies, chunk_size)
+
+            ji_fine_offsets, ji_sparse_matrix = chunk_nonzero_submatrix(
+                ij_twob.T,  ij_chunk_pair_nenergies.T, chunk_size)
+
+            ij_n_chunk_pairs = i_nchunks * j_nchunks
+            
+            ij_chunk_offset_offset = chunk_offset_offsets[i,j]
+            ij_chunk_offset_slice = slice(ij_chunk_offset_offset,
+                ij_chunk_offset_offset + ij_n_chunk_pairs)
+            fine_chunk_offsets[ij_chunk_offset_slice] = ij_fine_offsets.reshape(-1)
+
+            ji_chunk_offset_offset = chunk_offset_offsets[j,i]
+            ji_chunk_offset_slice = slice(ji_chunk_offset_offset,
+                ji_chunk_offset_offset + ij_n_chunk_pairs)
+            fine_chunk_offsets[ji_chunk_offset_slice] = ji_fine_offsets.reshape(-1)
+
+            ij_e2b_offset = twob_offsets[i,j]
+            ij_e2b_slice = slice(ij_e2b_offset,
+                ij_e2b_offset + ij_sparse_matrix.shape[0])
+            energy2b[ij_e2b_slice] = ij_sparse_matrix
+
+            ji_e2b_offset = twob_offsets[j,i]
+            ji_e2b_slice = slice(ji_e2b_offset,
+                ji_e2b_offset + ji_sparse_matrix.shape[0])
+            energy2b[ji_e2b_slice] = ji_sparse_matrix            
+
 
     return PackerEnergyTables(
         nrotamers_for_res=nrotamers_for_res,
         oneb_offsets=oneb_offsets,
         res_for_rot=res_for_rot,
-        nenergies=nenergies,
+        respair_nenergies=respair_nenergies,
+        chunk_offset_offsets=chunk_offset_offsets,
         twob_offsets=twob_offsets,
+        fine_chunk_offsets=fine_chunk_offsets,
         energy1b=energy1b,
         energy2b=energy2b,
     )
 
 
 def test_energy_table_construction():
-    fname = "1ubq_ig"
+    fname = "1ubq_redes_noex.zarr"
     oneb, _, twob = load_ig_from_file(fname)
-    energy_tables = create_twobody_energy_table(oneb, twob)
+    chunk_size = 16
+    energy_tables = create_chunk_twobody_energy_table(oneb, twob, chunk_size)
     et = energy_tables
 
     nrots_total = et.res_for_rot.shape[0]
     # pick two residues, 12 and 14
     assert "12-14" in twob
 
+    i_res_nrots = et.nrotamers_for_res[11]
+    j_res_nrots = et.nrotamers_for_res[13]
+    
+    i_nchunks = (i_res_nrots - 1 ) // chunk_size + 1
+    j_nchunks = (j_res_nrots - 1 ) // chunk_size + 1
+    
     for i in range(et.oneb_offsets[11], et.oneb_offsets[11] + et.nrotamers_for_res[11]):
         ires = et.res_for_rot[i]
         assert ires == 11
-        irot_on_res = i - et.oneb_offsets[ires]
+        i_rot_on_res = i - et.oneb_offsets[ires]
         for j in range(
             et.oneb_offsets[13], et.oneb_offsets[13] + et.nrotamers_for_res[13]
         ):
             jres = et.res_for_rot[j]
             assert jres == 13
-            jrot_on_res = j - et.oneb_offsets[jres]
-            if et.nenergies[ires, jres] == 0:
+            j_rot_on_res = j - et.oneb_offsets[jres]
+            if et.respair_nenergies[ires, jres] == 0:
                 continue
+
+            i_chunk = i_rot_on_res // chunk_size
+            j_chunk = j_rot_on_res // chunk_size
+            i_rot_in_chunk = i_rot_on_res - chunk_size * i_chunk
+            j_rot_in_chunk = j_rot_on_res - chunk_size * j_chunk
+            i_chunk_size = min(chunk_size, et.nrotamers_for_res[11] - chunk_size * i_chunk)
+            j_chunk_size = min(chunk_size, et.nrotamers_for_res[13] - chunk_size * j_chunk)
+
+            ij_chunk_offset = et.chunk_offset_offsets[ires, jres]
+            ji_chunk_offset = et.chunk_offset_offsets[jres, ires]
+
+            ij_chunk_start = et.fine_chunk_offsets[
+                ij_chunk_offset + i_chunk * j_nchunks + j_chunk
+            ]
+            ji_chunk_start = et.fine_chunk_offsets[
+                ji_chunk_offset + j_chunk * i_nchunks + i_chunk
+            ]
+            
             ij_energy = et.energy2b[
                 et.twob_offsets[ires, jres]
-                + irot_on_res * et.nrotamers_for_res[jres]
-                + jrot_on_res
+                + ij_chunk_start
+                + i_rot_in_chunk * j_chunk_size
+                + j_rot_in_chunk
             ]
             ji_energy = et.energy2b[
                 et.twob_offsets[jres, ires]
-                + jrot_on_res * et.nrotamers_for_res[ires]
-                + irot_on_res
+                + ji_chunk_start
+                + j_rot_in_chunk * i_chunk_size
+                + i_rot_in_chunk
             ]
+
             assert ij_energy == ji_energy  # exact equality ok since they are copies
 
 
