@@ -76,8 +76,11 @@ total_energy_for_assignment(
   TView<int, 1, D> nrotamers_for_res,
   TView<int, 1, D> oneb_offsets,
   TView<int, 1, D> res_for_rot,
-  TView<int, 2, D> nenergies,
+  TView<int, 2, D> respair_nenergies,
+  TView<int, 1, D> chunk_size_t,
+  TView<int, 2, D> chunk_offset_offsets,
   TView<int64_t, 2, D> twob_offsets,
+  TView<int, 1, D> fine_chunk_offsets,
   TView<float, 1, D> energy1b,
   TView<float, 1, D> energy2b,
   TView<int, 2, D> rotamer_assignment, 
@@ -87,22 +90,48 @@ total_energy_for_assignment(
 {
   float totalE = 0;
   int const nres = nrotamers_for_res.size(0);
+  int const chunk_size = chunk_size_t[0];
   for (int i = 0; i < nres; ++i) {
     int const irot_local = rotamer_assignment[rotassign_dim0][i];
     int const irot_global = irot_local + oneb_offsets[i];
+    int const ires_nrots = nrotamers_for_res[i];
+    int const ires_nchunks = (ires_nrots - 1) / chunk_size + 1;
+    int const irot_chunk = irot_local / chunk_size;
+    int const irot_in_chunk = irot_local - chunk_size * irot_chunk;
+    int const irot_chunk_size = std::min(chunk_size,
+      ires_nrots - chunk_size * irot_chunk);
     
     totalE += energy1b[irot_global];
     for (int j = i+1; j < nres; ++j) {
       int const jrot_local = rotamer_assignment[rotassign_dim0][j];
-      if (nenergies[i][j] == 0) {
+      if (respair_nenergies[i][j] == 0) {
 	pair_energies[rotassign_dim0][i][j] = 0;
 	pair_energies[rotassign_dim0][j][i] = 0;
 	continue;
       }
+      int const jres_nrots = nrotamers_for_res[j];
+      int const jres_nchunks = (jres_nrots-1) / chunk_size + 1;
+      int const jrot_chunk = jrot_local / chunk_size;
+      int const jrot_in_chunk = jrot_local - chunk_size * jrot_chunk;
+      int const jrot_chunk_size = std::min(chunk_size,
+	jres_nrots - chunk_size * jrot_chunk);
+      
+      int const ij_chunk_offset_offset = chunk_offset_offsets[i][j];
+      int const ij_chunk_offset = fine_chunk_offsets[
+	ij_chunk_offset_offset
+	+ irot_chunk * jres_nchunks
+	+ jrot_chunk
+      ];
+      if (ij_chunk_offset < 0) {
+	pair_energies[rotassign_dim0][i][j] = 0;
+	pair_energies[rotassign_dim0][j][i] = 0;
+      }
+
       float ij_energy = energy2b[
 	twob_offsets[i][j]
-	+ nrotamers_for_res[j] * irot_local
-	+ jrot_local
+	+ ij_chunk_offset
+	+ irot_in_chunk * jrot_chunk_size
+	+ jrot_in_chunk
       ];
       totalE += ij_energy;
       pair_energies[rotassign_dim0][i][j] = ij_energy;
@@ -124,8 +153,11 @@ total_energy_for_assignment(
   TView<int, 1, D> nrotamers_for_res,
   TView<int, 1, D> oneb_offsets,
   TView<int, 1, D> res_for_rot,
-  TView<int, 2, D> nenergies,
+  TView<int, 2, D> respair_nenergies,
+  TView<int, 1, D> chunk_size_t,
+  TView<int, 2, D> chunk_offset_offsets,
   TView<int64_t, 2, D> twob_offsets,
+  TView<int, 1, D> fine_chunk_offsets,
   TView<float, 1, D> energy1b,
   TView<float, 1, D> energy2b,
   TView<int, 2, D> rotamer_assignment, 
@@ -134,19 +166,45 @@ total_energy_for_assignment(
 {
   float totalE = 0;
   int const nres = nrotamers_for_res.size(0);
+  int const chunk_size = chunk_size_t[0];
   for (int i = 0; i < nres; ++i) {
     int const irot_local = rotamer_assignment[rotassign_dim0][i];
     int const irot_global = irot_local + oneb_offsets[i];
+    int const ires_nrots = nrotamers_for_res[i];
+    int const ires_nchunks = (ires_nrots - 1) / chunk_size + 1;
+    int const irot_chunk = irot_local / chunk_size;
+    int const irot_in_chunk = irot_local - chunk_size * irot_chunk;
+    int const irot_chunk_size = std::min(chunk_size,
+      ires_nrots - chunk_size * irot_chunk);
     
     totalE += energy1b[irot_global];
     for (int j = i+1; j < nres; ++j) {
       int const jrot_local = rotamer_assignment[rotassign_dim0][j];
-      if (nenergies[i][j] == 0) {
+      if (respair_nenergies[i][j] == 0) {
 	continue;
       }
-      int64_t index = 	twob_offsets[i][j]
-	+ nrotamers_for_res[j] * irot_local
-	+ jrot_local;
+      int const jres_nrots = nrotamers_for_res[j];
+      int const jres_nchunks = (jres_nrots-1) / chunk_size + 1;
+      int const jrot_chunk = jrot_local / chunk_size;
+      int const jrot_in_chunk = jrot_local - chunk_size * jrot_chunk;
+      int const jrot_chunk_size = std::min(chunk_size,
+	jres_nrots - chunk_size * jrot_chunk);
+      
+      int const ij_chunk_offset_offset = chunk_offset_offsets[i][j];
+      int const ij_chunk_offset = fine_chunk_offsets[
+	ij_chunk_offset_offset
+	+ irot_chunk * jres_nchunks
+	+ jrot_chunk
+      ];
+      if (ij_chunk_offset < 0) {
+	continue;
+      }
+
+      int64_t index =
+	twob_offsets[i][j]
+	+ ij_chunk_offset
+	+ irot_in_chunk * jrot_chunk_size
+	+ jrot_in_chunk;
 
       // std::cout << "twob index " << index << std::endl;
       float ij_energy = energy2b[index];

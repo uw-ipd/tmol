@@ -51,8 +51,11 @@ public:
   TView<Int, 1, D> nrotamers_for_res_;
   TView<Int, 1, D> oneb_offsets_;
   TView<Int, 1, D> res_for_rot_;
-  TView<Int, 2, D> nenergies_;
+  TView<Int, 2, D> respair_nenergies_;
+  Int chunk_size_;
+  TView<Int, 2, D> chunk_offset_offsets_;
   TView<int64_t, 2, D> twob_offsets_;
+  TView<Int, 1, D> fine_chunk_offsets_;
   TView<Real, 1, D> energy1b_;
   TView<Real, 1, D> energy2b_;
 
@@ -108,18 +111,38 @@ public:
     if (this_thread_active) {
       new_e = energy1b_[global_sub_rot];
     }
+    int sub_rot_chunk = local_sub_rot / chunk_size_;
+    int sub_rot_in_chunk = local_sub_rot - sub_rot_chunk * chunk_size_;
+    int sub_res_nchunks = (sub_res_nrots - 1) / chunk_size_ + 1;
+    int sub_rot_chunk_size = min(chunk_size_, sub_res_nrots - chunk_size_ * sub_rot_chunk);
 
     // Temp: iterate across all residues instead of just the
     // neighbors of ran_rot_res
     if (this_thread_active) {
       for (int k=0; k < nres(); ++k) {
-	if (k == sub_res || nenergies_[sub_res][k] == 0) {
+	if (k == sub_res || respair_nenergies_[sub_res][k] == 0) {
 	  continue;
 	}
 	int const local_k_rot = rotamer_assignments[k];
+	int const k_chunk = local_k_rot / chunk_size_;
+	int const k_sub_chunk_offset_offset = chunk_offset_offsets_[k][sub_res];
+	if (k_sub_chunk_offset_offset < 0) {
+	  continue;
+	}
 
+	int const k_in_chunk = local_k_rot - k_chunk * chunk_size_;
+	int const k_res_nrots = nrotamers_for_res_[k];
+	int const k_chunk_size = min(chunk_size_, sub_res_nrots - chunk_size_ * sub_rot_chunk);
+	int const k_sub_chunk_start = fine_chunk_offsets_[
+	  k_sub_chunk_offset_offset + k_chunk * sub_res_nchunks + sub_rot_chunk
+	];
+	
 	int64_t const k_sub_offset = twob_offsets_[k][sub_res];
-	new_e += energy2b_[k_sub_offset + sub_res_nrots * local_k_rot + local_sub_rot];
+	new_e += energy2b_[
+	  k_sub_offset
+	  + k_sub_chunk_start
+	  + sub_rot_chunk_size * k_in_chunk
+	  + sub_rot_in_chunk];
       }
     }
     return new_e;
@@ -144,16 +167,38 @@ public:
 
     for (int i = g.thread_rank(); i < nres; i += nthreads) {
       int const irot_local = rotamer_assignment[i];
+      int const irot_chunk = irot_local / chunk_size_;
+      int const irot_in_chunk = irot_local - chunk_size_ * irot_chunk;
+      int const ires_nrots = nrotamers_for_res_[i];
+      int const ires_nchunks = (ires_nrots-1) / chunk_size_ + 1;
+      int const irot_chunk_size = min(chunk_size_, ires_nrots - chunk_size_ * irot_chunk);
 
       for (int j = i+1; j < nres; ++j) {
         int const jrot_local = rotamer_assignment[j];
-        if (nenergies_[i][j] == 0) {
+        if (respair_nenergies_[i][j] == 0) {
           continue;
         }
+	int const jrot_chunk = jrot_local / chunk_size_;
+	int const jrot_in_chunk = jrot_local - chunk_size_ * jrot_chunk;
+	int const ij_chunk_offset_offset = chunk_offset_offsets_[i][j];
+	if (ij_chunk_offset_offset < 0) {
+	  continue;
+	}
+	int const jres_nrots = nrotamers_for_res_[j];
+	int const jres_nchunks = (jres_nrots-1) / chunk_size_ + 1;
+	int const jrot_chunk_size = min(chunk_size_,
+	  jres_nrots - chunk_size_ * jrot_chunk);
+	int const ij_chunk_start = fine_chunk_offsets_[
+	  ij_chunk_offset_offset +
+	  irot_chunk * jres_nchunks +
+	  jrot_chunk
+	];
+	
         float ij_energy = energy2b_[
           twob_offsets_[i][j]
-          + nrotamers_for_res_[j] * irot_local
-          + jrot_local
+          + ij_chunk_start
+	  + jrot_chunk_size * irot_in_chunk
+          + jrot_in_chunk
         ];
         totalE += ij_energy;
       }
@@ -971,8 +1016,11 @@ struct AnnealerDispatch
     TView<int, 1, D> nrotamers_for_res,
     TView<int, 1, D> oneb_offsets,
     TView<int, 1, D> res_for_rot,
-    TView<int, 2, D> nenergies,
+    TView<int, 2, D> respair_nenergies,
+    TView<int, 1, D> chunk_size,
+    TView<int, 2, D> chunk_offset_offsets,
     TView<int64_t, 2, D> twob_offsets,
+    TView<int, 1, D> fine_chunk_offsets,
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b
   )
@@ -984,10 +1032,13 @@ struct AnnealerDispatch
 
     InteractionGraph<D, int, float> ig({
 	nrotamers_for_res,
-        oneb_offsets,
-        res_for_rot,
-        nenergies,
+	oneb_offsets,
+	res_for_rot,
+        respair_nenergies,
+	chunk_size[0],
+	chunk_offset_offsets,
         twob_offsets,
+	fine_chunk_offsets,
         energy1b,
         energy2b});
 

@@ -463,12 +463,14 @@ def create_chunk_twobody_energy_table(oneb, twob, chunk_size):
                 ji_e2b_offset + ji_sparse_matrix.shape[0])
             energy2b[ji_e2b_slice] = ji_sparse_matrix            
 
+    chunk_size = numpy.full((1,), chunk_size, dtype=int);
 
     return PackerEnergyTables(
         nrotamers_for_res=nrotamers_for_res,
         oneb_offsets=oneb_offsets,
         res_for_rot=res_for_rot,
         respair_nenergies=respair_nenergies,
+        chunk_size=chunk_size,
         chunk_offset_offsets=chunk_offset_offsets,
         twob_offsets=twob_offsets,
         fine_chunk_offsets=fine_chunk_offsets,
@@ -545,7 +547,8 @@ def test_run_sim_annealing(torch_device):
 
     fname = "1ubq_redes_noex.zarr"
     oneb, _, twob = load_ig_from_file(fname)
-    et = create_twobody_energy_table(oneb, twob)
+    chunk_size = 16
+    et = create_chunk_twobody_energy_table(oneb, twob, chunk_size)
 
     print("nrotamers", et.res_for_rot.shape[0])
     et_dev = et.to(torch_device)

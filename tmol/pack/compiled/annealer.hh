@@ -18,8 +18,11 @@ struct AnnealerDispatch
     TView<int, 1, D> nrotamers_for_res,
     TView<int, 1, D> oneb_offsets,
     TView<int, 1, D> res_for_rot,
-    TView<int, 2, D> nenergies,
+    TView<int, 2, D> respair_nenergies,
+    TView<int, 1, D> chunk_size,
+    TView<int, 2, D> chunk_offset_offsets,
     TView<int64_t, 2, D> twob_offsets,
+    TView<int, 1, D> fine_chunk_offsets,
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b
   )

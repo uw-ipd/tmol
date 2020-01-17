@@ -14,6 +14,7 @@ class PackerEnergyTables(TensorGroup, ConvertAttrs):
     res_for_rot: Tensor(torch.int32)[:]  # [nrotamers_total]
     # restype_group_for_rot: Tensor(torch.int32)[:] # [nrotamers_total]
     respair_nenergies: Tensor(torch.int32)[:, :]  # [nres x nres]
+    chunk_size: Tensor(torch.int32)[:] # [ 1 ]
     chunk_offset_offsets: Tensor(torch.int32)[:, :]  # [nres x nres]
     twob_offsets: Tensor(torch.int64)[:, :]  # [nres x nres]
     fine_chunk_offsets: Tensor(torch.int32)[:] # 
