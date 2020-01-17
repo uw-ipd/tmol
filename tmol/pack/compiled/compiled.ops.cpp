@@ -42,6 +42,7 @@ anneal(
     energy1b.type(), "pack_anneal", ([&] {
       constexpr tmol::Device Dev = device_t;
 
+      std::cout << "HOLA!" << std::endl;
       auto result = AnnealerDispatch<Dev>::forward(
 	TCAST(nrotamers_for_res),
 	TCAST(oneb_offsets),

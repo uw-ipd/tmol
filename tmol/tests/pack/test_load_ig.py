@@ -542,8 +542,8 @@ def test_energy_table_construction():
             assert ij_energy == ji_energy  # exact equality ok since they are copies
 
 
-def test_run_sim_annealing(torch_device):
-    # torch_device = torch.device("cpu")
+def test_run_sim_annealing():
+    torch_device = torch.device("cuda")
 
     fname = "1ubq_redes_noex.zarr"
     oneb, _, twob = load_ig_from_file(fname)
