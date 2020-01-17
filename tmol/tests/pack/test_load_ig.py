@@ -14,27 +14,27 @@ def load_ig_from_file(fname):
     zgroup = zarr.group(store=store)
     nres = zgroup.attrs["nres"]
     oneb_energies = {}
-    restype_groups = {}
+    # restype_groups = {}
     twob_energies = {}
     for i in range(1, nres + 1):
         oneb_arrname = "%d" % i
         restype_group_arrname = "%d_rtgroups" % i
         oneb_energies[oneb_arrname] = numpy.array(zgroup[oneb_arrname], dtype=float)
-        restype_groups[oneb_arrname] = numpy.array(
-            zgroup[restype_group_arrname], dtype=int
-        )
+        # restype_groups[oneb_arrname] = numpy.array(
+        #     zgroup[restype_group_arrname], dtype=int
+        # )
         for j in range(i + 1, nres + 1):
             twob_arrname = "%d-%d" % (i, j)
             if twob_arrname in zgroup:
                 twob_energies[twob_arrname] = numpy.array(
                     zgroup[twob_arrname], dtype=float
                 )
-    return oneb_energies, restype_groups, twob_energies
+    return oneb_energies, twob_energies
 
 
 def test_load_ig():
     fname = "1ubq_ig"
-    oneb, restype_groups, twob = load_ig_from_file(fname)
+    oneb, twob = load_ig_from_file(fname)
     assert len(oneb) == 76
     nrots = numpy.zeros((76,), dtype=int)
     for i in range(76):
@@ -125,7 +125,7 @@ def count_aa_sparse_memory_usage(oneb, restype_groups, twob):
     return count_dense, count_sparse, count_nonzero
 
 
-def test_nonzero_submatrix():
+def dont_test_nonzero_submatrix():
     fname = "1ubq_redes_noex.zarr"
     oneb, restype_groups, twob = load_ig_from_file(fname)
 
@@ -133,7 +133,7 @@ def test_nonzero_submatrix():
     print(dense, sparse, nonzero)
 
 
-def test_aasparse_mat_repack():
+def dont_test_aasparse_mat_repack():
     fnames = [
         "1wzbFHA",
         "1qtxFHB",
@@ -154,7 +154,7 @@ def test_aasparse_mat_repack():
         print(dense, sparse, nonzero, nonzero / dense, sparse / dense, nonzero / sparse)
 
 
-def test_aasparse_mat_redes_ex1ex2():
+def dont_test_aasparse_mat_redes_ex1ex2():
     fnames = [
         "1wzbFHA",
         "1qtxFHB",
@@ -247,7 +247,7 @@ def count_chunk_sparse_memory_usage(oneb, twob, chunk_size):
     return count_dense, count_sparse, count_nonzero
 
 
-def test_aasparse_mat_repack():
+def dont_test_aasparse_mat_repack():
     fnames = [
         "1wzbFHA",
         "1qtxFHB",
@@ -284,7 +284,7 @@ def test_aasparse_mat_redes_ex1ex2():
         print(fname)
         path_to_zarr_file = "zarr_igs2/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
         assert os.path.isfile(path_to_zarr_file)
-        oneb, restype_groups, twob = load_ig_from_file(path_to_zarr_file)
+        oneb, twob = load_ig_from_file(path_to_zarr_file)
         for chunk in [8, 16, 32, 64]:
             results[(fname, chunk)] = count_chunk_sparse_memory_usage(oneb, twob, chunk)
             print(results[(fname, chunk)])
@@ -481,7 +481,7 @@ def create_chunk_twobody_energy_table(oneb, twob, chunk_size):
 
 def test_energy_table_construction():
     fname = "1ubq_redes_noex.zarr"
-    oneb, _, twob = load_ig_from_file(fname)
+    oneb, twob = load_ig_from_file(fname)
     chunk_size = 16
     energy_tables = create_chunk_twobody_energy_table(oneb, twob, chunk_size)
     et = energy_tables
@@ -546,7 +546,7 @@ def test_run_sim_annealing():
     torch_device = torch.device("cuda")
 
     fname = "1ubq_redes_noex.zarr"
-    oneb, _, twob = load_ig_from_file(fname)
+    oneb, twob = load_ig_from_file(fname)
     chunk_size = 16
     et = create_chunk_twobody_energy_table(oneb, twob, chunk_size)
 
@@ -591,6 +591,7 @@ def test_run_sim_annealing():
 
 
 def test_run_sim_annealing_on_repacking_jobs():
+    chunk_size = 16
     torch_device = torch.device("cuda")
     fnames = [
         "1wzbFHA",
@@ -605,23 +606,26 @@ def test_run_sim_annealing_on_repacking_jobs():
     # fnames = ["1u36FHA"]
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/repack/" + fname + "_repack.zarr"
-        oneb, _, twob = load_ig_from_file(path_to_zarr_file)
-        et = create_twobody_energy_table(oneb, twob)
+        oneb, twob = load_ig_from_file(path_to_zarr_file)
+        et = create_chunk_twobody_energy_table(oneb, twob, chunk_size)
         # print("nrotamers", et.res_for_rot.shape[0])
         # print("table size", count_table_size(twob))
         et_dev = et.to(torch_device)
 
         # print("running sim annealing on", fname)
         scores, rotamer_assignments = run_simulated_annealing(et_dev)
+        print("scores", scores)
 
         scores_temp = scores
-        scores = scores.cpu().numpy()
+        #scores = scores.cpu().numpy()
+        print("scores again", scores)
         numpy.set_printoptions(threshold=1e5)
-        print("scores", fname)
-        for i in range(scores.shape[1]):
-            print(scores[0, i], scores[1, i])
+        #print("scores", fname)
+        #for i in range(scores.shape[1]):
+        #    print(scores[0, i], scores[1, i])
 
-        scores = scores_temp[1, :]
+        #scores = scores_temp[1, :]
+        scores = scores[0,:]
         sort_scores, sort_inds = scores.sort()
         nkeep = min(scores.shape[0], 5)
         best_scores = sort_scores[0:nkeep]
@@ -637,8 +641,11 @@ def test_run_sim_annealing_on_repacking_jobs():
             et.nrotamers_for_res,
             et.oneb_offsets,
             et.res_for_rot,
-            et.nenergies,
+            et.respair_nenergies,
+            et.chunk_size,
+            et.chunk_offset_offsets,
             et.twob_offsets,
+            et.fine_chunk_offsets,
             et.energy1b,
             et.energy2b,
             rotamer_assignments,
@@ -649,6 +656,7 @@ def test_run_sim_annealing_on_repacking_jobs():
 
 
 def test_run_sim_annealing_on_redes_ex1ex2_jobs():
+    chunk_size = 16
     torch_device = torch.device("cuda")
     fnames = [
         "1wzbFHA",
@@ -664,9 +672,9 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
     # fnames = ["1u36FHA", "1w0nFHA"]
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
-        oneb, _, twob = load_ig_from_file(path_to_zarr_file)
+        oneb, twob = load_ig_from_file(path_to_zarr_file)
         # print("table size", count_table_size(twob))
-        et = create_twobody_energy_table(oneb, twob)
+        et = create_chunk_twobody_energy_table(oneb, twob, chunk_size)
         # print("energy2b", et.energy2b.shape[0])
         # print("nrotamers", et.res_for_rot.shape[0])
         # nz = torch.nonzero(et.energy2b)
@@ -704,8 +712,11 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
             et.nrotamers_for_res,
             et.oneb_offsets,
             et.res_for_rot,
-            et.nenergies,
+            et.respair_nenergies,
+            et.chunk_size,
+            et.chunk_offset_offsets,
             et.twob_offsets,
+            et.fine_chunk_offsets,
             et.energy1b,
             et.energy2b,
             rotamer_assignments,
