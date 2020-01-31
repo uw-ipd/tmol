@@ -184,14 +184,15 @@ def test_run_sim_annealing_on_repacking_jobs():
         # print("running sim annealing on", fname)
         scores, rotamer_assignments = run_simulated_annealing(et_dev)
 
-        scores_temp = scores
-        scores = scores.cpu().numpy()
-        numpy.set_printoptions(threshold=1e5)
-        print("scores", fname)
-        for i in range(scores.shape[1]):
-            print(scores[0,i], scores[1, i])
+        # scores_temp = scores
+        # scores = scores.cpu().numpy()
+        # numpy.set_printoptions(threshold=1e5)
+        # print("scores", fname)
+        # for i in range(scores.shape[1]):
+        #     print(scores[0,i], scores[1, i])
+        #scores = scores_temp[1,:]
 
-        scores = scores_temp[1,:]
+        scores = scores[0,:]
         sort_scores, sort_inds = scores.sort()
         nkeep = min(scores.shape[0], 5)
         best_scores = sort_scores[0:nkeep]
@@ -202,7 +203,6 @@ def test_run_sim_annealing_on_repacking_jobs():
 
         rotamer_assignments = best_rot_assignments.cpu()
         #print("scores", " ".join([str(scores[i].item()) for i in range(scores.shape[0])]))
-
 
         validated_scores = torch.ops.tmol.validate_energies(
             et.nrotamers_for_res,
@@ -240,8 +240,8 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
         scores, rotamer_assignments = run_simulated_annealing(et_dev)
 
         scores_temp = scores
-        scores = scores.cpu().numpy()
-        numpy.set_printoptions(threshold=1e5)
+        #scores = scores.cpu().numpy()
+        #numpy.set_printoptions(threshold=1e5)
         # print("scores", fname)
         # for i in range(scores.shape[1]):
         #     print(" ".join([str(val) for val in scores[:, i]]))
