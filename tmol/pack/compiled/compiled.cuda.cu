@@ -666,6 +666,7 @@ struct AnnealerDispatch
     auto scores_fullquench_t = TPack<float, 2, D>::zeros({1, n_fullquench_traj});
     auto rotamer_assignments_fullquench_t = TPack<int, 2, D>::zeros({n_fullquench_traj, nres});
     auto best_rotamer_assignments_fullquench_t = TPack<int, 2, D>::zeros({n_fullquench_traj, nres});
+    auto sorted_fullquench_traj_t = TPack<int, 1, D>::zeros({n_fullquench_traj});
 
     auto quench_order_t = TPack<int, 2, D>::zeros({max_traj, nrotamers});
 
@@ -685,6 +686,7 @@ struct AnnealerDispatch
     auto rotamer_assignments_fullquench = rotamer_assignments_fullquench_t.view;    
     auto best_rotamer_assignments_fullquench = best_rotamer_assignments_fullquench_t.view;
     //auto sorted_fullquench_traj = sorted_lotem_traj_t.view;
+    auto sorted_fullquench_traj = sorted_fullquench_traj_t.view;
 
     auto quench_order = quench_order_t.view;
 
@@ -913,6 +915,11 @@ struct AnnealerDispatch
         cooperative_groups::this_thread_block());
       int const warp_id = thread_id / 32;
       int const source_traj = sorted_lotemp_traj[warp_id];
+
+      if (g.thread_rank() == 0) {
+        sorted_fullquench_traj[warp_id] = warp_id;
+      }
+
       // if (g.thread_rank() == 0) {
       //         printf("warp %d fullquench source_traj %d (%d) %f\n", warp_id, source_traj,
       //           n_lotemp_simA_traj, scores_lotemp[warp_id]);
@@ -957,6 +964,17 @@ struct AnnealerDispatch
       }
     };
 
+    
+    auto take_best = [=] MGPU_DEVICE (int thread_id) {
+      cooperative_groups::thread_block_tile<32> g = cooperative_groups::tiled_partition<32>(
+        cooperative_groups::this_thread_block());
+      int const warp_id = thread_id / 32;
+      int const source_traj = sorted_fullquench_traj[warp_id];
+      for (int i = g.thread_rank(); i < nres; i += 32) {
+	rotamer_assignments_fullquench[warp_id][i] =
+	  best_rotamer_assignments_fullquench[source_traj][i];
+      }
+    };
 
     mgpu::standard_context_t context;
   
@@ -971,6 +989,11 @@ struct AnnealerDispatch
       n_lotemp_simA_traj, mgpu::less_t<float>(), context);
 
     mgpu::transform<128, 1>(fullquench, n_fullquench_threads, context);
+    mgpu::mergesort(
+      scores_fullquench.data(), sorted_fullquench_traj.data(),
+      n_fullquench_traj, mgpu::less_t<float>(), context);
+
+    mgpu::transform<32, 1>(fullquench, n_fullquench_threads, context);
 
     cudaDeviceSynchronize();
     clock_t stop = clock();
