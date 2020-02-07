@@ -288,7 +288,7 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
         # print("validated scores?", validated_scores)
         torch.testing.assert_allclose(scores, validated_scores)
 
-def create_residue_subsamples(nres, subset_size, neighbors):
+def create_residue_subsamples(nres, subset_size, neighbors, oneb):
     selected = numpy.full((nres,), 0, dtype=int)
     resorder = numpy.random.permutation(nres)
     subsets = []
@@ -296,17 +296,22 @@ def create_residue_subsamples(nres, subset_size, neighbors):
         ires = resorder[i]
         if selected[ires] == 1:
             continue
+        i_count_nrots = oneb["{}".format(i+1)].shape[0]
         neighbs = neighbors[ires]
         if neighbs.shape[0] <= subset_size:
             subsets.append(numpy.sort(neighbs))
             for neighb in neighbs:
                 selected[neighb] = 1
+                i_count_nrots += oneb["{}".format(neighb+1)].shape[0]
         else:
-            neighbs_to_select = numpy.random.permutation(neighbs.shape[0])
-            subset = numpy.sort(neighbs[neighbs_to_select[:subset_size]])
+            #neighbs_to_select = numpy.random.permutation(neighbs.shape[0])
+            #subset = numpy.sort(neighbs[neighbs_to_select[:subset_size]])
+            subset = numpy.sort(neighbs[:subset_size])
             subsets.append(subset)
             for neighb in subset:
                 selected[neighb] = 1
+                i_count_nrots += oneb["{}".format(neighb+1)].shape[0]
+        print("subset", i_count_nrots)
     return subsets
 
 def create_res_subset_ig(full_oneb, full_twob, subset, state_assignment):
@@ -367,6 +372,47 @@ def neighbors_from_ig(nres, twob):
         neighbors.append(numpy.array(i_neighbs, dtype=int))
     return neighbors
 
+def ranked_neighbors_from_ig(nres, twob):
+    neighbors = []
+    for i in range(nres):
+        i_neighbs = []
+        i_neighb_rank = []
+        for j in range(nres):
+            if i == j:
+                continue
+            lower = i if i < j else j
+            upper = j if i < j else i
+            edge_name = "{}-{}".format(lower+1,upper+1)
+            if edge_name in twob:
+                i_neighbs.append(j)
+                ij_edge = twob[edge_name]
+                n_nonzero = numpy.nonzero(ij_edge)[0].shape[0]
+                i_neighb_rank.append(n_nonzero)
+        i_neighbs = numpy.array(i_neighbs, dtype=int)
+        i_neighb_rank = numpy.array(i_neighb_rank, dtype=int)
+        ranked = numpy.flip(numpy.argsort(i_neighb_rank), axis=0)
+        i_neighbs = i_neighbs[ranked]
+        neighbors.append(i_neighbs)
+    return neighbors
+
+def test_rank_neighbors():
+    fname = "1ubq_ig"
+    oneb, twob = load_ig_from_file(fname)
+    nres = len(oneb)
+    neighbors = ranked_neighbors_from_ig(nres, twob)
+    res36_neighbs = neighbors[36]
+    rank_of_neighbors = []
+    for neighb in res36_neighbs:
+        lower = 36 if neighb > 36 else neighb
+        upper = 36 if neighb < 36 else neighb
+        edge_name = "{}-{}".format(lower+1, upper+1)
+        assert edge_name in twob
+        n_nonzero = numpy.nonzero(twob[edge_name])[0].shape[0]
+        rank_of_neighbors.append(n_nonzero)
+    for i in range(len(rank_of_neighbors)-1):
+        assert rank_of_neighbors[i] >= rank_of_neighbors[i+1]
+        
+
 def test_create_residue_subsamples():
     fname = "1ubq_ig"
     oneb, twob = load_ig_from_file(fname)
@@ -395,7 +441,7 @@ def test_create_subsample_ig():
 
     chunk_size = 16
     subset_size = 30
-    subsets = create_residue_subsamples(nres, subset_size, neighbors)
+    subsets = create_residue_subsamples(nres, subset_size, neighbors, oneb)
     subset0 = subsets[0]
 
     faux_assignment = random_assignment(oneb)
@@ -430,22 +476,22 @@ def test_create_subsample_ig():
 def pack_neighborhoods(oneb, twob, torch_device):
     full_ig = create_twobody_energy_table(oneb, twob)
     nres = len(oneb)
-    neighbors = neighbors_from_ig(nres, twob)
+    neighbors = ranked_neighbors_from_ig(nres, twob)
 
     full_assignment = torch.tensor(random_assignment(oneb), dtype=torch.int32)
     last_score = energy_from_state_assignment(full_ig, full_assignment)
 
-    subset_size = 50
-    n_repeats = 3
+    subset_size = 20
+    n_repeats = 4
     count = 0
     for _ in range(n_repeats):
-        subsets = create_residue_subsamples(nres, subset_size, neighbors)
+        subsets = create_residue_subsamples(nres, subset_size, neighbors, oneb)
             
         for subset in subsets:
             count += 1
             oneb_subset, twob_subset = create_res_subset_ig(oneb, twob, subset, full_assignment)
             ig = create_twobody_energy_table(oneb_subset, twob_subset)
-            print(ig.energy2b.shape[0])
+            print( (4 * ig.energy2b.shape[0]) // (1028*1028) )
             ig_dev = ig.to(torch_device)
             
             start_assignment = full_assignment[subset]
@@ -474,7 +520,7 @@ def pack_neighborhoods(oneb, twob, torch_device):
             # print("packed", subset.shape[0], "residues, scores", scores[0], validated_scores[0])
     return last_score, full_assignment
         
-def test_pack_subsamples(torch_device):
+def test_pack_subsamples():
     torch_device = torch.device("cuda")
     fname = "1ubq_ig"
     oneb, twob = load_ig_from_file(fname)
@@ -482,8 +528,8 @@ def test_pack_subsamples(torch_device):
 
 def test_run_pack_neighborhoods_on_redes_ex1ex2_jobs():
     torch_device = torch.device("cuda")
-    fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
-    # fnames = ["1w0nFHA"]
+    # fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    fnames = ["1w0nFHA"]
     # fnames = ["1u36FHA", "1w0nFHA"]
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
