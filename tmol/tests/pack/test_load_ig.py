@@ -288,7 +288,7 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
         # print("validated scores?", validated_scores)
         torch.testing.assert_allclose(scores, validated_scores)
 
-def create_residue_subsamples(nres, subset_size, neighbors, oneb):
+def create_residue_subsamples(nres, subset_size, rot_limit, neighbors, oneb):
     selected = numpy.full((nres,), 0, dtype=int)
     resorder = numpy.random.permutation(nres)
     subsets = []
@@ -298,20 +298,24 @@ def create_residue_subsamples(nres, subset_size, neighbors, oneb):
             continue
         i_count_nrots = oneb["{}".format(i+1)].shape[0]
         neighbs = neighbors[ires]
+        neighbs_up_to_limit = None
         if neighbs.shape[0] <= subset_size:
-            subsets.append(numpy.sort(neighbs))
-            for neighb in neighbs:
-                selected[neighb] = 1
-                i_count_nrots += oneb["{}".format(neighb+1)].shape[0]
+            neighbs_up_to_limit = neighbs
         else:
-            #neighbs_to_select = numpy.random.permutation(neighbs.shape[0])
-            #subset = numpy.sort(neighbs[neighbs_to_select[:subset_size]])
-            subset = numpy.sort(neighbs[:subset_size])
-            subsets.append(subset)
-            for neighb in subset:
-                selected[neighb] = 1
-                i_count_nrots += oneb["{}".format(neighb+1)].shape[0]
-        print("subset", i_count_nrots)
+            neighbs_up_to_limit = neighbs[:subset_size]
+
+        selected_neighbs = []
+        for neighb in neighbs_up_to_limit:
+            neighb_nrots = oneb["{}".format(neighb+1)].shape[0]
+            if i_count_nrots + neighb_nrots > rot_limit:
+                #print("skipping residue", neighb, "with", neighb_nrots, "rots", i_count_nrots, "nearing", rot_limit)
+                continue
+            selected[neighb] = 1
+            selected_neighbs.append(neighb)
+            i_count_nrots += neighb_nrots
+
+        subsets.append(numpy.sort(numpy.array(selected_neighbs, dtype=int)))
+        #print("subset", i_count_nrots)
     return subsets
 
 def create_res_subset_ig(full_oneb, full_twob, subset, state_assignment):
@@ -392,6 +396,8 @@ def ranked_neighbors_from_ig(nres, twob):
         i_neighb_rank = numpy.array(i_neighb_rank, dtype=int)
         ranked = numpy.flip(numpy.argsort(i_neighb_rank), axis=0)
         i_neighbs = i_neighbs[ranked]
+        i_neighbs = numpy.concatenate((numpy.array([i], dtype=int), i_neighbs))
+        # print("ranked neigbs", i, i_neighbs)
         neighbors.append(i_neighbs)
     return neighbors
 
@@ -417,10 +423,10 @@ def test_create_residue_subsamples():
     fname = "1ubq_ig"
     oneb, twob = load_ig_from_file(fname)
     nres = len(oneb)
-    neighbors = neighbors_from_ig(nres, twob)
+    neighbors = ranked_neighbors_from_ig(nres, twob)
 
     subset_size = 30
-    subsets = create_residue_subsamples(nres, subset_size, neighbors)
+    subsets = create_residue_subsamples(nres, subset_size, 4000, neighbors, oneb)
 
     for subset in subsets:
         print(subset)
@@ -441,7 +447,7 @@ def test_create_subsample_ig():
 
     chunk_size = 16
     subset_size = 30
-    subsets = create_residue_subsamples(nres, subset_size, neighbors, oneb)
+    subsets = create_residue_subsamples(nres, subset_size, 20000, neighbors, oneb)
     subset0 = subsets[0]
 
     faux_assignment = random_assignment(oneb)
@@ -482,10 +488,11 @@ def pack_neighborhoods(oneb, twob, torch_device):
     last_score = energy_from_state_assignment(full_ig, full_assignment)
 
     subset_size = 20
-    n_repeats = 4
+    rotamer_limit = 15000
+    n_repeats = 6
     count = 0
     for _ in range(n_repeats):
-        subsets = create_residue_subsamples(nres, subset_size, neighbors, oneb)
+        subsets = create_residue_subsamples(nres, subset_size, rotamer_limit, neighbors, oneb)
             
         for subset in subsets:
             count += 1
