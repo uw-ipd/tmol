@@ -34,6 +34,7 @@ anneal(
   nvtx_range_push("pack_anneal");
   at::Tensor scores;
   at::Tensor rotamer_assignments;
+  at::Tensor background_inds;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
     energy1b.type(), "pack_anneal", ([&] {
@@ -49,9 +50,10 @@ anneal(
 	TCAST(energy2b));
       scores = std::get<0>(result).tensor;
       rotamer_assignments = std::get<1>(result).tensor;
+      background_inds = std::get<2>(result).tensor;
       }));
 
-  std::vector< torch::Tensor > result({scores, rotamer_assignments});
+  std::vector< torch::Tensor > result({scores, rotamer_assignments, background_inds});
   return result;
 }
 
@@ -63,9 +65,10 @@ compute_energies_for_assignments(
   TView<int, 1, tmol::Device::CPU> res_for_rot,
   TView<int, 2, tmol::Device::CPU> nenergies,
   TView<int64_t, 2, tmol::Device::CPU> twob_offsets,
-  TView<float, 1, tmol::Device::CPU> energy1b,
+  TView<float, 2, tmol::Device::CPU> energy1b,
   TView<float, 1, tmol::Device::CPU> energy2b,
-  TView<int, 2, tmol::Device::CPU> rotamer_assignments
+  TView<int, 2, tmol::Device::CPU> rotamer_assignments,
+  TView<int, 1, tmol::Device::CPU> background_inds
 )
 {
   int n_assignments = rotamer_assignments.size(0);
@@ -74,7 +77,7 @@ compute_energies_for_assignments(
   for (int i = 0; i < n_assignments; ++i) {
     scores[i] = total_energy_for_assignment(nrotamers_for_res,
       oneb_offsets, res_for_rot, nenergies, twob_offsets, energy1b,
-      energy2b, rotamer_assignments, i
+      energy2b, rotamer_assignments, i, background_inds[i]
     );
   }
   return scores_t;
@@ -90,7 +93,8 @@ validate_energies(
   Tensor twob_offsets,
   Tensor energy1b,
   Tensor energy2b,
-  Tensor rotamer_assignments
+  Tensor rotamer_assignments,
+  Tensor background_inds
 )
 {
   auto result = compute_energies_for_assignments(
@@ -101,7 +105,8 @@ validate_energies(
     TCAST(twob_offsets),
     TCAST(energy1b),
     TCAST(energy2b),
-    TCAST(rotamer_assignments)
+    TCAST(rotamer_assignments),
+    TCAST(background_inds)
   );
   return result.tensor;
 }

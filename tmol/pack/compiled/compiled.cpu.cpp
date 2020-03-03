@@ -43,12 +43,13 @@ struct AnnealerDispatch
     TView<int, 1, D> res_for_rot,
     TView<int, 2, D> nenergies,
     TView<int64_t, 2, D> twob_offsets,
-    TView<float, 1, D> energy1b,
+    TView<float, 2, D> energy1b,
     TView<float, 1, D> energy2b
   )
     -> std::tuple<
       TPack<float, 2, D>,
-      TPack<int, 2, D> >
+      TPack<int, 2, D>,
+      TPack<int, 1, D> >
   {
 
     clock_t start = clock();
@@ -56,6 +57,7 @@ struct AnnealerDispatch
     // No Frills Simulated Annealing!
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
+    int const n_backgrounds = energy1b.size(0);
 
     int ntraj = 1;
     int const n_outer_iterations = 20;
@@ -66,6 +68,7 @@ struct AnnealerDispatch
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({ntraj, nres});
     auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({ntraj, nres});
     auto quench_order_t = TPack<int, 1, D>::zeros({nrotamers});
+    auto background_inds_t = TPack<int, 1, D>::zeros({ntraj}); // dummy return val
     // auto rotamer_attempts_t = TPack<int, 1, D>::zeros({nrotamers});
 
     auto scores = scores_t.view;
@@ -89,7 +92,8 @@ struct AnnealerDispatch
 
       float temperature = high_temp;
       double best_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-        res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, traj);
+        res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments,
+	traj, 0);
       double current_total_energy = best_energy;
       int naccepts = 0;
       for (int i = 0; i < n_outer_iterations; ++i) {
@@ -103,7 +107,8 @@ struct AnnealerDispatch
             rotamer_assignments[traj][j] = best_rotamer_assignments[traj][j];
           }
           current_total_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-            res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, traj);
+            res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments,
+	    traj, 0);
         }
 
         for (int j = 0; j < n_inner_iterations; ++j) {
@@ -126,8 +131,8 @@ struct AnnealerDispatch
           int const local_ran_rot = ran_rot - ran_res_offset;
 	  int const prev_rot = local_prev_rot + ran_res_offset;
 
-          double new_e = energy1b[ran_rot];
-          double prev_e = energy1b[prev_rot];
+          double new_e = energy1b[0][ran_rot];
+          double prev_e = energy1b[0][prev_rot];
 	  double deltaE = new_e - prev_e;
 
           // Temp: iterate across all residues instead of just the
@@ -159,7 +164,7 @@ struct AnnealerDispatch
               float new_current_total_energy = total_energy_for_assignment(
                 nrotamers_for_res, oneb_offsets, res_for_rot,
                 nenergies, twob_offsets, energy1b, energy2b,
-                rotamer_assignments, traj
+                rotamer_assignments, traj, 0
 	      );
 	      current_total_energy = new_current_total_energy;
             }
@@ -187,7 +192,7 @@ struct AnnealerDispatch
 
 
       scores[0][traj] = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-        res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, traj);
+        res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, traj, 0);
       // std::cout << "Traj " << traj << " with score " << scores[traj] << std::endl;
     } // end trajectory loop
 
@@ -212,7 +217,7 @@ struct AnnealerDispatch
     std::cout << "CPU simulated annealing in " << ((double) stop - start)/CLOCKS_PER_SEC <<
       " seconds" << std::endl;
 
-    return {scores_t, rotamer_assignments_t};
+    return {scores_t, rotamer_assignments_t, background_inds_t};
   }
 
 };

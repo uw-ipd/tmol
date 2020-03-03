@@ -78,11 +78,12 @@ total_energy_for_assignment(
   TView<int, 1, D> res_for_rot,
   TView<int, 2, D> nenergies,
   TView<int64_t, 2, D> twob_offsets,
-  TView<float, 1, D> energy1b,
+  TView<float, 2, D> energy1b,
   TView<float, 1, D> energy2b,
   TView<int, 2, D> rotamer_assignment, 
   TView<float, 3, D> pair_energies,
-  int rotassign_dim0 // i.e. thread_id
+  int rotassign_dim0, // i.e. thread_id
+  int background_ind
 )
 {
   float totalE = 0;
@@ -91,7 +92,7 @@ total_energy_for_assignment(
     int const irot_local = rotamer_assignment[rotassign_dim0][i];
     int const irot_global = irot_local + oneb_offsets[i];
     
-    totalE += energy1b[irot_global];
+    totalE += energy1b[background_ind][irot_global];
     for (int j = i+1; j < nres; ++j) {
       int const jrot_local = rotamer_assignment[rotassign_dim0][j];
       if (nenergies[i][j] == 0) {
@@ -126,10 +127,11 @@ total_energy_for_assignment(
   TView<int, 1, D> res_for_rot,
   TView<int, 2, D> nenergies,
   TView<int64_t, 2, D> twob_offsets,
-  TView<float, 1, D> energy1b,
+  TView<float, 2, D> energy1b,
   TView<float, 1, D> energy2b,
   TView<int, 2, D> rotamer_assignment, 
-  int rotassign_dim0 // i.e. thread_id
+  int rotassign_dim0, // i.e. thread_id
+  int background_ind
 )
 {
   float totalE = 0;
@@ -138,7 +140,7 @@ total_energy_for_assignment(
     int const irot_local = rotamer_assignment[rotassign_dim0][i];
     int const irot_global = irot_local + oneb_offsets[i];
     
-    totalE += energy1b[irot_global];
+    totalE += energy1b[background_ind][irot_global];
     for (int j = i+1; j < nres; ++j) {
       int const jrot_local = rotamer_assignment[rotassign_dim0][j];
       if (nenergies[i][j] == 0) {

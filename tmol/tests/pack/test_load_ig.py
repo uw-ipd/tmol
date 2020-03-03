@@ -49,18 +49,30 @@ def create_twobody_energy_table(oneb, twob):
     nres = len(oneb)
     offsets = numpy.zeros((nres, nres), dtype=numpy.int64)
     nenergies = numpy.zeros((nres, nres), dtype=int)
-    nrotamers_for_res = numpy.array([oneb["{}".format(i+1)].shape[0] for i in range(nres)], dtype=int)
+    nrotamers_for_res = numpy.array([oneb["{}".format(i+1)].shape[-1] for i in range(nres)], dtype=int)
     nrots_total = numpy.sum(nrotamers_for_res)
     oneb_offsets = exclusive_cumsum(nrotamers_for_res)
 
-    energy1b = numpy.zeros(nrots_total, dtype=float)
+    for key in oneb:
+        example = oneb[key]
+        if len(example.shape) == 1:
+            energy1b = numpy.zeros((1,nrots_total), dtype=float)
+        else:
+            energy1b = numpy.zeros((example.shape[0], nrots_total), dtype=float)
+        break
+
+
     res_for_rot = numpy.zeros(nrots_total, dtype=int)
     for i in range(nres):
         tablename = "{}".format(i+1)
         table = oneb[tablename]
         start = oneb_offsets[i]
-        energy1b[(start):(start+table.shape[0])] = table
-        res_for_rot[(start):(start+table.shape[0])] = i
+        if len(table.shape) == 1:
+            energy1b[0, (start):(start+table.shape[0])] = table
+            res_for_rot[(start):(start+table.shape[0])] = i
+        else:
+            energy1b[:, (start):(start+table.shape[1])] = table
+            res_for_rot[(start):(start+table.shape[1])] = i
 
     for i in range(nres):
         for j in range(i+1,nres):
@@ -95,8 +107,10 @@ def create_twobody_energy_table(oneb, twob):
     )
 
 
-def energy_from_state_assignment(ig, assignment):
+def energy_from_state_assignment(ig, assignment, bg_assignment=None):
     assert len(assignment.shape) == 1
+    if bg_assignment is None:
+        bg_assignment = torch.zeros((1,), dtype=torch.int32)
     score = torch.ops.tmol.validate_energies(
         ig.nrotamers_for_res,
         ig.oneb_offsets,
@@ -105,7 +119,8 @@ def energy_from_state_assignment(ig, assignment):
         ig.twob_offsets,
         ig.energy1b,
         ig.energy2b,
-        torch.tensor(assignment[None,:],dtype=torch.int32)
+        torch.tensor(assignment[None,:], dtype=torch.int32),
+        bg_assignment
     )
     return score
 
@@ -275,6 +290,7 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
         print("scores", " ".join([str(scores[i].item()) for i in range(scores.shape[0])]))
 
 
+        background_inds = torch.zeros((1,), dtype=torch.int32)
         validated_scores = torch.ops.tmol.validate_energies(
             et.nrotamers_for_res,
             et.oneb_offsets,
@@ -318,9 +334,11 @@ def create_residue_subsamples(nres, subset_size, rot_limit, neighbors, oneb):
         #print("subset", i_count_nrots)
     return subsets
 
-def create_res_subset_ig(full_oneb, full_twob, subset, state_assignment):
+def create_res_subset_ig(full_oneb, full_twob, subset, state_assignments):
+    assert len(state_assignments.shape) == 2
     oneb_subset = {}
     twob_subset = {}
+    n_backgrounds = state_assignments.shape[0]
 
     nres = len(full_oneb)
     res_in_subset = numpy.full((nres,), 0, dtype=int)
@@ -329,6 +347,8 @@ def create_res_subset_ig(full_oneb, full_twob, subset, state_assignment):
     
     for subset_count, res in enumerate(subset):
         res_oneb = numpy.copy(full_oneb["{}".format(res+1)])
+        res_oneb = numpy.tile(res_oneb, n_backgrounds).reshape(n_backgrounds, -1)
+        
         for i in range(nres):
             if res == i:
                 continue
@@ -341,12 +361,12 @@ def create_res_subset_ig(full_oneb, full_twob, subset, state_assignment):
                 continue
             edge_table = full_twob[edge_name]
 
-            i_state = state_assignment[i]
+            i_state = state_assignments[:, i]
             if res < i:
-                #print("i_state", edge_table.shape, i_state)
-                res_oneb += edge_table[:, i_state]
+                print("i_state", edge_table.shape, i_state)
+                res_oneb += edge_table[:, i_state].transpose()
             else:
-                #print("i_state", edge_table.shape, i_state)
+                print("i_state", edge_table.shape, i_state)
                 res_oneb += edge_table[i_state, :]
         oneb_subset["{}".format(subset_count+1)] = res_oneb
 
@@ -438,7 +458,14 @@ def random_assignment(oneb):
         nrots = oneb["{}".format(i+1)].shape[0]
         assignment[i] = numpy.random.randint(nrots)
     return assignment
-        
+
+def random_assignments(oneb, nassignments):
+    nres = len(oneb)
+    assignments = numpy.zeros((nassignments, nres), dtype=int)
+    for i in range(nassignments):
+        assignments[i, :] = random_assignment(oneb)
+    return assignments
+
 def test_create_subsample_ig():
     fname = "1ubq_ig"
     oneb, twob = load_ig_from_file(fname)
@@ -450,8 +477,10 @@ def test_create_subsample_ig():
     subsets = create_residue_subsamples(nres, subset_size, 20000, neighbors, oneb)
     subset0 = subsets[0]
 
-    faux_assignment = random_assignment(oneb)
-    oneb_subset, twob_subset = create_res_subset_ig(oneb, twob, subset0, faux_assignment)
+    num_assignments = 2
+    
+    faux_assignments = random_assignments(oneb, num_assignments)
+    oneb_subset, twob_subset = create_res_subset_ig(oneb, twob, subset0, faux_assignments)
 
     subset_assignment1 = random_assignment(oneb_subset)
     subset_assignment2 = random_assignment(oneb_subset)
@@ -459,32 +488,38 @@ def test_create_subsample_ig():
     full_ig = create_twobody_energy_table(oneb, twob)
     subset_ig = create_twobody_energy_table(oneb_subset, twob_subset)
 
-    full_assignment1 = numpy.copy(faux_assignment)
-    full_assignment2 = numpy.copy(faux_assignment)
-    full_assignment1[subset0] = subset_assignment1
-    full_assignment2[subset0] = subset_assignment2
-    # for i, res in enumerate(subset0):
-    #     full_assignment1[res] = subset_assignment1[i]
-    #     full_assignment2[res] = subset_assignment2[i]
+    for i in range(num_assignments):
+        full_assignment1 = numpy.copy(faux_assignments[i])
+        full_assignment2 = numpy.copy(faux_assignments[i])
+        full_assignment1[subset0] = subset_assignment1
+        full_assignment2[subset0] = subset_assignment2
+        # for i, res in enumerate(subset0):
+        #     full_assignment1[res] = subset_assignment1[i]
+        #     full_assignment2[res] = subset_assignment2[i]
 
-    full_energy1 = energy_from_state_assignment(full_ig, full_assignment1)
-    full_energy2 = energy_from_state_assignment(full_ig, full_assignment2)
-    subset_energy1 = energy_from_state_assignment(subset_ig, subset_assignment1)
-    subset_energy2 = energy_from_state_assignment(subset_ig, subset_assignment2)
-
-    full_deltaE = full_energy1 - full_energy2
-    subset_deltaE = subset_energy1 - subset_energy2
-
-    print(full_energy1, full_energy2, full_deltaE)
-    print(subset_energy1, subset_energy2, subset_deltaE)
-    assert abs(full_deltaE - subset_deltaE) < 1e-2
+        bg_assignment = torch.full((1,), i, dtype=torch.int32)
+        
+        full_energy1 = energy_from_state_assignment(full_ig, full_assignment1)
+        full_energy2 = energy_from_state_assignment(full_ig, full_assignment2)
+        subset_energy1 = energy_from_state_assignment(subset_ig, subset_assignment1, bg_assignment)
+        subset_energy2 = energy_from_state_assignment(subset_ig, subset_assignment2, bg_assignment)
+    
+        full_deltaE = full_energy1 - full_energy2
+        subset_deltaE = subset_energy1 - subset_energy2
+    
+        print(full_energy1, full_energy2, full_deltaE)
+        print(subset_energy1, subset_energy2, subset_deltaE)
+        assert abs(full_deltaE - subset_deltaE) < 1e-2
 
 def pack_neighborhoods(oneb, twob, torch_device):
     full_ig = create_twobody_energy_table(oneb, twob)
     nres = len(oneb)
     neighbors = ranked_neighbors_from_ig(nres, twob)
+    n_backgrounds = 100
 
-    full_assignment = torch.tensor(random_assignment(oneb), dtype=torch.int32)
+    full_assignments = torch.tensor(
+        random_assignments(oneb, n_backgrounds), dtype=torch.int32
+    )
     last_score = energy_from_state_assignment(full_ig, full_assignment)
 
     subset_size = 20
@@ -496,7 +531,7 @@ def pack_neighborhoods(oneb, twob, torch_device):
             
         for subset in subsets:
             count += 1
-            oneb_subset, twob_subset = create_res_subset_ig(oneb, twob, subset, full_assignment)
+            oneb_subset, twob_subset = create_res_subset_ig(oneb, twob, subset, full_assignments)
             ig = create_twobody_energy_table(oneb_subset, twob_subset)
             print( (4 * ig.energy2b.shape[0]) // (1028*1028) )
             ig_dev = ig.to(torch_device)

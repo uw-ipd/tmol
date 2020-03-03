@@ -13,6 +13,6 @@ class PackerEnergyTables(TensorGroup, ConvertAttrs):
     res_for_rot: Tensor(torch.int32)[:] # [nrotamers_total]
     nenergies: Tensor(torch.int32)[:,:] # [nres x nres]
     twob_offsets: Tensor(torch.int64)[:,:] # [nres x nres]
-    energy1b: Tensor(torch.float32)[:] # [nrotamers_total]
+    energy1b: Tensor(torch.float32)[:, :] # [ncontexts x nrotamers_total]
     energy2b: Tensor(torch.float32)[:] # [ntwob_energies]
     

@@ -53,7 +53,7 @@ public:
   TView<Int, 1, D> res_for_rot;
   TView<Int, 2, D> nenergies;
   TView<int64_t, 2, D> twob_offsets;
-  TView<Real, 1, D> energy1b;
+  TView<Real, 2, D> energy1b;
   TView<Real, 1, D> energy2b;
 };
 
@@ -236,7 +236,7 @@ total_energy_for_assignment_parallel(
     int const irot_local = rotamer_assignment[i];
     int const irot_global = irot_local + ig.oneb_offsets[i];
 
-    totalE += ig.energy1b[irot_global];
+    totalE += ig.energy1b[0][irot_global];
   }
 
   for (int i = g.thread_rank(); i < nres; i += nthreads) {
@@ -272,6 +272,7 @@ warp_wide_sim_annealing(
   cooperative_groups::thread_block_tile<nthreads> g,
   InteractionGraph<D, Int, Real> ig,
   int warp_id,
+  int background_id,
   TensorAccessor<Int, 1, D> rotamer_assignments,
   TensorAccessor<Int, 1, D> best_rotamer_assignments,
   TensorAccessor<Int, 1, D> quench_order,
@@ -374,7 +375,7 @@ warp_wide_sim_annealing(
 
       float new_e = 9999;
       if (this_thread_active) {
-        new_e = ig.energy1b[ran_rot];
+        new_e = ig.energy1b[background_id][ran_rot];
       }
 
       // Temp: iterate across all residues instead of just the
@@ -547,7 +548,7 @@ spbr(
       int i_nrots = ig.nrotamers_for_res[i];
       for (int j = g.thread_rank(); j < i_nrots; j += 32) {
         int const j_global = j + ig.oneb_offsets[i];
-        float jE = ig.energy1b[j_global];
+        float jE = ig.energy1b[0][j_global];
         for (int k = 0; k < nres; ++k) {
           if (k == i || ig.nenergies[k][i] == 0) continue;
 
@@ -610,12 +611,14 @@ struct AnnealerDispatch
     TView<int, 1, D> res_for_rot,
     TView<int, 2, D> nenergies,
     TView<int64_t, 2, D> twob_offsets,
-    TView<float, 1, D> energy1b,
+    TView<float, 2, D> energy1b,
     TView<float, 1, D> energy2b
   )
     -> std::tuple<
-      TPack<float, 2, D>,
-      TPack<int, 2, D> >
+      TPack<float, 2, D>, // energies of assignments
+      TPack<int, 2, D>, // assignments
+      TPack<int, 1, D> // backgrounds indices for assignments
+      >
   {
     clock_t start = clock();
 
@@ -630,6 +633,7 @@ struct AnnealerDispatch
     
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
+    int const n_backgrounds = energy1b.size(0);
 
     int const n_hitemp_simA_traj = 2000;
     int const n_hitemp_simA_threads = 32 * n_hitemp_simA_traj;
@@ -656,39 +660,47 @@ struct AnnealerDispatch
     auto best_rotamer_assignments_hitemp_t = TPack<int, 2, D>::zeros({n_hitemp_simA_traj, nres});
     auto rotamer_assignments_hitemp_quenchlite_t = TPack<int, 2, D>::zeros({n_hitemp_simA_traj, nres});
     auto sorted_hitemp_traj_t = TPack<int, 1, D>::zeros(n_hitemp_simA_traj);
+    // auto hitemp_background_ind_t = TPack<int, 1, D>::zeros(n_hitemp_simA_traj);
 
     auto scores_lotemp_t = TPack<float, 1, D>::zeros(n_lotemp_simA_traj);
     auto rotamer_assignments_lotemp_t = TPack<int, 2, D>::zeros({n_lotemp_simA_traj, nres});
     auto best_rotamer_assignments_lotemp_t = TPack<int, 2, D>::zeros({n_lotemp_simA_traj, nres});
     //auto rotamer_assignments_lotemp_quenchlite_t = TPack<int, 2, D>::zeros({n_lotemp_simA_traj, nres});
     auto sorted_lotemp_traj_t = TPack<int, 1, D>::zeros(n_lotemp_simA_traj);
+    auto lotemp_background_ind_t = TPack<int, 1, D>::zeros(n_lotemp_simA_traj);
 
     auto scores_fullquench_t = TPack<float, 2, D>::zeros({1, n_fullquench_traj});
     auto rotamer_assignments_fullquench_t = TPack<int, 2, D>::zeros({n_fullquench_traj, nres});
     auto best_rotamer_assignments_fullquench_t = TPack<int, 2, D>::zeros({n_fullquench_traj, nres});
     auto sorted_fullquench_traj_t = TPack<int, 1, D>::zeros({n_fullquench_traj});
+    auto fullquench_background_ind_t = TPack<int, 1, D>::zeros(n_fullquench_traj);
 
     auto quench_order_t = TPack<int, 2, D>::zeros({max_traj, nrotamers});
-
+    auto final_background_ind_t = TPack<int, 1, D>::zeros(n_fullquench_traj);
+    
     auto scores_hitemp = scores_hitemp_t.view;
     auto rotamer_assignments_hitemp = rotamer_assignments_hitemp_t.view;    
     auto best_rotamer_assignments_hitemp = best_rotamer_assignments_hitemp_t.view;
     auto rotamer_assignments_hitemp_quenchlite = rotamer_assignments_hitemp_quenchlite_t.view;
     auto sorted_hitemp_traj = sorted_hitemp_traj_t.view;
+    // auto hitemp_background_ind = hitemp_background_ind_t.view;
 
     auto scores_lotemp = scores_lotemp_t.view;
     auto rotamer_assignments_lotemp = rotamer_assignments_lotemp_t.view;    
     auto best_rotamer_assignments_lotemp = best_rotamer_assignments_lotemp_t.view;
     //auto rotamer_assignments_lotemp_quenchlite = rotamer_assignments_lotemp_quenchlite_t.view;
     auto sorted_lotemp_traj = sorted_lotemp_traj_t.view;
+    auto lotemp_background_ind = lotemp_background_ind_t.view;
 
     auto scores_fullquench = scores_fullquench_t.view;
     auto rotamer_assignments_fullquench = rotamer_assignments_fullquench_t.view;    
     auto best_rotamer_assignments_fullquench = best_rotamer_assignments_fullquench_t.view;
     //auto sorted_fullquench_traj = sorted_lotem_traj_t.view;
     auto sorted_fullquench_traj = sorted_fullquench_traj_t.view;
+    auto fullquench_background_ind = fullquench_background_ind_t.view;
 
     auto quench_order = quench_order_t.view;
+    auto final_background_ind = final_background_ind_t.view;
 
     // This code will work for future versions of the torch/aten libraries, but not
     // this one.
@@ -734,6 +746,8 @@ struct AnnealerDispatch
       cooperative_groups::thread_block_tile<32> g = cooperative_groups::tiled_partition<32>(
         cooperative_groups::this_thread_block());
       int const warp_id = thread_id / 32;
+      int const background_ind = warp_id % n_backgrounds;
+
 
       if (g.thread_rank() == 0) {
         sorted_hitemp_traj[warp_id] = warp_id;
@@ -750,14 +764,8 @@ struct AnnealerDispatch
         &state,
         g,
 	ig,
-        // nrotamers_for_res,
-        // oneb_offsets,
-        // res_for_rot,
-        // nenergies,
-        // twob_offsets,
-        // energy1b,
-        // energy2b,
         warp_id,
+	background_ind,
         rotamer_assignments_hitemp[warp_id],
         best_rotamer_assignments_hitemp[warp_id],
         quench_order[warp_id],
@@ -784,14 +792,8 @@ struct AnnealerDispatch
         &state,
         g,
 	ig,
-        // nrotamers_for_res,
-        // oneb_offsets,
-        // res_for_rot,
-        // nenergies,
-        // twob_offsets,
-        // energy1b,
-        // energy2b,
         warp_id,
+	background_ind,
         rotamer_assignments_hitemp_quenchlite[warp_id],
         best_rotamer_assignments_hitemp[warp_id],
         quench_order[warp_id],
@@ -821,10 +823,11 @@ struct AnnealerDispatch
 
       int const warp_id = thread_id / 32;
       int const source_traj = sorted_hitemp_traj[warp_id / n_lotemp_expansions];
-
+      int const background_ind = source_traj % n_backgrounds;
       
       if (g.thread_rank() == 0) {
         sorted_lotemp_traj[warp_id] = warp_id;
+	lotemp_background_ind[warp_id] = background_ind;
       }
       
       // initialize the rotamer assignment from one of the top trajectories
@@ -849,14 +852,8 @@ struct AnnealerDispatch
         &state,
         g,
 	ig,
-        // nrotamers_for_res,
-        // oneb_offsets,
-        // res_for_rot,
-        // nenergies,
-        // twob_offsets,
-        // energy1b,
-        // energy2b,
         warp_id,
+	background_ind,
         rotamer_assignments_lotemp[warp_id],
         best_rotamer_assignments_lotemp[warp_id],
         quench_order[warp_id],
@@ -879,14 +876,8 @@ struct AnnealerDispatch
         &state,
         g,
 	ig,
-        // nrotamers_for_res,
-        // oneb_offsets,
-        // res_for_rot,
-        // nenergies,
-        // twob_offsets,
-        // energy1b,
-        // energy2b,
         warp_id,
+	background_ind,
         rotamer_assignments_lotemp[warp_id],
         best_rotamer_assignments_lotemp[warp_id],
         quench_order[warp_id],
@@ -915,9 +906,11 @@ struct AnnealerDispatch
         cooperative_groups::this_thread_block());
       int const warp_id = thread_id / 32;
       int const source_traj = sorted_lotemp_traj[warp_id];
+      int const background_ind = lotemp_background_ind[source_traj];
 
       if (g.thread_rank() == 0) {
         sorted_fullquench_traj[warp_id] = warp_id;
+	fullquench_background_ind[warp_id] = background_ind;
       }
 
       // if (g.thread_rank() == 0) {
@@ -939,14 +932,8 @@ struct AnnealerDispatch
         &state,
         g,
 	ig,
-        // nrotamers_for_res,
-        // oneb_offsets,
-        // res_for_rot,
-        // nenergies,
-        // twob_offsets,
-        // energy1b,
-        // energy2b,
         warp_id,
+	background_ind,
         rotamer_assignments_fullquench[warp_id],
         best_rotamer_assignments_fullquench[warp_id],
         quench_order[warp_id],
@@ -974,6 +961,9 @@ struct AnnealerDispatch
 	rotamer_assignments_fullquench[warp_id][i] =
 	  best_rotamer_assignments_fullquench[source_traj][i];
       }
+      if (g.thread_rank() == 0) {
+	final_background_ind[warp_id] = fullquench_background_ind[source_traj];
+      }
     };
 
     mgpu::standard_context_t context;
@@ -993,14 +983,14 @@ struct AnnealerDispatch
       scores_fullquench.data(), sorted_fullquench_traj.data(),
       n_fullquench_traj, mgpu::less_t<float>(), context);
 
-    mgpu::transform<32, 1>(fullquench, n_fullquench_threads, context);
+    mgpu::transform<32, 1>(take_best, n_fullquench_threads, context);
 
     cudaDeviceSynchronize();
     clock_t stop = clock();
     std::cout << "GPU simulated annealing in " <<
        ((double) stop - start)/CLOCKS_PER_SEC << " seconds" << std::endl;
 
-    return {scores_fullquench_t, rotamer_assignments_fullquench_t};
+    return {scores_fullquench_t, rotamer_assignments_fullquench_t, final_background_ind_t};
   }
 
 };
