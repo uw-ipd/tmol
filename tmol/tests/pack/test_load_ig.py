@@ -3,6 +3,9 @@ import numpy
 import torch
 import attr
 
+from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
+
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
 from tmol.utility.cumsum import exclusive_cumsum
@@ -106,12 +109,16 @@ def create_twobody_energy_table(oneb, twob):
         energy2b=energy2b
     )
 
-
-def energy_from_state_assignment(ig, assignment, bg_assignment=None):
-    assert len(assignment.shape) == 1
+@validate_args
+def energy_from_state_assignment(
+    ig: PackerEnergyTables,
+    assignments: Tensor(torch.int32)[:,:],
+    bg_assignment=None
+) -> Tensor(torch.float)[:] :
     if bg_assignment is None:
-        bg_assignment = torch.zeros((1,), dtype=torch.int32)
-    score = torch.ops.tmol.validate_energies(
+        n_assignments = assignments.shape[0]
+        bg_assignment = torch.zeros((n_assignments,), dtype=torch.int32)
+    scores = torch.ops.tmol.validate_energies(
         ig.nrotamers_for_res,
         ig.oneb_offsets,
         ig.res_for_rot,
@@ -119,10 +126,10 @@ def energy_from_state_assignment(ig, assignment, bg_assignment=None):
         ig.twob_offsets,
         ig.energy1b,
         ig.energy2b,
-        torch.tensor(assignment[None,:], dtype=torch.int32),
+        assignments,
         bg_assignment
     )
-    return score
+    return scores
 
 
 def test_energy_table_construction():
@@ -363,10 +370,8 @@ def create_res_subset_ig(full_oneb, full_twob, subset, state_assignments):
 
             i_state = state_assignments[:, i]
             if res < i:
-                print("i_state", edge_table.shape, i_state)
                 res_oneb += edge_table[:, i_state].transpose()
             else:
-                print("i_state", edge_table.shape, i_state)
                 res_oneb += edge_table[i_state, :]
         oneb_subset["{}".format(subset_count+1)] = res_oneb
 
@@ -482,17 +487,17 @@ def test_create_subsample_ig():
     faux_assignments = random_assignments(oneb, num_assignments)
     oneb_subset, twob_subset = create_res_subset_ig(oneb, twob, subset0, faux_assignments)
 
-    subset_assignment1 = random_assignment(oneb_subset)
-    subset_assignment2 = random_assignment(oneb_subset)
+    subset_assignment1 = torch.tensor(random_assignment(oneb_subset)[None, :], dtype=torch.int32)
+    subset_assignment2 = torch.tensor(random_assignment(oneb_subset)[None, :], dtype=torch.int32)
  
     full_ig = create_twobody_energy_table(oneb, twob)
     subset_ig = create_twobody_energy_table(oneb_subset, twob_subset)
 
     for i in range(num_assignments):
-        full_assignment1 = numpy.copy(faux_assignments[i])
-        full_assignment2 = numpy.copy(faux_assignments[i])
-        full_assignment1[subset0] = subset_assignment1
-        full_assignment2[subset0] = subset_assignment2
+        full_assignment1 = torch.tensor(numpy.copy(faux_assignments[i])[None, :], dtype=torch.int32)
+        full_assignment2 = torch.tensor(numpy.copy(faux_assignments[i])[None, :], dtype=torch.int32)
+        full_assignment1[0, subset0] = subset_assignment1
+        full_assignment2[0, subset0] = subset_assignment2
         # for i, res in enumerate(subset0):
         #     full_assignment1[res] = subset_assignment1[i]
         #     full_assignment2[res] = subset_assignment2[i]
@@ -520,7 +525,6 @@ def pack_neighborhoods(oneb, twob, torch_device):
     full_assignments = torch.tensor(
         random_assignments(oneb, n_backgrounds), dtype=torch.int32
     )
-    last_score = energy_from_state_assignment(full_ig, full_assignment)
 
     subset_size = 20
     rotamer_limit = 15000
@@ -536,31 +540,29 @@ def pack_neighborhoods(oneb, twob, torch_device):
             print( (4 * ig.energy2b.shape[0]) // (1028*1028) )
             ig_dev = ig.to(torch_device)
             
-            start_assignment = full_assignment[subset]
-            start_score = energy_from_state_assignment(ig, start_assignment)
-            
-            scores, rot_assignments = run_simulated_annealing(ig_dev)
-            best_subset_assignment = rot_assignments[0]
-            full_assignment[subset] = best_subset_assignment.cpu()
-            end_score = energy_from_state_assignment(ig, best_subset_assignment.cpu())
-
-            validated_scores = torch.ops.tmol.validate_energies(
-                full_ig.nrotamers_for_res,
-                full_ig.oneb_offsets,
-                full_ig.res_for_rot,
-                full_ig.nenergies,
-                full_ig.twob_offsets,
-                full_ig.energy1b,
-                full_ig.energy2b,
-                full_assignment.unsqueeze(0),
+            start_assignments = full_assignments[:, subset]
+            start_scores = energy_from_state_assignment(
+                ig, start_assignments,
+                torch.arange(n_backgrounds, dtype=torch.int32)
             )
-    
+            
+            scores, rot_assignments, background_inds = run_simulated_annealing(ig_dev)
+            best_subset_assignments = rot_assignments[0:n_backgrounds].cpu()
+            best_background_assignments = background_inds[0:n_backgrounds].cpu()
+            best_background_assignments64 = best_background_assignments.to(torch.int64)
+            full_assignments = full_assignments[best_background_assignments64,:]
+            full_assignments[:,subset] = best_subset_assignments
+            end_score = energy_from_state_assignment(ig, best_subset_assignments, best_background_assignments)
+
+            validated_scores = energy_from_state_assignment(full_ig, full_assignments)
+
             #print(start_score.item(), end_score.item(), (end_score - start_score).item())
             #print(last_score.item(), validated_scores[0].item(), (validated_scores[0] - last_score).item() )
+            print("validated scores", validated_scores)
             # print("after pack #", count, validated_scores[0].item())
             last_score = validated_scores[0]
             # print("packed", subset.shape[0], "residues, scores", scores[0], validated_scores[0])
-    return last_score, full_assignment
+    return last_score, full_assignments[0]
         
 def test_pack_subsamples():
     torch_device = torch.device("cuda")
