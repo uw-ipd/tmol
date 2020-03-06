@@ -7,7 +7,10 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
 from tmol.pack.datatypes import PackerEnergyTables
-from tmol.pack.simulated_annealing import run_simulated_annealing
+from tmol.pack.simulated_annealing import (
+    run_one_stage_simulated_annealing,
+    run_multi_stage_simulated_annealing
+)
 from tmol.utility.cumsum import exclusive_cumsum
 
 
@@ -164,6 +167,14 @@ def test_energy_table_construction():
             ]
             assert ij_energy == ji_energy # exact equality ok since they are copies
 
+def default_simA_params():
+    params = torch.zeros((1,4), dtype=torch.float)
+    params[0,0] = 30
+    params[0,1] = 0.3
+    params[0,2] = 10
+    params[0,3] = 1/8
+    return params
+            
 def test_run_sim_annealing(torch_device):
     # torch_device = torch.device("cpu")
 
@@ -174,7 +185,8 @@ def test_run_sim_annealing(torch_device):
     print("nrotamers", et.res_for_rot.shape[0])
     et_dev = et.to(torch_device)
 
-    scores, rotamer_assignments = run_simulated_annealing(et_dev)
+    params = default_simA_params()
+    scores, rotamer_assignments, bg_inds = run_one_stage_simulated_annealing(params, et_dev)
 
     sort_scores, sort_inds = scores[0,:].sort()
     nkeep = min(scores.shape[0], 20)
@@ -193,6 +205,7 @@ def test_run_sim_annealing(torch_device):
     #print("assignment 0", rotamer_assignments[0,0:20])
     #print("sorted assignment 0", best_rot_assignments[0,0:20])
 
+    bg_inds = bg_inds.cpu()
     validated_scores = torch.ops.tmol.validate_energies(
         et.nrotamers_for_res,
         et.oneb_offsets,
@@ -201,7 +214,9 @@ def test_run_sim_annealing(torch_device):
         et.twob_offsets,
         et.energy1b,
         et.energy2b,
-        rotamer_assignments)
+        rotamer_assignments,
+        bg_inds
+    )
 
     print("validated scores?", validated_scores)
     torch.testing.assert_allclose(scores, validated_scores)
@@ -530,14 +545,14 @@ def pack_neighborhoods(oneb, twob, torch_device):
     rotamer_limit = 15000
     n_repeats = 6
     count = 0
-    for _ in range(n_repeats):
+    for repeat in range(n_repeats):
         subsets = create_residue_subsamples(nres, subset_size, rotamer_limit, neighbors, oneb)
             
         for subset in subsets:
             count += 1
             oneb_subset, twob_subset = create_res_subset_ig(oneb, twob, subset, full_assignments)
             ig = create_twobody_energy_table(oneb_subset, twob_subset)
-            print( (4 * ig.energy2b.shape[0]) // (1028*1028) )
+            print( "mem", (4 * (ig.energy2b.shape[0] + ig.energy1b.shape[0] * ig.energy1b.shape[1])) // (1028*1028) )
             ig_dev = ig.to(torch_device)
             
             start_assignments = full_assignments[:, subset]
@@ -552,17 +567,19 @@ def pack_neighborhoods(oneb, twob, torch_device):
             best_background_assignments64 = best_background_assignments.to(torch.int64)
             full_assignments = full_assignments[best_background_assignments64,:]
             full_assignments[:,subset] = best_subset_assignments
-            end_score = energy_from_state_assignment(ig, best_subset_assignments, best_background_assignments)
+            print("n_unique", full_assignments.unique(dim=0).shape[0])
+            # end_score = energy_from_state_assignment(ig, best_subset_assignments, best_background_assignments)
 
             validated_scores = energy_from_state_assignment(full_ig, full_assignments)
 
             #print(start_score.item(), end_score.item(), (end_score - start_score).item())
             #print(last_score.item(), validated_scores[0].item(), (validated_scores[0] - last_score).item() )
-            print("validated scores", validated_scores)
+            print(repeat, count, "validated scores", validated_scores[0:3])
             # print("after pack #", count, validated_scores[0].item())
-            last_score = validated_scores[0]
+            # last_score = validated_scores[0]
             # print("packed", subset.shape[0], "residues, scores", scores[0], validated_scores[0])
-    return last_score, full_assignments[0]
+    validated_scores = energy_from_state_assignment(full_ig, full_assignments)
+    return validated_scores[0], full_assignments[0]
         
 def test_pack_subsamples():
     torch_device = torch.device("cuda")
@@ -572,8 +589,8 @@ def test_pack_subsamples():
 
 def test_run_pack_neighborhoods_on_redes_ex1ex2_jobs():
     torch_device = torch.device("cuda")
-    # fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
-    fnames = ["1w0nFHA"]
+    fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    # fnames = ["1w0nFHA"]
     # fnames = ["1u36FHA", "1w0nFHA"]
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"

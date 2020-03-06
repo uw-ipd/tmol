@@ -21,7 +21,8 @@ namespace compiled {
 using torch::Tensor;
 
 std::vector< Tensor >
-anneal(
+one_stage_anneal(
+  Tensor simA_params,
   Tensor nrotamers_for_res,
   Tensor oneb_offsets,
   Tensor res_for_rot,
@@ -37,10 +38,11 @@ anneal(
   at::Tensor background_inds;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
-    energy1b.type(), "pack_anneal", ([&] {
+    energy1b.type(), "one_stage_anneal", ([&] {
       constexpr tmol::Device Dev = device_t;
 
-      auto result = AnnealerDispatch<Dev>::forward(
+      auto result = OneStageAnnealerDispatch<Dev>::forward(
+	TCAST(simA_params),
 	TCAST(nrotamers_for_res),
 	TCAST(oneb_offsets),
 	TCAST(res_for_rot),
@@ -57,6 +59,44 @@ anneal(
   return result;
 }
 
+std::vector< Tensor >
+multi_stage_anneal(
+  Tensor simA_params,
+  Tensor nrotamers_for_res,
+  Tensor oneb_offsets,
+  Tensor res_for_rot,
+  Tensor nenergies,
+  Tensor twob_offsets,
+  Tensor energy1b,
+  Tensor energy2b
+)
+{
+  nvtx_range_push("pack_anneal");
+  at::Tensor scores;
+  at::Tensor rotamer_assignments;
+  at::Tensor background_inds;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(
+    energy1b.type(), "one_stage_anneal", ([&] {
+      constexpr tmol::Device Dev = device_t;
+
+      auto result = MultiStageAnnealerDispatch<Dev>::forward(
+	TCAST(simA_params),
+	TCAST(nrotamers_for_res),
+	TCAST(oneb_offsets),
+	TCAST(res_for_rot),
+	TCAST(nenergies),
+	TCAST(twob_offsets),
+	TCAST(energy1b),
+	TCAST(energy2b));
+      scores = std::get<0>(result).tensor;
+      rotamer_assignments = std::get<1>(result).tensor;
+      background_inds = std::get<2>(result).tensor;
+      }));
+
+  std::vector< torch::Tensor > result({scores, rotamer_assignments, background_inds});
+  return result;
+}
 
 TPack<float, 1, tmol::Device::CPU>
 compute_energies_for_assignments(
@@ -114,7 +154,8 @@ validate_energies(
 
 static auto registry =
   torch::jit::RegisterOperators()
-  .op("tmol::pack_anneal", &anneal)
+  .op("tmol::one_stage_anneal", &one_stage_anneal)
+  .op("tmol::multi_stage_anneal", &multi_stage_anneal)
   .op("tmol::validate_energies", &validate_energies);
 
 }

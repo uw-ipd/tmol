@@ -9,6 +9,7 @@
 
 // ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
+#include <tmol/pack/compiled/params.hh>
 
 #include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/kernel_compact.hxx>
@@ -597,15 +598,162 @@ spbr(
   return energy;
 }
 
-
-
-
 template <tmol::Device D>
-struct AnnealerDispatch
+struct OneStageAnnealerDispatch
 {
   static
   auto
   forward(
+    TView<SimAParams<float>, 1, tmol::Device::CPU> simA_params,
+    TView<int, 1, D> nrotamers_for_res,
+    TView<int, 1, D> oneb_offsets,
+    TView<int, 1, D> res_for_rot,
+    TView<int, 2, D> nenergies,
+    TView<int64_t, 2, D> twob_offsets,
+    TView<float, 2, D> energy1b,
+    TView<float, 1, D> energy2b
+  )
+    -> std::tuple<
+      TPack<float, 2, D>, // energies of assignments
+      TPack<int, 2, D>, // assignments
+      TPack<int, 1, D> // backgrounds indices for assignments
+      >
+  {
+    clock_t start = clock();
+    InteractionGraph<D, int, float> ig({
+	nrotamers_for_res,
+        oneb_offsets,
+        res_for_rot,
+        nenergies,
+        twob_offsets,
+        energy1b,
+        energy2b});
+    
+    int const nres = nrotamers_for_res.size(0);
+    int const nrotamers = res_for_rot.size(0);
+    int const n_backgrounds = energy1b.size(0);
+
+    float const hi_temp = simA_params[0].hitemp;
+    float const lo_temp = simA_params[0].lotemp;
+    int const n_outer = (int) simA_params[0].n_outer;
+    int const n_inner = (int) (simA_params[0].n_inner_scale * nrotamers);
+
+    int const n_traj = 1200;
+    int const n_threads = n_traj * 32;
+    
+    auto scores_t = TPack<float, 2, D>::zeros({1,n_traj});
+    auto rotamer_assignments_t = TPack<int, 2, D>::zeros({n_traj, nres});
+    auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({n_traj, nres});
+    auto rotamer_assignments_final_t = TPack<int, 2, D>::zeros({n_traj, nres});
+    auto quench_order_t = TPack<int, 2, D>::zeros({n_traj, nres});
+    auto sorted_traj_t = TPack<int, 1, D>::zeros({n_traj});
+    auto background_inds_t = TPack<int, 1, D>::zeros(n_traj);
+    auto final_background_inds_t = TPack<int, 1, D>::zeros(n_traj);
+
+    auto scores = scores_t.view;
+    auto rotamer_assignments = rotamer_assignments_t.view;
+    auto best_rotamer_assignments = best_rotamer_assignments_t.view;
+    auto rotamer_assignments_final = rotamer_assignments_final_t.view;
+    auto quench_order = quench_order_t.view;
+    auto sorted_traj = sorted_traj_t.view;
+    auto background_inds = background_inds_t.view;
+    auto final_background_inds = final_background_inds_t.view;
+    
+    auto philox_seed = next_philox_seed(
+      nrotamers +  // initial random rotamer assignment
+      n_outer * n_inner + // n rotamer substitutions
+      nrotamers // random permutation of rotamers
+    );
+
+    auto simulated_annealing = [=] MGPU_DEVICE (int thread_id){
+      curandStatePhilox4_32_10_t state;
+      curand_init(
+        philox_seed.first,
+        thread_id,
+        philox_seed.second,
+        &state);
+
+      cooperative_groups::thread_block_tile<32> g = cooperative_groups::tiled_partition<32>(
+        cooperative_groups::this_thread_block());
+      int const warp_id = thread_id / 32;
+      int const background_ind = warp_id % n_backgrounds;
+
+      if (g.thread_rank() == 0) {
+        sorted_traj[warp_id] = warp_id;
+	background_inds[warp_id] = background_ind;
+      }
+
+      for (int i = g.thread_rank(); i < nres; i += 32) {
+        int const i_nrots = nrotamers_for_res[i];
+        int chosen = int(curand_uniform(&state) * i_nrots) % i_nrots;
+        rotamer_assignments[warp_id][i] = chosen;
+        best_rotamer_assignments[warp_id][i] = chosen;
+      }
+
+      float rotstate_energy_after_simA = warp_wide_sim_annealing(
+        &state,
+        g,
+	ig,
+        warp_id,
+	background_ind,
+        rotamer_assignments[warp_id],
+        best_rotamer_assignments[warp_id],
+        quench_order[warp_id],
+        hi_temp,
+        lo_temp,
+        n_outer,
+        n_inner,
+        nrotamers,
+        true,
+        false
+      );
+
+      if (g.thread_rank() == 0) {
+        scores[0][warp_id] = rotstate_energy_after_simA;
+      }
+    };
+
+    auto take_best = [=] MGPU_DEVICE (int thread_id) {
+      cooperative_groups::thread_block_tile<32> g = cooperative_groups::tiled_partition<32>(
+        cooperative_groups::this_thread_block());
+      int const warp_id = thread_id / 32;
+      int const source_traj = sorted_traj[warp_id];
+      for (int i = g.thread_rank(); i < nres; i += 32) {
+	rotamer_assignments_final[warp_id][i] =
+	  best_rotamer_assignments[source_traj][i];
+      }
+      if (g.thread_rank() == 0) {
+	final_background_inds[warp_id] = background_inds[source_traj];
+      }
+    };
+
+    mgpu::standard_context_t context;
+  
+    mgpu::transform<128, 1>(simulated_annealing, n_threads, context);
+    mgpu::mergesort(
+      scores.data(), sorted_traj.data(),
+      n_traj, mgpu::less_t<float>(), context);
+    mgpu::transform<32, 1>(take_best, n_threads, context);
+    
+    cudaDeviceSynchronize();
+    clock_t stop = clock();
+    std::cout << "GPU simulated annealing in " <<
+       ((double) stop - start)/CLOCKS_PER_SEC << " seconds" << std::endl;
+
+    return {scores_t, rotamer_assignments_final_t, final_background_inds_t};
+  }
+
+};
+
+
+
+template <tmol::Device D>
+struct MultiStageAnnealerDispatch
+{
+  static
+  auto
+  forward(
+    TView<SimAParams<float>, 1, tmol::Device::CPU> simA_params,
     TView<int, 1, D> nrotamers_for_res,
     TView<int, 1, D> oneb_offsets,
     TView<int, 1, D> res_for_rot,
@@ -648,8 +796,8 @@ struct AnnealerDispatch
     int const n_inner_iterations_hitemp = nrotamers / 8;
     int const n_outer_iterations_lotemp = 10;
     int const n_inner_iterations_lotemp = nrotamers / 16;
-    float const high_temp_initial = 30;
-    float const low_temp_initial = 0.3;
+    float const high_temp_initial = simA_params[0].hitemp;
+    float const low_temp_initial = simA_params[0].lotemp;
     float const high_temp_later = 0.2;
     float const low_temp_later = 0.1;
 
@@ -995,7 +1143,8 @@ struct AnnealerDispatch
 
 };
 
-template struct AnnealerDispatch<tmol::Device::CUDA>;
+template struct OneStageAnnealerDispatch<tmol::Device::CUDA>;
+template struct MultiStageAnnealerDispatch<tmol::Device::CUDA>;
 
 } // namespace compiled
 } // namespace pack

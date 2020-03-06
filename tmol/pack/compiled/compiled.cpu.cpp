@@ -3,6 +3,7 @@
 
 // ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
+#include <tmol/pack/compiled/params.hh>
 
 #include <ctime>
 
@@ -33,11 +34,12 @@ set_quench_order(
 }
 
 template <tmol::Device D>
-struct AnnealerDispatch
+struct OneStageAnnealerDispatch
 {
   static
   auto
   forward(
+    TView<SimAParams<float>, 1, tmol::Device::CPU> simA_params,
     TView<int, 1, D> nrotamers_for_res,
     TView<int, 1, D> oneb_offsets,
     TView<int, 1, D> res_for_rot,
@@ -222,7 +224,40 @@ struct AnnealerDispatch
 
 };
 
-template struct AnnealerDispatch<tmol::Device::CPU>;
+template <tmol::Device D>
+struct MultiStageAnnealerDispatch
+{
+  static
+  auto
+  forward(
+    TView<SimAParams<float>, 1, tmol::Device::CPU> simA_params,
+    TView<int, 1, D> nrotamers_for_res,
+    TView<int, 1, D> oneb_offsets,
+    TView<int, 1, D> res_for_rot,
+    TView<int, 2, D> nenergies,
+    TView<int64_t, 2, D> twob_offsets,
+    TView<float, 2, D> energy1b,
+    TView<float, 1, D> energy2b
+  )
+    -> std::tuple<
+      TPack<float, 2, D>,
+      TPack<int, 2, D>,
+      TPack<int, 1, D> >
+  {
+    return OneStageAnnealerDispatch<D>::forward(
+      simA_params,
+      nrotamers_for_res,
+      oneb_offsets,
+      res_for_rot,
+      nenergies,
+      twob_offsets,
+      energy1b,
+      energy2b);
+  }
+};
+
+template struct OneStageAnnealerDispatch<tmol::Device::CPU>;
+template struct MultiStageAnnealerDispatch<tmol::Device::CPU>;
 
 } // namespace compiled
 } // namespace pack
