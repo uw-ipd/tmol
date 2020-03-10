@@ -286,6 +286,7 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
     fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
     # fnames = ["1w0nFHA"]
     # fnames = ["1u36FHA", "1w0nFHA"]
+    simA_params = default_simA_params()
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
         oneb, twob = load_ig_from_file(path_to_zarr_file)
@@ -301,7 +302,8 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
         et_dev = et.to(torch_device)
 
         print("running sim annealing on", fname)
-        scores, rotamer_assignments = run_simulated_annealing(et_dev)
+        scores, rotamer_assignments, bg_inds = run_one_stage_simulated_annealing(simA_params, et_dev)
+        bg_inds = bg_inds.cpu()
 
         scores_temp = scores
         #scores = scores.cpu().numpy()
@@ -332,7 +334,9 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
             et.twob_offsets,
             et.energy1b,
             et.energy2b,
-            rotamer_assignments)
+            rotamer_assignments,
+            bg_inds
+        )
 
         # print("validated scores?", validated_scores)
         torch.testing.assert_allclose(scores, validated_scores)
@@ -460,6 +464,8 @@ def test_rank_neighbors():
     res36_neighbs = neighbors[36]
     rank_of_neighbors = []
     for neighb in res36_neighbs:
+        if neighb == 36:
+            continue
         lower = 36 if neighb > 36 else neighb
         upper = 36 if neighb < 36 else neighb
         edge_name = "{}-{}".format(lower+1, upper+1)
@@ -479,8 +485,8 @@ def test_create_residue_subsamples():
     subset_size = 30
     subsets = create_residue_subsamples(nres, subset_size, 4000, neighbors, oneb)
 
-    for subset in subsets:
-        print(subset)
+    #for subset in subsets:
+    #    print(subset)
 
 def random_assignment(oneb):
     nres = len(oneb)
@@ -538,8 +544,8 @@ def test_create_subsample_ig():
         full_deltaE = full_energy1 - full_energy2
         subset_deltaE = subset_energy1 - subset_energy2
     
-        print(full_energy1, full_energy2, full_deltaE)
-        print(subset_energy1, subset_energy2, subset_deltaE)
+        # print(full_energy1, full_energy2, full_deltaE)
+        # print(subset_energy1, subset_energy2, subset_deltaE)
         assert abs(full_deltaE - subset_deltaE) < 1e-2
 
 def pack_neighborhoods(oneb, twob, torch_device):
@@ -556,6 +562,7 @@ def pack_neighborhoods(oneb, twob, torch_device):
     rotamer_limit = 15000
     n_repeats = 6
     count = 0
+    simA_params = default_simA_params()
     for repeat in range(n_repeats):
         subsets = create_residue_subsamples(nres, subset_size, rotamer_limit, neighbors, oneb)
             
@@ -572,7 +579,8 @@ def pack_neighborhoods(oneb, twob, torch_device):
                 torch.arange(n_backgrounds, dtype=torch.int32)
             )
             
-            scores, rot_assignments, background_inds = run_simulated_annealing(ig_dev)
+            scores, rot_assignments, background_inds = run_multi_stage_simulated_annealing(simA_params, ig_dev)
+
             best_subset_assignments = rot_assignments[0:n_backgrounds].cpu()
             best_background_assignments = background_inds[0:n_backgrounds].cpu()
             best_background_assignments64 = best_background_assignments.to(torch.int64)
