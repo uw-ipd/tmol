@@ -228,7 +228,9 @@ Real
 total_energy_for_assignment_parallel(
   cooperative_groups::thread_block_tile<nthreads> g,
   InteractionGraph<D, Int, Real> ig,
-  TensorAccessor<Int, 1, D> rotamer_assignment
+  TensorAccessor<Int, 1, D> rotamer_assignment,
+  int background_id,
+  bool verbose = false
 )
 {
   Real totalE = 0;
@@ -237,7 +239,7 @@ total_energy_for_assignment_parallel(
     int const irot_local = rotamer_assignment[i];
     int const irot_global = irot_local + ig.oneb_offsets[i];
 
-    totalE += ig.energy1b[0][irot_global];
+    totalE += ig.energy1b[background_id][irot_global];
   }
 
   for (int i = g.thread_rank(); i < nres; i += nthreads) {
@@ -256,7 +258,13 @@ total_energy_for_assignment_parallel(
       totalE += ij_energy;
     }
   }
+  // if (verbose && (blockDim.x * blockIdx.x + threadIdx.x)/32 == 374) {
+  //   printf("warp 374 subtotal: %d %f\n", threadIdx.x % 32, totalE);
+  // }
   totalE = reduce_shfl_and_broadcast(g, totalE, mgpu::plus_t<float>());
+  // if (verbose && (blockDim.x * blockIdx.x + threadIdx.x)/32 == 374) {
+  //   printf("warp 374 total: %d %f\n", threadIdx.x % 32, totalE);
+  // }
   return totalE;
 }
 
@@ -290,7 +298,8 @@ warp_wide_sim_annealing(
   int const nrotamers = ig.res_for_rot.size(0);
 
   float temperature = hi_temp;
-  float best_energy = total_energy_for_assignment_parallel(g, ig, rotamer_assignments);
+  float best_energy = total_energy_for_assignment_parallel(
+    g, ig, rotamer_assignments, background_id);
   float current_total_energy = best_energy;
   int ntrials = 0;
   for (int i = 0; i < n_outer_iterations; ++i) {
@@ -311,7 +320,8 @@ warp_wide_sim_annealing(
       for (int j = g.thread_rank(); j < nres; j += 32) {
         rotamer_assignments[j] = best_rotamer_assignments[j];
       }
-      current_total_energy = total_energy_for_assignment_parallel(g, ig, rotamer_assignments);
+      current_total_energy = total_energy_for_assignment_parallel(
+	g, ig, rotamer_assignments, background_id);
     }
 
     for (int j = 0; j < i_n_inner_iterations; ++j) {
@@ -345,6 +355,7 @@ warp_wide_sim_annealing(
         ran_rot = g.shfl(ran_rot, 0);
         accept_prob = g.shfl(accept_prob, 0);
       }
+
       int const ran_res = ig.res_for_rot[ran_rot];
       int const local_prev_rot = rotamer_assignments[ran_res];
       int const ran_res_nrots = ig.nrotamers_for_res[ran_res];
@@ -354,13 +365,17 @@ warp_wide_sim_annealing(
       int thread_w_prev_rot = 0;
       { // scope
         int const local_ran_rot_orig = ran_rot - ran_res_rotamer_offset;
-        int const local_prev_rot_wrapped = local_ran_rot_orig < local_prev_rot ?
+        int const local_prev_rot_wrapped = local_ran_rot_orig <= local_prev_rot ?
           local_prev_rot :
           local_prev_rot + ran_res_nrots;
         prev_rot_in_range = local_ran_rot_orig + 32 > local_prev_rot_wrapped;
         thread_w_prev_rot = prev_rot_in_range ?
-          local_prev_rot_wrapped - local_ran_rot_orig : 0;
+	  ( local_ran_rot_orig == local_prev_rot ?
+	    0 : local_prev_rot_wrapped - local_ran_rot_orig)
+	  : 0;
       }
+
+
       int const local_ran_rot = prev_rot_in_range ? (
         (ran_rot - ran_res_rotamer_offset + g.thread_rank()) % ran_res_nrots) :
         (g.thread_rank() == 0 ?
@@ -368,6 +383,10 @@ warp_wide_sim_annealing(
           (ran_rot - ran_res_rotamer_offset  + g.thread_rank() - 1) % ran_res_nrots);
       ran_rot = local_ran_rot + ran_res_rotamer_offset;
 
+      // if (local_ran_rot < 0 || local_ran_rot >= ran_res_nrots) {
+      // 	printf("!!! local_ran_rot out of range; ran_res_nrots %d local_ran_rot %d\n", ran_res_nrots, local_ran_rot);
+      // 	this_thread_active = false;
+      // }
 
       // If there are fewer rotamers on this residue than there are threads
       // active in the warp, do not wrap and consider a rotamer more than once
@@ -469,7 +488,8 @@ warp_wide_sim_annealing(
       ++ntrials;
       if (ntrials > 1000) {
         ntrials = 0;
-        current_total_energy = total_energy_for_assignment_parallel(g, ig, rotamer_assignments);
+        current_total_energy = total_energy_for_assignment_parallel(
+	  g, ig, rotamer_assignments, background_id);
         // if (g.thread_rank() == 0) {
         //   printf("refresh total energy currentE %f\n", current_total_energy);
         // }
@@ -486,7 +506,11 @@ warp_wide_sim_annealing(
   } // end outer loop
 
 
-  float totalE = total_energy_for_assignment_parallel(g, ig, rotamer_assignments);
+  float totalE = total_energy_for_assignment_parallel(
+    g, ig, rotamer_assignments, background_id, true);
+
+  // float totalE2 = total_energy_for_assignment_parallel(
+  //   g, ig, best_rotamer_assignments, background_id, true);
 
   return totalE;
 }
@@ -514,7 +538,8 @@ spbr(
   int const nres = ig.nrotamers_for_res.size(0);
   int const nrotamers = ig.res_for_rot.size(0);
   
-  float energy = total_energy_for_assignment_parallel(g, ig, spbr_rotamer_assignments[warp_id]);
+  float energy = total_energy_for_assignment_parallel(
+    g, ig, spbr_rotamer_assignments[warp_id], 0 /*temp!*/);
 
   for (int spbr_iteration = 0; spbr_iteration < n_spbr; ++spbr_iteration) {
     // 1. pick a rotamer
@@ -580,7 +605,8 @@ spbr(
     }
 
     // 5. compute the new total energy after relaxation
-    float alt_energy = total_energy_for_assignment_parallel(g, ig, spbr_perturbed_assignments[warp_id]);
+    float alt_energy = total_energy_for_assignment_parallel(
+      g, ig, spbr_perturbed_assignments[warp_id], 0 /*temp*/);
 
     // 6. if the energy decreases, accept the perturbed conformation
     if (alt_energy < energy) {
@@ -645,7 +671,7 @@ struct OneStageAnnealerDispatch
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({n_traj, nres});
     auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({n_traj, nres});
     auto rotamer_assignments_final_t = TPack<int, 2, D>::zeros({n_traj, nres});
-    auto quench_order_t = TPack<int, 2, D>::zeros({n_traj, nres});
+    auto quench_order_t = TPack<int, 2, D>::zeros({n_traj, nrotamers});
     auto sorted_traj_t = TPack<int, 1, D>::zeros({n_traj});
     auto background_inds_t = TPack<int, 1, D>::zeros(n_traj);
     auto final_background_inds_t = TPack<int, 1, D>::zeros(n_traj);
@@ -724,6 +750,9 @@ struct OneStageAnnealerDispatch
       }
       if (g.thread_rank() == 0) {
 	final_background_inds[warp_id] = background_inds[source_traj];
+      }
+      if (g.thread_rank() == 0 && warp_id < 10 ) {
+	printf("best energy %d %f from traj %d\n", warp_id, scores[0][warp_id], source_traj);
       }
     };
 
@@ -932,7 +961,8 @@ struct MultiStageAnnealerDispatch
         rotamer_assignments_hitemp[warp_id][i] = i_assignment;
         rotamer_assignments_hitemp_quenchlite[warp_id][i] = i_assignment;
       }
-      float best_energy_after_high_temp = total_energy_for_assignment_parallel(g, ig, best_rotamer_assignments_hitemp[warp_id]);
+      float best_energy_after_high_temp = total_energy_for_assignment_parallel(
+	g, ig, best_rotamer_assignments_hitemp[warp_id], background_ind);
 
       // ok, run quench lite as a way to predict where this rotamer assignment will
       // end up after low-temperature annealing

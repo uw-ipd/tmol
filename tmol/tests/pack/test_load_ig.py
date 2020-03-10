@@ -223,9 +223,12 @@ def test_run_sim_annealing(torch_device):
 
 
 def test_run_sim_annealing_on_repacking_jobs():
+    torch.manual_seed(1)
+    
     torch_device = torch.device("cuda")
     fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
     # fnames = ["1u36FHA"]
+    simA_params = default_simA_params()
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/repack/" + fname + "_repack.zarr"
         oneb, twob = load_ig_from_file(path_to_zarr_file)
@@ -235,7 +238,8 @@ def test_run_sim_annealing_on_repacking_jobs():
         et_dev = et.to(torch_device)
 
         # print("running sim annealing on", fname)
-        scores, rotamer_assignments = run_simulated_annealing(et_dev)
+        scores, rotamer_assignments, bg_inds = run_one_stage_simulated_annealing(simA_params, et_dev)
+        bg_inds = bg_inds.cpu()
 
         # scores_temp = scores
         # scores = scores.cpu().numpy()
@@ -252,6 +256,11 @@ def test_run_sim_annealing_on_repacking_jobs():
         best_score_inds = sort_inds[0:nkeep]
         best_rot_assignments = rotamer_assignments[best_score_inds, :]
 
+        print("scores", scores)
+        print("sort_scores", sort_scores)
+        print("best_score_inds", best_score_inds)
+        print("bg_inds", bg_inds)
+        
         scores = best_scores.cpu()
 
         rotamer_assignments = best_rot_assignments.cpu()
@@ -265,7 +274,9 @@ def test_run_sim_annealing_on_repacking_jobs():
             et.twob_offsets,
             et.energy1b,
             et.energy2b,
-            rotamer_assignments)
+            rotamer_assignments,
+            bg_inds
+        )
 
         # print("validated scores?", validated_scores)
         torch.testing.assert_allclose(scores, validated_scores)
