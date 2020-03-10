@@ -13,7 +13,7 @@ struct SimAParams {
   Real lotemp;
   Real n_outer;
   Real n_inner_scale;
-  
+  Real quench;
 };
 
 } // namespace compiled

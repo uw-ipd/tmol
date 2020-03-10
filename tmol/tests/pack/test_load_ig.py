@@ -168,11 +168,12 @@ def test_energy_table_construction():
             assert ij_energy == ji_energy # exact equality ok since they are copies
 
 def default_simA_params():
-    params = torch.zeros((1,4), dtype=torch.float)
+    params = torch.zeros((1, 5), dtype=torch.float)
     params[0,0] = 30
     params[0,1] = 0.3
     params[0,2] = 10
     params[0,3] = 1/8
+    params[0,4] = 1
     return params
             
 def test_run_sim_annealing(torch_device):
@@ -552,7 +553,7 @@ def pack_neighborhoods(oneb, twob, torch_device):
     full_ig = create_twobody_energy_table(oneb, twob)
     nres = len(oneb)
     neighbors = ranked_neighbors_from_ig(nres, twob)
-    n_backgrounds = 100
+    n_backgrounds = 300
 
     full_assignments = torch.tensor(
         random_assignments(oneb, n_backgrounds), dtype=torch.int32
@@ -560,9 +561,10 @@ def pack_neighborhoods(oneb, twob, torch_device):
 
     subset_size = 20
     rotamer_limit = 15000
-    n_repeats = 6
+    n_repeats = 2
     count = 0
     simA_params = default_simA_params()
+    simA_params[0][4] = 0 # disable quench
     for repeat in range(n_repeats):
         subsets = create_residue_subsamples(nres, subset_size, rotamer_limit, neighbors, oneb)
             
@@ -578,8 +580,11 @@ def pack_neighborhoods(oneb, twob, torch_device):
                 ig, start_assignments,
                 torch.arange(n_backgrounds, dtype=torch.int32)
             )
-            
-            scores, rot_assignments, background_inds = run_multi_stage_simulated_annealing(simA_params, ig_dev)
+
+            if repeat == 0:
+                scores, rot_assignments, background_inds = run_one_stage_simulated_annealing(simA_params, ig_dev)
+            else:
+                scores, rot_assignments, background_inds = run_multi_stage_simulated_annealing(simA_params, ig_dev)
 
             best_subset_assignments = rot_assignments[0:n_backgrounds].cpu()
             best_background_assignments = background_inds[0:n_backgrounds].cpu()

@@ -691,6 +691,8 @@ struct OneStageAnnealerDispatch
       nrotamers // random permutation of rotamers
     );
 
+    bool run_quench = simA_params[0].quench != 0;
+    
     auto simulated_annealing = [=] MGPU_DEVICE (int thread_id){
       curandStatePhilox4_32_10_t state;
       curand_init(
@@ -730,7 +732,7 @@ struct OneStageAnnealerDispatch
         n_outer,
         n_inner,
         nrotamers,
-        true,
+        run_quench,
         false
       );
 
@@ -751,9 +753,9 @@ struct OneStageAnnealerDispatch
       if (g.thread_rank() == 0) {
 	final_background_inds[warp_id] = background_inds[source_traj];
       }
-      if (g.thread_rank() == 0 && warp_id < 10 ) {
-	printf("best energy %d %f from traj %d\n", warp_id, scores[0][warp_id], source_traj);
-      }
+      // if (g.thread_rank() == 0 && warp_id < 10 ) {
+      // 	printf("best energy %d %f from traj %d\n", warp_id, scores[0][warp_id], source_traj);
+      // }
     };
 
     mgpu::standard_context_t context;
