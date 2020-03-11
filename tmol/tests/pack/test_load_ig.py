@@ -6,7 +6,7 @@ import attr
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
-from tmol.pack.datatypes import PackerEnergyTables
+from tmol.pack.datatypes import SimAParams, PackerEnergyTables
 from tmol.pack.simulated_annealing import (
     run_one_stage_simulated_annealing,
     run_multi_stage_simulated_annealing
@@ -168,12 +168,12 @@ def test_energy_table_construction():
             assert ij_energy == ji_energy # exact equality ok since they are copies
 
 def default_simA_params():
-    params = torch.zeros((1, 5), dtype=torch.float)
-    params[0,0] = 30
-    params[0,1] = 0.3
-    params[0,2] = 10
-    params[0,3] = 1/8
-    params[0,4] = 1
+    params = SimAParams.new_instance()
+    params.hitemp = 30
+    params.lotemp = 0.3
+    params.n_outer = 10
+    params.n_inner_scale = 1/8
+    params.quench = 1
     return params
             
 def test_run_sim_annealing(torch_device):
@@ -187,7 +187,7 @@ def test_run_sim_annealing(torch_device):
     et_dev = et.to(torch_device)
 
     params = default_simA_params()
-    scores, rotamer_assignments, bg_inds = run_one_stage_simulated_annealing(params, et_dev)
+    scores, rotamer_assignments, bg_inds = run_one_stage_simulated_annealing(params.raw, et_dev)
 
     sort_scores, sort_inds = scores[0,:].sort()
     nkeep = min(scores.shape[0], 20)
@@ -239,7 +239,7 @@ def test_run_sim_annealing_on_repacking_jobs():
         et_dev = et.to(torch_device)
 
         # print("running sim annealing on", fname)
-        scores, rotamer_assignments, bg_inds = run_one_stage_simulated_annealing(simA_params, et_dev)
+        scores, rotamer_assignments, bg_inds = run_one_stage_simulated_annealing(simA_params.raw, et_dev)
         bg_inds = bg_inds.cpu()
 
         # scores_temp = scores
@@ -303,7 +303,7 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
         et_dev = et.to(torch_device)
 
         print("running sim annealing on", fname)
-        scores, rotamer_assignments, bg_inds = run_one_stage_simulated_annealing(simA_params, et_dev)
+        scores, rotamer_assignments, bg_inds = run_one_stage_simulated_annealing(simA_params.raw, et_dev)
         bg_inds = bg_inds.cpu()
 
         scores_temp = scores
@@ -564,12 +564,12 @@ def pack_neighborhoods(oneb, twob, torch_device):
     n_repeats = 3
     count = 0
     simA_params = default_simA_params()
-    simA_params[0][4] = 0 # disable quench for first round
+    simA_params.quench = 0 # disable quench for first round
     for repeat in range(n_repeats):
         subsets = create_residue_subsamples(nres, subset_size, rotamer_limit, neighbors, oneb)
 
         if repeat == 1:
-            simA_params[0][4] = 1 # reenable quench in the 2nd round
+            simA_params.quench = 1 # reenable quench in the 2nd round
         
         for subset in subsets:
             count += 1
@@ -585,9 +585,9 @@ def pack_neighborhoods(oneb, twob, torch_device):
             )
 
             if repeat != n_repeats - 1:
-                scores, rot_assignments, background_inds = run_one_stage_simulated_annealing(simA_params, ig_dev)
+                scores, rot_assignments, background_inds = run_one_stage_simulated_annealing(simA_params.raw, ig_dev)
             else:
-                scores, rot_assignments, background_inds = run_multi_stage_simulated_annealing(simA_params, ig_dev)
+                scores, rot_assignments, background_inds = run_multi_stage_simulated_annealing(simA_params.raw, ig_dev)
 
             best_subset_assignments = rot_assignments[0:n_backgrounds].cpu()
             best_background_assignments = background_inds[0:n_backgrounds].cpu()
