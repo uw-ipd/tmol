@@ -560,16 +560,20 @@ def pack_neighborhoods(oneb, twob, torch_device):
     )
 
     subset_size = 20
-    rotamer_limit = 15000
-    n_repeats = 3
+    rotamer_limit = 12000
+    n_repeats = 4
     count = 0
-    simA_params = default_simA_params()
-    simA_params.quench = 0 # disable quench for first round
     for repeat in range(n_repeats):
         subsets = create_residue_subsamples(nres, subset_size, rotamer_limit, neighbors, oneb)
 
+        simA_params = default_simA_params()
+        if repeat == 0:
+            simA_params.quench = 0
+            simA_params.lotemp = 0.2
+        
         if repeat == 1:
-            simA_params.quench = 1 # reenable quench in the 2nd round
+            simA_params.hitemp = 10
+            simA_params.quench = 1
         
         for subset in subsets:
             count += 1
@@ -584,7 +588,7 @@ def pack_neighborhoods(oneb, twob, torch_device):
                 torch.arange(n_backgrounds, dtype=torch.int32)
             )
 
-            if repeat != n_repeats - 1:
+            if repeat <= 1:
                 scores, rot_assignments, background_inds = run_one_stage_simulated_annealing(simA_params.raw, ig_dev)
             else:
                 scores, rot_assignments, background_inds = run_multi_stage_simulated_annealing(simA_params.raw, ig_dev)
