@@ -549,18 +549,20 @@ def test_create_subsample_ig():
         # print(subset_energy1, subset_energy2, subset_deltaE)
         assert abs(full_deltaE - subset_deltaE) < 1e-2
 
-def pack_neighborhoods(oneb, twob, torch_device):
+def pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=None, rotamer_limit=None):
     full_ig = create_twobody_energy_table(oneb, twob)
     nres = len(oneb)
     neighbors = ranked_neighbors_from_ig(nres, twob)
-    n_backgrounds = 300
+    if n_backgrounds is None:
+        n_backgrounds = 300
 
     full_assignments = torch.tensor(
         random_assignments(oneb, n_backgrounds), dtype=torch.int32
     )
 
     subset_size = 20
-    rotamer_limit = 12000
+    if rotamer_limit is None:
+        rotamer_limit = 12000
     n_repeats = 4
     count = 0
     for repeat in range(n_repeats):
@@ -619,13 +621,24 @@ def test_pack_subsamples():
     pack_neighborhoods(oneb, twob, torch_device)
 
 def test_run_pack_neighborhoods_on_redes_ex1ex2_jobs():
+    print("beginning")
     torch_device = torch.device("cuda")
     fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
     # fnames = ["1w0nFHA"]
     # fnames = ["1u36FHA", "1w0nFHA"]
+
+    background_sizes = [10, 30, 100, 300, 1000]
+    nrot_limits = [8000, 10000, 11000, 12000, 13000, 15000, 17000]
+    
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
         oneb, twob = load_ig_from_file(path_to_zarr_file)
         print("packing", fname)
-        score, assignment = pack_neighborhoods(oneb, twob, torch_device)
-        print("final score", score)
+        for bg_size in background_sizes:
+            print("sweep bg size", bg_size)
+            score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=bg_size, rotamer_limit=15000)
+            print("final score", score)
+        for limit in nrot_limits:
+            print("sweep rotamer limit", limit)
+            score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=300, rotamer_limit=limit)
+            print("final score", score)
