@@ -556,8 +556,9 @@ def pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=None, rotamer_lim
     if n_backgrounds is None:
         n_backgrounds = 300
 
+    start_n_backgrounds = 1200
     full_assignments = torch.tensor(
-        random_assignments(oneb, n_backgrounds), dtype=torch.int32
+        random_assignments(oneb, start_n_backgrounds), dtype=torch.int32
     )
 
     subset_size = 20
@@ -585,11 +586,13 @@ def pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=None, rotamer_lim
             ig_dev = ig.to(torch_device)
             
             start_assignments = full_assignments[:, subset]
-            start_scores = energy_from_state_assignment(
-                ig, start_assignments,
-                torch.arange(n_backgrounds, dtype=torch.int32)
-            )
+            # print("calc energy from state assignment")
+            # start_scores = energy_from_state_assignment(
+            #     ig, start_assignments,
+            #     torch.arange(n_backgrounds, dtype=torch.int32)
+            # )
 
+            print("calling simA")
             if repeat <= 1:
                 scores, rot_assignments, background_inds = run_one_stage_simulated_annealing(simA_params.raw, ig_dev)
             else:
@@ -653,9 +656,10 @@ def test_run_pack_neighborhoods_on_redes_ex1ex2_jobs():
     nrot_limits = [8000, 10000, 11000, 12000, 13000, 15000, 17000]
     
     for fname in fnames:
+        print("packing", fname)
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
         oneb, twob = load_ig_from_file(path_to_zarr_file)
-        score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=300, rotamer_limit=15000)
+        score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=100, rotamer_limit=15000)
         print("final score", score)
 
         # print("packing", fname)
