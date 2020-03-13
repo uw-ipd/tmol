@@ -595,11 +595,32 @@ def pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=None, rotamer_lim
             else:
                 scores, rot_assignments, background_inds = run_multi_stage_simulated_annealing(simA_params.raw, ig_dev)
 
-            best_subset_assignments = rot_assignments[0:n_backgrounds].cpu()
-            best_background_assignments = background_inds[0:n_backgrounds].cpu()
-            best_background_assignments64 = best_background_assignments.to(torch.int64)
-            full_assignments = full_assignments[best_background_assignments64,:]
-            full_assignments[:,subset] = best_subset_assignments
+            full_assignments = full_assignments[background_inds.cpu().to(torch.int64)]
+            full_assignments[:, subset] = rot_assignments.cpu()
+            uniq_assignments, uniq_mapping = full_assignments.unique(return_inverse=True, dim=0)
+
+            # counts_cumsum = exclusive_cumsum(counts)
+            # print(uniq_mapping.shape, scores.cpu().shape)
+            # uniq_mapping = uniq_mapping[counts_cumsum]
+
+            # print(uniq_mapping.shape, scores.cpu().shape, uniq_assignments.shape)
+            # print(uniq_mapping)
+            uniq_scores = torch.zeros((uniq_assignments.shape[0],), dtype=torch.float)
+            uniq_scores[uniq_mapping] = scores.cpu()[0,:]
+            # print("uniq scores", uniq_scores.shape)
+            # print("uniq scores", uniq_scores)
+            sorted_uniq_scores, sorted_uniq_mapping = uniq_scores.sort()
+            if uniq_assignments.shape[0] > n_backgrounds:
+                # print(uniq_scores[sorted_uniq_mapping[:10]])
+                uniq_assignments = uniq_assignments[sorted_uniq_mapping[:n_backgrounds], :]
+            full_assignments = uniq_assignments
+            # print("full_assignments.shape", full_assignments.shape)
+                
+            # best_subset_assignments = rot_assignments[0:n_backgrounds].cpu()
+            # best_background_assignments = background_inds[0:n_backgrounds].cpu()
+            # best_background_assignments64 = best_background_assignments.to(torch.int64)
+            # full_assignments = full_assignments[best_background_assignments64,:]
+            # full_assignments[:,subset] = best_subset_assignments
             print("n_unique", full_assignments.unique(dim=0).shape[0])
             # end_score = energy_from_state_assignment(ig, best_subset_assignments, best_background_assignments)
 
@@ -626,6 +647,7 @@ def test_run_pack_neighborhoods_on_redes_ex1ex2_jobs():
     fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
     # fnames = ["1w0nFHA"]
     # fnames = ["1u36FHA", "1w0nFHA"]
+    # fnames = ["1u36FHA"]
 
     background_sizes = [10, 30, 100, 300, 1000]
     nrot_limits = [8000, 10000, 11000, 12000, 13000, 15000, 17000]
@@ -633,12 +655,15 @@ def test_run_pack_neighborhoods_on_redes_ex1ex2_jobs():
     for fname in fnames:
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
         oneb, twob = load_ig_from_file(path_to_zarr_file)
-        print("packing", fname)
-        for bg_size in background_sizes:
-            print("sweep bg size", bg_size)
-            score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=bg_size, rotamer_limit=15000)
-            print("final score", score)
-        for limit in nrot_limits:
-            print("sweep rotamer limit", limit)
-            score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=300, rotamer_limit=limit)
-            print("final score", score)
+        score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=300, rotamer_limit=15000)
+        print("final score", score)
+
+        # print("packing", fname)
+        # for bg_size in background_sizes:
+        #     print("sweep bg size", bg_size)
+        #     score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=bg_size, rotamer_limit=15000)
+        #     print("final score", score)
+        # for limit in nrot_limits:
+        #     print("sweep rotamer limit", limit)
+        #     score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=300, rotamer_limit=limit)
+        #     print("final score", score)
