@@ -2,6 +2,7 @@ import zarr
 import numpy
 import torch
 import attr
+import sys
 
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
@@ -592,7 +593,7 @@ def pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=None, rotamer_lim
             #     torch.arange(n_backgrounds, dtype=torch.int32)
             # )
 
-            print("calling simA")
+            sys.stdout.flush()
             if repeat <= 1:
                 scores, rot_assignments, background_inds = run_one_stage_simulated_annealing(simA_params.raw, ig_dev)
             else:
@@ -602,16 +603,8 @@ def pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=None, rotamer_lim
             full_assignments[:, subset] = rot_assignments.cpu()
             uniq_assignments, uniq_mapping = full_assignments.unique(return_inverse=True, dim=0)
 
-            # counts_cumsum = exclusive_cumsum(counts)
-            # print(uniq_mapping.shape, scores.cpu().shape)
-            # uniq_mapping = uniq_mapping[counts_cumsum]
-
-            # print(uniq_mapping.shape, scores.cpu().shape, uniq_assignments.shape)
-            # print(uniq_mapping)
             uniq_scores = torch.zeros((uniq_assignments.shape[0],), dtype=torch.float)
             uniq_scores[uniq_mapping] = scores.cpu()[0,:]
-            # print("uniq scores", uniq_scores.shape)
-            # print("uniq scores", uniq_scores)
             sorted_uniq_scores, sorted_uniq_mapping = uniq_scores.sort()
             if uniq_assignments.shape[0] > n_backgrounds:
                 # print(uniq_scores[sorted_uniq_mapping[:10]])
@@ -648,19 +641,26 @@ def test_run_pack_neighborhoods_on_redes_ex1ex2_jobs():
     print("beginning")
     torch_device = torch.device("cuda")
     fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    # fnames = ["1wzbFHA"]
     # fnames = ["1w0nFHA"]
     # fnames = ["1u36FHA", "1w0nFHA"]
     # fnames = ["1u36FHA"]
 
-    background_sizes = [10, 30, 100, 300, 1000]
+    background_sizes = [1]
+    #background_sizes = [10, 30, 100, 300, 1000]
     nrot_limits = [8000, 10000, 11000, 12000, 13000, 15000, 17000]
     
     for fname in fnames:
         print("packing", fname)
         path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
         oneb, twob = load_ig_from_file(path_to_zarr_file)
-        score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=100, rotamer_limit=15000)
-        print("final score", score)
+        for repeat in range(10):
+            print("repeat", repeat)
+            for nrot_limit in nrot_limits:
+                print("sweep nrot limit", nrot_limit)
+                score, assignment = pack_neighborhoods(oneb, twob, torch_device, n_backgrounds=1, rotamer_limit=nrot_limit)
+                print("final score", score)
+                print("assignment: ", assignment + 1)
 
         # print("packing", fname)
         # for bg_size in background_sizes:
