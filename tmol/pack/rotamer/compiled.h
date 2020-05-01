@@ -24,13 +24,13 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 3>, 1, D> coords,
       TView<int64_t, 1, D> res_coord_start_ind,
 
-      TView<Vec<int64_t, 2>, 1, D> rottable_set_for_res, // pos 0: seqpos, pos 1: table ind
+      TView<Vec<int64_t, 2>, 1, D>
+          rottable_set_for_res,  // pos 0: seqpos, pos 1: table ind
 
       TView<Int, 1, D> ndihe_for_res,               // nres x 1
       TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
       TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
-      
-      
+
       TView<Real, 3, D> rotameric_prob_tables,
       TView<Real, 3, D> rotameric_neglnprob_tables,
       TView<Vec<int64_t, 2>, 1, D> rotprob_table_sizes,
@@ -50,7 +50,6 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 3>, 1, D> semirot_periodicity,       // n-semirot-tabset
       TView<Int, 1, D> rotameric_rotind2tableind,
       TView<Int, 1, D> semirotameric_rotind2tableind,
-
 
       TView<Int, 1, D> rottable_set_for_res,              // nres x 1
       TView<Int, 1, D> nchi_for_res,                      // nres x 1
@@ -79,14 +78,9 @@ struct DunbrackChiSampler {
       //                                // stored, nscdihe x 2
       TView<Int, 1, D> rotameric_rottable_assignment,     // nres x 1
       TView<Int, 1, D> semirotameric_rottable_assignment  // nres x 1
-      )
-      -> std::tuple<
-          TPack<Real, 1, D>,        // -ln(prob_rotameric)
-          TPack<CoordQuad, 2, D>,   // d(-ln(prob_rotameric)) / dbb atoms
-          TPack<Real, 1, D>,        // Erotameric_chi_devpen
-          TPack<CoordQuad, 2, D>,   // ddevpen_dtor
-          TPack<Real, 1, D>,        // -ln(prob_nonrotameric)
-          TPack<CoordQuad, 2, D> >  // d(-ln(prob_nonrotameric)) / dtor atoms
+      ) -> std::
+      tuple<TPack<Real, 1, D>, TPack<Real, 1, D> >  // d(-ln(prob_nonrotameric))
+                                                    // / dtor atoms
       ;
 };
 

@@ -91,13 +91,13 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> semirotameric_rottable_assignment  // nres x 1
       )
       -> std::tuple<
-          TPack<Real, 1, D>,        // -ln(prob_rotameric)
-          TPack<CoordQuad, 2, D>,   // d(-ln(prob_rotameric)) / dbb atoms
-          TPack<Real, 1, D>,        // Erotameric_chi_devpen
-          TPack<CoordQuad, 2, D>,   // ddevpen_dtor
-          TPack<Real, 1, D>,        // -ln(prob_nonrotameric)
-          TPack<CoordQuad, 2, D> >  // d(-ln(prob_nonrotameric)) / dtor atoms
+          TPack<Real, 1, D>,
+          TPack<Real, 1, D> >  // d(-ln(prob_nonrotameric)) / dtor atoms
   {
+    auto rval1 = TPack<Real, 1, D>::zeros({5});
+    auto rval2 = TPack<Real, 1, D>::zeros({5});
+    return {rval1, rval2};
+
     // construct the list of chi for the rotamers that should be built
     // in 7 stages.
     // 1. State which AAs at which positions
@@ -149,7 +149,7 @@ struct DunbrackChiSampler {
     //                     based on residue burial and residue type
 
 
-    
+    /*
     Int const nres(res_coord_start_ind.size(0));
     // The number of residue types across all residues being packed
     Int const n_brt(rottable_set_for_residues.size(0));
@@ -520,7 +520,7 @@ struct DunbrackChiSampler {
       }
     };
 
-
+    */
   }
 };
 
