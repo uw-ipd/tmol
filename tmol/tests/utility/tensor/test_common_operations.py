@@ -2,7 +2,7 @@ import torch
 import numpy
 
 from tmol.utility.tensor.common_operations import (
-    exclusive_cumsum,
+    exclusive_cumsum1d,
     nplus1d_tensor_from_list,
     cat_differently_sized_tensors,
 )
@@ -10,7 +10,7 @@ from tmol.utility.tensor.common_operations import (
 
 def test_exclusive_cumsum():
     t = torch.ones((50,), dtype=torch.long)
-    excumsum = exclusive_cumsum(t)
+    excumsum = exclusive_cumsum1d(t)
     gold = numpy.arange(50, dtype=numpy.int64)
     numpy.testing.assert_equal(excumsum, gold)
 

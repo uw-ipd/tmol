@@ -1,11 +1,13 @@
 import torch
-from typing import List
+from typing import List, Union
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
 
 @validate_args
-def exclusive_cumsum1d(inds: Tensor(torch.int32)[:]) -> Tensor(torch.int32)[:]:
+def exclusive_cumsum1d(
+    inds: Union[Tensor(torch.int32)[:], Tensor(torch.int64)[:]]
+) -> Union[Tensor(torch.int32)[:], Tensor(torch.int64)[:]]:
     return torch.cat(
         (
             torch.tensor([0], dtype=inds.dtype, device=inds.device),
@@ -15,7 +17,9 @@ def exclusive_cumsum1d(inds: Tensor(torch.int32)[:]) -> Tensor(torch.int32)[:]:
 
 
 @validate_args
-def exclusive_cumsum2d(inds: Tensor(torch.int32)[:, :]) -> Tensor(torch.int32)[:, :]:
+def exclusive_cumsum2d(
+    inds: Union[Tensor(torch.int32)[:, :], Tensor(torch.int64)[:, :]]
+) -> Union[Tensor(torch.int32)[:, :], Tensor(torch.int64)[:, :]]:
     return torch.cat(
         (
             torch.zeros((inds.shape[0], 1), dtype=torch.int32, device=inds.device),
