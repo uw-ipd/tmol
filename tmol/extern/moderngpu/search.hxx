@@ -36,6 +36,29 @@ auto load_balance_partitions(int64_t dest_count, segments_it segments,
     dest_count, segments, num_segments, spacing, less_t<int_t>(), context);
 }
 
+//fd  load balance partitions using preallocated memory
+//fd 
+//fd  the allocated buffer (mem) must have room for # of elts equal to:
+//fd     ceil ((dest_count + num_segments) / spacing) + 1
+//fd 
+template<typename segments_it>
+void load_balance_partitions(int64_t dest_count, segments_it segments, 
+  int num_segments, int spacing, int* mem, context_t& context) {
+  typedef typename std::iterator_traits<segments_it>::value_type int_t;
+
+  int num_partitions = div_up((int)dest_count + num_segments, spacing) + 1;
+
+  transform([=]MGPU_DEVICE(int index) {
+    int diag = (int)min(spacing * index, (int)dest_count + num_segments);
+    mem[index] = merge_path<bounds_upper>(
+        counting_iterator_t<int_t>(0), (int)dest_count,
+        segments, num_segments,
+        diag, 
+        less_t<int_t>());
+  }, num_partitions, context);
+}
+
+
 template<bounds_t bounds, typename keys_it>
 mem_t<int> binary_search_partitions(keys_it keys, int count, int num_items,
   int spacing, context_t& context) {

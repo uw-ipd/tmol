@@ -7,14 +7,32 @@ from tmol.score import TotalScoreGraph
 from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
 
-from tmol.score.coordinates import KinematicAtomicCoordinateProvider
+from tmol.score.coordinates import (
+    KinematicAtomicCoordinateProvider,
+    CartesianAtomicCoordinateProvider,
+)
 
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.optimization.modules import TorsionalEnergyNetwork
+from tmol.score.ljlk.score_graph import LJScoreGraph, LKScoreGraph
+from tmol.score.lk_ball.score_graph import LKBallScoreGraph
+from tmol.score.rama.score_graph import RamaScoreGraph
+from tmol.system.packed import PackedResidueSystemStack
 
 
 @score_graph
 class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
+    pass
+
+
+# the
+@score_graph
+class StackScoreGraph(
+    CartesianAtomicCoordinateProvider,
+    LJScoreGraph,
+    LKScoreGraph,
+    LKBallScoreGraph,
+    RamaScoreGraph,
+    TorchDevice,
+):
     pass
 
 
@@ -37,12 +55,12 @@ def default_component_weights(torch_device):
         "total_cartbonded_torsion": torch.tensor(1.0, device=torch_device),
         "total_cartbonded_improper": torch.tensor(1.0, device=torch_device),
         "total_cartbonded_hxltorsion": torch.tensor(1.0, device=torch_device),
-        ## unimplemented
         "total_dun_rot": torch.tensor(0.76, device=torch_device),
         "total_dun_dev": torch.tensor(0.69, device=torch_device),
         "total_dun_semi": torch.tensor(0.78, device=torch_device),
-        "total_ref": torch.tensor(1.0, device=torch_device),
-        "total_dslf": torch.tensor(1.25, device=torch_device),
+        ## ... still unimplemented
+        # "total_ref": torch.tensor(1.0, device=torch_device),
+        # "total_dslf": torch.tensor(1.25, device=torch_device),
     }
 
 
@@ -88,35 +106,26 @@ def test_full(
     forward_backward
 
 
-@pytest.mark.benchmark(group="total_score_onepass")
-@pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
-def test_minimize_10steps(
-    benchmark, systems_bysize, system_size, torch_device, default_component_weights
+@pytest.mark.benchmark(group="stacked_totalscore_onepass")
+@pytest.mark.parametrize("nstacks", [1, 3, 10, 30, 100])
+def test_stacked_full(
+    benchmark, ubq_system, nstacks, torch_device, default_component_weights
 ):
-    score_graph = TotalScore.build_for(
-        systems_bysize[system_size],
+    stack = PackedResidueSystemStack((ubq_system,) * nstacks)
+    score_graph = StackScoreGraph.build_for(
+        stack,
         requires_grad=True,
         device=torch_device,
         component_weights=default_component_weights,
     )
     score_graph.intra_score().total
 
-    # score
-    model = TorsionalEnergyNetwork(score_graph)
-
-    # set tol to 0 so we are guaranteed to hit the iteration limit
-    optimizer = LBFGS_Armijo(model.parameters(), lr=1.0, max_iter=10, atol=0, rtol=0)
-
-    def closure():
-        optimizer.zero_grad()
-        score_graph.reset_coords()  # this line is necessary!
-
-        E = model()
-        E.backward()
-        return E
-
     @benchmark
-    def min_10_steps():
-        optimizer.step(closure)
+    def forward_backward():
+        score_graph.reset_coords()
+        total = score_graph.intra_score().total
+        tsum = torch.sum(total)
+        tsum.backward(retain_graph=True)
+        return total
 
-    min_10_steps
+    forward_backward

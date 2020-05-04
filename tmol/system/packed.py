@@ -5,7 +5,7 @@ import cattr
 import numpy
 import pandas
 
-from typing import Sequence
+from typing import Sequence, Tuple
 
 from tmol.types.array import NDArray
 
@@ -334,3 +334,8 @@ class PackedResidueSystem:
         )
 
         return result
+
+
+@attr.s(auto_attribs=True, slots=True)
+class PackedResidueSystemStack:
+    systems: Tuple[PackedResidueSystem, ...]

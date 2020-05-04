@@ -4,7 +4,9 @@ from functools import singledispatch
 import torch
 import math
 
-from tmol.kinematics.torch_op import KinematicOp
+from tmol.kinematics.metadata import DOFMetadata
+from tmol.kinematics.datatypes import KinTree
+from tmol.kinematics.script_modules import KinematicModule
 
 from tmol.utility.reactive import reactive_property
 
@@ -52,27 +54,39 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
         if requires_grad is None:
             requires_grad = other.dofs.requires_grad
 
-        kinop = other.kinop
+        kintree = other.kintree.to(device)
 
         if other.dofs.device != device:
             raise ValueError("Unable to change device for kinematic ops.")
 
         dofs = torch.tensor(other.dofs, device=device).requires_grad_(requires_grad)
 
-        return dict(kinop=kinop, dofs=dofs)
+        dofmetadata = other.dofmetadata
 
-    # Source mobile dofs
-    dofs: Tensor("f4")[:]
+        return dict(kintree=kintree, dofs=dofs, dofmetadata=dofmetadata)
 
-    # Kinematic operation of the mobile dofs
-    kinop: KinematicOp
+    # Source dofs
+    dofs: Tensor(torch.float)[:, 9]
+
+    # dof info for masking
+    dofmetadata: DOFMetadata
+
+    # kinematic tree (= rosetta atomtree)
+    kintree: KinTree
+
+    @reactive_property
+    def kin_module(kintree: KinTree) -> KinematicModule:
+        return KinematicModule(kintree, kintree.id.device)
 
     @reactive_property
     def coords(
-        dofs: Tensor("f4")[:], kinop: KinematicOp, system_size: int
-    ) -> Tensor("f4")[:, :, 3]:
+        dofs: Tensor(torch.float)[:, 9],
+        kintree: KinTree,
+        kin_module: KinematicModule,
+        system_size: int,
+    ) -> Tensor(torch.float)[:, :, 3]:
         """System cartesian atomic coordinates."""
-        kincoords = kinop(dofs)
+        kincoords = kin_module(dofs)
 
         coords = torch.full(
             (system_size, 3),
@@ -83,7 +97,7 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
             requires_grad=False,
         )
 
-        idIdx = kinop.kintree.id[1:].to(dtype=torch.long)
+        idIdx = kintree.id[1:].to(dtype=torch.long)
         coords[idIdx] = kincoords[1:]
 
         return coords.to(torch.float)[None, ...]

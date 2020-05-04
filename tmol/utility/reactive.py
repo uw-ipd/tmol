@@ -403,6 +403,8 @@ import types
 import attr
 import toolz
 
+# import tmol.utility.nvtx
+
 
 def _code(
     argcount,
@@ -535,6 +537,8 @@ class ReactiveProperty(property):
             # Resolve function input parameters from object, potentially
             # traversing through reactive property dependencies.
             toresolve = {p: getattr(self, p) for p in prop.parameters}
+            # with tmol.utility.nvtx.nvtx_range("reactive:" + prop.name):
+            #    val = prop.f(**toresolve)
             val = prop.f(**toresolve)
             setattr(self._reactive_values, prop.name, val)
 

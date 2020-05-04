@@ -2,6 +2,11 @@
 
 #include <Eigen/Core>
 
+#ifdef __CUDACC__
+#include <cooperative_groups.h>
+#include <tmol/numeric/log2.hh>
+#endif
+
 namespace tmol {
 namespace score {
 namespace common {
@@ -17,7 +22,7 @@ struct accumulate<
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T& target, const T& val)->void { target += val; }
-};  // namespace potentials
+};
 
 template <tmol::Device D, int N, typename T>
 struct accumulate<

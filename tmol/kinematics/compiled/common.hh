@@ -115,7 +115,8 @@ struct common {
       HomogeneousTransform Mparent,
       Coord f1,
       Coord f2) -> Dofs {
-    Dofs dsc_ddof = Dofs::Constant(NAN);
+    Dofs dsc_ddof =
+        Dofs::Constant(0);  //(NAN); <- chnage to 0 so deriv checks work wo mask
 
     Coord end_ppos = Mparent.block(3, 0, 1, 3).transpose();
     Coord end_cpos = M.block(3, 0, 1, 3).transpose();
@@ -191,7 +192,8 @@ struct common {
   // Specifically, when theta==0, the rx rotation can be put into
   //   phi_c or phi_p (we use phi_c)
   static auto EIGEN_DEVICE_FUNC invBondTransform(HomogeneousTransform M) {
-    Dofs dof = Dofs::Constant(NAN);
+    Dofs dof =
+        Dofs::Constant(0);  //(NAN); <- chnage to 0 so deriv checks work wo mask
 
     if (std::fabs(M(0, 0) - 1) < 1e-6) {
       dof[DOF_phip] = 0.0;
@@ -314,90 +316,6 @@ struct common {
     }
 
     return dof;
-  }
-
-  // convert a HT (16 elements) to a quaternion+translation (7 elts)
-  static auto EIGEN_DEVICE_FUNC ht2quat_trans(HomogeneousTransform HT) {
-    QuatTranslation retval;
-
-    // rotation
-    Real S = 0.0;
-    if (HT(0, 0) == 1.0 && HT(1, 1) == 1.0 && HT(2, 2) == 1.0) {
-      retval[0] = 0;
-      retval[1] = 0;
-      retval[2] = 0;
-      retval[3] = 1;
-    } else if (HT(0, 0) > HT(1, 1) && HT(0, 0) > HT(2, 2)) {
-      S = std::sqrt(1.0 + HT(0, 0) - HT(1, 1) - HT(2, 2)) * 2;
-      retval[0] = 0.25 * S;
-      retval[1] = (HT(1, 0) + HT(0, 1)) / S;
-      retval[2] = (HT(2, 0) + HT(0, 2)) / S;
-      retval[3] = (HT(2, 1) - HT(1, 2)) / S;
-    } else if (HT(1, 1) > HT(2, 2)) {
-      S = std::sqrt(1.0 + HT(1, 1) - HT(0, 0) - HT(2, 2)) * 2;
-      retval[0] = (HT(1, 0) + HT(0, 1)) / S;
-      retval[1] = 0.25 * S;
-      retval[2] = (HT(2, 1) + HT(1, 2)) / S;
-      retval[3] = (HT(0, 2) - HT(2, 0)) / S;
-    } else {
-      S = std::sqrt(1.0 + HT(2, 2) - HT(0, 0) - HT(1, 1)) * 2;
-      retval[0] = (HT(2, 0) + HT(0, 2)) / S;
-      retval[1] = (HT(2, 1) + HT(1, 2)) / S;
-      retval[2] = 0.25 * S;
-      retval[3] = (HT(1, 0) - HT(0, 1)) / S;
-    }
-
-    // translation
-    retval[4] = HT(3, 0);
-    retval[5] = HT(3, 1);
-    retval[6] = HT(3, 2);
-
-    return retval;
-  }
-
-  // convert a quaternion+translation (7 elts) to a HT (16 elements)
-  static auto EIGEN_DEVICE_FUNC quat_trans2ht(QuatTranslation qt) {
-    HomogeneousTransform retval = HomogeneousTransform::Identity();
-
-    retval(0, 0) = 1 - 2 * (qt[1] * qt[1] + qt[2] * qt[2]);
-    retval(0, 1) = 2 * (qt[0] * qt[1] - qt[2] * qt[3]);
-    retval(0, 2) = 2 * (qt[0] * qt[2] + qt[1] * qt[3]);
-    retval(1, 0) = 2 * (qt[0] * qt[1] + qt[2] * qt[3]);
-    retval(1, 1) = 1 - 2 * (qt[0] * qt[0] + qt[2] * qt[2]);
-    retval(1, 2) = 2 * (qt[1] * qt[2] - qt[0] * qt[3]);
-    retval(2, 0) = 2 * (qt[0] * qt[2] - qt[1] * qt[3]);
-    retval(2, 1) = 2 * (qt[1] * qt[2] + qt[0] * qt[3]);
-    retval(2, 2) = 1 - 2 * (qt[0] * qt[0] + qt[1] * qt[1]);
-
-    // translation
-    retval(3, 0) = qt[4];
-    retval(3, 1) = qt[5];
-    retval(3, 2) = qt[6];
-
-    return retval;
-  }
-
-  static void EIGEN_DEVICE_FUNC quat_trans_norm(QuatTranslation qt) {
-    Real S = std::sqrt(
-        qt[0] * qt[0] + qt[1] * qt[1] + qt[2] * qt[2] + qt[3] * qt[3]);
-    qt[0] /= S;
-    qt[1] /= S;
-    qt[2] /= S;
-    qt[3] /= S;
-  }
-
-  // compose two quat/trans pairs
-  static auto EIGEN_DEVICE_FUNC
-  quat_trans_compose(QuatTranslation qt1, QuatTranslation qt2) {
-    HomogeneousTransform ht1, ht2;
-    ht1 = quat_trans2ht(qt1);
-    ht2 = quat_trans2ht(qt2);
-
-    ht1 = ht1 * ht2;
-    qt1 = ht2quat_trans(ht1);
-    quat_trans_norm(qt1);
-
-    return (qt1);
   }
 
   static auto EIGEN_DEVICE_FUNC

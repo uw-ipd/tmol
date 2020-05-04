@@ -8,9 +8,12 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/hbond/potentials/potentials.hh>
+#include "dispatch.hh"
 
 namespace tmol {
 namespace score {
@@ -26,121 +29,135 @@ template <
     tmol::Device Dev,
     typename Real,
     typename Int>
-struct HBondDispatch {
-  static auto f(
-      TView<Vec<Real, 3>, 1, Dev> D,
-      TView<Vec<Real, 3>, 1, Dev> H,
-      TView<Int, 1, Dev> donor_type,
+auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
+    TView<Vec<Real, 3>, 2, Dev> donor_coords,
+    TView<Vec<Real, 3>, 2, Dev> acceptor_coords,
 
-      TView<Vec<Real, 3>, 1, Dev> A,
-      TView<Vec<Real, 3>, 1, Dev> B,
-      TView<Vec<Real, 3>, 1, Dev> B0,
-      TView<Int, 1, Dev> acceptor_type,
+    TView<int64_t, 2, Dev> D,
+    TView<int64_t, 2, Dev> H,
+    TView<Int, 2, Dev> donor_type,
 
-      TView<Int, 2, Dev> acceptor_hybridization,
-      TView<Real, 2, Dev> acceptor_weight,
-      TView<Real, 2, Dev> donor_weight,
+    TView<int64_t, 2, Dev> A,
+    TView<int64_t, 2, Dev> B,
+    TView<int64_t, 2, Dev> B0,
+    TView<Int, 2, Dev> acceptor_type,
 
-      TView<Vec<double, 11>, 2, Dev> AHdist_coeffs,
-      TView<Vec<double, 2>, 2, Dev> AHdist_range,
-      TView<Vec<double, 2>, 2, Dev> AHdist_bound,
+    TView<HBondPairParams<Real>, 2, Dev> pair_params,
+    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+    TView<HBondGlobalParams<Real>, 1, Dev> global_params)
+    -> std::tuple<
+        TPack<Real, 1, Dev>,
+        TPack<Vec<Real, 3>, 2, Dev>,
+        TPack<Vec<Real, 3>, 2, Dev>> {
+  AT_ASSERTM(
+      donor_type.size(0) == acceptor_type.size(0),
+      "Mismatch in number of stack dimensions");
+  AT_ASSERTM(
+      donor_type.size(0) == donor_coords.size(0),
+      "Mismatch in number of stack dimensions");
+  AT_ASSERTM(
+      acceptor_type.size(0) == acceptor_coords.size(0),
+      "Mismatch in number of stack dimensions");
 
-      TView<Vec<double, 11>, 2, Dev> cosBAH_coeffs,
-      TView<Vec<double, 2>, 2, Dev> cosBAH_range,
-      TView<Vec<double, 2>, 2, Dev> cosBAH_bound,
+  AT_ASSERTM(
+      donor_type.size(0) == D.size(0), "Invalid donor coordinate shapes.");
+  AT_ASSERTM(
+      donor_type.size(0) == H.size(0), "Invalid donor coordinate shapes.");
 
-      TView<Vec<double, 11>, 2, Dev> cosAHD_coeffs,
-      TView<Vec<double, 2>, 2, Dev> cosAHD_range,
-      TView<Vec<double, 2>, 2, Dev> cosAHD_bound,
+  AT_ASSERTM(
+      donor_type.size(1) == D.size(1), "Invalid donor coordinate shapes.");
+  AT_ASSERTM(
+      donor_type.size(1) == H.size(1), "Invalid donor coordinate shapes.");
 
-      Real hb_sp2_range_span,
-      Real hb_sp2_BAH180_rise,
-      Real hb_sp2_outer_width,
-      Real hb_sp3_softmax_fade,
-      Real threshold_distance)
-      -> std::tuple<
-          TPack<int64_t, 2, Dev>,
-          TPack<Real, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>> {
-    AT_ASSERTM(
-        donor_type.size(0) == D.size(0), "Invalid donor coordinate shapes.");
-    AT_ASSERTM(
-        donor_type.size(0) == H.size(0), "Invalid donor coordinate shapes.");
+  AT_ASSERTM(
+      acceptor_type.size(0) == A.size(0),
+      "Invalid acceptor coordinate shapes.");
+  AT_ASSERTM(
+      acceptor_type.size(0) == B.size(0),
+      "Invalid acceptor coordinate shapes.");
+  AT_ASSERTM(
+      acceptor_type.size(0) == B0.size(0),
+      "Invalid acceptor coordinate shapes.");
 
-    AT_ASSERTM(
-        acceptor_type.size(0) == A.size(0),
-        "Invalid acceptor coordinate shapes.");
-    AT_ASSERTM(
-        acceptor_type.size(0) == B.size(0),
-        "Invalid acceptor coordinate shapes.");
-    AT_ASSERTM(
-        acceptor_type.size(0) == B0.size(0),
-        "Invalid acceptor coordinate shapes.");
+  AT_ASSERTM(
+      acceptor_type.size(1) == A.size(1),
+      "Invalid acceptor coordinate shapes.");
+  AT_ASSERTM(
+      acceptor_type.size(1) == B.size(1),
+      "Invalid acceptor coordinate shapes.");
+  AT_ASSERTM(
+      acceptor_type.size(1) == B0.size(1),
+      "Invalid acceptor coordinate shapes.");
 
-    Dispatch<Dev> dispatcher(H.size(0), A.size(0));
-    auto nresult = dispatcher.scan(threshold_distance, H, A);
+  AT_ASSERTM(
+      pair_params.size(0) == pair_polynomials.size(0),
+      "Disagreement on number of donor types.");
+  AT_ASSERTM(
+      pair_params.size(1) == pair_polynomials.size(1),
+      "Disagreement on number of acceptor types.");
 
-    auto ind_t = TPack<int64_t, 2, Dev>::empty({nresult, 2});
-    auto E_t = TPack<Real, 1, Dev>::empty({nresult});
-    auto dE_dD_t = TPack<Vec<Real, 3>, 1, Dev>::empty({nresult});
-    auto dE_dH_t = TPack<Vec<Real, 3>, 1, Dev>::empty({nresult});
-    auto dE_dA_t = TPack<Vec<Real, 3>, 1, Dev>::empty({nresult});
-    auto dE_dB_t = TPack<Vec<Real, 3>, 1, Dev>::empty({nresult});
-    auto dE_dB0_t = TPack<Vec<Real, 3>, 1, Dev>::empty({nresult});
+  AT_ASSERTM(
+      global_params.size(0) == 1, "Invalid number of global parameters.");
 
-    auto ind = ind_t.view;
-    auto E = E_t.view;
-    auto dE_dD = dE_dD_t.view;
-    auto dE_dH = dE_dH_t.view;
-    auto dE_dA = dE_dA_t.view;
-    auto dE_dB = dE_dB_t.view;
-    auto dE_dB0 = dE_dB0_t.view;
+  nvtx_range_push("hbond alloc");
+  int nstacks = donor_coords.size(0);
+  auto V_t = TPack<Real, 1, Dev>::zeros({nstacks});
+  auto dV_d_don_t =
+      TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, donor_coords.size(1)});
+  auto dV_d_acc_t =
+      TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, acceptor_coords.size(1)});
 
-    dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int di, int ai) {
-      ind[o][0] = di;
-      ind[o][1] = ai;
+  auto V = V_t.view;
+  auto dV_d_don = dV_d_don_t.view;
+  auto dV_d_acc = dV_d_acc_t.view;
 
-      int dt = donor_type[di];
-      int at = acceptor_type[ai];
+  Real _threshold_distance = 6.0;  // what about the global threshold distance?
 
-      tie(E[o], dE_dD[o], dE_dH[o], dE_dA[o], dE_dB[o], dE_dB0[o]) =
-          hbond_score_V_dV(
-              D[di],
-              H[di],
+  nvtx_range_pop();
+  nvtx_range_push("hbond eval");
+  Dispatch<Dev>::forall_stacked_idx_pairs(
+      _threshold_distance,
 
-              A[ai],
-              B[ai],
-              B0[ai],
+      donor_coords,
+      acceptor_coords,
 
-              acceptor_hybridization[dt][at],
-              acceptor_weight[dt][at],
-              donor_weight[dt][at],
+      D,
+      A,
 
-              AHdist_coeffs[dt][at],
-              AHdist_range[dt][at],
-              AHdist_bound[dt][at],
+      [=] EIGEN_DEVICE_FUNC(int stack, int di, int ai) {
+        int dt = donor_type[stack][di];
+        int at = acceptor_type[stack][ai];
 
-              cosBAH_coeffs[dt][at],
-              cosBAH_range[dt][at],
-              cosBAH_bound[dt][at],
+        auto hbond = hbond_score<Real, Int>::V_dV(
+            donor_coords[stack][D[stack][di]],
+            donor_coords[stack][H[stack][di]],
 
-              cosAHD_coeffs[dt][at],
-              cosAHD_range[dt][at],
-              cosAHD_bound[dt][at],
+            acceptor_coords[stack][A[stack][ai]],
+            acceptor_coords[stack][B[stack][ai]],
+            acceptor_coords[stack][B0[stack][ai]],
 
-              hb_sp2_range_span,
-              hb_sp2_BAH180_rise,
-              hb_sp2_outer_width,
-              hb_sp3_softmax_fade);
-    });
+            pair_params[dt][at],
+            pair_polynomials[dt][at],
+            global_params[0]);
 
-    return {ind_t, E_t, dE_dD_t, dE_dH_t, dE_dA_t, dE_dB_t, dE_dB0_t};
-  }
-};
+        accumulate<Dev, Real>::add(V[stack], hbond.V);
+
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_don[stack][D[stack][di]], hbond.dV_dD);
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_don[stack][H[stack][di]], hbond.dV_dH);
+
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_acc[stack][A[stack][ai]], hbond.dV_dA);
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_acc[stack][B[stack][ai]], hbond.dV_dB);
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_acc[stack][B0[stack][ai]], hbond.dV_dB0);
+      });
+
+  nvtx_range_pop();
+  return {V_t, dV_d_don_t, dV_d_acc_t};
+}
 
 }  // namespace potentials
 }  // namespace hbond

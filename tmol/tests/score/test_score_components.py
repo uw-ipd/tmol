@@ -1,5 +1,6 @@
 import pytest
 import attr
+import torch
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
@@ -94,36 +95,36 @@ def test_single_component():
     for the other.
     """
 
-    fb = Foo(foo="foo")
-    fb2 = Foo(foo="foo2")
+    fb = Foo(foo=torch.tensor(1.0))
+    fb2 = Foo(foo=torch.tensor(2.0))
 
-    assert fb.intra_score().total == "foo"
-    assert fb.intra_score().total_foo == "foo"
+    assert fb.intra_score().total == 1.0
+    assert fb.intra_score().total_foo == 1.0
 
-    assert fb.inter_score(fb).total == "foofoo"
-    assert fb.inter_score(fb).total_foo == "foofoo"
+    assert fb.inter_score(fb).total == 2.0
+    assert fb.inter_score(fb).total_foo == 2.0
 
-    assert fb.inter_score(fb2).total == "foofoo2"
-    assert fb.inter_score(fb2).total_foo == "foofoo2"
+    assert fb.inter_score(fb2).total == 3.0
+    assert fb.inter_score(fb2).total_foo == 3.0
 
-    assert fb2.inter_score(fb).total == "foo2foo"
-    assert fb2.inter_score(fb).total_foo == "foo2foo"
+    assert fb2.inter_score(fb).total == 3.0
+    assert fb2.inter_score(fb).total_foo == 3.0
 
     # Check missing inter accessor
-    inter_fb = JustInterFoo(foo="foo")
-    inter_fb2 = JustInterFoo(foo="foo2")
+    inter_fb = JustInterFoo(foo=torch.tensor(1.0))
+    inter_fb2 = JustInterFoo(foo=torch.tensor(2.0))
 
     with pytest.raises(NotImplementedError):
         assert inter_fb.intra_score()
 
-    assert inter_fb.inter_score(inter_fb).total == "foofoo"
-    assert inter_fb.inter_score(inter_fb2).total == "foofoo2"
-    assert inter_fb2.inter_score(inter_fb).total == "foo2foo"
+    assert inter_fb.inter_score(inter_fb).total == 2.0
+    assert inter_fb.inter_score(inter_fb2).total == 3.0
+    assert inter_fb2.inter_score(inter_fb).total == 3.0
 
     # Check missing intra accessor
-    intra_fb = JustIntraFoo(foo="foo")
+    intra_fb = JustIntraFoo(foo=torch.tensor(1.0))
 
-    assert intra_fb.intra_score().total == "foo"
+    assert intra_fb.intra_score().total == 1.0
 
     with pytest.raises(NotImplementedError):
         assert intra_fb.inter_score(intra_fb)
@@ -153,47 +154,41 @@ def test_two_component():
     class BarFoo(Bar, Foo):
         pass
 
-    fb = FooBar(foo="foo", bar="bar")
-    assert fb.intra_score().total == "foobar"
-    assert fb.intra_score().total_foo == "foo"
-    assert fb.intra_score().total_bar == "bar"
+    fb = FooBar(foo=torch.tensor(1.0), bar=torch.tensor(2.0))
+    assert fb.intra_score().total == 3.0
+    assert fb.intra_score().total_foo == 1.0
+    assert fb.intra_score().total_bar == 2.0
 
-    fb2 = FooBar(foo="foo2", bar="bar2")
+    fb2 = FooBar(foo=torch.tensor(3.0), bar=torch.tensor(4.0))
 
-    assert fb.inter_score(fb2).total == "foofoo2barbar2"
-    assert fb.inter_score(fb2).total_foo == "foofoo2"
-    assert fb.inter_score(fb2).total_bar == "barbar2"
-
-    # Set summation order from mro
-    bf = BarFoo(foo="foo", bar="bar")
-    bf.intra_score().total == "barfoo"
-    bf.intra_score().total_foo == "foo"
-    bf.intra_score().total_bar == "bar"
+    assert fb.inter_score(fb2).total == 10.0
+    assert fb.inter_score(fb2).total_foo == 4.0
+    assert fb.inter_score(fb2).total_bar == 6.0
 
     # Check missing inter accessor on single component
     @attr.s
     class JustInterFooBar(JustInterFoo, Bar):
         pass
 
-    inter_fb = JustInterFooBar("foo", "bar")
+    inter_fb = JustInterFooBar(foo=torch.tensor(1.0), bar=torch.tensor(2.0))
 
     with pytest.raises(NotImplementedError):
         inter_fb.intra_score()
 
-    assert inter_fb.inter_score(fb2).total == "foofoo2barbar2"
-    assert inter_fb.inter_score(fb2).total_foo == "foofoo2"
-    assert inter_fb.inter_score(fb2).total_bar == "barbar2"
+    assert inter_fb.inter_score(fb2).total == 10.0
+    assert inter_fb.inter_score(fb2).total_foo == 4.0
+    assert inter_fb.inter_score(fb2).total_bar == 6.0
 
     # Check missing intra accessor on single component
     @attr.s
     class JustIntraFooBar(JustIntraFoo, Bar):
         pass
 
-    intra_fb = JustIntraFooBar("foo", "bar")
+    intra_fb = JustIntraFooBar(foo=torch.tensor(1.0), bar=torch.tensor(2.0))
 
-    assert intra_fb.intra_score().total == "foobar"
-    assert intra_fb.intra_score().total_foo == "foo"
-    assert intra_fb.intra_score().total_bar == "bar"
+    assert intra_fb.intra_score().total == 3.0
+    assert intra_fb.intra_score().total_foo == 1.0
+    assert intra_fb.intra_score().total_bar == 2.0
 
     with pytest.raises(NotImplementedError):
         intra_fb.inter_score(intra_fb)

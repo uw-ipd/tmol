@@ -5,8 +5,7 @@ from typing import Optional
 
 from ..types.functional import validate_args
 
-from ..kinematics.torch_op import KinematicOp
-from ..kinematics.metadata import DOFTypes
+from ..kinematics.operations import inverseKin
 
 from ..score.stacked_system import StackedSystem
 from ..score.bonded_atom import BondedAtomScoreGraph
@@ -19,7 +18,7 @@ from ..score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 
-from .packed import PackedResidueSystem
+from .packed import PackedResidueSystem, PackedResidueSystemStack
 from .kinematics import KinematicDescription
 
 from tmol.database import ParameterDatabase
@@ -29,6 +28,15 @@ from tmol.database import ParameterDatabase
 @validate_args
 def stack_params_for_system(system: PackedResidueSystem, **_):
     return dict(stack_depth=1, system_size=int(system.system_size))
+
+
+@StackedSystem.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stack_params_for_stacked_system(stack: PackedResidueSystemStack, **_):
+    return dict(
+        stack_depth=len(stack.systems),
+        system_size=max(int(system.system_size) for system in stack.systems),
+    )
 
 
 @BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
@@ -57,6 +65,40 @@ def bonded_atoms_for_system(
     )
 
 
+@BondedAtomScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stacked_bonded_atoms_for_system(
+    stack: PackedResidueSystemStack,
+    stack_depth: int,
+    system_size: int,
+    drop_missing_atoms: bool = False,
+    **_,
+):
+    bonds_for_systems = [
+        bonded_atoms_for_system(sys, drop_missing_atoms) for sys in stack.systems
+    ]
+
+    for i, d in enumerate(bonds_for_systems):
+        d["bonds"][:, 0] = i
+    bonds = numpy.concatenate(tuple(d["bonds"] for d in bonds_for_systems))
+
+    def expand_atoms(atdat):
+        atdat2 = numpy.full((1, system_size), None, dtype=object)
+        atdat2[0, : atdat.shape[1]] = atdat
+        return atdat2
+
+    def stackem(key):
+        return numpy.concatenate([expand_atoms(d[key]) for d in bonds_for_systems])
+
+    return dict(
+        bonds=bonds,
+        atom_types=stackem("atom_types"),
+        atom_names=stackem("atom_names"),
+        res_indices=stackem("res_indices"),
+        res_names=stackem("res_names"),
+    )
+
+
 @CartesianAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
 @validate_args
 def coords_for_system(
@@ -73,7 +115,34 @@ def coords_for_system(
         device=device,
     ).requires_grad_(requires_grad)
 
-    return dict(coords=coords, stack_depth=stack_depth, system_size=system_size)
+    return dict(coords=coords)
+
+
+@CartesianAtomicCoordinateProvider.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stacked_coords_for_system(
+    stack: PackedResidueSystemStack,
+    device: torch.device,
+    stack_depth: int,
+    system_size: int,
+    requires_grad: bool = True,
+    **_,
+):
+    """Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`"""
+
+    coords_for_systems = [
+        coords_for_system(sys, device, requires_grad) for sys in stack.systems
+    ]
+
+    coords = torch.full(
+        (stack_depth, system_size, 3), numpy.nan, dtype=torch.float, device=device
+    )
+    for i, d in enumerate(coords_for_systems):
+        coords[i, : d["coords"].shape[1]] = d["coords"]
+
+    coords = coords.requires_grad_(requires_grad)
+
+    return dict(coords=coords)
 
 
 @KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
@@ -91,20 +160,19 @@ def system_torsion_graph_inputs(
 
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(system.bonds, system.torsion_metadata)
+    tkintree = sys_kin.kintree.to(device)
+    tdofmetadata = sys_kin.dof_metadata.to(device)
 
-    # Select torsion dofs
-    torsion_dofs = sys_kin.dof_metadata[
-        (sys_kin.dof_metadata.dof_type == DOFTypes.bond_torsion)
-    ]
-
-    # Extract kinematic-derived coordinates
+    # compute dofs from xyzs
     kincoords = sys_kin.extract_kincoords(system.coords).to(device)
+    bkin = inverseKin(tkintree, kincoords)
 
-    # Initialize op for torsion-space kinematics
-    kinop = KinematicOp.from_coords(sys_kin.kintree, torsion_dofs, kincoords)
+    # dof mask
 
     return dict(
-        dofs=kinop.src_mobile_dofs.clone().requires_grad_(requires_grad), kinop=kinop
+        dofs=bkin.raw.clone().requires_grad_(requires_grad),
+        kintree=tkintree,
+        dofmetadata=tdofmetadata,
     )
 
 
@@ -150,7 +218,39 @@ def rama_graph_inputs(
         ]
     )
 
-    return dict(rama_database=rama_database, allphis=phis, allpsis=psis)
+    return dict(
+        rama_database=rama_database, allphis=phis[None, :], allpsis=psis[None, :]
+    )
+
+
+@RamaScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def rama_graph_for_stack(
+    system: PackedResidueSystemStack,
+    parameter_database: ParameterDatabase,
+    rama_database: Optional[RamaDatabase] = None,
+    **_,
+):
+    params = [
+        rama_graph_inputs(sys, parameter_database, rama_database)
+        for sys in system.systems
+    ]
+
+    max_nres = max(d["allphis"].shape[1] for d in params)
+
+    def expand(t):
+        ext = numpy.full((1, max_nres, 5), -1, dtype=int)
+        ext[0, : t.shape[1], :] = t[0]
+        return ext
+
+    def stackem(key):
+        return numpy.concatenate([expand(d[key]) for d in params])
+
+    return dict(
+        rama_database=params[0]["rama_database"],
+        allphis=stackem("allphis"),
+        allpsis=stackem("allpsis"),
+    )
 
 
 @OmegaScoreGraph.factory_for.register(PackedResidueSystem)
@@ -169,7 +269,22 @@ def omega_graph_inputs(system: PackedResidueSystem, **_):
         ]
     )
 
-    return dict(allomegas=omegas)
+    return dict(allomegas=omegas[None, :])
+
+
+@OmegaScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def omega_graph_for_stack(system: PackedResidueSystemStack, **_):
+    params = [omega_graph_inputs(sys) for sys in system.systems]
+
+    max_omegas = max(d["allomegas"].shape[1] for d in params)
+
+    def expand(t):
+        ext = numpy.full((1, max_omegas, 4), -1, dtype=int)
+        ext[0, : t.shape[1], :] = t
+        return ext
+
+    return dict(allomegas=numpy.concatenate([expand(d["allomegas"]) for d in params]))
 
 
 @DunbrackScoreGraph.factory_for.register(PackedResidueSystem)
@@ -270,30 +385,49 @@ def dunbrack_graph_inputs(
         dtype=numpy.int32,
     )
 
-    # print("dun_chi1.shape",dun_chi.shape)
-    # print("dun_chi1.shape",dun_chi.shape)
-
     # merge the 4 chi tensors, sorting by residue index and chi index
     join_chi = numpy.concatenate((dun_chi1, dun_chi2, dun_chi3, dun_chi4), 0)
     chi_res = join_chi[:, 0]
     chi_inds = join_chi[:, 1]
     sort_inds = numpy.lexsort((chi_inds, chi_res))
-    # print("sort_inds")
-    # print(sort_inds.shape)
-    # print(sort_inds)
     dun_chi = join_chi[sort_inds, :]
 
-    numpy.set_printoptions(threshold=100000)
-    # print("dun_chi")
-    # print(dun_chi.shape)
-    # print(dun_chi)
-    # print("end dun chi")
+    return dict(
+        dun_phi=torch.tensor(dun_phi[None, :], dtype=torch.int32, device=device),
+        dun_psi=torch.tensor(dun_psi[None, :], dtype=torch.int32, device=device),
+        dun_chi=torch.tensor(dun_chi[None, :], dtype=torch.int32, device=device),
+        dun_database=parameter_database.scoring.dun,
+    )
 
-    # print(dun_chi)
+
+@DunbrackScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def dunbrack_graph_for_stack(
+    system: PackedResidueSystemStack,
+    parameter_database: ParameterDatabase,
+    device: torch.device,
+    **_,
+):
+    params = [
+        dunbrack_graph_inputs(sys, parameter_database, device) for sys in system.systems
+    ]
+
+    max_nres = max(d["dun_phi"].shape[1] for d in params)
+    max_nchi = max(d["dun_chi"].shape[1] for d in params)
+
+    def expand_dihe(t, max_size):
+        ext = torch.full(
+            (1, max_size, t.shape[2]), -1, dtype=torch.int32, device=t.device
+        )
+        ext[0, : t.shape[1], :] = t[0]
+        return ext
+
+    def stack_dihe(key, max_size):
+        return torch.cat([expand_dihe(d[key], max_size) for d in params])
 
     return dict(
-        dun_phi=torch.tensor(dun_phi, dtype=torch.int32, device=device),
-        dun_psi=torch.tensor(dun_psi, dtype=torch.int32, device=device),
-        dun_chi=torch.tensor(dun_chi, dtype=torch.int32, device=device),
-        dun_database=parameter_database.scoring.dun,
+        dun_phi=stack_dihe("dun_phi", max_nres),
+        dun_psi=stack_dihe("dun_psi", max_nres),
+        dun_chi=stack_dihe("dun_chi", max_nchi),
+        dun_database=params[0]["dun_database"],
     )

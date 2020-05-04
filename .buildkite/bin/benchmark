@@ -7,4 +7,30 @@ BENCHMARK_DIR=benchmark/${BUILDKITE_PIPELINE_SLUG}/${BUILDKITE_AGENT_NAME}/${BUI
 BENCHMARK_RESULT=${BENCHMARK_DIR}/${BUILDKITE_BUILD_NUMBER}-`git describe --tags --dirty`.json 
 
 mkdir -p $BENCHMARK_DIR
+
+echo '--- Benchmark Run'
 pytest --benchmark-enable --benchmark-only --benchmark-name=short --benchmark-sort=fullname --benchmark-columns=ops,mean,iqr --benchmark-json=${BENCHMARK_RESULT} "$@"
+
+echo '+++ Benchmark Summary'
+
+if [ ! -z "$BUILDKITE_PULL_REQUEST_BASE_BRANCH" ]; then
+  echo '+++ Fetch PR Base Log'
+  PR_BASE_LOG=$(.buildkite/bin/fetch_buildkite_benchmark "$BUILDKITE_PULL_REQUEST_BASE_BRANCH")
+fi
+
+pytest-benchmark compare --name=short --sort=fullname --columns=ops,mean,iqr $(find benchmark -name '*.json')
+
+echo '+++ Benchmark Plots'
+export ITERMPLOT=rv
+export MPLBACKEND="module://itermplot"
+
+echo '+++ tmol.tests.score.plot_total_score_onepass'
+python -m tmol.tests.score.plot_total_score_onepass $(find benchmark -name '*.json')
+
+echo '+++ tmol.tests.score.plot_score_component_pass'
+python -m tmol.tests.score.plot_score_component_pass $(find benchmark -name '*.json')
+
+if [ ! -z "$BUILDKITE_PULL_REQUEST_BASE_BRANCH" ]; then
+  echo '--- Cleanup PR Base Log'
+  rm $PR_BASE_LOG
+fi

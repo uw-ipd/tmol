@@ -7,7 +7,7 @@ import numpy
 import torch
 
 from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.system.packed import PackedResidueSystem
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 
 def test_bonded_atom_clone_factory(ubq_system: PackedResidueSystem):
@@ -28,6 +28,18 @@ def test_bonded_atom_clone_factory(ubq_system: PackedResidueSystem):
 
     # Atom types are referenced
     assert clone.atom_types is src.atom_types
+
+
+def test_bonded_atom_clone_factory_from_stacked_systems(
+    ubq_system: PackedResidueSystem
+):
+    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+    basg = BondedAtomScoreGraph.build_for(twoubq)
+
+    assert basg.atom_types.shape == (2, basg.system_size)
+    assert basg.atom_names.shape == (2, basg.system_size)
+    assert basg.res_names.shape == (2, basg.system_size)
+    assert basg.res_indices.shape == (2, basg.system_size)
 
 
 def test_real_atoms(ubq_system: PackedResidueSystem):
@@ -69,3 +81,35 @@ def test_bonded_path_length(ubq_system: PackedResidueSystem):
             src.bonded_path_length[0][distance_table < src.MAX_BONDED_PATH_LENGTH]
             == distance_table[distance_table < src.MAX_BONDED_PATH_LENGTH]
         )
+
+    inds = src.indexed_bonds
+    assert len(inds.bonds.shape) == 3
+    assert inds.bonds.shape[2] == 2
+
+
+def test_variable_bonded_path_length(ubq_res):
+    ubq4 = PackedResidueSystem.from_residues(ubq_res[:4])
+    ubq6 = PackedResidueSystem.from_residues(ubq_res[:6])
+    twoubq = PackedResidueSystemStack((ubq4, ubq6))
+
+    basg_both = BondedAtomScoreGraph.build_for(twoubq)
+    basg4 = BondedAtomScoreGraph.build_for(ubq4)
+    basg6 = BondedAtomScoreGraph.build_for(ubq6)
+
+    inds_both = basg_both.indexed_bonds
+    inds4 = basg4.indexed_bonds
+    inds6 = basg6.indexed_bonds
+
+    numpy.testing.assert_allclose(
+        inds_both.bonds[0, : inds4.bonds.shape[1]], inds4.bonds[0]
+    )
+    numpy.testing.assert_allclose(
+        inds_both.bonds[1, : inds6.bonds.shape[1]], inds6.bonds[0]
+    )
+
+    numpy.testing.assert_allclose(
+        inds_both.bond_spans[0, : inds4.bond_spans.shape[1]], inds4.bond_spans[0]
+    )
+    torch.testing.assert_allclose(
+        inds_both.bond_spans[1, : inds6.bond_spans.shape[1]], inds6.bond_spans[0]
+    )

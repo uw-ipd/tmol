@@ -42,7 +42,7 @@ class ElecParamResolver(ValidateAttrs):
     partial_charges: dict
 
     def resolve_partial_charge(
-        self, res_names: NDArray(object)[...], atom_names: NDArray(object)[...]
+        self, res_names: NDArray(object)[:, :], atom_names: NDArray(object)[:, :]
     ) -> NDArray("f")[...]:
         """Convert array of atom type names to partial charges.
         """
@@ -74,7 +74,7 @@ class ElecParamResolver(ValidateAttrs):
             natms = len(res_names[i, ...])
             mapped_indices = numpy.vectorize(
                 lambda a, b, c: c
-                if numpy.isnan(a)
+                if a is None or numpy.isnan(a)
                 else (
                     numpy.where((res_indices[i, ...] == a) & (atom_names[i, ...] == b))[
                         0

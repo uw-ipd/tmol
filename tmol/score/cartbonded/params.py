@@ -24,7 +24,7 @@ class CartHarmonicParams(TensorGroup, ConvertAttrs):
 class CartSimpleSinusoidalParams(TensorGroup, ConvertAttrs):
     K: Tensor(torch.float)[...]
     x0: Tensor(torch.float)[...]
-    period: Tensor(torch.int)[...]
+    period: Tensor(torch.float)[...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -53,84 +53,133 @@ class CartBondedParamResolver(ValidateAttrs):
 
     device: torch.device
 
+    @validate_args
     def resolve_lengths(
-        self, resnames: NDArray(object), atm1s: NDArray(object), atm2s: NDArray(object)
+        self,
+        resnames: NDArray(object)[:, :],
+        atm1s: NDArray(object)[:, :],
+        atm2s: NDArray(object)[:, :],
     ) -> NDArray("i8")[...]:
         """Resolve string triplets into integer bondlength parameter indices."""
-        i = self.bondlength_index.get_indexer([resnames, atm1s, atm2s])
-        i[i == -1] = self.bondlength_index.get_indexer(
-            [resnames[i == -1], atm2s[i == -1], atm1s[i == -1]]
+        assert resnames.shape[0] == atm1s.shape[0]
+        assert resnames.shape[0] == atm2s.shape[0]
+        assert resnames.shape[1] == atm1s.shape[1]
+        assert resnames.shape[1] == atm2s.shape[1]
+
+        inds = numpy.full(
+            (resnames.shape[0], resnames.shape[1]), -9999, dtype=numpy.int64
+        )
+        real = resnames.astype(bool)
+        inds[real] = self.bondlength_index.get_indexer(
+            [resnames[real], atm1s[real], atm2s[real]]
+        )
+        inds[inds == -1] = self.bondlength_index.get_indexer(
+            [resnames[inds == -1], atm2s[inds == -1], atm1s[inds == -1]]
         )
         wildcard = numpy.full_like(resnames, "_")
-        i[i == -1] = self.bondlength_index.get_indexer(
-            [wildcard[i == -1], atm1s[i == -1], atm2s[i == -1]]
+        inds[inds == -1] = self.bondlength_index.get_indexer(
+            [wildcard[inds == -1], atm1s[inds == -1], atm2s[inds == -1]]
         )
-        i[i == -1] = self.bondlength_index.get_indexer(
-            [wildcard[i == -1], atm2s[i == -1], atm1s[i == -1]]
+        inds[inds == -1] = self.bondlength_index.get_indexer(
+            [wildcard[inds == -1], atm2s[inds == -1], atm1s[inds == -1]]
         )
-        return i
+        inds[inds == -9999] = -1
 
+        return inds
+
+    @validate_args
     def resolve_angles(
         self,
-        resnames: NDArray(object),
-        atm1s: NDArray(object),
-        atm2s: NDArray(object),
-        atm3s: NDArray(object),
+        resnames: NDArray(object)[:, :],
+        atm1s: NDArray(object)[:, :],
+        atm2s: NDArray(object)[:, :],
+        atm3s: NDArray(object)[:, :],
     ) -> NDArray("i8")[...]:
         """Resolve string quads into integer bondangle parameter indices."""
-        i = self.bondangle_index.get_indexer([resnames, atm1s, atm2s, atm3s])
-        i[i == -1] = self.bondangle_index.get_indexer(
-            [resnames[i == -1], atm3s[i == -1], atm2s[i == -1], atm1s[i == -1]]
+
+        inds = numpy.full(resnames.shape[0:2], -9999, dtype=numpy.int64)
+        real = resnames.astype(bool)
+        inds[real] = self.bondangle_index.get_indexer(
+            [resnames[real], atm1s[real], atm2s[real], atm3s[real]]
+        )
+        inds[inds == -1] = self.bondangle_index.get_indexer(
+            [
+                resnames[inds == -1],
+                atm3s[inds == -1],
+                atm2s[inds == -1],
+                atm1s[inds == -1],
+            ]
         )
         wildcard = numpy.full_like(resnames, "_")
-        i[i == -1] = self.bondangle_index.get_indexer(
-            [wildcard[i == -1], atm1s[i == -1], atm2s[i == -1], atm3s[i == -1]]
+        inds[inds == -1] = self.bondangle_index.get_indexer(
+            [
+                wildcard[inds == -1],
+                atm1s[inds == -1],
+                atm2s[inds == -1],
+                atm3s[inds == -1],
+            ]
         )
-        i[i == -1] = self.bondangle_index.get_indexer(
-            [wildcard[i == -1], atm3s[i == -1], atm2s[i == -1], atm1s[i == -1]]
+        inds[inds == -1] = self.bondangle_index.get_indexer(
+            [
+                wildcard[inds == -1],
+                atm3s[inds == -1],
+                atm2s[inds == -1],
+                atm1s[inds == -1],
+            ]
         )
-        return i
 
+        inds[inds == -9999] = -1
+        return inds
+
+    @validate_args
     def resolve_torsions(
         self,
-        resnames: NDArray(object),
-        atm1s: NDArray(object),
-        atm2s: NDArray(object),
-        atm3s: NDArray(object),
-        atm4s: NDArray(object),
+        resnames: NDArray(object)[:, :],
+        atm1s: NDArray(object)[:, :],
+        atm2s: NDArray(object)[:, :],
+        atm3s: NDArray(object)[:, :],
+        atm4s: NDArray(object)[:, :],
     ) -> NDArray("i8")[...]:
         """Resolve string quints into integer torsion parameter indices."""
-        i = self.torsion_index.get_indexer([resnames, atm1s, atm2s, atm3s, atm4s])
-        i[i == -1] = self.torsion_index.get_indexer(
+
+        inds = numpy.full_like(resnames, -9999, dtype=numpy.int64)
+        real = resnames.astype(bool)
+        inds[real] = self.torsion_index.get_indexer(
+            [resnames[real], atm1s[real], atm2s[real], atm3s[real], atm4s[real]]
+        )
+        inds[inds == -1] = self.torsion_index.get_indexer(
             [
-                resnames[i == -1],
-                atm4s[i == -1],
-                atm3s[i == -1],
-                atm2s[i == -1],
-                atm1s[i == -1],
+                resnames[inds == -1],
+                atm4s[inds == -1],
+                atm3s[inds == -1],
+                atm2s[inds == -1],
+                atm1s[inds == -1],
             ]
         )
         wildcard = numpy.full_like(resnames, "_")
-        i[i == -1] = self.torsion_index.get_indexer(
+        inds[inds == -1] = self.torsion_index.get_indexer(
             [
-                wildcard[i == -1],
-                atm1s[i == -1],
-                atm2s[i == -1],
-                atm3s[i == -1],
-                atm4s[i == -1],
+                wildcard[inds == -1],
+                atm1s[inds == -1],
+                atm2s[inds == -1],
+                atm3s[inds == -1],
+                atm4s[inds == -1],
             ]
         )
-        i[i == -1] = self.torsion_index.get_indexer(
+        inds[inds == -1] = self.torsion_index.get_indexer(
             [
-                wildcard[i == -1],
-                atm4s[i == -1],
-                atm3s[i == -1],
-                atm2s[i == -1],
-                atm1s[i == -1],
+                wildcard[inds == -1],
+                atm4s[inds == -1],
+                atm3s[inds == -1],
+                atm2s[inds == -1],
+                atm1s[inds == -1],
             ]
         )
-        return i
 
+        inds[inds == -9999] = -1
+        return inds
+
+    @validate_args
     def resolve_impropers(
         self,
         resnames: NDArray(object),
@@ -141,19 +190,28 @@ class CartBondedParamResolver(ValidateAttrs):
     ) -> NDArray("i8")[...]:
         """Resolve string quints into integer improper torsion parameter indices."""
         # impropers have a defined ordering
-        i = self.improper_index.get_indexer([resnames, atm1s, atm2s, atm3s, atm4s])
+
+        inds = numpy.full_like(resnames, -9999, dtype=numpy.int64)
+        real = resnames.astype(bool)
+
+        inds[real] = self.improper_index.get_indexer(
+            [resnames[real], atm1s[real], atm2s[real], atm3s[real], atm4s[real]]
+        )
         wildcard = numpy.full_like(resnames, "_")
-        i[i == -1] = self.improper_index.get_indexer(
+        inds[inds == -1] = self.improper_index.get_indexer(
             [
-                wildcard[i == -1],
-                atm1s[i == -1],
-                atm2s[i == -1],
-                atm3s[i == -1],
-                atm4s[i == -1],
+                wildcard[inds == -1],
+                atm1s[inds == -1],
+                atm2s[inds == -1],
+                atm3s[inds == -1],
+                atm4s[inds == -1],
             ]
         )
-        return i
 
+        inds[inds == -9999] = -1
+        return inds
+
+    @validate_args
     def resolve_hxltorsions(
         self,
         resnames: NDArray(object),
@@ -163,36 +221,42 @@ class CartBondedParamResolver(ValidateAttrs):
         atm4s: NDArray(object),
     ) -> NDArray("i8")[...]:
         """Resolve string quints into integer hydroxyl torsion parameter indices."""
-        i = self.hxltorsion_index.get_indexer([resnames, atm1s, atm2s, atm3s, atm4s])
-        i[i == -1] = self.hxltorsion_index.get_indexer(
+        inds = numpy.full_like(resnames, -9999, dtype=numpy.int64)
+        real = resnames.astype(bool)
+        inds[real] = self.hxltorsion_index.get_indexer(
+            [resnames[real], atm1s[real], atm2s[real], atm3s[real], atm4s[real]]
+        )
+        inds[inds == -1] = self.hxltorsion_index.get_indexer(
             [
-                resnames[i == -1],
-                atm4s[i == -1],
-                atm3s[i == -1],
-                atm2s[i == -1],
-                atm1s[i == -1],
+                resnames[inds == -1],
+                atm4s[inds == -1],
+                atm3s[inds == -1],
+                atm2s[inds == -1],
+                atm1s[inds == -1],
             ]
         )
         wildcard = numpy.full_like(resnames, "_")
-        i[i == -1] = self.hxltorsion_index.get_indexer(
+        inds[inds == -1] = self.hxltorsion_index.get_indexer(
             [
-                wildcard[i == -1],
-                atm1s[i == -1],
-                atm2s[i == -1],
-                atm3s[i == -1],
-                atm4s[i == -1],
+                wildcard[inds == -1],
+                atm1s[inds == -1],
+                atm2s[inds == -1],
+                atm3s[inds == -1],
+                atm4s[inds == -1],
             ]
         )
-        i[i == -1] = self.hxltorsion_index.get_indexer(
+        inds[inds == -1] = self.hxltorsion_index.get_indexer(
             [
-                wildcard[i == -1],
-                atm4s[i == -1],
-                atm3s[i == -1],
-                atm2s[i == -1],
-                atm1s[i == -1],
+                wildcard[inds == -1],
+                atm4s[inds == -1],
+                atm3s[inds == -1],
+                atm2s[inds == -1],
+                atm1s[inds == -1],
             ]
         )
-        return i
+
+        inds[inds == -9999] = -1
+        return inds
 
     @classmethod
     @validate_args

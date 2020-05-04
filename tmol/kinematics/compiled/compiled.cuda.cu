@@ -3,10 +3,13 @@
 #include <tmol/utility/tensor/TensorPack.h>
 
 #include <tmol/kinematics/compiled/kernel_segscan.cuh>
+#include <tmol/score/common/tuple.hh>
+#include <tmol/utility/nvtx.hh>
 
 #include <moderngpu/transform.hxx>
 
 #include "common.hh"
+#include "params.hh"
 
 namespace tmol {
 namespace kinematics {
@@ -15,12 +18,13 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define HomogeneousTransform Eigen::Matrix<Real, 4, 4>
-#define QuatTranslation Eigen::Matrix<Real, 7, 1>
+#define KintreeDof Eigen::Matrix<Real, 9, 1>
 #define f1f2Vectors Eigen::Matrix<Real, 6, 1>
+#define Coord Eigen::Matrix<Real, 3, 1>
 
 template <typename Real>
-struct QuatTransRawBuffer {
-  Real data[7];
+struct HTRawBuffer {
+  Real data[16];
 };
 
 template <typename Real>
@@ -28,20 +32,64 @@ struct f1f2VecsRawBuffer {
   Real data[6];
 };
 
+// This function gets the memory needed for the output and temporary buffers
+//   in the segmented scan.
+//
+// It first loops over all generations and finds the generation with longest
+//   scan_length = #elements + #segments
+//
+// Then using the kernel launch parameters 'nt' and 'vt':
+//      vt: # of threads per CTA
+//      nt: # of elements processed per thread
+// it computes three quantities:
+//   scanSize - "scan_length" above, used for the output buffer
+//   lbsSize - a temporary buffer used for the load-balancing scan parameters
+//     = ceil (scanSize / (vt*nt)) + 1
+//   carryoutSize - a temporary buffer used for managing "carryout" from
+//                  each of the subscans.
+//      = ceil( (count+num_segments) / (vt*nt) )
+//        + ceil( (count+num_segments) / (vt*nt*nt) )
+//        + ceil( (count+num_segments) / (vt*nt*nt*nt) )
+//        + ...
+//      [stopping the summation when the arg to ceil becomes < 1].
+//
+// These are used to preallocate the memory used in each generation of the scan.
+template <typename Int>
+auto getScanBufferSize(
+    TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens, Int nt, Int vt)
+    -> mgpu::tuple<Int, Int, Int> {
+  auto ngens = gens.size(0) - 1;
+  Int scanSize = 0;
+  for (int gen = 0; gen < ngens; ++gen) {
+    Int nnodes = gens[gen + 1].node_start - gens[gen].node_start;
+    Int nsegs = gens[gen + 1].scan_start - gens[gen].scan_start;
+    scanSize = std::max(nnodes + nsegs, scanSize);
+  }
+
+  float scanleft = std::ceil(((float)scanSize) / (nt * vt));
+  Int lbsSize = (Int)scanleft + 1;
+  Int carryoutSize = (Int)scanleft;
+  while (scanleft > 1) {
+    scanleft = std::ceil(scanleft / nt);
+    carryoutSize += (Int)scanleft;
+  }
+
+  return {scanSize, carryoutSize, lbsSize};
+}
+
 // the composite operation for the forward pass: apply a transform
 //   qt1/qt2 -> HT1/HT2 -> HT1*HT2 -> qt12' -> norm(qt12')
 template <tmol::Device D, typename Real, typename Int>
-struct qcompose_t : public std::binary_function<
-                        QuatTransRawBuffer<Real>,
-                        QuatTransRawBuffer<Real>,
-                        QuatTransRawBuffer<Real>> {
-  MGPU_HOST_DEVICE QuatTransRawBuffer<Real> operator()(
-      QuatTransRawBuffer<Real> p, QuatTransRawBuffer<Real> i) const {
-    QuatTranslation ab = common<D, Real, Int>::quat_trans_compose(
-        Eigen::Map<QuatTranslation>(i.data),
-        Eigen::Map<QuatTranslation>(p.data));
+struct htcompose_t : public std::binary_function<
+                         HTRawBuffer<Real>,
+                         HTRawBuffer<Real>,
+                         HTRawBuffer<Real>> {
+  MGPU_HOST_DEVICE HTRawBuffer<Real> operator()(
+      HTRawBuffer<Real> p, HTRawBuffer<Real> i) const {
+    HomogeneousTransform ab = Eigen::Map<HomogeneousTransform>(i.data)
+                              * Eigen::Map<HomogeneousTransform>(p.data);
 
-    return *((QuatTransRawBuffer<Real>*)ab.data());
+    return *((HTRawBuffer<Real>*)ab.data());
   }
 };
 
@@ -60,104 +108,97 @@ struct f1f2compose_t : public std::binary_function<
   }
 };
 
+// Dispatch class for cuda-based generational segmented scan operations.
+//
+// # Scan Overview
+//
+// The scan operation processes linear scan paths with an associative binary
+// operator, where the scan paths many have any number of additional off-path
+// node inputs added *before* the scan path. For example, consider the
+// operation composed of path values (P), off path values (OP) joined by an
+// operator (+)::
+//
+//     OP_0            OP_1
+//       +               +
+//       |               |
+//       v               v
+//     P_0+--->P_1+--->P_2+--->P_3+--->P_4
+//                       ^
+//                       |
+//                       +
+//                     OP_2
+//
+// Represents the complete operation::
+//   (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4
+//
+// As this is a scan, rather than reduction, this results in::
+//
+//     R_0-----R_1-----R_2-----R_3-----R_4
+//     R_0 = OP_0 + P_0
+//     R_1 = (OP_0 + P_0) + P_1
+//     R_2 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2)
+//     R_3 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3
+//     R_4 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4
+//
+// The off-path inputs of a scan are taken from the result values of previous
+// scan operations. Scans are processed by "generation", arranged such that
+// the off-path inputs of any segment are draw *exclusively* from earlier
+// generations. Scans within a generation are processed via a parallel
+// segmented scan.
+//
+// The input arguments 'nodes', 'scans' give the individual scans, with
+// 'nodes' providing the scan ordering and 'scans' giving scan boundaries.
+//
+// The input argument 'gens' breaks these down into individual generations,
+// providing both 'node' and 'scan' boundaries for each generation.
+//
 template <tmol::Device D, typename Real, typename Int>
 struct ForwardKinDispatch {
   static auto f(
-      TView<Vec<Real, 9>, 1, D> dofs,
-      TView<Int, 1, D> doftypes,
+      TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
-      TView<Vec<Int, 2>, 1, tmol::Device::CPU> gens)
-      -> TPack<HomogeneousTransform, 1, D> {
+      TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
+      TView<KinTreeParams<Int>, 1, D> kintree)
+      -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D>> {
+    NVTXRange _function(__FUNCTION__);
+    using tmol::score::common::tie;
+    typedef typename mgpu::launch_params_t<128, 2> launch_t;
+    constexpr int nt = launch_t::nt, vt = launch_t::vt;
+
     auto num_atoms = dofs.size(0);
 
-    auto QTs_t = TPack<QuatTranslation, 1, D>::empty({num_atoms});
-    auto QTs = QTs_t.view;
-
-    // dofs -> quaterion_xform function
-    auto k_dof2qt = ([=] EIGEN_DEVICE_FUNC(int i) {
-      DOFtype doftype = (DOFtype)doftypes[i];
-      HomogeneousTransform HT;
-      if (doftype == ROOT) {
-        HT = HomogeneousTransform::Identity();
-      } else if (doftype == JUMP) {
-        HT = common<D, Real, Int>::jumpTransform(dofs[i]);
-      } else if (doftype == BOND) {
-        HT = common<D, Real, Int>::bondTransform(dofs[i]);
-      }
-      QTs[i] = common<D, Real, Int>::ht2quat_trans(HT);
-    });
-
-    mgpu::standard_context_t context;
-    mgpu::transform(k_dof2qt, num_atoms, context);
-
-    // memory for scan (longest scan possible is 2 times # atoms)
-    auto QTscan_t = TPack<QuatTranslation, 1, D>::empty({2 * num_atoms});
-    auto QTscan = QTscan_t.view;
-    QuatTransRawBuffer<Real> init = {0, 0, 0, 1, 0, 0, 0};  // identity xform
-
-    auto ngens = gens.size(0) - 1;
-    for (int gen = 0; gen < ngens; ++gen) {
-      int nodestart = gens[gen][0], scanstart = gens[gen][1];
-      int nnodes = gens[gen + 1][0] - nodestart;
-      int nscans = gens[gen + 1][1] - scanstart;
-
-      // reindexing function
-      auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
-        return *(
-            (QuatTransRawBuffer<Real>*)QTs[nodes[nodestart + index]].data());
-      };
-
-      // mgpu does not play nicely with eigen types
-      // instead, we wrap the raw data buffer as QuatTransRawBuffer
-      //      and use eigen:map to reconstruct on device
-      tmol::kinematics::kernel_segscan<mgpu::launch_params_t<256, 3>>(
-          k_reindex,
-          nnodes,
-          &scans.data()[scanstart],
-          nscans,
-          (QuatTransRawBuffer<Real>*)(QTscan.data()->data()),
-          qcompose_t<D, Real, Int>(),
-          init,
-          context);
-
-      // unindex for gen i
-      // this would be nice to incorporate into kernel_segscan (as the indexing
-      // is)
-      auto k_unindex = [=] MGPU_DEVICE(int index) {
-        QTs[nodes[nodestart + index]] = QTscan[index];
-      };
-
-      mgpu::transform(k_unindex, nnodes, context);
-    }
-
-    // quats -> HTs
+    nvtx_range_push("dispatch::alloc");
     auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
     auto HTs = HTs_t.view;
+    auto xs_t = TPack<Coord, 1, D>::empty({num_atoms});
+    auto xs = xs_t.view;
+    nvtx_range_pop();
 
-    auto k_qt2dof = ([=] EIGEN_DEVICE_FUNC(int i) {
-      HTs[i] = common<D, Real, Int>::quat_trans2ht(QTs[i]);
-    });
+    // temp memory for scan
+    nvtx_range_push("dispatch::alloc_temp");
+    int carryoutBuffer, scanBuffer, lbsBuffer;
+    tie(scanBuffer, carryoutBuffer, lbsBuffer) =
+        getScanBufferSize(gens, nt, vt);
+    auto scanCarryout_t =
+        TPack<HomogeneousTransform, 1, D>::empty({carryoutBuffer});
+    auto scanCarryout = scanCarryout_t.view;
+    auto scanCodes_t = TPack<int, 1, D>::empty({carryoutBuffer});
+    auto scanCodes = scanCodes_t.view;
+    auto LBS_t = TPack<Int, 1, D>::empty({lbsBuffer});
+    auto LBS = LBS_t.view;
+    auto HTscan_t = TPack<HomogeneousTransform, 1, D>::empty({scanBuffer});
+    auto HTscan = HTscan_t.view;
+    HTRawBuffer<Real> init = {
+        1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0};  // identity xform
+    nvtx_range_pop();
 
-    mgpu::transform(k_qt2dof, num_atoms, context);
-
-    return HTs_t;
-  }
-};
-
-template <tmol::Device D, typename Real, typename Int>
-struct DOFTransformsDispatch {
-  static auto f(TView<Vec<Real, 9>, 1, D> dofs, TView<Int, 1, D> doftypes)
-      -> TPack<HomogeneousTransform, 1, D> {
-    auto num_atoms = dofs.size(0);
-
-    auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
-    auto HTs = HTs_t.view;
+    // printf("[0] alloc=%d\n", carryoutBuffer);
 
     // dofs -> HTs
+    nvtx_range_push("dispatch::dof2ht");
     auto k_dof2ht = ([=] EIGEN_DEVICE_FUNC(int i) {
-      DOFtype doftype = (DOFtype)doftypes[i];
-      HomogeneousTransform HT;
+      DOFtype doftype = (DOFtype)kintree[i].doftype;
       if (doftype == ROOT) {
         HTs[i] = HomogeneousTransform::Identity();
       } else if (doftype == JUMP) {
@@ -169,25 +210,76 @@ struct DOFTransformsDispatch {
 
     mgpu::standard_context_t context;
     mgpu::transform(k_dof2ht, num_atoms, context);
+    nvtx_range_pop();
 
-    return HTs_t;
+    auto ngens = gens.size(0) - 1;
+    for (int gen = 0; gen < ngens; ++gen) {
+      int nodestart = gens[gen].node_start, scanstart = gens[gen].scan_start;
+      int nnodes = gens[gen + 1].node_start - nodestart;
+      int nscans = gens[gen + 1].scan_start - scanstart;
+
+      // reindexing function
+      nvtx_range_push("dispatch::segscan");
+      auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
+        return *((HTRawBuffer<Real>*)HTs[nodes[nodestart + index]].data());
+      };
+
+      // mgpu does not play nicely with eigen types
+      // instead, we wrap the raw data buffer as QuatTransRawBuffer
+      //      and use eigen:map to reconstruct on device
+      tmol::kinematics::kernel_segscan<launch_t>(
+          k_reindex,
+          nnodes,
+          &scans.data()[scanstart],
+          nscans,
+          (HTRawBuffer<Real>*)(HTscan.data()->data()),
+          (HTRawBuffer<Real>*)(scanCarryout.data()->data()),
+          &scanCodes.data()[0],
+          &LBS.data()[0],
+          htcompose_t<D, Real, Int>(),
+          init,
+          context);
+      nvtx_range_pop();
+
+      // unindex for gen i
+      // this would be nice to incorporate into kernel_segscan (as the indexing
+      // is)
+      nvtx_range_push("dispatch::unindex");
+      auto k_unindex = [=] MGPU_DEVICE(int index) {
+        HTs[nodes[nodestart + index]] = HTscan[index];
+      };
+
+      mgpu::transform(k_unindex, nnodes, context);
+      nvtx_range_pop();
+    }
+
+    // copy atom positions
+    auto k_getcoords = ([=] EIGEN_DEVICE_FUNC(int i) {
+      xs[i] = HTs[i].block(3, 0, 1, 3).transpose();
+    });
+
+    mgpu::transform(k_getcoords, num_atoms, context);
+
+    return {xs_t, HTs_t};
   }
 };
 
 template <tmol::Device D, typename Real, typename Int>
-struct BackwardKinDispatch {
+struct InverseKinDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<Int, 1, D> doftypes,
-      TView<Int, 1, D> parents,
+      TView<Coord, 1, D> coords,
+      TView<Int, 1, D> parent,
       TView<Int, 1, D> frame_x,
       TView<Int, 1, D> frame_y,
       TView<Int, 1, D> frame_z,
-      TView<Vec<Real, 9>, 1, D> dofs) -> TPack<HomogeneousTransform, 1, D> {
+      TView<Int, 1, D> doftype) -> TPack<KintreeDof, 1, D> {
     auto num_atoms = coords.size(0);
 
+    // fd: we could eliminate HT allocation and calculate on the fly
     auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
     auto HTs = HTs_t.view;
+    auto dofs_t = TPack<KintreeDof, 1, D>::empty({num_atoms});
+    auto dofs = dofs_t.view;
 
     auto k_coords2hts = ([=] EIGEN_DEVICE_FUNC(int i) {
       if (i == 0) {
@@ -206,12 +298,14 @@ struct BackwardKinDispatch {
 
     auto k_hts2dofs = ([=] EIGEN_DEVICE_FUNC(int i) {
       HomogeneousTransform lclHT;
-      if (doftypes[i] != ROOT) {
-        lclHT = HTs[i] * common<D, Real, Int>::ht_inv(HTs[parents[i]]);
+      if (doftype[i] == ROOT) {
+        dofs[i] = KintreeDof::Constant(0);  // for num deriv check
+      } else {
+        lclHT = HTs[i] * common<D, Real, Int>::ht_inv(HTs[parent[i]]);
 
-        if (doftypes[i] == JUMP) {
+        if (doftype[i] == JUMP) {
           dofs[i] = common<D, Real, Int>::invJumpTransform(lclHT);
-        } else if (doftypes[i] == BOND) {
+        } else if (doftype[i] == BOND) {
           dofs[i] = common<D, Real, Int>::invBondTransform(lclHT);
         }
       }
@@ -219,66 +313,71 @@ struct BackwardKinDispatch {
 
     mgpu::transform(k_hts2dofs, num_atoms, context);
 
-    return HTs_t;
+    return dofs_t;
   }
 };
 
 template <tmol::Device D, typename Real, typename Int>
-struct f1f2ToDerivsDispatch {
+struct KinDerivDispatch {
   static auto f(
+      TView<Coord, 1, D> dVdx,
       TView<HomogeneousTransform, 1, D> hts,
-      TView<Vec<Real, 9>, 1, D> dofs,
-      TView<Int, 1, D> doftypes,
-      TView<Int, 1, D> parents,
-      TView<Vec<Real, 6>, 1, D> f1f2s) -> TPack<Vec<Real, 9>, 1, D> {
-    auto num_atoms = dofs.size(0);
-    auto dsc_ddofs_t = TPack<Vec<Real, 9>, 1, D>::empty({num_atoms});
-    auto dsc_ddofs = dsc_ddofs_t.view;
+      TView<KintreeDof, 1, D> dofs,
+      TView<Int, 1, D> nodes,
+      TView<Int, 1, D> scans,
+      TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
+      TView<KinTreeParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D> {
+    NVTXRange _function(__FUNCTION__);
+    using tmol::score::common::tie;
+    typedef typename mgpu::launch_params_t<256, 3> launch_t;
+    constexpr int nt = launch_t::nt, vt = launch_t::vt;
 
-    auto k_f1f2s2derivs = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Vec<Real, 3> f1 = f1f2s[i].topRows(3);
-      Vec<Real, 3> f2 = f1f2s[i].bottomRows(3);
-      if (doftypes[i] == ROOT) {
-        dsc_ddofs[i] = Vec<Real, 9>::Constant(0);
-      } else if (doftypes[i] == JUMP) {
-        dsc_ddofs[i] = common<D, Real, Int>::jumpDerivatives(
-            dofs[i], hts[i], hts[parents[i]], f1, f2);
-      } else if (doftypes[i] == BOND) {
-        dsc_ddofs[i] = common<D, Real, Int>::bondDerivatives(
-            dofs[i], hts[i], hts[parents[i]], f1, f2);
-      }
+    auto num_atoms = dVdx.size(0);
+
+    nvtx_range_push("dispatch::dalloc");
+    auto f1f2s_t = TPack<f1f2Vectors, 1, D>::empty({num_atoms});
+    auto f1f2s = f1f2s_t.view;
+    auto dsc_ddofs_t = TPack<KintreeDof, 1, D>::empty({num_atoms});
+    auto dsc_ddofs = dsc_ddofs_t.view;
+    nvtx_range_pop();
+
+    // temp memory for scan
+    nvtx_range_push("dispatch::dalloc_temp");
+    int carryoutBuffer, scanBuffer, lbsBuffer;
+    tie(scanBuffer, carryoutBuffer, lbsBuffer) =
+        getScanBufferSize(gens, nt, vt);
+    auto scanCarryout_t = TPack<f1f2Vectors, 1, D>::empty({carryoutBuffer});
+    auto scanCarryout = scanCarryout_t.view;
+    auto scanCodes_t = TPack<int, 1, D>::empty({carryoutBuffer});
+    auto scanCodes = scanCodes_t.view;
+    auto LBS_t = TPack<Int, 1, D>::empty({lbsBuffer});
+    auto LBS = LBS_t.view;
+    auto f1f2scan_t = TPack<f1f2Vectors, 1, D>::empty({scanBuffer});
+    auto f1f2scan = f1f2scan_t.view;
+    f1f2VecsRawBuffer<Real> init = {0, 0, 0, 0, 0, 0};  // identity
+    nvtx_range_pop();
+
+    // calculate f1s and f2s from dVdx and HT
+    nvtx_range_push("dispatch::ddof2ht");
+    auto k_f1f2s = ([=] EIGEN_DEVICE_FUNC(int i) {
+      Coord trans = hts[i].block(3, 0, 1, 3).transpose();
+      Coord f1 = trans.cross(trans - dVdx[i]).transpose();
+      f1f2s[i].topRows(3) = f1;
+      f1f2s[i].bottomRows(3) = dVdx[i];
     });
 
     mgpu::standard_context_t context;
-    mgpu::transform(k_f1f2s2derivs, num_atoms, context);
-
-    return dsc_ddofs_t;
-  }
-};
-
-template <tmol::Device D, typename Real, typename Int>
-struct SegscanF1f2sDispatch {
-  static auto f(
-      TView<Vec<Real, 6>, 1, D> f1f2s,
-      TView<Int, 1, D> nodes,
-      TView<Int, 1, D> scans,
-      TView<Vec<Int, 2>, 1, tmol::Device::CPU> gens) -> void {
-    auto num_atoms = f1f2s.size(0);
-
-    // temp memory for scan (longest scan possible is 2 times # atoms)
-    auto f1f2scan_t = TPack<f1f2Vectors, 1, D>::empty({2 * num_atoms});
-    auto f1f2scan = f1f2scan_t.view;
-    f1f2VecsRawBuffer<Real> init = {0, 0, 0, 0, 0, 0};  // identity
-
-    mgpu::standard_context_t context;
+    mgpu::transform(k_f1f2s, num_atoms, context);
+    nvtx_range_pop();
 
     auto ngens = gens.size(0) - 1;
     for (int gen = 0; gen < ngens; ++gen) {
-      int nodestart = gens[gen][0], scanstart = gens[gen][1];
-      int nnodes = gens[gen + 1][0] - nodestart;
-      int nscans = gens[gen + 1][1] - scanstart;
+      int nodestart = gens[gen].node_start, scanstart = gens[gen].scan_start;
+      int nnodes = gens[gen + 1].node_start - nodestart;
+      int nscans = gens[gen + 1].scan_start - scanstart;
 
       // reindexing function
+      nvtx_range_push("dispatch::dsegscan");
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
         return *(
             (f1f2VecsRawBuffer<Real>*)f1f2s[nodes[nodestart + index]].data());
@@ -287,18 +386,22 @@ struct SegscanF1f2sDispatch {
       // mgpu does not play nicely with eigen types
       // instead, we wrap the raw data buffer
       //      and use eigen:map to reconstruct on device
-      tmol::kinematics::
-          kernel_segscan<mgpu::launch_params_t<256, 1>, scan_type_exc>(
-              k_reindex,
-              nnodes,
-              &scans.data()[scanstart],
-              nscans,
-              (f1f2VecsRawBuffer<Real>*)(f1f2scan.data()->data()),
-              f1f2compose_t<D, Real, Int>(),
-              init,
-              context);
+      tmol::kinematics::kernel_segscan<launch_t, scan_type_exc>(
+          k_reindex,
+          nnodes,
+          &scans.data()[scanstart],
+          nscans,
+          (f1f2VecsRawBuffer<Real>*)(f1f2scan.data()->data()),
+          (f1f2VecsRawBuffer<Real>*)(scanCarryout.data()->data()),
+          &scanCodes.data()[0],
+          &LBS.data()[0],
+          f1f2compose_t<D, Real, Int>(),
+          init,
+          context);
+      nvtx_range_pop();
 
       // unindex for gen i.  ENSURE ATOMIC
+      nvtx_range_push("dispatch::dunindex");
       auto k_unindex = [=] MGPU_DEVICE(int index) {
         for (int kk = 0; kk < 6; ++kk) {
           atomicAdd(
@@ -307,26 +410,42 @@ struct SegscanF1f2sDispatch {
       };
 
       mgpu::transform(k_unindex, nnodes, context);
+      nvtx_range_pop();
     }
 
-    return;
+    nvtx_range_push("dispatch::f1f2_to_deriv");
+    auto k_f1f2s2derivs = ([=] EIGEN_DEVICE_FUNC(int i) {
+      Vec<Real, 3> f1 = f1f2s[i].topRows(3);
+      Vec<Real, 3> f2 = f1f2s[i].bottomRows(3);
+      if (kintree[i].doftype == ROOT) {
+        dsc_ddofs[i] = Vec<Real, 9>::Constant(0);
+      } else if (kintree[i].doftype == JUMP) {
+        dsc_ddofs[i] = common<D, Real, Int>::jumpDerivatives(
+            dofs[i], hts[i], hts[kintree[i].parent], f1, f2);
+      } else if (kintree[i].doftype == BOND) {
+        dsc_ddofs[i] = common<D, Real, Int>::bondDerivatives(
+            dofs[i], hts[i], hts[kintree[i].parent], f1, f2);
+      }
+    });
+
+    mgpu::transform(k_f1f2s2derivs, num_atoms, context);
+    nvtx_range_pop();
+
+    return dsc_ddofs_t;
   }
 };
 
 template struct ForwardKinDispatch<tmol::Device::CUDA, float, int32_t>;
 template struct ForwardKinDispatch<tmol::Device::CUDA, double, int32_t>;
-template struct DOFTransformsDispatch<tmol::Device::CUDA, float, int32_t>;
-template struct DOFTransformsDispatch<tmol::Device::CUDA, double, int32_t>;
-template struct BackwardKinDispatch<tmol::Device::CUDA, float, int32_t>;
-template struct BackwardKinDispatch<tmol::Device::CUDA, double, int32_t>;
-template struct f1f2ToDerivsDispatch<tmol::Device::CUDA, float, int32_t>;
-template struct f1f2ToDerivsDispatch<tmol::Device::CUDA, double, int32_t>;
-template struct SegscanF1f2sDispatch<tmol::Device::CUDA, float, int32_t>;
-template struct SegscanF1f2sDispatch<tmol::Device::CUDA, double, int32_t>;
+template struct InverseKinDispatch<tmol::Device::CUDA, float, int32_t>;
+template struct InverseKinDispatch<tmol::Device::CUDA, double, int32_t>;
+template struct KinDerivDispatch<tmol::Device::CUDA, float, int32_t>;
+template struct KinDerivDispatch<tmol::Device::CUDA, double, int32_t>;
 
 #undef HomogeneousTransform
-#undef QuatTranslation
+#undef KintreeDof
 #undef f1f2Vectors
+#undef Coord
 
 }  // namespace kinematics
 }  // namespace tmol

@@ -1,13 +1,11 @@
 import numpy
 import torch
 
-from tmol.kinematics import backwardKin, forwardKin
-
-# from tmol.tests.torch import torch_device
+from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import KinematicBuilder
 
 
-def test_builder_refold(ubq_system, torch_device):
+def test_builder_refold(ubq_system):
     tsys = ubq_system
 
     kintree = (
@@ -19,8 +17,8 @@ def test_builder_refold(ubq_system, torch_device):
     )
 
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
-    dofs = backwardKin(kintree, kincoords).dofs
-    refold_kincoords = forwardKin(kintree, dofs).coords
+    dofs = inverseKin(kintree, kincoords)
+    refold_kincoords = forwardKin(kintree, dofs)
 
     assert numpy.all(refold_kincoords[0] == 0)
 

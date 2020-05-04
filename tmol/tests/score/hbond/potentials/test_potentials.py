@@ -10,12 +10,41 @@ from tmol.utility.args import _signature
 from tmol.score.chemical_database import AcceptorHybridization
 
 
-_hbond_global_params = dict(
+_hbond_global_param_dict = dict(
     hb_sp2_range_span=1.6,
     hb_sp2_BAH180_rise=0.75,
     hb_sp2_outer_width=0.357,
     hb_sp3_softmax_fade=2.5,
+    threshold_distance=6.0,
 )
+
+_global_param_table = torch.nn.Parameter(
+    (
+        torch.tensor(
+            [
+                _hbond_global_param_dict["hb_sp2_range_span"],
+                _hbond_global_param_dict["hb_sp2_BAH180_rise"],
+                _hbond_global_param_dict["hb_sp2_outer_width"],
+                _hbond_global_param_dict["hb_sp3_softmax_fade"],
+                _hbond_global_param_dict["threshold_distance"],
+            ],
+            dtype=torch.double,
+        )
+    ).unsqueeze(0),
+    requires_grad=False,
+)
+
+
+def poly_from_lists(coeffs, range, bounds):
+    return coeffs + [0] + range + bounds
+
+
+def merge_polys(AHdist_poly, cosBAH_poly, cosAHD_poly):
+    return AHdist_poly + cosBAH_poly + cosAHD_poly
+
+
+def _pair_params(acceptor_hybridization, donor_weight, acceptor_weight):
+    return [acceptor_hybridization, acceptor_weight, donor_weight]
 
 
 @pytest.fixture
@@ -66,6 +95,29 @@ def sp2_params(compiled):
     poly_AHD_1j_range = [1.1435646388, 3.1416]
     poly_AHD_1j_bounds = [1.1, 1.1]
 
+    AHdist_poly = poly_from_lists(
+        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6,
+        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_range,
+        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_bounds,
+    )
+
+    cosBAH_poly = poly_from_lists(
+        poly_cosBAH_off, poly_cosBAH_off_range, poly_cosBAH_off_bounds
+    )
+    cosAHD_poly = poly_from_lists(poly_AHD_1j, poly_AHD_1j_range, poly_AHD_1j_bounds)
+
+    polynomials = merge_polys(AHdist_poly, cosBAH_poly, cosAHD_poly)
+
+    acceptor_hybridization = AcceptorHybridization._index.get_indexer_for(["sp2"])[0]
+    donor_weight = 1.45
+    acceptor_weight = 1.19
+
+    pair_params = _pair_params(
+        acceptor_hybridization=acceptor_hybridization,
+        donor_weight=donor_weight,
+        acceptor_weight=acceptor_weight,
+    )
+
     return dict(
         # Input coordinates
         D=[-0.337, 3.640, -1.365],
@@ -73,21 +125,18 @@ def sp2_params(compiled):
         A=[0.929, 2.820, 1.149],
         B=[1.369, 1.690, 1.360],
         B0=[1.060, 0.538, 0.412],
-        acceptor_hybridization=AcceptorHybridization._index.get_indexer_for(["sp2"]),
         # type pair parameters
-        donor_weight=1.45,
-        acceptor_weight=1.19,
-        AHdist_coeffs=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6,
-        AHdist_range=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_range,
-        AHdist_bound=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_bounds,
-        cosBAH_coeffs=poly_cosBAH_off,
-        cosBAH_range=poly_cosBAH_off_range,
-        cosBAH_bound=poly_cosBAH_off_bounds,
-        cosAHD_coeffs=poly_AHD_1j,
-        cosAHD_range=poly_AHD_1j_range,
-        cosAHD_bound=poly_AHD_1j_bounds,
-        # Global score parameters
-        **_hbond_global_params,
+        acceptor_hybridization=acceptor_hybridization,
+        donor_weight=donor_weight,
+        acceptor_weight=acceptor_weight,
+        pair_params=pair_params,
+        # poly parameters
+        AHdist_poly=AHdist_poly,
+        cosBAH_poly=cosBAH_poly,
+        cosAHD_poly=cosAHD_poly,
+        polynomials=polynomials,
+        global_params=_global_param_table,
+        **_hbond_global_param_dict,
     )
 
 
@@ -110,6 +159,12 @@ def sp3_params(compiled):
     hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_range = [1.38565621563, 2.74160605537]
     hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_bounds = [1.1, 1.1]
 
+    AHdist_poly = poly_from_lists(
+        hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6,
+        hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_range,
+        hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_bounds,
+    )
+
     poly_cosBAH_6i = [
         0.0,
         -0.82209300,
@@ -125,6 +180,10 @@ def sp3_params(compiled):
     ]
     poly_cosBAH_6i_range = [-0.0193738506669, 1.1]
     poly_cosBAH_6i_bounds = [1.1, 1.1]
+
+    cosBAH_poly = poly_from_lists(
+        poly_cosBAH_6i, poly_cosBAH_6i_range, poly_cosBAH_6i_bounds
+    )
 
     poly_AHD_1i = [
         0.0,
@@ -142,6 +201,18 @@ def sp3_params(compiled):
     poly_AHD_1i_range = [1.59914724347, 3.1416]
     poly_AHD_1i_bounds = [1.1, 1.1]
 
+    cosAHD_poly = poly_from_lists(poly_AHD_1i, poly_AHD_1i_range, poly_AHD_1i_bounds)
+    polynomials = merge_polys(AHdist_poly, cosBAH_poly, cosAHD_poly)
+
+    acceptor_hybridization = AcceptorHybridization._index.get_indexer_for(["sp3"])[0]
+    donor_weight = 1.45
+    acceptor_weight = 1.15
+    pair_params = _pair_params(
+        acceptor_hybridization=acceptor_hybridization,
+        donor_weight=donor_weight,
+        acceptor_weight=acceptor_weight,
+    )
+
     return dict(
         # Input coordinates
         D=[-1.447, 4.942, -3.149],
@@ -149,21 +220,17 @@ def sp3_params(compiled):
         A=[-2.196, 2.211, -2.339],
         B=[-3.156, 2.109, -1.327],
         B0=[-1.436, 1.709, -2.035],
-        acceptor_hybridization=AcceptorHybridization._index.get_indexer_for(["sp3"]),
         # type pair parameters
-        donor_weight=1.45,
-        acceptor_weight=1.15,
-        AHdist_coeffs=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6,
-        AHdist_range=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_range,
-        AHdist_bound=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_bounds,
-        cosBAH_coeffs=poly_cosBAH_6i,
-        cosBAH_range=poly_cosBAH_6i_range,
-        cosBAH_bound=poly_cosBAH_6i_bounds,
-        cosAHD_coeffs=poly_AHD_1i,
-        cosAHD_range=poly_AHD_1i_range,
-        cosAHD_bound=poly_AHD_1i_bounds,
-        # Global score parameters
-        **_hbond_global_params,
+        acceptor_hybridization=acceptor_hybridization,
+        donor_weight=donor_weight,
+        acceptor_weight=acceptor_weight,
+        pair_params=pair_params,
+        AHdist_poly=AHdist_poly,
+        cosBAH_poly=cosBAH_poly,
+        cosAHD_poly=cosAHD_poly,
+        polynomials=polynomials,
+        global_params=_global_param_table,
+        **_hbond_global_param_dict,
     )
 
 
@@ -217,6 +284,26 @@ def ring_params(compiled):
     poly_AHD_1i_range = [1.59914724347, 3.1416]
     poly_AHD_1i_bounds = [1.1, 1.1]
 
+    AHdist_poly = poly_from_lists(
+        hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6,
+        hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range,
+        hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds,
+    )
+    cosBAH_poly = poly_from_lists(
+        poly_cosBAH_7, poly_cosBAH_7_range, poly_cosBAH_7_bounds
+    )
+    cosAHD_poly = poly_from_lists(poly_AHD_1i, poly_AHD_1i_range, poly_AHD_1i_bounds)
+    polynomials = merge_polys(AHdist_poly, cosBAH_poly, cosAHD_poly)
+
+    acceptor_hybridization = AcceptorHybridization._index.get_indexer_for(["ring"])[0]
+    donor_weight = 1.45
+    acceptor_weight = 1.13
+    pair_params = _pair_params(
+        acceptor_hybridization=acceptor_hybridization,
+        donor_weight=donor_weight,
+        acceptor_weight=acceptor_weight,
+    )
+
     return dict(
         # Input coordinates
         D=[-0.624, 5.526, -2.146],
@@ -224,28 +311,44 @@ def ring_params(compiled):
         A=[-1.579, 2.834, -2.817],
         B=[-0.774, 1.927, -3.337],
         B0=[-2.327, 2.261, -1.817],
-        acceptor_hybridization=AcceptorHybridization._index.get_indexer_for(["ring"]),
         # type pair parameters
-        donor_weight=1.45,
-        acceptor_weight=1.13,
-        AHdist_coeffs=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6,
-        AHdist_range=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range,
-        AHdist_bound=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds,
-        cosBAH_coeffs=poly_cosBAH_7,
-        cosBAH_range=poly_cosBAH_7_range,
-        cosBAH_bound=poly_cosBAH_7_bounds,
-        cosAHD_coeffs=poly_AHD_1i,
-        cosAHD_range=poly_AHD_1i_range,
-        cosAHD_bound=poly_AHD_1i_bounds,
+        acceptor_hybridization=acceptor_hybridization,
+        donor_weight=donor_weight,
+        acceptor_weight=acceptor_weight,
+        pair_params=pair_params,
+        AHdist_poly=AHdist_poly,
+        cosBAH_poly=cosBAH_poly,
+        cosAHD_poly=cosAHD_poly,
+        polynomials=polynomials,
         # Global score parameters
-        **_hbond_global_params,
+        global_params=_global_param_table,
+        **_hbond_global_param_dict,
+    )
+
+
+def hbsc_subset(params):
+    return dict(
+        D=params["D"],
+        H=params["H"],
+        A=params["A"],
+        B=params["B"],
+        B0=params["B0"],
+        pair_params=params["pair_params"],
+        polynomials=params["polynomials"],
+        global_params=params["global_params"],
     )
 
 
 def test_hbond_point_scores(compiled, sp2_params, sp3_params, ring_params):
-    assert compiled.hbond_score_V_dV(**sp2_params)[0] == approx(-2.40, abs=0.01)
-    assert compiled.hbond_score_V_dV(**sp3_params)[0] == approx(-2.00, abs=0.01)
-    assert compiled.hbond_score_V_dV(**ring_params)[0] == approx(-2.17, abs=0.01)
+    assert compiled.hbond_score_V_dV(**hbsc_subset(sp2_params))[0] == approx(
+        -2.40, abs=0.01
+    )
+    assert compiled.hbond_score_V_dV(**hbsc_subset(sp3_params))[0] == approx(
+        -2.00, abs=0.01
+    )
+    assert compiled.hbond_score_V_dV(**hbsc_subset(ring_params))[0] == approx(
+        -2.17, abs=0.01
+    )
 
 
 def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_params):
@@ -253,6 +356,7 @@ def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_par
         return torch.tensor(t).to(dtype=torch.double)
 
     def targs(params):
+        params = hbsc_subset(params)
         args = (
             _signature(compiled.hbond_score_V_dV).bind(**valmap(_t, params)).arguments
         )
@@ -262,9 +366,10 @@ def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_par
         args["A"] = args["A"].requires_grad_(True)
         args["B"] = args["B"].requires_grad_(True)
         args["B0"] = args["B0"].requires_grad_(True)
-        args["acceptor_hybridization"] = args["acceptor_hybridization"].to(
-            dtype=torch.int32
-        )
+        # args["acceptor_hybridization"] = args["acceptor_hybridization"].to(
+        #    dtype=torch.int32
+        # )
+
         return tuple(args.values())
 
     op = VectorizedOp(compiled.hbond_score_V_dV)
@@ -290,13 +395,7 @@ def test_AH_dist_gradcheck(compiled, sp2_params, sp3_params, ring_params):
 
         gradcheck(
             VectorizedOp(compiled.AH_dist_V_dV),
-            (
-                A.requires_grad_(True),
-                H.requires_grad_(True),
-                _t(params["AHdist_coeffs"]),
-                _t(params["AHdist_range"]),
-                _t(params["AHdist_bound"]),
-            ),
+            (A.requires_grad_(True), H.requires_grad_(True), _t(params["AHdist_poly"])),
         )
 
 
@@ -311,9 +410,7 @@ def test_AHD_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
                 _t(params["A"]).requires_grad_(True),
                 _t(params["H"]).requires_grad_(True),
                 _t(params["D"]).requires_grad_(True),
-                _t(params["cosAHD_coeffs"]),
-                _t(params["cosAHD_range"]),
-                _t(params["cosAHD_bound"]),
+                _t(params["cosAHD_poly"]),
             ),
         )
 
@@ -331,9 +428,7 @@ def test_BAH_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
                 _t(params["A"]).requires_grad_(True),
                 _t(params["H"]).requires_grad_(True),
                 _t(params["acceptor_hybridization"]).to(dtype=torch.int32),
-                _t(params["cosBAH_coeffs"]),
-                _t(params["cosBAH_range"]),
-                _t(params["cosBAH_bound"]),
+                _t(params["cosBAH_poly"]),
                 _t(params["hb_sp3_softmax_fade"]),
             ),
         )

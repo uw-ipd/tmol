@@ -10,6 +10,8 @@
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
+#include "params.hh"
+
 #undef B0
 
 namespace tmol {
@@ -34,33 +36,23 @@ struct AcceptorHybridization {
 };
 
 template <typename Real>
-def AH_dist_V_dV(
-    Real3 A,
-    Real3 H,
-    Vec<double, 11> AHdist_coeffs,
-    Vec<double, 2> AHdist_range,
-    Vec<double, 2> AHdist_bound)
+def AH_dist_V_dV(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)
     ->tuple<Real, Real3, Real3> {
   auto dist = distance<Real>::V_dV(A, H);
   auto poly = bound_poly<11, double>::V_dV(
-      dist.V, AHdist_coeffs, AHdist_range, AHdist_bound);
+      dist.V, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
 
   return {poly.V, poly.dV_dX * dist.dV_dA, poly.dV_dX * dist.dV_dB};
 }
 
 template <typename Real>
 def AHD_angle_V_dV(
-    Real3 A,
-    Real3 H,
-    Real3 D,
-    Vec<double, 11> cosAHD_coeffs,
-    Vec<double, 2> cosAHD_range,
-    Vec<double, 2> cosAHD_bound)
+    Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
     ->tuple<Real, Real3, Real3, Real3> {
   // In non-cos space
   auto AHD = pt_interior_angle<Real>::V_dV(A, H, D);
   auto poly = bound_poly<11, double>::V_dV(
-      AHD.V, cosAHD_coeffs, cosAHD_range, cosAHD_bound);
+      AHD.V, cosAHD_poly.coeffs, cosAHD_poly.range, cosAHD_poly.bound);
 
   return {poly.V,
           poly.dV_dX * AHD.dV_dA,
@@ -70,19 +62,14 @@ def AHD_angle_V_dV(
 
 template <typename Real>
 def _BAH_angle_base_form_V_dV(
-    Real3 B,
-    Real3 A,
-    Real3 H,
-    Vec<double, 11> cosBAH_coeffs,
-    Vec<double, 2> cosBAH_range,
-    Vec<double, 2> cosBAH_bound)
+    Real3 B, Real3 A, Real3 H, HBondPoly<double> const& cosBAH_poly)
     ->tuple<Real, Real3, Real3, Real3> {
   Real3 AH = H - A;
   Real3 BA = A - B;
 
   auto cosT = cos_interior_angle<Real>::V_dV(AH, BA);
   auto poly = bound_poly<11, double>::V_dV(
-      cosT.V, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
+      cosT.V, cosBAH_poly.coeffs, cosBAH_poly.range, cosBAH_poly.bound);
 
   return {poly.V,
           poly.dV_dX * (-cosT.dV_dB),
@@ -97,9 +84,7 @@ def BAH_angle_V_dV(
     Real3 A,
     Real3 H,
     Int acceptor_hybridization,
-    Vec<double, 11> cosBAH_coeffs,
-    Vec<double, 2> cosBAH_range,
-    Vec<double, 2> cosBAH_bound,
+    HBondPoly<double> const& cosBAH_poly,
     Real hb_sp3_softmax_fade)
     ->tuple<Real, Real3, Real3, Real3, Real3> {
   using std::exp;
@@ -108,8 +93,8 @@ def BAH_angle_V_dV(
   if (acceptor_hybridization == AcceptorHybridization::sp2) {
     Real PxH;
     Real3 dPxH_dB, dPxH_dA, dPxH_dH;
-    tie(PxH, dPxH_dB, dPxH_dA, dPxH_dH) = _BAH_angle_base_form_V_dV(
-        B, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
+    tie(PxH, dPxH_dB, dPxH_dA, dPxH_dH) =
+        _BAH_angle_base_form_V_dV(B, A, H, cosBAH_poly);
 
     return {PxH, dPxH_dB, Real3({0, 0, 0}), dPxH_dA, dPxH_dH};
 
@@ -117,21 +102,21 @@ def BAH_angle_V_dV(
     Real3 Bm = (B + B0) / 2;
     Real PxHm;
     Real3 dPxH_dBm, dPxH_dA, dPxH_dH;
-    tie(PxHm, dPxH_dBm, dPxH_dA, dPxH_dH) = _BAH_angle_base_form_V_dV(
-        Bm, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
+    tie(PxHm, dPxH_dBm, dPxH_dA, dPxH_dH) =
+        _BAH_angle_base_form_V_dV(Bm, A, H, cosBAH_poly);
 
     return {PxHm, dPxH_dBm / 2, dPxH_dBm / 2, dPxH_dA, dPxH_dH};
 
   } else if (acceptor_hybridization == AcceptorHybridization::sp3) {
     Real PxH;
     Real3 dPxH_dB, dPxH_dA, dPxH_dH;
-    tie(PxH, dPxH_dB, dPxH_dA, dPxH_dH) = _BAH_angle_base_form_V_dV(
-        B, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
+    tie(PxH, dPxH_dB, dPxH_dA, dPxH_dH) =
+        _BAH_angle_base_form_V_dV(B, A, H, cosBAH_poly);
 
     Real PxH0;
     Real3 dPxH0_dB0, dPxH0_dA, dPxH0_dH;
-    tie(PxH0, dPxH0_dB0, dPxH0_dA, dPxH0_dH) = _BAH_angle_base_form_V_dV(
-        B0, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
+    tie(PxH0, dPxH0_dB0, dPxH0_dA, dPxH0_dH) =
+        _BAH_angle_base_form_V_dV(B0, A, H, cosBAH_poly);
 
     Real PxHfade =
         log(exp(PxH * hb_sp3_softmax_fade) + exp(PxH0 * hb_sp3_softmax_fade))
@@ -243,110 +228,104 @@ def B0BAH_chi_V_dV(
   }
 }
 
+template <typename Real>
+struct hbond_score_V_dV_t {
+  Real V;
+
+  Real3 dV_dD;
+  Real3 dV_dH;
+
+  Real3 dV_dA;
+  Real3 dV_dB;
+  Real3 dV_dB0;
+};
+
 template <typename Real, typename Int>
-def hbond_score_V_dV(
-    // coordinates
-    Real3 D,
-    Real3 H,
-    Real3 A,
-    Real3 B,
-    Real3 B0,
+struct hbond_score {
+  static def V_dV(
+      // coordinates
+      Real3 D,
+      Real3 H,
+      Real3 A,
+      Real3 B,
+      Real3 B0,
 
-    // type pair parameters
-    Int acceptor_hybridization,
-    Real acceptor_weight,
-    Real donor_weight,
+      HBondPairParams<Real> const& pair_params,
+      HBondPolynomials<double> const& polynomials,
+      HBondGlobalParams<Real> global_params)
+      ->hbond_score_V_dV_t<Real> {
+    Real E = 0.0;
+    Real3 dE_dD = {0, 0, 0};
+    Real3 dE_dH = {0, 0, 0};
+    Real3 dE_dA = {0, 0, 0};
+    Real3 dE_dB = {0, 0, 0};
+    Real3 dE_dB0 = {0, 0, 0};
 
-    Vec<double, 11> AHdist_coeffs,
-    Vec<double, 2> AHdist_range,
-    Vec<double, 2> AHdist_bound,
+    // A-H Distance Component
+    iadd(tie(E, dE_dA, dE_dH), AH_dist_V_dV(A, H, polynomials.AHdist_poly));
 
-    Vec<double, 11> cosBAH_coeffs,
-    Vec<double, 2> cosBAH_range,
-    Vec<double, 2> cosBAH_bound,
+    // AHD Angle Component
+    iadd(
+        tie(E, dE_dA, dE_dH, dE_dD),
+        AHD_angle_V_dV(A, H, D, polynomials.cosAHD_poly));
 
-    Vec<double, 11> cosAHD_coeffs,
-    Vec<double, 2> cosAHD_range,
-    Vec<double, 2> cosAHD_bound,
+    // BAH Angle Component
+    iadd(
+        tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
+        BAH_angle_V_dV(
+            B,
+            B0,
+            A,
+            H,
+            int(pair_params.acceptor_hybridization),
+            polynomials.cosBAH_poly,
+            global_params.hb_sp3_softmax_fade));
 
-    // Global score parameters
-    Real hb_sp2_range_span,
-    Real hb_sp2_BAH180_rise,
-    Real hb_sp2_outer_width,
-    Real hb_sp3_softmax_fade)
-    ->tuple<Real, Real3, Real3, Real3, Real3, Real3> {
-  Real E = 0.0;
-  Real3 dE_dD = {0, 0, 0};
-  Real3 dE_dH = {0, 0, 0};
-  Real3 dE_dA = {0, 0, 0};
-  Real3 dE_dB = {0, 0, 0};
-  Real3 dE_dB0 = {0, 0, 0};
+    // B0BAH Chi Component
+    iadd(
+        tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
+        B0BAH_chi_V_dV(
+            B0,
+            B,
+            A,
+            H,
+            int(pair_params.acceptor_hybridization),
+            global_params.hb_sp2_BAH180_rise,
+            global_params.hb_sp2_range_span,
+            global_params.hb_sp2_outer_width));
 
-  // A-H Distance Component
-  iadd(
-      tie(E, dE_dA, dE_dH),
-      AH_dist_V_dV(A, H, AHdist_coeffs, AHdist_range, AHdist_bound));
+    // Donor/Acceptor Weighting
+    float const ad_weight =
+        pair_params.acceptor_weight * pair_params.donor_weight;
 
-  // AHD Angle Component
-  iadd(
-      tie(E, dE_dA, dE_dH, dE_dD),
-      AHD_angle_V_dV(A, H, D, cosAHD_coeffs, cosAHD_range, cosAHD_bound));
+    E *= ad_weight;
+    dE_dD *= ad_weight;
+    dE_dH *= ad_weight;
+    dE_dA *= ad_weight;
+    dE_dB *= ad_weight;
+    dE_dB0 *= ad_weight;
 
-  // BAH Angle Component
-  iadd(
-      tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
-      BAH_angle_V_dV(
-          B,
-          B0,
-          A,
-          H,
-          acceptor_hybridization,
-          cosBAH_coeffs,
-          cosBAH_range,
-          cosBAH_bound,
-          hb_sp3_softmax_fade));
+    // Truncate and Fade [-0.1,0.1] to [-0.1,0.0]
+    if (E > 0.1) {
+      E = 0;
+      dE_dD = {0, 0, 0};
+      dE_dH = {0, 0, 0};
+      dE_dA = {0, 0, 0};
+      dE_dB = {0, 0, 0};
+      dE_dB0 = {0, 0, 0};
 
-  // B0BAH Chi Component
-  iadd(
-      tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
-      B0BAH_chi_V_dV(
-          B0,
-          B,
-          A,
-          H,
-          acceptor_hybridization,
-          hb_sp2_BAH180_rise,
-          hb_sp2_range_span,
-          hb_sp2_outer_width));
+    } else if (E > -0.1) {
+      E = (-0.025 + 0.5 * E - 2.5 * E * E);
+      dE_dD *= -5.0 * E + 0.5;
+      dE_dH *= -5.0 * E + 0.5;
+      dE_dA *= -5.0 * E + 0.5;
+      dE_dB *= -5.0 * E + 0.5;
+      dE_dB0 *= -5.0 * E + 0.5;
+    }
 
-  // Donor/Acceptor Weighting
-  E *= acceptor_weight * donor_weight;
-  dE_dD *= acceptor_weight * donor_weight;
-  dE_dH *= acceptor_weight * donor_weight;
-  dE_dA *= acceptor_weight * donor_weight;
-  dE_dB *= acceptor_weight * donor_weight;
-  dE_dB0 *= acceptor_weight * donor_weight;
-
-  // Truncate and Fade [-0.1,0.1] to [-0.1,0.0]
-  if (E > 0.1) {
-    E = 0;
-    dE_dD = {0, 0, 0};
-    dE_dH = {0, 0, 0};
-    dE_dA = {0, 0, 0};
-    dE_dB = {0, 0, 0};
-    dE_dB0 = {0, 0, 0};
-
-  } else if (E > -0.1) {
-    E = (-0.025 + 0.5 * E - 2.5 * E * E);
-    dE_dD *= -5.0 * E + 0.5;
-    dE_dH *= -5.0 * E + 0.5;
-    dE_dA *= -5.0 * E + 0.5;
-    dE_dB *= -5.0 * E + 0.5;
-    dE_dB0 *= -5.0 * E + 0.5;
+    return {E, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0};
   }
-
-  return {E, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0};
-}
+};
 
 #undef Real3
 #undef def

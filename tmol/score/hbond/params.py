@@ -1,16 +1,16 @@
 import attr
 
-from typing import Sequence
-
 import numpy
 import pandas
 import torch
 
 import toolz
 
+from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
+from tmol.types.functional import validate_args
 
 from tmol.database.scoring.hbond import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
@@ -73,27 +73,51 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
         )
 
 
-@attr.s(frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondParamResolver(ValidateAttrs):
+    _from_db_cache = {}
+
     donor_type_index: pandas.Index = attr.ib()
     acceptor_type_index: pandas.Index = attr.ib()
 
     pair_params: HBondPairParams = attr.ib()
     device: torch.device = attr.ib()
 
-    def resolve_donor_type(self, donor_types: Sequence[str]) -> torch.Tensor:
+    @validate_args
+    def resolve_donor_type(self, donor_types: NDArray(object)[:, :]) -> torch.Tensor:
         """Resolve string donor type name into integer type index."""
-        i = self.donor_type_index.get_indexer(donor_types)
-        assert not numpy.any(i == -1), "donor type not present in index"
-        return torch.from_numpy(i).to(device=self.device)
+        inds = numpy.full(donor_types.shape, -9999, dtype=numpy.int64)
+        for i in range(donor_types.shape[0]):
+            n_real = numpy.sum(donor_types[i].astype(bool))
+            i_inds = self.donor_type_index.get_indexer(donor_types[i, :n_real])
+            assert not numpy.any(i_inds == -1), "donor type not present in index"
+            inds[i, :n_real] = i_inds
+        return torch.from_numpy(inds).to(device=self.device)
 
-    def resolve_acceptor_type(self, acceptor_types: Sequence[str]) -> torch.Tensor:
+    @validate_args
+    def resolve_acceptor_type(
+        self, acceptor_types: NDArray(object)[:, :]
+    ) -> torch.Tensor:
         """Resolve string acceptor type name into integer type index."""
-        i = self.acceptor_type_index.get_indexer(acceptor_types)
-        assert not numpy.any(i == -1), "acceptor type not present in index"
-        return torch.from_numpy(i).to(device=self.device)
+        inds = numpy.full(acceptor_types.shape, -9999, dtype=numpy.int64)
+        for i in range(acceptor_types.shape[0]):
+            n_real = numpy.sum(acceptor_types[i].astype(bool))
+            i_inds = self.acceptor_type_index.get_indexer(acceptor_types[i, :n_real])
+            assert not numpy.any(i_inds == -1), "acceptor type not present in index"
+            inds[i, :n_real] = i_inds
+        return torch.from_numpy(inds).to(device=self.device)
 
     @classmethod
+    @validate_args
+    @toolz.functoolz.memoize(
+        cache=_from_db_cache,
+        key=lambda args, kwargs: (
+            id(args[1]),
+            id(args[2]),
+            args[3].type,
+            args[3].index,
+        ),
+    )
     def from_database(
         cls,
         chemical_database: ChemicalDatabase,
@@ -168,4 +192,111 @@ class HBondParamResolver(ValidateAttrs):
             acceptor_type_index=acceptor_type_index,
             pair_params=pair_params.to(device),
             device=device,
+        )
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class CompactedHBondDatabase(ValidateAttrs):
+    """Store the hbond evaluation parameters in a compact form"""
+
+    _from_db_cache = {}
+
+    global_param_table: Tensor(torch.float32)[:, :]
+    pair_param_table: Tensor(torch.float32)[:, :, :]
+    pair_poly_table: Tensor(torch.float64)[:, :, :]
+
+    @classmethod
+    @validate_args
+    @toolz.functoolz.memoize(
+        cache=_from_db_cache,
+        key=lambda args, kwargs: (
+            id(args[1]),
+            id(args[2]),
+            args[3].type,
+            args[3].index,
+        ),
+    )
+    def from_database(
+        cls,
+        chemical_database: ChemicalDatabase,
+        hbond_database: HBondDatabase,
+        device: torch.device,
+    ):
+        def _p(t):
+            return torch.nn.Parameter(t, requires_grad=False)
+
+        def _stack(ts):
+            return torch.cat([t.unsqueeze(-1) for t in ts], -1)
+
+        def _f32(ts):
+            return [t.to(torch.float32) for t in ts]
+
+        global_params = {
+            n: torch.tensor(v, device=device).expand(1).to(dtype=torch.float32)
+            for n, v in attr.asdict(hbond_database.global_parameters).items()
+        }
+
+        global_param_table = _p(
+            (
+                torch.cat(
+                    [
+                        global_params["hb_sp2_range_span"],
+                        global_params["hb_sp2_BAH180_rise"],
+                        global_params["hb_sp2_outer_width"],
+                        global_params["hb_sp3_softmax_fade"],
+                        global_params["threshold_distance"],
+                    ],
+                    0,
+                )
+            ).unsqueeze(0)
+        )
+
+        resolver = HBondParamResolver.from_database(
+            chemical_database, hbond_database, device
+        )
+        pp = resolver.pair_params
+
+        # Note: acceptor_hybridization is an integer, but can be exactly represented
+        # as a float (since it is small). Pack it with the donor and acceptor weights
+        # (which themselves could just be pre-multiplied?!) to reduce the number of
+        # arguments to the hbond evaluation function
+        pair_param_table = _p(
+            _stack(
+                _f32([pp.acceptor_hybridization, pp.acceptor_weight, pp.donor_weight])
+            )
+        )
+
+        # Eigen allocates space for 12 Reals for an 11x1 matrix
+        # so we need to pad out with 0s in between the coefficients
+        # and the ranges.
+        pad = torch.zeros(
+            [pp.AHdist.coeffs.shape[0], pp.AHdist.coeffs.shape[1], 1],
+            device=device,
+            dtype=torch.float64,
+        )
+
+        pair_poly_table = _p(
+            torch.cat(
+                [
+                    pp.AHdist.coeffs,
+                    pad,
+                    pp.AHdist.range,
+                    pp.AHdist.bound,
+                    pp.cosBAH.coeffs,
+                    pad,
+                    pp.cosBAH.range,
+                    pp.cosBAH.bound,
+                    pp.cosAHD.coeffs,
+                    pad,
+                    pp.cosAHD.range,
+                    pp.cosAHD.bound,
+                ],
+                2,
+            )
+        )
+
+        return cls(
+            global_param_table=global_param_table,
+            pair_param_table=pair_param_table,
+            pair_poly_table=pair_poly_table,
         )

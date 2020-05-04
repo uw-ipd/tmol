@@ -25,20 +25,20 @@ from .script_modules import LJIntraModule, LKIsotropicIntraModule
 @reactive_attrs
 class LJIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def total_lj(target):
         return target.lj_intra_module(
-            target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
+            target.coords, target.ljlk_atom_types, target.bonded_path_length
         )
 
 
 @reactive_attrs
 class LKIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def total_lk(target):
         return target.lk_intra_module(
-            target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
+            target.coords, target.ljlk_atom_types, target.bonded_path_length
         )
 
 
@@ -81,9 +81,7 @@ class _LJLKCommonScoreGraph(BondedAtomScoreGraph, ChemicalDB, ParamDB, TorchDevi
         atom_types: NDArray(object)[:, :], ljlk_param_resolver: LJLKParamResolver
     ) -> Tensor(torch.int64)[:, :]:
         """Pair parameter tensors for all atoms within system."""
-        assert atom_types.shape[0] == 1
-        atom_types = atom_types[0]
-        return ljlk_param_resolver.type_idx(atom_types)[None, :]
+        return ljlk_param_resolver.type_idx(atom_types)
 
 
 @reactive_attrs(auto_attribs=True)
