@@ -69,9 +69,10 @@ dun_sample_chi(
     // ?? Tensor semirotameric_rottable_assignment  // nres x 1
 ) {
   nvtx_range_push("dunbrack_sample_chi");
+  std::cout << "Hit compiled.ops.cpp" << std::endl;
 
   at::Tensor ret1;
-  at::Tensor ret2;
+  //at::Tensor ret2;
 
   using Int = int32_t;
 
@@ -79,8 +80,8 @@ dun_sample_chi(
       coords.type(), "dunbrack_sample_chi", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
-  
-        auto result = DunbrackChiSampler<Dev, Real, Int>::f(
+	std::cout << "Calling dunbrack chi sampler " << sizeof(Real) << " " << sizeof(Int) << std::endl;
+        DunbrackChiSampler<DispatchMethod, Dev, Real, Int>::f(
           TCAST(coords),
           //TCAST(res_coord_start_ind),
           TCAST(rotameric_prob_tables),
@@ -125,8 +126,8 @@ dun_sample_chi(
           // ?? TCAST(semirotameric_rottable_assignment)
   	);
   
-        ret1 = std::get<0>(result).tensor;
-        ret2 = std::get<0>(result).tensor;
+        //ret1 = std::get<0>(result).tensor;
+        //ret2 = std::get<0>(result).tensor;
   
   
       }));
@@ -136,7 +137,7 @@ dun_sample_chi(
 
   //auto ret_list = c10::make_intrusive< at::ivalue::TensorList >(at::ivalue::TensorList({ret1, ret2}));
   //return ret_list;
-  return ret1;
+  return dihedrals;
 };
 
 

@@ -21,7 +21,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <template <tmol::Device> class Dispatch, tmol::Device D, typename Real, typename Int>
 struct DunbrackChiSampler {
-  static auto f(
+  static void f(
       TView<Vec<Real, 3>, 1, D> coords,
       //TView<int64_t, 1, D> res_coord_start_ind,
 
@@ -87,16 +87,21 @@ struct DunbrackChiSampler {
 
 
   )
-      -> std::tuple<
-          TPack<Real, 1, D>,
-          TPack<Real, 1, D> >  // d(-ln(prob_nonrotameric)) / dtor atoms
+//      -> std::tuple<
+//          TPack<Real, 1, D>,
+//          TPack<Real, 1, D> >  // d(-ln(prob_nonrotameric)) / dtor atoms
   {
+    std::cout << "Hit compiled.cpu.cpp!" << std::endl;
     auto rval1 = TPack<Real, 1, D>::zeros({5});
     auto rval2 = TPack<Real, 1, D>::zeros({5});
+    auto rval1_view = rval1.view;
 
-    std::cout << "made it!" << std::endl;
+    auto f = ([=] EIGEN_DEVICE_FUNC(int index) {
+	       rval1_view[index] = 4;
+	      });
+    Dispatch<D>::forall(5, f);
 
-    return {rval1, rval2};
+    return; // {rval1, rval2};
 
     // construct the list of chi for the rotamers that should be built
     // in 7 stages.
@@ -526,9 +531,9 @@ struct DunbrackChiSampler {
 };
 
 template struct DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, float, int32_t>;
-// template struct DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, double, int32_t>;
-// template struct DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, float, int64_t>;
-// template struct DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, double, int64_t>;
+template struct DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, double, int32_t>;
+template struct DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, float, int64_t>;
+template struct DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, double, int64_t>;
 
 
 }  // namespace rotamer
