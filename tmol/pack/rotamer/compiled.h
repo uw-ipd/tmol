@@ -16,16 +16,13 @@ namespace rotamer {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-#define CoordQuad Eigen::Matrix<Real, 4, 3>
+//#define CoordQuad Eigen::Matrix<Real, 4, 3>
 
-template <tmol::Device D, typename Real, typename Int>
+template <template <tmol::Device> class Dispatch, tmol::Device D, typename Real, typename Int>
 struct DunbrackChiSampler {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
       // TView<int64_t, 1, D> res_coord_start_ind,
-
-      TView<Vec<int64_t, 2>, 1, D>
-          rottable_set_for_res,  // pos 0: seqpos, pos 1: table ind
 
       TView<Real, 3, D> rotameric_prob_tables,
       TView<Vec<int64_t, 2>, 1, D> rotprob_table_sizes,
@@ -52,9 +49,9 @@ struct DunbrackChiSampler {
 
       TView<Int, 2, D>
           rottable_set_for_buildable_restype,  // n-buildable-restypes x 2
-      TView<Int, 2, D> chi_expansion_for_buildable_restypes,
+      TView<Int, 2, D> chi_expansion_for_buildable_restype,
       TView<Real, 3, D> non_dunbrack_expansion_for_buildable_restype,
-      TView<Int, 3, D> non_dunbrack_expansion_counts,
+      TView<Int, 3, D> non_dunbrack_expansion_counts_for_buildable_restype,
       TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
 
       // ?? TView<Int, 1, D> nrotameric_chi_for_res,            // nres x 1
@@ -92,7 +89,7 @@ struct DunbrackChiSampler {
       ) -> std::tuple<TPack<Real, 1, D>, TPack<Real, 1, D> >;
 };
 
-#undef CoordQuad
+//#undef CoordQuad
 
 }  // namespace rotamer
 }  // namespace pack
