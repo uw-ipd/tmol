@@ -20,7 +20,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <template <tmol::Device> class Dispatch, tmol::Device D, typename Real, typename Int>
 struct DunbrackChiSampler {
-  static void f(
+  static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
       // TView<int64_t, 1, D> res_coord_start_ind,
 
@@ -51,7 +51,7 @@ struct DunbrackChiSampler {
           rottable_set_for_buildable_restype,  // n-buildable-restypes x 2
       TView<Int, 2, D> chi_expansion_for_buildable_restype,
       TView<Real, 3, D> non_dunbrack_expansion_for_buildable_restype,
-      TView<Int, 3, D> non_dunbrack_expansion_counts_for_buildable_restype,
+      TView<Int, 2, D> non_dunbrack_expansion_counts_for_buildable_restype,
       TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
 
       // ?? TView<Int, 1, D> nrotameric_chi_for_res,            // nres x 1
@@ -86,10 +86,7 @@ struct DunbrackChiSampler {
       // ?? TView<Int, 1, D> n_rotamers_for_tableset_offsets,
       // ?? TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
 
-      );
-  //    -> std::tuple<
-  //        TPack<Real, 1, D>,
-  //        TPack<Real, 1, D> >;
+      ) -> std::tuple<TPack<Real, 1, D>, TPack<Real, 1, D> >;
 };
 
 // template <template <tmol::Device> class Dispatch, tmol::Device D, typename

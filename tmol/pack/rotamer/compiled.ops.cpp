@@ -42,11 +42,11 @@ dun_sample_chi(
     Tensor semirot_periodicity,       // n-semirot-tabset
     Tensor rotameric_rotind2tableind,
     Tensor semirotameric_rotind2tableind,
-    
+
     Tensor ndihe_for_res,               // nres x 1
     Tensor dihedral_offset_for_res,     // nres x 1
     Tensor dihedral_atom_inds,  // ndihe x 4
-    
+
     Tensor rottable_set_for_buildable_restype,  // n-buildable-restypes x 2
     Tensor chi_expansion_for_buildable_restype,
     Tensor non_dunbrack_expansion_for_buildable_restype,
@@ -72,70 +72,75 @@ dun_sample_chi(
   std::cout << "Hit compiled.ops.cpp" << std::endl;
 
   at::Tensor ret1;
-  //at::Tensor ret2;
+  at::Tensor ret2;
 
   using Int = int32_t;
 
-  TMOL_DISPATCH_FLOATING_DEVICE(
-      coords.type(), "dunbrack_sample_chi", ([&] {
-        using Real = scalar_t;
-        constexpr tmol::Device Dev = device_t;
-	std::cout << "Calling dunbrack chi sampler " << sizeof(Real) << " " << sizeof(Int) << std::endl;
-        DunbrackChiSampler<DispatchMethod, Dev, Real, Int>::f(
-          TCAST(coords),
-          //TCAST(res_coord_start_ind),
-          TCAST(rotameric_prob_tables),
-          TCAST(rotprob_table_sizes),
-          TCAST(rotprob_table_strides),
-          TCAST(rotameric_mean_tables),
-          TCAST(rotameric_sdev_tables),
-          TCAST(rotmean_table_sizes),
-          TCAST(rotmean_table_strides),
-          TCAST(rotameric_bb_start),
-          TCAST(rotameric_bb_step),
-          TCAST(rotameric_bb_periodicity),
-          TCAST(semirotameric_tables),
-          TCAST(semirot_table_sizes),
-          TCAST(semirot_table_strides),
-          TCAST(semirot_start),
-          TCAST(semirot_step),
-          TCAST(semirot_periodicity),
-          TCAST(rotameric_rotind2tableind),
-          TCAST(semirotameric_rotind2tableind),
-  	
-          TCAST(ndihe_for_res),
-          TCAST(dihedral_offset_for_res),
-          TCAST(dihedral_atom_inds),	  
-  	  
-          TCAST(rottable_set_for_buildable_restype),
-          TCAST(chi_expansion_for_buildable_restype),
-          TCAST(non_dunbrack_expansion_for_buildable_restype),
-          TCAST(non_dunbrack_expansion_counts_for_buildable_restype),
-          TCAST(prob_cumsum_limit_for_buildable_restype),
-  	
-          // ?? TCAST(nrotameric_chi_for_res),
-          // ?? TCAST(rotres2resid),
-          // ?? TCAST(prob_table_offset_for_rotresidue),
-          // ?? TCAST(rotind2tableind_offset_for_res),
-          // ?? TCAST(rotmean_table_offset_for_residue),
-          // ?? TCAST(rotameric_chi_desc),
-          // ?? TCAST(semirotameric_chi_desc),
-          TCAST(dihedrals)
-          // ?? TCAST(ddihe_dxyz),
-          // ?? TCAST(rotameric_rottable_assignment),
-          // ?? TCAST(semirotameric_rottable_assignment)
-  	);
-  
-        //ret1 = std::get<0>(result).tensor;
-        //ret2 = std::get<0>(result).tensor;
-  
-  
-      }));
+  try {
 
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        coords.type(), "dunbrack_sample_chi", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+          std::cout << "Calling dunbrack chi sampler " << sizeof(Real) << " " << sizeof(Int) << std::endl;
+          auto result = DunbrackChiSampler<DispatchMethod, Dev, Real, Int>::f(
+            TCAST(coords),
+            //TCAST(res_coord_start_ind),
+            TCAST(rotameric_prob_tables),
+            TCAST(rotprob_table_sizes),
+            TCAST(rotprob_table_strides),
+            TCAST(rotameric_mean_tables),
+            TCAST(rotameric_sdev_tables),
+            TCAST(rotmean_table_sizes),
+            TCAST(rotmean_table_strides),
+            TCAST(rotameric_bb_start),
+            TCAST(rotameric_bb_step),
+            TCAST(rotameric_bb_periodicity),
+            TCAST(semirotameric_tables),
+            TCAST(semirot_table_sizes),
+            TCAST(semirot_table_strides),
+            TCAST(semirot_start),
+            TCAST(semirot_step),
+            TCAST(semirot_periodicity),
+            TCAST(rotameric_rotind2tableind),
+            TCAST(semirotameric_rotind2tableind),
+  
+            TCAST(ndihe_for_res),
+            TCAST(dihedral_offset_for_res),
+            TCAST(dihedral_atom_inds),
+  
+            TCAST(rottable_set_for_buildable_restype),
+            TCAST(chi_expansion_for_buildable_restype),
+            TCAST(non_dunbrack_expansion_for_buildable_restype),
+            TCAST(non_dunbrack_expansion_counts_for_buildable_restype),
+            TCAST(prob_cumsum_limit_for_buildable_restype),
+  
+            // ?? TCAST(nrotameric_chi_for_res),
+            // ?? TCAST(rotres2resid),
+            // ?? TCAST(prob_table_offset_for_rotresidue),
+            // ?? TCAST(rotind2tableind_offset_for_res),
+            // ?? TCAST(rotmean_table_offset_for_residue),
+            // ?? TCAST(rotameric_chi_desc),
+            // ?? TCAST(semirotameric_chi_desc),
+            TCAST(dihedrals)
+            // ?? TCAST(ddihe_dxyz),
+            // ?? TCAST(rotameric_rottable_assignment),
+            // ?? TCAST(semirotameric_rottable_assignment)
+          );
+  
+          ret1 = std::get<0>(result).tensor;
+          ret2 = std::get<0>(result).tensor;
+  
+  
+        }));
+  } catch (at::Error err) {
+    std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
+    throw err;
+  }
 
   nvtx_range_pop();
 
-  //auto ret_list = c10::make_intrusive< at::ivalue::TensorList >(at::ivalue::TensorList({ret1, ret2}));
+  auto ret_list = c10::make_intrusive< at::ivalue::TensorList >(at::ivalue::TensorList({ret1, ret2}));
   //return ret_list;
   return dihedrals;
 };

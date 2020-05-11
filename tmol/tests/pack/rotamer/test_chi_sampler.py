@@ -66,14 +66,14 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
         ]
     )
     nans_for_expansion = numpy.empty((6, 4, 1), dtype=float)
-    nans_for_expansion = numpy.nan
+    nans_for_expansion[:] = numpy.nan
     non_dunbrack_expansion_for_buildable_restype = _tf32(nans_for_expansion)
     non_dunbrack_expansion_counts_for_buildable_restype = _ti32(numpy.zeros((6, 4)))
     prob_cumsum_limit_for_buildable_restype = _tf32(numpy.full((6,), 0.95, dtype=float))
-    dihedrals = _tf32(numpy.zeros((6, 2), dtype=float))
+    dihedrals = _tf32(numpy.zeros((6), dtype=float))
 
     torch.ops.tmol.dun_sample_chi(
-        dun_graph.coords,
+        dun_graph.coords[0, :],
         dun_params.rotameric_prob_tables,
         dun_params.rotprob_table_sizes,
         dun_params.rotprob_table_strides,
