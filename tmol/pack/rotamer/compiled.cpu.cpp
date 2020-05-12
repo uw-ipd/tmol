@@ -8,6 +8,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 
 #include <tmol/score/common/forall_dispatch.cpu.impl.hh>
+#include <tmol/score/common/geom.hh>
 
 #include <ATen/Tensor.h>
 
@@ -155,26 +156,21 @@ struct DunbrackChiSampler {
 
     for (int i = 0; i < n_brt; ++i) {
       determine_n_possible_rots(i);
-      std::cout << "n possible rots: " << n_possible_rotamers_per_brt[i] << std::endl;
+      //std::cout << "n possible rots: " << n_possible_rotamers_per_brt[i] << std::endl;
     }
 
-    
-
-    return {rval1, rval2};
-
-    /*
     auto possible_rotamer_offset_for_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
-    auto possible_rotamer_offset_for_brt = rotamer_offset_for_brt_tp.view;
+    auto possible_rotamer_offset_for_brt = possible_rotamer_offset_for_brt_tp.view;
 
     // Exclusive cumulative sum of n_possible_rotamers_per_restype
     for (int i = 1; i < n_brt; ++i) {
       possible_rotamer_offset_for_brt[i] = possible_rotamer_offset_for_brt[i-1] +
-        n_possible_rotamers_per_buildable_restype[i-1];
+        n_possible_rotamers_per_brt[i-1];
     }
 
     // Total number of possible rotamers over all residue types
     Int const n_possible_rotamers = possible_rotamer_offset_for_brt[n_brt-1] +
-      n_possible_rotamers_per_buildable_restype[n_brt-1];
+      n_possible_rotamers_per_brt[n_brt-1];
 
     // There are some things we need to know about the ith possible rotamer:
     //   1. What buildable_residue type does it come from?
@@ -190,15 +186,19 @@ struct DunbrackChiSampler {
       Int at1 = dihedral_atom_inds[i][1];
       Int at2 = dihedral_atom_inds[i][2];
       Int at3 = dihedral_atom_inds[i][3];
-      auto dihe = dihedral_angle<Real>::V(
+      auto dihe = score::common::dihedral_angle<Real>::V(
         coords[at0], coords[at1], coords[at2], coords[at3]);
       backbone_dihedrals[i] = dihe;
-    }
+    };
 
     for (int i = 0; i < dihedrals.size(0); ++i) {
       compute_backbone_dihedrals(i);
+      std::cout << "dihedral " << i << " " << 180 / M_PI * backbone_dihedrals[i] << std::endl;
     }
 
+    return {rval1, rval2};
+
+    /*
     auto brt_for_possible_rotamer_tp = TPack<Int, 1, D>::zeros(n_possible_rotamers);
     auto brt_for_possible_rotamer = brt_for_possible_rotamer_tp.view;
     auto brt_for_possible_rotamer_boundaries_tp = TPack<Int, 1, D>::zeros(n_possible_rotamers);
