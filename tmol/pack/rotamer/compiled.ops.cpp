@@ -43,6 +43,10 @@ dun_sample_chi(
     Tensor rotameric_rotind2tableind,
     Tensor semirotameric_rotind2tableind,
 
+    Tensor n_rotamers_for_tableset,
+    Tensor n_rotamers_for_tableset_offsets,
+    Tensor sorted_rotamer_2_rotamer,
+
     Tensor ndihe_for_res,               // nres x 1
     Tensor dihedral_offset_for_res,     // nres x 1
     Tensor dihedral_atom_inds,  // ndihe x 4
@@ -104,6 +108,10 @@ dun_sample_chi(
             TCAST(semirot_periodicity),
             TCAST(rotameric_rotind2tableind),
             TCAST(semirotameric_rotind2tableind),
+
+	    TCAST(n_rotamers_for_tableset),
+	    TCAST(n_rotamers_for_tableset_offsets),
+	    TCAST(sorted_rotamer_2_rotamer),
   
             TCAST(ndihe_for_res),
             TCAST(dihedral_offset_for_res),

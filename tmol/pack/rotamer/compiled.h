@@ -43,6 +43,10 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> rotameric_rotind2tableind,
       TView<Int, 1, D> semirotameric_rotind2tableind,
 
+      TView<int64_t, 1, D> n_rotamers_for_tableset,
+      TView<Int, 1, D> n_rotamers_for_tableset_offsets,
+      TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
+
       TView<Int, 1, D> ndihe_for_res,               // nres x 1
       TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
       TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
