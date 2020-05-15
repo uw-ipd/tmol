@@ -1,6 +1,6 @@
 python>=3.6
 ipython
-numpy==1.14.*
+numpy==1.17.*
 pandas==0.22
 numba::numba==0.40
 scipy=1.1.*
