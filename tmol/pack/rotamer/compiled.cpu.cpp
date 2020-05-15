@@ -9,6 +9,7 @@
 
 #include <tmol/score/common/forall_dispatch.cpu.impl.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/numeric/bspline_compiled/bspline.hh>
 
 #include <ATen/Tensor.h>
 
@@ -43,10 +44,14 @@ struct DunbrackChiSampler {
       TView<Vec<Real, 3>, 1, D> semirot_periodicity,       // n-semirot-tabset
       TView<Int, 1, D> rotameric_rotind2tableind,
       TView<Int, 1, D> semirotameric_rotind2tableind,
+      TView<Int, 1, D> all_chi_rotind2tableind,
+      TView<Int, 1, D> all_chi_rotind2tableind_offsets,
 
       TView<int64_t, 1, D> n_rotamers_for_tableset,
       TView<Int, 1, D> n_rotamers_for_tableset_offsets,
       TView<int64_t, 3, D> sorted_rotamer_2_rotamer,
+      TView<Int, 1, D> nchi_for_tableset,
+      TView<Int, 2, D> rotwells,
       
       TView<Int, 1, D> ndihe_for_res,               // nres x 1
       TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
@@ -156,7 +161,7 @@ struct DunbrackChiSampler {
 
     for (int i = 0; i < n_brt; ++i) {
       determine_n_possible_rots(i);
-      //std::cout << "n possible rots: " << n_possible_rotamers_per_brt[i] << std::endl;
+      std::cout << "n possible rots: " << n_possible_rotamers_per_brt[i] << std::endl;
     }
 
     auto possible_rotamer_offset_for_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
@@ -196,31 +201,35 @@ struct DunbrackChiSampler {
       std::cout << "dihedral " << i << " " << 180 / M_PI * backbone_dihedrals[i] << std::endl;
     }
 
-    return {rval1, rval2};
-
-    /*
     auto brt_for_possible_rotamer_tp = TPack<Int, 1, D>::zeros(n_possible_rotamers);
     auto brt_for_possible_rotamer = brt_for_possible_rotamer_tp.view;
     auto brt_for_possible_rotamer_boundaries_tp = TPack<Int, 1, D>::zeros(n_possible_rotamers);
-    auto brt_for_possible_rotamer_boundaries = brt_for_possible_rotamer_boundaries.view;
+    auto brt_for_possible_rotamer_boundaries = brt_for_possible_rotamer_boundaries_tp.view;
 
     auto mark_possrot_boundary_beginnings = [=](int buildable_restype){
-      Int const offset = rotamer_offset_for_brt[buildable_restype];
+      Int const offset = possible_rotamer_offset_for_brt[buildable_restype];
       brt_for_possible_rotamer_boundaries[offset] = 1;
-      brt_for_possible_rotamer[offset] = restype;
-    }
+      brt_for_possible_rotamer[offset] = buildable_restype;
+    };
     for (int i = 0; i < n_brt; ++i){
       mark_possrot_boundary_beginnings(i);
     }
 
+    // for (int i = 0; i < n_possible_rotamers; ++i) {
+    //   std::cout << "passrot boundary " << i << " " << brt_for_possible_rotamer[i] << std::endl;
+    // }
+    
     // Non-segmented scan on "max" to get the brt index for each possible
     // rotamer
     for (int i = 1; i < n_possible_rotamers; ++i ) {
-      brt_for_possible_rotamers[i] = max(
-        brt_for_possible_rotamers[i],
-        brt_for_possible_rotamers[i-1]);
+      brt_for_possible_rotamer[i] = std::max(
+        brt_for_possible_rotamer[i],
+        brt_for_possible_rotamer[i-1]);
     }
 
+    // for (int i = 0; i < n_possible_rotamers; ++i) {
+    //   std::cout << "passrot boundary " << i << " " << brt_for_possible_rotamer[i] << std::endl;
+    // }
 
     // We're eventually going to write down the probabilities for each
     // base rotamer in this tensor
@@ -230,10 +239,10 @@ struct DunbrackChiSampler {
 
     auto calculate_possible_rotamer_probability = [=](int possible_rotamer) {
       // Compute the probability of the ith possible rotamer
-      int const brt = brt_for_possible_rotamers[possible_rotamer];
+      int const brt = brt_for_possible_rotamer[possible_rotamer];
       int const res = rottable_set_for_buildable_restype[brt][0];
       int const table_set = rottable_set_for_buildable_restype[brt][1];
-      int const sorted_rotno = possible_rotamer - rotamers_for_rt_offset[table_set];
+      int const sorted_rotno = possible_rotamer - possible_rotamer_offset_for_brt[brt];
 
       // Caclulate the phi/psi bin indices
       // This needs to be turned into a function...
@@ -255,33 +264,61 @@ struct DunbrackChiSampler {
       }
 
       // Look up the index of the rotamer: we know where the rotamer is in sorted order
-      // but not which chi values this represents.
-      // Huh -- how do you template lookup with a Vec<int,N> into a table of N dims?
-      // Construct finer and finer slices of the Vec w/ template recursion?
-      Int const tableset_offset = n_rotamers_for_tableset_offset[table_set];
-      Int const rotno = sorted_rotamer_2_rotamer[tableset_offset + sorted_rotno]
-        [bin_index[0]][bin_index[1]];
-      int const rot_table_ind = rotind2tableind[
-        rotind2tableind_offset[table_set] + rotno ];
+      // but not which chi values this represents. Also look up the "table index" of
+      // this rotamer, which for some AAs (e.g. LYS) is not the same as the rotamer
+      // index because some rotamers are too strained to be considered (e.g. g+,g+,g+,g+)
+      Int const tableset_offset = n_rotamers_for_tableset_offsets[table_set];
+      Int const rot_table_ind = sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]]
+	[tableset_offset + sorted_rotno] + tableset_offset;
+      // int const local_table_ind = all_chi_rotind2tableind[
+      //   all_chi_rotind2tableind_offsets[table_set] + rotno ];
+      // int const rot_table_ind = local_table_ind + tableset_offset;
 
-      // Now we know which rotamer we'll be building: time to look up the rotamer's
-      // probability from the rotameric_prob_tables
-      Int const rotable_ind = tableset_offset + rotno;
+      // Now we know which rotamer we'll be building: time to look up (interpolate)
+      // the rotamer's probability from the rotameric_prob_tables
+      //Int const rotable_ind = tableset_offset + rotno;
+
+      std::cout << "tableset " << table_set << " tableset_offset " << tableset_offset;
+      std::cout << " possible_rotamer " << possible_rotamer << " sorted_rotno " << sorted_rotno;
+      std::cout << " bb inds " << bin_index[0] << " " << bin_index[1];
+      //std::cout << " rotno " << rotno << " local_table_ind " << local_table_ind;
+      std::cout << " rot_table_ind " << rot_table_ind << std::endl;
+
+      int nchi = nchi_for_tableset[table_set];
+      std::cout << "rotamer inds:";
+      for (int ii = 0; ii < nchi; ++ii) {
+	std::cout << " " << rotwells[rot_table_ind][ii];
+      }
+      std::cout << std::endl;
+
+      // int rotno_rem = rotno;
+      // for (int ii = nchi-1; ii >= 0; --ii) {
+      // 	int threeprod = std::pow(3, ii);
+      // 	int divisible = rotno_rem / threeprod;
+      // 	std::cout << " " << divisible+1;
+      // 	rotno_rem -= threeprod * divisible;
+      // }
+      // std::cout << std::endl;
+
       TensorAccessor<Real, 2, D> rotprob_slice(
         rotameric_prob_tables.data() + rot_table_ind * rotameric_prob_tables.stride(0),
         rotprob_table_sizes.data()->data() +
         rot_table_ind * rotprob_table_sizes.stride(0),
         rotprob_table_strides.data()->data() +
         rot_table_ind * rotprob_table_strides.stride(0));
-      Real prob = tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
+      auto prob_and_derivs = tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
         rotprob_slice, bbdihe);
-      rotamer_probability[possible_rotamer] = prob;
+      rotamer_probability[possible_rotamer] = std::get<0>(prob_and_derivs);
     };
 
     for (int ii = 0; ii < n_possible_rotamers; ++ii) {
       calculate_possible_rotamer_probability(ii);
+      std::cout << "rotamer probability " << ii << " " << rotamer_probability[ii] << std::endl;
     }
 
+    return {rval1, rval2};
+
+    /*
     // OK
     // Now we perform (inclusive) segmented scans on the possible-rotamer probabilities
     // to get the cumulative sums of the probabilities so that we can decide

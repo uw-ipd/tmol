@@ -39,21 +39,24 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     def _tf32(l):
         return torch.tensor(l, dtype=torch.float32, device=torch_device)
 
+    # print(dun_graph.dun_phi)
+    # print(dun_graph.dun_psi)
+
     ndihe_for_res = _ti32([2, 2, 2])
     dihedral_offset_for_res = _ti32([0, 2, 4])
     dihedral_atom_inds = _ti32(
         [
-            [0, 1, 2, 3],
-            [1, 2, 3, 4],
-            [2, 3, 4, 5],
-            [3, 4, 5, 6],
-            [4, 5, 6, 7],
-            [5, 6, 7, 8],
+            [50, 72, 73, 74],  # res 3
+            [72, 73, 74, 96],
+            [322, 336, 337, 338],  # res 17
+            [336, 337, 338, 352],
+            [1010, 1016, 1017, 1018],  # res 53
+            [1016, 1017, 1018, 1040],
         ]
     )
 
     rottable_set_for_buildable_restype = _ti32(
-        [[0, 6], [0, 12], [1, 2], [1, 4], [1, 15], [2, 0]]
+        [[0, 0], [0, 1], [1, 2], [1, 3], [1, 4], [2, 5]]
     )
     chi_expansion_for_buildable_restype = _ti32(
         [
@@ -92,9 +95,13 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
         dun_params.semirot_periodicity,
         dun_params.rotameric_rotind2tableind,
         dun_params.semirotameric_rotind2tableind,
+        dun_params.all_chi_rotind2tableind,
+        dun_params.all_chi_rotind2tableind_offsets,
         dun_params.n_rotamers_for_tableset,
         dun_params.n_rotamers_for_tableset_offsets,
         dun_params.sorted_rotamer_2_rotamer,
+        dun_params.nchi_for_table_set,
+        dun_params.rotwells,
         ndihe_for_res,
         dihedral_offset_for_res,
         dihedral_atom_inds,
