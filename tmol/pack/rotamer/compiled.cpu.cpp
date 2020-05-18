@@ -62,6 +62,7 @@ struct DunbrackChiSampler {
       TView<Real, 3, D> non_dunbrack_expansion_for_buildable_restype,
       TView<Int, 2, D> non_dunbrack_expansion_counts_for_buildable_restype,
       TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
+      TView<Int, 1, D> nchi_for_buildable_restype, // including hydroxyl chi, e.g.
 
       // scratch space, perhaps does not belong as an input parameter?
       TView<Real, 1, D> dihedrals                        // ndihe x 1
@@ -148,8 +149,9 @@ struct DunbrackChiSampler {
     Int const n_brt(rottable_set_for_buildable_restype.size(0));
 
 
-    auto nchi_for_brt_tp = TPack<Int, 1, D>::zeros({n_brt});
-    auto nchi_for_brt = nchi_for_brt_tp.view;
+    // I don't remember what I intended for this
+    // auto nchi_for_brt_tp = TPack<Int, 1, D>::zeros({n_brt});
+    // auto nchi_for_brt = nchi_for_brt_tp.view;
 
     auto n_possible_rotamers_per_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
     auto n_possible_rotamers_per_brt = n_possible_rotamers_per_brt_tp.view;
@@ -363,56 +365,60 @@ struct DunbrackChiSampler {
       std::cout << n_rotamers_to_build_per_brt[ii] << std::endl;
     }
 
-    return {rval1, rval2};
-
-    /*
     // max_n_chi: I donno. reduction on max
     Int max_n_chi = 0;
     for (int ii=0; ii < n_brt; ++ii) {
-      max_n_chi = max(max_n_chi, nchi_for_restype[ii]);
+      max_n_chi = std::max(max_n_chi, nchi_for_buildable_restype[ii]);
     }
 
     // OK!
     // So the next step is to expand the base rotamers into extra rotamers
     // and to write down all the chi that we'll sample from.
-    auto n_expansions_for_rt_tp = TPack<Int, 1, D>::zeros(n_brt);
-    auto n_expansions_for_rt = n_expansions_for_rt_tp.view;
+    auto n_expansions_for_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
+    auto n_expansions_for_brt = n_expansions_for_brt_tp.view;
 
-    auto expansion_dim_prods_for_rt_tp = TPack<Int, 2, D>::empty(n_brt, max_n_chi);
-    auto expansion_dim_prods_for_rt = expansion_dim_prods_for_rt_tp.view;
+    auto expansion_dim_prods_for_brt_tp = TPack<Int, 2, D>::empty({n_brt, max_n_chi});
+    auto expansion_dim_prods_for_brt = expansion_dim_prods_for_brt_tp.view;
 
-    auto count_expansions_for_rt = [=] (int restype) {
-      Int const nchi = nchi_for_restype[restype];
-      Int const table_set = rottable_set_for_buildable_restype[restype][1];
-      Int const n_dun_chi = nchi_for_table_set[table_set];
+    auto count_expansions_for_brt = [=] (int brt) {
+      Int const nchi = nchi_for_buildable_restype[brt];
+      Int const table_set = rottable_set_for_buildable_restype[brt][1];
+      Int const n_dun_chi = nchi_for_tableset[table_set];
       Int n_expansions = 1;
 
-      Int const n_chi = nchi_for_restype[restype];
+      Int const n_chi = nchi_for_buildable_restype[brt];
       for (int ii = n_chi - 1; ii >= n_dun_chi; --ii) {
-        expansion_dim_prods_for_rt[restype][ii] = n_expansions;
-        Int ii_expansion = non_dunbrack_expansion_counts[restype][ii];
+        expansion_dim_prods_for_brt[brt][ii] = n_expansions;
+        Int ii_expansion = non_dunbrack_expansion_counts_for_buildable_restype[brt][ii];
         if ( ii_expansion != 0 ) {
           n_expansions *= ii_expansion;
         }
       }
 
       for (int ii = n_dun_chi - 1; ii >= 0; --ii ) {
-        expansion_dim_prods_for_rt[restype][ii] = n_expansions;
+        expansion_dim_prods_for_brt[brt][ii] = n_expansions;
         // for now, only consider +/- 1 standard deviation sampling
-        if ( chi_expansion_for_buildable_restype[restype][ii] ) {
+        if (chi_expansion_for_buildable_restype[brt][ii]) {
           n_expansions *= 3;
         }
       }
 
-      n_expansions_for_rt[restype] = n_expansions;
-      n_rotamers_to_build_per_rt[restype] *= n_expansions;
+      n_expansions_for_brt[brt] = n_expansions;
+      n_rotamers_to_build_per_brt[brt] *= n_expansions;
+    };
+
+    for (int ii = 0; ii < n_brt; ++ii) {
+      count_expansions_for_brt(ii);
+      std::cout << "n_expansions_for_brt[" << ii << "] ";
+      std::cout << n_expansions_for_brt[ii] << " ";
+      std::cout << "n_rotamers_to_build_per_brt[" << ii << "] ";
+      std::cout << n_rotamers_to_build_per_brt[ii] << std::endl;
     }
 
-    for (int ii=0; ii < n_rtypes_total; ++ii) {
-      count_expansions_for_rt[ii];
-    }
 
+    return {rval1, rval2};
 
+    /*
     auto n_rotamers_to_build_offsets_tp = TPack<Int, 1, D>::zeros(n_rtypes_total);
     auto n_rotamers_to_build_offsets = n_rotamers_to_build_offsets.view;
 
@@ -505,7 +511,7 @@ struct DunbrackChiSampler {
       //  else
       //    we will look up the non_dunbrack_expansion
 
-      Int const n_dun_chi = nchi_for_table_set[table_set];
+      Int const n_dun_chi = nchi_for_tableset[table_set];
       Int const n_chi = nchi_for_restype[restype];
       int expanded_rot_remainder = expanded_rot_ind;
       for (int ii = 0; ii < nchi; ++ii) {

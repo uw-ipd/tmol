@@ -60,6 +60,7 @@ dun_sample_chi(
     Tensor non_dunbrack_expansion_for_buildable_restype,
     Tensor non_dunbrack_expansion_counts_for_buildable_restype,
     Tensor prob_cumsum_limit_for_buildable_restype,
+    Tensor nchi_for_buildable_restype,
 
     // ?? Tensor nrotameric_chi_for_res,            // nres x 1
     // ?? Tensor rotres2resid,                      // nres x 1
@@ -130,6 +131,7 @@ dun_sample_chi(
             TCAST(non_dunbrack_expansion_for_buildable_restype),
             TCAST(non_dunbrack_expansion_counts_for_buildable_restype),
             TCAST(prob_cumsum_limit_for_buildable_restype),
+	    TCAST(nchi_for_buildable_restype),
   
             // ?? TCAST(nrotameric_chi_for_res),
             // ?? TCAST(rotres2resid),
