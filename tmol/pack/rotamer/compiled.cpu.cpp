@@ -416,43 +416,43 @@ struct DunbrackChiSampler {
     }
 
 
-    return {rval1, rval2};
-
-    /*
-    auto n_rotamers_to_build_offsets_tp = TPack<Int, 1, D>::zeros(n_rtypes_total);
-    auto n_rotamers_to_build_offsets = n_rotamers_to_build_offsets.view;
+    auto n_rotamers_to_build_per_brt_offsets_tp = TPack<Int, 1, D>::zeros(n_brt);
+    auto n_rotamers_to_build_per_brt_offsets = n_rotamers_to_build_per_brt_offsets_tp.view;
 
     // Exclusive cumumaltive sum
-    for (int ii=1; ii < n_rtypes_total; ++ii) {
-      n_rotamers_to_build_offsets[ii] = n_rotamers_to_build_offsets[ii-1] +
-        n_rotamers_to_build_per_rt[ii-1];
+    for (int ii=1; ii < n_brt; ++ii) {
+      n_rotamers_to_build_per_brt_offsets[ii] = n_rotamers_to_build_per_brt_offsets[ii-1] +
+        n_rotamers_to_build_per_brt[ii-1];
     }
-    Int const n_rotamers = n_rotamers_to_build_offsets[ii-1] +
-      n_rotamers_to_build_per_rt[ii-1];
+    Int const n_rotamers = n_rotamers_to_build_per_brt_offsets[n_brt-1] +
+      n_rotamers_to_build_per_brt[n_brt-1];
 
-    // Get a mapping from rotamer index to restype
-    auto restype_for_rotamer_tp = TPack<Int, 1, D>::zeros(n_rotamers);
-    auto restype_for_rotamer = restype_for_rotamers_tp.view;
+    // Get a mapping from rotamer index to buildable restype
+    auto brt_for_rotamer_tp = TPack<Int, 1, D>::zeros(n_rotamers);
+    auto brt_for_rotamer = brt_for_rotamer_tp.view;
 
     // unclear if we need this one...
-    auto restype_for_rotamer_boundaries_tp = TPack<Int, 1, D>::zeros(n_rotamers);
-    auto restype_for_rotamer_boundaries = restype_for_rotamer_boundaries_tp.view;
+    auto brt_for_rotamer_boundaries_tp = TPack<Int, 1, D>::zeros(n_rotamers);
+    auto brt_for_rotamer_boundaries = brt_for_rotamer_boundaries_tp.view;
 
-    auto mark_rot_boundary_beginnings = [=] (int rt) {
-      Int const offset = n_rotamers_to_build_offsets[rt];
-      restype_for_rotamer_boundaries[offset] = 1;
-      restype_for_rotamer[offset] = rt;
+    auto mark_rot_brt_boundary_beginnings = [=] (int brt) {
+      Int const offset = n_rotamers_to_build_per_brt_offsets[brt];
+      brt_for_rotamer_boundaries[offset] = 1;
+      brt_for_rotamer[offset] = brt;
+    };
+    for (int ii = 0; ii < n_brt; ++ii) {
+      mark_rot_brt_boundary_beginnings(ii);
     }
-    for (int ii = 0; ii < n_rtypes_total; ++ii) {
-      mark_rot_boundary_beginnings(ii);
-    }
+
     // Now scan on max and record the restype for each rotamer
     for (int ii = 1; ii < n_rotamers; ++ii ) {
-      restype_for_rotamers[ii] = max(restype_for_rotamers[ii], restype_for_rotamers[ii-1]);
+      brt_for_rotamer[ii] = std::max(brt_for_rotamer[ii], brt_for_rotamer[ii-1]);
+      std::cout << "brt for rotamer " << ii << " " << brt_for_rotamer[ii] << std::endl;
     }
 
     // OK Now allocate space for the chi that we're going to write to
-    auto chi_for_rotamers_tp = TPack<Real, 2, D>::empty(n_rotamers, max_n_chi);
+    // auto chi_for_rotamers_tp = TPack<Real, 2, D>::empty({n_rotamers, max_n_chi});
+    auto chi_for_rotamers_tp = TPack<Real, 2, D>::zeros({n_rotamers, max_n_chi});
     auto chi_for_rotamers = chi_for_rotamers_tp.view;
 
 
@@ -460,17 +460,17 @@ struct DunbrackChiSampler {
     // One thread per rotamer
     // each rotamer figures out from its index
     //  -- which restype it's building for
-    //  -- its rotamer index
-    //  -- which expanded rotamer for the rotamer it is
+    //  -- its base rotamer index
+    //  -- which expanded rotamer for the base rotamer it is
 
     auto sample_chi_for_rotamer = [=](int rotamer) {
-      int const rt = rt_for_possible_rotamers[possible_rotamer];
-      int const res = rottable_set_for_buildable_restype[rt][0];
-      int const table_set = rottable_set_for_buildable_restype[rt][1];
-      int const expanded_rotamer_for_rt = rotamer - n_rotamers_to_build_offsets[rt];
-      int const n_expansions = n_expansions_for_rt[rt];
-      int const sorted_rotno = expanded_rotamer_for_rt / n_expansions;
-      int const expanded_rot_ind = expanded_rotamer_for_rt % n_expansions;
+      int const brt = brt_for_rotamer[rotamer];
+      int const res = rottable_set_for_buildable_restype[brt][0];
+      int const table_set = rottable_set_for_buildable_restype[brt][1];
+      int const expanded_rotamer_for_brt = rotamer - n_rotamers_to_build_per_brt_offsets[brt];
+      int const n_expansions = n_expansions_for_brt[brt];
+      int const base_rotno = expanded_rotamer_for_brt / n_expansions;
+      int const expanded_rotno = expanded_rotamer_for_brt % n_expansions;
 
       Vec<Real, 2> bbdihe, bbstep;
       Vec<Int, 2> bin_index;
@@ -491,11 +491,9 @@ struct DunbrackChiSampler {
 
       // Look up the index of the rotamer: we know where the rotamer is in sorted order
       // but not which chi values this represents.
-      Int const tableset_offset = n_rotamers_for_tableset_offset[table_set];
-      Int const rotno = sorted_rotamer_2_rotamer[tableset_offset + sorted_rotno]
-        [bin_index[0]][bind_index[1]];
-      int const rot_table_ind = rotind2tableind[
-        rotind2tableind_offset[table_set] + rotno ];
+      Int const tableset_offset = n_rotamers_for_tableset_offsets[table_set];
+      Int const rot_table_ind = sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]]
+	[tableset_offset + base_rotno] + tableset_offset;
 
       // OK: we have the phi & psi values, and we have the rotamer index
       // Now we can start calculating the chi.
@@ -512,11 +510,11 @@ struct DunbrackChiSampler {
       //    we will look up the non_dunbrack_expansion
 
       Int const n_dun_chi = nchi_for_tableset[table_set];
-      Int const n_chi = nchi_for_restype[restype];
-      int expanded_rot_remainder = expanded_rot_ind;
-      for (int ii = 0; ii < nchi; ++ii) {
+      Int const n_chi = nchi_for_buildable_restype[brt];
+      int expanded_rot_remainder = expanded_rotno;
+      for (int ii = 0; ii < n_chi; ++ii) {
 
-        int const ii_dim_prods = expansion_dim_prods_for_rt[restype][ii]
+        int const ii_dim_prods = expansion_dim_prods_for_brt[brt][ii];
         int const ii_expansion = expanded_rot_remainder / ii_dim_prods;
         expanded_rot_remainder = expanded_rot_remainder % ii_dim_prods;
 
@@ -529,18 +527,20 @@ struct DunbrackChiSampler {
             rotmean_table_strides.data()->data() +
             (rot_table_ind+ii) * rotmean_table_strides.stride(0));
 
-          ii_chi = tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
+          auto mean_and_derivs = tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
               rotmean_slice, bbdihe);
-          if (chi_expansion_for_buildable_restype[rt][ii] && ii_expansion > 0) {
+	  ii_chi = std::get<0>(mean_and_derivs);
+          if (chi_expansion_for_buildable_restype[brt][ii] && ii_expansion > 0) {
             // OK! we expand this chi; so retrieve the standard deviation
             TensorAccessor<Real, 2, D> rotsdev_slice(
               rotameric_sdev_tables.data() + (rot_table_ind+ii) * rotameric_sdev_tables.stride(0),
-              rotsdev_table_sizes.data()->data() +
-              (rot_table_ind+ii) * rotsdev_table_sizes.stride(0),
-              rotsdev_table_strides.data()->data() +
-              (rot_table_ind+ii) * rotsdev_table_strides.stride(0));
-            Real sdev = tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
+              rotmean_table_sizes.data()->data() +
+              (rot_table_ind+ii) * rotmean_table_sizes.stride(0),
+              rotmean_table_strides.data()->data() +
+              (rot_table_ind+ii) * rotmean_table_strides.stride(0));
+            auto sdev_and_derivs = tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
               rotsdev_slice, bbdihe);
+	    Real sdev = std::get<0>(sdev_and_derivs);
             if (ii_expansion == 1) {
               ii_chi += sdev;
             } else {
@@ -549,12 +549,24 @@ struct DunbrackChiSampler {
             }
           }
         } else {
-          ii_chi = non_dunbrack_expansion_for_restype[restype][ii_expansion];  
+          ii_chi = non_dunbrack_expansion_for_buildable_restype[brt][ii][ii_expansion];  
         }
 	chi_for_rotamers[rotamer][ii] = ii_chi;
       }
     };
 
+    for (int ii=0; ii < n_rotamers; ++ii) {
+      sample_chi_for_rotamer(ii);
+      std::cout << "rotamer " << ii;
+      for (int jj=0; jj < max_n_chi; ++jj) {
+	std::cout << " " << chi_for_rotamers[ii][jj];
+      }
+      std::cout << std::endl;
+    }
+    
+    return {rval1, rval2};
+
+    /*
     */
   }
 
