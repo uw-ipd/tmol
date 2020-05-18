@@ -234,7 +234,10 @@ struct DunbrackChiSampler {
     // We're eventually going to write down the probabilities for each
     // base rotamer in this tensor
     auto rotamer_probability_tp = TPack<Real, 1, D>::empty(n_possible_rotamers);
+    auto rotamer_probability_cumsum_tp = TPack<Real, 1, D>::empty(n_possible_rotamers); 
+
     auto rotamer_probability = rotamer_probability_tp.view;
+    auto rotamer_probability_cumsum = rotamer_probability_cumsum_tp.view;
 
 
     auto calculate_possible_rotamer_probability = [=](int possible_rotamer) {
@@ -278,25 +281,15 @@ struct DunbrackChiSampler {
       // the rotamer's probability from the rotameric_prob_tables
       //Int const rotable_ind = tableset_offset + rotno;
 
-      std::cout << "tableset " << table_set << " tableset_offset " << tableset_offset;
-      std::cout << " possible_rotamer " << possible_rotamer << " sorted_rotno " << sorted_rotno;
-      std::cout << " bb inds " << bin_index[0] << " " << bin_index[1];
-      //std::cout << " rotno " << rotno << " local_table_ind " << local_table_ind;
-      std::cout << " rot_table_ind " << rot_table_ind << std::endl;
-
-      int nchi = nchi_for_tableset[table_set];
-      std::cout << "rotamer inds:";
-      for (int ii = 0; ii < nchi; ++ii) {
-	std::cout << " " << rotwells[rot_table_ind][ii];
-      }
-      std::cout << std::endl;
-
-      // int rotno_rem = rotno;
-      // for (int ii = nchi-1; ii >= 0; --ii) {
-      // 	int threeprod = std::pow(3, ii);
-      // 	int divisible = rotno_rem / threeprod;
-      // 	std::cout << " " << divisible+1;
-      // 	rotno_rem -= threeprod * divisible;
+      // std::cout << "tableset " << table_set << " tableset_offset " << tableset_offset;
+      // std::cout << " possible_rotamer " << possible_rotamer << " sorted_rotno " << sorted_rotno;
+      // std::cout << " bb inds " << bin_index[0] << " " << bin_index[1];
+      // std::cout << " rot_table_ind " << rot_table_ind << std::endl;
+      // 
+      // int nchi = nchi_for_tableset[table_set];
+      // std::cout << "rotamer inds:";
+      // for (int ii = 0; ii < nchi; ++ii) {
+      // 	std::cout << " " << rotwells[rot_table_ind][ii];
       // }
       // std::cout << std::endl;
 
@@ -313,20 +306,20 @@ struct DunbrackChiSampler {
 
     for (int ii = 0; ii < n_possible_rotamers; ++ii) {
       calculate_possible_rotamer_probability(ii);
-      std::cout << "rotamer probability " << ii << " " << rotamer_probability[ii] << std::endl;
     }
 
-    return {rval1, rval2};
 
-    /*
     // OK
-    // Now we perform (inclusive) segmented scans on the possible-rotamer probabilities
+    // Now we perform (exclusive) segmented scans on the possible-rotamer probabilities
     // to get the cumulative sums of the probabilities so that we can decide
     // where to put the cutoff
 
-    for (int ii = 1; ii < n_possible_rotamers; ++ii ) {
-      if (!rt_for_possible_rotamer_boundaries[ii]) {
-        rotamer_probability[ii] += rotamer_probabilities[ii-1];
+    for (int ii = 0; ii < n_possible_rotamers; ++ii ) {
+      if (ii > 0 && !brt_for_possible_rotamer_boundaries[ii]) {
+        rotamer_probability_cumsum[ii] = rotamer_probability_cumsum[ii-1] +
+	  rotamer_probability[ii-1];
+      } else {
+	rotamer_probability_cumsum[ii] = 0;
       }
     }
 
@@ -334,13 +327,14 @@ struct DunbrackChiSampler {
     auto build_possible_rotamer_tp = TPack<Int, 1, D>::empty(n_possible_rotamers);
     auto build_possible_rotamer = build_possible_rotamer_tp.view;
     auto decide_on_possible_rotamer = [=](int possible_rotamer) {
-      int const rt = rt_for_possible_rotamers[possible_rotamer];
-      int keep = rotamer_probability[possible_rotamer] <= prob_cumsum_limit_for_restype[rt];
+      int const rt = brt_for_possible_rotamer[possible_rotamer];
+      int keep = rotamer_probability_cumsum[possible_rotamer] <= prob_cumsum_limit_for_buildable_restype[rt];
       build_possible_rotamer[possible_rotamer] = keep;
     };
-    for (int ii = 0; ii <= n_possible_rotamers; ++ii) {
+    for (int ii = 0; ii < n_possible_rotamers; ++ii) {
       decide_on_possible_rotamer(ii);
     }
+
 
     // Let's count the number of possible rotamers we're keeping per restype
     auto count_rotamers_to_build_tp = TPack<Int, 1, D>::zeros(n_possible_rotamers);
@@ -348,25 +342,30 @@ struct DunbrackChiSampler {
 
     // exclusive segmented scan on the build_possible_rotamer array
     for (int ii=1; ii < n_possible_rotamers; ++ii) {
-      if (!rt_for_possible_rotamer_boundaries[ii]) {
+      if (!brt_for_possible_rotamer_boundaries[ii]) {
         count_rotamers_to_build[ii] =
           count_rotamers_to_build[ii-1] + build_possible_rotamer[ii-1];
       }
     }
 
     // And now the count of rotamers to build per restype:
-    auto n_rotamers_to_build_per_rt_tp = TPack<Int, 1, D>::zeros(n_brt);
-    auto n_rotamers_to_build_per_rt = n_rotamers_to_buld_per_rt_tp.view;
-    auto count_rots_to_buid_per_rt = [=](int restype) {
-      Int const offset = rotamers_for_rt_offset[restype];
-      Int const npossible = n_possible_rotamers_per_restype[restype];
-      Int last_possible_rot_ind = count_rotamers_to_build[offset + npossible - 1];
-      n_rotamers_to_build_per_rt[restype] = last_possible_rot_ind + 1;
+    auto n_rotamers_to_build_per_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
+    auto n_rotamers_to_build_per_brt = n_rotamers_to_build_per_brt_tp.view;
+    auto count_rots_to_build_per_brt = [=](int brt) {
+      Int const offset = possible_rotamer_offset_for_brt[brt];
+      Int const npossible = n_possible_rotamers_per_brt[brt];
+      Int const brt_count = count_rotamers_to_build[offset + npossible - 1] + 1;
+      n_rotamers_to_build_per_brt[brt] = brt_count;
     };
     for (int ii = 0; ii < n_brt; ++ii) {
-      count_rots_to_build_per_rt(ii);
+      count_rots_to_build_per_brt(ii);
+      std::cout << "n_rotamers_to_build_per_brt[" << ii << "] ";
+      std::cout << n_rotamers_to_build_per_brt[ii] << std::endl;
     }
 
+    return {rval1, rval2};
+
+    /*
     // max_n_chi: I donno. reduction on max
     Int max_n_chi = 0;
     for (int ii=0; ii < n_brt; ++ii) {

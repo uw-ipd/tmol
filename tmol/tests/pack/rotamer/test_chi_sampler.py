@@ -56,7 +56,7 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     )
 
     rottable_set_for_buildable_restype = _ti32(
-        [[0, 0], [0, 1], [1, 2], [1, 3], [1, 4], [2, 5]]
+        [[0, 2], [0, 5], [1, 3], [1, 16], [1, 0], [2, 17]]
     )
     chi_expansion_for_buildable_restype = _ti32(
         [
