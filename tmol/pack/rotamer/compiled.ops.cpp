@@ -31,6 +31,7 @@ dun_sample_chi(
     Tensor rotameric_sdev_tables,
     Tensor rotmean_table_sizes,
     Tensor rotmean_table_strides,
+    Tensor rotameric_meansdev_tableset_offsets,
     Tensor rotameric_bb_start,        // ntable-set entries
     Tensor rotameric_bb_step,         // ntable-set entries
     Tensor rotameric_bb_periodicity,  // ntable-set entries
@@ -102,6 +103,7 @@ dun_sample_chi(
             TCAST(rotameric_sdev_tables),
             TCAST(rotmean_table_sizes),
             TCAST(rotmean_table_strides),
+	    TCAST(rotameric_meansdev_tableset_offsets),
             TCAST(rotameric_bb_start),
             TCAST(rotameric_bb_step),
             TCAST(rotameric_bb_periodicity),

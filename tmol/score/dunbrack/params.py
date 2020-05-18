@@ -159,6 +159,7 @@ class SamplingDunbrackDatabaseView(ConvertAttrs):
     rotameric_sdev_tables: Tensor(torch.float)[:, :, :]
     rotmean_table_sizes: Tensor(torch.long)[:, 2]
     rotmean_table_strides: Tensor(torch.long)[:, 2]
+    rotameric_meansdev_tableset_offsets: Tensor(torch.int32)[:]
 
     n_rotamers_for_tableset: Tensor(torch.long)[:]
     n_rotamers_for_tableset_offsets: Tensor(torch.int32)[:]
@@ -304,6 +305,7 @@ class DunbrackParamResolver(ValidateAttrs):
             rotameric_sdev_tables=sdev_coeffs,
             rotmean_table_sizes=mc_sizes,
             rotmean_table_strides=mc_strides,
+            rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
             n_rotamers_for_tableset=prob_table_nrots,
             n_rotamers_for_tableset_offsets=prob_table_offsets,
             sorted_rotamer_2_rotamer=sorted_rotamer_2_rotamer,

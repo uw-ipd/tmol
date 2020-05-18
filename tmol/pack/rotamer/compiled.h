@@ -31,6 +31,7 @@ struct DunbrackChiSampler {
       TView<Real, 3, D> rotameric_sdev_tables,
       TView<Vec<int64_t, 2>, 1, D> rotmean_table_sizes,
       TView<Vec<int64_t, 2>, 1, D> rotmean_table_strides,
+      TView<Int, 1, D> rotameric_meansdev_tableset_offsets,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,        // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,         // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,  // ntable-set entries

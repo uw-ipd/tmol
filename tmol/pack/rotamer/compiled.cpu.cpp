@@ -33,6 +33,7 @@ struct DunbrackChiSampler {
       TView<Real, 3, D> rotameric_sdev_tables,
       TView<Vec<int64_t, 2>, 1, D> rotmean_table_sizes,
       TView<Vec<int64_t, 2>, 1, D> rotmean_table_strides,
+      TView<Int, 1, D> rotameric_meansdev_tableset_offsets,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,        // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,         // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,  // ntable-set entries
@@ -491,9 +492,22 @@ struct DunbrackChiSampler {
 
       // Look up the index of the rotamer: we know where the rotamer is in sorted order
       // but not which chi values this represents.
+      Int const n_dun_chi = nchi_for_tableset[table_set];
+      Int const n_chi = nchi_for_buildable_restype[brt];
       Int const tableset_offset = n_rotamers_for_tableset_offsets[table_set];
-      Int const rot_table_ind = sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]]
-	[tableset_offset + base_rotno] + tableset_offset;
+      Int const rotmean_offset = rotameric_meansdev_tableset_offsets[table_set];
+      Int const rot_table_start = n_dun_chi *
+	sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]][tableset_offset + base_rotno] +
+	rotmean_offset;
+
+      // {
+      // int nchi = nchi_for_tableset[table_set];
+      // std::cout << "rotamer inds:";
+      // for (int ii = 0; ii < nchi; ++ii) {
+      // 	std::cout << " " << rotwells[rot_table_ind][ii];
+      // }
+      // std::cout << std::endl;
+      // }
 
       // OK: we have the phi & psi values, and we have the rotamer index
       // Now we can start calculating the chi.
@@ -509,8 +523,6 @@ struct DunbrackChiSampler {
       //  else
       //    we will look up the non_dunbrack_expansion
 
-      Int const n_dun_chi = nchi_for_tableset[table_set];
-      Int const n_chi = nchi_for_buildable_restype[brt];
       int expanded_rot_remainder = expanded_rotno;
       for (int ii = 0; ii < n_chi; ++ii) {
 
@@ -521,11 +533,11 @@ struct DunbrackChiSampler {
         Real ii_chi;
         if (ii < n_dun_chi) {
           TensorAccessor<Real, 2, D> rotmean_slice(
-            rotameric_mean_tables.data() + (rot_table_ind+ii) * rotameric_mean_tables.stride(0),
+            rotameric_mean_tables.data() + (rot_table_start + ii) * rotameric_mean_tables.stride(0),
             rotmean_table_sizes.data()->data() +
-            (rot_table_ind+ii) * rotmean_table_sizes.stride(0),
+            (rot_table_start+ii) * rotmean_table_sizes.stride(0),
             rotmean_table_strides.data()->data() +
-            (rot_table_ind+ii) * rotmean_table_strides.stride(0));
+            (rot_table_start+ii) * rotmean_table_strides.stride(0));
 
           auto mean_and_derivs = tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
               rotmean_slice, bbdihe);
@@ -533,11 +545,11 @@ struct DunbrackChiSampler {
           if (chi_expansion_for_buildable_restype[brt][ii] && ii_expansion > 0) {
             // OK! we expand this chi; so retrieve the standard deviation
             TensorAccessor<Real, 2, D> rotsdev_slice(
-              rotameric_sdev_tables.data() + (rot_table_ind+ii) * rotameric_sdev_tables.stride(0),
+              rotameric_sdev_tables.data() + (rot_table_start+ii) * rotameric_sdev_tables.stride(0),
               rotmean_table_sizes.data()->data() +
-              (rot_table_ind+ii) * rotmean_table_sizes.stride(0),
+              (rot_table_start+ii) * rotmean_table_sizes.stride(0),
               rotmean_table_strides.data()->data() +
-              (rot_table_ind+ii) * rotmean_table_strides.stride(0));
+              (rot_table_start+ii) * rotmean_table_strides.stride(0));
             auto sdev_and_derivs = tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
               rotsdev_slice, bbdihe);
 	    Real sdev = std::get<0>(sdev_and_derivs);
@@ -559,7 +571,7 @@ struct DunbrackChiSampler {
       sample_chi_for_rotamer(ii);
       std::cout << "rotamer " << ii;
       for (int jj=0; jj < max_n_chi; ++jj) {
-	std::cout << " " << chi_for_rotamers[ii][jj];
+	std::cout << " " << 180 / M_PI * chi_for_rotamers[ii][jj];
       }
       std::cout << std::endl;
     }

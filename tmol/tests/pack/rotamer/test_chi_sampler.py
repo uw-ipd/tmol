@@ -67,18 +67,24 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     )
     chi_expansion_for_buildable_restype = _ti32(
         [
-            [1, 0, 0, 0],
+            [1, 1, 0, 0],
             [1, 0, 0, 0],
             [0, 0, 0, 0],
             [1, 1, 0, 0],
-            [1, 1, 0, 0],
+            [1, 0, 0, 0],
             [1, 1, 0, 0],
         ]
     )
-    nans_for_expansion = numpy.empty((6, 4, 1), dtype=float)
+    nans_for_expansion = numpy.empty((6, 4, 18), dtype=float)
     nans_for_expansion[:] = numpy.nan
+    nans_for_expansion[1, 1, :] = 20 * numpy.pi / 180 * numpy.arange(18, dtype=float)
+    nans_for_expansion[4, 1, 0:3] = 120 * numpy.pi / 180 * numpy.arange(3, dtype=float)
+    nans_for_expansion[5, 2, 0:2] = 180 * numpy.pi / 180 * numpy.arange(2, dtype=float)
     non_dunbrack_expansion_for_buildable_restype = _tf32(nans_for_expansion)
     non_dunbrack_expansion_counts_for_buildable_restype = _ti32(numpy.zeros((6, 4)))
+    non_dunbrack_expansion_counts_for_buildable_restype[1, 1] = 18
+    non_dunbrack_expansion_counts_for_buildable_restype[4, 1] = 3
+    non_dunbrack_expansion_counts_for_buildable_restype[5, 2] = 2
     prob_cumsum_limit_for_buildable_restype = _tf32(numpy.full((6,), 0.95, dtype=float))
     nchi_for_buildable_restype = _ti32([4, 2, 2, 2, 2, 3])
 
@@ -93,6 +99,7 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
         dun_params.rotameric_sdev_tables,
         dun_params.rotmean_table_sizes,
         dun_params.rotmean_table_strides,
+        dun_params.rotameric_meansdev_tableset_offsets,
         dun_params.rotameric_bb_start,
         dun_params.rotameric_bb_step,
         dun_params.rotameric_bb_periodicity,
