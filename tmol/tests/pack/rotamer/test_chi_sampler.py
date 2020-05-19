@@ -90,7 +90,7 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
 
     dihedrals = _tf32(numpy.zeros((6), dtype=float))
 
-    torch.ops.tmol.dun_sample_chi(
+    retval = torch.ops.tmol.dun_sample_chi(
         dun_graph.coords[0, :],
         dun_params.rotameric_prob_tables,
         dun_params.rotprob_table_sizes,
@@ -129,3 +129,10 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
         nchi_for_buildable_restype,
         dihedrals,
     )
+
+    # print(retval)
+    n_rots_for_brt, n_rots_for_brt_offsets, brt_for_rotamer, chi_for_rotamers = retval
+    assert n_rots_for_brt.shape == (6,)
+    assert n_rots_for_brt_offsets == (6,)
+    assert brt_for_rotamer.shape == (926,)
+    assert chi_for_rotamers.shape == (926, 4)

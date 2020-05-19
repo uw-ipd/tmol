@@ -3,8 +3,9 @@
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
-
 #include <tmol/score/common/forall_dispatch.hh>
+
+#include <vector>
 
 #include "compiled.hh"
 
@@ -19,10 +20,10 @@ template < template <tmol::Device> class DispatchMethod >
 //torch::autograd::variable_list
 //std::tuple< Tensor, Tensor >
 //c10::intrusive_ptr< at::ivalue::TensorList >
-Tensor
+//at::ivalue::TensorList
+std::vector< Tensor >
 dun_sample_chi(
     Tensor coords,
-    //Tensor res_coord_start_ind,
 
     Tensor rotameric_prob_tables,
     Tensor rotprob_table_sizes,
@@ -63,26 +64,15 @@ dun_sample_chi(
     Tensor prob_cumsum_limit_for_buildable_restype,
     Tensor nchi_for_buildable_restype,
 
-    // ?? Tensor nrotameric_chi_for_res,            // nres x 1
-    // ?? Tensor rotres2resid,                      // nres x 1
-    // ?? Tensor prob_table_offset_for_rotresidue,  // n-rotameric-res x 1
-    // ?? Tensor rotind2tableind_offset_for_res,    // n-res x 1
-
-    // ?? Tensor rotmean_table_offset_for_residue,  // n-res x 1
-
-    // ?? Tensor rotameric_chi_desc,  // n-rotameric-chi x 2
-    // ?? Tensor semirotameric_chi_desc,  // n-semirotameric-residues x OD4
-
     Tensor dihedrals                        // ndihe x 1
-    // ?? Tensor ddihe_dxyz,  // ndihe x 3
-    // ?? Tensor rotameric_rottable_assignment,     // nres x 1
-    // ?? Tensor semirotameric_rottable_assignment  // nres x 1
 ) {
   nvtx_range_push("dunbrack_sample_chi");
   std::cout << "Hit compiled.ops.cpp" << std::endl;
 
-  at::Tensor ret1;
-  at::Tensor ret2;
+  at::Tensor n_rots_for_brt;
+  at::Tensor n_rots_for_brt_offsets;
+  at::Tensor brt_for_rotamer;
+  at::Tensor chi_for_rotamers;
 
   using Int = int32_t;
 
@@ -148,21 +138,35 @@ dun_sample_chi(
             // ?? TCAST(semirotameric_rottable_assignment)
           );
   
-          ret1 = std::get<0>(result).tensor;
-          ret2 = std::get<0>(result).tensor;
+          n_rots_for_brt = std::get<0>(result).tensor;
+          n_rots_for_brt_offsets = std::get<1>(result).tensor;
+	  brt_for_rotamer = std::get<2>(result).tensor;
+	  chi_for_rotamers = std::get<3>(result).tensor;
   
   
         }));
   } catch (at::Error err) {
     std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
     throw err;
+  } catch (c10::Error err) {
+    std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
+    throw err;
   }
 
   nvtx_range_pop();
 
-  auto ret_list = c10::make_intrusive< at::ivalue::TensorList >(at::ivalue::TensorList({ret1, ret2}));
-  //return ret_list;
-  return dihedrals;
+  return {n_rots_for_brt, n_rots_for_brt_offsets,
+      brt_for_rotamer, chi_for_rotamers};
+
+  //c10::intrusive_ptr< at::ivalue::TensorList > ret_list;
+  try {
+    // ret_list = c10::make_intrusive< at::ivalue::TensorList >(
+    //   at::ivalue::TensorList({n_rots_for_brt, n_rots_for_brt_offsets,
+    //   brt_for_rotamer, chi_for_rotamers}));
+      } catch (c10::Error err) {
+    std::cerr << "caught: " << err.what_without_backtrace() << std::endl;
+  }
+  //return dihedrals;
 };
 
 

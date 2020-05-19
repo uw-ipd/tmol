@@ -79,8 +79,10 @@ struct DunbrackChiSampler {
 
   )
       -> std::tuple<
-          TPack<Real, 1, D>,
-          TPack<Real, 1, D> >  // d(-ln(prob_nonrotameric)) / dtor atoms
+          TPack<Int, 1, D>,
+          TPack<Int, 1, D>,
+          TPack<Int, 1, D>,
+          TPack<Real, 2, D> >
   {
     // std::cout << "Hit compiled.cpu.cpp!" << std::endl;
     auto rval1 = TPack<Real, 1, D>::zeros({5});
@@ -576,10 +578,13 @@ struct DunbrackChiSampler {
       // std::cout << std::endl;
     }
     
-    return {rval1, rval2};
+    return {
+	    n_rotamers_to_build_per_brt_tp,
+	    n_rotamers_to_build_per_brt_offsets_tp,
+	    brt_for_rotamer_tp,
+	    chi_for_rotamers_tp
+    };
 
-    /*
-    */
   }
 
 };
