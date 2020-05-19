@@ -174,7 +174,6 @@ def load_tables_from_zarr(path_tables):
     table_name_list = rotameric_group.attrs["tables"]
     rotameric_libraries = []
     for table in table_name_list:
-        print(table)
         rotameric_libraries.append(
             RotamericAADunbrackLibrary.from_zgroup(rotameric_group, table)
         )
@@ -183,7 +182,6 @@ def load_tables_from_zarr(path_tables):
     table_name_list = semirotameric_group.attrs["tables"]
     semi_rotameric_libraries = []
     for table in table_name_list:
-        print(table)
         semi_rotameric_libraries.append(
             SemiRotamericAADunbrackLibrary.from_zgroup(semirotameric_group, table)
         )

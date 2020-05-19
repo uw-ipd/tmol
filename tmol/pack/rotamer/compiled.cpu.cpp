@@ -82,7 +82,7 @@ struct DunbrackChiSampler {
           TPack<Real, 1, D>,
           TPack<Real, 1, D> >  // d(-ln(prob_nonrotameric)) / dtor atoms
   {
-    std::cout << "Hit compiled.cpu.cpp!" << std::endl;
+    // std::cout << "Hit compiled.cpu.cpp!" << std::endl;
     auto rval1 = TPack<Real, 1, D>::zeros({5});
     auto rval2 = TPack<Real, 1, D>::zeros({5});
     auto rval1_view = rval1.view;
@@ -164,7 +164,7 @@ struct DunbrackChiSampler {
 
     for (int i = 0; i < n_brt; ++i) {
       determine_n_possible_rots(i);
-      std::cout << "n possible rots: " << n_possible_rotamers_per_brt[i] << std::endl;
+      // std::cout << "n possible rots: " << n_possible_rotamers_per_brt[i] << std::endl;
     }
 
     auto possible_rotamer_offset_for_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
@@ -201,7 +201,7 @@ struct DunbrackChiSampler {
 
     for (int i = 0; i < dihedrals.size(0); ++i) {
       compute_backbone_dihedrals(i);
-      std::cout << "dihedral " << i << " " << 180 / M_PI * backbone_dihedrals[i] << std::endl;
+      // std::cout << "dihedral " << i << " " << 180 / M_PI * backbone_dihedrals[i] << std::endl;
     }
 
     auto brt_for_possible_rotamer_tp = TPack<Int, 1, D>::zeros(n_possible_rotamers);
@@ -362,8 +362,8 @@ struct DunbrackChiSampler {
     };
     for (int ii = 0; ii < n_brt; ++ii) {
       count_rots_to_build_per_brt(ii);
-      std::cout << "n_rotamers_to_build_per_brt[" << ii << "] ";
-      std::cout << n_rotamers_to_build_per_brt[ii] << std::endl;
+      // std::cout << "n_rotamers_to_build_per_brt[" << ii << "] ";
+      // std::cout << n_rotamers_to_build_per_brt[ii] << std::endl;
     }
 
     // max_n_chi: I donno. reduction on max
@@ -410,10 +410,10 @@ struct DunbrackChiSampler {
 
     for (int ii = 0; ii < n_brt; ++ii) {
       count_expansions_for_brt(ii);
-      std::cout << "n_expansions_for_brt[" << ii << "] ";
-      std::cout << n_expansions_for_brt[ii] << " ";
-      std::cout << "n_rotamers_to_build_per_brt[" << ii << "] ";
-      std::cout << n_rotamers_to_build_per_brt[ii] << std::endl;
+      // std::cout << "n_expansions_for_brt[" << ii << "] ";
+      // std::cout << n_expansions_for_brt[ii] << " ";
+      // std::cout << "n_rotamers_to_build_per_brt[" << ii << "] ";
+      // std::cout << n_rotamers_to_build_per_brt[ii] << std::endl;
     }
 
 
@@ -448,7 +448,7 @@ struct DunbrackChiSampler {
     // Now scan on max and record the restype for each rotamer
     for (int ii = 1; ii < n_rotamers; ++ii ) {
       brt_for_rotamer[ii] = std::max(brt_for_rotamer[ii], brt_for_rotamer[ii-1]);
-      std::cout << "brt for rotamer " << ii << " " << brt_for_rotamer[ii] << std::endl;
+      //std::cout << "brt for rotamer " << ii << " " << brt_for_rotamer[ii] << std::endl;
     }
 
     // OK Now allocate space for the chi that we're going to write to
@@ -569,11 +569,11 @@ struct DunbrackChiSampler {
 
     for (int ii=0; ii < n_rotamers; ++ii) {
       sample_chi_for_rotamer(ii);
-      std::cout << "rotamer " << ii;
-      for (int jj=0; jj < max_n_chi; ++jj) {
-	std::cout << " " << 180 / M_PI * chi_for_rotamers[ii][jj];
-      }
-      std::cout << std::endl;
+      // std::cout << "rotamer " << ii;
+      // for (int jj=0; jj < max_n_chi; ++jj) {
+      // 	std::cout << " " << 180 / M_PI * chi_for_rotamers[ii][jj];
+      // }
+      // std::cout << std::endl;
     }
     
     return {rval1, rval2};

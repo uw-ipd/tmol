@@ -6,7 +6,7 @@
 
 #include <tmol/score/common/forall_dispatch.hh>
 
-#include "compiled.h"
+#include "compiled.hh"
 
 namespace tmol {
 namespace pack {

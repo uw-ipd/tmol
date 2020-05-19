@@ -12,7 +12,7 @@ from tmol.score.dunbrack.params import DunbrackParamResolver
 
 
 def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_device):
-    print("starting test sample chi for rotamers smoke")
+    # print("starting test sample chi for rotamers smoke")
 
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device

@@ -243,8 +243,6 @@ class DunbrackParamResolver(ValidateAttrs):
         rot_ri2ti, semirot_ri2ti, allchi_ri2ti = cls._create_rotind2tableinds(
             dun_database, device
         )
-        print("allchi_ri2ti")
-        print(allchi_ri2ti)
 
         rotameric_chi_rotind2tableind_offsets = cls._create_rotameric_rotind2tableind_offsets(
             dun_database, device
@@ -252,9 +250,6 @@ class DunbrackParamResolver(ValidateAttrs):
         all_chi_rotind2tableind_offsets = cls._create_all_chi_rotind2tableind_offsets(
             dun_database, device
         )
-        print("all_chi_rotind2tableind_offsets")
-        print(all_chi_rotind2tableind_offsets)
-        print(all_chi_rotind2tableind_offsets.shape)
 
         sr_coeffs, sr_sizes, sr_strides = cls._calc_semirot_coeffs(dun_database, device)
 
@@ -264,8 +259,6 @@ class DunbrackParamResolver(ValidateAttrs):
         sr_tableset_offsets = cls._create_semirot_offsets(dun_database, device)
 
         sorted_rotamer_2_rotamer = cls.create_sorted_rot_2_rot(all_rotlibs, device)
-        # print("sorted_rotamer_2_rotamer", sorted_rotamer_2_rotamer.shape)
-        # print("sorted_rotamer_2_rotamer", sorted_rotamer_2_rotamer)
 
         rotwells = cls.create_rotamer_well_table(all_rotlibs, device)
 
@@ -731,8 +724,6 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @classmethod
     def create_sorted_rot_2_rot(cls, all_rotlibs, device):
-        # for i, rot in enumerate(all_rotlibs):
-        #     print(i, rot.rotameric_data.prob_sorted_rot_inds.shape)
         sorted_2_rotinds, _1, _2 = cat_differently_sized_tensors(
             [
                 rot.rotameric_data.prob_sorted_rot_inds.permute(2, 0, 1).to(device)
@@ -744,12 +735,9 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @classmethod
     def create_rotamer_well_table(cls, all_rotlibs, device):
-        for rot in all_rotlibs:
-            print(rot.rotameric_data.rotamers.shape)
         rotwells, _1, _2 = cat_differently_sized_tensors(
             [rot.rotameric_data.rotamers.to(device) for rot in all_rotlibs]
         )
-        print("rotwells", rotwells.shape)
         return rotwells
 
     # @validate_args
