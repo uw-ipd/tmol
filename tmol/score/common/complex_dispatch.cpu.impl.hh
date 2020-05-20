@@ -18,6 +18,21 @@ struct ComplexDispatch {
   }
 
   template <typename T, typename Func>
+  static T reduce(TView<T, 1, D> vals, Func op) {
+    if (vals.size(0) == 0) {
+      return T(0);
+    } else if (vals.size(0) == 1) {
+      return vals[0];
+    } else {
+      T val = op(vals[0], vals[1]);
+      for (int ii = 2; ii < vals.size(0); ++ii) {
+        val = op(val, vals[ii - 1]);
+      }
+      return val;
+    }
+  }
+
+  template <typename T, typename Func>
   static void exclusive_scan(TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
     assert(vals.size(0) == out.size(0));
     out[0] = T(0);
