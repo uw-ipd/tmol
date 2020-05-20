@@ -133,6 +133,6 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     # print(retval)
     n_rots_for_brt, n_rots_for_brt_offsets, brt_for_rotamer, chi_for_rotamers = retval
     assert n_rots_for_brt.shape == (6,)
-    assert n_rots_for_brt_offsets == (6,)
+    assert n_rots_for_brt_offsets.shape == (6,)
     assert brt_for_rotamer.shape == (926,)
     assert chi_for_rotamers.shape == (926, 4)
