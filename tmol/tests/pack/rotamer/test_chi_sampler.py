@@ -88,8 +88,6 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     prob_cumsum_limit_for_buildable_restype = _tf32(numpy.full((6,), 0.95, dtype=float))
     nchi_for_buildable_restype = _ti32([4, 2, 2, 2, 2, 3])
 
-    dihedrals = _tf32(numpy.zeros((6), dtype=float))
-
     retval = torch.ops.tmol.dun_sample_chi(
         dun_graph.coords[0, :],
         dun_params.rotameric_prob_tables,
@@ -127,7 +125,6 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
         non_dunbrack_expansion_counts_for_buildable_restype,
         prob_cumsum_limit_for_buildable_restype,
         nchi_for_buildable_restype,
-        dihedrals,
     )
 
     # print(retval)

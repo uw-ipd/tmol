@@ -24,6 +24,20 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <template <tmol::Device> class Dispatch, tmol::Device D, typename Real, typename Int>
 struct DunbrackChiSampler {
+  static void determine_n_possible_rots(
+      TView<Int, 2, D> rottable_set_for_buildable_restype,
+      TView<int64_t, 1, D> n_rotamers_for_tableset,
+      TView<Int, 1, D> n_possible_rotamers_per_brt) {
+    Int const n_brt = rottable_set_for_buildable_restype.size(0);
+    assert(n_possible_rotamers_per_brt.size(0) == n_brt);
+    auto lambda_determine_n_possible_rots = [=](int brt) {
+      Int rottable_set = rottable_set_for_buildable_restype[brt][1];
+      n_possible_rotamers_per_brt[brt] = n_rotamers_for_tableset[rottable_set];
+    };
+
+    Dispatch<D>::forall(n_brt, lambda_determine_n_possible_rots);
+  }
+
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
 
@@ -65,11 +79,7 @@ struct DunbrackChiSampler {
       TView<Real, 3, D> non_dunbrack_expansion_for_buildable_restype,
       TView<Int, 2, D> non_dunbrack_expansion_counts_for_buildable_restype,
       TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
-      TView<Int, 1, D>
-          nchi_for_buildable_restype,  // including hydroxyl chi, e.g.
-
-      // scratch space, perhaps does not belong as an input parameter?
-      TView<Real, 1, D> dihedrals  // ndihe x 1
+      TView<Int, 1, D> nchi_for_buildable_restype  // inc. hydroxyl chi, e.g.
 
       ) -> std::
       tuple<TPack<Int, 1, D>, TPack<Int, 1, D>, TPack<Int, 1, D>, TPack<Real, 2, D> > {
@@ -149,12 +159,10 @@ struct DunbrackChiSampler {
     auto n_possible_rotamers_per_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
     auto n_possible_rotamers_per_brt = n_possible_rotamers_per_brt_tp.view;
 
-    auto determine_n_possible_rots = [=](int brt) {
-      Int rottable_set = rottable_set_for_buildable_restype[brt][1];
-      n_possible_rotamers_per_brt[brt] = n_rotamers_for_tableset[rottable_set];
-    };
-
-    Dispatch<D>::forall(n_brt, determine_n_possible_rots);
+    determine_n_possible_rots(
+        rottable_set_for_buildable_restype,
+        n_rotamers_for_tableset,
+        n_possible_rotamers_per_brt);
 
     auto possible_rotamer_offset_for_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
     auto possible_rotamer_offset_for_brt =
@@ -185,7 +193,7 @@ struct DunbrackChiSampler {
       backbone_dihedrals[i] = dihe;
     };
 
-    Dispatch<D>::forall(dihedrals.size(0), compute_backbone_dihedrals);
+    Dispatch<D>::forall(dihedral_atom_inds.size(0), compute_backbone_dihedrals);
 
     auto brt_for_possible_rotamer_start_tp =
         TPack<Int, 1, D>::zeros(n_possible_rotamers);

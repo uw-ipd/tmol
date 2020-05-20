@@ -18,10 +18,6 @@ using torch::Tensor;
 
 
 template < template <tmol::Device> class DispatchMethod >
-//torch::autograd::variable_list
-//std::tuple< Tensor, Tensor >
-//c10::intrusive_ptr< at::ivalue::TensorList >
-//at::ivalue::TensorList
 std::vector< Tensor >
 dun_sample_chi(
     Tensor coords,
@@ -63,9 +59,7 @@ dun_sample_chi(
     Tensor non_dunbrack_expansion_for_buildable_restype,
     Tensor non_dunbrack_expansion_counts_for_buildable_restype,
     Tensor prob_cumsum_limit_for_buildable_restype,
-    Tensor nchi_for_buildable_restype,
-
-    Tensor dihedrals                        // ndihe x 1
+    Tensor nchi_for_buildable_restype
 ) {
   nvtx_range_push("dunbrack_sample_chi");
   std::cout << "Hit compiled.ops.cpp" << std::endl;
@@ -124,19 +118,8 @@ dun_sample_chi(
             TCAST(non_dunbrack_expansion_for_buildable_restype),
             TCAST(non_dunbrack_expansion_counts_for_buildable_restype),
             TCAST(prob_cumsum_limit_for_buildable_restype),
-	    TCAST(nchi_for_buildable_restype),
+	    TCAST(nchi_for_buildable_restype)
   
-            // ?? TCAST(nrotameric_chi_for_res),
-            // ?? TCAST(rotres2resid),
-            // ?? TCAST(prob_table_offset_for_rotresidue),
-            // ?? TCAST(rotind2tableind_offset_for_res),
-            // ?? TCAST(rotmean_table_offset_for_residue),
-            // ?? TCAST(rotameric_chi_desc),
-            // ?? TCAST(semirotameric_chi_desc),
-            TCAST(dihedrals)
-            // ?? TCAST(ddihe_dxyz),
-            // ?? TCAST(rotameric_rottable_assignment),
-            // ?? TCAST(semirotameric_rottable_assignment)
           );
   
           n_rots_for_brt = std::get<0>(result).tensor;
@@ -167,7 +150,6 @@ dun_sample_chi(
       } catch (c10::Error err) {
     std::cerr << "caught: " << err.what_without_backtrace() << std::endl;
   }
-  //return dihedrals;
 };
 
 
