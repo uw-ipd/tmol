@@ -11,6 +11,8 @@
 #include <tmol/score/common/forall_dispatch.cpu.impl.hh>
 #include <tmol/score/common/geom.hh>
 
+#include <tmol/extern/moderngpu/operators.hxx>
+
 #include <ATen/Tensor.h>
 
 namespace tmol {
@@ -170,26 +172,33 @@ struct DunbrackChiSampler {
       n_possible_rotamers_per_brt[brt] = n_rotamers_for_tableset[rottable_set];
     };
 
-    for (int i = 0; i < n_brt; ++i) {
-      determine_n_possible_rots(i);
-      // std::cout << "n possible rots: " << n_possible_rotamers_per_brt[i] <<
-      // std::endl;
-    }
+    Dispatch<D>::forall(n_brt, determine_n_possible_rots);
+    // for (int i = 0; i < n_brt; ++i) {
+    //   determine_n_possible_rots(i);
+    //   // std::cout << "n possible rots: " << n_possible_rotamers_per_brt[i]
+    //   <<
+    //   // std::endl;
+    // }
 
     auto possible_rotamer_offset_for_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
     auto possible_rotamer_offset_for_brt =
         possible_rotamer_offset_for_brt_tp.view;
 
     // Exclusive cumulative sum of n_possible_rotamers_per_restype
-    for (int i = 1; i < n_brt; ++i) {
-      possible_rotamer_offset_for_brt[i] =
-          possible_rotamer_offset_for_brt[i - 1]
-          + n_possible_rotamers_per_brt[i - 1];
-    }
-
-    // Total number of possible rotamers over all residue types
-    Int const n_possible_rotamers = possible_rotamer_offset_for_brt[n_brt - 1]
-                                    + n_possible_rotamers_per_brt[n_brt - 1];
+    // for (int i = 1; i < n_brt; ++i) {
+    //   possible_rotamer_offset_for_brt[i] =
+    //       possible_rotamer_offset_for_brt[i - 1]
+    //       + n_possible_rotamers_per_brt[i - 1];
+    // }
+    //
+    // // Total number of possible rotamers over all residue types
+    // Int const n_possible_rotamers = possible_rotamer_offset_for_brt[n_brt -
+    // 1]
+    //                                 + n_possible_rotamers_per_brt[n_brt - 1];
+    Int const n_possible_rotamers = Dispatch<D>::exclusive_scan_w_final_val(
+        n_possible_rotamers_per_brt,
+        possible_rotamer_offset_for_brt,
+        mgpu::plus_t<Real>());
 
     // There are some things we need to know about the ith possible rotamer:
     //   1. What buildable_residue type does it come from?
@@ -209,12 +218,18 @@ struct DunbrackChiSampler {
       backbone_dihedrals[i] = dihe;
     };
 
-    for (int i = 0; i < dihedrals.size(0); ++i) {
-      compute_backbone_dihedrals(i);
-      // std::cout << "dihedral " << i << " " << 180 / M_PI *
-      // backbone_dihedrals[i] << std::endl;
-    }
+    Dispatch<D>::forall(dihedrals.size(0), compute_backbone_dihedrals);
 
+    // for (int i = 0; i < dihedrals.size(0); ++i) {
+    //   compute_backbone_dihedrals(i);
+    //   // std::cout << "dihedral " << i << " " << 180 / M_PI *
+    //   // backbone_dihedrals[i] << std::endl;
+    // }
+
+    auto brt_for_possible_rotamer_start_tp =
+        TPack<Int, 1, D>::zeros(n_possible_rotamers);
+    auto brt_for_possible_rotamer_start =
+        brt_for_possible_rotamer_start_tp.view;
     auto brt_for_possible_rotamer_tp =
         TPack<Int, 1, D>::zeros(n_possible_rotamers);
     auto brt_for_possible_rotamer = brt_for_possible_rotamer_tp.view;
@@ -226,11 +241,13 @@ struct DunbrackChiSampler {
     auto mark_possrot_boundary_beginnings = [=](int buildable_restype) {
       Int const offset = possible_rotamer_offset_for_brt[buildable_restype];
       brt_for_possible_rotamer_boundaries[offset] = 1;
-      brt_for_possible_rotamer[offset] = buildable_restype;
+      brt_for_possible_rotamer_start[offset] = buildable_restype;
     };
-    for (int i = 0; i < n_brt; ++i) {
-      mark_possrot_boundary_beginnings(i);
-    }
+
+    // for (int i = 0; i < n_brt; ++i) {
+    //  mark_possrot_boundary_beginnings(i);
+    //}
+    Dispatch<D>::forall(n_brt, mark_possrot_boundary_beginnings);
 
     // for (int i = 0; i < n_possible_rotamers; ++i) {
     //   std::cout << "passrot boundary " << i << " " <<
@@ -239,10 +256,14 @@ struct DunbrackChiSampler {
 
     // Non-segmented scan on "max" to get the brt index for each possible
     // rotamer
-    for (int i = 1; i < n_possible_rotamers; ++i) {
-      brt_for_possible_rotamer[i] = std::max(
-          brt_for_possible_rotamer[i], brt_for_possible_rotamer[i - 1]);
-    }
+    // for (int i = 1; i < n_possible_rotamers; ++i) {
+    //   brt_for_possible_rotamer[i] = std::max(
+    //       brt_for_possible_rotamer[i], brt_for_possible_rotamer[i - 1]);
+    // }
+    Dispatch<D>::inclusive_scan(
+        brt_for_possible_rotamer_start,
+        brt_for_possible_rotamer,
+        mgpu::maximum_t<Int>());
 
     // for (int i = 0; i < n_possible_rotamers; ++i) {
     //   std::cout << "passrot boundary " << i << " " <<
@@ -616,11 +637,11 @@ struct DunbrackChiSampler {
 
     for (int ii = 0; ii < n_rotamers; ++ii) {
       sample_chi_for_rotamer(ii);
-      // std::cout << "rotamer " << ii;
-      // for (int jj=0; jj < max_n_chi; ++jj) {
-      // 	std::cout << " " << 180 / M_PI * chi_for_rotamers[ii][jj];
-      // }
-      // std::cout << std::endl;
+      std::cout << "rotamer " << ii;
+      for (int jj = 0; jj < max_n_chi; ++jj) {
+        std::cout << " " << 180 / M_PI * chi_for_rotamers[ii][jj];
+      }
+      std::cout << std::endl;
     }
 
     return {n_rotamers_to_build_per_brt_tp,
@@ -629,15 +650,6 @@ struct DunbrackChiSampler {
             chi_for_rotamers_tp};
   }
 };
-
-template struct
-    DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, float, int32_t>;
-template struct
-    DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, double, int32_t>;
-template struct
-    DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, float, int64_t>;
-template struct
-    DunbrackChiSampler<score::common::ForallDispatch, tmol::Device::CPU, double, int64_t>;
 
 }  // namespace rotamer
 }  // namespace pack

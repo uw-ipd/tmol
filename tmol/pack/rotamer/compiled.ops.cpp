@@ -3,7 +3,8 @@
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
-#include <tmol/score/common/forall_dispatch.hh>
+// #include <tmol/score/common/forall_dispatch.hh>
+#include <tmol/score/common/complex_dispatch.hh>
 
 #include <vector>
 
@@ -172,7 +173,7 @@ dun_sample_chi(
 
 static auto registry =
     torch::jit::RegisterOperators()
-  .op("tmol::dun_sample_chi", &dun_sample_chi<score::common::ForallDispatch>);
+  .op("tmol::dun_sample_chi", &dun_sample_chi<score::common::ComplexDispatch>);
 
 
 }  // namespace rotamer
