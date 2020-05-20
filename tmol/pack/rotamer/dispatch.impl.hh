@@ -70,23 +70,9 @@ struct DunbrackChiSampler {
 
       // scratch space, perhaps does not belong as an input parameter?
       TView<Real, 1, D> dihedrals  // ndihe x 1
-      // ?? TView<Eigen::Matrix<Real, 4, 3>, 1, D> ddihe_dxyz,  // ndihe x 3
-      // TView<Real, 1, D> rotchi_devpen,                    // n-rotameric-chi
-      // x 1 TView<Real, 2, D> ddevpen_dbb,  // Where d chimean/d dbbdihe is
-      //                                // stored, nscdihe x 2
-      // ?? TView<Int, 1, D> rotameric_rottable_assignment,     // nres x 1
-      // ?? TView<Int, 1, D> semirotameric_rottable_assignment  // nres x 1
 
       ) -> std::
       tuple<TPack<Int, 1, D>, TPack<Int, 1, D>, TPack<Int, 1, D>, TPack<Real, 2, D> > {
-    // std::cout << "Hit compiled.cpu.cpp!" << std::endl;
-    auto rval1 = TPack<Real, 1, D>::zeros({5});
-    auto rval2 = TPack<Real, 1, D>::zeros({5});
-    auto rval1_view = rval1.view;
-
-    auto f = ([=] EIGEN_DEVICE_FUNC(int index) { rval1_view[index] = 4; });
-    Dispatch<D>::forall(5, f);
-
     // construct the list of chi for the rotamers that should be built
     // in 7 stages.
     // 1. State which AAs at which positions
@@ -160,10 +146,6 @@ struct DunbrackChiSampler {
     // The number of buildable residue types across all residues
     Int const n_brt(rottable_set_for_buildable_restype.size(0));
 
-    // I don't remember what I intended for this
-    // auto nchi_for_brt_tp = TPack<Int, 1, D>::zeros({n_brt});
-    // auto nchi_for_brt = nchi_for_brt_tp.view;
-
     auto n_possible_rotamers_per_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
     auto n_possible_rotamers_per_brt = n_possible_rotamers_per_brt_tp.view;
 
@@ -173,28 +155,13 @@ struct DunbrackChiSampler {
     };
 
     Dispatch<D>::forall(n_brt, determine_n_possible_rots);
-    // for (int i = 0; i < n_brt; ++i) {
-    //   determine_n_possible_rots(i);
-    //   // std::cout << "n possible rots: " << n_possible_rotamers_per_brt[i]
-    //   <<
-    //   // std::endl;
-    // }
 
     auto possible_rotamer_offset_for_brt_tp = TPack<Int, 1, D>::zeros(n_brt);
     auto possible_rotamer_offset_for_brt =
         possible_rotamer_offset_for_brt_tp.view;
 
-    // Exclusive cumulative sum of n_possible_rotamers_per_restype
-    // for (int i = 1; i < n_brt; ++i) {
-    //   possible_rotamer_offset_for_brt[i] =
-    //       possible_rotamer_offset_for_brt[i - 1]
-    //       + n_possible_rotamers_per_brt[i - 1];
-    // }
-    //
-    // // Total number of possible rotamers over all residue types
-    // Int const n_possible_rotamers = possible_rotamer_offset_for_brt[n_brt -
-    // 1]
-    //                                 + n_possible_rotamers_per_brt[n_brt - 1];
+    // Exclusive cumulative sum of n_possible_rotamers_per_restype.
+    // Get total number of possible rotamers over all residue types
     Int const n_possible_rotamers = Dispatch<D>::exclusive_scan_w_final_val(
         n_possible_rotamers_per_brt,
         possible_rotamer_offset_for_brt,
@@ -220,12 +187,6 @@ struct DunbrackChiSampler {
 
     Dispatch<D>::forall(dihedrals.size(0), compute_backbone_dihedrals);
 
-    // for (int i = 0; i < dihedrals.size(0); ++i) {
-    //   compute_backbone_dihedrals(i);
-    //   // std::cout << "dihedral " << i << " " << 180 / M_PI *
-    //   // backbone_dihedrals[i] << std::endl;
-    // }
-
     auto brt_for_possible_rotamer_start_tp =
         TPack<Int, 1, D>::zeros(n_possible_rotamers);
     auto brt_for_possible_rotamer_start =
@@ -244,31 +205,14 @@ struct DunbrackChiSampler {
       brt_for_possible_rotamer_start[offset] = buildable_restype;
     };
 
-    // for (int i = 0; i < n_brt; ++i) {
-    //  mark_possrot_boundary_beginnings(i);
-    //}
     Dispatch<D>::forall(n_brt, mark_possrot_boundary_beginnings);
-
-    // for (int i = 0; i < n_possible_rotamers; ++i) {
-    //   std::cout << "passrot boundary " << i << " " <<
-    //   brt_for_possible_rotamer[i] << std::endl;
-    // }
 
     // Non-segmented scan on "max" to get the brt index for each possible
     // rotamer
-    // for (int i = 1; i < n_possible_rotamers; ++i) {
-    //   brt_for_possible_rotamer[i] = std::max(
-    //       brt_for_possible_rotamer[i], brt_for_possible_rotamer[i - 1]);
-    // }
     Dispatch<D>::inclusive_scan(
         brt_for_possible_rotamer_start,
         brt_for_possible_rotamer,
         mgpu::maximum_t<Int>());
-
-    // for (int i = 0; i < n_possible_rotamers; ++i) {
-    //   std::cout << "passrot boundary " << i << " " <<
-    //   brt_for_possible_rotamer[i] << std::endl;
-    // }
 
     // We're eventually going to write down the probabilities for each
     // base rotamer in this tensor
@@ -308,13 +252,10 @@ struct DunbrackChiSampler {
       }
 
       // Look up the index of the rotamer: we know where the rotamer is in
-      // sorted order
-      // but not which chi values this represents. Also look up the "table
-      // index" of
-      // this rotamer, which for some AAs (e.g. LYS) is not the same as the
-      // rotamer
-      // index because some rotamers are too strained to be considered (e.g.
-      // g+,g+,g+,g+)
+      // sorted order but not which chi values this represents. Also look
+      // up the "table index" of this rotamer, which for some AAs
+      // (e.g. LYS) is not the same as the rotamer index because some
+      // rotamers are too strained to be considered (e.g. g+,g+,g+,g+)
       Int const tableset_offset = n_rotamers_for_tableset_offsets[table_set];
       Int const rot_table_ind =
           sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]]
@@ -325,23 +266,8 @@ struct DunbrackChiSampler {
       // int const rot_table_ind = local_table_ind + tableset_offset;
 
       // Now we know which rotamer we'll be building: time to look up
-      // (interpolate)
-      // the rotamer's probability from the rotameric_prob_tables
-      // Int const rotable_ind = tableset_offset + rotno;
-
-      // std::cout << "tableset " << table_set << " tableset_offset " <<
-      // tableset_offset;
-      // std::cout << " possible_rotamer " << possible_rotamer << " sorted_rotno
-      // " << sorted_rotno;
-      // std::cout << " bb inds " << bin_index[0] << " " << bin_index[1];
-      // std::cout << " rot_table_ind " << rot_table_ind << std::endl;
-      //
-      // int nchi = nchi_for_tableset[table_set];
-      // std::cout << "rotamer inds:";
-      // for (int ii = 0; ii < nchi; ++ii) {
-      // 	std::cout << " " << rotwells[rot_table_ind][ii];
-      // }
-      // std::cout << std::endl;
+      // (interpolate) the rotamer's probability from the
+      // rotameric_prob_tables
 
       TensorAccessor<Real, 2, D> rotprob_slice(
           rotameric_prob_tables.data()
@@ -356,18 +282,13 @@ struct DunbrackChiSampler {
       rotamer_probability[possible_rotamer] = std::get<0>(prob_and_derivs);
     };
 
-    // for (int ii = 0; ii < n_possible_rotamers; ++ii) {
-    //   calculate_possible_rotamer_probability(ii);
-    // }
-
     Dispatch<D>::forall(
         n_possible_rotamers, calculate_possible_rotamer_probability);
 
     // OK
     // Now we perform (exclusive) segmented scans on the possible-rotamer
-    // probabilities
-    // to get the cumulative sums of the probabilities so that we can decide
-    // where to put the cutoff
+    // probabilities to get the cumulative sums of the probabilities so
+    // that we can decide where to put the cutoff
 
     for (int ii = 0; ii < n_possible_rotamers; ++ii) {
       if (ii > 0 && !brt_for_possible_rotamer_boundaries[ii]) {
@@ -396,9 +317,6 @@ struct DunbrackChiSampler {
       build_possible_rotamer[possible_rotamer] = keep;
     };
 
-    // for (int ii = 0; ii < n_possible_rotamers; ++ii) {
-    //   decide_on_possible_rotamer(ii);
-    // }
     Dispatch<D>::forall(n_possible_rotamers, decide_on_possible_rotamer);
 
     // Let's count the number of possible rotamers we're keeping per restype
@@ -432,18 +350,7 @@ struct DunbrackChiSampler {
 
     Dispatch<D>::forall(n_brt, count_rots_to_build_per_brt);
 
-    // for (int ii = 0; ii < n_brt; ++ii) {
-    //   count_rots_to_build_per_brt(ii);
-    //   // std::cout << "n_rotamers_to_build_per_brt[" << ii << "] ";
-    //   // std::cout << n_rotamers_to_build_per_brt[ii] << std::endl;
-    // }
-
-    // max_n_chi: I donno. reduction on max
-    // Int max_n_chi = 0;
-    // for (int ii = 0; ii < n_brt; ++ii) {
-    //   max_n_chi = std::max(max_n_chi, nchi_for_buildable_restype[ii]);
-    // }
-
+    // max_n_chi: reduction on max
     Int max_n_chi =
         Dispatch<D>::reduce(nchi_for_buildable_restype, mgpu::maximum_t<Int>());
 
@@ -487,28 +394,12 @@ struct DunbrackChiSampler {
 
     Dispatch<D>::forall(n_brt, count_expansions_for_brt);
 
-    // for (int ii = 0; ii < n_brt; ++ii) {
-    //   count_expansions_for_brt(ii);
-    //   // std::cout << "n_expansions_for_brt[" << ii << "] ";
-    //   // std::cout << n_expansions_for_brt[ii] << " ";
-    //   // std::cout << "n_rotamers_to_build_per_brt[" << ii << "] ";
-    //   // std::cout << n_rotamers_to_build_per_brt[ii] << std::endl;
-    // }
-
     auto n_rotamers_to_build_per_brt_offsets_tp =
         TPack<Int, 1, D>::zeros(n_brt);
     auto n_rotamers_to_build_per_brt_offsets =
         n_rotamers_to_build_per_brt_offsets_tp.view;
 
     // Exclusive cumumaltive sum
-    // for (int ii = 1; ii < n_brt; ++ii) {
-    //   n_rotamers_to_build_per_brt_offsets[ii] =
-    //       n_rotamers_to_build_per_brt_offsets[ii - 1]
-    //       + n_rotamers_to_build_per_brt[ii - 1];
-    // }
-    // Int const n_rotamers = n_rotamers_to_build_per_brt_offsets[n_brt - 1]
-    //                        + n_rotamers_to_build_per_brt[n_brt - 1];
-
     Int const n_rotamers = Dispatch<D>::exclusive_scan_w_final_val(
         n_rotamers_to_build_per_brt,
         n_rotamers_to_build_per_brt_offsets,
@@ -532,20 +423,9 @@ struct DunbrackChiSampler {
 
     Dispatch<D>::forall(n_brt, mark_rot_brt_boundary_beginnings);
 
-    // for (int ii = 0; ii < n_brt; ++ii) {
-    //   mark_rot_brt_boundary_beginnings(ii);
-    // }
-
     // Now scan on max and record the restype for each rotamer
     Dispatch<D>::inclusive_scan(
         brt_for_rotamer_start, brt_for_rotamer, mgpu::maximum_t<Int>());
-    // for (int ii = 1; ii < n_rotamers; ++ii) {
-    //   brt_for_rotamer[ii] =
-    //       std::max(brt_for_rotamer[ii], brt_for_rotamer[ii - 1]);
-    //   // std::cout << "brt for rotamer " << ii << " " << brt_for_rotamer[ii]
-    //   <<
-    //   // std::endl;
-    // }
 
     // OK Now allocate space for the chi that we're going to write to
     // auto chi_for_rotamers_tp = TPack<Real, 2, D>::empty({n_rotamers,
@@ -600,15 +480,6 @@ struct DunbrackChiSampler {
           n_dun_chi * sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]]
                                               [tableset_offset + base_rotno]
           + rotmean_offset;
-
-      // {
-      // int nchi = nchi_for_tableset[table_set];
-      // std::cout << "rotamer inds:";
-      // for (int ii = 0; ii < nchi; ++ii) {
-      // 	std::cout << " " << rotwells[rot_table_ind][ii];
-      // }
-      // std::cout << std::endl;
-      // }
 
       // OK: we have the phi & psi values, and we have the rotamer index
       // Now we can start calculating the chi.
@@ -675,14 +546,13 @@ struct DunbrackChiSampler {
 
     Dispatch<D>::forall(n_rotamers, sample_chi_for_rotamer);
 
-    for (int ii = 0; ii < n_rotamers; ++ii) {
-      // sample_chi_for_rotamer(ii);
-      std::cout << "rotamer " << ii;
-      for (int jj = 0; jj < max_n_chi; ++jj) {
-        std::cout << " " << 180 / M_PI * chi_for_rotamers[ii][jj];
-      }
-      std::cout << std::endl;
-    }
+    // for (int ii = 0; ii < n_rotamers; ++ii) {
+    //   std::cout << "rotamer " << ii;
+    //   for (int jj = 0; jj < max_n_chi; ++jj) {
+    //     std::cout << " " << 180 / M_PI * chi_for_rotamers[ii][jj];
+    //   }
+    //   std::cout << std::endl;
+    // }
 
     return {n_rotamers_to_build_per_brt_tp,
             n_rotamers_to_build_per_brt_offsets_tp,
