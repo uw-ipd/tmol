@@ -26,7 +26,7 @@ struct ComplexDispatch {
     } else {
       T val = op(vals[0], vals[1]);
       for (int ii = 2; ii < vals.size(0); ++ii) {
-        val = op(val, vals[ii - 1]);
+        val = op(val, vals[ii]);
       }
       return val;
     }

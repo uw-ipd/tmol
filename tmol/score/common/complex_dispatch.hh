@@ -14,11 +14,24 @@ struct ComplexDispatch {
   static void forall(Int N, Func f);
 
   template <typename T, typename Func>
+  static T reduce(TView<T, 1, D> vals, Func op);
+
+  template <typename T, typename Func>
   static void exclusive_scan(TView<T, 1, D> vals, TView<T, 1, D> out, Func op);
+
+  template <typename T, typename Func>
+  static void inclusive_scan(TView<T, 1, D> vals, TView<T, 1, D> out, Func op);
 
   template <typename T, typename Func>
   static T exclusive_scan_w_final_val(
       TView<T, 1, D> vals, TView<T, 1, D> out, Func op);
+
+  template <typename T, typename B, typename Func>
+  static void exclusive_segmented_scan(
+      TView<T, 1, D> vals,
+      TView<B, 1, D> seg_start,
+      TView<T, 1, D> out,
+      Func op);
 };
 }
 }
