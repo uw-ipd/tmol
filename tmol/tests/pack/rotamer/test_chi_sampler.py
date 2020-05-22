@@ -10,6 +10,18 @@ from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
 from tmol.score.score_graph import score_graph
 from tmol.score.dunbrack.params import DunbrackParamResolver
 
+from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
+
+
+def get_compiled():
+    compiled = load(
+        modulename(__name__),
+        cuda_if_available(
+            relpaths(__file__, ["compiled.pybind.cpp", "test.cpp"])  #   "test.cu"??
+        ),
+    )
+    return compiled
+
 
 def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_device):
     # print("starting test sample chi for rotamers smoke")
@@ -133,3 +145,66 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     assert n_rots_for_brt_offsets.shape == (6,)
     assert brt_for_rotamer.shape == (926,)
     assert chi_for_rotamers.shape == (926, 4)
+
+
+def test_determine_n_possible_rots(default_database, torch_device):
+    compiled = get_compiled()
+    resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_params = resolver.sampling_db
+
+    rottable_set_for_buildable_restype = torch.tensor(
+        [
+            [0, 2],  # lys
+            [0, 7],  # ser
+            [1, 3],  # leu
+            [1, 16],  # trp
+            [1, 0],  # cys
+            [2, 17],
+        ],  # tyr
+        dtype=torch.int32,
+        device=torch_device,
+    )
+
+    n_possible_rotamers_per_brt = torch.zeros(
+        (6,), dtype=torch.int32, device=torch_device
+    )
+
+    compiled.determine_n_possible_rots(
+        rottable_set_for_buildable_restype,
+        dun_params.n_rotamers_for_tableset,
+        n_possible_rotamers_per_brt,
+    )
+
+    n_poss_gold = dun_params.n_rotamers_for_tableset[
+        rottable_set_for_buildable_restype[:, 1].to(torch.int64)
+    ].to(torch.int32)
+    # print(n_possible_rotamers_per_brt)
+    # print(n_poss_gold)
+    numpy.testing.assert_equal(
+        n_poss_gold.cpu().numpy(), n_possible_rotamers_per_brt.cpu().numpy()
+    )
+
+
+def test_fill_in_brt_for_possrots(torch_device):
+    compiled = get_compiled()
+
+    def _ti32(l):
+        return torch.tensor(l, dtype=torch.int32, device=torch_device)
+
+    offsets = numpy.array([0, 5, 10, 15], dtype=numpy.int32)
+    possible_rotamer_offset_for_brt = _ti32(offsets)
+    brt_for_possrot = torch.zeros((20,), dtype=torch.int32, device=torch_device)
+    brt_for_possrot_bndrys = torch.zeros((20,), dtype=torch.int32, device=torch_device)
+    compiled.fill_in_brt_for_possrots(
+        possible_rotamer_offset_for_brt, brt_for_possrot, brt_for_possrot_bndrs
+    )
+
+    brt_for_possrot_gold = numpy.array(
+        [0] * 5 + [1] * 5 + [2] * 5 + [3] * 5, dtype=numpy.int32
+    )
+    numpy.testing.assert_equal(brt_for_possrot_gold, brt_for_possrot)
+    brt_for_possrot_bndry_gold = numpy.zeros((20,), dtype=numpy.int32)
+    brt_for_possrot_bndry_gold[offsets] = 1
+    numpy.testing.assert_equal(brt_for_possrot_bndry_gold, brt_for_possrot_bndry)
