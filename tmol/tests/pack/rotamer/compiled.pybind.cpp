@@ -35,7 +35,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     "brt_for_possible_rotamer_boundaries"_a);
 
   m.def(
-      "determine_n_possible_rots",
+      "interpolate_probabilities_for_possible_rotamers",
       &DunbrackChiSamplerTester<
           tmol::score::common::ComplexDispatch,
           Device::CPU,

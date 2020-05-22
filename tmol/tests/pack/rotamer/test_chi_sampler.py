@@ -196,9 +196,9 @@ def test_fill_in_brt_for_possrots(torch_device):
     offsets = numpy.array([0, 5, 10, 15], dtype=numpy.int32)
     possible_rotamer_offset_for_brt = _ti32(offsets)
     brt_for_possrot = torch.zeros((20,), dtype=torch.int32, device=torch_device)
-    brt_for_possrot_bndrys = torch.zeros((20,), dtype=torch.int32, device=torch_device)
+    brt_for_possrot_bndry = torch.zeros((20,), dtype=torch.int32, device=torch_device)
     compiled.fill_in_brt_for_possrots(
-        possible_rotamer_offset_for_brt, brt_for_possrot, brt_for_possrot_bndrs
+        possible_rotamer_offset_for_brt, brt_for_possrot, brt_for_possrot_bndry
     )
 
     brt_for_possrot_gold = numpy.array(
@@ -208,3 +208,97 @@ def test_fill_in_brt_for_possrots(torch_device):
     brt_for_possrot_bndry_gold = numpy.zeros((20,), dtype=numpy.int32)
     brt_for_possrot_bndry_gold[offsets] = 1
     numpy.testing.assert_equal(brt_for_possrot_bndry_gold, brt_for_possrot_bndry)
+
+
+def test_interpolate_probabilities_for_possible_rotamers(
+    default_database, torch_device
+):
+    # let's just test phe at a grid point
+
+    compiled = get_compiled()
+    resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_params = resolver.sampling_db
+
+    rottable_set_for_buildable_restype = torch.tensor(
+        [[0, 12]], dtype=torch.int32, device=torch_device
+    )
+    brt_for_possible_rotamer = torch.zeros(
+        (18,), dtype=torch.int32, device=torch_device
+    )
+    possible_rotamer_offset_for_brt = torch.zeros(
+        (1,), dtype=torch.int32, device=torch_device
+    )
+    backbone_dihedrals = torch.tensor(
+        numpy.pi / 180 * numpy.array([-110, 140]),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    rotamer_probability = torch.full(
+        (18,), -1.0, dtype=torch.float32, device=torch_device
+    )
+
+    compiled.interpolate_probabilities_for_possible_rotamers(
+        dun_params.rotameric_prob_tables,
+        dun_params.rotprob_table_sizes,
+        dun_params.rotprob_table_strides,
+        dun_params.rotameric_bb_start,
+        dun_params.rotameric_bb_step,
+        dun_params.rotameric_bb_periodicity,
+        dun_params.n_rotamers_for_tableset_offsets,
+        dun_params.sorted_rotamer_2_rotamer,
+        rottable_set_for_buildable_restype,
+        brt_for_possible_rotamer,
+        possible_rotamer_offset_for_brt,
+        backbone_dihedrals,
+        rotamer_probability,
+    )
+
+    # PHE -110 140 0 3 1 0 0 0.18027    -66.8 93 0 0 8.4 8.1 0 0
+    # PHE -110 140 0 3 6 0 0 0.0823506  -66.8 71 0 0 8.4 6.8 0 0
+    # PHE -110 140 0 3 2 0 0 0.116819   -66.8 119.6 0 0 8.4 8.1 0 0
+    # PHE -110 140 0 2 1 0 0 0.165068    178.4 78.2 0 0 10.5 8 0 0
+    # PHE -110 140 0 3 3 0 0 0.109428    -66.8 -26.6 0 0 8.4 8.7 0 0
+    # PHE -110 140 0 2 2 0 0 0.0801794   178.4 101 0 0 10.5 6.7 0 0
+    # PHE -110 140 0 3 4 0 0 0.0965739   -66.8 2.1 0 0 8.4 8.4 0 0
+    # PHE -110 140 0 2 6 0 0 0.0376458   178.4 54.5 0 0 10.5 7 0 0
+    # PHE -110 140 0 3 5 0 0 0.0861078   -66.8 35.2 0 0 8.4 9.3 0 0
+    # PHE -110 140 0 1 1 0 0 0.0259214    62.7 90.6 0 0 8.6 7.3 0 0
+    # PHE -110 140 0 2 5 0 0 0.00589813   178.4 24.3 0 0 10.5 7.1 0 0
+    # PHE -110 140 0 2 3 0 0 0.00565283   178.4 130.3 0 0 10.5 6.8 0 0
+    # PHE -110 140 0 1 6 0 0 0.00435724   62.7 69.6 0 0 8.6 5.8 0 0
+    # PHE -110 140 0 1 2 0 0 0.00288873   62.7 111.3 0 0 8.6 5.2 0 0
+    # PHE -110 140 0 2 4 0 0 0.000622143  178.4 -10.3 0 0 10.5 9.4 0 0
+    # PHE -110 140 0 1 3 0 0 9.6065e-05   62.7 147 0 0 8.6 8.3 0 0
+    # PHE -110 140 0 1 5 0 0 9.55346e-05 62.7 37.7 0 0 8.6 7.2 0 0
+    # PHE -110 140 0 1 4 0 0 2.59811e-05 62.7 -1.2 0 0 8.6 8.8 0 0
+
+    rotprob_gold = numpy.array(
+        sorted(
+            [
+                0.18027,
+                0.0823506,
+                0.116819,
+                0.165068,
+                0.109428,
+                0.0801794,
+                0.0965739,
+                0.0376458,
+                0.0861078,
+                0.0259214,
+                0.00589813,
+                0.00565283,
+                0.00435724,
+                0.00288873,
+                0.000622143,
+                9.6065e-05,
+                9.55346e-05,
+                2.59811e-05,
+            ],
+            reverse=True,
+        )
+    )
+    numpy.testing.assert_allclose(
+        rotprob_gold, rotamer_probability.cpu().numpy(), rtol=1e-5, atol=1e-5
+    )
