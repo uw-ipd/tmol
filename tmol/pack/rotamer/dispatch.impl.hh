@@ -692,8 +692,7 @@ struct DunbrackChiSampler {
               tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
                   rotmean_slice, bbdihe);
           ii_chi = std::get<0>(mean_and_derivs);
-          if (chi_expansion_for_buildable_restype[brt][ii]
-              && ii_expansion > 0) {
+          if (chi_expansion_for_buildable_restype[brt][ii]) {
             // OK! we expand this chi; so retrieve the standard deviation
             TensorAccessor<Real, 2, D> rotsdev_slice(
                 rotameric_sdev_tables.data()
@@ -706,11 +705,10 @@ struct DunbrackChiSampler {
                 tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::
                     interpolate(rotsdev_slice, bbdihe);
             Real sdev = std::get<0>(sdev_and_derivs);
-            if (ii_expansion == 1) {
-              ii_chi += sdev;
-            } else {
-              // i.e ii_expansion == 2
+            if (ii_expansion == 0) {
               ii_chi -= sdev;
+            } else if (ii_expansion == 2) {
+              ii_chi += sdev;
             }
           }
         } else {

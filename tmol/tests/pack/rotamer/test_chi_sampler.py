@@ -87,12 +87,13 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
             [1, 1, 0, 0],
         ]
     )
-    nans_for_expansion = numpy.empty((6, 4, 18), dtype=float)
-    nans_for_expansion[:] = numpy.nan
-    nans_for_expansion[1, 1, :] = 20 * numpy.pi / 180 * numpy.arange(18, dtype=float)
-    nans_for_expansion[4, 1, 0:3] = 120 * numpy.pi / 180 * numpy.arange(3, dtype=float)
-    nans_for_expansion[5, 2, 0:2] = 180 * numpy.pi / 180 * numpy.arange(2, dtype=float)
-    non_dunbrack_expansion_for_buildable_restype = _tf32(nans_for_expansion)
+    expansion_samples = numpy.empty((6, 4, 18), dtype=float)
+    expansion_samples[:] = numpy.nan
+    expansion_samples[1, 1, :] = 20 * numpy.pi / 180 * numpy.arange(18, dtype=float)
+    expansion_samples[4, 1, 0:3] = 120 * numpy.pi / 180 * numpy.arange(3, dtype=float)
+    expansion_samples[5, 2, 0:2] = 180 * numpy.pi / 180 * numpy.arange(2, dtype=float)
+    non_dunbrack_expansion_for_buildable_restype = _tf32(expansion_samples)
+
     non_dunbrack_expansion_counts_for_buildable_restype = _ti32(numpy.zeros((6, 4)))
     non_dunbrack_expansion_counts_for_buildable_restype[1, 1] = 18
     non_dunbrack_expansion_counts_for_buildable_restype[4, 1] = 3
@@ -488,6 +489,7 @@ def test_count_expanded_rotamers(default_database, torch_device):
         n_rotamers_to_build_per_brt,
         n_rotamers_to_build_per_brt_offsets,
     )
+    assert 200 == nrots
     n_expansions_for_brt_gold = numpy.array([9, 54, 1, 9, 9, 18], dtype=numpy.int32)
     expansion_dim_prods_for_brt_gold = numpy.array(
         [
@@ -519,16 +521,6 @@ def test_count_expanded_rotamers(default_database, torch_device):
         n_rotamers_to_build_per_brt_offsets.cpu(),
     )
 
-    # print("n_expansions_for_brt")
-    # print(n_expansions_for_brt)
-    # print("expansion_dim_prods_for_brt")
-    # print(expansion_dim_prods_for_brt)
-    # print("n_rotamers_to_build_per_brt")
-    # print(n_rotamers_to_build_per_brt)
-    # print("n_rotamers_to_build_per_brt_offsets")
-    # print(n_rotamers_to_build_per_brt_offsets)
-    # print("nrots", nrots)
-
 
 def test_map_from_rotaer_index_to_brt(torch_device):
     compiled = get_compiled()
@@ -546,3 +538,109 @@ def test_map_from_rotaer_index_to_brt(torch_device):
         dtype=numpy.int32,
     )
     numpy.testing.assert_equal(brt_for_rotamer_gold, brt_for_rotamer.cpu())
+
+
+def test_sample_chi_for_rotamers(default_database, torch_device):
+    def _ti32(l):
+        return torch.tensor(l, dtype=torch.int32, device=torch_device)
+
+    compiled = get_compiled()
+    resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_params = resolver.sampling_db
+
+    # look, we're going to use phe but treat it like tyr.
+    # why? why not just use tyr? Because I already have all the numbers
+    # for phe, and I don't have the numbers for tyr and because the
+    # code does not care at all that we are adding an extra chi to phe.
+    # The code says "you want phe with an extra chi, you got it" and
+    # maybe that's becuse you're modeling a weird phe + phosphate group
+    # or something.
+    rottable_set_for_buildable_restype = _ti32([[0, 12]])
+    chi_expansion_for_buildable_restype = _ti32([[1, 1, 0, 0]])
+    # non_dunbrack_expansion_counts_for_buildable_restype = _ti32(numpy.zeros((1, 4)))
+    # non_dunbrack_expansion_counts_for_buildable_restype[0, 2] = 2
+    non_dunbrack_expansion_for_buildable_restype = torch.tensor(
+        numpy.array([[[numpy.nan, numpy.nan], [numpy.nan, numpy.nan], [0.25, 1.25]]]),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    nchi_for_buildable_restype = _ti32([3])
+
+    # sample on a grid point so we can read off the correct answers
+    # from the database file itself
+    backbone_dihedrals = torch.tensor(
+        numpy.pi / 180 * numpy.array([-110, 140]),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+
+    n_rotamers_to_build_per_brt_offsets = _ti32([0])
+    brt_for_rotamer = _ti32([0] * 18 * 9)
+    n_expansions_for_brt = _ti32([18])
+    expansion_dim_prods_for_brt = _ti32([[6, 2, 1]])
+    chi_for_rotamers = torch.zeros(
+        (18 * 9, 3), dtype=torch.float32, device=torch_device
+    )
+
+    compiled.sample_chi_for_rotamers(
+        dun_params.rotameric_mean_tables,
+        dun_params.rotameric_sdev_tables,
+        dun_params.rotmean_table_sizes,
+        dun_params.rotmean_table_strides,
+        dun_params.rotameric_meansdev_tableset_offsets,
+        dun_params.rotameric_bb_start,
+        dun_params.rotameric_bb_step,
+        dun_params.rotameric_bb_periodicity,
+        dun_params.sorted_rotamer_2_rotamer,
+        dun_params.nchi_for_table_set,
+        rottable_set_for_buildable_restype,
+        chi_expansion_for_buildable_restype,
+        non_dunbrack_expansion_for_buildable_restype,
+        nchi_for_buildable_restype,
+        backbone_dihedrals,
+        n_rotamers_to_build_per_brt_offsets,
+        brt_for_rotamer,
+        n_expansions_for_brt,
+        dun_params.n_rotamers_for_tableset_offsets,
+        expansion_dim_prods_for_brt,
+        chi_for_rotamers,
+    )
+
+    # PHE -110 140 0 3 1 0 0 0.18027    -66.8   93   0 0 8.4  8.1 0 0
+    # PHE -110 140 0 2 1 0 0 0.165068   178.4   78.2 0 0 10.5 8   0 0
+    # PHE -110 140 0 3 2 0 0 0.116819   -66.8  119.6 0 0 8.4  8.1 0 0
+    # PHE -110 140 0 3 3 0 0 0.109428   -66.8  -26.6 0 0 8.4  8.7 0 0
+    # PHE -110 140 0 3 4 0 0 0.0965739  -66.8    2.1 0 0 8.4  8.4 0 0
+    # PHE -110 140 0 3 5 0 0 0.0861078  -66.8   35.2 0 0 8.4  9.3 0 0
+    # PHE -110 140 0 3 6 0 0 0.0823506  -66.8   71   0 0 8.4  6.8 0 0
+    # PHE -110 140 0 2 2 0 0 0.0801794  178.4  101   0 0 10.5 6.7 0 0
+    # PHE -110 140 0 2 6 0 0 0.0376458  178.4  54.5  0 0 10.5 7   0 0
+
+    chi1_means = numpy.array(
+        [-66.8, 178.4, -66.8, -66.8, -66.8, -66.8, -66.8, 178.4, 178.4]
+    )
+    chi2_means = numpy.array([93, 78.2, 119.6, -26.6, 2.1, 35.2, 71, 101, 54.5])
+    chi1_sdevs = numpy.array([8.4, 10.5, 8.4, 8.4, 8.4, 8.4, 8.4, 10.5, 10.5])
+    chi2_sdevs = numpy.array([8.1, 8, 8.1, 8.7, 8.4, 9.3, 6.8, 6.7, 7])
+    chi_for_rotamers_gold = numpy.zeros((18 * 9, 3), dtype=numpy.float32)
+    ar162 = numpy.arange(162, dtype=int)
+    chi_for_rotamers_gold[:, 0] = chi1_means[ar162 // 18]
+    chi_for_rotamers_gold[:, 1] = chi2_means[ar162 // 18]
+    chi1sd_minus = ar162 % 18 < 6
+    chi1sd_plus = ar162 % 18 >= 12
+    chi_for_rotamers_gold[chi1sd_minus, 0] -= chi1_sdevs[ar162 // 18][chi1sd_minus]
+    chi_for_rotamers_gold[chi1sd_plus, 0] += chi1_sdevs[ar162 // 18][chi1sd_plus]
+    chi2sd_minus = ar162 % 6 < 2
+    chi2sd_plus = ar162 % 6 >= 4
+    chi_for_rotamers_gold[chi2sd_minus, 1] -= chi2_sdevs[ar162 // 18][chi2sd_minus]
+    chi_for_rotamers_gold[chi2sd_plus, 1] += chi2_sdevs[ar162 // 18][chi2sd_plus]
+    chi_for_rotamers_gold *= numpy.pi / 180
+
+    chi_for_rotamers_gold[ar162 % 2 == 0, 2] = 0.25
+    chi_for_rotamers_gold[ar162 % 2 == 1, 2] = 1.25
+
+    numpy.testing.assert_allclose(
+        chi_for_rotamers_gold, chi_for_rotamers, atol=1e-5, rtol=1e-5
+    )
