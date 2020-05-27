@@ -98,7 +98,7 @@ struct DunbrackChiSampler {
       TView<Real, 1, D> rotamer_probability,
       TView<Int, 1, D> n_rotamers_to_build_per_brt);
 
-  static Int count_expanded_rotamers(
+  static void count_expanded_rotamers(
       TView<Int, 1, D> nchi_for_buildable_restype,
       TView<Int, 2, D> rottable_set_for_buildable_restype,
       TView<Int, 1, D> nchi_for_tableset,

@@ -58,7 +58,7 @@ struct ComplexDispatch {
     for (int ii = 1; ii < vals.size(0); ++ii) {
       out[ii] = op(out[ii - 1], vals[ii - 1]);
     }
-    return out[out.size(0) - 1] + vals[vals.size(0) - 1];
+    return op(out[out.size(0) - 1], vals[vals.size(0) - 1]);
   }
 
   template <typename T, typename B, typename Func>

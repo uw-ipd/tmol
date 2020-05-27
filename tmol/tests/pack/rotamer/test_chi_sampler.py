@@ -143,8 +143,8 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     n_rots_for_brt, n_rots_for_brt_offsets, brt_for_rotamer, chi_for_rotamers = retval
     assert n_rots_for_brt.shape == (6,)
     assert n_rots_for_brt_offsets.shape == (6,)
-    assert brt_for_rotamer.shape == (926,)
-    assert chi_for_rotamers.shape == (926, 4)
+    assert brt_for_rotamer.shape == (826,)
+    assert chi_for_rotamers.shape == (826, 4)
 
 
 def test_determine_n_possible_rots(default_database, torch_device):
@@ -302,3 +302,220 @@ def test_interpolate_probabilities_for_possible_rotamers(
     numpy.testing.assert_allclose(
         rotprob_gold, rotamer_probability.cpu().numpy(), rtol=1e-5, atol=1e-5
     )
+
+
+def test_determine_n_base_rotamers_to_build_1(torch_device):
+    compiled = get_compiled()
+    prob_cumsum_limit_for_buildable_restype = torch.tensor([0.95], device=torch_device)
+    n_possible_rotamers_per_brt = torch.tensor(
+        [18], dtype=torch.int32, device=torch_device
+    )
+    brt_for_possrot = torch.zeros((18,), dtype=torch.int32, device=torch_device)
+    brt_for_possrot_bndry = torch.zeros((18,), dtype=torch.int32, device=torch_device)
+    brt_for_possrot_bndry[0] = 1
+    possrot_offset_for_brt = torch.zeros((1,), dtype=torch.int32, device=torch_device)
+
+    rotprob_gold = numpy.array(
+        sorted(
+            [
+                0.18027,
+                0.0823506,
+                0.116819,
+                0.165068,
+                0.109428,
+                0.0801794,
+                0.0965739,
+                0.0376458,
+                0.0861078,
+                0.0259214,
+                0.00589813,
+                0.00565283,
+                0.00435724,
+                0.00288873,
+                0.000622143,
+                9.6065e-05,
+                9.55346e-05,
+                2.59811e-05,
+            ],
+            reverse=True,
+        )
+    )
+
+    rotamer_probability = torch.tensor(
+        rotprob_gold, dtype=torch.float32, device=torch_device
+    )
+    n_rotamers_to_build_per_brt = torch.zeros(
+        (1,), dtype=torch.int32, device=torch_device
+    )
+
+    compiled.determine_n_base_rotamers_to_build(
+        prob_cumsum_limit_for_buildable_restype,
+        n_possible_rotamers_per_brt,
+        brt_for_possrot,
+        brt_for_possrot_bndry,
+        possrot_offset_for_brt,
+        rotamer_probability,
+        n_rotamers_to_build_per_brt,
+    )
+
+    assert 9 == n_rotamers_to_build_per_brt[0]
+
+
+def test_determine_n_base_rotamers_to_build_2(torch_device):
+    compiled = get_compiled()
+    prob_cumsum_limit_for_buildable_restype = torch.tensor(
+        [0.95, 0.99], device=torch_device
+    )
+    n_possible_rotamers_per_brt = torch.tensor(
+        [18, 18], dtype=torch.int32, device=torch_device
+    )
+    brt_for_possrot_a = torch.zeros((18,), dtype=torch.int32, device=torch_device)
+    brt_for_possrot_b = torch.ones((18,), dtype=torch.int32, device=torch_device)
+    brt_for_possrot = torch.cat((brt_for_possrot_a, brt_for_possrot_b))
+    brt_for_possrot_bndry = torch.zeros((36,), dtype=torch.int32, device=torch_device)
+    brt_for_possrot_bndry[0] = 1
+    brt_for_possrot_bndry[18] = 1
+    possrot_offset_for_brt = torch.zeros((2,), dtype=torch.int32, device=torch_device)
+    possrot_offset_for_brt[1] = 18
+
+    rotprob_gold = numpy.array(
+        sorted(
+            [
+                0.18027,
+                0.0823506,
+                0.116819,
+                0.165068,
+                0.109428,
+                0.0801794,
+                0.0965739,
+                0.0376458,
+                0.0861078,
+                0.0259214,
+                0.00589813,
+                0.00565283,
+                0.00435724,
+                0.00288873,
+                0.000622143,
+                9.6065e-05,
+                9.55346e-05,
+                2.59811e-05,
+            ],
+            reverse=True,
+        )
+    )
+
+    rotamer_probability = torch.tensor(
+        numpy.concatenate((rotprob_gold, rotprob_gold)),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    # rotamer probability cumsum:
+    # 0 0 1 0.18027 2 0.345338 3 0.462157 4 0.571585
+    # 5 0.668159 6 0.754267 7 0.836617 8 0.916797 9 0.954443
+    # 10 0.980364 11 0.986262 12 0.991915 13 0.996272 14 0.999161
+    # 15 0.999783 16 0.999879 17 0.999975 18 0 19 0.18027
+    # 20 0.345338 21 0.462157 22 0.571585 23 0.668159 24 0.754267
+    # 25 0.836617 26 0.916797 27 0.954443 28 0.980364 29 0.986262
+    # 30 0.991915 31 0.996272 32 0.999161 33 0.999783 34 0.999879
+    # 35 0.999975
+
+    n_rotamers_to_build_per_brt = torch.zeros(
+        (2,), dtype=torch.int32, device=torch_device
+    )
+
+    compiled.determine_n_base_rotamers_to_build(
+        prob_cumsum_limit_for_buildable_restype,
+        n_possible_rotamers_per_brt,
+        brt_for_possrot,
+        brt_for_possrot_bndry,
+        possrot_offset_for_brt,
+        rotamer_probability,
+        n_rotamers_to_build_per_brt,
+    )
+
+    assert 9 == n_rotamers_to_build_per_brt[0]
+    assert 12 == n_rotamers_to_build_per_brt[1]
+
+
+def test_count_expanded_rotamers(default_database, torch_device):
+    print("test count expanded rotamers", torch_device)
+    compiled = get_compiled()
+    resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_params = resolver.sampling_db
+
+    def _ti32(l):
+        return torch.tensor(l, dtype=torch.int32, device=torch_device)
+
+    nchi_for_buildable_restype = _ti32([4, 2, 2, 2, 2, 3])
+    rottable_set_for_buildable_restype = _ti32(
+        [
+            [0, 2],  # lys
+            [0, 7],  # ser
+            [1, 3],  # leu
+            [1, 16],  # trp
+            [1, 0],  # cys
+            [2, 17],
+        ]  # tyr
+    )
+    print("rottable_set_for_buildable_restype")
+    print(rottable_set_for_buildable_restype.shape)
+    chi_expansion_for_buildable_restype = _ti32(
+        [
+            [1, 1, 0, 0],
+            [1, 0, 0, 0],
+            [0, 0, 0, 0],
+            [1, 1, 0, 0],
+            [1, 0, 0, 0],
+            [1, 1, 0, 0],
+        ]
+    )
+    non_dunbrack_expansion_counts_for_buildable_restype = _ti32(numpy.zeros((6, 4)))
+    non_dunbrack_expansion_counts_for_buildable_restype[1, 1] = 18
+    non_dunbrack_expansion_counts_for_buildable_restype[4, 1] = 3
+    non_dunbrack_expansion_counts_for_buildable_restype[5, 2] = 2
+    n_expansions_for_brt = _ti32([0] * 6)
+    expansion_dim_prods_for_brt = _ti32([0] * 24).reshape((6, 4))
+    n_rotamers_to_build_per_brt = _ti32([1] * 6)
+    n_rotamers_to_build_per_brt_offsets = _ti32([0] * 6)
+
+    print("nchi_for_buildable_restype.shape")
+    print(nchi_for_buildable_restype.shape)
+    print("rottable_set_for_buildable_restype.shape")
+    print(rottable_set_for_buildable_restype.shape)
+    print("dun_params.nchi_for_table_set.shape")
+    print(dun_params.nchi_for_table_set.shape)
+    print("chi_expansion_for_buildable_restype.shape")
+    print(chi_expansion_for_buildable_restype.shape)
+    print("non_dunbrack_expansion_counts_for_buildable_restype.shape")
+    print(non_dunbrack_expansion_counts_for_buildable_restype.shape)
+    print("n_expansions_for_brt.shape")
+    print(n_expansions_for_brt.shape)
+    print("expansion_dim_prods_for_brt.shape")
+    print(expansion_dim_prods_for_brt.shape)
+    print("n_rotamers_to_build_per_brt.shape")
+    print(n_rotamers_to_build_per_brt.shape)
+    print("n_rotamers_to_build_per_brt_offsets.shape")
+    print(n_rotamers_to_build_per_brt_offsets.shape)
+
+    nrots = compiled.count_expanded_rotamers(
+        nchi_for_buildable_restype,
+        rottable_set_for_buildable_restype,
+        dun_params.nchi_for_table_set,
+        chi_expansion_for_buildable_restype,
+        non_dunbrack_expansion_counts_for_buildable_restype,
+        n_expansions_for_brt,
+        expansion_dim_prods_for_brt,
+        n_rotamers_to_build_per_brt,
+        n_rotamers_to_build_per_brt_offsets,
+    )
+    print("n_expansions_for_brt")
+    print(n_expansions_for_brt)
+    print("expansion_dim_prods_for_brt")
+    print(expansion_dim_prods_for_brt)
+    print("n_rotamers_to_build_per_brt")
+    print(n_rotamers_to_build_per_brt)
+    print("n_rotamers_to_build_per_brt_offsets")
+    print(n_rotamers_to_build_per_brt_offsets)
+    print("nrots", nrots)
