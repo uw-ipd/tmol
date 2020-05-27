@@ -456,20 +456,20 @@ def test_count_expanded_rotamers(default_database, torch_device):
             [1, 3],  # leu
             [1, 16],  # trp
             [1, 0],  # cys
-            [2, 17],
-        ]  # tyr
+            [2, 17],  # tyr
+        ]
     )
     print("rottable_set_for_buildable_restype")
     print(rottable_set_for_buildable_restype.shape)
     chi_expansion_for_buildable_restype = _ti32(
         [
-            [1, 1, 0, 0],
-            [1, 0, 0, 0],
-            [0, 0, 0, 0],
-            [1, 1, 0, 0],
-            [1, 0, 0, 0],
-            [1, 1, 0, 0],
-        ]
+            [1, 1, 0, 0],  # 9      9
+            [1, 0, 0, 0],  # 3*18  54
+            [0, 0, 0, 0],  # 1      1
+            [1, 1, 0, 0],  # 9      9
+            [1, 0, 0, 0],  # 1*3    9
+            [1, 1, 0, 0],  # 9*2   18
+        ]  #      100
     )
     non_dunbrack_expansion_counts_for_buildable_restype = _ti32(numpy.zeros((6, 4)))
     non_dunbrack_expansion_counts_for_buildable_restype[1, 1] = 18
@@ -477,27 +477,8 @@ def test_count_expanded_rotamers(default_database, torch_device):
     non_dunbrack_expansion_counts_for_buildable_restype[5, 2] = 2
     n_expansions_for_brt = _ti32([0] * 6)
     expansion_dim_prods_for_brt = _ti32([0] * 24).reshape((6, 4))
-    n_rotamers_to_build_per_brt = _ti32([1] * 6)
+    n_rotamers_to_build_per_brt = _ti32([2] * 6)
     n_rotamers_to_build_per_brt_offsets = _ti32([0] * 6)
-
-    print("nchi_for_buildable_restype.shape")
-    print(nchi_for_buildable_restype.shape)
-    print("rottable_set_for_buildable_restype.shape")
-    print(rottable_set_for_buildable_restype.shape)
-    print("dun_params.nchi_for_table_set.shape")
-    print(dun_params.nchi_for_table_set.shape)
-    print("chi_expansion_for_buildable_restype.shape")
-    print(chi_expansion_for_buildable_restype.shape)
-    print("non_dunbrack_expansion_counts_for_buildable_restype.shape")
-    print(non_dunbrack_expansion_counts_for_buildable_restype.shape)
-    print("n_expansions_for_brt.shape")
-    print(n_expansions_for_brt.shape)
-    print("expansion_dim_prods_for_brt.shape")
-    print(expansion_dim_prods_for_brt.shape)
-    print("n_rotamers_to_build_per_brt.shape")
-    print(n_rotamers_to_build_per_brt.shape)
-    print("n_rotamers_to_build_per_brt_offsets.shape")
-    print(n_rotamers_to_build_per_brt_offsets.shape)
 
     nrots = compiled.count_expanded_rotamers(
         nchi_for_buildable_restype,
@@ -510,12 +491,42 @@ def test_count_expanded_rotamers(default_database, torch_device):
         n_rotamers_to_build_per_brt,
         n_rotamers_to_build_per_brt_offsets,
     )
-    print("n_expansions_for_brt")
-    print(n_expansions_for_brt)
-    print("expansion_dim_prods_for_brt")
-    print(expansion_dim_prods_for_brt)
-    print("n_rotamers_to_build_per_brt")
-    print(n_rotamers_to_build_per_brt)
-    print("n_rotamers_to_build_per_brt_offsets")
-    print(n_rotamers_to_build_per_brt_offsets)
-    print("nrots", nrots)
+    n_expansions_for_brt_gold = numpy.array([9, 54, 1, 9, 9, 18], dtype=numpy.int32)
+    expansion_dim_prods_for_brt_gold = numpy.array(
+        [
+            [3, 1, 1, 1],
+            [18, 1, 0, 0],
+            [1, 1, 0, 0],
+            [3, 1, 0, 0],
+            [3, 1, 0, 0],
+            [6, 2, 1, 0],
+        ],
+        dtype=numpy.int32,
+    )
+    n_rotamers_to_build_per_brt_gold = numpy.array(
+        [18, 108, 2, 18, 18, 36], dtype=numpy.int32
+    )
+    n_rotamers_to_build_per_brt_offsets_gold = numpy.array(
+        [0, 18, 126, 128, 146, 164], dtype=numpy.int32
+    )
+
+    numpy.testing.assert_equal(n_expansions_for_brt_gold, n_expansions_for_brt)
+    numpy.testing.assert_equal(
+        expansion_dim_prods_for_brt_gold, expansion_dim_prods_for_brt
+    )
+    numpy.testing.assert_equal(
+        n_rotamers_to_build_per_brt_gold, n_rotamers_to_build_per_brt
+    )
+    numpy.testing.assert_equal(
+        n_rotamers_to_build_per_brt_offsets_gold, n_rotamers_to_build_per_brt_offsets
+    )
+
+    # print("n_expansions_for_brt")
+    # print(n_expansions_for_brt)
+    # print("expansion_dim_prods_for_brt")
+    # print(expansion_dim_prods_for_brt)
+    # print("n_rotamers_to_build_per_brt")
+    # print(n_rotamers_to_build_per_brt)
+    # print("n_rotamers_to_build_per_brt_offsets")
+    # print(n_rotamers_to_build_per_brt_offsets)
+    # print("nrots", nrots)

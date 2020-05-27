@@ -97,7 +97,7 @@ Int DunbrackChiSamplerTester<Dispatch, D, Real, Int>::count_expanded_rotamers(
     TView<Int, 2, D> expansion_dim_prods_for_brt,
     TView<Int, 1, D> n_rotamers_to_build_per_brt,
     TView<Int, 1, D> n_rotamers_to_build_per_brt_offsets) {
-  pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
+  return pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
       count_expanded_rotamers(
           nchi_for_buildable_restype,
           rottable_set_for_buildable_restype,
