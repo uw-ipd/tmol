@@ -438,7 +438,6 @@ def test_determine_n_base_rotamers_to_build_2(torch_device):
 
 
 def test_count_expanded_rotamers(default_database, torch_device):
-    print("test count expanded rotamers", torch_device)
     compiled = get_compiled()
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
@@ -459,8 +458,6 @@ def test_count_expanded_rotamers(default_database, torch_device):
             [2, 17],  # tyr
         ]
     )
-    print("rottable_set_for_buildable_restype")
-    print(rottable_set_for_buildable_restype.shape)
     chi_expansion_for_buildable_restype = _ti32(
         [
             [1, 1, 0, 0],  # 9      9
@@ -510,15 +507,16 @@ def test_count_expanded_rotamers(default_database, torch_device):
         [0, 18, 126, 128, 146, 164], dtype=numpy.int32
     )
 
-    numpy.testing.assert_equal(n_expansions_for_brt_gold, n_expansions_for_brt)
+    numpy.testing.assert_equal(n_expansions_for_brt_gold, n_expansions_for_brt.cpu())
     numpy.testing.assert_equal(
-        expansion_dim_prods_for_brt_gold, expansion_dim_prods_for_brt
+        expansion_dim_prods_for_brt_gold, expansion_dim_prods_for_brt.cpu()
     )
     numpy.testing.assert_equal(
-        n_rotamers_to_build_per_brt_gold, n_rotamers_to_build_per_brt
+        n_rotamers_to_build_per_brt_gold, n_rotamers_to_build_per_brt.cpu()
     )
     numpy.testing.assert_equal(
-        n_rotamers_to_build_per_brt_offsets_gold, n_rotamers_to_build_per_brt_offsets
+        n_rotamers_to_build_per_brt_offsets_gold,
+        n_rotamers_to_build_per_brt_offsets.cpu(),
     )
 
     # print("n_expansions_for_brt")
@@ -530,3 +528,21 @@ def test_count_expanded_rotamers(default_database, torch_device):
     # print("n_rotamers_to_build_per_brt_offsets")
     # print(n_rotamers_to_build_per_brt_offsets)
     # print("nrots", nrots)
+
+
+def test_map_from_rotaer_index_to_brt(torch_device):
+    compiled = get_compiled()
+    n_rotamers_to_build_per_brt_offsets = torch.tensor(
+        [0, 18, 126, 128, 146, 164], dtype=torch.int32, device=torch_device
+    )
+    brt_for_rotamer = torch.zeros((200,), dtype=torch.int32, device=torch_device)
+
+    compiled.map_from_rotamer_index_to_brt(
+        n_rotamers_to_build_per_brt_offsets, brt_for_rotamer
+    )
+
+    brt_for_rotamer_gold = numpy.array(
+        [0] * 18 + [1] * 108 + [2] * 2 + [3] * 18 + [4] * 18 + [5] * 36,
+        dtype=numpy.int32,
+    )
+    numpy.testing.assert_equal(brt_for_rotamer_gold, brt_for_rotamer.cpu())

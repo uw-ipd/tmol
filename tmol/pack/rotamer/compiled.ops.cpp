@@ -77,7 +77,6 @@ dun_sample_chi(
         coords.type(), "dunbrack_sample_chi", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
-          std::cout << "Calling dunbrack chi sampler " << sizeof(Real) << " " << sizeof(Int) << std::endl;
           auto result = DunbrackChiSampler<DispatchMethod, Dev, Real, Int>::f(
             TCAST(coords),
             //TCAST(res_coord_start_ind),

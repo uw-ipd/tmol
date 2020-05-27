@@ -246,9 +246,7 @@ struct DunbrackChiSampler {
     auto n_rotamers_to_build_per_brt_offsets =
         n_rotamers_to_build_per_brt_offsets_tp.view;
 
-    std::cout << "main DunbrackChiSampler::f before count_expanded_rotamers"
-              << std::endl;
-    count_expanded_rotamers(
+    Int n_rotamers = count_expanded_rotamers(
         nchi_for_buildable_restype,
         rottable_set_for_buildable_restype,
         nchi_for_tableset,
@@ -258,13 +256,6 @@ struct DunbrackChiSampler {
         expansion_dim_prods_for_brt,
         n_rotamers_to_build_per_brt,
         n_rotamers_to_build_per_brt_offsets);
-
-    // TEMP!
-    Int n_rotamers = n_rotamers_to_build_per_brt[n_brt - 1]
-                     + n_rotamers_to_build_per_brt_offsets[n_brt - 1];
-
-    std::cout << "main DunbrackChiSampler::f after count_expanded_rotamers"
-              << std::endl;
 
     // Get a mapping from rotamer index to buildable restype
     auto brt_for_rotamer_tp = TPack<Int, 1, D>::zeros(n_rotamers);
@@ -557,7 +548,6 @@ struct DunbrackChiSampler {
       n_rotamers_to_build_per_brt[brt] *= n_expansions;
     };
 
-    // TEMP!!!
     Dispatch<D>::forall(n_brt, count_expansions_for_brt);
 
     // Exclusive cumumaltive sum
@@ -565,7 +555,6 @@ struct DunbrackChiSampler {
         n_rotamers_to_build_per_brt,
         n_rotamers_to_build_per_brt_offsets,
         mgpu::plus_t<Int>());
-    std::cout << "n_rotamers " << n_rotamers << std::endl;
 
     return n_rotamers;
   }
