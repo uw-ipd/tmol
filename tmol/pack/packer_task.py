@@ -7,12 +7,28 @@ from tmol.system.restypes import ResidueType, Residue
 from tmol.system.packed import PackedResidueSystem
 
 
+# Architecture is stolen from Rosetta3:
+# PackerTask: a class holding data describing how the
+#   packer should behave. Each position in the
+#   PackerTask corresponds to a residue in the input
+#   PackedResidueSystem. For each residue, it holds
+#   a list of the allowed residue types that can be
+#   built at those positions. The PackerTask can be
+#   modified only by removing residue types from those
+#   list, not by adding new ones.
+#
+# PackerPallete: a class that decides how to construct
+#   a PackerTask, deciding which residue types to allow
+#   based on the residue type of the input structure.
+#   The PackerPallete can be given
+
+
 class PackerPalette:
     def __init__(self, chemdb: ChemicalDatabase):
         self.chemdb = chemdb
 
     def restypes_from_original(self, original: ResidueType):
-        # ok, this is where we figure out what the allowe restypes
+        # ok, this is where we figure out what the allowed restypes
         # are for a residue; this might be complex logic.
         # for now, I'm going to punt.
         keepers = []
