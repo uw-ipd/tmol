@@ -78,6 +78,25 @@ class SidechainBuilding:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class PolymerProperties:
+    is_polymer: bool
+    polymer_type: str
+    backbone_type: str
+    sidechain_chirality: str
+    termini_variants: Tuple[str, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ChemicalProperties:
+    is_canonical: bool
+    polymer: PolymerProperties
+    chemical_modifications: Tuple[str, ...]
+    connectivity: Tuple[str, ...]
+    protonation_state: Tuple[str, ...]
+    virtual: Tuple[str, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class Residue:
     name: str
     name3: str
@@ -86,7 +105,7 @@ class Residue:
     connections: Tuple[Connection, ...]
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
-    hierarchies: Tuple[str, ...]
+    properties: ChemicalProperties
     sidechain_building: Tuple[SidechainBuilding, ...]
 
 
