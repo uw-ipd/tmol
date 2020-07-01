@@ -10,6 +10,7 @@
 #include <tmol/numeric/bspline_compiled/bspline.hh>
 #include <tmol/score/common/forall_dispatch.cpu.impl.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/tuple.hh>
 
 #include <tmol/extern/moderngpu/operators.hxx>
 
@@ -170,7 +171,7 @@ struct DunbrackChiSampler {
     auto backbone_dihedrals = backbone_dihedrals_tp.view;
 
     // This should be extracted to a function
-    auto compute_backbone_dihedrals = [=](int i) {
+    auto compute_backbone_dihedrals = [=] EIGEN_DEVICE_FUNC (int i) {
       Int at0 = dihedral_atom_inds[i][0];
       Int at1 = dihedral_atom_inds[i][1];
       Int at2 = dihedral_atom_inds[i][2];
@@ -318,7 +319,7 @@ struct DunbrackChiSampler {
       TView<Int, 1, D> n_possible_rotamers_per_brt) {
     Int const n_brt = rottable_set_for_buildable_restype.size(0);
     assert(n_possible_rotamers_per_brt.size(0) == n_brt);
-    auto lambda_determine_n_possible_rots = [=](int brt) {
+    auto lambda_determine_n_possible_rots = [=] EIGEN_DEVICE_FUNC (int brt) {
       Int rottable_set = rottable_set_for_buildable_restype[brt][1];
       n_possible_rotamers_per_brt[brt] = n_rotamers_for_tableset[rottable_set];
     };
@@ -339,7 +340,7 @@ struct DunbrackChiSampler {
     auto brt_for_possible_rotamer_start =
         brt_for_possible_rotamer_start_tp.view;
 
-    auto mark_possrot_boundary_beginnings = [=](int buildable_restype) {
+    auto mark_possrot_boundary_beginnings = [=] EIGEN_DEVICE_FUNC (int buildable_restype) {
       Int const offset = possible_rotamer_offset_for_brt[buildable_restype];
       brt_for_possible_rotamer_boundaries[offset] = 1;
       brt_for_possible_rotamer_start[offset] = buildable_restype;
@@ -371,7 +372,7 @@ struct DunbrackChiSampler {
       TView<Real, 1, D> rotamer_probability) {
     int const n_possible_rotamers = brt_for_possible_rotamer.size(0);
 
-    auto calculate_possible_rotamer_probability = [=](int possible_rotamer) {
+    auto calculate_possible_rotamer_probability = [=] EIGEN_DEVICE_FUNC (int possible_rotamer) {
       // Compute the probability of the ith possible rotamer
       int const brt = brt_for_possible_rotamer[possible_rotamer];
       int const res = rottable_set_for_buildable_restype[brt][0];
@@ -427,7 +428,7 @@ struct DunbrackChiSampler {
       auto prob_and_derivs =
           tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
               rotprob_slice, bbdihe);
-      rotamer_probability[possible_rotamer] = std::get<0>(prob_and_derivs);
+      rotamer_probability[possible_rotamer] = score::common::get<0>(prob_and_derivs);
     };
 
     Dispatch<D>::forall(
@@ -459,6 +460,7 @@ struct DunbrackChiSampler {
 
     Dispatch<D>::exclusive_segmented_scan(
         rotamer_probability,
+	n_brt,
         brt_for_possible_rotamer_boundaries,
         rotamer_probability_cumsum,
         mgpu::plus_t<Real>());
@@ -468,7 +470,7 @@ struct DunbrackChiSampler {
     auto build_possible_rotamer_tp =
         TPack<Int, 1, D>::empty(n_possible_rotamers);
     auto build_possible_rotamer = build_possible_rotamer_tp.view;
-    auto decide_on_possible_rotamer = [=](int possible_rotamer) {
+    auto decide_on_possible_rotamer = [=] EIGEN_DEVICE_FUNC (int possible_rotamer) {
       int const rt = brt_for_possible_rotamer[possible_rotamer];
       int keep = rotamer_probability_cumsum[possible_rotamer]
                  <= prob_cumsum_limit_for_buildable_restype[rt];
@@ -485,11 +487,12 @@ struct DunbrackChiSampler {
     // exclusive segmented scan on the build_possible_rotamer array
     Dispatch<D>::exclusive_segmented_scan(
         build_possible_rotamer,
+	n_brt,
         brt_for_possible_rotamer_boundaries,
         count_rotamers_to_build,
         mgpu::plus_t<Int>());
 
-    auto count_rots_to_build_per_brt = [=](int brt) {
+    auto count_rots_to_build_per_brt = [=] EIGEN_DEVICE_FUNC (int brt) {
       Int const offset = possible_rotamer_offset_for_brt[brt];
       Int const npossible = n_possible_rotamers_per_brt[brt];
       Int const brt_count = count_rotamers_to_build[offset + npossible - 1];
@@ -520,7 +523,7 @@ struct DunbrackChiSampler {
     assert(n_rotamers_to_build_per_brt.size(0) == n_brt);
     assert(n_rotamers_to_build_per_brt_offsets.size(0) == n_brt);
 
-    auto count_expansions_for_brt = [=](int brt) {
+    auto count_expansions_for_brt = [=] EIGEN_DEVICE_FUNC (int brt) {
       Int const nchi = nchi_for_buildable_restype[brt];
       Int const table_set = rottable_set_for_buildable_restype[brt][1];
       Int const n_dun_chi = nchi_for_tableset[table_set];
@@ -568,7 +571,7 @@ struct DunbrackChiSampler {
     auto brt_for_rotamer_start_tp = TPack<Int, 1, D>::zeros(n_rotamers);
     auto brt_for_rotamer_start = brt_for_rotamer_start_tp.view;
 
-    auto mark_rot_brt_boundary_beginnings = [=](int brt) {
+    auto mark_rot_brt_boundary_beginnings = [=] EIGEN_DEVICE_FUNC (int brt) {
       Int const offset = n_rotamers_to_build_per_brt_offsets[brt];
       // brt_for_rotamer_boundaries[offset] = 1;
       brt_for_rotamer_start[offset] = brt;
@@ -618,7 +621,7 @@ struct DunbrackChiSampler {
     //  -- its base rotamer index
     //  -- which expanded rotamer for the base rotamer it is
 
-    auto sample_chi_for_rotamer = [=](int rotamer) {
+    auto sample_chi_for_rotamer = [=] EIGEN_DEVICE_FUNC (int rotamer) {
       int const brt = brt_for_rotamer[rotamer];
       int const res = rottable_set_for_buildable_restype[brt][0];
       int const table_set = rottable_set_for_buildable_restype[brt][1];
@@ -691,7 +694,7 @@ struct DunbrackChiSampler {
           auto mean_and_derivs =
               tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
                   rotmean_slice, bbdihe);
-          ii_chi = std::get<0>(mean_and_derivs);
+          ii_chi = score::common::get<0>(mean_and_derivs);
           if (chi_expansion_for_buildable_restype[brt][ii]) {
             // OK! we expand this chi; so retrieve the standard deviation
             TensorAccessor<Real, 2, D> rotsdev_slice(
@@ -704,7 +707,7 @@ struct DunbrackChiSampler {
             auto sdev_and_derivs =
                 tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::
                     interpolate(rotsdev_slice, bbdihe);
-            Real sdev = std::get<0>(sdev_and_derivs);
+            Real sdev = score::common::get<0>(sdev_and_derivs);
             if (ii_expansion == 0) {
               ii_chi -= sdev;
             } else if (ii_expansion == 2) {
