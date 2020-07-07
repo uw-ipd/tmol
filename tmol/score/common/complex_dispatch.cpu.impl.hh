@@ -64,19 +64,23 @@ struct ComplexDispatch {
   template <typename T, typename B, typename Func>
   static void exclusive_segmented_scan(
       TView<T, 1, D> vals,
-      int n_segments,
       TView<B, 1, D> seg_start,
       TView<T, 1, D> out,
       Func op) {
     assert(vals.size(0) == out.size(0));
+    int seg_count = 0;
     for (int ii = 0; ii < vals.size(0); ++ii) {
-      if (seg_start[ii]) {
+      if (seg_count < seg_start.size(0) && ii == seg_start[seg_count]) {
+	++seg_count;
         out[ii] = T(0);
       } else {
         out[ii] = op(out[ii - 1], vals[ii - 1]);
       }
     }
   }
+
+  static void synchronize() {}
+
 };
 }
 }

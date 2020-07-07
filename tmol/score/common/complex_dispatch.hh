@@ -29,10 +29,12 @@ struct ComplexDispatch {
   template <typename T, typename B, typename Func>
   static void exclusive_segmented_scan(
       TView<T, 1, D> vals,
-      int n_segments,
-      TView<B, 1, D> seg_start,
+      TView<B, 1, D> seg_start, // n-segments length array of indices where segments start
       TView<T, 1, D> out,
       Func op);
+
+  static void synchronize();
+
 };
 }
 }

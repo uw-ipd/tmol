@@ -9,16 +9,18 @@
 
 namespace tmol {
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+template <tmol::Device D, typename Real, typename Int>
+void
+bind_dispatch(pybind11::module & m)
+{
   using namespace pybind11::literals;
-
   m.def(
       "determine_n_possible_rots",
       &DunbrackChiSamplerTester<
           tmol::score::common::ComplexDispatch,
-          Device::CPU,
-          float,
-          int32_t>::determine_n_possible_rots,
+          D,
+          Real,
+          Int>::determine_n_possible_rots,
       "rottable_set_for_buildable_restype"_a,
       "n_rotamers_for_tableset"_a,
       "n_possible_rotamers_per_brt"_a);
@@ -27,20 +29,19 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "fill_in_brt_for_possrots",
       &DunbrackChiSamplerTester<
           tmol::score::common::ComplexDispatch,
-          Device::CPU,
-          float,
-          int32_t>::fill_in_brt_for_possrots,
+          D,
+          Real,
+          Int>::fill_in_brt_for_possrots,
     "possible_rotamer_offset_for_brt"_a,
-    "brt_for_possible_rotamer"_a,
-    "brt_for_possible_rotamer_boundaries"_a);
+    "brt_for_possible_rotamer"_a);
 
   m.def(
       "interpolate_probabilities_for_possible_rotamers",
       &DunbrackChiSamplerTester<
           tmol::score::common::ComplexDispatch,
-          Device::CPU,
-          float,
-          int32_t>::interpolate_probabilities_for_possible_rotamers,
+          D,
+          Real,
+          Int>::interpolate_probabilities_for_possible_rotamers,
     "rotameric_prob_tables"_a,
     "rotprob_table_sizes"_a,
     "rotprob_table_strides"_a,
@@ -59,13 +60,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "determine_n_base_rotamers_to_build",
       &DunbrackChiSamplerTester<
           tmol::score::common::ComplexDispatch,
-          Device::CPU,
-          float,
-          int32_t>::determine_n_base_rotamers_to_build,
+          D,
+          Real,
+          Int>::determine_n_base_rotamers_to_build,
     "prob_cumsum_limit_for_buildable_restype"_a,
     "n_possible_rotamers_per_brt"_a,
     "brt_for_possible_rotamer"_a,
-    "brt_for_possible_rotamer_boundaries"_a,
     "possible_rotamer_offset_for_brt"_a,
     "rotamer_probability"_a,
     "n_rotamers_to_build_per_brt"_a);
@@ -74,9 +74,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "count_expanded_rotamers",
       &DunbrackChiSamplerTester<
           tmol::score::common::ComplexDispatch,
-          Device::CPU,
-          float,
-          int32_t>::count_expanded_rotamers,
+          D,
+          Real,
+          Int>::count_expanded_rotamers,
     "nchi_for_buildable_restype"_a,
     "rottable_set_for_buildable_restype"_a,
     "nchi_for_tableset"_a,
@@ -91,9 +91,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "map_from_rotamer_index_to_brt",
       &DunbrackChiSamplerTester<
           tmol::score::common::ComplexDispatch,
-          Device::CPU,
-          float,
-          int32_t>::map_from_rotamer_index_to_brt,
+          D,
+          Real,
+          Int>::map_from_rotamer_index_to_brt,
       "n_rotamers_to_build_per_brt_offsets"_a,
       "brt_for_rotamer"_a);
 
@@ -101,9 +101,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "sample_chi_for_rotamers",
       &DunbrackChiSamplerTester<
           tmol::score::common::ComplexDispatch,
-          Device::CPU,
-          float,
-          int32_t>::sample_chi_for_rotamers,
+          D,
+          Real,
+          Int>::sample_chi_for_rotamers,
     "rotameric_mean_tables"_a,
     "rotameric_sdev_tables"_a,
     "rotmean_table_sizes"_a,
@@ -131,19 +131,15 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     "expansion_dim_prods_for_brt"_a,
     "chi_for_rotamers"_a);
 
+}
+
+
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  using namespace pybind11::literals;
+  bind_dispatch<Device::CPU, float, int32_t>(m);
+  
 #ifdef WITH_CUDA
-
-  // m.def(
-  //     "determine_n_possible_rots",
-  //     &DetermineNPossibleRotsTester<
-  //         tmol::score::common::ComplexDispatch,
-  //         Device::CUDA,
-  //         float,
-  //         int32_t>::f,
-  //     "rottable_set_for_buildable_restype"_a,
-  //     "n_rotamers_for_tableset"_a,
-  //     "n_possible_rotamers_per_brt"_a);
-
+  bind_dispatch<Device::CUDA, float, int32_t>(m);
 #endif
 }
 

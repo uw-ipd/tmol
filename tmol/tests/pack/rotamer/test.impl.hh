@@ -23,13 +23,11 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
 template <template <Device> class Dispatch, Device D, typename Real, typename Int>
 void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::fill_in_brt_for_possrots(
     TView<Int, 1, D> possible_rotamer_offset_for_brt,
-    TView<Int, 1, D> brt_for_possible_rotamer,
-    TView<Int, 1, D> brt_for_possible_rotamer_boundaries) {
+    TView<Int, 1, D> brt_for_possible_rotamer) {
   pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
       fill_in_brt_for_possrots(
           possible_rotamer_offset_for_brt,
-          brt_for_possible_rotamer,
-          brt_for_possible_rotamer_boundaries);
+          brt_for_possible_rotamer);
 }
 
 template <template <Device> class Dispatch, Device D, typename Real, typename Int>
@@ -71,7 +69,6 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
         TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
         TView<Int, 1, D> n_possible_rotamers_per_brt,
         TView<Int, 1, D> brt_for_possible_rotamer,
-        TView<Int, 1, D> brt_for_possible_rotamer_boundaries,
         TView<Int, 1, D> possible_rotamer_offset_for_brt,
         TView<Real, 1, D> rotamer_probability,
         TView<Int, 1, D> n_rotamers_to_build_per_brt) {
@@ -80,7 +77,6 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
           prob_cumsum_limit_for_buildable_restype,
           n_possible_rotamers_per_brt,
           brt_for_possible_rotamer,
-          brt_for_possible_rotamer_boundaries,
           possible_rotamer_offset_for_brt,
           rotamer_probability,
           n_rotamers_to_build_per_brt);

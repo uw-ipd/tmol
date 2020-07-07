@@ -36,6 +36,7 @@ struct ComplexDispatch {
 
     T val_cpu;
     cudaMemcpy(&val_cpu, &v[0], sizeof(T), cudaMemcpyDeviceToHost);
+    std::cout << "Reduce " << val_cpu << std::endl;
     return val_cpu;
   }
 
@@ -45,7 +46,6 @@ struct ComplexDispatch {
     mgpu::scan_event<mgpu::scan_type_exc>(
       &vals[0], vals.size(0), &out[0], op, mgpu::discard_iterator_t<T>(),
       context, 0);
-      
   }
 
   template <typename T, typename Func>
@@ -66,23 +66,24 @@ struct ComplexDispatch {
       &vals[0], vals.size(0), &out[0], op, &final_val[0],
       context, 0);
     T final_val_cpu;
-    cudaMemcpy(&final_val_cpu, &final_val[0], sizeof(T), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&final_val_cpu, final_val.data(), sizeof(T), cudaMemcpyDeviceToHost);
     return final_val_cpu;
   }
 
   template <typename T, typename B, typename Func>
   static void exclusive_segmented_scan(
       TView<T, 1, D> vals,
-      int n_segments,
       TView<B, 1, D> seg_start,
       TView<T, 1, D> out,
       Func op) {
+      
     assert(vals.size(0) == out.size(0));
     mgpu::standard_context_t context;
 
     typedef typename mgpu::launch_params_t<128, 2> launch_t;
     constexpr int nt = launch_t::nt, vt = launch_t::vt;
 
+    int const n_segments = seg_start.size(0);
     int scanBuffer = n_segments + vals.size(0);
     float scanleft = std::ceil(((float) scanBuffer) / (nt*vt));
     int lbsBuffer = (int) scanleft + 1;
@@ -110,16 +111,16 @@ struct ComplexDispatch {
       out.data(), scanCarryout.data(), scanCodes.data(), LBS.data(),
       op, T(0), context
     );
-
-    for (int ii = 0; ii < vals.size(0); ++ii) {
-      if (seg_start[ii]) {
-        out[ii] = T(0);
-      } else {
-        out[ii] = op(out[ii - 1], vals[ii - 1]);
-      }
-    }
   }
+
+  static void synchronize()
+  {
+    cudaDeviceSynchronize();
+  }
+
+
 };
+
 }
 }
 }

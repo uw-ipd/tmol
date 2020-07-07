@@ -17,7 +17,7 @@ def get_compiled():
     compiled = load(
         modulename(__name__),
         cuda_if_available(
-            relpaths(__file__, ["compiled.pybind.cpp", "test.cpp"])  #   "test.cu"??
+            relpaths(__file__, ["compiled.pybind.cpp", "test.cpp", "test.cu"])
         ),
     )
     return compiled
@@ -101,6 +101,43 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     prob_cumsum_limit_for_buildable_restype = _tf32(numpy.full((6,), 0.95, dtype=float))
     nchi_for_buildable_restype = _ti32([4, 2, 2, 2, 2, 3])
 
+    assert dun_graph.coords.device == dun_params.rotameric_prob_tables.device
+    assert dun_graph.coords.device == dun_params.rotprob_table_sizes.device
+    assert dun_graph.coords.device == dun_params.rotprob_table_strides.device
+    assert dun_graph.coords.device == dun_params.rotameric_mean_tables.device
+    assert dun_graph.coords.device == dun_params.rotameric_sdev_tables.device
+    assert dun_graph.coords.device == dun_params.rotmean_table_sizes.device
+    assert dun_graph.coords.device == dun_params.rotmean_table_strides.device
+    assert dun_graph.coords.device == dun_params.rotameric_meansdev_tableset_offsets.device
+    assert dun_graph.coords.device == dun_params.rotameric_bb_start.device
+    assert dun_graph.coords.device == dun_params.rotameric_bb_step.device
+    assert dun_graph.coords.device == dun_params.rotameric_bb_periodicity.device
+    assert dun_graph.coords.device == dun_params.semirotameric_tables.device
+    assert dun_graph.coords.device == dun_params.semirot_table_sizes.device
+    assert dun_graph.coords.device == dun_params.semirot_table_strides.device
+    assert dun_graph.coords.device == dun_params.semirot_start.device
+    assert dun_graph.coords.device == dun_params.semirot_step.device
+    assert dun_graph.coords.device == dun_params.semirot_periodicity.device
+    assert dun_graph.coords.device == dun_params.rotameric_rotind2tableind.device
+    assert dun_graph.coords.device == dun_params.semirotameric_rotind2tableind.device
+    assert dun_graph.coords.device == dun_params.all_chi_rotind2tableind.device
+    assert dun_graph.coords.device == dun_params.all_chi_rotind2tableind_offsets.device
+    assert dun_graph.coords.device == dun_params.n_rotamers_for_tableset.device
+    assert dun_graph.coords.device == dun_params.n_rotamers_for_tableset_offsets.device
+    assert dun_graph.coords.device == dun_params.sorted_rotamer_2_rotamer.device
+    assert dun_graph.coords.device == dun_params.nchi_for_table_set.device
+    assert dun_graph.coords.device == dun_params.rotwells.device
+    assert dun_graph.coords.device == ndihe_for_res.device
+    assert dun_graph.coords.device == dihedral_offset_for_res.device
+    assert dun_graph.coords.device == dihedral_atom_inds.device
+    assert dun_graph.coords.device == rottable_set_for_buildable_restype.device
+    assert dun_graph.coords.device == chi_expansion_for_buildable_restype.device
+    assert dun_graph.coords.device == non_dunbrack_expansion_for_buildable_restype.device
+    assert dun_graph.coords.device == non_dunbrack_expansion_counts_for_buildable_restype.device
+    assert dun_graph.coords.device == prob_cumsum_limit_for_buildable_restype.device
+    assert dun_graph.coords.device == nchi_for_buildable_restype.device
+
+    
     retval = torch.ops.tmol.dun_sample_chi(
         dun_graph.coords[0, :],
         dun_params.rotameric_prob_tables,
@@ -197,18 +234,14 @@ def test_fill_in_brt_for_possrots(torch_device):
     offsets = numpy.array([0, 5, 10, 15], dtype=numpy.int32)
     possible_rotamer_offset_for_brt = _ti32(offsets)
     brt_for_possrot = torch.zeros((20,), dtype=torch.int32, device=torch_device)
-    brt_for_possrot_bndry = torch.zeros((20,), dtype=torch.int32, device=torch_device)
     compiled.fill_in_brt_for_possrots(
-        possible_rotamer_offset_for_brt, brt_for_possrot, brt_for_possrot_bndry
+        possible_rotamer_offset_for_brt, brt_for_possrot
     )
 
     brt_for_possrot_gold = numpy.array(
         [0] * 5 + [1] * 5 + [2] * 5 + [3] * 5, dtype=numpy.int32
     )
-    numpy.testing.assert_equal(brt_for_possrot_gold, brt_for_possrot)
-    brt_for_possrot_bndry_gold = numpy.zeros((20,), dtype=numpy.int32)
-    brt_for_possrot_bndry_gold[offsets] = 1
-    numpy.testing.assert_equal(brt_for_possrot_bndry_gold, brt_for_possrot_bndry)
+    numpy.testing.assert_equal(brt_for_possrot_gold, brt_for_possrot.cpu())
 
 
 def test_interpolate_probabilities_for_possible_rotamers(
@@ -353,7 +386,6 @@ def test_determine_n_base_rotamers_to_build_1(torch_device):
         prob_cumsum_limit_for_buildable_restype,
         n_possible_rotamers_per_brt,
         brt_for_possrot,
-        brt_for_possrot_bndry,
         possrot_offset_for_brt,
         rotamer_probability,
         n_rotamers_to_build_per_brt,
@@ -428,7 +460,6 @@ def test_determine_n_base_rotamers_to_build_2(torch_device):
         prob_cumsum_limit_for_buildable_restype,
         n_possible_rotamers_per_brt,
         brt_for_possrot,
-        brt_for_possrot_bndry,
         possrot_offset_for_brt,
         rotamer_probability,
         n_rotamers_to_build_per_brt,
@@ -642,5 +673,5 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     chi_for_rotamers_gold[ar162 % 2 == 1, 2] = 1.25
 
     numpy.testing.assert_allclose(
-        chi_for_rotamers_gold, chi_for_rotamers, atol=1e-5, rtol=1e-5
+        chi_for_rotamers_gold, chi_for_rotamers.cpu(), atol=1e-5, rtol=1e-5
     )

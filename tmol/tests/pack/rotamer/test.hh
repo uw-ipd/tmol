@@ -16,8 +16,7 @@ struct DunbrackChiSamplerTester {
 
   static void fill_in_brt_for_possrots(
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
-      TView<Int, 1, D> brt_for_possible_rotamer,
-      TView<Int, 1, D> brt_for_possible_rotamer_boundaries);
+      TView<Int, 1, D> brt_for_possible_rotamer);
 
   static void interpolate_probabilities_for_possible_rotamers(
       TView<Real, 3, D> rotameric_prob_tables,
@@ -38,7 +37,6 @@ struct DunbrackChiSamplerTester {
       TView<Real, 1, D> prob_cumsum_limit_for_buildable_restype,
       TView<Int, 1, D> n_possible_rotamers_per_brt,
       TView<Int, 1, D> brt_for_possible_rotamer,
-      TView<Int, 1, D> brt_for_possible_rotamer_boundaries,
       TView<Int, 1, D> possible_rotamer_offset_for_brt,
       TView<Real, 1, D> rotamer_probability,
       TView<Int, 1, D> n_rotamers_to_build_per_brt);
