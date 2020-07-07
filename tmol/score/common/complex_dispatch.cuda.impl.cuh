@@ -36,7 +36,6 @@ struct ComplexDispatch {
 
     T val_cpu;
     cudaMemcpy(&val_cpu, &v[0], sizeof(T), cudaMemcpyDeviceToHost);
-    std::cout << "Reduce " << val_cpu << std::endl;
     return val_cpu;
   }
 
