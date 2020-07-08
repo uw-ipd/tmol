@@ -23,7 +23,7 @@ def test_segscan_inclusive(extension):
     gold = torch.cat([torch.arange(3, dtype=torch.float32)+1, torch.arange(2, dtype=torch.float32)+1, torch.arange(5, dtype=torch.float32)+1])
     y = extension.segscan_incl(xcuda, segscuda)
     y = y.to(device="cpu")
-    print(y)
+
     torch.testing.assert_allclose(gold, y)
 
 @requires_cuda
@@ -37,7 +37,7 @@ def test_segscan_exclusive(extension):
     gold = torch.cat([torch.arange(3, dtype=torch.float32), torch.arange(2, dtype=torch.float32), torch.arange(5, dtype=torch.float32)])
     y = extension.segscan_excl(xcuda, segscuda)
     y = y.to(device="cpu")
-    print(y)
+
     torch.testing.assert_allclose(gold, y)
 
     

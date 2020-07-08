@@ -87,9 +87,9 @@ def test_complex_dispatch():
         ),
     )
     vals = torch.arange(20, dtype=torch.int32)
-    boundaries = torch.zeros(20, dtype=torch.int32)
-    boundaries[0] = 1
-    boundaries[9] = 1
+    boundaries = torch.zeros(2, dtype=torch.int32)
+    boundaries[0] = 0
+    boundaries[1] = 9
 
     res = compiled.complex_dispatch(vals, boundaries)
     forall, reduction, ex_scan, inc_scan, ex_scan2, final, ex_seg_scan = res

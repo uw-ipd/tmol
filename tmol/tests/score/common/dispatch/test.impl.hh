@@ -47,7 +47,7 @@ auto ComplexDispatchTest<Dispatch, D, Int>::f(
   TPack<Int, 1, D>> // exclusive seg scan
 {
   int const n_entries = vals.size(0);
-  assert(n_entries == boundaries.size(0));
+
   auto res1_tp = TPack<Int, 1, D>::zeros({n_entries});
   auto res3_tp = TPack<Int, 1, D>::zeros({n_entries});
   auto res4_tp = TPack<Int, 1, D>::zeros({n_entries});
