@@ -12,6 +12,13 @@ def test_packer_palette_design_to_canonical_aas(default_database):
     assert len(allowed) == 21
 
 
+def test_packer_palette_design_to_canonical_aas2(default_database):
+    pp = PackerPalette(default_database.chemical)
+    gly_rt = next(rt for rt in default_database.chemical.residues if rt.name == "GLY")
+    allowed = pp.restypes_from_original(gly_rt)
+    assert len(allowed) == 21
+
+
 def test_residue_level_task_his_restrict_to_repacking(ubq_system, default_database):
     palette = PackerPalette(default_database.chemical)
 

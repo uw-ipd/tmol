@@ -22,28 +22,53 @@ from tmol.system.packed import PackedResidueSystem
 #   based on the residue type of the input structure.
 #   The PackerPallete can be given
 
+def set_compare(x, y):
+    """Treat the collections x and y as if they are sets. Return true if they
+    contain the same elements and false otherwise
+    """
+    if len(x) != len(y):
+        return False
+    for val in x:
+        if val not in y:
+            return False
+    return True
 
 class PackerPalette:
     def __init__(self, chemdb: ChemicalDatabase):
         self.chemdb = chemdb
 
-    def restypes_from_original(self, original: ResidueType):
+    def restypes_from_original(self, orig: ResidueType):
         # ok, this is where we figure out what the allowed restypes
         # are for a residue; this might be complex logic.
-        # for now, I'm going to punt.
+
         keepers = []
-        is_l_aa = sum(1 for h in original.hierarchies if h.startswith("aa.alpha.l")) > 0
-        if is_l_aa:
-            for res in self.chemdb.residues:
-                for hstring in res.hierarchies:
-                    if hstring.startswith("aa.alpha.l"):
-                        keepers.append(res)
-                        break
-        else:
-            # just for now, keep the original residue type
-            keepers.append(
-                [rt for rt in self.chemdb.residues if rt.name == original.name]
-            )
+        for rt in self.chemdb.residues:
+            if ( rt.properties.polymer.is_polymer == orig.properties.polymer.is_polymer and
+                 rt.properties.polymer.polymer_type == orig.properties.polymer.polymer_type and
+                 rt.properties.polymer.backbone_type == orig.properties.polymer.backbone_type and
+                 rt.properties.polymer.termini_variants == orig.properties.polymer.termini_variants and
+                 set_compare(rt.properties.chemical_modifications, orig.properties.chemical_modifications) and
+                 set_compare(rt.properties.connectivity, orig.properties.connectivity) and
+                 rt.properties.protonation.protonation_state == orig.properties.protonation.protonation_state
+            ):
+                if rt.properties.polymer.sidechain_chirality == orig.properties.polymer.sidechain_chirality:
+                    keepers.append(rt)
+                elif (orig.properties.polymer.polymer_type == "amino_acid" and
+                         ((orig.properties.polymer.sidechain_chirality == "l" and
+                           rt.properties.polymer.sidechain_chirality == "achiral") or
+                          (orig.properties.polymer.sidechain_chirality == "achiral" and
+                           rt.properties.polymer.sidechain_chirality == "l"))):
+                    # allow glycine <--> l-caa mutations
+                    keepers.append(rt)
+                elif (orig.properties.polymer.polymer_type == "amino_acid" and
+                      orig.properties.polymer.sidechain_chirality == "d" and
+                      rt.properties.polymer.sidechain_chirality == "achiral"):
+                    # allow d-caa --> glycine mutations;
+                    # dangerous because this packer pallete will allow
+                    # your d-caa to become glycine, and then later
+                    # to an l-caa, but not the other way around
+                    keepers.append(rt)
+
         return keepers
 
 
@@ -54,16 +79,11 @@ class ResidueLevelTask:
         self.allowed_restypes = palette.restypes_from_original(restype)
 
     def restrict_to_repacking(self):
-        # Wow, the hierarchies scheme seems so janky
+        orig = self.original_restype
         self.allowed_restypes = [
             rt
             for rt in self.allowed_restypes
-            if (
-                len(rt.hierarchies[0].split(".")) >= 4
-                and len(self.original_restype.hierarchies[0].split(".")) >= 4
-                and rt.hierarchies[0].split(".")[:4]
-                == self.original_restype.hierarchies[0].split(".")[:4]
-            )
+            if rt.name3 == orig.name3 # this isn't what we want long term
         ]
 
 
