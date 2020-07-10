@@ -9,6 +9,8 @@ from tmol.score.device import TorchDevice
 from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
 from tmol.score.score_graph import score_graph
 from tmol.score.dunbrack.params import DunbrackParamResolver
+from tmol.pack.packer_task import PackerTask, PackerPalette
+from tmol.pack.rotamer.chi_sampler import ChiSampler
 
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
@@ -345,8 +347,6 @@ def test_determine_n_base_rotamers_to_build_1(torch_device):
         [18], dtype=torch.int32, device=torch_device
     )
     brt_for_possrot = torch.zeros((18,), dtype=torch.int32, device=torch_device)
-    brt_for_possrot_bndry = torch.zeros((18,), dtype=torch.int32, device=torch_device)
-    brt_for_possrot_bndry[0] = 1
     possrot_offset_for_brt = torch.zeros((1,), dtype=torch.int32, device=torch_device)
 
     rotprob_gold = numpy.array(
@@ -675,3 +675,28 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     numpy.testing.assert_allclose(
         chi_for_rotamers_gold, chi_for_rotamers.cpu(), atol=1e-5, rtol=1e-5
     )
+
+
+def test_chi_sampler_smoke(ubq_system, default_database, torch_device):
+    palette = PackerPalette(default_database.chemical)
+    task = PackerTask(ubq_system, palette)
+
+    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun)
+    sampler = ChiSampler.from_database(param_resolver)
+
+
+    coords = torch.tensor(ubq_system.coords, dtype=torch.float32, device=torch_device)
+    result = sampler.chi_samples_for_residues(
+        ubq_system,
+        coords,
+        task
+    )
+    n_rots_for_brt, n_rots_for_brt_offsets, brt_for_rotamer, chi_for_rotamers = result
+    print("n_rots_for_brt")
+    print(n_rots_for_brt.shape)
+    print("n_rots_for_brt_offsets")
+    print(n_rots_for_brt_offsets.shape)
+    print("brt_for_rotamer")
+    print(brt_for_rotamer.shape)
+    print("chi_for_rotamers")
+    print(chi_for_rotamers.shape)

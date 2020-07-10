@@ -37,51 +37,9 @@ from tmol.score.common.stack_condense import (
     take_values_w_sentineled_dest,
 )
 
-# =======
-#
-# @validate_args
-# def exclusive_cumsum1d(inds: Tensor(torch.int32)[:]) -> Tensor(torch.int32)[:]:
-#     return torch.cat(
-#         (
-#             torch.tensor([0], dtype=torch.int32, device=inds.device),
-#             torch.cumsum(inds, 0, dtype=torch.int32).narrow(0, 0, inds.shape[0] - 1),
-#         )
-#     )
-#
-#
-#
-#
-# # @validate_args
-# def nplus1d_tensor_from_list(
-#     tensors: List
-# ):  # -> Tuple[Tensor, Tensor(torch.long)[:,:], Tensor(torch.long)[:,:]] :
-#     assert len(tensors) > 0
-#
-#     for tensor in tensors:
-#         assert len(tensor.shape) == len(tensors[0].shape)
-#         assert tensor.dtype == tensors[0].dtype
-#         assert tensor.device == tensors[0].device
-#
-#     max_sizes = [max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))]
-#     newdimsizes = [len(tensors)] + max_sizes
-#
-#     newt = torch.zeros(newdimsizes, dtype=tensors[0].dtype, device=tensors[0].device)
-#     sizes = torch.zeros(
-#         (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
-#     )
-#     strides = torch.zeros(
-#         (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
-#     )
-#
-#     for i, t in enumerate(tensors):
-#         ti = newt[i, :]
-#         for j in range(t.dim()):
-#             ti = ti.narrow(j, 0, t.shape[j])
-#         ti[:] = t
-#         sizes[i, :] = torch.tensor(t.shape, dtype=torch.int64, device=t.device)
-#         strides[i, :] = torch.tensor(t.stride(), dtype=torch.int64, device=t.device)
-#     return newt, sizes, strides
-# >>>>>>> master
+from tmol.system.score_support import indexed_atoms_for_dihedral
+
+
 
 
 @attr.s(auto_attribs=True)
