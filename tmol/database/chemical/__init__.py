@@ -85,6 +85,11 @@ class PolymerProperties:
     sidechain_chirality: str
     termini_variants: Tuple[str, ...]
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ProtonationProperties:
+    protonated_atoms: Tuple[str,...]
+    protonation_state: str
+    pH: float
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalProperties:
@@ -92,7 +97,7 @@ class ChemicalProperties:
     polymer: PolymerProperties
     chemical_modifications: Tuple[str, ...]
     connectivity: Tuple[str, ...]
-    protonation_state: Tuple[str, ...]
+    protonation: ProtonationProperties 
     virtual: Tuple[str, ...]
 
 
