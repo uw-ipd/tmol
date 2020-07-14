@@ -677,11 +677,16 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     )
 
 
-def test_chi_sampler_smoke(ubq_system, default_database, torch_device):
+def test_chi_sampler_smoke(ubq_system, default_database):
+    print("ubq system:", len(ubq_system.residues))
+    torch_device = torch.device("cpu")
     palette = PackerPalette(default_database.chemical)
     task = PackerTask(ubq_system, palette)
+    print("task size:", len(task.rlts))
+    for rlt in task.rlts:
+        rlt.restrict_to_repacking()
 
-    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun)
+    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
     sampler = ChiSampler.from_database(param_resolver)
 
 
@@ -700,3 +705,9 @@ def test_chi_sampler_smoke(ubq_system, default_database, torch_device):
     print(brt_for_rotamer.shape)
     print("chi_for_rotamers")
     print(chi_for_rotamers.shape)
+
+    assert n_rots_for_brt.shape == (69,)
+    assert n_rots_for_brt_offsets.shape == n_rots_for_brt.shape
+    assert brt_for_rotamer.shape == (1190,) # this will change when proton chi are handled properly
+    assert brt_for_rotamer.shape[0] == chi_for_rotamers.shape[0]
+    assert chi_for_rotamers.shape[1] == 4

@@ -37,8 +37,6 @@ from tmol.score.common.stack_condense import (
     take_values_w_sentineled_dest,
 )
 
-from tmol.system.score_support import indexed_atoms_for_dihedral
-
 
 
 
