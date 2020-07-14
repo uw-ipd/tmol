@@ -49,21 +49,22 @@ class ChiSampler:
             rt.name for rlt in task.rlts
             for rt in rlt.allowed_restypes
         ], dtype=object)
-        print("rt_names", len(rt_names))
-        print(rt_names)
+        # print("rt_names", len(rt_names))
+        # print(rt_names)
         rt_res = numpy.array([
             i for i, rlt in enumerate(task.rlts)
             for rt in rlt.allowed_restypes
         ], dtype=numpy.int32)
-        print("rt_res", len(rt_res))
+        # print("rt_res", len(rt_res))
 
         dun_rot_inds_for_rts = self.dun_param_resolver._indices_from_names(
             self.dun_param_resolver.all_table_indices,
             rt_names[None,:],
             torch.device("cpu")
         ).squeeze()
-        print("dun_rot_inds_for_rts", dun_rot_inds_for_rts.shape)
-        print(dun_rot_inds_for_rts)
+
+        # print("dun_rot_inds_for_rts", dun_rot_inds_for_rts.shape)
+        # print(dun_rot_inds_for_rts)
 
         inds_of_phi_res = indexed_atoms_for_dihedral(system, "phi")
         inds_of_psi_res = indexed_atoms_for_dihedral(system, "psi")
@@ -84,8 +85,8 @@ class ChiSampler:
         nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
         rottable_set_for_buildable_restype = dun_rot_inds_for_rts[nonzero_dunrot_inds_for_rts]
         orig_residue_for_buildable_restype = rt_res[nonzero_dunrot_inds_for_rts.cpu().numpy()]
-        print("orig_residue_for_buildable_restype", orig_residue_for_buildable_restype.shape)
-        print(orig_residue_for_buildable_restype)
+        # print("orig_residue_for_buildable_restype", orig_residue_for_buildable_restype.shape)
+        # print(orig_residue_for_buildable_restype)
         uniq_res_for_brt, uniq_inds = numpy.unique(orig_residue_for_buildable_restype, return_inverse=True)
 
         rottable_set_for_buildable_restype = torch.tensor(numpy.concatenate((

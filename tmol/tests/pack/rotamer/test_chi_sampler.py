@@ -677,12 +677,12 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     )
 
 
-def test_chi_sampler_smoke(ubq_system, default_database):
-    print("ubq system:", len(ubq_system.residues))
-    torch_device = torch.device("cpu")
+def test_chi_sampler_smoke(ubq_system, default_database, torch_device):
+    # print("ubq system:", len(ubq_system.residues))
+    # torch_device = torch.device("cpu")
     palette = PackerPalette(default_database.chemical)
     task = PackerTask(ubq_system, palette)
-    print("task size:", len(task.rlts))
+    # print("task size:", len(task.rlts))
     for rlt in task.rlts:
         rlt.restrict_to_repacking()
 
@@ -697,14 +697,14 @@ def test_chi_sampler_smoke(ubq_system, default_database):
         task
     )
     n_rots_for_brt, n_rots_for_brt_offsets, brt_for_rotamer, chi_for_rotamers = result
-    print("n_rots_for_brt")
-    print(n_rots_for_brt.shape)
-    print("n_rots_for_brt_offsets")
-    print(n_rots_for_brt_offsets.shape)
-    print("brt_for_rotamer")
-    print(brt_for_rotamer.shape)
-    print("chi_for_rotamers")
-    print(chi_for_rotamers.shape)
+    # print("n_rots_for_brt")
+    # print(n_rots_for_brt.shape)
+    # print("n_rots_for_brt_offsets")
+    # print(n_rots_for_brt_offsets.shape)
+    # print("brt_for_rotamer")
+    # print(brt_for_rotamer.shape)
+    # print("chi_for_rotamers")
+    # print(chi_for_rotamers.shape)
 
     assert n_rots_for_brt.shape == (69,)
     assert n_rots_for_brt_offsets.shape == n_rots_for_brt.shape
