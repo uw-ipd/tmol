@@ -1,1 +1,1 @@
-https://conda.anaconda.org/t/IuO94WfD-JCG/rosettacommons
+https://levinthal:paradox@conda.graylab.jhu.edu
