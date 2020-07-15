@@ -1,1 +1,1 @@
-pyrosetta=2018.51.*
+pyrosetta=2020.1.*
