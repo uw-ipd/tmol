@@ -74,11 +74,15 @@ def test_bonded_path_length(ubq_system: PackedResidueSystem):
 
         assert src.bonded_path_length.shape == (1, src.system_size, src.system_size)
         assert numpy.all(
-            src.bonded_path_length[0][distance_table > src.MAX_BONDED_PATH_LENGTH].numpy()
+            src.bonded_path_length[0][
+                distance_table > src.MAX_BONDED_PATH_LENGTH
+            ].numpy()
             == numpy.inf
         )
         assert numpy.all(
-            src.bonded_path_length[0][distance_table < src.MAX_BONDED_PATH_LENGTH].numpy()
+            src.bonded_path_length[0][
+                distance_table < src.MAX_BONDED_PATH_LENGTH
+            ].numpy()
             == distance_table[distance_table < src.MAX_BONDED_PATH_LENGTH].numpy()
         )
 

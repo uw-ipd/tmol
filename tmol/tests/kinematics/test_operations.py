@@ -150,7 +150,9 @@ def test_perturb(kintree, coords, torch_device):
     pcoords = forwardKin(kintree, t_dofs)
 
     numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
-    assert numpy.all(coord_changed(pcoords[6:11].cpu().numpy(), coords[6:11].cpu().numpy()))
+    assert numpy.all(
+        coord_changed(pcoords[6:11].cpu().numpy(), coords[6:11].cpu().numpy())
+    )
     numpy.testing.assert_allclose(pcoords[11:16].cpu(), coords[11:16].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[16:21].cpu(), coords[16:21].cpu(), atol=1e-6)
 
@@ -169,7 +171,10 @@ def test_perturb(kintree, coords, torch_device):
     numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6].cpu(), coords[6].cpu(), atol=1e-6)
     assert numpy.all(
-        numpy.any(coord_changed(pcoords[7:11].cpu().numpy(), coords[7:11].cpu().numpy()), axis=-1)
+        numpy.any(
+            coord_changed(pcoords[7:11].cpu().numpy(), coords[7:11].cpu().numpy()),
+            axis=-1,
+        )
     )
     numpy.testing.assert_allclose(pcoords[11:16].cpu(), coords[11:16].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[16:21].cpu(), coords[16:21].cpu(), atol=1e-6)
@@ -184,7 +189,10 @@ def test_perturb(kintree, coords, torch_device):
     numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6].cpu(), coords[6].cpu(), atol=1e-6)
     assert numpy.all(
-        numpy.any(coord_changed(pcoords[7:11].cpu().numpy(), coords[7:11].cpu().numpy()), axis=-1)
+        numpy.any(
+            coord_changed(pcoords[7:11].cpu().numpy(), coords[7:11].cpu().numpy()),
+            axis=-1,
+        )
     )
     numpy.testing.assert_allclose(pcoords[11:16].cpu(), coords[11:16].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[16:21].cpu(), coords[16:21].cpu(), atol=1e-6)
