@@ -676,7 +676,7 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
         chi_for_rotamers_gold, chi_for_rotamers.cpu(), atol=1e-5, rtol=1e-5
     )
 
-
+# 
 def test_chi_sampler_smoke(ubq_system, default_database, torch_device):
     # print("ubq system:", len(ubq_system.residues))
     # torch_device = torch.device("cpu")
@@ -708,6 +708,6 @@ def test_chi_sampler_smoke(ubq_system, default_database, torch_device):
 
     assert n_rots_for_brt.shape == (69,)
     assert n_rots_for_brt_offsets.shape == n_rots_for_brt.shape
-    assert brt_for_rotamer.shape == (1190,) # this will change when proton chi are handled properly
+    assert brt_for_rotamer.shape == (1524,)
     assert brt_for_rotamer.shape[0] == chi_for_rotamers.shape[0]
     assert chi_for_rotamers.shape[1] == 4

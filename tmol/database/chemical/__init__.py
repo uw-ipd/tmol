@@ -69,12 +69,18 @@ class Torsion:
     c: ConnectedAtom
     d: ConnectedAtom
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ChiSamples:
+    chi_dihedral: str
+    samples: Tuple[float, ...]
+    expansions: Tuple[float, ...]
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class SidechainBuilding:
     root: str
     backbone_atoms: Tuple[str, ...]
     exclude_bonds: Tuple[Tuple[str, str], ...]
+    chi_samples: Tuple[ChiSamples, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

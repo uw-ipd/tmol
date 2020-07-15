@@ -45,6 +45,11 @@ class ChiSampler:
     ] :
         dev = coords.device
 
+        all_allowed_restypes = numpy.array([
+            rt for rlt in task.rlts
+            for rt in rlt.allowed_restypes
+        ], dtype=object)
+        # print("all_allowed_restypes", all_allowed_restypes.shape, [rt.name for rt in all_allowed_restypes])
         rt_names = numpy.array([
             rt.name for rlt in task.rlts
             for rt in rlt.allowed_restypes
@@ -138,19 +143,80 @@ class ChiSampler:
         chi_expansion_for_buildable_restype = torch.full(
             (n_brts, 4), 0, dtype=torch.int32, device=dev)
 
-        # for now, punt on sampling the chi not specified by the dunbrack library
-        non_dunbrack_expansion_for_buildable_restype = torch.full(
-            (n_brts, 4, 1), 0, dtype=torch.float32, device=dev)
+        # ok, we'll go to the residue types and look at their protonation state expansions
+        # and we'll put that information into the chi_expansions_for_buildable_restype
+        # tensor
+
+        # print("non-negative", dun_rot_inds_for_rts != -1)
+        # print(dun_rot_inds_for_rts.numpy().shape)
+        # print(all_allowed_restypes.shape)
+        # sele = 
+        # print(sele)
+
+        nchi_for_buildable_restype = self.sampling_params.nchi_for_table_set[
+            rottable_set_for_buildable_restype[:,1].to(torch.int64)]
+
+        brts = all_allowed_restypes[dun_rot_inds_for_rts.numpy() != -1]
+
         non_dunbrack_expansion_counts_for_buildable_restype = torch.full(
             (n_brts, 4), 0, dtype=torch.int32, device=dev)
+        max_chi_samples = 0
+        for i,rt in enumerate(brts):
+            # print(i, rt.name)
+            for j, rt_scb in enumerate(rt.sidechain_building):
+                # print("count", rt.name, j, len(rt_scb.chi_samples))
+                for k, rt_scb_chi in enumerate(rt_scb.chi_samples):
+                    chi_name = rt_scb_chi.chi_dihedral
+                    # weird assumption: chi are named chiX with X an integer
+                    assert chi_name[:3] == "chi"
+                    chi_ind = int(chi_name[3:]) - 1
+                    if chi_ind >= nchi_for_buildable_restype[i]:
+                        nchi_for_buildable_restype[i] = chi_ind+1
+                    n_expansions = ( 1 + 2*len(rt_scb_chi.expansions)*chi_expansion_for_buildable_restype[
+                        i, chi_ind]
+                    )
+                    n_samples = len(rt_scb_chi.samples)
+                    n_expanded_samples = n_samples * n_expansions
+                    max_chi_samples = max(max_chi_samples, n_expanded_samples)
+                    non_dunbrack_expansion_counts_for_buildable_restype[i,chi_ind] = n_expanded_samples
+                    # print("non dunbrack expansion counts", i, j, k, rt.name, n_expanded_samples)
 
+        non_dunbrack_expansion_for_buildable_restype = torch.full(
+            (n_brts, 4, max_chi_samples), -1, dtype=torch.float32, device=dev)
+
+        for i,rt in enumerate(brts):
+            for j, rt_scb in enumerate(rt.sidechain_building):
+                for k, rt_scb_chi in enumerate(rt_scb.chi_samples):
+                    chi_name = rt_scb_chi.chi_dihedral
+                    # weird assumption: chi are named chiX with X an integer
+                    assert chi_name[:3] == "chi"
+                    chi_ind = int(chi_name[3:]) - 1
+                    n_expansions = ( 1 + 2*len(rt_scb_chi.expansions)*chi_expansion_for_buildable_restype[
+                        i, chi_ind]
+                    )
+                    n_samples = len(rt_scb_chi.samples)
+                    n_expanded_samples =  n_samples * n_expansions
+                    for l in range(n_samples):
+                        # print("  ",l)
+                        for m in range(n_expansions):
+                            # print("    ", m)
+                            if m == 0:
+                                non_dunbrack_expansion_for_buildable_restype[i, chi_ind, n_expansions*l + m] = (
+                                    rt_scb_chi.samples[l]
+                                )
+                                # print("rt_scb_chi.samples[",l,"]", rt_scb_chi.samples[l])
+                            else:
+                                expansion = (m-1) // 2
+                                factor = -1 if (m-1) % 2 == 0 else 1
+                                non_dunbrack_expansion_for_buildable_restype[i, chi_ind, n_expansions*l + m] = (
+                                    rt_scb_chi.samples[l] + factor * rt_scb_chi.expansions[expansion]
+                                )
+                            
+
+                        
         # treat all residues as if they are exposed
         prob_cumsum_limit_for_buildable_restype = torch.full(
             (n_brts,), 0.95, dtype=torch.float32, device=dev)
-
-        # for now, ignore the chi not specified by the dunbrack library
-        nchi_for_buildable_restype = self.sampling_params.nchi_for_table_set[
-            rottable_set_for_buildable_restype[:,1].to(torch.int64)]
 
         # print("ndihe_for_res")
         # print(ndihe_for_res.shape)
