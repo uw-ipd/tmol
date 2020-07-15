@@ -138,7 +138,7 @@ class KinematicBuilder:
         # Verify that ids are unique and that all parent references are valid,
         # get_indexer returns -1 if a target value is not present in index.
         assert not id_index.has_duplicates, "Duplicated id in component"
-        assert numpy.all(parent_indices >= 0), "Parent id not present in component."
+        assert numpy.all(parent_indices.numpy() >= 0), "Parent id not present in component."
 
         # Allocate entries for the new subtree and store the provided ids in
         # the kintree id column. All internal kintree references,
