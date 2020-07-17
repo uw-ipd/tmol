@@ -29,24 +29,24 @@ from tmol.types.tensor import TensorGroup
 
 @attr.s(auto_attribs=True)
 class HBondDonorIndices(TensorGroup):
-    D: Tensor("i8")[..., 3]
-    H: Tensor("i8")[..., 3]
-    donor_type: Tensor("i4")[...]
+    D: Tensor(torch.int64)[..., 3]
+    H: Tensor(torch.int64)[..., 3]
+    donor_type: Tensor(torch.int32)[...]
 
 
 @attr.s(auto_attribs=True)
 class HBondAcceptorIndices(TensorGroup):
-    A: Tensor("i8")[..., 3]
-    B: Tensor("i8")[..., 3]
-    B0: Tensor("i8")[..., 3]
-    acceptor_type: Tensor("i4")[...]
+    A: Tensor(torch.int64)[..., 3]
+    B: Tensor(torch.int64)[..., 3]
+    B0: Tensor(torch.int64)[..., 3]
+    acceptor_type: Tensor(torch.int32)[...]
 
 
 @attr.s(auto_attribs=True)
 class HBondDescr(TensorGroup):
     donor: HBondDonorIndices
     acceptor: HBondAcceptorIndices
-    score: Tensor("f")[...]
+    score: Tensor(torch.float32)[...]
 
 
 @reactive_attrs

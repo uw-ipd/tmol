@@ -37,18 +37,30 @@ class _ElecScoreModule(torch.jit.ScriptModule):
 
 class ElecInterModule(_ElecScoreModule):
     @torch.jit.script_method
-    def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+    def forward(
+        self, coords_I, atom_type_I, coords_J, atom_type_J, bonded_path_lengths
+    ):
         return torch.ops.tmol.score_elec(
-            I, atom_type_I, J, atom_type_J, bonded_path_lengths, self.global_params
+            coords_I,
+            atom_type_I,
+            coords_J,
+            atom_type_J,
+            bonded_path_lengths,
+            self.global_params,
         )
 
 
 class ElecIntraModule(_ElecScoreModule):
     @torch.jit.script_method
-    def forward(self, I, atom_type_I, bonded_path_lengths):
-        # print("I", I.shape)
+    def forward(self, coords_I, atom_type_I, bonded_path_lengths):
+        # print("coords_I", coords_I.shape)
         # print("atom_type_I", atom_type_I.shape)
         # print("bonded_path_lengths", bonded_path_lengths.shape)
         return torch.ops.tmol.score_elec_triu(
-            I, atom_type_I, I, atom_type_I, bonded_path_lengths, self.global_params
+            coords_I,
+            atom_type_I,
+            coords_I,
+            atom_type_I,
+            bonded_path_lengths,
+            self.global_params,
         )

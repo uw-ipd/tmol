@@ -1,7 +1,7 @@
 pytest=3.8.*
 pytest-cov
 
-flake8
+flake8=3.8.3
 uw-ipd::clangdev=7.*
 virtualenv
 

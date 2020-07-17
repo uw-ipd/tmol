@@ -14,7 +14,7 @@ def test_interatomic_distance_stacked(
     tc = multilayer_test_coords
 
     intra_layer_counts = [
-        numpy.nansum(pdist(tc[l]) < threshold_distance) for l in range(len(tc))
+        numpy.nansum(pdist(tc[layer]) < threshold_distance) for layer in range(len(tc))
     ]
 
     inter_layer_counts = [
