@@ -2,6 +2,7 @@ import pytest
 
 from math import pi
 import tmol.utility.units as units
+import pint
 
 
 def test_angle_parsing():
@@ -31,7 +32,7 @@ def test_angle_parsing():
         assert units.parse_angle(v) == 1 / 2 * pi
 
     for i in invalid_values:
-        with pytest.raises(ValueError):
+        with pytest.raises((pint.DimensionalityError, ValueError)):
             units.parse_angle(i)
 
     units.parse_angle("1/2 pi", (units.u("0"), units.u("pi")))
