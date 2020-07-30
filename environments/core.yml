@@ -21,6 +21,7 @@ dependencies:
 - zarr
 - conda-forge::pint
 - attrs
+- attrs-strict
 - cattrs
 - frozendict
 - sparse=0.3.1
