@@ -44,7 +44,8 @@ args = parser.parse_args()
 layers = ["core", args.platform] + {
     "run": [],
     "test": ["test", "docs"],
-    "dev": ["test", "docs", "support", "dev"],
+    "dev": ["test", "docs", "dev"],
+    "support": ["test", "docs", "support", "dev"],
 }[args.target]
 
 print(render(layers))
