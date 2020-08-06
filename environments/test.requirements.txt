@@ -10,6 +10,6 @@ git+http://github.com/uw-ipd/pytest-benchmark@9e50085
 
 py3Dmol
 
-hypothesis
+hypothesis==3.88.3
 
 itermplot
