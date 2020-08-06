@@ -109,14 +109,14 @@ class ScoreModule(ABC):
     @classmethod
     @abstractmethod
     def depends_on(cls: Type[_TModule]) -> Set[Type["ScoreModule"]]:
-        raise NotImplementedError("ScoreModule.depends_on")
+        raise NotImplementedError(f"ScoreModule.depends_on: {cls}")
 
     @classmethod
     @abstractmethod
     def build_for(
         cls: Type[_TModule], val: object, system: ScoreSystem, **_
     ) -> _TModule:
-        raise NotImplementedError("ScoreModule.build_for")
+        raise NotImplementedError(f"ScoreModule.build_for: {cls}")
 
 
 _TMethod = TypeVar("_TMethod", bound="ScoreMethod")

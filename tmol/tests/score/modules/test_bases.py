@@ -13,10 +13,18 @@ def test_resolve_modules():
         def depends_on():
             return {Foo}
 
+        @classmethod
+        def build_for(cls, val, system, **_kws):
+            return cls(system=system)
+
         def intra_forward(self, system: ScoreSystem, coords: torch.Tensor):
             return {"foo", coords.sum()}
 
     class TestScoreModule(ScoreModule):
+        @classmethod
+        def depends_on(cls):
+            return set()
+
         @classmethod
         def build_for(cls, val, system, **_kws):
 
@@ -86,6 +94,10 @@ def test_build_for_kwargs():
     @attr.s(auto_attribs=True, kw_only=True, slots=True)
     class KwargModule(ScoreModule):
         required_kwarg: bool
+
+        @classmethod
+        def depends_on(cls):
+            return set()
 
         @classmethod
         def build_for(cls, val, system, *, required_kwarg: bool, **_kws):
