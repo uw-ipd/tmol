@@ -1,7 +1,6 @@
 import torch
 
-from .packed import PackedResidueSystem, PackedResidueSystemStack
-from .score_module_support import coords_for_system
+from .packed import PackedResidueSystem
 from ..kinematics.dof_modules import CartesianDOFs, KinematicDOFs, KinematicOperation
 from ..kinematics.operations import inverseKin
 

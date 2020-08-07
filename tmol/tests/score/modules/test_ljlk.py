@@ -1,13 +1,12 @@
 import copy
 
 import pytest
-from pytest import approx
 import torch
 
 from tmol.database import ParameterDatabase
 
 from tmol.score.modules.bases import ScoreSystem
-from tmol.score.modules.ljlk import LJScore, LKScore, LJLKParameters
+from tmol.score.modules.ljlk import LJScore, LJLKParameters
 from tmol.score.modules.coords import coords_for
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack

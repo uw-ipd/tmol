@@ -72,9 +72,7 @@ class BondedAtoms(ScoreModule):
     @real_atoms.default
     def _init_real_atoms(self):
         """Mask of non-null atomic indices in the system."""
-        return torch.ByteTensor(
-            (self.atom_types != None).astype(numpy.ubyte)  # noqa: E711
-        )  # None != is a vectorized check for None.
+        return torch.ByteTensor((self.atom_types != None).astype(numpy.ubyte))
 
     indexed_bonds: IndexedBonds = attr.ib(init=False)
 

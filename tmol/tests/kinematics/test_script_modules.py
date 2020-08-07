@@ -2,7 +2,6 @@ import pytest
 import typing
 
 import torch
-import attr
 
 from tmol.types.torch import Tensor
 
