@@ -36,23 +36,6 @@ RUN chmod +x /usr/bin/tini
 ENTRYPOINT [ "/usr/bin/tini", "--", "/docker-entrypoint.sh" ]
 CMD [ "/bin/bash" ]
 
-### Setup test environment
-# Layering setup to allow partial caching of conda packages
-
-RUN conda update -n base conda && conda clean -tipsy
-
-COPY environments/core.dependencies.txt /environments/
-RUN conda install -n base --file /environments/core.dependencies.txt && conda clean -tipsy
-
-COPY environments/linux.cuda.dependencies.txt /environments/
-RUN conda install -n base --file /environments/linux.cuda.dependencies.txt && conda clean -tipsy
-
-COPY environments/test.dependencies.txt /environments/
-RUN conda install -n base --file /environments/test.dependencies.txt && conda clean -tipsy
-
-COPY environments/docs.dependencies.txt /environments/
-RUN conda install -n base --file /environments/docs.dependencies.txt && conda clean -tipsy
-
 ### Pre-install pyrosetta in "support" namespace.
 #COPY environments/support.dependencies.txt /environments/
 #COPY environments/support.channels.txt /environments/
@@ -61,12 +44,15 @@ RUN conda install -n base --file /environments/docs.dependencies.txt && conda cl
 ### Packages needed for graphviz png output
 # libxrender: missing package dependency in graphviz conda package
 # gsfonts: fonts for png text rendering
-RUN apt-get update --fix-missing && \
-    apt-get install -y libxrender1 gsfonts && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+#RUN apt-get update --fix-missing && \
+#    apt-get install -y libxrender1 gsfonts && \
+#    apt-get clean && \
+#    rm -rf /var/lib/apt/lists/*
+
+### Setup test environment
+
+RUN conda update -n base conda && conda clean -tipsy
 
 COPY environments /environments
-RUN /environments/render linux.cuda test > /environment.yml && \
-    conda env update -n base -f /environment.yml && \
+RUN conda update -n base --file /environments/locks/test-linux-64.lock && \
     conda clean -tipsy

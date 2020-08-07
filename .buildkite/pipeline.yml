@@ -58,12 +58,12 @@ steps:
     << : *cpu_container
 
   ### Generate project documentation
-  - label: ':open_book: Docs'
-    command: .buildkite/bin/docs
-    artifact_paths:
-      - docs/_build/**/*
-    << : *test_agent
-    << : *cuda_container
+  #- label: ':open_book: Docs'
+  #  command: .buildkite/bin/docs
+  #  artifact_paths:
+  #    - docs/_build/**/*
+  #  << : *test_agent
+  #  << : *cuda_container
 
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
