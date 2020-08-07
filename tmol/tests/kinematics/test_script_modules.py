@@ -65,7 +65,7 @@ def gradcheck_test_system(
     return (tkin.kintree, tkin.extract_kincoords(tsys.coords))
 
 
-def kop_gradcheck_report(kop, start_dofs, eps=1e-6, atol=1e-5, rtol=1e-3):
+def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
     # we only minimize the "rbdel" dofs
     minimizable_dofs = start_dofs[:, :6]
 
@@ -83,10 +83,10 @@ def kop_gradcheck_report(kop, start_dofs, eps=1e-6, atol=1e-5, rtol=1e-3):
         (minimizable_dofs,), result
     )
     numerical = get_numerical_jacobian(
-        eval_kin, minimizable_dofs, minimizable_dofs, 2e-3
+        eval_kin, minimizable_dofs, minimizable_dofs, eps=eps
     )
 
-    torch.testing.assert_allclose(analytical, numerical)
+    torch.testing.assert_allclose(analytical, numerical, atol=atol, rtol=rtol)
 
 
 def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system, torch_device):
