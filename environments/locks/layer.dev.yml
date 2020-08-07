@@ -21,6 +21,7 @@ dependencies:
 - zarr
 - conda-forge::pint
 - attrs
+- attrs-strict
 - cattrs
 - frozendict
 - sparse=0.3.1
@@ -32,7 +33,8 @@ dependencies:
 - clangxx_osx-64=4.0 # [osx]
 # Test
 - pytest=3.8.*
-- pytest-cov
+- coverage=4 # Pin, using older coverage api
+- pytest-cov=2.5
 - flake8
 - clangdev=7.*
 - virtualenv

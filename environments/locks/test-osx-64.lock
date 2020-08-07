@@ -1,5 +1,5 @@
 # platform: osx-64
-# env_hash: 5c8565b6ea00c70fa66159bdae62dad85235865cbc10cff6b4b498d503324550
+# env_hash: 7d0276f5a310e956a402594f529a067bd313b18757b0cab5950b51fcb3bfd676
 @EXPLICIT
 https://conda.anaconda.org/main/osx-64/blas-1.0-openblas.tar.bz2#38fd73cba341639c45d8c747b08c9cc1
 https://conda.anaconda.org/main/osx-64/ca-certificates-2020.6.24-0.tar.bz2#e4d4dce8a45e32cbb730e47d564a9fbc
@@ -61,6 +61,7 @@ https://conda.anaconda.org/main/osx-64/chardet-3.0.4-py36_1003.tar.bz2#73b5587ae
 https://conda.anaconda.org/main/osx-64/clang_osx-64-4.0.1-h1ce6c1d_18.tar.bz2#d5a6895ad66479747b573c95dba4d1da
 https://conda.anaconda.org/main/osx-64/clangxx-4.0.1-1.tar.bz2#a5408743abafcc4b38a21766c04ad52f
 https://conda.anaconda.org/main/noarch/click-7.1.2-py_0.tar.bz2#828d28ae2037e05472eb80fdcd41d3c6
+https://conda.anaconda.org/main/osx-64/coverage-4.5.4-py36h1de35cc_0.tar.bz2#78b52da8732edc2036937d3bcd95fb27
 https://conda.anaconda.org/main/noarch/decorator-4.4.2-py_0.tar.bz2#4e298eec53d4a26726195d61ae144faf
 https://conda.anaconda.org/main/noarch/defusedxml-0.6.0-py_0.tar.bz2#db00390e2c4c3c3670d22a7bfba6a993
 https://conda.anaconda.org/conda-forge/noarch/distlib-0.3.1-pyh9f0ad1d_0.tar.bz2#db990401a267e2b15854af5f3f84f763
@@ -108,12 +109,12 @@ https://conda.anaconda.org/main/osx-64/tornado-6.0.4-py36h1de35cc_1.tar.bz2#6215
 https://conda.anaconda.org/main/noarch/wcwidth-0.2.5-py_0.tar.bz2#d2e33d50573939f4724f8fbd0dcc3439
 https://conda.anaconda.org/main/osx-64/webencodings-0.5.1-py36_1.tar.bz2#571cba5c70574bd2c5193321bb28f9d8
 https://conda.anaconda.org/main/noarch/zipp-3.1.0-py_0.tar.bz2#9ae8197a39c6d488df16fd061b29fb71
+https://conda.anaconda.org/uw-ipd/noarch/attrs-strict-0.2.0-py_0.tar.bz2#19d7e1fe56a6c71cdd4dc133c2a1bdf4
 https://conda.anaconda.org/conda-forge/noarch/black-18.6b4-py_0.tar.bz2#8c55eabbe137a51d1b4d6685ca32b846
 https://conda.anaconda.org/main/noarch/cattrs-1.0.0-py_1.tar.bz2#d706e9957a1b0fc41590bbd1a9199ea9
 https://conda.anaconda.org/main/osx-64/cffi-1.14.0-py36hc512035_1.tar.bz2#f533178a970d9ff3a820cbaf65c332b7
 https://conda.anaconda.org/conda-forge/noarch/cfgv-3.2.0-py_0.tar.bz2#4972efcb3e2cbd3954b24a17266be25c
 https://conda.anaconda.org/main/osx-64/clangxx_osx-64-4.0.1-h22b1bf0_18.tar.bz2#a1795b61f00b4397a53b8bfde9124e86
-https://conda.anaconda.org/conda-forge/osx-64/coverage-5.2.1-py36h9de38fb_0.tar.bz2#55ca57b4469c9323a14fc1b2bcd38217
 https://conda.anaconda.org/main/osx-64/cycler-0.10.0-py36hfc81398_0.tar.bz2#01738824dbe2b2a1aee464282d5d3a1c
 https://conda.anaconda.org/main/noarch/execnet-1.7.1-py_0.tar.bz2#93a0dad0935139ac49c2583f04f6e995
 https://conda.anaconda.org/main/noarch/fasteners-0.15-py_0.tar.bz2#162b371c55397c81acd21e27ff5cb14c
@@ -171,7 +172,7 @@ https://conda.anaconda.org/main/osx-64/ipykernel-5.3.4-py36h5ca1d4c_0.tar.bz2#c8
 https://conda.anaconda.org/main/osx-64/nbconvert-5.6.1-py36_0.tar.bz2#4f60c10fbf598e6349fcdbbaf72263ac
 https://conda.anaconda.org/conda-forge/osx-64/pre-commit-2.6.0-py36h9f0ad1d_0.tar.bz2#8cdbd32a8b18325cdf0b1ce36d6796bf
 https://conda.anaconda.org/uw-ipd/noarch/pytest-benchmark-3.1.1.post1-py_0.tar.bz2#497af2b8171047aa8483a08b86efc280
-https://conda.anaconda.org/main/noarch/pytest-cov-2.9.0-py_0.tar.bz2#ac9ea3b250013722bd96cd34e3d04dd0
+https://conda.anaconda.org/main/osx-64/pytest-cov-2.5.1-py36_0.tar.bz2#173c4207aaddd5a1ff1ca576646e8254
 https://conda.anaconda.org/conda-forge/osx-64/pytest-faulthandler-1.6.0-py36_0.tar.bz2#d564ef6c7035c459ebba25568e8ef13c
 https://conda.anaconda.org/main/noarch/pytest-forked-1.2.0-py_0.tar.bz2#3e947ede4863bf18ee5feb5195730c17
 https://conda.anaconda.org/main/noarch/requests-2.24.0-py_0.tar.bz2#0da8872d36b3ef33859654b6d0fea148

@@ -1,5 +1,5 @@
 # platform: osx-64
-# env_hash: cc1555b2da3343145333635351e1b6a37bc5477119ce5bd20a22b722980a6c97
+# env_hash: 5f814178ddf72c509868fb26457b51f7a3ca1b7c4ffddd47f3873d3def6b41ee
 @EXPLICIT
 https://conda.anaconda.org/main/osx-64/blas-1.0-openblas.tar.bz2#38fd73cba341639c45d8c747b08c9cc1
 https://conda.anaconda.org/main/osx-64/ca-certificates-2020.6.24-0.tar.bz2#e4d4dce8a45e32cbb730e47d564a9fbc
@@ -61,6 +61,7 @@ https://conda.anaconda.org/main/noarch/six-1.15.0-py_0.tar.bz2#0d41d5bff9a456f76
 https://conda.anaconda.org/main/noarch/toolz-0.10.0-py_0.tar.bz2#0174db18693bebfed1e414f6be7b9169
 https://conda.anaconda.org/main/noarch/wcwidth-0.2.5-py_0.tar.bz2#d2e33d50573939f4724f8fbd0dcc3439
 https://conda.anaconda.org/main/noarch/zipp-3.1.0-py_0.tar.bz2#9ae8197a39c6d488df16fd061b29fb71
+https://conda.anaconda.org/uw-ipd/noarch/attrs-strict-0.2.0-py_0.tar.bz2#19d7e1fe56a6c71cdd4dc133c2a1bdf4
 https://conda.anaconda.org/main/noarch/cattrs-1.0.0-py_1.tar.bz2#d706e9957a1b0fc41590bbd1a9199ea9
 https://conda.anaconda.org/main/osx-64/cffi-1.14.0-py36hc512035_1.tar.bz2#f533178a970d9ff3a820cbaf65c332b7
 https://conda.anaconda.org/main/osx-64/clangxx_osx-64-4.0.1-h22b1bf0_18.tar.bz2#a1795b61f00b4397a53b8bfde9124e86

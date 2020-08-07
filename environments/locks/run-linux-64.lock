@@ -1,5 +1,5 @@
 # platform: linux-64
-# env_hash: 7d715cf094fc472a3e993112c7cb1694558628908f95f6b4c16152b53db4e2df
+# env_hash: aed042ccdaec8e0708e78f43794b5166d7114235056c2e10b37f7ac837680b05
 @EXPLICIT
 https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81
 https://conda.anaconda.org/main/linux-64/blas-1.0-openblas.tar.bz2#671f6e045d03a842f379145e7fc43c0d
@@ -67,6 +67,7 @@ https://conda.anaconda.org/main/noarch/six-1.15.0-py_0.tar.bz2#0d41d5bff9a456f76
 https://conda.anaconda.org/main/noarch/toolz-0.10.0-py_0.tar.bz2#0174db18693bebfed1e414f6be7b9169
 https://conda.anaconda.org/main/noarch/wcwidth-0.2.5-py_0.tar.bz2#d2e33d50573939f4724f8fbd0dcc3439
 https://conda.anaconda.org/main/noarch/zipp-3.1.0-py_0.tar.bz2#9ae8197a39c6d488df16fd061b29fb71
+https://conda.anaconda.org/uw-ipd/noarch/attrs-strict-0.2.0-py_0.tar.bz2#19d7e1fe56a6c71cdd4dc133c2a1bdf4
 https://conda.anaconda.org/main/noarch/cattrs-1.0.0-py_1.tar.bz2#d706e9957a1b0fc41590bbd1a9199ea9
 https://conda.anaconda.org/conda-forge/linux-64/cffi-1.14.1-py36h0ff685e_0.tar.bz2#ccd9d7b5af2d181f3597c388a11bc141
 https://conda.anaconda.org/main/noarch/fasteners-0.15-py_0.tar.bz2#162b371c55397c81acd21e27ff5cb14c

@@ -1,5 +1,5 @@
 # platform: linux-64
-# env_hash: 948522c957372831cf86f7d7e014133980f778656b4d942069f87904363fcde1
+# env_hash: a0d5829099f0c4d6f48105d65498d1b48aedced35813b6fe0b7a8a5b55151ff0
 @EXPLICIT
 https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81
 https://conda.anaconda.org/main/linux-64/blas-1.0-openblas.tar.bz2#671f6e045d03a842f379145e7fc43c0d
@@ -67,6 +67,7 @@ https://conda.anaconda.org/main/noarch/backcall-0.2.0-py_0.tar.bz2#3d4549a36a544
 https://conda.anaconda.org/main/linux-64/certifi-2020.6.20-py36_0.tar.bz2#abf97316466c8769b7772e90d750fa66
 https://conda.anaconda.org/main/linux-64/chardet-3.0.4-py36_1003.tar.bz2#bb767b94c2d4db2ff14865a281f2716b
 https://conda.anaconda.org/main/noarch/click-7.1.2-py_0.tar.bz2#828d28ae2037e05472eb80fdcd41d3c6
+https://conda.anaconda.org/main/linux-64/coverage-4.5.4-py36h7b6447c_0.tar.bz2#7bde48596cdd3795743352e06a7fa0d6
 https://conda.anaconda.org/main/noarch/decorator-4.4.2-py_0.tar.bz2#4e298eec53d4a26726195d61ae144faf
 https://conda.anaconda.org/main/noarch/defusedxml-0.6.0-py_0.tar.bz2#db00390e2c4c3c3670d22a7bfba6a993
 https://conda.anaconda.org/conda-forge/noarch/distlib-0.3.1-pyh9f0ad1d_0.tar.bz2#db990401a267e2b15854af5f3f84f763
@@ -114,11 +115,11 @@ https://conda.anaconda.org/main/linux-64/tornado-6.0.4-py36h7b6447c_1.tar.bz2#bd
 https://conda.anaconda.org/main/noarch/wcwidth-0.2.5-py_0.tar.bz2#d2e33d50573939f4724f8fbd0dcc3439
 https://conda.anaconda.org/main/linux-64/webencodings-0.5.1-py36_1.tar.bz2#32050cbb6d7ed7ae30a46d7d180c2c48
 https://conda.anaconda.org/main/noarch/zipp-3.1.0-py_0.tar.bz2#9ae8197a39c6d488df16fd061b29fb71
+https://conda.anaconda.org/uw-ipd/noarch/attrs-strict-0.2.0-py_0.tar.bz2#19d7e1fe56a6c71cdd4dc133c2a1bdf4
 https://conda.anaconda.org/conda-forge/noarch/black-18.6b4-py_0.tar.bz2#8c55eabbe137a51d1b4d6685ca32b846
 https://conda.anaconda.org/main/noarch/cattrs-1.0.0-py_1.tar.bz2#d706e9957a1b0fc41590bbd1a9199ea9
 https://conda.anaconda.org/conda-forge/linux-64/cffi-1.14.1-py36h0ff685e_0.tar.bz2#ccd9d7b5af2d181f3597c388a11bc141
 https://conda.anaconda.org/conda-forge/noarch/cfgv-3.2.0-py_0.tar.bz2#4972efcb3e2cbd3954b24a17266be25c
-https://conda.anaconda.org/conda-forge/linux-64/coverage-5.2.1-py36h8c4c3a4_0.tar.bz2#03fbb68aacb24d54f94d6347e4610191
 https://conda.anaconda.org/main/linux-64/cycler-0.10.0-py36_0.tar.bz2#85e318e9f28e4ae53096c6f925357602
 https://conda.anaconda.org/main/linux-64/dbus-1.13.16-hb2f20db_0.tar.bz2#094cacb65bec5e7fe21285c804cb35f2
 https://conda.anaconda.org/main/noarch/execnet-1.7.1-py_0.tar.bz2#93a0dad0935139ac49c2583f04f6e995
@@ -180,7 +181,7 @@ https://conda.anaconda.org/main/linux-64/matplotlib-3.2.2-0.tar.bz2#a7cc5da80251
 https://conda.anaconda.org/main/linux-64/nbconvert-5.6.1-py36_0.tar.bz2#e11ae5b4142aceaedda5fc1123e52ec5
 https://conda.anaconda.org/conda-forge/linux-64/pre-commit-2.6.0-py36h9f0ad1d_0.tar.bz2#5af778260513feb51495d91e28454553
 https://conda.anaconda.org/uw-ipd/noarch/pytest-benchmark-3.1.1.post1-py_0.tar.bz2#497af2b8171047aa8483a08b86efc280
-https://conda.anaconda.org/main/noarch/pytest-cov-2.9.0-py_0.tar.bz2#ac9ea3b250013722bd96cd34e3d04dd0
+https://conda.anaconda.org/main/linux-64/pytest-cov-2.5.1-py36_0.tar.bz2#0cdb34988a11c193976a0ba3169f1549
 https://conda.anaconda.org/conda-forge/linux-64/pytest-faulthandler-1.6.0-py36_0.tar.bz2#7e8bd04c9f20880f684a8aff497629a2
 https://conda.anaconda.org/main/noarch/pytest-forked-1.2.0-py_0.tar.bz2#3e947ede4863bf18ee5feb5195730c17
 https://conda.anaconda.org/main/noarch/requests-2.24.0-py_0.tar.bz2#0da8872d36b3ef33859654b6d0fea148
