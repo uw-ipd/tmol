@@ -1,0 +1,20 @@
+dependencies:
+# Test
+- pytest=3.8.*
+- coverage=4 # Pin, using older coverage api
+- pytest-cov=2.5
+- flake8
+- clangdev=7.*
+- virtualenv
+- psutil
+- seaborn
+- codecov
+- black=18.6b4
+- pre-commit
+- flake8-bugbear=20.1.4
+- pytest-xdist=1.26.1
+- pytest-faulthandler
+- pytest-benchmark=3.1.1.post1
+- py3Dmol
+- hypothesis=3.88.3
+- itermplot

@@ -1,4 +1,0 @@
-ipykernel
-seaborn
-biopython
-line_profiler

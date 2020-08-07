@@ -9,9 +9,13 @@ exclude=tmol/extern,.conda
 # E266 - Comment leading '###'
 # E501 - line length, handled by B950
 # E503 - Break before binary operator
+# E711 - != None is a vectorized check against None
+# E741 - Ambiguous variable names
 # B902 - Invalid "self" first argument
+# B009 - getattr warning
+# B010 - setattr warning
 
-ignore = E203, E266, E501, W503, B902
+ignore = E203, E266, E501, E711, E741, W503, B902, B009, B010
 
 max-line-length = 80
 max-complexity = 18

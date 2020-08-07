@@ -19,8 +19,8 @@ from tmol.types.torch import Tensor
 
 @attr.s(auto_attribs=True)
 class LKBallPairs:
-    polars: Tensor("i8")[:, :]
-    occluders: Tensor("i8")[:, :]
+    polars: Tensor(torch.long)[:, :]
+    occluders: Tensor(torch.long)[:, :]
 
 
 @reactive_attrs

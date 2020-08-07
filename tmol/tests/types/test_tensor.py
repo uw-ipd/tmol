@@ -277,12 +277,12 @@ def test_tensorgroup_cat():
 def test_tensorgroup_to_dtypes():
     @attr.s(auto_attribs=True, frozen=True)
     class STG(TensorGroup):
-        s: Tensor("f4")[..., 3, 3]
+        s: Tensor(torch.float)[..., 3, 3]
 
     @attr.s(auto_attribs=True, frozen=True)
     class TG(TensorGroup):
-        s: Tensor("f4")[..., 3]
-        d: Tensor("f8")[...]
+        s: Tensor(torch.float)[..., 3]
+        d: Tensor(torch.double)[...]
         sub: STG
 
     cpu_float = dict(
@@ -317,12 +317,12 @@ def test_tensorgroup_to_dtypes():
 def test_tensorgroup_to_device():
     @attr.s(auto_attribs=True, frozen=True)
     class STG(TensorGroup):
-        s: Tensor("f4")[..., 3, 3]
+        s: Tensor(torch.float)[..., 3, 3]
 
     @attr.s(auto_attribs=True, frozen=True)
     class TG(TensorGroup):
-        s: Tensor("f4")[..., 3]
-        d: Tensor("f8")[...]
+        s: Tensor(torch.float)[..., 3]
+        d: Tensor(torch.double)[...]
         sub: STG
 
     cpu_float = dict(
