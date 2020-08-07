@@ -162,9 +162,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
     @validate_args
     def real_atoms(atom_types: NDArray(object)[:, :],) -> Tensor(bool)[:, :]:
         """Mask of non-null atomic indices in the system."""
-        return torch.ByteTensor(
-            (atom_types != None).astype(numpy.ubyte)
-        )  # noqa: E711 - None != is a vectorized check for None.
+        return torch.ByteTensor((atom_types != None).astype(numpy.ubyte))
 
     @reactive_property
     def indexed_bonds(bonds, system_size, device):
@@ -187,7 +185,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         system_size: int,
         device: torch.device,
         MAX_BONDED_PATH_LENGTH: int,
-    ) -> Tensor("f4")[:, :, :]:
+    ) -> Tensor(float)[:, :, :]:
         """Dense inter-atomic bonded path length distance tables.
 
         Returns:
@@ -199,12 +197,12 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
             bonded_path_length_stacked(
                 bonds, stack_depth, system_size, MAX_BONDED_PATH_LENGTH
             )
-        ).to(device)
+        ).to(device, dtype=torch.float)
 
 
 def bonded_path_length(
     bonds: NDArray(int)[:, 2], system_size: int, limit: int
-) -> NDArray("f4")[:, :]:
+) -> NDArray(numpy.float32)[:, :]:
     bond_graph = sparse.COO(
         bonds.T,
         data=numpy.full(len(bonds), True),
@@ -217,7 +215,7 @@ def bonded_path_length(
 
 def bonded_path_length_stacked(
     bonds: NDArray(int)[:, 3], stack_depth: int, system_size: int, limit: int
-) -> NDArray("f4")[:, :, :]:
+) -> NDArray(numpy.float32)[:, :, :]:
     bond_graph = sparse.COO(
         bonds.T,
         data=numpy.full(len(bonds), True),
@@ -225,7 +223,7 @@ def bonded_path_length_stacked(
         cache=True,
     )
 
-    result = numpy.empty(bond_graph.shape, dtype="f4")
+    result = numpy.empty(bond_graph.shape, dtype=numpy.float32)
     for l in range(stack_depth):
         result[l] = csgraph.dijkstra(
             bond_graph[l].tocsr(), directed=False, unweighted=True, limit=limit

@@ -2,8 +2,8 @@ version: '2.3'
 services:
   test:
     build:
-      context: .
-      dockerfile: environments/test/Dockerfile
+      context: environments
+      dockerfile: test/Dockerfile
     runtime: nvidia
 
   buildkite:

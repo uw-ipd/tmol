@@ -21,35 +21,35 @@ from ..chemical_database import AtomTypeParamResolver
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LJLKGlobalParams(TensorGroup):
-    max_dis: Tensor("f")[...]
-    spline_start: Tensor("f")[...]
-    lj_hbond_OH_donor_dis: Tensor("f")[...]
-    lj_hbond_dis: Tensor("f")[...]
-    lj_hbond_hdis: Tensor("f")[...]
-    lj_switch_dis2sigma: Tensor("f")[...]
-    lk_min_dis2sigma: Tensor("f")[...]
+    max_dis: Tensor(float)[...]
+    spline_start: Tensor(float)[...]
+    lj_hbond_OH_donor_dis: Tensor(float)[...]
+    lj_hbond_dis: Tensor(float)[...]
+    lj_hbond_hdis: Tensor(float)[...]
+    lj_switch_dis2sigma: Tensor(float)[...]
+    lk_min_dis2sigma: Tensor(float)[...]
 
     # not clear if this belongs here or in a separate class
-    lkb_water_dist: Tensor("f")[...]
-    lkb_water_angle_sp2: Tensor("f")[...]
-    lkb_water_angle_sp3: Tensor("f")[...]
-    lkb_water_angle_ring: Tensor("f")[...]
-    lkb_water_tors_sp2: Tensor("f")[..., :]
-    lkb_water_tors_sp3: Tensor("f")[..., :]
-    lkb_water_tors_ring: Tensor("f")[..., :]
+    lkb_water_dist: Tensor(float)[...]
+    lkb_water_angle_sp2: Tensor(float)[...]
+    lkb_water_angle_sp3: Tensor(float)[...]
+    lkb_water_angle_ring: Tensor(float)[...]
+    lkb_water_tors_sp2: Tensor(float)[..., :]
+    lkb_water_tors_sp3: Tensor(float)[..., :]
+    lkb_water_tors_ring: Tensor(float)[..., :]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class LJLKTypeParams(TensorGroup):
-    lj_radius: Tensor("f")[...]
-    lj_wdepth: Tensor("f")[...]
-    lk_dgfree: Tensor("f")[...]
-    lk_lambda: Tensor("f")[...]
-    lk_volume: Tensor("f")[...]
+    lj_radius: Tensor(float)[...]
+    lj_wdepth: Tensor(float)[...]
+    lk_dgfree: Tensor(float)[...]
+    lk_lambda: Tensor(float)[...]
+    lk_volume: Tensor(float)[...]
 
     # Parameters imported from chemical database
     is_acceptor: Tensor(bool)[...]
-    acceptor_hybridization: Tensor("i4")[...]
+    acceptor_hybridization: Tensor(torch.int)[...]
 
     is_donor: Tensor(bool)[...]
 
@@ -77,7 +77,7 @@ class LJLKParamResolver(ValidateAttrs):
 
     device: torch.device
 
-    def type_idx(self, atom_types: NDArray(object)[...]) -> Tensor("i8")[...]:
+    def type_idx(self, atom_types: NDArray(object)[...]) -> Tensor(torch.long)[...]:
         """Convert array of atom type names to parameter indices.
 
         pandas.Index.get_indexer only operates on 1-d input arrays. Coerces

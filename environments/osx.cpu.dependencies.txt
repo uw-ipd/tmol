@@ -1,2 +1,0 @@
-pytorch::pytorch=1.0.1
-clangxx_osx-64=4.0

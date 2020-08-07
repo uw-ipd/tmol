@@ -1,50 +1,55 @@
 #!/usr/bin/env python3
 import io
 import os
-import argparse
+import ruamel.yaml
+import conda_lock.conda_lock as conda_lock
+import pathlib
+
+import shutil
+
+yaml = ruamel.yaml.YAML()
 
 root = os.path.dirname(__file__)
 
 
 def render(components):
 
-    fields = dict(channels=[], dependencies=[], requirements=[])
-
+    data = None
     for c in components:
-        for f in fields:
-            p = os.path.join(root, "%s.%s.txt" % (c, f))
-            if os.path.exists(p):
-                fields[f].append("# %s" % c)
-                fields[f].extend(
-                    "- %s" % l.strip() for l in open(p, "r").readlines() if l.strip()
-                )
+        layer = yaml.load(open(f"{c}.yml"))
+        if data is None:
+            data = layer
+        else:
+            for f in layer:
+                idx_offset = len(data[f])
+                data[f].extend(layer[f])
+                for idx, c in layer[f].ca.items.items():
+                    data[f].yaml_key_comment_extend(idx + idx_offset, c)
 
     env = io.StringIO()
-
-    print("channels:", file=env)
-    for d in fields["channels"]:
-        print("  %s" % d, file=env)
-    print("dependencies:", file=env)
-    for d in fields["dependencies"]:
-        print("  %s" % d, file=env)
-    print("  - pip:", file=env)
-    for r in fields["requirements"]:
-        print("    %s" % r, file=env)
-
+    yaml.dump(data, env)
     return env.getvalue()
 
 
-parser = argparse.ArgumentParser(
-    description="Render environment.yml for target configuration."
-)
-parser.add_argument("platform", choices=["linux.cuda", "linux.cpu", "osx.cpu"])
-parser.add_argument("target", choices=["run", "test", "dev"])
-args = parser.parse_args()
+platforms = ("linux-64", "osx-64")
+layers = {
+    "run": ["core"],
+    "test": ["core", "test", "docs"],
+    "dev": ["core", "test", "docs", "dev"],
+    "support": ["core", "test", "docs", "dev", "support"],
+}
 
-layers = ["core", args.platform] + {
-    "run": [],
-    "test": ["test", "docs"],
-    "dev": ["test", "docs", "support", "dev"],
-}[args.target]
+for n, l in layers.items():
+    print(f"locking layer: {n} : {l}")
 
-print(render(layers))
+    shutil.os.makedirs("locks", exist_ok=True)
+
+    with open(f"locks/layer.{n}.yml", "w") as of:
+        of.write(render(l))
+
+    conda_lock.run_lock(
+        pathlib.Path(f"locks/layer.{n}.yml"), conda_exe=None, platforms=platforms
+    )
+
+    for p in platforms:
+        shutil.move(f"conda-{p}.lock", f"locks/{n}-{p}.lock")

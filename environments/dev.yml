@@ -1,0 +1,12 @@
+dependencies:
+# Dev
+- ipykernel
+- biopython
+- line_profiler
+- pytest-watch
+- pytest-instafail
+- pytest-repeat
+- pdbpp
+- ruamel.yaml
+- mamba
+- conda-lock

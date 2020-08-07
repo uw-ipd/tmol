@@ -77,7 +77,7 @@ class ElecScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     # @validate_args
     def repatm_bonded_path_length(
-        bonded_path_length: Tensor("f4")[:, :, :],
+        bonded_path_length: Tensor(float)[:, :, :],
         res_names: NDArray(object)[:, :],
         res_indices: NDArray(float)[:, :],
         atom_names: NDArray(object)[:, :],

@@ -6,22 +6,14 @@ external libraries for test and development.
 
 ## Setup
 
-All environments are managed via `conda`, however not all external
-packages may be available as conda packages. Requirements lists are split
-into `dependencies.txt` and `requirements.txt`, specifying `conda`-managed
-conda dependencies and `pip`-managed pypi requirements respectively.
-Non-default conda channels are managed via (preferably) specification of
-the package channel via the {channel}::{package} syntax within
-"dependencies.txt" or (less preferably) globally enabling the channel at
-a given installation layer via "channels.txt".
+All package versioning is handled via
+[`conda-lock`](https://github.com/mariusvniekerk/conda-lock).
 
-The `render` script is used to generate an `environment.yml` file for use
-via `conda env update -f environment.yml`. See `render --help` for
-details.
 
-The `core`-level requirement is augmented via the `linux.cpu`,
-`linux.cuda` or `osx.cpu` platform-specific sub files, allowing
-installation of a cpu-only or cpu-and-cuda environment.
+The `render` script is used to generate lockfiles for each environment
+layer under `locks`. These locked package lists can be converted into
+environments via `conda create`. 
+For example `conda create -h tmol --file environments/locks/dev-linux-64.lock`)
 
 ## Adding Dependencies
 
@@ -30,24 +22,25 @@ Follow these ~~simple~~ steps to add a new dependency:
 1. Identify the lowest level / first dependency layer from the following:
 
   * `core` - Referenced by the `tmol` package.
-  * `{platform}.core` - Referenced by cuda-specific components of the
-    `tmol` package.
   * `test` - Referenced by the `tmol.tests` package.
-  * `support` - Referenced by the `tmol.support` package.
   * `docs` - Referenced under `docs`.
   * `dev`  - Referenced under `dev`.
+  * `support` - Referenced by the `tmol.support` package.
 
-2. Determine the dependency source. If the package is available under
-   a "standard" conda channel (not `conda-forge`) then include as
-   a `.dependencies` reference. Elif available on PyPI include include as
-   a `.requirements` reference. Iff the package is only available via
-   a custom https channel, (eg. http://conda.ipd.uw.edu) then include
-   this channel via a `.channels` reference
+2. Determine the dependency source. If the package is available under the
+   main/conda-forge/pytorch conda channels then include as
+   a `.dependencies` reference. Elif available on PyPI, render a conda
+   package via `conda skeleton pypi <package_name>` and upload to the
+   uw-ipd anaconda.org channel. See
+   https://github.com/uw-ipd/conda-recipes for examples. Iff the package
+   is only available via a custom https channel, (eg.
+   http://conda.ipd.uw.edu) then include this channel via a `.channels`
+   reference.
 
 3. Verify that the dependency isn't specified on multiple levels. (Eg.
    Moved from `dev` to `core`.) `grep` is your friend.
 
-4. Test and verify the rendered `environment.yml` file.
+4. Test the locks via `render`.
 
 ## Test Environment
 
