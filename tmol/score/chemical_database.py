@@ -40,7 +40,7 @@ AcceptorHybridization._index = pandas.Index([None, "sp2", "sp3", "ring"])
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class AtomTypeParams(TensorGroup, ValidateAttrs):
     is_acceptor: Tensor(bool)[...]
-    acceptor_hybridization: Tensor("i4")[...]
+    acceptor_hybridization: Tensor(torch.int)[...]
 
     is_donor: Tensor(bool)[...]
 
@@ -66,7 +66,7 @@ class AtomTypeParamResolver(ValidateAttrs):
 
     device: torch.device
 
-    def type_idx(self, atom_types: NDArray(object)[...]) -> Tensor("i8")[...]:
+    def type_idx(self, atom_types: NDArray(object)[...]) -> Tensor(torch.long)[...]:
         """Convert array of atom type names to parameter indices.
 
         pandas.Index.get_indexer only operates on 1-d input arrays. Coerces

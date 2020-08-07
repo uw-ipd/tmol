@@ -58,7 +58,7 @@ def test_kinematic_torch_op_backward_benchmark(benchmark, ubq_system, torch_devi
 @pytest.fixture
 def gradcheck_test_system(
     ubq_res: typing.Sequence[Residue],
-) -> typing.Tuple[KinTree, Tensor("f8")[:, 3]]:
+) -> typing.Tuple[KinTree, Tensor(torch.double)[:, 3]]:
     tsys = PackedResidueSystem.from_residues(ubq_res[:4])
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 

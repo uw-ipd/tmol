@@ -31,7 +31,7 @@ def validate_args(f):
             try:
                 validator(retval)
             except Exception as vexec:
-                raise TypeError(f"Invalid return value") from vexec
+                raise TypeError("Invalid return value") from vexec
 
         return retval
 
@@ -61,7 +61,7 @@ def convert_args(f):
             try:
                 retval = converter(retval)
             except Exception as vexec:
-                raise TypeError(f"Invalid return value") from vexec
+                raise TypeError("Invalid return value") from vexec
         return retval
 
     return decorate(f, convert_f)

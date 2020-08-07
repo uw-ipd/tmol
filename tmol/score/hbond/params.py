@@ -46,9 +46,9 @@ class HBondPolyParams(TensorGroup, ConvertAttrs):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondPairParams(TensorGroup, ValidateAttrs):
-    donor_weight: Tensor("f")[...]
-    acceptor_weight: Tensor("f")[...]
-    acceptor_hybridization: Tensor("i4")[...]
+    donor_weight: Tensor(torch.float)[...]
+    acceptor_weight: Tensor(torch.float)[...]
+    acceptor_hybridization: Tensor(torch.int)[...]
     AHdist: HBondPolyParams
     cosBAH: HBondPolyParams
     cosAHD: HBondPolyParams

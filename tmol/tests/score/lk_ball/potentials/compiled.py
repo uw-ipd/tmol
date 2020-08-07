@@ -17,22 +17,22 @@ _compiled = load(modulename(__name__), relpaths(__file__, ["compiled.pybind.cpp"
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LKBallTypeParams(TensorGroup):
-    lj_radius: Tensor("f")[...]
-    lk_dgfree: Tensor("f")[...]
-    lk_lambda: Tensor("f")[...]
-    lk_volume: Tensor("f")[...]
-    is_donor: Tensor("f")[...]
-    is_hydroxyl: Tensor("f")[...]
-    is_polarh: Tensor("f")[...]
-    is_acceptor: Tensor("f")[...]
+    lj_radius: Tensor(float)[...]
+    lk_dgfree: Tensor(float)[...]
+    lk_lambda: Tensor(float)[...]
+    lk_volume: Tensor(float)[...]
+    is_donor: Tensor(float)[...]
+    is_hydroxyl: Tensor(float)[...]
+    is_polarh: Tensor(float)[...]
+    is_acceptor: Tensor(float)[...]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LKBallGlobalParams(TensorGroup):
-    lj_hbond_dis: Tensor("f")[...]
-    lj_hbond_OH_donor_dis: Tensor("f")[...]
-    lj_hbond_hdis: Tensor("f")[...]
-    lkb_water_dist: Tensor("f")[...]
+    lj_hbond_dis: Tensor(float)[...]
+    lj_hbond_OH_donor_dis: Tensor(float)[...]
+    lj_hbond_hdis: Tensor(float)[...]
+    lkb_water_dist: Tensor(float)[...]
 
 
 def detach_maybe_requires_grad(
