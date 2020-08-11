@@ -106,7 +106,7 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   constexpr int nconsumed_dims = enable_tensor_view<T>::nconsumed_dims;
   auto consumed_dims = enable_tensor_view<T>::consumed_dims;
 
-  AT_CHECK(
+  TORCH_CHECK(
       input_t.dim() == N + nconsumed_dims,
       "view_tensor of wrong dimensionality.",
       " dim: ",
@@ -114,7 +114,7 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
       " expected: ",
       N + nconsumed_dims);
   for (int d = N; d < input_t.dim(); ++d) {
-    AT_CHECK(
+    TORCH_CHECK(
         input_t.size(d) == consumed_dims(d - N),
         "squeezed dimension mismatch in view_tensor.",
         " d: ",
@@ -125,7 +125,7 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
         consumed_dims(d - N));
   }
 
-  AT_CHECK(
+  TORCH_CHECK(
       input_t.device().type() == D,
       "view_tensor of incorrect device type.",
       " device: ",
