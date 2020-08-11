@@ -30,8 +30,9 @@ namespace tmol {
 template <typename Int>
 struct enable_tensor_view<kinematics::KinTreeParams<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
-  static const at::ScalarType scalar_type =
-      enable_tensor_view<Int>::scalar_type;
+  static const at::ScalarType scalar_type() {
+    return enable_tensor_view<Int>::scalar_type();
+  }
 
   static const int nconsumed_dims = 1;
   static const int consumed_dims(int i) {
@@ -44,8 +45,9 @@ struct enable_tensor_view<kinematics::KinTreeParams<Int>> {
 template <typename Int>
 struct enable_tensor_view<kinematics::KinTreeGenData<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
-  static const at::ScalarType scalar_type =
-      enable_tensor_view<Int>::scalar_type;
+  static const at::ScalarType scalar_type() {
+    enable_tensor_view<Int>::scalar_type();
+  }
 
   static const int nconsumed_dims = 1;
   static const int consumed_dims(int i) {
