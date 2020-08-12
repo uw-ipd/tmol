@@ -476,9 +476,10 @@ class DunbrackParamResolver(ValidateAttrs):
             n_nonrotameric_chi_rotamers = (
                 rotameric_rotamers.shape[0] / 3 ** semirotameric_rotamers.shape[1]
             )
-            r_ri2ti[rotinds] = n_nonrotameric_chi_rotamers * torch.arange(
-                semirotameric_rotamers.shape[0], dtype=torch.int32
-            )
+            r_ri2ti[rotinds] = (
+                n_nonrotameric_chi_rotamers
+                * torch.arange(semirotameric_rotamers.shape[0])
+            ).to(dtype=torch.int32)
             rotameric_rotind2tableind.extend(list(r_ri2ti))
 
         rotameric_rotind2tableind = torch.tensor(
@@ -629,7 +630,7 @@ class DunbrackParamResolver(ValidateAttrs):
         #              e.g. chi/phi/psi, which enters this function
         #              not condensed.
         rns_inds_to_keep = condense_torch_inds(rns_inds_real, torch_device)
-        nz_rns_inds = torch.nonzero(rns_inds_to_keep != -1)
+        nz_rns_inds = torch.nonzero(rns_inds_to_keep != -1, as_tuple=False)
 
         # rottable_set_for_res64 represents the table indices of residues
         # that will be scored by the dunbrack library; we will hold on to
@@ -801,7 +802,7 @@ class DunbrackParamResolver(ValidateAttrs):
         # get the stack indices for each of the chi once we have
         # made a 1-dimensional view.
         stack_inds = (
-            torch.arange(chi.shape[0] * chi.shape[1], dtype=torch.int64) / chi.shape[1]
+            torch.arange(chi.shape[0] * chi.shape[1], dtype=torch.int64) // chi.shape[1]
         )
         chi64_res = chi64[:, :, 0].view(-1)
 
@@ -818,7 +819,7 @@ class DunbrackParamResolver(ValidateAttrs):
     ) -> Tensor[torch.int32][:, :, 5]:
         bb_ats = bb_ats.clone()
         ats_not_defined = (bb_ats == -1).byte().any(2)
-        nz_not_defined = torch.nonzero(ats_not_defined)
+        nz_not_defined = torch.nonzero(ats_not_defined, as_tuple=False)
         bb_ats[nz_not_defined[:, 0], nz_not_defined[:, 1], :] = undefined_val
         return bb_ats
 
@@ -857,7 +858,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
         real_res = ndihe_for_res != -1
-        nz_real_res = torch.nonzero(real_res)
+        nz_real_res = torch.nonzero(real_res, as_tuple=False)
 
         dihedral_atom_inds[
             nz_real_res[:, 0], dihedral_offset_for_res64[real_res], :
@@ -878,7 +879,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
         real_chi = chi_selected[:, :, 0] >= 0
-        nz_real_chi = torch.nonzero(real_chi)
+        nz_real_chi = torch.nonzero(real_chi, as_tuple=False)
         offsets_for_chi[
             nz_real_chi[:, 0], nz_real_chi[:, 1]
         ] = dihedral_offset_for_res64[nz_real_chi[:, 0], res_for_chi64[real_chi]]
@@ -910,9 +911,9 @@ class DunbrackParamResolver(ValidateAttrs):
         rotres2resid = torch.full(
             r_inds_condensed.shape, -1, dtype=torch.int32, device=torch_device
         )
-        rotres2resid[r_inds_condensed != -1] = torch.nonzero(r_inds != -1)[:, 1].type(
-            torch.int32
-        )
+        rotres2resid[r_inds_condensed != -1] = torch.nonzero(
+            r_inds != -1, as_tuple=False
+        )[:, 1].type(torch.int32)
         return rotres2resid
 
     @validate_args
@@ -973,7 +974,7 @@ class DunbrackParamResolver(ValidateAttrs):
         ).repeat(nstacks).view((nstacks, max_nrotameric_chi)) < nrotameric_chi.view(
             (-1, 1)
         )
-        nz_real_chi = torch.nonzero(real_chi)
+        nz_real_chi = torch.nonzero(real_chi, as_tuple=False)
 
         chi_is_first = torch.zeros(
             (rns_inds.shape[0], max_nrotameric_chi),
@@ -1019,7 +1020,7 @@ class DunbrackParamResolver(ValidateAttrs):
         nstacks = s_inds.shape[0]
         real_sres = s_inds != -1
         sres_keep = condense_torch_inds(real_sres, torch_device)
-        nz_sres_keep = torch.nonzero(sres_keep != -1)
+        nz_sres_keep = torch.nonzero(sres_keep != -1, as_tuple=False)
 
         semirotameric_chi_desc = torch.full(
             (nstacks, sres_keep.shape[1], 4), -1, dtype=torch.int32, device=torch_device
