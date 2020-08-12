@@ -2,7 +2,7 @@ import torch
 
 from .params import ElecParamResolver
 
-import tmol.score.elec.potentials.compiled  # noqa
+from tmol.score.elec.potentials.compiled import score_elec, score_elec_triu
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -38,7 +38,7 @@ class _ElecScoreModule(torch.jit.ScriptModule):
 class ElecInterModule(_ElecScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
-        return torch.ops.tmol.score_elec(
+        return score_elec(
             I, atom_type_I, J, atom_type_J, bonded_path_lengths, self.global_params
         )
 
@@ -49,6 +49,6 @@ class ElecIntraModule(_ElecScoreModule):
         # print("I", I.shape)
         # print("atom_type_I", atom_type_I.shape)
         # print("bonded_path_lengths", bonded_path_lengths.shape)
-        return torch.ops.tmol.score_elec_triu(
+        return score_elec_triu(
             I, atom_type_I, I, atom_type_I, bonded_path_lengths, self.global_params
         )
