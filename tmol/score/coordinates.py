@@ -28,9 +28,12 @@ class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice):
         if requires_grad is None:
             requires_grad = other.coords.requires_grad
 
-        coords = torch.tensor(
-            other.coords, dtype=torch.float, device=device
-        ).requires_grad_(requires_grad)
+        coords = (
+            other.coords.clone()
+            .detach()
+            .to(dtype=torch.float, device=device)
+            .requires_grad_(requires_grad)
+        )
 
         return dict(coords=coords)
 
@@ -59,7 +62,9 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
         if other.dofs.device != device:
             raise ValueError("Unable to change device for kinematic ops.")
 
-        dofs = torch.tensor(other.dofs, device=device).requires_grad_(requires_grad)
+        dofs = (
+            other.dofs.clone().detach().to(device=device).requires_grad_(requires_grad)
+        )
 
         dofmetadata = other.dofmetadata
 
