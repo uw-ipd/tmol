@@ -98,8 +98,11 @@ def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system, torch_dev
     kop = KinematicModule(tkintree, torch_device)
 
     torch.random.manual_seed(1663)
-    start_dofs = torch.tensor(
-        tdofs.raw + ((torch.rand_like(tdofs.raw) - .5) * .01), requires_grad=True
+    start_dofs = (
+        (tdofs.raw + ((torch.rand_like(tdofs.raw) - .5) * .01))
+        .clone()
+        .detach()
+        .requires_grad_(True)
     )
 
     kop_gradcheck_report(kop, start_dofs)

@@ -79,7 +79,7 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         dof_types.jump.RBdel_gamma[jsel] = DOFTypes.jump
 
         # Get indices of all marked dofs.
-        valid_dofs = (~torch.isnan(dof_types.raw)).nonzero()
+        valid_dofs = (~torch.isnan(dof_types.raw)).nonzero(as_tuple=False)
         node_idx = valid_dofs[:, 0]
         dof_idx = valid_dofs[:, 1]
 
