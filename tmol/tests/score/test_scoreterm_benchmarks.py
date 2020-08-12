@@ -2,7 +2,7 @@ import pytest
 
 from tmol.utility.reactive import reactive_property
 
-from tmol.score import TotalScoreGraph
+from tmol.score.total_score_graphs import TotalScoreGraph
 
 from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
