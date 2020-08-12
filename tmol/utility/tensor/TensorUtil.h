@@ -67,25 +67,25 @@ struct enable_tensor_view<bool> {
   typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
 };
 
-template <typename T, int M>
-struct enable_tensor_view<Eigen::Matrix<T, M, 1>> {
-  static const bool enabled = enable_tensor_view<T>::enabled;
-  static const at::ScalarType scalar_type() {
-    return enable_tensor_view<T>::scalar_type();
-  }
-  static const int nconsumed_dims = 1;
-  static int consumed_dims(int i) { return (i == 0) ? M : 0; }
-  typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
-};
-
+// Eigen Matrix/Vector Conversions
+// Matrix is defined as <T, M, N>, consume two [M, N] dimensions.
+// Vector is defined as <T, M, 1>, consume one [M] dimension.
 template <typename T, int M, int N>
 struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type() {
     return enable_tensor_view<T>::scalar_type();
   }
-  static const int nconsumed_dims = 2;
-  static int consumed_dims(int i) { return (i == 0) ? M : (i == 1) ? N : 0; }
+  static constexpr int nconsumed_dims = ((N > 1) ? 2 : 1);
+  static int consumed_dims(int i) {
+    if (i == 0) {
+      return M;
+    } else if (i == 1 && N > 1) {
+      return N;
+    } else {
+      return 0;
+    }
+  }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
