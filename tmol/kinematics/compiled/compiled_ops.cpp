@@ -113,7 +113,13 @@ Tensor kinematic_op(
       dofs, nodes_f, scans_f, gens_f, nodes_b, scans_b, gens_b, kintree);
 }
 
-TORCH_LIBRARY(tmol, m) { m.def("forward_kin_op", &kinematic_op); }
+// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
+// See https://stackoverflow.com/a/3221914
+#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
+
+TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+  m.def("forward_kin_op", &kinematic_op);
+}
 
 }  // namespace kinematics
 }  // namespace tmol

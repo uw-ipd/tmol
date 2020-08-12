@@ -6,6 +6,7 @@ from typing import Callable, TypeVar
 from tmol.extern.singledispatchmethod import singledispatch, singledispatchmethod
 
 from tmol.kinematics.scan_ordering import KinTreeScanOrdering
+from tmol.kinematics.compiled import forward_kin_op
 
 from .metadata import DOFMetadata
 from .datatypes import KinTree
@@ -120,7 +121,7 @@ class KinematicModule(torch.nn.Module):
         self.gens_b = ordering.backward_scan_paths.gens.cpu()  # Remains on CPU
 
     def forward(self, dofs):
-        return torch.ops.tmol.forward_kin_op(
+        return forward_kin_op(
             dofs,
             self.nodes_f,
             self.scans_f,

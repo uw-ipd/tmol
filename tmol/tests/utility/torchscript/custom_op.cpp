@@ -34,4 +34,7 @@ torch::Tensor cpow(torch::Tensor x, double exponent) {
   return CPow::apply(x, exponent);
 }
 
-TORCH_LIBRARY(tmol, m) { m.def("cpow", &cpow); }
+// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
+// See https://stackoverflow.com/a/3221914
+#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
+TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m){ m.def("cpow", &cpow); }
