@@ -101,7 +101,7 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
             + atom_type_params.params.is_donor[ljlk_atom_types]
             > 0
         )
-        are_occluders = 1 - atom_type_params.params.is_hydrogen[ljlk_atom_types]
+        are_occluders = ~atom_type_params.params.is_hydrogen[ljlk_atom_types]
 
         polars = condense_torch_inds(are_polars, device)
         occluders = condense_torch_inds(are_occluders, device)
