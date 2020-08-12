@@ -8,12 +8,10 @@ from tmol.score.cartbonded.params import CartBondedParamResolver
 from tmol.score.cartbonded.identification import CartBondedIdentification
 from tmol.score.bonded_atom import IndexedBonds
 
-import tmol.database
-
 
 @attr.s(auto_attribs=True)
 class ScoreSetup:
-    param_resolver: tmol.score.cartbonded.params.CartBondedParamResolver
+    param_resolver: CartBondedParamResolver
     tcoords: torch.Tensor
     tbondlength_indices: torch.Tensor
     tbondangle_indices: torch.Tensor
