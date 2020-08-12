@@ -57,7 +57,11 @@ def test_lj_spotcheck(params, iname, jname):
     epsilon = numpy.sqrt(i.lj_wdepth * j.lj_wdepth).numpy()
 
     def eval_lj(dist, bonded_path_length=5):
-        dist = torch.tensor(dist)
+        dist = (
+            dist.clone().detach()
+            if isinstance(dist, torch.Tensor)
+            else torch.tensor(dist)
+        )
 
         return (
             compiled.LJScore.apply(
@@ -68,14 +72,22 @@ def test_lj_spotcheck(params, iname, jname):
         )
 
     def eval_lj_alone(dist, bonded_path_length=5):
-        dist = torch.tensor(dist)
+        dist = (
+            dist.clone().detach()
+            if isinstance(dist, torch.Tensor)
+            else torch.tensor(dist)
+        )
 
         return compiled.LJScore.apply(
             dist.requires_grad_(False), bonded_path_length, i, j, g
         ).numpy()
 
     def eval_d_lj_d_dist(dist, bonded_path_length=5):
-        dist = torch.tensor(dist)
+        dist = (
+            dist.clone().detach()
+            if isinstance(dist, torch.Tensor)
+            else torch.tensor(dist)
+        )
 
         compiled.LJScore.apply(
             dist.requires_grad_(True), bonded_path_length, i, j, g

@@ -1,7 +1,8 @@
+import torch
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
 
-_compiled = load(
+load(
     modulename(__name__),
     cuda_if_available(
         relpaths(
@@ -17,3 +18,10 @@ _compiled = load(
     ),
     is_python_module=False,
 )
+
+_ops = getattr(torch.ops, modulename(__name__))
+
+score_ljlk_lj = _ops.score_ljlk_lj
+score_ljlk_lj_triu = _ops.score_ljlk_lj_triu
+score_ljlk_lk_isotropic = _ops.score_ljlk_lk_isotropic
+score_ljlk_lk_isotropic_triu = _ops.score_ljlk_lk_isotropic_triu
