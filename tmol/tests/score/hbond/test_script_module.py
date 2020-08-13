@@ -3,6 +3,7 @@ import numpy
 
 from tmol.score.hbond.identification import HBondElementAnalysis
 from tmol.score.hbond.params import HBondParamResolver, CompactedHBondDatabase
+from tmol.score.hbond.potentials.compiled import score_hbond
 
 
 def _setup_inputs(coords, params, donors, acceptors, torch_device):
@@ -90,7 +91,7 @@ def test_script_module_scores(default_database, ubq_system, torch_device):
         coords, cpu_hbond_param_resolver, donors, acceptors, torch.device("cpu")
     )
 
-    batch_score = torch.ops.tmol.score_hbond(
+    batch_score = score_hbond(
         batch_coords["donor_coords"],
         batch_coords["acceptor_coords"],
         batch_coords["D"],
