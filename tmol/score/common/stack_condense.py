@@ -72,7 +72,7 @@ def condense_torch_inds(selection: Tensor[bool][:, :], device: torch.device):
     """
 
     nstacks = selection.shape[0]
-    nz_selection = torch.nonzero(selection)
+    nz_selection = torch.nonzero(selection, as_tuple=False)
     nkeep = torch.sum(selection, dim=1).view((nstacks, 1))
     max_keep = torch.max(nkeep)
     inds = torch.full((nstacks, max_keep), -1, dtype=torch.int64, device=device)
@@ -235,7 +235,7 @@ def condense_subset(
         dtype=values.dtype,
         device=values.device,
     )
-    nz_cinds = torch.nonzero(cinds >= 0)
+    nz_cinds = torch.nonzero(cinds >= 0, as_tuple=False)
     selected_values[nz_cinds[:, 0], nz_cinds[:, 1], :] = values[
         nz_cinds[:, 0], cinds[cinds >= 0].view(-1), :
     ]

@@ -1,6 +1,6 @@
 from tmol.types.torch import Tensor
 
-import tmol.score.omega.potentials.compiled  # noqa
+from tmol.score.omega.potentials.compiled import score_omega
 
 import torch
 
@@ -22,4 +22,4 @@ class OmegaScoreModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, coords):
-        return torch.ops.tmol.score_omega(coords, self.params)
+        return score_omega(coords, self.params)
