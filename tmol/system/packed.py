@@ -207,6 +207,7 @@ class PackedResidueSystem:
                 ),
             ),
             ignore_index=True,
+            sort=True,
         )
 
         # Generate a lookup from residue index and atom name to global atom index.
