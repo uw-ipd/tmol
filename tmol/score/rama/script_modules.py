@@ -2,8 +2,7 @@ import torch
 
 from .params import RamaParamResolver, RamaParams
 
-# Import compiled components to load torch_ops
-import tmol.score.rama.potentials.compiled  # noqa
+from tmol.score.rama.potentials.compiled import score_rama
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -53,6 +52,4 @@ class RamaScoreModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, coords):
-        return torch.ops.tmol.score_rama(
-            coords, self.params, self.tables, self.table_params
-        )
+        return score_rama(coords, self.params, self.tables, self.table_params)
