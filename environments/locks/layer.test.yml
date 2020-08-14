@@ -23,6 +23,8 @@ dependencies:
 - attrs
 - attrs-strict
 - cattrs
+- typing_inspect=0.6
+- typish=1.7
 - frozendict
 - sparse=0.3.1
 

@@ -1,5 +1,5 @@
 # platform: linux-64
-# env_hash: 4d00f0cc5812bd0530daafab59b508e049ec5166bbd94b806869aeb4a49e4d79
+# env_hash: 61aa177a88892b5377ab8b45093735352fa66801e197859e48be9d6c6b5fc165
 @EXPLICIT
 https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2#d7c89558ba9fa0495403155b64376d81
 https://conda.anaconda.org/main/linux-64/blas-1.0-mkl.tar.bz2#751c2c5b239a728db05f91374aaac3a1
@@ -51,6 +51,7 @@ https://conda.anaconda.org/main/linux-64/ipython_genutils-0.2.0-py37_0.tar.bz2#3
 https://conda.anaconda.org/main/linux-64/llvmlite-0.33.0-py37hc6ec683_1.tar.bz2#e5c0014df9afbf09b86881b6765c07b6
 https://conda.anaconda.org/main/noarch/monotonic-1.5-py_0.tar.bz2#371d1dffd3fe0c6da1fe6423b7509337
 https://conda.anaconda.org/main/linux-64/msgpack-python-1.0.0-py37hfd86e86_1.tar.bz2#1deec9b6a2d77d92a812c35880870457
+https://conda.anaconda.org/main/linux-64/mypy_extensions-0.4.3-py37_0.tar.bz2#24fb7514330ebde190ecab2b6c4afc64
 https://conda.anaconda.org/main/linux-64/ninja-1.10.0-py37hfd86e86_0.tar.bz2#5f48de3e2e8de724334fd837a22d0ced
 https://conda.anaconda.org/conda-forge/noarch/parso-0.7.1-pyh9f0ad1d_0.tar.bz2#f66647d1ec805566d72ac26f62b19c01
 https://conda.anaconda.org/main/linux-64/pickleshare-0.7.5-py37_1001.tar.bz2#8116cfb11f8016ed9fcacb0d401f3f1b
@@ -63,6 +64,8 @@ https://conda.anaconda.org/main/noarch/pytz-2020.1-py_0.tar.bz2#ed81825324989d8f
 https://conda.anaconda.org/main/linux-64/pyyaml-5.3.1-py37h7b6447c_1.tar.bz2#3a8a300f87fb43778c1f99f3069e9796
 https://conda.anaconda.org/main/noarch/six-1.15.0-py_0.tar.bz2#0d41d5bff9a456f76f0ef718dc7a573a
 https://conda.anaconda.org/main/noarch/toolz-0.10.0-py_0.tar.bz2#0174db18693bebfed1e414f6be7b9169
+https://conda.anaconda.org/main/noarch/typing_extensions-3.7.4.2-py_0.tar.bz2#1d5846e57a2f77b7119d338e54dc1a92
+https://conda.anaconda.org/conda-forge/noarch/typish-1.7.0-pyh9f0ad1d_0.tar.bz2#848df2c1f06130b663b9a7696c187c88
 https://conda.anaconda.org/main/noarch/wcwidth-0.2.5-py_0.tar.bz2#d2e33d50573939f4724f8fbd0dcc3439
 https://conda.anaconda.org/main/noarch/zipp-3.1.0-py_0.tar.bz2#9ae8197a39c6d488df16fd061b29fb71
 https://conda.anaconda.org/uw-ipd/noarch/attrs-strict-0.2.0-py_0.tar.bz2#19d7e1fe56a6c71cdd4dc133c2a1bdf4
@@ -75,8 +78,9 @@ https://conda.anaconda.org/main/linux-64/mkl-service-2.3.0-py37he904b0f_0.tar.bz
 https://conda.anaconda.org/main/noarch/packaging-20.4-py_0.tar.bz2#80eb4e4cda8abe15fb013ab97a0b5bd9
 https://conda.anaconda.org/main/linux-64/pexpect-4.8.0-py37_1.tar.bz2#753c654d2913398e2d863faace1f6e79
 https://conda.anaconda.org/main/noarch/python-dateutil-2.8.1-py_0.tar.bz2#58a898b1a4a13e8c0cfd0d4b1a999ba9
-https://conda.anaconda.org/conda-forge/linux-64/setuptools-49.3.1-py37hc8dfbb8_0.tar.bz2#c192f082f4d7c787d4213fabc27a42c8
+https://conda.anaconda.org/conda-forge/linux-64/setuptools-49.6.0-py37hc8dfbb8_0.tar.bz2#295f9ca18c458eed106612b534a5990e
 https://conda.anaconda.org/main/linux-64/traitlets-4.3.3-py37_0.tar.bz2#1e31d870dd09f8f0f93d567b164467ec
+https://conda.anaconda.org/conda-forge/noarch/typing_inspect-0.6.0-pyh9f0ad1d_0.tar.bz2#3f4473d8769dfcc06ac55cc37aa31ab7
 https://conda.anaconda.org/main/linux-64/brotlipy-0.7.0-py37h7b6447c_1000.tar.bz2#86ce9efcd0a61aaf294a1824d771143f
 https://conda.anaconda.org/conda-forge/linux-64/cryptography-3.0-py37hb09aad4_0.tar.bz2#f8361ea8fbebac7549f354b2eba98858
 https://conda.anaconda.org/main/noarch/importlib_metadata-1.7.0-0.tar.bz2#d77fe40254a8ac343cb5e6ae6daa8ae9
@@ -84,11 +88,11 @@ https://conda.anaconda.org/main/linux-64/numpy-base-1.19.1-py37hfa32c7d_0.tar.bz
 https://conda.anaconda.org/main/noarch/pygments-2.6.1-py_0.tar.bz2#67fd9646eb0c49c4fafec67b88d9c404
 https://conda.anaconda.org/main/linux-64/wheel-0.34.2-py37_0.tar.bz2#26287a503e7ca973fcdcafc9e58fbbc4
 https://conda.anaconda.org/conda-forge/noarch/pint-0.14-py_0.tar.bz2#3010ea22c0b9f87d7e8b4b99e7ceb077
-https://conda.anaconda.org/conda-forge/noarch/pip-20.2.2-py_0.tar.bz2#57798ba6160d1d07af733d98a7239d90
+https://conda.anaconda.org/main/linux-64/pip-20.2.2-py37_0.tar.bz2#fd793abb77f288a0264ca5ad5d7ed14c
 https://conda.anaconda.org/conda-forge/noarch/prompt-toolkit-3.0.6-py_0.tar.bz2#1a9b505ec4793f31ca4ad46c6392606e
 https://conda.anaconda.org/main/linux-64/pyopenssl-19.1.0-py37_0.tar.bz2#ed50bdd4a6a9c3045062170b43cecb3e
 https://conda.anaconda.org/main/linux-64/ipython-7.17.0-py37h39e3cac_0.tar.bz2#280d6a99f1f1091b8ce99479aab82d38
-https://conda.anaconda.org/conda-forge/noarch/urllib3-1.25.10-py_0.tar.bz2#82cde2a532177697e42a090add881db8
+https://conda.anaconda.org/main/noarch/urllib3-1.25.10-py_0.tar.bz2#1a02a4f03df9e4d17d30c8b8d6cb2057
 https://conda.anaconda.org/main/noarch/requests-2.24.0-py_0.tar.bz2#0da8872d36b3ef33859654b6d0fea148
 https://conda.anaconda.org/main/linux-64/mkl_fft-1.1.0-py37h23d657b_0.tar.bz2#9713fc39a4a61dbe0d1acabceabc58e3
 https://conda.anaconda.org/main/linux-64/mkl_random-1.1.1-py37h0573a6f_0.tar.bz2#4998eb9421ce079ab4fb0618196f6524
