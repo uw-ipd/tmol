@@ -5,7 +5,7 @@ import torch
 
 import attr
 
-from tmol.types.tensor import TensorGroup, TensorType
+from tmol.types.tensor import TensorGroup
 import tmol.types.tensor as tensor
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor, like_kwargs
@@ -13,21 +13,16 @@ from tmol.types.torch import Tensor, like_kwargs
 from tmol.tests.torch import requires_cuda
 
 
-def test_tensortype_instancecheck():
-    assert isinstance(NDArray(float)[:], TensorType)
-    assert isinstance(Tensor(float)[:], TensorType)
-
-
 def test_attr_checking():
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class NoBroadcastShape(TensorGroup):
-        no_broadcast: NDArray(int)[:]
-        broadcast: NDArray(int)[..., 2]
+        no_broadcast: NDArray[int][:]
+        broadcast: NDArray[int][..., 2]
 
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class NonFixedShape(TensorGroup):
-        non_fixed: NDArray(int)[..., :]
-        broadcast: NDArray(int)[..., 2]
+        non_fixed: NDArray[int][..., :]
+        broadcast: NDArray[int][..., 2]
 
     # Safely initialize with manual input
     inv = NoBroadcastShape(numpy.arange(10), numpy.arange(20).reshape(10, 2))
@@ -45,7 +40,7 @@ def test_attr_checking():
 
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class InvalidAttrType(TensorGroup):
-        array: NDArray(int)[...]
+        array: NDArray[int][...]
         other: str
 
     # Detect attribute type errors on indexing
@@ -58,15 +53,15 @@ def test_attr_checking():
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class SubGroup(TensorGroup):
-    a: Tensor(float)[...]
-    b: Tensor(float)[..., 5]
+    a: Tensor[float][...]
+    b: Tensor[float][..., 5]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class MultiGroup(TensorGroup):
     g1: SubGroup
     g2: SubGroup
-    idx: Tensor(int)[..., 2]
+    idx: Tensor[int][..., 2]
 
 
 def test_nested_group():
@@ -148,8 +143,8 @@ def test_tensor_group_invalid_reshape():
     @attr.s(auto_attribs=True)
     class InvalidType(TensorGroup):
         a: int  # Invalid non-tensor member
-        b: Tensor(float)[...]
-        c: Tensor(float)[..., 2]
+        b: Tensor[float][...]
+        c: Tensor[float][..., 2]
 
     inv = InvalidType(a=1, b=torch.empty(10), c=torch.empty((10, 2)))
 
@@ -165,8 +160,8 @@ def test_tensor_group_invalid_reshape():
 def test_tensorgroup_smoke():
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class NumpyTensorGroup(TensorGroup):
-        a: NDArray(float)[...]
-        coord: NDArray(float)[..., 3]
+        a: NDArray[float][...]
+        coord: NDArray[float][..., 3]
 
     val = NumpyTensorGroup.zeros((10,))
     numpy.testing.assert_allclose(val.a, numpy.zeros(10))
@@ -190,8 +185,8 @@ def test_tensorgroup_smoke():
 
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class TorchTensorGroup(TensorGroup):
-        a: Tensor(float)[...]
-        coord: Tensor(float)[..., 3]
+        a: Tensor[float][...]
+        coord: Tensor[float][..., 3]
 
     val = TorchTensorGroup.zeros(10)
     numpy.testing.assert_allclose(val.a, torch.zeros((10,)))
@@ -217,13 +212,13 @@ def test_tensorgroup_smoke():
 def test_tensorgroup_cat():
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class S(TensorGroup):
-        a: Tensor(float)[...]
-        b: NDArray(float)[..., 5]
+        a: Tensor[float][...]
+        b: NDArray[float][..., 5]
 
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class M(TensorGroup):
         s: S
-        foo: Tensor(int)[..., 2]
+        foo: Tensor[int][..., 2]
 
     m1 = M.full((3, 3), 1)
     m2 = M.full((3, 7), 2)
@@ -267,7 +262,7 @@ def test_tensorgroup_cat():
         tensor.cat((m1, m2))
 
     # Invalid dimension, exeeds bounds
-    with pytest.raises(RuntimeError):
+    with pytest.raises(IndexError):
         tensor.cat((m1, m2), dim=3)
 
     with pytest.raises(ValueError):
@@ -277,12 +272,12 @@ def test_tensorgroup_cat():
 def test_tensorgroup_to_dtypes():
     @attr.s(auto_attribs=True, frozen=True)
     class STG(TensorGroup):
-        s: Tensor(torch.float)[..., 3, 3]
+        s: Tensor[torch.float][..., 3, 3]
 
     @attr.s(auto_attribs=True, frozen=True)
     class TG(TensorGroup):
-        s: Tensor(torch.float)[..., 3]
-        d: Tensor(torch.double)[...]
+        s: Tensor[torch.float][..., 3]
+        d: Tensor[torch.double][...]
         sub: STG
 
     cpu_float = dict(
@@ -317,12 +312,12 @@ def test_tensorgroup_to_dtypes():
 def test_tensorgroup_to_device():
     @attr.s(auto_attribs=True, frozen=True)
     class STG(TensorGroup):
-        s: Tensor(torch.float)[..., 3, 3]
+        s: Tensor[torch.float][..., 3, 3]
 
     @attr.s(auto_attribs=True, frozen=True)
     class TG(TensorGroup):
-        s: Tensor(torch.float)[..., 3]
-        d: Tensor(torch.double)[...]
+        s: Tensor[torch.float][..., 3]
+        d: Tensor[torch.double][...]
         sub: STG
 
     cpu_float = dict(

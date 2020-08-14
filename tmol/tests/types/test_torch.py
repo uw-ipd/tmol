@@ -6,10 +6,11 @@ from tmol.types.torch import Tensor
 
 validation_examples = [
     {
-        "spec": Tensor(bool)[:],
+        "spec": Tensor[bool][:],
         "valid": [
             torch.arange(30) > 15,
-            torch.Tensor([True, True, False]).to(torch.uint8),
+            # torch.tensor type-converts
+            torch.tensor([True, True, False]),
         ],
         "invalid": [
             # numpy types not allowed
@@ -24,6 +25,7 @@ validation_examples = [
             numpy.arange(3),
             # defaults to floating-point types
             torch.Tensor([True, True, False]),
+            torch.Tensor([True, True, False]).to(torch.uint8),
             torch.Tensor([[1, 2, 3]]),
             torch.zeros(30),
             # no casting
@@ -35,7 +37,7 @@ validation_examples = [
         ],
     },
     {
-        "spec": Tensor(int)[:, 3],
+        "spec": Tensor[int][:, 3],
         "valid": [
             torch.arange(30, dtype=torch.int64).reshape(10, 3),
             torch.Tensor([[1, 2, 3]]).to(torch.int64),
@@ -62,7 +64,7 @@ validation_examples = [
         ],
     },
     {
-        "spec": Tensor("f")[:],
+        "spec": Tensor["f"][:],
         "valid": [torch.zeros(30), torch.Tensor([1, 2, 3])],
         "invalid": [
             # bad shape
@@ -83,7 +85,7 @@ validation_examples = [
         ],
     },
     {
-        "spec": Tensor(float)[:],
+        "spec": Tensor[float][:],
         "valid": [torch.zeros(30), torch.Tensor([1, 2, 3])],
         "invalid": [
             # bad shape
@@ -125,12 +127,12 @@ invalid_dtypes = [numpy.dtype([("coord", float, 3), ("val", int)]), numpy.comple
 @pytest.mark.parametrize("invalid_dtype", invalid_dtypes)
 def test_invalid_dtype(invalid_dtype):
     with pytest.raises(ValueError):
-        Tensor(invalid_dtype)
+        Tensor[invalid_dtype]
 
 
 converstion_examples = [
     {
-        "spec": Tensor(float)[3],
+        "spec": Tensor[float][3],
         "conversions": [
             ([1, 2, 3], torch.Tensor([1, 2, 3])),
             ([True, True, False], torch.Tensor([1, 1, 0])),
@@ -149,7 +151,7 @@ converstion_examples = [
         ],
     },
     {
-        "spec": Tensor(float)[1],
+        "spec": Tensor[float][1],
         "conversions": [
             (numpy.pi, torch.Tensor([numpy.pi])),
             (1663, torch.Tensor([1663])),
@@ -162,7 +164,7 @@ converstion_examples = [
         "invalid": [numpy.array(["one"]), torch.arange(3)],
     },
     {
-        "spec": Tensor(int)[1],
+        "spec": Tensor[int][1],
         "conversions": [
             (numpy.pi, torch.Tensor([3]).to(torch.long)),
             ([1], torch.Tensor([1]).to(torch.long)),
@@ -174,11 +176,11 @@ converstion_examples = [
         ],
     },
     {
-        "spec": Tensor(bool)[:],
+        "spec": Tensor[bool][:],
         "conversions": [
-            ([True, True, True], torch.Tensor([1, 1, 1]).to(torch.uint8)),
-            (numpy.arange(3) < 2, torch.Tensor([1, 1, 0]).to(torch.uint8)),
-            (torch.arange(3), torch.Tensor([0, 1, 2]).to(torch.uint8)),
+            ([True, True, True], torch.Tensor([1, 1, 1]).to(torch.bool)),
+            (numpy.arange(3) < 2, torch.Tensor([1, 1, 0]).to(torch.bool)),
+            (torch.arange(3), torch.Tensor([0, 1, 2]).to(torch.bool)),
         ],
         "invalid": [numpy.array(["one"])],
     },
