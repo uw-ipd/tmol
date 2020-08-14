@@ -36,7 +36,7 @@ class CartesianDOFs(torch.nn.Module):
 
     coords: torch.nn.Parameter = attr.ib(converter=torch.nn.Parameter)
 
-    def forward(self) -> torch.Tensor:  # Tensor(float)[:, :, 3]
+    def forward(self) -> torch.Tensor:  # Tensor[float][:, :, 3]
         return self.coords
 
 
@@ -155,7 +155,8 @@ class KinematicOperation(torch.nn.Module):
     def _init_kin_module(self):
         return KinematicModule(self.kintree)
 
-    def forward(self, dofs: torch.Tensor) -> torch.Tensor:  # Tensor(torch.float)[:, 9],
+    # TODO restore type annotations
+    def forward(self, dofs: torch.Tensor) -> torch.Tensor:  # Tensor[torch.float][:, 9],
 
         kincoords = self.kin_module(dofs)
 
@@ -218,7 +219,7 @@ class KinematicDOFs(torch.nn.Module):
     kinop: KinematicOperation
 
     selected_dofs: DOFMetadata
-    dof_mask: torch.Tensor  # Tensor(int)[2, :]
+    dof_mask: torch.Tensor  # Tensor[int][2, :]
 
     full_dofs: torch.Tensor
     dofs: torch.nn.Parameter = attr.ib(converter=torch.nn.Parameter)

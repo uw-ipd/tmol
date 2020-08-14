@@ -39,12 +39,12 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
     IntEnum encoded "dof_type" entry into a string categorical column.
     """
 
-    node_idx: Tensor(torch.long)[...]
-    dof_idx: Tensor(torch.long)[...]
+    node_idx: Tensor[torch.long][...]
+    dof_idx: Tensor[torch.long][...]
 
-    dof_type: Tensor(torch.long)[...]
-    parent_id: Tensor(torch.long)[...]
-    child_id: Tensor(torch.long)[...]
+    dof_type: Tensor[torch.long][...]
+    parent_id: Tensor[torch.long][...]
+    child_id: Tensor[torch.long][...]
 
     @classmethod
     def for_kintree(cls, kintree: KinTree):

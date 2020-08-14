@@ -54,7 +54,7 @@ class KinematicDescription:
 
     def extract_kincoords(
         self, coords: NDArray[float][:, 3]
-    ) -> Tensor(torch.double)[:, 3]:
+    ) -> Tensor[torch.double][:, 3]:
         """Extract the kinematic-derived coordinates from system coords.
 
         Extract kinematic-derived coordiantes, specified by kintree.id,

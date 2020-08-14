@@ -61,12 +61,12 @@ class BSplineInterpolation:
     indices ``Y``) to produce a tensor of interpolated values.
     """
 
-    coeffs: Tensor(torch.float)
+    coeffs: Tensor[torch.float]
     n_interp_dims: int
 
     @classmethod
     @validate_args
-    def from_coordinates(cls, coords: Tensor(torch.float)):
+    def from_coordinates(cls, coords: Tensor[torch.float]):
         """Construct a BSplineInterpolation instance from  the input coordinates
         (i.e. the data to be interpolated)
 
@@ -90,7 +90,7 @@ class BSplineInterpolation:
         return cls(coeffs=coeffs, n_interp_dims=len(input_shape))
 
     @validate_args
-    def interpolate(self, X: Tensor(torch.float)[...]) -> Tensor(torch.float):
+    def interpolate(self, X: Tensor[torch.float][...]) -> Tensor[torch.float]:
         """B-spline interpolation function
 
         X should be a two dimensional tensor of size [ n_points, n_dims ]

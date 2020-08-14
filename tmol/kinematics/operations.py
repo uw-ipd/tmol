@@ -9,7 +9,7 @@ from tmol.kinematics.script_modules import KinematicModule
 
 from .datatypes import KinTree, KinDOF
 
-CoordArray = Tensor(torch.double)[:, 3]
+CoordArray = Tensor[torch.double][:, 3]
 
 
 @validate_args

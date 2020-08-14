@@ -21,17 +21,17 @@ from tmol.types.tensor import TensorGroup
 # rama parameters
 @attr.s(auto_attribs=True)
 class RamaParams(TensorGroup):
-    phi_indices: Tensor(torch.int32)[..., 4]
-    psi_indices: Tensor(torch.int32)[..., 4]
-    param_indices: Tensor(torch.int32)[...]
+    phi_indices: Tensor[torch.int32][..., 4]
+    psi_indices: Tensor[torch.int32][..., 4]
+    param_indices: Tensor[torch.int32][...]
 
 
 # the rama database on the device
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedRamaDatabase(ConvertAttrs):
-    tables: Tensor(torch.float)[:, :, :]
-    bbsteps: Tensor(torch.float)[:, :]
-    bbstarts: Tensor(torch.float)[:, :]
+    tables: Tensor[torch.float][:, :, :]
+    bbsteps: Tensor[torch.float][:, :]
+    bbstarts: Tensor[torch.float][:, :]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)

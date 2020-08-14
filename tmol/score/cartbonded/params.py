@@ -16,25 +16,25 @@ from tmol.database.scoring.cartbonded import CartBondedDatabase
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class CartHarmonicParams(TensorGroup, ConvertAttrs):
-    K: Tensor(torch.float)[...]
-    x0: Tensor(torch.float)[...]
+    K: Tensor[torch.float][...]
+    x0: Tensor[torch.float][...]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class CartSimpleSinusoidalParams(TensorGroup, ConvertAttrs):
-    K: Tensor(torch.float)[...]
-    x0: Tensor(torch.float)[...]
-    period: Tensor(torch.float)[...]
+    K: Tensor[torch.float][...]
+    x0: Tensor[torch.float][...]
+    period: Tensor[torch.float][...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CartSinusoidalParams(TensorGroup, ValidateAttrs):
-    k1: Tensor(torch.float)[...]
-    k2: Tensor(torch.float)[...]
-    k3: Tensor(torch.float)[...]
-    phi1: Tensor(torch.float)[...]
-    phi2: Tensor(torch.float)[...]
-    phi3: Tensor(torch.float)[...]
+    k1: Tensor[torch.float][...]
+    k2: Tensor[torch.float][...]
+    k3: Tensor[torch.float][...]
+    phi1: Tensor[torch.float][...]
+    phi2: Tensor[torch.float][...]
+    phi3: Tensor[torch.float][...]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)

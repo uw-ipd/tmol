@@ -56,7 +56,7 @@ def condense_numpy_inds(selection: NDArray[bool][:, :]):
     return inds
 
 
-def condense_torch_inds(selection: Tensor(bool)[:, :], device: torch.device):
+def condense_torch_inds(selection: Tensor[bool][:, :], device: torch.device):
     """Given a two dimensional boolean tensor, create
     an output tensor holding the column indices of the non-zero
     entries for each row. Pad out the extra entries
@@ -87,7 +87,7 @@ def condense_torch_inds(selection: Tensor(bool)[:, :], device: torch.device):
 
 @validate_args
 def take_values_w_sentineled_index(
-    value_tensor, sentineled_index_tensor: Tensor(torch.int64)[:, :], default_fill=-1
+    value_tensor, sentineled_index_tensor: Tensor[torch.int64][:, :], default_fill=-1
 ):
     """The sentinel in the sentineled_index_tensor is -1: the positions
     with the sentinel value should not be used as an index into the
@@ -123,7 +123,7 @@ def take_values_w_sentineled_index(
 @validate_args
 def take_values_w_sentineled_index_and_dest(
     value_tensor,
-    sentineled_index_tensor: Tensor(torch.int64)[:, :],
+    sentineled_index_tensor: Tensor[torch.int64][:, :],
     sentineled_dest_tensor,
     default_fill=-1,
 ):
@@ -245,8 +245,8 @@ def condense_subset(
 @validate_args
 def take_condensed_3d_subset(
     values,  # 3D Tensor of arbitrary dtype
-    condensed_inds_to_keep: Tensor(torch.int64)[:, :],
-    condensed_dst_inds: Tensor(torch.int64)[:, 2],
+    condensed_inds_to_keep: Tensor[torch.int64][:, :],
+    condensed_dst_inds: Tensor[torch.int64][:, 2],
     default_fill=-1,
 ):
     """Take the values for the third dimension of the 3D "values" tensor,

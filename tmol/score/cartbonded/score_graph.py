@@ -84,7 +84,7 @@ def remove_undefined_indices(
     atom_inds: NDArray[numpy.int64][:, :, :],
     param_inds: NDArray[numpy.int64][:, :],
     device: torch.device,
-) -> Tensor(torch.long)[:, :, :]:
+) -> Tensor[torch.long][:, :, :]:
     """Prune out the below-zero entries from the param inds
     tensor and concatenate the remaining entries with the
     corresponding entries from the atom-inds tensor. The
@@ -221,7 +221,7 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
-    ) -> Tensor(torch.int64)[:, :, 3]:
+    ) -> Tensor[torch.int64][:, :, 3]:
 
         # combine resolved atom indices and bondlength indices
         bondlength_atom_indices = cartbonded_param_identifier.lengths
@@ -245,7 +245,7 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
-    ) -> Tensor(torch.int64)[:, :, 4]:
+    ) -> Tensor[torch.int64][:, :, 4]:
         # combine resolved atom indices and bondangle indices
         bondangle_atom_indices = cartbonded_param_identifier.angles
 
@@ -266,7 +266,7 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
-    ) -> Tensor(torch.int64)[:, :, 5]:
+    ) -> Tensor[torch.int64][:, :, 5]:
         # combine resolved atom indices and bondangle indices
         torsion_atom_indices = cartbonded_param_identifier.torsions
         # use atm2 for resid
@@ -287,7 +287,7 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
-    ) -> Tensor(torch.int64)[:, :, 5]:
+    ) -> Tensor[torch.int64][:, :, 5]:
         # combine resolved atom indices and bondangle indices
         improper_atom_indices = cartbonded_param_identifier.impropers
         # use atm3 for resid
@@ -311,7 +311,7 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
-    ) -> Tensor(torch.int64)[:, :, 5]:
+    ) -> Tensor[torch.int64][:, :, 5]:
         # same identification as regular torsions, but resolved against a different DB
         hxltorsion_atom_indices = cartbonded_param_identifier.torsions
         res, at1, at2, at3, at4 = select_names_from_indices(

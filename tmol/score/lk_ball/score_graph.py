@@ -19,8 +19,8 @@ from tmol.types.torch import Tensor
 
 @attr.s(auto_attribs=True)
 class LKBallPairs:
-    polars: Tensor(torch.long)[:, :]
-    occluders: Tensor(torch.long)[:, :]
+    polars: Tensor[torch.long][:, :]
+    occluders: Tensor[torch.long][:, :]
 
 
 @reactive_attrs
@@ -88,7 +88,7 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
 
     @reactive_property
     def lkball_pairs(
-        ljlk_atom_types: Tensor(torch.int64)[:, :],
+        ljlk_atom_types: Tensor[torch.int64][:, :],
         atom_type_params: AtomTypeParamResolver,
         device: torch.device,
     ) -> LKBallPairs:

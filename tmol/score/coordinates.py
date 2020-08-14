@@ -35,7 +35,7 @@ class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice):
         return dict(coords=coords)
 
     # Source atomic coordinates
-    coords: Tensor(torch.float)[:, :, 3]
+    coords: Tensor[torch.float][:, :, 3]
 
     def reset_coords(self):
         """Reset coordinate state in compute graph, clearing dependent properties."""
@@ -66,7 +66,7 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
         return dict(kintree=kintree, dofs=dofs, dofmetadata=dofmetadata)
 
     # Source dofs
-    dofs: Tensor(torch.float)[:, 9]
+    dofs: Tensor[torch.float][:, 9]
 
     # dof info for masking
     dofmetadata: DOFMetadata
@@ -80,11 +80,11 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
 
     @reactive_property
     def coords(
-        dofs: Tensor(torch.float)[:, 9],
+        dofs: Tensor[torch.float][:, 9],
         kintree: KinTree,
         kin_module: KinematicModule,
         system_size: int,
-    ) -> Tensor(torch.float)[:, :, 3]:
+    ) -> Tensor[torch.float][:, :, 3]:
         """System cartesian atomic coordinates."""
         kincoords = kin_module(dofs)
 

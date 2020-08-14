@@ -40,7 +40,7 @@ class LJLKParameters(ScoreModule):
 
     ljlk_database: LJLKDatabase = attr.ib(validator=type_validator())
     ljlk_param_resolver: LJLKParamResolver = attr.ib(init=False)
-    # ljlk_atom_types: Tensor(torch.int64)[:, :] = attr.ib(init=False)
+    # ljlk_atom_types: Tensor[torch.int64][:, :] = attr.ib(init=False)
     ljlk_atom_types: torch.Tensor = attr.ib(init=False)
 
     @ljlk_param_resolver.default

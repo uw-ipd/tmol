@@ -67,7 +67,8 @@ class BondedAtoms(ScoreModule):
     )  # NDArray[int][:, :]
     bonds: numpy.ndarray = attr.ib(validator=type_validator())  # NDArray[int][:, 3]
 
-    # real_atoms: Tensor(bool)[:, :] = attr.ib(init=False)
+    # TODO restore type annotation
+    # real_atoms: Tensor[bool][:, :] = attr.ib(init=False)
     real_atoms: torch.Tensor = attr.ib(init=False)
 
     @real_atoms.default
@@ -91,7 +92,8 @@ class BondedAtoms(ScoreModule):
 
         return ibonds
 
-    # bonded_path_length: Tensor(float)[:, :, :] = attr.ib(init=False)
+    # TODO restore type annotation
+    # bonded_path_length: Tensor[float][:, :, :] = attr.ib(init=False)
     bonded_path_length: torch.Tensor = attr.ib(init=False)
 
     @bonded_path_length.default

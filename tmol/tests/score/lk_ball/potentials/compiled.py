@@ -17,22 +17,22 @@ _compiled = load(modulename(__name__), relpaths(__file__, ["compiled.pybind.cpp"
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LKBallTypeParams(TensorGroup):
-    lj_radius: Tensor(float)[...]
-    lk_dgfree: Tensor(float)[...]
-    lk_lambda: Tensor(float)[...]
-    lk_volume: Tensor(float)[...]
-    is_donor: Tensor(float)[...]
-    is_hydroxyl: Tensor(float)[...]
-    is_polarh: Tensor(float)[...]
-    is_acceptor: Tensor(float)[...]
+    lj_radius: Tensor[float][...]
+    lk_dgfree: Tensor[float][...]
+    lk_lambda: Tensor[float][...]
+    lk_volume: Tensor[float][...]
+    is_donor: Tensor[float][...]
+    is_hydroxyl: Tensor[float][...]
+    is_polarh: Tensor[float][...]
+    is_acceptor: Tensor[float][...]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LKBallGlobalParams(TensorGroup):
-    lj_hbond_dis: Tensor(float)[...]
-    lj_hbond_OH_donor_dis: Tensor(float)[...]
-    lj_hbond_hdis: Tensor(float)[...]
-    lkb_water_dist: Tensor(float)[...]
+    lj_hbond_dis: Tensor[float][...]
+    lj_hbond_OH_donor_dis: Tensor[float][...]
+    lj_hbond_hdis: Tensor[float][...]
+    lkb_water_dist: Tensor[float][...]
 
 
 def detach_maybe_requires_grad(
@@ -50,13 +50,13 @@ class BuildAcceptorWater(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
-        A: Tensor(float)[:, 3],
-        B: Tensor(float)[:, 3],
-        B0: Tensor(float)[:, 3],
+        A: Tensor[float][:, 3],
+        B: Tensor[float][:, 3],
+        B0: Tensor[float][:, 3],
         dist: float,
         angle: float,
         torsion: float,
-    ) -> Tensor(float)[:, 3]:
+    ) -> Tensor[float][:, 3]:
 
         rgrad, (A, B, B0) = detach_maybe_requires_grad(A, B, B0)
         inputs = (A, B, B0, dist, angle, torsion)
@@ -67,7 +67,7 @@ class BuildAcceptorWater(torch.autograd.Function):
         return torch.from_numpy(_compiled.build_acc_water_V(*inputs))
 
     @staticmethod
-    def backward(ctx, dE_dW: Tensor(float)[:, 3]):
+    def backward(ctx, dE_dW: Tensor[float][:, 3]):
         inputs = ctx.inputs
         dW_dA, dW_dB, dW_dB0 = map(
             torch.from_numpy, _compiled.build_acc_water_dV(*inputs)
@@ -79,8 +79,8 @@ class BuildAcceptorWater(torch.autograd.Function):
 class BuildDonorWater(torch.autograd.Function):
     @staticmethod
     def forward(
-        ctx, D: Tensor(float)[:, 3], H: Tensor(float)[:, 3], dist: float
-    ) -> Tensor(float)[:, 3]:
+        ctx, D: Tensor[float][:, 3], H: Tensor[float][:, 3], dist: float
+    ) -> Tensor[float][:, 3]:
 
         rgrad, (D, H) = detach_maybe_requires_grad(D, H)
         inputs = (D, H, dist)
@@ -91,7 +91,7 @@ class BuildDonorWater(torch.autograd.Function):
         return torch.from_numpy(_compiled.build_don_water_V(*inputs))
 
     @staticmethod
-    def backward(ctx, dE_dW: Tensor(float)[:, 3]):
+    def backward(ctx, dE_dW: Tensor[float][:, 3]):
         inputs = ctx.inputs
 
         dW_dD, dW_dH = map(torch.from_numpy, _compiled.build_don_water_dV(*inputs))
@@ -111,7 +111,7 @@ class LKFraction(torch.autograd.Function):
         return torch.tensor(_compiled.lk_fraction_V(*args)).to(args[0].dtype)
 
     @staticmethod
-    def backward(ctx, dE_dF: Tensor(float)):
+    def backward(ctx, dE_dF: Tensor[float]):
         args = ctx.args
         d_grad_args = map(torch.from_numpy, _compiled.lk_fraction_dV(*args))
 
@@ -130,7 +130,7 @@ class LKBridgeFraction(torch.autograd.Function):
         return torch.tensor(_compiled.lk_bridge_fraction_V(*args)).to(args[0].dtype)
 
     @staticmethod
-    def backward(ctx, dE_dF: Tensor(float)):
+    def backward(ctx, dE_dF: Tensor[float]):
         args = ctx.args
         d_grad_args = map(torch.from_numpy, _compiled.lk_bridge_fraction_dV(*args))
 
@@ -201,7 +201,7 @@ class LKBallScore:
 
 class LKBallScoreFun(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, *args) -> Tensor(float):
+    def forward(ctx, *args) -> Tensor[float]:
         args = list(args)
         rgrad, args[:4] = detach_maybe_requires_grad(*args[:4])
 
@@ -211,7 +211,7 @@ class LKBallScoreFun(torch.autograd.Function):
         return torch.tensor(_compiled.lk_ball_score_V(*args)).to(args[0].dtype)
 
     @staticmethod
-    def backward(ctx, dE_dV: Tensor(float)):
+    def backward(ctx, dE_dV: Tensor[float]):
         args = ctx.args
 
         # Output grads [arg_index, out_shape, ...arg_shape] Unpack into

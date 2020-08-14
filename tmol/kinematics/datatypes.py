@@ -53,12 +53,12 @@ class KinTree(TensorGroup, ConvertAttrs):
         frame_z = kin-atom index of grandparent
     """
 
-    id: Tensor(torch.int)[...]  # used as an index so long
-    doftype: Tensor(torch.int)[...]
-    parent: Tensor(torch.int)[...]  # used as an index so long
-    frame_x: Tensor(torch.int)[...]
-    frame_y: Tensor(torch.int)[...]
-    frame_z: Tensor(torch.int)[...]
+    id: Tensor[torch.int][...]  # used as an index so long
+    doftype: Tensor[torch.int][...]
+    parent: Tensor[torch.int][...]  # used as an index so long
+    frame_x: Tensor[torch.int][...]
+    frame_y: Tensor[torch.int][...]
+    frame_z: Tensor[torch.int][...]
 
     @classmethod
     @convert_args
@@ -100,7 +100,7 @@ class KinDOF(TensorGroup, ConvertAttrs):
     the DOF buffer depends on the type of the corresponding KinTree entry.
     """
 
-    raw: Tensor(torch.double)[..., 9]
+    raw: Tensor[torch.double][..., 9]
 
     @property
     def bond(self):
@@ -141,7 +141,7 @@ class JumpDOFTypes(enum.IntEnum):
 class BondDOF(TensorGroup, ConvertAttrs):
     """A bond dof view of KinDOF."""
 
-    raw: Tensor(torch.double)[..., 4]
+    raw: Tensor[torch.double][..., 4]
 
     @property
     def phi_p(self):
@@ -164,7 +164,7 @@ class BondDOF(TensorGroup, ConvertAttrs):
 class JumpDOF(TensorGroup, ConvertAttrs):
     """A jump dof view of KinDOF."""
 
-    raw: Tensor(torch.double)[..., 9]
+    raw: Tensor[torch.double][..., 9]
 
     @property
     def RBx(self):

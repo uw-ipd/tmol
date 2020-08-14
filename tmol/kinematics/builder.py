@@ -114,7 +114,7 @@ class KinematicBuilder:
 
     @convert_args
     def append_connected_component(
-        self, ids: Tensor(int)[:], parent_ids: Tensor(int)[:], component_parent=0
+        self, ids: Tensor[int][:], parent_ids: Tensor[int][:], component_parent=0
     ):
         assert (
             ids.shape == parent_ids.shape

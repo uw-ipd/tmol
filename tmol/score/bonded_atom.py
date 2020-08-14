@@ -28,8 +28,8 @@ class IndexedBonds:
     #   with 2 = (atom1ind atom2ind)
     # bond_spans = [ nstacks x max-natoms x 2 ]
     #   with 2 = (bond start ind, bond end ind + 1)
-    bonds: Tensor(int)[:, :, 2]
-    bond_spans: Tensor(int)[:, :, 2]
+    bonds: Tensor[int][:, :, 2]
+    bond_spans: Tensor[int][:, :, 2]
 
     @classmethod
     def from_bonds(cls, src_bonds, minlength=None):
@@ -160,7 +160,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
 
     @reactive_property
     @validate_args
-    def real_atoms(atom_types: NDArray[object][:, :],) -> Tensor(bool)[:, :]:
+    def real_atoms(atom_types: NDArray[object][:, :],) -> Tensor[bool][:, :]:
         """Mask of non-null atomic indices in the system."""
         return torch.ByteTensor((atom_types != None).astype(numpy.ubyte))
 
@@ -185,7 +185,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         system_size: int,
         device: torch.device,
         MAX_BONDED_PATH_LENGTH: int,
-    ) -> Tensor(float)[:, :, :]:
+    ) -> Tensor[float][:, :, :]:
         """Dense inter-atomic bonded path length distance tables.
 
         Returns:

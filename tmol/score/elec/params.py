@@ -15,11 +15,11 @@ from tmol.database.scoring.elec import ElecDatabase
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ElecGlobalParams(TensorGroup, ValidateAttrs):
-    elec_min_dis: Tensor(float)[...]
-    elec_max_dis: Tensor(float)[...]
-    elec_sigmoidal_die_D: Tensor(float)[...]
-    elec_sigmoidal_die_D0: Tensor(float)[...]
-    elec_sigmoidal_die_S: Tensor(float)[...]
+    elec_min_dis: Tensor[float][...]
+    elec_max_dis: Tensor[float][...]
+    elec_sigmoidal_die_D: Tensor[float][...]
+    elec_sigmoidal_die_D0: Tensor[float][...]
+    elec_sigmoidal_die_S: Tensor[float][...]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)

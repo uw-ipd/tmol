@@ -20,9 +20,9 @@ from ..chemical_database import AcceptorHybridization
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class HBondPolyParams(TensorGroup, ConvertAttrs):
-    range: Tensor(torch.double)[..., 2]
-    bound: Tensor(torch.double)[..., 2]
-    coeffs: Tensor(torch.double)[..., 11]
+    range: Tensor[torch.double][..., 2]
+    bound: Tensor[torch.double][..., 2]
+    coeffs: Tensor[torch.double][..., 11]
 
     def __setitem__(self, idx, value):
         self.range[idx] = value.range[idx]
@@ -46,9 +46,9 @@ class HBondPolyParams(TensorGroup, ConvertAttrs):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondPairParams(TensorGroup, ValidateAttrs):
-    donor_weight: Tensor(torch.float)[...]
-    acceptor_weight: Tensor(torch.float)[...]
-    acceptor_hybridization: Tensor(torch.int)[...]
+    donor_weight: Tensor[torch.float][...]
+    acceptor_weight: Tensor[torch.float][...]
+    acceptor_hybridization: Tensor[torch.int][...]
     AHdist: HBondPolyParams
     cosBAH: HBondPolyParams
     cosAHD: HBondPolyParams
@@ -201,9 +201,9 @@ class CompactedHBondDatabase(ValidateAttrs):
 
     _from_db_cache = {}
 
-    global_param_table: Tensor(torch.float32)[:, :]
-    pair_param_table: Tensor(torch.float32)[:, :, :]
-    pair_poly_table: Tensor(torch.float64)[:, :, :]
+    global_param_table: Tensor[torch.float32][:, :]
+    pair_param_table: Tensor[torch.float32][:, :, :]
+    pair_poly_table: Tensor[torch.float64][:, :, :]
 
     @classmethod
     @validate_args

@@ -24,7 +24,7 @@ from tmol.score.common.stack_condense import condense_subset
 
 @attr.s(auto_attribs=True)
 class OmegaParams(TensorGroup):
-    omega_indices: Tensor(torch.int32)[:, :, 4]
+    omega_indices: Tensor[torch.int32][:, :, 4]
 
 
 @reactive_attrs
@@ -53,13 +53,13 @@ class OmegaScoreGraph(BondedAtomScoreGraph, TorchDevice):
     @reactive_property
     @validate_args
     def omega_module(
-        omega_resolve_indices: OmegaParams, spring_constant: Tensor(torch.float)
+        omega_resolve_indices: OmegaParams, spring_constant: Tensor[torch.float]
     ) -> OmegaScoreModule:
         return OmegaScoreModule(omega_resolve_indices.omega_indices, spring_constant)
 
     @reactive_property
     @validate_args
-    def spring_constant(device: torch.device) -> Tensor(torch.float):
+    def spring_constant(device: torch.device) -> Tensor[torch.float]:
         """ The spring constant for omega (in radians)"""
         return torch.tensor(32.8, device=device, dtype=torch.float)
 
