@@ -34,7 +34,11 @@ struct enable_tensor_view {
   static const bool enabled = false;
 };
 
+// bool size is ostensibly implementation dependent
+static_assert(sizeof(bool) == 1);
+
 #define FORALL_SCALAR_TYPES_EXCEPT_HALF(_) \
+  _(bool, at::ScalarType::Bool)            \
   _(uint8_t, at::ScalarType::Byte)         \
   _(int8_t, at::ScalarType::Char)          \
   _(int16_t, at::ScalarType::Short)        \
@@ -55,17 +59,6 @@ struct enable_tensor_view {
 
 FORALL_SCALAR_TYPES_EXCEPT_HALF(SCALAR_VIEW)
 #undef SCALAR_VIEW
-
-template <>
-struct enable_tensor_view<bool> {
-  static const bool enabled = enable_tensor_view<uint8_t>::enabled;
-  static at::ScalarType scalar_type() {
-    return enable_tensor_view<uint8_t>::scalar_type();
-  }
-  static const int nconsumed_dims = 0;
-  static int consumed_dims(int) { return 0; }
-  typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
-};
 
 // Eigen Matrix/Vector Conversions
 // Matrix is defined as <T, M, N>, consume two [M, N] dimensions.
