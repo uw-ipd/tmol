@@ -16,7 +16,7 @@ from tmol.types.tensor import cat
 
 from .datatypes import NodeType, KinTree
 
-ChildParentTuple = Tuple[NDArray(int)[:], NDArray(int)[:]]
+ChildParentTuple = Tuple[NDArray[int][:], NDArray[int][:]]
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -43,8 +43,8 @@ class KinematicBuilder:
     def component_for_prioritized_bonds(
         cls,
         root: int,
-        mandatory_bonds: NDArray(int)[:, 2],
-        all_bonds: NDArray(int)[:, 2],
+        mandatory_bonds: NDArray[int][:, 2],
+        all_bonds: NDArray[int][:, 2],
     ) -> ChildParentTuple:
         system_size = max(mandatory_bonds.max(), all_bonds.max()) + 1
 
@@ -73,8 +73,8 @@ class KinematicBuilder:
     @convert_args
     def bonds_to_csgraph(
         cls,
-        bonds: NDArray(int)[:, 2],
-        weights: NDArray(float)[:] = numpy.ones(1),  # noqa
+        bonds: NDArray[int][:, 2],
+        weights: NDArray[float][:] = numpy.ones(1),  # noqa
         system_size: Optional[int] = None,
     ) -> sparse.csr_matrix:
         if not system_size:
@@ -89,7 +89,7 @@ class KinematicBuilder:
     @classmethod
     @validate_args
     def bonds_to_connected_component(
-        cls, root: int, bonds: Union[NDArray(int)[:, 2], sparse.spmatrix]
+        cls, root: int, bonds: Union[NDArray[int][:, 2], sparse.spmatrix]
     ) -> ChildParentTuple:
         if isinstance(bonds, numpy.ndarray):
             # Bonds are a non-prioritized set of edges, assume arbitrary

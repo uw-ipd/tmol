@@ -26,7 +26,7 @@ from tmol.types.functional import validate_args
 # 2. index into one tensor into a condensed output tensor
 
 
-def condense_numpy_inds(selection: NDArray(bool)[:, :]):
+def condense_numpy_inds(selection: NDArray[bool][:, :]):
     """Given a two dimensional boolean tensor, create
     an output tensor holding the column indices of the non-zero
     entries for each row. Pad out the extra entries

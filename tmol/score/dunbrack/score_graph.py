@@ -99,7 +99,7 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @validate_args
     def dun_resolve_indices(
         dun_param_resolver: DunbrackParamResolver,
-        res_names: NDArray(object)[...],
+        res_names: NDArray[object][...],
         dun_phi: Tensor(torch.int32)[:, :, 5],
         dun_psi: Tensor(torch.int32)[:, :, 5],
         dun_chi: Tensor(torch.int32)[:, :, 6],

@@ -25,8 +25,8 @@ class KinematicDescription:
     @validate_args
     def for_system(
         cls,
-        bonds: NDArray(int)[:, 2],
-        torsion_metadata: NDArray(torsion_metadata_dtype)[:],
+        bonds: NDArray[int][:, 2],
+        torsion_metadata: NDArray[torsion_metadata_dtype][:],
     ):
         """Generate kinematics for system atoms and named torsions.
 
@@ -53,7 +53,7 @@ class KinematicDescription:
         )
 
     def extract_kincoords(
-        self, coords: NDArray(float)[:, 3]
+        self, coords: NDArray[float][:, 3]
     ) -> Tensor(torch.double)[:, 3]:
         """Extract the kinematic-derived coordinates from system coords.
 

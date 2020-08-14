@@ -61,11 +61,11 @@ class CartBondedIntraScore(IntraScore):
 
 @validate_args
 def select_names_from_indices(
-    res_names: NDArray(object)[:, :],
-    atom_names: NDArray(object)[:, :],
-    atom_indices: NDArray(int)[:, :, :],
+    res_names: NDArray[object][:, :],
+    atom_names: NDArray[object][:, :],
+    atom_indices: NDArray[int][:, :, :],
     atom_for_resid: int,
-) -> Tuple[NDArray(object)[:, :], ...]:
+) -> Tuple[NDArray[object][:, :], ...]:
     resnames = numpy.full(atom_indices.shape[0:2], None, dtype=object)
     atnames = [numpy.full_like(resnames, None) for _ in range(atom_indices.shape[2])]
     real = atom_indices[:, :, 0] >= 0
@@ -81,8 +81,8 @@ def select_names_from_indices(
 
 @validate_args
 def remove_undefined_indices(
-    atom_inds: NDArray(numpy.int64)[:, :, :],
-    param_inds: NDArray(numpy.int64)[:, :],
+    atom_inds: NDArray[numpy.int64][:, :, :],
+    param_inds: NDArray[numpy.int64][:, :],
     device: torch.device,
 ) -> Tensor(torch.long)[:, :, :]:
     """Prune out the below-zero entries from the param inds
@@ -217,8 +217,8 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     def cartbonded_lengths(
-        res_names: NDArray(object)[...],
-        atom_names: NDArray(object)[...],
+        res_names: NDArray[object][...],
+        atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> Tensor(torch.int64)[:, :, 3]:
@@ -240,9 +240,9 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     def cartbonded_angles(
-        bonds: NDArray(int)[:, 3],
-        res_names: NDArray(object)[...],
-        atom_names: NDArray(object)[...],
+        bonds: NDArray[int][:, 3],
+        res_names: NDArray[object][...],
+        atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> Tensor(torch.int64)[:, :, 4]:
@@ -261,9 +261,9 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     def cartbonded_torsions(
-        bonds: NDArray(int)[:, 3],
-        res_names: NDArray(object)[...],
-        atom_names: NDArray(object)[...],
+        bonds: NDArray[int][:, 3],
+        res_names: NDArray[object][...],
+        atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> Tensor(torch.int64)[:, :, 5]:
@@ -282,9 +282,9 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     def cartbonded_impropers(
-        bonds: NDArray(int)[:, 3],
-        res_names: NDArray(object)[...],
-        atom_names: NDArray(object)[...],
+        bonds: NDArray[int][:, 3],
+        res_names: NDArray[object][...],
+        atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> Tensor(torch.int64)[:, :, 5]:
@@ -306,9 +306,9 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     def cartbonded_hxltorsions(
-        bonds: NDArray(int)[:, 3],
-        res_names: NDArray(object)[...],
-        atom_names: NDArray(object)[...],
+        bonds: NDArray[int][:, 3],
+        res_names: NDArray[object][...],
+        atom_names: NDArray[object][...],
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> Tensor(torch.int64)[:, :, 5]:

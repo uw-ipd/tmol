@@ -77,7 +77,7 @@ class LJLKParamResolver(ValidateAttrs):
 
     device: torch.device
 
-    def type_idx(self, atom_types: NDArray(object)[...]) -> Tensor(torch.long)[...]:
+    def type_idx(self, atom_types: NDArray[object][...]) -> Tensor(torch.long)[...]:
         """Convert array of atom type names to parameter indices.
 
         pandas.Index.get_indexer only operates on 1-d input arrays. Coerces

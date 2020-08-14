@@ -152,15 +152,15 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
             bonds=other.bonds,
         )
 
-    atom_types: NDArray(object)[:, :]
-    atom_names: NDArray(object)[:, :]
-    res_names: NDArray(object)[:, :]
-    res_indices: NDArray(int)[:, :]
-    bonds: NDArray(int)[:, 3]
+    atom_types: NDArray[object][:, :]
+    atom_names: NDArray[object][:, :]
+    res_names: NDArray[object][:, :]
+    res_indices: NDArray[int][:, :]
+    bonds: NDArray[int][:, 3]
 
     @reactive_property
     @validate_args
-    def real_atoms(atom_types: NDArray(object)[:, :],) -> Tensor(bool)[:, :]:
+    def real_atoms(atom_types: NDArray[object][:, :],) -> Tensor(bool)[:, :]:
         """Mask of non-null atomic indices in the system."""
         return torch.ByteTensor((atom_types != None).astype(numpy.ubyte))
 
@@ -180,7 +180,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def bonded_path_length(
-        bonds: NDArray(int)[:, 3],
+        bonds: NDArray[int][:, 3],
         stack_depth: int,
         system_size: int,
         device: torch.device,
@@ -201,8 +201,8 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
 
 
 def bonded_path_length(
-    bonds: NDArray(int)[:, 2], system_size: int, limit: int
-) -> NDArray(numpy.float32)[:, :]:
+    bonds: NDArray[int][:, 2], system_size: int, limit: int
+) -> NDArray[numpy.float32][:, :]:
     bond_graph = sparse.COO(
         bonds.T,
         data=numpy.full(len(bonds), True),
@@ -214,8 +214,8 @@ def bonded_path_length(
 
 
 def bonded_path_length_stacked(
-    bonds: NDArray(int)[:, 3], stack_depth: int, system_size: int, limit: int
-) -> NDArray(numpy.float32)[:, :, :]:
+    bonds: NDArray[int][:, 3], stack_depth: int, system_size: int, limit: int
+) -> NDArray[numpy.float32][:, :, :]:
     bond_graph = sparse.COO(
         bonds.T,
         data=numpy.full(len(bonds), True),

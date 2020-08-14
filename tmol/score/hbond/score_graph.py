@@ -147,8 +147,8 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     def hbond_elements(
         parameter_database: ParameterDatabase,
         hbond_database: HBondDatabase,
-        atom_types: NDArray(object)[:, :],
-        bonds: NDArray(int)[:, 3],
+        atom_types: NDArray[object][:, :],
+        bonds: NDArray[int][:, 3],
     ) -> HBondElementAnalysis:
         """hbond score elements in target graph"""
 

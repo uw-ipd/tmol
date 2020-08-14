@@ -47,7 +47,7 @@ class OmegaScoreGraph(BondedAtomScoreGraph, TorchDevice):
     def factory_for(val, device: torch.device, **_):
         return dict(allomegas=val.allomegas, device=device)
 
-    allomegas: NDArray(int)[:, :, 4]
+    allomegas: NDArray[int][:, :, 4]
     device: torch.device
 
     @reactive_property
@@ -66,7 +66,7 @@ class OmegaScoreGraph(BondedAtomScoreGraph, TorchDevice):
     @reactive_property
     @validate_args
     def omega_resolve_indices(
-        device: torch.device, allomegas: NDArray(int)[:, :, 4]
+        device: torch.device, allomegas: NDArray[int][:, :, 4]
     ) -> OmegaParams:
         # remove undefined indices and send to device
         allomegas = torch.tensor(allomegas, device=device)

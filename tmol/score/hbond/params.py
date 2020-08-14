@@ -84,7 +84,7 @@ class HBondParamResolver(ValidateAttrs):
     device: torch.device = attr.ib()
 
     @validate_args
-    def resolve_donor_type(self, donor_types: NDArray(object)[:, :]) -> torch.Tensor:
+    def resolve_donor_type(self, donor_types: NDArray[object][:, :]) -> torch.Tensor:
         """Resolve string donor type name into integer type index."""
         inds = numpy.full(donor_types.shape, -9999, dtype=numpy.int64)
         for i in range(donor_types.shape[0]):
@@ -96,7 +96,7 @@ class HBondParamResolver(ValidateAttrs):
 
     @validate_args
     def resolve_acceptor_type(
-        self, acceptor_types: NDArray(object)[:, :]
+        self, acceptor_types: NDArray[object][:, :]
     ) -> torch.Tensor:
         """Resolve string acceptor type name into integer type index."""
         inds = numpy.full(acceptor_types.shape, -9999, dtype=numpy.int64)

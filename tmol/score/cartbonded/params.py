@@ -56,10 +56,10 @@ class CartBondedParamResolver(ValidateAttrs):
     @validate_args
     def resolve_lengths(
         self,
-        resnames: NDArray(object)[:, :],
-        atm1s: NDArray(object)[:, :],
-        atm2s: NDArray(object)[:, :],
-    ) -> NDArray(numpy.long)[...]:
+        resnames: NDArray[object][:, :],
+        atm1s: NDArray[object][:, :],
+        atm2s: NDArray[object][:, :],
+    ) -> NDArray[numpy.long][...]:
         """Resolve string triplets into integer bondlength parameter indices."""
         assert resnames.shape[0] == atm1s.shape[0]
         assert resnames.shape[0] == atm2s.shape[0]
@@ -90,11 +90,11 @@ class CartBondedParamResolver(ValidateAttrs):
     @validate_args
     def resolve_angles(
         self,
-        resnames: NDArray(object)[:, :],
-        atm1s: NDArray(object)[:, :],
-        atm2s: NDArray(object)[:, :],
-        atm3s: NDArray(object)[:, :],
-    ) -> NDArray(numpy.long)[...]:
+        resnames: NDArray[object][:, :],
+        atm1s: NDArray[object][:, :],
+        atm2s: NDArray[object][:, :],
+        atm3s: NDArray[object][:, :],
+    ) -> NDArray[numpy.long][...]:
         """Resolve string quads into integer bondangle parameter indices."""
 
         inds = numpy.full(resnames.shape[0:2], -9999, dtype=numpy.int64)
@@ -134,12 +134,12 @@ class CartBondedParamResolver(ValidateAttrs):
     @validate_args
     def resolve_torsions(
         self,
-        resnames: NDArray(object)[:, :],
-        atm1s: NDArray(object)[:, :],
-        atm2s: NDArray(object)[:, :],
-        atm3s: NDArray(object)[:, :],
-        atm4s: NDArray(object)[:, :],
-    ) -> NDArray(numpy.long)[...]:
+        resnames: NDArray[object][:, :],
+        atm1s: NDArray[object][:, :],
+        atm2s: NDArray[object][:, :],
+        atm3s: NDArray[object][:, :],
+        atm4s: NDArray[object][:, :],
+    ) -> NDArray[numpy.long][...]:
         """Resolve string quints into integer torsion parameter indices."""
 
         inds = numpy.full_like(resnames, -9999, dtype=numpy.int64)
@@ -182,12 +182,12 @@ class CartBondedParamResolver(ValidateAttrs):
     @validate_args
     def resolve_impropers(
         self,
-        resnames: NDArray(object),
-        atm1s: NDArray(object),
-        atm2s: NDArray(object),
-        atm3s: NDArray(object),
-        atm4s: NDArray(object),
-    ) -> NDArray(numpy.long)[...]:
+        resnames: NDArray[object],
+        atm1s: NDArray[object],
+        atm2s: NDArray[object],
+        atm3s: NDArray[object],
+        atm4s: NDArray[object],
+    ) -> NDArray[numpy.long][...]:
         """Resolve string quints into integer improper torsion parameter indices."""
         # impropers have a defined ordering
 
@@ -214,12 +214,12 @@ class CartBondedParamResolver(ValidateAttrs):
     @validate_args
     def resolve_hxltorsions(
         self,
-        resnames: NDArray(object),
-        atm1s: NDArray(object),
-        atm2s: NDArray(object),
-        atm3s: NDArray(object),
-        atm4s: NDArray(object),
-    ) -> NDArray(numpy.long)[...]:
+        resnames: NDArray[object],
+        atm1s: NDArray[object],
+        atm2s: NDArray[object],
+        atm3s: NDArray[object],
+        atm4s: NDArray[object],
+    ) -> NDArray[numpy.long][...]:
         """Resolve string quints into integer hydroxyl torsion parameter indices."""
         inds = numpy.full_like(resnames, -9999, dtype=numpy.int64)
         real = resnames.astype(bool)

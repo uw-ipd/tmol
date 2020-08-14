@@ -596,7 +596,7 @@ class DunbrackParamResolver(ValidateAttrs):
     # @validate_args
     def resolve_dunbrack_parameters(
         self,
-        res_names: NDArray(object)[:, :],
+        res_names: NDArray[object][:, :],
         phi: Tensor(torch.int32)[:, :, 5],
         psi: Tensor(torch.int32)[:, :, 5],
         chi: Tensor(torch.int32)[:, :, 6],
@@ -759,7 +759,7 @@ class DunbrackParamResolver(ValidateAttrs):
     def _indices_from_names(
         self,
         dataframe: pandas.DataFrame,
-        names: NDArray(object)[:, :],
+        names: NDArray[object][:, :],
         device: torch.device,
     ) -> Tensor(torch.int64)[:, :]:
         names_flat = names.ravel()
@@ -770,7 +770,7 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @validate_args
     def _resolve_dun_indices(
-        self, resnames: NDArray(object)[:, :], device: torch.device
+        self, resnames: NDArray[object][:, :], device: torch.device
     ) -> Tuple[
         Tensor(torch.int64)[:, :], Tensor(torch.int64)[:, :], Tensor(torch.int64)[:, :]
     ]:
