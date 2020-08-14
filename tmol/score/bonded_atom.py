@@ -162,7 +162,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
     @validate_args
     def real_atoms(atom_types: NDArray[object][:, :],) -> Tensor[bool][:, :]:
         """Mask of non-null atomic indices in the system."""
-        return torch.ByteTensor((atom_types != None).astype(numpy.ubyte))
+        return torch.tensor(atom_types != None)
 
     @reactive_property
     def indexed_bonds(bonds, system_size, device):
