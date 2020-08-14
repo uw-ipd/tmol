@@ -113,12 +113,12 @@ class AtomTypeParamResolver(ValidateAttrs):
             param_records["acceptor_hybridization"]
         )
 
-        # Convert boolean types to uint8 for torch, setting the invalid/None
+        # Convert boolean types for torch, setting the invalid/None
         # entry to 0/false
         for field in attr.fields(AtomTypeParams):
-            if field.type.dtype == torch.uint8:
+            if field.type.dtype == torch.bool:
                 (param_records[field.name]) = (
-                    param_records[field.name].fillna(value=0).astype("u1")
+                    param_records[field.name].fillna(value=0).astype(bool)
                 )
 
         assert not (param_records["acceptor_hybridization"] == -1).any()
