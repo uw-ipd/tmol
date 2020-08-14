@@ -218,14 +218,13 @@ class VectorizedOp:
         super().__init__()
 
     def __call__(self, *args):
-        return self._VectorizedFun(self)(*args)
+        return self._VectorizedFun.apply(self, *args)
 
     class _VectorizedFun(torch.autograd.Function):
-        def __init__(self, op):
-            self.op = op
-            super().__init__()
+        @staticmethod
+        def forward(ctx, op, *args):
+            ctx.op = op
 
-        def forward(ctx, *args):
             args = tuple(args)
             tensor_args = tuple(map(torch.Tensor.detach, args[: ctx.op.n_input_grad]))
             other_args = tuple(args[ctx.op.n_input_grad :])
@@ -261,10 +260,11 @@ class VectorizedOp:
 
             return v.sum()
 
+        @staticmethod
         def backward(ctx, d_d_v):
             d_d_i = tuple(d_d_v * d_v_d_i for d_v_d_i in ctx.saved_tensors)
 
-            return d_d_i + (None,) * ctx.op.n_input_non_grad
+            return (None,) + d_d_i + (None,) * ctx.op.n_input_non_grad
 
 
 def get_analytical_jacobian(input, output):
