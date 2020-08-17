@@ -2,7 +2,7 @@ import torch
 
 from .datatypes import KinTree
 
-import tmol.kinematics.compiled  # noqa
+from tmol.kinematics.compiled import forward_kin_op
 
 from tmol.kinematics.scan_ordering import KinTreeScanOrdering
 
@@ -61,7 +61,7 @@ class KinematicModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, dofs):
-        return torch.ops.tmol.forward_kin_op(
+        return forward_kin_op(
             dofs,
             self.nodes_f,
             self.scans_f,

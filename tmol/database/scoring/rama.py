@@ -21,7 +21,7 @@ class RamaMappingParams:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaTables:
     table_id: str
-    table: NDArray(float)
+    table: NDArray[float]
     bbstep: Tuple[float, float]
     bbstart: Tuple[float, float]
 

@@ -184,9 +184,9 @@ def get_scans(parents, roots):
 
 @attr.s(auto_attribs=True, frozen=True)
 class KinTreeScanData(TensorGroup, ConvertAttrs):
-    nodes: Tensor(torch.int)
-    scans: Tensor(torch.int)
-    gens: Tensor(torch.int)
+    nodes: Tensor[torch.int]
+    scans: Tensor[torch.int]
+    gens: Tensor[torch.int]
 
 
 @attr.s(auto_attribs=True, frozen=True)

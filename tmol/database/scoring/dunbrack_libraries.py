@@ -10,18 +10,18 @@ from tmol.types.torch import Tensor
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class RotamericDataForAA:
-    rotamers: Tensor(int)[:, :]  # nrotamers x nchi
-    rotamer_probabilities: Tensor(float)  # (1 + n-bb) dimensional table
-    rotamer_means: Tensor(
+    rotamers: Tensor[int][:, :]  # nrotamers x nchi
+    rotamer_probabilities: Tensor[float]  # (1 + n-bb) dimensional table
+    rotamer_means: Tensor[
         float
-    )  # (1 + n-bb + 1) dimensional table: nrots x [nbb] x nchi
-    rotamer_stdvs: Tensor(
+    ]  # (1 + n-bb + 1) dimensional table: nrots x [nbb] x nchi
+    rotamer_stdvs: Tensor[
         float
-    )  # ( 1 + n-bb + 1 ) dimensional table: nrotx x [nbb] x nchi
-    prob_sorted_rot_inds: Tensor(int)  # (n-bb+1)-dimensional table
-    backbone_dihedral_start: Tensor(float)[:]
-    backbone_dihedral_step: Tensor(float)[:]
-    rotamer_alias: Tensor(int)[:, :]
+    ]  # ( 1 + n-bb + 1 ) dimensional table: nrotx x [nbb] x nchi
+    prob_sorted_rot_inds: Tensor[int]  # (n-bb+1)-dimensional table
+    backbone_dihedral_start: Tensor[float][:]
+    backbone_dihedral_step: Tensor[float][:]
+    rotamer_alias: Tensor[int][:, :]
 
     @classmethod
     def from_zgroup(cls, zgroup):
@@ -101,9 +101,9 @@ class SemiRotamericAADunbrackLibrary:
     non_rot_chi_start: float
     non_rot_chi_step: float
     non_rot_chi_period: float  # 180 or 360, e.g.
-    rotameric_chi_rotamers: Tensor(int)[:, :]  # nrots x n-rotameric-chi
-    nonrotameric_chi_probabilities: Tensor(float)  # (1+nbb+1)-dimensional table
-    rotamer_boundaries: Tensor(float)[:, 2]  # 2nd dimension: 0=left, 1=right
+    rotameric_chi_rotamers: Tensor[int][:, :]  # nrots x n-rotameric-chi
+    nonrotameric_chi_probabilities: Tensor[float]  # (1+nbb+1)-dimensional table
+    rotamer_boundaries: Tensor[float][:, 2]  # 2nd dimension: 0=left, 1=right
 
     @classmethod
     def from_zgroup(cls, zgroup, name):

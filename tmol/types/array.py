@@ -1,15 +1,12 @@
 """Tensor type attributes for numpy arrays."""
 
 import enum
-import attr
 
 import typing
 
 import numpy
 
-from .shape import Shape
-
-from .tensor import TensorType, _cat_internal
+from .tensor import _TensorType, _cat_internal
 
 
 class Casting(enum.Enum):
@@ -22,24 +19,26 @@ class Casting(enum.Enum):
     unsafe = "unsafe"
 
 
-@attr.s(frozen=True, auto_attribs=True, repr=False)
-class NDArray(TensorType, typing._TypingBase, _root=True):
+class NDArray(_TensorType):
     _module: typing.ClassVar = numpy
     _tensortype: typing.ClassVar = numpy.ndarray
 
-    dtype: numpy.dtype = attr.ib(converter=numpy.dtype)
-    shape: Shape = Shape.spec[...]
-    casting: Casting = attr.ib(converter=Casting, default=Casting.unsafe)
+    casting: Casting = Casting.unsafe
 
-    def convert(self, value):
+    @classmethod
+    def _convert_dtype(cls, t):
+        return numpy.dtype(t)
+
+    @classmethod
+    def convert(cls, value):
         if not isinstance(value, numpy.ndarray):
-            value = numpy.array(value, copy=False, dtype=self.dtype)
-        if not value.dtype == self.dtype:
-            value = value.astype(self.dtype, casting=self.casting.value)
-        if value.shape == () and [d.size for d in self.shape.dims] == [1]:
+            value = numpy.array(value, copy=False, dtype=cls.dtype)
+        if not value.dtype == cls.dtype:
+            value = value.astype(cls.dtype, casting=cls.casting.value)
+        if value.shape == () and [d.size for d in cls.shape.dims] == [1]:
             value = value.reshape(1)
 
-        self.validate(value)
+        cls.validate(value)
 
         return value
 

@@ -2,7 +2,7 @@ import torch
 
 from .params import CompactedHBondDatabase
 
-import tmol.score.hbond.potentials.compiled  # noqa
+from tmol.score.hbond.potentials.compiled import score_hbond
 
 
 class _HBondScoreModule(torch.jit.ScriptModule):
@@ -23,7 +23,7 @@ class HBondIntraModule(_HBondScoreModule):
     def forward(
         self, donor_coords, acceptor_coords, D, H, donor_type, A, B, B0, acceptor_type
     ):
-        return torch.ops.tmol.score_hbond(
+        return score_hbond(
             donor_coords,
             acceptor_coords,
             D,

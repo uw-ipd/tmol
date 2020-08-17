@@ -6,6 +6,7 @@ from typing import Callable, TypeVar
 from tmol.extern.singledispatchmethod import singledispatch, singledispatchmethod
 
 from tmol.kinematics.scan_ordering import KinTreeScanOrdering
+from tmol.kinematics.compiled import forward_kin_op
 
 from .metadata import DOFMetadata
 from .datatypes import KinTree
@@ -36,7 +37,7 @@ class CartesianDOFs(torch.nn.Module):
 
     coords: torch.nn.Parameter = attr.ib(converter=torch.nn.Parameter)
 
-    def forward(self) -> torch.Tensor:  # Tensor(float)[:, :, 3]
+    def forward(self) -> torch.Tensor:  # Tensor[float][:, :, 3]
         return self.coords
 
 
@@ -120,7 +121,7 @@ class KinematicModule(torch.nn.Module):
         self.gens_b = ordering.backward_scan_paths.gens.cpu()  # Remains on CPU
 
     def forward(self, dofs):
-        return torch.ops.tmol.forward_kin_op(
+        return forward_kin_op(
             dofs,
             self.nodes_f,
             self.scans_f,
@@ -155,7 +156,8 @@ class KinematicOperation(torch.nn.Module):
     def _init_kin_module(self):
         return KinematicModule(self.kintree)
 
-    def forward(self, dofs: torch.Tensor) -> torch.Tensor:  # Tensor(torch.float)[:, 9],
+    # TODO restore type annotations
+    def forward(self, dofs: torch.Tensor) -> torch.Tensor:  # Tensor[torch.float][:, 9],
 
         kincoords = self.kin_module(dofs)
 
@@ -218,7 +220,7 @@ class KinematicDOFs(torch.nn.Module):
     kinop: KinematicOperation
 
     selected_dofs: DOFMetadata
-    dof_mask: torch.Tensor  # Tensor(int)[2, :]
+    dof_mask: torch.Tensor  # Tensor[int][2, :]
 
     full_dofs: torch.Tensor
     dofs: torch.nn.Parameter = attr.ib(converter=torch.nn.Parameter)

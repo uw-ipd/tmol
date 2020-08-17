@@ -5,7 +5,7 @@ from tmol.score.cartbonded.params import CartBondedParamResolver
 from tmol.database.scoring import CartBondedDatabase
 
 # Import compiled components to load torch_ops
-import tmol.score.cartbonded.potentials.compiled  # noqa
+from tmol.score.cartbonded.potentials.compiled import score_cartbonded
 
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
@@ -98,7 +98,7 @@ class CartBondedModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, coords, cbl_atoms, cba_atoms, cbt_atoms, cbi_atoms, cbhxl_atoms):
-        return torch.ops.tmol.score_cartbonded(
+        return score_cartbonded(
             coords,
             cbl_atoms,
             cba_atoms,

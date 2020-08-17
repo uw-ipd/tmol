@@ -39,14 +39,14 @@ AcceptorHybridization._index = pandas.Index([None, "sp2", "sp3", "ring"])
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class AtomTypeParams(TensorGroup, ValidateAttrs):
-    is_acceptor: Tensor(bool)[...]
-    acceptor_hybridization: Tensor(torch.int)[...]
+    is_acceptor: Tensor[bool][...]
+    acceptor_hybridization: Tensor[torch.int][...]
 
-    is_donor: Tensor(bool)[...]
+    is_donor: Tensor[bool][...]
 
-    is_hydrogen: Tensor(bool)[...]
-    is_hydroxyl: Tensor(bool)[...]
-    is_polarh: Tensor(bool)[...]
+    is_hydrogen: Tensor[bool][...]
+    is_hydroxyl: Tensor[bool][...]
+    is_polarh: Tensor[bool][...]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -66,7 +66,7 @@ class AtomTypeParamResolver(ValidateAttrs):
 
     device: torch.device
 
-    def type_idx(self, atom_types: NDArray(object)[...]) -> Tensor(torch.long)[...]:
+    def type_idx(self, atom_types: NDArray[object][...]) -> Tensor[torch.long][...]:
         """Convert array of atom type names to parameter indices.
 
         pandas.Index.get_indexer only operates on 1-d input arrays. Coerces
@@ -105,18 +105,20 @@ class AtomTypeParamResolver(ValidateAttrs):
         param_records["is_hydrogen"] = param_records["element"] == "H"
 
         # Map acceptor hybridization from string space to index space
+        param_records["acceptor_hybridization"].loc[None] = None
+
         param_records[
             "acceptor_hybridization"
         ] = AcceptorHybridization._index.get_indexer_for(
             param_records["acceptor_hybridization"]
         )
 
-        # Convert boolean types to uint8 for torch, setting the invalid/None
+        # Convert boolean types for torch, setting the invalid/None
         # entry to 0/false
         for field in attr.fields(AtomTypeParams):
-            if field.type.dtype == torch.uint8:
+            if field.type.dtype == torch.bool:
                 (param_records[field.name]) = (
-                    param_records[field.name].fillna(value=0).astype("u1")
+                    param_records[field.name].fillna(value=0).astype(bool)
                 )
 
         assert not (param_records["acceptor_hybridization"] == -1).any()

@@ -57,8 +57,8 @@ class InteratomicDistanceGraphBase(StackedSystem):
     @reactive_property
     @validate_args
     def atom_pair_delta(
-        coords: Tensor(torch.float)[:, :, 3], atom_pair_inds: Tensor(torch.long)[:, 3]
-    ) -> Tensor(torch.float)[:, 3]:
+        coords: Tensor[torch.float][:, :, 3], atom_pair_inds: Tensor[torch.long][:, 3]
+    ) -> Tensor[torch.float][:, 3]:
         """inter-atomic pairwise distance within threshold distance"""
         delta = (
             coords[atom_pair_inds[:, 0], atom_pair_inds[:, 1]]
@@ -73,8 +73,8 @@ class InteratomicDistanceGraphBase(StackedSystem):
     @reactive_property
     @validate_args
     def atom_pair_dist(
-        atom_pair_delta: Tensor(torch.float)[:, 3],
-    ) -> Tensor(torch.float)[:]:
+        atom_pair_delta: Tensor[torch.float][:, 3],
+    ) -> Tensor[torch.float][:]:
         return atom_pair_delta.norm(dim=-1)
 
     def atom_pair_to_dense(self, atom_pair_term, null_value=numpy.nan):
@@ -87,7 +87,7 @@ class InteratomicDistanceGraphBase(StackedSystem):
 
 
 @validate_args
-def triu_indices(n, k=0, m=None) -> Tensor(torch.long)[:, 2]:
+def triu_indices(n, k=0, m=None) -> Tensor[torch.long][:, 2]:
     """Repacked triu_indices, see numpy.triu_indices for details."""
     i, j = numpy.triu_indices(n, k, m)
     return torch.stack((torch.from_numpy(i), torch.from_numpy(j)), dim=-1)
@@ -99,7 +99,7 @@ class NaiveInteratomicDistanceGraph(InteratomicDistanceGraphBase):
     @validate_args
     def atom_pair_inds(
         stack_depth: int, system_size: int, device: torch.device
-    ) -> Tensor(torch.long)[:, 3]:
+    ) -> Tensor[torch.long][:, 3]:
         """Index pairs for all atom pairs."""
 
         layer_inds = torch.arange(stack_depth, device=device, dtype=torch.long)
@@ -119,12 +119,12 @@ class NaiveInteratomicDistanceGraph(InteratomicDistanceGraphBase):
 class Sphere(TensorGroup):
     """Mean & radii for fixed size contiguous coordinate blocks."""
 
-    center: Tensor(torch.float)[..., 3]
-    radius: Tensor(torch.float)[...]
+    center: Tensor[torch.float][..., 3]
+    radius: Tensor[torch.float][...]
 
     @classmethod
     @validate_args
-    def from_coord_blocks(cls, block_size: int, coords: Tensor(torch.float)[..., :, 3]):
+    def from_coord_blocks(cls, block_size: int, coords: Tensor[torch.float][..., :, 3]):
         assert not coords.requires_grad
 
         num_blocks, _remainder = map(int, divmod(coords.shape[-2], block_size))
@@ -158,8 +158,8 @@ class Sphere(TensorGroup):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class SphereDistance(TensorGroup):
-    center_dist: Tensor(torch.float)[...]
-    min_dist: Tensor(torch.float)[...]
+    center_dist: Tensor[torch.float][...]
+    min_dist: Tensor[torch.float][...]
 
     @classmethod
     def for_spheres(cls, a: Sphere, b: Sphere):
@@ -172,7 +172,7 @@ class SphereDistance(TensorGroup):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class IntraLayerAtomPairs:
-    inds: Tensor(torch.long)[:, 3]
+    inds: Tensor[torch.long][:, 3]
 
     @classmethod
     def for_coord_blocks(
@@ -204,7 +204,7 @@ class IntraLayerAtomPairs:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class InterLayerAtomPairs:
-    inds: Tensor(torch.long)[:, 4]
+    inds: Tensor[torch.long][:, 4]
 
     @classmethod
     def for_coord_blocks(
@@ -261,7 +261,7 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase):
     @reactive_property
     @validate_args
     def coord_blocks(
-        atom_pair_block_size: int, coords: Tensor(torch.float)[:, :, 3]
+        atom_pair_block_size: int, coords: Tensor[torch.float][:, :, 3]
     ) -> Sphere:
         return Sphere.from_coord_blocks(
             block_size=atom_pair_block_size, coords=coords.detach()
@@ -272,7 +272,7 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase):
         atom_pair_block_size: int,
         coord_blocks: Sphere,
         interatomic_threshold_distance: float,
-    ) -> Tensor(torch.long)[:, 3]:
+    ) -> Tensor[torch.long][:, 3]:
         """Triu atom pairs potentially within interaction threshold distance.
 
         [layer, atom_i, atom_i] index tensor for all triu (upper triangular)

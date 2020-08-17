@@ -62,12 +62,12 @@ def ignore_unused_kwargs(func):
 try:
     import numba
 
-    @_signature.register(numba.npyufunc.dufunc.DUFunc)
+    @_signature.register(numba.np.ufunc.dufunc.DUFunc)
     def _dufunc_signature(f):
         """Resolve inspect.Signature for @numba.vectorize."""
         return inspect.signature(f._dispatcher.py_func)
 
-    @_wraps.register(numba.npyufunc.dufunc.DUFunc)
+    @_wraps.register(numba.np.ufunc.dufunc.DUFunc)
     def _dufunc_wraps(f):
         """Resolve functools.wraps for @numba.vectorize."""
         return functools.wraps(f._dispatcher.py_func)

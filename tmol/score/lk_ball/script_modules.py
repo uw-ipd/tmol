@@ -6,7 +6,7 @@ from tmol.database.chemical import ChemicalDatabase
 from tmol.database.scoring.ljlk import LJLKDatabase
 
 # Import compiled components to load torch_ops
-import tmol.score.lk_ball.potentials.compiled  # noqa
+from tmol.score.lk_ball.potentials.compiled import score_lkball, watergen_lkball
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -137,7 +137,7 @@ class LKBallIntraModule(_LKBallScoreModule):
         indexed_bond_bonds,
         indexed_bond_spans,
     ):
-        waters_I = torch.ops.tmol.watergen_lkball(
+        waters_I = watergen_lkball(
             I,
             atom_type_I,
             indexed_bond_bonds,
@@ -149,7 +149,7 @@ class LKBallIntraModule(_LKBallScoreModule):
             self.watergen_water_tors_ring,
         )
 
-        return torch.ops.tmol.score_lkball(
+        return score_lkball(
             I,
             polars_I,
             atom_type_I,
@@ -180,7 +180,7 @@ class LKBallInterModule(_LKBallScoreModule):
         indexed_bond_bonds,
         indexed_bond_spans,
     ):
-        waters_I = torch.ops.tmol.watergen_lkball(
+        waters_I = watergen_lkball(
             I,
             atom_type_I,
             indexed_bond_bonds,
@@ -192,7 +192,7 @@ class LKBallInterModule(_LKBallScoreModule):
             self.watergen_water_tors_ring,
         )
 
-        waters_J = torch.ops.tmol.watergen_lkball(
+        waters_J = watergen_lkball(
             J,
             atom_type_J,
             indexed_bond_bonds,
@@ -204,7 +204,7 @@ class LKBallInterModule(_LKBallScoreModule):
             self.watergen_water_tors_ring,
         )
 
-        V_ij = torch.ops.tmol.score_lkball(
+        V_ij = score_lkball(
             I,
             polars_I,
             atom_type_I,
@@ -218,7 +218,7 @@ class LKBallInterModule(_LKBallScoreModule):
             self.lkball_global_params,
         )
 
-        V_ji = torch.ops.tmol.score_lkball(
+        V_ji = score_lkball(
             J,
             polars_J,
             atom_type_J,

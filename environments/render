@@ -31,7 +31,8 @@ def render(components):
     return env.getvalue()
 
 
-platforms = ("linux-64", "osx-64")
+# platforms = ("linux-64", "osx-64")
+platforms = ("linux-64",)
 layers = {
     "run": ["core"],
     "test": ["core", "test", "docs"],
@@ -47,9 +48,9 @@ for n, l in layers.items():
     with open(f"locks/layer.{n}.yml", "w") as of:
         of.write(render(l))
 
-    conda_lock.run_lock(
-        pathlib.Path(f"locks/layer.{n}.yml"), conda_exe=None, platforms=platforms
-    )
-
     for p in platforms:
+        conda_lock.run_lock(
+            pathlib.Path(f"locks/layer.{n}.yml"), conda_exe=None, platforms=(p,)
+        )
+
         shutil.move(f"conda-{p}.lock", f"locks/{n}-{p}.lock")

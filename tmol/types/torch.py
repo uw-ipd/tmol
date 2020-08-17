@@ -1,7 +1,5 @@
 """Tensor type attributes for torch arrays."""
 
-import attr
-
 import typing
 import numbers
 
@@ -10,13 +8,11 @@ import torch
 
 from functools import singledispatch
 
-from .shape import Shape
-
-from .tensor import TensorType, _cat_internal
+from .tensor import _TensorType, _cat_internal
 
 _torch_dtype_mapping = {
     float: torch.float32,
-    bool: torch.uint8,
+    bool: torch.bool,
     numpy.float16: torch.float16,
     numpy.float32: torch.float32,
     numpy.float64: torch.float64,
@@ -56,15 +52,16 @@ def like_kwargs(t: torch.Tensor):
     return dict(dtype=t.dtype, layout=t.layout, device=t.device)
 
 
-@attr.s(frozen=True, auto_attribs=True, repr=False)
-class Tensor(TensorType, typing._TypingBase, _root=True):
+class Tensor(_TensorType):
     _module: typing.ClassVar = torch
     _tensortype: typing.ClassVar = torch.Tensor
 
-    dtype: torch.dtype = attr.ib(converter=torch_dtype)
-    shape: Shape = Shape.spec[...]
+    @classmethod
+    def _convert_dtype(cls, t):
+        return torch_dtype(t)
 
-    def convert(self, value):
+    @classmethod
+    def convert(cls, value):
         if isinstance(value, torch.Tensor):
             value = value
         elif isinstance(value, numpy.ndarray):
@@ -76,13 +73,13 @@ class Tensor(TensorType, typing._TypingBase, _root=True):
         else:
             value = torch.Tensor(value)
 
-        if not value.dtype == self.dtype:
-            value = value.to(self.dtype)
+        if not value.dtype == cls.dtype:
+            value = value.to(cls.dtype)
 
-        if value.shape == () and [d.size for d in self.shape.dims] == [1]:
+        if value.shape == () and [d.size for d in cls.shape.dims] == [1]:
             value = value.reshape(1)
 
-        self.validate(value)
+        cls.validate(value)
 
         return value
 

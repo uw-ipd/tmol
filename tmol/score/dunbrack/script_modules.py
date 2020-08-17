@@ -2,8 +2,7 @@ import torch
 
 from .params import PackedDunbrackDatabase, DunbrackParams, DunbrackScratch
 
-# Import compiled components to load torch_ops
-import tmol.score.dunbrack.potentials.compiled  # noqa
+from tmol.score.dunbrack.potentials.compiled import score_dun
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -78,7 +77,7 @@ class DunbrackScoreModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, coords):
-        return torch.ops.tmol.score_dun(
+        return score_dun(
             coords,
             self.rotameric_prob_tables,
             self.rotameric_neglnprob_tables,

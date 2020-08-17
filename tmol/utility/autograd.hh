@@ -77,7 +77,7 @@ torch::autograd::variable_list connect_backward_pass(
   auto as_output_var = [](auto output) -> torch::autograd::Variable {
     if (output.defined()) {
       if (output.is_variable()) {
-        AT_CHECK(
+        TORCH_CHECK(
             !output.requires_grad(),
             "Can't connect gradient Function, output already requires_grad.");
         return torch::autograd::as_variable_ref(output);
@@ -184,11 +184,11 @@ struct StackedSavedGradsBackward : public torch::autograd::Function {
   variable_list apply(variable_list&& in_grads) override {
     NVTXRange("StackedSavedGradsBackward");
 
-    AT_CHECK(
+    TORCH_CHECK(
         in_grads.size() == 1,
         "StackedSavedGradsBackward only supports a single gradient input");
     for (auto& saved_grad : saved_grads) {
-      AT_CHECK(
+      TORCH_CHECK(
           in_grads[0].size(0) == saved_grad.unpack().size(0)
               || in_grads[0].size(0) == 1,
           "Tensors sizes must match along the first dimension, the stack "

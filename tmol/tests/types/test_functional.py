@@ -56,14 +56,14 @@ def str_func(val: str):
 
 
 @validate_args
-def array_func(val: NDArray(float)[..., 3]):
+def array_func(val: NDArray[float][..., 3]):
     assert isinstance(val, numpy.ndarray)
     assert val.ndim >= 1
     assert val.shape[-1] == 3
 
 
 @validate_args
-def union_array_func(val: Union[float, NDArray(float)[:]]):
+def union_array_func(val: Union[float, NDArray[float][:]]):
     if isinstance(val, numpy.ndarray):
         assert val.ndim == 1
     else:
@@ -71,7 +71,7 @@ def union_array_func(val: Union[float, NDArray(float)[:]]):
 
 
 @validate_args
-def tuple_array_func(val: Tuple[float, NDArray(float)[:]],) -> NDArray(float)[:]:
+def tuple_array_func(val: Tuple[float, NDArray[float][:]],) -> NDArray[float][:]:
     m, v = val
 
     assert isinstance(m, float)
@@ -178,7 +178,7 @@ def str_cfunc(val: str):
 
 
 @convert_args
-def array_cfunc(val: NDArray(float)[..., 3]):
+def array_cfunc(val: NDArray[float][..., 3]):
     assert isinstance(val, numpy.ndarray)
     assert val.ndim >= 1
     assert val.shape[-1] == 3

@@ -2,14 +2,20 @@
 
 from functools import singledispatch
 
-import typing
+from typing_inspect import is_tuple_type, is_union_type
 import toolz
 
 from . import validators
 
+_converters = []
+
 
 @singledispatch
 def get_converter(type_annotation):
+    for pred, conv in _converters:
+        if pred(type_annotation):
+            return conv(type_annotation)
+
     return constructor_convert(type_annotation)
 
 
@@ -50,5 +56,9 @@ def union_convert(union_annotation, value):
     )
 
 
-get_converter.register(typing._Union)(union_convert)
-get_converter.register(typing.TupleMeta)(validate_convert)
+def register_converter(type_predicate, converter):
+    _converters.append((type_predicate, converter))
+
+
+register_converter(is_union_type, union_convert)
+register_converter(is_tuple_type, validate_convert)

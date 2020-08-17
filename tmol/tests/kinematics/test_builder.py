@@ -20,7 +20,7 @@ def test_builder_refold(ubq_system):
     dofs = inverseKin(kintree, kincoords)
     refold_kincoords = forwardKin(kintree, dofs)
 
-    assert numpy.all(refold_kincoords[0] == 0)
+    assert (refold_kincoords[0] == 0).all()
 
     refold_coords = numpy.full_like(tsys.coords, numpy.nan)
     refold_coords[kintree.id[1:].squeeze()] = refold_kincoords[1:]

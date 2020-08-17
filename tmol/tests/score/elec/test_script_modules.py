@@ -7,7 +7,7 @@ from tmol.score.elec.script_modules import ElecIntraModule, ElecInterModule
 from tmol.score.elec.params import ElecParamResolver
 from tmol.score.bonded_atom import bonded_path_length
 
-import tmol.score.elec.potentials.compiled  # noqa
+from tmol.score.elec.potentials.compiled import score_elec_triu
 
 
 @attr.s(auto_attribs=True)
@@ -128,9 +128,7 @@ def test_elec_sweep(default_database, torch_device):
     globals = torch.tensor([[D, D0, S, min_dis, max_dis]]).to(torch_device, torch.float)
     for i in range(60):
         tcoords[0, 1, 2] = i / 10.0
-        batch_scores = torch.ops.tmol.score_elec_triu(
-            tcoords, tpcs, tcoords, tpcs, tbpl, globals
-        )
+        batch_scores = score_elec_triu(tcoords, tpcs, tcoords, tpcs, tbpl, globals)
         scores[i] = batch_scores
     numpy.testing.assert_allclose(scores, scores_expected, atol=1e-4)
 

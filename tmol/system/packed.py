@@ -32,20 +32,20 @@ class PackedResidueSystem:
     residues: Sequence[Residue]
 
     # residue start indicies within `coords`
-    res_start_ind: NDArray(int)[:]
+    res_start_ind: NDArray[int][:]
 
     # total system size
     system_size: int
 
     # atomic coordinate buffer, nan-filled in 'unused' regions
-    coords: NDArray(float)[:, 3]
+    coords: NDArray[float][:, 3]
 
     # inter-atomic bond indices
-    bonds: NDArray(int)[:, 2]
+    bonds: NDArray[int][:, 2]
 
-    atom_metadata: NDArray(atom_metadata_dtype)[:]
-    torsion_metadata: NDArray(torsion_metadata_dtype)[:]
-    connection_metadata: NDArray(connection_metadata_dtype)[:]
+    atom_metadata: NDArray[atom_metadata_dtype][:]
+    torsion_metadata: NDArray[torsion_metadata_dtype][:]
+    connection_metadata: NDArray[connection_metadata_dtype][:]
 
     @classmethod
     def from_residues(cls, res: Sequence[Residue], block_size=8):
@@ -207,6 +207,7 @@ class PackedResidueSystem:
                 ),
             ),
             ignore_index=True,
+            sort=True,
         )
 
         # Generate a lookup from residue index and atom name to global atom index.

@@ -1,15 +1,15 @@
+import pytest
 import torch
-from tmol.utility.cpp_extension import load, relpaths, modulename
 
 
 def test_load():
-    load(
-        modulename(f"{__name__}"),
-        relpaths(__file__, "custom_op.cpp"),
-        is_python_module=False,
-    )
 
-    cpow = torch.ops.tmol.cpow
+    # Initial fetch of op fails with RuntimeError, op not registered
+    with pytest.raises(RuntimeError):
+        torch.ops.tmol.cpow
+
+    from .custom_op import cpow
+
     assert cpow is not None
 
     def check_form(pow3_f):
