@@ -25,20 +25,20 @@ donor_dtype = numpy.dtype([("d", int), ("h", int), ("donor_type", object)])
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class HBondElementAnalysis(ValidateAttrs):
-    donors: NDArray(donor_dtype)[:, :]
-    acceptors: NDArray(acceptor_dtype)[:, :]
+    donors: NDArray[donor_dtype][:, :]
+    acceptors: NDArray[acceptor_dtype][:, :]
 
     @classmethod
     @convert_args
     def setup(
         cls,
         hbond_database: HBondDatabase,
-        atom_types: NDArray(object)[:, :],
-        atom_is_acceptor: NDArray(bool)[:, :],
-        atom_acceptor_hybridization: NDArray(int)[:, :],
-        atom_is_donor: NDArray(bool)[:, :],
-        atom_is_hydrogen: NDArray(bool)[:, :],
-        bonds: NDArray(int)[:, 3],
+        atom_types: NDArray[object][:, :],
+        atom_is_acceptor: NDArray[bool][:, :],
+        atom_acceptor_hybridization: NDArray[int][:, :],
+        atom_is_donor: NDArray[bool][:, :],
+        atom_is_hydrogen: NDArray[bool][:, :],
+        bonds: NDArray[int][:, 3],
     ):
         compiled = load(
             modulename(__name__), relpaths(__file__, "identification.pybind.cc")
@@ -76,8 +76,8 @@ class HBondElementAnalysis(ValidateAttrs):
             torch.from_numpy(A_idx),
             torch.from_numpy(B_idx),
             torch.from_numpy(B0_idx),
-            torch.from_numpy(atom_acceptor_hybridization),
-            torch.from_numpy(atom_is_hydrogen.astype(numpy.ubyte)),
+            torch.from_numpy(atom_acceptor_hybridization).to(torch.long),
+            torch.from_numpy(atom_is_hydrogen).to(torch.bool),
             bonds.bonds,
             bonds.bond_spans,
         )
@@ -147,8 +147,8 @@ class HBondElementAnalysis(ValidateAttrs):
         cls,
         chemical_database: ChemicalDatabase,
         hbond_database: HBondDatabase,
-        atom_types: NDArray(object)[:],
-        bonds: NDArray(int)[:, 3],
+        atom_types: NDArray[object][:],
+        bonds: NDArray[int][:, 3],
     ):
 
         atom_resolver = AtomTypeParamResolver.from_database(

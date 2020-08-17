@@ -1,4 +1,6 @@
+import torch
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
+
 
 _compiled = load(
     modulename(__name__),
@@ -7,3 +9,7 @@ _compiled = load(
     ),
     is_python_module=False,
 )
+
+_ops = getattr(torch.ops, modulename(__name__))
+
+score_omega = _ops.score_omega

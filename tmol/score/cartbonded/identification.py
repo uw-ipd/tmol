@@ -143,10 +143,10 @@ class CartBondedIdentification:
     """Expands a bondgraph to export all bondangles and bondlengths
     """
 
-    lengths: NDArray(int)[:, :, 2]
-    angles: NDArray(int)[:, :, 3]
-    torsions: NDArray(int)[:, :, 4]
-    impropers: NDArray(int)[:, :, 4]
+    lengths: NDArray[int][:, :, 2]
+    angles: NDArray[int][:, :, 3]
+    torsions: NDArray[int][:, :, 4]
+    impropers: NDArray[int][:, :, 4]
 
     @classmethod
     @convert_args

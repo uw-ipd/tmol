@@ -54,8 +54,8 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         )
 
     rama_database: RamaDatabase
-    allphis: NDArray(int)[:, :, 5]
-    allpsis: NDArray(int)[:, :, 5]
+    allphis: NDArray[int][:, :, 5]
+    allpsis: NDArray[int][:, :, 5]
 
     @reactive_property
     @validate_args
@@ -75,10 +75,10 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def rama_resolve_indices(
-        res_names: NDArray(object)[:, :],
+        res_names: NDArray[object][:, :],
         rama_param_resolver: RamaParamResolver,
-        allphis: NDArray(int)[:, :, 5],
-        allpsis: NDArray(int)[:, :, 5],
+        allphis: NDArray[int][:, :, 5],
+        allpsis: NDArray[int][:, :, 5],
     ) -> RamaParams:
         # find all phi/psis where BOTH are defined
         phi_list = []

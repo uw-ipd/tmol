@@ -18,3 +18,4 @@ dependencies:
 - py3Dmol
 - hypothesis=3.88.3
 - itermplot
+- cudatoolkit-dev=10.1 # Build requirement

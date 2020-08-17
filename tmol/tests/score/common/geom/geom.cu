@@ -21,7 +21,7 @@ void bind(pybind11::module& m) {
   m.def(
       "distance_V",
       [](TView<Real3, 1, D> A, TView<Real3, 1, D> B) {
-        AT_CHECK(
+        TORCH_CHECK(
             A.size(0) == B.size(0),
             "Invalid sizes A: ",
             A.size(0),
@@ -46,7 +46,7 @@ void bind(pybind11::module& m) {
   m.def(
       "distance_V_dV",
       [](TView<Real3, 1, D> A, TView<Real3, 1, D> B) {
-        AT_CHECK(
+        TORCH_CHECK(
             A.size(0) == B.size(0),
             "Invalid sizes A: ",
             A.size(0),

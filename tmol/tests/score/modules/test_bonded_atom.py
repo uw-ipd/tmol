@@ -79,18 +79,18 @@ def test_bonded_path_length(ubq_system: PackedResidueSystem):
         StackedSystem.get(src).system_size,
         StackedSystem.get(src).system_size,
     )
-    assert numpy.all(
+    assert (
         BondedAtoms.get(src).bonded_path_length[0][
             distance_table > BondedAtoms.get(src).MAX_BONDED_PATH_LENGTH
         ]
         == numpy.inf
-    )
-    assert numpy.all(
+    ).all()
+    assert (
         BondedAtoms.get(src).bonded_path_length[0][
             distance_table < BondedAtoms.get(src).MAX_BONDED_PATH_LENGTH
         ]
         == distance_table[distance_table < BondedAtoms.get(src).MAX_BONDED_PATH_LENGTH]
-    )
+    ).all()
 
     inds = BondedAtoms.get(src).indexed_bonds
     assert len(inds.bonds.shape) == 3

@@ -28,8 +28,8 @@ class IndexedBonds:
     #   with 2 = (atom1ind atom2ind)
     # bond_spans = [ nstacks x max-natoms x 2 ]
     #   with 2 = (bond start ind, bond end ind + 1)
-    bonds: Tensor(int)[:, :, 2]
-    bond_spans: Tensor(int)[:, :, 2]
+    bonds: Tensor[int][:, :, 2]
+    bond_spans: Tensor[int][:, :, 2]
 
     @classmethod
     def from_bonds(cls, src_bonds, minlength=None):
@@ -152,17 +152,17 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
             bonds=other.bonds,
         )
 
-    atom_types: NDArray(object)[:, :]
-    atom_names: NDArray(object)[:, :]
-    res_names: NDArray(object)[:, :]
-    res_indices: NDArray(int)[:, :]
-    bonds: NDArray(int)[:, 3]
+    atom_types: NDArray[object][:, :]
+    atom_names: NDArray[object][:, :]
+    res_names: NDArray[object][:, :]
+    res_indices: NDArray[int][:, :]
+    bonds: NDArray[int][:, 3]
 
     @reactive_property
     @validate_args
-    def real_atoms(atom_types: NDArray(object)[:, :],) -> Tensor(bool)[:, :]:
+    def real_atoms(atom_types: NDArray[object][:, :],) -> Tensor[bool][:, :]:
         """Mask of non-null atomic indices in the system."""
-        return torch.ByteTensor((atom_types != None).astype(numpy.ubyte))
+        return torch.tensor(atom_types != None)
 
     @reactive_property
     def indexed_bonds(bonds, system_size, device):
@@ -180,12 +180,12 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def bonded_path_length(
-        bonds: NDArray(int)[:, 3],
+        bonds: NDArray[int][:, 3],
         stack_depth: int,
         system_size: int,
         device: torch.device,
         MAX_BONDED_PATH_LENGTH: int,
-    ) -> Tensor(float)[:, :, :]:
+    ) -> Tensor[float][:, :, :]:
         """Dense inter-atomic bonded path length distance tables.
 
         Returns:
@@ -201,8 +201,8 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
 
 
 def bonded_path_length(
-    bonds: NDArray(int)[:, 2], system_size: int, limit: int
-) -> NDArray(numpy.float32)[:, :]:
+    bonds: NDArray[int][:, 2], system_size: int, limit: int
+) -> NDArray[numpy.float32][:, :]:
     bond_graph = sparse.COO(
         bonds.T,
         data=numpy.full(len(bonds), True),
@@ -214,8 +214,8 @@ def bonded_path_length(
 
 
 def bonded_path_length_stacked(
-    bonds: NDArray(int)[:, 3], stack_depth: int, system_size: int, limit: int
-) -> NDArray(numpy.float32)[:, :, :]:
+    bonds: NDArray[int][:, 3], stack_depth: int, system_size: int, limit: int
+) -> NDArray[numpy.float32][:, :, :]:
     bond_graph = sparse.COO(
         bonds.T,
         data=numpy.full(len(bonds), True),

@@ -5,12 +5,12 @@ channels:
 - conda-forge
 dependencies:
 # core
-- python=3.6.*
+- python=3.7.*
 - pip
 - ipython
-- numpy=1.14.*
-- pandas=0.22
-- numba::numba=0.40
+- numpy=1.19.*
+- pandas=0.25.*
+- numba::numba=0.50.*
 - scipy=1.1.*
 - openblas=0.3.10 # Pin blas to matching versions, resolves inconsisent solve between main/conda-forge
 - libopenblas=0.3.10
@@ -23,12 +23,14 @@ dependencies:
 - attrs
 - attrs-strict
 - cattrs
+- typing_inspect=0.6
+- typish=1.7
 - frozendict
 - sparse=0.3.1
 
 # CUDA
-- pytorch::pytorch=1.0.1
-- cudatoolkit=10.0.130 # [linux]
+- pytorch::pytorch=1.6.0
+- cudatoolkit=10.1 # [linux]
 - gxx_linux-64 # [linux]
 - clangxx_osx-64=4.0 # [osx]
 # Test
@@ -50,3 +52,4 @@ dependencies:
 - py3Dmol
 - hypothesis=3.88.3
 - itermplot
+- cudatoolkit-dev=10.1 # Build requirement

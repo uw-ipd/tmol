@@ -118,7 +118,7 @@ def test_lkball_intra(test_case, torch_device, default_database):
         + atom_type_resolver.params.is_donor[atom_types].view(-1)
     ).reshape((1, -1))
     occluders = torch.nonzero(
-        1 - atom_type_resolver.params.is_hydrogen[atom_types].view(-1)
+        ~atom_type_resolver.params.is_hydrogen[atom_types].view(-1)
     ).reshape((1, -1))
 
     op = LKBallIntraModule(param_resolver, atom_type_resolver)
@@ -179,8 +179,7 @@ def test_lkball_inter(test_case, torch_device, default_database):
         + atom_type_resolver.params.is_donor[atom_types[:, : test_case.split]].view(-1)
     ).reshape((1, -1))
     occludersI = torch.nonzero(
-        1
-        - atom_type_resolver.params.is_hydrogen[atom_types[:, : test_case.split]].view(
+        ~atom_type_resolver.params.is_hydrogen[atom_types[:, : test_case.split]].view(
             -1
         )
     ).reshape((1, -1))
@@ -190,8 +189,7 @@ def test_lkball_inter(test_case, torch_device, default_database):
         + atom_type_resolver.params.is_donor[atom_types[:, test_case.split :]].view(-1)
     ).reshape((1, -1))
     occludersJ = torch.nonzero(
-        1
-        - atom_type_resolver.params.is_hydrogen[atom_types[:, test_case.split :]].view(
+        ~atom_type_resolver.params.is_hydrogen[atom_types[:, test_case.split :]].view(
             -1
         )
     ).reshape((1, -1))

@@ -15,11 +15,11 @@ from tmol.database.scoring.elec import ElecDatabase
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ElecGlobalParams(TensorGroup, ValidateAttrs):
-    elec_min_dis: Tensor(float)[...]
-    elec_max_dis: Tensor(float)[...]
-    elec_sigmoidal_die_D: Tensor(float)[...]
-    elec_sigmoidal_die_D0: Tensor(float)[...]
-    elec_sigmoidal_die_S: Tensor(float)[...]
+    elec_min_dis: Tensor[float][...]
+    elec_max_dis: Tensor[float][...]
+    elec_sigmoidal_die_D: Tensor[float][...]
+    elec_sigmoidal_die_D0: Tensor[float][...]
+    elec_sigmoidal_die_S: Tensor[float][...]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -42,8 +42,8 @@ class ElecParamResolver(ValidateAttrs):
     partial_charges: dict
 
     def resolve_partial_charge(
-        self, res_names: NDArray(object)[:, :], atom_names: NDArray(object)[:, :]
-    ) -> NDArray(float)[...]:
+        self, res_names: NDArray[object][:, :], atom_names: NDArray[object][:, :]
+    ) -> NDArray[float][...]:
         """Convert array of atom type names to partial charges.
         """
         pcs = numpy.vectorize(
@@ -53,11 +53,11 @@ class ElecParamResolver(ValidateAttrs):
 
     def remap_bonded_path_lengths(
         self,
-        bonded_path_lengths: NDArray(object)[...],
-        res_names: NDArray(object)[...],
-        res_indices: NDArray(object)[...],
-        atom_names: NDArray(object)[...],
-    ) -> NDArray(object)[...]:
+        bonded_path_lengths: NDArray[object][...],
+        res_names: NDArray[object][...],
+        res_indices: NDArray[object][...],
+        atom_names: NDArray[object][...],
+    ) -> NDArray[object][...]:
         """remap bonded path length to use representative atoms
         """
         assert bonded_path_lengths.shape[0] == res_names.shape[0]

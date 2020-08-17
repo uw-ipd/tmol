@@ -4,8 +4,12 @@ from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.database.chemical import ChemicalDatabase
 from tmol.database.scoring.ljlk import LJLKDatabase
 
-# Import compiled components to load torch_ops
-import tmol.score.ljlk.potentials.compiled  # noqa
+from tmol.score.ljlk.potentials.compiled import (
+    score_ljlk_lj,
+    score_ljlk_lj_triu,
+    score_ljlk_lk_isotropic,
+    score_ljlk_lk_isotropic_triu,
+)
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -72,7 +76,7 @@ class _LJScoreModule(torch.jit.ScriptModule):
 class LJIntraModule(_LJScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, bonded_path_lengths):
-        return torch.ops.tmol.score_ljlk_lj_triu(
+        return score_ljlk_lj_triu(
             I,
             atom_type_I,
             I,
@@ -86,7 +90,7 @@ class LJIntraModule(_LJScoreModule):
 class LJInterModule(_LJScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
-        return torch.ops.tmol.score_ljlk_lj(
+        return score_ljlk_lj(
             I,
             atom_type_I,
             J,
@@ -158,7 +162,7 @@ class _LKIsotropicScoreModule(torch.jit.ScriptModule):
 class LKIsotropicIntraModule(_LKIsotropicScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, bonded_path_lengths):
-        return torch.ops.tmol.score_ljlk_lk_isotropic_triu(
+        return score_ljlk_lk_isotropic_triu(
             I,
             atom_type_I,
             I,
@@ -172,7 +176,7 @@ class LKIsotropicIntraModule(_LKIsotropicScoreModule):
 class LKIsotropicInterModule(_LKIsotropicScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
-        return torch.ops.tmol.score_ljlk_lk_isotropic(
+        return score_ljlk_lk_isotropic(
             I,
             atom_type_I,
             J,

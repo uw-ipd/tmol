@@ -73,9 +73,9 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     dun_database: DunbrackRotamerLibrary
     device: torch.device
-    dun_phi: Tensor(torch.int32)[:, :, 5]  # X by 5; resid, at1, at2, at3, at4
-    dun_psi: Tensor(torch.int32)[:, :, 5]  # X by 5; ibid
-    dun_chi: Tensor(torch.int32)[:, :, 6]  # X by 6; resid, chi_ind, at1, at2, at3, at4
+    dun_phi: Tensor[torch.int32][:, :, 5]  # X by 5; resid, at1, at2, at3, at4
+    dun_psi: Tensor[torch.int32][:, :, 5]  # X by 5; ibid
+    dun_chi: Tensor[torch.int32][:, :, 6]  # X by 6; resid, chi_ind, at1, at2, at3, at4
 
     @reactive_property
     @validate_args
@@ -99,10 +99,10 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @validate_args
     def dun_resolve_indices(
         dun_param_resolver: DunbrackParamResolver,
-        res_names: NDArray(object)[...],
-        dun_phi: Tensor(torch.int32)[:, :, 5],
-        dun_psi: Tensor(torch.int32)[:, :, 5],
-        dun_chi: Tensor(torch.int32)[:, :, 6],
+        res_names: NDArray[object][...],
+        dun_phi: Tensor[torch.int32][:, :, 5],
+        dun_psi: Tensor[torch.int32][:, :, 5],
+        dun_chi: Tensor[torch.int32][:, :, 6],
         device: torch.device,
     ) -> DunbrackParams:
         """Parameter tensor groups and atom-type to parameter resolver."""

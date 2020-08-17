@@ -2,16 +2,21 @@
 
 from functools import singledispatch
 
-import typing
+from typing_inspect import is_tuple_type, is_union_type
 import toolz
+
+_validators = []
 
 
 @singledispatch
 def get_validator(type_annotation):
-    return validate_isinstance(type_annotation)
+    for pred, val in _validators:
+        if pred(type_annotation):
+            return val(type_annotation)
+    else:
+        return validate_isinstance(type_annotation)
 
 
-@get_validator.register(typing.TupleMeta)
 @toolz.curry
 def validate_tuple(tup, value):
     if not isinstance(value, tuple):
@@ -29,7 +34,6 @@ def validate_tuple(tup, value):
             get_validator(tt)(v)
 
 
-@get_validator.register(typing._Union)
 @toolz.curry
 def validate_union(union, value):
     assert union.__args__
@@ -52,3 +56,11 @@ def validate_union(union, value):
 def validate_isinstance(type_annotation, value):
     if not isinstance(value, type_annotation):
         raise TypeError(f"expected {type_annotation}, received {type(value)!r}")
+
+
+def register_validator(type_predicate, validator):
+    _validators.append((type_predicate, validator))
+
+
+register_validator(is_tuple_type, validate_tuple)
+register_validator(is_union_type, validate_union)

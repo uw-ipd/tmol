@@ -64,37 +64,6 @@ struct KinDerivDispatch {
       TView<KinTreeParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D>;
 };
 
-// pybind-ings for inverse kinematics
-// - not part of the evaluation graph but is used in setup
-template <tmol::Device Dev, typename Real, typename Int>
-void bind_dispatch(pybind11::module& m) {
-  using namespace pybind11::literals;
-  using namespace tmol::utility::function_dispatch;
-
-  add_dispatch_impl<Dev, Real>(
-      m,
-      "inverse_kin",
-      &InverseKinDispatch<Dev, Real, Int>::f,
-      "coords"_a,
-      "parent"_a,
-      "frame_x"_a,
-      "frame_y"_a,
-      "frame_z"_a,
-      "doftype"_a);
-};
-
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  using namespace pybind11::literals;
-
-  bind_dispatch<tmol::Device::CPU, float, int32_t>(m);
-  bind_dispatch<tmol::Device::CPU, double, int32_t>(m);
-
-#ifdef WITH_CUDA
-  bind_dispatch<tmol::Device::CUDA, float, int32_t>(m);
-  bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
-#endif
-}
-
 #undef HomogeneousTransform
 #undef KintreeDof
 #undef Coord

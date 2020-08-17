@@ -31,12 +31,6 @@ def test_array_adaptor():
     ]
 
     for dt in torch_dtypes:
-        if dt == torch.int8:
-            # "CharTensor" numpy conversion not supported
-            with pytest.raises(TypeError):
-                torch.arange(10).to(dt).numpy()
-
-            continue
 
         # CPU tensors of all types do not register as cuda arrays,
         # attempts to convert raise a type error.
@@ -73,14 +67,12 @@ def test_array_adaptor():
         strided_cudat = cudat[::2]
         strided_numba_view = as_cuda_array(strided_cudat)
 
-        with pytest.raises((TypeError, ValueError)):
-            # Bug with numba copies of strided data device->host
-            assert (
-                strided_cudat.to("cpu")
-                == torch.tensor(strided_numba_view.copy_to_host())
-            ).all()
+        # Previous bug with numba (~0.40) copies of strided data device->host
+        assert (
+            strided_cudat.to("cpu") == torch.tensor(strided_numba_view.copy_to_host())
+        ).all()
 
-        # Instead, need to prepare a strided result buffer for the copy.
+        # Can workaround with a strided result buffer for the copy.
         result_buffer = numpy.empty(10, dtype=strided_numba_view.dtype)
         result_view = result_buffer[::2]
         strided_numba_view.copy_to_host(result_view)

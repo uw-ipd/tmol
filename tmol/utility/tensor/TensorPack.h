@@ -130,9 +130,10 @@ struct TPack {
       -> TPack<T, N, D, P> {
     typedef typename enable_tensor_view<T>::PrimitiveType BaseT;
 
-    at::Type& target_type =
-        (D == Device::CPU) ? torch::CPU(enable_tensor_view<T>::scalar_type)
-                           : torch::CUDA(enable_tensor_view<T>::scalar_type);
+    at::TensorOptions target_type =
+        at::TensorOptions()
+            .dtype(enable_tensor_view<T>::scalar_type())
+            .device((D == Device::CPU) ? torch::kCPU : torch::kCUDA);
 
     constexpr int nconsumed_dims = enable_tensor_view<T>::nconsumed_dims;
     auto consumed_dims = enable_tensor_view<T>::consumed_dims;

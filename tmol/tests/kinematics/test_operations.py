@@ -15,7 +15,7 @@ def score(coords):
     # assert coords.shape == (20, 3)
     dists = (coords.unsqueeze(1) - coords.unsqueeze(0)).norm(dim=-1)
     igraph = torch.triu(
-        ~torch.eye(dists.shape[0], dtype=torch.uint8, device=coords.device)
+        ~torch.eye(dists.shape[0], dtype=torch.bool, device=coords.device)
     ) & (dists < 3.4)
     score = (3.4 - dists[igraph]) * (3.4 - dists[igraph])
     return torch.sum(score)
@@ -28,7 +28,7 @@ def dscore(coords):
     dxs = coords.unsqueeze(1) - coords.unsqueeze(0)
     dists = dxs.norm(dim=-1)
     igraph = (
-        torch.triu(~torch.eye(dists.shape[0], dtype=torch.uint8, device=coords.device))
+        torch.triu(~torch.eye(dists.shape[0], dtype=torch.bool, device=coords.device))
         & (dists < 3.4)
     ).nonzero()
 
@@ -150,7 +150,7 @@ def test_perturb(kintree, coords, torch_device):
     pcoords = forwardKin(kintree, t_dofs)
 
     numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
-    assert numpy.all(coord_changed(pcoords[6:11].cpu(), coords[6:11].cpu()))
+    assert (coord_changed(pcoords[6:11].cpu(), coords[6:11].cpu())).all()
     numpy.testing.assert_allclose(pcoords[11:16].cpu(), coords[11:16].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[16:21].cpu(), coords[16:21].cpu(), atol=1e-6)
 
@@ -168,9 +168,7 @@ def test_perturb(kintree, coords, torch_device):
     pcoords = forwardKin(kintree, rd_dofs)
     numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6].cpu(), coords[6].cpu(), atol=1e-6)
-    assert numpy.all(
-        numpy.any(coord_changed(pcoords[7:11].cpu(), coords[7:11].cpu()), axis=-1)
-    )
+    assert coord_changed(pcoords[7:11].cpu(), coords[7:11].cpu()).any(dim=-1).all()
     numpy.testing.assert_allclose(pcoords[11:16].cpu(), coords[11:16].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[16:21].cpu(), coords[16:21].cpu(), atol=1e-6)
 
@@ -183,9 +181,7 @@ def test_perturb(kintree, coords, torch_device):
     pcoords = forwardKin(kintree, r_dofs)
     numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6].cpu(), coords[6].cpu(), atol=1e-6)
-    assert numpy.all(
-        numpy.any(coord_changed(pcoords[7:11].cpu(), coords[7:11].cpu()), axis=-1)
-    )
+    assert coord_changed(pcoords[7:11].cpu(), coords[7:11].cpu()).any(dim=-1).all()
     numpy.testing.assert_allclose(pcoords[11:16].cpu(), coords[11:16].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[16:21].cpu(), coords[16:21].cpu(), atol=1e-6)
 

@@ -1,5 +1,5 @@
+#include <torch/torch.h>
 #include <torch/script.h>
-#include <tmol/utility/autograd.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
@@ -16,46 +16,71 @@ namespace omega {
 namespace potentials {
 
 using torch::Tensor;
+using torch::autograd::AutogradContext;
+using torch::autograd::Function;
+using torch::autograd::tensor_list;
 
-template < template <tmol::Device> class DispatchMethod >
-Tensor omega_op(
-      Tensor coords,
-      Tensor params
-) {
-  using tmol::utility::connect_backward_pass;
-  using tmol::utility::StackedSavedGradsBackward;
-  nvtx_range_push("omega_op");
+template <template <tmol::Device> class DispatchMethod>
+class ScoreOp : public torch::autograd::Function<ScoreOp<DispatchMethod>> {
+ public:
+  static Tensor forward(AutogradContext* ctx, Tensor coords, Tensor params) {
+    at::Tensor score;
+    at::Tensor dScore;
 
-  at::Tensor score;
-  at::Tensor dScore;
+    using Int = int32_t;
 
-  using Int = int32_t;
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        coords.type(), "omega_op", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
 
-  TMOL_DISPATCH_FLOATING_DEVICE(
-      coords.type(), "omega_op", ([&] {
-        using Real = scalar_t;
-        constexpr tmol::Device Dev = device_t;
+          auto result = OmegaDispatch<DispatchMethod, Dev, Real, Int>::f(
+              TCAST(coords), TCAST(params));
 
-        auto result = OmegaDispatch<DispatchMethod, Dev, Real, Int>::f(
-            TCAST(coords),
-            TCAST(params));
+          score = std::get<0>(result).tensor;
+          dScore = std::get<1>(result).tensor;
+        }));
 
-        score = std::get<0>(result).tensor;
-        dScore = std::get<1>(result).tensor;
-      }));
+    ctx->save_for_backward({dScore});
 
-  auto backward_op = connect_backward_pass({coords}, score, [&]() {
-    return StackedSavedGradsBackward::create({dScore});
-  });
+    return score;
+  }
 
-  nvtx_range_pop();
-  return backward_op;
+  static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    auto saved_grads = ctx->get_saved_variables();
+
+    tensor_list result;
+
+    for (auto& saved_grad : saved_grads) {
+      auto ingrad = grad_outputs[0];
+      while (ingrad.dim() < saved_grad.dim()) {
+        ingrad = ingrad.unsqueeze(-1);
+      }
+
+      result.emplace_back(saved_grad * ingrad);
+    }
+
+    int i = 0;
+    auto dCoords = result[i++];
+
+    return {
+        dCoords,
+        torch::Tensor(),
+    };
+  }
 };
 
+template <template <tmol::Device> class DispatchMethod>
+Tensor score_op(Tensor coords, Tensor params) {
+  return ScoreOp<DispatchMethod>::apply(coords, params);
+}
 
-static auto registry =
-    torch::jit::RegisterOperators()
-        .op("tmol::score_omega", &omega_op<common::ForallDispatch>);
+// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
+// See https://stackoverflow.com/a/3221914
+#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
+TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+  m.def("score_omega", &score_op<common::ForallDispatch>);
+}
 
 }  // namespace potentials
 }  // namespace omega

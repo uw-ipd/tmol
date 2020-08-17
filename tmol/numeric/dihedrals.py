@@ -3,8 +3,8 @@ import torch
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 
-Coord64Array = Tensor(torch.double)[:, 3]
-Angles = Tensor(float)[:]
+Coord64Array = Tensor[torch.double][:, 3]
+Angles = Tensor[float][:]
 
 
 @validate_args

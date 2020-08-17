@@ -292,13 +292,13 @@ class LBFGS_Armijo(Optimizer):
                 q = flat_grad.neg()
                 for i in range(num_old - 1, -1, -1):
                     al[i] = old_stps[i].dot(q) * ro[i]
-                    q.add_(-al[i], old_dirs[i])
+                    q.add_(old_dirs[i], alpha=-al[i])
 
                 # r/d is the final direction
                 d = r = q
                 for i in range(num_old):
                     be_i = old_dirs[i].dot(r) * ro[i]
-                    r.add_(al[i] - be_i, old_stps[i])
+                    r.add_(old_stps[i], alpha=al[i] - be_i)
 
             if prev_flat_grad is None:
                 prev_flat_grad = flat_grad.clone()

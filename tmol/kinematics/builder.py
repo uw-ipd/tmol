@@ -16,7 +16,7 @@ from tmol.types.tensor import cat
 
 from .datatypes import NodeType, KinTree
 
-ChildParentTuple = Tuple[NDArray(int)[:], NDArray(int)[:]]
+ChildParentTuple = Tuple[NDArray[int][:], NDArray[int][:]]
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -43,8 +43,8 @@ class KinematicBuilder:
     def component_for_prioritized_bonds(
         cls,
         root: int,
-        mandatory_bonds: NDArray(int)[:, 2],
-        all_bonds: NDArray(int)[:, 2],
+        mandatory_bonds: NDArray[int][:, 2],
+        all_bonds: NDArray[int][:, 2],
     ) -> ChildParentTuple:
         system_size = max(mandatory_bonds.max(), all_bonds.max()) + 1
 
@@ -73,8 +73,8 @@ class KinematicBuilder:
     @convert_args
     def bonds_to_csgraph(
         cls,
-        bonds: NDArray(int)[:, 2],
-        weights: NDArray(float)[:] = numpy.ones(1),  # noqa
+        bonds: NDArray[int][:, 2],
+        weights: NDArray[float][:] = numpy.ones(1),  # noqa
         system_size: Optional[int] = None,
     ) -> sparse.csr_matrix:
         if not system_size:
@@ -89,7 +89,7 @@ class KinematicBuilder:
     @classmethod
     @validate_args
     def bonds_to_connected_component(
-        cls, root: int, bonds: Union[NDArray(int)[:, 2], sparse.spmatrix]
+        cls, root: int, bonds: Union[NDArray[int][:, 2], sparse.spmatrix]
     ) -> ChildParentTuple:
         if isinstance(bonds, numpy.ndarray):
             # Bonds are a non-prioritized set of edges, assume arbitrary
@@ -114,7 +114,7 @@ class KinematicBuilder:
 
     @convert_args
     def append_connected_component(
-        self, ids: Tensor(int)[:], parent_ids: Tensor(int)[:], component_parent=0
+        self, ids: Tensor[int][:], parent_ids: Tensor[int][:], component_parent=0
     ):
         assert (
             ids.shape == parent_ids.shape
@@ -138,13 +138,13 @@ class KinematicBuilder:
         # Verify that ids are unique and that all parent references are valid,
         # get_indexer returns -1 if a target value is not present in index.
         assert not id_index.has_duplicates, "Duplicated id in component"
-        assert numpy.all(parent_indices >= 0), "Parent id not present in component."
+        assert (parent_indices >= 0).all(), "Parent id not present in component."
 
         # Allocate entries for the new subtree and store the provided ids in
         # the kintree id column. All internal kintree references,
         # (parent/frame) will be wrt kinetree indices, not ids.
         kin_stree = KinTree.full(len(ids), 0)
-        kin_stree.id[:] = ids
+        kin_stree.id[:] = torch.tensor(ids)
 
         # Calculate the start index of the kinematic tree block this new
         # subtree will occupy, construct all parent & frame references wrt this
@@ -165,7 +165,9 @@ class KinematicBuilder:
 
         # Fixup the orientation frame frame of the root and its children.
         # The rootis self-parented at zero, so drop the first match.
-        root, *root_children = [int(i) for i in torch.nonzero(parent_indices == 0)]
+        root, *root_children = [
+            int(i) for i in torch.nonzero(parent_indices == 0, as_tuple=False)
+        ]
         assert len(root_children) >= 2, "root of bonded tree must have two children"
         assert root == 0, "root must be self parented, was set above"
         root_c1, *root_sibs = root_children

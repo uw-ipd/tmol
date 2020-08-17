@@ -5,7 +5,7 @@ from tmol.types.array import NDArray
 
 validation_examples = [
     {
-        "spec": NDArray(int)[:, 3],
+        "spec": NDArray[int][:, 3],
         "valid": [
             numpy.arange(30).reshape(10, 3),
             numpy.arange(3).reshape(1, 3),
@@ -25,7 +25,7 @@ validation_examples = [
         ],
     },
     {
-        "spec": NDArray(object)[:],
+        "spec": NDArray[object][:],
         "valid": [
             numpy.array(["one", "two", "three"], dtype=object),
             numpy.array([1, 2, 3], dtype=object),
@@ -63,7 +63,7 @@ incompatible_dtype = numpy.dtype([("coord", float, 3), ("val", float)])
 
 converstion_examples = [
     {
-        "spec": NDArray(packed_dtype)[:],
+        "spec": NDArray[packed_dtype][:],
         "conversions": [
             (
                 [((1, 1, 1), 10), ((2, 2, 2), 20)],
@@ -80,7 +80,7 @@ converstion_examples = [
         ],
     },
     {
-        "spec": NDArray(int)[3],
+        "spec": NDArray[int][3],
         "conversions": [
             ([1, 2, 3], numpy.array([1, 2, 3], dtype=int)),
             ([True, True, False], numpy.array([1, 1, 0], dtype=int)),
@@ -99,7 +99,7 @@ converstion_examples = [
         ],
     },
     {
-        "spec": NDArray(float)[1],
+        "spec": NDArray[float][1],
         "conversions": [
             (numpy.pi, numpy.array([numpy.pi])),
             (1663, numpy.array([1663], dtype=float)),

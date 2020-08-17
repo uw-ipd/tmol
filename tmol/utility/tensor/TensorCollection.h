@@ -59,8 +59,9 @@ class TCollection {
 template <typename T, size_t N, Device D, PtrTag P>
 struct enable_tensor_view<tmol::TView<T, N, D, P>> {
   static const bool enabled = enable_tensor_view<uint8_t>::enabled;
-  static const at::ScalarType scalar_type =
-      enable_tensor_view<uint8_t>::scalar_type;
+  static const at::ScalarType scalar_type() {
+    return enable_tensor_view<uint8_t>::scalar_type();
+  }
   static const int nconsumed_dims = 1;
   static const int consumed_dims(int i) {
     return (i == 0) ? tmol::TCollection<T, N, D, P>::blocksize : 0;

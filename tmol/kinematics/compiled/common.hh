@@ -347,6 +347,7 @@ struct common {
   }
 };
 
+#undef Dofs
 #undef HomogeneousTransform
 #undef QuatTranslation
 #undef Coord
