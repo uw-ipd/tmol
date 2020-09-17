@@ -62,8 +62,6 @@ def test_cst_score_setup(benchmark, cst_system, cst_csts, torch_device):
     graph = score_graph
 
 
-@pytest.mark.benchmark(group="score_components")
-@pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
 def test_cst_for_system(benchmark, benchmark_pass, cst_system, cst_csts, torch_device):
     xs, ys = preprocess_constraints(cst_csts)
     cstdata = {
@@ -81,7 +79,21 @@ def test_cst_for_system(benchmark, benchmark_pass, cst_system, cst_csts, torch_d
 
     coords = coords_for(cst_system, cst_score)
     tot = cst_score.intra_total(coords)
-    print(tot)
+
+    torch.testing.assert_allclose(tot.cpu(), -4890.0249)
+
+
+def test_cst_for_stacked_system(ubq_system: PackedResidueSystem):
+    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+
+    stacked_score = ScoreSystem.build_for(
+        twoubq, {ConstraintScore}, weights={"cst": 1.0}
+    )
+    coords = coords_for(twoubq, stacked_score)
+
+    tot = stacked_score.intra_total(coords)
+    assert tot.shape == (2,)
+    torch.testing.assert_allclose(tot[0], tot[1])
 
     sumtot = torch.sum(tot)
     sumtot.backward()
