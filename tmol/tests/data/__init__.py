@@ -1,4 +1,5 @@
 import pytest
+import os
 
 from . import pdb
 from . import rosetta_baseline
@@ -59,6 +60,20 @@ def ubq_system():
     from tmol.system.io import read_pdb
 
     return read_pdb(pdb.data["1ubq"])
+
+
+@pytest.fixture()
+def cst_system():
+    from tmol.system.io import read_pdb
+
+    return read_pdb(pdb.data["6DMZ_A.pdb"])
+
+
+@pytest.fixture()
+def cst_csts():
+    from numpy import load
+
+    return dict(load(os.path.dirname(__file__) + "/constraints/6DMZ_A.npz"))
 
 
 @pytest.fixture(scope="session")
