@@ -48,7 +48,7 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
         W = torch.sign(angle) * torch.cos(angle / 2)
         S = torch.sqrt((1 - W * W))
         V = S * Vs
-        Rs = torch.zeros((*Vs.shape[:-1], 3, 3))
+        Rs = torch.zeros((*Vs.shape[:-1], 3, 3), device=Vs.device)
         Rs[..., 0, 0] = 1 - 2 * (V[..., 1] * V[..., 1] + V[..., 2] * V[..., 2])
         Rs[..., 0, 1] = 2 * (V[..., 0] * V[..., 1] - V[..., 2] * W)
         Rs[..., 0, 2] = 2 * (V[..., 0] * V[..., 2] + V[..., 1] * W)
@@ -89,6 +89,7 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
             A = torch.tensor(
                 [[1, 0, -3, 2], [0, 1, -2, 1], [0, 0, 3, -2], [0, 0, -1, 1]],
                 dtype=tt.dtype,
+                device=tt.device,
             )
             return torch.matmul(A, tt.reshape(4, -1)).reshape(4, *t.shape)
 
@@ -104,7 +105,7 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
         # I = torch.searchsorted(x[1:], xs.detach()) # fd
 
         # quick and dirty pre-1.6
-        I = torch.zeros(xs.shape, dtype=torch.long)
+        I = torch.zeros(xs.shape, dtype=torch.long, device=xs.device)
         for i, xi in enumerate(x[1:].flip(0)):
             I[xs <= xi] = x.shape[0] - i - 2
 
@@ -128,9 +129,15 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
     # @torch.jit.script_method
     def forward(self, coords):
         # 1 - build 'ideal' CBs
-        Ns = torch.full((coords.shape[0], self.nres, 3), numpy.nan)
-        Cs = torch.full((coords.shape[0], self.nres, 3), numpy.nan)
-        CAs = torch.full((coords.shape[0], self.nres, 3), numpy.nan)
+        Ns = torch.full(
+            (coords.shape[0], self.nres, 3), numpy.nan, device=coords.device
+        )
+        Cs = torch.full(
+            (coords.shape[0], self.nres, 3), numpy.nan, device=coords.device
+        )
+        CAs = torch.full(
+            (coords.shape[0], self.nres, 3), numpy.nan, device=coords.device
+        )
         Ns[self.cb_stacks, self.cb_res_indices, :] = coords[
             self.cb_stacks, self.cb_frames[:, 0], :
         ]
