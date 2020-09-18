@@ -6,7 +6,7 @@ import sparse
 import scipy.sparse.csgraph as csgraph
 
 from tmol.system.restypes import ResidueType
-from tmol.system.pose import PackedResidueTypes
+from tmol.system.pose import PackedBlockTypes
 
 
 @attr.s(auto_attribs=True)
@@ -14,24 +14,24 @@ class BondDependentTerm:
     myint: int
     device: torch.device
 
-    def setup_packed_restypes(self, packed_restypes: PackedResidueTypes):
-        if hasattr(packed_restypes, "bond_separation"):
-            assert hasattr(packed_restypes, "max_n_interres_bonds")
-            assert hasattr(packed_restypes, "n_interres_bonds")
-            assert hasattr(packed_restypes, "atoms_for_interres_bonds")
+    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+        if hasattr(packed_block_types, "bond_separation"):
+            assert hasattr(packed_block_types, "max_n_interres_bonds")
+            assert hasattr(packed_block_types, "n_interres_bonds")
+            assert hasattr(packed_block_types, "atoms_for_interres_bonds")
             return
         MAX_SEPARATION = 6
         bond_separation = numpy.full(
             (
-                packed_restypes.n_types,
-                packed_restypes.max_n_atoms,
-                packed_restypes.max_n_atoms,
+                packed_block_types.n_types,
+                packed_block_types.max_n_atoms,
+                packed_block_types.max_n_atoms,
             ),
             MAX_SEPARATION,
             dtype=numpy.int32,
         )
-        for i, rt in enumerate(packed_restypes.active_residues):
-            i_nats = packed_restypes.n_atoms[i]
+        for i, rt in enumerate(packed_block_types.active_residues):
+            i_nats = packed_block_types.n_atoms[i]
             # rt_bonds = numpy.zeros((i_nats, i_nats)
             rt_bonds_sparse = sparse.COO(
                 rt.bond_indicies.T,
@@ -45,14 +45,14 @@ class BondDependentTerm:
             bond_separation[i, :i_nats, :i_nats] = rt_bond_closure
 
         n_interres_bonds = [
-            len(rt.connections) for rt in packed_restypes.active_residues
+            len(rt.connections) for rt in packed_block_types.active_residues
         ]
         max_n_interres_bonds = max(n_interres_bonds)
         n_interres_bonds = numpy.array(n_interres_bonds, dtype=numpy.int32)
         atoms_for_interres_bonds = numpy.full(
-            (packed_restypes.n_types, max_n_interres_bonds), -1, dtype=numpy.int32
+            (packed_block_types.n_types, max_n_interres_bonds), -1, dtype=numpy.int32
         )
-        for i, rt in enumerate(packed_restypes.active_residues):
+        for i, rt in enumerate(packed_block_types.active_residues):
             i_n_intres_bonds = n_interres_bonds[i]
             if i_n_intres_bonds == 0:
                 continue
@@ -64,7 +64,19 @@ class BondDependentTerm:
             atoms_for_interres_bonds, device=self.device
         )
 
-        setattr(packed_restypes, "bond_separation", bond_separation)
-        setattr(packed_restypes, "max_n_interres_bonds", max_n_interres_bonds)
-        setattr(packed_restypes, "n_interres_bonds", n_interres_bonds)
-        setattr(packed_restypes, "atoms_for_interres_bonds", atoms_for_interres_bonds)
+        setattr(packed_block_types, "bond_separation", bond_separation)
+        setattr(packed_block_types, "max_n_interres_bonds", max_n_interres_bonds)
+        setattr(packed_block_types, "n_interres_bonds", n_interres_bonds)
+        setattr(
+            packed_block_types, "atoms_for_interres_bonds", atoms_for_interres_bonds
+        )
+
+    def setup_poses(self, systems: Poses):
+        if hasattr(systems, "min_bond_separation"):
+            assert hasattr(systems, "interblock_bonds")
+            return
+
+        block_types = systems.block_types
+        n_systems = systems.coords.shape(0)
+        max_n_blocks = systems.coords.shape(1)
+        min_bond_separation

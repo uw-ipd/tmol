@@ -13,11 +13,11 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
     type_params: LJLKTypeParams
     global_params: LJLKGlobalParams
 
-    def setup_packed_restypes(self, packed_restypes: PackedResidueTypes):
-        super(LJLKEnergy, self).setup_packed_restypes(packed_restypes)
+    def setup_packed_block_types(self, packed_block_types: PackedBlockypes):
+        super(LJLKEnergy, self).setup_packed_block_types(packed_block_types)
 
-    def setup_poses(self, systems: Poses):
-        super(LJLKEnergy, self).setup_poses(systems)
+    def setup_poses(self, poses: Poses):
+        super(LJLKEnergy, self).setup_poses(poses)
 
     def inter_module(
         self,
@@ -33,7 +33,7 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         return LJLKInterSystemModule(
             context_system_ids=self.context_system_ids,
             system_min_bond_separation=systems.min_bond_separation,
-            system_interblock_bonds=system_interblock_bonds,
+            system_interblock_bonds=interblock_bonds,
             system_neighbor_list=system_neighbor_list,
             block_type_n_atoms=packed_block_types.block_type_n_atoms,
             block_type_atom_types=packed_block_types.atom_types,
