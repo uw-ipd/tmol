@@ -47,8 +47,8 @@ class ConstraintResolver(ValidateAttrs):
     def from_dense_CB_spline_data(
         cls,
         device: torch.device,
-        atm_names: NDArray(object)[...],
-        res_indices: NDArray("d")[...],
+        atm_names: NDArray[object][...],
+        res_indices: NDArray[float][...],
         spline_xs,
         spline_ys,
     ):

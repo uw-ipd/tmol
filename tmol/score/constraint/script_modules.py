@@ -111,18 +111,15 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
 
         dx = x[I + 1] - x[I]
         hh = h_poly((xs - x[I]) / dx)
-        yI = torch.gather(ys.reshape(-1, nspl), 1, I.reshape(-1)[:, None]).reshape(
-            I.shape
-        )
-        yIp1 = torch.gather(
-            ys.reshape(-1, nspl), 1, I.reshape(-1)[:, None] + 1
-        ).reshape(I.shape)
-        mI = torch.gather(ms.reshape(-1, nspl), 1, I.reshape(-1)[:, None]).reshape(
-            I.shape
-        )
-        mIp1 = torch.gather(
-            ms.reshape(-1, nspl), 1, I.reshape(-1)[:, None] + 1
-        ).reshape(I.shape)
+
+        I = I.reshape(nstk, -1).transpose(0, 1)
+        ys = ys.reshape(-1, nspl)
+        ms = ms.reshape(-1, nspl)
+
+        yI = torch.gather(ys, 1, I).reshape((nres, nres, nstk)).permute([2, 0, 1])
+        yIp1 = torch.gather(ys, 1, I + 1).reshape((nres, nres, nstk)).permute([2, 0, 1])
+        mI = torch.gather(ms, 1, I).reshape((nres, nres, nstk)).permute([2, 0, 1])
+        mIp1 = torch.gather(ms, 1, I + 1).reshape((nres, nres, nstk)).permute([2, 0, 1])
 
         return hh[0] * yI + hh[1] * mI * dx + hh[2] * yIp1 + hh[3] * mIp1 * dx
 
@@ -156,6 +153,6 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
         # 3 - spline interpolation
         E = self.interp(self.spline_xs, self.spline_ys, ds)
 
-        Etot = torch.sum(torch.triu(E, 3))
+        Etot = torch.sum(torch.triu(E, 3), dim=(1, 2))
 
         return Etot

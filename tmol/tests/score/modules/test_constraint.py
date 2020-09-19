@@ -62,7 +62,7 @@ def test_cst_score_setup(benchmark, cst_system, cst_csts, torch_device):
     graph = score_graph
 
 
-def test_cst_for_system(benchmark, benchmark_pass, cst_system, cst_csts, torch_device):
+def test_cst_for_system(cst_system, cst_csts, torch_device):
     xs, ys = preprocess_constraints(cst_csts)
     cstdata = {
         "dense_cb_spline_xs": xs.to(torch_device),
@@ -83,17 +83,28 @@ def test_cst_for_system(benchmark, benchmark_pass, cst_system, cst_csts, torch_d
     torch.testing.assert_allclose(tot.cpu(), -4890.0249)
 
 
-def test_cst_for_stacked_system(ubq_system: PackedResidueSystem):
-    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+def test_cst_for_stacked_system(cst_system, cst_csts, torch_device):
+    xs, ys = preprocess_constraints(cst_csts)
+    cstdata = {
+        "dense_cb_spline_xs": xs.to(torch_device),
+        "dense_cb_spline_ys": ys.to(torch_device),
+    }
+
+    twocst = PackedResidueSystemStack((cst_system, cst_system))
 
     stacked_score = ScoreSystem.build_for(
-        twoubq, {ConstraintScore}, weights={"cst": 1.0}
+        twocst,
+        {ConstraintScore},
+        weights={"cst": 1.0},
+        cstdata=cstdata,
+        device=torch_device,
     )
-    coords = coords_for(twoubq, stacked_score)
+    coords = coords_for(twocst, stacked_score)
 
     tot = stacked_score.intra_total(coords)
     assert tot.shape == (2,)
     torch.testing.assert_allclose(tot[0], tot[1])
+    torch.testing.assert_allclose(tot[0].cpu(), -4890.0249)
 
     sumtot = torch.sum(tot)
     sumtot.backward()
