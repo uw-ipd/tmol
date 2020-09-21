@@ -274,18 +274,105 @@ class Pose:
         return inter_block_bondsep
 
     @classmethod
-    def pack_coords(packed_block_types: PackedBlockTypes, res: Sequence[Residue]):
+    def pack_coords(cls, packed_block_types: PackedBlockTypes, res: Sequence[Residue]):
         coords = numpy.zeros(
-            (len(res), packed_block_types.max_n_atoms, 3), dtype=numpy.float32
+            (len(res), packed_block_types.max_n_atoms, 3), dtype=numpy.float64
         )
-        # for i, r in
+        for i, r in enumerate(res):
+            coords[i, : len(r.residue_type.atoms)] = r.coords
+        return coords
 
 
 @attr.s(auto_attribs=True)
 class Poses:
 
     packed_block_types: PackedBlockTypes
+    residues: Sequence[Sequence[Residue]]
 
     coords: NDArray(float)[:, :, :, 3]
-    block_types: NDArray(float)[:, :]
     inter_block_bondsep: NDArray(int)[:, :, :, :, :]
+    block_inds: NDArray(float)[:, :]
+
+    @classmethod
+    def from_poses(cls, poses: Sequence[Pose], chem_db: ChemicalDatabase):
+        all_res = [res for pose in poses for res in pose.residues]
+        restypes = residue_types_from_residues(all_res)
+        packed_block_types = PackedBlockTypes.from_restype_list(restypes, chem_db)
+
+        max_n_blocks = max(len(pose.residues) for pose in poses)
+        coords = cls.pack_coords(packed_block_types, poses, max_n_blocks)
+
+        residues = [
+            [
+                r.attach_to(coords[i, j, : len(r.residue_type.atoms)])
+                for j, r in enumerate(pose.residues)
+            ]
+            for i, pose in enumerate(poses)
+        ]
+
+        inter_block_bondsep = cls.interblock_bondsep_from_poses(
+            packed_block_types, poses, max_n_blocks
+        )
+        block_inds = cls.resolve_block_inds(packed_block_types, poses, max_n_blocks)
+
+        return cls(
+            packed_block_types=packed_block_types,
+            residues=residues,
+            coords=coords,
+            inter_block_bondsep=inter_block_bondsep,
+            block_inds=block_inds,
+        )
+
+    @classmethod
+    def pack_coords(
+        cls,
+        packed_block_types: PackedBlockTypes,
+        poses: Sequence[Pose],
+        max_n_blocks: int,
+    ):
+        coords = numpy.zeros(
+            (len(poses), max_n_blocks, packed_block_types.max_n_atoms, 3),
+            dtype=numpy.float64,
+        )
+        for i, p in enumerate(poses):
+            for j, r in enumerate(p.residues):
+                coords[i, j, : len(r.residue_type.atoms)] = r.coords
+        return coords
+
+    @classmethod
+    def interblock_bondsep_from_poses(
+        cls,
+        packed_block_types: PackedBlockTypes,
+        poses: Sequence[Pose],
+        max_n_blocks: int,
+    ):
+        n_poses = len(poses)
+        max_n_conn = max(
+            len(rt.connections) for rt in packed_block_types.active_residues
+        )
+        inter_block_bondsep = numpy.full(
+            (n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn),
+            6,
+            dtype=numpy.int32,
+        )
+        for i, pose in enumerate(poses):
+            i_nblocks = len(pose.residues)
+            i_nconn = pose.inter_block_bondsep.shape[2]
+            inter_block_bondsep[
+                i, :i_nblocks, :i_nblocks, :i_nblocks, :i_nblocks
+            ] = pose.inter_block_bondsep
+        return inter_block_bondsep
+
+    @classmethod
+    def resolve_block_inds(
+        cls,
+        packed_block_types: PackedBlockTypes,
+        poses: Sequence[Pose],
+        max_n_blocks: int,
+    ):
+        block_inds = numpy.full((len(poses), max_n_blocks), -1, dtype=numpy.int32)
+        for i, pose in enumerate(poses):
+            block_inds[i, : len(pose.residues)] = packed_block_types.inds_for_res(
+                pose.residues
+            )
+        return block_inds

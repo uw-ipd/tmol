@@ -1,4 +1,4 @@
-from tmol.system.pose import residue_types_from_residues, PackedBlockTypes, Pose
+from tmol.system.pose import residue_types_from_residues, PackedBlockTypes, Pose, Poses
 
 
 def test_load_packed_residue_types(ubq_res, default_database):
@@ -27,3 +27,13 @@ def test_pose_resolve_bond_separation(ubq_res, default_database):
 
 def test_pose_ctor(ubq_res, default_database):
     p = Pose.from_residues_one_chain(ubq_res, default_database.chemical)
+
+
+def test_poses_ctor(ubq_res, default_database):
+    p1 = Pose.from_residues_one_chain(ubq_res[:40], default_database.chemical)
+    p2 = Pose.from_residues_one_chain(ubq_res[:60], default_database.chemical)
+    poses = Poses.from_poses([p1, p2], default_database.chemical)
+    assert poses.block_inds.shape == (2, 60)
+    max_n_atoms = poses.packed_block_types.max_n_atoms
+    assert poses.coords.shape == (2, 60, max_n_atoms, 3)
+    assert poses.inter_block_bondsep.shape == (2, 60, 60, 2, 2)
