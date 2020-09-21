@@ -23,9 +23,18 @@ from .datatypes import (
 from tmol.database.chemical import ChemicalDatabase
 
 
+def residue_types_from_residues(residues):
+    rt_dict = {}
+    for res in residues:
+        if id(res.residue_type) not in rt_dict:
+            rt_dict[id(res.residue_type)] = res.residue_type
+    return [rt for addr, rt in rt_dict.items()]
+
+
 @attr.s(auto_attribs=True)
 class PackedBlockTypes:
     active_residues: Sequence[ResidueType]
+    restype_index: pandas.Index
 
     max_n_atoms: int
     n_atoms: NDArray(int)[:]  # ntypes
@@ -40,9 +49,13 @@ class PackedBlockTypes:
     ):
         max_n_atoms = cls.count_max_n_atoms(active_residues)
         n_atoms = cls.count_n_atoms(active_residues)
+        restype_index = pandas.Index([restype.name for restype in active_residues])
 
         return cls(
-            active_residues=active_residues, max_n_atoms=max_n_atoms, n_atoms=n_atoms
+            active_residues=active_residues,
+            restype_index=restype_index,
+            max_n_atoms=max_n_atoms,
+            n_atoms=n_atoms,
         )
 
     @classmethod
@@ -55,19 +68,61 @@ class PackedBlockTypes:
             [len(restype.atoms) for restype in active_residues], dtype=numpy.int32
         )
 
+    def inds_for_res(self, residues: Sequence[Residue]):
+        return self.restype_index.get_indexer(
+            [res.residue_type.name for res in residues]
+        )
+
 
 @attr.s(auto_attribs=True)
 class Pose:
     packed_block_types: PackedBlockTypes
+
+    residues: Sequence[Residue]
+
+    # n-blocks x max-n-atoms
     coords: NDArray(float)[:, :, 3]
-    inter_block_separation: NDArray(int)[:, :, :, :]
+
+    # n-blocks x n-blocks x max-n-interblock-conn x max-n-interblock-conn
+    # Why so much data? Imagine two Bpy-Ala NCAAs binding to a Zn2+ ion.
+    # The path distance of N1 atom on Bpy-Ala X and the N2 atom on Bpy-Ala Y
+    # is 2: they each are bonded directly to the Zn2+. If we were to suppose
+    # either that residue X and Y were only bonded by a single inter-residue
+    # connection, or that X's N1 only bonded to Y at a single inter-residue
+    # connection, then we would miss the complexity of their arrangement.
+    # If we mark N1 of X as bonded to N2 of Y and then asked "what's the
+    # bond-separation distance of N1 on X to N1 on Y, we would walk from
+    # X-N1 to the Zn2+ to Y-N2 to Y-C6 to Y-C3 and then to Y-N1, tallying
+    # a bond separation of 5 instead of 2, and incorrectly count the
+    # X-N1--Y-N1 interaction at full strength (and perhaps a collision).
+    inter_block_bondsep: NDArray(int)[:, :, :, :]
+
+    # For each block, what is the index of the block type in the PackedBlockTypes
+    # structure?
+    block_inds: NDArray(int)[:]
 
     @classmethod
-    def from_residues_one_chain(cls, res: Sequence[Residue]):
-        inter_block_separation = cls.resolve_single_chain_inter_block_separation(res)
+    def from_residues_one_chain(cls, res: Sequence[Residue], chem_db: ChemicalDatabase):
+        rt_list = residue_types_from_residues(res)
+        packed_block_types = PackedBlockTypes.from_restype_list(rt_list, chem_db)
+        inter_block_bondsep = cls.resolve_single_chain_inter_block_bondsep(res)
+        coords = cls.pack_coords(packed_block_types, res)
+        attached_res = [
+            r.attach_to(coords[rind, 0 : len(r.residue_type.atoms), :])
+            for rind, r in enumerate(res)
+        ]
+        block_inds = packed_block_types.inds_for_res(res)
+
+        return cls(
+            packed_block_types=packed_block_types,
+            residues=attached_res,
+            coords=coords,
+            inter_block_bondsep=inter_block_bondsep,
+            block_inds=block_inds,
+        )
 
     @classmethod
-    def resolve_single_chain_inter_block_separation(cls, res: Sequence[Residue]):
+    def resolve_single_chain_inter_block_bondsep(cls, res: Sequence[Residue]):
         # Just a linear set of connections up<->down
         # Logic taken mostly from PackedResidueSystem's from_residues
 
@@ -150,12 +205,10 @@ class Pose:
             [from_connections["aidx"].values, to_connections["aidx"].values]
         ).T
 
-        return cls.resolve_inter_block_separation(
-            res, inter_res_bonds, connection_atoms
-        )
+        return cls.resolve_inter_block_bondsep(res, inter_res_bonds, connection_atoms)
 
     @classmethod
-    def resolve_inter_block_separation(
+    def resolve_inter_block_bondsep(
         cls,
         res: Sequence[Residue],
         inter_res_bonds: NDArray(int)[:, 2],
@@ -189,7 +242,7 @@ class Pose:
         # ok, now we want to ask: for each pair of connections, what is
         # the minimum number of chemical bonds that connects them.
 
-        inter_block_separation = numpy.full(
+        inter_block_bondsep = numpy.full(
             (n_res, n_res, max_n_conn, max_n_conn), 6, dtype=numpy.int32
         )
         min_bond_dist[min_bond_dist == numpy.inf] = 6
@@ -211,14 +264,21 @@ class Pose:
             list(itertools.product(cinds_conn1, cinds_conn2)), dtype=int
         )
 
-        inter_block_separation[
+        inter_block_bondsep[
             rinds_all_pairs[:, 0],
             rinds_all_pairs[:, 1],
             cinds_all_pairs[:, 0],
             cinds_all_pairs[:, 1],
         ] = min_bond_dist[ainds_all_pairs[:, 0], ainds_all_pairs[:, 1]]
 
-        return inter_block_separation
+        return inter_block_bondsep
+
+    @classmethod
+    def pack_coords(packed_block_types: PackedBlockTypes, res: Sequence[Residue]):
+        coords = numpy.zeros(
+            (len(res), packed_block_types.max_n_atoms, 3), dtype=numpy.float32
+        )
+        # for i, r in
 
 
 @attr.s(auto_attribs=True)
@@ -228,8 +288,4 @@ class Poses:
 
     coords: NDArray(float)[:, :, :, 3]
     block_types: NDArray(float)[:, :]
-    inter_block_separation: NDArray(int)[:, :, :, :, :]
-
-    @classmethod
-    def from_residues_one_chain(cls, res: Sequence[Residue]):
-        """Intialize a single pose"""
+    inter_block_bondsep: NDArray(int)[:, :, :, :, :]

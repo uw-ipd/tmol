@@ -5,7 +5,8 @@ from ..AtomTypeDependentTerm import AtomTypeDependentTerm
 from ..BondDependentTerm import BondDependentTerm
 from .params import LJLKTypeParams, LJLKGlobalParams
 
-from tmol.system.pose import PackedBlockTypes
+from tmol.system.pose import PackedBlockTypes, Poses
+from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True)
@@ -13,7 +14,7 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
     type_params: LJLKTypeParams
     global_params: LJLKGlobalParams
 
-    def setup_packed_block_types(self, packed_block_types: PackedBlockypes):
+    def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(LJLKEnergy, self).setup_packed_block_types(packed_block_types)
 
     def setup_poses(self, poses: Poses):
@@ -26,14 +27,14 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         context_system_ids: Tensor(int)[:, :],
         system_bounding_spheres: Tensor(float)[:, :, 4],
     ):
-        system_neighbor_list = create_block_neighbor_lists(
+        system_neighbor_list = self.create_block_neighbor_lists(
             systems, system_bounding_spheres
         )
 
         return LJLKInterSystemModule(
             context_system_ids=self.context_system_ids,
-            system_min_bond_separation=systems.min_bond_separation,
-            system_interblock_bonds=interblock_bonds,
+            system_min_block_bondsep=systems.min_block_bondsep,
+            system_inter_block_bondsep=systems.inter_block_bondsep_t,
             system_neighbor_list=system_neighbor_list,
             block_type_n_atoms=packed_block_types.block_type_n_atoms,
             block_type_atom_types=packed_block_types.atom_types,
@@ -44,13 +45,45 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             global_params=self.global_params,
         )
 
+    def create_block_neighbor_lists(
+        self, systems: Poses, system_bounding_spheres: Tensor(float)[:, :, 4]
+    ):
+        # we need to make lists of all block pairs within
+        # striking distances of each other that we will use to
+        # decide which atom-pair calculations to perform during
+        # rotamer substititions
+        sphere_centers = system_bounding_spheres[:, :, :3]
+        sphere_radii = torch.tensor()  # deep copy
+        n_sys = system_bounding_spheres.shape[0]
+        max_n_blocks = system_bounding_spheres.shape[1]
+        sphere_centers_1 = sphere_centers.view(n_sys, -1, max_n_blocks, 3)
+        sphere_centers_2 = sphere_centers.view(n_sys, max_n_blocks, -1, 3)
+        sphere_dists = torch.norm(sphere_centers_1 - sphere_centers_2)
+        expanded_radii = (
+            system_bounding_spheres[:, :, 3] + self.global_params.max_dis[0] / 2
+        )
+        expanded_radii_1 = expanded_radii.view(n_sys, -1, max_n_blocks)
+        expanded_radii_2 = expanded_radii.view(n_sys, max_n_blocks, -1)
+        radii_sum = expanded_radii_1 + expanded_radii_2
+        spheres_overlap = sphere_dists < radii_sum
+
+        # great -- now how tf are we going to condense this into the lists
+        # of neighbors for each block?
+
+        max_n_neighbors = torch.sum(spheres_overlap, dim=2)
+        neighbor_list = torch.full(
+            (n_sys, max_n_blocks, max_n_neighbors), -1, device=self.device
+        )
+        nz_spheres_overlap = torch.nonzero(spheres_overlap)
+        print(nz_spheres_overlap)
+
 
 class LJLKInterSystemModule(torch.jit.ScriptModule):
     def __init__(
         self,
         context_system_ids,
-        system_min_bond_separation,
-        system_interblock_bonds,
+        system_min_block_bondsep,
+        system_inter_block_bondsep,
         system_neighbor_list,
         block_type_n_atoms,
         block_type_atom_types,
@@ -61,8 +94,8 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         global_params,
     ):
         self.context_system_ids = context_system_ids
-        self.system_min_bond_separation = system_min_bond_separation
-        self.system_interblock_bonds = system_interblock_bonds
+        self.system_min_block_bondsep = system_min_block_bondsep
+        self.system_inter_block_bondsep = system_inter_block_bondsep
         self.system_neighbor_list = system_neighbor_list
         self.block_type_n_atoms = block_type_n_atoms
         self.block_type_atom_types = block_type_atom_types
@@ -84,8 +117,8 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
             alternate_coords,
             alternate_ids,
             self.context_system_ids,
-            self.system_min_bond_separation,
-            self.system_interblock_bonds,
+            self.system_min_bond_bondsep,
+            self.system_inter_block_bondsep,
             self.system_neighbor_list,
             self.block_type_n_atoms,
             self.block_type_atom_types,

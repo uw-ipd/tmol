@@ -4,6 +4,7 @@ import pandas
 
 from tmol.database.chemical import ChemicalDatabase
 from .chemical_database import AtomTypeParamResolver
+from tmol.system.pose import PackedBlockTypes
 
 
 @attr.s(auto_attribs=True)

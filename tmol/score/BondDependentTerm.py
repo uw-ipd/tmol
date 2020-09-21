@@ -6,12 +6,11 @@ import sparse
 import scipy.sparse.csgraph as csgraph
 
 from tmol.system.restypes import ResidueType
-from tmol.system.pose import PackedBlockTypes
+from tmol.system.pose import PackedBlockTypes, Poses
 
 
 @attr.s(auto_attribs=True)
 class BondDependentTerm:
-    myint: int
     device: torch.device
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
@@ -42,6 +41,7 @@ class BondDependentTerm:
             rt_bond_closure = csgraph.dijkstra(
                 rt_bonds_sparse, directed=False, unweighted=True, limit=MAX_SEPARATION
             )
+            rt_bond_closure[rt_bond_closure == numpy.inf] = MAX_SEPARATION
             bond_separation[i, :i_nats, :i_nats] = rt_bond_closure
 
         n_interres_bonds = [
@@ -72,11 +72,19 @@ class BondDependentTerm:
         )
 
     def setup_poses(self, systems: Poses):
-        if hasattr(systems, "min_bond_separation"):
-            assert hasattr(systems, "interblock_bonds")
+        if hasattr(systems, "min_block_bondsep"):
+            assert hasattr(systems, "inter_block_bondsep_t")
             return
 
         block_types = systems.block_types
         n_systems = systems.coords.shape(0)
         max_n_blocks = systems.coords.shape(1)
-        min_bond_separation
+
+        min_block_bondsep = numpy.min(system.inter_block_bondsep, axis=4)
+        min_block_bondsep = numpy.min(min_block_bondsep, axis=3)
+
+        min_block_bondsep = torch.tensor(min_block_bondsep, device=self.device)
+        inter_block_bondsep_t = torch.tensor(inter_block_bondsep, device=self.device)
+
+        setattr(systems, "min_block_bondsep", min_block_bondsep)
+        setattr(systems, "inter_block_bondsep_t", inter_block_bondsep_t)

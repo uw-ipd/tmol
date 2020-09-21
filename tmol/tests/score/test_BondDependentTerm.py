@@ -12,7 +12,7 @@ def test_create_bond_separation(ubq_res, default_database, torch_device):
     rt_list = [rt for addr, rt in rt_dict.items()]
     prt = PackedResidueTypes.from_restype_list(rt_list, default_database.chemical)
 
-    bdt = BondDependentTerm(myint=5, device=torch_device)
+    bdt = BondDependentTerm(device=torch_device)
     bdt.setup_packed_restypes(prt)
 
     assert hasattr(prt, "bond_separation")

@@ -26,7 +26,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -51,10 +51,8 @@ struct LJRPEDispatch {
       TView<Int, 3, D> system_min_bond_separation,
 
       // dims: n-systems x max-n-blocks x max-n-blocks x
-      // max-n-interblock-connections vec inds:
-      //    0: which inter-block connection point is bonded; -1 sentinel
-      //    1: how many bonds separate the two blocks along this connection
-      TView<Vec<Int, 2>, 4, D> system_interblock_bonds,
+      // max-n-interblock-connections x max-n-interblock-connections
+      TView<Int, 5, D> system_inter_block_bondsep,
 
       // dims n-systems x max-n-blocks x max-n-neighbors
       // -1 as the sentinel
