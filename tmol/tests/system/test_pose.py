@@ -1,6 +1,12 @@
 from tmol.system.pose import residue_types_from_residues, PackedBlockTypes, Pose, Poses
 
 
+def two_ubq_poses(default_database, ubq_res):
+    p1 = Pose.from_residues_one_chain(ubq_res[:40], default_database.chemical)
+    p2 = Pose.from_residues_one_chain(ubq_res[:60], default_database.chemical)
+    return Poses.from_poses([p1, p2], default_database.chemical)
+
+
 def test_load_packed_residue_types(ubq_res, default_database):
     rt_list = residue_types_from_residues(ubq_res)
     pbt = PackedBlockTypes.from_restype_list(rt_list, default_database.chemical)
