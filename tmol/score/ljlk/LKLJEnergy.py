@@ -52,15 +52,15 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         # striking distances of each other that we will use to
         # decide which atom-pair calculations to perform during
         # rotamer substititions
-        sphere_centers = system_bounding_spheres[:, :, :3]
-        sphere_radii = torch.tensor()  # deep copy
+        sphere_centers = torch.tensor(system_bounding_spheres[:, :, :3])
+        sphere_radii = torch.tensor(system_bounding_spheres[:, :, 1])  # deep copy
         n_sys = system_bounding_spheres.shape[0]
         max_n_blocks = system_bounding_spheres.shape[1]
-        sphere_centers_1 = sphere_centers.view(n_sys, -1, max_n_blocks, 3)
-        sphere_centers_2 = sphere_centers.view(n_sys, max_n_blocks, -1, 3)
-        sphere_dists = torch.norm(sphere_centers_1 - sphere_centers_2)
+        sphere_centers_1 = sphere_centers.view((n_sys, -1, max_n_blocks, 3))
+        sphere_centers_2 = sphere_centers.view((n_sys, max_n_blocks, -1, 3))
+        sphere_dists = torch.norm(sphere_centers_1 - sphere_centers_2, dim=3)
         expanded_radii = (
-            system_bounding_spheres[:, :, 3] + self.global_params.max_dis[0] / 2
+            system_bounding_spheres[:, :, 3] + self.global_params.max_dis / 2
         )
         expanded_radii_1 = expanded_radii.view(n_sys, -1, max_n_blocks)
         expanded_radii_2 = expanded_radii.view(n_sys, max_n_blocks, -1)
@@ -70,12 +70,30 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         # great -- now how tf are we going to condense this into the lists
         # of neighbors for each block?
 
-        max_n_neighbors = torch.sum(spheres_overlap, dim=2)
+        neighbor_counts = torch.sum(spheres_overlap, dim=2)
+        max_n_neighbors = torch.max(neighbor_counts)
+
         neighbor_list = torch.full(
-            (n_sys, max_n_blocks, max_n_neighbors), -1, device=self.device
+            (n_sys, max_n_blocks, max_n_neighbors),
+            -1,
+            dtype=torch.int32,
+            device=self.device,
         )
         nz_spheres_overlap = torch.nonzero(spheres_overlap)
-        print(nz_spheres_overlap)
+        inc_inds = (
+            torch.arange(max_n_neighbors)
+            .repeat(n_sys * max_n_blocks)
+            .view(n_sys, max_n_blocks, max_n_neighbors)
+        )
+        store_neighbor = inc_inds < neighbor_counts.view(n_sys, max_n_blocks, 1)
+
+        neighbor_list[
+            nz_spheres_overlap[:, 0],
+            nz_spheres_overlap[:, 1],
+            inc_inds[store_neighbor].view(-1),
+        ] = nz_spheres_overlap[:, 2].type(torch.int32)
+
+        return neighbor_list
 
 
 class LJLKInterSystemModule(torch.jit.ScriptModule):
