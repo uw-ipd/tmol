@@ -1,20 +1,28 @@
 from tmol.system.pose import residue_types_from_residues, PackedBlockTypes, Pose, Poses
 
 
-def two_ubq_poses(default_database, ubq_res):
-    p1 = Pose.from_residues_one_chain(ubq_res[:40], default_database.chemical)
-    p2 = Pose.from_residues_one_chain(ubq_res[:60], default_database.chemical)
-    return Poses.from_poses([p1, p2], default_database.chemical)
+def two_ubq_poses(default_database, ubq_res, torch_device):
+    p1 = Pose.from_residues_one_chain(
+        ubq_res[:40], default_database.chemical, torch_device
+    )
+    p2 = Pose.from_residues_one_chain(
+        ubq_res[:60], default_database.chemical, torch_device
+    )
+    return Poses.from_poses([p1, p2], default_database.chemical, torch_device)
 
 
-def test_load_packed_residue_types(ubq_res, default_database):
+def test_load_packed_residue_types(ubq_res, default_database, torch_device):
     rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(rt_list, default_database.chemical)
+    pbt = PackedBlockTypes.from_restype_list(
+        rt_list, default_database.chemical, torch_device
+    )
 
 
-def test_packed_residue_type_indexer(ubq_res, default_database):
+def test_packed_residue_type_indexer(ubq_res, default_database, torch_device):
     rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(rt_list, default_database.chemical)
+    pbt = PackedBlockTypes.from_restype_list(
+        rt_list, default_database.chemical, torch_device
+    )
 
     inds = pbt.inds_for_res(ubq_res)
     for i, res in enumerate(ubq_res):
@@ -31,14 +39,18 @@ def test_pose_resolve_bond_separation(ubq_res, default_database):
     assert bonds[2, 0, 0, 1] == 4
 
 
-def test_pose_ctor(ubq_res, default_database):
-    p = Pose.from_residues_one_chain(ubq_res, default_database.chemical)
+def test_pose_ctor(ubq_res, default_database, torch_device):
+    p = Pose.from_residues_one_chain(ubq_res, default_database.chemical, torch_device)
 
 
-def test_poses_ctor(ubq_res, default_database):
-    p1 = Pose.from_residues_one_chain(ubq_res[:40], default_database.chemical)
-    p2 = Pose.from_residues_one_chain(ubq_res[:60], default_database.chemical)
-    poses = Poses.from_poses([p1, p2], default_database.chemical)
+def test_poses_ctor(ubq_res, default_database, torch_device):
+    p1 = Pose.from_residues_one_chain(
+        ubq_res[:40], default_database.chemical, torch_device
+    )
+    p2 = Pose.from_residues_one_chain(
+        ubq_res[:60], default_database.chemical, torch_device
+    )
+    poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
     assert poses.block_inds.shape == (2, 60)
     max_n_atoms = poses.packed_block_types.max_n_atoms
     assert poses.coords.shape == (2, 60, max_n_atoms, 3)

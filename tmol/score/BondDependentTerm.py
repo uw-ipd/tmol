@@ -7,17 +7,20 @@ import scipy.sparse.csgraph as csgraph
 
 from tmol.system.restypes import ResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
+from tmol.score.EnergyTerm import EnergyTerm
 
 
 @attr.s(auto_attribs=True)
-class BondDependentTerm:
+class BondDependentTerm(EnergyTerm):
     device: torch.device
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+        super(BondDependentTerm, self).setup_packed_block_types(packed_block_types)
+        print("BondDependentTerm setup_packed_block_types")
         if hasattr(packed_block_types, "bond_separation"):
-            assert hasattr(packed_block_types, "max_n_interres_bonds")
-            assert hasattr(packed_block_types, "n_interres_bonds")
-            assert hasattr(packed_block_types, "atoms_for_interres_bonds")
+            assert hasattr(packed_block_types, "max_n_interblock_bonds")
+            assert hasattr(packed_block_types, "n_interblock_bonds")
+            assert hasattr(packed_block_types, "atoms_for_interblock_bonds")
             return
         MAX_SEPARATION = 6
         bond_separation = numpy.full(
@@ -43,35 +46,38 @@ class BondDependentTerm:
             )
             rt_bond_closure[rt_bond_closure == numpy.inf] = MAX_SEPARATION
             bond_separation[i, :i_nats, :i_nats] = rt_bond_closure
+        bond_separation = torch.tensor(bond_separation, device=self.device)
 
-        n_interres_bonds = [
+        n_interblock_bonds = [
             len(rt.connections) for rt in packed_block_types.active_residues
         ]
-        max_n_interres_bonds = max(n_interres_bonds)
-        n_interres_bonds = numpy.array(n_interres_bonds, dtype=numpy.int32)
-        atoms_for_interres_bonds = numpy.full(
-            (packed_block_types.n_types, max_n_interres_bonds), -1, dtype=numpy.int32
+        max_n_interblock_bonds = max(n_interblock_bonds)
+        n_interblock_bonds = numpy.array(n_interblock_bonds, dtype=numpy.int32)
+        atoms_for_interblock_bonds = numpy.full(
+            (packed_block_types.n_types, max_n_interblock_bonds), -1, dtype=numpy.int32
         )
         for i, rt in enumerate(packed_block_types.active_residues):
-            i_n_intres_bonds = n_interres_bonds[i]
+            i_n_intres_bonds = n_interblock_bonds[i]
             if i_n_intres_bonds == 0:
                 continue
             cnx_atoms = [rt.atom_to_idx[conn.atom] for conn in rt.connections]
-            atoms_for_interres_bonds[i, :i_n_intres_bonds] = cnx_atoms
+            atoms_for_interblock_bonds[i, :i_n_intres_bonds] = cnx_atoms
 
-        n_interres_bonds = torch.tensor(n_interres_bonds, device=self.device)
-        atoms_for_interres_bonds = torch.tensor(
-            atoms_for_interres_bonds, device=self.device
+        n_interblock_bonds = torch.tensor(n_interblock_bonds, device=self.device)
+        atoms_for_interblock_bonds = torch.tensor(
+            atoms_for_interblock_bonds, device=self.device
         )
 
         setattr(packed_block_types, "bond_separation", bond_separation)
-        setattr(packed_block_types, "max_n_interres_bonds", max_n_interres_bonds)
-        setattr(packed_block_types, "n_interres_bonds", n_interres_bonds)
+        setattr(packed_block_types, "max_n_interblock_bonds", max_n_interblock_bonds)
+        setattr(packed_block_types, "n_interblock_bonds", n_interblock_bonds)
         setattr(
-            packed_block_types, "atoms_for_interres_bonds", atoms_for_interres_bonds
+            packed_block_types, "atoms_for_interblock_bonds", atoms_for_interblock_bonds
         )
 
     def setup_poses(self, systems: Poses):
+        super(BondDependentTerm, self).setup_poses(systems)
+        print("BondDependentTerm setup_poses")
         if hasattr(systems, "min_block_bondsep"):
             assert hasattr(systems, "inter_block_bondsep_t")
             return

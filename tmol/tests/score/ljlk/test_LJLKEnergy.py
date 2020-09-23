@@ -1,0 +1,173 @@
+import numpy
+import torch
+
+from tmol.score.ljlk.LKLJEnergy import LJLKEnergy
+from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.system.pose import Pose, Poses
+
+from tmol.tests.system.test_pose import two_ubq_poses
+
+
+def test_smoke(default_database, torch_device):
+
+    ljlk_params = LJLKParamResolver.from_database(
+        default_database.chemical, default_database.scoring.ljlk, device=torch_device
+    )
+
+    ljlk_energy = LJLKEnergy(
+        type_params=ljlk_params.type_params,
+        global_params=ljlk_params.global_params,
+        atom_type_index=ljlk_params.atom_type_index,
+        device=torch_device,
+    )
+
+    assert ljlk_energy.type_params.lj_radius.device == torch_device
+    assert ljlk_energy.global_params.max_dis.device == torch_device
+
+
+def test_create_neighbor_list(ubq_res, default_database, torch_device):
+    #
+    # torch_device = torch.device("cpu")
+    ljlk_params = LJLKParamResolver.from_database(
+        default_database.chemical, default_database.scoring.ljlk, device=torch_device
+    )
+
+    ljlk_energy = LJLKEnergy(
+        type_params=ljlk_params.type_params,
+        global_params=ljlk_params.global_params,
+        atom_type_index=ljlk_params.atom_type_index,
+        device=torch_device,
+    )
+
+    p1 = Pose.from_residues_one_chain(
+        ubq_res[:4], default_database.chemical, torch_device
+    )
+    p2 = Pose.from_residues_one_chain(
+        ubq_res[:6], default_database.chemical, torch_device
+    )
+    poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
+
+    # nab the ca coords for these residues
+    bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
+    for i in range(2):
+        for j in range(4 if i == 0 else 6):
+            bounding_spheres[i, j, :3] = ubq_res[j].coords[2, :]
+    bounding_spheres[:, :, 3] = 3.0
+    bounding_spheres = torch.tensor(
+        bounding_spheres, dtype=torch.float32, device=torch_device
+    )
+
+    neighbor_list = ljlk_energy.create_block_neighbor_lists(poses, bounding_spheres)
+
+    # check that the listed neighbors are in striking distance
+    for i in range(neighbor_list.shape[0]):
+        for j in range(neighbor_list.shape[1]):
+            j_coord = bounding_spheres[i, j, 0:3]
+            for k in range(neighbor_list.shape[2]):
+                ijk_neighbor = neighbor_list[i, j, k]
+                if ijk_neighbor == -1:
+                    continue
+                k_coord = bounding_spheres[i, ijk_neighbor, 0:3]
+                dist = torch.norm(j_coord - k_coord)
+                assert dist < 6 + ljlk_energy.global_params.max_dis
+
+    # check that any pair of residues in striking distance is
+    # listed as a neighbor
+    for i in range(2):
+        n_res = 4 if i == 0 else 6
+        for j in range(n_res):
+            j_count = 0
+            j_coord = bounding_spheres[i, j, 0:3]
+            for k in range(n_res):
+                k_coord = bounding_spheres[i, k, 0:3]
+                dis = torch.norm(j_coord - k_coord)
+                if dis < 6 + ljlk_energy.global_params.max_dis:
+                    assert neighbor_list[i, j, j_count] == k
+                    j_count += 1
+            for k in range(j_count, 6):
+                assert neighbor_list[i, j, k] == -1
+
+
+def test_inter_module(ubq_res, default_database, torch_device):
+    ljlk_params = LJLKParamResolver.from_database(
+        default_database.chemical, default_database.scoring.ljlk, device=torch_device
+    )
+
+    ljlk_energy = LJLKEnergy(
+        type_params=ljlk_params.type_params,
+        global_params=ljlk_params.global_params,
+        atom_type_index=ljlk_params.atom_type_index,
+        device=torch_device,
+    )
+
+    p1 = Pose.from_residues_one_chain(
+        ubq_res[:4], default_database.chemical, torch_device
+    )
+    p2 = Pose.from_residues_one_chain(
+        ubq_res[:6], default_database.chemical, torch_device
+    )
+    poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
+
+    # nab the ca coords for these residues
+    bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
+    for i in range(2):
+        for j in range(4 if i == 0 else 6):
+            bounding_spheres[i, j, :3] = ubq_res[j].coords[2, :]
+    bounding_spheres[:, :, 3] = 3.0
+    bounding_spheres = torch.tensor(
+        bounding_spheres, dtype=torch.float32, device=torch_device
+    )
+
+    # five trajectories for each system
+    context_system_ids = torch.div(
+        torch.arange(10, dtype=torch.int32, device=torch_device), 5
+    )
+
+    ljlk_energy.setup_packed_block_types(poses.packed_block_types)
+    ljlk_energy.setup_poses(poses)
+    inter_modeule = ljlk_energy.inter_module(
+        poses.packed_block_types, poses, context_system_ids, bounding_spheres
+    )
+
+    max_n_atoms = poses.packed_block_types.max_n_atoms
+    # ok, let's create the contexts
+    context_coords = torch.zeros(
+        (10, 6, max_n_atoms, 3), dtype=torch.float32, device=torch_device
+    )
+    context_coords[:5, :, :, :] = torch.tensor(
+        poses.coords[0:1, :, :, :], device=torch_device
+    )
+    context_coords[5:, :, :, :] = torch.tensor(
+        poses.coords[1:2, :, :, :], device=torch_device
+    )
+
+    context_block_type = torch.zeros((10, 6), dtype=torch.int32, device=torch_device)
+    context_block_type[:5, :] = torch.tensor(
+        poses.block_inds[0:1, :], device=torch_device
+    )
+    context_block_type[5:, :] = torch.tensor(
+        poses.block_inds[1:2, :], device=torch_device
+    )
+
+    alternate_coords = torch.zeros(
+        (30, max_n_atoms, 3), dtype=torch.float32, device=torch_device
+    )
+    alternate_coords[:15, :, :] = torch.tensor(
+        poses.coords[0:1, 1:2, :], device=torch_device
+    )
+    alternate_coords[15:, :, :] = torch.tensor(
+        poses.coords[1:2, 3:4, :], device=torch_device
+    )
+
+    alternate_ids = torch.zeros((30, 3), dtype=torch.int32, device=torch_device)
+    alternate_ids[:, 0] = torch.div(torch.arange(30, dtype=torch.int32), 3)
+    alternate_ids[:15, 1] = 1
+    alternate_ids[15:, 1] = 3
+    alternate_ids[:15, 2] = torch.tensor(poses.block_inds[0, 1], device=torch_device)
+    alternate_ids[15:, 2] = torch.tensor(poses.block_inds[1, 3], device=torch_device)
+
+    rpes = inter_modeule(
+        context_coords, context_block_type, alternate_coords, alternate_ids
+    )
+    print("rpes")
+    print(rpes)

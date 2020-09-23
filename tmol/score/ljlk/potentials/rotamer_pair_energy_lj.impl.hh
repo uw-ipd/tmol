@@ -35,7 +35,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 2, D> context_block_type,
     TView<Vec<Real, 3>, 2, D> alternate_coords,
     TView<Vec<Int, 3>, 1, D>
-        alternate_ids,  // 0 == context id; 2 == block id; 3 == block type
+        alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
     // which system does a given context belong to
     TView<Int, 1, D> context_system_ids,
@@ -81,17 +81,17 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     //////////////////////
 
     // LJ parameters
-    TView<LJParams<Real>, 1, D> type_params,
+    TView<LJTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params) -> TPack<Real, 1, D> {
   int const n_systems = system_min_bond_separation.size(0);
   int const n_contexts = context_coords.size(0);
-  int const n_alternate_blocks = alternate_coords.size(0);
+  int64_t const n_alternate_blocks = alternate_coords.size(0);
   int const max_n_blocks = context_coords.size(1);
-  int const max_n_atoms = context_coords.size(2);
+  int64_t const max_n_atoms = context_coords.size(2);
   int const n_block_types = block_type_n_atoms.size(0);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
-  int const max_n_neighbors = system_neighbor_list.size(2);
+  int64_t const max_n_neighbors = system_neighbor_list.size(2);
 
   assert(alternate_coords.size(1) == max_n_atoms);
   assert(alternate_ids.size(0) == n_alternate_blocks);
@@ -120,8 +120,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
   auto output = output_t.view;
 
-  auto eval_atom_pair = [=] EIGEN_DEVICE_FUN(
-                            int alt_ind, int neighbor_ind, int atom_pair_ind) {
+  auto eval_atom_pair = ([=] EIGEN_DEVICE_FUNC(
+                             int alt_ind, int neighb_ind, int atom_pair_ind) {
     int const max_important_bond_separation = 4;
     int const alt_context = alternate_ids[alt_ind][0];
     if (alt_context == -1) {
@@ -133,7 +133,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     int const system = context_system_ids[alt_context];
 
     int const neighb_block_ind =
-        system_neighbor_list[system][alt_block_ind][neighbor_ind];
+        system_neighbor_list[system][alt_block_ind][neighb_ind];
     if (neighb_block_ind == -1) {
       return;
     }
@@ -147,8 +147,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       // Inter-block interaction. One atom from "alt", one atom from "context."
 
       int const neighb_block_type =
-          context_block_type[alt_context][neighbor_block_ind];
-      int const alt_n_atoms = block_type_natoms[alt_block_type];
+          context_block_type[alt_context][neighb_block_ind];
+      int const alt_n_atoms = block_type_n_atoms[alt_block_type];
       int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
 
       // for best warp cohesion, mod the atom-pair indices after
@@ -182,7 +182,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           int const ii_alt_conn_atom =
               block_type_atoms_forming_chemical_bonds[alt_block_type][ii];
           int const ii_alt_bonds_to_conn =
-              block_type_path_distance[alt_block_type][alt_conn_atom]
+              block_type_path_distance[alt_block_type][ii_alt_conn_atom]
                                       [alt_atom_ind];
           if (ii_alt_bonds_to_conn >= separation) {
             continue;
@@ -205,11 +205,11 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 block_type_path_distance[neighb_block_type][jj_neighb_conn_atom]
                                         [neighb_atom_ind];
 
-            if (alt_bonds_to_conn + ii_interblock_bond_sep
+            if (ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep
                     + jj_neighb_bonds_to_conn
                 < separation) {
-              separation = alt_bonds_to_conn + ii_interblock_bond_sep
-                           + neighb_bonds_to_conn;
+              separation = ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep
+                           + jj_neighb_bonds_to_conn;
             }
           }
         }
@@ -218,14 +218,12 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       dist = distance<Real>::V(
           context_coords[alt_context][neighb_block_ind][neighb_atom_ind],
           alternate_coords[alt_ind][alt_atom_ind]);
-      atom_1_type =
-          type_params[block_type_atom_types[alt_block_type][alt_atom_ind]];
-      atom_2_type = type_params[block_type_atom_types[neighb_block_type]
-                                                     [neighb_atom_ind]];
+      atom_1_type = block_type_atom_types[alt_block_type][alt_atom_ind];
+      atom_2_type = block_type_atom_types[neighb_block_type][neighb_atom_ind];
     } else {
       // alt_block_ind == neighb_block_ind:
       // intra-block interaction.
-      int const alt_n_atoms = block_type_natoms[alt_block_type];
+      int const alt_n_atoms = block_type_n_atoms[alt_block_type];
       // see comment in the inter-block interaction regarding the delay of the
       // atom1/atom2 resolution until we know how many atoms are in the
       // particular block we're looking at.
@@ -238,19 +236,24 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         // count each intra-block interaction only once
         return;
       }
-      dist = distance<Real>::V(alternate_coords[alt_ind][atom_1_ind];
-                               alternate_coords[alt_ind][atom_2_ind];);
+      dist = distance<Real>::V(
+          alternate_coords[alt_ind][atom_1_ind],
+          alternate_coords[alt_ind][atom_2_ind]);
       separation =
           block_type_path_distance[alt_block_type][atom_1_ind][atom_2_ind];
-      atom_1_type = type_params[block_type_atom_types][atom_1_ind];
-      atom_2_type = type_params[block_type_atom_types][atom_2_ind];
+      atom_1_type = block_type_atom_types[alt_block_type][atom_1_ind];
+      atom_2_type = block_type_atom_types[alt_block_type][atom_2_ind];
     }
 
     Real lj = lj_score<Real>::V(
-        dist, separation, atom_1_type, atom_2_type, global_params[0]);
+        dist,
+        separation,
+        type_params[atom_1_type],
+        type_params[atom_2_type],
+        global_params[0]);
 
     accumulate<D, Real>::add(output[alt_block_ind], lj);
-  };
+  });
 
   DeviceDispatch<D>::foreach_combination_triple(
       n_alternate_blocks,
@@ -260,3 +263,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   return output_t;
 }
+
+}  // namespace potentials
+}  // namespace ljlk
+}  // namespace score
+}  // namespace tmol

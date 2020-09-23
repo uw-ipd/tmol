@@ -4,6 +4,7 @@ import cattr
 import itertools
 
 import numpy
+import torch
 import pandas
 import sparse
 import scipy.sparse.csgraph as csgraph
@@ -11,6 +12,7 @@ import scipy.sparse.csgraph as csgraph
 from typing import Sequence, Tuple
 
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 from .restypes import ResidueType, Residue
 from .datatypes import (
@@ -37,7 +39,9 @@ class PackedBlockTypes:
     restype_index: pandas.Index
 
     max_n_atoms: int
-    n_atoms: NDArray(int)[:]  # ntypes
+    n_atoms: Tensor(int)[:]  # dim: ntypes
+
+    device: torch.device
 
     @property
     def n_types(self):
@@ -45,10 +49,13 @@ class PackedBlockTypes:
 
     @classmethod
     def from_restype_list(
-        cls, active_residues: Sequence[ResidueType], chem_db: ChemicalDatabase
+        cls,
+        active_residues: Sequence[ResidueType],
+        chem_db: ChemicalDatabase,
+        device=torch.device,
     ):
         max_n_atoms = cls.count_max_n_atoms(active_residues)
-        n_atoms = cls.count_n_atoms(active_residues)
+        n_atoms = cls.count_n_atoms(active_residues, device)
         restype_index = pandas.Index([restype.name for restype in active_residues])
 
         return cls(
@@ -56,6 +63,7 @@ class PackedBlockTypes:
             restype_index=restype_index,
             max_n_atoms=max_n_atoms,
             n_atoms=n_atoms,
+            device=device,
         )
 
     @classmethod
@@ -63,9 +71,13 @@ class PackedBlockTypes:
         return max(len(restype.atoms) for restype in active_residues)
 
     @classmethod
-    def count_n_atoms(cls, active_residues: Sequence[ResidueType]):
-        return numpy.array(
-            [len(restype.atoms) for restype in active_residues], dtype=numpy.int32
+    def count_n_atoms(
+        cls, active_residues: Sequence[ResidueType], device: torch.device
+    ):
+        return torch.tensor(
+            [len(restype.atoms) for restype in active_residues],
+            dtype=torch.int32,
+            device=device,
         )
 
     def inds_for_res(self, residues: Sequence[Residue]):
@@ -102,9 +114,13 @@ class Pose:
     block_inds: NDArray(int)[:]
 
     @classmethod
-    def from_residues_one_chain(cls, res: Sequence[Residue], chem_db: ChemicalDatabase):
+    def from_residues_one_chain(
+        cls, res: Sequence[Residue], chem_db: ChemicalDatabase, device: torch.device
+    ):
         rt_list = residue_types_from_residues(res)
-        packed_block_types = PackedBlockTypes.from_restype_list(rt_list, chem_db)
+        packed_block_types = PackedBlockTypes.from_restype_list(
+            rt_list, chem_db, device
+        )
         inter_block_bondsep = cls.resolve_single_chain_inter_block_bondsep(res)
         coords = cls.pack_coords(packed_block_types, res)
         attached_res = [
@@ -294,10 +310,14 @@ class Poses:
     block_inds: NDArray(float)[:, :]
 
     @classmethod
-    def from_poses(cls, poses: Sequence[Pose], chem_db: ChemicalDatabase):
+    def from_poses(
+        cls, poses: Sequence[Pose], chem_db: ChemicalDatabase, device: torch.device
+    ):
         all_res = [res for pose in poses for res in pose.residues]
         restypes = residue_types_from_residues(all_res)
-        packed_block_types = PackedBlockTypes.from_restype_list(restypes, chem_db)
+        packed_block_types = PackedBlockTypes.from_restype_list(
+            restypes, chem_db, device
+        )
 
         max_n_blocks = max(len(pose.residues) for pose in poses)
         coords = cls.pack_coords(packed_block_types, poses, max_n_blocks)

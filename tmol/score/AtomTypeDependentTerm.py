@@ -6,10 +6,11 @@ import pandas
 from tmol.database.chemical import ChemicalDatabase
 from .chemical_database import AtomTypeParamResolver
 from tmol.system.pose import PackedBlockTypes
+from tmol.score.EnergyTerm import EnergyTerm
 
 
 @attr.s(auto_attribs=True)
-class AtomTypeDependentTerm:
+class AtomTypeDependentTerm(EnergyTerm):
     atom_type_index: pandas.Index
     device: torch.device
 
@@ -25,6 +26,8 @@ class AtomTypeDependentTerm:
         return cls(atom_type_index=resolver.index, device=device)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+        super(AtomTypeDependentTerm, self).setup_packed_block_types(packed_block_types)
+        print("AtomTypeDependentTerm setup_packed_block_types")
         if hasattr(packed_block_types, "atom_types"):
             return
         atom_types = numpy.full(

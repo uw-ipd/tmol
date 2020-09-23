@@ -11,25 +11,30 @@ def test_create_bond_separation(ubq_res, default_database, torch_device):
         if id(res.residue_type) not in rt_dict:
             rt_dict[id(res.residue_type)] = res.residue_type
     rt_list = [rt for addr, rt in rt_dict.items()]
-    pbt = PackedBlockTypes.from_restype_list(rt_list, default_database.chemical)
+    pbt = PackedBlockTypes.from_restype_list(
+        rt_list, default_database.chemical, torch_device
+    )
 
     bdt = BondDependentTerm(device=torch_device)
     bdt.setup_packed_block_types(pbt)
 
     assert hasattr(pbt, "bond_separation")
-    assert hasattr(pbt, "max_n_interres_bonds")
-    assert hasattr(pbt, "n_interres_bonds")
-    assert hasattr(pbt, "atoms_for_interres_bonds")
+    assert hasattr(pbt, "max_n_interblock_bonds")
+    assert hasattr(pbt, "n_interblock_bonds")
+    assert hasattr(pbt, "atoms_for_interblock_bonds")
 
-    assert pbt.max_n_interres_bonds == 2
-    assert pbt.n_interres_bonds.device == torch_device
-    assert pbt.n_interres_bonds.shape == (pbt.n_types,)
-    assert pbt.atoms_for_interres_bonds.device == torch_device
-    assert pbt.atoms_for_interres_bonds.shape == (pbt.n_types, pbt.max_n_interres_bonds)
+    assert pbt.max_n_interblock_bonds == 2
+    assert pbt.n_interblock_bonds.device == torch_device
+    assert pbt.n_interblock_bonds.shape == (pbt.n_types,)
+    assert pbt.atoms_for_interblock_bonds.device == torch_device
+    assert pbt.atoms_for_interblock_bonds.shape == (
+        pbt.n_types,
+        pbt.max_n_interblock_bonds,
+    )
 
 
 def test_create_pose_bond_separation_two_ubq(ubq_res, default_database, torch_device):
-    two_ubq = two_ubq_poses(default_database, ubq_res)
+    two_ubq = two_ubq_poses(default_database, ubq_res, torch_device)
     bdt = BondDependentTerm(device=torch_device)
     bdt.setup_poses(two_ubq)
 

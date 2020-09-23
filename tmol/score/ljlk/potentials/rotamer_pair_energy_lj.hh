@@ -14,6 +14,7 @@
 #include <tmol/score/common/tuple.hh>
 
 #include "lj.hh"
+#include "params.hh"
 #include "rotamer_pair_energy_lj.hh"
 
 namespace tmol {
@@ -36,7 +37,7 @@ struct LJRPEDispatch {
       TView<Int, 2, D> context_block_type,
       TView<Vec<Real, 3>, 2, D> alternate_coords,
       TView<Vec<Int, 3>, 1, D>
-          alternate_ids,  // 0 == context id; 2 == block id; 3 == block type
+          alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
       // which system does a given context belong to
       TView<Int, 1, D> context_system_ids,
@@ -82,6 +83,11 @@ struct LJRPEDispatch {
       //////////////////////
 
       // LJ parameters
-      TView<LJParams<Real>, 1, D> type_params,
+      TView<LJTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params) -> TPack<Real, 1, D>;
 };
+
+}  // namespace potentials
+}  // namespace ljlk
+}  // namespace score
+}  // namespace tmol

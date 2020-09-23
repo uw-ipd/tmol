@@ -5,9 +5,11 @@
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
+#include <tmol/score/common/forall_dispatch.hh>
 
 #include "lj.dispatch.hh"
 #include "lk_isotropic.dispatch.hh"
+#include "rotamer_pair_energy_lj.hh"
 
 namespace tmol {
 namespace score {
@@ -67,6 +69,54 @@ Tensor score_op(
   });
 };
 
+Tensor
+rotamer_pair_energies_op(
+  Tensor context_coords,
+  Tensor context_block_type,
+  Tensor alternate_coords,
+  Tensor alternate_ids,
+  Tensor context_system_ids,
+  Tensor system_min_bond_separation,
+  Tensor system_inter_block_bondsep,
+  Tensor system_neighbor_list,
+  Tensor block_type_n_atoms,
+  Tensor block_type_atom_types,
+  Tensor block_type_n_interblock_bonds,
+  Tensor block_type_atoms_forming_chemical_bonds,
+  Tensor block_type_path_distance,
+  Tensor type_params,
+  Tensor global_params
+) {
+  
+  at::Tensor rpes;
+  using Int = int32_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(
+    context_coords.type(), "score_op", ([&] {
+	using Real = scalar_t;
+	constexpr tmol::Device Dev = device_t;
+	auto result = LJRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+          TCAST(context_coords),
+          TCAST(context_block_type),
+          TCAST(alternate_coords),
+          TCAST(alternate_ids),
+          TCAST(context_system_ids),
+          TCAST(system_min_bond_separation),
+          TCAST(system_inter_block_bondsep),
+          TCAST(system_neighbor_list),
+          TCAST(block_type_n_atoms),
+          TCAST(block_type_atom_types),
+          TCAST(block_type_n_interblock_bonds),
+          TCAST(block_type_atoms_forming_chemical_bonds),
+          TCAST(block_type_path_distance),
+          TCAST(type_params),
+          TCAST(global_params));
+	rpes = result.tensor;
+      }));
+  return rpes;
+}
+
+
 static auto registry =
     torch::jit::RegisterOperators()
         .op("tmol::score_ljlk_lj", &score_op<LJDispatch, AABBDispatch>)
@@ -74,7 +124,9 @@ static auto registry =
         .op("tmol::score_ljlk_lk_isotropic",
             &score_op<LKIsotropicDispatch, AABBDispatch>)
         .op("tmol::score_ljlk_lk_isotropic_triu",
-            &score_op<LKIsotropicDispatch, AABBTriuDispatch>);
+            &score_op<LKIsotropicDispatch, AABBTriuDispatch>)
+        .op("tmol::score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
+
 
 }  // namespace potentials
 }  // namespace ljlk

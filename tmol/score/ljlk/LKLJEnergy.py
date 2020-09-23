@@ -15,9 +15,11 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
     global_params: LJLKGlobalParams
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
+        print("LJLKEnergy setup_packed_block_types")
         super(LJLKEnergy, self).setup_packed_block_types(packed_block_types)
 
     def setup_poses(self, poses: Poses):
+        print("LJLKEnergy setup_poses")
         super(LJLKEnergy, self).setup_poses(poses)
 
     def inter_module(
@@ -32,15 +34,15 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         )
 
         return LJLKInterSystemModule(
-            context_system_ids=self.context_system_ids,
+            context_system_ids=context_system_ids,
             system_min_block_bondsep=systems.min_block_bondsep,
             system_inter_block_bondsep=systems.inter_block_bondsep_t,
             system_neighbor_list=system_neighbor_list,
-            block_type_n_atoms=packed_block_types.block_type_n_atoms,
+            block_type_n_atoms=packed_block_types.n_atoms,
             block_type_atom_types=packed_block_types.atom_types,
-            block_type_n_interblock_bonds=n_interblock_bonds,
-            block_type_atoms_forming_chemical_bonds=packed_block_types.atoms_forming_chemical_bonds,
-            block_type_path_distance=packed_block_types.path_distance,
+            block_type_n_interblock_bonds=packed_block_types.n_interblock_bonds,
+            block_type_atoms_forming_chemical_bonds=packed_block_types.atoms_for_interblock_bonds,
+            block_type_path_distance=packed_block_types.bond_separation,
             type_params=self.type_params,
             global_params=self.global_params,
         )
@@ -81,7 +83,7 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         )
         nz_spheres_overlap = torch.nonzero(spheres_overlap)
         inc_inds = (
-            torch.arange(max_n_neighbors)
+            torch.arange(max_n_neighbors, device=self.device)
             .repeat(n_sys * max_n_blocks)
             .view(n_sys, max_n_blocks, max_n_neighbors)
         )
@@ -111,19 +113,56 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         type_params,
         global_params,
     ):
-        self.context_system_ids = context_system_ids
-        self.system_min_block_bondsep = system_min_block_bondsep
-        self.system_inter_block_bondsep = system_inter_block_bondsep
-        self.system_neighbor_list = system_neighbor_list
-        self.block_type_n_atoms = block_type_n_atoms
-        self.block_type_atom_types = block_type_atom_types
-        self.block_type_n_interblock_bonds = block_type_n_interblock_bonds
-        self.block_type_atoms_forming_chemical_bonds = (
+        super().__init__()
+
+        def _p(t):
+            return torch.nn.Parameter(t, requires_grad=False)
+
+        def _t(ts):
+            return tuple(map(lambda t: t.to(torch.float), ts))
+
+        self.context_system_ids = _p(context_system_ids)
+        self.system_min_block_bondsep = _p(system_min_block_bondsep)
+        self.system_inter_block_bondsep = _p(system_inter_block_bondsep)
+        self.system_neighbor_list = _p(system_neighbor_list)
+        self.block_type_n_atoms = _p(block_type_n_atoms)
+        self.block_type_atom_types = _p(block_type_atom_types)
+        self.block_type_n_interblock_bonds = _p(block_type_n_interblock_bonds)
+        self.block_type_atoms_forming_chemical_bonds = _p(
             block_type_atoms_forming_chemical_bonds
         )
-        self.block_type_path_distance = block_type_path_distance
-        self.type_params = type_params
-        self.global_params = global_params
+        self.block_type_path_distance = _p(block_type_path_distance)
+
+        # Pack parameters into dense tensor. Parameter ordering must match
+        # struct layout declared in `potentials/params.hh`.
+        self.type_params = _p(
+            torch.stack(
+                _t(
+                    [
+                        type_params.lj_radius,
+                        type_params.lj_wdepth,
+                        type_params.is_donor,
+                        type_params.is_hydroxyl,
+                        type_params.is_polarh,
+                        type_params.is_acceptor,
+                    ]
+                ),
+                dim=1,
+            )
+        )
+
+        self.global_params = _p(
+            torch.stack(
+                _t(
+                    [
+                        global_params.lj_hbond_dis,
+                        global_params.lj_hbond_OH_donor_dis,
+                        global_params.lj_hbond_hdis,
+                    ]
+                ),
+                dim=1,
+            )
+        )
 
     @torch.jit.script_method
     def forward(
@@ -135,7 +174,7 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
             alternate_coords,
             alternate_ids,
             self.context_system_ids,
-            self.system_min_bond_bondsep,
+            self.system_min_block_bondsep,
             self.system_inter_block_bondsep,
             self.system_neighbor_list,
             self.block_type_n_atoms,
