@@ -181,7 +181,7 @@ def test_inter_module(ubq_res, default_database, torch_device):
 @pytest.mark.parametrize("n_traj", [3, 10, 30, 100, 300, 1000])
 def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_traj):
     # n_traj = 100
-    n_poses = 10
+    n_poses = 100
     # n_alts = 10
 
     #
@@ -217,8 +217,8 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
         )
         one_bounding_sphere_set[0, i, :3] = cb
         one_bounding_sphere_set[0, i, 3] = max_cb_dist.item()
-    print("one bounding sphere set")
-    print(one_bounding_sphere_set)
+    # print("one bounding sphere set")
+    # print(one_bounding_sphere_set)
 
     # nab the ca coords for these residues
     bounding_spheres = numpy.repeat(one_bounding_sphere_set, n_poses, axis=0)
