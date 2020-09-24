@@ -117,6 +117,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(block_type_path_distance.size(1) == max_n_atoms);
   assert(block_type_path_distance.size(2) == max_n_atoms);
 
+  clock_t start_time = clock();
+
   auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
   auto output = output_t.view;
 
@@ -245,6 +247,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       atom_2_type = block_type_atom_types[alt_block_type][atom_2_ind];
     }
 
+    // printf(
+    //     "%d %d (%d) %d %d %d %d\n",
+    //     alt_ind,
+    //     neighb_ind,
+    //     neighb_block_ind,
+    //     atom_pair_ind,
+    //     separation,
+    //     atom_1_type,
+    //     atom_2_type);
     Real lj = lj_score<Real>::V(
         dist,
         separation,
@@ -252,7 +263,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         type_params[atom_2_type],
         global_params[0]);
 
-    accumulate<D, Real>::add(output[alt_block_ind], lj);
+    accumulate<D, Real>::add(output[alt_ind], lj);
   });
 
   DeviceDispatch<D>::foreach_combination_triple(
@@ -260,6 +271,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       max_n_neighbors,
       max_n_atoms * max_n_atoms,
       eval_atom_pair);
+
+#ifdef __CUDACC__
+  float first;
+  cudaMemcpy(&first, &output[0], sizeof(float), cudaMemcpyDeviceToHost);
+#endif
+
+  clock_t stop_time = clock();
+  std::cout << "runtime? " << ((double)stop_time - start_time) / CLOCKS_PER_SEC
+            << std::endl;
 
   return output_t;
 }

@@ -27,7 +27,7 @@ class AtomTypeDependentTerm(EnergyTerm):
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(AtomTypeDependentTerm, self).setup_packed_block_types(packed_block_types)
-        print("AtomTypeDependentTerm setup_packed_block_types")
+
         if hasattr(packed_block_types, "atom_types"):
             return
         atom_types = numpy.full(
@@ -39,7 +39,7 @@ class AtomTypeDependentTerm(EnergyTerm):
         for i, restype in enumerate(packed_block_types.active_residues):
             atom_types[
                 i, : packed_block_types.n_atoms[i]
-            ] = self.atom_type_index.get_indexer([x.name for x in restype.atoms])
+            ] = self.atom_type_index.get_indexer([x.atom_type for x in restype.atoms])
 
         atom_types = torch.tensor(atom_types, device=self.device)
         setattr(packed_block_types, "atom_types", atom_types)

@@ -15,11 +15,9 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
     global_params: LJLKGlobalParams
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        print("LJLKEnergy setup_packed_block_types")
         super(LJLKEnergy, self).setup_packed_block_types(packed_block_types)
 
     def setup_poses(self, poses: Poses):
-        print("LJLKEnergy setup_poses")
         super(LJLKEnergy, self).setup_poses(poses)
 
     def inter_module(

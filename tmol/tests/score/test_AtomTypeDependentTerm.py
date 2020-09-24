@@ -27,7 +27,14 @@ def test_store_atom_types_in_packed_residue_types(
 
     for i, rt in enumerate(rt_list):
         for j, at in enumerate(rt.atoms):
+            # print(
+            #     at.atom_type,
+            #     "atdt.atom_type_index.get_indexer([at.name])",
+            #     atdt.atom_type_index.get_indexer([at.atom_type]),
+            # )
             assert (
-                atdt.atom_type_index.get_indexer([at.name])
+                atdt.atom_type_index.get_indexer([at.atom_type])
                 == pbt.atom_types[i, j].item()
             )
+    # print(atdt.atom_type_index)
+    # print(pbt.atom_types)

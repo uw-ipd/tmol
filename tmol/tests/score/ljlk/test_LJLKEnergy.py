@@ -1,5 +1,6 @@
 import numpy
 import torch
+import pytest
 
 from tmol.score.ljlk.LKLJEnergy import LJLKEnergy
 from tmol.score.ljlk.params import LJLKParamResolver
@@ -89,6 +90,8 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
 
 
 def test_inter_module(ubq_res, default_database, torch_device):
+    #
+    # torch_device = torch.device("cpu")
     ljlk_params = LJLKParamResolver.from_database(
         default_database.chemical, default_database.scoring.ljlk, device=torch_device
     )
@@ -171,3 +174,122 @@ def test_inter_module(ubq_res, default_database, torch_device):
     )
     print("rpes")
     print(rpes)
+
+
+@pytest.mark.benchmark(group="time_rpe")
+@pytest.mark.parametrize("n_alts", [3, 10, 30, 100])
+@pytest.mark.parametrize("n_traj", [3, 10, 30, 100])
+def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_traj):
+    # n_traj = 100
+    n_poses = 10
+    # n_alts = 10
+
+    #
+    torch_device = torch.device("cuda")
+    ljlk_params = LJLKParamResolver.from_database(
+        default_database.chemical, default_database.scoring.ljlk, device=torch_device
+    )
+
+    ljlk_energy = LJLKEnergy(
+        type_params=ljlk_params.type_params,
+        global_params=ljlk_params.global_params,
+        atom_type_index=ljlk_params.atom_type_index,
+        device=torch_device,
+    )
+
+    p1 = Pose.from_residues_one_chain(ubq_res, default_database.chemical, torch_device)
+    nres = p1.coords.shape[0]
+    poses = Poses.from_poses([p1] * n_poses, default_database.chemical, torch_device)
+
+    one_bounding_sphere_set = numpy.full((1, nres, 4), numpy.nan, dtype=numpy.float32)
+    for i in range(nres):
+        atnames = set([at.name for at in ubq_res[i].residue_type.atoms])
+        cb = ubq_res[i].coords[5, :] if "CB" in atnames else ubq_res[i].coords[2, :]
+        max_cb_dist = torch.max(
+            torch.norm(
+                torch.tensor(
+                    ubq_res[i].coords[2:3, :] - ubq_res[i].coords[:, :],
+                    dtype=torch.float32,
+                    device=torch_device,
+                ),
+                dim=1,
+            )
+        )
+        one_bounding_sphere_set[0, i, :3] = cb
+        one_bounding_sphere_set[0, i, 3] = max_cb_dist.item()
+    print("one bounding sphere set")
+    print(one_bounding_sphere_set)
+
+    # nab the ca coords for these residues
+    bounding_spheres = numpy.repeat(one_bounding_sphere_set, n_poses, axis=0)
+    bounding_spheres = torch.tensor(
+        bounding_spheres, dtype=torch.float32, device=torch_device
+    )
+
+    # n_traj trajectories for each system
+    context_system_ids = torch.div(
+        torch.arange(n_traj * n_poses, dtype=torch.int32, device=torch_device), n_traj
+    )
+
+    ljlk_energy.setup_packed_block_types(poses.packed_block_types)
+    ljlk_energy.setup_poses(poses)
+    inter_modeule = ljlk_energy.inter_module(
+        poses.packed_block_types, poses, context_system_ids, bounding_spheres
+    )
+
+    max_n_atoms = poses.packed_block_types.max_n_atoms
+    # ok, let's create the contexts
+    context_coords = torch.zeros(
+        (n_traj * n_poses, nres, max_n_atoms, 3),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    context_coords[:, :, :, :] = torch.tensor(
+        poses.coords[0:1, :, :, :], device=torch_device
+    )
+
+    context_block_type = torch.zeros(
+        (n_traj * n_poses, nres), dtype=torch.int32, device=torch_device
+    )
+    context_block_type[:, :] = torch.tensor(
+        poses.block_inds[0:1, :], device=torch_device
+    )
+
+    alternate_coords = torch.zeros(
+        (n_alts * n_traj * n_poses, max_n_atoms, 3),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    which_block = torch.remainder(
+        torch.div(
+            torch.arange(
+                n_alts * n_traj * n_poses, dtype=torch.int32, device=torch_device
+            ),
+            n_alts,
+        ),
+        nres,
+    )
+    alternate_coords[:, :, :] = torch.tensor(
+        poses.coords[0:1, which_block.cpu().numpy(), :, :], device=torch_device
+    )
+
+    alternate_ids = torch.zeros(
+        (n_alts * n_traj * n_poses, 3), dtype=torch.int32, device=torch_device
+    )
+    alternate_ids[:, 0] = torch.div(
+        torch.arange(n_alts * n_traj * n_poses, dtype=torch.int32, device=torch_device),
+        n_alts,
+    )
+    alternate_ids[:, 1] = which_block
+    alternate_ids[:, 2] = torch.tensor(
+        poses.block_inds[0, which_block.cpu().numpy()], device=torch_device
+    )
+
+    @benchmark
+    def run():
+        rpes = inter_modeule(
+            context_coords, context_block_type, alternate_coords, alternate_ids
+        )
+        return rpes
+
+    vals = run

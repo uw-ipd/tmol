@@ -16,7 +16,7 @@ class BondDependentTerm(EnergyTerm):
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(BondDependentTerm, self).setup_packed_block_types(packed_block_types)
-        print("BondDependentTerm setup_packed_block_types")
+
         if hasattr(packed_block_types, "bond_separation"):
             assert hasattr(packed_block_types, "max_n_interblock_bonds")
             assert hasattr(packed_block_types, "n_interblock_bonds")
@@ -77,7 +77,7 @@ class BondDependentTerm(EnergyTerm):
 
     def setup_poses(self, systems: Poses):
         super(BondDependentTerm, self).setup_poses(systems)
-        print("BondDependentTerm setup_poses")
+
         if hasattr(systems, "min_block_bondsep"):
             assert hasattr(systems, "inter_block_bondsep_t")
             return
