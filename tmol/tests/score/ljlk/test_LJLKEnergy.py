@@ -177,8 +177,8 @@ def test_inter_module(ubq_res, default_database, torch_device):
 
 
 @pytest.mark.benchmark(group="time_rpe")
-@pytest.mark.parametrize("n_alts", [3, 10, 30, 100])
-@pytest.mark.parametrize("n_traj", [3, 10, 30, 100])
+@pytest.mark.parametrize("n_alts", [3, 10, 30, 100, 300, 1000])
+@pytest.mark.parametrize("n_traj", [3, 10, 30, 100, 300, 1000])
 def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_traj):
     # n_traj = 100
     n_poses = 10
