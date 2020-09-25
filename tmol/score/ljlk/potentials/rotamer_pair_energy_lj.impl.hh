@@ -10,6 +10,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
+#include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 
@@ -127,149 +128,118 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   auto count_t = TPack<int, 1, D>::zeros({1});
   auto count = count_t.view;
 
-  auto eval_atom_pair = ([=] EIGEN_DEVICE_FUNC(
-                             int alt_ind, int neighb_ind, int atom_pair_ind) {
-    int const max_important_bond_separation = 4;
-    int const alt_context = alternate_ids[alt_ind][0];
-    if (alt_context == -1) {
-      return;
-    }
-
-    int const alt_block_ind = alternate_ids[alt_ind][1];
-    int const alt_block_type = alternate_ids[alt_ind][2];
-    int const system = context_system_ids[alt_context];
-
-    int const neighb_block_ind =
-        system_neighbor_list[system][alt_block_ind][neighb_ind];
-    if (neighb_block_ind == -1) {
-      return;
-    }
-
-    int atom_1_type = -1;
-    int atom_2_type = -1;
-    int separation = max_important_bond_separation + 1;
-    Real dist(-1);
-
-    if (alt_block_ind != neighb_block_ind) {
-      // Inter-block interaction. One atom from "alt", one atom from "context."
-
-      int const neighb_block_type =
-          context_block_type[alt_context][neighb_block_ind];
-      int const alt_n_atoms = block_type_n_atoms[alt_block_type];
-      int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
-
-      // for best warp cohesion, mod the atom-pair indices after
-      // we have figured out the number of atoms in both blocks;
-      // if we modded *before* based on the maximum number of atoms
-      // per block, lots of warps with inactive atom-pairs
-      // (because they are off the end of the list) would run.
-      // By waiting to figure out the i/j inds until after we know
-      // how many atoms pairs there will be, we can push all the inactive
-      // threads into the same warps and kill those warps early
-      if (atom_pair_ind >= alt_n_atoms * neighb_n_atoms) {
-        return;
-      }
-
-      int alt_atom_ind = atom_pair_ind / neighb_n_atoms;
-      int neighb_atom_ind = atom_pair_ind % neighb_n_atoms;
-
-      // "count pair" logic
-
-      float count_pair_weight = 1.0;
-
-      separation =
-          system_min_bond_separation[system][alt_block_ind][neighb_block_ind];
-      if (separation <= max_important_bond_separation) {
-        separation = max_important_bond_separation + 1;
-        int const alt_n_interres_bonds =
-            block_type_n_interblock_bonds[alt_block_type];
-        int const neighb_n_interres_bonds =
-            block_type_n_interblock_bonds[neighb_block_type];
-        for (int ii = 0; ii < alt_n_interres_bonds; ++ii) {
-          int const ii_alt_conn_atom =
-              block_type_atoms_forming_chemical_bonds[alt_block_type][ii];
-          int const ii_alt_bonds_to_conn =
-              block_type_path_distance[alt_block_type][ii_alt_conn_atom]
-                                      [alt_atom_ind];
-          if (ii_alt_bonds_to_conn >= separation) {
-            continue;
-          }
-          for (int jj = 0; jj < neighb_n_interres_bonds; ++jj) {
-            int ii_jj_interblock_bond_sep =
-                system_inter_block_bondsep[system][alt_block_ind]
-                                          [neighb_block_ind][ii][jj];
-            if (ii_jj_interblock_bond_sep >= separation) {
-              continue;
-            }
-
-            if (ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep
-                >= separation) {
-              continue;
-            }
-            int const jj_neighb_conn_atom =
-                block_type_atoms_forming_chemical_bonds[neighb_block_type][jj];
-            int const jj_neighb_bonds_to_conn =
-                block_type_path_distance[neighb_block_type][jj_neighb_conn_atom]
-                                        [neighb_atom_ind];
-
-            if (ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep
-                    + jj_neighb_bonds_to_conn
-                < separation) {
-              separation = ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep
-                           + jj_neighb_bonds_to_conn;
-            }
-          }
+  auto eval_atom_pair =
+      ([=] EIGEN_DEVICE_FUNC(int alt_ind, int neighb_ind, int atom_pair_ind) {
+        int const max_important_bond_separation = 4;
+        int const alt_context = alternate_ids[alt_ind][0];
+        if (alt_context == -1) {
+          return;
         }
-      }
 
-      dist = distance<Real>::V(
-          context_coords[alt_context][neighb_block_ind][neighb_atom_ind],
-          alternate_coords[alt_ind][alt_atom_ind]);
-      atom_1_type = block_type_atom_types[alt_block_type][alt_atom_ind];
-      atom_2_type = block_type_atom_types[neighb_block_type][neighb_atom_ind];
-    } else {
-      // alt_block_ind == neighb_block_ind:
-      // intra-block interaction.
-      int const alt_n_atoms = block_type_n_atoms[alt_block_type];
-      // see comment in the inter-block interaction regarding the delay of the
-      // atom1/atom2 resolution until we know how many atoms are in the
-      // particular block we're looking at.
-      if (atom_pair_ind >= alt_n_atoms * alt_n_atoms) {
-        return;
-      }
-      int const atom_1_ind = atom_pair_ind / alt_n_atoms;
-      int const atom_2_ind = atom_pair_ind % alt_n_atoms;
-      if (atom_1_ind >= atom_2_ind) {
-        // count each intra-block interaction only once
-        return;
-      }
-      dist = distance<Real>::V(
-          alternate_coords[alt_ind][atom_1_ind],
-          alternate_coords[alt_ind][atom_2_ind]);
-      separation =
-          block_type_path_distance[alt_block_type][atom_1_ind][atom_2_ind];
-      atom_1_type = block_type_atom_types[alt_block_type][atom_1_ind];
-      atom_2_type = block_type_atom_types[alt_block_type][atom_2_ind];
-    }
+        int const alt_block_ind = alternate_ids[alt_ind][1];
+        int const alt_block_type = alternate_ids[alt_ind][2];
+        int const system = context_system_ids[alt_context];
 
-    // printf(
-    //     "%d %d (%d) %d %d %d %d\n",
-    //     alt_ind,
-    //     neighb_ind,
-    //     neighb_block_ind,
-    //     atom_pair_ind,
-    //     separation,
-    //     atom_1_type,
-    //     atom_2_type);
-    Real lj = lj_score<Real>::V(
-        dist,
-        separation,
-        type_params[atom_1_type],
-        type_params[atom_2_type],
-        global_params[0]);
+        int const neighb_block_ind =
+            system_neighbor_list[system][alt_block_ind][neighb_ind];
+        if (neighb_block_ind == -1) {
+          return;
+        }
 
-    accumulate<D, Real>::add(output[alt_ind], lj);
-  });
+        int atom_1_type = -1;
+        int atom_2_type = -1;
+        int separation = max_important_bond_separation + 1;
+        Real dist(-1);
+
+        if (alt_block_ind != neighb_block_ind) {
+          // Inter-block interaction. One atom from "alt", one atom from
+          // "context."
+
+          int const neighb_block_type =
+              context_block_type[alt_context][neighb_block_ind];
+          int const alt_n_atoms = block_type_n_atoms[alt_block_type];
+          int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
+
+          // for best warp cohesion, mod the atom-pair indices after
+          // we have figured out the number of atoms in both blocks;
+          // if we modded *before* based on the maximum number of atoms
+          // per block, lots of warps with inactive atom-pairs
+          // (because they are off the end of the list) would run.
+          // By waiting to figure out the i/j inds until after we know
+          // how many atoms pairs there will be, we can push all the inactive
+          // threads into the same warps and kill those warps early
+          if (atom_pair_ind >= alt_n_atoms * neighb_n_atoms) {
+            return;
+          }
+
+          int alt_atom_ind = atom_pair_ind / neighb_n_atoms;
+          int neighb_atom_ind = atom_pair_ind % neighb_n_atoms;
+
+          // "count pair" logic
+          separation =
+              common::count_pair::CountPair<D, Int>::inter_block_separation(
+                  max_important_bond_separation,
+                  alt_block_ind,
+                  neighb_block_ind,
+                  alt_block_type,
+                  neighb_block_type,
+                  alt_atom_ind,
+                  neighb_atom_ind,
+                  system_min_bond_separation[system],
+                  system_inter_block_bondsep[system],
+                  block_type_n_interblock_bonds,
+                  block_type_atoms_forming_chemical_bonds,
+                  block_type_path_distance);
+
+          dist = distance<Real>::V(
+              context_coords[alt_context][neighb_block_ind][neighb_atom_ind],
+              alternate_coords[alt_ind][alt_atom_ind]);
+          atom_1_type = block_type_atom_types[alt_block_type][alt_atom_ind];
+          atom_2_type =
+              block_type_atom_types[neighb_block_type][neighb_atom_ind];
+        } else {
+          // alt_block_ind == neighb_block_ind:
+          // intra-block interaction.
+          int const alt_n_atoms = block_type_n_atoms[alt_block_type];
+          // see comment in the inter-block interaction regarding the delay of
+          // the atom1/atom2 resolution until we know how many atoms are in the
+          // particular block we're looking at.
+          if (atom_pair_ind >= alt_n_atoms * alt_n_atoms) {
+            return;
+          }
+          int const atom_1_ind = atom_pair_ind / alt_n_atoms;
+          int const atom_2_ind = atom_pair_ind % alt_n_atoms;
+          if (atom_1_ind >= atom_2_ind) {
+            // count each intra-block interaction only once
+            return;
+          }
+          dist = distance<Real>::V(
+              alternate_coords[alt_ind][atom_1_ind],
+              alternate_coords[alt_ind][atom_2_ind]);
+          separation =
+              block_type_path_distance[alt_block_type][atom_1_ind][atom_2_ind];
+          atom_1_type = block_type_atom_types[alt_block_type][atom_1_ind];
+          atom_2_type = block_type_atom_types[alt_block_type][atom_2_ind];
+        }
+
+        // printf(
+        //     "%d %d (%d) %d %d %d %d\n",
+        //     alt_ind,
+        //     neighb_ind,
+        //     neighb_block_ind,
+        //     atom_pair_ind,
+        //     separation,
+        //     atom_1_type,
+        //     atom_2_type);
+        Real lj = lj_score<Real>::V(
+            dist,
+            separation,
+            type_params[atom_1_type],
+            type_params[atom_2_type],
+            global_params[0]);
+
+        accumulate<D, Real>::add(output[alt_ind], lj);
+      });
 
   DeviceDispatch<D>::foreach_combination_triple(
       n_alternate_blocks,
