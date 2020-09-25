@@ -15,7 +15,6 @@
 
 #include "lj.hh"
 #include "params.hh"
-#include "rotamer_pair_energy_lj.hh"
 
 namespace tmol {
 namespace score {
@@ -31,7 +30,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-struct LJRPEDispatch {
+struct LKRPEDispatch {
   static auto f(
       TView<Vec<Real, 3>, 3, D> context_coords,
       TView<Int, 2, D> context_block_type,
@@ -83,9 +82,10 @@ struct LJRPEDispatch {
       //////////////////////
 
       // LJ parameters
-      TView<LJTypeParams<Real>, 1, D> type_params,
+      TView<LKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
-      TView<Real, 1, D> lj_lk_weights) -> TPack<Real, 1, D>;
+      TView<Real, 1, D> lj_lk_weights,
+      TView<Real, 1, D> output_tensor) -> void;
 };
 
 }  // namespace potentials

@@ -10,6 +10,7 @@
 #include "lj.dispatch.hh"
 #include "lk_isotropic.dispatch.hh"
 #include "rotamer_pair_energy_lj.hh"
+#include "rotamer_pair_energy_lk.hh"
 
 namespace tmol {
 namespace score {
@@ -84,8 +85,10 @@ rotamer_pair_energies_op(
   Tensor block_type_n_interblock_bonds,
   Tensor block_type_atoms_forming_chemical_bonds,
   Tensor block_type_path_distance,
-  Tensor type_params,
-  Tensor global_params
+  Tensor lj_type_params,
+  Tensor lk_type_params,
+  Tensor global_params,
+  Tensor lj_lk_weights
 ) {
   
   at::Tensor rpes;
@@ -109,9 +112,30 @@ rotamer_pair_energies_op(
           TCAST(block_type_n_interblock_bonds),
           TCAST(block_type_atoms_forming_chemical_bonds),
           TCAST(block_type_path_distance),
-          TCAST(type_params),
-          TCAST(global_params));
+          TCAST(lj_type_params),
+          TCAST(global_params),
+	  TCAST(lj_lk_weights)
+	);
 	rpes = result.tensor;
+	LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+          TCAST(context_coords),
+          TCAST(context_block_type),
+          TCAST(alternate_coords),
+          TCAST(alternate_ids),
+          TCAST(context_system_ids),
+          TCAST(system_min_bond_separation),
+          TCAST(system_inter_block_bondsep),
+          TCAST(system_neighbor_list),
+          TCAST(block_type_n_atoms),
+          TCAST(block_type_atom_types),
+          TCAST(block_type_n_interblock_bonds),
+          TCAST(block_type_atoms_forming_chemical_bonds),
+          TCAST(block_type_path_distance),
+          TCAST(lk_type_params),
+          TCAST(global_params),
+          TCAST(lj_lk_weights),
+          result.view
+	);
       }));
   return rpes;
 }

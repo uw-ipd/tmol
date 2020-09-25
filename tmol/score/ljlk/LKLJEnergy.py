@@ -26,10 +26,14 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         systems: Poses,
         context_system_ids: Tensor(int)[:, :],
         system_bounding_spheres: Tensor(float)[:, :, 4],
+        weights,  # map string->Real
     ):
         system_neighbor_list = self.create_block_neighbor_lists(
             systems, system_bounding_spheres
         )
+        lj_lk_weights = torch.zeros((2,), dtype=torch.float32, device=self.device)
+        lj_lk_weights[0] = weights["lj"] if "lj" in weights else 0
+        lj_lk_weights[1] = weights["lk"] if "lk" in weights else 0
 
         return LJLKInterSystemModule(
             context_system_ids=context_system_ids,
@@ -43,6 +47,7 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             block_type_path_distance=packed_block_types.bond_separation,
             type_params=self.type_params,
             global_params=self.global_params,
+            lj_lk_weights=lj_lk_weights,
         )
 
     def create_block_neighbor_lists(
@@ -110,6 +115,7 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         block_type_path_distance,
         type_params,
         global_params,
+        lj_lk_weights,
     ):
         super().__init__()
 
@@ -133,12 +139,32 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
 
         # Pack parameters into dense tensor. Parameter ordering must match
         # struct layout declared in `potentials/params.hh`.
-        self.type_params = _p(
+        self.lj_type_params = _p(
             torch.stack(
                 _t(
                     [
                         type_params.lj_radius,
                         type_params.lj_wdepth,
+                        type_params.is_donor,
+                        type_params.is_hydroxyl,
+                        type_params.is_polarh,
+                        type_params.is_acceptor,
+                    ]
+                ),
+                dim=1,
+            )
+        )
+
+        # Pack parameters into dense tensor. Parameter ordering must match
+        # struct layout declared in `potentials/params.hh`.
+        self.lk_type_params = _p(
+            torch.stack(
+                _t(
+                    [
+                        type_params.lj_radius,
+                        type_params.lk_dgfree,
+                        type_params.lk_lambda,
+                        type_params.lk_volume,
                         type_params.is_donor,
                         type_params.is_hydroxyl,
                         type_params.is_polarh,
@@ -161,6 +187,7 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
                 dim=1,
             )
         )
+        self.lj_lk_weights = _p(lj_lk_weights)
 
     @torch.jit.script_method
     def forward(
@@ -180,6 +207,8 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
             self.block_type_n_interblock_bonds,
             self.block_type_atoms_forming_chemical_bonds,
             self.block_type_path_distance,
-            self.type_params,
+            self.lj_type_params,
+            self.lk_type_params,
             self.global_params,
+            self.lj_lk_weights,
         )

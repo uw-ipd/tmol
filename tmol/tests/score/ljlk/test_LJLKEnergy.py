@@ -126,10 +126,11 @@ def test_inter_module(ubq_res, default_database, torch_device):
         torch.arange(10, dtype=torch.int32, device=torch_device), 5
     )
 
+    weights = {"lj": 1.0, "lk": 1.0}
     ljlk_energy.setup_packed_block_types(poses.packed_block_types)
     ljlk_energy.setup_poses(poses)
     inter_modeule = ljlk_energy.inter_module(
-        poses.packed_block_types, poses, context_system_ids, bounding_spheres
+        poses.packed_block_types, poses, context_system_ids, bounding_spheres, weights
     )
 
     max_n_atoms = poses.packed_block_types.max_n_atoms
@@ -231,10 +232,11 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
         torch.arange(n_traj * n_poses, dtype=torch.int32, device=torch_device), n_traj
     )
 
+    weights = {"lj": 1.0, "lk": 1.0}
     ljlk_energy.setup_packed_block_types(poses.packed_block_types)
     ljlk_energy.setup_poses(poses)
-    inter_modeule = ljlk_energy.inter_module(
-        poses.packed_block_types, poses, context_system_ids, bounding_spheres
+    inter_module = ljlk_energy.inter_module(
+        poses.packed_block_types, poses, context_system_ids, bounding_spheres, weights
     )
 
     max_n_atoms = poses.packed_block_types.max_n_atoms
@@ -287,7 +289,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
 
     @benchmark
     def run():
-        rpes = inter_modeule(
+        rpes = inter_module(
             context_coords, context_block_type, alternate_coords, alternate_ids
         )
         return rpes

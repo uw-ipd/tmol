@@ -14,8 +14,8 @@
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 
-#include <tmol/score/ljlk/potentials/lj.hh>
-#include <tmol/score/ljlk/potentials/rotamer_pair_energy_lj.hh>
+#include <tmol/score/ljlk/potentials/lk_isotropic.hh>
+#include <tmol/score/ljlk/potentials/rotamer_pair_energy_lk.hh>
 
 #include <chrono>
 
@@ -33,7 +33,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
+auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 3, D> context_coords,
     TView<Int, 2, D> context_block_type,
     TView<Vec<Real, 3>, 2, D> alternate_coords,
@@ -84,9 +84,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     //////////////////////
 
     // LJ parameters
-    TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
-    TView<Real, 1, D> lj_lk_weights) -> TPack<Real, 1, D> {
+    TView<Real, 1, D> lj_lk_weights,
+    TView<Real, 1, D> output_tensor) -> void {
   int const n_systems = system_min_bond_separation.size(0);
   int const n_contexts = context_coords.size(0);
   int64_t const n_alternate_blocks = alternate_coords.size(0);
@@ -123,13 +124,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   assert(lj_lk_weights.size(0) == 2);
 
+  assert(output_tensor.size(0) == n_alternate_blocks);
+
   // auto wcts = std::chrono::system_clock::now();
   // clock_t start_time = clock();
 
-  auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
-  auto output = output_t.view;
-  auto count_t = TPack<int, 1, D>::zeros({1});
-  auto count = count_t.view;
+  // auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
+  // auto output = output_t.view;
+  // auto count_t = TPack<int, 1, D>::zeros({1});
+  // auto count = count_t.view;
 
   auto eval_atom_pair =
       ([=] EIGEN_DEVICE_FUNC(int alt_ind, int neighb_ind, int atom_pair_ind) {
@@ -234,15 +237,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         //     separation,
         //     atom_1_type,
         //     atom_2_type);
-        Real lj = lj_score<Real>::V(
+        Real lk = lk_isotropic_score<Real>::V(
             dist,
             separation,
             type_params[atom_1_type],
             type_params[atom_2_type],
             global_params[0]);
-        lj *= lj_lk_weights[0];
 
-        accumulate<D, Real>::add(output[alt_ind], lj);
+        lk *= lj_lk_weights[1];
+        accumulate<D, Real>::add(output_tensor[alt_ind], lk);
       });
 
   DeviceDispatch<D>::foreach_combination_triple(
@@ -252,8 +255,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       eval_atom_pair);
 
 #ifdef __CUDACC__
-  // float first;
-  // cudaMemcpy(&first, &output[0], sizeof(float), cudaMemcpyDeviceToHost);
+  float first;
+  cudaMemcpy(&first, &output_tensor[0], sizeof(float), cudaMemcpyDeviceToHost);
   //
   // clock_t stop_time = clock();
   // std::chrono::duration<double> wctduration =
@@ -266,7 +269,6 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   //           << " wall time: " << wctduration.count() << " " << first
   //           << std::endl;
 #endif
-  return output_t;
 }
 
 }  // namespace potentials

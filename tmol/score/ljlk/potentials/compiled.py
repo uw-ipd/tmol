@@ -14,6 +14,8 @@ _compiled = load(
                 "lk_isotropic.compiled.cuda.cu",
                 "rotamer_pair_energy_lj.cpu.cpp",
                 "rotamer_pair_energy_lj.cuda.cu",
+                "rotamer_pair_energy_lk.cpu.cpp",
+                "rotamer_pair_energy_lk.cuda.cu",
             ],
         )
     ),
