@@ -16,6 +16,8 @@
 #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/ljlk/potentials/rotamer_pair_energy_lj.hh>
 
+#include <chrono>
+
 namespace tmol {
 namespace score {
 namespace ljlk {
@@ -117,10 +119,13 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(block_type_path_distance.size(1) == max_n_atoms);
   assert(block_type_path_distance.size(2) == max_n_atoms);
 
-  clock_t start_time = clock();
+  // auto wcts = std::chrono::system_clock::now();
+  // clock_t start_time = clock();
 
   auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
   auto output = output_t.view;
+  auto count_t = TPack<int, 1, D>::zeros({1});
+  auto count = count_t.view;
 
   auto eval_atom_pair = ([=] EIGEN_DEVICE_FUNC(
                              int alt_ind, int neighb_ind, int atom_pair_ind) {
@@ -273,14 +278,20 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       eval_atom_pair);
 
 #ifdef __CUDACC__
-  float first;
-  cudaMemcpy(&first, &output[0], sizeof(float), cudaMemcpyDeviceToHost);
+  // float first;
+  // cudaMemcpy(&first, &output[0], sizeof(float), cudaMemcpyDeviceToHost);
+  //
+  // clock_t stop_time = clock();
+  // std::chrono::duration<double> wctduration =
+  // (std::chrono::system_clock::now() - wcts);
+  //
+  // std::cout << n_systems << " " << n_contexts << " " <<n_alternate_blocks <<
+  // " "; std::cout << n_alternate_blocks * max_n_neighbors * max_n_atoms *
+  // max_n_atoms << " "; std::cout << "runtime? " << ((double)stop_time -
+  // start_time) / CLOCKS_PER_SEC
+  //           << " wall time: " << wctduration.count() << " " << first
+  //           << std::endl;
 #endif
-
-  clock_t stop_time = clock();
-  std::cout << "runtime? " << ((double)stop_time - start_time) / CLOCKS_PER_SEC
-            << std::endl;
-
   return output_t;
 }
 
