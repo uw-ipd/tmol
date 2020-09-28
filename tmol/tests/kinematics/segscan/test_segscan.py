@@ -14,6 +14,48 @@ def extension():
 
 
 @requires_cuda
+def test_segscan_inclusive(extension):
+    """Test inclusive segscan with known correct answer"""
+    x = torch.ones(10, dtype=torch.float32)
+    segs = torch.tensor([0, 3, 5], dtype=torch.int32)
+    xcuda = x.to(device="cuda")
+    segscuda = segs.to(device="cuda")
+
+    gold = torch.cat(
+        [
+            torch.arange(3, dtype=torch.float32) + 1,
+            torch.arange(2, dtype=torch.float32) + 1,
+            torch.arange(5, dtype=torch.float32) + 1,
+        ]
+    )
+    y = extension.segscan_incl(xcuda, segscuda)
+    y = y.to(device="cpu")
+
+    torch.testing.assert_allclose(gold, y)
+
+
+@requires_cuda
+def test_segscan_exclusive(extension):
+    """Test inclusive segscan with known correct answer"""
+    x = torch.ones(10, dtype=torch.float32)
+    segs = torch.tensor([0, 3, 5], dtype=torch.int32)
+    xcuda = x.to(device="cuda")
+    segscuda = segs.to(device="cuda")
+
+    gold = torch.cat(
+        [
+            torch.arange(3, dtype=torch.float32),
+            torch.arange(2, dtype=torch.float32),
+            torch.arange(5, dtype=torch.float32),
+        ]
+    )
+    y = extension.segscan_excl(xcuda, segscuda)
+    y = y.to(device="cpu")
+
+    torch.testing.assert_allclose(gold, y)
+
+
+@requires_cuda
 def test_segscan(extension):
     """CUDA segscan code
     """

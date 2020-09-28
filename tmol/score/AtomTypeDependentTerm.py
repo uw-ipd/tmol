@@ -44,9 +44,6 @@ class AtomTypeDependentTerm(EnergyTerm):
                 i, : packed_block_types.n_atoms[i]
             ] = self.atom_type_index.get_indexer([x.atom_type for x in restype.atoms])
 
-        atom_types = torch.tensor(atom_types, device=self.device)
-        setattr(packed_block_types, "atom_types", atom_types)
-
         heavy_atom_inds = []
         for restype in packed_block_types.active_residues:
             rt_heavy = [
@@ -71,10 +68,12 @@ class AtomTypeDependentTerm(EnergyTerm):
         for i, inds in enumerate(heavy_atom_inds):
             heavy_atom_inds_t[i, : len(inds)] = torch.tensor(inds, dtype=torch.int32)
 
+        atom_types = torch.tensor(atom_types, device=self.device)
         heavy_atom_inds_t = heavy_atom_inds_t.to(self.device)
         n_heavy_atoms = torch.tensor(
             n_heavy_atoms, dtype=torch.int32, device=self.device
         )
 
+        setattr(packed_block_types, "atom_types", atom_types)
         setattr(packed_block_types, "n_heavy_atoms", n_heavy_atoms)
         setattr(packed_block_types, "heavy_atom_inds", heavy_atom_inds_t)

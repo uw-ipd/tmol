@@ -71,6 +71,47 @@ class Torsion:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class ChiSamples:
+    chi_dihedral: str
+    samples: Tuple[float, ...]
+    expansions: Tuple[float, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class SidechainBuilding:
+    root: str
+    backbone_atoms: Tuple[str, ...]
+    exclude_bonds: Tuple[Tuple[str, str], ...]
+    chi_samples: Tuple[ChiSamples, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class PolymerProperties:
+    is_polymer: bool
+    polymer_type: str
+    backbone_type: str
+    sidechain_chirality: str
+    termini_variants: Tuple[str, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ProtonationProperties:
+    protonated_atoms: Tuple[str, ...]
+    protonation_state: str
+    pH: float
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ChemicalProperties:
+    is_canonical: bool
+    polymer: PolymerProperties
+    chemical_modifications: Tuple[str, ...]
+    connectivity: Tuple[str, ...]
+    protonation: ProtonationProperties
+    virtual: Tuple[str, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class Residue:
     name: str
     name3: str
@@ -79,7 +120,8 @@ class Residue:
     connections: Tuple[Connection, ...]
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
-    hierarchies: Tuple[str, ...]
+    properties: ChemicalProperties
+    sidechain_building: Tuple[SidechainBuilding, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

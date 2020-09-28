@@ -238,7 +238,7 @@ class Pose:
         #
         intra_res_bonds = numpy.concatenate(
             [
-                r.residue_type.bond_indicies + rind * max_n_atoms
+                r.residue_type.bond_indices + rind * max_n_atoms
                 for rind, r in zip(numpy.arange(len(res), dtype=int), res)
             ]
         )

@@ -174,7 +174,7 @@ class PackedResidueSystem:
         # Offset the internal bond graph by the residue start idx
         intra_res_bonds = numpy.concatenate(
             [
-                r.residue_type.bond_indicies + start
+                r.residue_type.bond_indices + start
                 for start, r in zip(segment_starts, res)
             ]
         )

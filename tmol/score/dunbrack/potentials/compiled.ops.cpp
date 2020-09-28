@@ -124,7 +124,7 @@ struct ScoreOpBackward : public torch::autograd::Function {
 template < template <tmol::Device> class DispatchMethod >
 Tensor dun_op(
     Tensor coords,
-    Tensor rotameric_prob_tables,
+    // Tensor rotameric_prob_tables,
     Tensor rotameric_neglnprob_tables,
     Tensor rotprob_table_sizes,
     Tensor rotprob_table_strides,
@@ -181,7 +181,7 @@ Tensor dun_op(
 
         auto result = DunbrackDispatch<DispatchMethod, Dev, Real, Int>::forward(
             TCAST(coords),
-            TCAST(rotameric_prob_tables),
+            //TCAST(rotameric_prob_tables),
             TCAST(rotameric_neglnprob_tables),
             TCAST(rotprob_table_sizes),
             TCAST(rotprob_table_strides),

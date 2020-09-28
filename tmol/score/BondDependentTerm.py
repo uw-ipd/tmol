@@ -36,8 +36,8 @@ class BondDependentTerm(EnergyTerm):
             i_nats = packed_block_types.n_atoms[i]
             # rt_bonds = numpy.zeros((i_nats, i_nats)
             rt_bonds_sparse = sparse.COO(
-                rt.bond_indicies.T,
-                data=numpy.full(len(rt.bond_indicies), True),
+                rt.bond_indices.T,
+                data=numpy.full(len(rt.bond_indices), True),
                 shape=(len(rt.atoms), len(rt.atoms)),
                 cache=True,
             )

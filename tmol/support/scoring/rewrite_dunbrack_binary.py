@@ -28,6 +28,7 @@ def write_rotameric_data_for_aa(aa_lines, nchi, zgroup, rotamer_alias=None):
     means = numpy.zeros([nrots, 36, 36, nchi], dtype=float)
     stdvs = numpy.zeros([nrots, 36, 36, nchi], dtype=float)
     prob_sorted_rots_by_phi_psi = numpy.zeros([36, 36, nrots], dtype=int)
+    rotprob_by_phi_psi_order = numpy.ones([36, 36, nrots], dtype=float)
     count_rots_in_ppbin = numpy.zeros([36, 36], dtype=int)
     if rotamer_alias is None:
         rotamer_alias = numpy.zeros([0, nchi], dtype=int)
@@ -40,7 +41,8 @@ def write_rotameric_data_for_aa(aa_lines, nchi, zgroup, rotamer_alias=None):
         rot_id = tuple([int(x) for x in cols[4 : (4 + nchi)]])
         rot_ind = rot_to_rot_ind[rot_id]
 
-        probabilities[rot_ind, phi_ind, psi_ind] = float(cols[8])
+        prob = float(cols[8])
+        probabilities[rot_ind, phi_ind, psi_ind] = prob
         means[rot_ind, phi_ind, psi_ind, :] = numpy.array(
             [float(x) for x in cols[9 : (9 + nchi)]], dtype=float
         )
@@ -51,7 +53,13 @@ def write_rotameric_data_for_aa(aa_lines, nchi, zgroup, rotamer_alias=None):
         prob_sorted_rots_by_phi_psi[phi_ind, psi_ind, count_for_ppbin] = rot_to_rot_ind[
             rot_id
         ]
+        rotprob_by_phi_psi_order[phi_ind, psi_ind, count_for_ppbin] = -1 * prob
         count_rots_in_ppbin[phi_ind, psi_ind] = count_for_ppbin + 1
+
+    rotprob_by_phi_psi_order_inds = numpy.argsort(rotprob_by_phi_psi_order, axis=2)
+    prob_sorted_rots_by_phi_psi = numpy.take_along_axis(
+        prob_sorted_rots_by_phi_psi, rotprob_by_phi_psi_order_inds, axis=2
+    )
 
     numpy.testing.assert_array_equal(
         count_rots_in_ppbin, nrots * numpy.ones([36, 36], dtype=int)
@@ -327,8 +335,8 @@ def write_binary_version_of_dunbrack_rotamer_library(
 if __name__ == "__main__":
 
     write_binary_version_of_dunbrack_rotamer_library(
-        "/home/andrew/rosetta/GIT/Rosetta/main/database/rotamer/beta_nov2016/",
-        "/home/andrew/rosetta/GIT/Rosetta/main/database/rotamer/ExtendedOpt1-5/",
+        "/Users/andrew/rosetta/GIT/Rosetta/main/database/rotamer/beta_nov2016/",
+        "/Users/andrew/rosetta/GIT/Rosetta/main/database/rotamer/ExtendedOpt1-5/",
         "dunbrack.bin",
     )
     # open("dunbrack_library2.json", "w").writelines(outlines)
