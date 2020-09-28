@@ -62,7 +62,10 @@ struct LKRPEDispatch {
       // Chemical properties
       // how many atoms for a given block
       // Dimsize n_block_types
-      TView<Int, 1, D> block_type_n_atoms,
+      TView<Int, 1, D> block_type_n_heavy_atoms,
+
+      // index of the ith heavy atom in a block type
+      TView<Int, 2, D> block_type_heavyatom_index,
 
       // what are the atom types for these atoms
       // Dimsize: n_block_types x max_n_atoms

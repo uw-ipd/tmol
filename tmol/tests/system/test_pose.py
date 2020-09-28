@@ -1,4 +1,7 @@
+import torch
+
 from tmol.system.pose import residue_types_from_residues, PackedBlockTypes, Pose, Poses
+from tmol.score.chemical_database import AtomTypeParamResolver
 
 
 def two_ubq_poses(default_database, ubq_res, torch_device):

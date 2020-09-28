@@ -41,7 +41,9 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             system_inter_block_bondsep=systems.inter_block_bondsep_t,
             system_neighbor_list=system_neighbor_list,
             block_type_n_atoms=packed_block_types.n_atoms,
+            block_type_n_heavy_atoms=packed_block_types.n_heavy_atoms,
             block_type_atom_types=packed_block_types.atom_types,
+            block_type_heavy_atom_inds=packed_block_types.heavy_atom_inds,
             block_type_n_interblock_bonds=packed_block_types.n_interblock_bonds,
             block_type_atoms_forming_chemical_bonds=packed_block_types.atoms_for_interblock_bonds,
             block_type_path_distance=packed_block_types.bond_separation,
@@ -109,7 +111,9 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         system_inter_block_bondsep,
         system_neighbor_list,
         block_type_n_atoms,
+        block_type_n_heavy_atoms,
         block_type_atom_types,
+        block_type_heavy_atom_inds,
         block_type_n_interblock_bonds,
         block_type_atoms_forming_chemical_bonds,
         block_type_path_distance,
@@ -130,7 +134,9 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         self.system_inter_block_bondsep = _p(system_inter_block_bondsep)
         self.system_neighbor_list = _p(system_neighbor_list)
         self.block_type_n_atoms = _p(block_type_n_atoms)
+        self.block_type_n_heavy_atoms = _p(block_type_n_heavy_atoms)
         self.block_type_atom_types = _p(block_type_atom_types)
+        self.block_type_heavy_atom_inds = _p(block_type_heavy_atom_inds)
         self.block_type_n_interblock_bonds = _p(block_type_n_interblock_bonds)
         self.block_type_atoms_forming_chemical_bonds = _p(
             block_type_atoms_forming_chemical_bonds
@@ -203,7 +209,9 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
             self.system_inter_block_bondsep,
             self.system_neighbor_list,
             self.block_type_n_atoms,
+            self.block_type_n_heavy_atoms,
             self.block_type_atom_types,
+            self.block_type_heavy_atom_inds,
             self.block_type_n_interblock_bonds,
             self.block_type_atoms_forming_chemical_bonds,
             self.block_type_path_distance,

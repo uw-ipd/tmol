@@ -2,20 +2,26 @@ import numpy
 import torch
 import pytest
 
-from tmol.score.ljlk.LKLJEnergy import LJLKEnergy
+from tmol.score.ljlk.LJLKEnergy import LJLKEnergy
 from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.system.pose import Pose, Poses
+from tmol.score.chemical_database import AtomTypeParamResolver
 
 from tmol.tests.system.test_pose import two_ubq_poses
 
 
 def test_smoke(default_database, torch_device):
 
+    resolver = AtomTypeParamResolver.from_database(
+        default_database.chemical, torch_device
+    )
+
     ljlk_params = LJLKParamResolver.from_database(
         default_database.chemical, default_database.scoring.ljlk, device=torch_device
     )
 
     ljlk_energy = LJLKEnergy(
+        resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
         atom_type_index=ljlk_params.atom_type_index,
@@ -29,11 +35,15 @@ def test_smoke(default_database, torch_device):
 def test_create_neighbor_list(ubq_res, default_database, torch_device):
     #
     # torch_device = torch.device("cpu")
+    resolver = AtomTypeParamResolver.from_database(
+        default_database.chemical, torch_device
+    )
     ljlk_params = LJLKParamResolver.from_database(
         default_database.chemical, default_database.scoring.ljlk, device=torch_device
     )
 
     ljlk_energy = LJLKEnergy(
+        resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
         atom_type_index=ljlk_params.atom_type_index,
@@ -92,11 +102,15 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
 def test_inter_module(ubq_res, default_database, torch_device):
     #
     # torch_device = torch.device("cpu")
+    resolver = AtomTypeParamResolver.from_database(
+        default_database.chemical, torch_device
+    )
     ljlk_params = LJLKParamResolver.from_database(
         default_database.chemical, default_database.scoring.ljlk, device=torch_device
     )
 
     ljlk_energy = LJLKEnergy(
+        resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
         atom_type_index=ljlk_params.atom_type_index,
@@ -187,11 +201,15 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
 
     #
     torch_device = torch.device("cuda")
+    resolver = AtomTypeParamResolver.from_database(
+        default_database.chemical, torch_device
+    )
     ljlk_params = LJLKParamResolver.from_database(
         default_database.chemical, default_database.scoring.ljlk, device=torch_device
     )
 
     ljlk_energy = LJLKEnergy(
+        resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
         atom_type_index=ljlk_params.atom_type_index,
