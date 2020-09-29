@@ -56,18 +56,19 @@ class Connection:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class ConnectedAtom:
-    atom: str
+class UnresolvedAtom:
+    atom: Optional[str] = None
     connection: Optional[str] = None
+    bond_sep_from_conn: Optional[int] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Torsion:
     name: str
-    a: ConnectedAtom
-    b: ConnectedAtom
-    c: ConnectedAtom
-    d: ConnectedAtom
+    a: UnresolvedAtom
+    b: UnresolvedAtom
+    c: UnresolvedAtom
+    d: UnresolvedAtom
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -90,6 +91,7 @@ class PolymerProperties:
     is_polymer: bool
     polymer_type: str
     backbone_type: str
+    mainchain_atoms: Optional[Tuple[str, ...]]
     sidechain_chirality: str
     termini_variants: Tuple[str, ...]
 
@@ -121,7 +123,7 @@ class Residue:
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
     properties: ChemicalProperties
-    sidechain_building: Tuple[SidechainBuilding, ...]
+    # sidechain_building: Tuple[SidechainBuilding, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

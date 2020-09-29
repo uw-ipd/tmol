@@ -40,5 +40,15 @@ def test_residue_defs(default_database: tmol.database.ParameterDatabase):
 
         for t in r.torsions:
             for catom in (t.a, t.b, t.c, t.d):
-                assert catom.atom in atom_names
-                assert catom.connection is None or catom.connection in connection_names
+                assert (
+                    catom.atom in atom_names
+                    and catom.connection is None
+                    and catom.bond_sep_from_conn is None
+                ) or (
+                    catom.atom is None
+                    and catom.connection in connection_names
+                    and catom.bond_sep_from_conn is not None
+                )
+        if r.properties.polymer.mainchain_atoms is not None:
+            for at in r.properties.polymer.mainchain_atoms:
+                assert at in atom_names
