@@ -114,7 +114,7 @@ class ChemicalProperties:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class Residue:
+class RawResidueType:
     name: str
     name3: str
     atoms: Tuple[Atom, ...]
@@ -129,7 +129,7 @@ class Residue:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase:
     atom_types: Tuple[AtomType, ...]
-    residues: Tuple[Residue, ...]
+    residues: Tuple[RawResidueType, ...]
 
     @classmethod
     def from_file(cls, path):

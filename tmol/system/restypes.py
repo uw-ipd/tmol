@@ -1,18 +1,22 @@
 from frozendict import frozendict
 from toolz.curried import concat, map, compose
-from typing import Mapping, Optional, NewType
+from typing import Mapping, Optional, NewType, Tuple
 import attr
 
 import numpy
+import sparse
+import scipy.sparse.csgraph as csgraph
 
 import tmol.database.chemical
 
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
+BondCount = NewType("ConnectionIndex", int)
+UnresolvedAtomID = Tuple[AtomIndex, ConnectionIndex, BondCount]
 
 
 @attr.s(slots=True, frozen=True)
-class ResidueType(tmol.database.chemical.Residue):
+class RefinedResidueType(tmol.database.chemical.RawResidueType):
     atom_to_idx: Mapping[str, AtomIndex] = attr.ib()
 
     @atom_to_idx.default
@@ -52,12 +56,107 @@ class ResidueType(tmol.database.chemical.Residue):
         return frozendict(centries)
 
     def _repr_pretty_(self, p, cycle):
-        p.text(f"ResidueType(name={self.name},...)")
+        p.text(f"RefinedResidueType(name={self.name},...)")
+
+    torsion_to_uaids: Mapping[str, Tuple[UnresolvedAtomID]] = attr.ib()
+
+    @torsion_to_uaids.default
+    def _setup_torsion_to_uaids(self):
+        torsion_to_uaids = {}
+        for tor in self.torsions:
+            ats = []
+            for at in (tor.a, tor.b, tor.c, tor.d):
+                if at.atom is not None:
+                    ats.append((self.atom_to_idx[at.atom], -1, -1))
+                else:
+                    ats.append(
+                        (
+                            -1,
+                            self.connection_to_idx[at.connection],
+                            at.bond_sep_from_conn,
+                        )
+                    )
+            torsion_to_uaids[tor.name] = ats
+        return frozendict(torsion_to_uaids)
+
+    path_distance: numpy.ndarray = attr.ib()
+
+    @path_distance.default
+    def _setup_path_distance(self):
+        MAX_SEPARATION = 6
+        n_atoms = len(self.atoms)
+        bonds_sparse = sparse.COO(
+            self.bond_indices.T,
+            data=numpy.full(len(self.bond_indices), True),
+            shape=(n_atoms, n_atoms),
+            cache=True,
+        )
+        path_distance = csgraph.dijkstra(
+            bonds_sparse, directed=False, unweighted=True, limit=MAX_SEPARATION
+        )
+        path_distance[path_distance == numpy.inf] = MAX_SEPARATION
+        return path_distance
+
+    atom_downstream_of_conn: numpy.ndarray = attr.ib()
+
+    @atom_downstream_of_conn.default
+    def _setup_atom_downstream_of_conn(self):
+        n_atoms = len(self.atoms)
+        n_conns = len(self.connections)
+        atom_downstream_of_conn = numpy.full((n_conns, n_atoms), -1, dtype=numpy.int32)
+        for i in range(n_conns):
+            i_conn_atom = self.atom_to_idx[self.connections[i].atom]
+            if self.connections[i].name == "down":
+                # walk up through the mainchain atoms
+                mc_ats = self.properties.polymer.mainchain_atoms
+                if mc_ats is None:
+                    # weird case? The user has a "down" connection but no
+                    # atoms are part of the mainchain?
+                    atom_downstream_of_conn[i, :] = i_conn_atom
+                else:
+                    assert mc_ats[0] == self.connections[i].atom
+                    for j in range(n_atoms):
+                        atom_downstream_of_conn[i, j] = self.atom_to_idx[
+                            mc_ats[j] if j < len(mc_ats) else mc_ats[-1]
+                        ]
+            elif self.connections[i].name == "up":
+                # walk up through the mainchain atoms untill we
+                # hit the first mainchain atom and then report all
+                # the other atoms downstream of the connection as the first
+                assert mc_ats[-1] == self.connections[i].atom
+                mc_ats = self.properties.polymer.mainchain_atoms
+                if mc_ats is None:
+                    # weird case? The user has a "down" connection but no
+                    # atoms are part of the mainchain?
+                    atom_downstream_of_conn[i, :] = i_conn_atom
+                else:
+                    for j in range(n_atoms):
+                        atom_downstream_of_conn[i, j] = self.atom_to_idx[
+                            mc_ats[len(mc_ats) - j - 1]
+                            if j < len(mc_ats)
+                            else mc_ats[0]
+                        ]
+
+            else:
+                # we walk backwards through the parents of the the
+                # connection atom; when we hit the root atom, just
+                # keep going -- report all the other atoms downstream of
+                # the connection as the root atom.
+                parent = self.connections[i].atom
+                for j in range(n_atoms):
+                    atom_downstream_of_conn[i, j] = self.atom_to_idx[parent]
+                    atom_index = atom_downstream_of_conn[i, j]
+                    atom = parent
+                    if self.icoors[atom_index].name == atom:
+                        parent = self.icoors[atom_index].parent
+                    else:
+                        parent = next(x.parent for x in self.icoors if x.name == "atom")
+        return atom_downstream_of_conn
 
 
 @attr.s(slots=True, frozen=True)
 class Residue:
-    residue_type: ResidueType = attr.ib()
+    residue_type: RefinedResidueType = attr.ib()
     coords: numpy.ndarray = attr.ib()
 
     @coords.default

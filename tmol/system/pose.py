@@ -14,7 +14,7 @@ from typing import Sequence, Tuple
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
-from .restypes import ResidueType, Residue
+from .restypes import RefinedResidueType, Residue
 from .datatypes import (
     atom_metadata_dtype,
     torsion_metadata_dtype,
@@ -35,7 +35,7 @@ def residue_types_from_residues(residues):
 
 @attr.s(auto_attribs=True)
 class PackedBlockTypes:
-    active_residues: Sequence[ResidueType]
+    active_residues: Sequence[RefinedResidueType]
     restype_index: pandas.Index
 
     max_n_atoms: int
@@ -50,7 +50,7 @@ class PackedBlockTypes:
     @classmethod
     def from_restype_list(
         cls,
-        active_residues: Sequence[ResidueType],
+        active_residues: Sequence[RefinedResidueType],
         chem_db: ChemicalDatabase,
         device=torch.device,
     ):
@@ -67,12 +67,12 @@ class PackedBlockTypes:
         )
 
     @classmethod
-    def count_max_n_atoms(cls, active_residues: Sequence[ResidueType]):
+    def count_max_n_atoms(cls, active_residues: Sequence[RefinedResidueType]):
         return max(len(restype.atoms) for restype in active_residues)
 
     @classmethod
     def count_n_atoms(
-        cls, active_residues: Sequence[ResidueType], device: torch.device
+        cls, active_residues: Sequence[RefinedResidueType], device: torch.device
     ):
         return torch.tensor(
             [len(restype.atoms) for restype in active_residues],

@@ -306,6 +306,8 @@ class PackedResidueSystem:
                 }
             )
 
+        print("torsion_index")
+        print(torsion_index)
         pandas.DataFrame
 
         # Unpack the merge frame into atomic indices, fixing up any missing values to

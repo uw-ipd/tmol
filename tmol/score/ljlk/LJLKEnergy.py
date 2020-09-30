@@ -59,8 +59,8 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         # striking distances of each other that we will use to
         # decide which atom-pair calculations to perform during
         # rotamer substititions
-        sphere_centers = torch.tensor(system_bounding_spheres[:, :, :3])
-        sphere_radii = torch.tensor(system_bounding_spheres[:, :, 1])  # deep copy
+        sphere_centers = system_bounding_spheres[:, :, :3].clone().detach()
+        sphere_radii = system_bounding_spheres[:, :, 1].clone().detach()
         n_sys = system_bounding_spheres.shape[0]
         max_n_blocks = system_bounding_spheres.shape[1]
         sphere_centers_1 = sphere_centers.view((n_sys, -1, max_n_blocks, 3))

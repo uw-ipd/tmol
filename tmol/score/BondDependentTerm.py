@@ -5,7 +5,7 @@ import torch
 import sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.system.restypes import ResidueType
+# from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
 from tmol.score.EnergyTerm import EnergyTerm
 
