@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from tmol.system.pose import residue_types_from_residues, PackedBlockTypes, Pose, Poses
 from tmol.score.chemical_database import AtomTypeParamResolver
@@ -45,15 +46,15 @@ def test_packed_residue_type_atoms_downstream_of_conn(
     assert pbt.atom_downstream_of_conn.device == torch_device
     assert pbt.atom_downstream_of_conn.shape == (
         pbt.n_types,
-        pbt.max_n_atoms,
         max_n_conn,
+        pbt.max_n_atoms,
     )
     pbt_adoc = pbt.atom_downstream_of_conn.cpu().numpy()
 
-    for i, res in enumerate(ubq_res):
+    for i, res in enumerate(rt_list):
         adoc = res.atom_downstream_of_conn
-        assert nump.testing.equals(
-            pbt_adoc[i, : len(adoc.connections), : len(adoc.atoms)], adoc
+        numpy.testing.assert_equal(
+            pbt_adoc[i, : len(res.connections), : len(res.atoms)], adoc
         )
 
 

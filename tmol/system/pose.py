@@ -96,7 +96,7 @@ class PackedBlockTypes:
         max_n_conn = max(len(rt.connections) for rt in active_residues)
         max_n_atoms = max(len(rt.atoms) for rt in active_residues)
         atom_downstream_of_conn = torch.full(
-            (n_restypes, max_n_conn, max_n_atoms), -1, dtype=torch.int32
+            (n_restypes, max_n_conn, max_n_atoms), -1, dtype=torch.int32, device=device
         )
         for i, rt in enumerate(active_residues):
             rt_adoc = rt.atom_downstream_of_conn
@@ -169,6 +169,7 @@ class Pose:
             packed_block_types=packed_block_types,
             residues=attached_res,
             coords=coords,
+            inter_residue_connections=inter_residue_connections,
             inter_block_bondsep=inter_block_bondsep,
             block_inds=block_inds,
         )
