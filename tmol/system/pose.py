@@ -1,5 +1,6 @@
 import attr
 import cattr
+import toolz
 
 import itertools
 
@@ -13,6 +14,7 @@ from typing import Sequence, Tuple
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
 
 from .restypes import RefinedResidueType, Residue
 from .datatypes import (
@@ -39,7 +41,9 @@ class PackedBlockTypes:
     restype_index: pandas.Index
 
     max_n_atoms: int
-    n_atoms: Tensor(int)[:]  # dim: ntypes
+    n_atoms: Tensor(torch.int32)[:]  # dim: ntypes
+
+    atom_downstream_of_conn: Tensor(torch.int32)[:, :, :]
 
     device: torch.device
 
@@ -57,12 +61,16 @@ class PackedBlockTypes:
         max_n_atoms = cls.count_max_n_atoms(active_residues)
         n_atoms = cls.count_n_atoms(active_residues, device)
         restype_index = pandas.Index([restype.name for restype in active_residues])
+        atom_downstream_of_conn = cls.join_atom_downstream_of_conn(
+            active_residues, device
+        )
 
         return cls(
             active_residues=active_residues,
             restype_index=restype_index,
             max_n_atoms=max_n_atoms,
             n_atoms=n_atoms,
+            atom_downstream_of_conn=atom_downstream_of_conn,
             device=device,
         )
 
@@ -80,6 +88,23 @@ class PackedBlockTypes:
             device=device,
         )
 
+    @classmethod
+    def join_atom_downstream_of_conn(
+        cls, active_residues: Sequence[Residue], device: torch.device
+    ):
+        n_restypes = len(active_residues)
+        max_n_conn = max(len(rt.connections) for rt in active_residues)
+        max_n_atoms = max(len(rt.atoms) for rt in active_residues)
+        atom_downstream_of_conn = torch.full(
+            (n_restypes, max_n_conn, max_n_atoms), -1, dtype=torch.int32
+        )
+        for i, rt in enumerate(active_residues):
+            rt_adoc = rt.atom_downstream_of_conn
+            atom_downstream_of_conn[
+                i, : rt_adoc.shape[0], : rt_adoc.shape[1]
+            ] = torch.tensor(rt_adoc, dtype=torch.int32, device=device)
+        return atom_downstream_of_conn
+
     def inds_for_res(self, residues: Sequence[Residue]):
         return self.restype_index.get_indexer(
             [res.residue_type.name for res in residues]
@@ -94,6 +119,10 @@ class Pose:
 
     # n-blocks x max-n-atoms
     coords: NDArray(float)[:, :, 3]
+
+    # which blocks are connected to which other blocks by which connection
+    # n_systems x max_n_blocks x max_n_connections x [other_res, other_res_conn]
+    inter_residue_connections: NDArray(numpy.int32)[:, :, :, 2]
 
     # n-blocks x n-blocks x max-n-interblock-conn x max-n-interblock-conn
     # Why so much data? Imagine two Bpy-Ala NCAAs binding to a Zn2+ ion.
@@ -121,7 +150,14 @@ class Pose:
         packed_block_types = PackedBlockTypes.from_restype_list(
             rt_list, chem_db, device
         )
-        inter_block_bondsep = cls.resolve_single_chain_inter_block_bondsep(res)
+        residue_connections = cls.resolve_single_chain_connections(res)
+        inter_residue_connections = cls.create_inter_residue_connections(
+            res, residue_connections
+        )
+        inter_block_bondsep = cls.determine_inter_block_bondsep(
+            res, residue_connections
+        )
+
         coords = cls.pack_coords(packed_block_types, res)
         attached_res = [
             r.attach_to(coords[rind, 0 : len(r.residue_type.atoms), :])
@@ -138,15 +174,10 @@ class Pose:
         )
 
     @classmethod
-    def resolve_single_chain_inter_block_bondsep(cls, res: Sequence[Residue]):
-        # Just a linear set of connections up<->down
-        # Logic taken mostly from PackedResidueSystem's from_residues
-
-        max_n_atoms = max(r.coords.shape[0] for r in res)
-
-        ### Index residue connectivity
-        # Generate a table of residue connections, with "from" and "to" entries
-        # for *both* directions across the connection.
+    def resolve_single_chain_connections(cls, res: Sequence[Residue]):
+        # return a list of (int,str,int,str) quadrouples that say residue
+        # i is connected to residue i+1 from it's "up" connection to
+        # residue i+1's "down" connection and vice versa for all i
 
         residue_connections = []
         for i, j in zip(range(len(res) - 1), range(1, len(res))):
@@ -162,6 +193,82 @@ class Pose:
             else:
                 # TODO add logging
                 pass
+
+        return residue_connections
+
+    # @validate_args
+    @classmethod
+    def create_inter_residue_connections(
+        cls,
+        res: Sequence[Residue],
+        residue_connections: Sequence[Tuple[int, str, int, str]],
+    ) -> NDArray(numpy.int32)[:, :, 2]:
+        # Return a numpy array of integer-indices describing which residues are
+        # bound to which other residues through which connections using the indices of those
+        # connections and not their names
+
+        max_n_conn = max(len(r.residue_type.connections) for r in res)
+        connection_inds = pandas.DataFrame.from_records(
+            [
+                (r_ind, conn.name, c_ind)
+                for r_ind, r in enumerate(res)
+                for c_ind, conn in enumerate(r.residue_type.connections)
+            ],
+            columns=["resi", "cname", "cind"],
+        )
+
+        inter_conn_inds = toolz.reduce(
+            toolz.curry(pandas.merge)(how="left", copy=False),
+            (
+                pandas.DataFrame.from_records(
+                    residue_connections,
+                    columns=["from_res_ind", "from_conn", "to_res_ind", "to_conn"],
+                ),
+                connection_inds.rename(
+                    columns={
+                        "resi": "from_res_ind",
+                        "cname": "from_conn",
+                        "cind": "from_conn_ind",
+                    }
+                ),
+                connection_inds.rename(
+                    columns={
+                        "resi": "to_res_ind",
+                        "cname": "to_conn",
+                        "cind": "to_conn_ind",
+                    }
+                ),
+            ),
+        )[["from_res_ind", "from_conn_ind", "to_res_ind", "to_conn_ind"]].values.astype(
+            numpy.int32
+        )
+
+        # .to_numpy(
+        #    dtype=numpy.int32
+        # )
+
+        inter_residue_connections = numpy.full(
+            (len(res), max_n_conn, 2), -1, dtype=numpy.int32
+        )
+        inter_residue_connections[
+            inter_conn_inds[:, 0], inter_conn_inds[:, 1], :
+        ] = inter_conn_inds[:, 2:]
+        return inter_residue_connections
+
+    @classmethod
+    def determine_inter_block_bondsep(
+        cls,
+        res: Sequence[Residue],
+        residue_connections: Sequence[Tuple[int, str, int, str]],
+    ):
+        # Just a linear set of connections up<->down
+        # Logic taken mostly from PackedResidueSystem's from_residues
+
+        max_n_atoms = max(r.coords.shape[0] for r in res)
+
+        ### Index residue connectivity
+        # Generate a table of residue connections, with "from" and "to" entries
+        # for *both* directions across the connection.
 
         for f_i, f_n, t_i, t_n in residue_connections:
             assert (

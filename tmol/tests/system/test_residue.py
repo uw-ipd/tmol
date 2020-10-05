@@ -1,5 +1,7 @@
 import pytest
+import cattr
 
+from tmol.system.restypes import RefinedResidueType
 from tmol.tests.data.pdb import data as test_pdbs
 from tmol.system.io import read_pdb
 from tmol.system.packed import PackedResidueSystem
@@ -27,3 +29,21 @@ def test_water_system(water_box_res):
 
     assert len(water_system.torsion_metadata) == 0
     assert len(water_system.connection_metadata) == 0
+
+
+def test_refined_residue_construction_smoke(default_database):
+    chem_db = default_database.chemical
+    ala_rt = next(r for r in chem_db.residues if r.name == "ALA")
+
+    ala_rrt = cattr.structure(cattr.unstructure(ala_rt), RefinedResidueType)
+
+    lower_conn = ala_rrt.connection_to_cidx["down"]
+    assert ala_rrt.atom_downstream_of_conn[lower_conn, 0] == ala_rrt.atom_to_idx["N"]
+    assert ala_rrt.atom_downstream_of_conn[lower_conn, 1] == ala_rrt.atom_to_idx["CA"]
+    assert ala_rrt.atom_downstream_of_conn[lower_conn, 2] == ala_rrt.atom_to_idx["C"]
+    upper_conn = ala_rrt.connection_to_cidx["up"]
+    assert ala_rrt.atom_downstream_of_conn[upper_conn, 0] == ala_rrt.atom_to_idx["C"]
+    assert ala_rrt.atom_downstream_of_conn[upper_conn, 1] == ala_rrt.atom_to_idx["CA"]
+    assert ala_rrt.atom_downstream_of_conn[upper_conn, 2] == ala_rrt.atom_to_idx["N"]
+
+    assert ala_rrt.atom_downstream_of_conn.shape == (2, len(ala_rrt.atoms))

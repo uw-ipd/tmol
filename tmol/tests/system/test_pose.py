@@ -32,8 +32,64 @@ def test_packed_residue_type_indexer(ubq_res, default_database, torch_device):
         assert len(res.residue_type.atoms) == pbt.n_atoms[inds[i]]
 
 
+def test_packed_residue_type_atoms_downstream_of_conn(
+    ubq_res, default_database, torch_device
+):
+    rt_list = residue_types_from_residues(ubq_res)
+    pbt = PackedBlockTypes.from_restype_list(
+        rt_list, default_database.chemical, torch_device
+    )
+
+    max_n_conn = max(len(rt.connections) for rt in rt_list)
+
+    assert pbt.atom_downstream_of_conn.device == torch_device
+    assert pbt.atom_downstream_of_conn.shape == (
+        pbt.n_types,
+        pbt.max_n_atoms,
+        max_n_conn,
+    )
+    pbt_adoc = pbt.atom_downstream_of_conn.cpu().numpy()
+
+    for i, res in enumerate(ubq_res):
+        adoc = res.atom_downstream_of_conn
+        assert nump.testing.equals(
+            pbt_adoc[i, : len(adoc.connections), : len(adoc.atoms)], adoc
+        )
+
+
+def test_pose_create_inter_residue_connections(ubq_res, default_database):
+    connections_by_name = Pose.resolve_single_chain_connections(ubq_res[:4])
+    inter_residue_connections = Pose.create_inter_residue_connections(
+        ubq_res[:4], connections_by_name
+    )
+
+    assert inter_residue_connections.shape == (4, 2, 2)
+
+    assert inter_residue_connections[0, 0, 0] == -1
+    assert inter_residue_connections[0, 0, 1] == -1
+
+    assert inter_residue_connections[0, 1, 0] == 1
+    assert inter_residue_connections[0, 1, 1] == 0
+    assert inter_residue_connections[1, 0, 0] == 0
+    assert inter_residue_connections[1, 0, 1] == 1
+
+    assert inter_residue_connections[1, 1, 0] == 2
+    assert inter_residue_connections[1, 1, 1] == 0
+    assert inter_residue_connections[2, 0, 0] == 1
+    assert inter_residue_connections[2, 0, 1] == 1
+
+    assert inter_residue_connections[2, 1, 0] == 3
+    assert inter_residue_connections[2, 1, 1] == 0
+    assert inter_residue_connections[3, 0, 0] == 2
+    assert inter_residue_connections[3, 0, 1] == 1
+
+    assert inter_residue_connections[3, 1, 0] == -1
+    assert inter_residue_connections[3, 1, 1] == -1
+
+
 def test_pose_resolve_bond_separation(ubq_res, default_database):
-    bonds = Pose.resolve_single_chain_inter_block_bondsep(ubq_res[1:4])
+    connections = Pose.resolve_single_chain_connections(ubq_res[1:4])
+    bonds = Pose.determine_inter_block_bondsep(ubq_res[1:4], connections)
     assert bonds[0, 1, 1, 0] == 1
     assert bonds[1, 2, 1, 0] == 1
     assert bonds[1, 0, 0, 1] == 1

@@ -80,9 +80,6 @@ class ChiSamples:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class SidechainBuilding:
-    root: str
-    backbone_atoms: Tuple[str, ...]
-    exclude_bonds: Tuple[Tuple[str, str], ...]
     chi_samples: Tuple[ChiSamples, ...]
 
 

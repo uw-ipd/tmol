@@ -19,6 +19,12 @@ from tmol.system.score_support import indexed_atoms_for_dihedral
 
 @attr.s(auto_attribs=True)
 class ChiSampler:
+    def sample_chi_for_poses(self, systems: Poses, task: PackerTask):
+        raise NotImplementedError()
+
+
+@attr.s(auto_attribs=True)
+class DunbrackChiSampler:
 
     dun_param_resolver: DunbrackParamResolver
     sampling_params: SamplingDunbrackDatabaseView
@@ -30,6 +36,30 @@ class ChiSampler:
             dun_param_resolver=param_resolver,
             sampling_params=param_resolver.sampling_db,
         )
+
+    @validate_args
+    def annotate_residue_type(self, restype: RefinedResidueType):
+        """TEMP TEMP TEMP: assume phi and psi"""
+        if hasattr(restype, "dun_sampler_bbdihe_atom_uaids"):
+            return
+        uaids = numpy.array((2, 4, 3), -1, dtype=numpy.int32)
+        if "phi" in torsion_to_uaids:
+            uaids[0] = numpy.array(torsoin_to_uaids[phi], dtype=numpy.int32)
+        if "psi" in torsion_to_uaids:
+            uaids[1] = numpy.array(torsoin_to_uaids[psi], dtype=numpy.int32)
+        setattr(restype, "dun_sampler_bbdihe_atom_uaids", uaids)
+
+    @validate_args
+    def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
+        if hasattr(packed_block_types, "dun_sampler_bbdihe_atom_uaids"):
+            return
+        uaids = numpy.stack(
+            [
+                rt.dun_sampler_bbdihe_atom_uaids
+                for rt in packed_block_types.active_residues
+            ]
+        )
+        setattr(packed_block_types, "dun_sampler_bbdihe_atom_uaids", uaids)
 
     @validate_args
     def chi_samples_for_residues(
@@ -318,3 +348,90 @@ class ChiSampler:
         )
 
         return tuple(retval)
+
+    @validate_args
+    def sample_chi_for_poses(
+        self, systems: Poses, task: PackerTask
+    ) -> Tuple[
+        Tensor(torch.int32)[:, :],  # n_rots_for_brt
+        Tensor(torch.int32)[:, :],  # n_rots_for_brt_offsets
+        Tensor(torch.int32)[:, :],  # brt_for_rotamer
+        Tensor(torch.float32)[:, :, :],  # chi_for_rotamers
+    ]:
+        dev = systems.coords.device
+
+        all_allowed_restypes = numpy.array(
+            [
+                rt
+                for one_pose_rlts in task.rlts
+                for rlts in one_pose_rlts
+                for rt in rlt.allowed_restypes
+                if self in rlt.chi_samplers
+            ],
+            dtype=object,
+        )
+
+        n_allowed_per_pose = numpy.array(
+            [
+                sum(len(rlt.allowed_restypes))
+                for one_pose_rlts in task.rlts
+                for rlt in one_pose_rlts
+                if self in rlt.chi_samplers
+            ],
+            dtype=numpy.int32,
+        )
+
+        rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
+
+        dun_rot_inds_for_rts = self.dun_param_resolver._indices_for_names(
+            self.dun_param_resolver.all_table_inds,
+            rt_names[None, :],
+            torch.device("cpu"),
+        ).squeeze()
+
+        inds_of_phi_res = self.atom_indices_for_backbone_dihedral(systems, 0)
+        inds_of_phi_res = self.atom_indices_for_backbone_dihedral(systems, 1)
+
+    @validate_args
+    def atom_indices_for_backbone_dihedral(self, systems: Poses, bb_dihedral_ind: int):
+        assert hasattr(systems.packed_block_types, "dun_sampler_bbdihe_uaids")
+        n_systems = systems.block_inds.shape[0]
+        max_n_blocks = systems.block_inds.shape[1]
+        max_n_atoms = systems.coords.shape[2]
+
+        pbts = systems.packed_block_types
+
+        inds = numpy.full((n_systems, max_n_blocks, 4), -1, dtype=numpy.int32)
+        real = numpy.nonzero(systems.block_inds >= 0)
+        # inds[real[0], real[1]] = (
+        #     poses.packed_block_types.dun_sampler_bbdihe_atom_inds[
+        #         bb_dihedral_ind,
+        #         system.block_inds[real[0],real[1]]
+        #     ] + max_n_atoms * numpy.arange(n_systems*max_n_blocks, dtype=int32)
+        #     .reshape(n_systems,max_n_blocks)[real[0], real[1]]
+
+        uaids = numpy.full((n_systems, max_n_blocks, 4), -1, dtype=numpy.int32)
+        uaids[real[0], real[1], :] = pbts.dun_sampler_bbdihe_uaids[
+            bb_dihedral_ind, system_block_inds[real[0], real[1]], :
+        ]
+        inter_res = numpy.nonzero(uaids[:, :, 1] >= 0)
+        dest_res = systems.inter_residue_connections[
+            inter_res[0], inter_res[1], uaids[inter_res[0], inter_res[1], 0]
+        ]
+        dest_conn = systems.inter_residue_connections[
+            inter_res[0], inter_res[1], uaids[inter_res[0], inter_res[1], 1]
+        ]
+
+        # now which atom on the downstream residue is the one that
+        # the source residue is pointint at
+        inds[inter_res[0], inter_res[1]] = (
+            inter_res[0] * max_n_atoms * max_n_blocks
+            + dest_res * max_n_atoms
+            + pbts.atom_downstream_of_conn[
+                systems.block_inds[inter_res[0], inter_res[1]],
+                dest_conn,
+                uaids[inter_res[0], inter_res[1], 2],
+            ]
+        )
+
+        return inds

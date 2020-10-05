@@ -3,8 +3,9 @@ import pandas
 import numpy
 
 from tmol.database.chemical import ChemicalDatabase
-from tmol.system.restypes import ResidueType, Residue
+from tmol.system.restypes import RefinedResidueType, Residue
 from tmol.system.packed import PackedResidueSystem
+from tmol.pack.rotamers import ChiSampler
 
 
 # Architecture is stolen from Rosetta3:
@@ -20,7 +21,6 @@ from tmol.system.packed import PackedResidueSystem
 # PackerPallete: a class that decides how to construct
 #   a PackerTask, deciding which residue types to allow
 #   based on the residue type of the input structure.
-#   The PackerPallete can be given
 
 
 def set_compare(x, y):
@@ -39,7 +39,7 @@ class PackerPalette:
     def __init__(self, chemdb: ChemicalDatabase):
         self.chemdb = chemdb
 
-    def restypes_from_original(self, orig: ResidueType):
+    def restypes_from_original(self, orig: RefinedResidueType):
         # ok, this is where we figure out what the allowed restypes
         # are for a residue; this might be complex logic.
 
@@ -95,10 +95,13 @@ class PackerPalette:
 
 
 class ResidueLevelTask:
-    def __init__(self, seqpos: int, restype: ResidueType, palette: PackerPalette):
+    def __init__(
+        self, seqpos: int, restype: RefinedResidueType, palette: PackerPalette
+    ):
         self.seqpos = seqpos
         self.original_restype = restype
         self.allowed_restypes = palette.restypes_from_original(restype)
+        self.chi_samplers = set([])
 
     def restrict_to_repacking(self):
         orig = self.original_restype
@@ -108,14 +111,31 @@ class ResidueLevelTask:
             if rt.name3 == orig.name3  # this isn't what we want long term
         ]
 
+    def add_chi_sampler(self, sampler: ChiSampler):
+        self.chi_samplers.add(sampler)
+
 
 class PackerTask:
-    def __init__(self, system: PackedResidueSystem, palette: PackerPalette):
+    # def __init__(self, system: PackedResidueSystem, palette: PackerPalette):
+    #     self.rlts = [
+    #         ResidueLevelTask(i, res.residue_type, palette)
+    #         for i, res in enumerate(system.residues)
+    #     ]
+
+    def __init__(self, systems: Poses, palette: PackerPalette):
         self.rlts = [
-            ResidueLevelTask(i, res.residue_type, palette)
-            for i, res in enumerate(system.residues)
+            [ResidueLevelTask(j, res.residue_type, palette)]
+            for i, ires in enumerate(systems.residues)
+            for j, res in enumerate(ires)
+            if block_inds[i, j] >= 0
         ]
 
     def restrict_to_repacking(self):
-        for rlt in self.rlts:
-            rls.restrict_to_repacking()
+        for one_pose_rlts in self.rlts:
+            for rlt in one_pose_rlts:
+                rlt.restrict_to_repacking()
+
+    def add_chi_sampler(self, sampler: ChiSampler):
+        for one_pose_rlts in self.rlts:
+            for rlt in one_pose_rlts:
+                rlt.add_chi_sampler(sampler)
