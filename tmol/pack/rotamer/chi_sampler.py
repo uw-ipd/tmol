@@ -62,7 +62,7 @@ class DunbrackChiSampler:
         setattr(packed_block_types, "dun_sampler_bbdihe_atom_uaids", uaids)
 
     @validate_args
-    def chi_samples_for_residues(
+    def OLD_chi_samples_for_residues(
         self,
         system: PackedResidueSystem,
         coords: Tensor(torch.float32)[:, 3],
@@ -359,6 +359,9 @@ class DunbrackChiSampler:
         Tensor(torch.float32)[:, :, :],  # chi_for_rotamers
     ]:
         dev = systems.coords.device
+        n_sys = systems.block_inds.shape[0]
+        max_n_blocks = systems.block_inds.shape[1]
+        max_n_atoms = systems.coords.shape[2]
 
         all_allowed_restypes = numpy.array(
             [
@@ -383,14 +386,197 @@ class DunbrackChiSampler:
 
         rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
 
+        rt_res = numpy.array(
+            [
+                i * max_n_blocks + j
+                for i, one_pose_rlts in enumerate(task.rlts)
+                for j, rlt in enumerate(one_pose_rlts)
+                for rt in rlt.allowed_restypes
+            ],
+            dtype=numpy.int32,
+        )
+
         dun_rot_inds_for_rts = self.dun_param_resolver._indices_for_names(
             self.dun_param_resolver.all_table_inds,
             rt_names[None, :],
             torch.device("cpu"),
         ).squeeze()
 
-        inds_of_phi_res = self.atom_indices_for_backbone_dihedral(systems, 0)
-        inds_of_phi_res = self.atom_indices_for_backbone_dihedral(systems, 1)
+        inds_of_phi = self.atom_indices_for_backbone_dihedral(systems, 0).resize(-1, 4)
+        inds_of_phi = self.atom_indices_for_backbone_dihedral(systems, 1).resize(-1, 4)
+
+        phi_psi_inds = numpy.hstack(
+            (inds_of_phi.reshape(-1, 4), inds_of_psi.reshape(-1, 4))
+        )
+        phi_psi_inds.reshape(-1, 4)
+
+        nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
+        rottable_set_for_buildable_restype = dun_rot_inds_for_rts[
+            nonzero_dunrot_inds_for_rts
+        ]
+
+        # the "indices" of the blocks that the block types we will be building come
+        # from, assuming we are colapsing the n_sys x max_n_blocks into a single
+        # numbering. We will need to keep this array as it will be used by the
+        # caller to understand what block types we are defining samples for.
+        # We will shortly be renumbering the residues to talk about only the ones
+        # that we will build rotamers for
+        orig_residue_for_buildable_restype = rt_res[nonzero_dunrot_inds_for_rts]
+
+        uniq_res_for_brt, uniq_inds = numpy.unique(
+            orig_residue_for_buildable_restype, return_inverse=True
+        )
+
+        rottable_set_for_buildable_restype = torch.tensor(
+            numpy.concatenate(
+                (
+                    uniq_inds.reshape(-1, 1),
+                    rottable_set_for_buildable_restype.reshape(-1),
+                ),
+                axis=1,
+            ),
+            dtype=torch.int32,
+            device=dev,
+        )
+
+        phi_psi_res_inds = numpy.arange(n_sys * max_n_blocks, dtype=numpy.int32)
+
+        n_sampling_res = uniq_res_for_brt.shape[0]
+
+        # map the residue-numbered list of dihedral angles to their positions in
+        # the set of residues that the Dunbrack library will provice chi samples for
+        dihedral_atom_inds = numpy.full((2 * n_sampling_res, 4), -1, dtype=numpy.int32)
+        dihedral_atom_inds[
+            2 * numpy.arange(n_sampling_res, dtype=int), :
+        ] = inds_of_phi[uniq_res_for_brt, :]
+        dihedral_atom_inds[
+            2 * numpy.arange(n_sampling_res, dtype=int) + 1, :
+        ] = inds_of_psi[uniq_res_for_brt, :]
+
+        ndihe_for_res = torch.full((n_sampling_res,), 2, dtype=torch.int32, device=dev)
+        dihedral_offset_for_res = 2 * torch.arange(
+            n_sampling_res, dtype=torch.int32, device=dev
+        )
+
+        n_brts = nonzero_dunrot_inds_for_res.shape[0]
+        ### NOTE: improve logic here for determining max_n_chi
+        max_n_chi = 4
+        chi_expansion_for_buildable_restype = torch.full(
+            (n_brts, max_n_chi), 0, dtype=torch.int32, device=dev
+        )
+
+        # ok, we'll go to the residue types and look at their protonation state expansions
+        # and we'll put that information into the chi_expansions_for_buildable_restype
+        # tensor
+
+        nchi_for_buildable_restype = self.sampling_params.nchi_for_table_set[
+            rottable_set_for_buildable_restype[:, 1].to(torch.int64)
+        ]
+
+        brts = all_allowed_restypes[dun_rot_inds_for_rts.numpy() != -1]
+
+        non_dunbrack_expansion_counts_for_buildable_restype = torch.zeros(
+            (n_brts, 4), dtype=torch.int32, device=dev
+        )
+        max_chi_samples = 0
+
+        # MOST OF THIS LOGIC SHOULD BE MOVED INTO A SETUP PHASE WITH
+        # THE RefinedResidueType
+        for i, rt in enumerate(brts):
+            for j in rt_chi in enumerate(rt.chi_samples):
+                chi_name = rt_scb_chi.chi_dihedral
+                assert chi_name[:, 3] == "chi"
+                chi_ind = int(chi_name[3:]) - 1
+                if chi_ind >= nchi_for_buildable_restype[i]:
+                    nchi_for_buildable_restype[i] = chi_ind + 1
+                n_expansions = (
+                    1
+                    + 2
+                    * len(rt_chi.expansions)
+                    * chi_expansion_for_buildable_restype[i, chi_ind]
+                )
+                n_samples = len(rt_chi.samples)
+                n_example_samples = n_samples * n_expansions
+                max_chi_samples = max(max_chi_samples, n_expanded_samples)
+                non_dunbrack_expansion_counts_for_buildable_restype[
+                    i, chi_ind
+                ] = n_expanded_samples
+        non_dunbrack_expansion_for_buildable_restype = torch.full(
+            (n_brts, max_n_chi, max_chi_samples), -1, dtype=torch.float32, device=dev
+        )
+
+        for i, rt in enumerate(brts):
+            for j, rt_chi in enumerate(rt.chi_samples):
+                chi_name = rt_chi.chi_dihedral
+                chi_ind = int(chi_name[3:]) - 1
+                n_expansions = (
+                    1
+                    + 2
+                    * len(rt_chi.expansions)
+                    * chi_expansions_for_buildable_restype[i, chi_ind]
+                )
+                n_samples = len(rt_chi.samples)
+                n_expanded_samples = n_samples * n_expansions
+                for l in range(n_samples):
+                    for m in range(n_expansions):
+                        if m == 0:
+                            non_dunbrack_expansion_for_buildable_restype[
+                                i, chi_ind, n_expansions * l + m
+                            ] = rt_chi.samples[l]
+                        else:
+                            expansion = (m - 1) // 2
+                            factor = -1 if (m - 1) % 2 == 0 else 1
+                            non_dunbrack_expansion_for_buildable_restype[
+                                i, chi_ind, n_expansions * l + m
+                            ] = (
+                                rt_chi.samples[l]
+                                + factor * rt_chi.expansions[expansion]
+                            )
+        # oof
+
+        # treat all residues as if they are exposed
+        prob_cumsum_limit_for_buildable_restype = torch.full(
+            (n_brts,), 0.95, dtype=torch.float32, device=dev
+        )
+
+        retval = torch.ops.tmol.dun_sample_chi(
+            systems.coords,
+            self.sampling_params.rotameric_prob_tables,
+            self.sampling_params.rotprob_table_sizes,
+            self.sampling_params.rotprob_table_strides,
+            self.sampling_params.rotameric_mean_tables,
+            self.sampling_params.rotameric_sdev_tables,
+            self.sampling_params.rotmean_table_sizes,
+            self.sampling_params.rotmean_table_strides,
+            self.sampling_params.rotameric_meansdev_tableset_offsets,
+            self.sampling_params.rotameric_bb_start,
+            self.sampling_params.rotameric_bb_step,
+            self.sampling_params.rotameric_bb_periodicity,
+            self.sampling_params.semirotameric_tables,
+            self.sampling_params.semirot_table_sizes,
+            self.sampling_params.semirot_table_strides,
+            self.sampling_params.semirot_start,
+            self.sampling_params.semirot_step,
+            self.sampling_params.semirot_periodicity,
+            self.sampling_params.rotameric_rotind2tableind,
+            self.sampling_params.semirotameric_rotind2tableind,
+            self.sampling_params.all_chi_rotind2tableind,
+            self.sampling_params.all_chi_rotind2tableind_offsets,
+            self.sampling_params.n_rotamers_for_tableset,
+            self.sampling_params.n_rotamers_for_tableset_offsets,
+            self.sampling_params.sorted_rotamer_2_rotamer,
+            self.sampling_params.nchi_for_table_set,
+            self.sampling_params.rotwells,
+            ndihe_for_res,
+            dihedral_offset_for_res,
+            dihedral_atom_inds,
+            rottable_set_for_buildable_restype,
+            chi_expansion_for_buildable_restype,
+            non_dunbrack_expansion_for_buildable_restype,
+            non_dunbrack_expansion_counts_for_buildable_restype,
+            prob_cumsum_limit_for_buildable_restype,
+            nchi_for_buildable_restype,
+        )
 
     @validate_args
     def atom_indices_for_backbone_dihedral(self, systems: Poses, bb_dihedral_ind: int):

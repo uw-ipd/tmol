@@ -52,3 +52,8 @@ def test_residue_defs(default_database: tmol.database.ParameterDatabase):
         if r.properties.polymer.mainchain_atoms is not None:
             for at in r.properties.polymer.mainchain_atoms:
                 assert at in atom_names
+
+        # check that all chi_samples refer to previously-declared chi dihedrals
+        torsion_names = [t.name for t in r.torsions]
+        for sample in r.chi_samples:
+            assert sample.chi_dihedral in torsion_names

@@ -5,7 +5,7 @@ import numpy
 from tmol.database.chemical import ChemicalDatabase
 from tmol.system.restypes import RefinedResidueType, Residue
 from tmol.system.packed import PackedResidueSystem
-from tmol.pack.rotamers import ChiSampler
+from tmol.pack.rotamer.chi_sampler import ChiSampler
 
 
 # Architecture is stolen from Rosetta3:

@@ -80,7 +80,7 @@ class ChiSamples:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class SidechainBuilding:
-    chi_samples: Tuple[ChiSamples, ...]
+    chi_samples: ChiSamples
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -121,6 +121,7 @@ class RawResidueType:
     icoors: Tuple[Icoor, ...]
     properties: ChemicalProperties
     # sidechain_building: Tuple[SidechainBuilding, ...]
+    chi_samples: Tuple[ChiSamples, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
