@@ -31,6 +31,10 @@ class DunbrackChiSampler:
     dun_param_resolver: DunbrackParamResolver
     sampling_params: SamplingDunbrackDatabaseView
 
+    @property
+    def device(self):
+        return self.dun_param_resolver.device
+
     @classmethod
     @validate_args
     def from_database(cls, param_resolver: DunbrackParamResolver):
@@ -41,7 +45,7 @@ class DunbrackChiSampler:
 
     @validate_args
     def annotate_residue_type(self, restype: RefinedResidueType):
-        """TEMP TEMP TEMP: assume phi and psi"""
+        """TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""
         if hasattr(restype, "dun_sampler_bbdihe_atom_uaids"):
             return
         uaids = numpy.array((2, 4, 3), -1, dtype=numpy.int32)
@@ -61,6 +65,7 @@ class DunbrackChiSampler:
                 for rt in packed_block_types.active_residues
             ]
         )
+        uaids = torch.tensor(uaids, dtype=torch.int32, device=self.device)
         setattr(packed_block_types, "dun_sampler_bbdihe_atom_uaids", uaids)
 
     @validate_args

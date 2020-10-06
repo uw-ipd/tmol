@@ -58,10 +58,10 @@ def test_packed_residue_type_atoms_downstream_of_conn(
         )
 
 
-def test_pose_create_inter_residue_connections(ubq_res, default_database):
+def test_pose_create_inter_residue_connections(ubq_res, default_database, torch_device):
     connections_by_name = Pose.resolve_single_chain_connections(ubq_res[:4])
     inter_residue_connections = Pose.create_inter_residue_connections(
-        ubq_res[:4], connections_by_name
+        ubq_res[:4], connections_by_name, torch_device
     )
 
     assert inter_residue_connections.shape == (4, 2, 2)
@@ -88,9 +88,9 @@ def test_pose_create_inter_residue_connections(ubq_res, default_database):
     assert inter_residue_connections[3, 1, 1] == -1
 
 
-def test_pose_resolve_bond_separation(ubq_res, default_database):
+def test_pose_resolve_bond_separation(ubq_res, default_database, torch_device):
     connections = Pose.resolve_single_chain_connections(ubq_res[1:4])
-    bonds = Pose.determine_inter_block_bondsep(ubq_res[1:4], connections)
+    bonds = Pose.determine_inter_block_bondsep(ubq_res[1:4], connections, torch_device)
     assert bonds[0, 1, 1, 0] == 1
     assert bonds[1, 2, 1, 0] == 1
     assert bonds[1, 0, 0, 1] == 1

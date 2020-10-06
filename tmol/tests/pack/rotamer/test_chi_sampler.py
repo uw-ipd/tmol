@@ -4,6 +4,7 @@ import numpy
 import tmol.pack.rotamer.compiled
 
 from tmol.system.packed import PackedResidueSystem
+from tmol.system.pose import Pose, Poses
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
@@ -725,3 +726,10 @@ def test_chi_sampler_smoke(ubq_res, default_database, torch_device):
     poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
     palette = PackerPalette(default_database.chemical)
     task = PackerTask(poses, palette)
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    sampler = DunbrackChiSampler.from_database(param_resolver)
+
+    sampler.sample_chi_for_poses(poses, task)
