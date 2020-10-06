@@ -11,6 +11,7 @@ from tmol.score.score_graph import score_graph
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.pack.rotamer.dunbrack_chi_sampler import DunbrackChiSampler
 
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
@@ -681,35 +682,46 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     )
 
 
+# def test_chi_sampler_smoke(ubq_system, default_database, torch_device):
+#     # print("ubq system:", len(ubq_system.residues))
+#     # torch_device = torch.device("cpu")
+#     palette = PackerPalette(default_database.chemical)
+#     task = PackerTask(ubq_system, palette)
+#     # print("task size:", len(task.rlts))
+#     for rlt in task.rlts:
+#         rlt.restrict_to_repacking()
 #
-def test_chi_sampler_smoke(ubq_system, default_database, torch_device):
-    # print("ubq system:", len(ubq_system.residues))
-    # torch_device = torch.device("cpu")
-    palette = PackerPalette(default_database.chemical)
-    task = PackerTask(ubq_system, palette)
-    # print("task size:", len(task.rlts))
-    for rlt in task.rlts:
-        rlt.restrict_to_repacking()
+#     param_resolver = DunbrackParamResolver.from_database(
+#         default_database.scoring.dun, torch_device
+#     )
+#     sampler = ChiSampler.from_database(param_resolver)
+#
+#     coords = torch.tensor(ubq_system.coords, dtype=torch.float32, device=torch_device)
+#     result = sampler.chi_samples_for_residues(ubq_system, coords, task)
+#     n_rots_for_brt, n_rots_for_brt_offsets, brt_for_rotamer, chi_for_rotamers = result
+#     # print("n_rots_for_brt")
+#     # print(n_rots_for_brt.shape)
+#     # print("n_rots_for_brt_offsets")
+#     # print(n_rots_for_brt_offsets.shape)
+#     # print("brt_for_rotamer")
+#     # print(brt_for_rotamer.shape)
+#     # print("chi_for_rotamers")
+#     # print(chi_for_rotamers.shape)
+#
+#     assert n_rots_for_brt.shape == (69,)
+#     assert n_rots_for_brt_offsets.shape == n_rots_for_brt.shape
+#     assert brt_for_rotamer.shape == (1524,)
+#     assert brt_for_rotamer.shape[0] == chi_for_rotamers.shape[0]
+#     assert chi_for_rotamers.shape[1] == 4
 
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
+
+def test_chi_sampler_smoke(ubq_res, default_database, torch_device):
+    p1 = Pose.from_residues_one_chain(
+        ubq_res[:5], default_database.chemical, torch_device
     )
-    sampler = ChiSampler.from_database(param_resolver)
-
-    coords = torch.tensor(ubq_system.coords, dtype=torch.float32, device=torch_device)
-    result = sampler.chi_samples_for_residues(ubq_system, coords, task)
-    n_rots_for_brt, n_rots_for_brt_offsets, brt_for_rotamer, chi_for_rotamers = result
-    # print("n_rots_for_brt")
-    # print(n_rots_for_brt.shape)
-    # print("n_rots_for_brt_offsets")
-    # print(n_rots_for_brt_offsets.shape)
-    # print("brt_for_rotamer")
-    # print(brt_for_rotamer.shape)
-    # print("chi_for_rotamers")
-    # print(chi_for_rotamers.shape)
-
-    assert n_rots_for_brt.shape == (69,)
-    assert n_rots_for_brt_offsets.shape == n_rots_for_brt.shape
-    assert brt_for_rotamer.shape == (1524,)
-    assert brt_for_rotamer.shape[0] == chi_for_rotamers.shape[0]
-    assert chi_for_rotamers.shape[1] == 4
+    p2 = Pose.from_residues_one_chain(
+        ubq_res[:7], default_database.chemical, torch_device
+    )
+    poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
+    palette = PackerPalette(default_database.chemical)
+    task = PackerTask(poses, palette)

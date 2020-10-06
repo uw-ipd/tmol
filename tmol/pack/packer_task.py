@@ -5,6 +5,7 @@ import numpy
 from tmol.database.chemical import ChemicalDatabase
 from tmol.system.restypes import RefinedResidueType, Residue
 from tmol.system.packed import PackedResidueSystem
+from tmol.system.pose import Poses
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 
 
@@ -127,7 +128,7 @@ class PackerTask:
             [ResidueLevelTask(j, res.residue_type, palette)]
             for i, ires in enumerate(systems.residues)
             for j, res in enumerate(ires)
-            if block_inds[i, j] >= 0
+            if systems.block_inds[i, j] >= 0
         ]
 
     def restrict_to_repacking(self):
