@@ -72,11 +72,17 @@ class RefinedResidueType(tmol.database.chemical.RawResidueType):
                     ats.append(
                         (
                             -1,
-                            self.connection_to_idx[at.connection],
+                            next(
+                                i
+                                for i, conn in enumerate(self.connections)
+                                if conn.name == at.connection
+                            ),
                             at.bond_sep_from_conn,
                         )
                     )
             torsion_to_uaids[tor.name] = ats
+        print("torsion to uaids for", self.name)
+        print(torsion_to_uaids)
         return frozendict(torsion_to_uaids)
 
     path_distance: numpy.ndarray = attr.ib()

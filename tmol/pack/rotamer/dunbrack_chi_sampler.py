@@ -410,13 +410,13 @@ class DunbrackChiSampler:
             torch.device("cpu"),
         ).squeeze()
 
-        inds_of_phi = self.atom_indices_for_backbone_dihedral(systems, 0).resize(-1, 4)
-        inds_of_phi = self.atom_indices_for_backbone_dihedral(systems, 1).resize(-1, 4)
+        inds_of_phi = self.atom_indices_for_backbone_dihedral(systems, 0).reshape(-1, 4)
+        inds_of_phi = self.atom_indices_for_backbone_dihedral(systems, 1).reshape(-1, 4)
 
-        phi_psi_inds = numpy.hstack(
+        phi_psi_inds = torch.hstack(
             (inds_of_phi.reshape(-1, 4), inds_of_psi.reshape(-1, 4))
         )
-        phi_psi_inds.reshape(-1, 4)
+        phi_psi_inds = phi_psi_inds.reshape(-1, 4)
 
         nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
         rottable_set_for_buildable_restype = dun_rot_inds_for_rts[
@@ -618,6 +618,10 @@ class DunbrackChiSampler:
         dihe_atom_inds[:] = uaids[:, :, :, 0]
 
         inter_res = torch.nonzero(uaids[:, :, :, 1] >= 0)
+
+        print("uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 1],")
+        print(uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 1])
+
         dest_res = systems.inter_residue_connections[
             inter_res[:, 0],
             inter_res[:, 1],
