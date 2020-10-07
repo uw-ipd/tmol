@@ -110,7 +110,7 @@ class ChemicalProperties:
     virtual: Tuple[str, ...]
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
+@attr.s(auto_attribs=True)
 class RawResidueType:
     name: str
     name3: str

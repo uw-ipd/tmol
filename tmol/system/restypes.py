@@ -15,7 +15,7 @@ BondCount = NewType("ConnectionIndex", int)
 UnresolvedAtomID = Tuple[AtomIndex, ConnectionIndex, BondCount]
 
 
-@attr.s(slots=True, frozen=True)
+@attr.s
 class RefinedResidueType(tmol.database.chemical.RawResidueType):
     atom_to_idx: Mapping[str, AtomIndex] = attr.ib()
 

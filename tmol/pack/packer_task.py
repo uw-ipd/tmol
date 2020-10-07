@@ -102,7 +102,7 @@ class ResidueLevelTask:
         self.seqpos = seqpos
         self.original_restype = restype
         self.allowed_restypes = palette.restypes_from_original(restype)
-        self.chi_samplers = set([])
+        self.chi_samplers = []
 
     def restrict_to_repacking(self):
         orig = self.original_restype
@@ -113,7 +113,7 @@ class ResidueLevelTask:
         ]
 
     def add_chi_sampler(self, sampler: ChiSampler):
-        self.chi_samplers.add(sampler)
+        self.chi_samplers.append(sampler)
 
 
 class PackerTask:

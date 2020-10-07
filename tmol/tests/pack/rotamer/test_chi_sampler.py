@@ -716,7 +716,8 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
 #     assert chi_for_rotamers.shape[1] == 4
 
 
-def test_chi_sampler_smoke(ubq_res, default_database, torch_device):
+def test_chi_sampler_smoke(ubq_res, default_database):
+    torch_device = torch.device("cpu")
     p1 = Pose.from_residues_one_chain(
         ubq_res[:5], default_database.chemical, torch_device
     )
@@ -726,10 +727,15 @@ def test_chi_sampler_smoke(ubq_res, default_database, torch_device):
     poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
     palette = PackerPalette(default_database.chemical)
     task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
 
     param_resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
     sampler = DunbrackChiSampler.from_database(param_resolver)
+    task.add_chi_sampler(sampler)
 
+    for rt in poses.packed_block_types.active_residues:
+        sampler.annotate_residue_type(rt)
+    sampler.annotate_packed_block_types(poses.packed_block_types)
     sampler.sample_chi_for_poses(poses, task)

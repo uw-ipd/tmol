@@ -46,27 +46,28 @@ class DunbrackChiSampler:
     @validate_args
     def annotate_residue_type(self, restype: RefinedResidueType):
         """TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""
-        if hasattr(restype, "dun_sampler_bbdihe_atom_uaids"):
+        if hasattr(restype, "dun_sampler_bbdihe_uaids"):
             return
-        uaids = numpy.array((2, 4, 3), -1, dtype=numpy.int32)
-        if "phi" in torsion_to_uaids:
-            uaids[0] = numpy.array(torsoin_to_uaids[phi], dtype=numpy.int32)
-        if "psi" in torsion_to_uaids:
-            uaids[1] = numpy.array(torsoin_to_uaids[psi], dtype=numpy.int32)
-        setattr(restype, "dun_sampler_bbdihe_atom_uaids", uaids)
+        # #chi = 2; #atoms in a dihedral = 4; #entries in a uaid  = 3
+        uaids = numpy.full((2, 4, 3), -1, dtype=numpy.int32)
+        if "phi" in restype.torsion_to_uaids:
+            uaids[0] = numpy.array(restype.torsion_to_uaids["phi"], dtype=numpy.int32)
+        if "psi" in restype.torsion_to_uaids:
+            uaids[1] = numpy.array(restype.torsion_to_uaids["psi"], dtype=numpy.int32)
+        setattr(restype, "dun_sampler_bbdihe_uaids", uaids)
 
     @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        if hasattr(packed_block_types, "dun_sampler_bbdihe_atom_uaids"):
+        if hasattr(packed_block_types, "dun_sampler_bbdihe_uaids"):
             return
         uaids = numpy.stack(
-            [
-                rt.dun_sampler_bbdihe_atom_uaids
-                for rt in packed_block_types.active_residues
-            ]
+            [rt.dun_sampler_bbdihe_uaids for rt in packed_block_types.active_residues]
         )
+        # print("uaids")
+        # print(uaids.shape)
+        # print(uaids)
         uaids = torch.tensor(uaids, dtype=torch.int32, device=self.device)
-        setattr(packed_block_types, "dun_sampler_bbdihe_atom_uaids", uaids)
+        setattr(packed_block_types, "dun_sampler_bbdihe_uaids", uaids)
 
     @validate_args
     def OLD_chi_samples_for_residues(
@@ -374,7 +375,7 @@ class DunbrackChiSampler:
             [
                 rt
                 for one_pose_rlts in task.rlts
-                for rlts in one_pose_rlts
+                for rlt in one_pose_rlts
                 for rt in rlt.allowed_restypes
                 if self in rlt.chi_samplers
             ],
@@ -383,7 +384,7 @@ class DunbrackChiSampler:
 
         n_allowed_per_pose = numpy.array(
             [
-                sum(len(rlt.allowed_restypes))
+                len(rlt.allowed_restypes)
                 for one_pose_rlts in task.rlts
                 for rlt in one_pose_rlts
                 if self in rlt.chi_samplers
@@ -403,8 +404,8 @@ class DunbrackChiSampler:
             dtype=numpy.int32,
         )
 
-        dun_rot_inds_for_rts = self.dun_param_resolver._indices_for_names(
-            self.dun_param_resolver.all_table_inds,
+        dun_rot_inds_for_rts = self.dun_param_resolver._indices_from_names(
+            self.dun_param_resolver.all_table_indices,
             rt_names[None, :],
             torch.device("cpu"),
         ).squeeze()
@@ -594,37 +595,52 @@ class DunbrackChiSampler:
 
         pbts = systems.packed_block_types
 
-        inds = numpy.full((n_systems, max_n_blocks, 4), -1, dtype=numpy.int32)
-        real = numpy.nonzero(systems.block_inds >= 0)
-        # inds[real[0], real[1]] = (
-        #     poses.packed_block_types.dun_sampler_bbdihe_atom_inds[
-        #         bb_dihedral_ind,
-        #         system.block_inds[real[0],real[1]]
-        #     ] + max_n_atoms * numpy.arange(n_systems*max_n_blocks, dtype=int32)
-        #     .reshape(n_systems,max_n_blocks)[real[0], real[1]]
+        real = torch.nonzero(systems.block_inds >= 0)
 
-        uaids = numpy.full((n_systems, max_n_blocks, 4), -1, dtype=numpy.int32)
-        uaids[real[0], real[1], :] = pbts.dun_sampler_bbdihe_uaids[
-            bb_dihedral_ind, system_block_inds[real[0], real[1]], :
-        ]
-        inter_res = numpy.nonzero(uaids[:, :, 1] >= 0)
+        uaids = torch.full(
+            (n_systems, max_n_blocks, 4, 3), -1, dtype=torch.int64, device=self.device
+        )
+
+        uaids[real[:, 0], real[:, 1], :, :] = pbts.dun_sampler_bbdihe_uaids[
+            systems.block_inds[real[:, 0], real[:, 1]].to(torch.int64),
+            bb_dihedral_ind,
+            :,
+            :,
+        ].to(torch.int64)
+
+        # what we will return
+        dihe_atom_inds = torch.full(
+            (n_systems, max_n_blocks, 4), -1, dtype=torch.int32, device=self.device
+        )
+
+        # copy over all atom ids from the uaids as if they were resolved; the
+        # atoms that are unresolved will be overwritten later
+        dihe_atom_inds[:] = uaids[:, :, :, 0]
+
+        inter_res = torch.nonzero(uaids[:, :, :, 1] >= 0)
         dest_res = systems.inter_residue_connections[
-            inter_res[0], inter_res[1], uaids[inter_res[0], inter_res[1], 0]
+            inter_res[:, 0],
+            inter_res[:, 1],
+            uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 1],
+            0,
         ]
         dest_conn = systems.inter_residue_connections[
-            inter_res[0], inter_res[1], uaids[inter_res[0], inter_res[1], 1]
-        ]
+            inter_res[:, 0],
+            inter_res[:, 1],
+            uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 1],
+            1,
+        ].to(torch.int64)
 
         # now which atom on the downstream residue is the one that
         # the source residue is pointint at
-        inds[inter_res[0], inter_res[1]] = (
-            inter_res[0] * max_n_atoms * max_n_blocks
+        dihe_atom_inds[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2]] = (
+            (inter_res[:, 0] * max_n_atoms * max_n_blocks).to(torch.int32)
             + dest_res * max_n_atoms
             + pbts.atom_downstream_of_conn[
-                systems.block_inds[inter_res[0], inter_res[1]],
+                systems.block_inds[inter_res[:, 0], inter_res[:, 1]].to(torch.int64),
                 dest_conn,
-                uaids[inter_res[0], inter_res[1], 2],
+                uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 2],
             ]
         )
 
-        return inds
+        return dihe_atom_inds
