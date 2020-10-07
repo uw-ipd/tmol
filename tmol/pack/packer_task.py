@@ -3,7 +3,7 @@ import pandas
 import numpy
 
 from tmol.database.chemical import ChemicalDatabase
-from tmol.system.restypes import RefinedResidueType, Residue
+from tmol.system.restypes import RefinedResidueType, ResidueTypeSet, Residue
 from tmol.system.packed import PackedResidueSystem
 from tmol.system.pose import Poses
 from tmol.pack.rotamer.chi_sampler import ChiSampler
@@ -37,15 +37,15 @@ def set_compare(x, y):
 
 
 class PackerPalette:
-    def __init__(self, chemdb: ChemicalDatabase):
-        self.chemdb = chemdb
+    def __init__(self, rts: ResidueTypeSet):
+        self.rts = rts
 
     def restypes_from_original(self, orig: RefinedResidueType):
         # ok, this is where we figure out what the allowed restypes
         # are for a residue; this might be complex logic.
 
         keepers = []
-        for rt in self.chemdb.residues:
+        for rt in self.rts.residue_types:
             if (
                 rt.properties.polymer.is_polymer == orig.properties.polymer.is_polymer
                 and rt.properties.polymer.polymer_type

@@ -1,7 +1,7 @@
 import pytest
 import cattr
 
-from tmol.system.restypes import RefinedResidueType
+from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.tests.data.pdb import data as test_pdbs
 from tmol.system.io import read_pdb
 from tmol.system.packed import PackedResidueSystem
@@ -47,3 +47,13 @@ def test_refined_residue_construction_smoke(default_database):
     assert ala_rrt.atom_downstream_of_conn[upper_conn, 2] == ala_rrt.atom_to_idx["N"]
 
     assert ala_rrt.atom_downstream_of_conn.shape == (2, len(ala_rrt.atoms))
+
+
+def test_residue_type_set_construction(default_database):
+    restype_set = ResidueTypeSet.from_database(default_database.chemical)
+    for rt in restype_set.residue_types:
+        assert rt in restype_set.restype_map[rt.name3]
+
+    allnames = set([rt.name for rt in restype_set.residue_types])
+    for rt in default_database.chemical.residues:
+        assert rt.name in allnames

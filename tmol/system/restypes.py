@@ -1,18 +1,22 @@
 from frozendict import frozendict
-from toolz.curried import concat, map, compose
-from typing import Mapping, Optional, NewType, Tuple
+from toolz.curried import concat, map, compose, groupby
+import typing
+from typing import Mapping, Optional, NewType, Tuple, Sequence
 import attr
+import cattr
 
 import numpy
 import sparse
 import scipy.sparse.csgraph as csgraph
 
 import tmol.database.chemical
+from tmol.database.chemical import ChemicalDatabase
 
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
 BondCount = NewType("ConnectionIndex", int)
 UnresolvedAtomID = Tuple[AtomIndex, ConnectionIndex, BondCount]
+ResName3 = typing.NewType("ResName3", str)
 
 
 @attr.s
@@ -156,6 +160,30 @@ class RefinedResidueType(tmol.database.chemical.RawResidueType):
                     else:
                         parent = next(x.parent for x in self.icoors if x.name == "atom")
         return atom_downstream_of_conn
+
+
+@attr.s(auto_attribs=True)
+class ResidueTypeSet:
+    __default = None
+
+    @classmethod
+    def get_default(cls) -> "ResidueTypeSet":
+        """Load and return the residue type set constructed from the default param db"""
+        if cls.__default is None:
+            cls.__default = cls.from_database(ParameterDatabase.get_default().chemical)
+        return cls.__default
+
+    @classmethod
+    def from_database(cls, chemical_db: ChemicalDatabase):
+        residue_types = [
+            cattr.structure(cattr.unstructure(r), RefinedResidueType)
+            for r in chemical_db.residues
+        ]
+        restype_map = groupby(lambda restype: restype.name3, residue_types)
+        return cls(residue_types=residue_types, restype_map=restype_map)
+
+    residue_types: Sequence[RefinedResidueType]
+    restype_map: Mapping[ResName3, RefinedResidueType]
 
 
 @attr.s(slots=True, frozen=True)

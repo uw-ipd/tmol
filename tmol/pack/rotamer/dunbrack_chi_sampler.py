@@ -63,9 +63,6 @@ class DunbrackChiSampler:
         uaids = numpy.stack(
             [rt.dun_sampler_bbdihe_uaids for rt in packed_block_types.active_residues]
         )
-        # print("uaids")
-        # print(uaids.shape)
-        # print(uaids)
         uaids = torch.tensor(uaids, dtype=torch.int32, device=self.device)
         setattr(packed_block_types, "dun_sampler_bbdihe_uaids", uaids)
 
@@ -86,26 +83,20 @@ class DunbrackChiSampler:
         all_allowed_restypes = numpy.array(
             [rt for rlt in task.rlts for rt in rlt.allowed_restypes], dtype=object
         )
-        # print("all_allowed_restypes", all_allowed_restypes.shape, [rt.name for rt in all_allowed_restypes])
+
         rt_names = numpy.array(
             [rt.name for rlt in task.rlts for rt in rlt.allowed_restypes], dtype=object
         )
-        # print("rt_names", len(rt_names))
-        # print(rt_names)
         rt_res = numpy.array(
             [i for i, rlt in enumerate(task.rlts) for rt in rlt.allowed_restypes],
             dtype=numpy.int32,
         )
-        # print("rt_res", len(rt_res))
 
         dun_rot_inds_for_rts = self.dun_param_resolver._indices_from_names(
             self.dun_param_resolver.all_table_indices,
             rt_names[None, :],
             torch.device("cpu"),
         ).squeeze()
-
-        # print("dun_rot_inds_for_rts", dun_rot_inds_for_rts.shape)
-        # print(dun_rot_inds_for_rts)
 
         inds_of_phi_res = indexed_atoms_for_dihedral(system, "phi")
         inds_of_psi_res = indexed_atoms_for_dihedral(system, "psi")
@@ -138,8 +129,6 @@ class DunbrackChiSampler:
         orig_residue_for_buildable_restype = rt_res[
             nonzero_dunrot_inds_for_rts.cpu().numpy()
         ]
-        # print("orig_residue_for_buildable_restype", orig_residue_for_buildable_restype.shape)
-        # print(orig_residue_for_buildable_restype)
         uniq_res_for_brt, uniq_inds = numpy.unique(
             orig_residue_for_buildable_restype, return_inverse=True
         )
@@ -206,12 +195,6 @@ class DunbrackChiSampler:
         # and we'll put that information into the chi_expansions_for_buildable_restype
         # tensor
 
-        # print("non-negative", dun_rot_inds_for_rts != -1)
-        # print(dun_rot_inds_for_rts.numpy().shape)
-        # print(all_allowed_restypes.shape)
-        # sele =
-        # print(sele)
-
         nchi_for_buildable_restype = self.sampling_params.nchi_for_table_set[
             rottable_set_for_buildable_restype[:, 1].to(torch.int64)
         ]
@@ -223,9 +206,7 @@ class DunbrackChiSampler:
         )
         max_chi_samples = 0
         for i, rt in enumerate(brts):
-            # print(i, rt.name)
             for j, rt_scb in enumerate(rt.sidechain_building):
-                # print("count", rt.name, j, len(rt_scb.chi_samples))
                 for k, rt_scb_chi in enumerate(rt_scb.chi_samples):
                     chi_name = rt_scb_chi.chi_dihedral
                     # weird assumption: chi are named chiX with X an integer
@@ -245,7 +226,6 @@ class DunbrackChiSampler:
                     non_dunbrack_expansion_counts_for_buildable_restype[
                         i, chi_ind
                     ] = n_expanded_samples
-                    # print("non dunbrack expansion counts", i, j, k, rt.name, n_expanded_samples)
 
         non_dunbrack_expansion_for_buildable_restype = torch.full(
             (n_brts, 4, max_chi_samples), -1, dtype=torch.float32, device=self.device
@@ -267,14 +247,11 @@ class DunbrackChiSampler:
                     n_samples = len(rt_scb_chi.samples)
                     n_expanded_samples = n_samples * n_expansions
                     for l in range(n_samples):
-                        # print("  ",l)
                         for m in range(n_expansions):
-                            # print("    ", m)
                             if m == 0:
                                 non_dunbrack_expansion_for_buildable_restype[
                                     i, chi_ind, n_expansions * l + m
                                 ] = rt_scb_chi.samples[l]
-                                # print("rt_scb_chi.samples[",l,"]", rt_scb_chi.samples[l])
                             else:
                                 expansion = (m - 1) // 2
                                 factor = -1 if (m - 1) % 2 == 0 else 1
@@ -289,34 +266,6 @@ class DunbrackChiSampler:
         prob_cumsum_limit_for_buildable_restype = torch.full(
             (n_brts,), 0.95, dtype=torch.float32, device=self.device
         )
-
-        # print("ndihe_for_res")
-        # print(ndihe_for_res.shape)
-        # print(ndihe_for_res)
-        # print("dihedral_offset_for_res")
-        # print(dihedral_offset_for_res.shape)
-        # print(dihedral_offset_for_res)
-        # print("dihedral_atom_inds")
-        # print(dihedral_atom_inds.shape)
-        # print(dihedral_atom_inds)
-        # print("rottable_set_for_buildable_restype")
-        # print(rottable_set_for_buildable_restype.shape)
-        # print(rottable_set_for_buildable_restype)
-        # print("chi_expansion_for_buildable_restype")
-        # print(chi_expansion_for_buildable_restype.shape)
-        # print(chi_expansion_for_buildable_restype)
-        # print("non_dunbrack_expansion_for_buildable_restype")
-        # print(non_dunbrack_expansion_for_buildable_restype.shape)
-        # print(non_dunbrack_expansion_for_buildable_restype)
-        # print("non_dunbrack_expansion_counts_for_buildable_restype")
-        # print(non_dunbrack_expansion_counts_for_buildable_restype.shape)
-        # print(non_dunbrack_expansion_counts_for_buildable_restype)
-        # print("prob_cumsum_limit_for_buildable_restype")
-        # print(prob_cumsum_limit_for_buildable_restype.shape)
-        # print(prob_cumsum_limit_for_buildable_restype)
-        # print("nchi_for_buildable_restype")
-        # print(nchi_for_buildable_restype.shape)
-        # print(nchi_for_buildable_restype)
 
         retval = torch.ops.tmol.dun_sample_chi(
             coords,
@@ -397,9 +346,6 @@ class DunbrackChiSampler:
 
         rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
 
-        print("max_n_blocks", max_n_blocks)
-        print("task rlts:", len(task.rlts))
-
         rt_res = torch.tensor(
             [
                 i * max_n_blocks + j
@@ -410,8 +356,6 @@ class DunbrackChiSampler:
             dtype=torch.int32,
             device=self.device,
         )
-        print("rt_res")
-        print(rt_res)
 
         dun_rot_inds_for_rts = self.dun_param_resolver._indices_from_names(
             self.dun_param_resolver.all_table_indices,
@@ -421,8 +365,6 @@ class DunbrackChiSampler:
 
         inds_of_phi = self.atom_indices_for_backbone_dihedral(systems, 0).reshape(-1, 4)
         inds_of_psi = self.atom_indices_for_backbone_dihedral(systems, 1).reshape(-1, 4)
-        print("inds_of_phi")
-        print(inds_of_phi.shape)
 
         phi_psi_inds = torch.cat(
             (inds_of_phi.reshape(-1, 4), inds_of_psi.reshape(-1, 4)), dim=1
