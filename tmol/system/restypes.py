@@ -81,8 +81,6 @@ class RefinedResidueType(tmol.database.chemical.RawResidueType):
                         )
                     )
             torsion_to_uaids[tor.name] = ats
-        print("torsion to uaids for", self.name)
-        print(torsion_to_uaids)
         return frozendict(torsion_to_uaids)
 
     path_distance: numpy.ndarray = attr.ib()

@@ -124,11 +124,19 @@ class PackerTask:
     #     ]
 
     def __init__(self, systems: Poses, palette: PackerPalette):
+        print("task ctor")
+        print(
+            "system sizes",
+            len(systems.residues),
+            [len(ires) for ires in systems.residues],
+        )
         self.rlts = [
-            [ResidueLevelTask(j, res.residue_type, palette)]
+            [
+                ResidueLevelTask(j, res.residue_type, palette)
+                for j, res in enumerate(ires)
+                if systems.block_inds[i, j] >= 0
+            ]
             for i, ires in enumerate(systems.residues)
-            for j, res in enumerate(ires)
-            if systems.block_inds[i, j] >= 0
         ]
 
     def restrict_to_repacking(self):
