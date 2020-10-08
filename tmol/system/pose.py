@@ -53,10 +53,7 @@ class PackedBlockTypes:
 
     @classmethod
     def from_restype_list(
-        cls,
-        active_residues: Sequence[RefinedResidueType],
-        chem_db: ChemicalDatabase,
-        device=torch.device,
+        cls, active_residues: Sequence[RefinedResidueType], device=torch.device
     ):
         max_n_atoms = cls.count_max_n_atoms(active_residues)
         n_atoms = cls.count_n_atoms(active_residues, device)
@@ -146,13 +143,9 @@ class Pose:
     device: torch.device
 
     @classmethod
-    def from_residues_one_chain(
-        cls, res: Sequence[Residue], chem_db: ChemicalDatabase, device: torch.device
-    ):
+    def from_residues_one_chain(cls, res: Sequence[Residue], device: torch.device):
         rt_list = residue_types_from_residues(res)
-        packed_block_types = PackedBlockTypes.from_restype_list(
-            rt_list, chem_db, device
-        )
+        packed_block_types = PackedBlockTypes.from_restype_list(rt_list, device)
         residue_connections = cls.resolve_single_chain_connections(res)
         inter_residue_connections = cls.create_inter_residue_connections(
             res, residue_connections, device
@@ -450,14 +443,10 @@ class Poses:
     device: torch.device
 
     @classmethod
-    def from_poses(
-        cls, poses: Sequence[Pose], chem_db: ChemicalDatabase, device: torch.device
-    ):
+    def from_poses(cls, poses: Sequence[Pose], device: torch.device):
         all_res = [res for pose in poses for res in pose.residues]
         restypes = residue_types_from_residues(all_res)
-        packed_block_types = PackedBlockTypes.from_restype_list(
-            restypes, chem_db, device
-        )
+        packed_block_types = PackedBlockTypes.from_restype_list(restypes, device)
 
         max_n_blocks = max(len(pose.residues) for pose in poses)
         coords = cls.pack_coords(packed_block_types, poses, max_n_blocks, device)

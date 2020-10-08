@@ -38,7 +38,7 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         return LJLKInterSystemModule(
             context_system_ids=context_system_ids,
             system_min_block_bondsep=systems.min_block_bondsep,
-            system_inter_block_bondsep=systems.inter_block_bondsep_t,
+            system_inter_block_bondsep=systems.inter_block_bondsep,
             system_neighbor_list=system_neighbor_list,
             block_type_n_atoms=packed_block_types.n_atoms,
             block_type_n_heavy_atoms=packed_block_types.n_heavy_atoms,

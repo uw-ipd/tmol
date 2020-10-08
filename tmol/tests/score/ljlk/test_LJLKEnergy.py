@@ -50,13 +50,9 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
         device=torch_device,
     )
 
-    p1 = Pose.from_residues_one_chain(
-        ubq_res[:4], default_database.chemical, torch_device
-    )
-    p2 = Pose.from_residues_one_chain(
-        ubq_res[:6], default_database.chemical, torch_device
-    )
-    poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
+    p1 = Pose.from_residues_one_chain(ubq_res[:4], torch_device)
+    p2 = Pose.from_residues_one_chain(ubq_res[:6], torch_device)
+    poses = Poses.from_poses([p1, p2], torch_device)
 
     # nab the ca coords for these residues
     bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
@@ -117,13 +113,9 @@ def test_inter_module(ubq_res, default_database, torch_device):
         device=torch_device,
     )
 
-    p1 = Pose.from_residues_one_chain(
-        ubq_res[:4], default_database.chemical, torch_device
-    )
-    p2 = Pose.from_residues_one_chain(
-        ubq_res[:6], default_database.chemical, torch_device
-    )
-    poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
+    p1 = Pose.from_residues_one_chain(ubq_res[:4], torch_device)
+    p2 = Pose.from_residues_one_chain(ubq_res[:6], torch_device)
+    poses = Poses.from_poses([p1, p2], torch_device)
 
     # nab the ca coords for these residues
     bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
@@ -216,9 +208,9 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
         device=torch_device,
     )
 
-    p1 = Pose.from_residues_one_chain(ubq_res, default_database.chemical, torch_device)
+    p1 = Pose.from_residues_one_chain(ubq_res, torch_device)
     nres = p1.coords.shape[0]
-    poses = Poses.from_poses([p1] * n_poses, default_database.chemical, torch_device)
+    poses = Poses.from_poses([p1] * n_poses, torch_device)
 
     one_bounding_sphere_set = numpy.full((1, nres, 4), numpy.nan, dtype=numpy.float32)
     for i in range(nres):

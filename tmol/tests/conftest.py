@@ -22,6 +22,8 @@ from .data import (  # noqa: F401
     systems_bysize,
 )
 
+from .system import default_restype_set
+
 from .torch import torch_device, torch_backward_coverage  # noqa: F401
 
 from .numba import numba_cudasim, numba_cuda_or_cudasim  # noqa: F401

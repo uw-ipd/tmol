@@ -57,3 +57,9 @@ def test_residue_type_set_construction(default_database):
     allnames = set([rt.name for rt in restype_set.residue_types])
     for rt in default_database.chemical.residues:
         assert rt.name in allnames
+
+
+def test_residue_type_set_get_default():
+    restype_set1 = ResidueTypeSet.get_default()
+    restype_set2 = ResidueTypeSet.get_default()
+    assert restype_set1 is restype_set2

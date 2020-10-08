@@ -13,9 +13,7 @@ def test_store_atom_types_in_packed_residue_types(
 ):
 
     rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(
-        rt_list, default_database.chemical, torch_device
-    )
+    pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
 
     atdt = AtomTypeDependentTerm.from_database(default_database.chemical, torch_device)
     atdt.setup_packed_block_types(pbt)

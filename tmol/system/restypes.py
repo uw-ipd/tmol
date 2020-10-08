@@ -9,8 +9,8 @@ import numpy
 import sparse
 import scipy.sparse.csgraph as csgraph
 
-import tmol.database.chemical
-from tmol.database.chemical import ChemicalDatabase
+from tmol.database import ParameterDatabase
+from tmol.database.chemical import RawResidueType, ChemicalDatabase
 
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
@@ -20,7 +20,7 @@ ResName3 = typing.NewType("ResName3", str)
 
 
 @attr.s
-class RefinedResidueType(tmol.database.chemical.RawResidueType):
+class RefinedResidueType(RawResidueType):
     atom_to_idx: Mapping[str, AtomIndex] = attr.ib()
 
     @atom_to_idx.default

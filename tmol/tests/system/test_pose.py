@@ -5,41 +5,29 @@ from tmol.system.pose import residue_types_from_residues, PackedBlockTypes, Pose
 from tmol.score.chemical_database import AtomTypeParamResolver
 
 
-def two_ubq_poses(default_database, ubq_res, torch_device):
-    p1 = Pose.from_residues_one_chain(
-        ubq_res[:40], default_database.chemical, torch_device
-    )
-    p2 = Pose.from_residues_one_chain(
-        ubq_res[:60], default_database.chemical, torch_device
-    )
-    return Poses.from_poses([p1, p2], default_database.chemical, torch_device)
+def two_ubq_poses(ubq_res, torch_device):
+    p1 = Pose.from_residues_one_chain(ubq_res[:40], torch_device)
+    p2 = Pose.from_residues_one_chain(ubq_res[:60], torch_device)
+    return Poses.from_poses([p1, p2], torch_device)
 
 
-def test_load_packed_residue_types(ubq_res, default_database, torch_device):
+def test_load_packed_residue_types(ubq_res, torch_device):
     rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(
-        rt_list, default_database.chemical, torch_device
-    )
+    pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
 
 
-def test_packed_residue_type_indexer(ubq_res, default_database, torch_device):
+def test_packed_residue_type_indexer(ubq_res, torch_device):
     rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(
-        rt_list, default_database.chemical, torch_device
-    )
+    pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
 
     inds = pbt.inds_for_res(ubq_res)
     for i, res in enumerate(ubq_res):
         assert len(res.residue_type.atoms) == pbt.n_atoms[inds[i]]
 
 
-def test_packed_residue_type_atoms_downstream_of_conn(
-    ubq_res, default_database, torch_device
-):
+def test_packed_residue_type_atoms_downstream_of_conn(ubq_res, torch_device):
     rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(
-        rt_list, default_database.chemical, torch_device
-    )
+    pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
 
     max_n_conn = max(len(rt.connections) for rt in rt_list)
 
@@ -58,7 +46,7 @@ def test_packed_residue_type_atoms_downstream_of_conn(
         )
 
 
-def test_pose_create_inter_residue_connections(ubq_res, default_database, torch_device):
+def test_pose_create_inter_residue_connections(ubq_res, torch_device):
     connections_by_name = Pose.resolve_single_chain_connections(ubq_res[:4])
     inter_residue_connections = Pose.create_inter_residue_connections(
         ubq_res[:4], connections_by_name, torch_device
@@ -88,7 +76,7 @@ def test_pose_create_inter_residue_connections(ubq_res, default_database, torch_
     assert inter_residue_connections[3, 1, 1] == -1
 
 
-def test_pose_resolve_bond_separation(ubq_res, default_database, torch_device):
+def test_pose_resolve_bond_separation(ubq_res, torch_device):
     connections = Pose.resolve_single_chain_connections(ubq_res[1:4])
     bonds = Pose.determine_inter_block_bondsep(ubq_res[1:4], connections, torch_device)
     assert bonds[0, 1, 1, 0] == 1
@@ -99,18 +87,14 @@ def test_pose_resolve_bond_separation(ubq_res, default_database, torch_device):
     assert bonds[2, 0, 0, 1] == 4
 
 
-def test_pose_ctor(ubq_res, default_database, torch_device):
-    p = Pose.from_residues_one_chain(ubq_res, default_database.chemical, torch_device)
+def test_pose_ctor(ubq_res, torch_device):
+    p = Pose.from_residues_one_chain(ubq_res, torch_device)
 
 
-def test_poses_ctor(ubq_res, default_database, torch_device):
-    p1 = Pose.from_residues_one_chain(
-        ubq_res[:40], default_database.chemical, torch_device
-    )
-    p2 = Pose.from_residues_one_chain(
-        ubq_res[:60], default_database.chemical, torch_device
-    )
-    poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
+def test_poses_ctor(ubq_res, torch_device):
+    p1 = Pose.from_residues_one_chain(ubq_res[:40], torch_device)
+    p2 = Pose.from_residues_one_chain(ubq_res[:60], torch_device)
+    poses = Poses.from_poses([p1, p2], torch_device)
     assert poses.block_inds.shape == (2, 60)
     max_n_atoms = poses.packed_block_types.max_n_atoms
     assert poses.coords.shape == (2, 60, max_n_atoms, 3)

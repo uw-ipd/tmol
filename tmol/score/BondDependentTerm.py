@@ -79,19 +79,12 @@ class BondDependentTerm(EnergyTerm):
         super(BondDependentTerm, self).setup_poses(systems)
 
         if hasattr(systems, "min_block_bondsep"):
-            assert hasattr(systems, "inter_block_bondsep_t")
             return
 
         n_systems = systems.coords.shape[0]
         max_n_blocks = systems.coords.shape[1]
 
-        min_block_bondsep = numpy.min(systems.inter_block_bondsep, axis=4)
-        min_block_bondsep = numpy.min(min_block_bondsep, axis=3)
-
-        min_block_bondsep = torch.tensor(min_block_bondsep, device=self.device)
-        inter_block_bondsep_t = torch.tensor(
-            systems.inter_block_bondsep, device=self.device
-        )
+        min_block_bondsep, _ = torch.min(systems.inter_block_bondsep, dim=4)
+        min_block_bondsep, _ = torch.min(min_block_bondsep, dim=3)
 
         setattr(systems, "min_block_bondsep", min_block_bondsep)
-        setattr(systems, "inter_block_bondsep_t", inter_block_bondsep_t)
