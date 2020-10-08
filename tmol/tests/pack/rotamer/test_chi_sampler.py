@@ -1,8 +1,10 @@
 import torch
 import numpy
+import cattr
 
 import tmol.pack.rotamer.compiled
 
+from tmol.system.restypes import RefinedResidueType
 from tmol.system.packed import PackedResidueSystem
 from tmol.system.pose import Pose, Poses
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
@@ -193,6 +195,35 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     assert n_rots_for_brt_offsets.shape == (6,)
     assert brt_for_rotamer.shape == (826,)
     assert chi_for_rotamers.shape == (826, 4)
+
+
+def test_annotate_residue_type(default_database):
+    torch_device = torch.device("cpu")
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+
+    tyr_restype = cattr.structure(
+        cattr.unstructure(
+            next(res for res in default_database.chemical.residues if res.name == "TYR")
+        ),
+        RefinedResidueType,
+    )
+
+    sampler = DunbrackChiSampler.from_database(param_resolver)
+    sampler.annotate_residue_type(tyr_restype)
+
+    assert hasattr(tyr_restype, "dun_sampler_bbdihe_uaids")
+    assert hasattr(tyr_restype, "dun_sampler_chi_defining_atom")
+
+    assert type(tyr_restype.dun_sampler_bbdihe_uaids) == numpy.ndarray
+    assert tyr_restype.dun_sampler_bbdihe_uaids.shape == (2, 4, 3)
+
+    assert type(tyr_restype.dun_sampler_chi_defining_atom) == numpy.ndarray
+    assert tyr_restype.dun_sampler_chi_defining_atom.shape == (3,)
+    tyr_restype.dun_sampler_chi_defining_atom[0] == tyr_restype.atom_to_idx["CA"]
+    tyr_restype.dun_sampler_chi_defining_atom[1] == tyr_restype.atom_to_idx["CB"]
+    tyr_restype.dun_sampler_chi_defining_atom[2] == tyr_restype.atom_to_idx["CZ"]
 
 
 def test_determine_n_possible_rots(default_database, torch_device):
@@ -559,7 +590,7 @@ def test_count_expanded_rotamers(default_database, torch_device):
     )
 
 
-def test_map_from_rotaer_index_to_brt(torch_device):
+def test_map_from_rotamer_index_to_brt(torch_device):
     compiled = get_compiled()
     n_rotamers_to_build_per_brt_offsets = torch.tensor(
         [0, 18, 126, 128, 146, 164], dtype=torch.int32, device=torch_device
