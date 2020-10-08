@@ -718,13 +718,9 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
 
 def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
     torch_device = torch.device("cpu")
-    p1 = Pose.from_residues_one_chain(
-        ubq_res[:5], default_database.chemical, torch_device
-    )
-    p2 = Pose.from_residues_one_chain(
-        ubq_res[:7], default_database.chemical, torch_device
-    )
-    poses = Poses.from_poses([p1, p2], default_database.chemical, torch_device)
+    p1 = Pose.from_residues_one_chain(ubq_res[:5], torch_device)
+    p2 = Pose.from_residues_one_chain(ubq_res[:7], torch_device)
+    poses = Poses.from_poses([p1, p2], torch_device)
     palette = PackerPalette(default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
