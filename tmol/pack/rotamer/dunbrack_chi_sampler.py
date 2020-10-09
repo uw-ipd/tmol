@@ -445,29 +445,9 @@ class DunbrackChiSampler:
             device=self.device,
         )
 
-        # chi_defining_atom_for_rotamer[:, :max_n_chi] = pbt_cda[
-        #    rottable_set_for_buildable_restype.to(torch.int64), :max_n_chi
-        # ]
-
         chi_defining_atom_for_rotamer[:, :max_n_chi] = pbt_cda[
             pbt_restype_ind_for_rt[brt_for_rotamer.to(torch.int64)], :max_n_chi
         ]
-
-        print("n_rots_for_rt")
-        print(n_rots_for_rt.shape)
-        print(n_rots_for_rt.dtype)
-        print("n_rots_for_rt_offsets")
-        print(n_rots_for_rt_offsets.shape)
-        print(n_rots_for_rt_offsets.dtype)
-        print("rt_for_rotamer")
-        print(rt_for_rotamer.shape)
-        print(rt_for_rotamer.dtype)
-        print("chi_defining_atom_for_rotamer")
-        print(chi_defining_atom_for_rotamer.shape)
-        print(chi_defining_atom_for_rotamer.dtype)
-        print("chi_for_rotamers")
-        print(chi_for_rotamers.shape)
-        print(chi_for_rotamers.dtype)
 
         return (
             n_rots_for_rt,
