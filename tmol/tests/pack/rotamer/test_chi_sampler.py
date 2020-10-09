@@ -6,7 +6,7 @@ import tmol.pack.rotamer.compiled
 
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.packed import PackedResidueSystem
-from tmol.system.pose import Pose, Poses
+from tmol.system.pose import PackedBlockTypes, Pose, Poses
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
@@ -218,12 +218,51 @@ def test_annotate_residue_type(default_database):
 
     assert type(tyr_restype.dun_sampler_bbdihe_uaids) == numpy.ndarray
     assert tyr_restype.dun_sampler_bbdihe_uaids.shape == (2, 4, 3)
+    assert tyr_restype.dun_sampler_bbdihe_uaids[0, 0, 0] == -1
+    assert tyr_restype.dun_sampler_bbdihe_uaids[0, 0, 1] == 0
+    assert tyr_restype.dun_sampler_bbdihe_uaids[0, 0, 2] == 0
+    assert tyr_restype.dun_sampler_bbdihe_uaids[1, 3, 0] == -1
+    assert tyr_restype.dun_sampler_bbdihe_uaids[1, 3, 1] == 1
+    assert tyr_restype.dun_sampler_bbdihe_uaids[1, 3, 2] == 0
 
     assert type(tyr_restype.dun_sampler_chi_defining_atom) == numpy.ndarray
     assert tyr_restype.dun_sampler_chi_defining_atom.shape == (3,)
     tyr_restype.dun_sampler_chi_defining_atom[0] == tyr_restype.atom_to_idx["CA"]
     tyr_restype.dun_sampler_chi_defining_atom[1] == tyr_restype.atom_to_idx["CB"]
     tyr_restype.dun_sampler_chi_defining_atom[2] == tyr_restype.atom_to_idx["CZ"]
+
+
+def test_annotate_packed_block_types(default_database, torch_device):
+    # torch_device = torch.device("cpu")
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+
+    desired = set(["ALA", "CYS", "ASP", "GLU", "PHE", "HIS", "ARG", "SER", "TYR"])
+
+    all_restypes = [
+        cattr.structure(cattr.unstructure(res), RefinedResidueType)
+        for res in default_database.chemical.residues
+        if res.name in desired
+    ]
+
+    sampler = DunbrackChiSampler.from_database(param_resolver)
+    for restype in all_restypes:
+        sampler.annotate_residue_type(restype)
+
+    pbt = PackedBlockTypes.from_restype_list(all_restypes, torch_device)
+    sampler.annotate_packed_block_types(pbt)
+
+    assert hasattr(pbt, "dun_sampler_bbdihe_uaids")
+    assert hasattr(pbt, "dun_sampler_chi_defining_atom")
+
+    assert type(pbt.dun_sampler_bbdihe_uaids) == torch.Tensor
+    assert pbt.dun_sampler_bbdihe_uaids.shape == (pbt.n_types, 2, 4, 3)
+    assert pbt.dun_sampler_bbdihe_uaids.device == torch_device
+
+    assert type(pbt.dun_sampler_chi_defining_atom) == torch.Tensor
+    assert pbt.dun_sampler_chi_defining_atom.shape == (pbt.n_types, 4)
+    assert pbt.dun_sampler_chi_defining_atom.device == torch_device
 
 
 def test_determine_n_possible_rots(default_database, torch_device):
