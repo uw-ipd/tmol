@@ -161,6 +161,9 @@ class RefinedResidueType(RawResidueType):
                         parent = next(x.parent for x in self.icoors if x.name == "atom")
         return atom_downstream_of_conn
 
+    def __hash__(self):
+        return id(self)
+
 
 @attr.s(auto_attribs=True)
 class ResidueTypeSet:

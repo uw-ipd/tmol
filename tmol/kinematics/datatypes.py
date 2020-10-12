@@ -24,10 +24,10 @@ class KinTree(TensorGroup, ConvertAttrs):
     A kinematic description of collection of atom locations, each atom location
     corresponding to a node within a tree. The tree is *rooted* at a single
     "root" node, representing the global reference frame. Every other node
-    corresponds to a derived orientation, which an atomic coordinate at the
+    corresponds to a derived orientation, with an atomic coordinate at the
     center of the frame.
 
-    Each node is the tree is connected by one of two "node types":
+    Each node in the tree is connected by one of two "node types":
 
     1) Jump nodes, representing an arbitrary rigid body transform between two
     reference frames via six degrees of freedom, 3 translational and
@@ -37,7 +37,7 @@ class KinTree(TensorGroup, ConvertAttrs):
     frames via three bond degrees of freedom, bond axis translation, bond axis
     rotation about the parent-grandparent bond and change of bond axis with
     respect to the bond. Bond nodes include an additional, redundent,
-    degree of free representing concerted rotation of all downstream bonds
+    degree of freedom representing concerted rotation of all downstream bonds
     about the parent-self bond.
 
     The `KinTree` data structure itself is frozen and can not be modified post

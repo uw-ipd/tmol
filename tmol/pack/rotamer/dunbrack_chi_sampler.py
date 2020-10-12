@@ -12,6 +12,8 @@ from tmol.score.dunbrack.params import (
     DunbrackParamResolver,
 )
 
+from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.pack.rotamer.compiled import _compiled
 from tmol.pack.packer_task import PackerTask, ResidueLevelTask
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
@@ -19,17 +21,27 @@ from tmol.system.packed import PackedResidueSystem
 from tmol.system.score_support import indexed_atoms_for_dihedral
 
 
-@attr.s(auto_attribs=True)
-class ChiSampler:
-    def sample_chi_for_poses(self, systems: Poses, task: PackerTask):
-        raise NotImplementedError()
-
-
-@attr.s(auto_attribs=True)
+# I can't use attr here because the DunbrackParamResolver contains the
+# mutable datatype of a Pandas DataFrame. This might make it seem like
+# using a DunbrackChiSampler in a set is dangerous; however, the
+# ParamResolver is singleton-esq in that, when it is constructed from
+# a dunbrack database (identified by the database's path), it is
+# memoized. So each database should construct one and only one
+# ParamResolver.
+# @attr.s(auto_attribs=True, slots=True, frozen=True)
 class DunbrackChiSampler:
 
     dun_param_resolver: DunbrackParamResolver
-    sampling_params: SamplingDunbrackDatabaseView
+    # sampling_params: SamplingDunbrackDatabaseView
+
+    def __eq__(self, other):
+        return __hash__(self) == __hash__(other)
+
+    def __hash__(self):
+        return id(self.dun_param_resolver)
+
+    def __init__(self, dun_param_resolver: DunbrackParamResolver):
+        self.dun_param_resolver = dun_param_resolver
 
     @property
     def device(self):
@@ -40,7 +52,7 @@ class DunbrackChiSampler:
     def from_database(cls, param_resolver: DunbrackParamResolver):
         return cls(
             dun_param_resolver=param_resolver,
-            sampling_params=param_resolver.sampling_db,
+            # sampling_params=param_resolver.sampling_db,
         )
 
     @validate_args
@@ -274,7 +286,7 @@ class DunbrackChiSampler:
         # and we'll put that information into the chi_expansions_for_buildable_restype
         # tensor
 
-        nchi_for_buildable_restype = self.sampling_params.nchi_for_table_set[
+        nchi_for_buildable_restype = self.dun_param_resolver.sampling_db.nchi_for_table_set[
             rottable_set_for_buildable_restype[:, 1].to(torch.int64)
         ]
 
@@ -532,32 +544,32 @@ class DunbrackChiSampler:
     ):
         return torch.ops.tmol.dun_sample_chi(
             coords,
-            self.sampling_params.rotameric_prob_tables,
-            self.sampling_params.rotprob_table_sizes,
-            self.sampling_params.rotprob_table_strides,
-            self.sampling_params.rotameric_mean_tables,
-            self.sampling_params.rotameric_sdev_tables,
-            self.sampling_params.rotmean_table_sizes,
-            self.sampling_params.rotmean_table_strides,
-            self.sampling_params.rotameric_meansdev_tableset_offsets,
-            self.sampling_params.rotameric_bb_start,
-            self.sampling_params.rotameric_bb_step,
-            self.sampling_params.rotameric_bb_periodicity,
-            self.sampling_params.semirotameric_tables,
-            self.sampling_params.semirot_table_sizes,
-            self.sampling_params.semirot_table_strides,
-            self.sampling_params.semirot_start,
-            self.sampling_params.semirot_step,
-            self.sampling_params.semirot_periodicity,
-            self.sampling_params.rotameric_rotind2tableind,
-            self.sampling_params.semirotameric_rotind2tableind,
-            self.sampling_params.all_chi_rotind2tableind,
-            self.sampling_params.all_chi_rotind2tableind_offsets,
-            self.sampling_params.n_rotamers_for_tableset,
-            self.sampling_params.n_rotamers_for_tableset_offsets,
-            self.sampling_params.sorted_rotamer_2_rotamer,
-            self.sampling_params.nchi_for_table_set,
-            self.sampling_params.rotwells,
+            self.dun_param_resolver.sampling_db.rotameric_prob_tables,
+            self.dun_param_resolver.sampling_db.rotprob_table_sizes,
+            self.dun_param_resolver.sampling_db.rotprob_table_strides,
+            self.dun_param_resolver.sampling_db.rotameric_mean_tables,
+            self.dun_param_resolver.sampling_db.rotameric_sdev_tables,
+            self.dun_param_resolver.sampling_db.rotmean_table_sizes,
+            self.dun_param_resolver.sampling_db.rotmean_table_strides,
+            self.dun_param_resolver.sampling_db.rotameric_meansdev_tableset_offsets,
+            self.dun_param_resolver.sampling_db.rotameric_bb_start,
+            self.dun_param_resolver.sampling_db.rotameric_bb_step,
+            self.dun_param_resolver.sampling_db.rotameric_bb_periodicity,
+            self.dun_param_resolver.sampling_db.semirotameric_tables,
+            self.dun_param_resolver.sampling_db.semirot_table_sizes,
+            self.dun_param_resolver.sampling_db.semirot_table_strides,
+            self.dun_param_resolver.sampling_db.semirot_start,
+            self.dun_param_resolver.sampling_db.semirot_step,
+            self.dun_param_resolver.sampling_db.semirot_periodicity,
+            self.dun_param_resolver.sampling_db.rotameric_rotind2tableind,
+            self.dun_param_resolver.sampling_db.semirotameric_rotind2tableind,
+            self.dun_param_resolver.sampling_db.all_chi_rotind2tableind,
+            self.dun_param_resolver.sampling_db.all_chi_rotind2tableind_offsets,
+            self.dun_param_resolver.sampling_db.n_rotamers_for_tableset,
+            self.dun_param_resolver.sampling_db.n_rotamers_for_tableset_offsets,
+            self.dun_param_resolver.sampling_db.sorted_rotamer_2_rotamer,
+            self.dun_param_resolver.sampling_db.nchi_for_table_set,
+            self.dun_param_resolver.sampling_db.rotwells,
             ndihe_for_res,
             dihedral_offset_for_res,
             dihedral_atom_inds,
