@@ -478,7 +478,7 @@ class Poses:
             inter_residue_connections=inter_residue_connections,
             inter_block_bondsep=inter_block_bondsep,
             block_inds=block_inds,
-            device=torch.device,
+            device=device,
         )
 
     @classmethod

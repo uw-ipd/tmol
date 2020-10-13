@@ -8,6 +8,10 @@ from tmol.kinematics.builder import KinematicBuilder
 def test_builder_refold(ubq_system):
     tsys = ubq_system
 
+    print("tsys bonds")
+    print(type(tsys.bonds))
+    print(tsys.bonds.shape)
+
     kintree = (
         KinematicBuilder()
         .append_connected_component(

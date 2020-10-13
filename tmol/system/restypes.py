@@ -161,8 +161,42 @@ class RefinedResidueType(RawResidueType):
                         parent = next(x.parent for x in self.icoors if x.name == "atom")
         return atom_downstream_of_conn
 
-    def __hash__(self):
-        return id(self)
+    icoors_ancestors: numpy.ndarray = attr.ib()
+
+    @icoors_ancestors.default
+    def _setup_icoors_ancestors(self):
+        n_atoms = len(self.atoms)
+        icoors_ancestors = numpy.full((n_atoms, 3), -1, dtype=numpy.int32)
+        for i in range(n_atoms):
+            for j in range(3):
+                at = (
+                    self.icoors[i].parent
+                    if j == 0
+                    else (
+                        self.icoors[i].grand_parent
+                        if j == 1
+                        else self.icoors[i].great_grand_parent
+                    )
+                )
+                if at in self.atom_to_idx:
+                    icoors_ancestors[i, j] = self.atom_to_idx[at]
+
+        return icoors_ancestors
+
+    icoors_geom: numpy.ndarray = attr.ib()
+
+    @icoors_geom.default
+    def _setup_icoors_geom(self):
+        n_atoms = len(self.atoms)
+        icoors_geom = numpy.zeros((n_atoms, 3), dtype=numpy.float64)
+        for i in range(n_atoms):
+            for j in range(3):
+                icoors_geom[i, j] = (
+                    self.icoors[i].phi
+                    if j == 0
+                    else (self.icoors[i].theta if j == 1 else self.icoors[i].d)
+                )
+        return icoors_geom
 
 
 @attr.s(auto_attribs=True)

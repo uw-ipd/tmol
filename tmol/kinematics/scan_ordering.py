@@ -97,7 +97,7 @@ def get_scans(parents, roots):
     genidx, scanidx, nodeidx = 0, 0, 0
 
     # store the active pool we are expanding
-    activeFront = numpy.full(nelts, -1, dtype=numpy.int32)
+    activeFront = numpy.full(4 * nelts, -1, dtype=numpy.int32)
     nActiveFront = roots.shape[0]
     activeFront[:nActiveFront] = roots
 
