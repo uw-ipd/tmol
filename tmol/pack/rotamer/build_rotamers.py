@@ -3,6 +3,9 @@ import numba
 import toolz
 import torch
 
+from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
+
 from tmol.system.pose import RefinedResidueType, Poses, PackedBlockTypes
 from tmol.pack.packer_task import PackerTask
 
@@ -123,6 +126,9 @@ def annotate_packed_block_types(pbt: PackedBlockTypes):
 def update_nodes(
     nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot
 ):
+    """Merge the 1-residue-type nodes data so that all the rotamers can be
+    built in a single generational-segmented-scan call"""
+
     n_gens = genStartsStack.shape[1]
     n_nodes = nodes_orig.shape[0]
     n_rotamers = n_atoms_offset_for_rot.shape[0]
@@ -137,6 +143,143 @@ def update_nodes(
                 )
                 count += 1
     return nodes
+
+
+@numba.jit(nopython=True)
+def update_scan_starts(
+    n_scans,
+    atomStartsOffsets,
+    atomStartsStack,
+    scanStartsStack,
+    genStartsStack,
+    ngenStack,
+):
+    n_gens = genStartsStack.shape[1]
+    n_rotamers = genStartsStack.shape[0]
+    scanStarts = numpy.zeros((n_scans,), dtype=numpy.int32)
+    count = 0
+    for i in range(n_gens - 1):
+        for j in range(n_rotamers):
+            for k in range(ngenStack[i, j]):
+                # print("i", i, "j", j, "k", k, "gss:", genStartsStack[j, i, 1] + k)
+                scanStarts[count] = (
+                    atomStartsOffsets[i, j]
+                    - atomStartsStack[i, j]
+                    + scanStartsStack[j, genStartsStack[j, i, 1] + k]
+                )
+                count += 1
+    return scanStarts
+
+
+def construct_scans_for_rotamers(
+    pbt: PackedBlockTypes,
+    rt_block_inds: NDArray(numpy.int32)[:],
+    rt_for_rot: Tensor(torch.int64)[:],
+):
+    block_ind_for_rot = rt_block_inds[rt_for_rot]
+
+    # ok! now we need to get the offsets for each rt
+    # and we need to count the total number of rotamers
+    # that are going to be built
+
+    # let's construct the forward folding data
+    # gens = pbt.kintree_gens[block_ind_for_rot]
+    # gen_sum = numpy.sum(gens, axis=0)
+    # print("gen_sum")
+    # print(gen_sum.shape)
+    # print(gen_sum)
+
+    # print("nodes")
+    # print(nodes.shape)
+    # print(nodes[:30])
+
+    block_ind_for_rot_torch = torch.tensor(
+        block_ind_for_rot, dtype=torch.int64, device=pbt.device
+    )
+
+    # Unneeded???
+    # knowing how many nodes there are for each rotamer lets us get a mapping
+    # from node index to rotamer index.
+    # rot_for_node = numpy.zeros(n_nodes, dtype=numpy.int32)
+    # rot_for_node[first_node_for_rot[:-1]] = 1
+    # rot_for_node = numpy.cumsum(rot_for_node)
+
+    # now update the node indices from the generic (1 residue) indices
+    # so that they are specific for the atom ids for the rotamers
+    # numpy.concatenate((
+    # numpy.zeros((1,),dtype=numpy.int64),
+    # n_atoms_offset_for_rot[:-1]))
+
+    # atom_offset_for_node = n_atoms_offset_for_rot[rot_for_node]
+    # nodes = nodes + atom_offset_for_node
+
+    scanStartsStack = pbt.kintree_scans[block_ind_for_rot]
+    genStartsStack = pbt.kintree_gens[block_ind_for_rot]
+    # print("genStartsStack")
+    # print(genStartsStack.shape)
+
+    atomStartsStack = numpy.swapaxes(genStartsStack[:, :, 0], 0, 1)
+    natomsPerGen = atomStartsStack[1:, :] - atomStartsStack[:-1, :]
+    natomsPerGen[natomsPerGen < 0] = 0
+
+    # print("natomsPerGen")
+    # print(natomsPerGen)
+
+    cumsumAtomStarts = numpy.cumsum(natomsPerGen.reshape(-1), axis=0)
+    # print("cumsumAtomStarts")
+    # print(cumsumAtomStarts)
+
+    atomStartsOffsets = exclusive_cumsum(cumsumAtomStarts).reshape(natomsPerGen.shape)
+
+    ngenStack = numpy.swapaxes(pbt.kintree_n_scans_per_gen[block_ind_for_rot], 0, 1)
+    ngenStack[ngenStack < 0] = 0
+    # print("ngenStack")
+    # print(ngenStack)
+    ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
+    # print("ngenStackCumsum")
+    # print(ngenStackCumsum)
+    ngenStackOffset = exclusive_cumsum(ngenStackCumsum).reshape(ngenStack.shape)
+    # print("genStackOffset")
+    # print(ngenStackOffset)
+
+    n_gens = genStartsStack.shape[1]
+    # print("n_gens", n_gens)
+
+    # this can readily be jitted
+    scanStarts = update_scan_starts(
+        ngenStackCumsum[-1],
+        atomStartsOffsets,
+        atomStartsStack,
+        scanStartsStack,
+        genStartsStack,
+        ngenStack,
+    )
+
+    print("scanStarts")
+    print(scanStarts.shape)
+    print(scanStarts[:100])
+    print(scanStarts[-100:])
+
+    nodes_orig = pbt.kintree_nodes[block_ind_for_rot].ravel()
+    nodes_orig = nodes_orig[nodes_orig >= 0]
+
+    n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
+    n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
+    n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
+    n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
+
+    n_nodes_for_rot = pbt.kintree_n_nodes[block_ind_for_rot]
+    first_node_for_rot = numpy.cumsum(n_nodes_for_rot)
+    n_nodes_offset_for_rot = exclusive_cumsum(first_node_for_rot)
+
+    nodes = update_nodes(
+        nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot
+    )
+
+    print("nodes")
+    print(nodes.shape)
+    print(nodes[:100])
+    print(nodes[-100:])
 
 
 def build_rotamers(poses: Poses, task: PackerTask):
@@ -249,127 +392,21 @@ def build_rotamers(poses: Poses, task: PackerTask):
     n_rots_for_all_samples_offsets = torch.cumsum(n_rots_for_rt, dim=0)
     rt_for_rot[n_rots_for_all_samples_offsets[:-1]] = 1
     rt_for_rot = torch.cumsum(rt_for_rot, dim=0).cpu().numpy()
-    # print("rt_for_rot")
-    # print(rt_for_rot.shape)
-    # print(rt_for_rot[:30])
-    block_ind_for_rot = rt_block_inds[rt_for_rot]
-    # print("block_ind_for_rot")
-    # print(block_ind_for_rot.shape)
-    # print(block_ind_for_rot[:10])
 
-    # ok! now we need to get the offsets for each rt
-    # and we need to count the total number of rotamers
-    # that are going to be built
-
-    rt_sample_offsets = torch.cumsum(
-        n_rots_for_all_samples.view(-1), dim=0, dtype=torch.int32
-    )
-    n_rotamers = rt_sample_offsets[-1].item()
-    # print("n_rotamers")
-    # print(n_rotamers)
-
-    rt_sample_offsets[1:] = rt_sample_offsets[:-1]
-    rt_sample_offsets[0] = 0
-    rt_sample_offsets = rt_sample_offsets.view(n_sys, max_n_blocks, max_n_rts)
-
-    rotamer_coords = torch.zeros((n_rotamers, pbt.max_n_atoms, 3), dtype=torch.float32)
-
-    # let's construct the forward folding data
-    gens = pbt.kintree_gens[block_ind_for_rot]
-    gen_sum = numpy.sum(gens, axis=0)
-    # print("gen_sum")
-    # print(gen_sum.shape)
-    # print(gen_sum)
-
-    nodes_orig = pbt.kintree_nodes[block_ind_for_rot].ravel()
-    nodes_orig = nodes_orig[nodes_orig >= 0]
-    n_nodes = nodes_orig.shape[0]
-
-    # print("nodes")
-    # print(nodes.shape)
-    # print(nodes[:30])
-
-    block_ind_for_rot_torch = torch.tensor(
-        block_ind_for_rot, dtype=torch.int64, device=pbt.device
-    )
-
-    # knowing how many nodes there are for each rotamer lets us get a mapping
-    # from node index to rotamer index.
-    n_nodes_for_rot = pbt.kintree_n_nodes[block_ind_for_rot]
-    first_node_for_rot = numpy.cumsum(n_nodes_for_rot)
-    n_nodes_offset_for_rot = exclusive_cumsum(first_node_for_rot)
-    rot_for_node = numpy.zeros(n_nodes, dtype=numpy.int32)
-    rot_for_node[first_node_for_rot[:-1]] = 1
-    rot_for_node = numpy.cumsum(rot_for_node)
-
-    # now update the node indices from the generic (1 residue) indices
-    # so that they are specific for the atom ids for the rotamers
-    n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
-    n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
-    n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
-    n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
-    # numpy.concatenate((
-    # numpy.zeros((1,),dtype=numpy.int64),
-    # n_atoms_offset_for_rot[:-1]))
-
-    # atom_offset_for_node = n_atoms_offset_for_rot[rot_for_node]
-    # nodes = nodes + atom_offset_for_node
-
-    scanStartsStack = pbt.kintree_scans[block_ind_for_rot]
-    genStartsStack = pbt.kintree_gens[block_ind_for_rot]
-    # print("genStartsStack")
-    # print(genStartsStack.shape)
-
-    atomStartsStack = numpy.swapaxes(genStartsStack[:, :, 0], 0, 1)
-    natomsPerGen = atomStartsStack[1:, :] - atomStartsStack[:-1, :]
-    natomsPerGen[natomsPerGen < 0] = 0
-    # print("natomsPerGen")
-    # print(natomsPerGen)
-    cumsumAtomStarts = numpy.cumsum(natomsPerGen.reshape(-1), axis=0)
-    # print("cumsumAtomStarts")
-    # print(cumsumAtomStarts)
-
-    atomStartsOffsets = exclusive_cumsum(cumsumAtomStarts).reshape(natomsPerGen.shape)
-
-    ngenStack = numpy.swapaxes(pbt.kintree_n_scans_per_gen[block_ind_for_rot], 0, 1)
-    ngenStack[ngenStack < 0] = 0
-    # print("ngenStack")
-    # print(ngenStack)
-    ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
-    # print("ngenStackCumsum")
-    # print(ngenStackCumsum)
-    ngenStackOffset = exclusive_cumsum(ngenStackCumsum).reshape(ngenStack.shape)
-    # print("genStackOffset")
-    # print(ngenStackOffset)
-
-    n_gens = genStartsStack.shape[1]
-    # print("n_gens", n_gens)
-
-    # this can readily be jitted
-    scanStarts = numpy.zeros((ngenStackCumsum[-1],), dtype=numpy.int32)
-    count = 0
-    for i in range(n_gens - 1):
-        for j in range(n_rotamers):
-            for k in range(ngenStack[i, j]):
-                # print("i", i, "j", j, "k", k, "gss:", genStartsStack[j, i, 1] + k)
-                scanStarts[count] = (
-                    atomStartsOffsets[i, j]
-                    - atomStartsStack[i, j]
-                    + scanStartsStack[j, genStartsStack[j, i, 1] + k]
-                )
-                count += 1
-    # print("scanStarts")
-    # print(scanStarts.shape)
-    # print(scanStarts[:100])
-    # print(scanStarts[-100:])
-
-    nodes = update_nodes(
-        nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot
-    )
-
-    print("nodes")
-    print(nodes.shape)
-    print(nodes[:100])
-    print(nodes[-100:])
+    return construct_scans_for_rotamers(pbt, rt_block_inds, rt_for_rot)
 
     # oof
+
+    # Not clear what the rt_sample_offsets tensor will be needed for
+    # rt_sample_offsets = torch.cumsum(
+    #     n_rots_for_all_samples.view(-1), dim=0, dtype=torch.int32
+    # )
+    # n_rotamers = rt_sample_offsets[-1].item()
+    # # print("n_rotamers")
+    # # print(n_rotamers)
+    #
+    # rt_sample_offsets[1:] = rt_sample_offsets[:-1]
+    # rt_sample_offsets[0] = 0
+    # rt_sample_offsets = rt_sample_offsets.view(n_sys, max_n_blocks, max_n_rts)
+
+    # rotamer_coords = torch.zeros((n_rotamers, pbt.max_n_atoms, 3), dtype=torch.float32)
