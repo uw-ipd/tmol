@@ -78,8 +78,6 @@ def annotate_restype(restype: RefinedResidueType):
         )
         .kintree
     )
-    print("kintree")
-    print(kintree)
 
     forward_scan_paths = KinTreeScanOrdering.calculate_from_kintree(
         kintree
@@ -88,13 +86,6 @@ def annotate_restype(restype: RefinedResidueType):
     nodes = forward_scan_paths.nodes.numpy()
     scans = forward_scan_paths.scans.numpy()
     gens = forward_scan_paths.gens.numpy()
-
-    print("nodes")
-    print(nodes)
-    print("scans")
-    print(scans)
-    print("gens")
-    print(gens)
 
     n_scans_per_gen = gens[1:, 1] - gens[:-1, 1]
 
@@ -237,12 +228,12 @@ def construct_scans_for_rotamers(
     natomsPerGen = atomStartsStack[1:, :] - atomStartsStack[:-1, :]
     natomsPerGen[natomsPerGen < 0] = 0
 
-    print("natomsPerGen")
-    print(natomsPerGen)
+    # print("natomsPerGen")
+    # print(natomsPerGen)
 
     cumsumAtomStarts = numpy.cumsum(natomsPerGen, axis=1)
-    print("cumsumAtomStarts 1")
-    print(cumsumAtomStarts)
+    # print("cumsumAtomStarts 1")
+    # print(cumsumAtomStarts)
     atomStartsOffsets = numpy.concatenate(
         (
             numpy.zeros(natomsPerGen.shape[0], dtype=numpy.int64).reshape(-1, 1),
@@ -251,18 +242,18 @@ def construct_scans_for_rotamers(
         axis=1,
     )
 
-    print("atomStartsOffsets")
-    print(atomStartsOffsets)
+    # print("atomStartsOffsets")
+    # print(atomStartsOffsets)
 
     # atomStartsOffsets = exclusive_cumsum(cumsumAtomStarts).reshape(natomsPerGen.shape)
 
     ngenStack = numpy.swapaxes(pbt.kintree_n_scans_per_gen[block_ind_for_rot], 0, 1)
     ngenStack[ngenStack < 0] = 0
-    print("ngenStack")
-    print(ngenStack)
+    # print("ngenStack")
+    # print(ngenStack)
     ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
-    print("ngenStackCumsum")
-    print(ngenStackCumsum)
+    # print("ngenStackCumsum")
+    # print(ngenStackCumsum)
     # ngenStackOffset = exclusive_cumsum(ngenStackCumsum).reshape(ngenStack.shape)
     # print("genStackOffset")
     # print(ngenStackOffset)
@@ -279,10 +270,10 @@ def construct_scans_for_rotamers(
         ngenStack,
     )
 
-    print("scanStarts")
-    print(scanStarts.shape)
-    print(scanStarts[:100])
-    print(scanStarts[-100:])
+    # print("scanStarts")
+    # print(scanStarts.shape)
+    # print(scanStarts[:100])
+    # print(scanStarts[-100:])
 
     nodes_orig = pbt.kintree_nodes[block_ind_for_rot].ravel()
     nodes_orig = nodes_orig[nodes_orig >= 0]
@@ -291,8 +282,8 @@ def construct_scans_for_rotamers(
     n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
     n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
     n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
-    print("n_atoms_offset_for_rot")
-    print(n_atoms_offset_for_rot)
+    # print("n_atoms_offset_for_rot")
+    # print(n_atoms_offset_for_rot)
 
     n_nodes_for_rot = pbt.kintree_n_nodes[block_ind_for_rot]
     first_node_for_rot = numpy.cumsum(n_nodes_for_rot)
@@ -302,10 +293,10 @@ def construct_scans_for_rotamers(
         nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot
     )
 
-    print("nodes")
-    print(nodes.shape)
-    print(nodes[:100])
-    print(nodes[-100:])
+    # print("nodes")
+    # print(nodes.shape)
+    # print(nodes[:100])
+    # print(nodes[-100:])
 
     gen_starts = numpy.sum(genStartsStack, axis=0)
 

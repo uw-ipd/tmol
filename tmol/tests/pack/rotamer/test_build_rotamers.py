@@ -50,11 +50,11 @@ def test_build_rotamers_smoke(ubq_res, default_database):
     build_rotamers(poses, task)
 
 
-def test_update_scan_starts(default_database):
+def test_construct_scans_for_rotamers(default_database):
     torch_device = torch.device("cpu")
 
     rts = ResidueTypeSet.from_database(default_database.chemical)
-    leu_rt_list = [rts.restype_map["MET"][0]]
+    leu_rt_list = [rts.restype_map["LEU"][0]]
     pbt = PackedBlockTypes.from_restype_list(leu_rt_list, device=torch_device)
 
     annotate_restype(leu_rt_list[0])
@@ -63,17 +63,137 @@ def test_update_scan_starts(default_database):
     rt_block_inds = numpy.zeros(3, dtype=numpy.int32)
     rt_for_rot = torch.zeros(3, dtype=torch.int64)
 
-    print("pbt.kintree_nodes")
-    print(pbt.kintree_nodes)
-    print("pbt.kintree_scans")
-    print(pbt.kintree_scans)
-    print("pbt.kintree_gens")
-    print(pbt.kintree_gens)
+    # print("pbt.kintree_nodes")
+    # print(pbt.kintree_nodes)
+    # print("pbt.kintree_scans")
+    # print(pbt.kintree_scans)
+    # print("pbt.kintree_gens")
+    # print(pbt.kintree_gens)
 
     nodes, scans, gens = construct_scans_for_rotamers(pbt, rt_block_inds, rt_for_rot)
-    print("nodes")
-    print(nodes)
-    print("scans")
-    print(scans)
-    print("gens")
-    print(gens)
+    # print("nodes")
+    # print(nodes)
+    # print("scans")
+    # print(scans)
+    # print("gens")
+    # print(gens)
+
+    n_atoms = len(leu_rt_list[0].atoms)
+    kt_nodes = pbt.kintree_nodes[0]
+    kt_scans = pbt.kintree_scans[0]
+    kt_gens = pbt.kintree_gens[0]
+    nodes_gold = numpy.concatenate(
+        [
+            kt_nodes[0 : kt_gens[1, 0]],
+            kt_nodes[0 : kt_gens[1, 0]] + n_atoms,
+            kt_nodes[0 : kt_gens[1, 0]] + 2 * n_atoms,
+            kt_nodes[kt_gens[1, 0] : kt_gens[2, 0]],
+            kt_nodes[kt_gens[1, 0] : kt_gens[2, 0]] + n_atoms,
+            kt_nodes[kt_gens[1, 0] : kt_gens[2, 0]] + 2 * n_atoms,
+            kt_nodes[kt_gens[2, 0] : kt_gens[3, 0]],
+            kt_nodes[kt_gens[2, 0] : kt_gens[3, 0]] + n_atoms,
+            kt_nodes[kt_gens[2, 0] : kt_gens[3, 0]] + 2 * n_atoms,
+        ]
+    )
+    numpy.testing.assert_equal(nodes_gold, nodes)
+
+    scans_gold = numpy.concatenate(
+        [
+            kt_scans[0 : kt_gens[1, 1]],
+            kt_scans[0 : kt_gens[1, 1]] + kt_gens[1, 0],
+            kt_scans[0 : kt_gens[1, 1]] + 2 * kt_gens[1, 0],
+            kt_scans[kt_gens[1, 1] : kt_gens[2, 1]],
+            kt_scans[kt_gens[1, 1] : kt_gens[2, 1]]
+            + 1 * (kt_gens[2, 0] - kt_gens[1, 0]),
+            kt_scans[kt_gens[1, 1] : kt_gens[2, 1]]
+            + 2 * (kt_gens[2, 0] - kt_gens[1, 0]),
+            kt_scans[kt_gens[2, 1] : kt_gens[3, 1]],
+            kt_scans[kt_gens[2, 1] : kt_gens[3, 1]]
+            + 1 * (kt_gens[3, 0] - kt_gens[2, 0]),
+            kt_scans[kt_gens[2, 1] : kt_gens[3, 1]]
+            + 2 * (kt_gens[3, 0] - kt_gens[2, 0]),
+        ]
+    )
+    numpy.testing.assert_equal(scans_gold, scans)
+
+    gens_gold = kt_gens * 3
+    numpy.testing.assert_equal(gens_gold, gens)
+
+
+def test_construct_scans_for_rotamers2(default_database):
+    torch_device = torch.device("cpu")
+
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+    leu_met_rt_list = [rts.restype_map["LEU"][0]] + [rts.restype_map["MET"][0]]
+    pbt = PackedBlockTypes.from_restype_list(leu_met_rt_list, device=torch_device)
+
+    annotate_restype(leu_met_rt_list[0])
+    annotate_restype(leu_met_rt_list[1])
+    annotate_packed_block_types(pbt)
+
+    rt_block_inds = numpy.concatenate(
+        [numpy.zeros(1, dtype=numpy.int32), numpy.ones(2, dtype=numpy.int32)]
+    )
+    rt_for_rot = torch.cat(
+        [torch.zeros(1, dtype=torch.int64), torch.ones(2, dtype=torch.int64)]
+    )
+
+    nodes, scans, gens = construct_scans_for_rotamers(pbt, rt_block_inds, rt_for_rot)
+
+    leu_n_atoms = len(leu_met_rt_list[0].atoms)
+    met_n_atoms = len(leu_met_rt_list[1].atoms)
+    kt_nodes = pbt.kintree_nodes
+    kt_scans = pbt.kintree_scans
+    kt_gens = pbt.kintree_gens
+    leu = 0
+    met = 1
+    nodes_gold = numpy.concatenate(
+        [
+            kt_nodes[leu, 0 : kt_gens[leu, 1, 0]],
+            kt_nodes[met, 0 : kt_gens[met, 1, 0]] + leu_n_atoms,
+            kt_nodes[met, 0 : kt_gens[met, 1, 0]] + leu_n_atoms + met_n_atoms,
+            kt_nodes[leu, kt_gens[leu, 1, 0] : kt_gens[leu, 2, 0]],
+            kt_nodes[met, kt_gens[met, 1, 0] : kt_gens[met, 2, 0]] + leu_n_atoms,
+            kt_nodes[met, kt_gens[met, 1, 0] : kt_gens[met, 2, 0]]
+            + leu_n_atoms
+            + met_n_atoms,
+            kt_nodes[leu, kt_gens[leu, 2, 0] : kt_gens[leu, 3, 0]],
+            kt_nodes[met, kt_gens[met, 2, 0] : kt_gens[met, 3, 0]] + leu_n_atoms,
+            kt_nodes[met, kt_gens[met, 2, 0] : kt_gens[met, 3, 0]]
+            + leu_n_atoms
+            + met_n_atoms,
+        ]
+    )
+    numpy.testing.assert_equal(nodes_gold, nodes)
+
+    scans_gold = numpy.concatenate(
+        [
+            kt_scans[leu, 0 : kt_gens[leu, 1, 1]],
+            kt_scans[met, 0 : kt_gens[met, 1, 1]] + kt_gens[leu, 1, 0],
+            kt_scans[met, 0 : kt_gens[met, 1, 1]]
+            + kt_gens[leu, 1, 0]
+            + kt_gens[met, 1, 0],
+            kt_scans[leu, kt_gens[leu, 1, 1] : kt_gens[leu, 2, 1]],
+            kt_scans[met, kt_gens[met, 1, 1] : kt_gens[met, 2, 1]]
+            + kt_gens[leu, 2, 0]
+            - kt_gens[leu, 1, 0],
+            kt_scans[met, kt_gens[met, 1, 1] : kt_gens[met, 2, 1]]
+            + kt_gens[leu, 2, 0]
+            - kt_gens[leu, 1, 0]
+            + kt_gens[met, 2, 0]
+            - kt_gens[met, 1, 0],
+            kt_scans[leu, kt_gens[leu, 2, 1] : kt_gens[leu, 3, 1]],
+            kt_scans[met, kt_gens[met, 2, 1] : kt_gens[met, 3, 1]]
+            + kt_gens[leu, 3, 0]
+            - kt_gens[leu, 2, 0],
+            kt_scans[met, kt_gens[met, 2, 1] : kt_gens[met, 3, 1]]
+            + kt_gens[leu, 3, 0]
+            - kt_gens[leu, 2, 0]
+            + kt_gens[met, 3, 0]
+            - kt_gens[met, 2, 0],
+        ]
+    )
+    numpy.testing.assert_equal(scans_gold, scans)
+
+    gens_gold = kt_gens[leu] + 2 * kt_gens[met]
+    numpy.testing.assert_equal(gens_gold, gens)
