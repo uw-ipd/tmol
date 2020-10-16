@@ -1,8 +1,14 @@
+import numpy
 import torch
 import attr
 import cattr
 
-from tmol.pack.rotamer.build_rotamers import build_rotamers
+from tmol.pack.rotamer.build_rotamers import (
+    annotate_restype,
+    annotate_packed_block_types,
+    build_rotamers,
+    construct_scans_for_rotamers,
+)
 from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.system.pose import PackedBlockTypes, Pose, Poses
 from tmol.score.dunbrack.params import DunbrackParamResolver
@@ -42,3 +48,32 @@ def test_build_rotamers_smoke(ubq_res, default_database):
     task.add_chi_sampler(sampler)
 
     build_rotamers(poses, task)
+
+
+def test_update_scan_starts(default_database):
+    torch_device = torch.device("cpu")
+
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+    leu_rt_list = [rts.restype_map["MET"][0]]
+    pbt = PackedBlockTypes.from_restype_list(leu_rt_list, device=torch_device)
+
+    annotate_restype(leu_rt_list[0])
+    annotate_packed_block_types(pbt)
+
+    rt_block_inds = numpy.zeros(3, dtype=numpy.int32)
+    rt_for_rot = torch.zeros(3, dtype=torch.int64)
+
+    print("pbt.kintree_nodes")
+    print(pbt.kintree_nodes)
+    print("pbt.kintree_scans")
+    print(pbt.kintree_scans)
+    print("pbt.kintree_gens")
+    print(pbt.kintree_gens)
+
+    nodes, scans, gens = construct_scans_for_rotamers(pbt, rt_block_inds, rt_for_rot)
+    print("nodes")
+    print(nodes)
+    print("scans")
+    print(scans)
+    print("gens")
+    print(gens)

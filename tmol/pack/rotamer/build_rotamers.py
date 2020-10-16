@@ -61,13 +61,25 @@ def annotate_restype(restype: RefinedResidueType):
         return
     icoor_parents = restype.icoors_ancestors[:, 0]
 
+    torsion_pairs = numpy.array(
+        [uaids[1:3] for tor, uaids in restype.torsion_to_uaids.items()]
+    )
+    torsion_pairs = torsion_pairs[:, :, 0]
+
+    all_real = numpy.all(torsion_pairs >= 0, axis=1)
+    torsion_pairs = torsion_pairs[all_real, :]
+
     kintree = (
         KinematicBuilder()
         .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, restype.bond_indices)
+            *KinematicBuilder.component_for_prioritized_bonds(
+                root=0, mandatory_bonds=torsion_pairs, all_bonds=restype.bond_indices
+            )
         )
         .kintree
     )
+    print("kintree")
+    print(kintree)
 
     forward_scan_paths = KinTreeScanOrdering.calculate_from_kintree(
         kintree
@@ -76,6 +88,13 @@ def annotate_restype(restype: RefinedResidueType):
     nodes = forward_scan_paths.nodes.numpy()
     scans = forward_scan_paths.scans.numpy()
     gens = forward_scan_paths.gens.numpy()
+
+    print("nodes")
+    print(nodes)
+    print("scans")
+    print(scans)
+    print("gens")
+    print(gens)
 
     n_scans_per_gen = gens[1:, 1] - gens[:-1, 1]
 
@@ -111,6 +130,8 @@ def annotate_packed_block_types(pbt: PackedBlockTypes):
         rt_nodes[i, : len(rt.kintree_nodes)] = rt.kintree_nodes
         rt_scans[i, : rt.kintree_scans.shape[0]] = rt.kintree_scans
         rt_gens[i, : rt.kintree_gens.shape[0], :] = rt.kintree_gens
+        # fill forward
+        rt_gens[i, rt.kintree_gens.shape[0] :, :] = rt.kintree_gens[-1, :]
         rt_n_scans_per_gen[
             i, : rt.kintree_n_scans_per_gen.shape[0]
         ] = rt.kintree_n_scans_per_gen
@@ -147,12 +168,7 @@ def update_nodes(
 
 @numba.jit(nopython=True)
 def update_scan_starts(
-    n_scans,
-    atomStartsOffsets,
-    atomStartsStack,
-    scanStartsStack,
-    genStartsStack,
-    ngenStack,
+    n_scans, atomStartsOffsets, scanStartsStack, genStartsStack, ngenStack
 ):
     n_gens = genStartsStack.shape[1]
     n_rotamers = genStartsStack.shape[0]
@@ -164,7 +180,6 @@ def update_scan_starts(
                 # print("i", i, "j", j, "k", k, "gss:", genStartsStack[j, i, 1] + k)
                 scanStarts[count] = (
                     atomStartsOffsets[i, j]
-                    - atomStartsStack[i, j]
                     + scanStartsStack[j, genStartsStack[j, i, 1] + k]
                 )
                 count += 1
@@ -222,23 +237,33 @@ def construct_scans_for_rotamers(
     natomsPerGen = atomStartsStack[1:, :] - atomStartsStack[:-1, :]
     natomsPerGen[natomsPerGen < 0] = 0
 
-    # print("natomsPerGen")
-    # print(natomsPerGen)
+    print("natomsPerGen")
+    print(natomsPerGen)
 
-    cumsumAtomStarts = numpy.cumsum(natomsPerGen.reshape(-1), axis=0)
-    # print("cumsumAtomStarts")
-    # print(cumsumAtomStarts)
+    cumsumAtomStarts = numpy.cumsum(natomsPerGen, axis=1)
+    print("cumsumAtomStarts 1")
+    print(cumsumAtomStarts)
+    atomStartsOffsets = numpy.concatenate(
+        (
+            numpy.zeros(natomsPerGen.shape[0], dtype=numpy.int64).reshape(-1, 1),
+            cumsumAtomStarts[:, :-1],
+        ),
+        axis=1,
+    )
 
-    atomStartsOffsets = exclusive_cumsum(cumsumAtomStarts).reshape(natomsPerGen.shape)
+    print("atomStartsOffsets")
+    print(atomStartsOffsets)
+
+    # atomStartsOffsets = exclusive_cumsum(cumsumAtomStarts).reshape(natomsPerGen.shape)
 
     ngenStack = numpy.swapaxes(pbt.kintree_n_scans_per_gen[block_ind_for_rot], 0, 1)
     ngenStack[ngenStack < 0] = 0
-    # print("ngenStack")
-    # print(ngenStack)
+    print("ngenStack")
+    print(ngenStack)
     ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
-    # print("ngenStackCumsum")
-    # print(ngenStackCumsum)
-    ngenStackOffset = exclusive_cumsum(ngenStackCumsum).reshape(ngenStack.shape)
+    print("ngenStackCumsum")
+    print(ngenStackCumsum)
+    # ngenStackOffset = exclusive_cumsum(ngenStackCumsum).reshape(ngenStack.shape)
     # print("genStackOffset")
     # print(ngenStackOffset)
 
@@ -249,7 +274,6 @@ def construct_scans_for_rotamers(
     scanStarts = update_scan_starts(
         ngenStackCumsum[-1],
         atomStartsOffsets,
-        atomStartsStack,
         scanStartsStack,
         genStartsStack,
         ngenStack,
@@ -267,6 +291,8 @@ def construct_scans_for_rotamers(
     n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
     n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
     n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
+    print("n_atoms_offset_for_rot")
+    print(n_atoms_offset_for_rot)
 
     n_nodes_for_rot = pbt.kintree_n_nodes[block_ind_for_rot]
     first_node_for_rot = numpy.cumsum(n_nodes_for_rot)
@@ -280,6 +306,10 @@ def construct_scans_for_rotamers(
     print(nodes.shape)
     print(nodes[:100])
     print(nodes[-100:])
+
+    gen_starts = numpy.sum(genStartsStack, axis=0)
+
+    return nodes, scanStarts, gen_starts
 
 
 def build_rotamers(poses: Poses, task: PackerTask):
