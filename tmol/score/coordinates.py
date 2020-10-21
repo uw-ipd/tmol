@@ -12,6 +12,7 @@ from tmol.utility.reactive import reactive_property
 
 from tmol.types.torch import Tensor
 
+from .bonded_atom import BondedAtomScoreGraph
 from .device import TorchDevice
 from .score_graph import score_graph
 from .stacked_system import StackedSystem
@@ -43,7 +44,9 @@ class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice):
 
 
 @score_graph
-class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
+class KinematicAtomicCoordinateProvider(
+    BondedAtomScoreGraph, StackedSystem, TorchDevice
+):
     @staticmethod
     @singledispatch
     def factory_for(
@@ -84,23 +87,25 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
         kintree: KinTree,
         kin_module: KinematicModule,
         system_size: int,
+        stack_depth: int,
     ) -> Tensor(torch.float)[:, :, 3]:
         """System cartesian atomic coordinates."""
         kincoords = kin_module(dofs)
 
         coords = torch.full(
-            (system_size, 3),
+            (stack_depth, system_size, 3),
             math.nan,
             dtype=dofs.dtype,
             layout=dofs.layout,
             device=dofs.device,
             requires_grad=False,
         )
+        coords_flat = coords.reshape((-1, 3))
 
         idIdx = kintree.id[1:].to(dtype=torch.long)
-        coords[idIdx] = kincoords[1:]
+        coords_flat[idIdx] = kincoords[1:]
 
-        return coords.to(torch.float)[None, ...]
+        return coords.to(torch.float)
 
     def reset_coords(self):
         """Reset coordinate state in compute graph, clearing dependent properties."""

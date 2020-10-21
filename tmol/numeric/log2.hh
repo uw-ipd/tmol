@@ -9,7 +9,7 @@ namespace numeric {
 // transcendental function evaluation. Handy for working with
 // coalesced groups, which usually are not an even power of 2
 unsigned int EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-most_sig_bit128(unsigned int x) {
+most_sig_bit(unsigned int x) {
 #ifdef __CUDA_ARCH__
   return 1 << (31 - __clz(x));
 #else

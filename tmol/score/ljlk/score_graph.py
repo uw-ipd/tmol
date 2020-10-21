@@ -11,6 +11,7 @@ from tmol.types.array import NDArray
 from tmol.database import ParameterDatabase
 from tmol.database.scoring import LJLKDatabase
 
+from ..common.stack_condense import condense_torch_inds
 from ..database import ParamDB
 from ..chemical_database import ChemicalDB, AtomTypeParamResolver
 from ..device import TorchDevice
@@ -38,7 +39,10 @@ class LKIntraScore(IntraScore):
     # @validate_args
     def total_lk(target):
         return target.lk_intra_module(
-            target.coords, target.ljlk_atom_types, target.bonded_path_length
+            target.coords,
+            target.ljlk_atom_types,
+            target.heavyatom_inds,
+            target.bonded_path_length,
         )
 
 
@@ -106,3 +110,13 @@ class LKScoreGraph(_LJLKCommonScoreGraph):
         ljlk_param_resolver: LJLKParamResolver
     ) -> LKIsotropicIntraModule:
         return LKIsotropicIntraModule(ljlk_param_resolver)
+
+    @reactive_property
+    @validate_args
+    def heavyatom_inds(
+        ljlk_atom_types: Tensor(torch.int64)[:, :],
+        atom_type_params: AtomTypeParamResolver,
+        device: torch.device,
+    ) -> Tensor(torch.int64)[:, :]:
+        are_heavyatoms = 1 - atom_type_params.params.is_hydrogen[ljlk_atom_types]
+        return condense_torch_inds(are_heavyatoms, device)

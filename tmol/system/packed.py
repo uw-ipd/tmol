@@ -372,8 +372,8 @@ class PackedResidueSystem:
         torsion_metadata["atom_index_d"] = nan_to_neg1(torsion_index["d.atom_index"])
 
         result = cls(
-            block_size=block_size,
-            system_size=buffer_size,
+            block_size=int(block_size),
+            system_size=int(buffer_size),
             res_start_ind=segment_starts,
             residues=attached_res,
             atom_metadata=atom_metadata,

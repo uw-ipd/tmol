@@ -22,6 +22,7 @@ from .packed import PackedResidueSystem, PackedResidueSystemStack
 from .kinematics import KinematicDescription
 
 from tmol.database import ParameterDatabase
+from tmol.types.array import NDArray
 
 
 @StackedSystem.factory_for.register(PackedResidueSystem)
@@ -159,12 +160,55 @@ def system_torsion_graph_inputs(
     """
 
     # Initialize kinematic tree for the system
-    sys_kin = KinematicDescription.for_system(system.bonds, system.torsion_metadata)
+    sys_kin = KinematicDescription.for_system(
+        int(system.system_size), system.bonds, (system.torsion_metadata,)
+    )
     tkintree = sys_kin.kintree.to(device)
     tdofmetadata = sys_kin.dof_metadata.to(device)
 
     # compute dofs from xyzs
-    kincoords = sys_kin.extract_kincoords(system.coords).to(device)
+    kincoords = sys_kin.extract_kincoords(system.coords.reshape(1, -1, 3)).to(device)
+    bkin = inverseKin(tkintree, kincoords)
+
+    # dof mask
+
+    return dict(
+        dofs=bkin.raw.clone().requires_grad_(requires_grad),
+        kintree=tkintree,
+        dofmetadata=tdofmetadata,
+    )
+
+
+@KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stacked_system_torsion_graph_inputs(
+    system: PackedResidueSystemStack,
+    stack_depth: int,
+    system_size: int,
+    bonds: NDArray(int)[:, 3],
+    device: torch.device,
+    requires_grad: bool = True,
+    **_,
+):
+    """Constructor parameters for torsion space scoring.
+
+    Extract constructor kwargs to initialize a `KinematicAtomicCoordinateProvider` and
+    `BondedAtomScoreGraph` subclass supporting torsion-space scoring. This
+    includes only `bond_torsion` dofs, a subset of valid kinematic dofs for the
+    system.
+    """
+
+    torsion_metadata = tuple(sys.torsion_metadata for sys in system.systems)
+    # Initialize kinematic tree for the system
+    sys_kin = KinematicDescription.for_system(system_size, bonds, torsion_metadata)
+    tkintree = sys_kin.kintree.to(device)
+    tdofmetadata = sys_kin.dof_metadata.to(device)
+
+    # compute dofs from xyzs
+    coords = numpy.full((stack_depth, system_size, 3), numpy.nan, dtype=numpy.float64)
+    for i, sys in enumerate(system.systems):
+        coords[i, : sys.coords.shape[0], :] = sys.coords
+    kincoords = sys_kin.extract_kincoords(coords).to(device)
     bkin = inverseKin(tkintree, kincoords)
 
     # dof mask
@@ -270,6 +314,21 @@ def omega_graph_inputs(system: PackedResidueSystem, **_):
     )
 
     return dict(allomegas=omegas[None, :])
+
+
+@OmegaScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def omega_graph_for_stack(system: PackedResidueSystemStack, **_):
+    params = [omega_graph_inputs(sys) for sys in system.systems]
+
+    max_omegas = max(d["allomegas"].shape[1] for d in params)
+
+    def expand(t):
+        ext = numpy.full((1, max_omegas, 4), -1, dtype=int)
+        ext[0, : t.shape[1], :] = t
+        return ext
+
+    return dict(allomegas=numpy.concatenate([expand(d["allomegas"]) for d in params]))
 
 
 @OmegaScoreGraph.factory_for.register(PackedResidueSystemStack)

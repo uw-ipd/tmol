@@ -19,7 +19,9 @@ from tmol.tests.torch import requires_cuda
 @pytest.mark.benchmark(group="kinematic_forward_op")
 def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     tsys = ubq_system
-    tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
+    tkin = KinematicDescription.for_system(
+        tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
+    )
     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
     tkintree = tkin.kintree.to(torch_device)
 
@@ -37,7 +39,9 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
 @pytest.mark.benchmark(group="kinematic_backward_op")
 def test_kinematic_torch_op_backward_benchmark(benchmark, ubq_system, torch_device):
     tsys = ubq_system
-    tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
+    tkin = KinematicDescription.for_system(
+        tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
+    )
     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
     tkintree = tkin.kintree.to(torch_device)
 
@@ -60,7 +64,9 @@ def gradcheck_test_system(
     ubq_res: typing.Sequence[Residue],
 ) -> typing.Tuple[KinTree, Tensor(torch.float64)[:, 3]]:
     tsys = PackedResidueSystem.from_residues(ubq_res[:4])
-    tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
+    tkin = KinematicDescription.for_system(
+        tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
+    )
 
     return (tkin.kintree, tkin.extract_kincoords(tsys.coords))
 

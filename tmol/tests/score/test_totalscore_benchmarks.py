@@ -24,18 +24,6 @@ class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice
 
 
 # the
-@score_graph
-class StackScoreGraph(
-    CartesianAtomicCoordinateProvider,
-    LJScoreGraph,
-    LKScoreGraph,
-    LKBallScoreGraph,
-    RamaScoreGraph,
-    TorchDevice,
-):
-    pass
-
-
 @pytest.fixture
 def default_component_weights(torch_device):
     return {
@@ -112,7 +100,7 @@ def test_stacked_full(
     benchmark, ubq_system, nstacks, torch_device, default_component_weights
 ):
     stack = PackedResidueSystemStack((ubq_system,) * nstacks)
-    score_graph = StackScoreGraph.build_for(
+    score_graph = TotalScore.build_for(
         stack,
         requires_grad=True,
         device=torch_device,
@@ -124,8 +112,8 @@ def test_stacked_full(
     def forward_backward():
         score_graph.reset_coords()
         total = score_graph.intra_score().total
-        tsum = torch.sum(total)
-        tsum.backward(retain_graph=True)
+        # tsum = torch.sum(total)
+        # tsum.backward(retain_graph=True)
         return total
 
     forward_backward

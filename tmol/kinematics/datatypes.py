@@ -43,7 +43,7 @@ class KinTree(TensorGroup, ConvertAttrs):
     The `KinTree` data structure itself is frozen and can not be modified post
     construction. The `KinematicBuilder` factory class is responsible for
     construction of a `KinTree` with valid internal structure for atomic
-    system.
+    systems.
 
     Indices::
         id = index for kin-atom in the target coordinate system

@@ -37,7 +37,9 @@ def test_lk_isotropic_gradcheck(params, iname, jname, bonded_path_length):
             dist, bonded_path_length, i_params, j_params, global_params
         ).sum(),
         (torch.linspace(1, 8, 20, dtype=torch.double).requires_grad_(True),),
-        eps=1e-4,
+        eps=3e-4,
+        atol=1e-5,
+        rtol=1e-3,
     )
 
 

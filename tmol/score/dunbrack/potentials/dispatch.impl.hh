@@ -190,7 +190,9 @@ struct DunbrackDispatch {
             dneglnprob_rot_dbb_xyz[stack],
             ddihe_dxyz[stack],
             i);
-        common::accumulate<D, Real>::add(V[stack][0], Erot);
+        auto Vslice0 = V.slice_one(1, 0);
+        common::accumulate<D, Real>::add_one_dst(Vslice0, stack, Erot);
+        // common::accumulate<D, Real>::add(V[stack][0], Erot);
       }
     });
     Dispatch<D>::forall_stacks(nstacks, n_rotameric_res, func_rotameric_prob);
@@ -216,7 +218,9 @@ struct DunbrackDispatch {
             drotchi_devpen_dtor_xyz[stack],
             ddihe_dxyz[stack],
             i);
-        common::accumulate<D, Real>::add(V[stack][1], Erotdev);
+        auto Vslice1 = V.slice_one(1, 1);
+        common::accumulate<D, Real>::add_one_dst(Vslice1, stack, Erotdev);
+        // common::accumulate<D, Real>::add(V[stack][1], Erotdev);
       }
     });
     Dispatch<D>::forall_stacks(nstacks, n_rotameric_chi, func_chidevpen);
@@ -238,7 +242,9 @@ struct DunbrackDispatch {
             i,
             dneglnprob_nonrot_dtor_xyz[stack],
             ddihe_dxyz[stack]);
-        common::accumulate<D, Real>::add(V[stack][2], Esemi);
+        auto Vslice2 = V.slice_one(1, 2);
+        common::accumulate<D, Real>::add_one_dst(Vslice2, stack, Esemi);
+        // common::accumulate<D, Real>::add(V[stack][2], Esemi);
       }
     });
     Dispatch<D>::forall_stacks(nstacks, n_semirotameric_res, func_semirot);
