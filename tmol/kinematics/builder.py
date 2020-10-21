@@ -119,7 +119,7 @@ class KinematicBuilder:
         assert (
             ids.shape == parent_ids.shape
         ), "elements and parents must be of same length"
-        assert len(ids) > 3, "Bonded ktree must have at least three entries"
+        assert len(ids) >= 3, "Bonded ktree must have at least three entries"
         assert component_parent < len(self.kintree) and component_parent >= -1
 
         # Assert that there is single connected component?
@@ -168,20 +168,41 @@ class KinematicBuilder:
         # Fixup the orientation frame frame of the root and its children.
         # The rootis self-parented at zero, so drop the first match.
         root, *root_children = [int(i) for i in torch.nonzero(parent_indices == 0)]
-        assert len(root_children) >= 2, "root of bonded tree must have two children"
-        assert root == 0, "root must be self parented, was set above"
         root_c1, *root_sibs = root_children
-        root_sibs = torch.LongTensor(root_sibs)
 
-        kin_stree.frame_x[[root, root_c1]] = root_c1 + kin_start
-        kin_stree.frame_y[[root, root_c1]] = root + kin_start
-        kin_stree.frame_z[[root, root_c1]] = (
-            first(root_sibs).to(dtype=torch.int) + kin_start
-        )
+        assert len(root_children) >= 1, "root must have at least one child"
+        c1_children = [int(i) for i in torch.nonzero(parent_indices) == root_c1]
+        if len(c1_children) > 0:
+            c1_children = torch.LongTensor(c1_children)
+            root_sibs = torch.LongTensor(root_sibs)
 
-        kin_stree.frame_x[root_sibs] = root_sibs.to(dtype=torch.int) + kin_start
-        kin_stree.frame_y[root_sibs] = root + kin_start
-        kin_stree.frame_z[root_sibs] = root_c1 + kin_start
+            kin_stree.frame_x[[root, root_c1]] = root_c1 + kin_start
+            kin_stree.frame_y[[root, root_c1]] = root + kin_start
+            kin_stree.frame_z[[root, root_c1]] = (
+                first(c1_children).to(dtype=torch.int) + kin_start
+            )
+
+            kin_stree.frame_x[root_sibs] = root_sibs.to(dtype=torch.int) + kin_start
+            kin_stree.frame_y[root_sibs] = root + kin_start
+            kin_stree.frame_z[root_sibs] = root_c1 + kin_start
+        else:
+
+            assert (
+                len(root_children) >= 2
+            ), "root of bonded tree must have two children if the first child of the root has no children"
+            assert root == 0, "root must be self parented, was set above"
+            root_c1, *root_sibs = root_children
+            root_sibs = torch.LongTensor(root_sibs)
+
+            kin_stree.frame_x[[root, root_c1]] = root_c1 + kin_start
+            kin_stree.frame_y[[root, root_c1]] = root + kin_start
+            kin_stree.frame_z[[root, root_c1]] = (
+                first(root_sibs).to(dtype=torch.int) + kin_start
+            )
+
+            kin_stree.frame_x[root_sibs] = root_sibs.to(dtype=torch.int) + kin_start
+            kin_stree.frame_y[root_sibs] = root + kin_start
+            kin_stree.frame_z[root_sibs] = root_c1 + kin_start
 
         # Append the subtree onto the kintree.
         return attr.evolve(self, kintree=cat((self.kintree, kin_stree)))

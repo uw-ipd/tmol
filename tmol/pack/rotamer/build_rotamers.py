@@ -54,9 +54,15 @@ def exclusive_cumsum(cumsum):
 
 
 def annotate_restype(restype: RefinedResidueType):
-    if hasattr(restype, "kintree_nodes"):
-        assert hasattr(restype, "kintree_scanStarts")
-        assert hasattr(restype, "kintree_genStarts")
+    if hasattr(restype, "kintree_id"):
+        assert hasattr(restype, "kintree_doftype")
+        assert hasattr(restype, "kintree_parent")
+        assert hasattr(restype, "kintree_frame_x")
+        assert hasattr(restype, "kintree_frame_y")
+        assert hasattr(restype, "kintree_frame_z")
+        assert hasattr(restype, "kintree_nodes")
+        assert hasattr(restype, "kintree_scans")
+        assert hasattr(restype, "kintree_gens")
         assert hasattr(restype, "kintree_n_scans_per_gen")
         return
     icoor_parents = restype.icoors_ancestors[:, 0]
@@ -64,20 +70,37 @@ def annotate_restype(restype: RefinedResidueType):
     torsion_pairs = numpy.array(
         [uaids[1:3] for tor, uaids in restype.torsion_to_uaids.items()]
     )
-    torsion_pairs = torsion_pairs[:, :, 0]
+    print("torsion_pairs")
+    print(torsion_pairs)
+    print("restype.torsion_to_uaids")
+    print(restype.torsion_to_uaids)
+    if torsion_pairs.shape[0] > 0:
+        torsion_pairs = torsion_pairs[:, :, 0]
+        all_real = numpy.all(torsion_pairs >= 0, axis=1)
+        torsion_pairs = torsion_pairs[all_real, :]
 
-    all_real = numpy.all(torsion_pairs >= 0, axis=1)
-    torsion_pairs = torsion_pairs[all_real, :]
-
-    kintree = (
-        KinematicBuilder()
-        .append_connected_component(
-            *KinematicBuilder.component_for_prioritized_bonds(
-                root=0, mandatory_bonds=torsion_pairs, all_bonds=restype.bond_indices
+        print("building tree for", restype.name)
+        kintree = (
+            KinematicBuilder()
+            .append_connected_component(
+                *KinematicBuilder.component_for_prioritized_bonds(
+                    root=0,
+                    mandatory_bonds=torsion_pairs,
+                    all_bonds=restype.bond_indices,
+                )
             )
+            .kintree
         )
-        .kintree
-    )
+    else:
+        kintree = (
+            KinematicBuilder()
+            .append_connected_component(
+                *KinematicBuilder.bonds_to_connected_component(
+                    root=0, bonds=restype.bond_indices
+                )
+            )
+            .kintree
+        )
 
     forward_scan_paths = KinTreeScanOrdering.calculate_from_kintree(
         kintree
@@ -89,6 +112,12 @@ def annotate_restype(restype: RefinedResidueType):
 
     n_scans_per_gen = gens[1:, 1] - gens[:-1, 1]
 
+    setattr(restype, "kintree_id", kintree.id.numpy()[1:])
+    setattr(restype, "kintree_doftype", kintree.doftype.numpy()[1:])
+    setattr(restype, "kintree_parent", kintree.parent.numpy()[1:])
+    setattr(restype, "kintree_frame_x", kintree.frame_x.numpy()[1:])
+    setattr(restype, "kintree_frame_y", kintree.frame_y.numpy()[1:])
+    setattr(restype, "kintree_frame_z", kintree.frame_z.numpy()[1:])
     setattr(restype, "kintree_nodes", nodes)
     setattr(restype, "kintree_scans", scans)
     setattr(restype, "kintree_gens", gens)
@@ -102,11 +131,18 @@ def annotate_packed_block_types(pbt: PackedBlockTypes):
         assert hasattr(pbt, "kintree_scans")
         assert hasattr(pbt, "kintree_gens")
         assert hasattr(pbt, "kintree_n_scans_per_gen")
+        assert hasattr(pbt, "kintree_id")
+        assert hasattr(pbt, "kintree_doftype")
+        assert hasattr(pbt, "kintree_parent")
+        assert hasattr(pbt, "kintree_frame_x")
+        assert hasattr(pbt, "kintree_frame_y")
+        assert hasattr(pbt, "kintree_frame_z")
         return
 
     max_n_nodes = max(len(rt.kintree_nodes) for rt in pbt.active_residues)
     max_n_scans = max(rt.kintree_scans.shape[0] for rt in pbt.active_residues)
     max_n_gens = max(rt.kintree_gens.shape[0] for rt in pbt.active_residues)
+    max_n_atoms = max(rt.kintree_id.shape[0] for rt in pbt.active_residues)
 
     rt_n_nodes = numpy.zeros((pbt.n_types,), dtype=numpy.int32)
     rt_nodes = numpy.full((pbt.n_types, max_n_nodes), -1, dtype=numpy.int32)
@@ -115,6 +151,13 @@ def annotate_packed_block_types(pbt: PackedBlockTypes):
     rt_n_scans_per_gen = numpy.full(
         (pbt.n_types, max_n_gens - 1), -1, dtype=numpy.int32
     )
+
+    rt_id = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
+    rt_doftype = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
+    rt_parent = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
+    rt_frame_x = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
+    rt_frame_y = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
+    rt_frame_z = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
 
     for i, rt in enumerate(pbt.active_residues):
         rt_n_nodes[i] = len(rt.kintree_nodes)
@@ -126,7 +169,19 @@ def annotate_packed_block_types(pbt: PackedBlockTypes):
         rt_n_scans_per_gen[
             i, : rt.kintree_n_scans_per_gen.shape[0]
         ] = rt.kintree_n_scans_per_gen
+        rt_id[i, : rt.kintree_id.shape[0]] = rt.kintree_id
+        rt_doftype[i, : rt.kintree_id.shape[0]] = rt.kintree_doftype
+        rt_parent[i, : rt.kintree_id.shape[0]] = rt.kintree_parent
+        rt_frame_x[i, : rt.kintree_id.shape[0]] = rt.kintree_frame_x
+        rt_frame_y[i, : rt.kintree_id.shape[0]] = rt.kintree_frame_y
+        rt_frame_z[i, : rt.kintree_id.shape[0]] = rt.kintree_frame_z
 
+    setattr(pbt, "kintree_id", rt_id)
+    setattr(pbt, "kintree_doftype", rt_doftype)
+    setattr(pbt, "kintree_parent", rt_parent)
+    setattr(pbt, "kintree_frame_x", rt_frame_x)
+    setattr(pbt, "kintree_frame_y", rt_frame_y)
+    setattr(pbt, "kintree_frame_z", rt_frame_z)
     setattr(pbt, "kintree_n_nodes", rt_n_nodes)
     setattr(pbt, "kintree_nodes", rt_nodes)
     setattr(pbt, "kintree_scans", rt_scans)
@@ -181,23 +236,9 @@ def construct_scans_for_rotamers(
     pbt: PackedBlockTypes,
     rt_block_inds: NDArray(numpy.int32)[:],
     rt_for_rot: Tensor(torch.int64)[:],
+    n_atoms_for_rot: Tensor(torch.int32)[:],
+    n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
 ):
-    block_ind_for_rot = rt_block_inds[rt_for_rot]
-
-    # ok! now we need to get the offsets for each rt
-    # and we need to count the total number of rotamers
-    # that are going to be built
-
-    # let's construct the forward folding data
-    # gens = pbt.kintree_gens[block_ind_for_rot]
-    # gen_sum = numpy.sum(gens, axis=0)
-    # print("gen_sum")
-    # print(gen_sum.shape)
-    # print(gen_sum)
-
-    # print("nodes")
-    # print(nodes.shape)
-    # print(nodes[:30])
 
     block_ind_for_rot_torch = torch.tensor(
         block_ind_for_rot, dtype=torch.int64, device=pbt.device
@@ -249,19 +290,12 @@ def construct_scans_for_rotamers(
 
     ngenStack = numpy.swapaxes(pbt.kintree_n_scans_per_gen[block_ind_for_rot], 0, 1)
     ngenStack[ngenStack < 0] = 0
-    # print("ngenStack")
-    # print(ngenStack)
     ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
-    # print("ngenStackCumsum")
-    # print(ngenStackCumsum)
-    # ngenStackOffset = exclusive_cumsum(ngenStackCumsum).reshape(ngenStack.shape)
-    # print("genStackOffset")
-    # print(ngenStackOffset)
 
     n_gens = genStartsStack.shape[1]
-    # print("n_gens", n_gens)
 
-    # this can readily be jitted
+    # jitted function that operates on the CPU; need to figure
+    # out how to replace this with a GPU-compatible version
     scanStarts = update_scan_starts(
         ngenStackCumsum[-1],
         atomStartsOffsets,
@@ -270,20 +304,8 @@ def construct_scans_for_rotamers(
         ngenStack,
     )
 
-    # print("scanStarts")
-    # print(scanStarts.shape)
-    # print(scanStarts[:100])
-    # print(scanStarts[-100:])
-
     nodes_orig = pbt.kintree_nodes[block_ind_for_rot].ravel()
     nodes_orig = nodes_orig[nodes_orig >= 0]
-
-    n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
-    n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
-    n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
-    n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
-    # print("n_atoms_offset_for_rot")
-    # print(n_atoms_offset_for_rot)
 
     n_nodes_for_rot = pbt.kintree_n_nodes[block_ind_for_rot]
     first_node_for_rot = numpy.cumsum(n_nodes_for_rot)
@@ -293,14 +315,84 @@ def construct_scans_for_rotamers(
         nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot
     )
 
-    # print("nodes")
-    # print(nodes.shape)
-    # print(nodes[:100])
-    # print(nodes[-100:])
-
     gen_starts = numpy.sum(genStartsStack, axis=0)
 
     return nodes, scanStarts, gen_starts
+
+
+@numba.jit(nopython=True)
+def load_from_rotamers(
+    arr: NDArray(numpy.int32)[:, :],
+    n_atoms_total: int,
+    n_atoms_for_rot: NDArray(numpy.int32)[:],
+    n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
+):
+    compact_arr = numpy.zeros((n_atoms_total + 1,), dtype=numpy.int32)
+    count = 1
+    for i in range(n_atoms_for_rot.shape[0]):
+        for j in range(n_atoms_for_rot[i]):
+            compact_arr[count] = arr[i][j]
+            count += 1
+    return compact_arr
+
+
+@numba.jit(nopython=True)
+def load_from_rotamers_w_offsets(
+    arr: NDArray(numpy.int32)[:, :],
+    n_atoms_total: int,
+    n_atoms_for_rot: NDArray(numpy.int32)[:],
+    n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
+):
+    compact_arr = numpy.zeros((n_atoms_total + 1,), dtype=numpy.int32)
+    count = 1
+    for i in range(n_atoms_for_rot.shape[0]):
+        for j in range(n_atoms_for_rot[i]):
+            compact_arr[count] = arr[i][j] + n_atoms_offset_for_rot[i]
+            count += 1
+    return compact_arr
+
+
+@numba.jit(nopython=True)
+def load_from_rotamers_w_offsets_except_first_node(
+    arr: NDArray(numpy.int32)[:, :],
+    n_atoms_total: int,
+    n_atoms_for_rot: NDArray(numpy.int32)[:],
+    n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
+):
+    compact_arr = numpy.zeros((n_atoms_total + 1,), dtype=numpy.int32)
+    count = 1
+    for i in range(n_atoms_for_rot.shape[0]):
+        for j in range(n_atoms_for_rot[i]):
+            compact_arr[count] = arr[i][j] + (
+                n_atoms_offset_for_rot[i] if j != 0 else 0
+            )
+            count += 1
+    return compact_arr
+
+
+def construct_kintree_for_rotamers(
+    pbt: PackedBlockTypes,
+    rt_block_inds: NDArray(numpy.int32)[:],
+    # rt_for_rot: Tensor(torch.int64)[:],
+    n_atoms_total: int,
+    n_atoms_for_rot: Tensor(torch.int32)[:],
+    n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
+):
+    n_atoms_for_rot = n_atoms_for_rot.cpu().numpy()
+
+    def nab(func, arr):
+        return func(
+            arr[rt_block_inds], n_atoms_total, n_atoms_for_rot, n_atoms_offset_for_rot
+        )
+
+    kt_ids = nab(load_from_rotamers_w_offsets, pbt.kintree_id)
+    kt_doftype = nab(load_from_rotamers, pbt.kintree_doftype)
+    kt_parent = nab(load_from_rotamers_w_offsets_except_first_node, pbt.kintree_parent)
+    kt_frame_x = nab(load_from_rotamers_w_offsets, pbt.kintree_frame_x)
+    kt_frame_y = nab(load_from_rotamers_w_offsets, pbt.kintree_frame_y)
+    kt_frame_z = nab(load_from_rotamers_w_offsets, pbt.kintree_frame_z)
+
+    return kt_ids, kt_doftype, kt_parent, kt_frame_x, kt_frame_y, kt_frame_z
 
 
 def build_rotamers(poses: Poses, task: PackerTask):
@@ -414,7 +506,28 @@ def build_rotamers(poses: Poses, task: PackerTask):
     rt_for_rot[n_rots_for_all_samples_offsets[:-1]] = 1
     rt_for_rot = torch.cumsum(rt_for_rot, dim=0).cpu().numpy()
 
-    return construct_scans_for_rotamers(pbt, rt_block_inds, rt_for_rot)
+    block_ind_for_rot = rt_block_inds[rt_for_rot]
+    block_ind_for_rot_torch = torch.tensor(
+        block_ind_for_rot, dtype=torch.int64, device=pbt.device
+    )
+    n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
+    n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
+    n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
+    n_atoms_total = n_atoms_offset_for_rot[-1]
+    n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
+
+    ids, doft, par, fx, fy, fz = construct_kintree_for_rotamers(
+        pbt, rt_block_inds, n_atoms_total, n_atoms_for_rot, n_atoms_offset_for_rot
+    )
+
+    nodes, scans, gens = construct_scans_for_rotamers(
+        pbt,
+        rt_block_inds,
+        rt_for_rot,
+        n_atoms_total,
+        n_atoms_for_rot,
+        n_atoms_offset_for_rot,
+    )
 
     # oof
 

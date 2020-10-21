@@ -17,6 +17,31 @@ from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.dunbrack_chi_sampler import DunbrackChiSampler
 
 
+def test_annotate_restypes(default_database):
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    for rt in rts.residue_types:
+        annotate_restype(rt)
+        assert hasattr(rt, "kintree_id")
+        assert hasattr(rt, "kintree_doftype")
+        assert hasattr(rt, "kintree_parent")
+        assert hasattr(rt, "kintree_frame_x")
+        assert hasattr(rt, "kintree_frame_y")
+        assert hasattr(rt, "kintree_frame_z")
+        assert hasattr(rt, "kintree_nodes")
+        assert hasattr(rt, "kintree_scans")
+        assert hasattr(rt, "kintree_gens")
+        assert hasattr(rt, "kintree_n_scans_per_gen")
+
+        assert type(rt.kintree_id) == numpy.ndarray
+        assert rt.kintree_id.shape == (rt.n_atoms,)
+        assert rt.kintree_doftype.shape == (rt.n_atoms,)
+        assert rt.kintree_parent.shape == (rt.n_atoms,)
+        assert rt.kintree_frame_x.shape == (rt.n_atoms,)
+        assert rt.kintree_frame_y.shape == (rt.n_atoms,)
+        assert rt.kintree_frame_z.shape == (rt.n_atoms,)
+
+
 def test_build_rotamers_smoke(ubq_res, default_database):
     torch_device = torch.device("cpu")
 
@@ -63,20 +88,7 @@ def test_construct_scans_for_rotamers(default_database):
     rt_block_inds = numpy.zeros(3, dtype=numpy.int32)
     rt_for_rot = torch.zeros(3, dtype=torch.int64)
 
-    # print("pbt.kintree_nodes")
-    # print(pbt.kintree_nodes)
-    # print("pbt.kintree_scans")
-    # print(pbt.kintree_scans)
-    # print("pbt.kintree_gens")
-    # print(pbt.kintree_gens)
-
     nodes, scans, gens = construct_scans_for_rotamers(pbt, rt_block_inds, rt_for_rot)
-    # print("nodes")
-    # print(nodes)
-    # print("scans")
-    # print(scans)
-    # print("gens")
-    # print(gens)
 
     n_atoms = len(leu_rt_list[0].atoms)
     kt_nodes = pbt.kintree_nodes[0]

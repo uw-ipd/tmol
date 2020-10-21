@@ -242,7 +242,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             global_params[0]);
         lj *= lj_lk_weights[0];
 
-        accumulate<D, Real>::add(output[alt_ind], lj);
+        // accumulate<D, Real>::add(output[alt_ind], lj);
       });
 
   DeviceDispatch<D>::foreach_combination_triple(

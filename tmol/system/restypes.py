@@ -21,6 +21,10 @@ ResName3 = typing.NewType("ResName3", str)
 
 @attr.s
 class RefinedResidueType(RawResidueType):
+    @property
+    def n_atoms(self):
+        return len(self.atoms)
+
     atom_to_idx: Mapping[str, AtomIndex] = attr.ib()
 
     @atom_to_idx.default
@@ -92,11 +96,10 @@ class RefinedResidueType(RawResidueType):
     @path_distance.default
     def _setup_path_distance(self):
         MAX_SEPARATION = 6
-        n_atoms = len(self.atoms)
         bonds_sparse = sparse.COO(
             self.bond_indices.T,
             data=numpy.full(len(self.bond_indices), True),
-            shape=(n_atoms, n_atoms),
+            shape=(self.n_atoms, self.n_atoms),
             cache=True,
         )
         path_distance = csgraph.dijkstra(
@@ -109,9 +112,10 @@ class RefinedResidueType(RawResidueType):
 
     @atom_downstream_of_conn.default
     def _setup_atom_downstream_of_conn(self):
-        n_atoms = len(self.atoms)
         n_conns = len(self.connections)
-        atom_downstream_of_conn = numpy.full((n_conns, n_atoms), -1, dtype=numpy.int32)
+        atom_downstream_of_conn = numpy.full(
+            (n_conns, self.n_atoms), -1, dtype=numpy.int32
+        )
         for i in range(n_conns):
             i_conn_atom = self.atom_to_idx[self.connections[i].atom]
             if self.connections[i].name == "down":
@@ -123,7 +127,7 @@ class RefinedResidueType(RawResidueType):
                     atom_downstream_of_conn[i, :] = i_conn_atom
                 else:
                     assert mc_ats[0] == self.connections[i].atom
-                    for j in range(n_atoms):
+                    for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
                             mc_ats[j] if j < len(mc_ats) else mc_ats[-1]
                         ]
@@ -138,7 +142,7 @@ class RefinedResidueType(RawResidueType):
                     # atoms are part of the mainchain?
                     atom_downstream_of_conn[i, :] = i_conn_atom
                 else:
-                    for j in range(n_atoms):
+                    for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
                             mc_ats[len(mc_ats) - j - 1]
                             if j < len(mc_ats)
@@ -151,7 +155,7 @@ class RefinedResidueType(RawResidueType):
                 # keep going -- report all the other atoms downstream of
                 # the connection as the root atom.
                 parent = self.connections[i].atom
-                for j in range(n_atoms):
+                for j in range(self.n_atoms):
                     atom_downstream_of_conn[i, j] = self.atom_to_idx[parent]
                     atom_index = atom_downstream_of_conn[i, j]
                     atom = parent
@@ -165,9 +169,8 @@ class RefinedResidueType(RawResidueType):
 
     @icoors_ancestors.default
     def _setup_icoors_ancestors(self):
-        n_atoms = len(self.atoms)
-        icoors_ancestors = numpy.full((n_atoms, 3), -1, dtype=numpy.int32)
-        for i in range(n_atoms):
+        icoors_ancestors = numpy.full((self.n_atoms, 3), -1, dtype=numpy.int32)
+        for i in range(self.n_atoms):
             for j in range(3):
                 at = (
                     self.icoors[i].parent
@@ -187,9 +190,8 @@ class RefinedResidueType(RawResidueType):
 
     @icoors_geom.default
     def _setup_icoors_geom(self):
-        n_atoms = len(self.atoms)
-        icoors_geom = numpy.zeros((n_atoms, 3), dtype=numpy.float64)
-        for i in range(n_atoms):
+        icoors_geom = numpy.zeros((self.n_atoms, 3), dtype=numpy.float64)
+        for i in range(self.n_atoms):
             for j in range(3):
                 icoors_geom[i, j] = (
                     self.icoors[i].phi
@@ -230,7 +232,7 @@ class Residue:
 
     @coords.default
     def _coord_buffer(self):
-        return numpy.full((len(self.residue_type.atoms), 3), numpy.nan, dtype=float)
+        return numpy.full((self.residue_type.n_atoms, 3), numpy.nan, dtype=float)
 
     @property
     def atom_coords(self) -> numpy.ndarray:
