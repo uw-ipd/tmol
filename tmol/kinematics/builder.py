@@ -148,6 +148,9 @@ class KinematicBuilder:
         kin_stree = KinTree.full(len(ids), 0)
         kin_stree.id[:] = ids
 
+        # print("kin_stree.id")
+        # print(kin_stree.id[:10])
+
         # Calculate the start index of the kinematic tree block this new
         # subtree will occupy, construct all parent & frame references wrt this
         # start index.
@@ -170,8 +173,13 @@ class KinematicBuilder:
         root, *root_children = [int(i) for i in torch.nonzero(parent_indices == 0)]
         root_c1, *root_sibs = root_children
 
+        # print("root c1", root_c1)
+
         assert len(root_children) >= 1, "root must have at least one child"
-        c1_children = [int(i) for i in torch.nonzero(parent_indices) == root_c1]
+        c1_children = [int(i) for i in torch.nonzero(parent_indices == root_c1)]
+        # print("c1 children?")
+        # print(c1_children)
+        # if False:
         if len(c1_children) > 0:
             c1_children = torch.LongTensor(c1_children)
             root_sibs = torch.LongTensor(root_sibs)
@@ -203,6 +211,13 @@ class KinematicBuilder:
             kin_stree.frame_x[root_sibs] = root_sibs.to(dtype=torch.int) + kin_start
             kin_stree.frame_y[root_sibs] = root + kin_start
             kin_stree.frame_z[root_sibs] = root_c1 + kin_start
+
+        # print("kin_stree.frame_x")
+        # print(kin_stree.frame_x[:10])
+        # print("kin_stree.frame_y")
+        # print(kin_stree.frame_y[:10])
+        # print("kin_stree.frame_z")
+        # print(kin_stree.frame_z[:10])
 
         # Append the subtree onto the kintree.
         return attr.evolve(self, kintree=cat((self.kintree, kin_stree)))
