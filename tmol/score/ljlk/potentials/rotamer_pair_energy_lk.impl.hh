@@ -259,6 +259,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     lk *= lj_lk_weights[1];
     accumulate<D, Real>::add_one_dst(output_tensor, alt_ind, lk);
+    // accumulate<D, Real>::add(output_tensor[alt_ind], lk);
   });
 
   DeviceDispatch<D>::foreach_combination_triple(

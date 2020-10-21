@@ -11,10 +11,6 @@ from tmol.score.bonded_atom import BondedAtomScoreGraph
 def test_builder_refold(ubq_system):
     tsys = ubq_system
 
-    print("tsys bonds")
-    print(type(tsys.bonds))
-    print(tsys.bonds.shape)
-
     kintree = (
         KinematicBuilder()
         .append_connected_component(
@@ -53,20 +49,24 @@ def test_builder_framing(ubq_system):
     numpy.testing.assert_array_equal(kintree.parent[:2], [0, 0])
     numpy.testing.assert_array_equal(kintree.id[:2], [-1, 0])
 
-    # The first atom has two children. The first atom and its first child are framed by
-    # [first_child, root, second_child]
     atom_root_children = numpy.flatnonzero(numpy.array(kintree.parent) == 1)
+    atom_root_grandkids = numpy.flatnonzero(
+        numpy.array(kintree.parent) == atom_root_children[0]
+    )
     assert len(atom_root_children) == 2
+    assert len(atom_root_grandkids) == 3
 
+    # The first atom has two children. The first atom and its first child are framed by
+    # [first_child, root, first_grandkid]
     first_atom = kintree[1]
     assert int(first_atom.frame_x) == atom_root_children[0]
     assert int(first_atom.frame_y) == 1
-    assert int(first_atom.frame_z) == atom_root_children[1]
+    assert int(first_atom.frame_z) == atom_root_grandkids[0]
 
     first_atom_first_child = kintree[atom_root_children[0]]
     assert int(first_atom_first_child.frame_x) == atom_root_children[0]
     assert int(first_atom_first_child.frame_y) == 1
-    assert int(first_atom_first_child.frame_z) == atom_root_children[1]
+    assert int(first_atom_first_child.frame_z) == atom_root_grandkids[0]
 
     # The rest of the children are framed by:
     # [self, root, first_child]

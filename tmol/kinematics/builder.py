@@ -242,7 +242,7 @@ class KinematicBuilder:
             root_c1, *root_sibs = root_children
 
             assert len(root_children) >= 1, "root must have at least one child"
-            c1_children = [int(i) for i in torch.nonzero(parent_indices) == root_c1]
+            c1_children = [int(i) for i in torch.nonzero(parent_indices == root_c1)]
             if len(c1_children) > 0:
                 c1_children = torch.LongTensor(c1_children)
                 root_sibs = torch.LongTensor(root_sibs)
