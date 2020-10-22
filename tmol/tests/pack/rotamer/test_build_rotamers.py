@@ -8,6 +8,7 @@ from tmol.pack.rotamer.build_rotamers import (
     annotate_packed_block_types,
     build_rotamers,
     construct_scans_for_rotamers,
+    exclusive_cumsum,
 )
 from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.system.pose import PackedBlockTypes, Pose, Poses
@@ -88,7 +89,19 @@ def test_construct_scans_for_rotamers(default_database):
     rt_block_inds = numpy.zeros(3, dtype=numpy.int32)
     rt_for_rot = torch.zeros(3, dtype=torch.int64)
 
-    nodes, scans, gens = construct_scans_for_rotamers(pbt, rt_block_inds, rt_for_rot)
+    block_ind_for_rot = rt_block_inds[rt_for_rot]
+    block_ind_for_rot_torch = torch.tensor(
+        block_ind_for_rot, dtype=torch.int64, device=torch_device
+    )
+    n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
+    n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
+    n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
+    n_atoms_total = n_atoms_offset_for_rot[-1]
+    n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
+
+    nodes, scans, gens = construct_scans_for_rotamers(
+        pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot
+    )
 
     n_atoms = len(leu_rt_list[0].atoms)
     kt_nodes = pbt.kintree_nodes[0]
@@ -150,7 +163,19 @@ def test_construct_scans_for_rotamers2(default_database):
         [torch.zeros(1, dtype=torch.int64), torch.ones(2, dtype=torch.int64)]
     )
 
-    nodes, scans, gens = construct_scans_for_rotamers(pbt, rt_block_inds, rt_for_rot)
+    block_ind_for_rot = rt_block_inds[rt_for_rot]
+    block_ind_for_rot_torch = torch.tensor(
+        block_ind_for_rot, dtype=torch.int64, device=torch_device
+    )
+    n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
+    n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
+    n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
+    n_atoms_total = n_atoms_offset_for_rot[-1]
+    n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
+
+    nodes, scans, gens = construct_scans_for_rotamers(
+        pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot
+    )
 
     leu_n_atoms = len(leu_met_rt_list[0].atoms)
     met_n_atoms = len(leu_met_rt_list[1].atoms)

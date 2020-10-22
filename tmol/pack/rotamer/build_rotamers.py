@@ -70,21 +70,16 @@ def annotate_restype(restype: RefinedResidueType):
     torsion_pairs = numpy.array(
         [uaids[1:3] for tor, uaids in restype.torsion_to_uaids.items()]
     )
-    print("torsion_pairs")
-    print(torsion_pairs)
-    print("restype.torsion_to_uaids")
-    print(restype.torsion_to_uaids)
     if torsion_pairs.shape[0] > 0:
         torsion_pairs = torsion_pairs[:, :, 0]
         all_real = numpy.all(torsion_pairs >= 0, axis=1)
         torsion_pairs = torsion_pairs[all_real, :]
 
-        print("building tree for", restype.name)
         kintree = (
             KinematicBuilder()
             .append_connected_component(
                 *KinematicBuilder.component_for_prioritized_bonds(
-                    root=0,
+                    roots=[0],
                     mandatory_bonds=torsion_pairs,
                     all_bonds=restype.bond_indices,
                 )
@@ -96,7 +91,7 @@ def annotate_restype(restype: RefinedResidueType):
             KinematicBuilder()
             .append_connected_component(
                 *KinematicBuilder.bonds_to_connected_component(
-                    root=0, bonds=restype.bond_indices
+                    roots=0, bonds=restype.bond_indices
                 )
             )
             .kintree
@@ -234,15 +229,10 @@ def update_scan_starts(
 
 def construct_scans_for_rotamers(
     pbt: PackedBlockTypes,
-    rt_block_inds: NDArray(numpy.int32)[:],
-    rt_for_rot: Tensor(torch.int64)[:],
+    block_ind_for_rot: NDArray(numpy.int32)[:],
     n_atoms_for_rot: Tensor(torch.int32)[:],
     n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
 ):
-
-    block_ind_for_rot_torch = torch.tensor(
-        block_ind_for_rot, dtype=torch.int64, device=pbt.device
-    )
 
     # Unneeded???
     # knowing how many nodes there are for each rotamer lets us get a mapping
@@ -521,12 +511,7 @@ def build_rotamers(poses: Poses, task: PackerTask):
     )
 
     nodes, scans, gens = construct_scans_for_rotamers(
-        pbt,
-        rt_block_inds,
-        rt_for_rot,
-        n_atoms_total,
-        n_atoms_for_rot,
-        n_atoms_offset_for_rot,
+        pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot
     )
 
     # oof
