@@ -54,6 +54,15 @@ def exclusive_cumsum(cumsum):
 
 
 def annotate_restype(restype: RefinedResidueType):
+    """Create a kintree for a single residue and its associated
+    scan ordering data.
+
+    The kintree data structure on its own is incomplete and
+    before it can be stored will need to be left-padded with
+    0s. In particular, the id, doftype, parent, frame_x, _y
+    and _z data all require the 0th position to be occupied
+    by the "root" atom
+    """
     if hasattr(restype, "kintree_id"):
         assert hasattr(restype, "kintree_doftype")
         assert hasattr(restype, "kintree_parent")
@@ -79,7 +88,7 @@ def annotate_restype(restype: RefinedResidueType):
             KinematicBuilder()
             .append_connected_component(
                 *KinematicBuilder.component_for_prioritized_bonds(
-                    roots=[0],
+                    roots=0,
                     mandatory_bonds=torsion_pairs,
                     all_bonds=restype.bond_indices,
                 )
@@ -96,7 +105,8 @@ def annotate_restype(restype: RefinedResidueType):
             )
             .kintree
         )
-
+    print("kintree original")
+    print(kintree)
     forward_scan_paths = KinTreeScanOrdering.calculate_from_kintree(
         kintree
     ).forward_scan_paths
@@ -109,10 +119,10 @@ def annotate_restype(restype: RefinedResidueType):
 
     setattr(restype, "kintree_id", kintree.id.numpy()[1:])
     setattr(restype, "kintree_doftype", kintree.doftype.numpy()[1:])
-    setattr(restype, "kintree_parent", kintree.parent.numpy()[1:])
-    setattr(restype, "kintree_frame_x", kintree.frame_x.numpy()[1:])
-    setattr(restype, "kintree_frame_y", kintree.frame_y.numpy()[1:])
-    setattr(restype, "kintree_frame_z", kintree.frame_z.numpy()[1:])
+    setattr(restype, "kintree_parent", kintree.parent.numpy()[1:] - 1)
+    setattr(restype, "kintree_frame_x", kintree.frame_x.numpy()[1:] - 1)
+    setattr(restype, "kintree_frame_y", kintree.frame_y.numpy()[1:] - 1)
+    setattr(restype, "kintree_frame_z", kintree.frame_z.numpy()[1:] - 1)
     setattr(restype, "kintree_nodes", nodes)
     setattr(restype, "kintree_scans", scans)
     setattr(restype, "kintree_gens", gens)

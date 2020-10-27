@@ -17,6 +17,7 @@ ConnectionIndex = NewType("ConnectionIndex", int)
 BondCount = NewType("ConnectionIndex", int)
 UnresolvedAtomID = Tuple[AtomIndex, ConnectionIndex, BondCount]
 ResName3 = typing.NewType("ResName3", str)
+IcoorIndex = NewType("AtomIndex", int)
 
 
 @attr.s
@@ -165,12 +166,18 @@ class RefinedResidueType(RawResidueType):
                         parent = next(x.parent for x in self.icoors if x.name == "atom")
         return atom_downstream_of_conn
 
+    icoors_index: Mapping[str, IcoorIndex] = attr.ib()
+
+    @icoors_index.default
+    def _setup_icoors_index(self):
+        return {icoor.name: i for i, icoor in enumerate(self.icoors)}
+
     icoors_ancestors: numpy.ndarray = attr.ib()
 
     @icoors_ancestors.default
     def _setup_icoors_ancestors(self):
-        icoors_ancestors = numpy.full((self.n_atoms, 3), -1, dtype=numpy.int32)
-        for i in range(self.n_atoms):
+        icoors_ancestors = numpy.full((len(self.icoors), 3), -1, dtype=numpy.int32)
+        for i in range(len(self.icoors)):
             for j in range(3):
                 at = (
                     self.icoors[i].parent
@@ -181,8 +188,7 @@ class RefinedResidueType(RawResidueType):
                         else self.icoors[i].great_grand_parent
                     )
                 )
-                if at in self.atom_to_idx:
-                    icoors_ancestors[i, j] = self.atom_to_idx[at]
+                icoors_ancestors[i, j] = self.icoors_index[at]
 
         return icoors_ancestors
 
@@ -190,8 +196,8 @@ class RefinedResidueType(RawResidueType):
 
     @icoors_geom.default
     def _setup_icoors_geom(self):
-        icoors_geom = numpy.zeros((self.n_atoms, 3), dtype=numpy.float64)
-        for i in range(self.n_atoms):
+        icoors_geom = numpy.zeros((len(self.icoors), 3), dtype=numpy.float64)
+        for i in range(len(self.icoors)):
             for j in range(3):
                 icoors_geom[i, j] = (
                     self.icoors[i].phi
