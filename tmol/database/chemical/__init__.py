@@ -22,6 +22,12 @@ cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridizati
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class Element:
+    name: str
+    atomic_number: int
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class AtomType:
     name: str
     element: str
@@ -126,6 +132,7 @@ class RawResidueType:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase:
+    element_types: Tuple[Element, ...]
     atom_types: Tuple[AtomType, ...]
     residues: Tuple[RawResidueType, ...]
 
