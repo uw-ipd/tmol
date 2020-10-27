@@ -12,6 +12,9 @@ import scipy.sparse.csgraph as csgraph
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType, ChemicalDatabase
 
+from tmol.system.ideal_coords import build_coords_from_icoors
+
+
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
 BondCount = NewType("ConnectionIndex", int)
@@ -166,11 +169,23 @@ class RefinedResidueType(RawResidueType):
                         parent = next(x.parent for x in self.icoors if x.name == "atom")
         return atom_downstream_of_conn
 
+    @property
+    def n_icoors(self):
+        return len(self.icoors)
+
     icoors_index: Mapping[str, IcoorIndex] = attr.ib()
 
     @icoors_index.default
     def _setup_icoors_index(self):
         return {icoor.name: i for i, icoor in enumerate(self.icoors)}
+
+    at_to_icoor_ind: numpy.array = attr.ib()
+
+    @at_to_icoor_ind.default
+    def _setup_at_to_icoor_ind(self):
+        return numpy.array(
+            [self.icoors_index[at.name] for at in self.atoms], dtype=numpy.int32
+        )
 
     icoors_ancestors: numpy.ndarray = attr.ib()
 
@@ -205,6 +220,12 @@ class RefinedResidueType(RawResidueType):
                     else (self.icoors[i].theta if j == 1 else self.icoors[i].d)
                 )
         return icoors_geom
+
+    ideal_coords: numpy.ndarray = attr.ib()
+
+    @ideal_coords.default
+    def compute_ideal_coords(self):
+        return build_coords_from_icoors(self.icoors_ancestors, self.icoors_geom)
 
 
 @attr.s(auto_attribs=True)

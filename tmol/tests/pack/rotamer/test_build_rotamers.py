@@ -11,12 +11,15 @@ from tmol.pack.rotamer.build_rotamers import (
     construct_scans_for_rotamers,
     exclusive_cumsum,
 )
+from tmol.system.ideal_coords import build_ideal_coords, normalize
 from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.system.pose import PackedBlockTypes, Pose, Poses
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.dunbrack_chi_sampler import DunbrackChiSampler
+
+from tmol.numeric.dihedrals import coord_dihedrals
 
 
 def test_annotate_restypes(default_database):
@@ -292,160 +295,10 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
 def bfs_sidechain_atoms(restype, sc_roots):
     # first descend through the sidechain
     id = restype.kintree_id
-    parents = restype.kintree_parent
+    parents = restype.kintree_parent.copy()
     parents[parents < 0] = 0
     parents[id] = id[parents]
     return bfs_sidechain_atoms_jit(parents, numpy.array(sc_roots, dtype=numpy.int32))
-
-
-@numba.jit(nopython=True)
-def eye4():
-    """Create the identity homogeneous transform
-    Only necessary because numpy.eye(4, dtype=numpy.float32)
-    is strangely unsupported in numpy"""
-
-    m = numpy.zeros((4, 4), dtype=numpy.float32)
-    m[0, 0] = 1
-    m[1, 1] = 1
-    m[2, 2] = 1
-    m[3, 3] = 1
-    return m
-
-
-@numba.jit
-def normalize(v):
-    return v / numpy.linalg.norm(v)
-
-
-@numba.jit(nopython=True)
-def frame_from_coords(p1, p2, p3):
-    ht = eye4()
-    # ht = numpy.eye(4,4, dtype=numpy.float32)
-    z = normalize(p3 - p2)
-    v21 = normalize(p1 - p2)
-    y = normalize(v21 - numpy.dot(z, v21) * z)
-    x = normalize(numpy.cross(y, z))
-
-    ht[0:3, 0] = x
-    ht[0:3, 1] = y
-    ht[0:3, 2] = z
-    ht[0:3, 3] = p3
-    return ht
-
-
-# @numba.jit
-@numba.jit(nopython=True)
-def rot_x(rot):
-    ht = eye4()
-    crot = numpy.cos(rot)
-    srot = numpy.sin(rot)
-    # print("rot x", rot, crot, srot)
-    ht[1, 1] = crot
-    ht[2, 1] = srot
-    ht[1, 2] = -srot
-    ht[2, 2] = crot
-    return ht
-
-
-# @numba.jit
-@numba.jit(nopython=True)
-def rot_z(rot):
-    ht = eye4()
-    crot = numpy.cos(rot)
-    srot = numpy.sin(rot)
-    # print("rot z", rot, crot, srot)
-    ht[0, 0] = crot
-    ht[1, 0] = srot
-    ht[0, 1] = -srot
-    ht[1, 1] = crot
-    return ht
-
-
-# @numba.jit
-@numba.jit(nopython=True)
-def trans_z(trans):
-    ht = eye4()
-    ht[2, 3] = trans
-    return ht
-
-
-# @numba.jit
-@numba.jit(nopython=True)
-def build_coords_from_icoors(icoors_ancestors, icoors_geom):
-    # start with atom 1 at the origin
-    # place atom 2 along the x axis
-    # place atom 3 in the x-y plane
-    # place all other atoms
-
-    n_atoms = icoors_ancestors.shape[0]
-    coords = numpy.zeros((n_atoms, 3), dtype=numpy.float32)
-    coords[1, 0] = icoors_geom[1, 2]
-    # coord 2
-    # in the x-y plane
-    ht_1 = eye4()
-    ht_1[:3, 3] = coords[1, :]
-    rot_2 = rot_z(-icoors_geom[2, 1])
-    trans_2 = eye4()
-    trans_2[0, 3] = icoors_geom[2, 2]
-    ht_2 = ht_1 @ rot_2 @ trans_2
-    coords[2, :] = ht_2[:3, 3]
-
-    for i in range(3, icoors_ancestors.shape[0]):
-        # print("ancestors", i)
-        ht_i = frame_from_coords(
-            coords[icoors_ancestors[i, 2], :],
-            coords[icoors_ancestors[i, 1], :],
-            coords[icoors_ancestors[i, 0], :],
-        )
-
-        ht_rot_z = rot_z(icoors_geom[i, 0])
-        ht_rot_x = rot_x(-icoors_geom[i, 1])
-        ht_trans_z = trans_z(icoors_geom[i, 2])
-
-        # temp = numpy.matmul(ht_trans_z, ht_rot_x)
-        # temp = numpy.matmul(temp, ht_rot_z)
-        # ht_i = numpy.matmul(temp, ht_i)
-
-        ht_i = ht_i @ ht_rot_z @ ht_rot_x @ ht_trans_z
-        coords[i, :3] = ht_i[:3, 3]
-    return coords
-
-
-def build_ideal_coords(restype):
-
-    # lets build a kintree using not the prioritized bonds,
-    # but the icoors; let's not even use the scan algorithm.
-    # let's just build the coordinates directly from the
-    # tree provided in the icoors.
-
-    return build_coords_from_icoors(restype.icoors_ancestors, restype.icoors_geom)
-
-
-def test_build_ideal_coords(default_database):
-    torch_device = torch.device("cpu")
-    rts = ResidueTypeSet.from_database(default_database.chemical)
-    leu_rt = rts.restype_map["LEU"][0]
-
-    coords = build_ideal_coords(leu_rt)
-    print("leu ideal coords")
-    for i in range(coords.shape[0]):
-        print(leu_rt.icoors[i].name, coords[i, :])
-
-    print("angle at up")
-    n_ind = leu_rt.icoors_index["CA"]
-    ca_ind = leu_rt.icoors_index["C"]
-    cb_ind = leu_rt.icoors_index["up"]
-    print(
-        numpy.degrees(
-            numpy.arccos(
-                numpy.dot(
-                    normalize(coords[n_ind, :] - coords[ca_ind, :]),
-                    normalize(coords[cb_ind, :] - coords[ca_ind, :]),
-                )
-            )
-        )
-    )
-    print("dist to up", numpy.linalg.norm(coords[ca_ind, :] - coords[cb_ind]))
 
 
 def test_identify_sidechain_atoms_from_roots(default_database):
@@ -478,8 +331,9 @@ def test_identify_sidechain_atoms_from_roots(default_database):
         assert gold_at in sc_ats
 
 
-def create_non_sidechain_fingerprint(rt, parents, sc_atoms):
-    non_sc_atoms = numpy.nonzero(sc_atoms == 0)
+def create_non_sidechain_fingerprint(rt, parents, sc_atoms, chem_db):
+    non_sc_atoms = numpy.nonzero(sc_atoms == 0)[0]
+    print(non_sc_atoms)
     mc_at_names = rt.properties.polymer.mainchain_atoms
     mc_atoms = numpy.array(
         [rt.atom_to_idx[at] for at in mc_at_names], dtype=numpy.int32
@@ -496,18 +350,21 @@ def create_non_sidechain_fingerprint(rt, parents, sc_atoms):
 
     mc_ancestors = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     chiralities = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
-    for at in non_sc_atoms:
+    non_sc_atom_fingerprints = []
+
+    for nsc_at in non_sc_atoms:
         # find the index of the mc atom this branches from using the kintree
-        mc_anc = mc_ind[at]
+        mc_anc = mc_ind[nsc_at]
         bonds_from_mc = 0
-        atom = at
+        atom = nsc_at
         for i in range(rt.n_atoms):
-            if mc_anc == -1:
+            if mc_anc != -1:
                 break
             par = parents[atom]
             mc_anc = mc_ind[par]
             atom = par
             bonds_from_mc += 1
+
         # now lets figure out the chirality of this atom??
         if bonds_from_mc == 0:
             chirality = 0
@@ -516,10 +373,115 @@ def create_non_sidechain_fingerprint(rt, parents, sc_atoms):
             # that the mc atom has
             mc_n_bonds = n_bonds[mc_anc]
             if mc_n_bonds == 4:
-                # where is the
-                pass
+                # now we need to measure the chirality of the atom
+                # or, rather, whether this atom is on the "left"
+                # or "right" of the chiral backbone atom.
+                # Measure the improper dihedral given by the
+                # mc atom and the two mc atoms it is bonded to.
+
+                # ok, who is the first "lower" neighbor?
+                prev_neighb = -1
+                for i, at in enumerate(mc_atoms):
+                    if at == mc_anc:
+                        prev_neighb = i - 1
+                        break
+                if prev_neighb == -1:
+                    mc1_icoor_ind = rt.icoors_index["down"]
+                else:
+                    mc1_icoor_ind = rt.at_to_icoor_ind[mc_atoms[prev_neighb]]
+
+                # ok, who is the first "upper" neighbor?
+                next_neighb = -1
+                for i, at in enumerate(mc_atoms):
+                    if at == mc_anc:
+                        next_neighb = i + 1
+                        break
+                if next_neighb == -1 or next_neighb == mc_atoms.shape[0]:
+                    mc2_icoor_ind = rt.icoors_index["up"]
+                else:
+                    mc2_icoor_ind = rt.at_to_icoor_ind[mc_atoms[next_neighb]]
+
+                mc_anc_icoor_ind = rt.at_to_icoor_ind[mc_anc]
+
+                def t64(coord):
+                    return torch.tensor([coord], dtype=torch.float64)
+
+                at1_coord = t64(rt.ideal_coords[mc1_icoor_ind])
+                at2_coord = t64(rt.ideal_coords[mc_anc_icoor_ind])
+                at3_coord = t64(rt.ideal_coords[mc2_icoor_ind])
+                at4_coord = t64(rt.ideal_coords[rt.at_to_icoor_ind[nsc_at]])
+
+                # now we have four coordinates, measure the dihedral
+                dihe = numpy.degrees(
+                    coord_dihedrals(at4_coord, at2_coord, at1_coord, at3_coord).numpy()[
+                        0
+                    ]
+                )
+
+                if dihe > 0:
+                    chirality = 1
+                else:
+                    chirality = 2
             else:
                 chirality = 0
+
+        atom_type_name = rt.atoms[nsc_at].atom_type
+        elem_name = next(
+            at.element for at in chem_db.atom_types if at.name == atom_type_name
+        )
+        atomic_number = next(
+            el.atomic_number for el in chem_db.element_types if el.name == elem_name
+        )
+        non_sc_atom_fingerprints.append(
+            (mc_anc, bonds_from_mc, chirality, atomic_number)
+        )
+    return non_sc_atoms, non_sc_atom_fingerprints
+
+
+def test_create_non_sidechain_fingerprint(default_database):
+    torch_device = torch.device("cpu")
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+    leu_rt = rts.restype_map["LEU"][0]
+    annotate_restype(leu_rt)
+    print("annotate end")
+    print(leu_rt.kintree_parent)
+
+    sc_atoms = bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
+
+    id = leu_rt.kintree_id
+    parents = leu_rt.kintree_parent.copy()
+    parents[parents < 0] = 0
+    parents[id] = id[parents]
+
+    non_sc_ats, fingerprints = create_non_sidechain_fingerprint(
+        leu_rt, parents, sc_atoms, default_database.chemical
+    )
+    print("fingerprints")
+    print(fingerprints)
+
+
+def test_create_non_sc_fingerprint2(default_database):
+    torch_device = torch.device("cpu")
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    for rt in rts.residue_types:
+        if rt.name == "HOH":
+            continue
+        annotate_restype(rt)
+
+        sc_at_root = "CB" if rt.name != "GLY" else "2HA"
+        sc_atoms = bfs_sidechain_atoms(rt, [rt.atom_to_idx[sc_at_root]])
+
+        id = rt.kintree_id
+        parents = rt.kintree_parent.copy()
+        parents[parents < 0] = 0
+        parents[id] = id[parents]
+
+        non_sc_ats, fingerprints = create_non_sidechain_fingerprint(
+            rt, parents, sc_atoms, default_database.chemical
+        )
+        print("fingerprints", rt.name)
+        print(fingerprints)
 
 
 def test_inv_kin_rotamers(default_database, ubq_res):

@@ -1,6 +1,8 @@
 import pytest
 import cattr
+import numpy
 
+from tmol.system.ideal_coords import normalize
 from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.tests.data.pdb import data as test_pdbs
 from tmol.system.io import read_pdb
@@ -47,6 +49,41 @@ def test_refined_residue_construction_smoke(default_database):
     assert ala_rrt.atom_downstream_of_conn[upper_conn, 2] == ala_rrt.atom_to_idx["N"]
 
     assert ala_rrt.atom_downstream_of_conn.shape == (2, len(ala_rrt.atoms))
+
+
+def test_refined_residue_icoor_mapping(default_database):
+    chem_db = default_database.chemical
+    r = next(r for r in chem_db.residues if r.name == "LEU")
+    leu_rt = cattr.structure(cattr.unstructure(r), RefinedResidueType)
+
+    assert leu_rt.at_to_icoor_ind.shape[0] == leu_rt.n_atoms
+
+    for i, at in enumerate(leu_rt.atoms):
+        assert leu_rt.at_to_icoor_ind[i] == leu_rt.icoors_index[at.name]
+
+
+def test_refined_residue_ideal_coords(default_database):
+    chem_db = default_database.chemical
+    r = next(r for r in chem_db.residues if r.name == "LEU")
+    leu_rt = cattr.structure(cattr.unstructure(r), RefinedResidueType)
+
+    n_ind = leu_rt.icoors_index["N"]
+    ca_ind = leu_rt.icoors_index["CA"]
+    cb_ind = leu_rt.icoors_index["CB"]
+
+    cb_ang = numpy.arccos(
+        numpy.dot(
+            normalize(leu_rt.ideal_coords[n_ind, :] - leu_rt.ideal_coords[ca_ind, :]),
+            normalize(leu_rt.ideal_coords[cb_ind, :] - leu_rt.ideal_coords[ca_ind, :]),
+        )
+    )
+
+    cb_dis = numpy.linalg.norm(
+        leu_rt.ideal_coords[ca_ind, :] - leu_rt.ideal_coords[cb_ind]
+    )
+
+    assert abs(cb_ang - (numpy.pi - leu_rt.icoors_geom[cb_ind, 1])) < 1e-5
+    assert abs(cb_dis - leu_rt.icoors_geom[cb_ind, 2]) < 1e-5
 
 
 def test_residue_type_set_construction(default_database):

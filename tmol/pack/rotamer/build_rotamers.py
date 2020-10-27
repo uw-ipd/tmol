@@ -105,8 +105,6 @@ def annotate_restype(restype: RefinedResidueType):
             )
             .kintree
         )
-    print("kintree original")
-    print(kintree)
     forward_scan_paths = KinTreeScanOrdering.calculate_from_kintree(
         kintree
     ).forward_scan_paths

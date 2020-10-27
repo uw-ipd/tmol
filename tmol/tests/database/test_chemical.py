@@ -8,6 +8,13 @@ def test_residue_defs(default_database: tmol.database.ParameterDatabase):
         atom_types
     ), "Duplicate atom types."
 
+    elements = {
+        el.name: el.atomic_number for el in default_database.chemical.element_types
+    }
+
+    for at in default_database.chemical.atom_types:
+        assert at.element in elements
+
     for r in default_database.chemical.residues:
         for a in r.atoms:
             assert (
