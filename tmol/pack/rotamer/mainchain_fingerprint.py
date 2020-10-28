@@ -20,7 +20,6 @@ def create_non_sidechain_fingerprint(
     chem_db: ChemicalDatabase,
 ):
     non_sc_atoms = numpy.nonzero(sc_atoms == 0)[0]
-    print(non_sc_atoms)
     mc_at_names = rt.properties.polymer.mainchain_atoms
     mc_atoms = numpy.array(
         [rt.atom_to_idx[at] for at in mc_at_names], dtype=numpy.int32

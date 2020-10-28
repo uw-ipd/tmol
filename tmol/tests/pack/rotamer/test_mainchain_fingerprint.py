@@ -14,7 +14,6 @@ def test_create_non_sidechain_fingerprint(default_database):
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt = rts.restype_map["LEU"][0]
     construct_single_residue_kintree(leu_rt)
-    print(leu_rt.kintree_parent)
 
     sc_atoms = bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
 
@@ -26,17 +25,55 @@ def test_create_non_sidechain_fingerprint(default_database):
     non_sc_ats, fingerprints = create_non_sidechain_fingerprint(
         leu_rt, parents, sc_atoms, default_database.chemical
     )
-    print("fingerprints")
-    print(fingerprints)
+
+    non_sc_ats_gold = numpy.array(
+        sorted([leu_rt.atom_to_idx[at] for at in ("N", "CA", "C", "HA", "H", "O")]),
+        dtype=numpy.int32,
+    )
+
+    numpy.testing.assert_equal(non_sc_ats_gold, non_sc_ats)
+
+    fingerprints_gold = [
+        (0, 0, 0, 7),  # N
+        (1, 0, 0, 6),  # CA
+        (2, 0, 0, 6),  # C
+        (2, 1, 0, 8),  # O
+        (0, 1, 0, 1),  # H
+        (1, 1, 1, 1),  # HA
+    ]
+    assert fingerprints == fingerprints_gold
 
 
-def test_create_non_sc_fingerprint2(default_database):
+def test_create_non_sc_fingerprint_smoke(default_database):
     torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
-    for rt in rts.residue_types:
-        if rt.name == "HOH":
-            continue
+    canonical_aas = [
+        "ALA",
+        "CYS",
+        "ASP",
+        "GLU",
+        "PHE",
+        "GLY",
+        "HIS",
+        "ILE",
+        "LYS",
+        "LEU",
+        "MET",
+        "ASN",
+        "PRO",
+        "GLN",
+        "ARG",
+        "SER",
+        "THR",
+        "VAL",
+        "TRP",
+        "TYR",
+    ]
+
+    for aa in canonical_aas:
+        rt = rts.restype_map[aa][0]
+
         construct_single_residue_kintree(rt)
 
         sc_at_root = "CB" if rt.name != "GLY" else "2HA"
@@ -50,5 +87,3 @@ def test_create_non_sc_fingerprint2(default_database):
         non_sc_ats, fingerprints = create_non_sidechain_fingerprint(
             rt, parents, sc_atoms, default_database.chemical
         )
-        print("fingerprints", rt.name)
-        print(fingerprints)

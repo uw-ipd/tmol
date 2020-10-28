@@ -249,7 +249,7 @@ class ResidueTypeSet:
         return cls(residue_types=residue_types, restype_map=restype_map)
 
     residue_types: Sequence[RefinedResidueType]
-    restype_map: Mapping[ResName3, RefinedResidueType]
+    restype_map: Mapping[ResName3, Sequence[RefinedResidueType]]
 
 
 @attr.s(slots=True, frozen=True)
