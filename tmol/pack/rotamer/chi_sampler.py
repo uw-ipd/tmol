@@ -14,7 +14,8 @@ from tmol.score.dunbrack.params import (
 
 # from tmol.pack.packer_task import PackerTask
 # from tmol.system.packed import PackedResidueSystem
-from tmol.system.pose import Poses
+from tmol.system.restypes import RefinedResidueType
+from tmol.system.pose import Poses, PackedBlockTypes
 from tmol.system.score_support import indexed_atoms_for_dihedral
 
 
@@ -33,10 +34,9 @@ class ChiSampler:
         raise NotImplementedError()
 
     @validate_args
-    def first_sc_atom_for_rt(self, rt: RefinedResidueType) -> str:
+    def first_sc_atom_for_rt(self, rt_name: str) -> str:
         raise NotImplementedError()
 
-    @validate_args
     def sample_chi_for_poses(
         self, systems: Poses, task: "PackerTask"
     ) -> Tuple[
