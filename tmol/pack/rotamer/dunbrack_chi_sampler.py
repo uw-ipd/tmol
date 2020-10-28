@@ -158,6 +158,29 @@ class DunbrackChiSampler:
         setattr(packed_block_types, "dun_sampler_chi_defining_atom", chi_defining_atom)
 
     @validate_args
+    def defines_rotamers_for_rt(self, rt: RefinedResidueType):
+        # ugly hack for now:
+        if not rt.properties.polymer.is_polymer:
+            return False
+        if rt.properties.polymer.polymer_type != "amino_acid":
+            return False
+        if rt.properties.polymer.backbone_type != "alpha":
+            return False
+
+        # and then what??
+        if rt.base_name == "GLY" or rt.base_name == "ALA":
+            return False
+
+        # all amino acids except GLY and ALA?? That feels wrong
+        # go with it for now
+        return True
+
+    @validate_args
+    def first_sc_atom_for_rt(self, rt: RefinedResidueType) -> str:
+        assert self.defines_rotamres_for_rt(rt)
+        return "CB"
+
+    @validate_args
     def sample_chi_for_poses(
         self, systems: Poses, task: PackerTask
     ) -> Tuple[

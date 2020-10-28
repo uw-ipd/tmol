@@ -119,6 +119,7 @@ class ChemicalProperties:
 @attr.s(auto_attribs=True)
 class RawResidueType:
     name: str
+    base_name: str
     name3: str
     atoms: Tuple[Atom, ...]
     bonds: Tuple[Tuple[str, str], ...]
