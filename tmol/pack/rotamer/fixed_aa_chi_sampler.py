@@ -20,6 +20,10 @@ from tmol.system.score_support import indexed_atoms_for_dihedral
 
 @attr.s(auto_attribs=True)
 class FixedAAChiSampler:
+    @classmethod
+    def sampler_name(cls):
+        return "FixedAAChiSampler"
+
     @validate_args
     def defines_rotamers_for_rt(self, rt: RefinedResidueType):
         # ugly hack for now:
@@ -36,11 +40,11 @@ class FixedAAChiSampler:
         return False
 
     @validate_args
-    def first_sc_atom_for_rt(self, rt: RefinedResidueType) -> str:
+    def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         if rt.base_name == "GLY":
-            return "2HA"
+            return ("2HA",)
         elif rt.base_name == "ALA":
-            return "CB"
+            return ("CB",)
 
     def sample_chi_for_poses(
         self, systems: Poses, task: "PackerTask"

@@ -56,8 +56,30 @@ def exclusive_cumsum(cumsum):
 #       to indicate which residues they should operate on
 
 
-def annotate_restype(restype: RefinedResidueType):
+def annotate_restype(
+    restype: RefinedResidueType,
+    samplers: List[ChiSampler, ...],
+    chem_db: ChemicalDatabase,
+):
     construct_single_residue_kintree(restype)
+    for sampler in samplers:
+        if sampler.defines_rotamrs_for_rt(rt):
+            if hasattr(rt, "mc_fingerprints"):
+                if sampler.sampler_name() in rt.mc_fingerprints:
+                    continue
+            else:
+                setattr(rt, "mc_fingerprints", {})
+
+            sc_roots = sampler.first_sc_atom_for_rt(rt)
+            mc_ats, mc_at_fingerprints = create_mainchain_fingerprint(
+                rt, sc_roots, chem_db
+            )
+            fingerprint = sorted(mc_at_fingerprints)
+            rt.mc_fingerprints[sampler.sampler_name] = (
+                mc_ats,
+                mc_at_fingerprints,
+                fingerprint,
+            )
 
 
 def annotate_packed_block_types(pbt: PackedBlockTypes):

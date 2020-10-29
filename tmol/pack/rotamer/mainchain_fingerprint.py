@@ -1,7 +1,8 @@
+import attr
 import numpy
 import torch
 
-from typing import List
+from typing import Tuple
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
@@ -10,6 +11,24 @@ from tmol.types.functional import validate_args
 from tmol.numeric.dihedrals import coord_dihedrals
 from tmol.database.chemical import ChemicalDatabase
 from tmol.system.restypes import RefinedResidueType
+
+from tmol.pack.rotamer.chi_sampler import ChiSampler
+from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms_jit
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class AtomFingerprint:
+    mc_ind: int
+    mc_bond_dist: int
+    chirality: int
+    element: int
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class MCFingerprint:
+    mc_ats: NDArray(numpy.int32)[:]
+    mc_at_fingerprints: Tuple[AtomFingerprint, ...]
+    fingerprint: Tuple[AtomFingerprint, ...]
 
 
 @validate_args
@@ -119,6 +138,53 @@ def create_non_sidechain_fingerprint(
             el.atomic_number for el in chem_db.element_types if el.name == elem_name
         )
         non_sc_atom_fingerprints.append(
-            (mc_anc, bonds_from_mc, chirality, atomic_number)
+            AtomFingerprint(
+                mc_ind=mc_anc,
+                mc_bond_dist=bonds_from_mc,
+                chirality=chirality,
+                element=atomic_number,
+            )
         )
-    return non_sc_atoms, non_sc_atom_fingerprints
+    return non_sc_atoms, tuple(non_sc_atom_fingerprints)
+
+
+@validate_args
+def create_mainchain_fingerprint(
+    rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: ChemicalDatabase
+):
+    id = rt.kintree_id
+    parents = rt.kintree_parent.copy()
+    parents[parents < 0] = 0
+    parents[id] = id[parents]
+
+    sc_roots = tuple(rt.atom_to_idx[at] for at in sc_roots)
+
+    sidechain_atoms = bfs_sidechain_atoms_jit(
+        parents, numpy.array(sc_roots, dtype=numpy.int32)
+    )
+    return create_non_sidechain_fingerprint(rt, parents, sidechain_atoms, chem_db)
+
+
+def annotate_residue_type_with_sampler_fingerprints(
+    restype: RefinedResidueType,
+    samplers: Tuple[ChiSampler, ...],
+    chem_db: ChemicalDatabase,
+):
+    for sampler in samplers:
+        if sampler.defines_rotamers_for_rt(restype):
+            if hasattr(restype, "mc_fingerprints"):
+                if sampler.sampler_name() in restype.mc_fingerprints:
+                    continue
+            else:
+                setattr(restype, "mc_fingerprints", {})
+
+            sc_roots = sampler.first_sc_atoms_for_rt(restype)
+            mc_ats, mc_at_fingerprints = create_mainchain_fingerprint(
+                restype, sc_roots, chem_db
+            )
+            fingerprint = sorted(mc_at_fingerprints)
+            restype.mc_fingerprints[sampler.sampler_name()] = MCFingerprint(
+                mc_ats=mc_ats,
+                mc_at_fingerprints=mc_at_fingerprints,
+                fingerprint=fingerprint,
+            )

@@ -21,6 +21,10 @@ from tmol.system.score_support import indexed_atoms_for_dihedral
 
 @attr.s(auto_attribs=True)
 class ChiSampler:
+    @classmethod
+    def sampler_name(cls):
+        raise NotImplementedError()
+
     @validate_args
     def annotate_residue_type(self, rt: RefinedResidueType):
         pass
@@ -34,7 +38,7 @@ class ChiSampler:
         raise NotImplementedError()
 
     @validate_args
-    def first_sc_atom_for_rt(self, rt_name: str) -> str:
+    def first_sc_atoms_for_rt(self, rt_name: str) -> Tuple[str, ...]:
         raise NotImplementedError()
 
     def sample_chi_for_poses(

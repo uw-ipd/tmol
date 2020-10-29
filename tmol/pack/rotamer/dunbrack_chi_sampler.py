@@ -55,6 +55,10 @@ class DunbrackChiSampler:
             # sampling_params=param_resolver.sampling_db,
         )
 
+    @classmethod
+    def sampler_name(cls):
+        return "DunbrackChiSampler"
+
     @validate_args
     def annotate_residue_type(self, restype: RefinedResidueType):
         """TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""
@@ -176,9 +180,9 @@ class DunbrackChiSampler:
         return True
 
     @validate_args
-    def first_sc_atom_for_rt(self, rt: RefinedResidueType) -> str:
-        assert self.defines_rotamres_for_rt(rt)
-        return "CB"
+    def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
+        assert self.defines_rotamers_for_rt(rt)
+        return ("CB",)
 
     @validate_args
     def sample_chi_for_poses(
