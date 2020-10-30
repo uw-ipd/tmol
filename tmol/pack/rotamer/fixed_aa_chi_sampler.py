@@ -12,8 +12,7 @@ from tmol.score.dunbrack.params import (
     DunbrackParamResolver,
 )
 
-# from tmol.pack.packer_task import PackerTask
-# from tmol.system.packed import PackedResidueSystem
+from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import Poses
 from tmol.system.score_support import indexed_atoms_for_dihedral
 

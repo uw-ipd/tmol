@@ -6,15 +6,18 @@ from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
 # from tmol.pack.rotamer.build_rotamers import annotate_restype
 
 from tmol.score.dunbrack.params import DunbrackParamResolver
+from tmol.system.pose import PackedBlockTypes
 from tmol.pack.rotamer.single_residue_kintree import construct_single_residue_kintree
 from tmol.pack.rotamer.mainchain_fingerprint import (
     create_non_sidechain_fingerprint,
     create_mainchain_fingerprint,
     AtomFingerprint,
     annotate_residue_type_with_sampler_fingerprints,
+    find_unique_fingerprints,
 )
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
 from tmol.pack.rotamer.dunbrack_chi_sampler import DunbrackChiSampler
+from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 
 def test_create_non_sidechain_fingerprint(default_database):
@@ -117,7 +120,7 @@ def test_annotate_rt_w_mainchain_fingerprint(default_database):
 
     numpy.testing.assert_equal(non_sc_ats_gold, mc_fingerprint.mc_ats)
 
-    fingerprints_gold = (
+    atom_fingerprints_gold = (
         AtomFingerprint(0, 0, 0, 7),  # N
         AtomFingerprint(1, 0, 0, 6),  # CA
         AtomFingerprint(2, 0, 0, 6),  # C
@@ -125,4 +128,60 @@ def test_annotate_rt_w_mainchain_fingerprint(default_database):
         AtomFingerprint(0, 1, 0, 1),  # H
         AtomFingerprint(1, 1, 1, 1),  # HA
     )
-    assert mc_fingerprint.mc_at_fingerprints == fingerprints_gold
+    assert mc_fingerprint.mc_at_fingerprints == atom_fingerprints_gold
+
+    fingerprint_gold = (
+        AtomFingerprint(0, 0, 0, 7),  # N
+        AtomFingerprint(0, 1, 0, 1),  # H
+        AtomFingerprint(1, 0, 0, 6),  # CA
+        AtomFingerprint(1, 1, 1, 1),  # HA
+        AtomFingerprint(2, 0, 0, 6),  # C
+        AtomFingerprint(2, 1, 0, 8),  # O
+    )
+
+    assert mc_fingerprint.fingerprint == fingerprint_gold
+
+
+def test_merge_fingerprints(default_database):
+    torch_device = torch.device("cpu")
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+
+    canonical_aas = [
+        "ALA",
+        "CYS",
+        "ASP",
+        "GLU",
+        "PHE",
+        "GLY",
+        "HIS",
+        "ILE",
+        "LYS",
+        "LEU",
+        "MET",
+        "ASN",
+        "PRO",
+        "GLN",
+        "ARG",
+        "SER",
+        "THR",
+        "VAL",
+        "TRP",
+        "TYR",
+    ]
+
+    rt_list = [rts.restype_map[aa][0] for aa in canonical_aas]
+
+    for rt in rt_list:
+        construct_single_residue_kintree(rt)
+        annotate_residue_type_with_sampler_fingerprints(
+            rt, [dun_sampler, fixed_sampler], default_database.chemical
+        )
+
+    pbt = PackedBlockTypes.from_restype_list(rt_list, device=torch_device)
+    find_unique_fingerprints(pbt)
