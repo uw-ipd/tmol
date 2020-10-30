@@ -203,13 +203,6 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
                 builder_types.add(builder)
 
     # builder_types = set([builder for rt in pbt.active_residues if hasattr(rt, "mc_fingerprints") for builder in rt.mc_fingerprints.keys()])
-
-    fp_sets = set()
-    for rt in pbt.active_residues:
-        if hasattr(rt, "mc_fingerprints"):
-            for builder, mcfps in rt.mc_fingerprints.items():
-                fp_sets.add(mcfps.fingerprint)
-
     # we do not need to re-annotate this PackedBlockTypes object if there
     # are no sidechain builders that it has not encountered before
     if hasattr(pbt, "mc_atom_mapping"):
@@ -220,37 +213,65 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
                 break
         if all_found:
             return
+    builder_types = sorted(list(builder_types))
+    n_builders = len(builder_types)
+    builder_inds = {builder: i for i, builder in enumerate(builder_types)}
 
+    fp_sets = set()
+    for rt in pbt.active_residues:
+        if hasattr(rt, "mc_fingerprints"):
+            for builder, mcfps in rt.mc_fingerprints.items():
+                fp_sets.add(mcfps.fingerprint)
     fp_sets = sorted(fp_sets)
+    fp_to_ind = {fp: i for i, fp in enumerate(fp_sets)}
 
     n_mcs = len(fp_sets)
     max_n_mc_atoms = max(len(fp) for fp in fp_sets)
+
+    n_fps_for_rt = numpy.zeros((pbt.n_types,), dtype=numpy.int32)
+    max_builder_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
+    max_fp_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
+
+    for i, rt in enumerate(pbt.active_residues):
+        if hasattr(rt, "mc_fingerprints"):
+            for j, builder in enumerate(builder_types):
+                if builder in rt.mc_fingerprints:
+                    j_len = len(rt.mc_fingerprints[builder].mc_ats)
+                    if j_len > n_fps_for_rt[i]:
+                        n_fps_for_rt[i] = j_len
+                        max_builder_for_rt[i] = j
+                        max_fp_for_rt[i] = fp_to_ind[
+                            rt.mc_fingerprints[builder].fingerprint
+                        ]
 
     # ok, we need have n mainchain types
     # and we have m residue types
     # we have n x n different ways to map atoms from one mainchain
     # type onto another mainchain type
 
-    # we will create an n x m x n-ats array that says which atom k
-    # on mc-type i maps to which atom on residue type j
+    # we will create an b x n x m x n-ats array that says which atom l
+    # on mc-type j maps to which atom on residue type k as defined by
+    # builder i
 
     mc_atom_inds_for_rt_for_builder = {}
-    for builder in builder_types:
-        mc_at_ind_for_rt = numpy.full(
-            (n_mcs, pbt.n_types, max_n_mc_atoms), -1, dtype=numpy.int32
-        )
-        for i, fp in enumerate(fp_sets):
-            for j, rt in enumerate(pbt.active_residues):
+    mc_atom_inds_for_rt_for_builder = numpy.full(
+        (n_builders, n_mcs, pbt.n_types, max_n_mc_atoms), -1, dtype=numpy.int32
+    )
+    for i, builder in enumerate(builder_types):
+        for j, fp in enumerate(fp_sets):
+            for k, rt in enumerate(pbt.active_residues):
                 # now we'er going to find the index of the mainchain atom
                 if not hasattr(rt, "mc_fingerprints"):
                     continue
                 if not builder in rt.mc_fingerprints:
                     continue
                 rt_fingerprint = rt.mc_fingerprints[builder]
-                for k, at_fp in enumerate(fp):
-                    mc_at_ind_for_rt[i, j, k] = rt_fingerprint.at_for_fingerprint.get(
-                        at_fp, -1
-                    )
-        mc_atom_inds_for_rt_for_builder[builder] = mc_at_ind_for_rt
+                for l, at_fp in enumerate(fp):
+                    mc_atom_inds_for_rt_for_builder[
+                        i, j, k, l
+                    ] = rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
 
     setattr(pbt, "mc_atom_mapping", mc_atom_inds_for_rt_for_builder)
+    setattr(pbt, "mc_builder_mapping", builder_inds)
+    setattr(pbt, "mc_max_builder", max_builder_for_rt)
+    setattr(pbt, "mc_max_fingerprint", max_fp_for_rt)
