@@ -1,9 +1,11 @@
 import numpy
+import torch
 
 from tmol.types.functional import validate_args
 
 from tmol.kinematics.scan_ordering import get_scans, KinTreeScanOrdering
 from tmol.kinematics.builder import KinematicBuilder
+from tmol.kinematics.compiled.compiled import inverse_kin
 
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes
@@ -74,6 +76,19 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
 
     n_scans_per_gen = gens[1:, 1] - gens[:-1, 1]
 
+    ideal_coords = torch.tensor(
+        restype.ideal_coords[restype.at_to_icoor_ind], dtype=torch.float32
+    )
+    dofs_ideal = inverse_kin(
+        ideal_coords,
+        kintree.parent,
+        kintree.frame_x,
+        kintree.frame_y,
+        kintree.frame_z,
+        kintree.doftype,
+    )
+    dofs_ideal = dofs_ideal.numpy()
+
     setattr(restype, "kintree_id", kintree.id.numpy()[1:])
     setattr(restype, "kintree_doftype", kintree.doftype.numpy()[1:])
     setattr(restype, "kintree_parent", kintree.parent.numpy()[1:] - 1)
@@ -84,6 +99,7 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
     setattr(restype, "kintree_scans", scans)
     setattr(restype, "kintree_gens", gens)
     setattr(restype, "kintree_n_scans_per_gen", n_scans_per_gen)
+    setattr(restype, "kintree_dofs_ideal", dofs_ideal)
 
 
 @validate_args
@@ -100,6 +116,7 @@ def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
         assert hasattr(pbt, "kintree_frame_x")
         assert hasattr(pbt, "kintree_frame_y")
         assert hasattr(pbt, "kintree_frame_z")
+        assert hasattr(pbt, "kintree_dofs_ideal")
         return
 
     max_n_nodes = max(len(rt.kintree_nodes) for rt in pbt.active_block_types)
@@ -121,6 +138,7 @@ def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
     rt_frame_x = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
     rt_frame_y = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
     rt_frame_z = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
+    rt_dofs_ideal = numpy.zeros((pbt.n_types, max_n_atoms, 9), dtype=numpy.float32)
 
     for i, rt in enumerate(pbt.active_block_types):
         rt_n_nodes[i] = len(rt.kintree_nodes)
@@ -138,6 +156,7 @@ def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
         rt_frame_x[i, : rt.kintree_id.shape[0]] = rt.kintree_frame_x
         rt_frame_y[i, : rt.kintree_id.shape[0]] = rt.kintree_frame_y
         rt_frame_z[i, : rt.kintree_id.shape[0]] = rt.kintree_frame_z
+        rt_dofs_ideal[i, : rt.kintree_id.shape[0]] = rt.kintree_dofs_ideal
 
     setattr(pbt, "kintree_id", rt_id)
     setattr(pbt, "kintree_doftype", rt_doftype)

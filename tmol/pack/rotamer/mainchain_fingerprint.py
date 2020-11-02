@@ -17,6 +17,67 @@ from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms_jit
 
 
+# what atoms should we copy over?
+# everything north of "first sidechain atom"?
+# let's have a map from rt x bb-type --> atom-indices on that rt for those bb
+# and then when we want to map between two rts, we ask "what is their rt compatibility"?
+# and then use that mapping
+
+# so
+# all canonical aas except proline are class 1
+# pro is class 2
+# gly is class 3
+#
+# class 1 has n, ca, c, o, h, and ha
+# class 2 has n, ca, c, o, and ha
+# class 3 has n, ca, c, o, and the "left" ha
+
+# how do we tell what classes of backbones there are?
+# we ask:
+# what atoms are upstream of the first sidechain atom
+# for each atom that's upstream of the first sidechain atom
+# who is chemically bound to it, what is the chirality
+# of that connection, and what is the element type of that
+# connection
+
+# then we need to hash that
+# (how???)
+# atoms then should be sorted along mainchain?? and then
+# with chirality
+
+# n -- > (0, 0, 0, 7)
+# h -- > (0, 1, 0, 1)
+# ca --> (1, 0, 0, 6)
+# ha --> (1, 1, 1, 1)
+# c  --> (2, 0, 0, 6)
+# o  --> (2, 1, 0, 8)
+
+# position 0: position along the backbone or backbone you're bonded to
+# position 1: number of bonds from the backbone
+# position 2: chirality: 0 - achiral, 1 - left, 2 - right
+# position 3: element
+
+# how do I determine chirality?
+#
+# if bb atom has three chemical bonds, then
+# treat it as achiral.
+# if it has four chemical bonds, then
+# measure chirality of 4th bond by taking
+# the dot product of sc-i and the cross
+# product of (p_i - p_{i-1}) and (p_{i+1}, p_i)
+# if it's positive, then chirality value of 1
+# if it's negative, then chirality value of 2
+
+# and then the 4th column is the element, so, that needs to be encoded somehow...
+
+# how do we sort atoms further from the backbone?
+# what about when something like: put into the chirality position
+# a counter so that things further from the backbone get noted
+# with a higher count; how can you guarantee uniqueness, though??
+# maybe it should be like an array with an offset based on the chirality
+# of its ancestors back to the backbone where you put
+
+
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class AtomFingerprint:
     mc_ind: int
@@ -196,31 +257,31 @@ def annotate_residue_type_with_sampler_fingerprints(
 
 
 def find_unique_fingerprints(pbt: PackedBlockTypes,):
-    builder_types = set()
+    sampler_types = set()
     for rt in pbt.active_block_types:
         if hasattr(rt, "mc_fingerprints"):
-            for builder in rt.mc_fingerprints:
-                builder_types.add(builder)
+            for sampler in rt.mc_fingerprints:
+                sampler_types.add(sampler)
 
-    # builder_types = set([builder for rt in pbt.active_block_types if hasattr(rt, "mc_fingerprints") for builder in rt.mc_fingerprints.keys()])
+    # sampler_types = set([sampler for rt in pbt.active_block_types if hasattr(rt, "mc_fingerprints") for sampler in rt.mc_fingerprints.keys()])
     # we do not need to re-annotate this PackedBlockTypes object if there
-    # are no sidechain builders that it has not encountered before
+    # are no sidechain samplers that it has not encountered before
     if hasattr(pbt, "mc_atom_mapping"):
         all_found = True
-        for bt in builder_types:
+        for bt in sampler_types:
             if bt not in pbt.mc_atom_mapping:
                 all_found = False
                 break
         if all_found:
             return
-    builder_types = sorted(list(builder_types))
-    n_builders = len(builder_types)
-    builder_inds = {builder: i for i, builder in enumerate(builder_types)}
+    sampler_types = sorted(list(sampler_types))
+    n_samplers = len(sampler_types)
+    sampler_inds = {sampler: i for i, sampler in enumerate(sampler_types)}
 
     fp_sets = set()
     for rt in pbt.active_block_types:
         if hasattr(rt, "mc_fingerprints"):
-            for builder, mcfps in rt.mc_fingerprints.items():
+            for sampler, mcfps in rt.mc_fingerprints.items():
                 fp_sets.add(mcfps.fingerprint)
     fp_sets = sorted(fp_sets)
     fp_to_ind = {fp: i for i, fp in enumerate(fp_sets)}
@@ -229,19 +290,19 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
     max_n_mc_atoms = max(len(fp) for fp in fp_sets)
 
     n_fps_for_rt = numpy.zeros((pbt.n_types,), dtype=numpy.int32)
-    max_builder_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
+    max_sampler_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
     max_fp_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
 
     for i, rt in enumerate(pbt.active_block_types):
         if hasattr(rt, "mc_fingerprints"):
-            for j, builder in enumerate(builder_types):
-                if builder in rt.mc_fingerprints:
-                    j_len = len(rt.mc_fingerprints[builder].mc_ats)
+            for j, sampler in enumerate(sampler_types):
+                if sampler in rt.mc_fingerprints:
+                    j_len = len(rt.mc_fingerprints[sampler].mc_ats)
                     if j_len > n_fps_for_rt[i]:
                         n_fps_for_rt[i] = j_len
-                        max_builder_for_rt[i] = j
+                        max_sampler_for_rt[i] = j
                         max_fp_for_rt[i] = fp_to_ind[
-                            rt.mc_fingerprints[builder].fingerprint
+                            rt.mc_fingerprints[sampler].fingerprint
                         ]
 
     # ok, we need have n mainchain types
@@ -251,27 +312,27 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
 
     # we will create an b x n x m x n-ats array that says which atom l
     # on mc-type j maps to which atom on residue type k as defined by
-    # builder i
+    # sampler i
 
-    mc_atom_inds_for_rt_for_builder = {}
-    mc_atom_inds_for_rt_for_builder = numpy.full(
-        (n_builders, n_mcs, pbt.n_types, max_n_mc_atoms), -1, dtype=numpy.int32
+    mc_atom_inds_for_rt_for_sampler = {}
+    mc_atom_inds_for_rt_for_sampler = numpy.full(
+        (n_samplers, n_mcs, pbt.n_types, max_n_mc_atoms), -1, dtype=numpy.int32
     )
-    for i, builder in enumerate(builder_types):
+    for i, sampler in enumerate(sampler_types):
         for j, fp in enumerate(fp_sets):
             for k, rt in enumerate(pbt.active_block_types):
                 # now we'er going to find the index of the mainchain atom
                 if not hasattr(rt, "mc_fingerprints"):
                     continue
-                if not builder in rt.mc_fingerprints:
+                if not sampler in rt.mc_fingerprints:
                     continue
-                rt_fingerprint = rt.mc_fingerprints[builder]
+                rt_fingerprint = rt.mc_fingerprints[sampler]
                 for l, at_fp in enumerate(fp):
-                    mc_atom_inds_for_rt_for_builder[
+                    mc_atom_inds_for_rt_for_sampler[
                         i, j, k, l
                     ] = rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
 
-    setattr(pbt, "mc_atom_mapping", mc_atom_inds_for_rt_for_builder)
-    setattr(pbt, "mc_builder_mapping", builder_inds)
-    setattr(pbt, "mc_max_builder", max_builder_for_rt)
+    setattr(pbt, "mc_atom_mapping", mc_atom_inds_for_rt_for_sampler)
+    setattr(pbt, "mc_sampler_mapping", sampler_inds)
+    setattr(pbt, "mc_max_sampler", max_sampler_for_rt)
     setattr(pbt, "mc_max_fingerprint", max_fp_for_rt)

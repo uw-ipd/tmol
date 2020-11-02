@@ -2,7 +2,8 @@ import numpy
 import torch
 
 from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.pack.rotamer.build_rotamers import annotate_restype
+
+# from tmol.pack.rotamer.build_rotamers import annotate_restype
 from tmol.pack.rotamer.single_residue_kintree import (
     construct_single_residue_kintree,
     coalesce_single_residue_kintrees,
@@ -13,7 +14,7 @@ def test_annotate_restypes(default_database):
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
     for rt in rts.residue_types:
-        annotate_restype(rt)
+        construct_single_residue_kintree(rt)
         assert hasattr(rt, "kintree_id")
         assert hasattr(rt, "kintree_doftype")
         assert hasattr(rt, "kintree_parent")

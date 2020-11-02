@@ -33,7 +33,7 @@ def test_create_non_sidechain_fingerprint(default_database):
     parents[parents < 0] = 0
     parents[id] = id[parents]
 
-    non_sc_ats, fingerprints = create_non_sidechain_fingerprint(
+    non_sc_ats, fingerprints, _ = create_non_sidechain_fingerprint(
         leu_rt, parents, sc_atoms, default_database.chemical
     )
 
@@ -89,9 +89,7 @@ def test_create_non_sc_fingerprint_smoke(default_database):
 
         sc_at_root = "CB" if rt.name != "GLY" else "2HA"
 
-        non_sc_ats, fingerprints = create_mainchain_fingerprint(
-            rt, (sc_at_root,), default_database.chemical
-        )
+        create_mainchain_fingerprint(rt, (sc_at_root,), default_database.chemical)
 
 
 def test_annotate_rt_w_mainchain_fingerprint(default_database):
@@ -198,8 +196,8 @@ def test_merge_fingerprints(default_database):
     # to HA.
 
     assert hasattr(pbt, "mc_atom_mapping")
-    assert hasattr(pbt, "mc_builder_mapping")
-    assert hasattr(pbt, "mc_max_builder")
+    assert hasattr(pbt, "mc_sampler_mapping")
+    assert hasattr(pbt, "mc_max_sampler")
     assert hasattr(pbt, "mc_max_fingerprint")
 
     standard_mc_atoms = ["N", "H", "CA", "HA", "C", "O"]
@@ -220,11 +218,11 @@ def test_merge_fingerprints(default_database):
             else:
                 return standard_mc_atoms
 
-    assert dun_sampler.sampler_name() in pbt.mc_builder_mapping
-    dun_sampler_ind = pbt.mc_builder_mapping[dun_sampler.sampler_name()]
+    assert dun_sampler.sampler_name() in pbt.mc_sampler_mapping
+    dun_sampler_ind = pbt.mc_sampler_mapping[dun_sampler.sampler_name()]
 
-    assert fixed_sampler.sampler_name() in pbt.mc_builder_mapping
-    fixed_sampler_ind = pbt.mc_builder_mapping[fixed_sampler.sampler_name()]
+    assert fixed_sampler.sampler_name() in pbt.mc_sampler_mapping
+    fixed_sampler_ind = pbt.mc_sampler_mapping[fixed_sampler.sampler_name()]
 
     # pro_pbt_ind = pbt.restype_index.get_indexer(["PRO"])[0]
     # gly_pbt_ind = pbt.restype_index.get_indexer(["GLY"])[0]
@@ -239,21 +237,21 @@ def test_merge_fingerprints(default_database):
     assert pbt.mc_atom_mapping.shape == (2, 2, 21, 6)
 
     for i, rt_orig in enumerate(pbt.active_block_types):
-        orig_rt_builder = pbt.mc_max_builder[i]
+        orig_rt_sampler = pbt.mc_max_sampler[i]
         orig_max_fp = pbt.mc_max_fingerprint[i]
         orig_mc_ats = which_atoms(rt_orig, rt_orig)
 
         for j, rt_new in enumerate(pbt.active_block_types):
             new_mc_ats = which_atoms(rt_orig, rt_new)
             if fixed_sampler.defines_rotamers_for_rt(rt_new):
-                new_rt_builder = fixed_sampler_ind
+                new_rt_sampler = fixed_sampler_ind
             else:
-                new_rt_builder = dun_sampler_ind
+                new_rt_sampler = dun_sampler_ind
 
             # now the atom mapping:
             for k in range(6):
-                k_orig = pbt.mc_atom_mapping[orig_rt_builder, orig_max_fp, i, k]
-                k_new = pbt.mc_atom_mapping[new_rt_builder, orig_max_fp, j, k]
+                k_orig = pbt.mc_atom_mapping[orig_rt_sampler, orig_max_fp, i, k]
+                k_new = pbt.mc_atom_mapping[new_rt_sampler, orig_max_fp, j, k]
 
                 if k_orig >= 0 and k_new >= 0:
                     assert rt_orig.atoms[k_orig].name == orig_mc_ats[k]

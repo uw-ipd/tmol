@@ -3,16 +3,24 @@ import numba
 import toolz
 import torch
 
+from typing import Tuple
+
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
+from tmol.database.chemical import ChemicalDatabase
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import Poses, PackedBlockTypes
 from tmol.pack.packer_task import PackerTask
+from tmol.pack.rotamer.chi_sampler import ChiSampler
 
 from tmol.pack.rotamer.single_residue_kintree import (
     construct_single_residue_kintree,
     coalesce_single_residue_kintrees,
+)
+from tmol.pack.rotamer.mainchain_fingerprint import (
+    annotate_residue_type_with_sampler_fingerprints,
+    find_unique_fingerprints,
 )
 
 
@@ -58,32 +66,16 @@ def exclusive_cumsum(cumsum):
 
 def annotate_restype(
     restype: RefinedResidueType,
-    samplers: List[ChiSampler, ...],
+    samplers: Tuple[ChiSampler, ...],
     chem_db: ChemicalDatabase,
 ):
     construct_single_residue_kintree(restype)
-    for sampler in samplers:
-        if sampler.defines_rotamrs_for_rt(rt):
-            if hasattr(rt, "mc_fingerprints"):
-                if sampler.sampler_name() in rt.mc_fingerprints:
-                    continue
-            else:
-                setattr(rt, "mc_fingerprints", {})
-
-            sc_roots = sampler.first_sc_atom_for_rt(rt)
-            mc_ats, mc_at_fingerprints = create_mainchain_fingerprint(
-                rt, sc_roots, chem_db
-            )
-            fingerprint = sorted(mc_at_fingerprints)
-            rt.mc_fingerprints[sampler.sampler_name] = (
-                mc_ats,
-                mc_at_fingerprints,
-                fingerprint,
-            )
+    annotate_residue_type_with_sampler_fingerprints(restype, samplers, chem_db)
 
 
 def annotate_packed_block_types(pbt: PackedBlockTypes):
     coalesce_single_residue_kintrees(pbt)
+    find_unique_fingerprints(pbt)
 
 
 @numba.jit(nopython=True)
@@ -416,8 +408,6 @@ def build_rotamers(poses: Poses, task: PackerTask):
         pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot
     )
 
-    # oof
-
     # Not clear what the rt_sample_offsets tensor will be needed for
     # rt_sample_offsets = torch.cumsum(
     #     n_rots_for_all_samples.view(-1), dim=0, dtype=torch.int32
@@ -431,3 +421,5 @@ def build_rotamers(poses: Poses, task: PackerTask):
     # rt_sample_offsets = rt_sample_offsets.view(n_sys, max_n_blocks, max_n_rts)
 
     # rotamer_coords = torch.zeros((n_rotamers, pbt.max_n_atoms, 3), dtype=torch.float32)
+
+    # measure the DOFs for the original residues

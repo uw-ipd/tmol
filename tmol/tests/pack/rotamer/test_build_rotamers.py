@@ -18,6 +18,7 @@ from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.dunbrack_chi_sampler import DunbrackChiSampler
+from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 from tmol.numeric.dihedrals import coord_dihedrals
 
@@ -248,8 +249,9 @@ def test_construct_scans_for_rotamers2(default_database):
 
 def test_inv_kin_rotamers(default_database, ubq_res):
     torch_device = torch.device("cpu")
+    chem_db = default_database.chemical
 
-    rts = ResidueTypeSet.from_database(default_database.chemical)
+    rts = ResidueTypeSet.from_database(chem_db)
     ubq_res = [
         attr.evolve(
             res,
@@ -261,13 +263,21 @@ def test_inv_kin_rotamers(default_database, ubq_res):
     ]
     p = Pose.from_residues_one_chain(ubq_res[:3], torch_device)
 
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    samplers = (dun_sampler, fixed_sampler)
+
     leu_met_rt_list = [rts.restype_map["LEU"][0]] + [rts.restype_map["MET"][0]]
     pbt = PackedBlockTypes.from_restype_list(leu_met_rt_list, device=torch_device)
 
-    annotate_restype(leu_met_rt_list[0])
-    annotate_restype(leu_met_rt_list[1])
+    annotate_restype(leu_met_rt_list[0], samplers, chem_db)
+    annotate_restype(leu_met_rt_list[1], samplers, chem_db)
     annotate_packed_block_types(pbt)
 
+    leu_rt = leu_met_rt_list[0]
     met_rt = leu_met_rt_list[1]
 
     def ia(val, arr):
@@ -286,76 +296,29 @@ def test_inv_kin_rotamers(default_database, ubq_res):
 
     kt_id = ia(-1, met_rt.kintree_id)
     kt_doftype = ia(0, met_rt.kintree_doftype)
-    kt_parent = ia(0, met_rt.kintree_parent)
-    kt_frame_x = ia(0, met_rt.kintree_frame_x)
-    kt_frame_y = ia(0, met_rt.kintree_frame_y)
-    kt_frame_z = ia(0, met_rt.kintree_frame_z)
+    kt_parent = ia(0, met_rt.kintree_parent + 1)
+    kt_frame_x = ia(0, met_rt.kintree_frame_x + 1)
+    kt_frame_y = ia(0, met_rt.kintree_frame_y + 1)
+    kt_frame_z = ia(0, met_rt.kintree_frame_z + 1)
 
     from tmol.kinematics.compiled.compiled import inverse_kin
 
-    dofs = inverse_kin(
+    # print("kt_parent")
+    # print(kt_parent)
+    # print("kt_frame_x")
+    # print(kt_frame_x)
+    # print("kt_frame_y")
+    # print(kt_frame_y)
+    # print("kt_frame_z")
+    # print(kt_frame_z)
+
+    dofs_orig = inverse_kin(
         p.coords[0], kt_parent, kt_frame_x, kt_frame_y, kt_frame_z, kt_doftype
     )
 
     print("dofs")
-    print(dofs)
+    print(dofs_orig)
 
-    # what atoms should we copy over?
-    # everything north of "first sidechain atom"?
-    # let's have a map from rt x bb-type --> atom-indices on that rt for those bb
-    # and then when we want to map between two rts, we ask "what is their rt compatibility"?
-    # and then use that mapping
+    dofs_new = torch.zeros((leu_rt.n_atoms + 1, 9), dtype=torch.float32)
 
-    # so
-    # all canonical aas except proline are class 1
-    # pro is class 2
-    # gly is class 3
-    #
-    # class 1 has n, ca, c, o, h, and ha
-    # class 2 has n, ca, c, o, and ha
-    # class 3 has n, ca, c, o, and the "left" ha
-
-    # how do we tell what classes of backbones there are?
-    # we ask:
-    # what atoms are upstream of the first sidechain atom
-    # for each atom that's upstream of the first sidechain atom
-    # who is chemically bound to it, what is the chirality
-    # of that connection, and what is the element type of that
-    # connection
-
-    # then we need to hash that
-    # (how???)
-    # atoms then should be sorted along mainchain?? and then
-    # with chirality
-
-    # n -- > (0, 0, 0, 7)
-    # h -- > (0, 1, 0, 1)
-    # ca --> (1, 0, 0, 6)
-    # ha --> (1, 1, 1, 1)
-    # c  --> (2, 0, 0, 6)
-    # o  --> (2, 1, 0, 8)
-
-    # position 0: position along the backbone or backbone you're bonded to
-    # position 1: number of bonds from the backbone
-    # position 2: chirality: 0 - achiral, 1 - left, 2 - right
-    # position 3: element
-
-    # how do I determine chirality?
-    #
-    # if bb atom has three chemical bonds, then
-    # treat it as achiral.
-    # if it has four chemical bonds, then
-    # measure chirality of 4th bond by taking
-    # the dot product of sc-i and the cross
-    # product of (p_i - p_{i-1}) and (p_{i+1}, p_i)
-    # if it's positive, then chirality value of 1
-    # if it's negative, then chirality value of 2
-
-    # and then the 4th column is the element, so, that needs to be encoded somehow...
-
-    # how do we sort atoms further from the backbone?
-    # what about when something like: put into the chirality position
-    # a counter so that things further from the backbone get noted
-    # with a higher count; how can you guarantee uniqueness, though??
-    # maybe it should be like an array with an offset based on the chirality
-    # of its ancestors back to the backbone where you put
+    dun_sampler_ind = pbt.mc_sampler_mapping[dun_sampler.sampler_name()]
