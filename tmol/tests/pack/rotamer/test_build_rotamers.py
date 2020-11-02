@@ -319,6 +319,21 @@ def test_inv_kin_rotamers(default_database, ubq_res):
     print("dofs")
     print(dofs_orig)
 
-    dofs_new = torch.zeros((leu_rt.n_atoms + 1, 9), dtype=torch.float32)
+    dofs_new = torch.tensor(leu_rt.kintree_dofs_ideal, dtype=torch.float32)
 
     dun_sampler_ind = pbt.mc_sampler_mapping[dun_sampler.sampler_name()]
+    met_max_fp = pbt.mc_max_fingerprint[1]
+    for i in range(pbt.mc_atom_mapping.shape[3]):
+        leu_at_i = pbt.mc_atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
+        met_at_i = pbt.mc_atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
+        if leu_at_i >= 0 and met_at_i >= 0:
+            dofs_new[leu_at_i, :] = dofs_orig[met_at_i, :]
+
+    # forward folding; let's build leu on the met's coords
+
+    print("leu dofs ideal")
+    print(leu_rt.kintree_dofs_ideal.dtype)
+    print(leu_rt.kintree_dofs_ideal)
+    print("leu dofs new")
+    print(dofs_new.dtype)
+    print(dofs_new)
