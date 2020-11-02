@@ -305,10 +305,10 @@ def build_rotamers(poses: Poses, task: PackerTask):
 
     # rebuild the poses, perhaps, if there are residue types in the task
     # that are absent from the poses' PBT
-    for rt in poses.packed_block_types.active_residues:
+    for rt in poses.packed_block_types.active_block_types:
         assert id(rt) in all_restypes
 
-    pose_rts = set([id(rt) for rt in poses.packed_block_types.active_residues])
+    pose_rts = set([id(rt) for rt in poses.packed_block_types.active_block_types])
     needs_rebuilding = False
     for rt_id in all_restypes:
         if rt_id not in pose_rts:

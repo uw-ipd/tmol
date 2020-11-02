@@ -238,12 +238,12 @@ def test_merge_fingerprints(default_database):
 
     assert pbt.mc_atom_mapping.shape == (2, 2, 21, 6)
 
-    for i, rt_orig in enumerate(pbt.active_residues):
+    for i, rt_orig in enumerate(pbt.active_block_types):
         orig_rt_builder = pbt.mc_max_builder[i]
         orig_max_fp = pbt.mc_max_fingerprint[i]
         orig_mc_ats = which_atoms(rt_orig, rt_orig)
 
-        for j, rt_new in enumerate(pbt.active_residues):
+        for j, rt_new in enumerate(pbt.active_block_types):
             new_mc_ats = which_atoms(rt_orig, rt_new)
             if fixed_sampler.defines_rotamers_for_rt(rt_new):
                 new_rt_builder = fixed_sampler_ind

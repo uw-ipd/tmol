@@ -39,13 +39,13 @@ class AtomTypeDependentTerm(EnergyTerm):
             dtype=numpy.int32,
         )
 
-        for i, restype in enumerate(packed_block_types.active_residues):
+        for i, restype in enumerate(packed_block_types.active_block_types):
             atom_types[
                 i, : packed_block_types.n_atoms[i]
             ] = self.atom_type_index.get_indexer([x.atom_type for x in restype.atoms])
 
         heavy_atom_inds = []
-        for restype in packed_block_types.active_residues:
+        for restype in packed_block_types.active_block_types:
             rt_heavy = [
                 j
                 for j, atype_ind in enumerate(

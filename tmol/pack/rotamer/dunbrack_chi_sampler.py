@@ -131,18 +131,21 @@ class DunbrackChiSampler:
             assert hasattr(packed_block_types, "dun_sampler_chi_defining_atom")
             return
 
-        for rt in packed_block_types.active_residues:
+        for rt in packed_block_types.active_block_types:
             assert hasattr(rt, "dun_sampler_bbdihe_uaids")
             assert hasattr(rt, "dun_sampler_chi_defining_atom")
 
         uaids = numpy.stack(
-            [rt.dun_sampler_bbdihe_uaids for rt in packed_block_types.active_residues]
+            [
+                rt.dun_sampler_bbdihe_uaids
+                for rt in packed_block_types.active_block_types
+            ]
         )
         uaids = torch.tensor(uaids, dtype=torch.int32, device=self.device)
 
         max_n_chi = max(
             rt.dun_sampler_chi_defining_atom.shape[0]
-            for rt in packed_block_types.active_residues
+            for rt in packed_block_types.active_block_types
         )
 
         chi_defining_atom = torch.full(
@@ -151,7 +154,7 @@ class DunbrackChiSampler:
             dtype=torch.int32,
             device=self.device,
         )
-        for i, rt in enumerate(packed_block_types.active_residues):
+        for i, rt in enumerate(packed_block_types.active_block_types):
             chi_defining_atom[
                 i, : rt.dun_sampler_chi_defining_atom.shape[0]
             ] = torch.tensor(

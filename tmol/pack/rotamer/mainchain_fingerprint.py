@@ -197,12 +197,12 @@ def annotate_residue_type_with_sampler_fingerprints(
 
 def find_unique_fingerprints(pbt: PackedBlockTypes,):
     builder_types = set()
-    for rt in pbt.active_residues:
+    for rt in pbt.active_block_types:
         if hasattr(rt, "mc_fingerprints"):
             for builder in rt.mc_fingerprints:
                 builder_types.add(builder)
 
-    # builder_types = set([builder for rt in pbt.active_residues if hasattr(rt, "mc_fingerprints") for builder in rt.mc_fingerprints.keys()])
+    # builder_types = set([builder for rt in pbt.active_block_types if hasattr(rt, "mc_fingerprints") for builder in rt.mc_fingerprints.keys()])
     # we do not need to re-annotate this PackedBlockTypes object if there
     # are no sidechain builders that it has not encountered before
     if hasattr(pbt, "mc_atom_mapping"):
@@ -218,7 +218,7 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
     builder_inds = {builder: i for i, builder in enumerate(builder_types)}
 
     fp_sets = set()
-    for rt in pbt.active_residues:
+    for rt in pbt.active_block_types:
         if hasattr(rt, "mc_fingerprints"):
             for builder, mcfps in rt.mc_fingerprints.items():
                 fp_sets.add(mcfps.fingerprint)
@@ -232,7 +232,7 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
     max_builder_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
     max_fp_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
 
-    for i, rt in enumerate(pbt.active_residues):
+    for i, rt in enumerate(pbt.active_block_types):
         if hasattr(rt, "mc_fingerprints"):
             for j, builder in enumerate(builder_types):
                 if builder in rt.mc_fingerprints:
@@ -259,7 +259,7 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
     )
     for i, builder in enumerate(builder_types):
         for j, fp in enumerate(fp_sets):
-            for k, rt in enumerate(pbt.active_residues):
+            for k, rt in enumerate(pbt.active_block_types):
                 # now we'er going to find the index of the mainchain atom
                 if not hasattr(rt, "mc_fingerprints"):
                     continue

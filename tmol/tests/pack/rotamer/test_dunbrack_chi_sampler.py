@@ -801,7 +801,7 @@ def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
     sampler = DunbrackChiSampler.from_database(param_resolver)
     task.add_chi_sampler(sampler)
 
-    for rt in poses.packed_block_types.active_residues:
+    for rt in poses.packed_block_types.active_block_types:
         sampler.annotate_residue_type(rt)
     sampler.annotate_packed_block_types(poses.packed_block_types)
     sampler.sample_chi_for_poses(poses, task)

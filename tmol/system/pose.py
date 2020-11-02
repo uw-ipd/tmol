@@ -37,7 +37,7 @@ def residue_types_from_residues(residues):
 
 @attr.s(auto_attribs=True)
 class PackedBlockTypes:
-    active_residues: Sequence[RefinedResidueType]
+    active_block_types: Sequence[RefinedResidueType]
     restype_index: pandas.Index
 
     max_n_atoms: int
@@ -49,21 +49,21 @@ class PackedBlockTypes:
 
     @property
     def n_types(self):
-        return len(self.active_residues)
+        return len(self.active_block_types)
 
     @classmethod
     def from_restype_list(
-        cls, active_residues: Sequence[RefinedResidueType], device=torch.device
+        cls, active_block_types: Sequence[RefinedResidueType], device=torch.device
     ):
-        max_n_atoms = cls.count_max_n_atoms(active_residues)
-        n_atoms = cls.count_n_atoms(active_residues, device)
-        restype_index = pandas.Index([restype.name for restype in active_residues])
+        max_n_atoms = cls.count_max_n_atoms(active_block_types)
+        n_atoms = cls.count_n_atoms(active_block_types, device)
+        restype_index = pandas.Index([restype.name for restype in active_block_types])
         atom_downstream_of_conn = cls.join_atom_downstream_of_conn(
-            active_residues, device
+            active_block_types, device
         )
 
         return cls(
-            active_residues=active_residues,
+            active_block_types=active_block_types,
             restype_index=restype_index,
             max_n_atoms=max_n_atoms,
             n_atoms=n_atoms,
@@ -72,30 +72,30 @@ class PackedBlockTypes:
         )
 
     @classmethod
-    def count_max_n_atoms(cls, active_residues: Sequence[RefinedResidueType]):
-        return max(len(restype.atoms) for restype in active_residues)
+    def count_max_n_atoms(cls, active_block_types: Sequence[RefinedResidueType]):
+        return max(len(restype.atoms) for restype in active_block_types)
 
     @classmethod
     def count_n_atoms(
-        cls, active_residues: Sequence[RefinedResidueType], device: torch.device
+        cls, active_block_types: Sequence[RefinedResidueType], device: torch.device
     ):
         return torch.tensor(
-            [len(restype.atoms) for restype in active_residues],
+            [len(restype.atoms) for restype in active_block_types],
             dtype=torch.int32,
             device=device,
         )
 
     @classmethod
     def join_atom_downstream_of_conn(
-        cls, active_residues: Sequence[Residue], device: torch.device
+        cls, active_block_types: Sequence[Residue], device: torch.device
     ):
-        n_restypes = len(active_residues)
-        max_n_conn = max(len(rt.connections) for rt in active_residues)
-        max_n_atoms = max(len(rt.atoms) for rt in active_residues)
+        n_restypes = len(active_block_types)
+        max_n_conn = max(len(rt.connections) for rt in active_block_types)
+        max_n_atoms = max(len(rt.atoms) for rt in active_block_types)
         atom_downstream_of_conn = torch.full(
             (n_restypes, max_n_conn, max_n_atoms), -1, dtype=torch.int32, device=device
         )
-        for i, rt in enumerate(active_residues):
+        for i, rt in enumerate(active_block_types):
             rt_adoc = rt.atom_downstream_of_conn
             atom_downstream_of_conn[
                 i, : rt_adoc.shape[0], : rt_adoc.shape[1]
@@ -508,7 +508,7 @@ class Poses:
     ) -> Tensor(torch.int32)[:, :, :, 2]:
         n_poses = len(poses)
         max_n_conn = max(
-            len(rt.connections) for rt in packed_block_types.active_residues
+            len(rt.connections) for rt in packed_block_types.active_block_types
         )
         inter_residue_connections = torch.full(
             (n_poses, max_n_blocks, max_n_conn, 2), -1, dtype=torch.int32, device=device
@@ -531,7 +531,7 @@ class Poses:
     ) -> Tensor(torch.int32)[:, :, :, :, :]:
         n_poses = len(poses)
         max_n_conn = max(
-            len(rt.connections) for rt in packed_block_types.active_residues
+            len(rt.connections) for rt in packed_block_types.active_block_types
         )
         inter_block_bondsep = torch.full(
             (n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn),

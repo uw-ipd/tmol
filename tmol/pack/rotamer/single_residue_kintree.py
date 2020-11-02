@@ -102,10 +102,10 @@ def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
         assert hasattr(pbt, "kintree_frame_z")
         return
 
-    max_n_nodes = max(len(rt.kintree_nodes) for rt in pbt.active_residues)
-    max_n_scans = max(rt.kintree_scans.shape[0] for rt in pbt.active_residues)
-    max_n_gens = max(rt.kintree_gens.shape[0] for rt in pbt.active_residues)
-    max_n_atoms = max(rt.kintree_id.shape[0] for rt in pbt.active_residues)
+    max_n_nodes = max(len(rt.kintree_nodes) for rt in pbt.active_block_types)
+    max_n_scans = max(rt.kintree_scans.shape[0] for rt in pbt.active_block_types)
+    max_n_gens = max(rt.kintree_gens.shape[0] for rt in pbt.active_block_types)
+    max_n_atoms = max(rt.kintree_id.shape[0] for rt in pbt.active_block_types)
 
     rt_n_nodes = numpy.zeros((pbt.n_types,), dtype=numpy.int32)
     rt_nodes = numpy.full((pbt.n_types, max_n_nodes), -1, dtype=numpy.int32)
@@ -122,7 +122,7 @@ def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
     rt_frame_y = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
     rt_frame_z = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
 
-    for i, rt in enumerate(pbt.active_residues):
+    for i, rt in enumerate(pbt.active_block_types):
         rt_n_nodes[i] = len(rt.kintree_nodes)
         rt_nodes[i, : len(rt.kintree_nodes)] = rt.kintree_nodes
         rt_scans[i, : rt.kintree_scans.shape[0]] = rt.kintree_scans

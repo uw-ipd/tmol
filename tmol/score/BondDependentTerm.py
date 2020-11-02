@@ -32,7 +32,7 @@ class BondDependentTerm(EnergyTerm):
             MAX_SEPARATION,
             dtype=numpy.int32,
         )
-        for i, rt in enumerate(packed_block_types.active_residues):
+        for i, rt in enumerate(packed_block_types.active_block_types):
             i_nats = packed_block_types.n_atoms[i]
             # rt_bonds = numpy.zeros((i_nats, i_nats)
             rt_bonds_sparse = sparse.COO(
@@ -49,14 +49,14 @@ class BondDependentTerm(EnergyTerm):
         bond_separation = torch.tensor(bond_separation, device=self.device)
 
         n_interblock_bonds = [
-            len(rt.connections) for rt in packed_block_types.active_residues
+            len(rt.connections) for rt in packed_block_types.active_block_types
         ]
         max_n_interblock_bonds = max(n_interblock_bonds)
         n_interblock_bonds = numpy.array(n_interblock_bonds, dtype=numpy.int32)
         atoms_for_interblock_bonds = numpy.full(
             (packed_block_types.n_types, max_n_interblock_bonds), -1, dtype=numpy.int32
         )
-        for i, rt in enumerate(packed_block_types.active_residues):
+        for i, rt in enumerate(packed_block_types.active_block_types):
             i_n_intres_bonds = n_interblock_bonds[i]
             if i_n_intres_bonds == 0:
                 continue
