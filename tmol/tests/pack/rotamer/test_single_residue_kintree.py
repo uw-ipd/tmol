@@ -15,37 +15,33 @@ def test_annotate_restypes(default_database):
 
     for rt in rts.residue_types:
         construct_single_residue_kintree(rt)
-        assert hasattr(rt, "kintree_id")
-        assert hasattr(rt, "id_to_kintree_idx")
-        assert hasattr(rt, "kintree_doftype")
-        assert hasattr(rt, "kintree_parent")
-        assert hasattr(rt, "kintree_frame_x")
-        assert hasattr(rt, "kintree_frame_y")
-        assert hasattr(rt, "kintree_frame_z")
-        assert hasattr(rt, "kintree_nodes")
-        assert hasattr(rt, "kintree_scans")
-        assert hasattr(rt, "kintree_gens")
-        assert hasattr(rt, "kintree_n_scans_per_gen")
+        assert hasattr(rt, "rotamer_kintree")
 
-        assert type(rt.kintree_id) == numpy.ndarray
-        assert type(rt.id_to_kintree_idx) == numpy.ndarray
-        assert type(rt.kintree_doftype) == numpy.ndarray
-        assert type(rt.kintree_parent) == numpy.ndarray
-        assert type(rt.kintree_frame_x) == numpy.ndarray
-        assert type(rt.kintree_frame_y) == numpy.ndarray
-        assert type(rt.kintree_frame_z) == numpy.ndarray
+        assert type(rt.rotamer_kintree.kintree_idx) == numpy.ndarray
+        assert type(rt.rotamer_kintree.id) == numpy.ndarray
+        assert type(rt.rotamer_kintree.doftype) == numpy.ndarray
+        assert type(rt.rotamer_kintree.parent) == numpy.ndarray
+        assert type(rt.rotamer_kintree.frame_x) == numpy.ndarray
+        assert type(rt.rotamer_kintree.frame_y) == numpy.ndarray
+        assert type(rt.rotamer_kintree.frame_z) == numpy.ndarray
+        assert type(rt.rotamer_kintree.nodes) == numpy.ndarray
+        assert type(rt.rotamer_kintree.scans) == numpy.ndarray
+        assert type(rt.rotamer_kintree.gens) == numpy.ndarray
+        assert type(rt.rotamer_kintree.n_scans_per_gen) == numpy.ndarray
+        assert type(rt.rotamer_kintree.dofs_ideal) == numpy.ndarray
 
-        assert rt.kintree_id.shape == (rt.n_atoms,)
-        assert rt.id_to_kintree_idx.shape == (rt.n_atoms,)
-        assert rt.kintree_doftype.shape == (rt.n_atoms,)
-        assert rt.kintree_parent.shape == (rt.n_atoms,)
-        assert rt.kintree_frame_x.shape == (rt.n_atoms,)
-        assert rt.kintree_frame_y.shape == (rt.n_atoms,)
-        assert rt.kintree_frame_z.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.kintree_idx.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.id.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.doftype.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.parent.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.frame_x.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.frame_y.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.frame_z.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.dofs_ideal.shape == (rt.n_atoms, 9)
 
-        print(rt.name)
-        print(rt.kintree_id)
-        # print("id to kintree idx")
-        # print(rt.id_to_kintree_idx)
-        print("dofs ideal")
-        print(rt.kintree_dofs_ideal[:, :4])
+        # print(rt.name)
+        # print(rt.rotamer_kintree.id)
+        # # print("id to kintree idx")
+        # # print(rt.id_to_kintree_idx)
+        # print("dofs ideal")
+        # print(rt.rotamer_kintree.dofs_ideal[:, :4])

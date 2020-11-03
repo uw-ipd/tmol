@@ -28,8 +28,8 @@ def test_create_non_sidechain_fingerprint(default_database):
 
     sc_atoms = bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
 
-    id = leu_rt.kintree_id
-    parents = leu_rt.kintree_parent.copy()
+    id = leu_rt.rotamer_kintree.id
+    parents = leu_rt.rotamer_kintree.parent.copy()
     parents[parents < 0] = 0
     parents[id] = id[parents]
 

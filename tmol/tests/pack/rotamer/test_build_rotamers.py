@@ -24,34 +24,33 @@ from tmol.numeric.dihedrals import coord_dihedrals
 
 
 def test_annotate_restypes(default_database):
+    torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    samplers = (dun_sampler, fixed_sampler)
+
     for rt in rts.residue_types:
-        annotate_restype(rt)
-        assert hasattr(rt, "kintree_id")
-        assert hasattr(rt, "kintree_doftype")
-        assert hasattr(rt, "kintree_parent")
-        assert hasattr(rt, "kintree_frame_x")
-        assert hasattr(rt, "kintree_frame_y")
-        assert hasattr(rt, "kintree_frame_z")
-        assert hasattr(rt, "kintree_nodes")
-        assert hasattr(rt, "kintree_scans")
-        assert hasattr(rt, "kintree_gens")
-        assert hasattr(rt, "kintree_n_scans_per_gen")
+        annotate_restype(rt, samplers, default_database.chemical)
+        assert hasattr(rt, "rotamer_kintree")
 
-        assert type(rt.kintree_id) == numpy.ndarray
-        assert type(rt.kintree_doftype) == numpy.ndarray
-        assert type(rt.kintree_parent) == numpy.ndarray
-        assert type(rt.kintree_frame_x) == numpy.ndarray
-        assert type(rt.kintree_frame_y) == numpy.ndarray
-        assert type(rt.kintree_frame_z) == numpy.ndarray
+        assert type(rt.rotamer_kintree.id) == numpy.ndarray
+        assert type(rt.rotamer_kintree.doftype) == numpy.ndarray
+        assert type(rt.rotamer_kintree.parent) == numpy.ndarray
+        assert type(rt.rotamer_kintree.frame_x) == numpy.ndarray
+        assert type(rt.rotamer_kintree.frame_y) == numpy.ndarray
+        assert type(rt.rotamer_kintree.frame_z) == numpy.ndarray
 
-        assert rt.kintree_id.shape == (rt.n_atoms,)
-        assert rt.kintree_doftype.shape == (rt.n_atoms,)
-        assert rt.kintree_parent.shape == (rt.n_atoms,)
-        assert rt.kintree_frame_x.shape == (rt.n_atoms,)
-        assert rt.kintree_frame_y.shape == (rt.n_atoms,)
-        assert rt.kintree_frame_z.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.id.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.doftype.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.parent.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.frame_x.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.frame_y.shape == (rt.n_atoms,)
+        assert rt.rotamer_kintree.frame_z.shape == (rt.n_atoms,)
 
 
 def test_build_rotamers_smoke(ubq_res, default_database):
@@ -84,7 +83,7 @@ def test_build_rotamers_smoke(ubq_res, default_database):
     sampler = DunbrackChiSampler.from_database(param_resolver)
     task.add_chi_sampler(sampler)
 
-    build_rotamers(poses, task)
+    build_rotamers(poses, task, default_database.chemical)
 
 
 def test_construct_scans_for_rotamers(default_database):
@@ -94,7 +93,14 @@ def test_construct_scans_for_rotamers(default_database):
     leu_rt_list = [rts.restype_map["LEU"][0]]
     pbt = PackedBlockTypes.from_restype_list(leu_rt_list, device=torch_device)
 
-    annotate_restype(leu_rt_list[0])
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    samplers = (dun_sampler, fixed_sampler)
+
+    annotate_restype(leu_rt_list[0], samplers, default_database.chemical)
     annotate_packed_block_types(pbt)
 
     rt_block_inds = numpy.zeros(3, dtype=numpy.int32)
@@ -115,9 +121,9 @@ def test_construct_scans_for_rotamers(default_database):
     )
 
     n_atoms = len(leu_rt_list[0].atoms)
-    kt_nodes = pbt.kintree_nodes[0]
-    kt_scans = pbt.kintree_scans[0]
-    kt_gens = pbt.kintree_gens[0]
+    kt_nodes = pbt.rotamer_kintree.nodes[0]
+    kt_scans = pbt.rotamer_kintree.scans[0]
+    kt_gens = pbt.rotamer_kintree.gens[0]
     nodes_gold = numpy.concatenate(
         [
             kt_nodes[0 : kt_gens[1, 0]],
@@ -163,8 +169,15 @@ def test_construct_scans_for_rotamers2(default_database):
     leu_met_rt_list = [rts.restype_map["LEU"][0]] + [rts.restype_map["MET"][0]]
     pbt = PackedBlockTypes.from_restype_list(leu_met_rt_list, device=torch_device)
 
-    annotate_restype(leu_met_rt_list[0])
-    annotate_restype(leu_met_rt_list[1])
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    samplers = (dun_sampler, fixed_sampler)
+
+    annotate_restype(leu_met_rt_list[0], samplers, default_database.chemical)
+    annotate_restype(leu_met_rt_list[1], samplers, default_database.chemical)
     annotate_packed_block_types(pbt)
 
     rt_block_inds = numpy.concatenate(
@@ -190,9 +203,9 @@ def test_construct_scans_for_rotamers2(default_database):
 
     leu_n_atoms = len(leu_met_rt_list[0].atoms)
     met_n_atoms = len(leu_met_rt_list[1].atoms)
-    kt_nodes = pbt.kintree_nodes
-    kt_scans = pbt.kintree_scans
-    kt_gens = pbt.kintree_gens
+    kt_nodes = pbt.rotamer_kintree.nodes
+    kt_scans = pbt.rotamer_kintree.scans
+    kt_gens = pbt.rotamer_kintree.gens
     leu = 0
     met = 1
     nodes_gold = numpy.concatenate(
@@ -300,12 +313,12 @@ def test_inv_kin_rotamers(default_database, ubq_res):
             device=torch_device,
         )
 
-    met_kt_id = it(-1, met_rt.kintree_id)
-    met_kt_doftype = it(0, met_rt.kintree_doftype)
-    met_kt_parent = it(0, met_rt.kintree_parent + 1)
-    met_kt_frame_x = it(0, met_rt.kintree_frame_x + 1)
-    met_kt_frame_y = it(0, met_rt.kintree_frame_y + 1)
-    met_kt_frame_z = it(0, met_rt.kintree_frame_z + 1)
+    met_kt_id = it(-1, met_rt.rotamer_kintree.id)
+    met_kt_doftype = it(0, met_rt.rotamer_kintree.doftype)
+    met_kt_parent = it(0, met_rt.rotamer_kintree.parent + 1)
+    met_kt_frame_x = it(0, met_rt.rotamer_kintree.frame_x + 1)
+    met_kt_frame_y = it(0, met_rt.rotamer_kintree.frame_y + 1)
+    met_kt_frame_z = it(0, met_rt.rotamer_kintree.frame_z + 1)
 
     from tmol.kinematics.compiled.compiled import inverse_kin
 
@@ -328,7 +341,7 @@ def test_inv_kin_rotamers(default_database, ubq_res):
     dofs_new = torch.cat(
         (
             torch.zeros((1, 9), dtype=torch.float32),
-            torch.tensor(leu_rt.kintree_dofs_ideal, dtype=torch.float32),
+            torch.tensor(leu_rt.rotamer_kintree.dofs_ideal, dtype=torch.float32),
         )
     )
 
@@ -338,16 +351,16 @@ def test_inv_kin_rotamers(default_database, ubq_res):
         leu_at_i = pbt.mc_atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
         met_at_i = pbt.mc_atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
         if leu_at_i >= 0 and met_at_i >= 0:
-            leu_ktat_i = leu_rt.id_to_kintree_idx[leu_at_i]
-            met_ktat_i = met_rt.id_to_kintree_idx[met_at_i]
+            leu_ktat_i = leu_rt.rotamer_kintree.kintree_idx[leu_at_i]
+            met_ktat_i = met_rt.rotamer_kintree.kintree_idx[met_at_i]
             dofs_new[leu_ktat_i + 1, :] = dofs_orig[met_ktat_i + 1, :]
 
-    dofs_new[leu_rt.id_to_kintree_idx[leu_rt.atom_to_idx["CB"]] + 1, 3] = numpy.radians(
-        180
-    )
-    dofs_new[leu_rt.id_to_kintree_idx[leu_rt.atom_to_idx["CG"]] + 1, 3] = numpy.radians(
-        -60
-    )
+    dofs_new[
+        leu_rt.rotamer_kintree.kintree_idx[leu_rt.atom_to_idx["CB"]] + 1, 3
+    ] = numpy.radians(180)
+    dofs_new[
+        leu_rt.rotamer_kintree.kintree_idx[leu_rt.atom_to_idx["CG"]] + 1, 3
+    ] = numpy.radians(-60)
 
     # forward folding; let's build leu on the met's coords
     def _p(t):
@@ -359,12 +372,12 @@ def test_inv_kin_rotamers(default_database, ubq_res):
     leu_kintree = _p(
         torch.stack(
             [
-                it(-1, leu_rt.kintree_id),
-                it(0, leu_rt.kintree_doftype),
-                it(0, leu_rt.kintree_parent + 1),
-                it(0, leu_rt.kintree_frame_x + 1),
-                it(0, leu_rt.kintree_frame_y + 1),
-                it(0, leu_rt.kintree_frame_z + 1),
+                it(-1, leu_rt.rotamer_kintree.id),
+                it(0, leu_rt.rotamer_kintree.doftype),
+                it(0, leu_rt.rotamer_kintree.parent + 1),
+                it(0, leu_rt.rotamer_kintree.frame_x + 1),
+                it(0, leu_rt.rotamer_kintree.frame_y + 1),
+                it(0, leu_rt.rotamer_kintree.frame_z + 1),
             ],
             dim=1,
         ).to(torch_device)
@@ -372,15 +385,15 @@ def test_inv_kin_rotamers(default_database, ubq_res):
 
     new_coords = torch.ops.tmol.forward_only_kin_op(
         dofs_new,
-        _p(torch.tensor(leu_rt.kintree_nodes, dtype=torch.int32)),
-        _p(torch.tensor(leu_rt.kintree_scans, dtype=torch.int32)),
-        _p(torch.tensor(leu_rt.kintree_gens, dtype=torch.int32)),
+        _p(torch.tensor(leu_rt.rotamer_kintree.nodes, dtype=torch.int32)),
+        _p(torch.tensor(leu_rt.rotamer_kintree.scans, dtype=torch.int32)),
+        _p(torch.tensor(leu_rt.rotamer_kintree.gens, dtype=torch.int32)),
         leu_kintree,
     )
     assert new_coords.shape == (leu_rt.n_atoms + 1, 3)
 
     reordered_coords = torch.zeros((leu_rt.n_atoms, 3), dtype=torch.float32)
-    reordered_coords[leu_rt.kintree_id] = new_coords[1:]
+    reordered_coords[leu_rt.rotamer_kintree.id] = new_coords[1:]
 
     # for writing coordinates into a pdb
     # print("new coords")

@@ -56,8 +56,8 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
 @validate_args
 def bfs_sidechain_atoms(restype: RefinedResidueType, sc_roots: List):
     # first descend through the sidechain
-    id = restype.kintree_id
-    parents = restype.kintree_parent.copy()
+    id = restype.rotamer_kintree.id
+    parents = restype.rotamer_kintree.parent.copy()
     parents[parents < 0] = 0
     parents[id] = id[parents]
     return bfs_sidechain_atoms_jit(parents, numpy.array(sc_roots, dtype=numpy.int32))

@@ -144,8 +144,8 @@ def construct_scans_for_rotamers(
     # atom_offset_for_node = n_atoms_offset_for_rot[rot_for_node]
     # nodes = nodes + atom_offset_for_node
 
-    scanStartsStack = pbt.kintree_scans[block_ind_for_rot]
-    genStartsStack = pbt.kintree_gens[block_ind_for_rot]
+    scanStartsStack = pbt.rotamer_kintree.scans[block_ind_for_rot]
+    genStartsStack = pbt.rotamer_kintree.gens[block_ind_for_rot]
     # print("genStartsStack")
     # print(genStartsStack.shape)
 
@@ -172,7 +172,9 @@ def construct_scans_for_rotamers(
 
     # atomStartsOffsets = exclusive_cumsum(cumsumAtomStarts).reshape(natomsPerGen.shape)
 
-    ngenStack = numpy.swapaxes(pbt.kintree_n_scans_per_gen[block_ind_for_rot], 0, 1)
+    ngenStack = numpy.swapaxes(
+        pbt.rotamer_kintree.n_scans_per_gen[block_ind_for_rot], 0, 1
+    )
     ngenStack[ngenStack < 0] = 0
     ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
 
@@ -188,10 +190,10 @@ def construct_scans_for_rotamers(
         ngenStack,
     )
 
-    nodes_orig = pbt.kintree_nodes[block_ind_for_rot].ravel()
+    nodes_orig = pbt.rotamer_kintree.nodes[block_ind_for_rot].ravel()
     nodes_orig = nodes_orig[nodes_orig >= 0]
 
-    n_nodes_for_rot = pbt.kintree_n_nodes[block_ind_for_rot]
+    n_nodes_for_rot = pbt.rotamer_kintree.n_nodes[block_ind_for_rot]
     first_node_for_rot = numpy.cumsum(n_nodes_for_rot)
     n_nodes_offset_for_rot = exclusive_cumsum(first_node_for_rot)
 
@@ -269,17 +271,19 @@ def construct_kintree_for_rotamers(
             arr[rt_block_inds], n_atoms_total, n_atoms_for_rot, n_atoms_offset_for_rot
         )
 
-    kt_ids = nab(load_from_rotamers_w_offsets, pbt.kintree_id)
-    kt_doftype = nab(load_from_rotamers, pbt.kintree_doftype)
-    kt_parent = nab(load_from_rotamers_w_offsets_except_first_node, pbt.kintree_parent)
-    kt_frame_x = nab(load_from_rotamers_w_offsets, pbt.kintree_frame_x)
-    kt_frame_y = nab(load_from_rotamers_w_offsets, pbt.kintree_frame_y)
-    kt_frame_z = nab(load_from_rotamers_w_offsets, pbt.kintree_frame_z)
+    kt_ids = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.id)
+    kt_doftype = nab(load_from_rotamers, pbt.rotamer_kintree.doftype)
+    kt_parent = nab(
+        load_from_rotamers_w_offsets_except_first_node, pbt.rotamer_kintree.parent
+    )
+    kt_frame_x = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.frame_x)
+    kt_frame_y = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.frame_y)
+    kt_frame_z = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.frame_z)
 
     return kt_ids, kt_doftype, kt_parent, kt_frame_x, kt_frame_y, kt_frame_z
 
 
-def build_rotamers(poses: Poses, task: PackerTask):
+def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
 
     all_restypes = {}
     samplers = set([])
@@ -292,8 +296,9 @@ def build_rotamers(poses: Poses, task: PackerTask):
                 if id(rt) not in all_restypes:
                     all_restypes[id(rt)] = rt
 
+    samplers = tuple(samplers)
     for rt_id, rt in all_restypes.items():
-        annotate_restype(rt)
+        annotate_restype(rt, samplers, chem_db)
 
     # rebuild the poses, perhaps, if there are residue types in the task
     # that are absent from the poses' PBT

@@ -217,8 +217,8 @@ def create_non_sidechain_fingerprint(
 def create_mainchain_fingerprint(
     rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: ChemicalDatabase
 ):
-    id = rt.kintree_id
-    parents = rt.kintree_parent.copy()
+    id = rt.rotamer_kintree.id
+    parents = rt.rotamer_kintree.parent.copy()
     parents[parents < 0] = 0
     parents[id] = id[parents]
 
