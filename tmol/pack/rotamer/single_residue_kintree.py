@@ -76,9 +76,18 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
 
     n_scans_per_gen = gens[1:, 1] - gens[:-1, 1]
 
-    ideal_coords = torch.tensor(
-        restype.ideal_coords[restype.at_to_icoor_ind], dtype=torch.float32
+    ideal_coords = torch.cat(
+        (
+            torch.zeros((1, 3), dtype=torch.float32),
+            torch.tensor(
+                restype.ideal_coords[restype.at_to_icoor_ind][kintree.id[1:]],
+                dtype=torch.float32,
+            ),
+        )
     )
+    # print("ideal coords")
+    # print(ideal_coords)
+
     dofs_ideal = inverse_kin(
         ideal_coords,
         kintree.parent,
@@ -88,8 +97,16 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
         kintree.doftype,
     )
     dofs_ideal = dofs_ideal.numpy()
+    # print("dofs ideal")
+    # print(dofs_ideal[:,:4])
+
+    id_to_kintree_idx = numpy.zeros((restype.n_atoms,), dtype=numpy.int32)
+    id_to_kintree_idx[kintree.id.numpy()[1:]] = numpy.arange(
+        restype.n_atoms, dtype=numpy.int32
+    )
 
     setattr(restype, "kintree_id", kintree.id.numpy()[1:])
+    setattr(restype, "id_to_kintree_idx", id_to_kintree_idx)
     setattr(restype, "kintree_doftype", kintree.doftype.numpy()[1:])
     setattr(restype, "kintree_parent", kintree.parent.numpy()[1:] - 1)
     setattr(restype, "kintree_frame_x", kintree.frame_x.numpy()[1:] - 1)
@@ -99,7 +116,7 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
     setattr(restype, "kintree_scans", scans)
     setattr(restype, "kintree_gens", gens)
     setattr(restype, "kintree_n_scans_per_gen", n_scans_per_gen)
-    setattr(restype, "kintree_dofs_ideal", dofs_ideal)
+    setattr(restype, "kintree_dofs_ideal", dofs_ideal[1:])
 
 
 @validate_args

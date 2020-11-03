@@ -16,6 +16,7 @@ def test_annotate_restypes(default_database):
     for rt in rts.residue_types:
         construct_single_residue_kintree(rt)
         assert hasattr(rt, "kintree_id")
+        assert hasattr(rt, "id_to_kintree_idx")
         assert hasattr(rt, "kintree_doftype")
         assert hasattr(rt, "kintree_parent")
         assert hasattr(rt, "kintree_frame_x")
@@ -27,6 +28,7 @@ def test_annotate_restypes(default_database):
         assert hasattr(rt, "kintree_n_scans_per_gen")
 
         assert type(rt.kintree_id) == numpy.ndarray
+        assert type(rt.id_to_kintree_idx) == numpy.ndarray
         assert type(rt.kintree_doftype) == numpy.ndarray
         assert type(rt.kintree_parent) == numpy.ndarray
         assert type(rt.kintree_frame_x) == numpy.ndarray
@@ -34,8 +36,16 @@ def test_annotate_restypes(default_database):
         assert type(rt.kintree_frame_z) == numpy.ndarray
 
         assert rt.kintree_id.shape == (rt.n_atoms,)
+        assert rt.id_to_kintree_idx.shape == (rt.n_atoms,)
         assert rt.kintree_doftype.shape == (rt.n_atoms,)
         assert rt.kintree_parent.shape == (rt.n_atoms,)
         assert rt.kintree_frame_x.shape == (rt.n_atoms,)
         assert rt.kintree_frame_y.shape == (rt.n_atoms,)
         assert rt.kintree_frame_z.shape == (rt.n_atoms,)
+
+        print(rt.name)
+        print(rt.kintree_id)
+        # print("id to kintree idx")
+        # print(rt.id_to_kintree_idx)
+        print("dofs ideal")
+        print(rt.kintree_dofs_ideal[:, :4])

@@ -248,6 +248,18 @@ def test_construct_scans_for_rotamers2(default_database):
 
 
 def test_inv_kin_rotamers(default_database, ubq_res):
+    # steps:
+    # - annotate residue types and pbt with kintrees + mainchain fingerprints
+    # - construct unified kintree for measuring internal coordinates out of
+    #   the existing residues
+    # - reorder the coordinates of the input structure(s)
+    # - invoke inverse_kin
+    # - create tensor with ideal dofs for rotamers
+    # - copy dofs from existing residues for the mainchain fingerprint atoms
+    # - assign chi1 dofs to the appropriate atoms
+    # - invoke forward_only_kin_op
+    # - reindex coordinates
+
     torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
@@ -280,46 +292,45 @@ def test_inv_kin_rotamers(default_database, ubq_res):
     leu_rt = leu_met_rt_list[0]
     met_rt = leu_met_rt_list[1]
 
-    def ia(val, arr):
+    # construct an integer tensor with a value concatenated at position 0
+    def it(val, arr):
         return torch.tensor(
             numpy.concatenate((numpy.array([val]), arr)),
             dtype=torch.int32,
             device=torch_device,
         )
 
-    def fa(val, arr):
-        return torch.tensor(
-            numpy.concatenate((numpy.array([val]), arr)),
-            dtype=torch.float32,
-            device=torch_device,
-        )
-
-    kt_id = ia(-1, met_rt.kintree_id)
-    kt_doftype = ia(0, met_rt.kintree_doftype)
-    kt_parent = ia(0, met_rt.kintree_parent + 1)
-    kt_frame_x = ia(0, met_rt.kintree_frame_x + 1)
-    kt_frame_y = ia(0, met_rt.kintree_frame_y + 1)
-    kt_frame_z = ia(0, met_rt.kintree_frame_z + 1)
+    met_kt_id = it(-1, met_rt.kintree_id)
+    met_kt_doftype = it(0, met_rt.kintree_doftype)
+    met_kt_parent = it(0, met_rt.kintree_parent + 1)
+    met_kt_frame_x = it(0, met_rt.kintree_frame_x + 1)
+    met_kt_frame_y = it(0, met_rt.kintree_frame_y + 1)
+    met_kt_frame_z = it(0, met_rt.kintree_frame_z + 1)
 
     from tmol.kinematics.compiled.compiled import inverse_kin
 
-    # print("kt_parent")
-    # print(kt_parent)
-    # print("kt_frame_x")
-    # print(kt_frame_x)
-    # print("kt_frame_y")
-    # print(kt_frame_y)
-    # print("kt_frame_z")
-    # print(kt_frame_z)
-
-    dofs_orig = inverse_kin(
-        p.coords[0], kt_parent, kt_frame_x, kt_frame_y, kt_frame_z, kt_doftype
+    coords = torch.cat(
+        (
+            torch.zeros((1, 3), dtype=torch.float32),
+            p.coords[0][met_kt_id[1:].to(torch.int64)],
+        )
     )
 
-    print("dofs")
-    print(dofs_orig)
+    dofs_orig = inverse_kin(
+        coords,
+        met_kt_parent,
+        met_kt_frame_x,
+        met_kt_frame_y,
+        met_kt_frame_z,
+        met_kt_doftype,
+    )
 
-    dofs_new = torch.tensor(leu_rt.kintree_dofs_ideal, dtype=torch.float32)
+    dofs_new = torch.cat(
+        (
+            torch.zeros((1, 9), dtype=torch.float32),
+            torch.tensor(leu_rt.kintree_dofs_ideal, dtype=torch.float32),
+        )
+    )
 
     dun_sampler_ind = pbt.mc_sampler_mapping[dun_sampler.sampler_name()]
     met_max_fp = pbt.mc_max_fingerprint[1]
@@ -327,13 +338,59 @@ def test_inv_kin_rotamers(default_database, ubq_res):
         leu_at_i = pbt.mc_atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
         met_at_i = pbt.mc_atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
         if leu_at_i >= 0 and met_at_i >= 0:
-            dofs_new[leu_at_i, :] = dofs_orig[met_at_i, :]
+            leu_ktat_i = leu_rt.id_to_kintree_idx[leu_at_i]
+            met_ktat_i = met_rt.id_to_kintree_idx[met_at_i]
+            dofs_new[leu_ktat_i + 1, :] = dofs_orig[met_ktat_i + 1, :]
+
+    dofs_new[leu_rt.id_to_kintree_idx[leu_rt.atom_to_idx["CB"]] + 1, 3] = numpy.radians(
+        180
+    )
+    dofs_new[leu_rt.id_to_kintree_idx[leu_rt.atom_to_idx["CG"]] + 1, 3] = numpy.radians(
+        -60
+    )
 
     # forward folding; let's build leu on the met's coords
+    def _p(t):
+        return torch.nn.Parameter(t, requires_grad=False)
 
-    print("leu dofs ideal")
-    print(leu_rt.kintree_dofs_ideal.dtype)
-    print(leu_rt.kintree_dofs_ideal)
-    print("leu dofs new")
-    print(dofs_new.dtype)
-    print(dofs_new)
+    def _tint(ts):
+        return tuple(map(lambda t: t.to(torch.int32), ts))
+
+    leu_kintree = _p(
+        torch.stack(
+            [
+                it(-1, leu_rt.kintree_id),
+                it(0, leu_rt.kintree_doftype),
+                it(0, leu_rt.kintree_parent + 1),
+                it(0, leu_rt.kintree_frame_x + 1),
+                it(0, leu_rt.kintree_frame_y + 1),
+                it(0, leu_rt.kintree_frame_z + 1),
+            ],
+            dim=1,
+        ).to(torch_device)
+    )
+
+    new_coords = torch.ops.tmol.forward_only_kin_op(
+        dofs_new,
+        _p(torch.tensor(leu_rt.kintree_nodes, dtype=torch.int32)),
+        _p(torch.tensor(leu_rt.kintree_scans, dtype=torch.int32)),
+        _p(torch.tensor(leu_rt.kintree_gens, dtype=torch.int32)),
+        leu_kintree,
+    )
+    assert new_coords.shape == (leu_rt.n_atoms + 1, 3)
+
+    reordered_coords = torch.zeros((leu_rt.n_atoms, 3), dtype=torch.float32)
+    reordered_coords[leu_rt.kintree_id] = new_coords[1:]
+
+    # for writing coordinates into a pdb
+    # print("new coords")
+    # for i in range(0, reordered_coords.shape[0]):
+    #    print("%6.3f %7.3f %7.3f" % (reordered_coords[i,0], reordered_coords[i,1], reordered_coords[i,2]))
+
+    # make sure that the coordinates of the mainchain atoms that should
+    # have been "copied" from the original position are in essentially the same
+    # position
+    for at in ("N", "H", "CA", "HA", "C", "O"):
+        at_met = met_rt.atom_to_idx[at]
+        at_leu = leu_rt.atom_to_idx[at]
+        assert torch.norm(p.coords[0, at_met, :] - reordered_coords[at_leu, :]) < 1e-5

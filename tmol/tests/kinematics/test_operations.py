@@ -129,10 +129,16 @@ def test_score_smoketest(coords):
 
 def test_forward_refold(kintree, coords, torch_device):
     # fd: with single precision 1e-9 is too strict for the assert_allclose calls
+    print("kintree")
     print(kintree)
+    print("coords")
+    print(coords)
     dofs = inverseKin(kintree, coords)
+    print("dofs")
     print(dofs)
     refold_kincoords = forwardKin(kintree, dofs)
+    print("refold_kincoords")
+    print(refold_kincoords)
 
     numpy.testing.assert_allclose(coords.cpu(), refold_kincoords.cpu(), atol=1e-6)
 
