@@ -1,10 +1,13 @@
 import torch
 import numpy
+import attr
 import cattr
 
 import tmol.pack.rotamer.compiled
 
-from tmol.system.restypes import RefinedResidueType
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d
+
+from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.system.packed import PackedResidueSystem
 from tmol.system.pose import PackedBlockTypes, Pose, Poses
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
@@ -784,6 +787,116 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
 #     assert brt_for_rotamer.shape == (1524,)
 #     assert brt_for_rotamer.shape[0] == chi_for_rotamers.shape[0]
 #     assert chi_for_rotamers.shape[1] == 4
+
+
+def test_package_samples_for_output(default_database, ubq_res, torch_device):
+    # torch_device = torch.device("cpu")
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    # replace them with residues constructed from the residue types
+    # that live in our locally constructed set of refined residue types
+    ubq_res = [
+        attr.evolve(
+            res,
+            residue_type=next(
+                rt for rt in rts.residue_types if rt.name == res.residue_type.name
+            ),
+        )
+        for res in ubq_res
+    ]
+
+    p1 = Pose.from_residues_one_chain(ubq_res[5:11], torch_device)
+    p2 = Pose.from_residues_one_chain(ubq_res[:7], torch_device)
+    poses = Poses.from_poses([p1, p2], torch_device)
+
+    palette = PackerPalette(rts)
+    task = PackerTask(poses, palette)
+    task.add_chi_sampler(dun_sampler)
+    task.restrict_to_repacking()
+
+    all_allowed_restypes = numpy.array(
+        [
+            rt
+            for one_pose_rlts in task.rlts
+            for rlt in one_pose_rlts
+            for rt in rlt.allowed_restypes
+        ],
+        dtype=object,
+    )
+    dun_restype_allowed = numpy.array(
+        [
+            1 if rt.name != "ALA" and rt.name != "GLY" else 0
+            for rt in all_allowed_restypes
+        ],
+        dtype=int,
+    )
+    print("dun_restype_allowed")
+    print(dun_restype_allowed)
+    dun_allowed_restypes = all_allowed_restypes[dun_restype_allowed != 0]
+
+    # print("all allowed restypes")
+    # print([rt.name for rt in all_allowed_restypes])
+    # print("dun_allowed_restypes")
+    # print([rt.name for rt in dun_allowed_restypes])
+    rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
+    # print(rt_names)
+    # return
+
+    dun_rot_inds_for_rts = param_resolver._indices_from_names(
+        param_resolver.all_table_indices, rt_names[None, :], torch.device("cpu")
+    ).squeeze()
+    print("dun_rot_inds_for_rts")
+    print(dun_rot_inds_for_rts)
+
+    nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
+
+    # let the sampler annotate the residue types and the PBT
+    for rt in all_allowed_restypes:
+        dun_sampler.annotate_residue_type(rt)
+    dun_sampler.annotate_packed_block_types(poses.packed_block_types)
+
+    n_rots_for_brt = torch.arange(12, dtype=torch.int32, device=torch_device) + 1
+    offsets_for_brt = exclusive_cumsum1d(n_rots_for_brt)
+    n_rots = torch.sum(n_rots_for_brt).item()
+    brt_for_rotamer = torch.zeros((n_rots,), dtype=torch.int32, device=torch_device)
+    brt_for_rotamer[offsets_for_brt.to(torch.int64)] = 1
+    brt_for_rotamer[0] = 0
+    brt_for_rotamer = torch.cumsum(brt_for_rotamer, dim=0)
+    chi_for_rotamers = torch.zeros(
+        (n_rots, 4), dtype=torch.float32, device=torch_device
+    )
+
+    sampled_chi = (n_rots_for_brt, offsets_for_brt, brt_for_rotamer, chi_for_rotamers)
+
+    results = dun_sampler.package_samples_for_output(
+        poses, task, rt_names, 4, nonzero_dunrot_inds_for_rts, sampled_chi
+    )
+
+    n_rots_for_rt_gold = numpy.zeros(all_allowed_restypes.shape[0], dtype=numpy.int32)
+    n_rots_for_rt_gold[dun_restype_allowed != 0] = n_rots_for_brt.cpu().numpy()
+
+    rot_offset_for_rt_gold = numpy.zeros_like(n_rots_for_rt_gold)
+    rot_offset_for_rt_gold[dun_restype_allowed != 0] = offsets_for_brt.cpu().numpy()
+
+    rt_for_rot_gold = numpy.zeros((n_rots,), dtype=numpy.int32)
+    rt_for_rot_gold[offsets_for_brt.cpu()] = 1
+    rt_for_rot_gold[0] = 0
+    rt_for_rot_gold[offsets_for_brt[4].cpu()] += 1
+    rt_for_rot_gold = numpy.cumsum(rt_for_rot_gold)
+
+    assert results[0].device == torch_device
+    assert results[1].device == torch_device
+    assert results[2].device == torch_device
+    assert results[3].device == torch_device
+
+    numpy.testing.assert_equal(n_rots_for_rt_gold, results[0].cpu().numpy())
+    numpy.testing.assert_equal(rot_offset_for_rt_gold, results[1].cpu().numpy())
+    numpy.testing.assert_equal(rt_for_rot_gold, results[2].cpu().numpy())
 
 
 def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
