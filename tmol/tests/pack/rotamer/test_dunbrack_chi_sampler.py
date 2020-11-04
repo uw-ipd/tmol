@@ -835,23 +835,12 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
         ],
         dtype=int,
     )
-    print("dun_restype_allowed")
-    print(dun_restype_allowed)
     dun_allowed_restypes = all_allowed_restypes[dun_restype_allowed != 0]
-
-    # print("all allowed restypes")
-    # print([rt.name for rt in all_allowed_restypes])
-    # print("dun_allowed_restypes")
-    # print([rt.name for rt in dun_allowed_restypes])
     rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
-    # print(rt_names)
-    # return
 
     dun_rot_inds_for_rts = param_resolver._indices_from_names(
         param_resolver.all_table_indices, rt_names[None, :], torch.device("cpu")
     ).squeeze()
-    print("dun_rot_inds_for_rts")
-    print(dun_rot_inds_for_rts)
 
     nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
 
