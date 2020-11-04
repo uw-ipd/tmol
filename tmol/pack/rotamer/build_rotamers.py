@@ -347,14 +347,14 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     rt_block_inds = pbt.restype_index.get_indexer(rt_names)
     # print("rt_block_inds")
     # print(rt_block_inds)
-    for i, one_pose_rlts in enumerate(task.rlts):
-        for j, rlt in enumerate(one_pose_rlts):
-            real_rts[i, j, : len(rlt.allowed_restypes)] = 1
+    # for i, one_pose_rlts in enumerate(task.rlts):
+    #     for j, rlt in enumerate(one_pose_rlts):
+    #         real_rts[i, j, : len(rlt.allowed_restypes)] = 1
     # print("poses device")
     # print(type(poses.device))
     # print(poses.device)
-    real_rts = torch.tensor(real_rts, dtype=torch.int32, device=poses.device)
-    nz_real_rts = torch.nonzero(real_rts)
+    # real_rts = torch.tensor(real_rts, dtype=torch.int32, device=poses.device)
+    # nz_real_rts = torch.nonzero(real_rts)
 
     all_chi_samples = [
         sampler.sample_chi_for_poses(poses, task) for sampler in samplers
@@ -370,24 +370,13 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     )
     # print(n_rots_for_all_samples)
 
-    zero_sample_rts = (
-        n_rots_for_all_samples[nz_real_rts[:, 0], nz_real_rts[:, 1], nz_real_rts[:, 2]]
-        == 0
-    )
-    nz_no_rotamer_samples = nz_real_rts[zero_sample_rts, :]
+    n_rots_for_all_samples[n_rots_for_all_samples == 0] = 1
 
-    n_rots_for_all_samples[
-        nz_no_rotamer_samples[:, 0],
-        nz_no_rotamer_samples[:, 1],
-        nz_no_rotamer_samples[:, 2],
-    ] = 1
+    n_rots_for_rt = n_rots_for_all_samples
 
-    # print("n_rots_for_all_samples")
-    # print(n_rots_for_all_samples)
-
-    n_rots_for_rt = n_rots_for_all_samples[
-        nz_real_rts[:, 0], nz_real_rts[:, 1], nz_real_rts[:, 2]
-    ]
+    # n_rots_for_rt = n_rots_for_all_samples[
+    #    nz_real_rts[:, 0], nz_real_rts[:, 1], nz_real_rts[:, 2]
+    # ]
 
     n_rots = torch.sum(n_rots_for_rt)
     rt_for_rot = torch.zeros(n_rots, dtype=torch.int64)

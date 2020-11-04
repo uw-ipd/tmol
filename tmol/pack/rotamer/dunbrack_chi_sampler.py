@@ -191,9 +191,9 @@ class DunbrackChiSampler:
     def sample_chi_for_poses(
         self, systems: Poses, task: PackerTask
     ) -> Tuple[
-        Tensor(torch.int32)[:, :, :],  # n_rots_for_rt
-        Tensor(torch.int32)[:, :, :],  # n_rots_for_rt_offsets
-        Tensor(torch.int32)[:, 3],  # rt_for_rotamer
+        Tensor(torch.int32)[:],  # n_rots_for_rt
+        Tensor(torch.int32)[:],  # n_rots_for_rt_offsets
+        Tensor(torch.int32)[:],  # rt_for_rotamer
         Tensor(torch.int32)[:, :],  # chi_defining_atom_for_rotamer
         Tensor(torch.float32)[:, :],  # chi_for_rotamers
     ]:
@@ -202,7 +202,7 @@ class DunbrackChiSampler:
         max_n_blocks = systems.block_inds.shape[1]
         max_n_atoms = systems.coords.shape[2]
 
-        all_allowed_restypes = numpy.array(
+        dun_allowed_restypes = numpy.array(
             [
                 rt
                 for one_pose_rlts in task.rlts
@@ -224,7 +224,7 @@ class DunbrackChiSampler:
             device=self.device,
         )
 
-        rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
+        rt_names = numpy.array([rt.name for rt in dun_allowed_restypes], dtype=object)
 
         rt_res = torch.tensor(
             [
@@ -320,7 +320,7 @@ class DunbrackChiSampler:
             rottable_set_for_buildable_restype[:, 1].to(torch.int64)
         ]
 
-        brts = all_allowed_restypes[dun_rot_inds_for_rts.numpy() != -1]
+        brts = dun_allowed_restypes[dun_rot_inds_for_rts.numpy() != -1]
 
         non_dunbrack_expansion_counts_for_buildable_restype = torch.zeros(
             (n_brts, 4), dtype=torch.int32, device=self.device
@@ -402,9 +402,46 @@ class DunbrackChiSampler:
             nchi_for_buildable_restype,
         )
 
+        # the set of all possible rts, not just the ones that the
+        # Dunbrack sampler was allowed to build for
+        # all_allowed_restypes = numpy.array(
+        #     [
+        #         rt
+        #         for one_pose_rlts in task.rlts
+        #         for rlt in one_pose_rlts
+        #         for rt in rlt.allowed_restypes
+        #     ],
+        #     dtype=object,
+        # )
+
+        restype_is_allowed_for_dun = torch.tensor(
+            [
+                True if self in rlt.chi_samplers else False
+                for one_pose_rlts in task.rlts
+                for rlt in one_pose_rlts
+                for rt in rlt.allowed_restypes
+            ],
+            dtype=torch.uint8,
+        )
+        n_restypes_total = restype_is_allowed_for_dun.shape[0]
+        dun_allowed_inds = torch.nonzero(restype_is_allowed_for_dun)[:, 0]
+        dun_brt_global_inds = dun_allowed_inds[nonzero_dunrot_inds_for_rts[:, 0]]
+
+        n_rots_for_rt = torch.zeros((n_restypes_total,), dtype=torch.int32)
+        n_rots_for_rt[dun_brt_global_inds] = sampled_chi[0]
+        n_rots_for_rt_offsets = torch.zeros_like(n_rots_for_rt)
+        n_rots_for_rt_offsets[dun_brt_global_inds] = sampled_chi[1]
+
+        # restype_is_allowed_for_dun = (restype_is_allowed_for_dun != 0)
+        # nz_restype_is_allowed_for_dun = numpy.nonzero(restype_is_allowed_for_dun)
+
+        dun_rot_inds_for_rts
+
         n_rots_for_brt = sampled_chi[0]
         n_rots_for_brt_offsets = sampled_chi[1]
         brt_for_rotamer = sampled_chi[2]
+        print("brt_for_rotamer")
+        print(brt_for_rotamer.shape)
         chi_for_rotamers = sampled_chi[3]
 
         # Now lets map back to the original set of rts per block type.
@@ -415,59 +452,61 @@ class DunbrackChiSampler:
             for rts in one_pose_rlts
         )
 
-        rt_global_index = torch.tensor(
-            [
-                max_n_rts * max_n_blocks * i + max_n_rts * j + k
-                for i, one_pose_rlts in enumerate(task.rlts)
-                for j, rlt in enumerate(one_pose_rlts)
-                for k in range(len(rlt.allowed_restypes))
-            ],
-            dtype=torch.int64,
-            device=self.device,
-        )
+        # rt_global_index = torch.tensor(
+        #     [
+        #         max_n_rts * max_n_blocks * i + max_n_rts * j + k
+        #         for i, one_pose_rlts in enumerate(task.rlts)
+        #         for j, rlt in enumerate(one_pose_rlts)
+        #         for k in range(len(rlt.allowed_restypes))
+        #     ],
+        #     dtype=torch.int64,
+        #     device=self.device,
+        # )
+        rt_global_index = torch.arange(n_restypes_total, dtype=torch.int32)
 
-        rt_real = torch.zeros(
-            (n_sys * max_n_blocks * max_n_rts,), dtype=torch.int32, device=self.device
-        )
-        rt_real[rt_global_index] = 1
-        nz_rt_real = torch.nonzero(rt_real)
-        global_rt_that_are_brt = nz_rt_real[nonzero_dunrot_inds_for_rts.squeeze(), 0]
-        global_rt_ind_for_brt = rt_global_index[nonzero_dunrot_inds_for_rts]
+        # rt_real = torch.zeros(
+        #     (n_sys * max_n_blocks * max_n_rts,), dtype=torch.int32, device=self.device
+        # )
+        # rt_real[rt_global_index] = 1
+        # nz_rt_real = torch.nonzero(rt_real)
+        # global_rt_that_are_brt = nz_rt_real[nonzero_dunrot_inds_for_rts.squeeze(), 0]
 
-        n_rots_for_rt = torch.zeros(
-            (n_sys * max_n_blocks * max_n_rts,), dtype=torch.int32, device=self.device
-        )
-        n_rots_for_rt_offset = torch.zeros_like(n_rots_for_rt)
+        global_rt_ind_for_brt = rt_global_index[nonzero_dunrot_inds_for_rts.squeeze()]
 
-        n_rots_for_rt[global_rt_that_are_brt] = n_rots_for_brt
-        n_rots_for_rt = n_rots_for_rt.reshape(n_sys, max_n_blocks, max_n_rts)
+        # n_rots_for_rt = torch.zeros(
+        #     (n_sys * max_n_blocks * max_n_rts,), dtype=torch.int32, device=self.device
+        # )
+        # n_rots_for_rt_offset = torch.zeros_like(n_rots_for_rt)
+        #
+        # n_rots_for_rt[global_rt_that_are_brt] = n_rots_for_brt
+        # n_rots_for_rt = n_rots_for_rt.reshape(n_sys, max_n_blocks, max_n_rts)
+        #
+        # n_rots_for_rt_offsets = torch.full(
+        #     (n_sys * max_n_blocks * max_n_rts,),
+        #     -1,
+        #     dtype=torch.int32,
+        #     device=self.device,
+        # )
+        # n_rots_for_rt_offsets[global_rt_that_are_brt] = n_rots_for_brt_offsets
+        # n_rots_for_rt_offsets = n_rots_for_rt_offsets.reshape(
+        #     n_sys, max_n_blocks, max_n_rts
+        # )
 
-        n_rots_for_rt_offsets = torch.full(
-            (n_sys * max_n_blocks * max_n_rts,),
-            -1,
-            dtype=torch.int32,
-            device=self.device,
-        )
-        n_rots_for_rt_offsets[global_rt_that_are_brt] = n_rots_for_brt_offsets
-        n_rots_for_rt_offsets = n_rots_for_rt_offsets.reshape(
-            n_sys, max_n_blocks, max_n_rts
-        )
-
-        rt_for_rotamer_global = global_rt_ind_for_brt[brt_for_rotamer.to(torch.int64)]
+        rt_for_rotamer = global_rt_ind_for_brt[brt_for_rotamer.to(torch.int64)]
 
         # div will need to be replaced by floor_div in later versions of torch
-        rt_for_rotamer_system = torch.div(
-            rt_for_rotamer_global, max_n_blocks * max_n_rts
-        )
-        rt_for_rotamer_remainder = torch.remainder(
-            rt_for_rotamer_global, max_n_blocks * max_n_rts
-        )
-        rt_for_rotamer_block = torch.div(rt_for_rotamer_remainder, max_n_rts)
-        rt_for_rotamer_rt = torch.remainder(rt_for_rotamer_remainder, max_n_rts)
-        rt_for_rotamer = torch.cat(
-            (rt_for_rotamer_system, rt_for_rotamer_block, rt_for_rotamer_rt), dim=1
-        )
-        rt_for_rotamer = rt_for_rotamer.to(torch.int32)
+        # rt_for_rotamer_system = torch.div(
+        #    rt_for_rotamer_global, max_n_blocks * max_n_rts
+        # )
+        # rt_for_rotamer_remainder = torch.remainder(
+        #    rt_for_rotamer_global, max_n_blocks * max_n_rts
+        # )
+        # rt_for_rotamer_block = torch.div(rt_for_rotamer_remainder, max_n_rts)
+        # rt_for_rotamer_rt = torch.remainder(rt_for_rotamer_remainder, max_n_rts)
+        # rt_for_rotamer = torch.cat(
+        #    (rt_for_rotamer_system, rt_for_rotamer_block, rt_for_rotamer_rt), dim=1
+        # )
+        # rt_for_rotamer = rt_for_rotamer.to(torch.int32)
 
         pbt = systems.packed_block_types
         pbt_cda = pbt.dun_sampler_chi_defining_atom
@@ -491,6 +530,16 @@ class DunbrackChiSampler:
             pbt_restype_ind_for_rt[brt_for_rotamer.to(torch.int64)], :max_n_chi
         ]
 
+        print("n_rots_for_rt")
+        print(n_rots_for_rt.shape)
+        print("n_rots_for_rt_offsets")
+        print(n_rots_for_rt_offsets.shape)
+        print("rt_for_rotamer")
+        print(rt_for_rotamer.shape)
+        print("chi_defining_atom_for_rotamer")
+        print(chi_defining_atom_for_rotamer.shape)
+        print("chi_for_rotamers")
+        print(chi_for_rotamers.shape)
         return (
             n_rots_for_rt,
             n_rots_for_rt_offsets,
