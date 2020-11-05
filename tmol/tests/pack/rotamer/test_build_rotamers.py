@@ -447,6 +447,7 @@ def test_construct_kintree_for_rotamers(default_database, ubq_res):
         pbt,
         numpy.zeros(1, dtype=numpy.int32),
         leu_rt.n_atoms,
+        pbt.max_n_atoms,
         torch.full((1,), leu_rt.n_atoms, dtype=torch.int32),
     )
 
@@ -464,17 +465,18 @@ def test_construct_kintree_for_rotamers(default_database, ubq_res):
     gold_leu_kintree1_frame_y = it(0, leu_rt.rotamer_kintree.frame_y + 1)
     gold_leu_kintree1_frame_z = it(0, leu_rt.rotamer_kintree.frame_z + 1)
 
-    numpy.testing.assert_equal(gold_leu_kintree1_id, kt1[0])
-    numpy.testing.assert_equal(gold_leu_kintree1_doftype, kt1[1])
-    numpy.testing.assert_equal(gold_leu_kintree1_parent, kt1[2])
-    numpy.testing.assert_equal(gold_leu_kintree1_frame_x, kt1[3])
-    numpy.testing.assert_equal(gold_leu_kintree1_frame_y, kt1[4])
-    numpy.testing.assert_equal(gold_leu_kintree1_frame_z, kt1[5])
+    numpy.testing.assert_equal(gold_leu_kintree1_id, kt1.id.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree1_doftype, kt1.doftype.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree1_parent, kt1.parent.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree1_frame_x, kt1.frame_x.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree1_frame_y, kt1.frame_y.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree1_frame_z, kt1.frame_z.numpy())
 
     kt2 = construct_kintree_for_rotamers(
         pbt,
         numpy.zeros(2, dtype=numpy.int32),
         2 * leu_rt.n_atoms,
+        pbt.max_n_atoms,
         torch.full((2,), leu_rt.n_atoms, dtype=torch.int32),
     )
 
@@ -486,7 +488,7 @@ def test_construct_kintree_for_rotamers(default_database, ubq_res):
         )
 
     gold_leu_kintree2_id = it2(
-        -1, leu_rt.rotamer_kintree.id, leu_rt.rotamer_kintree.id + leu_rt.n_atoms
+        -1, leu_rt.rotamer_kintree.id, leu_rt.rotamer_kintree.id + pbt.max_n_atoms
     )
     gold_leu_kintree2_doftype = it2(
         0, leu_rt.rotamer_kintree.doftype, leu_rt.rotamer_kintree.doftype
@@ -514,9 +516,9 @@ def test_construct_kintree_for_rotamers(default_database, ubq_res):
         leu_rt.rotamer_kintree.frame_z + 1 + leu_rt.n_atoms,
     )
 
-    numpy.testing.assert_equal(gold_leu_kintree2_id, kt2[0])
-    numpy.testing.assert_equal(gold_leu_kintree2_doftype, kt2[1])
-    numpy.testing.assert_equal(gold_leu_kintree2_parent, kt2[2])
-    numpy.testing.assert_equal(gold_leu_kintree2_frame_x, kt2[3])
-    numpy.testing.assert_equal(gold_leu_kintree2_frame_y, kt2[4])
-    numpy.testing.assert_equal(gold_leu_kintree2_frame_z, kt2[5])
+    numpy.testing.assert_equal(gold_leu_kintree2_id, kt2.id.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree2_doftype, kt2.doftype.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree2_parent, kt2.parent.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree2_frame_x, kt2.frame_x.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree2_frame_y, kt2.frame_y.numpy())
+    numpy.testing.assert_equal(gold_leu_kintree2_frame_z, kt2.frame_z.numpy())
