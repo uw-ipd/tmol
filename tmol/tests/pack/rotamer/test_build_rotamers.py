@@ -8,6 +8,7 @@ from tmol.pack.rotamer.build_rotamers import (
     annotate_restype,
     annotate_packed_block_types,
     build_rotamers,
+    construct_kintree_for_rotamers,
     construct_scans_for_rotamers,
     exclusive_cumsum,
 )
@@ -407,3 +408,65 @@ def test_inv_kin_rotamers(default_database, ubq_res):
         at_met = met_rt.atom_to_idx[at]
         at_leu = leu_rt.atom_to_idx[at]
         assert torch.norm(p.coords[0, at_met, :] - reordered_coords[at_leu, :]) < 1e-5
+
+
+def test_construct_kintree_for_rotamers(default_database, ubq_res):
+    torch_device = torch.device("cpu")
+    chem_db = default_database.chemical
+
+    rts = ResidueTypeSet.from_database(chem_db)
+    ubq_res = [
+        attr.evolve(
+            res,
+            residue_type=next(
+                rt for rt in rts.residue_types if rt.name == res.residue_type.name
+            ),
+        )
+        for res in ubq_res
+    ]
+    p = Pose.from_residues_one_chain(ubq_res[:3], torch_device)
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    samplers = (dun_sampler, fixed_sampler)
+
+    leu_met_rt_list = [rts.restype_map["LEU"][0]] + [rts.restype_map["MET"][0]]
+    pbt = PackedBlockTypes.from_restype_list(leu_met_rt_list, device=torch_device)
+
+    annotate_restype(leu_met_rt_list[0], samplers, chem_db)
+    annotate_restype(leu_met_rt_list[1], samplers, chem_db)
+    annotate_packed_block_types(pbt)
+
+    leu_rt = leu_met_rt_list[0]
+    met_rt = leu_met_rt_list[1]
+
+    kt1 = construct_kintree_for_rotamers(
+        pbt,
+        numpy.zeros(1, dtype=numpy.int32),
+        leu_rt.n_atoms,
+        torch.full((1,), leu_rt.n_atoms, dtype=torch.int32),
+    )
+
+    def it(val, arr):
+        return torch.tensor(
+            numpy.concatenate((numpy.array([val]), arr)),
+            dtype=torch.int32,
+            device=torch_device,
+        )
+
+    gold_leu_kintree_id = it(-1, leu_rt.rotamer_kintree.id)
+    gold_leu_kintree_doftype = it(0, leu_rt.rotamer_kintree.doftype)
+    gold_leu_kintree_parent = it(0, leu_rt.rotamer_kintree.parent + 1)
+    gold_leu_kintree_frame_x = it(0, leu_rt.rotamer_kintree.frame_x + 1)
+    gold_leu_kintree_frame_y = it(0, leu_rt.rotamer_kintree.frame_y + 1)
+    gold_leu_kintree_frame_z = it(0, leu_rt.rotamer_kintree.frame_z + 1)
+
+    numpy.testing.assert_equal(gold_leu_kintree_id, kt1[0])
+    numpy.testing.assert_equal(gold_leu_kintree_doftype, kt1[1])
+    numpy.testing.assert_equal(gold_leu_kintree_parent, kt1[2])
+    numpy.testing.assert_equal(gold_leu_kintree_frame_x, kt1[3])
+    numpy.testing.assert_equal(gold_leu_kintree_frame_y, kt1[4])
+    numpy.testing.assert_equal(gold_leu_kintree_frame_z, kt1[5])

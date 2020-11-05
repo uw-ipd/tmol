@@ -128,37 +128,14 @@ def construct_scans_for_rotamers(
     n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
 ):
 
-    # Unneeded???
-    # knowing how many nodes there are for each rotamer lets us get a mapping
-    # from node index to rotamer index.
-    # rot_for_node = numpy.zeros(n_nodes, dtype=numpy.int32)
-    # rot_for_node[first_node_for_rot[:-1]] = 1
-    # rot_for_node = numpy.cumsum(rot_for_node)
-
-    # now update the node indices from the generic (1 residue) indices
-    # so that they are specific for the atom ids for the rotamers
-    # numpy.concatenate((
-    # numpy.zeros((1,),dtype=numpy.int64),
-    # n_atoms_offset_for_rot[:-1]))
-
-    # atom_offset_for_node = n_atoms_offset_for_rot[rot_for_node]
-    # nodes = nodes + atom_offset_for_node
-
     scanStartsStack = pbt.rotamer_kintree.scans[block_ind_for_rot]
     genStartsStack = pbt.rotamer_kintree.gens[block_ind_for_rot]
-    # print("genStartsStack")
-    # print(genStartsStack.shape)
 
     atomStartsStack = numpy.swapaxes(genStartsStack[:, :, 0], 0, 1)
     natomsPerGen = atomStartsStack[1:, :] - atomStartsStack[:-1, :]
     natomsPerGen[natomsPerGen < 0] = 0
 
-    # print("natomsPerGen")
-    # print(natomsPerGen)
-
     cumsumAtomStarts = numpy.cumsum(natomsPerGen, axis=1)
-    # print("cumsumAtomStarts 1")
-    # print(cumsumAtomStarts)
     atomStartsOffsets = numpy.concatenate(
         (
             numpy.zeros(natomsPerGen.shape[0], dtype=numpy.int64).reshape(-1, 1),
@@ -166,11 +143,6 @@ def construct_scans_for_rotamers(
         ),
         axis=1,
     )
-
-    # print("atomStartsOffsets")
-    # print(atomStartsOffsets)
-
-    # atomStartsOffsets = exclusive_cumsum(cumsumAtomStarts).reshape(natomsPerGen.shape)
 
     ngenStack = numpy.swapaxes(
         pbt.rotamer_kintree.n_scans_per_gen[block_ind_for_rot], 0, 1
@@ -239,8 +211,8 @@ def load_from_rotamers_w_offsets(
 
 
 @numba.jit(nopython=True)
-def load_from_rotamers_w_offsets_except_first_node(
-    arr: NDArray(numpy.int32)[:, :],
+def load_rotamer_parents(
+    parents: NDArray(numpy.int32)[:, :],
     n_atoms_total: int,
     n_atoms_for_rot: NDArray(numpy.int32)[:],
     n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
@@ -249,8 +221,11 @@ def load_from_rotamers_w_offsets_except_first_node(
     count = 1
     for i in range(n_atoms_for_rot.shape[0]):
         for j in range(n_atoms_for_rot[i]):
-            compact_arr[count] = arr[i][j] + (
-                n_atoms_offset_for_rot[i] if j != 0 else 0
+            # offset by 1 for the root node of each rotamer
+            # because the parent array has -1 for root nodes'
+            # parents and we want to make it 0
+            compact_arr[count] = parents[i][j] + (
+                n_atoms_offset_for_rot[i] if j != 0 else 1
             )
             count += 1
     return compact_arr
@@ -258,24 +233,27 @@ def load_from_rotamers_w_offsets_except_first_node(
 
 def construct_kintree_for_rotamers(
     pbt: PackedBlockTypes,
-    rt_block_inds: NDArray(numpy.int32)[:],
-    # rt_for_rot: Tensor(torch.int64)[:],
+    rot_block_inds: NDArray(numpy.int32)[:],
     n_atoms_total: int,
     n_atoms_for_rot: Tensor(torch.int32)[:],
-    n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
 ):
     n_atoms_for_rot = n_atoms_for_rot.cpu().numpy()
 
+    # append a 1 for the root node and then treat
+    # the resulting (inclusive) scan as if it
+    # represents offsets
+    temp = numpy.concatenate((numpy.ones(1, dtype=numpy.int32), n_atoms_for_rot))
+    n_atoms_offset_for_rot = numpy.cumsum(temp)
+
     def nab(func, arr):
         return func(
-            arr[rt_block_inds], n_atoms_total, n_atoms_for_rot, n_atoms_offset_for_rot
+            arr[rot_block_inds], n_atoms_total, n_atoms_for_rot, n_atoms_offset_for_rot
         )
 
     kt_ids = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.id)
+    kt_ids -= 1
     kt_doftype = nab(load_from_rotamers, pbt.rotamer_kintree.doftype)
-    kt_parent = nab(
-        load_from_rotamers_w_offsets_except_first_node, pbt.rotamer_kintree.parent
-    )
+    kt_parent = nab(load_rotamer_parents, pbt.rotamer_kintree.parent)
     kt_frame_x = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.frame_x)
     kt_frame_y = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.frame_y)
     kt_frame_z = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.frame_z)
@@ -345,38 +323,20 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         for rt in rlt.allowed_restypes
     ]
     rt_block_inds = pbt.restype_index.get_indexer(rt_names)
-    # print("rt_block_inds")
-    # print(rt_block_inds)
-    # for i, one_pose_rlts in enumerate(task.rlts):
-    #     for j, rlt in enumerate(one_pose_rlts):
-    #         real_rts[i, j, : len(rlt.allowed_restypes)] = 1
-    # print("poses device")
-    # print(type(poses.device))
-    # print(poses.device)
-    # real_rts = torch.tensor(real_rts, dtype=torch.int32, device=poses.device)
-    # nz_real_rts = torch.nonzero(real_rts)
 
     all_chi_samples = [
         sampler.sample_chi_for_poses(poses, task) for sampler in samplers
     ]
 
     # ok, now we need to figure out how many rotamers each rt is getting.
-
-    # some rts are not real
-    # some rts are real but have zero rotamers -- we will have to build these ourselves
+    # some rts have zero rotamers -- we will have to build these ourselves
 
     n_rots_for_all_samples = toolz.reduce(
         torch.add, [samples[0] for samples in all_chi_samples]
     )
-    # print(n_rots_for_all_samples)
 
     n_rots_for_all_samples[n_rots_for_all_samples == 0] = 1
-
     n_rots_for_rt = n_rots_for_all_samples
-
-    # n_rots_for_rt = n_rots_for_all_samples[
-    #    nz_real_rts[:, 0], nz_real_rts[:, 1], nz_real_rts[:, 2]
-    # ]
 
     n_rots = torch.sum(n_rots_for_rt)
     rt_for_rot = torch.zeros(n_rots, dtype=torch.int64)
@@ -394,9 +354,10 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     n_atoms_total = n_atoms_offset_for_rot[-1]
     n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
 
-    ids, doft, par, fx, fy, fz = construct_kintree_for_rotamers(
-        pbt, rt_block_inds, n_atoms_total, n_atoms_for_rot, n_atoms_offset_for_rot
+    rot_ids, rot_doft, rot_par, rot_fx, rot_fy, rot_fz = construct_kintree_for_rotamers(
+        pbt, block_ind_for_rot, n_atoms_total, n_atoms_for_rot
     )
+    # rot_kintree =
 
     nodes, scans, gens = construct_scans_for_rotamers(
         pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot
@@ -417,3 +378,14 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     # rotamer_coords = torch.zeros((n_rotamers, pbt.max_n_atoms, 3), dtype=torch.float32)
 
     # measure the DOFs for the original residues
+
+    pbi = poses.block_inds.view(-1)
+    orig_res_block_ind = pbi[pbi != -1]
+    n_atoms_for_orig = pbt.n_atoms[orig_res_block_ind]
+    n_atoms_offset_for_orig = torch.cumsum(n_atoms_for_orig, dim=0)
+    n_atoms_offset_for_orig = n_atoms_offset_for_orig.cpu().numpy()
+    n_orig_atoms_total = n_atoms_offset_for_orig[-1]
+
+    orig_ids, orig_doft, orig_par, orig_fx, orig_fy, orig_fz = construct_kintree_for_rotamers(
+        pbt, orig_res_block_ind, n_orig_atoms_total, n_atoms_for_origx
+    )
