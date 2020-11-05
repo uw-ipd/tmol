@@ -457,16 +457,66 @@ def test_construct_kintree_for_rotamers(default_database, ubq_res):
             device=torch_device,
         )
 
-    gold_leu_kintree_id = it(-1, leu_rt.rotamer_kintree.id)
-    gold_leu_kintree_doftype = it(0, leu_rt.rotamer_kintree.doftype)
-    gold_leu_kintree_parent = it(0, leu_rt.rotamer_kintree.parent + 1)
-    gold_leu_kintree_frame_x = it(0, leu_rt.rotamer_kintree.frame_x + 1)
-    gold_leu_kintree_frame_y = it(0, leu_rt.rotamer_kintree.frame_y + 1)
-    gold_leu_kintree_frame_z = it(0, leu_rt.rotamer_kintree.frame_z + 1)
+    gold_leu_kintree1_id = it(-1, leu_rt.rotamer_kintree.id)
+    gold_leu_kintree1_doftype = it(0, leu_rt.rotamer_kintree.doftype)
+    gold_leu_kintree1_parent = it(0, leu_rt.rotamer_kintree.parent + 1)
+    gold_leu_kintree1_frame_x = it(0, leu_rt.rotamer_kintree.frame_x + 1)
+    gold_leu_kintree1_frame_y = it(0, leu_rt.rotamer_kintree.frame_y + 1)
+    gold_leu_kintree1_frame_z = it(0, leu_rt.rotamer_kintree.frame_z + 1)
 
-    numpy.testing.assert_equal(gold_leu_kintree_id, kt1[0])
-    numpy.testing.assert_equal(gold_leu_kintree_doftype, kt1[1])
-    numpy.testing.assert_equal(gold_leu_kintree_parent, kt1[2])
-    numpy.testing.assert_equal(gold_leu_kintree_frame_x, kt1[3])
-    numpy.testing.assert_equal(gold_leu_kintree_frame_y, kt1[4])
-    numpy.testing.assert_equal(gold_leu_kintree_frame_z, kt1[5])
+    numpy.testing.assert_equal(gold_leu_kintree1_id, kt1[0])
+    numpy.testing.assert_equal(gold_leu_kintree1_doftype, kt1[1])
+    numpy.testing.assert_equal(gold_leu_kintree1_parent, kt1[2])
+    numpy.testing.assert_equal(gold_leu_kintree1_frame_x, kt1[3])
+    numpy.testing.assert_equal(gold_leu_kintree1_frame_y, kt1[4])
+    numpy.testing.assert_equal(gold_leu_kintree1_frame_z, kt1[5])
+
+    kt2 = construct_kintree_for_rotamers(
+        pbt,
+        numpy.zeros(2, dtype=numpy.int32),
+        2 * leu_rt.n_atoms,
+        torch.full((2,), leu_rt.n_atoms, dtype=torch.int32),
+    )
+
+    def it2(val, arr1, arr2):
+        return torch.tensor(
+            numpy.concatenate((numpy.array([val]), arr1, arr2)),
+            dtype=torch.int32,
+            device=torch_device,
+        )
+
+    gold_leu_kintree2_id = it2(
+        -1, leu_rt.rotamer_kintree.id, leu_rt.rotamer_kintree.id + leu_rt.n_atoms
+    )
+    gold_leu_kintree2_doftype = it2(
+        0, leu_rt.rotamer_kintree.doftype, leu_rt.rotamer_kintree.doftype
+    )
+    gold_leu_kintree2_parent = it2(
+        0,
+        leu_rt.rotamer_kintree.parent + 1,
+        leu_rt.rotamer_kintree.parent + 1 + leu_rt.n_atoms,
+    )
+    # fix the jump-to-root for the 1st atom in rotamer 2
+    gold_leu_kintree2_parent[1 + leu_rt.n_atoms] = 0
+    gold_leu_kintree2_frame_x = it2(
+        0,
+        leu_rt.rotamer_kintree.frame_x + 1,
+        leu_rt.rotamer_kintree.frame_x + 1 + leu_rt.n_atoms,
+    )
+    gold_leu_kintree2_frame_y = it2(
+        0,
+        leu_rt.rotamer_kintree.frame_y + 1,
+        leu_rt.rotamer_kintree.frame_y + 1 + leu_rt.n_atoms,
+    )
+    gold_leu_kintree2_frame_z = it2(
+        0,
+        leu_rt.rotamer_kintree.frame_z + 1,
+        leu_rt.rotamer_kintree.frame_z + 1 + leu_rt.n_atoms,
+    )
+
+    numpy.testing.assert_equal(gold_leu_kintree2_id, kt2[0])
+    numpy.testing.assert_equal(gold_leu_kintree2_doftype, kt2[1])
+    numpy.testing.assert_equal(gold_leu_kintree2_parent, kt2[2])
+    numpy.testing.assert_equal(gold_leu_kintree2_frame_x, kt2[3])
+    numpy.testing.assert_equal(gold_leu_kintree2_frame_y, kt2[4])
+    numpy.testing.assert_equal(gold_leu_kintree2_frame_z, kt2[5])
