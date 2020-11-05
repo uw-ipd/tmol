@@ -183,9 +183,7 @@ def construct_scans_for_rotamers(
 def load_from_rotamers(
     arr: NDArray(numpy.int32)[:, :],
     n_atoms_total: int,
-    max_n_atoms: int,
     n_atoms_for_rot: NDArray(numpy.int32)[:],
-    n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
 ):
     compact_arr = numpy.zeros((n_atoms_total + 1,), dtype=numpy.int32)
     count = 1
@@ -200,7 +198,6 @@ def load_from_rotamers(
 def load_from_rotamers_w_offsets(
     arr: NDArray(numpy.int32)[:, :],
     n_atoms_total: int,
-    max_n_atoms: int,
     n_atoms_for_rot: NDArray(numpy.int32)[:],
     n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
 ):
@@ -213,29 +210,27 @@ def load_from_rotamers_w_offsets(
     return compact_arr
 
 
-@numba.jit(nopython=True)
-def load_from_rotamers_w_block_offsets(
-    arr: NDArray(numpy.int32)[:, :],
-    n_atoms_total: int,
-    max_n_atoms: int,
-    n_atoms_for_rot: NDArray(numpy.int32)[:],
-    n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
-):
-    compact_arr = numpy.zeros((n_atoms_total + 1,), dtype=numpy.int32)
-    count = 1
-    for i in range(n_atoms_for_rot.shape[0]):
-        i_offset = max_n_atoms * i + 1
-        for j in range(n_atoms_for_rot[i]):
-            compact_arr[count] = arr[i][j] + i_offset
-            count += 1
-    return compact_arr
+# @numba.jit(nopython=True)
+# def load_from_rotamers_w_block_offsets(
+#     arr: NDArray(numpy.int32)[:, :],
+#     n_atoms_total: int,
+#     n_atoms_for_rot: NDArray(numpy.int32)[:],
+#     n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
+# ):
+#     compact_arr = numpy.zeros((n_atoms_total + 1,), dtype=numpy.int32)
+#     count = 1
+#     for i in range(n_atoms_for_rot.shape[0]):
+#         i_offset = max_n_atoms * i + 1
+#         for j in range(n_atoms_for_rot[i]):
+#             compact_arr[count] = arr[i][j] + i_offset
+#             count += 1
+#     return compact_arr
 
 
 @numba.jit(nopython=True)
 def load_rotamer_parents(
     parents: NDArray(numpy.int32)[:, :],
     n_atoms_total: int,
-    max_n_atoms: int,
     n_atoms_for_rot: NDArray(numpy.int32)[:],
     n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
 ):
@@ -257,9 +252,19 @@ def construct_kintree_for_rotamers(
     pbt: PackedBlockTypes,
     rot_block_inds: NDArray(numpy.int32)[:],
     n_atoms_total: int,
-    max_n_atoms: int,  # max per-rotamer no. atoms
     n_atoms_for_rot: Tensor(torch.int32)[:],
+    block_offset_for_rot: NDArray(numpy.int32)[:],
+    device: torch.device,
 ):
+    """Construct a KinTree for a set of rotamers by stringing
+    together the kintree data for individual rotamers.
+    The "block_ofset_for_rot" array is used to construct
+    the "id" tensor in the KinTree, which maps to the atom
+    indices; thus it should contain the atom-index offsets
+    for the first atom in each rotamer in the coords tensor
+    that will be used to construct the kintree_coords tensor.
+    """
+
     n_atoms_for_rot = n_atoms_for_rot.cpu().numpy()
 
     # append a 1 for the root node and then treat
@@ -269,21 +274,43 @@ def construct_kintree_for_rotamers(
     n_atoms_offset_for_rot = numpy.cumsum(temp)
 
     def nab(func, arr):
-        return func(
-            arr[rot_block_inds],
-            n_atoms_total,
-            max_n_atoms,
-            n_atoms_for_rot,
+        return func(arr[rot_block_inds], n_atoms_total, n_atoms_for_rot)
+
+    def nab2(func, arr, rot_offset):
+        return func(arr[rot_block_inds], n_atoms_total, n_atoms_for_rot, rot_offset)
+
+    def _t(arr):
+        return torch.tensor(arr, dtype=torch.int32, device=device)
+
+    id = _t(
+        nab2(load_from_rotamers_w_offsets, pbt.rotamer_kintree.id, block_offset_for_rot)
+    )
+    id[0] = -1
+    doftype = _t(nab(load_from_rotamers, pbt.rotamer_kintree.doftype))
+    parent = _t(
+        nab2(load_rotamer_parents, pbt.rotamer_kintree.parent, n_atoms_offset_for_rot)
+    )
+    frame_x = _t(
+        nab2(
+            load_from_rotamers_w_offsets,
+            pbt.rotamer_kintree.frame_x,
             n_atoms_offset_for_rot,
         )
-
-    id = nab(load_from_rotamers_w_block_offsets, pbt.rotamer_kintree.id)
-    id -= 1
-    doftype = nab(load_from_rotamers, pbt.rotamer_kintree.doftype)
-    parent = nab(load_rotamer_parents, pbt.rotamer_kintree.parent)
-    frame_x = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.frame_x)
-    frame_y = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.frame_y)
-    frame_z = nab(load_from_rotamers_w_offsets, pbt.rotamer_kintree.frame_z)
+    )
+    frame_y = _t(
+        nab2(
+            load_from_rotamers_w_offsets,
+            pbt.rotamer_kintree.frame_y,
+            n_atoms_offset_for_rot,
+        )
+    )
+    frame_z = _t(
+        nab2(
+            load_from_rotamers_w_offsets,
+            pbt.rotamer_kintree.frame_z,
+            n_atoms_offset_for_rot,
+        )
+    )
 
     return KinTree(
         id=id,
@@ -296,22 +323,22 @@ def construct_kintree_for_rotamers(
 
 
 def measure_dofs_from_orig_coords(
-    coords: Tensor(torch.float32)[:, :, :], kintree_tuple: Tuple
+    coords: Tensor(torch.float32)[:, :, :], kintree: KinTree
 ):
     from tmol.kinematics.compiled.compiled import inverse_kin
 
-    id_torch = torch.tensor(kintree_tuple[0], dtype=torch.int32, device=coords.device)
-    kintree_coords = coords.ravel()[id_torch]
+    kintree_coords = coords.ravel()[kintree.id]
     kintree_coords[0, :] = 0  # reset root
 
     dofs_orig = inverse_kin(
-        coords,
-        met_kt_parent,
-        met_kt_frame_x,
-        met_kt_frame_y,
-        met_kt_frame_z,
-        met_kt_doftype,
+        kintree_coords,
+        kintree.parent,
+        kintree.frame_x,
+        kintree.frame_y,
+        kintree.frame_z,
+        kintree.doftype,
     )
+    return dofs_orig
 
 
 def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
