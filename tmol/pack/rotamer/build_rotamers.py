@@ -7,6 +7,7 @@ from typing import Tuple
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
 
 from tmol.database.chemical import ChemicalDatabase
 from tmol.kinematics.datatypes import KinTree
@@ -94,10 +95,14 @@ def update_nodes(
     for i in range(n_gens - 1):
         for j in range(n_rotamers):
             for k in range(genStartsStack[j, i, 0], genStartsStack[j, i + 1, 0]):
-                nodes[count] = (
-                    nodes_orig[n_nodes_offset_for_rot[j] + k]
-                    + n_atoms_offset_for_rot[j]
-                )
+                # nodes[count] = (
+                #     nodes_orig[n_nodes_offset_for_rot[j] + k]
+                #     + n_atoms_offset_for_rot[j]
+                # )
+                nodes[count] = nodes_orig[n_nodes_offset_for_rot[j] + k]
+                if nodes[count] != 0:
+                    nodes[count] += n_atoms_offset_for_rot[j]
+
                 count += 1
     return nodes
 
@@ -248,6 +253,7 @@ def load_rotamer_parents(
     return compact_arr
 
 
+@validate_args
 def construct_kintree_for_rotamers(
     pbt: PackedBlockTypes,
     rot_block_inds: NDArray(numpy.int32)[:],
@@ -327,7 +333,7 @@ def measure_dofs_from_orig_coords(
 ):
     from tmol.kinematics.compiled.compiled import inverse_kin
 
-    kintree_coords = coords.ravel()[kintree.id]
+    kintree_coords = coords.view(-1, 3)[kintree.id.to(torch.int64)]
     kintree_coords[0, :] = 0  # reset root
 
     dofs_orig = inverse_kin(

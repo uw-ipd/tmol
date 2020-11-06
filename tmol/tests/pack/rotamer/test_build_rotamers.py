@@ -11,6 +11,7 @@ from tmol.pack.rotamer.build_rotamers import (
     construct_kintree_for_rotamers,
     construct_scans_for_rotamers,
     exclusive_cumsum,
+    measure_dofs_from_orig_coords,
 )
 from tmol.system.ideal_coords import build_ideal_coords, normalize
 from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
@@ -22,6 +23,7 @@ from tmol.pack.rotamer.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 from tmol.numeric.dihedrals import coord_dihedrals
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
 def test_annotate_restypes(default_database):
@@ -367,9 +369,6 @@ def test_inv_kin_rotamers(default_database, ubq_res):
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)
 
-    def _tint(ts):
-        return tuple(map(lambda t: t.to(torch.int32), ts))
-
     leu_kintree = _p(
         torch.stack(
             [
@@ -638,3 +637,255 @@ def test_construct_kintree_for_rotamers(default_database, ubq_res):
     numpy.testing.assert_equal(gold_leu_kintree2_frame_x, kt2.frame_x.numpy())
     numpy.testing.assert_equal(gold_leu_kintree2_frame_y, kt2.frame_y.numpy())
     numpy.testing.assert_equal(gold_leu_kintree2_frame_z, kt2.frame_z.numpy())
+
+
+def test_measure_original_dofs(ubq_res, default_database):
+    torch_device = torch.device("cpu")
+    chem_db = default_database.chemical
+
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    # replace them with residues constructed from the residue types
+    # that live in our locally constructed set of refined residue types
+    ubq_res = [
+        attr.evolve(
+            res,
+            residue_type=next(
+                rt for rt in rts.residue_types if rt.name == res.residue_type.name
+            ),
+        )
+        for res in ubq_res
+    ]
+
+    p1 = Pose.from_residues_one_chain(ubq_res[:2], torch_device)
+    poses = Poses.from_poses([p1], torch_device)
+    palette = PackerPalette(rts)
+    task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    task.add_chi_sampler(dun_sampler)
+    task.add_chi_sampler(fixed_sampler)
+    samplers = (dun_sampler, fixed_sampler)
+
+    pbt = poses.packed_block_types
+    for rt in pbt.active_block_types:
+        annotate_restype(rt, samplers, chem_db)
+    annotate_packed_block_types(pbt)
+
+    block_inds = poses.block_inds.view(-1)
+    real_block_inds = block_inds != -1
+    nz_real_block_inds = torch.nonzero(real_block_inds).flatten()
+    block_inds = block_inds[block_inds != -1]
+    res_n_atoms = pbt.n_atoms[block_inds.to(torch.int64)]
+    n_total_atoms = torch.sum(res_n_atoms).item()
+
+    print("block offsets")
+    print(nz_real_block_inds.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms)
+
+    kintree = construct_kintree_for_rotamers(
+        pbt,
+        block_inds.cpu().numpy(),
+        n_total_atoms,
+        res_n_atoms,
+        nz_real_block_inds.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms,
+        torch_device,
+    )
+
+    print("kintree.id")
+    print(kintree.id)
+
+    print("kintree.doftype")
+    print(kintree.doftype)
+
+    print("kintree.parent")
+    print(kintree.parent)
+
+    dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kintree)
+    print("dofs")
+    print(dofs[:, :4])
+
+    # let's refold and make sure the coordinates are the same?
+    # forward folding; let's build leu on the met's coords
+    def _p(t):
+        return torch.nn.Parameter(t, requires_grad=False)
+
+    kintree_stacked = _p(
+        torch.stack(
+            [
+                kintree.id,
+                kintree.doftype,
+                kintree.parent,
+                kintree.frame_x,
+                kintree.frame_y,
+                kintree.frame_z,
+            ],
+            dim=1,
+        ).to(torch_device)
+    )
+    n_atoms_offset_for_rot = exclusive_cumsum1d(res_n_atoms).cpu().numpy()
+    nodes, scans, gens = construct_scans_for_rotamers(
+        pbt, real_block_inds, res_n_atoms, n_atoms_offset_for_rot
+    )
+
+    print("res1", poses.residues[0][0].residue_type.name)
+    print("nodes")
+    print(poses.residues[0][0].residue_type.rotamer_kintree.nodes)
+    print("scans")
+    print(poses.residues[0][0].residue_type.rotamer_kintree.scans)
+    print("gens")
+    print(poses.residues[0][0].residue_type.rotamer_kintree.gens)
+
+    print("res2", poses.residues[0][1].residue_type.name)
+    print("nodes")
+    print(poses.residues[0][1].residue_type.rotamer_kintree.nodes)
+    print("scans")
+    print(poses.residues[0][1].residue_type.rotamer_kintree.scans)
+    print("gens")
+    print(poses.residues[0][1].residue_type.rotamer_kintree.gens)
+
+    print("nodes")
+    print(nodes)
+    print("scans")
+    print(scans)
+    print("gens")
+    print(gens)
+
+    new_kin_coords = torch.ops.tmol.forward_only_kin_op(
+        dofs,
+        _p(torch.tensor(nodes, dtype=torch.int32)),
+        _p(torch.tensor(scans, dtype=torch.int32)),
+        _p(torch.tensor(gens, dtype=torch.int32)),
+        kintree_stacked,
+    )
+
+    new_coords = torch.zeros_like(poses.coords).view(-1, 3)
+    new_coords[kintree.id.to(torch.int64)] = new_kin_coords
+
+    # print(new_kin_coords)
+
+    # for writing coordinates into a pdb
+    print("new coords")
+    for i in range(0, new_coords.shape[0]):
+        print(
+            "%7.3f %7.3f %7.3f" % (new_coords[i, 0], new_coords[i, 1], new_coords[i, 2])
+        )
+
+
+def test_measure_original_dofs2(ubq_res, default_database):
+    torch_device = torch.device("cpu")
+    chem_db = default_database.chemical
+
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    # replace them with residues constructed from the residue types
+    # that live in our locally constructed set of refined residue types
+    ubq_res = [
+        attr.evolve(
+            res,
+            residue_type=next(
+                rt for rt in rts.residue_types if rt.name == res.residue_type.name
+            ),
+        )
+        for res in ubq_res
+    ]
+
+    p1 = Pose.from_residues_one_chain(ubq_res[5:11], torch_device)
+    p2 = Pose.from_residues_one_chain(ubq_res[:7], torch_device)
+    poses = Poses.from_poses([p1, p2], torch_device)
+    palette = PackerPalette(rts)
+    task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    task.add_chi_sampler(dun_sampler)
+    task.add_chi_sampler(fixed_sampler)
+    samplers = (dun_sampler, fixed_sampler)
+
+    pbt = poses.packed_block_types
+    for rt in pbt.active_block_types:
+        annotate_restype(rt, samplers, chem_db)
+    annotate_packed_block_types(pbt)
+
+    block_inds = poses.block_inds.view(-1)
+    real_block_inds = block_inds != -1
+    nz_real_block_inds = torch.nonzero(real_block_inds).flatten()
+    block_inds = block_inds[block_inds != -1]
+    res_n_atoms = pbt.n_atoms[block_inds.to(torch.int64)]
+    n_total_atoms = torch.sum(res_n_atoms).item()
+
+    print("block offsets")
+    print(nz_real_block_inds.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms)
+
+    kintree = construct_kintree_for_rotamers(
+        pbt,
+        block_inds.cpu().numpy(),
+        n_total_atoms,
+        res_n_atoms,
+        nz_real_block_inds.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms,
+        torch_device,
+    )
+
+    print("kintree.id")
+    print(kintree.id)
+
+    print("kintree.doftype")
+    print(kintree.doftype)
+
+    print("kintree.parent")
+    print(kintree.parent)
+
+    dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kintree)
+    print("dofs")
+    print(dofs[:, :4])
+
+    # let's refold and make sure the coordinates are the same?
+    # forward folding; let's build leu on the met's coords
+    def _p(t):
+        return torch.nn.Parameter(t, requires_grad=False)
+
+    kintree_stacked = _p(
+        torch.stack(
+            [
+                kintree.id,
+                kintree.doftype,
+                kintree.parent,
+                kintree.frame_x,
+                kintree.frame_y,
+                kintree.frame_z,
+            ],
+            dim=1,
+        ).to(torch_device)
+    )
+    n_atoms_offset_for_rot = exclusive_cumsum1d(res_n_atoms).cpu().numpy()
+    nodes, scans, gens = construct_scans_for_rotamers(
+        pbt, real_block_inds, res_n_atoms, n_atoms_offset_for_rot
+    )
+
+    new_kin_coords = torch.ops.tmol.forward_only_kin_op(
+        dofs,
+        _p(torch.tensor(nodes, dtype=torch.int32)),
+        _p(torch.tensor(scans, dtype=torch.int32)),
+        _p(torch.tensor(gens, dtype=torch.int32)),
+        kintree_stacked,
+    )
+
+    new_coords = torch.zeros_like(poses.coords).view(-1, 3)
+    new_coords[kintree.id.to(torch.int64)] = new_kin_coords
+
+    # print(new_kin_coords)
+
+    # for writing coordinates into a pdb
+    print("new coords")
+    for i in range(0, new_coords.shape[0]):
+        print(
+            "%7.3f %7.3f %7.3f" % (new_coords[i, 0], new_coords[i, 1], new_coords[i, 2])
+        )
