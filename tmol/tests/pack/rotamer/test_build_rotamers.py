@@ -819,7 +819,16 @@ def test_measure_original_dofs2(ubq_res, default_database):
     real_block_inds = block_inds != -1
     nz_real_block_inds = torch.nonzero(real_block_inds).flatten()
     block_inds = block_inds[block_inds != -1]
+    print("block inds")
+    print(block_inds.shape)
+    print(block_inds)
+    print("nz_real_block_inds")
+    print(nz_real_block_inds.shape)
+    print(nz_real_block_inds)
     res_n_atoms = pbt.n_atoms[block_inds.to(torch.int64)]
+    print("res_n_atoms")
+    print(res_n_atoms.shape)
+    print(res_n_atoms)
     n_total_atoms = torch.sum(res_n_atoms).item()
 
     print("block offsets")
@@ -844,8 +853,8 @@ def test_measure_original_dofs2(ubq_res, default_database):
     print(kintree.parent)
 
     dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kintree)
-    print("dofs")
-    print(dofs[:, :4])
+    # print("dofs")
+    # print(dofs[:, :4])
 
     # let's refold and make sure the coordinates are the same?
     # forward folding; let's build leu on the met's coords
@@ -866,9 +875,17 @@ def test_measure_original_dofs2(ubq_res, default_database):
         ).to(torch_device)
     )
     n_atoms_offset_for_rot = exclusive_cumsum1d(res_n_atoms).cpu().numpy()
+
     nodes, scans, gens = construct_scans_for_rotamers(
-        pbt, real_block_inds, res_n_atoms, n_atoms_offset_for_rot
+        pbt, block_inds, res_n_atoms, n_atoms_offset_for_rot
     )
+
+    print("kintree nodes")
+    print(nodes)
+    print("scans")
+    print(scans)
+    print("gens")
+    print(gens)
 
     new_kin_coords = torch.ops.tmol.forward_only_kin_op(
         dofs,

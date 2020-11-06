@@ -80,7 +80,7 @@ def annotate_packed_block_types(pbt: PackedBlockTypes):
     find_unique_fingerprints(pbt)
 
 
-@numba.jit(nopython=True)
+# TEMP!!! @numba.jit(nopython=True)
 def update_nodes(
     nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot
 ):
@@ -102,6 +102,22 @@ def update_nodes(
                 nodes[count] = nodes_orig[n_nodes_offset_for_rot[j] + k]
                 if nodes[count] != 0:
                     nodes[count] += n_atoms_offset_for_rot[j]
+                print(
+                    "gen",
+                    "{:3d}".format(i),
+                    "node",
+                    "{:5d}".format(count),
+                    "rot",
+                    "{:5d}".format(j),
+                    "orig ind",
+                    "{:5d}".format(n_nodes_offset_for_rot[j] + k),
+                    "orig",
+                    "{:5d}".format(nodes_orig[n_nodes_offset_for_rot[j] + k]),
+                    "offset",
+                    "{:5d}".format(n_atoms_offset_for_rot[j]),
+                    "val=",
+                    "{:5d}".format(nodes[count]),
+                )
 
                 count += 1
     return nodes
@@ -136,6 +152,9 @@ def construct_scans_for_rotamers(
 
     scanStartsStack = pbt.rotamer_kintree.scans[block_ind_for_rot]
     genStartsStack = pbt.rotamer_kintree.gens[block_ind_for_rot]
+    print("genStartsStack")
+    print(genStartsStack.shape)
+    print(genStartsStack)
 
     atomStartsStack = numpy.swapaxes(genStartsStack[:, :, 0], 0, 1)
     natomsPerGen = atomStartsStack[1:, :] - atomStartsStack[:-1, :]
