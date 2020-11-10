@@ -343,26 +343,49 @@ def measure_dofs_from_orig_coords(
 
 
 def merge_chi_samples(chi_samples):
+    # everything needs to be on the same device
+    for samples in chi_samples:
+        for i in range(1, len(samples)):
+            assert samples[0].device == samples[i].device
+        assert chi_samples[0][0].device == samples[0].device
 
-    all_rt_for_rotamer_unsorted = torch.cat([samples[2] for samples in chi_samples])
+    device = chi_samples[0][0].device
+
+    all_rt_for_rotamer_unsorted = torch.cat([samples[1] for samples in chi_samples])
     sort_rt_for_rotamer = torch.cat(
-        [samples[2] * len(chi_samples) + i for i, samples in enumerate(chi_samples)]
+        [samples[1] * len(chi_samples) + i for i, samples in enumerate(chi_samples)]
     )
     sampler_for_rotamer_unsorted = torch.cat(
-        [torch.full(samples[2].shape[0], i, dtype=torch.int64)]
+        [torch.full(samples[1].shape[0], i, dtype=torch.int64)]
     )
     sort_ind_for_rotamer = torch.argsort(sort_rt_for_rotamer)
     sampler_for_rotamer = sampler_for_rotamer_unsorted[sort_ind_for_rotamer]
 
-    all_rt_for_rotamers = torch.cat([samples[2] for samples in chi_samples])[
+    all_rt_for_rotamers = torch.cat([samples[1] for samples in chi_samples])[
         sort_ind_for_rotamer
     ]
 
-    all_chi_atoms = torch.cat([samples[3] for samples in chi_samples])[
-        sort_ind_for_rotamer
-    ]
+    max_n_chi_atoms = max(samples[2].shape[1] for samples in chi_samples)
+    max_n_chi = max(samples[3].shape[1] for samples in chi_samples)
+    all_chi_atoms = torch.full(
+        (n_rotamers, max_n_chi_atoms), -1, dtype=torch.int32, device=device
+    )
+    all_chi = torch.full(
+        (n_rotamers, max_n_chi_atoms), -1, dtype=torch.float32, device=device
+    )
+    offset = 0
+    for i, samples in enumerate(chi_samples):
+        assert samples[2].shape[0] == samples[3].shape[0]
+        all_chi_atoms[
+            offset : (offset + samples[2].shape[0]), : samples[2].shape[1]
+        ] = samples[2]
+        all_chi[
+            offset : (offset + samples[2].shape[0]), : samples[3].shape[1]
+        ] = samples[3]
+        offset += samples[2].shape[0]
 
-    all_chi = torch.cat([samples[4] for samples in chi_samples])[sort_ind_for_rotamer]
+    all_chi_atoms = all_chi_atoms[sort_ind_for_rotamer]
+    all_chi = all_chi[sort_ind_for_rotamer]
 
     # ok, now we need to figure out how many rotamers each rt is getting.
     n_rots_for_rt = toolz.reduce(torch.add, [samples[0] for samples in chi_samples])

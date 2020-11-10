@@ -45,9 +45,8 @@ class ChiSampler:
         self, systems: Poses, task: "PackerTask"
     ) -> Tuple[
         Tensor(torch.int32)[:, :, :],  # n_rots_for_rt
-        Tensor(torch.int32)[:, :, :],  # n_rots_for_rt_offsets
-        Tensor(torch.int32)[:, 3],  # rt_for_rotamer
-        Tensor(torch.int32)[:],  # chi_defining_atom_for_rotamer
+        Tensor(torch.int32)[:],  # rt_for_rotamer
+        Tensor(torch.int32)[:, :],  # chi_defining_atom_for_rotamer
         Tensor(torch.float32)[:, :],  # chi_for_rotamers
     ]:
         raise NotImplementedError()

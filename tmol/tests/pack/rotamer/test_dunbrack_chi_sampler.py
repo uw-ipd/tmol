@@ -869,8 +869,8 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
     n_rots_for_rt_gold = numpy.zeros(all_allowed_restypes.shape[0], dtype=numpy.int32)
     n_rots_for_rt_gold[dun_restype_allowed != 0] = n_rots_for_brt.cpu().numpy()
 
-    rot_offset_for_rt_gold = numpy.zeros_like(n_rots_for_rt_gold)
-    rot_offset_for_rt_gold[dun_restype_allowed != 0] = offsets_for_brt.cpu().numpy()
+    # rot_offset_for_rt_gold = numpy.zeros_like(n_rots_for_rt_gold)
+    # rot_offset_for_rt_gold[dun_restype_allowed != 0] = offsets_for_brt.cpu().numpy()
 
     rt_for_rot_gold = numpy.zeros((n_rots,), dtype=numpy.int32)
     rt_for_rot_gold[offsets_for_brt.cpu()] = 1
@@ -884,8 +884,7 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
     assert results[3].device == torch_device
 
     numpy.testing.assert_equal(n_rots_for_rt_gold, results[0].cpu().numpy())
-    numpy.testing.assert_equal(rot_offset_for_rt_gold, results[1].cpu().numpy())
-    numpy.testing.assert_equal(rt_for_rot_gold, results[2].cpu().numpy())
+    numpy.testing.assert_equal(rt_for_rot_gold, results[1].cpu().numpy())
 
 
 def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
