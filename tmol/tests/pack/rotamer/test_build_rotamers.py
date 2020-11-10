@@ -684,9 +684,6 @@ def test_measure_original_dofs(ubq_res, default_database):
     res_n_atoms = pbt.n_atoms[block_inds.to(torch.int64)]
     n_total_atoms = torch.sum(res_n_atoms).item()
 
-    print("block offsets")
-    print(nz_real_block_inds.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms)
-
     kintree = construct_kintree_for_rotamers(
         pbt,
         block_inds.cpu().numpy(),
@@ -696,18 +693,7 @@ def test_measure_original_dofs(ubq_res, default_database):
         torch_device,
     )
 
-    print("kintree.id")
-    print(kintree.id)
-
-    print("kintree.doftype")
-    print(kintree.doftype)
-
-    print("kintree.parent")
-    print(kintree.parent)
-
     dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kintree)
-    print("dofs")
-    print(dofs[:, :4])
 
     # let's refold and make sure the coordinates are the same?
     # forward folding; let's build leu on the met's coords
@@ -732,29 +718,6 @@ def test_measure_original_dofs(ubq_res, default_database):
         pbt, real_block_inds, res_n_atoms, n_atoms_offset_for_rot
     )
 
-    print("res1", poses.residues[0][0].residue_type.name)
-    print("nodes")
-    print(poses.residues[0][0].residue_type.rotamer_kintree.nodes)
-    print("scans")
-    print(poses.residues[0][0].residue_type.rotamer_kintree.scans)
-    print("gens")
-    print(poses.residues[0][0].residue_type.rotamer_kintree.gens)
-
-    print("res2", poses.residues[0][1].residue_type.name)
-    print("nodes")
-    print(poses.residues[0][1].residue_type.rotamer_kintree.nodes)
-    print("scans")
-    print(poses.residues[0][1].residue_type.rotamer_kintree.scans)
-    print("gens")
-    print(poses.residues[0][1].residue_type.rotamer_kintree.gens)
-
-    print("nodes")
-    print(nodes)
-    print("scans")
-    print(scans)
-    print("gens")
-    print(gens)
-
     new_kin_coords = torch.ops.tmol.forward_only_kin_op(
         dofs,
         _p(torch.tensor(nodes, dtype=torch.int32)),
@@ -769,11 +732,11 @@ def test_measure_original_dofs(ubq_res, default_database):
     # print(new_kin_coords)
 
     # for writing coordinates into a pdb
-    print("new coords")
-    for i in range(0, new_coords.shape[0]):
-        print(
-            "%7.3f %7.3f %7.3f" % (new_coords[i, 0], new_coords[i, 1], new_coords[i, 2])
-        )
+    # print("new coords")
+    # for i in range(0, new_coords.shape[0]):
+    #     print(
+    #         "%7.3f %7.3f %7.3f" % (new_coords[i, 0], new_coords[i, 1], new_coords[i, 2])
+    #     )
 
 
 def test_measure_original_dofs2(ubq_res, default_database):
@@ -819,20 +782,8 @@ def test_measure_original_dofs2(ubq_res, default_database):
     real_block_inds = block_inds != -1
     nz_real_block_inds = torch.nonzero(real_block_inds).flatten()
     block_inds = block_inds[block_inds != -1]
-    print("block inds")
-    print(block_inds.shape)
-    print(block_inds)
-    print("nz_real_block_inds")
-    print(nz_real_block_inds.shape)
-    print(nz_real_block_inds)
     res_n_atoms = pbt.n_atoms[block_inds.to(torch.int64)]
-    print("res_n_atoms")
-    print(res_n_atoms.shape)
-    print(res_n_atoms)
     n_total_atoms = torch.sum(res_n_atoms).item()
-
-    print("block offsets")
-    print(nz_real_block_inds.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms)
 
     kintree = construct_kintree_for_rotamers(
         pbt,
@@ -842,15 +793,6 @@ def test_measure_original_dofs2(ubq_res, default_database):
         nz_real_block_inds.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms,
         torch_device,
     )
-
-    print("kintree.id")
-    print(kintree.id)
-
-    print("kintree.doftype")
-    print(kintree.doftype)
-
-    print("kintree.parent")
-    print(kintree.parent)
 
     dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kintree)
     # print("dofs")
@@ -880,13 +822,6 @@ def test_measure_original_dofs2(ubq_res, default_database):
         pbt, block_inds, res_n_atoms, n_atoms_offset_for_rot
     )
 
-    print("kintree nodes")
-    print(nodes)
-    print("scans")
-    print(scans)
-    print("gens")
-    print(gens)
-
     new_kin_coords = torch.ops.tmol.forward_only_kin_op(
         dofs,
         _p(torch.tensor(nodes, dtype=torch.int32)),
@@ -897,12 +832,24 @@ def test_measure_original_dofs2(ubq_res, default_database):
 
     new_coords = torch.zeros_like(poses.coords).view(-1, 3)
     new_coords[kintree.id.to(torch.int64)] = new_kin_coords
+    new_coords = new_coords.view(poses.coords.shape)
+
+    for i in range(poses.coords.shape[0]):
+        for j in range(poses.coords.shape[1]):
+            if poses.block_inds[i, j] == -1:
+                continue
+            j_n_atoms = poses.residues[i][j].residue_type.n_atoms
+            numpy.testing.assert_almost_equal(
+                poses.coords[i, j, :j_n_atoms].cpu().numpy(),
+                new_coords[i, j, :j_n_atoms].cpu().numpy(),
+                decimal=5,
+            )
 
     # print(new_kin_coords)
 
     # for writing coordinates into a pdb
-    print("new coords")
-    for i in range(0, new_coords.shape[0]):
-        print(
-            "%7.3f %7.3f %7.3f" % (new_coords[i, 0], new_coords[i, 1], new_coords[i, 2])
-        )
+    # print("new coords")
+    # for i in range(0, new_coords.shape[0]):
+    #     print(
+    #         "%7.3f %7.3f %7.3f" % (new_coords[i, 0], new_coords[i, 1], new_coords[i, 2])
+    #     )

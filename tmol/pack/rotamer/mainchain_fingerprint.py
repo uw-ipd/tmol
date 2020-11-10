@@ -314,7 +314,6 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
     # on mc-type j maps to which atom on residue type k as defined by
     # sampler i
 
-    mc_atom_inds_for_rt_for_sampler = {}
     mc_atom_inds_for_rt_for_sampler = numpy.full(
         (n_samplers, n_mcs, pbt.n_types, max_n_mc_atoms), -1, dtype=numpy.int32
     )
