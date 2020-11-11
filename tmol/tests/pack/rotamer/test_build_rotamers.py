@@ -83,8 +83,10 @@ def test_build_rotamers_smoke(ubq_res, default_database):
     param_resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
-    sampler = DunbrackChiSampler.from_database(param_resolver)
-    task.add_chi_sampler(sampler)
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    task.add_chi_sampler(dun_sampler)
+    task.add_chi_sampler(fixed_sampler)
 
     build_rotamers(poses, task, default_database.chemical)
 
@@ -130,8 +132,10 @@ def test_construct_scans_for_rotamers(default_database):
     nodes_gold = numpy.concatenate(
         [
             kt_nodes[0 : kt_gens[1, 0]],
-            kt_nodes[0 : kt_gens[1, 0]] + n_atoms,
-            kt_nodes[0 : kt_gens[1, 0]] + 2 * n_atoms,
+            kt_nodes[0:1],
+            kt_nodes[1 : kt_gens[1, 0]] + n_atoms,
+            kt_nodes[0:1],
+            kt_nodes[1 : kt_gens[1, 0]] + 2 * n_atoms,
             kt_nodes[kt_gens[1, 0] : kt_gens[2, 0]],
             kt_nodes[kt_gens[1, 0] : kt_gens[2, 0]] + n_atoms,
             kt_nodes[kt_gens[1, 0] : kt_gens[2, 0]] + 2 * n_atoms,
@@ -214,8 +218,10 @@ def test_construct_scans_for_rotamers2(default_database):
     nodes_gold = numpy.concatenate(
         [
             kt_nodes[leu, 0 : kt_gens[leu, 1, 0]],
-            kt_nodes[met, 0 : kt_gens[met, 1, 0]] + leu_n_atoms,
-            kt_nodes[met, 0 : kt_gens[met, 1, 0]] + leu_n_atoms + met_n_atoms,
+            kt_nodes[met, 0:1],
+            kt_nodes[met, 1 : kt_gens[met, 1, 0]] + leu_n_atoms,
+            kt_nodes[met, 0:1],
+            kt_nodes[met, 1 : kt_gens[met, 1, 0]] + leu_n_atoms + met_n_atoms,
             kt_nodes[leu, kt_gens[leu, 1, 0] : kt_gens[leu, 2, 0]],
             kt_nodes[met, kt_gens[met, 1, 0] : kt_gens[met, 2, 0]] + leu_n_atoms,
             kt_nodes[met, kt_gens[met, 1, 0] : kt_gens[met, 2, 0]]

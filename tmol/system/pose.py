@@ -41,7 +41,8 @@ class PackedBlockTypes:
     restype_index: pandas.Index
 
     max_n_atoms: int
-    n_atoms: Tensor(torch.int32)[:]  # dim: ntypes
+    n_atoms: Tensor(torch.int32)[:]  # dim: n_types
+    atom_is_real: Tensor(torch.uint8)[:, :]  # dim: n_types
 
     atom_downstream_of_conn: Tensor(torch.int32)[:, :, :]
 
@@ -57,6 +58,7 @@ class PackedBlockTypes:
     ):
         max_n_atoms = cls.count_max_n_atoms(active_block_types)
         n_atoms = cls.count_n_atoms(active_block_types, device)
+        atom_is_real = cls.determine_real_atoms(max_n_atoms, n_atoms, device)
         restype_index = pandas.Index([restype.name for restype in active_block_types])
         atom_downstream_of_conn = cls.join_atom_downstream_of_conn(
             active_block_types, device
@@ -67,6 +69,7 @@ class PackedBlockTypes:
             restype_index=restype_index,
             max_n_atoms=max_n_atoms,
             n_atoms=n_atoms,
+            atom_is_real=atom_is_real,
             atom_downstream_of_conn=atom_downstream_of_conn,
             device=device,
         )
@@ -84,6 +87,26 @@ class PackedBlockTypes:
             dtype=torch.int32,
             device=device,
         )
+
+    @classmethod
+    def determine_real_atoms(
+        cls, max_n_atoms: int, n_atoms: Tensor(torch.int32)[:], device: torch.device
+    ):
+        n_types = n_atoms.shape[0]
+        return (
+            torch.remainder(
+                torch.arange(n_types * max_n_atoms, dtype=torch.int32, device=device),
+                max_n_atoms,
+            )
+            < n_atoms[
+                torch.div(
+                    torch.arange(
+                        n_types * max_n_atoms, dtype=torch.int64, device=device
+                    ),
+                    max_n_atoms,
+                )
+            ]
+        ).reshape(n_atoms.shape[0], max_n_atoms)
 
     @classmethod
     def join_atom_downstream_of_conn(

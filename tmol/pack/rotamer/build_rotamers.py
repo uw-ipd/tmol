@@ -9,6 +9,7 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 from tmol.database.chemical import ChemicalDatabase
 from tmol.kinematics.datatypes import KinTree
 from tmol.system.restypes import RefinedResidueType
@@ -352,16 +353,20 @@ def merge_chi_samples(chi_samples):
     device = chi_samples[0][0].device
 
     all_rt_for_rotamer_unsorted = torch.cat([samples[1] for samples in chi_samples])
+    n_rotamers = all_rt_for_rotamer_unsorted.shape[0]
     sort_rt_for_rotamer = torch.cat(
         [samples[1] * len(chi_samples) + i for i, samples in enumerate(chi_samples)]
     )
     sampler_for_rotamer_unsorted = torch.cat(
-        [torch.full(samples[1].shape[0], i, dtype=torch.int64)]
+        [
+            torch.full((samples[1].shape[0],), i, dtype=torch.int64)
+            for i, samples in enumerate(chi_samples)
+        ]
     )
     sort_ind_for_rotamer = torch.argsort(sort_rt_for_rotamer)
     sampler_for_rotamer = sampler_for_rotamer_unsorted[sort_ind_for_rotamer]
 
-    all_rt_for_rotamers = torch.cat([samples[1] for samples in chi_samples])[
+    all_rt_for_rotamer = torch.cat([samples[1] for samples in chi_samples])[
         sort_ind_for_rotamer
     ]
 
@@ -403,13 +408,13 @@ def merge_chi_samples(chi_samples):
 def copy_dofs_from_orig_to_rotamers(
     poses: Poses,
     task: PackerTask,
-    samplers: Tuple[ChiSampler, ...],
-    rt_for_rot: Tensor(torch.int32)[:],
-    block_ind_for_rot: Tensor(torch.int32)[:],
-    builder_ind_for_rot: Tensor(torch.int32)[:],
+    samplers,  # : Tuple[ChiSampler, ...],
+    rt_for_rot: Tensor(torch.int64)[:],
+    block_ind_for_rot: Tensor(torch.int64)[:],
+    sampler_for_rotamer: Tensor(torch.int64)[:],
     n_dof_atoms_offset_for_rot: Tensor(torch.int32)[:],
-    orig_dofs_kto: Tensor(torch.float32)[:],
-    rot_dofs_kto: Tensor(torch.float32)[:],
+    orig_dofs_kto: Tensor(torch.float32)[:, 9],
+    rot_dofs_kto: Tensor(torch.float32)[:, 9],
 ):
     # we want to copy from the orig_dofs tensor into the
     # rot_dofs tensor for the "mainchain" atoms in the
@@ -418,6 +423,7 @@ def copy_dofs_from_orig_to_rotamers(
     # residues. This requires a good deal of reindexing.
 
     pbt = poses.packed_block_types
+    n_rots = n_dof_atoms_offset_for_rot.shape[0]
 
     sampler_ind_mapping = torch.tensor(
         [pbt.mc_sampler_mapping[sampler.sampler_name()] for sampler in samplers],
@@ -425,7 +431,19 @@ def copy_dofs_from_orig_to_rotamers(
         device=poses.device,
     )
 
-    sampler_mcfp_ind_for_rotamer = sampler_ind_mapping[sampler_for_rotamer]
+    sampler_ind_for_rot = sampler_ind_mapping[sampler_for_rotamer]
+
+    orig_block_inds = poses.block_inds[poses.block_inds != -1].view(-1).to(torch.int64)
+
+    poses_res_to_real_poses_res = torch.full(
+        (poses.block_inds.shape[0] * poses.block_inds.shape[1],),
+        -1,
+        dtype=torch.int64,
+        device=poses.device,
+    )
+    poses_res_to_real_poses_res[poses.block_inds.view(-1) != -1] = torch.arange(
+        orig_block_inds.shape[0], dtype=torch.int64
+    )
 
     # get the residue index for each rotamer
     max_n_blocks = poses.coords.shape[1]
@@ -438,21 +456,23 @@ def copy_dofs_from_orig_to_rotamers(
         dtype=torch.int64,
         device=poses.device,
     )
-    res_ind_for_rot = res_ind_for_rt[rt_for_res]
+    # res_ind_for_rot = res_ind_for_rt[rt_for_rot]
+    real_res_ind_for_rot = poses_res_to_real_poses_res[res_ind_for_rt[rt_for_rot]]
 
     # look up which mainchain fingerprint each
     # original residue should use
-    orig_block_inds = poses.block_inds[poses.block_inds != -1].view(-1).to(torch.int64)
 
-    builder_ind_for_orig = pbt.max_sampler_for_rt[orig_block_inds]
+    sampler_ind_for_orig = pbt.mc_max_sampler[orig_block_inds]
     orig_res_mcfp = pbt.mc_max_fingerprint[orig_block_inds]
+    orig_res_mcfp_for_rot = orig_res_mcfp[real_res_ind_for_rot]
 
     # now lets find the kintree-ordered indices of the
     # mainchain atoms for the rotamers that represents
     # the destination for the dofs we're copying
     max_n_mcfp_atoms = pbt.mc_atom_mapping.shape[3]
+
     rot_mcfp_at_inds_rto = pbt.mc_atom_mapping[
-        builder_ind_for_rot, sampler_mcfp_ind_for_rot, block_ind_for_rot, :
+        sampler_ind_for_rot, orig_res_mcfp_for_rot, block_ind_for_rot, :
     ].view(-1)
     real_rot_mcfp_at_inds_rto = rot_mcfp_at_inds_rto[rot_mcfp_at_inds_rto != -1]
     real_rot_block_ind_for_mcfp_ats = block_ind_for_rot.repeat(max_n_mcfp_atoms)[
@@ -460,15 +480,19 @@ def copy_dofs_from_orig_to_rotamers(
     ]
 
     rot_mcfp_at_inds_kto = torch.full_like(rot_mcfp_at_inds_rto, -1)
-    rot_mcfp_at_inds_kto[rot_mcfp_at_inds_rto != -1] = pbt.rotamer_trie.kintree_idx[
-        real_rot_block_ind_for_mcfp_ats, real_rot_mcfp_at_inds_rto
-    ]
+    rot_mcfp_at_inds_kto[rot_mcfp_at_inds_rto != -1] = torch.tensor(
+        pbt.rotamer_kintree.kintree_idx[
+            real_rot_block_ind_for_mcfp_ats, real_rot_mcfp_at_inds_rto
+        ],
+        dtype=torch.int64,
+        device=pbt.device,
+    )
 
     rot_mcfp_at_inds_kto[rot_mcfp_at_inds_kto != -1] += n_dof_atoms_offset_for_rot[
-        torch.arange(n_rots, dtype=torch.int64).repeat(max_n_mcfp_atoms)[
-            rot_mcfp_at_inds_kto != -1
-        ]
-    ]
+        torch.div(
+            torch.arange(n_rots * max_n_mcfp_atoms, dtype=torch.int64), max_n_mcfp_atoms
+        )[rot_mcfp_at_inds_kto != -1]
+    ].to(torch.int64)
 
     # now get the indices in the orig_dofs array for the atoms to copy from.
     # The steps:
@@ -487,7 +511,7 @@ def copy_dofs_from_orig_to_rotamers(
     # 3. they are indexed by original residue index
 
     orig_mcfp_at_inds_rto = pbt.mc_atom_mapping[
-        builder_ind_for_orig, orig_res_mcfp, orig_block_inds:
+        sampler_ind_for_orig, orig_res_mcfp, orig_block_inds, :
     ].view(-1)
 
     # nah; delay this orig_dof_at_inds_for_orig_for_rot_rto = orig_dof_at_inds_for_orig_rto[
@@ -498,35 +522,48 @@ def copy_dofs_from_orig_to_rotamers(
         orig_mcfp_at_inds_rto != -1
     ]
 
-    orig_dof_atom_offset = exclusive_cumsum1d(pbt.n_atoms[orig_block_inds])
+    orig_dof_atom_offset = exclusive_cumsum1d(pbt.n_atoms[orig_block_inds]).to(
+        torch.int64
+    )
 
     orig_mcfp_at_inds_kto = torch.full_like(orig_mcfp_at_inds_rto, -1)
     orig_mcfp_at_inds_kto[orig_mcfp_at_inds_rto != -1] = (
-        pbt.rotamer_tree.kintree_idx[
-            real_orig_block_ind_for_orig_mcfp_ats,
-            orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1],
-        ]
-        + orig_dof_atom_offset
+        torch.tensor(
+            pbt.rotamer_kintree.kintree_idx[
+                real_orig_block_ind_for_orig_mcfp_ats,
+                orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1],
+            ],
+            dtype=torch.int64,
+            device=pbt.device,
+        )
+        + orig_dof_atom_offset[
+            torch.div(
+                torch.arange(
+                    orig_block_inds.shape[0] * max_n_mcfp_atoms,
+                    dtype=torch.int64,
+                    device=pbt.device,
+                ),
+                max_n_mcfp_atoms,
+            )
+        ][orig_mcfp_at_inds_rto != -1]
     )
 
-    poses_res_to_real_poses_res = torch.full(
-        poses.block_inds.shape[0] * poses.block_inds.shape[1],
-        -1,
-        dtype=torch.int64,
-        device=poses.device,
+    orig_mcfp_at_inds_kto = orig_mcfp_at_inds_kto.view(
+        orig_block_inds.shape[0], max_n_mcfp_atoms
     )
-    poses_res_to_real_poses_res[poses.block_inds.view(-1) != -1] = torch.arange(
-        orig_block_inds.shape[0], dtype=torch.int64
+
+    orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_kto[real_res_ind_for_rot, :].view(
+        -1
     )
-    orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_kto[
-        poses_res_to_real_poses_res[res_ind_for_rt[rt_for_rot]], :
-    ]
 
     # pare down the subset to those where the mc atom is present for
     # both the original block type and the alternate block type
-    both_present = torch.logical_and(
-        rot_mcfp_at_inds_kto != -1, orig_mcfp_at_inds_for_rot_kto != -1
-    )
+    # both_present = torch.logical_and(
+    #     rot_mcfp_at_inds_kto != -1, orig_mcfp_at_inds_for_rot_kto != -1
+    # )
+    both_present = (rot_mcfp_at_inds_kto != -1) + (
+        orig_mcfp_at_inds_for_rot_kto != -1
+    ) == 2
     rot_mcfp_at_inds_kto = rot_mcfp_at_inds_kto[both_present]
     orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_for_rot_kto[both_present]
 
@@ -597,7 +634,7 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         for rlt in one_pose_rlts
         for rt in rlt.allowed_restypes
     ]
-    rt_block_inds = pbt.restype_index.get_indexer(rt_names)
+    rt_block_inds = pbt.restype_index.get_indexer(rt_names).astype(numpy.int32)
 
     chi_samples = [sampler.sample_chi_for_poses(poses, task) for sampler in samplers]
     merged_samples = merge_chi_samples(chi_samples)
@@ -609,8 +646,10 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     rt_for_rot = torch.zeros(n_rots, dtype=torch.int64, device=poses.device)
     n_rots_for_all_samples_cumsum = torch.cumsum(n_rots_for_rt, dim=0)
     rots_for_sample_offset = torch.cat(
-        torch.zeros(1, dtype=torch.int64, device=poses.device),
-        n_rots_for_all_samples_cumsum[:-1],
+        (
+            torch.zeros(1, dtype=torch.int64, device=poses.device),
+            n_rots_for_all_samples_cumsum[:-1],
+        )
     )
     rt_for_rot[n_rots_for_all_samples_cumsum[:-1]] = 1
     rt_for_rot = torch.cumsum(rt_for_rot, dim=0).cpu().numpy()
@@ -625,8 +664,15 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     n_atoms_total = n_atoms_offset_for_rot[-1]
     n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
 
+    print("block_ind_for_rot")
+    print(block_ind_for_rot.dtype)
     rot_kintree = construct_kintree_for_rotamers(
-        pbt, block_ind_for_rot, n_atoms_total, n_atoms_for_rot
+        pbt,
+        block_ind_for_rot,
+        int(n_atoms_total),
+        torch.tensor(n_atoms_for_rot, dtype=torch.int32),
+        numpy.full((n_rots,), pbt.max_n_atoms, dtype=numpy.int32),
+        pbt.device,
     )
 
     nodes, scans, gens = construct_scans_for_rotamers(
@@ -651,41 +697,53 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
 
     pbi = poses.block_inds.view(-1)
     orig_res_block_ind = pbi[pbi != -1]
-    real_orig_block_inds = orig_res_block_inds != -1
-    nz_real_orig_block_inds = torch.nonzero(real_orig_block_inds).flatten()
+    real_orig_block_ind = orig_res_block_ind != -1
+    nz_real_orig_block_ind = torch.nonzero(real_orig_block_ind).flatten()
     orig_atom_offset_for_rot = (
-        nz_real_block_inds.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms
+        nz_real_orig_block_ind.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms
     )
 
-    n_atoms_for_orig = pbt.n_atoms[orig_res_block_ind]
+    n_atoms_for_orig = pbt.n_atoms[orig_res_block_ind.to(torch.int64)]
     n_atoms_offset_for_orig = torch.cumsum(n_atoms_for_orig, dim=0)
     n_atoms_offset_for_orig = n_atoms_offset_for_orig.cpu().numpy()
     n_orig_atoms_total = n_atoms_offset_for_orig[-1]
 
     orig_kintree = construct_kintree_for_rotamers(
         pbt,
-        orig_res_block_ind,
-        n_orig_atoms_total,
+        orig_res_block_ind.cpu().numpy(),
+        int(n_orig_atoms_total),
         n_atoms_for_orig,
         orig_atom_offset_for_rot,
         poses.device,
     )
 
     # orig_dofs returned in kintree order
-    orig_dofs_kto = measure_dofs_for_orig_coords(poses.coords, orig_kintree)
+    orig_dofs_kto = measure_dofs_from_orig_coords(poses.coords, orig_kintree)
 
     n_rotamer_atoms = torch.sum(n_atoms_for_rot).item()
-    rot_dofs_kto = torch.zeros((n_rotamer_atoms + 1, 9), dtype=numpy.float32)
-    rot_dofs_kto[1:] = pbt.rotamer_kintree.dofs_ideal[block_ind_for_rot]
+
+    rot_dofs_kto = torch.zeros(
+        (n_rotamer_atoms + 1, 9), dtype=torch.float32, device=pbt.device
+    )
+
+    rot_dofs_kto[1:] = torch.tensor(
+        pbt.rotamer_kintree.dofs_ideal[block_ind_for_rot].reshape((-1, 9))[
+            pbt.atom_is_real.cpu().numpy()[block_ind_for_rot].reshape(-1) != 0
+        ],
+        dtype=torch.int32,
+        device=pbt.device,
+    )
+
+    rt_for_rot_torch = torch.tensor(rt_for_rot, dtype=torch.int64, device=pbt.device)
 
     copy_dofs_from_orig_to_rotamers(
         poses,
         task,
         samplers,
-        rt_for_rot,
-        block_ind_for_rot,
-        sampler_for_rot,
-        atom_offset_for_rot,
+        rt_for_rot_torch,
+        block_ind_for_rot_torch,
+        sampler_for_rotamer,
+        torch.tensor(n_atoms_offset_for_rot, dtype=torch.int32, device=pbt.device),
         orig_dofs_kto,
         rot_dofs_kto,
     )

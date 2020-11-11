@@ -331,7 +331,10 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
                         i, j, k, l
                     ] = rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
 
-    setattr(pbt, "mc_atom_mapping", mc_atom_inds_for_rt_for_sampler)
+    def _t(arr):
+        return torch.tensor(arr, dtype=torch.int64, device=pbt.device)
+
+    setattr(pbt, "mc_atom_mapping", _t(mc_atom_inds_for_rt_for_sampler))
     setattr(pbt, "mc_sampler_mapping", sampler_inds)
-    setattr(pbt, "mc_max_sampler", max_sampler_for_rt)
-    setattr(pbt, "mc_max_fingerprint", max_fp_for_rt)
+    setattr(pbt, "mc_max_sampler", _t(max_sampler_for_rt))
+    setattr(pbt, "mc_max_fingerprint", _t(max_fp_for_rt))

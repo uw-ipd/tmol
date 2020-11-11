@@ -35,7 +35,7 @@ class DunbrackChiSampler:
     # sampling_params: SamplingDunbrackDatabaseView
 
     def __eq__(self, other):
-        return __hash__(self) == __hash__(other)
+        return self.__hash__() == other.__hash__()
 
     def __hash__(self):
         return id(self.dun_param_resolver)

@@ -19,7 +19,7 @@ from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, frozen=True)
 class FixedAAChiSampler(ChiSampler):
     @classmethod
     def sampler_name(cls):
