@@ -73,12 +73,17 @@ def test_build_rotamers_smoke(ubq_res, default_database):
         for res in ubq_res
     ]
 
-    p1 = Pose.from_residues_one_chain(ubq_res[5:11], torch_device)
-    p2 = Pose.from_residues_one_chain(ubq_res[:7], torch_device)
+    print("res_names", [res.residue_type.name for res in ubq_res[:3]])
+
+    p1 = Pose.from_residues_one_chain(ubq_res[:3], torch_device)
+    p2 = Pose.from_residues_one_chain(ubq_res[:2], torch_device)
     poses = Poses.from_poses([p1, p2], torch_device)
     palette = PackerPalette(rts)
     task = PackerTask(poses, palette)
-    task.restrict_to_repacking()
+    leu_set = set(["LEU"])
+    for one_pose_rlts in task.rlts:
+        for rlt in one_pose_rlts:
+            rlt.restrict_absent_name3s(leu_set)
 
     param_resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
@@ -88,7 +93,18 @@ def test_build_rotamers_smoke(ubq_res, default_database):
     task.add_chi_sampler(dun_sampler)
     task.add_chi_sampler(fixed_sampler)
 
-    build_rotamers(poses, task, default_database.chemical)
+    new_coords = build_rotamers(poses, task, default_database.chemical)
+    # print(new_coords[:50].cpu().numpy())
+
+    # for writing coordinates into a pdb
+    print("new coords")
+    print(new_coords.shape)
+    rot = 3
+    for i in range(0, new_coords.shape[1]):
+        print(
+            "%7.3f %7.3f %7.3f"
+            % (new_coords[rot, i, 0], new_coords[rot, i, 1], new_coords[rot, i, 2])
+        )
 
 
 def test_construct_scans_for_rotamers(default_database):
@@ -363,6 +379,9 @@ def test_inv_kin_rotamers(default_database, ubq_res):
             leu_ktat_i = leu_rt.rotamer_kintree.kintree_idx[leu_at_i]
             met_ktat_i = met_rt.rotamer_kintree.kintree_idx[met_at_i]
             dofs_new[leu_ktat_i + 1, :] = dofs_orig[met_ktat_i + 1, :]
+
+    print("dofs_new")
+    print(dofs_new[:, :4])
 
     dofs_new[
         leu_rt.rotamer_kintree.kintree_idx[leu_rt.atom_to_idx["CB"]] + 1, 3

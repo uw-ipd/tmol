@@ -115,6 +115,11 @@ class ResidueLevelTask:
     def add_chi_sampler(self, sampler: ChiSampler):
         self.chi_samplers.append(sampler)
 
+    def restrict_absent_name3s(self, name3s):
+        self.allowed_restypes = [
+            rt for rt in self.allowed_restypes if rt.name3 in name3s
+        ]
+
 
 class PackerTask:
     # def __init__(self, system: PackedResidueSystem, palette: PackerPalette):

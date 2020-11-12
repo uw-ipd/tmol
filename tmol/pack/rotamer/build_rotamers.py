@@ -2,6 +2,7 @@ import numpy
 import numba
 import toolz
 import torch
+import attr
 
 from typing import Tuple
 
@@ -67,6 +68,56 @@ def exclusive_cumsum(cumsum):
 #       to indicate which residues they should operate on
 
 
+@validate_args
+def rebuild_poses_if_necessary(
+    poses: Poses, task: PackerTask
+):  # -> Tuple[Poses, Tuple[ChiSampler, ...]]:
+    all_restypes = {}
+    samplers = set([])
+
+    for one_pose_rlts in task.rlts:
+        for rlt in one_pose_rlts:
+            for sampler in rlt.chi_samplers:
+                samplers.add(sampler)
+            for rt in rlt.allowed_restypes:
+                if id(rt) not in all_restypes:
+                    all_restypes[id(rt)] = rt
+
+    samplers = tuple(samplers)
+
+    # rebuild the poses, perhaps, if there are residue types in the task
+    # that are absent from the poses' PBT
+
+    pose_rts = set([id(rt) for rt in poses.packed_block_types.active_block_types])
+    needs_rebuilding = False
+    for rt_id in all_restypes:
+        if rt_id not in pose_rts:
+            needs_rebuilding = True
+            break
+
+    if needs_rebuilding:
+        # make sure all the pose's residue types are also included
+        for one_pose_res in poses.residues:
+            for res in one_pose_res:
+                rt = res.residue_type
+                if id(rt) not in all_restypes:
+                    all_restypes[id(rt)] = rt
+
+        pbt = PackedBlockTypes.from_restype_list(
+            [rt for rt_id, rt in all_restypes.items()], poses.packed_block_types.device
+        )
+        block_inds = torch.full_like(poses.block_inds, -1)
+        for i, res in enumerate(poses.residues):
+            block_inds[i, : len(res)] = torch.tensor(
+                pbt.inds_for_res(res), dtype=torch.int32, device=poses.device
+            )
+        poses = attr.evolve(poses, packed_block_types=pbt, block_inds=block_inds)
+    else:
+        pbt = poses.packed_block_types
+
+    return poses, samplers
+
+
 def annotate_restype(
     restype: RefinedResidueType,
     samplers: Tuple[ChiSampler, ...],
@@ -79,6 +130,23 @@ def annotate_restype(
 def annotate_packed_block_types(pbt: PackedBlockTypes):
     coalesce_single_residue_kintrees(pbt)
     find_unique_fingerprints(pbt)
+
+
+def annotate_everything(
+    chem_db: ChemicalDatabase, samplers: Tuple[ChiSampler, ...], pbt: PackedBlockTypes
+):
+    # annotate residue types and packed block types
+    # give the samplers a chance first to annotate the
+    # residue types, and pbt
+    # then we will call our own annotation functions
+    for sampler in samplers:
+        for rt in pbt.active_block_types:
+            sampler.annotate_residue_type(rt)
+        sampler.annotate_packed_block_types(pbt)
+
+    for rt in pbt.active_block_types:
+        annotate_restype(rt, samplers, chem_db)
+    annotate_packed_block_types(pbt)
 
 
 @numba.jit(nopython=True)
@@ -426,7 +494,12 @@ def copy_dofs_from_orig_to_rotamers(
     n_rots = n_dof_atoms_offset_for_rot.shape[0]
 
     sampler_ind_mapping = torch.tensor(
-        [pbt.mc_sampler_mapping[sampler.sampler_name()] for sampler in samplers],
+        [
+            pbt.mc_sampler_mapping[sampler.sampler_name()]
+            if sampler in pbt.mc_sampler_mapping
+            else -1
+            for sampler in samplers
+        ],
         dtype=torch.int64,
         device=poses.device,
     )
@@ -557,15 +630,19 @@ def copy_dofs_from_orig_to_rotamers(
     )
 
     # pare down the subset to those where the mc atom is present for
-    # both the original block type and the alternate block type
+    # both the original block type and the alternate block type;
+    # take the subset and also increment the indices of all the atoms
+    # by one to take into account the virtual root atom at the origin
+
+    # later versions of torch have this logical_and function...
     # both_present = torch.logical_and(
     #     rot_mcfp_at_inds_kto != -1, orig_mcfp_at_inds_for_rot_kto != -1
     # )
     both_present = (rot_mcfp_at_inds_kto != -1) + (
         orig_mcfp_at_inds_for_rot_kto != -1
     ) == 2
-    rot_mcfp_at_inds_kto = rot_mcfp_at_inds_kto[both_present]
-    orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_for_rot_kto[both_present]
+    rot_mcfp_at_inds_kto = rot_mcfp_at_inds_kto[both_present] + 1
+    orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_for_rot_kto[both_present] + 1
 
     # the big copy we've all been waiting for!
     rot_dofs_kto[rot_mcfp_at_inds_kto, :] = orig_dofs_kto[
@@ -573,52 +650,97 @@ def copy_dofs_from_orig_to_rotamers(
     ]
 
 
+@validate_args
+def assign_dofs_from_samples(
+    pbt: PackedBlockTypes,
+    rt_for_rot: Tensor(torch.int64)[:],
+    block_ind_for_rot: Tensor(torch.int64)[:],
+    chi_atoms: Tensor(torch.int32)[:, :],
+    chi: Tensor(torch.float32)[:, :],
+    rot_dofs_kto: Tensor(torch.float32)[:, 9],
+):
+    assert chi_atoms.shape == chi.shape
+    assert rt_for_rot.shape[0] == block_ind_for_rot.shape[0]
+    assert rt_for_rot.shape[0] == chi_atoms.shape[0]
+
+    n_atoms = pbt.n_atoms[block_ind_for_rot]
+    n_rots = rt_for_rot.shape[0]
+
+    atom_offset_for_rot = exclusive_cumsum1d(n_atoms)
+
+    max_n_chi_atoms = chi_atoms.shape[1]
+    real_atoms = chi_atoms.view(-1) != -1
+
+    rot_ind_for_real_atom = torch.div(
+        torch.arange(max_n_chi_atoms * n_rots, dtype=torch.int64, device=pbt.device),
+        max_n_chi_atoms,
+    )[real_atoms]
+
+    block_ind_for_rot_atom = block_ind_for_rot[rot_ind_for_real_atom].cpu().numpy()
+
+    rot_chi_atoms_kto = torch.tensor(
+        pbt.rotamer_kintree.kintree_idx[
+            block_ind_for_rot_atom, chi_atoms.view(-1)[real_atoms].cpu().numpy()
+        ],
+        dtype=torch.int64,
+        device=pbt.device,
+    )
+    # increment with the atom offsets for the source rotamer and by
+    # one to include the virtual root
+    rot_chi_atoms_kto += atom_offset_for_rot[rot_ind_for_real_atom].to(torch.int64) + 1
+
+    # overwrite the "downstream torsion" for the atoms that control
+    # each chi
+    rot_dofs_kto[rot_chi_atoms_kto, 3] = chi.view(-1)[real_atoms]
+
+
+def calculate_rotamer_coords(
+    pbt: PackedBlockTypes,
+    n_rots: int,
+    rot_kintree: KinTree,
+    nodes: NDArray(numpy.int32)[:],
+    scans: NDArray(numpy.int32)[:],
+    gens: NDArray(numpy.int32)[:],
+    rot_dofs_kto: Tensor(torch.float32)[:, 9],
+):
+    def _p(t):
+        return torch.nn.Parameter(t, requires_grad=False)
+
+    def _t(t):
+        return torch.tensor(t, dtype=torch.int32, device=pbt.device)
+
+    kintree_stack = _p(
+        torch.stack(
+            [
+                rot_kintree.id,
+                rot_kintree.doftype,
+                rot_kintree.parent,
+                rot_kintree.frame_x,
+                rot_kintree.frame_y,
+                rot_kintree.frame_z,
+            ],
+            dim=1,
+        ).to(pbt.device)
+    )
+
+    new_coords_kto = torch.ops.tmol.forward_only_kin_op(
+        rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_t(gens)), kintree_stack
+    )
+
+    new_coords_rto = torch.zeros(
+        (n_rots * pbt.max_n_atoms, 3), dtype=torch.float32, device=pbt.device
+    )
+
+    new_coords_rto[rot_kintree.id.to(torch.int64)] = new_coords_kto
+    new_coords_rto = new_coords_rto.view(n_rots, pbt.max_n_atoms, 3)
+    return new_coords_rto
+
+
 def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
 
-    all_restypes = {}
-    samplers = set([])
-
-    for one_pose_rlts in task.rlts:
-        for rlt in one_pose_rlts:
-            for sampler in rlt.chi_samplers:
-                samplers.add(sampler)
-            for rt in rlt.allowed_restypes:
-                if id(rt) not in all_restypes:
-                    all_restypes[id(rt)] = rt
-
-    samplers = tuple(samplers)
-    for rt_id, rt in all_restypes.items():
-        annotate_restype(rt, samplers, chem_db)
-
-    # rebuild the poses, perhaps, if there are residue types in the task
-    # that are absent from the poses' PBT
-    for rt in poses.packed_block_types.active_block_types:
-        assert id(rt) in all_restypes
-
-    pose_rts = set([id(rt) for rt in poses.packed_block_types.active_block_types])
-    needs_rebuilding = False
-    for rt_id in all_restypes:
-        if rt_id not in pose_rts:
-            needs_rebuilding = True
-            break
-
-    if needs_rebuilding:
-        pbt = PackedBlockTypes.from_restype_list(list(all_restypes))
-        block_inds = torch.full_like(poses.block_inds)
-        for i, res in enumerate(poses.residues):
-            block_inds[i, : len(res)] = torch.tensor(
-                pbt.inds_for_res(res), dtype=torch.int32, device=poses.device
-            )
-        poses = attr.evolve(poses, packed_block_types=pbt, block_inds=block_inds)
-    else:
-        pbt = poses.packed_block_types
-
-    annotate_packed_block_types(pbt)
-
-    for sampler in samplers:
-        for rt_id, rt in all_restypes.items():
-            sampler.annotate_residue_type(rt)
-        sampler.annotate_packed_block_types(pbt)
+    poses, samplers = rebuild_poses_if_necessary(poses, task)
+    pbt = poses.packed_block_types
+    annotate_everything(chem_db, samplers, pbt)
 
     n_sys = poses.coords.shape[0]
     max_n_blocks = poses.coords.shape[1]
@@ -671,7 +793,7 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         block_ind_for_rot,
         int(n_atoms_total),
         torch.tensor(n_atoms_for_rot, dtype=torch.int32),
-        numpy.full((n_rots,), pbt.max_n_atoms, dtype=numpy.int32),
+        numpy.arange(n_rots, dtype=numpy.int32) * pbt.max_n_atoms,
         pbt.device,
     )
 
@@ -730,7 +852,7 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         pbt.rotamer_kintree.dofs_ideal[block_ind_for_rot].reshape((-1, 9))[
             pbt.atom_is_real.cpu().numpy()[block_ind_for_rot].reshape(-1) != 0
         ],
-        dtype=torch.int32,
+        dtype=torch.float32,
         device=pbt.device,
     )
 
@@ -748,5 +870,15 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         rot_dofs_kto,
     )
 
-    # TODO
-    # assign_dofs_from_samples(
+    assign_dofs_from_samples(
+        pbt,
+        rt_for_rot_torch,
+        block_ind_for_rot_torch,
+        all_chi_atoms,
+        all_chi,
+        rot_dofs_kto,
+    )
+
+    return calculate_rotamer_coords(
+        pbt, n_rots, rot_kintree, nodes, scans, gens, rot_dofs_kto
+    )

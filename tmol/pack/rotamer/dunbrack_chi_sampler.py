@@ -89,13 +89,13 @@ class DunbrackChiSampler:
                 dun_lib_ind
             ].item()
 
-            # The second atom (atom 1) in the chi defines the dihedral; this
+            # The third atom (atom 2) in the chi defines the dihedral; this
             # atoms needs to be a member of the residue type, and not unresolved
             chi_names = ["chi%d" % (i + 1) for i in range(n_chi)]
             for chi_name in chi_names:
                 assert chi_name in restype.torsion_to_uaids
             chi_defining_atom = numpy.array(
-                [restype.torsion_to_uaids[chi_name][1][0] for chi_name in chi_names],
+                [restype.torsion_to_uaids[chi_name][2][0] for chi_name in chi_names],
                 dtype=numpy.int32,
             )
             assert numpy.all(chi_defining_atom >= 0)
@@ -478,6 +478,7 @@ class DunbrackChiSampler:
         prob_cumsum_limit_for_buildable_restype,
         nchi_for_buildable_restype,
     ):
+
         return torch.ops.tmol.dun_sample_chi(
             coords,
             self.dun_param_resolver.sampling_db.rotameric_prob_tables,

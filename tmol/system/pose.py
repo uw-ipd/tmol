@@ -54,7 +54,7 @@ class PackedBlockTypes:
 
     @classmethod
     def from_restype_list(
-        cls, active_block_types: Sequence[RefinedResidueType], device=torch.device
+        cls, active_block_types: Sequence[RefinedResidueType], device: torch.device
     ):
         max_n_atoms = cls.count_max_n_atoms(active_block_types)
         n_atoms = cls.count_n_atoms(active_block_types, device)
