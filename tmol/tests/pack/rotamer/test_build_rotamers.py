@@ -984,4 +984,155 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(ubq_res, default_database
 
     numpy.testing.assert_equal(src_gold, src_gold)
 
-    # what about the destination
+
+def test_create_dof_inds_to_copy_from_orig_to_rotamers2(ubq_res, default_database):
+    torch_device = torch.device("cpu")
+
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    # replace them with residues constructed from the residue types
+    # that live in our locally constructed set of refined residue types
+    ubq_res = [
+        attr.evolve(
+            res,
+            residue_type=next(
+                rt for rt in rts.residue_types if rt.name == res.residue_type.name
+            ),
+        )
+        for res in ubq_res
+    ]
+
+    p = Pose.from_residues_one_chain(ubq_res[:5], torch_device)
+    poses = Poses.from_poses([p] * 3, torch_device)
+    palette = PackerPalette(rts)
+    task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    task.add_chi_sampler(dun_sampler)
+    task.add_chi_sampler(fixed_sampler)
+
+    poses, samplers = rebuild_poses_if_necessary(poses, task)
+    pbt = poses.packed_block_types
+    annotate_everything(default_database.chemical, samplers, pbt)
+
+    rt_for_rot = torch.div(torch.arange(30, dtype=torch.int64, device=torch_device), 2)
+
+    block_ind_for_rot = torch.remainder(
+        torch.div(torch.arange(30, dtype=torch.int64, device=torch_device), 2), 5
+    )
+
+    sampler_for_rotamer = torch.zeros(30, dtype=torch.int64, device=torch_device)
+
+    n_dof_atoms_offset_for_rot = exclusive_cumsum1d(pbt.n_atoms[block_ind_for_rot])
+
+    dst, src = create_dof_inds_to_copy_from_orig_to_rotamers(
+        poses,
+        task,
+        samplers,
+        rt_for_rot,
+        block_ind_for_rot,
+        sampler_for_rotamer,
+        n_dof_atoms_offset_for_rot,
+    )
+
+    src = src.cpu().numpy()
+    dst = dst.cpu().numpy()
+
+    n_src = src.shape[0]
+    n_dst = dst.shape[0]
+    assert n_src == n_dst
+
+    n_dofs_per_pose = n_src // 3
+    assert 3 * n_dofs_per_pose == n_src
+
+    n_ats_per_pose = torch.sum(pbt.n_atoms[poses.block_inds[0].to(torch.int64)]).item()
+    n_rot_ats_per_pose = torch.sum(pbt.n_atoms[block_ind_for_rot[:10]]).item()
+
+    src0 = src[:n_dofs_per_pose]
+    src1 = src[n_dofs_per_pose : 2 * n_dofs_per_pose]
+    src2 = src[2 * n_dofs_per_pose : 3 * n_dofs_per_pose]
+
+    dst0 = dst[:n_dofs_per_pose]
+    dst1 = dst[n_dofs_per_pose : 2 * n_dofs_per_pose]
+    dst2 = dst[2 * n_dofs_per_pose : 3 * n_dofs_per_pose]
+
+    numpy.testing.assert_equal(src0 - 1, src1 - 1 - n_ats_per_pose)
+    numpy.testing.assert_equal(src0 - 1, src2 - 1 - 2 * n_ats_per_pose)
+
+    numpy.testing.assert_equal(dst0 - 1, dst1 - 1 - n_rot_ats_per_pose)
+    numpy.testing.assert_equal(dst0 - 1, dst2 - 1 - 2 * n_rot_ats_per_pose)
+
+
+def test_build_lots_of_rotamers(ubq_res, default_database):
+    torch_device = torch.device("cpu")
+
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    # replace them with residues constructed from the residue types
+    # that live in our locally constructed set of refined residue types
+    ubq_res = [
+        attr.evolve(
+            res,
+            residue_type=next(
+                rt for rt in rts.residue_types if rt.name == res.residue_type.name
+            ),
+        )
+        for res in ubq_res
+    ]
+
+    print("resnames")
+    print([res.residue_type.name for res in ubq_res[:5]])
+
+    n_poses = 2
+    p = Pose.from_residues_one_chain(ubq_res[:5], torch_device)
+    poses = Poses.from_poses([p] * n_poses, torch_device)
+    palette = PackerPalette(rts)
+    task = PackerTask(poses, palette)
+    # leu_set = set(["LEU"])
+    # for one_pose_rlts in task.rlts:
+    #     for rlt in one_pose_rlts:
+    #         rlt.restrict_absent_name3s(leu_set)
+    task.restrict_to_repacking()
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    task.add_chi_sampler(dun_sampler)
+    task.add_chi_sampler(fixed_sampler)
+
+    new_coords = build_rotamers(poses, task, default_database.chemical)
+
+    n_rots = new_coords.shape[0]
+
+    # all the rotamers should be the same on all n_poses copies of ubq
+    n_rots_per_pose = n_rots // n_poses
+    assert n_rots_per_pose * n_poses == n_rots
+
+    new_coords = new_coords.cpu().numpy()
+
+    # print(new_coords[:50].cpu().numpy())
+
+    # for writing coordinates into a pdb
+    print("new coords")
+    print(new_coords.shape)
+    rot = new_coords.shape[0] - 3  # arg on 74 of last pose
+    # for i in range(1, new_coords.shape[0]):
+    #     for j in range(0, new_coords.shape[1]):
+    #         print(
+    #             "%7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
+    #             %
+    #             (
+    #                 new_coords[0, j, 0], new_coords[0, j, 1], new_coords[0, j, 2],
+    #                 new_coords[i, j, 0], new_coords[i, j, 1], new_coords[i, j, 2],
+    #             )
+    #         )
+    #
+    # for i in range(1,n_poses):
+    #     numpy.testing.assert_almost_equal(new_coords[:n_rots_per_pose], new_coords[(n_rots_per_pose*i):(n_rots_per_pose*(i+1))])

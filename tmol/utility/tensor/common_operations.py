@@ -5,6 +5,16 @@ from tmol.types.functional import validate_args
 
 
 @validate_args
+def stretch(t: Union[Tensor(torch.int32)[:], Tensor(torch.int64)[:]], count):
+    """take an input tensor and "repeat" each element count times.
+    stretch(tensor([0, 1, 2, 3]), 3) returns:
+         tensor([0 0 0 1 1 1 2 2 2 3 3 3]
+    this is equivalent to numpy's repeat
+    """
+    return t.repeat(count).view(count, -1).permute(1, 0).contiguous().view(-1)
+
+
+@validate_args
 def exclusive_cumsum1d(
     inds: Union[Tensor(torch.int32)[:], Tensor(torch.int64)[:]]
 ) -> Union[Tensor(torch.int32)[:], Tensor(torch.int64)[:]]:

@@ -10,7 +10,7 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 from tmol.database.chemical import ChemicalDatabase
 from tmol.kinematics.datatypes import KinTree
 from tmol.system.restypes import RefinedResidueType
@@ -491,11 +491,12 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
 
     pbt = poses.packed_block_types
     n_rots = n_dof_atoms_offset_for_rot.shape[0]
+    # print("n_rots", n_rots)
 
     sampler_ind_mapping = torch.tensor(
         [
             pbt.mc_sampler_mapping[sampler.sampler_name()]
-            if sampler in pbt.mc_sampler_mapping
+            if sampler.sampler_name() in pbt.mc_sampler_mapping
             else -1
             for sampler in samplers
         ],
@@ -523,7 +524,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
         [
             i * max_n_blocks + j
             for i, one_pose_rlts in enumerate(task.rlts)
-            for j in range(len(one_pose_rlts))
+            for j, rlt in enumerate(one_pose_rlts)
+            for _ in rlt.allowed_restypes
         ],
         dtype=torch.int64,
         device=poses.device,
@@ -543,11 +545,26 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     # the destination for the dofs we're copying
     max_n_mcfp_atoms = pbt.mc_atom_mapping.shape[3]
 
+    # print("pbt.mc_atom_mapping")
+    # print(pbt.mc_atom_mapping)
+    # print("sampler_ind_for_rot")
+    # print(sampler_ind_for_rot)
+
+    # print("block_ind_for_rot")
+    # print(block_ind_for_rot)
+    # print("orig_res_mcfp_for_rot")
+    # print(orig_res_mcfp_for_rot)
+
     rot_mcfp_at_inds_rto = pbt.mc_atom_mapping[
         sampler_ind_for_rot, orig_res_mcfp_for_rot, block_ind_for_rot, :
     ].view(-1)
+    # print("rot_mcfp_at_inds_rto")
+    # print(rot_mcfp_at_inds_rto)
     real_rot_mcfp_at_inds_rto = rot_mcfp_at_inds_rto[rot_mcfp_at_inds_rto != -1]
-    real_rot_block_ind_for_mcfp_ats = block_ind_for_rot.repeat(max_n_mcfp_atoms)[
+    # print("real_rot_mcfp_at_inds_rto")
+    # print(real_rot_mcfp_at_inds_rto.shape)
+    # print(real_rot_mcfp_at_inds_rto)
+    real_rot_block_ind_for_mcfp_ats = stretch(block_ind_for_rot, max_n_mcfp_atoms)[
         rot_mcfp_at_inds_rto != -1
     ]
 
@@ -589,13 +606,6 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     # nah; delay this orig_dof_at_inds_for_orig_for_rot_rto = orig_dof_at_inds_for_orig_rto[
     # nah; delay this     orig_res_for_rot, :
     # nah; delay this ]
-
-    def stretch(t, count):
-        # take an input tensor and "repeat" each element count times.
-        # stretch(tensor([0, 1, 2, 3]), 3) returns:
-        #     tensor([0 0 0 1 1 1 2 2 2 3 3 3]
-        # this is equivalent to numpy's repeat
-        return t.repeat(count).view(count, -1).permute(1, 0).contiguous().view(-1)
 
     real_orig_block_ind_for_orig_mcfp_ats = stretch(orig_block_inds, max_n_mcfp_atoms)[
         orig_mcfp_at_inds_rto != -1
@@ -675,6 +685,10 @@ def copy_dofs_from_orig_to_rotamers(
         sampler_for_rotamer,
         n_dof_atoms_offset_for_rot,
     )
+    # print("dst")
+    # print(dst)
+    # print("src")
+    # print(src)
 
     rot_dofs_kto[dst, :] = orig_dofs_kto[src, :]
 
@@ -692,6 +706,11 @@ def assign_dofs_from_samples(
     assert rt_for_rot.shape[0] == block_ind_for_rot.shape[0]
     assert rt_for_rot.shape[0] == chi_atoms.shape[0]
 
+    print("rt_for_rot")
+    print(rt_for_rot)
+    print("block_ind_for_rot")
+    print(block_ind_for_rot)
+
     n_atoms = pbt.n_atoms[block_ind_for_rot]
     n_rots = rt_for_rot.shape[0]
 
@@ -704,8 +723,13 @@ def assign_dofs_from_samples(
         torch.arange(max_n_chi_atoms * n_rots, dtype=torch.int64, device=pbt.device),
         max_n_chi_atoms,
     )[real_atoms]
+    print("rot_ind_for_real_atom")
+    print(rot_ind_for_real_atom)
 
     block_ind_for_rot_atom = block_ind_for_rot[rot_ind_for_real_atom].cpu().numpy()
+
+    print("block_ind_for_rot_atom")
+    print(block_ind_for_rot_atom)
 
     rot_chi_atoms_kto = torch.tensor(
         pbt.rotamer_kintree.kintree_idx[
@@ -716,11 +740,27 @@ def assign_dofs_from_samples(
     )
     # increment with the atom offsets for the source rotamer and by
     # one to include the virtual root
+    print("rot_chi_atoms_kto")
+    print(rot_chi_atoms_kto)
+    print("rot_ind_for_real_atom")
+    print(rot_ind_for_real_atom)
+
     rot_chi_atoms_kto += atom_offset_for_rot[rot_ind_for_real_atom].to(torch.int64) + 1
+
+    print("rot_chi_atoms_kto w/ offsets")
+    print(rot_chi_atoms_kto)
 
     # overwrite the "downstream torsion" for the atoms that control
     # each chi
     rot_dofs_kto[rot_chi_atoms_kto, 3] = chi.view(-1)[real_atoms]
+
+    print("chi")
+    for i in range(chi.shape[0]):
+        print(i, chi[i])
+
+    print("rot_dofs_kto")
+    for i in range(rot_dofs_kto.shape[0]):
+        print(i, rot_dofs_kto[i][0:4])
 
 
 def calculate_rotamer_coords(
