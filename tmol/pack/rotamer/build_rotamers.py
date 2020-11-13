@@ -473,7 +473,7 @@ def merge_chi_samples(chi_samples):
 
 
 @validate_args
-def copy_dofs_from_orig_to_rotamers(
+def create_dof_inds_to_copy_from_orig_to_rotamers(
     poses: Poses,
     task: PackerTask,
     samplers,  # : Tuple[ChiSampler, ...],
@@ -481,9 +481,8 @@ def copy_dofs_from_orig_to_rotamers(
     block_ind_for_rot: Tensor(torch.int64)[:],
     sampler_for_rotamer: Tensor(torch.int64)[:],
     n_dof_atoms_offset_for_rot: Tensor(torch.int32)[:],
-    orig_dofs_kto: Tensor(torch.float32)[:, 9],
-    rot_dofs_kto: Tensor(torch.float32)[:, 9],
-):
+) -> Tuple[Tensor(torch.int64)[:], Tensor(torch.int64)[:]]:
+
     # we want to copy from the orig_dofs tensor into the
     # rot_dofs tensor for the "mainchain" atoms in the
     # original residues into the appropriate positions
@@ -605,35 +604,6 @@ def copy_dofs_from_orig_to_rotamers(
     orig_dof_atom_offset = exclusive_cumsum1d(pbt.n_atoms[orig_block_inds]).to(
         torch.int64
     )
-    print("real_orig_block_ind_for_orig_mcfp_ats")
-    print(real_orig_block_ind_for_orig_mcfp_ats)
-    print("orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1]")
-    print(orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1])
-
-    print("orig_dof_atom_offset")
-    print(
-        orig_dof_atom_offset[
-            torch.div(
-                torch.arange(
-                    orig_block_inds.shape[0] * max_n_mcfp_atoms,
-                    dtype=torch.int64,
-                    device=pbt.device,
-                ),
-                max_n_mcfp_atoms,
-            )
-        ]
-    )
-    print("kto")
-    print(
-        torch.tensor(
-            pbt.rotamer_kintree.kintree_idx[
-                real_orig_block_ind_for_orig_mcfp_ats,
-                orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1],
-            ],
-            dtype=torch.int64,
-            device=pbt.device,
-        )
-    )
 
     orig_mcfp_at_inds_kto = torch.full_like(orig_mcfp_at_inds_rto, -1)
     orig_mcfp_at_inds_kto[orig_mcfp_at_inds_rto != -1] = (
@@ -661,8 +631,6 @@ def copy_dofs_from_orig_to_rotamers(
         orig_block_inds.shape[0], max_n_mcfp_atoms
     )
 
-    print("real_res_ind_for_rot")
-    print(real_res_ind_for_rot)
     orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_kto[real_res_ind_for_rot, :].view(
         -1
     )
@@ -682,17 +650,33 @@ def copy_dofs_from_orig_to_rotamers(
     rot_mcfp_at_inds_kto = rot_mcfp_at_inds_kto[both_present] + 1
     orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_for_rot_kto[both_present] + 1
 
-    # the big copy we've all been waiting for!
+    return rot_mcfp_at_inds_kto, orig_mcfp_at_inds_for_rot_kto
 
-    print("orig_mcfp_at_inds_for_rot_kto")
-    print(orig_mcfp_at_inds_for_rot_kto[76:97])
 
-    print("rot_mcfp_at_inds_kto")
-    print(rot_mcfp_at_inds_kto[76:97])
+@validate_args
+def copy_dofs_from_orig_to_rotamers(
+    poses: Poses,
+    task: PackerTask,
+    samplers,  # : Tuple[ChiSampler, ...],
+    rt_for_rot: Tensor(torch.int64)[:],
+    block_ind_for_rot: Tensor(torch.int64)[:],
+    sampler_for_rotamer: Tensor(torch.int64)[:],
+    n_dof_atoms_offset_for_rot: Tensor(torch.int32)[:],
+    orig_dofs_kto: Tensor(torch.float32)[:, 9],
+    rot_dofs_kto: Tensor(torch.float32)[:, 9],
+):
 
-    rot_dofs_kto[rot_mcfp_at_inds_kto, :] = orig_dofs_kto[
-        orig_mcfp_at_inds_for_rot_kto, :
-    ]
+    dst, src = create_dof_inds_to_copy_from_orig_to_rotamers(
+        poses,
+        task,
+        samplers,
+        rt_for_rot,
+        block_ind_for_rot,
+        sampler_for_rotamer,
+        n_dof_atoms_offset_for_rot,
+    )
+
+    rot_dofs_kto[dst, :] = orig_dofs_kto[src, :]
 
 
 @validate_args

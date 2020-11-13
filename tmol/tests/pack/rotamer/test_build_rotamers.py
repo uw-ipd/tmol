@@ -12,6 +12,9 @@ from tmol.pack.rotamer.build_rotamers import (
     construct_scans_for_rotamers,
     exclusive_cumsum,
     measure_dofs_from_orig_coords,
+    rebuild_poses_if_necessary,
+    annotate_everything,
+    create_dof_inds_to_copy_from_orig_to_rotamers,
 )
 from tmol.system.ideal_coords import build_ideal_coords, normalize
 from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
@@ -878,3 +881,87 @@ def test_measure_original_dofs2(ubq_res, default_database):
     #     print(
     #         "%7.3f %7.3f %7.3f" % (new_coords[i, 0], new_coords[i, 1], new_coords[i, 2])
     #     )
+
+
+def test_create_dof_inds_to_copy_from_orig_to_rotamers(ubq_res, default_database):
+    torch_device = torch.device("cpu")
+
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    # replace them with residues constructed from the residue types
+    # that live in our locally constructed set of refined residue types
+    ubq_res = [
+        attr.evolve(
+            res,
+            residue_type=next(
+                rt for rt in rts.residue_types if rt.name == res.residue_type.name
+            ),
+        )
+        for res in ubq_res
+    ]
+
+    print("res_names", [res.residue_type.name for res in ubq_res[:3]])
+
+    p1 = Pose.from_residues_one_chain(ubq_res[:2], torch_device)
+    p2 = Pose.from_residues_one_chain(ubq_res[:3], torch_device)
+    poses = Poses.from_poses([p1, p2], torch_device)
+    palette = PackerPalette(rts)
+    task = PackerTask(poses, palette)
+    leu_set = set(["LEU"])
+    for one_pose_rlts in task.rlts:
+        for rlt in one_pose_rlts:
+            rlt.restrict_absent_name3s(leu_set)
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    task.add_chi_sampler(dun_sampler)
+    task.add_chi_sampler(fixed_sampler)
+
+    poses, samplers = rebuild_poses_if_necessary(poses, task)
+    pbt = poses.packed_block_types
+    assert pbt.active_block_types[0].name == "LEU"
+    leu_rt = pbt.active_block_types[0]
+    annotate_everything(default_database.chemical, samplers, pbt)
+
+    rt_for_rot = torch.tensor(
+        [0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=torch.int64, device=torch_device
+    )
+    block_ind_for_rot = torch.tensor(
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=torch.int64, device=torch_device
+    )
+
+    # [pbt.mc_sampler_mapping[dun_sampler.sampler_name()] ] * 10
+    sampler_for_rotamer = torch.zeros(10, dtype=torch.int64, device=torch_device)
+
+    n_dof_atoms_offset_for_rot = (
+        torch.arange(10, dtype=torch.int32, device=torch_device) * 19
+    )
+
+    dst, srt = create_dof_inds_to_copy_from_orig_to_rotamers(
+        poses,
+        task,
+        samplers,
+        rt_for_rot,
+        block_ind_for_rot,
+        sampler_for_rotamer,
+        n_dof_atoms_offset_for_rot,
+    )
+
+    # OK, what do we expect?
+    # dst should be the atoms for N, H, CA, HA, C, O
+    # in kintree order with an offset of 19 for each
+    # successive batch.
+
+    def kto(at_name):
+        return leu_rt.rotamer_kintree.kintree_idx[leu_rt.atom_to_idx[at_name]]
+
+    dst_gold_template = numpy.array(
+        [kto("N"), kto("H"), kto("CA"), kto("HA"), kto("C"), kto("O")],
+        dtype=numpy.int64,
+    )
+    dst_gold = numpy.arange(10).repeat(6) * 19 + numpy.tile(dst_gold_template, 10) + 1
+
+    numpy.testing.assert_equal(dst_gold, dst.cpu().numpy())
