@@ -955,13 +955,37 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(ubq_res, default_database
     # in kintree order with an offset of 19 for each
     # successive batch.
 
-    def kto(at_name):
-        return leu_rt.rotamer_kintree.kintree_idx[leu_rt.atom_to_idx[at_name]]
+    fingerprint_atoms = "N", "H", "CA", "HA", "C", "O"
 
-    dst_gold_template = numpy.array(
-        [kto("N"), kto("H"), kto("CA"), kto("HA"), kto("C"), kto("O")],
-        dtype=numpy.int64,
-    )
+    def fp_kto(rt):
+        return [
+            rt.rotamer_kintree.kintree_idx[rt.atom_to_idx[at_name]]
+            for at_name in fingerprint_atoms
+        ]
+
+    dst_gold_template = numpy.array(fp_kto(leu_rt), dtype=numpy.int64)
     dst_gold = numpy.arange(10).repeat(6) * 19 + numpy.tile(dst_gold_template, 10) + 1
 
     numpy.testing.assert_equal(dst_gold, dst.cpu().numpy())
+
+    src_fpats_kto = numpy.array(
+        fp_kto(pbt.active_block_types[poses.block_inds[0, 0]])
+        + fp_kto(pbt.active_block_types[poses.block_inds[0, 1]])
+        + fp_kto(pbt.active_block_types[poses.block_inds[1, 0]])
+        + fp_kto(pbt.active_block_types[poses.block_inds[1, 1]])
+        + fp_kto(pbt.active_block_types[poses.block_inds[1, 2]]),
+        dtype=numpy.int64,
+    )
+
+    def n_ats(i1, i2):
+        return pbt.n_atoms[poses.block_inds[i1, i2]]
+
+    src_dof_offsets = numpy.cumsum(
+        [0, n_ats(0, 0), n_ats(0, 1), n_ats(1, 0), n_ats(1, 1)]
+    ).repeat(6)
+
+    src_gold = src_fpats_kto + src_dof_offsets + 1
+
+    numpy.testing.assert_equal(src_gold, src_gold)
+
+    # what about the destination
