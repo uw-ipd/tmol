@@ -591,12 +591,48 @@ def copy_dofs_from_orig_to_rotamers(
     # nah; delay this     orig_res_for_rot, :
     # nah; delay this ]
 
-    real_orig_block_ind_for_orig_mcfp_ats = orig_block_inds.repeat(max_n_mcfp_atoms)[
+    def stretch(t, count):
+        # take an input tensor and "repeat" each element count times.
+        # stretch(tensor([0, 1, 2, 3]), 3) returns:
+        #     tensor([0 0 0 1 1 1 2 2 2 3 3 3]
+        # this is equivalent to numpy's repeat
+        return t.repeat(count).view(count, -1).permute(1, 0).contiguous().view(-1)
+
+    real_orig_block_ind_for_orig_mcfp_ats = stretch(orig_block_inds, max_n_mcfp_atoms)[
         orig_mcfp_at_inds_rto != -1
     ]
 
     orig_dof_atom_offset = exclusive_cumsum1d(pbt.n_atoms[orig_block_inds]).to(
         torch.int64
+    )
+    print("real_orig_block_ind_for_orig_mcfp_ats")
+    print(real_orig_block_ind_for_orig_mcfp_ats)
+    print("orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1]")
+    print(orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1])
+
+    print("orig_dof_atom_offset")
+    print(
+        orig_dof_atom_offset[
+            torch.div(
+                torch.arange(
+                    orig_block_inds.shape[0] * max_n_mcfp_atoms,
+                    dtype=torch.int64,
+                    device=pbt.device,
+                ),
+                max_n_mcfp_atoms,
+            )
+        ]
+    )
+    print("kto")
+    print(
+        torch.tensor(
+            pbt.rotamer_kintree.kintree_idx[
+                real_orig_block_ind_for_orig_mcfp_ats,
+                orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1],
+            ],
+            dtype=torch.int64,
+            device=pbt.device,
+        )
     )
 
     orig_mcfp_at_inds_kto = torch.full_like(orig_mcfp_at_inds_rto, -1)
@@ -625,6 +661,8 @@ def copy_dofs_from_orig_to_rotamers(
         orig_block_inds.shape[0], max_n_mcfp_atoms
     )
 
+    print("real_res_ind_for_rot")
+    print(real_res_ind_for_rot)
     orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_kto[real_res_ind_for_rot, :].view(
         -1
     )
@@ -645,6 +683,13 @@ def copy_dofs_from_orig_to_rotamers(
     orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_for_rot_kto[both_present] + 1
 
     # the big copy we've all been waiting for!
+
+    print("orig_mcfp_at_inds_for_rot_kto")
+    print(orig_mcfp_at_inds_for_rot_kto[76:97])
+
+    print("rot_mcfp_at_inds_kto")
+    print(rot_mcfp_at_inds_kto[76:97])
+
     rot_dofs_kto[rot_mcfp_at_inds_kto, :] = orig_dofs_kto[
         orig_mcfp_at_inds_for_rot_kto, :
     ]
@@ -763,6 +808,8 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     n_rots_for_rt, sampler_for_rotamer, all_rt_for_rotamer, all_chi_atoms, all_chi = (
         merged_samples
     )
+    print("rt for rotamer")
+    print(all_rt_for_rotamer)
 
     n_rots = all_chi_atoms.shape[0]
     rt_for_rot = torch.zeros(n_rots, dtype=torch.int64, device=poses.device)
@@ -841,6 +888,9 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
 
     # orig_dofs returned in kintree order
     orig_dofs_kto = measure_dofs_from_orig_coords(poses.coords, orig_kintree)
+    print("orig_dofs_kto")
+    print(orig_dofs_kto[:40, :4])
+    print(orig_kintree.id[:40])
 
     n_rotamer_atoms = torch.sum(n_atoms_for_rot).item()
 
@@ -869,6 +919,9 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         orig_dofs_kto,
         rot_dofs_kto,
     )
+    print("dofs after copy")
+    print(rot_dofs_kto[76:97, :4])
+    print(rot_kintree.id[76:97])
 
     assign_dofs_from_samples(
         pbt,

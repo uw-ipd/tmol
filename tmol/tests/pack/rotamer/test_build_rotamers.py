@@ -99,7 +99,7 @@ def test_build_rotamers_smoke(ubq_res, default_database):
     # for writing coordinates into a pdb
     print("new coords")
     print(new_coords.shape)
-    rot = 3
+    rot = 4
     for i in range(0, new_coords.shape[1]):
         print(
             "%7.3f %7.3f %7.3f"
