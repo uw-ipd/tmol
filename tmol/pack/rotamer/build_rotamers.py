@@ -792,8 +792,6 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     n_rots_for_rt, sampler_for_rotamer, all_rt_for_rotamer, all_chi_atoms, all_chi = (
         merged_samples
     )
-    print("rt for rotamer")
-    print(all_rt_for_rotamer)
 
     n_rots = all_chi_atoms.shape[0]
     rt_for_rot = torch.zeros(n_rots, dtype=torch.int64, device=poses.device)
@@ -817,8 +815,6 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     n_atoms_total = n_atoms_offset_for_rot[-1]
     n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
 
-    print("block_ind_for_rot")
-    print(block_ind_for_rot.dtype)
     rot_kintree = construct_kintree_for_rotamers(
         pbt,
         block_ind_for_rot,
@@ -872,9 +868,6 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
 
     # orig_dofs returned in kintree order
     orig_dofs_kto = measure_dofs_from_orig_coords(poses.coords, orig_kintree)
-    print("orig_dofs_kto")
-    print(orig_dofs_kto[:40, :4])
-    print(orig_kintree.id[:40])
 
     n_rotamer_atoms = torch.sum(n_atoms_for_rot).item()
 
@@ -903,9 +896,6 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         orig_dofs_kto,
         rot_dofs_kto,
     )
-    print("dofs after copy")
-    print(rot_dofs_kto[76:97, :4])
-    print(rot_kintree.id[76:97])
 
     assign_dofs_from_samples(
         pbt,

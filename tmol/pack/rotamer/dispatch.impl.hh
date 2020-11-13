@@ -533,8 +533,6 @@ struct DunbrackChiSampler {
     int const n_brt = nchi_for_buildable_restype.size(0);
     int const max_nchi = expansion_dim_prods_for_brt.size(1);
 
-    std::cout << "max_nchi " << max_nchi << std::endl;
-
     assert(rottable_set_for_buildable_restype.size(0) == n_brt);
     assert(chi_expansion_for_buildable_restype.size(0) == n_brt);
     // assert(chi_expansion_for_buildable_restype.size(1) <= max_nchi);
