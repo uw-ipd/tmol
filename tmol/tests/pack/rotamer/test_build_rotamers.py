@@ -1085,11 +1085,12 @@ def test_build_lots_of_rotamers(ubq_res, default_database):
         for res in ubq_res
     ]
 
-    print("resnames")
-    print([res.residue_type.name for res in ubq_res[:5]])
+    # subset_len = 10
+    # print("resnames")
+    # print([res.residue_type.name for res in ubq_res[:subset_len]])
 
-    n_poses = 2
-    p = Pose.from_residues_one_chain(ubq_res[:5], torch_device)
+    n_poses = 30
+    p = Pose.from_residues_one_chain(ubq_res, torch_device)
     poses = Poses.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(rts)
     task = PackerTask(poses, palette)
@@ -1107,7 +1108,9 @@ def test_build_lots_of_rotamers(ubq_res, default_database):
     task.add_chi_sampler(dun_sampler)
     task.add_chi_sampler(fixed_sampler)
 
-    new_coords = build_rotamers(poses, task, default_database.chemical)
+    rt_for_rot, block_ind_for_rot, new_coords = build_rotamers(
+        poses, task, default_database.chemical
+    )
 
     n_rots = new_coords.shape[0]
 
@@ -1120,19 +1123,48 @@ def test_build_lots_of_rotamers(ubq_res, default_database):
     # print(new_coords[:50].cpu().numpy())
 
     # for writing coordinates into a pdb
-    print("new coords")
-    print(new_coords.shape)
-    rot = new_coords.shape[0] - 3  # arg on 74 of last pose
-    # for i in range(1, new_coords.shape[0]):
-    #     for j in range(0, new_coords.shape[1]):
-    #         print(
-    #             "%7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
-    #             %
-    #             (
-    #                 new_coords[0, j, 0], new_coords[0, j, 1], new_coords[0, j, 2],
-    #                 new_coords[i, j, 0], new_coords[i, j, 1], new_coords[i, j, 2],
-    #             )
-    #         )
-    #
-    # for i in range(1,n_poses):
-    #     numpy.testing.assert_almost_equal(new_coords[:n_rots_per_pose], new_coords[(n_rots_per_pose*i):(n_rots_per_pose*(i+1))])
+    # print("new coords")
+    # print(new_coords.shape)
+    # rot = new_coords.shape[0] - 3  # arg on 74 of last pose
+    for i in range(1, n_poses):
+        i_offset = i * n_rots_per_pose
+        for j in range(0, n_rots_per_pose):
+            for k in range(0, new_coords.shape[1]):
+
+                dist = numpy.linalg.norm(
+                    new_coords[j, k, :] - new_coords[i_offset + j, k, :]
+                )
+                if dist < 1e-5:
+                    continue
+
+                print("rot discrepancy")
+                print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
+                print(
+                    "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
+                )
+                print(
+                    "%4d %7d %3d %7.3f -- %7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
+                    % (
+                        i,
+                        j,
+                        k,
+                        numpy.linalg.norm(
+                            new_coords[j, k, :] - new_coords[i_offset + j, k, :]
+                        ),
+                        new_coords[j, k, 0],
+                        new_coords[j, k, 1],
+                        new_coords[j, k, 2],
+                        new_coords[i_offset + j, k, 0],
+                        new_coords[i_offset + j, k, 1],
+                        new_coords[i_offset + j, k, 2],
+                    )
+                )
+                numpy.testing.assert_almost_equal(
+                    new_coords[j, k, :], new_coords[i_offset + j, k, :]
+                )
+
+    for i in range(1, n_poses):
+        numpy.testing.assert_almost_equal(
+            new_coords[:n_rots_per_pose],
+            new_coords[(n_rots_per_pose * i) : (n_rots_per_pose * (i + 1))],
+        )
