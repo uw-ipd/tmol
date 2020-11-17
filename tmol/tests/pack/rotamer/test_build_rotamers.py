@@ -1113,6 +1113,7 @@ def test_build_lots_of_rotamers(ubq_res, default_database):
     )
 
     n_rots = new_coords.shape[0]
+    # print("n_rots", n_rots)
 
     # all the rotamers should be the same on all n_poses copies of ubq
     n_rots_per_pose = n_rots // n_poses

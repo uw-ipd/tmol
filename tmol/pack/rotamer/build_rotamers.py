@@ -457,9 +457,9 @@ def merge_chi_samples(chi_samples):
     )
     # print("sort_rt_for_rotamer")
     # print(sort_rt_for_rotamer)
-    print()
-    print("max sort rt for rotamer")
-    print(torch.max(sort_rt_for_rotamer).item())
+    # print()
+    # print("max sort rt for rotamer")
+    # print(torch.max(sort_rt_for_rotamer).item())
     sampler_for_rotamer_unsorted = torch.cat(
         [
             torch.full((samples[1].shape[0],), i, dtype=torch.int64)
