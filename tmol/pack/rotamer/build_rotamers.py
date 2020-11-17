@@ -839,6 +839,9 @@ def calculate_rotamer_coords(
     def _t(t):
         return torch.tensor(t, dtype=torch.int32, device=pbt.device)
 
+    def _tcpu(t):
+        return torch.tensor(t, dtype=torch.int32, device=torch.device("cpu"))
+
     kintree_stack = _p(
         torch.stack(
             [
@@ -854,7 +857,7 @@ def calculate_rotamer_coords(
     )
 
     new_coords_kto = torch.ops.tmol.forward_only_kin_op(
-        rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_t(gens)), kintree_stack
+        rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_tcpu(gens)), kintree_stack
     )
 
     new_coords_rto = torch.zeros(

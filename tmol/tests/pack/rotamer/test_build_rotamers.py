@@ -29,8 +29,8 @@ from tmol.numeric.dihedrals import coord_dihedrals
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
-def test_annotate_restypes(default_database):
-    torch_device = torch.device("cpu")
+def test_annotate_restypes(default_database, torch_device):
+    # torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
     param_resolver = DunbrackParamResolver.from_database(
@@ -108,8 +108,8 @@ def test_build_rotamers_smoke(ubq_res, default_database):
     #     )
 
 
-def test_construct_scans_for_rotamers(default_database):
-    torch_device = torch.device("cpu")
+def test_construct_scans_for_rotamers(default_database, torch_device):
+    # torch_device = torch.device("cpu")
 
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt_list = [rts.restype_map["LEU"][0]]
@@ -186,8 +186,8 @@ def test_construct_scans_for_rotamers(default_database):
     numpy.testing.assert_equal(gens_gold, gens)
 
 
-def test_construct_scans_for_rotamers2(default_database):
-    torch_device = torch.device("cpu")
+def test_construct_scans_for_rotamers2(default_database, torch_device):
+    # torch_device = torch.device("cpu")
 
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_met_rt_list = [rts.restype_map["LEU"][0]] + [rts.restype_map["MET"][0]]
@@ -286,7 +286,7 @@ def test_construct_scans_for_rotamers2(default_database):
     numpy.testing.assert_equal(gens_gold, gens)
 
 
-def test_inv_kin_rotamers(default_database, ubq_res):
+def test_inv_kin_rotamers(default_database, ubq_res, torch_device):
     # steps:
     # - annotate residue types and pbt with kintrees + mainchain fingerprints
     # - construct unified kintree for measuring internal coordinates out of
@@ -299,7 +299,7 @@ def test_inv_kin_rotamers(default_database, ubq_res):
     # - invoke forward_only_kin_op
     # - reindex coordinates
 
-    torch_device = torch.device("cpu")
+    # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
     rts = ResidueTypeSet.from_database(chem_db)
@@ -350,7 +350,7 @@ def test_inv_kin_rotamers(default_database, ubq_res):
 
     coords = torch.cat(
         (
-            torch.zeros((1, 3), dtype=torch.float32),
+            torch.zeros((1, 3), dtype=torch.float32, device=torch_device),
             p.coords[0][met_kt_id[1:].to(torch.int64)],
         )
     )
@@ -366,8 +366,12 @@ def test_inv_kin_rotamers(default_database, ubq_res):
 
     dofs_new = torch.cat(
         (
-            torch.zeros((1, 9), dtype=torch.float32),
-            torch.tensor(leu_rt.rotamer_kintree.dofs_ideal, dtype=torch.float32),
+            torch.zeros((1, 9), dtype=torch.float32, device=torch_device),
+            torch.tensor(
+                leu_rt.rotamer_kintree.dofs_ideal,
+                dtype=torch.float32,
+                device=torch_device,
+            ),
         )
     )
 
@@ -395,6 +399,9 @@ def test_inv_kin_rotamers(default_database, ubq_res):
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)
 
+    def _t(t):
+        return torch.tensor(t, dtype=torch.int32, device=torch_device)
+
     leu_kintree = _p(
         torch.stack(
             [
@@ -411,14 +418,16 @@ def test_inv_kin_rotamers(default_database, ubq_res):
 
     new_coords = torch.ops.tmol.forward_only_kin_op(
         dofs_new,
-        _p(torch.tensor(leu_rt.rotamer_kintree.nodes, dtype=torch.int32)),
-        _p(torch.tensor(leu_rt.rotamer_kintree.scans, dtype=torch.int32)),
-        _p(torch.tensor(leu_rt.rotamer_kintree.gens, dtype=torch.int32)),
+        _p(_t(leu_rt.rotamer_kintree.nodes)),
+        _p(_t(leu_rt.rotamer_kintree.scans)),
+        _p(torch.tensor(leu_rt.rotamer_kintree.gens, dtype=torch.int32)),  ## CPU!
         leu_kintree,
     )
     assert new_coords.shape == (leu_rt.n_atoms + 1, 3)
 
-    reordered_coords = torch.zeros((leu_rt.n_atoms, 3), dtype=torch.float32)
+    reordered_coords = torch.zeros(
+        (leu_rt.n_atoms, 3), dtype=torch.float32, device=torch_device
+    )
     reordered_coords[leu_rt.rotamer_kintree.id] = new_coords[1:]
 
     # for writing coordinates into a pdb
