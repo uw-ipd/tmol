@@ -811,6 +811,7 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
     p1 = Pose.from_residues_one_chain(ubq_res[5:11], torch_device)
     p2 = Pose.from_residues_one_chain(ubq_res[:7], torch_device)
     poses = Poses.from_poses([p1, p2], torch_device)
+    pbt = poses.packed_block_types
 
     palette = PackerPalette(rts)
     task = PackerTask(poses, palette)
@@ -839,6 +840,13 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
     dun_rot_inds_for_rts = param_resolver._indices_from_names(
         param_resolver.all_table_indices, rt_names[None, :], torch.device("cpu")
     ).squeeze()
+    block_ind_for_brt = torch.tensor(
+        pbt.restype_index.get_indexer(
+            rt_names[dun_rot_inds_for_rts.cpu().numpy() != -1]
+        ),
+        dtype=torch.int64,
+        device=torch_device,
+    )
 
     nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
 
@@ -861,7 +869,7 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
     sampled_chi = (n_rots_for_brt, offsets_for_brt, brt_for_rotamer, chi_for_rotamers)
 
     results = dun_sampler.package_samples_for_output(
-        poses, task, rt_names, 4, nonzero_dunrot_inds_for_rts, sampled_chi
+        pbt, task, block_ind_for_brt, 4, nonzero_dunrot_inds_for_rts, sampled_chi
     )
 
     n_rots_for_rt_gold = numpy.zeros(all_allowed_restypes.shape[0], dtype=numpy.int32)

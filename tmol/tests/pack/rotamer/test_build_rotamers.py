@@ -1127,45 +1127,45 @@ def test_build_lots_of_rotamers(ubq_res, default_database):
     # print("new coords")
     # print(new_coords.shape)
     # rot = new_coords.shape[0] - 3  # arg on 74 of last pose
-    for i in range(1, n_poses):
-        i_offset = i * n_rots_per_pose
-        all_good = True
-        for j in range(0, n_rots_per_pose):
-            for k in range(0, new_coords.shape[1]):
-
-                dist = numpy.linalg.norm(
-                    new_coords[j, k, :] - new_coords[i_offset + j, k, :]
-                )
-                if dist < 1e-5:
-                    continue
-
-                all_good = False
-                # print("rot discrepancy")
-                # print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
-                # print(
-                #     "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
-                # )
-                print(
-                    "%4d %7d %3d %7.3f -- %7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
-                    % (
-                        i,
-                        j,
-                        k,
-                        numpy.linalg.norm(
-                            new_coords[j, k, :] - new_coords[i_offset + j, k, :]
-                        ),
-                        new_coords[j, k, 0],
-                        new_coords[j, k, 1],
-                        new_coords[j, k, 2],
-                        new_coords[i_offset + j, k, 0],
-                        new_coords[i_offset + j, k, 1],
-                        new_coords[i_offset + j, k, 2],
-                    )
-                )
-                # numpy.testing.assert_almost_equal(
-                #     new_coords[j, k, :], new_coords[i_offset + j, k, :]
-                # )
-        assert all_good
+    # for i in range(1, n_poses):
+    #     i_offset = i * n_rots_per_pose
+    #     all_good = True
+    #     for j in range(0, n_rots_per_pose):
+    #         for k in range(0, new_coords.shape[1]):
+    #
+    #             dist = numpy.linalg.norm(
+    #                 new_coords[j, k, :] - new_coords[i_offset + j, k, :]
+    #             )
+    #             if dist < 1e-5:
+    #                 continue
+    #
+    #             all_good = False
+    #             # print("rot discrepancy")
+    #             # print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
+    #             # print(
+    #             #     "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
+    #             # )
+    #             print(
+    #                 "%4d %7d %3d %7.3f -- %7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
+    #                 % (
+    #                     i,
+    #                     j,
+    #                     k,
+    #                     numpy.linalg.norm(
+    #                         new_coords[j, k, :] - new_coords[i_offset + j, k, :]
+    #                     ),
+    #                     new_coords[j, k, 0],
+    #                     new_coords[j, k, 1],
+    #                     new_coords[j, k, 2],
+    #                     new_coords[i_offset + j, k, 0],
+    #                     new_coords[i_offset + j, k, 1],
+    #                     new_coords[i_offset + j, k, 2],
+    #                 )
+    #             )
+    #             # numpy.testing.assert_almost_equal(
+    #             #     new_coords[j, k, :], new_coords[i_offset + j, k, :]
+    #             # )
+    #     assert all_good
 
     for i in range(1, n_poses):
         numpy.testing.assert_almost_equal(

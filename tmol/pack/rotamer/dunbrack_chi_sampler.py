@@ -36,6 +36,10 @@ class DunSamplerRTCache:
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class DunSamplerPBTCache:
+    """Data needed for chi sampling and for reporting how
+    the chi are to be assigned to atoms
+    """
+
     bbdihe_uaids: Tensor(torch.int32)[:, 2, 4, 3]
     chi_defining_atom: Tensor(torch.int32)[:, :]
     non_dunbrack_sample_counts: Tensor(torch.int32)[:, :, 2]
@@ -89,10 +93,6 @@ class DunbrackChiSampler:
         """TEMP TEMP TEMP: assume the dihedrals we care about are phi and psi"""
         if hasattr(restype, "dun_sampler_cache"):
             return
-
-        # if hasattr(restype, "dun_sampler_bbdihe_uaids"):
-        #     assert hasattr(restype, "dun_sampler_chi_defining_atom")
-        #     return
 
         # #chi = 2; #atoms in a dihedral = 4; #entries in a uaid  = 3
         uaids = numpy.full((2, 4, 3), -1, dtype=numpy.int32)
@@ -202,9 +202,6 @@ class DunbrackChiSampler:
             non_dunbrack_samples=non_dunbrack_samples,
         )
         setattr(restype, "dun_sampler_cache", cache)
-
-        # setattr(restype, "dun_sampler_bbdihe_uaids", uaids)
-        # setattr(restype, "dun_sampler_chi_defining_atom", chi_defining_atom)
 
     @validate_args
     def annotate_packed_block_types(self, packed_block_types: PackedBlockTypes):
@@ -536,9 +533,8 @@ class DunbrackChiSampler:
         )
 
         return self.package_samples_for_output(
-            systems,
+            pbt,
             task,
-            rt_names,
             block_ind_for_brt,
             max_n_chi,
             nonzero_dunrot_inds_for_rts,
@@ -661,12 +657,11 @@ class DunbrackChiSampler:
     @validate_args
     def package_samples_for_output(
         self,
-        systems,
-        task,
-        rt_names,
-        block_ind_for_brt,
-        max_n_chi,
-        nonzero_dunrot_inds_for_rts,
+        pbt: PackedBlockTypes,
+        task: PackerTask,
+        block_ind_for_brt: Tensor(torch.int64)[:],
+        max_n_chi: int,
+        nonzero_dunrot_inds_for_rts: Tensor(torch.int64)[:, :],
         sampled_chi,
     ):
         restype_is_allowed_for_dun = torch.tensor(
@@ -711,7 +706,6 @@ class DunbrackChiSampler:
 
         rt_for_rotamer = global_rt_ind_for_brt[brt_for_rotamer.to(torch.int64)]
 
-        pbt = systems.packed_block_types
         pbt_cda = pbt.dun_sampler_cache.chi_defining_atom
         chi_defining_atom_for_rotamer = torch.full(
             (chi_for_rotamers.shape[0], max_n_chi),
