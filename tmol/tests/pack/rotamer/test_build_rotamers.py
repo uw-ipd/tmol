@@ -1089,7 +1089,7 @@ def test_build_lots_of_rotamers(ubq_res, default_database):
     # print("resnames")
     # print([res.residue_type.name for res in ubq_res[:subset_len]])
 
-    n_poses = 30
+    n_poses = 100
     p = Pose.from_residues_one_chain(ubq_res, torch_device)
     poses = Poses.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(rts)
@@ -1128,6 +1128,7 @@ def test_build_lots_of_rotamers(ubq_res, default_database):
     # rot = new_coords.shape[0] - 3  # arg on 74 of last pose
     for i in range(1, n_poses):
         i_offset = i * n_rots_per_pose
+        all_good = True
         for j in range(0, n_rots_per_pose):
             for k in range(0, new_coords.shape[1]):
 
@@ -1137,11 +1138,12 @@ def test_build_lots_of_rotamers(ubq_res, default_database):
                 if dist < 1e-5:
                     continue
 
-                print("rot discrepancy")
-                print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
-                print(
-                    "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
-                )
+                all_good = False
+                # print("rot discrepancy")
+                # print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
+                # print(
+                #     "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
+                # )
                 print(
                     "%4d %7d %3d %7.3f -- %7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
                     % (
@@ -1159,9 +1161,10 @@ def test_build_lots_of_rotamers(ubq_res, default_database):
                         new_coords[i_offset + j, k, 2],
                     )
                 )
-                numpy.testing.assert_almost_equal(
-                    new_coords[j, k, :], new_coords[i_offset + j, k, :]
-                )
+                # numpy.testing.assert_almost_equal(
+                #     new_coords[j, k, :], new_coords[i_offset + j, k, :]
+                # )
+        assert all_good
 
     for i in range(1, n_poses):
         numpy.testing.assert_almost_equal(

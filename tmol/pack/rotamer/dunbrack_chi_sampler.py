@@ -110,7 +110,7 @@ class DunbrackChiSampler:
                 addnl_chi_defining_atom = numpy.array(
                     [
                         restype.torsion_to_uaids[restype.chi_samples[ind].chi_dihedral][
-                            1
+                            2
                         ][0]
                         for ind in sort_inds
                     ],

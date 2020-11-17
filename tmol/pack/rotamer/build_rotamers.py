@@ -790,12 +790,21 @@ def assign_dofs_from_samples(
     )
     # increment with the atom offsets for the source rotamer and by
     # one to include the virtual root
+    torch.set_printoptions(threshold=100000)
     # print("rot_chi_atoms_kto")
     # print(rot_chi_atoms_kto)
     # print("rot_ind_for_real_atom")
     # print(rot_ind_for_real_atom)
 
     rot_chi_atoms_kto += atom_offset_for_rot[rot_ind_for_real_atom].to(torch.int64) + 1
+
+    # TEMP!!!
+    #  sorted_rot_chi_atoms_kto, inds = torch.sort(rot_chi_atoms_kto)
+    #  uniq_rot_chi_atoms_kto = torch.unique(sorted_rot_chi_atoms_kto)
+    #
+    #  print("sorted_rot_chi_atoms_kto")
+    #  print(sorted_rot_chi_atoms_kto)
+    #  assert sorted_rot_chi_atoms_kto.shape[0] == uniq_rot_chi_atoms_kto.shape[0]
 
     # print("rot_chi_atoms_kto w/ offsets")
     # print(rot_chi_atoms_kto)
