@@ -94,6 +94,14 @@ class MCFingerprint:
     at_for_fingerprint: Mapping[AtomFingerprint, int]
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class MCFingerprints:
+    atom_mapping: Tensor(torch.int32)[:, :, :, :]  # make int64
+    sampler_mapping: Mapping[str, int]
+    max_sampler: Tensor(torch.int32)[:]
+    max_fingerprint: Tensor(torch.int32)[:]
+
+
 @validate_args
 def create_non_sidechain_fingerprint(
     rt: RefinedResidueType,
@@ -334,7 +342,10 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
     def _t(arr):
         return torch.tensor(arr, dtype=torch.int64, device=pbt.device)
 
-    setattr(pbt, "mc_atom_mapping", _t(mc_atom_inds_for_rt_for_sampler))
-    setattr(pbt, "mc_sampler_mapping", sampler_inds)
-    setattr(pbt, "mc_max_sampler", _t(max_sampler_for_rt))
-    setattr(pbt, "mc_max_fingerprint", _t(max_fp_for_rt))
+    fingerprints = MCFingerprints(
+        atom_mapping=_t(mc_atom_inds_for_rt_for_sampler),
+        sampler_mapping=sampler_inds,
+        max_sampler=_t(max_sampler_for_rt),
+        max_fingerprint=_t(max_fp_for_rt),
+    )
+    setattr(pbt, "mc_fingerprints", fingerprints)

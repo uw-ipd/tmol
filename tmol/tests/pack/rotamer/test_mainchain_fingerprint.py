@@ -195,10 +195,7 @@ def test_merge_fingerprints(default_database):
     # map to each other, except for glycine which uses 2HA to map
     # to HA.
 
-    assert hasattr(pbt, "mc_atom_mapping")
-    assert hasattr(pbt, "mc_sampler_mapping")
-    assert hasattr(pbt, "mc_max_sampler")
-    assert hasattr(pbt, "mc_max_fingerprint")
+    assert hasattr(pbt, "mc_fingerprints")
 
     standard_mc_atoms = ["N", "H", "CA", "HA", "C", "O"]
     glycine_mc_atoms = ["N", "H", "CA", "1HA", "C", "O"]
@@ -218,11 +215,13 @@ def test_merge_fingerprints(default_database):
             else:
                 return standard_mc_atoms
 
-    assert dun_sampler.sampler_name() in pbt.mc_sampler_mapping
-    dun_sampler_ind = pbt.mc_sampler_mapping[dun_sampler.sampler_name()]
+    assert dun_sampler.sampler_name() in pbt.mc_fingerprints.sampler_mapping
+    dun_sampler_ind = pbt.mc_fingerprints.sampler_mapping[dun_sampler.sampler_name()]
 
-    assert fixed_sampler.sampler_name() in pbt.mc_sampler_mapping
-    fixed_sampler_ind = pbt.mc_sampler_mapping[fixed_sampler.sampler_name()]
+    assert fixed_sampler.sampler_name() in pbt.mc_fingerprints.sampler_mapping
+    fixed_sampler_ind = pbt.mc_fingerprints.sampler_mapping[
+        fixed_sampler.sampler_name()
+    ]
 
     # pro_pbt_ind = pbt.restype_index.get_indexer(["PRO"])[0]
     # gly_pbt_ind = pbt.restype_index.get_indexer(["GLY"])[0]
@@ -234,11 +233,11 @@ def test_merge_fingerprints(default_database):
 
     # print(pro_pbt_ind, gly_pbt_ind, leu_pbt_ind)
 
-    assert pbt.mc_atom_mapping.shape == (2, 2, 21, 6)
+    assert pbt.mc_fingerprints.atom_mapping.shape == (2, 2, 21, 6)
 
     for i, rt_orig in enumerate(pbt.active_block_types):
-        orig_rt_sampler = pbt.mc_max_sampler[i]
-        orig_max_fp = pbt.mc_max_fingerprint[i]
+        orig_rt_sampler = pbt.mc_fingerprints.max_sampler[i]
+        orig_max_fp = pbt.mc_fingerprints.max_fingerprint[i]
         orig_mc_ats = which_atoms(rt_orig, rt_orig)
 
         for j, rt_new in enumerate(pbt.active_block_types):
@@ -250,8 +249,12 @@ def test_merge_fingerprints(default_database):
 
             # now the atom mapping:
             for k in range(6):
-                k_orig = pbt.mc_atom_mapping[orig_rt_sampler, orig_max_fp, i, k]
-                k_new = pbt.mc_atom_mapping[new_rt_sampler, orig_max_fp, j, k]
+                k_orig = pbt.mc_fingerprints.atom_mapping[
+                    orig_rt_sampler, orig_max_fp, i, k
+                ]
+                k_new = pbt.mc_fingerprints.atom_mapping[
+                    new_rt_sampler, orig_max_fp, j, k
+                ]
 
                 if k_orig >= 0 and k_new >= 0:
                     assert rt_orig.atoms[k_orig].name == orig_mc_ats[k]

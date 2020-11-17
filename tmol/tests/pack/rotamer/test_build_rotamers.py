@@ -371,11 +371,11 @@ def test_inv_kin_rotamers(default_database, ubq_res):
         )
     )
 
-    dun_sampler_ind = pbt.mc_sampler_mapping[dun_sampler.sampler_name()]
-    met_max_fp = pbt.mc_max_fingerprint[1]
-    for i in range(pbt.mc_atom_mapping.shape[3]):
-        leu_at_i = pbt.mc_atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
-        met_at_i = pbt.mc_atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
+    dun_sampler_ind = pbt.mc_fingerprints.sampler_mapping[dun_sampler.sampler_name()]
+    met_max_fp = pbt.mc_fingerprints.max_fingerprint[1]
+    for i in range(pbt.mc_fingerprints.atom_mapping.shape[3]):
+        leu_at_i = pbt.mc_fingerprints.atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
+        met_at_i = pbt.mc_fingerprints.atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
         if leu_at_i >= 0 and met_at_i >= 0:
             leu_ktat_i = leu_rt.rotamer_kintree.kintree_idx[leu_at_i]
             met_ktat_i = met_rt.rotamer_kintree.kintree_idx[met_at_i]
@@ -929,7 +929,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(ubq_res, default_database
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=torch.int64, device=torch_device
     )
 
-    # [pbt.mc_sampler_mapping[dun_sampler.sampler_name()] ] * 10
+    # [pbt.mc_fingerprints.sampler_mapping[dun_sampler.sampler_name()] ] * 10
     sampler_for_rotamer = torch.zeros(10, dtype=torch.int64, device=torch_device)
 
     n_dof_atoms_offset_for_rot = (

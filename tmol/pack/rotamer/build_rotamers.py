@@ -545,8 +545,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
 
     sampler_ind_mapping = torch.tensor(
         [
-            pbt.mc_sampler_mapping[sampler.sampler_name()]
-            if sampler.sampler_name() in pbt.mc_sampler_mapping
+            pbt.mc_fingerprints.sampler_mapping[sampler.sampler_name()]
+            if sampler.sampler_name() in pbt.mc_fingerprints.sampler_mapping
             else -1
             for sampler in samplers
         ],
@@ -586,17 +586,19 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     # look up which mainchain fingerprint each
     # original residue should use
 
-    sampler_ind_for_orig = pbt.mc_max_sampler[orig_block_inds]
-    orig_res_mcfp = pbt.mc_max_fingerprint[orig_block_inds]
+    mcfp = pbt.mc_fingerprints
+
+    sampler_ind_for_orig = mcfp.max_sampler[orig_block_inds]
+    orig_res_mcfp = mcfp.max_fingerprint[orig_block_inds]
     orig_res_mcfp_for_rot = orig_res_mcfp[real_res_ind_for_rot]
 
     # now lets find the kintree-ordered indices of the
     # mainchain atoms for the rotamers that represents
     # the destination for the dofs we're copying
-    max_n_mcfp_atoms = pbt.mc_atom_mapping.shape[3]
+    max_n_mcfp_atoms = mcfp.atom_mapping.shape[3]
 
-    # print("pbt.mc_atom_mapping")
-    # print(pbt.mc_atom_mapping)
+    # print("mcfp.atom_mapping")
+    # print(mcfp.atom_mapping)
     # print("sampler_ind_for_rot")
     # print(sampler_ind_for_rot)
 
@@ -605,7 +607,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     # print("orig_res_mcfp_for_rot")
     # print(orig_res_mcfp_for_rot)
 
-    rot_mcfp_at_inds_rto = pbt.mc_atom_mapping[
+    rot_mcfp_at_inds_rto = mcfp.atom_mapping[
         sampler_ind_for_rot, orig_res_mcfp_for_rot, block_ind_for_rot, :
     ].view(-1)
     # print("rot_mcfp_at_inds_rto")
@@ -649,7 +651,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     # 2. they are stored in residue-type order (rto)
     # 3. they are indexed by original residue index
 
-    orig_mcfp_at_inds_rto = pbt.mc_atom_mapping[
+    orig_mcfp_at_inds_rto = mcfp.atom_mapping[
         sampler_ind_for_orig, orig_res_mcfp, orig_block_inds, :
     ].view(-1)
 
