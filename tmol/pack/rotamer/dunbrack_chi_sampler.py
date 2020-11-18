@@ -355,7 +355,8 @@ class DunbrackChiSampler:
         dun_rot_inds_for_rts = self.dun_param_resolver._indices_from_names(
             self.dun_param_resolver.all_table_indices,
             rt_names[None, :],
-            torch.device("cpu"),
+            # ??? torch.device("cpu"),
+            self.device,
         ).squeeze()
 
         block_ind_for_brt = torch.tensor(
@@ -443,76 +444,21 @@ class DunbrackChiSampler:
             rottable_set_for_buildable_restype[:, 1].to(torch.int64)
         ]
 
-        brts = dun_allowed_restypes[dun_rot_inds_for_rts.numpy() != -1]
+        brts = dun_allowed_restypes[dun_rot_inds_for_rts.cpu().numpy() != -1]
 
         non_dunbrack_expansion_counts_for_buildable_restype = torch.zeros(
             (n_brts, max_n_chi), dtype=torch.int32, device=self.device
         )
         # max_chi_samples = 0
 
+        # TEMP! Treat everything as exposed (0)
         non_dunbrack_expansion_counts_for_buildable_restype = pbt.dun_sampler_cache.non_dunbrack_sample_counts[
-            block_ind_for_brt, 0  # TEMP! Treat everything as exposed
+            block_ind_for_brt, 0
         ]
+        # TEMP! Treat everything as exposed (0)
         non_dunbrack_expansion_for_buildable_restype = pbt.dun_sampler_cache.non_dunbrack_samples[
-            block_ind_for_brt, 0  # TEMP! Treat everything as exposed
+            block_ind_for_brt, 0
         ]
-
-        #   finally # MOST OF THIS LOGIC SHOULD BE MOVED INTO A SETUP PHASE WITH
-        #   finally # THE RefinedResidueType
-        #   finally for i, rt in enumerate(brts):
-        #   finally     for j, rt_chi in enumerate(rt.chi_samples):
-        #   finally         chi_name = rt_chi.chi_dihedral
-        #   finally         assert chi_name[:3] == "chi"
-        #   finally         chi_ind = int(chi_name[3:]) - 1
-        #   finally         if chi_ind >= nchi_for_buildable_restype[i]:
-        #   finally             nchi_for_buildable_restype[i] = chi_ind + 1
-        #   finally         n_expansions = (
-        #   finally             1
-        #   finally             + 2
-        #   finally             * len(rt_chi.expansions)
-        #   finally             * chi_expansion_for_buildable_restype[i, chi_ind]
-        #   finally         )
-        #   finally         n_samples = len(rt_chi.samples)
-        #   finally         n_expanded_samples = n_samples * n_expansions
-        #   finally         max_chi_samples = max(max_chi_samples, n_expanded_samples)
-        #   finally         non_dunbrack_expansion_counts_for_buildable_restype[
-        #   finally             i, chi_ind
-        #   finally         ] = n_expanded_samples
-        #   finally non_dunbrack_expansion_for_buildable_restype = torch.full(
-        #   finally     (n_brts, max_n_chi, max_chi_samples),
-        #   finally     -1,
-        #   finally     dtype=torch.float32,
-        #   finally     device=self.device,
-        #   finally )
-        #   finally
-        #   finally for i, rt in enumerate(brts):
-        #   finally     for j, rt_chi in enumerate(rt.chi_samples):
-        #   finally         chi_name = rt_chi.chi_dihedral
-        #   finally         chi_ind = int(chi_name[3:]) - 1
-        #   finally         n_expansions = (
-        #   finally             1
-        #   finally             + 2
-        #   finally             * len(rt_chi.expansions)
-        #   finally             * chi_expansion_for_buildable_restype[i, chi_ind]
-        #   finally         )
-        #   finally         n_samples = len(rt_chi.samples)
-        #   finally         n_expanded_samples = n_samples * n_expansions
-        #   finally         for l in range(n_samples):
-        #   finally             for m in range(n_expansions):
-        #   finally                 if m == 0:
-        #   finally                     non_dunbrack_expansion_for_buildable_restype[
-        #   finally                         i, chi_ind, n_expansions * l + m
-        #   finally                     ] = rt_chi.samples[l]
-        #   finally                 else:
-        #   finally                     expansion = (m - 1) // 2
-        #   finally                     factor = -1 if (m - 1) % 2 == 0 else 1
-        #   finally                     non_dunbrack_expansion_for_buildable_restype[
-        #   finally                         i, chi_ind, n_expansions * l + m
-        #   finally                     ] = (
-        #   finally                         rt_chi.samples[l]
-        #   finally                         + factor * rt_chi.expansions[expansion]
-        #   finally                     )
-        # oof
 
         # treat all residues as if they are exposed
         prob_cumsum_limit_for_buildable_restype = torch.full(

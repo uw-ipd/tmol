@@ -191,11 +191,12 @@ def update_scan_starts(
     return scanStarts
 
 
+@validate_args
 def construct_scans_for_rotamers(
     pbt: PackedBlockTypes,
     block_ind_for_rot: NDArray(numpy.int32)[:],
     n_atoms_for_rot: Tensor(torch.int32)[:],
-    n_atoms_offset_for_rot: NDArray(numpy.int32)[:],
+    n_atoms_offset_for_rot: NDArray(numpy.int64)[:],
 ):
 
     scanStartsStack = pbt.rotamer_kintree.scans[block_ind_for_rot]
@@ -565,7 +566,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
         device=poses.device,
     )
     poses_res_to_real_poses_res[poses.block_inds.view(-1) != -1] = torch.arange(
-        orig_block_inds.shape[0], dtype=torch.int64
+        orig_block_inds.shape[0], dtype=torch.int64, device=poses.device
     )
 
     # get the residue index for each rotamer
@@ -623,7 +624,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     rot_mcfp_at_inds_kto = torch.full_like(rot_mcfp_at_inds_rto, -1)
     rot_mcfp_at_inds_kto[rot_mcfp_at_inds_rto != -1] = torch.tensor(
         pbt.rotamer_kintree.kintree_idx[
-            real_rot_block_ind_for_mcfp_ats, real_rot_mcfp_at_inds_rto
+            real_rot_block_ind_for_mcfp_ats.cpu().numpy(),
+            real_rot_mcfp_at_inds_rto.cpu().numpy(),
         ],
         dtype=torch.int64,
         device=pbt.device,
@@ -671,8 +673,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     orig_mcfp_at_inds_kto[orig_mcfp_at_inds_rto != -1] = (
         torch.tensor(
             pbt.rotamer_kintree.kintree_idx[
-                real_orig_block_ind_for_orig_mcfp_ats,
-                orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1],
+                real_orig_block_ind_for_orig_mcfp_ats.cpu().numpy(),
+                orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1].cpu().numpy(),
             ],
             dtype=torch.int64,
             device=pbt.device,
