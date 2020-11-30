@@ -142,5 +142,13 @@ def test_derivsum_values_cpp(benchmark, big_system):
     # angle between vectors should be close to 0
     norm_a = torch.sqrt(torch.sum(dscddof_cuda.cpu() * dscddof_cuda.cpu()))
     norm_b = torch.sqrt(torch.sum(dscddof_cpu * dscddof_cpu))
-    angle = torch.acos(torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b))
-    assert torch.abs(angle) < 1e-2
+
+    # with the scan bugfix, these two tensors are so close that numerical noise
+    # when taking their dot product results in a number > 1 and the arccos then
+    # ends up as NaN
+
+    # angle = torch.acos(torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b))
+    # assert torch.abs(angle) < 1e-2
+    numpy.testing.assert_almost_equal(
+        1.0, (torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b)).numpy()
+    )

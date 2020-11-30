@@ -835,6 +835,19 @@ def calculate_rotamer_coords(
     gens: NDArray(numpy.int32)[:],
     rot_dofs_kto: Tensor(torch.float32)[:, 9],
 ):
+    print("rot kintree:")
+    print(torch.nonzero(rot_kintree.id == 88152))  # 65053
+    print(rot_kintree.id[(65053 - 10) : (65053 + 10)])
+
+    # numpy.set_printoptions(threshold=200000)
+    print("nodes")
+    print(numpy.nonzero(nodes == 65053))  # 29093
+    print(nodes[(29093 - 10) : (29093 + 10)])
+    print("scans")
+    print(numpy.nonzero(scans == 29092))
+    # print("gens")
+    # print(gens)
+
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)
 

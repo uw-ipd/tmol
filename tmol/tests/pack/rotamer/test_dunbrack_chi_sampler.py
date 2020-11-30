@@ -912,3 +912,36 @@ def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
         sampler.annotate_residue_type(rt)
     sampler.annotate_packed_block_types(poses.packed_block_types)
     sampler.sample_chi_for_poses(poses, task)
+
+
+def test_chi_sampler_build_lots_of_rotamers(
+    ubq_res, default_database, default_restype_set, torch_device
+):
+    # torch_device = torch.device("cpu")
+    n_poses = 10
+    # print([res.residue_type.name for res in ubq_res[:10]])
+    p = Pose.from_residues_one_chain(ubq_res[:10], torch_device)
+    poses = Poses.from_poses([p] * n_poses, torch_device)
+    palette = PackerPalette(default_restype_set)
+    task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    sampler = DunbrackChiSampler.from_database(param_resolver)
+    task.add_chi_sampler(sampler)
+
+    for rt in poses.packed_block_types.active_block_types:
+        sampler.annotate_residue_type(rt)
+    sampler.annotate_packed_block_types(poses.packed_block_types)
+    chi_samples = sampler.sample_chi_for_poses(poses, task)
+
+    n_rots_for_rt, rt_for_rotamer, chi_defining_atom, chi = chi_samples
+
+    # print("rt_for_rotamer")
+    # print(rt_for_rotamer)
+
+    n_rots = chi_defining_atom.shape[0]
+    n_rots_per_pose = n_rots // n_poses
+    assert n_rots_per_pose * n_poses == n_rots

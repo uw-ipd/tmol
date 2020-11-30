@@ -45,6 +45,8 @@ struct cta_lbs_segscan_t {
     int cur_item = placement.a_index;
     bool carry_in = false;
     const type_t* a_shared = storage.values - merge_range.a_begin;
+    // printf("%5d %p %3d\n", threadIdx.x + blockDim.x * blockIdx.x, a_shared,
+    // p[0] ? a_shared[cur_item] : -1234 );
     type_t x[vt];
     bool has_head_flag = false;
     int stopindex = nt * vt + 1;
@@ -63,6 +65,8 @@ struct cta_lbs_segscan_t {
         }
         has_head_flag = true;
       }
+      // printf("thread=%5d i=%5d %3d %3d %3d x=%5.0f\n", threadIdx.x +
+      // blockDim.x * blockIdx.x, i, cur_item, carry_in, has_head_flag, x[i]);
     });
 
     // is there a segment transition in this range?
@@ -74,6 +78,8 @@ struct cta_lbs_segscan_t {
 
     // compute the carry-in for this thread
     bool has_carry_out = p[vt - 1];
+    // printf("has carry out %5d %3d\n", threadIdx.x + blockDim.x * blockIdx.x,
+    // has_carry_out);
     segscan_result_t<type_t> result = segscan_t().segscan(
         tid,
         has_head_flag,
@@ -82,10 +88,16 @@ struct cta_lbs_segscan_t {
         storage.segscan,
         init,
         op);
+    // printf("%5d cta segscan result %5.0f\n", threadIdx.x + blockDim.x *
+    // blockIdx.x, result.scan);
 
     // add carry-in back to each value
     cur_item = placement.a_index;
     carry_in = tid > 0;
+    // carry_in = tid > 0 && ! has_head_flag;
+    // printf("%5d carry in? %5d\n", threadIdx.x + blockDim.x * blockIdx.x,
+    // carry_in);
+
     iterate<vt>([&](int i) {
       if (p[i]) {
         if (type == scan_type_inc) {
@@ -106,9 +118,14 @@ struct cta_lbs_segscan_t {
       // p[vt-1] checks if the current node (the last of the cta)
       //   is a segment node.  If so, no carryout.
       if (p[vt - 1]) {
-        carry_out_values[cta] = (type == scan_type_inc)
-                                    ? output[cur_item - 1]
-                                    : op(result.scan, x[vt - 1]);
+        // Note the carry out doesn't depend on the scan type!
+        carry_out_values[cta] =
+            carry_in ? op(result.scan, x[vt - 1]) : x[vt - 1];
+        // old carry_out_values[cta] = (type == scan_type_inc)
+        // old   ? output[cur_item - 1]
+        // old   : op(result.scan, x[vt - 1]);
+        // printf("carry_out_values cta=%5d thread=%5d %5.3f\n", cta,
+        // threadIdx.x + blockDim.x * blockIdx.x, carry_out_values[cta]);
       } else {
         carry_out_values[cta] = init;
       }
@@ -117,6 +134,7 @@ struct cta_lbs_segscan_t {
     // store when the first input scan stops
     if (tid == 0) {
       carry_out_codes[cta] = (stopindex << 1) + segment_has_head_flag;
+      // printf("carry_out_codes %5d %5d\n", cta, carry_out_codes[cta]);
     }
   }
 };
@@ -282,6 +300,19 @@ void kernel_segscan(
       count, segments, num_segments, cta_dim.nv(), mp_data, context);
   nvtx_range_pop();
 
+  // std::cout << std::flush << "load balance partitions\n";
+  // int n_elements = ceil((count + num_segments) / (256)) + 1;
+  // int * mp_data_cpu = new int[n_elements];
+  // cudaMemcpy(mp_data_cpu, mp_data, n_elements * sizeof(int),
+  // cudaMemcpyDeviceToHost); for (int i = 0; i < n_elements; ++i) {
+  //   printf(" %5d", mp_data_cpu[i]);
+  //   if (i % 10 == 9) {
+  //     printf("\n");
+  //   }
+  // }
+  // delete [] mp_data_cpu;
+  // std::cout << std::endl;
+
   // "upward" scan:
   //   - within each CTA, run the forward segscan
   //   - compute the value to be passed to the next CTA (carry_out_data)
@@ -312,6 +343,8 @@ void kernel_segscan(
           int seg = lbs.segments[i];
           int rank = lbs.ranks[i];
           strided_values[i] = f(index, seg, rank);
+          // printf("strided values %5d index %d %5.0f\n", threadIdx.x +
+          // blockDim.x * blockIdx.x, index, strided_values[i]);
         },
         tid,
         lbs.merge_range.a_count());
@@ -388,6 +421,7 @@ void kernel_segscan(
   };
   cta_launch<launch_t>(k_finalsweep, num_ctas - 1, context);
   nvtx_range_pop();
+  // std::cout << std::flush;
 }
 
 }  // namespace kinematics

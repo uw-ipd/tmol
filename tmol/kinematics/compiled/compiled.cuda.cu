@@ -220,6 +220,9 @@ struct ForwardKinDispatch {
       // reindexing function
       nvtx_range_push("dispatch::segscan");
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
+        if (nodestart + index == 7974) {
+          printf("read ca: %5d %5d %5d\n", index, seg, rank);
+        }
         return *((HTRawBuffer<Real>*)HTs[nodes[nodestart + index]].data());
       };
 

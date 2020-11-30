@@ -14,6 +14,9 @@ from tmol.pack.rotamer.build_rotamers import (
     measure_dofs_from_orig_coords,
     rebuild_poses_if_necessary,
     annotate_everything,
+    merge_chi_samples,
+    copy_dofs_from_orig_to_rotamers,
+    assign_dofs_from_samples,
     create_dof_inds_to_copy_from_orig_to_rotamers,
 )
 from tmol.system.ideal_coords import build_ideal_coords, normalize
@@ -1093,9 +1096,10 @@ def test_build_lots_of_rotamers(ubq_res, default_database, torch_device):
     # print("resnames")
     # print([res.residue_type.name for res in ubq_res[:subset_len]])
 
-    n_poses = 10
+    n_poses = 6
     p = Pose.from_residues_one_chain(ubq_res, torch_device)
     poses = Poses.from_poses([p] * n_poses, torch_device)
+
     palette = PackerPalette(rts)
     task = PackerTask(poses, palette)
     # leu_set = set(["LEU"])
@@ -1125,8 +1129,11 @@ def test_build_lots_of_rotamers(ubq_res, default_database, torch_device):
         # print("n_rots", n_rots)
 
         # all the rotamers should be the same on all n_poses copies of ubq
-        n_rots_per_pose = n_rots // n_poses + 1
+        n_rots_per_pose = n_rots // n_poses
         # assert n_rots_per_pose * n_poses == n_rots
+
+        n_ats_per_pose = n_rots_per_pose * poses.coords.shape[2]
+        n_ats_per_block = poses.coords.shape[2]
 
         new_coords = new_coords.cpu().numpy()
 
@@ -1140,6 +1147,7 @@ def test_build_lots_of_rotamers(ubq_res, default_database, torch_device):
             i_offset = i * n_rots_per_pose
             all_good = True
             for j in range(0, n_rots_per_pose):
+                j_rot_good = True
                 for k in range(0, new_coords.shape[1]):
 
                     dist = numpy.linalg.norm(
@@ -1149,32 +1157,40 @@ def test_build_lots_of_rotamers(ubq_res, default_database, torch_device):
                         continue
 
                     all_good = False
-                    # print("rot discrepancy")
-                    # print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
-                    # print(
-                    #     "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
-                    # )
-                    print(
-                        "%4d %7d %3d %7.3f -- %7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
-                        % (
-                            i,
-                            j,
-                            k,
-                            numpy.linalg.norm(
-                                new_coords[j, k, :] - new_coords[i_offset + j, k, :]
-                            ),
-                            new_coords[j, k, 0],
-                            new_coords[j, k, 1],
-                            new_coords[j, k, 2],
-                            new_coords[i_offset + j, k, 0],
-                            new_coords[i_offset + j, k, 1],
-                            new_coords[i_offset + j, k, 2],
+                    j_rot_good = False
+                if not j_rot_good:
+                    print()
+                    for k in range(0, new_coords.shape[1]):
+                        dist = numpy.linalg.norm(
+                            new_coords[j, k, :] - new_coords[i_offset + j, k, :]
                         )
-                    )
-                    # numpy.testing.assert_almost_equal(
-                    #     new_coords[j, k, :], new_coords[i_offset + j, k, :]
-                    # )
-            assert all_good
+                        # print("rot discrepancy")
+                        # print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
+                        # print(
+                        #     "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
+                        # )
+                        print(
+                            "%4d %7d %3d %6d %7.3f -- %7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
+                            % (
+                                i,
+                                j,
+                                k,
+                                i * n_ats_per_pose + j * n_ats_per_block + k,
+                                numpy.linalg.norm(
+                                    new_coords[j, k, :] - new_coords[i_offset + j, k, :]
+                                ),
+                                new_coords[j, k, 0],
+                                new_coords[j, k, 1],
+                                new_coords[j, k, 2],
+                                new_coords[i_offset + j, k, 0],
+                                new_coords[i_offset + j, k, 1],
+                                new_coords[i_offset + j, k, 2],
+                            )
+                        )
+                        # numpy.testing.assert_almost_equal(
+                        #     new_coords[j, k, :], new_coords[i_offset + j, k, :]
+                        # )
+            # assert all_good
 
         for i in range(1, n_poses):
             numpy.testing.assert_almost_equal(
@@ -1182,3 +1198,199 @@ def test_build_lots_of_rotamers(ubq_res, default_database, torch_device):
                 new_coords[(n_rots_per_pose * i) : (n_rots_per_pose * (i + 1))],
                 decimal=5,
             )
+
+
+def test_create_dofs_for_many_rotamers(ubq_res, default_database, torch_device):
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    # replace them with residues constructed from the residue types
+    # that live in our locally constructed set of refined residue types
+    ubq_res = [
+        attr.evolve(
+            res,
+            residue_type=next(
+                rt for rt in rts.residue_types if rt.name == res.residue_type.name
+            ),
+        )
+        for res in ubq_res
+    ]
+    n_poses = 6
+    p = Pose.from_residues_one_chain(ubq_res, torch_device)
+    poses = Poses.from_poses([p] * n_poses, torch_device)
+    palette = PackerPalette(rts)
+    task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
+
+    param_resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    dun_sampler = DunbrackChiSampler.from_database(param_resolver)
+    fixed_sampler = FixedAAChiSampler()
+    task.add_chi_sampler(dun_sampler)
+    task.add_chi_sampler(fixed_sampler)
+    chem_db = default_database.chemical
+
+    ###########################################
+    # Now the contents of build rotamers right
+    # up to the coordinate calc
+    ###########################################
+    poses, samplers = rebuild_poses_if_necessary(poses, task)
+    pbt = poses.packed_block_types
+    annotate_everything(chem_db, samplers, pbt)
+
+    n_sys = poses.coords.shape[0]
+    max_n_blocks = poses.coords.shape[1]
+    max_n_rts = max(
+        len(rts.allowed_restypes)
+        for one_pose_rlts in task.rlts
+        for rts in one_pose_rlts
+    )
+    real_rts = numpy.zeros((n_sys, max_n_blocks, max_n_rts), dtype=numpy.int32)
+    rt_names = [
+        rt.name
+        for one_pose_rlts in task.rlts
+        for rlt in one_pose_rlts
+        for rt in rlt.allowed_restypes
+    ]
+    rt_block_inds = pbt.restype_index.get_indexer(rt_names).astype(numpy.int32)
+
+    chi_samples = [sampler.sample_chi_for_poses(poses, task) for sampler in samplers]
+    merged_samples = merge_chi_samples(chi_samples)
+    n_rots_for_rt, sampler_for_rotamer, all_rt_for_rotamer, all_chi_atoms, all_chi = (
+        merged_samples
+    )
+
+    n_rots = all_chi_atoms.shape[0]
+    rt_for_rot = torch.zeros(n_rots, dtype=torch.int64, device=poses.device)
+    n_rots_for_all_samples_cumsum = torch.cumsum(n_rots_for_rt, dim=0)
+    rots_for_sample_offset = torch.cat(
+        (
+            torch.zeros(1, dtype=torch.int64, device=poses.device),
+            n_rots_for_all_samples_cumsum[:-1],
+        )
+    )
+    rt_for_rot[n_rots_for_all_samples_cumsum[:-1]] = 1
+    rt_for_rot = torch.cumsum(rt_for_rot, dim=0).cpu().numpy()
+
+    block_ind_for_rot = rt_block_inds[rt_for_rot]
+    block_ind_for_rot_torch = torch.tensor(
+        block_ind_for_rot, dtype=torch.int64, device=pbt.device
+    )
+    n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
+    n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
+    n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
+    n_atoms_total = n_atoms_offset_for_rot[-1]
+    n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
+
+    rot_kintree = construct_kintree_for_rotamers(
+        pbt,
+        block_ind_for_rot,
+        int(n_atoms_total),
+        torch.tensor(n_atoms_for_rot, dtype=torch.int32),
+        numpy.arange(n_rots, dtype=numpy.int32) * pbt.max_n_atoms,
+        pbt.device,
+    )
+
+    nodes, scans, gens = construct_scans_for_rotamers(
+        pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot
+    )
+
+    # Not clear what the rt_sample_offsets tensor will be needed for
+    # rt_sample_offsets = torch.cumsum(
+    #     n_rots_for_all_samples.view(-1), dim=0, dtype=torch.int32
+    # )
+    # n_rotamers = rt_sample_offsets[-1].item()
+    # # print("n_rotamers")
+    # # print(n_rotamers)
+    #
+    # rt_sample_offsets[1:] = rt_sample_offsets[:-1]
+    # rt_sample_offsets[0] = 0
+    # rt_sample_offsets = rt_sample_offsets.view(n_sys, max_n_blocks, max_n_rts)
+
+    # rotamer_coords = torch.zeros((n_rotamers, pbt.max_n_atoms, 3), dtype=torch.float32)
+
+    # measure the DOFs for the original residues
+
+    pbi = poses.block_inds.view(-1)
+    orig_res_block_ind = pbi[pbi != -1]
+    real_orig_block_ind = orig_res_block_ind != -1
+    nz_real_orig_block_ind = torch.nonzero(real_orig_block_ind).flatten()
+    orig_atom_offset_for_rot = (
+        nz_real_orig_block_ind.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms
+    )
+
+    n_atoms_for_orig = pbt.n_atoms[orig_res_block_ind.to(torch.int64)]
+    n_atoms_offset_for_orig = torch.cumsum(n_atoms_for_orig, dim=0)
+    n_atoms_offset_for_orig = n_atoms_offset_for_orig.cpu().numpy()
+    n_orig_atoms_total = n_atoms_offset_for_orig[-1]
+
+    orig_kintree = construct_kintree_for_rotamers(
+        pbt,
+        orig_res_block_ind.cpu().numpy(),
+        int(n_orig_atoms_total),
+        n_atoms_for_orig,
+        orig_atom_offset_for_rot,
+        poses.device,
+    )
+
+    # orig_dofs returned in kintree order
+    orig_dofs_kto = measure_dofs_from_orig_coords(poses.coords, orig_kintree)
+
+    n_rotamer_atoms = torch.sum(n_atoms_for_rot).item()
+
+    rot_dofs_kto = torch.zeros(
+        (n_rotamer_atoms + 1, 9), dtype=torch.float32, device=pbt.device
+    )
+
+    rot_dofs_kto[1:] = torch.tensor(
+        pbt.rotamer_kintree.dofs_ideal[block_ind_for_rot].reshape((-1, 9))[
+            pbt.atom_is_real.cpu().numpy()[block_ind_for_rot].reshape(-1) != 0
+        ],
+        dtype=torch.float32,
+        device=pbt.device,
+    )
+
+    rt_for_rot_torch = torch.tensor(rt_for_rot, dtype=torch.int64, device=pbt.device)
+
+    copy_dofs_from_orig_to_rotamers(
+        poses,
+        task,
+        samplers,
+        rt_for_rot_torch,
+        block_ind_for_rot_torch,
+        sampler_for_rotamer,
+        torch.tensor(n_atoms_offset_for_rot, dtype=torch.int32, device=pbt.device),
+        orig_dofs_kto,
+        rot_dofs_kto,
+    )
+
+    assign_dofs_from_samples(
+        pbt,
+        rt_for_rot_torch,
+        block_ind_for_rot_torch,
+        all_chi_atoms,
+        all_chi,
+        rot_dofs_kto,
+    )
+
+    ###########################################
+    # ok, now let's make sure that rot_dofs_kto
+    # is a perfect copy from beginning to end
+    ###########################################
+
+    rot_dofs_kto = rot_dofs_kto.cpu().numpy()
+    n_rot_atoms = rot_dofs_kto.shape[0] - 1
+
+    # all the rotamers should be the same on all n_poses copies of ubq
+    # there's going to be one extra atom for the root
+    n_rot_atoms_per_pose = n_rot_atoms // n_poses
+    assert n_rot_atoms_per_pose * n_poses == n_rot_atoms
+
+    for i in range(1, n_poses):
+        numpy.testing.assert_almost_equal(
+            rot_dofs_kto[1 : n_rot_atoms_per_pose + 1],
+            rot_dofs_kto[
+                (n_rot_atoms_per_pose * i + 1) : (n_rot_atoms_per_pose * (i + 1) + 1)
+            ],
+            decimal=5,
+        )
