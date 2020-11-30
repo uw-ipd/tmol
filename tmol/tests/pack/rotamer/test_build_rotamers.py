@@ -1120,84 +1120,79 @@ def test_build_lots_of_rotamers(ubq_res, default_database, torch_device):
         poses, task, default_database.chemical
     )
 
-    if True:
-        # if torch_device == torch.device("cpu"):
-        # for some reason, the number of rotamers built on the GPU is not consistent
-        # between poses, and it's not clear to me why they would not be.
+    n_rots = new_coords.shape[0]
+    # print("n_rots", n_rots)
 
-        n_rots = new_coords.shape[0]
-        # print("n_rots", n_rots)
+    # all the rotamers should be the same on all n_poses copies of ubq
+    n_rots_per_pose = n_rots // n_poses
+    assert n_rots_per_pose * n_poses == n_rots
 
-        # all the rotamers should be the same on all n_poses copies of ubq
-        n_rots_per_pose = n_rots // n_poses
-        # assert n_rots_per_pose * n_poses == n_rots
+    n_ats_per_pose = n_rots_per_pose * poses.coords.shape[2]
+    n_ats_per_block = poses.coords.shape[2]
 
-        n_ats_per_pose = n_rots_per_pose * poses.coords.shape[2]
-        n_ats_per_block = poses.coords.shape[2]
+    new_coords = new_coords.cpu().numpy()
 
-        new_coords = new_coords.cpu().numpy()
+    # print(new_coords[:50].cpu().numpy())
 
-        # print(new_coords[:50].cpu().numpy())
+    # for writing coordinates into a pdb
+    # print("new coords")
+    # print(new_coords.shape)
+    # rot = new_coords.shape[0] - 3  # arg on 74 of last pose
+    #  for i in range(1, n_poses):
+    #      i_offset = i * n_rots_per_pose
+    #      all_good = True
+    #      for j in range(0, n_rots_per_pose):
+    #          j_rot_good = True
+    #          for k in range(0, new_coords.shape[1]):
+    #
+    #              dist = numpy.linalg.norm(
+    #                  new_coords[j, k, :] - new_coords[i_offset + j, k, :]
+    #              )
+    #              if dist < 1e-5:
+    #                  continue
+    #
+    #              all_good = False
+    #              j_rot_good = False
+    #          if not j_rot_good:
+    #              print()
+    #              for k in range(0, new_coords.shape[1]):
+    #                  dist = numpy.linalg.norm(
+    #                      new_coords[j, k, :] - new_coords[i_offset + j, k, :]
+    #                  )
+    #                  # print("rot discrepancy")
+    #                  # print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
+    #                  # print(
+    #                  #     "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
+    #                  # )
+    #                  print(
+    #                      "%4d %7d %3d %6d %7.3f -- %7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
+    #                      % (
+    #                          i,
+    #                          j,
+    #                          k,
+    #                          i * n_ats_per_pose + j * n_ats_per_block + k,
+    #                          numpy.linalg.norm(
+    #                              new_coords[j, k, :] - new_coords[i_offset + j, k, :]
+    #                          ),
+    #                          new_coords[j, k, 0],
+    #                          new_coords[j, k, 1],
+    #                          new_coords[j, k, 2],
+    #                          new_coords[i_offset + j, k, 0],
+    #                          new_coords[i_offset + j, k, 1],
+    #                          new_coords[i_offset + j, k, 2],
+    #                      )
+    #                  )
+    #                  # numpy.testing.assert_almost_equal(
+    #                  #     new_coords[j, k, :], new_coords[i_offset + j, k, :]
+    #                  # )
+    #      # assert all_good
 
-        # for writing coordinates into a pdb
-        # print("new coords")
-        # print(new_coords.shape)
-        # rot = new_coords.shape[0] - 3  # arg on 74 of last pose
-        for i in range(1, n_poses):
-            i_offset = i * n_rots_per_pose
-            all_good = True
-            for j in range(0, n_rots_per_pose):
-                j_rot_good = True
-                for k in range(0, new_coords.shape[1]):
-
-                    dist = numpy.linalg.norm(
-                        new_coords[j, k, :] - new_coords[i_offset + j, k, :]
-                    )
-                    if dist < 1e-5:
-                        continue
-
-                    all_good = False
-                    j_rot_good = False
-                if not j_rot_good:
-                    print()
-                    for k in range(0, new_coords.shape[1]):
-                        dist = numpy.linalg.norm(
-                            new_coords[j, k, :] - new_coords[i_offset + j, k, :]
-                        )
-                        # print("rot discrepancy")
-                        # print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
-                        # print(
-                        #     "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
-                        # )
-                        print(
-                            "%4d %7d %3d %6d %7.3f -- %7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
-                            % (
-                                i,
-                                j,
-                                k,
-                                i * n_ats_per_pose + j * n_ats_per_block + k,
-                                numpy.linalg.norm(
-                                    new_coords[j, k, :] - new_coords[i_offset + j, k, :]
-                                ),
-                                new_coords[j, k, 0],
-                                new_coords[j, k, 1],
-                                new_coords[j, k, 2],
-                                new_coords[i_offset + j, k, 0],
-                                new_coords[i_offset + j, k, 1],
-                                new_coords[i_offset + j, k, 2],
-                            )
-                        )
-                        # numpy.testing.assert_almost_equal(
-                        #     new_coords[j, k, :], new_coords[i_offset + j, k, :]
-                        # )
-            # assert all_good
-
-        for i in range(1, n_poses):
-            numpy.testing.assert_almost_equal(
-                new_coords[:n_rots_per_pose],
-                new_coords[(n_rots_per_pose * i) : (n_rots_per_pose * (i + 1))],
-                decimal=5,
-            )
+    for i in range(1, n_poses):
+        numpy.testing.assert_almost_equal(
+            new_coords[:n_rots_per_pose],
+            new_coords[(n_rots_per_pose * i) : (n_rots_per_pose * (i + 1))],
+            decimal=5,
+        )
 
 
 def test_create_dofs_for_many_rotamers(ubq_res, default_database, torch_device):

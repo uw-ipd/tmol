@@ -182,7 +182,6 @@ def update_scan_starts(
     for i in range(n_gens - 1):
         for j in range(n_rotamers):
             for k in range(ngenStack[i, j]):
-                # print("i", i, "j", j, "k", k, "gss:", genStartsStack[j, i, 1] + k)
                 scanStarts[count] = (
                     atomStartsOffsets[i, j]
                     + scanStartsStack[j, genStartsStack[j, i, 1] + k]
@@ -434,15 +433,12 @@ def merge_chi_samples(chi_samples):
     all_rt_for_rotamer_unsorted = torch.cat([samples[1] for samples in chi_samples])
     n_rotamers = all_rt_for_rotamer_unsorted.shape[0]
     max_n_rotamers_per_rt = max(torch.max(samples[0]).item() for samples in chi_samples)
-    # torch.set_printoptions(threshold=10000)
 
     for i, samples in enumerate(chi_samples):
         rot_counter_for_rt = (
             torch.arange(samples[1].shape[0], dtype=torch.int64, device=device)
             - rt_nrot_offsets[i][samples[1].to(torch.int64)]
         )
-        # print("rot counter for rt")
-        # print(rot_counter_for_rt)
         numpy.testing.assert_array_less(
             rot_counter_for_rt.cpu().numpy(), max_n_rotamers_per_rt
         )
@@ -456,11 +452,6 @@ def merge_chi_samples(chi_samples):
             for i, samples in enumerate(chi_samples)
         ]
     )
-    # print("sort_rt_for_rotamer")
-    # print(sort_rt_for_rotamer)
-    # print()
-    # print("max sort rt for rotamer")
-    # print(torch.max(sort_rt_for_rotamer).item())
     sampler_for_rotamer_unsorted = torch.cat(
         [
             torch.full((samples[1].shape[0],), i, dtype=torch.int64)
@@ -473,11 +464,7 @@ def merge_chi_samples(chi_samples):
 
     assert uniq_sort_rt_for_rotamer.shape[0] == sort_rt_for_rotamer_sorted.shape[0]
 
-    # print("sort_ind_for_rotamer")
-    # print(sort_ind_for_rotamer)
     sampler_for_rotamer = sampler_for_rotamer_unsorted[sort_ind_for_rotamer]
-    # print("sampler_for_rotamer")
-    # print(sampler_for_rotamer)
 
     all_rt_for_rotamer = torch.cat([samples[1] for samples in chi_samples])[
         sort_ind_for_rotamer
@@ -504,12 +491,6 @@ def merge_chi_samples(chi_samples):
 
     all_chi_atoms = all_chi_atoms[sort_ind_for_rotamer]
     all_chi = all_chi[sort_ind_for_rotamer]
-    # print("all_chi")
-    # for i in range(all_chi.shape[0]):
-    #     print("%5d" % i, end="")
-    #     for j in range(all_chi.shape[1]):
-    #         print(" %7.3f" % all_chi[i, j], end="")
-    #     print()
 
     # ok, now we need to figure out how many rotamers each rt is getting.
     n_rots_for_rt = toolz.reduce(torch.add, [samples[0] for samples in chi_samples])
@@ -542,7 +523,6 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
 
     pbt = poses.packed_block_types
     n_rots = n_dof_atoms_offset_for_rot.shape[0]
-    # print("n_rots", n_rots)
 
     sampler_ind_mapping = torch.tensor(
         [
@@ -598,25 +578,12 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     # the destination for the dofs we're copying
     max_n_mcfp_atoms = mcfp.atom_mapping.shape[3]
 
-    # print("mcfp.atom_mapping")
-    # print(mcfp.atom_mapping)
-    # print("sampler_ind_for_rot")
-    # print(sampler_ind_for_rot)
-
-    # print("block_ind_for_rot")
-    # print(block_ind_for_rot)
-    # print("orig_res_mcfp_for_rot")
-    # print(orig_res_mcfp_for_rot)
-
     rot_mcfp_at_inds_rto = mcfp.atom_mapping[
         sampler_ind_for_rot, orig_res_mcfp_for_rot, block_ind_for_rot, :
     ].view(-1)
-    # print("rot_mcfp_at_inds_rto")
-    # print(rot_mcfp_at_inds_rto)
+
     real_rot_mcfp_at_inds_rto = rot_mcfp_at_inds_rto[rot_mcfp_at_inds_rto != -1]
-    # print("real_rot_mcfp_at_inds_rto")
-    # print(real_rot_mcfp_at_inds_rto.shape)
-    # print(real_rot_mcfp_at_inds_rto)
+
     real_rot_block_ind_for_mcfp_ats = stretch(block_ind_for_rot, max_n_mcfp_atoms)[
         rot_mcfp_at_inds_rto != -1
     ]
@@ -739,10 +706,6 @@ def copy_dofs_from_orig_to_rotamers(
         sampler_for_rotamer,
         n_dof_atoms_offset_for_rot,
     )
-    # print("dst")
-    # print(dst)
-    # print("src")
-    # print(src)
 
     rot_dofs_kto[dst, :] = orig_dofs_kto[src, :]
 
@@ -760,11 +723,6 @@ def assign_dofs_from_samples(
     assert rt_for_rot.shape[0] == block_ind_for_rot.shape[0]
     assert rt_for_rot.shape[0] == chi_atoms.shape[0]
 
-    # print("rt_for_rot")
-    # print(rt_for_rot)
-    # print("block_ind_for_rot")
-    # print(block_ind_for_rot)
-
     n_atoms = pbt.n_atoms[block_ind_for_rot]
     n_rots = rt_for_rot.shape[0]
 
@@ -777,13 +735,8 @@ def assign_dofs_from_samples(
         torch.arange(max_n_chi_atoms * n_rots, dtype=torch.int64, device=pbt.device),
         max_n_chi_atoms,
     )[real_atoms]
-    # print("rot_ind_for_real_atom")
-    # print(rot_ind_for_real_atom)
 
     block_ind_for_rot_atom = block_ind_for_rot[rot_ind_for_real_atom].cpu().numpy()
-
-    # print("block_ind_for_rot_atom")
-    # print(block_ind_for_rot_atom)
 
     rot_chi_atoms_kto = torch.tensor(
         pbt.rotamer_kintree.kintree_idx[
@@ -794,36 +747,12 @@ def assign_dofs_from_samples(
     )
     # increment with the atom offsets for the source rotamer and by
     # one to include the virtual root
-    torch.set_printoptions(threshold=100000)
-    # print("rot_chi_atoms_kto")
-    # print(rot_chi_atoms_kto)
-    # print("rot_ind_for_real_atom")
-    # print(rot_ind_for_real_atom)
 
     rot_chi_atoms_kto += atom_offset_for_rot[rot_ind_for_real_atom].to(torch.int64) + 1
-
-    # TEMP!!!
-    #  sorted_rot_chi_atoms_kto, inds = torch.sort(rot_chi_atoms_kto)
-    #  uniq_rot_chi_atoms_kto = torch.unique(sorted_rot_chi_atoms_kto)
-    #
-    #  print("sorted_rot_chi_atoms_kto")
-    #  print(sorted_rot_chi_atoms_kto)
-    #  assert sorted_rot_chi_atoms_kto.shape[0] == uniq_rot_chi_atoms_kto.shape[0]
-
-    # print("rot_chi_atoms_kto w/ offsets")
-    # print(rot_chi_atoms_kto)
 
     # overwrite the "downstream torsion" for the atoms that control
     # each chi
     rot_dofs_kto[rot_chi_atoms_kto, 3] = chi.view(-1)[real_atoms]
-
-    # print("chi")
-    # for i in range(chi.shape[0]):
-    #     print(i, chi[i])
-    #
-    # print("rot_dofs_kto")
-    # for i in range(rot_dofs_kto.shape[0]):
-    #     print(i, rot_dofs_kto[i][0:4])
 
 
 def calculate_rotamer_coords(
@@ -835,19 +764,6 @@ def calculate_rotamer_coords(
     gens: NDArray(numpy.int32)[:],
     rot_dofs_kto: Tensor(torch.float32)[:, 9],
 ):
-    print("rot kintree:")
-    print(torch.nonzero(rot_kintree.id == 88152))  # 65053
-    print(rot_kintree.id[(65053 - 10) : (65053 + 10)])
-
-    # numpy.set_printoptions(threshold=200000)
-    print("nodes")
-    print(numpy.nonzero(nodes == 65053))  # 29093
-    print(nodes[(29093 - 10) : (29093 + 10)])
-    print("scans")
-    print(numpy.nonzero(scans == 29092))
-    # print("gens")
-    # print(gens)
-
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)
 

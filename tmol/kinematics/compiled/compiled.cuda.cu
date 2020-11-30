@@ -189,10 +189,8 @@ struct ForwardKinDispatch {
     auto HTscan_t = TPack<HomogeneousTransform, 1, D>::empty({scanBuffer});
     auto HTscan = HTscan_t.view;
     HTRawBuffer<Real> init = {
-        1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0};  // identity xform
+        1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};  // identity xform
     nvtx_range_pop();
-
-    // printf("[0] alloc=%d\n", carryoutBuffer);
 
     // dofs -> HTs
     nvtx_range_push("dispatch::dof2ht");
@@ -220,9 +218,6 @@ struct ForwardKinDispatch {
       // reindexing function
       nvtx_range_push("dispatch::segscan");
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
-        if (nodestart + index == 7974) {
-          printf("read ca: %5d %5d %5d\n", index, seg, rank);
-        }
         return *((HTRawBuffer<Real>*)HTs[nodes[nodestart + index]].data());
       };
 
