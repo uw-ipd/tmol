@@ -119,7 +119,7 @@ def build_coords_from_icoors(icoors_ancestors, icoors_geom):
     return coords
 
 
-def build_ideal_coords(restype: "RefinedResidueType"):
+def build_ideal_coords(restype: "RefinedResidueType"):  # noqa F821
 
     # lets build a kintree using not the prioritized bonds,
     # but the icoors; let's not even use the scan algorithm.

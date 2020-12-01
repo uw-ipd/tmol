@@ -1,8 +1,6 @@
 import numpy
-import numba
 import torch
 import attr
-import cattr
 
 from tmol.pack.rotamer.build_rotamers import (
     annotate_restype,
@@ -19,16 +17,14 @@ from tmol.pack.rotamer.build_rotamers import (
     assign_dofs_from_samples,
     create_dof_inds_to_copy_from_orig_to_rotamers,
 )
-from tmol.system.ideal_coords import build_ideal_coords, normalize
-from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
+
+from tmol.system.restypes import ResidueTypeSet
 from tmol.system.pose import PackedBlockTypes, Pose, Poses
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
-from tmol.numeric.dihedrals import coord_dihedrals
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
@@ -98,6 +94,8 @@ def test_build_rotamers_smoke(ubq_res, default_database, torch_device):
     task.add_chi_sampler(fixed_sampler)
 
     new_coords = build_rotamers(poses, task, default_database.chemical)
+    assert new_coords
+
     # print(new_coords[:50].cpu().numpy())
 
     # for writing coordinates into a pdb
@@ -138,7 +136,6 @@ def test_construct_scans_for_rotamers(default_database, torch_device):
     n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
     n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
     n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
-    n_atoms_total = n_atoms_offset_for_rot[-1]
     n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
 
     nodes, scans, gens = construct_scans_for_rotamers(
@@ -221,7 +218,6 @@ def test_construct_scans_for_rotamers2(default_database, torch_device):
     n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
     n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
     n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
-    n_atoms_total = n_atoms_offset_for_rot[-1]
     n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
 
     nodes, scans, gens = construct_scans_for_rotamers(
@@ -423,7 +419,7 @@ def test_inv_kin_rotamers(default_database, ubq_res, torch_device):
         dofs_new,
         _p(_t(leu_rt.rotamer_kintree.nodes)),
         _p(_t(leu_rt.rotamer_kintree.scans)),
-        _p(torch.tensor(leu_rt.rotamer_kintree.gens, dtype=torch.int32)),  ## CPU!
+        _p(torch.tensor(leu_rt.rotamer_kintree.gens, dtype=torch.int32)),  # CPU!
         leu_kintree,
     )
     assert new_coords.shape == (leu_rt.n_atoms + 1, 3)
@@ -436,7 +432,13 @@ def test_inv_kin_rotamers(default_database, ubq_res, torch_device):
     # for writing coordinates into a pdb
     # print("new coords")
     # for i in range(0, reordered_coords.shape[0]):
-    #    print("%6.3f %7.3f %7.3f" % (reordered_coords[i,0], reordered_coords[i,1], reordered_coords[i,2]))
+    #    print("%6.3f %7.3f %7.3f" %
+    #        (
+    #            reordered_coords[i,0],
+    #            reordered_coords[i,1],
+    #            reordered_coords[i,2],
+    #        )
+    #    )
 
     # make sure that the coordinates of the mainchain atoms that should
     # have been "copied" from the original position are in essentially the same
@@ -461,7 +463,6 @@ def test_construct_kintree_for_rotamers(default_database, ubq_res, torch_device)
         )
         for res in ubq_res
     ]
-    p = Pose.from_residues_one_chain(ubq_res[:3], torch_device)
 
     param_resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
@@ -478,7 +479,6 @@ def test_construct_kintree_for_rotamers(default_database, ubq_res, torch_device)
     annotate_packed_block_types(pbt)
 
     leu_rt = leu_met_rt_list[0]
-    met_rt = leu_met_rt_list[1]
 
     kt1 = construct_kintree_for_rotamers(
         pbt,
@@ -569,7 +569,6 @@ def test_construct_kintree_for_rotamers2(default_database, ubq_res, torch_device
         )
         for res in ubq_res
     ]
-    p = Pose.from_residues_one_chain(ubq_res[:3], torch_device)
 
     param_resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
@@ -586,7 +585,6 @@ def test_construct_kintree_for_rotamers2(default_database, ubq_res, torch_device
     annotate_packed_block_types(pbt)
 
     leu_rt = leu_met_rt_list[0]
-    met_rt = leu_met_rt_list[1]
 
     kt1 = construct_kintree_for_rotamers(
         pbt,
@@ -762,7 +760,12 @@ def test_measure_original_dofs(ubq_res, default_database, torch_device):
     # print("new coords")
     # for i in range(0, new_coords.shape[0]):
     #     print(
-    #         "%7.3f %7.3f %7.3f" % (new_coords[i, 0], new_coords[i, 1], new_coords[i, 2])
+    #         "%7.3f %7.3f %7.3f" %
+    #         (
+    #             new_coords[i, 0],
+    #             new_coords[i, 1],
+    #             new_coords[i, 2]
+    #         )
     #     )
 
 
@@ -880,7 +883,12 @@ def test_measure_original_dofs2(ubq_res, default_database, torch_device):
     # print("new coords")
     # for i in range(0, new_coords.shape[0]):
     #     print(
-    #         "%7.3f %7.3f %7.3f" % (new_coords[i, 0], new_coords[i, 1], new_coords[i, 2])
+    #         "%7.3f %7.3f %7.3f" %
+    #         (
+    #             new_coords[i, 0],
+    #             new_coords[i, 1],
+    #             new_coords[i, 2]
+    #         )
     #     )
 
 
@@ -1121,71 +1129,12 @@ def test_build_lots_of_rotamers(ubq_res, default_database, torch_device):
     )
 
     n_rots = new_coords.shape[0]
-    # print("n_rots", n_rots)
 
     # all the rotamers should be the same on all n_poses copies of ubq
     n_rots_per_pose = n_rots // n_poses
     assert n_rots_per_pose * n_poses == n_rots
 
-    n_ats_per_pose = n_rots_per_pose * poses.coords.shape[2]
-    n_ats_per_block = poses.coords.shape[2]
-
     new_coords = new_coords.cpu().numpy()
-
-    # print(new_coords[:50].cpu().numpy())
-
-    # for writing coordinates into a pdb
-    # print("new coords")
-    # print(new_coords.shape)
-    # rot = new_coords.shape[0] - 3  # arg on 74 of last pose
-    #  for i in range(1, n_poses):
-    #      i_offset = i * n_rots_per_pose
-    #      all_good = True
-    #      for j in range(0, n_rots_per_pose):
-    #          j_rot_good = True
-    #          for k in range(0, new_coords.shape[1]):
-    #
-    #              dist = numpy.linalg.norm(
-    #                  new_coords[j, k, :] - new_coords[i_offset + j, k, :]
-    #              )
-    #              if dist < 1e-5:
-    #                  continue
-    #
-    #              all_good = False
-    #              j_rot_good = False
-    #          if not j_rot_good:
-    #              print()
-    #              for k in range(0, new_coords.shape[1]):
-    #                  dist = numpy.linalg.norm(
-    #                      new_coords[j, k, :] - new_coords[i_offset + j, k, :]
-    #                  )
-    #                  # print("rot discrepancy")
-    #                  # print("rt:", rt_for_rot[j], rt_for_rot[i_offset + j])
-    #                  # print(
-    #                  #     "block_ind:", block_ind_for_rot[j], block_ind_for_rot[i_offset + j]
-    #                  # )
-    #                  print(
-    #                      "%4d %7d %3d %6d %7.3f -- %7.3f %7.3f %7.3f vs %7.3f %7.3f %7.3f"
-    #                      % (
-    #                          i,
-    #                          j,
-    #                          k,
-    #                          i * n_ats_per_pose + j * n_ats_per_block + k,
-    #                          numpy.linalg.norm(
-    #                              new_coords[j, k, :] - new_coords[i_offset + j, k, :]
-    #                          ),
-    #                          new_coords[j, k, 0],
-    #                          new_coords[j, k, 1],
-    #                          new_coords[j, k, 2],
-    #                          new_coords[i_offset + j, k, 0],
-    #                          new_coords[i_offset + j, k, 1],
-    #                          new_coords[i_offset + j, k, 2],
-    #                      )
-    #                  )
-    #                  # numpy.testing.assert_almost_equal(
-    #                  #     new_coords[j, k, :], new_coords[i_offset + j, k, :]
-    #                  # )
-    #      # assert all_good
 
     for i in range(1, n_poses):
         numpy.testing.assert_almost_equal(
@@ -1240,7 +1189,6 @@ def test_create_dofs_for_many_rotamers(ubq_res, default_database, torch_device):
         for one_pose_rlts in task.rlts
         for rts in one_pose_rlts
     )
-    real_rts = numpy.zeros((n_sys, max_n_blocks, max_n_rts), dtype=numpy.int32)
     rt_names = [
         rt.name
         for one_pose_rlts in task.rlts
@@ -1258,12 +1206,6 @@ def test_create_dofs_for_many_rotamers(ubq_res, default_database, torch_device):
     n_rots = all_chi_atoms.shape[0]
     rt_for_rot = torch.zeros(n_rots, dtype=torch.int64, device=poses.device)
     n_rots_for_all_samples_cumsum = torch.cumsum(n_rots_for_rt, dim=0)
-    rots_for_sample_offset = torch.cat(
-        (
-            torch.zeros(1, dtype=torch.int64, device=poses.device),
-            n_rots_for_all_samples_cumsum[:-1],
-        )
-    )
     rt_for_rot[n_rots_for_all_samples_cumsum[:-1]] = 1
     rt_for_rot = torch.cumsum(rt_for_rot, dim=0).cpu().numpy()
 
@@ -1277,32 +1219,9 @@ def test_create_dofs_for_many_rotamers(ubq_res, default_database, torch_device):
     n_atoms_total = n_atoms_offset_for_rot[-1]
     n_atoms_offset_for_rot = exclusive_cumsum(n_atoms_offset_for_rot)
 
-    rot_kintree = construct_kintree_for_rotamers(
-        pbt,
-        block_ind_for_rot,
-        int(n_atoms_total),
-        torch.tensor(n_atoms_for_rot, dtype=torch.int32),
-        numpy.arange(n_rots, dtype=numpy.int32) * pbt.max_n_atoms,
-        pbt.device,
-    )
-
     nodes, scans, gens = construct_scans_for_rotamers(
         pbt, block_ind_for_rot, n_atoms_for_rot, n_atoms_offset_for_rot
     )
-
-    # Not clear what the rt_sample_offsets tensor will be needed for
-    # rt_sample_offsets = torch.cumsum(
-    #     n_rots_for_all_samples.view(-1), dim=0, dtype=torch.int32
-    # )
-    # n_rotamers = rt_sample_offsets[-1].item()
-    # # print("n_rotamers")
-    # # print(n_rotamers)
-    #
-    # rt_sample_offsets[1:] = rt_sample_offsets[:-1]
-    # rt_sample_offsets[0] = 0
-    # rt_sample_offsets = rt_sample_offsets.view(n_sys, max_n_blocks, max_n_rts)
-
-    # rotamer_coords = torch.zeros((n_rotamers, pbt.max_n_atoms, 3), dtype=torch.float32)
 
     # measure the DOFs for the original residues
 

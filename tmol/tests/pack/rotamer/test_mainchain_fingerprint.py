@@ -1,9 +1,7 @@
 import numpy
 import torch
 
-from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
-
-# from tmol.pack.rotamer.build_rotamers import annotate_restype
+from tmol.system.restypes import ResidueTypeSet
 
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.system.pose import PackedBlockTypes
@@ -21,7 +19,6 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 
 def test_create_non_sidechain_fingerprint(default_database):
-    torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt = rts.restype_map["LEU"][0]
     construct_single_residue_kintree(leu_rt)

@@ -1,12 +1,9 @@
 import numpy
-import torch
 
-from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
-
-# from tmol.pack.rotamer.build_rotamers import annotate_restype
+from tmol.system.restypes import ResidueTypeSet
 from tmol.pack.rotamer.single_residue_kintree import (
     construct_single_residue_kintree,
-    coalesce_single_residue_kintrees,
+    # coalesce_single_residue_kintrees,
 )
 
 

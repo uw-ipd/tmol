@@ -1,4 +1,3 @@
-import toolz
 import attr
 import cattr
 

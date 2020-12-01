@@ -33,25 +33,6 @@ def test_nplus1d_tensor_from_list():
                     (i + 1) if (j < gold_sizes[i, 0] and k < gold_sizes[i, 1]) else 0
                 )
 
-
-def test_nplus1d_tensor_from_list():
-    ts = [
-        torch.ones([4, 4], dtype=torch.int32),
-        2 * torch.ones([3, 4], dtype=torch.int32),
-        3 * torch.ones([5, 2], dtype=torch.int32),
-        4 * torch.ones([5, 5], dtype=torch.int32),
-    ]
-    joined, sizes, strides = nplus1d_tensor_from_list(ts)
-
-    gold_sizes = numpy.array([[4, 4], [3, 4], [5, 2], [5, 5]], dtype=numpy.int64)
-    numpy.testing.assert_equal(sizes.cpu().numpy(), gold_sizes)
-    for i in range(4):
-        for j in range(5):
-            for k in range(5):
-                assert joined[i, j, k] == (
-                    (i + 1) if (j < gold_sizes[i, 0] and k < gold_sizes[i, 1]) else 0
-                )
-
     for i in range(4):
         ti = ts[i]
         assert tuple(sizes[i, :]) == ti.shape
@@ -94,13 +75,10 @@ def test_cat_diff_sized_tensors_w_diff_sizes():
     assert t.shape[2] == 4
 
     start = 0
-    for i in range(3):
-        ti = ts[i]
-        for j in range(start, start + ti.shape[0]):
-            for k in range(ti.shape[1]):
-                for l in range(ti.shape[2]):
-                    assert i + 1 == t[j, k, l]
+    for ii in range(3):
+        ti = ts[ii]
+        for jj in range(start, start + ti.shape[0]):
+            for kk in range(ti.shape[1]):
+                for ll in range(ti.shape[2]):
+                    assert ii + 1 == t[jj, kk, ll]
         start += ti.shape[0]
-
-    # t2 = torch.cat((t1,t2,t3), dim=2)
-    # numpy.testing.assert_equal(t.cpu().numpy(), t2.cpu().numpy())

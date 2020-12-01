@@ -1,5 +1,3 @@
-import torch
-
 from tmol.system.pose import PackedBlockTypes
 from tmol.score.BondDependentTerm import BondDependentTerm
 from tmol.tests.system.test_pose import two_ubq_poses

@@ -35,18 +35,19 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         lj_lk_weights[0] = weights["lj"] if "lj" in weights else 0
         lj_lk_weights[1] = weights["lk"] if "lk" in weights else 0
 
+        pbt = packed_block_types
         return LJLKInterSystemModule(
             context_system_ids=context_system_ids,
             system_min_block_bondsep=systems.min_block_bondsep,
             system_inter_block_bondsep=systems.inter_block_bondsep,
             system_neighbor_list=system_neighbor_list,
-            block_type_n_atoms=packed_block_types.n_atoms,
-            block_type_n_heavy_atoms=packed_block_types.n_heavy_atoms,
-            block_type_atom_types=packed_block_types.atom_types,
-            block_type_heavy_atom_inds=packed_block_types.heavy_atom_inds,
-            block_type_n_interblock_bonds=packed_block_types.n_interblock_bonds,
-            block_type_atoms_forming_chemical_bonds=packed_block_types.atoms_for_interblock_bonds,
-            block_type_path_distance=packed_block_types.bond_separation,
+            bt_n_atoms=pbt.n_atoms,
+            bt_n_heavy_atoms=pbt.n_heavy_atoms,
+            bt_atom_types=pbt.atom_types,
+            bt_heavy_atom_inds=pbt.heavy_atom_inds,
+            bt_n_interblock_bonds=pbt.n_interblock_bonds,
+            bt_atoms_forming_chemical_bonds=pbt.atoms_for_interblock_bonds,
+            bt_path_distance=pbt.bond_separation,
             type_params=self.type_params,
             global_params=self.global_params,
             lj_lk_weights=lj_lk_weights,
@@ -60,7 +61,6 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         # decide which atom-pair calculations to perform during
         # rotamer substititions
         sphere_centers = system_bounding_spheres[:, :, :3].clone().detach()
-        sphere_radii = system_bounding_spheres[:, :, 1].clone().detach()
         n_sys = system_bounding_spheres.shape[0]
         max_n_blocks = system_bounding_spheres.shape[1]
         sphere_centers_1 = sphere_centers.view((n_sys, -1, max_n_blocks, 3))
@@ -110,13 +110,13 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         system_min_block_bondsep,
         system_inter_block_bondsep,
         system_neighbor_list,
-        block_type_n_atoms,
-        block_type_n_heavy_atoms,
-        block_type_atom_types,
-        block_type_heavy_atom_inds,
-        block_type_n_interblock_bonds,
-        block_type_atoms_forming_chemical_bonds,
-        block_type_path_distance,
+        bt_n_atoms,
+        bt_n_heavy_atoms,
+        bt_atom_types,
+        bt_heavy_atom_inds,
+        bt_n_interblock_bonds,
+        bt_atoms_forming_chemical_bonds,
+        bt_path_distance,
         type_params,
         global_params,
         lj_lk_weights,
@@ -133,15 +133,13 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         self.system_min_block_bondsep = _p(system_min_block_bondsep)
         self.system_inter_block_bondsep = _p(system_inter_block_bondsep)
         self.system_neighbor_list = _p(system_neighbor_list)
-        self.block_type_n_atoms = _p(block_type_n_atoms)
-        self.block_type_n_heavy_atoms = _p(block_type_n_heavy_atoms)
-        self.block_type_atom_types = _p(block_type_atom_types)
-        self.block_type_heavy_atom_inds = _p(block_type_heavy_atom_inds)
-        self.block_type_n_interblock_bonds = _p(block_type_n_interblock_bonds)
-        self.block_type_atoms_forming_chemical_bonds = _p(
-            block_type_atoms_forming_chemical_bonds
-        )
-        self.block_type_path_distance = _p(block_type_path_distance)
+        self.bt_n_atoms = _p(bt_n_atoms)
+        self.bt_n_heavy_atoms = _p(bt_n_heavy_atoms)
+        self.bt_atom_types = _p(bt_atom_types)
+        self.bt_heavy_atom_inds = _p(bt_heavy_atom_inds)
+        self.bt_n_interblock_bonds = _p(bt_n_interblock_bonds)
+        self.bt_atoms_forming_chemical_bonds = _p(bt_atoms_forming_chemical_bonds)
+        self.bt_path_distance = _p(bt_path_distance)
 
         # Pack parameters into dense tensor. Parameter ordering must match
         # struct layout declared in `potentials/params.hh`.
@@ -208,13 +206,13 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
             self.system_min_block_bondsep,
             self.system_inter_block_bondsep,
             self.system_neighbor_list,
-            self.block_type_n_atoms,
-            self.block_type_n_heavy_atoms,
-            self.block_type_atom_types,
-            self.block_type_heavy_atom_inds,
-            self.block_type_n_interblock_bonds,
-            self.block_type_atoms_forming_chemical_bonds,
-            self.block_type_path_distance,
+            self.bt_n_atoms,
+            self.bt_n_heavy_atoms,
+            self.bt_atom_types,
+            self.bt_heavy_atom_inds,
+            self.bt_n_interblock_bonds,
+            self.bt_atoms_forming_chemical_bonds,
+            self.bt_path_distance,
             self.lj_type_params,
             self.lk_type_params,
             self.global_params,

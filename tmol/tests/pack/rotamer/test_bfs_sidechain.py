@@ -1,14 +1,12 @@
 import numpy
 import torch
 
-from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.pack.rotamer.build_rotamers import annotate_restype
+from tmol.system.restypes import ResidueTypeSet
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
 from tmol.pack.rotamer.single_residue_kintree import construct_single_residue_kintree
 
 
 def test_identify_sidechain_atoms_from_roots(default_database):
-    torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt = rts.restype_map["LEU"][0]
 

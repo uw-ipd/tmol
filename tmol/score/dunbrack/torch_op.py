@@ -50,9 +50,9 @@ class DunbrackOp:
             if not isinstance(t, list)
         )
         assert all(
-            all(res.device == t.device for t in l)
-            for l in res.params.values()
-            if isinstance(l, list)
+            all(res.device == t.device for t in params)
+            for params in res.params.values()
+            if isinstance(params, list)
         )
         return res
 

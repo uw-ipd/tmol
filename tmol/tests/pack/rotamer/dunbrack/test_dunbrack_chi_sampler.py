@@ -3,12 +3,11 @@ import numpy
 import attr
 import cattr
 
-import tmol.pack.rotamer.dunbrack.compiled
+import tmol.pack.rotamer.dunbrack.compiled  # noqa F401
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.system.packed import PackedResidueSystem
 from tmol.system.pose import PackedBlockTypes, Pose, Poses
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
@@ -16,7 +15,6 @@ from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
 from tmol.score.score_graph import score_graph
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
@@ -39,7 +37,6 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
         default_database.scoring.dun, torch_device
     )
     dun_params = resolver.sampling_db
-    dun_params_aux = resolver.scoring_db_aux
 
     @score_graph
     class CartDunbrackGraph(
@@ -54,11 +51,11 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     # resolver = dun_graph.dun_resolve_indices
     # dun_params = resolver.sampling_db #
 
-    def _ti32(l):
-        return torch.tensor(l, dtype=torch.int32, device=torch_device)
+    def _ti32(the_list):
+        return torch.tensor(the_list, dtype=torch.int32, device=torch_device)
 
-    def _tf32(l):
-        return torch.tensor(l, dtype=torch.float32, device=torch_device)
+    def _tf32(the_list):
+        return torch.tensor(the_list, dtype=torch.float32, device=torch_device)
 
     # print(dun_graph.dun_phi)
     # print(dun_graph.dun_psi)
@@ -309,8 +306,8 @@ def test_determine_n_possible_rots(default_database, torch_device):
 def test_fill_in_brt_for_possrots(torch_device):
     compiled = get_compiled()
 
-    def _ti32(l):
-        return torch.tensor(l, dtype=torch.int32, device=torch_device)
+    def _ti32(the_list):
+        return torch.tensor(the_list, dtype=torch.int32, device=torch_device)
 
     offsets = numpy.array([0, 5, 10, 15], dtype=numpy.int32)
     possible_rotamer_offset_for_brt = _ti32(offsets)
@@ -553,8 +550,8 @@ def test_count_expanded_rotamers(default_database, torch_device):
     )
     dun_params = resolver.sampling_db
 
-    def _ti32(l):
-        return torch.tensor(l, dtype=torch.int32, device=torch_device)
+    def _ti32(the_list):
+        return torch.tensor(the_list, dtype=torch.int32, device=torch_device)
 
     nchi_for_buildable_restype = _ti32([4, 2, 2, 2, 2, 3])
     rottable_set_for_buildable_restype = _ti32(
@@ -575,7 +572,7 @@ def test_count_expanded_rotamers(default_database, torch_device):
             [1, 1, 0, 0],  # 9      9
             [1, 0, 0, 0],  # 1*3    9
             [1, 1, 0, 0],  # 9*2   18
-        ]  #      100
+        ]
     )
     non_dunbrack_expansion_counts_for_buildable_restype = _ti32(numpy.zeros((6, 4)))
     non_dunbrack_expansion_counts_for_buildable_restype[1, 1] = 18
@@ -649,8 +646,8 @@ def test_map_from_rotamer_index_to_brt(torch_device):
 
 
 def test_sample_chi_for_rotamers(default_database, torch_device):
-    def _ti32(l):
-        return torch.tensor(l, dtype=torch.int32, device=torch_device)
+    def _ti32(the_list):
+        return torch.tensor(the_list, dtype=torch.int32, device=torch_device)
 
     compiled = get_compiled()
     resolver = DunbrackParamResolver.from_database(
@@ -834,7 +831,6 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
         ],
         dtype=int,
     )
-    dun_allowed_restypes = all_allowed_restypes[dun_restype_allowed != 0]
     rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
 
     dun_rot_inds_for_rts = param_resolver._indices_from_names(

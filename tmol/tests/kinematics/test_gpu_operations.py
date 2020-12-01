@@ -147,7 +147,9 @@ def test_derivsum_values_cpp(benchmark, big_system):
     # when taking their dot product results in a number > 1 and the arccos then
     # ends up as NaN
 
-    # angle = torch.acos(torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b))
+    # angle = torch.acos(
+    #         torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b)
+    #     )
     # assert torch.abs(angle) < 1e-2
     numpy.testing.assert_almost_equal(
         1.0, (torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b)).numpy()

@@ -8,7 +8,7 @@ import torch
 import toolz.functoolz
 import itertools
 
-from typing import List, Tuple
+from typing import Tuple
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
@@ -36,59 +36,6 @@ from tmol.score.common.stack_condense import (
     take_values_w_sentineled_index_and_dest,
     take_values_w_sentineled_dest,
 )
-
-
-# temp?? @validate_args
-# temp?? def exclusive_cumsum1d(inds: Tensor(torch.int32)[:]) -> Tensor(torch.int32)[:]:
-# temp??     return torch.cat(
-# temp??         (
-# temp??             torch.tensor([0], dtype=torch.int32, device=inds.device),
-# temp??             torch.cumsum(inds, 0, dtype=torch.int32).narrow(0, 0, inds.shape[0] - 1),
-# temp??         )
-# temp??     )
-
-
-# temp?? @validate_args
-# temp?? def exclusive_cumsum2d(inds: Tensor(torch.int32)[:, :]) -> Tensor(torch.int32)[:, :]:
-# temp??     return torch.cat(
-# temp??         (
-# temp??             torch.zeros((inds.shape[0], 1), dtype=torch.int32, device=inds.device),
-# temp??             torch.cumsum(inds, dim=1, dtype=torch.int32)[:, :-1],
-# temp??         ),
-# temp??         dim=1,
-# temp??     )
-
-
-# temp?? # @validate_args
-# temp?? def nplus1d_tensor_from_list(
-# temp??     tensors: List
-# temp?? ):  # -> Tuple[Tensor, Tensor(torch.long)[:,:], Tensor(torch.long)[:,:]] :
-# temp??     assert len(tensors) > 0
-# temp??
-# temp??     for tensor in tensors:
-# temp??         assert len(tensor.shape) == len(tensors[0].shape)
-# temp??         assert tensor.dtype == tensors[0].dtype
-# temp??         assert tensor.device == tensors[0].device
-# temp??
-# temp??     max_sizes = [max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))]
-# temp??     newdimsizes = [len(tensors)] + max_sizes
-# temp??
-# temp??     newt = torch.zeros(newdimsizes, dtype=tensors[0].dtype, device=tensors[0].device)
-# temp??     sizes = torch.zeros(
-# temp??         (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
-# temp??     )
-# temp??     strides = torch.zeros(
-# temp??         (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
-# temp??     )
-# temp??
-# temp??     for i, t in enumerate(tensors):
-# temp??         ti = newt[i, :]
-# temp??         for j in range(t.dim()):
-# temp??             ti = ti.narrow(j, 0, t.shape[j])
-# temp??         ti[:] = t
-# temp??         sizes[i, :] = torch.tensor(t.shape, dtype=torch.int64, device=t.device)
-# temp??         strides[i, :] = torch.tensor(t.stride(), dtype=torch.int64, device=t.device)
-# temp??     return newt, sizes, strides
 
 
 @attr.s(auto_attribs=True)

@@ -1,11 +1,7 @@
-import attr
 import torch
-import pandas
 
-from tmol.database.chemical import ChemicalDatabase
 from tmol.system.pose import PackedBlockTypes, residue_types_from_residues
 from tmol.score.AtomTypeDependentTerm import AtomTypeDependentTerm
-from tmol.tests.system.test_pose import two_ubq_poses
 
 
 def test_store_atom_types_in_packed_residue_types(

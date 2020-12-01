@@ -1,5 +1,4 @@
 import attr
-import cattr
 import toolz
 
 import itertools
@@ -14,17 +13,9 @@ from typing import Sequence, Tuple
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
 
 from .restypes import RefinedResidueType, Residue
-from .datatypes import (
-    atom_metadata_dtype,
-    torsion_metadata_dtype,
-    connection_metadata_dtype,
-    partial_atom_id_dtype,
-)
-
-from tmol.database.chemical import ChemicalDatabase
+from .datatypes import connection_metadata_dtype
 
 
 def residue_types_from_residues(residues):
@@ -229,9 +220,11 @@ class Pose:
         residue_connections: Sequence[Tuple[int, str, int, str]],
         device: torch.device,
     ) -> Tensor(torch.int32)[:, :, 2]:
-        # Return a torch tensor of integer-indices describing which residues are
-        # bound to which other residues through which connections using the indices of those
-        # connections and not their names
+        """Return a torch tensor of integer-indices describing
+        which residues are bound to which other residues through
+        which connections using the indices of those
+        connections and not their names
+        """
 
         max_n_conn = max(len(r.residue_type.connections) for r in res)
         connection_inds = pandas.DataFrame.from_records(
@@ -566,7 +559,7 @@ class Poses:
             i_nblocks = len(pose.residues)
             i_nconn = pose.inter_block_bondsep.shape[2]
             inter_block_bondsep[
-                i, :i_nblocks, :i_nblocks, :i_nblocks, :i_nblocks
+                i, :i_nblocks, :i_nblocks, :i_nconn, :i_nconn
             ] = pose.inter_block_bondsep
         return inter_block_bondsep
 

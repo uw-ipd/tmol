@@ -1,8 +1,6 @@
-import torch
 import numpy
 
 from tmol.system.pose import residue_types_from_residues, PackedBlockTypes, Pose, Poses
-from tmol.score.chemical_database import AtomTypeParamResolver
 
 
 def two_ubq_poses(ubq_res, torch_device):
@@ -14,6 +12,7 @@ def two_ubq_poses(ubq_res, torch_device):
 def test_load_packed_residue_types(ubq_res, torch_device):
     rt_list = residue_types_from_residues(ubq_res)
     pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
+    assert pbt
 
 
 def test_packed_residue_type_indexer(ubq_res, torch_device):
@@ -87,8 +86,9 @@ def test_pose_resolve_bond_separation(ubq_res, torch_device):
     assert bonds[2, 0, 0, 1] == 4
 
 
-def test_pose_ctor(ubq_res, torch_device):
+def test_pose_ctor_smoke(ubq_res, torch_device):
     p = Pose.from_residues_one_chain(ubq_res, torch_device)
+    assert p
 
 
 def test_poses_ctor(ubq_res, torch_device):

@@ -81,9 +81,6 @@ class BondDependentTerm(EnergyTerm):
         if hasattr(systems, "min_block_bondsep"):
             return
 
-        n_systems = systems.coords.shape[0]
-        max_n_blocks = systems.coords.shape[1]
-
         min_block_bondsep, _ = torch.min(systems.inter_block_bondsep, dim=4)
         min_block_bondsep, _ = torch.min(min_block_bondsep, dim=3)
 

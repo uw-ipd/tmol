@@ -1,22 +1,14 @@
 import torch
 import numpy
-import attr
 import cattr
 
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
-
-from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.system.packed import PackedResidueSystem
+from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Pose, Poses
 from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
 
 def test_annotate_residue_type_smoke(default_database):
-    torch_device = torch.device("cpu")
 
     ala_restype = cattr.structure(
         cattr.unstructure(

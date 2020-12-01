@@ -5,6 +5,7 @@ from tmol.system.pose import Pose, Poses
 
 def test_packer_palette_smoke(default_restype_set):
     pp = PackerPalette(default_restype_set)
+    assert pp
 
 
 def test_packer_palette_design_to_canonical_aas(default_restype_set):
@@ -27,6 +28,7 @@ def test_packer_task_smoke(ubq_res, default_restype_set, torch_device):
     poses = Poses.from_poses([p1, p2], torch_device)
     palette = PackerPalette(default_restype_set)
     task = PackerTask(poses, palette)
+    assert task
 
 
 def test_residue_level_task_his_restrict_to_repacking(ubq_res, default_restype_set):

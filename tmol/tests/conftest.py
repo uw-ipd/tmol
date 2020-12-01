@@ -22,7 +22,7 @@ from .data import (  # noqa: F401
     systems_bysize,
 )
 
-from .system import default_restype_set
+from .system import default_restype_set  # noqa: F401
 
 from .torch import torch_device, torch_backward_coverage  # noqa: F401
 

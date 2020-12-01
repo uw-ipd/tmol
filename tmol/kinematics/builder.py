@@ -89,7 +89,6 @@ class KinematicBuilder:
             system_size * mandatory_bonds[:, 0] + mandatory_bonds[:, 1],
             system_size * mandatory_bonds[:, 0] + mandatory_bonds[:, 2],
         ]
-        bond_absent = numpy.array((bond_present == 0), dtype=bool)
 
         assert numpy.all(
             bond_present
@@ -200,10 +199,11 @@ class KinematicBuilder:
         parent_ids: Tensor(int)[:],
         component_parent=0,
     ):
+
         assert (
-            ids.shape == parent_ids.shape,
-            "elements and parents must be of same length",
-        )
+            ids.shape == parent_ids.shape
+        ), "elements and parents must be of same length"
+
         assert len(ids) >= 3, "Bonded ktree must have at least three entries"
 
         assert component_parent < len(self.kintree) and component_parent >= -1
@@ -258,9 +258,10 @@ class KinematicBuilder:
                 kin_stree.frame_z[root_sibs] = root_c1 + kin_start
             else:
 
-                assert (
-                    len(root_children) >= 2
-                ), "root of bonded tree must have two children if the first child of the root has no children"
+                assert len(root_children) >= 2, (
+                    "root of bonded tree must have two children if the"
+                    " first child of the root has no children"
+                )
                 assert root == 0, "root must be self parented, was set above"
                 root_c1, *root_sibs = root_children
                 root_sibs = torch.LongTensor(root_sibs)

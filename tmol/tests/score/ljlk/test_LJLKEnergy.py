@@ -7,8 +7,6 @@ from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.system.pose import Pose, Poses
 from tmol.score.chemical_database import AtomTypeParamResolver
 
-from tmol.tests.system.test_pose import two_ubq_poses
-
 
 def test_smoke(default_database, torch_device):
 
@@ -305,3 +303,4 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
         return rpes
 
     vals = run
+    assert vals is not None
