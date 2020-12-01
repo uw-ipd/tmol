@@ -7,14 +7,8 @@ from typing import Tuple
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
-from tmol.score.dunbrack.params import (
-    SamplingDunbrackDatabaseView,
-    DunbrackParamResolver,
-)
-
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import Poses
-from tmol.system.score_support import indexed_atoms_for_dihedral
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 

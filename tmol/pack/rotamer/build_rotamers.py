@@ -220,8 +220,6 @@ def construct_scans_for_rotamers(
     ngenStack[ngenStack < 0] = 0
     ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
 
-    n_gens = genStartsStack.shape[1]
-
     # jitted function that operates on the CPU; need to figure
     # out how to replace this with a GPU-compatible version
     scanStarts = update_scan_starts(
@@ -471,7 +469,6 @@ def merge_chi_samples(chi_samples):
     ]
 
     max_n_chi_atoms = max(samples[2].shape[1] for samples in chi_samples)
-    max_n_chi = max(samples[3].shape[1] for samples in chi_samples)
     all_chi_atoms = torch.full(
         (n_rotamers, max_n_chi_atoms), -1, dtype=torch.int32, device=device
     )
@@ -479,7 +476,7 @@ def merge_chi_samples(chi_samples):
         (n_rotamers, max_n_chi_atoms), -1, dtype=torch.float32, device=device
     )
     offset = 0
-    for i, samples in enumerate(chi_samples):
+    for samples in chi_samples:
         assert samples[2].shape[0] == samples[3].shape[0]
         all_chi_atoms[
             offset : (offset + samples[2].shape[0]), : samples[2].shape[1]
@@ -623,10 +620,6 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     orig_mcfp_at_inds_rto = mcfp.atom_mapping[
         sampler_ind_for_orig, orig_res_mcfp, orig_block_inds, :
     ].view(-1)
-
-    # nah; delay this orig_dof_at_inds_for_orig_for_rot_rto = orig_dof_at_inds_for_orig_rto[
-    # nah; delay this     orig_res_for_rot, :
-    # nah; delay this ]
 
     real_orig_block_ind_for_orig_mcfp_ats = stretch(orig_block_inds, max_n_mcfp_atoms)[
         orig_mcfp_at_inds_rto != -1
@@ -813,7 +806,6 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         for one_pose_rlts in task.rlts
         for rts in one_pose_rlts
     )
-    real_rts = numpy.zeros((n_sys, max_n_blocks, max_n_rts), dtype=numpy.int32)
     rt_names = [
         rt.name
         for one_pose_rlts in task.rlts
@@ -831,12 +823,6 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
     n_rots = all_chi_atoms.shape[0]
     rt_for_rot = torch.zeros(n_rots, dtype=torch.int64, device=poses.device)
     n_rots_for_all_samples_cumsum = torch.cumsum(n_rots_for_rt, dim=0)
-    rots_for_sample_offset = torch.cat(
-        (
-            torch.zeros(1, dtype=torch.int64, device=poses.device),
-            n_rots_for_all_samples_cumsum[:-1],
-        )
-    )
     rt_for_rot[n_rots_for_all_samples_cumsum[:-1]] = 1
     rt_for_rot = torch.cumsum(rt_for_rot, dim=0).cpu().numpy()
 

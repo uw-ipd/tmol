@@ -8,13 +8,10 @@ from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 from tmol.types.functional import validate_args
 
-from tmol.score.dunbrack.params import (
-    SamplingDunbrackDatabaseView,
-    DunbrackParamResolver,
-)
+from tmol.score.dunbrack.params import DunbrackParamResolver
 
-from tmol.pack.rotamer.chi_sampler import ChiSampler
-from tmol.pack.rotamer.dunbrack.compiled import _compiled
+from tmol.pack.rotamer.chi_sampler import ChiSampler  # noqa F401
+from tmol.pack.rotamer.dunbrack.compiled import _compiled  # noqa F401
 from tmol.pack.packer_task import PackerTask, ResidueLevelTask
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
@@ -61,7 +58,6 @@ class DunSamplerPBTCache:
 class DunbrackChiSampler:
 
     dun_param_resolver: DunbrackParamResolver
-    # sampling_params: SamplingDunbrackDatabaseView
 
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()
@@ -139,7 +135,6 @@ class DunbrackChiSampler:
             ]
 
             if restype.chi_samples:
-                n_rt_chi_samples = len(restype.chi_samples)
                 chi_inds = numpy.array(
                     [int(samp.chi_dihedral[3:]) - 1 for samp in restype.chi_samples],
                     dtype=int,
@@ -156,7 +151,7 @@ class DunbrackChiSampler:
                 (n_chi_total, 2), dtype=numpy.int32
             )
             max_chi_samples = 0
-            for i, rt_chi in enumerate(restype.chi_samples):
+            for rt_chi in restype.chi_samples:
                 chi_name = rt_chi.chi_dihedral
                 assert chi_name[:3] == "chi"
                 chi_ind = int(chi_name[3:]) - 1
@@ -170,23 +165,23 @@ class DunbrackChiSampler:
             non_dunbrack_samples = numpy.zeros(
                 (n_chi_total, 2, max_chi_samples), dtype=numpy.float32
             )
-            for i, rt_chi in enumerate(restype.chi_samples):
+            for rt_chi in restype.chi_samples:
                 chi_name = rt_chi.chi_dihedral
                 chi_ind = int(chi_name[3:]) - 1
                 n_expansions = 1 + 2 * len(rt_chi.expansions)
                 n_samples = len(rt_chi.samples)
                 non_dunbrack_samples[chi_ind, 0, :n_samples] = rt_chi.samples
-                for l in range(n_samples):
-                    for m in range(n_expansions):
-                        if m == 0:
+                for i in range(n_samples):
+                    for j in range(n_expansions):
+                        if j == 0:
                             non_dunbrack_samples[
-                                chi_ind, 1, n_expansions * l + m
-                            ] = rt_chi.samples[l]
+                                chi_ind, 1, n_expansions * i + j
+                            ] = rt_chi.samples[i]
                         else:
-                            expansion = (m - 1) // 2
-                            factor = -1 if (m - 1) % 2 == 0 else 1
-                            non_dunbrack_samples[chi_ind, 1, n_expansions * l + m] = (
-                                rt_chi.samples[l]
+                            expansion = (j - 1) // 2
+                            factor = -1 if (j - 1) % 2 == 0 else 1
+                            non_dunbrack_samples[chi_ind, 1, n_expansions * i + j] = (
+                                rt_chi.samples[i]
                                 + factor * rt_chi.expansions[expansion]
                             )
 
@@ -314,7 +309,6 @@ class DunbrackChiSampler:
         assert self.device == systems.coords.device
         n_sys = systems.block_inds.shape[0]
         max_n_blocks = systems.block_inds.shape[1]
-        max_n_atoms = systems.coords.shape[2]
 
         dun_allowed_restypes = numpy.array(
             [
@@ -327,16 +321,16 @@ class DunbrackChiSampler:
             dtype=object,
         )
 
-        n_allowed_per_pose = torch.tensor(
-            [
-                len(rlt.allowed_restypes)
-                for one_pose_rlts in task.rlts
-                for rlt in one_pose_rlts
-                if self in rlt.chi_samplers
-            ],
-            dtype=torch.int32,
-            device=self.device,
-        )
+        # n_allowed_per_pose = torch.tensor(
+        #     [
+        #         len(rlt.allowed_restypes)
+        #         for one_pose_rlts in task.rlts
+        #         for rlt in one_pose_rlts
+        #         if self in rlt.chi_samplers
+        #     ],
+        #     dtype=torch.int32,
+        #     device=self.device,
+        # )
 
         rt_names = numpy.array([rt.name for rt in dun_allowed_restypes], dtype=object)
         pbt = systems.packed_block_types
@@ -405,7 +399,7 @@ class DunbrackChiSampler:
             device=self.device,
         )
 
-        phi_psi_res_inds = numpy.arange(n_sys * max_n_blocks, dtype=numpy.int32)
+        # phi_psi_res_inds = numpy.arange(n_sys * max_n_blocks, dtype=numpy.int32)
 
         n_sampling_res = uniq_res_for_brt.shape[0]
 
@@ -443,8 +437,6 @@ class DunbrackChiSampler:
         nchi_for_buildable_restype = self.dun_param_resolver.sampling_db.nchi_for_table_set[
             rottable_set_for_buildable_restype[:, 1].to(torch.int64)
         ]
-
-        brts = dun_allowed_restypes[dun_rot_inds_for_rts.cpu().numpy() != -1]
 
         non_dunbrack_expansion_counts_for_buildable_restype = torch.zeros(
             (n_brts, max_n_chi), dtype=torch.int32, device=self.device
@@ -632,18 +624,18 @@ class DunbrackChiSampler:
         n_rots_for_rt_offsets = torch.zeros_like(n_rots_for_rt)
         n_rots_for_rt_offsets[dun_brt_global_inds] = sampled_chi[1]
 
-        n_rots_for_brt = sampled_chi[0]
-        n_rots_for_brt_offsets = sampled_chi[1]
+        # n_rots_for_brt = sampled_chi[0]
+        # n_rots_for_brt_offsets = sampled_chi[1]
         brt_for_rotamer = sampled_chi[2]
         chi_for_rotamers = sampled_chi[3]
 
         # Now lets map back to the original set of rts per block type.
         # lots of reindxing below
-        max_n_rts = max(
-            len(rts.allowed_restypes)
-            for one_pose_rlts in task.rlts
-            for rts in one_pose_rlts
-        )
+        # max_n_rts = max(
+        #     len(rts.allowed_restypes)
+        #     for one_pose_rlts in task.rlts
+        #     for rts in one_pose_rlts
+        # )
 
         rt_global_index = torch.arange(
             n_restypes_total, dtype=torch.int32, device=self.device

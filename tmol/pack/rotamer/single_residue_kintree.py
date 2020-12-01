@@ -3,10 +3,9 @@ import numpy
 import torch
 
 from tmol.types.functional import validate_args
-from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 
-from tmol.kinematics.scan_ordering import get_scans, KinTreeScanOrdering
+from tmol.kinematics.scan_ordering import KinTreeScanOrdering
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.compiled.compiled import inverse_kin
 
@@ -68,20 +67,6 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
     """
     if hasattr(restype, "rotamer_kintree"):
         return
-
-    # if hasattr(restype, "kintree_id"):
-    #     assert hasattr(restype, "kintree_doftype")
-    #     assert hasattr(restype, "kintree_parent")
-    #     assert hasattr(restype, "kintree_frame_x")
-    #     assert hasattr(restype, "kintree_frame_y")
-    #     assert hasattr(restype, "kintree_frame_z")
-    #     assert hasattr(restype, "kintree_nodes")
-    #     assert hasattr(restype, "kintree_scans")
-    #     assert hasattr(restype, "kintree_gens")
-    #     assert hasattr(restype, "kintree_n_scans_per_gen")
-    #     return
-
-    icoor_parents = restype.icoors_ancestors[:, 0]
 
     torsion_pairs = numpy.array(
         [uaids[1:3] for tor, uaids in restype.torsion_to_uaids.items()]
@@ -167,39 +152,11 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
     )
     setattr(restype, "rotamer_kintree", rotamer_kintree)
 
-    # setattr(restype, "kintree_id", )
-    # setattr(restype, "id_to_kintree_idx", id_to_kintree_idx)
-    # setattr(restype, "kintree_doftype", kintree.doftype.numpy()[1:])
-    # setattr(restype, "kintree_parent", kintree.parent.numpy()[1:] - 1)
-    # setattr(restype, "kintree_frame_x", kintree.frame_x.numpy()[1:] - 1)
-    # setattr(restype, "kintree_frame_y", kintree.frame_y.numpy()[1:] - 1)
-    # setattr(restype, "kintree_frame_z", kintree.frame_z.numpy()[1:] - 1)
-    # setattr(restype, "kintree_nodes", nodes)
-    # setattr(restype, "kintree_scans", scans)
-    # setattr(restype, "kintree_gens", gens)
-    # setattr(restype, "kintree_n_scans_per_gen", n_scans_per_gen)
-    # setattr(restype, "kintree_dofs_ideal", dofs_ideal[1:])
-
 
 @validate_args
 def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
     if hasattr(pbt, "rotamer_kintree"):
         return
-
-    # if hasattr(pbt, "kintree_nodes"):
-    #     assert hasattr(pbt, "kintree_n_nodes")
-    #     assert hasattr(pbt, "kintree_nodes")
-    #     assert hasattr(pbt, "kintree_scans")
-    #     assert hasattr(pbt, "kintree_gens")
-    #     assert hasattr(pbt, "kintree_n_scans_per_gen")
-    #     assert hasattr(pbt, "kintree_id")
-    #     assert hasattr(pbt, "kintree_doftype")
-    #     assert hasattr(pbt, "kintree_parent")
-    #     assert hasattr(pbt, "kintree_frame_x")
-    #     assert hasattr(pbt, "kintree_frame_y")
-    #     assert hasattr(pbt, "kintree_frame_z")
-    #     assert hasattr(pbt, "kintree_dofs_ideal")
-    #     return
 
     max_n_nodes = max(len(rt.rotamer_kintree.nodes) for rt in pbt.active_block_types)
     max_n_scans = max(
@@ -262,15 +219,3 @@ def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
         dofs_ideal=rt_dofs_ideal,
     )
     setattr(pbt, "rotamer_kintree", packed_rotamer_kintree)
-
-    # setattr(pbt, "kintree_id", rt_id)
-    # setattr(pbt, "kintree_doftype", rt_doftype)
-    # setattr(pbt, "kintree_parent", rt_parent)
-    # setattr(pbt, "kintree_frame_x", rt_frame_x)
-    # setattr(pbt, "kintree_frame_y", rt_frame_y)
-    # setattr(pbt, "kintree_frame_z", rt_frame_z)
-    # setattr(pbt, "kintree_n_nodes", rt_n_nodes)
-    # setattr(pbt, "kintree_nodes", rt_nodes)
-    # setattr(pbt, "kintree_scans", rt_scans)
-    # setattr(pbt, "kintree_gens", rt_gens)
-    # setattr(pbt, "kintree_n_scans_per_gen", rt_n_scans_per_gen)

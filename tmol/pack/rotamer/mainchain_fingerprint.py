@@ -124,8 +124,8 @@ def create_non_sidechain_fingerprint(
     for conn in rt.connection_to_idx:
         n_bonds[rt.connection_to_idx[conn]] += 1
 
-    mc_ancestors = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
-    chiralities = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
+    # mc_ancestors = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
+    # chiralities = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     non_sc_atom_fingerprints = []
     at_for_fingerprint = {}
 
@@ -134,7 +134,7 @@ def create_non_sidechain_fingerprint(
         mc_anc = mc_ind[nsc_at]
         bonds_from_mc = 0
         atom = nsc_at
-        for i in range(rt.n_atoms):
+        for _ in range(rt.n_atoms):
             if mc_anc != -1:
                 break
             par = parents[atom]
@@ -252,15 +252,15 @@ def annotate_residue_type_with_sampler_fingerprints(
                 setattr(restype, "mc_fingerprints", {})
 
             sc_roots = sampler.first_sc_atoms_for_rt(restype)
-            mc_ats, mc_at_fingerprints, at_for_fingerprint = create_mainchain_fingerprint(
+            mc_ats, mc_at_fps, at_for_fp = create_mainchain_fingerprint(
                 restype, sc_roots, chem_db
             )
-            fingerprint = tuple(sorted(mc_at_fingerprints))
+            fingerprint = tuple(sorted(mc_at_fps))
             restype.mc_fingerprints[sampler.sampler_name()] = MCFingerprint(
                 mc_ats=mc_ats,
-                mc_at_fingerprints=mc_at_fingerprints,
+                mc_at_fingerprints=mc_at_fps,
                 fingerprint=fingerprint,
-                at_for_fingerprint=at_for_fingerprint,
+                at_for_fingerprint=at_for_fp,
             )
 
 
@@ -271,7 +271,6 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
             for sampler in rt.mc_fingerprints:
                 sampler_types.add(sampler)
 
-    # sampler_types = set([sampler for rt in pbt.active_block_types if hasattr(rt, "mc_fingerprints") for sampler in rt.mc_fingerprints.keys()])
     # we do not need to re-annotate this PackedBlockTypes object if there
     # are no sidechain samplers that it has not encountered before
     if hasattr(pbt, "mc_atom_mapping"):
@@ -289,7 +288,7 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
     fp_sets = set()
     for rt in pbt.active_block_types:
         if hasattr(rt, "mc_fingerprints"):
-            for sampler, mcfps in rt.mc_fingerprints.items():
+            for _, mcfps in rt.mc_fingerprints.items():
                 fp_sets.add(mcfps.fingerprint)
     fp_sets = sorted(fp_sets)
     fp_to_ind = {fp: i for i, fp in enumerate(fp_sets)}
@@ -325,18 +324,18 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
     mc_atom_inds_for_rt_for_sampler = numpy.full(
         (n_samplers, n_mcs, pbt.n_types, max_n_mc_atoms), -1, dtype=numpy.int32
     )
-    for i, sampler in enumerate(sampler_types):
-        for j, fp in enumerate(fp_sets):
-            for k, rt in enumerate(pbt.active_block_types):
+    for ii, sampler in enumerate(sampler_types):
+        for jj, fp in enumerate(fp_sets):
+            for kk, rt in enumerate(pbt.active_block_types):
                 # now we'er going to find the index of the mainchain atom
                 if not hasattr(rt, "mc_fingerprints"):
                     continue
-                if not sampler in rt.mc_fingerprints:
+                if sampler not in rt.mc_fingerprints:
                     continue
                 rt_fingerprint = rt.mc_fingerprints[sampler]
-                for l, at_fp in enumerate(fp):
+                for ll, at_fp in enumerate(fp):
                     mc_atom_inds_for_rt_for_sampler[
-                        i, j, k, l
+                        ii, jj, kk, ll
                     ] = rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
 
     def _t(arr):
