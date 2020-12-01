@@ -16,7 +16,7 @@ from tmol.pack.rotamer.mainchain_fingerprint import (
     find_unique_fingerprints,
 )
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
-from tmol.pack.rotamer.dunbrack_chi_sampler import DunbrackChiSampler
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 

@@ -1,5 +1,4 @@
-// #include <tmol/pack/rotamer/dispatch.hh>
-#include <tmol/pack/rotamer/dispatch.impl.hh>
+#include <tmol/pack/rotamer/dunbrack/dispatch.impl.hh>
 #include <tmol/score/common/complex_dispatch.cuda.impl.cuh>
 #include "test.impl.hh"
 

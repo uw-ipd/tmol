@@ -25,7 +25,7 @@ from tmol.system.pose import PackedBlockTypes, Pose, Poses
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.chi_sampler import ChiSampler
-from tmol.pack.rotamer.dunbrack_chi_sampler import DunbrackChiSampler
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 from tmol.numeric.dihedrals import coord_dihedrals

@@ -3,8 +3,6 @@ import numpy
 import attr
 import cattr
 
-import tmol.pack.rotamer.compiled
-
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 from tmol.system.restypes import RefinedResidueType, ResidueTypeSet

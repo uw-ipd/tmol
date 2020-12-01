@@ -3,9 +3,9 @@
 #include <torch/extension.h>
 
 #include <tmol/score/common/complex_dispatch.hh>
-#include <tmol/pack/rotamer/compiled.hh>
+#include <tmol/pack/rotamer/dunbrack/compiled.hh>
 
-#include <tmol/tests/pack/rotamer/test.hh>
+#include <tmol/tests/pack/rotamer/dunbrack/test.hh>
 
 namespace tmol {
 

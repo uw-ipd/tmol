@@ -18,6 +18,7 @@
 namespace tmol {
 namespace pack {
 namespace rotamer {
+namespace dunbrack {
 
 template struct DunbrackChiSampler<
     score::common::ComplexDispatch,
@@ -40,6 +41,7 @@ template struct DunbrackChiSampler<
     double,
     int64_t>;
 
+}  // namespace dunbrack
 }  // namespace rotamer
 }  // namespace pack
 }  // namespace tmol

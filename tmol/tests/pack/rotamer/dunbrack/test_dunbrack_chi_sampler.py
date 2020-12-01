@@ -3,7 +3,7 @@ import numpy
 import attr
 import cattr
 
-import tmol.pack.rotamer.compiled
+import tmol.pack.rotamer.dunbrack.compiled
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
@@ -17,7 +17,7 @@ from tmol.score.score_graph import score_graph
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.chi_sampler import ChiSampler
-from tmol.pack.rotamer.dunbrack_chi_sampler import DunbrackChiSampler
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 

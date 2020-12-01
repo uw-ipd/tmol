@@ -19,6 +19,7 @@
 namespace tmol {
 namespace pack {
 namespace rotamer {
+namespace dunbrack {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
@@ -833,6 +834,7 @@ struct DunbrackChiSampler {
   }
 };
 
+}  // namespace dunbrack
 }  // namespace rotamer
 }  // namespace pack
 }  // namespace tmol

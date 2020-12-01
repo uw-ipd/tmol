@@ -3,7 +3,6 @@
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
-// #include <tmol/score/common/forall_dispatch.hh>
 #include <tmol/score/common/complex_dispatch.hh>
 
 #include <vector>
@@ -13,6 +12,7 @@
 namespace tmol {
 namespace pack {
 namespace rotamer {
+namespace dunbrack {
 
 using torch::Tensor;
 
@@ -140,15 +140,6 @@ dun_sample_chi(
 
   return {n_rots_for_brt, n_rots_for_brt_offsets,
       brt_for_rotamer, chi_for_rotamers};
-
-  //c10::intrusive_ptr< at::ivalue::TensorList > ret_list;
-  try {
-    // ret_list = c10::make_intrusive< at::ivalue::TensorList >(
-    //   at::ivalue::TensorList({n_rots_for_brt, n_rots_for_brt_offsets,
-    //   brt_for_rotamer, chi_for_rotamers}));
-      } catch (c10::Error err) {
-    std::cerr << "caught: " << err.what_without_backtrace() << std::endl;
-  }
 };
 
 
@@ -157,6 +148,7 @@ static auto registry =
   .op("tmol::dun_sample_chi", &dun_sample_chi<score::common::ComplexDispatch>);
 
 
+}  // namespace dunbrack
 }  // namespace rotamer
 }  // namespace pack
 }  // namespace tmol

@@ -18,7 +18,7 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
         TView<Int, 2, D> rottable_set_for_buildable_restype,
         TView<int64_t, 1, D> n_rotamers_for_tableset,
         TView<Int, 1, D> n_possible_rotamers_per_brt) {
-  pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
+  pack::rotamer::dunbrack::DunbrackChiSampler<Dispatch, D, Real, Int>::
       determine_n_possible_rots(
           rottable_set_for_buildable_restype,
           n_rotamers_for_tableset,
@@ -34,7 +34,7 @@ template <
 void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::fill_in_brt_for_possrots(
     TView<Int, 1, D> possible_rotamer_offset_for_brt,
     TView<Int, 1, D> brt_for_possible_rotamer) {
-  pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
+  pack::rotamer::dunbrack::DunbrackChiSampler<Dispatch, D, Real, Int>::
       fill_in_brt_for_possrots(
           possible_rotamer_offset_for_brt, brt_for_possible_rotamer);
 }
@@ -60,7 +60,7 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
         TView<Int, 1, D> possible_rotamer_offset_for_brt,
         TView<Real, 1, D> backbone_dihedrals,
         TView<Real, 1, D> rotamer_probability) {
-  pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
+  pack::rotamer::dunbrack::DunbrackChiSampler<Dispatch, D, Real, Int>::
       interpolate_probabilities_for_possible_rotamers(
           rotameric_prob_tables,
           rotprob_table_sizes,
@@ -91,7 +91,7 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
         TView<Int, 1, D> possible_rotamer_offset_for_brt,
         TView<Real, 1, D> rotamer_probability,
         TView<Int, 1, D> n_rotamers_to_build_per_brt) {
-  pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
+  pack::rotamer::dunbrack::DunbrackChiSampler<Dispatch, D, Real, Int>::
       determine_n_base_rotamers_to_build(
           prob_cumsum_limit_for_buildable_restype,
           n_possible_rotamers_per_brt,
@@ -117,7 +117,7 @@ Int DunbrackChiSamplerTester<Dispatch, D, Real, Int>::count_expanded_rotamers(
     TView<Int, 2, D> expansion_dim_prods_for_brt,
     TView<Int, 1, D> n_rotamers_to_build_per_brt,
     TView<Int, 1, D> n_rotamers_to_build_per_brt_offsets) {
-  return pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
+  return pack::rotamer::dunbrack::DunbrackChiSampler<Dispatch, D, Real, Int>::
       count_expanded_rotamers(
           nchi_for_buildable_restype,
           rottable_set_for_buildable_restype,
@@ -140,7 +140,7 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
     map_from_rotamer_index_to_brt(
         TView<Int, 1, D> n_rotamers_to_build_per_brt_offsets,
         TView<Int, 1, D> brt_for_rotamer) {
-  pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
+  pack::rotamer::dunbrack::DunbrackChiSampler<Dispatch, D, Real, Int>::
       map_from_rotamer_index_to_brt(
           n_rotamers_to_build_per_brt_offsets, brt_for_rotamer);
 }
@@ -178,7 +178,7 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::sample_chi_for_rotamers(
 
     TView<Int, 2, D> expansion_dim_prods_for_brt,
     TView<Real, 2, D> chi_for_rotamers) {
-  pack::rotamer::DunbrackChiSampler<Dispatch, D, Real, Int>::
+  pack::rotamer::dunbrack::DunbrackChiSampler<Dispatch, D, Real, Int>::
       sample_chi_for_rotamers(
           rotameric_mean_tables,
           rotameric_sdev_tables,

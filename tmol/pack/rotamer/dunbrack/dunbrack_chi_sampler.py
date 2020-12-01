@@ -14,7 +14,7 @@ from tmol.score.dunbrack.params import (
 )
 
 from tmol.pack.rotamer.chi_sampler import ChiSampler
-from tmol.pack.rotamer.compiled import _compiled
+from tmol.pack.rotamer.dunbrack.compiled import _compiled
 from tmol.pack.packer_task import PackerTask, ResidueLevelTask
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
