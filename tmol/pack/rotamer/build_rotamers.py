@@ -39,6 +39,7 @@ class RotamerSet(ValidateAttrs):
     rot_offset_for_pose: Tensor(torch.int64)[:]
     n_rots_for_block: Tensor(torch.int64)[:, :]
     rot_offset_for_block: Tensor(torch.int64)[:, :]
+    pose_for_rot: Tensor(torch.int64)[:]
     block_type_ind_for_rot: Tensor(torch.int64)[:]
     block_ind_for_rot: Tensor(torch.int32)[:]
     coords: Tensor(torch.float32)[:, :, :]
@@ -855,7 +856,7 @@ def get_rotamer_origin_data(task: PackerTask, rt_for_rot: Tensor(torch.int32)[:]
     max_n_blocks = max(len(one_pose_rlts) for one_pose_rlts in task.rlts)
 
     rt_for_rot64 = rt_for_rot.to(torch.int64)
-    pose_for_rot = pose_for_rt[rt_for_rot64]
+    pose_for_rot = pose_for_rt[rt_for_rot64].to(torch.int64)
     n_rots_for_pose = torch.bincount(pose_for_rot, minlength=len(task.rlts))
     rot_offset_for_pose = exclusive_cumsum1d(n_rots_for_pose)
     block_ind_for_rot = block_ind_for_rt[rt_for_rot64]
@@ -989,6 +990,7 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         rot_offset_for_pose=rot_offset_for_pose,
         n_rots_for_block=n_rots_for_block,
         rot_offset_for_block=rot_offset_for_block,
+        pose_for_rot=pose_for_rot,
         block_type_ind_for_rot=block_type_ind_for_rot_torch,
         block_ind_for_rot=block_ind_for_rot,
         coords=rotamer_coords,
