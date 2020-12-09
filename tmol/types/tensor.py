@@ -24,7 +24,10 @@ class TensorType:
             raise TypeError(f"expected {self._tensortype!r}, received {type(value)!r}")
         if not value.dtype == self.dtype:
             raise TypeError(f"expected {self.dtype!r}, received {value.dtype!r}")
-        self.shape.validate(value.shape)
+        try:
+            self.shape.validate(value.shape)
+        except ValueError as err:
+            raise TypeError(f"Tensor shape validation failed {str(err)}")
 
         return True
 
