@@ -152,7 +152,7 @@ class Pose:
 
     # For each block, what is the index of the block type in the PackedBlockTypes
     # structure?
-    block_inds: Tensor(torch.int32)[:]
+    block_type_ind: Tensor(torch.int32)[:]
 
     device: torch.device
 
@@ -174,7 +174,7 @@ class Pose:
             r.attach_to(residue_coords[rind, 0 : len(r.residue_type.atoms), :])
             for rind, r in enumerate(res)
         ]
-        block_inds = torch.tensor(
+        block_type_ind = torch.tensor(
             packed_block_types.inds_for_res(res), dtype=torch.int32, device=device
         )
 
@@ -185,7 +185,7 @@ class Pose:
             residue_coords=residue_coords,
             inter_residue_connections=inter_residue_connections,
             inter_block_bondsep=inter_block_bondsep,
-            block_inds=block_inds,
+            block_type_ind=block_type_ind,
             device=device,
         )
 
@@ -454,7 +454,7 @@ class Poses:
 
     inter_residue_connections: Tensor(torch.int32)[:, :, :, 2]
     inter_block_bondsep: Tensor(torch.int32)[:, :, :, :, :]
-    block_inds: Tensor(torch.int32)[:, :]
+    block_type_ind: Tensor(torch.int32)[:, :]
 
     device: torch.device
 
@@ -482,7 +482,7 @@ class Poses:
         inter_block_bondsep = cls.interblock_bondsep_from_poses(
             packed_block_types, poses, max_n_blocks, device
         )
-        block_inds = cls.resolve_block_inds(
+        block_type_ind = cls.resolve_block_type_ind(
             packed_block_types, poses, max_n_blocks, device
         )
 
@@ -493,7 +493,7 @@ class Poses:
             residue_coords=residue_coords,
             inter_residue_connections=inter_residue_connections,
             inter_block_bondsep=inter_block_bondsep,
-            block_inds=block_inds,
+            block_type_ind=block_type_ind,
             device=device,
         )
 
@@ -564,20 +564,20 @@ class Poses:
         return inter_block_bondsep
 
     @classmethod
-    def resolve_block_inds(
+    def resolve_block_type_ind(
         cls,
         packed_block_types: PackedBlockTypes,
         poses: Sequence[Pose],
         max_n_blocks: int,
         device=torch.device,
     ):
-        block_inds = torch.full(
+        block_type_ind = torch.full(
             (len(poses), max_n_blocks), -1, dtype=torch.int32, device=device
         )
         for i, pose in enumerate(poses):
-            block_inds[i, : len(pose.residues)] = torch.tensor(
+            block_type_ind[i, : len(pose.residues)] = torch.tensor(
                 packed_block_types.inds_for_res(pose.residues),
                 dtype=torch.int32,
                 device=device,
             )
-        return block_inds
+        return block_type_ind

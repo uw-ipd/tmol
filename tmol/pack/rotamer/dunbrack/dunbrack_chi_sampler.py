@@ -307,8 +307,8 @@ class DunbrackChiSampler:
         Tensor(torch.float32)[:, :],  # chi_for_rotamers
     ]:
         assert self.device == systems.coords.device
-        n_sys = systems.block_inds.shape[0]
-        max_n_blocks = systems.block_inds.shape[1]
+        n_sys = systems.block_type_ind.shape[0]
+        max_n_blocks = systems.block_type_ind.shape[1]
 
         dun_allowed_restypes = numpy.array(
             [
@@ -353,7 +353,7 @@ class DunbrackChiSampler:
             self.device,
         ).squeeze()
 
-        block_ind_for_brt = torch.tensor(
+        block_type_ind_for_brt = torch.tensor(
             pbt.restype_index.get_indexer(
                 rt_names[dun_rot_inds_for_rts.cpu().numpy() != -1]
             ),
@@ -445,11 +445,11 @@ class DunbrackChiSampler:
 
         # TEMP! Treat everything as exposed (0)
         non_dunbrack_expansion_counts_for_buildable_restype = pbt.dun_sampler_cache.non_dunbrack_sample_counts[
-            block_ind_for_brt, 0
+            block_type_ind_for_brt, 0
         ]
         # TEMP! Treat everything as exposed (0)
         non_dunbrack_expansion_for_buildable_restype = pbt.dun_sampler_cache.non_dunbrack_samples[
-            block_ind_for_brt, 0
+            block_type_ind_for_brt, 0
         ]
 
         # treat all residues as if they are exposed
@@ -473,7 +473,7 @@ class DunbrackChiSampler:
         return self.package_samples_for_output(
             pbt,
             task,
-            block_ind_for_brt,
+            block_type_ind_for_brt,
             max_n_chi,
             nonzero_dunrot_inds_for_rts,
             sampled_chi,
@@ -482,20 +482,20 @@ class DunbrackChiSampler:
     @validate_args
     def atom_indices_for_backbone_dihedral(self, systems: Poses, bb_dihedral_ind: int):
         assert hasattr(systems.packed_block_types, "dun_sampler_cache")
-        n_systems = systems.block_inds.shape[0]
-        max_n_blocks = systems.block_inds.shape[1]
+        n_systems = systems.block_type_ind.shape[0]
+        max_n_blocks = systems.block_type_ind.shape[1]
         max_n_atoms = systems.coords.shape[2]
 
         pbts = systems.packed_block_types
 
-        real = torch.nonzero(systems.block_inds >= 0)
+        real = torch.nonzero(systems.block_type_ind >= 0)
 
         uaids = torch.full(
             (n_systems, max_n_blocks, 4, 3), -1, dtype=torch.int64, device=self.device
         )
 
         uaids[real[:, 0], real[:, 1], :, :] = pbts.dun_sampler_cache.bbdihe_uaids[
-            systems.block_inds[real[:, 0], real[:, 1]].to(torch.int64),
+            systems.block_type_ind[real[:, 0], real[:, 1]].to(torch.int64),
             bb_dihedral_ind,
             :,
             :,
@@ -531,7 +531,9 @@ class DunbrackChiSampler:
             (inter_res[:, 0] * max_n_atoms * max_n_blocks).to(torch.int32)
             + dest_res * max_n_atoms
             + pbts.atom_downstream_of_conn[
-                systems.block_inds[inter_res[:, 0], inter_res[:, 1]].to(torch.int64),
+                systems.block_type_ind[inter_res[:, 0], inter_res[:, 1]].to(
+                    torch.int64
+                ),
                 dest_conn,
                 uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 2],
             ]
@@ -597,7 +599,7 @@ class DunbrackChiSampler:
         self,
         pbt: PackedBlockTypes,
         task: PackerTask,
-        block_ind_for_brt: Tensor(torch.int64)[:],
+        block_type_ind_for_brt: Tensor(torch.int64)[:],
         max_n_chi: int,
         nonzero_dunrot_inds_for_rts: Tensor(torch.int64)[:, :],
         sampled_chi,
@@ -653,7 +655,7 @@ class DunbrackChiSampler:
         )
         max_n_chi = min((max_n_chi, pbt_cda.shape[1]))
 
-        # block_ind_for_brt_old = torch.tensor(
+        # block_type_ind_for_brt_old = torch.tensor(
         #     pbt.restype_index.get_indexer(
         #         rt_names[nonzero_dunrot_inds_for_rts.cpu()[:, 0]]
         #     ),
@@ -661,12 +663,12 @@ class DunbrackChiSampler:
         #     device=self.device,
         # )
         # numpy.testing.assert_equal(
-        #     block_ind_for_brt_old.cpu().numpy(),
-        #     block_ind_for_brt.cpu().numpy()
+        #     block_type_ind_for_brt_old.cpu().numpy(),
+        #     block_type_ind_for_brt.cpu().numpy()
         # )
 
         chi_defining_atom_for_rotamer[:, :max_n_chi] = pbt_cda[
-            block_ind_for_brt[brt_for_rotamer.to(torch.int64)], :max_n_chi
+            block_type_ind_for_brt[brt_for_rotamer.to(torch.int64)], :max_n_chi
         ]
 
         return (

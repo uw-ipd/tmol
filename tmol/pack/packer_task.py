@@ -133,7 +133,7 @@ class PackerTask:
             [
                 ResidueLevelTask(j, res.residue_type, palette)
                 for j, res in enumerate(ires)
-                if systems.block_inds[i, j] >= 0
+                if systems.block_type_ind[i, j] >= 0
             ]
             for i, ires in enumerate(systems.residues)
         ]

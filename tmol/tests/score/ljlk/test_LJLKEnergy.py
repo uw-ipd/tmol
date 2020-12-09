@@ -151,10 +151,10 @@ def test_inter_module(ubq_res, default_database, torch_device):
 
     context_block_type = torch.zeros((10, 6), dtype=torch.int32, device=torch_device)
     context_block_type[:5, :] = torch.tensor(
-        poses.block_inds[0:1, :], device=torch_device
+        poses.block_type_ind[0:1, :], device=torch_device
     )
     context_block_type[5:, :] = torch.tensor(
-        poses.block_inds[1:2, :], device=torch_device
+        poses.block_type_ind[1:2, :], device=torch_device
     )
 
     alternate_coords = torch.zeros(
@@ -171,14 +171,17 @@ def test_inter_module(ubq_res, default_database, torch_device):
     alternate_ids[:, 0] = torch.div(torch.arange(30, dtype=torch.int32), 3)
     alternate_ids[:15, 1] = 1
     alternate_ids[15:, 1] = 3
-    alternate_ids[:15, 2] = torch.tensor(poses.block_inds[0, 1], device=torch_device)
-    alternate_ids[15:, 2] = torch.tensor(poses.block_inds[1, 3], device=torch_device)
+    alternate_ids[:15, 2] = torch.tensor(
+        poses.block_type_ind[0, 1], device=torch_device
+    )
+    alternate_ids[15:, 2] = torch.tensor(
+        poses.block_type_ind[1, 3], device=torch_device
+    )
 
     rpes = inter_modeule(
         context_coords, context_block_type, alternate_coords, alternate_ids
     )
-    print("rpes")
-    print(rpes)
+    assert rpes is not None
 
 
 @pytest.mark.benchmark(group="time_rpe")
@@ -262,7 +265,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
         (n_traj * n_poses, nres), dtype=torch.int32, device=torch_device
     )
     context_block_type[:, :] = torch.tensor(
-        poses.block_inds[0:1, :], device=torch_device
+        poses.block_type_ind[0:1, :], device=torch_device
     )
 
     alternate_coords = torch.zeros(
@@ -292,7 +295,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
     )
     alternate_ids[:, 1] = which_block
     alternate_ids[:, 2] = torch.tensor(
-        poses.block_inds[0, which_block.cpu().numpy()], device=torch_device
+        poses.block_type_ind[0, which_block.cpu().numpy()], device=torch_device
     )
 
     @benchmark

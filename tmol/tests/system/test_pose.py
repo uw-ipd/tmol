@@ -95,7 +95,7 @@ def test_poses_ctor(ubq_res, torch_device):
     p1 = Pose.from_residues_one_chain(ubq_res[:40], torch_device)
     p2 = Pose.from_residues_one_chain(ubq_res[:60], torch_device)
     poses = Poses.from_poses([p1, p2], torch_device)
-    assert poses.block_inds.shape == (2, 60)
+    assert poses.block_type_ind.shape == (2, 60)
     max_n_atoms = poses.packed_block_types.max_n_atoms
     assert poses.coords.shape == (2, 60, max_n_atoms, 3)
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 2, 2)
