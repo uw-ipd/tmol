@@ -106,6 +106,9 @@ class ResidueLevelTask:
             if rt.name3 == orig.name3  # this isn't what we want long term
         ]
 
+    def disable_packing(self):
+        self.allowed_restypes = []
+
     def add_chi_sampler(self, sampler: ChiSampler):
         self.chi_samplers.append(sampler)
 

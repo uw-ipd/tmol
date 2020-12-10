@@ -19,7 +19,8 @@ def test_create_rotamer_bounding_spheres_smoke(
 
     p1 = Pose.from_residues_one_chain(rts_ubq_res[:3], torch_device)
     p2 = Pose.from_residues_one_chain(rts_ubq_res[:2], torch_device)
-    poses = Poses.from_poses([p1, p2], torch_device)
+    p3 = Pose.from_residues_one_chain(rts_ubq_res[:4], torch_device)
+    poses = Poses.from_poses([p1, p2, p3], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     # leu_set = set(["LEU"])
@@ -27,6 +28,8 @@ def test_create_rotamer_bounding_spheres_smoke(
     #     for rlt in one_pose_rlts:
     #         rlt.restrict_absent_name3s(leu_set)
     task.restrict_to_repacking()
+    task.rlts[0][1].disable_packing()
+    task.rlts[2][2].disable_packing()
 
     fixed_sampler = FixedAAChiSampler()
     task.add_chi_sampler(dun_sampler)
@@ -35,8 +38,13 @@ def test_create_rotamer_bounding_spheres_smoke(
     rotamer_set = build_rotamers(poses, task, default_database.chemical)
 
     bounding_spheres = create_rotamer_bounding_spheres(poses, rotamer_set)
-    # print("bounding spheres")
-    # print(bounding_spheres.shape)
+
+    assert bounding_spheres.shape == (3, 4, 4)
+    assert bounding_spheres.dtype == torch.float32
+    assert bounding_spheres.device == torch_device
+
+    print("bounding spheres")
+    print(bounding_spheres)
 
     rot_coords = rotamer_set.coords.cpu()
     bounding_spheres = bounding_spheres.cpu()
@@ -53,3 +61,14 @@ def test_create_rotamer_bounding_spheres_smoke(
         for j in range(n_atoms[i_bti]):
             dist = torch.norm(i_sphere_coord - rot_coords[i, j], dim=0)
             assert dist <= i_radius + fudge
+
+    bti = poses.block_type_ind.cpu()
+    pcoords = poses.coords.cpu()
+    for i, j in [(0, 1), (2, 2)]:
+        ij_n_atoms = n_atoms[bti[i, j]]
+        ij_sphere_coord = bounding_spheres[i, j, :3]
+        ij_radius = bounding_spheres[i, j, 3]
+        for k in range(ij_n_atoms):
+            kcoord = pcoords[i, j, k]
+            dist = torch.norm(ij_sphere_coord - kcoord, dim=0)
+            assert dist < ij_radius + fudge
