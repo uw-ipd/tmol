@@ -35,7 +35,7 @@ def test_create_rotamer_bounding_spheres_smoke(
     task.add_chi_sampler(dun_sampler)
     task.add_chi_sampler(fixed_sampler)
 
-    rotamer_set = build_rotamers(poses, task, default_database.chemical)
+    poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
 
     bounding_spheres = create_rotamer_bounding_spheres(poses, rotamer_set)
 
@@ -43,8 +43,8 @@ def test_create_rotamer_bounding_spheres_smoke(
     assert bounding_spheres.dtype == torch.float32
     assert bounding_spheres.device == torch_device
 
-    print("bounding spheres")
-    print(bounding_spheres)
+    # print("bounding spheres")
+    # print(bounding_spheres)
 
     rot_coords = rotamer_set.coords.cpu()
     bounding_spheres = bounding_spheres.cpu()
@@ -72,3 +72,26 @@ def test_create_rotamer_bounding_spheres_smoke(
             kcoord = pcoords[i, j, k]
             dist = torch.norm(ij_sphere_coord - kcoord, dim=0)
             assert dist < ij_radius + fudge
+
+
+def test_build_spheres_for_lots_of_rotamers(
+    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+):
+
+    max_n_blocks = len(rts_ubq_res)
+    n_poses = 10
+
+    p = Pose.from_residues_one_chain(rts_ubq_res, torch_device)
+    poses = Poses.from_poses([p] * n_poses, torch_device)
+
+    palette = PackerPalette(fresh_default_restype_set)
+    task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
+
+    fixed_sampler = FixedAAChiSampler()
+    task.add_chi_sampler(dun_sampler)
+    task.add_chi_sampler(fixed_sampler)
+
+    poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
+
+    bounding_spheres = create_rotamer_bounding_spheres(poses, rotamer_set)

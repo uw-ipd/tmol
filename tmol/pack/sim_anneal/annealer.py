@@ -99,7 +99,7 @@ class MCAcceptRejectModule(torch.jit.ScriptModule):
         alternate_ids,
         rotamer_component_energies,  # pre-weighted
     ):
-        rotamer_energies = torch.sum(rotamer_component_energies, dim=1)
+        rotamer_energies = torch.sum(rotamer_component_energies, dim=0)
         n_contexts = context_coords.shape[0]
         dev = context_coords.device
         context_arange = torch.arange(n_contexts, dtype=torch.int64, device=dev)

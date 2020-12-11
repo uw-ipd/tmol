@@ -73,7 +73,7 @@ def test_build_rotamers_smoke(
     task.add_chi_sampler(dun_sampler)
     task.add_chi_sampler(fixed_sampler)
 
-    rotamer_set = build_rotamers(poses, task, default_database.chemical)
+    poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     assert rotamer_set is not None
 
     # for writing rotamer coordinates into a pdb
@@ -976,7 +976,11 @@ def test_build_lots_of_rotamers(
     task.add_chi_sampler(dun_sampler)
     task.add_chi_sampler(fixed_sampler)
 
-    rotamer_set = build_rotamers(poses, task, default_database.chemical)
+    poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
+    numpy.testing.assert_array_less(
+        rotamer_set.block_type_ind_for_rot.cpu().numpy(),
+        len(poses.packed_block_types.active_block_types),
+    )
 
     n_rots = rotamer_set.coords.shape[0]
 

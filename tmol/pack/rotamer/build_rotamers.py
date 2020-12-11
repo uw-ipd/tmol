@@ -985,13 +985,16 @@ def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
         block_ind_for_rot,
     ) = get_rotamer_origin_data(task, rt_for_rot_torch)
 
-    return RotamerSet(
-        n_rots_for_pose=n_rots_for_pose,
-        rot_offset_for_pose=rot_offset_for_pose,
-        n_rots_for_block=n_rots_for_block,
-        rot_offset_for_block=rot_offset_for_block,
-        pose_for_rot=pose_for_rot,
-        block_type_ind_for_rot=block_type_ind_for_rot_torch,
-        block_ind_for_rot=block_ind_for_rot,
-        coords=rotamer_coords,
+    return (
+        poses,
+        RotamerSet(
+            n_rots_for_pose=n_rots_for_pose,
+            rot_offset_for_pose=rot_offset_for_pose,
+            n_rots_for_block=n_rots_for_block,
+            rot_offset_for_block=rot_offset_for_block,
+            pose_for_rot=pose_for_rot,
+            block_type_ind_for_rot=block_type_ind_for_rot_torch,
+            block_ind_for_rot=block_ind_for_rot,
+            coords=rotamer_coords,
+        ),
     )
