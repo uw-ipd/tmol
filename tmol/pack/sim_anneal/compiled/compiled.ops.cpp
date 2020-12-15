@@ -70,9 +70,50 @@ pick_random_rotamers(
   return {alternate_coords, alternate_id, random_rotamers};
 }
 
+template < template <tmol::Device> class DispatchMethod >
+Tensor
+metropolis_accept_reject(
+  Tensor temperature,
+  Tensor context_coords,
+  Tensor context_block_type,
+  Tensor alternate_coords,
+  Tensor alternate_ids,
+  Tensor rotamer_component_energies
+)
+{
+  using Int = int32_t;
+
+  Tensor accepted;
+  try {
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        context_coords.type(), "score_op", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+  
+          auto result = MetropolisAcceptReject<DispatchMethod, Dev, Real, Int>::f(
+              TCAST(temperature),
+	      TCAST(context_coords),
+              TCAST(context_block_type),
+              TCAST(alternate_coords),
+              TCAST(alternate_ids),
+              TCAST(rotamer_component_energies));
+	  accepted = result.tensor;
+        }));
+  } catch (at::Error err) {
+    std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
+    throw err;
+  } catch (c10::Error err) {
+    std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
+    throw err;
+  }
+  return accepted;
+}
+
+
 static auto registry =
   torch::jit::RegisterOperators()
-  .op("tmol::pick_random_rotamers", &pick_random_rotamers<tmol::score::common::ForallDispatch>);
+  .op("tmol::pick_random_rotamers", &pick_random_rotamers<tmol::score::common::ForallDispatch>)
+  .op("tmol::metropolis_accept_reject", &metropolis_accept_reject<tmol::score::common::ForallDispatch>);
 
 
 } // namespace compiled

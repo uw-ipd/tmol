@@ -30,6 +30,22 @@ struct PickRotamers {
       -> std::tuple<TPack<Real, 3, D>, TPack<Int, 2, D>, TPack<Int, 1, D> >;
 };
 
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+struct MetropolisAcceptReject {
+  static auto f(
+      TView<Real, 1, D> temperature,
+      TView<Real, 4, D> context_coords,
+      TView<Int, 2, D> context_block_type,
+      TView<Real, 3, D> alternate_coords,
+      TView<Int, 2, D> alternate_ids,
+      TView<Real, 2, D> rotamer_component_energies) -> TPack<Int, 1, D>;
+};
+
 }  // namespace compiled
 }  // namespace sim_anneal
 }  // namespace pack

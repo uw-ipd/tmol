@@ -184,6 +184,82 @@ struct PickRotamers {
   };
 };
 
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+struct MetropolisAcceptReject {
+  static auto f(
+      TView<Real, 1, D> temperature,
+      TView<Real, 4, D> context_coords,
+      TView<Int, 2, D> context_block_type,
+      TView<Real, 3, D> alternate_coords,
+      TView<Int, 2, D> alternate_ids,
+      TView<Real, 2, D> rotamer_component_energies) -> TPack<Int, 1, D> {
+    int const n_contexts = context_coords.size(0);
+    int const n_terms = rotamer_component_energies.size(0);
+    int const max_n_atoms = context_coords.size(2);
+
+    assert(rotamer_component_energies.size(1) == 2 * n_contexts);
+    assert(alternate_coords.size(0) == 2 * n_contexts);
+    assert(alternate_coords.size(1) == max_n_atoms);
+    assert(alternate_coords.size(2) == 3);
+    assert(alternate_ids.size(0) == 2 * n_contexts);
+
+    auto accept_tp = TPack<Int, 1, D>::zeros({n_contexts});
+    auto accept = accept_tp.view;
+
+    auto philox_seed = next_philox_seed(1);
+
+    auto accept_reject = [=] MGPU_DEVICE(int i) {
+      curandStatePhilox4_32_10_t state;
+      curand_init(philox_seed.first, i, philox_seed.second, &state);
+
+      Real altE = 0;
+      Real currE = 0;
+      for (int j = 0; j < n_terms; ++j) {
+        currE += rotamer_component_energies[j][2 * i];
+        altE += rotamer_component_energies[j][2 * i + 1];
+      }
+      Real deltaE = altE - currE;
+      Real rand_unif = curand_uniform(&state);
+      Real temp = temperature[0];
+      Real prob_accept = exp(-1 * deltaE / temp);
+      bool i_accept = deltaE < 0 || rand_unif < prob_accept;
+      accept[i] = i_accept;
+      if (i_accept) {
+        int block_id = alternate_ids[2 * i + 1][1];
+        context_block_type[i][block_id] = alternate_ids[2 * i + 1][2];
+      }
+    };
+
+    Dispatch<D>::forall(n_contexts, accept_reject);
+
+    auto copy_accepted_coords = [=] MGPU_DEVICE(int i) {
+      int context_id = i / max_n_atoms;
+      Int quasi_atom_ind = i % max_n_atoms;
+
+      Int accepted = accept[context_id];
+      if (accepted) {
+        int block_id = alternate_ids[2 * context_id + 1][1];
+        for (int j = 0; j < 3; ++j) {
+          int j_count = j * max_n_atoms + quasi_atom_ind;
+          int atom_id = j_count / 3;
+          int dim = j_count % 3;
+
+          context_coords[context_id][block_id][atom_id][dim] =
+              alternate_coords[2 * context_id + 1][atom_id][dim];
+        }
+      }
+    };
+
+    Dispatch<D>::forall(n_contexts * max_n_atoms, copy_accepted_coords);
+    return accept_tp;
+  }
+};
+
 template struct PickRotamers<
     score::common::ForallDispatch,
     tmol::Device::CUDA,
@@ -200,6 +276,27 @@ template struct PickRotamers<
     float,
     int64_t>;
 template struct PickRotamers<
+    score::common::ForallDispatch,
+    tmol::Device::CUDA,
+    double,
+    int64_t>;
+
+template struct MetropolisAcceptReject<
+    score::common::ForallDispatch,
+    tmol::Device::CUDA,
+    float,
+    int32_t>;
+template struct MetropolisAcceptReject<
+    score::common::ForallDispatch,
+    tmol::Device::CUDA,
+    double,
+    int32_t>;
+template struct MetropolisAcceptReject<
+    score::common::ForallDispatch,
+    tmol::Device::CUDA,
+    float,
+    int64_t>;
+template struct MetropolisAcceptReject<
     score::common::ForallDispatch,
     tmol::Device::CUDA,
     double,

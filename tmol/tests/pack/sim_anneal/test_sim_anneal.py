@@ -123,11 +123,16 @@ def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
     alternate_ids[:, 1] = block_ind_for_alt.to(torch.int32)
     alternate_ids[:, 2] = poses.block_type_ind[ten0s, block_ind_for_alt]
     faux_energies = torch.arange(10, dtype=torch.float32, device=torch_device).view(
-        10, 1
+        1, 10
     )
     temperature = torch.ones((1,), dtype=torch.float32, device=torch_device)
 
     mc_accept_reject = MCAcceptRejectModule()
+
+    print("context_coords", context_coords.shape)
+    print("alternate_coords", alternate_coords.shape)
+    print("alternate_ids", alternate_ids.shape)
+    print("faux_energies", faux_energies.shape)
 
     accept = mc_accept_reject(
         temperature,
