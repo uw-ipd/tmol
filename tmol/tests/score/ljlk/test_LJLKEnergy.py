@@ -182,6 +182,7 @@ def test_inter_module(ubq_res, default_database, torch_device):
         context_coords, context_block_type, alternate_coords, alternate_ids
     )
     assert rpes is not None
+    print(rpes)
 
 
 @pytest.mark.benchmark(group="time_rpe")

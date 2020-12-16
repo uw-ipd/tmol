@@ -142,7 +142,14 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   auto count_t = TPack<int, 1, D>::zeros({1});
   auto count = count_t.view;
 
-  // between
+  using namespace mgpu;
+  typedef launch_box_t<
+      arch_20_cta<256, 1>,
+      arch_35_cta<256, 1>,
+      arch_52_cta<256, 1>>
+      launch_t;
+
+  // between one alternate rotamer and its neighbors in the surrounding context
   auto score_inter_pairs = ([=] MGPU_DEVICE(
                                 int tid,
                                 int alt_start_atom,
@@ -210,11 +217,22 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           type_params[atom_2_type],
           global_params[0]);
       lj *= lj_lk_weights[0];
+      // if ( lj != 0 ) {
+      //   printf("cuda %d %d %6.3f %6.3f %6.3f vs %6.3f %6.3f %6.3f e=
+      //   %8.4f\n",
+      //     alt_atom_ind, neighb_atom_ind,
+      //     coord1[0], coord1[1], coord1[2],
+      //     coord2[0], coord2[1], coord2[2],
+      //     lj
+      //   );
+      // }
+
       score_total += lj;
     }
     return score_total;
   });
 
+  // between one atoms within an alternate rotamer
   auto score_intra_pairs = ([=] MGPU_DEVICE(
                                 int tid,
                                 int start_atom1,
@@ -240,6 +258,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const atom_ind_2_local = i % remain2;
       int const atom_ind_1 = atom_ind_1_local + start_atom1;
       int const atom_ind_2 = atom_ind_2_local + start_atom2;
+      if (atom_ind_1 >= atom_ind_2) {
+        continue;
+      }
+
       for (int j = 0; j < 3; ++j) {
         coord1[j] = coords1[3 * atom_ind_1_local + j];
         coord2[j] = coords2[3 * atom_ind_2_local + j];
@@ -268,15 +290,26 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   });
 
   auto eval_energies = ([=] MGPU_DEVICE(int tid, int cta) {
-    // typedef typename launch_t::sm_ptx params_t;
-    // enum { nt = params_t::nt, vt = params_t::vt, vt0 = params_t::vt0 };
+    typedef typename launch_t::sm_ptx params_t;
+    enum { nt = params_t::nt, vt = params_t::vt, vt0 = params_t::vt0 };
+    typedef mgpu::cta_reduce_t<nt, Real> reduce_t;
 
-    __shared__ union { Real coords[32 * 3 * 2 + 32 * 2]; } shared;
+    __shared__ union {
+      struct {
+        Real coords1[32 * 3];
+        Real coords2[32 * 3];
+        Int atypes1[322];
+        Int atypes2[322];
+      } vals;
+      typename reduce_t::storage_t reduce;
+    } shared;
 
-    Real *coords1 = &shared.coords[0];
-    Real *coords2 = &shared.coords[32 * 3];
-    Int *atom_type1 = reinterpret_cast<Int *>(&shared.coords[64 * 3]);
-    Int *atom_type2 = reinterpret_cast<Int *>(&shared.coords[64 * 3 + 32]);
+    Real *coords1 = shared.vals.coords1;
+    Real *coords2 = shared.vals.coords2;
+    Int *atom_type1 = shared.vals.atypes1;
+    Int *atom_type2 =
+        shared.vals
+            .atypes2;  // reinterpret_cast<Int *>(&shared.coords[64 * 3 + 32]);
 
     int alt_ind = cta / max_n_neighbors;
     int neighb_ind = cta % max_n_neighbors;
@@ -298,7 +331,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
 
     // Let's load coordinates
-    int const n_iterations = max_n_atoms / 32;
+    int const n_iterations = (max_n_atoms - 1) / 32 + 1;
 
     Real totalE = 0;
     if (alt_block_ind != neighb_block_ind) {
@@ -332,6 +365,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           __syncthreads();
 
           // Now we will calculate ij pairs
+          // printf("cuda score inter pairs %d %d %d %d\n", tid, cta, i, j);
 
           totalE += score_inter_pairs(
               tid,
@@ -389,15 +423,14 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       }    // for i
     }      // else
 
+    // range_t tile = get_tile(cta, nv, nt);
+    // Real all_reduce = reduce_t().reduce(tid, totalE, shared.reduce,
+    // tile.count(), mgpu::plut_t<Real>()); if (tid == 0) {
+    //   atomicAdd(&output[alt_ind], all_reduce);
+    // }
+
     accumulate<D, Real>::add_one_dst(output, alt_ind, totalE);
   });
-
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<256, 1>>
-      launch_t;
 
   mgpu::standard_context_t context;
   mgpu::cta_launch<launch_t>(
