@@ -144,9 +144,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<128, 4>,
-      arch_35_cta<128, 4>,
-      arch_52_cta<128, 4>>
+      arch_20_cta<64, 1>,
+      arch_35_cta<64, 1>,
+      arch_52_cta<64, 1>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -178,7 +178,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     int const n_pairs = alt_remain * neighb_remain;
 
-    for (int i = alt_start_atom + tid; i < n_pairs; i += blockDim.x) {
+    for (int i = tid; i < n_pairs; i += blockDim.x) {
       int const alt_atom_ind_local = i / neighb_remain;
       int const neighb_atom_ind_local = i % neighb_remain;
       int const alt_atom_ind = alt_atom_ind_local + alt_start_atom;
@@ -253,7 +253,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     int const n_pairs = remain1 * remain2;
 
-    for (int i = start_atom1 + tid; i < n_pairs; i += blockDim.x) {
+    for (int i = tid; i < n_pairs; i += blockDim.x) {
       int const atom_ind_1_local = i / remain2;
       int const atom_ind_2_local = i % remain2;
       int const atom_ind_1 = atom_ind_1_local + start_atom1;
@@ -303,8 +303,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       struct {
         Real coords1[32 * 3];
         Real coords2[32 * 3];
-        Int atypes1[322];
-        Int atypes2[322];
+        Int atypes1[32];
+        Int atypes2[32];
       } vals;
       typename reduce_t::storage_t reduce;
     } shared;
@@ -312,9 +312,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Real *coords1 = shared.vals.coords1;
     Real *coords2 = shared.vals.coords2;
     Int *atom_type1 = shared.vals.atypes1;
-    Int *atom_type2 =
-        shared.vals
-            .atypes2;  // reinterpret_cast<Int *>(&shared.coords[64 * 3 + 32]);
+    Int *atom_type2 = shared.vals.atypes2;
 
     int alt_ind = cta / max_n_neighbors;
     int neighb_ind = cta % max_n_neighbors;
