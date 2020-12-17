@@ -144,9 +144,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<64, 1>,
-      arch_35_cta<64, 1>,
-      arch_52_cta<64, 1>>
+      arch_20_cta<32, 1>,
+      arch_35_cta<32, 1>,
+      arch_52_cta<32, 1>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -314,133 +314,148 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Int *atom_type1 = shared.vals.atypes1;
     Int *atom_type2 = shared.vals.atypes2;
 
-    int alt_ind = cta / max_n_neighbors;
-    int neighb_ind = cta % max_n_neighbors;
+    Real cta_totalE = 0;
 
-    int const max_important_bond_separation = 4;
-    int const alt_context = alternate_ids[alt_ind][0];
-    if (alt_context == -1) {
-      return;
-    }
+    for (int iteration = 0; iteration < vt; ++iteration) {
+      Real totalE = 0;
 
-    int const alt_block_ind = alternate_ids[alt_ind][1];
-    int const alt_block_type = alternate_ids[alt_ind][2];
-    int const system = context_system_ids[alt_context];
+      int alt_ind = (vt * cta + iteration) / max_n_neighbors;
 
-    int const neighb_block_ind =
-        system_neighbor_list[system][alt_block_ind][neighb_ind];
-    if (neighb_block_ind == -1) {
-      return;
-    }
+      if (alt_ind >= n_alternate_blocks) {
+        return;
+      }
 
-    // Let's load coordinates
-    int const n_iterations = (max_n_atoms - 1) / 32 + 1;
+      int neighb_ind = (vt * cta + iteration) % max_n_neighbors;
 
-    Real totalE = 0;
-    if (alt_block_ind != neighb_block_ind) {
-      int const neighb_block_type =
-          context_block_type[alt_context][neighb_block_ind];
-      int const alt_n_atoms = block_type_n_atoms[alt_block_type];
-      int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
+      int const max_important_bond_separation = 4;
+      int const alt_context = alternate_ids[alt_ind][0];
+      if (alt_context == -1) {
+        return;
+      }
 
-      // Tile the sets of 32 atoms
-      for (int i = 0; i < n_iterations; ++i) {
-        __syncthreads();
-        if (tid < 32 && i * 32 + tid < max_n_atoms) {
-          int atid = i * 32 + tid;
-          for (int j = 0; j < 3; ++j) {
-            coords1[3 * tid + j] = alternate_coords[alt_ind][atid][j];
-          }
-          atom_type1[tid] = block_type_atom_types[alt_block_type][atid];
-        }
+      int const alt_block_ind = alternate_ids[alt_ind][1];
+      int const alt_block_type = alternate_ids[alt_ind][2];
+      int const system = context_system_ids[alt_context];
 
-        for (int j = 0; j < n_iterations; ++j) {
+      int const neighb_block_ind =
+          system_neighbor_list[system][alt_block_ind][neighb_ind];
+      if (neighb_block_ind == -1) {
+        return;
+      }
+
+      // Let's load coordinates
+      int const n_iterations = (max_n_atoms - 1) / 32 + 1;
+
+      if (alt_block_ind != neighb_block_ind) {
+        int const neighb_block_type =
+            context_block_type[alt_context][neighb_block_ind];
+        int const alt_n_atoms = block_type_n_atoms[alt_block_type];
+        int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
+
+        // Tile the sets of 32 atoms
+        for (int i = 0; i < n_iterations; ++i) {
           __syncthreads();
-          if (tid < 32 && j * 32 + tid < max_n_atoms) {
-            int atid = j * 32 + tid;
-            for (int k = 0; k < 3; ++k) {
-              coords2[3 * tid + k] =
-                  context_coords[alt_context][neighb_block_ind][atid][k];
+          if (tid < 32 && i * 32 + tid < max_n_atoms) {
+            int atid = i * 32 + tid;
+            for (int j = 0; j < 3; ++j) {
+              coords1[3 * tid + j] = alternate_coords[alt_ind][atid][j];
             }
-            atom_type2[tid] = block_type_atom_types[neighb_block_type][atid];
+            atom_type1[tid] = block_type_atom_types[alt_block_type][atid];
           }
 
-          __syncthreads();
-
-          // Now we will calculate ij pairs
-          // printf("cuda score inter pairs %d %d %d %d\n", tid, cta, i, j);
-
-          totalE += score_inter_pairs(
-              tid,
-              i * 32,
-              j * 32,
-              coords1,
-              coords2,
-              atom_type1,
-              atom_type2,
-              max_important_bond_separation,
-              alt_block_ind,
-              neighb_block_ind,
-              alt_block_type,
-              neighb_block_type,
-              system_min_bond_separation[system],
-              system_inter_block_bondsep[system],
-              alt_n_atoms,
-              neighb_n_atoms);
-        }  // for j
-      }    // for i
-    } else {
-      int const alt_n_atoms = block_type_n_atoms[alt_block_type];
-
-      for (int i = 0; i < n_iterations; ++i) {
-        __syncthreads();
-        if (tid < 32 && i * 32 + tid < max_n_atoms) {
-          int atid = i * 32 + tid;
-          for (int j = 0; j < 3; ++j) {
-            coords1[3 * tid + j] = alternate_coords[alt_ind][atid][j];
-          }
-          atom_type1[tid] = block_type_atom_types[alt_block_type][atid];
-        }
-        for (int j = i; j < n_iterations; ++j) {
-          __syncthreads();
-          if (j != i && tid < 32 && j * 32 + tid < max_n_atoms) {
-            int atid = j * 32 + tid;
-            for (int k = 0; k < 3; ++k) {
-              coords2[3 * tid + k] = alternate_coords[alt_ind][atid][k];
+          for (int j = 0; j < n_iterations; ++j) {
+            __syncthreads();
+            if (tid < 32 && j * 32 + tid < max_n_atoms) {
+              int atid = j * 32 + tid;
+              for (int k = 0; k < 3; ++k) {
+                coords2[3 * tid + k] =
+                    context_coords[alt_context][neighb_block_ind][atid][k];
+              }
+              atom_type2[tid] = block_type_atom_types[neighb_block_type][atid];
             }
-            atom_type2[tid] = block_type_atom_types[alt_block_type][atid];
-          }
+
+            __syncthreads();
+
+            // Now we will calculate ij pairs
+            // printf("cuda score inter pairs %d %d %d %d\n", tid, cta, i, j);
+
+            totalE += score_inter_pairs(
+                tid,
+                i * 32,
+                j * 32,
+                coords1,
+                coords2,
+                atom_type1,
+                atom_type2,
+                max_important_bond_separation,
+                alt_block_ind,
+                neighb_block_ind,
+                alt_block_type,
+                neighb_block_type,
+                system_min_bond_separation[system],
+                system_inter_block_bondsep[system],
+                alt_n_atoms,
+                neighb_n_atoms);
+          }  // for j
+        }    // for i
+      } else {
+        int const alt_n_atoms = block_type_n_atoms[alt_block_type];
+
+        for (int i = 0; i < n_iterations; ++i) {
           __syncthreads();
-          totalE += score_intra_pairs(
-              tid,
-              i * 32,
-              j * 32,
-              coords1,
-              (i == j ? coords1 : coords2),
-              atom_type1,
-              (i == j ? atom_type1 : atom_type2),
-              max_important_bond_separation,
-              alt_block_type,
-              alt_n_atoms);
-        }  // for j
-      }    // for i
-    }      // else
+          if (tid < 32 && i * 32 + tid < max_n_atoms) {
+            int atid = i * 32 + tid;
+            for (int j = 0; j < 3; ++j) {
+              coords1[3 * tid + j] = alternate_coords[alt_ind][atid][j];
+            }
+            atom_type1[tid] = block_type_atom_types[alt_block_type][atid];
+          }
+          for (int j = i; j < n_iterations; ++j) {
+            __syncthreads();
+            if (j != i && tid < 32 && j * 32 + tid < max_n_atoms) {
+              int atid = j * 32 + tid;
+              for (int k = 0; k < 3; ++k) {
+                coords2[3 * tid + k] = alternate_coords[alt_ind][atid][k];
+              }
+              atom_type2[tid] = block_type_atom_types[alt_block_type][atid];
+            }
+            __syncthreads();
+            totalE += score_intra_pairs(
+                tid,
+                i * 32,
+                j * 32,
+                coords1,
+                (i == j ? coords1 : coords2),
+                atom_type1,
+                (i == j ? atom_type1 : atom_type2),
+                max_important_bond_separation,
+                alt_block_type,
+                alt_n_atoms);
+          }  // for j
+        }    // for i
+      }      // else
 
-    __syncthreads();
+      __syncthreads();
 
-    Real all_reduce =
-        reduce_t().reduce(tid, totalE, shared.reduce, nt, mgpu::plus_t<Real>());
+      cta_totalE += reduce_t().reduce(
+          tid, totalE, shared.reduce, nt, mgpu::plus_t<Real>());
 
-    if (tid == 0 && all_reduce != 0) {
-      atomicAdd(&output[alt_ind], all_reduce);
+      if (tid == 0) {
+        // int next_alt_ind = (vt * cta + iteration + 1) / max_n_neighbors;
+
+        // if (cta_totalE != 0 && (iteration+1 == vt || next_alt_ind !=
+        // alt_ind)) {
+        atomicAdd(&output[alt_ind], cta_totalE);
+        cta_totalE = 0;
+        //}
+      }
     }
-
-    // accumulate<D, Real>::add_one_dst(output, alt_ind, totalE);
   });
 
   mgpu::standard_context_t context;
-  mgpu::cta_launch<launch_t>(
-      eval_energies, n_alternate_blocks * max_n_neighbors, context);
+  int const n_ctas =
+      (n_alternate_blocks * max_n_neighbors - 1) / launch_t::sm_ptx::vt + 1;
+  mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
 
 #ifdef __CUDACC__
   // float first;
