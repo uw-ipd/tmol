@@ -150,9 +150,9 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+      arch_20_cta<64, 1>,
+      arch_35_cta<64, 1>,
+      arch_52_cta<64, 1>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context

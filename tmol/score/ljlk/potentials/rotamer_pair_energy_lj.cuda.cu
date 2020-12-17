@@ -144,9 +144,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+      arch_20_cta<64, 1>,
+      arch_35_cta<64, 1>,
+      arch_52_cta<64, 1>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -355,23 +355,44 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         // Tile the sets of 32 atoms
         for (int i = 0; i < n_iterations; ++i) {
           __syncthreads();
-          if (tid < 32 && i * 32 + tid < max_n_atoms) {
-            int atid = i * 32 + tid;
+          if (tid < 32) {
+            // strided read
             for (int j = 0; j < 3; ++j) {
-              coords1[3 * tid + j] = alternate_coords[alt_ind][atid][j];
+              int j_ind = j * 32 + tid;
+              int local_atomind = j_ind / 3;
+              int atid = local_atomind + i * 32;
+              int dim = j_ind % 3;
+              if (atid < max_n_atoms) {
+                coords1[j_ind] = alternate_coords[alt_ind][atid][dim];
+              }
             }
-            atom_type1[tid] = block_type_atom_types[alt_block_type][atid];
+            if (32 * i + tid < max_n_atoms) {
+              atom_type1[tid] =
+                  block_type_atom_types[alt_block_type][32 * i + tid];
+            }
           }
 
           for (int j = 0; j < n_iterations; ++j) {
             __syncthreads();
-            if (tid < 32 && j * 32 + tid < max_n_atoms) {
-              int atid = j * 32 + tid;
+            if (tid < 32) {
+              // strided read
+              // int atid = j * 32 + tid;
               for (int k = 0; k < 3; ++k) {
-                coords2[3 * tid + k] =
-                    context_coords[alt_context][neighb_block_ind][atid][k];
+                int k_ind = k * 32 + tid;
+                int local_atomind = k_ind / 3;
+                int atid = local_atomind + j * 32;
+                int dim = k_ind % 3;
+                if (atid < max_n_atoms) {
+                  coords2[k_ind] =
+                      context_coords[alt_context][neighb_block_ind][atid][dim];
+                }
+                // coords2[3 * tid + k] =
+                //    context_coords[alt_context][neighb_block_ind][atid][k];
               }
-              atom_type2[tid] = block_type_atom_types[neighb_block_type][atid];
+              if (32 * j + tid < max_n_atoms) {
+                atom_type2[tid] =
+                    block_type_atom_types[neighb_block_type][32 * j + tid];
+              }
             }
 
             __syncthreads();
@@ -403,21 +424,39 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
         for (int i = 0; i < n_iterations; ++i) {
           __syncthreads();
-          if (tid < 32 && i * 32 + tid < max_n_atoms) {
-            int atid = i * 32 + tid;
+          if (tid < 32) {
+            // strided read
             for (int j = 0; j < 3; ++j) {
-              coords1[3 * tid + j] = alternate_coords[alt_ind][atid][j];
+              int j_ind = j * 32 + tid;
+              int local_atomind = j_ind / 3;
+              int atid = local_atomind + i * 32;
+              int dim = j_ind % 3;
+              if (atid < max_n_atoms) {
+                coords1[j_ind] = alternate_coords[alt_ind][atid][dim];
+              }
             }
-            atom_type1[tid] = block_type_atom_types[alt_block_type][atid];
+            if (i * 32 + tid < max_n_atoms) {
+              atom_type1[tid] =
+                  block_type_atom_types[alt_block_type][i * 32 + tid];
+            }
           }
           for (int j = i; j < n_iterations; ++j) {
             __syncthreads();
-            if (j != i && tid < 32 && j * 32 + tid < max_n_atoms) {
-              int atid = j * 32 + tid;
+            if (j != i && tid < 32) {
+              // strided read
               for (int k = 0; k < 3; ++k) {
-                coords2[3 * tid + k] = alternate_coords[alt_ind][atid][k];
+                int k_ind = k * 32 + tid;
+                int local_atomind = k_ind / 3;
+                int atid = local_atomind + j * 32;
+                int dim = k_ind % 3;
+                if (atid < max_n_atoms) {
+                  coords2[k_ind] = alternate_coords[alt_ind][atid][dim];
+                }
               }
-              atom_type2[tid] = block_type_atom_types[alt_block_type][atid];
+              if (j * 32 + tid < max_n_atoms) {
+                atom_type2[tid] =
+                    block_type_atom_types[alt_block_type][j * 32 + tid];
+              }
             }
             __syncthreads();
             totalE += score_intra_pairs(
