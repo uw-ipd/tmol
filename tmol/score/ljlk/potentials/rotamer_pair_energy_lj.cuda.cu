@@ -144,9 +144,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<256, 1>,
-      arch_35_cta<256, 1>,
-      arch_52_cta<256, 1>>
+      arch_20_cta<128, 4>,
+      arch_35_cta<128, 4>,
+      arch_52_cta<128, 4>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -291,7 +291,12 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   auto eval_energies = ([=] MGPU_DEVICE(int tid, int cta) {
     typedef typename launch_t::sm_ptx params_t;
-    enum { nt = params_t::nt, vt = params_t::vt, vt0 = params_t::vt0 };
+    enum {
+      nt = params_t::nt,
+      vt = params_t::vt,
+      vt0 = params_t::vt0,
+      nv = nt * vt
+    };
     typedef mgpu::cta_reduce_t<nt, Real> reduce_t;
 
     __shared__ union {
@@ -423,13 +428,16 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       }    // for i
     }      // else
 
-    // range_t tile = get_tile(cta, nv, nt);
-    // Real all_reduce = reduce_t().reduce(tid, totalE, shared.reduce,
-    // tile.count(), mgpu::plut_t<Real>()); if (tid == 0) {
-    //   atomicAdd(&output[alt_ind], all_reduce);
-    // }
+    __syncthreads();
 
-    accumulate<D, Real>::add_one_dst(output, alt_ind, totalE);
+    Real all_reduce =
+        reduce_t().reduce(tid, totalE, shared.reduce, nt, mgpu::plus_t<Real>());
+
+    if (tid == 0 && all_reduce != 0) {
+      atomicAdd(&output[alt_ind], all_reduce);
+    }
+
+    // accumulate<D, Real>::add_one_dst(output, alt_ind, totalE);
   });
 
   mgpu::standard_context_t context;
