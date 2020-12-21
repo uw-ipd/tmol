@@ -8,6 +8,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
+#include <tmol/score/common/coordinate_load.cuh>
 #include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
@@ -152,9 +153,9 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<64, 1>,
-      arch_35_cta<64, 1>,
-      arch_52_cta<64, 1>>
+      arch_20_cta<32, 1>,
+      arch_35_cta<32, 1>,
+      arch_52_cta<32, 1>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -212,8 +213,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       }
       int const atom_ind1 = alt_atom_ind[alt_heavy_atom_tile_ind];
       int const atom_ind2 = neighb_atom_ind[neighb_heavy_atom_tile_ind];
-      int const atom_1_type = alt_atom_type[alt_heavy_atom_tile_ind];
-      int const atom_2_type = neighb_atom_type[neighb_heavy_atom_tile_ind];
+      // int const atom_1_type = alt_atom_type[alt_heavy_atom_tile_ind];
+      // int const atom_2_type = neighb_atom_type[neighb_heavy_atom_tile_ind];
 
       int const separation =
           min_separation > max_important_bond_separation
@@ -410,7 +411,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               coords1[3 * tid + j] = alternate_coords[alt_ind][heavy_ind][j];
             }
             int const attype = block_type_atom_types[alt_block_type][heavy_ind];
-            at_type1[tid] = attype;
+            // at_type1[tid] = attype;
             params1[tid] = type_params[attype];
           }
         }
@@ -427,7 +428,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                     context_coords[alt_context][neighb_block_ind][heavy_ind][k];
               }
               int attype = block_type_atom_types[neighb_block_type][heavy_ind];
-              at_type2[tid] = attype;
+              // at_type2[tid] = attype;
               LKTypeParams<Real> params_local = type_params[attype];
               params2[tid] = params_local;
             }

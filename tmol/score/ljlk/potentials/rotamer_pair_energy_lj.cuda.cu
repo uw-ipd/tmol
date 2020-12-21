@@ -382,21 +382,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           if (tid < 32) {
             // coalesced read of atom coordinate data
-            // common::coalesced_read_of_32_coords_into_shared(
-            //   alternate_coords[alt_ind],
-            //   i * 32,
-            //   coords1,
-            //   tid
-            // );
-            for (int j = 0; j < 3; ++j) {
-              int j_ind = j * 32 + tid;
-              int local_atomind = j_ind / 3;
-              int atid = local_atomind + i * 32;
-              int dim = j_ind % 3;
-              if (atid < max_n_atoms) {
-                coords1[j_ind] = alternate_coords[alt_ind][atid][dim];
-              }
-            }
+            common::coalesced_read_of_32_coords_into_shared(
+                alternate_coords[alt_ind], i * 32, coords1, tid);
 
             // load the Lennard-Jones parameters for these 32 atoms
             if (32 * i + tid < max_n_atoms) {
@@ -416,23 +403,11 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             }
             if (tid < 32) {
               // Coalesced read of atom coordinate data
-              // common::coalesced_read_of_32_coords_into_shared(
-              //   context_coords[alt_context][neighb_block_ind],
-              //   j * 32,
-              //   coords2,
-              //   tid
-              // );
-              // int atid = j * 32 + tid;
-              for (int k = 0; k < 3; ++k) {
-                int k_ind = k * 32 + tid;
-                int local_atomind = k_ind / 3;
-                int atid = local_atomind + j * 32;
-                int dim = k_ind % 3;
-                if (atid < max_n_atoms) {
-                  coords2[k_ind] =
-                      context_coords[alt_context][neighb_block_ind][atid][dim];
-                }
-              }
+              common::coalesced_read_of_32_coords_into_shared(
+                  context_coords[alt_context][neighb_block_ind],
+                  j * 32,
+                  coords2,
+                  tid);
 
               // load the Lennard-Jones parameters for these 32 atoms
               if (32 * j + tid < max_n_atoms) {
@@ -481,15 +456,17 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           }
           if (tid < 32) {
             // coalesced reads of coordinate data
-            for (int j = 0; j < 3; ++j) {
-              int j_ind = j * 32 + tid;
-              int local_atomind = j_ind / 3;
-              int atid = local_atomind + i * 32;
-              int dim = j_ind % 3;
-              if (atid < max_n_atoms) {
-                coords1[j_ind] = alternate_coords[alt_ind][atid][dim];
-              }
-            }
+            common::coalesced_read_of_32_coords_into_shared(
+                alternate_coords[alt_ind], i * 32, coords1, tid);
+            // for (int j = 0; j < 3; ++j) {
+            //   int j_ind = j * 32 + tid;
+            //   int local_atomind = j_ind / 3;
+            //   int atid = local_atomind + i * 32;
+            //   int dim = j_ind % 3;
+            //   if (atid < max_n_atoms) {
+            //     coords1[j_ind] = alternate_coords[alt_ind][atid][dim];
+            //   }
+            // }
 
             // load Lennard-Jones parameters for the 32 atoms into shared
             // memory
@@ -511,15 +488,17 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             if (j != i && tid < 32) {
               // coalesced read of coordinate data
-              for (int k = 0; k < 3; ++k) {
-                int k_ind = k * 32 + tid;
-                int local_atomind = k_ind / 3;
-                int atid = local_atomind + j * 32;
-                int dim = k_ind % 3;
-                if (atid < max_n_atoms) {
-                  coords2[k_ind] = alternate_coords[alt_ind][atid][dim];
-                }
-              }
+              common::coalesced_read_of_32_coords_into_shared(
+                  alternate_coords[alt_ind], j * 32, coords2, tid);
+              // for (int k = 0; k < 3; ++k) {
+              //   int k_ind = k * 32 + tid;
+              //   int local_atomind = k_ind / 3;
+              //   int atid = local_atomind + j * 32;
+              //   int dim = k_ind % 3;
+              //   if (atid < max_n_atoms) {
+              //     coords2[k_ind] = alternate_coords[alt_ind][atid][dim];
+              //   }
+              // }
               if (j * 32 + tid < max_n_atoms) {
                 int const atind = j * 32 + tid;
                 int const attype = block_type_atom_types[alt_block_type][atind];
