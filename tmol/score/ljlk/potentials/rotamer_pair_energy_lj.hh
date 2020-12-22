@@ -85,7 +85,8 @@ struct LJRPEDispatch {
       // LJ parameters
       TView<LJTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
-      TView<Real, 1, D> lj_lk_weights) -> TPack<Real, 1, D>;
+      TView<Real, 1, D> lj_lk_weights)
+      -> std::tuple<TPack<Real, 1, D>, TPack<int64_t, 1, D>>;
 };
 
 }  // namespace potentials

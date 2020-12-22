@@ -86,7 +86,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     // LJ parameters
     TView<LJTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
-    TView<Real, 1, D> lj_lk_weights) -> TPack<Real, 1, D> {
+    TView<Real, 1, D> lj_lk_weights)
+    -> std::tuple<TPack<Real, 1, D>, TPack<int64_t, 1, D>> {
   int const n_systems = system_min_bond_separation.size(0);
   int const n_contexts = context_coords.size(0);
   int64_t const n_alternate_blocks = alternate_coords.size(0);
@@ -130,6 +131,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   auto output = output_t.view;
   auto count_t = TPack<int, 1, D>::zeros({1});
   auto count = count_t.view;
+  auto event_t = TPack<int64_t, 1, D>::zeros({2});
 
   auto eval_atom_pair = ([=] EIGEN_DEVICE_FUNC(
                              int alt_ind, int neighb_ind, int atom_pair_ind) {
@@ -291,7 +293,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   //           << " wall time: " << wctduration.count() << " " << first
   //           << std::endl;
 #endif
-  return output_t;
+  return {output_t, event_t};
 }
 
 }  // namespace potentials

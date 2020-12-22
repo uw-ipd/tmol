@@ -70,7 +70,7 @@ Tensor lj_score_op(
   });
 };
 
-Tensor
+std::vector<Tensor>
 rotamer_pair_energies_op(
   Tensor context_coords,
   Tensor context_block_type,
@@ -94,6 +94,7 @@ rotamer_pair_energies_op(
 ) {
   
   at::Tensor rpes;
+  at::Tensor event;
   using Int = int32_t;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
@@ -118,7 +119,8 @@ rotamer_pair_energies_op(
           TCAST(global_params),
 	  TCAST(lj_lk_weights)
 	);
-	rpes = result.tensor;
+	rpes = std::get<0>(result).tensor;
+	event = std::get<0>(result).tensor;
 	LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
@@ -137,10 +139,11 @@ rotamer_pair_energies_op(
           TCAST(lk_type_params),
           TCAST(global_params),
           TCAST(lj_lk_weights),
-          result.view
+          std::get<0>(result).view,
+          std::get<1>(result).view
 	);
       }));
-  return rpes;
+  return {rpes, event};
 }
 
 template <

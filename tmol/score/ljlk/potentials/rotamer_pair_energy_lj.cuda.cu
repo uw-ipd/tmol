@@ -29,6 +29,9 @@
 #include <moderngpu/search.hxx>
 #include <moderngpu/transform.hxx>
 
+// This file moves in more recent versions of Torch
+#include <ATen/cuda/CUDAStream.h>
+
 // #include <tmol/score/ljlk/potentials/rotamer_pair_energy_lj.impl.hh>
 
 namespace tmol {
@@ -98,7 +101,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     // LJ parameters
     TView<LJTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
-    TView<Real, 1, D> lj_lk_weights) -> TPack<Real, 1, D> {
+    TView<Real, 1, D> lj_lk_weights)
+    -> std::tuple<TPack<Real, 1, D>, TPack<int64_t, 1, D>> {
   int const n_systems = system_min_bond_separation.size(0);
   int const n_contexts = context_coords.size(0);
   int64_t const n_alternate_blocks = alternate_coords.size(0);
@@ -138,16 +142,23 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   // auto wcts = std::chrono::system_clock::now();
   // clock_t start_time = clock();
 
+  // Allocate and zero the output tensors in a separate stream
+  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  setCurrentCUDAStream(wrapped_stream);
+
   auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
   auto output = output_t.view;
   auto count_t = TPack<int, 1, D>::zeros({1});
   auto count = count_t.view;
 
+  // I'm not sure I want/need events for synchronization
+  auto event_t = TPack<int64_t, 1, D>::zeros({2});
+
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+      arch_20_cta<64, 1>,
+      arch_35_cta<64, 1>,
+      arch_52_cta<64, 1>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -540,10 +551,12 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
   });
 
-  mgpu::standard_context_t context;
+  mgpu::standard_context_t context(wrapped_stream.stream());
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors - 1) / launch_t::sm_ptx::vt + 1;
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
+
+  at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
 
 #ifdef __CUDACC__
   // float first;
@@ -560,7 +573,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   //           << " wall time: " << wctduration.count() << " " << first
   //           << std::endl;
 #endif
-  return output_t;
+  return {output_t, event_t};
 }
 
 template struct LJRPEDispatch<ForallDispatch, tmol::Device::CUDA, float, int>;

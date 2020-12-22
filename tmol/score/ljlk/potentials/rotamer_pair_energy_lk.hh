@@ -88,7 +88,8 @@ struct LKRPEDispatch {
       TView<LKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> lj_lk_weights,
-      TView<Real, 1, D> output_tensor) -> void;
+      TView<Real, 1, D> output_tensor,
+      TView<int64_t, 1, D> event_tensor) -> void;
 };
 
 }  // namespace potentials

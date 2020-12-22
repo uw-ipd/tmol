@@ -178,7 +178,7 @@ def test_inter_module(ubq_res, default_database, torch_device):
         poses.block_type_ind[1, 3], device=torch_device
     )
 
-    rpes = inter_modeule(
+    rpes, events = inter_modeule(
         context_coords, context_block_type, alternate_coords, alternate_ids
     )
     assert rpes is not None

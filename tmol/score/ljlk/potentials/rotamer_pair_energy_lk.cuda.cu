@@ -30,6 +30,10 @@
 #include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
 // #include <tmol/score/ljlk/potentials/rotamer_pair_energy_lk.impl.hh>
 
+// This file moves in more recent versions of Torch; I think to
+// c10/cuda/CUDAStream.h
+#include <ATen/cuda/CUDAStream.h>
+
 namespace tmol {
 namespace score {
 namespace ljlk {
@@ -101,7 +105,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<LKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
-    TView<Real, 1, D> output_tensor) -> void {
+    TView<Real, 1, D> output_tensor,
+    TView<int64_t, 1, D> event_tensor) -> void {
   int const n_systems = system_min_bond_separation.size(0);
   int const n_contexts = context_coords.size(0);
   int64_t const n_alternate_blocks = alternate_coords.size(0);
@@ -167,8 +172,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                 Real *neighb_coords,
                                 Int *alt_atom_ind,
                                 Int *neighb_atom_ind,
-                                Int *alt_atom_type,
-                                Int *neighb_atom_type,
+                                // Int *alt_atom_type,
+                                // Int *neighb_atom_type,
                                 LKTypeParams<Real> *params1,
                                 LKTypeParams<Real> *params2,
                                 int const max_important_bond_separation,
@@ -186,9 +191,9 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Real coord1[3];
     Real coord2[3];
 
-    int const alt_remain = min(32, alt_n_heavy_atoms - alt_start_heavy_atom);
+    int const alt_remain = min(16, alt_n_heavy_atoms - alt_start_heavy_atom);
     int const neighb_remain =
-        min(32, neighb_n_heavy_atoms - neighb_start_heavy_atom);
+        min(16, neighb_n_heavy_atoms - neighb_start_heavy_atom);
 
     int const n_pairs = alt_remain * neighb_remain;
 
@@ -264,8 +269,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                 Real *coords2,
                                 Int *atom_ind1,
                                 Int *atom_ind2,
-                                Int *atom_type1,
-                                Int *atom_type2,
+                                // Int *atom_type1,
+                                // Int *atom_type2,
                                 LKTypeParams<Real> *params1,
                                 LKTypeParams<Real> *params2,
                                 int const max_important_bond_separation,
@@ -275,8 +280,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Real coord1[3];
     Real coord2[3];
 
-    int const remain1 = min(32, n_heavy_atoms - start_heavy_atom1);
-    int const remain2 = min(32, n_heavy_atoms - start_heavy_atom2);
+    int const remain1 = min(16, n_heavy_atoms - start_heavy_atom1);
+    int const remain2 = min(16, n_heavy_atoms - start_heavy_atom2);
 
     int const n_pairs = remain1 * remain2;
 
@@ -298,8 +303,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         coord1[j] = coords1[3 * heavy_atom_tile_ind_1 + j];
         coord2[j] = coords2[3 * heavy_atom_tile_ind_2 + j];
       }
-      int const atom_1_type = atom_type1[heavy_atom_tile_ind_1];
-      int const atom_2_type = atom_type2[heavy_atom_tile_ind_2];
+      // int const atom_1_type = atom_type1[heavy_atom_tile_ind_1];
+      // int const atom_2_type = atom_type2[heavy_atom_tile_ind_2];
 
       int const separation =
           block_type_path_distance[block_type][atom_ind_1][atom_ind_2];
@@ -339,14 +344,14 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     __shared__ union {
       struct {
-        Real coords1[32 * 3];
-        Real coords2[32 * 3];
-        Int at_ind1[32];
-        Int at_ind2[32];
-        Int at_type1[32];
-        Int at_type2[32];
-        LKTypeParams<Real> params1[32];
-        LKTypeParams<Real> params2[32];
+        Real coords1[16 * 3];
+        Real coords2[16 * 3];
+        Int at_ind1[16];
+        Int at_ind2[16];
+        // Int at_type1[16];
+        // Int at_type2[16];
+        LKTypeParams<Real> params1[16];
+        LKTypeParams<Real> params2[16];
         int min_separation;
       } vals;
       typename reduce_t::storage_t reduce;
@@ -356,8 +361,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Real *coords2 = shared.vals.coords2;
     Int *at_ind1 = shared.vals.at_ind1;
     Int *at_ind2 = shared.vals.at_ind2;
-    Int *at_type1 = shared.vals.at_type1;
-    Int *at_type2 = shared.vals.at_type2;
+    // Int *at_type1 = shared.vals.at_type1;
+    // Int *at_type2 = shared.vals.at_type2;
     LKTypeParams<Real> *params1 = shared.vals.params1;
     LKTypeParams<Real> *params2 = shared.vals.params2;
 
@@ -381,7 +386,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
 
     // Let's load coordinates
-    int const n_iterations = (max_n_heavy_atoms - 1) / 32 + 1;
+    int const n_iterations = (max_n_heavy_atoms - 1) / 16 + 1;
 
     Real totalE = 0;
     if (alt_block_ind != neighb_block_ind) {
@@ -399,11 +404,15 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       __syncthreads();
       int const min_sep = shared.vals.min_separation;
 
-      // Tile the sets of 32 atoms
+      // Tile the sets of 16 atoms
       for (int i = 0; i < n_iterations; ++i) {
-        __syncthreads();
-        if (tid < 32 && i * 32 + tid < max_n_heavy_atoms) {
-          int atid = i * 32 + tid;
+        if (i != 0) {
+          // make sure calculations from previous iteration have finished before
+          // we overwrite shared memory
+          __syncthreads();
+        }
+        if (tid < 16 && i * 16 + tid < max_n_heavy_atoms) {
+          int atid = i * 16 + tid;
           int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
           at_ind1[tid] = heavy_ind;
           if (heavy_ind >= 0) {
@@ -417,9 +426,13 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         }
 
         for (int j = 0; j < n_iterations; ++j) {
-          __syncthreads();
-          if (tid < 32 && j * 32 + tid < max_n_heavy_atoms) {
-            int atid = j * 32 + tid;
+          if (j != 0) {
+            // make sure calculations from previous iteration have finished
+            // before we overwrite the contents of shared memory
+            __syncthreads();
+          }
+          if (tid < 16 && j * 16 + tid < max_n_heavy_atoms) {
+            int atid = j * 16 + tid;
             int heavy_ind = block_type_heavyatom_index[neighb_block_type][atid];
             at_ind2[tid] = heavy_ind;
             if (heavy_ind >= 0) {
@@ -434,6 +447,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             }
           }
 
+          // wait for shared memory to be fully loaded before we start
+          // calculating energies
           __syncthreads();
 
           // Now we will calculate ij pairs
@@ -441,14 +456,14 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           totalE += score_inter_pairs(
               tid,
-              i * 32,
-              j * 32,
+              i * 16,
+              j * 16,
               coords1,
               coords2,
               at_ind1,
               at_ind2,
-              at_type1,
-              at_type2,
+              // at_type1,
+              // at_type2,
               params1,
               params2,
               max_important_bond_separation,
@@ -466,9 +481,13 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const alt_n_heavy_atoms = block_type_n_heavy_atoms[alt_block_type];
 
       for (int i = 0; i < n_iterations; ++i) {
-        __syncthreads();
-        if (tid < 32 && i * 32 + tid < max_n_heavy_atoms) {
-          int atid = i * 32 + tid;
+        if (i != 0) {
+          // make sure the previous iteration has completed before we
+          // overwrite the contents of shared memory
+          __syncthreads();
+        }
+        if (tid < 16 && i * 16 + tid < max_n_heavy_atoms) {
+          int atid = i * 16 + tid;
           int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
           at_ind1[tid] = heavy_ind;
           if (heavy_ind >= 0) {
@@ -476,15 +495,19 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               coords1[3 * tid + j] = alternate_coords[alt_ind][heavy_ind][j];
             }
             int attype = block_type_atom_types[alt_block_type][heavy_ind];
-            at_type1[tid] = attype;
+            // at_type1[tid] = attype;
             LKTypeParams<Real> params_local = type_params[attype];
             params1[tid] = params_local;
           }
         }
         for (int j = i; j < n_iterations; ++j) {
-          __syncthreads();
-          if (j != i && tid < 32 && j * 32 + tid < max_n_heavy_atoms) {
-            int atid = j * 32 + tid;
+          if (j != i) {
+            // make sure previous iteration has completed before we
+            // overwrite the contents of shared memory
+            __syncthreads();
+          }
+          if (j != i && tid < 16 && j * 16 + tid < max_n_heavy_atoms) {
+            int atid = j * 16 + tid;
             int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
             if (heavy_ind >= 0) {
               at_ind2[tid] = heavy_ind;
@@ -492,22 +515,26 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 coords2[3 * tid + k] = alternate_coords[alt_ind][heavy_ind][k];
               }
               int attype = block_type_atom_types[alt_block_type][heavy_ind];
-              at_type2[tid] = attype;
+              // at_type2[tid] = attype;
               LKTypeParams<Real> params_local = type_params[attype];
               params2[tid] = params_local;
             }
           }
+
+          // all threads must wait for shared memory to be loaded before
+          // beginning energy calculations
           __syncthreads();
+
           totalE += score_intra_pairs(
               tid,
-              i * 32,
-              j * 32,
+              i * 16,
+              j * 16,
               coords1,
               (i == j ? coords1 : coords2),
               at_ind1,
               (i == j ? at_ind1 : at_ind2),
-              at_type1,
-              (i == j ? at_type1 : at_type2),
+              // at_type1,
+              //(i == j ? at_type1 : at_type2),
               params1,
               (i == j ? params1 : params2),
               max_important_bond_separation,
@@ -517,6 +544,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       }    // for i
     }      // else
 
+    // wait for all calcs to conclude before overwriting
+    // shared memory in the reduction
     __syncthreads();
 
     Real all_reduce =
@@ -527,9 +556,15 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
   });
 
-  mgpu::standard_context_t context;
+  // Allocate and zero the output tensors in a separate stream
+  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  setCurrentCUDAStream(wrapped_stream);
+
+  mgpu::standard_context_t context(wrapped_stream.stream());
   mgpu::cta_launch<launch_t>(
       eval_energies, n_alternate_blocks * max_n_neighbors, context);
+
+  at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
 
 #ifdef __CUDACC__
   float first;
