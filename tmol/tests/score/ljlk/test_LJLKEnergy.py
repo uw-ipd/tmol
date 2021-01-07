@@ -245,6 +245,8 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
     )
 
     weights = {"lj": 1.0, "lk": 1.0}
+    for bt in poses.packed_block_types.active_block_types:
+        ljlk_energy.setup_block_type(bt)
     ljlk_energy.setup_packed_block_types(poses.packed_block_types)
     ljlk_energy.setup_poses(poses)
     inter_module = ljlk_energy.inter_module(

@@ -6,6 +6,7 @@ import pandas
 from tmol.database.chemical import ChemicalDatabase
 from .chemical_database import AtomTypeParamResolver
 from tmol.system.pose import PackedBlockTypes
+from tmol.system.restypes import RefinedResidueType
 from tmol.score.EnergyTerm import EnergyTerm
 
 
@@ -25,6 +26,9 @@ class AtomTypeDependentTerm(EnergyTerm):
     @classmethod
     def from_param_resolver(cls, resolver: AtomTypeParamResolver, device: torch.device):
         return cls(resolver=resolver, atom_type_index=resolver.index, device=device)
+
+    def setup_block_type(self, block_type: RefinedResidueType):
+        super(AtomTypeDependentTerm, self).setup_block_type(block_type)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(AtomTypeDependentTerm, self).setup_packed_block_types(packed_block_types)

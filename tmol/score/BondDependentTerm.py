@@ -5,14 +5,25 @@ import torch
 import sparse
 import scipy.sparse.csgraph as csgraph
 
-# from tmol.system.restypes import RefinedResidueType
+from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
 from tmol.score.EnergyTerm import EnergyTerm
+from tmol.score.bonded_atom import IndexedBonds
 
 
 @attr.s(auto_attribs=True)
 class BondDependentTerm(EnergyTerm):
     device: torch.device
+
+    def setup_block_type(self, block_type: RefinedResidueType):
+        super(BondDependentTerm, self).setup_block_type(block_type)
+        if hasattr(block_type, "intrares_indexed_bonds"):
+            return
+
+        bonds = numpy.zeros((block_type.bond_indices.shape[0], 3), dtype=numpy.int32)
+        bonds[:, 1:] = block_type.bond_indices.astype(numpy.int32)
+        ib = IndexedBonds.from_bonds(bonds, minlength=block_type.n_atoms)
+        setattr(block_type, "intrares_indexed_bonds", ib)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(BondDependentTerm, self).setup_packed_block_types(packed_block_types)
@@ -21,6 +32,7 @@ class BondDependentTerm(EnergyTerm):
             assert hasattr(packed_block_types, "max_n_interblock_bonds")
             assert hasattr(packed_block_types, "n_interblock_bonds")
             assert hasattr(packed_block_types, "atoms_for_interblock_bonds")
+            assert hasattr(packed_block_types, "intrares_indexed_bonds")
             return
         MAX_SEPARATION = 6
         bond_separation = numpy.full(
