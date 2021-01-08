@@ -64,6 +64,7 @@ def test_annotate_block_type_hbond_params(
     donor_type = numpy.full_like(acceptor_type, -1)
 
     def map_names(atom_types, mapper, col_name, type_index):
+        print("mapper", mapper)
         is_hbtype = numpy.full(len(atom_types), 0, dtype=numpy.int32)
         hbtype = numpy.full(len(atom_types), 0, dtype=numpy.int32)
         hbtypes = numpy.full_like(atom_types, None, dtype=object)

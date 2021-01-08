@@ -64,7 +64,7 @@ void id_donor_attached_hydrogens(
     return atom_is_hydrogen[stack][j];
   });
 
-  int const max_n_hydrogens = D_idx.size(2);
+  int const max_n_hydrogens = H_idx.size(2);
 
   for (int stack : iter::range(D_idx.size(0))) {
     IndexedBonds<Int, D> indexed_bonds({bonds[stack], bond_spans[stack]});

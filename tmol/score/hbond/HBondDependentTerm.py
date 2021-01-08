@@ -1,16 +1,49 @@
 import attr
 import numpy
 import torch
-import pandas  # ??
+import pandas
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring.hbond import HBondDatabase
-from tmol.score.hbond.params import HBondParamResolver
 from tmol.database.chemical import ChemicalDatabase
-from tmol.score.chemical_database import AtomTypeParamResolver
+
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes
+
+from tmol.score.hbond.params import HBondParamResolver
+from tmol.score.common.stack_condense import condense_numpy_inds
+from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.score.BondDependentTerm import BondDependentTerm
+
+from tmol.utility.cpp_extension import load, modulename, relpaths
+
+from tmol.types.attrs import ValidateAttrs
+from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class HBondBlockTypeParams(ValidateAttrs):
+    # eventually this might include the list of donors and acceptors
+    is_acceptor: NDArray(numpy.bool)[:]
+    is_donor: NDArray(numpy.bool)[:]
+    acceptor_type: NDArray(numpy.int32)[:]
+    donor_type: NDArray(numpy.int32)[:]
+    acceptor_hybridization: NDArray(numpy.int32)[:]
+    is_hydrogen: NDArray(numpy.bool)[:]
+    donor_attached_hydrogens: NDArray(numpy.int32)[:, :]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class HBondPackedBlockTypesParams(ValidateAttrs):
+    # eventually this might include the list of donors and acceptors
+    is_acceptor: Tensor(torch.uint8)[:, :]
+    is_donor: Tensor(torch.uint8)[:, :]
+    acceptor_type: Tensor(torch.int32)[:, :]
+    donor_type: Tensor(torch.int32)[:, :]
+    acceptor_hybridization: Tensor(torch.int32)[:, :]
+    is_hydrogen: Tensor(torch.uint8)[:, :]
+    donor_attached_hydrogens: Tensor(torch.int32)[:, :, :]
 
 
 @attr.s(auto_attribs=True)
@@ -31,7 +64,7 @@ class HBondDependentTerm(BondDependentTerm):
         )
         return cls.from_param_resolvers(
             atom_resolver=atom_resolver,
-            hbond_database=HBondDatabase,
+            hbond_database=hbdb,
             hbond_resolver=hbond_resolver,
             device=device,
         )
@@ -54,21 +87,13 @@ class HBondDependentTerm(BondDependentTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(HBondDependentTerm, self).setup_block_type(block_type)
 
-        print("bond spans")
-        print(block_type.intrares_indexed_bonds.bond_spans)
-        print(
-            block_type.intrares_indexed_bonds.bond_spans[:, 1]
-            - block_type.intrares_indexed_bonds.bond_spans[:, 0]
-        )
-
-        if hasattr(block_type, "is_acceptor"):
-            assert hasattr(block_type, "is_donor")
-            assert hasattr(block_type, "acceptor_type")
-            assert hasattr(block_type, "donor_type")
-            assert hasattr(block_type, "acceptor_hybridization")
-            assert hasattr(block_type, "is_hydrogen")  # this might collide?
-            assert hasattr(block_type, "donor_attached_hydrogens")
+        if hasattr(block_type, "hbbt_params"):
             return
+
+        compiled = load(
+            modulename("tmol.score.hbond.identification"),
+            relpaths("tmol/score/hbond/identification.py", "identification.pybind.cc"),
+        )
 
         atom_types = [x.atom_type for x in block_type.atoms]
         atom_type_idx = self.atom_resolver.type_idx(atom_types)
@@ -80,6 +105,8 @@ class HBondDependentTerm(BondDependentTerm):
         ]
 
         def map_names(mapper, col_name, type_index):
+            # step 1: map atom type names to hbtype names
+            # step 2: map hbtype names to hbtype indices
             is_hbtype = numpy.full(len(atom_types), 0, dtype=numpy.int32)
             hbtype_ind = numpy.full(len(atom_types), 0, dtype=numpy.int32)
             hbtype_names = numpy.full(len(atom_types), None, dtype=object)
@@ -88,13 +115,13 @@ class HBondDependentTerm(BondDependentTerm):
                 # pandas will throw a KeyError (annoying!)
                 hbtype_df = mapper.loc[atom_types][col_name]
                 hbtype_df = hbtype_df.where((pandas.notnull(hbtype_df)), None)
-                hbtype_names[:] = numpy.array(hbtypes_df)
+                hbtype_names[:] = numpy.array(hbtype_df)
             except KeyError:
                 pass
-            hbtype_ind = type_index.get_indexer(hbtypes)
-            is_hbtype = hbtype != -1
+            hbtype_ind = type_index.get_indexer(hbtype_names)
+            is_hbtype = hbtype_ind != -1
 
-            return is_hbtype, hbtype
+            return is_hbtype, hbtype_ind
 
         is_acc, acc_type = map_names(
             self.hbond_database.acceptor_type_mapper,
@@ -127,30 +154,54 @@ class HBondDependentTerm(BondDependentTerm):
         base_inds[A_idx, 1] = B_idx
         base_inds[A_idx, 2] = B0_idx
 
-        setattr(block_type, "is_acceptor", is_acc)
-        setattr(block_type, "is_donor", is_don)
-        setattr(block_type, "acceptor_type", acc_type)
-        setattr(block_type, "donor_type", don_type)
-        setattr(block_type, "acceptor_hybridization", atom_acceptor_hybridization)
-        setattr(block_type, "is_hydrogen", atom_is_hydrogen)
-        setattr(block_type, "donor_attached_hydrogens")
+        atom_acceptor_hybridization = atom_acceptor_hybridization.astype(
+            numpy.int32
+        ).squeeze()
+
+        # now lets get the list of attached hydrogen atoms:
+        max_n_attached = torch.max(
+            block_type.intrares_indexed_bonds.bond_spans[:, :, 1]
+            - block_type.intrares_indexed_bonds.bond_spans[:, :, 0]
+        )
+        D_idx = condense_numpy_inds(is_don[None, :])
+        H_idx = numpy.full(D_idx.shape + (max_n_attached,), -1, dtype=numpy.int64)
+
+        compiled.id_donor_attached_hydrogens(
+            torch.from_numpy(D_idx),
+            torch.from_numpy(H_idx),
+            torch.from_numpy(atom_is_hydrogen.astype(numpy.ubyte)),
+            block_type.intrares_indexed_bonds.bonds,
+            block_type.intrares_indexed_bonds.bond_spans,
+        )
+
+        donor_attached_hydrogens = numpy.full(
+            (block_type.n_atoms, max_n_attached), -1, dtype=numpy.int32
+        )
+        donor_attached_hydrogens[D_idx, :] = H_idx
+
+        atom_is_hydrogen = atom_is_hydrogen.astype(numpy.bool).squeeze()
+
+        hbbt_params = HBondBlockTypeParams(
+            is_acceptor=is_acc,
+            is_donor=is_don,
+            acceptor_type=acc_type.astype(numpy.int32),
+            donor_type=don_type.astype(numpy.int32),
+            acceptor_hybridization=atom_acceptor_hybridization,
+            is_hydrogen=atom_is_hydrogen,
+            donor_attached_hydrogens=donor_attached_hydrogens,
+        )
+        setattr(block_type, "hbbt_params", hbbt_params)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(HBondDependentTerm, self).setup_packed_block_types(packed_block_types)
 
-        if hasattr(packed_block_types, "is_acceptor"):
-            assert hasattr(packed_block_types, "is_donor")
-            assert hasattr(packed_block_types, "acceptor_type")
-            assert hasattr(packed_block_types, "donor_type")
-            assert hasattr(packed_block_types, "acceptor_hybridization")
-            assert hasattr(packed_block_types, "is_hydrogen")
-            assert hasattr(packed_block_types, "attached_hydrogens")
+        if hasattr(packed_block_types, "hbpbt_params"):
             return
 
         is_acceptor = numpy.full(
             (packed_block_types.n_types, packed_block_types.max_n_atoms),
             0,
-            dtype=numpy.int32,
+            dtype=numpy.uint8,
         )
         acceptor_type = numpy.full(
             (packed_block_types.n_types, packed_block_types.max_n_atoms),
@@ -160,10 +211,62 @@ class HBondDependentTerm(BondDependentTerm):
 
         is_donor = numpy.full_like(is_acceptor, 0)
         donor_type = numpy.full_like(acceptor_type, -1)
+        acceptor_hybridization = numpy.full_like(acceptor_type, -1)
+        is_hydrogen = numpy.full_like(is_acceptor, 0)
 
-        for i, restype in enumerate(packed_block_types.active_block_types):
+        for i, block_type in enumerate(packed_block_types.active_block_types):
+            assert hasattr(block_type, "hbbt_params")
+
+        max_n_attached = max(
+            bt.hbbt_params.donor_attached_hydrogens.shape[1]
+            for bt in packed_block_types.active_block_types
+        )
+
+        donor_attached_hydrogens = numpy.full(
+            (
+                packed_block_types.n_types,
+                packed_block_types.max_n_atoms,
+                max_n_attached,
+            ),
+            -1,
+            dtype=numpy.int32,
+        )
+
+        for i, block_type in enumerate(packed_block_types.active_block_types):
             i_slice = slice(packed_block_types.n_atoms[i])
-            is_acceptor[i, i_slice] = restype.is_acceptor
-            acceptor_type[i, i_slice] = restype.acceptor_type
-            is_donor[i, i_slice] = restype.is_donor
-            donor_type[i, i_slice] = restype.donor_type
+            assert hasattr(block_type, "hbbt_params")
+            i_hb_params = block_type.hbbt_params
+
+            is_acceptor[i, i_slice] = i_hb_params.is_acceptor
+            acceptor_type[i, i_slice] = i_hb_params.acceptor_type
+            is_donor[i, i_slice] = i_hb_params.is_donor
+            donor_type[i, i_slice] = i_hb_params.donor_type
+            acceptor_hybridization[i, i_slice] = i_hb_params.acceptor_hybridization
+            is_hydrogen[i, i_slice] = i_hb_params.is_hydrogen
+
+            i_attached_slice = slice(i_hb_params.donor_attached_hydrogens.shape[1])
+            donor_attached_hydrogens[
+                i, i_slice, i_attached_slice
+            ] = i_hb_params.donor_attached_hydrogens
+
+        max_n_attached_h = numpy.max(numpy.sum(donor_attached_hydrogens != -1, axis=2))
+
+        donor_attached_hydrogens = donor_attached_hydrogens[:, :, :max_n_attached_h]
+
+        def _tint32(arr):
+            return torch.tensor(arr, dtype=torch.int32, device=self.device)
+
+        def _tbool(arr):
+            return torch.tensor(arr, dtype=torch.uint8, device=self.device)
+
+        params = HBondPackedBlockTypesParams(
+            is_acceptor=_tbool(is_acceptor),
+            is_donor=_tbool(is_donor),
+            acceptor_type=_tint32(acceptor_type),
+            donor_type=_tint32(donor_type),
+            acceptor_hybridization=_tint32(acceptor_hybridization),
+            is_hydrogen=_tbool(is_hydrogen),
+            donor_attached_hydrogens=_tint32(donor_attached_hydrogens),
+        )
+
+        setattr(packed_block_types, "hbpbt_params", params)
