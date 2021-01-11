@@ -28,8 +28,9 @@ class HBondBlockTypeParams(ValidateAttrs):
     is_acceptor: NDArray(numpy.bool)[:]
     is_donor: NDArray(numpy.bool)[:]
     acceptor_type: NDArray(numpy.int32)[:]
-    donor_type: NDArray(numpy.int32)[:]
     acceptor_hybridization: NDArray(numpy.int32)[:]
+    acceptor_base_inds: NDArray(numpy.int32)[:, 3]
+    donor_type: NDArray(numpy.int32)[:]
     is_hydrogen: NDArray(numpy.bool)[:]
     donor_attached_hydrogens: NDArray(numpy.int32)[:, :]
 
@@ -40,8 +41,9 @@ class HBondPackedBlockTypesParams(ValidateAttrs):
     is_acceptor: Tensor(torch.uint8)[:, :]
     is_donor: Tensor(torch.uint8)[:, :]
     acceptor_type: Tensor(torch.int32)[:, :]
-    donor_type: Tensor(torch.int32)[:, :]
     acceptor_hybridization: Tensor(torch.int32)[:, :]
+    acceptor_base_inds: Tensor(torch.int32)[:, :, 3]
+    donor_type: Tensor(torch.int32)[:, :]
     is_hydrogen: Tensor(torch.uint8)[:, :]
     donor_attached_hydrogens: Tensor(torch.int32)[:, :, :]
 
@@ -185,8 +187,9 @@ class HBondDependentTerm(BondDependentTerm):
             is_acceptor=is_acc,
             is_donor=is_don,
             acceptor_type=acc_type.astype(numpy.int32),
-            donor_type=don_type.astype(numpy.int32),
             acceptor_hybridization=atom_acceptor_hybridization,
+            acceptor_base_inds=base_inds,
+            donor_type=don_type.astype(numpy.int32),
             is_hydrogen=atom_is_hydrogen,
             donor_attached_hydrogens=donor_attached_hydrogens,
         )
@@ -212,6 +215,11 @@ class HBondDependentTerm(BondDependentTerm):
         is_donor = numpy.full_like(is_acceptor, 0)
         donor_type = numpy.full_like(acceptor_type, -1)
         acceptor_hybridization = numpy.full_like(acceptor_type, -1)
+        acceptor_base_inds = numpy.full(
+            (packed_block_types.n_types, packed_block_types.max_n_atoms, 3),
+            -1,
+            dtype=numpy.int32,
+        )
         is_hydrogen = numpy.full_like(is_acceptor, 0)
 
         for i, block_type in enumerate(packed_block_types.active_block_types):
@@ -242,6 +250,7 @@ class HBondDependentTerm(BondDependentTerm):
             is_donor[i, i_slice] = i_hb_params.is_donor
             donor_type[i, i_slice] = i_hb_params.donor_type
             acceptor_hybridization[i, i_slice] = i_hb_params.acceptor_hybridization
+            acceptor_base_inds[i, i_slice] = i_hb_params.acceptor_base_inds
             is_hydrogen[i, i_slice] = i_hb_params.is_hydrogen
 
             i_attached_slice = slice(i_hb_params.donor_attached_hydrogens.shape[1])
@@ -263,8 +272,9 @@ class HBondDependentTerm(BondDependentTerm):
             is_acceptor=_tbool(is_acceptor),
             is_donor=_tbool(is_donor),
             acceptor_type=_tint32(acceptor_type),
-            donor_type=_tint32(donor_type),
             acceptor_hybridization=_tint32(acceptor_hybridization),
+            acceptor_base_inds=_tint32(acceptor_base_inds),
+            donor_type=_tint32(donor_type),
             is_hydrogen=_tbool(is_hydrogen),
             donor_attached_hydrogens=_tint32(donor_attached_hydrogens),
         )
