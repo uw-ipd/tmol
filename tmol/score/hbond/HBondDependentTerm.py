@@ -50,14 +50,14 @@ class HBondPackedBlockTypesParams(ValidateAttrs):
 
 @attr.s(auto_attribs=True)
 class HBondDependentTerm(BondDependentTerm):
-    atom_resolver: AtomTypeParamResolver
+    atom_type_resolver: AtomTypeParamResolver
     hbond_database: HBondDatabase
     hbond_resolver: HBondParamResolver
     device: torch.device
 
     @classmethod
     def from_database(cls, database: ParameterDatabase, device: torch.device):
-        atom_resolver = AtomTypeParamResolver.from_database(
+        atom_type_resolver = AtomTypeParamResolver.from_database(
             database.chemical, torch.device("cpu")
         )
         hbdb = database.scoring.hbond
@@ -65,7 +65,7 @@ class HBondDependentTerm(BondDependentTerm):
             database.chemical, hbdb, device
         )
         return cls.from_param_resolvers(
-            atom_resolver=atom_resolver,
+            atom_type_resolver=atom_type_resolver,
             hbond_database=hbdb,
             hbond_resolver=hbond_resolver,
             device=device,
@@ -74,13 +74,13 @@ class HBondDependentTerm(BondDependentTerm):
     @classmethod
     def from_param_resolvers(
         cls,
-        atom_resolver: AtomTypeParamResolver,
+        atom_type_resolver: AtomTypeParamResolver,
         hbond_database: HBondDatabase,
         hbond_resolver: HBondParamResolver,
         device: torch.device,
     ):
         return cls(
-            atom_resolver=atom_resolver,
+            atom_type_resolver=atom_type_resolver,
             hbond_database=hbond_database,
             hbond_resolver=hbond_resolver,
             device=device,
@@ -98,8 +98,8 @@ class HBondDependentTerm(BondDependentTerm):
         )
 
         atom_types = [x.atom_type for x in block_type.atoms]
-        atom_type_idx = self.atom_resolver.type_idx(atom_types)
-        atom_type_params = self.atom_resolver.params[atom_type_idx]
+        atom_type_idx = self.atom_type_resolver.type_idx(atom_types)
+        atom_type_params = self.atom_type_resolver.params[atom_type_idx]
         atom_acceptor_hybridization = atom_type_params.acceptor_hybridization.numpy().astype(
             numpy.int64
         )[
@@ -141,6 +141,7 @@ class HBondDependentTerm(BondDependentTerm):
         B0_idx = numpy.full_like(A_idx, -1)
         atom_is_hydrogen = atom_type_params.is_hydrogen.numpy()[None, :]
 
+        print("getting acceptor bases for ", block_type.name)
         compiled.id_acceptor_bases(
             torch.from_numpy(A_idx),
             torch.from_numpy(B_idx),

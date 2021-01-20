@@ -38,6 +38,9 @@ struct LKBallRPEDispatch {
       TView<Vec<Int, 3>, 1, D>
           alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
+      //
+      TView<Vec<Real, 3>, 4, D> context_water_coords,
+
       // which system does a given context belong to
       TView<Int, 1, D> context_system_ids,
 
@@ -61,12 +64,13 @@ struct LKBallRPEDispatch {
       //////////////////////
       // Chemical properties
       // Dimsize n_block_types x max_n_atoms
-      TView<Int, 2, D> bt_is_acceptor,
-      TView<Int, 2, D> bt_is_donor,
+      TView<uint8_t, 2, D> bt_is_acceptor,
       TView<Int, 2, D> bt_acceptor_type,
-      TView<Int, 2, D> bt_donor_type,
       TView<Int, 2, D> bt_acceptor_hybridization,
-      TView<Int, 2, D> bt_is_hydrogen,
+      TView<Int, 3, D> bt_acceptor_base_ind,
+
+      TView<uint8_t, 2, D> bt_is_donor,
+      TView<Int, 2, D> bt_donor_type,
 
       // Indices of the attached hydrogens on a donor
       TView<Int, 3, D> bt_donor_attached_hydrogens,
@@ -95,7 +99,6 @@ struct LKBallRPEDispatch {
       // TView<LJGlobalParams<Real>, 1, D> global_params,
       // TView<Real, 1, D> lj_lk_weights
 
-      TView<LKBallWaterGenTypeParams<Int>, 1, D> type_params,
       TView<LKBallWaterGenGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> sp2_water_tors,
       TView<Real, 1, D> sp3_water_tors,

@@ -1,13 +1,13 @@
-#include <tmol/score/ljlk/potentials/rotamer_pair_energy_lj.impl.hh>
+#include <tmol/score/lk_ball/potentials/rotamer_pair_energy_lkball.impl.hh>
 #include <tmol/score/common/forall_dispatch.cpu.impl.hh>
 
 namespace tmol {
 namespace score {
-namespace ljlk {
+namespace lk_ball {
 namespace potentials {
 
-template struct LJRPEDispatch<ForallDispatch, tmol::Device::CPU, float, int>;
-template struct LJRPEDispatch<ForallDispatch, tmol::Device::CPU, double, int>;
+template struct LKBallRPEDispatch<common::ForallDispatch, tmol::Device::CPU, float, int, 4>;
+template struct LKBallRPEDispatch<common::ForallDispatch, tmol::Device::CPU, double, int, 4>;
 
 
 }

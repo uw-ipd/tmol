@@ -12,7 +12,7 @@ from tmol.score.EnergyTerm import EnergyTerm
 
 @attr.s(auto_attribs=True)
 class AtomTypeDependentTerm(EnergyTerm):
-    resolver: AtomTypeParamResolver
+    atom_type_resolver: AtomTypeParamResolver
     atom_type_index: pandas.Index
     device: torch.device
 
@@ -24,8 +24,14 @@ class AtomTypeDependentTerm(EnergyTerm):
         )
 
     @classmethod
-    def from_param_resolver(cls, resolver: AtomTypeParamResolver, device: torch.device):
-        return cls(resolver=resolver, atom_type_index=resolver.index, device=device)
+    def from_param_resolver(
+        cls, atom_type_resolver: AtomTypeParamResolver, device: torch.device
+    ):
+        return cls(
+            atom_type_resolver=atom_type_resolver,
+            atom_type_index=atom_type_resolver.index,
+            device=device,
+        )
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(AtomTypeDependentTerm, self).setup_block_type(block_type)
@@ -53,11 +59,11 @@ class AtomTypeDependentTerm(EnergyTerm):
             rt_heavy = [
                 j
                 for j, atype_ind in enumerate(
-                    self.resolver.index.get_indexer(
+                    self.atom_type_resolver.index.get_indexer(
                         [restype.atoms[j].atom_type for j in range(len(restype.atoms))]
                     )
                 )
-                if not self.resolver.params.is_hydrogen[atype_ind]
+                if not self.atom_type_resolver.params.is_hydrogen[atype_ind]
             ]
             heavy_atom_inds.append(rt_heavy)
 

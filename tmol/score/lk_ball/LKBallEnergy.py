@@ -3,16 +3,24 @@ import torch
 
 from ..AtomTypeDependentTerm import AtomTypeDependentTerm
 from ..BondDependentTerm import BondDependentTerm
-from .params import LJLKTypeParams, LJLKGlobalParams
+from ..hbond.HBondDependentTerm import HBondDependentTerm
+from ..ljlk.params import LJLKTypeParams, LJLKGlobalParams, LJLKParamResolver
+from tmol.score.chemical_database import AtomTypeParamResolver
 
+from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
 from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True)
-class LKBallEnergy(AtomTypeDependentTerm, BondDependentTerm, WaterBuildingTerm):
+class LKBallEnergy(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm):
     # type_params: LJLKTypeParams
-    # global_params: LJLKGlobalParams
+
+    ljlk_global_params: LJLKGlobalParams
+    ljlk_param_resolver: LJLKParamResolver
+
+    def setup_block_type(self, block_type: RefinedResidueType):
+        super(LKBallEnergy, self).setup_block_type(block_type)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(LKBallEnergy, self).setup_packed_block_types(packed_block_types)
@@ -31,26 +39,30 @@ class LKBallEnergy(AtomTypeDependentTerm, BondDependentTerm, WaterBuildingTerm):
         system_neighbor_list = self.create_block_neighbor_lists(
             systems, system_bounding_spheres
         )
-        lj_lk_weights = torch.zeros((2,), dtype=torch.float32, device=self.device)
-        lj_lk_weights[0] = weights["lj"] if "lj" in weights else 0
-        lj_lk_weights[1] = weights["lk"] if "lk" in weights else 0
+        lkb_weight = torch.zeros((1,), dtype=torch.float32, device=self.device)
+        lkb_weight[0] = weights["lk_ball"] if "lk_ball" in weights else 0
 
         pbt = packed_block_types
-        return LJLKInterSystemModule(
+        return LKBallInterSystemModule(
             context_system_ids=context_system_ids,
             system_min_block_bondsep=systems.min_block_bondsep,
             system_inter_block_bondsep=systems.inter_block_bondsep,
             system_neighbor_list=system_neighbor_list,
-            bt_n_atoms=pbt.n_atoms,
             bt_n_heavy_atoms=pbt.n_heavy_atoms,
             bt_atom_types=pbt.atom_types,
             bt_heavy_atom_inds=pbt.heavy_atom_inds,
             bt_n_interblock_bonds=pbt.n_interblock_bonds,
             bt_atoms_forming_chemical_bonds=pbt.atoms_for_interblock_bonds,
             bt_path_distance=pbt.bond_separation,
-            type_params=self.type_params,
-            global_params=self.global_params,
-            lj_lk_weights=lj_lk_weights,
+            bt_is_acceptor=pbt.hbpbt_params.is_acceptor,
+            bt_acceptor_type=pbt.hbpbt_params.acceptor_type,
+            bt_acceptor_hybridization=pbt.hbpbt_params.acceptor_hybridization,
+            bt_acceptor_base_inds=pbt.hbpbt_params.acceptor_base_inds,
+            bt_is_donor=pbt.hbpbt_params.is_donor,
+            bt_donor_type=pbt.hbpbt_params.donor_type,
+            bt_donor_attached_hydrogens=pbt.hbpbt_params.donor_attached_hydrogens,
+            param_resolver=self.ljlk_param_resolver,
+            lkb_weight=lkb_weight,
         )
 
     def create_block_neighbor_lists(
@@ -67,7 +79,7 @@ class LKBallEnergy(AtomTypeDependentTerm, BondDependentTerm, WaterBuildingTerm):
         sphere_centers_2 = sphere_centers.view((n_sys, max_n_blocks, -1, 3))
         sphere_dists = torch.norm(sphere_centers_1 - sphere_centers_2, dim=3)
         expanded_radii = (
-            system_bounding_spheres[:, :, 3] + self.global_params.max_dis / 2
+            system_bounding_spheres[:, :, 3] + self.ljlk_global_params.max_dis / 2
         )
         expanded_radii_1 = expanded_radii.view(n_sys, -1, max_n_blocks)
         expanded_radii_2 = expanded_radii.view(n_sys, max_n_blocks, -1)
@@ -103,23 +115,28 @@ class LKBallEnergy(AtomTypeDependentTerm, BondDependentTerm, WaterBuildingTerm):
         return neighbor_list
 
 
-class LJLKInterSystemModule(torch.jit.ScriptModule):
+class LKBallInterSystemModule(torch.jit.ScriptModule):
     def __init__(
         self,
         context_system_ids,
         system_min_block_bondsep,
         system_inter_block_bondsep,
         system_neighbor_list,
-        bt_n_atoms,
         bt_n_heavy_atoms,
         bt_atom_types,
         bt_heavy_atom_inds,
         bt_n_interblock_bonds,
         bt_atoms_forming_chemical_bonds,
         bt_path_distance,
-        type_params,
-        global_params,
-        lj_lk_weights,
+        bt_is_acceptor,
+        bt_acceptor_type,
+        bt_acceptor_hybridization,
+        bt_acceptor_base_inds,
+        bt_is_donor,
+        bt_donor_type,
+        bt_donor_attached_hydrogens,
+        param_resolver: LJLKParamResolver,
+        lkb_weight,
     ):
         super().__init__()
 
@@ -129,11 +146,19 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
 
+        # TEMP!
+        self.context_water_coords = _p(
+            torch.zeros(
+                (1, 1, 1, 4, 3), dtype=torch.float32, device=context_system_ids.device
+            )
+        )
+
         self.context_system_ids = _p(context_system_ids)
         self.system_min_block_bondsep = _p(system_min_block_bondsep)
         self.system_inter_block_bondsep = _p(system_inter_block_bondsep)
         self.system_neighbor_list = _p(system_neighbor_list)
-        self.bt_n_atoms = _p(bt_n_atoms)
+
+        # self.bt_n_atoms = _p(bt_n_atoms)
         self.bt_n_heavy_atoms = _p(bt_n_heavy_atoms)
         self.bt_atom_types = _p(bt_atom_types)
         self.bt_heavy_atom_inds = _p(bt_heavy_atom_inds)
@@ -141,18 +166,40 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         self.bt_atoms_forming_chemical_bonds = _p(bt_atoms_forming_chemical_bonds)
         self.bt_path_distance = _p(bt_path_distance)
 
+        self.bt_is_acceptor = _p(bt_is_acceptor)
+        self.bt_acceptor_type = _p(bt_acceptor_type)
+        self.bt_acceptor_hybridization = _p(bt_acceptor_hybridization)
+        self.bt_acceptor_base_inds = _p(bt_acceptor_base_inds)
+        self.bt_is_donor = _p(bt_is_donor)
+        self.bt_donor_type = _p(bt_donor_type)
+        self.bt_donor_attached_hydrogens = _p(bt_donor_attached_hydrogens)
+
+        self.lkball_global_params = _p(
+            torch.stack(
+                _t(
+                    [
+                        param_resolver.global_params.lj_hbond_dis,
+                        param_resolver.global_params.lj_hbond_OH_donor_dis,
+                        param_resolver.global_params.lj_hbond_hdis,
+                        param_resolver.global_params.lkb_water_dist,
+                    ]
+                ),
+                dim=1,
+            )
+        )
+
         # Pack parameters into dense tensor. Parameter ordering must match
         # struct layout declared in `potentials/params.hh`.
         self.lj_type_params = _p(
             torch.stack(
                 _t(
                     [
-                        type_params.lj_radius,
-                        type_params.lj_wdepth,
-                        type_params.is_donor,
-                        type_params.is_hydroxyl,
-                        type_params.is_polarh,
-                        type_params.is_acceptor,
+                        param_resolver.type_params.lj_radius,
+                        param_resolver.type_params.lj_wdepth,
+                        param_resolver.type_params.is_donor,
+                        param_resolver.type_params.is_hydroxyl,
+                        param_resolver.type_params.is_polarh,
+                        param_resolver.type_params.is_acceptor,
                     ]
                 ),
                 dim=1,
@@ -165,56 +212,79 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
             torch.stack(
                 _t(
                     [
-                        type_params.lj_radius,
-                        type_params.lk_dgfree,
-                        type_params.lk_lambda,
-                        type_params.lk_volume,
-                        type_params.is_donor,
-                        type_params.is_hydroxyl,
-                        type_params.is_polarh,
-                        type_params.is_acceptor,
+                        param_resolver.type_params.lj_radius,
+                        param_resolver.type_params.lk_dgfree,
+                        param_resolver.type_params.lk_lambda,
+                        param_resolver.type_params.lk_volume,
+                        param_resolver.type_params.is_donor,
+                        param_resolver.type_params.is_hydroxyl,
+                        param_resolver.type_params.is_polarh,
+                        param_resolver.type_params.is_acceptor,
                     ]
                 ),
                 dim=1,
             )
         )
 
-        self.global_params = _p(
-            torch.stack(
-                _t(
-                    [
-                        global_params.lj_hbond_dis,
-                        global_params.lj_hbond_OH_donor_dis,
-                        global_params.lj_hbond_hdis,
-                    ]
-                ),
-                dim=1,
-            )
+        self.watergen_water_tors_sp2 = torch.nn.Parameter(
+            param_resolver.global_params.lkb_water_tors_sp2, requires_grad=False
         )
-        self.lj_lk_weights = _p(lj_lk_weights)
+        self.watergen_water_tors_sp3 = torch.nn.Parameter(
+            param_resolver.global_params.lkb_water_tors_sp3, requires_grad=False
+        )
+        self.watergen_water_tors_ring = torch.nn.Parameter(
+            param_resolver.global_params.lkb_water_tors_ring, requires_grad=False
+        )
+
+        # self.global_params = _p(
+        #     torch.stack(
+        #         _t(
+        #             [
+        #                 global_params.lj_hbond_dis,
+        #                 global_params.lj_hbond_OH_donor_dis,
+        #                 global_params.lj_hbond_hdis,
+        #             ]
+        #         ),
+        #         dim=1,
+        #     )
+        # )
+
+        self.lkb_weight = _p(lkb_weight)
 
     @torch.jit.script_method
     def forward(
         self, context_coords, context_block_type, alternate_coords, alternate_ids
     ):
-        return torch.ops.tmol.score_ljlk_inter_system_scores(
+        return torch.ops.tmol.score_lkball_inter_system_scores(
             context_coords,
             context_block_type,
             alternate_coords,
             alternate_ids,
+            self.context_water_coords,
             self.context_system_ids,
             self.system_min_block_bondsep,
             self.system_inter_block_bondsep,
             self.system_neighbor_list,
-            self.bt_n_atoms,
-            self.bt_n_heavy_atoms,
-            self.bt_atom_types,
-            self.bt_heavy_atom_inds,
-            self.bt_n_interblock_bonds,
-            self.bt_atoms_forming_chemical_bonds,
-            self.bt_path_distance,
-            self.lj_type_params,
-            self.lk_type_params,
-            self.global_params,
-            self.lj_lk_weights,
+            # self.bt_n_atoms,
+            # self.bt_n_heavy_atoms,
+            # self.bt_atom_types,
+            # self.bt_heavy_atom_inds,
+            # self.bt_n_interblock_bonds,
+            # self.bt_atoms_forming_chemical_bonds,
+            # self.bt_path_distance,
+            self.bt_is_acceptor,
+            self.bt_acceptor_type,
+            self.bt_acceptor_hybridization,
+            self.bt_acceptor_base_inds,
+            self.bt_is_donor,
+            self.bt_donor_type,
+            self.bt_donor_attached_hydrogens,
+            # self.lj_type_params,
+            # self.lk_type_params,
+            # self.global_params,
+            self.lkball_global_params,
+            self.watergen_water_tors_sp2,
+            self.watergen_water_tors_sp3,
+            self.watergen_water_tors_ring,
+            self.lkb_weight,
         )

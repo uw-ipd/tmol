@@ -43,6 +43,7 @@ void id_acceptor_bases(
           indexed_bonds,
           is_hydrogen);
 
+      // printf("bases: %d %d %d\n", bases.A, bases.B, bases.B0);
       A_idx[stack][ai] = bases.A;
       B_idx[stack][ai] = bases.B;
       B0_idx[stack][ai] = bases.B0;

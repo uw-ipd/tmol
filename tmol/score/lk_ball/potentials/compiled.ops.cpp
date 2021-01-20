@@ -379,15 +379,16 @@ Tensor watergen_op(
 
 template<
   template<tmol::Device>
-  class Dispatch,
-  tmol::Device D
+  class Dispatch
 >
 Tensor rotamer_pair_energies(
     Tensor context_coords,
     Tensor context_block_type,
     Tensor alternate_coords,
     Tensor alternate_ids,
-  
+
+    Tensor context_water_coords,
+    
     Tensor context_system_ids,
     Tensor system_min_bond_separation,
     Tensor system_inter_block_bondsep,
@@ -395,18 +396,23 @@ Tensor rotamer_pair_energies(
   
     // parameters to build waters
     Tensor bt_is_acceptor,
-    Tensor bt_is_donor,
     Tensor bt_acceptor_type,
-    Tensor bt_donor_type,
     Tensor bt_acceptor_hybridization,
-    Tensor bt_is_hydrogen,
+    Tensor bt_acceptor_base_ind,
+
+    Tensor bt_is_donor,
+    Tensor bt_donor_type,
     Tensor bt_donor_attached_hydrogens,
   
-    Tensor lkb_water_gen_type_params,
+    // Tensor lkb_water_gen_type_params,
     Tensor lkb_global_params,
     Tensor sp2_water_tors,
     Tensor sp3_water_tors,
-    Tensor ring_water_tors ) {
+    Tensor ring_water_tors,
+
+    Tensor lkb_weight
+
+) {
 
   at::Tensor rpes;
   at::Tensor event;
@@ -424,25 +430,29 @@ Tensor rotamer_pair_energies(
           TCAST(context_block_type),
           TCAST(alternate_coords),
           TCAST(alternate_ids),
+
+	  TCAST(context_water_coords),
+
           TCAST(context_system_ids),
           TCAST(system_min_bond_separation),
           TCAST(system_inter_block_bondsep),
           TCAST(system_neighbor_list),
 
 	  TCAST(bt_is_acceptor),
-	  TCAST(bt_is_donor),
 	  TCAST(bt_acceptor_type),
-	  TCAST(bt_donor_type),
 	  TCAST(bt_acceptor_hybridization),
+	  TCAST(bt_acceptor_base_ind),
+
+	  TCAST(bt_is_donor),
+	  TCAST(bt_donor_type),
 	  TCAST(bt_donor_attached_hydrogens),
 
-	  TCAST(lkb_water_gen_type_params),
 	  TCAST(lkb_global_params),
 	  TCAST(sp2_water_tors),
 	  TCAST(sp3_water_tors),
 	  TCAST(ring_water_tors)
 	);
-
+	rpes = std::get<0>(result).tensor;
 
       }));
   return rpes;
@@ -451,7 +461,8 @@ Tensor rotamer_pair_energies(
 static auto registry =
     torch::jit::RegisterOperators()
         .op("tmol::score_lkball", &score_op<LKBallDispatch, common::AABBDispatch>)
-        .op("tmol::watergen_lkball", &watergen_op<GenerateWaters, common::ForallDispatch>);
+        .op("tmol::watergen_lkball", &watergen_op<GenerateWaters, common::ForallDispatch>)
+        .op("tmol::score_lkball_inter_system_scores", &rotamer_pair_energies<common::ForallDispatch>);
 
 }  // namespace potentials
 }  // namespace ljlk

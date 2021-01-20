@@ -14,14 +14,16 @@
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 
-#include <tmol/score/ljlk/potentials/lj.hh>
-#include <tmol/score/ljlk/potentials/rotamer_pair_energy_lj.hh>
+// #include <tmol/score/ljlk/potentials/lj.hh>
+#include <tmol/score/hbond/identification.hh>
+#include <tmol/score/lk_ball/potentials/rotamer_pair_energy_lkball.hh>
+#include <tmol/score/lk_ball/potentials/water.hh>
 
 #include <chrono>
 
 namespace tmol {
 namespace score {
-namespace ljlk {
+namespace lk_ball {
 namespace potentials {
 
 template <typename Real, int N>
@@ -40,6 +42,9 @@ auto LKBallRPEDispatch<DeviceDispatch, D, Real, Int, MAX_WATER>::f(
     TView<Vec<Real, 3>, 2, D> alternate_coords,
     TView<Vec<Int, 3>, 1, D>
         alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
+
+    // n-contexts x max-n-blocks x max-n-atoms x max-water
+    TView<Vec<Real, 3>, 4, D> context_water_coords,
 
     // which system does a given context belong to
     TView<Int, 1, D> context_system_ids,
@@ -64,12 +69,13 @@ auto LKBallRPEDispatch<DeviceDispatch, D, Real, Int, MAX_WATER>::f(
     //////////////////////
     // Chemical properties
     // Dimsize n_block_types x max_n_atoms
-    TView<Int, 2, D> bt_is_acceptor,
-    TView<Int, 2, D> bt_is_donor,
+    TView<uint8_t, 2, D> bt_is_acceptor,
     TView<Int, 2, D> bt_acceptor_type,
-    TView<Int, 2, D> bt_donor_type,
     TView<Int, 2, D> bt_acceptor_hybridization,
-    TView<Int, 2, D> bt_is_hydrogen,
+    TView<Int, 3, D> bt_acceptor_base_ind,
+
+    TView<uint8_t, 2, D> bt_is_donor,
+    TView<Int, 2, D> bt_donor_type,
 
     // Indices of the attached hydrogens on a donor
     TView<Int, 3, D> bt_donor_attached_hydrogens,
@@ -98,7 +104,6 @@ auto LKBallRPEDispatch<DeviceDispatch, D, Real, Int, MAX_WATER>::f(
     // TView<LJGlobalParams<Real>, 1, D> global_params,
     // TView<Real, 1, D> lj_lk_weights
 
-    TView<LKBallWaterGenTypeParams<Int>, 1, D> type_params,
     TView<LKBallWaterGenGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> sp2_water_tors,
     TView<Real, 1, D> sp3_water_tors,
@@ -110,9 +115,10 @@ auto LKBallRPEDispatch<DeviceDispatch, D, Real, Int, MAX_WATER>::f(
   int const max_n_blocks = context_coords.size(1);
   int64_t const max_n_atoms = context_coords.size(2);
   // int const n_block_types = block_type_n_atoms.size(0);
-  int const max_n_interblock_bonds =
-      block_type_atoms_forming_chemical_bonds.size(1);
+  // int const max_n_interblock_bonds =
+  //     block_type_atoms_forming_chemical_bonds.size(1);
   int64_t const max_n_neighbors = system_neighbor_list.size(2);
+  int64_t const max_n_attached_h = bt_donor_attached_hydrogens.size(2);
 
   // first we need to build the waters for the rotamers
   // Then we will score the interactions of the rotamers against
@@ -122,26 +128,104 @@ auto LKBallRPEDispatch<DeviceDispatch, D, Real, Int, MAX_WATER>::f(
   int nsp2wats = sp2_water_tors.size(0);
   int nsp3wats = sp3_water_tors.size(0);
   int nringwats = ring_water_tors.size(0);
-  int const max_n_atoms = context_coords.size(2);
+  // int const max_n_atoms = context_coords.size(2);
+
+  auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
+  auto output = output_t.view;
+
+  // I'm not sure I want/need events for synchronization
+  auto event_t = TPack<int64_t, 1, D>::zeros({2});
+
+  auto waters_t = TPack<Vec<Real, 3>, 3, D>::zeros(
+      {n_alternate_blocks, max_n_atoms, MAX_WATER});
+  auto waters = waters_t.view;
 
   auto gen_rotamer_waters = [=] EIGEN_DEVICE_FUNC(int i) {
     int block_ind = i / max_n_atoms;
     int atom_ind = i % max_n_atoms;
 
-    int block_type = alternate_ids[i][0];
+    int block_type = alternate_ids[block_ind][2];
+    printf(
+        "gen rotamer waters %d %d block type %d\n",
+        block_ind,
+        atom_ind,
+        block_type);
     if (block_type < 0) return;
 
     int count_waters = 0;
     int acc_type = bt_acceptor_type[block_type][atom_ind];
+    printf("  acc_type %d %d %d\n", block_ind, atom_ind, acc_type);
+
     if (acc_type >= 0) {
       // let's build waters off the acceptor
+      Int hyb = bt_acceptor_hybridization[block_type][atom_ind];
+
+      auto bases = bt_acceptor_base_ind[block_type][atom_ind];
+      printf("      bases %d %d %d\n", bases[0], bases[1], bases[2]);
+
+      Vec<Real, 3> XA = alternate_coords[block_ind][bases[0]];
+      Vec<Real, 3> XB = alternate_coords[block_ind][bases[1]];
+      Vec<Real, 3> XB0 = alternate_coords[block_ind][bases[2]];
+
+      Real dist;
+      Real angle;
+      Real *tors;
+      Int ntors;
+
+      if (hyb == hbond::AcceptorHybridization::sp2) {
+        dist = global_params[0].lkb_water_dist;
+        angle = global_params[0].lkb_water_angle_sp2;
+        ntors = nsp2wats;
+        tors = sp2_water_tors.data();
+      } else if (hyb == hbond::AcceptorHybridization::sp3) {
+        dist = global_params[0].lkb_water_dist;
+        angle = global_params[0].lkb_water_angle_sp3;
+        ntors = nsp3wats;
+        tors = sp3_water_tors.data();
+      } else if (hyb == hbond::AcceptorHybridization::ring) {
+        dist = global_params[0].lkb_water_dist;
+        angle = global_params[0].lkb_water_angle_ring;
+        ntors = nringwats;
+        tors = ring_water_tors.data();
+        XB = 0.5 * (XB + XB0);
+      }
+
+      for (int ti = 0; ti < ntors; ti++) {
+        printf(
+            "  building acceptor water %d %d %d %f\n",
+            block_ind,
+            atom_ind,
+            ti,
+            tors[ti]);
+        waters[block_ind][atom_ind][count_waters] =
+            build_acc_water<Real>::V(XA, XB, XB0, dist, angle, tors[ti]);
+        count_waters++;
+      }
     }
 
     int don_type = bt_donor_type[block_type][atom_ind];
+    printf("  donor_type %d %d %d\n", block_ind, atom_ind, don_type);
     if (don_type >= 0) {
       // let's build waters off the donor hydrogen atoms
+      for (int j = 0; j < max_n_attached_h; ++j) {
+        int other_atom = bt_donor_attached_hydrogens[block_type][atom_ind][j];
+        if (other_atom < 0) {
+          break;
+        }
+
+        waters[block_ind][atom_ind][count_waters] = build_don_water<Real>::V(
+            alternate_coords[block_ind][atom_ind],
+            alternate_coords[block_ind][other_atom],
+            global_params[0].lkb_water_dist);
+        count_waters++;
+      }
     }
-  }
+  };
+
+  DeviceDispatch<D>::forall(
+      n_alternate_blocks * max_n_atoms, gen_rotamer_waters);
+
+  return {output_t, event_t};
 }
 //
 //
@@ -422,9 +506,8 @@ auto LKBallRPEDispatch<DeviceDispatch, D, Real, Int, MAX_WATER>::f(
 //   //           << std::endl;
 // #endif
 //   return {output_t, event_t};
-}  // namespace potentials
 
-}  // namespace ljlk
+}  // namespace potentials
+}  // namespace lk_ball
 }  // namespace score
-}  // namespace tmol
 }  // namespace tmol
