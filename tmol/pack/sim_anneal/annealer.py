@@ -6,7 +6,8 @@ from tmol.pack.sim_anneal.compiled.compiled import _compiled
 # for tmol.system.pose import PackedBlockTypes, Poses
 
 
-class SelectRanRotModule(torch.jit.ScriptModule):
+# class SelectRanRotModule(torch.jit.ScriptModule):
+class SelectRanRotModule:
     def __init__(
         self,
         n_traj_per_pose,
@@ -41,8 +42,10 @@ class SelectRanRotModule(torch.jit.ScriptModule):
         self.block_ind_for_rot = _p(block_ind_for_rot.to(torch.int32))
         self.rotamer_coords = _p(rotamer_coords)
 
-    @torch.jit.script_method
-    def forward(self, context_coords, context_block_type):
+    # @torch.jit.script_method
+    # def forward(self, context_coords, context_block_type):
+
+    def go(self, context_coords, context_block_type):
         """Select one rotamer for each context as well as the current rotamer at that position
         """
 
@@ -98,12 +101,15 @@ class SelectRanRotModule(torch.jit.ScriptModule):
         # return alternate_coords, alternate_ids, rand_rot_global
 
 
-class MCAcceptRejectModule(torch.jit.ScriptModule):
+# class MCAcceptRejectModule(torch.jit.ScriptModule):
+class MCAcceptRejectModule:
     def __init__(self,):
         super().__init__()
 
-    @torch.jit.script_method
-    def forward(
+    # @torch.jit.script_method
+    # def forward(
+
+    def go(
         self,
         temperature,
         context_coords,

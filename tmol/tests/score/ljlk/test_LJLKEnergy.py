@@ -19,7 +19,7 @@ def test_smoke(default_database, torch_device):
     )
 
     ljlk_energy = LJLKEnergy(
-        resolver=resolver,
+        atom_type_resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
         atom_type_index=ljlk_params.atom_type_index,
@@ -41,7 +41,7 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
     )
 
     ljlk_energy = LJLKEnergy(
-        resolver=resolver,
+        atom_type_resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
         atom_type_index=ljlk_params.atom_type_index,
@@ -104,7 +104,7 @@ def test_inter_module(ubq_res, default_database, torch_device):
     )
 
     ljlk_energy = LJLKEnergy(
-        resolver=resolver,
+        atom_type_resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
         atom_type_index=ljlk_params.atom_type_index,
@@ -203,7 +203,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
     )
 
     ljlk_energy = LJLKEnergy(
-        resolver=resolver,
+        atom_type_resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
         atom_type_index=ljlk_params.atom_type_index,

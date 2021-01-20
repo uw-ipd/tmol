@@ -103,7 +103,8 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         return neighbor_list
 
 
-class LJLKInterSystemModule(torch.jit.ScriptModule):
+# class LJLKInterSystemModule(torch.jit.ScriptModule):
+class LJLKInterSystemModule:
     def __init__(
         self,
         context_system_ids,
@@ -193,10 +194,9 @@ class LJLKInterSystemModule(torch.jit.ScriptModule):
         )
         self.lj_lk_weights = _p(lj_lk_weights)
 
-    @torch.jit.script_method
-    def forward(
-        self, context_coords, context_block_type, alternate_coords, alternate_ids
-    ):
+    # @torch.jit.script_method
+    # def forward(
+    def go(self, context_coords, context_block_type, alternate_coords, alternate_ids):
         return torch.ops.tmol.score_ljlk_inter_system_scores(
             context_coords,
             context_block_type,

@@ -143,8 +143,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   // clock_t start_time = clock();
 
   // Allocate and zero the output tensors in a separate stream
-  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
-  setCurrentCUDAStream(wrapped_stream);
+  // TEMP!! at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  // TEMP!! setCurrentCUDAStream(wrapped_stream);
 
   auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
   auto output = output_t.view;
@@ -153,6 +153,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   // I'm not sure I want/need events for synchronization
   auto event_t = TPack<int64_t, 1, D>::zeros({2});
+
+  return {output_t, event_t};
 
   using namespace mgpu;
   typedef launch_box_t<
@@ -551,7 +553,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
   });
 
-  mgpu::standard_context_t context(wrapped_stream.stream());
+  // TEMP!! mgpu::standard_context_t context(wrapped_stream.stream());
+  mgpu::standard_context_t context;
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors - 1) / launch_t::sm_ptx::vt + 1;
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
