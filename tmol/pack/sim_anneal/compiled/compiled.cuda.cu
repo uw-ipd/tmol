@@ -70,17 +70,18 @@ struct PickRotamers {
       TView<Int, 1, D> rot_offset_for_pose,
       TView<Int, 1, D> block_type_ind_for_rot,
       TView<Int, 1, D> block_ind_for_rot,
-      TView<Real, 3, D> rotamer_coords)
-      -> std::tuple<TPack<Real, 3, D>, TPack<Int, 2, D>, TPack<Int, 1, D> > {
+      TView<Real, 3, D> rotamer_coords,
+      TView<Real, 3, D> alternate_coords,
+      TView<Int, 2, D> alternate_block_id,
+      TView<Int, 1, D> random_rots) -> void {
     // This code will work for future versions of the torch/aten libraries, but
     // not this one.
     // // Increment the cuda generator
-    // // I know I need to increment this, but I am unsure by how much!
     // std::pair<uint64_t, uint64_t> rng_engine_inputs;
     // at::CUDAGenerator * gen = at::cuda::detail::getDefaultCUDAGenerator();
     // {
     //   std::lock_guard<std::mutex> lock(gen->mutex_);
-    //   rng_engine_inputs = gen->philox_engine_inputs(nrotamers * 400 + nres);
+    //   rng_engine_inputs = gen->philox_engine_inputs(1);
     // }
 
     // Increment the seed (and capture the current seed) for the
@@ -104,15 +105,12 @@ struct PickRotamers {
     assert(rotamer_coords.size(0) == n_rots);
     assert(rotamer_coords.size(1) == max_n_atoms);
     assert(rotamer_coords.size(2) == 3);
-
-    auto random_rots_tp = TPack<Int, 1, D>::zeros({n_contexts});
-    auto alternate_coords_tp =
-        TPack<Real, 3, D>::zeros({n_contexts * 2, max_n_atoms, 3});
-    auto alternate_block_id_tp = TPack<Int, 2, D>::zeros({n_contexts * 2, 3});
-
-    auto random_rots = random_rots_tp.view;
-    auto alternate_coords = alternate_coords_tp.view;
-    auto alternate_block_id = alternate_block_id_tp.view;
+    assert(random_rots.size(0) == n_contexts);
+    assert(alternate_coords.size(0) == 2 * n_contexts);
+    assert(alternate_coords.size(1) == max_n_atoms);
+    assert(alternate_coords.size(2) == 3);
+    assert(alternate_block_id.size(0) == 2 * n_contexts);
+    assert(alternate_block_id.size(1) == 3);
 
     auto select_rotamer = [=] MGPU_DEVICE(int i) {
       curandStatePhilox4_32_10_t state;
@@ -179,8 +177,6 @@ struct PickRotamers {
     };
 
     Dispatch<D>::forall(n_contexts * 2 * max_n_atoms, copy_rotamer_coords);
-
-    return {alternate_coords_tp, alternate_block_id_tp, random_rots_tp};
   };
 };
 
@@ -197,7 +193,8 @@ struct MetropolisAcceptReject {
       TView<Int, 2, D> context_block_type,
       TView<Real, 3, D> alternate_coords,
       TView<Int, 2, D> alternate_ids,
-      TView<Real, 2, D> rotamer_component_energies) -> TPack<Int, 1, D> {
+      TView<Real, 2, D> rotamer_component_energies,
+      TView<Int, 1, D> accept) -> void {
     int const n_contexts = context_coords.size(0);
     int const n_terms = rotamer_component_energies.size(0);
     int const max_n_atoms = context_coords.size(2);
@@ -207,9 +204,10 @@ struct MetropolisAcceptReject {
     assert(alternate_coords.size(1) == max_n_atoms);
     assert(alternate_coords.size(2) == 3);
     assert(alternate_ids.size(0) == 2 * n_contexts);
+    assert(accept.size(0) == n_contexts);
 
-    auto accept_tp = TPack<Int, 1, D>::zeros({n_contexts});
-    auto accept = accept_tp.view;
+    // auto accept_tp = TPack<Int, 1, D>::zeros({n_contexts});
+    // auto accept = accept_tp.view;
 
     auto philox_seed = next_philox_seed(1);
 
@@ -256,7 +254,6 @@ struct MetropolisAcceptReject {
     };
 
     Dispatch<D>::forall(n_contexts * max_n_atoms, copy_accepted_coords);
-    return accept_tp;
   }
 };
 

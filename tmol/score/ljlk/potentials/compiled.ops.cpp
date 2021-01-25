@@ -70,7 +70,7 @@ Tensor lj_score_op(
   });
 };
 
-std::vector<Tensor>
+Tensor
 rotamer_pair_energies_op(
   Tensor context_coords,
   Tensor context_block_type,
@@ -90,18 +90,17 @@ rotamer_pair_energies_op(
   Tensor lj_type_params,
   Tensor lk_type_params,
   Tensor global_params,
-  Tensor lj_lk_weights
+  Tensor lj_lk_weights,
+  Tensor output
 ) {
   
-  at::Tensor rpes;
-  at::Tensor event;
   using Int = int32_t;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
     context_coords.type(), "score_op", ([&] {
 	using Real = scalar_t;
 	constexpr tmol::Device Dev = device_t;
-	auto result = LJRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+	LJRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -117,11 +116,89 @@ rotamer_pair_energies_op(
           TCAST(block_type_path_distance),
           TCAST(lj_type_params),
           TCAST(global_params),
-	  TCAST(lj_lk_weights)
+	  TCAST(lj_lk_weights),
+	  TCAST(output)
 	);
-	rpes = std::get<0>(result).tensor;
-	event = std::get<0>(result).tensor;
-	// LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+
+	LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+          TCAST(context_coords),
+          TCAST(context_block_type),
+          TCAST(alternate_coords),
+          TCAST(alternate_ids),
+          TCAST(context_system_ids),
+          TCAST(system_min_bond_separation),
+          TCAST(system_inter_block_bondsep),
+          TCAST(system_neighbor_list),
+          TCAST(block_type_n_heavy_atoms),
+	  TCAST(block_type_heavy_atom_inds),
+          TCAST(block_type_atom_types),
+          TCAST(block_type_n_interblock_bonds),
+          TCAST(block_type_atoms_forming_chemical_bonds),
+          TCAST(block_type_path_distance),
+          TCAST(lk_type_params),
+          TCAST(global_params),
+          TCAST(lj_lk_weights),
+	  TCAST(output)
+	);
+      }));
+  Tensor dummy_output_tensor;
+  return dummy_output_tensor;
+}
+
+Tensor
+register_lj_lk_rotamer_pair_energy_eval(
+  Tensor context_coords,
+  Tensor context_block_type,
+  Tensor alternate_coords,
+  Tensor alternate_ids,
+  Tensor context_system_ids,
+  Tensor system_min_bond_separation,
+  Tensor system_inter_block_bondsep,
+  Tensor system_neighbor_list,
+  Tensor block_type_n_atoms,
+  Tensor block_type_n_heavy_atoms,
+  Tensor block_type_atom_types,
+  Tensor block_type_heavy_atom_inds,
+  Tensor block_type_n_interblock_bonds,
+  Tensor block_type_atoms_forming_chemical_bonds,
+  Tensor block_type_path_distance,
+  Tensor lj_type_params,
+  Tensor lk_type_params,
+  Tensor global_params,
+  Tensor lj_lk_weights,
+  Tensor output,
+  Tensor annealer
+) {
+
+  Tensor dummy_return_value;
+  using Int = int32_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(
+    context_coords.type(), "score_op", ([&] {
+	using Real = scalar_t;
+	constexpr tmol::Device Dev = device_t;
+	LJRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+          TCAST(context_coords),
+          TCAST(context_block_type),
+          TCAST(alternate_coords),
+          TCAST(alternate_ids),
+          TCAST(context_system_ids),
+          TCAST(system_min_bond_separation),
+          TCAST(system_inter_block_bondsep),
+          TCAST(system_neighbor_list),
+          TCAST(block_type_n_atoms),
+          TCAST(block_type_atom_types),
+          TCAST(block_type_n_interblock_bonds),
+          TCAST(block_type_atoms_forming_chemical_bonds),
+          TCAST(block_type_path_distance),
+          TCAST(lj_type_params),
+          TCAST(global_params),
+	  TCAST(lj_lk_weights),
+	  TCAST(output),
+	  TCAST(annealer)
+	);
+
+	// LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
         //   TCAST(context_coords),
         //   TCAST(context_block_type),
         //   TCAST(alternate_coords),
@@ -139,12 +216,12 @@ rotamer_pair_energies_op(
         //   TCAST(lk_type_params),
         //   TCAST(global_params),
         //   TCAST(lj_lk_weights),
-        //   std::get<0>(result).view,
-        //   std::get<1>(result).view
+	//   TCAST(output)
 	// );
       }));
-  return {rpes, event};
+  return dummy_return_value;
 }
+
 
 template <
     template <
