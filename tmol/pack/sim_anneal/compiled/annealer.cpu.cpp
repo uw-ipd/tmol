@@ -3,6 +3,8 @@
 #include <tmol/score/common/forall_dispatch.hh>
 #include <tmol/utility/tensor/TensorCast.h>
 
+#include <chrono>
+
 namespace tmol {
 namespace pack {
 namespace sim_anneal {
@@ -146,18 +148,33 @@ void SimAnnealer::add_score_component(
   std::shared_ptr<RPECalc> score_calculator
 )
 {
+  std::cout << "Adding score component " << score_calculator << std::endl;
   score_calculators_.push_back(score_calculator);
 }
 
 void SimAnnealer::run_annealer()
 {
-  for ( int i = 0; i < 100; ++i ) {
+  int n_cycles = 10000;
+  clock_t start_clock = clock();
+  time_t start_time = time(NULL);
+  using namespace std::chrono;
+  auto start_chrono = high_resolution_clock::now();
+  for ( int i = 0; i < n_cycles; ++i ) {
     pick_step_->pick_rotamers();
     for (auto const & rpe_calc: score_calculators_) {
       rpe_calc->calc_energies();
     }
     acc_rej_step_->accept_reject();
   }
+  clock_t stop_clock = clock();
+  time_t stop_time = time(NULL);
+  auto stop_chrono = high_resolution_clock::now();
+  auto duration = duration_cast<microseconds>(stop_chrono - start_chrono); 
+
+  std::cout << n_cycles << " cycles of simA in ";
+  std::cout << (double) duration.count() / n_cycles << " us (chrono) ";
+  std::cout << ((double) stop_clock - start_clock) / (n_cycles * CLOCKS_PER_SEC) << " s (clock) ";
+  std::cout << ((double) stop_time - start_time) / (n_cycles) << " s (wall time) " << std::endl;
 }
 
 std::shared_ptr<PickRotamersStep>

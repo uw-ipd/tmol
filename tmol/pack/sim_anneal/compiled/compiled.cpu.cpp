@@ -149,6 +149,8 @@ struct MetropolisAcceptReject {
       for (int j = 0; j < n_terms; ++j) {
 	currE += rotamer_component_energies[j][2*i];
 	altE += rotamer_component_energies[j][2*i + 1];
+	rotamer_component_energies[j][2*i] = 0;
+	rotamer_component_energies[j][2*i + 1] = 0;
       }
       Real deltaE = altE - currE;
       Real rand_unif = ((Real) rand()) / RAND_MAX;

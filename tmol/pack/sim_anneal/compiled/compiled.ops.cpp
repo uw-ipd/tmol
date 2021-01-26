@@ -163,6 +163,29 @@ register_standard_metropolis_accept_or_rejector(
   return annealer;
 }
 
+Tensor
+run_sim_annealing(
+  Tensor annealer
+)
+{
+  try {
+    auto annealer_tp = TPack<int64_t, 1, tmol::Device::CPU>(
+      annealer,
+      view_tensor<int64_t, 1, tmol::Device::CPU>(annealer, "annealer"));
+
+    int64_t annealer_uint = annealer_tp.view[0];
+    SimAnnealer * sim_annealer = reinterpret_cast<SimAnnealer *> (annealer_uint);
+    sim_annealer->run_annealer();
+  } catch (at::Error err) {
+    std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
+    throw err;
+  } catch (c10::Error err) {
+    std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
+    throw err;
+  }
+  return annealer;
+}
+
 
 
 template < template <tmol::Device> class DispatchMethod >
@@ -262,7 +285,8 @@ static auto registry =
   .op("tmol::create_sim_annealer", &create_sim_annealer)
   .op("tmol::delete_sim_annealer", &delete_sim_annealer)
   .op("tmol::register_standard_random_rotamer_picker", &register_standard_random_rotamer_picker)
-  .op("tmol::register_standard_metropolis_accept_or_rejector", &register_standard_metropolis_accept_or_rejector);
+  .op("tmol::register_standard_metropolis_accept_or_rejector", &register_standard_metropolis_accept_or_rejector)
+  .op("tmol::run_sim_annealing", &run_sim_annealing);
 
 
 } // namespace compiled

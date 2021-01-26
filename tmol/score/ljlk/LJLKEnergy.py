@@ -194,6 +194,52 @@ class LJLKInterSystemModule:
         )
         self.lj_lk_weights = _p(lj_lk_weights)
 
+    def register_with_sim_annealer(
+        self,
+        context_coords,
+        context_block_type,
+        alternate_coords,
+        alternate_ids,
+        output_energies,
+        annealer,
+    ):
+        print("context_coords")
+        print(context_coords.shape)
+        print("context_block_type")
+        print(context_block_type.shape)
+        print("alternate_coords")
+        print(alternate_coords.shape)
+        print("alternate_ids")
+        print(alternate_ids.shape)
+        print("output_energies")
+        print(output_energies.shape)
+        print("annealer")
+        print(annealer.shape)
+
+        torch.ops.tmol.register_lj_lk_rotamer_pair_energy_eval(
+            context_coords,
+            context_block_type,
+            alternate_coords,
+            alternate_ids,
+            self.context_system_ids,
+            self.system_min_block_bondsep,
+            self.system_inter_block_bondsep,
+            self.system_neighbor_list,
+            self.bt_n_atoms,
+            self.bt_n_heavy_atoms,
+            self.bt_atom_types,
+            self.bt_heavy_atom_inds,
+            self.bt_n_interblock_bonds,
+            self.bt_atoms_forming_chemical_bonds,
+            self.bt_path_distance,
+            self.lj_type_params,
+            self.lk_type_params,
+            self.global_params,
+            self.lj_lk_weights,
+            output_energies,
+            annealer,
+        )
+
     # @torch.jit.script_method
     # def forward(
     def go(self, context_coords, context_block_type, alternate_coords, alternate_ids):

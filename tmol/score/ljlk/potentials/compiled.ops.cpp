@@ -287,7 +287,9 @@ static auto registry =
             &lk_score_op<LKIsotropicDispatch, AABBDispatch>)
         .op("tmol::score_ljlk_lk_isotropic_triu",
             &lk_score_op<LKIsotropicDispatch, AABBTriuDispatch>)
-        .op("tmol::score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
+        .op("tmol::score_ljlk_inter_system_scores", &rotamer_pair_energies_op)
+        .op("tmol::register_lj_lk_rotamer_pair_energy_eval",
+            &register_lj_lk_rotamer_pair_energy_eval);
 
 
 }  // namespace potentials
