@@ -122,13 +122,14 @@ void MetropolisAcceptRejectStep::accept_reject()
 }
 
 
-SimAnnealer::SimAnnealer() {}
-SimAnnealer::~SimAnnealer() {}
+SimAnnealer::SimAnnealer() {std::cout << "Annealer ctor" << std::endl;}
+SimAnnealer::~SimAnnealer() {std::cout << "Annealer dstor" << std::endl;}
 
 void SimAnnealer::set_pick_rotamers_step(
   std::shared_ptr<PickRotamersStep> pick_step
 )
 {
+  std::cout << "Setting pick step " << pick_step << std::endl;
   pick_step_ = pick_step;
 }
 
@@ -136,6 +137,7 @@ void SimAnnealer::set_metropolis_accept_reject_step(
   std::shared_ptr<MetropolisAcceptRejectStep> acc_rej_step
 )
 {
+  std::cout << "Setting acc/rej step " << acc_rej_step << std::endl;
   acc_rej_step_ = acc_rej_step;
 }
 

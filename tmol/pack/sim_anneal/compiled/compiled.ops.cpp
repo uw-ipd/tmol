@@ -259,10 +259,10 @@ static auto registry =
   torch::jit::RegisterOperators()
   .op("tmol::pick_random_rotamers", &pick_random_rotamers<tmol::score::common::ForallDispatch>)
   .op("tmol::metropolis_accept_reject", &metropolis_accept_reject<tmol::score::common::ForallDispatch>)
-  .op("tmol.create_sim_annealer", &create_sim_annealer)
-  .op("tmol.delete_sim_annealer", &delete_sim_annealer)
-  .op("tmol.register_standard_random_rotamer_picker", &register_standard_random_rotamer_picker)
-  .op("tmol.register_standard_metropolis_accept_or_reject", &register_standard_metropolis_accept_or_rejector);
+  .op("tmol::create_sim_annealer", &create_sim_annealer)
+  .op("tmol::delete_sim_annealer", &delete_sim_annealer)
+  .op("tmol::register_standard_random_rotamer_picker", &register_standard_random_rotamer_picker)
+  .op("tmol::register_standard_metropolis_accept_or_rejector", &register_standard_metropolis_accept_or_rejector);
 
 
 } // namespace compiled
