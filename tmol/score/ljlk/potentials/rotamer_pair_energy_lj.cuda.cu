@@ -209,7 +209,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       // int const atom_1_type = alt_atom_type[alt_atom_tile_ind];
       // int const atom_2_type = neighb_atom_type[neighb_atom_tile_ind];
 
-      int const separation =
+      /* int const separation =
           min_separation > max_important_bond_separation
               ? max_important_bond_separation
               : common::count_pair::CountPair<D, Int>::inter_block_separation(
@@ -224,11 +224,38 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                     block_type_n_interblock_bonds,
                     block_type_atoms_forming_chemical_bonds,
                     block_type_path_distance);
+      */
+      // int const separation = 5;
+      Real dist2 =
+          ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
+           + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
+           + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
+      if (dist2 > 36.0) {
+        // DANGER -- maximum reach of LJ potential hard coded here in a second
+        // place out of range!
+        continue;
+      }
+      Real dist = std::sqrt(dist2);
 
-      Real dist = sqrt(
-          (coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
-          + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
-          + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
+      int separation = min_separation;
+      if (separation <= max_important_bond_separation) {
+        int const separation =
+            common::count_pair::CountPair<D, Int>::inter_block_separation(
+                max_important_bond_separation,
+                alt_block_ind,
+                neighb_block_ind,
+                alt_block_type,
+                neighb_block_type,
+                alt_atom_ind,
+                neighb_atom_ind,
+                inter_block_bondsep,
+                block_type_n_interblock_bonds,
+                block_type_atoms_forming_chemical_bonds,
+                block_type_path_distance);
+      }
+
+      // TEMP short circuit the lennard-jones evaluation
+      // Real lj = separation > 5 ? dist : 0;
 
       Real lj = lj_score<Real>::V(
           dist,
@@ -237,6 +264,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           neighb_params[neighb_atom_tile_ind],
           global_params_local);
       lj *= lj_weight;
+
       // if ( lj != 0 ) {
       //   printf("cuda %d %d %6.3f %6.3f %6.3f vs %6.3f %6.3f %6.3f e=
       //   %8.4f\n",
@@ -378,6 +406,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         if (tid == 0) {
           int const min_sep = system_min_bond_separation[system][alt_block_ind]
                                                         [neighb_block_ind];
+          // printf("min_sep %2d\n", min_sep);
           shared.vals.min_separation = min_sep;
         }
         __syncthreads();

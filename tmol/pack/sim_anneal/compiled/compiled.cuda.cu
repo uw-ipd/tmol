@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
+#include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
 
 #include "simulated_annealing.hh"
@@ -206,6 +207,10 @@ struct MetropolisAcceptReject {
     assert(alternate_ids.size(0) == 2 * n_contexts);
     assert(accept.size(0) == n_contexts);
 
+    // TEMP!!!
+    // auto sum_energies_tp = TPack<Real, 1, D>::zeros({1});
+    // auto sum_energies = sum_energies_tp.view;
+
     // auto accept_tp = TPack<Int, 1, D>::zeros({n_contexts});
     // auto accept = accept_tp.view;
 
@@ -223,6 +228,8 @@ struct MetropolisAcceptReject {
         rotamer_component_energies[j][2 * i] = 0;
         rotamer_component_energies[j][2 * i + 1] = 0;
       }
+      // Real sumE = altE + currE;
+      // score::common::accumulate<D, Real>::add(sum_energies[0], sumE);
       Real deltaE = altE - currE;
       Real rand_unif = curand_uniform(&state);
       Real temp = temperature[0];
@@ -238,6 +245,9 @@ struct MetropolisAcceptReject {
     Dispatch<D>::forall(n_contexts, accept_reject);
 
     auto copy_accepted_coords = [=] MGPU_DEVICE(int i) {
+      // if (i == 0) {
+      //   printf("n total atoms calc'd: %f\n", sum_energies[0]);
+      // }
       int context_id = i / max_n_atoms;
       Int quasi_atom_ind = i % max_n_atoms;
 
