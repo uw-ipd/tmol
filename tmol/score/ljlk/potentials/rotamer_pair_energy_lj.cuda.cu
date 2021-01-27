@@ -36,6 +36,9 @@
 
 // #include <tmol/score/ljlk/potentials/rotamer_pair_energy_lj.impl.hh>
 
+// The maximum number of inter-residue chemical bonds
+#define MAX_N_CONN 4
+
 namespace tmol {
 namespace score {
 namespace ljlk {
@@ -184,7 +187,12 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                 TensorAccessor<Int, 4, D> inter_block_bondsep,
 
                                 int const alt_n_atoms,
-                                int const neighb_n_atoms) {
+                                int const neighb_n_atoms,
+                                int const n_conn1,
+                                int const n_conn2,
+                                int const *path_dist1,
+                                int const *path_dist2,
+                                int const *conn_seps) {
     Real score_total = 0;
     Real coord1[3];
     Real coord2[3];
@@ -240,18 +248,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int separation = min_separation;
       if (separation <= max_important_bond_separation) {
         int const separation =
-            common::count_pair::CountPair<D, Int>::inter_block_separation(
+            common::count_pair::CountPair<D, Int>::inter_block_separation<32>(
                 max_important_bond_separation,
-                alt_block_ind,
-                neighb_block_ind,
-                alt_block_type,
-                neighb_block_type,
                 alt_atom_ind,
                 neighb_atom_ind,
-                inter_block_bondsep,
-                block_type_n_interblock_bonds,
-                block_type_atoms_forming_chemical_bonds,
-                block_type_path_distance);
+                n_conn1,
+                n_conn2,
+                path_dist1,
+                path_dist2,
+                conn_seps);
       }
 
       // TEMP short circuit the lennard-jones evaluation
@@ -357,6 +362,13 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         LJTypeParams<Real> params1[32];
         LJTypeParams<Real> params2[32];
         Int min_separation;
+        Int n_conn1;
+        Int n_conn2;
+        Int conn_ats1[MAX_N_CONN];
+        Int conn_ats2[MAX_N_CONN];
+        Int path_dist1[MAX_N_CONN * 32];
+        Int path_dist2[MAX_N_CONN * 32];
+        Int conn_seps[MAX_N_CONN * MAX_N_CONN];
       } vals;
       typename reduce_t::storage_t reduce;
     } shared;
@@ -408,9 +420,36 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                                         [neighb_block_ind];
           // printf("min_sep %2d\n", min_sep);
           shared.vals.min_separation = min_sep;
+          int const n_conn1 = block_type_n_interblock_bonds[alt_block_type];
+          int const n_conn2 = block_type_n_interblock_bonds[neighb_block_type];
+          shared.vals.n_conn1 = n_conn1;
+          shared.vals.n_conn2 = n_conn2;
         }
         __syncthreads();
+
         int const min_sep = shared.vals.min_separation;
+
+        bool const count_pair_striking_dist =
+            min_sep <= max_important_bond_separation;
+
+        int const n_conn1 = shared.vals.n_conn1;
+        int const n_conn2 = shared.vals.n_conn2;
+        if (count_pair_striking_dist && tid < n_conn1) {
+          shared.vals.conn_ats1[tid] =
+              block_type_atoms_forming_chemical_bonds[alt_block_type][tid];
+        }
+        if (count_pair_striking_dist && tid < n_conn2) {
+          shared.vals.conn_ats2[tid] =
+              block_type_atoms_forming_chemical_bonds[neighb_block_type][tid];
+        }
+        if (count_pair_striking_dist && tid < n_conn1 * n_conn2) {
+          int conn1 = tid / n_conn2;
+          int conn2 = tid % n_conn2;
+          shared.vals.conn_seps[tid] =
+              system_inter_block_bondsep[system][alt_block_ind]
+                                        [neighb_block_ind][conn1][conn2];
+        }
+        __syncthreads();
 
         // Tile the sets of 32 atoms
         for (int i = 0; i < n_iterations; ++i) {
@@ -435,6 +474,14 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               int const attype = block_type_atom_types[alt_block_type][atid];
               if (attype >= 0) {
                 params1[tid] = type_params[attype];
+              }
+              if (count_pair_striking_dist) {
+                for (int j = 0; j < n_conn1; ++j) {
+                  int ij_path_dist =
+                      block_type_path_distance[alt_block_type]
+                                              [shared.vals.conn_ats1[j]][atid];
+                  shared.vals.path_dist1[j * 32 + tid] = ij_path_dist;
+                }
               }
             }
           }
@@ -461,6 +508,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 if (attype >= 0) {
                   params2[tid] = type_params[attype];
                 }
+                if (count_pair_striking_dist) {
+                  for (int k = 0; k < n_conn2; ++k) {
+                    int jk_path_dist =
+                        block_type_path_distance[neighb_block_type]
+                                                [shared.vals.conn_ats2[k]]
+                                                [atid];
+                    shared.vals.path_dist1[k * 32 + tid] = jk_path_dist;
+                  }
+                }
               }
             }
 
@@ -485,7 +541,12 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 min_sep,
                 system_inter_block_bondsep[system],
                 alt_n_atoms,
-                neighb_n_atoms);
+                neighb_n_atoms,
+                n_conn1,
+                n_conn2,
+                shared.vals.path_dist1,
+                shared.vals.path_dist2,
+                shared.vals.conn_seps);
           }  // for j
         }    // for i
       } else {

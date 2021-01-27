@@ -90,16 +90,20 @@ rotamer_pair_energies_op(
   Tensor lj_type_params,
   Tensor lk_type_params,
   Tensor global_params,
-  Tensor lj_lk_weights,
-  Tensor output
+  Tensor lj_lk_weights
 ) {
   
   using Int = int32_t;
+  Tensor output_tensor;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
     context_coords.type(), "score_op", ([&] {
 	using Real = scalar_t;
 	constexpr tmol::Device Dev = device_t;
+
+	auto output_tp = TPack<Real, 1, Dev>::zeros({alternate_coords.size(0)});
+	auto output_tv = output_tp.view;
+
 	LJRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
@@ -117,7 +121,7 @@ rotamer_pair_energies_op(
           TCAST(lj_type_params),
           TCAST(global_params),
 	  TCAST(lj_lk_weights),
-	  TCAST(output)
+	  output_tv
 	);
 
 	LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
@@ -138,11 +142,12 @@ rotamer_pair_energies_op(
           TCAST(lk_type_params),
           TCAST(global_params),
           TCAST(lj_lk_weights),
-	  TCAST(output)
+	  output_tv
 	);
+	output_tensor = output_tp.tensor;
       }));
-  Tensor dummy_output_tensor;
-  return dummy_output_tensor;
+
+  return output_tensor;
 }
 
 Tensor

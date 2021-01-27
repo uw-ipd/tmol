@@ -36,6 +36,9 @@
 // c10/cuda/CUDAStream.h
 #include <ATen/cuda/CUDAStream.h>
 
+// The maximum number of inter-residue chemical bonds
+#define MAX_N_CONN 4
+
 namespace tmol {
 namespace score {
 namespace ljlk {
@@ -43,6 +46,8 @@ namespace potentials {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
+
+#define TILE_SIZE 16
 
 template <
     template <tmol::Device>
@@ -187,14 +192,20 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                 TensorAccessor<Int, 4, D> inter_block_bondsep,
 
                                 int const alt_n_heavy_atoms,
-                                int const neighb_n_heavy_atoms) {
+                                int const neighb_n_heavy_atoms,
+                                int const n_conn1,
+                                int const n_conn2,
+                                int const *path_dist1,
+                                int const *path_dist2,
+                                int const *conn_seps) {
     Real score_total = 0;
     Real coord1[3];
     Real coord2[3];
 
-    int const alt_remain = min(16, alt_n_heavy_atoms - alt_start_heavy_atom);
+    int const alt_remain =
+        min(TILE_SIZE, alt_n_heavy_atoms - alt_start_heavy_atom);
     int const neighb_remain =
-        min(16, neighb_n_heavy_atoms - neighb_start_heavy_atom);
+        min(TILE_SIZE, neighb_n_heavy_atoms - neighb_start_heavy_atom);
 
     int const n_pairs = alt_remain * neighb_remain;
 
@@ -232,21 +243,36 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       // int const atom_1_type = alt_atom_type[alt_heavy_atom_tile_ind];
       // int const atom_2_type = neighb_atom_type[neighb_heavy_atom_tile_ind];
 
-      int const separation =
-          min_separation > max_important_bond_separation
-              ? max_important_bond_separation
-              : common::count_pair::CountPair<D, Int>::inter_block_separation(
-                    max_important_bond_separation,
-                    alt_block_ind,
-                    neighb_block_ind,
-                    alt_block_type,
-                    neighb_block_type,
-                    atom_ind1,
-                    atom_ind2,
-                    inter_block_bondsep,
-                    block_type_n_interblock_bonds,
-                    block_type_atoms_forming_chemical_bonds,
-                    block_type_path_distance);
+      int separation = min_separation;
+      if (separation <= max_important_bond_separation) {
+        int const separation =
+            common::count_pair::CountPair<D, Int>::inter_block_separation<
+                TILE_SIZE>(
+                max_important_bond_separation,
+                alt_heavy_atom_tile_ind,
+                neighb_heavy_atom_tile_ind,
+                n_conn1,
+                n_conn2,
+                path_dist1,
+                path_dist2,
+                conn_seps);
+      }
+      // int const separation =
+      //     min_separation > max_important_bond_separation
+      //         ? max_important_bond_separation
+      //         : common::count_pair::CountPair<D,
+      //         Int>::inter_block_separation(
+      //               max_important_bond_separation,
+      //               alt_block_ind,
+      //               neighb_block_ind,
+      //               alt_block_type,
+      //               neighb_block_type,
+      //               atom_ind1,
+      //               atom_ind2,
+      //               inter_block_bondsep,
+      //               block_type_n_interblock_bonds,
+      //               block_type_atoms_forming_chemical_bonds,
+      //               block_type_path_distance);
 
       LKTypeParams<Real> p1 = params1[alt_heavy_atom_tile_ind];
       LKTypeParams<Real> p2 = params2[neighb_heavy_atom_tile_ind];
@@ -286,8 +312,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Real coord1[3];
     Real coord2[3];
 
-    int const remain1 = min(16, n_heavy_atoms - start_heavy_atom1);
-    int const remain2 = min(16, n_heavy_atoms - start_heavy_atom2);
+    int const remain1 = min(TILE_SIZE, n_heavy_atoms - start_heavy_atom1);
+    int const remain2 = min(TILE_SIZE, n_heavy_atoms - start_heavy_atom2);
 
     int const n_pairs = remain1 * remain2;
 
@@ -350,15 +376,22 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     __shared__ union {
       struct {
-        Real coords1[16 * 3];
-        Real coords2[16 * 3];
-        Int at_ind1[16];
-        Int at_ind2[16];
-        // Int at_type1[16];
-        // Int at_type2[16];
-        LKTypeParams<Real> params1[16];
-        LKTypeParams<Real> params2[16];
+        Real coords1[TILE_SIZE * 3];
+        Real coords2[TILE_SIZE * 3];
+        Int at_ind1[TILE_SIZE];
+        Int at_ind2[TILE_SIZE];
+        // Int at_type1[TILE_SIZE];
+        // Int at_type2[TILE_SIZE];
+        LKTypeParams<Real> params1[TILE_SIZE];
+        LKTypeParams<Real> params2[TILE_SIZE];
         int min_separation;
+        Int n_conn1;
+        Int n_conn2;
+        Int conn_ats1[MAX_N_CONN];
+        Int conn_ats2[MAX_N_CONN];
+        Int path_dist1[MAX_N_CONN * TILE_SIZE];
+        Int path_dist2[MAX_N_CONN * TILE_SIZE];
+        Int conn_seps[MAX_N_CONN * MAX_N_CONN];
       } vals;
       typename reduce_t::storage_t reduce;
     } shared;
@@ -392,7 +425,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
 
     // Let's load coordinates
-    int const n_iterations = (max_n_heavy_atoms - 1) / 16 + 1;
+    int const n_iterations = (max_n_heavy_atoms - 1) / TILE_SIZE + 1;
 
     Real totalE = 0;
     if (alt_block_ind != neighb_block_ind) {
@@ -406,19 +439,45 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         int const min_sep =
             system_min_bond_separation[system][alt_block_ind][neighb_block_ind];
         shared.vals.min_separation = min_sep;
+        int const n_conn1 = block_type_n_interblock_bonds[alt_block_type];
+        int const n_conn2 = block_type_n_interblock_bonds[neighb_block_type];
+        shared.vals.n_conn1 = n_conn1;
+        shared.vals.n_conn2 = n_conn2;
       }
       __syncthreads();
       int const min_sep = shared.vals.min_separation;
 
-      // Tile the sets of 16 atoms
+      bool const count_pair_striking_dist =
+          min_sep <= max_important_bond_separation;
+
+      int const n_conn1 = shared.vals.n_conn1;
+      int const n_conn2 = shared.vals.n_conn2;
+      if (count_pair_striking_dist && tid < n_conn1) {
+        shared.vals.conn_ats1[tid] =
+            block_type_atoms_forming_chemical_bonds[alt_block_type][tid];
+      }
+      if (count_pair_striking_dist && tid < n_conn2) {
+        shared.vals.conn_ats2[tid] =
+            block_type_atoms_forming_chemical_bonds[neighb_block_type][tid];
+      }
+      if (count_pair_striking_dist && tid < n_conn1 * n_conn2) {
+        int conn1 = tid / n_conn2;
+        int conn2 = tid % n_conn2;
+        shared.vals.conn_seps[tid] =
+            system_inter_block_bondsep[system][alt_block_ind][neighb_block_ind]
+                                      [conn1][conn2];
+      }
+      __syncthreads();
+
+      // Tile the sets of TILE_SIZE atoms
       for (int i = 0; i < n_iterations; ++i) {
         if (i != 0) {
           // make sure calculations from previous iteration have finished before
           // we overwrite shared memory
           __syncthreads();
         }
-        if (tid < 16 && i * 16 + tid < max_n_heavy_atoms) {
-          int atid = i * 16 + tid;
+        if (tid < TILE_SIZE && i * TILE_SIZE + tid < max_n_heavy_atoms) {
+          int atid = i * TILE_SIZE + tid;
           int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
           at_ind1[tid] = heavy_ind;
           if (heavy_ind >= 0) {
@@ -429,6 +488,16 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // at_type1[tid] = attype;
             params1[tid] = type_params[attype];
           }
+          if (count_pair_striking_dist) {
+            for (int j = 0; j < n_conn1; ++j) {
+              int ij_path_dist =
+                  block_type_path_distance[alt_block_type]
+                                          [shared.vals.conn_ats1[j]][heavy_ind];
+
+              // path dist indexed by heavy-atom index and not atom index
+              shared.vals.path_dist1[j * TILE_SIZE + tid] = ij_path_dist;
+            }
+          }
         }
 
         for (int j = 0; j < n_iterations; ++j) {
@@ -437,8 +506,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // before we overwrite the contents of shared memory
             __syncthreads();
           }
-          if (tid < 16 && j * 16 + tid < max_n_heavy_atoms) {
-            int atid = j * 16 + tid;
+          if (tid < TILE_SIZE && j * TILE_SIZE + tid < max_n_heavy_atoms) {
+            int atid = j * TILE_SIZE + tid;
             int heavy_ind = block_type_heavyatom_index[neighb_block_type][atid];
             at_ind2[tid] = heavy_ind;
             if (heavy_ind >= 0) {
@@ -451,6 +520,16 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               LKTypeParams<Real> params_local = type_params[attype];
               params2[tid] = params_local;
             }
+            if (count_pair_striking_dist) {
+              for (int k = 0; k < n_conn2; ++k) {
+                int jk_path_dist =
+                    block_type_path_distance[neighb_block_type]
+                                            [shared.vals.conn_ats2[k]]
+                                            [heavy_ind];
+                // path dist indexed by heavy-atom index and not atom index
+                shared.vals.path_dist1[k * TILE_SIZE + tid] = jk_path_dist;
+              }
+            }
           }
 
           // wait for shared memory to be fully loaded before we start
@@ -462,8 +541,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           totalE += score_inter_pairs(
               tid,
-              i * 16,
-              j * 16,
+              i * TILE_SIZE,
+              j * TILE_SIZE,
               coords1,
               coords2,
               at_ind1,
@@ -480,7 +559,12 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               min_sep,
               system_inter_block_bondsep[system],
               alt_n_heavy_atoms,
-              neighb_n_heavy_atoms);
+              neighb_n_heavy_atoms,
+              n_conn1,
+              n_conn2,
+              shared.vals.path_dist1,
+              shared.vals.path_dist2,
+              shared.vals.conn_seps);
         }  // for j
       }    // for i
     } else {
@@ -492,8 +576,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           // overwrite the contents of shared memory
           __syncthreads();
         }
-        if (tid < 16 && i * 16 + tid < max_n_heavy_atoms) {
-          int atid = i * 16 + tid;
+        if (tid < TILE_SIZE && i * TILE_SIZE + tid < max_n_heavy_atoms) {
+          int atid = i * TILE_SIZE + tid;
           int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
           at_ind1[tid] = heavy_ind;
           if (heavy_ind >= 0) {
@@ -512,8 +596,9 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // overwrite the contents of shared memory
             __syncthreads();
           }
-          if (j != i && tid < 16 && j * 16 + tid < max_n_heavy_atoms) {
-            int atid = j * 16 + tid;
+          if (j != i && tid < TILE_SIZE
+              && j * TILE_SIZE + tid < max_n_heavy_atoms) {
+            int atid = j * TILE_SIZE + tid;
             int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
             if (heavy_ind >= 0) {
               at_ind2[tid] = heavy_ind;
@@ -533,8 +618,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           totalE += score_intra_pairs(
               tid,
-              i * 16,
-              j * 16,
+              i * TILE_SIZE,
+              j * TILE_SIZE,
               coords1,
               (i == j ? coords1 : coords2),
               at_ind1,

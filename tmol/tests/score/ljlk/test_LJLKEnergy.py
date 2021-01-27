@@ -133,7 +133,7 @@ def test_inter_module(ubq_res, default_database, torch_device):
     weights = {"lj": 1.0, "lk": 1.0}
     ljlk_energy.setup_packed_block_types(poses.packed_block_types)
     ljlk_energy.setup_poses(poses)
-    inter_modeule = ljlk_energy.inter_module(
+    inter_module = ljlk_energy.inter_module(
         poses.packed_block_types, poses, context_system_ids, bounding_spheres, weights
     )
 
@@ -178,7 +178,7 @@ def test_inter_module(ubq_res, default_database, torch_device):
         poses.block_type_ind[1, 3], device=torch_device
     )
 
-    rpes, events = inter_modeule(
+    rpes = inter_module.go(
         context_coords, context_block_type, alternate_coords, alternate_ids
     )
     assert rpes is not None
@@ -303,7 +303,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
 
     @benchmark
     def run():
-        rpes = inter_module(
+        rpes = inter_module.go(
             context_coords, context_block_type, alternate_coords, alternate_ids
         )
         return rpes

@@ -203,18 +203,6 @@ class LJLKInterSystemModule:
         output_energies,
         annealer,
     ):
-        print("context_coords")
-        print(context_coords.shape)
-        print("context_block_type")
-        print(context_block_type.shape)
-        print("alternate_coords")
-        print(alternate_coords.shape)
-        print("alternate_ids")
-        print(alternate_ids.shape)
-        print("output_energies")
-        print(output_energies.shape)
-        print("annealer")
-        print(annealer.shape)
 
         torch.ops.tmol.register_lj_lk_rotamer_pair_energy_eval(
             context_coords,
@@ -240,6 +228,7 @@ class LJLKInterSystemModule:
             annealer,
         )
 
+    # deprecated
     # @torch.jit.script_method
     # def forward(
     def go(self, context_coords, context_block_type, alternate_coords, alternate_ids):

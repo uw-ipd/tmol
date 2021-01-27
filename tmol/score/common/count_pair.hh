@@ -97,21 +97,46 @@ struct CountPair {
         block_type_n_interblock_bonds[alt_block_type];
     int const neighb_n_interres_bonds =
         block_type_n_interblock_bonds[neighb_block_type];
+
+    // if ( alt_block_ind + 1 == neighb_block_ind ) {
+    //   int const ii_alt_conn_atom =
+    // 	block_type_atoms_forming_chemical_bonds[alt_block_type][1];
+    //   int const jj_neighb_conn_atom =
+    // 	block_type_atoms_forming_chemical_bonds[neighb_block_type][0];
+    //   return (
+    // 	block_type_path_distance[alt_block_type][ii_alt_conn_atom][alt_atom_ind]
+    // +
+    // 	block_type_path_distance[neighb_block_type][jj_neighb_conn_atom][neighb_atom_ind]
+    // + 	inter_block_bondsep[alt_block_ind][neighb_block_ind][1][0]
+    //   );
+    // } else if ( alt_block_ind == neighb_block_ind + 1 ) {
+    //   int const ii_alt_conn_atom =
+    // 	block_type_atoms_forming_chemical_bonds[alt_block_type][0];
+    //   int const jj_neighb_conn_atom =
+    // 	block_type_atoms_forming_chemical_bonds[neighb_block_type][1];
+    //   return (
+    // 	block_type_path_distance[alt_block_type][ii_alt_conn_atom][alt_atom_ind]
+    // +
+    // 	block_type_path_distance[neighb_block_type][jj_neighb_conn_atom][neighb_atom_ind]
+    // + 	inter_block_bondsep[alt_block_ind][neighb_block_ind][0][1]
+    //   );
+    // } else {
+
     for (int ii = 0; ii < alt_n_interres_bonds; ++ii) {
       int const ii_alt_conn_atom =
           block_type_atoms_forming_chemical_bonds[alt_block_type][ii];
       int const ii_alt_bonds_to_conn =
           block_type_path_distance[alt_block_type][ii_alt_conn_atom]
                                   [alt_atom_ind];
-      if (ii_alt_bonds_to_conn >= separation) {
-        continue;
-      }
+      // if (ii_alt_bonds_to_conn >= separation) {
+      //   continue;
+      // }
       for (int jj = 0; jj < neighb_n_interres_bonds; ++jj) {
         int ii_jj_interblock_bond_sep =
             inter_block_bondsep[alt_block_ind][neighb_block_ind][ii][jj];
-        if (ii_jj_interblock_bond_sep >= separation) {
-          continue;
-        }
+        // if (ii_jj_interblock_bond_sep >= separation) {
+        //   continue;
+        // }
 
         if (ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep >= separation) {
           continue;
@@ -122,11 +147,41 @@ struct CountPair {
             block_type_path_distance[neighb_block_type][jj_neighb_conn_atom]
                                     [neighb_atom_ind];
 
-        if (ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep
-                + jj_neighb_bonds_to_conn
-            < separation) {
-          separation = ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep
-                       + jj_neighb_bonds_to_conn;
+        int const ii_jj_sep = ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep
+                              + jj_neighb_bonds_to_conn;
+        if (ii_jj_sep < separation) {
+          separation = ii_jj_sep;
+        }
+      }
+    }
+    return separation;
+  }
+  //}
+
+  // Templated on the number of atoms in the tile
+  template <int N>
+  static EIGEN_DEVICE_FUNC int inter_block_separation(
+      int const max_important_bond_separation,
+      int alt_atom_ind,
+      int neighb_atom_ind,
+      int const n_conn1,
+      int const n_conn2,
+      int const* path_dist1,  // size max_n_conn * N
+      int const* path_dist2,  // size max_n_conn * N
+      int const* conn_seps) {
+    int separation = max_important_bond_separation + 1;
+
+    for (int ii = 0; ii < n_conn1; ++ii) {
+      int const ii_alt_bonds_to_conn = path_dist1[ii * N + alt_atom_ind];
+      for (int jj = 0; jj < n_conn2; ++jj) {
+        int ii_jj_interblock_bond_sep = conn_seps[ii * n_conn2 + jj];
+
+        int const jj_neighb_bonds_to_conn =
+            path_dist2[jj * N + neighb_atom_ind];
+        int const ii_jj_sep = ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep
+                              + jj_neighb_bonds_to_conn;
+        if (ii_jj_sep < separation) {
+          separation = ii_jj_sep;
         }
       }
     }
