@@ -245,7 +245,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
       int separation = min_separation;
       if (separation <= max_important_bond_separation) {
-        int const separation =
+        separation =
             common::count_pair::CountPair<D, Int>::inter_block_separation<
                 TILE_SIZE>(
                 max_important_bond_separation,
@@ -487,15 +487,16 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             int const attype = block_type_atom_types[alt_block_type][heavy_ind];
             // at_type1[tid] = attype;
             params1[tid] = type_params[attype];
-          }
-          if (count_pair_striking_dist) {
-            for (int j = 0; j < n_conn1; ++j) {
-              int ij_path_dist =
-                  block_type_path_distance[alt_block_type]
-                                          [shared.vals.conn_ats1[j]][heavy_ind];
+            if (count_pair_striking_dist) {
+              for (int j = 0; j < n_conn1; ++j) {
+                int ij_path_dist =
+                    block_type_path_distance[alt_block_type]
+                                            [shared.vals.conn_ats1[j]]
+                                            [heavy_ind];
 
-              // path dist indexed by heavy-atom index and not atom index
-              shared.vals.path_dist1[j * TILE_SIZE + tid] = ij_path_dist;
+                // path dist indexed by heavy-atom index and not atom index
+                shared.vals.path_dist1[j * TILE_SIZE + tid] = ij_path_dist;
+              }
             }
           }
         }
@@ -519,15 +520,15 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               // at_type2[tid] = attype;
               LKTypeParams<Real> params_local = type_params[attype];
               params2[tid] = params_local;
-            }
-            if (count_pair_striking_dist) {
-              for (int k = 0; k < n_conn2; ++k) {
-                int jk_path_dist =
-                    block_type_path_distance[neighb_block_type]
-                                            [shared.vals.conn_ats2[k]]
-                                            [heavy_ind];
-                // path dist indexed by heavy-atom index and not atom index
-                shared.vals.path_dist1[k * TILE_SIZE + tid] = jk_path_dist;
+              if (count_pair_striking_dist) {
+                for (int k = 0; k < n_conn2; ++k) {
+                  int jk_path_dist =
+                      block_type_path_distance[neighb_block_type]
+                                              [shared.vals.conn_ats2[k]]
+                                              [heavy_ind];
+                  // path dist indexed by heavy-atom index and not atom index
+                  shared.vals.path_dist2[k * TILE_SIZE + tid] = jk_path_dist;
+                }
               }
             }
           }

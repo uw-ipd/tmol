@@ -178,6 +178,10 @@ def test_inter_module(ubq_res, default_database, torch_device):
         poses.block_type_ind[1, 3], device=torch_device
     )
 
+    # TEMP! Just score one residue
+    # alternate_coords = alternate_coords[15:16]
+    # alternate_ids = alternate_ids[15:16]
+
     rpes = inter_module.go(
         context_coords, context_block_type, alternate_coords, alternate_ids
     )
@@ -186,8 +190,8 @@ def test_inter_module(ubq_res, default_database, torch_device):
 
 
 @pytest.mark.benchmark(group="time_rpe")
-@pytest.mark.parametrize("n_alts", [2, 4, 8])
-@pytest.mark.parametrize("n_traj", [1, 3, 10])
+@pytest.mark.parametrize("n_alts", [2])
+@pytest.mark.parametrize("n_traj", [1])
 def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_traj):
     # n_traj = 100
     n_poses = 100

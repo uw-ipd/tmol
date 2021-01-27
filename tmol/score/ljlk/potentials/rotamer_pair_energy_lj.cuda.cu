@@ -217,22 +217,22 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       // int const atom_1_type = alt_atom_type[alt_atom_tile_ind];
       // int const atom_2_type = neighb_atom_type[neighb_atom_tile_ind];
 
-      /* int const separation =
-          min_separation > max_important_bond_separation
-              ? max_important_bond_separation
-              : common::count_pair::CountPair<D, Int>::inter_block_separation(
-                    max_important_bond_separation,
-                    alt_block_ind,
-                    neighb_block_ind,
-                    alt_block_type,
-                    neighb_block_type,
-                    alt_atom_ind,
-                    neighb_atom_ind,
-                    inter_block_bondsep,
-                    block_type_n_interblock_bonds,
-                    block_type_atoms_forming_chemical_bonds,
-                    block_type_path_distance);
-      */
+      // int const separation =
+      //    min_separation > max_important_bond_separation
+      //        ? min_separation
+      //        : common::count_pair::CountPair<D, Int>::inter_block_separation(
+      //              max_important_bond_separation,
+      //              alt_block_ind,
+      //              neighb_block_ind,
+      //              alt_block_type,
+      //              neighb_block_type,
+      //              alt_atom_ind,
+      //              neighb_atom_ind,
+      //              inter_block_bondsep,
+      //              block_type_n_interblock_bonds,
+      //              block_type_atoms_forming_chemical_bonds,
+      //              block_type_path_distance);
+
       // int const separation = 5;
       Real dist2 =
           ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
@@ -246,18 +246,24 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       Real dist = std::sqrt(dist2);
 
       int separation = min_separation;
-      if (separation <= max_important_bond_separation) {
-        int const separation =
-            common::count_pair::CountPair<D, Int>::inter_block_separation<32>(
-                max_important_bond_separation,
-                alt_atom_ind,
-                neighb_atom_ind,
-                n_conn1,
-                n_conn2,
-                path_dist1,
-                path_dist2,
-                conn_seps);
-      }
+      // if (separation <= max_important_bond_separation) {
+      //   separation =
+      // 	  common::count_pair::CountPair<D,
+      // Int>::inter_block_separation<32>(
+      //           max_important_bond_separation,
+      //           alt_atom_ind,
+      //           neighb_atom_ind,
+      // 		n_conn1,
+      // 		n_conn2,
+      // 		path_dist1,
+      // 		path_dist2,
+      // 		conn_seps
+      // 	    );
+      // }
+      // if (separation != separation2){
+      // 	printf("separation mismatch! %d %d %d %d %d\n", alt_atom_ind,
+      // neighb_atom_ind, min_separation, separation, separation2);
+      // }
 
       // TEMP short circuit the lennard-jones evaluation
       // Real lj = separation > 5 ? dist : 0;
@@ -514,7 +520,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                         block_type_path_distance[neighb_block_type]
                                                 [shared.vals.conn_ats2[k]]
                                                 [atid];
-                    shared.vals.path_dist1[k * 32 + tid] = jk_path_dist;
+                    shared.vals.path_dist2[k * 32 + tid] = jk_path_dist;
                   }
                 }
               }
