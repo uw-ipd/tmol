@@ -425,7 +425,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
 
     // Let's load coordinates
-    int const n_iterations = (max_n_heavy_atoms - 1) / TILE_SIZE + 1;
+    int const n_iterations = (max_n_heavy_atoms - 4 - 1) / TILE_SIZE + 1;
 
     Real totalE = 0;
     if (alt_block_ind != neighb_block_ind) {
@@ -476,8 +476,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           // we overwrite shared memory
           __syncthreads();
         }
-        if (tid < TILE_SIZE && i * TILE_SIZE + tid < max_n_heavy_atoms) {
-          int atid = i * TILE_SIZE + tid;
+        if (tid < TILE_SIZE && i * TILE_SIZE + tid + 4 < max_n_heavy_atoms) {
+          int atid = i * TILE_SIZE + tid + 4;
           int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
           at_ind1[tid] = heavy_ind;
           if (heavy_ind >= 0) {
@@ -507,8 +507,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // before we overwrite the contents of shared memory
             __syncthreads();
           }
-          if (tid < TILE_SIZE && j * TILE_SIZE + tid < max_n_heavy_atoms) {
-            int atid = j * TILE_SIZE + tid;
+          if (tid < TILE_SIZE && j * TILE_SIZE + 4 + tid < max_n_heavy_atoms) {
+            int atid = j * TILE_SIZE + tid + 4;
             int heavy_ind = block_type_heavyatom_index[neighb_block_type][atid];
             at_ind2[tid] = heavy_ind;
             if (heavy_ind >= 0) {
@@ -542,8 +542,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           totalE += score_inter_pairs(
               tid,
-              i * TILE_SIZE,
-              j * TILE_SIZE,
+              i * TILE_SIZE + 4,
+              j * TILE_SIZE + 4,
               coords1,
               coords2,
               at_ind1,
@@ -577,8 +577,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           // overwrite the contents of shared memory
           __syncthreads();
         }
-        if (tid < TILE_SIZE && i * TILE_SIZE + tid < max_n_heavy_atoms) {
-          int atid = i * TILE_SIZE + tid;
+        if (tid < TILE_SIZE && i * TILE_SIZE + tid + 4 < max_n_heavy_atoms) {
+          int atid = i * TILE_SIZE + tid + 4;
           int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
           at_ind1[tid] = heavy_ind;
           if (heavy_ind >= 0) {
@@ -598,8 +598,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             __syncthreads();
           }
           if (j != i && tid < TILE_SIZE
-              && j * TILE_SIZE + tid < max_n_heavy_atoms) {
-            int atid = j * TILE_SIZE + tid;
+              && j * TILE_SIZE + tid + 4 < max_n_heavy_atoms) {
+            int atid = j * TILE_SIZE + tid + 4;
             int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
             if (heavy_ind >= 0) {
               at_ind2[tid] = heavy_ind;
@@ -619,8 +619,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           totalE += score_intra_pairs(
               tid,
-              i * TILE_SIZE,
-              j * TILE_SIZE,
+              i * TILE_SIZE + 4,
+              j * TILE_SIZE + 4,
               coords1,
               (i == j ? coords1 : coords2),
               at_ind1,
