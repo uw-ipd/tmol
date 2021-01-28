@@ -52,6 +52,11 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
     p2 = Pose.from_residues_one_chain(ubq_res[:6], torch_device)
     poses = Poses.from_poses([p1, p2], torch_device)
 
+    # for i, rt in enumerate(poses.packed_block_types.active_block_types):
+    #     for j, atom in enumerate(rt.atoms):
+    #         print(rt.name, j, atom.name)
+    # return
+
     # nab the ca coords for these residues
     bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
     for i in range(2):

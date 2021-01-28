@@ -246,20 +246,18 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       Real dist = std::sqrt(dist2);
 
       int separation = min_separation;
-      // if (separation <= max_important_bond_separation) {
-      //   separation =
-      // 	  common::count_pair::CountPair<D,
-      // Int>::inter_block_separation<32>(
-      //           max_important_bond_separation,
-      //           alt_atom_ind,
-      //           neighb_atom_ind,
-      // 		n_conn1,
-      // 		n_conn2,
-      // 		path_dist1,
-      // 		path_dist2,
-      // 		conn_seps
-      // 	    );
-      // }
+      if (separation <= max_important_bond_separation) {
+        separation =
+            common::count_pair::CountPair<D, Int>::inter_block_separation<32>(
+                max_important_bond_separation,
+                alt_atom_ind,
+                neighb_atom_ind,
+                n_conn1,
+                n_conn2,
+                path_dist1,
+                path_dist2,
+                conn_seps);
+      }
       // if (separation != separation2){
       // 	printf("separation mismatch! %d %d %d %d %d\n", alt_atom_ind,
       // neighb_atom_ind, min_separation, separation, separation2);
