@@ -183,6 +183,11 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int alt_atom_ind = atom_pair_ind / neighb_n_atoms;
       int neighb_atom_ind = atom_pair_ind % neighb_n_atoms;
 
+      // TEMP HACK! DON'T CALC ENERGIES WITH BACKBONE ATOMS
+      if (alt_atom_ind <= 3 || neighb_atom_ind <= 3) {
+        return;
+      }
+
       // "count pair" logic
       separation =
           common::count_pair::CountPair<D, Int>::inter_block_separation(
@@ -223,6 +228,12 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const atom_2_ind = atom_pair_ind % alt_n_atoms;
       at1 = atom_1_ind;
       at2 = atom_2_ind;
+
+      // TEMP HACK! DON'T CALCULATE ENERGIES WITH BACKBONE ATOMS
+      if (at1 <= 3 || at2 <= 3) {
+        return;
+      }
+
       coord1 = alternate_coords[alt_ind][atom_1_ind];
       coord2 = alternate_coords[alt_ind][atom_2_ind];
       if (atom_1_ind >= atom_2_ind) {

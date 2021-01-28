@@ -250,8 +250,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         separation =
             common::count_pair::CountPair<D, Int>::inter_block_separation<32>(
                 max_important_bond_separation,
-                alt_atom_ind,
-                neighb_atom_ind,
+                alt_atom_tile_ind,
+                neighb_atom_tile_ind,
                 n_conn1,
                 n_conn2,
                 path_dist1,
@@ -411,7 +411,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         return;
       }
 
-      int const n_iterations = (max_n_atoms - 1) / 32 + 1;
+      int const n_iterations = (max_n_atoms - 4 - 1) / 32 + 1;
 
       if (alt_block_ind != neighb_block_ind) {
         int const neighb_block_type =
@@ -470,11 +470,11 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           if (tid < 32) {
             // coalesced read of atom coordinate data
             common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[alt_ind], i * 32, coords1, tid);
+                alternate_coords[alt_ind], i * 32 + 4, coords1, tid);
 
             // load the Lennard-Jones parameters for these 32 atoms
-            if (32 * i + tid < max_n_atoms) {
-              int const atid = 32 * i + tid;
+            if (32 * i + tid + 4 < max_n_atoms) {
+              int const atid = 32 * i + tid + 4;
               int const attype = block_type_atom_types[alt_block_type][atid];
               if (attype >= 0) {
                 params1[tid] = type_params[attype];
@@ -500,13 +500,13 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               // Coalesced read of atom coordinate data
               common::coalesced_read_of_32_coords_into_shared(
                   context_coords[alt_context][neighb_block_ind],
-                  j * 32,
+                  j * 32 + 4,
                   coords2,
                   tid);
 
               // load the Lennard-Jones parameters for these 32 atoms
-              if (32 * j + tid < max_n_atoms) {
-                int const atid = 32 * j + tid;
+              if (32 * j + 4 + tid < max_n_atoms) {
+                int const atid = 32 * j + 4 + tid;
                 int const attype =
                     block_type_atom_types[neighb_block_type][atid];
                 if (attype >= 0) {
@@ -531,8 +531,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // Now we will calculate the 32x32 atom pair energies
             totalE += score_inter_pairs(
                 tid,
-                i * 32,
-                j * 32,
+                i * 32 + 4,
+                j * 32 + 4,
                 coords1,
                 coords2,
                 params1,
@@ -566,7 +566,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           if (tid < 32) {
             // coalesced reads of coordinate data
             common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[alt_ind], i * 32, coords1, tid);
+                alternate_coords[alt_ind], i * 32 + 4, coords1, tid);
             // for (int j = 0; j < 3; ++j) {
             //   int j_ind = j * 32 + tid;
             //   int local_atomind = j_ind / 3;
@@ -579,8 +579,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             // load Lennard-Jones parameters for the 32 atoms into shared
             // memory
-            if (i * 32 + tid < max_n_atoms) {
-              int const atind = i * 32 + tid;
+            if (i * 32 + 4 + tid < max_n_atoms) {
+              int const atind = i * 32 + tid + 4;
               int const attype = block_type_atom_types[alt_block_type][atind];
               if (attype >= 0) {
                 params1[tid] = type_params[attype];
@@ -598,7 +598,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             if (j != i && tid < 32) {
               // coalesced read of coordinate data
               common::coalesced_read_of_32_coords_into_shared(
-                  alternate_coords[alt_ind], j * 32, coords2, tid);
+                  alternate_coords[alt_ind], j * 32 + 4, coords2, tid);
               // for (int k = 0; k < 3; ++k) {
               //   int k_ind = k * 32 + tid;
               //   int local_atomind = k_ind / 3;
@@ -609,7 +609,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               //   }
               // }
               if (j * 32 + tid < max_n_atoms) {
-                int const atind = j * 32 + tid;
+                int const atind = j * 32 + 4 + tid;
                 int const attype = block_type_atom_types[alt_block_type][atind];
                 if (attype >= 0) {
                   params2[tid] = type_params[attype];
@@ -619,8 +619,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             __syncthreads();
             totalE += score_intra_pairs(
                 tid,
-                i * 32,
-                j * 32,
+                i * 32 + 4,
+                j * 32 + 4,
                 coords1,
                 (i == j ? coords1 : coords2),
                 params1,
