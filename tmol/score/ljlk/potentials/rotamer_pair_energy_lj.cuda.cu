@@ -167,7 +167,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   typedef launch_box_t<
       arch_20_cta<64, 1>,
       arch_35_cta<64, 1>,
-      arch_52_cta<512, 1>>
+      arch_52_cta<32, 1>>
       launch_t;
 
   int const n_res_pairs = n_alternate_blocks * max_n_neighbors;
@@ -215,9 +215,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const neighb_block_type =
           context_block_type[alt_context][neighb_block_ind];
       int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
-      return alt_n_atoms * neighb_n_atoms;
+      return (alt_n_atoms - 4) * (neighb_n_atoms - 4);
     } else {
-      return alt_n_atoms * alt_n_atoms;
+      return (alt_n_atoms - 4) * (alt_n_atoms - 4);
     }
   });
 
@@ -288,8 +288,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       //   return;
       // }
 
-      int alt_atom_ind = atom_pair_ind / neighb_n_atoms;
-      int neighb_atom_ind = atom_pair_ind % neighb_n_atoms;
+      int alt_atom_ind = atom_pair_ind / (neighb_n_atoms - 4) + 4;
+      int neighb_atom_ind = atom_pair_ind % (neighb_n_atoms - 4) + 4;
 
       coord1 = alternate_coords[alt_ind][alt_atom_ind];
       coord2 = context_coords[alt_context][neighb_block_ind][neighb_atom_ind];
@@ -319,10 +319,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       // at1 = alt_atom_ind;
       // at2 = neighb_atom_ind;
 
-      dist = sqrt(
-          d2);  // distance<Real>::V(
-                // context_coords[alt_context][neighb_block_ind][neighb_atom_ind],
-                // alternate_coords[alt_ind][alt_atom_ind]);
+      dist = sqrt(d2);
+      // distance<Real>::V(
+      // context_coords[alt_context][neighb_block_ind][neighb_atom_ind],
+      // alternate_coords[alt_ind][alt_atom_ind]);
       atom_1_type = block_type_atom_types[alt_block_type][alt_atom_ind];
       atom_2_type = block_type_atom_types[neighb_block_type][neighb_atom_ind];
     } else {
@@ -335,8 +335,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       if (atom_pair_ind >= alt_n_atoms * alt_n_atoms) {
         return;
       }
-      int const atom_1_ind = atom_pair_ind / alt_n_atoms;
-      int const atom_2_ind = atom_pair_ind % alt_n_atoms;
+      int const atom_1_ind = atom_pair_ind / (alt_n_atoms - 4) + 4;
+      int const atom_2_ind = atom_pair_ind % (alt_n_atoms - 4) + 4;
       // at1 = atom_1_ind;
       // at2 = atom_2_ind;
 
@@ -346,9 +346,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         // count each intra-block interaction only once
         return;
       }
-      dist = distance<Real>::V(
-          alternate_coords[alt_ind][atom_1_ind],
-          alternate_coords[alt_ind][atom_2_ind]);
+      dist = distance<Real>::V(coord1, coord2);
       separation =
           block_type_path_distance[alt_block_type][atom_1_ind][atom_2_ind];
       atom_1_type = block_type_atom_types[alt_block_type][atom_1_ind];
