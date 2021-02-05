@@ -49,19 +49,20 @@ struct CountPair {
         int const ii_alt_bonds_to_conn =
             block_type_path_distance[alt_block_type][ii_alt_conn_atom]
                                     [alt_atom_ind];
-        if (ii_alt_bonds_to_conn >= separation) {
-          continue;
-        }
+        // if (ii_alt_bonds_to_conn >= separation) {
+        //   continue;
+        // }
         for (int jj = 0; jj < neighb_n_interres_bonds; ++jj) {
           int ii_jj_interblock_bond_sep =
               inter_block_bondsep[alt_block_ind][neighb_block_ind][ii][jj];
-          if (ii_jj_interblock_bond_sep >= separation) {
-            continue;
-          }
-
-          if (ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep >= separation) {
-            continue;
-          }
+          // if (ii_jj_interblock_bond_sep >= separation) {
+          //   continue;
+          // }
+          //
+          // if (ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep >= separation)
+          // {
+          //   continue;
+          // }
           int const jj_neighb_conn_atom =
               block_type_atoms_forming_chemical_bonds[neighb_block_type][jj];
           int const jj_neighb_bonds_to_conn =

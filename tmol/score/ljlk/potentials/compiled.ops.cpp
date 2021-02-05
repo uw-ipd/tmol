@@ -203,27 +203,27 @@ register_lj_lk_rotamer_pair_energy_eval(
 	  TCAST(annealer)
 	);
 
-	LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
-          TCAST(context_coords),
-          TCAST(context_block_type),
-          TCAST(alternate_coords),
-          TCAST(alternate_ids),
-          TCAST(context_system_ids),
-          TCAST(system_min_bond_separation),
-          TCAST(system_inter_block_bondsep),
-          TCAST(system_neighbor_list),
-          TCAST(block_type_n_heavy_atoms),
-	  TCAST(block_type_heavy_atom_inds),
-          TCAST(block_type_atom_types),
-          TCAST(block_type_n_interblock_bonds),
-          TCAST(block_type_atoms_forming_chemical_bonds),
-          TCAST(block_type_path_distance),
-          TCAST(lk_type_params),
-          TCAST(global_params),
-          TCAST(lj_lk_weights),
-	  TCAST(output),
-	  TCAST(annealer)
-	);
+	// LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+        //   TCAST(context_coords),
+        //   TCAST(context_block_type),
+        //   TCAST(alternate_coords),
+        //   TCAST(alternate_ids),
+        //   TCAST(context_system_ids),
+        //   TCAST(system_min_bond_separation),
+        //   TCAST(system_inter_block_bondsep),
+        //   TCAST(system_neighbor_list),
+        //   TCAST(block_type_n_heavy_atoms),
+	//   TCAST(block_type_heavy_atom_inds),
+        //   TCAST(block_type_atom_types),
+        //   TCAST(block_type_n_interblock_bonds),
+        //   TCAST(block_type_atoms_forming_chemical_bonds),
+        //   TCAST(block_type_path_distance),
+        //   TCAST(lk_type_params),
+        //   TCAST(global_params),
+        //   TCAST(lj_lk_weights),
+	//   TCAST(output),
+	//   TCAST(annealer)
+	// );
       }));
   return dummy_return_value;
 }

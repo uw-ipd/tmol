@@ -27,6 +27,8 @@
 #include <moderngpu/cta_scan.hxx>
 #include <moderngpu/cta_segreduce.hxx>
 #include <moderngpu/cta_segscan.hxx>
+#include <moderngpu/kernel_load_balance.hxx>
+#include <moderngpu/kernel_scan.hxx>
 #include <moderngpu/memory.hxx>
 #include <moderngpu/search.hxx>
 #include <moderngpu/transform.hxx>
@@ -165,45 +167,284 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   typedef launch_box_t<
       arch_20_cta<64, 1>,
       arch_35_cta<64, 1>,
-      arch_52_cta<64, 1>>
+      arch_52_cta<512, 1>>
       launch_t;
 
+  int const n_res_pairs = n_alternate_blocks * max_n_neighbors;
+  auto work_for_pair_tp = TPack<Int, 1, D>::empty({n_res_pairs});
+  auto work_for_pair = work_for_pair_tp.view;
+
+  auto work_for_pair_cpu_tp =
+      TPack<Int, 1, tmol::Device::CPU>::empty({n_res_pairs});
+  auto work_for_pair_cpu = work_for_pair_cpu_tp.view;
+
+  auto work_offsets_tp = TPack<Int, 1, D>::empty({n_res_pairs});
+  auto work_offsets = work_offsets_tp.view;
+
+  auto work_offsets_cpu_tp =
+      TPack<Int, 1, tmol::Device::CPU>::empty({n_res_pairs});
+  auto work_offsets_cpu = work_offsets_cpu_tp.view;
+
+  auto total_atom_pairs_tp = TPack<Int, 1, D>::empty({1});
+  auto total_atom_pairs = total_atom_pairs_tp.view;
+
+  auto total_atom_pairs_cpu_tp = TPack<Int, 1, tmol::Device::CPU>::empty({1});
+  auto total_atom_pairs_cpu = total_atom_pairs_cpu_tp.view;
+
+  auto n_active_atom_pairs = ([=] MGPU_DEVICE(int i) -> int {
+    int const alt_ind = i / max_n_neighbors;
+    int const neighb_ind = i % max_n_neighbors;
+
+    int n_atom_pairs = 0;
+    int const alt_context = alternate_ids[alt_ind][0];
+    if (alt_context == -1) {
+      return 0;
+    }
+    int const alt_block_ind = alternate_ids[alt_ind][1];
+    int const alt_block_type = alternate_ids[alt_ind][2];
+    int const system = context_system_ids[alt_context];
+
+    int const neighb_block_ind =
+        system_neighbor_list[system][alt_block_ind][neighb_ind];
+    if (neighb_block_ind == -1) {
+      return 0;
+    }
+
+    int alt_n_atoms = block_type_n_atoms[alt_block_type];
+    if (neighb_block_ind != alt_block_ind) {
+      int const neighb_block_type =
+          context_block_type[alt_context][neighb_block_ind];
+      int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
+      return alt_n_atoms * neighb_n_atoms;
+    } else {
+      return alt_n_atoms * alt_n_atoms;
+    }
+  });
+
+  auto count_atom_pairs =
+      ([=] MGPU_DEVICE(int i) { work_for_pair[i] = n_active_atom_pairs(i); });
+
+  mgpu::standard_context_t context;
+  mgpu::transform(
+      count_atom_pairs, n_alternate_blocks * max_n_neighbors, context);
+
+  // std::cout << "scan" << std::endl;
+  mgpu::scan(
+      &work_for_pair[0],
+      n_res_pairs,
+      &work_offsets[0],
+      mgpu::plus_t<Int>(),
+      &total_atom_pairs[0],
+      context);
+  // std::cout << "done scan" << std::endl;
+
+  auto eval_atom_pair = ([=] EIGEN_DEVICE_FUNC(
+                             int index, int respair_index, int atom_pair_ind) {
+    int alt_ind = respair_index / max_n_neighbors;
+    int neighb_ind = respair_index % max_n_neighbors;
+
+    int const max_important_bond_separation = 4;
+    int const alt_context = alternate_ids[alt_ind][0];
+    // if (alt_context == -1) {
+    //   return;
+    // }
+
+    int const alt_block_ind = alternate_ids[alt_ind][1];
+    int const alt_block_type = alternate_ids[alt_ind][2];
+    int const system = context_system_ids[alt_context];
+
+    int const neighb_block_ind =
+        system_neighbor_list[system][alt_block_ind][neighb_ind];
+    // if (neighb_block_ind == -1) {
+    //   return;
+    // }
+
+    int atom_1_type = -1;
+    int atom_2_type = -1;
+    int separation = max_important_bond_separation + 1;
+    Real dist(-1);
+
+    Vec<Real, 3> coord1, coord2;
+    // int at1, at2;
+
+    if (alt_block_ind != neighb_block_ind) {
+      // Inter-block interaction. One atom from "alt", one atom from
+      // "context."
+
+      int const neighb_block_type =
+          context_block_type[alt_context][neighb_block_ind];
+      int const alt_n_atoms = block_type_n_atoms[alt_block_type];
+      int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
+
+      // for best warp cohesion, mod the atom-pair indices after
+      // we have figured out the number of atoms in both blocks;
+      // if we modded *before* based on the maximum number of atoms
+      // per block, lots of warps with inactive atom-pairs
+      // (because they are off the end of the list) would run.
+      // By waiting to figure out the i/j inds until after we know
+      // how many atoms pairs there will be, we can push all the inactive
+      // threads into the same warps and kill those warps early
+      // if (atom_pair_ind >= alt_n_atoms * neighb_n_atoms) {
+      //   return;
+      // }
+
+      int alt_atom_ind = atom_pair_ind / neighb_n_atoms;
+      int neighb_atom_ind = atom_pair_ind % neighb_n_atoms;
+
+      coord1 = alternate_coords[alt_ind][alt_atom_ind];
+      coord2 = context_coords[alt_context][neighb_block_ind][neighb_atom_ind];
+      float d2 = (coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
+                 + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
+                 + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]);
+      if (d2 > 36) {
+        return;
+      }
+
+      // "count pair" logic
+      separation =
+          common::count_pair::CountPair<D, Int>::inter_block_separation(
+              max_important_bond_separation,
+              alt_block_ind,
+              neighb_block_ind,
+              alt_block_type,
+              neighb_block_type,
+              alt_atom_ind,
+              neighb_atom_ind,
+              system_min_bond_separation[system],
+              system_inter_block_bondsep[system],
+              block_type_n_interblock_bonds,
+              block_type_atoms_forming_chemical_bonds,
+              block_type_path_distance);
+
+      // at1 = alt_atom_ind;
+      // at2 = neighb_atom_ind;
+
+      dist = sqrt(
+          d2);  // distance<Real>::V(
+                // context_coords[alt_context][neighb_block_ind][neighb_atom_ind],
+                // alternate_coords[alt_ind][alt_atom_ind]);
+      atom_1_type = block_type_atom_types[alt_block_type][alt_atom_ind];
+      atom_2_type = block_type_atom_types[neighb_block_type][neighb_atom_ind];
+    } else {
+      // alt_block_ind == neighb_block_ind:
+      // intra-block interaction.
+      int const alt_n_atoms = block_type_n_atoms[alt_block_type];
+      // see comment in the inter-block interaction regarding the delay of
+      // the atom1/atom2 resolution until we know how many atoms are in the
+      // particular block we're looking at.
+      if (atom_pair_ind >= alt_n_atoms * alt_n_atoms) {
+        return;
+      }
+      int const atom_1_ind = atom_pair_ind / alt_n_atoms;
+      int const atom_2_ind = atom_pair_ind % alt_n_atoms;
+      // at1 = atom_1_ind;
+      // at2 = atom_2_ind;
+
+      coord1 = alternate_coords[alt_ind][atom_1_ind];
+      coord2 = alternate_coords[alt_ind][atom_2_ind];
+      if (atom_1_ind >= atom_2_ind) {
+        // count each intra-block interaction only once
+        return;
+      }
+      dist = distance<Real>::V(
+          alternate_coords[alt_ind][atom_1_ind],
+          alternate_coords[alt_ind][atom_2_ind]);
+      separation =
+          block_type_path_distance[alt_block_type][atom_1_ind][atom_2_ind];
+      atom_1_type = block_type_atom_types[alt_block_type][atom_1_ind];
+      atom_2_type = block_type_atom_types[alt_block_type][atom_2_ind];
+    }
+
+    // printf(
+    //     "%d %d (%d) %d %d %d %d\n",
+    //     alt_ind,
+    //     neighb_ind,
+    //     neighb_block_ind,
+    //     atom_pair_ind,
+    //     separation,
+    //     atom_1_type,
+    //     atom_2_type);
+    Real lj = lj_score<Real>::V(
+        dist,
+        separation,
+        type_params[atom_1_type],
+        type_params[atom_2_type],
+        global_params[0]);
+    lj *= lj_lk_weights[0];
+
+    // if ( lj != 0 ) {
+    //   printf("cpu  %d %d %6.3f %6.3f %6.3f vs %6.3f %6.3f %6.3f e= %8.4f\n",
+    //     at1, at2,
+    //     coord1[0],
+    //     coord1[1],
+    //     coord1[2],
+    //     coord2[0],
+    //     coord2[1],
+    //     coord2[2],
+    //     lj
+    //   );
+    // }
+
+    accumulate<D, Real>::add_one_dst(output, alt_ind, lj);
+    // accumulate<D, Real>::add(output[alt_ind], lj);
+  });
+
+  // std::cout << "transfer 1" << std::endl;
+  // cudaMemcpy(&work_for_pair_cpu[0], &work_for_pair[0], n_res_pairs *
+  // sizeof(Int), cudaMemcpyDeviceToHost); std::cout << "transfer 2" <<
+  // std::endl; cudaMemcpy(&work_offsets_cpu[0], &work_offsets[0], n_res_pairs *
+  // sizeof(Int), cudaMemcpyDeviceToHost); std::cout << "transfer 3" <<
+  // std::endl; cudaMemcpy(&total_atom_pairs_cpu[0], &total_atom_pairs[0], 1 *
+  // sizeof(Int), cudaMemcpyDeviceToHost); std::cout << "transfer 4; " <<
+  // total_atom_pairs_cpu[0] << std::endl;
+  //
+  // for (int i = 0; i < n_alternate_blocks; ++i) {
+  //   for (int j = 0; j < max_n_neighbors; ++j) {
+  //     int const pair_ind = i * max_n_neighbors + j;
+  //     std::cout << "pair " << i << " " << j << " # atom pairs " <<
+  //     work_for_pair_cpu[pair_ind] <<  " offset: " <<
+  //     work_offsets_cpu[pair_ind] <<  std::endl;
+  //   }
+  // }
+  // std::cout << "total # pairs: " << total_atom_pairs_cpu[0] << "\n";
+  // std::cout << std::flush;
+
+  // We have to read back the
+  cudaMemcpy(
+      &total_atom_pairs_cpu[0],
+      &total_atom_pairs[0],
+      1 * sizeof(Int),
+      cudaMemcpyDeviceToHost);
+  mgpu::transform_lbs<launch_t>(
+      eval_atom_pair,
+      total_atom_pairs_cpu[0],
+      &work_offsets[0],
+      n_res_pairs,
+      context);
+
+  /*
   // between one alternate rotamer and its neighbors in the surrounding context
-  auto score_inter_pairs = ([=] MGPU_DEVICE(
-                                int tid,
-                                int alt_start_atom,
-                                int neighb_start_atom,
-                                Real *alt_coords,
-                                Real *neighb_coords,
-                                LJTypeParams<Real> *alt_params,
-                                LJTypeParams<Real> *neighb_params,
-                                int const max_important_bond_separation,
-                                int const alt_block_ind,
-                                int const neighb_block_ind,
-                                int const alt_block_type,
-                                int const neighb_block_type,
+  auto score_inter_pair = ([=] MGPU_DEVICE(
+      int alt_atom,
+      int neighb_atom,
+      int const max_important_bond_separation,
+      int const alt_block_ind,
+      int const neighb_block_ind,
+      int const alt_block_type,
+      int const neighb_block_type,
 
-                                int min_separation,
-                                TensorAccessor<Int, 4, D> inter_block_bondsep,
+      int min_separation,
+      TensorAccessor<Int, 4, D> inter_block_bondsep,
 
-                                int const alt_n_atoms,
-                                int const neighb_n_atoms,
-                                int const n_conn1,
-                                int const n_conn2,
-                                int const *path_dist1,
-                                int const *path_dist2,
-                                int const *conn_seps) {
+      int const alt_n_atoms,
+      int const neighb_n_atoms
+    ) {
     Real score_total = 0;
     Real coord1[3];
     Real coord2[3];
 
-    int const alt_remain = min(32, alt_n_atoms - alt_start_atom);
-    int const neighb_remain = min(32, neighb_n_atoms - neighb_start_atom);
-
-    int const n_pairs = alt_remain * neighb_remain;
-
     LJGlobalParams<Real> global_params_local = global_params[0];
-    Real lj_weight = lj_lk_weights[0];
+
 
     for (int i = tid; i < n_pairs; i += blockDim.x) {
       int const alt_atom_tile_ind = i / neighb_remain;
@@ -357,30 +598,6 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       vt0 = params_t::vt0,
       nv = nt * vt
     };
-    typedef mgpu::cta_reduce_t<nt, Real> reduce_t;
-
-    __shared__ union {
-      struct {
-        Real coords1[32 * 3];
-        Real coords2[32 * 3];
-        LJTypeParams<Real> params1[32];
-        LJTypeParams<Real> params2[32];
-        Int min_separation;
-        Int n_conn1;
-        Int n_conn2;
-        Int conn_ats1[MAX_N_CONN];
-        Int conn_ats2[MAX_N_CONN];
-        Int path_dist1[MAX_N_CONN * 32];
-        Int path_dist2[MAX_N_CONN * 32];
-        Int conn_seps[MAX_N_CONN * MAX_N_CONN];
-      } vals;
-      typename reduce_t::storage_t reduce;
-    } shared;
-
-    Real *coords1 = shared.vals.coords1;
-    Real *coords2 = shared.vals.coords2;
-    LJTypeParams<Real> *params1 = shared.vals.params1;
-    LJTypeParams<Real> *params2 = shared.vals.params2;
 
     Real cta_totalE = 0;
 
@@ -649,6 +866,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
   });
 
+
   // TEMP!! mgpu::standard_context_t context(wrapped_stream.stream());
   mgpu::standard_context_t context;
   int const n_ctas =
@@ -656,6 +874,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
 
   at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
+  */
 
 #ifdef __CUDACC__
   // float first;
