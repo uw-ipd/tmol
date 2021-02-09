@@ -49,6 +49,16 @@ struct MetropolisAcceptReject {
       TView<Int, 1, D> accept) -> void;
 };
 
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+struct FinalOp {
+  static auto f() -> void;
+};
+
 class PickRotamersStep {
  public:
   PickRotamersStep(
@@ -93,6 +103,7 @@ class MetropolisAcceptRejectStep {
 
   virtual ~MetropolisAcceptRejectStep();
   virtual void accept_reject();
+  virtual void final_op();
 
  private:
   torch::Tensor temperature_;

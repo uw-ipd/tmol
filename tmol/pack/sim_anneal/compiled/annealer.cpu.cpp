@@ -123,6 +123,28 @@ void MetropolisAcceptRejectStep::accept_reject()
   }
 }
 
+void MetropolisAcceptRejectStep::final_op()
+{
+  using Int = int32_t;
+
+  try {
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        context_coords_.type(), "final_op", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+  
+	  using tmol::score::common::ForallDispatch;
+          FinalOp<ForallDispatch, Dev, Real, Int>::f();
+        }));
+  } catch (at::Error err) {
+    std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
+    throw err;
+  } catch (c10::Error err) {
+    std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
+    throw err;
+  }
+}
+
 
 SimAnnealer::SimAnnealer() {std::cout << "Annealer ctor" << std::endl;}
 SimAnnealer::~SimAnnealer() {std::cout << "Annealer dstor" << std::endl;}
@@ -155,18 +177,20 @@ void SimAnnealer::add_score_component(
 void SimAnnealer::run_annealer()
 {
   int n_cycles = 10000;
+  pick_step_->pick_rotamers(); // TEMP!
   clock_t start_clock = clock();
   time_t start_time = time(NULL);
   using namespace std::chrono;
   auto start_chrono = high_resolution_clock::now();
   for ( int i = 0; i < n_cycles; ++i ) {
     //std::cout << "." << std::flush;
-    pick_step_->pick_rotamers();
+    // pick_step_->pick_rotamers();
     for (auto const & rpe_calc: score_calculators_) {
       rpe_calc->calc_energies();
     }
     acc_rej_step_->accept_reject();
   }
+  acc_rej_step_->final_op();
   clock_t stop_clock = clock();
   time_t stop_time = time(NULL);
   auto stop_chrono = high_resolution_clock::now();

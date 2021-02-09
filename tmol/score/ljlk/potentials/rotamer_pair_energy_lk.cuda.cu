@@ -651,8 +651,9 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   // Allocate and zero the output tensors in a separate stream
   at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
   setCurrentCUDAStream(wrapped_stream);
-
-  mgpu::standard_context_t context(wrapped_stream.stream());
+  //
+  // TEMP mgpu::standard_context_t context(wrapped_stream.stream());
+  mgpu::standard_context_t context;
   mgpu::cta_launch<launch_t>(
       eval_energies, n_alternate_blocks * max_n_neighbors, context);
 

@@ -269,6 +269,16 @@ struct MetropolisAcceptReject {
   }
 };
 
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+struct FinalOp {
+  static auto f() -> void { cudaDeviceSynchronize(); }
+};
+
 template struct PickRotamers<
     score::common::ForallDispatch,
     tmol::Device::CUDA,
@@ -306,6 +316,27 @@ template struct MetropolisAcceptReject<
     float,
     int64_t>;
 template struct MetropolisAcceptReject<
+    score::common::ForallDispatch,
+    tmol::Device::CUDA,
+    double,
+    int64_t>;
+
+template struct FinalOp<
+    score::common::ForallDispatch,
+    tmol::Device::CUDA,
+    float,
+    int32_t>;
+template struct FinalOp<
+    score::common::ForallDispatch,
+    tmol::Device::CUDA,
+    double,
+    int32_t>;
+template struct FinalOp<
+    score::common::ForallDispatch,
+    tmol::Device::CUDA,
+    float,
+    int64_t>;
+template struct FinalOp<
     score::common::ForallDispatch,
     tmol::Device::CUDA,
     double,

@@ -148,8 +148,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   // clock_t start_time = clock();
 
   // Allocate and zero the output tensors in a separate stream
-  // TEMP!! at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
-  // TEMP!! setCurrentCUDAStream(wrapped_stream);
+  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  setCurrentCUDAStream(wrapped_stream);
 
   // auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
   // auto output = output_t.view;
@@ -361,19 +361,20 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     __shared__ union {
       struct {
-        Real coords1[32 * 3];
+        Real coords1[32 * 3];  // 786 bytes for coords
         Real coords2[32 * 3];
-        LJTypeParams<Real> params1[32];
+        LJTypeParams<Real> params1[32];  // 1536 bytes for params
         LJTypeParams<Real> params2[32];
-        Int min_separation;
+        Int min_separation;  // 12 bytes for three integers
         Int n_conn1;
         Int n_conn2;
-        Int conn_ats1[MAX_N_CONN];
+        Int conn_ats1[MAX_N_CONN];  // 32 bytes for conn ats
         Int conn_ats2[MAX_N_CONN];
-        Int path_dist1[MAX_N_CONN * 32];
+        Int path_dist1[MAX_N_CONN * 32];  // 1024 for path dists
         Int path_dist2[MAX_N_CONN * 32];
-        Int conn_seps[MAX_N_CONN * MAX_N_CONN];
-      } vals;
+        Int conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes for conn/conn
+      } vals;  // 3454 bytes total = ~18 kernels can run per SM at once
+      // 80 SMs on v100; 1440 kernels can run at once, 46K active threads
       typename reduce_t::storage_t reduce;
     } shared;
 
@@ -649,8 +650,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
   });
 
-  // TEMP!! mgpu::standard_context_t context(wrapped_stream.stream());
-  mgpu::standard_context_t context;
+  mgpu::standard_context_t context(wrapped_stream.stream());
+  // mgpu::standard_context_t context;
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors - 1) / launch_t::sm_ptx::vt + 1;
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
