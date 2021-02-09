@@ -35,6 +35,22 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         lj_lk_weights[0] = weights["lj"] if "lj" in weights else 0
         lj_lk_weights[1] = weights["lk"] if "lk" in weights else 0
 
+        pbt_lj_type_params = torch.full(
+            (packed_block_types.n_types, packed_block_types.max_n_atoms, 6),
+            -1,
+            dtype=torch.float32,
+            device=self.device,
+        )
+        for i in range(packed_block_types.n_types):
+            irange = slice(packed_block_types.n_atoms[i])
+            iattypes = packed_block_types.atom_types[i, irange].to(torch.int64)
+            pbt_lj_type_params[i, irange, 0] = self.type_params.lj_radius[iattypes]
+            pbt_lj_type_params[i, irange, 1] = self.type_params.lj_wdepth[iattypes]
+            pbt_lj_type_params[i, irange, 2] = self.type_params.is_donor[iattypes]
+            pbt_lj_type_params[i, irange, 3] = self.type_params.is_hydroxyl[iattypes]
+            pbt_lj_type_params[i, irange, 4] = self.type_params.is_polarh[iattypes]
+            pbt_lj_type_params[i, irange, 5] = self.type_params.is_acceptor[iattypes]
+
         pbt = packed_block_types
         return LJLKInterSystemModule(
             context_system_ids=context_system_ids,
@@ -49,6 +65,7 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             bt_atoms_forming_chemical_bonds=pbt.atoms_for_interblock_bonds,
             bt_path_distance=pbt.bond_separation,
             type_params=self.type_params,
+            bt_lj_type_params=pbt_lj_type_params,
             global_params=self.global_params,
             lj_lk_weights=lj_lk_weights,
         )
@@ -119,6 +136,7 @@ class LJLKInterSystemModule:
         bt_atoms_forming_chemical_bonds,
         bt_path_distance,
         type_params,
+        bt_lj_type_params,
         global_params,
         lj_lk_weights,
     ):
@@ -159,6 +177,8 @@ class LJLKInterSystemModule:
                 dim=1,
             )
         )
+
+        self.bt_lj_type_params = _p(bt_lj_type_params)
 
         # Pack parameters into dense tensor. Parameter ordering must match
         # struct layout declared in `potentials/params.hh`.
@@ -221,6 +241,7 @@ class LJLKInterSystemModule:
             self.bt_atoms_forming_chemical_bonds,
             self.bt_path_distance,
             self.lj_type_params,
+            self.bt_lj_type_params,
             self.lk_type_params,
             self.global_params,
             self.lj_lk_weights,
@@ -249,6 +270,7 @@ class LJLKInterSystemModule:
             self.bt_atoms_forming_chemical_bonds,
             self.bt_path_distance,
             self.lj_type_params,
+            self.bt_lj_type_params,
             self.lk_type_params,
             self.global_params,
             self.lj_lk_weights,

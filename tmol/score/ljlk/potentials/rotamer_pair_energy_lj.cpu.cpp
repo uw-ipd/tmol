@@ -71,6 +71,7 @@ public:
 
     // LJ parameters
     TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LJTypeParams<Real>, 2, D> bt_lj_type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output
@@ -89,6 +90,7 @@ public:
     block_type_atoms_forming_chemical_bonds_(block_type_atoms_forming_chemical_bonds),
     block_type_path_distance_(block_type_path_distance),
     type_params_(type_params),
+    bt_lj_type_params_(bt_lj_type_params),
     global_params_(global_params),
     lj_lk_weights_(lj_lk_weights),
     output_(output)
@@ -111,6 +113,7 @@ public:
       block_type_atoms_forming_chemical_bonds_,
       block_type_path_distance_,
       type_params_,
+      bt_lj_type_params_,
       global_params_,
       lj_lk_weights_,
       output_
@@ -142,6 +145,7 @@ private:
 
   // LJ parameters
   TView<LJTypeParams<Real>, 1, D> type_params_;
+  TView<LJTypeParams<Real>, 2, D> bt_lj_type_params_;
   TView<LJGlobalParams<Real>, 1, D> global_params_;
   TView<Real, 1, D> lj_lk_weights_;
 
@@ -208,6 +212,7 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
 
     // LJ parameters
     TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LJTypeParams<Real>, 2, D> bt_lj_type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output,
@@ -234,6 +239,7 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     block_type_atoms_forming_chemical_bonds,
     block_type_path_distance,
     type_params,
+    bt_lj_type_params,
     global_params,
     lj_lk_weights,
     output

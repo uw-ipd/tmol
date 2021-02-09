@@ -27,6 +27,7 @@
 #include <moderngpu/cta_scan.hxx>
 #include <moderngpu/cta_segreduce.hxx>
 #include <moderngpu/cta_segscan.hxx>
+#include <moderngpu/loadstore.hxx>
 #include <moderngpu/memory.hxx>
 #include <moderngpu/search.hxx>
 #include <moderngpu/transform.hxx>
@@ -105,6 +106,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     // LJ parameters
     TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LJTypeParams<Real>, 2, D> bt_lj_type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output) -> void {
@@ -148,8 +150,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   // clock_t start_time = clock();
 
   // Allocate and zero the output tensors in a separate stream
-  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
-  setCurrentCUDAStream(wrapped_stream);
+  // TEMP ! at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  // TEMP ! setCurrentCUDAStream(wrapped_stream);
 
   // auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
   // auto output = output_t.view;
@@ -363,8 +365,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       struct {
         Real coords1[32 * 3];  // 786 bytes for coords
         Real coords2[32 * 3];
-        LJTypeParams<Real> params1[32];  // 1536 bytes for params
-        LJTypeParams<Real> params2[32];
+        union {
+          LJTypeParams<Real> params1[32];  // 1536 bytes for params
+          Real params1_raw[32 * 6];
+        } p1;
+        union {
+          LJTypeParams<Real> params2[32];
+          Real params2_raw[32 * 6];
+        } p2;
+
         Int min_separation;  // 12 bytes for three integers
         Int n_conn1;
         Int n_conn2;
@@ -380,8 +389,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     Real *coords1 = shared.vals.coords1;
     Real *coords2 = shared.vals.coords2;
-    LJTypeParams<Real> *params1 = shared.vals.params1;
-    LJTypeParams<Real> *params2 = shared.vals.params2;
+    LJTypeParams<Real> *params1 = shared.vals.p1.params1;
+    Real *params1_raw = shared.vals.p1.params1_raw;
+    LJTypeParams<Real> *params2 = shared.vals.p2.params2;
+    Real *params2_raw = shared.vals.p2.params2_raw;
 
     Real cta_totalE = 0;
 
@@ -412,7 +423,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         return;
       }
 
-      int const n_iterations = (max_n_atoms - 4 - 1) / 32 + 1;
+      // int const n_iterations = (max_n_atoms - 4 - 1) / 32 + 1;
+      int const n_iterations = (max_n_atoms - 1) / 32 + 1;
 
       if (alt_block_ind != neighb_block_ind) {
         int const neighb_block_type =
@@ -470,16 +482,34 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           if (tid < 32) {
             // coalesced read of atom coordinate data
+            // common::coalesced_read_of_32_coords_into_shared(
+            //     alternate_coords[alt_ind], i * 32 + 4, coords1, tid);
             common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[alt_ind], i * 32 + 4, coords1, tid);
+                alternate_coords[alt_ind], i * 32, coords1, tid);
+
+            // mgpu::mem_to_shared<32, 6, 6>(
+            //   &(bt_lj_type_params[alt_block_type][32 * i + 4].lj_radius),
+            //   tid,
+            //   min(Int(32*6), Int((max_n_atoms-4)*6)),
+            //   params1_raw,
+            //   false);
+            mgpu::mem_to_shared<32, 6, 6>(
+                &(bt_lj_type_params[alt_block_type][32 * i].lj_radius),
+                tid,
+                min(Int(32 * 6), Int((max_n_atoms)*6)),
+                params1_raw,
+                false);
 
             // load the Lennard-Jones parameters for these 32 atoms
-            if (32 * i + tid + 4 < max_n_atoms) {
-              int const atid = 32 * i + tid + 4;
-              int const attype = block_type_atom_types[alt_block_type][atid];
-              if (attype >= 0) {
-                params1[tid] = type_params[attype];
-              }
+            // if (32 * i + tid + 4 < max_n_atoms) {
+            if (32 * i + tid < max_n_atoms) {
+              // int const atid = 32 * i + tid + 4;
+              int const atid = 32 * i + tid;
+              // int const attype = block_type_atom_types[alt_block_type][atid];
+              // if (attype >= 0) {
+              //   params1[tid] = type_params[attype];
+              // }
+
               if (count_pair_striking_dist) {
                 for (int j = 0; j < n_conn1; ++j) {
                   int ij_path_dist =
@@ -499,20 +529,38 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             }
             if (tid < 32) {
               // Coalesced read of atom coordinate data
+              // common::coalesced_read_of_32_coords_into_shared(
+              //     context_coords[alt_context][neighb_block_ind],
+              //     j * 32 + 4,
+              //     coords2,
+              //     tid);
               common::coalesced_read_of_32_coords_into_shared(
                   context_coords[alt_context][neighb_block_ind],
-                  j * 32 + 4,
+                  j * 32,
                   coords2,
                   tid);
+              // mgpu::mem_to_shared<32, 6, 6>(
+              //   &(bt_lj_type_params[neighb_block_type][32 * j +
+              //   4].lj_radius), tid, min(Int(32*6), Int((max_n_atoms-4)*6)),
+              //   params2_raw,
+              //   false);
+              mgpu::mem_to_shared<32, 6, 6>(
+                  &(bt_lj_type_params[neighb_block_type][32 * j].lj_radius),
+                  tid,
+                  min(Int(32 * 6), Int((max_n_atoms - 4) * 6)),
+                  params2_raw,
+                  false);
 
               // load the Lennard-Jones parameters for these 32 atoms
-              if (32 * j + 4 + tid < max_n_atoms) {
-                int const atid = 32 * j + 4 + tid;
-                int const attype =
-                    block_type_atom_types[neighb_block_type][atid];
-                if (attype >= 0) {
-                  params2[tid] = type_params[attype];
-                }
+              // if (32 * j + 4 + tid < max_n_atoms) {
+              if (32 * j + tid < max_n_atoms) {
+                // int const atid = 32 * j + 4 + tid;
+                int const atid = 32 * j + tid;
+                // int const attype =
+                //     block_type_atom_types[neighb_block_type][atid];
+                // if (attype >= 0) {
+                //   params2[tid] = type_params[attype];
+                // }
                 if (count_pair_striking_dist) {
                   for (int k = 0; k < n_conn2; ++k) {
                     int jk_path_dist =
@@ -532,8 +580,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // Now we will calculate the 32x32 atom pair energies
             totalE += score_inter_pairs(
                 tid,
-                i * 32 + 4,
-                j * 32 + 4,
+                i * 32,  //  + 4,
+                j * 32,  //  + 4,
                 coords1,
                 coords2,
                 params1,
@@ -566,8 +614,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           }
           if (tid < 32) {
             // coalesced reads of coordinate data
+            // common::coalesced_read_of_32_coords_into_shared(
+            //     alternate_coords[alt_ind], i * 32 + 4, coords1, tid);
             common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[alt_ind], i * 32 + 4, coords1, tid);
+                alternate_coords[alt_ind], i * 32, coords1, tid);
             // for (int j = 0; j < 3; ++j) {
             //   int j_ind = j * 32 + tid;
             //   int local_atomind = j_ind / 3;
@@ -580,13 +630,20 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             // load Lennard-Jones parameters for the 32 atoms into shared
             // memory
-            if (i * 32 + 4 + tid < max_n_atoms) {
-              int const atind = i * 32 + tid + 4;
-              int const attype = block_type_atom_types[alt_block_type][atind];
-              if (attype >= 0) {
-                params1[tid] = type_params[attype];
-              }
-            }
+            mgpu::mem_to_shared<32, 6, 6>(
+                &(bt_lj_type_params[alt_block_type][32 * i].lj_radius),
+                tid,
+                min(Int(32 * 6), Int((max_n_atoms)*6)),
+                params1_raw,
+                false);
+            // if (i * 32 + 4 + tid < max_n_atoms) {
+            //   int const atind = i * 32 + tid + 4;
+            //   int const attype =
+            //   block_type_atom_types[alt_block_type][atind]; if (attype >= 0)
+            //   {
+            //     params1[tid] = type_params[attype];
+            //   }
+            // }
           }
           for (int j = i; j < n_iterations; ++j) {
             if (j != i) {
@@ -599,7 +656,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             if (j != i && tid < 32) {
               // coalesced read of coordinate data
               common::coalesced_read_of_32_coords_into_shared(
-                  alternate_coords[alt_ind], j * 32 + 4, coords2, tid);
+                  alternate_coords[alt_ind], j * 32, coords2, tid);
+              mgpu::mem_to_shared<32, 6, 6>(
+                  &(bt_lj_type_params[alt_block_type][32 * j].lj_radius),
+                  tid,
+                  min(Int(32 * 6), Int((max_n_atoms)*6)),
+                  params2_raw,
+                  false);
+              // common::coalesced_read_of_32_coords_into_shared(
+              //     alternate_coords[alt_ind], j * 32 + 4, coords2, tid);
               // for (int k = 0; k < 3; ++k) {
               //   int k_ind = k * 32 + tid;
               //   int local_atomind = k_ind / 3;
@@ -609,19 +674,20 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               //     coords2[k_ind] = alternate_coords[alt_ind][atid][dim];
               //   }
               // }
-              if (j * 32 + tid < max_n_atoms) {
-                int const atind = j * 32 + 4 + tid;
-                int const attype = block_type_atom_types[alt_block_type][atind];
-                if (attype >= 0) {
-                  params2[tid] = type_params[attype];
-                }
-              }
+              // if (j * 32 + tid + 4 < max_n_atoms) {
+              //   int const atind = j * 32 + 4 + tid;
+              //   int const attype =
+              //   block_type_atom_types[alt_block_type][atind]; if (attype >=
+              //   0) {
+              //     params2[tid] = type_params[attype];
+              //   }
+              // }
             }
             __syncthreads();
             totalE += score_intra_pairs(
                 tid,
-                i * 32 + 4,
-                j * 32 + 4,
+                i * 32,  //  + 4,
+                j * 32,  //  + 4,
                 coords1,
                 (i == j ? coords1 : coords2),
                 params1,
@@ -650,8 +716,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }
   });
 
-  mgpu::standard_context_t context(wrapped_stream.stream());
-  // mgpu::standard_context_t context;
+  // TEMP ! mgpu::standard_context_t context(wrapped_stream.stream());
+  mgpu::standard_context_t context;
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors - 1) / launch_t::sm_ptx::vt + 1;
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
@@ -736,6 +802,7 @@ class LJRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
 
       // LJ parameters
       TView<LJTypeParams<Real>, 1, D> type_params,
+      TView<LJTypeParams<Real>, 2, D> block_type_lj_type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> lj_lk_weights,
       TView<Real, 1, D> output)
@@ -774,6 +841,7 @@ class LJRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         block_type_atoms_forming_chemical_bonds_,
         block_type_path_distance_,
         type_params_,
+        block_type_lj_type_params_,
         global_params_,
         lj_lk_weights_,
         output_);
@@ -804,6 +872,7 @@ class LJRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
 
   // LJ parameters
   TView<LJTypeParams<Real>, 1, D> type_params_;
+  TView<LJTypeParams<Real>, 2, D> block_type_lj_type_params_;
   TView<LJGlobalParams<Real>, 1, D> global_params_;
   TView<Real, 1, D> lj_lk_weights_;
 
@@ -868,6 +937,7 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
 
     // LJ parameters
     TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LJTypeParams<Real>, 2, D> block_type_lj_type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output,
@@ -893,6 +963,7 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
           block_type_atoms_forming_chemical_bonds,
           block_type_path_distance,
           type_params,
+          block_type_lj_type_params,
           global_params,
           lj_lk_weights,
           output);

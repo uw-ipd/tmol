@@ -84,6 +84,7 @@ struct LJRPEDispatch {
 
       // LJ parameters
       TView<LJTypeParams<Real>, 1, D> type_params,
+      TView<LJTypeParams<Real>, 2, D> bt_lj_type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> lj_lk_weights,
       TView<Real, 1, D> output) -> void;
@@ -148,6 +149,7 @@ struct LJRPERegistratorDispatch {
 
       // LJ parameters
       TView<LJTypeParams<Real>, 1, D> type_params,
+      TView<LJTypeParams<Real>, 2, D> bt_lj_type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> lj_lk_weights,
       TView<Real, 1, D> output,

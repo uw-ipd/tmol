@@ -88,6 +88,7 @@ rotamer_pair_energies_op(
   Tensor block_type_atoms_forming_chemical_bonds,
   Tensor block_type_path_distance,
   Tensor lj_type_params,
+  Tensor block_type_lj_type_params,
   Tensor lk_type_params,
   Tensor global_params,
   Tensor lj_lk_weights
@@ -119,6 +120,7 @@ rotamer_pair_energies_op(
           TCAST(block_type_atoms_forming_chemical_bonds),
           TCAST(block_type_path_distance),
           TCAST(lj_type_params),
+          TCAST(block_type_lj_type_params),
           TCAST(global_params),
 	  TCAST(lj_lk_weights),
 	  output_tv
@@ -168,6 +170,7 @@ register_lj_lk_rotamer_pair_energy_eval(
   Tensor block_type_atoms_forming_chemical_bonds,
   Tensor block_type_path_distance,
   Tensor lj_type_params,
+  Tensor block_type_lj_type_params,
   Tensor lk_type_params,
   Tensor global_params,
   Tensor lj_lk_weights,
@@ -198,6 +201,7 @@ register_lj_lk_rotamer_pair_energy_eval(
           TCAST(block_type_atoms_forming_chemical_bonds),
           TCAST(block_type_path_distance),
           TCAST(lj_type_params),
+          TCAST(block_type_lj_type_params),
           TCAST(global_params),
 	  TCAST(lj_lk_weights),
 	  TCAST(output),
