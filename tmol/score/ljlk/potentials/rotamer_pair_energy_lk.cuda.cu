@@ -25,6 +25,7 @@
 #include <moderngpu/cta_scan.hxx>
 #include <moderngpu/cta_segreduce.hxx>
 #include <moderngpu/cta_segscan.hxx>
+#include <moderngpu/loadstore.hxx>
 #include <moderngpu/memory.hxx>
 #include <moderngpu/search.hxx>
 #include <moderngpu/transform.hxx>
@@ -383,6 +384,14 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         Int at_ind2[TILE_SIZE];
         // Int at_type1[TILE_SIZE];
         // Int at_type2[TILE_SIZE];
+        union {
+          LKTypeParams<Real> params1[32];
+          Real params1_raw[32 * 8];
+        } p1;
+        union {
+          LKTypeParams<Real> params2[32];
+          Real params2_raw[32 * 8];
+        } p2;
         LKTypeParams<Real> params1[TILE_SIZE];
         LKTypeParams<Real> params2[TILE_SIZE];
         int min_separation;
@@ -403,8 +412,10 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Int *at_ind2 = shared.vals.at_ind2;
     // Int *at_type1 = shared.vals.at_type1;
     // Int *at_type2 = shared.vals.at_type2;
-    LKTypeParams<Real> *params1 = shared.vals.params1;
-    LKTypeParams<Real> *params2 = shared.vals.params2;
+    LKTypeParams<Real> *params1 = shared.vals.p1.params1;
+    Real *params1_raw = shared.vals.p1.params1_raw;
+    LKTypeParams<Real> *params2 = shared.vals.p2.params2;
+    Real *params2_raw = shared.vals.p2.params2_raw;
 
     int alt_ind = cta / max_n_neighbors;
     int neighb_ind = cta % max_n_neighbors;
@@ -435,6 +446,9 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const alt_n_heavy_atoms = block_type_n_heavy_atoms[alt_block_type];
       int const neighb_n_heavy_atoms =
           block_type_n_heavy_atoms[neighb_block_type];
+      int const alt_n_iterations = (alt_n_heavy_atoms - 1) / TILE_SIZE + 1;
+      int const neighb_n_iterations =
+          (neighb_n_heavy_atoms - 1) / TILE_SIZE + 1;
 
       if (tid == 0) {
         int const min_sep =
@@ -471,12 +485,17 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       __syncthreads();
 
       // Tile the sets of TILE_SIZE atoms
-      for (int i = 0; i < n_iterations; ++i) {
+      for (int i = 0; i < alt_n_iterations; ++i) {
         if (i != 0) {
           // make sure calculations from previous iteration have finished before
           // we overwrite shared memory
           __syncthreads();
         }
+        // mgpu::mem_to_shared<TILE_SIZE * 2, 4, 4>(
+        //   &(bt_lk_type_params[alt_block_type][TILE_SIZE * i + 4].lj_radius),
+        //   tid,
+        //   min(Int(TILE_SIZE * 8), Int((max_n_heavy_atoms - TILE_SIZE * i - 4)
+        //   * 8)), params1_raw, false);
         if (tid < TILE_SIZE && i * TILE_SIZE + tid + 4 < max_n_heavy_atoms) {
           int atid = i * TILE_SIZE + tid + 4;
           int heavy_ind = block_type_heavyatom_index[alt_block_type][atid];
@@ -502,12 +521,17 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           }
         }
 
-        for (int j = 0; j < n_iterations; ++j) {
+        for (int j = 0; j < neighb_n_iterations; ++j) {
           if (j != 0) {
             // make sure calculations from previous iteration have finished
             // before we overwrite the contents of shared memory
             __syncthreads();
           }
+          // mgpu::mem_to_shared<TILE_SIZE * 2, 4, 4>(
+          //   &(bt_lk_type_params[neighb_block_type][TILE_SIZE * j +
+          //   4].lj_radius), tid, min(Int(TILE_SIZE * 8),
+          //   Int((max_n_heavy_atoms - TILE_SIZE * j - 4) * 8)), params2_raw,
+          //   false);
           if (tid < TILE_SIZE && j * TILE_SIZE + 4 + tid < max_n_heavy_atoms) {
             int atid = j * TILE_SIZE + tid + 4;
             int heavy_ind = block_type_heavyatom_index[neighb_block_type][atid];
