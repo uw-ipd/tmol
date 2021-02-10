@@ -110,6 +110,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     // LJ parameters
     TView<LKTypeParams<Real>, 1, D> type_params,
+    TView<LKTypeParams<Real>, 2, D> bt_lk_type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output_tensor) -> void {
@@ -700,6 +701,7 @@ class LKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
       TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
       TView<Int, 3, D> block_type_path_distance,
       TView<LKTypeParams<Real>, 1, D> type_params,
+      TView<LKTypeParams<Real>, 2, D> bt_lk_type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> lj_lk_weights,
       TView<Real, 1, D> output)
@@ -719,6 +721,7 @@ class LKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
             block_type_atoms_forming_chemical_bonds),
         block_type_path_distance_(block_type_path_distance),
         type_params_(type_params),
+        bt_lk_type_params_(bt_lk_type_params),
         global_params_(global_params),
         lj_lk_weights_(lj_lk_weights),
         output_(output) {}
@@ -740,6 +743,7 @@ class LKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         block_type_atoms_forming_chemical_bonds_,
         block_type_path_distance_,
         type_params_,
+        bt_lk_type_params_,
         global_params_,
         lj_lk_weights_,
         output_);
@@ -761,6 +765,7 @@ class LKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
   TView<Int, 2, D> block_type_atoms_forming_chemical_bonds_;
   TView<Int, 3, D> block_type_path_distance_;
   TView<LKTypeParams<Real>, 1, D> type_params_;
+  TView<LKTypeParams<Real>, 2, D> bt_lk_type_params_;
   TView<LJGlobalParams<Real>, 1, D> global_params_;
   TView<Real, 1, D> lj_lk_weights_;
   TView<Real, 1, D> output_;
@@ -827,6 +832,7 @@ auto LKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
 
     // LJ parameters
     TView<LKTypeParams<Real>, 1, D> type_params,
+    TView<LKTypeParams<Real>, 2, D> bt_lk_type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output,
@@ -853,6 +859,7 @@ auto LKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
           block_type_atoms_forming_chemical_bonds,
           block_type_path_distance,
           type_params,
+          bt_lk_type_params,
           global_params,
           lj_lk_weights,
           output);

@@ -547,7 +547,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               mgpu::mem_to_shared<32, 6, 6>(
                   &(bt_lj_type_params[neighb_block_type][32 * j].lj_radius),
                   tid,
-                  min(Int(32 * 6), Int((max_n_atoms - 4) * 6)),
+                  min(Int(32 * 6), Int((max_n_atoms)*6)),
                   params2_raw,
                   false);
 

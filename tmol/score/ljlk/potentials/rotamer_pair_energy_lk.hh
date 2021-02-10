@@ -86,6 +86,7 @@ struct LKRPEDispatch {
 
       // LJ parameters
       TView<LKTypeParams<Real>, 1, D> type_params,
+      TView<LKTypeParams<Real>, 2, D> bt_lk_type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> lj_lk_weights,
       TView<Real, 1, D> output_tensor) -> void;
@@ -153,6 +154,7 @@ struct LKRPERegistratorDispatch {
 
       // LJ parameters
       TView<LKTypeParams<Real>, 1, D> type_params,
+      TView<LKTypeParams<Real>, 2, D> bt_lk_type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> lj_lk_weights,
       TView<Real, 1, D> output_tensor,

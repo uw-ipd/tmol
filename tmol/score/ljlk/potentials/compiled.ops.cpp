@@ -90,6 +90,7 @@ rotamer_pair_energies_op(
   Tensor lj_type_params,
   Tensor block_type_lj_type_params,
   Tensor lk_type_params,
+  Tensor block_type_lk_type_params,
   Tensor global_params,
   Tensor lj_lk_weights
 ) {
@@ -142,10 +143,11 @@ rotamer_pair_energies_op(
           TCAST(block_type_atoms_forming_chemical_bonds),
           TCAST(block_type_path_distance),
           TCAST(lk_type_params),
+	  TCAST(block_type_lk_type_params),
           TCAST(global_params),
           TCAST(lj_lk_weights),
 	  output_tv
-	);
+	  );
 	output_tensor = output_tp.tensor;
       }));
 
@@ -172,6 +174,7 @@ register_lj_lk_rotamer_pair_energy_eval(
   Tensor lj_type_params,
   Tensor block_type_lj_type_params,
   Tensor lk_type_params,
+  Tensor block_type_lk_type_params,
   Tensor global_params,
   Tensor lj_lk_weights,
   Tensor output,
@@ -186,7 +189,7 @@ register_lj_lk_rotamer_pair_energy_eval(
 	using Real = scalar_t;
 	constexpr tmol::Device Dev = device_t;
 	
-	LJRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+	/*LJRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -206,10 +209,10 @@ register_lj_lk_rotamer_pair_energy_eval(
 	  TCAST(lj_lk_weights),
 	  TCAST(output),
 	  TCAST(annealer)
-	);
+	);*/
 	
 
-	/*LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+	LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -225,12 +228,13 @@ register_lj_lk_rotamer_pair_energy_eval(
           TCAST(block_type_atoms_forming_chemical_bonds),
           TCAST(block_type_path_distance),
           TCAST(lk_type_params),
+	  TCAST(block_type_lk_type_params),
           TCAST(global_params),
           TCAST(lj_lk_weights),
 	  TCAST(output),
 	  TCAST(annealer)
 	);
-	*/
+
       }));
   return dummy_return_value;
 }

@@ -35,6 +35,9 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         lj_lk_weights[0] = weights["lj"] if "lj" in weights else 0
         lj_lk_weights[1] = weights["lk"] if "lk" in weights else 0
 
+        def _tf(x):
+            return x.to(torch.float)
+
         pbt_lj_type_params = torch.full(
             (packed_block_types.n_types, packed_block_types.max_n_atoms, 6),
             -1,
@@ -42,14 +45,44 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             device=self.device,
         )
         for i in range(packed_block_types.n_types):
-            irange = slice(packed_block_types.n_atoms[i])
+            irange = torch.arange(packed_block_types.n_atoms[i], dtype=torch.int64)
             iattypes = packed_block_types.atom_types[i, irange].to(torch.int64)
-            pbt_lj_type_params[i, irange, 0] = self.type_params.lj_radius[iattypes]
-            pbt_lj_type_params[i, irange, 1] = self.type_params.lj_wdepth[iattypes]
-            pbt_lj_type_params[i, irange, 2] = self.type_params.is_donor[iattypes]
-            pbt_lj_type_params[i, irange, 3] = self.type_params.is_hydroxyl[iattypes]
-            pbt_lj_type_params[i, irange, 4] = self.type_params.is_polarh[iattypes]
-            pbt_lj_type_params[i, irange, 5] = self.type_params.is_acceptor[iattypes]
+            pbt_lj_type_params[i, irange, 0] = _tf(self.type_params.lj_radius[iattypes])
+            pbt_lj_type_params[i, irange, 1] = _tf(self.type_params.lj_wdepth[iattypes])
+            pbt_lj_type_params[i, irange, 2] = _tf(self.type_params.is_donor[iattypes])
+            pbt_lj_type_params[i, irange, 3] = _tf(
+                self.type_params.is_hydroxyl[iattypes]
+            )
+            pbt_lj_type_params[i, irange, 4] = _tf(self.type_params.is_polarh[iattypes])
+            pbt_lj_type_params[i, irange, 5] = _tf(
+                self.type_params.is_acceptor[iattypes]
+            )
+
+        max_n_heavy_atoms = packed_block_types.heavy_atom_inds.shape[1]
+        pbt_lk_type_params = torch.full(
+            (packed_block_types.n_types, max_n_heavy_atoms, 8),
+            -1,
+            dtype=torch.float32,
+            device=self.device,
+        )
+        for i in range(packed_block_types.n_types):
+            irange = torch.arange(
+                packed_block_types.n_heavy_atoms[i], dtype=torch.int64
+            )
+            iheavyinds = packed_block_types.heavy_atom_inds[i, irange].to(torch.int64)
+            iattypes = packed_block_types.atom_types[i, iheavyinds].to(torch.int64)
+            pbt_lk_type_params[i, irange, 0] = _tf(self.type_params.lj_radius[iattypes])
+            pbt_lk_type_params[i, irange, 1] = _tf(self.type_params.lk_dgfree[iattypes])
+            pbt_lk_type_params[i, irange, 2] = _tf(self.type_params.lk_lambda[iattypes])
+            pbt_lk_type_params[i, irange, 3] = _tf(self.type_params.lk_volume[iattypes])
+            pbt_lk_type_params[i, irange, 4] = _tf(self.type_params.is_donor[iattypes])
+            pbt_lk_type_params[i, irange, 5] = _tf(
+                self.type_params.is_hydroxyl[iattypes]
+            )
+            pbt_lk_type_params[i, irange, 6] = _tf(self.type_params.is_polarh[iattypes])
+            pbt_lk_type_params[i, irange, 7] = _tf(
+                self.type_params.is_acceptor[iattypes]
+            )
 
         pbt = packed_block_types
         return LJLKInterSystemModule(
@@ -66,6 +99,7 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             bt_path_distance=pbt.bond_separation,
             type_params=self.type_params,
             bt_lj_type_params=pbt_lj_type_params,
+            bt_lk_type_params=pbt_lk_type_params,
             global_params=self.global_params,
             lj_lk_weights=lj_lk_weights,
         )
@@ -137,6 +171,7 @@ class LJLKInterSystemModule:
         bt_path_distance,
         type_params,
         bt_lj_type_params,
+        bt_lk_type_params,
         global_params,
         lj_lk_weights,
     ):
@@ -199,6 +234,7 @@ class LJLKInterSystemModule:
                 dim=1,
             )
         )
+        self.bt_lk_type_params = _p(bt_lk_type_params)
 
         self.global_params = _p(
             torch.stack(
@@ -243,6 +279,7 @@ class LJLKInterSystemModule:
             self.lj_type_params,
             self.bt_lj_type_params,
             self.lk_type_params,
+            self.bt_lk_type_params,
             self.global_params,
             self.lj_lk_weights,
             output_energies,
@@ -272,6 +309,7 @@ class LJLKInterSystemModule:
             self.lj_type_params,
             self.bt_lj_type_params,
             self.lk_type_params,
+            self.bt_lk_type_params,
             self.global_params,
             self.lj_lk_weights,
         )
