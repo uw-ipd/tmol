@@ -62,6 +62,7 @@ struct LKRPEDispatch {
       // Chemical properties
       // how many atoms for a given block
       // Dimsize n_block_types
+      TView<Int, 1, D> block_type_n_atoms,
       TView<Int, 1, D> block_type_n_heavy_atoms,
 
       // index of the ith heavy atom in a block type
@@ -130,6 +131,7 @@ struct LKRPERegistratorDispatch {
       // Chemical properties
       // how many atoms for a given block
       // Dimsize n_block_types
+      TView<Int, 1, D> block_type_n_atoms,
       TView<Int, 1, D> block_type_n_heavy_atoms,
 
       // index of the ith heavy atom in a block type

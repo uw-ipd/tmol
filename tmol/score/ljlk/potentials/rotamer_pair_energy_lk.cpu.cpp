@@ -27,6 +27,7 @@ class LKRPECPUCalc : public pack::sim_anneal::compiled::RPECalc {
     TView<Int, 3, D> system_min_bond_separation,
     TView<Int, 5, D> system_inter_block_bondsep,
     TView<Int, 3, D> system_neighbor_list,
+    TView<Int, 1, D> block_type_n_atoms,
     TView<Int, 1, D> block_type_n_heavy_atoms,
     TView<Int, 2, D> block_type_heavyatom_index,
     TView<Int, 2, D> block_type_atom_types,
@@ -47,6 +48,7 @@ class LKRPECPUCalc : public pack::sim_anneal::compiled::RPECalc {
     system_min_bond_separation_(system_min_bond_separation),
     system_inter_block_bondsep_(system_inter_block_bondsep),
     system_neighbor_list_(system_neighbor_list),
+    block_type_n_atoms_(block_type_n_atoms),
     block_type_n_heavy_atoms_(block_type_n_heavy_atoms),
     block_type_heavyatom_index_(block_type_heavyatom_index),
     block_type_atom_types_(block_type_atom_types),
@@ -70,6 +72,7 @@ class LKRPECPUCalc : public pack::sim_anneal::compiled::RPECalc {
       system_min_bond_separation_,
       system_inter_block_bondsep_,
       system_neighbor_list_,
+      block_type_n_atoms_,
       block_type_n_heavy_atoms_,
       block_type_heavyatom_index_,
       block_type_atom_types_,
@@ -93,6 +96,7 @@ class LKRPECPUCalc : public pack::sim_anneal::compiled::RPECalc {
   TView<Int, 3, D> system_min_bond_separation_;
   TView<Int, 5, D> system_inter_block_bondsep_;
   TView<Int, 3, D> system_neighbor_list_;
+  TView<Int, 1, D> block_type_n_atoms_;
   TView<Int, 1, D> block_type_n_heavy_atoms_;
   TView<Int, 2, D> block_type_heavyatom_index_;
   TView<Int, 2, D> block_type_atom_types_;
@@ -143,6 +147,7 @@ auto LKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     // Chemical properties
     // how many atoms for a given block
     // Dimsize n_block_types
+    TView<Int, 1, D> block_type_n_atoms,
     TView<Int, 1, D> block_type_n_heavy_atoms,
 
     // index of the ith heavy atom in a block type
@@ -187,6 +192,7 @@ auto LKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
 	system_min_bond_separation,
 	system_inter_block_bondsep,
 	system_neighbor_list,
+	block_type_n_atoms,
 	block_type_n_heavy_atoms,
 	block_type_heavyatom_index,
 	block_type_atom_types,
