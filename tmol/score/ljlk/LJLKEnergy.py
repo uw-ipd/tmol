@@ -58,19 +58,24 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
                 self.type_params.is_acceptor[iattypes]
             )
 
-        max_n_heavy_atoms = packed_block_types.heavy_atom_inds.shape[1]
+        # max_n_heavy_atoms = packed_block_types.heavy_atom_inds.shape[1]
         pbt_lk_type_params = torch.full(
-            (packed_block_types.n_types, max_n_heavy_atoms, 8),
+            (packed_block_types.n_types, packed_block_types.max_n_atoms, 8),
             -1,
             dtype=torch.float32,
             device=self.device,
         )
+
+        # print("self.type_params.lj_radius", self.type_params.lj_radius.shape)
+        # print("self.type_params.lk_dgfree", self.type_params.lk_dgfree.shape)
+        # print("self.type_params.lk_lambda", self.type_params.lk_lambda.shape)
+        # print("self.type_params.lk_volume", self.type_params.lk_volume.shape)
+        # print("self.type_params.is_donor ", self.type_params.is_donor .shape)
+
         for i in range(packed_block_types.n_types):
-            irange = torch.arange(
-                packed_block_types.n_heavy_atoms[i], dtype=torch.int64
-            )
-            iheavyinds = packed_block_types.heavy_atom_inds[i, irange].to(torch.int64)
-            iattypes = packed_block_types.atom_types[i, iheavyinds].to(torch.int64)
+            irange = torch.arange(packed_block_types.n_atoms[i], dtype=torch.int64)
+            iattypes = packed_block_types.atom_types[i, irange].to(torch.int64)
+            # print("iattypes", iattypes.cpu())
             pbt_lk_type_params[i, irange, 0] = _tf(self.type_params.lj_radius[iattypes])
             pbt_lk_type_params[i, irange, 1] = _tf(self.type_params.lk_dgfree[iattypes])
             pbt_lk_type_params[i, irange, 2] = _tf(self.type_params.lk_lambda[iattypes])
@@ -83,6 +88,9 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             pbt_lk_type_params[i, irange, 7] = _tf(
                 self.type_params.is_acceptor[iattypes]
             )
+
+        # state which atoms are heavy atoms for each tile of 16
+        # heavy_atoms_by_tile =
 
         pbt = packed_block_types
         return LJLKInterSystemModule(

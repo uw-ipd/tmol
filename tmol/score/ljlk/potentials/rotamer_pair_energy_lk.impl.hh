@@ -194,9 +194,9 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           block_type_heavyatom_index[neighb_block_type][neighb_atom_heavy_ind];
 
       // TEMP HACK! SKIP BACKBONE ATOMS
-      if (alt_atom_ind <= 3 || neighb_atom_ind <= 3) {
-        return;
-      }
+      // if (alt_atom_ind <= 3 || neighb_atom_ind <= 3) {
+      //   return;
+      // }
 
       // "count pair" logic
       separation =
@@ -220,6 +220,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       atom_1_type = block_type_atom_types[alt_block_type][alt_atom_ind];
       atom_2_type = block_type_atom_types[neighb_block_type][neighb_atom_ind];
     } else {
+      // return; // temp!
+
       // alt_block_ind == neighb_block_ind:
       // intra-block interaction.
       int const alt_n_heavy_atoms = block_type_n_heavy_atoms[alt_block_type];
@@ -239,9 +241,11 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           block_type_heavyatom_index[alt_block_type][atom_1_heavy_ind];
       int const atom_2_ind =
           block_type_heavyatom_index[alt_block_type][atom_2_heavy_ind];
-      if (atom_1_ind <= 3 || atom_2_ind <= 3) {
-        return;
-      }
+
+      // TEMP HACK: SKIP BACKBONE ATOMS
+      // if (atom_1_ind <= 3 || atom_2_ind <= 3) {
+      //   return;
+      // }
 
       dist = distance<Real>::V(
           alternate_coords[alt_ind][atom_1_ind],

@@ -190,7 +190,7 @@ register_lj_lk_rotamer_pair_energy_eval(
 	using Real = scalar_t;
 	constexpr tmol::Device Dev = device_t;
 	
-	/*LJRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+	LJRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -210,9 +210,8 @@ register_lj_lk_rotamer_pair_energy_eval(
 	  TCAST(lj_lk_weights),
 	  TCAST(output),
 	  TCAST(annealer)
-	);*/
+	);
 	
-
 	LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
@@ -235,7 +234,7 @@ register_lj_lk_rotamer_pair_energy_eval(
           TCAST(lj_lk_weights),
 	  TCAST(output),
 	  TCAST(annealer)
-	);
+	  );
 
       }));
   return dummy_return_value;
