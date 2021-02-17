@@ -184,7 +184,7 @@ void SimAnnealer::run_annealer()
   auto start_chrono = high_resolution_clock::now();
   for ( int i = 0; i < n_cycles; ++i ) {
     //std::cout << "." << std::flush;
-    // pick_step_->pick_rotamers();
+    pick_step_->pick_rotamers();
     for (auto const & rpe_calc: score_calculators_) {
       rpe_calc->calc_energies();
     }
