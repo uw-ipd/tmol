@@ -44,6 +44,8 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
+static int already_printed = 0;
+
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
@@ -163,9 +165,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<64, 3>,
-      arch_35_cta<64, 3>,
-      arch_52_cta<64, 3>>
+      arch_20_cta<128, 3>,
+      arch_35_cta<128, 3>,
+      arch_52_cta<128, 3>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -361,37 +363,43 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     __shared__ union {
       struct {
-        Real coords1[32 * 3];  // 786 bytes for coords
-        Real coords2[32 * 3];
-        LJTypeParams<Real> params1[32];  // 1536 bytes for params
-        LJTypeParams<Real> params2[32];
+        Real coords_alt1[32 * 3];  // 786 bytes for coords
+        Real coords_alt2[32 * 3];
+        Real coords_other[32 * 3];
+        LJTypeParams<Real> params_alt1[32];  // 1536 bytes for params
+        LJTypeParams<Real> params_alt2[32];
+        LJTypeParams<Real> params_other[32];
         Int min_separation;  // 12 bytes for three integers
-        Int n_conn1;
-        Int n_conn2;
-        Int conn_ats1[MAX_N_CONN];  // 32 bytes for conn ats
-        Int conn_ats2[MAX_N_CONN];
-        Int path_dist1[MAX_N_CONN * 32];  // 1024 for path dists
-        Int path_dist2[MAX_N_CONN * 32];
+        Int n_conn_alt;
+        Int n_conn_other;
+        Int conn_ats_alt1[MAX_N_CONN];  // 32 bytes for conn ats
+        Int conn_ats_alt2[MAX_N_CONN];
+        Int conn_ats_other[MAX_N_CONN];
+        Int path_dist_alt1[MAX_N_CONN * 32];  // 1024 for path dists
+        Int path_dist_alt2[MAX_N_CONN * 32];
+        Int path_dist_other[MAX_N_CONN * 32];
         Int conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes for conn/conn
       } vals;  // 3454 bytes total = ~18 kernels can run per SM at once
       // 80 SMs on v100; 1440 kernels can run at once, 46K active threads
       typename reduce_t::storage_t reduce;
     } shared;
 
-    Real *coords1 = shared.vals.coords1;
-    Real *coords2 = shared.vals.coords2;
-    LJTypeParams<Real> *params1 = shared.vals.params1;
-    LJTypeParams<Real> *params2 = shared.vals.params2;
+    Real *coords_alt1 = shared.vals.coords_alt1;
+    Real *coords_alt2 = shared.vals.coords_alt2;
+    Real *coords_other = shared.vals.coords_other;
+    LJTypeParams<Real> *params_alt1 = shared.vals.params_alt1;
+    LJTypeParams<Real> *params_alt2 = shared.vals.params_alt2;
+    LJTypeParams<Real> *params_other = shared.vals.params_other;
 
-    Real cta_totalE = 0;
     Int last_alt_ind = -1;
 
     for (int iteration = 0; iteration < vt; ++iteration) {
-      Real totalE = 0;
+      Real totalE1 = 0;
+      Real totalE2 = 0;
 
       int alt_ind = (vt * cta + iteration) / max_n_neighbors;
 
-      if (alt_ind >= n_alternate_blocks) {
+      if (alt_ind >= n_alternate_blocks / 2) {
         return;
       }
       bool const new_alt = alt_ind != last_alt_ind;
@@ -400,15 +408,17 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int neighb_ind = (vt * cta + iteration) % max_n_neighbors;
 
       int const max_important_bond_separation = 4;
-      int const alt_context = alternate_ids[alt_ind][0];
+      int const alt_context = alternate_ids[2 * alt_ind][0];
       if (alt_context == -1) {
         return;
       }
 
-      int const alt_block_ind = alternate_ids[alt_ind][1];
-      int const alt_block_type = alternate_ids[alt_ind][2];
+      int const alt_block_ind = alternate_ids[2 * alt_ind][1];
+      int const alt_block_type1 = alternate_ids[2 * alt_ind][2];
+      int const alt_block_type2 = alternate_ids[2 * alt_ind + 1][2];
       int const system = context_system_ids[alt_context];
-      int const alt_n_atoms = block_type_n_atoms[alt_block_type];
+      int const alt_n_atoms1 = block_type_n_atoms[alt_block_type1];
+      int const alt_n_atoms2 = block_type_n_atoms[alt_block_type2];
 
       int const neighb_block_ind =
           system_neighbor_list[system][alt_block_ind][neighb_ind];
@@ -428,10 +438,11 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                                         [neighb_block_ind];
           // printf("min_sep %2d\n", min_sep);
           shared.vals.min_separation = min_sep;
-          int const n_conn1 = block_type_n_interblock_bonds[alt_block_type];
-          int const n_conn2 = block_type_n_interblock_bonds[neighb_block_type];
-          shared.vals.n_conn1 = n_conn1;
-          shared.vals.n_conn2 = n_conn2;
+          int const n_conn_alt = block_type_n_interblock_bonds[alt_block_type1];
+          int const n_conn_other =
+              block_type_n_interblock_bonds[neighb_block_type];
+          shared.vals.n_conn_alt = n_conn_alt;
+          shared.vals.n_conn_other = n_conn_other;
         }
         __syncthreads();
 
@@ -440,19 +451,21 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         bool const count_pair_striking_dist =
             min_sep <= max_important_bond_separation;
 
-        int const n_conn1 = shared.vals.n_conn1;
-        int const n_conn2 = shared.vals.n_conn2;
-        if (count_pair_striking_dist && tid < n_conn1) {
-          shared.vals.conn_ats1[tid] =
-              block_type_atoms_forming_chemical_bonds[alt_block_type][tid];
+        int const n_conn_alt = shared.vals.n_conn_alt;
+        int const n_conn_other = shared.vals.n_conn_other;
+        if (count_pair_striking_dist && tid < n_conn_alt) {
+          shared.vals.conn_ats_alt1[tid] =
+              block_type_atoms_forming_chemical_bonds[alt_block_type1][tid];
+          shared.vals.conn_ats_alt2[tid] =
+              block_type_atoms_forming_chemical_bonds[alt_block_type2][tid];
         }
-        if (count_pair_striking_dist && tid < n_conn2) {
-          shared.vals.conn_ats2[tid] =
+        if (count_pair_striking_dist && tid < n_conn_other) {
+          shared.vals.conn_ats_other[tid] =
               block_type_atoms_forming_chemical_bonds[neighb_block_type][tid];
         }
-        if (count_pair_striking_dist && tid < n_conn1 * n_conn2) {
-          int conn1 = tid / n_conn2;
-          int conn2 = tid % n_conn2;
+        if (count_pair_striking_dist && tid < n_conn_alt * n_conn_other) {
+          int conn1 = tid / n_conn_other;
+          int conn2 = tid % n_conn_other;
           shared.vals.conn_seps[tid] =
               system_inter_block_bondsep[system][alt_block_ind]
                                         [neighb_block_ind][conn1][conn2];
@@ -471,24 +484,52 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           // Let's load coordinates and Lennard-Jones parameters for
           // 32 atoms into shared memory
 
-          if ((new_alt || alt_n_atoms > 32) && tid < 32) {
+          if ((new_alt || alt_n_atoms1 > 32) && tid < 32) {
             // coalesced read of atom coordinate data
             common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[alt_ind], i * 32 + 4, coords1, tid);
+                alternate_coords[2 * alt_ind], i * 32 + 4, coords_alt1, tid);
 
             // load the Lennard-Jones parameters for these 32 atoms
             if (32 * i + tid + 4 < max_n_atoms) {
               int const atid = 32 * i + tid + 4;
-              int const attype = block_type_atom_types[alt_block_type][atid];
+              int const attype = block_type_atom_types[alt_block_type1][atid];
               if (attype >= 0) {
-                params1[tid] = type_params[attype];
+                params_alt1[tid] = type_params[attype];
               }
               if (count_pair_striking_dist) {
-                for (int j = 0; j < n_conn1; ++j) {
+                for (int j = 0; j < n_conn_alt; ++j) {
                   int ij_path_dist =
-                      block_type_path_distance[alt_block_type]
-                                              [shared.vals.conn_ats1[j]][atid];
-                  shared.vals.path_dist1[j * 32 + tid] = ij_path_dist;
+                      block_type_path_distance[alt_block_type1]
+                                              [shared.vals.conn_ats_alt1[j]]
+                                              [atid];
+                  shared.vals.path_dist_alt1[j * 32 + tid] = ij_path_dist;
+                }
+              }
+            }
+          }
+
+          if ((new_alt || alt_n_atoms2 > 32) && tid < 32) {
+            // coalesced read of atom coordinate data
+            common::coalesced_read_of_32_coords_into_shared(
+                alternate_coords[2 * alt_ind + 1],
+                i * 32 + 4,
+                coords_alt2,
+                tid);
+
+            // load the Lennard-Jones parameters for these 32 atoms
+            if (32 * i + tid + 4 < max_n_atoms) {
+              int const atid = 32 * i + tid + 4;
+              int const attype = block_type_atom_types[alt_block_type2][atid];
+              if (attype >= 0) {
+                params_alt2[tid] = type_params[attype];
+              }
+              if (count_pair_striking_dist) {
+                for (int j = 0; j < n_conn_alt; ++j) {
+                  int ij_path_dist =
+                      block_type_path_distance[alt_block_type2]
+                                              [shared.vals.conn_ats_alt2[j]]
+                                              [atid];
+                  shared.vals.path_dist_alt2[j * 32 + tid] = ij_path_dist;
                 }
               }
             }
@@ -505,7 +546,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               common::coalesced_read_of_32_coords_into_shared(
                   context_coords[alt_context][neighb_block_ind],
                   j * 32 + 4,
-                  coords2,
+                  coords_other,
                   tid);
 
               // load the Lennard-Jones parameters for these 32 atoms
@@ -514,15 +555,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 int const attype =
                     block_type_atom_types[neighb_block_type][atid];
                 if (attype >= 0) {
-                  params2[tid] = type_params[attype];
+                  params_other[tid] = type_params[attype];
                 }
                 if (count_pair_striking_dist) {
-                  for (int k = 0; k < n_conn2; ++k) {
+                  for (int k = 0; k < n_conn_other; ++k) {
                     int jk_path_dist =
                         block_type_path_distance[neighb_block_type]
-                                                [shared.vals.conn_ats2[k]]
+                                                [shared.vals.conn_ats_other[k]]
                                                 [atid];
-                    shared.vals.path_dist2[k * 32 + tid] = jk_path_dist;
+                    shared.vals.path_dist_other[k * 32 + tid] = jk_path_dist;
                   }
                 }
               }
@@ -533,27 +574,50 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             __syncthreads();
 
             // Now we will calculate the 32x32 atom pair energies
-            totalE += score_inter_pairs(
+            totalE1 += score_inter_pairs(
                 tid,
                 i * 32 + 4,
                 j * 32 + 4,
-                coords1,
-                coords2,
-                params1,
-                params2,
+                coords_alt1,
+                coords_other,
+                params_alt1,
+                params_other,
                 max_important_bond_separation,
                 alt_block_ind,
                 neighb_block_ind,
-                alt_block_type,
+                alt_block_type1,
                 neighb_block_type,
                 min_sep,
                 system_inter_block_bondsep[system],
-                alt_n_atoms,
+                alt_n_atoms1,
                 neighb_n_atoms,
-                n_conn1,
-                n_conn2,
-                shared.vals.path_dist1,
-                shared.vals.path_dist2,
+                n_conn_alt,
+                n_conn_other,
+                shared.vals.path_dist_alt1,
+                shared.vals.path_dist_other,
+                shared.vals.conn_seps);
+
+            totalE2 += score_inter_pairs(
+                tid,
+                i * 32 + 4,
+                j * 32 + 4,
+                coords_alt2,
+                coords_other,
+                params_alt2,
+                params_other,
+                max_important_bond_separation,
+                alt_block_ind,
+                neighb_block_ind,
+                alt_block_type2,
+                neighb_block_type,
+                min_sep,
+                system_inter_block_bondsep[system],
+                alt_n_atoms2,
+                neighb_n_atoms,
+                n_conn_alt,
+                n_conn_other,
+                shared.vals.path_dist_alt2,
+                shared.vals.path_dist_other,
                 shared.vals.conn_seps);
           }  // for j
         }    // for i
@@ -567,27 +631,36 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // shared memory
             __syncthreads();
           }
-          if ((new_alt || alt_n_atoms > 32) && tid < 32) {
+          if ((new_alt || alt_n_atoms1 > 32) && tid < 32) {
             // coalesced reads of coordinate data
             common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[alt_ind], i * 32 + 4, coords1, tid);
-            // for (int j = 0; j < 3; ++j) {
-            //   int j_ind = j * 32 + tid;
-            //   int local_atomind = j_ind / 3;
-            //   int atid = local_atomind + i * 32;
-            //   int dim = j_ind % 3;
-            //   if (atid < max_n_atoms) {
-            //     coords1[j_ind] = alternate_coords[alt_ind][atid][dim];
-            //   }
-            // }
+                alternate_coords[2 * alt_ind], i * 32 + 4, coords_alt1, tid);
 
             // load Lennard-Jones parameters for the 32 atoms into shared
             // memory
             if (i * 32 + 4 + tid < max_n_atoms) {
               int const atind = i * 32 + tid + 4;
-              int const attype = block_type_atom_types[alt_block_type][atind];
+              int const attype = block_type_atom_types[alt_block_type1][atind];
               if (attype >= 0) {
-                params1[tid] = type_params[attype];
+                params_alt1[tid] = type_params[attype];
+              }
+            }
+          }
+          if ((new_alt || alt_n_atoms2 > 32) && tid < 32) {
+            // coalesced reads of coordinate data
+            common::coalesced_read_of_32_coords_into_shared(
+                alternate_coords[2 * alt_ind + 1],
+                i * 32 + 4,
+                coords_alt2,
+                tid);
+
+            // load Lennard-Jones parameters for the 32 atoms into shared
+            // memory
+            if (i * 32 + 4 + tid < max_n_atoms) {
+              int const atind = i * 32 + tid + 4;
+              int const attype = block_type_atom_types[alt_block_type2][atind];
+              if (attype >= 0) {
+                params_alt2[tid] = type_params[attype];
               }
             }
           }
@@ -602,53 +675,81 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             if (j != i && tid < 32) {
               // coalesced read of coordinate data
               common::coalesced_read_of_32_coords_into_shared(
-                  alternate_coords[alt_ind], j * 32 + 4, coords2, tid);
-              // for (int k = 0; k < 3; ++k) {
-              //   int k_ind = k * 32 + tid;
-              //   int local_atomind = k_ind / 3;
-              //   int atid = local_atomind + j * 32;
-              //   int dim = k_ind % 3;
-              //   if (atid < max_n_atoms) {
-              //     coords2[k_ind] = alternate_coords[alt_ind][atid][dim];
-              //   }
-              // }
+                  alternate_coords[2 * alt_ind], j * 32 + 4, coords_other, tid);
               if (j * 32 + tid < max_n_atoms) {
                 int const atind = j * 32 + 4 + tid;
-                int const attype = block_type_atom_types[alt_block_type][atind];
+                int const attype =
+                    block_type_atom_types[alt_block_type1][atind];
                 if (attype >= 0) {
-                  params2[tid] = type_params[attype];
+                  params_other[tid] = type_params[attype];
                 }
               }
             }
             __syncthreads();
-            totalE += score_intra_pairs(
+            totalE1 += score_intra_pairs(
                 tid,
                 i * 32 + 4,
                 j * 32 + 4,
-                coords1,
-                (i == j ? coords1 : coords2),
-                params1,
-                (i == j ? params1 : params2),
+                coords_alt1,
+                (i == j ? coords_alt1 : coords_other),
+                params_alt1,
+                (i == j ? params_alt1 : params_other),
                 max_important_bond_separation,
-                alt_block_type,
-                alt_n_atoms);
+                alt_block_type1,
+                alt_n_atoms1);
+          }  // for j
+
+          for (int j = i; j < n_iterations; ++j) {
+            if (j != i) {
+              // make sure calculations from the previous iteration have
+              // completed before we overwrite the contents of shared
+              // memory
+              __syncthreads();
+            }
+
+            if (j != i && tid < 32) {
+              // coalesced read of coordinate data
+              common::coalesced_read_of_32_coords_into_shared(
+                  alternate_coords[2 * alt_ind + 1],
+                  j * 32 + 4,
+                  coords_other,
+                  tid);
+              if (j * 32 + tid < max_n_atoms) {
+                int const atind = j * 32 + 4 + tid;
+                int const attype =
+                    block_type_atom_types[alt_block_type2][atind];
+                if (attype >= 0) {
+                  params_other[tid] = type_params[attype];
+                }
+              }
+            }
+            __syncthreads();
+            totalE2 += score_intra_pairs(
+                tid,
+                i * 32 + 4,
+                j * 32 + 4,
+                coords_alt2,
+                (i == j ? coords_alt2 : coords_other),
+                params_alt2,
+                (i == j ? params_alt2 : params_other),
+                max_important_bond_separation,
+                alt_block_type2,
+                alt_n_atoms2);
           }  // for j
         }    // for i
       }      // else
 
       __syncthreads();
 
-      cta_totalE += reduce_t().reduce(
-          tid, totalE, shared.reduce, nt, mgpu::plus_t<Real>());
+      Real const cta_totalE1 = reduce_t().reduce(
+          tid, totalE1, shared.reduce, nt, mgpu::plus_t<Real>());
+
+      Real const cta_totalE2 = reduce_t().reduce(
+          tid, totalE2, shared.reduce, nt, mgpu::plus_t<Real>());
 
       if (tid == 0) {
-        // int next_alt_ind = (vt * cta + iteration + 1) / max_n_neighbors;
-
-        // if (cta_totalE != 0 && (iteration+1 == vt || next_alt_ind !=
-        // alt_ind)) {
-        atomicAdd(&output[alt_ind], cta_totalE);
-        cta_totalE = 0;
-        //}
+        atomicAdd(&output[2 * alt_ind], cta_totalE1);
+        atomicAdd(&output[2 * alt_ind + 1], cta_totalE2);
       }
     }
   });
@@ -656,7 +757,13 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   mgpu::standard_context_t context(wrapped_stream.stream());
   // mgpu::standard_context_t context;
   int const n_ctas =
-      (n_alternate_blocks * max_n_neighbors - 1) / launch_t::sm_ptx::vt + 1;
+      (n_alternate_blocks * max_n_neighbors / 2 - 1) / launch_t::sm_ptx::vt + 1;
+  if (already_printed == 0) {
+    std::cout << "n_ctas: " << n_ctas << " n_alternate_blocks "
+              << n_alternate_blocks << " max_n_neighbors " << max_n_neighbors
+              << std::endl;
+    already_printed = 1;
+  }
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
 
   at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
