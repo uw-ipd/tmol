@@ -176,7 +176,7 @@ void SimAnnealer::add_score_component(
 
 void SimAnnealer::run_annealer()
 {
-  int n_cycles = 10000;
+  int n_cycles = 100000;
   pick_step_->pick_rotamers(); // TEMP!
   clock_t start_clock = clock();
   time_t start_time = time(NULL);
@@ -184,11 +184,13 @@ void SimAnnealer::run_annealer()
   auto start_chrono = high_resolution_clock::now();
   for ( int i = 0; i < n_cycles; ++i ) {
     //std::cout << "." << std::flush;
-    // pick_step_->pick_rotamers();
+    if ( i % 100 == 0) {
+       pick_step_->pick_rotamers();
+    }
     for (auto const & rpe_calc: score_calculators_) {
       rpe_calc->calc_energies();
     }
-    acc_rej_step_->accept_reject();
+    //acc_rej_step_->accept_reject();
   }
   acc_rej_step_->final_op();
   clock_t stop_clock = clock();
