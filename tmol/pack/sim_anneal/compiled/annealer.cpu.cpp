@@ -176,7 +176,7 @@ void SimAnnealer::add_score_component(
 
 void SimAnnealer::run_annealer()
 {
-  int n_cycles = 100000;
+  int n_cycles = 10000;
   pick_step_->pick_rotamers(); // TEMP!
   clock_t start_clock = clock();
   time_t start_time = time(NULL);

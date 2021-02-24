@@ -38,6 +38,7 @@
 
 // The maximum number of inter-residue chemical bonds
 #define MAX_N_CONN 4
+#define TILE_SIZE 32
 
 namespace tmol {
 namespace score {
@@ -150,8 +151,6 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   // clock_t start_time = clock();
 
   // Allocate and zero the output tensors in a separate stream
-  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
-  setCurrentCUDAStream(wrapped_stream);
 
   // auto output_t = TPack<Real, 1, D>::zeros({n_alternate_blocks});
   // auto output = output_t.view;
@@ -165,9 +164,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<128, 3>,
-      arch_35_cta<128, 3>,
-      arch_52_cta<128, 3>>
+      arch_20_cta<64, 5>,
+      arch_35_cta<64, 5>,
+      arch_52_cta<64, 5>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -199,8 +198,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Real coord1[3];
     Real coord2[3];
 
-    int const alt_remain = min(32, alt_n_atoms - alt_start_atom);
-    int const neighb_remain = min(32, neighb_n_atoms - neighb_start_atom);
+    int const alt_remain = min(TILE_SIZE, alt_n_atoms - alt_start_atom);
+    int const neighb_remain =
+        min(TILE_SIZE, neighb_n_atoms - neighb_start_atom);
 
     int const n_pairs = alt_remain * neighb_remain;
 
@@ -216,24 +216,6 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         coord1[j] = alt_coords[3 * alt_atom_tile_ind + j];
         coord2[j] = neighb_coords[3 * neighb_atom_tile_ind + j];
       }
-      // int const atom_1_type = alt_atom_type[alt_atom_tile_ind];
-      // int const atom_2_type = neighb_atom_type[neighb_atom_tile_ind];
-
-      // int const separation =
-      //    min_separation > max_important_bond_separation
-      //        ? min_separation
-      //        : common::count_pair::CountPair<D, Int>::inter_block_separation(
-      //              max_important_bond_separation,
-      //              alt_block_ind,
-      //              neighb_block_ind,
-      //              alt_block_type,
-      //              neighb_block_type,
-      //              alt_atom_ind,
-      //              neighb_atom_ind,
-      //              inter_block_bondsep,
-      //              block_type_n_interblock_bonds,
-      //              block_type_atoms_forming_chemical_bonds,
-      //              block_type_path_distance);
 
       // int const separation = 5;
       Real dist2 =
@@ -250,7 +232,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int separation = min_separation;
       if (separation <= max_important_bond_separation) {
         separation =
-            common::count_pair::CountPair<D, Int>::inter_block_separation<32>(
+            common::count_pair::CountPair<D, Int>::inter_block_separation<
+                TILE_SIZE>(
                 max_important_bond_separation,
                 alt_atom_tile_ind,
                 neighb_atom_tile_ind,
@@ -307,8 +290,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Real coord1[3];
     Real coord2[3];
 
-    int const remain1 = min(32, n_atoms - start_atom1);
-    int const remain2 = min(32, n_atoms - start_atom2);
+    int const remain1 = min(TILE_SIZE, n_atoms - start_atom1);
+    int const remain2 = min(TILE_SIZE, n_atoms - start_atom2);
 
     int const n_pairs = remain1 * remain2;
 
@@ -361,37 +344,66 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     };
     typedef mgpu::cta_reduce_t<nt, Real> reduce_t;
 
-    __shared__ union {
-      struct {
-        Real coords_alt1[32 * 3];  // 786 bytes for coords
-        Real coords_alt2[32 * 3];
-        Real coords_other[32 * 3];
-        LJTypeParams<Real> params_alt1[32];  // 1536 bytes for params
-        LJTypeParams<Real> params_alt2[32];
-        LJTypeParams<Real> params_other[32];
-        Int min_separation;  // 12 bytes for three integers
-        Int n_conn_alt;
-        Int n_conn_other;
-        Int conn_ats_alt1[MAX_N_CONN];  // 32 bytes for conn ats
-        Int conn_ats_alt2[MAX_N_CONN];
-        Int conn_ats_other[MAX_N_CONN];
-        Int path_dist_alt1[MAX_N_CONN * 32];  // 1024 for path dists
-        Int path_dist_alt2[MAX_N_CONN * 32];
-        Int path_dist_other[MAX_N_CONN * 32];
-        Int conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes for conn/conn
-      } vals;  // 3454 bytes total = ~18 kernels can run per SM at once
-      // 80 SMs on v100; 1440 kernels can run at once, 46K active threads
+    struct struct_part1 {
+      Real coords_alt1[TILE_SIZE * 3];  // 786 bytes for coords
+      Real coords_alt2[TILE_SIZE * 3];
+      LJTypeParams<Real> params_alt1[TILE_SIZE];  // 1536 bytes for params
+      LJTypeParams<Real> params_alt2[TILE_SIZE];
+      Int min_separation;  // 8 bytes for two integers
+      Int n_conn_alt;
+      Int conn_ats_alt1[MAX_N_CONN];  // 32 bytes for conn ats
+      Int conn_ats_alt2[MAX_N_CONN];
+      Int path_dist_alt1[MAX_N_CONN * TILE_SIZE];  // 1024 for path dists
+      Int path_dist_alt2[MAX_N_CONN * TILE_SIZE];
+    };
+
+    __shared__ struct shared_mem_struct {
+      Real coords_alt1[TILE_SIZE * 3];  // 786 bytes for coords
+      Real coords_alt2[TILE_SIZE * 3];
+      LJTypeParams<Real> params_alt1[TILE_SIZE];  // 1536 bytes for params
+      LJTypeParams<Real> params_alt2[TILE_SIZE];
+      Int min_separation;  // 8 bytes for two integers
+      Int n_conn_alt;
+      Int conn_ats_alt1[MAX_N_CONN];  // TILE_SIZE bytes for conn ats
+      Int conn_ats_alt2[MAX_N_CONN];
+      Int path_dist_alt1[MAX_N_CONN * TILE_SIZE];  // 1024 for path dists
+      Int path_dist_alt2[MAX_N_CONN * TILE_SIZE];
+
+      union union_pt2_red {
+        struct struct_part2 {
+          Real coords_other[TILE_SIZE * 3];             // 384 bytes for coords
+          Int n_conn_other;                             // 4 bytes for an int
+          LJTypeParams<Real> params_other[TILE_SIZE];   // 768 bytes for params
+          Int conn_ats_other[MAX_N_CONN];               // 16 bytes
+          Int path_dist_other[MAX_N_CONN * TILE_SIZE];  // 512 bypes
+          Int conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes for conn/conn
+        } vals;
+
+      } union_vals;
       typename reduce_t::storage_t reduce;
     } shared;
 
-    Real *coords_alt1 = shared.vals.coords_alt1;
-    Real *coords_alt2 = shared.vals.coords_alt2;
-    Real *coords_other = shared.vals.coords_other;
-    LJTypeParams<Real> *params_alt1 = shared.vals.params_alt1;
-    LJTypeParams<Real> *params_alt2 = shared.vals.params_alt2;
-    LJTypeParams<Real> *params_other = shared.vals.params_other;
+    if (false) {
+      // if (cta == 0 and tid == 0) {
+      printf(
+          "sizeof shared_mem_struct %lu, reduce size %lu, pt1 %lu, pt2 %lu, "
+          "union %lu\n",
+          sizeof(shared_mem_struct),
+          sizeof(reduce_t::storage_t),
+          sizeof(struct_part1),
+          sizeof(shared_mem_struct::union_pt2_red::struct_part2),
+          sizeof(shared_mem_struct::union_pt2_red));
+    }
+
+    Real *coords_alt1 = shared.coords_alt1;
+    Real *coords_alt2 = shared.coords_alt2;
+    Real *coords_other = shared.union_vals.vals.coords_other;
+    LJTypeParams<Real> *params_alt1 = shared.params_alt1;
+    LJTypeParams<Real> *params_alt2 = shared.params_alt2;
+    LJTypeParams<Real> *params_other = shared.union_vals.vals.params_other;
 
     Int last_alt_ind = -1;
+    bool count_pair_data_loaded = false;
 
     for (int iteration = 0; iteration < vt; ++iteration) {
       Real totalE1 = 0;
@@ -400,22 +412,29 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int alt_ind = (vt * cta + iteration) / max_n_neighbors;
 
       if (alt_ind >= n_alternate_blocks / 2) {
-        return;
+        break;
       }
       bool const new_alt = alt_ind != last_alt_ind;
-      last_alt_ind = alt_ind;
+      // last_alt_ind = alt_ind;
+      if (new_alt) {
+        count_pair_data_loaded = false;
+      }
 
       int neighb_ind = (vt * cta + iteration) % max_n_neighbors;
 
       int const max_important_bond_separation = 4;
       int const alt_context = alternate_ids[2 * alt_ind][0];
       if (alt_context == -1) {
-        return;
+        continue;
       }
 
       int const alt_block_ind = alternate_ids[2 * alt_ind][1];
       int const alt_block_type1 = alternate_ids[2 * alt_ind][2];
       int const alt_block_type2 = alternate_ids[2 * alt_ind + 1][2];
+      // if (tid == 0) {
+      // 	printf("alt block type: %d ind, %d type1, %d ind type2\n",
+      // alt_ind, alt_block_type1, alt_block_type2);
+      // }
       int const system = context_system_ids[alt_context];
       int const alt_n_atoms1 = block_type_n_atoms[alt_block_type1];
       int const alt_n_atoms2 = block_type_n_atoms[alt_block_type2];
@@ -423,10 +442,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const neighb_block_ind =
           system_neighbor_list[system][alt_block_ind][neighb_ind];
       if (neighb_block_ind == -1) {
-        return;
+        continue;
       }
-
-      int const n_iterations = (max_n_atoms - 4 - 1) / 32 + 1;
 
       if (alt_block_ind != neighb_block_ind) {
         int const neighb_block_type =
@@ -437,43 +454,48 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           int const min_sep = system_min_bond_separation[system][alt_block_ind]
                                                         [neighb_block_ind];
           // printf("min_sep %2d\n", min_sep);
-          shared.vals.min_separation = min_sep;
+          shared.min_separation = min_sep;
           int const n_conn_alt = block_type_n_interblock_bonds[alt_block_type1];
           int const n_conn_other =
               block_type_n_interblock_bonds[neighb_block_type];
-          shared.vals.n_conn_alt = n_conn_alt;
-          shared.vals.n_conn_other = n_conn_other;
+          shared.n_conn_alt = n_conn_alt;
+          shared.union_vals.vals.n_conn_other = n_conn_other;
         }
         __syncthreads();
 
-        int const min_sep = shared.vals.min_separation;
+        int const min_sep = shared.min_separation;
 
         bool const count_pair_striking_dist =
             min_sep <= max_important_bond_separation;
 
-        int const n_conn_alt = shared.vals.n_conn_alt;
-        int const n_conn_other = shared.vals.n_conn_other;
+        int const n_conn_alt = shared.n_conn_alt;
+        int const n_conn_other = shared.union_vals.vals.n_conn_other;
         if (count_pair_striking_dist && tid < n_conn_alt) {
-          shared.vals.conn_ats_alt1[tid] =
+          shared.conn_ats_alt1[tid] =
               block_type_atoms_forming_chemical_bonds[alt_block_type1][tid];
-          shared.vals.conn_ats_alt2[tid] =
+          shared.conn_ats_alt2[tid] =
               block_type_atoms_forming_chemical_bonds[alt_block_type2][tid];
         }
         if (count_pair_striking_dist && tid < n_conn_other) {
-          shared.vals.conn_ats_other[tid] =
+          shared.union_vals.vals.conn_ats_other[tid] =
               block_type_atoms_forming_chemical_bonds[neighb_block_type][tid];
         }
         if (count_pair_striking_dist && tid < n_conn_alt * n_conn_other) {
           int conn1 = tid / n_conn_other;
           int conn2 = tid % n_conn_other;
-          shared.vals.conn_seps[tid] =
+          shared.union_vals.vals.conn_seps[tid] =
               system_inter_block_bondsep[system][alt_block_ind]
                                         [neighb_block_ind][conn1][conn2];
         }
         __syncthreads();
 
-        // Tile the sets of 32 atoms
-        for (int i = 0; i < n_iterations; ++i) {
+        // Tile the sets of TILE_SIZE atoms
+        int const alt_n_iterations =
+            (max(alt_n_atoms1, alt_n_atoms2) - 4 - 1) / TILE_SIZE + 1;
+        int const neighb_n_iterations =
+            (neighb_n_atoms - 4 - 1) / TILE_SIZE + 1;
+
+        for (int i = 0; i < alt_n_iterations; ++i) {
           if (i != 0) {
             // make sure all threads have completed their work
             // from the previous iteration before we overwrite
@@ -482,76 +504,120 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           }
 
           // Let's load coordinates and Lennard-Jones parameters for
-          // 32 atoms into shared memory
+          // TILE_SIZE atoms into shared memory
+          int const i_n_atoms_to_load1 =
+              min(Int(TILE_SIZE), Int((alt_n_atoms1 - TILE_SIZE * i - 4)));
 
-          if ((new_alt || alt_n_atoms1 > 32) && tid < 32) {
+          int const i_n_atoms_to_load2 =
+              min(Int(TILE_SIZE), Int((alt_n_atoms2 - TILE_SIZE * i - 4)));
+
+          if (new_alt || alt_n_atoms1 > TILE_SIZE) {
+            mgpu::mem_to_shared<TILE_SIZE, 3>(
+                reinterpret_cast<Real *>(&alternate_coords[2 * alt_ind][4]),
+                tid,
+                i_n_atoms_to_load1 * 3,
+                coords_alt1,
+                false);
+          }
+
+          if (new_alt || alt_n_atoms2 > TILE_SIZE) {
+            mgpu::mem_to_shared<TILE_SIZE, 3>(
+                reinterpret_cast<Real *>(&alternate_coords[2 * alt_ind + 1][4]),
+                tid,
+                i_n_atoms_to_load2 * 3,
+                coords_alt2,
+                false);
+          }
+
+          // continue; //  GOOD!
+
+          if ((new_alt || alt_n_atoms1 > TILE_SIZE) && tid < TILE_SIZE) {
             // coalesced read of atom coordinate data
-            common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[2 * alt_ind], i * 32 + 4, coords_alt1, tid);
+            // common::coalesced_read_of_TILE_SIZE_coords_into_shared(
+            //     alternate_coords[2 * alt_ind], i * TILE_SIZE + 4,
+            //     coords_alt1, tid);
 
-            // load the Lennard-Jones parameters for these 32 atoms
-            if (32 * i + tid + 4 < max_n_atoms) {
-              int const atid = 32 * i + tid + 4;
+            // load the Lennard-Jones parameters for these TILE_SIZE atoms
+            if (tid < i_n_atoms_to_load1) {
+              int const atid = TILE_SIZE * i + tid + 4;
               int const attype = block_type_atom_types[alt_block_type1][atid];
               if (attype >= 0) {
                 params_alt1[tid] = type_params[attype];
               }
-              if (count_pair_striking_dist) {
-                for (int j = 0; j < n_conn_alt; ++j) {
-                  int ij_path_dist =
-                      block_type_path_distance[alt_block_type1]
-                                              [shared.vals.conn_ats_alt1[j]]
-                                              [atid];
-                  shared.vals.path_dist_alt1[j * 32 + tid] = ij_path_dist;
-                }
+            }
+          }
+
+          if ((new_alt || alt_n_atoms1 > TILE_SIZE || !count_pair_data_loaded)
+              && tid < i_n_atoms_to_load1) {
+            int const atid = TILE_SIZE * i + tid + 4;
+            if (count_pair_striking_dist && !count_pair_data_loaded) {
+              for (int j = 0; j < n_conn_alt; ++j) {
+                int ij_path_dist =
+                    block_type_path_distance[alt_block_type1]
+                                            [shared.conn_ats_alt1[j]][atid];
+                shared.path_dist_alt1[j * TILE_SIZE + tid] = ij_path_dist;
               }
             }
           }
 
-          if ((new_alt || alt_n_atoms2 > 32) && tid < 32) {
-            // coalesced read of atom coordinate data
-            common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[2 * alt_ind + 1],
-                i * 32 + 4,
-                coords_alt2,
-                tid);
+          // continue; // GOOD
 
-            // load the Lennard-Jones parameters for these 32 atoms
-            if (32 * i + tid + 4 < max_n_atoms) {
-              int const atid = 32 * i + tid + 4;
-              int const attype = block_type_atom_types[alt_block_type2][atid];
-              if (attype >= 0) {
-                params_alt2[tid] = type_params[attype];
-              }
-              if (count_pair_striking_dist) {
-                for (int j = 0; j < n_conn_alt; ++j) {
-                  int ij_path_dist =
-                      block_type_path_distance[alt_block_type2]
-                                              [shared.vals.conn_ats_alt2[j]]
-                                              [atid];
-                  shared.vals.path_dist_alt2[j * 32 + tid] = ij_path_dist;
-                }
-              }
+          if ((new_alt || alt_n_atoms2 > TILE_SIZE)
+              && tid < i_n_atoms_to_load2) {
+            // load the Lennard-Jones parameters for these TILE_SIZE atoms
+            int const atid = TILE_SIZE * i + tid + 4;
+            int const attype = block_type_atom_types[alt_block_type2][atid];
+            if (attype >= 0) {
+              params_alt2[tid] = type_params[attype];
             }
           }
 
-          for (int j = 0; j < n_iterations; ++j) {
+          // continue; // BAD??!!
+
+          if ((new_alt || alt_n_atoms2 > TILE_SIZE || !count_pair_data_loaded)
+              && tid < i_n_atoms_to_load2) {
+            int const atid = TILE_SIZE * i + tid + 4;
+            if (count_pair_striking_dist && !count_pair_data_loaded) {
+              for (int j = 0; j < n_conn_alt; ++j) {
+                int ij_path_dist =
+                    block_type_path_distance[alt_block_type2]
+                                            [shared.conn_ats_alt2[j]][atid];
+                shared.path_dist_alt2[j * TILE_SIZE + tid] = ij_path_dist;
+              }
+            }
+          }
+          if (count_pair_striking_dist) {
+            count_pair_data_loaded = true;
+          }
+          // continue; // BAD
+
+          for (int j = 0; j < neighb_n_iterations; ++j) {
             if (j != 0) {
               // make sure that all threads have finished energy
               // calculations from the previous iteration
               __syncthreads();
             }
-            if (tid < 32) {
-              // Coalesced read of atom coordinate data
-              common::coalesced_read_of_32_coords_into_shared(
-                  context_coords[alt_context][neighb_block_ind],
-                  j * 32 + 4,
-                  coords_other,
-                  tid);
+            int j_n_atoms_to_load =
+                min(Int(TILE_SIZE), Int((neighb_n_atoms - TILE_SIZE * j - 4)));
+            mgpu::mem_to_shared<TILE_SIZE, 3>(
+                reinterpret_cast<Real *>(
+                    &context_coords[alt_context][neighb_block_ind][4]),
+                tid,
+                j_n_atoms_to_load * 3,
+                coords_other,
+                false);
 
-              // load the Lennard-Jones parameters for these 32 atoms
-              if (32 * j + 4 + tid < max_n_atoms) {
-                int const atid = 32 * j + 4 + tid;
+            if (tid < TILE_SIZE) {
+              // Coalesced read of atom coordinate data
+              // common::coalesced_read_of_TILE_SIZE_coords_into_shared(
+              //     context_coords[alt_context][neighb_block_ind],
+              //     j * TILE_SIZE + 4,
+              //     coords_other,
+              //     tid);
+
+              // load the Lennard-Jones parameters for these TILE_SIZE atoms
+              if (tid < j_n_atoms_to_load) {
+                int const atid = TILE_SIZE * j + 4 + tid;
                 int const attype =
                     block_type_atom_types[neighb_block_type][atid];
                 if (attype >= 0) {
@@ -561,9 +627,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                   for (int k = 0; k < n_conn_other; ++k) {
                     int jk_path_dist =
                         block_type_path_distance[neighb_block_type]
-                                                [shared.vals.conn_ats_other[k]]
-                                                [atid];
-                    shared.vals.path_dist_other[k * 32 + tid] = jk_path_dist;
+                                                [shared.union_vals.vals
+                                                     .conn_ats_other[k]][atid];
+                    shared.union_vals.vals
+                        .path_dist_other[k * TILE_SIZE + tid] = jk_path_dist;
                   }
                 }
               }
@@ -573,11 +640,11 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // into energy calculations
             __syncthreads();
 
-            // Now we will calculate the 32x32 atom pair energies
-            totalE1 += score_inter_pairs(
+            // Now we will calculate the TILE_SIZExTILE_SIZE atom pair energies
+            totalE1 = score_inter_pairs(
                 tid,
-                i * 32 + 4,
-                j * 32 + 4,
+                i * TILE_SIZE + 4,
+                j * TILE_SIZE + 4,
                 coords_alt1,
                 coords_other,
                 params_alt1,
@@ -593,14 +660,14 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 neighb_n_atoms,
                 n_conn_alt,
                 n_conn_other,
-                shared.vals.path_dist_alt1,
-                shared.vals.path_dist_other,
-                shared.vals.conn_seps);
+                shared.path_dist_alt1,
+                shared.union_vals.vals.path_dist_other,
+                shared.union_vals.vals.conn_seps);
 
-            totalE2 += score_inter_pairs(
+            totalE2 = score_inter_pairs(
                 tid,
-                i * 32 + 4,
-                j * 32 + 4,
+                i * TILE_SIZE + 4,
+                j * TILE_SIZE + 4,
                 coords_alt2,
                 coords_other,
                 params_alt2,
@@ -616,13 +683,16 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 neighb_n_atoms,
                 n_conn_alt,
                 n_conn_other,
-                shared.vals.path_dist_alt2,
-                shared.vals.path_dist_other,
-                shared.vals.conn_seps);
+                shared.path_dist_alt2,
+                shared.union_vals.vals.path_dist_other,
+                shared.union_vals.vals.conn_seps);
           }  // for j
         }    // for i
       } else {
         // int const alt_n_atoms = block_type_n_atoms[alt_block_type];
+
+        int const n_iterations =
+            (max(alt_n_atoms1, alt_n_atoms2) - 4 - 1) / TILE_SIZE + 1;
 
         for (int i = 0; i < n_iterations; ++i) {
           if (i != 0) {
@@ -631,39 +701,56 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // shared memory
             __syncthreads();
           }
-          if ((new_alt || alt_n_atoms1 > 32) && tid < 32) {
-            // coalesced reads of coordinate data
-            common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[2 * alt_ind], i * 32 + 4, coords_alt1, tid);
+          int const i_n_atoms_to_load1 =
+              min(Int(TILE_SIZE), Int((alt_n_atoms1 - TILE_SIZE * i - 4)));
 
-            // load Lennard-Jones parameters for the 32 atoms into shared
+          int const i_n_atoms_to_load2 =
+              min(Int(TILE_SIZE), Int((alt_n_atoms2 - TILE_SIZE * i - 4)));
+
+          if ((new_alt || alt_n_atoms1 > TILE_SIZE) && tid < TILE_SIZE) {
+            mgpu::mem_to_shared<TILE_SIZE, 3>(
+                reinterpret_cast<Real *>(&alternate_coords[2 * alt_ind][4]),
+                tid,
+                i_n_atoms_to_load1 * 3,
+                coords_alt1,
+                false);
+
+            // load Lennard-Jones parameters for the TILE_SIZE atoms into shared
             // memory
-            if (i * 32 + 4 + tid < max_n_atoms) {
-              int const atind = i * 32 + tid + 4;
+            if (i * TILE_SIZE + 4 + tid < max_n_atoms) {
+              int const atind = i * TILE_SIZE + tid + 4;
               int const attype = block_type_atom_types[alt_block_type1][atind];
               if (attype >= 0) {
                 params_alt1[tid] = type_params[attype];
               }
             }
           }
-          if ((new_alt || alt_n_atoms2 > 32) && tid < 32) {
-            // coalesced reads of coordinate data
-            common::coalesced_read_of_32_coords_into_shared(
-                alternate_coords[2 * alt_ind + 1],
-                i * 32 + 4,
+          if ((new_alt || alt_n_atoms2 > TILE_SIZE) && tid < TILE_SIZE) {
+            mgpu::mem_to_shared<TILE_SIZE, 3>(
+                reinterpret_cast<Real *>(&alternate_coords[2 * alt_ind + 1][4]),
+                tid,
+                i_n_atoms_to_load2 * 3,
                 coords_alt2,
-                tid);
+                false);
+            // coalesced reads of coordinate data
+            // common::coalesced_read_of_TILE_SIZE_coords_into_shared(
+            //     alternate_coords[2 * alt_ind + 1],
+            //     i * TILE_SIZE + 4,
+            //     coords_alt2,
+            //     tid);
 
-            // load Lennard-Jones parameters for the 32 atoms into shared
+            // load Lennard-Jones parameters for the TILE_SIZE atoms into shared
             // memory
-            if (i * 32 + 4 + tid < max_n_atoms) {
-              int const atind = i * 32 + tid + 4;
+            if (i * TILE_SIZE + 4 + tid < max_n_atoms) {
+              int const atind = i * TILE_SIZE + tid + 4;
               int const attype = block_type_atom_types[alt_block_type2][atind];
               if (attype >= 0) {
                 params_alt2[tid] = type_params[attype];
               }
             }
           }
+
+          // process residue 1
           for (int j = i; j < n_iterations; ++j) {
             if (j != i) {
               // make sure calculations from the previous iteration have
@@ -672,12 +759,19 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               __syncthreads();
             }
 
-            if (j != i && tid < 32) {
+            if (j != i && tid < TILE_SIZE) {
+              mgpu::mem_to_shared<TILE_SIZE, 3>(
+                  reinterpret_cast<Real *>(&alternate_coords[2 * alt_ind][4]),
+                  tid,
+                  i_n_atoms_to_load1 * 3,
+                  coords_other,
+                  false);
               // coalesced read of coordinate data
-              common::coalesced_read_of_32_coords_into_shared(
-                  alternate_coords[2 * alt_ind], j * 32 + 4, coords_other, tid);
-              if (j * 32 + tid < max_n_atoms) {
-                int const atind = j * 32 + 4 + tid;
+              // common::coalesced_read_of_TILE_SIZE_coords_into_shared(
+              //     alternate_coords[2 * alt_ind], j * TILE_SIZE + 4,
+              //     coords_other, tid);
+              if (j * TILE_SIZE + tid < max_n_atoms) {
+                int const atind = j * TILE_SIZE + 4 + tid;
                 int const attype =
                     block_type_atom_types[alt_block_type1][atind];
                 if (attype >= 0) {
@@ -686,10 +780,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               }
             }
             __syncthreads();
-            totalE1 += score_intra_pairs(
+            totalE1 = score_intra_pairs(
                 tid,
-                i * 32 + 4,
-                j * 32 + 4,
+                i * TILE_SIZE + 4,
+                j * TILE_SIZE + 4,
                 coords_alt1,
                 (i == j ? coords_alt1 : coords_other),
                 params_alt1,
@@ -699,6 +793,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 alt_n_atoms1);
           }  // for j
 
+          // Process residue 2
           for (int j = i; j < n_iterations; ++j) {
             if (j != i) {
               // make sure calculations from the previous iteration have
@@ -707,15 +802,16 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               __syncthreads();
             }
 
-            if (j != i && tid < 32) {
-              // coalesced read of coordinate data
-              common::coalesced_read_of_32_coords_into_shared(
-                  alternate_coords[2 * alt_ind + 1],
-                  j * 32 + 4,
+            if (j != i && tid < TILE_SIZE) {
+              mgpu::mem_to_shared<TILE_SIZE, 3>(
+                  reinterpret_cast<Real *>(
+                      &alternate_coords[2 * alt_ind + 1][4]),
+                  tid,
+                  i_n_atoms_to_load2 * 3,
                   coords_other,
-                  tid);
-              if (j * 32 + tid < max_n_atoms) {
-                int const atind = j * 32 + 4 + tid;
+                  false);
+              if (j * TILE_SIZE + tid < max_n_atoms) {
+                int const atind = j * TILE_SIZE + 4 + tid;
                 int const attype =
                     block_type_atom_types[alt_block_type2][atind];
                 if (attype >= 0) {
@@ -724,10 +820,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               }
             }
             __syncthreads();
-            totalE2 += score_intra_pairs(
+            totalE2 = score_intra_pairs(
                 tid,
-                i * 32 + 4,
-                j * 32 + 4,
+                i * TILE_SIZE + 4,
+                j * TILE_SIZE + 4,
                 coords_alt2,
                 (i == j ? coords_alt2 : coords_other),
                 params_alt2,
@@ -748,14 +844,20 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           tid, totalE2, shared.reduce, nt, mgpu::plus_t<Real>());
 
       if (tid == 0) {
+        // printf("%d %d %f; %d %d %f\n", 2 * alt_ind, neighb_ind, cta_totalE1,
+        // 2 * alt_ind + 1, neighb_ind, cta_totalE2);
         atomicAdd(&output[2 * alt_ind], cta_totalE1);
         atomicAdd(&output[2 * alt_ind + 1], cta_totalE2);
       }
     }
   });
 
+  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  setCurrentCUDAStream(wrapped_stream);
   mgpu::standard_context_t context(wrapped_stream.stream());
+
   // mgpu::standard_context_t context;
+
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors / 2 - 1) / launch_t::sm_ptx::vt + 1;
   if (already_printed == 0) {

@@ -163,23 +163,23 @@ def test_inter_module(ubq_res, default_database, torch_device):
     )
 
     alternate_coords = torch.zeros(
-        (30, max_n_atoms, 3), dtype=torch.float32, device=torch_device
+        (20, max_n_atoms, 3), dtype=torch.float32, device=torch_device
     )
-    alternate_coords[:15, :, :] = torch.tensor(
+    alternate_coords[:10, :, :] = torch.tensor(
         poses.coords[0:1, 1:2, :], device=torch_device
     )
-    alternate_coords[15:, :, :] = torch.tensor(
+    alternate_coords[10:, :, :] = torch.tensor(
         poses.coords[1:2, 3:4, :], device=torch_device
     )
 
-    alternate_ids = torch.zeros((30, 3), dtype=torch.int32, device=torch_device)
-    alternate_ids[:, 0] = torch.div(torch.arange(30, dtype=torch.int32), 3)
-    alternate_ids[:15, 1] = 1
-    alternate_ids[15:, 1] = 3
-    alternate_ids[:15, 2] = torch.tensor(
+    alternate_ids = torch.zeros((20, 3), dtype=torch.int32, device=torch_device)
+    alternate_ids[:, 0] = torch.div(torch.arange(20, dtype=torch.int32), 2)
+    alternate_ids[:10, 1] = 1
+    alternate_ids[10:, 1] = 3
+    alternate_ids[:10, 2] = torch.tensor(
         poses.block_type_ind[0, 1], device=torch_device
     )
-    alternate_ids[15:, 2] = torch.tensor(
+    alternate_ids[10:, 2] = torch.tensor(
         poses.block_type_ind[1, 3], device=torch_device
     )
 
@@ -187,11 +187,22 @@ def test_inter_module(ubq_res, default_database, torch_device):
     # alternate_coords = alternate_coords[15:16]
     # alternate_ids = alternate_ids[15:16]
 
-    rpes = inter_module.go(
-        context_coords, context_block_type, alternate_coords, alternate_ids
-    )
-    assert rpes is not None
-    print(rpes)
+    def run_once():
+        rpes = inter_module.go(
+            context_coords, context_block_type, alternate_coords, alternate_ids
+        )
+        assert rpes is not None
+        print()
+        print(rpes)
+
+    run_once()
+    run_once()
+
+    # rpes2 = inter_module.go(
+    #     context_coords, context_block_type, alternate_coords, alternate_ids
+    # )
+    # assert rpes2 is not None
+    # print(rpes2)
 
 
 @pytest.mark.benchmark(group="time_rpe")
