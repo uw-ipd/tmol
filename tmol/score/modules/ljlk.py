@@ -16,6 +16,8 @@ from tmol.score.modules.chemical_database import ChemicalDB
 from tmol.score.modules.stacked_system import StackedSystem
 from tmol.score.modules.bonded_atom import BondedAtoms
 
+from tmol.types.torch import Tensor
+
 
 @attr.s(slots=True, auto_attribs=True, kw_only=True, frozen=True)
 class LJLKParameters(ScoreModule):
@@ -51,7 +53,7 @@ class LJLKParameters(ScoreModule):
         )
 
     @ljlk_atom_types.default
-    def _init_ljlk_atom_types(self) -> torch.Tensor:
+    def _init_ljlk_atom_types(self) -> Tensor[torch.long][...]:
         return self.ljlk_param_resolver.type_idx(BondedAtoms.get(self).atom_types)
 
 
