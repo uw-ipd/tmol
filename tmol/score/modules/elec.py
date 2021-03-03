@@ -43,7 +43,7 @@ class ElecParameters(ScoreModule):
     elec_database: ElecDatabase = attr.ib(validator=type_validator())
     elec_param_resolver: ElecParamResolver = attr.ib(init=False)
     partial_charges: torch.Tensor = attr.ib(init=False)
-    bonded_path_lengths: torch.Tensor = attr.ib(init=False)
+    elec_bonded_pair_lengths: torch.Tensor = attr.ib(init=False)
 
     @elec_param_resolver.default
     def _init_elec_param_resolver(self) -> ElecParamResolver:
@@ -59,8 +59,8 @@ class ElecParameters(ScoreModule):
             )
         ).to(TorchDevice.get(self).device)
 
-    @bonded_path_lengths.default
-    def _init_bonded_path_lengths(self) -> Tensor[torch.float32][:, :, :]:
+    @elec_bonded_pair_lengths.default
+    def _init_elec_bonded_pair_lengths(self) -> Tensor[torch.float32][:, :, :]:
         return torch.from_numpy(
             self.elec_param_resolver.remap_bonded_path_lengths(
                 BondedAtoms.get(self).bonded_path_length.cpu().numpy(),
@@ -111,10 +111,12 @@ class ElecScore(ScoreMethod):
                 ElecParameters.get(
                     self
                 ).partial_charges,  # store the partial charges on elec parameters
-                # and pass it in here instead of the usual atom types
+                # and pass it in here instead of the usual atom types.
+                # See ElecParamResolver.resolve_partial_charge.
                 ElecParameters.get(
                     self
-                ).bonded_path_lengths  # bonded_path_lengths are calculated differently for electrostatics
-                # see ElecParamResolver.remap_bonded_path_lengths
+                ).elec_bonded_pair_lengths  # pass this member of elec
+                # parameters, different from the usual bonded_path_lengths.
+                # See ElecParamResolver.remap_bonded_path_lengths.
             )
         }
