@@ -172,11 +172,29 @@ struct CountPair {
       int const* conn_seps) {
     int separation = max_important_bond_separation + 1;
 
+    if (n_conn1 > 4) {
+      printf("error n_conn1 %d\n", n_conn1);
+    }
+    if (n_conn2 > 4) {
+      printf("error n_conn2 %d\n", n_conn2);
+    }
+
     for (int ii = 0; ii < n_conn1; ++ii) {
+      if (ii * N + alt_atom_ind >= 4 * N) {
+        printf("errror ii * N + alt_atom_ind: %d", ii * N + alt_atom_ind);
+      }
+
       int const ii_alt_bonds_to_conn = path_dist1[ii * N + alt_atom_ind];
       for (int jj = 0; jj < n_conn2; ++jj) {
+        if (ii * n_conn2 + jj >= 16) {
+          printf("errror ii * n_conn2 + jj: %d", ii * n_conn2 + jj);
+        }
         int ii_jj_interblock_bond_sep = conn_seps[ii * n_conn2 + jj];
 
+        if (jj * N + neighb_atom_ind >= 4 * N) {
+          printf(
+              "errror jj * N + neighb_atom_ind: %d", jj * N + neighb_atom_ind);
+        }
         int const jj_neighb_bonds_to_conn =
             path_dist2[jj * N + neighb_atom_ind];
         int const ii_jj_sep = ii_alt_bonds_to_conn + ii_jj_interblock_bond_sep

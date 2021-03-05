@@ -36,6 +36,12 @@ THCGenerator* THCRandom_getGenerator(THCState* state);
 // increment should be at least the number of curand() random numbers used in
 // each thread.
 std::pair<uint64_t, uint64_t> next_philox_seed(uint64_t increment) {
+  // static bool seeded = false;
+  // if ( ! seeded ) {
+  //   std::cout << "Setting RNG seed" << std::endl;
+  //   THCRandom_manualSeed(at::globalContext().getTHCState(), 0);
+  //   seeded = true;
+  // }
   auto gen_ = THCRandom_getGenerator(at::globalContext().getTHCState());
   uint64_t offset = gen_->state.philox_seed_offset.fetch_add(increment);
   return std::make_pair(gen_->state.initial_seed, offset);
@@ -144,6 +150,15 @@ struct PickRotamers {
     };
 
     Dispatch<D>::forall(n_contexts, select_rotamer);
+
+    // auto random_rots_cpu_tp = TPack<Int, 1,
+    // tmol::Device::CPU>::zeros({n_contexts}); auto random_rots_cpu =
+    // random_rots_cpu_tp.view; cudaMemcpy(&random_rots_cpu[0], &random_rots[0],
+    // sizeof(Int) * n_contexts, cudaMemcpyDeviceToHost); for (int i = 0; i <
+    // n_contexts; ++i) {
+    //   std::cout << " " << random_rots_cpu[i];
+    // }
+    // std::cout << std::endl;
 
     auto copy_rotamer_coords = [=] EIGEN_DEVICE_FUNC(int i) {
       Int alt_id = i / max_n_atoms;
@@ -276,7 +291,11 @@ template <
     typename Real,
     typename Int>
 struct FinalOp {
-  static auto f() -> void { cudaDeviceSynchronize(); }
+  static auto f() -> void {
+    cudaDeviceSynchronize();
+    // auto gen_ = THCRandom_getGenerator(at::globalContext().getTHCState());
+    // gen_->set_current_seed(0);
+  }
 };
 
 template struct PickRotamers<

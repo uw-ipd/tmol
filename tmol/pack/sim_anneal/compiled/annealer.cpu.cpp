@@ -176,6 +176,10 @@ void SimAnnealer::add_score_component(
 
 void SimAnnealer::run_annealer()
 {
+  // set the RNG seed -- TEMP!
+  acc_rej_step_->final_op();
+
+
   int n_cycles = 10000;
   pick_step_->pick_rotamers(); // TEMP!
   clock_t start_clock = clock();
