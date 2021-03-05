@@ -7,13 +7,11 @@ from functools import singledispatch
 from tmol.database.scoring.elec import ElecDatabase
 
 from tmol.score.elec.params import ElecParamResolver
-from tmol.score.elec.script_modules import ElecInterModule, ElecIntraModule
+from tmol.score.elec.script_modules import ElecIntraModule
 
 from tmol.score.modules.bases import ScoreSystem, ScoreModule, ScoreMethod
 from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
-from tmol.score.modules.chemical_database import ChemicalDB
-from tmol.score.modules.stacked_system import StackedSystem
 from tmol.score.modules.bonded_atom import BondedAtoms
 
 from tmol.types.torch import Tensor
