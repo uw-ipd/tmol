@@ -122,9 +122,12 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   int64_t const max_n_neighbors = system_neighbor_list.size(2);
   int64_t const n_atom_types = type_params.size(0);
 
+  assert(context_block_type.size(0) == n_contexts);
+  assert(context_block_type.size(1) == max_n_blocks);
+
   assert(alternate_coords.size(1) == max_n_atoms);
   assert(alternate_ids.size(0) == n_alternate_blocks);
-  assert(context_coords.size(0) == context_block_type.size(0));
+
   assert(context_system_ids.size(0) == n_contexts);
 
   assert(system_min_bond_separation.size(1) == max_n_blocks);
@@ -135,6 +138,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(system_inter_block_bondsep.size(2) == max_n_blocks);
   assert(system_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(system_inter_block_bondsep.size(4) == max_n_interblock_bonds);
+
   assert(system_neighbor_list.size(0) == n_systems);
   assert(system_neighbor_list.size(1) == max_n_blocks);
 
@@ -147,6 +151,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(block_type_path_distance.size(2) == max_n_atoms);
 
   assert(lj_lk_weights.size(0) == 2);
+  assert(max_n_interblock_bonds <= MAX_N_CONN);
 
   // auto wcts = std::chrono::system_clock::now();
   // clock_t start_time = clock();
@@ -189,7 +194,6 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                 int const neighb_block_ind,
                                 int const alt_block_type,
                                 int const neighb_block_type,
-
                                 int min_separation,
                                 TensorAccessor<Int, 4, D> inter_block_bondsep,
 
@@ -207,12 +211,12 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     int const alt_remain = min(TILE_SIZE, alt_n_atoms - alt_start_atom);
     int const neighb_remain =
         min(TILE_SIZE, neighb_n_atoms - neighb_start_atom);
-    if (alt_remain < 0 || alt_remain > TILE_SIZE) {
-      printf("error alt_remain %d\n", alt_remain);
-    }
-    if (neighb_remain < 0 || neighb_remain > TILE_SIZE) {
-      printf("error neighb_remain %d\n", neighb_remain);
-    }
+    // if (alt_remain < 0 || alt_remain > TILE_SIZE) {
+    //   printf("error alt_remain %d\n", alt_remain);
+    // }
+    // if (neighb_remain < 0 || neighb_remain > TILE_SIZE) {
+    //   printf("error neighb_remain %d\n", neighb_remain);
+    // }
 
     int const n_pairs = alt_remain * neighb_remain;
 
@@ -223,26 +227,26 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const alt_atom_tile_ind = i / neighb_remain;
       int const neighb_atom_tile_ind = i % neighb_remain;
 
-      if (alt_atom_tile_ind < 0 || alt_atom_tile_ind > TILE_SIZE) {
-        printf("error alt_atom_tile_ind %d\n", alt_atom_tile_ind);
-      }
-      if (neighb_atom_tile_ind < 0 || neighb_atom_tile_ind > TILE_SIZE) {
-        printf("error neighb_atom_tile_ind %d\n", neighb_atom_tile_ind);
-      }
+      // if (alt_atom_tile_ind < 0 || alt_atom_tile_ind > TILE_SIZE) {
+      //   printf("error alt_atom_tile_ind %d\n", alt_atom_tile_ind);
+      // }
+      // if (neighb_atom_tile_ind < 0 || neighb_atom_tile_ind > TILE_SIZE) {
+      //   printf("error neighb_atom_tile_ind %d\n", neighb_atom_tile_ind);
+      // }
 
       int const alt_atom_ind = alt_atom_tile_ind + alt_start_atom;
       int const neighb_atom_ind = neighb_atom_tile_ind + neighb_start_atom;
       for (int j = 0; j < 3; ++j) {
-        if (3 * alt_atom_tile_ind + j > 3 * TILE_SIZE) {
-          printf(
-              "errror 3 * alt_atom_tile_ind + j: %d\n",
-              3 * alt_atom_tile_ind + j);
-        }
-        if (3 * neighb_atom_tile_ind + j > 3 * TILE_SIZE) {
-          printf(
-              "error 3 * neighb_atom_tile_ind + j: %d\n",
-              3 * neighb_atom_tile_ind + j);
-        }
+        // if (3 * alt_atom_tile_ind + j > 3 * TILE_SIZE) {
+        //   printf(
+        //       "errror 3 * alt_atom_tile_ind + j: %d\n",
+        //       3 * alt_atom_tile_ind + j);
+        // }
+        // if (3 * neighb_atom_tile_ind + j > 3 * TILE_SIZE) {
+        //   printf(
+        //       "error 3 * neighb_atom_tile_ind + j: %d\n",
+        //       3 * neighb_atom_tile_ind + j);
+        // }
         coord1[j] = alt_coords[3 * alt_atom_tile_ind + j];
         coord2[j] = neighb_coords[3 * neighb_atom_tile_ind + j];
       }
@@ -408,8 +412,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
       union union_pt2_red {
         struct struct_part2 {
-          Real coords_other[TILE_SIZE * 3];             // 384 bytes for coords
-          Int n_conn_other;                             // 4 bytes for an int
+          Real coords_other[TILE_SIZE * 3];  // 384 bytes for coords
+          Int lame;
+          Int n_conn_other;  // 4 bytes for an int
+          Int cool;
           LJTypeParams<Real> params_other[TILE_SIZE];   // 768 bytes for params
           Int conn_ats_other[MAX_N_CONN];               // 16 bytes
           Int path_dist_other[MAX_N_CONN * TILE_SIZE];  // 512 bypes
@@ -440,9 +446,11 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     LJTypeParams<Real> *params_alt1 = shared.params_alt1;
     LJTypeParams<Real> *params_alt2 = shared.params_alt2;
     LJTypeParams<Real> *params_other = shared.union_vals.vals.params_other;
-    if (tid == 0) {
-      // shared.bad = false;
-    }
+    // if (tid == 0) {
+    //   // shared.bad = false;
+    //   shared.union_vals.vals.cool = 1234;
+    // }
+    // __syncthreads();
 
     Int last_alt_ind = -1;
     bool count_pair_data_loaded = false;
@@ -450,9 +458,16 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     for (int iteration = 0; iteration < vt; ++iteration) {
       Real totalE1 = 0;
       Real totalE2 = 0;
+      // bool bad = false;
+      // if (shared.union_vals.vals.cool != 1234) {
+      //         printf("Cool problem A %d %d\n", tid,
+      //         shared.union_vals.vals.cool);
+      // }
 
       int alt_ind = (vt * cta + iteration) / max_n_neighbors;
 
+      // alt ind represents a pair of rotamers from the same residue
+      // their indices are 2*alt_ind and 2*alt_ind+1
       if (alt_ind >= n_alternate_blocks / 2) {
         break;
       }
@@ -470,10 +485,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         continue;
       }
 
-      if (iteration == 0 && cta == 0 && tid == 0
-          && call_count_shadow % 100 == 1) {
-        printf("abi %d\n", alternate_ids[2 * alt_ind][1]);
-      }
+      // if (iteration == 0 && cta == 0 && tid == 0
+      //     && call_count_shadow % 100 == 1) {
+      //   printf("abi %d\n", alternate_ids[2 * alt_ind][1]);
+      // }
 
       int const alt_block_ind = alternate_ids[2 * alt_ind][1];
       int const alt_block_type1 = alternate_ids[2 * alt_ind][2];
@@ -482,27 +497,39 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       //         printf("alt block type: %d ind, %d type1, %d ind type2\n",
       //         alt_ind, alt_block_type1, alt_block_type2);
       // }
-      if (alt_context >= n_contexts || alt_context < 0) {
-        printf("Error alt_context %d\n", alt_context);
-      }
+      // if (alt_context >= n_contexts || alt_context < 0) {
+      //   printf("Error alt_context %d\n", alt_context);
+      //   bad = true;
+      // }
       int const system = context_system_ids[alt_context];
-      if (system < 0 || system >= n_systems) {
-        printf("Error system %d\n", system);
-      }
-      if (alt_block_type1 >= n_block_types || alt_block_type1 < 0) {
-        printf("Error alt_block_type1 %d\n", alt_block_type1);
-      }
-      if (alt_block_type2 >= n_block_types || alt_block_type2 < 0) {
-        printf("Error alt_block_type2 %d\n", alt_block_type2);
-      }
+      // if (system < 0 || system >= n_systems) {
+      //   printf("Error system %d\n", system);
+      //   bad = true;
+      // }
+      // if (alt_block_ind >= max_n_blocks || alt_block_ind < 0) {
+      //   printf("Error alt_block_ind %d\n", alt_block_ind);
+      // }
+      // if (alt_block_type1 >= n_block_types || alt_block_type1 < 0) {
+      //   printf("Error alt_block_type1 %d\n", alt_block_type1);
+      //   bad = true;
+      // }
+      // if (alt_block_type2 >= n_block_types || alt_block_type2 < 0) {
+      //   printf("Error alt_block_type2 %d\n", alt_block_type2);
+      //   bad = true;
+      // }
+      // if (shared.union_vals.vals.cool != 1234) {
+      //   printf("Cool problem B %d %d\n", tid, shared.union_vals.vals.cool);
+      // }
       int const alt_n_atoms1 = block_type_n_atoms[alt_block_type1];
       int const alt_n_atoms2 = block_type_n_atoms[alt_block_type2];
-      if (alt_n_atoms1 < 0 || alt_n_atoms1 > 100) {
-        printf("error alt_n_atoms1 %d\n", alt_n_atoms1);
-      }
-      if (alt_n_atoms2 < 0 || alt_n_atoms2 > 100) {
-        printf("error alt_n_atoms2 %d\n", alt_n_atoms2);
-      }
+      // if (alt_n_atoms1 < 0 || alt_n_atoms1 > 100) {
+      //   printf("error alt_n_atoms1 %d\n", alt_n_atoms1);
+      //   bad = true;
+      // }
+      // if (alt_n_atoms2 < 0 || alt_n_atoms2 > 100) {
+      //   printf("error alt_n_atoms2 %d\n", alt_n_atoms2);
+      //   bad = true;
+      // }
 
       int const neighb_block_ind =
           system_neighbor_list[system][alt_block_ind][neighb_ind];
@@ -513,27 +540,32 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int n_conn_other(-1);
 
       if (alt_block_ind != neighb_block_ind) {
-        if (alt_block_ind >= max_n_blocks || alt_block_ind < 0) {
-          printf("Error alt_block_ind %d\n", alt_block_ind);
-        }
-        if (neighb_block_ind >= max_n_blocks || neighb_block_ind < 0) {
-          printf("Error neighb_block_ind %d\n", neighb_block_ind);
-        }
+        // if (alt_block_ind >= max_n_blocks || alt_block_ind < 0) {
+        //   printf("Error alt_block_ind %d\n", alt_block_ind);
+        //   bad = true;
+        // }
+        // if (neighb_block_ind >= max_n_blocks || neighb_block_ind < 0) {
+        //   printf("Error neighb_block_ind %d\n", neighb_block_ind);
+        //   bad = true;
+        // }
         // inter-residue energy evaluation
 
         int const neighb_block_type =
             context_block_type[alt_context][neighb_block_ind];
-        if (neighb_block_type >= n_block_types || neighb_block_type < 0) {
-          printf("Error neighb_block_type %d\n", neighb_block_type);
-        }
+        // if (neighb_block_type >= n_block_types || neighb_block_type < 0) {
+        //   printf("Error neighb_block_type %d\n", neighb_block_type);
+        //   bad = true;
+        // }
         int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
 
-        int const n_conn_alt_x = block_type_n_interblock_bonds[alt_block_type1];
-        int const n_conn_other_x =
-            block_type_n_interblock_bonds[neighb_block_type];
-        int const min_sep_x =
-            system_min_bond_separation[system][alt_block_ind][neighb_block_ind];
-        __syncthreads();
+        // int const n_conn_alt_x =
+        // block_type_n_interblock_bonds[alt_block_type1]; int const
+        // n_conn_other_x =
+        //     block_type_n_interblock_bonds[neighb_block_type];
+        // int const min_sep_x =
+        //     system_min_bond_separation[system][alt_block_ind][neighb_block_ind];
+
+        // __syncthreads();
         if (tid == 0) {
           // printf("min_sep %2d\n", min_sep);
           int const n_conn_alt_s =
@@ -543,18 +575,23 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           int const min_sep_s =
               system_min_bond_separation[system][alt_block_ind]
                                         [neighb_block_ind];
-          if (n_conn_alt_s >= MAX_N_CONN) {
-            printf("Error n_conn_alt %d\n", n_conn_alt_s);
-          }
-          if (n_conn_other_s >= MAX_N_CONN) {
-            printf("Error n_conn_other_s %d\n", n_conn_other_s);
-          }
+          // if (n_conn_alt_s >= MAX_N_CONN) {
+          //   printf("Error n_conn_alt %d\n", n_conn_alt_s);
+          //   bad = true;
+          // }
+          // if (n_conn_other_s >= MAX_N_CONN) {
+          //   printf("Error n_conn_other_s %d\n", n_conn_other_s);
+          //   bad = true;
+          // }
           shared.min_separation = min_sep_s;
           shared.n_conn_alt = n_conn_alt_s;
           shared.union_vals.vals.n_conn_other = n_conn_other_s;
         }
         __syncthreads();
 
+        // if (shared.union_vals.vals.cool != 1234) {
+        //   printf("Cool problem C %d %d\n", tid, shared.union_vals.vals.cool);
+        // }
         int const min_sep = shared.min_separation;
 
         bool const count_pair_striking_dist =
@@ -563,72 +600,81 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         int const n_conn_alt = shared.n_conn_alt;
         n_conn_other = shared.union_vals.vals.n_conn_other;
 
-        if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other) {
-          printf("n_conn_other discrepancy 1\n");
-        }
-
-        if (n_conn_alt >= MAX_N_CONN) {
-          printf(
-              "Error n_conn_alt %d %d %d %d %d\n",
-              n_conn_alt,
-              block_type_n_interblock_bonds[alt_block_type1],
-              tid,
-              alt_block_ind,
-              alt_block_type1);
-        }
-        if (n_conn_other >= MAX_N_CONN) {
-          int blah = shared.union_vals.vals.n_conn_other;
-          if (tid % 32 == 0) {
-            // shared.bad = true;
-            printf(
-                "Error n_conn_other %d %d %d %d %d %d %d %d\n",
-                n_conn_other,
-                block_type_n_interblock_bonds[neighb_block_type],
-                call_count_shadow,
-                tid,
-                neighb_block_ind,
-                neighb_block_type,
-                iteration,
-                blah);
-            // printf("reduce data: ");
-            // for (int ii = 0; ii < max(nt, 2 * min(nt, 32)); ++ii) {
-            //   printf(" %d %d %f", ii, *(reinterpret_cast<int *>
-            //   (&shared.union_vals.reduce.data[ii])), (float)
-            //   shared.union_vals.reduce.data[ii]);
-            // }
-            // printf("\n");
-            // printf("addresses:");
-            // printf("coords alt1 %p\n", &shared.coords_alt1);
-            // printf("coords alt2 %p\n", &shared.coords_alt2);
-            // printf("params alt1 %p\n", &shared.params_alt1);
-            // printf("params alt2 %p\n", &shared.params_alt2);
-            // printf("min sep %p\n", &shared.min_separation);
-            // printf("n_conn_alt %p\n", &shared.n_conn_alt);
-            // printf("conn ats alt1 %p\n", &shared.conn_ats_alt1);
-            // printf("conn ats alt2 %p\n", &shared.conn_ats_alt2);
-            // printf("path_dist_alt1 %p\n", &shared.path_dist_alt1);
-            // printf("path_dist_alt2 %p\n", &shared.path_dist_alt2);
-            // printf("shared.union_vals.vals.coords_other %p\n", &
-            // shared.union_vals.vals.coords_other);
-            // printf("shared.union_vals.vals.n_conn_other %p\n", &
-            // shared.union_vals.vals.n_conn_other);
-            // printf("shared.union_vals.vals.params_other %p\n", &
-            // shared.union_vals.vals.params_other);
-            // printf("shared.union_vals.vals.conn_ats_other %p\n", &
-            // shared.union_vals.vals.conn_ats_other);
-            // printf("shared.union_vals.vals.path_dist_other %p\n", &
-            // shared.union_vals.vals.path_dist_other);
-            // printf("shared.union_vals.vals.conn_ats_other %p\n", &
-            // shared.union_vals.vals.conn_seps);
-            // printf("shared.union_vals.reduce %p\n", &
-            // shared.union_vals.reduce);
-          }
-
-          // FIX IT BEFORE CONTINUING ON
-          n_conn_other = block_type_n_interblock_bonds[neighb_block_type];
-          shared.union_vals.vals.n_conn_other = 5;
-        }
-        __syncthreads();
+        // if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other)
+        // {
+        //   printf("n_conn_other discrepancy 1\n");
+        //   bad = true;
+        // }
+        //
+        // if (n_conn_alt >= MAX_N_CONN) {
+        //   printf(
+        //       "Error n_conn_alt %d %d %d %d %d %d\n",
+        //       n_conn_alt,
+        //       n_conn_alt_x,
+        //       block_type_n_interblock_bonds[alt_block_type1],
+        //       tid,
+        //       alt_block_ind,
+        //       alt_block_type1);
+        //   bad = true;
+        // }
+        // if (n_conn_other >= MAX_N_CONN) {
+        //   bad = true;
+        //   int blah = shared.union_vals.vals.n_conn_other;
+        //   if (true) {
+        //     // shared.bad = true;
+        //     printf(
+        //         "Error n_conn_other %d %d %d %d %d %d %d %d\n",
+        //         n_conn_other,
+        //         block_type_n_interblock_bonds[neighb_block_type],
+        //         call_count_shadow,
+        //         tid,
+        //         neighb_block_ind,
+        //         neighb_block_type,
+        //         iteration,
+        //         blah);
+        //
+        //     // printf("reduce data: ");
+        //     // for (int ii = 0; ii < max(nt, 2 * min(nt, 32)); ++ii) {
+        //     //   printf(" %d %d %f", ii, *(reinterpret_cast<int *>
+        //     //   (&shared.union_vals.reduce.data[ii])), (float)
+        //     //   shared.union_vals.reduce.data[ii]);
+        //     // }
+        //     // printf("\n");
+        //     // printf("addresses:");
+        //     // printf("coords alt1 %p\n", &shared.coords_alt1);
+        //     // printf("coords alt2 %p\n", &shared.coords_alt2);
+        //     // printf("params alt1 %p\n", &shared.params_alt1);
+        //     // printf("params alt2 %p\n", &shared.params_alt2);
+        //     // printf("min sep %p\n", &shared.min_separation);
+        //     // printf("n_conn_alt %p\n", &shared.n_conn_alt);
+        //     // printf("conn ats alt1 %p\n", &shared.conn_ats_alt1);
+        //     // printf("conn ats alt2 %p\n", &shared.conn_ats_alt2);
+        //     // printf("path_dist_alt1 %p\n", &shared.path_dist_alt1);
+        //     // printf("path_dist_alt2 %p\n", &shared.path_dist_alt2);
+        //     // printf("shared.union_vals.vals.coords_other %p\n", &
+        //     // shared.union_vals.vals.coords_other);
+        //     // printf("shared.union_vals.vals.n_conn_other %p\n", &
+        //     // shared.union_vals.vals.n_conn_other);
+        //     // printf("shared.union_vals.vals.params_other %p\n", &
+        //     // shared.union_vals.vals.params_other);
+        //     // printf("shared.union_vals.vals.conn_ats_other %p\n", &
+        //     // shared.union_vals.vals.conn_ats_other);
+        //     // printf("shared.union_vals.vals.path_dist_other %p\n", &
+        //     // shared.union_vals.vals.path_dist_other);
+        //     // printf("shared.union_vals.vals.conn_ats_other %p\n", &
+        //     // shared.union_vals.vals.conn_seps);
+        //     // printf("shared.union_vals.reduce %p\n", &
+        //     // shared.union_vals.reduce);
+        //   }
+        //
+        //   // FIX IT BEFORE CONTINUING ON
+        //   n_conn_other = block_type_n_interblock_bonds[neighb_block_type];
+        //   shared.union_vals.vals.n_conn_other = 5;
+        // }
+        // __syncthreads();
+        // if (shared.union_vals.vals.cool != 1234) {
+        //   printf("Cool problem D %d %d\n", tid, shared.union_vals.vals.cool);
+        // }
 
         if (count_pair_striking_dist && tid < n_conn_alt) {
           shared.conn_ats_alt1[tid] =
@@ -641,19 +687,23 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               block_type_atoms_forming_chemical_bonds[neighb_block_type][tid];
         }
         if (count_pair_striking_dist && tid < n_conn_alt * n_conn_other) {
-          if (tid >= 16) {
-            printf("conn alt * conn other error\n");
-          }
+          // if (tid >= 16) {
+          //   printf("conn alt * conn other error\n");
+          // }
           int conn1 = tid / n_conn_other;
           int conn2 = tid % n_conn_other;
           shared.union_vals.vals.conn_seps[tid] =
               system_inter_block_bondsep[system][alt_block_ind]
                                         [neighb_block_ind][conn1][conn2];
         }
-        if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other) {
-          printf("n_conn_other discrepancy 2\n");
-        }
-        __syncthreads();
+        // if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other)
+        // {
+        //   printf("n_conn_other discrepancy 2\n");
+        // }
+        // __syncthreads();
+        // if (shared.union_vals.vals.cool != 1234) {
+        //   printf("Cool problem E %d %d\n", tid, shared.union_vals.vals.cool);
+        // }
 
         // Tile the sets of TILE_SIZE atoms
         int const alt_n_iterations =
@@ -662,9 +712,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             (neighb_n_atoms - 4 - 1) / TILE_SIZE + 1;
 
         for (int i = 0; i < alt_n_iterations; ++i) {
-          if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other) {
-            printf("n_conn_other discrepancy 3\n");
-          }
+          // if (tid < 32 && shared.union_vals.vals.n_conn_other !=
+          // n_conn_other) {
+          //   printf("n_conn_other discrepancy 3\n");
+          // }
           if (i != 0) {
             // make sure all threads have completed their work
             // from the previous iteration before we overwrite
@@ -672,6 +723,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             __syncthreads();
           }
 
+          // if (shared.union_vals.vals.cool != 1234) {
+          //   printf("Cool problem F %d %d\n", tid,
+          //   shared.union_vals.vals.cool);
+          // }
           // Let's load coordinates and Lennard-Jones parameters for
           // TILE_SIZE atoms into shared memory
           int const i_n_atoms_to_load1 = max(
@@ -691,9 +746,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 false);
           }
 
-          if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other) {
-            printf("n_conn_other discrepancy 4\n");
-          }
+          // if (tid < 32 && shared.union_vals.vals.n_conn_other !=
+          // n_conn_other) {
+          //   printf("n_conn_other discrepancy 4\n");
+          // }
           if (new_alt || alt_n_atoms2 > TILE_SIZE) {
             mgpu::mem_to_shared<TILE_SIZE, 3>(
                 reinterpret_cast<Real *>(
@@ -704,9 +760,14 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 false);
           }
 
-          if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other) {
-            printf("n_conn_other discrepancy 5\n");
-          }
+          // if (shared.union_vals.vals.cool != 1234) {
+          //   printf("Cool problem G %d %d\n", tid,
+          //   shared.union_vals.vals.cool);
+          // }
+          // if (tid < 32 && shared.union_vals.vals.n_conn_other !=
+          // n_conn_other) {
+          //   printf("n_conn_other discrepancy 5\n");
+          // }
           // continue; //  BAD?!!
 
           if ((new_alt || alt_n_atoms1 > TILE_SIZE) && tid < TILE_SIZE) {
@@ -718,49 +779,61 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // load the Lennard-Jones parameters for these TILE_SIZE atoms
             if (tid < i_n_atoms_to_load1) {
               int const atid = TILE_SIZE * i + tid + 4;
-              if (atid >= max_n_atoms || atid < 0) {
-                printf("error atid %d\n", atid);
-              }
+              // if (atid >= max_n_atoms || atid < 0) {
+              //   printf("error atid %d\n", atid);
+              // }
               int const attype = block_type_atom_types[alt_block_type1][atid];
               if (attype >= 0) {
-                if (attype >= n_atom_types) {
-                  printf("error attype %d\n", attype);
-                }
+                // if (attype >= n_atom_types) {
+                //   printf("error attype %d\n", attype);
+                // }
                 params_alt1[tid] = type_params[attype];
               }
             }
           }
 
-          if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other) {
-            printf("n_conn_other discrepancy 6\n");
-          }
+          // if (shared.union_vals.vals.cool != 1234) {
+          //   printf("Cool problem H %d %d\n", tid,
+          //   shared.union_vals.vals.cool);
+          // }
+          // if (tid < 32 && shared.union_vals.vals.n_conn_other !=
+          // n_conn_other) {
+          //   printf("n_conn_other discrepancy 6\n");
+          // }
           if ((new_alt || alt_n_atoms1 > TILE_SIZE || !count_pair_data_loaded)
               && tid < i_n_atoms_to_load1) {
             int const atid = TILE_SIZE * i + tid + 4;
-            if (atid >= max_n_atoms || atid < 0) {
-              printf("error atid %d\n", atid);
-            }
+            // if (atid >= max_n_atoms || atid < 0) {
+            //   printf("error atid %d\n", atid);
+            // }
             if (count_pair_striking_dist && !count_pair_data_loaded) {
               for (int j = 0; j < n_conn_alt; ++j) {
-                if (shared.conn_ats_alt1[j] >= max_n_atoms
-                    || shared.conn_ats_alt1[j] < 0) {
-                  printf(
-                      "error conn_ats_alt1[j] %d\n", shared.conn_ats_alt1[j]);
-                }
+                // if (shared.conn_ats_alt1[j] >= max_n_atoms
+                //     || shared.conn_ats_alt1[j] < 0) {
+                //   printf(
+                //       "error conn_ats_alt1[j] %d\n",
+                //       shared.conn_ats_alt1[j]);
+                // }
                 int ij_path_dist =
                     block_type_path_distance[alt_block_type1]
                                             [shared.conn_ats_alt1[j]][atid];
-                if (j * TILE_SIZE + tid > MAX_N_CONN * TILE_SIZE) {
-                  printf("error storing path dists: %d\n", j * TILE_SIZE + tid);
-                }
+                // if (j * TILE_SIZE + tid > MAX_N_CONN * TILE_SIZE) {
+                //   printf("error storing path dists: %d\n", j * TILE_SIZE +
+                //   tid);
+                // }
                 shared.path_dist_alt1[j * TILE_SIZE + tid] = ij_path_dist;
               }
             }
           }
 
-          if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other) {
-            printf("n_conn_other discrepancy 7\n");
-          }
+          // if (shared.union_vals.vals.cool != 1234) {
+          //   printf("Cool problem I %d %d\n", tid,
+          //   shared.union_vals.vals.cool);
+          // }
+          // if (tid < 32 && shared.union_vals.vals.n_conn_other !=
+          // n_conn_other) {
+          //   printf("n_conn_other discrepancy 7\n");
+          // }
           // continue; // GOOD
 
           if ((new_alt || alt_n_atoms2 > TILE_SIZE)
@@ -768,52 +841,63 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // load the Lennard-Jones parameters for these TILE_SIZE atoms
 
             int const atid = TILE_SIZE * i + tid + 4;
-            if (atid >= max_n_atoms || atid < 0) {
-              printf("error atid %d\n", atid);
-            }
+            // if (atid >= max_n_atoms || atid < 0) {
+            //   printf("error atid %d\n", atid);
+            // }
             int const attype = block_type_atom_types[alt_block_type2][atid];
 
             // printf("alt_block_ind %d, atid %d, attype %d, max_n_params %d\n",
             // alt_block_ind, atid, attype, int(type_params.size(0)));
             if (attype >= 0) {
-              if (attype >= n_atom_types) {
-                printf("error attype %d\n", attype);
-              }
+              // if (attype >= n_atom_types) {
+              //   printf("error attype %d\n", attype);
+              // }
               params_alt2[tid] = type_params[attype];
             }
           }
 
-          if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other) {
-            printf("n_conn_other discrepancy 8\n");
-          }
+          // if (shared.union_vals.vals.cool != 1234) {
+          //  printf("Cool problem J %d %d\n", tid,
+          //  shared.union_vals.vals.cool);
+          //}
+          // if (tid < 32 && shared.union_vals.vals.n_conn_other !=
+          // n_conn_other) {
+          //  printf("n_conn_other discrepancy 8\n");
+          //}
           // continue; // BAD??!!
 
           if ((new_alt || alt_n_atoms2 > TILE_SIZE || !count_pair_data_loaded)
               && tid < i_n_atoms_to_load2) {
             int const atid = TILE_SIZE * i + tid + 4;
-            if (atid >= max_n_atoms || atid < 0) {
-              printf("error atid %d\n", atid);
-            }
+            // if (atid >= max_n_atoms || atid < 0) {
+            //  printf("error atid %d\n", atid);
+            //}
             if (count_pair_striking_dist && !count_pair_data_loaded) {
               for (int j = 0; j < n_conn_alt; ++j) {
-                if (shared.conn_ats_alt2[j] >= max_n_atoms
-                    || shared.conn_ats_alt2[j] < 0) {
-                  printf(
-                      "error conn_ats_alt2[j] %d\n", shared.conn_ats_alt2[j]);
-                }
+                // if (shared.conn_ats_alt2[j] >= max_n_atoms
+                //    || shared.conn_ats_alt2[j] < 0) {
+                //  printf(
+                //      "error conn_ats_alt2[j] %d\n", shared.conn_ats_alt2[j]);
+                //}
                 int ij_path_dist =
                     block_type_path_distance[alt_block_type2]
                                             [shared.conn_ats_alt2[j]][atid];
-                if (j * TILE_SIZE + tid > MAX_N_CONN * TILE_SIZE) {
-                  printf("error storing path dists: %d\n", j * TILE_SIZE + tid);
-                }
+                // if (j * TILE_SIZE + tid > MAX_N_CONN * TILE_SIZE) {
+                //  printf("error storing path dists: %d\n", j * TILE_SIZE +
+                //  tid);
+                //}
                 shared.path_dist_alt2[j * TILE_SIZE + tid] = ij_path_dist;
               }
             }
           }
-          if (tid < 32 && shared.union_vals.vals.n_conn_other != n_conn_other) {
-            printf("n_conn_other discrepancy 9\n");
-          }
+          // if (shared.union_vals.vals.cool != 1234) {
+          //  printf("Cool problem K %d %d\n", tid,
+          //  shared.union_vals.vals.cool);
+          //}
+          // if (tid < 32 && shared.union_vals.vals.n_conn_other !=
+          // n_conn_other) {
+          //  printf("n_conn_other discrepancy 9\n");
+          //}
           if (count_pair_striking_dist) {
             count_pair_data_loaded = true;
           }
@@ -825,6 +909,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               // calculations from the previous iteration
               __syncthreads();
             }
+            // if (shared.union_vals.vals.cool != 1234) {
+            //   printf("Cool problem L %d %d\n", tid,
+            //   shared.union_vals.vals.cool);
+            // }
             int j_n_atoms_to_load =
                 min(Int(TILE_SIZE), Int((neighb_n_atoms - TILE_SIZE * j - 4)));
             // if (j_n_atoms_to_load >= TILE_SIZE) {
@@ -839,10 +927,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 j_n_atoms_to_load * 3,
                 coords_other,
                 false);
-            if (tid < 32
-                && shared.union_vals.vals.n_conn_other != n_conn_other) {
-              printf("n_conn_other discrepancy 10\n");
-            }
+            // if (tid < 32
+            //     && shared.union_vals.vals.n_conn_other != n_conn_other) {
+            //   printf("n_conn_other discrepancy 10\n");
+            // }
             // if ( tid < j_n_atoms_to_load ) {
             //   Vec<Real, 3> coord =
             //   context_coords[alt_context][neighb_block_ind][tid + 4 + j *
@@ -862,54 +950,65 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               // load the Lennard-Jones parameters for these TILE_SIZE atoms
               if (tid < j_n_atoms_to_load) {
                 int const atid = TILE_SIZE * j + 4 + tid;
-                if (atid >= max_n_atoms || atid < 0) {
-                  printf("error atid %d\n", atid);
-                }
+                // if (atid >= max_n_atoms || atid < 0) {
+                //   printf("error atid %d\n", atid);
+                // }
                 int const attype =
                     block_type_atom_types[neighb_block_type][atid];
                 if (attype >= 0) {
-                  if (attype >= n_atom_types) {
-                    printf("error attype %d\n", attype);
-                  }
+                  // if (attype >= n_atom_types) {
+                  //   printf("error attype %d\n", attype);
+                  // }
                   params_other[tid] = type_params[attype];
                 }
-                if (tid < 32
-                    && shared.union_vals.vals.n_conn_other != n_conn_other) {
-                  printf("n_conn_other discrepancy 11\n");
-                }
+                // if (tid < 32
+                //     && shared.union_vals.vals.n_conn_other != n_conn_other) {
+                //   printf("n_conn_other discrepancy 11\n");
+                // }
                 if (count_pair_striking_dist) {
                   for (int k = 0; k < n_conn_other; ++k) {
-                    if (shared.union_vals.vals.conn_ats_other[k] >= max_n_atoms
-                        || shared.union_vals.vals.conn_ats_other[k] < 0) {
-                      printf(
-                          "error conn_ats_other[j] %d\n",
-                          shared.union_vals.vals.conn_ats_other[k]);
-                    }
+                    // if (shared.union_vals.vals.conn_ats_other[k] >=
+                    // max_n_atoms
+                    //     || shared.union_vals.vals.conn_ats_other[k] < 0) {
+                    //   printf(
+                    //       "error conn_ats_other[j] %d\n",
+                    //       shared.union_vals.vals.conn_ats_other[k]);
+                    // }
                     int jk_path_dist =
                         block_type_path_distance[neighb_block_type]
                                                 [shared.union_vals.vals
                                                      .conn_ats_other[k]][atid];
-                    if (k * TILE_SIZE + tid > MAX_N_CONN * TILE_SIZE) {
-                      printf(
-                          "error storing path dists: %d\n",
-                          k * TILE_SIZE + tid);
-                    }
+                    // if (k * TILE_SIZE + tid > MAX_N_CONN * TILE_SIZE) {
+                    //   printf(
+                    //       "error storing path dists: %d\n",
+                    //       k * TILE_SIZE + tid);
+                    // }
                     shared.union_vals.vals
                         .path_dist_other[k * TILE_SIZE + tid] = jk_path_dist;
                   }
                 }
               }
             }
+            // if (shared.union_vals.vals.cool != 1234) {
+            //   printf("Cool problem M %d %d\n", tid,
+            //   shared.union_vals.vals.cool);
+            // }
 
             // make sure shared-memory loading has completed before we proceed
             // into energy calculations
             __syncthreads();
-            if (tid < 32
-                && shared.union_vals.vals.n_conn_other != n_conn_other) {
-              printf("n_conn_other discrepancy 12\n");
-            }
 
+            // if (tid < 32
+            //     && shared.union_vals.vals.n_conn_other != n_conn_other) {
+            //   printf("n_conn_other discrepancy 12\n");
+            // }
+
+            // if (shared.union_vals.vals.cool != 1234) {
+            //   printf("Cool problem N %d %d\n", tid,
+            //   shared.union_vals.vals.cool);
+            // }
             // Now we will calculate the TILE_SIZExTILE_SIZE atom pair energies
+
             totalE1 = score_inter_pairs(
                 tid,
                 i * TILE_SIZE + 4,
@@ -933,10 +1032,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 shared.union_vals.vals.path_dist_other,
                 shared.union_vals.vals.conn_seps);
 
-            if (tid < 32
-                && shared.union_vals.vals.n_conn_other != n_conn_other) {
-              printf("n_conn_other discrepancy 13\n");
-            }
+            // if (shared.union_vals.vals.cool != 1234) {
+            //   printf("Cool problem O %d %d\n", tid,
+            //   shared.union_vals.vals.cool);
+            // }
+
+            // if (tid < 32
+            //     && shared.union_vals.vals.n_conn_other != n_conn_other) {
+            //   printf("n_conn_other discrepancy 13\n");
+            // }
             totalE2 = score_inter_pairs(
                 tid,
                 i * TILE_SIZE + 4,
@@ -959,10 +1063,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 shared.path_dist_alt2,
                 shared.union_vals.vals.path_dist_other,
                 shared.union_vals.vals.conn_seps);
-            if (tid < 32
-                && shared.union_vals.vals.n_conn_other != n_conn_other) {
-              printf("n_conn_other discrepancy 14\n");
-            }
+            // if (tid < 32
+            //     && shared.union_vals.vals.n_conn_other != n_conn_other) {
+            //   printf("n_conn_other discrepancy 14\n");
+            // }
           }  // for j
         }    // for i
       } else {
@@ -971,6 +1075,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
         // int const alt_n_atoms = block_type_n_atoms[alt_block_type];
 
+        // if (shared.union_vals.vals.cool != 1234) {
+        //  printf("Cool problem P %d %d\n", tid, shared.union_vals.vals.cool);
+        //}
         int const n_iterations =
             (max(alt_n_atoms1, alt_n_atoms2) - 4 - 1) / TILE_SIZE + 1;
 
@@ -987,6 +1094,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           int const i_n_atoms_to_load2 =
               min(Int(TILE_SIZE), Int((alt_n_atoms2 - TILE_SIZE * i - 4)));
 
+          // if (shared.union_vals.vals.cool != 1234) {
+          //  printf("Cool problem Q %d %d\n", tid,
+          //  shared.union_vals.vals.cool);
+          //}
           if ((new_alt || alt_n_atoms1 > TILE_SIZE) && tid < TILE_SIZE) {
             mgpu::mem_to_shared<TILE_SIZE, 3>(
                 reinterpret_cast<Real *>(&alternate_coords[2 * alt_ind][4]),
@@ -1005,6 +1116,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               }
             }
           }
+          // if (shared.union_vals.vals.cool != 1234) {
+          //  printf("Cool problem R %d %d\n", tid,
+          //  shared.union_vals.vals.cool);
+          //}
           if ((new_alt || alt_n_atoms2 > TILE_SIZE) && tid < TILE_SIZE) {
             mgpu::mem_to_shared<TILE_SIZE, 3>(
                 reinterpret_cast<Real *>(&alternate_coords[2 * alt_ind + 1][4]),
@@ -1030,6 +1145,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             }
           }
 
+          // if (shared.union_vals.vals.cool != 1234) {
+          //  printf("Cool problem S %d %d\n", tid,
+          //  shared.union_vals.vals.cool);
+          //}
           // process residue 1
           for (int j = i; j < n_iterations; ++j) {
             if (j != i) {
@@ -1060,6 +1179,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               }
             }
             __syncthreads();
+            // if (shared.union_vals.vals.cool != 1234) {
+            //  printf("Cool problem T %d %d\n", tid,
+            //  shared.union_vals.vals.cool);
+            //}
             totalE1 = score_intra_pairs(
                 tid,
                 i * TILE_SIZE + 4,
@@ -1082,6 +1205,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               __syncthreads();
             }
 
+            // if (shared.union_vals.vals.cool != 1234) {
+            //  printf("Cool problem U %d %d\n", tid,
+            //  shared.union_vals.vals.cool);
+            //}
             if (j != i && tid < TILE_SIZE) {
               mgpu::mem_to_shared<TILE_SIZE, 3>(
                   reinterpret_cast<Real *>(
@@ -1100,6 +1227,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               }
             }
             __syncthreads();
+            // if (shared.union_vals.vals.cool != 1234) {
+            //  printf("Cool problem V %d %d\n", tid,
+            //  shared.union_vals.vals.cool);
+            //}
             totalE2 = score_intra_pairs(
                 tid,
                 i * TILE_SIZE + 4,
@@ -1115,16 +1246,21 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         }    // for i
       }      // else
 
-      if (alt_block_ind != neighb_block_ind && tid < 32
-          && shared.union_vals.vals.n_conn_other != n_conn_other) {
-        printf("n_conn_other discrepancy 15\n");
-      }
-      __syncthreads();
+      // if (alt_block_ind != neighb_block_ind && tid < 32
+      //    && shared.union_vals.vals.n_conn_other != n_conn_other) {
+      //  printf("n_conn_other discrepancy 15\n");
+      //}
+
+      // if (shared.union_vals.vals.cool != 1234) {
+      //  printf("Cool problem W %d %d\n", tid, shared.union_vals.vals.cool);
+      //}
 
       Real const cta_totalE1 = reduce_t().reduce(
           tid, totalE1, shared.union_vals.reduce, nt, mgpu::plus_t<Real>());
 
-      __syncthreads();
+      // if (shared.union_vals.vals.cool != 1234) {
+      //  printf("Cool problem X %d %d\n", tid, shared.union_vals.vals.cool);
+      //}
 
       Real const cta_totalE2 = reduce_t().reduce(
           tid, totalE2, shared.union_vals.reduce, nt, mgpu::plus_t<Real>());
@@ -1136,32 +1272,40 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         atomicAdd(&output[2 * alt_ind + 1], cta_totalE2);
       }
 
-      if (alt_block_ind != neighb_block_ind && tid < 32
-          && shared.union_vals.vals.n_conn_other != n_conn_other) {
-        printf("n_conn_other discrepancy 16\n");
-      }
+      // if (alt_block_ind != neighb_block_ind && tid < 32
+      //    && shared.union_vals.vals.n_conn_other != n_conn_other) {
+      //  printf("n_conn_other discrepancy 16\n");
+      //}
+
       __syncthreads();
-      shared.union_vals.reduce.data[tid] = 11.1 * tid;
-      if (shared.union_vals.vals.n_conn_other > MAX_N_CONN) {
-        if (tid == 32 || tid == 0) {
-          printf(
-              "Error x n_conn_other %d %d\n",
-              shared.union_vals.vals.n_conn_other,
-              tid);
-        }
-      }
-      if (alt_block_ind != neighb_block_ind && tid < 32
-          && shared.union_vals.vals.n_conn_other != n_conn_other) {
-        printf("n_conn_other discrepancy 17\n");
-      }
+
+      // if (shared.union_vals.vals.cool != 1234) {
+      //        printf("Cool problem Y %d %d\n", tid,
+      //        shared.union_vals.vals.cool);
+      //}
+      // shared.union_vals.reduce.data[tid] = 11.1 * tid;
+      // if (alt_block_ind != neighb_block_ind &&
+      // shared.union_vals.vals.n_conn_other > MAX_N_CONN) {
+      //   if (tid == 32 || tid == 0) {
+      //     printf(
+      //         "Error x n_conn_other %d %d %d\n",
+      //         shared.union_vals.vals.n_conn_other,
+      //         n_conn_other,
+      //         tid);
+      //   }
+      // }
+      // if (alt_block_ind != neighb_block_ind && tid < 32
+      //     && shared.union_vals.vals.n_conn_other != n_conn_other) {
+      //   printf("n_conn_other discrepancy 17\n");
+      // }
     }  // for iteration
   });
 
-  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
-  setCurrentCUDAStream(wrapped_stream);
-  mgpu::standard_context_t context(wrapped_stream.stream());
+  // at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  // setCurrentCUDAStream(wrapped_stream);
+  // mgpu::standard_context_t context(wrapped_stream.stream());
 
-  // mgpu::standard_context_t context;
+  mgpu::standard_context_t context;
 
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors / 2 - 1) / launch_t::sm_ptx::vt + 1;
@@ -1173,7 +1317,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   }
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
 
-  at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
+  // at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
 
 #ifdef __CUDACC__
   // float first;
