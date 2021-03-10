@@ -124,6 +124,12 @@ class LJLKInterSystemModule:
     ):
         super().__init__()
 
+        # torch.set_printoptions(threshold=10000)
+        # print("bt_path_distance")
+        # print(bt_path_distance)
+        # print("bt_atoms_forming_chemical_bonds")
+        # print(bt_atoms_forming_chemical_bonds)
+
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
