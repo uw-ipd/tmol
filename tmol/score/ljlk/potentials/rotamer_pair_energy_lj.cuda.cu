@@ -151,9 +151,9 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<64, 3>,
-      arch_35_cta<64, 3>,
-      arch_52_cta<64, 3>>
+      arch_20_cta<32, 1>,
+      arch_35_cta<32, 1>,
+      arch_52_cta<32, 1>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -835,11 +835,16 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }  // for ivt
   });
 
-  mgpu::standard_context_t context;
+  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  setCurrentCUDAStream(wrapped_stream);
+  mgpu::standard_context_t context(wrapped_stream.stream());
+
+  // mgpu::standard_context_t context;
 
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors / 2 - 1) / launch_t::sm_ptx::vt + 1;
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
+  at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
 }
 
 template <

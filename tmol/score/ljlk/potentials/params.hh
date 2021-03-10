@@ -31,6 +31,35 @@ struct LKTypeParams {
 };
 
 template <typename Real>
+struct LJLKTypeParams {
+  Real lj_radius;
+  Real lj_wdepth;
+  Real lk_dgfree;
+  Real lk_lambda;
+  Real lk_volume;
+  Real is_donor;
+  Real is_hydroxyl;
+  Real is_polarh;
+  Real is_acceptor;
+
+  LJTypeParams<Real> lj_params() {
+    return LJTypeParams<Real>(
+        {lj_radius, lj_wdepth, is_donor, is_hydroxyl, is_polarh, is_acceptor});
+  }
+
+  LKTypeParams<Real> lk_params() {
+    return LKTypeParams<Real>({lj_radius,
+                               lk_dgfree,
+                               lk_lambda,
+                               lk_volume,
+                               is_donor,
+                               is_hydroxyl,
+                               is_polarh,
+                               is_acceptor});
+  }
+};
+
+template <typename Real>
 struct LJGlobalParams {
   Real lj_hbond_dis;
   Real lj_hbond_OH_donor_dis;
