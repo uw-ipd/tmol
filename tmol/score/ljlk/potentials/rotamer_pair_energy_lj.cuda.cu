@@ -306,7 +306,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         if (new_context_ind || n_atoms > TILE_SIZE) {
           mgpu::mem_to_shared<TILE_SIZE, 3>(
               reinterpret_cast<Real *>(
-                  &alternate_coords[rot_ind][4 + TILE_SIZE * tile_ind]),
+                  &alternate_coords[rot_ind][TILE_SIZE * tile_ind]),
               tid,
               n_atoms_to_load * 3,
               coords,
@@ -319,7 +319,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         // }
         if ((new_context_ind || n_atoms > TILE_SIZE) && tid < TILE_SIZE) {
           if (tid < n_atoms_to_load) {
-            int const atid = TILE_SIZE * tile_ind + tid + 4;
+            int const atid = TILE_SIZE * tile_ind + tid;
             int const attype = block_type_atom_types[block_type][atid];
             if (attype >= 0) {
               params[tid] = type_params[attype];
@@ -356,7 +356,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         params);
     if ((n_atoms > TILE_SIZE || !count_pair_data_loaded)
         && tid < n_atoms_to_load && count_pair_striking_dist) {
-      int const atid = TILE_SIZE * tile_ind + tid + 4;
+      int const atid = TILE_SIZE * tile_ind + tid;
       for (int j = 0; j < n_conn; ++j) {
         unsigned char ij_path_dist =
             block_type_path_distance[block_type][conn_ats[j]][atid];
@@ -497,9 +497,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
         // Tile the sets of TILE_SIZE atoms
         int const alt_n_iterations =
-            (max(alt_n_atoms1, alt_n_atoms2) - 4 - 1) / TILE_SIZE + 1;
-        int const neighb_n_iterations =
-            (neighb_n_atoms - 4 - 1) / TILE_SIZE + 1;
+            (max(alt_n_atoms1, alt_n_atoms2) - 1) / TILE_SIZE + 1;
+        int const neighb_n_iterations = (neighb_n_atoms - 1) / TILE_SIZE + 1;
         for (int i = 0; i < alt_n_iterations; ++i) {
           // make sure all threads have completed their work
           // from the previous iteration before we overwrite
@@ -508,11 +507,11 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           // have been written to
           __syncthreads();
 
-          int const i_n_atoms_to_load1 = max(
-              0, min(Int(TILE_SIZE), Int((alt_n_atoms1 - TILE_SIZE * i - 4))));
+          int const i_n_atoms_to_load1 =
+              max(0, min(Int(TILE_SIZE), Int((alt_n_atoms1 - TILE_SIZE * i))));
 
-          int const i_n_atoms_to_load2 = max(
-              0, min(Int(TILE_SIZE), Int((alt_n_atoms2 - TILE_SIZE * i - 4))));
+          int const i_n_atoms_to_load2 =
+              max(0, min(Int(TILE_SIZE), Int((alt_n_atoms2 - TILE_SIZE * i))));
 
           // Let's load coordinates and Lennard-Jones parameters for
           // TILE_SIZE atoms into shared memory
@@ -560,11 +559,11 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               __syncthreads();
             }
             int j_n_atoms_to_load =
-                min(Int(TILE_SIZE), Int((neighb_n_atoms - TILE_SIZE * j - 4)));
+                min(Int(TILE_SIZE), Int((neighb_n_atoms - TILE_SIZE * j)));
             mgpu::mem_to_shared<TILE_SIZE, 3>(
                 reinterpret_cast<Real *>(
                     &context_coords[alt_context][neighb_block_ind]
-                                   [4 + j * TILE_SIZE]),
+                                   [j * TILE_SIZE]),
                 tid,
                 j_n_atoms_to_load * 3,
                 shared.union_vals.vals.coords_other,
@@ -572,7 +571,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             if (tid < TILE_SIZE) {
               // load the Lennard-Jones parameters for these TILE_SIZE atoms
               if (tid < j_n_atoms_to_load) {
-                int const atid = TILE_SIZE * j + 4 + tid;
+                int const atid = TILE_SIZE * j + tid;
                 int const attype =
                     block_type_atom_types[neighb_block_type][atid];
                 if (attype >= 0) {
@@ -597,8 +596,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             totalE1 += score_inter_pairs(
                 tid,
-                i * TILE_SIZE + 4,
-                j * TILE_SIZE + 4,
+                i * TILE_SIZE,
+                j * TILE_SIZE,
                 shared.coords_alt1,
                 shared.union_vals.vals.coords_other,
                 shared.params_alt1,
@@ -615,8 +614,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             totalE2 += score_inter_pairs(
                 tid,
-                i * TILE_SIZE + 4,
-                j * TILE_SIZE + 4,
+                i * TILE_SIZE,
+                j * TILE_SIZE,
                 shared.coords_alt2,
                 shared.union_vals.vals.coords_other,
                 shared.params_alt2,
@@ -703,7 +702,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         // alt_block_ind == neighb_block_ind
 
         int const n_iterations =
-            (max(alt_n_atoms1, alt_n_atoms2) - 4 - 1) / TILE_SIZE + 1;
+            (max(alt_n_atoms1, alt_n_atoms2) - 1) / TILE_SIZE + 1;
 
         for (int i = 0; i < n_iterations; ++i) {
           if (i != 0) {
@@ -713,10 +712,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             __syncthreads();
           }
           int const i_n_atoms_to_load1 =
-              min(Int(TILE_SIZE), Int((alt_n_atoms1 - TILE_SIZE * i - 4)));
+              min(Int(TILE_SIZE), Int((alt_n_atoms1 - TILE_SIZE * i)));
 
           int const i_n_atoms_to_load2 =
-              min(Int(TILE_SIZE), Int((alt_n_atoms2 - TILE_SIZE * i - 4)));
+              min(Int(TILE_SIZE), Int((alt_n_atoms2 - TILE_SIZE * i)));
 
           load_alt_coords_and_params_into_shared(
               rot_ind1,
@@ -766,8 +765,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             totalE1 += score_intra_pairs(
                 tid,
-                i * TILE_SIZE + 4,
-                j * TILE_SIZE + 4,
+                i * TILE_SIZE,
+                j * TILE_SIZE,
                 shared.coords_alt1,
                 (i == j ? shared.coords_alt1
                         : shared.union_vals.vals.coords_other),
@@ -802,8 +801,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             totalE2 += score_intra_pairs(
                 tid,
-                i * TILE_SIZE + 4,
-                j * TILE_SIZE + 4,
+                i * TILE_SIZE,
+                j * TILE_SIZE,
                 shared.coords_alt2,
                 (i == j ? shared.coords_alt2
                         : shared.union_vals.vals.coords_other),
