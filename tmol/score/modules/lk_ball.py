@@ -17,7 +17,6 @@ from tmol.score.modules.bonded_atom import BondedAtoms
 from tmol.score.common.stack_condense import condense_torch_inds
 
 from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
 
 
 @attr.s(auto_attribs=True)
