@@ -6,9 +6,7 @@ from functools import singledispatch
 
 from tmol.database.scoring import LJLKDatabase
 
-from tmol.score.lk_ball.identification import lk_ballElementAnalysis
-from tmol.score.lk_ball.params import lk_ballParamResolver, Compactedlk_ballDatabase
-from tmol.score.lk_ball.script_modules import lk_ballIntraModule
+from tmol.score.lk_ball.script_modules import LKBallIntraModule
 from tmol.score.ljlk.params import LJLKParamResolver
 
 from tmol.score.modules.bases import ScoreSystem, ScoreModule, ScoreMethod
@@ -59,7 +57,7 @@ class LKBallParameters(ScoreModule):
         return self.ljlk_param_resolver.type_idx(BondedAtoms.get(self).atom_types)
 
     @ljlk_param_resolver.default
-    def _init_ljlk_param_resolver(self) -> lk_ballParamResolver:
+    def _init_ljlk_param_resolver(self) -> LJLKParamResolver:
         return LJLKParamResolver.from_database(
             ParamDB.get(self).parameter_database.chemical,
             self.ljlk_database,
@@ -118,11 +116,14 @@ class LKBallScore(ScoreMethod):
     def build_for(val, system: ScoreSystem, **_) -> "LKBallScore":
         return LKBallScore(system=system)
 
-    lk_ball_intra_module: lk_ballIntraModule = attr.ib(init=False)
+    lk_ball_intra_module: LKBallIntraModule = attr.ib(init=False)
 
     @lk_ball_intra_module.default
     def _init_lk_ball_intra_module(self):
-        return lk_ballIntraModule(LKBallParameters.get(self).compacted_lk_ball_database)
+        return LKBallIntraModule(
+            LKBallParameters.get(self).ljlk_param_resolver,
+            ChemicalDB.get(self).atom_type_params,
+        )
 
     def intra_forward(self, coords: torch.Tensor):
         return {
