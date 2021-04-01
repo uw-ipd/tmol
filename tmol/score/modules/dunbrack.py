@@ -1,29 +1,34 @@
 import attr
 from attrs_strict import type_validator
 from typing import Set, Type, Optional
-import torch
+import torch, numpy
 from functools import singledispatch
 
-from tmol.database.scoring import PackedDunbrackDatabase, DunbrackRotamerLibrary
+from tmol.database.scoring import DunbrackRotamerLibrary
 
-from tmol.score.dunbrack.params import DunbrackParamResolver
-from tmol.score.dunbrack.script_modules import LJIntraModule, LKIsotropicIntraModule
+from tmol.score.dunbrack.params import (
+    DunbrackParamResolver,
+    DunbrackParams,
+    DunbrackScratch,
+)
+from tmol.score.dunbrack.script_modules import DunbrackScoreModule
 
 from tmol.score.modules.bases import ScoreSystem, ScoreModule, ScoreMethod
 from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
-from tmol.score.modules.chemical_database import ChemicalDB
-from tmol.score.modules.stacked_system import StackedSystem
 from tmol.score.modules.bonded_atom import BondedAtoms
+
+from tmol.system.score_support import get_dunbrack_phi_psi_chi, PhiPsiChi
+from tmol.system.packed import PackedResidueSystemStack
 
 from tmol.types.torch import Tensor
 
 
 @attr.s(slots=True, auto_attribs=True, kw_only=True, frozen=True)
-class dunbrackParameters(ScoreModule):
+class DunbrackParameters(ScoreModule):
     @staticmethod
     def depends_on() -> Set[Type[ScoreModule]]:
-        return {BondedAtoms, ChemicalDB, ParamDB, StackedSystem, TorchDevice}
+        return {ParamDB, BondedAtoms, TorchDevice}
 
     @staticmethod
     @singledispatch
@@ -31,105 +36,150 @@ class dunbrackParameters(ScoreModule):
         val,
         system: ScoreSystem,
         *,
-        dunbrack_database: Optional[dunbrackDatabase] = None,
+        dunbrack_rotamer_library: Optional[DunbrackRotamerLibrary] = None,
         **_,
     ):
         """Override constructor.
 
-        Create from provided `dunbrack_database``, otherwise from
-        ``parameter_database.scoring.dunbrack``.
+        Create from provided `dunbrack_rotamer_library``, otherwise from
+        ``parameter_database.scoring.dun``.
         """
-        if dunbrack_database is None:
-            dunbrack_database = ParamDB.get(system).parameter_database.scoring.dunbrack
+        if dunbrack_rotamer_library is None:
+            dunbrack_rotamer_library = ParamDB.get(
+                system
+            ).parameter_database.scoring.dun
 
-        return dunbrackParameters(system=system, dunbrack_database=dunbrack_database)
+        dunbrack_phi_psi_chi = get_dunbrack_phi_psi_chi(
+            val, TorchDevice.get(system).device
+        )
 
-    dunbrack_rotamer_library: Du
-    dunbrack_database: dunbrackDatabase = attr.ib(validator=type_validator())
+        return DunbrackParameters(
+            system=system,
+            dunbrack_rotamer_library=dunbrack_rotamer_library,
+            dunbrack_phi_psi_chi=dunbrack_phi_psi_chi,
+        )
+
+    dunbrack_rotamer_library: DunbrackRotamerLibrary = attr.ib(
+        validator=type_validator()
+    )
+    dunbrack_phi_psi_chi: PhiPsiChi = attr.ib(validator=type_validator())
     dunbrack_param_resolver: DunbrackParamResolver = attr.ib(init=False)
-    # dunbrack_atom_types: Tensor[torch.int64][:, :] = attr.ib(init=False)
-    dunbrack_atom_types: torch.Tensor = attr.ib(init=False)
+    dunbrack_params: DunbrackParams = attr.ib(init=False)
+    dunbrack_scratch: DunbrackScratch = attr.ib(init=False)
 
     @dunbrack_param_resolver.default
     def _init_dunbrack_param_resolver(self) -> DunbrackParamResolver:
-        # torch.device for param resolver is inherited from chemical db
         return DunbrackParamResolver.from_database(
-            dunbrack_rotamer_library, TorchDevice.get(self.system).device
+            self.dunbrack_rotamer_library, TorchDevice.get(self.system).device
         )
 
-    @dunbrack_atom_types.default
-    def _init_dunbrack_atom_types(self) -> Tensor[torch.long][...]:
-        return self.dunbrack_param_resolver.type_idx(BondedAtoms.get(self).atom_types)
+    @dunbrack_params.default
+    def _init_dunbrack_params(self) -> DunbrackParams:
+        dun_phi = self.dunbrack_phi_psi_chi.phi
+        dun_psi = self.dunbrack_phi_psi_chi.psi
+        dun_chi = self.dunbrack_phi_psi_chi.chi
+        """Parameter tensor groups and atom-type to parameter resolver."""
+        dun_res_names = numpy.full(
+            (dun_phi.shape[0], dun_phi.shape[1]), None, dtype=object
+        )
+
+        # select the name for each residue that potentially qualifies
+        # for dunbrack scoring by using the 2nd atom that defines the
+        # phi torsion. This atom will be non-negative even if other
+        # atoms that define phi are negative.
+        res_names = BondedAtoms.get(self).res_names
+        dun_at2_inds = dun_phi[:, :, 2].cpu().numpy()
+        dun_at2_real = dun_at2_inds != -1
+        nz_at2_real = numpy.nonzero(dun_at2_real)
+        dun_res_names[dun_at2_real] = res_names[
+            nz_at2_real[0], dun_at2_inds[dun_at2_real]
+        ]
+
+        return self.dunbrack_param_resolver.resolve_dunbrack_parameters(
+            dun_res_names,
+            dun_phi,
+            dun_psi,
+            dun_chi,
+            TorchDevice.get(self.system).device,
+        )
+
+    @dunbrack_scratch.default
+    def _init_dun_scratch(self) -> DunbrackScratch:
+        return self.dunbrack_param_resolver.allocate_dunbrack_scratch_space(
+            self.dunbrack_params
+        )
 
 
-@dunbrackParameters.build_for.register(ScoreSystem)
+@DunbrackParameters.build_for.register(ScoreSystem)
 def _clone_for_score_system(
     old,
     system: ScoreSystem,
     *,
-    dunbrack_database: Optional[dunbrackDatabase] = None,
+    dunbrack_rotamer_library: Optional[DunbrackRotamerLibrary] = None,
     **_,
 ):
     """Override constructor.
 
-        Create from ``val.dunbrack_database`` if possible, otherwise from
+        Create from ``val.dunbrack_rotamer_library`` if possible, otherwise from
         ``parameter_database.scoring.dunbrack``.
         """
-    if dunbrack_database is None:
-        dunbrack_database = dunbrackParameters.get(old).dunbrack_database
+    if dunbrack_rotamer_library is None:
+        dunbrack_rotamer_library = DunbrackParameters.get(old).dunbrack_rotamer_library
 
-    return dunbrackParameters(system=system, dunbrack_database=dunbrack_database)
+    return DunbrackParameters(
+        system=system,
+        dunbrack_rotamer_library=dunbrack_rotamer_library,
+        dunbrack_phi_psi_chi=DunbrackParameters.get(old).dunbrack_phi_psi_chi,
+    )
+
+
+@DunbrackParameters.build_for.register(PackedResidueSystemStack)
+def _build_for_stack(
+    stack,
+    system: ScoreSystem,
+    *,
+    dunbrack_rotamer_library: Optional[DunbrackRotamerLibrary] = None,
+    **_,
+):
+    """Override constructor.
+
+    Create from provided `dunbrack_rotamer_library``, otherwise from
+    ``parameter_database.scoring.dun``.
+    """
+    if dunbrack_rotamer_library is None:
+        dunbrack_rotamer_library = ParamDB.get(system).parameter_database.scoring.dun
+
+    # TODO henry how should we handle stacks?
+    dunbrack_phi_psi_chi = get_dunbrack_phi_psi_chi(
+        stack.systems[0], TorchDevice.get(system).device
+    )
+
+    return DunbrackParameters(
+        system=system,
+        dunbrack_rotamer_library=dunbrack_rotamer_library,
+        dunbrack_phi_psi_chi=dunbrack_phi_psi_chi,
+    )
 
 
 @attr.s(slots=True, auto_attribs=True, kw_only=True)
-class LJScore(ScoreMethod):
+class DunbrackScore(ScoreMethod):
     @staticmethod
     def depends_on() -> Set[Type[ScoreModule]]:
-        return {dunbrackParameters}
+        return {DunbrackParameters}
 
     @staticmethod
-    def build_for(val, system: ScoreSystem, **_) -> "LJScore":
-        return LJScore(system=system)
+    def build_for(val, system: ScoreSystem, **_) -> "DunbrackScore":
+        return DunbrackScore(system=system)
 
-    lj_intra_module: LJIntraModule = attr.ib(init=False)
+    dunbrack_score_module: DunbrackScoreModule = attr.ib(init=False)
 
-    @lj_intra_module.default
-    def _init_lj_intra_module(self):
-        return LJIntraModule(dunbrackParameters.get(self).dunbrack_param_resolver)
-
-    def intra_forward(self, coords: torch.Tensor):
-        return {
-            "lj": self.lj_intra_module(
-                coords,
-                dunbrackParameters.get(self).dunbrack_atom_types,
-                BondedAtoms.get(self).bonded_path_length,
-            )
-        }
-
-
-@attr.s(slots=True, auto_attribs=True, kw_only=True)
-class LKScore(ScoreMethod):
-    @staticmethod
-    def depends_on() -> Set[Type[ScoreModule]]:
-        return {dunbrackParameters}
-
-    @staticmethod
-    def build_for(val, system: ScoreSystem, **_) -> "LKScore":
-        return LKScore(system=system)
-
-    lk_intra_module: LKIsotropicIntraModule = attr.ib(init=False)
-
-    @lk_intra_module.default
-    def _init_lj_intra_module(self) -> LKIsotropicIntraModule:
-        return LKIsotropicIntraModule(
-            dunbrackParameters.get(self).dunbrack_param_resolver
+    @dunbrack_score_module.default
+    def _init_dunbrack_score_module(self):
+        return DunbrackScoreModule(
+            DunbrackParameters.get(self).dunbrack_param_resolver.packed_db,
+            DunbrackParameters.get(self).dunbrack_params,
+            DunbrackParameters.get(self).dunbrack_scratch,
         )
 
     def intra_forward(self, coords: torch.Tensor):
-        return {
-            "lk": self.lk_intra_module(
-                coords,
-                dunbrackParameters.get(self).dunbrack_atom_types,
-                BondedAtoms.get(self).bonded_path_length,
-            )
-        }
+        return {"dunbrack": self.dunbrack_score_module(coords)}
