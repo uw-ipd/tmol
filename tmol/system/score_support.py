@@ -287,14 +287,16 @@ def omega_graph_for_stack(system: PackedResidueSystemStack, **_):
     return dict(allomegas=numpy.concatenate([expand(d["allomegas"]) for d in params]))
 
 
-@DunbrackScoreGraph.factory_for.register(PackedResidueSystem)
-@validate_args
-def dunbrack_graph_inputs(
-    system: PackedResidueSystem,
-    parameter_database: ParameterDatabase,
-    device: torch.device,
-    **_,
-):
+class PhiPsiChi:
+    def __init__(self, phi: torch.tensor, psi: torch.tensor, chi: torch.tensor):
+        self.phi = phi
+        self.psi = psi
+        self.chi = chi
+
+
+def get_dunbrack_phi_psi_chi(
+    system: PackedResidueSystem, device: torch.device
+) -> PhiPsiChi:
     dun_phi = numpy.array(
         [
             [
@@ -392,10 +394,27 @@ def dunbrack_graph_inputs(
     sort_inds = numpy.lexsort((chi_inds, chi_res))
     dun_chi = join_chi[sort_inds, :]
 
+    return PhiPsiChi(
+        torch.tensor(dun_phi[None, :], dtype=torch.int32, device=device),
+        torch.tensor(dun_psi[None, :], dtype=torch.int32, device=device),
+        torch.tensor(dun_chi[None, :], dtype=torch.int32, device=device),
+    )
+
+
+@DunbrackScoreGraph.factory_for.register(PackedResidueSystem)
+@validate_args
+def dunbrack_graph_inputs(
+    system: PackedResidueSystem,
+    parameter_database: ParameterDatabase,
+    device: torch.device,
+    **_,
+):
+    dunbrack_phi_psi_chi = get_dunbrack_phi_psi_chi(system, device)
+
     return dict(
-        dun_phi=torch.tensor(dun_phi[None, :], dtype=torch.int32, device=device),
-        dun_psi=torch.tensor(dun_psi[None, :], dtype=torch.int32, device=device),
-        dun_chi=torch.tensor(dun_chi[None, :], dtype=torch.int32, device=device),
+        dun_phi=dunbrack_phi_psi_chi.phi,
+        dun_psi=dunbrack_phi_psi_chi.psi,
+        dun_chi=dunbrack_phi_psi_chi.chi,
         dun_database=parameter_database.scoring.dun,
     )
 
