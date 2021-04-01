@@ -18,8 +18,6 @@ def test_hbond_score_setup(benchmark, ubq_system, torch_device):
     def score_graph():
         return ScoreSystem.build_for(ubq_system, {HBondScore}, weights={"hbond": 1.0})
 
-    # TODO fordas add test assertions
-
 
 def test_hbond_database_clone_factory(ubq_system):
     clone_db = copy.copy(ParameterDatabase.get_default().scoring.hbond)
