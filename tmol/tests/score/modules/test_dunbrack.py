@@ -6,63 +6,71 @@ import torch
 from tmol.database import ParameterDatabase
 
 from tmol.score.modules.bases import ScoreSystem
-from tmol.score.modules.dunbrack import LJScore, dunbrackParameters
+from tmol.score.modules.dunbrack import DunbrackScore, DunbrackParameters
 from tmol.score.modules.coords import coords_for
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 
 @pytest.mark.benchmark(group="score_setup")
-def test_lj_score_setup(benchmark, ubq_system, torch_device):
+def test_dunbrack_score_setup(benchmark, ubq_system, torch_device):
     @benchmark
     def score_graph():
-        return ScoreSystem.build_for(ubq_system, {LJScore}, weights={"lj": 1.0})
-
-    # TODO fordas add test assertions
+        return ScoreSystem.build_for(
+            ubq_system, {DunbrackScore}, weights={"dunbrack": 1.0}
+        )
 
 
 def test_dunbrack_database_clone_factory(ubq_system):
-    clone_db = copy.copy(ParameterDatabase.get_default().scoring.dunbrack)
+    clone_dunbrack_rotamer_library = copy.copy(
+        ParameterDatabase.get_default().scoring.dun
+    )
 
-    src = ScoreSystem._build_with_modules(ubq_system, {dunbrackParameters})
+    src = ScoreSystem._build_with_modules(ubq_system, {DunbrackParameters})
     assert (
-        dunbrackParameters.get(src).dunbrack_database
-        is ParameterDatabase.get_default().scoring.dunbrack
+        DunbrackParameters.get(src).dunbrack_rotamer_library
+        is ParameterDatabase.get_default().scoring.dun
     )
 
     # Parameter database is overridden via kwarg
     src = ScoreSystem._build_with_modules(
-        ubq_system, {dunbrackParameters}, dunbrack_database=clone_db
+        ubq_system,
+        {DunbrackParameters},
+        dunbrack_rotamer_library=clone_dunbrack_rotamer_library,
     )
-    assert dunbrackParameters.get(src).dunbrack_database is clone_db
+    assert (
+        DunbrackParameters.get(src).dunbrack_database is clone_dunbrack_rotamer_library
+    )
 
     # Parameter database is referenced on clone
-    clone = ScoreSystem._build_with_modules(src, {dunbrackParameters})
+    clone = ScoreSystem._build_with_modules(src, {DunbrackParameters})
     assert (
-        dunbrackParameters.get(clone).dunbrack_database
-        is dunbrackParameters.get(src).dunbrack_database
+        DunbrackParameters.get(clone).dunbrack_rotamer_library
+        is DunbrackParameters.get(src).dun
     )
 
     # Parameter database is overriden on clone via kwarg
     clone = ScoreSystem._build_with_modules(
         src,
-        {dunbrackParameters},
-        dunbrack_database=ParameterDatabase.get_default().scoring.dunbrack,
+        {DunbrackParameters},
+        dunbrack_rotamer_library=ParameterDatabase.get_default().scoring.dun,
     )
     assert (
-        dunbrackParameters.get(clone).dunbrack_database
-        is not dunbrackParameters.get(src).dunbrack_database
+        DunbrackParameters.get(clone).dunbrack_rotamer_library
+        is not DunbrackParameters.get(src).dunbrack_rotamer_library
     )
     assert (
-        dunbrackParameters.get(clone).dunbrack_database
-        is ParameterDatabase.get_default().scoring.dunbrack
+        DunbrackParameters.get(clone).dunbrack_rotamer_library
+        is ParameterDatabase.get_default().scoring.dun
     )
 
 
-def test_lj_for_stacked_system(ubq_system: PackedResidueSystem):
+def test_dunbrack_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
 
-    stacked_score = ScoreSystem.build_for(twoubq, {LJScore}, weights={"lj": 1.0})
+    stacked_score = ScoreSystem.build_for(
+        twoubq, {DunbrackScore}, weights={"dunbrack": 1.0}
+    )
 
     coords = coords_for(twoubq, stacked_score)
 

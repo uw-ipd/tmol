@@ -20,8 +20,6 @@ def test_lk_ball_score_setup(benchmark, ubq_system, torch_device):
             ubq_system, {LKBallScore}, weights={"lk_ball": 1.0}
         )
 
-    # TODO fordas add test assertions
-
 
 def test_lk_ball_database_clone_factory(ubq_system):
     clone_db = copy.copy(ParameterDatabase.get_default().scoring.ljlk)
