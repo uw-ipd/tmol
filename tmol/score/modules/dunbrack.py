@@ -1,7 +1,8 @@
 import attr
 from attrs_strict import type_validator
 from typing import Set, Type, Optional
-import torch, numpy
+import torch
+import numpy
 from functools import singledispatch
 
 from tmol.database.scoring import DunbrackRotamerLibrary
