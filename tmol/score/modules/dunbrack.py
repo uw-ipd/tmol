@@ -18,10 +18,12 @@ from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
 from tmol.score.modules.bonded_atom import BondedAtoms
 
-from tmol.system.score_support import get_dunbrack_phi_psi_chi, PhiPsiChi
+from tmol.system.score_support import (
+    get_dunbrack_phi_psi_chi,
+    get_dunbrack_phi_psi_chi_for_stack,
+    PhiPsiChi,
+)
 from tmol.system.packed import PackedResidueSystemStack
-
-from tmol.types.torch import Tensor
 
 
 @attr.s(slots=True, auto_attribs=True, kw_only=True, frozen=True)
@@ -97,9 +99,9 @@ class DunbrackParameters(ScoreModule):
 
         return self.dunbrack_param_resolver.resolve_dunbrack_parameters(
             dun_res_names,
-            dun_phi,
-            dun_psi,
-            dun_chi,
+            dun_phi,  # stack this always
+            dun_psi,  # stack this always
+            dun_chi,  # stack this always
             TorchDevice.get(self.system).device,
         )
 
@@ -149,9 +151,8 @@ def _build_for_stack(
     if dunbrack_rotamer_library is None:
         dunbrack_rotamer_library = ParamDB.get(system).parameter_database.scoring.dun
 
-    # TODO henry how should we handle stacks?
-    dunbrack_phi_psi_chi = get_dunbrack_phi_psi_chi(
-        stack.systems[0], TorchDevice.get(system).device
+    dunbrack_phi_psi_chi = get_dunbrack_phi_psi_chi_for_stack(
+        stack, TorchDevice.get(system).device
     )
 
     return DunbrackParameters(

@@ -419,20 +419,15 @@ def dunbrack_graph_inputs(
     )
 
 
-@DunbrackScoreGraph.factory_for.register(PackedResidueSystemStack)
-@validate_args
-def dunbrack_graph_for_stack(
-    system: PackedResidueSystemStack,
-    parameter_database: ParameterDatabase,
-    device: torch.device,
-    **_,
-):
-    params = [
-        dunbrack_graph_inputs(sys, parameter_database, device) for sys in system.systems
+def get_dunbrack_phi_psi_chi_for_stack(
+    systemstack: PackedResidueSystemStack, device: torch.device
+) -> PhiPsiChi:
+    phi_psi_chis = [
+        get_dunbrack_phi_psi_chi(sys, device) for sys in systemstack.systems
     ]
 
-    max_nres = max(d["dun_phi"].shape[1] for d in params)
-    max_nchi = max(d["dun_chi"].shape[1] for d in params)
+    max_nres = max(phi_psi_chi.phi.shape[1] for phi_psi_chi in phi_psi_chis)
+    max_nchi = max(phi_psi_chi.chi.shape[1] for phi_psi_chi in phi_psi_chis)
 
     def expand_dihe(t, max_size):
         ext = torch.full(
@@ -441,12 +436,34 @@ def dunbrack_graph_for_stack(
         ext[0, : t.shape[1], :] = t[0]
         return ext
 
-    def stack_dihe(key, max_size):
-        return torch.cat([expand_dihe(d[key], max_size) for d in params])
+    phi_psi_chi = PhiPsiChi(
+        torch.cat(
+            [expand_dihe(phi_psi_chi.phi, max_nres) for phi_psi_chi in phi_psi_chis]
+        ),
+        torch.cat(
+            [expand_dihe(phi_psi_chi.psi, max_nres) for phi_psi_chi in phi_psi_chis]
+        ),
+        torch.cat(
+            [expand_dihe(phi_psi_chi.chi, max_nchi) for phi_psi_chi in phi_psi_chis]
+        ),
+    )
+
+    return phi_psi_chi
+
+
+@DunbrackScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def dunbrack_graph_for_stack(
+    systemstack: PackedResidueSystemStack,
+    parameter_database: ParameterDatabase,
+    device: torch.device,
+    **_,
+):
+    phi_psi_chi = get_dunbrack_phi_psi_chi_for_stack(systemstack, device)
 
     return dict(
-        dun_phi=stack_dihe("dun_phi", max_nres),
-        dun_psi=stack_dihe("dun_psi", max_nres),
-        dun_chi=stack_dihe("dun_chi", max_nchi),
-        dun_database=params[0]["dun_database"],
+        dun_phi=phi_psi_chi.phi,
+        dun_psi=phi_psi_chi.psi,
+        dun_chi=phi_psi_chi.chi,
+        dun_database=parameter_database.scoring.dun,
     )

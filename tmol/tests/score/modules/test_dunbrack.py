@@ -76,8 +76,8 @@ def test_dunbrack_for_stacked_system(ubq_system: PackedResidueSystem):
     coords = coords_for(twoubq, stacked_score)
 
     tot = stacked_score.intra_total(coords)
-    # assert tot.shape == (2,) #TODO henry what is going wrong here?
-    # torch.testing.assert_allclose(tot[0], tot[1])
+    assert tot.shape == (2, 3)
+    torch.testing.assert_allclose(tot[0], tot[1])
 
-    # sumtot = torch.sum(tot)
-    # sumtot.backward()
+    sumtot = torch.sum(tot)
+    sumtot.backward()
