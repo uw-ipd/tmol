@@ -1,6 +1,7 @@
 import numpy
 import torch
 
+from collections import namedtuple
 from typing import Optional
 
 from ..types.functional import validate_args
@@ -287,11 +288,7 @@ def omega_graph_for_stack(system: PackedResidueSystemStack, **_):
     return dict(allomegas=numpy.concatenate([expand(d["allomegas"]) for d in params]))
 
 
-class PhiPsiChi:
-    def __init__(self, phi: torch.tensor, psi: torch.tensor, chi: torch.tensor):
-        self.phi = phi
-        self.psi = psi
-        self.chi = chi
+PhiPsiChi = namedtuple("PhiPsiChi", ["phi", "psi", "chi"])
 
 
 def get_dunbrack_phi_psi_chi(
