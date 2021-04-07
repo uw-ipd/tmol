@@ -6,7 +6,7 @@ import torch
 from tmol.database import ParameterDatabase
 
 from tmol.score.modules.bases import ScoreSystem
-from tmol.score.modules.rama import RamaScore, ramaParameters
+from tmol.score.modules.rama import RamaScore, RamaParameters
 from tmol.score.modules.coords import coords_for
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
@@ -30,7 +30,7 @@ def test_rama_database_clone_factory(ubq_system):
 
     # Parameter database is overridden via kwarg
     src = ScoreSystem._build_with_modules(
-        ubq_system, {ramaParameters}, rama_database=clone_db
+        ubq_system, {RamaParameters}, rama_database=clone_db
     )
     assert RamaParameters.get(src).rama_database is clone_db
 

@@ -177,6 +177,47 @@ def system_torsion_graph_inputs(
     )
 
 
+AllPhisPsis = namedtuple("AllPhisPsis", ["allphis", "allpsis"])
+
+
+def get_rama_all_phis_psis(system):
+    phis = numpy.array(
+        [
+            [
+                [
+                    x["residue_index"],
+                    x["atom_index_a"],
+                    x["atom_index_b"],
+                    x["atom_index_c"],
+                    x["atom_index_d"],
+                ]
+                for x in system.torsion_metadata[
+                    system.torsion_metadata["name"] == "phi"
+                ]
+            ]
+        ]
+    )
+
+    psis = numpy.array(
+        [
+            [
+                [
+                    x["residue_index"],
+                    x["atom_index_a"],
+                    x["atom_index_b"],
+                    x["atom_index_c"],
+                    x["atom_index_d"],
+                ]
+                for x in system.torsion_metadata[
+                    system.torsion_metadata["name"] == "psi"
+                ]
+            ]
+        ]
+    )
+
+    return AllPhisPsis(phis, psis)
+
+
 @RamaScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args
 def rama_graph_inputs(
@@ -193,35 +234,39 @@ def rama_graph_inputs(
     if rama_database is None:
         rama_database = parameter_database.scoring.rama
 
-    phis = numpy.array(
-        [
-            [
-                x["residue_index"],
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "phi"]
-        ]
-    )
-
-    psis = numpy.array(
-        [
-            [
-                x["residue_index"],
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "psi"]
-        ]
-    )
+    all_phis_psis = get_rama_all_phis_psis(system)
 
     return dict(
-        rama_database=rama_database, allphis=phis[None, :], allpsis=psis[None, :]
+        rama_database=rama_database,
+        allphis=all_phis_psis.allphis[None, :],
+        allpsis=all_phis_psis.allpsis[None, :],
     )
+
+
+def get_rama_all_phis_psis_for_stack(stackedsystem):
+    all_phis_psis_list = [
+        get_rama_all_phis_psis(system) for system in stackedsystem.systems
+    ]
+
+    max_nres = max(
+        all_phis_psis.allphis.shape[1] for all_phis_psis in all_phis_psis_list
+    )
+
+    def expand(t):
+        ext = numpy.full((1, max_nres, 5), -1, dtype=int)
+        ext[0, : t.shape[1], :] = t[0]
+        return ext
+
+    all_phis_psis_stacked = AllPhisPsis(
+        numpy.concatenate(
+            [expand(all_phis_psis.allphis) for all_phis_psis in all_phis_psis_list]
+        ),
+        numpy.concatenate(
+            [expand(all_phis_psis.allpsis) for all_phis_psis in all_phis_psis_list]
+        ),
+    )
+
+    return all_phis_psis_stacked
 
 
 @RamaScoreGraph.factory_for.register(PackedResidueSystemStack)
@@ -232,25 +277,12 @@ def rama_graph_for_stack(
     rama_database: Optional[RamaDatabase] = None,
     **_,
 ):
-    params = [
-        rama_graph_inputs(sys, parameter_database, rama_database)
-        for sys in system.systems
-    ]
-
-    max_nres = max(d["allphis"].shape[1] for d in params)
-
-    def expand(t):
-        ext = numpy.full((1, max_nres, 5), -1, dtype=int)
-        ext[0, : t.shape[1], :] = t[0]
-        return ext
-
-    def stackem(key):
-        return numpy.concatenate([expand(d[key]) for d in params])
+    all_phis_psis = get_rama_all_phis_psis_for_stack(system)
 
     return dict(
-        rama_database=params[0]["rama_database"],
-        allphis=stackem("allphis"),
-        allpsis=stackem("allpsis"),
+        rama_database=parameter_database.scoring.rama,
+        allphis=all_phis_psis.allphis,
+        allpsis=all_phis_psis.allpsis,
     )
 
 
