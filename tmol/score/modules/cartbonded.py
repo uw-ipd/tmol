@@ -62,7 +62,6 @@ class CartBondedParameters(ScoreModule):
 
     @cartbonded_param_resolver.default
     def _init_cartbonded_param_resolver(self) -> CartBondedParamResolver:
-        # torch.device for param resolver is inherited from chemical db
         return CartBondedParamResolver.from_database(
             self.cartbonded_database, TorchDevice.get(self.system).device
         )
