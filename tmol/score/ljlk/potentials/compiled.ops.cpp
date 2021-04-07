@@ -87,8 +87,7 @@ rotamer_pair_energies_op(
   Tensor block_type_n_interblock_bonds,
   Tensor block_type_atoms_forming_chemical_bonds,
   Tensor block_type_path_distance,
-  Tensor lj_type_params,
-  Tensor lk_type_params,
+  Tensor ljlk_type_params,
   Tensor global_params,
   Tensor lj_lk_weights
 ) {
@@ -104,7 +103,7 @@ rotamer_pair_energies_op(
 	auto output_tp = TPack<Real, 1, Dev>::zeros({alternate_coords.size(0)});
 	auto output_tv = output_tp.view;
 
-	LJRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+	LJLKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -118,12 +117,13 @@ rotamer_pair_energies_op(
           TCAST(block_type_n_interblock_bonds),
           TCAST(block_type_atoms_forming_chemical_bonds),
           TCAST(block_type_path_distance),
-          TCAST(lj_type_params),
+          TCAST(ljlk_type_params),
           TCAST(global_params),
 	  TCAST(lj_lk_weights),
 	  output_tv
 	);
 
+	/*
 	LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
@@ -144,6 +144,7 @@ rotamer_pair_energies_op(
           TCAST(lj_lk_weights),
 	  output_tv
 	);
+	*/
 	output_tensor = output_tp.tensor;
       }));
 
@@ -167,8 +168,7 @@ register_lj_lk_rotamer_pair_energy_eval(
   Tensor block_type_n_interblock_bonds,
   Tensor block_type_atoms_forming_chemical_bonds,
   Tensor block_type_path_distance,
-  Tensor lj_type_params,
-  Tensor lk_type_params,
+  Tensor ljlk_type_params,
   Tensor global_params,
   Tensor lj_lk_weights,
   Tensor output,
@@ -183,7 +183,7 @@ register_lj_lk_rotamer_pair_energy_eval(
 	using Real = scalar_t;
 	constexpr tmol::Device Dev = device_t;
 	
-	LJRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+	LJLKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -197,7 +197,7 @@ register_lj_lk_rotamer_pair_energy_eval(
           TCAST(block_type_n_interblock_bonds),
           TCAST(block_type_atoms_forming_chemical_bonds),
           TCAST(block_type_path_distance),
-          TCAST(lj_type_params),
+          TCAST(ljlk_type_params),
           TCAST(global_params),
 	  TCAST(lj_lk_weights),
 	  TCAST(output),

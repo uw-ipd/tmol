@@ -52,7 +52,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
+auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 3, D> context_coords,
     TView<Int, 2, D> context_block_type,
     TView<Vec<Real, 3>, 2, D> alternate_coords,
@@ -103,7 +103,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     //////////////////////
 
     // LJ parameters
-    TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output) -> void {
@@ -157,15 +157,15 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
-  auto score_inter_pairs =
+  auto score_inter_pairs_lj =
       ([=] MGPU_DEVICE(
            int tid,
            int alt_start_atom,
            int neighb_start_atom,
-           Real *alt_coords,                   // shared
-           Real *neighb_coords,                // shared
-           LJTypeParams<Real> *alt_params,     // shared
-           LJTypeParams<Real> *neighb_params,  // shared
+           Real *alt_coords,                     // shared
+           Real *neighb_coords,                  // shared
+           LJLKTypeParams<Real> *alt_params,     // shared
+           LJLKTypeParams<Real> *neighb_params,  // shared
            int const max_important_bond_separation,
            int const min_separation,
 
@@ -225,8 +225,82 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           Real lj = lj_score<Real>::V(
               dist,
               separation,
-              alt_params[alt_atom_tile_ind],
-              neighb_params[neighb_atom_tile_ind],
+              alt_params[alt_atom_tile_ind].lj_params(),
+              neighb_params[neighb_atom_tile_ind].lj_params(),
+              global_params_local);
+          score_total += lj;
+        }
+        return score_total * lj_weight;
+      });
+
+  auto score_inter_pairs_lk =
+      ([=] MGPU_DEVICE(
+           int tid,
+           int alt_n_heavy,
+           int neighb_n_heavy,
+           Real *alt_coords,                        // shared
+           Real *neighb_coords,                     // shared
+           LJLKTypeParams<Real> *alt_params,        // shared
+           LJLKTypeParams<Real> *neighb_params,     // shared
+           unsigned char const *alt_heavy_inds,     // shared
+           unsigned char const *neighb_heavy_inds,  // shared
+           int const max_important_bond_separation,
+           int const min_separation,
+
+           int const alt_n_atoms,
+           int const neighb_n_atoms,
+           int const alt_n_conn,
+           int const neighb_n_conn,
+           unsigned char const *alt_path_dist,     // shared
+           unsigned char const *neighb_path_dist,  // shared
+           unsigned char const *conn_seps) {       // shared
+        Real score_total = 0;
+        return score_total;
+
+        Real coord1[3];
+        Real coord2[3];
+
+        int const n_pairs = alt_n_heavy * neighb_n_heavy;
+
+        LJGlobalParams<Real> global_params_local = global_params[0];
+        Real lj_weight = lj_lk_weights[0];
+        for (int i = tid; i < n_pairs; i += blockDim.x) {
+          int const alt_atom_tile_ind = i / neighb_n_heavy;
+          int const neighb_atom_tile_ind = i % neighb_n_heavy;
+          // neighb_start_atom;
+          for (int j = 0; j < 3; ++j) {
+            coord1[j] = alt_coords[3 * alt_atom_tile_ind + j];
+            coord2[j] = neighb_coords[3 * neighb_atom_tile_ind + j];
+          }
+          Real dist2 =
+              ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
+               + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
+               + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
+          if (dist2 > 36.0) {
+            // DANGER -- maximum reach of LJ potential hard coded here in a
+            // second place out of range!
+            continue;
+          }
+          Real dist = std::sqrt(dist2);
+          int separation = min_separation;
+          if (separation <= max_important_bond_separation) {
+            separation =
+                common::count_pair::CountPair<D, Int>::inter_block_separation<
+                    TILE_SIZE>(
+                    max_important_bond_separation,
+                    alt_atom_tile_ind,
+                    neighb_atom_tile_ind,
+                    alt_n_conn,
+                    neighb_n_conn,
+                    alt_path_dist,
+                    neighb_path_dist,
+                    conn_seps);
+          }
+          Real lj = lj_score<Real>::V(
+              dist,
+              separation,
+              alt_params[alt_atom_tile_ind].lj_params(),
+              neighb_params[neighb_atom_tile_ind].lj_params(),
               global_params_local);
           score_total += lj;
         }
@@ -240,8 +314,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                 int start_atom2,
                                 Real *coords1,
                                 Real *coords2,
-                                LJTypeParams<Real> *params1,
-                                LJTypeParams<Real> *params2,
+                                LJLKTypeParams<Real> *params1,
+                                LJLKTypeParams<Real> *params2,
                                 int const max_important_bond_separation,
                                 int const block_type,
                                 int const n_atoms) {
@@ -282,8 +356,8 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       Real lj = lj_score<Real>::V(
           dist,
           separation,
-          params1[atom_tile_ind_1],
-          params2[atom_tile_ind_2],
+          params1[atom_tile_ind_1].lj_params(),
+          params2[atom_tile_ind_2].lj_params(),
           global_params_local);
 
       score_total += lj;
@@ -302,7 +376,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            int tile_ind,
            bool new_context_ind,
            Real *coords,
-           LJTypeParams<Real> *params) {
+           LJLKTypeParams<Real> *params) {
         if (new_context_ind || n_atoms > TILE_SIZE) {
           mgpu::mem_to_shared<TILE_SIZE, 3>(
               reinterpret_cast<Real *>(
@@ -341,7 +415,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                    bool count_pair_striking_dist,
                                    unsigned char *conn_ats,
                                    Real *coords,
-                                   LJTypeParams<Real> *params,
+                                   LJLKTypeParams<Real> *params,
                                    unsigned char *path_dist  // to conn
                                ) {
     load_alt_coords_and_params_into_shared(
@@ -379,8 +453,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       // Memory that should remain intact between vt iterations
       Real coords_alt1[TILE_SIZE * 3];  // 786 bytes for coords
       Real coords_alt2[TILE_SIZE * 3];
-      LJTypeParams<Real> params_alt1[TILE_SIZE];  // 1536 bytes for params
-      LJTypeParams<Real> params_alt2[TILE_SIZE];
+      LJLKTypeParams<Real> params_alt1[TILE_SIZE];  // 1536 bytes for params
+      LJLKTypeParams<Real> params_alt2[TILE_SIZE];
+      unsigned char heavy_inds_alt1[TILE_SIZE];
+      unsigned char heavy_inds_alt2[TILE_SIZE];
       unsigned char conn_ats_alt1[MAX_N_CONN];  // 8 bytes for conn ats
       unsigned char conn_ats_alt2[MAX_N_CONN];
       unsigned char
@@ -389,9 +465,10 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
       union {
         struct {
-          Real coords_other[TILE_SIZE * 3];            // 384 bytes for coords
-          LJTypeParams<Real> params_other[TILE_SIZE];  // 768 bytes for params
-          unsigned char conn_ats_other[MAX_N_CONN];    // 4 bytes
+          Real coords_other[TILE_SIZE * 3];              // 384 bytes for coords
+          LJLKTypeParams<Real> params_other[TILE_SIZE];  // 768 bytes for params
+          unsigned char heavy_inds_other[TILE_SIZE];
+          unsigned char conn_ats_other[MAX_N_CONN];               // 4 bytes
           unsigned char path_dist_other[MAX_N_CONN * TILE_SIZE];  // 128 bypes
           unsigned char
               conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes for conn/conn
@@ -403,13 +480,6 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       // bool bad; // TEMP!
 
     } shared;
-
-    // Real *coords_alt1 = shared.coords_alt1;
-    // Real *coords_alt2 = shared.coords_alt2;
-    // Real *coords_other = shared.union_vals.vals.coords_other;
-    // LJTypeParams<Real> *params_alt1 = shared.params_alt1;
-    // LJTypeParams<Real> *params_alt2 = shared.params_alt2;
-    // LJTypeParams<Real> *params_other = shared.union_vals.vals.params_other;
 
     int n_conn_alt(-1);
     Int last_ivt_context_ind = -1;
@@ -594,7 +664,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // from it when calculating atom-pair energies.
             __syncthreads();
 
-            totalE1 += score_inter_pairs(
+            totalE1 += score_inter_pairs_lj(
                 tid,
                 i * TILE_SIZE,
                 j * TILE_SIZE,
@@ -612,7 +682,27 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 shared.union_vals.vals.path_dist_other,
                 shared.union_vals.vals.conn_seps);
 
-            totalE2 += score_inter_pairs(
+            totalE1 += score_inter_pairs_lk(
+                tid,
+                0,  // temp!!
+                0,  // temp!!
+                shared.coords_alt1,
+                shared.union_vals.vals.coords_other,
+                shared.params_alt1,
+                shared.union_vals.vals.params_other,
+                shared.heavy_inds_alt1,
+                shared.union_vals.vals.heavy_inds_other,
+                max_important_bond_separation,
+                min_sep,
+                alt_n_atoms1,
+                neighb_n_atoms,
+                n_conn_alt,
+                n_conn_other,
+                shared.path_dist_alt1,
+                shared.union_vals.vals.path_dist_other,
+                shared.union_vals.vals.conn_seps);
+
+            totalE2 += score_inter_pairs_lj(
                 tid,
                 i * TILE_SIZE,
                 j * TILE_SIZE,
@@ -620,6 +710,26 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 shared.union_vals.vals.coords_other,
                 shared.params_alt2,
                 shared.union_vals.vals.params_other,
+                max_important_bond_separation,
+                min_sep,
+                alt_n_atoms2,
+                neighb_n_atoms,
+                n_conn_alt,
+                n_conn_other,
+                shared.path_dist_alt2,
+                shared.union_vals.vals.path_dist_other,
+                shared.union_vals.vals.conn_seps);
+
+            totalE2 += score_inter_pairs_lk(
+                tid,
+                0,  // temp!!
+                0,  // temp!!
+                shared.coords_alt2,
+                shared.union_vals.vals.coords_other,
+                shared.params_alt2,
+                shared.union_vals.vals.params_other,
+                shared.heavy_inds_alt2,
+                shared.union_vals.vals.heavy_inds_other,
                 max_important_bond_separation,
                 min_sep,
                 alt_n_atoms2,
@@ -852,9 +962,9 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-class LJRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
+class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
  public:
-  LJRPECudaCalc(
+  LJLKRPECudaCalc(
       TView<Vec<Real, 3>, 3, D> context_coords,
       TView<Int, 2, D> context_block_type,
       TView<Vec<Real, 3>, 2, D> alternate_coords,
@@ -905,7 +1015,7 @@ class LJRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
       //////////////////////
 
       // LJ parameters
-      TView<LJTypeParams<Real>, 1, D> type_params,
+      TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> lj_lk_weights,
       TView<Real, 1, D> output)
@@ -929,7 +1039,7 @@ class LJRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         output_(output) {}
 
   void calc_energies() override {
-    LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
+    LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         context_coords_,
         context_block_type_,
         alternate_coords_,
@@ -973,7 +1083,7 @@ class LJRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
   TView<Int, 3, D> block_type_path_distance_;
 
   // LJ parameters
-  TView<LJTypeParams<Real>, 1, D> type_params_;
+  TView<LJLKTypeParams<Real>, 1, D> type_params_;
   TView<LJGlobalParams<Real>, 1, D> global_params_;
   TView<Real, 1, D> lj_lk_weights_;
 
@@ -986,7 +1096,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
+auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 3, D> context_coords,
     TView<Int, 2, D> context_block_type,
     TView<Vec<Real, 3>, 2, D> alternate_coords,
@@ -1037,7 +1147,7 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     //////////////////////
 
     // LJ parameters
-    TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output,
@@ -1048,7 +1158,7 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
   int64_t annealer_uint = annealer[0];
   SimAnnealer *sim_annealer = reinterpret_cast<SimAnnealer *>(annealer_uint);
   std::shared_ptr<RPECalc> calc =
-      std::make_shared<LJRPECudaCalc<DeviceDispatch, D, Real, Int>>(
+      std::make_shared<LJLKRPECudaCalc<DeviceDispatch, D, Real, Int>>(
           context_coords,
           context_block_type,
           alternate_coords,
@@ -1070,14 +1180,18 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
   sim_annealer->add_score_component(calc);
 }
 
-template struct LJRPEDispatch<ForallDispatch, tmol::Device::CUDA, float, int>;
-template struct LJRPEDispatch<ForallDispatch, tmol::Device::CUDA, double, int>;
-template struct LJRPERegistratorDispatch<
+template struct LJLKRPEDispatch<ForallDispatch, tmol::Device::CUDA, float, int>;
+template struct LJLKRPEDispatch<
+    ForallDispatch,
+    tmol::Device::CUDA,
+    double,
+    int>;
+template struct LJLKRPERegistratorDispatch<
     ForallDispatch,
     tmol::Device::CUDA,
     float,
     int>;
-template struct LJRPERegistratorDispatch<
+template struct LJLKRPERegistratorDispatch<
     ForallDispatch,
     tmol::Device::CUDA,
     double,

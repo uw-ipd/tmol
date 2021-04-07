@@ -16,10 +16,10 @@ template <
     typename Real,
     typename Int
 >
-class LJRPECPUCalc : public pack::sim_anneal::compiled::RPECalc
+class LJLKRPECPUCalc : public pack::sim_anneal::compiled::RPECalc
 {
 public:
-  LJRPECPUCalc(
+  LJLKRPECPUCalc(
     TView<Vec<Real, 3>, 3, D> context_coords,
     TView<Int, 2, D> context_block_type,
     TView<Vec<Real, 3>, 2, D> alternate_coords,
@@ -70,7 +70,7 @@ public:
     //////////////////////
 
     // LJ parameters
-    TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output
@@ -96,7 +96,7 @@ public:
 
   void
   calc_energies() override {
-    LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
+    LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       context_coords_,
       context_block_type_,
       alternate_coords_,
@@ -141,7 +141,7 @@ private:
   TView<Int, 3, D> block_type_path_distance_;
 
   // LJ parameters
-  TView<LJTypeParams<Real>, 1, D> type_params_;
+  TView<LJLKTypeParams<Real>, 1, D> type_params_;
   TView<LJGlobalParams<Real>, 1, D> global_params_;
   TView<Real, 1, D> lj_lk_weights_;
 
@@ -156,7 +156,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
+auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 3, D> context_coords,
     TView<Int, 2, D> context_block_type,
     TView<Vec<Real, 3>, 2, D> alternate_coords,
@@ -207,7 +207,7 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     //////////////////////
 
     // LJ parameters
-    TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output,
@@ -219,7 +219,7 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
 
   int64_t annealer_uint = annealer[0];
   SimAnnealer * sim_annealer = reinterpret_cast< SimAnnealer * > (annealer_uint);
-  std::shared_ptr< RPECalc > calc = std::make_shared<LJRPECPUCalc<DeviceDispatch, D, Real, Int>>(
+  std::shared_ptr< RPECalc > calc = std::make_shared<LJLKRPECPUCalc<DeviceDispatch, D, Real, Int>>(
     context_coords,
     context_block_type,
     alternate_coords,
@@ -244,10 +244,10 @@ auto LJRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
 }
 
 
-template struct LJRPEDispatch<ForallDispatch, tmol::Device::CPU, float, int>;
-template struct LJRPEDispatch<ForallDispatch, tmol::Device::CPU, double, int>;
-template struct LJRPERegistratorDispatch<ForallDispatch, tmol::Device::CPU, float, int>;
-template struct LJRPERegistratorDispatch<ForallDispatch, tmol::Device::CPU, double, int>;
+template struct LJLKRPEDispatch<ForallDispatch, tmol::Device::CPU, float, int>;
+template struct LJLKRPEDispatch<ForallDispatch, tmol::Device::CPU, double, int>;
+template struct LJLKRPERegistratorDispatch<ForallDispatch, tmol::Device::CPU, float, int>;
+template struct LJLKRPERegistratorDispatch<ForallDispatch, tmol::Device::CPU, double, int>;
 
 
 }

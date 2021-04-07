@@ -33,7 +33,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
+auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 3, D> context_coords,
     TView<Int, 2, D> context_block_type,
     TView<Vec<Real, 3>, 2, D> alternate_coords,
@@ -84,7 +84,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     //////////////////////
 
     // LJ parameters
-    TView<LJTypeParams<Real>, 1, D> type_params,
+    TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output) -> void {
@@ -261,10 +261,22 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Real lj = lj_score<Real>::V(
         dist,
         separation,
-        type_params[atom_1_type],
-        type_params[atom_2_type],
+        type_params[atom_1_type].lj_params(),
+        type_params[atom_2_type].lj_params(),
         global_params[0]);
     lj *= lj_lk_weights[0];
+
+    Real lk(0);
+    if (type_params[atom_1_type].lk_volume > 0
+        && type_params[atom_2_type].lk_volume > 0) {
+      Real lk = lk_isotropic_score<Real>::V(
+          dist,
+          separation,
+          type_params[atom_1_type].lk_params(),
+          type_params[atom_2_type].lk_params(),
+          global_params[0]);
+      lk *= lj_lk_weights[1];
+    }
 
     // if ( lj != 0 ) {
     //   printf("cpu  %d %d %6.3f %6.3f %6.3f vs %6.3f %6.3f %6.3f e= %8.4f\n",
@@ -279,8 +291,7 @@ auto LJRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     //   );
     // }
 
-    accumulate<D, Real>::add_one_dst(output, alt_ind, lj);
-    // accumulate<D, Real>::add(output[alt_ind], lj);
+    accumulate<D, Real>::add_one_dst(output, alt_ind, lj + lk);
   });
 
   DeviceDispatch<D>::foreach_combination_triple(

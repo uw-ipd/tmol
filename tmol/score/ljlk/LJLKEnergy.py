@@ -186,6 +186,25 @@ class LJLKInterSystemModule:
             )
         )
 
+        self.ljlk_type_params = _p(
+            torch.stack(
+                _t(
+                    [
+                        type_params.lj_radius,
+                        type_params.lj_wdepth,
+                        type_params.lk_dgfree,
+                        type_params.lk_lambda,
+                        type_params.lk_volume,
+                        type_params.is_donor,
+                        type_params.is_hydroxyl,
+                        type_params.is_polarh,
+                        type_params.is_acceptor,
+                    ]
+                ),
+                dim=1,
+            )
+        )
+
         self.global_params = _p(
             torch.stack(
                 _t(
@@ -226,8 +245,7 @@ class LJLKInterSystemModule:
             self.bt_n_interblock_bonds,
             self.bt_atoms_forming_chemical_bonds,
             self.bt_path_distance,
-            self.lj_type_params,
-            self.lk_type_params,
+            self.ljlk_type_params,
             self.global_params,
             self.lj_lk_weights,
             output_energies,
@@ -254,8 +272,7 @@ class LJLKInterSystemModule:
             self.bt_n_interblock_bonds,
             self.bt_atoms_forming_chemical_bonds,
             self.bt_path_distance,
-            self.lj_type_params,
-            self.lk_type_params,
+            self.ljlk_type_params,
             self.global_params,
             self.lj_lk_weights,
         )
