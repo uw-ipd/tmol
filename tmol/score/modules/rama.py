@@ -14,8 +14,6 @@ from tmol.score.rama.script_modules import RamaScoreModule
 from tmol.score.modules.bases import ScoreSystem, ScoreModule, ScoreMethod
 from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
-from tmol.score.modules.chemical_database import ChemicalDB
-from tmol.score.modules.stacked_system import StackedSystem
 from tmol.score.modules.bonded_atom import BondedAtoms
 
 from tmol.system.score_support import (
@@ -24,9 +22,6 @@ from tmol.system.score_support import (
     AllPhisPsis,
 )
 from tmol.system.packed import PackedResidueSystemStack
-
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
 
 
 @attr.s(slots=True, auto_attribs=True, kw_only=True, frozen=True)
