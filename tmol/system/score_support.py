@@ -238,8 +238,8 @@ def rama_graph_inputs(
 
     return dict(
         rama_database=rama_database,
-        allphis=all_phis_psis.allphis[None, :],
-        allpsis=all_phis_psis.allpsis[None, :],
+        allphis=all_phis_psis.allphis,
+        allpsis=all_phis_psis.allpsis,
     )
 
 
