@@ -55,8 +55,6 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             dtype=torch.int32,
             device=self.device,
         )
-        print("heavy_atoms_in_tile", heavy_atoms_in_tile.shape)
-        print("n_heavy_ats_in_tile", n_heavy_ats_in_tile.shape)
 
         def _t(arr):
             return torch.tensor(arr, dtype=torch.int32, device=self.device)
@@ -64,8 +62,9 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         for i, rt in enumerate(packed_block_types.active_block_types):
             i_n_tiles = rt.ljlk_n_heavy_atoms_in_tile.shape[0]
             i_n_tile_ats = i_n_tiles * self.tile_size
-            heavy_atoms_in_tile[:i_n_tile_ats] = _t(rt.ljlk_heavy_atoms_in_tile)
-            n_heavy_ats_in_tile[:i_n_tiles] = _t(rt.ljlk_n_heavy_atoms_in_tile)
+            heavy_atoms_in_tile[i, :i_n_tile_ats] = _t(rt.ljlk_heavy_atoms_in_tile)
+            n_heavy_ats_in_tile[i, :i_n_tiles] = _t(rt.ljlk_n_heavy_atoms_in_tile)
+
         setattr(packed_block_types, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile", n_heavy_ats_in_tile)
 

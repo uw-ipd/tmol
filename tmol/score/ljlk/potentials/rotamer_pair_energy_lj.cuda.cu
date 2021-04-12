@@ -145,11 +145,6 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   assert(block_type_n_heavy_atoms_in_tile.size(0) == n_block_types);
   assert(block_type_heavy_atoms_in_tile.size(0) == n_block_types);
-
-  // std::cout << "max n tiles:" << max_n_tiles << " TILE_SIZE " << TILE_SIZE;
-  // std::cout << " block_type_heavy_atoms_in_tile.size(1) ";
-  // std::cout << block_type_heavy_atoms_in_tile.size(1) << std::endl;
-
   assert(block_type_heavy_atoms_in_tile.size(1) == TILE_SIZE * max_n_tiles);
 
   assert(block_type_atom_types.size(0) == n_block_types);
@@ -282,6 +277,9 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           int const neighb_atom_tile_ind = i % neighb_n_heavy;
           int const alt_atom_ind = alt_heavy_inds[alt_atom_tile_ind];
           int const neighb_atom_ind = neighb_heavy_inds[neighb_atom_tile_ind];
+          if (alt_atom_ind < 0 || neighb_atom_ind < 0) {
+            continue;
+          }
 
           for (int j = 0; j < 3; ++j) {
             coord1[j] = alt_coords[3 * alt_atom_ind + j];
@@ -314,8 +312,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           Real lk = lk_isotropic_score<Real>::V(
               dist,
               separation,
-              alt_params[alt_atom_tile_ind].lk_params(),
-              neighb_params[neighb_atom_tile_ind].lk_params(),
+              alt_params[alt_atom_ind].lk_params(),
+              neighb_params[neighb_atom_ind].lk_params(),
               global_params_local);
           score_total += lk;
         }
@@ -398,6 +396,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                    int const block_type,
                                    int const n_atoms) {
     Real score_total = 0;
+    // return score_total;
     Real coord1[3];
     Real coord2[3];
 
@@ -722,6 +721,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             if (tid == 0) {
               shared.union_vals.vals.n_heavy_other =
                   block_type_n_heavy_atoms_in_tile[neighb_block_type][j];
+              // printf("n heavy other: %d %d %d\n", alt_block_ind,
+              // neighb_block_ind, shared.union_vals.vals.n_heavy_other);
             }
 
             int j_n_atoms_to_load =
@@ -1056,7 +1057,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             // make sure that all writes to shared memory have completed
             __syncthreads();
-            int const n_heavy_alt2 = shared.n_heavy_alt1;
+            int const n_heavy_alt2 = shared.n_heavy_alt2;
             int const n_heavy_other2 =
                 (i == j ? n_heavy_alt2 : shared.union_vals.vals.n_heavy_other);
 

@@ -272,13 +272,15 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     Real lk(0);
     if (type_params[atom_1_type].lk_volume > 0
         && type_params[atom_2_type].lk_volume > 0) {
-      Real lk = lk_isotropic_score<Real>::V(
+      lk = lk_isotropic_score<Real>::V(
           dist,
           separation,
           type_params[atom_1_type].lk_params(),
           type_params[atom_2_type].lk_params(),
           global_params[0]);
       lk *= lj_lk_weights[1];
+      // std::cout << "lk " << alt_ind << " " << neighb_ind << " " << at1 << " "
+      // << at2 << " " << lk << "\n";
     }
 
     // if ( lj != 0 ) {
