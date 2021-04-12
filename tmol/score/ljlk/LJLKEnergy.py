@@ -29,12 +29,13 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(LJLKEnergy, self).setup_block_type(block_type)
         if hasattr(block_type, "ljlk_heavy_atoms_in_tile"):
+            assert hasattr(block_type, "ljlk_n_heavy_atoms_in_tile")
             return
         heavy_atoms_in_tile, n_in_tile = tile_subset_indices(
             block_type.heavy_atom_inds, self.tile_size
         )
         setattr(block_type, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
-        setattr(block_type, "ljlk_n_heavy_ats_in_tile", n_in_tile)
+        setattr(block_type, "ljlk_n_heavy_atoms_in_tile", n_in_tile)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(LJLKEnergy, self).setup_packed_block_types(packed_block_types)
@@ -55,11 +56,14 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             device=self.device,
         )
 
+        def _t(arr):
+            return torch.tensor(arr, dtype=torch.int32, device=self.device)
+
         for i, rt in enumerate(packed_block_types.active_block_types):
-            i_n_tiles = rt.ljlk_n_heavy_ats_in_tile.shape[0]
+            i_n_tiles = rt.ljlk_n_heavy_atoms_in_tile.shape[0]
             i_n_tile_ats = i_n_tiles * self.tile_size
-            heavy_atoms_in_tile[:i_n_tile_ats] = rt.ljlk_heavy_atoms_in_tile
-            n_heavy_ats_in_tile[:i_n_tiles] = rt.ljlk_n_heavy_ats_in_tile
+            heavy_atoms_in_tile[:i_n_tile_ats] = _t(rt.ljlk_heavy_atoms_in_tile)
+            n_heavy_ats_in_tile[:i_n_tiles] = _t(rt.ljlk_n_heavy_atoms_in_tile)
         setattr(packed_block_types, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile", n_heavy_ats_in_tile)
 
