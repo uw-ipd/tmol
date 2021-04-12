@@ -66,6 +66,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     // how many atoms for a given block
     // Dimsize n_block_types
     TView<Int, 1, D> block_type_n_atoms,
+    TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
+    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
 
     // what are the atom types for these atoms
     // Dimsize: n_block_types x max_n_atoms

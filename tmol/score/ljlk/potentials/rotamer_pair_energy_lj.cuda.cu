@@ -85,6 +85,9 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     // Dimsize n_block_types
     TView<Int, 1, D> block_type_n_atoms,
 
+    TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
+    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
+
     // what are the atom types for these atoms
     // Dimsize: n_block_types x max_n_atoms
     TView<Int, 2, D> block_type_atom_types,
@@ -997,6 +1000,9 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
       // Dimsize n_block_types
       TView<Int, 1, D> block_type_n_atoms,
 
+      TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
+      TView<Int, 2, D> block_type_heavy_atoms_in_tile,
+
       // what are the atom types for these atoms
       // Dimsize: n_block_types x max_n_atoms
       TView<Int, 2, D> block_type_atom_types,
@@ -1028,6 +1034,8 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         system_inter_block_bondsep_(system_inter_block_bondsep),
         system_neighbor_list_(system_neighbor_list),
         block_type_n_atoms_(block_type_n_atoms),
+        block_type_n_heavy_atoms_in_tile_(block_type_n_heavy_atoms_in_tile),
+        block_type_heavy_atoms_in_tile_(block_type_heavy_atoms_in_tile),
         block_type_atom_types_(block_type_atom_types),
         block_type_n_interblock_bonds_(block_type_n_interblock_bonds),
         block_type_atoms_forming_chemical_bonds_(
@@ -1049,6 +1057,8 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         system_inter_block_bondsep_,
         system_neighbor_list_,
         block_type_n_atoms_,
+        block_type_n_heavy_atoms_in_tile_,
+        block_type_heavy_atoms_in_tile_,
         block_type_atom_types_,
         block_type_n_interblock_bonds_,
         block_type_atoms_forming_chemical_bonds_,
@@ -1073,6 +1083,8 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
   TView<Int, 3, D> system_neighbor_list_;
 
   TView<Int, 1, D> block_type_n_atoms_;
+  TView<Int, 2, D> block_type_n_heavy_atoms_in_tile_;
+  TView<Int, 2, D> block_type_heavy_atoms_in_tile_;
 
   TView<Int, 2, D> block_type_atom_types_;
 
@@ -1129,6 +1141,9 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     // Dimsize n_block_types
     TView<Int, 1, D> block_type_n_atoms,
 
+    TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
+    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
+
     // what are the atom types for these atoms
     // Dimsize: n_block_types x max_n_atoms
     TView<Int, 2, D> block_type_atom_types,
@@ -1168,6 +1183,8 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
           system_inter_block_bondsep,
           system_neighbor_list,
           block_type_n_atoms,
+          block_type_n_heavy_atoms_in_tile,
+          block_type_heavy_atoms_in_tile,
           block_type_atom_types,
           block_type_n_interblock_bonds,
           block_type_atoms_forming_chemical_bonds,
