@@ -14,6 +14,7 @@
 #include <tmol/score/common/tuple.hh>
 
 #include <tmol/score/ljlk/potentials/lj.hh>
+#include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 #include <tmol/score/ljlk/potentials/rotamer_pair_energy_lj.hh>
 
 #include <tmol/pack/sim_anneal/compiled/annealer.hh>
@@ -120,6 +121,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       block_type_atoms_forming_chemical_bonds.size(1);
   int64_t const max_n_neighbors = system_neighbor_list.size(2);
   int64_t const n_atom_types = type_params.size(0);
+  int64_t const max_n_tiles = block_type_n_heavy_atoms_in_tile.size(2);
 
   assert(context_block_type.size(0) == n_contexts);
   assert(context_block_type.size(1) == max_n_blocks);
@@ -140,6 +142,15 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   assert(system_neighbor_list.size(0) == n_systems);
   assert(system_neighbor_list.size(1) == max_n_blocks);
+
+  assert(block_type_n_heavy_atoms_in_tile.size(0) == n_block_types);
+  assert(block_type_heavy_atoms_in_tile.size(0) == n_block_types);
+
+  // std::cout << "max n tiles:" << max_n_tiles << " TILE_SIZE " << TILE_SIZE;
+  // std::cout << " block_type_heavy_atoms_in_tile.size(1) ";
+  // std::cout << block_type_heavy_atoms_in_tile.size(1) << std::endl;
+
+  assert(block_type_heavy_atoms_in_tile.size(1) == TILE_SIZE * max_n_tiles);
 
   assert(block_type_atom_types.size(0) == n_block_types);
   assert(block_type_atom_types.size(1) == max_n_atoms);
@@ -249,7 +260,6 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            unsigned char const *neighb_heavy_inds,  // shared
            int const max_important_bond_separation,
            int const min_separation,
-
            int const alt_n_atoms,
            int const neighb_n_atoms,
            int const alt_n_conn,
@@ -258,7 +268,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            unsigned char const *neighb_path_dist,  // shared
            unsigned char const *conn_seps) {       // shared
         Real score_total = 0;
-        return score_total;
+        // return score_total;
 
         Real coord1[3];
         Real coord2[3];
@@ -266,21 +276,23 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         int const n_pairs = alt_n_heavy * neighb_n_heavy;
 
         LJGlobalParams<Real> global_params_local = global_params[0];
-        Real lj_weight = lj_lk_weights[0];
+        Real lk_weight = lj_lk_weights[1];
         for (int i = tid; i < n_pairs; i += blockDim.x) {
           int const alt_atom_tile_ind = i / neighb_n_heavy;
           int const neighb_atom_tile_ind = i % neighb_n_heavy;
-          // neighb_start_atom;
+          int const alt_atom_ind = alt_heavy_inds[alt_atom_tile_ind];
+          int const neighb_atom_ind = neighb_heavy_inds[neighb_atom_tile_ind];
+
           for (int j = 0; j < 3; ++j) {
-            coord1[j] = alt_coords[3 * alt_atom_tile_ind + j];
-            coord2[j] = neighb_coords[3 * neighb_atom_tile_ind + j];
+            coord1[j] = alt_coords[3 * alt_atom_ind + j];
+            coord2[j] = neighb_coords[3 * neighb_atom_ind + j];
           }
           Real dist2 =
               ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
                + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
                + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
           if (dist2 > 36.0) {
-            // DANGER -- maximum reach of LJ potential hard coded here in a
+            // DANGER -- maximum reach of LK potential hard coded here in a
             // second place out of range!
             continue;
           }
@@ -291,37 +303,37 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 common::count_pair::CountPair<D, Int>::inter_block_separation<
                     TILE_SIZE>(
                     max_important_bond_separation,
-                    alt_atom_tile_ind,
-                    neighb_atom_tile_ind,
+                    alt_atom_ind,
+                    neighb_atom_ind,
                     alt_n_conn,
                     neighb_n_conn,
                     alt_path_dist,
                     neighb_path_dist,
                     conn_seps);
           }
-          Real lj = lj_score<Real>::V(
+          Real lk = lk_isotropic_score<Real>::V(
               dist,
               separation,
-              alt_params[alt_atom_tile_ind].lj_params(),
-              neighb_params[neighb_atom_tile_ind].lj_params(),
+              alt_params[alt_atom_tile_ind].lk_params(),
+              neighb_params[neighb_atom_tile_ind].lk_params(),
               global_params_local);
-          score_total += lj;
+          score_total += lk;
         }
-        return score_total * lj_weight;
+        return score_total * lk_weight;
       });
 
   // between one atoms within an alternate rotamer
-  auto score_intra_pairs = ([=] MGPU_DEVICE(
-                                int tid,
-                                int start_atom1,
-                                int start_atom2,
-                                Real *coords1,
-                                Real *coords2,
-                                LJLKTypeParams<Real> *params1,
-                                LJLKTypeParams<Real> *params2,
-                                int const max_important_bond_separation,
-                                int const block_type,
-                                int const n_atoms) {
+  auto score_intra_pairs_lj = ([=] MGPU_DEVICE(
+                                   int tid,
+                                   int start_atom1,
+                                   int start_atom2,
+                                   Real *coords1,
+                                   Real *coords2,
+                                   LJLKTypeParams<Real> *params1,
+                                   LJLKTypeParams<Real> *params2,
+                                   int const max_important_bond_separation,
+                                   int const block_type,
+                                   int const n_atoms) {
     Real score_total = 0;
     Real coord1[3];
     Real coord2[3];
@@ -331,7 +343,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     int const n_pairs = remain1 * remain2;
     LJGlobalParams<Real> global_params_local = global_params[0];
-    Real lj_weight = lj_lk_weights[0];
+    // Real lj_weight = lj_lk_weights[0];
 
     for (int i = tid; i < n_pairs; i += blockDim.x) {
       int const atom_tile_ind_1 = i / remain2;
@@ -369,6 +381,68 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     ;
   });
 
+  // between one atoms within an alternate rotamer
+  auto score_intra_pairs_lk = ([=] MGPU_DEVICE(
+                                   int tid,
+                                   int start_atom1,
+                                   int start_atom2,
+                                   int n_heavy1,
+                                   int n_heavy2,
+                                   Real *coords1,
+                                   Real *coords2,
+                                   LJLKTypeParams<Real> *params1,
+                                   LJLKTypeParams<Real> *params2,
+                                   unsigned char const *heavy_inds1,
+                                   unsigned char const *heavy_inds2,
+                                   int const max_important_bond_separation,
+                                   int const block_type,
+                                   int const n_atoms) {
+    Real score_total = 0;
+    Real coord1[3];
+    Real coord2[3];
+
+    int const n_pairs = n_heavy1 * n_heavy2;
+    LJGlobalParams<Real> global_params_local = global_params[0];
+    // Real lk_weight = lj_lk_weights[1];
+
+    for (int i = tid; i < n_pairs; i += blockDim.x) {
+      int const atom_heavy_tile_ind_1 = i / n_heavy2;
+      int const atom_heavy_tile_ind_2 = i % n_heavy2;
+      int const atom_tile_ind_1 = heavy_inds1[atom_heavy_tile_ind_1];
+      int const atom_tile_ind_2 = heavy_inds2[atom_heavy_tile_ind_2];
+      int const atom_ind_1 = atom_tile_ind_1 + start_atom1;
+      int const atom_ind_2 = atom_tile_ind_2 + start_atom2;
+      if (atom_ind_1 >= atom_ind_2) {
+        continue;
+      }
+
+      for (int j = 0; j < 3; ++j) {
+        coord1[j] = coords1[3 * atom_tile_ind_1 + j];
+        coord2[j] = coords2[3 * atom_tile_ind_2 + j];
+      }
+
+      // read path distances from global memory
+      int const separation =
+          block_type_path_distance[block_type][atom_ind_1][atom_ind_2];
+
+      Real const dist = sqrt(
+          (coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
+          + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
+          + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
+
+      Real lk = lk_isotropic_score<Real>::V(
+          dist,
+          separation,
+          params1[atom_tile_ind_1].lk_params(),
+          params2[atom_tile_ind_2].lk_params(),
+          global_params_local);
+
+      score_total += lk;
+    }
+    return score_total *= lj_lk_weights[1];
+    ;
+  });
+
   auto load_alt_coords_and_params_into_shared =
       ([=] MGPU_DEVICE(
            int rot_ind,
@@ -379,7 +453,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            int tile_ind,
            bool new_context_ind,
            Real *coords,
-           LJLKTypeParams<Real> *params) {
+           LJLKTypeParams<Real> *params,
+           unsigned char *heavy_inds) {
         if (new_context_ind || n_atoms > TILE_SIZE) {
           mgpu::mem_to_shared<TILE_SIZE, 3>(
               reinterpret_cast<Real *>(
@@ -401,6 +476,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             if (attype >= 0) {
               params[tid] = type_params[attype];
             }
+            heavy_inds[tid] = block_type_heavy_atoms_in_tile[block_type][atid];
           }
         }
       });
@@ -419,6 +495,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                    unsigned char *conn_ats,
                                    Real *coords,
                                    LJLKTypeParams<Real> *params,
+                                   unsigned char *heavy_inds,
                                    unsigned char *path_dist  // to conn
                                ) {
     load_alt_coords_and_params_into_shared(
@@ -430,7 +507,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         tile_ind,
         new_context_ind,
         coords,
-        params);
+        params,
+        heavy_inds);
     if ((n_atoms > TILE_SIZE || !count_pair_data_loaded)
         && tid < n_atoms_to_load && count_pair_striking_dist) {
       int const atid = TILE_SIZE * tile_ind + tid;
@@ -458,6 +536,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       Real coords_alt2[TILE_SIZE * 3];
       LJLKTypeParams<Real> params_alt1[TILE_SIZE];  // 1536 bytes for params
       LJLKTypeParams<Real> params_alt2[TILE_SIZE];
+      unsigned char n_heavy_alt1;
+      unsigned char n_heavy_alt2;
       unsigned char heavy_inds_alt1[TILE_SIZE];
       unsigned char heavy_inds_alt2[TILE_SIZE];
       unsigned char conn_ats_alt1[MAX_N_CONN];  // 8 bytes for conn ats
@@ -470,6 +550,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         struct {
           Real coords_other[TILE_SIZE * 3];              // 384 bytes for coords
           LJLKTypeParams<Real> params_other[TILE_SIZE];  // 768 bytes for params
+          unsigned char n_heavy_other;
           unsigned char heavy_inds_other[TILE_SIZE];
           unsigned char conn_ats_other[MAX_N_CONN];               // 4 bytes
           unsigned char path_dist_other[MAX_N_CONN * TILE_SIZE];  // 128 bypes
@@ -480,8 +561,6 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         typename reduce_t::storage_t reduce;
 
       } union_vals;
-      // bool bad; // TEMP!
-
     } shared;
 
     int n_conn_alt(-1);
@@ -589,6 +668,13 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           // Let's load coordinates and Lennard-Jones parameters for
           // TILE_SIZE atoms into shared memory
 
+          if (tid == 0) {
+            shared.n_heavy_alt1 =
+                block_type_n_heavy_atoms_in_tile[alt_block_type1][i];
+            shared.n_heavy_alt2 =
+                block_type_n_heavy_atoms_in_tile[alt_block_type2][i];
+          }
+
           load_alt_into_shared(
               rot_ind1,
               alt_n_atoms1,
@@ -603,6 +689,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               shared.conn_ats_alt1,
               shared.coords_alt1,
               shared.params_alt1,
+              shared.heavy_inds_alt1,
               shared.path_dist_alt1);
 
           load_alt_into_shared(
@@ -619,6 +706,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               shared.conn_ats_alt2,
               shared.coords_alt2,
               shared.params_alt2,
+              shared.heavy_inds_alt2,
               shared.path_dist_alt2);
 
           if (count_pair_striking_dist) {
@@ -631,6 +719,11 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               // overwrite shared memory
               __syncthreads();
             }
+            if (tid == 0) {
+              shared.union_vals.vals.n_heavy_other =
+                  block_type_n_heavy_atoms_in_tile[neighb_block_type][j];
+            }
+
             int j_n_atoms_to_load =
                 min(Int(TILE_SIZE), Int((neighb_n_atoms - TILE_SIZE * j)));
             mgpu::mem_to_shared<TILE_SIZE, 3>(
@@ -651,6 +744,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                   shared.union_vals.vals.params_other[tid] =
                       type_params[attype];
                 }
+                shared.union_vals.vals.heavy_inds_other[tid] =
+                    block_type_heavy_atoms_in_tile[neighb_block_type][atid];
                 if (count_pair_striking_dist) {
                   for (int k = 0; k < n_conn_other; ++k) {
                     int jk_path_dist =
@@ -666,6 +761,9 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             // make sure all shared memory writes have completed before we read
             // from it when calculating atom-pair energies.
             __syncthreads();
+            int n_heavy_alt1 = shared.n_heavy_alt1;
+            int n_heavy_alt2 = shared.n_heavy_alt2;
+            int n_heavy_other = shared.union_vals.vals.n_heavy_other;
 
             totalE1 += score_inter_pairs_lj(
                 tid,
@@ -687,8 +785,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             totalE1 += score_inter_pairs_lk(
                 tid,
-                0,  // temp!!
-                0,  // temp!!
+                n_heavy_alt1,
+                n_heavy_other,
                 shared.coords_alt1,
                 shared.union_vals.vals.coords_other,
                 shared.params_alt1,
@@ -725,8 +823,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
             totalE2 += score_inter_pairs_lk(
                 tid,
-                0,  // temp!!
-                0,  // temp!!
+                n_heavy_alt2,
+                n_heavy_other,
                 shared.coords_alt2,
                 shared.union_vals.vals.coords_other,
                 shared.params_alt2,
@@ -830,6 +928,13 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           int const i_n_atoms_to_load2 =
               min(Int(TILE_SIZE), Int((alt_n_atoms2 - TILE_SIZE * i)));
 
+          if (tid == 0) {
+            shared.n_heavy_alt1 =
+                block_type_n_heavy_atoms_in_tile[alt_block_type1][i];
+            shared.n_heavy_alt2 =
+                block_type_n_heavy_atoms_in_tile[alt_block_type2][i];
+          }
+
           load_alt_coords_and_params_into_shared(
               rot_ind1,
               alt_n_atoms1,
@@ -839,7 +944,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               i,
               new_context_ind,
               shared.coords_alt1,
-              shared.params_alt1);
+              shared.params_alt1,
+              shared.heavy_inds_alt1);
           load_alt_coords_and_params_into_shared(
               rot_ind2,
               alt_n_atoms2,
@@ -849,7 +955,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               i,
               new_context_ind,
               shared.coords_alt2,
-              shared.params_alt2);
+              shared.params_alt2,
+              shared.heavy_inds_alt2);
 
           for (int j = i; j < n_iterations; ++j) {
             if (j != i) {
@@ -859,6 +966,11 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               __syncthreads();
             }
             if (j != i) {
+              if (tid == 0) {
+                shared.union_vals.vals.n_heavy_other =
+                    block_type_n_heavy_atoms_in_tile[alt_block_type1][j];
+              }
+
               load_alt_coords_and_params_into_shared(
                   rot_ind1,
                   alt_n_atoms1,
@@ -868,15 +980,19 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                   j,
                   new_context_ind,
                   shared.union_vals.vals.coords_other,
-                  shared.union_vals.vals.params_other);
+                  shared.union_vals.vals.params_other,
+                  shared.union_vals.vals.heavy_inds_other);
             }
             // we are guaranteed to hit this syncthreads call; we must wait
             // here before reading from shared memory for the coordinates
             // in shared.coords_alt1 to be loaded, or if j != i, for the
             // coordinates in shared.union_vals.vals.coords_other to be loaded.
             __syncthreads();
+            int const n_heavy_alt1 = shared.n_heavy_alt1;
+            int const n_heavy_other1 =
+                (i == j ? n_heavy_alt1 : shared.union_vals.vals.n_heavy_other);
 
-            totalE1 += score_intra_pairs(
+            totalE1 += score_intra_pairs_lj(
                 tid,
                 i * TILE_SIZE,
                 j * TILE_SIZE,
@@ -889,6 +1005,26 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 max_important_bond_separation,
                 alt_block_type1,
                 alt_n_atoms1);
+
+            totalE1 += score_intra_pairs_lk(
+                tid,
+                i * TILE_SIZE,
+                j * TILE_SIZE,
+                n_heavy_alt1,
+                n_heavy_other1,
+                shared.coords_alt1,
+                (i == j ? shared.coords_alt1
+                        : shared.union_vals.vals.coords_other),
+                shared.params_alt1,
+                (i == j ? shared.params_alt1
+                        : shared.union_vals.vals.params_other),
+                shared.heavy_inds_alt1,
+                (i == j ? shared.heavy_inds_alt1
+                        : shared.union_vals.vals.heavy_inds_other),
+                max_important_bond_separation,
+                alt_block_type1,
+                alt_n_atoms1);
+
           }  // for j
 
           for (int j = i; j < n_iterations; ++j) {
@@ -900,6 +1036,11 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               // we don't use the same shared memory arrays for that iteration
               __syncthreads();
 
+              if (tid == 0) {
+                shared.union_vals.vals.n_heavy_other =
+                    block_type_n_heavy_atoms_in_tile[alt_block_type2][j];
+              }
+
               load_alt_coords_and_params_into_shared(
                   rot_ind2,
                   alt_n_atoms2,
@@ -909,10 +1050,17 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                   j,
                   new_context_ind,
                   shared.union_vals.vals.coords_other,
-                  shared.union_vals.vals.params_other);
+                  shared.union_vals.vals.params_other,
+                  shared.union_vals.vals.heavy_inds_other);
             }
 
-            totalE2 += score_intra_pairs(
+            // make sure that all writes to shared memory have completed
+            __syncthreads();
+            int const n_heavy_alt2 = shared.n_heavy_alt1;
+            int const n_heavy_other2 =
+                (i == j ? n_heavy_alt2 : shared.union_vals.vals.n_heavy_other);
+
+            totalE2 += score_intra_pairs_lj(
                 tid,
                 i * TILE_SIZE,
                 j * TILE_SIZE,
@@ -925,12 +1073,32 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 max_important_bond_separation,
                 alt_block_type2,
                 alt_n_atoms2);
+
+            totalE2 += score_intra_pairs_lk(
+                tid,
+                i * TILE_SIZE,
+                j * TILE_SIZE,
+                n_heavy_alt2,
+                n_heavy_other2,
+                shared.coords_alt2,
+                (i == j ? shared.coords_alt2
+                        : shared.union_vals.vals.coords_other),
+                shared.params_alt2,
+                (i == j ? shared.params_alt2
+                        : shared.union_vals.vals.params_other),
+                shared.heavy_inds_alt2,
+                (i == j ? shared.heavy_inds_alt2
+                        : shared.union_vals.vals.heavy_inds_other),
+                max_important_bond_separation,
+                alt_block_type2,
+                alt_n_atoms2);
+
           }  // for j
         }    // for i
       }      // else
 
-      // Make sure all energy calculations are complete before we write
-      // over the neighbor-residue data
+      // Make sure all energy calculations are complete before we overwrite
+      // the neighbor-residue data in the shared memory union
       __syncthreads();
 
       Real const cta_totalE1 = reduce_t().reduce(

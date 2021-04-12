@@ -55,6 +55,8 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             dtype=torch.int32,
             device=self.device,
         )
+        print("heavy_atoms_in_tile", heavy_atoms_in_tile.shape)
+        print("n_heavy_ats_in_tile", n_heavy_ats_in_tile.shape)
 
         def _t(arr):
             return torch.tensor(arr, dtype=torch.int32, device=self.device)
@@ -94,7 +96,7 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
             bt_n_atoms=pbt.n_atoms,
             bt_n_heavy_atoms=pbt.n_heavy_atoms,
             bt_n_heavy_atoms_in_tile=pbt.ljlk_n_heavy_atoms_in_tile,
-            bt_heavy_atoms_in_tile=pbt.ljlk_n_heavy_atoms_in_tile,
+            bt_heavy_atoms_in_tile=pbt.ljlk_heavy_atoms_in_tile,
             bt_atom_types=pbt.atom_types,
             bt_heavy_atom_inds=pbt.heavy_atom_inds,
             bt_n_interblock_bonds=pbt.n_interblock_bonds,
@@ -325,6 +327,8 @@ class LJLKInterSystemModule:
             self.system_neighbor_list,
             self.bt_n_atoms,
             self.bt_n_heavy_atoms,
+            self.bt_n_heavy_atoms_in_tile,
+            self.bt_heavy_atoms_in_tile,
             self.bt_atom_types,
             self.bt_heavy_atom_inds,
             self.bt_n_interblock_bonds,
