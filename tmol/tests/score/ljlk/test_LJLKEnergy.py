@@ -4,7 +4,7 @@ import pytest
 
 from tmol.score.ljlk.LJLKEnergy import LJLKEnergy
 from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.system.pose import Pose, Poses
+from tmol.system.pose import Pose, Poses, residue_types_from_residues, PackedBlockTypes
 from tmol.score.chemical_database import AtomTypeParamResolver
 
 
@@ -22,12 +22,42 @@ def test_smoke(default_database, torch_device):
         atom_type_resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
-        atom_type_index=ljlk_params.atom_type_index,
+        # atom_type_index=ljlk_params.atom_type_index,
         device=torch_device,
     )
 
     assert ljlk_energy.type_params.lj_radius.device == torch_device
     assert ljlk_energy.global_params.max_dis.device == torch_device
+
+
+def test_annotate_heavy_ats_in_tile(ubq_res, default_database, torch_device):
+
+    resolver = AtomTypeParamResolver.from_database(
+        default_database.chemical, torch_device
+    )
+
+    ljlk_params = LJLKParamResolver.from_database(
+        default_database.chemical, default_database.scoring.ljlk, device=torch_device
+    )
+
+    ljlk_energy = LJLKEnergy(
+        atom_type_resolver=resolver,
+        type_params=ljlk_params.type_params,
+        global_params=ljlk_params.global_params,
+        # atom_type_index=ljlk_params.atom_type_index,
+        device=torch_device,
+    )
+
+    rt_list = residue_types_from_residues(ubq_res)
+    pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
+
+    for rt in rt_list:
+        ljlk_energy.setup_block_type(rt)
+        assert hasattr(rt, "ljlk_heavy_atoms_in_tile")
+        assert hasattr(rt, "ljlk_n_heavy_atoms_in_tile")
+    ljlk_energy.setup_packed_block_types(pbt)
+    assert hasattr(pbt, "ljlk_heavy_atoms_in_tile")
+    assert hasattr(pbt, "ljlk_n_heavy_atoms_in_tile")
 
 
 def test_create_neighbor_list(ubq_res, default_database, torch_device):
@@ -44,7 +74,7 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
         atom_type_resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
-        atom_type_index=ljlk_params.atom_type_index,
+        # atom_type_index=ljlk_params.atom_type_index,
         device=torch_device,
     )
 
@@ -112,7 +142,7 @@ def test_inter_module(ubq_res, default_database, torch_device):
         atom_type_resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
-        atom_type_index=ljlk_params.atom_type_index,
+        # atom_type_index=ljlk_params.atom_type_index,
         device=torch_device,
     )
 
@@ -226,7 +256,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
         atom_type_resolver=resolver,
         type_params=ljlk_params.type_params,
         global_params=ljlk_params.global_params,
-        atom_type_index=ljlk_params.atom_type_index,
+        # atom_type_index=ljlk_params.atom_type_index,
         device=torch_device,
     )
 

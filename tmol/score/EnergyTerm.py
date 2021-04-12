@@ -3,6 +3,9 @@ from tmol.system.restypes import RefinedResidueType
 
 
 class EnergyTerm:
+    def __init__(self, **kwargs):
+        pass
+
     def setup_block_type(self, block_type: RefinedResidueType):
         pass
 

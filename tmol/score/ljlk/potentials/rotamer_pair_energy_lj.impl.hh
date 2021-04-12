@@ -15,6 +15,7 @@
 #include <tmol/score/common/tuple.hh>
 
 #include <tmol/score/ljlk/potentials/lj.hh>
+#include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 #include <tmol/score/ljlk/potentials/rotamer_pair_energy_lj.hh>
 
 #include <chrono>

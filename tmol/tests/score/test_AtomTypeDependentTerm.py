@@ -4,6 +4,15 @@ from tmol.system.pose import PackedBlockTypes, residue_types_from_residues
 from tmol.score.AtomTypeDependentTerm import AtomTypeDependentTerm
 
 
+def test_setup_block_type(ubq_res, default_database, torch_device):
+    rt_list = residue_types_from_residues(ubq_res)
+    atdt = AtomTypeDependentTerm.from_database(default_database.chemical, torch_device)
+    for rt in rt_list:
+        atdt.setup_block_type(rt)
+        assert hasattr(rt, "atom_types")
+        assert hasattr(rt, "heavy_atom_inds")
+
+
 def test_store_atom_types_in_packed_residue_types(
     ubq_res, default_database, torch_device
 ):
@@ -32,3 +41,17 @@ def test_store_atom_types_in_packed_residue_types(
             )
     # print(atdt.atom_type_index)
     # print(pbt.atom_types)
+
+
+def test_take_heavyatom_inds_in_range():
+    heavy_inds = torch.tensor([0, 1, 2, 3, 4, 5, 8, 10, 11, 12, 13], dtype=torch.int64)
+    tile_size = 8
+    n_tiles = (heavy_inds.shape[0] - 1) // tile_size + 1
+    heavy_subset_wi_tile = torch.full((n_tiles * tile_size,), -1, dtype=torch.int64)
+    for i in range(n_tiles):
+        subset = (heavy_inds >= i * tile_size) & (heavy_inds < (i + 1) * tile_size)
+        print(subset)
+        subset_size = torch.sum(subset)
+        s = slice(i * tile_size, i * tile_size + subset_size)
+        heavy_subset_wi_tile[s] = heavy_inds[subset]
+    print(heavy_subset_wi_tile)

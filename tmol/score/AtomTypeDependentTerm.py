@@ -9,12 +9,27 @@ from tmol.system.pose import PackedBlockTypes
 from tmol.system.restypes import RefinedResidueType
 from tmol.score.EnergyTerm import EnergyTerm
 
+from tmol.types.array import NDArray
 
-@attr.s(auto_attribs=True)
+
 class AtomTypeDependentTerm(EnergyTerm):
-    atom_type_resolver: AtomTypeParamResolver
-    atom_type_index: pandas.Index
-    device: torch.device
+    atom_type_resolver: AtomTypeParamResolver  # = attr.ib()
+    atom_type_index: pandas.Index  # = attr.ib()
+    np_is_hydrogen: NDArray(bool)  # = attr.ib()
+    np_is_heavyatom: NDArray(bool)  # = attr.ib()
+    device: torch.device  # = attr.ib()
+
+    def __init__(
+        self, atom_type_resolver: AtomTypeParamResolver, device: torch.device, **kwargs
+    ):
+        super(AtomTypeDependentTerm, self).__init__(
+            atom_type_resolver=atom_type_resolver, device=device, **kwargs
+        )
+        self.atom_type_resolver = atom_type_resolver
+        self.atom_type_index = atom_type_resolver.index
+        self.np_is_hydrogen = atom_type_resolver.params.is_hydrogen.cpu().numpy()
+        self.np_is_heavyatom = numpy.logical_not(self.np_is_hydrogen)
+        self.device = device
 
     @classmethod
     def from_database(cls, chemical_database: ChemicalDatabase, device: torch.device):
@@ -29,12 +44,21 @@ class AtomTypeDependentTerm(EnergyTerm):
     ):
         return cls(
             atom_type_resolver=atom_type_resolver,
-            atom_type_index=atom_type_resolver.index,
+            # atom_type_index=atom_type_resolver.index,
             device=device,
         )
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(AtomTypeDependentTerm, self).setup_block_type(block_type)
+        if hasattr(block_type, "atom_types"):
+            assert hasattr(block_type, "heavy_atom_inds")
+            return
+        atom_types = self.atom_type_index.get_indexer(
+            [x.atom_type for x in block_type.atoms]
+        )
+        heavy_inds = numpy.nonzero(self.np_is_heavyatom[atom_types])[0]
+        setattr(block_type, "atom_types", atom_types)
+        setattr(block_type, "heavy_atom_inds", heavy_inds)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(AtomTypeDependentTerm, self).setup_packed_block_types(packed_block_types)

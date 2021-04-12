@@ -11,9 +11,13 @@ from tmol.score.EnergyTerm import EnergyTerm
 from tmol.score.bonded_atom import IndexedBonds
 
 
-@attr.s(auto_attribs=True)
+# @attr.s(auto_attribs=True)
 class BondDependentTerm(EnergyTerm):
     device: torch.device
+
+    def __init__(self, device: torch.device, **kwargs):
+        super(BondDependentTerm, self).__init__(device=device, **kwargs)
+        self.device = device
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(BondDependentTerm, self).setup_block_type(block_type)
