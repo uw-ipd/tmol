@@ -1,6 +1,6 @@
 import attr
 from attrs_strict import type_validator
-from typing import Set, Type, Optional
+from typing import Set, Type
 import torch
 from functools import singledispatch
 
@@ -9,7 +9,6 @@ from tmol.score.omega.script_modules import OmegaScoreModule
 from tmol.score.common.stack_condense import condense_subset
 from tmol.score.modules.bases import ScoreSystem, ScoreModule, ScoreMethod
 from tmol.score.modules.device import TorchDevice
-from tmol.score.modules.database import ParamDB
 from tmol.score.modules.stacked_system import StackedSystem
 
 from tmol.system.score_support import (
