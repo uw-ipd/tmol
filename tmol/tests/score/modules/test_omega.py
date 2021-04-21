@@ -1,9 +1,5 @@
-import copy
-
 import pytest
 import torch
-
-from tmol.database import ParameterDatabase
 
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.omega import OmegaScore, OmegaParameters
