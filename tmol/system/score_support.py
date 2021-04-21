@@ -286,6 +286,53 @@ def rama_graph_for_stack(
     )
 
 
+def allomegas_from_packed_residue_system(
+    packed_residue_system: PackedResidueSystem
+) -> numpy.array:
+
+    allomegas = numpy.array(
+        [
+            [
+                [
+                    x["atom_index_a"],
+                    x["atom_index_b"],
+                    x["atom_index_c"],
+                    x["atom_index_d"],
+                ]
+                for x in packed_residue_system.torsion_metadata[
+                    packed_residue_system.torsion_metadata["name"] == "omega"
+                ]
+            ]
+        ]
+    )
+
+    return allomegas
+
+
+def allomegas_from_packed_residue_system_stack(
+    packed_residue_system_stack: PackedResidueSystemStack
+):
+
+    allomegas_list = numpy.array(
+        [
+            allomegas_from_packed_residue_system(system)
+            for system in packed_residue_system_stack.systems
+        ]
+    )
+    max_omegas = max(allomegas.shape[1] for allomegas in allomegas_list)
+
+    def expand(t):
+        ext = numpy.full((1, max_omegas, 4), -1, dtype=int)
+        ext[0, : t.shape[1], :] = t
+        return ext
+
+    allomegas_stacked = numpy.concatenate(
+        [expand(allomegas) for allomegas in allomegas_list]
+    )
+
+    return allomegas_stacked
+
+
 @OmegaScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args
 def omega_graph_inputs(system: PackedResidueSystem, **_):
@@ -295,14 +342,7 @@ def omega_graph_inputs(system: PackedResidueSystem, **_):
     from the torsion_metadata object.
     """
 
-    omegas = numpy.array(
-        [
-            [x["atom_index_a"], x["atom_index_b"], x["atom_index_c"], x["atom_index_d"]]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "omega"]
-        ]
-    )
-
-    return dict(allomegas=omegas[None, :])
+    return dict(allomegas=allomegas_from_packed_residue_system(system))
 
 
 @OmegaScoreGraph.factory_for.register(PackedResidueSystemStack)
@@ -311,11 +351,6 @@ def omega_graph_for_stack(system: PackedResidueSystemStack, **_):
     params = [omega_graph_inputs(sys) for sys in system.systems]
 
     max_omegas = max(d["allomegas"].shape[1] for d in params)
-
-    def expand(t):
-        ext = numpy.full((1, max_omegas, 4), -1, dtype=int)
-        ext[0, : t.shape[1], :] = t
-        return ext
 
     return dict(allomegas=numpy.concatenate([expand(d["allomegas"]) for d in params]))
 
