@@ -313,12 +313,11 @@ def allomegas_from_packed_residue_system_stack(
     packed_residue_system_stack: PackedResidueSystemStack
 ):
 
-    allomegas_list = numpy.array(
-        [
-            allomegas_from_packed_residue_system(system)
-            for system in packed_residue_system_stack.systems
-        ]
-    )
+    allomegas_list = [
+        allomegas_from_packed_residue_system(system)
+        for system in packed_residue_system_stack.systems
+    ]
+
     max_omegas = max(allomegas.shape[1] for allomegas in allomegas_list)
 
     def expand(t):
@@ -348,11 +347,7 @@ def omega_graph_inputs(system: PackedResidueSystem, **_):
 @OmegaScoreGraph.factory_for.register(PackedResidueSystemStack)
 @validate_args
 def omega_graph_for_stack(system: PackedResidueSystemStack, **_):
-    params = [omega_graph_inputs(sys) for sys in system.systems]
-
-    max_omegas = max(d["allomegas"].shape[1] for d in params)
-
-    return dict(allomegas=numpy.concatenate([expand(d["allomegas"]) for d in params]))
+    return dict(allomegas=allomegas_from_packed_residue_system_stack(system))
 
 
 PhiPsiChi = namedtuple("PhiPsiChi", ["phi", "psi", "chi"])
