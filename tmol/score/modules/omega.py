@@ -10,9 +10,7 @@ from tmol.score.common.stack_condense import condense_subset
 from tmol.score.modules.bases import ScoreSystem, ScoreModule, ScoreMethod
 from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
-from tmol.score.modules.chemical_database import ChemicalDB
 from tmol.score.modules.stacked_system import StackedSystem
-from tmol.score.modules.bonded_atom import BondedAtoms
 
 from tmol.system.score_support import (
     allomegas_from_packed_residue_system,
@@ -28,7 +26,7 @@ from tmol.types.torch import Tensor
 class OmegaParameters(ScoreModule):
     @staticmethod
     def depends_on() -> Set[Type[ScoreModule]]:
-        return {BondedAtoms, StackedSystem, TorchDevice}
+        return {StackedSystem, TorchDevice}
 
     @staticmethod
     @singledispatch
