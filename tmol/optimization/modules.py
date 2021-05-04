@@ -1,5 +1,9 @@
 import torch
+import math
+
 from tmol.kinematics.metadata import DOFTypes
+from tmol.score.coordinates import KinematicAtomicCoordinateProvider
+from tmol.types.torch import Tensor
 
 # modules for cartesian and torsion-space optimization
 #
@@ -13,19 +17,17 @@ from tmol.kinematics.metadata import DOFTypes
 
 # cartesian space minimization
 class CartesianEnergyNetwork(torch.nn.Module):
-    def __init__(self, score_graph):
+    def __init__(self, score_system, coords):
         super(CartesianEnergyNetwork, self).__init__()
 
         # scoring graph
-        self.graph = score_graph
+        self.score_system = score_system
 
         # parameters
-        self.dofs = torch.nn.Parameter(self.graph.coords)
+        self.dofs = torch.nn.Parameter(coords)
 
     def forward(self):
-        self.graph.coords = self.dofs
-        self.graph.reset_coords()
-        return self.graph.intra_score().total
+        return self.score_system.intra_total(self.dofs)
 
 
 # mask out relevant dofs to the minimizer
@@ -46,23 +48,40 @@ class DOFMaskingFunc(torch.autograd.Function):
 
 # torsion space minimization
 class TorsionalEnergyNetwork(torch.nn.Module):
-    def __init__(self, score_graph):
+    def __init__(self, score_system, dofs, kintree, dofmetadata, system_size):
         super(TorsionalEnergyNetwork, self).__init__()
 
-        # scoring graph
-        self.graph = score_graph
+        self.score_system = score_system
+        self.kintree = kintree
+        self.system_size = system_size
 
         # todo: make this a configurable parameter
         #   (for now it defaults to torsion minimization)
-        dofmask = self.graph.dofmetadata[
-            self.graph.dofmetadata.dof_type == DOFTypes.bond_torsion
-        ]
+        dofmetadata = dofmetadata
+        dofmask = dofmetadata[dofmetadata.dof_type == DOFTypes.bond_torsion]
         self.mask = (dofmask.node_idx, dofmask.dof_idx)
 
         # parameters
-        self.dofs = torch.nn.Parameter(self.graph.dofs[self.mask])
+        self.dofs = torch.nn.Parameter(dofs)
+
+        # self.dofs = DOFMaskingFunc.apply(self.dofs, self.mask, dofs)
+
+    def coords(self) -> Tensor[torch.float][:, :, 3]:
+        """System cartesian atomic coordinates."""
+
+        coords = torch.full(
+            (self.system_size, 3),
+            math.nan,
+            dtype=self.dofs.dtype,
+            layout=self.dofs.layout,
+            device=self.dofs.device,
+            requires_grad=False,
+        )
+
+        idIdx = self.kintree.id[1:].to(dtype=torch.long)
+        coords[idIdx] = self.dofs[1:]
+
+        return coords.to(torch.float)[None, ...]
 
     def forward(self):
-        self.graph.dofs = DOFMaskingFunc.apply(self.dofs, self.mask, self.graph.dofs)
-        self.graph.reset_coords()
-        return self.graph.intra_score().total
+        return self.score_system.intra_total(self.coords())
