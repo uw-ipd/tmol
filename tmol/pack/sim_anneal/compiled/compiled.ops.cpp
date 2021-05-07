@@ -87,31 +87,33 @@ register_standard_random_rotamer_picker(
   Tensor alternate_coords,
   Tensor alternate_id,
   Tensor random_rotamers,
+  Tensor annealer_event,
   Tensor annealer
 )
 {
   try {
-    auto annealer_tp = TPack<int64_t, 1, tmol::Device::CPU>(
-      annealer,
-      view_tensor<int64_t, 1, tmol::Device::CPU>(annealer, "annealer"));
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        context_coords_.type(), "register_rot_picker", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
 
-    int64_t annealer_uint = annealer_tp.view[0];
-    SimAnnealer * sim_annealer = reinterpret_cast<SimAnnealer *> (annealer_uint);
-    sim_annealer->set_pick_rotamers_step(
-      std::make_shared<PickRotamersStep>(
-	context_coords,
-	context_block_type,
-	pose_id_for_context,
-	n_rots_for_pose,
-	rot_offset_for_pose,
-	block_type_ind_for_rot,
-	block_ind_for_rot,
-	rotamer_coords,
-	random_rotamers,
-	alternate_coords,
-	alternate_id
-      )
-    );
+	  using tmol::score::common::ForallDispatch;
+          PickRotamersStepRegistrator<ForallDispatch, Dev, Real, Int>::f(
+            TCAST(context_coords),
+            TCAST(context_block_type),
+            TCAST(pose_id_for_context),
+            TCAST(n_rots_for_pose),
+            TCAST(rot_offset_for_pose),
+            TCAST(block_type_ind_for_rot),
+            TCAST(block_ind_for_rot),
+            TCAST(rotamer_coords),
+            TCAST(alternate_coords),
+            TCAST(alternate_id),
+            TCAST(random_rotamers),
+            TCAST(annealer_event),
+            TCAST(annealer)
+	  );
+        }));
   } catch (at::Error err) {
     std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
     throw err;
@@ -119,6 +121,7 @@ register_standard_random_rotamer_picker(
     std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
     throw err;
   }
+
   return annealer;
 }
 
@@ -132,27 +135,29 @@ register_standard_metropolis_accept_or_rejector(
   Tensor alternate_ids,
   Tensor rotamer_component_energies,
   Tensor accepted,
+  Tensor score_events,
   Tensor annealer
 )
 {
   try {
-    auto annealer_tp = TPack<int64_t, 1, tmol::Device::CPU>(
-      annealer,
-      view_tensor<int64_t, 1, tmol::Device::CPU>(annealer, "annealer"));
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        context_coords_.type(), "register_mc", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
 
-    int64_t annealer_uint = annealer_tp.view[0];
-    SimAnnealer * sim_annealer = reinterpret_cast<SimAnnealer *> (annealer_uint);
-    sim_annealer->set_metropolis_accept_reject_step(
-      std::make_shared<MetropolisAcceptRejectStep>(
-        temperature,
-        context_coords,
-        context_block_type,
-        alternate_coords,
-        alternate_ids,
-        rotamer_component_energies,
-        accepted
-      )
-    );
+	  using tmol::score::common::ForallDispatch;
+          MetropolisAcceptRejectStepRegistrator<ForallDispatch, Dev, Real, Int>::f(
+            TCAST(temperature),
+            TCAST(context_coords),
+            TCAST(context_block_type),
+            TCAST(alternate_coords),
+            TCAST(alternate_ids),
+            TCAST(rotamer_component_energies),
+            TCAST(accepted),
+            TCAST(score_events),
+            TCAST(annealer)
+	  );
+        }));
   } catch (at::Error err) {
     std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
     throw err;
@@ -160,6 +165,7 @@ register_standard_metropolis_accept_or_rejector(
     std::cerr << "caught exception:\n" << err.what_without_backtrace() << std::endl;
     throw err;
   }
+
   return annealer;
 }
 

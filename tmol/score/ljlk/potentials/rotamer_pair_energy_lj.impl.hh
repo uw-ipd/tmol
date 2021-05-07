@@ -89,8 +89,14 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     // LJ parameters
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
+
     TView<Real, 1, D> lj_lk_weights,
-    TView<Real, 1, D> output) -> void {
+    TView<Real, 1, D> output,
+
+    TView<int64_t, 1, tmol::Device::CPU> /*score_event*/,
+    TView<int64_t, 1, tmol::Device::CPU> /*annealer_event*/
+
+    ) -> void {
   int const n_systems = system_min_bond_separation.size(0);
   int const n_contexts = context_coords.size(0);
   int64_t const n_alternate_blocks = alternate_coords.size(0);

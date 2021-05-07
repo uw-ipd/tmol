@@ -32,7 +32,8 @@ struct PickRotamers {
     TView<Real, 3, D> rotamer_coords,
     TView<Real, 3, D> alternate_coords,
     TView<Int, 2, D> alternate_id,
-    TView<Int, 1, D> random_rots
+    TView<Int, 1, D> random_rots,
+    TView<int64_t, 1, tmol::Device::CPU> /*annealer_event*/
   ) -> void
   {
     int const n_contexts = context_coords.size(0);
@@ -128,7 +129,8 @@ struct MetropolisAcceptReject {
       TView<Real, 3, D> alternate_coords,
       TView<Int, 2, D> alternate_id,
       TView<Real, 2, D> rotamer_component_energies,
-      TView<Int, 1, D> accept
+      TView<Int, 1, D> accept,
+      TView<int64_t, 1, tmol::Device::CPU> /*score_events*/
   )
       -> void
   {

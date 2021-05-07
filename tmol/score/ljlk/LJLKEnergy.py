@@ -283,6 +283,8 @@ class LJLKInterSystemModule:
         alternate_coords,
         alternate_ids,
         output_energies,
+        score_event_tensor,
+        annealer_event_tensor,
         annealer,
     ):
 
@@ -308,6 +310,8 @@ class LJLKInterSystemModule:
             self.global_params,
             self.lj_lk_weights,
             output_energies,
+            score_event_tensor,
+            annealer_event_tensor,
             annealer,
         )
 

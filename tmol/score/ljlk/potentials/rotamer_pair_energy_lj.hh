@@ -88,8 +88,14 @@ struct LJLKRPEDispatch {
       // LJ parameters
       TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
+
       TView<Real, 1, D> lj_lk_weights,
-      TView<Real, 1, D> output) -> void;
+      TView<Real, 1, D> output,
+
+      TView<int64_t, 1, tmol::Device::CPU> score_event,
+      TView<int64_t, 1, tmol::Device::CPU> annealer_event
+
+      ) -> void;
 };
 
 template <
@@ -155,8 +161,12 @@ struct LJLKRPERegistratorDispatch {
       // LJ parameters
       TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
+
       TView<Real, 1, D> lj_lk_weights,
       TView<Real, 1, D> output,
+      TView<int64_t, 1, tmol::Device::CPU> score_event,
+      TView<int64_t, 1, tmol::Device::CPU> annealer_event,
+
       TView<int64_t, 1, tmol::Device::CPU> annealer) -> void;
 };
 

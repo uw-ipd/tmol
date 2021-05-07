@@ -80,7 +80,8 @@ struct PickRotamers {
       TView<Real, 3, D> rotamer_coords,
       TView<Real, 3, D> alternate_coords,
       TView<Int, 2, D> alternate_block_id,
-      TView<Int, 1, D> random_rots) -> void {
+      TView<Int, 1, D> random_rots,
+      TView<int64_t, 1, tmol::Device::CPU> annealer_event) -> void {
     // This code will work for future versions of the torch/aten libraries, but
     // not this one.
     // // Increment the cuda generator
@@ -193,8 +194,40 @@ struct PickRotamers {
     };
 
     Dispatch<D>::forall(n_contexts * 2 * max_n_atoms, copy_rotamer_coords);
-  };
+
+    // Record an event for the completion of the initialization of new
+    // coordinates into the alternate_coords and alternate_block_id tensors so
+    // that the score terms can wait until the rotamer coordinates are ready to
+    // be evaluated
+    if (annealer_event[0] != 0) {
+      auto annealer_event_ptr =
+          reinterpret_cast<cudaEvent_t>(annealer_event[0]);
+      cudaEventRecord(annealer_event_ptr);
+    }
+  }
 };
+};  // namespace compiled
+
+void wait_on_score_events(
+    cudaStream_t stream, TView<int64_t, 1, tmol::Device::CPU> score_events) {
+  int const n_score_terms = score_events.size(0);
+  for (int i = 0; i < n_score_terms; ++i) {
+    cudaEvent_t event = reinterpret_cast<cudaEvent_t>(score_events[i]);
+    if (!event) {
+      // not all entries in the score_events_ tensor are
+      // non-null
+      continue;
+    }
+    cudaError_t status = cudaEventQuery(event);
+    if (status == cudaSuccess) {
+      // no need to wait
+    } else if (status == cudaErrorNotRead) {
+      cudaStreamWaitEvent(stream, event);
+    } else {
+      // potential error situation?
+    }
+  }
+}
 
 template <
     template <tmol::Device>
@@ -210,7 +243,8 @@ struct MetropolisAcceptReject {
       TView<Real, 3, D> alternate_coords,
       TView<Int, 2, D> alternate_ids,
       TView<Real, 2, D> rotamer_component_energies,
-      TView<Int, 1, D> accept) -> void {
+      TView<Int, 1, D> accept,
+      TView<int64_t, 1, tmol::Device::CPU> score_events) -> void {
     int const n_contexts = context_coords.size(0);
     int const n_terms = rotamer_component_energies.size(0);
     int const max_n_atoms = context_coords.size(2);
@@ -221,6 +255,7 @@ struct MetropolisAcceptReject {
     assert(alternate_coords.size(2) == 3);
     assert(alternate_ids.size(0) == 2 * n_contexts);
     assert(accept.size(0) == n_contexts);
+    assert(score_events.size(0) == n_terms);
 
     // TEMP!!!
     // auto sum_energies_tp = TPack<Real, 1, D>::zeros({1});
@@ -257,8 +292,6 @@ struct MetropolisAcceptReject {
       }
     };
 
-    Dispatch<D>::forall(n_contexts, accept_reject);
-
     auto copy_accepted_coords = [=] MGPU_DEVICE(int i) {
       // if (i == 0) {
       //   printf("n total atoms calc'd: %f\n", sum_energies[0]);
@@ -280,6 +313,14 @@ struct MetropolisAcceptReject {
       }
     };
 
+    // First we ensure that scoring has completed,
+    // then we make the accept/reject decision for each
+    // trajectory. Finally, we copy the coordinates
+    // from the trajectories that have accepted substitutions
+    // into the context_coords tensor.
+    wait_on_score_events(
+        at::cuda::getDefaultCUDAStream().stream(), score_events);
+    Dispatch<D>::forall(n_contexts, accept_reject);
     Dispatch<D>::forall(n_contexts * max_n_atoms, copy_accepted_coords);
   }
 };
@@ -361,7 +402,7 @@ template struct FinalOp<
     double,
     int64_t>;
 
-}  // namespace compiled
 }  // namespace sim_anneal
 }  // namespace pack
+}  // namespace tmol
 }  // namespace tmol

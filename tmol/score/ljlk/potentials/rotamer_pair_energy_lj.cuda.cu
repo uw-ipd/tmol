@@ -47,6 +47,49 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
+void clear_old_score_events(std::list<cudaEvent_t> previously_created_events) {
+  for (auto event_iter = previously_created_events.begin();
+       event_iter != previously_created_events.end();
+       /*no increment*/) {
+    cudaEvent_t event = *event_iter;
+    cudaError_t status = cudaEventQuery(event);
+    auto event_iter_next = event_iter;
+    ++event_iter_next if (status == cudaSuccess) {
+      cudaEventDestroy(event);
+      previously_created_events_.erase(event_iter);
+    }
+    event_iter = event_iter_next;
+  }
+}
+
+void create_score_event(
+    TView<int64_t, 1, tmol::Device::CPU> score_event,
+    std::list<cudaEvent_t> previously_created_events) {
+  assert(score_event.shape(0) == 1);
+  cudaEvent_t event;
+  cudaEventCreate(&event);
+  score_event[0] = reinterpret_cast<int64_t>(event);
+  previously_created_events.push_back(event);
+}
+
+void wait_on_annealer_event(
+    cudaStream_t stream, TView<int64_t, 1, tmol::Device::CPU> annealer_event) {
+  assert(annealer_event.shape(0) == 1);
+  cudaEvent_t event = reinterpret_cast<cudaEvent_t>(annealer_event[0]);
+  if (event) {
+    cudaStreamWaitEvent(stream, event);
+  }
+}
+
+void record_scoring_event(
+    cudaStream_t stream, TView<int64_t, 1, tmol::Device::CPU> score_event) {
+  assert(score_event.shape(0) == 1);
+  cudaEvent_t event = reinterpret_cast<cudaEvent_t>(score_event[0]);
+  if (event) {
+    cudaStreamRecordEvent(stream, event);
+  }
+}
+
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -109,8 +152,14 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     // LJ parameters
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
+
     TView<Real, 1, D> lj_lk_weights,
-    TView<Real, 1, D> output) -> void {
+    TView<Real, 1, D> output,
+
+    TView<int64_t, 1, tmol::Device::CPU> score_event,
+    TView<int64_t, 1, tmol::Device::CPU> annealer_event
+
+    ) -> void {
   int const n_systems = system_min_bond_separation.size(0);
   int const n_contexts = context_coords.size(0);
   int64_t const n_alternate_blocks = alternate_coords.size(0);
@@ -160,9 +209,9 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
   using namespace mgpu;
   typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
+      arch_20_cta<32, 3>,
+      arch_35_cta<32, 3>,
+      arch_52_cta<32, 3>>
       launch_t;
 
   // between one alternate rotamer and its neighbors in the surrounding context
@@ -277,7 +326,12 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           int const neighb_atom_tile_ind = i % neighb_n_heavy;
           int const alt_atom_ind = alt_heavy_inds[alt_atom_tile_ind];
           int const neighb_atom_ind = neighb_heavy_inds[neighb_atom_tile_ind];
-          if (alt_atom_ind < 0 || neighb_atom_ind < 0) {
+          if (alt_atom_ind < 0 || neighb_atom_ind < 0
+              || alt_atom_ind >= TILE_SIZE || neighb_atom_ind >= TILE_SIZE) {
+            printf(
+                "bad atom index in lk-inter %d %d\n",
+                alt_atom_ind,
+                neighb_atom_ind);
             continue;
           }
 
@@ -411,6 +465,14 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const atom_tile_ind_2 = heavy_inds2[atom_heavy_tile_ind_2];
       int const atom_ind_1 = atom_tile_ind_1 + start_atom1;
       int const atom_ind_2 = atom_tile_ind_2 + start_atom2;
+      if (atom_tile_ind_1 < 0 || atom_tile_ind_2 < 0
+          || atom_tile_ind_1 >= TILE_SIZE || atom_tile_ind_2 >= TILE_SIZE) {
+        printf(
+            "bad atom index in lk-intra %d %d\n",
+            atom_tile_ind_1,
+            atom_tile_ind_2);
+      }
+
       if (atom_ind_1 >= atom_ind_2) {
         continue;
       }
@@ -564,6 +626,10 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
     int n_conn_alt(-1);
     Int last_ivt_context_ind = -1;
+    int last_alt_block_type1 = -1;
+    int last_alt_block_type2 = -1;
+    int last_rot_ind1 = -1;
+    int last_rot_ind2 = -1;
     bool count_pair_data_loaded = false;
 
     for (int ivt = 0; ivt < vt; ++ivt) {
@@ -580,12 +646,6 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const rot_ind1 = 2 * ivt_context_ind;
       int const rot_ind2 = 2 * ivt_context_ind + 1;
 
-      bool const new_context_ind = ivt_context_ind != last_ivt_context_ind;
-      last_ivt_context_ind = ivt_context_ind;
-      if (new_context_ind) {
-        count_pair_data_loaded = false;
-      }
-
       int const max_important_bond_separation = 4;
       int const alt_context = alternate_ids[rot_ind1][0];
       if (alt_context == -1) {
@@ -600,8 +660,37 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         continue;
       }
 
+      // only update last_ivt_context_ind if this is a legit residue pair intxn
+      bool const new_context_ind = ivt_context_ind != last_ivt_context_ind;
+      last_ivt_context_ind = ivt_context_ind;
+      if (new_context_ind) {
+        count_pair_data_loaded = false;
+      }
+
       int const alt_block_type1 = alternate_ids[rot_ind1][2];
       int const alt_block_type2 = alternate_ids[rot_ind2][2];
+      if (!new_context_ind && alt_block_type1 != last_alt_block_type1) {
+        printf(
+            "alt_block_type1 and last_alt_block_type1 mismatch, %d vs %d, "
+            "rotind %d vs %d \n",
+            alt_block_type1,
+            last_alt_block_type1,
+            rot_ind1,
+            last_rot_ind1);
+      }
+      if (!new_context_ind && alt_block_type2 != last_alt_block_type2) {
+        printf(
+            "alt_block_type2 and last_alt_block_type2 mismatch, %d vs %d, "
+            "rotind %d vs %d\n",
+            alt_block_type2,
+            last_alt_block_type2,
+            rot_ind2,
+            last_rot_ind2);
+      }
+      last_rot_ind1 = rot_ind1;
+      last_rot_ind2 = rot_ind2;
+      last_alt_block_type1 = alt_block_type1;
+      last_alt_block_type2 = alt_block_type2;
 
       int const alt_n_atoms1 = block_type_n_atoms[alt_block_type1];
       int const alt_n_atoms2 = block_type_n_atoms[alt_block_type2];
@@ -616,6 +705,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         int const neighb_n_atoms = block_type_n_atoms[neighb_block_type];
 
         if (new_context_ind) {
+          // if (true) { // temp!!
           n_conn_alt = block_type_n_interblock_bonds[alt_block_type1];
         }
         int const n_conn_other =
@@ -943,7 +1033,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               alt_block_type1,
               tid,
               i,
-              new_context_ind,
+              true,  // temp! new_context_ind,
               shared.coords_alt1,
               shared.params_alt1,
               shared.heavy_inds_alt1);
@@ -954,7 +1044,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               alt_block_type2,
               tid,
               i,
-              new_context_ind,
+              true,  // temp! new_context_ind,
               shared.coords_alt2,
               shared.params_alt2,
               shared.heavy_inds_alt2);
@@ -1117,15 +1207,18 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   });
 
   at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
-  setCurrentCUDAStream(wrapped_stream);
+  // strictly unnecessary -- setCurrentCUDAStream(wrapped_stream);
   mgpu::standard_context_t context(wrapped_stream.stream());
 
-  // mgpu::standard_context_t context;
+  wait_on_annealer_event(wrapped_stream.stream(), annealer_event);
+  record_scoring_event(wrapped_stream.stream(), score_event);
 
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors / 2 - 1) / launch_t::sm_ptx::vt + 1;
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
-  at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
+
+  // strictly unnecessary --
+  // at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
 }
 
 template <
@@ -1193,7 +1286,9 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
       TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> lj_lk_weights,
-      TView<Real, 1, D> output)
+      TView<Real, 1, D> output,
+      TView<int64_t, 1, tmol::Device::CPU> score_event,
+      TView<int64_t, 1, tmol::Device::CPU> annealer_event)
       : context_coords_(context_coords),
         context_block_type_(context_block_type),
         alternate_coords_(alternate_coords),
@@ -1213,9 +1308,14 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         type_params_(type_params),
         global_params_(global_params),
         lj_lk_weights_(lj_lk_weights),
-        output_(output) {}
+        output_(output),
+        score_event_(score_event),
+        annealer_event_(annealer_event) {}
 
   void calc_energies() override {
+    clear_old_score_events(previously_created_events);
+    create_score_event(previously_created_events);
+
     LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         context_coords_,
         context_block_type_,
@@ -1235,7 +1335,9 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         type_params_,
         global_params_,
         lj_lk_weights_,
-        output_);
+        output_,
+        score_event_,
+        annealer_event_);
   }
 
  private:
@@ -1269,6 +1371,11 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
   TView<Real, 1, D> lj_lk_weights_;
 
   TView<Real, 1, D> output_;
+
+  TView<int64_t, 1, tmol::Device::CPU> score_event_;
+  TView<int64_t, 1, tmol::Device::CPU> annealer_event_;
+
+  std::list<cudaEvent_t> previously_created_events
 };
 
 template <
@@ -1335,6 +1442,10 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output,
+
+    TView<int64_t, 1, tmol::Device::CPU> score_event,
+    TView<int64_t, 1, tmol::Device::CPU> annealer_event,
+
     TView<int64_t, 1, tmol::Device::CPU> annealer) -> void {
   using tmol::pack::sim_anneal::compiled::RPECalc;
   using tmol::pack::sim_anneal::compiled::SimAnnealer;
@@ -1361,7 +1472,9 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
           type_params,
           global_params,
           lj_lk_weights,
-          output);
+          output,
+          score_event_,
+          annealer_event_);
 
   sim_annealer->add_score_component(calc);
 }

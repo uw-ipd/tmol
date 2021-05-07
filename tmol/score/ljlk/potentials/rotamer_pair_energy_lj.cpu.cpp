@@ -74,8 +74,12 @@ public:
     // LJ parameters
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params,
+
     TView<Real, 1, D> lj_lk_weights,
-    TView<Real, 1, D> output
+    TView<Real, 1, D> output,
+
+    TView<int64_t, 1, tmol::Device::CPU> score_event,
+    TView<int64_t, 1, tmol::Device::CPU> annealer_event
   ):
     context_coords_(context_coords),
     context_block_type_(context_block_type),
@@ -95,8 +99,10 @@ public:
     type_params_(type_params),
     global_params_(global_params),
     lj_lk_weights_(lj_lk_weights),
-    output_(output)
-  {}
+    output_(output),
+    empty_events_(TPack<int64_t, 1, tmol::Device::CPU>::zeros({1}))
+  {
+  }
 
   void
   calc_energies() override {
@@ -119,9 +125,15 @@ public:
       type_params_,
       global_params_,
       lj_lk_weights_,
-      output_
+      output_,
+      score_event_,
+      annealer_event_
     );
   }
+
+  void
+  finalize() override {}
+    
   
 private:
   TView<Vec<Real, 3>, 3, D> context_coords_;
@@ -155,6 +167,8 @@ private:
 
   TView<Real, 1, D> output_;
 
+  TPack<int64_t, 1, tmol::Device::CPU> score_event_;
+  TPack<int64_t, 1, tmol::Device::CPU> annealer_event_;
 };
 
 
@@ -221,6 +235,10 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<LJGlobalParams<Real>, 1, D> global_params,
     TView<Real, 1, D> lj_lk_weights,
     TView<Real, 1, D> output,
+
+    TView<int64_t, 1, tmol::Device::CPU> score_event,
+    TView<int64_t, 1, tmol::Device::CPU> annealer_event,
+
     TView<int64_t, 1, tmol::Device::CPU> annealer
 ) -> void
 {
@@ -248,7 +266,9 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     type_params,
     global_params,
     lj_lk_weights,
-    output
+    output,
+    score_event,
+    annealer_event
   );
 
   sim_annealer->add_score_component(calc);
