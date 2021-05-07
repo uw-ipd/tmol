@@ -3,6 +3,7 @@ import math
 
 from tmol.kinematics.metadata import DOFTypes
 from tmol.score.coordinates import KinematicAtomicCoordinateProvider
+from tmol.system.kinematics import KinematicDescription
 from tmol.types.torch import Tensor
 
 # modules for cartesian and torsion-space optimization
@@ -48,8 +49,18 @@ class DOFMaskingFunc(torch.autograd.Function):
 
 # torsion space minimization
 class TorsionalEnergyNetwork(torch.nn.Module):
-    def __init__(self, score_system, dofs, kintree, dofmetadata, system_size):
+    def __init__(self, score_system, ubq_system, torch_device):
         super(TorsionalEnergyNetwork, self).__init__()
+
+        # Initialize kinematic tree for the system
+        sys_kin = KinematicDescription.for_system(
+            ubq_system.bonds, ubq_system.torsion_metadata
+        )
+        kintree = sys_kin.kintree.to(torch_device)
+        dofmetadata = sys_kin.dof_metadata.to(torch_device)
+        # compute dofs from xyzs
+        dofs = sys_kin.extract_kincoords(ubq_system.coords).to(torch_device)
+        system_size = ubq_system.system_size
 
         self.score_system = score_system
         self.kintree = kintree

@@ -91,18 +91,7 @@ def test_cart_network_min(ubq_system, torch_device):
     )
     coords = coords_for(ubq_system, score_system)
 
-    # Initialize kinematic tree for the system
-    sys_kin = KinematicDescription.for_system(
-        ubq_system.bonds, ubq_system.torsion_metadata
-    )
-    tkintree = sys_kin.kintree.to(torch_device)
-    tdofmetadata = sys_kin.dof_metadata.to(torch_device)
-    # compute dofs from xyzs
-    kincoords = sys_kin.extract_kincoords(ubq_system.coords).to(torch_device)
-
-    model = TorsionalEnergyNetwork(
-        score_system, kincoords, tkintree, tdofmetadata, ubq_system.system_size
-    )
+    model = TorsionalEnergyNetwork(score_system, ubq_system, torch_device)
 
     # "kincoords" is for each atom, 9 values,
     # but only 3 for regular atom, 9 for jump
