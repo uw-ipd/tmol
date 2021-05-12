@@ -100,7 +100,8 @@ public:
     global_params_(global_params),
     lj_lk_weights_(lj_lk_weights),
     output_(output),
-    empty_events_(TPack<int64_t, 1, tmol::Device::CPU>::zeros({1}))
+    score_event_(score_event),
+    annealer_event_(annealer_event)
   {
   }
 
@@ -167,8 +168,8 @@ private:
 
   TView<Real, 1, D> output_;
 
-  TPack<int64_t, 1, tmol::Device::CPU> score_event_;
-  TPack<int64_t, 1, tmol::Device::CPU> annealer_event_;
+  TView<int64_t, 1, tmol::Device::CPU> score_event_;
+  TView<int64_t, 1, tmol::Device::CPU> annealer_event_;
 };
 
 

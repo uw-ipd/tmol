@@ -52,6 +52,10 @@ namespace pack {
 namespace sim_anneal {
 namespace compiled {
 
+cudaStream_t packer_stream(0);
+int count_pick_passes(0);
+int count_mc_passes(0);
+
 /// @brief Return a uniformly-distributed integer in the range
 /// between 0 and n-1.
 /// Note that curand_uniform() returns a random number in the range
@@ -150,8 +154,6 @@ struct PickRotamers {
       }
     };
 
-    Dispatch<D>::forall(n_contexts, select_rotamer);
-
     // auto random_rots_cpu_tp = TPack<Int, 1,
     // tmol::Device::CPU>::zeros({n_contexts}); auto random_rots_cpu =
     // random_rots_cpu_tp.view; cudaMemcpy(&random_rots_cpu[0], &random_rots[0],
@@ -193,7 +195,19 @@ struct PickRotamers {
       }
     };
 
-    Dispatch<D>::forall(n_contexts * 2 * max_n_atoms, copy_rotamer_coords);
+    ++count_pick_passes;
+
+    if (packer_stream == 0) {
+      // packer_stream = at::cuda::getStreamFromPool().stream();
+      cudaStreamCreate(&packer_stream);
+    }
+    // mgpu::standard_context_t context(packer_stream);
+    mgpu::standard_context_t context;
+    // Dispatch<D>::forall(n_contexts, select_rotamer);
+    mgpu::transform(select_rotamer, n_contexts, context);
+
+    // Dispatch<D>::forall(n_contexts * 2 * max_n_atoms, copy_rotamer_coords);
+    mgpu::transform(copy_rotamer_coords, n_contexts * 2 * max_n_atoms, context);
 
     // Record an event for the completion of the initialization of new
     // coordinates into the alternate_coords and alternate_block_id tensors so
@@ -202,11 +216,13 @@ struct PickRotamers {
     if (annealer_event[0] != 0) {
       auto annealer_event_ptr =
           reinterpret_cast<cudaEvent_t>(annealer_event[0]);
-      cudaEventRecord(annealer_event_ptr);
+      cudaEventRecord(annealer_event_ptr, context.stream());
+      // std::cout << "Pick Rots " << count_pick_passes << ": recorded new event
+      // " << annealer_event_ptr << " in stream " << context.stream() <<
+      // std::endl;
     }
   }
 };
-};  // namespace compiled
 
 void wait_on_score_events(
     cudaStream_t stream, TView<int64_t, 1, tmol::Device::CPU> score_events) {
@@ -219,10 +235,15 @@ void wait_on_score_events(
       continue;
     }
     cudaError_t status = cudaEventQuery(event);
+    // std::cout << "MC " << count_mc_passes << " Event " << event << " status "
+    // << status << " (success =" << cudaSuccess << ", ErrorNotReady=" <<
+    // cudaErrorNotReady << ")" << std::endl;
     if (status == cudaSuccess) {
       // no need to wait
-    } else if (status == cudaErrorNotRead) {
-      cudaStreamWaitEvent(stream, event);
+    } else if (status == cudaErrorNotReady) {
+      // std::cout << "MC AcceptReject " << count_mc_passes << " waiting on
+      // event " << event << " in stream " << stream << std::endl;
+      cudaStreamWaitEvent(stream, event, 0);
     } else {
       // potential error situation?
     }
@@ -318,10 +339,19 @@ struct MetropolisAcceptReject {
     // trajectory. Finally, we copy the coordinates
     // from the trajectories that have accepted substitutions
     // into the context_coords tensor.
-    wait_on_score_events(
-        at::cuda::getDefaultCUDAStream().stream(), score_events);
-    Dispatch<D>::forall(n_contexts, accept_reject);
-    Dispatch<D>::forall(n_contexts * max_n_atoms, copy_accepted_coords);
+    if (packer_stream == 0) {
+      packer_stream = at::cuda::getStreamFromPool().stream();
+    }
+
+    ++count_mc_passes;
+    // mgpu::standard_context_t context(packer_stream);
+    mgpu::standard_context_t context;
+    wait_on_score_events(context.stream(), score_events);
+    mgpu::transform(accept_reject, n_contexts, context);
+    mgpu::transform(copy_accepted_coords, n_contexts, context);
+
+    // Dispatch<D>::forall(n_contexts, accept_reject);
+    // Dispatch<D>::forall(n_contexts * max_n_atoms, copy_accepted_coords);
   }
 };
 
@@ -402,7 +432,7 @@ template struct FinalOp<
     double,
     int64_t>;
 
+}  // namespace compiled
 }  // namespace sim_anneal
 }  // namespace pack
-}  // namespace tmol
 }  // namespace tmol

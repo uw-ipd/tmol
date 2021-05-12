@@ -81,7 +81,7 @@ template <
     typename Real,
     typename Int>
 struct PickRotamersStepRegistrator {
-  static auto f(
+  static void f(
       TView<Real, 4, D> context_coords,
       TView<Int, 2, D> context_block_type,
       TView<Int, 1, D> pose_id_for_context,
@@ -104,7 +104,7 @@ template <
     typename Real,
     typename Int>
 struct MetropolisAcceptRejectStepRegistrator {
-  static auto f(
+  static void f(
       TView<Real, 1, D> temperature,
       TView<Real, 4, D> context_coords,
       TView<Int, 2, D> context_block_type,

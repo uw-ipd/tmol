@@ -91,9 +91,10 @@ register_standard_random_rotamer_picker(
   Tensor annealer
 )
 {
+  using Int = int32_t;
   try {
     TMOL_DISPATCH_FLOATING_DEVICE(
-        context_coords_.type(), "register_rot_picker", ([&] {
+        context_coords.type(), "register_rot_picker", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -139,9 +140,10 @@ register_standard_metropolis_accept_or_rejector(
   Tensor annealer
 )
 {
+  using Int = int32_t;
   try {
     TMOL_DISPATCH_FLOATING_DEVICE(
-        context_coords_.type(), "register_mc", ([&] {
+        context_coords.type(), "register_mc", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -212,6 +214,7 @@ pick_random_rotamers(
 {
 
   using Int = int32_t;
+  auto empty_annealer_event_tensor = TPack<int64_t, 1, tmol::Device::CPU>::zeros({1});
 
   try {
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -230,7 +233,8 @@ pick_random_rotamers(
               TCAST(rotamer_coords),
 	      TCAST(alternate_coords),
 	      TCAST(alternate_id),
-	      TCAST(random_rotamers)
+	      TCAST(random_rotamers),
+	      empty_annealer_event_tensor.view
 	  );
         }));
   } catch (at::Error err) {
@@ -256,6 +260,7 @@ metropolis_accept_reject(
 )
 {
   using Int = int32_t;
+  auto empty_score_event_tensor = TPack<int64_t, 1, tmol::Device::CPU>::zeros({1});
 
   try {
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -270,7 +275,8 @@ metropolis_accept_reject(
               TCAST(alternate_coords),
               TCAST(alternate_ids),
               TCAST(rotamer_component_energies),
-	      TCAST(accepted)
+	      TCAST(accepted),
+	      empty_score_event_tensor.view
 	  );
         }));
   } catch (at::Error err) {

@@ -39,6 +39,8 @@
 #define MAX_N_CONN 4
 #define TILE_SIZE 32
 
+int count_scoring_passes = 0;
+
 namespace tmol {
 namespace score {
 namespace ljlk {
@@ -47,16 +49,20 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-void clear_old_score_events(std::list<cudaEvent_t> previously_created_events) {
+cudaStream_t ljlk_stream = 0;
+
+void clear_old_score_events(std::list<cudaEvent_t> &previously_created_events) {
+  return;
   for (auto event_iter = previously_created_events.begin();
        event_iter != previously_created_events.end();
        /*no increment*/) {
     cudaEvent_t event = *event_iter;
     cudaError_t status = cudaEventQuery(event);
     auto event_iter_next = event_iter;
-    ++event_iter_next if (status == cudaSuccess) {
+    ++event_iter_next;
+    if (status == cudaSuccess) {
       cudaEventDestroy(event);
-      previously_created_events_.erase(event_iter);
+      previously_created_events.erase(event_iter);
     }
     event_iter = event_iter_next;
   }
@@ -65,7 +71,7 @@ void clear_old_score_events(std::list<cudaEvent_t> previously_created_events) {
 void create_score_event(
     TView<int64_t, 1, tmol::Device::CPU> score_event,
     std::list<cudaEvent_t> previously_created_events) {
-  assert(score_event.shape(0) == 1);
+  assert(score_event.size(0) == 1);
   cudaEvent_t event;
   cudaEventCreate(&event);
   score_event[0] = reinterpret_cast<int64_t>(event);
@@ -74,20 +80,33 @@ void create_score_event(
 
 void wait_on_annealer_event(
     cudaStream_t stream, TView<int64_t, 1, tmol::Device::CPU> annealer_event) {
-  assert(annealer_event.shape(0) == 1);
+  assert(annealer_event.size(0) == 1);
   cudaEvent_t event = reinterpret_cast<cudaEvent_t>(annealer_event[0]);
   if (event) {
-    cudaStreamWaitEvent(stream, event);
+    // std::cout << "LJLK " << count_scoring_passes << " -- Waiting on event "
+    // << event << " in stream " << stream << std::endl;
+    cudaStreamWaitEvent(stream, event, 0);
   }
 }
 
 void record_scoring_event(
     cudaStream_t stream, TView<int64_t, 1, tmol::Device::CPU> score_event) {
-  assert(score_event.shape(0) == 1);
+  assert(score_event.size(0) == 1);
   cudaEvent_t event = reinterpret_cast<cudaEvent_t>(score_event[0]);
   if (event) {
-    cudaStreamRecordEvent(stream, event);
+    // std::cout << "LJLK " << count_scoring_passes << " -- Recording score
+    // event " << event << " in stream " << stream << std::endl;
+    cudaEventRecord(event, stream);
   }
+}
+
+void sync_and_destroy_old_score_events(
+    std::list<cudaEvent_t> &previously_created_events) {
+  for (auto event : previously_created_events) {
+    cudaEventSynchronize(event);
+    cudaEventDestroy(event);
+  }
+  previously_created_events.clear();
 }
 
 template <
@@ -214,6 +233,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       arch_52_cta<32, 3>>
       launch_t;
 
+  int const local_count_scoring_passes = ++count_scoring_passes;
+
   // between one alternate rotamer and its neighbors in the surrounding context
   auto score_inter_pairs_lj =
       ([=] MGPU_DEVICE(
@@ -329,9 +350,10 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           if (alt_atom_ind < 0 || neighb_atom_ind < 0
               || alt_atom_ind >= TILE_SIZE || neighb_atom_ind >= TILE_SIZE) {
             printf(
-                "bad atom index in lk-inter %d %d\n",
+                "bad atom index in lk-inter %d %d -- iteration %d\n",
                 alt_atom_ind,
-                neighb_atom_ind);
+                neighb_atom_ind,
+                local_count_scoring_passes);
             continue;
           }
 
@@ -465,13 +487,13 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       int const atom_tile_ind_2 = heavy_inds2[atom_heavy_tile_ind_2];
       int const atom_ind_1 = atom_tile_ind_1 + start_atom1;
       int const atom_ind_2 = atom_tile_ind_2 + start_atom2;
-      if (atom_tile_ind_1 < 0 || atom_tile_ind_2 < 0
-          || atom_tile_ind_1 >= TILE_SIZE || atom_tile_ind_2 >= TILE_SIZE) {
-        printf(
-            "bad atom index in lk-intra %d %d\n",
-            atom_tile_ind_1,
-            atom_tile_ind_2);
-      }
+      // if (atom_tile_ind_1 < 0 || atom_tile_ind_2 < 0
+      //     || atom_tile_ind_1 >= TILE_SIZE || atom_tile_ind_2 >= TILE_SIZE) {
+      //   printf(
+      //       "bad atom index in lk-intra %d %d\n",
+      //       atom_tile_ind_1,
+      //       atom_tile_ind_2);
+      // }
 
       if (atom_ind_1 >= atom_ind_2) {
         continue;
@@ -630,6 +652,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     int last_alt_block_type2 = -1;
     int last_rot_ind1 = -1;
     int last_rot_ind2 = -1;
+    int last_alt_block_ind = -1;
     bool count_pair_data_loaded = false;
 
     for (int ivt = 0; ivt < vt; ++ivt) {
@@ -669,28 +692,41 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
       int const alt_block_type1 = alternate_ids[rot_ind1][2];
       int const alt_block_type2 = alternate_ids[rot_ind2][2];
-      if (!new_context_ind && alt_block_type1 != last_alt_block_type1) {
-        printf(
-            "alt_block_type1 and last_alt_block_type1 mismatch, %d vs %d, "
-            "rotind %d vs %d \n",
-            alt_block_type1,
-            last_alt_block_type1,
-            rot_ind1,
-            last_rot_ind1);
-      }
-      if (!new_context_ind && alt_block_type2 != last_alt_block_type2) {
-        printf(
-            "alt_block_type2 and last_alt_block_type2 mismatch, %d vs %d, "
-            "rotind %d vs %d\n",
-            alt_block_type2,
-            last_alt_block_type2,
-            rot_ind2,
-            last_rot_ind2);
-      }
-      last_rot_ind1 = rot_ind1;
-      last_rot_ind2 = rot_ind2;
-      last_alt_block_type1 = alt_block_type1;
-      last_alt_block_type2 = alt_block_type2;
+      // if (!new_context_ind && alt_block_type1 != last_alt_block_type1) {
+      //   printf(
+      //       "%d alt_block_type1 and last_alt_block_type1 mismatch, %d vs %d,
+      //       " "rotind %d vs %d \n",
+      // 	    local_count_scoring_passes,
+      //       alt_block_type1,
+      //       last_alt_block_type1,
+      //       rot_ind1,
+      //       last_rot_ind1);
+      // }
+      // if (!new_context_ind && alt_block_type2 != last_alt_block_type2) {
+      //   printf(
+      //       "%d alt_block_type2 and last_alt_block_type2 mismatch, %d vs %d,
+      //       " "rotind %d vs %d\n",
+      // 	    local_count_scoring_passes,
+      //       alt_block_type2,
+      //       last_alt_block_type2,
+      //       rot_ind2,
+      //       last_rot_ind2);
+      // }
+      // if (!new_context_ind && alt_block_ind != last_alt_block_ind) {
+      // 	printf(
+      // 	  "%d alt_block_ind and last_alt_block_ind mismatch, %d vs %d, "
+      // 	  "rotind %d vs %d\n",
+      // 	  local_count_scoring_passes,
+      // 	  alt_block_ind,
+      // 	  last_alt_block_ind,
+      // 	  rot_ind1,
+      // 	  rot_ind2);
+      // }
+      // last_rot_ind1 = rot_ind1;
+      // last_rot_ind2 = rot_ind2;
+      // last_alt_block_type1 = alt_block_type1;
+      // last_alt_block_type2 = alt_block_type2;
+      // last_alt_block_ind = alt_block_ind;
 
       int const alt_n_atoms1 = block_type_n_atoms[alt_block_type1];
       int const alt_n_atoms2 = block_type_n_atoms[alt_block_type2];
@@ -1206,16 +1242,21 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }  // for ivt
   });
 
+  // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
   at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
-  // strictly unnecessary -- setCurrentCUDAStream(wrapped_stream);
+  // if (ljlk_stream == 0) {
+  //   // cudaStreamCreate(&ljlk_stream);
+  //   ljlk_stream = at::cuda::getStreamFromPool().stream();
+  // }
   mgpu::standard_context_t context(wrapped_stream.stream());
+  // mgpu::standard_context_t context(ljlk_stream);
 
   wait_on_annealer_event(wrapped_stream.stream(), annealer_event);
-  record_scoring_event(wrapped_stream.stream(), score_event);
 
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors / 2 - 1) / launch_t::sm_ptx::vt + 1;
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
+  record_scoring_event(wrapped_stream.stream(), score_event);
 
   // strictly unnecessary --
   // at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
@@ -1313,8 +1354,8 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         annealer_event_(annealer_event) {}
 
   void calc_energies() override {
-    clear_old_score_events(previously_created_events);
-    create_score_event(previously_created_events);
+    clear_old_score_events(previously_created_events_);
+    create_score_event(score_event_, previously_created_events_);
 
     LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         context_coords_,
@@ -1338,6 +1379,11 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         output_,
         score_event_,
         annealer_event_);
+  }
+
+  void finalize() override {
+    // wait on all outstanding events and then delete them all
+    sync_and_destroy_old_score_events(previously_created_events_);
   }
 
  private:
@@ -1375,7 +1421,7 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
   TView<int64_t, 1, tmol::Device::CPU> score_event_;
   TView<int64_t, 1, tmol::Device::CPU> annealer_event_;
 
-  std::list<cudaEvent_t> previously_created_events
+  std::list<cudaEvent_t> previously_created_events_;
 };
 
 template <
@@ -1473,8 +1519,8 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
           global_params,
           lj_lk_weights,
           output,
-          score_event_,
-          annealer_event_);
+          score_event,
+          annealer_event);
 
   sim_annealer->add_score_component(calc);
 }

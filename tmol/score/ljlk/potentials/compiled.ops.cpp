@@ -97,8 +97,8 @@ rotamer_pair_energies_op(
   using Int = int32_t;
   Tensor output_tensor;
 
-  TPack<Real, 1, tmol::Device::CPU> empty_score_event_tensor({0});
-  TPack<Real, 1, tmol::Device::CPU> empty_annealer_event_tensor({0});
+  auto empty_score_event_tensor = TPack<int64_t, 1, tmol::Device::CPU>::zeros({1});
+  auto empty_annealer_event_tensor = TPack<int64_t, 1, tmol::Device::CPU>::zeros({1});
 
   TMOL_DISPATCH_FLOATING_DEVICE(
     context_coords.type(), "score_op", ([&] {
@@ -129,7 +129,7 @@ rotamer_pair_energies_op(
 	  TCAST(lj_lk_weights),
 	  output_tv,
 	  empty_score_event_tensor.view,
-	  empty_annealer_event_tensor.view,
+	  empty_annealer_event_tensor.view
 	);
 
 	/*

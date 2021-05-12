@@ -7,6 +7,7 @@ _compiled = load(
             __file__,
             [
                 "annealer.cpu.cpp",
+                "annealer.cuda.cu",
                 "compiled.ops.cpp",
                 "compiled.cpu.cpp",
                 "compiled.cuda.cu",

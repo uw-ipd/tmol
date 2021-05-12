@@ -3,12 +3,17 @@
 #include <tmol/score/common/forall_dispatch.hh>
 #include <tmol/utility/tensor/TensorCast.h>
 
+#include <tmol/score/common/forall_dispatch.cpu.impl.hh>
+
 #include <chrono>
 
 namespace tmol {
 namespace pack {
 namespace sim_anneal {
 namespace compiled {
+
+using tmol::score::common::ForallDispatch;
+
 
 template <
     template <tmol::Device>
@@ -108,7 +113,7 @@ public:
   {}
 
   void accept_reject() override {
-    MetropolisAcceptReject<ForallDispatch, Dev, Real, Int>::f(
+    MetropolisAcceptReject<ForallDispatch, D, Real, Int>::f(
       temperature_,
       context_coords_,
       context_block_type_,
@@ -140,7 +145,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto PickRotamersStepRegistrator<DeviceDispatch, D, Real, Int>::f(
+void PickRotamersStepRegistrator<DeviceDispatch, D, Real, Int>::f(
     TView<Real, 4, D> context_coords,
     TView<Int, 2, D> context_block_type,
     TView<Int, 1, D> pose_id_for_context,
@@ -184,7 +189,7 @@ template <
   tmol::Device D,
   typename Real,
   typename Int>
-auto MetropolisAcceptRejectStepRegistrator<DeviceDispatch, D, Real, Int>::f(
+void MetropolisAcceptRejectStepRegistrator<DeviceDispatch, D, Real, Int>::f(
   TView<Real, 1, D> temperature,
   TView<Real, 4, D> context_coords,
   TView<Int, 2, D> context_block_type,
@@ -206,7 +211,8 @@ auto MetropolisAcceptRejectStepRegistrator<DeviceDispatch, D, Real, Int>::f(
         alternate_coords,
         alternate_id,
         rotamer_component_energies,
-        accept
+        accept,
+	score_events
       );
 
   sim_annealer->set_metropolis_accept_reject_step(metropolis_step);
@@ -391,13 +397,15 @@ void SimAnnealer::run_annealer()
   auto start_chrono = high_resolution_clock::now();
   for ( int i = 0; i < n_cycles; ++i ) {
     //std::cout << "." << std::flush;
-    if ( i % 100 == 0) {
-       pick_step_->pick_rotamers();
+    if ( i % 1 == 0) {
+      if (i != 0) {
+	acc_rej_step_->accept_reject();
+	pick_step_->pick_rotamers();
+      }
     }
     for (auto const & rpe_calc: score_calculators_) {
       rpe_calc->calc_energies();
     }
-    //acc_rej_step_->accept_reject();
   }
   acc_rej_step_->final_op();
   clock_t stop_clock = clock();
@@ -437,16 +445,16 @@ template struct PickRotamersStepRegistrator<
     tmol::Device::CPU,
     double,
     int>;
-template struct PickRotamersStepRegistrator<
-    ForallDispatch,
-    tmol::Device::CPU,
-    float,
-    int>;
-template struct PickRotamersStepRegistrator<
-    ForallDispatch,
-    tmol::Device::CPU,
-    double,
-    int>;
+// template struct PickRotamersStepRegistrator<
+//     ForallDispatch,
+//     tmol::Device::CPU,
+//     float,
+//     int>;
+// template struct PickRotamersStepRegistrator<
+//     ForallDispatch,
+//     tmol::Device::CPU,
+//     double,
+//     int>;
 
 template struct MetropolisAcceptRejectStepRegistrator<
   ForallDispatch, tmol::Device::CPU, float, int>;
@@ -455,16 +463,16 @@ template struct MetropolisAcceptRejectStepRegistrator<
     tmol::Device::CPU,
     double,
     int>;
-template struct MetropolisAcceptRejectStepRegistrator<
-    ForallDispatch,
-    tmol::Device::CPU,
-    float,
-    int>;
-template struct MetropolisAcceptRejectStepRegistrator<
-    ForallDispatch,
-    tmol::Device::CPU,
-    double,
-    int>;
+// template struct MetropolisAcceptRejectStepRegistrator<
+//     ForallDispatch,
+//     tmol::Device::CPU,
+//     float,
+//     int>;
+// template struct MetropolisAcceptRejectStepRegistrator<
+//     ForallDispatch,
+//     tmol::Device::CPU,
+//     double,
+//     int>;
 
 
 

@@ -81,6 +81,8 @@ class LKRPECPUCalc : public pack::sim_anneal::compiled::RPECalc {
     );
   }
 
+  void finalize() override {}
+  
  private:
   TView<Vec<Real, 3>, 3, D> context_coords_;
   TView<Int, 2, D> context_block_type_;
