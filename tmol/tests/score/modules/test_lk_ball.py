@@ -68,7 +68,7 @@ def test_lk_ball_for_stacked_system(ubq_system: PackedResidueSystem):
 
     coords = coords_for(twoubq, stacked_score)
 
-    tot = stacked_score.intra_total(coords)
+    tot = stacked_score.intra_subscores(coords)
     assert tot.shape == (2, 4)
     torch.testing.assert_allclose(tot[0], tot[1])
 

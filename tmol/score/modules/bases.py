@@ -74,12 +74,7 @@ class ScoreSystem:
         return dict(ChainMap(*terms))
 
     def intra_total(self, coords: torch.Tensor):
-        terms = self.intra_forward(coords)
-
-        assert set(self.weights) == set(
-            terms
-        ), "Mismatched weights/terms: {self.weights} {terms}"
-
+        terms = self.do_intra(coords)
         all_score_terms_all_parts = []
         for term in [self.weights[t] * v for t, v in terms.items()]:
             if term.shape == (1,):
@@ -88,6 +83,19 @@ class ScoreSystem:
                 for part in term:
                     all_score_terms_all_parts.append(part[0])
         return sum(all_score_terms_all_parts)
+
+    def intra_subscores(self, coords: torch.Tensor):
+        terms = self.do_intra(coords)
+        return sum(self.weights[t] * v for t, v in terms.items())
+
+    def do_intra(self, coords: torch.Tensor):
+        terms = self.intra_forward(coords)
+
+        assert set(self.weights) == set(
+            terms
+        ), "Mismatched weights/terms: {self.weights} {terms}"
+
+        return terms
 
 
 _TModule = TypeVar("_TModule", bound="ScoreModule")
