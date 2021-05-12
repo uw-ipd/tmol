@@ -11,7 +11,6 @@ from tmol.types.torch import Tensor
 
 from tmol.kinematics.operations import inverseKin
 
-from tmol.score.stacked_system import StackedSystem
 from tmol.database.scoring import RamaDatabase
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
@@ -48,9 +47,9 @@ def kincoords_to_coords(
     return coords.to(torch.float)[None, ...]
 
 
-def get_full_score_system_for(ubq_system: PackedResidueSystem):
+def get_full_score_system_for(packed_residue_system: PackedResidueSystem):
     score_system = ScoreSystem.build_for(
-        ubq_system,
+        packed_residue_system,
         {
             LJScore,
             LKScore,
