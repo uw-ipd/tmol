@@ -5,14 +5,6 @@ from tmol.system.kinematics import KinematicDescription
 
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.coords import coords_for
-from tmol.score.modules.ljlk import LJScore, LKScore
-from tmol.score.modules.lk_ball import LKBallScore
-from tmol.score.modules.elec import ElecScore
-from tmol.score.modules.cartbonded import CartBondedScore
-from tmol.score.modules.dunbrack import DunbrackScore
-from tmol.score.modules.hbond import HBondScore
-from tmol.score.modules.rama import RamaScore
-from tmol.score.modules.omega import OmegaScore
 
 from tmol.score.device import TorchDevice
 

@@ -2,10 +2,18 @@ import torch
 import math
 
 from tmol.kinematics.metadata import DOFTypes
-from tmol.score.coordinates import KinematicAtomicCoordinateProvider
 from tmol.system.kinematics import KinematicDescription
 from tmol.system.score_support import kincoords_to_coords
 from tmol.types.torch import Tensor
+
+from tmol.score.modules.ljlk import LJScore, LKScore
+from tmol.score.modules.lk_ball import LKBallScore
+from tmol.score.modules.elec import ElecScore
+from tmol.score.modules.cartbonded import CartBondedScore
+from tmol.score.modules.dunbrack import DunbrackScore
+from tmol.score.modules.hbond import HBondScore
+from tmol.score.modules.rama import RamaScore
+from tmol.score.modules.omega import OmegaScore
 
 # modules for cartesian and torsion-space optimization
 #
