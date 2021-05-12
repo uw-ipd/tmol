@@ -80,7 +80,14 @@ class ScoreSystem:
             terms
         ), "Mismatched weights/terms: {self.weights} {terms}"
 
-        return sum(self.weights[t] * v for t, v in terms.items())
+        all_score_terms_all_parts = []
+        for term in [self.weights[t] * v for t, v in terms.items()]:
+            if term.shape == (1,):
+                all_score_terms_all_parts.append(term[0])
+            else:
+                for part in term:
+                    all_score_terms_all_parts.append(part[0])
+        return sum(all_score_terms_all_parts)
 
 
 _TModule = TypeVar("_TModule", bound="ScoreModule")

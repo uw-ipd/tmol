@@ -4,6 +4,7 @@ import math
 from tmol.kinematics.metadata import DOFTypes
 from tmol.score.coordinates import KinematicAtomicCoordinateProvider
 from tmol.system.kinematics import KinematicDescription
+from tmol.system.score_support import kincoords_to_coords
 from tmol.types.torch import Tensor
 
 # modules for cartesian and torsion-space optimization
@@ -77,22 +78,8 @@ class TorsionalEnergyNetwork(torch.nn.Module):
 
         # self.dofs = DOFMaskingFunc.apply(self.dofs, self.mask, dofs)
 
-    def coords(self) -> Tensor[torch.float][:, :, 3]:
-        """System cartesian atomic coordinates."""
-
-        coords = torch.full(
-            (self.system_size, 3),
-            math.nan,
-            dtype=self.dofs.dtype,
-            layout=self.dofs.layout,
-            device=self.dofs.device,
-            requires_grad=False,
-        )
-
-        idIdx = self.kintree.id[1:].to(dtype=torch.long)
-        coords[idIdx] = self.dofs[1:]
-
-        return coords.to(torch.float)[None, ...]
+    def coords(self):
+        return kincoords_to_coords(self.dofs, self.kintree, self.system_size)
 
     def forward(self):
         return self.score_system.intra_total(self.coords())

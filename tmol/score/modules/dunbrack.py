@@ -1,5 +1,6 @@
 import attr
 from attrs_strict import type_validator
+from collections import namedtuple
 from typing import Set, Type, Optional
 import torch
 import numpy
@@ -19,12 +20,149 @@ from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
 from tmol.score.modules.bonded_atom import BondedAtoms
 
-from tmol.system.score_support import (
-    get_dunbrack_phi_psi_chi,
-    get_dunbrack_phi_psi_chi_for_stack,
-    PhiPsiChi,
-)
-from tmol.system.packed import PackedResidueSystemStack
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+
+
+PhiPsiChi = namedtuple("PhiPsiChi", ["phi", "psi", "chi"])
+
+
+def get_dunbrack_phi_psi_chi(
+    system: PackedResidueSystem, device: torch.device
+) -> PhiPsiChi:
+    dun_phi = numpy.array(
+        [
+            [
+                x["residue_index"],
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "phi"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    dun_psi = numpy.array(
+        [
+            [
+                x["residue_index"],
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "psi"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    dun_chi1 = numpy.array(
+        [
+            [
+                x["residue_index"],
+                0,
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi1"]
+        ],
+        dtype=numpy.int32,
+    )
+    # print("dun_chi1")
+    # print(dun_chi1)
+
+    dun_chi2 = numpy.array(
+        [
+            [
+                x["residue_index"],
+                1,
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi2"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    dun_chi3 = numpy.array(
+        [
+            [
+                x["residue_index"],
+                2,
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi3"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    dun_chi4 = numpy.array(
+        [
+            [
+                x["residue_index"],
+                3,
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi4"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    # merge the 4 chi tensors, sorting by residue index and chi index
+    join_chi = numpy.concatenate((dun_chi1, dun_chi2, dun_chi3, dun_chi4), 0)
+    chi_res = join_chi[:, 0]
+    chi_inds = join_chi[:, 1]
+    sort_inds = numpy.lexsort((chi_inds, chi_res))
+    dun_chi = join_chi[sort_inds, :]
+
+    return PhiPsiChi(
+        torch.tensor(dun_phi[None, :], dtype=torch.int32, device=device),
+        torch.tensor(dun_psi[None, :], dtype=torch.int32, device=device),
+        torch.tensor(dun_chi[None, :], dtype=torch.int32, device=device),
+    )
+
+
+def get_dunbrack_phi_psi_chi_for_stack(
+    systemstack: PackedResidueSystemStack, device: torch.device
+) -> PhiPsiChi:
+    phi_psi_chis = [
+        get_dunbrack_phi_psi_chi(sys, device) for sys in systemstack.systems
+    ]
+
+    max_nres = max(phi_psi_chi.phi.shape[1] for phi_psi_chi in phi_psi_chis)
+    max_nchi = max(phi_psi_chi.chi.shape[1] for phi_psi_chi in phi_psi_chis)
+
+    def expand_dihe(t, max_size):
+        ext = torch.full(
+            (1, max_size, t.shape[2]), -1, dtype=torch.int32, device=t.device
+        )
+        ext[0, : t.shape[1], :] = t[0]
+        return ext
+
+    phi_psi_chi = PhiPsiChi(
+        torch.cat(
+            [expand_dihe(phi_psi_chi.phi, max_nres) for phi_psi_chi in phi_psi_chis]
+        ),
+        torch.cat(
+            [expand_dihe(phi_psi_chi.psi, max_nres) for phi_psi_chi in phi_psi_chis]
+        ),
+        torch.cat(
+            [expand_dihe(phi_psi_chi.chi, max_nchi) for phi_psi_chi in phi_psi_chis]
+        ),
+    )
+
+    return phi_psi_chi
 
 
 @attr.s(slots=True, auto_attribs=True, kw_only=True, frozen=True)

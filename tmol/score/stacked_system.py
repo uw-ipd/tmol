@@ -1,6 +1,8 @@
 from functools import singledispatch
 
-from .score_graph import score_graph
+from tmol.types.functional import validate_args
+from tmol.score.score_graph import score_graph
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 
 @score_graph
@@ -27,3 +29,18 @@ class StackedSystem:
 
     stack_depth: int
     system_size: int
+
+
+@StackedSystem.factory_for.register(PackedResidueSystem)
+@validate_args
+def stack_params_for_system(system: PackedResidueSystem, **_):
+    return dict(stack_depth=1, system_size=int(system.system_size))
+
+
+@StackedSystem.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stack_params_for_stacked_system(stack: PackedResidueSystemStack, **_):
+    return dict(
+        stack_depth=len(stack.systems),
+        system_size=max(int(system.system_size) for system in stack.systems),
+    )

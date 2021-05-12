@@ -16,33 +16,11 @@ from tmol.score.modules.omega import OmegaScore
 
 from tmol.score.device import TorchDevice
 
+from tmol.system.score_support import get_full_score_system_for
+
 
 def test_cart_network_min(ubq_system, torch_device):
-    score_system = ScoreSystem.build_for(
-        ubq_system,
-        {
-            LJScore,
-            LKScore,
-            LKBallScore,
-            ElecScore,
-            CartBondedScore,
-            DunbrackScore,
-            HBondScore,
-            RamaScore,
-            OmegaScore,
-        },
-        weights={
-            "lj": 1.0,
-            "lk": 1.0,
-            "lk_ball": 1.0,
-            "elec": 1.0,
-            "cartbonded": 1.0,
-            "dunbrack": 1.0,
-            "hbond": 1.0,
-            "rama": 1.0,
-            "omega": 1.0,
-        },
-    )
+    score_system = get_full_score_system_for(ubq_system)
     coords = coords_for(ubq_system, score_system)
 
     model = CartesianEnergyNetwork(score_system, coords)
@@ -64,31 +42,7 @@ def test_cart_network_min(ubq_system, torch_device):
 
 
 def test_cart_network_min(ubq_system, torch_device):
-    score_system = ScoreSystem.build_for(
-        ubq_system,
-        {
-            LJScore,
-            LKScore,
-            LKBallScore,
-            ElecScore,
-            CartBondedScore,
-            DunbrackScore,
-            HBondScore,
-            RamaScore,
-            OmegaScore,
-        },
-        weights={
-            "lj": 1.0,
-            "lk": 1.0,
-            "lk_ball": 1.0,
-            "elec": 1.0,
-            "cartbonded": 1.0,
-            "dunbrack": 1.0,
-            "hbond": 1.0,
-            "rama": 1.0,
-            "omega": 1.0,
-        },
-    )
+    score_system = get_full_score_system_for(ubq_system)
     coords = coords_for(ubq_system, score_system)
 
     model = TorsionalEnergyNetwork(score_system, ubq_system, torch_device)
