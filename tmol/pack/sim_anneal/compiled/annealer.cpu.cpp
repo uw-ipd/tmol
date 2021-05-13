@@ -51,6 +51,18 @@ public:
     annealer_event_(annealer_event)
   {}
 
+  int max_n_rotamers() const override {
+    int const n_poses = n_rots_for_pose_.size(0);
+    int max_n_rots = -1;
+    for (int i = 0; i < n_poses; ++i) {
+      int i_nrots = n_rots_for_pose_[i];
+      if (i_nrots < max_n_rots) {
+	max_n_rots = i_nrots;
+      }
+    }
+    return max_n_rots;
+  }
+  
   void pick_rotamers() override {
     PickRotamers<DeviceDispatch, D, Real, Int>::f(
       context_coords_,
@@ -67,7 +79,6 @@ public:
       annealer_event_
     );
   }
-
     
 private:
   TView<Real, 4, D> context_coords_;
@@ -109,10 +120,22 @@ public:
       alternate_id_(alternate_id),
       rotamer_component_energies_(rotamer_component_energies),
       accept_(accept),
-      score_events_(score_events)
+      score_events_(score_events),
+      last_outer_iteration_(-1)
   {}
 
-  void accept_reject() override {
+  void set_temperature_scheduler(std::shared_ptr<TemperatureScheduler> temp_sched) {
+    temp_sched_ = temp_sched;
+  }
+
+  void accept_reject(int outer_iteration) override {
+
+    if (outer_iteration != last_outer_iteration_) {
+      Real temperature = temp_sched_->temp(outer_iteration);
+      last_outer_iteration_ = outer_iteration;
+      temperature_[0] = temperature;
+    }
+
     MetropolisAcceptReject<ForallDispatch, D, Real, Int>::f(
       temperature_,
       context_coords_,
@@ -136,6 +159,8 @@ private:
   TView<Real, 2, D> rotamer_component_energies_;
   TView<Int, 1, D> accept_;
   TView<int64_t, 1, tmol::Device::CPU> score_events_;
+  std::shared_ptr<TemperatureScheduler> temp_sched_;
+  int last_outer_iteration_;
 };
     
 
@@ -354,6 +379,27 @@ void MetropolisAcceptRejectStepRegistrator<DeviceDispatch, D, Real, Int>::f(
 //   }
 // }
 
+TemperatureScheduler::TemperatureScheduler(
+  int n_outer_iterations, float max_temp, float min_temp
+) :
+  n_iterations_( n_outer_iterations ),
+  max_temp_(max_temp),
+  min_temp_(min_temp)
+{}
+  
+float
+TemperatureScheduler::temp(int outer_iteration) const {
+  if (quench(outer_iteration)) {
+    return 0;
+  }
+  return min_temp_ + (max_temp_ - min_temp_) * std::exp(-1 * outer_iteration);
+}
+
+bool
+TemperatureScheduler::quench(int outer_iteration) const {
+  return outer_iteration == n_iterations_ - 1;
+}
+
 
 SimAnnealer::SimAnnealer() {std::cout << "Annealer ctor" << std::endl;}
 SimAnnealer::~SimAnnealer() {std::cout << "Annealer dstor" << std::endl;}
@@ -388,31 +434,37 @@ void SimAnnealer::run_annealer()
   // set the RNG seed -- TEMP!
   acc_rej_step_->final_op();
 
+  int const max_n_rots = pick_step_->max_n_rotamers();
 
-  int n_cycles = 10000;
-  pick_step_->pick_rotamers(); // TEMP!
+  int const n_outer_cycles = 10;
+  int const n_inner_cycles = 10 * max_n_rots;
+
+  auto temp_sched = std::make_shared<TemperatureScheduler>(n_outer_cycles, 100.0, 0.3);
+  acc_rej_step_->set_temperature_scheduler(temp_sched);
+
+  // pick_step_->pick_rotamers(); // TEMP!
   clock_t start_clock = clock();
   time_t start_time = time(NULL);
   using namespace std::chrono;
   auto start_chrono = high_resolution_clock::now();
-  for ( int i = 0; i < n_cycles; ++i ) {
-    //std::cout << "." << std::flush;
-    if ( i % 1 == 0) {
-      if (i != 0) {
-	acc_rej_step_->accept_reject();
-	pick_step_->pick_rotamers();
+  for ( int i = 0; i < n_outer_cycles; ++i ) {
+    for (int j = 0; j < n_inner_cycles; ++j) {
+      pick_step_->pick_rotamers();
+      for (auto const & rpe_calc: score_calculators_) {
+	rpe_calc->calc_energies();
       }
-    }
-    for (auto const & rpe_calc: score_calculators_) {
-      rpe_calc->calc_energies();
+      //std::cout << "." << std::flush;
+      acc_rej_step_->accept_reject(i);
     }
   }
   acc_rej_step_->final_op();
+
   clock_t stop_clock = clock();
   time_t stop_time = time(NULL);
   auto stop_chrono = high_resolution_clock::now();
   auto duration = duration_cast<microseconds>(stop_chrono - start_chrono); 
 
+  int const n_cycles = n_outer_cycles * n_inner_cycles;
   std::cout << n_cycles << " cycles of simA in ";
   std::cout << (double) duration.count() / n_cycles << " us (chrono) ";
   std::cout << ((double) stop_clock - start_clock) / (n_cycles * CLOCKS_PER_SEC) << " s (clock) ";

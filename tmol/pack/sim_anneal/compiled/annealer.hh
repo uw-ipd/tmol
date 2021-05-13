@@ -51,6 +51,20 @@ struct MetropolisAcceptReject {
       TView<int64_t, 1, tmol::Device::CPU> score_events) -> void;
 };
 
+class TemperatureScheduler {
+ public:
+  TemperatureScheduler(int n_outer_iterations, float max_temp, float min_temp);
+
+  virtual float temp(int outer_iteration) const;
+
+  virtual bool quench(int outer_iteration) const;
+
+ private:
+  int n_iterations_;
+  float max_temp_;
+  float min_temp_;
+};
+
 template <
     template <tmol::Device>
     class Dispatch,
@@ -64,13 +78,16 @@ struct FinalOp {
 class PickRotamersStep {
  public:
   virtual ~PickRotamersStep() = default;
+  virtual int max_n_rotamers() const = 0;
   virtual void pick_rotamers() = 0;
 };
 
 class MetropolisAcceptRejectStep {
  public:
   virtual ~MetropolisAcceptRejectStep() = default;
-  virtual void accept_reject() = 0;
+  virtual void set_temperature_scheduler(
+      std::shared_ptr<TemperatureScheduler> temp_sched) = 0;
+  virtual void accept_reject(int outer_iteration) = 0;
   virtual void final_op() = 0;
 };
 
