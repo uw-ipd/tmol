@@ -125,8 +125,19 @@ def rebuild_poses_if_necessary(
             block_type_ind[i, : len(res)] = torch.tensor(
                 pbt.inds_for_res(res), dtype=torch.int32, device=poses.device
             )
+        if poses.packed_block_types.max_n_atoms != pbt.max_n_atoms:
+            new_coords = torch.zeros(
+                (poses.coords.shape[0], poses.coords.shape[1], pbt.max_n_atoms, 3),
+                dtype=torch.float32,
+                device=poses.coords.device,
+            )
+        else:
+            new_coords = poses.coords.clone()
         poses = attr.evolve(
-            poses, packed_block_types=pbt, block_type_ind=block_type_ind
+            poses,
+            packed_block_types=pbt,
+            coords=new_coords,
+            block_type_ind=block_type_ind,
         )
     else:
         pbt = poses.packed_block_types

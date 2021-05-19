@@ -148,7 +148,7 @@ template <
 class CUDAMetropolisAcceptRejectStep : public MetropolisAcceptRejectStep {
  public:
   CUDAMetropolisAcceptRejectStep(
-      TView<Real, 1, D> temperature,
+      TView<Real, 1, tmol::Device::CPU> temperature,
       TView<Real, 4, D> context_coords,
       TView<Int, 2, D> context_block_type,
       TView<Real, 3, D> alternate_coords,
@@ -178,8 +178,7 @@ class CUDAMetropolisAcceptRejectStep : public MetropolisAcceptRejectStep {
       Real temperature = temp_sched_->temp(outer_iteration);
       std::cout << "Setting new temperature" << std::endl;
       last_outer_iteration_ = outer_iteration;
-      cudaMemcpy(
-          &temperature_[0], &temperature, sizeof(Real), cudaMemcpyHostToDevice);
+      temperature_[0] = temperature;
     }
 
     MetropolisAcceptReject<ForallDispatch, D, Real, Int>::f(
@@ -196,7 +195,7 @@ class CUDAMetropolisAcceptRejectStep : public MetropolisAcceptRejectStep {
   void final_op() override { FinalOp<ForallDispatch, D, Real, Int>::f(); }
 
  private:
-  TView<Real, 1, D> temperature_;
+  TView<Real, 1, tmol::Device::CPU> temperature_;
   TView<Real, 4, D> context_coords_;
   TView<Int, 2, D> context_block_type_;
   TView<Real, 3, D> alternate_coords_;
@@ -256,7 +255,7 @@ template <
     typename Real,
     typename Int>
 void MetropolisAcceptRejectStepRegistrator<DeviceDispatch, D, Real, Int>::f(
-    TView<Real, 1, D> temperature,
+    TView<Real, 1, tmol::Device::CPU> temperature,
     TView<Real, 4, D> context_coords,
     TView<Int, 2, D> context_block_type,
     TView<Real, 3, D> alternate_coords,

@@ -59,15 +59,15 @@ def test_build_rotamers_smoke(
 ):
     # torch_device = torch.device("cpu")
 
-    p1 = Pose.from_residues_one_chain(rts_ubq_res[:3], torch_device)
-    p2 = Pose.from_residues_one_chain(rts_ubq_res[:2], torch_device)
+    p1 = Pose.from_residues_one_chain(rts_ubq_res[:10], torch_device)
+    p2 = Pose.from_residues_one_chain(rts_ubq_res[:9], torch_device)
     poses = Poses.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
-    leu_set = set(["LEU"])
-    for one_pose_rlts in task.rlts:
-        for rlt in one_pose_rlts:
-            rlt.restrict_absent_name3s(leu_set)
+    # leu_set = set(["LEU"])
+    # for one_pose_rlts in task.rlts:
+    #     for rlt in one_pose_rlts:
+    #         rlt.restrict_absent_name3s(leu_set)
 
     fixed_sampler = FixedAAChiSampler()
     task.add_chi_sampler(dun_sampler)

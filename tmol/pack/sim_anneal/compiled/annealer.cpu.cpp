@@ -104,7 +104,7 @@ template <
 class CPUMetropolisAcceptRejectStep : public MetropolisAcceptRejectStep {
 public:
   CPUMetropolisAcceptRejectStep(
-      TView<Real, 1, D> temperature,
+      TView<Real, 1, tmol::Device::CPU> temperature,
       TView<Real, 4, D> context_coords,
       TView<Int, 2, D> context_block_type,
       TView<Real, 3, D> alternate_coords,
@@ -151,7 +151,7 @@ public:
   void final_op() override {}
 
 private:
-  TView<Real, 1, D> temperature_;
+  TView<Real, 1, tmol::Device::CPU> temperature_;
   TView<Real, 4, D> context_coords_;
   TView<Int, 2, D> context_block_type_;
   TView<Real, 3, D> alternate_coords_;
@@ -215,7 +215,7 @@ template <
   typename Real,
   typename Int>
 void MetropolisAcceptRejectStepRegistrator<DeviceDispatch, D, Real, Int>::f(
-  TView<Real, 1, D> temperature,
+  TView<Real, 1, tmol::Device::CPU> temperature,
   TView<Real, 4, D> context_coords,
   TView<Int, 2, D> context_block_type,
   TView<Real, 3, D> alternate_coords,

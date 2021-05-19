@@ -41,7 +41,7 @@ template <
     typename Int>
 struct MetropolisAcceptReject {
   static auto f(
-      TView<Real, 1, D> temperature,
+      TView<Real, 1, tmol::Device::CPU> temperature,
       TView<Real, 4, D> context_coords,
       TView<Int, 2, D> context_block_type,
       TView<Real, 3, D> alternate_coords,
@@ -122,7 +122,7 @@ template <
     typename Int>
 struct MetropolisAcceptRejectStepRegistrator {
   static void f(
-      TView<Real, 1, D> temperature,
+      TView<Real, 1, tmol::Device::CPU> temperature,
       TView<Real, 4, D> context_coords,
       TView<Int, 2, D> context_block_type,
       TView<Real, 3, D> alternate_coords,

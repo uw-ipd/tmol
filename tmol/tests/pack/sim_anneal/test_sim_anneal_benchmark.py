@@ -176,7 +176,7 @@ def test_run_simA_benchmark(
         annealer,
     )
 
-    temperature = torch.full((1,), 100, dtype=torch.float32, device=torch_device)
+    temperature = torch.full((1,), 100, dtype=torch.float32, device=torch.device("cpu"))
     rotamer_component_energies = torch.zeros(
         (n_components, 2 * n_poses), dtype=torch.float32, device=torch_device
     )
@@ -238,7 +238,7 @@ def test_run_simA_benchmark(
     torch.ops.tmol.run_sim_annealing(annealer)
 
     #
-    # temperature = torch.full((1,), 100, dtype=torch.float32, device=torch_device)
+    # temperature = torch.full((1,), 100, dtype=torch.float32, device=torch.device("cpu"))
     #
     # alt_coords, alt_ids, rr = selector.go(context_coords, context_block_type)
     # lj_energies, events = inter_module.go(context_coords, context_block_type, alt_coords, alt_ids)
@@ -266,4 +266,5 @@ def test_run_simA_benchmark(
     print("annealer")
     print(annealer)
 
+    # make sure that the device is still operating; that we haven't corrupted GPU memory
     torch.arange(100, device=torch_device).sum()

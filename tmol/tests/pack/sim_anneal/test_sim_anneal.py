@@ -6,7 +6,25 @@ from tmol.utility.tensor.common_operations import stretch
 from tmol.system.restypes import ResidueTypeSet
 from tmol.system.pose import PackedBlockTypes, Pose, Poses
 
+# to dump pdbs
+from tmol.system.packed import PackedResidueSystem
+from tmol.utility.reactive import reactive_property
+from tmol.score.score_graph import score_graph
+from tmol.score.bonded_atom import BondedAtomScoreGraph
+from tmol.score.coordinates import CartesianAtomicCoordinateProvider
+from tmol.score.device import TorchDevice
+from tmol.score.score_components import ScoreComponentClasses, IntraScore
+from tmol.io.generic import to_pdb
+
+from tmol.pack.packer_task import PackerTask, PackerPalette
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
+from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.pack.rotamer.build_rotamers import RotamerSet, build_rotamers
 from tmol.pack.sim_anneal.annealer import MCAcceptRejectModule, SelectRanRotModule
+from tmol.pack.sim_anneal.accept_final import (
+    poses_from_assigned_rotamers,
+    pdb_lines_for_pose,
+)
 
 
 def test_random_rotamer_module(ubq_res, default_database, torch_device):
@@ -125,7 +143,7 @@ def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
     faux_energies = torch.arange(10, dtype=torch.float32, device=torch_device).view(
         1, 10
     )
-    temperature = torch.ones((1,), dtype=torch.float32, device=torch_device)
+    temperature = torch.ones((1,), dtype=torch.float32, device=torch.device("cpu"))
 
     mc_accept_reject = MCAcceptRejectModule()
 
@@ -143,3 +161,72 @@ def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
         faux_energies,
     )
     print(accept)
+
+
+def test_accept_final(
+    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+):
+    # torch_device = torch.device("cpu")
+    rts = ResidueTypeSet.from_database(default_database.chemical)
+
+    max_n_blocks = 10
+    n_poses = 3
+    p = Pose.from_residues_one_chain(rts_ubq_res[:max_n_blocks], torch_device)
+    poses = Poses.from_poses([p] * n_poses, torch_device)
+
+    palette = PackerPalette(fresh_default_restype_set)
+    task = PackerTask(poses, palette)
+    # task.restrict_to_repacking()
+
+    fixed_sampler = FixedAAChiSampler()
+    task.add_chi_sampler(dun_sampler)
+    task.add_chi_sampler(fixed_sampler)
+
+    poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
+
+    print("built rotamers", rotamer_set.pose_for_rot.shape)
+
+    pose_id_for_context = torch.arange(n_poses, dtype=torch.int32, device=torch_device)
+    context_coords = poses.coords.clone()
+    rand_rot = torch.floor(
+        torch.rand((n_poses, max_n_blocks), dtype=torch.float, device=torch_device)
+        * rotamer_set.n_rots_for_block.to(torch.float32)
+    ).to(torch.int64)
+    rand_rot_global = rotamer_set.rot_offset_for_block + rand_rot
+    packable_blocks = rotamer_set.n_rots_for_block != 0
+    context_coords[packable_blocks] = rotamer_set.coords[
+        rand_rot_global[packable_blocks]
+    ]
+    context_block_type = poses.block_type_ind.clone()
+    context_block_type[packable_blocks] = rotamer_set.block_type_ind_for_rot[
+        rand_rot_global[packable_blocks]
+    ].to(torch.int32)
+
+    randomized_poses = poses_from_assigned_rotamers(
+        poses,
+        poses.packed_block_types,
+        pose_id_for_context,
+        context_coords,
+        context_block_type,
+    )
+
+    # @score_graph
+    # class DummyIntra(IntraScore):
+    #     @reactive_property
+    #     def total_dummy(target):
+    #         return target.coords.sum()
+    #
+    # @score_graph
+    # class BASGCart(CartesianAtomicCoordinateProvider, BondedAtomScoreGraph, TorchDevice) :
+    #     total_score_components = [
+    #         ScoreComponentClasses("dummy", intra_container=DummyIntra, inter_container=None)
+    #     ]
+
+    for i in range(n_poses):
+        # packed_system = PackedResidueSystem.from_residues(randomized_poses.residues[i])
+        # bonded_atom_score_graph = BASGCart.build_for(packed_system)
+        # pdb = to_pdb(bonded_atom_score_graph)
+
+        pdb = pdb_lines_for_pose(randomized_poses, i)
+        with open("temp_repacked_pdb_{:04d}.pdb".format(i), "w") as fid:
+            fid.write(pdb)

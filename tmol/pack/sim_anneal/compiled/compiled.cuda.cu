@@ -258,7 +258,7 @@ template <
     typename Int>
 struct MetropolisAcceptReject {
   static auto f(
-      TView<Real, 1, D> temperature,
+      TView<Real, 1, tmol::Device::CPU> temperature,
       TView<Real, 4, D> context_coords,
       TView<Int, 2, D> context_block_type,
       TView<Real, 3, D> alternate_coords,
@@ -287,6 +287,8 @@ struct MetropolisAcceptReject {
 
     auto philox_seed = next_philox_seed(1);
 
+    Real const temp = temperature[0];
+
     auto accept_reject = [=] MGPU_DEVICE(int i) {
       curandStatePhilox4_32_10_t state;
       curand_init(philox_seed.first, i, philox_seed.second, &state);
@@ -303,7 +305,6 @@ struct MetropolisAcceptReject {
       // score::common::accumulate<D, Real>::add(sum_energies[0], sumE);
       Real deltaE = altE - currE;
       Real rand_unif = curand_uniform(&state);
-      Real temp = temperature[0];
       Real prob_accept = exp(-1 * deltaE / temp);
       bool i_accept = deltaE < 0 || rand_unif < prob_accept;
       accept[i] = i_accept;
