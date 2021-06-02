@@ -49,7 +49,9 @@ public:
     alternate_id_(alternate_id),
     random_rots_(random_rots),
     annealer_event_(annealer_event)
-  {}
+  {
+    std::cout << "CPUPickRotamersStep" << std::endl;
+  }
 
   int max_n_rotamers() const override {
     int const n_poses = n_rots_for_pose_.size(0);
@@ -436,8 +438,10 @@ void SimAnnealer::run_annealer()
 
   int const max_n_rots = pick_step_->max_n_rotamers();
 
-  int const n_outer_cycles = 10;
-  int const n_inner_cycles = 10 * max_n_rots;
+  std::cout << "Annealing with " << max_n_rots << " rotamers" << std::endl;
+  
+  int const n_outer_cycles = 20;
+  int const n_inner_cycles = 5 * max_n_rots;
 
   auto temp_sched = std::make_shared<TemperatureScheduler>(n_outer_cycles, 100.0, 0.3);
   acc_rej_step_->set_temperature_scheduler(temp_sched);
@@ -462,11 +466,13 @@ void SimAnnealer::run_annealer()
   clock_t stop_clock = clock();
   time_t stop_time = time(NULL);
   auto stop_chrono = high_resolution_clock::now();
-  auto duration = duration_cast<microseconds>(stop_chrono - start_chrono); 
+  auto duration_us = duration_cast<microseconds>(stop_chrono - start_chrono); 
+  auto duration_ms = duration_cast<milliseconds>(stop_chrono - start_chrono); 
 
   int const n_cycles = n_outer_cycles * n_inner_cycles;
   std::cout << n_cycles << " cycles of simA in ";
-  std::cout << (double) duration.count() / n_cycles << " us (chrono) ";
+  std::cout << (double) duration_us.count() / n_cycles << " us per iteration (chrono) ";
+  std::cout << (double) duration_ms.count() / 1000  << " s (chrono) " << std::endl;
   std::cout << ((double) stop_clock - start_clock) / (n_cycles * CLOCKS_PER_SEC) << " s (clock) ";
   std::cout << ((double) stop_time - start_time) / (n_cycles) << " s (wall time) " << std::endl;
 }

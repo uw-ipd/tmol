@@ -46,7 +46,9 @@ class CUDAPickRotamersStep : public PickRotamersStep {
         alternate_coords_(alternate_coords),
         alternate_id_(alternate_id),
         random_rots_(random_rots),
-        annealer_event_(annealer_event) {}
+        annealer_event_(annealer_event) {
+    std::cout << "CUDAPickRotamersStep" << std::endl;
+  }
 
   int max_n_rotamers() const override {
     int const n_poses = n_rots_for_pose_.size(0);
@@ -71,7 +73,7 @@ class CUDAPickRotamersStep : public PickRotamersStep {
     cudaMemcpy(
         &max_n_rots, &max_n_rots_tv[0], sizeof(Int), cudaMemcpyDeviceToHost);
 
-    std::cout << "Max n rots: " << max_n_rots << std::endl;
+    std::cout << "Max n rots: " << max_n_rots << " test" << std::endl;
     return max_n_rots;
   }
 
@@ -95,7 +97,13 @@ class CUDAPickRotamersStep : public PickRotamersStep {
   }
 
   void clear_old_events() {
-    return;
+    if (previously_created_events_.size() >= 100) {
+      // std::cout << "waiting on old event" << std::endl;
+      cudaEvent_t event =
+          reinterpret_cast<cudaEvent_t>(previously_created_events_.front());
+      cudaEventSynchronize(event);
+    }
+
     for (auto event_iter = previously_created_events_.begin();
          event_iter != previously_created_events_.end();
          /*no increment*/) {
@@ -104,11 +112,11 @@ class CUDAPickRotamersStep : public PickRotamersStep {
       auto event_iter_next = event_iter;
       ++event_iter_next;
       if (status == cudaSuccess) {
-        std::cout << "event " << event << " done" << std::endl;
+        // std::cout << "event " << event << " done" << std::endl;
         cudaEventDestroy(event);
         previously_created_events_.erase(event_iter);
       } else {
-        std::cout << "event " << event << " not yet ready" << std::endl;
+        // std::cout << "event " << event << " not yet ready" << std::endl;
       }
 
       event_iter = event_iter_next;
@@ -176,7 +184,7 @@ class CUDAMetropolisAcceptRejectStep : public MetropolisAcceptRejectStep {
 
     if (outer_iteration != last_outer_iteration_) {
       Real temperature = temp_sched_->temp(outer_iteration);
-      std::cout << "Setting new temperature" << std::endl;
+      std::cout << "Setting new temperature: " << temperature << std::endl;
       last_outer_iteration_ = outer_iteration;
       temperature_[0] = temperature;
     }

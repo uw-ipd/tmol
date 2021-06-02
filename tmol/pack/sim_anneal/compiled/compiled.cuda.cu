@@ -6,6 +6,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/gpu_error_check.hh>
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
@@ -288,6 +289,8 @@ struct MetropolisAcceptReject {
     auto philox_seed = next_philox_seed(1);
 
     Real const temp = temperature[0];
+    ++count_mc_passes;
+    int const n_mc_passes = count_mc_passes;
 
     auto accept_reject = [=] MGPU_DEVICE(int i) {
       curandStatePhilox4_32_10_t state;
@@ -305,8 +308,14 @@ struct MetropolisAcceptReject {
       // score::common::accumulate<D, Real>::add(sum_energies[0], sumE);
       Real deltaE = altE - currE;
       Real rand_unif = curand_uniform(&state);
-      Real prob_accept = exp(-1 * deltaE / temp);
+      Real prob_accept = temp > 0 ? exp(-1 * deltaE / temp) : 0;
       bool i_accept = deltaE < 0 || rand_unif < prob_accept;
+      // if (n_mc_passes % 1000 == 1) {
+      //   printf(
+      //       "accept reject temp=%f tid=%d dE=%f runif=%f proba=%f
+      //       iaccept=%d\n", temp, i, deltaE, rand_unif, prob_accept,
+      //       i_accept);
+      // }
       accept[i] = i_accept;
       if (i_accept) {
         int block_id = alternate_ids[2 * i + 1][1];
@@ -344,12 +353,72 @@ struct MetropolisAcceptReject {
       packer_stream = at::cuda::getStreamFromPool().stream();
     }
 
-    ++count_mc_passes;
     // mgpu::standard_context_t context(packer_stream);
     mgpu::standard_context_t context;
     wait_on_score_events(context.stream(), score_events);
     mgpu::transform(accept_reject, n_contexts, context);
-    mgpu::transform(copy_accepted_coords, n_contexts, context);
+    gpuErrchk(cudaPeekAtLastError());
+    mgpu::transform(copy_accepted_coords, n_contexts * max_n_atoms, context);
+    gpuErrchk(cudaPeekAtLastError());
+
+    // if (count_mc_passes % 100 == 0) {
+    //   using namespace mgpu;
+    //   typedef launch_box_t<
+    //       arch_20_cta<32, 1>,
+    //       arch_35_cta<32, 1>,
+    //       arch_52_cta<32, 1>>
+    //       launch_t;
+    //   gpuErrchk(cudaPeekAtLastError());
+    //
+    //   // std::cout << "device sync..." << std::flush;
+    //   gpuErrchk(cudaDeviceSynchronize());
+    //   // std::cout << "synced" << std::endl;
+    //
+    //   auto n_accepted_tp = TPack<Int, 1, D>::zeros({1});
+    //   auto n_accepted = n_accepted_tp.view;
+    //   gpuErrchk(cudaPeekAtLastError());
+    //   //std::cout << "n_accepted: " << &n_accepted[0] << std::endl;
+    //
+    //   auto count_accepted = ([=] MGPU_DEVICE(int tid, int cta) {
+    //     typedef typename launch_t::sm_ptx params_t;
+    //     enum {
+    //       nt = params_t::nt,
+    //       vt = params_t::vt,
+    //       vt0 = params_t::vt0,
+    //       nv = nt * vt
+    //     };
+    //     typedef mgpu::cta_reduce_t<nt, Int> reduce_t;
+    //
+    //     __shared__ struct { typename reduce_t::storage_t reduce; } shared;
+    //     Int local_sum = 0;
+    //
+    //     for (int i = tid; i < accept.size(0); i += blockDim.x) {
+    //       local_sum += accept[i];
+    //     }
+    //
+    //     Int cta_total = reduce_t().reduce(
+    //         tid, local_sum, shared.reduce, nt, mgpu::plus_t<Int>());
+    //     if (tid == 0) {
+    //       n_accepted[0] = cta_total;
+    //       // printf("cta total: %d\n", cta_total);
+    //     }
+    //   });
+    //
+    //   // std::cout << "launching kernel..." << std::flush;
+    //   mgpu::cta_launch<launch_t>(count_accepted, 1, context);
+    //   gpuErrchk(cudaPeekAtLastError());
+    //
+    //   // std::cout << "launched; memcpy sync..." << std::flush;
+    //   Int cpu_n_accepted(0);
+    //   gpuErrchk(cudaMemcpy(
+    //       &cpu_n_accepted,
+    //       &n_accepted[0],
+    //       sizeof(Int),
+    //       cudaMemcpyDeviceToHost));
+    //
+    //   // std::cout << "N accepted at temp " << temp << ": " << cpu_n_accepted
+    //   //           << std::endl;
+    // }
 
     // Dispatch<D>::forall(n_contexts, accept_reject);
     // Dispatch<D>::forall(n_contexts * max_n_atoms, copy_accepted_coords);

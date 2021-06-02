@@ -81,8 +81,8 @@ class SimAEngine:
 
 @pytest.mark.benchmark(group="simulated_annealing")
 # @pytest.mark.parametrize("n_poses", [10, 30, 100, 300, 1000])
-@pytest.mark.parametrize("n_poses", [100, 300])  # 300
-@pytest.mark.parametrize("n_components", [1, 4])
+@pytest.mark.parametrize("n_poses", [100])  # 300
+@pytest.mark.parametrize("n_components", [1])
 def test_run_simA_benchmark(
     benchmark,
     n_poses,
@@ -94,6 +94,7 @@ def test_run_simA_benchmark(
     dun_sampler,
 ):
 
+    print("torch device", torch_device)
     # def _p(t):
     #     return torch.nn.Parameter(t, requires_grad=False)
 
@@ -101,6 +102,7 @@ def test_run_simA_benchmark(
 
     p = Pose.from_residues_one_chain(rts_ubq_res, torch_device)
     poses = Poses.from_poses([p] * n_poses, torch_device)
+    print("poses device", poses.device, poses.coords.device)
 
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -111,12 +113,15 @@ def test_run_simA_benchmark(
     task.add_chi_sampler(fixed_sampler)
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
-    # print("n_rotamers", rotamer_set.coords.shape[0] // n_poses)
+    print("poses device after rotamer building", poses.device, poses.coords.device)
+    print("n_rotamers", rotamer_set.coords.shape[0] // n_poses)
 
     bounding_spheres = create_rotamer_bounding_spheres(poses, rotamer_set)
 
     # come up with the intial rotamer assignment
     context_coords = poses.coords.clone()
+    print("context_coords device")
+    print(context_coords.device)
     rand_rot = torch.floor(
         torch.rand((n_poses, max_n_blocks), dtype=torch.float, device=torch_device)
         * rotamer_set.n_rots_for_block.to(torch.float32)
