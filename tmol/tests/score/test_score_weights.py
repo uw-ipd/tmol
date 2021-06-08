@@ -1,48 +1,25 @@
 import torch
 
-from tmol.score.ljlk import LJScoreGraph
-from tmol.score.device import TorchDevice
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.score_graph import score_graph
-from tmol.score.score_weights import ScoreWeights
-
+from tmol.score.modules.bases import ScoreSystem
 from tmol.system.packed import PackedResidueSystem
-
 from tmol.tests.autograd import gradcheck
 
 
-@score_graph
-class LJScore(
-    CartesianAtomicCoordinateProvider, LJScoreGraph, ScoreWeights, TorchDevice
-):
-    pass
-
-
 def test_score_weights(ubq_system, torch_device):
-    score_graph = LJScore.build_for(
-        ubq_system,
-        requires_grad=True,
-        device=torch_device,
-        component_weights={"total_lj": 1.0},
-    )
-    total1 = score_graph.intra_score().total
+    score_system = ScoreSystem.build_for(ubq_system, {LJScore}, weights={"lj": 1.0})
+    total1 = score_system.intra_total()
 
-    score_graph = LJScore.build_for(
-        ubq_system,
-        requires_grad=True,
-        device=torch_device,
-        component_weights={"total_lj": 0.5},
-    )
-    total2 = score_graph.intra_score().total
+    score_system = ScoreSystem.build_for(ubq_system, {LJScore}, weights={"lj": 0.5})
+    total1 = score_system.intra_total()
 
     torch.isclose(total1, 2.0 * total2)
 
 
 def test_score_weights_grad(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
-    real_space = LJScore.build_for(test_system, component_weights={"total_lj": 0.5})
+    score_system = ScoreSystem.build_for(ubq_system, {LJScore}, weights={"lj": 0.5})
 
-    coord_mask = torch.isnan(real_space.coords).sum(dim=-1) == 0
+    coord_mask = torch.isnan(score_system.coords).sum(dim=-1) == 0
     start_coords = real_space.coords[coord_mask]
 
     def total_score(coords):
