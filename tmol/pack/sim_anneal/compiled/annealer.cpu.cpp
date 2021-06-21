@@ -446,19 +446,21 @@ void SimAnnealer::run_annealer()
   auto temp_sched = std::make_shared<TemperatureScheduler>(n_outer_cycles, 100.0, 0.3);
   acc_rej_step_->set_temperature_scheduler(temp_sched);
 
-  // pick_step_->pick_rotamers(); // TEMP!
+  pick_step_->pick_rotamers(); // TEMP!
   clock_t start_clock = clock();
   time_t start_time = time(NULL);
   using namespace std::chrono;
   auto start_chrono = high_resolution_clock::now();
   for ( int i = 0; i < n_outer_cycles; ++i ) {
     for (int j = 0; j < n_inner_cycles; ++j) {
-      pick_step_->pick_rotamers();
+      if ( i * n_inner_cycles + j % 100 == 0) {
+	pick_step_->pick_rotamers();
+      }
       for (auto const & rpe_calc: score_calculators_) {
 	rpe_calc->calc_energies();
       }
       //std::cout << "." << std::flush;
-      acc_rej_step_->accept_reject(i);
+      // TEMP! acc_rej_step_->accept_reject(i);
     }
   }
   acc_rej_step_->final_op();

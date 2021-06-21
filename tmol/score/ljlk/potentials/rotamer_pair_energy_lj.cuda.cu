@@ -1242,8 +1242,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }  // for ivt
   });
 
-  at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
-  // at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
+  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
   // if (ljlk_stream == 0) {
   //   // cudaStreamCreate(&ljlk_stream);
   //   ljlk_stream = at::cuda::getStreamFromPool().stream();
@@ -1251,12 +1251,19 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   mgpu::standard_context_t context(wrapped_stream.stream());
   // mgpu::standard_context_t context(ljlk_stream);
 
-  // TEMP! wait_on_annealer_event(wrapped_stream.stream(), annealer_event);
+  wait_on_annealer_event(wrapped_stream.stream(), annealer_event);
 
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors / 2 - 1) / launch_t::sm_ptx::vt + 1;
+
+  static bool first(true);
+  if (first) {
+    std::cout << "nt " << launch_t::sm_ptx::nt << " vt " << launch_t::sm_ptx::vt
+              << std::endl;
+    first = false;
+  }
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
-  // TEMP! record_scoring_event(wrapped_stream.stream(), score_event);
+  record_scoring_event(wrapped_stream.stream(), score_event);
 
   // strictly unnecessary --
   // at::cuda::setCurrentCUDAStream(at::cuda::getDefaultCUDAStream());
@@ -1354,8 +1361,8 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
         annealer_event_(annealer_event) {}
 
   void calc_energies() override {
-    // clear_old_score_events(previously_created_events_);
-    // create_score_event(score_event_, previously_created_events_);
+    clear_old_score_events(previously_created_events_);
+    create_score_event(score_event_, previously_created_events_);
 
     LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         context_coords_,
