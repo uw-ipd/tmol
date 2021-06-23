@@ -2,13 +2,6 @@ import torch
 
 from tmol.system.packed import PackedResidueSystem
 
-from tmol.score.total_score_graphs import TotalScoreGraph
-from tmol.score.score_graph import score_graph
-from tmol.score.coordinates import (
-    CartesianAtomicCoordinateProvider,
-    KinematicAtomicCoordinateProvider,
-)
-
 from tmol.tests.autograd import gradcheck
 
 

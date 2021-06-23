@@ -1,8 +1,6 @@
 import pytest
 from pytest import approx
 
-from tmol.score.score_graph import score_graph
-
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.ljlk import LJScore, LKScore
 

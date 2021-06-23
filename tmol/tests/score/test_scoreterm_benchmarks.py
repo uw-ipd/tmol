@@ -2,26 +2,8 @@ import pytest
 
 from tmol.utility.reactive import reactive_property
 
-from tmol.score.total_score_graphs import TotalScoreGraph
-
-from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
-from tmol.score.bonded_atom import BondedAtomScoreGraph
 from tmol.score.score_components import ScoreComponentClasses, IntraScore
-
-from tmol.score.coordinates import (
-    CartesianAtomicCoordinateProvider,
-    KinematicAtomicCoordinateProvider,
-)
-
-from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
-from tmol.score.hbond import HBondScoreGraph
-from tmol.score.elec import ElecScoreGraph
-from tmol.score.rama import RamaScoreGraph
-from tmol.score.omega import OmegaScoreGraph
-from tmol.score.dunbrack import DunbrackScoreGraph
-from tmol.score.cartbonded import CartBondedScoreGraph
-from tmol.score.lk_ball import LKBallScoreGraph
 
 
 @score_graph

@@ -4,17 +4,7 @@ import torch
 
 from tmol.score.total_score_graphs import TotalScoreGraph
 
-from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
-
-from tmol.score.coordinates import (
-    KinematicAtomicCoordinateProvider,
-    CartesianAtomicCoordinateProvider,
-)
-
-from tmol.score.ljlk.score_graph import LJScoreGraph, LKScoreGraph
-from tmol.score.lk_ball.score_graph import LKBallScoreGraph
-from tmol.score.rama.score_graph import RamaScoreGraph
 from tmol.system.packed import PackedResidueSystemStack
 
 

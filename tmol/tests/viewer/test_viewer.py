@@ -3,11 +3,6 @@ import torch
 
 from tmol.viewer import SystemViewer
 
-from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-
-from tmol.score.score_graph import score_graph
-
 from argparse import Namespace
 
 
