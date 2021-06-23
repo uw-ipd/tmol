@@ -1,3 +1,0 @@
-[submodule "tmol/database/default"]
-	path = tmol/database/default
-	url = ../tmol_database
