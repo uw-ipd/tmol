@@ -2,11 +2,8 @@ import toolz
 
 import pandas
 
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.hbond import HBondScoreGraph
-from tmol.score.score_graph import score_graph
-
-from tmol.system.packed import PackedResidueSystem
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.hbond import HBondScore
 
 
 def hbond_score_comparison(rosetta_baseline):

@@ -1,22 +1,20 @@
 from pytest import approx
 
-
-from tmol.score.score_graph import score_graph
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.cartbonded import CartBondedScoreGraph
-
-
-@score_graph
-class CartBondedGraph(CartesianAtomicCoordinateProvider, CartBondedScoreGraph):
-    pass
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.cartbonded import CartBondedScore
 
 
 def test_cartbonded_baseline_comparison(ubq_system, torch_device):
-    test_graph = CartBondedGraph.build_for(
-        ubq_system, drop_missing_atoms=False, requires_grad=False, device=torch_device
+    score_system = ScoreSystem.build_for(
+        ubq_system,
+        {CartBondedScore},
+        weights={"cartbonded": 1.0},
+        drop_missing_atoms=False,
+        requires_grad=False,
+        device=torch_device,
     )
 
-    intra_container = test_graph.intra_score()
+    intra_container = score_system.intra_score()
 
     assert float(intra_container.total_cartbonded_length[0]) == approx(
         37.7848, rel=1e-3

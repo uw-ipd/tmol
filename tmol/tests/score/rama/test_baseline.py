@@ -1,9 +1,8 @@
 from pytest import approx
 
 
-from tmol.score.score_graph import score_graph
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.rama import RamaScoreGraph
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.rama import RamaScore
 
 
 @score_graph

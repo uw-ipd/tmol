@@ -31,27 +31,3 @@ def test_cart_network_min(ubq_system, torch_device):
 
     E1 = score_system.intra_total(coords)
     assert E1 < E0
-
-
-def test_cart_network_min(ubq_system, torch_device):
-    score_system = get_full_score_system_for(ubq_system)
-    coords = coords_for(ubq_system, score_system)
-
-    model = TorsionalEnergyNetwork(score_system, ubq_system, torch_device)
-
-    # "kincoords" is for each atom, 9 values,
-    # but only 3 for regular atom, 9 for jump
-    optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
-
-    E0 = score_system.intra_total(model.coords())
-
-    def closure():
-        optimizer.zero_grad()
-
-        E = model()
-        E.backward()
-        return E
-
-    optimizer.step(closure)
-    E1 = score_system.intra_total(model.coords())
-    assert E1 < E0

@@ -3,10 +3,8 @@ from pytest import approx
 
 from tmol.score.score_graph import score_graph
 
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.lk_ball.score_graph import LKBallScoreGraph
-
-from tmol.system.packed import PackedResidueSystem
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.lk_ball import LKBallScore
 
 
 @score_graph
