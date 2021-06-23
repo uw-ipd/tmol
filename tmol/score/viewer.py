@@ -18,10 +18,15 @@ def score_graph_to_pdb(score_graph):
 
     atom_records = numpy.zeros_like(render_atoms, dtype=pdb_parsing.atom_record_dtype)
 
+    print("testing 123")
+    print("score_graph.res_indices[0, render_atoms]")
+    print(score_graph.res_indices[0, render_atoms])
+
     atom_records["record_name"] = "ATOM"
     atom_records["chain"] = "X"
-    atom_records["resn"] = "UNK"
+    atom_records["resn"] = score_graph.res_names[0, render_atoms]
     atom_records["atomi"] = render_atoms
+    atom_records["resn"] = score_graph.res_indices[0, render_atoms]
     atom_records["atomn"] = [t[0] for t in atom_types[render_atoms]]
 
     atom_records["x"] = atom_coords[render_atoms][:, 0]
