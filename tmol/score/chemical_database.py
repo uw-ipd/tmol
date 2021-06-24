@@ -8,7 +8,6 @@ import pandas
 import torch
 import numpy
 
-from tmol.database import ParameterDatabase
 from tmol.database.chemical import ChemicalDatabase
 
 from tmol.types.torch import Tensor
@@ -17,10 +16,6 @@ from tmol.types.array import NDArray
 from tmol.types.attrs import ValidateAttrs
 
 from tmol.utility.reactive import reactive_property
-from .score_graph import score_graph
-
-from .database import ParamDB
-from .device import TorchDevice
 
 from enum import IntEnum
 
@@ -134,12 +129,3 @@ class AtomTypeParamResolver(ValidateAttrs):
         )
 
         return cls(index=atom_type_index, params=atom_type_params, device=device)
-
-
-@score_graph
-class ChemicalDB(ParamDB, TorchDevice):
-    """Graph component for chemical parameter dispatch."""
-
-    @reactive_property
-    def atom_type_params(parameter_database: ParameterDatabase, device: torch.device):
-        return AtomTypeParamResolver.from_database(parameter_database.chemical, device)
