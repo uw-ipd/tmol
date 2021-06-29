@@ -15,9 +15,9 @@ from tmol.score.modules.rama import RamaScore
 from tmol.score.modules.omega import OmegaScore
 
 
-def benchmark_score_pass(benchmark, score_system, benchmark_pass, coords):
+def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     # Score once to prep graph
-    total = score_system.intra_score().total
+    total = score_graph.intra_total()
 
     if benchmark_pass == "full":
 
@@ -25,31 +25,31 @@ def benchmark_score_pass(benchmark, score_system, benchmark_pass, coords):
         def run():
             score_graph.reset_coords()
 
-            result = score_graph.intra_total()
-            # total = ?#
-            # total.backward() ?# TODO: what should go here?
+            total = score_graph.intra_total()
+            total.backward()
 
-            # float(total)
+            float(total)
 
-            # return total
-            return
+            return total
 
     elif benchmark_pass == "forward":
 
         @benchmark
         def run():
-            total = score_system.intra_total(coords)
+            score_graph.reset_coords()
 
-            return  # TODO: what should be returned?
-            # intra_score() used to to return an object with a member total that itself had a .device member?
+            total = score_graph.intra_total()
+
+            float(total)
+
+            return total
 
     elif benchmark_pass == "backward":
 
         @benchmark
         def run():
-            # total.backward(retain_graph=True) TODO: what should go here?
-            # return total
-            return
+            total.backward(retain_graph=True)
+            return total
 
     else:
         raise NotImplementedError

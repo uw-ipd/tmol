@@ -8,6 +8,18 @@ import itertools
 from tmol.extern.toposort import toposort
 
 
+class ScoreTermSummation(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, wts, comps):
+        ctx.save_for_backward(wts)
+        return torch.sum(wts * comps, dim=0)
+
+    @staticmethod
+    def backward(ctx, dX):
+        dE, = ctx.saved_tensors
+        return (None, dE * dX)
+
+
 @attr.s(auto_attribs=True)
 class ScoreSystem:
     modules: Dict[Type["ScoreModule"], "ScoreModule"]
@@ -60,6 +72,18 @@ class ScoreSystem:
 
         return instance
 
+    def intra_total(target, **component_totals):
+        terms: List[Dict[str, torch.Tensor]] = [
+            method.intra_forward(coords) for method in self.methods.values()
+        ]
+
+        weights = torch.ones_like(components)
+
+        sumfunc = ScoreTermSummation()
+        total_score = sumfunc.apply(self.weights, terms)
+
+        return total_score
+
     def intra_forward(self, coords: torch.Tensor):
 
         terms: List[Dict[str, torch.Tensor]] = [
@@ -73,7 +97,7 @@ class ScoreSystem:
 
         return dict(ChainMap(*terms))
 
-    def intra_total(self, coords: torch.Tensor):
+    def intra_score_only(self, coords: torch.Tensor):
         terms = self.do_intra(coords)
         all_score_terms_all_parts = []
         for term in [self.weights[t] * v for t, v in terms.items()]:
