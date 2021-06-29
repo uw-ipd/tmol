@@ -2,7 +2,6 @@ import pytest
 
 from tmol.utility.reactive import reactive_property
 
-from tmol.score.device import TorchDevice
 from tmol.score.score_components import ScoreComponentClasses, IntraScore
 
 from tmol.score.modules.ljlk import LJScore, LKScore
