@@ -25,10 +25,10 @@ class CartesianEnergyNetwork(torch.nn.Module):
         self.score_system = score_system
 
         # parameters
-        self.dofs = torch.nn.Parameter(coords)
+        self.coords = torch.nn.Parameter(coords)
 
     def forward(self):
-        return self.score_system.intra_total(self.dofs)
+        return self.score_system.intra_total(self.coords)
 
 
 # mask out relevant dofs to the minimizer
