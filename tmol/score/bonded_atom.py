@@ -128,8 +128,8 @@ def bonded_path_length_stacked(
 
 
 def bonded_path_length(
-    bonds: NDArray(int)[:, 2], system_size: int, limit: int
-) -> NDArray(numpy.float32)[:, :]:
+    bonds: NDArray[int][:, 2], system_size: int, limit: int
+) -> NDArray[numpy.float32][:, :]:
     bond_graph = sparse.COO(
         bonds.T,
         data=numpy.full(len(bonds), True),
