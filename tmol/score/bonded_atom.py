@@ -125,3 +125,16 @@ def bonded_path_length_stacked(
         )
 
     return result
+
+
+def bonded_path_length(
+    bonds: NDArray(int)[:, 2], system_size: int, limit: int
+) -> NDArray(numpy.float32)[:, :]:
+    bond_graph = sparse.COO(
+        bonds.T,
+        data=numpy.full(len(bonds), True),
+        shape=(system_size, system_size),
+        cache=True,
+    )
+
+    return csgraph.dijkstra(bond_graph, directed=False, unweighted=True, limit=limit)
