@@ -1,7 +1,7 @@
 import torch
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
-from tmol.system.score_support import stacked_bonded_atoms_for_system
+from tmol.score.modules.bonded_atom import stacked_bonded_atoms_for_system
 from tmol.score.elec.params import ElecParamResolver
 from tmol.score.bonded_atom import bonded_path_length, bonded_path_length_stacked
 

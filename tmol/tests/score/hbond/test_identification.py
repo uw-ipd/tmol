@@ -7,7 +7,7 @@ import tmol.score
 
 import tmol.system.restypes as restypes
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
-from tmol.system.score_support import (
+from tmol.score.modules.bonded_atom import (
     bonded_atoms_for_system,
     stacked_bonded_atoms_for_system,
 )
