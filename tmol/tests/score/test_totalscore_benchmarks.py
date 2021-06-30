@@ -1,57 +1,10 @@
 import pytest
 import torch
 
+from tmol.system.score_support import get_full_score_system_for
+from tmol.score.modules.coords import coords_for
 
-from tmol.score.total_score_graphs import TotalScoreGraph
-
-from tmol.score.device import TorchDevice
 from tmol.system.packed import PackedResidueSystemStack
-
-
-@score_graph
-class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
-    pass
-
-
-# the
-@score_graph
-class StackScoreGraph(
-    CartesianAtomicCoordinateProvider,
-    LJScoreGraph,
-    LKScoreGraph,
-    LKBallScoreGraph,
-    RamaScoreGraph,
-    TorchDevice,
-):
-    pass
-
-
-@pytest.fixture
-def default_component_weights(torch_device):
-    return {
-        "total_lj": torch.tensor(1.0, device=torch_device),  # _rep 0.55 !
-        "total_lk": torch.tensor(1.0, device=torch_device),
-        "total_elec": torch.tensor(1.0, device=torch_device),
-        "total_lk_ball": torch.tensor(0.92, device=torch_device),
-        "total_lk_ball_iso": torch.tensor(-0.38, device=torch_device),
-        "total_lk_ball_bridge": torch.tensor(-0.33, device=torch_device),
-        "total_lk_ball_bridge_uncpl": torch.tensor(-0.33, device=torch_device),
-        "total_hbond": torch.tensor(1.0, device=torch_device),
-        "total_rama": torch.tensor(1.0, device=torch_device),  # renormalized
-        "total_dun": torch.tensor(1.0, device=torch_device),  # renormalized
-        "total_omega": torch.tensor(0.48, device=torch_device),
-        "total_cartbonded_length": torch.tensor(1.0, device=torch_device),
-        "total_cartbonded_angle": torch.tensor(1.0, device=torch_device),
-        "total_cartbonded_torsion": torch.tensor(1.0, device=torch_device),
-        "total_cartbonded_improper": torch.tensor(1.0, device=torch_device),
-        "total_cartbonded_hxltorsion": torch.tensor(1.0, device=torch_device),
-        "total_dun_rot": torch.tensor(0.76, device=torch_device),
-        "total_dun_dev": torch.tensor(0.69, device=torch_device),
-        "total_dun_semi": torch.tensor(0.78, device=torch_device),
-        ## ... still unimplemented
-        # "total_ref": torch.tensor(1.0, device=torch_device),
-        # "total_dslf": torch.tensor(1.25, device=torch_device),
-    }
 
 
 @pytest.mark.benchmark(group="total_score_setup")
@@ -61,13 +14,8 @@ def test_setup(
 ):
     @benchmark
     def setup():
-        score_graph = TotalScore.build_for(
-            systems_bysize[system_size],
-            requires_grad=True,
-            device=torch_device,
-            component_weights=default_component_weights,
-        )
-        return score_graph.intra_score().total
+        score_system = get_full_score_system_for(systems_bysize[system_size])
+        return score_system.intra_total(coords)
 
     score = setup
     assert score == score
@@ -78,18 +26,11 @@ def test_setup(
 def test_full(
     benchmark, systems_bysize, system_size, torch_device, default_component_weights
 ):
-    score_graph = TotalScore.build_for(
-        systems_bysize[system_size],
-        requires_grad=True,
-        device=torch_device,
-        component_weights=default_component_weights,
-    )
-    score_graph.intra_score().total
+    score_system = get_full_score_system_for(systems_bysize[system_size])
 
     @benchmark
     def forward_backward():
-        score_graph.reset_coords()
-        total = score_graph.intra_score().total
+        total = score_system.intra_total(coords)
         total.backward()
         return total
 
@@ -102,18 +43,12 @@ def test_stacked_full(
     benchmark, ubq_system, nstacks, torch_device, default_component_weights
 ):
     stack = PackedResidueSystemStack((ubq_system,) * nstacks)
-    score_graph = StackScoreGraph.build_for(
-        stack,
-        requires_grad=True,
-        device=torch_device,
-        component_weights=default_component_weights,
-    )
-    score_graph.intra_score().total
+    score_system = get_full_score_system_for(stack)
+    coords = coords_for(stack, score_system)
 
     @benchmark
     def forward_backward():
-        score_graph.reset_coords()
-        total = score_graph.intra_score().total
+        total = score_system.intra_total(coords)
         tsum = torch.sum(total)
         tsum.backward(retain_graph=True)
         return total
