@@ -1,7 +1,8 @@
+import torch
+from tmol.database.chemical import ChemicalDatabase
+from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.score.modules.chemical_database import ChemicalDB
 from tmol.score.modules.bases import ScoreSystem
-
-from tmol.tests.score.test_chemical_database import validate_param_resolver
 
 
 def test_score_component(default_database, torch_device):
