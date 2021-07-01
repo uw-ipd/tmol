@@ -5,19 +5,9 @@ from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.ljlk import LJScore, LKScore
 
 
-@score_graph
-class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
-    pass
-
-
-@score_graph
-class LKGraph(CartesianAtomicCoordinateProvider, LKScoreGraph):
-    pass
-
-
 graph_comparisons = {
-    "lj_regression": (LJGraph, {"total_lj": -177.1}),
-    "lk_regression": (LKGraph, {"total_lk": 297.3}),
+    "lj_regression": (LJScore, {"total_lj": -177.1}),
+    "lk_regression": (LKScore, {"total_lk": 297.3}),
 }
 
 module_comparisons = {
@@ -32,11 +22,11 @@ module_comparisons = {
     ids=list(graph_comparisons.keys()),
 )
 def test_baseline_comparison(ubq_system, torch_device, graph_class, expected_scores):
-    test_graph = graph_class.build_for(
-        ubq_system, drop_missing_atoms=False, requires_grad=False, device=torch_device
+    test_system = ScoreSystem.build_for(
+        ubq_system, {LJScore, LKScore}, {"lj": 1.0, "lk": 1.0}
     )
 
-    intra_container = test_graph.intra_score()
+    intra_container = test_system.intra_subscores()
     scores = {
         term: float(getattr(intra_container, term).detach()) for term in expected_scores
     }
