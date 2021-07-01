@@ -16,7 +16,7 @@ def test_cart_network_min(ubq_system, torch_device):
     model = CartesianEnergyNetwork(score_system, coords)
     optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
 
-    E0 = score_system.intra_total(coords)
+    E0 = score_system.intra_score_only(coords)
 
     def closure():
         optimizer.zero_grad()
@@ -27,7 +27,7 @@ def test_cart_network_min(ubq_system, torch_device):
 
     optimizer.step(closure)  # this optimizes coords, the tensor
 
-    E1 = score_system.intra_total(coords)
+    E1 = score_system.intra_score_only(coords)
     assert E1 < E0
 
 
@@ -41,7 +41,7 @@ def test_dof_network_min(ubq_system, torch_device):
     # but only 3 for regular atom, 9 for jump
     optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
 
-    E0 = score_system.intra_total(model.coords())
+    E0 = score_system.intra_score_only(model.coords())
 
     def closure():
         optimizer.zero_grad()
@@ -51,5 +51,5 @@ def test_dof_network_min(ubq_system, torch_device):
         return E
 
     optimizer.step(closure)
-    E1 = score_system.intra_total(model.coords())
+    E1 = score_system.intra_score_only(model.coords())
     assert E1 < E0
