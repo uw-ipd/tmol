@@ -5,47 +5,19 @@ from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.lk_ball import LKBallScore
 
 
-@score_graph
-class LKBallGraph(CartesianAtomicCoordinateProvider, LKBallScoreGraph):
-    pass
+def test_baseline_comparison(ubq_rosetta_baseline, torch_device):
+    expected_scores = {
+        "total_lk_ball": 171.47,
+        "total_lk_ball_iso": 421.006,
+        "total_lk_ball_bridge": 1.578,
+        "total_lk_ball_bridge_uncpl": 10.99,
+    }
 
-
-# rosetta-baseline values:
-# {
-#     "lk_ball": 173.68865865110556,
-#     "lk_ball_iso": 411.1702730219401,
-#     "lk_ball_bridge": 1.426083767458333,
-#     "lk_ball_bridge_uncpl": 10.04351344360775,
-# }
-
-comparisons = {
-    "lkball_regression": (
-        LKBallGraph,
-        {
-            "total_lk_ball": 171.47,
-            "total_lk_ball_iso": 421.006,
-            "total_lk_ball_bridge": 1.578,
-            "total_lk_ball_bridge_uncpl": 10.99,
-        },
-    )
-}
-
-
-@pytest.mark.parametrize(
-    "graph_class,expected_scores",
-    list(comparisons.values()),
-    ids=list(comparisons.keys()),
-)
-def test_baseline_comparison(
-    ubq_rosetta_baseline, torch_device, graph_class, expected_scores
-):
     test_system = PackedResidueSystem.from_residues(ubq_rosetta_baseline.tmol_residues)
 
-    test_graph = graph_class.build_for(
-        test_system, drop_missing_atoms=False, requires_grad=False, device=torch_device
-    )
+    score_system = ScoreSystem.build_for(test_system, {LKBallScore}, {"lk_ball": 1.0})
 
-    intra_container = test_graph.intra_score()
+    intra_container = score_system.intra_subscores()
     scores = {
         term: float(getattr(intra_container, term).detach()) for term in expected_scores
     }
