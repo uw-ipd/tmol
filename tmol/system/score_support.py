@@ -47,9 +47,12 @@ def kincoords_to_coords(
     return coords.to(torch.float)[None, ...]
 
 
-def get_full_score_system_for(packed_residue_system: PackedResidueSystem):
+# TODO add a method to go from TERM (not method) keystrings to required method (XScore) classes
+
+
+def get_full_score_system_for(packed_residue_system_or_system_stack):
     score_system = ScoreSystem.build_for(
-        packed_residue_system,
+        packed_residue_system_or_system_stack,
         {
             LJScore,
             LKScore,

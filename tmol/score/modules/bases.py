@@ -72,14 +72,19 @@ class ScoreSystem:
 
         return instance
 
-    def intra_total(target, **component_totals):
+    def intra_total(
+        self, coords
+    ):  # TODO after fixing keys from method.intra_forward, finish this
         terms: List[Dict[str, torch.Tensor]] = [
             method.intra_forward(coords) for method in self.methods.values()
         ]
-
-        weights = torch.ones_like(components)
+        for term in terms:
+            print(term.keys())
+            print(term.values())
+        print(self.modules.keys())
 
         sumfunc = ScoreTermSummation()
+
         total_score = sumfunc.apply(self.weights, terms)
 
         return total_score
@@ -97,7 +102,7 @@ class ScoreSystem:
 
         return dict(ChainMap(*terms))
 
-    def intra_score_only(self, coords: torch.Tensor):
+    def intra_score_only(self, coords: torch.Tensor):  # TODO delete this
         terms = self.do_intra(coords)
         all_score_terms_all_parts = []
         for term in [self.weights[t] * v for t, v in terms.items()]:
@@ -108,7 +113,7 @@ class ScoreSystem:
                     all_score_terms_all_parts.append(part[0])
         return sum(all_score_terms_all_parts)
 
-    def intra_subscores(self, coords: torch.Tensor):
+    def intra_subscores(self, coords: torch.Tensor):  # TODO delete this
         terms = self.do_intra(coords)
         return sum(self.weights[t] * v for t, v in terms.items())
 

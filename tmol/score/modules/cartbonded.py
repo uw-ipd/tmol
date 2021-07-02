@@ -301,8 +301,12 @@ class CartBondedScore(ScoreMethod):
         return {
             "cartbonded": self.cartbonded_module(
                 coords,
-                CartBondedParameters.get(self).cartbonded_lengths,
-                CartBondedParameters.get(self).cartbonded_angles,
+                CartBondedParameters.get(
+                    self
+                ).cartbonded_lengths,  # TODO for this and other ScoreMethods, change this dict to have
+                CartBondedParameters.get(
+                    self
+                ).cartbonded_angles,  # a new key for _every term_
                 CartBondedParameters.get(self).cartbonded_torsions,
                 CartBondedParameters.get(self).cartbonded_impropers,
                 CartBondedParameters.get(self).cartbonded_hxltorsions,
