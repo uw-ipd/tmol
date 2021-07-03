@@ -1,22 +1,12 @@
 import attr
-import cattr
-
-import pandas
 
 import torch
 import numpy
 
 
-from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
 from tmol.types.array import NDArray
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
-
-from tmol.database.scoring.ljlk import LJLKDatabase
-from tmol.database.chemical import ChemicalDatabase
-
-from ..chemical_database import AtomTypeParamResolver
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)

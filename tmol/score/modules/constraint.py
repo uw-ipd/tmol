@@ -1,5 +1,4 @@
 import attr
-from attrs_strict import type_validator
 from typing import Set, Type, Optional
 import torch
 from functools import singledispatch
@@ -9,9 +8,6 @@ from tmol.score.constraint.script_modules import ConstraintIntraModule
 
 from tmol.score.modules.bases import ScoreSystem, ScoreModule, ScoreMethod
 from tmol.score.modules.device import TorchDevice
-from tmol.score.modules.database import ParamDB
-from tmol.score.modules.chemical_database import ChemicalDB
-from tmol.score.modules.stacked_system import StackedSystem
 from tmol.score.modules.bonded_atom import BondedAtoms
 
 
@@ -26,11 +22,6 @@ class ConstraintParameters(ScoreModule):
     def build_for(val, system: ScoreSystem, *, cstdata: Optional[dict] = None, **_):
         """Override constructor.
         """
-        dist_xs, dist_ys = None, None
-        omega_xs, omega_ys = None, None
-        theta_xs, theta_ys = None, None
-        phi_xs, phi_ys = None, None
-
         if cstdata is None:
             cstdata = {}
 

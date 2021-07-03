@@ -2,9 +2,6 @@ import torch
 import numpy
 from tmol.score.constraint.params import ConstraintResolver
 
-from tmol.database.chemical import ChemicalDatabase
-from tmol.database.scoring.ljlk import LJLKDatabase
-
 # Import compiled components to load torch_ops
 import tmol.score.ljlk.potentials.compiled  # noqa
 

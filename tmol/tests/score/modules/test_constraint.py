@@ -1,17 +1,12 @@
-import copy
-
 import pytest
-from pytest import approx
 import torch
 import numpy
-
-from tmol.database import ParameterDatabase
 
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.constraint import ConstraintParameters, ConstraintScore
 from tmol.score.modules.coords import coords_for
 
-from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+from tmol.system.packed import PackedResidueSystemStack
 
 ## A module implementing TR-Rosetta (and RoseTTAFold) style constraints
 ## (fd) this should probably be given a more specific name
@@ -28,7 +23,7 @@ def preprocess_distance_constraints(dists):
     bins = torch.cat([xclose, xmid, xlong])
 
     # splines
-    prob = torch.sum(dists[:, :, 5:], dim=-1)  # prob of dist within 20A
+    # prob = torch.sum(dists[:, :, 5:], dim=-1)  # prob of dist within 20A
     bkgr = (xmid / 19.5) ** ALPHA
     ymid = (
         -torch.log(
@@ -121,7 +116,7 @@ def test_cst_score_setup(benchmark, cst_system, cst_csts, torch_device):
             device=torch_device,
         )
 
-    graph = score_graph
+    score_graph
 
 
 def test_cst_for_system(cst_system, cst_csts, torch_device):
