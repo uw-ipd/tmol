@@ -26,27 +26,26 @@ class ConstraintParameters(ScoreModule):
     def build_for(val, system: ScoreSystem, *, cstdata: Optional[dict] = None, **_):
         """Override constructor.
         """
-        spline_xs, spline_ys = None, None
-        if cstdata is not None:
-            spline_xs = cstdata["dense_cb_spline_xs"]
-            spline_ys = cstdata["dense_cb_spline_ys"]
-        return ConstraintParameters(
-            system=system, spline_xs=spline_xs, spline_ys=spline_ys
-        )
+        dist_xs, dist_ys = None, None
+        omega_xs, omega_ys = None, None
+        theta_xs, theta_ys = None, None
+        phi_xs, phi_ys = None, None
 
-    spline_xs: torch.Tensor = attr.ib(validator=type_validator())
-    spline_ys: torch.Tensor = attr.ib(validator=type_validator())
+        if cstdata is None:
+            cstdata = {}
 
+        return ConstraintParameters(system=system, cstdata=cstdata)
+
+    cstdata: dict = attr.ib()
     constraint_resolver: ConstraintResolver = attr.ib(init=False)
 
     @constraint_resolver.default
     def _init_cst_param_resolver(self) -> ConstraintResolver:
-        return ConstraintResolver.from_dense_CB_spline_data(
+        return ConstraintResolver.from_dense_6D(
             device=TorchDevice.get(self).device,
             atm_names=BondedAtoms.get(self).atom_names,
             res_indices=BondedAtoms.get(self).res_indices,
-            spline_xs=self.spline_xs,
-            spline_ys=self.spline_ys,
+            csts=self.cstdata,
         )
 
 
@@ -67,4 +66,9 @@ class ConstraintScore(ScoreMethod):
         return ConstraintIntraModule(ConstraintParameters.get(self).constraint_resolver)
 
     def intra_forward(self, coords: torch.Tensor):
-        return {"cst": self.cst_intra_module(coords)}
+        cst_atompair, cst_dihedral, cst_angle = self.cst_intra_module(coords)
+        return {
+            "cst_atompair": cst_atompair,
+            "cst_dihedral": cst_dihedral,
+            "cst_angle": cst_angle,
+        }

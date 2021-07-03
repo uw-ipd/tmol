@@ -39,8 +39,15 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
                 dim=0,
             )
         )
-        self.spline_xs = _p(param_resolver.spline_xs)
-        self.spline_ys = _p(param_resolver.spline_ys)
+        self.dense_cbcb_dist_xs = _p(param_resolver.dense_cbcb_dist_xs)
+        self.dense_cbcb_dist_ys = _p(param_resolver.dense_cbcb_dist_ys)
+        self.dense_cacbcbca_tors_xs = _p(param_resolver.dense_cacbcbca_tors_xs)
+        self.dense_cacbcbca_tors_ys = _p(param_resolver.dense_cacbcbca_tors_ys)
+        self.dense_ncacacb_tors_xs = _p(param_resolver.dense_ncacacb_tors_xs)
+        self.dense_ncacacb_tors_ys = _p(param_resolver.dense_ncacacb_tors_ys)
+        self.dense_cacacb_angle_xs = _p(param_resolver.dense_cacacb_angle_xs)
+        self.dense_cacacb_angle_ys = _p(param_resolver.dense_cacacb_angle_ys)
+
         self.nres = param_resolver.nres
 
     # @torch.jit.script_method
@@ -83,7 +90,7 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
     # x = spline interpolant xs (N)
     # ys = spline interpolant ys (nres x nres x N)
     # xs = parwise distance stacks (nstack x nres x nres)
-    def interp(self, x, ys, xs):
+    def interp(self, x, ys, xs, verbose=False):
         def h_poly(t):
             tt = torch.stack((torch.ones_like(t), t, t * t, t * t * t))
             A = torch.tensor(
@@ -102,13 +109,7 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
             [ms[..., 0:1], (ms[..., 1:] + ms[..., :-1]) / 2, ms[..., -1:]], dim=-1
         )
         # torch 1.6
-        # I = torch.searchsorted(x[1:], xs.detach()) # fd
-
-        # quick and dirty pre-1.6
-        I = torch.zeros(xs.shape, dtype=torch.long, device=xs.device)
-        for i, xi in enumerate(x[1:].flip(0)):
-            I[xs <= xi] = x.shape[0] - i - 2
-
+        I = torch.searchsorted(x[1:], xs.detach())  # fd
         dx = x[I + 1] - x[I]
         hh = h_poly((xs - x[I]) / dx)
 
@@ -121,7 +122,49 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
         mI = torch.gather(ms, 1, I).reshape((nres, nres, nstk)).permute([2, 0, 1])
         mIp1 = torch.gather(ms, 1, I + 1).reshape((nres, nres, nstk)).permute([2, 0, 1])
 
-        return hh[0] * yI + hh[1] * mI * dx + hh[2] * yIp1 + hh[3] * mIp1 * dx
+        interp = hh[0] * yI + hh[1] * mI * dx + hh[2] * yIp1 + hh[3] * mIp1 * dx
+
+        return interp
+
+    def get_angles(self, I, J, K):
+        F = I - J
+        G = K - J
+        angle = torch.acos(
+            torch.clamp(
+                torch.sum(F * G, dim=-1)
+                / torch.sqrt(
+                    (torch.sum(F * F, dim=-1) * torch.sum(G * G, dim=-1)) + 1e-12
+                ),
+                -1,
+                1,
+            )
+        )
+        return angle
+
+    def get_dihedrals(self, I, J, K, L):
+        def cross_broadcast(x, y):
+            z0 = x[..., 1] * y[..., 2] - x[..., 2] * y[..., 1]
+            z1 = x[..., 2] * y[..., 0] - x[..., 0] * y[..., 2]
+            z2 = x[..., 0] * y[..., 1] - x[..., 1] * y[..., 0]
+            return torch.stack((z0, z1, z2), dim=-1)
+
+        F = I - J
+        G = J - K
+        H = L - K
+        A = cross_broadcast(F, G)
+        B = cross_broadcast(H, G)
+        sign = torch.sign(torch.sum(G * cross_broadcast(A, B), dim=-1))
+        dih = -sign * torch.acos(
+            torch.clamp(
+                torch.sum(A * B, dim=-1)
+                / torch.sqrt(
+                    (torch.sum(A * A, dim=-1) * torch.sum(B * B, dim=-1)) + 1e-12
+                ),
+                -1,
+                1,
+            )
+        )
+        return dih
 
     # @torch.jit.script_method
     def forward(self, coords):
@@ -146,13 +189,33 @@ class ConstraintIntraModule(torch.jit.ScriptModule):
         ]
         CBs = self.cbs_from_frames(Ns, Cs, CAs, self.geometry_params)
 
-        # 2 - compute pairwise distances
+        # 2 - compute pairwise distances and angles
         cbdel = CBs[:, None, :, :] - CBs[:, :, None, :]
         ds = torch.sqrt(torch.sum(cbdel * cbdel, dim=-1))
+        omegas = self.get_dihedrals(
+            CAs[:, :, None, :],
+            CBs[:, :, None, :],
+            CBs[:, None, :, :],
+            CAs[:, None, :, :],
+        )
+        thetas = self.get_dihedrals(
+            Ns[:, :, None, :],
+            CAs[:, :, None, :],
+            CBs[:, :, None, :],
+            CBs[:, None, :, :],
+        )
+        phis = self.get_angles(
+            CAs[:, :, None, :], CBs[:, :, None, :], CBs[:, None, :, :]
+        )
 
         # 3 - spline interpolation
-        E = self.interp(self.spline_xs, self.spline_ys, ds)
+        Ed = self.interp(self.dense_cbcb_dist_xs, self.dense_cbcb_dist_ys, ds)
+        Eomega = self.interp(
+            self.dense_cacbcbca_tors_xs, self.dense_cacbcbca_tors_ys, omegas, True
+        )
+        Etheta = self.interp(
+            self.dense_ncacacb_tors_xs, self.dense_ncacacb_tors_ys, thetas
+        )
+        Ephi = self.interp(self.dense_cacacb_angle_xs, self.dense_cacacb_angle_ys, phis)
 
-        Etot = torch.sum(torch.triu(E, 3), dim=(1, 2))
-
-        return Etot
+        return torch.sum(Ed), torch.sum(Eomega) + torch.sum(Etheta), torch.sum(Ephi)
