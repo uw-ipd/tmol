@@ -73,7 +73,9 @@ class ConstraintResolver(ValidateAttrs):
         cb_frames = torch.tensor(numpy.vstack((iN[1], iC[1], iCA[1])).T, device=device)
         cb_stacks = torch.tensor(iCA[0], device=device)
         cb_res_indices = torch.tensor(res_indices[iCA], dtype=torch.long, device=device)
-        nres = iCA[0].shape[0]
+
+        #
+        nres = csts["dense_cbcb_dist_ys"].shape[0]
 
         csts_device = {nm: tnsr.to(device) for nm, tnsr in csts.items()}
 

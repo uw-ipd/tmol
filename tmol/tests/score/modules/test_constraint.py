@@ -155,7 +155,9 @@ def test_cst_for_system(cst_system, cst_csts, torch_device):
     torch.testing.assert_allclose(tot.cpu(), -15955.91015625)
 
 
-def test_cst_for_stacked_system(cst_system, cst_csts, torch_device):
+@pytest.mark.benchmark(group="score_components")
+@pytest.mark.parametrize("nstacks", [2, 3, 10, 30, 100])
+def test_cst_for_stacked_system(benchmark, cst_system, cst_csts, nstacks, torch_device):
     dists, Edists = preprocess_distance_constraints(cst_csts["dist"])
     omegas, Eomegas = preprocess_torsion_constraints(cst_csts["omega"], symm=True)
     theta, Ethetas = preprocess_torsion_constraints(cst_csts["theta"], symm=False)
@@ -172,21 +174,20 @@ def test_cst_for_stacked_system(cst_system, cst_csts, torch_device):
         "dense_cacacb_angle_ys": Ephis.to(torch_device),
     }
 
-    twocst = PackedResidueSystemStack((cst_system, cst_system))
+    stack = PackedResidueSystemStack((cst_system,) * nstacks)
 
     stacked_score = ScoreSystem.build_for(
-        twocst,
+        stack,
         {ConstraintScore},
         weights={"cst_atompair": 1.0, "cst_dihedral": 1.0, "cst_angle": 1.0},
         cstdata=cstdata,
         device=torch_device,
     )
-    coords = coords_for(twocst, stacked_score)
+    coords = coords_for(stack, stacked_score)
 
-    tot = stacked_score.intra_total(coords)
-    assert tot.shape == (2,)
-    torch.testing.assert_allclose(tot[0], tot[1])
-    torch.testing.assert_allclose(tot[0].cpu(), -15955.91015625)
+    @benchmark
+    def stack_score_constraints():
+        return stacked_score.intra_total(coords)
 
-    sumtot = torch.sum(tot)
-    sumtot.backward()
+    tot = stack_score_constraints
+    torch.testing.assert_allclose(tot.cpu(), -15955.91015625 * nstacks)
