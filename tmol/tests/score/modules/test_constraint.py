@@ -3,7 +3,7 @@ import torch
 import numpy
 
 from tmol.score.modules.bases import ScoreSystem
-from tmol.score.modules.constraint import ConstraintParameters, ConstraintScore
+from tmol.score.modules.constraint import ConstraintScore
 from tmol.score.modules.coords import coords_for
 
 from tmol.system.packed import PackedResidueSystemStack
