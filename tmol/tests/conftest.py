@@ -16,6 +16,8 @@ from .data import (  # noqa: F401
     ubq_pdb,
     ubq_res,
     ubq_system,
+    cst_system,
+    cst_csts,
     ubq_rosetta_baseline,
     water_box_system,
     water_box_res,
