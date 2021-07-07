@@ -72,20 +72,16 @@ class ScoreSystem:
 
         return instance
 
-    def intra_total(
-        self, coords
-    ):  # TODO after fixing keys from method.intra_forward, finish this
-        terms: List[Dict[str, torch.Tensor]] = [
-            method.intra_forward(coords) for method in self.methods.values()
-        ]
-        for term in terms:
-            print(term.keys())
-            print(term.values())
-        print(self.modules.keys())
+    def intra_total(self, coords: torch.Tensor):
+        terms = self.do_intra(coords)
+        terms_tensor = torch.stack(tuple(terms.values()))
+        weights_list = []
+        for key in terms.keys():
+            weights_list.append([self.weights[key]])
+        weights_tensor = torch.tensor(weights_list)
 
         sumfunc = ScoreTermSummation()
-
-        total_score = sumfunc.apply(self.weights, terms)
+        total_score = sumfunc.apply(weights_tensor, terms_tensor)
 
         return total_score
 
