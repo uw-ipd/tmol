@@ -63,9 +63,15 @@ def test_rama_for_stacked_system(ubq_system: PackedResidueSystem):
 
     coords = coords_for(twoubq, stacked_score)
 
-    tot = stacked_score.intra_subscores(coords)
+    tot = stacked_score.intra_total(coords)
     assert tot.shape == (2,)
     torch.testing.assert_allclose(tot[0], tot[1])
+
+    forward = stacked_score.intra_forward(coords)
+    assert len(forward) == 1
+    for terms in forward.values():
+        assert len(terms) == 2
+        torch.testing.assert_allclose(terms[0], terms[1])
 
     sumtot = torch.sum(tot)
     sumtot.backward()
