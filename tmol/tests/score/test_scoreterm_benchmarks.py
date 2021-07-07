@@ -1,9 +1,12 @@
 import pytest
 
+
 from tmol.utility.reactive import reactive_property
 
 from tmol.score.score_components import ScoreComponentClasses, IntraScore
 
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.coords import coords_for
 from tmol.score.modules.ljlk import LJScore, LKScore
 from tmol.score.modules.lk_ball import LKBallScore
 from tmol.score.modules.elec import ElecScore
@@ -13,18 +16,18 @@ from tmol.score.modules.hbond import HBondScore
 from tmol.score.modules.rama import RamaScore
 from tmol.score.modules.omega import OmegaScore
 
+from tmol.system.score_support import score_method_to_even_weights_dict
 
-def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
+
+def benchmark_score_pass(benchmark, score_system, benchmark_pass, coords):
     # Score once to prep graph
-    total = score_graph.intra_total()
+    total = score_system.intra_total(coords)
 
     if benchmark_pass == "full":
 
         @benchmark
         def run():
-            score_graph.reset_coords()
-
-            total = score_graph.intra_total()
+            total = score_system.intra_total(coords)
             total.backward()
 
             float(total)
@@ -35,9 +38,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
         @benchmark
         def run():
-            score_graph.reset_coords()
-
-            total = score_graph.intra_total()
+            total = score_system.intra_total(coords)
 
             float(total)
 
@@ -59,15 +60,15 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 @pytest.mark.parametrize(
     "score_system_weight_pair",
     [
-        ({LJScore}, {"lj": 1.0}),
-        ({LKScore}, {"lk": 1.0}),
-        ({LKBallScore}, {"lk_ball": 1.0}),
-        ({ElecScore}, {"elec": 1.0}),
-        ({CartBondedScore}, {"cartbonded": 1.0}),
-        ({DunbrackScore}, {"dunbrack": 1.0}),
-        ({HBondScore}, {"hbond": 1.0}),
-        ({RamaScore}, {"rama": 1.0}),
-        ({OmegaScore}, {"omega": 1.0}),
+        ({LJScore}, score_method_to_even_weights_dict(LJScore)),
+        ({LKScore}, score_method_to_even_weights_dict(LKScore)),
+        ({LKBallScore}, score_method_to_even_weights_dict(LKBallScore)),
+        ({ElecScore}, score_method_to_even_weights_dict(ElecScore)),
+        ({CartBondedScore}, score_method_to_even_weights_dict(CartBondedScore)),
+        ({DunbrackScore}, score_method_to_even_weights_dict(DunbrackScore)),
+        ({HBondScore}, score_method_to_even_weights_dict(HBondScore)),
+        ({RamaScore}, score_method_to_even_weights_dict(RamaScore)),
+        ({OmegaScore}, score_method_to_even_weights_dict(OmegaScore)),
     ],
 )
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
