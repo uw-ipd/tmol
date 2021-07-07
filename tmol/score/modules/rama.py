@@ -246,4 +246,5 @@ class RamaScore(ScoreMethod):
         )
 
     def intra_forward(self, coords: torch.Tensor):
-        return {"rama": self.rama_score_module(coords)}
+        result = self.rama_score_module(coords)
+        return {"rama": result}

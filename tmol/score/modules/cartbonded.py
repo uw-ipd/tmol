@@ -298,17 +298,18 @@ class CartBondedScore(ScoreMethod):
         )
 
     def intra_forward(self, coords: torch.Tensor):
+        result = self.cartbonded_module(
+            coords,
+            CartBondedParameters.get(self).cartbonded_lengths,
+            CartBondedParameters.get(self).cartbonded_angles,
+            CartBondedParameters.get(self).cartbonded_torsions,
+            CartBondedParameters.get(self).cartbonded_impropers,
+            CartBondedParameters.get(self).cartbonded_hxltorsions,
+        )
         return {
-            "cartbonded": self.cartbonded_module(
-                coords,
-                CartBondedParameters.get(
-                    self
-                ).cartbonded_lengths,  # TODO for this and other ScoreMethods, change this dict to have
-                CartBondedParameters.get(
-                    self
-                ).cartbonded_angles,  # a new key for _every term_
-                CartBondedParameters.get(self).cartbonded_torsions,
-                CartBondedParameters.get(self).cartbonded_impropers,
-                CartBondedParameters.get(self).cartbonded_hxltorsions,
-            )
+            "cartbonded_lengths": result[:, 0],
+            "cartbonded_angles": result[:, 1],
+            "cartbonded_torsions": result[:, 2],
+            "cartbonded_impropers": result[:, 3],
+            "cartbonded_hxltorsions": result[:, 4],
         }

@@ -125,14 +125,18 @@ class LKBallScore(ScoreMethod):
         )
 
     def intra_forward(self, coords: torch.Tensor):
+        result = self.lk_ball_intra_module(
+            coords,
+            LKBallParameters.get(self).lkball_pairs.polars,
+            LKBallParameters.get(self).lkball_pairs.occluders,
+            LKBallParameters.get(self).ljlk_atom_types,
+            BondedAtoms.get(self).bonded_path_length,
+            BondedAtoms.get(self).indexed_bonds.bonds,
+            BondedAtoms.get(self).indexed_bonds.bond_spans,
+        )
         return {
-            "lk_ball": self.lk_ball_intra_module(
-                coords,
-                LKBallParameters.get(self).lkball_pairs.polars,
-                LKBallParameters.get(self).lkball_pairs.occluders,
-                LKBallParameters.get(self).ljlk_atom_types,
-                BondedAtoms.get(self).bonded_path_length,
-                BondedAtoms.get(self).indexed_bonds.bonds,
-                BondedAtoms.get(self).indexed_bonds.bond_spans,
-            )
+            "lk_ball_one": result[:, 0],
+            "lk_ball_two": result[:, 1],
+            "lk_ball_three": result[:, 2],
+            "lk_ball_four": result[:, 3],
         }

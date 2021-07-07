@@ -142,4 +142,5 @@ class OmegaScore(ScoreMethod):
         )
 
     def intra_forward(self, coords: torch.Tensor):
-        return {"omega": self.omega_module(coords)}
+        result = self.omega_module(coords)
+        return {"omega": result}

@@ -322,4 +322,9 @@ class DunbrackScore(ScoreMethod):
         )
 
     def intra_forward(self, coords: torch.Tensor):
-        return {"dunbrack": self.dunbrack_score_module(coords)}
+        result = self.dunbrack_score_module(coords)
+        return {
+            "dunbrack_one": result[:, 0],
+            "dunbrack_two": result[:, 1],
+            "dunbrack_three": result[:, 2],
+        }

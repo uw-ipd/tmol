@@ -16,7 +16,7 @@ from tmol.database.scoring import RamaDatabase
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 from tmol.system.kinematics import KinematicDescription
 
-from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.bases import ScoreSystem, ScoreMethod
 from tmol.score.modules.ljlk import LJScore, LKScore
 from tmol.score.modules.lk_ball import LKBallScore
 from tmol.score.modules.elec import ElecScore
@@ -67,13 +67,45 @@ def get_full_score_system_for(packed_residue_system_or_system_stack):
         weights={
             "lj": 1.0,
             "lk": 1.0,
-            "lk_ball": 1.0,
+            "lk_ball_one": 1.0,
+            "lk_ball_two": 1.0,
+            "lk_ball_three": 1.0,
+            "lk_ball_four": 1.0,
             "elec": 1.0,
-            "cartbonded": 1.0,
-            "dunbrack": 1.0,
+            "cartbonded_lengths": 1.0,
+            "cartbonded_angles": 1.0,
+            "cartbonded_torsions": 1.0,
+            "cartbonded_impropers": 1.0,
+            "cartbonded_hxltorsions": 1.0,
+            "dunbrack_one": 1.0,
+            "dunbrack_two": 1.0,
+            "dunbrack_three": 1.0,
             "hbond": 1.0,
             "rama": 1.0,
             "omega": 1.0,
         },
     )
     return score_system
+
+
+def WeightsKeywordToScoreMethod(keyword: str) -> ScoreMethod:
+    conversion = {
+        "lj": LJScore,
+        "lk": LJScore,
+        "lk_ball_one": LKBallScore,
+        "lk_ball_two": LKBallScore,
+        "lk_ball_three": LKBallScore,
+        "lk_ball_four": LKBallScore,
+        "elec": ElecScore,
+        "cartbonded_lengths": CartBondedScore,
+        "cartbonded_angles": CartBondedScore,
+        "cartbonded_torsions": CartBondedScore,
+        "cartbonded_impropers": CartBondedScore,
+        "cartbonded_hxltorsions": CartBondedScore,
+        "dunbrack_one": DunbrackScore,
+        "dunbrack_two": DunbrackScore,
+        "dunbrack_three": DunbrackScore,
+        "hbond": HBondScore,
+        "rama": RamaScore,
+        "omega": OmegaScore,
+    }
