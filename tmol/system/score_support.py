@@ -88,10 +88,10 @@ def get_full_score_system_for(packed_residue_system_or_system_stack):
     return score_system
 
 
-def WeightsKeywordToScoreMethod(keyword: str) -> ScoreMethod:
+def weights_keyword_to_score_method(keyword: str) -> ScoreMethod:
     conversion = {
         "lj": LJScore,
-        "lk": LJScore,
+        "lk": LKScore,
         "lk_ball_one": LKBallScore,
         "lk_ball_two": LKBallScore,
         "lk_ball_three": LKBallScore,
@@ -109,3 +109,34 @@ def WeightsKeywordToScoreMethod(keyword: str) -> ScoreMethod:
         "rama": RamaScore,
         "omega": OmegaScore,
     }
+    return conversion[keyword]
+
+
+def score_method_to_even_weights_dict(score_method: ScoreMethod) -> dict:
+    conversion = {
+        LJScore: {"lj": 1.0},
+        LKScore: {"lk": 1.0},
+        LKBallScore: {
+            "lk_ball_one": 1.0,
+            "lk_ball_two": 1.0,
+            "lk_ball_three": 1.0,
+            "lk_ball_four": 1.0,
+        },
+        ElecScore: {"elec": 1.0},
+        CartBondedScore: {
+            "cartbonded_lengths": 1.0,
+            "cartbonded_angles": 1.0,
+            "cartbonded_torsions": 1.0,
+            "cartbonded_impropers": 1.0,
+            "cartbonded_hxltorsions": 1.0,
+        },
+        DunbrackScore: {
+            "dunbrack_one": 1.0,
+            "dunbrack_two": 1.0,
+            "dunbrack_three": 1.0,
+        },
+        HBondScore: {"hbond": 1.0},
+        RamaScore: {"rama": 1.0},
+        OmegaScore: {"omega": 1.0},
+    }
+    return conversion[score_method]
