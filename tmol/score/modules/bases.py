@@ -98,17 +98,6 @@ class ScoreSystem:
 
         return dict(ChainMap(*terms))
 
-    def intra_score_only(self, coords: torch.Tensor):  # TODO delete this
-        terms = self.do_intra(coords)
-        all_score_terms_all_parts = []
-        for term in [self.weights[t] * v for t, v in terms.items()]:
-            if term.shape == (1,):
-                all_score_terms_all_parts.append(term[0])
-            else:
-                for part in term:
-                    all_score_terms_all_parts.append(part[0])
-        return sum(all_score_terms_all_parts)
-
     def intra_subscores(self, coords: torch.Tensor):  # TODO delete this
         terms = self.do_intra(coords)
         return sum(self.weights[t] * v for t, v in terms.items())
