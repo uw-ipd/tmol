@@ -16,7 +16,7 @@ from tmol.system.score_support import score_method_to_even_weights_dict
 @pytest.mark.benchmark(group="score_setup")
 def test_lk_ball_score_setup(benchmark, ubq_system, torch_device):
     @benchmark
-    def score_graph():
+    def score_system():
         return ScoreSystem.build_for(
             ubq_system,
             {LKBallScore},
