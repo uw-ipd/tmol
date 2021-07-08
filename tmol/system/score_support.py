@@ -17,6 +17,7 @@ from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 from tmol.system.kinematics import KinematicDescription
 
 from tmol.score.modules.bases import ScoreSystem, ScoreMethod
+from tmol.score.modules.constraint import ConstraintScore
 from tmol.score.modules.ljlk import LJScore, LKScore
 from tmol.score.modules.lk_ball import LKBallScore
 from tmol.score.modules.elec import ElecScore
@@ -114,6 +115,11 @@ def weights_keyword_to_score_method(keyword: str) -> ScoreMethod:
 
 def score_method_to_even_weights_dict(score_method: ScoreMethod) -> dict:
     conversion = {
+        ConstraintScore: {
+            "constraint_atompair": 1.0,
+            "constraint_dihedral": 1.0,
+            "constraint_angle": 1.0,
+        },
         LJScore: {"lj": 1.0},
         LKScore: {"lk": 1.0},
         LKBallScore: {
