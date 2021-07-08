@@ -19,11 +19,11 @@ module_comparisons = {
 
 
 @pytest.mark.parametrize(
-    "graph_class,expected_scores",
+    "score_class,expected_scores",
     list(graph_comparisons.values()),
     ids=list(graph_comparisons.keys()),
 )
-def test_baseline_comparison(ubq_system, torch_device, graph_class, expected_scores):
+def test_baseline_comparison(ubq_system, torch_device, score_class, expected_scores):
     score_system = ScoreSystem.build_for(
         ubq_system, {LJScore, LKScore}, {"lj": 1.0, "lk": 1.0}
     )
