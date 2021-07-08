@@ -98,10 +98,6 @@ class ScoreSystem:
 
         return dict(ChainMap(*terms))
 
-    def intra_subscores(self, coords: torch.Tensor):  # TODO delete this
-        terms = self.do_intra(coords)
-        return sum(self.weights[t] * v for t, v in terms.items())
-
     def do_intra(self, coords: torch.Tensor):
         terms = self.intra_forward(coords)
 
