@@ -91,6 +91,9 @@ def get_full_score_system_for(packed_residue_system_or_system_stack):
 
 def weights_keyword_to_score_method(keyword: str) -> ScoreMethod:
     conversion = {
+        "constraint_atompair": ConstraintScore,
+        "constraint_dihedral": ConstraintScore,
+        "constraint_angle": ConstraintScore,
         "lj": LJScore,
         "lk": LKScore,
         "lk_ball": LKBallScore,
