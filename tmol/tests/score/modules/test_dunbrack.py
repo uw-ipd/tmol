@@ -15,7 +15,7 @@ from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 @pytest.mark.benchmark(group="score_setup")
 def test_dunbrack_score_setup(benchmark, ubq_system, torch_device):
     @benchmark
-    def score_graph():
+    def score_system():
         return ScoreSystem.build_for(
             ubq_system,
             {DunbrackScore},

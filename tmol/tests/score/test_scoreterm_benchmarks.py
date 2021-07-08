@@ -71,7 +71,7 @@ def benchmark_score_pass(benchmark, score_system, benchmark_pass, coords):
 )
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
 @pytest.mark.benchmark(group="score_components")
-def test_end_to_end_score_graph(
+def test_end_to_end_score_system(
     benchmark, benchmark_pass, score_system_weight_pair, torch_device, ubq_system
 ):
     target_system = ubq_system
