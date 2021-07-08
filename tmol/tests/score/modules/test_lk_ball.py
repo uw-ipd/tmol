@@ -10,6 +10,7 @@ from tmol.score.modules.lk_ball import LKBallScore, LKBallParameters
 from tmol.score.modules.coords import coords_for
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+from tmol.system.score_support import score_method_to_even_weights_dict
 
 
 @pytest.mark.benchmark(group="score_setup")
@@ -19,12 +20,7 @@ def test_lk_ball_score_setup(benchmark, ubq_system, torch_device):
         return ScoreSystem.build_for(
             ubq_system,
             {LKBallScore},
-            weights={
-                "lk_ball_one": 1.0,
-                "lk_ball_two": 1.0,
-                "lk_ball_three": 1.0,
-                "lk_ball_four": 1.0,
-            },
+            weights=score_method_to_even_weights_dict(LKBallScore),
         )
 
 
@@ -70,14 +66,7 @@ def test_lk_ball_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
 
     stacked_score = ScoreSystem.build_for(
-        twoubq,
-        {LKBallScore},
-        weights={
-            "lk_ball_one": 1.0,
-            "lk_ball_two": 1.0,
-            "lk_ball_three": 1.0,
-            "lk_ball_four": 1.0,
-        },
+        twoubq, {LKBallScore}, weights=score_method_to_even_weights_dict(LKBallScore)
     )
 
     coords = coords_for(twoubq, stacked_score)
