@@ -170,14 +170,14 @@ def stacked_bonded_atoms_for_system(
         d.bonds[:, 0] = i
     bonds = numpy.concatenate(tuple(d.bonds for d in bonds_for_systems))
 
-    def expand_atoms(atdat):
-        atdat2 = numpy.full((1, system_size), None, dtype=object)
+    def expand_atoms(atdat, dtype):
+        atdat2 = numpy.full((1, system_size), None, dtype=dtype)
         atdat2[0, : atdat.shape[1]] = atdat
         return atdat2
 
-    def stackem(key):
+    def stackem(key, dtype=object):
         return numpy.concatenate(
-            [expand_atoms(getattr(d, key)) for d in bonds_for_systems]
+            [expand_atoms(getattr(d, key), dtype) for d in bonds_for_systems]
         )
 
     return BondedAtoms(
@@ -185,7 +185,8 @@ def stacked_bonded_atoms_for_system(
         bonds=bonds,
         atom_types=stackem("atom_types"),
         atom_names=stackem("atom_names"),
-        res_indices=stackem("res_indices"),
+        # fd float64 when unstacked; be consistent when stacked
+        res_indices=stackem("res_indices", numpy.float64),
         res_names=stackem("res_names"),
     )
 
