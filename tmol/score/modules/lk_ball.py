@@ -8,7 +8,6 @@ from tmol.database.scoring import LJLKDatabase
 
 from tmol.score.lk_ball.script_modules import LKBallIntraModule
 from tmol.score.ljlk.params import LJLKParamResolver
-
 from tmol.score.modules.bases import ScoreSystem, ScoreModule, ScoreMethod
 from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
@@ -135,8 +134,8 @@ class LKBallScore(ScoreMethod):
             BondedAtoms.get(self).indexed_bonds.bond_spans,
         )
         return {
-            "lk_ball_one": result[:, 0],
-            "lk_ball_two": result[:, 1],
-            "lk_ball_three": result[:, 2],
-            "lk_ball_four": result[:, 3],
+            "lk_ball_iso": result[:, 0],
+            "lk_ball": result[:, 1],
+            "lk_ball_bridge": result[:, 2],
+            "lk_ball_bridge_uncpl": result[:, 3],
         }
