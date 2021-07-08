@@ -3,21 +3,23 @@ import toolz
 import pandas
 
 from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.coords import coords_for
 from tmol.score.modules.hbond import HBondScore
+from tmol.system.packed import PackedResidueSystem
+from tmol.system.score_support import score_method_to_even_weights_dict
 
 
 def hbond_score_comparison(rosetta_baseline):
     test_system = PackedResidueSystem.from_residues(rosetta_baseline.tmol_residues)
 
-    @score_graph
-    class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph):
-        pass
-
-    hbond_graph = HBGraph.build_for(test_system, requires_grad=False)
+    hbond_system = ScoreSystem.build_for(
+        test_system, {HBondScore}, score_method_to_even_weights_dict(HBondScore)
+    )
+    coords = coords_for(test_system, hbond_system)
 
     # Extract list of hbonds from packed system into summary table
     # via atom metadata
-    tmol_hbond_total = hbond_graph.intra_score().total_hbond
+    tmol_hbond_total = hbond_system.intra_total(coords)
 
     named_atom_index = pandas.DataFrame(test_system.atom_metadata).set_index(
         ["residue_index", "atom_name"]

@@ -3,11 +3,13 @@ from pytest import approx
 
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.ljlk import LJScore, LKScore
+from tmol.score.modules.coords import coords_for
+from tmol.system.score_support import score_method_to_even_weights_dict
 
 
 graph_comparisons = {
-    "lj_regression": (LJScore, {"total_lj": -177.1}),
-    "lk_regression": (LKScore, {"total_lk": 297.3}),
+    "lj_regression": (LJScore, {"lj": -177.1}),
+    "lk_regression": (LKScore, {"lk": 297.3}),
 }
 
 module_comparisons = {
@@ -22,14 +24,13 @@ module_comparisons = {
     ids=list(graph_comparisons.keys()),
 )
 def test_baseline_comparison(ubq_system, torch_device, graph_class, expected_scores):
-    test_system = ScoreSystem.build_for(
+    score_system = ScoreSystem.build_for(
         ubq_system, {LJScore, LKScore}, {"lj": 1.0, "lk": 1.0}
     )
+    coords = coords_for(ubq_system, score_system)
 
-    intra_container = test_system.intra_subscores()
-    scores = {
-        term: float(getattr(intra_container, term).detach()) for term in expected_scores
-    }
+    intra_container = score_system.intra_forward(coords)
+    scores = {term: float(intra_container[term]) for term in expected_scores}
 
     assert scores == approx(expected_scores, rel=1e-3)
 
