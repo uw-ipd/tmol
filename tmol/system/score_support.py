@@ -23,6 +23,7 @@ from .packed import PackedResidueSystem, PackedResidueSystemStack
 from .kinematics import KinematicDescription
 
 from tmol.database import ParameterDatabase
+from tmol.types.array import NDArray
 
 
 @StackedSystem.factory_for.register(PackedResidueSystem)
@@ -160,12 +161,55 @@ def system_torsion_graph_inputs(
     """
 
     # Initialize kinematic tree for the system
-    sys_kin = KinematicDescription.for_system(system.bonds, system.torsion_metadata)
+    sys_kin = KinematicDescription.for_system(
+        int(system.system_size), system.bonds, (system.torsion_metadata,)
+    )
     tkintree = sys_kin.kintree.to(device)
     tdofmetadata = sys_kin.dof_metadata.to(device)
 
     # compute dofs from xyzs
-    kincoords = sys_kin.extract_kincoords(system.coords).to(device)
+    kincoords = sys_kin.extract_kincoords(system.coords.reshape(1, -1, 3)).to(device)
+    bkin = inverseKin(tkintree, kincoords)
+
+    # dof mask
+
+    return dict(
+        dofs=bkin.raw.clone().requires_grad_(requires_grad),
+        kintree=tkintree,
+        dofmetadata=tdofmetadata,
+    )
+
+
+@KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stacked_system_torsion_graph_inputs(
+    system: PackedResidueSystemStack,
+    stack_depth: int,
+    system_size: int,
+    bonds: NDArray[int][:, 3],
+    device: torch.device,
+    requires_grad: bool = True,
+    **_,
+):
+    """Constructor parameters for torsion space scoring.
+
+    Extract constructor kwargs to initialize a `KinematicAtomicCoordinateProvider` and
+    `BondedAtomScoreGraph` subclass supporting torsion-space scoring. This
+    includes only `bond_torsion` dofs, a subset of valid kinematic dofs for the
+    system.
+    """
+
+    torsion_metadata = tuple(sys.torsion_metadata for sys in system.systems)
+    # Initialize kinematic tree for the system
+    sys_kin = KinematicDescription.for_system(system_size, bonds, torsion_metadata)
+    tkintree = sys_kin.kintree.to(device)
+    tdofmetadata = sys_kin.dof_metadata.to(device)
+
+    # compute dofs from xyzs
+    coords = numpy.full((stack_depth, system_size, 3), numpy.nan, dtype=numpy.float64)
+    for i, sys in enumerate(system.systems):
+        coords[i, : sys.coords.shape[0], :] = sys.coords
+    kincoords = sys_kin.extract_kincoords(coords).to(device)
     bkin = inverseKin(tkintree, kincoords)
 
     # dof mask
@@ -353,101 +397,48 @@ def omega_graph_for_stack(system: PackedResidueSystemStack, **_):
 PhiPsiChi = namedtuple("PhiPsiChi", ["phi", "psi", "chi"])
 
 
+@validate_args
+def indexed_atoms_for_dihedral(
+    system: PackedResidueSystem, dihedral_name: str, int_type=numpy.int32
+):
+    return numpy.array(
+        [
+            [
+                x["residue_index"],
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[
+                system.torsion_metadata["name"] == dihedral_name
+            ]
+        ],
+        dtype=int_type,
+    )
+
+        
 def get_dunbrack_phi_psi_chi(
     system: PackedResidueSystem, device: torch.device
 ) -> PhiPsiChi:
-    dun_phi = numpy.array(
-        [
-            [
-                x["residue_index"],
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "phi"]
-        ],
-        dtype=numpy.int32,
-    )
+    dun_phi = indexed_atoms_for_dihedral(system, "phi")
+    dun_psi = indexed_atoms_for_dihedral(system, "psi")
 
-    dun_psi = numpy.array(
-        [
-            [
-                x["residue_index"],
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "psi"]
-        ],
-        dtype=numpy.int32,
-    )
-
-    dun_chi1 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                0,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi1"]
-        ],
-        dtype=numpy.int32,
-    )
-    # print("dun_chi1")
-    # print(dun_chi1)
-
-    dun_chi2 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                1,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi2"]
-        ],
-        dtype=numpy.int32,
-    )
-
-    dun_chi3 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                2,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi3"]
-        ],
-        dtype=numpy.int32,
-    )
-
-    dun_chi4 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                3,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi4"]
-        ],
-        dtype=numpy.int32,
-    )
+    dun_chis = []
+    for i in range(4):
+        dun_chi_i = indexed_atoms_for_dihedral(system, "chi" + str(i + 1))
+        dun_chi_i = numpy.concatenate(
+            (
+                dun_chi_i[:, :1],
+                i * numpy.ones((dun_chi_i.shape[0], 1), dtype=numpy.int32),
+                dun_chi_i[:, 1:],
+            ),
+            axis=1,
+        )
+        dun_chis.append(dun_chi_i)
 
     # merge the 4 chi tensors, sorting by residue index and chi index
-    join_chi = numpy.concatenate((dun_chi1, dun_chi2, dun_chi3, dun_chi4), 0)
+    join_chi = numpy.concatenate(dun_chis, 0)
     chi_res = join_chi[:, 0]
     chi_inds = join_chi[:, 1]
     sort_inds = numpy.lexsort((chi_inds, chi_res))

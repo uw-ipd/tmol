@@ -57,8 +57,8 @@ class InteratomicDistanceGraphBase(StackedSystem):
     @reactive_property
     @validate_args
     def atom_pair_delta(
-        coords: Tensor[torch.float][:, :, 3], atom_pair_inds: Tensor[torch.long][:, 3]
-    ) -> Tensor[torch.float][:, 3]:
+        coords: Tensor[torch.float32][:, :, 3], atom_pair_inds: Tensor[torch.int64][:, 3]
+    ) -> Tensor[torch.float32][:, 3]:
         """inter-atomic pairwise distance within threshold distance"""
         delta = (
             coords[atom_pair_inds[:, 0], atom_pair_inds[:, 1]]
@@ -73,8 +73,8 @@ class InteratomicDistanceGraphBase(StackedSystem):
     @reactive_property
     @validate_args
     def atom_pair_dist(
-        atom_pair_delta: Tensor[torch.float][:, 3],
-    ) -> Tensor[torch.float][:]:
+        atom_pair_delta: Tensor[torch.float32][:, 3],
+    ) -> Tensor[torch.float32][:]:
         return atom_pair_delta.norm(dim=-1)
 
     def atom_pair_to_dense(self, atom_pair_term, null_value=numpy.nan):

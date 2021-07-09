@@ -1,6 +1,6 @@
 import torch
 
-from .params import PackedDunbrackDatabase, DunbrackParams, DunbrackScratch
+from .params import ScoringDunbrackDatabaseView, DunbrackParams, DunbrackScratch
 
 from tmol.score.dunbrack.potentials.compiled import score_dun
 
@@ -13,7 +13,7 @@ if "to" in torch.jit.ScriptModule.__dict__:
 class DunbrackScoreModule(torch.jit.ScriptModule):
     def __init__(
         self,
-        dundb: PackedDunbrackDatabase,
+        dundb: ScoringDunbrackDatabaseView,
         params: DunbrackParams,
         scratch: DunbrackScratch,
     ):
@@ -52,7 +52,7 @@ class DunbrackScoreModule(torch.jit.ScriptModule):
             scratch.semirotameric_rottable_assignment
         )
 
-        self.rotameric_prob_tables = _p(dundb.rotameric_prob_tables)
+        # self.rotameric_prob_tables = _p(dundb.rotameric_prob_tables)
         self.rotameric_neglnprob_tables = _p(dundb.rotameric_neglnprob_tables)
         self.rotprob_table_sizes = _p(dundb.rotprob_table_sizes)
         self.rotprob_table_strides = _p(dundb.rotprob_table_strides)
@@ -79,7 +79,7 @@ class DunbrackScoreModule(torch.jit.ScriptModule):
     def forward(self, coords):
         return score_dun(
             coords,
-            self.rotameric_prob_tables,
+            # self.rotameric_prob_tables,
             self.rotameric_neglnprob_tables,
             self.rotprob_table_sizes,
             self.rotprob_table_strides,

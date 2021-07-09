@@ -31,6 +31,35 @@ struct LKTypeParams {
 };
 
 template <typename Real>
+struct LJLKTypeParams {
+  Real lj_radius;
+  Real lj_wdepth;
+  Real lk_dgfree;
+  Real lk_lambda;
+  Real lk_volume;
+  Real is_donor;
+  Real is_hydroxyl;
+  Real is_polarh;
+  Real is_acceptor;
+
+  LJTypeParams<Real> lj_params() {
+    return LJTypeParams<Real>(
+        {lj_radius, lj_wdepth, is_donor, is_hydroxyl, is_polarh, is_acceptor});
+  }
+
+  LKTypeParams<Real> lk_params() {
+    return LKTypeParams<Real>({lj_radius,
+                               lk_dgfree,
+                               lk_lambda,
+                               lk_volume,
+                               is_donor,
+                               is_hydroxyl,
+                               is_polarh,
+                               is_acceptor});
+  }
+};
+
+template <typename Real>
 struct LJGlobalParams {
   Real lj_hbond_dis;
   Real lj_hbond_OH_donor_dis;
@@ -128,6 +157,22 @@ struct enable_tensor_view<score::ljlk::potentials::LKTypeParams<Real>> {
   static const int nconsumed_dims = 1;
   static const int consumed_dims(int i) {
     return (i == 0) ? sizeof(score::ljlk::potentials::LKTypeParams<Real>)
+                          / sizeof(Real)
+                    : 0;
+  }
+
+  typedef typename enable_tensor_view<Real>::PrimitiveType PrimitiveType;
+};
+
+template <typename Real>
+struct enable_tensor_view<score::ljlk::potentials::LJLKTypeParams<Real>> {
+  static const bool enabled = enable_tensor_view<Real>::enabled;
+  static const at::ScalarType scalar_type =
+      enable_tensor_view<Real>::scalar_type;
+
+  static const int nconsumed_dims = 1;
+  static const int consumed_dims(int i) {
+    return (i == 0) ? sizeof(score::ljlk::potentials::LJLKTypeParams<Real>)
                           / sizeof(Real)
                     : 0;
   }

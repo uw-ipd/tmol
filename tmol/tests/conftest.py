@@ -22,9 +22,17 @@ from .data import (  # noqa: F401
     systems_bysize,
 )
 
+from .system import (  # noqa: F401
+    default_restype_set,
+    fresh_default_restype_set,
+    rts_ubq_res,
+)
+
 from .torch import torch_device, torch_backward_coverage  # noqa: F401
 
 from .numba import numba_cudasim, numba_cuda_or_cudasim  # noqa: F401
+
+from .pack.rotamer.dunbrack import dun_sampler  # noqa: F401
 
 
 def pytest_collection_modifyitems(session, config, items):

@@ -1,3 +1,4 @@
+import pytest
 import torch
 import numpy
 
@@ -212,3 +213,38 @@ def test_take_condensed_3d_subset_from_doc_string():
         values, condensed_inds_to_keep, condensed_dest_tensor
     )
     torch.testing.assert_allclose(actual_output, expected_output)
+
+
+@pytest.mark.parametrize("torch_dtype", [torch.int32, torch.int64])
+def test_tile_subset_indices_torch(torch_device, torch_dtype):
+    heavy_inds = torch.tensor(
+        [0, 1, 2, 3, 4, 5, 8, 10, 11, 12, 13], dtype=torch_dtype, device=torch_device
+    )
+    heavy_subset_wi_tile, n_in_tile = sc.tile_subset_indices(heavy_inds, 8)
+    heavy_inds = heavy_inds.cpu()
+    assert heavy_subset_wi_tile.device == torch_device
+    assert n_in_tile.device == torch_device
+    assert heavy_subset_wi_tile.dtype == torch_dtype
+    assert n_in_tile.dtype == torch_dtype
+
+    heavy_subset_wi_tile = heavy_subset_wi_tile.cpu().numpy()
+    n_in_tile = n_in_tile.cpu().numpy()
+    gold_subset_wi_tile = numpy.array(
+        [0, 1, 2, 3, 4, 5, -1, -1, 0, 2, 3, 4, 5, -1, -1, -1], dtype=numpy.int64
+    )
+    gold_n_in_tile = numpy.array([6, 5], dtype=numpy.int64)
+    numpy.testing.assert_equal(gold_subset_wi_tile, heavy_subset_wi_tile)
+    numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)
+
+
+def test_tile_subset_indices_numpy():
+    heavy_inds = numpy.array([0, 1, 2, 3, 4, 5, 8, 10, 11, 12, 13], dtype=numpy.int32)
+    heavy_subset_wi_tile, n_in_tile = sc.tile_subset_indices(heavy_inds, 8)
+    heavy_inds = heavy_inds
+
+    gold_subset_wi_tile = numpy.array(
+        [0, 1, 2, 3, 4, 5, -1, -1, 0, 2, 3, 4, 5, -1, -1, -1], dtype=numpy.int64
+    )
+    gold_n_in_tile = numpy.array([6, 5], dtype=numpy.int64)
+    numpy.testing.assert_equal(gold_subset_wi_tile, heavy_subset_wi_tile)
+    numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)

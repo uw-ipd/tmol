@@ -163,6 +163,8 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
     def real_atoms(atom_types: NDArray[object][:, :],) -> Tensor[bool][:, :]:
         """Mask of non-null atomic indices in the system."""
         return torch.tensor(atom_types != None)
+        # note: None != is a vectorized check for None.
+        # ?maybe? return torch.ByteTensor((atom_types != None).astype(numpy.ubyte))  # noqa: E711
 
     @reactive_property
     def indexed_bonds(bonds, system_size, device):
@@ -185,7 +187,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         system_size: int,
         device: torch.device,
         MAX_BONDED_PATH_LENGTH: int,
-    ) -> Tensor[float][:, :, :]:
+    ) -> Tensor[torch.float32][:, :, :]:
         """Dense inter-atomic bonded path length distance tables.
 
         Returns:
@@ -224,9 +226,9 @@ def bonded_path_length_stacked(
     )
 
     result = numpy.empty(bond_graph.shape, dtype=numpy.float32)
-    for l in range(stack_depth):
-        result[l] = csgraph.dijkstra(
-            bond_graph[l].tocsr(), directed=False, unweighted=True, limit=limit
+    for i in range(stack_depth):
+        result[i] = csgraph.dijkstra(
+            bond_graph[i].tocsr(), directed=False, unweighted=True, limit=limit
         )
 
     return result

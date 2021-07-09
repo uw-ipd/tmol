@@ -11,10 +11,13 @@ namespace common {
 template <tmol::Device D>
 struct ForallDispatch {
   template <typename Int, typename Func>
-  void forall(Int N, Func f);
+  static void forall(Int N, Func f);
 
   template <typename Int, typename Func>
-  void forall_stacks(Int Nstacks, Int N, Func f);
+  static void forall_stacks(Int Nstacks, Int N, Func f);
+
+  template <typename Int, typename Func>
+  static void foreach_combination_triple(Int dim1, Int dim2, Int dim3, Func f);
 };
 
 }  // namespace common

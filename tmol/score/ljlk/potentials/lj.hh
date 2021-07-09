@@ -88,6 +88,8 @@ struct lj_score {
                    vdw_at_cpoly_dmin.dV_ddist,
                    cpoly_dmax);
 
+      // if (dist < cpoly_dmax) {
+      //   return weight * vdw<Real>::V(dist, sigma, epsilon);
     } else {
       return 0.0;
     }

@@ -48,7 +48,7 @@ class RamaParamResolver(ValidateAttrs):
 
     def resolve_ramatables(
         self, r1: NDArray[object], r2: NDArray[object]
-    ) -> NDArray[numpy.long][...]:
+    ) -> NDArray[numpy.int64][...]:
         l_idx = self.rama_lookup.index.get_indexer([r1, r2])
         wildcard = numpy.full_like(r1, "_")
         l_idx[l_idx == -1] = self.rama_lookup.index.get_indexer(

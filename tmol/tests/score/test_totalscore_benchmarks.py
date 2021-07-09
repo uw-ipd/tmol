@@ -6,15 +6,7 @@ from tmol.score.total_score_graphs import TotalScoreGraph
 
 from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
-
-from tmol.score.coordinates import (
-    KinematicAtomicCoordinateProvider,
-    CartesianAtomicCoordinateProvider,
-)
-
-from tmol.score.ljlk.score_graph import LJScoreGraph, LKScoreGraph
-from tmol.score.lk_ball.score_graph import LKBallScoreGraph
-from tmol.score.rama.score_graph import RamaScoreGraph
+from tmol.score.coordinates import KinematicAtomicCoordinateProvider
 from tmol.system.packed import PackedResidueSystemStack
 
 
@@ -24,18 +16,6 @@ class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice
 
 
 # the
-@score_graph
-class StackScoreGraph(
-    CartesianAtomicCoordinateProvider,
-    LJScoreGraph,
-    LKScoreGraph,
-    LKBallScoreGraph,
-    RamaScoreGraph,
-    TorchDevice,
-):
-    pass
-
-
 @pytest.fixture
 def default_component_weights(torch_device):
     return {
@@ -112,7 +92,7 @@ def test_stacked_full(
     benchmark, ubq_system, nstacks, torch_device, default_component_weights
 ):
     stack = PackedResidueSystemStack((ubq_system,) * nstacks)
-    score_graph = StackScoreGraph.build_for(
+    score_graph = TotalScore.build_for(
         stack,
         requires_grad=True,
         device=torch_device,
@@ -124,8 +104,8 @@ def test_stacked_full(
     def forward_backward():
         score_graph.reset_coords()
         total = score_graph.intra_score().total
-        tsum = torch.sum(total)
-        tsum.backward(retain_graph=True)
+        # tsum = torch.sum(total)
+        # tsum.backward(retain_graph=True)
         return total
 
     forward_backward

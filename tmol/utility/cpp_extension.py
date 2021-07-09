@@ -30,6 +30,7 @@ _required_cuda_flags = [
     # "--expt-relaxed-constexpr", #fd: causes compiler errors in CUDA 10.0
     "-DWITH_NVTX",
     "-w",
+    # "-G",
 ]
 
 if torch.cuda.is_available():

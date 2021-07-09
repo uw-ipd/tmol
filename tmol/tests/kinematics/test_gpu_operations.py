@@ -10,10 +10,14 @@ from tmol.tests.torch import requires_cuda
 
 
 def system_kintree(target_system):
+    tsys = target_system
+    bonds = numpy.concatenate(
+        (numpy.zeros((tsys.bonds.shape[0], 1), dtype=int), tsys.bonds), axis=1
+    )
     return (
         KinematicBuilder()
         .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, target_system.bonds)
+            *KinematicBuilder.bonds_to_connected_component(0, bonds)
         )
         .kintree
     )
@@ -138,5 +142,15 @@ def test_derivsum_values_cpp(benchmark, big_system):
     # angle between vectors should be close to 0
     norm_a = torch.sqrt(torch.sum(dscddof_cuda.cpu() * dscddof_cuda.cpu()))
     norm_b = torch.sqrt(torch.sum(dscddof_cpu * dscddof_cpu))
-    angle = torch.acos(torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b))
-    assert torch.abs(angle) < 1e-2
+
+    # with the scan bugfix, these two tensors are so close that numerical noise
+    # when taking their dot product results in a number > 1 and the arccos then
+    # ends up as NaN
+
+    # angle = torch.acos(
+    #         torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b)
+    #     )
+    # assert torch.abs(angle) < 1e-2
+    numpy.testing.assert_almost_equal(
+        1.0, (torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b)).numpy()
+    )
