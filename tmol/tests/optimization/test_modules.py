@@ -37,6 +37,33 @@ def test_cart_network_min(ubq_system, torch_device):
     assert E1 < E0
 
 
+def test_cart_network_min(ubq_system, torch_device):
+    score_system = get_full_score_system_for(ubq_system)
+    coords = coords_for(ubq_system, score_system)
+
+    coord_mask = BoolTensor(coords.shape)
+    for i in range(coord_mask.shape[1]):
+        for j in range(coord_mask.shape[2]):
+            coord_mask[0, i, j] = i % 2 and (j + i) % 2
+
+    model = CartesianEnergyNetwork(score_system, coords, coord_mask=coord_mask)
+    optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
+
+    E0 = score_system.intra_total(coords)
+
+    def closure():
+        optimizer.zero_grad()
+
+        E = model()
+        E.backward()
+        return E
+
+    optimizer.step(closure)  # this optimizes coords, the tensor
+
+    E1 = score_system.intra_total(coords)
+    assert E1 < E0
+
+
 def test_dof_network_min(ubq_system, torch_device):
     score_system = get_full_score_system_for(ubq_system)
     coords = coords_for(ubq_system, score_system)

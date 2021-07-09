@@ -16,21 +16,6 @@ from tmol.types.torch import Tensor
 #  - or we might want to keep that with dof creation
 
 
-# cartesian space minimization
-class CartesianEnergyNetwork(torch.nn.Module):
-    def __init__(self, score_system, coords):
-        super(CartesianEnergyNetwork, self).__init__()
-
-        # scoring graph
-        self.score_system = score_system
-
-        # parameters
-        self.coords = torch.nn.Parameter(coords)
-
-    def forward(self):
-        return self.score_system.intra_total(self.coords)
-
-
 # mask out relevant dofs to the minimizer
 class DOFMaskingFunc(torch.autograd.Function):
     @staticmethod
@@ -45,6 +30,27 @@ class DOFMaskingFunc(torch.autograd.Function):
         grad = torch.zeros_like(ctx.fg)
         grad = grad_output[ctx.mask]
         return grad, None, None
+
+
+# cartesian space minimization
+class CartesianEnergyNetwork(torch.nn.Module):
+    def __init__(self, score_system, coords, coord_mask=None):
+        super(CartesianEnergyNetwork, self).__init__()
+
+        self.score_system = score_system
+        self.coord_mask = coord_mask
+
+        self.full_coords = coords
+        if self.coord_mask is None:
+            self.masked_coords = torch.nn.Parameter(coords)
+        else:
+            self.masked_coords = torch.nn.Parameter(coords[self.coord_mask])
+
+    def forward(self):
+        self.full_coords = DOFMaskingFunc.apply(
+            self.masked_coords, self.coord_mask, self.full_coords
+        )
+        return self.score_system.intra_total(self.full_coords)
 
 
 def torsional_energy_network_from_system(
