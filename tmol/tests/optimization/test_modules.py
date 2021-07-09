@@ -20,7 +20,7 @@ def test_cart_network_min(ubq_system, torch_device):
     coords = coords_for(ubq_system, score_system)
 
     model = CartesianEnergyNetwork(score_system, coords)
-    optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
+    optimizer = LBFGS_Armijo(model.parameters(), lr=0.1, max_iter=20)
 
     E0 = score_system.intra_total(coords)
 
