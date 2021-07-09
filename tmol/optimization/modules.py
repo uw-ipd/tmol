@@ -47,7 +47,9 @@ class DOFMaskingFunc(torch.autograd.Function):
         return grad, None, None
 
 
-def torsional_energy_network_from_system(score_system, residue_system, torch_device):
+def torsional_energy_network_from_system(
+    score_system, residue_system, torch_device, dof_mask=None
+):
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(
         residue_system.bonds, residue_system.torsion_metadata
@@ -58,28 +60,32 @@ def torsional_energy_network_from_system(score_system, residue_system, torch_dev
     dofs = sys_kin.extract_kincoords(residue_system.coords).to(torch_device)
     system_size = residue_system.system_size
 
-    return TorsionalEnergyNetwork(score_system, dofs, kintree, system_size)
+    return TorsionalEnergyNetwork(
+        score_system, dofs, kintree, system_size, dof_mask=dof_mask
+    )
 
 
 # torsion space minimization
 class TorsionalEnergyNetwork(torch.nn.Module):
-    def __init__(self, score_system, dofs, kintree, system_size, mask=None):
+    def __init__(self, score_system, dofs, kintree, system_size, dof_mask=None):
         super(TorsionalEnergyNetwork, self).__init__()
 
         self.score_system = score_system
         self.kintree = kintree
-        self.mask = mask
+        self.dof_mask = dof_mask
         self.system_size = system_size
 
         self.full_dofs = dofs
-        if self.mask is None:
+        if self.dof_mask is None:
             self.masked_dofs = torch.nn.Parameter(dofs)
         else:
-            self.masked_dofs = torch.nn.Parameter(dofs[self.mask])
+            self.masked_dofs = torch.nn.Parameter(dofs[self.dof_mask])
 
     def coords(self):
-        return kincoords_to_coords(self.masked_dofs, self.kintree, self.system_size)
+        self.full_dofs = DOFMaskingFunc.apply(
+            self.masked_dofs, self.dof_mask, self.full_dofs
+        )
+        return kincoords_to_coords(self.full_dofs, self.kintree, self.system_size)
 
     def forward(self):
-        # self.masked_dofs = DOFMaskingFunc.apply(self.masked_dofs, self.mask, self.full_dofs)
         return self.score_system.intra_total(self.coords())
