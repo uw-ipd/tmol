@@ -6,6 +6,7 @@ from tmol.system.packed import PackedResidueSystem
 
 from tmol.tests.torch import requires_cuda
 from tmol.kinematics.dof_modules import CartesianDOFs, KinematicDOFs
+from tmol.system.kinematic_module_support import kinematic_operation_build_for
 
 
 @requires_cuda
