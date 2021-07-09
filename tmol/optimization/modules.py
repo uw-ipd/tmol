@@ -47,38 +47,39 @@ class DOFMaskingFunc(torch.autograd.Function):
         return grad, None, None
 
 
+def torsional_energy_network_from_system(score_system, residue_system, torch_device):
+    # Initialize kinematic tree for the system
+    sys_kin = KinematicDescription.for_system(
+        residue_system.bonds, residue_system.torsion_metadata
+    )
+    kintree = sys_kin.kintree.to(torch_device)
+
+    # compute dofs from xyzs
+    dofs = sys_kin.extract_kincoords(residue_system.coords).to(torch_device)
+    system_size = residue_system.system_size
+
+    return TorsionalEnergyNetwork(score_system, dofs, kintree, system_size)
+
+
 # torsion space minimization
 class TorsionalEnergyNetwork(torch.nn.Module):
-    def __init__(self, score_system, ubq_system, torch_device):
+    def __init__(self, score_system, dofs, kintree, system_size, mask=None):
         super(TorsionalEnergyNetwork, self).__init__()
-
-        # Initialize kinematic tree for the system
-        sys_kin = KinematicDescription.for_system(
-            ubq_system.bonds, ubq_system.torsion_metadata
-        )
-        kintree = sys_kin.kintree.to(torch_device)
-        dofmetadata = sys_kin.dof_metadata.to(torch_device)
-        # compute dofs from xyzs
-        dofs = sys_kin.extract_kincoords(ubq_system.coords).to(torch_device)
-        system_size = ubq_system.system_size
 
         self.score_system = score_system
         self.kintree = kintree
+        self.mask = mask
         self.system_size = system_size
 
-        # todo: make this a configurable parameter
-        #   (for now it defaults to torsion minimization)
-        dofmetadata = dofmetadata
-        dofmask = dofmetadata[dofmetadata.dof_type == DOFTypes.bond_torsion]
-        self.mask = (dofmask.node_idx, dofmask.dof_idx)
-
-        # parameters
-        self.dofs = torch.nn.Parameter(dofs)
-
-        # self.dofs = DOFMaskingFunc.apply(self.dofs, self.mask, dofs)
+        self.full_dofs = dofs
+        if self.mask is None:
+            self.masked_dofs = torch.nn.Parameter(dofs)
+        else:
+            self.masked_dofs = torch.nn.Parameter(dofs[self.mask])
 
     def coords(self):
-        return kincoords_to_coords(self.dofs, self.kintree, self.system_size)
+        return kincoords_to_coords(self.masked_dofs, self.kintree, self.system_size)
 
     def forward(self):
+        # self.masked_dofs = DOFMaskingFunc.apply(self.masked_dofs, self.mask, self.full_dofs)
         return self.score_system.intra_total(self.coords())

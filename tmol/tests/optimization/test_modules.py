@@ -1,5 +1,8 @@
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.optimization.modules import CartesianEnergyNetwork, TorsionalEnergyNetwork
+from tmol.optimization.modules import (
+    CartesianEnergyNetwork,
+    torsional_energy_network_from_system,
+)
 
 from tmol.system.kinematics import KinematicDescription
 
@@ -35,7 +38,7 @@ def test_dof_network_min(ubq_system, torch_device):
     score_system = get_full_score_system_for(ubq_system)
     coords = coords_for(ubq_system, score_system)
 
-    model = TorsionalEnergyNetwork(score_system, ubq_system, torch_device)
+    model = torsional_energy_network_from_system(score_system, ubq_system, torch_device)
 
     # "kincoords" is for each atom, 9 values,
     # but only 3 for regular atom, 9 for jump
