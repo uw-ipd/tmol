@@ -19,7 +19,11 @@ def test_dunbrack_score_setup(benchmark, ubq_system, torch_device):
         return ScoreSystem.build_for(
             ubq_system,
             {DunbrackScore},
-            weights={"dunbrack_one": 1.0, "dunbrack_two": 2.0, "dunbrack_three": 3.0},
+            weights={
+                "dunbrack_rot": 1.0,
+                "dunbrack_rotdev": 2.0,
+                "dunbrack_semirot": 3.0,
+            },
         )
 
 
@@ -74,7 +78,7 @@ def test_dunbrack_for_stacked_system(ubq_system: PackedResidueSystem):
     stacked_score = ScoreSystem.build_for(
         twoubq,
         {DunbrackScore},
-        weights={"dunbrack_one": 1.0, "dunbrack_two": 2.0, "dunbrack_three": 3.0},
+        weights={"dunbrack_rot": 1.0, "dunbrack_rotdev": 2.0, "dunbrack_semirot": 3.0},
     )
 
     coords = coords_for(twoubq, stacked_score)
