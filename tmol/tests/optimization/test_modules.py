@@ -8,11 +8,9 @@ from tmol.optimization.modules import (
 )
 
 from tmol.system.kinematics import KinematicDescription
-
-from tmol.score.modules.bases import ScoreSystem
-from tmol.score.modules.coords import coords_for
-
 from tmol.system.score_support import get_full_score_system_for
+
+from tmol.score.modules.coords import coords_for
 
 
 def test_cart_network_min(ubq_system, torch_device):
@@ -37,7 +35,7 @@ def test_cart_network_min(ubq_system, torch_device):
     assert E1 < E0
 
 
-def test_cart_network_min(ubq_system, torch_device):
+def test_cart_network_min_masked(ubq_system, torch_device):
     score_system = get_full_score_system_for(ubq_system)
     coords = coords_for(ubq_system, score_system)
 
@@ -66,7 +64,6 @@ def test_cart_network_min(ubq_system, torch_device):
 
 def test_dof_network_min(ubq_system, torch_device):
     score_system = get_full_score_system_for(ubq_system)
-    coords = coords_for(ubq_system, score_system)
 
     model = torsional_energy_network_from_system(score_system, ubq_system, torch_device)
 
@@ -90,7 +87,6 @@ def test_dof_network_min(ubq_system, torch_device):
 
 def test_dof_network_min_masked(ubq_system, torch_device):
     score_system = get_full_score_system_for(ubq_system)
-    coords = coords_for(ubq_system, score_system)
 
     sys_kin = KinematicDescription.for_system(
         ubq_system.bonds, ubq_system.torsion_metadata

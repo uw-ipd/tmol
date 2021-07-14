@@ -4,7 +4,6 @@ from pytest import approx
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.ljlk import LJScore, LKScore
 from tmol.score.modules.coords import coords_for
-from tmol.system.score_support import score_method_to_even_weights_dict
 
 
 graph_comparisons = {

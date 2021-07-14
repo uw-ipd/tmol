@@ -57,11 +57,9 @@ class ConstraintScore(ScoreMethod):
         return ConstraintIntraModule(ConstraintParameters.get(self).constraint_resolver)
 
     def intra_forward(self, coords: torch.Tensor):
-        constraint_atompair, constraint_dihedral, constraint_angle = self.cst_intra_module(
-            coords
-        )
+        cst_atompair, cst_dihedral, cst_angle = self.cst_intra_module(coords)
         return {
-            "constraint_atompair": constraint_atompair,
-            "constraint_dihedral": constraint_dihedral,
-            "constraint_angle": constraint_angle,
+            "constraint_atompair": cst_atompair,
+            "constraint_dihedral": cst_dihedral,
+            "constraint_angle": cst_angle,
         }

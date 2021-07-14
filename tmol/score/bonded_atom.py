@@ -1,6 +1,5 @@
 import attr
 
-from functools import singledispatch
 
 import torch
 import numpy
@@ -10,11 +9,9 @@ import toolz
 import sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.utility.reactive import reactive_property
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

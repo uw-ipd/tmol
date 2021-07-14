@@ -17,7 +17,7 @@ from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
 from tmol.score.modules.bonded_atom import BondedAtoms
 
-from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+from tmol.system.packed import PackedResidueSystemStack
 
 
 AllPhisPsis = namedtuple("AllPhisPsis", ["allphis", "allpsis"])

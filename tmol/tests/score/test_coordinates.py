@@ -1,8 +1,5 @@
-import pytest
-
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.ljlk import LJScore
-from tmol.score.modules.stacked_system import StackedSystem
 from tmol.score.modules.coords import coords_for
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 

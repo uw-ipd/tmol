@@ -5,7 +5,7 @@ import attr
 from attrs_strict import type_validator
 from functools import singledispatch
 
-from typing import Set, Type
+from typing import Set, Type, List
 
 from tmol.score.bonded_atom import IndexedBonds, bonded_path_length_stacked
 

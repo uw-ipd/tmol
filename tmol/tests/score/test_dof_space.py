@@ -3,16 +3,8 @@ import torch
 from tmol.system.kinematics import KinematicDescription
 from tmol.system.packed import PackedResidueSystem
 
-from tmol.score.modules.bases import ScoreSystem
+
 from tmol.score.modules.coords import coords_for
-from tmol.score.modules.ljlk import LJScore, LKScore
-from tmol.score.modules.lk_ball import LKBallScore
-from tmol.score.modules.elec import ElecScore
-from tmol.score.modules.cartbonded import CartBondedScore
-from tmol.score.modules.dunbrack import DunbrackScore
-from tmol.score.modules.hbond import HBondScore
-from tmol.score.modules.rama import RamaScore
-from tmol.score.modules.omega import OmegaScore
 
 from tmol.system.score_support import kincoords_to_coords, get_full_score_system_for
 
@@ -80,8 +72,6 @@ def test_torsion_space_to_cart_space_gradcheck(ubq_res):
         sys_kin.extract_kincoords(tsys.coords).detach().clone().requires_grad_()
     )
     start_coords = coords_for(tsys, score_system).detach().clone()
-
-    cmask = torch.isnan(start_coords).sum(dim=-1) == 0
 
     dofs_copy = sys_kin.extract_kincoords(tsys.coords)
 

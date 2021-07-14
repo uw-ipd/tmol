@@ -1,20 +1,7 @@
 import math
-import numpy
 import torch
 
-from typing import Optional
-
-from tmol.database import ParameterDatabase
-
-from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
-
-from tmol.kinematics.operations import inverseKin
-
-from tmol.database.scoring import RamaDatabase
-
-from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
-from tmol.system.kinematics import KinematicDescription
 
 from tmol.score.modules.bases import ScoreSystem, ScoreMethod
 from tmol.score.modules.constraint import ConstraintScore
@@ -48,7 +35,8 @@ def kincoords_to_coords(
     return coords.to(torch.float)[None, ...]
 
 
-# TODO add a method to go from TERM (not method) keystrings to required method (XScore) classes
+# TODO add a method to go from TERM (not method) keystrings
+# to required method (XScore) classes
 
 
 def get_full_score_system_for(packed_residue_system_or_system_stack):

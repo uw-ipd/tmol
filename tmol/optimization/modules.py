@@ -1,10 +1,7 @@
 import torch
-import math
 
-from tmol.kinematics.metadata import DOFTypes
 from tmol.system.kinematics import KinematicDescription
 from tmol.system.score_support import kincoords_to_coords
-from tmol.types.torch import Tensor
 
 # modules for cartesian and torsion-space optimization
 #

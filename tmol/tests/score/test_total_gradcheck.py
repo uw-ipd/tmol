@@ -1,5 +1,3 @@
-import torch
-
 from tmol.system.packed import PackedResidueSystem
 from tmol.system.score_support import get_full_score_system_for
 from tmol.score.modules.coords import coords_for

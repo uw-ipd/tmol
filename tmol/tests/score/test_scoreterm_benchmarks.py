@@ -1,6 +1,3 @@
-import pytest
-
-
 from tmol.utility.reactive import reactive_property
 
 from tmol.score.modules.bases import ScoreSystem

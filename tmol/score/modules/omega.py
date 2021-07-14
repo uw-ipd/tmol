@@ -1,6 +1,5 @@
 import attr
 from attrs_strict import type_validator
-from collections import namedtuple
 from typing import Set, Type
 import torch
 import numpy

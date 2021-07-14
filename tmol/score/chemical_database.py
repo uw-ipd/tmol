@@ -15,7 +15,6 @@ from tmol.types.tensor import TensorGroup
 from tmol.types.array import NDArray
 from tmol.types.attrs import ValidateAttrs
 
-from tmol.utility.reactive import reactive_property
 
 from enum import IntEnum
 
