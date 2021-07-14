@@ -10,6 +10,8 @@ from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
 from tmol.types.torch import Tensor
 
+from tmol.score.ljlk.potentials.compiled import score_ljlk_inter_system_scores
+
 
 class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
     type_params: LJLKTypeParams
@@ -319,7 +321,7 @@ class LJLKInterSystemModule:
     # @torch.jit.script_method
     # def forward(
     def go(self, context_coords, context_block_type, alternate_coords, alternate_ids):
-        return torch.ops.tmol.score_ljlk_inter_system_scores(
+        return score_ljlk_inter_system_scores(
             context_coords,
             context_block_type,
             alternate_coords,

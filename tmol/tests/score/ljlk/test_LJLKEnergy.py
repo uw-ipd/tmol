@@ -161,7 +161,7 @@ def test_inter_module(ubq_res, default_database, torch_device):
     )
 
     # five trajectories for each system
-    context_system_ids = torch.div(
+    context_system_ids = torch.floor_divide(
         torch.arange(10, dtype=torch.int32, device=torch_device), 5
     )
 
@@ -203,7 +203,7 @@ def test_inter_module(ubq_res, default_database, torch_device):
     )
 
     alternate_ids = torch.zeros((20, 3), dtype=torch.int32, device=torch_device)
-    alternate_ids[:, 0] = torch.div(torch.arange(20, dtype=torch.int32), 2)
+    alternate_ids[:, 0] = torch.floor_divide(torch.arange(20, dtype=torch.int32), 2)
     alternate_ids[:10, 1] = 1
     alternate_ids[10:, 1] = 3
     alternate_ids[:10, 2] = torch.tensor(
@@ -290,7 +290,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
     )
 
     # n_traj trajectories for each system
-    context_system_ids = torch.div(
+    context_system_ids = torch.floor_divide(
         torch.arange(n_traj * n_poses, dtype=torch.int32, device=torch_device), n_traj
     )
 
@@ -327,7 +327,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
         device=torch_device,
     )
     which_block = torch.remainder(
-        torch.div(
+        torch.floor_divide(
             torch.arange(
                 n_alts * n_traj * n_poses, dtype=torch.int32, device=torch_device
             ),
@@ -342,7 +342,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
     alternate_ids = torch.zeros(
         (n_alts * n_traj * n_poses, 3), dtype=torch.int32, device=torch_device
     )
-    alternate_ids[:, 0] = torch.div(
+    alternate_ids[:, 0] = torch.floor_divide(
         torch.arange(n_alts * n_traj * n_poses, dtype=torch.int32, device=torch_device),
         n_alts,
     )

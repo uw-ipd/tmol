@@ -32,9 +32,7 @@
 #include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
 // #include <tmol/score/ljlk/potentials/rotamer_pair_energy_lk.impl.hh>
 
-// This file moves in more recent versions of Torch; I think to
-// c10/cuda/CUDAStream.h
-#include <ATen/cuda/CUDAStream.h>
+#include <c10/cuda/CUDAStream.h>
 
 // The maximum number of inter-residue chemical bonds
 #define MAX_N_CONN 4

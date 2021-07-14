@@ -90,7 +90,7 @@ class PackedBlockTypes:
                 max_n_atoms,
             )
             < n_atoms[
-                torch.div(
+                torch.floor_divide(
                     torch.arange(
                         n_types * max_n_atoms, dtype=torch.int64, device=device
                     ),

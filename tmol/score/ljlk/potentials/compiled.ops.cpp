@@ -498,8 +498,8 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def(
       "score_ljlk_lk_isotropic_triu",
       &lk_score_op<LKIsotropicDispatch, AABBTriuDispatch>);
-  m.def("tmol::score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
-  m.def("tmol::register_lj_lk_rotamer_pair_energy_eval",
+  m.def("score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
+  m.def("register_lj_lk_rotamer_pair_energy_eval",
       &register_lj_lk_rotamer_pair_energy_eval);
 }
 

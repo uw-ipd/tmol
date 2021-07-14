@@ -33,7 +33,7 @@
 #include <moderngpu/transform.hxx>
 
 // This file moves in more recent versions of Torch
-#include <ATen/cuda/CUDAStream.h>
+#include <c10/cuda/CUDAStream.h>
 
 // The maximum number of inter-residue chemical bonds
 #define MAX_N_CONN 4

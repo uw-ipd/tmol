@@ -118,5 +118,5 @@ class LKScoreGraph(_LJLKCommonScoreGraph):
         atom_type_params: AtomTypeParamResolver,
         device: torch.device,
     ) -> Tensor[torch.int64][:, :]:
-        are_heavyatoms = 1 - atom_type_params.params.is_hydrogen[ljlk_atom_types]
+        are_heavyatoms = ~atom_type_params.params.is_hydrogen[ljlk_atom_types]
         return condense_torch_inds(are_heavyatoms, device)

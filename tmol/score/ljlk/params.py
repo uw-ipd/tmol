@@ -56,6 +56,8 @@ class LJLKTypeParams(TensorGroup):
     is_hydroxyl: Tensor[bool][...]
     is_polarh: Tensor[bool][...]
 
+    is_hydrogen: Tensor[bool][...]
+
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class LJLKParamResolver(ValidateAttrs):
@@ -76,7 +78,6 @@ class LJLKParamResolver(ValidateAttrs):
     type_params: LJLKTypeParams
 
     device: torch.device
-
 
     def type_idx(self, atom_types: NDArray[object][...]) -> Tensor[torch.int64][...]:
         """Convert array of atom type names to parameter indices.
@@ -159,6 +160,7 @@ class LJLKParamResolver(ValidateAttrs):
                 if f.name
                 in ("lj_radius", "lj_wdepth", "lk_dgfree", "lk_lambda", "lk_volume")
             },
+            is_hydrogen=atom_type_resolver.params.is_hydrogen,
         )
 
         return cls(

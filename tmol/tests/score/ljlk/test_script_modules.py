@@ -62,7 +62,7 @@ class ScoreSetup:
             database.chemical, torch_device
         )
         thvy_at_inds = condense_torch_inds(
-            1 - atype_params.params.is_hydrogen[ttype], torch_device
+            ~atype_params.params.is_hydrogen[ttype], torch_device
         )
 
         tbpl = torch.from_numpy(atom_pair_bpl).to(device=torch_device)[:, :]

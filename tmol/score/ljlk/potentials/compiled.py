@@ -29,3 +29,4 @@ score_ljlk_lj = _ops.score_ljlk_lj
 score_ljlk_lj_triu = _ops.score_ljlk_lj_triu
 score_ljlk_lk_isotropic = _ops.score_ljlk_lk_isotropic
 score_ljlk_lk_isotropic_triu = _ops.score_ljlk_lk_isotropic_triu
+score_ljlk_inter_system_scores = _ops.score_ljlk_inter_system_scores
