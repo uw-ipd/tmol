@@ -71,7 +71,6 @@ def test_torsion_space_to_cart_space_gradcheck(ubq_res):
     start_dofs = (
         sys_kin.extract_kincoords(tsys.coords).detach().clone().requires_grad_()
     )
-    start_coords = coords_for(tsys, score_system).detach().clone()
 
     dofs_copy = sys_kin.extract_kincoords(tsys.coords)
 

@@ -1,4 +1,4 @@
-from tmol.utility.reactive import reactive_property
+import pytest
 
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.coords import coords_for

@@ -1,4 +1,3 @@
-import pytest
 from pytest import approx
 
 from tmol.score.modules.bases import ScoreSystem
