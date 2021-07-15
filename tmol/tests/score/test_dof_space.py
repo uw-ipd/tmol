@@ -65,7 +65,6 @@ def test_torsion_space_coord_smoke(ubq_system):
 def test_torsion_space_to_cart_space_gradcheck(ubq_res):
     tsys = PackedResidueSystem.from_residues(ubq_res[:6])
 
-    score_system = get_full_score_system_for(tsys)
     sys_kin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
     start_dofs = (
