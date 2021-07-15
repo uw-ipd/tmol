@@ -136,7 +136,8 @@ def test_identification_by_chemical_types(
     types in the chemical database."""
     db_res = default_database.chemical.residues
     residue_types = [
-        cattr.structure(cattr.unstructure(r), restypes.ResidueType) for r in db_res
+        cattr.structure(cattr.unstructure(r), restypes.RefinedResidueType)
+        for r in db_res
     ]
 
     atom_types = {t.name: t for t in default_database.chemical.atom_types}

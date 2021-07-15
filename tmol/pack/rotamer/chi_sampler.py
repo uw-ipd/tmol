@@ -42,9 +42,9 @@ class ChiSampler:
     def sample_chi_for_poses(
         self, systems: Poses, task: "PackerTask"  # noqa F821
     ) -> Tuple[
-        Tensor(torch.int32)[:, :, :],  # n_rots_for_rt
-        Tensor(torch.int32)[:],  # rt_for_rotamer
-        Tensor(torch.int32)[:, :],  # chi_defining_atom_for_rotamer
-        Tensor(torch.float32)[:, :],  # chi_for_rotamers
+        Tensor[torch.int32][:, :, :],  # n_rots_for_rt
+        Tensor[torch.int32][:],  # rt_for_rotamer
+        Tensor[torch.int32][:, :],  # chi_defining_atom_for_rotamer
+        Tensor[torch.float32][:, :],  # chi_for_rotamers
     ]:
         raise NotImplementedError()

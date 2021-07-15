@@ -4,7 +4,7 @@
 #include <torch/csrc/autograd/saved_variable.h> // ??
 #include <torch/types.h>
 
-#include <tmol/utility/autograd.hh>
+// #include <tmol/utility/autograd.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
@@ -289,16 +289,20 @@ metropolis_accept_reject(
   return accepted;
 }
 
+// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
+// See https://stackoverflow.com/a/3221914
+#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 
-static auto registry =
-  torch::jit::RegisterOperators()
-  .op("tmol::pick_random_rotamers", &pick_random_rotamers<tmol::score::common::ForallDispatch>)
-  .op("tmol::metropolis_accept_reject", &metropolis_accept_reject<tmol::score::common::ForallDispatch>)
-  .op("tmol::create_sim_annealer", &create_sim_annealer)
-  .op("tmol::delete_sim_annealer", &delete_sim_annealer)
-  .op("tmol::register_standard_random_rotamer_picker", &register_standard_random_rotamer_picker)
-  .op("tmol::register_standard_metropolis_accept_or_rejector", &register_standard_metropolis_accept_or_rejector)
-  .op("tmol::run_sim_annealing", &run_sim_annealing);
+TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+  m.def("pick_random_rotamers", &pick_random_rotamers<tmol::score::common::ForallDispatch>);
+  m.def("metropolis_accept_reject", &metropolis_accept_reject<tmol::score::common::ForallDispatch>);
+  m.def("create_sim_annealer", &create_sim_annealer);
+  m.def("delete_sim_annealer", &delete_sim_annealer);
+  m.def("register_standard_random_rotamer_picker", &register_standard_random_rotamer_picker);
+  m.def("register_standard_metropolis_accept_or_rejector", &register_standard_metropolis_accept_or_rejector);
+  m.def("run_sim_annealing", &run_sim_annealing);
+}
+
 
 
 } // namespace compiled

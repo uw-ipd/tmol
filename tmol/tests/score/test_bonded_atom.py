@@ -77,8 +77,6 @@ def test_bonded_path_length(ubq_system: PackedResidueSystem):
             src.bonded_path_length[0][distance_table > src.MAX_BONDED_PATH_LENGTH]
             == numpy.inf
         ).all()
-        assert (
-            src.bonded_path_length[0][distance_table < src.MAX_BONDED_PATH_LENGTH]
 
     inds = src.indexed_bonds
     assert len(inds.bonds.shape) == 3

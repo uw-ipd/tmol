@@ -150,7 +150,9 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     assert dun_graph.coords.device == prob_cumsum_limit_for_buildable_restype.device
     assert dun_graph.coords.device == nchi_for_buildable_restype.device
 
-    retval = torch.ops.tmol.dun_sample_chi(
+    from tmol.pack.rotamer.dunbrack.compiled import dun_sample_chi
+
+    retval = dun_sample_chi(
         dun_graph.coords[0, :],
         dun_params.rotameric_prob_tables,
         dun_params.rotprob_table_sizes,

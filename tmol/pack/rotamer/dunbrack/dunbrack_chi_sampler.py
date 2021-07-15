@@ -11,7 +11,8 @@ from tmol.types.functional import validate_args
 from tmol.score.dunbrack.params import DunbrackParamResolver
 
 from tmol.pack.rotamer.chi_sampler import ChiSampler  # noqa F401
-from tmol.pack.rotamer.dunbrack.compiled import _compiled  # noqa F401
+
+# from tmol.pack.rotamer.dunbrack.compiled import _compiled  # noqa F401
 from tmol.pack.packer_task import PackerTask, ResidueLevelTask
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
@@ -554,8 +555,9 @@ class DunbrackChiSampler:
         prob_cumsum_limit_for_buildable_restype,
         nchi_for_buildable_restype,
     ):
+        from .compiled import dun_sample_chi
 
-        return torch.ops.tmol.dun_sample_chi(
+        return dun_sample_chi(
             coords,
             self.dun_param_resolver.sampling_db.rotameric_prob_tables,
             self.dun_param_resolver.sampling_db.rotprob_table_sizes,

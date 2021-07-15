@@ -1,8 +1,8 @@
-#include <ATen/CUDAGenerator.h>
+#include <ATen/CUDAGeneratorImpl.h>
 #include <ATen/Context.h>
 #include <THC/THCTensorRandom.h>
-#include <c10/DeviceType.h>
-#include <THC/THCGenerator.hpp>
+#include <c10/core/DeviceType.h>
+//#include <THC/THCGenerator.hpp>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -25,28 +25,27 @@
 
 #include <ctime>
 
-// Stolen from torch, v1.0.0
-// Expose part of the torch library that otherwise is
-// not part of the API.
-THCGenerator* THCRandom_getGenerator(THCState* state);
-
-// Stolen from torch, v1.0.0;
-// unnecessary in the latest release, where this function
-// is built in to CUDAGenerator.
-// Modified slightly as the input Generator is unused.
-// increment should be at least the number of curand() random numbers used in
-// each thread.
-std::pair<uint64_t, uint64_t> next_philox_seed(uint64_t increment) {
-  // static bool seeded = false;
-  // if ( ! seeded ) {
-  //   std::cout << "Setting RNG seed" << std::endl;
-  //   THCRandom_manualSeed(at::globalContext().getTHCState(), 0);
-  //   seeded = true;
-  // }
-  auto gen_ = THCRandom_getGenerator(at::globalContext().getTHCState());
-  uint64_t offset = gen_->state.philox_seed_offset.fetch_add(increment);
-  return std::make_pair(gen_->state.initial_seed, offset);
-}
+// TEMP // Stolen from torch, v1.0.0
+// TEMP // Expose part of the torch library that otherwise is
+// TEMP // not part of the API.
+// TEMP THCGenerator* THCRandom_getGenerator(THCState* state);
+// TEMP
+// TEMP // Stolen from torch, v1.0.0;
+// TEMP // unnecessary in the latest release, where this function
+// TEMP // is built in to CUDAGenerator.
+// TEMP // Modified slightly as the input Generator is unused.
+// TEMP // increment should be at least the number of curand() random numbers
+// used in TEMP // each thread. TEMP std::pair<uint64_t, uint64_t>
+// next_philox_seed(uint64_t increment) { TEMP   // static bool seeded = false;
+// TEMP   // if ( ! seeded ) {
+// TEMP   //   std::cout << "Setting RNG seed" << std::endl;
+// TEMP   //   THCRandom_manualSeed(at::globalContext().getTHCState(), 0);
+// TEMP   //   seeded = true;
+// TEMP   // }
+// TEMP   auto gen_ = THCRandom_getGenerator(at::globalContext().getTHCState());
+// TEMP   uint64_t offset = gen_->state.philox_seed_offset.fetch_add(increment);
+// TEMP   return std::make_pair(gen_->state.initial_seed, offset);
+// TEMP }
 
 namespace tmol {
 namespace pack {
@@ -87,21 +86,21 @@ struct PickRotamers {
       TView<Int, 2, D> alternate_block_id,
       TView<Int, 1, D> random_rots,
       TView<int64_t, 1, tmol::Device::CPU> annealer_event) -> void {
-    // This code will work for future versions of the torch/aten libraries, but
-    // not this one.
-    // // Increment the cuda generator
-    // std::pair<uint64_t, uint64_t> rng_engine_inputs;
-    // at::CUDAGenerator * gen = at::cuda::detail::getDefaultCUDAGenerator();
-    // {
-    //   std::lock_guard<std::mutex> lock(gen->mutex_);
-    //   rng_engine_inputs = gen->philox_engine_inputs(1);
-    // }
+    // Increment the cuda generator and capture the set for this execution
+    std::pair<uint64_t, uint64_t> rng_engine_inputs;
+    auto gen = at::check_generator<at::CUDAGeneratorImpl>(
+        at::cuda::detail::getDefaultCUDAGenerator());
+    {
+      // aquire lock when using random generators
+      std::lock_guard<std::mutex> lock(gen->mutex_);
+      rng_engine_inputs = gen->philox_engine_inputs(1);
+    }
 
     // Increment the seed (and capture the current seed) for the
     // cuda generator. The number of calls to curand must be known
     // by this statement -- there will be only a single call to curand
     //
-    auto philox_seed = next_philox_seed(1);
+    // auto philox_seed = next_philox_seed(1);
 
     int const n_contexts = context_coords.size(0);
     int const max_n_blocks = context_coords.size(1);
@@ -127,7 +126,7 @@ struct PickRotamers {
 
     auto select_rotamer = [=] MGPU_DEVICE(int i) {
       curandStatePhilox4_32_10_t state;
-      curand_init(philox_seed.first, i, philox_seed.second, &state);
+      curand_init(rng_engine_inputs.first, i, rng_engine_inputs.second, &state);
 
       Int i_pose = pose_id_for_context[i];
       Int i_n_rots = n_rots_for_pose[i_pose];
@@ -286,7 +285,15 @@ struct MetropolisAcceptReject {
     // auto accept_tp = TPack<Int, 1, D>::zeros({n_contexts});
     // auto accept = accept_tp.view;
 
-    auto philox_seed = next_philox_seed(1);
+    std::pair<uint64_t, uint64_t> rng_engine_inputs;
+    auto gen = at::check_generator<at::CUDAGeneratorImpl>(
+        at::cuda::detail::getDefaultCUDAGenerator());
+    {
+      // aquire lock when using random generators
+      std::lock_guard<std::mutex> lock(gen->mutex_);
+      rng_engine_inputs = gen->philox_engine_inputs(1);
+    }
+    // auto philox_seed = next_philox_seed(1);
 
     Real const temp = temperature[0];
     ++count_mc_passes;
@@ -294,7 +301,7 @@ struct MetropolisAcceptReject {
 
     auto accept_reject = [=] MGPU_DEVICE(int i) {
       curandStatePhilox4_32_10_t state;
-      curand_init(philox_seed.first, i, philox_seed.second, &state);
+      curand_init(rng_engine_inputs.first, i, rng_engine_inputs.second, &state);
 
       Real altE = 0;
       Real currE = 0;
