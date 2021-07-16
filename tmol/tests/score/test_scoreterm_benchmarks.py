@@ -74,7 +74,9 @@ def test_end_to_end_score_system(
     target_system = ubq_system
     score_system_dict = score_system_weight_pair[0]
     weight_dict = score_system_weight_pair[1]
-    score_system = ScoreSystem.build_for(target_system, score_system_dict, weight_dict)
+    score_system = ScoreSystem.build_for(
+        target_system, score_system_dict, weight_dict, device=torch_device
+    )
     coords = coords_for(target_system, score_system)
 
     run = benchmark_score_pass(benchmark, score_system, benchmark_pass, coords)
