@@ -50,17 +50,15 @@ class CartesianEnergyNetwork(torch.nn.Module):
         return self.score_system.intra_total(self.full_coords)
 
 
-def torsional_energy_network_from_system(
-    score_system, residue_system, torch_device, dof_mask=None
-):
+def torsional_energy_network_from_system(score_system, residue_system, dof_mask=None):
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(
         residue_system.bonds, residue_system.torsion_metadata
     )
-    kintree = sys_kin.kintree.to(torch_device)
+    kintree = sys_kin.kintree
 
     # compute dofs from xyzs
-    dofs = sys_kin.extract_kincoords(residue_system.coords).to(torch_device)
+    dofs = sys_kin.extract_kincoords(residue_system.coords)
     system_size = residue_system.system_size
 
     return TorsionalEnergyNetwork(

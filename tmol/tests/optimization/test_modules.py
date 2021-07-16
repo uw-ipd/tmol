@@ -65,7 +65,7 @@ def test_cart_network_min_masked(ubq_system, torch_device):
 def test_dof_network_min(ubq_system, torch_device):
     score_system = get_full_score_system_for(ubq_system)
 
-    model = torsional_energy_network_from_system(score_system, ubq_system, torch_device)
+    model = torsional_energy_network_from_system(score_system, ubq_system)
 
     # "kincoords" is for each atom, 9 values,
     # but only 3 for regular atom, 9 for jump
@@ -91,8 +91,8 @@ def test_dof_network_min_masked(ubq_system, torch_device):
     sys_kin = KinematicDescription.for_system(
         ubq_system.bonds, ubq_system.torsion_metadata
     )
-    kintree = sys_kin.kintree.to(torch_device)
-    dofs = sys_kin.extract_kincoords(ubq_system.coords).to(torch_device)
+    kintree = sys_kin.kintree
+    dofs = sys_kin.extract_kincoords(ubq_system.coords)
     system_size = ubq_system.system_size
 
     dof_mask = BoolTensor(dofs.shape)
