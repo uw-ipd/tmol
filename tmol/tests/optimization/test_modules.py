@@ -1,73 +1,122 @@
+from torch import BoolTensor
+
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.optimization.modules import CartesianEnergyNetwork, TorsionalEnergyNetwork
-
-from tmol.score.score_graph import score_graph
-from tmol.score.total_score_graphs import TotalScoreGraph
-from tmol.score.device import TorchDevice
-
-from tmol.score.coordinates import (
-    CartesianAtomicCoordinateProvider,
-    KinematicAtomicCoordinateProvider,
+from tmol.optimization.modules import (
+    CartesianEnergyNetwork,
+    TorsionalEnergyNetwork,
+    torsional_energy_network_from_system,
 )
 
+from tmol.system.kinematics import KinematicDescription
+from tmol.system.score_support import get_full_score_system_for
 
-@score_graph
-class TotalXyzScore(CartesianAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
-    pass
-
-
-@score_graph
-class TotalDofScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
-    pass
+from tmol.score.modules.coords import coords_for
 
 
 def test_cart_network_min(ubq_system, torch_device):
-    score_graph = TotalXyzScore.build_for(
-        ubq_system, requires_grad=True, device=torch_device
-    )
+    score_system = get_full_score_system_for(ubq_system)
+    coords = coords_for(ubq_system, score_system)
 
-    # score
-    score_graph.intra_score().total
-    model = CartesianEnergyNetwork(score_graph)
-    optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
+    model = CartesianEnergyNetwork(score_system, coords)
+    optimizer = LBFGS_Armijo(model.parameters(), lr=0.1, max_iter=20)
 
-    # score once to initialize
-    E0 = score_graph.intra_score().total
+    E0 = score_system.intra_total(coords)
 
     def closure():
         optimizer.zero_grad()
-        score_graph.reset_coords()  # this line is necessary!
 
         E = model()
         E.backward()
         return E
 
-    optimizer.step(closure)
-    E1 = score_graph.intra_score().total
+    optimizer.step(closure)  # this optimizes coords, the tensor
+
+    E1 = score_system.intra_total(coords)
     assert E1 < E0
 
 
-def test_torsion_network_min(ubq_system, torch_device):
-    score_graph = TotalDofScore.build_for(
-        ubq_system, requires_grad=True, device=torch_device
-    )
+def test_cart_network_min_masked(ubq_system, torch_device):
+    score_system = get_full_score_system_for(ubq_system)
+    coords = coords_for(ubq_system, score_system)
 
-    # score
-    score_graph.intra_score().total
-    model = TorsionalEnergyNetwork(score_graph)
-    optimizer = LBFGS_Armijo(model.parameters(), lr=0.1, max_iter=20)
+    coord_mask = BoolTensor(coords.shape)
+    for i in range(coord_mask.shape[1]):
+        for j in range(coord_mask.shape[2]):
+            coord_mask[0, i, j] = i % 2 and (j + i) % 2
 
-    # score once to initialize
-    E0 = score_graph.intra_score().total
+    model = CartesianEnergyNetwork(score_system, coords, coord_mask=coord_mask)
+    optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
+
+    E0 = score_system.intra_total(coords)
 
     def closure():
         optimizer.zero_grad()
-        score_graph.reset_coords()  # this line is necessary!
+
+        E = model()
+        E.backward()
+        return E
+
+    optimizer.step(closure)  # this optimizes coords, the tensor
+
+    E1 = score_system.intra_total(coords)
+    assert E1 < E0
+
+
+def test_dof_network_min(ubq_system, torch_device):
+    score_system = get_full_score_system_for(ubq_system)
+
+    model = torsional_energy_network_from_system(score_system, ubq_system)
+
+    # "kincoords" is for each atom, 9 values,
+    # but only 3 for regular atom, 9 for jump
+    optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
+
+    E0 = score_system.intra_total(model.coords())
+
+    def closure():
+        optimizer.zero_grad()
 
         E = model()
         E.backward()
         return E
 
     optimizer.step(closure)
-    E1 = score_graph.intra_score().total
+    E1 = score_system.intra_total(model.coords())
+    assert E1 < E0
+
+
+def test_dof_network_min_masked(ubq_system, torch_device):
+    score_system = get_full_score_system_for(ubq_system)
+
+    sys_kin = KinematicDescription.for_system(
+        ubq_system.bonds, ubq_system.torsion_metadata
+    )
+    kintree = sys_kin.kintree
+    dofs = sys_kin.extract_kincoords(ubq_system.coords)
+    system_size = ubq_system.system_size
+
+    dof_mask = BoolTensor(dofs.shape)
+    for i in range(dof_mask.shape[0]):
+        for j in range(dof_mask.shape[1]):
+            dof_mask[i, j] = i % 2 and (j + i) % 2
+
+    model = TorsionalEnergyNetwork(
+        score_system, dofs, kintree, system_size, dof_mask=dof_mask
+    )
+
+    # "kincoords" is for each atom, 9 values,
+    # but only 3 for regular atom, 9 for jump
+    optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
+
+    E0 = score_system.intra_total(model.coords())
+
+    def closure():
+        optimizer.zero_grad()
+
+        E = model()
+        E.backward()
+        return E
+
+    optimizer.step(closure)
+    E1 = score_system.intra_total(model.coords())
     assert E1 < E0

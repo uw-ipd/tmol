@@ -8,7 +8,6 @@ from tmol.database.scoring import LJLKDatabase
 
 from tmol.score.lk_ball.script_modules import LKBallIntraModule
 from tmol.score.ljlk.params import LJLKParamResolver
-
 from tmol.score.modules.bases import ScoreSystem, ScoreModule, ScoreMethod
 from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
@@ -125,14 +124,18 @@ class LKBallScore(ScoreMethod):
         )
 
     def intra_forward(self, coords: torch.Tensor):
+        result = self.lk_ball_intra_module(
+            coords,
+            LKBallParameters.get(self).lkball_pairs.polars,
+            LKBallParameters.get(self).lkball_pairs.occluders,
+            LKBallParameters.get(self).ljlk_atom_types,
+            BondedAtoms.get(self).bonded_path_length,
+            BondedAtoms.get(self).indexed_bonds.bonds,
+            BondedAtoms.get(self).indexed_bonds.bond_spans,
+        )
         return {
-            "lk_ball": self.lk_ball_intra_module(
-                coords,
-                LKBallParameters.get(self).lkball_pairs.polars,
-                LKBallParameters.get(self).lkball_pairs.occluders,
-                LKBallParameters.get(self).ljlk_atom_types,
-                BondedAtoms.get(self).bonded_path_length,
-                BondedAtoms.get(self).indexed_bonds.bonds,
-                BondedAtoms.get(self).indexed_bonds.bond_spans,
-            )
+            "lk_ball_iso": result[:, 0],
+            "lk_ball": result[:, 1],
+            "lk_ball_bridge": result[:, 2],
+            "lk_ball_bridge_uncpl": result[:, 3],
         }

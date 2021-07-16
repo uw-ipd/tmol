@@ -156,16 +156,15 @@ class HBondScore(ScoreMethod):
         return HBondIntraModule(HBondParameters.get(self).compacted_hbond_database)
 
     def intra_forward(self, coords: torch.Tensor):
-        return {
-            "hbond": self.hbond_intra_module(
-                coords,
-                coords,
-                HBondParameters.get(self).hbond_donor_indices.D,
-                HBondParameters.get(self).hbond_donor_indices.H,
-                HBondParameters.get(self).hbond_donor_indices.donor_type,
-                HBondParameters.get(self).hbond_acceptor_indices.A,
-                HBondParameters.get(self).hbond_acceptor_indices.B,
-                HBondParameters.get(self).hbond_acceptor_indices.B0,
-                HBondParameters.get(self).hbond_acceptor_indices.acceptor_type,
-            )
-        }
+        result = self.hbond_intra_module(
+            coords,
+            coords,
+            HBondParameters.get(self).hbond_donor_indices.D,
+            HBondParameters.get(self).hbond_donor_indices.H,
+            HBondParameters.get(self).hbond_donor_indices.donor_type,
+            HBondParameters.get(self).hbond_acceptor_indices.A,
+            HBondParameters.get(self).hbond_acceptor_indices.B,
+            HBondParameters.get(self).hbond_acceptor_indices.B0,
+            HBondParameters.get(self).hbond_acceptor_indices.acceptor_type,
+        )
+        return {"hbond": result}

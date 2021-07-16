@@ -8,6 +8,18 @@ import itertools
 from tmol.extern.toposort import toposort
 
 
+class ScoreTermSummation(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, wts, comps):
+        ctx.save_for_backward(wts)
+        return torch.sum(wts * comps, dim=0)
+
+    @staticmethod
+    def backward(ctx, dX):
+        dE, = ctx.saved_tensors
+        return (None, dE * dX)
+
+
 @attr.s(auto_attribs=True)
 class ScoreSystem:
     modules: Dict[Type["ScoreModule"], "ScoreModule"]
@@ -60,6 +72,19 @@ class ScoreSystem:
 
         return instance
 
+    def intra_total(self, coords: torch.Tensor):
+        terms = self.do_intra(coords)
+        terms_tensor = torch.stack(tuple(terms.values()))
+        weights_list = []
+        for key in terms.keys():
+            weights_list.append([self.weights[key]])
+        weights_tensor = torch.tensor(weights_list, device=coords.device)
+
+        sumfunc = ScoreTermSummation()
+        total_score = sumfunc.apply(weights_tensor, terms_tensor)
+
+        return total_score
+
     def intra_forward(self, coords: torch.Tensor):
 
         terms: List[Dict[str, torch.Tensor]] = [
@@ -73,14 +98,14 @@ class ScoreSystem:
 
         return dict(ChainMap(*terms))
 
-    def intra_total(self, coords: torch.Tensor):
+    def do_intra(self, coords: torch.Tensor):
         terms = self.intra_forward(coords)
 
         assert set(self.weights) == set(
             terms
         ), "Mismatched weights/terms: {self.weights} {terms}"
 
-        return sum(self.weights[t] * v for t, v in terms.items())
+        return terms
 
 
 _TModule = TypeVar("_TModule", bound="ScoreModule")

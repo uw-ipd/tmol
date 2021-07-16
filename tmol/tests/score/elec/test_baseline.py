@@ -1,20 +1,23 @@
 from pytest import approx
 
+from tmol.system.score_support import score_method_to_even_weights_dict
 
-from tmol.score.score_graph import score_graph
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.elec import ElecScoreGraph
-
-
-@score_graph
-class ElecGraph(CartesianAtomicCoordinateProvider, ElecScoreGraph):
-    pass
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.elec import ElecScore
+from tmol.score.modules.coords import coords_for
 
 
 def test_elec_baseline_comparison(ubq_system, torch_device):
-    test_graph = ElecGraph.build_for(
-        ubq_system, drop_missing_atoms=False, requires_grad=False, device=torch_device
+    score_system = ScoreSystem.build_for(
+        ubq_system,
+        {ElecScore},
+        weights=score_method_to_even_weights_dict(ElecScore),
+        drop_missing_atoms=False,
+        requires_grad=False,
+        device=torch_device,
     )
+    coords = coords_for(ubq_system, score_system)
 
-    score = test_graph.intra_score().total_elec
-    assert float(score) == approx(-131.9225, rel=1e-3)
+    intra_container = score_system.intra_forward(coords)
+
+    assert intra_container["elec"] == approx(-131.9225, rel=1e-3)

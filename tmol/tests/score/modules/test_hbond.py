@@ -15,7 +15,7 @@ from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 @pytest.mark.benchmark(group="score_setup")
 def test_hbond_score_setup(benchmark, ubq_system, torch_device):
     @benchmark
-    def score_graph():
+    def score_system():
         return ScoreSystem.build_for(ubq_system, {HBondScore}, weights={"hbond": 1.0})
 
 
@@ -67,6 +67,12 @@ def test_hbond_for_stacked_system(ubq_system: PackedResidueSystem):
     tot = stacked_score.intra_total(coords)
     assert tot.shape == (2,)
     torch.testing.assert_allclose(tot[0], tot[1])
+
+    forward = stacked_score.intra_forward(coords)
+    assert len(forward) == 1
+    for terms in forward.values():
+        assert len(terms) == 2
+        torch.testing.assert_allclose(terms[0], terms[1])
 
     sumtot = torch.sum(tot)
     sumtot.backward()

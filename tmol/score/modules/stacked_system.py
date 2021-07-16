@@ -4,6 +4,7 @@ from attrs_strict import type_validator
 from functools import singledispatch
 
 from tmol.score.modules.bases import ScoreSystem, ScoreModule
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 
 @attr.s(slots=True, auto_attribs=True, kw_only=True, frozen=True)
@@ -42,4 +43,24 @@ def _clone_for_score_system(old, system, **_) -> StackedSystem:
         system=system,
         stack_depth=StackedSystem.get(old).stack_depth,
         system_size=StackedSystem.get(old).system_size,
+    )
+
+
+@StackedSystem.build_for.register(PackedResidueSystem)
+def stack_for_system(
+    system: PackedResidueSystem, score_system: ScoreSystem, **_
+) -> StackedSystem:
+    return StackedSystem(
+        system=score_system, stack_depth=1, system_size=int(system.system_size)
+    )
+
+
+@StackedSystem.build_for.register(PackedResidueSystemStack)
+def stack_for_stacked_system(
+    stack: PackedResidueSystemStack, score_system: ScoreSystem, **_
+) -> StackedSystem:
+    return StackedSystem(
+        system=score_system,
+        stack_depth=len(stack.systems),
+        system_size=max(int(system.system_size) for system in stack.systems),
     )

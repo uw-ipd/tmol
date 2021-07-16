@@ -1,7 +1,10 @@
 import torch
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
-from tmol.system.score_support import stacked_bonded_atoms_for_system
+from tmol.system.score_support import score_method_to_even_weights_dict
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.bonded_atom import stacked_bonded_atoms_for_system
+from tmol.score.modules.elec import ElecScore
 from tmol.score.elec.params import ElecParamResolver
 from tmol.score.bonded_atom import bonded_path_length, bonded_path_length_stacked
 
@@ -49,16 +52,19 @@ def test_jagged_parameter_resolution_rbpl(ubq_res, default_database, torch_devic
     ub40_rbpl = rbpl(ubq40)
     ub60_rbpl = rbpl(ubq60)
 
-    twoubq_dict = stacked_bonded_atoms_for_system(twoubq, 2, ubq60.coords.shape[0])
+    score_system = ScoreSystem.build_for(
+        twoubq, {ElecScore}, score_method_to_even_weights_dict(ElecScore)
+    )
+    twoubq_dict = stacked_bonded_atoms_for_system(twoubq, score_system)
     twoubq_bonds = bonded_path_length_stacked(
-        twoubq_dict["bonds"], 2, ubq60.system_size, 6
+        twoubq_dict.bonds, 2, ubq60.system_size, 6
     )
 
     tubq_rbpl = param_resolver.remap_bonded_path_lengths(
         twoubq_bonds,
-        twoubq_dict["res_names"],
-        twoubq_dict["res_indices"],
-        twoubq_dict["atom_names"],
+        twoubq_dict.res_names,
+        twoubq_dict.res_indices,
+        twoubq_dict.atom_names,
     )
 
     torch.testing.assert_allclose(
@@ -89,9 +95,12 @@ def test_jagged_parameter_resolution_part_charges(
     ub40_pcs = part_char(ubq40)
     ub60_pcs = part_char(ubq60)
 
-    twoubq_dict = stacked_bonded_atoms_for_system(twoubq, 2, ubq60.coords.shape[0])
+    score_system = ScoreSystem.build_for(
+        twoubq, {ElecScore}, score_method_to_even_weights_dict(ElecScore)
+    )
+    twoubq_dict = stacked_bonded_atoms_for_system(twoubq, score_system)
     tubq_pcs = param_resolver.resolve_partial_charge(
-        twoubq_dict["res_names"], twoubq_dict["atom_names"]
+        twoubq_dict.res_names, twoubq_dict.atom_names
     )
 
     torch.testing.assert_allclose(ub40_pcs, tubq_pcs[0:1, : ub40_pcs.shape[1]])

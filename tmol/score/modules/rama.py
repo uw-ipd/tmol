@@ -1,5 +1,6 @@
 import attr
 from attrs_strict import type_validator
+from collections import namedtuple
 from typing import Set, Type, Optional
 import torch
 import numpy
@@ -16,12 +17,74 @@ from tmol.score.modules.device import TorchDevice
 from tmol.score.modules.database import ParamDB
 from tmol.score.modules.bonded_atom import BondedAtoms
 
-from tmol.system.score_support import (
-    get_rama_all_phis_psis,
-    get_rama_all_phis_psis_for_stack,
-    AllPhisPsis,
-)
 from tmol.system.packed import PackedResidueSystemStack
+
+
+AllPhisPsis = namedtuple("AllPhisPsis", ["allphis", "allpsis"])
+
+
+def get_rama_all_phis_psis(system):
+    phis = numpy.array(
+        [
+            [
+                [
+                    x["residue_index"],
+                    x["atom_index_a"],
+                    x["atom_index_b"],
+                    x["atom_index_c"],
+                    x["atom_index_d"],
+                ]
+                for x in system.torsion_metadata[
+                    system.torsion_metadata["name"] == "phi"
+                ]
+            ]
+        ]
+    )
+
+    psis = numpy.array(
+        [
+            [
+                [
+                    x["residue_index"],
+                    x["atom_index_a"],
+                    x["atom_index_b"],
+                    x["atom_index_c"],
+                    x["atom_index_d"],
+                ]
+                for x in system.torsion_metadata[
+                    system.torsion_metadata["name"] == "psi"
+                ]
+            ]
+        ]
+    )
+
+    return AllPhisPsis(phis, psis)
+
+
+def get_rama_all_phis_psis_for_stack(stackedsystem):
+    all_phis_psis_list = [
+        get_rama_all_phis_psis(system) for system in stackedsystem.systems
+    ]
+
+    max_nres = max(
+        all_phis_psis.allphis.shape[1] for all_phis_psis in all_phis_psis_list
+    )
+
+    def expand(t):
+        ext = numpy.full((1, max_nres, 5), -1, dtype=int)
+        ext[0, : t.shape[1], :] = t[0]
+        return ext
+
+    all_phis_psis_stacked = AllPhisPsis(
+        numpy.concatenate(
+            [expand(all_phis_psis.allphis) for all_phis_psis in all_phis_psis_list]
+        ),
+        numpy.concatenate(
+            [expand(all_phis_psis.allpsis) for all_phis_psis in all_phis_psis_list]
+        ),
+    )
+
+    return all_phis_psis_stacked
 
 
 @attr.s(slots=True, auto_attribs=True, kw_only=True, frozen=True)
@@ -183,4 +246,5 @@ class RamaScore(ScoreMethod):
         )
 
     def intra_forward(self, coords: torch.Tensor):
-        return {"rama": self.rama_score_module(coords)}
+        result = self.rama_score_module(coords)
+        return {"rama": result}

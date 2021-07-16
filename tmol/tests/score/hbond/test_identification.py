@@ -6,8 +6,11 @@ import pandas
 import tmol.score
 
 import tmol.system.restypes as restypes
+from tmol.system.score_support import score_method_to_even_weights_dict
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
-from tmol.system.score_support import (
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.hbond import HBondScore
+from tmol.score.modules.bonded_atom import (
     bonded_atoms_for_system,
     stacked_bonded_atoms_for_system,
 )
@@ -104,13 +107,16 @@ def test_bb_identification(default_database, bb_hbond_database, ubq_system):
             }
         )
 
-    test_params = bonded_atoms_for_system(tsys)
+    hbond_system = ScoreSystem.build_for(
+        tsys, {HBondScore}, score_method_to_even_weights_dict(HBondScore)
+    )
+    test_params = bonded_atoms_for_system(tsys, hbond_system)
 
     hbe = HBondElementAnalysis.setup_from_database(
         chemical_database=default_database.chemical,
         hbond_database=bb_hbond_database,
-        atom_types=test_params["atom_types"],
-        bonds=test_params["bonds"],
+        atom_types=test_params.atom_types,
+        bonds=test_params.bonds,
     )
 
     def _t(d):
@@ -171,31 +177,38 @@ def test_jagged_identification(ubq_res, default_database):
     ubq6 = PackedResidueSystem.from_residues(ubq_res[:6])
     twoubq = PackedResidueSystemStack((ubq4, ubq6))
 
-    params4 = bonded_atoms_for_system(ubq4)
-    params6 = bonded_atoms_for_system(ubq6)
-    params_both = stacked_bonded_atoms_for_system(
-        twoubq, stack_depth=2, system_size=int(ubq6.system_size)
+    hbond_system_4 = ScoreSystem.build_for(
+        ubq4, {HBondScore}, score_method_to_even_weights_dict(HBondScore)
     )
+    hbond_system_6 = ScoreSystem.build_for(
+        ubq6, {HBondScore}, score_method_to_even_weights_dict(HBondScore)
+    )
+    hbond_system_both = ScoreSystem.build_for(
+        twoubq, {HBondScore}, score_method_to_even_weights_dict(HBondScore)
+    )
+    params4 = bonded_atoms_for_system(ubq4, hbond_system_4)
+    params6 = bonded_atoms_for_system(ubq6, hbond_system_6)
+    params_both = stacked_bonded_atoms_for_system(twoubq, hbond_system_both)
 
     hbe4 = HBondElementAnalysis.setup_from_database(
         chemical_database=default_database.chemical,
         hbond_database=default_database.scoring.hbond,
-        atom_types=params4["atom_types"],
-        bonds=params4["bonds"],
+        atom_types=params4.atom_types,
+        bonds=params4.bonds,
     )
 
     hbe6 = HBondElementAnalysis.setup_from_database(
         chemical_database=default_database.chemical,
         hbond_database=default_database.scoring.hbond,
-        atom_types=params6["atom_types"],
-        bonds=params6["bonds"],
+        atom_types=params6.atom_types,
+        bonds=params6.bonds,
     )
 
     hbe_both = HBondElementAnalysis.setup_from_database(
         chemical_database=default_database.chemical,
         hbond_database=default_database.scoring.hbond,
-        atom_types=params_both["atom_types"],
-        bonds=params_both["bonds"],
+        atom_types=params_both.atom_types,
+        bonds=params_both.bonds,
     )
 
     assert hbe_both.donors.shape == (2, hbe6.donors.shape[1])
