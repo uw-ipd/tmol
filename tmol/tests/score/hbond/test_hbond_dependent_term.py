@@ -1,7 +1,7 @@
 import torch
 
 from tmol.system.pose import PackedBlockTypes, residue_types_from_residues
-from tmol.score.hbond.HBondDependentTerm import HBondDependentTerm
+from tmol.score.hbond.hbond_dependent_term import HBondDependentTerm
 
 
 def test_store_hbond_acc_don_designations_in_block_types(

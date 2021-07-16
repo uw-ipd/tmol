@@ -405,7 +405,7 @@ def construct_kintree_for_rotamers(
 def measure_dofs_from_orig_coords(
     coords: Tensor[torch.float32][:, :, :], kintree: KinTree
 ):
-    from tmol.kinematics.compiled.compiled import inverse_kin
+    from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
 
     kintree_coords = coords.view(-1, 3)[kintree.id.to(torch.int64)]
     kintree_coords[0, :] = 0  # reset root
@@ -642,7 +642,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     )
 
     rot_mcfp_at_inds_kto[rot_mcfp_at_inds_kto != -1] += n_dof_atoms_offset_for_rot[
-        torch.div(
+        torch.floor_divide(
             torch.arange(n_rots * max_n_mcfp_atoms, dtype=torch.int64), max_n_mcfp_atoms
         )[rot_mcfp_at_inds_kto != -1]
     ].to(torch.int64)
@@ -686,7 +686,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
             device=pbt.device,
         )
         + orig_dof_atom_offset[
-            torch.div(
+            torch.floor_divide(
                 torch.arange(
                     orig_block_type_ind.shape[0] * max_n_mcfp_atoms,
                     dtype=torch.int64,
@@ -770,7 +770,7 @@ def assign_dofs_from_samples(
     max_n_chi_atoms = chi_atoms.shape[1]
     real_atoms = chi_atoms.view(-1) != -1
 
-    rot_ind_for_real_atom = torch.div(
+    rot_ind_for_real_atom = torch.floor_divide(
         torch.arange(max_n_chi_atoms * n_rots, dtype=torch.int64, device=pbt.device),
         max_n_chi_atoms,
     )[real_atoms]

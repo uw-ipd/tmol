@@ -1,9 +1,9 @@
 import attr
 import torch
 
-from ..AtomTypeDependentTerm import AtomTypeDependentTerm
-from ..BondDependentTerm import BondDependentTerm
-from ..hbond.HBondDependentTerm import HBondDependentTerm
+from ..atom_type_dependent_term import AtomTypeDependentTerm
+from ..bond_dependent_term import BondDependentTerm
+from ..hbond.hbond_dependent_term import HBondDependentTerm
 from ..ljlk.params import LJLKTypeParams, LJLKGlobalParams, LJLKParamResolver
 from tmol.score.chemical_database import AtomTypeParamResolver
 

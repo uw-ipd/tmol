@@ -13,7 +13,7 @@ from tmol.system.pose import PackedBlockTypes
 from tmol.score.hbond.params import HBondParamResolver
 from tmol.score.common.stack_condense import condense_numpy_inds
 from tmol.score.chemical_database import AtomTypeParamResolver
-from tmol.score.BondDependentTerm import BondDependentTerm
+from tmol.score.bond_dependent_term import BondDependentTerm
 
 from tmol.utility.cpp_extension import load, modulename, relpaths
 

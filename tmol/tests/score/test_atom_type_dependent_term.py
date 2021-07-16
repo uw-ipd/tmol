@@ -1,7 +1,7 @@
 import torch
 
 from tmol.system.pose import PackedBlockTypes, residue_types_from_residues
-from tmol.score.AtomTypeDependentTerm import AtomTypeDependentTerm
+from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
 
 
 def test_setup_block_type(ubq_res, default_database, torch_device):

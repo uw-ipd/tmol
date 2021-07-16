@@ -1,8 +1,8 @@
 import attr
 import torch
 
-from ..AtomTypeDependentTerm import AtomTypeDependentTerm
-from ..BondDependentTerm import BondDependentTerm
+from ..atom_type_dependent_term import AtomTypeDependentTerm
+from ..bond_dependent_term import BondDependentTerm
 from .params import LJLKTypeParams, LJLKGlobalParams
 from tmol.score.common.stack_condense import tile_subset_indices
 

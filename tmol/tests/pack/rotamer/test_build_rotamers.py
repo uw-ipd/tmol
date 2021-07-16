@@ -25,6 +25,8 @@ from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
+from tmol.kinematics.compiled.compiled_ops import forward_only_op
+
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
@@ -380,7 +382,7 @@ def test_inv_kin_rotamers(
         ).to(torch_device)
     )
 
-    new_coords = torch.ops.tmol.forward_only_kin_op(
+    new_coords = forward_only_op(
         dofs_new,
         _p(_t(leu_rt.rotamer_kintree.nodes)),
         _p(_t(leu_rt.rotamer_kintree.scans)),
@@ -670,7 +672,7 @@ def test_measure_original_dofs(
         pbt, real_block_type_ind_numpy, res_n_atoms, n_atoms_offset_for_rot
     )
 
-    new_kin_coords = torch.ops.tmol.forward_only_kin_op(
+    new_kin_coords = forward_only_op(
         dofs,
         _p(torch.tensor(nodes, dtype=torch.int32, device=torch_device)),
         _p(torch.tensor(scans, dtype=torch.int32, device=torch_device)),
@@ -765,7 +767,7 @@ def test_measure_original_dofs2(
         pbt, block_type_ind.cpu().numpy(), res_n_atoms, n_atoms_offset_for_rot
     )
 
-    new_kin_coords = torch.ops.tmol.forward_only_kin_op(
+    new_kin_coords = forward_only_op(
         dofs,
         _p(torch.tensor(nodes, dtype=torch.int32, device=torch_device)),
         _p(torch.tensor(scans, dtype=torch.int32, device=torch_device)),
