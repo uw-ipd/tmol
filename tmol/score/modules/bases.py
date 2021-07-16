@@ -78,7 +78,7 @@ class ScoreSystem:
         weights_list = []
         for key in terms.keys():
             weights_list.append([self.weights[key]])
-        weights_tensor = torch.tensor(weights_list)
+        weights_tensor = torch.tensor(weights_list, device=coords.device)
 
         sumfunc = ScoreTermSummation()
         total_score = sumfunc.apply(weights_tensor, terms_tensor)

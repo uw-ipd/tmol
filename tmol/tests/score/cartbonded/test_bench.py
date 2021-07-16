@@ -14,6 +14,7 @@ def test_cart_cuda(benchmark, ubq_system):
         ubq_system,
         {CartBondedScore},
         weights=score_method_to_even_weights_dict(CartBondedScore),
+        device=torch.device("cuda"),
     )
     coords = coords_for(ubq_system, score_system)
 
