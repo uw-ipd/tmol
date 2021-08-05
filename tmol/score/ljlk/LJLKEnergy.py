@@ -10,7 +10,10 @@ from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
 from tmol.types.torch import Tensor
 
-from tmol.score.ljlk.potentials.compiled import score_ljlk_inter_system_scores
+from tmol.score.ljlk.potentials.compiled import (
+    score_ljlk_inter_system_scores,
+    register_lj_lk_rotamer_pair_energy_eval,
+)
 
 
 class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
@@ -290,7 +293,7 @@ class LJLKInterSystemModule:
         annealer,
     ):
 
-        torch.ops.tmol.register_lj_lk_rotamer_pair_energy_eval(
+        register_lj_lk_rotamer_pair_energy_eval(
             context_coords,
             context_block_type,
             alternate_coords,

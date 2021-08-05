@@ -14,6 +14,7 @@ from tmol.types.functional import validate_args
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 from tmol.database.chemical import ChemicalDatabase
 from tmol.kinematics.datatypes import KinTree
+from tmol.kinematics.compiled.compiled_ops import forward_only_op
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import Poses, PackedBlockTypes
 from tmol.pack.packer_task import PackerTask
@@ -577,10 +578,14 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     )
 
     sampler_ind_for_rot = sampler_ind_mapping[sampler_for_rotamer]
+    # print("sampler_ind_for_rot")
+    # print(sampler_ind_for_rot)
 
     orig_block_type_ind = (
         poses.block_type_ind[poses.block_type_ind != -1].view(-1).to(torch.int64)
     )
+    # print("orig_block_type_ind")
+    # print(orig_block_type_ind)
 
     poses_res_to_real_poses_res = torch.full(
         (poses.block_type_ind.shape[0] * poses.block_type_ind.shape[1],),
@@ -606,6 +611,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     )
     # res_ind_for_rot = res_ind_for_rt[rt_for_rot]
     real_res_ind_for_rot = poses_res_to_real_poses_res[res_ind_for_rt[rt_for_rot]]
+    # print("real_res_ind_for_rot")
+    # print(real_res_ind_for_rot)
 
     # look up which mainchain fingerprint each
     # original residue should use
@@ -710,13 +717,10 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     # take the subset and also increment the indices of all the atoms
     # by one to take into account the virtual root atom at the origin
 
-    # later versions of torch have this logical_and function...
-    # both_present = torch.logical_and(
-    #     rot_mcfp_at_inds_kto != -1, orig_mcfp_at_inds_for_rot_kto != -1
-    # )
-    both_present = (rot_mcfp_at_inds_kto != -1) + (
-        orig_mcfp_at_inds_for_rot_kto != -1
-    ) == 2
+    both_present = torch.logical_and(
+        rot_mcfp_at_inds_kto != -1, orig_mcfp_at_inds_for_rot_kto != -1
+    )
+
     rot_mcfp_at_inds_kto = rot_mcfp_at_inds_kto[both_present] + 1
     orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_for_rot_kto[both_present] + 1
 
@@ -828,7 +832,7 @@ def calculate_rotamer_coords(
         ).to(pbt.device)
     )
 
-    new_coords_kto = torch.ops.tmol.forward_only_kin_op(
+    new_coords_kto = forward_only_op(
         rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_tcpu(gens)), kintree_stack
     )
 

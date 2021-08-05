@@ -1,9 +1,15 @@
 # import attr
 import torch
 
-from tmol.pack.sim_anneal.compiled.compiled import _compiled
-
-# for tmol.system.pose import PackedBlockTypes, Poses
+from tmol.pack.sim_anneal.compiled.compiled import (
+    pick_random_rotamers,
+    metropolis_accept_reject,
+    # create_sim_annealer,
+    # delete_sim_annealer,
+    # register_standard_random_rotamer_picker,
+    # reigester_standard_metropolis_accept_or_rejector,
+    # run_sim_annealing,
+)
 
 
 # class SelectRanRotModule(torch.jit.ScriptModule):
@@ -17,6 +23,9 @@ class SelectRanRotModule:
         block_type_ind_for_rot,
         block_ind_for_rot,
         rotamer_coords,
+        alternate_coords,
+        alternate_block_id,
+        random_rots,
     ):
         super().__init__()
 
@@ -27,6 +36,9 @@ class SelectRanRotModule:
         assert block_type_ind_for_rot.device == dev
         assert block_ind_for_rot.device == dev
         assert rotamer_coords.device == dev
+        assert alternate_coords.device == dev
+        assert alternate_block_id.device == dev
+        assert random_rots.device == dev
 
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
@@ -41,6 +53,9 @@ class SelectRanRotModule:
         self.block_type_ind_for_rot = _p(block_type_ind_for_rot.to(torch.int32))
         self.block_ind_for_rot = _p(block_ind_for_rot.to(torch.int32))
         self.rotamer_coords = _p(rotamer_coords)
+        self.alternate_coords = _p(alternate_coords)
+        self.alternate_block_id = _p(alternate_block_id)
+        self.random_rots = _p(random_rots)
 
     # @torch.jit.script_method
     # def forward(self, context_coords, context_block_type):
@@ -49,7 +64,7 @@ class SelectRanRotModule:
         """Select one rotamer for each context as well as the current rotamer at that position
         """
 
-        return torch.ops.tmol.pick_random_rotamers(
+        return pick_random_rotamers(
             context_coords,
             context_block_type,
             self.pose_id_for_context,
@@ -58,6 +73,9 @@ class SelectRanRotModule:
             self.block_type_ind_for_rot,
             self.block_ind_for_rot,
             self.rotamer_coords,
+            self.alternate_coords,
+            self.alternate_block_id,
+            self.random_rots,
         )
 
         # context_block_type = context_block_type.to(torch.int64)
@@ -117,14 +135,16 @@ class MCAcceptRejectModule:
         alternate_coords,
         alternate_ids,
         rotamer_component_energies,  # pre-weighted
+        accepted,
     ):
-        return torch.ops.tmol.metropolis_accept_reject(
+        return metropolis_accept_reject(
             temperature,
             context_coords,
             context_block_type,
             alternate_coords,
             alternate_ids,
             rotamer_component_energies,
+            accepted,
         )
 
         # rotamer_energies = torch.sum(rotamer_component_energies, dim=0)

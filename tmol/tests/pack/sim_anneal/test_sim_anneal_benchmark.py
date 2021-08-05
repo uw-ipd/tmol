@@ -14,6 +14,15 @@ from tmol.pack.rotamer.build_rotamers import RotamerSet, build_rotamers
 from tmol.pack.rotamer.bounding_spheres import create_rotamer_bounding_spheres
 
 from tmol.pack.sim_anneal.annealer import MCAcceptRejectModule, SelectRanRotModule
+from tmol.pack.sim_anneal.compiled.compiled import (
+    # pick_random_rotamers,
+    # metropolis_accept_reject,
+    create_sim_annealer,
+    delete_sim_annealer,
+    register_standard_random_rotamer_picker,
+    register_standard_metropolis_accept_or_rejector,
+    run_sim_annealing,
+)
 
 from tmol.score.ljlk.LJLKEnergy import LJLKEnergy
 from tmol.score.ljlk.params import LJLKParamResolver
@@ -94,7 +103,7 @@ def test_run_simA_benchmark(
     dun_sampler,
 ):
 
-    print("torch device", torch_device)
+    # print("torch device", torch_device)
     # def _p(t):
     #     return torch.nn.Parameter(t, requires_grad=False)
 
@@ -102,7 +111,7 @@ def test_run_simA_benchmark(
 
     p = Pose.from_residues_one_chain(rts_ubq_res, torch_device)
     poses = Poses.from_poses([p] * n_poses, torch_device)
-    print("poses device", poses.device, poses.coords.device)
+    # print("poses device", poses.device, poses.coords.device)
 
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -113,15 +122,15 @@ def test_run_simA_benchmark(
     task.add_chi_sampler(fixed_sampler)
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
-    print("poses device after rotamer building", poses.device, poses.coords.device)
-    print("n_rotamers", rotamer_set.coords.shape[0] // n_poses)
+    # print("poses device after rotamer building", poses.device, poses.coords.device)
+    # print("n_rotamers", rotamer_set.coords.shape[0] // n_poses)
 
     bounding_spheres = create_rotamer_bounding_spheres(poses, rotamer_set)
 
     # come up with the intial rotamer assignment
     context_coords = poses.coords.clone()
-    print("context_coords device")
-    print(context_coords.device)
+    # print("context_coords device")
+    # print(context_coords.device)
     rand_rot = torch.floor(
         torch.rand((n_poses, max_n_blocks), dtype=torch.float, device=torch_device)
         * rotamer_set.n_rots_for_block.to(torch.float32)
@@ -139,9 +148,9 @@ def test_run_simA_benchmark(
     n_poses_arange = torch.arange(n_poses, dtype=torch.int32, device=torch_device)
 
     annealer = torch.zeros((1,), dtype=torch.int64, device="cpu")
-    torch.ops.tmol.create_sim_annealer(annealer)
-    print("annealer")
-    print(annealer)
+    create_sim_annealer(annealer)
+    # print("annealer")
+    # print(annealer)
 
     pose_id_for_context = n_poses_arange
     n_rots_for_pose = rotamer_set.n_rots_for_pose.to(torch.int32)
@@ -157,15 +166,15 @@ def test_run_simA_benchmark(
     )
     alternate_id = torch.zeros((n_poses * 2, 3), dtype=torch.int32, device=torch_device)
     random_rotamers = torch.zeros((n_poses,), dtype=torch.int32, device=torch_device)
-    print("alternate_coords initial")
-    print(alternate_coords.shape)
-    print("alternate_id initial")
-    print(alternate_id.shape)
+    # print("alternate_coords initial")
+    # print(alternate_coords.shape)
+    # print("alternate_id initial")
+    # print(alternate_id.shape)
 
     annealer_event = torch.zeros(1, dtype=torch.int64, device="cpu")
     score_events = torch.zeros(n_components, dtype=torch.int64, device="cpu")
 
-    torch.ops.tmol.register_standard_random_rotamer_picker(
+    register_standard_random_rotamer_picker(
         context_coords,
         context_block_type,
         pose_id_for_context,
@@ -187,7 +196,7 @@ def test_run_simA_benchmark(
     )
     accepted = torch.zeros((n_poses,), dtype=torch.int32, device=torch_device)
 
-    torch.ops.tmol.register_standard_metropolis_accept_or_rejector(
+    register_standard_metropolis_accept_or_rejector(
         temperature,
         context_coords,
         context_block_type,
@@ -240,7 +249,7 @@ def test_run_simA_benchmark(
         )
 
     torch.random.manual_seed(1111)
-    torch.ops.tmol.run_sim_annealing(annealer)
+    run_sim_annealing(annealer)
 
     #
     # temperature = torch.full((1,), 100, dtype=torch.float32, device=torch.device("cpu"))
@@ -267,9 +276,9 @@ def test_run_simA_benchmark(
     #
     # accept = one_step_simA
 
-    torch.ops.tmol.delete_sim_annealer(annealer)
-    print("annealer")
-    print(annealer)
+    delete_sim_annealer(annealer)
+    # print("annealer")
+    # print(annealer)
 
     # make sure that the device is still operating; that we haven't corrupted GPU memory
     torch.arange(100, device=torch_device).sum()

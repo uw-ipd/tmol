@@ -57,6 +57,12 @@ def test_random_rotamer_module(ubq_res, default_database, torch_device):
         max_n_atoms * 5 * 6 * 3, dtype=torch.float32, device=torch_device
     ).view(30, max_n_atoms, 3)
 
+    alternate_coords = torch.zeros(
+        (5 * 2, max_n_atoms, 3), dtype=torch.float32, device=torch_device
+    )
+    alternate_block_id = torch.zeros((5 * 2, 3), dtype=torch.int32, device=torch_device)
+    random_rots = torch.zeros((5,), dtype=torch.int32, device=torch_device)
+
     selector = SelectRanRotModule(
         n_traj_per_pose=1,
         pose_id_for_context=arange5,
@@ -65,21 +71,24 @@ def test_random_rotamer_module(ubq_res, default_database, torch_device):
         block_type_ind_for_rot=stretch(poses.block_type_ind.view(-1), 2),
         block_ind_for_rot=stretch(arange3, 2).repeat(5),
         rotamer_coords=faux_coords,
+        alternate_coords=alternate_coords,
+        alternate_block_id=alternate_block_id,
+        random_rots=random_rots,
     )
 
     context_coords = poses.coords.clone()
     context_block_type = poses.block_type_ind.clone()
 
-    alt_coords, alt_ids, rr = selector(context_coords, context_block_type)
+    selector.go(context_coords, context_block_type)
 
     # what to assert
-    assert alt_coords.shape == (10, poses.coords.shape[2], 3)
-    assert alt_coords.device == torch_device
-    assert alt_ids.shape == (10, 3)
-    assert alt_ids.device == torch_device
+    # assert alt_coords.shape == (10, poses.coords.shape[2], 3)
+    # assert alt_coords.device == torch_device
+    # assert alt_ids.shape == (10, 3)
+    # assert alt_ids.device == torch_device
 
-    rr = rr.to(torch.int64)
-    alt_coords = alt_coords.cpu().numpy()
+    rr = random_rots.to(torch.int64)
+    alt_coords = alternate_coords.cpu().numpy()
     rotamer_alt_coords = alt_coords.reshape(5, 2, max_n_atoms, 3)[:, 1]
 
     gold_rotamer_alt_coords = faux_coords[rr, :, :].cpu().numpy()
@@ -143,22 +152,24 @@ def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
     faux_energies = torch.arange(10, dtype=torch.float32, device=torch_device).view(
         1, 10
     )
+    accepted = torch.zeros((5,), dtype=torch.int32, device=torch_device)
     temperature = torch.ones((1,), dtype=torch.float32, device=torch.device("cpu"))
 
     mc_accept_reject = MCAcceptRejectModule()
 
-    print("context_coords", context_coords.shape)
-    print("alternate_coords", alternate_coords.shape)
-    print("alternate_ids", alternate_ids.shape)
-    print("faux_energies", faux_energies.shape)
+    # print("context_coords", context_coords.shape)
+    # print("alternate_coords", alternate_coords.shape)
+    # print("alternate_ids", alternate_ids.shape)
+    # print("faux_energies", faux_energies.shape)
 
-    accept = mc_accept_reject(
+    accept = mc_accept_reject.go(
         temperature,
         context_coords,
         context_block_type,
         alternate_coords,
         alternate_ids,
         faux_energies,
+        accepted,
     )
     print(accept)
 

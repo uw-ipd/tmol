@@ -312,7 +312,7 @@ def test_inv_kin_rotamers(
     met_kt_frame_y = it(0, met_rt.rotamer_kintree.frame_y + 1)
     met_kt_frame_z = it(0, met_rt.rotamer_kintree.frame_z + 1)
 
-    from tmol.kinematics.compiled.compiled import inverse_kin
+    from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
 
     coords = torch.cat(
         (
@@ -912,10 +912,13 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     pbt = poses.packed_block_types
     annotate_everything(default_database.chemical, samplers, pbt)
 
-    rt_for_rot = torch.div(torch.arange(30, dtype=torch.int64, device=torch_device), 2)
+    rt_for_rot = torch.floor_divide(
+        torch.arange(30, dtype=torch.int64, device=torch_device), 2
+    )
 
     block_ind_for_rot = torch.remainder(
-        torch.div(torch.arange(30, dtype=torch.int64, device=torch_device), 2), 5
+        torch.floor_divide(torch.arange(30, dtype=torch.int64, device=torch_device), 2),
+        5,
     )
 
     sampler_for_rotamer = torch.zeros(30, dtype=torch.int64, device=torch_device)
