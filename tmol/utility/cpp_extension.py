@@ -25,6 +25,7 @@ _default_flags = ["-O3"]
 # _default_flags = ["-g", "-Og", "-DDEBUG"]
 
 _required_cuda_flags = [
+    "-ccbin gcc-8",
     "-std=c++14",
     "--expt-extended-lambda",
     # "--expt-relaxed-constexpr", #fd: causes compiler errors in CUDA 10.0
