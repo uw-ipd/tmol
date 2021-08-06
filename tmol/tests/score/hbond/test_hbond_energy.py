@@ -64,7 +64,7 @@ def test_annotate_block_type_hbond_params(
     donor_type = numpy.full_like(acceptor_type, -1)
 
     def map_names(atom_types, mapper, col_name, type_index):
-        print("mapper", mapper)
+        # print("mapper", mapper)
         is_hbtype = numpy.full(len(atom_types), 0, dtype=numpy.int32)
         hbtype = numpy.full(len(atom_types), 0, dtype=numpy.int32)
         hbtypes = numpy.full_like(atom_types, None, dtype=object)
@@ -108,16 +108,16 @@ def test_annotate_block_type_hbond_params(
         is_donor[i, i_slice] = i_is_don
         donor_type[i, i_slice] = i_don_type
 
-        print("i_is_acc")
-        print(i_is_acc)
-        print("i_acc_type")
-        print(i_acc_type)
+        # print("i_is_acc")
+        # print(i_is_acc)
+        # print("i_acc_type")
+        # print(i_acc_type)
         is_definitely_acceptor = i_is_acc & (i_acc_type >= 0)
-        print("is_definitely_acceptor")
-        print(is_definitely_acceptor)
+        # print("is_definitely_acceptor")
+        # print(is_definitely_acceptor)
         A_idx = condense_numpy_inds(is_definitely_acceptor[None, :])
-        print("A_idx")
-        print(A_idx)
+        # print("A_idx")
+        # print(A_idx)
 
         B_idx = numpy.full_like(A_idx, -1)
         B0_idx = numpy.full_like(A_idx, -1)
@@ -128,17 +128,17 @@ def test_annotate_block_type_hbond_params(
             torch.from_numpy(B_idx),
             torch.from_numpy(B0_idx),
             torch.from_numpy(atom_acceptor_hybridization),
-            torch.from_numpy(atom_is_hydrogen.astype(numpy.ubyte)),
+            torch.from_numpy(atom_is_hydrogen).to(torch.bool),
             block_type.intrares_indexed_bonds.bonds,
             block_type.intrares_indexed_bonds.bond_spans,
         )
 
-        print("A_idx")
-        print(A_idx)
-        print("B_idx")
-        print(B_idx)
-        print("B0_idx")
-        print(B0_idx)
+        # print("A_idx")
+        # print(A_idx)
+        # print("B_idx")
+        # print(B_idx)
+        # print("B0_idx")
+        # print(B0_idx)
         # print("atom_acceptor_hybridization")
         # print(atom_acceptor_hybridization)
         # print("atom_is_hydrogen")

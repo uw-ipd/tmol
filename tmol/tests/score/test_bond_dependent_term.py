@@ -3,7 +3,7 @@ from tmol.score.bond_dependent_term import BondDependentTerm
 from tmol.tests.system.test_pose import two_ubq_poses
 
 
-def test_create_bond_separation(ubq_res, torch_device):
+def test_create_bond_separation(ubq_res, default_database, torch_device):
     rt_dict = {}
     for res in ubq_res:
         if id(res.residue_type) not in rt_dict:
@@ -11,7 +11,7 @@ def test_create_bond_separation(ubq_res, torch_device):
     rt_list = [rt for addr, rt in rt_dict.items()]
     pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
 
-    bdt = BondDependentTerm(device=torch_device)
+    bdt = BondDependentTerm(param_db=default_database, device=torch_device)
     bdt.setup_packed_block_types(pbt)
 
     assert hasattr(pbt, "bond_separation")
@@ -29,9 +29,9 @@ def test_create_bond_separation(ubq_res, torch_device):
     )
 
 
-def test_create_pose_bond_separation_two_ubq(ubq_res, torch_device):
+def test_create_pose_bond_separation_two_ubq(ubq_res, default_database, torch_device):
     two_ubq = two_ubq_poses(ubq_res, torch_device)
-    bdt = BondDependentTerm(device=torch_device)
+    bdt = BondDependentTerm(param_db=default_database, device=torch_device)
     bdt.setup_poses(two_ubq)
 
     # Poses should already have this data

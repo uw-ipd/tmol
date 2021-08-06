@@ -141,13 +141,12 @@ class HBondDependentTerm(BondDependentTerm):
         B0_idx = numpy.full_like(A_idx, -1)
         atom_is_hydrogen = atom_type_params.is_hydrogen.numpy()[None, :]
 
-        print("getting acceptor bases for ", block_type.name)
         compiled.id_acceptor_bases(
             torch.from_numpy(A_idx),
             torch.from_numpy(B_idx),
             torch.from_numpy(B0_idx),
             torch.from_numpy(atom_acceptor_hybridization),
-            torch.from_numpy(atom_is_hydrogen.astype(numpy.ubyte)),
+            torch.from_numpy(atom_is_hydrogen).to(torch.bool),
             block_type.intrares_indexed_bonds.bonds,
             block_type.intrares_indexed_bonds.bond_spans,
         )
@@ -172,7 +171,7 @@ class HBondDependentTerm(BondDependentTerm):
         compiled.id_donor_attached_hydrogens(
             torch.from_numpy(D_idx),
             torch.from_numpy(H_idx),
-            torch.from_numpy(atom_is_hydrogen.astype(numpy.ubyte)),
+            torch.from_numpy(atom_is_hydrogen).to(torch.bool),
             block_type.intrares_indexed_bonds.bonds,
             block_type.intrares_indexed_bonds.bond_spans,
         )

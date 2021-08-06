@@ -3,6 +3,7 @@ import numpy
 import torch
 import pandas
 
+from tmol.database import ParameterDatabase
 from tmol.database.chemical import ChemicalDatabase
 from .chemical_database import AtomTypeParamResolver
 from tmol.system.pose import PackedBlockTypes
@@ -19,34 +20,16 @@ class AtomTypeDependentTerm(EnergyTerm):
     np_is_heavyatom: NDArray[bool]  # = attr.ib()
     device: torch.device  # = attr.ib()
 
-    def __init__(
-        self, atom_type_resolver: AtomTypeParamResolver, device: torch.device, **kwargs
-    ):
-        super(AtomTypeDependentTerm, self).__init__(
-            atom_type_resolver=atom_type_resolver, device=device, **kwargs
+    def __init__(self, param_db: ParameterDatabase, device: torch.device):
+        atom_type_resolver = AtomTypeParamResolver.from_database(
+            param_db.chemical, device=device
         )
+        super(AtomTypeDependentTerm, self).__init__(param_db=param_db, device=device)
         self.atom_type_resolver = atom_type_resolver
         self.atom_type_index = atom_type_resolver.index
         self.np_is_hydrogen = atom_type_resolver.params.is_hydrogen.cpu().numpy()
         self.np_is_heavyatom = numpy.logical_not(self.np_is_hydrogen)
         self.device = device
-
-    @classmethod
-    def from_database(cls, chemical_database: ChemicalDatabase, device: torch.device):
-        return cls.from_param_resolver(
-            AtomTypeParamResolver.from_database(chemical_database, device=device),
-            device=device,
-        )
-
-    @classmethod
-    def from_param_resolver(
-        cls, atom_type_resolver: AtomTypeParamResolver, device: torch.device
-    ):
-        return cls(
-            atom_type_resolver=atom_type_resolver,
-            # atom_type_index=atom_type_resolver.index,
-            device=device,
-        )
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(AtomTypeDependentTerm, self).setup_block_type(block_type)

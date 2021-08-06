@@ -24,7 +24,7 @@ from tmol.pack.sim_anneal.compiled.compiled import (
     run_sim_annealing,
 )
 
-from tmol.score.ljlk.LJLKEnergy import LJLKEnergy
+from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.system.pose import Pose, Poses
 from tmol.score.chemical_database import AtomTypeParamResolver
@@ -209,21 +209,8 @@ def test_run_simA_benchmark(
     )
 
     # and the score function
-    resolver = AtomTypeParamResolver.from_database(
-        default_database.chemical, torch_device
-    )
 
-    ljlk_params = LJLKParamResolver.from_database(
-        default_database.chemical, default_database.scoring.ljlk, device=torch_device
-    )
-
-    ljlk_energy = LJLKEnergy(
-        atom_type_resolver=resolver,
-        type_params=ljlk_params.type_params,
-        global_params=ljlk_params.global_params,
-        atom_type_index=ljlk_params.atom_type_index,
-        device=torch_device,
-    )
+    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     weights = {"lj": 1.0, "lk": 1.0}
 

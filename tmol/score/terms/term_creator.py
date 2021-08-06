@@ -1,9 +1,12 @@
+import torch
+
 from tmol.score.terms.score_term_factory import ScoreTermFactory
+from tmol.database import ParameterDatabase
 
 
 class TermCreator:
     @classmethod
-    def create_term(cls):
+    def create_term(cls, param_db: ParameterDatabase, device: torch.device):
         raise NotImplementedError()
 
     @classmethod

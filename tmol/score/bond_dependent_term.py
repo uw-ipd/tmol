@@ -5,6 +5,7 @@ import torch
 import sparse
 import scipy.sparse.csgraph as csgraph
 
+from tmol.database import ParameterDatabase
 from tmol.system.restypes import RefinedResidueType
 from tmol.system.pose import PackedBlockTypes, Poses
 from tmol.score.EnergyTerm import EnergyTerm
@@ -15,8 +16,8 @@ from tmol.score.bonded_atom import IndexedBonds
 class BondDependentTerm(EnergyTerm):
     device: torch.device
 
-    def __init__(self, device: torch.device, **kwargs):
-        super(BondDependentTerm, self).__init__(device=device, **kwargs)
+    def __init__(self, param_db: ParameterDatabase, device: torch.device, **kwargs):
+        super(BondDependentTerm, self).__init__(param_db=param_db, device=device)
         self.device = device
 
     def setup_block_type(self, block_type: RefinedResidueType):
