@@ -1,3 +1,4 @@
+from tmol.pose.pose import Poses
 from tmol.system.pose import PackedBlockTypes, Poses
 from tmol.system.restypes import RefinedResidueType
 
