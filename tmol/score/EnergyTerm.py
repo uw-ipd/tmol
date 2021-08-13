@@ -1,6 +1,6 @@
-from tmol.pose.pose import Poses
-from tmol.system.pose import PackedBlockTypes, Poses
-from tmol.system.restypes import RefinedResidueType
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.pose_stack import Poses
 
 
 class EnergyTerm:

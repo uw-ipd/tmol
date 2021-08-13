@@ -3,8 +3,9 @@ import numpy
 
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from tmol.system.restypes import Residue
-from tmol.system.pose import PackedBlockTypes, Pose, Poses
+from tmol.chemical.restypes import Residue
+from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.pose_stack import Pose, Poses
 
 
 # to dump pdbs

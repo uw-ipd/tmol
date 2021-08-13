@@ -7,8 +7,8 @@ from typing import Tuple
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
-from tmol.system.restypes import RefinedResidueType
-from tmol.system.pose import Poses
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.pose_stack import Poses
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 

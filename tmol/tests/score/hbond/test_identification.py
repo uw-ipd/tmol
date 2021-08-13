@@ -5,7 +5,7 @@ import pandas
 
 import tmol.score
 
-import tmol.system.restypes as restypes
+import tmol.chemical.restypes as restypes
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 from tmol.system.score_support import (
     bonded_atoms_for_system,

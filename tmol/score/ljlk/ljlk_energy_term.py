@@ -9,8 +9,9 @@ from tmol.database import ParameterDatabase
 from tmol.score.common.stack_condense import tile_subset_indices
 from tmol.score.ljlk.params import LJLKParamResolver
 
-from tmol.system.restypes import RefinedResidueType
-from tmol.system.pose import PackedBlockTypes, Poses
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.pose_stack import Poses
 from tmol.types.torch import Tensor
 
 from tmol.score.ljlk.potentials.compiled import (

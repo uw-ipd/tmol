@@ -4,7 +4,8 @@ import pytest
 
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.system.pose import Pose, Poses, residue_types_from_residues, PackedBlockTypes
+from tmol.pose.pose_stack import residue_types_from_residues, PackedBlockTypes
+from tmol.pose.pose_stack import Pose, Poses
 from tmol.score.chemical_database import AtomTypeParamResolver
 
 

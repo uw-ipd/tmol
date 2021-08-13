@@ -1,18 +1,20 @@
 import pytest
 
-import tmol.system.restypes
+import tmol.chemical.restypes
 
 
 @pytest.fixture
 def default_restype_set():
-    return tmol.system.restypes.ResidueTypeSet.get_default()
+    return tmol.chemical.restypes.ResidueTypeSet.get_default()
 
 
 @pytest.fixture
 def fresh_default_restype_set(default_database):
     """Fresh ResidueTypeSet constructed for each test
     """
-    return tmol.system.restypes.ResidueTypeSet.from_database(default_database.chemical)
+    return tmol.chemical.restypes.ResidueTypeSet.from_database(
+        default_database.chemical
+    )
 
 
 @pytest.fixture()

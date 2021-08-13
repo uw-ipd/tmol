@@ -15,8 +15,9 @@ from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 from tmol.database.chemical import ChemicalDatabase
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
-from tmol.system.restypes import RefinedResidueType
-from tmol.system.pose import Poses, PackedBlockTypes
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.pose_stack import Poses
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 

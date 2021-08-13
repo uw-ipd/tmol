@@ -8,7 +8,7 @@ from typing import Sequence, Tuple
 
 from tmol.types.array import NDArray
 
-from .restypes import Residue
+from tmol.chemical.restypes import Residue
 from .datatypes import (
     atom_metadata_dtype,
     torsion_metadata_dtype,

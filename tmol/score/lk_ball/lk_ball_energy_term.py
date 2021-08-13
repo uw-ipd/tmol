@@ -7,8 +7,9 @@ from ..hbond.hbond_dependent_term import HBondDependentTerm
 from ..ljlk.params import LJLKTypeParams, LJLKGlobalParams, LJLKParamResolver
 from tmol.score.chemical_database import AtomTypeParamResolver
 
-from tmol.system.restypes import RefinedResidueType
-from tmol.system.pose import PackedBlockTypes, Poses
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.pose_stack import Poses
 from tmol.types.torch import Tensor
 
 

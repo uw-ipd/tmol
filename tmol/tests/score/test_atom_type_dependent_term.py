@@ -1,6 +1,6 @@
 import torch
 
-from tmol.system.pose import PackedBlockTypes, residue_types_from_residues
+from tmol.pose.pose_stack import PackedBlockTypes, residue_types_from_residues
 from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
 
 

@@ -4,7 +4,7 @@ import numba
 from typing import List
 
 from tmol.types.functional import validate_args
-from tmol.system.restypes import RefinedResidueType
+from tmol.chemical.restypes import RefinedResidueType
 
 
 @numba.jit(nopython=True)

@@ -14,8 +14,8 @@ from typing import Sequence, Tuple
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
-from .restypes import RefinedResidueType, Residue
-from .datatypes import connection_metadata_dtype
+from tmol.chemical.restypes import RefinedResidueType, Residue
+from tmol.system.datatypes import connection_metadata_dtype
 
 
 def residue_types_from_residues(residues):

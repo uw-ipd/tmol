@@ -2,7 +2,7 @@ import torch
 import attr
 
 from tmol.utility.tensor.common_operations import stretch
-from tmol.system.pose import Poses
+from tmol.pose.pose_stack import Poses
 from tmol.pack.rotamer.build_rotamers import RotamerSet
 
 

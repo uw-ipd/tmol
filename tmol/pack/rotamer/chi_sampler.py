@@ -12,9 +12,11 @@ from tmol.score.dunbrack.params import (
     DunbrackParamResolver,
 )
 
-from tmol.system.restypes import RefinedResidueType
-from tmol.system.pose import Poses, PackedBlockTypes
-from tmol.system.score_support import indexed_atoms_for_dihedral
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.pose_stack import Poses
+
+# from tmol.system.score_support import indexed_atoms_for_dihedral
 
 
 @attr.s(auto_attribs=True)

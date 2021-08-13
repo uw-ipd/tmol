@@ -14,7 +14,7 @@ import tmol.database.chemical
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import ChemicalDatabase
 
-from .restypes import RefinedResidueType, Residue
+from tmol.chemical.restypes import RefinedResidueType, Residue
 from .packed import PackedResidueSystem
 
 from tmol.utility.log import ClassLogger

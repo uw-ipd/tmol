@@ -7,7 +7,7 @@ from tmol.database.scoring.hbond import HBondDatabase
 from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.score.hbond.params import HBondParamResolver
 from tmol.score.common.stack_condense import condense_numpy_inds
-from tmol.system.pose import Pose, PackedBlockTypes
+from tmol.pose.pose_stack import Pose, PackedBlockTypes
 
 from tmol.score.bonded_atom import IndexedBonds
 

@@ -1,6 +1,6 @@
-from tmol.system.restypes import ResidueTypeSet
+from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pack.packer_task import PackerPalette, ResidueLevelTask, PackerTask
-from tmol.system.pose import Pose, Poses
+from tmol.pose.pose_stack import Pose, Poses
 
 
 def test_packer_palette_smoke(default_restype_set):

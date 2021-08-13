@@ -6,8 +6,8 @@ import pandas
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import ChemicalDatabase
 from .chemical_database import AtomTypeParamResolver
-from tmol.system.pose import PackedBlockTypes
-from tmol.system.restypes import RefinedResidueType
+from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.chemical.restypes import RefinedResidueType
 from tmol.score.EnergyTerm import EnergyTerm
 
 from tmol.types.array import NDArray

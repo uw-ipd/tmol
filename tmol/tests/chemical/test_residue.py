@@ -2,8 +2,8 @@ import pytest
 import cattr
 import numpy
 
-from tmol.system.ideal_coords import normalize
-from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
+from tmol.chemical.ideal_coords import normalize
+from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.tests.data.pdb import data as test_pdbs
 from tmol.system.io import read_pdb
 from tmol.system.packed import PackedResidueSystem

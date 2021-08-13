@@ -10,7 +10,7 @@ from tmol.kinematics.script_modules import KinematicModule
 from tmol.kinematics.operations import inverseKin
 
 from tmol.system.packed import PackedResidueSystem
-from tmol.system.restypes import Residue
+from tmol.chemical.restypes import Residue
 from tmol.system.kinematics import KinematicDescription
 
 from tmol.tests.torch import requires_cuda

@@ -6,8 +6,9 @@ from ..bond_dependent_term import BondDependentTerm
 from .params import LJLKTypeParams, LJLKGlobalParams
 from tmol.score.common.stack_condense import tile_subset_indices
 
-from tmol.system.restypes import RefinedResidueType
-from tmol.system.pose import PackedBlockTypes, Poses
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.pose_stack import Poses
 from tmol.types.torch import Tensor
 
 from tmol.score.ljlk.potentials.compiled import (

@@ -1,10 +1,10 @@
 import numpy
 import torch
 
-from tmol.system.restypes import ResidueTypeSet
+from tmol.chemical.restypes import ResidueTypeSet
 
 from tmol.score.dunbrack.params import DunbrackParamResolver
-from tmol.system.pose import PackedBlockTypes
+from tmol.pose.pose_stack import PackedBlockTypes
 from tmol.pack.rotamer.single_residue_kintree import construct_single_residue_kintree
 from tmol.pack.rotamer.mainchain_fingerprint import (
     create_non_sidechain_fingerprint,

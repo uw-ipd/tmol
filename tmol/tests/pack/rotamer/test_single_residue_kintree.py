@@ -1,6 +1,6 @@
 import numpy
 
-from tmol.system.restypes import ResidueTypeSet
+from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pack.rotamer.single_residue_kintree import (
     construct_single_residue_kintree,
     # coalesce_single_residue_kintrees,

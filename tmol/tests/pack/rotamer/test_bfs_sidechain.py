@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from tmol.system.restypes import ResidueTypeSet
+from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
 from tmol.pack.rotamer.single_residue_kintree import construct_single_residue_kintree
 

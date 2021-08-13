@@ -1,6 +1,7 @@
 import numpy
 
-from tmol.system.pose import residue_types_from_residues, PackedBlockTypes, Pose, Poses
+from tmol.pose.pose_stack import residue_types_from_residues, PackedBlockTypes
+from tmol.pose.pose_stack import Pose, Poses
 
 
 def two_ubq_poses(ubq_res, torch_device):

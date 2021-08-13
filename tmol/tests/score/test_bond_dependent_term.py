@@ -1,6 +1,6 @@
-from tmol.system.pose import PackedBlockTypes
+from tmol.pose.pose_stack import PackedBlockTypes
 from tmol.score.bond_dependent_term import BondDependentTerm
-from tmol.tests.system.test_pose import two_ubq_poses
+from tmol.tests.pose.test_pose import two_ubq_poses
 
 
 def test_create_bond_separation(ubq_res, default_database, torch_device):

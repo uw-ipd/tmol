@@ -7,8 +7,9 @@ import tmol.pack.rotamer.dunbrack.compiled  # noqa F401
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
-from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.system.pose import PackedBlockTypes, Pose, Poses
+from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
+from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.pose_stack import Pose, Poses
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.dunbrack.score_graph import DunbrackScoreGraph

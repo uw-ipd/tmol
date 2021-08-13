@@ -1,5 +1,5 @@
-from tmol.system.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.system.pose import Poses
+from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
+from tmol.pose.pose_stack import Poses
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 
 

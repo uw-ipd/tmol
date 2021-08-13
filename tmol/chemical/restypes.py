@@ -12,7 +12,7 @@ import scipy.sparse.csgraph as csgraph
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType, ChemicalDatabase
 
-from tmol.system.ideal_coords import build_coords_from_icoors
+from tmol.chemical.ideal_coords import build_coords_from_icoors
 
 
 AtomIndex = NewType("AtomIndex", int)
