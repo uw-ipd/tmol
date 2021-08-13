@@ -8,7 +8,7 @@ from tmol.database.chemical import ChemicalDatabase
 from .chemical_database import AtomTypeParamResolver
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.score.EnergyTerm import EnergyTerm
+from tmol.score.energy_term import EnergyTerm
 
 from tmol.types.array import NDArray
 
