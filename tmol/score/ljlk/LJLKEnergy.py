@@ -7,7 +7,7 @@ from .params import LJLKTypeParams, LJLKGlobalParams
 from tmol.score.common.stack_condense import tile_subset_indices
 
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import Poses
 from tmol.types.torch import Tensor
 

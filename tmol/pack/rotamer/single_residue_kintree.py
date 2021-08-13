@@ -10,7 +10,7 @@ from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
 
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

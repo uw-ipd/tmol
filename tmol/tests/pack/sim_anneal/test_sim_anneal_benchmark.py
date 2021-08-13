@@ -5,7 +5,7 @@ import pytest
 
 from tmol.utility.tensor.common_operations import stretch
 from tmol.chemical.restypes import ResidueTypeSet
-from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import Pose, Poses
 
 from tmol.pack.packer_task import PackerTask, PackerPalette
@@ -27,7 +27,6 @@ from tmol.pack.sim_anneal.compiled.compiled import (
 
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.system.pose import Pose, Poses
 from tmol.score.chemical_database import AtomTypeParamResolver
 
 

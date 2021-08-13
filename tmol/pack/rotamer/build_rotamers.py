@@ -16,7 +16,7 @@ from tmol.database.chemical import ChemicalDatabase
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import Poses
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler

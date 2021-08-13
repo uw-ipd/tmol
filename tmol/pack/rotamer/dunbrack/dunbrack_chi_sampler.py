@@ -15,8 +15,8 @@ from tmol.pack.rotamer.chi_sampler import ChiSampler  # noqa F401
 # from tmol.pack.rotamer.dunbrack.compiled import _compiled  # noqa F401
 from tmol.pack.packer_task import PackerTask, ResidueLevelTask
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pose_stack import PackedBlockTypes, Poses
-from tmol.pose.pose_stack import PackedBlockTypes, Poses
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import Poses
 
 # from tmol.system.packed import PackedResidueSystem
 # from tmol.system.score_support import indexed_atoms_for_dihedral

@@ -7,7 +7,7 @@ import scipy.sparse.csgraph as csgraph
 
 from tmol.database import ParameterDatabase
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import Poses
 from tmol.score.EnergyTerm import EnergyTerm
 from tmol.score.bonded_atom import IndexedBonds

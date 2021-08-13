@@ -1,4 +1,4 @@
-from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.score.bond_dependent_term import BondDependentTerm
 from tmol.tests.pose.test_pose import two_ubq_poses
 

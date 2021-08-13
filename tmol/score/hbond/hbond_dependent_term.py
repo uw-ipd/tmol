@@ -8,7 +8,7 @@ from tmol.database.scoring.hbond import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
 
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 
 from tmol.score.hbond.params import HBondParamResolver
 from tmol.score.common.stack_condense import condense_numpy_inds

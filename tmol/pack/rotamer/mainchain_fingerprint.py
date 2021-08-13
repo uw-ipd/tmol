@@ -11,7 +11,7 @@ from tmol.types.functional import validate_args
 from tmol.numeric.dihedrals import coord_dihedrals
 from tmol.database.chemical import ChemicalDatabase
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pose_stack import PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms_jit
