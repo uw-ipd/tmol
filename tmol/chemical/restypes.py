@@ -1,7 +1,7 @@
 from frozendict import frozendict
 from toolz.curried import concat, map, compose, groupby
 import typing
-from typing import Mapping, Optional, NewType, Tuple, Sequence
+from typing import Mapping, Optional, NewType, Tuple, Sequence, List
 import attr
 import cattr
 
@@ -13,6 +13,7 @@ from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType, ChemicalDatabase
 
 from tmol.chemical.ideal_coords import build_coords_from_icoors
+from tmol.types.functional import validate_args
 
 
 AtomIndex = NewType("AtomIndex", int)
@@ -281,3 +282,26 @@ class Residue:
             p.text(", coords=")
             p.break_()
             p.pretty(self.coords)
+
+
+# validate_args doesn't work with List ???!!!
+# @validate_args
+def find_simple_polymeric_connections(
+    res: List[Residue]
+) -> Sequence[Tuple[int, str, int, str]]:
+    """
+    return a list of (int,str,int,str) quadrouples that say residue
+    i is connected to residue i+1 from it's "up" connection to
+    residue i+1's "down" connection and vice versa for all i"""
+
+    residue_connections = []
+    for i, j in zip(range(len(res) - 1), range(1, len(res))):
+        if (
+            "up" in res[i].residue_type.connection_to_idx
+            and "down" in res[j].residue_type.connection_to_idx
+        ):
+            residue_connections.extend(
+                [(i, "up", i + 1, "down"), (i + 1, "down", i, "up")]
+            )
+
+    return residue_connections

@@ -3,7 +3,11 @@ import cattr
 import numpy
 
 from tmol.chemical.ideal_coords import normalize
-from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
+from tmol.chemical.restypes import (
+    RefinedResidueType,
+    ResidueTypeSet,
+    find_simple_polymeric_connections,
+)
 from tmol.tests.data.pdb import data as test_pdbs
 from tmol.system.io import read_pdb
 from tmol.system.packed import PackedResidueSystem
@@ -100,3 +104,21 @@ def test_residue_type_set_get_default():
     restype_set1 = ResidueTypeSet.get_default()
     restype_set2 = ResidueTypeSet.get_default()
     assert restype_set1 is restype_set2
+
+
+def test_find_simple_polymeric_connections(ubq_res):
+    ubq_subset = ubq_res[0:4]
+    connections = find_simple_polymeric_connections(ubq_subset)
+    gold_connections = set(
+        [
+            (0, "up", 1, "down"),
+            (1, "up", 2, "down"),
+            (2, "up", 3, "down"),
+            (1, "down", 0, "up"),
+            (2, "down", 1, "up"),
+            (3, "down", 2, "up"),
+        ]
+    )
+    for conn in connections:
+        assert conn in gold_connections
+    assert len(connections) == len(gold_connections)

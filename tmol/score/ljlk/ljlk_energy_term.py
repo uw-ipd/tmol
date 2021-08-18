@@ -291,6 +291,7 @@ class LJLKInterSystemModule:
         self,
         context_coords,
         context_block_type,
+        context_has_changed,
         alternate_coords,
         alternate_ids,
         output_energies,
