@@ -1256,12 +1256,13 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   int const n_ctas =
       (n_alternate_blocks * max_n_neighbors / 2 - 1) / launch_t::sm_ptx::vt + 1;
 
-  static bool first(true);
-  if (first) {
-    std::cout << "nt " << launch_t::sm_ptx::nt << " vt " << launch_t::sm_ptx::vt
-              << std::endl;
-    first = false;
-  }
+  // static bool first(true);
+  // if (first) {
+  //  std::cout << "nt " << launch_t::sm_ptx::nt << " vt " <<
+  //  launch_t::sm_ptx::vt
+  //            << std::endl;
+  //  first = false;
+  //}
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
   record_scoring_event(wrapped_stream.stream(), score_event);
 

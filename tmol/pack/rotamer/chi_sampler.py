@@ -14,7 +14,7 @@ from tmol.score.dunbrack.params import (
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Poses
+from tmol.pose.pose_stack import PoseStack
 
 # from tmol.system.score_support import indexed_atoms_for_dihedral
 
@@ -42,7 +42,7 @@ class ChiSampler:
         raise NotImplementedError()
 
     def sample_chi_for_poses(
-        self, systems: Poses, task: "PackerTask"  # noqa F821
+        self, systems: PoseStack, task: "PackerTask"  # noqa F821
     ) -> Tuple[
         Tensor[torch.int32][:, :, :],  # n_rots_for_rt
         Tensor[torch.int32][:],  # rt_for_rotamer

@@ -17,7 +17,7 @@ from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Poses
+from tmol.pose.pose_stack import PoseStack
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 
@@ -85,8 +85,8 @@ class RotamerSet(ValidateAttrs):
 
 @validate_args
 def rebuild_poses_if_necessary(
-    poses: Poses, task: PackerTask
-):  # -> Tuple[Poses, Tuple[ChiSampler, ...]]:
+    poses: PoseStack, task: PackerTask
+):  # -> Tuple[PoseStack, Tuple[ChiSampler, ...]]:
     all_restypes = {}
     samplers = set([])
 
@@ -549,7 +549,7 @@ def merge_chi_samples(chi_samples):
 
 @validate_args
 def create_dof_inds_to_copy_from_orig_to_rotamers(
-    poses: Poses,
+    poses: PoseStack,
     task: PackerTask,
     samplers,  # : Tuple[ChiSampler, ...],
     rt_for_rot: Tensor[torch.int64][:],
@@ -730,7 +730,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
 
 @validate_args
 def copy_dofs_from_orig_to_rotamers(
-    poses: Poses,
+    poses: PoseStack,
     task: PackerTask,
     samplers,  # : Tuple[ChiSampler, ...],
     rt_for_rot: Tensor[torch.int64][:],
@@ -895,7 +895,7 @@ def get_rotamer_origin_data(task: PackerTask, rt_for_rot: Tensor[torch.int32][:]
     )
 
 
-def build_rotamers(poses: Poses, task: PackerTask, chem_db: ChemicalDatabase):
+def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase):
 
     poses, samplers = rebuild_poses_if_necessary(poses, task)
     pbt = poses.packed_block_types

@@ -1,5 +1,5 @@
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
-from tmol.pose.pose_stack import Poses
+from tmol.pose.pose_stack import PoseStack
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 
 
@@ -125,7 +125,7 @@ class PackerTask:
     #         for i, res in enumerate(system.residues)
     #     ]
 
-    def __init__(self, systems: Poses, palette: PackerPalette):
+    def __init__(self, systems: PoseStack, palette: PackerPalette):
         # print("task ctor")
         # print(
         #     "system sizes",

@@ -5,7 +5,7 @@ import pytest
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.pose.pose_stack import residue_types_from_residues, PackedBlockTypes
-from tmol.pose.pose_stack import Pose, Poses
+from tmol.pose.pose_stack import PoseStack
 from tmol.score.chemical_database import AtomTypeParamResolver
 
 
@@ -45,9 +45,9 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = Pose.from_residues_one_chain(ubq_res[:4], torch_device)
-    p2 = Pose.from_residues_one_chain(ubq_res[:6], torch_device)
-    poses = Poses.from_poses([p1, p2], torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
+    poses = PoseStack.from_poses([p1, p2], torch_device)
 
     # for i, rt in enumerate(poses.packed_block_types.active_block_types):
     #     for j, atom in enumerate(rt.atoms):
@@ -107,9 +107,9 @@ def test_inter_module(ubq_res, default_database, torch_device):
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = Pose.from_residues_one_chain(ubq_res[:4], torch_device)
-    p2 = Pose.from_residues_one_chain(ubq_res[:6], torch_device)
-    poses = Poses.from_poses([p1, p2], torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
+    poses = PoseStack.from_poses([p1, p2], torch_device)
 
     # nab the ca coords for these residues
     bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
@@ -215,9 +215,9 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = Pose.from_residues_one_chain(ubq_res, torch_device)
-    nres = p1.coords.shape[0]
-    poses = Poses.from_poses([p1] * n_poses, torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res, torch_device)
+    nres = p1.coords.shape[1]
+    poses = PoseStack.from_poses([p1] * n_poses, torch_device)
 
     one_bounding_sphere_set = numpy.full((1, nres, 4), numpy.nan, dtype=numpy.float32)
     for i in range(nres):

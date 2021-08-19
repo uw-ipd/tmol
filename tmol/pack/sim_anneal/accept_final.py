@@ -5,7 +5,7 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.chemical.restypes import Residue
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Pose, Poses
+from tmol.pose.pose_stack import PoseStack
 
 
 # to dump pdbs
@@ -21,12 +21,12 @@ from tmol.io.generic import to_pdb
 
 @validate_args
 def poses_from_assigned_rotamers(
-    orig_poses: Poses,
+    orig_poses: PoseStack,
     packed_block_types: PackedBlockTypes,
     pose_id_for_context: Tensor[torch.int32][:],
     context_coords: Tensor[torch.float32][:, :, :, 3],
     context_block_type: Tensor[torch.int32][:, :],
-) -> Poses:
+) -> PoseStack:
     pbt = packed_block_types
     nats = pbt.n_atoms.cpu()
     nres = torch.sum(context_block_type != -1, dim=1).cpu()
@@ -45,7 +45,7 @@ def poses_from_assigned_rotamers(
 
     pid4c_64 = pose_id_for_context.to(torch.int64)
 
-    return Poses(
+    return PoseStack(
         packed_block_types=packed_block_types,
         residues=residues,
         residue_coords=coords_numpy,
@@ -58,7 +58,7 @@ def poses_from_assigned_rotamers(
 
 
 @validate_args
-def pdb_lines_for_pose(poses: Poses, ind: int) -> str:
+def pdb_lines_for_pose(poses: PoseStack, ind: int) -> str:
     @score_graph
     class DummyIntra(IntraScore):
         @reactive_property

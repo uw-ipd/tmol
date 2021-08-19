@@ -1,6 +1,6 @@
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pack.packer_task import PackerPalette, ResidueLevelTask, PackerTask
-from tmol.pose.pose_stack import Pose, Poses
+from tmol.pose.pose_stack import PoseStack
 
 
 def test_packer_palette_smoke(default_restype_set):
@@ -23,9 +23,9 @@ def test_packer_palette_design_to_canonical_aas2(default_restype_set):
 
 
 def test_packer_task_smoke(ubq_res, default_restype_set, torch_device):
-    p1 = Pose.from_residues_one_chain(ubq_res[:5], torch_device)
-    p2 = Pose.from_residues_one_chain(ubq_res[:7], torch_device)
-    poses = Poses.from_poses([p1, p2], torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:5], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:7], torch_device)
+    poses = PoseStack.from_poses([p1, p2], torch_device)
     palette = PackerPalette(default_restype_set)
     task = PackerTask(poses, palette)
     assert task
@@ -49,9 +49,9 @@ def test_residue_level_task_his_restrict_to_repacking(ubq_res, default_restype_s
 def test_packer_task_ctor(ubq_res, default_restype_set, torch_device):
     palette = PackerPalette(default_restype_set)
 
-    p1 = Pose.from_residues_one_chain(ubq_res[:5], torch_device)
-    p2 = Pose.from_residues_one_chain(ubq_res[:7], torch_device)
-    poses = Poses.from_poses((p1, p2), torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:5], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:7], torch_device)
+    poses = PoseStack.from_poses((p1, p2), torch_device)
 
     task = PackerTask(poses, palette)
     assert len(task.rlts) == 2

@@ -8,7 +8,7 @@ import scipy.sparse.csgraph as csgraph
 from tmol.database import ParameterDatabase
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Poses
+from tmol.pose.pose_stack import PoseStack
 from tmol.score.energy_term import EnergyTerm
 from tmol.score.bonded_atom import IndexedBonds
 
@@ -93,13 +93,13 @@ class BondDependentTerm(EnergyTerm):
             packed_block_types, "atoms_for_interblock_bonds", atoms_for_interblock_bonds
         )
 
-    def setup_poses(self, systems: Poses):
-        super(BondDependentTerm, self).setup_poses(systems)
+    def setup_poses(self, pose_stack: PoseStack):
+        super(BondDependentTerm, self).setup_poses(pose_stack)
 
-        if hasattr(systems, "min_block_bondsep"):
+        if hasattr(pose_stack, "min_block_bondsep"):
             return
 
-        min_block_bondsep, _ = torch.min(systems.inter_block_bondsep, dim=4)
+        min_block_bondsep, _ = torch.min(pose_stack.inter_block_bondsep, dim=4)
         min_block_bondsep, _ = torch.min(min_block_bondsep, dim=3)
 
-        setattr(systems, "min_block_bondsep", min_block_bondsep)
+        setattr(pose_stack, "min_block_bondsep", min_block_bondsep)

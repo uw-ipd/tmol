@@ -20,7 +20,7 @@ from tmol.pack.rotamer.build_rotamers import (
 
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Pose, Poses
+from tmol.pose.pose_stack import PoseStack
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
@@ -62,11 +62,12 @@ def test_build_rotamers_smoke(
 ):
     # torch_device = torch.device("cpu")
 
-    p1 = Pose.from_residues_one_chain(rts_ubq_res[:10], torch_device)
-    p2 = Pose.from_residues_one_chain(rts_ubq_res[:9], torch_device)
-    poses = Poses.from_poses([p1, p2], torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:10], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:9], torch_device)
+    poses = PoseStack.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
+
     # leu_set = set(["LEU"])
     # for one_pose_rlts in task.rlts:
     #     for rlt in one_pose_rlts:
@@ -281,7 +282,7 @@ def test_inv_kin_rotamers(
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
-    p = Pose.from_residues_one_chain(rts_ubq_res[:3], torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:3], torch_device)
 
     fixed_sampler = FixedAAChiSampler()
     samplers = (dun_sampler, fixed_sampler)
@@ -318,7 +319,7 @@ def test_inv_kin_rotamers(
     coords = torch.cat(
         (
             torch.zeros((1, 3), dtype=torch.float32, device=torch_device),
-            p.coords[0][met_kt_id[1:].to(torch.int64)],
+            p.coords[0, 0][met_kt_id[1:].to(torch.int64)],
         )
     )
 
@@ -414,7 +415,9 @@ def test_inv_kin_rotamers(
     for at in ("N", "H", "CA", "HA", "C", "O"):
         at_met = met_rt.atom_to_idx[at]
         at_leu = leu_rt.atom_to_idx[at]
-        assert torch.norm(p.coords[0, at_met, :] - reordered_coords[at_leu, :]) < 1e-5
+        assert (
+            torch.norm(p.coords[0, 0, at_met, :] - reordered_coords[at_leu, :]) < 1e-5
+        )
 
 
 def test_construct_kintree_for_rotamers(
@@ -613,8 +616,9 @@ def test_measure_original_dofs(
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
-    p1 = Pose.from_residues_one_chain(rts_ubq_res[:2], torch_device)
-    poses = Poses.from_poses([p1], torch_device)
+    poses = PoseStack.one_structure_from_polymeric_residues(
+        rts_ubq_res[:2], torch_device
+    )
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -705,9 +709,11 @@ def test_measure_original_dofs2(
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
-    p1 = Pose.from_residues_one_chain(rts_ubq_res[5:11], torch_device)
-    p2 = Pose.from_residues_one_chain(rts_ubq_res[:7], torch_device)
-    poses = Poses.from_poses([p1, p2], torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(
+        rts_ubq_res[5:11], torch_device
+    )
+    p2 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:7], torch_device)
+    poses = PoseStack.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -811,9 +817,9 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 ):
     # torch_device = torch.device("cpu")
 
-    p1 = Pose.from_residues_one_chain(rts_ubq_res[:2], torch_device)
-    p2 = Pose.from_residues_one_chain(rts_ubq_res[:3], torch_device)
-    poses = Poses.from_poses([p1, p2], torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:2], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:3], torch_device)
+    poses = PoseStack.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     leu_set = set(["LEU"])
@@ -899,8 +905,8 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 ):
     # torch_device = torch.device("cpu")
 
-    p = Pose.from_residues_one_chain(rts_ubq_res[:5], torch_device)
-    poses = Poses.from_poses([p] * 3, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:5], torch_device)
+    poses = PoseStack.from_poses([p] * 3, torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -971,8 +977,8 @@ def test_build_lots_of_rotamers(
 ):
 
     n_poses = 6
-    p = Pose.from_residues_one_chain(rts_ubq_res, torch_device)
-    poses = Poses.from_poses([p] * n_poses, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
+    poses = PoseStack.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -1009,8 +1015,8 @@ def test_create_dofs_for_many_rotamers(
 ):
 
     n_poses = 6
-    p = Pose.from_residues_one_chain(rts_ubq_res, torch_device)
-    poses = Poses.from_poses([p] * n_poses, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
+    poses = PoseStack.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()

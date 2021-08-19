@@ -8,7 +8,7 @@ from tmol.score.common.stack_condense import tile_subset_indices
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Poses
+from tmol.pose.pose_stack import PoseStack
 from tmol.types.torch import Tensor
 
 from tmol.score.ljlk.potentials.compiled import (
@@ -74,13 +74,13 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         setattr(packed_block_types, "ljlk_heavy_atoms_in_tile", heavy_atoms_in_tile)
         setattr(packed_block_types, "ljlk_n_heavy_atoms_in_tile", n_heavy_ats_in_tile)
 
-    def setup_poses(self, poses: Poses):
+    def setup_poses(self, poses: PoseStack):
         super(LJLKEnergy, self).setup_poses(poses)
 
     def inter_module(
         self,
         packed_block_types: PackedBlockTypes,
-        systems: Poses,
+        systems: PoseStack,
         context_system_ids: Tensor[int][:, :],
         system_bounding_spheres: Tensor[float][:, :, 4],
         weights,  # map string->Real
@@ -113,7 +113,7 @@ class LJLKEnergy(AtomTypeDependentTerm, BondDependentTerm):
         )
 
     def create_block_neighbor_lists(
-        self, systems: Poses, system_bounding_spheres: Tensor[float][:, :, 4]
+        self, systems: PoseStack, system_bounding_spheres: Tensor[float][:, :, 4]
     ):
         # we need to make lists of all block pairs within
         # striking distances of each other that we will use to

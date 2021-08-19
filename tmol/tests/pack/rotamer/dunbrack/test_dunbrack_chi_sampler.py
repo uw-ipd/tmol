@@ -9,7 +9,7 @@ from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Pose, Poses
+from tmol.pose.pose_stack import PoseStack
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
@@ -808,9 +808,9 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
         for res in ubq_res
     ]
 
-    p1 = Pose.from_residues_one_chain(ubq_res[5:11], torch_device)
-    p2 = Pose.from_residues_one_chain(ubq_res[:7], torch_device)
-    poses = Poses.from_poses([p1, p2], torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[5:11], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:7], torch_device)
+    poses = PoseStack.from_poses([p1, p2], torch_device)
     pbt = poses.packed_block_types
 
     palette = PackerPalette(rts)
@@ -894,9 +894,9 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
 
 def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
     torch_device = torch.device("cpu")
-    p1 = Pose.from_residues_one_chain(ubq_res[:5], torch_device)
-    p2 = Pose.from_residues_one_chain(ubq_res[:7], torch_device)
-    poses = Poses.from_poses([p1, p2], torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:5], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:7], torch_device)
+    poses = PoseStack.from_poses([p1, p2], torch_device)
     palette = PackerPalette(default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -919,8 +919,8 @@ def test_chi_sampler_build_lots_of_rotamers(
     # torch_device = torch.device("cpu")
     n_poses = 10
     # print([res.residue_type.name for res in ubq_res[:10]])
-    p = Pose.from_residues_one_chain(ubq_res[:10], torch_device)
-    poses = Poses.from_poses([p] * n_poses, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:10], torch_device)
+    poses = PoseStack.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()

@@ -8,7 +8,7 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
 from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.pose_stack import Poses
+from tmol.pose.pose_stack import PoseStack
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 
@@ -43,7 +43,7 @@ class FixedAAChiSampler(ChiSampler):
 
     @validate_args
     def sample_chi_for_poses(
-        self, poses: Poses, task: "PackerTask"
+        self, poses: PoseStack, task: "PackerTask"
     ) -> Tuple[
         Tensor[torch.int32][:],  # n_rots_for_rt
         Tensor[torch.int32][:],  # rt_for_rotamer

@@ -9,7 +9,7 @@ from tmol.score.chemical_database import AtomTypeParamResolver
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Poses
+from tmol.pose.pose_stack import PoseStack
 from tmol.types.torch import Tensor
 
 
@@ -26,28 +26,26 @@ class LKBallEnergy(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm)
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(LKBallEnergy, self).setup_packed_block_types(packed_block_types)
 
-    def setup_poses(self, poses: Poses):
-        super(LKBallEnergy, self).setup_poses(poses)
+    def setup_poses(self, pose_stack: PoseStack):
+        super(LKBallEnergy, self).setup_poses(pose_stack)
 
     def inter_module(
         self,
         packed_block_types: PackedBlockTypes,
-        systems: Poses,
+        pose_stack: PoseStack,
         context_system_ids: Tensor[int][:, :],
         system_bounding_spheres: Tensor[float][:, :, 4],
         weights,  # map string->Real
     ):
-        system_neighbor_list = self.create_block_neighbor_lists(
-            systems, system_bounding_spheres
-        )
+        system_neighbor_list = self.create_block_neighbor_lists(system_bounding_spheres)
         lkb_weight = torch.zeros((1,), dtype=torch.float32, device=self.device)
         lkb_weight[0] = weights["lk_ball"] if "lk_ball" in weights else 0
 
         pbt = packed_block_types
         return LKBallInterSystemModule(
             context_system_ids=context_system_ids,
-            system_min_block_bondsep=systems.min_block_bondsep,
-            system_inter_block_bondsep=systems.inter_block_bondsep,
+            system_min_block_bondsep=pose_stack.min_block_bondsep,
+            system_inter_block_bondsep=pose_stack.inter_block_bondsep,
             system_neighbor_list=system_neighbor_list,
             bt_n_heavy_atoms=pbt.n_heavy_atoms,
             bt_atom_types=pbt.atom_types,
@@ -67,7 +65,7 @@ class LKBallEnergy(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm)
         )
 
     def create_block_neighbor_lists(
-        self, systems: Poses, system_bounding_spheres: Tensor[float][:, :, 4]
+        self, system_bounding_spheres: Tensor[float][:, :, 4]
     ):
         # we need to make lists of all block pairs within
         # striking distances of each other that we will use to

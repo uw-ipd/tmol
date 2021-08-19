@@ -24,7 +24,7 @@ def annotate_bt_w_intrares_indexed_bonds(bt):
 def test_create_intrares_indexed_bonds(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device
 ):
-    p = Pose.from_residues_one_chain(rts_ubq_res, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
     pbt = p.packed_block_types
 
     for bt in pbt.active_block_types:
@@ -46,7 +46,7 @@ def test_annotate_block_type_hbond_params(
     atom_resolver = AtomTypeParamResolver.from_database(
         default_database.chemical, torch.device("cpu")
     )
-    p = Pose.from_residues_one_chain(rts_ubq_res, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
     packed_block_types = p.packed_block_types
 
     is_acceptor = numpy.full(

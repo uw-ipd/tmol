@@ -1,6 +1,6 @@
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.score.bond_dependent_term import BondDependentTerm
-from tmol.tests.pose.test_pose import two_ubq_poses
+from tmol.tests.pose.test_pose_stack import two_ubq_poses
 
 
 def test_create_bond_separation(ubq_res, default_database, torch_device):
@@ -34,7 +34,7 @@ def test_create_pose_bond_separation_two_ubq(ubq_res, default_database, torch_de
     bdt = BondDependentTerm(param_db=default_database, device=torch_device)
     bdt.setup_poses(two_ubq)
 
-    # Poses should already have this data
+    # PoseStack should already have this data
     assert hasattr(two_ubq, "inter_block_bondsep")
     assert two_ubq.inter_block_bondsep.shape == (2, 60, 60, 2, 2)
     assert two_ubq.inter_block_bondsep.device == torch_device

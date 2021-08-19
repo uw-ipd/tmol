@@ -6,7 +6,7 @@ import pytest
 from tmol.utility.tensor.common_operations import stretch
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Pose, Poses
+from tmol.pose.pose_stack import PoseStack
 
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
@@ -109,8 +109,8 @@ def test_run_simA_benchmark(
 
     max_n_blocks = len(rts_ubq_res)
 
-    p = Pose.from_residues_one_chain(rts_ubq_res, torch_device)
-    poses = Poses.from_poses([p] * n_poses, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
+    poses = PoseStack.from_poses([p] * n_poses, torch_device)
     # print("poses device", poses.device, poses.coords.device)
 
     palette = PackerPalette(fresh_default_restype_set)

@@ -5,7 +5,7 @@ import numpy
 from tmol.utility.tensor.common_operations import stretch
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Pose, Poses
+from tmol.pose.pose_stack import PoseStack
 
 # to dump pdbs
 from tmol.system.packed import PackedResidueSystem
@@ -45,8 +45,8 @@ def test_random_rotamer_module(ubq_res, default_database, torch_device):
         for res in ubq_res
     ]
 
-    p = Pose.from_residues_one_chain(ubq_res[:3], torch_device)
-    poses = Poses.from_poses([p] * 5, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:3], torch_device)
+    poses = PoseStack.from_poses([p] * 5, torch_device)
 
     contexts = poses.coords.clone()
 
@@ -114,8 +114,8 @@ def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
         for res in ubq_res
     ]
 
-    p = Pose.from_residues_one_chain(ubq_res[:3], torch_device)
-    poses = Poses.from_poses([p] * 5, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:3], torch_device)
+    poses = PoseStack.from_poses([p] * 5, torch_device)
 
     contexts = poses.coords.clone()
 
@@ -183,8 +183,10 @@ def test_accept_final(
 
     max_n_blocks = 10
     n_poses = 3
-    p = Pose.from_residues_one_chain(rts_ubq_res[:max_n_blocks], torch_device)
-    poses = Poses.from_poses([p] * n_poses, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(
+        rts_ubq_res[:max_n_blocks], torch_device
+    )
+    poses = PoseStack.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)

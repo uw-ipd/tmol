@@ -16,7 +16,7 @@ from tmol.pack.rotamer.chi_sampler import ChiSampler  # noqa F401
 from tmol.pack.packer_task import PackerTask, ResidueLevelTask
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import Poses
+from tmol.pose.pose_stack import PoseStack
 
 # from tmol.system.packed import PackedResidueSystem
 # from tmol.system.score_support import indexed_atoms_for_dihedral
@@ -302,7 +302,7 @@ class DunbrackChiSampler:
 
     @validate_args
     def sample_chi_for_poses(
-        self, systems: Poses, task: PackerTask
+        self, systems: PoseStack, task: PackerTask
     ) -> Tuple[
         Tensor[torch.int32][:],  # n_rots_for_rt
         Tensor[torch.int32][:],  # rt_for_rotamer
@@ -483,7 +483,9 @@ class DunbrackChiSampler:
         )
 
     @validate_args
-    def atom_indices_for_backbone_dihedral(self, systems: Poses, bb_dihedral_ind: int):
+    def atom_indices_for_backbone_dihedral(
+        self, systems: PoseStack, bb_dihedral_ind: int
+    ):
         assert hasattr(systems.packed_block_types, "dun_sampler_cache")
         n_systems = systems.block_type_ind.shape[0]
         max_n_blocks = systems.block_type_ind.shape[1]
