@@ -9,6 +9,7 @@
 
 #include "lj.dispatch.hh"
 #include "lk_isotropic.dispatch.hh"
+#include "ljlk_pose_score.hh"
 #include "rotamer_pair_energy_lj.hh"
 #include "rotamer_pair_energy_lk.hh"
 
@@ -193,7 +194,7 @@ class LKScoreOp
 
 template <
   template <tmol::Device>
-  class DispatchMethod>>
+  class DispatchMethod>
 class LJLKPoseScoreOp
   : public torch::autograd::Function<LJLKPoseScoreOp<DispatchMethod>> {
 public:
@@ -221,7 +222,7 @@ public:
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        I.type(), "pose_score_op", ([&] {
+        coords.type(), "pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -639,11 +640,11 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
       &lk_score_op<LKIsotropicDispatch, AABBTriuDispatch>);
   m.def(
       "ljlk_pose_score",
-      &ljlk_pose_score_op<ForeachDispatch>);
+      &ljlk_pose_score_op<ForallDispatch>);
   m.def("score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
   m.def("register_lj_lk_rotamer_pair_energy_eval",
       &register_lj_lk_rotamer_pair_energy_eval);
-  m.def("ljlk_pose_scores", &ljlk_pose_scores);
+  //m.def("ljlk_pose_scores", &ljlk_pose_scores);
 }
 
 

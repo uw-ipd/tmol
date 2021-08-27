@@ -31,8 +31,6 @@
 #define MAX_N_CONN 4
 #define TILE_SIZE 32
 
-int count_scoring_passes = 0;
-
 namespace tmol {
 namespace score {
 namespace ljlk {
