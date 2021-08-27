@@ -7,6 +7,13 @@ from tmol.score.score_types import ScoreType
 
 
 class ScoreTermFactory:
+    """Factory for the creation of EnergyTerms
+
+    This class uses import-time factory registration to discover the set
+    of TermCreators that live in the same directory as it. To register
+    a new TermCreator, simply put the term creator in this directory.
+    """
+
     creator_map: Dict = {}
 
     @classmethod

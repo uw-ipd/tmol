@@ -67,6 +67,14 @@ struct accumulate<
   static def add_one_dst(A& target, int ind, const T& val)->void {
     target[ind] += val;
   }
+
+  // All threads must write to the same ind1; threads may write to different
+  // ind0s. The CPU version is safe as long as there's only one thread.
+  template <class A>
+  static def add_two_dim_one_dst(A& target, int ind0, int ind1, const T& val)
+      ->void {
+    target[ind0][ind1] += val;
+  }
 };
 
 template <tmol::Device D, int N, typename T>
@@ -83,11 +91,18 @@ struct accumulate<
     }
   }
 
-  static def add_one_dst(V& target, const V& val)->void {
+  template <class A>
+  static def add_one_dst(A& target, int ind, const V& val)->void {
 #pragma unroll
     for (int i = 0; i < N; i++) {
-      accumulate<D, T>::add_one_dst(target[i], val[i]);
+      accumulate<D, T>::add_two_dim_one_dst(target, ind, i, val[i]);
     }
+  }
+
+  template <class A>
+  static def add_two_dim_one_dst(A& target, int ind0, int ind1, const V& val)
+      ->void {
+    // ???
   }
 
 };  // namespace potentials
@@ -132,6 +147,36 @@ struct accumulate<
         T warp_sum = reduce_tile_shfl(g2, val, mgpu::plus_t<T>());
         if (g2.thread_rank() == 0 && warp_sum != 0) {
           atomicAdd(&target[ind], warp_sum);
+        }
+      }
+      g.sync();
+    }
+#endif
+  }
+
+  // All threads must write to the same ind1; threads may write to different
+  // ind0s. The CPU version is safe as long as there's only one thread.
+  template <class A>
+  static def add_two_dim_one_dst(A& target, int ind0, int ind1, const T& val)
+      ->void {
+    // basically
+    // target[ind0][ind1] += val;
+    // where all threads have the same ind1 and may have different ind0s
+#ifdef __CUDA_ARCH__
+
+    auto g = cooperative_groups::coalesced_threads();
+
+    int min_ind0 = reduce_tile_shfl(g, ind0, mgpu::minimum_t<int>());
+    min_ind0 = g.shfl(min_ind0, 0);
+    int max_ind0 = reduce_tile_shfl(g, ind0, mgpu::maximum_t<int>());
+    max_ind0 = g.shfl(max_ind0, 0);
+
+    for (int iter_ind = min_ind0; iter_ind <= max_ind0; ++iter_ind) {
+      if (iter_ind == ind0) {
+        auto g2 = cooperative_groups::coalesced_threads();
+        T warp_sum = reduce_tile_shfl(g2, val, mgpu::plus_t<T>());
+        if (g2.thread_rank() == 0 && warp_sum != 0) {
+          atomicAdd(&target[ind0][ind1], warp_sum);
         }
       }
       g.sync();

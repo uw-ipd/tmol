@@ -7,6 +7,21 @@ class EnergyTerm:
     def __init__(self, **kwargs):
         pass
 
+    def score_types(self):
+        """Return the list of score types that this EnergyTerm computes
+
+        The order that the term reports score types in this function should be
+        the same order that it reports the scores themselves in the output
+        tensor"""
+        raise NotImplementedError()
+
+    def n_bodies(self):
+        """Return the number of residues that this term operates on
+
+        1, 2, or -1 to represent the whole structure
+        """
+        raise NotImplementedError()
+
     def setup_block_type(self, block_type: RefinedResidueType):
         """
         Make a one-time annotation on the block type. These annotations will
@@ -30,7 +45,6 @@ class EnergyTerm:
         instance; if new values for that data are needed a separate
         instance should be created.)
         """
-
         pass
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
@@ -55,8 +69,8 @@ class EnergyTerm:
         
         The EnergyMethod should begin by checking that it has not already made
         this annotation. Any array data in the annotation should be torch
-        tensors and should live on the PackedBlockTypes' device."""
-
+        tensors and should live on the PackedBlockTypes' device.
+        """
         pass
 
     def setup_poses(self, pose_stack: PoseStack):
@@ -68,4 +82,7 @@ class EnergyTerm:
         Any array data should be stored in torch tensors and live on the
         pose_stack's device.
         """
+        pass
+
+    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
         pass

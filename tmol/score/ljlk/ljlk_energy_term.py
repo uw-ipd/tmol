@@ -25,9 +25,6 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     global_params: LJLKGlobalParams
     tile_size: int = 32
 
-    def n_bodies(self):
-        return 2
-
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         ljlk_param_resolver = LJLKParamResolver.from_database(
             param_db.chemical, param_db.scoring.ljlk, device=device
@@ -36,6 +33,14 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         self.type_params = ljlk_param_resolver.type_params
         self.global_params = ljlk_param_resolver.global_params
         self.tile_size = LJLKEnergyTerm.tile_size
+
+    def score_types(self):
+        from ..terms.ljlk_creator import LJLKTermCreator
+
+        return LJLKTermCreator.score_types()
+
+    def n_bodies(self):
+        return 2
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(LJLKEnergyTerm, self).setup_block_type(block_type)
@@ -81,6 +86,25 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
     def setup_poses(self, poses: PoseStack):
         super(LJLKEnergyTerm, self).setup_poses(poses)
+
+    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+        pbt = pose_stack.packed_block_types
+        return LJLKInterSystemModule(
+            pose_stack_block_types=pose_stack.block_type_ind,
+            pose_stack_min_block_bondsep=pose_stack.min_block_bondsep,
+            pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
+            bt_n_atoms=pbt.n_atoms,
+            bt_n_heavy_atoms=pbt.n_heavy_atoms,
+            bt_n_heavy_atoms_in_tile=pbt.ljlk_n_heavy_atoms_in_tile,
+            bt_heavy_atoms_in_tile=pbt.ljlk_heavy_atoms_in_tile,
+            bt_atom_types=pbt.atom_types,
+            bt_heavy_atom_inds=pbt.heavy_atom_inds,
+            bt_n_interblock_bonds=pbt.n_interblock_bonds,
+            bt_atoms_forming_chemical_bonds=pbt.atoms_for_interblock_bonds,
+            bt_path_distance=pbt.bond_separation,
+            ljlk_type_params=self.type_params,
+            global_params=self.global_params,
+        )
 
     def inter_module(
         self,
