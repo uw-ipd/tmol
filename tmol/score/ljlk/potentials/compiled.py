@@ -31,5 +31,6 @@ score_ljlk_lj = _ops.score_ljlk_lj
 score_ljlk_lj_triu = _ops.score_ljlk_lj_triu
 score_ljlk_lk_isotropic = _ops.score_ljlk_lk_isotropic
 score_ljlk_lk_isotropic_triu = _ops.score_ljlk_lk_isotropic_triu
+ljlk_pose_scores = _ops.ljlk_pose_scores
 score_ljlk_inter_system_scores = _ops.score_ljlk_inter_system_scores
 register_lj_lk_rotamer_pair_energy_eval = _ops.register_lj_lk_rotamer_pair_energy_eval

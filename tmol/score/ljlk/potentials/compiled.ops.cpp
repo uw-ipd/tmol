@@ -354,7 +354,7 @@ Tensor lk_score_op(
 template <
   template<tmol::Device>
   class DispatchMethod>
-Tensor ljlk_pose_score_op(
+Tensor ljlk_pose_scores_op(
   Tensor coords,
 
   Tensor pose_stack_block_type,
@@ -639,8 +639,8 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
       "score_ljlk_lk_isotropic_triu",
       &lk_score_op<LKIsotropicDispatch, AABBTriuDispatch>);
   m.def(
-      "ljlk_pose_score",
-      &ljlk_pose_score_op<ForallDispatch>);
+      "ljlk_pose_scores",
+      &ljlk_pose_scores_op<ForallDispatch>);
   m.def("score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
   m.def("register_lj_lk_rotamer_pair_energy_eval",
       &register_lj_lk_rotamer_pair_energy_eval);

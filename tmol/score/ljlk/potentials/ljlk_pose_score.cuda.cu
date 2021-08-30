@@ -981,6 +981,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
   mgpu::standard_context_t context(wrapped_stream.stream());
   int const n_ctas = n_poses * max_n_blocks * max_n_blocks;
+
   mgpu::cta_launch<launch_t>(eval_energies, n_ctas, context);
 
   return {output_t, dV_dcoords_t};

@@ -3,10 +3,8 @@ import torch
 import pytest
 
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
-from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.pose.pose_stack import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.score.chemical_database import AtomTypeParamResolver
 
 
 def test_smoke(default_database, torch_device):
@@ -36,13 +34,6 @@ def test_annotate_heavy_ats_in_tile(ubq_res, default_database, torch_device):
 def test_create_neighbor_list(ubq_res, default_database, torch_device):
     #
     # torch_device = torch.device("cpu")
-    resolver = AtomTypeParamResolver.from_database(
-        default_database.chemical, torch_device
-    )
-    ljlk_params = LJLKParamResolver.from_database(
-        default_database.chemical, default_database.scoring.ljlk, device=torch_device
-    )
-
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
@@ -98,12 +89,6 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
 def test_inter_module(ubq_res, default_database, torch_device):
     #
     # torch_device = torch.device("cpu")
-    resolver = AtomTypeParamResolver.from_database(
-        default_database.chemical, torch_device
-    )
-    ljlk_params = LJLKParamResolver.from_database(
-        default_database.chemical, default_database.scoring.ljlk, device=torch_device
-    )
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
@@ -206,12 +191,6 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
 
     #
     torch_device = torch.device("cuda")
-    resolver = AtomTypeParamResolver.from_database(
-        default_database.chemical, torch_device
-    )
-    ljlk_params = LJLKParamResolver.from_database(
-        default_database.chemical, default_database.scoring.ljlk, device=torch_device
-    )
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
@@ -315,3 +294,24 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
 
     vals = run
     assert vals is not None
+
+
+def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
+    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(
+        res=rts_ubq_res[1:4], device=torch_device
+    )
+    for bt in p1.packed_block_types.active_block_types:
+        ljlk_energy.setup_block_type(bt)
+    ljlk_energy.setup_packed_block_types(p1.packed_block_types)
+    ljlk_energy.setup_poses(p1)
+
+    ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
+    for ch in ljlk_pose_scorer.children():
+        print("child")
+        print(ch)
+
+    coords = torch.nn.Parameter(p1.coords.clone())
+    scores = ljlk_pose_scorer(coords)
+
+    print(scores)

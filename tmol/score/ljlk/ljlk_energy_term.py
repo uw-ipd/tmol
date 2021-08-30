@@ -8,6 +8,7 @@ from .params import LJLKTypeParams, LJLKGlobalParams
 from tmol.database import ParameterDatabase
 from tmol.score.common.stack_condense import tile_subset_indices
 from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.score.ljlk.ljlk_whole_pose_module import LJLKWholePoseScoringModule
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -89,7 +90,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
-        return LJLKInterSystemModule(
+        return LJLKWholePoseScoringModule(
             pose_stack_block_types=pose_stack.block_type_ind,
             pose_stack_min_block_bondsep=pose_stack.min_block_bondsep,
             pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
