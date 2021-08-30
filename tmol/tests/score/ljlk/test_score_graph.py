@@ -2,9 +2,13 @@ import copy
 
 import pytest
 import torch
+import numpy
+
+from typing import Sequence
 
 from tmol.database import ParameterDatabase
 
+from tmol.chemical.restypes import Residue
 from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
@@ -102,3 +106,27 @@ def test_lj_for_stacked_system(ubq_system: PackedResidueSystem):
 
     sumtot = torch.sum(tot)
     sumtot.backward()
+
+
+def test_lj_smoke(ubq_res: Sequence[Residue]):
+    ubq4res = PackedResidueSystemStack(
+        (PackedResidueSystem.from_residues(ubq_res[:4]),)
+    )
+    lj_graph = LJGraph.build_for(ubq4res)
+    intra = lj_graph.intra_score()
+    tot = intra.total_lj.cpu().detach().numpy()
+
+    # numpy.set_printoptions(precision=15)
+    # print(tot)
+
+
+def test_lk_smoke(ubq_res: Sequence[Residue]):
+    ubq4res = PackedResidueSystemStack(
+        (PackedResidueSystem.from_residues(ubq_res[:4]),)
+    )
+    lk_graph = LKGraph.build_for(ubq4res)
+    intra = lk_graph.intra_score()
+    tot = intra.total_lk.cpu().detach().numpy()
+
+    # numpy.set_printoptions(precision=15)
+    # print(tot)
