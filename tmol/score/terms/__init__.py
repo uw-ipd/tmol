@@ -1,6 +1,7 @@
 from os.path import dirname, basename, isfile, join
 import glob
 
+
 modules = glob.glob(join(dirname(__file__), "*.py"))
 exclude = [join(dirname(__file__), f) for f in ["score_type_factory.py", "__init__.py"]]
 

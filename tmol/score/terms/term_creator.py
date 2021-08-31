@@ -31,3 +31,4 @@ class TermCreator:
 
 def score_term_creator(cls):
     ScoreTermFactory.factory_register(cls)
+    return cls

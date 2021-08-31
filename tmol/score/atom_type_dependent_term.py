@@ -6,9 +6,11 @@ import pandas
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import ChemicalDatabase
 from .chemical_database import AtomTypeParamResolver
-from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.score.energy_term import EnergyTerm
+
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import PoseStack
 
 from tmol.types.array import NDArray
 
@@ -94,3 +96,6 @@ class AtomTypeDependentTerm(EnergyTerm):
         setattr(packed_block_types, "atom_types", atom_types)
         setattr(packed_block_types, "n_heavy_atoms", n_heavy_atoms)
         setattr(packed_block_types, "heavy_atom_inds", heavy_atom_inds_t)
+
+    def setup_poses(self, pose_stack: PoseStack):
+        super(AtomTypeDependentTerm, self).setup_poses(pose_stack)

@@ -10,9 +10,9 @@ class LJLKTermCreator(TermCreator):
 
     @classmethod
     def create_term(cls, param_db: ParameterDatabase, device: torch.device):
-        from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
+        import tmol.score.ljlk.ljlk_energy_term
 
-        return LJLKEnergyTerm(param_db, device)
+        return tmol.score.ljlk.ljlk_energy_term.LJLKEnergyTerm(param_db, device)
 
     @classmethod
     def score_types(cls):

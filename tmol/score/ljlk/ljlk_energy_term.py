@@ -36,9 +36,9 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         self.tile_size = LJLKEnergyTerm.tile_size
 
     def score_types(self):
-        from ..terms.ljlk_creator import LJLKTermCreator
+        import tmol.score.terms.ljlk_creator
 
-        return LJLKTermCreator.score_types()
+        return tmol.score.terms.ljlk_creator.LJLKTermCreator.score_types()
 
     def n_bodies(self):
         return 2
