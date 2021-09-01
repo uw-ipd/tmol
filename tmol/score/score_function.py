@@ -184,4 +184,4 @@ class WholePoseScoringModule(torch.nn.Module):
 
     def forward(self, coords):
         all_scores = torch.cat([term(coords) for term in self.term_modules])
-        return self.weights * all_scores
+        return torch.sum(self.weights * all_scores, dim=0)
