@@ -38,7 +38,7 @@ class BondDependentTerm(EnergyTerm):
             assert hasattr(packed_block_types, "max_n_interblock_bonds")
             assert hasattr(packed_block_types, "n_interblock_bonds")
             assert hasattr(packed_block_types, "atoms_for_interblock_bonds")
-            assert hasattr(packed_block_types, "intrares_indexed_bonds")
+            # assert hasattr(packed_block_types, "intrares_indexed_bonds")
             return
         MAX_SEPARATION = 6
         bond_separation = numpy.full(

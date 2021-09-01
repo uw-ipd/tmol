@@ -73,6 +73,12 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
             )
         )
 
+        # n_poses = pose_stack_block_types.shape[0]
+        # max_n_blocks = pose_stack_block_types.shape[1]
+        # device = pose_stack_block_types.device
+        # self.scratch_block_spheres = _p(torch.zeros((n_poses, max_n_blocks, 4), dtype=torch.float32, device=device));
+        # self.scratch_blocks_are_neighbors = _p(torch.zeros(n_poses, max_n_blocks, max_n_blocks), dtype=torch.int32, device=device)
+
         # self.ljlk_type_params = ljlk_type_params
         # self.global_params = global_params
 
