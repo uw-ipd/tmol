@@ -264,9 +264,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   // between one alternate rotamer and its neighbors in the surrounding context
   auto score_inter_pairs_lj = ([=] MGPU_DEVICE(
-                                   int pose_ind,
-                                   int block_ind1,
-                                   int block_ind2,
                                    int tid,
                                    int start_atom1,
                                    int start_atom2,
@@ -283,9 +280,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                    int const n_conn2,
                                    unsigned char const *path_dist1,  // shared
                                    unsigned char const *path_dist2,  // shared
-                                   unsigned char const *conn_seps,
+                                   unsigned char const *conn_seps/*,
                                    Real3 *dlj_dcoords1,
-                                   Real3 *dlj_dcoords2) {  // shared
+                                   Real3 *dlj_dcoords2*/) {  // shared
     Real score_total = 0;
     Real3 coord1;
     Real3 coord2;
@@ -367,11 +364,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       // perform a single (atomic) add if the reduction was
       // non-zero per atom index.
       // This feels expensive!
-      accumulate<D, Vec<Real, 3>>::add_one_dst(
-          dlj_dcoords1, atom_tile_ind1, lj.dV_ddist * ddist_dat1);
-
-      accumulate<D, Vec<Real, 3>>::add_one_dst(
-          dlj_dcoords2, atom_tile_ind2, lj.dV_ddist * ddist_dat2);
+      // accumulate<D, Vec<Real, 3>>::add_one_dst(
+      //     dlj_dcoords1, atom_tile_ind1, lj.dV_ddist * ddist_dat1);
+      // 
+      // accumulate<D, Vec<Real, 3>>::add_one_dst(
+      //     dlj_dcoords2, atom_tile_ind2, lj.dV_ddist * ddist_dat2);
     }
     return score_total;
   });
@@ -394,9 +391,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                    int const n_conn2,
                                    unsigned char const *path_dist1,  // shared
                                    unsigned char const *path_dist2,  // shared
-                                   unsigned char const *conn_seps,
+                                   unsigned char const *conn_seps/*,
                                    Real3 *dlk_dcoords1,
-                                   Real3 *dlk_dcoords2) {
+                                   Real3 *dlk_dcoords2*/) {
     Real score_total = 0;
 
     Real3 coord1;
@@ -467,11 +464,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       // perform a single (atomic) add if the reduction was
       // non-zero per atom index.
       // This feels expensive!
-      accumulate<D, Vec<Real, 3>>::add_one_dst(
-          dlk_dcoords1, atom_tile_ind1, lk.dV_ddist * ddist_dat1);
-
-      accumulate<D, Vec<Real, 3>>::add_one_dst(
-          dlk_dcoords2, atom_tile_ind2, lk.dV_ddist * ddist_dat2);
+      // accumulate<D, Vec<Real, 3>>::add_one_dst(
+      //     dlk_dcoords1, atom_tile_ind1, lk.dV_ddist * ddist_dat1);
+      // 
+      // accumulate<D, Vec<Real, 3>>::add_one_dst(
+      //     dlk_dcoords2, atom_tile_ind2, lk.dV_ddist * ddist_dat2);
     }
     return score_total;
   });
@@ -487,9 +484,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                    LJLKTypeParams<Real> *params2,
                                    int const max_important_bond_separation,
                                    int const block_type,
-                                   int const n_atoms,
+                                   int const n_atoms/*,
                                    Real3 *dlj_dcoords1,
-                                   Real3 *dlj_dcoords2) {
+                                   Real3 *dlj_dcoords2*/) {
     Real score_total = 0;
     Real3 coord1;
     Real3 coord2;
@@ -538,11 +535,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       // perform a single (atomic) add if the reduction was
       // non-zero per atom index.
       // This feels expensive!
-      accumulate<D, Vec<Real, 3>>::add_one_dst(
-          dlj_dcoords1, atom_tile_ind1, lj.dV_ddist * ddist_dat1);
-
-      accumulate<D, Vec<Real, 3>>::add_one_dst(
-          dlj_dcoords2, atom_tile_ind2, lj.dV_ddist * ddist_dat2);
+      // accumulate<D, Vec<Real, 3>>::add_one_dst(
+      //     dlj_dcoords1, atom_tile_ind1, lj.dV_ddist * ddist_dat1);
+      // 
+      // accumulate<D, Vec<Real, 3>>::add_one_dst(
+      //     dlj_dcoords2, atom_tile_ind2, lj.dV_ddist * ddist_dat2);
     }
     return score_total;
   });
@@ -562,9 +559,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                    unsigned char const *heavy_inds2,
                                    int const max_important_bond_separation,
                                    int const block_type,
-                                   int const n_atoms,
+                                   int const n_atoms/*,
                                    Real3 *dlk_dcoords1,
-                                   Real3 *dlk_dcoords2) {
+                                   Real3 *dlk_dcoords2*/) {
     Real score_total = 0;
 
     Real3 coord1;
@@ -619,11 +616,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       // perform a single (atomic) add if the reduction was
       // non-zero per atom index.
       // This feels expensive!
-      accumulate<D, Vec<Real, 3>>::add_one_dst(
-          dlk_dcoords1, atom_tile_ind1, lk.dV_ddist * ddist_dat1);
-
-      accumulate<D, Vec<Real, 3>>::add_one_dst(
-          dlk_dcoords2, atom_tile_ind2, lk.dV_ddist * ddist_dat2);
+      // accumulate<D, Vec<Real, 3>>::add_one_dst(
+      //     dlk_dcoords1, atom_tile_ind1, lk.dV_ddist * ddist_dat1);
+      // 
+      // accumulate<D, Vec<Real, 3>>::add_one_dst(
+      //     dlk_dcoords2, atom_tile_ind2, lk.dV_ddist * ddist_dat2);
     }
     return score_total;
   });
@@ -723,10 +720,10 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
 
         // temporary location for accumulating atom derivatives
-        Real3 dlj_dcoords1[TILE_SIZE];
-        Real3 dlj_dcoords2[TILE_SIZE];
-        Real3 dlk_dcoords1[TILE_SIZE];
-        Real3 dlk_dcoords2[TILE_SIZE];
+        // Real3 dlj_dcoords1[TILE_SIZE];
+        // Real3 dlj_dcoords2[TILE_SIZE];
+        // Real3 dlk_dcoords1[TILE_SIZE];
+        // Real3 dlk_dcoords2[TILE_SIZE];
 
       } m;
 
@@ -858,14 +855,14 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               shared.m.path_dist2);
 
           // zero the derivative arrays we will be summing into
-          if (tid < TILE_SIZE) {
-            for (int ii = 0; ii < 3; ++ii) {
-              shared.m.dlj_dcoords1[tid][ii] = 0;
-              shared.m.dlj_dcoords2[tid][ii] = 0;
-              shared.m.dlk_dcoords1[tid][ii] = 0;
-              shared.m.dlk_dcoords2[tid][ii] = 0;
-            }
-          }
+          // if (tid < TILE_SIZE) {
+          //   for (int ii = 0; ii < 3; ++ii) {
+          //     shared.m.dlj_dcoords1[tid][ii] = 0;
+          //     shared.m.dlj_dcoords2[tid][ii] = 0;
+          //     shared.m.dlk_dcoords1[tid][ii] = 0;
+          //     shared.m.dlk_dcoords2[tid][ii] = 0;
+          //   }
+          // }
 
           // make sure all shared memory writes have completed before we read
           // from it when calculating atom-pair energies.
@@ -874,9 +871,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           int n_heavy2 = shared.m.n_heavy2;
 
           total_lj += score_inter_pairs_lj(
-              pose_ind,
-              block_ind1,
-              block_ind2,
               tid,
               i * TILE_SIZE,
               j * TILE_SIZE,
@@ -892,9 +886,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               n_conn2,
               shared.m.path_dist1,
               shared.m.path_dist2,
-              shared.m.conn_seps,
+              shared.m.conn_seps/*,
               shared.m.dlj_dcoords1,
-              shared.m.dlj_dcoords2);
+              shared.m.dlj_dcoords2*/);
 
           total_lk += score_inter_pairs_lk(
               tid,
@@ -914,40 +908,40 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               n_conn2,
               shared.m.path_dist1,
               shared.m.path_dist2,
-              shared.m.conn_seps,
+              shared.m.conn_seps/*,
               shared.m.dlk_dcoords1,
-              shared.m.dlk_dcoords2);
+              shared.m.dlk_dcoords2*/);
 
           // now perform atomic adds from shared memory into global
           // memory
-          if (tid < TILE_SIZE) {
-            for (int ii = 0; ii < 3; ++ii) {
-              if (shared.m.dlj_dcoords1[tid][ii] != 0) {
-                atomicAdd(
-                    &dV_dcoords[0][pose_ind][block_ind1][i * TILE_SIZE + tid]
-                               [ii],
-                    shared.m.dlj_dcoords1[tid][ii]);
-              }
-              if (shared.m.dlk_dcoords1[tid][ii] != 0) {
-                atomicAdd(
-                    &dV_dcoords[1][pose_ind][block_ind1][i * TILE_SIZE + tid]
-                               [ii],
-                    shared.m.dlk_dcoords1[tid][ii]);
-              }
-              if (shared.m.dlj_dcoords2[tid][ii] != 0) {
-                atomicAdd(
-                    &dV_dcoords[0][pose_ind][block_ind2][j * TILE_SIZE + tid]
-                               [ii],
-                    shared.m.dlj_dcoords2[tid][ii]);
-              }
-              if (shared.m.dlk_dcoords2[tid][ii] != 0) {
-                atomicAdd(
-                    &dV_dcoords[1][pose_ind][block_ind2][j * TILE_SIZE + tid]
-                               [ii],
-                    shared.m.dlk_dcoords2[tid][ii]);
-              }
-            }
-          }
+          // if (tid < TILE_SIZE) {
+          //   for (int ii = 0; ii < 3; ++ii) {
+          //     if (shared.m.dlj_dcoords1[tid][ii] != 0) {
+          //       atomicAdd(
+          //           &dV_dcoords[0][pose_ind][block_ind1][i * TILE_SIZE + tid]
+          //                      [ii],
+          //           shared.m.dlj_dcoords1[tid][ii]);
+          //     }
+          //     if (shared.m.dlk_dcoords1[tid][ii] != 0) {
+          //       atomicAdd(
+          //           &dV_dcoords[1][pose_ind][block_ind1][i * TILE_SIZE + tid]
+          //                      [ii],
+          //           shared.m.dlk_dcoords1[tid][ii]);
+          //     }
+          //     if (shared.m.dlj_dcoords2[tid][ii] != 0) {
+          //       atomicAdd(
+          //           &dV_dcoords[0][pose_ind][block_ind2][j * TILE_SIZE + tid]
+          //                      [ii],
+          //           shared.m.dlj_dcoords2[tid][ii]);
+          //     }
+          //     if (shared.m.dlk_dcoords2[tid][ii] != 0) {
+          //       atomicAdd(
+          //           &dV_dcoords[1][pose_ind][block_ind2][j * TILE_SIZE + tid]
+          //                      [ii],
+          //           shared.m.dlk_dcoords2[tid][ii]);
+          //     }
+          //   }
+          // }
 
         }  // for j
       }    // for i
@@ -1010,14 +1004,14 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           }
 
           // zero the derivative arrays we will be summing into
-          if (tid < TILE_SIZE) {
-            for (int ii = 0; ii < 3; ++ii) {
-              shared.m.dlj_dcoords1[tid][ii] = 0;
-              shared.m.dlk_dcoords1[tid][ii] = 0;
-              shared.m.dlj_dcoords2[tid][ii] = 0;
-              shared.m.dlk_dcoords2[tid][ii] = 0;
-            }
-          }
+          // if (tid < TILE_SIZE) {
+          //   for (int ii = 0; ii < 3; ++ii) {
+          //     shared.m.dlj_dcoords1[tid][ii] = 0;
+          //     shared.m.dlk_dcoords1[tid][ii] = 0;
+          //     shared.m.dlj_dcoords2[tid][ii] = 0;
+          //     shared.m.dlk_dcoords2[tid][ii] = 0;
+          //   }
+          // }
 
           // we are guaranteed to hit this syncthreads call; we must wait
           // here before reading from shared memory for the coordinates
@@ -1037,9 +1031,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               (i == j ? shared.m.params1 : shared.m.params2),
               max_important_bond_separation,
               block_type1,
-              n_atoms1,
+              n_atoms1/*,
               shared.m.dlj_dcoords1,
-              shared.m.dlj_dcoords2);
+              shared.m.dlj_dcoords2*/);
 
           total_lk += score_intra_pairs_lk(
               tid,
@@ -1055,53 +1049,55 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               (i == j ? shared.m.heavy_inds1 : shared.m.heavy_inds2),
               max_important_bond_separation,
               block_type1,
-              n_atoms1,
+              n_atoms1/*,
               shared.m.dlk_dcoords1,
-              shared.m.dlk_dcoords2);
+              shared.m.dlk_dcoords2*/);
 
           // now perform atomic adds from shared memory into global
           // memory
-          if (tid < TILE_SIZE) {
-            if (i == j) {
-              for (int ii = 0; ii < 3; ++ii) {
-                shared.m.dlj_dcoords1[tid][ii] +=
-                    shared.m.dlj_dcoords2[tid][ii];
-                shared.m.dlk_dcoords1[tid][ii] +=
-                    shared.m.dlk_dcoords2[tid][ii];
-              }
-            }
-
-            for (int ii = 0; ii < 3; ++ii) {
-              if (shared.m.dlj_dcoords1[tid][ii] != 0) {
-                atomicAdd(
-                    &dV_dcoords[0][pose_ind][block_ind1][i * TILE_SIZE + tid]
-                               [ii],
-                    shared.m.dlj_dcoords1[tid][ii]);
-              }
-              if (shared.m.dlk_dcoords1[tid][ii] != 0) {
-                atomicAdd(
-                    &dV_dcoords[1][pose_ind][block_ind1][i * TILE_SIZE + tid]
-                               [ii],
-                    shared.m.dlk_dcoords1[tid][ii]);
-              }
-            }
-            if (i != j) {
-              for (int ii = 0; ii < 3; ++ii) {
-                if (shared.m.dlj_dcoords2[tid][ii] != 0) {
-                  atomicAdd(
-                      &dV_dcoords[0][pose_ind][block_ind2][j * TILE_SIZE + tid]
-                                 [ii],
-                      shared.m.dlj_dcoords2[tid][ii]);
-                }
-                if (shared.m.dlk_dcoords2[tid][ii] != 0) {
-                  atomicAdd(
-                      &dV_dcoords[1][pose_ind][block_ind2][j * TILE_SIZE + tid]
-                                 [ii],
-                      shared.m.dlk_dcoords2[tid][ii]);
-                }
-              }
-            }
-          }
+          // if (tid < TILE_SIZE) {
+          //   if (i == j) {
+          //     for (int ii = 0; ii < 3; ++ii) {
+          //       shared.m.dlj_dcoords1[tid][ii] +=
+          //           shared.m.dlj_dcoords2[tid][ii];
+          //       shared.m.dlk_dcoords1[tid][ii] +=
+          //           shared.m.dlk_dcoords2[tid][ii];
+          //     }
+          //   }
+          //
+          //   for (int ii = 0; ii < 3; ++ii) {
+          //     if (shared.m.dlj_dcoords1[tid][ii] != 0) {
+          //       atomicAdd(
+          //           &dV_dcoords[0][pose_ind][block_ind1][i * TILE_SIZE + tid]
+          //                      [ii],
+          //           shared.m.dlj_dcoords1[tid][ii]);
+          //     }
+          //     if (shared.m.dlk_dcoords1[tid][ii] != 0) {
+          //       atomicAdd(
+          //           &dV_dcoords[1][pose_ind][block_ind1][i * TILE_SIZE + tid]
+          //                      [ii],
+          //           shared.m.dlk_dcoords1[tid][ii]);
+          //     }
+          //   }
+          //   if (i != j) {
+          //     for (int ii = 0; ii < 3; ++ii) {
+          //       if (shared.m.dlj_dcoords2[tid][ii] != 0) {
+          //         atomicAdd(
+          //             &dV_dcoords[0][pose_ind][block_ind2][j * TILE_SIZE +
+          //             tid]
+          //                        [ii],
+          //             shared.m.dlj_dcoords2[tid][ii]);
+          //       }
+          //       if (shared.m.dlk_dcoords2[tid][ii] != 0) {
+          //         atomicAdd(
+          //             &dV_dcoords[1][pose_ind][block_ind2][j * TILE_SIZE +
+          //             tid]
+          //                        [ii],
+          //             shared.m.dlk_dcoords2[tid][ii]);
+          //       }
+          //     }
+          //   }
+          // }
         }  // for j
       }    // for i
     }      // else
