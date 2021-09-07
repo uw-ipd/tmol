@@ -1,5 +1,6 @@
 import pytest
 import torch
+import numpy
 
 import tmol.utility.cpp_extension as cpp_extension
 from tmol.utility.cpp_extension import relpaths, modulename, cuda_if_available
@@ -14,7 +15,6 @@ def warp_segreduce():
         cuda_if_available(
             relpaths(__file__, ["warp_segreduce.cpp", "warp_segreduce.cuda.cu"])
         ),
-        verbose=True,
     )
 
 
@@ -30,4 +30,35 @@ def test_warp_segreduce_1(warp_segreduce):
     flags[16] = 1
 
     result = warp_segreduce.warp_segreduce_1(values, flags)
-    print(result)
+
+    gold_result = torch.zeros((32,), dtype=torch.float32)
+    gold_result[1] = 1
+    gold_result[2] = 2
+    gold_result[4] = 4
+    gold_result[8] = 8
+    gold_result[16] = 16
+
+    numpy.testing.assert_equal(gold_result.numpy(), result.cpu().numpy())
+
+
+@requires_cuda
+def test_warp_segreduce_w_partial_warp(warp_segreduce):
+    torch_device = torch.device("cuda")
+    values = torch.ones((32,), dtype=torch.float32, device=torch_device)
+    flags = torch.zeros((32,), dtype=torch.int32, device=torch_device)
+    flags[1] = 1
+    flags[2] = 1
+    flags[4] = 1
+    flags[8] = 1
+    flags[16] = 1
+
+    result = warp_segreduce.warp_segreduce_2(values, flags)
+
+    gold_result = torch.zeros((32,), dtype=torch.float32)
+    gold_result[1] = 1
+    gold_result[2] = 2
+    gold_result[4] = 4
+    gold_result[8] = 8
+    gold_result[16] = 14
+
+    numpy.testing.assert_equal(gold_result.numpy(), result.cpu().numpy())
