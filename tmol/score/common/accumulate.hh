@@ -14,7 +14,8 @@ namespace common {
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
-#ifdef __CUDA_ARCH__
+// #ifdef __CUDA_ARCH__
+#ifdef __CUDACC__
 
 // Perform reduction within the active threads.
 // F is a functor that needs to be associative and
@@ -50,6 +51,7 @@ __device__ __inline__ T reduce_tile_shfl(
 
   return val;  // note: only thread 0 will return full sum
 }
+
 #endif
 
 template <tmol::Device D, typename T, class Enable = void>

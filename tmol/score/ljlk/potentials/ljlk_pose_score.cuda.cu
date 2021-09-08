@@ -12,6 +12,8 @@
 #include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/warp_segreduce.hh>
+#include <tmol/score/common/warp_stride_reduce.hh>
 
 #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
@@ -179,7 +181,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       com[i] = g.shfl(com[i], 0);
     }
     // if (tid == 0) {
-    // 	printf("center of mass: %d %d (%f %f %f)\n", pose_ind, block_ind,
+    //         printf("center of mass: %d %d (%f %f %f)\n", pose_ind, block_ind,
     // com[0],com[1],com[2]);
     // }
     Real d2max = 0;
@@ -264,6 +266,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   // between one alternate rotamer and its neighbors in the surrounding context
   auto score_inter_pairs_lj = ([=] MGPU_DEVICE(
+      int pose_ind,
+      int block_ind1,
+      int block_ind2,
                                    int tid,
                                    int start_atom1,
                                    int start_atom2,
@@ -283,6 +288,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                    unsigned char const *conn_seps/*,
                                    Real3 *dlj_dcoords1,
                                    Real3 *dlj_dcoords2*/) {  // shared
+
     Real score_total = 0;
     Real3 coord1;
     Real3 coord2;
@@ -295,6 +301,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     LJGlobalParams<Real> global_params_local = global_params[0];
 
     for (int i = tid; i < n_pairs; i += blockDim.x) {
+      auto g = cooperative_groups::coalesced_threads();
+
       int const atom_tile_ind1 = i / n_remain2;
       int const atom_tile_ind2 = i % n_remain2;
       for (int j = 0; j < 3; ++j) {
@@ -305,37 +313,19 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
            + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
            + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
-      if (dist2 > 36.0) {
-        // DANGER -- maximum reach of LJ potential hard coded here in a
-        // second place
-        continue;
-      }
+
+      // This square distance check cannot be performed if we are using the
+      // segmented reduction logic later in this function, which requires
+      // that all threads arrive at the warp_segreduce_shfl call.
+      // if (dist2 > 36.0) {
+      //   // DANGER -- maximum reach of LJ potential hard coded here in a
+      //   // second place
+      //   continue;
+      // }
       auto dist_r = distance<Real>::V_dV(coord1, coord2);
       auto &dist = dist_r.V;
       auto &ddist_dat1 = dist_r.dV_dA;
       auto &ddist_dat2 = dist_r.dV_dB;
-
-      // if (dist < 6.0) {
-      // 	if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] !=
-      // 1) { 	  printf("sphere overlap failure %d %d %d (%f %f %f, %f) (%f %f
-      // %f, %f) [%f %f %f] [%f %f %f] %f\n", 	    pose_ind, block_ind1,
-      // block_ind2, 	    scratch_block_spheres[pose_ind][block_ind1][0],
-      // 	    scratch_block_spheres[pose_ind][block_ind1][1],
-      // 	    scratch_block_spheres[pose_ind][block_ind1][2],
-      // 	    scratch_block_spheres[pose_ind][block_ind1][3],
-      // 	    scratch_block_spheres[pose_ind][block_ind2][0],
-      // 	    scratch_block_spheres[pose_ind][block_ind2][1],
-      // 	    scratch_block_spheres[pose_ind][block_ind2][2],
-      // 	    scratch_block_spheres[pose_ind][block_ind2][3],
-      // 	    coord1[0],
-      // 	    coord1[1],
-      // 	    coord1[2],
-      // 	    coord2[0],
-      // 	    coord2[1],
-      // 	    coord2[2],
-      // 	    dist);
-      // 	}
-      // }
 
       int separation = min_separation;
       if (separation <= max_important_bond_separation) {
@@ -358,6 +348,45 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           params2[atom_tile_ind2].lj_params(),
           global_params_local);
       score_total += lj.V;
+
+      // Run a segmented reduction where the segment boundaries are the
+      // threads that are the lowest-indexed threads for a particular atom.
+      // All threads that are operating on the same atom will accumulate their
+      // derivative vectors together and sum them down to the first thread
+      // in the warp that's operating on that atom. Then that thread will perform
+      // a single atomicAdd into the global derivative vector tensor. For
+      // this logic to work, all threads in the warp must arrive at this call.
+      // We therefore cannot perform the square distance check earlier in this
+      // function.
+      // if (tid == 0) {
+      //   printf("warp seg reduce %d %d %d %d\n", pose_ind, block_ind1, block_ind2, g.size());
+      // }
+      Vec<Real, 3> lj_dxyz_at1 = common::WarpSegReduceShfl<Vec<Real, 3>>::segreduce(
+        g, lj.dV_ddist * ddist_dat1,
+        atom_tile_ind2 == 0 || tid == 0,
+        mgpu::plus_t<Real>());
+      if (atom_tile_ind2 == 0 || tid == 0) {
+        for (int j = 0; j < 3; ++j) {
+          atomicAdd(
+            &dV_dcoords[0][pose_ind][block_ind1][atom_tile_ind1 + start_atom1][j],
+            lj_dxyz_at1[j]
+          );
+        }
+      }
+      
+      
+      Vec<Real, 3> lj_dxyz_at2 = common::WarpStrideReduceShfl<Vec<Real, 3>>::stride_reduce(
+        g, lj.dV_ddist * ddist_dat2,
+        n_remain2,
+        mgpu::plus_t<Real>());
+      if (tid < n_remain2) {
+        for (int j = 0; j < 3; ++j) {
+          atomicAdd(
+            &dV_dcoords[0][pose_ind][block_ind2][atom_tile_ind2 + start_atom2][j],
+            lj_dxyz_at2[j]
+          );
+        }
+      }
 
       // OK! we'll go ahead and accumulate the derivatives:
       // For each atom index, reduce within the warp, then
@@ -871,6 +900,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           int n_heavy2 = shared.m.n_heavy2;
 
           total_lj += score_inter_pairs_lj(
+            pose_ind,
+            block_ind1,
+            block_ind2,
               tid,
               i * TILE_SIZE,
               j * TILE_SIZE,

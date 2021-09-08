@@ -147,32 +147,32 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 @pytest.mark.parametrize(
     "graph_class",
     [
-        TotalScore,
-        DofSpaceTotal,
-        HBondScore,
-        ElecScore,
-        RamaScore,
-        OmegaScore,
-        DunbrackScore,
-        CartBondedScore,
+        #         TotalScore,
+        #         DofSpaceTotal,
+        #         HBondScore,
+        #         ElecScore,
+        #         RamaScore,
+        #         OmegaScore,
+        #         DunbrackScore,
+        #         CartBondedScore,
         LJScore,
         LKScore,
-        LKBallScore,
-        DofSpaceDummy,
+        #         LKBallScore,
+        #         DofSpaceDummy,
     ],
     ids=[
-        "total_cart",
-        "total_torsion",
-        "hbond",
-        "elec",
-        "rama",
-        "omega",
-        "dun",
-        "cartbonded",
+        #         "total_cart",
+        #         "total_torsion",
+        #         "hbond",
+        #         "elec",
+        #         "rama",
+        #         "omega",
+        #         "dun",
+        #         "cartbonded",
         "lj",
         "lk",
-        "lk_ball",
-        "kinematics",
+        #         "lk_ball",
+        #         "kinematics",
     ],
 )
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
@@ -182,7 +182,7 @@ def test_end_to_end_score_graph(
 ):
 
     # target_system = ubq_system
-    stack = PackedResidueSystemStack((ubq_system,) * 30)
+    stack = PackedResidueSystemStack((ubq_system,) * 100)
 
     score_graph = graph_class.build_for(stack, requires_grad=True, device=torch_device)
 
