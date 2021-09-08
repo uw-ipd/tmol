@@ -29,7 +29,7 @@ def test_warp_segreduce_1(warp_segreduce):
     flags[8] = 1
     flags[16] = 1
 
-    result = warp_segreduce.warp_segreduce_1(values, flags)
+    result = warp_segreduce.warp_segreduce_full(values, flags)
 
     gold_result = torch.zeros((32,), dtype=torch.float32)
     gold_result[1] = 1
@@ -37,6 +37,29 @@ def test_warp_segreduce_1(warp_segreduce):
     gold_result[4] = 4
     gold_result[8] = 8
     gold_result[16] = 16
+
+    numpy.testing.assert_equal(gold_result.numpy(), result.cpu().numpy())
+
+
+@requires_cuda
+def test_warp_segreduce_vec3(warp_segreduce):
+    torch_device = torch.device("cuda")
+    values = torch.ones((32 * 3,), dtype=torch.float32, device=torch_device).view(32, 3)
+    flags = torch.zeros((32,), dtype=torch.int32, device=torch_device)
+    flags[1] = 1
+    flags[2] = 1
+    flags[4] = 1
+    flags[8] = 1
+    flags[16] = 1
+
+    result = warp_segreduce.warp_segreduce_full_vec3(values, flags)
+
+    gold_result = torch.zeros((32, 3), dtype=torch.float32)
+    gold_result[1, :] = 1
+    gold_result[2, :] = 2
+    gold_result[4, :] = 4
+    gold_result[8, :] = 8
+    gold_result[16, :] = 16
 
     numpy.testing.assert_equal(gold_result.numpy(), result.cpu().numpy())
 
@@ -52,7 +75,7 @@ def test_warp_segreduce_w_partial_warp(warp_segreduce):
     flags[8] = 1
     flags[16] = 1
 
-    result = warp_segreduce.warp_segreduce_2(values, flags)
+    result = warp_segreduce.warp_segreduce_partial(values, flags)
 
     gold_result = torch.zeros((32,), dtype=torch.float32)
     gold_result[1] = 1

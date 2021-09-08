@@ -9,12 +9,12 @@
 
 
 torch::Tensor
-warp_stride_reduce_1(
+warp_stride_reduce_full(
   torch::Tensor values,
   int stride
 )
 {
-  auto result = warp_stride_reduce_gpu(
+  auto result = gpu_warp_stride_reduce_full(
     tmol::TCAST(values),
     stride
   );
@@ -22,22 +22,39 @@ warp_stride_reduce_1(
 }
 
 torch::Tensor
-warp_stride_reduce_2(
+warp_stride_reduce_full_vec3(
   torch::Tensor values,
   int stride
 )
 {
-  auto result = warp_stride_reduce_gpu2(
+  auto result = gpu_warp_stride_reduce_full_vec3(
     tmol::TCAST(values),
     stride
   );
   return result.tensor;
 }
 
+
+torch::Tensor
+warp_stride_reduce_partial(
+  torch::Tensor values,
+  int stride
+)
+{
+  auto result = gpu_warp_stride_reduce_partial(
+    tmol::TCAST(values),
+    stride
+  );
+  return result.tensor;
+}
+
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(
-      "warp_stride_reduce_1", &warp_stride_reduce_1, "warp segreduce 1.");
+      "warp_stride_reduce_full", &warp_stride_reduce_full, "warp stride reduce full.");
   m.def(
-      "warp_stride_reduce_2", &warp_stride_reduce_2, "warp segreduce 2.");
+      "warp_stride_reduce_full_vec3", &warp_stride_reduce_full_vec3, "warp stride reduce full vec3.");
+  m.def(
+      "warp_stride_reduce_partial", &warp_stride_reduce_partial, "warp stride reduce partial.");
 }
   
