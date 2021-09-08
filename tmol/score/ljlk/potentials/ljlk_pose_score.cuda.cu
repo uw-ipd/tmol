@@ -367,24 +367,28 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         mgpu::plus_t<Real>());
       if (atom_tile_ind2 == 0 || tid == 0) {
         for (int j = 0; j < 3; ++j) {
-          atomicAdd(
-            &dV_dcoords[0][pose_ind][block_ind1][atom_tile_ind1 + start_atom1][j],
-            lj_dxyz_at1[j]
-          );
+	  if (lj_dxyz_at1[j] != 0) {
+            atomicAdd(
+              &dV_dcoords[0][pose_ind][block_ind1][atom_tile_ind1 + start_atom1][j],
+              lj_dxyz_at1[j]
+            );
+	  }
         }
       }
-      
-      
+
+
       Vec<Real, 3> lj_dxyz_at2 = common::WarpStrideReduceShfl<Vec<Real, 3>>::stride_reduce(
         g, lj.dV_ddist * ddist_dat2,
         n_remain2,
         mgpu::plus_t<Real>());
       if (tid < n_remain2) {
         for (int j = 0; j < 3; ++j) {
-          atomicAdd(
-            &dV_dcoords[0][pose_ind][block_ind2][atom_tile_ind2 + start_atom2][j],
-            lj_dxyz_at2[j]
-          );
+	  if (lj_dxyz_at2[j] != 0) {
+            atomicAdd(
+              &dV_dcoords[0][pose_ind][block_ind2][atom_tile_ind2 + start_atom2][j],
+              lj_dxyz_at2[j]
+            );
+	  }
         }
       }
 
@@ -395,7 +399,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       // This feels expensive!
       // accumulate<D, Vec<Real, 3>>::add_one_dst(
       //     dlj_dcoords1, atom_tile_ind1, lj.dV_ddist * ddist_dat1);
-      // 
+      //
       // accumulate<D, Vec<Real, 3>>::add_one_dst(
       //     dlj_dcoords2, atom_tile_ind2, lj.dV_ddist * ddist_dat2);
     }
@@ -403,7 +407,12 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   });
 
   auto score_inter_pairs_lk = ([=] MGPU_DEVICE(
+      int pose_ind,
+      int block_ind1,
+      int block_ind2,
                                    int tid,
+                                   int start_atom1,
+                                   int start_atom2,
                                    int n_heavy1,
                                    int n_heavy2,
                                    Real *coords1,                     // shared
@@ -433,20 +442,24 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     LJGlobalParams<Real> global_params_local = global_params[0];
 
     for (int i = tid; i < n_pairs; i += blockDim.x) {
+      auto g = cooperative_groups::coalesced_threads();
+
       int const atom_heavy_tile_ind1 = i / n_heavy2;
       int const atom_heavy_tile_ind2 = i % n_heavy2;
       int const atom_tile_ind1 = heavy_inds1[atom_heavy_tile_ind1];
       int const atom_tile_ind2 = heavy_inds2[atom_heavy_tile_ind2];
+      // int const atom_ind1 = atom_tile_ind1 + start_atom1;
+      // int const atom_ind2 = atom_tile_ind2 + start_atom2;
 
       // Debugging purposes only
-      if (atom_tile_ind1 < 0 || atom_tile_ind2 < 0
-          || atom_tile_ind1 >= TILE_SIZE || atom_tile_ind2 >= TILE_SIZE) {
-        printf(
-            "bad atom index in lk-inter %d %d\n",
-            atom_tile_ind1,
-            atom_tile_ind2);
-        continue;
-      }
+      // if (atom_tile_ind1 < 0 || atom_tile_ind2 < 0
+      //     || atom_tile_ind1 >= TILE_SIZE || atom_tile_ind2 >= TILE_SIZE) {
+      //   printf(
+      //       "bad atom index in lk-inter %d %d\n",
+      //       atom_tile_ind1,
+      //       atom_tile_ind2);
+      //   continue;
+      // }
 
       for (int j = 0; j < 3; ++j) {
         coord1[j] = coords1[3 * atom_tile_ind1 + j];
@@ -456,11 +469,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
            + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
            + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
-      if (dist2 > 36.0) {
-        // DANGER -- maximum reach of LK potential hard coded here in a
-        // second place
-        continue;
-      }
+      // if (dist2 > 36.0) {
+      //   // DANGER -- maximum reach of LK potential hard coded here in a
+      //   // second place
+      //   continue;
+      // }
       auto dist_r = distance<Real>::V_dV(coord1, coord2);
       auto &dist = dist_r.V;
       auto &ddist_dat1 = dist_r.dV_dA;
@@ -488,22 +501,56 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           global_params_local);
       score_total += lk.V;
 
-      // OK! we'll go ahead and accumulate the derivatives:
-      // For each atom index, reduce within the warp, then
-      // perform a single (atomic) add if the reduction was
-      // non-zero per atom index.
-      // This feels expensive!
-      // accumulate<D, Vec<Real, 3>>::add_one_dst(
-      //     dlk_dcoords1, atom_tile_ind1, lk.dV_ddist * ddist_dat1);
-      // 
-      // accumulate<D, Vec<Real, 3>>::add_one_dst(
-      //     dlk_dcoords2, atom_tile_ind2, lk.dV_ddist * ddist_dat2);
+      // Run a segmented reduction where the segment boundaries are the
+      // threads that are the lowest-indexed threads for a particular atom.
+      // All threads that are operating on the same atom will accumulate their
+      // derivative vectors together and sum them down to the first thread
+      // in the warp that's operating on that atom. Then that thread will perform
+      // a single atomicAdd into the global derivative vector tensor. For
+      // this logic to work, all threads in the warp must arrive at this call.
+      // We therefore cannot perform the square distance check earlier in this
+      // function.
+      // if (tid == 0) {
+      //   printf("warp seg reduce %d %d %d %d\n", pose_ind, block_ind1, block_ind2, g.size());
+      // }
+      Vec<Real, 3> lk_dxyz_at1 = common::WarpSegReduceShfl<Vec<Real, 3>>::segreduce(
+        g, lk.dV_ddist * ddist_dat1,
+        atom_heavy_tile_ind2 == 0 || tid == 0,
+        mgpu::plus_t<Real>());
+      if (atom_heavy_tile_ind2 == 0 || tid == 0) {
+        for (int j = 0; j < 3; ++j) {
+	  if (lk_dxyz_at1[j] != 0) {
+            atomicAdd(
+              &dV_dcoords[1][pose_ind][block_ind1][atom_tile_ind1 + start_atom1][j],
+              lk_dxyz_at1[j]
+            );
+	  }
+        }
+      }
+
+
+      Vec<Real, 3> lk_dxyz_at2 = common::WarpStrideReduceShfl<Vec<Real, 3>>::stride_reduce(
+        g, lk.dV_ddist * ddist_dat2,
+        n_heavy2,
+        mgpu::plus_t<Real>());
+      if (tid < n_heavy2) {	
+        for (int j = 0; j < 3; ++j) {
+	  if (lk_dxyz_at2[j] != 0) {
+            atomicAdd(
+              &dV_dcoords[1][pose_ind][block_ind2][atom_tile_ind2 + start_atom2][j],
+              lk_dxyz_at2[j]
+            );
+	  }
+        }
+      }
     }
     return score_total;
   });
 
   // between atoms within one block
   auto score_intra_pairs_lj = ([=] MGPU_DEVICE(
+                                   int pose_ind,
+                                   int block_ind,
                                    int tid,
                                    int start_atom1,
                                    int start_atom2,
@@ -513,9 +560,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                    LJLKTypeParams<Real> *params2,
                                    int const max_important_bond_separation,
                                    int const block_type,
-                                   int const n_atoms/*,
-                                   Real3 *dlj_dcoords1,
-                                   Real3 *dlj_dcoords2*/) {
+                                   int const n_atoms) {
     Real score_total = 0;
     Real3 coord1;
     Real3 coord2;
@@ -528,13 +573,17 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     // Real lj_weight = lj_lk_weights[0];
 
     for (int i = tid; i < n_pairs; i += blockDim.x) {
+      auto g = cooperative_groups::coalesced_threads();
+
       int const atom_tile_ind1 = i / n_remain2;
       int const atom_tile_ind2 = i % n_remain2;
       int const atom_ind1 = atom_tile_ind1 + start_atom1;
       int const atom_ind2 = atom_tile_ind2 + start_atom2;
-      if (atom_ind1 >= atom_ind2) {
-        continue;
-      }
+
+      // calculate atom interactions twice just to keep all threads running
+      // if (atom_ind1 >= atom_ind2) {
+      //   continue;
+      // }
 
       for (int j = 0; j < 3; ++j) {
         coord1[j] = coords1[3 * atom_tile_ind1 + j];
@@ -557,7 +606,42 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           params2[atom_tile_ind2].lj_params(),
           global_params_local);
 
-      score_total += lj.V;
+      if (atom_ind1 < atom_ind2) {
+        score_total += lj.V;
+      } else {
+        lj.dV_ddist = 0;
+        ddist_dat1.setZero();
+        ddist_dat2.setZero();
+      }
+
+      Vec<Real, 3> lj_dxyz_at1 =
+          common::WarpSegReduceShfl<Vec<Real, 3>>::segreduce(
+              g,
+              lj.dV_ddist * ddist_dat1,
+              atom_tile_ind2 == 0 || tid == 0,
+              mgpu::plus_t<Real>());
+      if (atom_tile_ind2 == 0 || tid == 0) {
+        for (int j = 0; j < 3; ++j) {
+          if (lj_dxyz_at1[j] != 0) {
+            atomicAdd(
+                &dV_dcoords[0][pose_ind][block_ind][atom_ind1][j],
+                lj_dxyz_at1[j]);
+          }
+        }
+      }
+
+      Vec<Real, 3> lj_dxyz_at2 =
+          common::WarpStrideReduceShfl<Vec<Real, 3>>::stride_reduce(
+              g, lj.dV_ddist * ddist_dat2, n_remain2, mgpu::plus_t<Real>());
+      if (tid < n_remain2) {
+        for (int j = 0; j < 3; ++j) {
+          if (lj_dxyz_at2[j] != 0) {
+            atomicAdd(
+                &dV_dcoords[0][pose_ind][block_ind][atom_ind2][j],
+                lj_dxyz_at2[j]);
+          }
+        }
+      }
 
       // OK! we'll go ahead and accumulate the derivatives:
       // For each atom index, reduce within the warp, then
@@ -566,7 +650,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       // This feels expensive!
       // accumulate<D, Vec<Real, 3>>::add_one_dst(
       //     dlj_dcoords1, atom_tile_ind1, lj.dV_ddist * ddist_dat1);
-      // 
+      //
       // accumulate<D, Vec<Real, 3>>::add_one_dst(
       //     dlj_dcoords2, atom_tile_ind2, lj.dV_ddist * ddist_dat2);
     }
@@ -575,6 +659,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   // between one atoms within an alternate rotamer
   auto score_intra_pairs_lk = ([=] MGPU_DEVICE(
+      int pose_ind,
+      int block_ind,
                                    int tid,
                                    int start_atom1,
                                    int start_atom2,
@@ -601,6 +687,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     // Real lk_weight = lj_lk_weights[1];
 
     for (int i = tid; i < n_pairs; i += blockDim.x) {
+      auto g = cooperative_groups::coalesced_threads();
+
       int const atom_heavy_tile_ind1 = i / n_heavy2;
       int const atom_heavy_tile_ind2 = i % n_heavy2;
       int const atom_tile_ind1 = heavy_inds1[atom_heavy_tile_ind1];
@@ -608,9 +696,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       int const atom_ind1 = atom_tile_ind1 + start_atom1;
       int const atom_ind2 = atom_tile_ind2 + start_atom2;
 
-      if (atom_ind1 >= atom_ind2) {
-        continue;
-      }
+      // if (atom_ind1 >= atom_ind2) {
+      //   continue;
+      // }
 
       for (int j = 0; j < 3; ++j) {
         coord1[j] = coords1[3 * atom_tile_ind1 + j];
@@ -638,7 +726,45 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           params2[atom_tile_ind2].lk_params(),
           global_params_local);
 
-      score_total += lk.V;
+      if (atom_ind1 < atom_ind2) {
+        score_total += lk.V;
+      } else {
+	lk.dV_ddist = 0;
+	ddist_dat1.setZero();
+	ddist_dat2.setZero();
+      }
+
+      Vec<Real, 3> lk_dxyz_at1 = common::WarpSegReduceShfl<Vec<Real, 3>>::segreduce(
+        g, lk.dV_ddist * ddist_dat1,
+        atom_heavy_tile_ind2 == 0 || tid == 0,
+        mgpu::plus_t<Real>());
+      if (atom_heavy_tile_ind2 == 0 || tid == 0) {
+        for (int j = 0; j < 3; ++j) {
+	  if (lk_dxyz_at1[j] != 0) {
+            atomicAdd(
+              &dV_dcoords[1][pose_ind][block_ind][atom_ind1][j],
+              lk_dxyz_at1[j]
+            );
+	  }
+        }
+      }
+
+
+      Vec<Real, 3> lk_dxyz_at2 = common::WarpStrideReduceShfl<Vec<Real, 3>>::stride_reduce(
+        g, lk.dV_ddist * ddist_dat2,
+        n_heavy2,
+        mgpu::plus_t<Real>());
+      if (tid < n_heavy2) {
+        for (int j = 0; j < 3; ++j) {
+	  if (lk_dxyz_at2[j] != 0) {
+            atomicAdd(
+              &dV_dcoords[1][pose_ind][block_ind][atom_ind2][j],
+              lk_dxyz_at2[j]
+            );
+	  }
+        }
+      }
+    
 
       // OK! we'll go ahead and accumulate the derivatives:
       // For each atom index, reduce within the warp, then
@@ -647,7 +773,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       // This feels expensive!
       // accumulate<D, Vec<Real, 3>>::add_one_dst(
       //     dlk_dcoords1, atom_tile_ind1, lk.dV_ddist * ddist_dat1);
-      // 
+      //
       // accumulate<D, Vec<Real, 3>>::add_one_dst(
       //     dlk_dcoords2, atom_tile_ind2, lk.dV_ddist * ddist_dat2);
     }
@@ -923,7 +1049,12 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               shared.m.dlj_dcoords2*/);
 
           total_lk += score_inter_pairs_lk(
+            pose_ind,
+            block_ind1,
+            block_ind2,
               tid,
+              i * TILE_SIZE,
+              j * TILE_SIZE,
               n_heavy1,
               n_heavy2,
               shared.m.coords1,
@@ -1054,6 +1185,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           int const n_heavy2 = (i == j ? n_heavy1 : shared.m.n_heavy2);
 
           total_lj += score_intra_pairs_lj(
+	    pose_ind,
+	    block_ind1,
               tid,
               i * TILE_SIZE,
               j * TILE_SIZE,
@@ -1068,6 +1201,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               shared.m.dlj_dcoords2*/);
 
           total_lk += score_intra_pairs_lk(
+	    pose_ind,
+	    block_ind1,
               tid,
               i * TILE_SIZE,
               j * TILE_SIZE,
