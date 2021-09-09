@@ -5,6 +5,7 @@
 #include <cooperative_groups.h>
 #include <tmol/numeric/log2.hh>
 #include <moderngpu/operators.hxx>
+#include <moderngpu/meta.hxx>
 #include <Eigen/Core>
 
 namespace tmol {
@@ -65,11 +66,13 @@ struct WarpSegReduceShfl<
 
     for (int i = 1; i < 32; i *= 2) {
       Eigen::Matrix<T, N, 1> val_i;
+      // mgpu::iterate<N>([&](int j) {val_i[j] = g.shfl_down(val[j], i);});
       for (int j = 0; j < N; ++j) {
         val_i[j] = g.shfl_down(val[j], i);
       }
       bool flag_i = g.shfl_down(flag, i);
       if (!flag && i + grank < gsize) {
+        // mgpu::iterate<N>([&](int j) {val_i[j] = f(val[j], val_i[j]);});
         for (int j = 0; j < N; ++j) {
           val[j] = f(val[j], val_i[j]);
         }
