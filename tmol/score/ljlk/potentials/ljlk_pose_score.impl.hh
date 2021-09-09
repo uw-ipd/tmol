@@ -141,6 +141,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         int atom_type2 = -1;
         int separation = max_important_bond_separation + 1;
         typename common::distance<Real>::V_dV_T dist;
+        // dist.V = 0;
+        // dist.dV_dA.setZero();
+        // dist.dV_dB.setZero();
 
         Vec<Real, 3> coord1, coord2;
         int at1, at2;
@@ -256,11 +259,12 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         }
 
         accumulate<D, Real>::add_one_dst(output[0], pose_ind, lj.V);
-        accumulate<D, Real>::add_one_dst(output[1], pose_ind, lk.V);
         accumulate<D, Vec<Real, 3>>::add_one_dst(
             dV_dcoords[0][pose_ind][block_ind1], at1, lj.dV_ddist * dist.dV_dA);
         accumulate<D, Vec<Real, 3>>::add_one_dst(
             dV_dcoords[0][pose_ind][block_ind2], at2, lj.dV_ddist * dist.dV_dB);
+
+        accumulate<D, Real>::add_one_dst(output[1], pose_ind, lk.V);
         accumulate<D, Vec<Real, 3>>::add_one_dst(
             dV_dcoords[1][pose_ind][block_ind1], at1, lk.dV_ddist * dist.dV_dA);
         accumulate<D, Vec<Real, 3>>::add_one_dst(
