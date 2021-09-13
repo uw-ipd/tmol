@@ -190,7 +190,7 @@ struct ForwardKinDispatch {
     auto HTscan_t = TPack<HomogeneousTransform, 1, D>::empty({scanBuffer});
     auto HTscan = HTscan_t.view;
     HTRawBuffer<Real> init = {
-        1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0};  // identity xform
+        1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};  // identity xform
     nvtx_range_pop();
 
     // printf("[0] alloc=%d\n", carryoutBuffer);
