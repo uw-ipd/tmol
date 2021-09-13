@@ -60,8 +60,9 @@ struct WarpSegReduceShfl<
       Eigen::Matrix<T, N, 1> val,
       bool flag,
       F f) {
-    unsigned int const grank = g.thread_rank();
-    unsigned int const gsize = g.size();
+    // unsigned int const grank = g.thread_rank();
+    // unsigned int const gsize = g.size();
+    int const limit = g.size() - g.thread_rank();
     flag = g.shfl_down(flag, 1);
 
     for (int i = 1; i < 32; i *= 2) {
@@ -71,7 +72,7 @@ struct WarpSegReduceShfl<
         val_i[j] = g.shfl_down(val[j], i);
       }
       bool flag_i = g.shfl_down(flag, i);
-      if (!flag && i + grank < gsize) {
+      if (!flag && i < limit) {
         // mgpu::iterate<N>([&](int j) {val_i[j] = f(val[j], val_i[j]);});
         for (int j = 0; j < N; ++j) {
           val[j] = f(val[j], val_i[j]);

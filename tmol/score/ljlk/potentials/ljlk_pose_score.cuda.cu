@@ -286,9 +286,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
            int const n_conn2,
            unsigned char const *__restrict__ path_dist1,  // shared
            unsigned char const *__restrict__ path_dist2,  // shared
-           unsigned char const *__restrict__ conn_seps,
+           unsigned char const *__restrict__ conn_seps/*,
            Real3 *__restrict__ dlj_dcoords1,
-           Real3 *__restrict__ dlj_dcoords2) {  // shared
+           Real3 *__restrict__ dlj_dcoords2*/) {  // shared
         Real score_total = 0;
         Real3 coord1;
         Real3 coord2;
@@ -300,10 +300,10 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
         LJGlobalParams<Real> global_params_local = global_params[0];
 
-        for (int i = 0; i < 3; ++i) {
-          dlj_dcoords1[tid][i] = 0;
-          dlj_dcoords2[tid][i] = 0;
-        }
+        // for (int i = 0; i < 3; ++i) {
+        //   dlj_dcoords1[tid][i] = 0;
+        //   dlj_dcoords2[tid][i] = 0;
+        // }
 
         for (int i = tid; i < n_pairs; i += blockDim.x) {
           auto g = cooperative_groups::coalesced_threads();
@@ -369,7 +369,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
           Vec<Real, 3> lj_dxyz_at1 = lj.dV_ddist * ddist_dat1;
           for (int j = 0; j < 3; ++j) {
-            if (lj_dxyz_at1[j] != 0) {
+	      if (lj_dxyz_at1[j] != 0) {
               atomicAdd(
                   &dV_dcoords[0][pose_ind][block_ind1]
                              [atom_tile_ind1 + start_atom1][j],
@@ -379,7 +379,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
           Vec<Real, 3> lj_dxyz_at2 = lj.dV_ddist * ddist_dat2;
           for (int j = 0; j < 3; ++j) {
-            if (lj_dxyz_at2[j] != 0) {
+	    if (lj_dxyz_at2[j] != 0) {
               atomicAdd(
                   &dV_dcoords[0][pose_ind][block_ind2]
                              [atom_tile_ind2 + start_atom2][j],
@@ -387,11 +387,14 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
             }
           }
 
-          // Vec<Real, 3> lj_dxyz_at1 = common::WarpSegReduceShfl<Vec<Real,
-          // 3>>::segreduce(
-          //   g, lj.dV_ddist * ddist_dat1,
-          //   atom_tile_ind2 == 0 || tid == 0,
-          //   mgpu::plus_t<Real>());
+	  int const n_repeats = 0;
+	  for (int repeat = 0; repeat < n_repeats; ++repeat) {
+	    Vec<Real, 3> lj_dxyz_at1 = common::WarpSegReduceShfl<Vec<Real,
+								     3>>::segreduce(
+								       g, lj.dV_ddist * ddist_dat1,
+								       atom_tile_ind2 == 0 || tid == 0,
+								       mgpu::plus_t<Real>());
+	  }
           // if (atom_tile_ind2 == 0 || tid == 0) {
           //   for (int j = 0; j < 3; ++j) {
           //     if (lj_dxyz_at1[j] != 0) {
@@ -636,7 +639,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     LJGlobalParams<Real> global_params_local = global_params[0];
 
     for (int i = tid; i < n_pairs; i += blockDim.x) {
-      auto g = cooperative_groups::coalesced_threads();
+      //auto g = cooperative_groups::coalesced_threads();
 
       int const atom_heavy_tile_ind1 = i / n_heavy2;
       int const atom_heavy_tile_ind2 = i % n_heavy2;
@@ -787,7 +790,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     // Real lj_weight = lj_lk_weights[0];
 
     for (int i = tid; i < n_pairs; i += blockDim.x) {
-      auto g = cooperative_groups::coalesced_threads();
+      // auto g = cooperative_groups::coalesced_threads();
 
       int const atom_tile_ind1 = i / n_remain2;
       int const atom_tile_ind2 = i % n_remain2;
@@ -912,7 +915,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     // Real lk_weight = lj_lk_weights[1];
 
     for (int i = tid; i < n_pairs; i += blockDim.x) {
-      auto g = cooperative_groups::coalesced_threads();
+      //auto g = cooperative_groups::coalesced_threads();
 
       int const atom_heavy_tile_ind1 = i / n_heavy2;
       int const atom_heavy_tile_ind2 = i % n_heavy2;
@@ -1112,8 +1115,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
 
         // temporary location for accumulating atom derivatives
-        Real3 dscore_dxyz1[TILE_SIZE];
-        Real3 dscore_dxyz2[TILE_SIZE];
+        // Real3 dscore_dxyz1[TILE_SIZE];
+        // Real3 dscore_dxyz2[TILE_SIZE];
 
         // Real3 dlk_dcoords1[TILE_SIZE];
         // Real3 dlk_dcoords2[TILE_SIZE];
@@ -1282,9 +1285,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               n_conn2,
               shared.m.path_dist1,
               shared.m.path_dist2,
-              shared.m.conn_seps,
+              shared.m.conn_seps/*,
               shared.m.dscore_dxyz1,
-              shared.m.dscore_dxyz2);
+              shared.m.dscore_dxyz2*/);
 
           total_lk += score_inter_pairs_lk(
             pose_ind,
