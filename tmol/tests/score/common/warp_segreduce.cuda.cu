@@ -27,12 +27,12 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_full(
   auto output = output_t.view;
 
   auto run_warp_segreduce([=] MGPU_DEVICE(int tid, int cta) {
-    auto g = cooperative_groups::coalesced_threads();
+    // auto g = cooperative_groups::coalesced_threads();
     float value = values[cta * 32 + tid];
     int flag = flags[cta * 32 + tid];
     float reduced_value =
         tmol::score::common::WarpSegReduceShfl<float>::segreduce(
-            g, value, flag, mgpu::plus_t<float>());
+            0xFFFFFFFF, value, flag, mgpu::plus_t<float>());
     // printf("%d %d original %f reduced %f\n", cta, tid, value, reduced_value);
     if (flag) {
       output[cta * 32 + tid] = reduced_value;
@@ -65,12 +65,12 @@ tmol::TPack<Vec<float, 3>, 1, tmol::Device::CUDA> gpu_warp_segreduce_full_vec3(
   auto output = output_t.view;
 
   auto run_warp_segreduce([=] MGPU_DEVICE(int tid, int cta) {
-    auto g = cooperative_groups::coalesced_threads();
+    // auto g = cooperative_groups::coalesced_threads();
     Vec<float, 3> value = values[cta * 32 + tid];
     int flag = flags[cta * 32 + tid];
     Vec<float, 3> reduced_value =
         tmol::score::common::WarpSegReduceShfl<Vec<float, 3>>::segreduce(
-            g, value, flag, mgpu::plus_t<float>());
+            0xFFFFFFFF, value, flag, mgpu::plus_t<float>());
     // printf("%d %d original %f reduced %f\n", cta, tid, value, reduced_value);
     if (flag) {
       output[cta * 32 + tid] = reduced_value;
@@ -103,13 +103,14 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_partial(
   auto output = output_t.view;
 
   auto run_warp_segreduce([=] MGPU_DEVICE(int tid, int cta) {
+    unsigned int active_mask = __ballot_sync(0xFFFFFFFF, tid < 30);
     if (tid < 30) {
-      auto g = cooperative_groups::coalesced_threads();
+      // auto g = cooperative_groups::coalesced_threads();
       float value = values[cta * 32 + tid];
       int flag = flags[cta * 32 + tid];
       float reduced_value =
           tmol::score::common::WarpSegReduceShfl<float>::segreduce(
-              g, value, flag, mgpu::plus_t<float>());
+              active_mask, value, flag, mgpu::plus_t<float>());
       // printf("%d %d original %f reduced %f\n", cta, tid, value,
       // reduced_value);
       if (flag) {
