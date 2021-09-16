@@ -24,50 +24,6 @@ from tmol.system.datatypes import connection_metadata_dtype
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
-# @attr.s(auto_attribs=True)
-# class Pose:
-#     packed_block_types: PackedBlockTypes
-#
-#     residues: Sequence[Residue]
-#
-#     # n-blocks x max-n-atoms
-#     residue_coords: NDArray[numpy.float64][:, :, 3]
-#     coords: Tensor[torch.float32][:, :, 3]
-#
-#     # which blocks are connected to which other blocks by which connection
-#     # n_blocks x max_n_connections x [other_res, other_res_conn]
-#     inter_residue_connections: Tensor[torch.int32][:, :, 2]
-#
-#     # n-blocks x n-blocks x max-n-interblock-conn x max-n-interblock-conn
-#     # Why so much data? Imagine two Bpy-Ala NCAAs binding to a Zn2+ ion.
-#     # The path distance of N1 atom on Bpy-Ala X and the N2 atom on Bpy-Ala Y
-#     # is 2: they each are bonded directly to the Zn2+. If we were to suppose
-#     # either that residue X and Y were only bonded by a single inter-residue
-#     # connection, or that X's N1 only bonded to Y at a single inter-residue
-#     # connection, then we would miss the complexity of their arrangement.
-#     # If we mark N1 of X as bonded to N2 of Y and then asked "what's the
-#     # bond-separation distance of N1 on X to N1 on Y, we would walk from
-#     # X-N1 to the Zn2+ to Y-N2 to Y-C6 to Y-C3 and then to Y-N1, tallying
-#     # a bond separation of 5 instead of 2, and incorrectly count the
-#     # X-N1--Y-N1 interaction at full strength (and perhaps a collision).
-#     inter_block_bondsep: Tensor[torch.int32][:, :, :, :]
-#
-#     # For each block, what is the index of the block type in the PackedBlockTypes
-#     # structure?
-#     block_type_ind: Tensor[torch.int32][:]
-#
-#     device: torch.device
-#
-#
-#     @property
-#     def n_residues(self):
-#         return len(self.residues)
-#
-#     @property
-#     def max_n_atoms(self):
-#         return self.packed_block_types.max_n_atoms
-
-
 @attr.s(auto_attribs=True)
 class PoseStack:
 
@@ -75,7 +31,12 @@ class PoseStack:
     residues: Sequence[Sequence[Residue]]
 
     residue_coords: NDArray[numpy.float32][:, :, :, 3]
-    coords: Tensor[torch.float32][:, :, :, 3]
+
+    # coordinates are held as [n-poses x max-n-atoms x 3]
+    # where the offset for each residue are held in the
+    # block_offset tensor [n-poses x max-n-blocks]
+    coords: Tensor[torch.float32][:, :, 3]
+    block_offset: Tensor[torch.int32][:, :]
 
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2]
     inter_block_bondsep: Tensor[torch.int32][:, :, :, :, :]
@@ -113,26 +74,24 @@ class PoseStack:
             res, residue_connections, device
         )
 
-        residue_coords = cls.pack_residue_coords(packed_block_types, [res])
-        coords = torch.tensor(residue_coords, dtype=torch.float32, device=device)
-        attached_res = [
-            [
-                r.attach_to(residue_coords[0, rind, 0 : len(r.residue_type.atoms), :])
-                for rind, r in enumerate(res)
-            ]
-        ]
         block_type_ind = torch.tensor(
             packed_block_types.inds_for_res(res), dtype=torch.int32, device=device
+        ).unsqueeze(0)
+
+        residue_coords, block_offset, attached_res = cls.pack_residue_coords(
+            packed_block_types, block_type_ind, [res]
         )
+        coords = torch.tensor(residue_coords, dtype=torch.float32, device=device)
 
         return cls(
             packed_block_types=packed_block_types,
             residues=attached_res,
-            coords=coords,
             residue_coords=residue_coords,
+            coords=coords,
+            block_offset=block_offset,
             inter_residue_connections=torch.unsqueeze(inter_residue_connections, 0),
             inter_block_bondsep=torch.unsqueeze(inter_block_bondsep, 0),
-            block_type_ind=torch.unsqueeze(block_type_ind, 0),
+            block_type_ind=block_type_ind,
             device=device,
         )
 
@@ -152,18 +111,25 @@ class PoseStack:
             for pose_stack in pose_stacks
             for reslist in pose_stack.residues
         )
-        coords = cls.pack_pose_stack_coords(
+        coords, block_offset = cls.pack_pose_stack_coords(
             packed_block_types, pose_stacks, max_n_blocks, device
         )
         residue_coords = coords.cpu().numpy().astype(numpy.float64)
 
-        ps_offsets = exclusive_cumsum1d(
+        ps_offset = exclusive_cumsum1d(
             torch.tensor([len(ps) for ps in pose_stacks], dtype=torch.int64)
         )
+        block_offset_cpu = block_offset.cpu()
         residues = [
             [
                 r.attach_to(
-                    residue_coords[ps_offsets[i] + j, k, : len(r.residue_type.atoms)]
+                    residue_coords[
+                        ps_offset[i] + j,
+                        block_offset_cpu[ps_offset[i] + j, k] : (
+                            block_offset_cpu[ps_offset[i] + j, k]
+                            + len(r.residue_type.atoms)
+                        ),
+                    ]
                 )
                 for k, r in enumerate(pose_res)
             ]
@@ -172,20 +138,21 @@ class PoseStack:
         ]
 
         inter_residue_connections = cls.inter_residue_connections_from_pose_stacks(
-            packed_block_types, pose_stacks, ps_offsets, max_n_blocks, device
+            packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
         )
         inter_block_bondsep = cls.interblock_bondsep_from_pose_stacks(
-            packed_block_types, pose_stacks, ps_offsets, max_n_blocks, device
+            packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
         )
         block_type_ind = cls.resolve_block_type_ind(
-            packed_block_types, pose_stacks, ps_offsets, max_n_blocks, device
+            packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
         )
 
         return cls(
             packed_block_types=packed_block_types,
             residues=residues,
-            coords=coords,
             residue_coords=residue_coords,
+            coords=coords,
+            block_offset=block_offset,
             inter_residue_connections=inter_residue_connections,
             inter_block_bondsep=inter_block_bondsep,
             block_type_ind=block_type_ind,
@@ -420,21 +387,42 @@ class PoseStack:
 
     @classmethod
     def pack_residue_coords(
-        cls, packed_block_types: PackedBlockTypes, res: Sequence[Sequence[Residue]]
+        cls,
+        packed_block_types: PackedBlockTypes,
+        block_type_ind: Tensor[torch.int32][:, :],
+        res: Sequence[Sequence[Residue]],
     ):
-        coords = numpy.zeros(
+        device = block_type_ind.device
+        btind64 = block_type_ind.to(torch.int64)
+        n_ats = torch.zeros(block_type_ind.shape, dtype=torch.int32, device=device)
+
+        n_ats[btind64 != -1] = packed_block_types.n_atoms[btind64[btind64 != -1]]
+        n_ats_inccumsum = torch.cumsum(n_ats, dim=1, dtype=torch.int32)
+        max_n_ats = torch.max(n_ats_inccumsum[:, -1])
+        block_offset = torch.cat(
             (
-                len(res),
-                max(len(rlist) for rlist in res),
-                packed_block_types.max_n_atoms,
-                3,
+                torch.zeros(
+                    (block_type_ind.shape[0], 1), dtype=torch.int32, device=device
+                ),
+                n_ats_inccumsum[:, :-1],
             ),
-            dtype=numpy.float64,
+            dim=1,
         )
+        block_offset_cpu = block_offset.cpu()
+
+        coords = numpy.zeros((len(res), max_n_ats, 3), dtype=numpy.float64)
+        attached_res = []
         for i, rlist in enumerate(res):
+            attached_res.append([])
             for j, r in enumerate(rlist):
-                coords[i, j, : len(r.residue_type.atoms)] = r.coords
-        return coords
+                j_offset = block_offset_cpu[i, j]
+                coords[i, j_offset : (j_offset + len(r.residue_type.atoms))] = r.coords
+                attached_res[i].append(
+                    r.attach_to(
+                        coords[i, j_offset : (j_offset + len(r.residue_type.atoms))]
+                    )
+                )
+        return coords, block_offset, attached_res
 
     @classmethod
     def pack_pose_stack_coords(
@@ -444,19 +432,24 @@ class PoseStack:
         max_n_blocks: int,
         device: torch.device,
     ) -> Tensor[torch.float32][:, :, :, 3]:
+
         n_poses = sum(len(ps) for ps in pose_stacks)
+        max_n_atoms = max(ps.coords.shape[1] for ps in pose_stacks)
+        max_n_blocks = max(ps.block_offset.shape[1] for ps in pose_stacks)
         coords = torch.zeros(
-            (n_poses, max_n_blocks, packed_block_types.max_n_atoms, 3),
-            dtype=torch.float32,
-            device=device,
+            (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
+        )
+        block_offset = torch.zeros(
+            (n_poses, max_n_blocks), dtype=torch.int32, device=device
         )
         count = 0
         for p in pose_stacks:
-            coords[
-                count : (count + len(p)), : p.coords.shape[1], : p.coords.shape[2]
-            ] = p.coords
+            coords[count : (count + len(p)), : p.coords.shape[1]] = p.coords
+            block_offset[
+                count : (count + len(p)), : p.block_offset.shape[1]
+            ] = p.block_offset
             count += len(p)
-        return coords
+        return coords, block_offset
 
     @classmethod
     def inter_residue_connections_from_pose_stacks(

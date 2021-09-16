@@ -32,8 +32,8 @@ def exclusive_cumsum2d(
 ) -> Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]]:
     return torch.cat(
         (
-            torch.zeros((inds.shape[0], 1), dtype=torch.int32, device=inds.device),
-            torch.cumsum(inds, dim=1, dtype=torch.int32)[:, :-1],
+            torch.zeros((inds.shape[0], 1), dtype=inds.dtype, device=inds.device),
+            torch.cumsum(inds, dim=1, dtype=inds.dtype)[:, :-1],
         ),
         dim=1,
     )

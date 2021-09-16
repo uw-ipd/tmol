@@ -17,8 +17,9 @@ def test_pose_stack_connection_ctor(ubq_res, torch_device):
         len(rt.connections) for rt in p.packed_block_types.active_block_types
     )
 
-    assert p.residue_coords.shape == (1, n_ubq_res, max_n_atoms, 3)
+    assert p.residue_coords.shape == (1, 1228, 3)
     assert p.coords.shape == p.residue_coords.shape
+    assert p.block_offset.shape == (1, n_ubq_res)
     assert p.inter_residue_connections.shape == (1, n_ubq_res, max_n_conn, 2)
     assert p.inter_block_bondsep.shape == (
         1,
@@ -30,6 +31,7 @@ def test_pose_stack_connection_ctor(ubq_res, torch_device):
     assert p.block_type_ind.shape == (1, n_ubq_res)
 
     assert p.coords.device == torch_device
+    assert p.block_offset.device == torch_device
     assert p.inter_residue_connections.device == torch_device
     assert p.inter_block_bondsep.device == torch_device
     assert p.block_type_ind.device == torch_device
@@ -108,5 +110,5 @@ def test_concatenate_pose_stacks_ctor(ubq_res, torch_device):
     poses = PoseStack.from_poses([p1, p2], torch_device)
     assert poses.block_type_ind.shape == (2, 60)
     max_n_atoms = poses.packed_block_types.max_n_atoms
-    assert poses.coords.shape == (2, 60, max_n_atoms, 3)
+    assert poses.coords.shape == (2, 959, 3)
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 2, 2)
