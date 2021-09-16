@@ -305,7 +305,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         //   dlj_dcoords2[tid][i] = 0;
         // }
 
-	unsigned int active_mask =  __ballot_sync(0xFFFFFFFF, tid < n_pairs);
+	// unsigned int active_mask =  __ballot_sync(0xFFFFFFFF, tid < n_pairs);
 	
         for (int i = tid; i < n_pairs; i += blockDim.x) {
           auto g = cooperative_groups::coalesced_threads();
@@ -369,33 +369,30 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           //   block_ind2, g.size());
           // }
 
-	  // all threads accumulate derivatives for atom 1
+	  // all threads accumulate derivatives for atom 1 to global memory
           Vec<Real, 3> lj_dxyz_at1 = lj.dV_ddist * ddist_dat1;
           for (int j = 0; j < 3; ++j) {
 	      if (lj_dxyz_at1[j] != 0) {
               atomicAdd(
                   &dV_dcoords[0][pose_ind][block_ind1]
                              [atom_tile_ind1 + start_atom1][j],
-                  lj_dxyz_at1[j]);
+		  // &dlj_dcoords1[atom_tile_ind1][j],
+		  lj_dxyz_at1[j]);
             }
           }
 
-	  // all threads accumulate derivatives for atom 2
+	  // all threads accumulate derivatives for atom 2 to shared mem
           Vec<Real, 3> lj_dxyz_at2 = lj.dV_ddist * ddist_dat2;
           for (int j = 0; j < 3; ++j) {
 	    if (lj_dxyz_at2[j] != 0) {
               atomicAdd(
                   &dV_dcoords[0][pose_ind][block_ind2]
                              [atom_tile_ind2 + start_atom2][j],
-                  lj_dxyz_at2[j]);
+		  // &dlj_dcoords2[atom_tile_ind2][j],
+		  lj_dxyz_at2[j]);
             }
           }
 
-	  // int n_sync = 15;
-	  // for (int repeat; repeat < n_sync; ++repeat) {
-	  //   __syncthreads();
-	  // }
-	  
 	  // Segmented reduction within a warp
 	  // Vec<Real, 3> lj_dxyz_at1;
 	  // // int const n_repeats = 3;
@@ -447,10 +444,29 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           //     dlj_dcoords2, atom_tile_ind2, lj.dV_ddist * ddist_dat2);
 
 	  // Will I be active in the next iteration?
-	  active_mask =  __ballot_sync(active_mask, i + blockDim.x < n_pairs);
+	  // active_mask =  __ballot_sync(active_mask, i + blockDim.x < n_pairs);
 
 	}
-        return score_total;
+	// write derivatives to global memory
+	// if (tid < n_remain1) {
+	//   for (int j = 0; j < 3; ++j) {
+        //       atomicAdd(
+        //         &dV_dcoords[0][pose_ind][block_ind1]
+	// 	    [tid + start_atom1][j],
+	// 	dlj_dcoords1[tid][j]);
+	//   }
+	// }
+	// if (tid < n_remain2) {
+	//   for (int j = 0; j < 3; ++j) {
+        //       atomicAdd(
+        //         &dV_dcoords[0][pose_ind][block_ind2]
+	// 	    [tid + start_atom2][j],
+	// 	dlj_dcoords2[tid][j]);
+	//   }
+	// }
+	  
+
+	return score_total;
       });
 
   // auto score_inter_pairs_lj_twice = ([=] MGPU_DEVICE(
