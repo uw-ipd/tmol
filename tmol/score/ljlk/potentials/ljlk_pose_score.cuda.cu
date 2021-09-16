@@ -369,44 +369,52 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           //   block_ind2, g.size());
           // }
 
-          // Vec<Real, 3> lj_dxyz_at1 = lj.dV_ddist * ddist_dat1;
-          // for (int j = 0; j < 3; ++j) {
-	  //     if (lj_dxyz_at1[j] != 0) {
-          //     atomicAdd(
-          //         &dV_dcoords[0][pose_ind][block_ind1]
-          //                    [atom_tile_ind1 + start_atom1][j],
-          //         lj_dxyz_at1[j]);
-          //   }
-          // }
-
-          // Vec<Real, 3> lj_dxyz_at2 = lj.dV_ddist * ddist_dat2;
-          // for (int j = 0; j < 3; ++j) {
-	  //   if (lj_dxyz_at2[j] != 0) {
-          //     atomicAdd(
-          //         &dV_dcoords[0][pose_ind][block_ind2]
-          //                    [atom_tile_ind2 + start_atom2][j],
-          //         lj_dxyz_at2[j]);
-          //   }
-          // }
-
-	  Vec<Real, 3> lj_dxyz_at1;
-	  int const n_repeats = 1;
-	  for (int repeat = 0; repeat < n_repeats; ++repeat) {
-	    lj_dxyz_at1 = common::WarpSegReduceShfl<Vec<Real,3>>::segreduce(
-	      active_mask,
-	      lj.dV_ddist * ddist_dat1,
-	      atom_tile_ind2 == 0 || tid == 0,
-	      mgpu::plus_t<Real>());
-	  }
-          if (atom_tile_ind2 == 0 || tid == 0) {
-            for (int j = 0; j < 3; ++j) {
-              if (lj_dxyz_at1[j] != 0) {
-                atomicAdd(&dV_dcoords[0][pose_ind][block_ind1][atom_tile_ind1 + start_atom1][j],
-                  lj_dxyz_at1[j]
-                );
-              }
+	  // all threads accumulate derivatives for atom 1
+          Vec<Real, 3> lj_dxyz_at1 = lj.dV_ddist * ddist_dat1;
+          for (int j = 0; j < 3; ++j) {
+	      if (lj_dxyz_at1[j] != 0) {
+              atomicAdd(
+                  &dV_dcoords[0][pose_ind][block_ind1]
+                             [atom_tile_ind1 + start_atom1][j],
+                  lj_dxyz_at1[j]);
             }
           }
+
+	  // all threads accumulate derivatives for atom 2
+          Vec<Real, 3> lj_dxyz_at2 = lj.dV_ddist * ddist_dat2;
+          for (int j = 0; j < 3; ++j) {
+	    if (lj_dxyz_at2[j] != 0) {
+              atomicAdd(
+                  &dV_dcoords[0][pose_ind][block_ind2]
+                             [atom_tile_ind2 + start_atom2][j],
+                  lj_dxyz_at2[j]);
+            }
+          }
+
+	  // int n_sync = 15;
+	  // for (int repeat; repeat < n_sync; ++repeat) {
+	  //   __syncthreads();
+	  // }
+	  
+	  // Segmented reduction within a warp
+	  // Vec<Real, 3> lj_dxyz_at1;
+	  // // int const n_repeats = 3;
+	  // // for (int repeat = 0; repeat < n_repeats; ++repeat) {
+	  //   lj_dxyz_at1 = common::WarpSegReduceShfl<Vec<Real,3>>::segreduce(
+	  //     active_mask,
+	  //     lj.dV_ddist * ddist_dat1,
+	  //     atom_tile_ind2 == 0 || tid == 0,
+	  //     mgpu::plus_t<Real>());
+	  //   //}
+          // if (atom_tile_ind2 == 0 || tid == 0) {
+          //   for (int j = 0; j < 3; ++j) {
+          //     if (lj_dxyz_at1[j] != 0) {
+          //       atomicAdd(&dV_dcoords[0][pose_ind][block_ind1][atom_tile_ind1 + start_atom1][j],
+          //         lj_dxyz_at1[j]
+          //       );
+          //     }
+          //   }
+          // }
 
           //
           //

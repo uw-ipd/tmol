@@ -34,6 +34,22 @@ warp_segreduce_full_vec3(
   return result.tensor;
 }
 
+
+torch::Tensor
+warp_segreduce_vec3_benchmark(
+  torch::Tensor values,
+  torch::Tensor flags,
+  int n_repeats
+)
+{
+  auto result = gpu_warp_segreduce_vec3_benchmark(
+    tmol::TCAST(values),
+    tmol::TCAST(flags),
+    n_repeats
+  );
+  return result.tensor;
+}
+
 torch::Tensor
 warp_segreduce_partial(
   torch::Tensor values,
@@ -52,6 +68,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "warp_segreduce_full", &warp_segreduce_full, "warp segreduce full");
   m.def(
       "warp_segreduce_full_vec3", &warp_segreduce_full_vec3, "warp segreduce full vec3");
+  m.def(
+      "warp_segreduce_vec3_benchmark", &warp_segreduce_vec3_benchmark, "warp segreduce vec3 benchmark");
   m.def(
       "warp_segreduce_partial", &warp_segreduce_partial, "warp segreduce partial");
 }

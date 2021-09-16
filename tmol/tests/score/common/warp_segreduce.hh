@@ -13,6 +13,12 @@ tmol::TPack<Vec<float, 3>, 1, tmol::Device::CUDA> gpu_warp_segreduce_full_vec3(
     tmol::TView<Vec<float, 3>, 1, tmol::Device::CUDA> values,
     tmol::TView<int, 1, tmol::Device::CUDA> flags);
 
+tmol::TPack<Vec<float, 3>, 1, tmol::Device::CUDA>
+gpu_warp_segreduce_vec3_benchmark(
+    tmol::TView<Vec<float, 3>, 1, tmol::Device::CUDA> values,
+    tmol::TView<int, 1, tmol::Device::CUDA> flags,
+    int n_repeats);
+
 tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_partial(
     tmol::TView<float, 1, tmol::Device::CUDA> values,
     tmol::TView<int, 1, tmol::Device::CUDA> flags);
