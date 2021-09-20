@@ -48,7 +48,8 @@ template <
     typename Real,
     typename Int>
 auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
-    TView<Vec<Real, 3>, 3, D> coords,
+    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
 
     // dims: n-poses x max-n-blocks x max-n-blocks
@@ -94,13 +95,14 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params
 
-    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 4, D>> {
+    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
   int const n_poses = coords.size(0);
-  int const max_n_blocks = coords.size(1);
-  int const max_n_atoms = coords.size(2);
+  int const max_n_pose_atoms = coords.size(0);
+  int const max_n_blocks = pose_stack_block_type.size(1);
+  int const max_n_block_atoms = block_type_atom_types.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
   int const max_n_tiles = block_type_n_heavy_atoms_in_tile.size(2);
   int const max_n_interblock_bonds =
@@ -110,7 +112,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
   assert(pose_stack_block_type.size(0) == n_poses);
-  assert(pose_stack_block_type.size(1) == max_n_blocks);
 
   assert(pose_stack_min_bond_separation.size(0) == n_poses);
   assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
@@ -128,21 +129,21 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(block_type_heavy_atoms_in_tile.size(1) == TILE_SIZE * max_n_tiles);
 
   assert(block_type_atom_types.size(0) == n_block_types);
-  assert(block_type_atom_types.size(1) == max_n_atoms);
+  assert(block_type_atom_types.size(1) == max_n_block_atoms);
 
   assert(block_type_n_interblock_bonds.size(0) == n_block_types);
 
   assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
 
   assert(block_type_path_distance.size(0) == n_block_types);
-  assert(block_type_path_distance.size(1) == max_n_atoms);
-  assert(block_type_path_distance.size(2) == max_n_atoms);
+  assert(block_type_path_distance.size(1) == max_n_block_atoms);
+  assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
   auto output_t = TPack<Real, 2, D>::zeros({2, n_poses});
   auto output = output_t.view;
 
   auto dV_dcoords_t =
-      TPack<Vec<Real, 3>, 4, D>::zeros({2, n_poses, max_n_blocks, max_n_atoms});
+      TPack<Vec<Real, 3>, 3, D>::zeros({2, n_poses, max_n_pose_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_block_spheres_t =
@@ -159,10 +160,12 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     int const block_ind = cta % max_n_blocks;
     int const block_type = pose_stack_block_type[pose_ind][block_ind];
     if (block_type < 0) return;
+    int const block_coord_offset =
+        pose_stack_block_coord_offset[pose_ind][block_ind];
     int const n_atoms = block_type_n_atoms[block_type];
     Vec<Real, 3> local_coords(0, 0, 0);
     for (int i = tid; i < n_atoms; i += blockDim.x) {
-      Vec<Real, 3> ci = coords[pose_ind][block_ind][i];
+      Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
       for (int j = 0; j < 3; ++j) {
         local_coords[j] += ci[j];
       }
@@ -172,7 +175,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     Vec<Real, 3> com;
     Real dmax(0);
 
-#ifdef __CUDA_ARCH__
+    // #ifdef __CUDACC__
+    __syncthreads();
     auto g = cooperative_groups::coalesced_threads();
     for (int i = 0; i < 3; ++i) {
       com[i] = tmol::score::common::reduce_tile_shfl(
@@ -187,7 +191,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     Real d2max = 0;
     // Now find maximum distance
     for (int i = tid; i < n_atoms; i += blockDim.x) {
-      Vec<Real, 3> ci = coords[pose_ind][block_ind][i];
+      Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
       Real d2 =
           ((ci[0] - com[0]) * (ci[0] - com[0])
            + (ci[1] - com[1]) * (ci[1] - com[1])
@@ -200,7 +204,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     dmax =
         tmol::score::common::reduce_tile_shfl(g, dmax, mgpu::maximum_t<Real>());
 
-#endif  // __CUDA_ARCH__
+    // #endif  // __CUDACC__
 
     if (tid == 0) {
       scratch_block_spheres[pose_ind][block_ind][0] = com[0];
@@ -270,6 +274,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
            int pose_ind,
            int block_ind1,
            int block_ind2,
+	   int block_coord_offset1,
+	   int block_coord_offset2,
            int tid,
            int start_atom1,
            int start_atom2,
@@ -374,8 +380,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           for (int j = 0; j < 3; ++j) {
 	      if (lj_dxyz_at1[j] != 0) {
               atomicAdd(
-                  &dV_dcoords[0][pose_ind][block_ind1]
-                             [atom_tile_ind1 + start_atom1][j],
+                  &dV_dcoords[0][pose_ind][block_coord_offset1 +
+                             atom_tile_ind1 + start_atom1][j],
 		  // &dlj_dcoords1[atom_tile_ind1][j],
 		  lj_dxyz_at1[j]);
             }
@@ -386,8 +392,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           for (int j = 0; j < 3; ++j) {
 	    if (lj_dxyz_at2[j] != 0) {
               atomicAdd(
-                  &dV_dcoords[0][pose_ind][block_ind2]
-                             [atom_tile_ind2 + start_atom2][j],
+                  &dV_dcoords[0][pose_ind][block_coord_offset2 +
+                             atom_tile_ind2 + start_atom2][j],
 		  // &dlj_dcoords2[atom_tile_ind2][j],
 		  lj_dxyz_at2[j]);
             }
@@ -637,6 +643,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       int pose_ind,
       int block_ind1,
       int block_ind2,
+	   int block_coord_offset1,
+	   int block_coord_offset2,
                                    int tid,
                                    int start_atom1,
                                    int start_atom2,
@@ -732,7 +740,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       for (int j = 0; j < 3; ++j) {
 	if (lk_dxyz_at1[j] != 0) {
 	  atomicAdd(
-	    &dV_dcoords[1][pose_ind][block_ind1][atom_tile_ind1 + start_atom1][j],
+	    &dV_dcoords[1][pose_ind][block_coord_offset1 + atom_tile_ind1 + start_atom1][j],
 	    lk_dxyz_at1[j]);
 	}
       }
@@ -741,7 +749,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       for (int j = 0; j < 3; ++j) {
 	if (lk_dxyz_at2[j] != 0) {
 	  atomicAdd(
-	    &dV_dcoords[1][pose_ind][block_ind2][atom_tile_ind2 + start_atom2][j],
+	    &dV_dcoords[1][pose_ind][block_coord_offset2 + atom_tile_ind2 + start_atom2][j],
 	    lk_dxyz_at2[j]);
 	}
       }
@@ -798,6 +806,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto score_intra_pairs_lj = ([=] MGPU_DEVICE(
                                    int pose_ind,
                                    int block_ind,
+                                   int block_coord_offset,
                                    int tid,
                                    int start_atom1,
                                    int start_atom2,
@@ -858,7 +867,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       for (int j = 0; j < 3; ++j) {
         if (lj_dxyz_at1[j] != 0) {
           atomicAdd(
-              &dV_dcoords[0][pose_ind][block_ind][atom_ind1][j],
+              &dV_dcoords[0][pose_ind][block_coord_offset + atom_ind1][j],
               lj_dxyz_at1[j]);
         }
       }
@@ -867,7 +876,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       for (int j = 0; j < 3; ++j) {
         if (lj_dxyz_at2[j] != 0) {
           atomicAdd(
-              &dV_dcoords[0][pose_ind][block_ind][atom_ind2][j],
+              &dV_dcoords[0][pose_ind][block_coord_offset + atom_ind2][j],
               lj_dxyz_at2[j]);
         }
       }
@@ -919,6 +928,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto score_intra_pairs_lk = ([=] MGPU_DEVICE(
       int pose_ind,
       int block_ind,
+      int block_coord_offset,
                                    int tid,
                                    int start_atom1,
                                    int start_atom2,
@@ -990,7 +1000,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       for (int j = 0; j < 3; ++j) {
 	if (lk_dxyz_at1[j] != 0) {
 	  atomicAdd(
-	    &dV_dcoords[1][pose_ind][block_ind][atom_ind1][j],
+	    &dV_dcoords[1][pose_ind][block_coord_offset + atom_ind1][j],
 	    lk_dxyz_at1[j]);
 	}
       }
@@ -999,7 +1009,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       for (int j = 0; j < 3; ++j) {
 	if (lk_dxyz_at2[j] != 0) {
 	  atomicAdd(
-	    &dV_dcoords[1][pose_ind][block_ind][atom_ind2][j],
+	    &dV_dcoords[1][pose_ind][block_coord_offset + atom_ind2][j],
 	    lk_dxyz_at2[j]);
 	}
       }
@@ -1053,7 +1063,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto load_block_coords_and_params_into_shared =
       ([=] MGPU_DEVICE(
            int pose_ind,
-           int block_ind,
+           int block_coord_offset,
            int n_atoms_to_load,
            int block_type,
            int tid,
@@ -1063,7 +1073,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
            unsigned char *heavy_inds) {
         mgpu::mem_to_shared<TILE_SIZE, 3>(
             reinterpret_cast<Real *>(
-                &coords[pose_ind][block_ind][TILE_SIZE * tile_ind]),
+                &coords[pose_ind][block_coord_offset + TILE_SIZE * tile_ind]),
             tid,
             n_atoms_to_load * 3,
             shared_coords,
@@ -1083,7 +1093,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   auto load_block_into_shared = ([=] MGPU_DEVICE(
                                      int pose_ind,
-                                     int block_ind,
+                                     int block_coord_offset,
                                      int n_atoms,
                                      int n_atoms_to_load,
                                      int block_type,
@@ -1099,7 +1109,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                  ) {
     load_block_coords_and_params_into_shared(
         pose_ind,
-        block_ind,
+        block_coord_offset,
         n_atoms_to_load,
         block_type,
         tid,
@@ -1183,6 +1193,10 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
     int const n_atoms1 = block_type_n_atoms[block_type1];
     int const n_atoms2 = block_type_n_atoms[block_type2];
+    int const block_coord_offset1 =
+        pose_stack_block_coord_offset[pose_ind][block_ind1];
+    int const block_coord_offset2 =
+        pose_stack_block_coord_offset[pose_ind][block_ind2];
 
     if (block_ind1 != block_ind2) {
       // inter-residue energy evaluation
@@ -1234,7 +1248,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
         load_block_into_shared(
             pose_ind,
-            block_ind1,
+            block_coord_offset1,
             n_atoms1,
             i_n_atoms_to_load1,
             block_type1,
@@ -1266,7 +1280,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               min(Int(TILE_SIZE), Int((n_atoms2 - TILE_SIZE * j)));
           load_block_into_shared(
               pose_ind,
-              block_ind2,
+              block_coord_offset2,
               n_atoms2,
               j_n_atoms_to_load2,
               block_type2,
@@ -1300,6 +1314,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               pose_ind,
               block_ind1,
               block_ind2,
+	      block_coord_offset1,
+	      block_coord_offset2,
               tid,
               i * TILE_SIZE,
               j * TILE_SIZE,
@@ -1320,9 +1336,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               shared.m.dscore_dxyz2*/);
 
           total_lk += score_inter_pairs_lk(
-            pose_ind,
-            block_ind1,
-            block_ind2,
+              pose_ind,
+              block_ind1,
+              block_ind2,
+              block_coord_offset1,
+              block_coord_offset2,
               tid,
               i * TILE_SIZE,
               j * TILE_SIZE,
@@ -1400,7 +1418,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
         load_block_coords_and_params_into_shared(
             pose_ind,
-            block_ind1,
+            block_coord_offset1,
             i_n_atoms_to_load1,
             block_type1,
             tid,
@@ -1427,7 +1445,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
             load_block_coords_and_params_into_shared(
                 pose_ind,
-                block_ind1,
+                block_coord_offset2,
                 j_n_atoms_to_load2,
                 block_type1,
                 tid,
@@ -1458,6 +1476,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           total_lj += score_intra_pairs_lj(
             pose_ind,
             block_ind1,
+	    block_coord_offset1,
               tid,
               i * TILE_SIZE,
               j * TILE_SIZE,
@@ -1474,6 +1493,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           total_lk += score_intra_pairs_lk(
             pose_ind,
             block_ind1,
+	    block_coord_offset1,
               tid,
               i * TILE_SIZE,
               j * TILE_SIZE,

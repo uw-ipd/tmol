@@ -35,7 +35,9 @@ template <
     typename Real,
     typename Int>
 auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
-    TView<Vec<Real, 3>, 3, D> coords,
+    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Int, 2, D> pose_stack_block_coord_offset,
+
     TView<Int, 2, D> pose_stack_block_type,
 
     // dims: n-poses x max-n-blocks x max-n-blocks
@@ -81,16 +83,16 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params
 
-    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 4, D>> {
+    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
   int const n_poses = coords.size(0);
-  int const max_n_blocks = coords.size(1);
-  int const max_n_atoms = coords.size(2);
+  int const max_n_pose_atoms = coords.size(1);
+  int const max_n_blocks = pose_stack_block_type.size(1);
+  int const max_n_block_atoms = block_type_atom_types.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
 
   assert(pose_stack_block_type.size(0) == n_poses);
-  assert(pose_stack_block_type.size(1) == max_n_blocks);
 
   assert(pose_stack_min_bond_separation.size(0) == n_poses);
   assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
@@ -103,12 +105,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
 
   assert(block_type_atom_types.size(0) == n_block_types);
-  assert(block_type_atom_types.size(1) == max_n_atoms);
   assert(block_type_n_interblock_bonds.size(0) == n_block_types);
   assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
   assert(block_type_path_distance.size(0) == n_block_types);
-  assert(block_type_path_distance.size(1) == max_n_atoms);
-  assert(block_type_path_distance.size(2) == max_n_atoms);
+  assert(block_type_path_distance.size(1) == max_n_block_atoms);
+  assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
   // auto wcts = std::chrono::system_clock::now();
   // clock_t start_time = clock();
@@ -117,7 +118,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto output = output_t.view;
 
   auto dV_dcoords_t =
-      TPack<Vec<Real, 3>, 4, D>::zeros({2, n_poses, max_n_blocks, max_n_atoms});
+      TPack<Vec<Real, 3>, 3, D>::zeros({2, n_poses, max_n_pose_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto eval_atom_pair =
@@ -136,6 +137,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         if (block_type1 == -1 || block_type2 == -1) {
           return;
         }
+
+        int const block_coord_offset1 =
+            pose_stack_block_coord_offset[pose_ind][block_ind1];
+        int const block_coord_offset2 =
+            pose_stack_block_coord_offset[pose_ind][block_ind2];
 
         int atom_type1 = -1;
         int atom_type2 = -1;
@@ -187,8 +193,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
           at1 = atom_ind1;
           at2 = atom_ind2;
-          coord1 = coords[pose_ind][block_ind1][atom_ind1];
-          coord2 = coords[pose_ind][block_ind2][atom_ind2];
+          coord1 = coords[pose_ind][block_coord_offset1 + atom_ind1];
+          coord2 = coords[pose_ind][block_coord_offset2 + atom_ind2];
 
           dist = distance<Real>::V_dV(coord1, coord2);
 
@@ -218,8 +224,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           //   return;
           // }
 
-          coord1 = coords[pose_ind][block_ind1][atom_ind1];
-          coord2 = coords[pose_ind][block_ind1][atom_ind2];
+          coord1 = coords[pose_ind][block_coord_offset1 + atom_ind1];
+          coord2 = coords[pose_ind][block_coord_offset1 + atom_ind2];
           dist = distance<Real>::V_dV(coord1, coord2);
 
           separation =
@@ -260,21 +266,29 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
         accumulate<D, Real>::add_one_dst(output[0], pose_ind, lj.V);
         accumulate<D, Vec<Real, 3>>::add_one_dst(
-            dV_dcoords[0][pose_ind][block_ind1], at1, lj.dV_ddist * dist.dV_dA);
+            dV_dcoords[0][pose_ind],
+            block_coord_offset1 + at1,
+            lj.dV_ddist * dist.dV_dA);
         accumulate<D, Vec<Real, 3>>::add_one_dst(
-            dV_dcoords[0][pose_ind][block_ind2], at2, lj.dV_ddist * dist.dV_dB);
+            dV_dcoords[0][pose_ind],
+            block_coord_offset2 + at2,
+            lj.dV_ddist * dist.dV_dB);
 
         accumulate<D, Real>::add_one_dst(output[1], pose_ind, lk.V);
         accumulate<D, Vec<Real, 3>>::add_one_dst(
-            dV_dcoords[1][pose_ind][block_ind1], at1, lk.dV_ddist * dist.dV_dA);
+            dV_dcoords[1][pose_ind],
+            block_coord_offset1 + at1,
+            lk.dV_ddist * dist.dV_dA);
         accumulate<D, Vec<Real, 3>>::add_one_dst(
-            dV_dcoords[1][pose_ind][block_ind2], at2, lk.dV_ddist * dist.dV_dB);
+            dV_dcoords[1][pose_ind],
+            block_coord_offset2 + at2,
+            lk.dV_ddist * dist.dV_dB);
       });
 
   DeviceDispatch<D>::foreach_combination_triple(
       n_poses,
       max_n_blocks * max_n_blocks,
-      max_n_atoms * max_n_atoms,
+      max_n_block_atoms * max_n_block_atoms,
       eval_atom_pair);
 
   return {output_t, dV_dcoords_t};
@@ -288,9 +302,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // (std::chrono::system_clock::now() - wcts);
   //
   // std::cout << n_poses << " " << n_contexts << " " <<n_alternate_blocks <<
-  // " "; std::cout << n_alternate_blocks * max_n_neighbors * max_n_atoms *
-  // max_n_atoms << " "; std::cout << "runtime? " << ((double)stop_time -
-  // start_time) / CLOCKS_PER_SEC
+  // " "; std::cout << n_alternate_blocks * max_n_neighbors * max_n_block_atoms
+  // * max_n_block_atoms << " "; std::cout << "runtime? " << ((double)stop_time
+  // - start_time) / CLOCKS_PER_SEC
   //           << " wall time: " << wctduration.count() << " " << first
   //           << std::endl;
 #endif

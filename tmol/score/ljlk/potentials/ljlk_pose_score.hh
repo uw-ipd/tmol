@@ -33,7 +33,8 @@ template <
     typename Int>
 struct LJLKPoseScoreDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 3, D> coords,
+      TView<Vec<Real, 3>, 2, D> coords,
+      TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
 
       // dims: n-systems x max-n-blocks x max-n-blocks
@@ -79,7 +80,7 @@ struct LJLKPoseScoreDispatch {
       TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params
 
-      ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 4, D>>;
+      ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>>;
 };
 
 }  // namespace potentials

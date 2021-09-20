@@ -6,6 +6,7 @@ from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores
 class LJLKWholePoseScoringModule(torch.nn.Module):
     def __init__(
         self,
+        pose_stack_block_coord_offset,
         pose_stack_block_types,
         pose_stack_min_block_bondsep,
         pose_stack_inter_block_bondsep,
@@ -29,6 +30,7 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
 
+        self.pose_stack_block_coord_offset = _p(pose_stack_block_coord_offset)
         self.pose_stack_block_types = _p(pose_stack_block_types)
         self.pose_stack_min_block_bondsep = _p(pose_stack_min_block_bondsep)
         self.pose_stack_inter_block_bondsep = _p(pose_stack_inter_block_bondsep)
@@ -85,6 +87,7 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
     def forward(self, coords):
         return ljlk_pose_scores(
             coords,
+            self.pose_stack_block_coord_offset,
             self.pose_stack_block_types,
             self.pose_stack_min_block_bondsep,
             self.pose_stack_inter_block_bondsep,

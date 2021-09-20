@@ -201,6 +201,7 @@ public:
   static Tensor forward(
       AutogradContext* ctx,
       Tensor coords,
+      Tensor posck_stack_block_coord_offset,
 
       Tensor pose_stack_block_type,
       Tensor pose_stack_min_bond_separation,
@@ -227,22 +228,23 @@ public:
           constexpr tmol::Device Dev = device_t;
 
           auto result = LJLKPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::f(
-	    TCAST(coords),
+            TCAST(coords),
+            TCAST(posck_stack_block_coord_offset),
 
-	    TCAST(pose_stack_block_type),
-	    TCAST(pose_stack_min_bond_separation),
-	    TCAST(pose_stack_inter_block_bondsep),
-	    TCAST(block_type_n_atoms),
-	    TCAST(block_type_n_heavy_atoms_in_tile),
+            TCAST(pose_stack_block_type),
+            TCAST(pose_stack_min_bond_separation),
+            TCAST(pose_stack_inter_block_bondsep),
+            TCAST(block_type_n_atoms),
+            TCAST(block_type_n_heavy_atoms_in_tile),
 
-	    TCAST(block_type_heavy_atoms_in_tile),
-	    TCAST(block_type_atom_types),
-	    TCAST(block_type_n_interblock_bonds),
-	    TCAST(block_type_atoms_forming_chemical_bonds),
-	    TCAST(block_type_path_distance),
+            TCAST(block_type_heavy_atoms_in_tile),
+            TCAST(block_type_atom_types),
+            TCAST(block_type_n_interblock_bonds),
+            TCAST(block_type_atoms_forming_chemical_bonds),
+            TCAST(block_type_path_distance),
 
-	    TCAST(type_params),
-	    TCAST(global_params));
+            TCAST(type_params),
+            TCAST(global_params));
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -271,6 +273,7 @@ public:
 
     return {
         dscore_dcoords,
+        torch::Tensor(),
 
         torch::Tensor(),
         torch::Tensor(),
@@ -356,6 +359,7 @@ template <
   class DispatchMethod>
 Tensor ljlk_pose_scores_op(
   Tensor coords,
+  Tensor pose_stack_block_coord_offset,
 
   Tensor pose_stack_block_type,
   Tensor pose_stack_min_bond_separation,
@@ -374,6 +378,7 @@ Tensor ljlk_pose_scores_op(
 ) {
   return LJLKPoseScoreOp<DispatchMethod>::apply(
     coords,
+    pose_stack_block_coord_offset,
 
     pose_stack_block_type,
     pose_stack_min_bond_separation,
@@ -424,13 +429,13 @@ rotamer_pair_energies_op(
 
   TMOL_DISPATCH_FLOATING_DEVICE(
     context_coords.type(), "score_op", ([&] {
-	using Real = scalar_t;
-	constexpr tmol::Device Dev = device_t;
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
 
-	auto output_tp = TPack<Real, 1, Dev>::zeros({alternate_coords.size(0)});
-	auto output_tv = output_tp.view;
+        auto output_tp = TPack<Real, 1, Dev>::zeros({alternate_coords.size(0)});
+        auto output_tv = output_tp.view;
 
-	LJLKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+        LJLKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -440,22 +445,22 @@ rotamer_pair_energies_op(
           TCAST(system_inter_block_bondsep),
           TCAST(system_neighbor_list),
           TCAST(block_type_n_atoms),
-	  TCAST(block_type_n_heavy_atoms_in_tile),
-	  TCAST(block_type_heavy_atoms_in_tile),
+          TCAST(block_type_n_heavy_atoms_in_tile),
+          TCAST(block_type_heavy_atoms_in_tile),
           TCAST(block_type_atom_types),
           TCAST(block_type_n_interblock_bonds),
           TCAST(block_type_atoms_forming_chemical_bonds),
           TCAST(block_type_path_distance),
           TCAST(ljlk_type_params),
           TCAST(global_params),
-	  TCAST(lj_lk_weights),
-	  output_tv,
-	  empty_score_event_tensor.view,
-	  empty_annealer_event_tensor.view
-	);
+          TCAST(lj_lk_weights),
+          output_tv,
+          empty_score_event_tensor.view,
+          empty_annealer_event_tensor.view
+        );
 
-	/*
-	LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+        /*
+        LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -465,7 +470,7 @@ rotamer_pair_energies_op(
           TCAST(system_inter_block_bondsep),
           TCAST(system_neighbor_list),
           TCAST(block_type_n_heavy_atoms),
-	  TCAST(block_type_heavy_atom_inds),
+          TCAST(block_type_heavy_atom_inds),
           TCAST(block_type_atom_types),
           TCAST(block_type_n_interblock_bonds),
           TCAST(block_type_atoms_forming_chemical_bonds),
@@ -473,10 +478,10 @@ rotamer_pair_energies_op(
           TCAST(lk_type_params),
           TCAST(global_params),
           TCAST(lj_lk_weights),
-	  output_tv
-	);
-	*/
-	output_tensor = output_tp.tensor;
+          output_tv
+        );
+        */
+        output_tensor = output_tp.tensor;
       }));
 
   return output_tensor;
@@ -515,10 +520,10 @@ register_lj_lk_rotamer_pair_energy_eval(
 
   TMOL_DISPATCH_FLOATING_DEVICE(
     context_coords.type(), "score_op", ([&] {
-	using Real = scalar_t;
-	constexpr tmol::Device Dev = device_t;
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
 
-	LJLKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+        LJLKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -528,23 +533,23 @@ register_lj_lk_rotamer_pair_energy_eval(
           TCAST(system_inter_block_bondsep),
           TCAST(system_neighbor_list),
           TCAST(block_type_n_atoms),
-	  TCAST(block_type_n_heavy_atoms_in_tile),
-	  TCAST(block_type_heavy_atoms_in_tile),
+          TCAST(block_type_n_heavy_atoms_in_tile),
+          TCAST(block_type_heavy_atoms_in_tile),
           TCAST(block_type_atom_types),
           TCAST(block_type_n_interblock_bonds),
           TCAST(block_type_atoms_forming_chemical_bonds),
           TCAST(block_type_path_distance),
           TCAST(ljlk_type_params),
           TCAST(global_params),
-	  TCAST(lj_lk_weights),
-	  TCAST(output),
-	  TCAST(score_event),
-	  TCAST(annealer_event),
-	  TCAST(annealer)
-	);
+          TCAST(lj_lk_weights),
+          TCAST(output),
+          TCAST(score_event),
+          TCAST(annealer_event),
+          TCAST(annealer)
+        );
 
 
-	/*LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+        /*LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
           TCAST(context_coords),
           TCAST(context_block_type),
           TCAST(alternate_coords),
@@ -554,7 +559,7 @@ register_lj_lk_rotamer_pair_energy_eval(
           TCAST(system_inter_block_bondsep),
           TCAST(system_neighbor_list),
           TCAST(block_type_n_heavy_atoms),
-	  TCAST(block_type_heavy_atom_inds),
+          TCAST(block_type_heavy_atom_inds),
           TCAST(block_type_atom_types),
           TCAST(block_type_n_interblock_bonds),
           TCAST(block_type_atoms_forming_chemical_bonds),
@@ -562,10 +567,10 @@ register_lj_lk_rotamer_pair_energy_eval(
           TCAST(lk_type_params),
           TCAST(global_params),
           TCAST(lj_lk_weights),
-	  TCAST(output),
-	  TCAST(annealer)
-	);
-	*/
+          TCAST(output),
+          TCAST(annealer)
+        );
+        */
       }));
   return dummy_return_value;
 }

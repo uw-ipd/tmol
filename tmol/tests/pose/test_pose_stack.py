@@ -1,4 +1,5 @@
 import numpy
+import torch
 
 from tmol.chemical.restypes import find_simple_polymeric_connections
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
@@ -19,7 +20,7 @@ def test_pose_stack_connection_ctor(ubq_res, torch_device):
 
     assert p.residue_coords.shape == (1, 1228, 3)
     assert p.coords.shape == p.residue_coords.shape
-    assert p.block_offset.shape == (1, n_ubq_res)
+    assert p.block_coord_offset.shape == (1, n_ubq_res)
     assert p.inter_residue_connections.shape == (1, n_ubq_res, max_n_conn, 2)
     assert p.inter_block_bondsep.shape == (
         1,
@@ -31,11 +32,31 @@ def test_pose_stack_connection_ctor(ubq_res, torch_device):
     assert p.block_type_ind.shape == (1, n_ubq_res)
 
     assert p.coords.device == torch_device
-    assert p.block_offset.device == torch_device
+    assert p.block_coord_offset.device == torch_device
     assert p.inter_residue_connections.device == torch_device
     assert p.inter_block_bondsep.device == torch_device
     assert p.block_type_ind.device == torch_device
     assert p.device == torch_device
+
+    ubq_res_block_types = p.packed_block_types.inds_for_res(ubq_res)
+    nats_per_block = p.packed_block_types.n_atoms[ubq_res_block_types]
+    nats_per_block_coord_offset = torch.cumsum(nats_per_block, 0)
+    numpy.testing.assert_equal(
+        nats_per_block_coord_offset[:-1].cpu().numpy(),
+        p.block_coord_offset[0][1:].cpu().numpy(),
+    )
+
+    res_coords_gold = numpy.zeros(
+        (nats_per_block_coord_offset[-1], 3), dtype=numpy.float32
+    )
+    for i, res in enumerate(ubq_res):
+        i_offset = nats_per_block_coord_offset[i - 1] if i > 0 else 0
+        res_coords_gold[(i_offset) : (i_offset + nats_per_block[i])] = res.coords
+
+    numpy.testing.assert_allclose(
+        res_coords_gold, p.residue_coords[0], atol=1e-5, rtol=1e-5
+    )
+    numpy.testing.assert_allclose(res_coords_gold, p.coords[0].cpu().numpy())
 
 
 def test_pose_stack_one_structure_from_polymeric_residues_ctor(ubq_res, torch_device):

@@ -92,6 +92,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
         return LJLKWholePoseScoringModule(
+            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
             pose_stack_block_types=pose_stack.block_type_ind,
             pose_stack_min_block_bondsep=pose_stack.min_block_bondsep,
             pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
