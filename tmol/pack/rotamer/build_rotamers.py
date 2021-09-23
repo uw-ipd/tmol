@@ -87,6 +87,23 @@ class RotamerSet(ValidateAttrs):
 def rebuild_poses_if_necessary(
     poses: PoseStack, task: PackerTask
 ):  # -> Tuple[PoseStack, Tuple[ChiSampler, ...]]:
+    """Examine the BlockTypes that the packer will entertain for the input PoseStack
+    and, if there are BlockTypes that the PoseStack is not currently using,
+    build a new PoseStack including thos BlockTypes in its PackedBlockTypes
+    datastore. Also return the set of ChiSamplers that are collectively
+    held in the PackerTask.
+
+    Note: the ChiSamplers are put into a set, as are the BlockTypes. Both
+    require the classes to implement stable __hash__ and __eq__ methods,
+    so that the order in which samplers and block types are used/listed
+    is consistent between runs (and will not change when the addresses
+    that these objects are allocated in changes between runs).
+
+    This code, in its reliance on the id() function, is currently "unstable"
+    in that it can produce different results between executions, even if the
+    same random seed is provided
+    """
+
     all_restypes = {}
     samplers = set([])
 
@@ -121,28 +138,9 @@ def rebuild_poses_if_necessary(
         pbt = PackedBlockTypes.from_restype_list(
             [rt for rt_id, rt in all_restypes.items()], poses.packed_block_types.device
         )
-        block_type_ind = torch.full_like(poses.block_type_ind, -1)
-        # this could be more efficient if we mapped orig_block_type to new_block_type
-        for i, res in enumerate(poses.residues):
-            block_type_ind[i, : len(res)] = torch.tensor(
-                pbt.inds_for_res(res), dtype=torch.int32, device=poses.device
-            )
-        if poses.packed_block_types.max_n_atoms != pbt.max_n_atoms:
-            new_coords = torch.zeros(
-                (poses.coords.shape[0], poses.coords.shape[1], pbt.max_n_atoms, 3),
-                dtype=torch.float32,
-                device=poses.coords.device,
-            )
-        else:
-            new_coords = poses.coords.clone()
-        poses = attr.evolve(
-            poses,
-            packed_block_types=pbt,
-            coords=new_coords,
-            block_type_ind=block_type_ind,
-        )
-    else:
-        pbt = poses.packed_block_types
+
+        # rebuild the PoseStack with a new packed_block_types
+        poses = poses.rebuild_with_new_packed_block_types(packed_block_types=pbt)
 
     return poses, samplers
 
@@ -432,10 +430,37 @@ def measure_pose_dofs(poses):
     pbti = poses.block_type_ind.view(-1)
     orig_res_block_type_ind = pbti[pbti != -1]
     real_poses_blocks = pbti != -1
-    nz_real_poses_blocks = torch.nonzero(real_poses_blocks).flatten()
-    orig_atom_offset_for_poses_blocks = (
-        nz_real_poses_blocks.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms
+
+    # old coordinate layout: n-poses x max-n-res x max-n-atoms x 3
+    # nz_real_poses_blocks = torch.nonzero(real_poses_blocks).flatten()
+    # orig_atom_offset_for_poses_blocks = (
+    #     nz_real_poses_blocks.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms
+    # )
+
+    # new coordinate layout: n-poses x max-n-atoms-per-pose x 3
+    # offsets provided by the pose stack
+    n_poses = poses.coords.shape[0]
+    max_n_atoms_per_pose = poses.coords.shape[1]
+    max_n_blocks_per_pose = poses.block_coord_offset.shape[1]
+    per_pose_offset = max_n_atoms_per_pose * stretch(
+        torch.arange(n_poses, dtype=torch.int32, device=poses.device),
+        max_n_blocks_per_pose,
     )
+    orig_atom_offset_for_poses_blocks = (
+        (
+            poses.block_coord_offset.flatten()[real_poses_blocks]
+            + per_pose_offset[real_poses_blocks]
+        )
+        .cpu()
+        .numpy()
+    )
+
+    # print("orig atom offset for poses blocks")
+    # print(orig_atom_offset_for_poses_blocks)
+    # print("coords.reshape(-1,3).shape")
+    # print(poses.coords.reshape(-1,3).shape)
+    #
+    # return
 
     n_atoms_for_orig = pbt.n_atoms[orig_res_block_type_ind.to(torch.int64)]
     n_atoms_offset_for_orig = torch.cumsum(n_atoms_for_orig, dim=0)
@@ -599,7 +624,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     )
 
     # get the residue index for each rotamer
-    max_n_blocks = poses.coords.shape[1]
+    max_n_blocks = poses.block_coord_offset.shape[1]
     res_ind_for_rt = torch.tensor(
         [
             i * max_n_blocks + j

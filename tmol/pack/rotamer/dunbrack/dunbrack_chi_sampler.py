@@ -78,10 +78,7 @@ class DunbrackChiSampler:
     @classmethod
     @validate_args
     def from_database(cls, param_resolver: DunbrackParamResolver):
-        return cls(
-            dun_param_resolver=param_resolver,
-            # sampling_params=param_resolver.sampling_db,
-        )
+        return cls(dun_param_resolver=param_resolver)
 
     @classmethod
     def sampler_name(cls):

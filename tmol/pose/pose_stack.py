@@ -82,6 +82,7 @@ class PoseStack:
             packed_block_types, block_type_ind, [res]
         )
         coords = torch.tensor(residue_coords, dtype=torch.float32, device=device)
+        attached_res = cls.attach_residues(block_coord_offset, [res], residue_coords)
 
         return cls(
             packed_block_types=packed_block_types,
@@ -120,22 +121,15 @@ class PoseStack:
             torch.tensor([len(ps) for ps in pose_stacks], dtype=torch.int64)
         )
         block_coord_offset_cpu = block_coord_offset.cpu()
-        residues = [
+        residues = cls.attach_residues(
+            block_coord_offset_cpu,
             [
-                r.attach_to(
-                    residue_coords[
-                        ps_offset[i] + j,
-                        block_coord_offset_cpu[ps_offset[i] + j, k] : (
-                            block_coord_offset_cpu[ps_offset[i] + j, k]
-                            + len(r.residue_type.atoms)
-                        ),
-                    ]
-                )
-                for k, r in enumerate(pose_res)
-            ]
-            for i, pose_stack in enumerate(pose_stacks)
-            for j, pose_res in enumerate(pose_stack.residues)
-        ]
+                one_pose_residues
+                for pose_stack in pose_stacks
+                for one_pose_residues in pose_stack.residues
+            ],
+            residue_coords,
+        )
 
         inter_residue_connections = cls.inter_residue_connections_from_pose_stacks(
             packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
@@ -157,6 +151,47 @@ class PoseStack:
             inter_block_bondsep=inter_block_bondsep,
             block_type_ind=block_type_ind,
             device=device,
+        )
+
+    def rebuild_with_new_packed_block_types(self, packed_block_types) -> "PoseStack":
+        """Create a new PoseStack object replacing the existing PackedBlockTypes
+        object with a new one, and then rebuilding the other data members that
+        depend on it.
+        """
+        # The input packed_block_types must contain the block types of
+        # the PoseStack's existing set of in-use residue types (but not necessarily
+        # all of the block types that its PackedBlockTypes object holds)
+        for pose_res_list in self.residues:
+            for res in pose_res_list:
+                assert res.residue_type in packed_block_types.active_block_types
+
+        coords = self.coords.clone()
+
+        block_type_ind = torch.full_like(self.block_type_ind, -1)
+        # this could be more efficient if we mapped orig_block_type to new_block_type
+        for i, res in enumerate(self.residues):
+            block_type_ind[i, : len(res)] = torch.tensor(
+                packed_block_types.inds_for_res(res),
+                dtype=torch.int32,
+                device=self.device,
+            )
+
+        residue_coords = coords.to(dtype=torch.float64).cpu().numpy()
+
+        residues = self.attach_residues(
+            self.block_coord_offset.cpu(), self.residues, residue_coords
+        )
+
+        return PoseStack(
+            packed_block_types=packed_block_types,
+            residues=residues,
+            residue_coords=residue_coords,
+            coords=coords,
+            block_coord_offset=self.block_coord_offset,
+            inter_residue_connections=self.inter_residue_connections,
+            inter_block_bondsep=self.inter_block_bondsep,
+            block_type_ind=block_type_ind,
+            device=self.device,
         )
 
     # @validate_args
@@ -450,6 +485,29 @@ class PoseStack:
             ] = p.block_coord_offset
             count += len(p)
         return coords, block_coord_offset
+
+    @classmethod
+    def attach_residues(
+        cls,
+        block_coord_offset_cpu: Tensor[torch.int32][:],
+        orig_res: Sequence[Sequence[Residue]],
+        residue_coords: NDArray[numpy.float64][:, :, 3],
+    ) -> Sequence[Sequence[Residue]]:
+
+        return [
+            [
+                r.attach_to(
+                    residue_coords[
+                        i,
+                        block_coord_offset_cpu[i, j] : (
+                            block_coord_offset_cpu[i, j] + len(r.residue_type.atoms)
+                        ),
+                    ]
+                )
+                for j, r in enumerate(orig_res_list)
+            ]
+            for i, orig_res_list in enumerate(orig_res)
+        ]
 
     @classmethod
     def inter_residue_connections_from_pose_stacks(

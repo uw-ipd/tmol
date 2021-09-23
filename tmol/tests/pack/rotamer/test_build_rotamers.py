@@ -28,7 +28,7 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
 
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 
 
 def test_annotate_restypes(
@@ -319,7 +319,7 @@ def test_inv_kin_rotamers(
     coords = torch.cat(
         (
             torch.zeros((1, 3), dtype=torch.float32, device=torch_device),
-            p.coords[0, 0][met_kt_id[1:].to(torch.int64)],
+            p.coords[0, met_kt_id[1:].to(torch.int64)],
         )
     )
 
@@ -415,9 +415,7 @@ def test_inv_kin_rotamers(
     for at in ("N", "H", "CA", "HA", "C", "O"):
         at_met = met_rt.atom_to_idx[at]
         at_leu = leu_rt.atom_to_idx[at]
-        assert (
-            torch.norm(p.coords[0, 0, at_met, :] - reordered_coords[at_leu, :]) < 1e-5
-        )
+        assert torch.norm(p.coords[0, at_met, :] - reordered_coords[at_leu, :]) < 1e-5
 
 
 def test_construct_kintree_for_rotamers(
@@ -730,17 +728,33 @@ def test_measure_original_dofs2(
 
     block_type_ind = poses.block_type_ind.view(-1)
     real_block_type_ind = block_type_ind != -1
-    nz_real_block_type_ind = torch.nonzero(real_block_type_ind).flatten()
+    # nz_real_block_type_ind = torch.nonzero(real_block_type_ind).flatten()
     block_type_ind = block_type_ind[block_type_ind != -1]
     res_n_atoms = pbt.n_atoms[block_type_ind.to(torch.int64)]
     n_total_atoms = torch.sum(res_n_atoms).item()
+
+    n_poses = poses.coords.shape[0]
+    max_n_atoms_per_pose = poses.coords.shape[1]
+    max_n_blocks_per_pose = poses.block_coord_offset.shape[1]
+    per_pose_offset = max_n_atoms_per_pose * stretch(
+        torch.arange(n_poses, dtype=torch.int32, device=poses.device),
+        max_n_blocks_per_pose,
+    )
+    orig_atom_offset_for_poses_blocks = (
+        (
+            poses.block_coord_offset.flatten()[real_block_type_ind]
+            + per_pose_offset[real_block_type_ind]
+        )
+        .cpu()
+        .numpy()
+    )
 
     kintree = construct_kintree_for_rotamers(
         pbt,
         block_type_ind.cpu().numpy(),
         n_total_atoms,
         res_n_atoms,
-        nz_real_block_type_ind.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms,
+        orig_atom_offset_for_poses_blocks,
         torch_device,
     )
 
@@ -787,7 +801,7 @@ def test_measure_original_dofs2(
     new_coords = new_coords.view(poses.coords.shape)
 
     for i in range(poses.coords.shape[0]):
-        for j in range(poses.coords.shape[1]):
+        for j in range(poses.block_coord_offset.shape[1]):
             if poses.block_type_ind[i, j] == -1:
                 continue
             j_n_atoms = poses.residues[i][j].residue_type.n_atoms
@@ -1080,9 +1094,25 @@ def test_create_dofs_for_many_rotamers(
     pbi = poses.block_type_ind.view(-1)
     orig_res_block_ind = pbi[pbi != -1]
     real_orig_block_ind = orig_res_block_ind != -1
-    nz_real_orig_block_ind = torch.nonzero(real_orig_block_ind).flatten()
+    # old coords layout
+    # nz_real_orig_block_ind = torch.nonzero(real_orig_block_ind).flatten()
+    # orig_atom_offset_for_rot = (
+    #     nz_real_orig_block_ind.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms
+    # )
+    n_poses = poses.coords.shape[0]
+    max_n_atoms_per_pose = poses.coords.shape[1]
+    max_n_blocks_per_pose = poses.block_coord_offset.shape[1]
+    per_pose_offset = max_n_atoms_per_pose * stretch(
+        torch.arange(n_poses, dtype=torch.int32, device=poses.device),
+        max_n_blocks_per_pose,
+    )
     orig_atom_offset_for_rot = (
-        nz_real_orig_block_ind.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms
+        (
+            poses.block_coord_offset.flatten()[real_orig_block_ind]
+            + per_pose_offset[real_orig_block_ind]
+        )
+        .cpu()
+        .numpy()
     )
 
     n_atoms_for_orig = pbt.n_atoms[orig_res_block_ind.to(torch.int64)]
