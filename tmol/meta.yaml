@@ -27,7 +27,7 @@ requirements:
   - binutils_linux-64=2.34
   - biopython=1.77
   - black=18.6b4
-  - blas=1.0=mkl
+  - blas=1.0
   - bleach=3.1.5
   - brotlipy=0.7.0
   - bzip2=1.0.8
