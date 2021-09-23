@@ -1,0 +1,85 @@
+package:
+  name: "tmol"
+  version: "0.0.2"
+
+source:
+  git_rev: v1.0
+  git_url: https://github.com/uw-ipd/tmol/archive/refs/tags/0.0.2.tar.gz
+
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python
+    - ipython
+    - numpy==1.14.*
+    - pandas==0.22
+    - numba::numba==0.40
+    - scipy=1.1.*
+    - requests
+    - toolz
+    - pyyaml
+    - astor
+    - zarr
+    # linux.cuda
+    - cudatoolkit-dev=11.4.0
+    - pytorch::pytorch=1.0.1
+    - gxx_linux-64=7.3
+    # test
+    - pytest=3.8.*
+    - pytest-cov
+    - flake8
+    - uw-ipd::clangdev=7.*
+    - virtualenv
+    - psutil
+    - seaborn
+    # docs
+    - graphviz
+    - sphinx=1.7.6
+    - sphinx_rtd_theme
+    # support
+    - pyrosetta
+    # dev
+    - ipykernel
+    - seaborn
+    - biopython
+    - line_profiler
+    # core
+    - pint
+    - attrs
+    - cattrs
+    - frozendict
+    - sparse==0.3.1
+    # test
+    - codecov
+    - black==18.6b4
+    - pre-commit
+    - flake8-bugbear==18.8.0
+    - pytest-xdist==1.26.1
+    - pytest-faulthandler
+    - git+http://github.com/uw-ipd/pytest-benchmark@9e50085
+    - py3Dmol
+    - hypothesis
+    - itermplot
+    # docs
+    - better-apidoc==0.2.0
+    - aafigure>=0.6
+    # dev
+    - pytest-watch
+    - pytest-instafail
+    - pytest-repeat
+    - pdbpp
+
+
+
+about:
+  home: https://github.com/uw-ipd/tmol
+  license: MIT
+  license_file: LICENSE
+  summary: "tmol is a gpu-enabled recreation of a subset of Rosetta's functionality, intended for integration into machine learning workflows."
+
+extra:
+  recipe-maintainers:
+    - fdimaio
+    - aleaverfay
