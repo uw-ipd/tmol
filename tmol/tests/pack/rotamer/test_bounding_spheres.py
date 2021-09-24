@@ -65,12 +65,13 @@ def test_create_rotamer_bounding_spheres_smoke(
 
     bti = poses.block_type_ind.cpu()
     pcoords = poses.coords.cpu()
+    pbco = poses.block_coord_offset.cpu()
     for i, j in [(0, 1), (2, 2)]:
         ij_n_atoms = n_atoms[bti[i, j]]
         ij_sphere_coord = bounding_spheres[i, j, :3]
         ij_radius = bounding_spheres[i, j, 3]
         for k in range(ij_n_atoms):
-            kcoord = pcoords[i, j, k]
+            kcoord = pcoords[i, pbco[i, j] + k]
             dist = torch.norm(ij_sphere_coord - kcoord, dim=0)
             assert dist < ij_radius + fudge
 

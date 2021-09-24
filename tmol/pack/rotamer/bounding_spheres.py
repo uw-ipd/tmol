@@ -7,9 +7,10 @@ from tmol.pack.rotamer.build_rotamers import RotamerSet
 
 
 def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
-    torch_device = poses.coords.device
-    n_poses = poses.coords.shape[0]
-    max_n_blocks = poses.coords.shape[1]
+    torch_device = poses.device
+    n_poses = poses.n_poses
+    max_n_pose_atoms = poses.max_n_pose_atoms
+    max_n_blocks = poses.max_n_blocks
     n_rots = rotamer_set.pose_for_rot.shape[0]
 
     bounding_spheres = torch.full(
@@ -36,18 +37,7 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
     n_ats = torch.zeros(
         (n_poses * max_n_blocks,), dtype=torch.int32, device=torch_device
     )
-    # print("global_block_ind_for_rot")
-    # print(global_block_ind_for_rot.shape)
-    # print("n_ats_for_rot")
-    # print(n_ats_for_rot.shape)
     n_ats.index_add_(0, global_block_ind_for_rot, n_ats_for_rot)
-
-    # print("centers_of_mass")
-    # print(centers_of_mass.shape)
-    # print("n_ats")
-    # print(n_ats)
-    # print("n_ats != 0")
-    # print(n_ats[n_ats != 0])
 
     centers_of_mass[n_ats != 0] = centers_of_mass[n_ats != 0] / n_ats[
         n_ats != 0
@@ -65,14 +55,8 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
         )[at_is_real]
         - rotamer_set.coords[at_is_real]
     )
-    # print("diff_w_com[:10]")
-    # print(diff_w_com[:10])
     atom_dist_to_com = torch.norm(diff_w_com, dim=2)
-    # print("atom_dist_to_com")
-    # print(atom_dist_to_com[:10])
     rot_dist_to_com = torch.max(atom_dist_to_com, dim=1)[0]
-    # print("rot_dist_to_com")
-    # print(rot_dist_to_com[:10])
 
     # now I need to get the max for all the rotamers at a single position, and I
     # don't know how to do that except 1) segmented scan on max in c++, or
@@ -93,17 +77,54 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
         ),
     ] = rot_dist_to_com
     sphere_radius = torch.max(rot_dist_to_com_big, dim=1)[0]
-    # print("sphere_radius")
-    # print(sphere_radius)
     bounding_spheres = torch.zeros(
         (n_poses * max_n_blocks, 4), dtype=torch.float32, device=torch_device
     )
     bounding_spheres[:, 3][n_ats != 0] = sphere_radius[n_ats != 0]
     bounding_spheres[:, :3][n_ats != 0] = centers_of_mass[n_ats != 0]
-    # print("bounding_spheres 1")
-    # print(bounding_spheres)
 
-    background_centers_of_mass = torch.sum(poses.coords, dim=2).reshape(-1, 3)
+    # load the coordinates for the poses into a 4D tensor out of the
+    # 3D tensor and then we can compute center of mass by just summing
+    # along the 3rd dimension
+
+    # get the list of real atoms that we will be writing to in the 4D tensor
+    arange_inds = torch.arange(
+        n_poses * max_n_blocks * max_n_atoms, dtype=torch.int64, device=torch_device
+    )
+    n_ats_per_block_arange_expanded = (
+        torch.arange(max_n_atoms, dtype=torch.int64, device=torch_device)
+        .repeat(n_poses * max_n_blocks)
+        .resize(n_poses, max_n_blocks, max_n_atoms)
+    )
+    n_ats_per_pose_block = torch.zeros(
+        (n_poses, max_n_blocks), dtype=torch.int64, device=torch_device
+    )
+    n_ats_per_pose_block[poses.block_type_ind != -1] = poses.packed_block_types.n_atoms[
+        poses.block_type_ind[poses.block_type_ind != -1].to(torch.int64)
+    ].to(torch.int64)
+    real_expanded_pose_ats = (
+        n_ats_per_block_arange_expanded < n_ats_per_pose_block.unsqueeze(2)
+    )
+
+    # get the list of real atoms to read out of pose coords
+    n_ats_per_pose_arange_expanded = (
+        torch.arange(max_n_pose_atoms, dtype=torch.int64, device=torch_device)
+        .repeat(n_poses)
+        .resize(n_poses, max_n_pose_atoms)
+    )
+    n_ats_per_pose = torch.sum(n_ats_per_pose_block, dim=1).unsqueeze(1)
+    real_condensed_pose_ats = n_ats_per_pose_arange_expanded < n_ats_per_pose
+
+    # now perform the actual copy
+    expanded_coords = torch.zeros(
+        (n_poses, max_n_blocks, max_n_atoms, 3),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    expanded_coords[real_expanded_pose_ats] = poses.coords[real_condensed_pose_ats]
+
+    # and we can now sum along dimension 2
+    background_centers_of_mass = torch.sum(expanded_coords, dim=2).reshape(-1, 3)
     pbti = poses.block_type_ind.to(torch.int64).flatten()
     background_n_ats = torch.zeros_like(pbti)
     background_n_ats[pbti != -1] = poses.packed_block_types.n_atoms[
@@ -113,25 +134,17 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
     background_centers_of_mass[pbti != -1] = background_centers_of_mass[
         pbti != -1
     ] / background_n_ats[pbti != -1].unsqueeze(1).to(torch.float32)
-    pose_at_is_real = torch.arange(
-        max_n_atoms, dtype=torch.int64, device=torch_device
-    ).repeat(n_poses * max_n_blocks).reshape(
-        n_poses * max_n_blocks, max_n_atoms
-    ) < background_n_ats.unsqueeze(
-        dim=1
-    )
-    pose_at_is_real = pose_at_is_real.flatten()
-    pose_diff_w_com = torch.zeros_like(poses.coords).reshape(-1, 3)
-    pose_diff_w_com[pose_at_is_real] = (
-        background_centers_of_mass[
-            stretch(
-                torch.arange(
-                    n_poses * max_n_blocks, dtype=torch.int64, device=torch_device
-                ),
-                max_n_atoms,
-            )
-        ][pose_at_is_real]
-        - poses.coords.view(-1, 3)[pose_at_is_real]
+    pose_diff_w_com = torch.zeros_like(expanded_coords).reshape(-1, 3)
+
+    pose_diff_w_com[real_expanded_pose_ats.view(-1)] = background_centers_of_mass[
+        stretch(
+            torch.arange(
+                n_poses * max_n_blocks, dtype=torch.int64, device=torch_device
+            ),
+            max_n_atoms,
+        )
+    ][real_expanded_pose_ats.view(-1)] - expanded_coords[real_expanded_pose_ats].view(
+        -1, 3
     )
     pose_diff_w_com = pose_diff_w_com.view(n_poses * max_n_blocks, max_n_atoms, 3)
     pose_dist_to_com = torch.norm(pose_diff_w_com, dim=2)
@@ -141,8 +154,5 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
     bounding_spheres[:, :3][n_ats == 0] = background_centers_of_mass.reshape(-1, 3)[
         n_ats == 0
     ]
-
-    # print("bounding spheres")
-    # print(bounding_spheres)
 
     return bounding_spheres.view(n_poses, max_n_blocks, 4)

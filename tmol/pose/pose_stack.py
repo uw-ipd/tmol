@@ -48,6 +48,22 @@ class PoseStack:
         """return the number of PoseStack held in this stack"""
         return len(self.residues)
 
+    @property
+    def n_poses(self):
+        return len(self.residues)
+
+    @property
+    def max_n_blocks(self):
+        return self.block_coord_offset.shape[1]
+
+    @property
+    def max_n_atoms(self):
+        return self.packed_block_types.max_n_atoms()
+
+    @property
+    def max_n_pose_atoms(self):
+        return self.coords.shape[1]
+
     @classmethod
     def one_structure_from_polymeric_residues(
         cls, res: Sequence[Residue], device: torch.device
