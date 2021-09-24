@@ -22,6 +22,7 @@ from tmol.chemical.restypes import (
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
 from tmol.system.datatypes import connection_metadata_dtype
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
+from tmol.types.functional import validate_args
 
 
 @attr.s(auto_attribs=True)
@@ -44,26 +45,7 @@ class PoseStack:
 
     device: torch.device
 
-    def __len__(self):
-        """return the number of PoseStack held in this stack"""
-        return len(self.residues)
-
-    @property
-    def n_poses(self):
-        return len(self.residues)
-
-    @property
-    def max_n_blocks(self):
-        return self.block_coord_offset.shape[1]
-
-    @property
-    def max_n_atoms(self):
-        return self.packed_block_types.max_n_atoms()
-
-    @property
-    def max_n_pose_atoms(self):
-        return self.coords.shape[1]
-
+    ########################## CONSTRUCTION ####################
     @classmethod
     def one_structure_from_polymeric_residues(
         cls, res: Sequence[Residue], device: torch.device
@@ -209,6 +191,8 @@ class PoseStack:
             block_type_ind=block_type_ind,
             device=self.device,
         )
+
+    ################# HELPER FUNCTIONS FOR CONSTRUCTION ###############
 
     # @validate_args
     @classmethod
@@ -616,3 +600,88 @@ class PoseStack:
                 offset : (offset + len(pose_stack)), : remapped.shape[1]
             ] = remapped
         return block_type_ind
+
+    #################### PROPERTIES #####################
+
+    def __len__(self):
+        """return the number of PoseStack held in this stack"""
+        return len(self.residues)
+
+    @property
+    def n_poses(self):
+        return len(self.residues)
+
+    @property
+    def max_n_blocks(self):
+        return self.block_coord_offset.shape[1]
+
+    @property
+    def max_n_atoms(self):
+        return self.packed_block_types.max_n_atoms
+
+    @property
+    def max_n_block_atoms(self):
+        """Same thing as max_n_atoms"""
+        return self.packed_block_types.max_n_atoms
+
+    @property
+    def max_n_pose_atoms(self):
+        """The largest number of atoms in any pose"""
+        return self.coords.shape[1]
+
+    @property
+    def n_ats_per_block(self) -> Tensor[torch.int64][:, :]:
+        """Return the number of atoms in each block"""
+
+        n_ats_per_block = torch.zeros(
+            (self.n_poses, self.max_n_blocks), dtype=torch.int64, device=self.device
+        )
+        n_ats_per_block[self.block_type_ind != -1] = self.packed_block_types.n_atoms[
+            self.block_type_ind[self.block_type_ind != -1].to(torch.int64)
+        ].to(torch.int64)
+        return n_ats_per_block
+
+    @property
+    def real_atoms(self):
+        """return the boolean vector of the real atoms in the coords tensor
+        """
+        # get the list of real atoms to read out of pose coords
+        n_ats_per_pose_arange_expanded = (
+            torch.arange(self.max_n_pose_atoms, dtype=torch.int64, device=self.device)
+            .repeat(self.n_poses)
+            .resize(self.n_poses, self.max_n_pose_atoms)
+        )
+        n_ats_per_pose = torch.sum(self.n_ats_per_block, dim=1).unsqueeze(1)
+        real_condensed_pose_ats = n_ats_per_pose_arange_expanded < n_ats_per_pose
+
+    def expand_coords(self):
+        """Load the coordinates into a 4D tensor:
+        n_poses x max_n_blocks x max_n_atoms_per_block x 3
+        making it possible to perform simple operations on the
+        per-block level in python/torch
+        """
+
+        # get the list of real atoms that we will be writing to in the 4D tensor
+        arange_inds = torch.arange(
+            self.n_poses * self.max_n_blocks * self.max_n_block_atoms,
+            dtype=torch.int64,
+            device=self.device,
+        )
+        n_ats_per_block_arange_expanded = (
+            torch.arange(self.max_n_block_atoms, dtype=torch.int64, device=self.device)
+            .repeat(self.n_poses * self.max_n_blocks)
+            .resize(self.n_poses, self.max_n_blocks, self.max_n_block_atoms)
+        )
+
+        n_ats_per_block = self.n_ats_per_block().to(torch.int64)
+        real_expanded_pose_ats = (
+            n_ats_per_block_arange_expanded < self.n_ats_per_pose_block.unsqueeze(2)
+        )
+
+        # now perform the actual copy
+        expanded_coords = torch.zeros(
+            (n_poses, max_n_blocks, max_n_block_atoms, 3),
+            dtype=torch.float32,
+            device=self.device,
+        )
+        expanded_coords[real_expanded_pose_ats] = poses.coords[self.real_atoms]

@@ -24,13 +24,13 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
         rotamer_set.pose_for_rot * max_n_blocks
         + rotamer_set.block_ind_for_rot.to(torch.int64)
     )
-    max_n_atoms = poses.packed_block_types.max_n_atoms
+    max_n_block_atoms = poses.packed_block_types.max_n_atoms
     centers_of_mass = torch.zeros(
         (n_poses * max_n_blocks, 3), dtype=torch.float32, device=torch_device
     )
     centers_of_mass.index_add_(
         0,
-        stretch(global_block_ind_for_rot, max_n_atoms),
+        stretch(global_block_ind_for_rot, max_n_block_atoms),
         rotamer_set.coords.reshape(-1, 3),
     )
     n_ats_for_rot = poses.packed_block_types.n_atoms[rotamer_set.block_type_ind_for_rot]
@@ -45,13 +45,13 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
     # print("centers_of_mass[:10]")
     # print(centers_of_mass[:10])
     at_is_real = torch.arange(
-        max_n_atoms, dtype=torch.int32, device=torch_device
-    ).repeat(n_rots).reshape(n_rots, max_n_atoms) < n_ats_for_rot.unsqueeze(dim=1)
+        max_n_block_atoms, dtype=torch.int32, device=torch_device
+    ).repeat(n_rots).reshape(n_rots, max_n_block_atoms) < n_ats_for_rot.unsqueeze(dim=1)
     diff_w_com = torch.zeros_like(rotamer_set.coords)
 
     diff_w_com[at_is_real] = (
-        centers_of_mass[stretch(global_block_ind_for_rot, max_n_atoms)].reshape(
-            n_rots, max_n_atoms, 3
+        centers_of_mass[stretch(global_block_ind_for_rot, max_n_block_atoms)].reshape(
+            n_rots, max_n_block_atoms, 3
         )[at_is_real]
         - rotamer_set.coords[at_is_real]
     )
@@ -89,12 +89,14 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
 
     # get the list of real atoms that we will be writing to in the 4D tensor
     arange_inds = torch.arange(
-        n_poses * max_n_blocks * max_n_atoms, dtype=torch.int64, device=torch_device
+        n_poses * max_n_blocks * max_n_block_atoms,
+        dtype=torch.int64,
+        device=torch_device,
     )
     n_ats_per_block_arange_expanded = (
-        torch.arange(max_n_atoms, dtype=torch.int64, device=torch_device)
+        torch.arange(max_n_block_atoms, dtype=torch.int64, device=torch_device)
         .repeat(n_poses * max_n_blocks)
-        .resize(n_poses, max_n_blocks, max_n_atoms)
+        .resize(n_poses, max_n_blocks, max_n_block_atoms)
     )
     n_ats_per_pose_block = torch.zeros(
         (n_poses, max_n_blocks), dtype=torch.int64, device=torch_device
@@ -117,7 +119,7 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
 
     # now perform the actual copy
     expanded_coords = torch.zeros(
-        (n_poses, max_n_blocks, max_n_atoms, 3),
+        (n_poses, max_n_blocks, max_n_block_atoms, 3),
         dtype=torch.float32,
         device=torch_device,
     )
@@ -141,12 +143,12 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
             torch.arange(
                 n_poses * max_n_blocks, dtype=torch.int64, device=torch_device
             ),
-            max_n_atoms,
+            max_n_block_atoms,
         )
     ][real_expanded_pose_ats.view(-1)] - expanded_coords[real_expanded_pose_ats].view(
         -1, 3
     )
-    pose_diff_w_com = pose_diff_w_com.view(n_poses * max_n_blocks, max_n_atoms, 3)
+    pose_diff_w_com = pose_diff_w_com.view(n_poses * max_n_blocks, max_n_block_atoms, 3)
     pose_dist_to_com = torch.norm(pose_diff_w_com, dim=2)
     pose_bounding_radius = torch.max(pose_dist_to_com, dim=1)[0]
 

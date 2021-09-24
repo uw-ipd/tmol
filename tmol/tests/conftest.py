@@ -34,6 +34,8 @@ from .numba import numba_cudasim, numba_cuda_or_cudasim  # noqa: F401
 
 from .pack.rotamer.dunbrack import dun_sampler  # noqa: F401
 
+from .pose import ubq_40_60_pose_stack
+
 
 def pytest_collection_modifyitems(session, config, items):
     # Run all linting-tests *after* the functional tests

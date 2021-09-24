@@ -133,3 +133,40 @@ def test_concatenate_pose_stacks_ctor(ubq_res, torch_device):
     max_n_atoms = poses.packed_block_types.max_n_atoms
     assert poses.coords.shape == (2, 959, 3)
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 2, 2)
+
+
+def test_n_poses(ubq_40_60_pose_stack):
+    assert ubq_40_60_pose_stack.n_poses == 2
+
+
+def test_max_n_blocks(ubq_40_60_pose_stack):
+    assert ubq_40_60_pose_stack.max_n_blocks == 60
+
+
+def test_max_n_atoms(ubq_40_60_pose_stack):
+    assert (
+        ubq_40_60_pose_stack.max_n_atoms
+        == ubq_40_60_pose_stack.packed_block_types.max_n_atoms
+    )
+
+
+def test_max_n_block_atoms(ubq_40_60_pose_stack):
+    assert (
+        ubq_40_60_pose_stack.max_n_block_atoms
+        == ubq_40_60_pose_stack.packed_block_types.max_n_atoms
+    )
+
+
+def test_max_n_pose_atoms(ubq_res, ubq_40_60_pose_stack):
+    actual_n_atoms = sum(res.coords.shape[0] for res in ubq_res[:60])
+    assert ubq_40_60_pose_stack.max_n_pose_atoms == actual_n_atoms
+
+
+def test_n_ats_per_pose_block(ubq_40_60_pose_stack):
+    n_ats_per_block_gold = torch.zeros((2, 60), dtype=torch.int32)
+    for i in range(2):
+        for j, res in enumerate(ubq_40_60_pose_stack.residues[i]):
+            n_ats_per_block_gold[i, j] = res.coords.shape[0]
+    numpy.testing.assert_equal(
+        n_ats_per_block_gold, ubq_40_60_pose_stack.n_ats_per_block.cpu().numpy()
+    )
