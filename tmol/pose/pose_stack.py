@@ -652,7 +652,7 @@ class PoseStack:
             .resize(self.n_poses, self.max_n_pose_atoms)
         )
         n_ats_per_pose = torch.sum(self.n_ats_per_block, dim=1).unsqueeze(1)
-        real_condensed_pose_ats = n_ats_per_pose_arange_expanded < n_ats_per_pose
+        return n_ats_per_pose_arange_expanded < n_ats_per_pose
 
     def expand_coords(self):
         """Load the coordinates into a 4D tensor:
@@ -673,15 +673,16 @@ class PoseStack:
             .resize(self.n_poses, self.max_n_blocks, self.max_n_block_atoms)
         )
 
-        n_ats_per_block = self.n_ats_per_block().to(torch.int64)
+        n_ats_per_block = self.n_ats_per_block.to(torch.int64)
         real_expanded_pose_ats = (
-            n_ats_per_block_arange_expanded < self.n_ats_per_pose_block.unsqueeze(2)
+            n_ats_per_block_arange_expanded < self.n_ats_per_block.unsqueeze(2)
         )
 
         # now perform the actual copy
         expanded_coords = torch.zeros(
-            (n_poses, max_n_blocks, max_n_block_atoms, 3),
+            (self.n_poses, self.max_n_blocks, self.max_n_block_atoms, 3),
             dtype=torch.float32,
             device=self.device,
         )
-        expanded_coords[real_expanded_pose_ats] = poses.coords[self.real_atoms]
+        expanded_coords[real_expanded_pose_ats] = self.coords[self.real_atoms]
+        return expanded_coords, real_expanded_pose_ats
