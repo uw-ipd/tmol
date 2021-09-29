@@ -86,52 +86,12 @@ def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
     # load the coordinates for the poses into a 4D tensor out of the
     # 3D tensor and then we can compute center of mass by just summing
     # along the 3rd dimension
-
-    # get the list of real atoms that we will be writing to in the 4D tensor
-    arange_inds = torch.arange(
-        n_poses * max_n_blocks * max_n_block_atoms,
-        dtype=torch.int64,
-        device=torch_device,
-    )
-    n_ats_per_block_arange_expanded = (
-        torch.arange(max_n_block_atoms, dtype=torch.int64, device=torch_device)
-        .repeat(n_poses * max_n_blocks)
-        .resize(n_poses, max_n_blocks, max_n_block_atoms)
-    )
-    n_ats_per_pose_block = torch.zeros(
-        (n_poses, max_n_blocks), dtype=torch.int64, device=torch_device
-    )
-    n_ats_per_pose_block[poses.block_type_ind != -1] = poses.packed_block_types.n_atoms[
-        poses.block_type_ind[poses.block_type_ind != -1].to(torch.int64)
-    ].to(torch.int64)
-    real_expanded_pose_ats = (
-        n_ats_per_block_arange_expanded < n_ats_per_pose_block.unsqueeze(2)
-    )
-
-    # get the list of real atoms to read out of pose coords
-    n_ats_per_pose_arange_expanded = (
-        torch.arange(max_n_pose_atoms, dtype=torch.int64, device=torch_device)
-        .repeat(n_poses)
-        .resize(n_poses, max_n_pose_atoms)
-    )
-    n_ats_per_pose = torch.sum(n_ats_per_pose_block, dim=1).unsqueeze(1)
-    real_condensed_pose_ats = n_ats_per_pose_arange_expanded < n_ats_per_pose
-
-    # now perform the actual copy
-    expanded_coords = torch.zeros(
-        (n_poses, max_n_blocks, max_n_block_atoms, 3),
-        dtype=torch.float32,
-        device=torch_device,
-    )
-    expanded_coords[real_expanded_pose_ats] = poses.coords[real_condensed_pose_ats]
+    expanded_coords, real_expanded_pose_ats = poses.expand_coords()
 
     # and we can now sum along dimension 2
     background_centers_of_mass = torch.sum(expanded_coords, dim=2).reshape(-1, 3)
     pbti = poses.block_type_ind.to(torch.int64).flatten()
-    background_n_ats = torch.zeros_like(pbti)
-    background_n_ats[pbti != -1] = poses.packed_block_types.n_atoms[
-        pbti[pbti != -1]
-    ].to(torch.int64)
+    background_n_ats = poses.n_ats_per_block.flatten()
 
     background_centers_of_mass[pbti != -1] = background_centers_of_mass[
         pbti != -1

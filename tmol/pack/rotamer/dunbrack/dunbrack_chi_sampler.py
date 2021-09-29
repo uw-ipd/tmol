@@ -299,16 +299,16 @@ class DunbrackChiSampler:
 
     @validate_args
     def sample_chi_for_poses(
-        self, systems: PoseStack, task: PackerTask
+        self, pose_stack: PoseStack, task: PackerTask
     ) -> Tuple[
         Tensor[torch.int32][:],  # n_rots_for_rt
         Tensor[torch.int32][:],  # rt_for_rotamer
         Tensor[torch.int32][:, :],  # chi_defining_atom_for_rotamer
         Tensor[torch.float32][:, :],  # chi_for_rotamers
     ]:
-        assert self.device == systems.coords.device
-        n_sys = systems.block_type_ind.shape[0]
-        max_n_blocks = systems.block_type_ind.shape[1]
+        assert self.device == pose_stack.coords.device
+        n_sys = pose_stack.block_type_ind.shape[0]
+        max_n_blocks = pose_stack.block_type_ind.shape[1]
 
         dun_allowed_restypes = numpy.array(
             [
@@ -333,7 +333,7 @@ class DunbrackChiSampler:
         # )
 
         rt_names = numpy.array([rt.name for rt in dun_allowed_restypes], dtype=object)
-        pbt = systems.packed_block_types
+        pbt = pose_stack.packed_block_types
 
         rt_res = torch.tensor(
             [
@@ -361,8 +361,12 @@ class DunbrackChiSampler:
             device=self.device,
         )
 
-        inds_of_phi = self.atom_indices_for_backbone_dihedral(systems, 0).reshape(-1, 4)
-        inds_of_psi = self.atom_indices_for_backbone_dihedral(systems, 1).reshape(-1, 4)
+        inds_of_phi = self.atom_indices_for_backbone_dihedral(pose_stack, 0).reshape(
+            -1, 4
+        )
+        inds_of_psi = self.atom_indices_for_backbone_dihedral(pose_stack, 1).reshape(
+            -1, 4
+        )
 
         phi_psi_inds = torch.cat(
             (inds_of_phi.reshape(-1, 4), inds_of_psi.reshape(-1, 4)), dim=1
@@ -425,7 +429,7 @@ class DunbrackChiSampler:
 
         n_brts = nonzero_dunrot_inds_for_rts.shape[0]
 
-        max_n_chi = systems.packed_block_types.dun_sampler_cache.max_n_chi
+        max_n_chi = pose_stack.packed_block_types.dun_sampler_cache.max_n_chi
         chi_expansion_for_buildable_restype = torch.full(
             (n_brts, max_n_chi), 0, dtype=torch.int32, device=self.device
         )
@@ -458,7 +462,7 @@ class DunbrackChiSampler:
         )
 
         sampled_chi = self.launch_rotamer_building(
-            systems.coords.reshape(-1, 3),
+            pose_stack.coords.reshape(-1, 3),
             ndihe_for_res,
             dihedral_offset_for_res,
             dihedral_atom_inds,
@@ -481,23 +485,26 @@ class DunbrackChiSampler:
 
     @validate_args
     def atom_indices_for_backbone_dihedral(
-        self, systems: PoseStack, bb_dihedral_ind: int
+        self, pose_stack: PoseStack, bb_dihedral_ind: int
     ):
-        assert hasattr(systems.packed_block_types, "dun_sampler_cache")
-        n_systems = systems.block_type_ind.shape[0]
-        max_n_blocks = systems.block_type_ind.shape[1]
-        max_n_atoms = systems.coords.shape[2]
+        assert hasattr(pose_stack.packed_block_types, "dun_sampler_cache")
+        n_pose_stack = pose_stack.block_type_ind.shape[0]
+        max_n_blocks = pose_stack.block_type_ind.shape[1]
+        max_n_atoms = pose_stack.coords.shape[2]
 
-        pbts = systems.packed_block_types
+        pbts = pose_stack.packed_block_types
 
-        real = torch.nonzero(systems.block_type_ind >= 0)
+        real = torch.nonzero(pose_stack.block_type_ind >= 0)
 
         uaids = torch.full(
-            (n_systems, max_n_blocks, 4, 3), -1, dtype=torch.int64, device=self.device
+            (n_pose_stack, max_n_blocks, 4, 3),
+            -1,
+            dtype=torch.int64,
+            device=self.device,
         )
 
         uaids[real[:, 0], real[:, 1], :, :] = pbts.dun_sampler_cache.bbdihe_uaids[
-            systems.block_type_ind[real[:, 0], real[:, 1]].to(torch.int64),
+            pose_stack.block_type_ind[real[:, 0], real[:, 1]].to(torch.int64),
             bb_dihedral_ind,
             :,
             :,
@@ -505,7 +512,7 @@ class DunbrackChiSampler:
 
         # what we will return
         dihe_atom_inds = torch.full(
-            (n_systems, max_n_blocks, 4), -1, dtype=torch.int32, device=self.device
+            (n_pose_stack, max_n_blocks, 4), -1, dtype=torch.int32, device=self.device
         )
 
         # copy over all atom ids from the uaids as if they were resolved; the
@@ -514,13 +521,13 @@ class DunbrackChiSampler:
 
         inter_res = torch.nonzero(uaids[:, :, :, 1] >= 0)
 
-        dest_res = systems.inter_residue_connections[
+        dest_res = pose_stack.inter_residue_connections[
             inter_res[:, 0],
             inter_res[:, 1],
             uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 1],
             0,
         ]
-        dest_conn = systems.inter_residue_connections[
+        dest_conn = pose_stack.inter_residue_connections[
             inter_res[:, 0],
             inter_res[:, 1],
             uaids[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2], 1],
@@ -528,12 +535,12 @@ class DunbrackChiSampler:
         ].to(torch.int64)
 
         # now which atom on the downstream residue is the one that
-        # the source residue is pointint at
+        # the source residue is pointing at
         dihe_atom_inds[inter_res[:, 0], inter_res[:, 1], inter_res[:, 2]] = (
             (inter_res[:, 0] * max_n_atoms * max_n_blocks).to(torch.int32)
             + dest_res * max_n_atoms
             + pbts.atom_downstream_of_conn[
-                systems.block_type_ind[inter_res[:, 0], inter_res[:, 1]].to(
+                pose_stack.block_type_ind[inter_res[:, 0], inter_res[:, 1]].to(
                     torch.int64
                 ),
                 dest_conn,

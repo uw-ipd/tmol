@@ -133,3 +133,15 @@ def cat_differently_sized_tensors(tensors: List,):
 
         start += catdim_sizes[i]
     return newt, sizes, strides
+
+
+def real_elements_of_differently_sized_tensors(tensors: List):
+    assert len(tensors) > 0
+    for tensor in tensors:
+        assert len(tensor.shape) == len(tensors[0].shape)
+        assert tensor.dtype == tensors[0].dtype
+        assert tensor.device == tensor[0].device
+
+    device = tensors[0].device
+    new_sizes = [max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))]
+    arange_inds = torch.arange(torch.prod(new_sizes), dtype=torch.int64, device=device)

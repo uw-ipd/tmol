@@ -33,9 +33,16 @@ class PackedBlockTypes:
 
     max_n_atoms: int
     n_atoms: Tensor[torch.int32][:]  # dim: n_types
-    atom_is_real: Tensor[torch.uint8][:, :]  # dim: n_types
+    atom_is_real: Tensor[torch.uint8][:, :]  # dim: n_types x max_n_atoms
 
     atom_downstream_of_conn: Tensor[torch.int32][:, :, :]
+
+    max_n_torsions: int
+    n_torsions: Tensor[torch.int32][:]  # dim: n_types x max_n_tors
+    torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_tors
+
+    # unresolved atom ids for all named torsions in the block types
+    torsion_uaids: Tensor[torch.int32][:, :, 3]
 
     device: torch.device
 
@@ -54,6 +61,9 @@ class PackedBlockTypes:
         atom_downstream_of_conn = cls.join_atom_downstream_of_conn(
             active_block_types, device
         )
+        n_torsions, torsion_is_real, torsion_uaids = cls.join_torsion_uaids(
+            active_block_types, device
+        )
 
         return cls(
             active_block_types=active_block_types,
@@ -62,6 +72,10 @@ class PackedBlockTypes:
             n_atoms=n_atoms,
             atom_is_real=atom_is_real,
             atom_downstream_of_conn=atom_downstream_of_conn,
+            max_n_torsions=n_torsions.shape[0],
+            n_torsions=n_torsions,
+            torsion_is_real=torsion_is_real,
+            torsion_uaids=torsion_uaids,
             device=device,
         )
 
@@ -115,6 +129,41 @@ class PackedBlockTypes:
                 i, : rt_adoc.shape[0], : rt_adoc.shape[1]
             ] = torch.tensor(rt_adoc, dtype=torch.int32, device=device)
         return atom_downstream_of_conn
+
+    @classmethod
+    def join_torsion_uaids(cls, active_block_types, device):
+        # unresolved atom ids are three integers:
+        #  1st integer: an atom index, -1 if the atom is unresolved
+        #  2nd integer: the connection index for this block that the unresolved atom
+        #               is on ther other side of, -1 if
+        #  3rd integer: the number of chemical bonds into the other block that the
+        #               unresolved atom is found.
+
+        n_types = len(active_block_types)
+        max_n_tor = max(len(bt.torsion_to_uaids) for bt in active_block_types)
+        torsion_uaids = torch.full(
+            (n_types, max_n_tor, 4, 3), -1, dtype=torch.int32, device=device
+        )
+
+        n_torsions = torch.tensor(
+            [bt.ordered_torsions.shape[0] for bt in active_block_types],
+            dtype=torch.int32,
+            device=device,
+        )
+
+        for i, bt in enumerate(active_block_types):
+            torsion_uaids[i, : bt.ordered_torsions.shape[0]] = torch.tensor(
+                bt.ordered_torsions, dtype=torch.int32, device=device
+            )
+
+        n_tors_per_bt_arange_expanded = (
+            torch.arange(max_n_tor, dtype=torch.int32, device=device)
+            .repeat(n_types)
+            .resize(n_types, max_n_tor)
+        )
+        torsion_is_real = n_tors_per_bt_arange_expanded < n_torsions.unsqueeze(1)
+
+        return n_torsions, torsion_is_real, torsion_uaids
 
     def inds_for_res(self, residues: Sequence[Residue]):
         return self.restype_index.get_indexer(

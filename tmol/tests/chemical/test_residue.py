@@ -90,6 +90,24 @@ def test_refined_residue_ideal_coords(default_database):
     assert abs(cb_dis - leu_rt.icoors_geom[cb_ind, 2]) < 1e-5
 
 
+def test_refined_residue_ordered_torsions(default_database):
+    chem_db = default_database.chemical
+    r = next(r for r in chem_db.residues if r.name == "LEU")
+    leu_rt = cattr.structure(cattr.unstructure(r), RefinedResidueType)
+
+    assert leu_rt.ordered_torsions.shape == (len(r.torsions), 4, 3)
+    assert leu_rt.ordered_torsions.dtype == numpy.int32
+
+    for i in range(leu_rt.ordered_torsions.shape[0]):
+        for j in range(4):
+            numpy.testing.assert_equal(
+                leu_rt.ordered_torsions[i, j],
+                numpy.array(
+                    leu_rt.torsion_to_uaids[r.torsions[i].name][j], dtype=numpy.int32
+                ),
+            )
+
+
 def test_residue_type_set_construction(default_database):
     restype_set = ResidueTypeSet.from_database(default_database.chemical)
     for rt in restype_set.residue_types:
