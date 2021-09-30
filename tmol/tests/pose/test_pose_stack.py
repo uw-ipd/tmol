@@ -87,29 +87,29 @@ def test_pose_stack_create_inter_residue_connections(ubq_res, torch_device):
         ubq_res[:4], connections_by_name, torch_device
     )
 
-    assert inter_residue_connections.shape == (4, 2, 2)
+    assert inter_residue_connections.shape == (1, 4, 2, 2)
     assert inter_residue_connections.device == torch_device
 
-    assert inter_residue_connections[0, 0, 0] == -1
-    assert inter_residue_connections[0, 0, 1] == -1
+    assert inter_residue_connections[0, 0, 0, 0] == -1
+    assert inter_residue_connections[0, 0, 0, 1] == -1
 
-    assert inter_residue_connections[0, 1, 0] == 1
-    assert inter_residue_connections[0, 1, 1] == 0
-    assert inter_residue_connections[1, 0, 0] == 0
-    assert inter_residue_connections[1, 0, 1] == 1
+    assert inter_residue_connections[0, 0, 1, 0] == 1
+    assert inter_residue_connections[0, 0, 1, 1] == 0
+    assert inter_residue_connections[0, 1, 0, 0] == 0
+    assert inter_residue_connections[0, 1, 0, 1] == 1
 
-    assert inter_residue_connections[1, 1, 0] == 2
-    assert inter_residue_connections[1, 1, 1] == 0
-    assert inter_residue_connections[2, 0, 0] == 1
-    assert inter_residue_connections[2, 0, 1] == 1
+    assert inter_residue_connections[0, 1, 1, 0] == 2
+    assert inter_residue_connections[0, 1, 1, 1] == 0
+    assert inter_residue_connections[0, 2, 0, 0] == 1
+    assert inter_residue_connections[0, 2, 0, 1] == 1
 
-    assert inter_residue_connections[2, 1, 0] == 3
-    assert inter_residue_connections[2, 1, 1] == 0
-    assert inter_residue_connections[3, 0, 0] == 2
-    assert inter_residue_connections[3, 0, 1] == 1
+    assert inter_residue_connections[0, 2, 1, 0] == 3
+    assert inter_residue_connections[0, 2, 1, 1] == 0
+    assert inter_residue_connections[0, 3, 0, 0] == 2
+    assert inter_residue_connections[0, 3, 0, 1] == 1
 
-    assert inter_residue_connections[3, 1, 0] == -1
-    assert inter_residue_connections[3, 1, 1] == -1
+    assert inter_residue_connections[0, 3, 1, 0] == -1
+    assert inter_residue_connections[0, 3, 1, 1] == -1
 
 
 def test_pose_stack_resolve_bond_separation(ubq_res, torch_device):
@@ -117,12 +117,12 @@ def test_pose_stack_resolve_bond_separation(ubq_res, torch_device):
     bonds = PoseStack.determine_single_structure_inter_block_bondsep(
         ubq_res[1:4], connections, torch_device
     )
-    assert bonds[0, 1, 1, 0] == 1
-    assert bonds[1, 2, 1, 0] == 1
-    assert bonds[1, 0, 0, 1] == 1
-    assert bonds[2, 1, 0, 1] == 1
-    assert bonds[0, 2, 1, 0] == 4
-    assert bonds[2, 0, 0, 1] == 4
+    assert bonds[0, 0, 1, 1, 0] == 1
+    assert bonds[0, 1, 2, 1, 0] == 1
+    assert bonds[0, 1, 0, 0, 1] == 1
+    assert bonds[0, 2, 1, 0, 1] == 1
+    assert bonds[0, 0, 2, 1, 0] == 4
+    assert bonds[0, 2, 0, 0, 1] == 4
 
 
 def test_concatenate_pose_stacks_ctor(ubq_res, torch_device):

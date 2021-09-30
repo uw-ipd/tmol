@@ -72,7 +72,7 @@ class PackedBlockTypes:
             n_atoms=n_atoms,
             atom_is_real=atom_is_real,
             atom_downstream_of_conn=atom_downstream_of_conn,
-            max_n_torsions=n_torsions.shape[0],
+            max_n_torsions=torsion_is_real.shape[1],
             n_torsions=n_torsions,
             torsion_is_real=torsion_is_real,
             torsion_uaids=torsion_uaids,
@@ -159,7 +159,7 @@ class PackedBlockTypes:
         n_tors_per_bt_arange_expanded = (
             torch.arange(max_n_tor, dtype=torch.int32, device=device)
             .repeat(n_types)
-            .resize(n_types, max_n_tor)
+            .view(n_types, max_n_tor)
         )
         torsion_is_real = n_tors_per_bt_arange_expanded < n_torsions.unsqueeze(1)
 

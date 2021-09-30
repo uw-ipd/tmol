@@ -37,11 +37,18 @@ class PoseStack:
     # where the offset for each residue are held in the
     # block_coord_offset tensor [n-poses x max-n-blocks]
     coords: Tensor[torch.float32][:, :, 3]
+
     block_coord_offset: Tensor[torch.int32][:, :]
+    block_coord_offset64: Tensor[torch.int64][:, :]
 
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2]
+    inter_residue_connections64: Tensor[torch.int64][:, :, :, 2]
+
     inter_block_bondsep: Tensor[torch.int32][:, :, :, :, :]
+    inter_block_bondsep64: Tensor[torch.int64][:, :, :, :, :]
+
     block_type_ind: Tensor[torch.int32][:, :]
+    block_type_ind64: Tensor[torch.int64][:, :]
 
     device: torch.device
 
@@ -82,15 +89,22 @@ class PoseStack:
         coords = torch.tensor(residue_coords, dtype=torch.float32, device=device)
         attached_res = cls.attach_residues(block_coord_offset, [res], residue_coords)
 
+        def i64(t):
+            return t.to(torch.int64)
+
         return cls(
             packed_block_types=packed_block_types,
             residues=attached_res,
             residue_coords=residue_coords,
             coords=coords,
             block_coord_offset=block_coord_offset,
-            inter_residue_connections=torch.unsqueeze(inter_residue_connections, 0),
-            inter_block_bondsep=torch.unsqueeze(inter_block_bondsep, 0),
+            block_coord_offset64=i64(block_coord_offset),
+            inter_residue_connections=inter_residue_connections,
+            inter_residue_connections64=i64(inter_residue_connections),
+            inter_block_bondsep=inter_block_bondsep,
+            inter_block_bondsep64=i64(inter_block_bondsep),
             block_type_ind=block_type_ind,
+            block_type_ind64=i64(block_type_ind),
             device=device,
         )
 
@@ -139,15 +153,22 @@ class PoseStack:
             packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
         )
 
+        def i64(t):
+            return t.to(torch.int64)
+
         return cls(
             packed_block_types=packed_block_types,
             residues=residues,
             residue_coords=residue_coords,
             coords=coords,
             block_coord_offset=block_coord_offset,
+            block_coord_offset64=i64(block_coord_offset),
             inter_residue_connections=inter_residue_connections,
+            inter_residue_connections64=i64(inter_residue_connections),
             inter_block_bondsep=inter_block_bondsep,
+            inter_block_bondsep64=i64(inter_block_bondsep),
             block_type_ind=block_type_ind,
+            block_type_ind64=i64(block_type_ind),
             device=device,
         )
 
@@ -186,9 +207,13 @@ class PoseStack:
             residue_coords=residue_coords,
             coords=coords,
             block_coord_offset=self.block_coord_offset,
+            block_coord_offset64=self.block_coord_offset64,
             inter_residue_connections=self.inter_residue_connections,
+            inter_residue_connections64=self.inter_residue_connections64,
             inter_block_bondsep=self.inter_block_bondsep,
+            inter_block_bondsep64=self.inter_block_bondsep64,
             block_type_ind=block_type_ind,
+            block_type_ind64=block_type_ind64,
             device=self.device,
         )
 
@@ -201,7 +226,7 @@ class PoseStack:
         res: Sequence[Residue],
         residue_connections: Sequence[Tuple[int, str, int, str]],
         device: torch.device,
-    ) -> Tensor[torch.int32][:, :, 2]:
+    ) -> Tensor[torch.int32][:, :, :, 2]:
         """Return a torch tensor of integer-indices describing
         which residues are bound to which other residues through
         which connections using the indices of those
@@ -252,10 +277,10 @@ class PoseStack:
         # )
 
         inter_residue_connections = numpy.full(
-            (len(res), max_n_conn, 2), -1, dtype=numpy.int32
+            (1, len(res), max_n_conn, 2), -1, dtype=numpy.int32
         )
         inter_residue_connections[
-            inter_conn_inds[:, 0], inter_conn_inds[:, 1], :
+            0, inter_conn_inds[:, 0], inter_conn_inds[:, 1], :
         ] = inter_conn_inds[:, 2:]
         inter_residue_connections = torch.tensor(
             inter_residue_connections, dtype=torch.int32, device=device
@@ -268,7 +293,7 @@ class PoseStack:
         res: Sequence[Residue],
         residue_connections: Sequence[Tuple[int, str, int, str]],
         device: torch.device,
-    ) -> Tensor[torch.int32][:, :, :, :]:
+    ) -> Tensor[torch.int32][:, :, :, :, :]:
         """
         With a list of blocks (residues) from a single structure,
         construct the set of chemical-bond-path-distances between all pairs of
@@ -355,7 +380,7 @@ class PoseStack:
         inter_res_bonds: NDArray[int][:, 2],
         connection_atoms: pandas.DataFrame,
         device: torch.device,
-    ) -> Tensor[torch.int32][:, :, :, :]:
+    ) -> Tensor[torch.int32][:, :, :, :, :]:
         """
         Resolve chemical-bond path distances between all pairs of interblock connections
         in a single structure given a list of the interblock chemical bonds.
@@ -390,7 +415,7 @@ class PoseStack:
         # the minimum number of chemical bonds that connects them.
 
         inter_block_bondsep = numpy.full(
-            (n_res, n_res, max_n_conn, max_n_conn), 6, dtype=numpy.int32
+            (1, n_res, n_res, max_n_conn, max_n_conn), 6, dtype=numpy.int32
         )
         min_bond_dist[min_bond_dist == numpy.inf] = 6
 
@@ -412,6 +437,7 @@ class PoseStack:
         )
 
         inter_block_bondsep[
+            0,
             rinds_all_pairs[:, 0],
             rinds_all_pairs[:, 1],
             cinds_all_pairs[:, 0],
@@ -649,7 +675,7 @@ class PoseStack:
         n_ats_per_pose_arange_expanded = (
             torch.arange(self.max_n_pose_atoms, dtype=torch.int64, device=self.device)
             .repeat(self.n_poses)
-            .resize(self.n_poses, self.max_n_pose_atoms)
+            .view(self.n_poses, self.max_n_pose_atoms)
         )
         n_ats_per_pose = torch.sum(self.n_ats_per_block, dim=1).unsqueeze(1)
         return n_ats_per_pose_arange_expanded < n_ats_per_pose
@@ -670,7 +696,7 @@ class PoseStack:
         n_ats_per_block_arange_expanded = (
             torch.arange(self.max_n_block_atoms, dtype=torch.int64, device=self.device)
             .repeat(self.n_poses * self.max_n_blocks)
-            .resize(self.n_poses, self.max_n_blocks, self.max_n_block_atoms)
+            .view(self.n_poses, self.max_n_blocks, self.max_n_block_atoms)
         )
 
         n_ats_per_block = self.n_ats_per_block.to(torch.int64)
