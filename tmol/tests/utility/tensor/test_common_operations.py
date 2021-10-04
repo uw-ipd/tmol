@@ -5,6 +5,7 @@ from tmol.utility.tensor.common_operations import (
     exclusive_cumsum1d,
     nplus1d_tensor_from_list,
     cat_differently_sized_tensors,
+    join_tensors_and_report_real_entries,
 )
 
 
@@ -82,3 +83,26 @@ def test_cat_diff_sized_tensors_w_diff_sizes():
                 for ll in range(ti.shape[2]):
                     assert ii + 1 == t[jj, kk, ll]
         start += ti.shape[0]
+
+
+def test_join_tensors_and_report_real_entries(torch_device):
+    t1 = torch.full((2, 4, 3), 1, dtype=torch.int32)
+    t2 = torch.full((3, 4, 3), 2, dtype=torch.int32)
+    t3 = torch.full((4, 4, 3), 3, dtype=torch.int32)
+    t4 = torch.full((5, 4, 3), 4, dtype=torch.int32)
+    tensors = [t1, t2, t3, t4]
+
+    n_elem, real_elem, joined_elements = join_tensors_and_report_real_entries(tensors)
+
+    n_elem_gold = numpy.array([2, 3, 4, 5], dtype=numpy.int32)
+    numpy.testing.assert_equal(n_elem_gold, n_elem.cpu().numpy())
+
+    real_elem_gold = numpy.full((4, 5), False, dtype=bool)
+    for i in range(4):
+        real_elem_gold[i, : n_elem_gold[i]] = True
+    numpy.testing.assert_equal(real_elem_gold, real_elem.cpu().numpy())
+
+    joined_elements_gold = numpy.full((4, 5, 4, 3), -1, dtype=numpy.int32)
+    for i in range(4):
+        joined_elements_gold[i, : n_elem_gold[i]] = i + 1
+    numpy.testing.assert_equal(joined_elements_gold, joined_elements.cpu().numpy())
