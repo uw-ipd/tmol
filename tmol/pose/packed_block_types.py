@@ -44,6 +44,21 @@ class PackedBlockTypes:
     # unresolved atom ids for all named torsions in the block types
     torsion_uaids: Tensor[torch.int32][:, :, 3]
 
+    max_n_bonds: int
+    n_bonds: Tensor[torch.int32][:]
+    bond_is_real: Tensor[torch.bool][:, :]
+    # the symmetric / redundant list of bonds
+    # indexed by n_types x max_n_bonds x 2
+    # where the last dimension is
+    # 0: atom1-ind
+    # 1: atom2-ind
+    bond_indices: Tensor[torch.int32][:, :, 2]
+
+    max_n_conn: int
+    n_conn: Tensor[torch.int32][:]
+    conn_is_real: Tensor[torch.bool][:, :]
+    conn_atom: Tensor[torch.int32][:, :]
+
     device: torch.device
 
     @property
@@ -64,6 +79,12 @@ class PackedBlockTypes:
         n_torsions, torsion_is_real, torsion_uaids = cls.join_torsion_uaids(
             active_block_types, device
         )
+        n_bonds, bond_is_real, bond_indices = cls.join_bond_indices(
+            active_block_types, device
+        )
+        n_conn, conn_is_real, conn_atom = cls.join_conn_indices(
+            active_block_types, device
+        )
 
         return cls(
             active_block_types=active_block_types,
@@ -76,6 +97,14 @@ class PackedBlockTypes:
             n_torsions=n_torsions,
             torsion_is_real=torsion_is_real,
             torsion_uaids=torsion_uaids,
+            max_n_bonds=bond_is_real.shape[1],
+            n_bonds=n_bonds,
+            bond_is_real=bond_is_real,
+            bond_indices=bond_indices,
+            max_n_conn=conn_is_real.shape[1],
+            n_conn=n_conn,
+            conn_is_real=conn_is_real,
+            conn_atom=conn_atom,
             device=device,
         )
 
@@ -164,6 +193,14 @@ class PackedBlockTypes:
         torsion_is_real = n_tors_per_bt_arange_expanded < n_torsions.unsqueeze(1)
 
         return n_torsions, torsion_is_real, torsion_uaids
+
+    @classmethod
+    def join_conn_indices(cls, active_block_types, device):
+        conn_atoms = [
+            torch.tensor(bt.ordered_connection_atoms, dtype=torch.int32, device=device)
+            for bt in active_block_types
+        ]
+        return join_tensors_and_report_real_entries(conn_atoms)
 
     def inds_for_res(self, residues: Sequence[Residue]):
         return self.restype_index.get_indexer(
