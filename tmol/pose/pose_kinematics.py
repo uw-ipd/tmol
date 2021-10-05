@@ -145,23 +145,67 @@ def get_all_bonds(pose_stack: PoseStack):
         device=device,
     )
     real_bonds[real_blocks] = pbt.bond_is_real[pose_stack.block_type_ind64[real_blocks]]
-    interres_bonds = torch.full(
+    intrares_bonds = torch.full(
         (pose_stack.n_poses, pose_stack.max_n_blocks, pbt.max_n_bonds, 2),
         -1,
         dtype=torch.int32,
         device=device,
     )
-    interres_bonds[real_blocks] = pbt.bond_indices[
+    intrares_bonds[real_blocks] = pbt.bond_indices[
         pose_stack.block_type_ind64[real_blocks]
     ]
     nz_real_bond_pose_ind, nz_real_bond_block_ind, _ = torch.nonzero(
         real_bonds, as_tuple=True
     )
 
-    bonds = bonds[real_bonds]
-    bonds += (
+    intrares_bonds = intrares_bonds[real_bonds]
+    intrares_bonds += (
         pose_stack.max_n_pose_atoms * nz_real_bond_pose_ind
         + pose_stack.block_coord_offset[nz_real_bond_pose_ind, nz_real_bond_block_ind]
     ).unsqueeze(1)
+
+    n_conn = pbt.n_conn[pose_stack.block_type_ind64[real_blocks]]
+    real_conn = torch.zeros(
+        (pose_stack.n_poses, pose_stack.max_n_blocks, pbt.max_n_conn),
+        dtype=torch.bool,
+        device=device,
+    )
+    real_conn[real_blocks] = pbt.conn_is_real[pose_stack.block_type_ind64[real_blocks]]
+    (
+        nz_real_conn_pose_ind_prelim,
+        nz_real_conn_block_ind_prelim,
+        nz_real_conn_conn_ind_prelim,
+    ) = torch.nonzero(real_conn, as_tuple=True)
+
+    other_block_prelim = pose_stack.inter_residue_connections[real_conn][:, 0]
+    other_conn_prelim = pose_stack.inter_residue_connections[real_conn][:, 1]
+    complete_conn = other_block_prelim != -1
+    other_block = other_block_prelim[complete_conn].to(torch.int64)
+    other_conn = other_conn_prelim[complete_conn].to(torch.int64)
+
+    nz_real_conn_pose_ind = nz_real_conn_pose_ind_prelim[complete_conn]
+    nz_real_conn_block_ind = nz_real_conn_block_ind_prelim[complete_conn]
+    nz_real_conn_conn_ind = nz_real_conn_conn_ind_prelim[complete_conn]
+
+    other_block_atom = pbt.conn_atom[
+        pose_stack.block_type_ind64[nz_real_conn_pose_ind, other_block], other_conn
+    ]
+
+    global_at1 = (
+        pose_stack.max_n_pose_atoms * nz_real_conn_pose_ind
+        + pose_stack.block_coord_offset[nz_real_conn_pose_ind, nz_real_conn_block_ind]
+        + pbt.conn_atom[
+            pose_stack.block_type_ind64[nz_real_conn_pose_ind, nz_real_conn_block_ind],
+            nz_real_conn_conn_ind,
+        ]
+    )
+    global_at2 = (
+        pose_stack.max_n_pose_atoms * nz_real_conn_pose_ind
+        + pose_stack.block_coord_offset[nz_real_conn_pose_ind, other_block]
+        + other_block_atom
+    )
+
+    interres_bonds = torch.stack((global_at1, global_at2), dim=1)
+    bonds = torch.cat((intrares_bonds, interres_bonds), dim=0)
 
     return bonds

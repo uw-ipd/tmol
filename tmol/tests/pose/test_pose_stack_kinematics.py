@@ -4,7 +4,7 @@ from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_kinematics import get_bonds_for_named_torsions, get_all_bonds
 
 
-def test_get_bonds_for_named_torsions(ubq_res):
+def test_get_bonds_for_named_torsions(ubq_res, torch_device):
     # torch_device = torch.device("cpu")
     p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:40], torch_device)
     p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:60], torch_device)
@@ -53,14 +53,50 @@ def test_get_bonds_for_named_torsions(ubq_res):
     numpy.testing.assert_equal(middle_bond_ats_gold, middle_bond_ats.cpu().numpy())
 
 
-def test_get_pose_stack_bonds(ubq_res):
-    torch_device = torch.device("cpu")
+def test_get_pose_stack_bonds(ubq_res, torch_device):
+    # torch_device = torch.device("cpu")
     p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
     p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
     pose_stack = PoseStack.from_poses((p1, p2), torch_device)
 
     bonds = get_all_bonds(pose_stack)
-    print(bonds)
+
+    bonds_gold = []
+    for i, pose_res in enumerate(pose_stack.residues):
+        for j, res in enumerate(pose_res):
+            for k in range(res.residue_type.bond_indices.shape[0]):
+
+                def bond_atom(el):
+                    return (
+                        i * pose_stack.max_n_pose_atoms
+                        + pose_stack.block_coord_offset[i, j]
+                        + res.residue_type.bond_indices[k, el]
+                    )
+
+                bonds_gold.append((bond_atom(0), bond_atom(1)))
+    for i, pose_res in enumerate(pose_stack.residues):
+        for j, res in enumerate(pose_res):
+            for k in range(res.residue_type.ordered_connection_atoms.shape[0]):
+                other_res_ind = pose_stack.inter_residue_connections[i, j, k, 0]
+                if other_res_ind == -1:
+                    continue
+                other_res_conn_ind = pose_stack.inter_residue_connections[i, j, k, 1]
+                other_res = pose_stack.residues[i][other_res_ind]
+
+                bonds_gold.append(
+                    (
+                        i * pose_stack.max_n_pose_atoms
+                        + pose_stack.block_coord_offset[i, j]
+                        + res.residue_type.ordered_connection_atoms[k],
+                        i * pose_stack.max_n_pose_atoms
+                        + pose_stack.block_coord_offset[i, other_res_ind]
+                        + other_res.residue_type.ordered_connection_atoms[
+                            other_res_conn_ind
+                        ],
+                    )
+                )
+    bonds_gold = numpy.array(bonds_gold, dtype=numpy.int64)
+    numpy.testing.assert_equal(bonds_gold, bonds.cpu().numpy())
 
 
 # def test_build_kintree_for_pose(ubq_res, torch_device):

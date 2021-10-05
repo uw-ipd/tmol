@@ -69,6 +69,14 @@ class RefinedResidueType(RawResidueType):
         centries = [(None, -1)] + [(c.name, i) for i, c in enumerate(self.connections)]
         return frozendict(centries)
 
+    ordered_connection_atoms: numpy.ndarray = attr.ib()
+
+    @ordered_connection_atoms.default
+    def _setup_ordered_connections(self):
+        return numpy.array(
+            [self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32
+        )
+
     def _repr_pretty_(self, p, cycle):
         p.text(f"RefinedResidueType(name={self.name},...)")
 
