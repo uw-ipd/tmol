@@ -3,6 +3,7 @@ import numpy
 from tmol.kinematics.check_fold_forest import (
     mark_polymeric_bonds_in_foldforest_edges,
     bfs_proper_forest,
+    validate_fold_forest,
 )
 
 from tmol.kinematics.fold_forest import EdgeType
@@ -233,3 +234,59 @@ def test_bfs_proper_forest_2():
 
     numpy.testing.assert_equal(cycles_detected_gold, cycles_detected)
     numpy.testing.assert_equal(missing_gold, missing)
+
+
+def test_validate_fold_forest_1():
+    roots = numpy.array([0, 0, 0], dtype=numpy.int64)
+    n_res_per_tree = numpy.array([8, 11, 5], dtype=numpy.int64)
+
+    edges_compact = [
+        (0, EdgeType.polymer, 0, 7),
+        (1, EdgeType.polymer, 0, 5),
+        (1, EdgeType.jump, 0, 8),
+        (1, EdgeType.polymer, 8, 6),
+        (1, EdgeType.polymer, 8, 10),
+        (2, EdgeType.polymer, 0, 4),
+    ]
+    count_pose_edges = numpy.zeros((3,), dtype=numpy.int64)
+    edges = numpy.full((3, 4, 4), -1, dtype=numpy.int64)
+    for (pid, edge_type, r1, r2) in edges_compact:
+        edges[pid, count_pose_edges[pid], 0] = edge_type
+        edges[pid, count_pose_edges[pid], 1] = r1
+        edges[pid, count_pose_edges[pid], 2] = r2
+        count_pose_edges[pid] += 1
+
+    try:
+        validate_fold_forest(roots, n_res_per_tree, edges)
+        # we should reach here
+    except ValueError as verr:
+        print(verr)
+        assert False
+
+
+def test_validate_fold_forest_2():
+    roots = numpy.array([0, 0, 0], dtype=numpy.int64)
+    n_res_per_tree = numpy.array([8, 11, 5], dtype=numpy.int64)
+
+    edges_compact = [
+        (0, EdgeType.polymer, 0, 7),
+        (1, EdgeType.polymer, 0, 5),
+        (1, EdgeType.jump, 0, 8),
+        (1, EdgeType.polymer, 8, 7),
+        (1, EdgeType.polymer, 8, 10),
+        (2, EdgeType.polymer, 0, 4),
+    ]
+    count_pose_edges = numpy.zeros((3,), dtype=numpy.int64)
+    edges = numpy.full((3, 4, 4), -1, dtype=numpy.int64)
+    for (pid, edge_type, r1, r2) in edges_compact:
+        edges[pid, count_pose_edges[pid], 0] = edge_type
+        edges[pid, count_pose_edges[pid], 1] = r1
+        edges[pid, count_pose_edges[pid], 2] = r2
+        count_pose_edges[pid] += 1
+
+    try:
+        validate_fold_forest(roots, n_res_per_tree, edges)
+        # we should reach here
+        assert False
+    except ValueError as verr:
+        assert verr.args[0] == "FOLD FOREST ERROR: Block 6 unreachable in pose 1"
