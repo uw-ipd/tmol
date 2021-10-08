@@ -59,6 +59,9 @@ class PackedBlockTypes:
     conn_is_real: Tensor[torch.bool][:, :]
     conn_atom: Tensor[torch.int32][:, :]
 
+    down_conn_inds: Tensor[torch.int32][:]
+    up_conn_inds: Tensor[torch.int32][:]
+
     device: torch.device
 
     @property
@@ -85,6 +88,9 @@ class PackedBlockTypes:
         n_conn, conn_is_real, conn_atom = cls.join_conn_indices(
             active_block_types, device
         )
+        down_conn_inds, up_conn_inds = cls.join_polymeric_connections(
+            active_block_types, device
+        )
 
         return cls(
             active_block_types=active_block_types,
@@ -105,6 +111,8 @@ class PackedBlockTypes:
             n_conn=n_conn,
             conn_is_real=conn_is_real,
             conn_atom=conn_atom,
+            down_conn_inds=down_conn_inds,
+            up_conn_inds=up_conn_inds,
             device=device,
         )
 
@@ -216,6 +224,20 @@ class PackedBlockTypes:
             for bt in active_block_types
         ]
         return join_tensors_and_report_real_entries(conn_atoms)
+
+    @classmethod
+    def join_polymeric_connections(cls, active_block_types, device):
+        down_conn_inds = torch.tensor(
+            [bt.down_connection_ind for bt in active_block_types],
+            dtype=torch.int32,
+            device=device,
+        )
+        up_conn_inds = torch.tensor(
+            [bt.up_connection_ind for bt in active_block_types],
+            dtype=torch.int32,
+            device=device,
+        )
+        return down_conn_inds, up_conn_inds
 
     def inds_for_res(self, residues: Sequence[Residue]):
         return self.restype_index.get_indexer(

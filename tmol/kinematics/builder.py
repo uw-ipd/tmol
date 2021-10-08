@@ -234,7 +234,7 @@ class KinematicBuilder:
         kin_stree.parent[root_indices] = component_parent
 
         # Fixup the orientation frame frame of the root and its children.
-        # The rootis self-parented at zero, so drop the first match.
+        # The root is self-parented at zero, so drop the first match.
         for root in root_indices:
             int_root, *root_children = [
                 int(i) for i in torch.nonzero(parent_indices == root, as_tuple=False)

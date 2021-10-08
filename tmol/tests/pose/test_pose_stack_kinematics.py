@@ -1,7 +1,12 @@
 import torch
 import numpy
 from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pose_kinematics import get_bonds_for_named_torsions, get_all_bonds
+from tmol.pose.pose_kinematics import (
+    get_bonds_for_named_torsions,
+    get_all_bonds,
+    mark_polymeric_bonds_in_foldforest_edges,
+)
+from tmol.kinematics.fold_forest import EdgeType
 
 
 def test_get_bonds_for_named_torsions(ubq_res, torch_device):
@@ -55,9 +60,10 @@ def test_get_bonds_for_named_torsions(ubq_res, torch_device):
 
 def test_get_pose_stack_bonds(ubq_res, torch_device):
     # torch_device = torch.device("cpu")
-    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
-    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
-    pose_stack = PoseStack.from_poses((p1, p2), torch_device)
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:24], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[6:17], torch_device)
+    p3 = PoseStack.one_structure_from_polymeric_residues(ubq_res[9:22], torch_device)
+    pose_stack = PoseStack.from_poses((p1, p2, p3), torch_device)
 
     bonds = get_all_bonds(pose_stack)
 
@@ -97,7 +103,3 @@ def test_get_pose_stack_bonds(ubq_res, torch_device):
                 )
     bonds_gold = numpy.array(bonds_gold, dtype=numpy.int64)
     numpy.testing.assert_equal(bonds_gold, bonds.cpu().numpy())
-
-
-# def test_build_kintree_for_pose(ubq_res, torch_device):
-#    pass

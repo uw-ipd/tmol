@@ -1,5 +1,12 @@
 import torch
+import numba
+import numpy
+
+from tmol.types.array import NDArray
 from tmol.pose.pose_stack import PoseStack
+from tmol.kinematics.builder import KinematicBuilder
+from tmol.kinematics.datatypes import KinTree
+from tmol.kinematics.fold_forest import EdgeType
 
 
 def get_bonds_for_named_torsions(pose_stack: PoseStack):
@@ -209,3 +216,16 @@ def get_all_bonds(pose_stack: PoseStack):
     bonds = torch.cat((intrares_bonds, interres_bonds), dim=0)
 
     return bonds
+
+
+def construct_pose_stack_kintree(pose_stack: PoseStack) -> KinTree:
+    kintree = (
+        KinematicBuilder().append_connected_component(
+            *KinematicBuilder.component_for_prioritized_bonds(
+                roots=pose_stack.max_n_pose_atoms
+                * numpy.arange(pose_stack.n_poses, dtype=int),
+                mandatory_bonds=get_bonds_for_named_torsions(pose_stack),
+                all_bonds=get_all_bonds(pose_stack),
+            )
+        )
+    ).kintree

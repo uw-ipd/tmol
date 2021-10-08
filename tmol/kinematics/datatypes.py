@@ -46,8 +46,10 @@ class KinTree(TensorGroup, ConvertAttrs):
     systems.
 
     Indices::
-        id = index for kin-atom in the target coordinate system
+        id = index for kin-atom in the target coordinate system;
+             aka the breadth-first ordering to original ordering
         parent = kin-atom index of parent for each kin-atom
+             aka the 
         frame_x = kin-atom index of self
         frame_y = kin-atom index of parent
         frame_z = kin-atom index of grandparent

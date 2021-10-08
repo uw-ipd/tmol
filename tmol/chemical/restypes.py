@@ -71,6 +71,24 @@ class RefinedResidueType(RawResidueType):
 
     ordered_connection_atoms: numpy.ndarray = attr.ib()
 
+    down_connection_ind: int = attr.ib()
+
+    @down_connection_ind.default
+    def _setup_down_connection_ind(self):
+        if "down" in self.connection_to_cidx:
+            return self.connection_to_cidx["down"]
+        else:
+            return -1
+
+    up_connection_ind: int = attr.ib()
+
+    @up_connection_ind.default
+    def _setup_up_connection_ind(self):
+        if "up" in self.connection_to_cidx:
+            return self.connection_to_cidx["up"]
+        else:
+            return -1
+
     @ordered_connection_atoms.default
     def _setup_ordered_connections(self):
         return numpy.array(

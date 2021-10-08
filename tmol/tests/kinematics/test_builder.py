@@ -100,6 +100,14 @@ def test_build_two_system_kinematics(ubq_system, torch_device):
         bonds=bonds.bonds,
         system_size=int(twoubq.systems[0].system_size),
     )
+    print("ids")
+    print(ids[:20])
+    print("parents")
+    print(parents[:20])
+
+    self_inds = numpy.arange(parents.shape[0], dtype=int)
+    print("self parents")
+    print(self_inds[parents[self_inds] == self_inds])
 
     id_index = pandas.Index(ids)
     root_index = id_index.get_indexer(tworoots)
@@ -116,8 +124,8 @@ def test_build_two_system_kinematics(ubq_system, torch_device):
 
 
 def test_build_jagged_system(ubq_res, torch_device):
-    ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
-    ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
+    ubq40 = PackedResidueSystem.from_residues(ubq_res[:1])
+    ubq60 = PackedResidueSystem.from_residues(ubq_res[:2])
     natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq40.coords[:, 0]))) + numpy.sum(
         numpy.logical_not(numpy.isnan(ubq60.coords[:, 0]))
     )
@@ -131,8 +139,15 @@ def test_build_jagged_system(ubq_res, torch_device):
         system_size=int(twoubq.systems[1].system_size),
     )
 
+    # print("ids")
+    # print(ids)
+    # print("parents")
+    # print(parents)
+
     id_index = pandas.Index(ids)
     root_index = id_index.get_indexer(tworoots)
+    # print("root_index")
+    # print(root_index)
 
     builder = KinematicBuilder()
     tree = builder.append_connected_components(
@@ -143,3 +158,8 @@ def test_build_jagged_system(ubq_res, torch_device):
     assert tree.id[1] == 0
     assert tree.parent[1 + root_index[0]] == 0
     assert tree.parent[1 + root_index[1]] == 0
+
+    # print("tree.parent[1 + root_index[0]]")
+    # print(tree.parent[1 + root_index[0]])
+    # print("tree.parent[1 + root_index[1]]")
+    # print(tree.parent[1 + root_index[1]])
