@@ -4,8 +4,9 @@ from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_kinematics import (
     get_bonds_for_named_torsions,
     get_all_bonds,
-    mark_polymeric_bonds_in_foldforest_edges,
+    get_polymeric_bonds_in_fold_forest,
 )
+from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges
 from tmol.kinematics.fold_forest import EdgeType
 
 
@@ -103,3 +104,131 @@ def test_get_pose_stack_bonds(ubq_res, torch_device):
                 )
     bonds_gold = numpy.array(bonds_gold, dtype=numpy.int64)
     numpy.testing.assert_equal(bonds_gold, bonds.cpu().numpy())
+
+
+def polymeric_bond_inds_for_pose_stack(pose_stack, polymeric_connections_for_kinforest):
+    bond_inds_gold = []
+    bt_cpu = pose_stack.block_type_ind.cpu()
+    cpu_pbt = pose_stack.packed_block_types.cpu()
+    for i in range(len(pose_stack.residues)):
+        for j in range(len(pose_stack.residues[i])):
+            for k in range(len(pose_stack.residues[i])):
+                if j == k:
+                    continue
+                bt_j = bt_cpu[i, j]
+                bt_k = bt_cpu[i, k]
+                if polymeric_connections_for_kinforest[i, j, k]:
+                    if j < k:
+                        conn_j = cpu_pbt.up_conn_inds[bt_j]
+                        conn_k = cpu_pbt.down_conn_inds[bt_k]
+                    else:
+                        conn_j = cpu_pbt.down_conn_inds[bt_j]
+                        conn_k = cpu_pbt.up_conn_inds[bt_k]
+                    at_j = cpu_pbt.conn_atom[bt_j, conn_j]
+                    at_k = cpu_pbt.conn_atom[bt_k, conn_k]
+                    global_at_j = (
+                        i * pose_stack.max_n_pose_atoms
+                        + pose_stack.block_coord_offset[i, j]
+                        + at_j
+                    )
+                    global_at_k = (
+                        i * pose_stack.max_n_pose_atoms
+                        + pose_stack.block_coord_offset[i, k]
+                        + at_k
+                    )
+                    bond_inds_gold.append((global_at_j, global_at_k))
+    return numpy.array(bond_inds_gold, dtype=numpy.int64)
+
+
+def test_get_polymeric_bonds_in_fold_forest(ubq_res):
+    torch_device = torch.device("cpu")
+
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
+    pose_stack = PoseStack.from_poses((p1, p2), torch_device)
+
+    edges = numpy.full((2, 1, 4), -1, dtype=int)
+    edges[:, :, 0] = EdgeType.polymer
+    edges[:, :, 1] = 0
+    edges[:, 0, 2] = numpy.array([4, 6], dtype=int) - 1
+
+    polymeric_connections_for_kinforest = mark_polymeric_bonds_in_foldforest_edges(
+        2, 6, edges
+    )
+
+    bond_inds_gold = polymeric_bond_inds_for_pose_stack(
+        pose_stack, polymeric_connections_for_kinforest
+    )
+
+    polymeric_bonds_in_kinforest = get_polymeric_bonds_in_fold_forest(
+        pose_stack, polymeric_connections_for_kinforest
+    )
+
+    numpy.testing.assert_equal(
+        bond_inds_gold, polymeric_bonds_in_kinforest.cpu().numpy()
+    )
+
+
+def test_get_polymeric_bonds_in_fold_forest_3(ubq_res):
+    torch_device = torch.device("cpu")
+
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
+    pose_stack = PoseStack.from_poses((p1, p2), torch_device)
+
+    edges = numpy.full((2, 1, 4), -1, dtype=int)
+    edges[:, :, 0] = EdgeType.polymer
+    edges[:, :, 2] = 0
+    edges[:, 0, 1] = numpy.array([4, 6], dtype=int) - 1
+
+    polymeric_connections_for_kinforest = mark_polymeric_bonds_in_foldforest_edges(
+        2, 6, edges
+    )
+
+    bond_inds_gold = polymeric_bond_inds_for_pose_stack(
+        pose_stack, polymeric_connections_for_kinforest
+    )
+
+    polymeric_bonds_in_kinforest = get_polymeric_bonds_in_fold_forest(
+        pose_stack, polymeric_connections_for_kinforest
+    )
+
+    numpy.testing.assert_equal(
+        bond_inds_gold, polymeric_bonds_in_kinforest.cpu().numpy()
+    )
+
+
+def test_get_polymeric_bonds_in_fold_forest_c_to_n(ubq_res):
+    torch_device = torch.device("cpu")
+
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:8], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:11], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:5], torch_device)
+    pose_stack = PoseStack.from_poses((p1, p2), torch_device)
+
+    edges = numpy.full((3, 2, 4), -1, dtype=int)
+    edges[:, 0, 0] = EdgeType.polymer
+    edges[:, 0, 1] = 0
+    edges[0, 0, 2] = 7
+    edges[1, 0, 1] = 5
+    edges[1, 0, 2] = 0
+    edges[1, 1, 0] = EdgeType.polymer
+    edges[1, 1, 1] = 5
+    edges[1, 1, 2] = 10
+    edges[2, 0, 2] = 4
+
+    polymeric_connections_for_kinforest = mark_polymeric_bonds_in_foldforest_edges(
+        3, 11, edges
+    )
+
+    bond_inds_gold = polymeric_bond_inds_for_pose_stack(
+        pose_stack, polymeric_connections_for_kinforest
+    )
+
+    polymeric_bonds_in_kinforest = get_polymeric_bonds_in_fold_forest(
+        pose_stack, polymeric_connections_for_kinforest
+    )
+
+    numpy.testing.assert_equal(
+        bond_inds_gold, polymeric_bonds_in_kinforest.cpu().numpy()
+    )

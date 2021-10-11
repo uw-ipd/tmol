@@ -18,7 +18,7 @@ def mark_polymeric_bonds_in_foldforest_edges(
                 increment = 1 if edges[i, j, 1] < edges[i, j, 2] else -1
 
                 for k in range(edges[i, j, 1], edges[i, j, 2], increment):
-                    polymeric_connection_in_edge[i, k, k + increment] = 1
+                    polymeric_connection_in_edge[i, k, k + increment] += 1
 
     return polymeric_connection_in_edge
 
@@ -130,7 +130,7 @@ def validate_fold_forest(
                         [
                             "FOLD FOREST ERROR: Cycle detected in pose",
                             str(i),
-                            "at residue",
+                            "at block",
                             str(cycles_detected[i, 1]),
                         ]
                     )

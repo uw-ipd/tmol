@@ -3,6 +3,7 @@ import numba
 import numpy
 
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.datatypes import KinTree
@@ -141,7 +142,7 @@ def get_bonds_for_named_torsions(pose_stack: PoseStack):
     return real_middle_bond_ats[complete_middle_bond_ats]
 
 
-def get_all_bonds(pose_stack: PoseStack):
+def get_all_intrablock_bonds(pose_stack: PoseStack):
     pbt = pose_stack.packed_block_types
     device = pose_stack.device
 
@@ -152,24 +153,200 @@ def get_all_bonds(pose_stack: PoseStack):
         device=device,
     )
     real_bonds[real_blocks] = pbt.bond_is_real[pose_stack.block_type_ind64[real_blocks]]
-    intrares_bonds = torch.full(
+    intrablock_bonds = torch.full(
         (pose_stack.n_poses, pose_stack.max_n_blocks, pbt.max_n_bonds, 2),
         -1,
         dtype=torch.int32,
         device=device,
     )
-    intrares_bonds[real_blocks] = pbt.bond_indices[
+    intrablock_bonds[real_blocks] = pbt.bond_indices[
         pose_stack.block_type_ind64[real_blocks]
     ]
     nz_real_bond_pose_ind, nz_real_bond_block_ind, _ = torch.nonzero(
         real_bonds, as_tuple=True
     )
 
-    intrares_bonds = intrares_bonds[real_bonds]
-    intrares_bonds += (
+    intrablock_bonds = intrablock_bonds[real_bonds]
+    intrablock_bonds += (
         pose_stack.max_n_pose_atoms * nz_real_bond_pose_ind
         + pose_stack.block_coord_offset[nz_real_bond_pose_ind, nz_real_bond_block_ind]
     ).unsqueeze(1)
+    return intrablock_bonds
+
+
+def get_atom_inds_for_interblock_connections(
+    pose_stack: PoseStack,
+    real_blocks: Tensor[torch.bool][:, :],
+    nz_real_block_pose_ind_prelim: Tensor[torch.int64],
+    nz_real_block_block_ind_prelim: Tensor[torch.int64],
+    src_connections: Tensor[torch.int64][:, :],
+    dst_connections: Tensor[torch.int64][:, :],
+    kinematic_connections: Tensor[torch.bool][:, :, :],
+):
+    """Find the atoms indices for bonds that should be included in the KinForest
+    of a certain type. The src_connections tensor holds the inter-block connection
+    indices of one type that are present in the PoseStack, the dst_connections tensor
+    holds the inter-block connection indices of a second type, and the
+    kinematic_connections tensor at position [p, b1, b2] is a yes or no as
+    to whether a src-to-dst connection is desired in the KinForest between block
+    b1 and block b2 in pose p. In particular, this is useful for figuring
+    out whether the polymeric connections in a pose should be included in its
+    fold tree; the logic for handling up-to-down connections (i.e. N->C) is identical
+    to the logic for handling down-to-up connections (i.e. C->N).
+    """
+
+    pbt = pose_stack.packed_block_types
+
+    # find the index of the other block that the src block is connected to;
+    # not all connections are complete, so consider this a "preliminary" set
+    # that we will refine into the set of complete connections
+    src_conn_other_block_prelim = pose_stack.inter_residue_connections64[
+        nz_real_block_pose_ind_prelim,
+        nz_real_block_block_ind_prelim,
+        src_connections[real_blocks],
+        0,
+    ]
+    src_conn_other_conn_prelim = pose_stack.inter_residue_connections64[
+        nz_real_block_pose_ind_prelim,
+        nz_real_block_block_ind_prelim,
+        src_connections[real_blocks],
+        1,
+    ]
+
+    # find which of the connections are complete: as in, there's another residue
+    # on the other side of the connection point and, having found the complete
+    # connections, go back and refine the list of pose-inds and block-inds that
+    # we will work with
+    src_conn_complete = src_conn_other_block_prelim != -1
+
+    src_conn_other_block = src_conn_other_block_prelim[src_conn_complete]
+    src_conn_other_conn = src_conn_other_conn_prelim[src_conn_complete]
+    nz_real_block_pose_ind_src = nz_real_block_pose_ind_prelim[src_conn_complete]
+    nz_real_block_block_ind_src = nz_real_block_block_ind_prelim[src_conn_complete]
+
+    # how do I tell if the src-conn on residue x is connected to the
+    # dst conn on residue y? if the index of the input dst-connection
+    # is the same as the one that the src-connection is connected to
+
+    connection_is_src_to_dst = (
+        dst_connections[nz_real_block_pose_ind_src, src_conn_other_block]
+        == src_conn_other_conn
+    )
+
+    # now lets refine the set of indices we have constructed so far:
+    # not only are we looking at the set of complete connections from the
+    # src but we are now looking at the set that actually meet the dst
+    # conns
+    src_polyconn_pose_ind = nz_real_block_pose_ind_src[connection_is_src_to_dst]
+    src_polyconn_block_ind = nz_real_block_block_ind_src[connection_is_src_to_dst]
+    src_polyconn_other_block_ind = src_conn_other_block[connection_is_src_to_dst]
+    src_polyconn_conn_ind = src_connections[real_blocks][src_conn_complete][
+        connection_is_src_to_dst
+    ]
+    src_polyconn_other_conn_ind = src_conn_other_conn[connection_is_src_to_dst]
+
+    # Now we ask: are the src-to-dst connections that we have identified that exist
+    # in the PoseStack actually desired as part of the kinematic forest? The
+    # kinematic_connections tensor will tell us when we index into it using
+    # [pose, src-block, dst-block] indices. Note that sometimes a src-to-dst
+    # connection is not desired but instead the dst-to-src connection is. The
+    # kinematic_connections tensor is not symmetric.
+    src_conn_in_fold_forest = kinematic_connections[
+        src_polyconn_pose_ind, src_polyconn_block_ind, src_polyconn_other_block_ind
+    ]
+
+    # ok, now refine our index tensors to the kinematically desired
+    src_kin_pose_ind = src_polyconn_pose_ind[src_conn_in_fold_forest]
+    src_kin_block_ind = src_polyconn_block_ind[src_conn_in_fold_forest]
+    src_kin_other_block_ind = src_polyconn_other_block_ind[src_conn_in_fold_forest]
+    src_kin_conn_ind = src_polyconn_conn_ind[src_conn_in_fold_forest]
+    src_kin_other_conn_ind = src_polyconn_other_conn_ind[src_conn_in_fold_forest]
+
+    # finally, we will compute the global indices of the atoms that form the
+    # bonds that we desire as ordered pairs: the first atom being kinematically
+    # upstream of the second atom
+    src_kin_bond_inds_1 = (
+        pose_stack.max_n_pose_atoms * src_kin_pose_ind
+        + pose_stack.block_coord_offset[src_kin_pose_ind, src_kin_block_ind]
+        + pbt.conn_atom[
+            pose_stack.block_type_ind64[src_kin_pose_ind, src_kin_block_ind],
+            src_kin_conn_ind,
+        ]
+    )
+    src_kin_bond_inds_2 = (
+        pose_stack.max_n_pose_atoms * src_kin_pose_ind
+        + pose_stack.block_coord_offset[src_kin_pose_ind, src_kin_other_block_ind]
+        + pbt.conn_atom[
+            pose_stack.block_type_ind64[src_kin_pose_ind, src_kin_other_block_ind],
+            src_kin_other_conn_ind,
+        ]
+    )
+    src_kin_bond_inds = torch.stack((src_kin_bond_inds_1, src_kin_bond_inds_2), dim=1)
+    return src_kin_bond_inds
+
+
+def get_polymeric_bonds_in_fold_forest(
+    pose_stack: PoseStack,
+    kinematic_polymeric_connections: NDArray[numpy.int64][:, :, :],
+):
+    pbt = pose_stack.packed_block_types
+    device = pose_stack.device
+    kinematic_polymeric_connections_torch = torch.tensor(
+        kinematic_polymeric_connections != 0, dtype=torch.bool, device=device
+    )
+
+    real_blocks = pose_stack.block_type_ind != -1
+    down_connections = torch.full(
+        (pose_stack.n_poses, pose_stack.max_n_blocks),
+        -1,
+        dtype=torch.int64,
+        device=device,
+    )
+    down_connections[real_blocks] = pbt.down_conn_inds[
+        pose_stack.block_type_ind64[real_blocks]
+    ].to(torch.int64)
+
+    up_connections = torch.full(
+        (pose_stack.n_poses, pose_stack.max_n_blocks),
+        -1,
+        dtype=torch.int64,
+        device=device,
+    )
+    up_connections[real_blocks] = pbt.up_conn_inds[
+        pose_stack.block_type_ind64[real_blocks]
+    ].to(torch.int64)
+
+    nz_real_block_pose_ind_prelim, nz_real_block_block_ind_prelim = torch.nonzero(
+        real_blocks, as_tuple=True
+    )
+
+    up_kin_bonds = get_atom_inds_for_interblock_connections(
+        pose_stack,
+        real_blocks,
+        nz_real_block_pose_ind_prelim,
+        nz_real_block_block_ind_prelim,
+        up_connections,
+        down_connections,
+        kinematic_polymeric_connections_torch,
+    )
+    down_kin_bonds = get_atom_inds_for_interblock_connections(
+        pose_stack,
+        real_blocks,
+        nz_real_block_pose_ind_prelim,
+        nz_real_block_block_ind_prelim,
+        down_connections,
+        up_connections,
+        kinematic_polymeric_connections_torch,
+    )
+
+    return torch.cat((up_kin_bonds, down_kin_bonds), dim=0)
+
+
+def get_all_bonds(pose_stack: PoseStack):
+    pbt = pose_stack.packed_block_types
+    device = pose_stack.device
+
+    real_blocks = pose_stack.block_type_ind != -1
 
     n_conn = pbt.n_conn[pose_stack.block_type_ind64[real_blocks]]
     real_conn = torch.zeros(
@@ -213,6 +390,8 @@ def get_all_bonds(pose_stack: PoseStack):
     )
 
     interres_bonds = torch.stack((global_at1, global_at2), dim=1)
+
+    intrares_bonds = get_all_intrablock_bonds(pose_stack)
     bonds = torch.cat((intrares_bonds, interres_bonds), dim=0)
 
     return bonds

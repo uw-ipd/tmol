@@ -248,3 +248,35 @@ class PackedBlockTypes:
         return self.restype_index.get_indexer(
             [residue_type.name for residue_type in res_types]
         )
+
+    def cpu(self):
+        def cpu_equiv(x):
+            return x.cpu() if hasattr(x, "cpu") else x
+
+        new_inst = PackedBlockTypes(
+            active_block_types=cpu_equiv(self.active_block_types),
+            restype_index=cpu_equiv(self.restype_index),
+            max_n_atoms=cpu_equiv(self.max_n_atoms),
+            n_atoms=cpu_equiv(self.n_atoms),
+            atom_is_real=cpu_equiv(self.atom_is_real),
+            atom_downstream_of_conn=cpu_equiv(self.atom_downstream_of_conn),
+            max_n_torsions=cpu_equiv(self.max_n_torsions),
+            n_torsions=cpu_equiv(self.n_torsions),
+            torsion_is_real=cpu_equiv(self.torsion_is_real),
+            torsion_uaids=cpu_equiv(self.torsion_uaids),
+            max_n_bonds=cpu_equiv(self.max_n_bonds),
+            n_bonds=cpu_equiv(self.n_bonds),
+            bond_is_real=cpu_equiv(self.bond_is_real),
+            bond_indices=cpu_equiv(self.bond_indices),
+            max_n_conn=cpu_equiv(self.conn_is_real.shape[1]),
+            n_conn=cpu_equiv(self.n_conn),
+            conn_is_real=cpu_equiv(self.conn_is_real),
+            conn_atom=cpu_equiv(self.conn_atom),
+            down_conn_inds=cpu_equiv(self.down_conn_inds),
+            up_conn_inds=cpu_equiv(self.up_conn_inds),
+            device=cpu_equiv(self.device),
+        )
+        for self_key in self.__dict__:
+            if self_key not in new_inst.__dict__:
+                setattr(new_inst, self_key, cpu_equiv(self.__dict___[self_key]))
+        return new_inst
