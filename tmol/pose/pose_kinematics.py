@@ -6,7 +6,7 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.builder import KinematicBuilder
-from tmol.kinematics.datatypes import KinTree
+from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.fold_forest import EdgeType
 
 
@@ -397,14 +397,33 @@ def get_all_bonds(pose_stack: PoseStack):
     return bonds
 
 
-def construct_pose_stack_kintree(pose_stack: PoseStack) -> KinTree:
-    kintree = (
+def construct_pose_stack_kintree(
+    pose_stack: PoseStack, fold_forest: FoldForest
+) -> KinForest:
+
+    intra_block_bonds = get_all_intrablock_bonds(pose_stack)
+    kin_polymeric_connections = mark_polymeric_bonds_in_foldforest_edges(
+        pose_stack.n_poses, pose_stack.max_n_blocks, fold_forest.edges
+    )
+    kin_polymeric_bonds = get_polymeric_bonds_in_fold_forest(
+        pose_stack, kin_polymeric_connections
+    )
+
+    # TO DO: add bonds between jump atoms
+    # TO DO: determine which atoms on a block a jump should
+    # connect to. Logic in R3: take the central "mainchain" atom
+    # which is only ok for polymers, but perverse for anything else.
+    # What's the mainchain of a ligand?!
+    # jump_atom_pairs = get_jump_bonds_in_fold_forest(pose_stack, fold_forest)
+
+    all_bonds = torch.cat((intra_block_bonds, kin_polymeric_bonds), dim=0)
+    tor_bonds = get_bonds_for_named_torsions(pose_stack)
+    root_atoms = get_root_atom_indices(pose_stack, fold_forest.roots)
+
+    return (
         KinematicBuilder().append_connected_component(
             *KinematicBuilder.component_for_prioritized_bonds(
-                roots=pose_stack.max_n_pose_atoms
-                * numpy.arange(pose_stack.n_poses, dtype=int),
-                mandatory_bonds=get_bonds_for_named_torsions(pose_stack),
-                all_bonds=get_all_bonds(pose_stack),
+                roots=root_atoms, priority_bonds=tor_bonds, all_bonds=all_bonds
             )
         )
     ).kintree

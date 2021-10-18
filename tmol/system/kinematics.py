@@ -10,7 +10,7 @@ from tmol.types.functional import validate_args
 
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.metadata import DOFMetadata
-from tmol.kinematics.datatypes import KinTree
+from tmol.kinematics.datatypes import KinForest
 
 from .datatypes import torsion_metadata_dtype
 
@@ -19,7 +19,7 @@ from .datatypes import torsion_metadata_dtype
 class KinematicDescription:
     """A kinematic tree paired and mobile dofs for the tree."""
 
-    kintree: KinTree
+    kintree: KinForest
     dof_metadata: DOFMetadata
 
     @classmethod
@@ -33,7 +33,7 @@ class KinematicDescription:
         """Generate kinematics for system atoms and named torsions.
 
         Generate a kinematic tree fully spanning the atoms and named torsions
-        within the system. ``KinTree.id`` is set of the atom index of the
+        within the system. ``KinForest.id`` is set of the atom index of the
         coordinate. Note that this is a covering of indices within the system
         "non-atom" ids are not present in the tree.
         """

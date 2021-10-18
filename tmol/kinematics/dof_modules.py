@@ -5,11 +5,11 @@ from typing import Callable, TypeVar
 
 from tmol.extern.singledispatchmethod import singledispatch, singledispatchmethod
 
-from tmol.kinematics.scan_ordering import KinTreeScanOrdering
+from tmol.kinematics.scan_ordering import KinForestScanOrdering
 from tmol.kinematics.compiled import forward_kin_op
 
 from .metadata import DOFMetadata
-from .datatypes import KinTree
+from .datatypes import KinForest
 
 T = TypeVar("T")
 
@@ -85,7 +85,7 @@ class KinematicModule(torch.nn.Module):
     See KinDOF for a description of the internal coordinate representation.
     """
 
-    def __init__(self, kintree: KinTree):
+    def __init__(self, kintree: KinForest):
         super().__init__()
 
         def _tint(ts):
@@ -106,7 +106,7 @@ class KinematicModule(torch.nn.Module):
             dim=1,
         )
 
-        ordering = KinTreeScanOrdering.for_kintree(kintree)
+        ordering = KinForestScanOrdering.for_kintree(kintree)
 
         self.register_buffer("nodes_f", torch.tensor([]))
         self.register_buffer("scans_f", torch.tensor([]))
@@ -148,7 +148,7 @@ class KinematicOperation(torch.nn.Module):
         super().__init__()
 
     system_size: int
-    kintree: KinTree
+    kintree: KinForest
     dof_metadata: DOFMetadata
     kin_module: KinematicModule = attr.ib(init=False)
 

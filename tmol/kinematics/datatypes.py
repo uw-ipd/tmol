@@ -10,7 +10,7 @@ from tmol.types.functional import convert_args
 
 
 class NodeType(enum.IntEnum):
-    """KinTree node types."""
+    """KinForest node types."""
 
     root = 0
     jump = enum.auto()
@@ -18,12 +18,16 @@ class NodeType(enum.IntEnum):
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class KinTree(TensorGroup, ConvertAttrs):
-    """Atom-level kinematic description.
+class KinForest(TensorGroup, ConvertAttrs):
+    """A collection of atom-level kinematic trees, each of which can be processed
+    in parallel.
 
-    A kinematic description of collection of atom locations, each atom location
-    corresponding to a node within a tree. The tree is *rooted* at a single
-    "root" node, representing the global reference frame. Every other node
+    A kinematic description of a collection of atom locations, each atom location
+    corresponding to a node within a tree. The root of each tree in this forest
+    is built from a jump from the global reference frame at the origin. (The global
+    reference frame will later be treated as a node in the forest, effectively
+    linking all the trees, but this is a minor technical detail; best to think
+    of this as several independent trees than a single tree). Every other node
     corresponds to a derived orientation, with an atomic coordinate at the
     center of the frame.
 
@@ -34,28 +38,53 @@ class KinTree(TensorGroup, ConvertAttrs):
     3 rotational.
 
     2) Bond nodes, representing the relationships between two atom reference
-    frames via three bond degrees of freedom, bond axis translation, bond axis
-    rotation about the parent-grandparent bond and change of bond axis with
-    respect to the bond. Bond nodes include an additional, redundent,
-    degree of freedom representing concerted rotation of all downstream bonds
-    about the parent-self bond.
+    frames via three bond degrees of freedom: the translation from the parent
+    to the child along the bond axis (bond length, d), the rotation from the
+    grand-parent-to-parent bond axis to the bond axis (an improper bond
+    angle, theta), and the rotation about the grand-parent-to-parent bond axis
+    (bond torsion, phi). Bond nodes include an additional, redundent,
+    degree of freedom representing concerted rotation of all downstream atoms
+    about the parent-to-self bond. These DOFs are used to represent
+    the torsions that alter the location of several children. For example,
+    chi1 is represented as the 4th DOF for the CB atom of LEU. A rotation
+    about the CA-->CB bond axis will spin CG, HB1 and HB2. In this scheme,
+    the phi DOF would be 0 for CG, 120 for HB1 and 240 for HB2. This differs
+    from the Rosetta3 implementation of downstream-dihedral propagation
+    where Chi1 would live as the phi DOF of CG, and CG's rotation would
+    carry forward to HB1 and HB2 (requiring that CG be the first child of
+    CB).
 
-    The `KinTree` data structure itself is frozen and can not be modified post
+    The atoms in the `KinForest` have their own order that is distinct
+    from the ordering in the target (e.g. a PoseStack) where there might
+    be gaps between sets of atoms (e.g. because each Pose in the stack
+    has a different number of atoms, so a contiguous block of atom indices
+    from 0-100 might have a gap before the next contiguous block begins
+    at 150). Whe working with a `KinForest`, remembering what order
+    and array's indices is in (the kin-forest order (KFO) or the target
+    order (TO)) and what a value/index read out of an array represents (is
+    the index an index in KFO or TO?) is *very* challenging. The documentation
+    for these arrays includes whether the arrays are indexed in KFO or TO
+    and whether the values they hold are KFO or TO indices.
+
+    The `KinForest` data structure itself is frozen and can not be modified post
     construction. The `KinematicBuilder` factory class is responsible for
-    construction of a `KinTree` with valid internal structure for atomic
+    construction of a `KinForest` with valid internal structure for atomic
     systems.
 
     Indices::
-        id = index for kin-atom in the target coordinate system;
-             aka the breadth-first ordering to original ordering
-        parent = kin-atom index of parent for each kin-atom
-             aka the 
-        frame_x = kin-atom index of self
-        frame_y = kin-atom index of parent
-        frame_z = kin-atom index of grandparent
+        id = the TO index in KFO; i.e. kin_forest_order_2_target_order
+        roots = KFO index for the roots of the trees in the forest;
+             coordinate updates for these atoms and the path they root will
+             proceed in parallel in the first pass of the generational
+             -segmented scan. These are listed in no particular order.
+        parent = KFO index of the parent, in KFO
+        frame_x = KFO index of self, in KFO 
+        frame_y = KFO index of parent, in KFO
+        frame_z = KFO index of grandparent, in KFO
     """
 
     id: Tensor[torch.int][...]  # used as an index so long
+    roots: Tensor[torch.int][...]
     doftype: Tensor[torch.int][...]
     parent: Tensor[torch.int][...]  # used as an index so long
     frame_x: Tensor[torch.int][...]
@@ -76,6 +105,7 @@ class KinTree(TensorGroup, ConvertAttrs):
         """Construct a single node from element values."""
         return cls(
             id=torch.Tensor([id]),
+            roots=torch.Tensor([]),
             doftype=torch.Tensor([doftype]),
             parent=torch.Tensor([parent]),
             frame_x=torch.Tensor([frame_x]),
@@ -85,7 +115,7 @@ class KinTree(TensorGroup, ConvertAttrs):
 
     @classmethod
     def root_node(cls):
-        """The global/root kinematic node at KinTree[0]."""
+        """The global/root kinematic node at KinForest[0]."""
         return cls.node(
             id=-1, doftype=NodeType.root, parent=0, frame_x=0, frame_y=0, frame_z=0
         )
@@ -99,7 +129,7 @@ class KinDOF(TensorGroup, ConvertAttrs):
     sparsely populated [n,9] tensor of DOF values and a set of named property
     accessors providing access to specific entries within this array. This is
     logically equivalent a C union datatype, the interpretation of an entry in
-    the DOF buffer depends on the type of the corresponding KinTree entry.
+    the DOF buffer depends on the type of the corresponding KinForest entry.
     """
 
     raw: Tensor[torch.double][..., 9]

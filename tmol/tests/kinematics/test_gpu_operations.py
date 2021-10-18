@@ -5,7 +5,7 @@ import numpy
 
 from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import KinematicBuilder
-from tmol.kinematics.scan_ordering import KinTreeScanOrdering
+from tmol.kinematics.scan_ordering import KinForestScanOrdering
 from tmol.tests.torch import requires_cuda
 
 
@@ -28,8 +28,8 @@ def test_refold_data_construction(benchmark, ubq_system):
     kintree = system_kintree(ubq_system)
 
     @benchmark
-    def tree_reordering_cpp() -> KinTreeScanOrdering:
-        return KinTreeScanOrdering.calculate_from_kintree(kintree)
+    def tree_reordering_cpp() -> KinForestScanOrdering:
+        return KinForestScanOrdering.calculate_from_kintree(kintree)
 
     kinorder = tree_reordering_cpp
 
@@ -82,7 +82,7 @@ def test_refold_values_cpp(benchmark, big_system):
     tkintree = kintree.to(device=target_device)
     bkin = inverseKin(tkintree, tcoords)
 
-    KinTreeScanOrdering.calculate_from_kintree(tkintree)
+    KinForestScanOrdering.calculate_from_kintree(tkintree)
 
     @benchmark
     def parallel_refold_hts_cpp():

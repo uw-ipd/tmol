@@ -1,10 +1,10 @@
 import torch
 
-from .datatypes import KinTree
+from .datatypes import KinForest
 
 from tmol.kinematics.compiled import forward_kin_op
 
-from tmol.kinematics.scan_ordering import KinTreeScanOrdering
+from tmol.kinematics.scan_ordering import KinForestScanOrdering
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -26,7 +26,7 @@ class KinematicModule(torch.jit.ScriptModule):
     See KinDOF for a description of the internal coordinate representation.
     """
 
-    def __init__(self, kintree: KinTree, device: torch.device):
+    def __init__(self, kintree: KinForest, device: torch.device):
         super().__init__()
 
         def _p(t):
@@ -51,7 +51,7 @@ class KinematicModule(torch.jit.ScriptModule):
             ).to(device)
         )
 
-        ordering = KinTreeScanOrdering.for_kintree(kintree)
+        ordering = KinForestScanOrdering.for_kintree(kintree)
         self.nodes_f = _p(ordering.forward_scan_paths.nodes.to(device))
         self.scans_f = _p(ordering.forward_scan_paths.scans.to(device))
         self.gens_f = _p(ordering.forward_scan_paths.gens)  # on cpu

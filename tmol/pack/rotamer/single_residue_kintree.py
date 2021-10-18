@@ -5,7 +5,7 @@ import torch
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
-from tmol.kinematics.scan_ordering import KinTreeScanOrdering
+from tmol.kinematics.scan_ordering import KinForestScanOrdering
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
 
@@ -97,7 +97,7 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
             )
             .kintree
         )
-    forward_scan_paths = KinTreeScanOrdering.calculate_from_kintree(
+    forward_scan_paths = KinForestScanOrdering.calculate_from_kintree(
         kintree
     ).forward_scan_paths
 

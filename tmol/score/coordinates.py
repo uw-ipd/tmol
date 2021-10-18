@@ -5,7 +5,7 @@ import torch
 import math
 
 from tmol.kinematics.metadata import DOFMetadata
-from tmol.kinematics.datatypes import KinTree
+from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.script_modules import KinematicModule
 
 from tmol.utility.reactive import reactive_property
@@ -80,16 +80,16 @@ class KinematicAtomicCoordinateProvider(
     dofmetadata: DOFMetadata
 
     # kinematic tree (= rosetta atomtree)
-    kintree: KinTree
+    kintree: KinForest
 
     @reactive_property
-    def kin_module(kintree: KinTree) -> KinematicModule:
+    def kin_module(kintree: KinForest) -> KinematicModule:
         return KinematicModule(kintree, kintree.id.device)
 
     @reactive_property
     def coords(
         dofs: Tensor[torch.float][:, 9],
-        kintree: KinTree,
+        kintree: KinForest,
         kin_module: KinematicModule,
         system_size: int,
         stack_depth: int,

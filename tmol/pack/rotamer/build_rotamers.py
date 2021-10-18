@@ -13,7 +13,7 @@ from tmol.types.functional import validate_args
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 from tmol.database.chemical import ChemicalDatabase
-from tmol.kinematics.datatypes import KinTree
+from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -336,10 +336,10 @@ def construct_kintree_for_rotamers(
     block_offset_for_rot: NDArray[numpy.int32][:],
     device: torch.device,
 ):
-    """Construct a KinTree for a set of rotamers by stringing
+    """Construct a KinForest for a set of rotamers by stringing
     together the kintree data for individual rotamers.
     The "block_ofset_for_rot" array is used to construct
-    the "id" tensor in the KinTree, which maps to the atom
+    the "id" tensor in the KinForest, which maps to the atom
     indices; thus it should contain the atom-index offsets
     for the first atom in each rotamer in the coords tensor
     that will be used to construct the kintree_coords tensor.
@@ -392,7 +392,7 @@ def construct_kintree_for_rotamers(
         )
     )
 
-    return KinTree(
+    return KinForest(
         id=id,
         doftype=doftype,
         parent=parent,
@@ -403,7 +403,7 @@ def construct_kintree_for_rotamers(
 
 
 def measure_dofs_from_orig_coords(
-    coords: Tensor[torch.float32][:, :, :], kintree: KinTree
+    coords: Tensor[torch.float32][:, :, :], kintree: KinForest
 ):
     from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
 
@@ -829,7 +829,7 @@ def assign_dofs_from_samples(
 def calculate_rotamer_coords(
     pbt: PackedBlockTypes,
     n_rots: int,
-    rot_kintree: KinTree,
+    rot_kintree: KinForest,
     nodes: NDArray[numpy.int32][:],
     scans: NDArray[numpy.int32][:],
     gens: NDArray[numpy.int32][:],

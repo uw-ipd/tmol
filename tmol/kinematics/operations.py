@@ -7,13 +7,13 @@ from tmol.kinematics.compiled import inverse_kin
 from tmol.kinematics.script_modules import KinematicModule
 
 
-from .datatypes import KinTree, KinDOF
+from .datatypes import KinForest, KinDOF
 
 CoordArray = Tensor[torch.double][:, 3]
 
 
 @validate_args
-def inverseKin(kintree: KinTree, coords: CoordArray, requires_grad=False) -> KinDOF:
+def inverseKin(kintree: KinForest, coords: CoordArray, requires_grad=False) -> KinDOF:
     """xyzs -> HTs, dofs
       - "backward" kinematics
     """
@@ -31,7 +31,7 @@ def inverseKin(kintree: KinTree, coords: CoordArray, requires_grad=False) -> Kin
 # wrapper for the module that is used for testing
 # creates a new module each call so not particularly efficient
 @validate_args
-def forwardKin(kintree: KinTree, dofs: KinDOF) -> CoordArray:
+def forwardKin(kintree: KinForest, dofs: KinDOF) -> CoordArray:
     """dofs -> HTs, xyzs
       - "forward" kinematics
     """

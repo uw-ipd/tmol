@@ -5,7 +5,7 @@ import torch
 
 from tmol.types.torch import Tensor
 
-from tmol.kinematics.datatypes import KinTree
+from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.script_modules import KinematicModule
 from tmol.kinematics.operations import inverseKin
 
@@ -62,7 +62,7 @@ def test_kinematic_torch_op_backward_benchmark(benchmark, ubq_system, torch_devi
 @pytest.fixture
 def gradcheck_test_system(
     ubq_res: typing.Sequence[Residue],
-) -> typing.Tuple[KinTree, Tensor[torch.float64][:, 3]]:
+) -> typing.Tuple[KinForest, Tensor[torch.float64][:, 3]]:
 
     tsys = PackedResidueSystem.from_residues(ubq_res[:4])
     tkin = KinematicDescription.for_system(

@@ -7,7 +7,7 @@ namespace tmol {
 namespace kinematics {
 
 template <typename Int>
-struct KinTreeParams {
+struct KinForestParams {
   Int id;
   Int doftype;
   Int parent;
@@ -17,7 +17,7 @@ struct KinTreeParams {
 };
 
 template <typename Int>
-struct KinTreeGenData {
+struct KinForestGenData {
   Int node_start;
   Int scan_start;
 };
@@ -28,7 +28,7 @@ struct KinTreeGenData {
 namespace tmol {
 
 template <typename Int>
-struct enable_tensor_view<kinematics::KinTreeParams<Int>> {
+struct enable_tensor_view<kinematics::KinForestParams<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
   static const at::ScalarType scalar_type() {
     return enable_tensor_view<Int>::scalar_type();
@@ -36,14 +36,15 @@ struct enable_tensor_view<kinematics::KinTreeParams<Int>> {
 
   static const int nconsumed_dims = 1;
   static const int consumed_dims(int i) {
-    return (i == 0) ? sizeof(kinematics::KinTreeParams<Int>) / sizeof(Int) : 0;
+    return (i == 0) ? sizeof(kinematics::KinForestParams<Int>) / sizeof(Int)
+                    : 0;
   }
 
   typedef typename enable_tensor_view<Int>::PrimitiveType PrimitiveType;
 };
 
 template <typename Int>
-struct enable_tensor_view<kinematics::KinTreeGenData<Int>> {
+struct enable_tensor_view<kinematics::KinForestGenData<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
   static const at::ScalarType scalar_type() {
     enable_tensor_view<Int>::scalar_type();
@@ -51,7 +52,8 @@ struct enable_tensor_view<kinematics::KinTreeGenData<Int>> {
 
   static const int nconsumed_dims = 1;
   static const int consumed_dims(int i) {
-    return (i == 0) ? sizeof(kinematics::KinTreeGenData<Int>) / sizeof(Int) : 0;
+    return (i == 0) ? sizeof(kinematics::KinForestGenData<Int>) / sizeof(Int)
+                    : 0;
   }
 
   typedef typename enable_tensor_view<Int>::PrimitiveType PrimitiveType;

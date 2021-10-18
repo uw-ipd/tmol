@@ -2,11 +2,11 @@ import pandas
 
 from tmol.system.kinematics import KinematicDescription
 from tmol.kinematics.metadata import DOFMetadata
-from tmol.kinematics.datatypes import KinTree
+from tmol.kinematics.datatypes import KinForest
 from tmol.system.packed import PackedResidueSystem
 
 
-def report_tree_coverage(sys: PackedResidueSystem, ktree: KinTree):
+def report_tree_coverage(sys: PackedResidueSystem, ktree: KinForest):
     kinematic_metadata = DOFMetadata.for_kintree(ktree).to_frame()
     torsion_metadata = pandas.DataFrame.from_records(sys.torsion_metadata)
     torsion_coverage = pandas.merge(

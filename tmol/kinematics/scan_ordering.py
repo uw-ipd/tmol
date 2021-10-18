@@ -2,7 +2,7 @@ import attr
 import numpy
 import torch
 
-from .datatypes import KinTree
+from .datatypes import KinForest
 
 from numba import jit
 from tmol.types.torch import Tensor
@@ -10,6 +10,44 @@ from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ConvertAttrs, ValidateAttrs
 
 from tmol.types.functional import validate_args
+
+
+@jit(nopython=True)
+def get_children(parents):
+    nelts = parents.shape[0]
+
+    # Pass 1, count number of children for each parent.
+    n_immediate_children = numpy.full(nelts, 0, dtype=numpy.int32)
+    for i in range(nelts):
+        p = parents[i]
+        assert p <= i, "Invalid kinematic tree ordering, parent index >= child index."
+        if p == i:  # root
+            continue
+        n_immediate_children[p] += 1
+
+    # Pass 2, mark the span of each parent in the child node list.
+    child_list = numpy.full(nelts, -1, dtype=numpy.int32)
+    child_list_span = numpy.empty((nelts, 2), dtype=numpy.int32)
+
+    child_list_span[0, 0] = 0
+    child_list_span[0, 1] = n_immediate_children[0]
+    for i in range(1, nelts):
+        child_list_span[i, 0] = child_list_span[i - 1, 1]
+        child_list_span[i, 1] = child_list_span[i, 0] + n_immediate_children[i]
+
+    # Pass 3, fill the child list for each parent.
+    # As we do this, sum total # of descendents at each node, used to
+    #   prioritize scan ordering in DFS
+    n_descendents = numpy.ones(nelts, dtype=numpy.int32)
+    for i in range(nelts - 1, 0, -1):
+        p = parents[i]
+        if p == i:  # root
+            continue
+        n_descendents[p] += n_descendents[i]
+        child_list[child_list_span[p, 0] + n_immediate_children[p] - 1] = i
+        n_immediate_children[p] -= 1
+
+    return n_descendents, child_list_span, child_list
 
 
 # jitted scan operation
@@ -53,37 +91,7 @@ def get_scans(parents, roots):
     """
 
     nelts = parents.shape[0]
-
-    # Pass 1, count number of children for each parent.
-    n_immediate_children = numpy.full(nelts, 0, dtype=numpy.int32)
-    for i in range(nelts):
-        p = parents[i]
-        assert p <= i, "Invalid kinematic tree ordering, parent index >= child index."
-        if p == i:  # root
-            continue
-        n_immediate_children[p] += 1
-
-    # Pass 2, mark the span of each parent in the child node list.
-    child_list = numpy.full(nelts, -1, dtype=numpy.int32)
-    child_list_span = numpy.empty((nelts, 2), dtype=numpy.int32)
-
-    child_list_span[0, 0] = 0
-    child_list_span[0, 1] = n_immediate_children[0]
-    for i in range(1, nelts):
-        child_list_span[i, 0] = child_list_span[i - 1, 1]
-        child_list_span[i, 1] = child_list_span[i, 0] + n_immediate_children[i]
-
-    # Pass 3, fill the child list for each parent.
-    # As we do this, sum total # of descendents at each node, used to
-    #   prioritize scan ordering in DFS
-    n_children = numpy.ones(nelts, dtype=numpy.int32)
-    for i in range(nelts - 1, 0, -1):
-        p = parents[i]
-        if p == i:  # root
-            continue
-        n_children[p] += n_children[i]
-        child_list[child_list_span[p, 0] + n_immediate_children[p] - 1] = i
-        n_immediate_children[p] -= 1
+    n_descendents, child_list_span, child_list = get_children(parents)
 
     # scan storage - allocate upper bound for 4-connected graph
     # scan indices are emitted as a 1D array of nodes ('scans') with:
@@ -159,7 +167,7 @@ def get_scans(parents, roots):
                             child_list_span[expandedNode, 1],
                         ):
                             candidate = child_list[k]
-                            if n_children[candidate] > n_children[nextExtension]:
+                            if n_descendents[candidate] > n_descendents[nextExtension]:
                                 nextExtension = candidate
 
                         expandedNode = nextExtension
@@ -183,17 +191,17 @@ def get_scans(parents, roots):
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class KinTreeScanData(TensorGroup, ConvertAttrs):
+class KinForestScanData(TensorGroup, ConvertAttrs):
     nodes: Tensor[torch.int]
     scans: Tensor[torch.int]
     gens: Tensor[torch.int]
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class KinTreeScanOrdering(ValidateAttrs):
+class KinForestScanOrdering(ValidateAttrs):
     """Scan plans for parallel kinematic operations.
 
-    The KinTreeScanOrdering class divides the tree into a set of paths. Along
+    The KinForestScanOrdering class divides the tree into a set of paths. Along
     each path is a continuous chain of atoms that either (1) require their
     coordinate frames computed as a cumulative product of homogeneous
     transforms for the coordinate update algorithm, or (2) require the
@@ -208,8 +216,8 @@ class KinTreeScanOrdering(ValidateAttrs):
     The derivative summation algorithm starts at the leaves and sums
     upwards towards the roots.
 
-    To accomplish this, the GPUKinTreeReordering class reorders the atoms from
-    the original KinTree order ("ko") where atoms are known by their
+    To accomplish this, the GPUKinForestReordering class reorders the atoms from
+    the original KinForest order ("ko") where atoms are known by their
     kintree-index ("ki") into 1) their refold order ("ro") where atoms are
     known by their refold index ("ri") and 2) their deriv-sum order ("dso")
     where atoms are known by their deriv-sum index.
@@ -238,17 +246,17 @@ class KinTreeScanOrdering(ValidateAttrs):
       http://moderngpu.github.io/moderngpu
     """
 
-    kintree_cache_key = "__KinTreeScanOrdering_cache__"
+    kintree_cache_key = "__KinForestScanOrdering_cache__"
 
-    forward_scan_paths: KinTreeScanData
-    backward_scan_paths: KinTreeScanData
+    forward_scan_paths: KinForestScanData
+    backward_scan_paths: KinForestScanData
 
     @classmethod
     @validate_args
     def for_kintree(cls, kintree):
         """Calculate and cache refold ordering over kintree
 
-        KinTree data structure is frozen; so it is safe to cache the gpu scan
+        KinForest data structure is frozen; so it is safe to cache the gpu scan
         ordering for a single object. Store as a private property of the input
         kintree, lifetime of the cache will then be managed via the target
         object.
@@ -263,15 +271,15 @@ class KinTreeScanOrdering(ValidateAttrs):
 
     @classmethod
     @validate_args
-    def calculate_from_kintree(cls, kintree: KinTree):
-        """Setup for operations over KinTree.
+    def calculate_from_kintree(cls, kintree: KinForest):
+        """Setup for operations over KinForest.
         ``device`` is inferred from kintree tensor device.
         """
 
         nodes, scanStarts, genStarts = get_scans(
             kintree.parent.cpu().numpy(), numpy.array([0])
         )
-        forward_scan_paths = KinTreeScanData(
+        forward_scan_paths = KinForestScanData(
             nodes=torch.from_numpy(nodes).to(device=kintree.parent.device),
             scans=torch.from_numpy(scanStarts).to(device=kintree.parent.device),
             gens=torch.from_numpy(genStarts),
@@ -303,13 +311,13 @@ class KinTreeScanOrdering(ValidateAttrs):
             scanStartsR[genstart] = 0
             scanStartsR[(genstart + 1) : genstop] = scan_i[:-1]
 
-        backward_scan_paths = KinTreeScanData(
+        backward_scan_paths = KinForestScanData(
             nodes=torch.from_numpy(nodesR).to(device=kintree.parent.device),
             scans=torch.from_numpy(scanStartsR).to(device=kintree.parent.device),
             gens=torch.from_numpy(genStartsR),
         )  # keep gens on CPU!
 
-        return KinTreeScanOrdering(
+        return KinForestScanOrdering(
             forward_scan_paths=forward_scan_paths,
             backward_scan_paths=backward_scan_paths,
         )

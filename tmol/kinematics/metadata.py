@@ -13,7 +13,7 @@ from tmol.types.torch import Tensor
 
 from tmol.utility.categorical import vals_to_name_cat, names_to_val_cat
 
-from tmol.kinematics.datatypes import NodeType, KinDOF, KinTree
+from tmol.kinematics.datatypes import NodeType, KinDOF, KinForest
 
 
 class DOFTypes(enum.IntEnum):
@@ -27,9 +27,9 @@ class DOFTypes(enum.IntEnum):
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class DOFMetadata(TensorGroup, ConvertAttrs):
-    """The location, type, and descriptive ids of valid dofs within a KinTree.
+    """The location, type, and descriptive ids of valid dofs within a KinForest.
 
-    Descriptive entries for dofs within a KinTree, this provides a 1-d
+    Descriptive entries for dofs within a KinForest, this provides a 1-d
     structure to select and report a subset of entries within a KinDOF buffer.
     DOFMetadata sets are used to indicate mobile vs fixed dofs for KinematicOp
     dof to coordinate functions.
@@ -47,8 +47,8 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
     child_id: Tensor[torch.long][...]
 
     @classmethod
-    def for_kintree(cls, kintree: KinTree):
-        """Return all valid dofs within a KinTree."""
+    def for_kintree(cls, kintree: KinForest):
+        """Return all valid dofs within a KinForest."""
 
         # Setup a dof type table the same shape as the kinematic dofs,
         # marking all potential movable dofs with the abstract dof type.
