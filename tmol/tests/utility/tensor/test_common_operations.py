@@ -6,6 +6,7 @@ from tmol.utility.tensor.common_operations import (
     nplus1d_tensor_from_list,
     cat_differently_sized_tensors,
     join_tensors_and_report_real_entries,
+    invert_mapping,
 )
 
 
@@ -106,3 +107,13 @@ def test_join_tensors_and_report_real_entries(torch_device):
     for i in range(4):
         joined_elements_gold[i, : n_elem_gold[i]] = i + 1
     numpy.testing.assert_equal(joined_elements_gold, joined_elements.cpu().numpy())
+
+
+def test_invert_mapping(torch_device):
+    a_2_b = torch.tensor([5, 4, 7, 1, 2, 0], dtype=torch.int32, device=torch_device)
+    b_2_a = invert_mapping(a_2_b, 8)
+
+    assert b_2_a.dtype == torch.int32
+    assert b_2_a.device == torch_device
+    b_2_a_gold = numpy.array([5, 3, 4, -1, 1, 0, -1, 2], dtype=numpy.int32)
+    numpy.testing.assert_equal(b_2_a_gold, b_2_a.cpu().numpy())

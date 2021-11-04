@@ -1,5 +1,5 @@
 import torch
-from typing import List, Union
+from typing import List, Union, Optional
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
@@ -178,3 +178,23 @@ def join_tensors_and_report_real_entries(tensors: List, sentinel: int = -1):
         real[i, : n_elements[i]] = True
 
     return n_elements, real, combo
+
+
+def invert_mapping(
+    a_2_b: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]],
+    n_elements_b: Optional[int] = None,
+    sentinel: Optional[int] = -1,
+):
+    Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]
+    """Create the inverse mapping, b_2_a, given the input mapping, a_2_b"""
+    if n_elements_b is None:
+        n_elements_b = torch.max(a_2_b) + 1
+
+    b_2_a = torch.full(
+        (n_elements_b,), sentinel, dtype=a_2_b.dtype, device=a_2_b.device
+    )
+
+    b_2_a[a_2_b.to(torch.int64)] = torch.arange(
+        a_2_b.shape[0], dtype=a_2_b.dtype, device=a_2_b.device
+    )
+    return b_2_a

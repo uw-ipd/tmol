@@ -418,14 +418,65 @@ def test_fix_jump_nodes__one_root_one_jump_many_children_of_both():
     numpy.testing.assert_equal(frame_z_gold, frame_z)
 
 
+def test_build_er_bonds_to_csgraph():
+    """
+    *0->1->2->3->4->5->6->7->8->9
+    """
+
+    bonds = numpy.zeros((18, 2), dtype=numpy.int64)
+    bonds[:9, 0] = numpy.arange(9, dtype=numpy.int64)
+    bonds[:9, 1] = numpy.arange(9, dtype=numpy.int64) + 1
+    bonds[9:, 0] = bonds[:9, 1]
+    bonds[9:, 1] = bonds[:9:, 0]
+
+    csr_mat = KinematicBuilder.bonds_to_csgraph(10, bonds)
+    mat = csr_mat.toarray()
+
+    mat_gold = numpy.zeros((10, 10), dtype=numpy.float32)
+    mat_gold[bonds[:, 0], bonds[:, 1]] = 1
+
+    numpy.testing.assert_equal(mat_gold, mat)
+
+
+def test_builder_define_trees_with_prioritized_bonds():
+    """
+    *0->1->2->3->4->5->6->7->8->9
+    """
+    potential_bonds = numpy.zeros((18, 2), dtype=numpy.int64)
+    prioritized_bonds = numpy.zeros([0, 2], dtype=numpy.int64)
+
+    potential_bonds[:9, 0] = numpy.arange(9, dtype=numpy.int64)
+    potential_bonds[:9, 1] = numpy.arange(9, dtype=numpy.int64) + 1
+    potential_bonds[9:, 0] = potential_bonds[:9, 1]
+    potential_bonds[9:, 1] = potential_bonds[:9:, 0]
+
+    roots = numpy.full((1,), 0, dtype=numpy.int64)
+
+    kfo_2_to, to_parents_in_kfo = KinematicBuilder().define_trees_with_prioritized_bonds(
+        roots, potential_bonds, prioritized_bonds, 10
+    )
+
+    kfo_2_to_gold = numpy.arange(10, dtype=numpy.int64)
+    to_parents_in_kfo_gold = numpy.arange(10, dtype=numpy.int64) - 1
+    to_parents_in_kfo_gold[0] = -9999
+
+    numpy.testing.assert_equal(kfo_2_to_gold, kfo_2_to)
+    numpy.testing.assert_equal(to_parents_in_kfo_gold, to_parents_in_kfo)
+
+
 def test_builder_refold(ubq_system):
-    return  # TEMP!!
     tsys = ubq_system
 
+    id, parents = KinematicBuilder.bonds_to_forest(
+        numpy.array([0], dtype=numpy.int64), tsys.bonds
+    )
     kintree = (
         KinematicBuilder()
-        .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
+        .append_connected_components(
+            to_roots=numpy.array([0], dtype=numpy.int64),
+            kfo_2_to=id,
+            to_parents_in_kfo=parents,
+            to_jump_nodes=numpy.array([], dtype=numpy.int64),
         )
         .kintree
     )

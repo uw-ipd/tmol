@@ -26,21 +26,26 @@ class KinematicBuilder:
     """Supports assembly of sets of bonded atoms into a valid KinForest.
 
     The primary way in which KinForests are built is to provide the set of
-    potential (directed) edges between atoms in individual trees as well as
+    *potential* (directed) edges between atoms in individual trees as well as
     the list of root atoms, one for each tree in the forest. If certain bonds
     should be included for whatever reason (e.g., they hold the DOFs that the
-    user will likely optimize), then these can be given as prioritized edges.
-    However, if the prioritized edge are not present in the set of potential
+    user will likely optimize), then these can be given as *prioritized* edges.
+    However, if the prioritized edges are not present in the set of potential
     directed edges, then they will not be included in the tree, thus making
-    it safe to, e.g., list the bonds for all named torsions in a PoseStack
-    even if some of those bonds span cutpoints; as long as the cutpoint edge
-    is not listed in the set of potential edges.
+    it safe, e.g., to list the bonds for all named torsions in a PoseStack
+    even if some of those bonds span cutpoints; as long as the cutpoint edges
+    are not listed in the set of potential edges.
+
+    (Thus the FoldForest should be consulted when figuring out which inter-
+    block bonds should be included in the potential edges, but it does not
+    need to be consulted when figuring out which named torsions should
+    be included in the prioritized edges.)
 
     For both the potential- and priority edges, it is safe to include both
     (a,b) and (b,a) as at most one of the pair will appear in the resulting
     forest.
 
-    Internally, the builder is going to connect the root atoms together
+    Internally, the builder is going to connect the root atoms together to
     calculate a minimum spanning tree, before removing the connections
     between the root atoms.
 
@@ -61,7 +66,7 @@ class KinematicBuilder:
         cls,
         roots: NDArray[int][:],
         potential_bonds: NDArray[int][:, 2],
-        priotized_bonds: NDArray[int][:, 2],
+        prioritized_bonds: NDArray[int][:, 2],
         n_atoms_total: int,
     ) -> ChildParentTuple:
         assert potential_bonds.shape[1] == prioritized_bonds.shape[1]
@@ -69,36 +74,36 @@ class KinematicBuilder:
             # create array from the single integer root input
             roots = numpy.array([roots], dtype=int)
 
-        # interpret an Nx2 bonds array as representing a single stack
-        if prioritized_bonds.shape[1] == 2:
-            prioritized_bonds = numpy.concatenate(
-                (
-                    numpy.zeros((prioritized_bonds.shape[0], 1), dtype=int),
-                    prioritized_bonds,
-                ),
-                axis=1,
-            )
-            potential_bonds = numpy.concatenate(
-                (
-                    numpy.zeros((potential_bonds.shape[0], 1), dtype=int),
-                    potential_bonds,
-                ),
-                axis=1,
-            )
-
         weighted_bonds = (
             # All entries must be non-zero or sparse graph tools will entries.
-            cls.bonds_to_csgraph(potential_bonds, [-1], n_atoms_total)
-            + cls.bonds_to_csgraph(prioritized_bonds, [-.125], n_atoms_total)
+            cls.bonds_to_csgraph(n_atoms_total, potential_bonds, [-1])
+            + cls.bonds_to_csgraph(n_atoms_total, prioritized_bonds, [-.125])
             + cls.faux_bonds_between_roots(
-                roots=roots, weights=[-1], n_atoms_total=n_atoms_total
+                n_atoms_total=n_atoms_total, roots=roots, weights=[-1]
             )
         )
 
-        # ids, parents = cls.bonds_to_connected_component(roots, weighted_bonds)
-        to_ids_in_kfo, to_parents_in_kfo = cls.bonds_to_forest(roots, weighted_bonds)
+        kfo_2_to, to_parents_in_kfo = cls.bonds_to_forest(roots, weighted_bonds)
 
-        return to_ids_in_kfo, to_parents_in_kfo
+        # validation:
+        # Make sure that all of the target atoms that we know about were
+        # reached during the breadth-first search. All atoms listed in the
+        # potential_bonds and prioritized_bonds arrays should be listed in
+        # the kfo_2_to array. Construct the to_2_kfo inverse mapping to make
+        # sure.
+
+        atom_seen = numpy.zeros((kfo_2_to.max() + 1,), dtype=numpy.int64)
+        atom_seen[potential_bonds[:, 0]] = 1
+        atom_seen[potential_bonds[:, 1]] = 1
+        atom_seen[prioritized_bonds[:, 0]] = 1
+        atom_seen[prioritized_bonds[:, 1]] = 1
+
+        to_2_kfo = numpy.full(atom_seen.shape, -1, dtype=numpy.int64)
+        to_2_kfo[kfo_2_to] = numpy.arange(atom_seen.shape[0], dtype=numpy.int64)
+
+        assert numpy.all(to_2_kfo[atom_seen != 0] != -1)
+
+        return kfo_2_to, to_parents_in_kfo
 
     @classmethod
     @convert_args
@@ -107,7 +112,6 @@ class KinematicBuilder:
         n_atoms_total: int,
         bonds: NDArray[int][:, 2],
         weights: NDArray[float][:] = numpy.ones(1),  # noqa
-        # system_size: Optional[int] = None,
     ) -> sparse.csr_matrix:
 
         # if atoms are stored in a stack, the caller of this function
@@ -121,15 +125,14 @@ class KinematicBuilder:
         weights = numpy.broadcast_to(weights, bonds[:, 0].shape)
 
         bonds_csr = sparse.csr_matrix(
-            (weights, (bonds_reindexed[:, 0], bonds_reindexed[:, 1])),
-            shape=(n_atoms_total, n_atoms_total),
+            (weights, (bonds[:, 0], bonds[:, 1])), shape=(n_atoms_total, n_atoms_total)
         )
         return bonds_csr
 
     @classmethod
     @convert_args
     def faux_bonds_between_roots(
-        cls, roots: NDArray[int][:], weights: NDArray[float][:], natoms_total: int
+        cls, roots: NDArray[int][:], weights: NDArray[float][:], n_atoms_total: int
     ) -> Union[sparse.spmatrix, int]:
         """Construct a csgraph with edges from the first root to all
         other roots, if there are other roots. Otherwise, return 0.
@@ -141,7 +144,7 @@ class KinematicBuilder:
             root_faux_bonds[:, 0] = 0
             root_faux_bonds[:, 1] = roots[1:]
             return cls.bonds_to_csgraph(
-                root_faux_bonds, weights=weights, system_size=natoms_total
+                n_atoms_total=n_atoms_total, bonds=root_faux_bonds, weights=weights
             )
         else:
             return 0
@@ -152,14 +155,29 @@ class KinematicBuilder:
     def bonds_to_forest(
         cls, roots: NDArray[int][:], bonds: Union[NDArray[int][:, 2], sparse.spmatrix]
     ) -> ChildParentTuple:
+        """Build a forest-ordering of the atoms in the target system
+        and return the target-order-to-kin-forest-order conversion array
+        (aka the "ids") and the forest-defining index of the parent atom
+        for each atom in the system.
+        
+        The "bonds" input can either be 1) a symmetric list of the directed edges
+        (i.e. if the edge (a, b) is in the list than the edge (b, a) should also
+        be in the list) in which case a deterministic but hard-to-predict
+        depth-first traversal from the root nodes will create a selection of
+        which edges to include in the tree, or 2) a sparse matrix representing
+        weighted edges, in which case a minimum spanning tree will be used to
+        select the set of edges that define a tree. In this latter case, all edges
+        should have negative weights and the edges with the highest priority
+        should have the largest magnitude.
+        """
 
         if isinstance(bonds, numpy.ndarray):
             # Bonds are a non-prioritized set of edges, assume arbitrary
             # connectivity from the root is allowed.
-            n_atoms_total = max(bonds[:, 1].max(), bonds[:, 2].max()) + 1
+            n_atoms_total = max(bonds[:, 0].max(), bonds[:, 1].max()) + 1
 
             bond_graph = cls.bonds_to_csgraph(
-                bonds, n_atoms_total=n_atoms_total
+                n_atoms_total=n_atoms_total, bonds=bonds
             ) + cls.faux_bonds_between_roots(
                 roots=roots, weights=[1], n_atoms_total=n_atoms_total
             )
@@ -171,10 +189,10 @@ class KinematicBuilder:
 
         # Perform breadth first traversal from the root of the component
         # to generate the kinematic tree.
-        to_ids_in_kfo, preds = csgraph.breadth_first_order(
+        kfo_2_to, preds = csgraph.breadth_first_order(
             bond_graph, roots[0], directed=False, return_predecessors=True
         )
-        to_parents_in_kfo = preds[to_ids_in_kfo]
+        to_parents_in_kfo = preds[kfo_2_to]
 
         # make sure that all nodes were reached in the BFS traversal of
         # the graph; only the first root node should have a -9999 parent
@@ -185,42 +203,49 @@ class KinematicBuilder:
         is_non_root[roots] = False
         assert numpy.all(to_parents_in_kfo[is_non_root] >= 0)
 
-        to_parents_in_kfo[roots] = -9999
+        # to_parents_in_kfo[roots] = -9999
 
-        return to_ids_in_kfo.astype(int), to_parents_in_kfo.astype(int)
+        return kfo_2_to.astype(int), to_parents_in_kfo.astype(int)
 
     @convert_args
     def append_connected_components(
         self,
-        to_roots: Tensor[int][:],
-        to_ids: Tensor[int][:],
-        to_parents: Tensor[int][:],
-        to_jump_nodes: Tensor[int][:],
+        to_roots: NDArray[int][:],
+        kfo_2_to: NDArray[int][:],
+        to_parents_in_kfo: NDArray[int][:],
+        to_jump_nodes: NDArray[int][:],
         component_parent=0,
     ):
         """After having created a forest, as identified by a depth-first
-        travsersal of the input graph, we need to convert the target-order
-        indices into the kin-forest order. To do this we could construct
-        a target-order-2-kin-forest-order mapping, or we could use the
-        get_indexer method of the pandas.Index object.
+        travsersal of the input graph, we need to convert the target-order (to)
+        indices into the kin-forest order (kfo). To do this we construct
+        a target-order-2-kin-forest-order mapping which is simply the inverse
+        mapping that "to_2_kfo" represents.
         """
 
         assert (
-            ids.shape == parent_ids.shape
+            kfo_2_to.shape == to_parents_in_kfo.shape
         ), "elements and parents must be of same length"
 
-        assert len(ids) >= 3, "Bonded ktree must have at least three entries"
+        assert len(kfo_2_to) >= 3, "Bonded ktree must have at least three entries"
 
-        assert component_parent < len(self.kinforest) and component_parent >= -1
+        assert component_parent < len(self.kinforest.id) and component_parent >= -1
 
-        n_atoms = len(ids)
+        n_atoms = len(kfo_2_to)
 
-        id_index = pandas.Index(to_ids)
+        to_2_kfo = numpy.full((kfo_2_to.max() + 1), -1, dtype=numpy.int64)
+        to_2_kfo[kfo_2_to] = numpy.arange(n_atoms, dtype=numpy.int64)
+
+        # Screw pandas
+        # id_index = pandas.Index(to_2_kfo)
         # kfo_roots = torch.LongTensor(id_index.get_indexer(to_roots))
+        # kfo_roots = id_index.get_indexer(to_roots)
+        # kfo_jump_nodes = id_index.get_indexer(to_jump_nodes)
+        # kfo_parents = id_index.get_indexer(to_parents_in_kfo)
 
-        kfo_roots = id_index.get_indexer(to_roots)
-        kfo_jump_nodes = id_index.get_indexer(to_jump_nodes)
-        kfo_parents = id_index.get_indexer(to_parents)
+        kfo_roots = to_2_kfo[to_roots]
+        kfo_jump_nods = to_2_kfo[to_jump_nodes]
+        kfo_parents = to_2_kfo[to_parents_in_kfo]
 
         # Root nodes are self-parented for the purpose of verifying the
         # connected component tree structure, will be rewritten with jump to
@@ -229,33 +254,48 @@ class KinematicBuilder:
 
         kfo_grandparents = kfo_parents[kfo_parents]
         doftype = numpy.zeros(n_atoms, numpy.int64)
+        doftype[:] = NodeType.bond
+        doftype[kfo_roots] = NodeType.jump
+        doftype[kfo_jump_nodes] = NodeType.jump
+
         frame_x = numpy.zeros(n_atoms, numpy.int64)
         frame_y = numpy.zeros(n_atoms, numpy.int64)
         frame_z = numpy.zeros(n_atoms, numpy.int64)
 
         kin_stree = KinForest.full(len(ids), 0)
-        kin_stree.id[:] = torch.tensor(to_ids)
+        kin_stree.id[:] = torch.tensor(to_2_kfo)
 
         kin_start = len(self.kinforest)
 
-        doftype[:] = NodeType.bond
-        # kfo_parents_final = kfo_parents + kin_start
-        frame_x[:] = numpy.arange(len(to_ids), dtype=numpy.int64) + kin_start
-        frame_y[:] = kfo_parents + kin_start
-        frame_z[:] = kfo_grandparents + kin_start
+        # Set the coordinate-frame-defining atoms of all the atoms in the
+        # system as if they are all bonded atoms; the logic for roots and
+        # jumps is more complex, so we will handle them separately.
+        frame_x[:] = numpy.arange(n_atoms, dtype=numpy.int64)
+        frame_y[:] = kfo_parents
+        frame_z[:] = kfo_grandparents
 
-        doftype[kfo_roots] = NodeType.jump
-        doftype[kfo_jump_nodes] = NodeType.jump
-
-        parent[kfo_roots] = component_parent
-
+        # Now go and set the coordinate-frame-defining atoms for jumps
         fix_jump_nodes(
             kfo_parents, doftype, frame_x, frame_y, frame_z, kfo_roots, kfo_jump_nodes
         )
 
-        kfo_roots += kin_start
+        # Now prep the arrays for concatenation with the existing kintree.
+        # The KinBuilder will continue to support the concatenation model, in
+        # which additional trees for the same forest can be concatenated onto
+        # the growing set of trees. In this model, the indices that were just
+        # calculated for the parents, and the frame-defining atom indices need
+        # to be offset by however many atoms there already are in the tree. In
+        # the case that this is the first and only set of trees concatenated,
+        # then the kin_start offset is still the non-zero value of 1, representing
+        # the global root of the system located at the origin. The parents for
+        # the roots will be reset with the index of this global root.
+        # (The code pretends that the index of this global root can be anything
+        # other than 0, but all of the other code downstream of here and upstream
+        # of here relies on this root being atom 0).
+
         kfo_parents += kin_start
-        # kfo_jump_nodes += kin_start
+        kfo_parents[kfo_roots] = component_parent
+        kfo_roots += kin_start
         frame_x += kin_start
         frame_y += kin_start
         frame_z += kin_start
@@ -263,9 +303,8 @@ class KinematicBuilder:
         def _t(x):
             return torch.tensor(x, dtype=torch.int64)
 
-        # what does the s stand for in sforest? Shit, I don't know
-        kin_sforest = KinForest(
-            id=_t(to_id),
+        extended_kin_forest = KinForest(
+            id=_t(to_2_kfo),
             roots=_t(kfo_roots),
             doftype=_t(doftype),
             parent=_t(kfo_parents),
@@ -274,66 +313,18 @@ class KinematicBuilder:
             frame_z=_t(frame_z),
         )
 
-        return attr.evolve(self, kinforest=cat(self.kinforest, self.kin_sforest))
+        return attr.evolve(self, kinforest=cat(self.kinforest, extended_kin_forest))
 
-        # Go back and rewrite the entries for the root and its children
-        # Define the jump DOF of the root, connecting back into existing kintree
-
-        # Fixup the orientation frame frame of the root and its children.
-        # The root is self-parented at zero, so drop the first match.
-        # for root in kfo_roots:
-        #     int_root, *root_children = [
-        #         int(i) for i in torch.nonzero(kfo_parents == root, as_tuple=False)
-        #     ]
-        #     assert root == int_root, "root must be self parented, was set above"
-        #     root_c1, *root_sibs = root_children
-        #
-        #     assert len(root_children) >= 1, "root must have at least one child"
-        #     c1_children = [int(i) for i in torch.nonzero(kfo_parents == root_c1)]
-        #     if len(c1_children) > 0:
-        #         c1_children = torch.LongTensor(c1_children)
-        #         root_sibs = torch.LongTensor(root_sibs)
-        #
-        #         kin_stree.frame_x[[int_root, root_c1]] = root_c1 + kin_start
-        #         kin_stree.frame_y[[int_root, root_c1]] = int_root + kin_start
-        #         kin_stree.frame_z[[int_root, root_c1]] = (
-        #             first(c1_children).to(dtype=torch.int) + kin_start
-        #         )
-        #
-        #         kin_stree.frame_x[root_sibs] = root_sibs.to(dtype=torch.int) + kin_start
-        #         kin_stree.frame_y[root_sibs] = int_root + kin_start
-        #         kin_stree.frame_z[root_sibs] = root_c1 + kin_start
-        #     else:
-        #         assert len(root_children) >= 2, (
-        #             "root of bonded tree must have two children if the"
-        #             " first child of the root has no children"
-        #         )
-        #
-        #         root_c1, *root_sibs = root_children
-        #         root_sibs = torch.LongTensor(root_sibs)
-        #
-        #         kin_stree.frame_x[[int_root, root_c1]] = root_c1 + kin_start
-        #         kin_stree.frame_y[[int_root, root_c1]] = int_root + kin_start
-        #         kin_stree.frame_z[[int_root, root_c1]] = (
-        #             first(root_sibs).to(dtype=torch.int) + kin_start
-        #         )
-        #
-        #         kin_stree.frame_x[root_sibs] = root_sibs.to(dtype=torch.int) + kin_start
-        #         kin_stree.frame_y[root_sibs] = int_root + kin_start
-        #         kin_stree.frame_z[root_sibs] = root_c1 + kin_start
-
-        # return attr.evolve(self, kintree=cat((self.kintree, kin_stree)))
-
-    @convert_args
-    def append_connected_component(
-        self, ids: Tensor[int][:], parent_ids: Tensor[int][:], component_parent=0
-    ):
-        return self.append_connected_components(
-            roots=torch.zeros((1,), dtype=torch.int32),
-            ids=ids,
-            parent_ids=parent_ids,
-            component_parent=component_parent,
-        )
+    # @convert_args
+    # def append_connected_component(
+    #     self, ids: Tensor[int][:], parent_ids: Tensor[int][:], component_parent=0
+    # ):
+    #     return self.append_connected_components(
+    #         roots=torch.zeros((1,), dtype=torch.int32),
+    #         ids=ids,
+    #         parent_ids=parent_ids,
+    #         component_parent=component_parent,
+    #     )
 
 
 @numba.jit(nopython=True)
