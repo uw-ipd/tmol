@@ -15,6 +15,8 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import convert_args, validate_args
 from tmol.types.tensor import cat
 
+from tmol.utility.ndarray.common_operations import invert_mapping
+
 from .datatypes import NodeType, KinForest
 from .scan_ordering import get_children
 
@@ -231,10 +233,13 @@ class KinematicBuilder:
 
         assert component_parent < len(self.kinforest.id) and component_parent >= -1
 
-        n_atoms = len(kfo_2_to)
+        n_kf_atoms = len(kfo_2_to)
+        n_roots = len(to_roots)
+        n_target_atoms = numpy.max(kfo_2_to) + 1
 
-        to_2_kfo = numpy.full((kfo_2_to.max() + 1), -1, dtype=numpy.int64)
-        to_2_kfo[kfo_2_to] = numpy.arange(n_atoms, dtype=numpy.int64)
+        to_2_kfo = invert_mapping(kfo_2_to, n_target_atoms)
+        # to_2_kfo = numpy.full((kfo_2_to.max() + 1), -1, dtype=numpy.int64)
+        # to_2_kfo[kfo_2_to] = numpy.arange(n_kf_atoms, dtype=numpy.int64)
 
         # Screw pandas
         # id_index = pandas.Index(to_2_kfo)
@@ -244,8 +249,13 @@ class KinematicBuilder:
         # kfo_parents = id_index.get_indexer(to_parents_in_kfo)
 
         kfo_roots = to_2_kfo[to_roots]
-        kfo_jump_nods = to_2_kfo[to_jump_nodes]
-        kfo_parents = to_2_kfo[to_parents_in_kfo]
+        kfo_jump_nodes = to_2_kfo[to_jump_nodes]
+        print("to_parents_in_kfo")
+        print(to_parents_in_kfo)
+        kfo_parents = numpy.full((n_kf_atoms,), -1, dtype=numpy.int64)
+        kfo_parents[to_parents_in_kfo >= 0] = to_2_kfo[
+            to_parents_in_kfo[to_parents_in_kfo >= 0]
+        ]
 
         # Root nodes are self-parented for the purpose of verifying the
         # connected component tree structure, will be rewritten with jump to
@@ -253,30 +263,30 @@ class KinematicBuilder:
         kfo_parents[kfo_roots] = kfo_roots
 
         kfo_grandparents = kfo_parents[kfo_parents]
-        doftype = numpy.zeros(n_atoms, numpy.int64)
+        doftype = numpy.zeros(n_kf_atoms, numpy.int64)
         doftype[:] = NodeType.bond
         doftype[kfo_roots] = NodeType.jump
         doftype[kfo_jump_nodes] = NodeType.jump
 
-        frame_x = numpy.zeros(n_atoms, numpy.int64)
-        frame_y = numpy.zeros(n_atoms, numpy.int64)
-        frame_z = numpy.zeros(n_atoms, numpy.int64)
+        frame_x = numpy.zeros(n_kf_atoms, numpy.int64)
+        frame_y = numpy.zeros(n_kf_atoms, numpy.int64)
+        frame_z = numpy.zeros(n_kf_atoms, numpy.int64)
 
-        kin_stree = KinForest.full(len(ids), 0)
-        kin_stree.id[:] = torch.tensor(to_2_kfo)
+        kin_stree = KinForest.full(n_roots, n_kf_atoms, -1)
+        kin_stree.id[:] = torch.tensor(kfo_2_to)
 
         kin_start = len(self.kinforest)
 
         # Set the coordinate-frame-defining atoms of all the atoms in the
         # system as if they are all bonded atoms; the logic for roots and
         # jumps is more complex, so we will handle them separately.
-        frame_x[:] = numpy.arange(n_atoms, dtype=numpy.int64)
+        frame_x[:] = numpy.arange(n_kf_atoms, dtype=numpy.int64)
         frame_y[:] = kfo_parents
         frame_z[:] = kfo_grandparents
 
         # Now go and set the coordinate-frame-defining atoms for jumps
         fix_jump_nodes(
-            kfo_parents, doftype, frame_x, frame_y, frame_z, kfo_roots, kfo_jump_nodes
+            kfo_parents, frame_x, frame_y, frame_z, kfo_roots, kfo_jump_nodes
         )
 
         # Now prep the arrays for concatenation with the existing kintree.
@@ -313,7 +323,7 @@ class KinematicBuilder:
             frame_z=_t(frame_z),
         )
 
-        return attr.evolve(self, kinforest=cat(self.kinforest, extended_kin_forest))
+        return attr.evolve(self, kinforest=cat((self.kinforest, extended_kin_forest)))
 
     # @convert_args
     # def append_connected_component(

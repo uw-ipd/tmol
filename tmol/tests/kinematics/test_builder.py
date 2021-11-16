@@ -470,7 +470,7 @@ def test_builder_refold(ubq_system):
     id, parents = KinematicBuilder.bonds_to_forest(
         numpy.array([0], dtype=numpy.int64), tsys.bonds
     )
-    kintree = (
+    kinforest = (
         KinematicBuilder()
         .append_connected_components(
             to_roots=numpy.array([0], dtype=numpy.int64),
@@ -478,17 +478,17 @@ def test_builder_refold(ubq_system):
             to_parents_in_kfo=parents,
             to_jump_nodes=numpy.array([], dtype=numpy.int64),
         )
-        .kintree
+        .kinforest
     )
 
-    kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
-    dofs = inverseKin(kintree, kincoords)
-    refold_kincoords = forwardKin(kintree, dofs)
+    kincoords = torch.DoubleTensor(tsys.coords[kinforest.id])
+    dofs = inverseKin(kinforest, kincoords)
+    refold_kincoords = forwardKin(kinforest, dofs)
 
     assert (refold_kincoords[0] == 0).all()
 
     refold_coords = numpy.full_like(tsys.coords, numpy.nan)
-    refold_coords[kintree.id[1:].squeeze()] = refold_kincoords[1:]
+    refold_coords[kinforest.id[1:].squeeze()] = refold_kincoords[1:]
 
     numpy.testing.assert_allclose(tsys.coords, refold_coords)
 
@@ -497,36 +497,36 @@ def test_builder_framing(ubq_system):
     """Test first-three-atom framing logic in kinematic builder."""
     return  # TEMP!!
     tsys = ubq_system
-    kintree = (
+    kinforest = (
         KinematicBuilder()
         .append_connected_component(
             *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
         )
-        .kintree
+        .kinforest
     )
 
     # The first entries in the tree should be the global DOF root, self-parented,
     # followed by the first atom.
-    root_children = kintree[kintree.parent == 0]
+    root_children = kinforest[kinforest.parent == 0]
     assert len(root_children) == 2
-    numpy.testing.assert_array_equal(kintree.parent[:2], [0, 0])
-    numpy.testing.assert_array_equal(kintree.id[:2], [-1, 0])
+    numpy.testing.assert_array_equal(kinforest.parent[:2], [0, 0])
+    numpy.testing.assert_array_equal(kinforest.id[:2], [-1, 0])
 
-    atom_root_children = numpy.flatnonzero(numpy.array(kintree.parent) == 1)
+    atom_root_children = numpy.flatnonzero(numpy.array(kinforest.parent) == 1)
     atom_root_grandkids = numpy.flatnonzero(
-        numpy.array(kintree.parent) == atom_root_children[0]
+        numpy.array(kinforest.parent) == atom_root_children[0]
     )
     assert len(atom_root_children) == 2
     assert len(atom_root_grandkids) == 3
 
     # The first atom has two children. The first atom and its first child are framed by
     # [first_child, root, first_grandkid]
-    first_atom = kintree[1]
+    first_atom = kinforest[1]
     assert int(first_atom.frame_x) == atom_root_children[0]
     assert int(first_atom.frame_y) == 1
     assert int(first_atom.frame_z) == atom_root_grandkids[0]
 
-    first_atom_first_child = kintree[atom_root_children[0]]
+    first_atom_first_child = kinforest[atom_root_children[0]]
     assert int(first_atom_first_child.frame_x) == atom_root_children[0]
     assert int(first_atom_first_child.frame_y) == 1
     assert int(first_atom_first_child.frame_z) == atom_root_grandkids[0]
@@ -534,20 +534,20 @@ def test_builder_framing(ubq_system):
     # The rest of the children are framed by:
     # [self, root, first_child]
     for c in atom_root_children[1:]:
-        first_atom_other_child = kintree[c]
+        first_atom_other_child = kinforest[c]
         assert int(first_atom_other_child.frame_x) == c
         assert int(first_atom_other_child.frame_y) == 1
         assert int(first_atom_other_child.frame_z) == atom_root_children[0]
 
     # Other atoms are framed normally, [self, parent, grandparent]
-    normal_atoms = numpy.flatnonzero(numpy.array(kintree.parent > 1))
-    numpy.testing.assert_array_equal(kintree.frame_x[normal_atoms], normal_atoms)
+    normal_atoms = numpy.flatnonzero(numpy.array(kinforest.parent > 1))
+    numpy.testing.assert_array_equal(kinforest.frame_x[normal_atoms], normal_atoms)
     numpy.testing.assert_array_equal(
-        kintree.frame_y[normal_atoms], kintree.parent[normal_atoms]
+        kinforest.frame_y[normal_atoms], kinforest.parent[normal_atoms]
     )
     numpy.testing.assert_array_equal(
-        kintree.frame_z[normal_atoms],
-        kintree.parent[kintree.parent[normal_atoms].to(dtype=torch.long)],
+        kinforest.frame_z[normal_atoms],
+        kinforest.parent[kinforest.parent[normal_atoms].to(dtype=torch.long)],
     )
 
 
@@ -579,7 +579,7 @@ def test_build_two_system_kinematics(ubq_system, torch_device):
     builder = KinematicBuilder()
     tree = builder.append_connected_components(
         roots=tworoots, ids=ids, parent_ids=parents
-    ).kintree
+    ).kinforest
 
     assert tree.id.shape[0] == 2 * natoms + 1
     assert tree.id[1] == 0
@@ -617,7 +617,7 @@ def test_build_jagged_system(ubq_res, torch_device):
     builder = KinematicBuilder()
     tree = builder.append_connected_components(
         roots=tworoots, ids=ids, parent_ids=parents
-    ).kintree
+    ).kinforest
 
     assert tree.id.shape[0] == natoms + 1
     assert tree.id[1] == 0
