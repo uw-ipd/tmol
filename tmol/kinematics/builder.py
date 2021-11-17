@@ -66,9 +66,9 @@ class KinematicBuilder:
     def define_trees_with_prioritized_bonds(
         # def component_for_prioritized_bonds(
         cls,
-        roots: NDArray[int][:],
-        potential_bonds: NDArray[int][:, 2],
-        prioritized_bonds: NDArray[int][:, 2],
+        roots: NDArray[numpy.int32][:],
+        potential_bonds: NDArray[numpy.int32][:, 2],
+        prioritized_bonds: NDArray[numpy.int32][:, 2],
         n_atoms_total: int,
     ) -> ChildParentTuple:
         assert potential_bonds.shape[1] == prioritized_bonds.shape[1]
@@ -94,14 +94,14 @@ class KinematicBuilder:
         # the kfo_2_to array. Construct the to_2_kfo inverse mapping to make
         # sure.
 
-        atom_seen = numpy.zeros((kfo_2_to.max() + 1,), dtype=numpy.int64)
+        atom_seen = numpy.zeros((kfo_2_to.max() + 1,), dtype=numpy.int32)
         atom_seen[potential_bonds[:, 0]] = 1
         atom_seen[potential_bonds[:, 1]] = 1
         atom_seen[prioritized_bonds[:, 0]] = 1
         atom_seen[prioritized_bonds[:, 1]] = 1
 
-        to_2_kfo = numpy.full(atom_seen.shape, -1, dtype=numpy.int64)
-        to_2_kfo[kfo_2_to] = numpy.arange(atom_seen.shape[0], dtype=numpy.int64)
+        to_2_kfo = numpy.full(atom_seen.shape, -1, dtype=numpy.int32)
+        to_2_kfo[kfo_2_to] = numpy.arange(atom_seen.shape[0], dtype=numpy.int32)
 
         assert numpy.all(to_2_kfo[atom_seen != 0] != -1)
 
@@ -155,7 +155,9 @@ class KinematicBuilder:
     @validate_args
     # def bonds_to_connected_component(
     def bonds_to_forest(
-        cls, roots: NDArray[int][:], bonds: Union[NDArray[int][:, 2], sparse.spmatrix]
+        cls,
+        roots: NDArray[numpy.int32][:],
+        bonds: Union[NDArray[numpy.int32][:, 2], sparse.spmatrix],
     ) -> ChildParentTuple:
         """Build a forest-ordering of the atoms in the target system
         and return the target-order-to-kin-forest-order conversion array
@@ -238,8 +240,8 @@ class KinematicBuilder:
         n_target_atoms = numpy.max(kfo_2_to) + 1
 
         to_2_kfo = invert_mapping(kfo_2_to, n_target_atoms)
-        # to_2_kfo = numpy.full((kfo_2_to.max() + 1), -1, dtype=numpy.int64)
-        # to_2_kfo[kfo_2_to] = numpy.arange(n_kf_atoms, dtype=numpy.int64)
+        # to_2_kfo = numpy.full((kfo_2_to.max() + 1), -1, dtype=numpy.int32)
+        # to_2_kfo[kfo_2_to] = numpy.arange(n_kf_atoms, dtype=numpy.int32)
 
         # Screw pandas
         # id_index = pandas.Index(to_2_kfo)
@@ -250,9 +252,9 @@ class KinematicBuilder:
 
         kfo_roots = to_2_kfo[to_roots]
         kfo_jump_nodes = to_2_kfo[to_jump_nodes]
-        print("to_parents_in_kfo")
-        print(to_parents_in_kfo)
-        kfo_parents = numpy.full((n_kf_atoms,), -1, dtype=numpy.int64)
+        # print("to_parents_in_kfo")
+        # print(to_parents_in_kfo)
+        kfo_parents = numpy.full((n_kf_atoms,), -1, dtype=numpy.int32)
         kfo_parents[to_parents_in_kfo >= 0] = to_2_kfo[
             to_parents_in_kfo[to_parents_in_kfo >= 0]
         ]
@@ -263,14 +265,14 @@ class KinematicBuilder:
         kfo_parents[kfo_roots] = kfo_roots
 
         kfo_grandparents = kfo_parents[kfo_parents]
-        doftype = numpy.zeros(n_kf_atoms, numpy.int64)
+        doftype = numpy.zeros(n_kf_atoms, numpy.int32)
         doftype[:] = NodeType.bond
         doftype[kfo_roots] = NodeType.jump
         doftype[kfo_jump_nodes] = NodeType.jump
 
-        frame_x = numpy.zeros(n_kf_atoms, numpy.int64)
-        frame_y = numpy.zeros(n_kf_atoms, numpy.int64)
-        frame_z = numpy.zeros(n_kf_atoms, numpy.int64)
+        frame_x = numpy.zeros(n_kf_atoms, numpy.int32)
+        frame_y = numpy.zeros(n_kf_atoms, numpy.int32)
+        frame_z = numpy.zeros(n_kf_atoms, numpy.int32)
 
         kin_stree = KinForest.full(n_roots, n_kf_atoms, -1)
         kin_stree.id[:] = torch.tensor(kfo_2_to)
@@ -280,7 +282,7 @@ class KinematicBuilder:
         # Set the coordinate-frame-defining atoms of all the atoms in the
         # system as if they are all bonded atoms; the logic for roots and
         # jumps is more complex, so we will handle them separately.
-        frame_x[:] = numpy.arange(n_kf_atoms, dtype=numpy.int64)
+        frame_x[:] = numpy.arange(n_kf_atoms, dtype=numpy.int32)
         frame_y[:] = kfo_parents
         frame_z[:] = kfo_grandparents
 
@@ -311,10 +313,28 @@ class KinematicBuilder:
         frame_z += kin_start
 
         def _t(x):
-            return torch.tensor(x, dtype=torch.int64)
+            return torch.tensor(x, dtype=torch.int32)
+
+        # numpy.set_printoptions(threshold=10000)
+        # print("to_2_kfo")
+        # print(to_2_kfo)
+        # print("kfo_2_to")
+        # print(kfo_2_to)
+        # print("kfo_roots")
+        # print(kfo_roots)
+        # print("doftype")
+        # print(doftype)
+        # print("kfo_parents")
+        # print(kfo_parents)
+        # print("frame_x")
+        # print(frame_x)
+        # print("frame_y")
+        # print(frame_y)
+        # print("frame_z")
+        # print(frame_z)
 
         extended_kin_forest = KinForest(
-            id=_t(to_2_kfo),
+            id=_t(kfo_2_to),
             roots=_t(kfo_roots),
             doftype=_t(doftype),
             parent=_t(kfo_parents),
@@ -443,7 +463,7 @@ def fix_jump_nodes(
     nelts = parents.shape[0]
     n_children, child_list_span, child_list = get_children(parents)
 
-    atom_is_jump = numpy.full(parents.shape, 0, dtype=numpy.int64)
+    atom_is_jump = numpy.full(parents.shape, 0, dtype=numpy.int32)
     atom_is_jump[roots] = 1
     atom_is_jump[jumps] = 1
 

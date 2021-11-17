@@ -89,6 +89,7 @@ struct InverseKinDispatch {
       TView<Int, 1, D> frame_z,
       TView<Int, 1, D> doftype
   ) -> TPack<KintreeDof, 1, D> {
+
     auto num_atoms = coords.size(0);
     //auto num_atoms = parent.size(0);
     auto num_nodes = parent.size(0);

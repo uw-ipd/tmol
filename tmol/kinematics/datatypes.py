@@ -83,13 +83,13 @@ class KinForest(TensorGroup, ConvertAttrs):
         frame_z = KFO index of grandparent, in KFO
     """
 
-    id: Tensor[torch.int64][...]
-    roots: Tensor[torch.int64][...]
-    doftype: Tensor[torch.int64][...]
-    parent: Tensor[torch.int64][...]
-    frame_x: Tensor[torch.int64][...]
-    frame_y: Tensor[torch.int64][...]
-    frame_z: Tensor[torch.int64][...]
+    id: Tensor[torch.int32][...]
+    roots: Tensor[torch.int32][...]
+    doftype: Tensor[torch.int32][...]
+    parent: Tensor[torch.int32][...]
+    frame_x: Tensor[torch.int32][...]
+    frame_y: Tensor[torch.int32][...]
+    frame_z: Tensor[torch.int32][...]
 
     @classmethod
     @convert_args
@@ -123,22 +123,22 @@ class KinForest(TensorGroup, ConvertAttrs):
     @classmethod
     def full(cls, n_roots: int, n_kinforest_atoms: int, sentinel: int, **kwargs):
         return KinForest(
-            id=torch.full((n_kinforest_atoms,), sentinel, dtype=torch.int64, **kwargs),
-            roots=torch.full((n_roots,), sentinel, dtype=torch.int64, **kwargs),
+            id=torch.full((n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs),
+            roots=torch.full((n_roots,), sentinel, dtype=torch.int32, **kwargs),
             doftype=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int64, **kwargs
+                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
             ),
             parent=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int64, **kwargs
+                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
             ),
             frame_x=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int64, **kwargs
+                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
             ),
             frame_y=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int64, **kwargs
+                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
             ),
             frame_z=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int64, **kwargs
+                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
             ),
         )
 
