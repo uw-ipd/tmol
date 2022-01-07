@@ -218,7 +218,7 @@ class KinForestScanOrdering(ValidateAttrs):
 
     To accomplish this, the GPUKinForestReordering class reorders the atoms from
     the original KinForest order ("ko") where atoms are known by their
-    kintree-index ("ki") into 1) their refold order ("ro") where atoms are
+    kinforest-index ("ki") into 1) their refold order ("ro") where atoms are
     known by their refold index ("ri") and 2) their deriv-sum order ("dso")
     where atoms are known by their deriv-sum index.
 
@@ -246,42 +246,44 @@ class KinForestScanOrdering(ValidateAttrs):
       http://moderngpu.github.io/moderngpu
     """
 
-    kintree_cache_key = "__KinForestScanOrdering_cache__"
+    kinforest_cache_key = "__KinForestScanOrdering_cache__"
 
     forward_scan_paths: KinForestScanData
     backward_scan_paths: KinForestScanData
 
     @classmethod
     @validate_args
-    def for_kintree(cls, kintree):
-        """Calculate and cache refold ordering over kintree
+    def for_kinforest(cls, kinforest):
+        """Calculate and cache refold ordering over kinforest
 
         KinForest data structure is frozen; so it is safe to cache the gpu scan
         ordering for a single object. Store as a private property of the input
-        kintree, lifetime of the cache will then be managed via the target
+        kinforest, lifetime of the cache will then be managed via the target
         object.
         ."""
 
-        if not hasattr(kintree, cls.kintree_cache_key):
+        if not hasattr(kinforest, cls.kinforest_cache_key):
             object.__setattr__(
-                kintree, cls.kintree_cache_key, cls.calculate_from_kintree(kintree)
+                kinforest,
+                cls.kinforest_cache_key,
+                cls.calculate_from_kinforest(kinforest),
             )
 
-        return getattr(kintree, cls.kintree_cache_key)
+        return getattr(kinforest, cls.kinforest_cache_key)
 
     @classmethod
     @validate_args
-    def calculate_from_kintree(cls, kintree: KinForest):
+    def calculate_from_kinforest(cls, kinforest: KinForest):
         """Setup for operations over KinForest.
-        ``device`` is inferred from kintree tensor device.
+        ``device`` is inferred from kinforest tensor device.
         """
 
         nodes, scanStarts, genStarts = get_scans(
-            kintree.parent.cpu().numpy(), numpy.array([0])
+            kinforest.parent.cpu().numpy(), numpy.array([0])
         )
         forward_scan_paths = KinForestScanData(
-            nodes=torch.from_numpy(nodes).to(device=kintree.parent.device),
-            scans=torch.from_numpy(scanStarts).to(device=kintree.parent.device),
+            nodes=torch.from_numpy(nodes).to(device=kinforest.parent.device),
+            scans=torch.from_numpy(scanStarts).to(device=kinforest.parent.device),
             gens=torch.from_numpy(genStarts),
         )  # keep gens on CPU!
 
@@ -312,8 +314,8 @@ class KinForestScanOrdering(ValidateAttrs):
             scanStartsR[(genstart + 1) : genstop] = scan_i[:-1]
 
         backward_scan_paths = KinForestScanData(
-            nodes=torch.from_numpy(nodesR).to(device=kintree.parent.device),
-            scans=torch.from_numpy(scanStartsR).to(device=kintree.parent.device),
+            nodes=torch.from_numpy(nodesR).to(device=kinforest.parent.device),
+            scans=torch.from_numpy(scanStartsR).to(device=kinforest.parent.device),
             gens=torch.from_numpy(genStartsR),
         )  # keep gens on CPU!
 
