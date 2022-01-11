@@ -496,12 +496,16 @@ def test_builder_refold(ubq_system):
 
 def test_builder_framing(ubq_system):
     """Test first-three-atom framing logic in kinematic builder."""
-    return  # TEMP!!
+
     tsys = ubq_system
+    roots = numpy.array([0], dtype=numpy.int32)
+    ids, parents = KinematicBuilder.bonds_to_forest(
+        roots=roots, bonds=tsys.bonds.astype(numpy.int32)
+    )
     kinforest = (
         KinematicBuilder()
-        .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
+        .append_connected_components(
+            to_roots=roots, kfo_2_to=ids, to_parents_in_kfo=parents, to_jump_nodes=[]
         )
         .kinforest
     )

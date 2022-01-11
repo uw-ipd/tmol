@@ -73,10 +73,10 @@ class KinForest(TensorGroup, ConvertAttrs):
 
     Indices::
         id = the TO index in KFO; i.e. kin_forest_order_2_target_order
-        roots = KFO index for the roots of the trees in the forest;
-             coordinate updates for these atoms and the path they root will
-             proceed in parallel in the first pass of the generational
-             -segmented scan. These are listed in no particular order.
+        # roots = KFO index for the roots of the trees in the forest;
+        #      coordinate updates for these atoms and the path they root will
+        #      proceed in parallel in the first pass of the generational
+        #      -segmented scan. These are listed in no particular order.
         parent = KFO index of the parent, in KFO
         frame_x = KFO index of self, in KFO 
         frame_y = KFO index of parent, in KFO
@@ -84,7 +84,7 @@ class KinForest(TensorGroup, ConvertAttrs):
     """
 
     id: Tensor[torch.int32][...]
-    roots: Tensor[torch.int32][...]
+    # roots: Tensor[torch.int32][...]
     doftype: Tensor[torch.int32][...]
     parent: Tensor[torch.int32][...]
     frame_x: Tensor[torch.int32][...]
@@ -105,7 +105,7 @@ class KinForest(TensorGroup, ConvertAttrs):
         """Construct a single node from element values."""
         return cls(
             id=torch.Tensor([id]),
-            roots=torch.Tensor([]),
+            # roots=torch.Tensor([]),
             doftype=torch.Tensor([doftype]),
             parent=torch.Tensor([parent]),
             frame_x=torch.Tensor([frame_x]),
@@ -120,33 +120,33 @@ class KinForest(TensorGroup, ConvertAttrs):
             id=-1, doftype=NodeType.root, parent=0, frame_x=0, frame_y=0, frame_z=0
         )
 
-    @classmethod
-    def full(cls, n_roots: int, n_kinforest_atoms: int, sentinel: int, **kwargs):
-        return KinForest(
-            id=torch.full((n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs),
-            roots=torch.full((n_roots,), sentinel, dtype=torch.int32, **kwargs),
-            doftype=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-            ),
-            parent=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-            ),
-            frame_x=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-            ),
-            frame_y=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-            ),
-            frame_z=torch.full(
-                (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-            ),
-        )
+    # @classmethod
+    # def full(cls, n_roots: int, n_kinforest_atoms: int, sentinel: int, **kwargs):
+    #     return KinForest(
+    #         id=torch.full((n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs),
+    #         roots=torch.full((n_roots,), sentinel, dtype=torch.int32, **kwargs),
+    #         doftype=torch.full(
+    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
+    #         ),
+    #         parent=torch.full(
+    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
+    #         ),
+    #         frame_x=torch.full(
+    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
+    #         ),
+    #         frame_y=torch.full(
+    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
+    #         ),
+    #         frame_z=torch.full(
+    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
+    #         ),
+    #     )
 
-    def __len__(self):
-        """Override the TensorGroup __len__ method since not all tensors 
-        have the same shape
-        """
-        return len(self.id)
+    # def __len__(self):
+    #     """Override the TensorGroup __len__ method since not all tensors
+    #     have the same shape
+    #     """
+    #     return len(self.id)
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

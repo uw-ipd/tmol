@@ -27,15 +27,24 @@ ChildParentTuple = Tuple[NDArray[int][:], NDArray[int][:]]
 class KinematicBuilder:
     """Supports assembly of sets of bonded atoms into a valid KinForest.
 
-    The primary way in which KinForests are built is to provide the set of
-    *potential* (directed) edges between atoms in individual trees as well as
-    the list of root atoms, one for each tree in the forest. If certain bonds
+    Usage: invoke KinematicBuilder.append_connected_components with the outputs from
+    KinematicBuilder.define_trees_with_prioritized_bonds and retrieve the kinforest
+    from the resulting KinematicBuilder object.
+
+    The primary way in which KinForests are built is to provide bonds_to_forest with
+    the set of *potential* (directed) edges between atoms in individual trees as well
+    as the list of root atoms, one for each tree in the forest. If certain bonds
     should be included for whatever reason (e.g., they hold the DOFs that the
     user will likely optimize), then these can be given as *prioritized* edges.
-    However, if the prioritized edges are not present in the set of potential
-    directed edges, then they will not be included in the tree, thus making
-    it safe, e.g., to list the bonds for all named torsions in a PoseStack
-    even if some of those bonds span cutpoints; as long as the cutpoint edges
+    E.g., for proline, you would list CA-CB and CB-CG as prioritized edges, and list
+    CA-CB, CB-CG, CG-CD, and CD-N as potential edges.
+
+    Prioritzed edges are not guaranteed to end up in the KinForest, however.
+    If any prioritized edge is absent from the set of potential
+    edges, then it will not be included in the tree. A prioritized
+    edge must also be a potential edge to be included. Thus it is
+    safe to list as priority edges the bonds for all named torsions in a PoseStack
+    even if some of those bonds span cutpoints. As long as the cutpoint edges
     are not listed in the set of potential edges.
 
     (Thus the FoldForest should be consulted when figuring out which inter-
@@ -51,12 +60,12 @@ class KinematicBuilder:
     calculate a minimum spanning tree, before removing the connections
     between the root atoms.
 
-    Deprecated:
+    Deprecated as it is inefficient:
     Provides utility methods to perform incremental assembly of sets of bonded
     atoms ("connected components") into a valid KinForest. This involves
     determination of a spanning DAG for the component beginning from a
     specified root atom, initialization of reference frames for each atom, and
-    concatenation of this component onto the KinForest 
+    concatenation of this component onto the KinForest.
     """
 
     kinforest: KinForest = attr.Factory(KinForest.root_node)
@@ -64,7 +73,7 @@ class KinematicBuilder:
     @classmethod
     @convert_args
     def define_trees_with_prioritized_bonds(
-        # def component_for_prioritized_bonds(
+        # def component_for_prioritized_bonds( -- old name
         cls,
         roots: NDArray[numpy.int32][:],
         potential_bonds: NDArray[numpy.int32][:, 2],
@@ -77,7 +86,7 @@ class KinematicBuilder:
             roots = numpy.array([roots], dtype=int)
 
         weighted_bonds = (
-            # All entries must be non-zero or sparse graph tools will entries.
+            # All entries must be non-zero or sparse graph tools will entries (??)
             cls.bonds_to_csgraph(n_atoms_total, potential_bonds, [-1])
             + cls.bonds_to_csgraph(n_atoms_total, prioritized_bonds, [-.125])
             + cls.faux_bonds_between_roots(
@@ -165,7 +174,7 @@ class KinematicBuilder:
         for each atom in the system.
         
         The "bonds" input can either be 1) a symmetric list of the directed edges
-        (i.e. if the edge (a, b) is in the list than the edge (b, a) should also
+        (i.e. if the edge (a, b) is in the list then the edge (b, a) should also
         be in the list) in which case a deterministic but hard-to-predict
         depth-first traversal from the root nodes will create a selection of
         which edges to include in the tree, or 2) a sparse matrix representing
@@ -224,7 +233,7 @@ class KinematicBuilder:
         travsersal of the input graph, we need to convert the target-order (to)
         indices into the kin-forest order (kfo). To do this we construct
         a target-order-2-kin-forest-order mapping which is simply the inverse
-        mapping that "to_2_kfo" represents.
+        mapping that "kfo_2_to" represents.
         """
 
         assert (
@@ -274,7 +283,7 @@ class KinematicBuilder:
         frame_y = numpy.zeros(n_kf_atoms, numpy.int32)
         frame_z = numpy.zeros(n_kf_atoms, numpy.int32)
 
-        kin_stree = KinForest.full(n_roots, n_kf_atoms, -1)
+        kin_stree = KinForest.full(n_kf_atoms, -1)
         kin_stree.id[:] = torch.tensor(kfo_2_to)
 
         kin_start = len(self.kinforest)
@@ -335,7 +344,7 @@ class KinematicBuilder:
 
         extended_kin_forest = KinForest(
             id=_t(kfo_2_to),
-            roots=_t(kfo_roots),
+            # roots=_t(kfo_roots),
             doftype=_t(doftype),
             parent=_t(kfo_parents),
             frame_x=_t(frame_x),
