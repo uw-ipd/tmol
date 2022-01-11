@@ -14,7 +14,7 @@ from tmol.score.bonded_atom import BondedAtomScoreGraph
 
 
 def test_stub_defined_for_jump_atom_two_descendents_of_jump():
-    """Create a tree that is simply a path; jump's stub will be defined
+    """Create a forest that is simply a path; jump's stub will be defined
     as it has at least two descendents.
     0->1->2->3->4->5*->6->7->8->9
     """
@@ -132,7 +132,7 @@ def test_stub_defined_for_jump_atom_w_insufficient_children_excluding_jumps():
 
 
 def test_get_c1_and_c2_atoms_for_jump_atom_two_descendents_of_jump():
-    """Create a tree that is simply a path; jump's stub will be defined
+    """Create a forest that is simply a path; jump's stub will be defined
     as it has at least two descendents.
     0->1->2->3->4->5*->6->7->8->9
     """
@@ -254,7 +254,7 @@ def test_get_c1_and_c2_atoms_for_jump_atom_w_insufficient_children_excluding_jum
 
     c1, c2 = get_c1_and_c2_atoms(5, atom_is_jump, child_list_span, child_list, parents)
 
-    # we will have recursed way up the tree until we find a parent
+    # we will have recursed way up the forest until we find a parent
     # with two descendants within two generations
     assert c1 == 3
     assert c2 == 4
@@ -438,7 +438,7 @@ def test_build_er_bonds_to_csgraph():
     numpy.testing.assert_equal(mat_gold, mat)
 
 
-def test_builder_define_trees_with_prioritized_bonds():
+def test_builder_define_forest_with_prioritized_bonds():
     """
     *0->1->2->3->4->5->6->7->8->9
     """
@@ -510,7 +510,7 @@ def test_builder_framing(ubq_system):
         .kinforest
     )
 
-    # The first entries in the tree should be the global DOF root, self-parented,
+    # The first entries in the forest should be the global DOF root, self-parented,
     # followed by the first atom.
     root_children = kinforest[kinforest.parent == 0]
     assert len(root_children) == 2
@@ -557,57 +557,59 @@ def test_builder_framing(ubq_system):
 
 
 def test_build_two_system_kinematics(ubq_system, torch_device):
-    return  # TEMP!!
     natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq_system.coords[:, 0])))
 
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
-    bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
-    tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=int)
-
-    ids, parents = KinematicBuilder.bonds_to_connected_component(
-        roots=tworoots,
-        bonds=bonds.bonds,
-        system_size=int(twoubq.systems[0].system_size),
+    bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device).bonds.astype(
+        numpy.int32
     )
-    print("ids")
-    print(ids[:20])
-    print("parents")
-    print(parents[:20])
+    # print("bonds", bonds.shape)
+    tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=numpy.int32)
+    syssize = twoubq.systems[0].system_size
+
+    bonds_compact = bonds[:, 0:1] * syssize + bonds[:, 1:3]
+    # print("bonds_compact", bonds_compact.shape)
+    # print("bonds_compact", bonds_compact[:10])
+
+    ids, parents = KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds_compact)
+    # print("ids")
+    # print(ids[:20])
+    # print("parents")
+    # print(parents[:20])
 
     self_inds = numpy.arange(parents.shape[0], dtype=int)
-    print("self parents")
-    print(self_inds[parents[self_inds] == self_inds])
+    # print("self parents")
+    # print(self_inds[parents[self_inds] == self_inds])
 
     id_index = pandas.Index(ids)
     root_index = id_index.get_indexer(tworoots)
 
     builder = KinematicBuilder()
-    tree = builder.append_connected_components(
-        roots=tworoots, ids=ids, parent_ids=parents
+    forest = builder.append_connected_components(
+        to_roots=tworoots, kfo_2_to=ids, to_parents_in_kfo=parents, to_jump_nodes=[]
     ).kinforest
 
-    assert tree.id.shape[0] == 2 * natoms + 1
-    assert tree.id[1] == 0
-    assert tree.parent[1 + root_index[0]] == 0
-    assert tree.parent[1 + root_index[1]] == 0
+    assert forest.id.shape[0] == 2 * natoms + 1
+    assert forest.id[1] == 0
+    assert forest.parent[1 + root_index[0]] == 0
+    assert forest.parent[1 + root_index[1]] == 0
 
 
 def test_build_jagged_system(ubq_res, torch_device):
-    return  # TEMP!!
     ubq40 = PackedResidueSystem.from_residues(ubq_res[:1])
     ubq60 = PackedResidueSystem.from_residues(ubq_res[:2])
     natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq40.coords[:, 0]))) + numpy.sum(
         numpy.logical_not(numpy.isnan(ubq60.coords[:, 0]))
     )
     twoubq = PackedResidueSystemStack((ubq40, ubq60))
-    bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
-    tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=int)
-
-    ids, parents = KinematicBuilder.bonds_to_connected_component(
-        roots=tworoots,
-        bonds=bonds.bonds,
-        system_size=int(twoubq.systems[1].system_size),
+    bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device).bonds.astype(
+        numpy.int32
     )
+    tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=numpy.int32)
+    syssize = twoubq.systems[1].system_size
+    bonds_compact = bonds[:, 0:1] * syssize + bonds[:, 1:3]
+
+    ids, parents = KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds_compact)
 
     # print("ids")
     # print(ids)
@@ -620,16 +622,16 @@ def test_build_jagged_system(ubq_res, torch_device):
     # print(root_index)
 
     builder = KinematicBuilder()
-    tree = builder.append_connected_components(
-        roots=tworoots, ids=ids, parent_ids=parents
+    forest = builder.append_connected_components(
+        to_roots=tworoots, kfo_2_to=ids, to_parents_in_kfo=parents, to_jump_nodes=[]
     ).kinforest
 
-    assert tree.id.shape[0] == natoms + 1
-    assert tree.id[1] == 0
-    assert tree.parent[1 + root_index[0]] == 0
-    assert tree.parent[1 + root_index[1]] == 0
+    assert forest.id.shape[0] == natoms + 1
+    assert forest.id[1] == 0
+    assert forest.parent[1 + root_index[0]] == 0
+    assert forest.parent[1 + root_index[1]] == 0
 
-    # print("tree.parent[1 + root_index[0]]")
-    # print(tree.parent[1 + root_index[0]])
-    # print("tree.parent[1 + root_index[1]]")
-    # print(tree.parent[1 + root_index[1]])
+    # print("forest.parent[1 + root_index[0]]")
+    # print(forest.parent[1 + root_index[0]])
+    # print("forest.parent[1 + root_index[1]]")
+    # print(forest.parent[1 + root_index[1]])

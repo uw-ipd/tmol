@@ -151,7 +151,7 @@ class KinematicBuilder:
         atoms in all stacks.
         """
         if roots.shape[0] > 1:
-            root_faux_bonds = numpy.full((roots.shape[0] - 1, 3), roots[0], dtype=int)
+            root_faux_bonds = numpy.full((roots.shape[0] - 1, 2), roots[0], dtype=int)
             root_faux_bonds[:, 0] = 0
             root_faux_bonds[:, 1] = roots[1:]
             return cls.bonds_to_csgraph(
@@ -207,13 +207,17 @@ class KinematicBuilder:
         )
         to_parents_in_kfo = preds[kfo_2_to]
 
+        n_target_atoms = numpy.max(kfo_2_to) + 1
+        to_2_kfo = invert_mapping(kfo_2_to, n_target_atoms)
+
+        kfo_roots = to_2_kfo[roots]
         # make sure that all nodes were reached in the BFS traversal of
         # the graph; only the first root node should have a -9999 parent
         # and the parents of the other roots should all be the first root.
-        assert to_parents_in_kfo[roots[0]] == -9999
-        assert numpy.all(to_parents_in_kfo[roots[1:]] == roots[0])
+        assert to_parents_in_kfo[kfo_roots[0]] == -9999
+        assert numpy.all(to_parents_in_kfo[kfo_roots[1:]] == kfo_roots[0])
         is_non_root = numpy.full(to_parents_in_kfo.shape, True, dtype=bool)
-        is_non_root[roots] = False
+        is_non_root[kfo_roots] = False
         assert numpy.all(to_parents_in_kfo[is_non_root] >= 0)
 
         # to_parents_in_kfo[roots] = -9999
