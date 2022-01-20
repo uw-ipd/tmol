@@ -1,5 +1,10 @@
 import numpy
 
+partial_atom_id_dtype = numpy.dtype(
+    [("atom_id", int), ("resconn_id", int), ("bonds_from_resconn", int)]
+)
+
+
 atom_metadata_dtype = numpy.dtype(
     [
         ("residue_name", object),

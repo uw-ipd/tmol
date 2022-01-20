@@ -57,6 +57,11 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
   auto dV_dJ = dV_dJ_t.view;
+
+  // auto wcts = std::chrono::system_clock::now();
+  // clock_t start_time = clock();
+  // auto count_t = TPack<int, 1, D>::zeros({1});
+  // auto count = count_t.view;
   nvtx_range_pop();
 
   nvtx_range_push("dispatch::score");
@@ -82,15 +87,35 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
             type_params[atj],
             global_params[0]);
 
-        accumulate<D, Real>::add(V[stack], lj.V);
+        accumulate<D, Real>::add_one_dst(V, stack, lj.V);
         accumulate<D, Vec<Real, 3>>::add(
             dV_dI[stack][i], lj.dV_ddist * ddist_dI);
         accumulate<D, Vec<Real, 3>>::add(
             dV_dJ[stack][j], lj.dV_ddist * ddist_dJ);
+        // accumulate<D, int>::add(count[0], 1);
       });
   nvtx_range_pop();
 
   nvtx_range_pop();
+
+  // #ifdef __CUDACC__
+  //   int count_total;
+  //   cudaMemcpy(&count_total, &count[0], sizeof(int), cudaMemcpyDeviceToHost);
+  //
+  //   clock_t stop_time = clock();
+  //
+  //   std::chrono::duration<double> wctduration =
+  //       (std::chrono::system_clock::now() - wcts);
+  //
+  //   std::cout << nstacks << " " << coords_i.size(1) << " " <<
+  //   coords_j.size(1)
+  //             << " ";
+  //   std::cout << nstacks * coords_i.size(1) * coords_j.size(1) << " ";
+  //   std::cout << "runtime? " << ((double)stop_time - start_time) /
+  //   CLOCKS_PER_SEC
+  //             << " wall time: " << wctduration.count()
+  //             << " count= " << count_total << std::endl;
+  // #endif
 
   return {V_t, dV_dI_t, dV_dJ_t};
 };

@@ -129,17 +129,17 @@ class LKBallIntraModule(_LKBallScoreModule):
     @torch.jit.script_method
     def forward(
         self,
-        I,
-        polars_I,
-        occulders_I,
-        atom_type_I,
+        coords,
+        polars_inds,
+        occulders_inds,
+        atom_types,
         bonded_path_lengths,
         indexed_bond_bonds,
         indexed_bond_spans,
     ):
-        waters_I = watergen_lkball(
-            I,
-            atom_type_I,
+        waters = watergen_lkball(
+            coords,
+            atom_types,
             indexed_bond_bonds,
             indexed_bond_spans,
             self.watergen_type_params,
@@ -150,14 +150,14 @@ class LKBallIntraModule(_LKBallScoreModule):
         )
 
         return score_lkball(
-            I,
-            polars_I,
-            atom_type_I,
-            waters_I,
-            I,
-            occulders_I,
-            atom_type_I,
-            waters_I,
+            coords,
+            polars_inds,
+            atom_types,
+            waters,
+            coords,
+            occulders_inds,
+            atom_types,
+            waters,
             bonded_path_lengths,
             self.lkball_type_params,
             self.lkball_global_params,
@@ -168,11 +168,11 @@ class LKBallInterModule(_LKBallScoreModule):
     # @torch.jit.script_method
     def forward(
         self,
-        I,
+        coords_I,
         polars_I,
         occulders_I,
         atom_type_I,
-        J,
+        coords_J,
         polars_J,
         occulders_J,
         atom_type_J,
@@ -181,7 +181,7 @@ class LKBallInterModule(_LKBallScoreModule):
         indexed_bond_spans,
     ):
         waters_I = watergen_lkball(
-            I,
+            coords_I,
             atom_type_I,
             indexed_bond_bonds,
             indexed_bond_spans,
@@ -193,7 +193,7 @@ class LKBallInterModule(_LKBallScoreModule):
         )
 
         waters_J = watergen_lkball(
-            J,
+            coords_J,
             atom_type_J,
             indexed_bond_bonds,
             indexed_bond_spans,
@@ -205,11 +205,11 @@ class LKBallInterModule(_LKBallScoreModule):
         )
 
         V_ij = score_lkball(
-            I,
+            coords_I,
             polars_I,
             atom_type_I,
             waters_I,
-            J,
+            coords_J,
             occulders_J,
             atom_type_J,
             waters_J,
@@ -219,11 +219,11 @@ class LKBallInterModule(_LKBallScoreModule):
         )
 
         V_ji = score_lkball(
-            J,
+            coords_J,
             polars_J,
             atom_type_J,
             waters_J,
-            I,
+            coords_I,
             occulders_I,
             atom_type_I,
             waters_I,

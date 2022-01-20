@@ -125,3 +125,9 @@ def test_tensor_pack_constructors(tensor_accessor):
 
     with pytest.raises(TypeError):
         tensor_accessor.tensor_pack_construct_like_tpack(torch.empty(10))
+
+
+def test_tview_slice(tensor_accessor):
+    sliced = tensor_accessor.tensor_view_take_slice_one()
+    gold = torch.tensor([5, 15, 25, 35], dtype=torch.int32)
+    torch.testing.assert_allclose(sliced, gold)

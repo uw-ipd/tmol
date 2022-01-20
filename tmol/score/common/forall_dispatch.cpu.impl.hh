@@ -24,6 +24,17 @@ struct ForallDispatch<tmol::Device::CPU> {
       }
     }
   }
+
+  template <typename Int, typename Func>
+  static void foreach_combination_triple(Int dim1, Int dim2, Int dim3, Func f) {
+    for (Int i = 0; i < dim1; ++i) {
+      for (Int j = 0; j < dim2; ++j) {
+        for (Int k = 0; k < dim3; ++k) {
+          f(i, j, k);
+        }
+      }
+    }
+  }
 };
 
 }  // namespace common

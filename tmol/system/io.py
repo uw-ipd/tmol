@@ -14,7 +14,7 @@ import tmol.database.chemical
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import ChemicalDatabase
 
-from .restypes import ResidueType, Residue
+from tmol.chemical.restypes import RefinedResidueType, Residue
 from .packed import PackedResidueSystem
 
 from tmol.utility.log import ClassLogger
@@ -39,7 +39,7 @@ class ResidueReader:
         residue_types = groupby(
             lambda restype: restype.name3,
             (
-                cattr.structure(cattr.unstructure(r), ResidueType)
+                cattr.structure(cattr.unstructure(r), RefinedResidueType)
                 for r in chemical_db.residues
             ),
         )
@@ -47,11 +47,13 @@ class ResidueReader:
         return cls(chemical_db=chemical_db, residue_types=residue_types)
 
     chemical_db: ChemicalDatabase
-    residue_types: Mapping[ResName3, ResidueType]
+    residue_types: Mapping[ResName3, RefinedResidueType]
 
     logger: logging.Logger = ClassLogger
 
-    def resolve_type(self, resn: ResName3, atomns: Collection[str]) -> ResidueType:
+    def resolve_type(
+        self, resn: ResName3, atomns: Collection[str]
+    ) -> RefinedResidueType:
         """Return the best-match residue type for a collection of atom records."""
 
         atomns = set(atomns)

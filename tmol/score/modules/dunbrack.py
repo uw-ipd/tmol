@@ -316,7 +316,7 @@ class DunbrackScore(ScoreMethod):
     @dunbrack_score_module.default
     def _init_dunbrack_score_module(self):
         return DunbrackScoreModule(
-            DunbrackParameters.get(self).dunbrack_param_resolver.packed_db,
+            DunbrackParameters.get(self).dunbrack_param_resolver.scoring_db,
             DunbrackParameters.get(self).dunbrack_params,
             DunbrackParameters.get(self).dunbrack_scratch,
         )

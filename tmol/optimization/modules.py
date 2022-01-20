@@ -53,7 +53,9 @@ class CartesianEnergyNetwork(torch.nn.Module):
 def torsional_energy_network_from_system(score_system, residue_system, dof_mask=None):
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(
-        residue_system.bonds, residue_system.torsion_metadata
+        residue_system.system_size,
+        residue_system.bonds,
+        (residue_system.torsion_metadata,),
     )
     kintree = sys_kin.kintree
 

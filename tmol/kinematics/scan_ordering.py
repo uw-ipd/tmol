@@ -97,7 +97,7 @@ def get_scans(parents, roots):
     genidx, scanidx, nodeidx = 0, 0, 0
 
     # store the active pool we are expanding
-    activeFront = numpy.full(nelts, -1, dtype=numpy.int32)
+    activeFront = numpy.full(4 * nelts, -1, dtype=numpy.int32)
     nActiveFront = roots.shape[0]
     activeFront[:nActiveFront] = roots
 
@@ -106,8 +106,8 @@ def get_scans(parents, roots):
     # beginning from the current set of roots, following nodes to the full
     # depth of the scan path. At each node the scan is extended through the
     # child with the most descendents and the node is added to the generation
-    # n+1 roots, where is will root 0-or-more scans in the n+1 generation
-    # passing through it's additional children.
+    # n+1 roots, where it will root 0-or-more scans in the n+1 generation
+    # passing through its additional children.
     #
     # In typical kinematic trees this will minimize the total number of scan
     # generations by tracing a long backbone path with many short side paths.

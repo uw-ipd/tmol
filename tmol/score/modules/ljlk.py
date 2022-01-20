@@ -16,6 +16,8 @@ from tmol.score.modules.chemical_database import ChemicalDB
 from tmol.score.modules.stacked_system import StackedSystem
 from tmol.score.modules.bonded_atom import BondedAtoms
 
+from tmol.score.common.stack_condense import condense_torch_inds
+
 from tmol.types.torch import Tensor
 
 
@@ -44,6 +46,7 @@ class LJLKParameters(ScoreModule):
     ljlk_param_resolver: LJLKParamResolver = attr.ib(init=False)
     # ljlk_atom_types: Tensor[torch.int64][:, :] = attr.ib(init=False)
     ljlk_atom_types: torch.Tensor = attr.ib(init=False)
+    ljlk_heavyatom_inds: Tensor[torch.int64][:, :] = attr.ib(init=False)
 
     @ljlk_param_resolver.default
     def _init_ljlk_param_resolver(self) -> LJLKParamResolver:
@@ -55,6 +58,13 @@ class LJLKParameters(ScoreModule):
     @ljlk_atom_types.default
     def _init_ljlk_atom_types(self) -> Tensor[torch.long][...]:
         return self.ljlk_param_resolver.type_idx(BondedAtoms.get(self).atom_types)
+
+    @ljlk_heavyatom_inds.default
+    def _init_ljlk_heavyatom_inds(self) -> Tensor[torch.int64][:, :]:
+        are_heavyatoms = ~self.ljlk_param_resolver.type_params.is_hydrogen[
+            self.ljlk_atom_types
+        ]
+        return condense_torch_inds(are_heavyatoms, self.ljlk_param_resolver.device)
 
 
 @LJLKParameters.build_for.register(ScoreSystem)
@@ -119,6 +129,7 @@ class LKScore(ScoreMethod):
             "lk": self.lk_intra_module(
                 coords,
                 LJLKParameters.get(self).ljlk_atom_types,
+                LJLKParameters.get(self).ljlk_heavyatom_inds,
                 BondedAtoms.get(self).bonded_path_length,
             )
         }

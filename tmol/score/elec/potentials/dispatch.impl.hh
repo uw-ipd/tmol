@@ -88,8 +88,12 @@ struct ElecDispatch {
               global_params[0].min_dis,
               global_params[0].max_dis);
 
-          // accumulate the stack total at double precision
-          accumulate<Dev, double>::add(Vs_accum[stack], (double)V);
+          // local summation for active threads to reduce numerical noise
+          accumulate<Dev, double>::add_one_dst(Vs_accum, stack, (double)V);
+
+          // after accumulating, copy over the result into the output
+          // tensor; the last thread to complete this will have it right
+          // TEMP ! Vs[stack] = Vs_accum[stack][0];
 
           // fewer threads accumulate into the derivative arrays,
           // therefore less numerical error accumulates there.

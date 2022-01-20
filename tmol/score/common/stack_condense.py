@@ -2,6 +2,7 @@ import torch
 import numpy
 from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
+from typing import Union
 
 from tmol.types.functional import validate_args
 
@@ -296,3 +297,39 @@ def take_condensed_3d_subset(
     )
     subset[dst[:, 0], dst[:, 1], :] = values[dst[:, 0], keep[keep != -1], :]
     return subset
+
+
+@validate_args
+def tile_subset_indices(
+    indices: Union[
+        Tensor[torch.int32][:],
+        Tensor[torch.int64][:],
+        NDArray[numpy.int32][:],
+        NDArray[numpy.int64][:],
+    ],
+    tile_size: int,
+):
+    n_tiles = (indices.shape[0] - 1) // tile_size + 1
+    if type(indices) == torch.Tensor:
+        tiled_indices = torch.full(
+            (n_tiles * tile_size,), -1, dtype=indices.dtype, device=indices.device
+        )
+        n_in_tile = torch.full(
+            (n_tiles,), 0, dtype=indices.dtype, device=indices.device
+        )
+    elif type(indices) == numpy.ndarray:
+        tiled_indices = numpy.full_like(indices, -1, shape=(n_tiles * tile_size,))
+        n_in_tile = numpy.full_like(indices, 0, shape=(n_tiles,))
+    else:
+        raise InvalidArgumentException
+    for i in range(n_tiles):
+        subset = (indices >= i * tile_size) & (indices < (i + 1) * tile_size)
+        if type(tiled_indices) == torch.Tensor:
+            subset_size = torch.sum(subset).cpu()
+        else:
+            subset_size = numpy.sum(subset)
+        s = slice(i * tile_size, i * tile_size + subset_size)
+        tiled_indices[s] = indices[subset] - i * tile_size
+        n_in_tile[i] = subset_size
+
+    return tiled_indices, n_in_tile

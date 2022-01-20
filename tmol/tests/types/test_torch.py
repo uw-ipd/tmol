@@ -64,7 +64,7 @@ validation_examples = [
         ],
     },
     {
-        "spec": Tensor["f"][:],
+        "spec": Tensor[torch.float32][:],
         "valid": [torch.zeros(30), torch.Tensor([1, 2, 3])],
         "invalid": [
             # bad shape

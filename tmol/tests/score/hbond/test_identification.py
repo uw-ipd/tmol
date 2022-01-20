@@ -5,7 +5,7 @@ import pandas
 
 import tmol.score
 
-import tmol.system.restypes as restypes
+import tmol.chemical.restypes as restypes
 from tmol.system.score_support import score_method_to_even_weights_dict
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 from tmol.score.modules.bases import ScoreSystem
@@ -142,15 +142,16 @@ def test_identification_by_chemical_types(
     types in the chemical database."""
     db_res = default_database.chemical.residues
     residue_types = [
-        cattr.structure(cattr.unstructure(r), restypes.ResidueType) for r in db_res
+        cattr.structure(cattr.unstructure(r), restypes.RefinedResidueType)
+        for r in db_res
     ]
 
     atom_types = {t.name: t for t in default_database.chemical.atom_types}
 
     for rt in residue_types:
         res_atom_types = numpy.array([a.atom_type for a in rt.atoms])
-        bonds = numpy.zeros([rt.bond_indicies.shape[0], 3], dtype=numpy.int64)
-        bonds[:, 1:] = rt.bond_indicies
+        bonds = numpy.zeros([rt.bond_indices.shape[0], 3], dtype=numpy.int64)
+        bonds[:, 1:] = rt.bond_indices
 
         hbe = HBondElementAnalysis.setup_from_database(
             chemical_database=default_database.chemical,

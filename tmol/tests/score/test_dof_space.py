@@ -17,7 +17,7 @@ def test_torsion_space_by_real_space_total_score(ubq_system):
     xyz_coords = coords_for(ubq_system, score_system)
 
     sys_kin = KinematicDescription.for_system(
-        ubq_system.bonds, ubq_system.torsion_metadata
+        ubq_system.system_size, ubq_system.bonds, (ubq_system.torsion_metadata,)
     )
     kincoords = sys_kin.extract_kincoords(ubq_system.coords)
     kintree = sys_kin.kintree
@@ -37,7 +37,7 @@ def test_torsion_space_coord_smoke(ubq_system):
     start_coords = coords_for(ubq_system, score_system)
 
     sys_kin = KinematicDescription.for_system(
-        ubq_system.bonds, ubq_system.torsion_metadata
+        ubq_system.system_size, ubq_system.bonds, (ubq_system.torsion_metadata,)
     )
     start_dofs = sys_kin.extract_kincoords(ubq_system.coords)
     kintree = sys_kin.kintree
@@ -65,7 +65,9 @@ def test_torsion_space_coord_smoke(ubq_system):
 def test_torsion_space_to_cart_space_gradcheck(ubq_res):
     tsys = PackedResidueSystem.from_residues(ubq_res[:6])
 
-    sys_kin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
+    sys_kin = KinematicDescription.for_system(
+        tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
+    )
 
     start_dofs = (
         sys_kin.extract_kincoords(tsys.coords).detach().clone().requires_grad_()

@@ -38,12 +38,17 @@ class _ElecScoreModule(torch.jit.ScriptModule):
 class ElecInterModule(_ElecScoreModule):
     @torch.jit.script_method
     def forward(
-        self, I, partial_charge_I, J, partial_charge_J, elec_bonded_pair_lengths
+        self,
+        coords_I,
+        partial_charge_I,
+        coords_J,
+        partial_charge_J,
+        elec_bonded_pair_lengths,
     ):
         return score_elec(
-            I,
+            coords_I,
             partial_charge_I,
-            J,
+            coords_J,
             partial_charge_J,
             elec_bonded_pair_lengths,
             self.global_params,
@@ -52,14 +57,14 @@ class ElecInterModule(_ElecScoreModule):
 
 class ElecIntraModule(_ElecScoreModule):
     @torch.jit.script_method
-    def forward(self, I, partial_charge_I, elec_bonded_pair_lengths):
-        # print("I", I.shape)
+    def forward(self, coords_I, partial_charge_I, elec_bonded_pair_lengths):
+        # print("coords_I", coords_I.shape)
         # print("atom_type_I", atom_type_I.shape)
         # print("bonded_path_lengths", bonded_path_lengths.shape)
         return score_elec_triu(
-            I,
+            coords_I,
             partial_charge_I,
-            I,
+            coords_I,
             partial_charge_I,
             elec_bonded_pair_lengths,
             self.global_params,

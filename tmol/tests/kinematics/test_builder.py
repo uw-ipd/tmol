@@ -1,8 +1,10 @@
 import numpy
 import torch
+import pandas
 
 from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import KinematicBuilder
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 
 def test_builder_refold(ubq_system):
@@ -46,20 +48,24 @@ def test_builder_framing(ubq_system):
     numpy.testing.assert_array_equal(kintree.parent[:2], [0, 0])
     numpy.testing.assert_array_equal(kintree.id[:2], [-1, 0])
 
-    # The first atom has two children. The first atom and its first child are framed by
-    # [first_child, root, second_child]
     atom_root_children = numpy.flatnonzero(numpy.array(kintree.parent) == 1)
+    atom_root_grandkids = numpy.flatnonzero(
+        numpy.array(kintree.parent) == atom_root_children[0]
+    )
     assert len(atom_root_children) == 2
+    assert len(atom_root_grandkids) == 3
 
+    # The first atom has two children. The first atom and its first child are framed by
+    # [first_child, root, first_grandkid]
     first_atom = kintree[1]
     assert int(first_atom.frame_x) == atom_root_children[0]
     assert int(first_atom.frame_y) == 1
-    assert int(first_atom.frame_z) == atom_root_children[1]
+    assert int(first_atom.frame_z) == atom_root_grandkids[0]
 
     first_atom_first_child = kintree[atom_root_children[0]]
     assert int(first_atom_first_child.frame_x) == atom_root_children[0]
     assert int(first_atom_first_child.frame_y) == 1
-    assert int(first_atom_first_child.frame_z) == atom_root_children[1]
+    assert int(first_atom_first_child.frame_z) == atom_root_grandkids[0]
 
     # The rest of the children are framed by:
     # [self, root, first_child]
@@ -79,3 +85,76 @@ def test_builder_framing(ubq_system):
         kintree.frame_z[normal_atoms],
         kintree.parent[kintree.parent[normal_atoms].to(dtype=torch.long)],
     )
+
+
+def test_build_two_system_kinematics(ubq_system, torch_device):
+    natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq_system.coords[:, 0])))
+
+    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+    tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=int)
+
+    # fd should this be a function in PackedResidueSystemStack?
+    bonds = numpy.concatenate(
+        [
+            numpy.concatenate(
+                (numpy.full((sys.bonds.shape[0], 1), i), sys.bonds), axis=-1
+            )
+            for i, sys in enumerate(twoubq.systems)
+        ],
+        axis=0,
+    )
+
+    ids, parents = KinematicBuilder.bonds_to_connected_component(
+        roots=tworoots, bonds=bonds, system_size=int(twoubq.systems[0].system_size)
+    )
+
+    id_index = pandas.Index(ids)
+    root_index = id_index.get_indexer(tworoots)
+
+    builder = KinematicBuilder()
+    tree = builder.append_connected_components(
+        roots=tworoots, ids=ids, parent_ids=parents
+    ).kintree
+
+    assert tree.id.shape[0] == 2 * natoms + 1
+    assert tree.id[1] == 0
+    assert tree.parent[1 + root_index[0]] == 0
+    assert tree.parent[1 + root_index[1]] == 0
+
+
+def test_build_jagged_system(ubq_res, torch_device):
+    ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
+    ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
+    natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq40.coords[:, 0]))) + numpy.sum(
+        numpy.logical_not(numpy.isnan(ubq60.coords[:, 0]))
+    )
+    twoubq = PackedResidueSystemStack((ubq40, ubq60))
+    tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=int)
+
+    # fd should this be a function in PackedResidueSystemStack?
+    bonds = numpy.concatenate(
+        [
+            numpy.concatenate(
+                (numpy.full((sys.bonds.shape[0], 1), i), sys.bonds), axis=-1
+            )
+            for i, sys in enumerate(twoubq.systems)
+        ],
+        axis=0,
+    )
+
+    ids, parents = KinematicBuilder.bonds_to_connected_component(
+        roots=tworoots, bonds=bonds, system_size=int(twoubq.systems[1].system_size)
+    )
+
+    id_index = pandas.Index(ids)
+    root_index = id_index.get_indexer(tworoots)
+
+    builder = KinematicBuilder()
+    tree = builder.append_connected_components(
+        roots=tworoots, ids=ids, parent_ids=parents
+    ).kintree
+
+    assert tree.id.shape[0] == natoms + 1
+    assert tree.id[1] == 0
+    assert tree.parent[1 + root_index[0]] == 0
+    assert tree.parent[1 + root_index[1]] == 0

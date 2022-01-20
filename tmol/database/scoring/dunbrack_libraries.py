@@ -23,6 +23,12 @@ class RotamericDataForAA:
     backbone_dihedral_step: Tensor[float][:]
     rotamer_alias: Tensor[int][:, :]
 
+    def __repr__(self):
+        return "testing __repr__ for RotamericDataForAA"
+
+    def __str__(self):
+        return "testing __str__ for RotamericDataForAA"
+
     @classmethod
     def from_zgroup(cls, zgroup):
         rotgrp = zgroup["rotameric_data"]
@@ -86,6 +92,9 @@ class RotamericAADunbrackLibrary:
     table_name: str
     rotameric_data: RotamericDataForAA
 
+    def __repr__(self):
+        return "testing __repr__ for RotamericAADunbrackLibrary " + self.table_name
+
     @classmethod
     def from_zgroup(cls, zgroup, name):
         lib_group = zgroup[name]
@@ -104,6 +113,9 @@ class SemiRotamericAADunbrackLibrary:
     rotameric_chi_rotamers: Tensor[int][:, :]  # nrots x n-rotameric-chi
     nonrotameric_chi_probabilities: Tensor[float]  # (1+nbb+1)-dimensional table
     rotamer_boundaries: Tensor[float][:, 2]  # 2nd dimension: 0=left, 1=right
+
+    def __repr__(self):
+        return "testing __repr__ for SemiRotamericAADunbrackLibrary " + self.table_name
 
     @classmethod
     def from_zgroup(cls, zgroup, name):

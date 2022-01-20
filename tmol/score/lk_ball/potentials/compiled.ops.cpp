@@ -6,8 +6,11 @@
 
 #include <tmol/score/common/simple_dispatch.hh>
 #include <tmol/score/common/forall_dispatch.hh>
+
 #include "dispatch.hh"
 #include "gen_waters.hh"
+#include "rotamer_pair_energy_lkball.hh"
+
 
 namespace tmol {
 namespace score {
@@ -332,6 +335,88 @@ Tensor watergen_op(
       ring_water_tors);
 };
 
+
+template<
+  template<tmol::Device>
+  class Dispatch
+>
+Tensor rotamer_pair_energies(
+    Tensor context_coords,
+    Tensor context_block_type,
+    Tensor alternate_coords,
+    Tensor alternate_ids,
+
+    Tensor context_water_coords,
+    
+    Tensor context_system_ids,
+    Tensor system_min_bond_separation,
+    Tensor system_inter_block_bondsep,
+    Tensor system_neighbor_list,
+  
+    // parameters to build waters
+    Tensor bt_is_acceptor,
+    Tensor bt_acceptor_type,
+    Tensor bt_acceptor_hybridization,
+    Tensor bt_acceptor_base_ind,
+
+    Tensor bt_is_donor,
+    Tensor bt_donor_type,
+    Tensor bt_donor_attached_hydrogens,
+  
+    // Tensor lkb_water_gen_type_params,
+    Tensor lkb_global_params,
+    Tensor sp2_water_tors,
+    Tensor sp3_water_tors,
+    Tensor ring_water_tors,
+
+    Tensor lkb_weight
+
+) {
+
+  at::Tensor rpes;
+  at::Tensor event;
+
+  using Int = int32_t;
+  constexpr int MAX_WATER = 4;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      context_coords.type(), "rotamer_rpe_evaluation", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result = LKBallRPEDispatch<Dispatch, Dev, Real, Int, MAX_WATER>::f(
+          TCAST(context_coords),
+          TCAST(context_block_type),
+          TCAST(alternate_coords),
+          TCAST(alternate_ids),
+
+	  TCAST(context_water_coords),
+
+          TCAST(context_system_ids),
+          TCAST(system_min_bond_separation),
+          TCAST(system_inter_block_bondsep),
+          TCAST(system_neighbor_list),
+
+	  TCAST(bt_is_acceptor),
+	  TCAST(bt_acceptor_type),
+	  TCAST(bt_acceptor_hybridization),
+	  TCAST(bt_acceptor_base_ind),
+
+	  TCAST(bt_is_donor),
+	  TCAST(bt_donor_type),
+	  TCAST(bt_donor_attached_hydrogens),
+
+	  TCAST(lkb_global_params),
+	  TCAST(sp2_water_tors),
+	  TCAST(sp3_water_tors),
+	  TCAST(ring_water_tors)
+	);
+	rpes = std::get<0>(result).tensor;
+
+      }));
+  return rpes;
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
@@ -339,7 +424,13 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("score_lkball", &score_op<LKBallDispatch, common::AABBDispatch>);
   m.def(
       "watergen_lkball", &watergen_op<GenerateWaters, common::ForallDispatch>);
+  m.def(
+    "score_lkball_inter_system_scores", &rotamer_pair_energies<common::ForallDispatch>);
 }
+
+
+
+
 }  // namespace potentials
 }  // namespace lk_ball
 }  // namespace score

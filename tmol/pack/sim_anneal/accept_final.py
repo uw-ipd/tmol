@@ -1,0 +1,59 @@
+import torch
+import numpy
+
+from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
+from tmol.chemical.restypes import Residue
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack import PoseStack
+
+
+# to dump pdbs
+from tmol.system.packed import PackedResidueSystem
+from tmol.utility.reactive import reactive_property
+from tmol.io.generic import to_pdb
+
+
+@validate_args
+def poses_from_assigned_rotamers(
+    orig_poses: PoseStack,
+    packed_block_types: PackedBlockTypes,
+    pose_id_for_context: Tensor[torch.int32][:],
+    context_coords: Tensor[torch.float32][:, :, :, 3],
+    context_block_type: Tensor[torch.int32][:, :],
+) -> PoseStack:
+    pbt = packed_block_types
+    nats = pbt.n_atoms.cpu()
+    nres = torch.sum(context_block_type != -1, dim=1).cpu()
+    cbt_cpu = context_block_type.cpu()
+    coords_numpy = context_coords.cpu().numpy().astype(numpy.float64)
+    residues = [
+        [
+            Residue(
+                residue_type=pbt.active_block_types[cbt_cpu[i, j]],
+                coords=coords_numpy[i, j, : (nats[cbt_cpu[i, j]])],
+            )
+            for j in range(nres[i])
+        ]
+        for i in range(context_coords.shape[0])
+    ]
+
+    pid4c_64 = pose_id_for_context.to(torch.int64)
+
+    return PoseStack(
+        packed_block_types=packed_block_types,
+        residues=residues,
+        residue_coords=coords_numpy,
+        coords=context_coords,
+        inter_residue_connections=orig_poses.inter_residue_connections[pid4c_64],
+        inter_block_bondsep=orig_poses.inter_block_bondsep[pid4c_64],
+        block_type_ind=context_block_type,
+        device=orig_poses.device,
+    )
+
+
+@validate_args
+def pdb_lines_for_pose(poses: PoseStack, ind: int) -> str:
+    packed_system = PackedResidueSystem.from_residues(poses.residues[ind])
+
+    return to_pdb(packed_system)

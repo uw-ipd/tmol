@@ -165,7 +165,6 @@ struct ForwardKinDispatch {
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<128, 2> launch_t;
     constexpr int nt = launch_t::nt, vt = launch_t::vt;
-
     auto num_atoms = dofs.size(0);
 
     nvtx_range_push("dispatch::alloc");
@@ -192,8 +191,6 @@ struct ForwardKinDispatch {
     HTRawBuffer<Real> init = {
         1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};  // identity xform
     nvtx_range_pop();
-
-    // printf("[0] alloc=%d\n", carryoutBuffer);
 
     // dofs -> HTs
     nvtx_range_push("dispatch::dof2ht");
