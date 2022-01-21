@@ -1,6 +1,7 @@
 import torch
 import attr
 import numpy
+import pytest
 
 from tmol.utility.tensor.common_operations import stretch
 from tmol.chemical.restypes import ResidueTypeSet
@@ -23,6 +24,7 @@ from tmol.pack.sim_anneal.accept_final import (
 )
 
 
+@pytest.mark.xfail
 def test_random_rotamer_module(ubq_res, default_database, torch_device):
     # torch_device = torch.device("cpu")
 
@@ -92,6 +94,7 @@ def test_random_rotamer_module(ubq_res, default_database, torch_device):
     numpy.testing.assert_equal(gold_rotamer_alt_coords, rotamer_alt_coords)
 
 
+@pytest.mark.xfail
 def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
     # torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
@@ -169,6 +172,7 @@ def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
     print(accept)
 
 
+@pytest.mark.xfail
 def test_accept_final(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):

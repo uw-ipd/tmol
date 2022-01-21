@@ -88,8 +88,8 @@ class SimAEngine:
         return accept
 
 
+@pytest.mark.xfail
 @pytest.mark.benchmark(group="simulated_annealing")
-# @pytest.mark.parametrize("n_poses", [10, 30, 100, 300, 1000])
 @pytest.mark.parametrize("n_poses", [100])  # 300
 @pytest.mark.parametrize("n_components", [1])
 def test_run_simA_benchmark(
