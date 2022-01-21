@@ -100,7 +100,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   using Real3 = Vec<Real, 3>;
 
   int const n_poses = coords.size(0);
-  int const max_n_pose_atoms = coords.size(0);
+  int const max_n_pose_atoms = coords.size(1);
   int const max_n_blocks = pose_stack_block_type.size(1);
   int const max_n_block_atoms = block_type_atom_types.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
