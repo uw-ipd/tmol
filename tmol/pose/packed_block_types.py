@@ -16,6 +16,7 @@ from tmol.types.torch import Tensor
 
 from tmol.chemical.restypes import RefinedResidueType, Residue
 from tmol.system.datatypes import connection_metadata_dtype
+from tmol.utility.tensor.common_operations import join_tensors_and_report_real_entries
 
 
 def residue_types_from_residues(residues):
@@ -40,7 +41,6 @@ class PackedBlockTypes:
     max_n_torsions: int
     n_torsions: Tensor[torch.int32][:]  # dim: n_types x max_n_tors
     torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_tors
-
     # unresolved atom ids for all named torsions in the block types
     torsion_uaids: Tensor[torch.int32][:, :, 3]
 
@@ -168,31 +168,46 @@ class PackedBlockTypes:
         #  3rd integer: the number of chemical bonds into the other block that the
         #               unresolved atom is found.
 
-        n_types = len(active_block_types)
-        max_n_tor = max(len(bt.torsion_to_uaids) for bt in active_block_types)
-        torsion_uaids = torch.full(
-            (n_types, max_n_tor, 4, 3), -1, dtype=torch.int32, device=device
-        )
+        ordered_torsions = [
+            torch.tensor(bt.ordered_torsions.copy(), device=device)
+            for bt in active_block_types
+        ]
+        return join_tensors_and_report_real_entries(ordered_torsions)
 
-        n_torsions = torch.tensor(
-            [bt.ordered_torsions.shape[0] for bt in active_block_types],
-            dtype=torch.int32,
-            device=device,
-        )
+        # n_types = len(active_block_types)
+        # max_n_tor = max(len(bt.torsion_to_uaids) for bt in active_block_types)
+        # torsion_uaids = torch.full(
+        #     (n_types, max_n_tor, 4, 3), -1, dtype=torch.int32, device=device
+        # )
+        #
+        # n_torsions = torch.tensor(
+        #     [bt.ordered_torsions.shape[0] for bt in active_block_types],
+        #     dtype=torch.int32,
+        #     device=device,
+        # )
+        #
+        # for i, bt in enumerate(active_block_types):
+        #     torsion_uaids[i, : bt.ordered_torsions.shape[0]] = torch.tensor(
+        #         bt.ordered_torsions, dtype=torch.int32, device=device
+        #     )
+        #
+        # n_tors_per_bt_arange_expanded = (
+        #     torch.arange(max_n_tor, dtype=torch.int32, device=device)
+        #     .repeat(n_types)
+        #     .view(n_types, max_n_tor)
+        # )
+        # torsion_is_real = n_tors_per_bt_arange_expanded < n_torsions.unsqueeze(1)
+        #
+        # return n_torsions, torsion_is_real, torsion_uaids
 
-        for i, bt in enumerate(active_block_types):
-            torsion_uaids[i, : bt.ordered_torsions.shape[0]] = torch.tensor(
-                bt.ordered_torsions, dtype=torch.int32, device=device
-            )
+    @classmethod
+    def join_bond_indices(cls, active_block_types, device):
 
-        n_tors_per_bt_arange_expanded = (
-            torch.arange(max_n_tor, dtype=torch.int32, device=device)
-            .repeat(n_types)
-            .view(n_types, max_n_tor)
-        )
-        torsion_is_real = n_tors_per_bt_arange_expanded < n_torsions.unsqueeze(1)
-
-        return n_torsions, torsion_is_real, torsion_uaids
+        bond_indices = [
+            torch.tensor(bt.bond_indices.copy(), dtype=torch.int32, device=device)
+            for bt in active_block_types
+        ]
+        return join_tensors_and_report_real_entries(bond_indices)
 
     @classmethod
     def join_conn_indices(cls, active_block_types, device):
