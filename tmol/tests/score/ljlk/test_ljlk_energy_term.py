@@ -114,6 +114,8 @@ def test_inter_module(ubq_res, default_database, torch_device):
     )
 
     weights = {"lj": 1.0, "lk": 1.0}
+    for bt in poses.packed_block_types.active_block_types:
+        ljlk_energy.setup_block_type(bt)
     ljlk_energy.setup_packed_block_types(poses.packed_block_types)
     ljlk_energy.setup_poses(poses)
     inter_module = ljlk_energy.inter_module(
@@ -310,12 +312,15 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     ljlk_energy.setup_poses(p1)
 
     ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
-    for ch in ljlk_pose_scorer.children():
-        print("child")
-        print(ch)
+    # for ch in ljlk_pose_scorer.children():
+    #     print("child")
+    #     print(ch)
 
     coords = torch.nn.Parameter(p1.coords.clone())
     scores = ljlk_pose_scorer(coords)
+
+    # make sure we're still good
+    torch.arange(100, device=torch_device)
 
     numpy.set_printoptions(precision=10)
     print(scores.cpu().detach().numpy())

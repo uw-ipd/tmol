@@ -42,20 +42,21 @@ struct LJLKTypeParams {
   Real is_polarh;
   Real is_acceptor;
 
-  LJTypeParams<Real> lj_params() {
+  LJTypeParams<Real> EIGEN_DEVICE_FUNC lj_params() {
     return LJTypeParams<Real>(
         {lj_radius, lj_wdepth, is_donor, is_hydroxyl, is_polarh, is_acceptor});
   }
 
-  LKTypeParams<Real> lk_params() {
-    return LKTypeParams<Real>({lj_radius,
-                               lk_dgfree,
-                               lk_lambda,
-                               lk_volume,
-                               is_donor,
-                               is_hydroxyl,
-                               is_polarh,
-                               is_acceptor});
+  LKTypeParams<Real> EIGEN_DEVICE_FUNC lk_params() {
+    return LKTypeParams<Real>(
+        {lj_radius,
+         lk_dgfree,
+         lk_lambda,
+         lk_volume,
+         is_donor,
+         is_hydroxyl,
+         is_polarh,
+         is_acceptor});
   }
 };
 
@@ -77,12 +78,13 @@ struct LJTypeParamTensors {
 
   template <typename Idx>
   auto operator[](Idx i) const {
-    return LJTypeParams<Real>{lj_radius[i],
-                              lj_wdepth[i],
-                              is_donor[i],
-                              is_hydroxyl[i],
-                              is_polarh[i],
-                              is_acceptor[i]};
+    return LJTypeParams<Real>{
+        lj_radius[i],
+        lj_wdepth[i],
+        is_donor[i],
+        is_hydroxyl[i],
+        is_polarh[i],
+        is_acceptor[i]};
   }
 };
 
@@ -99,14 +101,15 @@ struct LKTypeParamTensors {
 
   template <typename Idx>
   auto operator[](Idx i) const {
-    return LKTypeParams<Real>{lj_radius[i],
-                              lk_dgfree[i],
-                              lk_lambda[i],
-                              lk_volume[i],
-                              is_donor[i],
-                              is_hydroxyl[i],
-                              is_polarh[i],
-                              is_acceptor[i]};
+    return LKTypeParams<Real>{
+        lj_radius[i],
+        lk_dgfree[i],
+        lk_lambda[i],
+        lk_volume[i],
+        is_donor[i],
+        is_hydroxyl[i],
+        is_polarh[i],
+        is_acceptor[i]};
   }
 };
 

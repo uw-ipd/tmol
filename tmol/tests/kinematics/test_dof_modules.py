@@ -28,10 +28,15 @@ def test_cartesian_coord_factory(ubq_system):
 
     # Coords are copied, not referenced
     torch.testing.assert_allclose(src.coords, clone.coords)
-    clone.coords[0] += 1
+
+    # to modify a leaf variable in place, we have to use torch.no_grad()
+    with torch.no_grad():
+        clone.coords[0] += 1
     with pytest.raises(AssertionError):
         torch.testing.assert_allclose(src.coords, clone.coords)
-    clone.coords[0] -= 1
+    # to modify a leaf variable in place, we have to use torch.no_grad()
+    with torch.no_grad():
+        clone.coords[0] -= 1
     torch.testing.assert_allclose(src.coords, clone.coords)
 
     # Device can be overridden
@@ -62,13 +67,19 @@ def test_kinematic_dof_factory(ubq_system):
 
     # dofs are copied, not referenced
     torch.testing.assert_allclose(src.dofs, clone.dofs)
-    clone.dofs[0] += 1
+    # to modify a leaf variable in place, we have to use torch.no_grad()
+    with torch.no_grad():
+        clone.dofs[0] += 1
     with pytest.raises(AssertionError):
         torch.testing.assert_allclose(src.dofs, clone.dofs)
 
     with pytest.raises(AssertionError):
         torch.testing.assert_allclose(clone()[0], ubq_system.coords)
-    clone.dofs[0] -= 1
+
+    # now return the dofs to their previous values
+    # to modify a leaf variable in place, we have to use torch.no_grad()
+    with torch.no_grad():
+        clone.dofs[0] -= 1
 
     # Device can be overridden
 
@@ -97,7 +108,10 @@ def gradcheck_test_system(ubq_res) -> PackedResidueSystem:
 
 def kdof_gradcheck_report(kdof, start_dofs, eps=1e-3, atol=1e-5, rtol=5e-3):
     def eval_kin(dofs_x):
-        kdof.dofs[:] = dofs_x
+        # to modify a leaf variable in place, we have to use torch.no_grad()
+        # I worry about this one!
+        with torch.no_grad():
+            kdof.dofs[:] = dofs_x
         full_coords = kdof()
         return full_coords[~torch.isnan(full_coords)]
 
@@ -105,7 +119,8 @@ def kdof_gradcheck_report(kdof, start_dofs, eps=1e-3, atol=1e-5, rtol=5e-3):
     result = eval_kin(start_dofs)
 
     # Extract results from torch/autograd/gradcheck.py
-    from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
+    # from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
+    from tmol.tests.autograd import get_numerical_jacobian, get_analytical_jacobian
 
     (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
         (start_dofs,), result
@@ -119,7 +134,7 @@ def test_kinematic_dofs_gradcheck_perturbed(gradcheck_test_system, torch_device)
     kdof: KinematicDOFs = KinematicDOFs.build_from(gradcheck_test_system)
     torch.random.manual_seed(1663)
     start_dofs = (
-        (kdof.dofs + ((torch.rand_like(kdof.dofs) - .5) * .01))
+        (kdof.dofs + ((torch.rand_like(kdof.dofs) - 0.5) * 0.01))
         .clone()
         .detach()
         .requires_grad_(True)
