@@ -127,12 +127,10 @@ def test_inter_module(ubq_res, default_database, torch_device):
     context_coords = torch.zeros(
         (10, 6, max_n_atoms, 3), dtype=torch.float32, device=torch_device
     )
-    context_coords[:5, :, :, :] = torch.tensor(
-        poses.coords[0:1, :, :, :], device=torch_device
-    )
-    context_coords[5:, :, :, :] = torch.tensor(
-        poses.coords[1:2, :, :, :], device=torch_device
-    )
+    # this should be fine
+    poses_expanded_coords, real_expanded_pose_ats = poses.expand_coords()
+    context_coords[:5, :, :, :] = poses_expanded_coords[0:1]
+    context_coords[5:, :, :, :] = poses_expanded_coords[1:2]
 
     context_block_type = torch.zeros((10, 6), dtype=torch.int32, device=torch_device)
     context_block_type[:5, :] = torch.tensor(
@@ -145,12 +143,8 @@ def test_inter_module(ubq_res, default_database, torch_device):
     alternate_coords = torch.zeros(
         (20, max_n_atoms, 3), dtype=torch.float32, device=torch_device
     )
-    alternate_coords[:10, :, :] = torch.tensor(
-        poses.coords[0:1, 1:2, :], device=torch_device
-    )
-    alternate_coords[10:, :, :] = torch.tensor(
-        poses.coords[1:2, 3:4, :], device=torch_device
-    )
+    alternate_coords[:10, :, :] = poses_expanded_coords[0:1, 1:2, :]
+    alternate_coords[10:, :, :] = poses_expanded_coords[1:2, 3:4, :]
 
     alternate_ids = torch.zeros((20, 3), dtype=torch.int32, device=torch_device)
     alternate_ids[:, 0] = torch.floor_divide(torch.arange(20, dtype=torch.int32), 2)
@@ -199,7 +193,7 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res, torch_device)
-    nres = p1.coords.shape[1]
+    nres = p1.max_n_blocks
     poses = PoseStack.from_poses([p1] * n_poses, torch_device)
 
     one_bounding_sphere_set = numpy.full((1, nres, 4), numpy.nan, dtype=numpy.float32)
@@ -248,9 +242,8 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
         dtype=torch.float32,
         device=torch_device,
     )
-    context_coords[:, :, :, :] = torch.tensor(
-        poses.coords[0:1, :, :, :], device=torch_device
-    )
+    poses_expanded_coords, real_expanded_pose_ats = poses.expand_coords()
+    context_coords[:, :, :, :] = poses_expanded_coords[0:1, :, :, :]
 
     context_block_type = torch.zeros(
         (n_traj * n_poses, nres), dtype=torch.int32, device=torch_device
@@ -273,9 +266,9 @@ def test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_tra
         ),
         nres,
     )
-    alternate_coords[:, :, :] = torch.tensor(
-        poses.coords[0:1, which_block.cpu().numpy(), :, :], device=torch_device
-    )
+    alternate_coords[:, :, :] = poses_expanded_coords[
+        0:1, which_block.type(torch.int64), :, :
+    ]
 
     alternate_ids = torch.zeros(
         (n_alts * n_traj * n_poses, 3), dtype=torch.int32, device=torch_device
@@ -323,7 +316,7 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     torch.arange(100, device=torch_device)
 
     numpy.set_printoptions(precision=10)
-    print(scores.cpu().detach().numpy())
+    # print(scores.cpu().detach().numpy())
 
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-6, rtol=1e-6
@@ -333,7 +326,8 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
 def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device
 ):
-    gold_vals = numpy.array([[-7.691674], [3.6182203]], dtype=numpy.float32)
+    # gold_vals = numpy.array([[-7.691674], [3.6182203]], dtype=numpy.float32)
+
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStack.one_structure_from_polymeric_residues(
         res=rts_ubq_res[0:4], device=torch_device
@@ -344,9 +338,9 @@ def test_whole_pose_scoring_module_gradcheck(
     ljlk_energy.setup_poses(p1)
 
     ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
-    for ch in ljlk_pose_scorer.children():
-        print("child")
-        print(ch)
+    # for ch in ljlk_pose_scorer.children():
+    #     print("child")
+    #     print(ch)
 
     coords = torch.nn.Parameter(p1.coords.clone())
 

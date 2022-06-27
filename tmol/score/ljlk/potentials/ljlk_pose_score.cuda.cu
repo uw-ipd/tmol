@@ -96,13 +96,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<LJGlobalParams<Real>, 1, D> global_params
 
     ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
-  std::cout << "OK!" << std::endl;
-
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
   int const n_poses = coords.size(0);
-  int const max_n_pose_atoms = coords.size(0);
+  int const max_n_pose_atoms = coords.size(1);
   int const max_n_blocks = pose_stack_block_type.size(1);
   int const max_n_block_atoms = block_type_atom_types.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
@@ -153,17 +151,29 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto scratch_block_spheres = scratch_block_spheres_t.view;
 
   auto scratch_block_neighbors_t =
-      TPack<Int, 3, D>::ones({n_poses, max_n_blocks, max_n_blocks});
+      TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
-  auto extra_scratch_block_neighbors_t =
-      TPack<Int, 3, D>::ones({n_poses, max_n_blocks, max_n_blocks});
-  auto extra_scratch_block_neighbors = extra_scratch_block_neighbors_t.view;
+  // debug auto extra_scratch_block_neighbors_t =
+  // debug     TPack<Int, 3, D>::ones({n_poses, max_n_blocks, max_n_blocks});
+  // debug auto extra_scratch_block_neighbors =
+  // extra_scratch_block_neighbors_t.view; debug debug // TEMP! debug auto
+  // cpu_scratch_block_neighbors_t = TPack<Int, 3, tmol::Device::CPU>::ones(
+  // debug     {n_poses, max_n_blocks, max_n_blocks});
+  // debug auto cpu_scratch_block_neighbors =
+  // cpu_scratch_block_neighbors_t.view;
 
-  // TEMP!
-  auto cpu_scratch_block_neighbors_t = TPack<Int, 3, tmol::Device::CPU>::ones(
-      {n_poses, max_n_blocks, max_n_blocks});
-  auto cpu_scratch_block_neighbors = cpu_scratch_block_neighbors_t.view;
+  using namespace mgpu;
+  typedef launch_box_t<
+      arch_20_cta<32, 1>,
+      arch_35_cta<32, 1>,
+      arch_52_cta<32, 1>>
+      // arch_70_cta<32, 1>,
+      // arch_75_cta<32, 1>>
+      launch_t;
+
+  // std::cout << "launch box: nt " << launch_t::sm_ptx::nt << ", vt " <<
+  // launch_t::sm_ptx::vt << std::endl;
 
   // auto compute_block_sphere([=] MGPU_DEVICE(int tid, int cta) {
   auto compute_block_sphere(
@@ -261,24 +271,110 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         }
       });
 
-  printf(
-      "CPU: scratch_block_neighbors: %p, %d %d %d\n",
-      scratch_block_neighbors.data(),
-      int(scratch_block_neighbors.size(0)),
-      int(scratch_block_neighbors.size(1)),
-      int(scratch_block_neighbors.size(2)));
+  auto detect_block_neighbors([=] MGPU_DEVICE(int tid, int cta) {
+    // auto detect_block_neighbors( [=] MGPU_DEVICE(int ind) {
+    // auto detect_block_neighbors( [=] MGPU_DEVICE(int ind) {
+    int n_poses_local = n_poses;
+    int max_n_blocks_local = max_n_blocks;
 
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
-      // arch_70_cta<32, 1>,
-      // arch_75_cta<32, 1>>
-      launch_t;
+    int ind = cta * blockDim.x + tid;
 
-  std::cout << "launch box: nt " << launch_t::sm_ptx::nt << ", vt "
-            << launch_t::sm_ptx::vt << std::endl;
+    // printf("detect block neighbors: cta: %d, tid  %d, ind %d\n",
+    //   cta, tid, ind);
+    // printf("detect block neighbors: n_poses: %d, max_n_blocks %d, ind %d\n",
+    //   n_poses_local, max_n_blocks_local, ind);
+
+    if (ind >= n_poses * max_n_blocks * max_n_blocks) return;
+
+    int const pose_ind = ind / (max_n_blocks * max_n_blocks);
+    int const block_pair_ind = ind % (max_n_blocks * max_n_blocks);
+    int const block_ind1 = block_pair_ind / max_n_blocks;
+    int const block_ind2 = block_pair_ind % max_n_blocks;
+
+    if (block_ind1 > block_ind2) {
+      return;
+    }
+
+    int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
+    if (block_type1 < 0) {
+      return;
+    }
+    int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+    if (block_type2 < 0) {
+      return;
+    }
+
+    Vec<Real, 4> sphere1(0, 0, 0, 0);
+    Vec<Real, 4> sphere2(0, 0, 0, 0);
+
+    for (int i = 0; i < 4; ++i) {
+      sphere1[i] = scratch_block_spheres[pose_ind][block_ind1][i];
+      sphere2[i] = scratch_block_spheres[pose_ind][block_ind2][i];
+    }
+
+    Real d2 =
+        ((sphere1[0] - sphere2[0]) * (sphere1[0] - sphere2[0])
+         + (sphere1[1] - sphere2[1]) * (sphere1[1] - sphere2[1])
+         + (sphere1[2] - sphere2[2]) * (sphere1[2] - sphere2[2]));
+
+    // warning: duplication of lennard-jones maximum distance threshold of
+    // 6A hard coded here. Please fix! TEMP!
+    Real reach = sphere1[3] + sphere2[3] + 6.0;
+
+    // printf("spheres %d %d %d distance %f vs reach %f; (%f %f %f, %f) and (%f
+    // %f %f, %f) -- %p, %d %d %d\n",
+    //   pose_ind, block_ind1, block_ind2,
+    //   sqrt(d2), reach,
+    //   sphere1[0], sphere1[1], sphere1[2], sphere1[3],
+    //   sphere2[0], sphere2[1], sphere2[2], sphere2[3],
+    //   scratch_block_neighbors.data(),
+    //   int(scratch_block_neighbors.size(0)),
+    //   int(scratch_block_neighbors.size(1)),
+    //   int(scratch_block_neighbors.size(2))
+    // );
+    // printf(
+    //     "%d %d detect block neighbors: pose_stack_block_type: %p, %d %d\n",
+    //     block_ind1,
+    //     block_ind2,
+    //     pose_stack_block_type.data(),
+    //     int(pose_stack_block_type.size(0)),
+    //     int(pose_stack_block_type.size(1))
+    // );
+    //
+    // printf(
+    //     "%d %d detect block neighbors: scratch_block_neighbors: %p, %d %d
+    //     %d\n", block_type1, block_type2, scratch_block_neighbors.data(),
+    //     int(scratch_block_neighbors.size(0)),
+    //     int(scratch_block_neighbors.size(1)),
+    //     int(scratch_block_neighbors.size(2)));
+
+    // printf(
+    //     "detect block neighbors: scratch_block_spheres: %p, %d %d %d\n",
+    //     scratch_block_spheres.data(),
+    //     int(scratch_block_spheres.size(0)),
+    //     int(scratch_block_spheres.size(1)),
+    //     int(scratch_block_spheres.size(2)));
+
+    //  if (pose_ind >= n_poses || block_ind1 >= max_n_blocks || block_ind2
+    //  >= max_n_blocks) {
+    //    printf("sphere overlap calc: %d %d %d %f %f\n", pose_ind,
+    //    block_ind1, block_ind2, d2, reach);
+    //  }
+    // Real d2 = 3;
+    // Real reach = 4;
+
+    if (d2 < reach * reach) {
+      // PROBLEM?!?
+      scratch_block_neighbors[pose_ind][block_ind1][block_ind2] = 1;
+    }
+  });
+
+  // printf(
+  //     "CPU: scratch_block_neighbors: %p, %d %d %d\n",
+  //     scratch_block_neighbors.data(),
+  //     int(scratch_block_neighbors.size(0)),
+  //     int(scratch_block_neighbors.size(1)),
+  //     int(scratch_block_neighbors.size(2)));
 
   // between one alternate rotamer and its neighbors in the surrounding context
   auto score_inter_pairs_lj =
@@ -1190,21 +1286,21 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       return;
     }
 
-    if (cta == 0 && tid == 0) {
-      printf(
-          "eval energies: scratch_block_neighbors: %p, %d %d %d\n",
-          scratch_block_neighbors.data(),
-          int(scratch_block_neighbors.size(0)),
-          int(scratch_block_neighbors.size(1)),
-          int(scratch_block_neighbors.size(2)));
-
-      printf(
-          "eval energies: scratch_block_spheres: %p, %d %d %d\n",
-          scratch_block_spheres.data(),
-          int(scratch_block_spheres.size(0)),
-          int(scratch_block_spheres.size(1)),
-          int(scratch_block_spheres.size(2)));
-    }
+    // if (cta == 0 && tid == 0) {
+    //   printf(
+    //       "eval energies: scratch_block_neighbors: %p, %d %d %d\n",
+    //       scratch_block_neighbors.data(),
+    //       int(scratch_block_neighbors.size(0)),
+    //       int(scratch_block_neighbors.size(1)),
+    //       int(scratch_block_neighbors.size(2)));
+    //
+    //   printf(
+    //         "eval energies: scratch_block_spheres: %p, %d %d %d\n",
+    //         scratch_block_spheres.data(),
+    //         int(scratch_block_spheres.size(0)),
+    //         int(scratch_block_spheres.size(1)),
+    //         int(scratch_block_spheres.size(2)));
+    // }
 
     if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
@@ -1637,123 +1733,28 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   mgpu::cta_launch<launch_t>(
       compute_block_sphere, n_poses * max_n_blocks, context);
 
-  // temp: this is only here because I wanted to force a synchronization
-  cudaMemcpy(
-      cpu_scratch_block_neighbors.data(),
-      scratch_block_neighbors.data(),
-      n_block_pairs * sizeof(Int),
-      cudaMemcpyDeviceToHost);
+  // debug // temp: this is only here because I wanted to force a
+  // synchronization debug cudaMemcpy( debug cpu_scratch_block_neighbors.data(),
+  // debug     scratch_block_neighbors.data(),
+  // debug     n_block_pairs * sizeof(Int),
+  // debug     cudaMemcpyDeviceToHost);
 
-  // auto detect_block_neighbors(
-  //     [max_n_blocks = max_n_blocks,
-  //      n_poses = n_poses,
-  //      pose_stack_block_type = pose_stack_block_type,
-  //      scratch_block_spheres = scratch_block_spheres,
-  //      scratch_block_neighbors = scratch_block_neighbors] MGPU_DEVICE(int
-  //      ind) {
-  auto detect_block_neighbors([=] MGPU_DEVICE(int tid, int cta) {
-    // auto detect_block_neighbors( [=] MGPU_DEVICE(int ind) {
-    // int n_poses_local = n_poses;
-    // int max_n_blocks_local = max_n_blocks;
-
-    int ind = cta * blockDim.x + tid;
-    if (ind >= n_poses * max_n_blocks * max_n_blocks) return;
-
-    // printf("detect block neighbors: cta: %d, tid  %d, ind %d\n",
-    //   cta, tid, ind);
-    // printf("detect block neighbors: n_poses: %d, max_n_blocks %d, ind %d\n",
-    //   n_poses_local, max_n_blocks_local, ind);
-
-    int const pose_ind = ind / (max_n_blocks * max_n_blocks);
-    int const block_pair_ind = ind % (max_n_blocks * max_n_blocks);
-    int const block_ind1 = block_pair_ind / max_n_blocks;
-    int const block_ind2 = block_pair_ind % max_n_blocks;
-
-    if (block_ind1 > block_ind2) {
-      return;
-    }
-
-    int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-    if (block_type1 < 0) {
-      return;
-    }
-    int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
-    if (block_type2 < 0) {
-      return;
-    }
-
-    // Vec<Real, 4> sphere1(0, 0, 0, 0);
-    // Vec<Real, 4> sphere2(0, 0, 0, 0);
-    Vec<Real, 4> sphere1;
-    Vec<Real, 4> sphere2;
-
-    for (int i = 0; i < 4; ++i) {
-      sphere1[i] = scratch_block_spheres[pose_ind][block_ind1][i];
-      sphere2[i] = scratch_block_spheres[pose_ind][block_ind2][i];
-    }
-
-    Real d2 =
-        ((sphere1[0] - sphere2[0]) * (sphere1[0] - sphere2[0])
-         + (sphere1[1] - sphere2[1]) * (sphere1[1] - sphere2[1])
-         + (sphere1[2] - sphere2[2]) * (sphere1[2] - sphere2[2]));
-
-    // warning: duplication of lennard-jones maximum distance threshold of
-    // 6A hard coded here. Please fix! TEMP!
-    Real reach = sphere1[3] + sphere2[3] + 6.0;
-
-    // printf("spheres %d %d %d distance %f vs reach %f; (%f %f %f, %f) and
-    // (%f %f %f, %f) -- %p, %d %d %d\n",
-    //   pose_ind, block_ind1, block_ind2,
-    //   sqrt(d2), reach,
-    //   sphere1[0], sphere1[1], sphere1[2], sphere1[3],
-    //   sphere2[0], sphere2[1], sphere2[2], sphere2[3],
-    //   scratch_block_neighbors.data(),
-    //   int(scratch_block_neighbors.size(0)),
-    //   int(scratch_block_neighbors.size(1)),
-    //   int(scratch_block_neighbors.size(2))
-    // );
-    printf(
-        "%d %d detect block neighbors: pose_stack_block_type: %p, %d %d\n",
-        block_ind1,
-        block_ind2,
-        pose_stack_block_type.data(),
-        int(pose_stack_block_type.size(0)),
-        int(pose_stack_block_type.size(1)));
-
-    printf(
-        "%d %d detect block neighbors: scratch_block_neighbors: %p, %d %d %d\n",
-        block_type1,
-        block_type2,
-        scratch_block_neighbors.data(),
-        int(scratch_block_neighbors.size(0)),
-        int(scratch_block_neighbors.size(1)),
-        int(scratch_block_neighbors.size(2)));
-
-    printf(
-        "detect block neighbors: scratch_block_spheres: %p, %d %d %d\n",
-        scratch_block_spheres.data(),
-        int(scratch_block_spheres.size(0)),
-        int(scratch_block_spheres.size(1)),
-        int(scratch_block_spheres.size(2)));
-
-    //  if (pose_ind >= n_poses || block_ind1 >= max_n_blocks || block_ind2
-    //  >= max_n_blocks) {
-    //    printf("sphere overlap calc: %d %d %d %f %f\n", pose_ind,
-    //    block_ind1, block_ind2, d2, reach);
-    //  }
-    // Real d2 = 3;
-    // Real reach = 4;
-
-    if (d2 < reach * reach) {
-      // PROBLEM?!?
-      scratch_block_neighbors[pose_ind][block_ind1][block_ind2] = 1;
-    }
-  });
+  // debug // auto detect_block_neighbors(
+  // debug //     [max_n_blocks = max_n_blocks,
+  // debug //      n_poses = n_poses,
+  // debug //      pose_stack_block_type = pose_stack_block_type,
+  // debug //      scratch_block_spheres = scratch_block_spheres,
+  // debug //      scratch_block_neighbors = scratch_block_neighbors]
+  // MGPU_DEVICE(int ind) {
 
   // 2
-  // mgpu::transform<launch_t>(detect_block_neighbors, n_block_pairs, context);
-  int n_ctas2 = (n_block_pairs - 1) / TILE_SIZE + 1;
-  mgpu::cta_launch<launch_t>(detect_block_neighbors, n_ctas2, context);
+  // std::cout << "launching detect block neighbors " << n_block_pairs <<
+  // std::endl; mgpu::transform<launch_t>(detect_block_neighbors, n_block_pairs,
+  // context);
+
+  int const n_ctas_detect_block_neighbors = (n_block_pairs - 1) / TILE_SIZE + 1;
+  mgpu::cta_launch<launch_t>(
+      detect_block_neighbors, n_ctas_detect_block_neighbors, context);
 
   // 3
   mgpu::cta_launch<launch_t>(eval_energies, n_block_pairs, context);
