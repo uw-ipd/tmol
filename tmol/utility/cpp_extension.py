@@ -27,6 +27,13 @@ _default_flags = ["-O3"]
 # TO DO! Look at what OS we're running on
 # only add the -ccbin gcc-8 flag if we're on ubuntu 20.04 or higher
 
+# which version of torch are we compiling against?
+def get_torch_version():
+    return torch.__version__.split(".")[0:2]
+
+
+torch_major, torch_minor = get_torch_version()
+
 _required_cuda_flags = [
     #    "-ccbin gcc-8", #FIX ME!
     "-std=c++14",
@@ -35,6 +42,8 @@ _required_cuda_flags = [
     "-DWITH_NVTX",
     "-w",
     # "-G",
+    "-DTORCH_VERSION_MAJOR=%s" % torch_major,
+    "-DTORCH_VERSION_MINOR=%s" % torch_minor,
 ]
 
 

@@ -1,7 +1,15 @@
+
+// The location of CUDAGeneratorImpl changed in torch 1.11
+#if TORCH_VERSION_MAJOR == 1 && TORCH_VERSION_MINOR < 11
 #include <ATen/CUDAGeneratorImpl.h>
+#else
+#include <ATen/cuda/CUDAGeneratorImpl.h>
+#endif
+
 #include <ATen/Context.h>
-#include <THC/THCTensorRandom.h>
+// #include <THC/THCTensorRandom.h>
 #include <c10/core/DeviceType.h>
+#include <c10/cuda/CUDAStream.h>
 //#include <THC/THCGenerator.hpp>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -357,7 +365,7 @@ struct MetropolisAcceptReject {
     // from the trajectories that have accepted substitutions
     // into the context_coords tensor.
     if (packer_stream == 0) {
-      packer_stream = at::cuda::getStreamFromPool().stream();
+      packer_stream = c10::cuda::getStreamFromPool().stream();
     }
 
     // mgpu::standard_context_t context(packer_stream);

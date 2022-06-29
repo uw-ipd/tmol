@@ -15,14 +15,15 @@ namespace ljlk {
 namespace potentials {
 
 template <tmol::Device D, typename Real, typename Int>
-void MGPU_DEVICE compute_block_spheres(
+__global__ void compute_block_spheres_kernel(
     TView<Vec<Real, 3>, 2, D> coords,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
     TView<Int, 1, D> block_type_n_atoms,
-    TView<Real, 3, D> block_spheres,
-    int tid,
-    int cta) {
+    TView<Real, 3, D> block_spheres) {
+  int const tid = threadIdx.x;
+  int const cta = blockIdx.x;
+
   int const n_poses = coords.size(0);
   int const max_n_pose_atoms = coords.size(1);
   int const max_n_blocks = pose_stack_block_type.size(1);
@@ -76,16 +77,6 @@ void MGPU_DEVICE compute_block_spheres(
       tmol::score::common::reduce_tile_shfl(g, dmax, mgpu::maximum_t<Real>());
 
   if (tid == 0) {
-    // printf(
-    // 	"create spheres: scratch_block_spheres: %p, %d %d %d; inds %d %d
-    // 0-3\n", 	scratch_block_spheres.data(),
-    // 	int(scratch_block_spheres.size(0)),
-    // 	int(scratch_block_spheres.size(1)),
-    // 	int(scratch_block_spheres.size(2)),
-    // 	pose_ind,
-    // 	block_ind
-    // );
-
     block_spheres[pose_ind][block_ind][0] = com[0];
     block_spheres[pose_ind][block_ind][1] = com[1];
     block_spheres[pose_ind][block_ind][2] = com[2];
@@ -94,26 +85,22 @@ void MGPU_DEVICE compute_block_spheres(
 }
 
 template <tmol::Device D, typename Real, typename Int>
-void MGPU_DEVICE detect_block_neighbors(
+void __global__ detect_block_neighbors_kernel(
     TView<Vec<Real, 3>, 2, D> coords,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
     TView<Int, 1, D> block_type_n_atoms,
     TView<Real, 3, D> block_spheres,
     TView<Int, 3, D> block_neighbors,
-    Real reach,
-    int tid,
-    int cta) {
+    Real reach) {
+  int const tid = threadIdx.x;
+  int const cta = blockIdx.x;
+
   int const n_poses = coords.size(0);
   int const max_n_pose_atoms = coords.size(1);
   int const max_n_blocks = pose_stack_block_type.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
   int ind = cta * blockDim.x + tid;
-
-  // printf("detect block neighbors: cta: %d, tid  %d, ind %d\n",
-  //   cta, tid, ind);
-  // printf("detect block neighbors: n_poses: %d, max_n_blocks %d, ind %d\n",
-  //   n_poses_local, max_n_blocks_local, ind);
 
   if (ind >= n_poses * max_n_blocks * max_n_blocks) return;
 
@@ -154,74 +141,6 @@ void MGPU_DEVICE detect_block_neighbors(
     block_neighbors[pose_ind][block_ind1][block_ind2] = 1;
   }
 }
-
-template <tmol::Device D, typename Real, typename Int>
-__global__ void compute_block_spheres_kernel(
-    TView<Vec<Real, 3>, 2, D> coords,
-    TView<Int, 2, D> pose_stack_block_coord_offset,
-    TView<Int, 2, D> pose_stack_block_type,
-    TView<Int, 1, D> block_type_n_atoms,
-    TView<Real, 3, D> block_spheres) {
-  compute_block_spheres(
-      coords,
-      pose_stack_block_coord_offset,
-      pose_stack_block_type,
-      block_type_n_atoms,
-      block_spheres,
-      threadIdx.x,
-      blockIdx.x);
-}
-
-template <tmol::Device D, typename Real, typename Int>
-__global__ void detect_block_neighbors_kernel(
-    TView<Vec<Real, 3>, 2, D> coords,
-    TView<Int, 2, D> pose_stack_block_coord_offset,
-    TView<Int, 2, D> pose_stack_block_type,
-    TView<Int, 1, D> block_type_n_atoms,
-    TView<Real, 3, D> block_spheres,
-    TView<Int, 3, D> block_neighbors,
-    Real reach) {
-  detect_block_neighbors(
-      coords,
-      pose_stack_block_coord_offset,
-      pose_stack_block_type,
-      block_type_n_atoms,
-      block_spheres,
-      block_neighbors,
-      reach,
-      threadIdx.x,
-      blockIdx.x);
-}
-
-// template <
-//   tmol::Device D,
-//   typename Real,
-//   typename Int
-// >
-// void
-// __global__
-// detect_block_neighbors_kernel(
-//   TView<Vec<Real, 3>, 2, D> coords,
-//   TView<Int, 2, D> pose_stack_block_coord_offset,
-//   TView<Int, 2, D> pose_stack_block_type,
-//   TView<Int, 1, D> block_type_n_atoms,
-//   TView<Real, 3, D> block_spheres,
-//   TView<Int, 3, D> block_neighbors,
-//   Real reach
-// )
-// {
-//   detect_block_neighbors(
-//     coords,
-//     pose_stack_block_coord_offset,
-//     pose_stack_block_type,
-//     block_type_n_atoms,
-//     block_spheres,
-//     block_neighbors,
-//     reach,
-//     threadIdx.x,
-//     blockIdx.x
-//   );
-// }
 
 template <tmol::Device D, typename Real, typename Int, typename LaunchType>
 void launch_compute_block_spheres(
