@@ -203,6 +203,7 @@ struct ForwardKinDispatch {
         HTs[i] = HomogeneousTransform::Identity();
       } else if (doftype == JUMP) {
         HTs[i] = common<D, Real, Int>::jumpTransform(dofs[i]);
+        HomogeneousTransform HT = common<D, Real, Int>::jumpTransform(dofs[i]);
       } else if (doftype == BOND) {
         HTs[i] = common<D, Real, Int>::bondTransform(dofs[i]);
       }
@@ -361,7 +362,8 @@ struct KinDerivDispatch {
     nvtx_range_push("dispatch::ddof2ht");
     auto k_f1f2s = ([=] EIGEN_DEVICE_FUNC(int i) {
       Coord trans = hts[i].block(3, 0, 1, 3).transpose();
-      Coord f1 = trans.cross(trans - dVdx[i]).transpose();
+      Coord f1 = dVdx[i].isZero(0) ? dVdx[i]
+                                   : trans.cross(trans - dVdx[i]).transpose();
       f1f2s[i].topRows(3) = f1;
       f1f2s[i].bottomRows(3) = dVdx[i];
     });

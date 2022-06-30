@@ -239,14 +239,4 @@ def compute_verify_derivs(kintree, coords):
 
     result = eval_kin(minimizable_dofs)
 
-    # Extract results from torch/autograd/gradcheck.py
-    from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
-
-    (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
-        (minimizable_dofs,), result
-    )
-    numerical = get_numerical_jacobian(
-        eval_kin, minimizable_dofs, minimizable_dofs, 2e-3
-    )
-
-    torch.testing.assert_allclose(analytical, numerical)
+    torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=2e-3)

@@ -61,26 +61,26 @@ struct GenerateWaters {
     nvtx_range_pop();
 
     nvtx_range_push("watergen::gen");
-    auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int stack, int j) {
-      return (bool)type_params[atom_types[stack][j]].is_hydrogen;
-    });
 
-    auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int idx) {
-      Int stack = idx / coords.size(1);
-      Int i = idx - stack * coords.size(1);
-      Int ati = atom_types[stack][i];  // atom type of -1 means not an atom.
+    auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int stack, int intrastack_idx) {
+      auto is_hydrogen = ([=](int stack, int j) {
+        return (bool)type_params[atom_types[stack][j]].is_hydrogen;
+      });
+
+      Int ati =
+          atom_types[stack]
+                    [intrastack_idx];  // atom type of -1 means not an atom.
       int wi = 0;
 
       if (ati >= 0) {
-        tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
-        indexed_bonds.bonds = indexed_bond_bonds[stack];
-        indexed_bonds.bond_spans = indexed_bond_spans[stack];
+        tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds{
+            indexed_bond_bonds[stack], indexed_bond_spans[stack]};
 
         if (type_params[ati].is_acceptor) {
           Int hyb = type_params[ati].acceptor_hybridization;
 
           auto bases = AcceptorBases<Int>::for_acceptor(
-              stack, i, hyb, indexed_bonds, is_hydrogen);
+              stack, intrastack_idx, hyb, indexed_bonds, is_hydrogen);
 
           Vec<Real, 3> XA = coords[stack][bases.A];
           Vec<Real, 3> XB = coords[stack][bases.B];
@@ -110,17 +110,17 @@ struct GenerateWaters {
           }
 
           for (int ti = 0; ti < ntors; ti++) {
-            waters[stack][i][wi] =
+            waters[stack][intrastack_idx][wi] =
                 build_acc_water<Real>::V(XA, XB, XB0, dist, angle, tors[ti]);
             wi++;
           }
         }
 
         if (type_params[ati].is_donor) {
-          for (int other_atom : indexed_bonds.bound_to(i)) {
+          for (int other_atom : indexed_bonds.bound_to(intrastack_idx)) {
             if (is_hydrogen(stack, other_atom)) {
-              waters[stack][i][wi] = build_don_water<Real>::V(
-                  coords[stack][i],
+              waters[stack][intrastack_idx][wi] = build_don_water<Real>::V(
+                  coords[stack][intrastack_idx],
                   coords[stack][other_atom],
                   global_params[0].lkb_water_dist);
               wi++;
@@ -130,11 +130,11 @@ struct GenerateWaters {
       }
 
       for (; wi < MAX_WATER; wi++) {
-        waters[stack][i][wi] = Vec<Real, 3>::Constant(NAN);
+        waters[stack][intrastack_idx][wi] = Vec<Real, 3>::Constant(NAN);
       }
     });
 
-    Dispatch<D>::forall(nstacks * num_Vs, f_watergen);
+    Dispatch<D>::forall_stacks(nstacks, num_Vs, f_watergen);
     nvtx_range_pop();
 
     return waters_t;
