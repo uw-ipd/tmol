@@ -4,6 +4,7 @@
 #include <Eigen/Geometry>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/warp_segreduce.hh>
 #include <tmol/score/common/warp_stride_reduce.hh>
 
@@ -13,6 +14,9 @@ namespace tmol {
 namespace score {
 namespace ljlk {
 namespace potentials {
+
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <tmol::Device D, typename Real, typename Int>
 __global__ void compute_block_spheres_kernel(

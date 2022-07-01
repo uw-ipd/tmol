@@ -116,7 +116,7 @@ template <
     typename Real,
     typename Int>
 auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
-    TView<Vec<Real, 3>, 3, D> context_coords,
+    TView<Vec<Real, 3>, 2, D> context_coords,
     TView<Int, 2, D> context_block_type,
     TView<Vec<Real, 3>, 2, D> alternate_coords,
     TView<Vec<Int, 3>, 1, D>
