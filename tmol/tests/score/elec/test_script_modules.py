@@ -142,7 +142,7 @@ def test_elec_intra(default_database, ubq_system, torch_device):
     val = op(s.tcoords, s.tpcs, s.trbpl)
 
     torch.testing.assert_allclose(
-        val.cpu(), torch.tensor((-131.9225,)), atol=1e-4, rtol=1e-2
+        val.cpu(), torch.tensor((-131.9225,), dtype=torch.float64), atol=1e-4, rtol=1e-2
     )
 
 
@@ -177,5 +177,5 @@ def test_elec_inter(default_database, ubq_system, torch_device):
     )
 
     torch.testing.assert_allclose(
-        val.cpu(), torch.tensor((-44.6776,)), atol=1e-4, rtol=1e-2
+        val.cpu(), torch.tensor((-44.6776,), dtype=torch.float64), atol=1e-4, rtol=1e-2
     )

@@ -237,6 +237,4 @@ def compute_verify_derivs(kintree, coords):
         dofsfull[:, :6] = dofs_x
         return op(dofsfull)
 
-    result = eval_kin(minimizable_dofs)
-
     torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=2e-3)

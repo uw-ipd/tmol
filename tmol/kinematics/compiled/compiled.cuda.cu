@@ -203,7 +203,6 @@ struct ForwardKinDispatch {
         HTs[i] = HomogeneousTransform::Identity();
       } else if (doftype == JUMP) {
         HTs[i] = common<D, Real, Int>::jumpTransform(dofs[i]);
-        HomogeneousTransform HT = common<D, Real, Int>::jumpTransform(dofs[i]);
       } else if (doftype == BOND) {
         HTs[i] = common<D, Real, Int>::bondTransform(dofs[i]);
       }
