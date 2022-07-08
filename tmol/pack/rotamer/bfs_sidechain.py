@@ -40,7 +40,7 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
             node = bfs_list[bfs_curr]
             bfs_curr += 1
             if visited[node]:
-                # can happen when the root of the kintree is given
+                # can happen when the root of the kinforest is given
                 # as a sidechain root
                 continue
             # add node's children to the bfs_list
@@ -56,8 +56,8 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
 @validate_args
 def bfs_sidechain_atoms(restype: RefinedResidueType, sc_roots: List):
     # first descend through the sidechain
-    id = restype.rotamer_kintree.id
-    parents = restype.rotamer_kintree.parent.copy()
+    id = restype.rotamer_kinforest.id
+    parents = restype.rotamer_kinforest.parent.copy()
     parents[parents < 0] = 0
     parents[id] = id[parents]
     return bfs_sidechain_atoms_jit(parents, numpy.array(sc_roots, dtype=numpy.int32))

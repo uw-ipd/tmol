@@ -4,10 +4,12 @@ import numpy
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.datatypes import KinForest
-from tmol.kinematics.fold_forest import EdgeType
+from tmol.kinematics.fold_forest import FoldForest, EdgeType
+from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges
 
 
 def get_bonds_for_named_torsions(pose_stack: PoseStack):
@@ -142,7 +144,8 @@ def get_bonds_for_named_torsions(pose_stack: PoseStack):
     return real_middle_bond_ats[complete_middle_bond_ats]
 
 
-def get_all_intrablock_bonds(pose_stack: PoseStack):
+@validate_args
+def get_all_intrablock_bonds(pose_stack: PoseStack) -> Tensor[torch.int32][:, 2]:
     pbt = pose_stack.packed_block_types
     device = pose_stack.device
 
@@ -397,7 +400,24 @@ def get_all_bonds(pose_stack: PoseStack):
     return bonds
 
 
-def construct_pose_stack_kintree(
+def get_root_atom_indices(
+    pose_stack: PoseStack, fold_tree_roots: NDArray[int][:]
+) -> Tensor[torch.int32][:]:
+    # take the first atom from each root residue
+    assert pose_stack.n_poses == fold_tree_roots.shape[0]
+    roots64_dev = torch.tensor(
+        fold_tree_roots, dtype=torch.int64, device=pose_stack.device
+    )
+    n_pose_arange = torch.arange(
+        pose_stack.n_poses, dtype=torch.int32, device=pose_stack.device
+    )
+    return (
+        n_pose_arange * pose_stack.max_n_pose_atoms
+        + pose_stack.block_coord_offset[n_pose_arange.to(torch.int64), roots64_dev]
+    )
+
+
+def construct_pose_stack_kinforest(
     pose_stack: PoseStack, fold_forest: FoldForest
 ) -> KinForest:
 
@@ -416,14 +436,18 @@ def construct_pose_stack_kintree(
     # What's the mainchain of a ligand?!
     # jump_atom_pairs = get_jump_bonds_in_fold_forest(pose_stack, fold_forest)
 
-    all_bonds = torch.cat((intra_block_bonds, kin_polymeric_bonds), dim=0)
-    tor_bonds = get_bonds_for_named_torsions(pose_stack)
-    root_atoms = get_root_atom_indices(pose_stack, fold_forest.roots)
+    all_bonds = torch.cat((intra_block_bonds, kin_polymeric_bonds), dim=0).cpu().numpy()
+    tor_bonds = get_bonds_for_named_torsions(pose_stack).cpu().numpy()
+    root_atoms = get_root_atom_indices(pose_stack, fold_forest.roots).cpu().numpy()
 
     return (
-        KinematicBuilder().append_connected_component(
-            *KinematicBuilder.component_for_prioritized_bonds(
-                roots=root_atoms, priority_bonds=tor_bonds, all_bonds=all_bonds
-            )
+        KinematicBuilder().append_connected_components(
+            root_atoms,
+            *KinematicBuilder.define_trees_with_prioritized_bonds(
+                roots=root_atoms,
+                potential_bonds=all_bonds,
+                prioritized_bonds=tor_bonds,
+            ),
+            # to do: to_jump_nodes=jump_atom_pairs[0,:]
         )
-    ).kintree
+    ).kinforest

@@ -23,7 +23,7 @@ struct distance {
     Vec<Real, 3> dV_dA;
     Vec<Real, 3> dV_dB;
 
-    auto astuple() { return make_tuple(V, dV_dA, dV_dB); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB); }
   };
 
   static def V(Real3 A, Real3 B)->Real { return (A - B).norm(); }
@@ -48,7 +48,7 @@ struct interior_angle {
     Vec<Real, 3> dV_dA;
     Vec<Real, 3> dV_dB;
 
-    auto astuple() { return make_tuple(V, dV_dA, dV_dB); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB); }
   };
 
   static def V(Real3 A, Real3 B)->Real {
@@ -82,7 +82,7 @@ struct pt_interior_angle {
     Vec<Real, 3> dV_dB;
     Vec<Real, 3> dV_dC;
 
-    auto astuple() { return make_tuple(V, dV_dA, dV_dB, dV_dC); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB, dV_dC); }
   };
   static def V(Real3 A, Real3 B, Real3 C)->Real {
     Real3 BA = A - B;
@@ -107,7 +107,7 @@ struct cos_interior_angle {
     Vec<Real, 3> dV_dA;
     Vec<Real, 3> dV_dB;
 
-    auto astuple() { return make_tuple(V, dV_dA, dV_dB); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB); }
   };
 
   static def V(Real3 A, Real3 B)->Real {
@@ -135,7 +135,7 @@ struct pt_cos_interior_angle {
     Vec<Real, 3> dV_dB;
     Vec<Real, 3> dV_dC;
 
-    auto astuple() { return make_tuple(V, dV_dA, dV_dB, dV_dC); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB, dV_dC); }
   };
 
   static def V(Real3 A, Real3 B, Real3 C)->Real {
@@ -166,7 +166,7 @@ struct dihedral_angle {
     Real3 dV_dK;
     Real3 dV_dL;
 
-    auto astuple() { return make_tuple(V, dV_dI, dV_dJ, dV_dK, dV_dL); }
+    def astuple()->auto { return make_tuple(V, dV_dI, dV_dJ, dV_dK, dV_dL); }
   };
 
   static def V(Real3 I, Real3 J, Real3 K, Real3 L)->Real {

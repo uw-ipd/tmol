@@ -47,22 +47,22 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
     child_id: Tensor[torch.long][...]
 
     @classmethod
-    def for_kintree(cls, kintree: KinForest):
+    def for_kinforest(cls, kinforest: KinForest):
         """Return all valid dofs within a KinForest."""
 
         # Setup a dof type table the same shape as the kinematic dofs,
         # marking all potential movable dofs with the abstract dof type.
         # Leaving all non-movable or invalid dofs as nan.
-        parentIdx = kintree.parent.to(dtype=torch.long)
-        dof_types = KinDOF.full(kintree.shape, math.nan)
+        parentIdx = kinforest.parent.to(dtype=torch.long)
+        dof_types = KinDOF.full(kinforest.shape, math.nan)
         node_has_children = (
-            torch.zeros_like(kintree.id).put_(
-                parentIdx, torch.ones_like(kintree.parent), True
+            torch.zeros_like(kinforest.id).put_(
+                parentIdx, torch.ones_like(kinforest.parent), True
             )
             > 0
         )
 
-        bsel = kintree.doftype == NodeType.bond
+        bsel = kinforest.doftype == NodeType.bond
 
         dof_types.bond.phi_p[bsel] = DOFTypes.bond_angle
         dof_types.bond.theta[bsel] = DOFTypes.bond_angle
@@ -70,7 +70,7 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         # Only flag the "child phi" if the node has affected children.
         dof_types.bond.phi_c[bsel & node_has_children] = DOFTypes.bond_torsion
 
-        jsel = kintree.doftype == NodeType.jump
+        jsel = kinforest.doftype == NodeType.jump
         dof_types.jump.RBx[jsel] = DOFTypes.jump
         dof_types.jump.RBy[jsel] = DOFTypes.jump
         dof_types.jump.RBz[jsel] = DOFTypes.jump
@@ -88,8 +88,8 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
             node_idx=node_idx,
             dof_idx=dof_idx,
             dof_type=dof_types.raw[node_idx, dof_idx],
-            child_id=kintree.id[node_idx],
-            parent_id=kintree.id[parentIdx[node_idx]],
+            child_id=kinforest.id[node_idx],
+            parent_id=kinforest.id[parentIdx[node_idx]],
         )
 
     def to_frame(self) -> pandas.DataFrame:

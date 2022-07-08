@@ -7,7 +7,7 @@ from tmol.system.packed import PackedResidueSystem
 
 
 def report_tree_coverage(sys: PackedResidueSystem, ktree: KinForest):
-    kinematic_metadata = DOFMetadata.for_kintree(ktree).to_frame()
+    kinematic_metadata = DOFMetadata.for_kinforest(ktree).to_frame()
     torsion_metadata = pandas.DataFrame.from_records(sys.torsion_metadata)
     torsion_coverage = pandas.merge(
         left=torsion_metadata.query(
@@ -34,7 +34,7 @@ def test_system_kinematics(ubq_system):
         ubq_system.system_size, ubq_system.bonds, (ubq_system.torsion_metadata,)
     )
 
-    kinematic_tree_results = report_tree_coverage(tsys, tsys_kinematics.kintree)
+    kinematic_tree_results = report_tree_coverage(tsys, tsys_kinematics.kinforest)
 
     assert len(kinematic_tree_results["missing_torsions"]) == 0, (
         f"Generated kinematic tree did not cover all named torsions.\n"

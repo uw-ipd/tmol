@@ -122,7 +122,7 @@ def test_lkball_intra(test_case, torch_device, default_database):
     ).reshape((1, -1))
 
     op = LKBallIntraModule(param_resolver, atom_type_resolver)
-    op.to(coords)
+    op.to(coords.device)
 
     val = op(
         coords,

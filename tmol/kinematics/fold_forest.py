@@ -25,22 +25,27 @@ class FoldForest:
     the "up" connection of residue i is connected to the "down" connection of residue
     i+1 for all i in the range between the "start" and "end" blocks.
 
-    Not sure what I want this class to do or how I want to construct it;
+    Not sure yet what I want this class to do or how I want to construct it;
     should it be unmodifyable or should it let you add edges?
     """
 
     max_n_edges: int
     n_edges: NDArray[int][:]
     edges: NDArray[int][:, :, 4]
+    roots: NDArray[int][:]
 
     @classmethod
     def polymeric_forest(cls, residues: Sequence[Sequence[Residue]]):
         n_trees = len(residues)
         n_res_per_tree = [len(reslist) for reslist in residues]
         edges = numpy.full((n_trees, 1, 4), -1, dtype=int)
-        edges[:, :, 0] = EdgeType.polymer
-        edges[:, :, 1] = 1
-        edges[:, :, 2] = numpy.array(n_res_per_tree, dtype=int)
+        edges[:, 0, 0] = EdgeType.polymer
+        edges[:, 0, 1] = 0
+        edges[:, 0, 2] = numpy.array(n_res_per_tree, dtype=int) - 1
+        roots = numpy.full((n_trees,), 0, dtype=int)
         return cls(
-            max_n_edges=1, n_edges=numpy.ones(len(residues), dtype=int), edges=edges
+            max_n_edges=1,
+            n_edges=numpy.ones(len(residues), dtype=int),
+            edges=edges,
+            roots=roots,
         )

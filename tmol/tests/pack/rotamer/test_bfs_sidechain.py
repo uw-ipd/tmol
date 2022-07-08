@@ -3,14 +3,16 @@ import torch
 
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms
-from tmol.pack.rotamer.single_residue_kintree import construct_single_residue_kintree
+from tmol.pack.rotamer.single_residue_kinforest import (
+    construct_single_residue_kinforest,
+)
 
 
 def test_identify_sidechain_atoms_from_roots(default_database):
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt = rts.restype_map["LEU"][0]
 
-    construct_single_residue_kintree(leu_rt)
+    construct_single_residue_kinforest(leu_rt)
 
     sc_ats = bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
     atom_names = numpy.array([at.name for at in leu_rt.atoms], dtype=str)

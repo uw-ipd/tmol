@@ -10,11 +10,12 @@ from tmol.pose.pose_stack import PoseStack
 # to dump pdbs
 from tmol.system.packed import PackedResidueSystem
 from tmol.utility.reactive import reactive_property
-from tmol.score.score_graph import score_graph
-from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.device import TorchDevice
-from tmol.score.score_components import ScoreComponentClasses, IntraScore
+
+# deprecated from tmol.score.score_graph import score_graph
+# deprecated from tmol.score.bonded_atom import BondedAtomScoreGraph
+# deprecated from tmol.score.coordinates import CartesianAtomicCoordinateProvider
+# from tmol.score.device import TorchDevice
+# from tmol.score.score_components import ScoreComponentClasses, IntraScore
 from tmol.io.generic import to_pdb
 
 from tmol.pack.packer_task import PackerTask, PackerPalette
@@ -24,7 +25,7 @@ from tmol.pack.rotamer.build_rotamers import RotamerSet, build_rotamers
 from tmol.pack.sim_anneal.annealer import MCAcceptRejectModule, SelectRanRotModule
 from tmol.pack.sim_anneal.accept_final import (
     poses_from_assigned_rotamers,
-    pdb_lines_for_pose,
+    #    pdb_lines_for_pose,
 )
 
 
@@ -236,11 +237,11 @@ def test_accept_final(
     #         ScoreComponentClasses("dummy", intra_container=DummyIntra, inter_container=None)
     #     ]
 
-    for i in range(n_poses):
-        # packed_system = PackedResidueSystem.from_residues(randomized_poses.residues[i])
-        # bonded_atom_score_graph = BASGCart.build_for(packed_system)
-        # pdb = to_pdb(bonded_atom_score_graph)
-
-        pdb = pdb_lines_for_pose(randomized_poses, i)
-        with open("temp_repacked_pdb_{:04d}.pdb".format(i), "w") as fid:
-            fid.write(pdb)
+    # debug output for i in range(n_poses):
+    # debug output     # packed_system = PackedResidueSystem.from_residues(randomized_poses.residues[i])
+    # debug output     # bonded_atom_score_graph = BASGCart.build_for(packed_system)
+    # debug output     # pdb = to_pdb(bonded_atom_score_graph)
+    # debug output
+    # debug output     pdb = pdb_lines_for_pose(randomized_poses, i)
+    # debug output     with open("temp_repacked_pdb_{:04d}.pdb".format(i), "w") as fid:
+    # debug output         fid.write(pdb)

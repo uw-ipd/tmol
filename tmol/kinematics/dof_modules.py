@@ -85,28 +85,28 @@ class KinematicModule(torch.nn.Module):
     See KinDOF for a description of the internal coordinate representation.
     """
 
-    def __init__(self, kintree: KinForest):
+    def __init__(self, kinforest: KinForest):
         super().__init__()
 
         def _tint(ts):
             return tuple(map(lambda t: t.to(torch.int32), ts))
 
-        self.register_buffer("kintree", torch.tensor([]))
-        self.kintree = torch.stack(
+        self.register_buffer("kinforest", torch.tensor([]))
+        self.kinforest = torch.stack(
             _tint(
                 [
-                    kintree.id,
-                    kintree.doftype,
-                    kintree.parent,
-                    kintree.frame_x,
-                    kintree.frame_y,
-                    kintree.frame_z,
+                    kinforest.id,
+                    kinforest.doftype,
+                    kinforest.parent,
+                    kinforest.frame_x,
+                    kinforest.frame_y,
+                    kinforest.frame_z,
                 ]
             ),
             dim=1,
         )
 
-        ordering = KinForestScanOrdering.for_kintree(kintree)
+        ordering = KinForestScanOrdering.for_kinforest(kinforest)
 
         self.register_buffer("nodes_f", torch.tensor([]))
         self.register_buffer("scans_f", torch.tensor([]))
@@ -129,7 +129,7 @@ class KinematicModule(torch.nn.Module):
             self.nodes_b,
             self.scans_b,
             self.gens_b,
-            self.kintree,
+            self.kinforest,
         )
 
 
@@ -148,13 +148,13 @@ class KinematicOperation(torch.nn.Module):
         super().__init__()
 
     system_size: int
-    kintree: KinForest
+    kinforest: KinForest
     dof_metadata: DOFMetadata
     kin_module: KinematicModule = attr.ib(init=False)
 
     @kin_module.default
     def _init_kin_module(self):
-        return KinematicModule(self.kintree)
+        return KinematicModule(self.kinforest)
 
     # TODO restore type annotations
     def forward(self, dofs: torch.Tensor) -> torch.Tensor:  # Tensor[torch.float][:, 9],
@@ -163,7 +163,7 @@ class KinematicOperation(torch.nn.Module):
 
         coords = kincoords.new_full(size=(self.system_size, 3), fill_value=math.nan)
 
-        idIdx = self.kintree.id[1:].to(dtype=torch.long)
+        idIdx = self.kinforest.id[1:].to(dtype=torch.long)
         coords[idIdx] = kincoords[1:]
 
         return coords
@@ -172,7 +172,9 @@ class KinematicOperation(torch.nn.Module):
 @KinematicOperation.build_for.register(KinematicOperation)
 def kinematic_operation_clone(src: KinematicOperation) -> KinematicOperation:
     return KinematicOperation(
-        system_size=src.system_size, kintree=src.kintree, dof_metadata=src.dof_metadata
+        system_size=src.system_size,
+        kinforest=src.kinforest,
+        dof_metadata=src.dof_metadata,
     )
 
 
@@ -238,7 +240,7 @@ def kinematic_operation_clone_dofs(src: KinematicOperation) -> KinematicOperatio
 
 @KinematicDOFs.get_from.register(KinematicDOFs)
 def kinematic_dofs_get_from(self: KinematicDOFs, src: KinematicDOFs) -> KinematicDOFs:
-    # TODO check kintree equivalency?
+    # TODO check kinforest equivalency?
     src_dofs = src.full_dofs.clone()
     src_dofs[tuple(src.dof_mask)] = src.dofs
 

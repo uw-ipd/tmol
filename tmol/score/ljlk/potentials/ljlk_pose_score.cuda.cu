@@ -1007,6 +1007,123 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       Real(6.0),  // 6A hard coded here. Please fix! TEMP!
       context);
 
+  // // TEMP!!!
+  // auto compute_block_sphere = ([=] MGPU_DEVICE(int tid, int cta) {
+  //   // typedef typename launch_t::sm_ptx params_t;
+  //   int const pose_ind = cta / max_n_blocks;
+  //   int const block_ind = cta % max_n_blocks;
+  //   int const block_type = pose_stack_block_type[pose_ind][block_ind];
+  //   if (block_type < 0) return;
+  //   int const block_coord_offset =
+  //       pose_stack_block_coord_offset[pose_ind][block_ind];
+  //   int const n_atoms = block_type_n_atoms[block_type];
+  //   Vec<Real, 3> local_coords(0, 0, 0);
+  //   for (int i = tid; i < n_atoms; i += blockDim.x) {
+  //     Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
+  //     for (int j = 0; j < 3; ++j) {
+  //       local_coords[j] += ci[j];
+  //     }
+  //   }
+  //
+  //   // The center of mass
+  //   Vec<Real, 3> com;
+  //   Real dmax(0);
+  //
+  //   // #ifdef __CUDACC__
+  //   __syncthreads();
+  //   auto g = cooperative_groups::coalesced_threads();
+  //   for (int i = 0; i < 3; ++i) {
+  //     com[i] = tmol::score::common::reduce_tile_shfl(
+  //         g, local_coords[i], mgpu::plus_t<Real>());
+  //     com[i] /= n_atoms;
+  //     com[i] = g.shfl(com[i], 0);
+  //   }
+  //   // if (tid == 0) {
+  //   //         printf("center of mass: %d %d (%f %f %f)\n", pose_ind,
+  //   block_ind,
+  //   // com[0],com[1],com[2]);
+  //   // }
+  //   Real d2max = 0;
+  //   // Now find maximum distance
+  //   for (int i = tid; i < n_atoms; i += blockDim.x) {
+  //     Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
+  //     Real d2 =
+  //         ((ci[0] - com[0]) * (ci[0] - com[0])
+  //          + (ci[1] - com[1]) * (ci[1] - com[1])
+  //          + (ci[2] - com[2]) * (ci[2] - com[2]));
+  //     if (d2 > d2max) {
+  //       d2max = d2;
+  //     }
+  //   }
+  //   dmax = sqrt(d2max);
+  //   dmax =
+  //       tmol::score::common::reduce_tile_shfl(g, dmax,
+  //       mgpu::maximum_t<Real>());
+  //
+  //   // #endif  // __CUDACC__
+  //
+  //   if (tid == 0) {
+  //     scratch_block_spheres[pose_ind][block_ind][0] = com[0];
+  //     scratch_block_spheres[pose_ind][block_ind][1] = com[1];
+  //     scratch_block_spheres[pose_ind][block_ind][2] = com[2];
+  //     scratch_block_spheres[pose_ind][block_ind][3] = dmax;
+  //   }
+  // });
+  //
+  // auto detect_block_neighbor = ([=] MGPU_DEVICE(int ind) {
+  //   int const pose_ind = ind / (max_n_blocks * max_n_blocks);
+  //   int const block_pair_ind = ind % (max_n_blocks * max_n_blocks);
+  //   int const block_ind1 = block_pair_ind / max_n_blocks;
+  //   int const block_ind2 = block_pair_ind % max_n_blocks;
+  //
+  //   if (block_ind1 > block_ind2) {
+  //     return;
+  //   }
+  //
+  //   int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
+  //   if (block_type1 < 0) {
+  //     return;
+  //   }
+  //   int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+  //   if (block_type2 < 0) {
+  //     return;
+  //   }
+  //
+  //   Vec<Real, 4> sphere1(0, 0, 0, 0);
+  //   Vec<Real, 4> sphere2(0, 0, 0, 0);
+  //
+  //   for (int i = 0; i < 4; ++i) {
+  //     sphere1[i] = scratch_block_spheres[pose_ind][block_ind1][i];
+  //     sphere2[i] = scratch_block_spheres[pose_ind][block_ind2][i];
+  //   }
+  //
+  //   Real d2 =
+  //       ((sphere1[0] - sphere2[0]) * (sphere1[0] - sphere2[0])
+  //        + (sphere1[1] - sphere2[1]) * (sphere1[1] - sphere2[1])
+  //        + (sphere1[2] - sphere2[2]) * (sphere1[2] - sphere2[2]));
+  //
+  //   // warning: duplication of lennard-jones maximum distance threshold of 6A
+  //   // hard coded here. Please fix!
+  //   Real reach = sphere1[3] + sphere2[3] + 6.0;
+  //   // printf("spheres %d %d %d distance %f vs reach %f; (%f %f %f, %f) and
+  //   (%f
+  //   // %f %f, %f)\n",
+  //   //   pose_ind, block_ind1, block_ind2,
+  //   //   sqrt(d2), reach,
+  //   //   sphere1[0], sphere1[1], sphere1[2], sphere1[3],
+  //   //   sphere2[0], sphere2[1], sphere2[2], sphere2[3]
+  //   // );
+  //   if (d2 < reach * reach) {
+  //     scratch_block_neighbors[pose_ind][block_ind1][block_ind2] = 1;
+  //   }
+  // });
+  //
+  // std::cout << "compute_block_sphere: " <<
+  // typeid(compute_block_sphere).name() << std::endl; std::cout <<
+  // "detect_block_neighbor: " << typeid(detect_block_neighbor).name() <<
+  // std::endl; std::cout << "eval_energies: " << typeid(eval_energies).name()
+  // << std::endl;
+
   // 3
   mgpu::cta_launch<launch_t>(eval_energies, n_block_pairs, context);
 

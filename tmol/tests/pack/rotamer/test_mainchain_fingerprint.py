@@ -5,7 +5,9 @@ from tmol.chemical.restypes import ResidueTypeSet
 
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pack.rotamer.single_residue_kintree import construct_single_residue_kintree
+from tmol.pack.rotamer.single_residue_kinforest import (
+    construct_single_residue_kinforest,
+)
 from tmol.pack.rotamer.mainchain_fingerprint import (
     create_non_sidechain_fingerprint,
     create_mainchain_fingerprint,
@@ -21,12 +23,12 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 def test_create_non_sidechain_fingerprint(default_database):
     rts = ResidueTypeSet.from_database(default_database.chemical)
     leu_rt = rts.restype_map["LEU"][0]
-    construct_single_residue_kintree(leu_rt)
+    construct_single_residue_kinforest(leu_rt)
 
     sc_atoms = bfs_sidechain_atoms(leu_rt, [leu_rt.atom_to_idx["CB"]])
 
-    id = leu_rt.rotamer_kintree.id
-    parents = leu_rt.rotamer_kintree.parent.copy()
+    id = leu_rt.rotamer_kinforest.id
+    parents = leu_rt.rotamer_kinforest.parent.copy()
     parents[parents < 0] = 0
     parents[id] = id[parents]
 
@@ -82,7 +84,7 @@ def test_create_non_sc_fingerprint_smoke(default_database):
     for aa in canonical_aas:
         rt = rts.restype_map[aa][0]
 
-        construct_single_residue_kintree(rt)
+        construct_single_residue_kinforest(rt)
 
         sc_at_root = "CB" if rt.name != "GLY" else "2HA"
 
@@ -98,7 +100,7 @@ def test_annotate_rt_w_mainchain_fingerprint(default_database):
     )
     dun_sampler = DunbrackChiSampler.from_database(param_resolver)
 
-    construct_single_residue_kintree(leu_rt)
+    construct_single_residue_kinforest(leu_rt)
     annotate_residue_type_with_sampler_fingerprints(
         leu_rt, [dun_sampler], default_database.chemical
     )
@@ -176,7 +178,7 @@ def test_merge_fingerprints(default_database):
     ]
 
     for rt in rt_list:
-        construct_single_residue_kintree(rt)
+        construct_single_residue_kinforest(rt)
         annotate_residue_type_with_sampler_fingerprints(
             rt, [dun_sampler, fixed_sampler], default_database.chemical
         )

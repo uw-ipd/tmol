@@ -10,7 +10,10 @@ from tmol.kinematics.builder import (
     fix_jump_nodes,
 )
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
-from tmol.score.bonded_atom import BondedAtomScoreGraph
+
+# from tmol.score.bonded_atom import BondedAtomScoreGraph
+from tmol.score.modules.bonded_atom import BondedAtoms
+from tmol.score.modules.bases import ScoreSystem
 
 
 def test_stub_defined_for_jump_atom_two_descendents_of_jump():
@@ -452,7 +455,10 @@ def test_builder_define_forest_with_prioritized_bonds():
 
     roots = numpy.full((1,), 0, dtype=numpy.int32)
 
-    kfo_2_to, to_parents_in_kfo = KinematicBuilder().define_trees_with_prioritized_bonds(
+    (
+        kfo_2_to,
+        to_parents_in_kfo,
+    ) = KinematicBuilder().define_trees_with_prioritized_bonds(
         roots, potential_bonds, prioritized_bonds, 10
     )
 
@@ -560,9 +566,12 @@ def test_build_two_system_kinematics(ubq_system, torch_device):
     natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq_system.coords[:, 0])))
 
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
-    bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device).bonds.astype(
-        numpy.int32
-    )
+    # bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device).bonds.astype(
+    #    numpy.int32
+    # )
+    system = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})
+    bonds = BondedAtoms.get(system).bonds.astype(numpy.int32)
+
     # print("bonds", bonds.shape)
     tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=numpy.int32)
     syssize = twoubq.systems[0].system_size
@@ -602,9 +611,12 @@ def test_build_jagged_system(ubq_res, torch_device):
         numpy.logical_not(numpy.isnan(ubq60.coords[:, 0]))
     )
     twoubq = PackedResidueSystemStack((ubq40, ubq60))
-    bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device).bonds.astype(
-        numpy.int32
-    )
+    # bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device).bonds.astype(
+    #    numpy.int32
+    # )
+    system = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})
+    bonds = BondedAtoms.get(system).bonds.astype(numpy.int32)
+
     tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=numpy.int32)
     syssize = twoubq.systems[1].system_size
     bonds_compact = bonds[:, 0:1] * syssize + bonds[:, 1:3]

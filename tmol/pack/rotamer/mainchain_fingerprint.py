@@ -130,7 +130,7 @@ def create_non_sidechain_fingerprint(
     at_for_fingerprint = {}
 
     for nsc_at in non_sc_atoms:
-        # find the index of the mc atom this branches from using the kintree
+        # find the index of the mc atom this branches from using the kinforest
         mc_anc = mc_ind[nsc_at]
         bonds_from_mc = 0
         atom = nsc_at
@@ -225,8 +225,8 @@ def create_non_sidechain_fingerprint(
 def create_mainchain_fingerprint(
     rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: ChemicalDatabase
 ):
-    id = rt.rotamer_kintree.id
-    parents = rt.rotamer_kintree.parent.copy()
+    id = rt.rotamer_kinforest.id
+    parents = rt.rotamer_kinforest.parent.copy()
     parents[parents < 0] = 0
     parents[id] = id[parents]
 
@@ -264,7 +264,9 @@ def annotate_residue_type_with_sampler_fingerprints(
             )
 
 
-def find_unique_fingerprints(pbt: PackedBlockTypes,):
+def find_unique_fingerprints(
+    pbt: PackedBlockTypes,
+):
     sampler_types = set()
     for rt in pbt.active_block_types:
         if hasattr(rt, "mc_fingerprints"):

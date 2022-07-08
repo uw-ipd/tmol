@@ -15,10 +15,10 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.types.torch import Tensor
 
-from tmol.score.ljlk.potentials.compiled import (
-    score_ljlk_inter_system_scores,
-    register_lj_lk_rotamer_pair_energy_eval,
-)
+# temp from tmol.score.ljlk.potentials.compiled import (
+# temp     score_ljlk_inter_system_scores,
+# temp     register_lj_lk_rotamer_pair_energy_eval,
+# temp )
 
 
 class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
@@ -325,57 +325,59 @@ class LJLKInterSystemModule:
         annealer_event_tensor,
         annealer,
     ):
+        pass  # TEMP!
 
-        register_lj_lk_rotamer_pair_energy_eval(
-            context_coords,
-            context_block_type,
-            alternate_coords,
-            alternate_ids,
-            self.context_system_ids,
-            self.system_min_block_bondsep,
-            self.system_inter_block_bondsep,
-            self.system_neighbor_list,
-            self.bt_n_atoms,
-            self.bt_n_heavy_atoms,
-            self.bt_n_heavy_atoms_in_tile,
-            self.bt_heavy_atoms_in_tile,
-            self.bt_atom_types,
-            self.bt_heavy_atom_inds,
-            self.bt_n_interblock_bonds,
-            self.bt_atoms_forming_chemical_bonds,
-            self.bt_path_distance,
-            self.ljlk_type_params,
-            self.global_params,
-            self.lj_lk_weights,
-            output_energies,
-            score_event_tensor,
-            annealer_event_tensor,
-            annealer,
-        )
+        # register_lj_lk_rotamer_pair_energy_eval(
+        #     context_coords,
+        #     context_block_type,
+        #     alternate_coords,
+        #     alternate_ids,
+        #     self.context_system_ids,
+        #     self.system_min_block_bondsep,
+        #     self.system_inter_block_bondsep,
+        #     self.system_neighbor_list,
+        #     self.bt_n_atoms,
+        #     self.bt_n_heavy_atoms,
+        #     self.bt_n_heavy_atoms_in_tile,
+        #     self.bt_heavy_atoms_in_tile,
+        #     self.bt_atom_types,
+        #     self.bt_heavy_atom_inds,
+        #     self.bt_n_interblock_bonds,
+        #     self.bt_atoms_forming_chemical_bonds,
+        #     self.bt_path_distance,
+        #     self.ljlk_type_params,
+        #     self.global_params,
+        #     self.lj_lk_weights,
+        #     output_energies,
+        #     score_event_tensor,
+        #     annealer_event_tensor,
+        #     annealer,
+        # )
 
     # deprecated
     # @torch.jit.script_method
     # def forward(
     def go(self, context_coords, context_block_type, alternate_coords, alternate_ids):
-        return score_ljlk_inter_system_scores(
-            context_coords,
-            context_block_type,
-            alternate_coords,
-            alternate_ids,
-            self.context_system_ids,
-            self.system_min_block_bondsep,
-            self.system_inter_block_bondsep,
-            self.system_neighbor_list,
-            self.bt_n_atoms,
-            self.bt_n_heavy_atoms,
-            self.bt_n_heavy_atoms_in_tile,
-            self.bt_heavy_atoms_in_tile,
-            self.bt_atom_types,
-            self.bt_heavy_atom_inds,
-            self.bt_n_interblock_bonds,
-            self.bt_atoms_forming_chemical_bonds,
-            self.bt_path_distance,
-            self.ljlk_type_params,
-            self.global_params,
-            self.lj_lk_weights,
-        )
+        pass  # TEMP!!!
+        # temp return score_ljlk_inter_system_scores(
+        # temp     context_coords,
+        # temp     context_block_type,
+        # temp     alternate_coords,
+        # temp     alternate_ids,
+        # temp     self.context_system_ids,
+        # temp     self.system_min_block_bondsep,
+        # temp     self.system_inter_block_bondsep,
+        # temp     self.system_neighbor_list,
+        # temp     self.bt_n_atoms,
+        # temp     self.bt_n_heavy_atoms,
+        # temp     self.bt_n_heavy_atoms_in_tile,
+        # temp     self.bt_heavy_atoms_in_tile,
+        # temp     self.bt_atom_types,
+        # temp     self.bt_heavy_atom_inds,
+        # temp     self.bt_n_interblock_bonds,
+        # temp     self.bt_atoms_forming_chemical_bonds,
+        # temp     self.bt_path_distance,
+        # temp     self.ljlk_type_params,
+        # temp     self.global_params,
+        # temp     self.lj_lk_weights,
+        # temp )

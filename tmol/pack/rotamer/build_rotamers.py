@@ -21,9 +21,9 @@ from tmol.pose.pose_stack import PoseStack
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 
-from tmol.pack.rotamer.single_residue_kintree import (
-    construct_single_residue_kintree,
-    coalesce_single_residue_kintrees,
+from tmol.pack.rotamer.single_residue_kinforest import (
+    construct_single_residue_kinforest,
+    coalesce_single_residue_kinforests,
 )
 from tmol.pack.rotamer.mainchain_fingerprint import (
     annotate_residue_type_with_sampler_fingerprints,
@@ -59,7 +59,7 @@ class RotamerSet(ValidateAttrs):
 # step 6: allocate a n_poses x max_n_rotamers x max_n_atoms x 3 tensor
 # step 7: create (n_poses * max_n_rotamers * max_n_atoms) x 3 view of coord tensor
 # step 8: create parent indexing based on start-position offset + residue-type tree data
-# step 9: build kintree
+# step 9: build kinforest
 # step 10: take starting coordinates from residue roots
 # step 10a: take internal dofs from mainchain atoms
 # step 10b: take internal dofs for other atoms from rt icoors
@@ -150,12 +150,12 @@ def annotate_restype(
     samplers: Tuple[ChiSampler, ...],
     chem_db: ChemicalDatabase,
 ):
-    construct_single_residue_kintree(restype)
+    construct_single_residue_kinforest(restype)
     annotate_residue_type_with_sampler_fingerprints(restype, samplers, chem_db)
 
 
 def annotate_packed_block_types(pbt: PackedBlockTypes):
-    coalesce_single_residue_kintrees(pbt)
+    coalesce_single_residue_kinforests(pbt)
     find_unique_fingerprints(pbt)
 
 
@@ -180,7 +180,7 @@ def annotate_everything(
 def update_nodes(
     nodes_orig, genStartsStack, n_nodes_offset_for_rot, n_atoms_offset_for_rot
 ):
-    """Merge the 1-residue-kintree nodes data so that all the rotamers can be
+    """Merge the 1-residue-kinforest nodes data so that all the rotamers can be
     built in a single generational-segmented-scan call. This has the structure
     of load-balanced search operation.
     """
@@ -227,8 +227,8 @@ def construct_scans_for_rotamers(
     n_atoms_offset_for_rot: NDArray[numpy.int64][:],
 ):
 
-    scanStartsStack = pbt.rotamer_kintree.scans[block_type_ind_for_rot]
-    genStartsStack = pbt.rotamer_kintree.gens[block_type_ind_for_rot]
+    scanStartsStack = pbt.rotamer_kinforest.scans[block_type_ind_for_rot]
+    genStartsStack = pbt.rotamer_kinforest.gens[block_type_ind_for_rot]
 
     atomStartsStack = numpy.swapaxes(genStartsStack[:, :, 0], 0, 1)
     natomsPerGen = atomStartsStack[1:, :] - atomStartsStack[:-1, :]
@@ -244,7 +244,7 @@ def construct_scans_for_rotamers(
     )
 
     ngenStack = numpy.swapaxes(
-        pbt.rotamer_kintree.n_scans_per_gen[block_type_ind_for_rot], 0, 1
+        pbt.rotamer_kinforest.n_scans_per_gen[block_type_ind_for_rot], 0, 1
     )
     ngenStack[ngenStack < 0] = 0
     ngenStackCumsum = numpy.cumsum(ngenStack.reshape(-1), axis=0)
@@ -259,10 +259,10 @@ def construct_scans_for_rotamers(
         ngenStack,
     )
 
-    nodes_orig = pbt.rotamer_kintree.nodes[block_type_ind_for_rot].ravel()
+    nodes_orig = pbt.rotamer_kinforest.nodes[block_type_ind_for_rot].ravel()
     nodes_orig = nodes_orig[nodes_orig >= 0]
 
-    n_nodes_for_rot = pbt.rotamer_kintree.n_nodes[block_type_ind_for_rot]
+    n_nodes_for_rot = pbt.rotamer_kinforest.n_nodes[block_type_ind_for_rot]
     first_node_for_rot = numpy.cumsum(n_nodes_for_rot)
     n_nodes_offset_for_rot = exc_cumsum_from_inc_cumsum(first_node_for_rot)
 
@@ -328,7 +328,7 @@ def load_rotamer_parents(
 
 
 @validate_args
-def construct_kintree_for_rotamers(
+def construct_kinforest_for_rotamers(
     pbt: PackedBlockTypes,
     rot_block_type_ind: NDArray[numpy.int32][:],
     n_atoms_total: int,
@@ -337,12 +337,12 @@ def construct_kintree_for_rotamers(
     device: torch.device,
 ):
     """Construct a KinForest for a set of rotamers by stringing
-    together the kintree data for individual rotamers.
+    together the kinforest data for individual rotamers.
     The "block_ofset_for_rot" array is used to construct
     the "id" tensor in the KinForest, which maps to the atom
     indices; thus it should contain the atom-index offsets
     for the first atom in each rotamer in the coords tensor
-    that will be used to construct the kintree_coords tensor.
+    that will be used to construct the kinforest_coords tensor.
     """
 
     n_atoms_for_rot = n_atoms_for_rot.cpu().numpy()
@@ -363,31 +363,33 @@ def construct_kintree_for_rotamers(
         return torch.tensor(arr, dtype=torch.int32, device=device)
 
     id = _t(
-        nab2(load_from_rotamers_w_offsets, pbt.rotamer_kintree.id, block_offset_for_rot)
+        nab2(
+            load_from_rotamers_w_offsets, pbt.rotamer_kinforest.id, block_offset_for_rot
+        )
     )
     id[0] = -1
-    doftype = _t(nab(load_from_rotamers, pbt.rotamer_kintree.doftype))
+    doftype = _t(nab(load_from_rotamers, pbt.rotamer_kinforest.doftype))
     parent = _t(
-        nab2(load_rotamer_parents, pbt.rotamer_kintree.parent, n_atoms_offset_for_rot)
+        nab2(load_rotamer_parents, pbt.rotamer_kinforest.parent, n_atoms_offset_for_rot)
     )
     frame_x = _t(
         nab2(
             load_from_rotamers_w_offsets,
-            pbt.rotamer_kintree.frame_x,
+            pbt.rotamer_kinforest.frame_x,
             n_atoms_offset_for_rot,
         )
     )
     frame_y = _t(
         nab2(
             load_from_rotamers_w_offsets,
-            pbt.rotamer_kintree.frame_y,
+            pbt.rotamer_kinforest.frame_y,
             n_atoms_offset_for_rot,
         )
     )
     frame_z = _t(
         nab2(
             load_from_rotamers_w_offsets,
-            pbt.rotamer_kintree.frame_z,
+            pbt.rotamer_kinforest.frame_z,
             n_atoms_offset_for_rot,
         )
     )
@@ -403,27 +405,27 @@ def construct_kintree_for_rotamers(
 
 
 def measure_dofs_from_orig_coords(
-    coords: Tensor[torch.float32][:, :, :], kintree: KinForest
+    coords: Tensor[torch.float32][:, :, :], kinforest: KinForest
 ):
     from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
 
-    kintree_coords = coords.view(-1, 3)[kintree.id.to(torch.int64)]
-    kintree_coords[0, :] = 0  # reset root
+    kinforest_coords = coords.view(-1, 3)[kinforest.id.to(torch.int64)]
+    kinforest_coords[0, :] = 0  # reset root
 
     dofs_orig = inverse_kin(
-        kintree_coords,
-        kintree.parent,
-        kintree.frame_x,
-        kintree.frame_y,
-        kintree.frame_z,
-        kintree.doftype,
+        kinforest_coords,
+        kinforest.parent,
+        kinforest.frame_x,
+        kinforest.frame_y,
+        kinforest.frame_z,
+        kinforest.doftype,
     )
     return dofs_orig
 
 
 def measure_pose_dofs(poses):
     # measure the DOFs for the original residues
-    # -- first build kintrees for the original residues,
+    # -- first build kinforests for the original residues,
     # -- then call measure_dofs_from_orig_coords
 
     pbt = poses.packed_block_types
@@ -467,7 +469,7 @@ def measure_pose_dofs(poses):
     n_atoms_offset_for_orig = n_atoms_offset_for_orig.cpu().numpy()
     n_orig_atoms_total = n_atoms_offset_for_orig[-1]
 
-    orig_kintree = construct_kintree_for_rotamers(
+    orig_kinforest = construct_kinforest_for_rotamers(
         poses.packed_block_types,
         orig_res_block_type_ind.cpu().numpy(),
         int(n_orig_atoms_total),
@@ -476,8 +478,8 @@ def measure_pose_dofs(poses):
         poses.device,
     )
 
-    # orig_dofs returned in kintree order
-    return measure_dofs_from_orig_coords(poses.coords, orig_kintree)
+    # orig_dofs returned in kinforest order
+    return measure_dofs_from_orig_coords(poses.coords, orig_kinforest)
 
 
 def merge_chi_samples(chi_samples):
@@ -649,7 +651,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     orig_res_mcfp = mcfp.max_fingerprint[orig_block_type_ind]
     orig_res_mcfp_for_rot = orig_res_mcfp[real_res_ind_for_rot]
 
-    # now lets find the kintree-ordered indices of the
+    # now lets find the kinforest-ordered indices of the
     # mainchain atoms for the rotamers that represents
     # the destination for the dofs we're copying
     max_n_mcfp_atoms = mcfp.atom_mapping.shape[3]
@@ -666,7 +668,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
 
     rot_mcfp_at_inds_kto = torch.full_like(rot_mcfp_at_inds_rto, -1)
     rot_mcfp_at_inds_kto[rot_mcfp_at_inds_rto != -1] = torch.tensor(
-        pbt.rotamer_kintree.kintree_idx[
+        pbt.rotamer_kinforest.kinforest_idx[
             real_rot_block_type_ind_for_mcfp_ats.cpu().numpy(),
             real_rot_mcfp_at_inds_rto.cpu().numpy(),
         ],
@@ -687,7 +689,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     # 2. sample 1. for each rotamer
     # 3. find the real subset of these atoms
     # 4. note the residue index for each of these real atoms
-    # 5. remap these to kintree order (kto)
+    # 5. remap these to kinforest order (kto)
     # 6. increment the indices with the original-residue dof-index offsets
 
     # orig_mcfp_at_inds_for_orig_rto:
@@ -711,7 +713,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     orig_mcfp_at_inds_kto = torch.full_like(orig_mcfp_at_inds_rto, -1)
     orig_mcfp_at_inds_kto[orig_mcfp_at_inds_rto != -1] = (
         torch.tensor(
-            pbt.rotamer_kintree.kintree_idx[
+            pbt.rotamer_kinforest.kinforest_idx[
                 real_orig_block_type_ind_for_orig_mcfp_ats.cpu().numpy(),
                 orig_mcfp_at_inds_rto[orig_mcfp_at_inds_rto != -1].cpu().numpy(),
             ],
@@ -810,7 +812,7 @@ def assign_dofs_from_samples(
     )
 
     rot_chi_atoms_kto = torch.tensor(
-        pbt.rotamer_kintree.kintree_idx[
+        pbt.rotamer_kinforest.kinforest_idx[
             block_type_ind_for_rot_atom, chi_atoms.view(-1)[real_atoms].cpu().numpy()
         ],
         dtype=torch.int64,
@@ -829,7 +831,7 @@ def assign_dofs_from_samples(
 def calculate_rotamer_coords(
     pbt: PackedBlockTypes,
     n_rots: int,
-    rot_kintree: KinForest,
+    rot_kinforest: KinForest,
     nodes: NDArray[numpy.int32][:],
     scans: NDArray[numpy.int32][:],
     gens: NDArray[numpy.int32][:],
@@ -844,29 +846,29 @@ def calculate_rotamer_coords(
     def _tcpu(t):
         return torch.tensor(t, dtype=torch.int32, device=torch.device("cpu"))
 
-    kintree_stack = _p(
+    kinforest_stack = _p(
         torch.stack(
             [
-                rot_kintree.id,
-                rot_kintree.doftype,
-                rot_kintree.parent,
-                rot_kintree.frame_x,
-                rot_kintree.frame_y,
-                rot_kintree.frame_z,
+                rot_kinforest.id,
+                rot_kinforest.doftype,
+                rot_kinforest.parent,
+                rot_kinforest.frame_x,
+                rot_kinforest.frame_y,
+                rot_kinforest.frame_z,
             ],
             dim=1,
         ).to(pbt.device)
     )
 
     new_coords_kto = forward_only_op(
-        rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_tcpu(gens)), kintree_stack
+        rot_dofs_kto, _p(_t(nodes)), _p(_t(scans)), _p(_tcpu(gens)), kinforest_stack
     )
 
     new_coords_rto = torch.zeros(
         (n_rots * pbt.max_n_atoms, 3), dtype=torch.float32, device=pbt.device
     )
 
-    new_coords_rto[rot_kintree.id.to(torch.int64)] = new_coords_kto
+    new_coords_rto[rot_kinforest.id.to(torch.int64)] = new_coords_kto
     new_coords_rto = new_coords_rto.view(n_rots, pbt.max_n_atoms, 3)
     return new_coords_rto
 
@@ -961,7 +963,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     n_atoms_total = n_atoms_offset_for_rot[-1]
     n_atoms_offset_for_rot = exc_cumsum_from_inc_cumsum(n_atoms_offset_for_rot)
 
-    rot_kintree = construct_kintree_for_rotamers(
+    rot_kinforest = construct_kinforest_for_rotamers(
         pbt,
         block_type_ind_for_rot,
         int(n_atoms_total),
@@ -983,7 +985,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     )
 
     rot_dofs_kto[1:] = torch.tensor(
-        pbt.rotamer_kintree.dofs_ideal[block_type_ind_for_rot].reshape((-1, 9))[
+        pbt.rotamer_kinforest.dofs_ideal[block_type_ind_for_rot].reshape((-1, 9))[
             pbt.atom_is_real.cpu().numpy()[block_type_ind_for_rot].reshape(-1) != 0
         ],
         dtype=torch.float32,
@@ -1014,7 +1016,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     )
 
     rotamer_coords = calculate_rotamer_coords(
-        pbt, n_rots, rot_kintree, nodes, scans, gens, rot_dofs_kto
+        pbt, n_rots, rot_kinforest, nodes, scans, gens, rot_dofs_kto
     )
 
     (

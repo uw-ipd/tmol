@@ -69,7 +69,6 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
     at::Tensor dV_ddof;
     using Int = int32_t;
     auto dVdx = grad_outputs[0];
-
     TMOL_DISPATCH_FLOATING_DEVICE(HTs.type(), "kin_deriv_op", ([&] {
                                     using Real = scalar_t;
                                     constexpr tmol::Device Dev = device_t;

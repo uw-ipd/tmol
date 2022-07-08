@@ -10,14 +10,17 @@ from tmol.score.modules.lk_ball import LKBallScore, LKBallParameters
 from tmol.score.modules.coords import coords_for
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+from tmol.system.score_support import score_method_to_even_weights_dict
 
 
 @pytest.mark.benchmark(group="score_setup")
 def test_lk_ball_score_setup(benchmark, ubq_system, torch_device):
     @benchmark
-    def score_graph():
+    def score_system():
         return ScoreSystem.build_for(
-            ubq_system, {LKBallScore}, weights={"lk_ball": 1.0}
+            ubq_system,
+            {LKBallScore},
+            weights=score_method_to_even_weights_dict(LKBallScore),
         )
 
 
@@ -63,14 +66,20 @@ def test_lk_ball_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
 
     stacked_score = ScoreSystem.build_for(
-        twoubq, {LKBallScore}, weights={"lk_ball": 1.0}
+        twoubq, {LKBallScore}, weights=score_method_to_even_weights_dict(LKBallScore)
     )
 
     coords = coords_for(twoubq, stacked_score)
 
     tot = stacked_score.intra_total(coords)
-    assert tot.shape == (2, 4)
+    assert tot.shape == (2,)
     torch.testing.assert_allclose(tot[0], tot[1])
+
+    forward = stacked_score.intra_forward(coords)
+    assert len(forward) == 4
+    for terms in forward.values():
+        assert len(terms) == 2
+        torch.testing.assert_allclose(terms[0], terms[1])
 
     sumtot = torch.sum(tot)
     sumtot.backward()

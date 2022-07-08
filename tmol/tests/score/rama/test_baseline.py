@@ -1,20 +1,16 @@
 from pytest import approx
 
 
-from tmol.score.score_graph import score_graph
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.rama import RamaScoreGraph
-
-
-@score_graph
-class RamaGraph(CartesianAtomicCoordinateProvider, RamaScoreGraph):
-    pass
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.rama import RamaScore
+from tmol.score.modules.coords import coords_for
+from tmol.system.score_support import score_method_to_even_weights_dict
 
 
 def test_rama_baseline_comparison(ubq_system, torch_device):
-    test_graph = RamaGraph.build_for(
-        ubq_system, drop_missing_atoms=False, requires_grad=False, device=torch_device
+    test_system = ScoreSystem.build_for(
+        ubq_system, {RamaScore}, score_method_to_even_weights_dict(RamaScore)
     )
-
-    intra_container = test_graph.intra_score()
-    assert float(intra_container.total_rama) == approx(-12.743369, rel=1e-3)
+    coords = coords_for(ubq_system, test_system)
+    intra_container = test_system.intra_forward(coords)
+    assert float(intra_container["rama"]) == approx(-12.743369, rel=1e-3)

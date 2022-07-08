@@ -15,9 +15,15 @@ from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 @pytest.mark.benchmark(group="score_setup")
 def test_dunbrack_score_setup(benchmark, ubq_system, torch_device):
     @benchmark
-    def score_graph():
+    def score_system():
         return ScoreSystem.build_for(
-            ubq_system, {DunbrackScore}, weights={"dunbrack": 1.0}
+            ubq_system,
+            {DunbrackScore},
+            weights={
+                "dunbrack_rot": 1.0,
+                "dunbrack_rotdev": 2.0,
+                "dunbrack_semirot": 3.0,
+            },
         )
 
 
@@ -70,14 +76,22 @@ def test_dunbrack_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
 
     stacked_score = ScoreSystem.build_for(
-        twoubq, {DunbrackScore}, weights={"dunbrack": 1.0}
+        twoubq,
+        {DunbrackScore},
+        weights={"dunbrack_rot": 1.0, "dunbrack_rotdev": 2.0, "dunbrack_semirot": 3.0},
     )
 
     coords = coords_for(twoubq, stacked_score)
 
     tot = stacked_score.intra_total(coords)
-    assert tot.shape == (2, 3)
+    assert tot.shape == (2,)
     torch.testing.assert_allclose(tot[0], tot[1])
+
+    forward = stacked_score.intra_forward(coords)
+    assert len(forward) == 3
+    for terms in forward.values():
+        assert len(terms) == 2
+        torch.testing.assert_allclose(terms[0], terms[1])
 
     sumtot = torch.sum(tot)
     sumtot.backward()

@@ -6,7 +6,7 @@ from tmol.pack.rotamer.build_rotamers import (
     annotate_restype,
     annotate_packed_block_types,
     build_rotamers,
-    construct_kintree_for_rotamers,
+    construct_kinforest_for_rotamers,
     construct_scans_for_rotamers,
     exc_cumsum_from_inc_cumsum,
     measure_dofs_from_orig_coords,
@@ -40,21 +40,21 @@ def test_annotate_restypes(
 
     for rt in fresh_default_restype_set.residue_types:
         annotate_restype(rt, samplers, default_database.chemical)
-        assert hasattr(rt, "rotamer_kintree")
+        assert hasattr(rt, "rotamer_kinforest")
 
-        assert type(rt.rotamer_kintree.id) == numpy.ndarray
-        assert type(rt.rotamer_kintree.doftype) == numpy.ndarray
-        assert type(rt.rotamer_kintree.parent) == numpy.ndarray
-        assert type(rt.rotamer_kintree.frame_x) == numpy.ndarray
-        assert type(rt.rotamer_kintree.frame_y) == numpy.ndarray
-        assert type(rt.rotamer_kintree.frame_z) == numpy.ndarray
+        assert type(rt.rotamer_kinforest.id) == numpy.ndarray
+        assert type(rt.rotamer_kinforest.doftype) == numpy.ndarray
+        assert type(rt.rotamer_kinforest.parent) == numpy.ndarray
+        assert type(rt.rotamer_kinforest.frame_x) == numpy.ndarray
+        assert type(rt.rotamer_kinforest.frame_y) == numpy.ndarray
+        assert type(rt.rotamer_kinforest.frame_z) == numpy.ndarray
 
-        assert rt.rotamer_kintree.id.shape == (rt.n_atoms,)
-        assert rt.rotamer_kintree.doftype.shape == (rt.n_atoms,)
-        assert rt.rotamer_kintree.parent.shape == (rt.n_atoms,)
-        assert rt.rotamer_kintree.frame_x.shape == (rt.n_atoms,)
-        assert rt.rotamer_kintree.frame_y.shape == (rt.n_atoms,)
-        assert rt.rotamer_kintree.frame_z.shape == (rt.n_atoms,)
+        assert rt.rotamer_kinforest.id.shape == (rt.n_atoms,)
+        assert rt.rotamer_kinforest.doftype.shape == (rt.n_atoms,)
+        assert rt.rotamer_kinforest.parent.shape == (rt.n_atoms,)
+        assert rt.rotamer_kinforest.frame_x.shape == (rt.n_atoms,)
+        assert rt.rotamer_kinforest.frame_y.shape == (rt.n_atoms,)
+        assert rt.rotamer_kinforest.frame_z.shape == (rt.n_atoms,)
 
 
 def test_build_rotamers_smoke(
@@ -123,9 +123,9 @@ def test_construct_scans_for_rotamers(
     )
 
     n_atoms = len(leu_rt_list[0].atoms)
-    kt_nodes = pbt.rotamer_kintree.nodes[0]
-    kt_scans = pbt.rotamer_kintree.scans[0]
-    kt_gens = pbt.rotamer_kintree.gens[0]
+    kt_nodes = pbt.rotamer_kinforest.nodes[0]
+    kt_scans = pbt.rotamer_kinforest.scans[0]
+    kt_gens = pbt.rotamer_kinforest.gens[0]
     nodes_gold = numpy.concatenate(
         [
             kt_nodes[0 : kt_gens[1, 0]],
@@ -205,9 +205,9 @@ def test_construct_scans_for_rotamers2(
 
     leu_n_atoms = len(leu_met_rt_list[0].atoms)
     met_n_atoms = len(leu_met_rt_list[1].atoms)
-    kt_nodes = pbt.rotamer_kintree.nodes
-    kt_scans = pbt.rotamer_kintree.scans
-    kt_gens = pbt.rotamer_kintree.gens
+    kt_nodes = pbt.rotamer_kinforest.nodes
+    kt_scans = pbt.rotamer_kinforest.scans
+    kt_gens = pbt.rotamer_kinforest.gens
     leu = 0
     met = 1
     nodes_gold = numpy.concatenate(
@@ -268,8 +268,8 @@ def test_inv_kin_rotamers(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
     # steps:
-    # - annotate residue types and pbt with kintrees + mainchain fingerprints
-    # - construct unified kintree for measuring internal coordinates out of
+    # - annotate residue types and pbt with kinforests + mainchain fingerprints
+    # - construct unified kinforest for measuring internal coordinates out of
     #   the existing residues
     # - reorder the coordinates of the input structure(s)
     # - invoke inverse_kin
@@ -307,12 +307,12 @@ def test_inv_kin_rotamers(
             device=torch_device,
         )
 
-    met_kt_id = it(-1, met_rt.rotamer_kintree.id)
-    met_kt_doftype = it(0, met_rt.rotamer_kintree.doftype)
-    met_kt_parent = it(0, met_rt.rotamer_kintree.parent + 1)
-    met_kt_frame_x = it(0, met_rt.rotamer_kintree.frame_x + 1)
-    met_kt_frame_y = it(0, met_rt.rotamer_kintree.frame_y + 1)
-    met_kt_frame_z = it(0, met_rt.rotamer_kintree.frame_z + 1)
+    met_kt_id = it(-1, met_rt.rotamer_kinforest.id)
+    met_kt_doftype = it(0, met_rt.rotamer_kinforest.doftype)
+    met_kt_parent = it(0, met_rt.rotamer_kinforest.parent + 1)
+    met_kt_frame_x = it(0, met_rt.rotamer_kinforest.frame_x + 1)
+    met_kt_frame_y = it(0, met_rt.rotamer_kinforest.frame_y + 1)
+    met_kt_frame_z = it(0, met_rt.rotamer_kinforest.frame_z + 1)
 
     from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
 
@@ -336,7 +336,7 @@ def test_inv_kin_rotamers(
         (
             torch.zeros((1, 9), dtype=torch.float32, device=torch_device),
             torch.tensor(
-                leu_rt.rotamer_kintree.dofs_ideal,
+                leu_rt.rotamer_kinforest.dofs_ideal,
                 dtype=torch.float32,
                 device=torch_device,
             ),
@@ -349,18 +349,18 @@ def test_inv_kin_rotamers(
         leu_at_i = pbt.mc_fingerprints.atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
         met_at_i = pbt.mc_fingerprints.atom_mapping[dun_sampler_ind, met_max_fp, 0, i]
         if leu_at_i >= 0 and met_at_i >= 0:
-            leu_ktat_i = leu_rt.rotamer_kintree.kintree_idx[leu_at_i]
-            met_ktat_i = met_rt.rotamer_kintree.kintree_idx[met_at_i]
+            leu_ktat_i = leu_rt.rotamer_kinforest.kinforest_idx[leu_at_i]
+            met_ktat_i = met_rt.rotamer_kinforest.kinforest_idx[met_at_i]
             dofs_new[leu_ktat_i + 1, :] = dofs_orig[met_ktat_i + 1, :]
 
     # print("dofs_new")
     # print(dofs_new[:, :4])
 
     dofs_new[
-        leu_rt.rotamer_kintree.kintree_idx[leu_rt.atom_to_idx["CB"]] + 1, 3
+        leu_rt.rotamer_kinforest.kinforest_idx[leu_rt.atom_to_idx["CB"]] + 1, 3
     ] = numpy.radians(180)
     dofs_new[
-        leu_rt.rotamer_kintree.kintree_idx[leu_rt.atom_to_idx["CG"]] + 1, 3
+        leu_rt.rotamer_kinforest.kinforest_idx[leu_rt.atom_to_idx["CG"]] + 1, 3
     ] = numpy.radians(-60)
 
     # forward folding; let's build leu on the met's coords
@@ -370,15 +370,15 @@ def test_inv_kin_rotamers(
     def _t(t):
         return torch.tensor(t, dtype=torch.int32, device=torch_device)
 
-    leu_kintree = _p(
+    leu_kinforest = _p(
         torch.stack(
             [
-                it(-1, leu_rt.rotamer_kintree.id),
-                it(0, leu_rt.rotamer_kintree.doftype),
-                it(0, leu_rt.rotamer_kintree.parent + 1),
-                it(0, leu_rt.rotamer_kintree.frame_x + 1),
-                it(0, leu_rt.rotamer_kintree.frame_y + 1),
-                it(0, leu_rt.rotamer_kintree.frame_z + 1),
+                it(-1, leu_rt.rotamer_kinforest.id),
+                it(0, leu_rt.rotamer_kinforest.doftype),
+                it(0, leu_rt.rotamer_kinforest.parent + 1),
+                it(0, leu_rt.rotamer_kinforest.frame_x + 1),
+                it(0, leu_rt.rotamer_kinforest.frame_y + 1),
+                it(0, leu_rt.rotamer_kinforest.frame_z + 1),
             ],
             dim=1,
         ).to(torch_device)
@@ -386,17 +386,17 @@ def test_inv_kin_rotamers(
 
     new_coords = forward_only_op(
         dofs_new,
-        _p(_t(leu_rt.rotamer_kintree.nodes)),
-        _p(_t(leu_rt.rotamer_kintree.scans)),
-        _p(torch.tensor(leu_rt.rotamer_kintree.gens, dtype=torch.int32)),  # CPU!
-        leu_kintree,
+        _p(_t(leu_rt.rotamer_kinforest.nodes)),
+        _p(_t(leu_rt.rotamer_kinforest.scans)),
+        _p(torch.tensor(leu_rt.rotamer_kinforest.gens, dtype=torch.int32)),  # CPU!
+        leu_kinforest,
     )
     assert new_coords.shape == (leu_rt.n_atoms + 1, 3)
 
     reordered_coords = torch.zeros(
         (leu_rt.n_atoms, 3), dtype=torch.float32, device=torch_device
     )
-    reordered_coords[leu_rt.rotamer_kintree.id] = new_coords[1:]
+    reordered_coords[leu_rt.rotamer_kinforest.id] = new_coords[1:]
 
     # for writing coordinates into a pdb
     # print("new coords")
@@ -418,7 +418,7 @@ def test_inv_kin_rotamers(
         assert torch.norm(p.coords[0, at_met, :] - reordered_coords[at_leu, :]) < 1e-5
 
 
-def test_construct_kintree_for_rotamers(
+def test_construct_kinforest_for_rotamers(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
@@ -438,7 +438,7 @@ def test_construct_kintree_for_rotamers(
 
     leu_rt = leu_met_rt_list[0]
 
-    kt1 = construct_kintree_for_rotamers(
+    kt1 = construct_kinforest_for_rotamers(
         pbt,
         numpy.zeros(1, dtype=numpy.int32),
         leu_rt.n_atoms,
@@ -450,21 +450,21 @@ def test_construct_kintree_for_rotamers(
     def cat(val, arr):
         return numpy.concatenate((numpy.array([val], dtype=numpy.int32), arr))
 
-    gold_leu_kintree1_id = cat(-1, leu_rt.rotamer_kintree.id + 1)
-    gold_leu_kintree1_doftype = cat(0, leu_rt.rotamer_kintree.doftype)
-    gold_leu_kintree1_parent = cat(0, leu_rt.rotamer_kintree.parent + 1)
-    gold_leu_kintree1_frame_x = cat(0, leu_rt.rotamer_kintree.frame_x + 1)
-    gold_leu_kintree1_frame_y = cat(0, leu_rt.rotamer_kintree.frame_y + 1)
-    gold_leu_kintree1_frame_z = cat(0, leu_rt.rotamer_kintree.frame_z + 1)
+    gold_leu_kinforest1_id = cat(-1, leu_rt.rotamer_kinforest.id + 1)
+    gold_leu_kinforest1_doftype = cat(0, leu_rt.rotamer_kinforest.doftype)
+    gold_leu_kinforest1_parent = cat(0, leu_rt.rotamer_kinforest.parent + 1)
+    gold_leu_kinforest1_frame_x = cat(0, leu_rt.rotamer_kinforest.frame_x + 1)
+    gold_leu_kinforest1_frame_y = cat(0, leu_rt.rotamer_kinforest.frame_y + 1)
+    gold_leu_kinforest1_frame_z = cat(0, leu_rt.rotamer_kinforest.frame_z + 1)
 
-    numpy.testing.assert_equal(gold_leu_kintree1_id, kt1.id.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_doftype, kt1.doftype.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_parent, kt1.parent.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_frame_x, kt1.frame_x.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_frame_y, kt1.frame_y.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_frame_z, kt1.frame_z.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_id, kt1.id.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_doftype, kt1.doftype.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_parent, kt1.parent.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_frame_x, kt1.frame_x.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_frame_y, kt1.frame_y.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_frame_z, kt1.frame_z.cpu().numpy())
 
-    kt2 = construct_kintree_for_rotamers(
+    kt2 = construct_kinforest_for_rotamers(
         pbt,
         numpy.zeros(2, dtype=numpy.int32),
         2 * leu_rt.n_atoms,
@@ -476,44 +476,44 @@ def test_construct_kintree_for_rotamers(
     def cat2(val, arr1, arr2):
         return numpy.concatenate((numpy.array([val], dtype=numpy.int32), arr1, arr2))
 
-    gold_leu_kintree2_id = cat2(
-        -1, leu_rt.rotamer_kintree.id, leu_rt.rotamer_kintree.id + pbt.max_n_atoms
+    gold_leu_kinforest2_id = cat2(
+        -1, leu_rt.rotamer_kinforest.id, leu_rt.rotamer_kinforest.id + pbt.max_n_atoms
     )
-    gold_leu_kintree2_doftype = cat2(
-        0, leu_rt.rotamer_kintree.doftype, leu_rt.rotamer_kintree.doftype
+    gold_leu_kinforest2_doftype = cat2(
+        0, leu_rt.rotamer_kinforest.doftype, leu_rt.rotamer_kinforest.doftype
     )
-    gold_leu_kintree2_parent = cat2(
+    gold_leu_kinforest2_parent = cat2(
         0,
-        leu_rt.rotamer_kintree.parent + 1,
-        leu_rt.rotamer_kintree.parent + 1 + leu_rt.n_atoms,
+        leu_rt.rotamer_kinforest.parent + 1,
+        leu_rt.rotamer_kinforest.parent + 1 + leu_rt.n_atoms,
     )
     # fix the jump-to-root for the 1st atom in rotamer 2
-    gold_leu_kintree2_parent[1 + leu_rt.n_atoms] = 0
-    gold_leu_kintree2_frame_x = cat2(
+    gold_leu_kinforest2_parent[1 + leu_rt.n_atoms] = 0
+    gold_leu_kinforest2_frame_x = cat2(
         0,
-        leu_rt.rotamer_kintree.frame_x + 1,
-        leu_rt.rotamer_kintree.frame_x + 1 + leu_rt.n_atoms,
+        leu_rt.rotamer_kinforest.frame_x + 1,
+        leu_rt.rotamer_kinforest.frame_x + 1 + leu_rt.n_atoms,
     )
-    gold_leu_kintree2_frame_y = cat2(
+    gold_leu_kinforest2_frame_y = cat2(
         0,
-        leu_rt.rotamer_kintree.frame_y + 1,
-        leu_rt.rotamer_kintree.frame_y + 1 + leu_rt.n_atoms,
+        leu_rt.rotamer_kinforest.frame_y + 1,
+        leu_rt.rotamer_kinforest.frame_y + 1 + leu_rt.n_atoms,
     )
-    gold_leu_kintree2_frame_z = cat2(
+    gold_leu_kinforest2_frame_z = cat2(
         0,
-        leu_rt.rotamer_kintree.frame_z + 1,
-        leu_rt.rotamer_kintree.frame_z + 1 + leu_rt.n_atoms,
+        leu_rt.rotamer_kinforest.frame_z + 1,
+        leu_rt.rotamer_kinforest.frame_z + 1 + leu_rt.n_atoms,
     )
 
-    numpy.testing.assert_equal(gold_leu_kintree2_id, kt2.id.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_doftype, kt2.doftype.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_parent, kt2.parent.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_frame_x, kt2.frame_x.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_frame_y, kt2.frame_y.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_frame_z, kt2.frame_z.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_id, kt2.id.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_doftype, kt2.doftype.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_parent, kt2.parent.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_frame_x, kt2.frame_x.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_frame_y, kt2.frame_y.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_frame_z, kt2.frame_z.cpu().numpy())
 
 
-def test_construct_kintree_for_rotamers2(
+def test_construct_kinforest_for_rotamers2(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
@@ -533,7 +533,7 @@ def test_construct_kintree_for_rotamers2(
 
     leu_rt = leu_met_rt_list[0]
 
-    kt1 = construct_kintree_for_rotamers(
+    kt1 = construct_kinforest_for_rotamers(
         pbt,
         numpy.zeros(1, dtype=numpy.int32),
         leu_rt.n_atoms,
@@ -545,21 +545,21 @@ def test_construct_kintree_for_rotamers2(
     def cat(val, arr):
         return numpy.concatenate((numpy.array([val], dtype=numpy.int32), arr))
 
-    gold_leu_kintree1_id = cat(-1, leu_rt.rotamer_kintree.id)
-    gold_leu_kintree1_doftype = cat(0, leu_rt.rotamer_kintree.doftype)
-    gold_leu_kintree1_parent = cat(0, leu_rt.rotamer_kintree.parent + 1)
-    gold_leu_kintree1_frame_x = cat(0, leu_rt.rotamer_kintree.frame_x + 1)
-    gold_leu_kintree1_frame_y = cat(0, leu_rt.rotamer_kintree.frame_y + 1)
-    gold_leu_kintree1_frame_z = cat(0, leu_rt.rotamer_kintree.frame_z + 1)
+    gold_leu_kinforest1_id = cat(-1, leu_rt.rotamer_kinforest.id)
+    gold_leu_kinforest1_doftype = cat(0, leu_rt.rotamer_kinforest.doftype)
+    gold_leu_kinforest1_parent = cat(0, leu_rt.rotamer_kinforest.parent + 1)
+    gold_leu_kinforest1_frame_x = cat(0, leu_rt.rotamer_kinforest.frame_x + 1)
+    gold_leu_kinforest1_frame_y = cat(0, leu_rt.rotamer_kinforest.frame_y + 1)
+    gold_leu_kinforest1_frame_z = cat(0, leu_rt.rotamer_kinforest.frame_z + 1)
 
-    numpy.testing.assert_equal(gold_leu_kintree1_id, kt1.id.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_doftype, kt1.doftype.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_parent, kt1.parent.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_frame_x, kt1.frame_x.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_frame_y, kt1.frame_y.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree1_frame_z, kt1.frame_z.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_id, kt1.id.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_doftype, kt1.doftype.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_parent, kt1.parent.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_frame_x, kt1.frame_x.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_frame_y, kt1.frame_y.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest1_frame_z, kt1.frame_z.cpu().numpy())
 
-    kt2 = construct_kintree_for_rotamers(
+    kt2 = construct_kinforest_for_rotamers(
         pbt,
         numpy.zeros(2, dtype=numpy.int32),
         2 * leu_rt.n_atoms,
@@ -571,41 +571,41 @@ def test_construct_kintree_for_rotamers2(
     def cat2(val, arr1, arr2):
         return numpy.concatenate((numpy.array([val], dtype=numpy.int32), arr1, arr2))
 
-    gold_leu_kintree2_id = cat2(
-        -1, leu_rt.rotamer_kintree.id, leu_rt.rotamer_kintree.id + pbt.max_n_atoms
+    gold_leu_kinforest2_id = cat2(
+        -1, leu_rt.rotamer_kinforest.id, leu_rt.rotamer_kinforest.id + pbt.max_n_atoms
     )
-    gold_leu_kintree2_doftype = cat2(
-        0, leu_rt.rotamer_kintree.doftype, leu_rt.rotamer_kintree.doftype
+    gold_leu_kinforest2_doftype = cat2(
+        0, leu_rt.rotamer_kinforest.doftype, leu_rt.rotamer_kinforest.doftype
     )
-    gold_leu_kintree2_parent = cat2(
+    gold_leu_kinforest2_parent = cat2(
         0,
-        leu_rt.rotamer_kintree.parent + 1,
-        leu_rt.rotamer_kintree.parent + 1 + leu_rt.n_atoms,
+        leu_rt.rotamer_kinforest.parent + 1,
+        leu_rt.rotamer_kinforest.parent + 1 + leu_rt.n_atoms,
     )
     # fix the jump-to-root for the 1st atom in rotamer 2
-    gold_leu_kintree2_parent[1 + leu_rt.n_atoms] = 0
-    gold_leu_kintree2_frame_x = cat2(
+    gold_leu_kinforest2_parent[1 + leu_rt.n_atoms] = 0
+    gold_leu_kinforest2_frame_x = cat2(
         0,
-        leu_rt.rotamer_kintree.frame_x + 1,
-        leu_rt.rotamer_kintree.frame_x + 1 + leu_rt.n_atoms,
+        leu_rt.rotamer_kinforest.frame_x + 1,
+        leu_rt.rotamer_kinforest.frame_x + 1 + leu_rt.n_atoms,
     )
-    gold_leu_kintree2_frame_y = cat2(
+    gold_leu_kinforest2_frame_y = cat2(
         0,
-        leu_rt.rotamer_kintree.frame_y + 1,
-        leu_rt.rotamer_kintree.frame_y + 1 + leu_rt.n_atoms,
+        leu_rt.rotamer_kinforest.frame_y + 1,
+        leu_rt.rotamer_kinforest.frame_y + 1 + leu_rt.n_atoms,
     )
-    gold_leu_kintree2_frame_z = cat2(
+    gold_leu_kinforest2_frame_z = cat2(
         0,
-        leu_rt.rotamer_kintree.frame_z + 1,
-        leu_rt.rotamer_kintree.frame_z + 1 + leu_rt.n_atoms,
+        leu_rt.rotamer_kinforest.frame_z + 1,
+        leu_rt.rotamer_kinforest.frame_z + 1 + leu_rt.n_atoms,
     )
 
-    numpy.testing.assert_equal(gold_leu_kintree2_id, kt2.id.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_doftype, kt2.doftype.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_parent, kt2.parent.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_frame_x, kt2.frame_x.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_frame_y, kt2.frame_y.cpu().numpy())
-    numpy.testing.assert_equal(gold_leu_kintree2_frame_z, kt2.frame_z.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_id, kt2.id.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_doftype, kt2.doftype.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_parent, kt2.parent.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_frame_x, kt2.frame_x.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_frame_y, kt2.frame_y.cpu().numpy())
+    numpy.testing.assert_equal(gold_leu_kinforest2_frame_z, kt2.frame_z.cpu().numpy())
 
 
 def test_measure_original_dofs(
@@ -639,7 +639,7 @@ def test_measure_original_dofs(
     res_n_atoms = pbt.n_atoms[block_type_ind.to(torch.int64)]
     n_total_atoms = torch.sum(res_n_atoms).item()
 
-    kintree = construct_kintree_for_rotamers(
+    kinforest = construct_kinforest_for_rotamers(
         pbt,
         block_type_ind.cpu().numpy(),
         n_total_atoms,
@@ -648,22 +648,22 @@ def test_measure_original_dofs(
         torch_device,
     )
 
-    dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kintree)
+    dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kinforest)
 
     # let's refold and make sure the coordinates are the same?
     # forward folding; let's build leu on the met's coords
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)
 
-    kintree_stacked = _p(
+    kinforest_stacked = _p(
         torch.stack(
             [
-                kintree.id,
-                kintree.doftype,
-                kintree.parent,
-                kintree.frame_x,
-                kintree.frame_y,
-                kintree.frame_z,
+                kinforest.id,
+                kinforest.doftype,
+                kinforest.parent,
+                kinforest.frame_x,
+                kinforest.frame_y,
+                kinforest.frame_z,
             ],
             dim=1,
         ).to(torch_device)
@@ -680,11 +680,11 @@ def test_measure_original_dofs(
         _p(torch.tensor(nodes, dtype=torch.int32, device=torch_device)),
         _p(torch.tensor(scans, dtype=torch.int32, device=torch_device)),
         _p(torch.tensor(gens, dtype=torch.int32, device=torch.device("cpu"))),
-        kintree_stacked,
+        kinforest_stacked,
     )
 
     new_coords = torch.zeros_like(poses.coords).view(-1, 3)
-    new_coords[kintree.id.to(torch.int64)] = new_kin_coords
+    new_coords[kinforest.id.to(torch.int64)] = new_kin_coords
 
     # print(new_kin_coords)
 
@@ -749,7 +749,7 @@ def test_measure_original_dofs2(
         .numpy()
     )
 
-    kintree = construct_kintree_for_rotamers(
+    kinforest = construct_kinforest_for_rotamers(
         pbt,
         block_type_ind.cpu().numpy(),
         n_total_atoms,
@@ -758,7 +758,7 @@ def test_measure_original_dofs2(
         torch_device,
     )
 
-    dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kintree)
+    dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kinforest)
     # print("dofs")
     # print(dofs[:, :4])
 
@@ -767,15 +767,15 @@ def test_measure_original_dofs2(
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)
 
-    kintree_stacked = _p(
+    kinforest_stacked = _p(
         torch.stack(
             [
-                kintree.id,
-                kintree.doftype,
-                kintree.parent,
-                kintree.frame_x,
-                kintree.frame_y,
-                kintree.frame_z,
+                kinforest.id,
+                kinforest.doftype,
+                kinforest.parent,
+                kinforest.frame_x,
+                kinforest.frame_y,
+                kinforest.frame_z,
             ],
             dim=1,
         ).to(torch_device)
@@ -793,11 +793,11 @@ def test_measure_original_dofs2(
         _p(torch.tensor(nodes, dtype=torch.int32, device=torch_device)),
         _p(torch.tensor(scans, dtype=torch.int32, device=torch_device)),
         _p(torch.tensor(gens, dtype=torch.int32, device=torch.device("cpu"))),
-        kintree_stacked,
+        kinforest_stacked,
     )
 
     new_coords = torch.zeros_like(poses.coords).view(-1, 3)
-    new_coords[kintree.id.to(torch.int64)] = new_kin_coords
+    new_coords[kinforest.id.to(torch.int64)] = new_kin_coords
     new_coords = new_coords.view(poses.coords.shape)
 
     for i in range(poses.coords.shape[0]):
@@ -877,14 +877,14 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 
     # OK, what do we expect?
     # dst should be the atoms for N, H, CA, HA, C, O
-    # in kintree order with an offset of 19 for each
+    # in kinforest order with an offset of 19 for each
     # successive batch.
 
     fingerprint_atoms = "N", "H", "CA", "HA", "C", "O"
 
     def fp_kto(rt):
         return [
-            rt.rotamer_kintree.kintree_idx[rt.atom_to_idx[at_name]]
+            rt.rotamer_kinforest.kinforest_idx[rt.atom_to_idx[at_name]]
             for at_name in fingerprint_atoms
         ]
 
@@ -1065,9 +1065,13 @@ def test_create_dofs_for_many_rotamers(
 
     chi_samples = [sampler.sample_chi_for_poses(poses, task) for sampler in samplers]
     merged_samples = merge_chi_samples(chi_samples)
-    n_rots_for_rt, sampler_for_rotamer, all_rt_for_rotamer, all_chi_atoms, all_chi = (
-        merged_samples
-    )
+    (
+        n_rots_for_rt,
+        sampler_for_rotamer,
+        all_rt_for_rotamer,
+        all_chi_atoms,
+        all_chi,
+    ) = merged_samples
 
     n_rots = all_chi_atoms.shape[0]
     rt_for_rot = torch.zeros(n_rots, dtype=torch.int64, device=poses.device)
@@ -1120,7 +1124,7 @@ def test_create_dofs_for_many_rotamers(
     n_atoms_offset_for_orig = n_atoms_offset_for_orig.cpu().numpy()
     n_orig_atoms_total = n_atoms_offset_for_orig[-1]
 
-    orig_kintree = construct_kintree_for_rotamers(
+    orig_kinforest = construct_kinforest_for_rotamers(
         pbt,
         orig_res_block_ind.cpu().numpy(),
         int(n_orig_atoms_total),
@@ -1129,8 +1133,8 @@ def test_create_dofs_for_many_rotamers(
         poses.device,
     )
 
-    # orig_dofs returned in kintree order
-    orig_dofs_kto = measure_dofs_from_orig_coords(poses.coords, orig_kintree)
+    # orig_dofs returned in kinforest order
+    orig_dofs_kto = measure_dofs_from_orig_coords(poses.coords, orig_kinforest)
 
     n_rotamer_atoms = torch.sum(n_atoms_for_rot).item()
 
@@ -1139,7 +1143,7 @@ def test_create_dofs_for_many_rotamers(
     )
 
     rot_dofs_kto[1:] = torch.tensor(
-        pbt.rotamer_kintree.dofs_ideal[block_ind_for_rot].reshape((-1, 9))[
+        pbt.rotamer_kinforest.dofs_ideal[block_ind_for_rot].reshape((-1, 9))[
             pbt.atom_is_real.cpu().numpy()[block_ind_for_rot].reshape(-1) != 0
         ],
         dtype=torch.float32,

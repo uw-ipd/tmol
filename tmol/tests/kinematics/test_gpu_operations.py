@@ -9,7 +9,7 @@ from tmol.kinematics.scan_ordering import KinForestScanOrdering
 from tmol.tests.torch import requires_cuda
 
 
-def system_kintree(target_system):
+def system_kinforest(target_system):
     tsys = target_system
     bonds = numpy.concatenate(
         (numpy.zeros((tsys.bonds.shape[0], 1), dtype=int), tsys.bonds), axis=1
@@ -19,24 +19,24 @@ def system_kintree(target_system):
         .append_connected_component(
             *KinematicBuilder.bonds_to_connected_component(0, bonds)
         )
-        .kintree
+        .kinforest
     )
 
 
 @pytest.mark.benchmark(group="score_setup")
 def test_refold_data_construction(benchmark, ubq_system):
-    kintree = system_kintree(ubq_system)
+    kinforest = system_kinforest(ubq_system)
 
     @benchmark
     def tree_reordering_cpp() -> KinForestScanOrdering:
-        return KinForestScanOrdering.calculate_from_kintree(kintree)
+        return KinForestScanOrdering.calculate_from_kinforest(kinforest)
 
     kinorder = tree_reordering_cpp
 
     # ensure the tree is reasonable:
     #   - dimensionality match
     #   - all connected nodes are parent->child
-    natms = kintree.id.shape[0]
+    natms = kinforest.id.shape[0]
     generated = numpy.zeros(natms, dtype=numpy.int32)
     ngens = len(kinorder.forward_scan_paths.gens)
 
@@ -62,7 +62,7 @@ def test_refold_data_construction(benchmark, ubq_system):
             for k in range(nodestart, nodestop - 1):
                 parent = kinorder.forward_scan_paths.nodes[k]
                 child = kinorder.forward_scan_paths.nodes[k + 1]
-                assert kintree.parent[child].to(dtype=torch.int) == parent
+                assert kinforest.parent[child].to(dtype=torch.int) == parent
 
                 # tag the child as visited
                 generated[child] += 1
@@ -76,23 +76,23 @@ def test_refold_data_construction(benchmark, ubq_system):
 @pytest.mark.benchmark(group="kinematic_op_micro_forward")
 def test_refold_values_cpp(benchmark, big_system):
     target_device = torch.device("cuda")
-    kintree = system_kintree(big_system)
+    kinforest = system_kinforest(big_system)
 
-    tcoords = torch.tensor(big_system.coords[kintree.id]).to(device=target_device)
-    tkintree = kintree.to(device=target_device)
-    bkin = inverseKin(tkintree, tcoords)
+    tcoords = torch.tensor(big_system.coords[kinforest.id]).to(device=target_device)
+    tkinforest = kinforest.to(device=target_device)
+    bkin = inverseKin(tkinforest, tcoords)
 
-    KinForestScanOrdering.calculate_from_kintree(tkintree)
+    KinForestScanOrdering.calculate_from_kinforest(tkinforest)
 
     @benchmark
     def parallel_refold_hts_cpp():
-        return forwardKin(tkintree, bkin)
+        return forwardKin(tkinforest, bkin)
 
     # fold via cpu and gpu, ensuring results match
     dofs_cuda = parallel_refold_hts_cpp
 
-    bkin = inverseKin(kintree, tcoords.cpu())
-    dofs_cpu = forwardKin(kintree, bkin)
+    bkin = inverseKin(kinforest, tcoords.cpu())
+    dofs_cpu = forwardKin(kinforest, bkin)
 
     assert dofs_cuda.device.type == "cuda"
     assert dofs_cpu.device.type == "cpu"
@@ -105,19 +105,19 @@ def test_derivsum_values_cpp(benchmark, big_system):
     target_device = torch.device("cuda")
     torch.manual_seed(1663)
 
-    kintree_cpu = system_kintree(big_system)
-    coords_cpu = torch.tensor(big_system.coords[kintree_cpu.id])
+    kinforest_cpu = system_kinforest(big_system)
+    coords_cpu = torch.tensor(big_system.coords[kinforest_cpu.id])
     dscdx_cpu = (torch.rand_like(coords_cpu) * 0.2) - 0.1
 
     coords_cuda = coords_cpu.to(device=target_device)
-    kintree_cuda = kintree_cpu.to(device=target_device)
+    kinforest_cuda = kinforest_cpu.to(device=target_device)
     dscdx_cuda = dscdx_cpu.to(device=target_device)
 
-    bkin_cpu = inverseKin(kintree_cpu, coords_cpu, requires_grad=True)
-    recoords_cpu = forwardKin(kintree_cpu, bkin_cpu)
+    bkin_cpu = inverseKin(kinforest_cpu, coords_cpu, requires_grad=True)
+    recoords_cpu = forwardKin(kinforest_cpu, bkin_cpu)
 
-    bkin_cuda = inverseKin(kintree_cuda, coords_cuda, requires_grad=True)
-    recoords_cuda = forwardKin(kintree_cuda, bkin_cuda)
+    bkin_cuda = inverseKin(kinforest_cuda, coords_cuda, requires_grad=True)
+    recoords_cuda = forwardKin(kinforest_cuda, bkin_cuda)
 
     @benchmark
     def parallel_derivsum_cuda():
@@ -129,10 +129,10 @@ def test_derivsum_values_cpp(benchmark, big_system):
             allow_unused=True,
         )
 
-    dscddof_cuda, = parallel_derivsum_cuda
+    (dscddof_cuda,) = parallel_derivsum_cuda
 
     # same calc on CPU
-    dscddof_cpu, = torch.autograd.grad(
+    (dscddof_cpu,) = torch.autograd.grad(
         recoords_cpu, bkin_cpu.raw, dscdx_cpu, retain_graph=True, allow_unused=True
     )
 

@@ -76,21 +76,33 @@ class KinematicBuilder:
         # def component_for_prioritized_bonds( -- old name
         cls,
         roots: NDArray[numpy.int32][:],
-        potential_bonds: NDArray[numpy.int32][:, 2],
-        prioritized_bonds: NDArray[numpy.int32][:, 2],
-        n_atoms_total: int,
+        potential_bonds: NDArray[numpy.int32][:, 2],  # old name: bonds
+        prioritized_bonds: NDArray[numpy.int32][:, 2],  #
+        max_to_atom_index: int = 0,
     ) -> ChildParentTuple:
         assert potential_bonds.shape[1] == prioritized_bonds.shape[1]
         if not isinstance(roots, numpy.ndarray):
             # create array from the single integer root input
             roots = numpy.array([roots], dtype=int)
 
+        all_atoms = numpy.concatenate(
+            (
+                numpy.concatenate((potential_bonds, prioritized_bonds), axis=0).reshape(
+                    -1
+                ),
+                roots,
+            ),
+            axis=0,
+        )
+        if max_to_atom_index == 0:
+            max_to_atom_index = all_atoms.max()
+
         weighted_bonds = (
             # All entries must be non-zero or sparse graph tools will entries (??)
-            cls.bonds_to_csgraph(n_atoms_total, potential_bonds, [-1])
-            + cls.bonds_to_csgraph(n_atoms_total, prioritized_bonds, [-.125])
+            cls.bonds_to_csgraph(max_to_atom_index, potential_bonds, [-1])
+            + cls.bonds_to_csgraph(max_to_atom_index, prioritized_bonds, [-0.125])
             + cls.faux_bonds_between_roots(
-                n_atoms_total=n_atoms_total, roots=roots, weights=[-1]
+                max_to_atom_index=max_to_atom_index, roots=roots, weights=[-1]
             )
         )
 
@@ -110,7 +122,7 @@ class KinematicBuilder:
         atom_seen[prioritized_bonds[:, 1]] = 1
 
         to_2_kfo = numpy.full(atom_seen.shape, -1, dtype=numpy.int32)
-        to_2_kfo[kfo_2_to] = numpy.arange(atom_seen.shape[0], dtype=numpy.int32)
+        to_2_kfo[kfo_2_to] = numpy.arange(kfo_2_to.shape[0], dtype=numpy.int32)
 
         assert numpy.all(to_2_kfo[atom_seen != 0] != -1)
 
@@ -120,7 +132,7 @@ class KinematicBuilder:
     @convert_args
     def bonds_to_csgraph(
         cls,
-        n_atoms_total: int,
+        max_to_atom_index: int,
         bonds: NDArray[int][:, 2],
         weights: NDArray[float][:] = numpy.ones(1),  # noqa
     ) -> sparse.csr_matrix:
@@ -136,14 +148,15 @@ class KinematicBuilder:
         weights = numpy.broadcast_to(weights, bonds[:, 0].shape)
 
         bonds_csr = sparse.csr_matrix(
-            (weights, (bonds[:, 0], bonds[:, 1])), shape=(n_atoms_total, n_atoms_total)
+            (weights, (bonds[:, 0], bonds[:, 1])),
+            shape=(max_to_atom_index + 1, max_to_atom_index + 1),
         )
         return bonds_csr
 
     @classmethod
     @convert_args
     def faux_bonds_between_roots(
-        cls, roots: NDArray[int][:], weights: NDArray[float][:], n_atoms_total: int
+        cls, roots: NDArray[int][:], weights: NDArray[float][:], max_to_atom_index: int
     ) -> Union[sparse.spmatrix, int]:
         """Construct a csgraph with edges from the first root to all
         other roots, if there are other roots. Otherwise, return 0.
@@ -155,7 +168,9 @@ class KinematicBuilder:
             root_faux_bonds[:, 0] = 0
             root_faux_bonds[:, 1] = roots[1:]
             return cls.bonds_to_csgraph(
-                n_atoms_total=n_atoms_total, bonds=root_faux_bonds, weights=weights
+                max_to_atom_index=max_to_atom_index,
+                bonds=root_faux_bonds,
+                weights=weights,
             )
         else:
             return 0
@@ -172,7 +187,7 @@ class KinematicBuilder:
         and return the target-order-to-kin-forest-order conversion array
         (aka the "ids") and the forest-defining index of the parent atom
         for each atom in the system.
-        
+
         The "bonds" input can either be 1) a symmetric list of the directed edges
         (i.e. if the edge (a, b) is in the list then the edge (b, a) should also
         be in the list) in which case a deterministic but hard-to-predict
@@ -187,12 +202,12 @@ class KinematicBuilder:
         if isinstance(bonds, numpy.ndarray):
             # Bonds are a non-prioritized set of edges, assume arbitrary
             # connectivity from the root is allowed.
-            n_atoms_total = max(bonds[:, 0].max(), bonds[:, 1].max()) + 1
+            max_to_atom_index = max(bonds[:, 0].max(), bonds[:, 1].max())
 
             bond_graph = cls.bonds_to_csgraph(
-                n_atoms_total=n_atoms_total, bonds=bonds
+                max_to_atom_index=max_to_atom_index, bonds=bonds
             ) + cls.faux_bonds_between_roots(
-                roots=roots, weights=[1], n_atoms_total=n_atoms_total
+                roots=roots, weights=[1], max_to_atom_index=max_to_atom_index
             )
         else:
             # Sparse graph with per-bond weights, generate the minimum
@@ -215,7 +230,7 @@ class KinematicBuilder:
         # the graph; only the first root node should have a -9999 parent
         # and the parents of the other roots should all be the first root.
         assert to_parents_in_kfo[kfo_roots[0]] == -9999
-        assert numpy.all(to_parents_in_kfo[kfo_roots[1:]] == kfo_roots[0])
+        assert numpy.all(to_parents_in_kfo[kfo_roots[1:]] == roots[0])
         is_non_root = numpy.full(to_parents_in_kfo.shape, True, dtype=bool)
         is_non_root[kfo_roots] = False
         assert numpy.all(to_parents_in_kfo[is_non_root] >= 0)
@@ -227,10 +242,10 @@ class KinematicBuilder:
     @convert_args
     def append_connected_components(
         self,
-        to_roots: NDArray[int][:],
-        kfo_2_to: NDArray[int][:],
-        to_parents_in_kfo: NDArray[int][:],
-        to_jump_nodes: NDArray[int][:],
+        to_roots: NDArray[numpy.int32][:],
+        kfo_2_to: NDArray[numpy.int32][:],
+        to_parents_in_kfo: NDArray[numpy.int32][:],
+        to_jump_nodes: Optional[NDArray[numpy.int32][:]] = None,
         component_parent=0,
     ):
         """After having created a forest, as identified by a depth-first
@@ -247,6 +262,8 @@ class KinematicBuilder:
         assert len(kfo_2_to) >= 3, "Bonded ktree must have at least three entries"
 
         assert component_parent < len(self.kinforest.id) and component_parent >= -1
+        if to_jump_nodes is None:
+            to_jump_nodes = numpy.array([], dtype=numpy.int32)
 
         n_kf_atoms = len(kfo_2_to)
         n_roots = len(to_roots)
@@ -304,7 +321,7 @@ class KinematicBuilder:
             kfo_parents, frame_x, frame_y, frame_z, kfo_roots, kfo_jump_nodes
         )
 
-        # Now prep the arrays for concatenation with the existing kintree.
+        # Now prep the arrays for concatenation with the existing kinforest.
         # The KinBuilder will continue to support the concatenation model, in
         # which additional trees for the same forest can be concatenated onto
         # the growing set of trees. In this model, the indices that were just
@@ -357,6 +374,16 @@ class KinematicBuilder:
         )
 
         return attr.evolve(self, kinforest=cat((self.kinforest, extended_kin_forest)))
+
+    @classmethod
+    def count_uniq_atom_inds(cls, all_atoms: NDArray[numpy.int32][:]):
+        """Looking at a list of all atom indices that are referenced as either the first or second
+        atom in a bond, count the total number of unique atoms
+        """
+        max_ind = numpy.max(all_atoms)
+        atom_seen = numpy.zeros((max_ind + 1,), dtype=numpy.int32)
+        atom_seen[all_atoms] = 1
+        return numpy.sum(atom_seen)
 
     # @convert_args
     # def append_connected_component(

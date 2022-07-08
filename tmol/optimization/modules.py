@@ -1,5 +1,7 @@
 import torch
-from tmol.kinematics.metadata import DOFTypes
+
+from tmol.system.kinematics import KinematicDescription
+from tmol.system.score_support import kincoords_to_coords
 
 # modules for cartesian and torsion-space optimization
 #
@@ -9,23 +11,6 @@ from tmol.kinematics.metadata import DOFTypes
 #
 # potentially a dof mask could be added here (?)
 #  - or we might want to keep that with dof creation
-
-
-# cartesian space minimization
-class CartesianEnergyNetwork(torch.nn.Module):
-    def __init__(self, score_graph):
-        super(CartesianEnergyNetwork, self).__init__()
-
-        # scoring graph
-        self.graph = score_graph
-
-        # parameters
-        self.dofs = torch.nn.Parameter(self.graph.coords)
-
-    def forward(self):
-        self.graph.coords = self.dofs
-        self.graph.reset_coords()
-        return self.graph.intra_score().total
 
 
 # mask out relevant dofs to the minimizer
@@ -44,25 +29,64 @@ class DOFMaskingFunc(torch.autograd.Function):
         return grad, None, None
 
 
-# torsion space minimization
-class TorsionalEnergyNetwork(torch.nn.Module):
-    def __init__(self, score_graph):
-        super(TorsionalEnergyNetwork, self).__init__()
+# cartesian space minimization
+class CartesianEnergyNetwork(torch.nn.Module):
+    def __init__(self, score_system, coords, coord_mask=None):
+        super(CartesianEnergyNetwork, self).__init__()
 
-        # scoring graph
-        self.graph = score_graph
+        self.score_system = score_system
+        self.coord_mask = coord_mask
 
-        # todo: make this a configurable parameter
-        #   (for now it defaults to torsion minimization)
-        dofmask = self.graph.dofmetadata[
-            self.graph.dofmetadata.dof_type == DOFTypes.bond_torsion
-        ]
-        self.mask = (dofmask.node_idx, dofmask.dof_idx)
-
-        # parameters
-        self.dofs = torch.nn.Parameter(self.graph.dofs[self.mask])
+        self.full_coords = coords
+        if self.coord_mask is None:
+            self.masked_coords = torch.nn.Parameter(coords)
+        else:
+            self.masked_coords = torch.nn.Parameter(coords[self.coord_mask])
 
     def forward(self):
-        self.graph.dofs = DOFMaskingFunc.apply(self.dofs, self.mask, self.graph.dofs)
-        self.graph.reset_coords()
-        return self.graph.intra_score().total
+        self.full_coords = DOFMaskingFunc.apply(
+            self.masked_coords, self.coord_mask, self.full_coords
+        )
+        return self.score_system.intra_total(self.full_coords)
+
+
+def torsional_energy_network_from_system(score_system, residue_system, dof_mask=None):
+    # Initialize kinematic tree for the system
+    sys_kin = KinematicDescription.for_system(
+        residue_system.bonds, residue_system.torsion_metadata
+    )
+    kinforest = sys_kin.kinforest
+
+    # compute dofs from xyzs
+    dofs = sys_kin.extract_kincoords(residue_system.coords)
+    system_size = residue_system.system_size
+
+    return TorsionalEnergyNetwork(
+        score_system, dofs, kinforest, system_size, dof_mask=dof_mask
+    )
+
+
+# torsion space minimization
+class TorsionalEnergyNetwork(torch.nn.Module):
+    def __init__(self, score_system, dofs, kinforest, system_size, dof_mask=None):
+        super(TorsionalEnergyNetwork, self).__init__()
+
+        self.score_system = score_system
+        self.kinforest = kinforest
+        self.dof_mask = dof_mask
+        self.system_size = system_size
+
+        self.full_dofs = dofs
+        if self.dof_mask is None:
+            self.masked_dofs = torch.nn.Parameter(dofs)
+        else:
+            self.masked_dofs = torch.nn.Parameter(dofs[self.dof_mask])
+
+    def coords(self):
+        self.full_dofs = DOFMaskingFunc.apply(
+            self.masked_dofs, self.dof_mask, self.full_dofs
+        )
+        return kincoords_to_coords(self.full_dofs, self.kinforest, self.system_size)
+
+    def forward(self):
+        return self.score_system.intra_total(self.coords())

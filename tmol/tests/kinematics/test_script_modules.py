@@ -23,10 +23,10 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
         tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
     )
     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
-    tkintree = tkin.kintree.to(torch_device)
+    tkinforest = tkin.kinforest.to(torch_device)
 
-    tdofs = inverseKin(tkintree, kincoords, requires_grad=True)
-    kop = KinematicModule(tkintree, torch_device)
+    tdofs = inverseKin(tkinforest, kincoords, requires_grad=True)
+    kop = KinematicModule(tkinforest, torch_device)
 
     @benchmark
     def refold_kincoords():
@@ -43,10 +43,10 @@ def test_kinematic_torch_op_backward_benchmark(benchmark, ubq_system, torch_devi
         tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
     )
     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
-    tkintree = tkin.kintree.to(torch_device)
+    tkinforest = tkin.kinforest.to(torch_device)
 
-    tdofs = inverseKin(tkintree, kincoords, requires_grad=True)
-    kop = KinematicModule(tkintree, torch_device)
+    tdofs = inverseKin(tkinforest, kincoords, requires_grad=True)
+    kop = KinematicModule(tkinforest, torch_device)
 
     refold_kincoords = kop(tdofs.raw)
     total = refold_kincoords.sum()
@@ -69,7 +69,7 @@ def gradcheck_test_system(
         tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
     )
 
-    return (tkin.kintree, tkin.extract_kincoords(tsys.coords))
+    return (tkin.kinforest, tkin.extract_kincoords(tsys.coords))
 
 
 def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
@@ -83,30 +83,20 @@ def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
 
     result = eval_kin(minimizable_dofs)
 
-    # Extract results from torch/autograd/gradcheck.py
-    from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
-
-    (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
-        (minimizable_dofs,), result
-    )
-    numerical = get_numerical_jacobian(
-        eval_kin, minimizable_dofs, minimizable_dofs, eps=eps
-    )
-
-    torch.testing.assert_allclose(analytical, numerical, atol=atol, rtol=rtol)
+    torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=atol, rtol=rtol)
 
 
 def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system, torch_device):
-    kintree, kincoords = gradcheck_test_system
-    tkintree = kintree.to(torch_device)
+    kinforest, kincoords = gradcheck_test_system
+    tkinforest = kinforest.to(torch_device)
     tkincoords = kincoords.to(torch_device)
 
-    tdofs = inverseKin(tkintree, tkincoords, requires_grad=True)
-    kop = KinematicModule(tkintree, torch_device)
+    tdofs = inverseKin(tkinforest, tkincoords, requires_grad=True)
+    kop = KinematicModule(tkinforest, torch_device)
 
     torch.random.manual_seed(1663)
     start_dofs = (
-        (tdofs.raw + ((torch.rand_like(tdofs.raw) - .5) * .01))
+        (tdofs.raw + ((torch.rand_like(tdofs.raw) - 0.5) * 0.01))
         .clone()
         .detach()
         .requires_grad_(True)
@@ -116,12 +106,12 @@ def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system, torch_dev
 
 
 def test_kinematic_torch_op_gradcheck(gradcheck_test_system, torch_device):
-    kintree, kincoords = gradcheck_test_system
-    tkintree = kintree.to(torch_device)
+    kinforest, kincoords = gradcheck_test_system
+    tkinforest = kinforest.to(torch_device)
     tkincoords = kincoords.to(torch_device)
 
-    tdofs = inverseKin(tkintree, tkincoords, requires_grad=True)
-    kop = KinematicModule(tkintree, torch_device)
+    tdofs = inverseKin(tkinforest, tkincoords, requires_grad=True)
+    kop = KinematicModule(tkinforest, torch_device)
 
     kop_gradcheck_report(kop, tdofs.raw)
 
@@ -130,12 +120,12 @@ def test_kinematic_torch_op_smoke(
     gradcheck_test_system, torch_backward_coverage, torch_device
 ):
     """Smoke test of kinematic operation with backward-pass code coverage."""
-    kintree, kincoords = gradcheck_test_system
-    tkintree = kintree.to(torch_device)
+    kinforest, kincoords = gradcheck_test_system
+    tkinforest = kinforest.to(torch_device)
     tkincoords = kincoords.to(torch_device)
 
-    tdofs = inverseKin(tkintree, tkincoords, requires_grad=True)
-    kop = KinematicModule(tkintree, torch_device)
+    tdofs = inverseKin(tkinforest, tkincoords, requires_grad=True)
+    kop = KinematicModule(tkinforest, torch_device)
 
     coords = kop(tdofs.raw)
     coords.register_hook(torch_backward_coverage)
@@ -148,17 +138,17 @@ def test_kinematic_torch_op_smoke(
 
 @requires_cuda
 def test_kinematic_op_device(gradcheck_test_system):
-    kintree, kincoords = gradcheck_test_system
+    kinforest, kincoords = gradcheck_test_system
     assert kincoords.device.type == "cpu"
 
-    tdofs = inverseKin(kintree, kincoords, requires_grad=True)
+    tdofs = inverseKin(kinforest, kincoords, requires_grad=True)
 
-    cpu_kop = KinematicModule(kintree, torch.device("cpu"))
-    assert cpu_kop.kintree.device.type == "cpu"
+    cpu_kop = KinematicModule(kinforest, torch.device("cpu"))
+    assert cpu_kop.kinforest.device.type == "cpu"
     cpu_kop(tdofs.raw.to(torch.device("cpu")))
 
-    cuda_kop = KinematicModule(kintree, torch.device("cuda"))
-    assert cuda_kop.kintree.device.type == "cuda"
+    cuda_kop = KinematicModule(kinforest, torch.device("cuda"))
+    assert cuda_kop.kinforest.device.type == "cuda"
     cuda_kop(tdofs.raw.to(torch.device("cuda")))
 
     # Passing tensors of incorrect device for op errors

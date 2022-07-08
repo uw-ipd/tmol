@@ -16,6 +16,8 @@ from .data import (  # noqa: F401
     ubq_pdb,
     ubq_res,
     ubq_system,
+    cst_system,
+    cst_csts,
     ubq_rosetta_baseline,
     water_box_system,
     water_box_res,
@@ -93,7 +95,7 @@ def pytest_benchmark_fixture_post_run(config, fixture, f):
         f()
         torch.cuda.nvtx.range_pop()
 
-        time.sleep(.01)
+        time.sleep(0.01)
 
         torch.cuda.nvtx.range_push("benchmark-run")
         f()

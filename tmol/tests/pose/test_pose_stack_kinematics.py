@@ -5,9 +5,10 @@ from tmol.pose.pose_kinematics import (
     get_bonds_for_named_torsions,
     get_all_bonds,
     get_polymeric_bonds_in_fold_forest,
+    construct_pose_stack_kinforest,
 )
 from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges
-from tmol.kinematics.fold_forest import EdgeType
+from tmol.kinematics.fold_forest import FoldForest, EdgeType
 
 
 def test_get_bonds_for_named_torsions(ubq_res, torch_device):
@@ -232,3 +233,27 @@ def test_get_polymeric_bonds_in_fold_forest_c_to_n(ubq_res):
     numpy.testing.assert_equal(
         bond_inds_gold, polymeric_bonds_in_kinforest.cpu().numpy()
     )
+
+
+def test_construct_pose_stack_kinforest(ubq_res):
+    torch_device = torch.device("cpu")
+
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:8], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:11], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:5], torch_device)
+    pose_stack = PoseStack.from_poses((p1, p2), torch_device)
+
+    edges = numpy.full((3, 2, 4), -1, dtype=int)
+    edges[:, 0, 0] = EdgeType.polymer
+    edges[:, 0, 1] = 0
+    edges[0, 0, 2] = 7
+    edges[1, 0, 1] = 5
+    edges[1, 0, 2] = 0
+    edges[1, 1, 0] = EdgeType.polymer
+    edges[1, 1, 1] = 5
+    edges[1, 1, 2] = 10
+    edges[2, 0, 2] = 4
+
+    fold_forest = FoldForest.polymeric_forest(pose_stack.residues)
+
+    kinforest = construct_pose_stack_kinforest(pose_stack, fold_forest)

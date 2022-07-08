@@ -15,10 +15,12 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RotamerKintree:
-    kintree_idx: NDArray[numpy.int32][:]  # mapping from restype order to kintree order
+    kinforest_idx: NDArray[numpy.int32][
+        :
+    ]  # mapping from restype order to kinforest order
 
-    # the following arrays are all in kintree order
-    id: NDArray[numpy.int32][:]  # mapping from kintree order to restype order
+    # the following arrays are all in kinforest order
+    id: NDArray[numpy.int32][:]  # mapping from kinforest order to restype order
     doftype: NDArray[numpy.int32][:]
     parent: NDArray[numpy.int32][:]
     frame_x: NDArray[numpy.int32][:]
@@ -33,12 +35,12 @@ class RotamerKintree:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class PackedRotamerKintree:
-    kintree_idx: NDArray[numpy.int32][
+    kinforest_idx: NDArray[numpy.int32][
         :, :
-    ]  # mapping from restype order to kintree order
+    ]  # mapping from restype order to kinforest order
 
-    # the following arrays are all in kintree order
-    id: NDArray[numpy.int32][:, :]  # mapping from kintree order to restype order
+    # the following arrays are all in kinforest order
+    id: NDArray[numpy.int32][:, :]  # mapping from kinforest order to restype order
     doftype: NDArray[numpy.int32][:, :]
     parent: NDArray[numpy.int32][:, :]
     frame_x: NDArray[numpy.int32][:, :]
@@ -53,11 +55,11 @@ class PackedRotamerKintree:
 
 
 @validate_args
-def construct_single_residue_kintree(restype: RefinedResidueType):
-    """Create a kintree for a single residue and its associated
+def construct_single_residue_kinforest(restype: RefinedResidueType):
+    """Create a kinforest for a single residue and its associated
     scan ordering data.
 
-    The kintree data structure on its own is incomplete and
+    The kinforest data structure on its own is incomplete and
     before it can be stored will need to be left-padded with
     0s. In particular, the id, doftype, parent, frame_x, _y
     and _z data all require the 0th position to be occupied
@@ -65,7 +67,7 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
 
     Also create the backbone fingerprint
     """
-    if hasattr(restype, "rotamer_kintree"):
+    if hasattr(restype, "rotamer_kinforest"):
         return
 
     torsion_pairs = numpy.array(
@@ -76,29 +78,33 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
         all_real = numpy.all(torsion_pairs >= 0, axis=1)
         torsion_pairs = torsion_pairs[all_real, :]
 
-        kintree = (
+        kinforest = (
             KinematicBuilder()
-            .append_connected_component(
-                *KinematicBuilder.component_for_prioritized_bonds(
-                    roots=0,
-                    mandatory_bonds=torsion_pairs,
+            .append_connected_components(
+                to_roots=numpy.zeros((1,), dtype=numpy.int32),
+                *KinematicBuilder.define_trees_with_prioritized_bonds(
+                    roots=numpy.zeros((1,), dtype=numpy.int32),
+                    potential_bonds=restype.bond_indices,
+                    prioritized_bonds=torsion_pairs,
                     all_bonds=restype.bond_indices,
-                )
+                    n_atoms_total=restype.n_atoms,
+                ),
+                to_jump_nodes=numpy.array([], dtype=numpy.int32),
             )
-            .kintree
+            .kinforest
         )
     else:
-        kintree = (
+        kinforest = (
             KinematicBuilder()
-            .append_connected_component(
+            .append_connected_components(
                 *KinematicBuilder.bonds_to_connected_component(
                     roots=0, bonds=restype.bond_indices
                 )
             )
-            .kintree
+            .kinforest
         )
-    forward_scan_paths = KinForestScanOrdering.calculate_from_kintree(
-        kintree
+    forward_scan_paths = KinForestScanOrdering.calculate_from_kinforest(
+        kinforest
     ).forward_scan_paths
 
     nodes = forward_scan_paths.nodes.numpy()
@@ -111,7 +117,7 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
         (
             torch.zeros((1, 3), dtype=torch.float32),
             torch.tensor(
-                restype.ideal_coords[restype.at_to_icoor_ind][kintree.id[1:]],
+                restype.ideal_coords[restype.at_to_icoor_ind][kinforest.id[1:]],
                 dtype=torch.float32,
             ),
         )
@@ -121,49 +127,51 @@ def construct_single_residue_kintree(restype: RefinedResidueType):
 
     dofs_ideal = inverse_kin(
         ideal_coords,
-        kintree.parent,
-        kintree.frame_x,
-        kintree.frame_y,
-        kintree.frame_z,
-        kintree.doftype,
+        kinforest.parent,
+        kinforest.frame_x,
+        kinforest.frame_y,
+        kinforest.frame_z,
+        kinforest.doftype,
     )
     dofs_ideal = dofs_ideal.numpy()
     # print("dofs ideal")
     # print(dofs_ideal[:,:4])
 
-    kintree_idx = numpy.zeros((restype.n_atoms,), dtype=numpy.int32)
-    kintree_idx[kintree.id.numpy()[1:]] = numpy.arange(
+    kinforest_idx = numpy.zeros((restype.n_atoms,), dtype=numpy.int32)
+    kinforest_idx[kinforest.id.numpy()[1:]] = numpy.arange(
         restype.n_atoms, dtype=numpy.int32
     )
 
-    rotamer_kintree = RotamerKintree(
-        kintree_idx=kintree_idx,
-        id=kintree.id.numpy()[1:],
-        doftype=kintree.doftype.numpy()[1:],
-        parent=kintree.parent.numpy()[1:] - 1,
-        frame_x=kintree.frame_x.numpy()[1:] - 1,
-        frame_y=kintree.frame_y.numpy()[1:] - 1,
-        frame_z=kintree.frame_z.numpy()[1:] - 1,
+    rotamer_kinforest = RotamerKintree(
+        kinforest_idx=kinforest_idx,
+        id=kinforest.id.numpy()[1:],
+        doftype=kinforest.doftype.numpy()[1:],
+        parent=kinforest.parent.numpy()[1:] - 1,
+        frame_x=kinforest.frame_x.numpy()[1:] - 1,
+        frame_y=kinforest.frame_y.numpy()[1:] - 1,
+        frame_z=kinforest.frame_z.numpy()[1:] - 1,
         nodes=nodes,
         scans=scans,
         gens=gens,
         n_scans_per_gen=n_scans_per_gen,
         dofs_ideal=dofs_ideal[1:],
     )
-    setattr(restype, "rotamer_kintree", rotamer_kintree)
+    setattr(restype, "rotamer_kinforest", rotamer_kinforest)
 
 
 @validate_args
-def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
-    if hasattr(pbt, "rotamer_kintree"):
+def coalesce_single_residue_kinforests(pbt: PackedBlockTypes):
+    if hasattr(pbt, "rotamer_kinforest"):
         return
 
-    max_n_nodes = max(len(rt.rotamer_kintree.nodes) for rt in pbt.active_block_types)
+    max_n_nodes = max(len(rt.rotamer_kinforest.nodes) for rt in pbt.active_block_types)
     max_n_scans = max(
-        rt.rotamer_kintree.scans.shape[0] for rt in pbt.active_block_types
+        rt.rotamer_kinforest.scans.shape[0] for rt in pbt.active_block_types
     )
-    max_n_gens = max(rt.rotamer_kintree.gens.shape[0] for rt in pbt.active_block_types)
-    max_n_atoms = max(rt.rotamer_kintree.id.shape[0] for rt in pbt.active_block_types)
+    max_n_gens = max(
+        rt.rotamer_kinforest.gens.shape[0] for rt in pbt.active_block_types
+    )
+    max_n_atoms = max(rt.rotamer_kinforest.id.shape[0] for rt in pbt.active_block_types)
 
     rt_n_nodes = numpy.zeros((pbt.n_types,), dtype=numpy.int32)
     rt_nodes = numpy.full((pbt.n_types, max_n_nodes), -1, dtype=numpy.int32)
@@ -173,7 +181,7 @@ def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
         (pbt.n_types, max_n_gens - 1), -1, dtype=numpy.int32
     )
 
-    rt_kintree_idx = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
+    rt_kinforest_idx = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
     rt_id = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
     rt_doftype = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
     rt_parent = numpy.full((pbt.n_types, max_n_atoms), -1, dtype=numpy.int32)
@@ -183,28 +191,28 @@ def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
     rt_dofs_ideal = numpy.zeros((pbt.n_types, max_n_atoms, 9), dtype=numpy.float32)
 
     for i, rt in enumerate(pbt.active_block_types):
-        rt_n_nodes[i] = rt.rotamer_kintree.nodes.shape[0]
-        rt_nodes[i, : rt.rotamer_kintree.nodes.shape[0]] = rt.rotamer_kintree.nodes
-        rt_scans[i, : rt.rotamer_kintree.scans.shape[0]] = rt.rotamer_kintree.scans
-        rt_gens[i, : rt.rotamer_kintree.gens.shape[0], :] = rt.rotamer_kintree.gens
+        rt_n_nodes[i] = rt.rotamer_kinforest.nodes.shape[0]
+        rt_nodes[i, : rt.rotamer_kinforest.nodes.shape[0]] = rt.rotamer_kinforest.nodes
+        rt_scans[i, : rt.rotamer_kinforest.scans.shape[0]] = rt.rotamer_kinforest.scans
+        rt_gens[i, : rt.rotamer_kinforest.gens.shape[0], :] = rt.rotamer_kinforest.gens
         # fill forward
-        rt_gens[i, rt.rotamer_kintree.gens.shape[0] :, :] = rt.rotamer_kintree.gens[
+        rt_gens[i, rt.rotamer_kinforest.gens.shape[0] :, :] = rt.rotamer_kinforest.gens[
             -1, :
         ]
         rt_n_scans_per_gen[
-            i, : rt.rotamer_kintree.n_scans_per_gen.shape[0]
-        ] = rt.rotamer_kintree.n_scans_per_gen
-        rt_kintree_idx[i, : rt.n_atoms] = rt.rotamer_kintree.kintree_idx
-        rt_id[i, : rt.n_atoms] = rt.rotamer_kintree.id
-        rt_doftype[i, : rt.n_atoms] = rt.rotamer_kintree.doftype
-        rt_parent[i, : rt.n_atoms] = rt.rotamer_kintree.parent
-        rt_frame_x[i, : rt.n_atoms] = rt.rotamer_kintree.frame_x
-        rt_frame_y[i, : rt.n_atoms] = rt.rotamer_kintree.frame_y
-        rt_frame_z[i, : rt.n_atoms] = rt.rotamer_kintree.frame_z
-        rt_dofs_ideal[i, : rt.n_atoms] = rt.rotamer_kintree.dofs_ideal
+            i, : rt.rotamer_kinforest.n_scans_per_gen.shape[0]
+        ] = rt.rotamer_kinforest.n_scans_per_gen
+        rt_kinforest_idx[i, : rt.n_atoms] = rt.rotamer_kinforest.kinforest_idx
+        rt_id[i, : rt.n_atoms] = rt.rotamer_kinforest.id
+        rt_doftype[i, : rt.n_atoms] = rt.rotamer_kinforest.doftype
+        rt_parent[i, : rt.n_atoms] = rt.rotamer_kinforest.parent
+        rt_frame_x[i, : rt.n_atoms] = rt.rotamer_kinforest.frame_x
+        rt_frame_y[i, : rt.n_atoms] = rt.rotamer_kinforest.frame_y
+        rt_frame_z[i, : rt.n_atoms] = rt.rotamer_kinforest.frame_z
+        rt_dofs_ideal[i, : rt.n_atoms] = rt.rotamer_kinforest.dofs_ideal
 
-    packed_rotamer_kintree = PackedRotamerKintree(
-        kintree_idx=rt_kintree_idx,
+    packed_rotamer_kinforest = PackedRotamerKintree(
+        kinforest_idx=rt_kinforest_idx,
         id=rt_id,
         doftype=rt_doftype,
         parent=rt_parent,
@@ -218,4 +226,4 @@ def coalesce_single_residue_kintrees(pbt: PackedBlockTypes):
         n_scans_per_gen=rt_n_scans_per_gen,
         dofs_ideal=rt_dofs_ideal,
     )
-    setattr(pbt, "rotamer_kintree", packed_rotamer_kintree)
+    setattr(pbt, "rotamer_kinforest", packed_rotamer_kinforest)

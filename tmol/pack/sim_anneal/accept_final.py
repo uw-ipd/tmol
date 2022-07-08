@@ -11,11 +11,12 @@ from tmol.pose.pose_stack import PoseStack
 # to dump pdbs
 from tmol.system.packed import PackedResidueSystem
 from tmol.utility.reactive import reactive_property
-from tmol.score.score_graph import score_graph
-from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.device import TorchDevice
-from tmol.score.score_components import ScoreComponentClasses, IntraScore
+
+# from tmol.score.score_graph import score_graph
+# from tmol.score.bonded_atom import BondedAtomScoreGraph
+# from tmol.score.coordinates import CartesianAtomicCoordinateProvider
+# from tmol.score.device import TorchDevice
+# from tmol.score.score_components import ScoreComponentClasses, IntraScore
 from tmol.io.generic import to_pdb
 
 
@@ -57,24 +58,24 @@ def poses_from_assigned_rotamers(
     )
 
 
-@validate_args
-def pdb_lines_for_pose(poses: PoseStack, ind: int) -> str:
-    @score_graph
-    class DummyIntra(IntraScore):
-        @reactive_property
-        def total_dummy(target):
-            return target.coords.sum()
-
-    @score_graph
-    class BASGCart(
-        CartesianAtomicCoordinateProvider, BondedAtomScoreGraph, TorchDevice
-    ):
-        total_score_components = [
-            ScoreComponentClasses(
-                "dummy", intra_container=DummyIntra, inter_container=None
-            )
-        ]
-
-    packed_system = PackedResidueSystem.from_residues(poses.residues[ind])
-    bonded_atom_score_graph = BASGCart.build_for(packed_system)
-    return to_pdb(bonded_atom_score_graph)
+# find replacement @validate_args
+# find replacement def pdb_lines_for_pose(poses: PoseStack, ind: int) -> str:
+# find replacement     @score_graph
+# find replacement     class DummyIntra(IntraScore):
+# find replacement         @reactive_property
+# find replacement         def total_dummy(target):
+# find replacement             return target.coords.sum()
+# find replacement
+# find replacement     @score_graph
+# find replacement     class BASGCart(
+# find replacement         CartesianAtomicCoordinateProvider, BondedAtomScoreGraph, TorchDevice
+# find replacement     ):
+# find replacement         total_score_components = [
+# find replacement             ScoreComponentClasses(
+# find replacement                 "dummy", intra_container=DummyIntra, inter_container=None
+# find replacement             )
+# find replacement         ]
+# find replacement
+# find replacement     packed_system = PackedResidueSystem.from_residues(poses.residues[ind])
+# find replacement     bonded_atom_score_graph = BASGCart.build_for(packed_system)
+# find replacement     return to_pdb(bonded_atom_score_graph)

@@ -201,6 +201,9 @@ class PoseStack:
             self.block_coord_offset.cpu(), self.residues, residue_coords
         )
 
+        def i64(t):
+            return t.to(torch.int64)
+
         return PoseStack(
             packed_block_types=packed_block_types,
             residues=residues,
@@ -213,7 +216,7 @@ class PoseStack:
             inter_block_bondsep=self.inter_block_bondsep,
             inter_block_bondsep64=self.inter_block_bondsep64,
             block_type_ind=block_type_ind,
-            block_type_ind64=block_type_ind64,
+            block_type_ind64=i64(block_type_ind),
             device=self.device,
         )
 
@@ -669,8 +672,7 @@ class PoseStack:
 
     @property
     def real_atoms(self):
-        """return the boolean vector of the real atoms in the coords tensor
-        """
+        """return the boolean vector of the real atoms in the coords tensor"""
         # get the list of real atoms to read out of pose coords
         n_ats_per_pose_arange_expanded = (
             torch.arange(self.max_n_pose_atoms, dtype=torch.int64, device=self.device)

@@ -15,9 +15,17 @@ from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 @pytest.mark.benchmark(group="score_setup")
 def test_cartbonded_score_setup(benchmark, ubq_system, torch_device):
     @benchmark
-    def score_graph():
+    def score_system():
         return ScoreSystem.build_for(
-            ubq_system, {CartBondedScore}, weights={"cartbonded": 1.0}
+            ubq_system,
+            {CartBondedScore},
+            weights={
+                "cartbonded_lengths": 1.0,
+                "cartbonded_angles": 1.0,
+                "cartbonded_torsions": 1.0,
+                "cartbonded_impropers": 1.0,
+                "cartbonded_hxltorsions": 1.0,
+            },
         )
 
 
@@ -63,14 +71,28 @@ def test_cartbonded_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
 
     stacked_score = ScoreSystem.build_for(
-        twoubq, {CartBondedScore}, weights={"cartbonded": 1.0}
+        twoubq,
+        {CartBondedScore},
+        weights={
+            "cartbonded_lengths": 1.0,
+            "cartbonded_angles": 1.0,
+            "cartbonded_torsions": 1.0,
+            "cartbonded_impropers": 1.0,
+            "cartbonded_hxltorsions": 1.0,
+        },
     )
 
     coords = coords_for(twoubq, stacked_score)
 
     tot = stacked_score.intra_total(coords)
-    assert tot.shape == (2, 5)
+    assert tot.shape == (2,)
     torch.testing.assert_allclose(tot[0], tot[1])
+
+    forward = stacked_score.intra_forward(coords)
+    assert len(forward) == 5
+    for terms in forward.values():
+        assert len(terms) == 2
+        torch.testing.assert_allclose(terms[0], terms[1])
 
     sumtot = torch.sum(tot)
     sumtot.backward()

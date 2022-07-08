@@ -5,7 +5,7 @@ from tmol.tests.benchmark_plot import BenchmarkPlot
 
 
 class TotalScoreParts(BenchmarkPlot):
-    query = "basename=='test_end_to_end_score_graph'"
+    query = "basename=='test_end_to_end_score_system'"
 
     @classmethod
     def plot(cls, benchmark_data):
