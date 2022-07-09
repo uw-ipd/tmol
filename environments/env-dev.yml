@@ -8,8 +8,8 @@ dependencies:
   - attrs==19.3.0
   - uw-ipd::attrs-strict==0.2.0
   - uw-ipd:clangdev=7.*
-  - uw-ipd:llvm-meta 
-  - uw-ipd:llvmdev
+  - uw-ipd:llvm-meta=7.*
+  - uw-ipd:llvmdev=7.*
   - uw-ipd:pytest-benchmark==3.1.1.post1
   - pip
 
@@ -25,7 +25,8 @@ dependencies:
   - pandas==0.25.3
   - pint==0.14
   - pre-commit==2.6.0
-  - pytest=3.8.2
+  - psutil==5.7.1
+  - pytest==3.8.2
   - pytest-cov==2.5.1
   # let's try getting rid of it - pytest-faulthandler==1.5.0
   - pytest-forked==1.2.0
