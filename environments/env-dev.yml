@@ -7,6 +7,10 @@ dependencies:
   - python==3.7
   - attrs==19.3.0
   - uw-ipd::attrs-strict==0.2.0
+  - uw-ipd:clangdev=7.*
+  - uw-ipd:llvm-meta 
+  - uw-ipd:llvmdev
+  - uw-ipd:pytest-benchmark==3.1.1.post1
   - pip
 
   # let's try making all the pip dependencies just conda dependencies
@@ -22,7 +26,6 @@ dependencies:
   - pint==0.14
   - pre-commit==2.6.0
   - pytest=3.8.2
-  - uw-ipd:pytest-benchmark==3.1.1.post1
   - pytest-cov==2.5.1
   # let's try getting rid of it - pytest-faulthandler==1.5.0
   - pytest-forked==1.2.0
@@ -38,9 +41,8 @@ dependencies:
   - typing_inspect==0.6.0
   - typish==1.7.0
   - zarr==2.4.0
-  - pytorch::pytorch=1.7.0
-  - cudatoolkit-dev=11.3.1
-  - ninja
+  - pytorch::pytorch==1.11.0
+  - cudatoolkit-dev==11.3.1
 
   # - pytorch=1.6.0
   # - torchvision
