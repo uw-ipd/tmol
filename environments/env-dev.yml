@@ -1,0 +1,48 @@
+name: tmol
+channels:
+  - conda-forge
+  - pytorch
+  - uw-ipd
+dependencies:
+  - python==3.7
+  - attrs==19.3.0
+  - uw-ipd::attrs-strict==0.2.0
+  - pip
+
+  # let's try making all the pip dependencies just conda dependencies
+  - astor==0.8.1
+  - black==18.6b4
+  - cattrs==1.0.0
+  - frozendict==1.2
+  - hypothesis==3.88.3
+  - ipython==7.17.0
+  - numba==0.50.1
+  - numpy==1.19.1
+  - pandas==0.25.3
+  - pint==0.14
+  - pre-commit==2.6.0
+  - pytest=3.8.2
+  - uw-ipd:pytest-benchmark==3.1.1.post1
+  - pytest-cov==2.5.1
+  # let's try getting rid of it - pytest-faulthandler==1.5.0
+  - pytest-forked==1.2.0
+  - pytest-instafail==0.4.1
+  - pytest-repeat==0.8.0
+  - pytest-watch==4.1.0
+  - pyyaml==5.3.1
+  - requests==2.24.0
+  - scipy==1.1.0
+  - sparse==0.3.1
+  - toolz==0.10.0
+  - typing_extensions==3.7.4.2
+  - typing_inspect==0.6.0
+  - typish==1.7.0
+  - zarr==2.4.0
+  - pytorch::pytorch=1.7.0
+  - cudatoolkit-dev=11.3.1
+  - ninja
+
+  # - pytorch=1.6.0
+  # - torchvision
+  # - torchaudio
+  # - cudatoolkit=10.1
