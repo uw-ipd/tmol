@@ -52,12 +52,14 @@ class CartesianEnergyNetwork(torch.nn.Module):
 
 
 def torsional_energy_network_from_system(
-    score_system, residue_system, dof_mask=None, device=torch.device("cpu")
+    score_system, residue_system, dof_mask=None, device=None
 ):
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(
         residue_system.bonds, residue_system.torsion_metadata
     )
+    if not device:
+        device = torch.device("cpu")
     kintree = sys_kin.kintree.to(device)
 
     # compute dofs from xyzs
