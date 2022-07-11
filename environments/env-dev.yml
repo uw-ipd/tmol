@@ -17,6 +17,7 @@ dependencies:
   - astor==0.8.1
   - black==18.6b4
   - cattrs==1.0.0
+  - coverage==4.5.4
   - frozendict==1.2
   - flake8==3.8.3
   - hypothesis==3.88.3
