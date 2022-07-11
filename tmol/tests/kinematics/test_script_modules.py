@@ -81,8 +81,6 @@ def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
         dofsfull[:, :6] = dofs_x
         return kop(dofsfull)
 
-    result = eval_kin(minimizable_dofs)
-
     torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=atol, rtol=rtol)
 
 

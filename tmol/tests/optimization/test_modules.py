@@ -14,8 +14,8 @@ from tmol.score.modules.coords import coords_for
 
 
 def test_cart_network_min(ubq_system, torch_device):
-    score_system = get_full_score_system_for(ubq_system)
-    coords = coords_for(ubq_system, score_system)
+    score_system = get_full_score_system_for(ubq_system, torch_device)
+    coords = coords_for(ubq_system, score_system).to(torch_device)
 
     model = CartesianEnergyNetwork(score_system, coords)
     optimizer = LBFGS_Armijo(model.parameters(), lr=0.1, max_iter=20)
@@ -36,8 +36,8 @@ def test_cart_network_min(ubq_system, torch_device):
 
 
 def test_cart_network_min_masked(ubq_system, torch_device):
-    score_system = get_full_score_system_for(ubq_system)
-    coords = coords_for(ubq_system, score_system)
+    score_system = get_full_score_system_for(ubq_system, torch_device)
+    coords = coords_for(ubq_system, score_system).to(torch_device)
 
     coord_mask = BoolTensor(coords.shape)
     for i in range(coord_mask.shape[1]):
@@ -63,9 +63,11 @@ def test_cart_network_min_masked(ubq_system, torch_device):
 
 
 def test_dof_network_min(ubq_system, torch_device):
-    score_system = get_full_score_system_for(ubq_system)
+    score_system = get_full_score_system_for(ubq_system, torch_device)
 
-    model = torsional_energy_network_from_system(score_system, ubq_system)
+    model = torsional_energy_network_from_system(score_system, ubq_system).to(
+        device=torch_device
+    )
 
     # "kincoords" is for each atom, 9 values,
     # but only 3 for regular atom, 9 for jump
@@ -81,12 +83,12 @@ def test_dof_network_min(ubq_system, torch_device):
         return E
 
     optimizer.step(closure)
-    E1 = score_system.intra_total(model.coords())
+    E1 = score_system.intra_total(model.coords().to(torch_device))
     assert E1 < E0
 
 
 def test_dof_network_min_masked(ubq_system, torch_device):
-    score_system = get_full_score_system_for(ubq_system)
+    score_system = get_full_score_system_for(ubq_system, torch_device)
 
     sys_kin = KinematicDescription.for_system(
         ubq_system.bonds, ubq_system.torsion_metadata
@@ -102,7 +104,7 @@ def test_dof_network_min_masked(ubq_system, torch_device):
 
     model = TorsionalEnergyNetwork(
         score_system, dofs, kinforest, system_size, dof_mask=dof_mask
-    )
+    ).to(torch_device)
 
     # "kincoords" is for each atom, 9 values,
     # but only 3 for regular atom, 9 for jump
@@ -118,5 +120,5 @@ def test_dof_network_min_masked(ubq_system, torch_device):
         return E
 
     optimizer.step(closure)
-    E1 = score_system.intra_total(model.coords())
+    E1 = score_system.intra_total(model.coords().to(torch_device))
     assert E1 < E0

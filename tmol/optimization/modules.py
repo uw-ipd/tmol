@@ -1,4 +1,5 @@
 import torch
+import attr
 
 from tmol.system.kinematics import KinematicDescription
 from tmol.system.score_support import kincoords_to_coords
@@ -50,15 +51,20 @@ class CartesianEnergyNetwork(torch.nn.Module):
         return self.score_system.intra_total(self.full_coords)
 
 
-def torsional_energy_network_from_system(score_system, residue_system, dof_mask=None):
+def torsional_energy_network_from_system(
+    score_system, residue_system, dof_mask=None, device=None
+):
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(
         residue_system.bonds, residue_system.torsion_metadata
     )
-    kinforest = sys_kin.kinforest
+
+    if not device:
+        device = torch.device("cpu")
+    kinforest = sys_kin.kinforest.to(device)
 
     # compute dofs from xyzs
-    dofs = sys_kin.extract_kincoords(residue_system.coords)
+    dofs = sys_kin.extract_kincoords(residue_system.coords).to(device)
     system_size = residue_system.system_size
 
     return TorsionalEnergyNetwork(
@@ -73,10 +79,15 @@ class TorsionalEnergyNetwork(torch.nn.Module):
 
         self.score_system = score_system
         self.kinforest = kinforest
-        self.dof_mask = dof_mask
+
+        # register buffers so they get moved to GPU with module
+        for i, j in attr.asdict(kinforest).items():
+            self.register_buffer(i, j)
+        self.register_buffer("dof_mask", dof_mask)
+        self.register_buffer("full_dofs", dofs)
+
         self.system_size = system_size
 
-        self.full_dofs = dofs
         if self.dof_mask is None:
             self.masked_dofs = torch.nn.Parameter(dofs)
         else:
