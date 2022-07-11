@@ -28,8 +28,8 @@ def cartesian_dofs_set_on(self: CartesianDOFs, system: PackedResidueSystem):
 
 @KinematicOperation.build_for.register(PackedResidueSystem)
 def kinematic_operation_build_for(system: PackedResidueSystem) -> KinematicOperation:
-    print("system.system_size")
-    print(system.system_size)
+    # print("system.system_size")
+    # print(system.system_size)
     sys_kin = KinematicDescription.for_system(
         system.system_size, system.bonds, (system.torsion_metadata,)
     )

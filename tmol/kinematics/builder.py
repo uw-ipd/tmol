@@ -375,15 +375,15 @@ class KinematicBuilder:
 
         return attr.evolve(self, kinforest=cat((self.kinforest, extended_kin_forest)))
 
-    @classmethod
-    def count_uniq_atom_inds(cls, all_atoms: NDArray[numpy.int32][:]):
-        """Looking at a list of all atom indices that are referenced as either the first or second
-        atom in a bond, count the total number of unique atoms
-        """
-        max_ind = numpy.max(all_atoms)
-        atom_seen = numpy.zeros((max_ind + 1,), dtype=numpy.int32)
-        atom_seen[all_atoms] = 1
-        return numpy.sum(atom_seen)
+    # unneeded @classmethod
+    # unneeded def count_uniq_atom_inds(cls, all_atoms: NDArray[numpy.int32][:]):
+    # unneeded     """Looking at a list of all atom indices that are referenced as either the first or second
+    # unneeded     atom in a bond, count the total number of unique atoms
+    # unneeded     """
+    # unneeded     max_ind = numpy.max(all_atoms)
+    # unneeded     atom_seen = numpy.zeros((max_ind + 1,), dtype=numpy.int32)
+    # unneeded     atom_seen[all_atoms] = 1
+    # unneeded     return numpy.sum(atom_seen)
 
     # @convert_args
     # def append_connected_component(

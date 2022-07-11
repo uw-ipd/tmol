@@ -133,16 +133,8 @@ def test_score_smoketest(coords):
 
 def test_forward_refold(kinforest, coords, torch_device):
     # fd: with single precision 1e-9 is too strict for the assert_allclose calls
-    print("kinforest")
-    print(kinforest)
-    print("coords")
-    print(coords)
     dofs = inverseKin(kinforest, coords)
-    print("dofs")
-    print(dofs)
     refold_kincoords = forwardKin(kinforest, dofs)
-    print("refold_kincoords")
-    print(refold_kincoords)
 
     numpy.testing.assert_allclose(coords.cpu(), refold_kincoords.cpu(), atol=1e-6)
 
@@ -274,8 +266,11 @@ def test_forward_refold_two_systems(ubq_system, torch_device):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
     # bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
     system = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})
-    bonds = BondedAtoms.get(system).bonds.astype(numpy.int32)
-    tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=int)
+    bonds3 = BondedAtoms.get(system).bonds.astype(numpy.int32)
+    bonds2 = (numpy.arange(2, dtype=numpy.int32) * twoubq.systems[0].system_size)[
+        bonds3[:, 0:1]
+    ] + bonds3[:, 1:3]
+    tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=numpy.int32)
 
     coords_raw = torch.tensor(
         numpy.concatenate((twoubq.systems[0].coords, twoubq.systems[1].coords), axis=0),
@@ -287,10 +282,9 @@ def test_forward_refold_two_systems(ubq_system, torch_device):
         KinematicBuilder()
         .append_connected_components(
             tworoots,
-            *KinematicBuilder.bonds_to_connected_component(
+            *KinematicBuilder.bonds_to_forest(
                 roots=tworoots,
-                bonds=bonds.bonds,
-                system_size=int(twoubq.systems[0].system_size),
+                bonds=bonds2,
             ),
         )
         .kinforest.to(torch_device)
@@ -316,8 +310,11 @@ def test_forward_refold_w_jagged_system(ubq_res, torch_device):
     twoubq = PackedResidueSystemStack((ubq40, ubq60))
     # bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
     system = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})
-    bonds = BondedAtoms.get(system).bonds.astype(numpy.int32)
-    tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=int)
+    bonds3 = BondedAtoms.get(system).bonds.astype(numpy.int32)
+    bonds2 = (numpy.arange(2, dtype=numpy.int32) * twoubq.systems[0].system_size)[
+        bonds3[:, 0:1]
+    ] + bonds3[:, 1:3]
+    tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=numpy.int32)
 
     coords_raw = torch.zeros(
         (2, system_size, 3), dtype=torch.float64, device=torch_device
@@ -334,9 +331,7 @@ def test_forward_refold_w_jagged_system(ubq_res, torch_device):
         KinematicBuilder()
         .append_connected_components(
             tworoots,
-            *KinematicBuilder.bonds_to_connected_component(
-                roots=tworoots, bonds=bonds.bonds, system_size=int(system_size)
-            ),
+            *KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds2),
         )
         .kinforest.to(torch_device)
     )
@@ -348,5 +343,11 @@ def test_forward_refold_w_jagged_system(ubq_res, torch_device):
     dofs = inverseKin(kinforest, coords)
     refold_kincoords = forwardKin(kinforest, dofs)
     refold_kincoords[0, :] = 0
+
+    print("Coords")
+    print(coords.cpu().numpy())
+
+    print("refold coords")
+    print(refold_kincoords.cpu().numpy())
 
     numpy.testing.assert_allclose(coords.cpu(), refold_kincoords.cpu(), atol=1e-6)
