@@ -21,6 +21,15 @@ RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.3-Linux
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc
 
+# Configure a docker-entrypoint.sh to enable conda
+RUN echo "#!/bin/bash" >> /docker-entrypoint.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> /docker-entrypoint.sh && \
+    echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
+    chmod a+rx /docker-entrypoint.sh
+
+RUN cat /docker-entrypoint.sh
+RUN pwd
+
 # Inlined tini version in fetch url
 ENV TINI_VERSION v0.16.1
 RUN wget --quiet -O /usr/bin/tini https://github.com/krallin/tini/releases/download/v0.16.1/tini
@@ -39,7 +48,7 @@ CMD [ "/bin/bash" ]
 
 ### Setup test environment
 
-COPY environments/env.yml /environments/env.yml
+COPY env.yml /environments/env.yml
 
 # Install tmol environment
 # Configure a docker-entrypoint.sh to activate the tmol conda environment
@@ -52,3 +61,6 @@ RUN echo "#!/bin/bash" > /docker-entrypoint.sh && \
     echo "conda activate tmol" >> /docker-entrypoint.sh && \
     echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
     chmod a+rx /docker-entrypoint.sh
+
+RUN cat /docker-entrypoint.sh
+RUN pwd
