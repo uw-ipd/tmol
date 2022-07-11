@@ -39,7 +39,7 @@ CMD [ "/bin/bash" ]
 
 ### Setup test environment
 
-COPY env.yml /environments/env.yml
+#COPY env.yml /environments/env.yml
 
 # Install tmol environment
 # Configure a docker-entrypoint.sh to activate the tmol conda environment
