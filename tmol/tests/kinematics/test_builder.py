@@ -432,7 +432,7 @@ def test_build_er_bonds_to_csgraph():
     bonds[9:, 0] = bonds[:9, 1]
     bonds[9:, 1] = bonds[:9:, 0]
 
-    csr_mat = KinematicBuilder.bonds_to_csgraph(10, bonds)
+    csr_mat = KinematicBuilder.bonds_to_csgraph(9, bonds)
     mat = csr_mat.toarray()
 
     mat_gold = numpy.zeros((10, 10), dtype=numpy.float32)

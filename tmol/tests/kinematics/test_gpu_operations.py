@@ -11,13 +11,15 @@ from tmol.tests.torch import requires_cuda
 
 def system_kinforest(target_system):
     tsys = target_system
-    bonds = numpy.concatenate(
-        (numpy.zeros((tsys.bonds.shape[0], 1), dtype=int), tsys.bonds), axis=1
-    )
+    roots = numpy.zeros((1,), dtype=numpy.int32)
     return (
         KinematicBuilder()
-        .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, bonds)
+        .append_connected_components(
+            roots,
+            *KinematicBuilder.bonds_to_forest(
+                roots,
+                tsys.bonds.astype(numpy.int32),
+            )
         )
         .kinforest
     )
