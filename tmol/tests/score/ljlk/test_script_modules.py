@@ -112,7 +112,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
         numpy.nan_to_num(
             _dense_lj(s.coords, s.atom_type_idx, s.atom_pair_bpl, s.param_resolver)
         )
-    )
+    ).sum()
 
     op = LJIntraModule(s.param_resolver)
     op.to(s.tcoords)
@@ -122,7 +122,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
         return op(s.tcoords, s.ttype, s.tbpl)
 
     torch.testing.assert_allclose(
-        op_val, torch.tensor(expected_dense).to(torch_device).sum()
+        op_val, torch.tensor((expected_dense,)).to(torch_device)
     )
 
     @subfixture(benchmark)
@@ -133,7 +133,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
         return res
 
     torch.testing.assert_allclose(
-        op_full, torch.tensor(expected_dense).to(torch_device).sum()
+        op_full, torch.tensor((expected_dense,)).to(torch_device)
     )
 
     subind = torch.arange(0, s.tcoords.shape[1], 100)
@@ -184,7 +184,7 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
 
     expected_dense = numpy.nan_to_num(
         _dense_lj(s.coords, s.atom_type_idx, s.atom_pair_bpl, s.param_resolver)
-    )[:, :part, part:]
+    )[:, :part, part:].sum()
 
     op = LJInterModule(s.param_resolver)
     op.to(s.tcoords)
@@ -197,9 +197,7 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
         s.tbpl[:, :part, part:],
     )
 
-    torch.testing.assert_allclose(
-        val, torch.tensor(expected_dense).to(torch_device).sum()
-    )
+    torch.testing.assert_allclose(val, torch.tensor((expected_dense,)).to(torch_device))
 
     subind = torch.arange(0, s.tcoords.shape[1], 100)
 
@@ -229,7 +227,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
         numpy.nan_to_num(
             _dense_lk(s.coords, s.atom_type_idx, s.atom_pair_bpl, s.param_resolver)
         )
-    )
+    ).sum()
 
     op = LKIsotropicIntraModule(s.param_resolver)
     op.to(s.tcoords)
@@ -239,7 +237,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
         return op(s.tcoords, s.ttype, s.tbpl)
 
     torch.testing.assert_allclose(
-        op_val, torch.tensor(expected_dense).to(torch_device).sum()
+        op_val, torch.tensor((expected_dense,)).to(torch_device)
     )
 
     @subfixture(benchmark)
@@ -250,7 +248,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
         return res
 
     torch.testing.assert_allclose(
-        op_full, torch.tensor(expected_dense).to(torch_device).sum()
+        op_full, torch.tensor((expected_dense,)).to(torch_device)
     )
 
     subind = torch.arange(0, s.tcoords.shape[1], 100)
@@ -274,7 +272,7 @@ def test_lk_inter_op(default_database, torch_device, ubq_system):
 
     expected_dense = numpy.nan_to_num(
         _dense_lk(s.coords, s.atom_type_idx, s.atom_pair_bpl, s.param_resolver)
-    )[:, :part, part:]
+    )[:, :part, part:].sum()
 
     op = LKIsotropicInterModule(s.param_resolver)
     op.to(s.tcoords)
@@ -287,9 +285,7 @@ def test_lk_inter_op(default_database, torch_device, ubq_system):
         s.tbpl[:, :part, part:],
     )
 
-    torch.testing.assert_allclose(
-        val, torch.tensor(expected_dense).to(torch_device).sum()
-    )
+    torch.testing.assert_allclose(val, torch.tensor((expected_dense,)).to(torch_device))
 
     subind = torch.arange(0, s.tcoords.shape[1], 100)
 

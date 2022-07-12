@@ -5,7 +5,7 @@ import numpy
 from tmol.system.packed import PackedResidueSystem
 
 from tmol.tests.torch import requires_cuda
-from tmol.kinematics.dof_modules import CartesianDOFs, KinematicDOFs
+from tmol.kinematics.dof_modules import CartesianDOFs, KinematicDOFs, DOFMaskingFunc
 from tmol.system.kinematic_module_support import (  # noqa: F401
     kinematic_operation_build_for
 )
@@ -30,12 +30,13 @@ def test_cartesian_coord_factory(ubq_system):
     assert clone().device == cpu_device
 
     # Coords are copied, not referenced
-    torch.testing.assert_allclose(src.coords, clone.coords)
-    clone.coords[0] += 1
-    with pytest.raises(AssertionError):
+    with torch.no_grad():
         torch.testing.assert_allclose(src.coords, clone.coords)
-    clone.coords[0] -= 1
-    torch.testing.assert_allclose(src.coords, clone.coords)
+        clone.coords[0] += 1
+        with pytest.raises(AssertionError):
+            torch.testing.assert_allclose(src.coords, clone.coords)
+        clone.coords[0] -= 1
+        torch.testing.assert_allclose(src.coords, clone.coords)
 
     # Device can be overridden
     clone = clone.to(cuda_device)
@@ -64,17 +65,19 @@ def test_kinematic_dof_factory(ubq_system):
     assert clone.dofs.device == cpu_device
 
     # dofs are copied, not referenced
-    torch.testing.assert_allclose(src.dofs, clone.dofs)
-    clone.dofs[0] += 1
-    with pytest.raises(AssertionError):
+    with torch.no_grad():
         torch.testing.assert_allclose(src.dofs, clone.dofs)
+        clone.dofs[0] += 1
+        with pytest.raises(AssertionError):
+            torch.testing.assert_allclose(src.dofs, clone.dofs)
 
-    with pytest.raises(AssertionError):
-        torch.testing.assert_allclose(clone()[0], ubq_system.coords)
-    clone.dofs[0] -= 1
+        with pytest.raises(AssertionError):
+            torch.testing.assert_allclose(clone()[0], ubq_system.coords)
+        clone.dofs[0] -= 1
+
+    torch.testing.assert_allclose(clone()[0], ubq_system.coords)
 
     # Device can be overridden
-
     clone = clone.to(cuda_device)
 
     assert clone.kinop.kin_module.gens_b.device == cpu_device
@@ -100,22 +103,13 @@ def gradcheck_test_system(ubq_res) -> PackedResidueSystem:
 
 def kdof_gradcheck_report(kdof, start_dofs, eps=1e-3, atol=1e-5, rtol=5e-3):
     def eval_kin(dofs_x):
-        kdof.dofs[:] = dofs_x
-        full_coords = kdof()
+        full_coords = kdof.kinop(
+            DOFMaskingFunc.apply(dofs_x, tuple(kdof.dof_mask), kdof.full_dofs)
+        )[None, ...]
+
         return full_coords[~torch.isnan(full_coords)]
 
-    # we only minimize the "rbdel" dofs
-    result = eval_kin(start_dofs)
-
-    # Extract results from torch/autograd/gradcheck.py
-    from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
-
-    (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
-        (start_dofs,), result
-    )
-    numerical = get_numerical_jacobian(eval_kin, start_dofs, start_dofs, eps=eps)
-
-    torch.testing.assert_allclose(analytical, numerical, atol=atol, rtol=rtol)
+    torch.autograd.gradcheck(eval_kin, start_dofs, atol=atol, rtol=rtol)
 
 
 def test_kinematic_dofs_gradcheck_perturbed(gradcheck_test_system, torch_device):
@@ -133,7 +127,6 @@ def test_kinematic_dofs_gradcheck_perturbed(gradcheck_test_system, torch_device)
 
 def test_kinematic_dofs_gradcheck(gradcheck_test_system, torch_device):
     kdof: KinematicDOFs = KinematicDOFs.build_from(gradcheck_test_system)
-    torch.random.manual_seed(1663)
     start_dofs = kdof.dofs.clone().detach().requires_grad_(True)
 
     kdof_gradcheck_report(kdof, start_dofs)

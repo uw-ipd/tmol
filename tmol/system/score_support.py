@@ -37,9 +37,7 @@ def kincoords_to_coords(
 
 # TODO add a method to go from TERM (not method) keystrings
 # to required method (XScore) classes
-
-
-def get_full_score_system_for(packed_residue_system_or_system_stack):
+def get_full_score_system_for(packed_residue_system_or_system_stack, device):
     score_system = ScoreSystem.build_for(
         packed_residue_system_or_system_stack,
         {
@@ -73,6 +71,7 @@ def get_full_score_system_for(packed_residue_system_or_system_stack):
             "rama": 1.0,
             "omega": 0.48,
         },
+        device=device,
     )
     return score_system
 

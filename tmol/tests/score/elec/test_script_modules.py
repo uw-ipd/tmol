@@ -127,9 +127,10 @@ def test_elec_sweep(default_database, torch_device):
     scores = numpy.zeros(60)
     globals = torch.tensor([[D, D0, S, min_dis, max_dis]]).to(torch_device, torch.float)
     for i in range(60):
-        tcoords[0, 1, 2] = i / 10.0
-        batch_scores = score_elec_triu(tcoords, tpcs, tcoords, tpcs, tbpl, globals)
-        scores[i] = batch_scores
+        with torch.no_grad():
+            tcoords[0, 1, 2] = i / 10.0
+            batch_scores = score_elec_triu(tcoords, tpcs, tcoords, tpcs, tbpl, globals)
+            scores[i] = batch_scores
     numpy.testing.assert_allclose(scores, scores_expected, atol=1e-4)
 
 
@@ -140,7 +141,9 @@ def test_elec_intra(default_database, ubq_system, torch_device):
 
     val = op(s.tcoords, s.tpcs, s.trbpl)
 
-    torch.testing.assert_allclose(val.cpu(), -131.9225, atol=1e-4, rtol=1e-2)
+    torch.testing.assert_allclose(
+        val.cpu(), torch.tensor((-131.9225,), dtype=torch.float64), atol=1e-4, rtol=1e-2
+    )
 
 
 # torch intra gradcheck
@@ -173,4 +176,6 @@ def test_elec_inter(default_database, ubq_system, torch_device):
         s.trbpl[:, :part, part:],
     )
 
-    torch.testing.assert_allclose(val.cpu(), -44.6776, atol=1e-4, rtol=1e-2)
+    torch.testing.assert_allclose(
+        val.cpu(), torch.tensor((-44.6776,), dtype=torch.float64), atol=1e-4, rtol=1e-2
+    )

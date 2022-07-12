@@ -13,7 +13,7 @@ from tmol.tests.autograd import gradcheck
 
 def test_torsion_space_by_real_space_total_score(ubq_system):
 
-    score_system = get_full_score_system_for(ubq_system)
+    score_system = get_full_score_system_for(ubq_system, torch.device("cpu"))
     xyz_coords = coords_for(ubq_system, score_system)
 
     sys_kin = KinematicDescription.for_system(
@@ -32,7 +32,7 @@ def test_torsion_space_by_real_space_total_score(ubq_system):
 
 
 def test_torsion_space_coord_smoke(ubq_system):
-    score_system = get_full_score_system_for(ubq_system)
+    score_system = get_full_score_system_for(ubq_system, torch.device("cpu"))
 
     start_coords = coords_for(ubq_system, score_system)
 
@@ -75,6 +75,7 @@ def test_torsion_space_to_cart_space_gradcheck(ubq_res):
 
     def coords(minimizable_dofs):
         dofs_copy[:, :6] = minimizable_dofs
-        return kincoords_to_coords(dofs_copy, sys_kin.kintree, tsys.system_size)
+        full_coords = kincoords_to_coords(dofs_copy, sys_kin.kintree, tsys.system_size)
+        return full_coords[~torch.isnan(full_coords)]
 
-    assert gradcheck(coords, (start_dofs[:, :6],), eps=1e-1, atol=1e-6, rtol=2e-3)
+    gradcheck(coords, (start_dofs[:, :6],), eps=1e-1, atol=1e-6, rtol=2e-3)

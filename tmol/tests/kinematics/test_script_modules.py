@@ -74,19 +74,7 @@ def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
         dofsfull[:, :6] = dofs_x
         return kop(dofsfull)
 
-    result = eval_kin(minimizable_dofs)
-
-    # Extract results from torch/autograd/gradcheck.py
-    from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
-
-    (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
-        (minimizable_dofs,), result
-    )
-    numerical = get_numerical_jacobian(
-        eval_kin, minimizable_dofs, minimizable_dofs, eps=eps
-    )
-
-    torch.testing.assert_allclose(analytical, numerical, atol=atol, rtol=rtol)
+    torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=atol, rtol=rtol)
 
 
 def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system, torch_device):

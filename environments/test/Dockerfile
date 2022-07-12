@@ -1,7 +1,8 @@
-FROM nvidia/cuda:10.0-devel-ubuntu18.04
+FROM nvidia/cuda:11.3.1-devel-ubuntu20.04
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 ### Install basic packages
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update --fix-missing && \
     apt-get install -y wget bzip2 ca-certificates curl git jq software-properties-common && \
     apt-get clean && \
@@ -44,11 +45,12 @@ CMD [ "/bin/bash" ]
 
 ### Setup test environment
 
-COPY locks /environments/locks
+COPY env.yml /environments/env.yml
 
 # Install tmol environment
 # Configure a docker-entrypoint.sh to activate the tmol conda environment
-RUN conda create -n tmol --file /environments/locks/test-linux-64.lock && \
+RUN conda create -n tmol && \
+    conda env update -n tmol --file=/environments/env.yml && \
     conda clean -tipsy
 
 RUN echo "#!/bin/bash" > /docker-entrypoint.sh && \

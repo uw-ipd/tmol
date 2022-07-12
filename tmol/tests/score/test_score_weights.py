@@ -28,4 +28,4 @@ def test_score_weights_grad(ubq_res):
     def total_score(coords):
         return score_system.intra_total(coords)
 
-    assert gradcheck(total_score, (start_coords,), eps=1e-3, atol=2e-3, nfail=0)
+    gradcheck(total_score, (start_coords,), eps=1e-3, atol=2e-3, nfail=0)

@@ -12,7 +12,9 @@ from tmol.system.packed import PackedResidueSystemStack
 def test_setup(benchmark, systems_bysize, system_size, torch_device):
     @benchmark
     def setup():
-        score_system = get_full_score_system_for(systems_bysize[system_size])
+        score_system = get_full_score_system_for(
+            systems_bysize[system_size], device=torch_device
+        )
         coords = coords_for(systems_bysize[system_size], score_system)
         return score_system.intra_total(coords)
 
@@ -23,7 +25,9 @@ def test_setup(benchmark, systems_bysize, system_size, torch_device):
 @pytest.mark.benchmark(group="total_score_onepass")
 @pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
 def test_full(benchmark, systems_bysize, system_size, torch_device):
-    score_system = get_full_score_system_for(systems_bysize[system_size])
+    score_system = get_full_score_system_for(
+        systems_bysize[system_size], device=torch_device
+    )
     coords = coords_for(systems_bysize[system_size], score_system)
 
     @benchmark
@@ -39,7 +43,7 @@ def test_full(benchmark, systems_bysize, system_size, torch_device):
 @pytest.mark.parametrize("nstacks", [1, 3, 10, 30, 100])
 def test_stacked_full(benchmark, ubq_system, nstacks, torch_device):
     stack = PackedResidueSystemStack((ubq_system,) * nstacks)
-    score_system = get_full_score_system_for(stack)
+    score_system = get_full_score_system_for(stack, device=torch_device)
     coords = coords_for(stack, score_system)
 
     @benchmark

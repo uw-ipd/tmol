@@ -120,6 +120,6 @@ def test_lj_spotcheck(params, iname, jname):
     # Bonded path length weights
     ds = torch.linspace(0.0, 8.0, 100)
     torch.testing.assert_allclose(eval_lj(ds, 4), eval_lj(ds, 5) * 0.2)
-    torch.testing.assert_allclose(eval_lj(ds, 2), 0.0)
+    assert (eval_lj(ds, 2) == 0.0).all()
 
     torch.testing.assert_allclose(eval_lj(ds), eval_lj_alone(ds))

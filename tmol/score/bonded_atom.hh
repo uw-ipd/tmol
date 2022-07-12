@@ -42,7 +42,9 @@ struct IndexedBonds {
     def end()->BondJIter { return BondJIter{parent.bond_spans[i][1], parent}; }
   };
 
-  BoundAtomRange bound_to(Int i) const { return BoundAtomRange{i, *this}; }
+  EIGEN_DEVICE_FUNC BoundAtomRange bound_to(Int i) const {
+    return BoundAtomRange{i, *this};
+  }
 };
 
 #undef def
