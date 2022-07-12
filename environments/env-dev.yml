@@ -23,7 +23,7 @@ dependencies:
   - flake8==3.8.3
   - hypothesis==3.88.3
   - ipython==7.17.0
-  - itermplot=0.331
+  - itermplot==0.331
   - ninja=1.10.0
   - numba==0.50.1
   - numpy==1.19.1
