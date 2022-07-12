@@ -40,6 +40,7 @@ dependencies:
   - pyyaml==5.3.1
   - requests==2.24.0
   - scipy==1.1.0
+  - seaborn==0.10.1
   - sparse==0.3.1
   - toolz==0.10.0
   - typing_extensions==3.7.4.2
