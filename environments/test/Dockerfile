@@ -27,9 +27,6 @@ RUN echo "#!/bin/bash" >> /docker-entrypoint.sh && \
     echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
     chmod a+rx /docker-entrypoint.sh
 
-RUN cat /docker-entrypoint.sh
-RUN pwd
-
 # Inlined tini version in fetch url
 ENV TINI_VERSION v0.16.1
 RUN wget --quiet -O /usr/bin/tini https://github.com/krallin/tini/releases/download/v0.16.1/tini
@@ -61,6 +58,3 @@ RUN echo "#!/bin/bash" > /docker-entrypoint.sh && \
     echo "conda activate tmol" >> /docker-entrypoint.sh && \
     echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
     chmod a+rx /docker-entrypoint.sh
-
-RUN cat /docker-entrypoint.sh
-RUN pwd
