@@ -296,7 +296,7 @@ def test_forward_refold_w_jagged_system(ubq_res, torch_device):
     # bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
     system = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})
     bonds3 = BondedAtoms.get(system).bonds.astype(numpy.int32)
-    bonds2 = (numpy.arange(2, dtype=numpy.int32) * twoubq.systems[0].system_size)[
+    bonds2 = (numpy.arange(2, dtype=numpy.int32) * system_size)[
         bonds3[:, 0:1]
     ] + bonds3[:, 1:3]
     tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=numpy.int32)
@@ -328,11 +328,5 @@ def test_forward_refold_w_jagged_system(ubq_res, torch_device):
     dofs = inverseKin(kinforest, coords)
     refold_kincoords = forwardKin(kinforest, dofs)
     refold_kincoords[0, :] = 0
-
-    print("Coords")
-    print(coords.cpu().numpy())
-
-    print("refold coords")
-    print(refold_kincoords.cpu().numpy())
 
     numpy.testing.assert_allclose(coords.cpu(), refold_kincoords.cpu(), atol=1e-6)
