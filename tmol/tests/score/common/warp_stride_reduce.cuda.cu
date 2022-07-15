@@ -24,7 +24,7 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_stride_reduce_full(
   auto output_t = tmol::TPack<float, 1, tmol::Device::CUDA>::zeros({n_vals});
   auto output = output_t.view;
 
-  auto run_warp_stride_reduce([=] MGPU_DEVICE(int tid, int cta) {
+  auto run_warp_stride_reduce = ([=] MGPU_DEVICE(int tid, int cta) {
     auto g = cooperative_groups::coalesced_threads();
     float value = values[cta * 32 + tid];
     float reduced_value =
@@ -60,7 +60,7 @@ gpu_warp_stride_reduce_full_vec3(
       tmol::TPack<Vec<float, 3>, 1, tmol::Device::CUDA>::zeros({n_vals});
   auto output = output_t.view;
 
-  auto run_warp_stride_reduce([=] MGPU_DEVICE(int tid, int cta) {
+  auto run_warp_stride_reduce = ([=] MGPU_DEVICE(int tid, int cta) {
     auto g = cooperative_groups::coalesced_threads();
     Vec<float, 3> value = values[cta * 32 + tid];
     Vec<float, 3> reduced_value =
@@ -95,7 +95,7 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_stride_reduce_partial(
   auto output_t = tmol::TPack<float, 1, tmol::Device::CUDA>::zeros({n_vals});
   auto output = output_t.view;
 
-  auto run_warp_stride_reduce([=] MGPU_DEVICE(int tid, int cta) {
+  auto run_warp_stride_reduce = ([=] MGPU_DEVICE(int tid, int cta) {
     if (tid < 30) {
       auto g = cooperative_groups::coalesced_threads();
       float value = values[cta * 32 + tid];

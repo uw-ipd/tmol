@@ -51,7 +51,7 @@ class RefinedResidueType(RawResidueType):
             for ai, bi in map(map(self.atom_to_idx.get), self.bonds)
         )
 
-        bond_array = numpy.array(bondi)
+        bond_array = numpy.array(bondi, dtype=numpy.int32)
         bond_array.flags.writeable = False
         return bond_array
 
@@ -326,7 +326,7 @@ class Residue:
 # validate_args doesn't work with List ???!!!
 # @validate_args
 def find_simple_polymeric_connections(
-    res: List[Residue]
+    res: List[Residue],
 ) -> Sequence[Tuple[int, str, int, str]]:
     """
     return a list of (int,str,int,str) quadrouples that say residue

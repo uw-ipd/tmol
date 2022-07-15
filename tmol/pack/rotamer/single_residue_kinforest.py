@@ -81,25 +81,30 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
         kinforest = (
             KinematicBuilder()
             .append_connected_components(
-                to_roots=numpy.zeros((1,), dtype=numpy.int32),
+                numpy.zeros((1,), dtype=numpy.int32),
                 *KinematicBuilder.define_trees_with_prioritized_bonds(
                     roots=numpy.zeros((1,), dtype=numpy.int32),
                     potential_bonds=restype.bond_indices,
                     prioritized_bonds=torsion_pairs,
-                    all_bonds=restype.bond_indices,
-                    n_atoms_total=restype.n_atoms,
+                    # all_bonds=restype.bond_indices,
+                    # n_atoms_total=restype.n_atoms,
                 ),
                 to_jump_nodes=numpy.array([], dtype=numpy.int32),
             )
             .kinforest
         )
     else:
+        # print("bonds")
+        # print(restype.bond_indices.shape)
+        # print(restype.bond_indices.dtype)
         kinforest = (
             KinematicBuilder()
             .append_connected_components(
-                *KinematicBuilder.bonds_to_connected_component(
-                    roots=0, bonds=restype.bond_indices
-                )
+                numpy.zeros((1,), dtype=numpy.int32),
+                *KinematicBuilder.bonds_to_forest(
+                    roots=numpy.array([0], dtype=numpy.int32),
+                    bonds=restype.bond_indices,
+                ),
             )
             .kinforest
         )

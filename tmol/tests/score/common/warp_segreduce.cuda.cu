@@ -26,7 +26,7 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_full(
   auto output_t = tmol::TPack<float, 1, tmol::Device::CUDA>::zeros({n_vals});
   auto output = output_t.view;
 
-  auto run_warp_segreduce([=] MGPU_DEVICE(int tid, int cta) {
+  auto run_warp_segreduce = ([=] MGPU_DEVICE(int tid, int cta) {
     // auto g = cooperative_groups::coalesced_threads();
     float value = values[cta * 32 + tid];
     int flag = flags[cta * 32 + tid];
@@ -64,7 +64,7 @@ tmol::TPack<Vec<float, 3>, 1, tmol::Device::CUDA> gpu_warp_segreduce_full_vec3(
       tmol::TPack<Vec<float, 3>, 1, tmol::Device::CUDA>::zeros({n_vals});
   auto output = output_t.view;
 
-  auto run_warp_segreduce([=] MGPU_DEVICE(int tid, int cta) {
+  auto run_warp_segreduce = ([=] MGPU_DEVICE(int tid, int cta) {
     // auto g = cooperative_groups::coalesced_threads();
     Vec<float, 3> value = values[cta * 32 + tid];
     int flag = flags[cta * 32 + tid];
@@ -104,7 +104,7 @@ gpu_warp_segreduce_vec3_benchmark(
       tmol::TPack<Vec<float, 3>, 1, tmol::Device::CUDA>::zeros({n_vals});
   auto output = output_t.view;
 
-  auto run_warp_segreduce([=] MGPU_DEVICE(int tid, int cta) {
+  auto run_warp_segreduce = ([=] MGPU_DEVICE(int tid, int cta) {
     // auto g = cooperative_groups::coalesced_threads();
     Vec<float, 3> value = values[cta * 32 + tid];
     int flag = flags[cta * 32 + tid];
@@ -151,7 +151,7 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_partial(
   auto output_t = tmol::TPack<float, 1, tmol::Device::CUDA>::zeros({n_vals});
   auto output = output_t.view;
 
-  auto run_warp_segreduce([=] MGPU_DEVICE(int tid, int cta) {
+  auto run_warp_segreduce = ([=] MGPU_DEVICE(int tid, int cta) {
     unsigned int active_mask = __ballot_sync(0xFFFFFFFF, tid < 30);
     if (tid < 30) {
       // auto g = cooperative_groups::coalesced_threads();

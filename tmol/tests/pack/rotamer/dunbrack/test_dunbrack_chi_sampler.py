@@ -10,9 +10,17 @@ from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.device import TorchDevice
-from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
+
+# from tmol.score.coordinates import CartesianAtomicCoordinateProvider
+# from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
+
+from tmol.system.packed import PackedResidueSystemStack
+from tmol.score.modules.bases import ScoreSystem
+from tmol.score.modules.coords import coords_for
+from tmol.score.modules.stacked_system import StackedSystem
+from tmol.score.modules.device import TorchDevice
+
+# from tmol.score.device import TorchDevice
 from tmol.score.score_graph import score_graph
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
@@ -39,18 +47,28 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     )
     dun_params = resolver.sampling_db
 
-    @score_graph
-    class CartDunbrackGraph(
-        CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice
-    ):
-        pass
+    # @score_graph
+    # class CartDunbrackGraph(
+    #    CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice
+    # ):
+    #    pass
 
-    dun_graph = CartDunbrackGraph.build_for(
-        ubq_system, device=torch_device, parameter_database=default_database
-    )
+    # dun_graph = CartDunbrackGraph.build_for(
+    #    ubq_system, device=torch_device, parameter_database=default_database
+    # )
 
     # resolver = dun_graph.dun_resolve_indices
     # dun_params = resolver.sampling_db #
+
+    oneubq = PackedResidueSystemStack((ubq_system,))
+    stacked_score = ScoreSystem._build_with_modules(
+        oneubq, modules=(StackedSystem, TorchDevice), device=torch_device
+    )
+    coords = coords_for(oneubq, stacked_score)
+
+    # print("coords")
+    # print(coords.shape)
+    # return
 
     def _ti32(the_list):
         return torch.tensor(the_list, dtype=torch.int32, device=torch_device)
@@ -108,53 +126,46 @@ def test_sample_chi_for_rotamers_smoke(ubq_system, default_database, torch_devic
     prob_cumsum_limit_for_buildable_restype = _tf32(numpy.full((6,), 0.95, dtype=float))
     nchi_for_buildable_restype = _ti32([4, 2, 2, 2, 2, 3])
 
-    assert dun_graph.coords.device == dun_params.rotameric_prob_tables.device
-    assert dun_graph.coords.device == dun_params.rotprob_table_sizes.device
-    assert dun_graph.coords.device == dun_params.rotprob_table_strides.device
-    assert dun_graph.coords.device == dun_params.rotameric_mean_tables.device
-    assert dun_graph.coords.device == dun_params.rotameric_sdev_tables.device
-    assert dun_graph.coords.device == dun_params.rotmean_table_sizes.device
-    assert dun_graph.coords.device == dun_params.rotmean_table_strides.device
-    assert (
-        dun_graph.coords.device == dun_params.rotameric_meansdev_tableset_offsets.device
-    )
-    assert dun_graph.coords.device == dun_params.rotameric_bb_start.device
-    assert dun_graph.coords.device == dun_params.rotameric_bb_step.device
-    assert dun_graph.coords.device == dun_params.rotameric_bb_periodicity.device
-    assert dun_graph.coords.device == dun_params.semirotameric_tables.device
-    assert dun_graph.coords.device == dun_params.semirot_table_sizes.device
-    assert dun_graph.coords.device == dun_params.semirot_table_strides.device
-    assert dun_graph.coords.device == dun_params.semirot_start.device
-    assert dun_graph.coords.device == dun_params.semirot_step.device
-    assert dun_graph.coords.device == dun_params.semirot_periodicity.device
-    assert dun_graph.coords.device == dun_params.rotameric_rotind2tableind.device
-    assert dun_graph.coords.device == dun_params.semirotameric_rotind2tableind.device
-    assert dun_graph.coords.device == dun_params.all_chi_rotind2tableind.device
-    assert dun_graph.coords.device == dun_params.all_chi_rotind2tableind_offsets.device
-    assert dun_graph.coords.device == dun_params.n_rotamers_for_tableset.device
-    assert dun_graph.coords.device == dun_params.n_rotamers_for_tableset_offsets.device
-    assert dun_graph.coords.device == dun_params.sorted_rotamer_2_rotamer.device
-    assert dun_graph.coords.device == dun_params.nchi_for_table_set.device
-    assert dun_graph.coords.device == dun_params.rotwells.device
-    assert dun_graph.coords.device == ndihe_for_res.device
-    assert dun_graph.coords.device == dihedral_offset_for_res.device
-    assert dun_graph.coords.device == dihedral_atom_inds.device
-    assert dun_graph.coords.device == rottable_set_for_buildable_restype.device
-    assert dun_graph.coords.device == chi_expansion_for_buildable_restype.device
-    assert (
-        dun_graph.coords.device == non_dunbrack_expansion_for_buildable_restype.device
-    )
-    assert (
-        dun_graph.coords.device
-        == non_dunbrack_expansion_counts_for_buildable_restype.device
-    )
-    assert dun_graph.coords.device == prob_cumsum_limit_for_buildable_restype.device
-    assert dun_graph.coords.device == nchi_for_buildable_restype.device
+    assert coords.device == dun_params.rotameric_prob_tables.device
+    assert coords.device == dun_params.rotprob_table_sizes.device
+    assert coords.device == dun_params.rotprob_table_strides.device
+    assert coords.device == dun_params.rotameric_mean_tables.device
+    assert coords.device == dun_params.rotameric_sdev_tables.device
+    assert coords.device == dun_params.rotmean_table_sizes.device
+    assert coords.device == dun_params.rotmean_table_strides.device
+    assert coords.device == dun_params.rotameric_meansdev_tableset_offsets.device
+    assert coords.device == dun_params.rotameric_bb_start.device
+    assert coords.device == dun_params.rotameric_bb_step.device
+    assert coords.device == dun_params.rotameric_bb_periodicity.device
+    assert coords.device == dun_params.semirotameric_tables.device
+    assert coords.device == dun_params.semirot_table_sizes.device
+    assert coords.device == dun_params.semirot_table_strides.device
+    assert coords.device == dun_params.semirot_start.device
+    assert coords.device == dun_params.semirot_step.device
+    assert coords.device == dun_params.semirot_periodicity.device
+    assert coords.device == dun_params.rotameric_rotind2tableind.device
+    assert coords.device == dun_params.semirotameric_rotind2tableind.device
+    assert coords.device == dun_params.all_chi_rotind2tableind.device
+    assert coords.device == dun_params.all_chi_rotind2tableind_offsets.device
+    assert coords.device == dun_params.n_rotamers_for_tableset.device
+    assert coords.device == dun_params.n_rotamers_for_tableset_offsets.device
+    assert coords.device == dun_params.sorted_rotamer_2_rotamer.device
+    assert coords.device == dun_params.nchi_for_table_set.device
+    assert coords.device == dun_params.rotwells.device
+    assert coords.device == ndihe_for_res.device
+    assert coords.device == dihedral_offset_for_res.device
+    assert coords.device == dihedral_atom_inds.device
+    assert coords.device == rottable_set_for_buildable_restype.device
+    assert coords.device == chi_expansion_for_buildable_restype.device
+    assert coords.device == non_dunbrack_expansion_for_buildable_restype.device
+    assert coords.device == non_dunbrack_expansion_counts_for_buildable_restype.device
+    assert coords.device == prob_cumsum_limit_for_buildable_restype.device
+    assert coords.device == nchi_for_buildable_restype.device
 
     from tmol.pack.rotamer.dunbrack.compiled import dun_sample_chi
 
     retval = dun_sample_chi(
-        dun_graph.coords[0, :],
+        coords[0, :],
         dun_params.rotameric_prob_tables,
         dun_params.rotprob_table_sizes,
         dun_params.rotprob_table_strides,

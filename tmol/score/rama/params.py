@@ -78,6 +78,7 @@ class RamaParamResolver(ValidateAttrs):
         assert ntables > 0
         tablesize = rama_database.rama_tables[0].table.shape
         tables = torch.empty((ntables, *tablesize))
+
         for i, t_i in enumerate(rama_database.rama_tables):
             tables[i, ...] = BSplineInterpolation.from_coordinates(
                 torch.tensor(t_i.table, dtype=torch.float)

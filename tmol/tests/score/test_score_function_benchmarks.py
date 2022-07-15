@@ -34,7 +34,7 @@ def test_res_centric_score_benchmark_setup(
 @pytest.mark.parametrize("benchmark_pass", ["forward"])
 @pytest.mark.parametrize("n_poses", [10, 30, 100])
 @pytest.mark.benchmark(group="res_centric_score_components")
-def test_res_centric_score_benchmark(
+def dont_test_res_centric_score_benchmark(
     benchmark,
     benchmark_pass,
     energy_term,
