@@ -573,9 +573,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
            int block_type,
            int tid,
            int tile_ind,
-           Real *shared_coords,
-           LJLKTypeParams<Real> *params,
-           unsigned char *heavy_inds) {
+           Real *__restrict__ shared_coords,
+           LJLKTypeParams<Real> *__restrict__ params,
+           unsigned char *__restrict__ heavy_inds) {
         mgpu::mem_to_shared<TILE_SIZE, 3>(
             reinterpret_cast<Real *>(
                 &coords[pose_ind][block_coord_offset + TILE_SIZE * tile_ind]),
@@ -596,41 +596,42 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         }
       });
 
-  auto load_block_into_shared = ([=] MGPU_DEVICE(
-                                     int pose_ind,
-                                     int block_coord_offset,
-                                     int n_atoms,
-                                     int n_atoms_to_load,
-                                     int block_type,
-                                     int n_conn,
-                                     int tid,
-                                     int tile_ind,
-                                     bool count_pair_striking_dist,
-                                     unsigned char *conn_ats,
-                                     Real *shared_coords,
-                                     LJLKTypeParams<Real> *params,
-                                     unsigned char *heavy_inds,
-                                     unsigned char *path_dist  // to conn
-                                 ) {
-    load_block_coords_and_params_into_shared(
-        pose_ind,
-        block_coord_offset,
-        n_atoms_to_load,
-        block_type,
-        tid,
-        tile_ind,
-        shared_coords,
-        params,
-        heavy_inds);
-    if (tid < n_atoms_to_load && count_pair_striking_dist) {
-      int const atid = TILE_SIZE * tile_ind + tid;
-      for (int j = 0; j < n_conn; ++j) {
-        unsigned char ij_path_dist =
-            block_type_path_distance[block_type][conn_ats[j]][atid];
-        path_dist[j * TILE_SIZE + tid] = ij_path_dist;
-      }
-    }
-  });
+  auto load_block_into_shared =
+      ([=] MGPU_DEVICE(
+           int pose_ind,
+           int block_coord_offset,
+           int n_atoms,
+           int n_atoms_to_load,
+           int block_type,
+           int n_conn,
+           int tid,
+           int tile_ind,
+           bool count_pair_striking_dist,
+           unsigned char *__restrict__ conn_ats,
+           Real *__restrict__ shared_coords,
+           LJLKTypeParams<Real> *__restrict__ params,
+           unsigned char *__restrict__ heavy_inds,
+           unsigned char *__restrict__ path_dist  // to conn
+       ) {
+        load_block_coords_and_params_into_shared(
+            pose_ind,
+            block_coord_offset,
+            n_atoms_to_load,
+            block_type,
+            tid,
+            tile_ind,
+            shared_coords,
+            params,
+            heavy_inds);
+        if (tid < n_atoms_to_load && count_pair_striking_dist) {
+          int const atid = TILE_SIZE * tile_ind + tid;
+          for (int j = 0; j < n_conn; ++j) {
+            unsigned char ij_path_dist =
+                block_type_path_distance[block_type][conn_ats[j]][atid];
+            path_dist[j * TILE_SIZE + tid] = ij_path_dist;
+          }
+        }
+      });
 
   auto eval_energies = ([=] MGPU_DEVICE(int tid, int cta) {
     typedef typename launch_t::sm_ptx params_t;

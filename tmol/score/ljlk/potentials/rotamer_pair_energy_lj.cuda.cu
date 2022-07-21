@@ -116,11 +116,17 @@ template <
     typename Real,
     typename Int>
 auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
-    TView<Vec<Real, 3>, 2, D> context_coords,
-    TView<Int, 2, D> context_block_type,
-    TView<Vec<Real, 3>, 2, D> alternate_coords,
-    TView<Vec<Int, 3>, 1, D>
-        alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
+    TView<Vec<Real, 3>, 2, D>
+        context_coords,  // n-contexts x max-n-atoms-per-context
+    TView<Int, 2, D>
+        context_coord_offsets,  // n-contexts x max-n-blocks-per-context
+    TView<Int, 2, D>
+        context_block_type,  // n-contexts x max-n-blocks-per-context
+    TView<Vec<Real, 3>, 1, D>
+        alternate_coords,  // max-n-atoms-in-all-alt-coord-contexts
+    TView<Int, 1, D> alternate_coord_offsets,  // n-alternate-blocks
+    TView<Vec<Int, 3>, 1, D> alternate_ids,    // n-alternate-blocks
+    // 0 == context id; 1 == block id; 2 == block type
 
     // which system does a given context belong to
     TView<Int, 1, D> context_system_ids,
@@ -181,9 +187,11 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     ) -> void {
   int const n_systems = system_min_bond_separation.size(0);
   int const n_contexts = context_coords.size(0);
-  int64_t const n_alternate_blocks = alternate_coords.size(0);
-  int const max_n_blocks = context_coords.size(1);
-  int64_t const max_n_atoms = context_coords.size(2);
+  // int64_t const n_alternate_blocks = alternate_coords.size(0);
+  int64_t const n_alternate_blocks = alternate_coord_offsets.size(0);
+  int const max_n_blocks = context_coord_offsets.size(1);
+  // int64_t const max_n_atoms_per_block = context_coords.size(2);
+  int64_t const max_n_atoms_per_block = block_type_atom_types.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
@@ -191,10 +199,12 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   int64_t const n_atom_types = type_params.size(0);
   int64_t const max_n_tiles = block_type_n_heavy_atoms_in_tile.size(2);
 
+  // Size assertions
+  assert(context_coord_offsets.size(0) == n_contexts);
   assert(context_block_type.size(0) == n_contexts);
   assert(context_block_type.size(1) == max_n_blocks);
 
-  assert(alternate_coords.size(1) == max_n_atoms);
+  // assert(alternate_coords.size(1) == max_n_atoms);
   assert(alternate_ids.size(0) == n_alternate_blocks);
 
   assert(context_system_ids.size(0) == n_contexts);
@@ -220,8 +230,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(block_type_n_interblock_bonds.size(0) == n_block_types);
   assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
   assert(block_type_path_distance.size(0) == n_block_types);
-  assert(block_type_path_distance.size(1) == max_n_atoms);
-  assert(block_type_path_distance.size(2) == max_n_atoms);
+  assert(block_type_path_distance.size(1) == max_n_atoms_per_block);
+  assert(block_type_path_distance.size(2) == max_n_atoms_per_block);
 
   assert(lj_lk_weights.size(0) == 2);
   assert(max_n_interblock_bonds <= MAX_N_CONN);
@@ -241,10 +251,10 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            int tid,
            int alt_start_atom,
            int neighb_start_atom,
-           Real *alt_coords,                     // shared
-           Real *neighb_coords,                  // shared
-           LJLKTypeParams<Real> *alt_params,     // shared
-           LJLKTypeParams<Real> *neighb_params,  // shared
+           Real *__restrict__ alt_coords,                     // shared
+           Real *__restrict__ neighb_coords,                  // shared
+           LJLKTypeParams<Real> *__restrict__ alt_params,     // shared
+           LJLKTypeParams<Real> *__restrict__ neighb_params,  // shared
            int const max_important_bond_separation,
            int const min_separation,
 
@@ -252,9 +262,9 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            int const neighb_n_atoms,
            int const alt_n_conn,
            int const neighb_n_conn,
-           unsigned char const *alt_path_dist,     // shared
-           unsigned char const *neighb_path_dist,  // shared
-           unsigned char const *conn_seps) {       // shared
+           unsigned char const *__restrict__ alt_path_dist,     // shared
+           unsigned char const *__restrict__ neighb_path_dist,  // shared
+           unsigned char const *__restrict__ conn_seps) {       // shared
         Real score_total = 0;
         Real coord1[3];
         Real coord2[3];
@@ -317,21 +327,21 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            int tid,
            int alt_n_heavy,
            int neighb_n_heavy,
-           Real *alt_coords,                        // shared
-           Real *neighb_coords,                     // shared
-           LJLKTypeParams<Real> *alt_params,        // shared
-           LJLKTypeParams<Real> *neighb_params,     // shared
-           unsigned char const *alt_heavy_inds,     // shared
-           unsigned char const *neighb_heavy_inds,  // shared
+           Real *__restrict__ alt_coords,                        // shared
+           Real *__restrict__ neighb_coords,                     // shared
+           LJLKTypeParams<Real> *__restrict__ alt_params,        // shared
+           LJLKTypeParams<Real> *__restrict__ neighb_params,     // shared
+           unsigned char const *__restrict__ alt_heavy_inds,     // shared
+           unsigned char const *__restrict__ neighb_heavy_inds,  // shared
            int const max_important_bond_separation,
            int const min_separation,
            int const alt_n_atoms,
            int const neighb_n_atoms,
            int const alt_n_conn,
            int const neighb_n_conn,
-           unsigned char const *alt_path_dist,     // shared
-           unsigned char const *neighb_path_dist,  // shared
-           unsigned char const *conn_seps) {       // shared
+           unsigned char const *__restrict__ alt_path_dist,     // shared
+           unsigned char const *__restrict__ neighb_path_dist,  // shared
+           unsigned char const *__restrict__ conn_seps) {       // shared
         Real score_total = 0;
         // return score_total;
 
@@ -529,22 +539,23 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   auto load_alt_coords_and_params_into_shared =
       ([=] MGPU_DEVICE(
            int rot_ind,
+           int rot_coord_offset,
            int n_atoms,
            int n_atoms_to_load,
            int block_type,
            int tid,
            int tile_ind,
            bool new_context_ind,
-           Real *coords,
-           LJLKTypeParams<Real> *params,
-           unsigned char *heavy_inds) {
+           Real *__restrict__ shared_coords,
+           LJLKTypeParams<Real> *__restrict__ params,
+           unsigned char *__restrict__ heavy_inds) {
         if (new_context_ind || n_atoms > TILE_SIZE) {
           mgpu::mem_to_shared<TILE_SIZE, 3>(
               reinterpret_cast<Real *>(
-                  &alternate_coords[rot_ind][TILE_SIZE * tile_ind]),
+                  &alternate_coords[rot_coord_offset + TILE_SIZE * tile_ind]),
               tid,
               n_atoms_to_load * 3,
-              coords,
+              shared_coords,
               false);
         }
         // if (tid < n_atoms_to_load){
@@ -564,44 +575,47 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         }
       });
 
-  auto load_alt_into_shared = ([=] MGPU_DEVICE(
-                                   int rot_ind,
-                                   int n_atoms,
-                                   int n_atoms_to_load,
-                                   int block_type,
-                                   int n_conn,
-                                   int tid,
-                                   int tile_ind,
-                                   bool new_context_ind,
-                                   bool count_pair_data_loaded,
-                                   bool count_pair_striking_dist,
-                                   unsigned char *conn_ats,
-                                   Real *coords,
-                                   LJLKTypeParams<Real> *params,
-                                   unsigned char *heavy_inds,
-                                   unsigned char *path_dist  // to conn
-                               ) {
-    load_alt_coords_and_params_into_shared(
-        rot_ind,
-        n_atoms,
-        n_atoms_to_load,
-        block_type,
-        tid,
-        tile_ind,
-        new_context_ind,
-        coords,
-        params,
-        heavy_inds);
-    if ((n_atoms > TILE_SIZE || !count_pair_data_loaded)
-        && tid < n_atoms_to_load && count_pair_striking_dist) {
-      int const atid = TILE_SIZE * tile_ind + tid;
-      for (int j = 0; j < n_conn; ++j) {
-        unsigned char ij_path_dist =
-            block_type_path_distance[block_type][conn_ats[j]][atid];
-        path_dist[j * TILE_SIZE + tid] = ij_path_dist;
-      }
-    }
-  });
+  auto load_alt_into_shared =
+      ([=] MGPU_DEVICE(
+           int rot_ind,
+           int rot_coord_offset,
+           int n_atoms,
+           int n_atoms_to_load,
+           int block_type,
+           int n_conn,
+           int tid,
+           int tile_ind,
+           bool new_context_ind,
+           bool count_pair_data_loaded,
+           bool count_pair_striking_dist,
+           unsigned char *__restrict__ conn_ats,
+           Real *__restrict__ shared_coords,
+           LJLKTypeParams<Real> *__restrict__ params,
+           unsigned char *__restrict__ heavy_inds,
+           unsigned char *__restrict__ path_dist  // to conn
+       ) {
+        load_alt_coords_and_params_into_shared(
+            rot_ind,
+            rot_coord_offset,
+            n_atoms,
+            n_atoms_to_load,
+            block_type,
+            tid,
+            tile_ind,
+            new_context_ind,
+            shared_coords,
+            params,
+            heavy_inds);
+        if ((n_atoms > TILE_SIZE || !count_pair_data_loaded)
+            && tid < n_atoms_to_load && count_pair_striking_dist) {
+          int const atid = TILE_SIZE * tile_ind + tid;
+          for (int j = 0; j < n_conn; ++j) {
+            unsigned char ij_path_dist =
+                block_type_path_distance[block_type][conn_ats[j]][atid];
+            path_dist[j * TILE_SIZE + tid] = ij_path_dist;
+          }
+        }
+      });
 
   auto eval_energies = ([=] MGPU_DEVICE(int tid, int cta) {
     typedef typename launch_t::sm_ptx params_t;
@@ -1315,7 +1329,7 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
       TView<Int, 2, D> block_type_heavy_atoms_in_tile,
 
       // what are the atom types for these atoms
-      // Dimsize: n_block_types x max_n_atoms
+      // Dimsize: n_block_types x max_n_atoms_per_block
       TView<Int, 2, D> block_type_atom_types,
 
       // how many inter-block chemical bonds are there
@@ -1327,7 +1341,7 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
       TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
 
       // what is the path distance between pairs of atoms in the block
-      // Dimsize: n_block_types x max_n_atoms x max_n_atoms
+      // Dimsize: n_block_types x max_n_atoms_per_block x max_n_atoms_per_block
       TView<Int, 3, D> block_type_path_distance,
       //////////////////////
 
@@ -1475,7 +1489,7 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 2, D> block_type_heavy_atoms_in_tile,
 
     // what are the atom types for these atoms
-    // Dimsize: n_block_types x max_n_atoms
+    // Dimsize: n_block_types x max_n_atoms_per_block
     TView<Int, 2, D> block_type_atom_types,
 
     // how many inter-block chemical bonds are there
@@ -1487,7 +1501,7 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
 
     // what is the path distance between pairs of atoms in the block
-    // Dimsize: n_block_types x max_n_atoms x max_n_atoms
+    // Dimsize: n_block_types x max_n_atoms_per_block x max_n_atoms_per_block
     TView<Int, 3, D> block_type_path_distance,
     //////////////////////
 

@@ -109,7 +109,7 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             global_params=self.global_params,
         )
 
-    def inter_module(
+    def render_inter_module(
         self,
         packed_block_types: PackedBlockTypes,
         systems: PoseStack,

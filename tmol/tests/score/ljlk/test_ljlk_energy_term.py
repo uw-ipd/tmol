@@ -88,95 +88,95 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
                 assert neighbor_list[i, j, k] == -1
 
 
-# tempdef test_inter_module(ubq_res, default_database, torch_device):
-# temp    #
-# temp    # torch_device = torch.device("cpu")
-# temp
-# temp    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
-# temp
-# temp    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
-# temp    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
-# temp    poses = PoseStack.from_poses([p1, p2], torch_device)
-# temp
-# temp    # nab the ca coords for these residues
-# temp    bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
-# temp    for i in range(2):
-# temp        for j in range(4 if i == 0 else 6):
-# temp            bounding_spheres[i, j, :3] = ubq_res[j].coords[2, :]
-# temp    bounding_spheres[:, :, 3] = 3.0
-# temp    bounding_spheres = torch.tensor(
-# temp        bounding_spheres, dtype=torch.float32, device=torch_device
-# temp    )
-# temp
-# temp    # five trajectories for each system
-# temp    context_system_ids = torch.floor_divide(
-# temp        torch.arange(10, dtype=torch.int32, device=torch_device), 5
-# temp    )
-# temp
-# temp    weights = {"lj": 1.0, "lk": 1.0}
-# temp    for bt in poses.packed_block_types.active_block_types:
-# temp        ljlk_energy.setup_block_type(bt)
-# temp    ljlk_energy.setup_packed_block_types(poses.packed_block_types)
-# temp    ljlk_energy.setup_poses(poses)
-# temp    inter_module = ljlk_energy.inter_module(
-# temp        poses.packed_block_types, poses, context_system_ids, bounding_spheres, weights
-# temp    )
-# temp
-# temp    max_n_atoms = poses.packed_block_types.max_n_atoms
-# temp    # ok, let's create the contexts
-# temp    context_coords = torch.zeros(
-# temp        (10, 6, max_n_atoms, 3), dtype=torch.float32, device=torch_device
-# temp    )
-# temp    # this should be fine
-# temp    poses_expanded_coords, real_expanded_pose_ats = poses.expand_coords()
-# temp    context_coords[:5, :, :, :] = poses_expanded_coords[0:1]
-# temp    context_coords[5:, :, :, :] = poses_expanded_coords[1:2]
-# temp
-# temp    context_block_type = torch.zeros((10, 6), dtype=torch.int32, device=torch_device)
-# temp    context_block_type[:5, :] = torch.tensor(
-# temp        poses.block_type_ind[0:1, :], device=torch_device
-# temp    )
-# temp    context_block_type[5:, :] = torch.tensor(
-# temp        poses.block_type_ind[1:2, :], device=torch_device
-# temp    )
-# temp
-# temp    alternate_coords = torch.zeros(
-# temp        (20, max_n_atoms, 3), dtype=torch.float32, device=torch_device
-# temp    )
-# temp    alternate_coords[:10, :, :] = poses_expanded_coords[0:1, 1:2, :]
-# temp    alternate_coords[10:, :, :] = poses_expanded_coords[1:2, 3:4, :]
-# temp
-# temp    alternate_ids = torch.zeros((20, 3), dtype=torch.int32, device=torch_device)
-# temp    alternate_ids[:, 0] = torch.floor_divide(torch.arange(20, dtype=torch.int32), 2)
-# temp    alternate_ids[:10, 1] = 1
-# temp    alternate_ids[10:, 1] = 3
-# temp    alternate_ids[:10, 2] = torch.tensor(
-# temp        poses.block_type_ind[0, 1], device=torch_device
-# temp    )
-# temp    alternate_ids[10:, 2] = torch.tensor(
-# temp        poses.block_type_ind[1, 3], device=torch_device
-# temp    )
-# temp
-# temp    # TEMP! Just score one residue
-# temp    # alternate_coords = alternate_coords[15:16]
-# temp    # alternate_ids = alternate_ids[15:16]
-# temp
-# temp    def run_once():
-# temp        rpes = inter_module.go(
-# temp            context_coords, context_block_type, alternate_coords, alternate_ids
-# temp        )
-# temp        assert rpes is not None
-# temp        # print()
-# temp        # print(rpes)
-# temp
-# temp    run_once()
-# temp    run_once()
-# temp
-# temp    # rpes2 = inter_module.go(
-# temp    #     context_coords, context_block_type, alternate_coords, alternate_ids
-# temp    # )
-# temp    # assert rpes2 is not None
-# temp    # print(rpes2)
+def test_render_inter_module(ubq_res, default_database, torch_device):
+    #
+    # torch_device = torch.device("cpu")
+
+    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
+
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
+    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
+    poses = PoseStack.from_poses([p1, p2], torch_device)
+
+    # nab the ca coords for these residues
+    bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
+    for i in range(2):
+        for j in range(4 if i == 0 else 6):
+            bounding_spheres[i, j, :3] = ubq_res[j].coords[2, :]
+    bounding_spheres[:, :, 3] = 3.0
+    bounding_spheres = torch.tensor(
+        bounding_spheres, dtype=torch.float32, device=torch_device
+    )
+
+    # five trajectories for each system
+    context_system_ids = torch.floor_divide(
+        torch.arange(10, dtype=torch.int32, device=torch_device), 5
+    )
+
+    weights = {"lj": 1.0, "lk": 1.0}
+    for bt in poses.packed_block_types.active_block_types:
+        ljlk_energy.setup_block_type(bt)
+    ljlk_energy.setup_packed_block_types(poses.packed_block_types)
+    ljlk_energy.setup_poses(poses)
+    inter_module = ljlk_energy.render_inter_module(
+        poses.packed_block_types, poses, context_system_ids, bounding_spheres, weights
+    )
+
+    max_n_atoms = poses.packed_block_types.max_n_atoms
+    # ok, let's create the contexts
+    context_coords = torch.zeros(
+        (10, 6, max_n_atoms, 3), dtype=torch.float32, device=torch_device
+    )
+    # this should be fine
+    poses_expanded_coords, real_expanded_pose_ats = poses.expand_coords()
+    context_coords[:5, :, :, :] = poses_expanded_coords[0:1]
+    context_coords[5:, :, :, :] = poses_expanded_coords[1:2]
+
+    context_block_type = torch.zeros((10, 6), dtype=torch.int32, device=torch_device)
+    context_block_type[:5, :] = torch.tensor(
+        poses.block_type_ind[0:1, :], device=torch_device
+    )
+    context_block_type[5:, :] = torch.tensor(
+        poses.block_type_ind[1:2, :], device=torch_device
+    )
+
+    alternate_coords = torch.zeros(
+        (20, max_n_atoms, 3), dtype=torch.float32, device=torch_device
+    )
+    alternate_coords[:10, :, :] = poses_expanded_coords[0:1, 1:2, :]
+    alternate_coords[10:, :, :] = poses_expanded_coords[1:2, 3:4, :]
+
+    alternate_ids = torch.zeros((20, 3), dtype=torch.int32, device=torch_device)
+    alternate_ids[:, 0] = torch.floor_divide(torch.arange(20, dtype=torch.int32), 2)
+    alternate_ids[:10, 1] = 1
+    alternate_ids[10:, 1] = 3
+    alternate_ids[:10, 2] = torch.tensor(
+        poses.block_type_ind[0, 1], device=torch_device
+    )
+    alternate_ids[10:, 2] = torch.tensor(
+        poses.block_type_ind[1, 3], device=torch_device
+    )
+
+    # TEMP! Just score one residue
+    # alternate_coords = alternate_coords[15:16]
+    # alternate_ids = alternate_ids[15:16]
+
+    def run_once():
+        rpes = inter_module.go(
+            context_coords, context_block_type, alternate_coords, alternate_ids
+        )
+        assert rpes is not None
+        # print()
+        # print(rpes)
+
+    run_once()
+    run_once()
+
+    # rpes2 = inter_module.go(
+    #     context_coords, context_block_type, alternate_coords, alternate_ids
+    # )
+    # assert rpes2 is not None
+    # print(rpes2)
 
 
 # temp@pytest.mark.benchmark(group="time_rpe")
