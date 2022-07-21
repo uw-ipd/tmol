@@ -56,7 +56,9 @@ def torsional_energy_network_from_system(
 ):
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(
-        residue_system.bonds, residue_system.torsion_metadata
+        system_size=residue_system.system_size,
+        bonds=residue_system.bonds,
+        torsion_metadata=(residue_system.torsion_metadata,),
     )
 
     if not device:

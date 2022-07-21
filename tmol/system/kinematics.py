@@ -36,6 +36,8 @@ class KinematicDescription:
         within the system. ``KinForest.id`` is set of the atom index of the
         coordinate. Note that this is a covering of indices within the system
         "non-atom" ids are not present in the tree.
+
+        "system size" is the maximum number of atoms in any structure in the stack
         """
 
         if bonds.shape[1] == 2:

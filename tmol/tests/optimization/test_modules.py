@@ -91,7 +91,7 @@ def test_dof_network_min_masked(ubq_system, torch_device):
     score_system = get_full_score_system_for(ubq_system, torch_device)
 
     sys_kin = KinematicDescription.for_system(
-        ubq_system.bonds, ubq_system.torsion_metadata
+        ubq_system.system_size, ubq_system.bonds, (ubq_system.torsion_metadata,)
     )
     kinforest = sys_kin.kinforest
     dofs = sys_kin.extract_kincoords(ubq_system.coords)
