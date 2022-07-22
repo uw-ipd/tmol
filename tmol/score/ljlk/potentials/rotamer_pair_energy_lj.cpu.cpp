@@ -20,9 +20,11 @@ class LJLKRPECPUCalc : public pack::sim_anneal::compiled::RPECalc
 {
 public:
   LJLKRPECPUCalc(
-    TView<Vec<Real, 3>, 3, D> context_coords,
+    TView<Vec<Real, 3>, 2, D> context_coords,
+    TView<Int, 2, D> context_coord_offsets,
     TView<Int, 2, D> context_block_type,
-    TView<Vec<Real, 3>, 2, D> alternate_coords,
+    TView<Vec<Real, 3>, 1, D> alternate_coords,
+    TView<Int, 1, D> alternate_coord_offsets,
     TView<Vec<Int, 3>, 1, D>
         alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
@@ -82,8 +84,10 @@ public:
     TView<int64_t, 1, tmol::Device::CPU> annealer_event
   ):
     context_coords_(context_coords),
+    context_coord_offsets_(context_coord_offsets),
     context_block_type_(context_block_type),
     alternate_coords_(alternate_coords),
+    alternate_coord_offsets_(alternate_coord_offsets),
     alternate_ids_(alternate_ids),
     context_system_ids_(context_system_ids),
     system_min_bond_separation_(system_min_bond_separation),
@@ -109,8 +113,10 @@ public:
   calc_energies() override {
     LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       context_coords_,
+      context_coord_offsets_,
       context_block_type_,
       alternate_coords_,
+      alternate_coord_offsets_,
       alternate_ids_,
       context_system_ids_,
       system_min_bond_separation_,
@@ -137,9 +143,11 @@ public:
     
   
 private:
-  TView<Vec<Real, 3>, 3, D> context_coords_;
+  TView<Vec<Real, 3>, 2, D> context_coords_;
+  TView<Int, 2, D> context_coord_offsets_;
   TView<Int, 2, D> context_block_type_;
-  TView<Vec<Real, 3>, 2, D> alternate_coords_;
+  TView<Vec<Real, 3>, 1, D> alternate_coords_;
+  TView<Int, 1, D> alternate_coord_offsets_;
   TView<Vec<Int, 3>, 1, D> alternate_ids_;
 
   TView<Int, 1, D> context_system_ids_;
@@ -180,9 +188,11 @@ template <
     typename Real,
     typename Int>
 auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
-    TView<Vec<Real, 3>, 3, D> context_coords,
+    TView<Vec<Real, 3>, 2, D> context_coords,
+    TView<Int, 2, D> context_coord_offsets,
     TView<Int, 2, D> context_block_type,
-    TView<Vec<Real, 3>, 2, D> alternate_coords,
+    TView<Vec<Real, 3>, 1, D> alternate_coords,
+    TView<Int, 1, D> alternate_coord_offsets,
     TView<Vec<Int, 3>, 1, D>
         alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
@@ -250,8 +260,10 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
   SimAnnealer * sim_annealer = reinterpret_cast< SimAnnealer * > (annealer_uint);
   std::shared_ptr< RPECalc > calc = std::make_shared<LJLKRPECPUCalc<DeviceDispatch, D, Real, Int>>(
     context_coords,
+    context_coord_offsets,
     context_block_type,
     alternate_coords,
+    alternate_coord_offsets,
     alternate_ids,
     context_system_ids,
     system_min_bond_separation,

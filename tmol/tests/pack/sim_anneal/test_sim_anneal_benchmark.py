@@ -92,7 +92,7 @@ class SimAEngine:
 # @pytest.mark.parametrize("n_poses", [10, 30, 100, 300, 1000])
 @pytest.mark.parametrize("n_poses", [100])  # 300
 @pytest.mark.parametrize("n_components", [1])
-def test_run_simA_benchmark(
+def temp_dont_test_run_simA_benchmark(
     benchmark,
     n_poses,
     n_components,

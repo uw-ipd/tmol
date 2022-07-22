@@ -35,9 +35,11 @@ template <
     typename Real,
     typename Int>
 auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
-    TView<Vec<Real, 3>, 3, D> context_coords,
+    TView<Vec<Real, 3>, 2, D> context_coords,
+    TView<Int, 2, D> context_coord_offsets,
     TView<Int, 2, D> context_block_type,
-    TView<Vec<Real, 3>, 2, D> alternate_coords,
+    TView<Vec<Real, 3>, 1, D> alternate_coords,
+    TView<Int, 1, D> alternate_coord_offsets,
     TView<Vec<Int, 3>, 1, D>
         alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
@@ -99,15 +101,20 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     ) -> void {
   int const n_systems = system_min_bond_separation.size(0);
   int const n_contexts = context_coords.size(0);
-  int64_t const n_alternate_blocks = alternate_coords.size(0);
-  int const max_n_blocks = context_coords.size(1);
-  int64_t const max_n_atoms = context_coords.size(2);
+  // int64_t const n_alternate_blocks = alternate_coords.size(0);
+  int64_t const n_alternate_blocks = alternate_coord_offsets.size(0);
+  int const max_n_blocks = context_coord_offsets.size(1);
+  // int64_t const max_n_atoms_per_block = context_coords.size(2);
+  int64_t const max_n_atoms_per_block = block_type_atom_types.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
   int64_t const max_n_neighbors = system_neighbor_list.size(2);
 
-  assert(alternate_coords.size(1) == max_n_atoms);
+  // Size assertions
+  assert(context_coord_offsets.size(0) == n_contexts);
+  assert(context_block_type.size(0) == n_contexts);
+  assert(context_block_type.size(1) == max_n_blocks);
   assert(alternate_ids.size(0) == n_alternate_blocks);
   assert(context_coords.size(0) == context_block_type.size(0));
   assert(context_system_ids.size(0) == n_contexts);
@@ -124,12 +131,12 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(system_neighbor_list.size(1) == max_n_blocks);
 
   assert(block_type_atom_types.size(0) == n_block_types);
-  assert(block_type_atom_types.size(1) == max_n_atoms);
+  assert(block_type_atom_types.size(1) == max_n_atoms_per_block);
   assert(block_type_n_interblock_bonds.size(0) == n_block_types);
   assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
   assert(block_type_path_distance.size(0) == n_block_types);
-  assert(block_type_path_distance.size(1) == max_n_atoms);
-  assert(block_type_path_distance.size(2) == max_n_atoms);
+  assert(block_type_path_distance.size(1) == max_n_atoms_per_block);
+  assert(block_type_path_distance.size(2) == max_n_atoms_per_block);
 
   assert(lj_lk_weights.size(0) == 2);
 
@@ -215,12 +222,14 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
       at1 = alt_atom_ind;
       at2 = neighb_atom_ind;
-      coord1 = alternate_coords[alt_ind][alt_atom_ind];
-      coord2 = context_coords[alt_context][neighb_block_ind][neighb_atom_ind];
+      coord1 =
+          alternate_coords[alternate_coord_offsets[alt_ind] + alt_atom_ind];
+      coord2 =
+          context_coords[alt_context]
+                        [context_coord_offsets[alt_context][neighb_block_ind]
+                         + neighb_atom_ind];
 
-      dist = distance<Real>::V(
-          context_coords[alt_context][neighb_block_ind][neighb_atom_ind],
-          alternate_coords[alt_ind][alt_atom_ind]);
+      dist = distance<Real>::V(coord1, coord2);
       atom_1_type = block_type_atom_types[alt_block_type][alt_atom_ind];
       atom_2_type = block_type_atom_types[neighb_block_type][neighb_atom_ind];
     } else {
@@ -243,15 +252,13 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       //   return;
       // }
 
-      coord1 = alternate_coords[alt_ind][atom_1_ind];
-      coord2 = alternate_coords[alt_ind][atom_2_ind];
+      coord1 = alternate_coords[alternate_coord_offsets[alt_ind] + atom_1_ind];
+      coord2 = alternate_coords[alternate_coord_offsets[alt_ind] + atom_2_ind];
       if (atom_1_ind >= atom_2_ind) {
         // count each intra-block interaction only once
         return;
       }
-      dist = distance<Real>::V(
-          alternate_coords[alt_ind][atom_1_ind],
-          alternate_coords[alt_ind][atom_2_ind]);
+      dist = distance<Real>::V(coord1, coord2);
       separation =
           block_type_path_distance[alt_block_type][atom_1_ind][atom_2_ind];
       atom_1_type = block_type_atom_types[alt_block_type][atom_1_ind];
@@ -308,7 +315,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   DeviceDispatch<D>::foreach_combination_triple(
       n_alternate_blocks,
       max_n_neighbors,
-      max_n_atoms * max_n_atoms,
+      max_n_atoms_per_block * max_n_atoms_per_block,
       eval_atom_pair);
 
 #ifdef __CUDACC__
@@ -320,9 +327,9 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   // (std::chrono::system_clock::now() - wcts);
   //
   // std::cout << n_systems << " " << n_contexts << " " <<n_alternate_blocks <<
-  // " "; std::cout << n_alternate_blocks * max_n_neighbors * max_n_atoms *
-  // max_n_atoms << " "; std::cout << "runtime? " << ((double)stop_time -
-  // start_time) / CLOCKS_PER_SEC
+  // " "; std::cout << n_alternate_blocks * max_n_neighbors *
+  // max_n_atoms_per_block * max_n_atoms_per_block << " "; std::cout <<
+  // "runtime? " << ((double)stop_time - start_time) / CLOCKS_PER_SEC
   //           << " wall time: " << wctduration.count() << " " << first
   //           << std::endl;
 #endif

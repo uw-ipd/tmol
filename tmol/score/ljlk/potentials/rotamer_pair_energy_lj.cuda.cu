@@ -158,7 +158,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 2, D> block_type_heavy_atoms_in_tile,
 
     // what are the atom types for these atoms
-    // Dimsize: n_block_types x max_n_atoms
+    // Dimsize: n_block_types x max_n_atoms_per_block
     TView<Int, 2, D> block_type_atom_types,
 
     // how many inter-block chemical bonds are there
@@ -170,7 +170,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
 
     // what is the path distance between pairs of atoms in the block
-    // Dimsize: n_block_types x max_n_atoms x max_n_atoms
+    // Dimsize: n_block_types x max_n_atoms_per_block x max_n_atoms_per_block
     TView<Int, 3, D> block_type_path_distance,
     //////////////////////
 
@@ -204,7 +204,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(context_block_type.size(0) == n_contexts);
   assert(context_block_type.size(1) == max_n_blocks);
 
-  // assert(alternate_coords.size(1) == max_n_atoms);
+  // assert(alternate_coords.size(1) == max_n_atoms_per_block);
   assert(alternate_ids.size(0) == n_alternate_blocks);
 
   assert(context_system_ids.size(0) == n_contexts);
@@ -226,7 +226,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(block_type_heavy_atoms_in_tile.size(1) == TILE_SIZE * max_n_tiles);
 
   assert(block_type_atom_types.size(0) == n_block_types);
-  assert(block_type_atom_types.size(1) == max_n_atoms);
+  assert(block_type_atom_types.size(1) == max_n_atoms_per_block);
   assert(block_type_n_interblock_bonds.size(0) == n_block_types);
   assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
   assert(block_type_path_distance.size(0) == n_block_types);
@@ -706,6 +706,11 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
       int const alt_block_type1 = alternate_ids[rot_ind1][2];
       int const alt_block_type2 = alternate_ids[rot_ind2][2];
+      int const rot_coord_offset1 = alternate_coord_offsets[rot_ind1];
+      int const rot_coord_offset2 = alternate_coord_offsets[rot_ind2];
+      int const neighb_coord_offset =
+          context_coord_offsets[alt_context][neighb_block_ind];
+
       // if (!new_context_ind && alt_block_type1 != last_alt_block_type1) {
       //   printf(
       //       "%d alt_block_type1 and last_alt_block_type1 mismatch, %d vs %d,
@@ -816,6 +821,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           load_alt_into_shared(
               rot_ind1,
+              rot_coord_offset1,
               alt_n_atoms1,
               i_n_atoms_to_load1,
               alt_block_type1,
@@ -833,6 +839,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           load_alt_into_shared(
               rot_ind2,
+              rot_coord_offset2,
               alt_n_atoms2,
               i_n_atoms_to_load2,
               alt_block_type2,
@@ -869,8 +876,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 min(Int(TILE_SIZE), Int((neighb_n_atoms - TILE_SIZE * j)));
             mgpu::mem_to_shared<TILE_SIZE, 3>(
                 reinterpret_cast<Real *>(
-                    &context_coords[alt_context][neighb_block_ind]
-                                   [j * TILE_SIZE]),
+                    &context_coords[alt_context]
+                                   [neighb_coord_offset + j * TILE_SIZE]),
                 tid,
                 j_n_atoms_to_load * 3,
                 shared.union_vals.vals.coords_other,
@@ -1078,6 +1085,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
           load_alt_coords_and_params_into_shared(
               rot_ind1,
+              rot_coord_offset1,
               alt_n_atoms1,
               i_n_atoms_to_load1,
               alt_block_type1,
@@ -1087,8 +1095,10 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               shared.coords_alt1,
               shared.params_alt1,
               shared.heavy_inds_alt1);
+
           load_alt_coords_and_params_into_shared(
               rot_ind2,
+              rot_coord_offset2,
               alt_n_atoms2,
               i_n_atoms_to_load2,
               alt_block_type2,
@@ -1114,6 +1124,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
               load_alt_coords_and_params_into_shared(
                   rot_ind1,
+                  rot_coord_offset1,
                   alt_n_atoms1,
                   i_n_atoms_to_load1,
                   alt_block_type1,
@@ -1184,6 +1195,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 
               load_alt_coords_and_params_into_shared(
                   rot_ind2,
+                  rot_coord_offset2,
                   alt_n_atoms2,
                   i_n_atoms_to_load2,
                   alt_block_type2,
@@ -1293,9 +1305,11 @@ template <
 class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
  public:
   LJLKRPECudaCalc(
-      TView<Vec<Real, 3>, 3, D> context_coords,
+      TView<Vec<Real, 3>, 2, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
-      TView<Vec<Real, 3>, 2, D> alternate_coords,
+      TView<Vec<Real, 3>, 1, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Vec<Int, 3>, 1, D>
           alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
@@ -1353,8 +1367,10 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
       TView<int64_t, 1, tmol::Device::CPU> score_event,
       TView<int64_t, 1, tmol::Device::CPU> annealer_event)
       : context_coords_(context_coords),
+        context_coord_offsets_(context_coord_offsets),
         context_block_type_(context_block_type),
         alternate_coords_(alternate_coords),
+        alternate_coord_offsets_(alternate_coord_offsets),
         alternate_ids_(alternate_ids),
         context_system_ids_(context_system_ids),
         system_min_bond_separation_(system_min_bond_separation),
@@ -1381,8 +1397,10 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
 
     LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
         context_coords_,
+        context_coord_offsets_,
         context_block_type_,
         alternate_coords_,
+        alternate_coord_offsets_,
         alternate_ids_,
         context_system_ids_,
         system_min_bond_separation_,
@@ -1409,9 +1427,11 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
   }
 
  private:
-  TView<Vec<Real, 3>, 3, D> context_coords_;
+  TView<Vec<Real, 3>, 2, D> context_coords_;
+  TView<Int, 2, D> context_coord_offsets_;
   TView<Int, 2, D> context_block_type_;
-  TView<Vec<Real, 3>, 2, D> alternate_coords_;
+  TView<Vec<Real, 3>, 1, D> alternate_coords_;
+  TView<Int, 1, D> alternate_coord_offsets_;
   TView<Vec<Int, 3>, 1, D> alternate_ids_;
 
   TView<Int, 1, D> context_system_ids_;
@@ -1453,9 +1473,11 @@ template <
     typename Real,
     typename Int>
 auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
-    TView<Vec<Real, 3>, 3, D> context_coords,
+    TView<Vec<Real, 3>, 2, D> context_coords,
+    TView<Int, 2, D> context_coord_offsets,
     TView<Int, 2, D> context_block_type,
-    TView<Vec<Real, 3>, 2, D> alternate_coords,
+    TView<Vec<Real, 3>, 1, D> alternate_coords,
+    TView<Int, 1, D> alternate_coord_offsets,
     TView<Vec<Int, 3>, 1, D>
         alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
@@ -1523,8 +1545,10 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
   std::shared_ptr<RPECalc> calc =
       std::make_shared<LJLKRPECudaCalc<DeviceDispatch, D, Real, Int>>(
           context_coords,
+          context_coord_offsets,
           context_block_type,
           alternate_coords,
+          alternate_coord_offsets,
           alternate_ids,
           context_system_ids,
           system_min_bond_separation,

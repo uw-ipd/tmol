@@ -21,7 +21,7 @@ from tmol.score.modules.stacked_system import StackedSystem
 from tmol.score.modules.device import TorchDevice
 
 # from tmol.score.device import TorchDevice
-from tmol.score.score_graph import score_graph
+# from tmol.score.score_graph import score_graph
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler

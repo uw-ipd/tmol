@@ -10,7 +10,7 @@
 #include "lj.dispatch.hh"
 #include "lk_isotropic.dispatch.hh"
 #include "ljlk_pose_score.hh"
-// #include "rotamer_pair_energy_lj.hh"
+#include "rotamer_pair_energy_lj.hh"
 // #include "rotamer_pair_energy_lk.hh"
 
 namespace tmol {
@@ -397,183 +397,191 @@ Tensor ljlk_pose_scores_op(
 }
 
 
-// temp Tensor
-// temp rotamer_pair_energies_op(
-// temp   Tensor context_coords,
-// temp   Tensor context_block_type,
-// temp   Tensor alternate_coords,
-// temp   Tensor alternate_ids,
-// temp   Tensor context_system_ids,
-// temp   Tensor system_min_bond_separation,
-// temp   Tensor system_inter_block_bondsep,
-// temp   Tensor system_neighbor_list,
-// temp   Tensor block_type_n_atoms,
-// temp   Tensor block_type_n_heavy_atoms,
-// temp   Tensor block_type_n_heavy_atoms_in_tile,
-// temp   Tensor block_type_heavy_atoms_in_tile,
-// temp   Tensor block_type_atom_types,
-// temp   Tensor block_type_heavy_atom_inds,
-// temp   Tensor block_type_n_interblock_bonds,
-// temp   Tensor block_type_atoms_forming_chemical_bonds,
-// temp   Tensor block_type_path_distance,
-// temp   Tensor ljlk_type_params,
-// temp   Tensor global_params,
-// temp   Tensor lj_lk_weights
-// temp ) {
-// temp 
-// temp   using Int = int32_t;
-// temp   Tensor output_tensor;
-// temp 
-// temp   auto empty_score_event_tensor = TPack<int64_t, 1, tmol::Device::CPU>::zeros({1});
-// temp   auto empty_annealer_event_tensor = TPack<int64_t, 1, tmol::Device::CPU>::zeros({1});
-// temp 
-// temp   TMOL_DISPATCH_FLOATING_DEVICE(
-// temp     context_coords.type(), "score_op", ([&] {
-// temp         using Real = scalar_t;
-// temp         constexpr tmol::Device Dev = device_t;
-// temp 
-// temp         auto output_tp = TPack<Real, 1, Dev>::zeros({alternate_coords.size(0)});
-// temp         auto output_tv = output_tp.view;
-// temp 
-// temp         LJLKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
-// temp           TCAST(context_coords),
-// temp           TCAST(context_block_type),
-// temp           TCAST(alternate_coords),
-// temp           TCAST(alternate_ids),
-// temp           TCAST(context_system_ids),
-// temp           TCAST(system_min_bond_separation),
-// temp           TCAST(system_inter_block_bondsep),
-// temp           TCAST(system_neighbor_list),
-// temp           TCAST(block_type_n_atoms),
-// temp           TCAST(block_type_n_heavy_atoms_in_tile),
-// temp           TCAST(block_type_heavy_atoms_in_tile),
-// temp           TCAST(block_type_atom_types),
-// temp           TCAST(block_type_n_interblock_bonds),
-// temp           TCAST(block_type_atoms_forming_chemical_bonds),
-// temp           TCAST(block_type_path_distance),
-// temp           TCAST(ljlk_type_params),
-// temp           TCAST(global_params),
-// temp           TCAST(lj_lk_weights),
-// temp           output_tv,
-// temp           empty_score_event_tensor.view,
-// temp           empty_annealer_event_tensor.view
-// temp         );
-// temp 
-// temp         /*
-// temp         LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
-// temp           TCAST(context_coords),
-// temp           TCAST(context_block_type),
-// temp           TCAST(alternate_coords),
-// temp           TCAST(alternate_ids),
-// temp           TCAST(context_system_ids),
-// temp           TCAST(system_min_bond_separation),
-// temp           TCAST(system_inter_block_bondsep),
-// temp           TCAST(system_neighbor_list),
-// temp           TCAST(block_type_n_heavy_atoms),
-// temp           TCAST(block_type_heavy_atom_inds),
-// temp           TCAST(block_type_atom_types),
-// temp           TCAST(block_type_n_interblock_bonds),
-// temp           TCAST(block_type_atoms_forming_chemical_bonds),
-// temp           TCAST(block_type_path_distance),
-// temp           TCAST(lk_type_params),
-// temp           TCAST(global_params),
-// temp           TCAST(lj_lk_weights),
-// temp           output_tv
-// temp         );
-// temp         */
-// temp         output_tensor = output_tp.tensor;
-// temp       }));
-// temp 
-// temp   return output_tensor;
-// temp }
+Tensor
+rotamer_pair_energies_op(
+  Tensor context_coords,
+  Tensor context_coord_offsets,
+  Tensor context_block_type,
+  Tensor alternate_coords,
+  Tensor alternate_coord_offsets,
+  Tensor alternate_ids,
+  Tensor context_system_ids,
+  Tensor system_min_bond_separation,
+  Tensor system_inter_block_bondsep,
+  Tensor system_neighbor_list,
+  Tensor block_type_n_atoms,
+  Tensor block_type_n_heavy_atoms,
+  Tensor block_type_n_heavy_atoms_in_tile,
+  Tensor block_type_heavy_atoms_in_tile,
+  Tensor block_type_atom_types,
+  Tensor block_type_heavy_atom_inds,
+  Tensor block_type_n_interblock_bonds,
+  Tensor block_type_atoms_forming_chemical_bonds,
+  Tensor block_type_path_distance,
+  Tensor ljlk_type_params,
+  Tensor global_params,
+  Tensor lj_lk_weights
+) {
 
-// temp Tensor
-// temp register_lj_lk_rotamer_pair_energy_eval(
-// temp   Tensor context_coords,
-// temp   Tensor context_block_type,
-// temp   Tensor alternate_coords,
-// temp   Tensor alternate_ids,
-// temp   Tensor context_system_ids,
-// temp   Tensor system_min_bond_separation,
-// temp   Tensor system_inter_block_bondsep,
-// temp   Tensor system_neighbor_list,
-// temp   Tensor block_type_n_atoms,
-// temp   Tensor block_type_n_heavy_atoms,
-// temp   Tensor block_type_n_heavy_atoms_in_tile,
-// temp   Tensor block_type_heavy_atoms_in_tile,
-// temp   Tensor block_type_atom_types,
-// temp   Tensor block_type_heavy_atom_inds,
-// temp   Tensor block_type_n_interblock_bonds,
-// temp   Tensor block_type_atoms_forming_chemical_bonds,
-// temp   Tensor block_type_path_distance,
-// temp   Tensor ljlk_type_params,
-// temp   Tensor global_params,
-// temp   Tensor lj_lk_weights,
-// temp   Tensor output,
-// temp   Tensor score_event,
-// temp   Tensor annealer_event,
-// temp   Tensor annealer
-// temp ) {
-// temp 
-// temp   Tensor dummy_return_value;
-// temp   using Int = int32_t;
-// temp 
-// temp   TMOL_DISPATCH_FLOATING_DEVICE(
-// temp     context_coords.type(), "score_op", ([&] {
-// temp         using Real = scalar_t;
-// temp         constexpr tmol::Device Dev = device_t;
-// temp 
-// temp         LJLKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
-// temp           TCAST(context_coords),
-// temp           TCAST(context_block_type),
-// temp           TCAST(alternate_coords),
-// temp           TCAST(alternate_ids),
-// temp           TCAST(context_system_ids),
-// temp           TCAST(system_min_bond_separation),
-// temp           TCAST(system_inter_block_bondsep),
-// temp           TCAST(system_neighbor_list),
-// temp           TCAST(block_type_n_atoms),
-// temp           TCAST(block_type_n_heavy_atoms_in_tile),
-// temp           TCAST(block_type_heavy_atoms_in_tile),
-// temp           TCAST(block_type_atom_types),
-// temp           TCAST(block_type_n_interblock_bonds),
-// temp           TCAST(block_type_atoms_forming_chemical_bonds),
-// temp           TCAST(block_type_path_distance),
-// temp           TCAST(ljlk_type_params),
-// temp           TCAST(global_params),
-// temp           TCAST(lj_lk_weights),
-// temp           TCAST(output),
-// temp           TCAST(score_event),
-// temp           TCAST(annealer_event),
-// temp           TCAST(annealer)
-// temp         );
-// temp 
-// temp 
-// temp         /*LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
-// temp           TCAST(context_coords),
-// temp           TCAST(context_block_type),
-// temp           TCAST(alternate_coords),
-// temp           TCAST(alternate_ids),
-// temp           TCAST(context_system_ids),
-// temp           TCAST(system_min_bond_separation),
-// temp           TCAST(system_inter_block_bondsep),
-// temp           TCAST(system_neighbor_list),
-// temp           TCAST(block_type_n_heavy_atoms),
-// temp           TCAST(block_type_heavy_atom_inds),
-// temp           TCAST(block_type_atom_types),
-// temp           TCAST(block_type_n_interblock_bonds),
-// temp           TCAST(block_type_atoms_forming_chemical_bonds),
-// temp           TCAST(block_type_path_distance),
-// temp           TCAST(lk_type_params),
-// temp           TCAST(global_params),
-// temp           TCAST(lj_lk_weights),
-// temp           TCAST(output),
-// temp           TCAST(annealer)
-// temp         );
-// temp         */
-// temp       }));
-// temp   return dummy_return_value;
-// temp }
+  using Int = int32_t;
+  Tensor output_tensor;
+
+  auto empty_score_event_tensor = TPack<int64_t, 1, tmol::Device::CPU>::zeros({1});
+  auto empty_annealer_event_tensor = TPack<int64_t, 1, tmol::Device::CPU>::zeros({1});
+
+  TMOL_DISPATCH_FLOATING_DEVICE(
+    context_coords.type(), "score_op", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto output_tp = TPack<Real, 1, Dev>::zeros({alternate_coord_offsets.size(0)});
+        auto output_tv = output_tp.view;
+
+        LJLKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+          TCAST(context_coords),
+          TCAST(context_coord_offsets),
+          TCAST(context_block_type),
+          TCAST(alternate_coords),
+          TCAST(alternate_coord_offsets),
+          TCAST(alternate_ids),
+          TCAST(context_system_ids),
+          TCAST(system_min_bond_separation),
+          TCAST(system_inter_block_bondsep),
+          TCAST(system_neighbor_list),
+          TCAST(block_type_n_atoms),
+          TCAST(block_type_n_heavy_atoms_in_tile),
+          TCAST(block_type_heavy_atoms_in_tile),
+          TCAST(block_type_atom_types),
+          TCAST(block_type_n_interblock_bonds),
+          TCAST(block_type_atoms_forming_chemical_bonds),
+          TCAST(block_type_path_distance),
+          TCAST(ljlk_type_params),
+          TCAST(global_params),
+          TCAST(lj_lk_weights),
+          output_tv,
+          empty_score_event_tensor.view,
+          empty_annealer_event_tensor.view
+        );
+
+        /*
+        LKRPEDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+          TCAST(context_coords),
+          TCAST(context_block_type),
+          TCAST(alternate_coords),
+          TCAST(alternate_ids),
+          TCAST(context_system_ids),
+          TCAST(system_min_bond_separation),
+          TCAST(system_inter_block_bondsep),
+          TCAST(system_neighbor_list),
+          TCAST(block_type_n_heavy_atoms),
+          TCAST(block_type_heavy_atom_inds),
+          TCAST(block_type_atom_types),
+          TCAST(block_type_n_interblock_bonds),
+          TCAST(block_type_atoms_forming_chemical_bonds),
+          TCAST(block_type_path_distance),
+          TCAST(lk_type_params),
+          TCAST(global_params),
+          TCAST(lj_lk_weights),
+          output_tv
+        );
+        */
+        output_tensor = output_tp.tensor;
+      }));
+
+  return output_tensor;
+}
+
+Tensor
+register_lj_lk_rotamer_pair_energy_eval(
+  Tensor context_coords,
+  Tensor context_coord_offsets,
+  Tensor context_block_type,
+  Tensor alternate_coords,
+  Tensor alternate_coord_offsets,
+  Tensor alternate_ids,
+  Tensor context_system_ids,
+  Tensor system_min_bond_separation,
+  Tensor system_inter_block_bondsep,
+  Tensor system_neighbor_list,
+  Tensor block_type_n_atoms,
+  Tensor block_type_n_heavy_atoms,
+  Tensor block_type_n_heavy_atoms_in_tile,
+  Tensor block_type_heavy_atoms_in_tile,
+  Tensor block_type_atom_types,
+  Tensor block_type_heavy_atom_inds,
+  Tensor block_type_n_interblock_bonds,
+  Tensor block_type_atoms_forming_chemical_bonds,
+  Tensor block_type_path_distance,
+  Tensor ljlk_type_params,
+  Tensor global_params,
+  Tensor lj_lk_weights,
+  Tensor output,
+  Tensor score_event,
+  Tensor annealer_event,
+  Tensor annealer
+) {
+
+  Tensor dummy_return_value;
+  using Int = int32_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(
+    context_coords.type(), "score_op", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        LJLKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+          TCAST(context_coords),
+          TCAST(context_coord_offsets),
+          TCAST(context_block_type),
+          TCAST(alternate_coords),
+          TCAST(alternate_coord_offsets),
+          TCAST(alternate_ids),
+          TCAST(context_system_ids),
+          TCAST(system_min_bond_separation),
+          TCAST(system_inter_block_bondsep),
+          TCAST(system_neighbor_list),
+          TCAST(block_type_n_atoms),
+          TCAST(block_type_n_heavy_atoms_in_tile),
+          TCAST(block_type_heavy_atoms_in_tile),
+          TCAST(block_type_atom_types),
+          TCAST(block_type_n_interblock_bonds),
+          TCAST(block_type_atoms_forming_chemical_bonds),
+          TCAST(block_type_path_distance),
+          TCAST(ljlk_type_params),
+          TCAST(global_params),
+          TCAST(lj_lk_weights),
+          TCAST(output),
+          TCAST(score_event),
+          TCAST(annealer_event),
+          TCAST(annealer)
+        );
+
+
+        /*LKRPERegistratorDispatch<common::ForallDispatch, Dev, Real, Int>::f(
+          TCAST(context_coords),
+          TCAST(context_block_type),
+          TCAST(alternate_coords),
+          TCAST(alternate_ids),
+          TCAST(context_system_ids),
+          TCAST(system_min_bond_separation),
+          TCAST(system_inter_block_bondsep),
+          TCAST(system_neighbor_list),
+          TCAST(block_type_n_heavy_atoms),
+          TCAST(block_type_heavy_atom_inds),
+          TCAST(block_type_atom_types),
+          TCAST(block_type_n_interblock_bonds),
+          TCAST(block_type_atoms_forming_chemical_bonds),
+          TCAST(block_type_path_distance),
+          TCAST(lk_type_params),
+          TCAST(global_params),
+          TCAST(lj_lk_weights),
+          TCAST(output),
+          TCAST(annealer)
+        );
+        */
+      }));
+  return dummy_return_value;
+}
 
 
 // template <

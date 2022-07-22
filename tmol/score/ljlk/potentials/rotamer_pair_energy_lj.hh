@@ -33,9 +33,11 @@ template <
     typename Int>
 struct LJLKRPEDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 3, D> context_coords,
+      TView<Vec<Real, 3>, 2, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
-      TView<Vec<Real, 3>, 2, D> alternate_coords,
+      TView<Vec<Real, 3>, 1, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Vec<Int, 3>, 1, D>
           alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
@@ -106,9 +108,11 @@ template <
     typename Int>
 struct LJLKRPERegistratorDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 3, D> context_coords,
+      TView<Vec<Real, 3>, 2, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
-      TView<Vec<Real, 3>, 2, D> alternate_coords,
+      TView<Vec<Real, 3>, 1, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Vec<Int, 3>, 1, D>
           alternate_ids,  // 0 == context id; 1 == block id; 2 == block type
 
