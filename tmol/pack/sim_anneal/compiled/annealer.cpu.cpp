@@ -24,20 +24,25 @@ template <
 class CPUPickRotamersStep : public PickRotamersStep {
 public:
   CPUPickRotamersStep(
-    TView<Real, 4, D> context_coords,
+    TView<Real, 3, D> context_coords,
+    TView<Int, 2, D> context_coord_offsets,
     TView<Int, 2, D> context_block_type,
     TView<Int, 1, D> pose_id_for_context,
     TView<Int, 1, D> n_rots_for_pose,
     TView<Int, 1, D> rot_offset_for_pose,
     TView<Int, 1, D> block_type_ind_for_rot,
     TView<Int, 1, D> block_ind_for_rot,
-    TView<Real, 3, D> rotamer_coords,
+    TView<Real, 2, D> rotamer_coords,
+    TView<Int, 1, D> rotamer_coord_offsets,
     TView<Real, 3, D> alternate_coords,
     TView<Int, 2, D> alternate_id,
     TView<Int, 1, D> random_rots,
+    TView<Int, 1, D> block_type_n_atoms,
+    Int max_n_atoms,
     TView<int64_t, 1, tmol::Device::CPU> annealer_event
   ) :
     context_coords_(context_coords),
+    context_coord_offsets_(context_coord_offsets),
     context_block_type_(context_block_type),
     pose_id_for_context_(pose_id_for_context),
     n_rots_for_pose_(n_rots_for_pose),
@@ -45,9 +50,13 @@ public:
     block_type_ind_for_rot_(block_type_ind_for_rot),
     block_ind_for_rot_(block_ind_for_rot),
     rotamer_coords_(rotamer_coords),
+    rotamer_coord_offsets_(rotamer_coord_offsets),
     alternate_coords_(alternate_coords),
+    alternate_coord_offsets_(alternate_coord_offsets),
     alternate_id_(alternate_id),
     random_rots_(random_rots),
+    block_type_n_atoms_(block_type_n_atoms),
+    max_n_atoms_(max_n_atoms),
     annealer_event_(annealer_event)
   {
     std::cout << "CPUPickRotamersStep" << std::endl;
@@ -68,6 +77,7 @@ public:
   void pick_rotamers() override {
     PickRotamers<DeviceDispatch, D, Real, Int>::f(
       context_coords_,
+      context_coord_offsets_,
       context_block_type_,
       pose_id_for_context_,
       n_rots_for_pose_,
@@ -75,25 +85,34 @@ public:
       block_type_ind_for_rot_,
       block_ind_for_rot_,
       rotamer_coords_,
+      rotamer_coord_offsets_,
       alternate_coords_,
+      alternate_coord_offsets_,
       alternate_id_,
       random_rots_,
+      block_type_n_atoms_,
+      max_n_atoms_,
       annealer_event_
     );
   }
     
 private:
-  TView<Real, 4, D> context_coords_;
+  TView<Real, 3, D> context_coords_;
+  TView<Int, 2, D> context_coord_offsets_;
   TView<Int, 2, D> context_block_type_;
   TView<Int, 1, D> pose_id_for_context_;
   TView<Int, 1, D> n_rots_for_pose_;
   TView<Int, 1, D> rot_offset_for_pose_;
   TView<Int, 1, D> block_type_ind_for_rot_;
   TView<Int, 1, D> block_ind_for_rot_;
-  TView<Real, 3, D> rotamer_coords_;
-  TView<Real, 3, D> alternate_coords_;
+  TView<Real, 2, D> rotamer_coords_;
+  TView<Int, 1, D> rotamer_coord_offsets_;
+  TView<Real, 2, D> alternate_coords_;
+  TView<Int, 1, D> alternate_coord_offsets_;
   TView<Int, 2, D> alternate_id_;
   TView<Int, 1, D> random_rots_;
+  TView<Int, 1, D> block_type_n_atoms_;
+  Int max_n_atoms_;
   TView<int64_t, 1, tmol::Device::CPU> annealer_event_;
 };
 
@@ -107,21 +126,28 @@ class CPUMetropolisAcceptRejectStep : public MetropolisAcceptRejectStep {
 public:
   CPUMetropolisAcceptRejectStep(
       TView<Real, 1, tmol::Device::CPU> temperature,
-      TView<Real, 4, D> context_coords,
+      TView<Real, 3, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
-      TView<Real, 3, D> alternate_coords,
+      TView<Real, 2, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_id,
       TView<Real, 2, D> rotamer_component_energies,
       TView<Int, 1, D> accept,
+      TView<Int, 1, D> block_type_n_atoms,
+      Int max_n_atoms,
       TView<int64_t, 1, tmol::Device::CPU> score_events
   ):
       temperature_(temperature),
       context_coords_(context_coords),
+      context_coord_offsets_(context_coord_offsets),
       context_block_type_(context_block_type),
       alternate_coords_(alternate_coords),
       alternate_id_(alternate_id),
       rotamer_component_energies_(rotamer_component_energies),
       accept_(accept),
+      block_type_n_atoms_(block_type_n_atoms),
+      max_n_atoms_(max_n_atoms),
       score_events_(score_events),
       last_outer_iteration_(-1)
   {}
@@ -141,11 +167,15 @@ public:
     MetropolisAcceptReject<ForallDispatch, D, Real, Int>::f(
       temperature_,
       context_coords_,
+      context_coord_offsets_,
       context_block_type_,
       alternate_coords_,
+      alternate_coord_offsets_,
       alternate_id_,
       rotamer_component_energies_,
       accept_,
+      block_type_n_atoms_,
+      max_n_atoms_,
       score_events_
     );
   }
@@ -154,13 +184,17 @@ public:
 
 private:
   TView<Real, 1, tmol::Device::CPU> temperature_;
-  TView<Real, 4, D> context_coords_;
+  TView<Real, 3, D> context_coords_;
+  TView<Int, 2, D> context_coord_offsets_;
   TView<Int, 2, D> context_block_type_;
-  TView<Real, 3, D> alternate_coords_;
+  TView<Real, 2, D> alternate_coords_;
+  TView<Int, 1, D> alternate_coord_offsets_;
   TView<Int, 2, D> alternate_id_;
   TView<Real, 2, D> rotamer_component_energies_;
   TView<Int, 1, D> accept_;
-  TView<int64_t, 1, tmol::Device::CPU> score_events_;
+  TView<Int, 1, D> block_type_n_atoms_;
+  Int max_n_atoms_;
+  TView<int64_t, 1, tmol::Device::CPU> score_events_;  
   std::shared_ptr<TemperatureScheduler> temp_sched_;
   int last_outer_iteration_;
 };
@@ -173,17 +207,22 @@ template <
     typename Real,
     typename Int>
 void PickRotamersStepRegistrator<DeviceDispatch, D, Real, Int>::f(
-    TView<Real, 4, D> context_coords,
+    TView<Real, 3, D> context_coords,
+    TView<Int, 2, D> context_coord_offsets,
     TView<Int, 2, D> context_block_type,
     TView<Int, 1, D> pose_id_for_context,
     TView<Int, 1, D> n_rots_for_pose,
     TView<Int, 1, D> rot_offset_for_pose,
     TView<Int, 1, D> block_type_ind_for_rot,
     TView<Int, 1, D> block_ind_for_rot,
-    TView<Real, 3, D> rotamer_coords,
-    TView<Real, 3, D> alternate_coords,
+    TView<Real, 2, D> rotamer_coords,
+    TView<Int, 1, D> rotamer_coord_offsets,
+    TView<Real, 2, D> alternate_coords,
+    TView<Int, 1, D> alternate_coord_offsets,
     TView<Int, 2, D> alternate_id,
     TView<Int, 1, D> random_rots,
+    TView<Int, 1, D> block_type_n_atoms,
+    Int max_n_atoms,
     TView<int64_t, 1, tmol::Device::CPU> annealer_event,
     TView<int64_t, 1, tmol::Device::CPU> annealer
 )
@@ -193,6 +232,7 @@ void PickRotamersStepRegistrator<DeviceDispatch, D, Real, Int>::f(
   std::shared_ptr<PickRotamersStep> pick_step =
       std::make_shared<CPUPickRotamersStep<DeviceDispatch, D, Real, Int>>(
         context_coords,
+	context_coord_offsets,
         context_block_type,
         pose_id_for_context,
         n_rots_for_pose,
@@ -200,9 +240,13 @@ void PickRotamersStepRegistrator<DeviceDispatch, D, Real, Int>::f(
         block_type_ind_for_rot,
         block_ind_for_rot,
         rotamer_coords,
+        rotamer_coord_offsets,
         alternate_coords,
+        alternate_coord_offsets,
         alternate_id,
         random_rots,
+	block_type_n_atoms,
+	max_n_atoms,
         annealer_event
       );
 
@@ -218,12 +262,16 @@ template <
   typename Int>
 void MetropolisAcceptRejectStepRegistrator<DeviceDispatch, D, Real, Int>::f(
   TView<Real, 1, tmol::Device::CPU> temperature,
-  TView<Real, 4, D> context_coords,
+  TView<Real, 3, D> context_coords,
+  TView<Int, 2, D> context_coord_offsets,
   TView<Int, 2, D> context_block_type,
-  TView<Real, 3, D> alternate_coords,
+  TView<Real, 2, D> alternate_coords,
+  TView<Int, 1, D> alternate_coord_offsets,
   TView<Int, 2, D> alternate_id,
   TView<Real, 2, D> rotamer_component_energies,
   TView<Int, 1, D> accept,
+  TView<Int, 1, D> block_type_n_atoms,
+  Int max_n_atoms,
   TView<int64_t, 1, tmol::Device::CPU> score_events,
   TView<int64_t, 1, tmol::Device::CPU> annealer
 )
@@ -234,11 +282,15 @@ void MetropolisAcceptRejectStepRegistrator<DeviceDispatch, D, Real, Int>::f(
       std::make_shared<CPUMetropolisAcceptRejectStep<DeviceDispatch, D, Real, Int>>(
         temperature,
         context_coords,
+	context_coord_offsets,
         context_block_type,
         alternate_coords,
+	alternate_coord_offsets,
         alternate_id,
         rotamer_component_energies,
         accept,
+	block_type_n_atoms,
+	max_n_atoms,
 	score_events
       );
 

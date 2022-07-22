@@ -19,17 +19,22 @@ template <
     typename Int>
 struct PickRotamers {
   static auto f(
-      TView<Real, 4, D> context_coords,
+      TView<Real, 3, D> context_coords,
+      TView<Real, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
       TView<Int, 1, D> pose_id_for_context,
       TView<Int, 1, D> n_rots_for_pose,
       TView<Int, 1, D> rot_offset_for_pose,
       TView<Int, 1, D> block_type_ind_for_rot,
       TView<Int, 1, D> block_ind_for_rot,
-      TView<Real, 3, D> rotamer_coords,
-      TView<Real, 3, D> alternate_coords,
+      TView<Real, 2, D> rotamer_coords,
+      TView<Int, 1, D> rotamer_coord_offsets,
+      TView<Real, 2, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_id,
       TView<Int, 1, D> random_rots,
+      TView<Int, 1, D> block_type_n_atoms,
+      Int max_n_atoms,
       TView<int64_t, 1, tmol::Device::CPU> annealer_event) -> void;
 };
 
@@ -42,12 +47,16 @@ template <
 struct MetropolisAcceptReject {
   static auto f(
       TView<Real, 1, tmol::Device::CPU> temperature,
-      TView<Real, 4, D> context_coords,
+      TView<Real, 3, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
-      TView<Real, 3, D> alternate_coords,
+      TView<Real, 2, D> alternate_coords,
+      TView<Real, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_id,
       TView<Real, 2, D> rotamer_component_energies,
       TView<Int, 1, D> accept,
+      TView<Int, 1, D> block_type_n_atoms,
+      Int max_n_atoms,
       TView<int64_t, 1, tmol::Device::CPU> score_events) -> void;
 };
 
@@ -99,15 +108,18 @@ template <
     typename Int>
 struct PickRotamersStepRegistrator {
   static void f(
-      TView<Real, 4, D> context_coords,
+      TView<Real, 3, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
       TView<Int, 1, D> pose_id_for_context,
       TView<Int, 1, D> n_rots_for_pose,
       TView<Int, 1, D> rot_offset_for_pose,
       TView<Int, 1, D> block_type_ind_for_rot,
       TView<Int, 1, D> block_ind_for_rot,
-      TView<Real, 3, D> rotamer_coords,
-      TView<Real, 3, D> alternate_coords,
+      TView<Real, 2, D> rotamer_coords,
+      TView<Int, 1, D> rotamer_coord_offsets,
+      TView<Real, 2, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_id,
       TView<Int, 1, D> random_rots,
       TView<int64_t, 1, tmol::Device::CPU> annealer_event,
@@ -123,9 +135,11 @@ template <
 struct MetropolisAcceptRejectStepRegistrator {
   static void f(
       TView<Real, 1, tmol::Device::CPU> temperature,
-      TView<Real, 4, D> context_coords,
+      TView<Real, 3, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
-      TView<Real, 3, D> alternate_coords,
+      TView<Real, 2, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_id,
       TView<Real, 2, D> rotamer_component_energies,
       TView<Int, 1, D> accept,

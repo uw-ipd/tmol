@@ -23,19 +23,23 @@ template <
 class CUDAPickRotamersStep : public PickRotamersStep {
  public:
   CUDAPickRotamersStep(
-      TView<Real, 4, D> context_coords,
+      TView<Real, 3, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
       TView<Int, 1, D> pose_id_for_context,
       TView<Int, 1, D> n_rots_for_pose,
       TView<Int, 1, D> rot_offset_for_pose,
       TView<Int, 1, D> block_type_ind_for_rot,
       TView<Int, 1, D> block_ind_for_rot,
-      TView<Real, 3, D> rotamer_coords,
-      TView<Real, 3, D> alternate_coords,
+      TView<Real, 2, D> rotamer_coords,
+      TView<Int, 1, D> rotamer_coord_offsets,
+      TView<Real, 2, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_id,
       TView<Int, 1, D> random_rots,
       TView<int64_t, 1, tmol::Device::CPU> annealer_event)
       : context_coords_(context_coords),
+        context_coord_offsets_(context_coord_offsets),
         context_block_type_(context_block_type),
         pose_id_for_context_(pose_id_for_context),
         n_rots_for_pose_(n_rots_for_pose),
@@ -43,7 +47,9 @@ class CUDAPickRotamersStep : public PickRotamersStep {
         block_type_ind_for_rot_(block_type_ind_for_rot),
         block_ind_for_rot_(block_ind_for_rot),
         rotamer_coords_(rotamer_coords),
+        rotamer_coord_offsets_(rotamer_coord_offsets),
         alternate_coords_(alternate_coords),
+        alternate_coord_offsets_(alternate_coord_offsets),
         alternate_id_(alternate_id),
         random_rots_(random_rots),
         annealer_event_(annealer_event) {
