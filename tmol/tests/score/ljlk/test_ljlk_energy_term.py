@@ -122,15 +122,19 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
         poses.packed_block_types, poses, context_system_ids, bounding_spheres, weights
     )
 
-    max_n_atoms = poses.packed_block_types.max_n_atoms
+    max_n_atoms_per_block = poses.packed_block_types.max_n_atoms
     # ok, let's create the contexts
     context_coords = torch.zeros(
-        (10, 6, max_n_atoms, 3), dtype=torch.float32, device=torch_device
+        (10, 6, max_n_atoms_per_block, 3), dtype=torch.float32, device=torch_device
     )
     # this should be fine
     poses_expanded_coords, real_expanded_pose_ats = poses.expand_coords()
     context_coords[:5, :, :, :] = poses_expanded_coords[0:1]
     context_coords[5:, :, :, :] = poses_expanded_coords[1:2]
+    context_coords = context_coords.view(10, -1, 3)
+    context_coord_offsets = max_n_atoms_per_block * torch.remainder(
+        torch.arange(60, dtype=torch.int32, device=torch_device).view(10, 6), 10
+    )
 
     context_block_type = torch.zeros((10, 6), dtype=torch.int32, device=torch_device)
     context_block_type[:5, :] = torch.tensor(
@@ -141,10 +145,14 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
     )
 
     alternate_coords = torch.zeros(
-        (20, max_n_atoms, 3), dtype=torch.float32, device=torch_device
+        (20, max_n_atoms_per_block, 3), dtype=torch.float32, device=torch_device
     )
     alternate_coords[:10, :, :] = poses_expanded_coords[0:1, 1:2, :]
     alternate_coords[10:, :, :] = poses_expanded_coords[1:2, 3:4, :]
+    alternate_coords = alternate_coords.view(-1, 3)
+    alternate_coord_offsets = max_n_atoms_per_block * torch.arange(
+        20, dtype=torch.int32, device=torch_device
+    )
 
     alternate_ids = torch.zeros((20, 3), dtype=torch.int32, device=torch_device)
     alternate_ids[:, 0] = torch.floor_divide(torch.arange(20, dtype=torch.int32), 2)
@@ -163,7 +171,12 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
 
     def run_once():
         rpes = inter_module.go(
-            context_coords, context_block_type, alternate_coords, alternate_ids
+            context_coords,
+            context_coord_offsets,
+            context_block_type,
+            alternate_coords,
+            alternate_coord_offsets,
+            alternate_ids,
         )
         assert rpes is not None
         # print()

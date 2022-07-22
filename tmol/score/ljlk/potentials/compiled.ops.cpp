@@ -654,9 +654,9 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def(
       "ljlk_pose_scores",
       &ljlk_pose_scores_op<ForallDispatch>);
-  // temp m.def("score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
-  // temp m.def("register_lj_lk_rotamer_pair_energy_eval",
-  // temp     &register_lj_lk_rotamer_pair_energy_eval);
+  m.def("score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
+  m.def("register_lj_lk_rotamer_pair_energy_eval",
+      &register_lj_lk_rotamer_pair_energy_eval);
   //m.def("ljlk_pose_scores", &ljlk_pose_scores);
 }
 
