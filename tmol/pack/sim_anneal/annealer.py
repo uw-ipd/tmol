@@ -23,9 +23,12 @@ class SelectRanRotModule:
         block_type_ind_for_rot,
         block_ind_for_rot,
         rotamer_coords,
+        rotamer_coord_offsets,
         alternate_coords,
+        alternate_coord_offsets,
         alternate_block_id,
         random_rots,
+        block_type_n_atoms,
     ):
         super().__init__()
 
@@ -36,9 +39,12 @@ class SelectRanRotModule:
         assert block_type_ind_for_rot.device == dev
         assert block_ind_for_rot.device == dev
         assert rotamer_coords.device == dev
+        assert rotamer_coord_offsets.device == dev
         assert alternate_coords.device == dev
+        assert alternate_coord_offsets.device == dev
         assert alternate_block_id.device == dev
         assert random_rots.device == dev
+        assert block_type_n_atoms.device == dev
 
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
@@ -53,19 +59,23 @@ class SelectRanRotModule:
         self.block_type_ind_for_rot = _p(block_type_ind_for_rot.to(torch.int32))
         self.block_ind_for_rot = _p(block_ind_for_rot.to(torch.int32))
         self.rotamer_coords = _p(rotamer_coords)
+        self.rotamer_coord_offsets = _p(rotamer_coord_offsets)
         self.alternate_coords = _p(alternate_coords)
+        self.alternate_coord_offsets = _p(alternate_coord_offsets)
         self.alternate_block_id = _p(alternate_block_id)
         self.random_rots = _p(random_rots)
+        self.block_type_n_atoms = _p(block_type_n_atoms)
+        self.max_n_atoms = int(torch.max(block_type_n_atoms).cpu().item())
 
     # @torch.jit.script_method
     # def forward(self, context_coords, context_block_type):
 
-    def go(self, context_coords, context_block_type):
-        """Select one rotamer for each context as well as the current rotamer at that position
-        """
+    def go(self, context_coords, context_coord_offsets, context_block_type):
+        """Select one rotamer for each context as well as the current rotamer at that position"""
 
         return pick_random_rotamers(
             context_coords,
+            context_coord_offsets,
             context_block_type,
             self.pose_id_for_context,
             self.n_rots_for_pose,
@@ -73,9 +83,13 @@ class SelectRanRotModule:
             self.block_type_ind_for_rot,
             self.block_ind_for_rot,
             self.rotamer_coords,
+            self.rotamer_coord_offsets,
             self.alternate_coords,
+            self.alternate_coord_offsets,
             self.alternate_block_id,
             self.random_rots,
+            self.block_type_n_atoms,
+            self.max_n_atoms,
         )
 
         # context_block_type = context_block_type.to(torch.int64)
@@ -121,8 +135,17 @@ class SelectRanRotModule:
 
 # class MCAcceptRejectModule(torch.jit.ScriptModule):
 class MCAcceptRejectModule:
-    def __init__(self,):
+    def __init__(
+        self,
+        block_type_n_atoms,
+    ):
         super().__init__()
+
+        def _p(t):
+            return torch.nn.Parameter(t, requires_grad=False)
+
+        self.block_type_n_atoms = _p(block_type_n_atoms)
+        self.max_n_atoms = int(torch.max(block_type_n_atoms).cpu().item())
 
     # @torch.jit.script_method
     # def forward(
@@ -131,8 +154,10 @@ class MCAcceptRejectModule:
         self,
         temperature,
         context_coords,
+        context_coord_offsets,
         context_block_type,
         alternate_coords,
+        alternate_coord_offsets,
         alternate_ids,
         rotamer_component_energies,  # pre-weighted
         accepted,
@@ -140,11 +165,15 @@ class MCAcceptRejectModule:
         return metropolis_accept_reject(
             temperature,
             context_coords,
+            context_coord_offsets,
             context_block_type,
             alternate_coords,
+            alternate_coord_offsets,
             alternate_ids,
             rotamer_component_energies,
             accepted,
+            self.block_type_n_atoms,
+            self.max_n_atoms,
         )
 
         # rotamer_energies = torch.sum(rotamer_component_energies, dim=0)

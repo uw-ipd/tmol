@@ -20,7 +20,7 @@ template <
 struct PickRotamers {
   static auto f(
       TView<Real, 3, D> context_coords,
-      TView<Real, 2, D> context_coord_offsets,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
       TView<Int, 1, D> pose_id_for_context,
       TView<Int, 1, D> n_rots_for_pose,
@@ -51,7 +51,7 @@ struct MetropolisAcceptReject {
       TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
       TView<Real, 2, D> alternate_coords,
-      TView<Real, 1, D> alternate_coord_offsets,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_id,
       TView<Real, 2, D> rotamer_component_energies,
       TView<Int, 1, D> accept,
@@ -122,6 +122,8 @@ struct PickRotamersStepRegistrator {
       TView<Int, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_id,
       TView<Int, 1, D> random_rots,
+      TView<Int, 1, D> block_type_n_atoms,
+      Int max_n_atoms,
       TView<int64_t, 1, tmol::Device::CPU> annealer_event,
       TView<int64_t, 1, tmol::Device::CPU> annealer);
 };
@@ -143,6 +145,8 @@ struct MetropolisAcceptRejectStepRegistrator {
       TView<Int, 2, D> alternate_id,
       TView<Real, 2, D> rotamer_component_energies,
       TView<Int, 1, D> accept,
+      TView<Int, 1, D> block_type_n_atoms,
+      Int max_n_atoms,
       TView<int64_t, 1, tmol::Device::CPU> score_events,
       TView<int64_t, 1, tmol::Device::CPU> annealer);
 };

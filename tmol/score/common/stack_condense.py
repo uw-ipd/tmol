@@ -10,7 +10,7 @@ from tmol.types.functional import validate_args
 # For operations on stacked systems, we have to deal with the fact
 # that systems will almost always be of different sizes. The
 # operations in this file aim to shuffle data into a form where
-# the entries that "hand off the end" of a row in a stack (but
+# the entries that "leave off the end" of a row in a stack (but
 # which have to be there because another row of a stack is
 # longer) are shifted to the higher indices (the "right" if you
 # draw the stack on paper) and the entries that correspond

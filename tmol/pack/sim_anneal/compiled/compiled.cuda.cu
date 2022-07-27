@@ -82,17 +82,22 @@ template <
     typename Int>
 struct PickRotamers {
   static auto f(
-      TView<Real, 4, D> context_coords,
+      TView<Real, 3, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
       TView<Int, 1, D> pose_id_for_context,
       TView<Int, 1, D> n_rots_for_pose,
       TView<Int, 1, D> rot_offset_for_pose,
       TView<Int, 1, D> block_type_ind_for_rot,
       TView<Int, 1, D> block_ind_for_rot,
-      TView<Real, 3, D> rotamer_coords,
-      TView<Real, 3, D> alternate_coords,
+      TView<Real, 2, D> rotamer_coords,
+      TView<Int, 1, D> rotamer_coord_offsets,
+      TView<Real, 2, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_block_id,
       TView<Int, 1, D> random_rots,
+      TView<Int, 1, D> block_type_n_atoms,
+      Int max_n_atoms_per_block,
       TView<int64_t, 1, tmol::Device::CPU> annealer_event) -> void {
     // Increment the cuda generator and capture the set for this execution
     std::pair<uint64_t, uint64_t> rng_engine_inputs;
@@ -111,24 +116,25 @@ struct PickRotamers {
     // auto philox_seed = next_philox_seed(1);
 
     int const n_contexts = context_coords.size(0);
-    int const max_n_blocks = context_coords.size(1);
-    int const max_n_atoms = context_coords.size(2);
+    int const max_n_blocks = context_coord_offsets.size(1);
+    // int const max_n_atoms = context_coords.size(2);
     int const n_poses = pose_id_for_context.size(0);
     int const n_rots = block_type_ind_for_rot.size(0);
 
-    assert(context_coords.size(3) == 3);
+    assert(context_coords.size(2) == 3);
+    assert(context_coord_offsets.size(0) == n_contexts);
+
     assert(context_block_type.size(0) == n_contexts);
     assert(context_block_type.size(1) == max_n_blocks);
     assert(n_rots_for_pose.size(0) == n_poses);
     assert(rot_offset_for_pose.size(0) == n_poses);
     assert(block_ind_for_rot.size(0) == n_rots);
-    assert(rotamer_coords.size(0) == n_rots);
-    assert(rotamer_coords.size(1) == max_n_atoms);
-    assert(rotamer_coords.size(2) == 3);
+    assert(rotamer_coords.size(1) == 3);
+    assert(rotamer_coord_offsets.size(0) == n_rots);
+
     assert(random_rots.size(0) == n_contexts);
-    assert(alternate_coords.size(0) == 2 * n_contexts);
-    assert(alternate_coords.size(1) == max_n_atoms);
-    assert(alternate_coords.size(2) == 3);
+    assert(alternate_coords.size(1) == 3);
+    assert(alternate_coord_offsets.size(0) == 2 * n_contexts);
     assert(alternate_block_id.size(0) == 2 * n_contexts);
     assert(alternate_block_id.size(1) == 3);
 
@@ -172,33 +178,45 @@ struct PickRotamers {
     // std::cout << std::endl;
 
     auto copy_rotamer_coords = [=] EIGEN_DEVICE_FUNC(int i) {
-      Int alt_id = i / max_n_atoms;
+      Int alt_id = i / max_n_atoms_per_block;
       Int i_context = alternate_block_id[alt_id][0];
       Int i_block = alternate_block_id[alt_id][1];
+      Int i_block_type = alternate_block_id[alt_id][2];
+      if (i_block == -1) {
+        return;
+      }
 
       // pretend we're responsible for this atom; treat this like
       // our thread index; it's not, but, it'll do
-      Int quasi_atom_ind = (i % max_n_atoms);
+      Int const quasi_atom_ind = (i % max_n_atoms_per_block);
+      Int const i_block_n_atoms = block_type_n_atoms[i_block_type];
 
       if (alt_id % 2 == 0) {
-        // strided iteration, more or less
+        // strided iteration
+        int const alt_offset = alternate_coord_offsets[alt_id];
+        int const context_offset = context_coord_offsets[i_context][i_block];
         for (int j = 0; j < 3; ++j) {
-          int j_count = j * max_n_atoms + quasi_atom_ind;
+          int j_count = j * max_n_atoms_per_block + quasi_atom_ind;
           int atom_id = j_count / 3;
           int dim = j_count % 3;
-
-          alternate_coords[alt_id][atom_id][dim] =
-              context_coords[i_context][i_block][atom_id][dim];
+          if (atom_id < i_block_n_atoms) {
+            alternate_coords[alt_offset + atom_id][dim] =
+                context_coords[i_context][context_offset + atom_id][dim];
+          }
         }
       } else {
-        // strided iteration, more or less
-        Int i_rot = random_rots[i_context];
+        int const i_rot = random_rots[i_context];
+        int const alt_offset = alternate_coord_offsets[alt_id];
+        int const rotamer_offset = rotamer_coord_offsets[i_rot];
+        // strided iteration
         for (int j = 0; j < 3; ++j) {
-          int j_count = j * max_n_atoms + quasi_atom_ind;
+          int j_count = j * max_n_atoms_per_block + quasi_atom_ind;
           int atom_id = j_count / 3;
           int dim = j_count % 3;
-          alternate_coords[alt_id][atom_id][dim] =
-              rotamer_coords[i_rot][atom_id][dim];
+          if (atom_id < i_block_n_atoms) {
+            alternate_coords[alt_offset + atom_id][dim] =
+                rotamer_coords[rotamer_offset + atom_id][dim];
+          }
         }
       }
     };
@@ -215,7 +233,8 @@ struct PickRotamers {
     mgpu::transform(select_rotamer, n_contexts, context);
 
     // Dispatch<D>::forall(n_contexts * 2 * max_n_atoms, copy_rotamer_coords);
-    mgpu::transform(copy_rotamer_coords, n_contexts * 2 * max_n_atoms, context);
+    mgpu::transform(
+        copy_rotamer_coords, n_contexts * 2 * max_n_atoms_per_block, context);
 
     // Record an event for the completion of the initialization of new
     // coordinates into the alternate_coords and alternate_block_id tensors so
@@ -267,21 +286,27 @@ template <
 struct MetropolisAcceptReject {
   static auto f(
       TView<Real, 1, tmol::Device::CPU> temperature,
-      TView<Real, 4, D> context_coords,
+      TView<Real, 3, D> context_coords,
+      TView<Int, 2, D> context_coord_offsets,
       TView<Int, 2, D> context_block_type,
-      TView<Real, 3, D> alternate_coords,
+      TView<Real, 2, D> alternate_coords,
+      TView<Int, 1, D> alternate_coord_offsets,
       TView<Int, 2, D> alternate_ids,
       TView<Real, 2, D> rotamer_component_energies,
       TView<Int, 1, D> accept,
+      TView<Int, 1, D> block_type_n_atoms,
+      Int max_n_atoms_per_block,
       TView<int64_t, 1, tmol::Device::CPU> score_events) -> void {
     int const n_contexts = context_coords.size(0);
     int const n_terms = rotamer_component_energies.size(0);
-    int const max_n_atoms = context_coords.size(2);
+    // int const max_n_atoms = context_coords.size(2);
 
+    assert(context_coord_offsets.size(0) == n_contexts);
     assert(rotamer_component_energies.size(1) == 2 * n_contexts);
-    assert(alternate_coords.size(0) == 2 * n_contexts);
-    assert(alternate_coords.size(1) == max_n_atoms);
-    assert(alternate_coords.size(2) == 3);
+    // assert(alternate_coords.size(0) == 2 * n_contexts);
+    // assert(alternate_coords.size(1) == max_n_atoms);
+    assert(alternate_coords.size(1) == 3);
+    assert(alternate_coord_offsets.size(0) == 2 * n_contexts);
     assert(alternate_ids.size(0) == 2 * n_contexts);
     assert(accept.size(0) == n_contexts);
     assert(score_events.size(0) == n_terms);
@@ -342,19 +367,26 @@ struct MetropolisAcceptReject {
       // if (i == 0) {
       //   printf("n total atoms calc'd: %f\n", sum_energies[0]);
       // }
-      int context_id = i / max_n_atoms;
-      Int quasi_atom_ind = i % max_n_atoms;
-
+      int context_id = i / max_n_atoms_per_block;
+      Int quasi_atom_ind = i % max_n_atoms_per_block;
       Int accepted = accept[context_id];
+
       if (accepted) {
         int block_id = alternate_ids[2 * context_id + 1][1];
+        int block_type = alternate_ids[2 * context_id + 1][2];
+        int n_atoms = block_type_n_atoms[block_type];
+        int const context_offset = context_coord_offsets[context_id][block_id];
+        int const alternate_offset =
+            alternate_coord_offsets[2 * context_id + 1];
         for (int j = 0; j < 3; ++j) {
-          int j_count = j * max_n_atoms + quasi_atom_ind;
+          int j_count = j * max_n_atoms_per_block + quasi_atom_ind;
           int atom_id = j_count / 3;
           int dim = j_count % 3;
 
-          context_coords[context_id][block_id][atom_id][dim] =
-              alternate_coords[2 * context_id + 1][atom_id][dim];
+          if (atom_id < n_atoms) {
+            context_coords[context_id][context_offset + atom_id][dim] =
+                alternate_coords[alternate_offset + atom_id][dim];
+          }
         }
       }
     };
@@ -373,7 +405,8 @@ struct MetropolisAcceptReject {
     wait_on_score_events(context.stream(), score_events);
     mgpu::transform(accept_reject, n_contexts, context);
     gpuErrchk(cudaPeekAtLastError());
-    mgpu::transform(copy_accepted_coords, n_contexts * max_n_atoms, context);
+    mgpu::transform(
+        copy_accepted_coords, n_contexts * max_n_atoms_per_block, context);
     gpuErrchk(cudaPeekAtLastError());
 
     // if (count_mc_passes % 100 == 0) {

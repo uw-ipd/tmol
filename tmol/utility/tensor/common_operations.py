@@ -1,5 +1,5 @@
 import torch
-from typing import List, Union, Optional
+from typing import List, Tuple, Union, Optional
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
@@ -39,6 +39,26 @@ def exclusive_cumsum2d(
     )
 
 
+@validate_args
+def exclusive_cumsum2d_and_totals(
+    inds: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]]
+) -> Union[
+    Tuple[Tensor[torch.int32][:, :], Tensor[torch.int32][:]],
+    Tuple[Tensor[torch.int64][:, :], Tensor[torch.int64][:]],
+]:
+    cs = torch.cumsum(inds, dim=1, dtype=inds.dtype)
+    return (
+        torch.cat(
+            (
+                torch.zeros((inds.shape[0], 1), dtype=inds.dtype, device=inds.device),
+                cs[:, :-1],
+            ),
+            dim=1,
+        ),
+        cs[:, -1],
+    )
+
+
 def print_row_numbered_tensor(tensor):
     if len(tensor.shape) == 1:
         print(
@@ -64,7 +84,7 @@ def print_row_numbered_tensor(tensor):
 
 # @validate_args
 def nplus1d_tensor_from_list(
-    tensors: List
+    tensors: List,
 ):  # -> Tuple[Tensor, Tensor[torch.long][:,:], Tensor[torch.long][:,:]] :
     assert len(tensors) > 0
 
@@ -94,7 +114,9 @@ def nplus1d_tensor_from_list(
     return newt, sizes, strides
 
 
-def cat_differently_sized_tensors(tensors: List,):
+def cat_differently_sized_tensors(
+    tensors: List,
+):
     assert len(tensors) > 0
     for tensor in tensors:
         assert len(tensor.shape) == len(tensors[0].shape)

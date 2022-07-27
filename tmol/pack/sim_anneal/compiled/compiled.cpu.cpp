@@ -38,7 +38,7 @@ struct PickRotamers {
     TView<Int, 1, D> random_rots,
     TView<Int, 1, D> block_type_n_atoms,
     Int max_n_atoms_per_block,
-    TView<int64_t, 1, tmol::Device::CPU> /*annealer_event*/,
+    TView<int64_t, 1, tmol::Device::CPU> /*annealer_event*/
   ) -> void
   {
     int const n_contexts = context_coords.size(0);
@@ -55,12 +55,13 @@ struct PickRotamers {
     assert(context_block_type.size(1) == max_n_blocks);
     assert(n_rots_for_pose.size(0) == n_poses);
     assert(rot_offset_for_pose.size(0) == n_poses);
+    assert(block_type_ind_for_rot.size(0) == n_rots); // tautological
     assert(block_ind_for_rot.size(0) == n_rots);
     assert(rotamer_coords.size(1) == 3);
     assert(rotamer_coord_offsets.size(0) == n_rots);
     assert(random_rots.size(0) == n_contexts);
     assert(alternate_coords.size(1) == 3);
-    assert(alternate_coord_offsets.size(1) == 2 * n_contexts);
+    assert(alternate_coord_offsets.size(0) == 2 * n_contexts);
     assert(alternate_id.size(0) == 2 * n_contexts);
     assert(alternate_id.size(1) == 3);
 
@@ -94,7 +95,7 @@ struct PickRotamers {
     Dispatch<D>::forall(n_contexts, select_rotamer);
 
     auto copy_rotamer_coords = [=] (int i) {
-      Int alt_id = i / (max_n_atoms_per_block);
+      Int alt_id = i / max_n_atoms_per_block;
       Int atom_id = i % max_n_atoms_per_block;
       Int i_context = alternate_id[alt_id][0];
       Int i_block = alternate_id[alt_id][1];
@@ -192,12 +193,12 @@ struct MetropolisAcceptReject {
     Dispatch<D>::forall(n_contexts, accept_reject);
 
     auto copy_accepted_coords = [=] (int i) {
-      int context_id = i / max_n_atoms;
-      int atom_id = i % max_n_atoms;
+      int context_id = i / max_n_atoms_per_block;
+      int atom_id = i % max_n_atoms_per_block;
       Int accepted = accept[context_id];
       if (accepted) {
 	int block_id = alternate_id[2*context_id+1][1];
-	int block_type = altnerate_id[2*context_id+1][2];
+	int block_type = alternate_id[2*context_id+1][2];
 	int n_atoms = block_type_n_atoms[block_type];
 	if (atom_id >= n_atoms) {
 	  return;
@@ -205,12 +206,12 @@ struct MetropolisAcceptReject {
 	int const context_offset = context_coord_offsets[context_id][block_id];
 	int const alternate_offset = alternate_coord_offsets[2*context_id + 1];
 	for (int j = 0; j < 3; ++j) {
-	  context_coords[context_offset + atom_id][j] = alternate_coords[alternate_offset + atom_id][j];
+	  context_coords[context_id][context_offset + atom_id][j] = alternate_coords[alternate_offset + atom_id][j];
 	}
       }
     };
 
-    Dispatch<D>::forall(n_contexts * max_n_atoms, copy_accepted_coords);
+    Dispatch<D>::forall(n_contexts * max_n_atoms_per_block, copy_accepted_coords);
     return;
   }
 };

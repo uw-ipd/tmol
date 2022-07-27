@@ -77,6 +77,7 @@ delete_sim_annealer(
 Tensor
 register_standard_random_rotamer_picker(
   Tensor context_coords,
+  Tensor context_coord_offsets,
   Tensor context_block_type,
   Tensor pose_id_for_context,
   Tensor n_rots_for_pose,
@@ -84,9 +85,13 @@ register_standard_random_rotamer_picker(
   Tensor block_type_ind_for_rot,
   Tensor block_ind_for_rot,
   Tensor rotamer_coords,
+  Tensor rotamer_coord_offsets,
   Tensor alternate_coords,
+  Tensor alternate_coord_offsets,
   Tensor alternate_id,
   Tensor random_rotamers,
+  Tensor block_type_n_atoms,
+  int64_t max_n_atoms,
   Tensor annealer_event,
   Tensor annealer
 )
@@ -101,6 +106,7 @@ register_standard_random_rotamer_picker(
 	  using tmol::score::common::ForallDispatch;
           PickRotamersStepRegistrator<ForallDispatch, Dev, Real, Int>::f(
             TCAST(context_coords),
+            TCAST(context_coord_offsets),
             TCAST(context_block_type),
             TCAST(pose_id_for_context),
             TCAST(n_rots_for_pose),
@@ -108,9 +114,13 @@ register_standard_random_rotamer_picker(
             TCAST(block_type_ind_for_rot),
             TCAST(block_ind_for_rot),
             TCAST(rotamer_coords),
+            TCAST(rotamer_coord_offsets),
             TCAST(alternate_coords),
+            TCAST(alternate_coord_offsets),
             TCAST(alternate_id),
             TCAST(random_rotamers),
+	    TCAST(block_type_n_atoms),
+	    Int(max_n_atoms),
             TCAST(annealer_event),
             TCAST(annealer)
 	  );
@@ -131,11 +141,15 @@ Tensor
 register_standard_metropolis_accept_or_rejector(
   Tensor temperature,
   Tensor context_coords,
+  Tensor context_coord_offsets,
   Tensor context_block_type,
   Tensor alternate_coords,
+  Tensor alternate_coord_offsets,
   Tensor alternate_ids,
   Tensor rotamer_component_energies,
   Tensor accepted,
+  Tensor block_type_n_atoms,
+  int64_t max_n_atoms,
   Tensor score_events,
   Tensor annealer
 )
@@ -151,11 +165,15 @@ register_standard_metropolis_accept_or_rejector(
           MetropolisAcceptRejectStepRegistrator<ForallDispatch, Dev, Real, Int>::f(
             TCAST(temperature),
             TCAST(context_coords),
+            TCAST(context_coord_offsets),
             TCAST(context_block_type),
             TCAST(alternate_coords),
+            TCAST(alternate_coord_offsets),
             TCAST(alternate_ids),
             TCAST(rotamer_component_energies),
             TCAST(accepted),
+	    TCAST(block_type_n_atoms),
+	    Int(max_n_atoms),
             TCAST(score_events),
             TCAST(annealer)
 	  );
@@ -200,6 +218,7 @@ template < template <tmol::Device> class DispatchMethod >
 Tensor
 pick_random_rotamers(
   Tensor context_coords,
+  Tensor context_coord_offsets,
   Tensor context_block_type,
   Tensor pose_id_for_context,
   Tensor n_rots_for_pose,
@@ -207,9 +226,13 @@ pick_random_rotamers(
   Tensor block_type_ind_for_rot,
   Tensor block_ind_for_rot,
   Tensor rotamer_coords,
+  Tensor rotamer_coord_offsets,
   Tensor alternate_coords,
+  Tensor alternate_coord_offsets,
   Tensor alternate_id,
-  Tensor random_rotamers
+  Tensor random_rotamers,
+  Tensor block_type_n_atoms,
+  int64_t max_n_atoms
 )
 {
 
@@ -224,6 +247,7 @@ pick_random_rotamers(
   
           PickRotamers<DispatchMethod, Dev, Real, Int>::f(
               TCAST(context_coords),
+              TCAST(context_coord_offsets),
               TCAST(context_block_type),
               TCAST(pose_id_for_context),
               TCAST(n_rots_for_pose),
@@ -231,9 +255,13 @@ pick_random_rotamers(
               TCAST(block_type_ind_for_rot),
               TCAST(block_ind_for_rot),
               TCAST(rotamer_coords),
+              TCAST(rotamer_coord_offsets),
 	      TCAST(alternate_coords),
+	      TCAST(alternate_coord_offsets),
 	      TCAST(alternate_id),
 	      TCAST(random_rotamers),
+	      TCAST(block_type_n_atoms),
+	      Int(max_n_atoms),
 	      empty_annealer_event_tensor.view
 	  );
         }));
@@ -252,11 +280,15 @@ Tensor
 metropolis_accept_reject(
   Tensor temperature,
   Tensor context_coords,
+  Tensor context_coord_offsets,
   Tensor context_block_type,
   Tensor alternate_coords,
+  Tensor alternate_coord_offsets,
   Tensor alternate_ids,
   Tensor rotamer_component_energies,
-  Tensor accepted
+  Tensor accepted,
+  Tensor block_type_n_atoms,
+  int64_t max_n_atoms
 )
 {
   using Int = int32_t;
@@ -271,11 +303,15 @@ metropolis_accept_reject(
           MetropolisAcceptReject<DispatchMethod, Dev, Real, Int>::f(
               TCAST(temperature),
 	      TCAST(context_coords),
+	      TCAST(context_coord_offsets),
               TCAST(context_block_type),
               TCAST(alternate_coords),
+              TCAST(alternate_coord_offsets),
               TCAST(alternate_ids),
               TCAST(rotamer_component_energies),
 	      TCAST(accepted),
+	      TCAST(block_type_n_atoms),
+	      Int(max_n_atoms),
 	      empty_score_event_tensor.view
 	  );
         }));

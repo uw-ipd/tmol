@@ -3,6 +3,7 @@ import attr
 import numpy
 
 from tmol.utility.tensor.common_operations import stretch
+
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -32,6 +33,10 @@ from tmol.pack.sim_anneal.accept_final import (
 def test_random_rotamer_module(ubq_res, default_database, torch_device):
     # torch_device = torch.device("cpu")
 
+    n_res = 3
+    n_poses = 5
+    n_rots_per_res = 2
+
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
     # replace them with residues constructed from the residue types
@@ -46,23 +51,43 @@ def test_random_rotamer_module(ubq_res, default_database, torch_device):
         for res in ubq_res
     ]
 
-    p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:3], torch_device)
-    poses = PoseStack.from_poses([p] * 5, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:n_res], torch_device)
+    poses = PoseStack.from_poses([p] * n_poses, torch_device)
 
-    contexts = poses.coords.clone()
+    # contexts = poses.coords.clone() ??
 
-    arange3 = torch.arange(3, dtype=torch.int32, device=torch_device)
-    arange5 = torch.arange(5, dtype=torch.int32, device=torch_device)
-    max_n_atoms = poses.coords.shape[-2]
+    arange3 = torch.arange(n_res, dtype=torch.int32, device=torch_device)
+    arange5 = torch.arange(n_poses, dtype=torch.int32, device=torch_device)
 
-    faux_coords = torch.arange(
-        max_n_atoms * 5 * 6 * 3, dtype=torch.float32, device=torch_device
-    ).view(30, max_n_atoms, 3)
+    max_n_atoms_per_block = poses.packed_block_types.max_n_atoms
 
-    alternate_coords = torch.zeros(
-        (5 * 2, max_n_atoms, 3), dtype=torch.float32, device=torch_device
+    rotamer_coords = torch.arange(
+        max_n_atoms_per_block * n_poses * n_res * n_rots_per_res * 3,
+        dtype=torch.float32,
+        device=torch_device,
+    ).view(-1, 3)
+    rotamer_coord_offsets = max_n_atoms_per_block * torch.arange(
+        n_poses * n_res * n_rots_per_res, dtype=torch.int32, device=torch_device
     )
-    alternate_block_id = torch.zeros((5 * 2, 3), dtype=torch.int32, device=torch_device)
+
+    # there are always two "alternate" rots per pose: the current and the (actual) alternate
+    alternate_coords = torch.zeros(
+        (n_poses * 2 * max_n_atoms_per_block, 3),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    alternate_coord_offsets = max_n_atoms_per_block * torch.arange(
+        n_poses * 2, dtype=torch.int32, device=torch_device
+    )
+    # there are always three components of the "block id" for a rotamer
+    # 0: which context does it represent
+    # 1: which block on that context
+    # 2: the block type for that rotamer
+    alternate_block_id = torch.zeros(
+        (n_poses * 2, 3), dtype=torch.int32, device=torch_device
+    )
+    block_type_ind_for_rot = stretch(poses.block_type_ind.view(-1), 2)
+    # random_rots = the indices of the selected rotamers, returned by the selector
     random_rots = torch.zeros((5,), dtype=torch.int32, device=torch_device)
 
     selector = SelectRanRotModule(
@@ -70,18 +95,26 @@ def test_random_rotamer_module(ubq_res, default_database, torch_device):
         pose_id_for_context=arange5,
         n_rots_for_pose=torch.full((5,), 6, dtype=torch.int32, device=torch_device),
         rot_offset_for_pose=arange5 * 6,
-        block_type_ind_for_rot=stretch(poses.block_type_ind.view(-1), 2),
+        block_type_ind_for_rot=block_type_ind_for_rot,
         block_ind_for_rot=stretch(arange3, 2).repeat(5),
-        rotamer_coords=faux_coords,
+        rotamer_coords=rotamer_coords,
+        rotamer_coord_offsets=rotamer_coord_offsets,
         alternate_coords=alternate_coords,
+        alternate_coord_offsets=alternate_coord_offsets,
         alternate_block_id=alternate_block_id,
         random_rots=random_rots,
+        block_type_n_atoms=poses.packed_block_types.n_atoms,
     )
 
-    context_coords = poses.coords.clone()
+    # now the coordinates of the contexts
+    context_coords, _ = poses.expand_coords()
+    context_coords = context_coords.view(n_poses, -1, 3)
+    context_coord_offsets = max_n_atoms_per_block * torch.remainder(
+        torch.arange(n_poses * n_res, dtype=torch.int32, device=torch_device), n_res
+    ).view(n_poses, n_res)
     context_block_type = poses.block_type_ind.clone()
 
-    selector.go(context_coords, context_block_type)
+    selector.go(context_coords, context_coord_offsets, context_block_type)
 
     # what to assert
     # assert alt_coords.shape == (10, poses.coords.shape[2], 3)
@@ -91,16 +124,47 @@ def test_random_rotamer_module(ubq_res, default_database, torch_device):
 
     rr = random_rots.to(torch.int64)
     alt_coords = alternate_coords.cpu().numpy()
-    rotamer_alt_coords = alt_coords.reshape(5, 2, max_n_atoms, 3)[:, 1]
+    rotamer_alt_coords = alt_coords.reshape(n_poses, 2, max_n_atoms_per_block, 3)[:, 1]
+    rotamer_coords_expanded = rotamer_coords.view(
+        n_poses * n_res * n_rots_per_res, -1, 3
+    )
 
-    gold_rotamer_alt_coords = faux_coords[rr, :, :].cpu().numpy()
+    gold_rotamer_alt_coords = numpy.zeros(
+        (n_poses, max_n_atoms_per_block, 3), dtype=numpy.float32
+    )
+    real_selected_rot_ats = (
+        torch.remainder(
+            torch.arange(
+                n_poses * max_n_atoms_per_block, dtype=torch.int32, device=torch_device
+            ),
+            max_n_atoms_per_block,
+        ).view(n_poses, -1)
+        < poses.packed_block_types.n_atoms[
+            alternate_block_id.view(n_poses, 2, 3)[:, 1, 2].to(
+                torch.int64
+            )  # 2 == block type index
+        ][:, None]
+    )
+
+    all_atoms_of_selected_rotamers = rotamer_coords_expanded[rr]
+
+    gold_rotamer_alt_coords[real_selected_rot_ats.view(n_poses, -1).cpu().numpy()] = (
+        all_atoms_of_selected_rotamers[real_selected_rot_ats].cpu().numpy()
+    )
+
     assert rotamer_alt_coords.shape == gold_rotamer_alt_coords.shape
 
     numpy.testing.assert_equal(gold_rotamer_alt_coords, rotamer_alt_coords)
 
+    # TO DO: Ensure that the coordinates of the "current" rotamer are also correct
 
-def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
+
+def test_mc_accept_reject_module_smoke(ubq_res, default_database, torch_device):
     # torch_device = torch.device("cpu")
+    n_res = 3
+    n_poses = 5
+    n_rots_per_res = 2
+
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
     # replace them with residues constructed from the residue types
@@ -115,14 +179,14 @@ def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
         for res in ubq_res
     ]
 
-    p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:3], torch_device)
-    poses = PoseStack.from_poses([p] * 5, torch_device)
+    p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:n_res], torch_device)
+    poses = PoseStack.from_poses([p] * n_poses, torch_device)
 
-    contexts = poses.coords.clone()
+    arange3 = torch.arange(n_res, dtype=torch.int64, device=torch_device)
+    arange_n_poses = torch.arange(n_poses, dtype=torch.int64, device=torch_device)
 
-    arange3 = torch.arange(3, dtype=torch.int64, device=torch_device)
-    arange5 = torch.arange(5, dtype=torch.int64, device=torch_device)
-    max_n_atoms = poses.coords.shape[-2]
+    # max_n_atoms = poses.coords.shape[-2]
+    max_n_atoms_per_block = poses.packed_block_types.max_n_atoms
 
     n_traj_per_pose = (1,)
     # pose_id_for_context = arange5,
@@ -132,32 +196,41 @@ def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
     # block_ind_for_rot = stretch(arange3, 2).repeat(5),
 
     block_ind_for_alt = torch.remainder(
-        stretch(torch.arange(5, dtype=torch.int64, device=torch_device), 2), 3
+        stretch(torch.arange(n_poses, dtype=torch.int64, device=torch_device), 2), n_res
     )
 
     # context_coords = poses.coords[
     #     stretch(arange5,6),
     #     stretch(arange3,2).repeat(5)
     # ]
-    context_coords = poses.coords.clone()
-    context_block_type = poses.block_type_ind
+    context_coords, _ = poses.expand_coords()
+    context_coords = context_coords.view(n_poses, -1, 3)
+    context_coord_offsets = max_n_atoms_per_block * torch.remainder(
+        torch.arange(n_poses * n_res, dtype=torch.int32, device=torch_device), n_res
+    ).view(n_poses, n_res)
+    context_block_type = poses.block_type_ind.clone()
 
     # take the coordinates from pose 0 for residues 0, 1, 2, 0, & 1
     # two rotamers each
-    ten0s = torch.zeros((10,), dtype=torch.int64, device=torch_device)
+    ten0s = torch.zeros((n_poses * 2,), dtype=torch.int64, device=torch_device)
 
-    alternate_coords = poses.coords[ten0s, block_ind_for_alt]
-    alternate_ids = torch.zeros((10, 3), dtype=torch.int32, device=torch_device)
-    alternate_ids[:, 0] = stretch(arange5, 2).to(torch.int32)
+    alternate_coords = context_coords[ten0s, block_ind_for_alt]
+    alternate_coord_offsets = max_n_atoms_per_block * torch.arange(
+        n_poses * 2, dtype=torch.int32, device=torch_device
+    )
+    alternate_ids = torch.zeros(
+        (n_poses * 2, 3), dtype=torch.int32, device=torch_device
+    )
+    alternate_ids[:, 0] = stretch(arange_n_poses, 2).to(torch.int32)
     alternate_ids[:, 1] = block_ind_for_alt.to(torch.int32)
     alternate_ids[:, 2] = poses.block_type_ind[ten0s, block_ind_for_alt]
-    faux_energies = torch.arange(10, dtype=torch.float32, device=torch_device).view(
-        1, 10
-    )
-    accepted = torch.zeros((5,), dtype=torch.int32, device=torch_device)
+    faux_energies = torch.arange(
+        n_poses * 2, dtype=torch.float32, device=torch_device
+    ).view(1, n_poses * 2)
+    accepted = torch.zeros((n_poses,), dtype=torch.int32, device=torch_device)
     temperature = torch.ones((1,), dtype=torch.float32, device=torch.device("cpu"))
 
-    mc_accept_reject = MCAcceptRejectModule()
+    mc_accept_reject = MCAcceptRejectModule(poses.packed_block_types.n_atoms)
 
     # print("context_coords", context_coords.shape)
     # print("alternate_coords", alternate_coords.shape)
@@ -167,16 +240,22 @@ def test_mc_accept_reject_module(ubq_res, default_database, torch_device):
     accept = mc_accept_reject.go(
         temperature,
         context_coords,
+        context_coord_offsets,
         context_block_type,
         alternate_coords,
+        alternate_coord_offsets,
         alternate_ids,
         faux_energies,
         accepted,
     )
-    print(accept)
+
+    # print(accept)
+
+    # TO DO:
+    # test that the final context_coords represent the accepted / previous rotamer
 
 
-def test_accept_final(
+def test_accept_final_smoke(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
@@ -199,10 +278,18 @@ def test_accept_final(
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
 
-    print("built rotamers", rotamer_set.pose_for_rot.shape)
+    # we have to wait until after build_rotamers to ask the max number of atoms
+    # because build_rotamers will have (in this case, and possibly in general) given
+    # us extra block types that we didn't have before
+    max_n_atoms_per_block = poses.packed_block_types.max_n_atoms
 
     pose_id_for_context = torch.arange(n_poses, dtype=torch.int32, device=torch_device)
-    context_coords = poses.coords.clone()
+    context_coords, _ = poses.expand_coords()
+    context_coord_offsets = max_n_atoms_per_block * torch.remainder(
+        torch.arange(n_poses * max_n_blocks, dtype=torch.int32, device=torch_device),
+        max_n_blocks,
+    ).view(n_poses, max_n_blocks)
+
     rand_rot = torch.floor(
         torch.rand((n_poses, max_n_blocks), dtype=torch.float, device=torch_device)
         * rotamer_set.n_rots_for_block.to(torch.float32)
@@ -221,9 +308,31 @@ def test_accept_final(
         poses,
         poses.packed_block_types,
         pose_id_for_context,
-        context_coords,
+        context_coords.view(n_poses, -1, 3),
+        context_coord_offsets,
         context_block_type,
     )
+
+    # TO DO: make sure that the coordinates of the accepted rotamers are what is expected
+    assert randomized_poses.coords.dtype == torch.float32
+    assert randomized_poses.coords.device == torch_device
+    assert randomized_poses.block_coord_offset.dtype == torch.int32
+    assert randomized_poses.block_coord_offset.device == torch_device
+    assert randomized_poses.block_coord_offset64.dtype == torch.int64
+    assert randomized_poses.block_coord_offset64.device == torch_device
+    assert randomized_poses.inter_residue_connections.dtype == torch.int32
+    assert randomized_poses.inter_residue_connections.device == torch_device
+    assert randomized_poses.inter_residue_connections64.dtype == torch.int64
+    assert randomized_poses.inter_residue_connections64.device == torch_device
+    assert randomized_poses.inter_block_bondsep.dtype == torch.int32
+    assert randomized_poses.inter_block_bondsep.device == torch_device
+    assert randomized_poses.inter_block_bondsep64.dtype == torch.int64
+    assert randomized_poses.inter_block_bondsep64.device == torch_device
+    assert randomized_poses.block_type_ind.dtype == torch.int32
+    assert randomized_poses.block_type_ind.device == torch_device
+    assert randomized_poses.block_type_ind64.dtype == torch.int64
+    assert randomized_poses.block_type_ind64.device == torch_device
+    assert randomized_poses.device == torch_device
 
     # @score_graph
     # class DummyIntra(IntraScore):
