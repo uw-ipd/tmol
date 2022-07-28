@@ -1,10 +1,7 @@
 import torch
 import numpy
 
-from tmol.utility.tensor.common_operations import (
-    stretch,
-    exclusive_cumsum2d_and_totals,
-)
+from tmol.utility.tensor.common_operations import stretch, exclusive_cumsum2d_and_totals
 from tmol.score.common.stack_condense import (
     condense_subset,
     take_values_w_sentineled_index,

@@ -135,10 +135,7 @@ class SelectRanRotModule:
 
 # class MCAcceptRejectModule(torch.jit.ScriptModule):
 class MCAcceptRejectModule:
-    def __init__(
-        self,
-        block_type_n_atoms,
-    ):
+    def __init__(self, block_type_n_atoms):
         super().__init__()
 
         def _p(t):

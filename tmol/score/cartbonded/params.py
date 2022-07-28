@@ -134,7 +134,6 @@ class CartBondedParamResolver(ValidateAttrs):
     @validate_args
     def resolve_torsions(
         self,
-
         resnames: NDArray[object][:, :],
         atm1s: NDArray[object][:, :],
         atm2s: NDArray[object][:, :],

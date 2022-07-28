@@ -264,9 +264,7 @@ def annotate_residue_type_with_sampler_fingerprints(
             )
 
 
-def find_unique_fingerprints(
-    pbt: PackedBlockTypes,
-):
+def find_unique_fingerprints(pbt: PackedBlockTypes,):
     sampler_types = set()
     for rt in pbt.active_block_types:
         if hasattr(rt, "mc_fingerprints"):

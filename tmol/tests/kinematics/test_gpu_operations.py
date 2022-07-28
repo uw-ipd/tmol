@@ -16,10 +16,7 @@ def system_kinforest(target_system):
         KinematicBuilder()
         .append_connected_components(
             roots,
-            *KinematicBuilder.bonds_to_forest(
-                roots,
-                tsys.bonds.astype(numpy.int32),
-            )
+            *KinematicBuilder.bonds_to_forest(roots, tsys.bonds.astype(numpy.int32)),
         )
         .kinforest
     )

@@ -266,11 +266,7 @@ def test_forward_refold_two_systems(ubq_system, torch_device):
     kinforest = (
         KinematicBuilder()
         .append_connected_components(
-            tworoots,
-            *KinematicBuilder.bonds_to_forest(
-                roots=tworoots,
-                bonds=bonds2,
-            ),
+            tworoots, *KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds2)
         )
         .kinforest.to(torch_device)
     )
@@ -315,8 +311,7 @@ def test_forward_refold_w_jagged_system(ubq_res, torch_device):
     kinforest = (
         KinematicBuilder()
         .append_connected_components(
-            tworoots,
-            *KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds2),
+            tworoots, *KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds2)
         )
         .kinforest.to(torch_device)
     )

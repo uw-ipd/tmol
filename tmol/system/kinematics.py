@@ -77,9 +77,7 @@ class KinematicDescription:
         builder = KinematicBuilder().append_connected_components(
             roots,
             *KinematicBuilder.define_trees_with_prioritized_bonds(
-                roots=roots,
-                potential_bonds=bonds,
-                prioritized_bonds=torsion_bonds,
+                roots=roots, potential_bonds=bonds, prioritized_bonds=torsion_bonds
             ),
             to_jump_nodes=numpy.array([], dtype=numpy.int32),
         )

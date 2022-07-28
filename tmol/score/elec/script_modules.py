@@ -38,7 +38,12 @@ class _ElecScoreModule(torch.jit.ScriptModule):
 class ElecInterModule(_ElecScoreModule):
     @torch.jit.script_method
     def forward(
-        self, coords_I, partial_charge_I, coords_J, partial_charge_J, elec_bonded_pair_lengths
+        self,
+        coords_I,
+        partial_charge_I,
+        coords_J,
+        partial_charge_J,
+        elec_bonded_pair_lengths,
     ):
         return score_elec(
             coords_I,

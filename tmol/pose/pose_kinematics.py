@@ -444,9 +444,7 @@ def construct_pose_stack_kinforest(
         KinematicBuilder().append_connected_components(
             root_atoms,
             *KinematicBuilder.define_trees_with_prioritized_bonds(
-                roots=root_atoms,
-                potential_bonds=all_bonds,
-                prioritized_bonds=tor_bonds,
+                roots=root_atoms, potential_bonds=all_bonds, prioritized_bonds=tor_bonds
             ),
             # to do: to_jump_nodes=jump_atom_pairs[0,:]
         )
