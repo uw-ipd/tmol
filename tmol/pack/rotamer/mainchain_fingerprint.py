@@ -264,6 +264,28 @@ def annotate_residue_type_with_sampler_fingerprints(
             )
 
 
+def find_max_length_fp_among_res_samplers(
+    pbt: PackedBlockTypes, sampler_types, fp_sets
+):
+    fp_to_ind = {fp: i for i, fp in enumerate(fp_sets)}
+    n_fps_for_rt = numpy.zeros((pbt.n_types,), dtype=numpy.int32)
+    max_sampler_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
+    max_fp_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
+
+    for i, rt in enumerate(pbt.active_block_types):
+        if hasattr(rt, "mc_fingerprints"):
+            for j, sampler in enumerate(sampler_types):
+                if sampler in rt.mc_fingerprints:
+                    j_len = len(rt.mc_fingerprints[sampler].mc_ats)
+                    if j_len > n_fps_for_rt[i]:
+                        n_fps_for_rt[i] = j_len
+                        max_sampler_for_rt[i] = j
+                        max_fp_for_rt[i] = fp_to_ind[
+                            rt.mc_fingerprints[sampler].fingerprint
+                        ]
+    return (n_fps_for_rt, max_sampler_for_rt, max_fp_for_rt, fp_to_ind)
+
+
 def find_unique_fingerprints(pbt: PackedBlockTypes,):
     sampler_types = set()
     for rt in pbt.active_block_types:
@@ -291,26 +313,16 @@ def find_unique_fingerprints(pbt: PackedBlockTypes,):
             for _, mcfps in rt.mc_fingerprints.items():
                 fp_sets.add(mcfps.fingerprint)
     fp_sets = sorted(fp_sets)
-    fp_to_ind = {fp: i for i, fp in enumerate(fp_sets)}
 
     n_mcs = len(fp_sets)
     max_n_mc_atoms = max(len(fp) for fp in fp_sets)
 
-    n_fps_for_rt = numpy.zeros((pbt.n_types,), dtype=numpy.int32)
-    max_sampler_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
-    max_fp_for_rt = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
-
-    for i, rt in enumerate(pbt.active_block_types):
-        if hasattr(rt, "mc_fingerprints"):
-            for j, sampler in enumerate(sampler_types):
-                if sampler in rt.mc_fingerprints:
-                    j_len = len(rt.mc_fingerprints[sampler].mc_ats)
-                    if j_len > n_fps_for_rt[i]:
-                        n_fps_for_rt[i] = j_len
-                        max_sampler_for_rt[i] = j
-                        max_fp_for_rt[i] = fp_to_ind[
-                            rt.mc_fingerprints[sampler].fingerprint
-                        ]
+    (
+        n_fps_for_rt,
+        max_sampler_for_rt,
+        max_fp_for_rt,
+        fp_to_ind,
+    ) = find_max_length_fp_among_res_samplers(pbt, sampler_types, fp_sets)
 
     # ok, we need have n mainchain types
     # and we have m residue types

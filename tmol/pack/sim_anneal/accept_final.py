@@ -15,15 +15,15 @@ from tmol.pose.pose_stack import PoseStack
 
 
 # to dump pdbs
-from tmol.system.packed import PackedResidueSystem
-from tmol.utility.reactive import reactive_property
+# from tmol.system.packed import PackedResidueSystem
+# from tmol.utility.reactive import reactive_property
 
 # from tmol.score.score_graph import score_graph
 # from tmol.score.bonded_atom import BondedAtomScoreGraph
 # from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 # from tmol.score.device import TorchDevice
 # from tmol.score.score_components import ScoreComponentClasses, IntraScore
-from tmol.io.generic import to_pdb
+# from tmol.io.generic import to_pdb
 
 
 @validate_args
@@ -40,51 +40,31 @@ def poses_from_assigned_rotamers(
 
     n_poses = context_coords.shape[0]
     max_context_coords_n_atoms = context_coords.shape[1]
-    # print("max_context_coords_n_atoms")
-    # print(max_context_coords_n_atoms)
 
     real_context_blocks = context_block_type != -1
     (real_context_block_context_ind, real_context_block_block_ind) = torch.nonzero(
         real_context_blocks, as_tuple=True
     )
-    # real_context_block_type = context_block_type[context_block_type != -1]
-    # print("real_context_block_type")
-    # print(real_context_block_type.shape)
-    # n_context_atoms = pbt.n_atoms[real_context_block_type.to(torch.int64)]
+
     context_block_type64 = context_block_type.to(torch.int64)
     n_context_atoms = take_values_w_sentineled_index(
         pbt.n_atoms, context_block_type64, default_fill=0
     )
-    # print("n_context_atoms")
-    # print(n_context_atoms)
     n_atoms_offset, n_ats_total = exclusive_cumsum2d_and_totals(n_context_atoms)
-    max_n_atoms = torch.max(n_ats_total).item()
 
     atom_begin = torch.zeros(
         (n_poses, max_context_coords_n_atoms), dtype=torch.int32, device=device
     )
-    # print("atom_begin.shape")
-    # print(atom_begin.shape)
     (nz_context_coord_offsets, _) = torch.nonzero(
         context_coord_offsets != -1, as_tuple=True
     )
-    # print("nz_context_coord_offsets")
-    # print(nz_context_coord_offsets)
+
     context_coord_offsets64 = context_coord_offsets.to(torch.int64)
-    # print("context_coord_offsets64[context_coord_offsets!=-1]")
-    # print(context_coord_offsets64[context_coord_offsets!=-1])
     atom_begin[
         nz_context_coord_offsets, context_coord_offsets64[context_coord_offsets != -1]
     ] = 1
-    # atom_begin = atom_begin.flatten()
     cs_atom_begin = torch.cumsum(atom_begin, dim=1)
-    # print("cs_atom_begin")
-    # print(cs_atom_begin)
     block_for_atom = cs_atom_begin - 1
-
-    # print("block_for_atom")
-    # print(block_for_atom)
-    # print(block_for_atom.shape)
 
     context_for_atom64 = stretch(
         torch.arange(n_poses, dtype=torch.int64), max_context_coords_n_atoms
@@ -94,8 +74,6 @@ def poses_from_assigned_rotamers(
     ].view(n_poses, max_context_coords_n_atoms)
 
     block_n_atoms_for_atom = pbt.n_atoms[block_type_for_atom64]
-    # print("block_n_atoms_for_atom")
-    # print(block_n_atoms_for_atom.shape)
 
     context_block_offset_for_atom = torch.gather(
         context_coord_offsets, dim=1, index=block_for_atom
@@ -111,22 +89,19 @@ def poses_from_assigned_rotamers(
         - context_block_offset_for_atom
     )
 
-    # print("block_ind_for_atom")
-    # print(block_ind_for_atom)
-
+    # we are building up to answering the question: what coordinates in the
+    # context_coords tensor are real, and which ones are scratch space
+    # used to hold the rotamers from the largest block types allowed at
+    # each position. We have identified for each position (each "atom") in
+    # the context_coords tensor what block it belongs to and how many atoms
+    # are in that block. Then using a per-block arange, we can determine
+    # which of those atoms are in the range [0..n_atoms) for that block.
+    # The line below tells us which coordinates are real.
     context_atom_is_legit = block_ind_for_atom < block_n_atoms_for_atom
-    # print("context_atom_is_legit")
-    # print(context_atom_is_legit)
 
-    # condensed_coords = torch.zeros((n_poses, max_n_atoms, 3), dtype=torch.float32, device=device)
     condensed_coords = condense_subset(
         context_coords, context_atom_is_legit, default_fill=0.0
     )
-
-    # atoms_to_keep =
-
-    # condensed_coords =
-    # torch.zeros((n_poses, max_n_atoms, 3), dtype=torch.float32, device=device)
 
     nats = pbt.n_atoms.cpu()
 

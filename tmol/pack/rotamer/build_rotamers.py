@@ -928,13 +928,6 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     pbt = poses.packed_block_types
     annotate_everything(chem_db, samplers, pbt)
 
-    n_sys = poses.coords.shape[0]
-    max_n_blocks = poses.coords.shape[1]
-    # max_n_rts = max(
-    #     len(rts.allowed_restypes)
-    #     for one_pose_rlts in task.rlts
-    #     for rts in one_pose_rlts
-    # )
     rt_names = [
         rt.name
         for one_pose_rlts in task.rlts

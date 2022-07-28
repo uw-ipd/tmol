@@ -323,11 +323,10 @@ class Residue:
             p.pretty(self.coords)
 
 
-# validate_args doesn't work with List ???!!!
-# @validate_args
+@validate_args
 def find_simple_polymeric_connections(
     res: List[Residue],
-) -> Sequence[Tuple[int, str, int, str]]:
+) -> List[Tuple[int, str, int, str]]:
     """
     return a list of (int,str,int,str) quadrouples that say residue
     i is connected to residue i+1 from it's "up" connection to
