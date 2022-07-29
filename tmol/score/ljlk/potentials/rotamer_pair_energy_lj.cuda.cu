@@ -1268,8 +1268,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     }  // for ivt
   });
 
-  // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
-  at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
+  at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
+  // at::cuda::CUDAStream wrapped_stream = at::cuda::getStreamFromPool();
   // if (ljlk_stream == 0) {
   //   // cudaStreamCreate(&ljlk_stream);
   //   ljlk_stream = at::cuda::getStreamFromPool().stream();

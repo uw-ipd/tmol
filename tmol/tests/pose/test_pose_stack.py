@@ -2,7 +2,6 @@ import numpy
 import torch
 
 from tmol.chemical.restypes import find_simple_polymeric_connections
-from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
 
@@ -13,7 +12,7 @@ def test_pose_stack_connection_ctor(ubq_res, torch_device):
     )
 
     n_ubq_res = len(ubq_res)
-    max_n_atoms = p.packed_block_types.max_n_atoms
+    # max_n_atoms = p.packed_block_types.max_n_atoms
     max_n_conn = max(
         len(rt.connections) for rt in p.packed_block_types.active_block_types
     )
@@ -130,7 +129,6 @@ def test_concatenate_pose_stacks_ctor(ubq_res, torch_device):
     p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:60], torch_device)
     poses = PoseStack.from_poses([p1, p2], torch_device)
     assert poses.block_type_ind.shape == (2, 60)
-    max_n_atoms = poses.packed_block_types.max_n_atoms
     assert poses.coords.shape == (2, 959, 3)
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 2, 2)
 

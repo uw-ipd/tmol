@@ -52,8 +52,6 @@ def test_mark_polymeric_bonds_in_foldforest_edges_1():
 
 
 def test_mark_polymeric_bonds_in_foldforest_edges_2():
-    n_res_per_tree = [8, 11, 5]
-
     # ok, pose 1 will be rooted at residue 5 and have two polymer edges
     # from the root to its termini
     edges = numpy.full((3, 2, 4), -1, dtype=int)
@@ -102,7 +100,7 @@ def test_mark_polymeric_bonds_in_foldforest_edges_2():
 
 
 def test_mark_polymeric_bonds_in_foldforest_edges_3():
-    n_res_per_tree = [8, 11, 5]
+    # n_res_per_tree = [8, 11, 5]
 
     # ok, this time pose 2 will have a cutpoint at residue 5
     edges = numpy.full((3, 3, 4), -1, dtype=int)

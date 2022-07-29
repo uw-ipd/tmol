@@ -1,4 +1,3 @@
-import attr
 import numpy
 import torch
 

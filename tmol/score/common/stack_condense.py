@@ -321,7 +321,7 @@ def tile_subset_indices(
         tiled_indices = numpy.full_like(indices, -1, shape=(n_tiles * tile_size,))
         n_in_tile = numpy.full_like(indices, 0, shape=(n_tiles,))
     else:
-        raise InvalidArgumentException
+        raise ValueError
     for i in range(n_tiles):
         subset = (indices >= i * tile_size) & (indices < (i + 1) * tile_size)
         if type(tiled_indices) == torch.Tensor:

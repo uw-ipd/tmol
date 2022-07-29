@@ -1,4 +1,4 @@
-from tmol.score.terms import *
+from tmol.score.terms import *  # noqa: F401, F403
 
 from tmol.score.score_types import ScoreType
 from tmol.score.terms.score_term_factory import ScoreTermFactory

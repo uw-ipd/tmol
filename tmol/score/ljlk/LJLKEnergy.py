@@ -1,4 +1,3 @@
-import attr
 import torch
 
 from ..atom_type_dependent_term import AtomTypeDependentTerm

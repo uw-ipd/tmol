@@ -23,7 +23,7 @@ from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 from tmol.utility.tensor.common_operations import (
     exclusive_cumsum1d,
     exclusive_cumsum2d,
-    print_row_numbered_tensor,
+    # print_row_numbered_tensor,
     nplus1d_tensor_from_list,
     cat_differently_sized_tensors,
 )

@@ -1,12 +1,7 @@
 import pytest
-import torch
-import numpy
 
-from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
+# from tmol.score.score_types import ScoreType
 from tmol.pose.pose_stack import PoseStack
-
-from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 
 
 @pytest.mark.parametrize("n_poses", [1, 3, 10, 30, 100])

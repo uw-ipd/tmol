@@ -257,3 +257,6 @@ def test_construct_pose_stack_kinforest(ubq_res):
     fold_forest = FoldForest.polymeric_forest(pose_stack.residues)
 
     kinforest = construct_pose_stack_kinforest(pose_stack, fold_forest)
+
+    # TO DO: make sure kinforest is properly constructed
+    assert kinforest is not None

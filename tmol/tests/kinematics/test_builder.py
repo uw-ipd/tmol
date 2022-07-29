@@ -586,7 +586,7 @@ def test_build_two_system_kinematics(ubq_system, torch_device):
     # print("parents")
     # print(parents[:20])
 
-    self_inds = numpy.arange(parents.shape[0], dtype=int)
+    # self_inds = numpy.arange(parents.shape[0], dtype=int)
     # print("self parents")
     # print(self_inds[parents[self_inds] == self_inds])
 

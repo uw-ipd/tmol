@@ -1044,12 +1044,6 @@ def test_create_dofs_for_many_rotamers(
     pbt = poses.packed_block_types
     annotate_everything(chem_db, samplers, pbt)
 
-    max_n_blocks = poses.coords.shape[1]
-    max_n_rts = max(
-        len(rts.allowed_restypes)
-        for one_pose_rlts in task.rlts
-        for rts in one_pose_rlts
-    )
     rt_names = [
         rt.name
         for one_pose_rlts in task.rlts
@@ -1081,7 +1075,6 @@ def test_create_dofs_for_many_rotamers(
     n_atoms_for_rot = pbt.n_atoms[block_ind_for_rot_torch]
     n_atoms_offset_for_rot = torch.cumsum(n_atoms_for_rot, dim=0)
     n_atoms_offset_for_rot = n_atoms_offset_for_rot.cpu().numpy()
-    n_atoms_total = n_atoms_offset_for_rot[-1]
     n_atoms_offset_for_rot = exc_cumsum_from_inc_cumsum(n_atoms_offset_for_rot)
 
     nodes, scans, gens = construct_scans_for_rotamers(

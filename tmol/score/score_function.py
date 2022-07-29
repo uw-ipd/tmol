@@ -7,7 +7,7 @@ from tmol.database import ParameterDatabase
 from tmol.score.score_types import ScoreType
 
 # force registration of the terms with the ScoreTermFactory
-from tmol.score.terms import *
+from tmol.score.terms import *  # noqa: F401, F403
 from tmol.score.terms.score_term_factory import ScoreTermFactory
 
 from tmol.pose.pose_stack import PoseStack

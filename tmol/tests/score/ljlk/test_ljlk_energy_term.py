@@ -374,16 +374,10 @@ def test_whole_pose_scoring_module_gradcheck(
     #     print("child")
     #     print(ch)
 
-    coords = torch.nn.Parameter(p1.coords.clone())
+    # coords = torch.nn.Parameter(p1.coords.clone())
 
     def score(coords):
         scores = ljlk_pose_scorer(coords)
         return torch.sum(scores)
 
-    gradcheck(
-        ljlk_pose_scorer,
-        (p1.coords.requires_grad_(True),),
-        eps=1e-3,
-        atol=5e-3,
-        rtol=5e-3,
-    )
+    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=5e-3, rtol=5e-3)

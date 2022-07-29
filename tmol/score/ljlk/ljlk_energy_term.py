@@ -1,4 +1,3 @@
-import attr
 import torch
 
 from ..atom_type_dependent_term import AtomTypeDependentTerm
@@ -17,7 +16,7 @@ from tmol.types.torch import Tensor
 
 from tmol.score.ljlk.potentials.compiled import (
     score_ljlk_inter_system_scores,
-    register_lj_lk_rotamer_pair_energy_eval,
+    # register_lj_lk_rotamer_pair_energy_eval,
 )
 
 

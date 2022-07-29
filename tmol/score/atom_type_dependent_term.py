@@ -1,10 +1,8 @@
-import attr
 import numpy
 import torch
 import pandas
 
 from tmol.database import ParameterDatabase
-from tmol.database.chemical import ChemicalDatabase
 from .chemical_database import AtomTypeParamResolver
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.score.energy_term import EnergyTerm

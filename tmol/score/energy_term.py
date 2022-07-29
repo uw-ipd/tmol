@@ -31,7 +31,7 @@ class EnergyTerm:
         numpy data structures (and stored on the CPU).
 
         If the annotation requires more than one array, then the EnergyTerm
-        should use a python class to store those arrays. E.g., 
+        should use a python class to store those arrays. E.g.,
         class FooSet:
             foo_array1: NDArray[numpy.int32][:]
             foo_array2: NDArray[numpy.int32][:, :]
@@ -50,7 +50,7 @@ class EnergyTerm:
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         """
         Make a one-time annotation of the packed-block types. This annotation
-        should mostly involve concatenating the previously-made numpy annotations 
+        should mostly involve concatenating the previously-made numpy annotations
         on the block types that the packed-block types contains. E.g. if the
         EnergyTerm annotates the block types with an i-dimensional array "foo,"
         then it should also annotate the PackedBlockTypes with an (i+1)-dimensional
@@ -61,12 +61,12 @@ class EnergyTerm:
         tensor should be dimensioned to the maximal size for each of the i dimensions
         among the set of dimensions of the various block types. The extra padding
         in such cases is recommended to be filled with a sentinel value of -1.
-     
+
         As with the block type annotation, if more than one tensor is required,
         then the annotation should be a class. If the annotation is based on
         data that might differ between instances, then the annotation should be
         a map whose keys are determined by the data.
-        
+
         The EnergyMethod should begin by checking that it has not already made
         this annotation. Any array data in the annotation should be torch
         tensors and should live on the PackedBlockTypes' device.
