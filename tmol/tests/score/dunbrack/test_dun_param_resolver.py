@@ -33,14 +33,14 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     # assert len(resolver.all_table_indices) == nlibs
     assert dun_params_aux.nchi_for_table_set.shape[0] == nlibs
 
-    nrotameric_rots = sum(
-        (
-            rotlib.rotameric_data.rotamers.shape[0]
-            for rotlib in itertools.chain(
-                dunlib.rotameric_libraries, dunlib.semi_rotameric_libraries
-            )
-        )
-    )
+    # nrotameric_rots = sum(
+    #     (
+    #         rotlib.rotameric_data.rotamers.shape[0]
+    #         for rotlib in itertools.chain(
+    #             dunlib.rotameric_libraries, dunlib.semi_rotameric_libraries
+    #         )
+    #     )
+    # )
     # assert len(dun_params.rotameric_prob_tables) == nrotameric_rots
 
     nchitot = sum(

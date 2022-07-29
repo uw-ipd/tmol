@@ -13,7 +13,7 @@ from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.rotamer.chi_sampler import ChiSampler  # noqa F401
 
 # from tmol.pack.rotamer.dunbrack.compiled import _compiled  # noqa F401
-from tmol.pack.packer_task import PackerTask, ResidueLevelTask
+from tmol.pack.packer_task import PackerTask
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -307,7 +307,6 @@ class DunbrackChiSampler:
         Tensor[torch.float32][:, :],  # chi_for_rotamers
     ]:
         assert self.device == pose_stack.coords.device
-        n_sys = pose_stack.block_type_ind.shape[0]
         max_n_blocks = pose_stack.block_type_ind.shape[1]
 
         dun_allowed_restypes = numpy.array(

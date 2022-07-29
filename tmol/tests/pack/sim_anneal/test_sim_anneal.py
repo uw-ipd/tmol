@@ -5,24 +5,24 @@ import numpy
 from tmol.utility.tensor.common_operations import stretch
 
 from tmol.chemical.restypes import ResidueTypeSet
-from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
 # to dump pdbs
-from tmol.system.packed import PackedResidueSystem
-from tmol.utility.reactive import reactive_property
+# from tmol.system.packed import PackedResidueSystem
+# from tmol.utility.reactive import reactive_property
 
 # deprecated from tmol.score.score_graph import score_graph
 # deprecated from tmol.score.bonded_atom import BondedAtomScoreGraph
 # deprecated from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 # from tmol.score.device import TorchDevice
 # from tmol.score.score_components import ScoreComponentClasses, IntraScore
-from tmol.io.generic import to_pdb
+# from tmol.io.generic import to_pdb
 
 from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
+
+# from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.build_rotamers import RotamerSet, build_rotamers
+from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.sim_anneal.annealer import MCAcceptRejectModule, SelectRanRotModule
 from tmol.pack.sim_anneal.accept_final import (
     poses_from_assigned_rotamers,
@@ -163,7 +163,7 @@ def test_mc_accept_reject_module_smoke(ubq_res, default_database, torch_device):
     # torch_device = torch.device("cpu")
     n_res = 3
     n_poses = 5
-    n_rots_per_res = 2
+    # n_rots_per_res = 2
 
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
@@ -182,13 +182,11 @@ def test_mc_accept_reject_module_smoke(ubq_res, default_database, torch_device):
     p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:n_res], torch_device)
     poses = PoseStack.from_poses([p] * n_poses, torch_device)
 
-    arange3 = torch.arange(n_res, dtype=torch.int64, device=torch_device)
     arange_n_poses = torch.arange(n_poses, dtype=torch.int64, device=torch_device)
 
     # max_n_atoms = poses.coords.shape[-2]
     max_n_atoms_per_block = poses.packed_block_types.max_n_atoms
 
-    n_traj_per_pose = (1,)
     # pose_id_for_context = arange5,
     # n_rots_for_pose = torch.full((5,), 2, dtype=torch.int32, device=torch_device),
     # rot_offset_for_pose = arange5 * 2,
@@ -237,7 +235,7 @@ def test_mc_accept_reject_module_smoke(ubq_res, default_database, torch_device):
     # print("alternate_ids", alternate_ids.shape)
     # print("faux_energies", faux_energies.shape)
 
-    accept = mc_accept_reject.go(
+    mc_accept_reject.go(
         temperature,
         context_coords,
         context_coord_offsets,
@@ -259,7 +257,7 @@ def test_accept_final_smoke(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
-    rts = ResidueTypeSet.from_database(default_database.chemical)
+    # rts = ResidueTypeSet.from_database(default_database.chemical)
 
     max_n_blocks = 10
     n_poses = 3

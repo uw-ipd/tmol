@@ -1,4 +1,3 @@
-from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pack.packer_task import PackerPalette, ResidueLevelTask, PackerTask
 from tmol.pose.pose_stack import PoseStack
 

@@ -55,7 +55,6 @@ def test_create_non_sidechain_fingerprint(default_database):
 
 
 def test_create_non_sc_fingerprint_smoke(default_database):
-    torch_device = torch.device("cpu")
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
     canonical_aas = [

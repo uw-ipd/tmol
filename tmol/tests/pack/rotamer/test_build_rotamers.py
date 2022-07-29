@@ -1,6 +1,5 @@
 import numpy
 import torch
-import attr
 
 from tmol.pack.rotamer.build_rotamers import (
     annotate_restype,
@@ -18,12 +17,9 @@ from tmol.pack.rotamer.build_rotamers import (
     create_dof_inds_to_copy_from_orig_to_rotamers,
 )
 
-from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
@@ -1048,7 +1044,6 @@ def test_create_dofs_for_many_rotamers(
     pbt = poses.packed_block_types
     annotate_everything(chem_db, samplers, pbt)
 
-    n_sys = poses.coords.shape[0]
     max_n_blocks = poses.coords.shape[1]
     max_n_rts = max(
         len(rts.allowed_restypes)

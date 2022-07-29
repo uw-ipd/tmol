@@ -1,5 +1,4 @@
 import pytest
-import tmol
 import torch
 
 from tmol.score.modules.bases import ScoreSystem

@@ -1,5 +1,4 @@
 import numpy
-import torch
 
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.pack.rotamer.bfs_sidechain import bfs_sidechain_atoms

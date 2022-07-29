@@ -1,6 +1,3 @@
-import torch
-import numpy
-
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 from tmol.pose.pose_stack import PoseStack
@@ -22,3 +19,5 @@ def test_pose_score_smoke(rts_ubq_res, default_database, torch_device):
     # print("scores")
     # print(scores)
     # print(scores.shape)
+
+    assert scores is not None

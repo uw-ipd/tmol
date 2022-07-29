@@ -1,9 +1,7 @@
 import pytest
 import torch
-import numpy
 
 from tmol.score.score_function import ScoreFunction
-from tmol.score.score_types import ScoreType
 from tmol.pose.pose_stack import PoseStack
 
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
@@ -28,6 +26,9 @@ def test_res_centric_score_benchmark_setup(
     @benchmark
     def render_whole_pose_scoring_module():
         scorer = sfxn.render_whole_pose_scoring_module(pose_stack_n)
+        return scorer
+
+    render_whole_pose_scoring_module()
 
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])

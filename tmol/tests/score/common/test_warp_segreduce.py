@@ -82,7 +82,7 @@ def test_warp_segreduce_vec3_benchmark(benchmark, warp_segreduce, n_repeats, n_v
 
     @benchmark
     def run():
-        result = warp_segreduce.warp_segreduce_vec3_benchmark(values, flags, n_repeats)
+        return warp_segreduce.warp_segreduce_vec3_benchmark(values, flags, n_repeats)
 
 
 @requires_cuda

@@ -1,23 +1,14 @@
 import torch
-import attr
-import numpy
 import pytest
 
-from tmol.utility.tensor.common_operations import stretch
-from tmol.chemical.restypes import ResidueTypeSet
-from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
 from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.pack.rotamer.build_rotamers import RotamerSet, build_rotamers
+from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.rotamer.bounding_spheres import create_rotamer_bounding_spheres
 
-from tmol.pack.sim_anneal.annealer import MCAcceptRejectModule, SelectRanRotModule
 from tmol.pack.sim_anneal.compiled.compiled import (
-    # pick_random_rotamers,
-    # metropolis_accept_reject,
     create_sim_annealer,
     delete_sim_annealer,
     register_standard_random_rotamer_picker,
@@ -26,8 +17,9 @@ from tmol.pack.sim_anneal.compiled.compiled import (
 )
 
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
-from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.score.chemical_database import AtomTypeParamResolver
+
+# from tmol.score.ljlk.params import LJLKParamResolver
+# from tmol.score.chemical_database import AtomTypeParamResolver
 
 
 # class SimAEngine(torch.jit.ScriptModule):

@@ -1,5 +1,4 @@
 import torch
-import attr
 
 from tmol.utility.tensor.common_operations import stretch
 from tmol.pose.pose_stack import PoseStack
@@ -9,7 +8,6 @@ from tmol.pack.rotamer.build_rotamers import RotamerSet
 def create_rotamer_bounding_spheres(poses: PoseStack, rotamer_set: RotamerSet):
     torch_device = poses.device
     n_poses = poses.n_poses
-    max_n_pose_atoms = poses.max_n_pose_atoms
     max_n_blocks = poses.max_n_blocks
     n_rots = rotamer_set.pose_for_rot.shape[0]
 

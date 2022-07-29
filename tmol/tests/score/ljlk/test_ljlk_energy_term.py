@@ -133,7 +133,7 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
     context_coords[5:, :, :, :] = poses_expanded_coords[1:2]
     context_coords = context_coords.view(10, -1, 3)
     context_coord_offsets = max_n_atoms_per_block * torch.remainder(
-        torch.arange(60, dtype=torch.int32, device=torch_device).view(10, 6), 10
+        torch.arange(60, dtype=torch.int32, device=torch_device).view(10, 6), 6
     )
 
     context_block_type = torch.zeros((10, 6), dtype=torch.int32, device=torch_device)
@@ -192,118 +192,137 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
     # print(rpes2)
 
 
-# temp@pytest.mark.benchmark(group="time_rpe")
-# temp@pytest.mark.parametrize("n_alts", [2])
-# temp@pytest.mark.parametrize("n_traj", [1])
-# tempdef test_inter_module_timing(benchmark, ubq_res, default_database, n_alts, n_traj):
-# temp    # n_traj = 100
-# temp    n_poses = 100
-# temp    # n_alts = 10
-# temp
-# temp    #
-# temp    torch_device = torch.device("cuda")
-# temp
-# temp    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
-# temp
-# temp    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res, torch_device)
-# temp    nres = p1.max_n_blocks
-# temp    poses = PoseStack.from_poses([p1] * n_poses, torch_device)
-# temp
-# temp    one_bounding_sphere_set = numpy.full((1, nres, 4), numpy.nan, dtype=numpy.float32)
-# temp    for i in range(nres):
-# temp        atnames = set([at.name for at in ubq_res[i].residue_type.atoms])
-# temp        cb = ubq_res[i].coords[5, :] if "CB" in atnames else ubq_res[i].coords[2, :]
-# temp        max_cb_dist = torch.max(
-# temp            torch.norm(
-# temp                torch.tensor(
-# temp                    ubq_res[i].coords[2:3, :] - ubq_res[i].coords[:, :],
-# temp                    dtype=torch.float32,
-# temp                    device=torch_device,
-# temp                ),
-# temp                dim=1,
-# temp            )
-# temp        )
-# temp        one_bounding_sphere_set[0, i, :3] = cb
-# temp        one_bounding_sphere_set[0, i, 3] = max_cb_dist.item()
-# temp    # print("one bounding sphere set")
-# temp    # print(one_bounding_sphere_set)
-# temp
-# temp    # nab the ca coords for these residues
-# temp    bounding_spheres = numpy.repeat(one_bounding_sphere_set, n_poses, axis=0)
-# temp    bounding_spheres = torch.tensor(
-# temp        bounding_spheres, dtype=torch.float32, device=torch_device
-# temp    )
-# temp
-# temp    # n_traj trajectories for each system
-# temp    context_system_ids = torch.floor_divide(
-# temp        torch.arange(n_traj * n_poses, dtype=torch.int32, device=torch_device), n_traj
-# temp    )
-# temp
-# temp    weights = {"lj": 1.0, "lk": 1.0}
-# temp    for bt in poses.packed_block_types.active_block_types:
-# temp        ljlk_energy.setup_block_type(bt)
-# temp    ljlk_energy.setup_packed_block_types(poses.packed_block_types)
-# temp    ljlk_energy.setup_poses(poses)
-# temp    inter_module = ljlk_energy.inter_module(
-# temp        poses.packed_block_types, poses, context_system_ids, bounding_spheres, weights
-# temp    )
-# temp
-# temp    max_n_atoms = poses.packed_block_types.max_n_atoms
-# temp    # ok, let's create the contexts
-# temp    context_coords = torch.zeros(
-# temp        (n_traj * n_poses, nres, max_n_atoms, 3),
-# temp        dtype=torch.float32,
-# temp        device=torch_device,
-# temp    )
-# temp    poses_expanded_coords, real_expanded_pose_ats = poses.expand_coords()
-# temp    context_coords[:, :, :, :] = poses_expanded_coords[0:1, :, :, :]
-# temp
-# temp    context_block_type = torch.zeros(
-# temp        (n_traj * n_poses, nres), dtype=torch.int32, device=torch_device
-# temp    )
-# temp    context_block_type[:, :] = torch.tensor(
-# temp        poses.block_type_ind[0:1, :], device=torch_device
-# temp    )
-# temp
-# temp    alternate_coords = torch.zeros(
-# temp        (n_alts * n_traj * n_poses, max_n_atoms, 3),
-# temp        dtype=torch.float32,
-# temp        device=torch_device,
-# temp    )
-# temp    which_block = torch.remainder(
-# temp        torch.floor_divide(
-# temp            torch.arange(
-# temp                n_alts * n_traj * n_poses, dtype=torch.int32, device=torch_device
-# temp            ),
-# temp            n_alts,
-# temp        ),
-# temp        nres,
-# temp    )
-# temp    alternate_coords[:, :, :] = poses_expanded_coords[
-# temp        0:1, which_block.type(torch.int64), :, :
-# temp    ]
-# temp
-# temp    alternate_ids = torch.zeros(
-# temp        (n_alts * n_traj * n_poses, 3), dtype=torch.int32, device=torch_device
-# temp    )
-# temp    alternate_ids[:, 0] = torch.floor_divide(
-# temp        torch.arange(n_alts * n_traj * n_poses, dtype=torch.int32, device=torch_device),
-# temp        n_alts,
-# temp    )
-# temp    alternate_ids[:, 1] = which_block
-# temp    alternate_ids[:, 2] = torch.tensor(
-# temp        poses.block_type_ind[0, which_block.cpu().numpy()], device=torch_device
-# temp    )
-# temp
-# temp    @benchmark
-# temp    def run():
-# temp        rpes = inter_module.go(
-# temp            context_coords, context_block_type, alternate_coords, alternate_ids
-# temp        )
-# temp        return rpes
-# temp
-# temp    vals = run
-# temp    assert vals is not None
+@pytest.mark.benchmark(group="time_rpe")
+@pytest.mark.parametrize("n_alts", [2])
+@pytest.mark.parametrize("n_traj", [1])
+@pytest.mark.parametrize("n_poses", [10, 30, 100])
+def test_inter_module_timing(
+    benchmark, ubq_res, default_database, n_alts, n_traj, n_poses, torch_device
+):
+    # n_traj = 100
+    # n_poses = 100
+    # n_alts = 10
+
+    # this is slow on CPU?
+    # torch_device = torch.device("cuda")
+
+    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
+
+    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res, torch_device)
+    nres = p1.max_n_blocks
+    poses = PoseStack.from_poses([p1] * n_poses, torch_device)
+
+    one_bounding_sphere_set = numpy.full((1, nres, 4), numpy.nan, dtype=numpy.float32)
+    for i in range(nres):
+        atnames = set([at.name for at in ubq_res[i].residue_type.atoms])
+        cb = ubq_res[i].coords[5, :] if "CB" in atnames else ubq_res[i].coords[2, :]
+        max_cb_dist = torch.max(
+            torch.norm(
+                torch.tensor(
+                    ubq_res[i].coords[2:3, :] - ubq_res[i].coords[:, :],
+                    dtype=torch.float32,
+                    device=torch_device,
+                ),
+                dim=1,
+            )
+        )
+        one_bounding_sphere_set[0, i, :3] = cb
+        one_bounding_sphere_set[0, i, 3] = max_cb_dist.item()
+    # print("one bounding sphere set")
+    # print(one_bounding_sphere_set)
+
+    # nab the ca coords for these residues
+    bounding_spheres = numpy.repeat(one_bounding_sphere_set, n_poses, axis=0)
+    bounding_spheres = torch.tensor(
+        bounding_spheres, dtype=torch.float32, device=torch_device
+    )
+
+    # n_traj trajectories for each system
+    context_system_ids = torch.floor_divide(
+        torch.arange(n_traj * n_poses, dtype=torch.int32, device=torch_device), n_traj
+    )
+
+    weights = {"lj": 1.0, "lk": 1.0}
+    for bt in poses.packed_block_types.active_block_types:
+        ljlk_energy.setup_block_type(bt)
+    ljlk_energy.setup_packed_block_types(poses.packed_block_types)
+    ljlk_energy.setup_poses(poses)
+    inter_module = ljlk_energy.render_inter_module(
+        poses.packed_block_types, poses, context_system_ids, bounding_spheres, weights
+    )
+
+    max_n_atoms_per_block = poses.packed_block_types.max_n_atoms
+    # ok, let's create the contexts
+    context_coords = torch.zeros(
+        (n_traj * n_poses, nres, max_n_atoms_per_block, 3),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    poses_expanded_coords, real_expanded_pose_ats = poses.expand_coords()
+    context_coords[:, :, :, :] = poses_expanded_coords[0:1, :, :, :]
+    context_coords = context_coords.view(n_poses, -1, 3)
+    context_coord_offsets = max_n_atoms_per_block * torch.remainder(
+        torch.arange(nres * n_poses, dtype=torch.int32, device=torch_device).view(
+            n_poses, nres
+        ),
+        nres,
+    )
+
+    context_block_type = torch.zeros(
+        (n_traj * n_poses, nres), dtype=torch.int32, device=torch_device
+    )
+    context_block_type[:, :] = torch.tensor(
+        poses.block_type_ind[0:1, :], device=torch_device
+    )
+
+    alternate_coords = torch.zeros(
+        (n_alts * n_traj * n_poses, max_n_atoms_per_block, 3),
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    which_block = torch.remainder(
+        torch.floor_divide(
+            torch.arange(
+                n_alts * n_traj * n_poses, dtype=torch.int32, device=torch_device
+            ),
+            n_alts,
+        ),
+        nres,
+    )
+    alternate_coords[:, :, :] = poses_expanded_coords[
+        0:1, which_block.type(torch.int64), :, :
+    ]
+    alternate_coords = alternate_coords.view(-1, 3)
+    alternate_coord_offsets = max_n_atoms_per_block * torch.arange(
+        n_alts * n_traj * n_poses, dtype=torch.int32, device=torch_device
+    )
+
+    alternate_ids = torch.zeros(
+        (n_alts * n_traj * n_poses, 3), dtype=torch.int32, device=torch_device
+    )
+    alternate_ids[:, 0] = torch.floor_divide(
+        torch.arange(n_alts * n_traj * n_poses, dtype=torch.int32, device=torch_device),
+        n_alts,
+    )
+    alternate_ids[:, 1] = which_block
+    alternate_ids[:, 2] = torch.tensor(
+        poses.block_type_ind[0, which_block.cpu().numpy()], device=torch_device
+    )
+
+    @benchmark
+    def run():
+        rpes = inter_module.go(
+            context_coords,
+            context_coord_offsets,
+            context_block_type,
+            alternate_coords,
+            alternate_coord_offsets,
+            alternate_ids,
+        )
+        return rpes
+
+    vals = run
+    assert vals is not None
 
 
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
