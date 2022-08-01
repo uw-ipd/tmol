@@ -59,14 +59,20 @@ class ElecParameters(ScoreModule):
 
     @elec_bonded_pair_lengths.default
     def _init_elec_bonded_pair_lengths(self) -> Tensor[torch.float32][:, :, :]:
-        return torch.from_numpy(
+        np_bpl = torch.from_numpy(
             self.elec_param_resolver.remap_bonded_path_lengths(
                 BondedAtoms.get(self).bonded_path_length.cpu().numpy(),
                 BondedAtoms.get(self).res_names,
                 BondedAtoms.get(self).res_indices,
                 BondedAtoms.get(self).atom_names,
             )
-        ).to(TorchDevice.get(self).device)
+        )
+        # this renders into n-poses x max-n-atoms x max-n-atoms?
+
+        # print("bonded path lengths")
+        # print(np_bpl.shape)
+
+        return np_bpl.to(TorchDevice.get(self).device)
 
 
 @ElecParameters.build_for.register(ScoreSystem)

@@ -54,7 +54,7 @@ def bfs_sidechain_atoms_jit(parents, sc_roots):
 
 
 @validate_args
-def bfs_sidechain_atoms(restype: RefinedResidueType, sc_roots: List):
+def bfs_sidechain_atoms(restype: RefinedResidueType, sc_roots: List[int]):
     # first descend through the sidechain
     id = restype.rotamer_kinforest.id
     parents = restype.rotamer_kinforest.parent.copy()

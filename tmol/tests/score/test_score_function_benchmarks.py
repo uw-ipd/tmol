@@ -28,7 +28,7 @@ def test_res_centric_score_benchmark_setup(
         scorer = sfxn.render_whole_pose_scoring_module(pose_stack_n)
         return scorer
 
-    render_whole_pose_scoring_module()
+    render_whole_pose_scoring_module
 
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
