@@ -283,19 +283,6 @@ void kernel_segscan(
       count, segments, num_segments, cta_dim.nv(), mp_data, context);
   nvtx_range_pop();
 
-  // std::cout << std::flush << "load balance partitions\n";
-  // int n_elements = ceil((count + num_segments) / (256)) + 1;
-  // int * mp_data_cpu = new int[n_elements];
-  // cudaMemcpy(mp_data_cpu, mp_data, n_elements * sizeof(int),
-  // cudaMemcpyDeviceToHost); for (int i = 0; i < n_elements; ++i) {
-  //   printf(" %5d", mp_data_cpu[i]);
-  //   if (i % 10 == 9) {
-  //     printf("\n");
-  //   }
-  // }
-  // delete [] mp_data_cpu;
-  // std::cout << std::endl;
-
   // "upward" scan:
   //   - within each CTA, run the forward segscan
   //   - compute the value to be passed to the next CTA (carry_out_data)

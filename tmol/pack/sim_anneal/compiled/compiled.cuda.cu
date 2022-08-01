@@ -408,68 +408,6 @@ struct MetropolisAcceptReject {
     mgpu::transform(
         copy_accepted_coords, n_contexts * max_n_atoms_per_block, context);
     gpuErrchk(cudaPeekAtLastError());
-
-    // if (count_mc_passes % 100 == 0) {
-    //   using namespace mgpu;
-    //   typedef launch_box_t<
-    //       arch_20_cta<32, 1>,
-    //       arch_35_cta<32, 1>,
-    //       arch_52_cta<32, 1>>
-    //       launch_t;
-    //   gpuErrchk(cudaPeekAtLastError());
-    //
-    //   // std::cout << "device sync..." << std::flush;
-    //   gpuErrchk(cudaDeviceSynchronize());
-    //   // std::cout << "synced" << std::endl;
-    //
-    //   auto n_accepted_tp = TPack<Int, 1, D>::zeros({1});
-    //   auto n_accepted = n_accepted_tp.view;
-    //   gpuErrchk(cudaPeekAtLastError());
-    //   //std::cout << "n_accepted: " << &n_accepted[0] << std::endl;
-    //
-    //   auto count_accepted = ([=] MGPU_DEVICE(int tid, int cta) {
-    //     typedef typename launch_t::sm_ptx params_t;
-    //     enum {
-    //       nt = params_t::nt,
-    //       vt = params_t::vt,
-    //       vt0 = params_t::vt0,
-    //       nv = nt * vt
-    //     };
-    //     typedef mgpu::cta_reduce_t<nt, Int> reduce_t;
-    //
-    //     __shared__ struct { typename reduce_t::storage_t reduce; } shared;
-    //     Int local_sum = 0;
-    //
-    //     for (int i = tid; i < accept.size(0); i += blockDim.x) {
-    //       local_sum += accept[i];
-    //     }
-    //
-    //     Int cta_total = reduce_t().reduce(
-    //         tid, local_sum, shared.reduce, nt, mgpu::plus_t<Int>());
-    //     if (tid == 0) {
-    //       n_accepted[0] = cta_total;
-    //       // printf("cta total: %d\n", cta_total);
-    //     }
-    //   });
-    //
-    //   // std::cout << "launching kernel..." << std::flush;
-    //   mgpu::cta_launch<launch_t>(count_accepted, 1, context);
-    //   gpuErrchk(cudaPeekAtLastError());
-    //
-    //   // std::cout << "launched; memcpy sync..." << std::flush;
-    //   Int cpu_n_accepted(0);
-    //   gpuErrchk(cudaMemcpy(
-    //       &cpu_n_accepted,
-    //       &n_accepted[0],
-    //       sizeof(Int),
-    //       cudaMemcpyDeviceToHost));
-    //
-    //   // std::cout << "N accepted at temp " << temp << ": " << cpu_n_accepted
-    //   //           << std::endl;
-    // }
-
-    // Dispatch<D>::forall(n_contexts, accept_reject);
-    // Dispatch<D>::forall(n_contexts * max_n_atoms, copy_accepted_coords);
   }
 };
 
@@ -480,11 +418,7 @@ template <
     typename Real,
     typename Int>
 struct FinalOp {
-  static auto f() -> void {
-    cudaDeviceSynchronize();
-    // auto gen_ = THCRandom_getGenerator(at::globalContext().getTHCState());
-    // gen_->set_current_seed(0);
-  }
+  static auto f() -> void { cudaDeviceSynchronize(); }
 };
 
 template struct PickRotamers<
@@ -497,16 +431,6 @@ template struct PickRotamers<
     tmol::Device::CUDA,
     double,
     int32_t>;
-template struct PickRotamers<
-    score::common::ForallDispatch,
-    tmol::Device::CUDA,
-    float,
-    int64_t>;
-template struct PickRotamers<
-    score::common::ForallDispatch,
-    tmol::Device::CUDA,
-    double,
-    int64_t>;
 
 template struct MetropolisAcceptReject<
     score::common::ForallDispatch,
@@ -518,16 +442,6 @@ template struct MetropolisAcceptReject<
     tmol::Device::CUDA,
     double,
     int32_t>;
-template struct MetropolisAcceptReject<
-    score::common::ForallDispatch,
-    tmol::Device::CUDA,
-    float,
-    int64_t>;
-template struct MetropolisAcceptReject<
-    score::common::ForallDispatch,
-    tmol::Device::CUDA,
-    double,
-    int64_t>;
 
 template struct FinalOp<
     score::common::ForallDispatch,
@@ -539,16 +453,6 @@ template struct FinalOp<
     tmol::Device::CUDA,
     double,
     int32_t>;
-template struct FinalOp<
-    score::common::ForallDispatch,
-    tmol::Device::CUDA,
-    float,
-    int64_t>;
-template struct FinalOp<
-    score::common::ForallDispatch,
-    tmol::Device::CUDA,
-    double,
-    int64_t>;
 
 }  // namespace compiled
 }  // namespace sim_anneal

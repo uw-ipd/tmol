@@ -434,9 +434,6 @@ struct DunbrackChiSampler {
           sorted_rotamer_2_rotamer[bin_index[0]][bin_index[1]]
                                   [tableset_offset + sorted_rotno]
           + tableset_offset;
-      // int const local_table_ind = all_chi_rotind2tableind[
-      //   all_chi_rotind2tableind_offsets[table_set] + rotno ];
-      // int const rot_table_ind = local_table_ind + tableset_offset;
 
       // Now we know which rotamer we'll be building: time to look up
       // (interpolate) the rotamer's probability from the
@@ -457,39 +454,6 @@ struct DunbrackChiSampler {
     };
     Dispatch<D>::forall(
         n_possible_rotamers, calculate_possible_rotamer_probability);
-
-    //     auto rot_prob_temp_tp = TPack<Real, 1,
-    //     tmol::Device::CPU>::zeros({rotamer_probability.size(0)}); auto
-    //     rot_prob_temp = rot_prob_temp_tp.view;
-    // #ifdef __CUDACC__
-    //     cudaMemcpy(
-    //       rot_prob_temp.data(),
-    //       rotamer_probability.data(),
-    //       rotamer_probability.size(0) * sizeof(Real),
-    //       cudaMemcpyDeviceToHost
-    //     );
-    // #else
-    //     for (int i = 0; i < rotamer_probability.size(0); ++i) {
-    //       rot_prob_temp[i] = rotamer_probability[i];
-    //     }
-    // #endif
-    //
-    //     std::cout << "rotamer probability" << std::endl;
-    //     for (int i = 0; i < rotamer_probability.size(0); ++i) {
-    //       //if ((i % 253) % 4 == 0) {
-    //       if (i % 4 == 0) {
-    // 	printf("%4d", i % 253 );
-    //       }
-    //       printf(" %10.8f", rot_prob_temp[i]);
-    //       //if ((i % 253) % 4 == 3) {
-    //       if (i % 4 == 3) {
-    // 	printf("\n");
-    //       }
-    //       // if ((i % 253) == 252) {
-    //       // if ((i % 4) == 3) {
-    //       // 	printf("\n");
-    //       // }
-    //     }
   }
 
   static void determine_n_base_rotamers_to_build(
@@ -513,64 +477,11 @@ struct DunbrackChiSampler {
         TPack<Real, 1, D>::empty(n_possible_rotamers);
     auto rotamer_probability_cumsum = rotamer_probability_cumsum_tp.view;
 
-    //     auto tmp_offset_tp = TPack<Int, 1, tmol::Device::CPU>::zeros({
-    // 	possible_rotamer_offset_for_brt.size(0)});
-    //     auto tmp_offset = tmp_offset_tp.view;
-    // #ifdef __CUDACC__
-    //     cudaMemcpy(
-    //       tmp_offset.data(),
-    //       possible_rotamer_offset_for_brt.data(),
-    //       possible_rotamer_offset_for_brt.size(0) * sizeof(Int),
-    //       cudaMemcpyDeviceToHost
-    //     );
-    // #else
-    //     for (int i = 0; i < possible_rotamer_offset_for_brt.size(0); ++i) {
-    //       tmp_offset[i] = possible_rotamer_offset_for_brt[i];
-    //     }
-    // #endif
-    //     std::cout << "possible_rotamer_offset_for_brt" << std::endl;
-    //     for (int i = 0; i < possible_rotamer_offset_for_brt.size(0); ++i) {
-    //       printf(" %5d", tmp_offset[i]);
-    //       if (i % 10 == 9) {
-    // 	printf("\n");
-    //       }
-    //     }
-
     Dispatch<D>::exclusive_segmented_scan(
         rotamer_probability,
         possible_rotamer_offset_for_brt,
         rotamer_probability_cumsum,
         mgpu::plus_t<Real>());
-
-    //      auto rot_prob_cumsum_temp_tp = TPack<Real, 1,
-    //      tmol::Device::CPU>::zeros({rotamer_probability.size(0)}); auto
-    //      rot_prob_cumsum_temp = rot_prob_cumsum_temp_tp.view;
-    //  #ifdef __CUDACC__
-    //      cudaMemcpy(
-    //        rot_prob_cumsum_temp.data(),
-    //        rotamer_probability_cumsum.data(),
-    //        rotamer_probability_cumsum.size(0) * sizeof(Real),
-    //        cudaMemcpyDeviceToHost
-    //      );
-    //  #else
-    //      for (int i = 0; i < rotamer_probability.size(0); ++i) {
-    //        rot_prob_cumsum_temp[i] = rotamer_probability_cumsum[i];
-    //      }
-    //  #endif
-    //
-    //      std::cout << "rotamer probability cumsum" << std::endl;
-    //      for (int i = 0; i < rotamer_probability.size(0); ++i) {
-    //        if ((i % 253) % 4 == 0) {
-    //  	printf("%4d", i % 253 );
-    //        }
-    //        printf(" %10.8f", rot_prob_cumsum_temp[i]);
-    //        if ((i % 253) % 4 == 3) {
-    //  	printf("\n");
-    //        }
-    //        if ((i % 253) == 252) {
-    //  	printf("\n");
-    //        }
-    //      }
 
     // And with the cumulative sum, we can now decide which rotamers we will
     // build
@@ -624,7 +535,6 @@ struct DunbrackChiSampler {
 
     assert(rottable_set_for_buildable_restype.size(0) == n_brt);
     assert(chi_expansion_for_buildable_restype.size(0) == n_brt);
-    // assert(chi_expansion_for_buildable_restype.size(1) <= max_nchi);
     assert(n_expansions_for_brt.size(0) == n_brt);
     assert(expansion_dim_prods_for_brt.size(0) == n_brt);
     assert(n_rotamers_to_build_per_brt.size(0) == n_brt);

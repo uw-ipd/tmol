@@ -120,34 +120,6 @@ class KinForest(TensorGroup, ConvertAttrs):
             id=-1, doftype=NodeType.root, parent=0, frame_x=0, frame_y=0, frame_z=0
         )
 
-    # @classmethod
-    # def full(cls, n_roots: int, n_kinforest_atoms: int, sentinel: int, **kwargs):
-    #     return KinForest(
-    #         id=torch.full((n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs),
-    #         roots=torch.full((n_roots,), sentinel, dtype=torch.int32, **kwargs),
-    #         doftype=torch.full(
-    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-    #         ),
-    #         parent=torch.full(
-    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-    #         ),
-    #         frame_x=torch.full(
-    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-    #         ),
-    #         frame_y=torch.full(
-    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-    #         ),
-    #         frame_z=torch.full(
-    #             (n_kinforest_atoms,), sentinel, dtype=torch.int32, **kwargs
-    #         ),
-    #     )
-
-    # def __len__(self):
-    #     """Override the TensorGroup __len__ method since not all tensors
-    #     have the same shape
-    #     """
-    #     return len(self.id)
-
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class KinDOF(TensorGroup, ConvertAttrs):

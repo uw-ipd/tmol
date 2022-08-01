@@ -172,25 +172,3 @@ class MCAcceptRejectModule:
             self.block_type_n_atoms,
             self.max_n_atoms,
         )
-
-        # rotamer_energies = torch.sum(rotamer_component_energies, dim=0)
-        # n_contexts = context_coords.shape[0]
-        # dev = context_coords.device
-        # context_arange = torch.arange(n_contexts, dtype=torch.int64, device=dev)
-        # deltaE = (
-        #     rotamer_energies[2 * context_arange + 1]
-        #     - rotamer_energies[2 * context_arange]
-        # )
-        # uran = torch.rand(n_contexts, dtype=torch.float32, device=dev)
-        # prob_accept = torch.exp(-1 * deltaE / temperature)
-        # accept_contexts = torch.nonzero((uran < prob_accept) | (deltaE < 0)).flatten()
-        # accept_block_ind = alternate_ids[2 * accept_contexts, 1].to(torch.int64)
-        #
-        # context_coords[accept_contexts, accept_block_ind] = alternate_coords[
-        #     2 * accept_contexts + 1
-        # ]
-        # context_block_type[accept_contexts, accept_block_ind] = alternate_ids[
-        #     2 * accept_contexts + 1, 2
-        # ]
-        #
-        # return accept_contexts

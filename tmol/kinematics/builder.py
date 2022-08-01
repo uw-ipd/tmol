@@ -265,17 +265,12 @@ class KinematicBuilder:
             to_jump_nodes = numpy.array([], dtype=numpy.int32)
 
         n_kf_atoms = len(kfo_2_to)
-        # n_roots = len(to_roots)
         n_target_atoms = numpy.max(kfo_2_to) + 1
 
         to_2_kfo = invert_mapping(kfo_2_to, n_target_atoms)
-        # to_2_kfo = numpy.full((kfo_2_to.max() + 1), -1, dtype=numpy.int32)
-        # to_2_kfo[kfo_2_to] = numpy.arange(n_kf_atoms, dtype=numpy.int32)
 
         kfo_roots = to_2_kfo[to_roots]
         kfo_jump_nodes = to_2_kfo[to_jump_nodes]
-        # print("to_parents_in_kfo")
-        # print(to_parents_in_kfo)
         kfo_parents = numpy.full((n_kf_atoms,), -1, dtype=numpy.int32)
         kfo_parents[to_parents_in_kfo >= 0] = to_2_kfo[
             to_parents_in_kfo[to_parents_in_kfo >= 0]
@@ -337,24 +332,6 @@ class KinematicBuilder:
         def _t(x):
             return torch.tensor(x, dtype=torch.int32)
 
-        # numpy.set_printoptions(threshold=10000)
-        # print("to_2_kfo")
-        # print(to_2_kfo)
-        # print("kfo_2_to")
-        # print(kfo_2_to)
-        # print("kfo_roots")
-        # print(kfo_roots)
-        # print("doftype")
-        # print(doftype)
-        # print("kfo_parents")
-        # print(kfo_parents)
-        # print("frame_x")
-        # print(frame_x)
-        # print("frame_y")
-        # print(frame_y)
-        # print("frame_z")
-        # print(frame_z)
-
         extended_kin_forest = KinForest(
             id=_t(kfo_2_to),
             # roots=_t(kfo_roots),
@@ -366,27 +343,6 @@ class KinematicBuilder:
         )
 
         return attr.evolve(self, kinforest=cat((self.kinforest, extended_kin_forest)))
-
-    # unneeded @classmethod
-    # unneeded def count_uniq_atom_inds(cls, all_atoms: NDArray[numpy.int32][:]):
-    # unneeded     """Looking at a list of all atom indices that are referenced as either the first or second
-    # unneeded     atom in a bond, count the total number of unique atoms
-    # unneeded     """
-    # unneeded     max_ind = numpy.max(all_atoms)
-    # unneeded     atom_seen = numpy.zeros((max_ind + 1,), dtype=numpy.int32)
-    # unneeded     atom_seen[all_atoms] = 1
-    # unneeded     return numpy.sum(atom_seen)
-
-    # @convert_args
-    # def append_connected_component(
-    #     self, ids: Tensor[int][:], parent_ids: Tensor[int][:], component_parent=0
-    # ):
-    #     return self.append_connected_components(
-    #         roots=torch.zeros((1,), dtype=torch.int32),
-    #         ids=ids,
-    #         parent_ids=parent_ids,
-    #         component_parent=component_parent,
-    #     )
 
 
 @numba.jit(nopython=True)

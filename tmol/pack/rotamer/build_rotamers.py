@@ -457,13 +457,6 @@ def measure_pose_dofs(poses):
         .numpy()
     )
 
-    # print("orig atom offset for poses blocks")
-    # print(orig_atom_offset_for_poses_blocks)
-    # print("coords.reshape(-1,3).shape")
-    # print(poses.coords.reshape(-1,3).shape)
-    #
-    # return
-
     n_atoms_for_orig = pbt.n_atoms[orig_res_block_type_ind.to(torch.int64)]
     n_atoms_offset_for_orig = torch.cumsum(n_atoms_for_orig, dim=0)
     n_atoms_offset_for_orig = n_atoms_offset_for_orig.cpu().numpy()
@@ -606,14 +599,9 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     )
 
     sampler_ind_for_rot = sampler_ind_mapping[sampler_for_rotamer]
-    # print("sampler_ind_for_rot")
-    # print(sampler_ind_for_rot)
-
     orig_block_type_ind = (
         poses.block_type_ind[poses.block_type_ind != -1].view(-1).to(torch.int64)
     )
-    # print("orig_block_type_ind")
-    # print(orig_block_type_ind)
 
     poses_res_to_real_poses_res = torch.full(
         (poses.block_type_ind.shape[0] * poses.block_type_ind.shape[1],),
@@ -637,10 +625,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
         dtype=torch.int64,
         device=poses.device,
     )
-    # res_ind_for_rot = res_ind_for_rt[rt_for_rot]
     real_res_ind_for_rot = poses_res_to_real_poses_res[res_ind_for_rt[rt_for_rot]]
-    # print("real_res_ind_for_rot")
-    # print(real_res_ind_for_rot)
 
     # look up which mainchain fingerprint each
     # original residue should use
