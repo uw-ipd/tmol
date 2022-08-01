@@ -24,9 +24,11 @@ _required_flags = ["--std=c++14", "-DWITH_NVTX", "-w"]
 _default_flags = ["-O3"]
 # _default_flags = ["-g", "-Og", "-DDEBUG"]
 
+
 # TO DO! Look at what OS we're running on
 # only add the -ccbin gcc-8 flag if we're on ubuntu 20.04 or higher
-
+#
+#
 # which version of torch are we compiling against?
 def get_torch_version():
     return torch.__version__.split(".")[0:2]

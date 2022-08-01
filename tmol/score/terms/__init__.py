@@ -8,5 +8,5 @@ exclude = [join(dirname(__file__), f) for f in ["score_type_factory.py", "__init
 __all__ = [
     basename(f)[:-3]
     for f in modules
-    if isfile(f) and not f.endswith("__init__.py") and not f in exclude
+    if isfile(f) and not f.endswith("__init__.py") and f not in exclude
 ]

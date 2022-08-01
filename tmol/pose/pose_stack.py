@@ -9,18 +9,19 @@ import pandas
 import sparse
 import scipy.sparse.csgraph as csgraph
 
-from typing import Sequence, Tuple
+from typing import List, Tuple
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.chemical.restypes import (
-    RefinedResidueType,
+    # RefinedResidueType,
     Residue,
     find_simple_polymeric_connections,
 )
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
-from tmol.system.datatypes import connection_metadata_dtype
+
+# from tmol.system.datatypes import connection_metadata_dtype
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 from tmol.types.functional import validate_args
 
@@ -29,7 +30,7 @@ from tmol.types.functional import validate_args
 class PoseStack:
 
     packed_block_types: PackedBlockTypes
-    residues: Sequence[Sequence[Residue]]
+    residues: List[List[Residue]]
 
     residue_coords: NDArray[numpy.float32][:, :, :, 3]
 
@@ -54,8 +55,9 @@ class PoseStack:
 
     ########################## CONSTRUCTION ####################
     @classmethod
+    @validate_args
     def one_structure_from_polymeric_residues(
-        cls, res: Sequence[Residue], device: torch.device
+        cls, res: List[Residue], device: torch.device
     ):
         residue_connections = find_simple_polymeric_connections(res)
         return cls.one_structure_from_residues_and_connections(
@@ -63,10 +65,11 @@ class PoseStack:
         )
 
     @classmethod
+    @validate_args
     def one_structure_from_residues_and_connections(
         cls,
-        res: Sequence[Residue],
-        residue_connections: Sequence[Tuple[int, str, int, str]],
+        res: List[Residue],
+        residue_connections: List[Tuple[int, str, int, str]],
         device: torch.device,
     ):
         rt_list = residue_types_from_residues(res)
@@ -109,7 +112,8 @@ class PoseStack:
         )
 
     @classmethod
-    def from_poses(cls, pose_stacks: Sequence["PoseStack"], device: torch.device):
+    @validate_args
+    def from_poses(cls, pose_stacks, device: torch.device):  # : List["PoseStack"],
         all_res = [
             res
             for pose_stack in pose_stacks
@@ -172,7 +176,10 @@ class PoseStack:
             device=device,
         )
 
-    def rebuild_with_new_packed_block_types(self, packed_block_types) -> "PoseStack":
+    @validate_args
+    def rebuild_with_new_packed_block_types(
+        self, packed_block_types: PackedBlockTypes
+    ):  # -> "PoseStack"
         """Create a new PoseStack object replacing the existing PackedBlockTypes
         object with a new one, and then rebuilding the other data members that
         depend on it.
@@ -222,12 +229,12 @@ class PoseStack:
 
     ################# HELPER FUNCTIONS FOR CONSTRUCTION ###############
 
-    # @validate_args
     @classmethod
+    @validate_args
     def create_inter_residue_connections(
         cls,
-        res: Sequence[Residue],
-        residue_connections: Sequence[Tuple[int, str, int, str]],
+        res: List[Residue],
+        residue_connections: List[Tuple[int, str, int, str]],
         device: torch.device,
     ) -> Tensor[torch.int32][:, :, :, 2]:
         """Return a torch tensor of integer-indices describing
@@ -291,10 +298,11 @@ class PoseStack:
         return inter_residue_connections
 
     @classmethod
+    @validate_args
     def determine_single_structure_inter_block_bondsep(
         cls,
-        res: Sequence[Residue],
-        residue_connections: Sequence[Tuple[int, str, int, str]],
+        res: List[Residue],
+        residue_connections: List[Tuple[int, str, int, str]],
         device: torch.device,
     ) -> Tensor[torch.int32][:, :, :, :, :]:
         """
@@ -377,9 +385,10 @@ class PoseStack:
         )
 
     @classmethod
+    @validate_args
     def resolve_inter_block_bondsep(
         cls,
-        res: Sequence[Residue],
+        res: List[Residue],
         inter_res_bonds: NDArray[int][:, 2],
         connection_atoms: pandas.DataFrame,
         device: torch.device,
@@ -450,11 +459,12 @@ class PoseStack:
         return torch.tensor(inter_block_bondsep, dtype=torch.int32, device=device)
 
     @classmethod
+    @validate_args
     def pack_residue_coords(
         cls,
         packed_block_types: PackedBlockTypes,
         block_type_ind: Tensor[torch.int32][:, :],
-        res: Sequence[Sequence[Residue]],
+        res: List[List[Residue]],
     ):
         device = block_type_ind.device
         btind64 = block_type_ind.to(torch.int64)
@@ -489,13 +499,14 @@ class PoseStack:
         return coords, block_coord_offset, attached_res
 
     @classmethod
+    @validate_args
     def pack_pose_stack_coords(
         cls,
         packed_block_types: PackedBlockTypes,
-        pose_stacks: Sequence["PoseStack"],
+        pose_stacks,  # : List["PoseStack"],
         max_n_blocks: int,
         device: torch.device,
-    ) -> Tensor[torch.float32][:, :, :, 3]:
+    ) -> Tuple[Tensor[torch.float32][:, :, 3], Tensor[torch.int32][:, :]]:
 
         n_poses = sum(len(ps) for ps in pose_stacks)
         max_n_atoms = max(ps.coords.shape[1] for ps in pose_stacks)
@@ -516,12 +527,13 @@ class PoseStack:
         return coords, block_coord_offset
 
     @classmethod
+    @validate_args
     def attach_residues(
         cls,
-        block_coord_offset_cpu: Tensor[torch.int32][:],
-        orig_res: Sequence[Sequence[Residue]],
+        block_coord_offset_cpu: Tensor[torch.int32][:, :],
+        orig_res: List[List[Residue]],
         residue_coords: NDArray[numpy.float64][:, :, 3],
-    ) -> Sequence[Sequence[Residue]]:
+    ) -> List[List[Residue]]:
 
         return [
             [
@@ -539,10 +551,11 @@ class PoseStack:
         ]
 
     @classmethod
+    @validate_args
     def inter_residue_connections_from_pose_stacks(
         cls,
         packed_block_types: PackedBlockTypes,
-        pose_stacks: Sequence["PoseStack"],
+        pose_stacks,  # : List["PoseStack"],
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
         device: torch.device,
@@ -564,10 +577,11 @@ class PoseStack:
         return inter_residue_connections
 
     @classmethod
+    @validate_args
     def interblock_bondsep_from_pose_stacks(
         cls,
         packed_block_types: PackedBlockTypes,
-        pose_stacks: Sequence["PoseStack"],
+        pose_stacks,  # : List["PoseStack"],
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
         device: torch.device,
@@ -596,10 +610,11 @@ class PoseStack:
         return inter_block_bondsep
 
     @classmethod
+    @validate_args
     def resolve_block_type_ind(
         cls,
         packed_block_types: PackedBlockTypes,
-        pose_stacks: Sequence["PoseStack"],
+        pose_stacks,  #: List["PoseStack"],
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
         device=torch.device,
@@ -610,7 +625,7 @@ class PoseStack:
         )
         for i, pose_stack in enumerate(pose_stacks):
             offset = ps_offsets[i]
-            n_blocks = pose_stack.block_type_ind.shape[1]
+            # n_blocks = pose_stack.block_type_ind.shape[1]
             mapping = torch.cat(
                 (
                     torch.tensor(
@@ -690,18 +705,13 @@ class PoseStack:
         """
 
         # get the list of real atoms that we will be writing to in the 4D tensor
-        arange_inds = torch.arange(
-            self.n_poses * self.max_n_blocks * self.max_n_block_atoms,
-            dtype=torch.int64,
-            device=self.device,
-        )
         n_ats_per_block_arange_expanded = (
             torch.arange(self.max_n_block_atoms, dtype=torch.int64, device=self.device)
             .repeat(self.n_poses * self.max_n_blocks)
             .view(self.n_poses, self.max_n_blocks, self.max_n_block_atoms)
         )
 
-        n_ats_per_block = self.n_ats_per_block.to(torch.int64)
+        # n_ats_per_block = self.n_ats_per_block.to(torch.int64)
         real_expanded_pose_ats = (
             n_ats_per_block_arange_expanded < self.n_ats_per_block.unsqueeze(2)
         )

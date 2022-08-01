@@ -4,8 +4,9 @@ import torch
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..bond_dependent_term import BondDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
-from ..ljlk.params import LJLKTypeParams, LJLKGlobalParams, LJLKParamResolver
-from tmol.score.chemical_database import AtomTypeParamResolver
+from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver  # LJLKTypeParams,
+
+# from tmol.score.chemical_database import AtomTypeParamResolver
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes

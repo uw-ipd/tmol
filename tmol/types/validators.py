@@ -30,27 +30,13 @@ def is_list_type(tp):
 
     if NEW_TYPING:
         import sys
-        from typing import (
-            Generic,
-            Callable,
-            Union,
-            TypeVar,
-            ClassVar,
-            Tuple,
-            _GenericAlias,
-            ForwardRef,
-            NewType,
-        )
-        from typing_extensions import Final, Literal
+        from typing import Generic, _GenericAlias
 
         if sys.version_info[:3] >= (3, 9, 0):
             from typing import _SpecialGenericAlias
+            from types import GenericAlias
 
-            typingGenericAlias = (
-                _GenericAlias,
-                _SpecialGenericAlias,
-                types.GenericAlias,
-            )
+            typingGenericAlias = (_GenericAlias, _SpecialGenericAlias, GenericAlias)
         else:
             typingGenericAlias = (_GenericAlias,)
 
@@ -125,7 +111,7 @@ def validate_list(lst, value):
                 except TypeError as err:
                     raise TypeError(
                         f"Failed to validate {lst}: {i}th argument error: {err}"
-                    )
+                    ) from err
             return
 
         if len(lst.__args__) != len(value):

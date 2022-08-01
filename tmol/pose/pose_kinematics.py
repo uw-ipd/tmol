@@ -1,5 +1,4 @@
 import torch
-import numba
 import numpy
 
 from tmol.types.array import NDArray
@@ -8,7 +7,7 @@ from tmol.types.functional import validate_args
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.datatypes import KinForest
-from tmol.kinematics.fold_forest import FoldForest, EdgeType
+from tmol.kinematics.fold_forest import FoldForest
 from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges
 
 
@@ -351,7 +350,7 @@ def get_all_bonds(pose_stack: PoseStack):
 
     real_blocks = pose_stack.block_type_ind != -1
 
-    n_conn = pbt.n_conn[pose_stack.block_type_ind64[real_blocks]]
+    # n_conn = pbt.n_conn[pose_stack.block_type_ind64[real_blocks]]
     real_conn = torch.zeros(
         (pose_stack.n_poses, pose_stack.max_n_blocks, pbt.max_n_conn),
         dtype=torch.bool,

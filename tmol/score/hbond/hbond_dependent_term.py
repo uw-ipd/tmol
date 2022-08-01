@@ -5,7 +5,8 @@ import pandas
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring.hbond import HBondDatabase
-from tmol.database.chemical import ChemicalDatabase
+
+# from tmol.database.chemical import ChemicalDatabase
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes

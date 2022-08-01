@@ -1,21 +1,13 @@
 import attr
-import toolz
 
-import itertools
-
-import numpy
 import torch
 import pandas
-import sparse
-import scipy.sparse.csgraph as csgraph
 
-from typing import Sequence, Tuple
+from typing import Sequence
 
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.chemical.restypes import RefinedResidueType, Residue
-from tmol.system.datatypes import connection_metadata_dtype
 from tmol.utility.tensor.common_operations import join_tensors_and_report_real_entries
 
 

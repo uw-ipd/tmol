@@ -1,17 +1,16 @@
 from typing import Optional, Tuple, Union
 
 import attr
-from toolz import first
 
 import torch
 import numpy
 import numba
-import pandas
+
+# import pandas
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
 from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
 from tmol.types.functional import convert_args, validate_args
 from tmol.types.tensor import cat
 
@@ -266,19 +265,12 @@ class KinematicBuilder:
             to_jump_nodes = numpy.array([], dtype=numpy.int32)
 
         n_kf_atoms = len(kfo_2_to)
-        n_roots = len(to_roots)
+        # n_roots = len(to_roots)
         n_target_atoms = numpy.max(kfo_2_to) + 1
 
         to_2_kfo = invert_mapping(kfo_2_to, n_target_atoms)
         # to_2_kfo = numpy.full((kfo_2_to.max() + 1), -1, dtype=numpy.int32)
         # to_2_kfo[kfo_2_to] = numpy.arange(n_kf_atoms, dtype=numpy.int32)
-
-        # Screw pandas
-        # id_index = pandas.Index(to_2_kfo)
-        # kfo_roots = torch.LongTensor(id_index.get_indexer(to_roots))
-        # kfo_roots = id_index.get_indexer(to_roots)
-        # kfo_jump_nodes = id_index.get_indexer(to_jump_nodes)
-        # kfo_parents = id_index.get_indexer(to_parents_in_kfo)
 
         kfo_roots = to_2_kfo[to_roots]
         kfo_jump_nodes = to_2_kfo[to_jump_nodes]
@@ -500,7 +492,7 @@ def fix_jump_nodes(
     roots: NDArray[int][:],
     jumps: NDArray[int][:],
 ):
-    nelts = parents.shape[0]
+    # nelts = parents.shape[0]
     n_children, child_list_span, child_list = get_children(parents)
 
     atom_is_jump = numpy.full(parents.shape, 0, dtype=numpy.int32)

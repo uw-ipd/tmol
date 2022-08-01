@@ -78,7 +78,7 @@ class KinForest(TensorGroup, ConvertAttrs):
         #      proceed in parallel in the first pass of the generational
         #      -segmented scan. These are listed in no particular order.
         parent = KFO index of the parent, in KFO
-        frame_x = KFO index of self, in KFO 
+        frame_x = KFO index of self, in KFO
         frame_y = KFO index of parent, in KFO
         frame_z = KFO index of grandparent, in KFO
     """
