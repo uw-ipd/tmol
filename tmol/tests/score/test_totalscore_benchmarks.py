@@ -40,7 +40,7 @@ def test_full(benchmark, systems_bysize, system_size, torch_device):
 
 
 @pytest.mark.benchmark(group="stacked_totalscore_onepass")
-@pytest.mark.parametrize("nstacks", [1, 3, 10, 30, 100])
+@pytest.mark.parametrize("nstacks", [1, 3, 10, 30])
 def test_stacked_full(benchmark, ubq_system, nstacks, torch_device):
     stack = PackedResidueSystemStack((ubq_system,) * nstacks)
     score_system = get_full_score_system_for(stack, device=torch_device)
