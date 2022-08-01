@@ -8,11 +8,18 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
+template struct LJLKPoseScoreDispatch<
+    ForallDispatch,
+    tmol::Device::CPU,
+    float,
+    int>;
+template struct LJLKPoseScoreDispatch<
+    ForallDispatch,
+    tmol::Device::CPU,
+    double,
+    int>;
 
-template struct LJLKPoseScoreDispatch<ForallDispatch, tmol::Device::CPU, float, int>;
-template struct LJLKPoseScoreDispatch<ForallDispatch, tmol::Device::CPU, double, int>;
-
-}
-}
-}
-}
+}  // namespace potentials
+}  // namespace ljlk
+}  // namespace score
+}  // namespace tmol

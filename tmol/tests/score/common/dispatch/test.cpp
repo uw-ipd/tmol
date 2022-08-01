@@ -22,7 +22,7 @@ template struct DispatchTest<
     Device::CPU,
     double>;
 template struct ComplexDispatchTest<
-  tmol::score::common::ComplexDispatch,
-  Device::CPU,
-  int32_t>;
+    tmol::score::common::ComplexDispatch,
+    Device::CPU,
+    int32_t>;
 }  // namespace tmol

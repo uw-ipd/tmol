@@ -9,11 +9,7 @@ namespace potentials {
 
 #define declare_dispatch(Real, Int)                                       \
   template struct LJDispatch<AABBDispatch, tmol::Device::CPU, Real, Int>; \
-  template struct LJDispatch<                                             \
-      AABBTriuDispatch,                                              \
-      tmol::Device::CPU,                                                  \
-      Real,                                                               \
-      Int>;
+  template struct LJDispatch<AABBTriuDispatch, tmol::Device::CPU, Real, Int>;
 
 declare_dispatch(float, int64_t);
 declare_dispatch(double, int64_t);

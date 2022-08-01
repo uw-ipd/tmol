@@ -21,12 +21,26 @@ namespace pack {
 namespace rotamer {
 namespace dunbrack {
 
-
-template struct DunbrackChiSampler<score::common::ComplexDispatch, tmol::Device::CPU, float, int32_t>;
-template struct DunbrackChiSampler<score::common::ComplexDispatch, tmol::Device::CPU, double, int32_t>;
-template struct DunbrackChiSampler<score::common::ComplexDispatch, tmol::Device::CPU, float, int64_t>;
-template struct DunbrackChiSampler<score::common::ComplexDispatch, tmol::Device::CPU, double, int64_t>;
-
+template struct DunbrackChiSampler<
+    score::common::ComplexDispatch,
+    tmol::Device::CPU,
+    float,
+    int32_t>;
+template struct DunbrackChiSampler<
+    score::common::ComplexDispatch,
+    tmol::Device::CPU,
+    double,
+    int32_t>;
+template struct DunbrackChiSampler<
+    score::common::ComplexDispatch,
+    tmol::Device::CPU,
+    float,
+    int64_t>;
+template struct DunbrackChiSampler<
+    score::common::ComplexDispatch,
+    tmol::Device::CPU,
+    double,
+    int64_t>;
 
 }  // namespace dunbrack
 }  // namespace rotamer

@@ -22,8 +22,8 @@ struct ForwardKinDispatch {
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
       TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
-      TView<KinForestParams<Int>, 1, D> kintree
-  ) -> std::tuple< TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D> > {
+      TView<KinForestParams<Int>, 1, D> kintree)
+      -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D> > {
     auto num_atoms = dofs.size(0);
 
     auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
@@ -37,9 +37,9 @@ struct ForwardKinDispatch {
       if (doftype == ROOT) {
         HTs[i] = HomogeneousTransform::Identity();
       } else if (doftype == JUMP) {
-        HTs[i] = common<D,Real,Int>::jumpTransform(dofs[i]);
+        HTs[i] = common<D, Real, Int>::jumpTransform(dofs[i]);
       } else if (doftype == BOND) {
-        HTs[i] = common<D,Real,Int>::bondTransform(dofs[i]);
+        HTs[i] = common<D, Real, Int>::bondTransform(dofs[i]);
       }
     });
 
@@ -48,26 +48,27 @@ struct ForwardKinDispatch {
     }
 
     // scan and accumulate HTs down atom tree
-    auto k_compose = ([=] EIGEN_DEVICE_FUNC(int p, int i) {
-        HTs[i] = HTs[i]*HTs[p];
-    });
+    auto k_compose =
+        ([=] EIGEN_DEVICE_FUNC(int p, int i) { HTs[i] = HTs[i] * HTs[p]; });
 
     int ngens = gens.size(0) - 1;
-    for (int gen = 0; gen < ngens; gen++) { // loop over generations
+    for (int gen = 0; gen < ngens; gen++) {  // loop over generations
       int scanstart = gens[gen].scan_start;
-      int scanstop = gens[gen+1].scan_start;
-      for (int j = scanstart; j < scanstop; j++) { // loop over scans
+      int scanstop = gens[gen + 1].scan_start;
+      for (int j = scanstart; j < scanstop; j++) {  // loop over scans
         int nodestart = gens[gen].node_start + scans[j];
-        int nodestop = (j == scanstop-1) ? gens[gen+1].node_start : (gens[gen].node_start + scans[j+1]);
-        for (int k = nodestart; k < nodestop-1; k++) { // loop over path
-            k_compose(nodes[k], nodes[k+1]);
+        int nodestop = (j == scanstop - 1)
+                           ? gens[gen + 1].node_start
+                           : (gens[gen].node_start + scans[j + 1]);
+        for (int k = nodestart; k < nodestop - 1; k++) {  // loop over path
+          k_compose(nodes[k], nodes[k + 1]);
         }
       }
     }
 
     // copy atom positions
     auto k_getcoords = ([=] EIGEN_DEVICE_FUNC(int i) {
-        xs[i] = HTs[i].block(3,0,1,3).transpose();
+      xs[i] = HTs[i].block(3, 0, 1, 3).transpose();
     });
 
     for (int i = 0; i < num_atoms; i++) {
@@ -78,7 +79,6 @@ struct ForwardKinDispatch {
   }
 };
 
-
 template <tmol::Device D, typename Real, typename Int>
 struct InverseKinDispatch {
   static auto f(
@@ -87,27 +87,26 @@ struct InverseKinDispatch {
       TView<Int, 1, D> frame_x,
       TView<Int, 1, D> frame_y,
       TView<Int, 1, D> frame_z,
-      TView<Int, 1, D> doftype
-  ) -> TPack<KintreeDof, 1, D> {
-
+      TView<Int, 1, D> doftype) -> TPack<KintreeDof, 1, D> {
     auto num_atoms = coords.size(0);
-    //auto num_atoms = parent.size(0);
+    // auto num_atoms = parent.size(0);
     auto num_nodes = parent.size(0);
 
-    //fd: we could eliminate HT allocation and calculate on the fly
+    // fd: we could eliminate HT allocation and calculate on the fly
     auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
     auto HTs = HTs_t.view;
     auto dofs_t = TPack<KintreeDof, 1, D>::empty({num_atoms});
     auto dofs = dofs_t.view;
 
     auto k_coords2hts = ([=] EIGEN_DEVICE_FUNC(int i) {
-      if (i==0) {
+      if (i == 0) {
         HTs[i] = HomogeneousTransform::Identity();
       } else {
-        HTs[i] = common<D,Real,Int>::hts_from_frames(
-          coords[i],
-          coords[frame_x[i]], coords[frame_y[i]], coords[frame_z[i]]
-        );
+        HTs[i] = common<D, Real, Int>::hts_from_frames(
+            coords[i],
+            coords[frame_x[i]],
+            coords[frame_y[i]],
+            coords[frame_z[i]]);
       }
     });
 
@@ -118,14 +117,14 @@ struct InverseKinDispatch {
     auto k_hts2dofs = ([=] EIGEN_DEVICE_FUNC(int i) {
       HomogeneousTransform lclHT;
       if (doftype[i] == ROOT) {
-        dofs[i] = KintreeDof::Constant(0); // for num deriv check
+        dofs[i] = KintreeDof::Constant(0);  // for num deriv check
       } else {
-        lclHT = HTs[i] * common<D,Real,Int>::ht_inv( HTs[parent[i]] );
+        lclHT = HTs[i] * common<D, Real, Int>::ht_inv(HTs[parent[i]]);
 
         if (doftype[i] == JUMP) {
-          dofs[i] = common<D,Real,Int>::invJumpTransform(lclHT);
+          dofs[i] = common<D, Real, Int>::invJumpTransform(lclHT);
         } else if (doftype[i] == BOND) {
-          dofs[i] = common<D,Real,Int>::invBondTransform(lclHT);
+          dofs[i] = common<D, Real, Int>::invBondTransform(lclHT);
         }
       }
     });
@@ -147,21 +146,20 @@ struct KinDerivDispatch {
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
       TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
-      TView<KinForestParams<Int>, 1, D> kintree
-  ) -> TPack<KintreeDof, 1, D> {
+      TView<KinForestParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D> {
     auto num_atoms = dVdx.size(0);
 
-    auto f1f2s_t = TPack<Vec<Real,6>, 1, D>::empty({num_atoms});
+    auto f1f2s_t = TPack<Vec<Real, 6>, 1, D>::empty({num_atoms});
     auto f1f2s = f1f2s_t.view;
     auto dsc_ddofs_t = TPack<KintreeDof, 1, D>::empty({num_atoms});
     auto dsc_ddofs = dsc_ddofs_t.view;
 
     // calculate f1s and f2s from dVdx and HT
     auto k_f1f2s = ([=] EIGEN_DEVICE_FUNC(int i) {
-        Coord trans = hts[i].block(3,0,1,3).transpose();
-        Coord f1 = trans.cross( trans - dVdx[i]).transpose();
-        f1f2s[i].topRows(3) = f1;
-        f1f2s[i].bottomRows(3) = dVdx[i];
+      Coord trans = hts[i].block(3, 0, 1, 3).transpose();
+      Coord f1 = trans.cross(trans - dVdx[i]).transpose();
+      f1f2s[i].topRows(3) = f1;
+      f1f2s[i].bottomRows(3) = dVdx[i];
     });
 
     for (int i = 0; i < num_atoms; i++) {
@@ -170,20 +168,22 @@ struct KinDerivDispatch {
 
     // scan and accumulate f1s/f2s up atom tree
     auto k_compose = ([=] EIGEN_DEVICE_FUNC(int p, int i) {
-        f1f2s[i] = f1f2s[i] + f1f2s[p];
+      f1f2s[i] = f1f2s[i] + f1f2s[p];
     });
 
     // note: if this is parallelized (over j/k)
     //   then k_compose needs to be atomic
     int ngens = gens.size(0) - 1;
-    for (int gen = 0; gen < ngens; gen++) { // loop over generations
+    for (int gen = 0; gen < ngens; gen++) {  // loop over generations
       int scanstart = gens[gen].scan_start;
-      int scanstop = gens[gen+1].scan_start;
-      for (int j = scanstart; j < scanstop; j++) { // loop over scans
+      int scanstop = gens[gen + 1].scan_start;
+      for (int j = scanstart; j < scanstop; j++) {  // loop over scans
         int nodestart = gens[gen].node_start + scans[j];
-        int nodestop = (j == scanstop-1) ? gens[gen+1].node_start : (gens[gen].node_start + scans[j+1]);
-        for (int k = nodestart; k < nodestop-1; k++) { // loop over path
-            k_compose(nodes[k], nodes[k+1]);
+        int nodestop = (j == scanstop - 1)
+                           ? gens[gen + 1].node_start
+                           : (gens[gen].node_start + scans[j + 1]);
+        for (int k = nodestart; k < nodestop - 1; k++) {  // loop over path
+          k_compose(nodes[k], nodes[k + 1]);
         }
       }
     }
@@ -194,11 +194,11 @@ struct KinDerivDispatch {
       if (kintree[i].doftype == ROOT) {
         dsc_ddofs[i] = Vec<Real, 9>::Constant(0);
       } else if (kintree[i].doftype == JUMP) {
-        dsc_ddofs[i]= common<D,Real,Int>::jumpDerivatives(
-          dofs[i], hts[i], hts[kintree[i].parent], f1, f2 );
+        dsc_ddofs[i] = common<D, Real, Int>::jumpDerivatives(
+            dofs[i], hts[i], hts[kintree[i].parent], f1, f2);
       } else if (kintree[i].doftype == BOND) {
-        dsc_ddofs[i]= common<D,Real,Int>::bondDerivatives(
-          dofs[i], hts[i], hts[kintree[i].parent], f1, f2 );
+        dsc_ddofs[i] = common<D, Real, Int>::bondDerivatives(
+            dofs[i], hts[i], hts[kintree[i].parent], f1, f2);
       }
     });
 

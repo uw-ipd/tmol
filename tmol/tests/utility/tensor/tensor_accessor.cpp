@@ -71,7 +71,6 @@ auto vector_magnitude_eigen_arg(
   return output_t;
 }
 
-
 auto matrix_sum_eigen_arg(
     tmol::TView<Eigen::Matrix3f, 1, tmol::Device::CPU> input)
     -> tmol::TPack<float, 1, tmol::Device::CPU> {
@@ -85,7 +84,6 @@ auto matrix_sum_eigen_arg(
 
   return output_t;
 }
-
 
 auto tensor_pack_construct() {
   typedef tmol::TPack<Eigen::Vector3f, 2, tmol::Device::CPU> T;
@@ -144,8 +142,8 @@ auto tensor_view_take_slice_one() {
   auto V = Vp.view;
 
   int count = 0;
-  for (int i = 0; i < 4; ++i ) {
-    for (int j=0; j < 10; ++j) {
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 10; ++j) {
       V[i][j] = count;
       ++count;
     }
@@ -155,7 +153,7 @@ auto tensor_view_take_slice_one() {
   auto Out = Outp.view;
 
   auto Vslice = V.slice_one(1, 5);
-  for (int i = 0; i < 4; ++i ) {
+  for (int i = 0; i < 4; ++i) {
     Out[i] = Vslice[i];
   }
   return Outp;

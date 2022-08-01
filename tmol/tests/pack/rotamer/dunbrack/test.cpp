@@ -6,9 +6,9 @@
 namespace tmol {
 
 template struct DunbrackChiSamplerTester<
-  tmol::score::common::ComplexDispatch,
-  Device::CPU,
-  float,
-  int32_t>;
+    tmol::score::common::ComplexDispatch,
+    Device::CPU,
+    float,
+    int32_t>;
 
 }

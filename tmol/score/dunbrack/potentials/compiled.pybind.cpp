@@ -70,7 +70,7 @@ void bind_dispatch(pybind11::module& m) {
       "dE_drotnlp"_a,
       "drot_nlp_dbb_xyz"_a,
       "dE_ddevpen"_a,
-      "ddevpen_dtor_xyz"_a, 
+      "ddevpen_dtor_xyz"_a,
       "dE_dnonrotnlp"_a,
       "dnonrot_nlp_dtor_xyz"_a,
       "dihedral_offset_for_res"_a,
@@ -78,9 +78,7 @@ void bind_dispatch(pybind11::module& m) {
       "rotres2resid"_a,
       "rotameric_chi_desc"_a,
       "semirotameric_chi_desc"_a);
-
 };
-
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
@@ -90,12 +88,11 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
 #ifdef WITH_CUDA
   bind_dispatch<tmol::Device::CUDA, float, int32_t>(m);
-  //bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
+  // bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
 #endif
 }
 
-
 }  // namespace potentials
-}  // namespace rama
+}  // namespace dunbrack
 }  // namespace score
 }  // namespace tmol

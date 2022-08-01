@@ -6,11 +6,20 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-template struct LKBallRPEDispatch<common::ForallDispatch, tmol::Device::CPU, float, int, 4>;
-template struct LKBallRPEDispatch<common::ForallDispatch, tmol::Device::CPU, double, int, 4>;
+template struct LKBallRPEDispatch<
+    common::ForallDispatch,
+    tmol::Device::CPU,
+    float,
+    int,
+    4>;
+template struct LKBallRPEDispatch<
+    common::ForallDispatch,
+    tmol::Device::CPU,
+    double,
+    int,
+    4>;
 
-
-}
-}
-}
-}
+}  // namespace potentials
+}  // namespace lk_ball
+}  // namespace score
+}  // namespace tmol

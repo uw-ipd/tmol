@@ -43,9 +43,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           tmol::score::common::ComplexDispatch,
           Device::CPU,
           int32_t>::f,
-     "vals"_a,
-     "boundaries"_a);
-
+      "vals"_a,
+      "boundaries"_a);
 
 #ifdef WITH_CUDA
 

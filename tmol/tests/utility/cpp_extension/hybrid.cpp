@@ -27,7 +27,7 @@ struct sum_tensor<Real, tmol::Device::CPU> {
 
 template struct sum_tensor<float, tmol::Device::CPU>;
 template struct sum_tensor<double, tmol::Device::CPU>;
-}
-}
-}
-}
+}  // namespace cpp_extension
+}  // namespace utility
+}  // namespace tests
+}  // namespace tmol

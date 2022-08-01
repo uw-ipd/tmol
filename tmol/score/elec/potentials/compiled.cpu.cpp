@@ -8,13 +8,18 @@ namespace score {
 namespace elec {
 namespace potentials {
 
-#define declare_dispatch(Real, Int)                                         \
-  template struct ElecDispatch<ForallDispatch, AABBDispatch, tmol::Device::CPU, Real, Int>; \
-  template struct ElecDispatch<                                             \
-      ForallDispatch,                                                     \
-      AABBTriuDispatch,                                                     \
-      tmol::Device::CPU,                                                    \
-      Real,                                                                 \
+#define declare_dispatch(Real, Int) \
+  template struct ElecDispatch<     \
+      ForallDispatch,               \
+      AABBDispatch,                 \
+      tmol::Device::CPU,            \
+      Real,                         \
+      Int>;                         \
+  template struct ElecDispatch<     \
+      ForallDispatch,               \
+      AABBTriuDispatch,             \
+      tmol::Device::CPU,            \
+      Real,                         \
       Int>;
 
 declare_dispatch(float, int64_t);

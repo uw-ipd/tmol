@@ -3,8 +3,6 @@
 
 #include <tmol/pack/sim_anneal/compiled/annealer.hh>
 
-
-
 namespace tmol {
 namespace score {
 namespace ljlk {
@@ -19,70 +17,68 @@ template <
 class LKRPECPUCalc : public pack::sim_anneal::compiled::RPECalc {
  public:
   LKRPECPUCalc(
-    TView<Vec<Real, 3>, 3, D> context_coords,
-    TView<Int, 2, D> context_block_type,
-    TView<Vec<Real, 3>, 2, D> alternate_coords,
-    TView<Vec<Int, 3>, 1, D> alternate_ids,
-    TView<Int, 1, D> context_system_ids,
-    TView<Int, 3, D> system_min_bond_separation,
-    TView<Int, 5, D> system_inter_block_bondsep,
-    TView<Int, 3, D> system_neighbor_list,
-    TView<Int, 1, D> block_type_n_heavy_atoms,
-    TView<Int, 2, D> block_type_heavyatom_index,
-    TView<Int, 2, D> block_type_atom_types,
-    TView<Int, 1, D> block_type_n_interblock_bonds,
-    TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
-    TView<Int, 3, D> block_type_path_distance,
-    TView<LKTypeParams<Real>, 1, D> type_params,
-    TView<LJGlobalParams<Real>, 1, D> global_params,
-    TView<Real, 1, D> lj_lk_weights,
-    TView<Real, 1, D> output
-  ):
-    context_coords_(context_coords),
-    context_block_type_(context_block_type),
-    alternate_coords_(alternate_coords),
-    alternate_ids_(alternate_ids),
-    context_system_ids_(context_system_ids),
-    system_min_bond_separation_(system_min_bond_separation),
-    system_inter_block_bondsep_(system_inter_block_bondsep),
-    system_neighbor_list_(system_neighbor_list),
-    block_type_n_heavy_atoms_(block_type_n_heavy_atoms),
-    block_type_heavyatom_index_(block_type_heavyatom_index),
-    block_type_atom_types_(block_type_atom_types),
-    block_type_n_interblock_bonds_(block_type_n_interblock_bonds),
-    block_type_atoms_forming_chemical_bonds_(block_type_atoms_forming_chemical_bonds),
-    block_type_path_distance_(block_type_path_distance),
-    type_params_(type_params),
-    global_params_(global_params),
-    lj_lk_weights_(lj_lk_weights),
-    output_(output)
-  {}
+      TView<Vec<Real, 3>, 3, D> context_coords,
+      TView<Int, 2, D> context_block_type,
+      TView<Vec<Real, 3>, 2, D> alternate_coords,
+      TView<Vec<Int, 3>, 1, D> alternate_ids,
+      TView<Int, 1, D> context_system_ids,
+      TView<Int, 3, D> system_min_bond_separation,
+      TView<Int, 5, D> system_inter_block_bondsep,
+      TView<Int, 3, D> system_neighbor_list,
+      TView<Int, 1, D> block_type_n_heavy_atoms,
+      TView<Int, 2, D> block_type_heavyatom_index,
+      TView<Int, 2, D> block_type_atom_types,
+      TView<Int, 1, D> block_type_n_interblock_bonds,
+      TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
+      TView<Int, 3, D> block_type_path_distance,
+      TView<LKTypeParams<Real>, 1, D> type_params,
+      TView<LJGlobalParams<Real>, 1, D> global_params,
+      TView<Real, 1, D> lj_lk_weights,
+      TView<Real, 1, D> output)
+      : context_coords_(context_coords),
+        context_block_type_(context_block_type),
+        alternate_coords_(alternate_coords),
+        alternate_ids_(alternate_ids),
+        context_system_ids_(context_system_ids),
+        system_min_bond_separation_(system_min_bond_separation),
+        system_inter_block_bondsep_(system_inter_block_bondsep),
+        system_neighbor_list_(system_neighbor_list),
+        block_type_n_heavy_atoms_(block_type_n_heavy_atoms),
+        block_type_heavyatom_index_(block_type_heavyatom_index),
+        block_type_atom_types_(block_type_atom_types),
+        block_type_n_interblock_bonds_(block_type_n_interblock_bonds),
+        block_type_atoms_forming_chemical_bonds_(
+            block_type_atoms_forming_chemical_bonds),
+        block_type_path_distance_(block_type_path_distance),
+        type_params_(type_params),
+        global_params_(global_params),
+        lj_lk_weights_(lj_lk_weights),
+        output_(output) {}
 
   void calc_energies() override {
     LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
-      context_coords_,
-      context_block_type_,
-      alternate_coords_,
-      alternate_ids_,
-      context_system_ids_,
-      system_min_bond_separation_,
-      system_inter_block_bondsep_,
-      system_neighbor_list_,
-      block_type_n_heavy_atoms_,
-      block_type_heavyatom_index_,
-      block_type_atom_types_,
-      block_type_n_interblock_bonds_,
-      block_type_atoms_forming_chemical_bonds_,
-      block_type_path_distance_,
-      type_params_,
-      global_params_,
-      lj_lk_weights_,
-      output_
-    );
+        context_coords_,
+        context_block_type_,
+        alternate_coords_,
+        alternate_ids_,
+        context_system_ids_,
+        system_min_bond_separation_,
+        system_inter_block_bondsep_,
+        system_neighbor_list_,
+        block_type_n_heavy_atoms_,
+        block_type_heavyatom_index_,
+        block_type_atom_types_,
+        block_type_n_interblock_bonds_,
+        block_type_atoms_forming_chemical_bonds_,
+        block_type_path_distance_,
+        type_params_,
+        global_params_,
+        lj_lk_weights_,
+        output_);
   }
 
   void finalize() override {}
-  
+
  private:
   TView<Vec<Real, 3>, 3, D> context_coords_;
   TView<Int, 2, D> context_block_type_;
@@ -176,29 +172,27 @@ auto LKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
   SimAnnealer *sim_annealer = reinterpret_cast<SimAnnealer *>(annealer_uint);
   std::shared_ptr<RPECalc> calc =
       std::make_shared<LKRPECPUCalc<DeviceDispatch, D, Real, Int>>(
-	context_coords,
-	context_block_type,
-	alternate_coords,
-	alternate_ids,
-	context_system_ids,
-	system_min_bond_separation,
-	system_inter_block_bondsep,
-	system_neighbor_list,
-	block_type_n_heavy_atoms,
-	block_type_heavyatom_index,
-	block_type_atom_types,
-	block_type_n_interblock_bonds,
-	block_type_atoms_forming_chemical_bonds,
-	block_type_path_distance,
-	type_params,
-	global_params,
-	lj_lk_weights,
-	output
-      );
+          context_coords,
+          context_block_type,
+          alternate_coords,
+          alternate_ids,
+          context_system_ids,
+          system_min_bond_separation,
+          system_inter_block_bondsep,
+          system_neighbor_list,
+          block_type_n_heavy_atoms,
+          block_type_heavyatom_index,
+          block_type_atom_types,
+          block_type_n_interblock_bonds,
+          block_type_atoms_forming_chemical_bonds,
+          block_type_path_distance,
+          type_params,
+          global_params,
+          lj_lk_weights,
+          output);
 
   sim_annealer->add_score_component(calc);
 }
-
 
 template struct LKRPEDispatch<ForallDispatch, tmol::Device::CPU, float, int>;
 template struct LKRPEDispatch<ForallDispatch, tmol::Device::CPU, double, int>;
@@ -214,8 +208,7 @@ template struct LKRPERegistratorDispatch<
     double,
     int>;
 
-
-}
-}
-}
-}
+}  // namespace potentials
+}  // namespace ljlk
+}  // namespace score
+}  // namespace tmol

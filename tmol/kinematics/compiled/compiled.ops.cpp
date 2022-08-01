@@ -37,20 +37,18 @@ struct KinOpBackward : public torch::autograd::Function {
   }
 
   KinOpBackward(
-    torch::autograd::Variable hts,
-    torch::autograd::Variable dofs,
-    torch::autograd::Variable nodes,
-    torch::autograd::Variable scans,
-    torch::autograd::Variable gens,
-    torch::autograd::Variable kintree
-  )   : 
-    saved_hts(hts, false),
-    saved_dofs(dofs, false),
-    saved_nodes(nodes, false),
-    saved_scans(scans, false),
-    saved_gens(gens, false),
-    saved_kintree(kintree, false)
- { }
+      torch::autograd::Variable hts,
+      torch::autograd::Variable dofs,
+      torch::autograd::Variable nodes,
+      torch::autograd::Variable scans,
+      torch::autograd::Variable gens,
+      torch::autograd::Variable kintree)
+      : saved_hts(hts, false),
+        saved_dofs(dofs, false),
+        saved_nodes(nodes, false),
+        saved_scans(scans, false),
+        saved_gens(gens, false),
+        saved_kintree(kintree, false) {}
 
   torch::autograd::variable_list apply(
       torch::autograd::variable_list&& grads) override {
@@ -65,28 +63,26 @@ struct KinOpBackward : public torch::autograd::Function {
     using Int = int32_t;
     auto dVdx = grads[0];
 
-    TMOL_DISPATCH_FLOATING_DEVICE(
-      hts.type(), "kin_deriv_op", ([&] {
-        using Real = scalar_t;
-        constexpr tmol::Device Dev = device_t;
+    TMOL_DISPATCH_FLOATING_DEVICE(hts.type(), "kin_deriv_op", ([&] {
+                                    using Real = scalar_t;
+                                    constexpr tmol::Device Dev = device_t;
 
-        auto result = KinDerivDispatch<Dev, Real, Int>::f(
-            TCAST(dVdx),
-            TCAST(hts),
-            TCAST(dofs),
-            TCAST(nodes),
-            TCAST(scans),
-            TCAST(gens),
-            TCAST(kintree)
-        );
+                                    auto result =
+                                        KinDerivDispatch<Dev, Real, Int>::f(
+                                            TCAST(dVdx),
+                                            TCAST(hts),
+                                            TCAST(dofs),
+                                            TCAST(nodes),
+                                            TCAST(scans),
+                                            TCAST(gens),
+                                            TCAST(kintree));
 
-        dV_ddof = result.tensor;
-      }));
+                                    dV_ddof = result.tensor;
+                                  }));
 
     return {dV_ddof};
   }
 };
-
 
 Tensor kinematic_op(
     Tensor dofs,
@@ -96,8 +92,7 @@ Tensor kinematic_op(
     Tensor nodes_b,
     Tensor scans_b,
     Tensor gens_b,
-    Tensor kintree
-) {
+    Tensor kintree) {
   using tmol::utility::connect_backward_pass;
 
   at::Tensor coords;
@@ -105,25 +100,25 @@ Tensor kinematic_op(
 
   using Int = int32_t;
 
-  TMOL_DISPATCH_FLOATING_DEVICE(
-      dofs.type(), "forward_kin_op", ([&] {
-        using Real = scalar_t;
-        constexpr tmol::Device Dev = device_t;
+  TMOL_DISPATCH_FLOATING_DEVICE(dofs.type(), "forward_kin_op", ([&] {
+                                  using Real = scalar_t;
+                                  constexpr tmol::Device Dev = device_t;
 
-        auto result = ForwardKinDispatch<Dev, Real, Int>::f(
-            TCAST(dofs),
-            TCAST(nodes_f),
-            TCAST(scans_f),
-            TCAST(gens_f),
-            TCAST(kintree));
+                                  auto result =
+                                      ForwardKinDispatch<Dev, Real, Int>::f(
+                                          TCAST(dofs),
+                                          TCAST(nodes_f),
+                                          TCAST(scans_f),
+                                          TCAST(gens_f),
+                                          TCAST(kintree));
 
-        coords = std::get<0>(result).tensor;
-        HTs = std::get<1>(result).tensor;
-      }));
+                                  coords = std::get<0>(result).tensor;
+                                  HTs = std::get<1>(result).tensor;
+                                }));
 
   return connect_backward_pass({dofs}, coords, [&]() {
-      return std::shared_ptr<KinOpBackward>(
-        new KinOpBackward( HTs, dofs, nodes_b, scans_b, gens_b, kintree ), 
+    return std::shared_ptr<KinOpBackward>(
+        new KinOpBackward(HTs, dofs, nodes_b, scans_b, gens_b, kintree),
         torch::autograd::deleteFunction);
   });
 };
@@ -133,8 +128,7 @@ Tensor forward_only_op(
     Tensor nodes_f,
     Tensor scans_f,
     Tensor gens_f,
-    Tensor kintree
-) {
+    Tensor kintree) {
   using tmol::utility::connect_backward_pass;
 
   at::Tensor coords;
@@ -142,33 +136,28 @@ Tensor forward_only_op(
 
   using Int = int32_t;
 
-  TMOL_DISPATCH_FLOATING_DEVICE(
-      dofs.type(), "forward_kin_only_op", ([&] {
-        using Real = scalar_t;
-        constexpr tmol::Device Dev = device_t;
+  TMOL_DISPATCH_FLOATING_DEVICE(dofs.type(), "forward_kin_only_op", ([&] {
+                                  using Real = scalar_t;
+                                  constexpr tmol::Device Dev = device_t;
 
-        auto result = ForwardKinDispatch<Dev, Real, Int>::f(
-            TCAST(dofs),
-            TCAST(nodes_f),
-            TCAST(scans_f),
-            TCAST(gens_f),
-            TCAST(kintree));
+                                  auto result =
+                                      ForwardKinDispatch<Dev, Real, Int>::f(
+                                          TCAST(dofs),
+                                          TCAST(nodes_f),
+                                          TCAST(scans_f),
+                                          TCAST(gens_f),
+                                          TCAST(kintree));
 
-        coords = std::get<0>(result).tensor;
-        // HTs = std::get<1>(result).tensor;
-      }));
+                                  coords = std::get<0>(result).tensor;
+                                  // HTs = std::get<1>(result).tensor;
+                                }));
 
   return coords;
-
 };
 
-
-
-static auto registry =
-    torch::jit::RegisterOperators()
-        .op("tmol::forward_kin_op", &kinematic_op )
-        .op("tmol::forward_only_kin_op", &forward_only_op );
-
+static auto registry = torch::jit::RegisterOperators()
+                           .op("tmol::forward_kin_op", &kinematic_op)
+                           .op("tmol::forward_only_kin_op", &forward_only_op);
 
 }  // namespace kinematics
 }  // namespace tmol
