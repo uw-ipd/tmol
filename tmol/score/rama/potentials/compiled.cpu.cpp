@@ -7,8 +7,16 @@ namespace score {
 namespace rama {
 namespace potentials {
 
-template struct RamaDispatch<common::ForallDispatch, tmol::Device::CPU,float,int32_t>;
-template struct RamaDispatch<common::ForallDispatch, tmol::Device::CPU,double,int32_t>;
+template struct RamaDispatch<
+    common::ForallDispatch,
+    tmol::Device::CPU,
+    float,
+    int32_t>;
+template struct RamaDispatch<
+    common::ForallDispatch,
+    tmol::Device::CPU,
+    double,
+    int32_t>;
 
 }  // namespace potentials
 }  // namespace rama

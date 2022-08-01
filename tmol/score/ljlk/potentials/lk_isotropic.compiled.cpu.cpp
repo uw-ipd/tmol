@@ -7,9 +7,17 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
-#define declare_dispatch(Real, Int)                                            \
-  template struct LKIsotropicDispatch<AABBDispatch, tmol::Device::CPU, Real, Int>;     \
-  template struct LKIsotropicDispatch<AABBTriuDispatch, tmol::Device::CPU, Real, Int>; \
+#define declare_dispatch(Real, Int)    \
+  template struct LKIsotropicDispatch< \
+      AABBDispatch,                    \
+      tmol::Device::CPU,               \
+      Real,                            \
+      Int>;                            \
+  template struct LKIsotropicDispatch< \
+      AABBTriuDispatch,                \
+      tmol::Device::CPU,               \
+      Real,                            \
+      Int>;
 
 declare_dispatch(float, int64_t);
 declare_dispatch(double, int64_t);

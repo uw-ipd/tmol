@@ -71,7 +71,6 @@ auto vector_magnitude_eigen_arg(
   return output_t;
 }
 
-
 auto matrix_sum_eigen_arg(
     tmol::TView<Eigen::Matrix3f, 1, tmol::Device::CPU> input)
     -> tmol::TPack<float, 1, tmol::Device::CPU> {
@@ -85,7 +84,6 @@ auto matrix_sum_eigen_arg(
 
   return output_t;
 }
-
 
 auto tensor_pack_construct() {
   typedef tmol::TPack<Eigen::Vector3f, 2, tmol::Device::CPU> T;
@@ -138,7 +136,6 @@ auto tensor_pack_construct_eigen_matrix() {
       T::zeros({2, 5}),
       T::full({2, 5}, NAN));
 }
-
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(

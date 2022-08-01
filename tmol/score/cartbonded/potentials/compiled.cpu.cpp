@@ -9,8 +9,16 @@ namespace score {
 namespace cartbonded {
 namespace potentials {
 
-template struct CartBondedDispatch<common::ForallDispatch, tmol::Device::CPU, float, int64_t>;
-template struct CartBondedDispatch<common::ForallDispatch, tmol::Device::CPU, double, int64_t>;
+template struct CartBondedDispatch<
+    common::ForallDispatch,
+    tmol::Device::CPU,
+    float,
+    int64_t>;
+template struct CartBondedDispatch<
+    common::ForallDispatch,
+    tmol::Device::CPU,
+    double,
+    int64_t>;
 
 }  // namespace potentials
 }  // namespace cartbonded

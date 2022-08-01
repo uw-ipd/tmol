@@ -8,12 +8,11 @@ namespace pybind11 {
 namespace detail {
 
 using tmol::score::hbond::potentials::hbond_score_V_dV_t;
-using tmol::score::hbond::potentials::Vec;
-using tmol::score::hbond::potentials::HBondPoly;
-using tmol::score::hbond::potentials::HBondPolynomials;
 using tmol::score::hbond::potentials::HBondGlobalParams;
 using tmol::score::hbond::potentials::HBondPairParams;
-
+using tmol::score::hbond::potentials::HBondPoly;
+using tmol::score::hbond::potentials::HBondPolynomials;
+using tmol::score::hbond::potentials::Vec;
 
 template <typename Real>
 struct type_caster<hbond_score_V_dV_t<Real>> {
@@ -35,21 +34,19 @@ struct type_caster<hbond_score_V_dV_t<Real>> {
   }
 };
 
-
 template <typename Real>
 struct type_caster<HBondPoly<Real>> {
   typedef HBondPoly<Real> T;
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool) {
-   
     Vec<Real, 16> vals = src.cast<Vec<Real, 16>>();
-    for ( int ii = 0; ii < 11; ++ii ) {
+    for (int ii = 0; ii < 11; ++ii) {
       value.coeffs[ii] = vals[ii];
     }
-    for ( int ii = 0; ii < 2; ++ii ) {
-      value.range[ii] = vals[ii+12];
-      value.bound[ii] = vals[ii+14];
+    for (int ii = 0; ii < 2; ++ii) {
+      value.range[ii] = vals[ii + 12];
+      value.bound[ii] = vals[ii + 14];
     }
     return true;
   }
@@ -61,20 +58,19 @@ struct type_caster<HBondPolynomials<Real>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool) {
-   
     Vec<Real, 48> vals = src.cast<Vec<Real, 48>>();
-    for ( int ii = 0; ii < 11; ++ii ) {
+    for (int ii = 0; ii < 11; ++ii) {
       value.AHdist_poly.coeffs[ii] = vals[ii];
-      value.cosBAH_poly.coeffs[ii] = vals[ii+16];
-      value.cosAHD_poly.coeffs[ii] = vals[ii+32];
+      value.cosBAH_poly.coeffs[ii] = vals[ii + 16];
+      value.cosAHD_poly.coeffs[ii] = vals[ii + 32];
     }
-    for ( int ii = 0; ii < 2; ++ii ) {
-      value.AHdist_poly.range[ii] = vals[ii+12];
-      value.AHdist_poly.bound[ii] = vals[ii+14];
-      value.cosBAH_poly.range[ii] = vals[ii+12+16];
-      value.cosBAH_poly.bound[ii] = vals[ii+14+16];
-      value.cosAHD_poly.range[ii] = vals[ii+12+32];
-      value.cosAHD_poly.bound[ii] = vals[ii+14+32];
+    for (int ii = 0; ii < 2; ++ii) {
+      value.AHdist_poly.range[ii] = vals[ii + 12];
+      value.AHdist_poly.bound[ii] = vals[ii + 14];
+      value.cosBAH_poly.range[ii] = vals[ii + 12 + 16];
+      value.cosBAH_poly.bound[ii] = vals[ii + 14 + 16];
+      value.cosAHD_poly.range[ii] = vals[ii + 12 + 32];
+      value.cosAHD_poly.bound[ii] = vals[ii + 14 + 32];
     }
     return true;
   }
@@ -96,7 +92,6 @@ struct type_caster<HBondGlobalParams<Real>> {
   }
 };
 
-
 template <typename Real>
 struct type_caster<HBondPairParams<Real>> {
   typedef HBondPairParams<Real> T;
@@ -111,7 +106,6 @@ struct type_caster<HBondPairParams<Real>> {
   }
 };
 
-
 }  // namespace detail
 }  // namespace pybind11
 
@@ -124,12 +118,7 @@ template <typename Real>
 void bind_potentials(pybind11::module& m) {
   using namespace pybind11::literals;
 
-  m.def(
-      "AH_dist_V_dV",
-      &AH_dist_V_dV<Real>,
-      "A"_a,
-      "H"_a,
-      "AHdist_poly"_a);
+  m.def("AH_dist_V_dV", &AH_dist_V_dV<Real>, "A"_a, "H"_a, "AHdist_poly"_a);
 
   m.def(
       "AHD_angle_V_dV",

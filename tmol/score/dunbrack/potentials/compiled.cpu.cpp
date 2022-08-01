@@ -7,11 +7,18 @@ namespace score {
 namespace dunbrack {
 namespace potentials {
 
-template struct DunbrackDispatch<common::ForallDispatch,tmol::Device::CPU,float,int32_t>;
-template struct DunbrackDispatch<common::ForallDispatch,tmol::Device::CPU,double,int32_t>;
-
+template struct DunbrackDispatch<
+    common::ForallDispatch,
+    tmol::Device::CPU,
+    float,
+    int32_t>;
+template struct DunbrackDispatch<
+    common::ForallDispatch,
+    tmol::Device::CPU,
+    double,
+    int32_t>;
 
 }  // namespace potentials
-}  // namespace rama
+}  // namespace dunbrack
 }  // namespace score
 }  // namespace tmol

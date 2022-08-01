@@ -16,7 +16,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("sum", &sum_tensor<float, tmol::Device::CUDA>::f, "t"_a);
 #endif
 }
-}
-}
-}
-}
+}  // namespace cpp_extension
+}  // namespace utility
+}  // namespace tests
+}  // namespace tmol

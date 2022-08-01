@@ -36,7 +36,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
   m.def("sum", &sum<float, tmol::Device::CPU>::f, "t"_a);
 }
-}
-}
-}
-}
+}  // namespace cpp_extension
+}  // namespace utility
+}  // namespace tests
+}  // namespace tmol
