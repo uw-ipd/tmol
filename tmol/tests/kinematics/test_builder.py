@@ -422,6 +422,43 @@ def test_fix_jump_nodes__one_root_one_jump_first_descendent_w_no_children2():
     numpy.testing.assert_equal(frame_z_gold, frame_z)
 
 
+def test_fix_jump_nodes__jump_w_one_jump_child_and_one_nonjump_child():
+    """*0(->*1(->2*))->3)->4->5(->6)->7->8->9
+    Note that I am uncertain whether this test is accurately capturing
+    the desired behavior.  I am merely testing that the code is working
+    "as written." There is still an outstanding  "TO DO" when defining
+    the coordinate frame for  the non-jump children of a jump for which
+    stub_defined_for_jump_atom return False
+    """
+    parents = numpy.arange(10, dtype=numpy.int32) - 1
+    parents[0] = 0
+    parents[3] = 1
+    parents[4] = 0
+    parents[7] = 5
+    frame_x = numpy.full((10,), -1, dtype=numpy.int32)
+    frame_y = numpy.full((10,), -1, dtype=numpy.int32)
+    frame_z = numpy.full((10,), -1, dtype=numpy.int32)
+    roots = numpy.full((1), 0, dtype=numpy.int32)
+    jumps = numpy.array([1, 2], dtype=numpy.int32)
+
+    fix_jump_nodes(parents, frame_x, frame_y, frame_z, roots, jumps)
+
+    frame_x_gold = numpy.full((10,), -1, dtype=numpy.int32)
+    frame_y_gold = numpy.full((10,), -1, dtype=numpy.int32)
+    frame_z_gold = numpy.full((10,), -1, dtype=numpy.int32)
+
+    frame_x_gold[[0, 1, 2, 3, 4]] = 4
+    frame_y_gold[[0, 4]] = 0
+    frame_z_gold[[0, 1, 2, 3, 4]] = 5
+
+    frame_y_gold[[1, 3]] = 1
+    frame_y_gold[2] = 2
+
+    numpy.testing.assert_equal(frame_x_gold, frame_x)
+    numpy.testing.assert_equal(frame_y_gold, frame_y)
+    numpy.testing.assert_equal(frame_z_gold, frame_z)
+
+
 def test_fix_jump_nodes__one_root_one_jump_many_children_of_both():
     """*0(->1->2)(->3)(->4)->5*(->6->7)(->8)(->9)"""
     parents = numpy.arange(10, dtype=numpy.int32) - 1
