@@ -58,3 +58,4 @@ RUN echo "#!/bin/bash" > /docker-entrypoint.sh && \
     echo "conda activate tmol" >> /docker-entrypoint.sh && \
     echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
     chmod a+rx /docker-entrypoint.sh
+

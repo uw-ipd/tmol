@@ -78,7 +78,7 @@ def test_lk_fraction():
     from .compiled import LKFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
-    I = dict(  # noqa
+    coords_I = dict(  # noqa
         A=tensor((0.0, 0.0, 0.0)),
         B=tensor((0.0, 0.0, -1.0)),
         B0=tensor((1.0, 0.0, 0.0)),
@@ -89,20 +89,22 @@ def test_lk_fraction():
 
     WI = torch.stack(
         [
-            BuildAcceptorWater.apply(I["A"], I["B"], I["B0"], dist, angle, torsion)
+            BuildAcceptorWater.apply(
+                coords_I["A"], coords_I["B"], coords_I["B0"], dist, angle, torsion
+            )
             for torsion in torsions
         ]
     )
 
-    J = tensor((-2.5, 0.1, 2.5))
+    coords_J = tensor((-2.5, 0.1, 2.5))
     lj_radius_j = tensor([1.8]).reshape(())
-    lkfrac = LKFraction.apply(WI, J, lj_radius_j)
+    lkfrac = LKFraction.apply(WI, coords_J, lj_radius_j)
 
     assert float(lkfrac) == pytest.approx(.65, abs=.01)
 
     gradcheck(
-        lambda WI, J: LKFraction.apply(WI, J, dist),
-        (WI.requires_grad_(True), J.requires_grad_(True)),
+        lambda WI, coords_J: LKFraction.apply(WI, coords_J, dist),
+        (WI.requires_grad_(True), coords_J.requires_grad_(True)),
     )
 
 
@@ -114,19 +116,21 @@ def test_lk_bridge_fraction():
     dist = tensor([2.65]).reshape(())
     angle = tensor([parse_angle("109.0 deg")]).reshape(())
 
-    I = dict(  # noqa
+    coords_I = dict(  # noqa
         A=tensor((0.0, 3.0, 3.0)), B=tensor((0.0, 3.0, 4.0)), B0=tensor((1.0, 0.0, 0.0))
     )
 
     torsions = tensor([parse_angle(f"{a} deg") for a in (60.0, 300.0)])
     WI = torch.stack(
         [
-            BuildAcceptorWater.apply(I["A"], I["B"], I["B0"], dist, angle, torsion)
+            BuildAcceptorWater.apply(
+                coords_I["A"], coords_I["B"], coords_I["B0"], dist, angle, torsion
+            )
             for torsion in torsions
         ]
     )
 
-    J = dict(
+    coords_J = dict(
         A=tensor((0.0, 0.0, 0.0)),
         B=tensor((0.0, 0.0, -1.0)),
         B0=tensor((1.0, 0.0, 0.0)),
@@ -135,19 +139,23 @@ def test_lk_bridge_fraction():
     torsions = tensor([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
     WJ = torch.stack(
         [
-            BuildAcceptorWater.apply(J["A"], J["B"], J["B0"], dist, angle, torsion)
+            BuildAcceptorWater.apply(
+                coords_J["A"], coords_J["B"], coords_J["B0"], dist, angle, torsion
+            )
             for torsion in torsions
         ]
     )
 
-    lkbr_frac = LKBridgeFraction.apply(I["A"], J["A"], WI, WJ, dist)
+    lkbr_frac = LKBridgeFraction.apply(coords_I["A"], coords_J["A"], WI, WJ, dist)
     assert float(lkbr_frac) == pytest.approx(.025, abs=.001)
 
     gradcheck(
-        lambda I, J, WI, WJ: LKBridgeFraction.apply(I, J, WI, WJ, dist),
+        lambda coords_I, coords_J, WI, WJ: LKBridgeFraction.apply(
+            coords_I, coords_J, WI, WJ, dist
+        ),
         (
-            I["A"].requires_grad_(True),
-            J["A"].requires_grad_(True),
+            coords_I["A"].requires_grad_(True),
+            coords_J["A"].requires_grad_(True),
             WI.requires_grad_(True),
             WJ.requires_grad_(True),
         ),
@@ -156,7 +164,15 @@ def test_lk_bridge_fraction():
 
 
 def lkball_score_and_gradcheck(
-    ljlk_params, atype_params, I, J, WI, WJ, bonded_path_length, at_i, at_j
+    ljlk_params,
+    atype_params,
+    coords_I,
+    coords_J,
+    WI,
+    WJ,
+    bonded_path_length,
+    at_i,
+    at_j,
 ):
     from .compiled import LKBallScore, LKFraction, LKBridgeFraction
 
@@ -164,23 +180,23 @@ def lkball_score_and_gradcheck(
 
     op = LKBallScore(ljlk_params, atype_params)
 
-    score = op.apply(I, J, WI, WJ, bonded_path_length, at_i, at_j)
+    score = op.apply(coords_I, coords_J, WI, WJ, bonded_path_length, at_i, at_j)
 
     gradcheck(
-        lambda WI, J: LKFraction.apply(
-            WI, J, ljlk_params.type_params[aidx_j].lj_radius
+        lambda WI, coords_J: LKFraction.apply(
+            WI, coords_J, ljlk_params.type_params[aidx_j].lj_radius
         ),
-        (WI.requires_grad_(True), J.requires_grad_(True)),
+        (WI.requires_grad_(True), coords_J.requires_grad_(True)),
         eps=2e-3,
     )
 
     gradcheck(
-        lambda I, J, WI, WJ: LKBridgeFraction.apply(
-            I, J, WI, WJ, ljlk_params.global_params.lkb_water_dist
+        lambda coords_I, coords_J, WI, WJ: LKBridgeFraction.apply(
+            coords_I, coords_J, WI, WJ, ljlk_params.global_params.lkb_water_dist
         ),
         (
-            I.requires_grad_(True),
-            J.requires_grad_(True),
+            coords_I.requires_grad_(True),
+            coords_J.requires_grad_(True),
             WI.requires_grad_(True),
             WJ.requires_grad_(True),
         ),
@@ -188,10 +204,12 @@ def lkball_score_and_gradcheck(
     )
 
     gradcheck(
-        lambda I, J, WI, WJ: op.apply(I, J, WI, WJ, bonded_path_length, at_i, at_j),
+        lambda coords_I, coords_J, WI, WJ: op.apply(
+            coords_I, coords_J, WI, WJ, bonded_path_length, at_i, at_j
+        ),
         (
-            I.requires_grad_(True),
-            J.requires_grad_(False),
+            coords_I.requires_grad_(True),
+            coords_J.requires_grad_(False),
             WI.requires_grad_(False),
             WJ.requires_grad_(False),
         ),

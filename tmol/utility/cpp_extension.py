@@ -24,17 +24,50 @@ _required_flags = ["--std=c++14", "-DWITH_NVTX", "-w"]
 _default_flags = ["-O3"]
 # _default_flags = ["-g", "-Og", "-DDEBUG"]
 
+
+# TO DO! Look at what OS we're running on
+# only add the -ccbin gcc-8 flag if we're on ubuntu 20.04 or higher
+#
+#
+# which version of torch are we compiling against?
+def get_torch_version():
+    return torch.__version__.split(".")[0:2]
+
+
+torch_major, torch_minor = get_torch_version()
+
 _required_cuda_flags = [
+    #    "-ccbin gcc-8", #FIX ME!
     "-std=c++14",
     "--expt-extended-lambda",
     # "--expt-relaxed-constexpr", #fd: causes compiler errors in CUDA 10.0
     "-DWITH_NVTX",
     "-w",
+    # "-G",
+    "-DTORCH_VERSION_MAJOR=%s" % torch_major,
+    "-DTORCH_VERSION_MINOR=%s" % torch_minor,
 ]
 
+
+# Add an additional --gpu-architecture flag to the nvcc command:
+# The flag we pass to nvcc should be controllable from the TORCH_CUDA_ARCH_LIST
+# environment variable; if this is set, then use that. If it is not set, then
+# we will query the device. This lets us use an older version of torch with a
+# more recent GPU (e.g. an A100 with cuda10.1)
 if torch.cuda.is_available():
-    _major, _minor = torch.cuda.get_device_capability(0)
+
+    import os
+
+    arch_list = os.environ.get("TORCH_CUDA_ARCH_LIST", None)
+    # If not given, determine what's needed for the GPU that can be found
+    if not arch_list:
+        _major, _minor = torch.cuda.get_device_capability(0)
+    else:
+        # Take the first architecture listed.
+        # Deal with lists that are ' ' or ';' separated
+        _major, _minor = arch_list.replace(" ", ";").split(";")[0].split(".")
     _required_cuda_flags.append(f"--gpu-architecture=sm_{_major}{_minor}")
+
 
 _default_cuda_flags = []
 

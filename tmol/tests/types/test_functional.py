@@ -2,7 +2,7 @@ import numpy
 import pytest
 
 import typing
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 
 from tmol.types.functional import validate_args, convert_args
 from tmol.types.array import NDArray
@@ -80,6 +80,24 @@ def tuple_array_func(val: Tuple[float, NDArray[float][:]],) -> NDArray[float][:]
     return m * v
 
 
+@validate_args
+def list_int_func(val: List[int]) -> int:
+    tot = 0
+    for x in val:
+        tot += x
+    return tot
+
+
+@validate_args
+def list_func(val: List) -> str:
+    return ", ".join([str(x) for x in val])
+
+
+@validate_args
+def list_union_func(val: List[Union[int, str]]):
+    return ", ".join([str(x) for x in val])
+
+
 validate_examples = [
     {
         "func": int_func,
@@ -126,6 +144,21 @@ validate_examples = [
             f("1.1"),
             f(numpy.arange(30).reshape(-1, 3).astype(float)),
         ],
+    },
+    {
+        "func": list_int_func,
+        "valid": [f([1]), f([1, 2]), f([1, 2, 3])],
+        "invalid": [f(1), f(1.1), f((1, 2)), f([1, "a"]), f([1, 1.1])],
+    },
+    {
+        "func": list_func,
+        "valid": [f([1]), f([1, 2]), f([1, 2, 3]), f([1, "a"]), f([1, 1.1])],
+        "invalid": [f(1), f(1.1), f((1, 2)), f("a"), f(set(["a", "b"]))],
+    },
+    {
+        "func": list_union_func,
+        "valid": [f([1]), f([1, 2]), f([1, "2", 3]), f([1, "a"]), f(["a"])],
+        "invalid": [f([1, 1.1]), f(1), f(1.1), f((1, 2)), f("a"), f(set(["a", "b"]))],
     },
     {
         "func": union_func,

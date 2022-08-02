@@ -137,6 +137,28 @@ auto tensor_pack_construct_eigen_matrix() {
       T::full({2, 5}, NAN));
 }
 
+auto tensor_view_take_slice_one() {
+  auto Vp = tmol::TPack<int, 2, tmol::Device::CPU>::empty({4, 10});
+  auto V = Vp.view;
+
+  int count = 0;
+  for (int i = 0; i < 4; ++i) {
+    for (int j = 0; j < 10; ++j) {
+      V[i][j] = count;
+      ++count;
+    }
+  }
+
+  auto Outp = tmol::TPack<int, 1, tmol::Device::CPU>::zeros({4});
+  auto Out = Outp.view;
+
+  auto Vslice = V.slice_one(1, 5);
+  for (int i = 0; i < 4; ++i) {
+    Out[i] = Vslice[i];
+  }
+  return Outp;
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(
       "aten", &vector_magnitude_aten, "ATen-based vector_magnitude function.");
@@ -186,4 +208,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "tensor_pack_construct_like_tpack",
       &tensor_pack_construct_like_tpack,
       "Construct tensors via TensorPack constructors.");
+
+  m.def(
+      "tensor_view_take_slice_one",
+      &tensor_view_take_slice_one,
+      "Construct 2D tensor and take a 1D slice of it");
 }

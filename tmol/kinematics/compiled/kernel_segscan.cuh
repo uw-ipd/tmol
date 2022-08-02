@@ -86,6 +86,7 @@ struct cta_lbs_segscan_t {
     // add carry-in back to each value
     cur_item = placement.a_index;
     carry_in = tid > 0;
+
     iterate<vt>([&](int i) {
       if (p[i]) {
         if (type == scan_type_inc) {
@@ -106,9 +107,9 @@ struct cta_lbs_segscan_t {
       // p[vt-1] checks if the current node (the last of the cta)
       //   is a segment node.  If so, no carryout.
       if (p[vt - 1]) {
-        carry_out_values[cta] = (type == scan_type_inc)
-                                    ? output[cur_item - 1]
-                                    : op(result.scan, x[vt - 1]);
+        // Note the carry out doesn't depend on the scan type!
+        carry_out_values[cta] =
+            carry_in ? op(result.scan, x[vt - 1]) : x[vt - 1];
       } else {
         carry_out_values[cta] = init;
       }
@@ -388,6 +389,7 @@ void kernel_segscan(
   };
   cta_launch<launch_t>(k_finalsweep, num_ctas - 1, context);
   nvtx_range_pop();
+  // std::cout << std::flush;
 }
 
 }  // namespace kinematics

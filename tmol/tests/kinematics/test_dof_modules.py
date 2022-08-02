@@ -93,7 +93,7 @@ def test_kinematic_dof_factory(ubq_system):
 
 @pytest.fixture
 def gradcheck_test_system(ubq_res) -> PackedResidueSystem:
-    system = PackedResidueSystem.from_residues(ubq_res[:4])
+    system = PackedResidueSystem.from_residues(ubq_res[:2])
     system.coords = system.coords - numpy.mean(
         system.coords[system.atom_metadata["atom_type"].astype(bool)], axis=0
     )
@@ -116,7 +116,7 @@ def test_kinematic_dofs_gradcheck_perturbed(gradcheck_test_system, torch_device)
     kdof: KinematicDOFs = KinematicDOFs.build_from(gradcheck_test_system)
     torch.random.manual_seed(1663)
     start_dofs = (
-        (kdof.dofs + ((torch.rand_like(kdof.dofs) - .5) * .01))
+        (kdof.dofs + ((torch.rand_like(kdof.dofs) - 0.5) * 0.01))
         .clone()
         .detach()
         .requires_grad_(True)

@@ -261,9 +261,9 @@ def _clone_for_score_system(
 ):
     """Override constructor.
 
-        Create from ``val.dunbrack_rotamer_library`` if possible, otherwise from
-        ``parameter_database.scoring.dunbrack``.
-        """
+    Create from ``val.dunbrack_rotamer_library`` if possible, otherwise from
+    ``parameter_database.scoring.dunbrack``.
+    """
     if dunbrack_rotamer_library is None:
         dunbrack_rotamer_library = DunbrackParameters.get(old).dunbrack_rotamer_library
 
@@ -316,7 +316,7 @@ class DunbrackScore(ScoreMethod):
     @dunbrack_score_module.default
     def _init_dunbrack_score_module(self):
         return DunbrackScoreModule(
-            DunbrackParameters.get(self).dunbrack_param_resolver.packed_db,
+            DunbrackParameters.get(self).dunbrack_param_resolver.scoring_db,
             DunbrackParameters.get(self).dunbrack_params,
             DunbrackParameters.get(self).dunbrack_scratch,
         )

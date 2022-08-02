@@ -1,4 +1,3 @@
-import toolz
 import attr
 import cattr
 
@@ -9,7 +8,7 @@ from typing import Sequence, Tuple
 
 from tmol.types.array import NDArray
 
-from .restypes import Residue
+from tmol.chemical.restypes import Residue
 from .datatypes import (
     atom_metadata_dtype,
     torsion_metadata_dtype,
@@ -174,7 +173,7 @@ class PackedResidueSystem:
         # Offset the internal bond graph by the residue start idx
         intra_res_bonds = numpy.concatenate(
             [
-                r.residue_type.bond_indicies + start
+                r.residue_type.bond_indices + start
                 for start, r in zip(segment_starts, res)
             ]
         )
@@ -194,21 +193,49 @@ class PackedResidueSystem:
                 pandas.DataFrame(  # All the named connections
                     dict(
                         residue_index=connection_index["from", "resi"],
-                        cname=connection_index["from", "cname"],
+                        from_cname=connection_index["from", "cname"],
                         to_residue=connection_index["to", "resi"],
+                        to_cname=connection_index["to", "cname"],
                     )
                 ),
                 pandas.DataFrame(  # Loop-back to self for "None" connections
                     dict(
-                        cname=None,
+                        from_cname=None,
                         residue_index=numpy.arange(len(res)),
                         to_residue=numpy.arange(len(res)),
+                        to_cname=None,
                     )
                 ),
             ),
             ignore_index=True,
             sort=True,
         )
+
+        downstream_atoms = []
+        for i, r in enumerate(res):
+            n_atoms = r.coords.shape[0]
+            n_conns = len(r.residue_type.connections)
+            inds0 = numpy.arange(n_conns * n_atoms, dtype=numpy.int32) // n_atoms
+            inds1 = numpy.arange(n_conns * n_atoms, dtype=numpy.int32) % n_atoms
+
+            downstream_atoms.append(
+                pandas.DataFrame(
+                    dict(
+                        residue_index=numpy.full(
+                            (n_atoms * n_conns,), i, dtype=numpy.int32
+                        ),
+                        conn=numpy.array([c.name for c in r.residue_type.connections])[
+                            inds0
+                        ],
+                        downstream_distance=inds1,
+                        downstream_atom_index=(
+                            segment_starts[i]
+                            + r.residue_type.atom_downstream_of_conn[inds0, inds1]
+                        ),
+                    )
+                )
+            )
+        downstream_atoms = pandas.concat(downstream_atoms)
 
         # Generate a lookup from residue index and atom name to global atom index.
         atom_lookup = pandas.DataFrame(
@@ -229,72 +256,92 @@ class PackedResidueSystem:
         ]
 
         if torsion_entries:
-            # Left merge the residue/connection name into a target residue, and
-            # then the target residue and atom name into a global atom index
-            # for all atoms in the torsion (a, b, c, d).
+            torsion_entries = pandas.io.json.json_normalize(torsion_entries)
+            for column_letter in ("a", "b", "c", "d"):
+                colname = "%s.bond_sep_from_conn" % column_letter
+                col = numpy.array(torsion_entries[colname])
+                col[numpy.logical_not(numpy.any(col, axis=0))] = -1
+                col = col.astype(float)
+                col[numpy.isnan(col)] = -1
+                col = col.astype(numpy.int32)
+                torsion_entries[colname] = col
 
-            # This yields a global torsion table every torsion, the torsion name,
-            # and the associated global atom indices.
-            torsion_index = toolz.reduce(
-                toolz.curry(pandas.merge)(how="left", copy=False),
-                (
-                    pandas.io.json.json_normalize(torsion_entries)[
-                        [
-                            # Select torsion descriptor components required for merge.
-                            "residue_index",
-                            "name",
-                            "a.atom",
-                            "a.connection",
-                            "b.atom",
-                            "b.connection",
-                            "c.atom",
-                            "c.connection",
-                            "d.atom",
-                            "d.connection",
-                        ]
-                    ],
+            # split the torsion_entries data frame up into the four individual torsions
+            # then divide these based on whether they span to another residue, or
+            # whether they are intra-residue.
+            #
+            # merge the inter-residue entries with the
+            torsion_entries_by_atom = []
+            for atom in ("a", "b", "c", "d"):
+                col_names = [
+                    "residue_index",
+                    "name",
+                    "%s.atom" % atom,
+                    "%s.connection" % atom,
+                    "%s.bond_sep_from_conn" % atom,
+                ]
+                sub_df = torsion_entries[col_names]
+                sub_df_inter = sub_df[pandas.notna(sub_df["%s.connection" % atom])]
+                sub_df_intra = sub_df[pandas.notna(sub_df["%s.atom" % atom])]
+
+                # now lets do a left merge on the inter-residue rows
+                # against the connection-lookup dataframe to determine the
+                # residue that is connected and the name of the connection point
+                # on that residue to which the connection on the source residue
+                # is connected. Next merge against the downstream_atoms dataframe
+                # to determine the number of bonds separating the
+
+                sub_df_inter = pandas.merge(
+                    sub_df_inter,
                     connection_lookup.rename(
-                        columns={"cname": "a.connection", "to_residue": "a.residue"}
-                    ),
-                    atom_lookup.rename(
                         columns={
-                            "residue_index": "a.residue",
-                            "atom_name": "a.atom",
-                            "atom_index": "a.atom_index",
+                            "from_cname": "%s.connection" % atom,
+                            "to_residue": "%s.residue" % atom,
+                            "to_cname": "%s.to_connection" % atom,
                         }
                     ),
-                    connection_lookup.rename(
-                        columns={"cname": "b.connection", "to_residue": "b.residue"}
-                    ),
-                    atom_lookup.rename(
+                    how="left",
+                    copy=False,
+                )
+                sub_df_inter = pandas.merge(
+                    sub_df_inter,
+                    downstream_atoms.rename(
                         columns={
-                            "residue_index": "b.residue",
-                            "atom_name": "b.atom",
-                            "atom_index": "b.atom_index",
+                            "residue_index": "%s.residue" % atom,
+                            "conn": "%s.to_connection" % atom,
+                            "downstream_distance": "%s.bond_sep_from_conn" % atom,
+                            "downstream_atom_index": "%s.atom_index" % atom,
                         }
                     ),
-                    connection_lookup.rename(
-                        columns={"cname": "c.connection", "to_residue": "c.residue"}
-                    ),
+                    how="left",
+                    copy=False,
+                )[["residue_index", "name", "%s.atom_index" % atom]]
+
+                # now lets do a left merge on the intra-residue rows against
+                # the atom-lookup dataframe to go directly to the atom index
+                # for atoms within a residue
+                sub_df_intra = pandas.merge(
+                    sub_df_intra,
                     atom_lookup.rename(
                         columns={
-                            "residue_index": "c.residue",
-                            "atom_name": "c.atom",
-                            "atom_index": "c.atom_index",
+                            "atom_name": "%s.atom" % atom,
+                            "atom_index": "%s.atom_index" % atom,
                         }
                     ),
-                    connection_lookup.rename(
-                        columns={"cname": "d.connection", "to_residue": "d.residue"}
-                    ),
-                    atom_lookup.rename(
-                        columns={
-                            "residue_index": "d.residue",
-                            "atom_name": "d.atom",
-                            "atom_index": "d.atom_index",
-                        }
-                    ),
-                ),
-            ).sort_index("columns")
+                    how="left",
+                    copy=False,
+                )[["residue_index", "name", "%s.atom_index" % atom]]
+
+                concatted = pandas.concat([sub_df_inter, sub_df_intra])
+                torsion_entries_by_atom.append(concatted)
+
+            merge = torsion_entries_by_atom[0]
+            for i in range(3):
+                merge = pandas.merge(
+                    merge, torsion_entries_by_atom[i + 1], how="left", copy=False
+                )
+            torsion_index = merge.sort_index("columns")
+
         else:
             torsion_index = pandas.DataFrame(
                 {
@@ -307,6 +354,8 @@ class PackedResidueSystem:
                 }
             )
 
+        # print("torsion_index")
+        # print(torsion_index)
         pandas.DataFrame
 
         # Unpack the merge frame into atomic indices, fixing up any missing values to
@@ -323,8 +372,8 @@ class PackedResidueSystem:
         torsion_metadata["atom_index_d"] = nan_to_neg1(torsion_index["d.atom_index"])
 
         result = cls(
-            block_size=block_size,
-            system_size=buffer_size,
+            block_size=int(block_size),
+            system_size=int(buffer_size),
             res_start_ind=segment_starts,
             residues=attached_res,
             atom_metadata=atom_metadata,

@@ -56,34 +56,38 @@ def torsional_energy_network_from_system(
 ):
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(
-        residue_system.bonds, residue_system.torsion_metadata
+        system_size=residue_system.system_size,
+        bonds=residue_system.bonds,
+        torsion_metadata=(residue_system.torsion_metadata,),
     )
+
     if not device:
         device = torch.device("cpu")
-    kintree = sys_kin.kintree.to(device)
+    kinforest = sys_kin.kinforest.to(device)
 
     # compute dofs from xyzs
     dofs = sys_kin.extract_kincoords(residue_system.coords).to(device)
     system_size = residue_system.system_size
 
     return TorsionalEnergyNetwork(
-        score_system, dofs, kintree, system_size, dof_mask=dof_mask
+        score_system, dofs, kinforest, system_size, dof_mask=dof_mask
     )
 
 
 # torsion space minimization
 class TorsionalEnergyNetwork(torch.nn.Module):
-    def __init__(self, score_system, dofs, kintree, system_size, dof_mask=None):
+    def __init__(self, score_system, dofs, kinforest, system_size, dof_mask=None):
         super(TorsionalEnergyNetwork, self).__init__()
 
         self.score_system = score_system
-        self.kintree = kintree
+        self.kinforest = kinforest
 
         # register buffers so they get moved to GPU with module
-        for i, j in attr.asdict(kintree).items():
+        for i, j in attr.asdict(kinforest).items():
             self.register_buffer(i, j)
         self.register_buffer("dof_mask", dof_mask)
         self.register_buffer("full_dofs", dofs)
+
         self.system_size = system_size
 
         if self.dof_mask is None:
@@ -95,7 +99,7 @@ class TorsionalEnergyNetwork(torch.nn.Module):
         self.full_dofs = DOFMaskingFunc.apply(
             self.masked_dofs, self.dof_mask, self.full_dofs
         )
-        return kincoords_to_coords(self.full_dofs, self.kintree, self.system_size)
+        return kincoords_to_coords(self.full_dofs, self.kinforest, self.system_size)
 
     def forward(self):
         return self.score_system.intra_total(self.coords())

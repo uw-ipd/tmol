@@ -3,34 +3,15 @@ import torch
 
 import itertools
 
-from tmol.score.dunbrack.params import DunbrackParamResolver, nplus1d_tensor_from_list
-
-
-def test_nplus1d_tensor_from_list():
-    ts = [
-        torch.ones([4, 4], dtype=torch.int32),
-        2 * torch.ones([3, 4], dtype=torch.int32),
-        3 * torch.ones([5, 2], dtype=torch.int32),
-        4 * torch.ones([5, 5], dtype=torch.int32),
-    ]
-    joined, sizes, strides = nplus1d_tensor_from_list(ts)
-
-    gold_sizes = numpy.array([[4, 4], [3, 4], [5, 2], [5, 5]], dtype=numpy.int64)
-    numpy.testing.assert_equal(sizes.cpu().numpy(), gold_sizes)
-    for i in range(4):
-        for j in range(5):
-            for k in range(5):
-                assert joined[i, j, k] == (
-                    (i + 1) if (j < gold_sizes[i, 0] and k < gold_sizes[i, 1]) else 0
-                )
+from tmol.score.dunbrack.params import DunbrackParamResolver
 
 
 def test_dun_param_resolver_construction(default_database, torch_device):
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
-    dun_params = resolver.packed_db
-    dun_params_aux = resolver.packed_db_aux
+    dun_params = resolver.scoring_db
+    dun_params_aux = resolver.scoring_db_aux
 
     # properties that are independent of the library, except for the
     # fact that it represents alpha amino acids
@@ -52,15 +33,15 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     # assert len(resolver.all_table_indices) == nlibs
     assert dun_params_aux.nchi_for_table_set.shape[0] == nlibs
 
-    nrotameric_rots = sum(
-        (
-            rotlib.rotameric_data.rotamers.shape[0]
-            for rotlib in itertools.chain(
-                dunlib.rotameric_libraries, dunlib.semi_rotameric_libraries
-            )
-        )
-    )
-    assert len(dun_params.rotameric_prob_tables) == nrotameric_rots
+    # nrotameric_rots = sum(
+    #     (
+    #         rotlib.rotameric_data.rotamers.shape[0]
+    #         for rotlib in itertools.chain(
+    #             dunlib.rotameric_libraries, dunlib.semi_rotameric_libraries
+    #         )
+    #     )
+    # )
+    # assert len(dun_params.rotameric_prob_tables) == nrotameric_rots
 
     nchitot = sum(
         (
@@ -107,7 +88,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
 
     # now let's make sure that everything lives on the proper device
     for table in itertools.chain(
-        dun_params.rotameric_prob_tables,
+        # dun_params.rotameric_prob_tables,
         dun_params.rotameric_mean_tables,
         dun_params.rotameric_sdev_tables,
         dun_params.semirotameric_tables,
@@ -122,7 +103,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     assert dun_params_aux.nchi_for_table_set.device == torch_device
     assert dun_params.rotameric_rotind2tableind.device == torch_device
     assert dun_params.semirotameric_rotind2tableind.device == torch_device
-    assert dun_params_aux.rotind2tableind_offsets.device == torch_device
+    assert dun_params_aux.rotameric_chi_rotind2tableind_offsets.device == torch_device
     assert dun_params_aux.semirotameric_tableset_offsets.device == torch_device
     assert dun_params.semirot_start.device == torch_device
     assert dun_params.semirot_step.device == torch_device
@@ -157,7 +138,9 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     nchi_for_set = dun_params_aux.nchi_for_table_set.cpu().numpy()
     numpy.testing.assert_array_equal(nchi, nchi_for_set)
 
-    rotameric_ri2ti_offsets = dun_params_aux.rotind2tableind_offsets.cpu().numpy()
+    rotameric_ri2ti_offsets = (
+        dun_params_aux.rotameric_chi_rotind2tableind_offsets.cpu().numpy()
+    )
     rotameric_ri2ti = dun_params.rotameric_rotind2tableind.cpu().numpy()
     rotamers = [
         rotlib.rotameric_data.rotamers for rotlib in dunlib.rotameric_libraries
@@ -337,7 +320,7 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
     # annoyingly had to be renamed because flake8 and black couldn't
     # agree on how to treat a long line
     ptofrr_gold = (
-        resolver.packed_db_aux.rotameric_prob_tableset_offsets[
+        resolver.scoring_db_aux.rotameric_prob_tableset_offsets[
             rottable_set_for_res_gold[0, dun_params.rotres2resid.cpu().numpy()]
         ]
         .cpu()
@@ -350,7 +333,7 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
 
     # rotmean_table_offset_for_residue_gold
     rmtofr_gold = (
-        resolver.packed_db_aux.rotameric_meansdev_tableset_offsets[
+        resolver.scoring_db_aux.rotameric_meansdev_tableset_offsets[
             rottable_set_for_res_gold
         ]
         .cpu()
@@ -363,7 +346,9 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
 
     # rotind2tableind_offset_for_res_gold =
     ri2tiofr_gold = (
-        resolver.packed_db_aux.rotind2tableind_offsets[rottable_set_for_res_gold]
+        resolver.scoring_db_aux.rotameric_chi_rotind2tableind_offsets[
+            rottable_set_for_res_gold
+        ]
         .cpu()
         .numpy()
         .reshape(1, -1)
@@ -408,7 +393,7 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
     )
     semirotameric_chi_desc_gold[:, :, 3] = semirot_res_inds
     semirotameric_chi_desc_gold[:, :, 2] = (
-        resolver.packed_db_aux.semirotameric_tableset_offsets[semirot_res_inds]
+        resolver.scoring_db_aux.semirotameric_tableset_offsets[semirot_res_inds]
         .cpu()
         .numpy()
     )

@@ -15,11 +15,11 @@ from tmol.database.scoring.elec import ElecDatabase
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ElecGlobalParams(TensorGroup, ValidateAttrs):
-    elec_min_dis: Tensor[float][...]
-    elec_max_dis: Tensor[float][...]
-    elec_sigmoidal_die_D: Tensor[float][...]
-    elec_sigmoidal_die_D0: Tensor[float][...]
-    elec_sigmoidal_die_S: Tensor[float][...]
+    elec_min_dis: Tensor[torch.float32][...]
+    elec_max_dis: Tensor[torch.float32][...]
+    elec_sigmoidal_die_D: Tensor[torch.float32][...]
+    elec_sigmoidal_die_D0: Tensor[torch.float32][...]
+    elec_sigmoidal_die_S: Tensor[torch.float32][...]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -43,7 +43,7 @@ class ElecParamResolver(ValidateAttrs):
 
     def resolve_partial_charge(
         self, res_names: NDArray[object][:, :], atom_names: NDArray[object][:, :]
-    ) -> NDArray[float][...]:
+    ) -> NDArray[numpy.float32][...]:
         """Convert array of atom type names to partial charges.
         """
         pcs = numpy.vectorize(

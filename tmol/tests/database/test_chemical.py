@@ -8,6 +8,13 @@ def test_residue_defs(default_database: tmol.database.ParameterDatabase):
         atom_types
     ), "Duplicate atom types."
 
+    elements = {
+        el.name: el.atomic_number for el in default_database.chemical.element_types
+    }
+
+    for at in default_database.chemical.atom_types:
+        assert at.element in elements
+
     for r in default_database.chemical.residues:
         for a in r.atoms:
             assert (
@@ -40,5 +47,20 @@ def test_residue_defs(default_database: tmol.database.ParameterDatabase):
 
         for t in r.torsions:
             for catom in (t.a, t.b, t.c, t.d):
-                assert catom.atom in atom_names
-                assert catom.connection is None or catom.connection in connection_names
+                assert (
+                    catom.atom in atom_names
+                    and catom.connection is None
+                    and catom.bond_sep_from_conn is None
+                ) or (
+                    catom.atom is None
+                    and catom.connection in connection_names
+                    and catom.bond_sep_from_conn is not None
+                )
+        if r.properties.polymer.mainchain_atoms is not None:
+            for at in r.properties.polymer.mainchain_atoms:
+                assert at in atom_names
+
+        # check that all chi_samples refer to previously-declared chi dihedrals
+        torsion_names = [t.name for t in r.torsions]
+        for sample in r.chi_samples:
+            assert sample.chi_dihedral in torsion_names

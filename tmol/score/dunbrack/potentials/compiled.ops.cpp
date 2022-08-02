@@ -33,7 +33,6 @@ class DunOp : public Function<DunOp<ScoreDispatch, DispatchMethod>> {
   static Tensor forward(
       AutogradContext* ctx,
       Tensor coords,
-      Tensor rotameric_prob_tables,
       Tensor rotameric_neglnprob_tables,
       Tensor rotprob_table_sizes,
       Tensor rotprob_table_strides,
@@ -83,7 +82,6 @@ class DunOp : public Function<DunOp<ScoreDispatch, DispatchMethod>> {
           auto result =
               DunbrackDispatch<DispatchMethod, Dev, Real, Int>::forward(
                   TCAST(coords),
-                  TCAST(rotameric_prob_tables),
                   TCAST(rotameric_neglnprob_tables),
                   TCAST(rotprob_table_sizes),
                   TCAST(rotprob_table_strides),
@@ -188,7 +186,7 @@ class DunOp : public Function<DunOp<ScoreDispatch, DispatchMethod>> {
         torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
-        torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
+        torch::Tensor(), torch::Tensor(), torch::Tensor(),
     };
   }
 };
@@ -205,7 +203,6 @@ template <
     class DispatchMethod>
 Tensor dun_op(
     Tensor coords,
-    Tensor rotameric_prob_tables,
     Tensor rotameric_neglnprob_tables,
     Tensor rotprob_table_sizes,
     Tensor rotprob_table_strides,
@@ -242,7 +239,6 @@ Tensor dun_op(
     Tensor semirotameric_rottable_assignment) {
   return DunOp<ScoreDispatch, DispatchMethod>::apply(
       coords,
-      rotameric_prob_tables,
       rotameric_neglnprob_tables,
       rotprob_table_sizes,
       rotprob_table_strides,

@@ -33,8 +33,8 @@ struct ForwardKinDispatch {
       TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
-      TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
-      TView<KinTreeParams<Int>, 1, D> kintree)
+      TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
+      TView<KinForestParams<Int>, 1, D> kintree)
       -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D> >;
 };
 
@@ -60,8 +60,8 @@ struct KinDerivDispatch {
       TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
-      TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
-      TView<KinTreeParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D>;
+      TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
+      TView<KinForestParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D>;
 };
 
 #undef HomogeneousTransform

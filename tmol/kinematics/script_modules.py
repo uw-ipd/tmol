@@ -1,10 +1,10 @@
 import torch
 
-from .datatypes import KinTree
+from .datatypes import KinForest
 
 from tmol.kinematics.compiled import forward_kin_op
 
-from tmol.kinematics.scan_ordering import KinTreeScanOrdering
+from tmol.kinematics.scan_ordering import KinForestScanOrdering
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -26,7 +26,7 @@ class KinematicModule(torch.jit.ScriptModule):
     See KinDOF for a description of the internal coordinate representation.
     """
 
-    def __init__(self, kintree: KinTree, device: torch.device):
+    def __init__(self, kinforest: KinForest, device: torch.device):
         super().__init__()
 
         def _p(t):
@@ -35,23 +35,23 @@ class KinematicModule(torch.jit.ScriptModule):
         def _tint(ts):
             return tuple(map(lambda t: t.to(torch.int32), ts))
 
-        self.kintree = _p(
+        self.kinforest = _p(
             torch.stack(
                 _tint(
                     [
-                        kintree.id,
-                        kintree.doftype,
-                        kintree.parent,
-                        kintree.frame_x,
-                        kintree.frame_y,
-                        kintree.frame_z,
+                        kinforest.id,
+                        kinforest.doftype,
+                        kinforest.parent,
+                        kinforest.frame_x,
+                        kinforest.frame_y,
+                        kinforest.frame_z,
                     ]
                 ),
                 dim=1,
             ).to(device)
         )
 
-        ordering = KinTreeScanOrdering.for_kintree(kintree)
+        ordering = KinForestScanOrdering.for_kinforest(kinforest)
         self.nodes_f = _p(ordering.forward_scan_paths.nodes.to(device))
         self.scans_f = _p(ordering.forward_scan_paths.scans.to(device))
         self.gens_f = _p(ordering.forward_scan_paths.gens)  # on cpu
@@ -69,5 +69,5 @@ class KinematicModule(torch.jit.ScriptModule):
             self.nodes_b,
             self.scans_b,
             self.gens_b,
-            self.kintree,
+            self.kinforest,
         )

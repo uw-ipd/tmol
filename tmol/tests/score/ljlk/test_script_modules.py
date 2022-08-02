@@ -21,6 +21,9 @@ from tmol.score.ljlk.script_modules import (
     LKIsotropicInterModule,
 )
 
+from tmol.score.common.stack_condense import condense_torch_inds
+from tmol.score.chemical_database import AtomTypeParamResolver
+
 
 @attr.s(auto_attribs=True)
 class ScoreSetup:
@@ -31,6 +34,7 @@ class ScoreSetup:
 
     tcoords: torch.Tensor
     ttype: torch.Tensor
+    thvy_at_inds: torch.Tensor
     tbpl: torch.Tensor
 
     @classmethod
@@ -53,6 +57,14 @@ class ScoreSetup:
             .requires_grad_(True)
         )
         ttype = atom_type_idx[:]
+
+        atype_params = AtomTypeParamResolver.from_database(
+            database.chemical, torch_device
+        )
+        thvy_at_inds = condense_torch_inds(
+            ~atype_params.params.is_hydrogen[ttype], torch_device
+        )
+
         tbpl = torch.from_numpy(atom_pair_bpl).to(device=torch_device)[:, :]
 
         return cls(
@@ -62,6 +74,7 @@ class ScoreSetup:
             atom_pair_bpl=atom_pair_bpl,
             tcoords=tcoords,
             ttype=ttype,
+            thvy_at_inds=thvy_at_inds,
             tbpl=tbpl,
         )
 
@@ -234,7 +247,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
 
     @subfixture(benchmark)
     def op_val():
-        return op(s.tcoords, s.ttype, s.tbpl)
+        return op(s.tcoords, s.ttype, s.thvy_at_inds, s.tbpl)
 
     torch.testing.assert_allclose(
         op_val, torch.tensor((expected_dense,)).to(torch_device)
@@ -242,7 +255,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
 
     @subfixture(benchmark)
     def op_full():
-        res = op(s.tcoords, s.ttype, s.tbpl)
+        res = op(s.tcoords, s.ttype, s.thvy_at_inds, s.tbpl)
         res.backward()
 
         return res
@@ -257,7 +270,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
         fcoords = s.tcoords.clone()
         fcoords[:, subind] = c
 
-        return op(fcoords, s.ttype, s.tbpl)
+        return op(fcoords, s.ttype, s.thvy_at_inds, s.tbpl)
 
     gradcheck(op_subset, (s.tcoords[:, subind].requires_grad_(True),), eps=1e-3)
 
@@ -277,11 +290,16 @@ def test_lk_inter_op(default_database, torch_device, ubq_system):
     op = LKIsotropicInterModule(s.param_resolver)
     op.to(s.tcoords)
 
+    inds_part_lo = s.thvy_at_inds[:, s.thvy_at_inds[0, :] < part]
+    inds_part_hi = s.thvy_at_inds[:, s.thvy_at_inds[0, :] >= part] - part
+
     val = op(
         s.tcoords[:, :part],
         s.ttype[:, :part],
+        inds_part_lo,
         s.tcoords[:, part:],
         s.ttype[:, part:],
+        inds_part_hi,
         s.tbpl[:, :part, part:],
     )
 
@@ -296,8 +314,10 @@ def test_lk_inter_op(default_database, torch_device, ubq_system):
         return op(
             fcoords[:, :part],
             s.ttype[:, :part],
+            inds_part_lo,
             fcoords[:, part:],
             s.ttype[:, part:],
+            inds_part_hi,
             s.tbpl[:, :part, part:],
         )
 

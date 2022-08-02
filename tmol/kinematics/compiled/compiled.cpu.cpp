@@ -21,8 +21,8 @@ struct ForwardKinDispatch {
       TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
-      TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
-      TView<KinTreeParams<Int>, 1, D> kintree)
+      TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
+      TView<KinForestParams<Int>, 1, D> kintree)
       -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D> > {
     auto num_atoms = dofs.size(0);
 
@@ -89,6 +89,8 @@ struct InverseKinDispatch {
       TView<Int, 1, D> frame_z,
       TView<Int, 1, D> doftype) -> TPack<KintreeDof, 1, D> {
     auto num_atoms = coords.size(0);
+    // auto num_atoms = parent.size(0);
+    auto num_nodes = parent.size(0);
 
     // fd: we could eliminate HT allocation and calculate on the fly
     auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
@@ -143,8 +145,8 @@ struct KinDerivDispatch {
       TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
-      TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
-      TView<KinTreeParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D> {
+      TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
+      TView<KinForestParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D> {
     auto num_atoms = dVdx.size(0);
 
     auto f1f2s_t = TPack<Vec<Real, 6>, 1, D>::empty({num_atoms});

@@ -56,7 +56,7 @@ struct f1f2VecsRawBuffer {
 // These are used to preallocate the memory used in each generation of the scan.
 template <typename Int>
 auto getScanBufferSize(
-    TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens, Int nt, Int vt)
+    TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens, Int nt, Int vt)
     -> mgpu::tuple<Int, Int, Int> {
   auto ngens = gens.size(0) - 1;
   Int scanSize = 0;
@@ -158,14 +158,13 @@ struct ForwardKinDispatch {
       TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
-      TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
-      TView<KinTreeParams<Int>, 1, D> kintree)
+      TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
+      TView<KinForestParams<Int>, 1, D> kintree)
       -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D>> {
     NVTXRange _function(__FUNCTION__);
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<128, 2> launch_t;
     constexpr int nt = launch_t::nt, vt = launch_t::vt;
-
     auto num_atoms = dofs.size(0);
 
     nvtx_range_push("dispatch::alloc");
@@ -192,8 +191,6 @@ struct ForwardKinDispatch {
     HTRawBuffer<Real> init = {
         1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};  // identity xform
     nvtx_range_pop();
-
-    // printf("[0] alloc=%d\n", carryoutBuffer);
 
     // dofs -> HTs
     nvtx_range_push("dispatch::dof2ht");
@@ -325,8 +322,8 @@ struct KinDerivDispatch {
       TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
-      TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
-      TView<KinTreeParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D> {
+      TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
+      TView<KinForestParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D> {
     NVTXRange _function(__FUNCTION__);
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<256, 3> launch_t;

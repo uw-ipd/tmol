@@ -48,7 +48,7 @@ class RamaParamResolver(ValidateAttrs):
 
     def resolve_ramatables(
         self, r1: NDArray[object], r2: NDArray[object]
-    ) -> NDArray[numpy.long][...]:
+    ) -> NDArray[numpy.int64][...]:
         l_idx = self.rama_lookup.index.get_indexer([r1, r2])
         wildcard = numpy.full_like(r1, "_")
         l_idx[l_idx == -1] = self.rama_lookup.index.get_indexer(
@@ -78,6 +78,7 @@ class RamaParamResolver(ValidateAttrs):
         assert ntables > 0
         tablesize = rama_database.rama_tables[0].table.shape
         tables = torch.empty((ntables, *tablesize))
+
         for i, t_i in enumerate(rama_database.rama_tables):
             tables[i, ...] = BSplineInterpolation.from_coordinates(
                 torch.tensor(t_i.table, dtype=torch.float)

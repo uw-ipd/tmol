@@ -1,5 +1,17 @@
+element_types:
+  - {&n name: H, &an atomic_number: 1}
+  - {*n: C, *an: 6}
+  - {*n: N, *an: 7}
+  - {*n: O, *an: 8}
+  - {*n: F, *an: 9}
+  - {*n: Na, *an: 11}
+  - {*n: P, *an: 15}
+  - {*n: S, *an: 16}
+  - {*n: Cl, *an: 17}
+  - {*n: K, *an: 19}
+
 atom_types:
-  - &n name: CNH2
+  - *n: CNH2
     &e element: C
     is_acceptor: False
     &hyb acceptor_hybridization: null
@@ -51,6 +63,7 @@ atom_types:
 
 residues:
   - name:  ALA
+    base_name: ALA
     name3: ALA
     atoms:
     - { *n: N,  &t atom_type: Nbb  }
@@ -77,9 +90,9 @@ residues:
     - { *n: down, &a atom: N }
     - { *n: up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, &c connection: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},                      b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},                     b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {&c connection: down, &s bond_sep_from_conn: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},                                         b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},                                        b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:  0.000000, &p parent:  N, &gp grand_parent: CA, &ggp great_grand_parent:    C }
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:  1.458001,        *p:  N,             *gp:  CA,                    *ggp:    C }
@@ -93,9 +106,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.900000 deg, d:  1.090078,        *p: CA,             *gp:   N,                    *ggp:   CB }
     - { *n:  down, phi: -150.000000 deg, theta:   58.300003 deg, d:  1.328685,        *p:  N,             *gp:  CA,                    *ggp:    C }
     - { *n:     H, phi: -180.000000 deg, theta:   60.849998 deg, d:  1.010000,        *p:  N,             *gp:  CA,                    *ggp: down }
-    hierarchies:
-    - aa.alpha.l.alanine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  ARG
+    base_name: ARG
     name3: ARG
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -150,9 +182,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
@@ -185,9 +217,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:  1.090421, *p:   CA, *gp:   N, *ggp:     CB }
     - { *n:  down, phi: -149.999939 deg, theta:   58.300037 deg, d:  1.328685, *p:    N, *gp:  CA, *ggp:      C }
     - { *n:     H, phi: -179.999969 deg, theta:   60.849937 deg, d:  1.010001, *p:    N, *gp:  CA, *ggp:   down }
-    hierarchies:
-    - aa.alpha.l.arginine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  ASN
+    base_name: ASN
     name3: ASN
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -222,9 +273,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
@@ -245,9 +296,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.091156, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000015 deg, theta:   58.300072 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000 deg, theta:   60.849964 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.asparagine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  ASP
+    base_name: ASP
     name3: ASP
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -278,9 +348,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
@@ -299,9 +369,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090385, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000015 deg, theta:   58.300011 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000 deg, theta:   60.849979 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.aspartate
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  CYS
+    base_name: CYS
     name3: CYS
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -321,6 +410,7 @@ residues:
     - [  CA,    C]
     - [   C,    O]
     - [  CA,   HA]
+    - [  CA,   CB]
     - [  CB,   SG]
     - [  CB,  1HB]
     - [  CB,  2HB]
@@ -329,9 +419,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: SG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: SG}, d: {*a: HG}}
@@ -349,9 +439,28 @@ residues:
     - { *n:    HA, phi:      -119.0 deg, theta:   71.500000 deg, d:    1.090059, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi:      -150.0 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:       180.0 deg, theta:   60.849998 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.cysteine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  GLN
+    base_name: GLN
     name3: GLN
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -392,9 +501,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
@@ -419,9 +528,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089870, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000031 deg, theta:   58.300022 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000 deg, theta:   60.850025 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.glutamine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  GLU
+    base_name: GLU
     name3: GLU
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -458,9 +586,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
@@ -483,9 +611,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090506, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999985 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000 deg, theta:   60.850025 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.glutamate
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  GLY
+    base_name: GLY
     name3: GLY
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -506,9 +653,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -519,9 +666,28 @@ residues:
     - { *n:   2HA, phi:  117.200000 deg, theta:   70.500000 deg, d:    1.089353, *p:    CA, *gp:     N, *ggp:   1HA}
     - { *n:  down, phi: -150.000015 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.850040 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.glycine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: achiral
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  HIS
+    base_name: HIS
     name3: HIS
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -565,9 +731,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
@@ -591,9 +757,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089618, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999969 deg, theta:   58.300014 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  179.999985 deg, theta:   60.850006 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.histidine.ne2_protonated
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: [NE2]
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  HIS_D
+    base_name: HIS_D
     name3: HIS
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -636,9 +821,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
@@ -662,9 +847,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089614, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999908 deg, theta:   58.300098 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  179.999939 deg, theta:   60.850052 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.histidine.nd1_protonated
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: [ND1]
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  ILE
+    base_name: ILE
     name3: ILE
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -709,9 +913,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG1}, d: {*a: CD1}}
@@ -737,9 +941,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089328, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000015 deg, theta:   58.300030 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999985 deg, theta:   60.849998 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.isoleucine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  LEU
+    base_name: LEU
     name3: LEU
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -784,9 +1007,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
@@ -812,9 +1035,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089438, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999985 deg, theta:   58.299976 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.849979 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.leucine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  LYS
+    base_name: LYS
     name3: LYS
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -865,9 +1107,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
@@ -898,9 +1140,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090528, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999969 deg, theta:   58.300011 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  179.999985 deg, theta:   60.849998 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.lysine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  MET
+    base_name: MET
     name3: MET
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -941,9 +1202,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: SD}}
@@ -968,9 +1229,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089824, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000046 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999985 deg, theta:   60.850040 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.methoinine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  PHE
+    base_name: PHE
     name3: PHE
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -1018,9 +1298,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
@@ -1047,9 +1327,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090899, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000031 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.850014 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.phenylalanine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  PRO
+    base_name: PRO
     name3: PRO
     atoms:
     - { *n: N   ,  *t: Npro }
@@ -1085,9 +1384,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
@@ -1109,10 +1408,28 @@ residues:
     - { *n:   2HB, phi:  117.600000 deg, theta:   70.000000 deg, d:    1.100000, *p:    CB, *gp:    CA, *ggp:   1HB}
     - { *n:    HA, phi: -118.000000 deg, theta:   70.800000 deg, d:    1.100000, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000000 deg, theta:   58.299934 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
-    hierarchies:
-    - aa.alpha.l.proline
-    - aa.n_branched
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  SER
+    base_name: SER
     name3: SER
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -1141,9 +1458,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: OG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG}, d: {*a: HG}}
@@ -1161,9 +1478,31 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090924, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000000 deg, theta:   58.299988 deg, d:    1.328684, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999969 deg, theta:   60.849979 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.serine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples:
+    - chi_dihedral: chi2
+      samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
+      expansions: []
   - name:  THR
+    base_name: THR
     name3: THR
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -1198,9 +1537,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB},  d: {*a: OG1}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG1}, d: {*a: HG1}}
@@ -1221,9 +1560,31 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090258, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999969 deg, theta:   58.300030 deg, d:    1.328684, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.849979 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.threonine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples:
+    - chi_dihedral: chi2
+      samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
+      expansions: []
   - name:  TRP
+    base_name: TRP
     name3: TRP
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -1280,9 +1641,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
@@ -1313,9 +1674,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089883, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000046 deg, theta:   58.299980 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999878 deg, theta:   60.850006 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.tryptophan
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  TYR
+    base_name: TYR
     name3: TYR
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -1366,9 +1746,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
@@ -1397,9 +1777,31 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090319, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000107 deg, theta:   58.299919 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999924 deg, theta:   60.849972 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.tyrosine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples:
+    - chi_dihedral: chi3
+      samples: [0, 180]
+      expansions: [20]
   - name:  VAL
+    base_name: VAL
     name3: VAL
     atoms:
     - { *n: N   ,  *t: Nbb  }
@@ -1439,9 +1841,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   a: {*c: down, *s: 0}, b: {*a: N},  c: {*a: CA},        d: {*a: C}        }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*c: up, *s: 0}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*c: up, *s: 0}, d: {*c: up, *s: 1}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}
     icoors:
@@ -1463,9 +1865,28 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090646, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999924 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.849918 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
-    hierarchies:
-    - aa.alpha.l.valine
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
   - name:  HOH
+    base_name: HOH
     name3: HOH
     atoms:
     - { *n:  O, *t: Owat  }
@@ -1480,5 +1901,20 @@ residues:
     - { *n:     O, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     O, *gp:    H1, *ggp:     H2}
     - { *n:    H1, phi:    0.000000 deg, theta:  180.000000 deg, d:    0.957200, *p:     O, *gp:    H1, *ggp:     H2}
     - { *n:    H2, phi:    0.000000 deg, theta:   75.480000 deg, d:    0.957200, *p:     O, *gp:    H1, *ggp:     H2}
-    hierarchies:
-    - water
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: false
+        polymer_type: NA
+        backbone_type: NA
+        mainchain_atoms: []
+        sidechain_chirality: NA
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []

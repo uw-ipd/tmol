@@ -65,7 +65,10 @@ class _TensorType(metaclass=_TensorTypeMeta):
             raise TypeError(f"expected {cls._tensortype!r}, received {type(value)!r}")
         if not value.dtype == cls.dtype:
             raise TypeError(f"expected {cls.dtype!r}, received {value.dtype!r}")
-        cls.shape.validate(value.shape)
+        try:
+            cls.shape.validate(value.shape)
+        except ValueError as err:
+            raise TypeError(f"Tensor shape validation failed {str(err)}")
 
         return True
 

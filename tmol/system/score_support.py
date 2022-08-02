@@ -16,7 +16,7 @@ from tmol.score.modules.omega import OmegaScore
 
 
 def kincoords_to_coords(
-    kincoords, kintree, system_size
+    kincoords, kinforest, system_size
 ) -> Tensor[torch.float][:, :, 3]:
     """System cartesian atomic coordinates."""
 
@@ -29,7 +29,7 @@ def kincoords_to_coords(
         requires_grad=False,
     )
 
-    idIdx = kintree.id[1:].to(dtype=torch.long)
+    idIdx = kinforest.id[1:].to(dtype=torch.long)
     coords[idIdx] = kincoords[1:]
 
     return coords.to(torch.float)[None, ...]

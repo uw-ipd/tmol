@@ -1,4 +1,5 @@
 import pytest
+import torch
 
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.coords import coords_for
@@ -35,7 +36,7 @@ def benchmark_score_pass(benchmark, score_system, benchmark_pass, coords):
         def run():
             total = score_system.intra_total(coords)
 
-            float(total)
+            float(torch.sum(total))
 
             return total
 

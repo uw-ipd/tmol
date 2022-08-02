@@ -17,22 +17,22 @@ _compiled = load(modulename(__name__), relpaths(__file__, ["compiled.pybind.cpp"
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LKBallTypeParams(TensorGroup):
-    lj_radius: Tensor[float][...]
-    lk_dgfree: Tensor[float][...]
-    lk_lambda: Tensor[float][...]
-    lk_volume: Tensor[float][...]
-    is_donor: Tensor[float][...]
-    is_hydroxyl: Tensor[float][...]
-    is_polarh: Tensor[float][...]
-    is_acceptor: Tensor[float][...]
+    lj_radius: Tensor[torch.float32][...]
+    lk_dgfree: Tensor[torch.float32][...]
+    lk_lambda: Tensor[torch.float32][...]
+    lk_volume: Tensor[torch.float32][...]
+    is_donor: Tensor[torch.float32][...]
+    is_hydroxyl: Tensor[torch.float32][...]
+    is_polarh: Tensor[torch.float32][...]
+    is_acceptor: Tensor[torch.float32][...]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LKBallGlobalParams(TensorGroup):
-    lj_hbond_dis: Tensor[float][...]
-    lj_hbond_OH_donor_dis: Tensor[float][...]
-    lj_hbond_hdis: Tensor[float][...]
-    lkb_water_dist: Tensor[float][...]
+    lj_hbond_dis: Tensor[torch.float32][...]
+    lj_hbond_OH_donor_dis: Tensor[torch.float32][...]
+    lj_hbond_hdis: Tensor[torch.float32][...]
+    lkb_water_dist: Tensor[torch.float32][...]
 
 
 def detach_maybe_requires_grad(

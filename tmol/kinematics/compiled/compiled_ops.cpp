@@ -112,12 +112,41 @@ Tensor kinematic_op(
       dofs, nodes_f, scans_f, gens_f, nodes_b, scans_b, gens_b, kintree);
 }
 
+Tensor forward_only_op(
+    Tensor dofs,
+    Tensor nodes_f,
+    Tensor scans_f,
+    Tensor gens_f,
+    Tensor kintree) {
+  at::Tensor coords;
+
+  using Int = int32_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(dofs.type(), "forward_kin_only_op", ([&] {
+                                  using Real = scalar_t;
+                                  constexpr tmol::Device Dev = device_t;
+
+                                  auto result =
+                                      ForwardKinDispatch<Dev, Real, Int>::f(
+                                          TCAST(dofs),
+                                          TCAST(nodes_f),
+                                          TCAST(scans_f),
+                                          TCAST(gens_f),
+                                          TCAST(kintree));
+
+                                  coords = std::get<0>(result).tensor;
+                                }));
+
+  return coords;
+};
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("forward_kin_op", &kinematic_op);
+  m.def("forward_only_op", &forward_only_op);
 }
 
 }  // namespace kinematics

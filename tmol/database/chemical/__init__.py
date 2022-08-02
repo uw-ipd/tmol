@@ -22,6 +22,12 @@ cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridizati
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class Element:
+    name: str
+    atomic_number: int
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class AtomType:
     name: str
     element: str
@@ -56,36 +62,80 @@ class Connection:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class ConnectedAtom:
-    atom: str
+class UnresolvedAtom:
+    atom: Optional[str] = None
     connection: Optional[str] = None
+    bond_sep_from_conn: Optional[int] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Torsion:
     name: str
-    a: ConnectedAtom
-    b: ConnectedAtom
-    c: ConnectedAtom
-    d: ConnectedAtom
+    a: UnresolvedAtom
+    b: UnresolvedAtom
+    c: UnresolvedAtom
+    d: UnresolvedAtom
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class Residue:
+class ChiSamples:
+    chi_dihedral: str
+    samples: Tuple[float, ...]
+    expansions: Tuple[float, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class SidechainBuilding:
+    chi_samples: ChiSamples
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class PolymerProperties:
+    is_polymer: bool
+    polymer_type: str
+    backbone_type: str
+    mainchain_atoms: Optional[Tuple[str, ...]]
+    sidechain_chirality: str
+    termini_variants: Tuple[str, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ProtonationProperties:
+    protonated_atoms: Tuple[str, ...]
+    protonation_state: str
+    pH: float
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ChemicalProperties:
+    is_canonical: bool
+    polymer: PolymerProperties
+    chemical_modifications: Tuple[str, ...]
+    connectivity: Tuple[str, ...]
+    protonation: ProtonationProperties
+    virtual: Tuple[str, ...]
+
+
+@attr.s(auto_attribs=True)
+class RawResidueType:
     name: str
+    base_name: str
     name3: str
     atoms: Tuple[Atom, ...]
     bonds: Tuple[Tuple[str, str], ...]
     connections: Tuple[Connection, ...]
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
-    hierarchies: Tuple[str, ...]
+    properties: ChemicalProperties
+    # sidechain_building: Tuple[SidechainBuilding, ...]
+    chi_samples: Tuple[ChiSamples, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase:
+    element_types: Tuple[Element, ...]
     atom_types: Tuple[AtomType, ...]
-    residues: Tuple[Residue, ...]
+    residues: Tuple[RawResidueType, ...]
 
     @classmethod
     def from_file(cls, path):

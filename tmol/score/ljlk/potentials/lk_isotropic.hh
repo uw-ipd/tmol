@@ -38,14 +38,15 @@ struct f_desolv {
     using std::exp;
     using std::pow;
     const Real pi = EIGEN_PI;
+    static const Real pi_pow1p5 = 5.56832799683f;
 
     // clang-format off
     return (
       -lk_volume_j
       * lk_dgfree_i
-      / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
+      / (2 * pi_pow1p5 * lk_lambda_i)
       / (dist * dist)
-      * exp(-pow((dist - lj_radius_i) / lk_lambda_i, 2))
+      * exp(-(dist - lj_radius_i)*(dist - lj_radius_i) / (lk_lambda_i*lk_lambda_i))
     );
     // clang-format on
   }
@@ -60,28 +61,31 @@ struct f_desolv {
     using std::exp;
     using std::pow;
     const Real pi = EIGEN_PI;
+    static const Real pi_pow1p5 = 5.56832799683f;
 
+    Real const exp_val =
+        exp(-(dist - lj_radius_i) * (dist - lj_radius_i)
+            / (lk_lambda_i * lk_lambda_i));
     // clang-format off
     Real desolv = (
       -lk_volume_j
       * lk_dgfree_i
-      / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
+      / (2 * pi_pow1p5 * lk_lambda_i)
       / (dist * dist)
-      * exp(-pow((dist - lj_radius_i) / lk_lambda_i, 2))
+      * exp_val
     );
 
     Real d_desolv_d_dist = (
       -lk_volume_j
       * lk_dgfree_i
-      / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
+      / (2 * pi_pow1p5 * lk_lambda_i)
+      * exp_val
       * ((  // (f * exp(g))' = f' * exp(g) + f g' exp(g)
           -2 / (dist * dist * dist)
-          * exp(-pow(dist - lj_radius_i, 2) / pow(lk_lambda_i, 2))
         ) + (
           1 / (dist * dist)
           * -(2 * dist - 2 * lj_radius_i)
           / (lk_lambda_i * lk_lambda_i)
-          * exp(-pow(dist - lj_radius_i, 2) / pow(lk_lambda_i, 2))
         )
       )
     );

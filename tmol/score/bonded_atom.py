@@ -116,9 +116,9 @@ def bonded_path_length_stacked(
     )
 
     result = numpy.empty(bond_graph.shape, dtype=numpy.float32)
-    for l in range(stack_depth):
-        result[l] = csgraph.dijkstra(
-            bond_graph[l].tocsr(), directed=False, unweighted=True, limit=limit
+    for i in range(stack_depth):
+        result[i] = csgraph.dijkstra(
+            bond_graph[i].tocsr(), directed=False, unweighted=True, limit=limit
         )
 
     return result

@@ -1,6 +1,7 @@
 
 #include <tmol/utility/tensor/pybind.h>
 
+#include <tmol/score/common/complex_dispatch.hh>
 #include "test.hh"
 
 namespace tmol {
@@ -35,6 +36,15 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           Device::CPU,
           double>::f,
       "coords"_a);
+
+  m.def(
+      "complex_dispatch",
+      &ComplexDispatchTest<
+          tmol::score::common::ComplexDispatch,
+          Device::CPU,
+          int32_t>::f,
+      "vals"_a,
+      "boundaries"_a);
 
 #ifdef WITH_CUDA
 

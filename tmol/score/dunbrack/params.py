@@ -8,7 +8,7 @@ import torch
 import toolz.functoolz
 import itertools
 
-from typing import List, Tuple
+from typing import Tuple
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
@@ -20,6 +20,14 @@ from tmol.numeric.bspline import BSplineInterpolation
 
 from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 
+from tmol.utility.tensor.common_operations import (
+    exclusive_cumsum1d,
+    exclusive_cumsum2d,
+    # print_row_numbered_tensor,
+    nplus1d_tensor_from_list,
+    cat_differently_sized_tensors,
+)
+
 from tmol.score.common.stack_condense import (
     condense_torch_inds,
     condense_subset,
@@ -28,59 +36,6 @@ from tmol.score.common.stack_condense import (
     take_values_w_sentineled_index_and_dest,
     take_values_w_sentineled_dest,
 )
-
-
-@validate_args
-def exclusive_cumsum1d(inds: Tensor[torch.int32][:]) -> Tensor[torch.int32][:]:
-    return torch.cat(
-        (
-            torch.tensor([0], dtype=torch.int32, device=inds.device),
-            torch.cumsum(inds, 0, dtype=torch.int32).narrow(0, 0, inds.shape[0] - 1),
-        )
-    )
-
-
-@validate_args
-def exclusive_cumsum2d(inds: Tensor[torch.int32][:, :]) -> Tensor[torch.int32][:, :]:
-    return torch.cat(
-        (
-            torch.zeros((inds.shape[0], 1), dtype=torch.int32, device=inds.device),
-            torch.cumsum(inds, dim=1, dtype=torch.int32)[:, :-1],
-        ),
-        dim=1,
-    )
-
-
-# @validate_args
-def nplus1d_tensor_from_list(
-    tensors: List
-):  # -> Tuple[Tensor, Tensor[torch.long][:,:], Tensor[torch.long][:,:]] :
-    assert len(tensors) > 0
-
-    for tensor in tensors:
-        assert len(tensor.shape) == len(tensors[0].shape)
-        assert tensor.dtype == tensors[0].dtype
-        assert tensor.device == tensors[0].device
-
-    max_sizes = [max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))]
-    newdimsizes = [len(tensors)] + max_sizes
-
-    newt = torch.zeros(newdimsizes, dtype=tensors[0].dtype, device=tensors[0].device)
-    sizes = torch.zeros(
-        (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
-    )
-    strides = torch.zeros(
-        (len(tensors), tensors[0].dim()), dtype=torch.int64, device=tensors[0].device
-    )
-
-    for i, t in enumerate(tensors):
-        ti = newt[i, :]
-        for j in range(t.dim()):
-            ti = ti.narrow(j, 0, t.shape[j])
-        ti[:] = t
-        sizes[i, :] = torch.tensor(t.shape, dtype=torch.int64, device=t.device)
-        strides[i, :] = torch.tensor(t.stride(), dtype=torch.int64, device=t.device)
-    return newt, sizes, strides
 
 
 @attr.s(auto_attribs=True)
@@ -107,11 +62,12 @@ class DunbrackScratch(TensorGroup):
     semirotameric_rottable_assignment: Tensor[torch.int32][:, :]
 
 
-# the rama database on the device
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class PackedDunbrackDatabase(ConvertAttrs):
+class ScoringDunbrackDatabaseView(ConvertAttrs):
+    """The tables for the dunbrack database needed for scoring
+    stored on the device
+    """
 
-    rotameric_prob_tables: Tensor[torch.float][:, :, :]
     rotameric_neglnprob_tables: Tensor[torch.float][:, :, :]
     rotprob_table_sizes: Tensor[torch.long][:, 2]
     rotprob_table_strides: Tensor[torch.long][:, 2]
@@ -136,12 +92,51 @@ class PackedDunbrackDatabase(ConvertAttrs):
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class PackedDunbrackDatabaseAux(ConvertAttrs):
+class ScoringDunbrackDatabaseAux(ConvertAttrs):
     rotameric_prob_tableset_offsets: Tensor[torch.int32][:]
     rotameric_meansdev_tableset_offsets: Tensor[torch.int32][:]
     nchi_for_table_set: Tensor[torch.int32][:]
-    rotind2tableind_offsets: Tensor[torch.int32][:]
+    rotameric_chi_rotind2tableind_offsets: Tensor[torch.int32][:]
     semirotameric_tableset_offsets: Tensor[torch.int32][:]
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class SamplingDunbrackDatabaseView(ConvertAttrs):
+    """The tables that are needed in order to sample
+    side-chain conformations.
+    """
+
+    rotameric_prob_tables: Tensor[torch.float][:, :, :]
+    rotprob_table_sizes: Tensor[torch.long][:, 2]
+    rotprob_table_strides: Tensor[torch.long][:, 2]
+    rotameric_mean_tables: Tensor[torch.float][:, :, :]
+    rotameric_sdev_tables: Tensor[torch.float][:, :, :]
+    rotmean_table_sizes: Tensor[torch.long][:, 2]
+    rotmean_table_strides: Tensor[torch.long][:, 2]
+    rotameric_meansdev_tableset_offsets: Tensor[torch.int32][:]
+
+    n_rotamers_for_tableset: Tensor[torch.long][:]
+    n_rotamers_for_tableset_offsets: Tensor[torch.int32][:]
+    sorted_rotamer_2_rotamer: Tensor[torch.long][:, :, :]
+
+    rotameric_bb_start: Tensor[torch.float][:, :]
+    rotameric_bb_step: Tensor[torch.float][:, :]
+    rotameric_bb_periodicity: Tensor[torch.float][:, :]
+
+    rotameric_rotind2tableind: Tensor[torch.int32][:]
+    semirotameric_rotind2tableind: Tensor[torch.int32][:]
+    all_chi_rotind2tableind: Tensor[torch.int32][:]
+    all_chi_rotind2tableind_offsets: Tensor[torch.int32][:]
+
+    semirotameric_tables: Tensor[torch.float][:, :, :, :]
+    semirot_table_sizes: Tensor[torch.long][:, 3]
+    semirot_table_strides: Tensor[torch.long][:, 3]
+    semirot_start: Tensor[torch.float][:, :]
+    semirot_step: Tensor[torch.float][:, :]
+    semirot_periodicity: Tensor[torch.float][:, :]
+
+    nchi_for_table_set: Tensor[torch.int32][:]
+    rotwells: Tensor[torch.int32][:, :]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -149,8 +144,9 @@ class DunbrackParamResolver(ValidateAttrs):
     _from_dun_db_cache = {}
 
     # These live on the device
-    packed_db: PackedDunbrackDatabase
-    packed_db_aux: PackedDunbrackDatabaseAux
+    scoring_db: ScoringDunbrackDatabaseView
+    scoring_db_aux: ScoringDunbrackDatabaseAux
+    sampling_db: SamplingDunbrackDatabaseView
 
     # This will live on the CPU
     all_table_indices: pandas.DataFrame
@@ -180,7 +176,9 @@ class DunbrackParamResolver(ValidateAttrs):
         semirotameric_table_indices = cls._create_semirotameric_indices(dun_database)
         nchi_for_table_set = cls._create_nchi_for_table_set(all_rotlibs, device)
 
-        prob_table_offsets = cls._create_prob_table_offsets(all_rotlibs, device)
+        prob_table_nrots, prob_table_offsets = cls._create_prob_table_offsets(
+            all_rotlibs, device
+        )
         p_coeffs, pc_sizes, pc_strides, nlp_coeffs = cls._compute_rotprob_coeffs(
             all_rotlibs, device
         )
@@ -196,9 +194,14 @@ class DunbrackParamResolver(ValidateAttrs):
             all_rotlibs, device
         )
 
-        rot_ri2ti, semirot_ri2ti = cls._create_rotind2tableinds(dun_database, device)
+        rot_ri2ti, semirot_ri2ti, allchi_ri2ti = cls._create_rotind2tableinds(
+            dun_database, device
+        )
 
-        rotind2tableind_offsets = cls._create_rotameric_rotind2tableind_offsets(
+        rotameric_chi_rotind2tableind_offsets = cls._create_rotameric_rotind2tableind_offsets(
+            dun_database, device
+        )
+        all_chi_rotind2tableind_offsets = cls._create_all_chi_rotind2tableind_offsets(
             dun_database, device
         )
 
@@ -209,8 +212,11 @@ class DunbrackParamResolver(ValidateAttrs):
         )
         sr_tableset_offsets = cls._create_semirot_offsets(dun_database, device)
 
-        packed_db = PackedDunbrackDatabase(
-            rotameric_prob_tables=p_coeffs,
+        sorted_rotamer_2_rotamer = cls.create_sorted_rot_2_rot(all_rotlibs, device)
+
+        rotwells = cls.create_rotamer_well_table(all_rotlibs, device)
+
+        scoring_db = ScoringDunbrackDatabaseView(
             rotameric_neglnprob_tables=nlp_coeffs,
             rotprob_table_sizes=pc_sizes,
             rotprob_table_strides=pc_strides,
@@ -230,17 +236,47 @@ class DunbrackParamResolver(ValidateAttrs):
             semirot_step=sr_step,
             semirot_periodicity=sr_periodicity,
         )
-        packed_db_aux = PackedDunbrackDatabaseAux(
+        scoring_db_aux = ScoringDunbrackDatabaseAux(
             rotameric_prob_tableset_offsets=prob_table_offsets,
             rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
             nchi_for_table_set=nchi_for_table_set,
-            rotind2tableind_offsets=rotind2tableind_offsets,
+            rotameric_chi_rotind2tableind_offsets=rotameric_chi_rotind2tableind_offsets,
             semirotameric_tableset_offsets=sr_tableset_offsets,
         )
 
+        sampling_db = SamplingDunbrackDatabaseView(
+            rotameric_prob_tables=p_coeffs,
+            rotprob_table_sizes=pc_sizes,
+            rotprob_table_strides=pc_strides,
+            rotameric_mean_tables=mean_coeffs,
+            rotameric_sdev_tables=sdev_coeffs,
+            rotmean_table_sizes=mc_sizes,
+            rotmean_table_strides=mc_strides,
+            rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
+            n_rotamers_for_tableset=prob_table_nrots,
+            n_rotamers_for_tableset_offsets=prob_table_offsets,
+            sorted_rotamer_2_rotamer=sorted_rotamer_2_rotamer,
+            rotameric_bb_start=rot_bb_start,
+            rotameric_bb_step=rot_bb_step,
+            rotameric_bb_periodicity=rot_bb_per,
+            rotameric_rotind2tableind=rot_ri2ti,
+            semirotameric_rotind2tableind=semirot_ri2ti,
+            all_chi_rotind2tableind=allchi_ri2ti,
+            all_chi_rotind2tableind_offsets=all_chi_rotind2tableind_offsets,
+            semirotameric_tables=sr_coeffs,
+            semirot_table_sizes=sr_sizes,
+            semirot_table_strides=sr_strides,
+            semirot_start=sr_start,
+            semirot_step=sr_step,
+            semirot_periodicity=sr_periodicity,
+            nchi_for_table_set=nchi_for_table_set,
+            rotwells=rotwells,
+        )
+
         return cls(
-            packed_db=packed_db,
-            packed_db_aux=packed_db_aux,
+            scoring_db=scoring_db,
+            scoring_db_aux=scoring_db_aux,
+            sampling_db=sampling_db,
             all_table_indices=all_table_indices,
             rotameric_table_indices=rotameric_table_indices,
             semirotameric_table_indices=semirotameric_table_indices,
@@ -303,7 +339,7 @@ class DunbrackParamResolver(ValidateAttrs):
             dtype=torch.int32,
             device=device,
         )
-        return exclusive_cumsum1d(prob_table_nrots)
+        return prob_table_nrots, exclusive_cumsum1d(prob_table_nrots)
 
     @classmethod
     def _compute_rotprob_coeffs(cls, all_rotlibs, device):
@@ -413,8 +449,24 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @classmethod
     def _create_rotind2tableinds(cls, dun_database, device):
+        """
+        rotameric_rotind2tableind: a mapping based on the rotameric chi for a residue
+           to the table index for that rotamer; the table index can then be used to
+           access the rotamer probability, rotamer chi mean, and rotamer sdev
+           tables
+        semirotameric_rotind2tableind: a mapping based on the rotameric chi for a
+           residue to the table index for that rotamer; the table index can then be
+           used to access the semirotameric_tables table. Only valid for
+           semirotameric residue types
+        all_chi_rotind2tableind: a mapping based on both rotameric and non-rotameric
+           chi for a residue to the table index for that rotamer; the table index
+           can then be used to access the rotamer probability, rotamer chi mean,
+           and rotamer sdev tables
+        """
+
         rotameric_rotind2tableind = []
         semirotameric_rotind2tableind = []
+        all_chi_rotind2tableind = []
         ntablerots = [0]
         for rotlib in dun_database.rotameric_libraries:
             rotamers = rotlib.rotameric_data.rotamers
@@ -446,6 +498,7 @@ class DunbrackParamResolver(ValidateAttrs):
 
             rotameric_rotind2tableind.extend(list(ri2ti))
             semirotameric_rotind2tableind.extend([0] * len(ri2ti))
+            all_chi_rotind2tableind.extend(list(ri2ti))
             ntablerots.append(rotinds.shape[0])
 
         for rotlib in dun_database.semi_rotameric_libraries:
@@ -482,6 +535,9 @@ class DunbrackParamResolver(ValidateAttrs):
             ).to(dtype=torch.int32)
             rotameric_rotind2tableind.extend(list(r_ri2ti))
 
+            ac_ri2ti = torch.arange(rotameric_rotamers.shape[0], dtype=torch.int32)
+            all_chi_rotind2tableind.extend(list(ac_ri2ti))
+
         rotameric_rotind2tableind = torch.tensor(
             rotameric_rotind2tableind, dtype=torch.int32, device=device
         ).reshape((-1,))
@@ -489,7 +545,15 @@ class DunbrackParamResolver(ValidateAttrs):
         semirotameric_rotind2tableind = torch.tensor(
             semirotameric_rotind2tableind, dtype=torch.int32, device=device
         ).reshape((-1,))
-        return rotameric_rotind2tableind, semirotameric_rotind2tableind
+
+        all_chi_rotind2tableind = torch.tensor(
+            all_chi_rotind2tableind, dtype=torch.int32, device=device
+        )
+        return (
+            rotameric_rotind2tableind,
+            semirotameric_rotind2tableind,
+            all_chi_rotind2tableind,
+        )
 
     @classmethod
     def _create_rotameric_rotind2tableind_offsets(cls, dun_database, device):
@@ -507,6 +571,26 @@ class DunbrackParamResolver(ValidateAttrs):
                 [0] + [3 ** rotamers.shape[1] for rotamers in rotamer_sets][:-1],
                 dtype=torch.int32,
                 device=device,
+            ),
+            0,
+        )
+
+    @classmethod
+    def _create_all_chi_rotind2tableind_offsets(cls, dun_database, device):
+        """
+        Offsets into the all-chi rotind2tableind table
+        """
+        rotamer_counts_sets = [
+            3 ** rotlib.rotameric_data.rotamers.shape[1]
+            for rotlib in dun_database.rotameric_libraries
+        ] + [
+            rotlib.rotameric_data.rotamers.shape[0]
+            for rotlib in dun_database.semi_rotameric_libraries
+        ]
+
+        return torch.cumsum(
+            torch.tensor(
+                [0] + rotamer_counts_sets[:-1], dtype=torch.int32, device=device
             ),
             0,
         )
@@ -594,6 +678,24 @@ class DunbrackParamResolver(ValidateAttrs):
             torch.tensor(nsemirot_rotamers, dtype=torch.int32, device=device), 0
         )
 
+    @classmethod
+    def create_sorted_rot_2_rot(cls, all_rotlibs, device):
+        sorted_2_rotinds, _1, _2 = cat_differently_sized_tensors(
+            [
+                rot.rotameric_data.prob_sorted_rot_inds.permute(2, 0, 1).to(device)
+                for rot in all_rotlibs
+            ]
+        )
+
+        return sorted_2_rotinds.permute(1, 2, 0)
+
+    @classmethod
+    def create_rotamer_well_table(cls, all_rotlibs, device):
+        rotwells, _1, _2 = cat_differently_sized_tensors(
+            [rot.rotameric_data.rotamers.to(device) for rot in all_rotlibs]
+        )
+        return rotwells
+
     # @validate_args
     def resolve_dunbrack_parameters(
         self,
@@ -642,10 +744,10 @@ class DunbrackParamResolver(ValidateAttrs):
 
         # the "pose" residues are indexed by the info in phi/psi/chi tensors
         nchi_for_pose_res = take_values_w_sentineled_index(
-            self.packed_db_aux.nchi_for_table_set, rns_inds
+            self.scoring_db_aux.nchi_for_table_set, rns_inds
         ).type(torch.int64)
         nchi_for_res = take_values_w_sentineled_index(
-            self.packed_db_aux.nchi_for_table_set, rottable_set_for_res64
+            self.scoring_db_aux.nchi_for_table_set, rottable_set_for_res64
         )
 
         chi_selected = self._select_chi(chi, nchi_for_pose_res).type(torch.int32)
@@ -689,7 +791,7 @@ class DunbrackParamResolver(ValidateAttrs):
         nrotameric_chi_for_res = self._get_nrotameric_chi_for_res(nchi_for_res, s_inds)
         rotres2resid = self._find_rotres2resid(r_inds, torch_device)
 
-        db_aux = self.packed_db_aux
+        db_aux = self.scoring_db_aux
         prob_table_offset_for_rotresidue = self._get_prob_table_offsets_for_rotresidues(
             db_aux, rotres2resid, r_inds
         )
@@ -698,7 +800,7 @@ class DunbrackParamResolver(ValidateAttrs):
             db_aux.rotameric_meansdev_tableset_offsets, rottable_set_for_res64
         )
         rotind2tableind_offset_for_res = take_values_w_sentineled_index(
-            db_aux.rotind2tableind_offsets, rottable_set_for_res64
+            db_aux.rotameric_chi_rotind2tableind_offsets, rottable_set_for_res64
         )
 
         rotameric_chi_desc = self._create_rotameric_chi_descriptors(
@@ -919,7 +1021,7 @@ class DunbrackParamResolver(ValidateAttrs):
     @validate_args
     def _get_prob_table_offsets_for_rotresidues(
         self,
-        db_aux: PackedDunbrackDatabaseAux,
+        db_aux: ScoringDunbrackDatabaseAux,
         rotres2resid: Tensor[torch.int32][:, :],
         r_inds: Tensor[torch.int64][:, :],
     ) -> Tensor[torch.int32]:
@@ -1034,7 +1136,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
         semirotameric_chi_desc[
             nz_sres_keep[:, 0], nz_sres_keep[:, 1], 2
-        ] = self.packed_db_aux.semirotameric_tableset_offsets[s_inds[s_inds != -1]]
+        ] = self.scoring_db_aux.semirotameric_tableset_offsets[s_inds[s_inds != -1]]
         semirotameric_chi_desc[nz_sres_keep[:, 0], nz_sres_keep[:, 1], 3] = s_inds[
             s_inds != -1
         ].type(torch.int32)

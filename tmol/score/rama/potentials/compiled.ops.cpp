@@ -39,6 +39,8 @@ class ScoreOp : public torch::autograd::Function<ScoreOp<DispatchMethod>> {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
+          // std::cout << "Rama Score Op: " << std::endl;
+
           auto result = RamaDispatch<DispatchMethod, Dev, Real, Int>::f(
               TCAST(coords), TCAST(params), TCAST(tables), TCAST(table_params));
 
@@ -50,6 +52,7 @@ class ScoreOp : public torch::autograd::Function<ScoreOp<DispatchMethod>> {
     return score;
   }
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    // std::cout << "Rama backward" << std::endl;
     auto saved_grads = ctx->get_saved_variables();
 
     tensor_list result;
