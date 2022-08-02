@@ -2,7 +2,7 @@ import pytest
 import cattr
 import numpy
 
-from tmol.chemical.ideal_coords import normalize
+from tmol.chemical.ideal_coords import normalize, build_ideal_coords
 from tmol.chemical.restypes import (
     RefinedResidueType,
     ResidueTypeSet,
@@ -140,3 +140,8 @@ def test_find_simple_polymeric_connections(ubq_res):
     for conn in connections:
         assert conn in gold_connections
     assert len(connections) == len(gold_connections)
+
+
+def test_build_ideal_coords(ubq_res):
+    for res in ubq_res:
+        build_ideal_coords(res.residue_type)
