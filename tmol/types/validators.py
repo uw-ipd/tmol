@@ -2,7 +2,7 @@
 
 from functools import singledispatch
 
-from typing import List
+from typing import List, TypeVar
 from typing_inspect import is_tuple_type, is_union_type
 import toolz
 
@@ -85,40 +85,29 @@ def validate_tuple(tup, value):
 @toolz.curry
 def validate_list(lst, value):
     """Test if a given value matches the List type in the type hints:
+    A list may either be of a uniform type, e.g. "List[int]", or may have
+    no specified type, and thus be of any time, e.g. "List". In the first
+    case, the single type may be a Union, e.g. "List[Union[int, str]]".
 
-    validate_list(List, 5) == False
-    validate_list(List, []) == True
-    validate_list(List, [5, "thumb"]) == True
     validate_list(List[int], [5]) == True
     validate_list(List[int], [5, 4, 3]) == True
     validate_list(List[int], [5, "thumb"]) == False
-    validate_list(List[int, str], [5, "thumb"]) == True
+    validate_list(List, 5) == False
+    validate_list(List, []) == True
+    validate_list(List, [5, "thumb"]) == True
     """
     if not isinstance(value, list):
         raise TypeError(f"expected {lst}, received {type(value)!r}")
 
-    # you can't pass an Ellipsis to List
-    if lst.__args__ and lst.__args__[-1] == Ellipsis:
-        vval = get_validator(lst.__args__[0])
-        for v in value:
-            vval(v)
-    elif lst.__args__:
-        if len(lst.__args__) == 1:
-            # accept List[X] as a list with as many elements of type X as you want
-            for i, v in enumerate(value):
-                try:
-                    get_validator(lst.__args__[0])(v)
-                except TypeError as err:
-                    raise TypeError(
-                        f"Failed to validate {lst}: {i}th argument error: {err}"
-                    ) from err
-            return
-
-        if len(lst.__args__) != len(value):
-            raise ValueError(f"expected {lst}, received invalid length: {len(value)}")
-
-        for lt, v in zip(lst.__args__, value):
-            get_validator(lt)(v)
+    if type(lst.__args__[0]) != TypeVar:
+        # accept List[X] as a list with as many elements of type X as you want
+        for i, v in enumerate(value):
+            try:
+                get_validator(lst.__args__[0])(v)
+            except TypeError as err:
+                raise TypeError(
+                    f"Failed to validate {lst}: {i}th argument error: {err}"
+                ) from err
 
 
 @toolz.curry

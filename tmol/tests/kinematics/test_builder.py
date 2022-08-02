@@ -383,6 +383,45 @@ def test_fix_jump_nodes__one_root_one_jump_first_descendent_w_no_children():
     numpy.testing.assert_equal(frame_z_gold, frame_z)
 
 
+def test_fix_jump_nodes__one_root_one_jump_first_descendent_w_no_children2():
+    """*0(->*1)(->2*)->3->4->5*(->6)->7->8->9"""
+    parents = numpy.arange(10, dtype=numpy.int32) - 1
+    parents[0] = 0
+    parents[2] = 0
+    parents[3] = 0
+    parents[7] = 5
+    frame_x = numpy.full((10,), -1, dtype=numpy.int32)
+    frame_y = numpy.full((10,), -1, dtype=numpy.int32)
+    frame_z = numpy.full((10,), -1, dtype=numpy.int32)
+    roots = numpy.full((1), 0, dtype=numpy.int32)
+    jumps = numpy.array([1, 2, 5], dtype=numpy.int32)
+
+    fix_jump_nodes(parents, frame_x, frame_y, frame_z, roots, jumps)
+
+    frame_x_gold = numpy.full((10,), -1, dtype=numpy.int32)
+    frame_y_gold = numpy.full((10,), -1, dtype=numpy.int32)
+    frame_z_gold = numpy.full((10,), -1, dtype=numpy.int32)
+
+    frame_x_gold[[0, 1, 2, 3]] = 3
+    frame_y_gold[[0, 3]] = 0
+    frame_z_gold[[0, 1, 2, 3]] = 4
+
+    frame_y_gold[1] = 1
+    frame_y_gold[2] = 2
+
+    frame_x_gold[[5, 6]] = 6
+    frame_y_gold[[5, 6]] = 5
+    frame_z_gold[[5, 6]] = 7
+
+    frame_x_gold[7] = 7
+    frame_y_gold[7] = 5
+    frame_z_gold[7] = 6
+
+    numpy.testing.assert_equal(frame_x_gold, frame_x)
+    numpy.testing.assert_equal(frame_y_gold, frame_y)
+    numpy.testing.assert_equal(frame_z_gold, frame_z)
+
+
 def test_fix_jump_nodes__one_root_one_jump_many_children_of_both():
     """*0(->1->2)(->3)(->4)->5*(->6->7)(->8)(->9)"""
     parents = numpy.arange(10, dtype=numpy.int32) - 1
@@ -415,6 +454,91 @@ def test_fix_jump_nodes__one_root_one_jump_many_children_of_both():
     frame_x_gold[[8, 9]] = numpy.arange(2, dtype=numpy.int32) + 8
     frame_y_gold[[8, 9]] = 5
     frame_z_gold[[8, 9]] = 6
+
+    numpy.testing.assert_equal(frame_x_gold, frame_x)
+    numpy.testing.assert_equal(frame_y_gold, frame_y)
+    numpy.testing.assert_equal(frame_z_gold, frame_z)
+
+
+def test_fix_jump_nodes__one_root_one_jump_w_jump_descendent():
+    """*0(->1)->2->3->4->5*(->6*->7->8)->9->10"""
+    parents = numpy.arange(11, dtype=numpy.int32) - 1
+    parents[0] = 0
+    parents[2] = 0
+    parents[9] = 5
+
+    frame_x = numpy.full((11,), -1, dtype=numpy.int32)
+    frame_y = numpy.full((11,), -1, dtype=numpy.int32)
+    frame_z = numpy.full((11,), -1, dtype=numpy.int32)
+    roots = numpy.full((1), 0, dtype=numpy.int32)
+    jumps = numpy.array([5, 6], dtype=numpy.int32)
+
+    fix_jump_nodes(parents, frame_x, frame_y, frame_z, roots, jumps)
+
+    frame_x_gold = numpy.full((11,), -1, dtype=numpy.int32)
+    frame_y_gold = numpy.full((11,), -1, dtype=numpy.int32)
+    frame_z_gold = numpy.full((11,), -1, dtype=numpy.int32)
+
+    frame_x_gold[[0, 1]] = 1
+    frame_y_gold[[0, 1]] = 0
+    frame_z_gold[[0, 1]] = 2
+
+    frame_x_gold[2] = 2
+    frame_y_gold[2] = 0
+    frame_z_gold[2] = 1
+
+    frame_x_gold[[5, 9]] = 9
+    frame_y_gold[[5, 9]] = 5
+    frame_z_gold[[5, 9]] = 10
+
+    frame_x_gold[[6, 7]] = 7
+    frame_y_gold[[6, 7]] = 6
+    frame_z_gold[[6, 7]] = 8
+
+    numpy.testing.assert_equal(frame_x_gold, frame_x)
+    numpy.testing.assert_equal(frame_y_gold, frame_y)
+    numpy.testing.assert_equal(frame_z_gold, frame_z)
+
+
+def test_fix_jump_nodes__one_root_one_jump_w_jump_descendents():
+    """*0(->1)->2->3->4->5*(->6*->7->8)->(9*->10->11)->12->13"""
+    parents = numpy.arange(14, dtype=numpy.int32) - 1
+    parents[0] = 0
+    parents[2] = 0
+    parents[9] = 5
+    parents[12] = 5
+
+    frame_x = numpy.full((14,), -1, dtype=numpy.int32)
+    frame_y = numpy.full((14,), -1, dtype=numpy.int32)
+    frame_z = numpy.full((14,), -1, dtype=numpy.int32)
+    roots = numpy.full((1), 0, dtype=numpy.int32)
+    jumps = numpy.array([5, 6, 9], dtype=numpy.int32)
+
+    fix_jump_nodes(parents, frame_x, frame_y, frame_z, roots, jumps)
+
+    frame_x_gold = numpy.full((14,), -1, dtype=numpy.int32)
+    frame_y_gold = numpy.full((14,), -1, dtype=numpy.int32)
+    frame_z_gold = numpy.full((14,), -1, dtype=numpy.int32)
+
+    frame_x_gold[[0, 1]] = 1
+    frame_y_gold[[0, 1]] = 0
+    frame_z_gold[[0, 1]] = 2
+
+    frame_x_gold[2] = 2
+    frame_y_gold[2] = 0
+    frame_z_gold[2] = 1
+
+    frame_x_gold[[5, 12]] = 12
+    frame_y_gold[[5, 12]] = 5
+    frame_z_gold[[5, 12]] = 13
+
+    frame_x_gold[[6, 7]] = 7
+    frame_y_gold[[6, 7]] = 6
+    frame_z_gold[[6, 7]] = 8
+
+    frame_x_gold[[9, 10]] = 10
+    frame_y_gold[[9, 10]] = 9
+    frame_z_gold[[9, 10]] = 11
 
     numpy.testing.assert_equal(frame_x_gold, frame_x)
     numpy.testing.assert_equal(frame_y_gold, frame_y)
@@ -454,6 +578,36 @@ def test_builder_define_forest_with_prioritized_bonds():
     potential_bonds[9:, 1] = potential_bonds[:9:, 0]
 
     roots = numpy.full((1,), 0, dtype=numpy.int32)
+
+    (
+        kfo_2_to,
+        to_parents_in_kfo,
+    ) = KinematicBuilder().define_trees_with_prioritized_bonds(
+        roots, potential_bonds, prioritized_bonds, 10
+    )
+
+    kfo_2_to_gold = numpy.arange(10, dtype=numpy.int32)
+    to_parents_in_kfo_gold = numpy.arange(10, dtype=numpy.int32) - 1
+    to_parents_in_kfo_gold[0] = -9999
+
+    numpy.testing.assert_equal(kfo_2_to_gold, kfo_2_to)
+    numpy.testing.assert_equal(to_parents_in_kfo_gold, to_parents_in_kfo)
+
+
+def test_builder_define_forest_with_prioritized_bonds2():
+    """
+    Test single integer input for "roots" variable:
+    *0->1->2->3->4->5->6->7->8->9
+    """
+    potential_bonds = numpy.zeros((18, 2), dtype=numpy.int32)
+    prioritized_bonds = numpy.zeros([0, 2], dtype=numpy.int32)
+
+    potential_bonds[:9, 0] = numpy.arange(9, dtype=numpy.int32)
+    potential_bonds[:9, 1] = numpy.arange(9, dtype=numpy.int32) + 1
+    potential_bonds[9:, 0] = potential_bonds[:9, 1]
+    potential_bonds[9:, 1] = potential_bonds[:9:, 0]
+
+    roots = 0
 
     (
         kfo_2_to,

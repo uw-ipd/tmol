@@ -74,7 +74,7 @@ class KinematicBuilder:
     def define_trees_with_prioritized_bonds(
         # def component_for_prioritized_bonds( -- old name
         cls,
-        roots: NDArray[numpy.int32][:],
+        roots: Union[int, NDArray[numpy.int32][:]],
         potential_bonds: NDArray[numpy.int32][:, 2],  # old name: bonds
         prioritized_bonds: NDArray[numpy.int32][:, 2],  #
         max_to_atom_index: int = 0,
@@ -82,7 +82,7 @@ class KinematicBuilder:
         assert potential_bonds.shape[1] == prioritized_bonds.shape[1]
         if not isinstance(roots, numpy.ndarray):
             # create array from the single integer root input
-            roots = numpy.array([roots], dtype=int)
+            roots = numpy.array([roots], dtype=numpy.int32)
 
         all_atoms = numpy.concatenate(
             (
@@ -519,7 +519,7 @@ def fix_jump_nodes(
         else:
             # ok, so... I don't understand the atom tree well enough to understand this
             # situation. If the jump has no non-jump children, then certainly none
-            # of them need their frame definitions update
+            # of them need their frame definitions updated
             c1, c2 = get_c1_and_c2_atoms(
                 parents[jump], atom_is_jump, child_list_span, child_list, parents
             )

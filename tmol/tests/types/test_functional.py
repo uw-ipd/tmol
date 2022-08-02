@@ -88,6 +88,16 @@ def list_int_func(val: List[int]) -> int:
     return tot
 
 
+@validate_args
+def list_func(val: List) -> str:
+    return ", ".join([str(x) for x in val])
+
+
+@validate_args
+def list_union_func(val: List[Union[int, str]]):
+    return ", ".join([str(x) for x in val])
+
+
 validate_examples = [
     {
         "func": int_func,
@@ -139,6 +149,16 @@ validate_examples = [
         "func": list_int_func,
         "valid": [f([1]), f([1, 2]), f([1, 2, 3])],
         "invalid": [f(1), f(1.1), f((1, 2)), f([1, "a"]), f([1, 1.1])],
+    },
+    {
+        "func": list_func,
+        "valid": [f([1]), f([1, 2]), f([1, 2, 3]), f([1, "a"]), f([1, 1.1])],
+        "invalid": [f(1), f(1.1), f((1, 2)), f("a"), f(set(["a", "b"]))],
+    },
+    {
+        "func": list_union_func,
+        "valid": [f([1]), f([1, 2]), f([1, "2", 3]), f([1, "a"]), f(["a"])],
+        "invalid": [f([1, 1.1]), f(1), f(1.1), f((1, 2)), f("a"), f(set(["a", "b"]))],
     },
     {
         "func": union_func,
