@@ -216,12 +216,6 @@ class LJLKInterSystemModule:
     ):
         super().__init__()
 
-        # torch.set_printoptions(threshold=10000)
-        # print("bt_path_distance")
-        # print(bt_path_distance)
-        # print("bt_atoms_forming_chemical_bonds")
-        # print(bt_atoms_forming_chemical_bonds)
-
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
@@ -326,11 +320,12 @@ class LJLKInterSystemModule:
         annealer_event_tensor,
         annealer,
     ):
-        print("register_lj_lk_rotamer_pair_energy_eval")
         register_lj_lk_rotamer_pair_energy_eval(
             context_coords,
+            context_coord_offsets,
             context_block_type,
             alternate_coords,
+            alternate_coord_offsets,
             alternate_ids,
             self.context_system_ids,
             self.system_min_block_bondsep,
