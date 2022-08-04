@@ -174,14 +174,14 @@ class ScoreFunction:
         return sorted_term_list
 
 
-class WholePoseScoringModule(torch.nn.Module):
+class WholePoseScoringModule:
     def __init__(
         self, weights: Tensor[torch.float32][:], term_modules: Sequence[torch.nn.Module]
     ):
-        super(WholePoseScoringModule, self).__init__()
+        # super(WholePoseScoringModule, self).__init__()
         self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
         self.term_modules = term_modules
 
-    def forward(self, coords):
+    def __call__(self, coords):
         all_scores = torch.cat([term(coords) for term in self.term_modules])
-        return torch.sum(self.weights * all_scores, dim=0)
+        return torch.sum(self.weights * all_scores)

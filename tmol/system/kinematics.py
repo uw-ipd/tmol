@@ -17,7 +17,7 @@ from .datatypes import torsion_metadata_dtype
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class KinematicDescription:
-    """A kinematic tree paired and mobile dofs for the tree."""
+    """A kinematic forest paired with mobile dofs for the forest."""
 
     kinforest: KinForest
     dof_metadata: DOFMetadata
