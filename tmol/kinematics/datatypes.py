@@ -59,7 +59,7 @@ class KinForest(TensorGroup, ConvertAttrs):
     be gaps between sets of atoms (e.g. because each Pose in the stack
     has a different number of atoms, so a contiguous block of atom indices
     from 0-100 might have a gap before the next contiguous block begins
-    at 150). Whe working with a `KinForest`, remembering what order
+    at 150). When working with a `KinForest`, remembering what order
     and array's indices is in (the kin-forest order (KFO) or the target
     order (TO)) and what a value/index read out of an array represents (is
     the index an index in KFO or TO?) is *very* challenging. The documentation
