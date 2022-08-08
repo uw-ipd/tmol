@@ -4,7 +4,7 @@ import pytest
 
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.pose.pose_stack import residue_types_from_residues, PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.autograd import gradcheck
 
@@ -38,9 +38,13 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
     # torch_device = torch.device("cpu")
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
-    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
-    poses = PoseStack.from_poses([p1, p2], torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[:4], torch_device
+    )
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[:6], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     # for i, rt in enumerate(poses.packed_block_types.active_block_types):
     #     for j, atom in enumerate(rt.atoms):
@@ -94,9 +98,13 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:4], torch_device)
-    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:6], torch_device)
-    poses = PoseStack.from_poses([p1, p2], torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[:4], torch_device
+    )
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[:6], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     # nab the ca coords for these residues
     bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
@@ -208,9 +216,9 @@ def test_inter_module_timing(
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res, torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(ubq_res, torch_device)
     nres = p1.max_n_blocks
-    poses = PoseStack.from_poses([p1] * n_poses, torch_device)
+    poses = PoseStackBuilder.from_poses([p1] * n_poses, torch_device)
 
     one_bounding_sphere_set = numpy.full((1, nres, 4), numpy.nan, dtype=numpy.float32)
     for i in range(nres):
@@ -328,7 +336,7 @@ def test_inter_module_timing(
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
     gold_vals = numpy.array([[-7.691674], [3.6182203]], dtype=numpy.float32)
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStack.one_structure_from_polymeric_residues(
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res[0:4], device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
@@ -361,7 +369,7 @@ def test_whole_pose_scoring_module_gradcheck(
     # gold_vals = numpy.array([[-7.691674], [3.6182203]], dtype=numpy.float32)
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStack.one_structure_from_polymeric_residues(
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res[0:4], device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:

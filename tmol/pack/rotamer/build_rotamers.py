@@ -18,6 +18,7 @@ from tmol.kinematics.compiled.compiled_ops import forward_only_op
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask
 from tmol.pack.rotamer.chi_sampler import ChiSampler
 
@@ -140,7 +141,9 @@ def rebuild_poses_if_necessary(
         )
 
         # rebuild the PoseStack with a new packed_block_types
-        poses = poses.rebuild_with_new_packed_block_types(packed_block_types=pbt)
+        poses = PoseStackBuilder.rebuild_with_new_packed_block_types(
+            poses, packed_block_types=pbt
+        )
 
     return poses, samplers
 

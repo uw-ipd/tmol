@@ -4,7 +4,7 @@ import cattr
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
@@ -43,9 +43,13 @@ def test_annotate_packed_block_types_smoke(default_database, torch_device):
 
 def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
     torch_device = torch.device("cpu")
-    p1 = PoseStack.one_structure_from_polymeric_residues(ubq_res[5:11], torch_device)
-    p2 = PoseStack.one_structure_from_polymeric_residues(ubq_res[:7], torch_device)
-    poses = PoseStack.from_poses([p1, p2], torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[5:11], torch_device
+    )
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[:7], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()

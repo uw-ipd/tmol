@@ -1,7 +1,7 @@
 import torch
 import pytest
 
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
@@ -101,8 +101,10 @@ def temp_dont_test_run_simA_benchmark(
 
     max_n_blocks = len(rts_ubq_res)
 
-    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
-    poses = PoseStack.from_poses([p] * n_poses, torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res, torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     # print("poses device", poses.device, poses.coords.device)
 
     palette = PackerPalette(fresh_default_restype_set)

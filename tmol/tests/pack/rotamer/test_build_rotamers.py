@@ -18,7 +18,7 @@ from tmol.pack.rotamer.build_rotamers import (
 )
 
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
@@ -58,9 +58,13 @@ def test_build_rotamers_smoke(
 ):
     # torch_device = torch.device("cpu")
 
-    p1 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:10], torch_device)
-    p2 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:9], torch_device)
-    poses = PoseStack.from_poses([p1, p2], torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:10], torch_device
+    )
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:9], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
 
@@ -278,7 +282,9 @@ def test_inv_kin_rotamers(
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
-    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:3], torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:3], torch_device
+    )
 
     fixed_sampler = FixedAAChiSampler()
     samplers = (dun_sampler, fixed_sampler)
@@ -610,7 +616,7 @@ def test_measure_original_dofs(
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
-    poses = PoseStack.one_structure_from_polymeric_residues(
+    poses = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res[:2], torch_device
     )
     palette = PackerPalette(fresh_default_restype_set)
@@ -703,11 +709,13 @@ def test_measure_original_dofs2(
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
-    p1 = PoseStack.one_structure_from_polymeric_residues(
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res[5:11], torch_device
     )
-    p2 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:7], torch_device)
-    poses = PoseStack.from_poses([p1, p2], torch_device)
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:7], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -827,9 +835,13 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 ):
     # torch_device = torch.device("cpu")
 
-    p1 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:2], torch_device)
-    p2 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:3], torch_device)
-    poses = PoseStack.from_poses([p1, p2], torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:2], torch_device
+    )
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:3], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     leu_set = set(["LEU"])
@@ -915,8 +927,10 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 ):
     # torch_device = torch.device("cpu")
 
-    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:5], torch_device)
-    poses = PoseStack.from_poses([p] * 3, torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:5], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p] * 3, torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -987,8 +1001,10 @@ def test_build_lots_of_rotamers(
 ):
 
     n_poses = 6
-    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
-    poses = PoseStack.from_poses([p] * n_poses, torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res, torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -1025,8 +1041,10 @@ def test_create_dofs_for_many_rotamers(
 ):
 
     n_poses = 6
-    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
-    poses = PoseStack.from_poses([p] * n_poses, torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res, torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()

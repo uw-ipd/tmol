@@ -1,13 +1,13 @@
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
 def test_pose_score_smoke(rts_ubq_res, default_database, torch_device):
-    pose_stack1 = PoseStack.one_structure_from_polymeric_residues(
+    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res[:4], torch_device
     )
-    pose_stack100 = PoseStack.from_poses([pose_stack1] * 100, torch_device)
+    pose_stack100 = PoseStackBuilder.from_poses([pose_stack1] * 100, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.fa_lj, 1.0)

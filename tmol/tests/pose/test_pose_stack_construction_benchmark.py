@@ -9,11 +9,13 @@ from tmol.pose.pose_stack import PoseStack
 def test_pose_construction_benchmark(
     benchmark, n_poses, rts_ubq_res, default_database, torch_device
 ):
-    pose_stack1 = PoseStack.one_structure_from_polymeric_residues(
+    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res, torch_device
     )
 
     @benchmark
     def construct_pass():
-        pose_stack_n = PoseStack.from_poses([pose_stack1] * n_poses, torch_device)
+        pose_stack_n = PoseStackBuilder.from_poses(
+            [pose_stack1] * n_poses, torch_device
+        )
         return pose_stack_n

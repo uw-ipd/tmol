@@ -5,7 +5,7 @@ import pandas
 from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.score.hbond.params import HBondParamResolver
 from tmol.score.common.stack_condense import condense_numpy_inds
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.score.bonded_atom import IndexedBonds
 
@@ -22,7 +22,9 @@ def annotate_bt_w_intrares_indexed_bonds(bt):
 def test_create_intrares_indexed_bonds(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device
 ):
-    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res, torch_device
+    )
     pbt = p.packed_block_types
 
     for bt in pbt.active_block_types:
@@ -44,7 +46,9 @@ def test_annotate_block_type_hbond_params(
     atom_resolver = AtomTypeParamResolver.from_database(
         default_database.chemical, torch.device("cpu")
     )
-    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res, torch_device
+    )
     packed_block_types = p.packed_block_types
 
     is_acceptor = numpy.full(
@@ -84,11 +88,9 @@ def test_annotate_block_type_hbond_params(
         i_atom_types = [x.atom_type for x in block_type.atoms]
         atom_type_idx = atom_resolver.type_idx(i_atom_types)
         atom_type_params = atom_resolver.params[atom_type_idx]
-        atom_acceptor_hybridization = atom_type_params.acceptor_hybridization.numpy().astype(
-            numpy.int64
-        )[
-            None, :
-        ]
+        atom_acceptor_hybridization = (
+            atom_type_params.acceptor_hybridization.numpy().astype(numpy.int64)[None, :]
+        )
 
         i_is_acc, i_acc_type = map_names(
             i_atom_types,
