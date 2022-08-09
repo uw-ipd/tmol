@@ -1,7 +1,7 @@
 import pytest
 
 # from tmol.score.score_types import ScoreType
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
 @pytest.mark.parametrize("n_poses", [1, 3, 10, 30, 100])

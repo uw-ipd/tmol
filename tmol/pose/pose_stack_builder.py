@@ -152,6 +152,83 @@ class PoseStackBuilder:
         )
 
     @classmethod
+    # @validate_args
+    def pose_stack_from_monomer_polymer_sequences(
+        cls,
+        packed_block_types: PackedBlockTypes,
+        sequences: List[List[str]],
+    ):
+        cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
+
+        pbt = packed_block_types
+        device = pbt.device
+        n_poses = len(sequences)
+
+        nres = numpy.array([len(x) for x in sequences], dtype=numpy.int32)
+        max_nres = numpy.amax(nres).item()
+        real_res = (
+            numpy.tile(numpy.arange(max_nres, dtype=numpy.int32), n_poses).reshape(
+                (n_poses, max_nres)
+            )
+            < nres[:, None]
+        )
+        condensed_seqs = list(itertools.chain.from_iterable(sequences))
+        condensed_bt_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(condensed_seqs)
+        print("condensed_bt_df_inds", condensed_bt_df_inds)
+
+        # error checking: all names need to map to a residue type if we are to proceed
+        condensed_non_df_inds = condensed_bt_df_inds == -1
+        if numpy.any(condensed_non_df_inds):
+            condensed_seqs = numpy.array(condensed_seqs)
+            undefined_names = condensed_seqs[condensed_non_df_inds]
+            nz_real_res_pose_ind, nz_real_res_res_ind = numpy.nonzero(real_res)
+            undefined_pose_ind = nz_real_res_pose_ind[condensed_non_df_inds]
+            undefined_res_ind = nz_real_res_res_ind[condensed_non_df_inds]
+            triples = ", ".join(
+                [
+                    "({} at pose {} residue {})".format(n, p, r)
+                    for n, p, r in zip(
+                        undefined_names, undefined_pose_ind, undefined_res_ind
+                    )
+                ]
+            )
+            error = "Fatal error: could not resolve residue type by name for the following residues: {}\n".format(
+                triples
+            )
+            raise ValueError(error)
+
+        condensed_bt_inds = pbt.bt_mapping_w_lcaa_1lc["bt_ind"][
+            condensed_bt_df_inds
+        ].values
+        # print("condensed_bt_inds", condensed_bt_inds)
+        bt_inds = numpy.full((n_poses, max_nres), -1, dtype=numpy.int32)
+        bt_inds[real_res] = condensed_bt_inds
+
+        block_type_ind = torch.tensor(bt_inds, dtype=torch.int32, device=device)
+        block_type_ind64 = block_type_ind.to(dtype=torch.int64)
+        real_res = torch.tensor(real_res, dtype=torch.bool, device=device)
+        nres = torch.tensor(nres, dtype=torch.int64, device=device)
+
+        # inter residue connections:
+        # 1) we will just say that there's an up chemical bond at residue i to
+        # every down connection at residue i+1 and vice versa for each real
+        # residue on each pose, except the first and last residues. This will
+        # give us the inter_residue_connections tensor
+        #
+        # 2) if we know the down-to-up chemical bond separation for each block type
+        # then we can use scan to compute the number of chemical bonds separating
+        # every pair of residues, this will give us the inter_block_bondsep tensor
+
+        inter_residue_connections64 = (
+            cls._inter_residue_connections_for_polymeric_monomers(
+                pbt, n_poses, max_nres, real_res, nres, block_type_ind64
+            )
+        )
+
+        print("inter_residue_connections64")
+        print(inter_residue_connections64)
+
+    @classmethod
     @validate_args
     def rebuild_with_new_packed_block_types(
         cls, ps: PoseStack, packed_block_types: PackedBlockTypes
@@ -356,13 +433,13 @@ class PoseStackBuilder:
             [from_connections["aidx"].values, to_connections["aidx"].values]
         ).T
 
-        return cls.resolve_inter_block_bondsep(
+        return cls._resolve_inter_block_bondsep(
             res, inter_res_bonds, connection_atoms, device
         )
 
     @classmethod
     @validate_args
-    def resolve_inter_block_bondsep(
+    def _resolve_inter_block_bondsep(
         cls,
         res: List[Residue],
         inter_res_bonds: NDArray[int][:, 2],
@@ -620,3 +697,151 @@ class PoseStackBuilder:
                 offset : (offset + len(pose_stack)), : remapped.shape[1]
             ] = remapped
         return block_type_ind
+
+    @classmethod
+    @validate_args
+    def _annotate_pbt_w_canonical_aa1lc_lookup(cls, pbt: PackedBlockTypes):
+        """Annotate the PBT with a pandas dictionary mapping the (unique!) names
+        of each of the block types to their index in the active_block_types list,
+        including special entries for the l-canonical amino acids based on their
+        1-letter codes. To use you would say:
+
+            df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(list_of_names)
+            bt_inds = pbt.bt_mapping_w_lcaa_1lc.iloc[df_inds]["bt_ind"].values
+        """
+
+        if hasattr(pbt, "bt_mapping_w_lcaa_1lc"):
+            assert hasattr(pbt, "bt_mapping_w_lcaa_1lc_ind")
+            return
+
+        aa_codes = {
+            "ALA": "A",
+            "CYS": "C",
+            "ASP": "D",
+            "GLU": "E",
+            "PHE": "F",
+            "GLY": "G",
+            "HIS": "H",
+            "ILE": "I",
+            "LYS": "K",
+            "LEU": "L",
+            "MET": "M",
+            "ASN": "N",
+            "PRO": "P",
+            "GLN": "Q",
+            "ARG": "R",
+            "SER": "S",
+            "THR": "T",
+            "VAL": "V",
+            "TRP": "W",
+            "TYR": "Y",
+        }
+
+        sorted_1lc = sorted([v for _, v in aa_codes.items()])
+        one_let_co_index = {
+            aa1: ind
+            for aa1, ind in zip(sorted_1lc, numpy.arange(20, dtype=numpy.int32))
+        }
+
+        lcaa_ind = numpy.full((20,), -1, dtype=numpy.int32)
+        for i, res in enumerate(pbt.active_block_types):
+            if res.name3 in aa_codes:
+                if (
+                    "NTerm" not in res.properties.connectivity
+                    and "CTerm" not in res.properties.connectivity
+                ):
+                    if res.name3 == "HIS":
+                        if res.name == "HIS_D":
+                            continue
+                    ind = one_let_co_index[aa_codes[res.name3]]
+                    assert lcaa_ind[ind] == -1
+                    lcaa_ind[ind] = i
+
+        names = list(
+            itertools.chain([bt.name for bt in pbt.active_block_types], sorted_1lc)
+        )
+        df = pandas.DataFrame(
+            dict(
+                names=names,
+                bt_ind=itertools.chain(
+                    numpy.arange(len(pbt.active_block_types), dtype=numpy.int32),
+                    lcaa_ind,
+                ),
+            )
+        )
+        ind = pandas.Index(names)
+        setattr(pbt, "bt_mapping_w_lcaa_1lc", df)
+        setattr(pbt, "bt_mapping_w_lcaa_1lc_ind", ind)
+
+    @classmethod
+    @validate_args
+    def _inter_residue_connections_for_polymeric_monomers(
+        cls,
+        pbt: PackedBlockTypes,
+        n_poses: int,
+        max_nres: int,
+        real_res: Tensor[torch.bool][:, :],
+        nres: Tensor[torch.int64][:],
+        block_type_ind64: Tensor[torch.int64][:, :],
+    ) -> Tensor[torch.int64][:, :, :, 2]:
+
+        device = pbt.device
+
+        # 1) inter_residue_connections:
+        max_n_conn = pbt.max_n_conn
+        inter_residue_connections64 = torch.full(
+            (n_poses, max_nres, max_n_conn, 2), -1, dtype=torch.int64, device=device
+        )
+
+        # let's find the up connection indices of the n-terminal sides of each connection
+        # and the down connection indices of the c-terminal sides of each connection
+        res_is_real_and_not_n_term = real_res.clone()
+        res_is_real_and_not_n_term[:, 0] = False
+
+        res_is_real_and_not_c_term = real_res.clone()
+        npose_arange = torch.arange(n_poses, dtype=torch.int64, device=device)
+        res_is_real_and_not_c_term[npose_arange, nres - 1] = False
+
+        connected_up_conn_inds = pbt.up_conn_inds[
+            block_type_ind64[res_is_real_and_not_n_term]
+        ].to(torch.int64)
+        connected_down_conn_inds = pbt.down_conn_inds[
+            block_type_ind64[res_is_real_and_not_c_term]
+        ].to(torch.int64)
+
+        (
+            nz_res_is_real_and_not_n_term_pose_ind,
+            nz_res_is_real_and_not_n_term_res_ind,
+        ) = torch.nonzero(res_is_real_and_not_n_term, as_tuple=True)
+        (
+            nz_res_is_real_and_not_c_term_pose_ind,
+            nz_res_is_real_and_not_c_term_res_ind,
+        ) = torch.nonzero(res_is_real_and_not_c_term, as_tuple=True)
+
+        inter_residue_connections64[
+            nz_res_is_real_and_not_c_term_pose_ind,
+            nz_res_is_real_and_not_c_term_res_ind,
+            connected_up_conn_inds,
+            0,
+        ] = nz_res_is_real_and_not_n_term_res_ind
+        inter_residue_connections64[
+            nz_res_is_real_and_not_c_term_pose_ind,
+            nz_res_is_real_and_not_c_term_res_ind,
+            connected_up_conn_inds,
+            1,
+        ] = connected_down_conn_inds
+
+        inter_residue_connections64[
+            nz_res_is_real_and_not_n_term_pose_ind,
+            nz_res_is_real_and_not_n_term_res_ind,
+            connected_down_conn_inds,
+            0,
+        ] = nz_res_is_real_and_not_c_term_res_ind
+        inter_residue_connections64[
+            nz_res_is_real_and_not_n_term_pose_ind,
+            nz_res_is_real_and_not_n_term_res_ind,
+            connected_down_conn_inds,
+            1,
+        ] = connected_up_conn_inds
+
+        return inter_residue_connections64

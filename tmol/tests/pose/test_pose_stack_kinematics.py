@@ -20,7 +20,7 @@ def test_get_bonds_for_named_torsions(ubq_res, torch_device):
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
         ubq_res[:60], torch_device
     )
-    pose_stack = PoseStackBuilder.from_poses((p1, p2), torch_device)
+    pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     middle_bond_ats = get_bonds_for_named_torsions(pose_stack)
 
@@ -76,7 +76,7 @@ def test_get_pose_stack_bonds(ubq_res, torch_device):
     p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
         ubq_res[9:22], torch_device
     )
-    pose_stack = PoseStackBuilder.from_poses((p1, p2, p3), torch_device)
+    pose_stack = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)
 
     bonds = get_all_bonds(pose_stack)
 
@@ -161,7 +161,7 @@ def test_get_polymeric_bonds_in_fold_forest(ubq_res):
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
         ubq_res[:6], torch_device
     )
-    pose_stack = PoseStackBuilder.from_poses((p1, p2), torch_device)
+    pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     edges = numpy.full((2, 1, 4), -1, dtype=int)
     edges[:, :, 0] = EdgeType.polymer
@@ -194,7 +194,7 @@ def test_get_polymeric_bonds_in_fold_forest_3(ubq_res):
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
         ubq_res[:6], torch_device
     )
-    pose_stack = PoseStackBuilder.from_poses((p1, p2), torch_device)
+    pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     edges = numpy.full((2, 1, 4), -1, dtype=int)
     edges[:, :, 0] = EdgeType.polymer
@@ -230,7 +230,7 @@ def test_get_polymeric_bonds_in_fold_forest_c_to_n(ubq_res):
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
         ubq_res[:5], torch_device
     )
-    pose_stack = PoseStackBuilder.from_poses((p1, p2), torch_device)
+    pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     edges = numpy.full((3, 2, 4), -1, dtype=int)
     edges[:, 0, 0] = EdgeType.polymer
@@ -272,7 +272,7 @@ def test_construct_pose_stack_kinforest(ubq_res):
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
         ubq_res[:5], torch_device
     )
-    pose_stack = PoseStackBuilder.from_poses((p1, p2), torch_device)
+    pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     edges = numpy.full((3, 2, 4), -1, dtype=int)
     edges[:, 0, 0] = EdgeType.polymer

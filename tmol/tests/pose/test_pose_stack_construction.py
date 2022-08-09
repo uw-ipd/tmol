@@ -140,3 +140,9 @@ def test_concatenate_pose_stacks_ctor(ubq_res, torch_device):
     assert poses.block_type_ind.shape == (2, 60)
     assert poses.coords.shape == (2, 959, 3)
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 2, 2)
+
+
+def test_create_pose_from_sequence(fresh_default_packed_block_types, torch_device):
+    pbt = fresh_default_packed_block_types
+    seqs = [["A", "P", "L", "F"], ["F", "P", "D"], ["A", "S", "F"]]
+    PoseStackBuilder.pose_stack_from_monomer_polymer_sequences(pbt, seqs)
