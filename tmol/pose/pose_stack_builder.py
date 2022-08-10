@@ -22,7 +22,7 @@ from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_re
 from tmol.pose.pose_stack import PoseStack
 
 # from tmol.system.datatypes import connection_metadata_dtype
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d, exclusive_cumsum2d
 from tmol.types.functional import validate_args
 
 
@@ -159,6 +159,7 @@ class PoseStackBuilder:
         sequences: List[List[str]],
     ):
         cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
+        cls._annotate_pbt_w_polymeric_down_up_bondsep_dist(packed_block_types)
 
         pbt = packed_block_types
         device = pbt.device
@@ -166,48 +167,15 @@ class PoseStackBuilder:
 
         nres = numpy.array([len(x) for x in sequences], dtype=numpy.int32)
         max_nres = numpy.amax(nres).item()
-        real_res = (
-            numpy.tile(numpy.arange(max_nres, dtype=numpy.int32), n_poses).reshape(
-                (n_poses, max_nres)
-            )
-            < nres[:, None]
+
+        (
+            real_res,
+            nres,
+            block_type_ind,
+            block_type_ind64,
+        ) = cls._block_type_indices_from_sequences(
+            pbt, n_poses, nres, max_nres, sequences
         )
-        condensed_seqs = list(itertools.chain.from_iterable(sequences))
-        condensed_bt_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(condensed_seqs)
-        print("condensed_bt_df_inds", condensed_bt_df_inds)
-
-        # error checking: all names need to map to a residue type if we are to proceed
-        condensed_non_df_inds = condensed_bt_df_inds == -1
-        if numpy.any(condensed_non_df_inds):
-            condensed_seqs = numpy.array(condensed_seqs)
-            undefined_names = condensed_seqs[condensed_non_df_inds]
-            nz_real_res_pose_ind, nz_real_res_res_ind = numpy.nonzero(real_res)
-            undefined_pose_ind = nz_real_res_pose_ind[condensed_non_df_inds]
-            undefined_res_ind = nz_real_res_res_ind[condensed_non_df_inds]
-            triples = ", ".join(
-                [
-                    "({} at pose {} residue {})".format(n, p, r)
-                    for n, p, r in zip(
-                        undefined_names, undefined_pose_ind, undefined_res_ind
-                    )
-                ]
-            )
-            error = "Fatal error: could not resolve residue type by name for the following residues: {}\n".format(
-                triples
-            )
-            raise ValueError(error)
-
-        condensed_bt_inds = pbt.bt_mapping_w_lcaa_1lc["bt_ind"][
-            condensed_bt_df_inds
-        ].values
-        # print("condensed_bt_inds", condensed_bt_inds)
-        bt_inds = numpy.full((n_poses, max_nres), -1, dtype=numpy.int32)
-        bt_inds[real_res] = condensed_bt_inds
-
-        block_type_ind = torch.tensor(bt_inds, dtype=torch.int32, device=device)
-        block_type_ind64 = block_type_ind.to(dtype=torch.int64)
-        real_res = torch.tensor(real_res, dtype=torch.bool, device=device)
-        nres = torch.tensor(nres, dtype=torch.int64, device=device)
 
         # inter residue connections:
         # 1) we will just say that there's an up chemical bond at residue i to
@@ -775,6 +743,91 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
+    def _annotate_pbt_w_polymeric_down_up_bondsep_dist(cls, pbt: PackedBlockTypes):
+
+        if hasattr(pbt, "polymeric_down_to_up_nbonds"):
+            return
+
+        nbt = pbt.n_types
+        polymeric_down_to_up_nbonds = torch.tensor(
+            [
+                bt.path_distance[
+                    bt.ordered_connection_atoms[bt.down_connection_ind],
+                    bt.ordered_connection_atoms[bt.up_connection_ind],
+                ]
+                if bt.down_connection_ind != -1 and bt.up_connection_ind != -1
+                else 0
+                for bt in pbt.active_block_types
+            ],
+            dtype=torch.int32,
+            device=pbt.device,
+        )
+
+        setattr(pbt, "polymeric_down_to_up_nbonds", polymeric_down_to_up_nbonds)
+
+    @classmethod
+    @validate_args
+    def _block_type_indices_from_sequences(
+        cls,
+        pbt: PackedBlockTypes,
+        n_poses: int,
+        nres: NDArray[numpy.int32][:],
+        max_nres: int,
+        sequences: List[List[str]],
+    ) -> Tuple[
+        Tensor[torch.bool][:, :],
+        Tensor[torch.int64][:],
+        Tensor[torch.int32][:, :],
+        Tensor[torch.int64][:, :],
+    ]:
+        device = pbt.device
+        real_res = (
+            numpy.tile(numpy.arange(max_nres, dtype=numpy.int32), n_poses).reshape(
+                (n_poses, max_nres)
+            )
+            < nres[:, None]
+        )
+        condensed_seqs = list(itertools.chain.from_iterable(sequences))
+        condensed_bt_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(condensed_seqs)
+        print("condensed_bt_df_inds", condensed_bt_df_inds)
+
+        # error checking: all names need to map to a residue type if we are to proceed
+        condensed_non_df_inds = condensed_bt_df_inds == -1
+        if numpy.any(condensed_non_df_inds):
+            condensed_seqs = numpy.array(condensed_seqs)
+            undefined_names = condensed_seqs[condensed_non_df_inds]
+            nz_real_res_pose_ind, nz_real_res_res_ind = numpy.nonzero(real_res)
+            undefined_pose_ind = nz_real_res_pose_ind[condensed_non_df_inds]
+            undefined_res_ind = nz_real_res_res_ind[condensed_non_df_inds]
+            triples = ", ".join(
+                [
+                    "({} at pose {} residue {})".format(n, p, r)
+                    for n, p, r in zip(
+                        undefined_names, undefined_pose_ind, undefined_res_ind
+                    )
+                ]
+            )
+            error = "Fatal error: could not resolve residue type by name for the following residues: {}\n".format(
+                triples
+            )
+            raise ValueError(error)
+
+        condensed_bt_inds = pbt.bt_mapping_w_lcaa_1lc["bt_ind"][
+            condensed_bt_df_inds
+        ].values
+        # print("condensed_bt_inds", condensed_bt_inds)
+        bt_inds = numpy.full((n_poses, max_nres), -1, dtype=numpy.int32)
+        bt_inds[real_res] = condensed_bt_inds
+
+        block_type_ind = torch.tensor(bt_inds, dtype=torch.int32, device=device)
+        block_type_ind64 = block_type_ind.to(dtype=torch.int64)
+        real_res = torch.tensor(real_res, dtype=torch.bool, device=device)
+        nres = torch.tensor(nres, dtype=torch.int64, device=device)
+
+        return real_res, nres, block_type_ind, block_type_ind64
+
+    @classmethod
+    @validate_args
     def _inter_residue_connections_for_polymeric_monomers(
         cls,
         pbt: PackedBlockTypes,
@@ -784,6 +837,11 @@ class PoseStackBuilder:
         nres: Tensor[torch.int64][:],
         block_type_ind64: Tensor[torch.int64][:, :],
     ) -> Tensor[torch.int64][:, :, :, 2]:
+        assert real_res.shape[0] == n_poses
+        assert real_res.shape[1] == max_nres
+        assert nres.shape[0] == n_poses
+        assert block_type_ind64.shape[0] == n_poses
+        assert block_type_ind64.shape[1] == max_nres
 
         device = pbt.device
 
@@ -844,4 +902,149 @@ class PoseStackBuilder:
             1,
         ] = connected_up_conn_inds
 
+        # down_up_separation = A
+        down_up_separation = torch.full(
+            (n_poses, max_nres), 0, dtype=torch.int64, device=device
+        )
+        down_up_separation[real_res] = pbt.polymeric_down_to_up_nbonds[
+            block_type_ind64[real_res]
+        ].to(torch.int64)
+
+        # down_to_down_chain_distance = B
+        down_to_down_chain_distance = exclusive_cumsum2d(down_up_separation + 1)
+
+        # pair_distances = C
+        pair_distances = (
+            down_to_down_chain_distance[:, None, :]
+            - down_to_down_chain_distance[:, :, None]
+        )
+
+        # inter_block_bondsep = D
+        inter_block_bondsep64 = torch.full(
+            (n_poses, max_nres, max_nres, max_n_conn, max_n_conn),
+            100,
+            dtype=torch.int64,
+            device=device,
+        )
+
+        down_up_distance = torch.abs(pair_distances + down_up_separation[:, None, :])
+        up_down_distance = torch.abs(pair_distances - down_up_separation[:, :, None])
+        up_up_distance = (
+            torch.abs(pair_distances)
+            - down_up_separation[:, :, None]
+            + down_up_separation[:, None, :]
+        )
+
+        both_res_real = torch.logical_and(real_res[:, :, None], real_res[:, None, :])
+        nz_brr = torch.nonzero(both_res_real, as_tuple=False)
+        print("nz_brr", nz_brr.shape)
+
+        # temp 0 == down; 1 == up
+        inter_block_bondsep64[
+            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], 1, 0
+        ] = up_down_distance[both_res_real]
+        inter_block_bondsep64[
+            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], 0, 1
+        ] = down_up_distance[both_res_real]
+        inter_block_bondsep64[
+            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], 0, 0
+        ] = torch.abs(pair_distances[both_res_real])
+        inter_block_bondsep64[
+            nz_brr[:, 0], nz_brr[:, 1], nz_brr[:, 2], 1, 1
+        ] = up_up_distance[both_res_real]
+
+        print("inter_block_bondsep64")
+        print(inter_block_bondsep64)
+
         return inter_residue_connections64
+
+    @classmethod
+    @validate_args
+    def _find_inter_block_separation_for_polymeric_monomers(
+        cls,
+        pbt: PackedBlockTypes,
+        n_chains: int,
+        max_nres: int,
+        real_res: Tensor[torch.bool][:, :],
+        block_type_ind64,
+        inter_residue_connections64: Tensor[torch.int64][:, :, :, 2],
+    ):
+        assert real_res.shape[0] == n_chains
+        assert real_res.shape[1] == max_nres
+        assert nres.shape[0] == n_chains
+        assert block_type_ind64.shape[0] == n_chains
+        assert block_type_ind64.shape[1] == max_nres
+
+        device = pbt.device
+
+        # Let's take an example of a single four residue alpha amino acid chain: "MT[Beta-Ala]Q"
+        # (This example has been chosen to  ensure that our logic is sound; if all the backbone
+        # types had the same number of atoms, then we might compute the right answer for the
+        # wrong reason if we worked only with alpha amino acids, but then fail once we attempt
+        # to build this tensor for a mix of alpha- and beta amino acids.)
+        #
+        # What we want is the connection-point distance tensor of:
+        #
+        # [ [ [[0,2],[2,0]],   [[3,5],[1,3]], [[6,9],[4,7]], [[10,12],[8,10]] ]
+        #   [ [[3,1],[5,3]],   [[0,2],[2,0]], [[3,6],[1,4]], [[7,9],[5,7]]    ]
+        #   [ [[6,4],[9,7]],   [[3,1],[6,4]], [[0,3],[3,0]], [[4,6],[1,3]]    ]
+        #   [ [[10,8],[12,10], [[7,5],[9,7]], [[4,1],[6,3]], [[0, 2],[2,0]]   ]]
+        #
+        # Where, e.g., the [0, 2, :, :] matrix [[6,9],[4,7]] says:
+        # - The N atom on residue 0 is 6 chemical bonds separated from the N atom on residue 2
+        # - The N atom on residue 0 is 9 chemical bonds separated from the C atom on residue 2
+        # - The C atom on residue 0 is 4 chemical bonds separated from the N atom on residue 2
+        # - The C atom on residue 0 is 7 chemical bonds separated from the C atom on residue 2
+        #
+        # What about if we have [Met:NTerm]T[Beta-Ala][GLN:CTerm] ?
+        # Then we would want this tensor instead
+        # (note that "up" on res 0 and "down" on res 3 are both ind 0)
+        # [ [ [[0,-1],[-1,-1]],  [[1,3],[-1,-1]], [[4,7],[-1,-1]], [[8,-1],[-1,-1]]  ]
+        #   [ [[1,-1],[3,-1]],   [[0,2],[2,0]],   [[3,6],[1,4]],   [[7,-1],[5,-1]]   ]
+        #   [ [[4,-1],[7,-1]],   [[3,1],[6,4]],   [[0,3],[3,0]],   [[4,-1],[1,-1]]   ]
+        #   [ [[8,-1],[-1,-1],   [[7,5],[-1,-1]], [[4,1],[-1,-1]], [[0, -1],[-1,-1]] ]]
+        #
+        # So how do we build this tensor? Let's think about it in terms of a single chain.
+        # We will add an extra dimension later to talk about multiple chains.
+        # Let's start by reading out the length of the down-to-up path separation for each
+        # block type. In the former case, A = [2, 2, 3, 2] and in the latter case,
+        # A = [0, 2, 3, 0] with zero entries for the residues missing one of the connections.
+        # What the two cases will have in common is the subset of residues that contain both
+        # up and down connections. Let's focus on the former case and return later to the latter.
+        # If we were to add 1 to A, we would have the chemical bond path distance between
+        # down-to-down or up-to-up pairs.
+        # An exclusive cumulative sum of A+1 would give B = [0, 3, 6, 10]:
+        # the down-to-down path distance from residue 0 to residue i.
+        # We can do a broadcast subtraction C = B[None,:] - B[:, None]
+        # giving
+        #
+        # [[0,    3,  6, 10],
+        #  [-3,   0,  3,  7],
+        #  [-6,  -3,  0,  4],
+        #  [-10, -7, -4,  0]]
+        #
+        # so that the absolute value of each entry represents the down-to-down path distance
+        # Then we can compute the output tensor D:
+        # D[i, j, down, down] = abs(C[i,j])
+        # D[i, j, up, up] = abs(C[i,j]) - A[i] + A[j]
+        # when i < j, D[i,j,down,up] = C[i,j] + A[j] = abs(C[i,j] + A[j])
+        #             D[i,j,up,down] = C[i,j] - A[i]) = abs(C[i,j] - A[i]))
+        # when j < i, D[i,j,down,up] = -1 * C[i,j] - A[j] = -1 * (C[i,j] + A[j]) = abs(C[i,j] + A[j])
+        #             D[i,j,up,down] = -1 * C[i,j] + A[i] = -1 * (C[i,j] - A[i]) = abs(C[i,j] - A[i])
+        #
+        # therefore D[i, j, down, up] = abs(C[i,j] + A[j])
+        #       and D[i, j, up, down] = abs(C[i,j] - A[i])
+
+        down_up_separation = torch.full(
+            (n_chains, max_nres), -1, dtype=torch.int64, device=device
+        )
+        down_up_separation[real_res] = pbt.polymeric_down_to_up_nbonds[
+            block_type_ind64[real_res]
+        ]
+
+        down_to_down_chain_distance = exclusive_cumsum2d(down_up_separation + 1, dim=1)
+
+        pair_distances = (
+            down_to_down_chain_distance[:, None, :]
+            - down_to_down_chain_distance[:, :, None]
+        )
