@@ -146,3 +146,148 @@ def test_create_pose_from_sequence(fresh_default_packed_block_types, torch_devic
     pbt = fresh_default_packed_block_types
     seqs = [["A", "P", "L", "F"], ["F", "P", "D"], ["A", "S", "F"]]
     PoseStackBuilder.pose_stack_from_monomer_polymer_sequences(pbt, seqs)
+
+
+def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
+    torch_device,
+):
+
+    # lets's conceive of a set of three bts, all w/ lcaa-like backbones
+    def i64(x):
+        return torch.tensor(x, dtype=torch.int64, device=torch_device)
+
+    def i32(x):
+        return torch.tensor(x, dtype=torch.int32, device=torch_device)
+
+    bt_polymeric_down_to_up_nbonds = i32([2, 2, 2])
+    bt_up_conn_inds = i32([1, 1, 1])
+    bt_down_conn_inds = i32([0, 0, 0])
+    n_chains = 1
+    max_n_res = 4
+    max_n_conn = 2
+    real_res = torch.tensor(
+        [[True, True, True, True]], dtype=torch.bool, device=torch_device
+    )
+    block_type_ind64 = i64([[1, 2, 0, 1]])
+
+    inter_block_separation64 = (
+        PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
+            torch_device,
+            bt_polymeric_down_to_up_nbonds,
+            bt_up_conn_inds,
+            bt_down_conn_inds,
+            n_chains,
+            max_n_res,
+            max_n_conn,
+            real_res,
+            block_type_ind64,
+        )
+    )
+
+    gold_inter_block_separation64 = i64(
+        [
+            [
+                [
+                    [[0, 2], [2, 0]],  # 0, 0
+                    [[3, 5], [1, 3]],  # 0, 1
+                    [[6, 8], [4, 6]],  # 0, 2
+                    [[9, 11], [7, 9]],  # 0, 3
+                ],
+                [
+                    [[3, 1], [5, 3]],  # 1, 0
+                    [[0, 2], [2, 0]],  # 1, 1
+                    [[3, 5], [1, 3]],  # 1, 2
+                    [[6, 8], [4, 6]],  # 1, 3
+                ],
+                [
+                    [[6, 4], [8, 6]],  # 2, 0
+                    [[3, 1], [5, 3]],  # 2, 1
+                    [[0, 2], [2, 0]],  # 2, 2
+                    [[3, 5], [1, 3]],  # 2, 3
+                ],
+                [
+                    [[9, 7], [11, 9]],  # 3, 0
+                    [[6, 4], [8, 6]],  # 3, 1
+                    [[3, 1], [5, 3]],  # 3, 2
+                    [[0, 2], [2, 0]],  # 3, 3
+                ],
+            ]
+        ]
+    )
+
+    torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
+
+
+def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_mix_alpha_and_beta(
+    torch_device,
+):
+    # this time, mix alpha- and beta amino acids in a chain
+
+    def i64(x):
+        return torch.tensor(x, dtype=torch.int64, device=torch_device)
+
+    def i32(x):
+        return torch.tensor(x, dtype=torch.int32, device=torch_device)
+
+    bt_polymeric_down_to_up_nbonds = i32([2, 2, 2, 3, 3, 3])
+    bt_up_conn_inds = i32([1, 1, 1, 1, 1, 1])
+    bt_down_conn_inds = i32([0, 0, 0, 0, 0, 0])
+    n_chains = 1
+    max_n_res = 4
+    max_n_conn = 2
+    real_res = torch.tensor(
+        [[True, True, True, True]], dtype=torch.bool, device=torch_device
+    )
+    block_type_ind64 = i64([[1, 2, 4, 1]])
+
+    inter_block_separation64 = (
+        PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
+            torch_device,
+            bt_polymeric_down_to_up_nbonds,
+            bt_up_conn_inds,
+            bt_down_conn_inds,
+            n_chains,
+            max_n_res,
+            max_n_conn,
+            real_res,
+            block_type_ind64,
+        )
+    )
+
+    gold_inter_block_separation64 = i64(
+        [
+            [
+                [
+                    [[0, 2], [2, 0]],  # 0, 0
+                    [[3, 5], [1, 3]],  # 0, 1
+                    [[6, 9], [4, 7]],  # 0, 2
+                    [[10, 12], [8, 10]],  # 0, 3
+                ],
+                [
+                    [[3, 1], [5, 3]],  # 1, 0
+                    [[0, 2], [2, 0]],  # 1, 1
+                    [[3, 6], [1, 4]],  # 1, 2
+                    [[7, 9], [5, 7]],  # 1, 3
+                ],
+                [
+                    [[6, 4], [9, 7]],  # 2, 0
+                    [[3, 1], [6, 4]],  # 2, 1
+                    [[0, 3], [3, 0]],  # 2, 2
+                    [[4, 6], [1, 3]],  # 2, 3
+                ],
+                [
+                    [[10, 8], [12, 10]],  # 3, 0
+                    [[7, 5], [9, 7]],  # 3, 1
+                    [[4, 1], [6, 3]],  # 3, 2
+                    [[0, 2], [2, 0]],  # 3, 3
+                ],
+            ]
+        ]
+    )
+
+    # print("gold_inter_block_separation64")
+    # print(gold_inter_block_separation64)
+    # print("inter_block_separation64")
+    # print(inter_block_separation64)
+
+    torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
