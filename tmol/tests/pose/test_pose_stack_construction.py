@@ -18,8 +18,8 @@ def test_pose_stack_builder_connection_ctor(ubq_res, torch_device):
         len(rt.connections) for rt in p.packed_block_types.active_block_types
     )
 
-    assert p.residue_coords.shape == (1, 1228, 3)
-    assert p.coords.shape == p.residue_coords.shape
+    # assert p.residue_coords.shape == (1, 1228, 3)
+    # assert p.coords.shape == p.residue_coords.shape
     assert p.block_coord_offset.shape == (1, n_ubq_res)
     assert p.inter_residue_connections.shape == (1, n_ubq_res, max_n_conn, 2)
     assert p.inter_block_bondsep.shape == (
@@ -53,9 +53,9 @@ def test_pose_stack_builder_connection_ctor(ubq_res, torch_device):
         i_offset = nats_per_block_coord_offset[i - 1] if i > 0 else 0
         res_coords_gold[(i_offset) : (i_offset + nats_per_block[i])] = res.coords
 
-    numpy.testing.assert_allclose(
-        res_coords_gold, p.residue_coords[0], atol=1e-5, rtol=1e-5
-    )
+    # numpy.testing.assert_allclose(
+    #     res_coords_gold, p.residue_coords[0], atol=1e-5, rtol=1e-5
+    # )
     numpy.testing.assert_allclose(res_coords_gold, p.coords[0].cpu().numpy())
 
 
@@ -70,7 +70,7 @@ def test_pose_stack_builder_one_structure_from_polymeric_residues_ctor(
         ubq_res, torch_device
     )
 
-    assert p_gold.residue_coords.shape == p_new.residue_coords.shape
+    # assert p_gold.residue_coords.shape == p_new.residue_coords.shape
     assert p_gold.coords.shape == p_new.coords.shape
     assert (
         p_gold.inter_residue_connections.shape == p_new.inter_residue_connections.shape

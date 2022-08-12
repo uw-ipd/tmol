@@ -808,7 +808,7 @@ def test_measure_original_dofs2(
         for j in range(poses.block_coord_offset.shape[1]):
             if poses.block_type_ind[i, j] == -1:
                 continue
-            j_n_atoms = poses.residues[i][j].residue_type.n_atoms
+            j_n_atoms = poses.block_type(i, j).n_atoms
             numpy.testing.assert_almost_equal(
                 poses.coords[i, j, :j_n_atoms].cpu().numpy(),
                 new_coords[i, j, :j_n_atoms].cpu().numpy(),

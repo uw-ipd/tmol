@@ -36,8 +36,13 @@ def test_max_n_pose_atoms(ubq_res, ubq_40_60_pose_stack):
 def test_n_ats_per_pose_block(ubq_40_60_pose_stack):
     n_ats_per_block_gold = torch.zeros((2, 60), dtype=torch.int32)
     for i in range(2):
-        for j, res in enumerate(ubq_40_60_pose_stack.residues[i]):
-            n_ats_per_block_gold[i, j] = res.coords.shape[0]
+        for j in range(ubq_40_60_pose_stack.max_n_blocks):
+            j_bt = ubq_40_60_pose_stack.block_type_ind[i, j]
+            if j_bt < 0:
+                continue
+            n_ats_per_block_gold[
+                i, j
+            ] = ubq_40_60_pose_stack.packed_block_types.active_block_types[j_bt].n_atoms
     numpy.testing.assert_equal(
         n_ats_per_block_gold, ubq_40_60_pose_stack.n_ats_per_block.cpu().numpy()
     )
@@ -69,7 +74,10 @@ def test_expand_coords(ubq_40_60_pose_stack, torch_device):
     )
     n_ats_per_block = poses.n_ats_per_block
     for i in range(2):
-        for j in range(len(poses.residues[i])):
+        for j in range(poses.max_n_blocks):
+            j_bt = poses.block_type_ind[i, j]
+            if j_bt < 0:
+                continue
             ij_nats = n_ats_per_block[i, j]
             ij_offset = poses.block_coord_offset[i, j]
             expanded_coords_gold[i, j, :ij_nats] = poses.coords[

@@ -70,8 +70,8 @@ class PoseStackBuilder:
 
         return PoseStack(
             packed_block_types=packed_block_types,
-            residues=attached_res,
-            residue_coords=residue_coords,
+            # residues=attached_res,
+            # residue_coords=residue_coords,
             coords=coords,
             block_coord_offset=block_coord_offset,
             block_coord_offset64=i64(block_coord_offset),
@@ -89,38 +89,52 @@ class PoseStackBuilder:
     def from_poses(
         cls, pose_stacks: List[PoseStack], device: torch.device
     ) -> PoseStack:
-        all_res = [
-            res
-            for pose_stack in pose_stacks
-            for reslist in pose_stack.residues
-            for res in reslist
-        ]
-        restypes = residue_types_from_residues(all_res)
-        packed_block_types = PackedBlockTypes.from_restype_list(restypes, device)
-
-        max_n_blocks = max(
-            len(reslist)
-            for pose_stack in pose_stacks
-            for reslist in pose_stack.residues
+        # all_res = [
+        #     res
+        #     for pose_stack in pose_stacks
+        #     for reslist in pose_stack.residues
+        #     for res in reslist
+        # ]
+        # restypes = residue_types_from_residues(all_res)
+        # packed_block_types = PackedBlockTypes.from_restype_list(restypes, device)
+        pbt0 = pose_stacks[0].packed_block_types
+        reuse_pbt = all(
+            pose_stack.packed_block_types is pbt0 for pose_stack in pose_stacks
         )
+        if reuse_pbt:
+            packed_block_types = pbt0
+        else:
+            all_bt = [
+                bt
+                for pose_stack in pose_stacks
+                for bt in pose_stack.packed_block_types.active_block_types
+            ]
+            bt_set = {}
+            for bt in all_bt:
+                if bt.name not in bt_set:
+                    bt_set[bt.name] = bt
+            uniq_bt = [v for _, v in bt_set.items()]
+            packed_block_types = PackedBlockTypes.from_restype_list(uniq_bt, device)
+
+        max_n_blocks = max(pose_stack.max_n_blocks for pose_stack in pose_stacks)
         coords, block_coord_offset = cls._pack_pose_stack_coords(
             packed_block_types, pose_stacks, max_n_blocks, device
         )
-        residue_coords = coords.cpu().numpy().astype(numpy.float64)
+        # residue_coords = coords.cpu().numpy().astype(numpy.float64)
 
         ps_offset = exclusive_cumsum1d(
             torch.tensor([len(ps) for ps in pose_stacks], dtype=torch.int64)
         )
         block_coord_offset_cpu = block_coord_offset.cpu()
-        residues = cls._attach_residues(
-            block_coord_offset_cpu,
-            [
-                one_pose_residues
-                for pose_stack in pose_stacks
-                for one_pose_residues in pose_stack.residues
-            ],
-            residue_coords,
-        )
+        # residues = cls._attach_residues(
+        #     block_coord_offset_cpu,
+        #     [
+        #         one_pose_residues
+        #         for pose_stack in pose_stacks
+        #         for one_pose_residues in pose_stack.residues
+        #     ],
+        #     residue_coords,
+        # )
 
         inter_residue_connections = cls._inter_residue_connections_from_pose_stacks(
             packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
@@ -137,8 +151,8 @@ class PoseStackBuilder:
 
         return PoseStack(
             packed_block_types=packed_block_types,
-            residues=residues,
-            residue_coords=residue_coords,
+            # residues=residues,
+            # residue_coords=residue_coords,
             coords=coords,
             block_coord_offset=block_coord_offset,
             block_coord_offset64=i64(block_coord_offset),
@@ -209,34 +223,52 @@ class PoseStackBuilder:
         # The input packed_block_types must contain the block types of
         # the PoseStack's existing set of in-use residue types (but not necessarily
         # all of the block types that its PackedBlockTypes object holds)
-        for pose_res_list in ps.residues:
-            for res in pose_res_list:
-                assert res.residue_type in packed_block_types.active_block_types
+
+        # for pose_res_list in ps.residues:
+        #     for res in pose_res_list:
+        #         assert res.residue_type in packed_block_types.active_block_types
+        orig_pose_bt_ind = ps.block_type_ind.cpu()
+        for i in range(ps.n_poses):
+            for j in range(ps.max_n_blocks):
+                if ps.is_real_block(i, j):
+                    bt = ps.block_type(i, j)
+                    assert numpy.all(packed_block_types.inds_for_restypes([bt]) != -1)
 
         coords = ps.coords.clone()
 
-        block_type_ind = torch.full_like(ps.block_type_ind, -1)
-        # this could be more efficient if we mapped orig_block_type to new_block_type
-        for i, res in enumerate(ps.residues):
-            block_type_ind[i, : len(res)] = torch.tensor(
-                packed_block_types.inds_for_res(res),
-                dtype=torch.int32,
-                device=ps.device,
-            )
-
-        residue_coords = coords.to(dtype=torch.float64).cpu().numpy()
-
-        residues = cls._attach_residues(
-            ps.block_coord_offset.cpu(), ps.residues, residue_coords
+        block_type_ind = torch.full_like(
+            ps.block_type_ind, -1, device=torch.device("cpu")
         )
+        # this could be more efficient if we mapped orig_block_type to new_block_type
+        # for i, res in enumerate(ps.residues):
+        #     block_type_ind[i, : len(res)] = torch.tensor(
+        #         packed_block_types.inds_for_res(res),
+        #         dtype=torch.int32,
+        #         device=ps.device,
+        #     )
+        for i in range(ps.n_poses):
+            for j in range(ps.max_n_blocks):
+                orig_bt_ind = ps.block_type_ind64[i, j]
+                if orig_bt_ind >= 0:
+                    bt = ps.packed_block_types.active_block_types[orig_bt_ind]
+                    block_type_ind[i, j] = packed_block_types.inds_for_restypes(
+                        [bt]
+                    ).item()
+        block_type_ind = block_type_ind.to(ps.device)
+
+        # residue_coords = coords.to(dtype=torch.float64).cpu().numpy()
+
+        # residues = cls._attach_residues(
+        #    ps.block_coord_offset.cpu(), ps.residues, residue_coords
+        # )
 
         def i64(t):
             return t.to(torch.int64)
 
         return PoseStack(
             packed_block_types=packed_block_types,
-            residues=residues,
-            residue_coords=residue_coords,
+            # residues=residues,
+            # residue_coords=residue_coords,
             coords=coords,
             block_coord_offset=ps.block_coord_offset,
             block_coord_offset64=ps.block_coord_offset64,

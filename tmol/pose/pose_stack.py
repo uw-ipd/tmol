@@ -15,8 +15,8 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.chemical.restypes import (
-    # RefinedResidueType,
-    Residue,
+    RefinedResidueType,
+    # Residue,
     find_simple_polymeric_connections,
 )
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
@@ -30,9 +30,9 @@ from tmol.types.functional import validate_args
 class PoseStack:
 
     packed_block_types: PackedBlockTypes
-    residues: List[List[Residue]]
+    # residues: List[List[Residue]]
 
-    residue_coords: NDArray[numpy.float32][:, :, :, 3]
+    # residue_coords: NDArray[numpy.float32][:, :, :, 3]
 
     # coordinates are held as [n-poses x max-n-atoms x 3]
     # where the offset for each residue are held in the
@@ -57,11 +57,11 @@ class PoseStack:
 
     def __len__(self):
         """return the number of PoseStack held in this stack"""
-        return len(self.residues)
+        return self.coords.shape[0]
 
     @property
     def n_poses(self):
-        return len(self.residues)
+        return self.coords.shape[0]
 
     @property
     def max_n_blocks(self):
@@ -132,3 +132,18 @@ class PoseStack:
         )
         expanded_coords[real_expanded_pose_ats] = self.coords[self.real_atoms]
         return expanded_coords, real_expanded_pose_ats
+
+    @property
+    def n_res_per_pose(self):
+        return torch.sum(self.block_type_ind >= 0, dim=1)
+
+    def is_real_block(self, pose_ind: int, block_ind: int) -> bool:
+        """Report whether a particular block on a particular pose is real or just filler"""
+        return self.block_type_ind[pose_ind, block_ind] >= 0
+
+    def block_type(self, pose_ind: int, block_ind: int) -> RefinedResidueType:
+        """Look up the block type for a particular pose and block and retrieve it
+        from the PackedBlockTypes object. is_real_block must return True"""
+        return self.packed_block_types.active_block_types[
+            self.block_type_ind[pose_ind, block_ind]
+        ]

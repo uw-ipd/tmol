@@ -134,11 +134,11 @@ class PackerTask:
         # )
         self.rlts = [
             [
-                ResidueLevelTask(j, res.residue_type, palette)
-                for j, res in enumerate(ires)
-                if systems.block_type_ind[i, j] >= 0
+                ResidueLevelTask(j, systems.block_type(i, j), palette)
+                for j in range(systems.max_n_blocks)
+                if systems.is_real_block(i, j)
             ]
-            for i, ires in enumerate(systems.residues)
+            for i in range(systems.n_poses)
         ]
 
     def restrict_to_repacking(self):

@@ -108,32 +108,32 @@ def poses_from_assigned_rotamers(
     nres = torch.sum(context_block_type != -1, dim=1).cpu()
     cbt_cpu = context_block_type.cpu()
     # coords_numpy = context_coords.cpu().numpy().astype(numpy.float64)
-    coords_numpy = condensed_coords.cpu().numpy().astype(numpy.float64)
+    # coords_numpy = condensed_coords.cpu().numpy().astype(numpy.float64)
     n_atoms_offset_cpu = n_atoms_offset.cpu().numpy()
 
-    residues = [
-        [
-            Residue(
-                residue_type=pbt.active_block_types[cbt_cpu[i, j]],
-                coords=coords_numpy[
-                    i,
-                    n_atoms_offset_cpu[i, j] : (
-                        n_atoms_offset_cpu[i, j] + nats[cbt_cpu[i, j]]
-                    ),
-                    :,
-                ],
-            )
-            for j in range(nres[i])
-        ]
-        for i in range(context_coords.shape[0])
-    ]
+    # residues = [
+    #     [
+    #         Residue(
+    #             residue_type=pbt.active_block_types[cbt_cpu[i, j]],
+    #             coords=coords_numpy[
+    #                 i,
+    #                 n_atoms_offset_cpu[i, j] : (
+    #                     n_atoms_offset_cpu[i, j] + nats[cbt_cpu[i, j]]
+    #                 ),
+    #                 :,
+    #             ],
+    #         )
+    #         for j in range(nres[i])
+    #     ]
+    #     for i in range(context_coords.shape[0])
+    # ]
 
     pid4c_64 = pose_id_for_context.to(torch.int64)
 
     return PoseStack(
         packed_block_types=packed_block_types,
-        residues=residues,
-        residue_coords=coords_numpy,
+        # residues=residues,
+        # residue_coords=coords_numpy,
         coords=condensed_coords,
         block_coord_offset=n_atoms_offset,
         block_coord_offset64=n_atoms_offset.to(torch.int64),

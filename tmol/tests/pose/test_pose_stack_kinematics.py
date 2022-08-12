@@ -21,12 +21,16 @@ def test_get_bonds_for_named_torsions(ubq_res, torch_device):
         ubq_res[:60], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
+    pbt = pose_stack.packed_block_types
 
     middle_bond_ats = get_bonds_for_named_torsions(pose_stack)
 
-    def resolve_atom(pose_ind, res_ind, res, uaid):
+    def resolve_atom(pose_ind, res_ind, uaid):
+        bt_for_res = pose_stack.block_type_ind[pose_ind, res_ind]
         if uaid.atom is None:
-            conn_ind = res.residue_type.connection_to_cidx[uaid.connection]
+            conn_ind = pbt.active_block_types[bt_for_res].connection_to_cidx[
+                uaid.connection
+            ]
             other_res_ind = pose_stack.inter_residue_connections[
                 pose_ind, res_ind, conn_ind, 0
             ]
@@ -42,7 +46,11 @@ def test_get_bonds_for_named_torsions(ubq_res, torch_device):
             ]
             return pose_ind, other_res_ind, other_res_atom
         else:
-            return pose_ind, res_ind, res.residue_type.atom_to_idx[uaid.atom]
+            return (
+                pose_ind,
+                res_ind,
+                pbt.active_block_types[bt_for_res].atom_to_idx[uaid.atom],
+            )
 
     def atom_ind_to_global_index(pose_ind, res_ind, at_ind):
         if res_ind == -1 or at_ind == -1:
@@ -55,10 +63,13 @@ def test_get_bonds_for_named_torsions(ubq_res, torch_device):
 
     tor_at_inds = []
     for pose_ind in range(2):
-        for i, res in enumerate(pose_stack.residues[pose_ind]):
-            for j, tor in enumerate(res.residue_type.torsions):
-                at1 = atom_ind_to_global_index(*resolve_atom(pose_ind, i, res, tor.b))
-                at2 = atom_ind_to_global_index(*resolve_atom(pose_ind, i, res, tor.c))
+        for i in range(pose_stack.max_n_blocks):
+            ibt = pose_stack.block_type_ind[pose_ind, i]
+            if ibt < 0:
+                continue
+            for j, tor in enumerate(pbt.active_block_types[ibt].torsions):
+                at1 = atom_ind_to_global_index(*resolve_atom(pose_ind, i, tor.b))
+                at2 = atom_ind_to_global_index(*resolve_atom(pose_ind, i, tor.c))
                 if at1 != -1 and at2 != -1:
                     tor_at_inds.append((at1, at2))
     middle_bond_ats_gold = numpy.array(tor_at_inds, dtype=numpy.int64)
@@ -77,41 +88,51 @@ def test_get_pose_stack_bonds(ubq_res, torch_device):
         ubq_res[9:22], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)
+    pbt = pose_stack.packed_block_types
 
     bonds = get_all_bonds(pose_stack)
 
     bonds_gold = []
-    for i, pose_res in enumerate(pose_stack.residues):
-        for j, res in enumerate(pose_res):
-            for k in range(res.residue_type.bond_indices.shape[0]):
+    for i in range(pose_stack.n_poses):
+        for j in range(pose_stack.max_n_blocks):
+            ijbt_ind = pose_stack.block_type_ind[i, j]
+            if ijbt_ind < 0:
+                continue
+            i_j_bond_indices = pbt.active_block_types[ijbt_ind].bond_indices
+            for k in range(i_j_bond_indices.shape[0]):
 
                 def bond_atom(el):
                     return (
                         i * pose_stack.max_n_pose_atoms
                         + pose_stack.block_coord_offset[i, j]
-                        + res.residue_type.bond_indices[k, el]
+                        + i_j_bond_indices[k, el]
                     )
 
                 bonds_gold.append((bond_atom(0), bond_atom(1)))
-    for i, pose_res in enumerate(pose_stack.residues):
-        for j, res in enumerate(pose_res):
-            for k in range(res.residue_type.ordered_connection_atoms.shape[0]):
+    for i in range(pose_stack.n_poses):
+        for j in range(pose_stack.max_n_blocks):
+            ijbt_ind = pose_stack.block_type_ind[i, j]
+            if ijbt_ind < 0:
+                continue
+            ijbt = pbt.active_block_types[ijbt_ind]
+
+            for k in range(ijbt.ordered_connection_atoms.shape[0]):
                 other_res_ind = pose_stack.inter_residue_connections[i, j, k, 0]
                 if other_res_ind == -1:
                     continue
                 other_res_conn_ind = pose_stack.inter_residue_connections[i, j, k, 1]
-                other_res = pose_stack.residues[i][other_res_ind]
+                other_bt_ind = pose_stack.block_type_ind[i, other_res_ind]
+                other_bt = pbt.active_block_types[other_bt_ind]
+                # other_res = pose_stack.residues[i][other_res_ind]
 
                 bonds_gold.append(
                     (
                         i * pose_stack.max_n_pose_atoms
                         + pose_stack.block_coord_offset[i, j]
-                        + res.residue_type.ordered_connection_atoms[k],
+                        + ijbt.ordered_connection_atoms[k],
                         i * pose_stack.max_n_pose_atoms
                         + pose_stack.block_coord_offset[i, other_res_ind]
-                        + other_res.residue_type.ordered_connection_atoms[
-                            other_res_conn_ind
-                        ],
+                        + other_bt.ordered_connection_atoms[other_res_conn_ind],
                     )
                 )
     bonds_gold = numpy.array(bonds_gold, dtype=numpy.int64)
@@ -122,9 +143,13 @@ def polymeric_bond_inds_for_pose_stack(pose_stack, polymeric_connections_for_kin
     bond_inds_gold = []
     bt_cpu = pose_stack.block_type_ind.cpu()
     cpu_pbt = pose_stack.packed_block_types.cpu()
-    for i in range(len(pose_stack.residues)):
-        for j in range(len(pose_stack.residues[i])):
-            for k in range(len(pose_stack.residues[i])):
+    for i in range(pose_stack.n_poses):
+        for j in range(pose_stack.max_n_blocks):
+            if pose_stack.block_type_ind[i, j] < 0:
+                continue
+            for k in range(pose_stack.max_n_blocks):
+                if pose_stack.block_type_ind[i, k] < 0:
+                    continue
                 if j == k:
                     continue
                 bt_j = bt_cpu[i, j]
@@ -285,7 +310,7 @@ def test_construct_pose_stack_kinforest(ubq_res):
     edges[1, 1, 2] = 10
     edges[2, 0, 2] = 4
 
-    fold_forest = FoldForest.polymeric_forest(pose_stack.residues)
+    fold_forest = FoldForest.polymeric_forest(pose_stack.n_res_per_pose)
 
     kinforest = construct_pose_stack_kinforest(pose_stack, fold_forest)
 

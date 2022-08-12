@@ -58,7 +58,7 @@ def test_packer_task_ctor(ubq_res, default_restype_set, torch_device):
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
         ubq_res[:7], torch_device
     )
-    poses = PoseStackBuilder.from_poses((p1, p2), torch_device)
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     task = PackerTask(poses, palette)
     assert len(task.rlts) == 2

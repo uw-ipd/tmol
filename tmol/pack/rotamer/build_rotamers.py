@@ -130,9 +130,11 @@ def rebuild_poses_if_necessary(
 
     if needs_rebuilding:
         # make sure all the pose's residue types are also included
-        for one_pose_res in poses.residues:
-            for res in one_pose_res:
-                rt = res.residue_type
+        for i in range(poses.n_poses):
+            for j in range(poses.max_n_blocks):
+                if not poses.is_real_block(i, j):
+                    continue
+                rt = poses.block_type(i, j)
                 if id(rt) not in all_restypes:
                     all_restypes[id(rt)] = rt
 
