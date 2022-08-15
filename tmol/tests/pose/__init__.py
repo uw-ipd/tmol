@@ -24,3 +24,14 @@ def fresh_default_packed_block_types(fresh_default_restype_set, torch_device):
     return PackedBlockTypes.from_restype_list(
         fresh_default_restype_set.residue_types, torch_device
     )
+
+
+@pytest.fixture
+def two_ubq_poses(ubq_res, torch_device):
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[:40], torch_device
+    )
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[:60], torch_device
+    )
+    return PoseStackBuilder.from_poses([p1, p2], torch_device)

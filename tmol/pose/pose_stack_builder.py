@@ -190,6 +190,15 @@ class PoseStackBuilder:
         ) = cls._block_type_indices_from_sequences(
             pbt, n_poses, n_res, max_n_res, sequences
         )
+        assert real_res.device == device
+        assert n_res.device == device
+        assert block_type_ind.device == device
+        assert block_type_ind64.device == device
+
+        # TEMP real_res = torch.ones((n_poses, max_n_res), dtype=torch.bool, device=device)
+        # TEMP n_res = torch.full((n_poses,), max_n_res, dtype=torch.int64, device=device)
+        # TEMP block_type_ind = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
+        # TEMP block_type_ind64 = torch.zeros((n_poses, max_n_res), dtype=torch.int64, device=device)
 
         # inter residue connections:
         # 1) we will just say that there's an up chemical bond at residue i to
@@ -209,6 +218,33 @@ class PoseStackBuilder:
 
         inter_block_bondsep64 = cls._find_inter_block_separation_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, block_type_ind64
+        )
+
+        n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
+        n_atoms[real_res] = pbt.n_atoms[block_type_ind64[real_res]]
+        block_coord_offset = exclusive_cumsum2d(n_atoms)
+
+        max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
+
+        # inter_residue_connections64 = torch.zeros((n_poses, max_n_res, 2, 2), dtype=torch.int64, device=device)
+        # inter_block_bondsep64 = torch.zeros((n_poses, max_n_res, max_n_res, 2, 2), dtype=torch.int64, device=device)
+
+        return PoseStack(
+            packed_block_types=packed_block_types,
+            # residues=residues,
+            # residue_coords=residue_coords,
+            coords=torch.zeros(
+                (n_poses, max_n_atoms), dtype=torch.float32, device=device
+            ),
+            block_coord_offset=block_coord_offset,
+            block_coord_offset64=block_coord_offset.to(torch.int64),
+            inter_residue_connections=inter_residue_connections64.to(torch.int32),
+            inter_residue_connections64=inter_residue_connections64,
+            inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
+            inter_block_bondsep64=inter_block_bondsep64,
+            block_type_ind=block_type_ind64.to(torch.int32),
+            block_type_ind64=block_type_ind64,
+            device=device,
         )
 
     @classmethod
@@ -799,7 +835,7 @@ class PoseStackBuilder:
         setattr(pbt, "polymeric_down_to_up_nbonds", polymeric_down_to_up_nbonds)
 
     @classmethod
-    @validate_args
+    # @validate_args
     def _block_type_indices_from_sequences(
         cls,
         pbt: PackedBlockTypes,
@@ -814,18 +850,23 @@ class PoseStackBuilder:
         Tensor[torch.int64][:, :],
     ]:
         device = pbt.device
+        # real_res = numpy.full((n_poses, max_n_res), True, dtype=numpy.bool)
         real_res = (
             numpy.tile(numpy.arange(max_n_res, dtype=numpy.int32), n_poses).reshape(
                 (n_poses, max_n_res)
             )
             < n_res[:, None]
         )
+
         condensed_seqs = list(itertools.chain.from_iterable(sequences))
+
         condensed_bt_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(condensed_seqs)
+        # condensed_bt_df_inds = numpy.zeros((n_poses, max_n_res), numpy.int64).reshape(-1)
         # print("condensed_bt_df_inds", condensed_bt_df_inds)
 
         # error checking: all names need to map to a residue type if we are to proceed
         condensed_non_df_inds = condensed_bt_df_inds == -1
+        # if False:
         if numpy.any(condensed_non_df_inds):
             condensed_seqs = numpy.array(condensed_seqs)
             undefined_names = condensed_seqs[condensed_non_df_inds]
@@ -848,10 +889,15 @@ class PoseStackBuilder:
         condensed_bt_inds = pbt.bt_mapping_w_lcaa_1lc["bt_ind"][
             condensed_bt_df_inds
         ].values
+        # TEMP! condensed_bt_inds = condensed_bt_df_inds
         # print("condensed_bt_inds", condensed_bt_inds)
+
         bt_inds = numpy.full((n_poses, max_n_res), -1, dtype=numpy.int32)
         bt_inds[real_res] = condensed_bt_inds
+        # TEMP! bt_inds = numpy.full((n_poses, max_n_res), 0, dtype=numpy.int32)
 
+        # now convert all numpy arrays into torch tensors: here forward, all calculations
+        # are with torch
         block_type_ind = torch.tensor(bt_inds, dtype=torch.int32, device=device)
         block_type_ind64 = block_type_ind.to(dtype=torch.int64)
         real_res = torch.tensor(real_res, dtype=torch.bool, device=device)

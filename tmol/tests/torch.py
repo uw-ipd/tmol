@@ -10,6 +10,14 @@ cuda_available = torch.cuda.is_available()
 requires_cuda = pytest.mark.skipif(not cuda_available, reason="Requires cuda.")
 
 
+def zero_padded_counts(counts):
+    from math import log10, floor
+
+    max_count = max(counts)
+    width = int(floor(log10(max_count))) + 1
+    return [str(x).zfill(width) for x in counts]
+
+
 # @pytest.fixture(params=[requires_cuda("cuda")])
 @pytest.fixture(params=["cpu", requires_cuda("cuda")])
 # @pytest.fixture(params=["cpu"])

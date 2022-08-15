@@ -79,12 +79,6 @@ def test_pose_stack_builder_one_structure_from_polymeric_residues_ctor(
     assert p_gold.block_type_ind.shape == p_new.block_type_ind.shape
 
 
-# def two_ubq_poses(ubq_res, torch_device):
-#     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(ubq_res[:40], torch_device)
-#     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(ubq_res[:60], torch_device)
-#     return PoseStackBuilder.from_poses([p1, p2], torch_device)
-
-
 def test_pose_stack_builder_create_inter_residue_connections(ubq_res, torch_device):
     connections_by_name = find_simple_polymeric_connections(ubq_res[:4])
     inter_residue_connections = PoseStackBuilder._create_inter_residue_connections(
