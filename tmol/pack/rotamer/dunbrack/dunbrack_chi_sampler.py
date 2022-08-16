@@ -433,11 +433,12 @@ class DunbrackChiSampler:
             (n_brts, max_n_chi), 0, dtype=torch.int32, device=self.device
         )
 
-        # ok, we'll go to the residue types and look at their protonation state expansions
-        # and we'll put that information into the chi_expansions_for_buildable_restype
-        # tensor
+        # ok, we'll go to the residue types and look at their protonation
+        # state expansions aand we'll put that information into the
+        # chi_expansions_for_buildable_restype tensor
 
-        nchi_for_buildable_restype = self.dun_param_resolver.sampling_db.nchi_for_table_set[
+        sampling_db = self.dun_param_resolver.sampling_db
+        nchi_for_buildable_restype = sampling_db.nchi_for_table_set[
             rottable_set_for_buildable_restype[:, 1].to(torch.int64)
         ]
 
@@ -447,11 +448,12 @@ class DunbrackChiSampler:
         # max_chi_samples = 0
 
         # TEMP! Treat everything as exposed (0)
-        non_dunbrack_expansion_counts_for_buildable_restype = pbt.dun_sampler_cache.non_dunbrack_sample_counts[
-            block_type_ind_for_brt, 0
-        ]
+        sc = pbt.dun_sampler_cache
+        ndecfbr = sc.non_dunbrack_sample_counts[block_type_ind_for_brt, 0]
+        non_dunbrack_expansion_counts_for_buildable_restype = ndecfbr
+
         # TEMP! Treat everything as exposed (0)
-        non_dunbrack_expansion_for_buildable_restype = pbt.dun_sampler_cache.non_dunbrack_samples[
+        non_dunbrack_expansion_for_buildable_restype = sc.non_dunbrack_samples[
             block_type_ind_for_brt, 0
         ]
 

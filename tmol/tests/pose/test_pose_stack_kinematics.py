@@ -1,6 +1,6 @@
 import torch
 import numpy
-from tmol.pose.pose_stack import PoseStack
+
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pose.pose_kinematics import (
     get_bonds_for_named_torsions,
@@ -67,7 +67,7 @@ def test_get_bonds_for_named_torsions(ubq_res, torch_device):
             ibt = pose_stack.block_type_ind[pose_ind, i]
             if ibt < 0:
                 continue
-            for j, tor in enumerate(pbt.active_block_types[ibt].torsions):
+            for tor in pbt.active_block_types[ibt].torsions:
                 at1 = atom_ind_to_global_index(*resolve_atom(pose_ind, i, tor.b))
                 at2 = atom_ind_to_global_index(*resolve_atom(pose_ind, i, tor.c))
                 if at1 != -1 and at2 != -1:

@@ -1,10 +1,6 @@
 import numpy
 import torch
 
-from tmol.chemical.restypes import find_simple_polymeric_connections
-from tmol.pose.pose_stack import PoseStack
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-
 
 def test_n_poses(ubq_40_60_pose_stack):
     assert ubq_40_60_pose_stack.n_poses == 2

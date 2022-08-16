@@ -1,7 +1,7 @@
 import torch
 import pytest
 
-from tmol.pose.pose_stack import PoseStack
+# from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.optimization.modules import DOFMaskingFunc
@@ -97,7 +97,8 @@ def test_minimize_w_pose_and_sfxn_benchmark(
         cart_sfxn_network = CartesianSfxnNetwork(sfxn, pose_stack)
         optimizer = LBFGS_Armijo(cart_sfxn_network.parameters(), lr=0.1, max_iter=20)
 
-        E0 = cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
+        # E0 =
+        cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
 
         def closure():
             optimizer.zero_grad()
@@ -107,7 +108,8 @@ def test_minimize_w_pose_and_sfxn_benchmark(
 
         optimizer.step(closure)
 
-        E1 = cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
+        # E1 =
+        cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
         # print("E0", E0, "E1", E1)
         # assert E1 < E0
 

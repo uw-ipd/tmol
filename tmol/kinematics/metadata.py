@@ -38,8 +38,9 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
     TensorGroup representation to support symbolic selection. This converts the
     IntEnum encoded "dof_type" entry into a string categorical column.
 
-    The DOFMetadata data members, just like the KinForest, suffer from the same confusion
-    about what an index represents because there are two ways to index the data:
+    The DOFMetadata data members, just like the KinForest, suffer from the same
+    confusion about what an index represents because there are two ways to index
+    the data:
 
     - The "Target Order" (TO) that refers to the index of an atom in the PoseStack
       it came from where the coordinate tensor is squashed to (N,3)
@@ -58,9 +59,9 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
     - parent_id[i]: the TO index for the parent to node_idx[i] for DOF i
     - child_id[i]: the TO index for node_idx[i] for DOF i
 
-    The DOFMetadata class is primarily used to index into torch tensors in python, and therefore
-    all of its dtypes are 64-bit integers.
-    
+    The DOFMetadata class is primarily used to index into torch tensors in python,
+    and therefore all of its dtypes are 64-bit integers.
+
     """
 
     node_idx: Tensor[torch.long][...]

@@ -2,7 +2,6 @@ import numpy
 import torch
 
 from tmol.chemical.restypes import find_simple_polymeric_connections
-from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
@@ -212,7 +211,7 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
     torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
 
 
-def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_mix_alpha_and_beta(
+def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
     torch_device,
 ):
     # this time, mix alpha- and beta amino acids in a chain

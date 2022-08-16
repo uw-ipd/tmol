@@ -1,29 +1,9 @@
 import attr
-import toolz
-
-import itertools
-
-import numpy
 import torch
-import pandas
-import sparse
-import scipy.sparse.csgraph as csgraph
 
-from typing import List, Tuple
-
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
-
-from tmol.chemical.restypes import (
-    RefinedResidueType,
-    # Residue,
-    find_simple_polymeric_connections,
-)
-from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
-
-# from tmol.system.datatypes import connection_metadata_dtype
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
-from tmol.types.functional import validate_args
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.packed_block_types import PackedBlockTypes
 
 
 @attr.s(auto_attribs=True)
@@ -138,7 +118,9 @@ class PoseStack:
         return torch.sum(self.block_type_ind >= 0, dim=1)
 
     def is_real_block(self, pose_ind: int, block_ind: int) -> bool:
-        """Report whether a particular block on a particular pose is real or just filler"""
+        """Report whether a particular block on a particular pose is
+        real or just filler
+        """
         return self.block_type_ind[pose_ind, block_ind] >= 0
 
     def block_type(self, pose_ind: int, block_ind: int) -> RefinedResidueType:

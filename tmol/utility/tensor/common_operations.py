@@ -114,7 +114,9 @@ def nplus1d_tensor_from_list(
     return newt, sizes, strides
 
 
-def cat_differently_sized_tensors(tensors: List,):
+def cat_differently_sized_tensors(
+    tensors: List,
+):
     assert len(tensors) > 0
     for tensor in tensors:
         assert len(tensor.shape) == len(tensors[0].shape)
@@ -163,7 +165,9 @@ def cat_differently_sized_tensors(tensors: List,):
 #         assert tensor.device == tensor[0].device
 #
 #     device = tensors[0].device
-#     new_sizes = [max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))]
+#     new_sizes = [
+#         max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))
+#     ]
 #     arange_inds = torch.arange(new_sizes.shape[-1], dtype=torch.int64, device=device)
 
 

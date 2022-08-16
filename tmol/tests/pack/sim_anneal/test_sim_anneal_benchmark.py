@@ -233,10 +233,14 @@ def temp_dont_test_run_simA_benchmark(
     run_sim_annealing(annealer)
 
     #
-    # temperature = torch.full((1,), 100, dtype=torch.float32, device=torch.device("cpu"))
+    # temperature = torch.full(
+    #     (1,), 100, dtype=torch.float32, device=torch.device("cpu")
+    # )
     #
     # alt_coords, alt_ids, rr = selector.go(context_coords, context_block_type)
-    # lj_energies, events = inter_module.go(context_coords, context_block_type, alt_coords, alt_ids)
+    # lj_energies, events = inter_module.go(
+    #     context_coords, context_block_type, alt_coords, alt_ids
+    # )
     # accept = mc_accept_reject.go(
     #     temperature,
     #     context_coords,

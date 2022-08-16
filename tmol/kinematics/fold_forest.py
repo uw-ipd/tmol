@@ -2,9 +2,7 @@ import numpy
 import attr
 import enum
 
-from typing import Sequence
 from tmol.types.array import NDArray
-from tmol.chemical.restypes import Residue
 
 
 class EdgeType(enum.IntEnum):
