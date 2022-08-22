@@ -4,44 +4,11 @@ import pytest
 # from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.optimization.modules import DOFMaskingFunc
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 
-
-class CartesianSfxnNetwork(torch.nn.Module):
-    def __init__(self, score_function, pose_stack, coord_mask=None):
-        super(CartesianSfxnNetwork, self).__init__()
-
-        self.whole_pose_scoring_module = (
-            score_function.render_whole_pose_scoring_module(pose_stack)
-        )
-        self.coord_mask = coord_mask
-
-        self.full_coords = pose_stack.coords
-        if self.coord_mask is None:
-            self.masked_coords = torch.nn.Parameter(pose_stack.coords)
-        else:
-            self.masked_coords = torch.nn.Parameter(pose_stack.coords[self.coord_mask])
-        self.count = 0
-
-    def forward(self):
-        self.count += 1
-        self.full_coords = DOFMaskingFunc.apply(
-            self.masked_coords, self.coord_mask, self.full_coords
-        )
-        return self.whole_pose_scoring_module(self.full_coords)
-
-
-class KinematicSfxnNetwork(torch.nn.Module):
-    def __init__(self, score_function, pose_stack, dof_mask=None):
-        super(KinematicSfxnNetwork, self).__init__()
-
-        self.whole_pose_scoring_module = (
-            score_function.render_whole_pose_scoring_module(pose_stack)
-        )
-        self.dof_mask = dof_mask
-        # TO DO!!!
+from tmol.optimization.modules import DOFMaskingFunc
+from tmol.optimization.sfxn_modules import CartesianSfxnNetwork
 
 
 def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_device):
@@ -58,7 +25,7 @@ def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_dev
     optimizer = LBFGS_Armijo(cart_sfxn_network.parameters(), lr=0.1, max_iter=20)
 
     E0 = cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
-    print("E0", E0)
+    # print("E0", E0)
 
     def closure():
         optimizer.zero_grad()
@@ -69,10 +36,10 @@ def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_dev
     optimizer.step(closure)
 
     E1 = cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
-    print("E1", E1)
+    # print("E1", E1)
     assert E1 < E0
 
-    print("n sfxn evals:", cart_sfxn_network.count)
+    # print("n sfxn evals:", cart_sfxn_network.count)
 
 
 @pytest.mark.parametrize("n_poses", [1, 3, 10, 30])
@@ -80,6 +47,9 @@ def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_dev
 def test_minimize_w_pose_and_sfxn_benchmark(
     benchmark, rts_ubq_res, default_database, torch_device, n_poses
 ):
+    if torch_device == torch.device("cpu"):
+        return
+
     pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res, torch_device
     )

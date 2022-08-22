@@ -1,6 +1,7 @@
+#include <torch/torch.h>
 #include <torch/script.h>
-#include <tmol/utility/autograd.hh>
 
+#include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
 
@@ -13,28 +14,31 @@ namespace pose {
 
 using torch::Tensor;
 
-Tensor apsp_op(
-    Tensor stacked_distances
-) {
-  using tmol::utility::connect_backward_pass;
+void apsp_op(Tensor stacked_distances) {
+  // using tmol::utility::connect_backward_pass;
 
   at::Tensor coords;
   at::Tensor HTs;
 
   using Int = int32_t;
 
-  TMOL_DISPATCH_INDEX_DEVICE(stacked_distances.type(), "stacked_apsp_op", ([&] {
-    using Int = scalar_t;
-    constexpr tmol::Device Dev = device_t;
-    
-    AllPairsShortestPathsDispatch<Dev, Int>::f(TCAST(stacked_distances));
-  }));
+  TMOL_DISPATCH_INDEX_DEVICE(
+      stacked_distances.type(), "stacked_apsp_op", ([&] {
+        using Int = index_t;
+        constexpr tmol::Device Dev = device_t;
+
+        AllPairsShortestPathsDispatch<Dev, Int>::f(TCAST(stacked_distances));
+      }));
 };
 
+// static auto registry = torch::jit::RegisterOperators()
+//   .op("tmol::apsp_op", &apsp_op);
 
-static auto registry = torch::jit::RegisterOperators()
-  .op("tmol::apsp_op", &apsp_op);
+// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
+// See https://stackoverflow.com/a/3221914
+#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 
+TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) { m.def("apsp_op", &apsp_op); }
 
 }  // namespace pose
 }  // namespace tmol

@@ -209,7 +209,7 @@ class PoseStackBuilder:
         return PoseStack(
             packed_block_types=packed_block_types,
             coords=torch.zeros(
-                (n_poses, max_n_atoms), dtype=torch.float32, device=device
+                (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
             ),
             block_coord_offset=block_coord_offset,
             block_coord_offset64=block_coord_offset.to(torch.int64),
