@@ -18,42 +18,21 @@ struct AllPairsShortestPathsDispatch {
     // Sentintel weights below 0 are used to indicate that
     // two nodes have an infinite path weight
 
+    // From:
+    // Katz, G. J., & Kider, J. T. (2008). All-Pairs Shortest-Paths for Large
+    // Graphs on the GPU. Proceedings of the 23rd ACM SIGGRAPH/EUROGRAPHICS
+    // Symposium on Graphics Hardware (GH '08), 47-55.
+    // https://repository.upenn.edu/cgi/viewcontent.cgi?article=1213&context=hms
+
     int n_graphs = weights.size(0);
     int max_n_nodes = weights.size(1);
 
     assert(weights.size(2) == max_n_nodes);
 
-    // for (int gg = 0; gg < n_graphs; ++gg) {
-    //
-    //  // for each intermediate node, kk
-    //  for (int kk = 0; kk < max_n_nodes; ++kk) {
-    //
-    //	// for each node ii
-    //	for (int ii = 0; ii < max_n_nodes; ++ii) {
-    //
-    //	  // for each node jj
-    //	  for (int jj = 0; jj < max_n_nodes; ++jj) {
-    //
-    //	    // ask: is there a shorter path from ii to jj by passing
-    //	    // first through intermediate node kk?
-    //
-    //	    if (weights[gg][ii][kk] >= 0 && weights[gg][kk][jj] >= 0) {
-    //	      int curr_weight = weights[gg][ii][jj];
-    //	      int new_path_weight = weights[gg][ii][kk] + weights[gg][kk][jj];
-    //	      if (curr_weight < 0 || new_path_weight < curr_weight) {
-    //		weights[gg][ii][jj] = new_path_weight;
-    //	      }
-    //	    }
-    //
-    //	  }  // for node jj
-    //	} // for node ii
-    //  } // for intermediate node kk
-    //} // for graph gg
-
     auto phase1 = ([=] __device__(int block) {
       int graph_ind = blockIdx.x;
-      int x = threadIdx.x;
-      int y = threadIdx.y;
+      int x = threadIdx.y;
+      int y = threadIdx.x;
       int i = TILE_SIZE * block + x;
       int j = TILE_SIZE * block + y;
 
@@ -99,8 +78,8 @@ struct AllPairsShortestPathsDispatch {
       int const graph_ind = blockIdx.x;
       int const off_diag_block = blockIdx.y;
       int const z = blockIdx.z;
-      int const x = threadIdx.x;
-      int const y = threadIdx.y;
+      int const x = threadIdx.y;
+      int const y = threadIdx.x;
       int const is_after_primary = off_diag_block >= primary_block ? 1 : 0;
 
       // Figure out which node pair i,j we are examining.
@@ -193,8 +172,8 @@ struct AllPairsShortestPathsDispatch {
           blockIdx.y + (blockIdx.y >= primary_block ? 1 : 0);
       int const target_block_column =
           blockIdx.z + (blockIdx.z >= primary_block ? 1 : 0);
-      int const x = threadIdx.x;
-      int const y = threadIdx.y;
+      int const x = threadIdx.y;
+      int const y = threadIdx.x;
 
       int const primary_i = TILE_SIZE * primary_block + x;
       int const primary_j = TILE_SIZE * primary_block + y;

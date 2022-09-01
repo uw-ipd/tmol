@@ -1,8 +1,9 @@
 import numpy
 import torch
+import pytest
 
 from tmol.pose.compiled.apsp_ops import stacked_apsp
-from tmol.tests.torch import requires_cuda
+from tmol.tests.torch import requires_cuda, zero_padded_counts
 
 
 def test_all_pairs_shortest_paths_simple_path_graph1(torch_device):
@@ -115,3 +116,31 @@ def test_all_pairs_shortest_paths_w_off_diagonal_bonds():
     for i in range(n_nodes):
         for j in range(n_nodes):
             assert cuda_result_cpu[0, i, j] == cuda_result_cpu[0, j, i]
+
+
+@pytest.mark.parametrize("n_nodes", zero_padded_counts([30, 100, 300]))
+@pytest.mark.parametrize("n_graphs", zero_padded_counts([1, 3, 10, 30]))
+@pytest.mark.benchmark(group="all_pairs_shortest_paths")
+def test_all_pairs_shortest_paths_benchmark(benchmark, torch_device, n_graphs, n_nodes):
+    if torch_device == torch.device("cpu"):
+        return
+    # torch_device = torch.device("cpu")
+    # n_nodes = 1000
+    # n_graphs = 5
+    n_nodes = int(n_nodes)
+    n_graphs = int(n_graphs)
+
+    weights = torch.full(
+        (n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device
+    )
+    arange_n_nodes = torch.arange(n_nodes, dtype=torch.int64, device=torch_device)
+    weights[:, arange_n_nodes, arange_n_nodes] = 0
+    weights[:, arange_n_nodes[1:], arange_n_nodes[:-1]] = 1
+    weights[:, arange_n_nodes[:-1], arange_n_nodes[1:]] = 1
+
+    weights_gold = weights.clone()
+
+    @benchmark
+    def run_apsp():
+        weights[:] = weights_gold
+        stacked_apsp(weights)

@@ -5,6 +5,7 @@ import sparse
 import scipy.sparse.csgraph as csgraph
 
 from tmol.database import ParameterDatabase
+from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -39,14 +40,14 @@ class BondDependentTerm(EnergyTerm):
             assert hasattr(packed_block_types, "atoms_for_interblock_bonds")
             # assert hasattr(packed_block_types, "intrares_indexed_bonds")
             return
-        MAX_SEPARATION = 6
+
         bond_separation = numpy.full(
             (
                 packed_block_types.n_types,
                 packed_block_types.max_n_atoms,
                 packed_block_types.max_n_atoms,
             ),
-            MAX_SEPARATION,
+            MAX_SIG_BOND_SEPARATION,
             dtype=numpy.int32,
         )
         for i, rt in enumerate(packed_block_types.active_block_types):
@@ -59,9 +60,12 @@ class BondDependentTerm(EnergyTerm):
                 cache=True,
             )
             rt_bond_closure = csgraph.dijkstra(
-                rt_bonds_sparse, directed=False, unweighted=True, limit=MAX_SEPARATION
+                rt_bonds_sparse,
+                directed=False,
+                unweighted=True,
+                limit=MAX_SIG_BOND_SEPARATION,
             )
-            rt_bond_closure[rt_bond_closure == numpy.inf] = MAX_SEPARATION
+            rt_bond_closure[rt_bond_closure == numpy.inf] = MAX_SIG_BOND_SEPARATION
             bond_separation[i, :i_nats, :i_nats] = rt_bond_closure
         bond_separation = torch.tensor(bond_separation, device=self.device)
 

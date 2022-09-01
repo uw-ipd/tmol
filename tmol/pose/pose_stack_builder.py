@@ -1,4 +1,5 @@
 import toolz
+import copy
 
 import itertools
 
@@ -13,6 +14,7 @@ from typing import List, Tuple
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
+from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.restypes import (
     # RefinedResidueType,
     Residue,
@@ -195,6 +197,101 @@ class PoseStackBuilder:
                 pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64
             )
         )
+
+        inter_block_bondsep64 = cls._find_inter_block_separation_for_polymeric_monomers(
+            pbt, n_poses, max_n_res, real_res, block_type_ind64
+        )
+
+        n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
+        n_atoms[real_res] = pbt.n_atoms[block_type_ind64[real_res]]
+        block_coord_offset = exclusive_cumsum2d(n_atoms)
+
+        max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
+
+        return PoseStack(
+            packed_block_types=packed_block_types,
+            coords=torch.zeros(
+                (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
+            ),
+            block_coord_offset=block_coord_offset,
+            block_coord_offset64=block_coord_offset.to(torch.int64),
+            inter_residue_connections=inter_residue_connections64.to(torch.int32),
+            inter_residue_connections64=inter_residue_connections64,
+            inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
+            inter_block_bondsep64=inter_block_bondsep64,
+            block_type_ind=block_type_ind64.to(torch.int32),
+            block_type_ind64=block_type_ind64,
+            device=device,
+        )
+
+    @classmethod
+    @validate_args
+    def pose_stack_from_monomer_polymer_sequences_w_extrapolymieric_conns(
+        cls,
+        packed_block_types: PackedBlockTypes,
+        sequences,  # List[List[str]], -- too slow to type check
+    ):
+        """Construct a PoseStack given a list of sequences where the disulfide
+        connectivity is known. E.g. If there is a disulfide pair between residues
+        5 and 20 and another disulfide pair between residues 9 and 15, then
+        the sequence would be given as:
+
+        AAAA[CYD--dslf-first]AAA[CYD--dslf-second]AAAAA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA
+
+        where the string following the double dash, designates 1) the name of the inter-residue
+        connection (for CYD, this is "dslf") and then 2) after the single dash, a unique identifier
+        so that which pair of residues are forming that connection. In this case the
+        two disulfides have the labels "first" and "second," but any unique label would suffice.
+
+        """
+        cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
+        cls._annotate_pbt_w_polymeric_down_up_bondsep_dist(packed_block_types)
+
+        pbt = packed_block_types
+        device = pbt.device
+        n_poses = len(sequences)
+
+        n_res = numpy.array([len(x) for x in sequences], dtype=numpy.int32)
+        max_n_res = numpy.amax(n_res).item()
+
+        trimmed_sequences, connecions = cls._find_connections_in_sequences(
+            pbt, sequences
+        )
+
+        (
+            real_res,
+            n_res,
+            block_type_ind,
+            block_type_ind64,
+        ) = cls._block_type_indices_from_sequences(
+            pbt, n_poses, n_res, max_n_res, trimmed_sequences
+        )
+        assert real_res.device == device
+        assert n_res.device == device
+        assert block_type_ind.device == device
+        assert block_type_ind64.device == device
+
+        # inter residue connections:
+        # 1) we will just say that there's an up chemical bond at residue i to
+        # every down connection at residue i+1 and vice versa for each real
+        # residue on each pose, except the first and last residues. This will
+        # give us the inter_residue_connections tensor
+        #
+        # 2) if we know the down-to-up chemical bond separation for each block type
+        # then we can use scan to compute the number of chemical bonds separating
+        # every pair of residues, this will give us the inter_block_bondsep tensor
+
+        inter_residue_connections64 = (
+            cls._inter_residue_connections_for_polymeric_monomers(
+                pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64
+            )
+        )
+        # add in non-polymeric connections (such as disulfides)
+        # soon cls._incorporate_extra_inter_residue_connections(
+        # soon     pbt,
+        # soon     connections,
+        # soon     inter_residue_connections64
+        # soon )
 
         inter_block_bondsep64 = cls._find_inter_block_separation_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, block_type_ind64
@@ -453,6 +550,100 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
+    def _find_connection_pairs_for_residue_subset(
+        cls,
+        pbt: PackedBlockTypes,
+        sequences,  # List[List[str]] -- too slow to type check
+        residue_connections: List[Tuple[int, str, int, str]],
+    ):
+        """When there are only a handful of inter-residue connections that
+        must be resolved by name, such as disulfides, then handle these
+        few connections one-by-one.
+        """
+        conn_inds = []
+        bt_names = [
+            (sequences[i, r1], sequences[i, r2])
+            for i in range(len(residue_connections))
+            for r1, _1, r2, _2 in residue_connections[i]
+        ]
+        bt_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(
+            itertools.chain.from_iterable(bt_names)
+        )
+        if numpy.any(condensed_non_df_inds) == -1:
+            # TO DO: better error message
+            # error check
+            error = "Fatal error: could not resolve residue type"
+            raise ValueEerror(error)
+        bt_inds = pbt.bt_mapping_w_lcaa_1lc["bt_ind"][bt_df_inds].values
+
+        def conn_at_ind_for_bt(bt_ind, c_name):
+            bt = pbt.active_block_types[bt_ind]
+            return bt.connection_to_idx[c_name], bt.connection_to_cidx[c_name]
+
+        count = 0
+        for pose_conns in residue_connections:
+            pose_conn_inds = []
+            for r1, c_name1, r2, c_name2 in pose_conns:
+                at1, at2 = None, None
+                try:
+                    bt1_ind = bt_inds[count]
+                    count += 1
+                    bt2_ind = bt_inds[count]
+                    count += 1
+                    at1, c1 = conn_at_ind_for_bt(bt1_ind, c_name1)
+                    at2, c2 = conn_at_ind_for_bt(bt2_ind, c_name2)
+                    pose_conn_inds.append((r1, at1, c1, r2, at2, c2))
+                except KeyError as e:
+                    if at1 is None:
+                        missing = (c_name1, r1, bt1_ind, c_name2, r2)
+                    else:
+                        missing = (c_name2, r2, bt2_ind, c_name1, r1)
+                    # new_err_msg = (
+                    #     "Failed to find connecton " + missing[0] + " on residue type "
+                    #     + sequences[i][missing[1]] + " which is listed as forming a chemical"
+                    #     + " bond to connection " + missing[3] + " on residue type "
+                    #     + sequences[i][missing[4]] + "\n"
+                    #     + "Valid connection names on " + sequences[i][missing[1]] + " are: "
+                    #     + "'" + "', '".join(pbt.active_block_types[missing[3]].connection_to_cidx.keys())
+                    #     + "'"
+                    # )
+                    raise ValueError(new_err_msg)
+            conn_inds.append(pose_conn_inds)
+        return pose_con_inds
+
+    @classmethod
+    @validate_args
+    def _read_intra_block_connection_atom_separations(
+        cls, pbt, block_types64, real_blocks
+    ):
+        cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
+
+        n_poses = block_types64.shape[0]
+        max_n_blocks = block_types64.shape[1]
+        max_n_conn = pbt.max_n_conn
+
+        intra_block_conn_dists = torch.zeros(
+            (n_poses, max_n_blocks, max_n_conn, max_n_conn),
+            dtype=torch.int32,
+            device=pbt.device,
+        )
+        intra_block_conn_dists[real_blocks] = pbt.conn_at_intrablock_bond_sep[
+            block_types64[real_blocks]
+        ]
+        return intra_block_conn_dists
+
+    @classmethod
+    @validate_args
+    def _take_real_conn_conn_intrablock_pairs(
+        cls,
+        pbt,
+        block_types64,
+        real_blocks,
+    ):
+        pass
+
+    @classmethod
+    @validate_args
     def _resolve_inter_block_bondsep(
         cls,
         res: List[Residue],
@@ -487,16 +678,21 @@ class PoseStackBuilder:
         )
 
         min_bond_dist = csgraph.dijkstra(
-            bond_graph.tocsr(), directed=False, unweighted=True, limit=6
+            bond_graph.tocsr(),
+            directed=False,
+            unweighted=True,
+            limit=MAX_SIG_BOND_SEPARATION,
         )
 
         # ok, now we want to ask: for each pair of connections, what is
         # the minimum number of chemical bonds that connects them.
 
         inter_block_bondsep = numpy.full(
-            (1, n_res, n_res, max_n_conn, max_n_conn), 6, dtype=numpy.int32
+            (1, n_res, n_res, max_n_conn, max_n_conn),
+            MAX_SIG_BOND_SEPARATION,
+            dtype=numpy.int32,
         )
-        min_bond_dist[min_bond_dist == numpy.inf] = 6
+        min_bond_dist[min_bond_dist == numpy.inf] = MAX_SIG_BOND_SEPARATION
 
         ainds_conn1 = connection_atoms["aidx"].values
         ainds_conn2 = connection_atoms["aidx"].values
@@ -809,6 +1005,117 @@ class PoseStackBuilder:
         )
 
         setattr(pbt, "polymeric_down_to_up_nbonds", polymeric_down_to_up_nbonds)
+
+    @classmethod
+    @validate_args
+    def _annotate_bt_w_intraresidue_connection_atom_distances(
+        cls, bt: RefinedResidueType
+    ):
+        """Annotate the block type with a slice of the path-distances data member
+        for only the inter-residue connection atoms
+        """
+        if hasattr(bt, "conn_at_intrablock_bond_sep"):
+            return
+        n_conns = len(bt.connections)
+        ind1 = numpy.repeat(bt.ordered_connection_atoms, n_conns, axis=0).reshape(
+            n_conns, n_conns
+        )
+        ind2 = numpy.transpose(ind1)
+        conn_at_intrablock_bond_sep = bt.path_distance[ind1, ind2]
+        setattr(bt, "conn_at_intrablock_bond_sep", conn_at_intrablock_bond_sep)
+
+    @classmethod
+    @validate_args
+    def _annotate_pbt_w_intraresidue_connection_atom_distances(
+        cls, pbt: PackedBlockTypes
+    ):
+        """Note the number of chemical bonds that separate all pairs of connection atoms.
+        This information is needed in order to construct the starting (weighted) graph
+        describing the chemical bonds in the system from which either the limited-
+        Dijkstra or the all-pairs-shortest-paths algorithms will generate the chemical
+        separation of the connection atoms.
+        """
+        if hasattr(pbt, "conn_at_intrablock_bond_sep"):
+            return
+        for bt in pbt.active_block_types:
+            cls._annotate_bt_w_intraresidue_connection_atom_distances(bt)
+
+        max_n_conn = pbt.max_n_conn
+        conn_at_intrablock_bond_sep = torch.full(
+            (pbt.n_types, max_n_conn, max_n_conn),
+            -1,
+            dtype=torch.int32,
+            device=pbt.device,
+        )
+        for i, bt in enumerate(pbt.active_block_types):
+            i_n_conn = len(bt.connections)
+            conn_at_intrablock_bond_sep[
+                i, :i_n_conn, :i_n_conn
+            ] = bt.conn_at_intrablock_bond_sep
+        setattr(pbt, "conn_at_intrablock_bond_sep", conn_at_intrablock_bond_sep)
+
+    @classmethod
+    @validate_args
+    def _find_connections_in_sequences(
+        cls,
+        pbt: PackedBlockTypes,
+        sequences,  # List[List[str]] -- too slow to type check
+    ):
+        ps_conns = []
+        trimmed_seqs = copy.deepcopy(sequences)
+        for i in range(len(sequences)):
+            labels = {}
+            p_conns = []
+            completed_labels = {}
+            for j, resname in enumerate(sequences[i]):
+                if len(resname) < 6:
+                    # X--C-I
+                    # is the shortest possible string containing
+                    # an inter-residue connection
+                    continue
+                connections = resname.split("--")
+                if len(connections) < 2:
+                    # no inter-residue connections specified here,
+                    # just a long name for the residue type
+                    continue
+                trimmed_seqs[i][j] = connections[0]
+                for conn in connections[1:]:
+                    conn_name, conn_label = conn.split("-")
+                    if conn_label in labels:
+                        partner, partner_conn_name = labels[conn_label]
+                        if partner == -1:
+                            # error: more than two inter-residue connections have
+                            # been given the same connection label
+                            prev_conn = completed_labels[conn_label]
+                            err_msg = (
+                                "Fatal error: found more than two residue-connections with the "
+                                + 'same connection label: "'
+                                + conn_label
+                                + '"'
+                                + "\nPreviously encountered between residues "
+                                + str(prev_conn[0])
+                                + ", conn "
+                                + prev_conn[1]
+                                + " and "
+                                + str(prev_conn[2])
+                                + ", conn "
+                                + prev_conn[3]
+                                + " and "
+                                + "now found again for"
+                                + str(j)
+                                + " as part of the residue "
+                                + resname
+                                + "\n"
+                            )
+                            raise ValueError(err_msg)
+                        conn = (partner, partner_conn_name, j, conn_name)
+                        completed_labels[conn_label] = conn
+                        labels[conn_label] = (-1, None)
+                        p_conns.append(conn)
+                    else:
+                        labels[conn_label] = (j, conn_name)
+                ps_conns.append(p_conns)
+            return trimmed_seqs, ps_conns
 
     @classmethod
     @validate_args

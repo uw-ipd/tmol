@@ -15,13 +15,6 @@ namespace pose {
 using torch::Tensor;
 
 void apsp_op(Tensor stacked_distances) {
-  // using tmol::utility::connect_backward_pass;
-
-  at::Tensor coords;
-  at::Tensor HTs;
-
-  using Int = int32_t;
-
   TMOL_DISPATCH_INDEX_DEVICE(
       stacked_distances.type(), "stacked_apsp_op", ([&] {
         using Int = index_t;
@@ -30,6 +23,28 @@ void apsp_op(Tensor stacked_distances) {
         AllPairsShortestPathsDispatch<Dev, Int>::f(TCAST(stacked_distances));
       }));
 };
+
+// void limited_sparse_apsp_op(
+//   Tensor n_conn_for_nodes,
+//   Tensor conn_offset_for_nodes,
+//   Tensor connections_for_nodes,
+//   int limit
+// ) {
+//   using Int = int32_t;
+//
+//   TMOL_DISPATCH_INDEX_DEVICE(
+//       n_conn_for_nodes.type(), "limited_apsp_sparse_op", ([&] {
+//         using Int = index_t;
+//         constexpr tmol::Device Dev = device_t;
+//
+//         LimitedSparseAllPairsShortestPathsDispatch<Dev, Int>::f(
+// 	  TCAST(n_conn_for_nodes),
+// 	  TCAST(conn_offset_for_nodes),
+// 	  TCAST(connections_for_nodes),
+// 	  limit
+// 	);
+//       }));
+// };
 
 // static auto registry = torch::jit::RegisterOperators()
 //   .op("tmol::apsp_op", &apsp_op);

@@ -4,6 +4,7 @@ dunbrack_lookup:
   - { *n: asn ,*r: ASN }
   - { *n: asp ,*r: ASP }
   - { *n: cys ,*r: CYS }
+  - { *n: cys ,*r: CYD }
   - { *n: gln ,*r: GLN }
   - { *n: glu ,*r: GLU }
   - { *n: his ,*r: HIS }
