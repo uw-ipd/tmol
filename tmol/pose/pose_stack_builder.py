@@ -24,7 +24,11 @@ from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_re
 from tmol.pose.pose_stack import PoseStack
 
 # from tmol.system.datatypes import connection_metadata_dtype
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d, exclusive_cumsum2d
+from tmol.utility.tensor.common_operations import (
+    exclusive_cumsum1d,
+    exclusive_cumsum2d,
+    exclusive_cumsum2d_and_totals
+)
 from tmol.types.functional import validate_args
 
 
@@ -287,11 +291,11 @@ class PoseStackBuilder:
             )
         )
         # add in non-polymeric connections (such as disulfides)
-        # soon cls._incorporate_extra_inter_residue_connections(
-        # soon     pbt,
-        # soon     connections,
-        # soon     inter_residue_connections64
-        # soon )
+        cls._incorporate_extra_inter_residue_connections(
+            pbt,
+            connections,
+            inter_residue_connections64
+        )
 
         inter_block_bondsep64 = cls._find_inter_block_separation_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, block_type_ind64
@@ -615,7 +619,7 @@ class PoseStackBuilder:
     @validate_args
     def _read_intra_block_connection_atom_separations(
         cls, pbt, block_types64, real_blocks
-    ):
+    ) -> Tensor[torch.int32][:, :, :, :]:
         cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
 
         n_poses = block_types64.shape[0]
@@ -640,7 +644,87 @@ class PoseStackBuilder:
         block_types64,
         real_blocks,
     ):
-        pass
+        n_posess = block_types64.shape[0]
+
+        n_conn = torch.full_like(block_types64, 0, dtype=torch.int32)
+        n_conn[real_blocks] = pbt.n_conn[block_types64[real_blocks]]
+        n_conn_offset, n_conn_totals = exclusive_cumsum2d_and_totals(n_conn)
+        n_conn_offset64 = n_conn_offset.to(torch.int64)
+        max_n_pose_conn = torch.max(n_conn_totals)
+
+        conn_matrix = torch.full(
+            (n_poses, max_n_pose_conn, max_n_pose_conn),
+            MAX_SIG_BOND_SEPARATION,
+            dtype=torch.int32,
+            device=pbt.device
+        )
+        conn_inds1 = torch.repeat(
+            torch.arange(max_n_pose_conn),
+            max_n_conn * n_poses,
+            dtype=torch.int64,
+        ).reshape(n_poses, max_n_pose_conn, max_n_pose_conn)
+        conn_inds2 = torch.transpose(conn_inds1, 1, 2)
+
+        # let's identify which pairs of connections are part
+        # of the same block
+        block_for_conn = torch.zeros(
+            (n_poses, max_n_pose_conn),
+            dtype=torch.int32,
+            device=pbt.device
+        )
+        pose_for_conn = stretch(
+            torch.arange(
+                n_poses,
+                dtype=torch.int64,
+                device=pbt.device
+            ),
+            max_n_pose_conn
+        )
+        block_for_conn[
+            pose_for_conn,
+            n_conn_offset64.ravel()
+        ] = 1
+        block_for_conn = exclusive_cumsum2d(block_for_conn)
+        are_conns_from_same_block = (
+            block_for_conn[:, None, :] == block_for_conn[:, :, None]
+        )
+        # (
+        #    nz_conns_from_same_block_pose_ind,
+        #    nz_conns_from_same_block_conn1_ind,
+        #     nz_conns_from_same_block_conn2_ind
+        # ) = torch.nonzero(are_conns_from_same_block, as_tuple=True)
+
+
+        intra_block_conn_dists = (
+            cls._read_intra_block_connection_atom_separations(
+                pbt,
+                block_types64,
+                real_blocks
+            )
+        )
+
+        local_ind_for_conn1 = torch.repeat(
+            torch.arange(pbt.max_n_conn, dtype=torch.int64, device=pbt.device),
+            n_poses * max_n_res * pbt.max_n_conn * pbt.max_n_conn
+        ).reshape(n_poses, max_n_res, pbt.max_n_conn, pbt.max_n_conn)
+        local_ind_for_conn2 = torch.transpose(local_ind_for_conn1, 2, 3)
+
+        n_conn_for_conn = stretch(
+            n_conn, pbt.max_n_conn * pbt.max_n_conn
+        ).reshape(n_poses, max_n_res, pbt.max_n_conn, pbt.max_n_conn)
+
+        valid_conn_pair = torch.logical_and(
+            local_ind_for_conn1 < n_conn_for_conn,
+            local_ind_for_conn2 < n_conn_for_conn
+        )
+        # here we are at last! fancy indexing to take the subset of
+        # real interresidue connection pairs from the
+        conn_matrix[are_conns_from_same_block] = intra_block_conn_dists[
+            valid_conn_pair
+        ]
+
+
+
 
     @classmethod
     @validate_args
