@@ -1,6 +1,7 @@
 import numpy
 import torch
 
+from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.restypes import find_simple_polymeric_connections
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
@@ -284,3 +285,360 @@ def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
     # print(inter_block_separation64)
 
     torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
+
+
+def test_take_real_conn_conn_intrablock_pairs(
+    fresh_default_packed_block_types, torch_device
+):
+    pass
+
+
+def test_take_real_conn_conn_intrablock_pairs_heavy(torch_device):
+    # pbt = fresh_default_packed_block_types
+    # ala_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
+    # cyd_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
+
+    ala_bt = 0
+    cyd_bt = 1
+    n_bt = 2
+    max_n_conn = 3
+    pbt_n_conn = torch.tensor([2, 3], dtype=torch.int32, device=torch_device)
+    pbt_conn_at_intrablock_bond_sep = torch.full(
+        (n_bt, max_n_conn, max_n_conn),
+        MAX_SIG_BOND_SEPARATION,
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    # self, ala
+    pbt_conn_at_intrablock_bond_sep[0, 0, 0] = 0
+    pbt_conn_at_intrablock_bond_sep[0, 1, 1] = 0
+
+    # other, ala
+    pbt_conn_at_intrablock_bond_sep[0, 0, 1] = 2
+    pbt_conn_at_intrablock_bond_sep[0, 1, 0] = 2
+
+    # self, cyd
+    pbt_conn_at_intrablock_bond_sep[1, 0, 0] = 0
+    pbt_conn_at_intrablock_bond_sep[1, 1, 1] = 0
+    pbt_conn_at_intrablock_bond_sep[1, 2, 2] = 0
+
+    # other, cyd
+    pbt_conn_at_intrablock_bond_sep[1, 0, 1] = 2
+    pbt_conn_at_intrablock_bond_sep[1, 1, 0] = 2
+    pbt_conn_at_intrablock_bond_sep[1, 0, 2] = 3
+    pbt_conn_at_intrablock_bond_sep[1, 2, 0] = 3
+    pbt_conn_at_intrablock_bond_sep[1, 1, 2] = 3
+    pbt_conn_at_intrablock_bond_sep[1, 2, 1] = 3
+
+    block_types64 = torch.tensor(
+        [
+            [ala_bt, ala_bt, cyd_bt, ala_bt],
+            [ala_bt, ala_bt, -1, -1],
+        ],
+        dtype=torch.int64,
+        device=torch_device,
+    )
+    real_blocks = block_types64 != -1
+
+    pconn_matrix, *_ = PoseStackBuilder._take_real_conn_conn_intrablock_pairs_heavy(
+        pbt_n_conn, pbt_conn_at_intrablock_bond_sep, block_types64, real_blocks
+    )
+
+    pconn_matrix_gold = torch.full(
+        (2, 2 + 2 + 3 + 2, 2 + 2 + 3 + 2),
+        MAX_SIG_BOND_SEPARATION,
+        dtype=torch.int32,
+        device=torch_device,
+    )
+
+    pconn_matrix_gold[0, 0:2, 0:2] = 2
+    pconn_matrix_gold[0, 0, 0] = 0
+    pconn_matrix_gold[0, 1, 1] = 0
+
+    pconn_matrix_gold[0, 2:4, 2:4] = 2
+    pconn_matrix_gold[0, 2, 2] = 0
+    pconn_matrix_gold[0, 3, 3] = 0
+
+    pconn_matrix_gold[0, 4:6, 4:6] = 2
+    pconn_matrix_gold[0, 4, 4] = 0
+    pconn_matrix_gold[0, 5, 5] = 0
+    pconn_matrix_gold[0, 4:6, 6] = 3
+    pconn_matrix_gold[0, 6, 4:6] = 3
+    pconn_matrix_gold[0, 6, 6] = 0
+
+    pconn_matrix_gold[0, 7:9, 7:9] = 2
+    pconn_matrix_gold[0, 7, 7] = 0
+    pconn_matrix_gold[0, 8, 8] = 0
+
+    pconn_matrix_gold[1, 0:2, 0:2] = 2
+    pconn_matrix_gold[1, 0, 0] = 0
+    pconn_matrix_gold[1, 1, 1] = 0
+
+    pconn_matrix_gold[1, 2:4, 2:4] = 2
+    pconn_matrix_gold[1, 2, 2] = 0
+    pconn_matrix_gold[1, 3, 3] = 0
+
+    torch.testing.assert_close(pconn_matrix_gold, pconn_matrix)
+
+
+def test_find_connection_pairs_for_residue_subset(
+    fresh_default_packed_block_types, torch_device
+):
+    pbt = fresh_default_packed_block_types
+    ala_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
+    cyd_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
+
+    sequences = [["ALA", "ALA", "CYD", "ALA", "CYD"], ["ALA", "CYD", "ALA", "CYD"]]
+    block_types = torch.tensor(
+        [
+            [ala_bt, ala_bt, cyd_bt, ala_bt, cyd_bt],
+            [ala_bt, cyd_bt, ala_bt, cyd_bt, -1],
+        ],
+        dtype=torch.int64,
+        device=torch_device,
+    )
+    residue_connections = [[(2, "dslf", 4, "dslf")], [(1, "dslf", 3, "dslf")]]
+
+    ps_conns = PoseStackBuilder._find_connection_pairs_for_residue_subset(
+        pbt, sequences, block_types, residue_connections
+    )
+
+    ps_conns_gold = [[(2, 2, 4, 2)], [(1, 2, 3, 2)]]
+    assert len(ps_conns) == len(ps_conns_gold)
+    for p_conn, p_conn_gold in zip(ps_conns, ps_conns_gold):
+        assert len(p_conn) == len(p_conn_gold)
+        for conn, conn_gold in zip(p_conn, p_conn_gold):
+            assert conn == conn_gold
+
+
+def test_find_connection_pairs_for_residue_subset2(
+    fresh_default_packed_block_types, torch_device
+):
+    pbt = fresh_default_packed_block_types
+    abt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
+    cbt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
+    a = "ALA"
+    c = "CYD"
+
+    sequences = [[a, a, c, a, c, a, c, a, c, a, a], [a, c, a, c]]
+    block_types = torch.tensor(
+        [
+            [abt, abt, cbt, abt, cbt, abt, cbt, abt, cbt, abt, abt],
+            [abt, cbt, abt, cbt, -1, -1, -1, -1, -1, -1, -1],
+        ],
+        dtype=torch.int64,
+        device=torch_device,
+    )
+    residue_connections = [
+        [(2, "dslf", 8, "dslf"), (4, "dslf", 6, "dslf")],
+        [(1, "dslf", 3, "dslf")],
+    ]
+
+    ps_conns = PoseStackBuilder._find_connection_pairs_for_residue_subset(
+        pbt, sequences, block_types, residue_connections
+    )
+
+    ps_conns_gold = [[(2, 2, 8, 2), (4, 2, 6, 2)], [(1, 2, 3, 2)]]
+    assert len(ps_conns) == len(ps_conns_gold)
+    for p_conn, p_conn_gold in zip(ps_conns, ps_conns_gold):
+        assert len(p_conn) == len(p_conn_gold)
+        for conn, conn_gold in zip(p_conn, p_conn_gold):
+            assert conn == conn_gold
+
+
+def test_find_connection_pairs_for_residue_subset_w_errors1(
+    fresh_default_packed_block_types, torch_device
+):
+    pbt = fresh_default_packed_block_types
+    ala_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
+    cyd_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
+
+    sequences = [["ALA", "ALA", "CYD", "ALA", "CYD"], ["ALA", "CYD", "ALA", "CYD"]]
+    block_types = torch.tensor(
+        [
+            [ala_bt, ala_bt, cyd_bt, ala_bt, cyd_bt],
+            [ala_bt, cyd_bt, ala_bt, cyd_bt, -1],
+        ],
+        dtype=torch.int64,
+        device=torch_device,
+    )
+    residue_connections = [[(2, "bslf", 4, "dslf")], [(1, "dslf", 3, "dslf")]]
+
+    succeeded = False
+    try:
+        ps_conns = PoseStackBuilder._find_connection_pairs_for_residue_subset(
+            pbt, sequences, block_types, residue_connections
+        )
+        succeeded = True
+    except ValueError as e:
+        assert str(e) == (
+            "Failed to find connection 'bslf' on residue type 'CYD' which is listed as forming a chemical bond"
+            + " to connection 'dslf' on residue type 'CYD'\nValid connection names on 'CYD' are: 'down', 'up', 'dslf'"
+        )
+    assert not succeeded
+
+
+def test_find_connection_pairs_for_residue_subset_w_errors2(
+    fresh_default_packed_block_types, torch_device
+):
+    pbt = fresh_default_packed_block_types
+    ala_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
+    cyd_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
+
+    sequences = [["ALA", "ALA", "CYD", "ALA", "CYD"], ["ALA", "CYD", "ALA", "CYD"]]
+    block_types = torch.tensor(
+        [
+            [ala_bt, ala_bt, cyd_bt, ala_bt, cyd_bt],
+            [ala_bt, cyd_bt, ala_bt, cyd_bt, -1],
+        ],
+        dtype=torch.int64,
+        device=torch_device,
+    )
+    residue_connections = [[(2, "dslf", 4, "gslf")], [(1, "dslf", 3, "dslf")]]
+
+    succeeded = False
+    try:
+        ps_conns = PoseStackBuilder._find_connection_pairs_for_residue_subset(
+            pbt, sequences, block_types, residue_connections
+        )
+        succeeded = True
+    except ValueError as e:
+        assert str(e) == (
+            "Failed to find connection 'gslf' on residue type 'CYD' which is listed as forming a chemical bond"
+            + " to connection 'dslf' on residue type 'CYD'\nValid connection names on 'CYD' are: 'down', 'up', 'dslf'"
+        )
+    assert not succeeded
+
+
+def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device):
+    pbt_max_n_conn = 3
+    block_n_conn = torch.tensor(
+        [[2, 2, 3, 2, 3], [2, 3, 2, 3, 0]], dtype=torch.int32, device=torch_device
+    )
+    pose_n_pconn = torch.tensor([12, 10], dtype=torch.int32, device=torch_device)
+    pconn_matrix = torch.tensor(
+        [
+            [
+                [0, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala down
+                [2, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala up
+                [6, 1, 0, 2, 6, 6, 6, 6, 6, 6, 6, 6],  # ala down
+                [6, 6, 2, 0, 1, 6, 6, 6, 6, 6, 6, 6],  # ala up
+                [6, 6, 6, 1, 0, 2, 3, 6, 6, 6, 6, 6],  # cyd down
+                [6, 6, 6, 6, 2, 0, 3, 1, 6, 6, 6, 6],  # cyd up
+                [6, 6, 6, 6, 3, 3, 0, 6, 6, 6, 6, 1],  # cyd dslf
+                [6, 6, 6, 6, 6, 1, 6, 0, 2, 6, 6, 6],  # ala down
+                [6, 6, 6, 6, 6, 6, 6, 2, 0, 1, 6, 6],  # ala up
+                [6, 6, 6, 6, 6, 6, 6, 6, 1, 0, 2, 3],  # cyd down
+                [6, 6, 6, 6, 6, 6, 6, 6, 6, 2, 0, 3],  # cyd up
+                [6, 6, 6, 6, 6, 6, 1, 6, 6, 3, 3, 0],  # cyd dslf
+            ],
+            [
+                [0, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala down
+                [6, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala up
+                [6, 1, 0, 2, 3, 6, 6, 6, 6, 6, 6, 6],  # cyd down
+                [6, 6, 2, 0, 3, 1, 6, 6, 6, 6, 6, 6],  # cyd up
+                [6, 6, 3, 3, 0, 6, 6, 6, 6, 1, 6, 6],  # cyd dslf
+                [6, 6, 6, 1, 6, 0, 2, 6, 6, 6, 6, 6],  # ala down
+                [6, 6, 6, 6, 6, 2, 0, 1, 6, 6, 6, 6],  # ala up
+                [6, 6, 6, 6, 6, 6, 1, 0, 2, 3, 6, 6],  # cyd down
+                [6, 6, 6, 6, 6, 6, 6, 2, 0, 3, 6, 6],  # cyd up
+                [6, 6, 6, 6, 1, 6, 6, 3, 3, 0, 6, 6],  # cyd dslf
+                [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # empty
+                [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # empty
+            ],
+        ],
+        dtype=torch.int32,
+        device=torch_device,
+    )
+
+    inter_block_bondsep = (
+        PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
+            pbt_max_n_conn, torch_device, block_n_conn, pose_n_pconn, pconn_matrix
+        )
+    )
+
+    print("inter block bondsep")
+    print(inter_block_bondsep)
+
+    inter_block_bondsep_gold = tensor(
+        [
+            [
+                [
+                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
+                    [[3, 5, 6], [1, 3, 6], [6, 6, 6]],
+                    [[6, 6, 6], [4, 6, 6], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                ],
+                [
+                    [[3, 1, 6], [5, 3, 6], [6, 6, 6]],
+                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
+                    [[3, 5, 6], [1, 3, 4], [6, 6, 6]],
+                    [[6, 6, 6], [4, 6, 6], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 5], [6, 6, 6]],
+                ],
+                [
+                    [[6, 4, 6], [6, 6, 6], [6, 6, 6]],
+                    [[3, 1, 6], [5, 3, 6], [6, 4, 6]],
+                    [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
+                    [[3, 5, 6], [1, 3, 6], [4, 5, 6]],
+                    [[6, 6, 4], [4, 6, 4], [4, 4, 1]],
+                ],
+                [
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                    [[6, 4, 6], [6, 6, 6], [6, 6, 6]],
+                    [[3, 1, 4], [5, 3, 5], [6, 6, 6]],
+                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
+                    [[3, 5, 5], [1, 3, 4], [6, 6, 6]],
+                ],
+                [
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 6], [6, 5, 6]],
+                    [[6, 4, 4], [6, 6, 4], [4, 4, 1]],
+                    [[3, 1, 6], [5, 3, 6], [5, 4, 6]],
+                    [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
+                ],
+            ],
+            [
+                [
+                    [[0, 2, 6], [6, 0, 6], [6, 6, 6]],
+                    [[3, 5, 6], [1, 3, 4], [6, 6, 6]],
+                    [[6, 6, 6], [4, 6, 6], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 5], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                ],
+                [
+                    [[6, 1, 6], [6, 3, 6], [6, 4, 6]],
+                    [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
+                    [[3, 5, 6], [1, 3, 6], [4, 5, 6]],
+                    [[6, 6, 4], [4, 6, 4], [4, 4, 1]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                ],
+                [
+                    [[6, 4, 6], [6, 6, 6], [6, 6, 6]],
+                    [[3, 1, 4], [5, 3, 5], [6, 6, 6]],
+                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
+                    [[3, 5, 5], [1, 3, 4], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                ],
+                [
+                    [[6, 6, 6], [6, 6, 6], [6, 5, 6]],
+                    [[6, 4, 4], [6, 6, 4], [4, 4, 1]],
+                    [[3, 1, 6], [5, 3, 6], [5, 4, 6]],
+                    [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                ],
+                [
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                    [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
+                ],
+            ],
+        ],
+        dtype=torch.int32,
+        device=torch_device,
+    )
+
+    torch.testing.assert_close(inter_block_bondsep, inter_block_bondsep_gold)

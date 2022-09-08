@@ -15,6 +15,22 @@ def stretch(t: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]], count):
 
 
 @validate_args
+def stretch2(t: Union[Tensor[torch.int32][:, :], Tensor[torch.int64][:, :]], count):
+    """take an input 2D tensor and "repeat" each element count times.
+    stretch2(tensor([[0, 1, 2, 3], [4, 5, 6, 7]]), 3) returns:
+         tensor([[0 0 0 1 1 1 2 2 2 3 3 3],[4 4 4 5 5 5 6 6 6 7 7 7]])
+    this is equivalent to numpy's repeat
+    """
+    return (
+        t.repeat(1, count)
+        .view(t.shape[0], count, -1)
+        .permute(0, 2, 1)
+        .contiguous()
+        .view(t.shape[0], -1)
+    )
+
+
+@validate_args
 def exclusive_cumsum1d(
     inds: Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]
 ) -> Union[Tensor[torch.int32][:], Tensor[torch.int64][:]]:

@@ -2,12 +2,41 @@ import torch
 import numpy
 
 from tmol.utility.tensor.common_operations import (
+    stretch,
+    stretch2,
     exclusive_cumsum1d,
     nplus1d_tensor_from_list,
     cat_differently_sized_tensors,
     join_tensors_and_report_real_entries,
     invert_mapping,
 )
+
+
+def test_stretch_i32(torch_device):
+    t = torch.tensor([0, 1, 2, 3], dtype=torch.int32, device=torch_device)
+    t2 = stretch(t, 3)
+    t2_gold = torch.tensor(
+        [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3], dtype=torch.int32, device=torch_device
+    )
+    torch.testing.assert_close(t2_gold, t2)
+    assert t2.device == torch_device
+
+
+def test_stretch2_i32(torch_device):
+    t = torch.tensor(
+        [[0, 1, 2, 3], [4, 5, 6, 7]], dtype=torch.int32, device=torch_device
+    )
+    t2 = stretch2(t, 3)
+    t2_gold = torch.tensor(
+        [
+            [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3],
+            [4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7],
+        ],
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    torch.testing.assert_close(t2_gold, t2)
+    assert t2.device == torch_device
 
 
 def test_exclusive_cumsum():
