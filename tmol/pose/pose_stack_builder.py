@@ -232,7 +232,7 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
-    def pose_stack_from_monomer_polymer_sequences_w_extrapolymieric_conns(
+    def pose_stack_from_monomer_polymer_sequences_w_extrapolymeric_conns(
         cls,
         packed_block_types: PackedBlockTypes,
         sequences,  # List[List[str]], -- too slow to type check
@@ -312,8 +312,6 @@ class PoseStackBuilder:
 
         # 2b add in non-polymeric connections (such as disulfides)
         cls._incorporate_extra_connections_into_inter_res_conn_set(
-            pbt,
-            block_type_ind64,
             resolved_expoly_connections,
             inter_residue_connections64,
         )
@@ -641,6 +639,7 @@ class PoseStackBuilder:
                     else:
                         missing = (c_name2, r2, bt2_ind, c_name1, r1)
                     # print(pbt.active_block_types[missing[2]].connection_to_cidx.keys())
+                    print("missing!", missing)
                     new_err_msg = (
                         "Failed to find connection '"
                         + missing[0]
@@ -666,6 +665,7 @@ class PoseStackBuilder:
                         + "'"
                     )
                     raise ValueError(new_err_msg)
+
             ps_conn_inds.append(pose_conn_inds)
         return ps_conn_inds
 
@@ -702,7 +702,7 @@ class PoseStackBuilder:
         real_blocks,
     ):
         cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
-        return cls._take_real_conn_conn_intrablock_pairs(
+        return cls._take_real_conn_conn_intrablock_pairs_heavy(
             pbt.n_conn, pbt.conn_at_intrablock_bond_sep, block_types64, real_blocks
         )
 
@@ -1326,8 +1326,8 @@ class PoseStackBuilder:
                         p_conns.append(conn)
                     else:
                         labels[conn_label] = (j, conn_name)
-                ps_conns.append(p_conns)
-            return trimmed_seqs, ps_conns
+            ps_conns.append(p_conns)
+        return trimmed_seqs, ps_conns
 
     @classmethod
     @validate_args
@@ -1479,16 +1479,15 @@ class PoseStackBuilder:
     @validate_args
     def _incorporate_extra_connections_into_inter_res_conn_set(
         cls,
-        pbt,
-        block_type64,
         expoly_connections: List[List[Tuple[int, int, int, int]]],
         inter_residue_connections64: Tensor[torch.int64][:, :, :, 2],
     ):
+        device = inter_residue_connections64.device
         # a:
         expoly_conn_pose_ind = torch.tensor(
             [i for i, pconn_list in enumerate(expoly_connections) for _ in pconn_list],
             dtype=torch.int64,
-            device=pbt.device,
+            device=device,
         )
         expoly_conns_t = torch.tensor(
             [
@@ -1497,26 +1496,24 @@ class PoseStackBuilder:
                 for conn_info in pconn_list
             ],
             dtype=torch.int64,
-            device=pbt.device,
+            device=device,
         )
         expoly_conn1_block_ind = expoly_conns_t[:, 0]
         expoly_conn1_conn_ind = expoly_conns_t[:, 1]
-        # expoly_conn1_atom_ind = expoly_conns_t[:, 2]
-        expoly_conn2_block_ind = expoly_conns_t[:, 3]
-        expoly_conn2_conn_ind = expoly_conns_t[:, 4]
-        # expoly_conn2_atom_ind = expoly_conns_t[:, 5]
+        expoly_conn2_block_ind = expoly_conns_t[:, 2]
+        expoly_conn2_conn_ind = expoly_conns_t[:, 3]
 
-        inter_residue_connections[
+        inter_residue_connections64[
             expoly_conn_pose_ind, expoly_conn1_block_ind, expoly_conn1_conn_ind, 0
         ] = expoly_conn2_block_ind
-        inter_residue_connections[
+        inter_residue_connections64[
             expoly_conn_pose_ind, expoly_conn1_block_ind, expoly_conn1_conn_ind, 1
         ] = expoly_conn2_conn_ind
 
-        inter_residue_connections[
+        inter_residue_connections64[
             expoly_conn_pose_ind, expoly_conn2_block_ind, expoly_conn2_conn_ind, 0
         ] = expoly_conn1_block_ind
-        inter_residue_connections[
+        inter_residue_connections64[
             expoly_conn_pose_ind, expoly_conn2_block_ind, expoly_conn2_conn_ind, 1
         ] = expoly_conn1_conn_ind
 
@@ -1527,7 +1524,7 @@ class PoseStackBuilder:
         pconn_offset,
         pconn_matrix,
     ):
-
+        n_poses, max_n_pconn = pconn_matrix.shape[0], pconn_matrix.shape[1]
         real_connections = inter_residue_connections[:, :, :, 0] != -1
         (
             nz_real_conn_pose_ind,
@@ -1536,6 +1533,7 @@ class PoseStackBuilder:
         ) = torch.nonzero(real_connections, as_tuple=True)
 
         pconn_from = (
+            # max_n_pconn * nz_real_conn_pose_ind +
             pconn_offset[nz_real_conn_pose_ind, nz_real_conn_block_ind]
             + nz_real_conn_conn_ind
         )
@@ -1548,7 +1546,13 @@ class PoseStackBuilder:
                 nz_real_conn_pose_ind, nz_real_conn_block_ind, nz_real_conn_conn_ind, 1
             ]
         )
-        pconn_matrix[pconn_from, pconn_to] = 1
+        # print("pconn_from")
+        # print(pconn_from)
+        # print("pconn_to")
+        # print(pconn_to)
+
+        # pconn_matrix.view(max_n_pconn * n_poses, max_n_pconn)[pconn_from, pconn_to] = 1
+        pconn_matrix[nz_real_conn_pose_ind, pconn_from, pconn_to] = 1
 
     @classmethod
     @validate_args
@@ -1580,13 +1584,10 @@ class PoseStackBuilder:
         assert pconn_matrix.shape[0] == n_poses
         assert pconn_matrix.shape[1] == pconn_matrix.shape[2]
 
-        temp_inter_block_bondsep = torch.full(
-            (n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn),
-            MAX_SIG_BOND_SEPARATION,
-            dtype=torch.int32,
-            device=pbt_device,
-        )
-
+        # the final destination tensor that we will have to carefully write to
+        # indexed pose-id x r1 x r2 x c1 x c2
+        # but, we will see later, has to be transposed at the r2/c1 dimensions
+        # so we can write to it in the correct order
         inter_block_bondsep = torch.full(
             (n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn),
             MAX_SIG_BOND_SEPARATION,
@@ -1600,27 +1601,21 @@ class PoseStackBuilder:
             .view(n_poses, max_n_blocks, max_n_blocks, max_n_conn, max_n_conn)
         )
         bconn_inds2 = torch.transpose(bconn_inds1, 3, 4)
-        # print("bconn_inds1")
-        # print(bconn_inds1)
-        # print("bconn_inds2")
-        # print(bconn_inds2)
-
-        # print("bconn_inds1 < block_n_conn[:, :, None, None, None]")
-        # print(bconn_inds1 < block_n_conn[:, :, None, None, None])
-        #
-        # print("bconn_inds2 < block_n_conn[:, None, :, None, None]")
-        # print(bconn_inds2 < block_n_conn[:, None, :, None, None])
-
+        # not all entries in the inter_block_bondsep tensor correspond to
+        # actual connections; this boolean tensor helps us identify the
+        # real entries
         bconn_pair_real = torch.logical_and(
             bconn_inds1 < block_n_conn[:, None, :, None, None],
             bconn_inds2 < block_n_conn[:, :, None, None, None],
         )
-        print("bconn_pair_real")
-        print(bconn_pair_real)
 
+        # in order to assign from a tensor ordered pose_id x pconn1 x pconn2
+        # we have to make these tensors (temporarily) indexed
+        # pose_id x r1 x c1 x r2 x c2
+        # later we will re-transpose these dimensions before returning
+        # the inter_block_bondsep tensor
         bconn_pair_real = torch.transpose(bconn_pair_real, 2, 3)
         inter_block_bondsep = torch.transpose(inter_block_bondsep, 2, 3)
-        temp_inter_block_bondsep = torch.transpose(temp_inter_block_bondsep, 2, 3)
 
         pconn_inds1 = (
             torch.arange(max_n_pconn, dtype=torch.int64, device=pbt_device)
@@ -1628,22 +1623,25 @@ class PoseStackBuilder:
             .view(n_poses, max_n_pconn, max_n_pconn)
         )
         pconn_inds2 = torch.transpose(pconn_inds1, 1, 2)
+        # same deal as with the bconn_pair_real tensor
         pconn_pair_real = torch.logical_and(
             pconn_inds1 < pose_n_pconn[:, None, None],
             pconn_inds2 < pose_n_pconn[:, None, None],
         )
-        print("pconn_pair_real")
-        print(pconn_pair_real)
 
-        temp_inter_block_bondsep[bconn_pair_real] = pconn_matrix[pconn_pair_real]
-        temp_inter_block_bondsep = torch.transpose(temp_inter_block_bondsep, 2, 3)
-
-        print("temp_inter_block_bondsep")
-        print(temp_inter_block_bondsep)
-
+        # invoke the all-pairs-shortest-path algorithm on the connectivity
+        # matrices
         cls._shortest_paths_for_connectivity_graph(pconn_matrix)
 
+        # the big assignment!
+        # print("inter_block_bondsep", inter_block_bondsep.shape)
+        # print("bconn_pair_real", bconn_pair_real.shape, torch.sum(bconn_pair_real))
+        # print("pconn_matrix", pconn_matrix.shape)
+        # print("pconn_pair_real", pconn_pair_real.shape, torch.sum(pconn_pair_real))
+
         inter_block_bondsep[bconn_pair_real] = pconn_matrix[pconn_pair_real]
+
+        # now reorder so it's pose-ind x r1 x r2 x c1 x c2
         inter_block_bondsep = torch.transpose(inter_block_bondsep, 2, 3)
 
         return inter_block_bondsep
