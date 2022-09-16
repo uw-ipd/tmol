@@ -577,7 +577,7 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
         )
     )
 
-    inter_block_bondsep_gold = tensor(
+    inter_block_bondsep_gold = torch.tensor(
         [
             [
                 [
@@ -792,8 +792,8 @@ def test_construct_pose_stack_containing_disulfides(
 ):
     pbt = fresh_default_packed_block_types
     sequences = [
-        ["ALA", "ALA", "CYD--dslf-first", "ALA", "CYD--dslf-first"],
-        ["ALA", "CYD--dslf-foo", "ALA", "CYD--dslf-foo"],
+        ["ALA", "PRO", "CYD--dslf-first", "LEU", "CYD--dslf-first", "PHE"],
+        ["PHE", "CYD--dslf-foo", "PRO", "CYD--dslf-foo", "ASP"],
     ]
 
     pose_stack = PoseStackBuilder.pose_stack_from_monomer_polymer_sequences_w_extrapolymeric_conns(

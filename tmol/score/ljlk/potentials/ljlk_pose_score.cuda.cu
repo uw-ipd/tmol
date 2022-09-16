@@ -1004,18 +1004,16 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
 
-  break the build
-
-      // 2
-      launch_detect_block_neighbors<D, Real, Int, launch_t>(
-          coords,
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
-          block_type_n_atoms,
-          scratch_block_spheres,
-          scratch_block_neighbors,
-          Real(6.0),  // 6A hard coded here. Please fix! TEMP!
-          context);
+  // 2
+  launch_detect_block_neighbors<D, Real, Int, launch_t>(
+      coords,
+      pose_stack_block_coord_offset,
+      pose_stack_block_type,
+      block_type_n_atoms,
+      scratch_block_spheres,
+      scratch_block_neighbors,
+      Real(6.0),  // 6A hard coded here. Please fix! TEMP!
+      context);
 
   // // TEMP!!!
   // auto compute_block_sphere = ([=] MGPU_DEVICE(int tid, int cta) {

@@ -639,7 +639,7 @@ class PoseStackBuilder:
                     else:
                         missing = (c_name2, r2, bt2_ind, c_name1, r1)
                     # print(pbt.active_block_types[missing[2]].connection_to_cidx.keys())
-                    print("missing!", missing)
+                    # print("missing!", missing)
                     new_err_msg = (
                         "Failed to find connection '"
                         + missing[0]
