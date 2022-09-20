@@ -232,7 +232,7 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
-    def pose_stack_from_monomer_polymer_sequences_w_extrapolymeric_conns(
+    def pose_stack_from_monomer_sequences_w_extrapolymeric_conns(
         cls,
         packed_block_types: PackedBlockTypes,
         sequences,  # List[List[str]], -- too slow to type check

@@ -164,19 +164,18 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
     )
     block_type_ind64 = i64([[1, 2, 0, 1]])
 
-    inter_block_separation64 = (
-        PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
-            torch_device,
-            bt_polymeric_down_to_up_nbonds,
-            bt_up_conn_inds,
-            bt_down_conn_inds,
-            n_chains,
-            max_n_res,
-            max_n_conn,
-            real_res,
-            block_type_ind64,
-        )
+    ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
+        torch_device,
+        bt_polymeric_down_to_up_nbonds,
+        bt_up_conn_inds,
+        bt_down_conn_inds,
+        n_chains,
+        max_n_res,
+        max_n_conn,
+        real_res,
+        block_type_ind64,
     )
+    inter_block_separation64 = ibs64
 
     gold_inter_block_separation64 = i64(
         [
@@ -234,19 +233,18 @@ def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
     )
     block_type_ind64 = i64([[1, 2, 4, 1]])
 
-    inter_block_separation64 = (
-        PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
-            torch_device,
-            bt_polymeric_down_to_up_nbonds,
-            bt_up_conn_inds,
-            bt_down_conn_inds,
-            n_chains,
-            max_n_res,
-            max_n_conn,
-            real_res,
-            block_type_ind64,
-        )
+    ibs64 = PoseStackBuilder._find_inter_block_separation_for_polymeric_monomers_heavy(
+        torch_device,
+        bt_polymeric_down_to_up_nbonds,
+        bt_up_conn_inds,
+        bt_down_conn_inds,
+        n_chains,
+        max_n_res,
+        max_n_conn,
+        real_res,
+        block_type_ind64,
     )
+    inter_block_separation64 = ibs64
 
     gold_inter_block_separation64 = i64(
         [
@@ -294,10 +292,6 @@ def test_take_real_conn_conn_intrablock_pairs(
 
 
 def test_take_real_conn_conn_intrablock_pairs_heavy(torch_device):
-    # pbt = fresh_default_packed_block_types
-    # ala_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "ALA")
-    # cyd_bt = next(i for i, bt in enumerate(pbt.active_block_types) if bt.name == "CYD")
-
     ala_bt = 0
     cyd_bt = 1
     n_bt = 2
@@ -331,10 +325,7 @@ def test_take_real_conn_conn_intrablock_pairs_heavy(torch_device):
     pbt_conn_at_intrablock_bond_sep[1, 2, 1] = 3
 
     block_types64 = torch.tensor(
-        [
-            [ala_bt, ala_bt, cyd_bt, ala_bt],
-            [ala_bt, ala_bt, -1, -1],
-        ],
+        [[ala_bt, ala_bt, cyd_bt, ala_bt], [ala_bt, ala_bt, -1, -1]],
         dtype=torch.int64,
         device=torch_device,
     )
@@ -486,14 +477,16 @@ def test_find_connection_pairs_for_residue_subset_w_errors1(
 
     succeeded = False
     try:
-        ps_conns = PoseStackBuilder._find_connection_pairs_for_residue_subset(
+        _ = PoseStackBuilder._find_connection_pairs_for_residue_subset(
             pbt, sequences, block_types, residue_connections
         )
         succeeded = True
     except ValueError as e:
         assert str(e) == (
-            "Failed to find connection 'bslf' on residue type 'CYD' which is listed as forming a chemical bond"
-            + " to connection 'dslf' on residue type 'CYD'\nValid connection names on 'CYD' are: 'down', 'up', 'dslf'"
+            "Failed to find connection 'bslf' on residue type 'CYD' which "
+            + "is listed as forming a chemical bond"
+            + " to connection 'dslf' on residue type 'CYD'\n"
+            + "Valid connection names on 'CYD' are: 'down', 'up', 'dslf'"
         )
     assert not succeeded
 
@@ -518,14 +511,16 @@ def test_find_connection_pairs_for_residue_subset_w_errors2(
 
     succeeded = False
     try:
-        ps_conns = PoseStackBuilder._find_connection_pairs_for_residue_subset(
+        _ = PoseStackBuilder._find_connection_pairs_for_residue_subset(
             pbt, sequences, block_types, residue_connections
         )
         succeeded = True
     except ValueError as e:
         assert str(e) == (
-            "Failed to find connection 'gslf' on residue type 'CYD' which is listed as forming a chemical bond"
-            + " to connection 'dslf' on residue type 'CYD'\nValid connection names on 'CYD' are: 'down', 'up', 'dslf'"
+            "Failed to find connection 'gslf' on residue type 'CYD'"
+            + " which is listed as forming a chemical bond"
+            + " to connection 'dslf' on residue type 'CYD'\n"
+            + "Valid connection names on 'CYD' are: 'down', 'up', 'dslf'"
         )
     assert not succeeded
 
@@ -571,11 +566,10 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
         device=torch_device,
     )
 
-    inter_block_bondsep = (
-        PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
-            pbt_max_n_conn, torch_device, block_n_conn, pose_n_pconn, pconn_matrix
-        )
+    ibb = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph_heavy(
+        pbt_max_n_conn, torch_device, block_n_conn, pose_n_pconn, pconn_matrix
     )
+    inter_block_bondsep = ibb
 
     inter_block_bondsep_gold = torch.tensor(
         [
@@ -787,7 +781,7 @@ def test_incorporate_inter_residue_connections_into_connectivity_graph(torch_dev
     torch.testing.assert_close(pconn_matrix_gold, pconn_matrix)
 
 
-def test_construct_pose_stack_containing_disulfides(
+def test_construct_pose_stack_containing_disulfides_smoke(
     fresh_default_packed_block_types, torch_device
 ):
     pbt = fresh_default_packed_block_types
@@ -796,9 +790,43 @@ def test_construct_pose_stack_containing_disulfides(
         ["PHE", "CYD--dslf-foo", "PRO", "CYD--dslf-foo", "ASP"],
     ]
 
-    pose_stack = PoseStackBuilder.pose_stack_from_monomer_polymer_sequences_w_extrapolymeric_conns(
+    _ = PoseStackBuilder.pose_stack_from_monomer_sequences_w_extrapolymeric_conns(
         pbt, sequences
     )
+
+
+def interblock_dslf_self_correction(ibb, res_bound_to_next, p, i):
+    """Set the inter-block-bondsep for pose p, res i"""
+    ibb[p, i, i, :, 2] = 3
+    ibb[p, i, i, 2, :] = 3
+    ibb[p, i, i, 2, 2] = 0
+    if res_bound_to_next[p, i - 1]:
+        ibb[p, i - 1, i, 1, 2] = 4
+        ibb[p, i, i - 1, 2, 1] = 4
+    if res_bound_to_next[p, i]:
+        ibb[p, i, i + 1, 2, 0] = 4
+        ibb[p, i + 1, i, 0, 2] = 4
+
+
+def interblock_dslf_pair_correction(ibb, res_bound_to_next, p, i, j):
+    ibb[p, i, j, :, 2] = 4
+    ibb[p, i, j, 2, :] = 4
+    ibb[p, j, i, :, 2] = 4
+    ibb[p, j, i, 2, :] = 4
+    ibb[p, i, j, 2, 2] = 1
+    ibb[p, j, i, 2, 2] = 1
+    if res_bound_to_next[p, i - 1]:
+        ibb[p, i - 1, j, 1, 2] = 5
+        ibb[p, j, i - 1, 2, 1] = 5
+    if res_bound_to_next[p, i]:
+        ibb[p, i + 1, j, 0, 2] = 5
+        ibb[p, j, i + 1, 2, 0] = 5
+    if res_bound_to_next[p, j - 1]:
+        ibb[p, j - 1, i, 1, 2] = 5
+        ibb[p, i, j - 1, 2, 1] = 5
+    if res_bound_to_next[p, j]:
+        ibb[p, j + 1, i, 0, 2] = 5
+        ibb[p, i, j + 1, 2, 0] = 5
 
 
 def test_pose_stack_from_sequences_smoke(
@@ -834,7 +862,7 @@ def test_pose_stack_from_sequences_smoke(
     i_to_ip1_no_dslf_gold = torch.tensor(
         [[3, 5, 6], [1, 3, 6], [6, 6, 6]], dtype=torch.int32, device=torch_device
     )
-    inter_block_bondsep_gold = torch.full(
+    ibb_gold = torch.full(
         (n_poses, max_n_res, max_n_res, max_n_conn, max_n_conn),
         MAX_SIG_BOND_SEPARATION,
         dtype=torch.int32,
@@ -842,20 +870,18 @@ def test_pose_stack_from_sequences_smoke(
     )
 
     def fill_i_to_ip1_gold(p, i):
-        inter_block_bondsep_gold[p, i, i + 1] = i_to_ip1_no_dslf_gold
-        inter_block_bondsep_gold[p, i + 1, i] = torch.transpose(
-            i_to_ip1_no_dslf_gold, 0, 1
-        )
+        ibb_gold[p, i, i + 1] = i_to_ip1_no_dslf_gold
+        ibb_gold[p, i + 1, i] = torch.transpose(i_to_ip1_no_dslf_gold, 0, 1)
         if i - 2 >= 0 and res_bound_to_next[p, i - 2] and res_bound_to_next[p, i - 1]:
-            inter_block_bondsep_gold[p, i - 2, i, 1, 0] = 4
-            inter_block_bondsep_gold[p, i, i - 2, 0, 1] = 4
+            ibb_gold[p, i - 2, i, 1, 0] = 4
+            ibb_gold[p, i, i - 2, 0, 1] = 4
         if (
             i + 2 < max_n_res
             and res_bound_to_next[p, i]
             and res_bound_to_next[p, i + 1]
         ):
-            inter_block_bondsep_gold[p, i + 2, i, 0, 1] = 4
-            inter_block_bondsep_gold[p, i, i + 2, 1, 0] = 4
+            ibb_gold[p, i + 2, i, 0, 1] = 4
+            ibb_gold[p, i, i + 2, 1, 0] = 4
 
     for i in range(n_poses):
         for j in range(max_n_res):
@@ -867,64 +893,21 @@ def test_pose_stack_from_sequences_smoke(
     )
 
     def set_self_nodslf(p, i):
-        inter_block_bondsep_gold[p, i, i] = i_self_no_dslf_gold
+        ibb_gold[p, i, i] = i_self_no_dslf_gold
 
     for i in range(6):
         set_self_nodslf(0, i)
     for i in range(8):
         set_self_nodslf(1, i)
 
-    def dslf_self_correct(p, i):
-        inter_block_bondsep_gold[p, i, i, :, 2] = 3
-        inter_block_bondsep_gold[p, i, i, 2, :] = 3
-        inter_block_bondsep_gold[p, i, i, 2, 2] = 0
-        if res_bound_to_next[p, i - 1]:
-            inter_block_bondsep_gold[p, i - 1, i, 1, 2] = 4
-            inter_block_bondsep_gold[p, i, i - 1, 2, 1] = 4
-        if res_bound_to_next[p, i]:
-            inter_block_bondsep_gold[p, i, i + 1, 2, 0] = 4
-            inter_block_bondsep_gold[p, i + 1, i, 0, 2] = 4
-
     for i, i_has_dslf in enumerate(has_dslf):
         for j, ij_has_dslf in enumerate(i_has_dslf):
             if ij_has_dslf:
-                dslf_self_correct(i, j)
+                interblock_dslf_self_correction(ibb_gold, res_bound_to_next, i, j)
 
-    def correct_dslf_pair(p, i, j):
-        inter_block_bondsep_gold[p, i, j, :, 2] = 4
-        inter_block_bondsep_gold[p, i, j, 2, :] = 4
-        inter_block_bondsep_gold[p, j, i, :, 2] = 4
-        inter_block_bondsep_gold[p, j, i, 2, :] = 4
-        inter_block_bondsep_gold[p, i, j, 2, 2] = 1
-        inter_block_bondsep_gold[p, j, i, 2, 2] = 1
-        if res_bound_to_next[p, i - 1]:
-            inter_block_bondsep_gold[p, i - 1, j, 1, 2] = 5
-            inter_block_bondsep_gold[p, j, i - 1, 2, 1] = 5
-        if res_bound_to_next[p, i]:
-            inter_block_bondsep_gold[p, i + 1, j, 0, 2] = 5
-            inter_block_bondsep_gold[p, j, i + 1, 2, 0] = 5
-        if res_bound_to_next[p, j - 1]:
-            inter_block_bondsep_gold[p, j - 1, i, 1, 2] = 5
-            inter_block_bondsep_gold[p, i, j - 1, 2, 1] = 5
-        if res_bound_to_next[p, j]:
-            inter_block_bondsep_gold[p, j + 1, i, 0, 2] = 5
-            inter_block_bondsep_gold[p, i, j + 1, 2, 0] = 5
+    # fix the bond separation distances to the residues on the other side of the
+    # disfulide bond and the residues up and down the chain.
+    interblock_dslf_pair_correction(ibb_gold, res_bound_to_next, 0, 2, 4)
+    interblock_dslf_pair_correction(ibb_gold, res_bound_to_next, 1, 3, 5)
 
-    correct_dslf_pair(0, 2, 4)
-    correct_dslf_pair(1, 3, 5)
-
-    # def print_ibb(t1, t2):
-    #     tc1 = t1.cpu().numpy()
-    #     tc2 = t2.cpu().numpy()
-    #     for i in range(n_poses):
-    #         for j in range(max_n_res):
-    #             for k in range(max_n_res):
-    #                 print("i:", i, "j:", j, "k:", k)
-    #                 print(tc1[i, j, k])
-    #                 print(tc2[i, j, k])
-    #
-    # numpy.set_printoptions(threshold=10000)
-    # print("computed")
-    # print_ibb(pose_stack.inter_block_bondsep, inter_block_bondsep_gold)
-
-    torch.testing.assert_close(pose_stack.inter_block_bondsep, inter_block_bondsep_gold)
+    torch.testing.assert_close(pose_stack.inter_block_bondsep, ibb_gold)
