@@ -799,3 +799,132 @@ def test_construct_pose_stack_containing_disulfides(
     pose_stack = PoseStackBuilder.pose_stack_from_monomer_polymer_sequences_w_extrapolymeric_conns(
         pbt, sequences
     )
+
+
+def test_pose_stack_from_sequences_smoke(
+    fresh_default_packed_block_types, torch_device
+):
+    pbt = fresh_default_packed_block_types
+    n_poses, max_n_res, max_n_conn = 2, 8, 3
+    sequences = [
+        ["ALA", "PRO", "CYD--dslf-first", "LEU", "CYD--dslf-first", "PHE"],
+        ["PHE", "GLY", "SER", "CYD--dslf-foo", "PRO", "CYD--dslf-foo", "ASP", "GLY"],
+    ]
+    chain_lengths = [[2, 4], [3, 3, 2]]
+    # derived data
+    has_dslf = [
+        [True if resname.find("dslf") != -1 else False for resname in seq]
+        for seq in sequences
+    ]
+    res_bound_to_next = torch.full(
+        (n_poses, max_n_res), False, dtype=torch.bool
+    )  # leave on cpu
+    for i, lens in enumerate(chain_lengths):
+        count = 0
+        for j in lens:
+            res_bound_to_next[i, count : (count + j - 1)] = True
+            count += j
+
+    # the call we are testing
+    pose_stack = PoseStackBuilder.pose_stack_from_sequences(
+        pbt, sequences, chain_lengths
+    )
+
+    # what is the inter_block_bondsep that should be computed?
+    i_to_ip1_no_dslf_gold = torch.tensor(
+        [[3, 5, 6], [1, 3, 6], [6, 6, 6]], dtype=torch.int32, device=torch_device
+    )
+    inter_block_bondsep_gold = torch.full(
+        (n_poses, max_n_res, max_n_res, max_n_conn, max_n_conn),
+        MAX_SIG_BOND_SEPARATION,
+        dtype=torch.int32,
+        device=torch_device,
+    )
+
+    def fill_i_to_ip1_gold(p, i):
+        inter_block_bondsep_gold[p, i, i + 1] = i_to_ip1_no_dslf_gold
+        inter_block_bondsep_gold[p, i + 1, i] = torch.transpose(
+            i_to_ip1_no_dslf_gold, 0, 1
+        )
+        if i - 2 >= 0 and res_bound_to_next[p, i - 2] and res_bound_to_next[p, i - 1]:
+            inter_block_bondsep_gold[p, i - 2, i, 1, 0] = 4
+            inter_block_bondsep_gold[p, i, i - 2, 0, 1] = 4
+        if (
+            i + 2 < max_n_res
+            and res_bound_to_next[p, i]
+            and res_bound_to_next[p, i + 1]
+        ):
+            inter_block_bondsep_gold[p, i + 2, i, 0, 1] = 4
+            inter_block_bondsep_gold[p, i, i + 2, 1, 0] = 4
+
+    for i in range(n_poses):
+        for j in range(max_n_res):
+            if res_bound_to_next[i, j]:
+                fill_i_to_ip1_gold(i, j)
+
+    i_self_no_dslf_gold = torch.tensor(
+        [[0, 2, 6], [2, 0, 6], [6, 6, 6]], dtype=torch.int32, device=torch_device
+    )
+
+    def set_self_nodslf(p, i):
+        inter_block_bondsep_gold[p, i, i] = i_self_no_dslf_gold
+
+    for i in range(6):
+        set_self_nodslf(0, i)
+    for i in range(8):
+        set_self_nodslf(1, i)
+
+    def dslf_self_correct(p, i):
+        inter_block_bondsep_gold[p, i, i, :, 2] = 3
+        inter_block_bondsep_gold[p, i, i, 2, :] = 3
+        inter_block_bondsep_gold[p, i, i, 2, 2] = 0
+        if res_bound_to_next[p, i - 1]:
+            inter_block_bondsep_gold[p, i - 1, i, 1, 2] = 4
+            inter_block_bondsep_gold[p, i, i - 1, 2, 1] = 4
+        if res_bound_to_next[p, i]:
+            inter_block_bondsep_gold[p, i, i + 1, 2, 0] = 4
+            inter_block_bondsep_gold[p, i + 1, i, 0, 2] = 4
+
+    for i, i_has_dslf in enumerate(has_dslf):
+        for j, ij_has_dslf in enumerate(i_has_dslf):
+            if ij_has_dslf:
+                dslf_self_correct(i, j)
+
+    def correct_dslf_pair(p, i, j):
+        inter_block_bondsep_gold[p, i, j, :, 2] = 4
+        inter_block_bondsep_gold[p, i, j, 2, :] = 4
+        inter_block_bondsep_gold[p, j, i, :, 2] = 4
+        inter_block_bondsep_gold[p, j, i, 2, :] = 4
+        inter_block_bondsep_gold[p, i, j, 2, 2] = 1
+        inter_block_bondsep_gold[p, j, i, 2, 2] = 1
+        if res_bound_to_next[p, i - 1]:
+            inter_block_bondsep_gold[p, i - 1, j, 1, 2] = 5
+            inter_block_bondsep_gold[p, j, i - 1, 2, 1] = 5
+        if res_bound_to_next[p, i]:
+            inter_block_bondsep_gold[p, i + 1, j, 0, 2] = 5
+            inter_block_bondsep_gold[p, j, i + 1, 2, 0] = 5
+        if res_bound_to_next[p, j - 1]:
+            inter_block_bondsep_gold[p, j - 1, i, 1, 2] = 5
+            inter_block_bondsep_gold[p, i, j - 1, 2, 1] = 5
+        if res_bound_to_next[p, j]:
+            inter_block_bondsep_gold[p, j + 1, i, 0, 2] = 5
+            inter_block_bondsep_gold[p, i, j + 1, 2, 0] = 5
+
+    correct_dslf_pair(0, 2, 4)
+    correct_dslf_pair(1, 3, 5)
+
+    # def print_ibb(t1, t2):
+    #     tc1 = t1.cpu().numpy()
+    #     tc2 = t2.cpu().numpy()
+    #     for i in range(n_poses):
+    #         for j in range(max_n_res):
+    #             for k in range(max_n_res):
+    #                 print("i:", i, "j:", j, "k:", k)
+    #                 print(tc1[i, j, k])
+    #                 print(tc2[i, j, k])
+    #
+    # numpy.set_printoptions(threshold=10000)
+    # print("computed")
+    # print_ibb(pose_stack.inter_block_bondsep, inter_block_bondsep_gold)
+
+    torch.testing.assert_close(pose_stack.inter_block_bondsep, inter_block_bondsep_gold)

@@ -9,7 +9,7 @@ import pandas
 import sparse
 import scipy.sparse.csgraph as csgraph
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
@@ -200,7 +200,7 @@ class PoseStackBuilder:
 
         inter_residue_connections64 = (
             cls._inter_residue_connections_for_polymeric_monomers(
-                pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64
+                pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
             )
         )
 
@@ -306,7 +306,150 @@ class PoseStackBuilder:
         # 2a
         inter_residue_connections64 = (
             cls._inter_residue_connections_for_polymeric_monomers(
-                pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64
+                pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
+            )
+        )
+
+        # 2b add in non-polymeric connections (such as disulfides)
+        cls._incorporate_extra_connections_into_inter_res_conn_set(
+            resolved_expoly_connections,
+            inter_residue_connections64,
+        )
+
+        # 3a
+        (
+            pconn_matrix,
+            pconn_offsets,
+            block_n_conn,
+            pose_n_pconn,
+        ) = cls._take_real_conn_conn_intrablock_pairs(pbt, block_type_ind64, real_res)
+
+        # 3b
+        cls._incorporate_inter_residue_connections_into_connectivity_graph(
+            inter_residue_connections64,
+            pconn_offsets,
+            pconn_matrix,
+        )
+
+        # 4
+        inter_block_bondsep64 = (
+            cls._calculate_interblock_bondsep_from_connectivity_graph(
+                pbt, block_n_conn, pose_n_pconn, pconn_matrix
+            )
+        )
+
+        n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
+        n_atoms[real_res] = pbt.n_atoms[block_type_ind64[real_res]]
+        block_coord_offset = exclusive_cumsum2d(n_atoms)
+
+        max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
+
+        return PoseStack(
+            packed_block_types=packed_block_types,
+            coords=torch.zeros(
+                (n_poses, max_n_atoms, 3), dtype=torch.float32, device=device
+            ),
+            block_coord_offset=block_coord_offset,
+            block_coord_offset64=block_coord_offset.to(torch.int64),
+            inter_residue_connections=inter_residue_connections64.to(torch.int32),
+            inter_residue_connections64=inter_residue_connections64,
+            inter_block_bondsep=inter_block_bondsep64.to(torch.int32),
+            inter_block_bondsep64=inter_block_bondsep64,
+            block_type_ind=block_type_ind64.to(torch.int32),
+            block_type_ind64=block_type_ind64,
+            device=device,
+        )
+
+    @classmethod
+    @validate_args
+    def pose_stack_from_sequences(
+        cls,
+        packed_block_types: PackedBlockTypes,
+        sequences,  # List[List[str]]
+        chain_lengths,  # List[List[int]]
+        # option 1:
+        # chain_lengths: List[List[int]]
+        # option 2:
+        # sequences_w_chain_annotation
+        # [ALA:Nterm]AAAA[ALA:Cterm][ALA:Nterm]AAAAAAAAA[ALA:Cterm]
+    ):
+        """Construct a PoseStack given a list of sequences where the disulfide
+        connectivity is known. E.g. If there is a disulfide pair between residues
+        5 and 20 and another disulfide pair between residues 9 and 15, then
+        the sequence would be given as:
+
+        AAAA[CYD--dslf-first]AAA[CYD--dslf-second]AAAAA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA
+
+        where the string following the double dash, designates 1) the name of the inter-residue
+        connection (for CYD, this is "dslf") and then 2) after the single dash, a unique identifier
+        so that which pair of residues are forming that connection. In this case the
+        two disulfides have the labels "first" and "second," but any unique label would suffice.
+
+        """
+        cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
+        cls._annotate_pbt_w_polymeric_down_up_bondsep_dist(packed_block_types)
+
+        pbt = packed_block_types
+        device = pbt.device
+        n_poses = len(sequences)
+
+        n_res = numpy.array([len(x) for x in sequences], dtype=numpy.int32)
+        max_n_res = numpy.amax(n_res).item()
+
+        trimmed_sequences, expoly_connections = cls._find_connections_in_sequences(
+            pbt, sequences
+        )
+
+        (
+            real_res,
+            n_res,
+            block_type_ind,
+            block_type_ind64,
+        ) = cls._block_type_indices_from_sequences(
+            pbt, n_poses, n_res, max_n_res, trimmed_sequences
+        )
+        assert real_res.device == device
+        assert n_res.device == device
+        assert block_type_ind.device == device
+        assert block_type_ind64.device == device
+
+        # inter residue connections:
+        #
+        # 1) First, make sure that the connections provided in the input sequence
+        # actually are present on those residue types.
+        #
+        # 2) a. We will then say that there's an "up" chemical bond at residue i to
+        # every "down" connection at residue i+1 and vice versa for each real
+        # residue on each pose, except the first and last residues. This will
+        # give us the inter_residue_connections tensor. b. Then we will add
+        # to this set of inter-residue connections the ones given to us
+        # in the connection-annotated sequence. c. Then we will remove the
+        # chemical bonds for i-to-i+1 connections that span chains
+        #
+        # 3) Then, we will construct a graph representing the edge weights
+        # between all pairs of connection points. a) Intra-residue connection
+        # distances are read out of the PBT object (after an initial annotation)
+        # b) the inter-residue connections will then be added from the inter-residue
+        # connections noted in the inter_residue_connections64 tensor.
+        #
+        # 4) Finally, we invoke all-pairs-shortest-path and then read out the
+        # intra-block bond separations
+
+        # 1
+        resolved_expoly_connections = cls._find_connection_pairs_for_residue_subset(
+            pbt, sequences, block_type_ind64, expoly_connections
+        )
+
+        # 2a
+        inter_residue_connections64 = (
+            cls._inter_residue_connections_for_polymeric_monomers(
+                pbt,
+                n_poses,
+                max_n_res,
+                real_res,
+                n_res,
+                block_type_ind64,
+                chain_lengths,
             )
         )
 
@@ -1406,6 +1549,7 @@ class PoseStackBuilder:
         real_res: Tensor[torch.bool][:, :],
         n_res: Tensor[torch.int64][:],
         block_type_ind64: Tensor[torch.int64][:, :],
+        chain_lengths: Optional[List[List[int]]],
     ) -> Tensor[torch.int64][:, :, :, 2]:
         assert real_res.shape[0] == n_poses
         assert real_res.shape[1] == max_n_res
@@ -1438,6 +1582,8 @@ class PoseStackBuilder:
             block_type_ind64[res_is_real_and_not_c_term]
         ].to(torch.int64)
 
+        # TO DO: handle termini patches!
+
         (
             nz_res_is_real_and_not_n_term_pose_ind,
             nz_res_is_real_and_not_n_term_res_ind,
@@ -1451,27 +1597,62 @@ class PoseStackBuilder:
             nz_res_is_real_and_not_c_term_pose_ind,
             nz_res_is_real_and_not_c_term_res_ind,
             connected_up_conn_inds,
-            0,
+            0,  # residue id
         ] = nz_res_is_real_and_not_n_term_res_ind
         inter_residue_connections64[
             nz_res_is_real_and_not_c_term_pose_ind,
             nz_res_is_real_and_not_c_term_res_ind,
             connected_up_conn_inds,
-            1,
+            1,  # connection id
         ] = connected_down_conn_inds
 
         inter_residue_connections64[
             nz_res_is_real_and_not_n_term_pose_ind,
             nz_res_is_real_and_not_n_term_res_ind,
             connected_down_conn_inds,
-            0,
+            0,  # residue id
         ] = nz_res_is_real_and_not_c_term_res_ind
         inter_residue_connections64[
             nz_res_is_real_and_not_n_term_pose_ind,
             nz_res_is_real_and_not_n_term_res_ind,
             connected_down_conn_inds,
-            1,
+            1,  # connection id
         ] = connected_up_conn_inds
+
+        if chain_lengths:
+            n_chains = [len(c_lens) for c_lens in chain_lengths]
+            max_n_chains_minus1 = max(n_chains) - 1
+            n_chains = torch.tensor(n_chains, dtype=torch.int64, device=device)
+            chain_lengths_t = torch.full(
+                (n_poses, max_n_chains_minus1), -1, dtype=torch.int64
+            )
+            for i, c_lens in enumerate(chain_lengths):
+                for j, l in enumerate(c_lens):
+                    if j != len(c_lens) - 1:
+                        # we will leave off the last chain from each pose
+                        chain_lengths_t[i, j] = l
+            chain_lengths_t = chain_lengths_t.to(device)
+            cl_real = chain_lengths_t != -1
+            # cl_real = cl_real[:, :-1]
+            cl_offsets = torch.cumsum(chain_lengths_t, dim=1)
+            nz_cl_real_pose_ind, _ = torch.nonzero(cl_real, as_tuple=True)
+            n_term_res = cl_offsets[cl_real]
+            c_term_res = n_term_res - 1
+
+            cterm_bts = block_type_ind64[nz_cl_real_pose_ind, c_term_res]
+            up_conn_for_cterm = pbt.up_conn_inds[cterm_bts].to(torch.int64)
+
+            nterm_bts = block_type_ind64[nz_cl_real_pose_ind, n_term_res]
+            down_conn_for_nterm = pbt.down_conn_inds[nterm_bts].to(torch.int64)
+
+            # sentinel out the down connection residue and connection
+            inter_residue_connections64[
+                nz_cl_real_pose_ind, n_term_res, down_conn_for_nterm, 0:2
+            ] = -1
+            # sentinel out the up connection residue and connection
+            inter_residue_connections64[
+                nz_cl_real_pose_ind, c_term_res, up_conn_for_cterm, 0:1
+            ] = -1
 
         return inter_residue_connections64
 
