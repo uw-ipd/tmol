@@ -11,4 +11,3 @@ load(
 
 _ops = getattr(torch.ops, modulename(__name__))
 stacked_apsp = _ops.apsp_op
-

@@ -7,7 +7,7 @@ from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 
-from tmol.optimization.modules import DOFMaskingFunc
+# from tmol.optimization.modules import DOFMaskingFunc
 from tmol.optimization.sfxn_modules import CartesianSfxnNetwork
 
 

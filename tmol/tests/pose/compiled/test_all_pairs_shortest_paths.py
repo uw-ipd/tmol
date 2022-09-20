@@ -94,21 +94,8 @@ def test_all_pairs_shortest_paths_w_off_diagonal_bonds():
 
     weights_cuda = weights.clone().to(torch_device_cuda)
 
-    # numpy.set_printoptions(threshold=10000)
-    # print("before")
-    # print(weights.cpu().numpy())
-
     stacked_apsp(weights)
     stacked_apsp(weights_cuda)
-
-    # print("after")
-    # print(weights.cpu().numpy())
-
-    # weights_gold = torch.full((n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device)
-    # for i in range(n_nodes):
-    #     weights_gold[0, i] = torch.abs(arange_n_nodes - i)
-    # weights_gold[1:] = weights_gold[0:1]
-    #
 
     torch.testing.assert_close(weights, weights_cuda.cpu())
 

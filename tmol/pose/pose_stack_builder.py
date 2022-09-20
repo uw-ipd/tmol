@@ -242,12 +242,14 @@ class PoseStackBuilder:
         5 and 20 and another disulfide pair between residues 9 and 15, then
         the sequence would be given as:
 
-        AAAA[CYD--dslf-first]AAA[CYD--dslf-second]AAAAA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA
+        AAAA[CYD--dslf-first]AAA[CYD--dslf-second]AAA ...
+        AA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA
 
-        where the string following the double dash, designates 1) the name of the inter-residue
-        connection (for CYD, this is "dslf") and then 2) after the single dash, a unique identifier
-        so that which pair of residues are forming that connection. In this case the
-        two disulfides have the labels "first" and "second," but any unique label would suffice.
+        where the string following the double dash, designates 1) the name of
+        the inter-residue connection (for CYD, this is "dslf") and then 2) after
+        the single dash, a unique identifier so that which pair of residues are
+        forming that connection. In this case the two disulfides have the labels
+        "first" and "second," but any unique label would suffice.
 
         """
         cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
@@ -374,16 +376,18 @@ class PoseStackBuilder:
         # [ALA:Nterm]AAAA[ALA:Cterm][ALA:Nterm]AAAAAAAAA[ALA:Cterm]
     ):
         """Construct a PoseStack given a list of sequences where the disulfide
-        connectivity is known. E.g. If there is a disulfide pair between residues
-        5 and 20 and another disulfide pair between residues 9 and 15, then
-        the sequence would be given as:
+        connectivity is known. E.g. If there is a disulfide pair between
+        residues 5 and 20 and another disulfide pair between residues 9 and 15,
+        then the sequence would be given as:
 
-        AAAA[CYD--dslf-first]AAA[CYD--dslf-second]AAAAA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA
+        AAAA[CYD--dslf-first]AAA[CYD--dslf-second]AAA ...
+        AA[CYD--dslf-second]AAAA[CYD--dslf-first]AAA
 
-        where the string following the double dash, designates 1) the name of the inter-residue
-        connection (for CYD, this is "dslf") and then 2) after the single dash, a unique identifier
-        so that which pair of residues are forming that connection. In this case the
-        two disulfides have the labels "first" and "second," but any unique label would suffice.
+        where the string following the double dash, designates 1) the name of the
+        inter-residue connection (for CYD, this is "dslf") and then 2) after the
+        single dash, a unique identifier so that which pair of residues are forming
+        that connection. In this case the two disulfides have the labels "first"
+        and "second," but any unique label would suffice.
 
         """
         cls._annotate_pbt_w_canonical_aa1lc_lookup(packed_block_types)
@@ -776,13 +780,12 @@ class PoseStackBuilder:
                     c1 = conn_ind_for_bt(bt1_ind, c_name1)
                     c2 = conn_ind_for_bt(bt2_ind, c_name2)
                     pose_conn_inds.append((r1, c1, r2, c2))
-                except KeyError as e:
+                except KeyError:
                     if c1 is None:
                         missing = (c_name1, r1, bt1_ind, c_name2, r2)
                     else:
                         missing = (c_name2, r2, bt2_ind, c_name1, r1)
-                    # print(pbt.active_block_types[missing[2]].connection_to_cidx.keys())
-                    # print("missing!", missing)
+
                     new_err_msg = (
                         "Failed to find connection '"
                         + missing[0]
@@ -860,7 +863,7 @@ class PoseStackBuilder:
     ):
         n_poses = block_types64.shape[0]
         max_n_blocks = block_types64.shape[1]
-        n_blocks_per_pose = torch.sum(real_blocks, axis=1)
+        # n_blocks_per_pose = torch.sum(real_blocks, axis=1)
         pbt_device = pbt_n_conn.device
         pbt_max_n_conn = pbt_conn_at_intrablock_bond_sep.shape[1]
         assert pbt_conn_at_intrablock_bond_sep.shape[2] == pbt_max_n_conn
@@ -883,18 +886,9 @@ class PoseStackBuilder:
             dtype=torch.int32,
             device=pbt_device,
         )
-        # conn_inds1 = torch.arange(
-        #     max_n_pose_conn,
-        #     dtype=torch.int64,
-        #     device=pbt_device,
-        # ).repeat(max_n_pose_conn * n_poses).reshape(n_poses, max_n_pose_conn, max_n_pose_conn)
-        # conn_inds2 = torch.transpose(conn_inds1, 1, 2)
 
         # let's identify which pairs of connections are part
         # of the same block
-        pose_for_pconn = stretch(
-            torch.arange(n_poses, dtype=torch.int64, device=pbt_device), max_n_pose_conn
-        )
         pose_for_block = stretch(
             torch.arange(n_poses, dtype=torch.int64, device=pbt_device), max_n_blocks
         )
@@ -915,9 +909,6 @@ class PoseStackBuilder:
         are_pconns_from_same_block = (
             pseudo_block_for_pconn[:, None, :] == pseudo_block_for_pconn[:, :, None]
         )
-
-        # how many blocks are there per pose, indexed by pconn
-        n_blocks_for_pconn = n_blocks_per_pose[pose_for_pconn]
 
         # Now let's go to the PackedBlockTypes' data describing intra-residue
         # distances for pairs of inter-residue connections on the same block:
@@ -1384,11 +1375,12 @@ class PoseStackBuilder:
     def _annotate_pbt_w_intraresidue_connection_atom_distances(
         cls, pbt: PackedBlockTypes
     ):
-        """Note the number of chemical bonds that separate all pairs of connection atoms.
-        This information is needed in order to construct the starting (weighted) graph
-        describing the chemical bonds in the system from which either the limited-
-        Dijkstra or the all-pairs-shortest-paths algorithms will generate the chemical
-        separation of the connection atoms.
+        """Note the number of chemical bonds that separate all pairs of
+        connection atoms. This information is needed in order to construct the
+        starting (weighted) graph describing the chemical bonds in the system
+        from which either the limited-Dijkstra or the all-pairs-shortest-paths
+        algorithms will generate the chemical separation of the connection
+        atoms.
         """
         if hasattr(pbt, "conn_at_intrablock_bond_sep"):
             return
@@ -1443,7 +1435,8 @@ class PoseStackBuilder:
                             # been given the same connection label
                             prev_conn = completed_labels[conn_label]
                             err_msg = (
-                                "Fatal error: found more than two residue-connections with the "
+                                "Fatal error: found more than two "
+                                + "residue-connections with the "
                                 + 'same connection label: "'
                                 + conn_label
                                 + '"'
@@ -1705,7 +1698,6 @@ class PoseStackBuilder:
         pconn_offset,
         pconn_matrix,
     ):
-        n_poses, max_n_pconn = pconn_matrix.shape[0], pconn_matrix.shape[1]
         real_connections = inter_residue_connections[:, :, :, 0] != -1
         (
             nz_real_conn_pose_ind,
@@ -1714,7 +1706,6 @@ class PoseStackBuilder:
         ) = torch.nonzero(real_connections, as_tuple=True)
 
         pconn_from = (
-            # max_n_pconn * nz_real_conn_pose_ind +
             pconn_offset[nz_real_conn_pose_ind, nz_real_conn_block_ind]
             + nz_real_conn_conn_ind
         )
@@ -1727,12 +1718,7 @@ class PoseStackBuilder:
                 nz_real_conn_pose_ind, nz_real_conn_block_ind, nz_real_conn_conn_ind, 1
             ]
         )
-        # print("pconn_from")
-        # print(pconn_from)
-        # print("pconn_to")
-        # print(pconn_to)
 
-        # pconn_matrix.view(max_n_pconn * n_poses, max_n_pconn)[pconn_from, pconn_to] = 1
         pconn_matrix[nz_real_conn_pose_ind, pconn_from, pconn_to] = 1
 
     @classmethod

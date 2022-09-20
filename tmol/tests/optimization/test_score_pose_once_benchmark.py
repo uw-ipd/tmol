@@ -1,14 +1,10 @@
-import torch
 import pytest
 
-# from tmol.pose.pose_stack import PoseStack
 from tmol.tests.torch import zero_padded_counts
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 
-from tmol.optimization.modules import DOFMaskingFunc
 from tmol.optimization.sfxn_modules import CartesianSfxnNetwork
 
 
