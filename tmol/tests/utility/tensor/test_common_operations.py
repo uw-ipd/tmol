@@ -28,10 +28,7 @@ def test_stretch2_i32(torch_device):
     )
     t2 = stretch2(t, 3)
     t2_gold = torch.tensor(
-        [
-            [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3],
-            [4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7],
-        ],
+        [[0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3], [4, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7]],
         dtype=torch.int32,
         device=torch_device,
     )

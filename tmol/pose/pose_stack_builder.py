@@ -198,10 +198,8 @@ class PoseStackBuilder:
         # then we can use scan to compute the number of chemical bonds separating
         # every pair of residues, this will give us the inter_block_bondsep tensor
 
-        inter_residue_connections64 = (
-            cls._inter_residue_connections_for_polymeric_monomers(
-                pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
-            )
+        inter_residue_connections64 = cls._inter_residue_connections_for_polymeric_monomers(
+            pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
         )
 
         inter_block_bondsep64 = cls._find_inter_block_separation_for_polymeric_monomers(
@@ -306,16 +304,13 @@ class PoseStackBuilder:
         )
 
         # 2a
-        inter_residue_connections64 = (
-            cls._inter_residue_connections_for_polymeric_monomers(
-                pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
-            )
+        inter_residue_connections64 = cls._inter_residue_connections_for_polymeric_monomers(
+            pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
         )
 
         # 2b add in non-polymeric connections (such as disulfides)
         cls._incorporate_extra_connections_into_inter_res_conn_set(
-            resolved_expoly_connections,
-            inter_residue_connections64,
+            resolved_expoly_connections, inter_residue_connections64
         )
 
         # 3a
@@ -328,16 +323,12 @@ class PoseStackBuilder:
 
         # 3b
         cls._incorporate_inter_residue_connections_into_connectivity_graph(
-            inter_residue_connections64,
-            pconn_offsets,
-            pconn_matrix,
+            inter_residue_connections64, pconn_offsets, pconn_matrix
         )
 
         # 4
-        inter_block_bondsep64 = (
-            cls._calculate_interblock_bondsep_from_connectivity_graph(
-                pbt, block_n_conn, pose_n_pconn, pconn_matrix
-            )
+        inter_block_bondsep64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
+            pbt, block_n_conn, pose_n_pconn, pconn_matrix
         )
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
@@ -445,22 +436,13 @@ class PoseStackBuilder:
         )
 
         # 2a
-        inter_residue_connections64 = (
-            cls._inter_residue_connections_for_polymeric_monomers(
-                pbt,
-                n_poses,
-                max_n_res,
-                real_res,
-                n_res,
-                block_type_ind64,
-                chain_lengths,
-            )
+        inter_residue_connections64 = cls._inter_residue_connections_for_polymeric_monomers(
+            pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, chain_lengths
         )
 
         # 2b add in non-polymeric connections (such as disulfides)
         cls._incorporate_extra_connections_into_inter_res_conn_set(
-            resolved_expoly_connections,
-            inter_residue_connections64,
+            resolved_expoly_connections, inter_residue_connections64
         )
 
         # 3a
@@ -473,16 +455,12 @@ class PoseStackBuilder:
 
         # 3b
         cls._incorporate_inter_residue_connections_into_connectivity_graph(
-            inter_residue_connections64,
-            pconn_offsets,
-            pconn_matrix,
+            inter_residue_connections64, pconn_offsets, pconn_matrix
         )
 
         # 4
-        inter_block_bondsep64 = (
-            cls._calculate_interblock_bondsep_from_connectivity_graph(
-                pbt, block_n_conn, pose_n_pconn, pconn_matrix
-            )
+        inter_block_bondsep64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
+            pbt, block_n_conn, pose_n_pconn, pconn_matrix
         )
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
@@ -841,12 +819,7 @@ class PoseStackBuilder:
 
     @classmethod
     # @validate_args
-    def _take_real_conn_conn_intrablock_pairs(
-        cls,
-        pbt,
-        block_types64,
-        real_blocks,
-    ):
+    def _take_real_conn_conn_intrablock_pairs(cls, pbt, block_types64, real_blocks):
         cls._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
         return cls._take_real_conn_conn_intrablock_pairs_heavy(
             pbt.n_conn, pbt.conn_at_intrablock_bond_sep, block_types64, real_blocks
@@ -897,10 +870,7 @@ class PoseStackBuilder:
         first_pconn_for_block = torch.zeros(
             (n_poses, max_n_pose_conn), dtype=torch.int32, device=pbt_device
         )
-        first_pconn_for_block[
-            pose_for_block,
-            n_conn_for_block_offset64.ravel(),
-        ] = 1
+        first_pconn_for_block[pose_for_block, n_conn_for_block_offset64.ravel()] = 1
         # then an inclusive cummulative sum will label all of the
         # connections coming from the same block the same; this
         # will be 1 more than the actual block index for the
@@ -1693,10 +1663,7 @@ class PoseStackBuilder:
 
     @classmethod
     def _incorporate_inter_residue_connections_into_connectivity_graph(
-        cls,
-        inter_residue_connections,
-        pconn_offset,
-        pconn_matrix,
+        cls, inter_residue_connections, pconn_offset, pconn_matrix
     ):
         real_connections = inter_residue_connections[:, :, :, 0] != -1
         (
