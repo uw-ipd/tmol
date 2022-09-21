@@ -79,7 +79,7 @@ void launch_box_cta_k(func_t f, int num_ctas, args_t... args) {
   typedef typename launch_box::sm_ptx params_t;
   int tid = (int)(threadIdx.x % (unsigned)params_t::nt);
   int cta = blockIdx.x;
-d
+
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ < 300
   cta += gridDim.x * blockIdx.y;
 #endif
