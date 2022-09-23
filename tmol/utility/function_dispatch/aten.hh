@@ -37,11 +37,10 @@
 
 #endif
 
-
 #ifdef WITH_CUDA
 
 #define TMOL_DISPATCH_INDEX_DEVICE(TYPE, NAME, ...)          \
-    [&] {                                                    \
+  [&] {                                                      \
     if (TYPE.device_type() == at::DeviceType::CPU) {         \
       constexpr tmol::Device device_t = tmol::Device::CPU;   \
                                                              \
