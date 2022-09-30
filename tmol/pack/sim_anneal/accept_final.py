@@ -105,37 +105,10 @@ def poses_from_assigned_rotamers(
         context_coords, context_atom_is_legit, default_fill=0.0
     )
 
-    # nats = pbt.n_atoms.cpu()
-
-    # nres = torch.sum(context_block_type != -1, dim=1).cpu()
-    # cbt_cpu = context_block_type.cpu()
-    # coords_numpy = context_coords.cpu().numpy().astype(numpy.float64)
-    # coords_numpy = condensed_coords.cpu().numpy().astype(numpy.float64)
-    # n_atoms_offset_cpu = n_atoms_offset.cpu().numpy()
-
-    # residues = [
-    #     [
-    #         Residue(
-    #             residue_type=pbt.active_block_types[cbt_cpu[i, j]],
-    #             coords=coords_numpy[
-    #                 i,
-    #                 n_atoms_offset_cpu[i, j] : (
-    #                     n_atoms_offset_cpu[i, j] + nats[cbt_cpu[i, j]]
-    #                 ),
-    #                 :,
-    #             ],
-    #         )
-    #         for j in range(nres[i])
-    #     ]
-    #     for i in range(context_coords.shape[0])
-    # ]
-
     pid4c_64 = pose_id_for_context.to(torch.int64)
 
     return PoseStack(
         packed_block_types=packed_block_types,
-        # residues=residues,
-        # residue_coords=coords_numpy,
         coords=condensed_coords,
         block_coord_offset=n_atoms_offset,
         block_coord_offset64=n_atoms_offset.to(torch.int64),
@@ -147,32 +120,3 @@ def poses_from_assigned_rotamers(
         block_type_ind64=context_block_type64,
         device=orig_poses.device,
     )
-
-
-# find replacement @validate_args
-# find replacement def pdb_lines_for_pose(poses: PoseStack, ind: int) -> str:
-# find replacement     @score_graph
-# find replacement     class DummyIntra(IntraScore):
-# find replacement         @reactive_property
-# find replacement         def total_dummy(target):
-# find replacement             return target.coords.sum()
-# find replacement
-# find replacement     @score_graph
-# find replacement     class BASGCart(
-# find replacement         CartesianAtomicCoordinateProvider,
-# find replacement         BondedAtomScoreGraph,
-# find replacement          TorchDevice
-# find replacement     ):
-# find replacement         total_score_components = [
-# find replacement             ScoreComponentClasses(
-# find replacement                 "dummy",
-# find replacement                 intra_container=DummyIntra,
-# find replacement                 inter_container=None
-# find replacement             )
-# find replacement         ]
-# find replacement
-# find replacement     packed_system = PackedResidueSystem.from_residues(
-# find replacement         poses.residues[ind]
-# find replacement     )
-# find replacement     bonded_atom_score_graph = BASGCart.build_for(packed_system)
-# find replacement     return to_pdb(bonded_atom_score_graph)

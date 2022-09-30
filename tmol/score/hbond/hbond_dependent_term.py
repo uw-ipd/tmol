@@ -101,11 +101,8 @@ class HBondDependentTerm(BondDependentTerm):
         atom_types = [x.atom_type for x in block_type.atoms]
         atom_type_idx = self.atom_type_resolver.type_idx(atom_types)
         atom_type_params = self.atom_type_resolver.params[atom_type_idx]
-        atom_acceptor_hybridization = atom_type_params.acceptor_hybridization.numpy().astype(
-            numpy.int64
-        )[
-            None, :
-        ]
+        ahnp = atom_type_params.acceptor_hybridization.numpy()
+        atom_acceptor_hybridization = ahnp.astype(numpy.int64)[None, :]
 
         def map_names(mapper, col_name, type_index):
             # step 1: map atom type names to hbtype names

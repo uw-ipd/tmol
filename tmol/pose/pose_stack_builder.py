@@ -198,9 +198,15 @@ class PoseStackBuilder:
         # then we can use scan to compute the number of chemical bonds separating
         # every pair of residues, this will give us the inter_block_bondsep tensor
 
-        inter_residue_connections64 = cls._inter_residue_connections_for_polymeric_monomers(
+        # with flake8 and black working against each other, if you want to give
+        # a variable a descriptive name, you often have to assign it to a temporary
+        # in the line where you assign it from a function with a descriptive name
+        # and then assign it to the variable you really want in a second step.
+        # what a waste!
+        irc64 = cls._inter_residue_connections_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
         )
+        inter_residue_connections64 = irc64
 
         inter_block_bondsep64 = cls._find_inter_block_separation_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, block_type_ind64
@@ -304,9 +310,10 @@ class PoseStackBuilder:
         )
 
         # 2a
-        inter_residue_connections64 = cls._inter_residue_connections_for_polymeric_monomers(
+        irc64 = cls._inter_residue_connections_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
         )
+        inter_residue_connections64 = irc64
 
         # 2b add in non-polymeric connections (such as disulfides)
         cls._incorporate_extra_connections_into_inter_res_conn_set(
@@ -327,9 +334,10 @@ class PoseStackBuilder:
         )
 
         # 4
-        inter_block_bondsep64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
+        ibb64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
             pbt, block_n_conn, pose_n_pconn, pconn_matrix
         )
+        inter_block_bondsep64 = ibb64
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
         n_atoms[real_res] = pbt.n_atoms[block_type_ind64[real_res]]
@@ -436,9 +444,10 @@ class PoseStackBuilder:
         )
 
         # 2a
-        inter_residue_connections64 = cls._inter_residue_connections_for_polymeric_monomers(
+        irc64 = cls._inter_residue_connections_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, chain_lengths
         )
+        inter_residue_connections64 = irc64
 
         # 2b add in non-polymeric connections (such as disulfides)
         cls._incorporate_extra_connections_into_inter_res_conn_set(
@@ -459,9 +468,10 @@ class PoseStackBuilder:
         )
 
         # 4
-        inter_block_bondsep64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
+        ibb64 = cls._calculate_interblock_bondsep_from_connectivity_graph(
             pbt, block_n_conn, pose_n_pconn, pconn_matrix
         )
+        inter_block_bondsep64 = ibb64
 
         n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
         n_atoms[real_res] = pbt.n_atoms[block_type_ind64[real_res]]

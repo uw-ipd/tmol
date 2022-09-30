@@ -11,9 +11,9 @@ class CartesianSfxnNetwork(torch.nn.Module):
     ):
         super(CartesianSfxnNetwork, self).__init__()
 
-        self.whole_pose_scoring_module = score_function.render_whole_pose_scoring_module(
-            pose_stack
-        )
+        wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        self.whole_pose_scoring_module = wpsm
+
         self.coord_mask = coord_mask
 
         self.full_coords = pose_stack.coords

@@ -88,11 +88,8 @@ def test_annotate_block_type_hbond_params(
         i_atom_types = [x.atom_type for x in block_type.atoms]
         atom_type_idx = atom_resolver.type_idx(i_atom_types)
         atom_type_params = atom_resolver.params[atom_type_idx]
-        atom_acceptor_hybridization = atom_type_params.acceptor_hybridization.numpy().astype(
-            numpy.int64
-        )[
-            None, :
-        ]
+        ahnp = atom_type_params.acceptor_hybridization.numpy()
+        atom_acceptor_hybridization = ahnp.astype(numpy.int64)[None, :]
 
         i_is_acc, i_acc_type = map_names(
             i_atom_types,
