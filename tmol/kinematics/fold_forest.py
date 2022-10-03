@@ -2,9 +2,7 @@ import numpy
 import attr
 import enum
 
-from typing import Sequence
 from tmol.types.array import NDArray
-from tmol.chemical.restypes import Residue
 
 
 class EdgeType(enum.IntEnum):
@@ -35,9 +33,12 @@ class FoldForest:
     roots: NDArray[int][:]
 
     @classmethod
-    def polymeric_forest(cls, residues: Sequence[Sequence[Residue]]):
-        n_trees = len(residues)
-        n_res_per_tree = [len(reslist) for reslist in residues]
+    # soon! @validate_args
+    def polymeric_forest(cls, n_res_per_tree: NDArray[numpy.int32][:]):
+        # n_trees = len(residues)
+        # n_res_per_tree = [len(reslist) for reslist in residues]
+        n_trees = n_res_per_tree.shape[0]
+
         edges = numpy.full((n_trees, 1, 4), -1, dtype=int)
         edges[:, 0, 0] = EdgeType.polymer
         edges[:, 0, 1] = 0
@@ -45,7 +46,7 @@ class FoldForest:
         roots = numpy.full((n_trees,), 0, dtype=int)
         return cls(
             max_n_edges=1,
-            n_edges=numpy.ones(len(residues), dtype=int),
+            n_edges=numpy.ones(n_trees, dtype=int),
             edges=edges,
             roots=roots,
         )

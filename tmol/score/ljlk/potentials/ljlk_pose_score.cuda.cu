@@ -10,6 +10,7 @@
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/coordinate_load.cuh>
 #include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/debug.cuh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/warp_segreduce.hh>
@@ -988,6 +989,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   mgpu::standard_context_t context(wrapped_stream.stream());
   int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
 
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
+
   // 1
   launch_compute_block_spheres<D, Real, Int, launch_t>(
       coords,
@@ -996,6 +1000,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       block_type_n_atoms,
       scratch_block_spheres,
       context);
+
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
 
   // 2
   launch_detect_block_neighbors<D, Real, Int, launch_t>(
@@ -1120,13 +1127,17 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // });
   //
   // std::cout << "compute_block_sphere: " <<
-  // typeid(compute_block_sphere).name() << std::endl; std::cout <<
-  // "detect_block_neighbor: " << typeid(detect_block_neighbor).name() <<
-  // std::endl; std::cout << "eval_energies: " << typeid(eval_energies).name()
-  // << std::endl;
+  // typeid(compute_block_sphere).name() << std::endl;
+
+  // DisplayHeader();
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
 
   // 3
   mgpu::cta_launch<launch_t>(eval_energies, n_block_pairs, context);
+
+  gpuErrchk(cudaPeekAtLastError());
+  gpuErrchk(cudaDeviceSynchronize());
 
   return {output_t, dV_dcoords_t};
 }

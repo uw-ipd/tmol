@@ -71,7 +71,9 @@ class SelectRanRotModule:
     # def forward(self, context_coords, context_block_type):
 
     def go(self, context_coords, context_coord_offsets, context_block_type):
-        """Select one rotamer for each context as well as the current rotamer at that position"""
+        """Select one rotamer for each context as well as the current rotamer
+        at that position
+        """
 
         return pick_random_rotamers(
             context_coords,
@@ -100,7 +102,9 @@ class SelectRanRotModule:
         # alternate_coords = torch.zeros(
         #     (n_contexts * 2, max_n_atoms, 3), dtype=torch.float32, device=dev
         # )
-        # alternate_ids = torch.zeros((n_contexts * 2, 3), dtype=torch.int32, device=dev)
+        # alternate_ids = torch.zeros(
+        #     (n_contexts * 2, 3), dtype=torch.int32, device=dev
+        # )
         #
         # urand = torch.rand(n_contexts, dtype=torch.float32, device=dev)
         #
@@ -122,7 +126,9 @@ class SelectRanRotModule:
         #     context_arange, rand_rot_block_ind
         # ].to(torch.int32)
         #
-        # alternate_coords[2 * context_arange + 1,] = self.rotamer_coords[rand_rot_global]
+        # alternate_coords[2 * context_arange + 1,] = self.rotamer_coords[
+        #     rand_rot_global
+        # ]
         #
         # alternate_ids[2 * context_arange + 1, 0] = context_arange.to(torch.int32)
         # alternate_ids[2 * context_arange + 1, 1] = rand_rot_block_ind.to(torch.int32)

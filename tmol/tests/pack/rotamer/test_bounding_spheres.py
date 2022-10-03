@@ -3,7 +3,7 @@ import torch
 from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.rotamer.bounding_spheres import create_rotamer_bounding_spheres
 
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
@@ -13,10 +13,16 @@ def test_create_rotamer_bounding_spheres_smoke(
 ):
     # torch_device = torch.device("cpu")
 
-    p1 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:3], torch_device)
-    p2 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:2], torch_device)
-    p3 = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res[:4], torch_device)
-    poses = PoseStack.from_poses([p1, p2, p3], torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:3], torch_device
+    )
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:2], torch_device
+    )
+    p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res[:4], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     # leu_set = set(["LEU"])
@@ -77,8 +83,10 @@ def test_build_spheres_for_lots_of_rotamers(
 
     n_poses = 10
 
-    p = PoseStack.one_structure_from_polymeric_residues(rts_ubq_res, torch_device)
-    poses = PoseStack.from_poses([p] * n_poses, torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        rts_ubq_res, torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)

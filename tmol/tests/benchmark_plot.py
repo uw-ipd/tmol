@@ -19,6 +19,10 @@ class BenchmarkPlot:
         if not isinstance(benchmark_data, pandas.DataFrame):
             benchmark_data = cls.load_benchmarks(benchmark_data)
 
+        benchmark_data = benchmark_data.applymap(
+            lambda x: tuple(x) if isinstance(x, list) else x
+        )
+
         return benchmark_data.query(cls.query)
 
     @classmethod

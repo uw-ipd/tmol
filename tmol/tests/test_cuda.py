@@ -15,8 +15,8 @@ def test_torch_cuda_smoke():
     import torch
 
     rs = (100, 100)
-    a = torch.rand(rs)
-    b = torch.rand(rs)
+    a = torch.rand(rs, dtype=torch.double)
+    b = torch.rand(rs, dtype=torch.double)
 
     c = a.cuda() @ b.cuda()
 

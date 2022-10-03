@@ -55,5 +55,7 @@ class RamaScoreModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, coords):
-        # print("RamaScoreModule.forward: ", self.params.device, self.tables.device, self.table_params.device)
+        # print("RamaScoreModule.forward: ",
+        #     self.params.device, self.tables.device, self.table_params.device
+        # )
         return score_rama(coords, self.params, self.tables, self.table_params)

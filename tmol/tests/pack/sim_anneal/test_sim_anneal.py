@@ -5,7 +5,7 @@ import numpy
 from tmol.utility.tensor.common_operations import stretch
 
 from tmol.chemical.restypes import ResidueTypeSet
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 # to dump pdbs
 # from tmol.system.packed import PackedResidueSystem
@@ -51,8 +51,10 @@ def test_random_rotamer_module(ubq_res, default_database, torch_device):
         for res in ubq_res
     ]
 
-    p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:n_res], torch_device)
-    poses = PoseStack.from_poses([p] * n_poses, torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[:n_res], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     # contexts = poses.coords.clone() ??
 
@@ -70,7 +72,8 @@ def test_random_rotamer_module(ubq_res, default_database, torch_device):
         n_poses * n_res * n_rots_per_res, dtype=torch.int32, device=torch_device
     )
 
-    # there are always two "alternate" rots per pose: the current and the (actual) alternate
+    # there are always two "alternate" rots per pose: the current and the
+    # (actual) alternate
     alternate_coords = torch.zeros(
         (n_poses * 2 * max_n_atoms_per_block, 3),
         dtype=torch.float32,
@@ -179,8 +182,10 @@ def test_mc_accept_reject_module_smoke(ubq_res, default_database, torch_device):
         for res in ubq_res
     ]
 
-    p = PoseStack.one_structure_from_polymeric_residues(ubq_res[:n_res], torch_device)
-    poses = PoseStack.from_poses([p] * n_poses, torch_device)
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
+        ubq_res[:n_res], torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     arange_n_poses = torch.arange(n_poses, dtype=torch.int64, device=torch_device)
 
@@ -261,10 +266,10 @@ def test_accept_final_smoke(
 
     max_n_blocks = 10
     n_poses = 3
-    p = PoseStack.one_structure_from_polymeric_residues(
+    p = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res[:max_n_blocks], torch_device
     )
-    poses = PoseStack.from_poses([p] * n_poses, torch_device)
+    poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -311,7 +316,8 @@ def test_accept_final_smoke(
         context_block_type,
     )
 
-    # TO DO: make sure that the coordinates of the accepted rotamers are what is expected
+    # TO DO: make sure that the coordinates of the accepted rotamers are
+    # what is expected
     assert randomized_poses.coords.dtype == torch.float32
     assert randomized_poses.coords.device == torch_device
     assert randomized_poses.block_coord_offset.dtype == torch.int32
@@ -339,13 +345,23 @@ def test_accept_final_smoke(
     #         return target.coords.sum()
     #
     # @score_graph
-    # class BASGCart(CartesianAtomicCoordinateProvider, BondedAtomScoreGraph, TorchDevice) :
+    # class BASGCart(
+    #     CartesianAtomicCoordinateProvider,
+    #     BondedAtomScoreGraph,
+    #     TorchDevice
+    # ) :
     #     total_score_components = [
-    #         ScoreComponentClasses("dummy", intra_container=DummyIntra, inter_container=None)
+    #         ScoreComponentClasses(
+    #             "dummy",
+    #             intra_container=DummyIntra,
+    #             inter_container=None
+    #         )
     #     ]
 
     # debug output for i in range(n_poses):
-    # debug output     # packed_system = PackedResidueSystem.from_residues(randomized_poses.residues[i])
+    # debug output     # packed_system = PackedResidueSystem.from_residues(
+    # debug output           randomized_poses.residues[i]
+    # debug output       )
     # debug output     # bonded_atom_score_graph = BASGCart.build_for(packed_system)
     # debug output     # pdb = to_pdb(bonded_atom_score_graph)
     # debug output

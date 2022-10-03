@@ -103,7 +103,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     assert dun_params_aux.nchi_for_table_set.device == torch_device
     assert dun_params.rotameric_rotind2tableind.device == torch_device
     assert dun_params.semirotameric_rotind2tableind.device == torch_device
-    assert dun_params_aux.rotameric_chi_rotind2tableind_offsets.device == torch_device
+    assert dun_params_aux.rotameric_chi_ri2ti_offsets.device == torch_device
     assert dun_params_aux.semirotameric_tableset_offsets.device == torch_device
     assert dun_params.semirot_start.device == torch_device
     assert dun_params.semirot_step.device == torch_device
@@ -138,9 +138,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     nchi_for_set = dun_params_aux.nchi_for_table_set.cpu().numpy()
     numpy.testing.assert_array_equal(nchi, nchi_for_set)
 
-    rotameric_ri2ti_offsets = (
-        dun_params_aux.rotameric_chi_rotind2tableind_offsets.cpu().numpy()
-    )
+    rotameric_ri2ti_offsets = dun_params_aux.rotameric_chi_ri2ti_offsets.cpu().numpy()
     rotameric_ri2ti = dun_params.rotameric_rotind2tableind.cpu().numpy()
     rotamers = [
         rotlib.rotameric_data.rotamers for rotlib in dunlib.rotameric_libraries
@@ -346,9 +344,7 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
 
     # rotind2tableind_offset_for_res_gold =
     ri2tiofr_gold = (
-        resolver.scoring_db_aux.rotameric_chi_rotind2tableind_offsets[
-            rottable_set_for_res_gold
-        ]
+        resolver.scoring_db_aux.rotameric_chi_ri2ti_offsets[rottable_set_for_res_gold]
         .cpu()
         .numpy()
         .reshape(1, -1)

@@ -96,7 +96,7 @@ class ScoringDunbrackDatabaseAux(ConvertAttrs):
     rotameric_prob_tableset_offsets: Tensor[torch.int32][:]
     rotameric_meansdev_tableset_offsets: Tensor[torch.int32][:]
     nchi_for_table_set: Tensor[torch.int32][:]
-    rotameric_chi_rotind2tableind_offsets: Tensor[torch.int32][:]
+    rotameric_chi_ri2ti_offsets: Tensor[torch.int32][:]
     semirotameric_tableset_offsets: Tensor[torch.int32][:]
 
 
@@ -198,7 +198,7 @@ class DunbrackParamResolver(ValidateAttrs):
             dun_database, device
         )
 
-        rotameric_chi_rotind2tableind_offsets = cls._create_rotameric_rotind2tableind_offsets(
+        rotameric_chi_ri2ti_offsets = cls._create_rotameric_rotind2tableind_offsets(
             dun_database, device
         )
         all_chi_rotind2tableind_offsets = cls._create_all_chi_rotind2tableind_offsets(
@@ -240,7 +240,7 @@ class DunbrackParamResolver(ValidateAttrs):
             rotameric_prob_tableset_offsets=prob_table_offsets,
             rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
             nchi_for_table_set=nchi_for_table_set,
-            rotameric_chi_rotind2tableind_offsets=rotameric_chi_rotind2tableind_offsets,
+            rotameric_chi_ri2ti_offsets=rotameric_chi_ri2ti_offsets,
             semirotameric_tableset_offsets=sr_tableset_offsets,
         )
 
@@ -800,7 +800,7 @@ class DunbrackParamResolver(ValidateAttrs):
             db_aux.rotameric_meansdev_tableset_offsets, rottable_set_for_res64
         )
         rotind2tableind_offset_for_res = take_values_w_sentineled_index(
-            db_aux.rotameric_chi_rotind2tableind_offsets, rottable_set_for_res64
+            db_aux.rotameric_chi_ri2ti_offsets, rottable_set_for_res64
         )
 
         rotameric_chi_desc = self._create_rotameric_chi_descriptors(

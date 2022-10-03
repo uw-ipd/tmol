@@ -37,6 +37,31 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
     DOFMetadata supports isomorphic conversion between a DataFrame and
     TensorGroup representation to support symbolic selection. This converts the
     IntEnum encoded "dof_type" entry into a string categorical column.
+
+    The DOFMetadata data members, just like the KinForest, suffer from the same
+    confusion about what an index represents because there are two ways to index
+    the data:
+
+    - The "Target Order" (TO) that refers to the index of an atom in the PoseStack
+      it came from where the coordinate tensor is squashed to (N,3)
+    - The "KinForest Order" (KFO) that refers to the order that an atom's node appears
+      in the KinForest; this second ordering puts the index of any child atom after
+      the index for any parent atom
+
+    The DOFMetadata class indexes all available DOFs in the system. There are 9 possible
+    DOFs per atom (either 3 for BondedAtoms or 9 for JumpAtoms), but in actuality,
+    there are many fewer valid DOFs. The DOFMetadata class indexes valid DOFs.
+
+    For each valid DOF i, there's:
+    - node_idx[i]: the KFO index of the atom that DOF i belongs to
+    - dof_idx[i]: the index between 0-8 for DOF i on its atom
+    - dof_type[i]: the DOF type (either a BondDOFType or a JumpDOFType) for DOF i
+    - parent_id[i]: the TO index for the parent to node_idx[i] for DOF i
+    - child_id[i]: the TO index for node_idx[i] for DOF i
+
+    The DOFMetadata class is primarily used to index into torch tensors in python,
+    and therefore all of its dtypes are 64-bit integers.
+
     """
 
     node_idx: Tensor[torch.long][...]
@@ -52,12 +77,15 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
 
         # Setup a dof type table the same shape as the kinematic dofs,
         # marking all potential movable dofs with the abstract dof type.
-        # Leaving all non-movable or invalid dofs as nan.
-        parentIdx = kinforest.parent.to(dtype=torch.long)
+        # Leaving all non-movable or invalid dofs as nan. Essentially,
+        # [n-atoms x 9]
         dof_types = KinDOF.full(kinforest.shape, math.nan)
+
+        parentIdx = kinforest.parent.to(dtype=torch.long)
+        # count the number of children each KFO node has and then ask is that number > 0
         node_has_children = (
             torch.zeros_like(kinforest.id).put_(
-                parentIdx, torch.ones_like(kinforest.parent), True
+                parentIdx, torch.ones_like(kinforest.parent), accumulate=True
             )
             > 0
         )
@@ -79,9 +107,7 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         dof_types.jump.RBdel_gamma[jsel] = DOFTypes.jump
 
         # Get indices of all marked dofs.
-        valid_dofs = (~torch.isnan(dof_types.raw)).nonzero(as_tuple=False)
-        node_idx = valid_dofs[:, 0]
-        dof_idx = valid_dofs[:, 1]
+        node_idx, dof_idx = (~torch.isnan(dof_types.raw)).nonzero(as_tuple=True)
 
         # Unpack into the node/dof index, then expand
         return cls(

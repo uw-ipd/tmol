@@ -12,6 +12,7 @@ import scipy.sparse.csgraph as csgraph
 from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType, ChemicalDatabase
 
+from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
 from tmol.types.functional import validate_args
 
@@ -139,7 +140,6 @@ class RefinedResidueType(RawResidueType):
 
     @path_distance.default
     def _setup_path_distance(self):
-        MAX_SEPARATION = 6
         bonds_sparse = sparse.COO(
             self.bond_indices.T,
             data=numpy.full(len(self.bond_indices), True),
@@ -147,9 +147,9 @@ class RefinedResidueType(RawResidueType):
             cache=True,
         )
         path_distance = csgraph.dijkstra(
-            bonds_sparse, directed=False, unweighted=True, limit=MAX_SEPARATION
+            bonds_sparse, directed=False, unweighted=True, limit=MAX_SIG_BOND_SEPARATION
         )
-        path_distance[path_distance == numpy.inf] = MAX_SEPARATION
+        path_distance[path_distance == numpy.inf] = MAX_SIG_BOND_SEPARATION
         return path_distance
 
     atom_downstream_of_conn: numpy.ndarray = attr.ib()
@@ -206,7 +206,7 @@ class RefinedResidueType(RawResidueType):
                     if self.icoors[atom_index].name == atom:
                         parent = self.icoors[atom_index].parent
                     else:
-                        parent = next(x.parent for x in self.icoors if x.name == "atom")
+                        parent = next(x.parent for x in self.icoors if x.name == atom)
         return atom_downstream_of_conn
 
     @property

@@ -158,8 +158,8 @@ void launch_compute_block_spheres(
   int const max_n_blocks = pose_stack_block_type.size(1);
 
   compute_block_spheres_kernel<<<
-      LaunchType::sm_ptx::nt,
       n_poses * max_n_blocks,
+      LaunchType::sm_ptx::nt,
       0,
       context.stream()>>>(
       coords,
@@ -187,8 +187,8 @@ void launch_detect_block_neighbors(
       (n_block_pairs - 1) / LaunchType::sm_ptx::nt + 1;
 
   detect_block_neighbors_kernel<<<
-      LaunchType::sm_ptx::nt,
       n_poses * max_n_blocks,
+      LaunchType::sm_ptx::nt,
       0,
       context.stream()>>>(
       coords,

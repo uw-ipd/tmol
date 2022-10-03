@@ -256,10 +256,9 @@ def test_validate_fold_forest_1():
 
     try:
         validate_fold_forest(roots, n_res_per_tree, edges)
-        # we should reach here
     except ValueError as verr:
         print(verr)
-        assert False
+        assert verr is None
 
 
 def test_validate_fold_forest_2():
@@ -285,17 +284,17 @@ def test_validate_fold_forest_2():
         edges[pid, count_pose_edges[pid], 2] = r2
         count_pose_edges[pid] += 1
 
+    threw = False
     try:
         validate_fold_forest(roots, n_res_per_tree, edges)
-        # we should reach here
-        assert False
     except ValueError as verr:
         assert verr.args[0] == "FOLD FOREST ERROR: Block 6 unreachable in pose 1"
+        threw = True
+    assert threw
 
 
 def test_validate_fold_forest_3():
-    """Make sure that if two trees have errors, that both errors are reported
-    """
+    """Make sure that if two trees have errors, that both errors are reported"""
     roots = numpy.array([0, 0, 0], dtype=numpy.int64)
     n_res_per_tree = numpy.array([8, 11, 5], dtype=numpy.int64)
 
@@ -316,10 +315,14 @@ def test_validate_fold_forest_3():
         edges[pid, count_pose_edges[pid], 2] = r2
         count_pose_edges[pid] += 1
 
+    threw = False
     try:
         validate_fold_forest(roots, n_res_per_tree, edges)
-        # we should reach here
-        assert False
     except ValueError as verr:
-        gold_error = "FOLD FOREST ERROR: Cycle detected in pose 0 at block 3\nFOLD FOREST ERROR: Cycle detected in pose 1 at block 5"
+        threw = True
+        gold_error = (
+            "FOLD FOREST ERROR: Cycle detected in pose 0 at block 3\n"
+            "FOLD FOREST ERROR: Cycle detected in pose 1 at block 5"
+        )
         assert verr.args[0] == gold_error
+    assert threw

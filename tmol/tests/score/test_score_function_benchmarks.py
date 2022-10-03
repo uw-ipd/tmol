@@ -2,7 +2,9 @@ import pytest
 import torch
 
 from tmol.score.score_function import ScoreFunction
-from tmol.pose.pose_stack import PoseStack
+
+# from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 
@@ -13,11 +15,11 @@ from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 def test_res_centric_score_benchmark_setup(
     benchmark, energy_term, n_poses, rts_ubq_res, default_database, torch_device
 ):
-    pose_stack1 = PoseStack.one_structure_from_polymeric_residues(
+    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res, torch_device
     )
 
-    pose_stack_n = PoseStack.from_poses([pose_stack1] * n_poses, torch_device)
+    pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
     sfxn = ScoreFunction(default_database, torch_device)
 
     for st in energy_term.score_types():
@@ -44,10 +46,10 @@ def dont_test_res_centric_score_benchmark(
     default_database,
     torch_device,
 ):
-    pose_stack1 = PoseStack.one_structure_from_polymeric_residues(
+    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res, torch_device
     )
-    pose_stack_n = PoseStack.from_poses([pose_stack1] * n_poses, torch_device)
+    pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
 
