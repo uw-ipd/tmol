@@ -45,10 +45,10 @@ struct DeviceOperations<tmol::Device::CUDA> {
         context);
   }
 
-  template <int N_T, typename Func>
+  template <int TILE_SIZE, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f) {
     mgpu::standard_context_t context;
-    mgpu::cta_launch<N_T>(f, n_workgroups, context);
+    mgpu::cta_launch<TILE_SIZE>(f, n_workgroups, context);
   }
 
   template <int TILE_SIZE, int WIDTH, typename T>
@@ -57,19 +57,10 @@ struct DeviceOperations<tmol::Device::CUDA> {
     mgpu::mem_to_shared<TILE_SIZE, WIDTH>(src, threadIdx.x, n, dst, false);
   }
 
-  // template <int TILE_SIZE, int WIDTH>
-  // __device__
-  // static void copy_contiguous_float_data(float * __restrict__ dst, float *
-  // __restrict__ src, int n)
-  // {
-  //   mgpu::mem_to_shared<TILE_SIZE, WIDTH>(src, threadIdx.x, n, dst, false);
-  // }
-  // template <typename T, int TILE_SIZE, int WIDTH>
-  // static void (int n, Func f) {
-  //   for (int i = 0; i < n; ++i) {
-  //     f(i);
-  //   }
-  // }
+  template <int TILE_SIZE, typename Func>
+  __device__ static void for_each_in_workgroup(Func f) {
+    f(threadIdx.x);
+  }
 
   __device__ static void synchronize_workgroup() { __syncthreads(); }
 };

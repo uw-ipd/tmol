@@ -26,8 +26,8 @@ struct DeviceOperations {
   static void copy_contiguous_data(
       T* __restrict__ dst, T* __restrict__ src, int n);
 
-  // template <typename T, int TILE_SIZE, int WIDTH>
-  // static void copy_contingent(int n, Func f);
+  template <int TILE_SIZE, typename Func>
+  static void for_each_in_workgroup(Func f);
 
   static void synchronize_workgroup();
 };

@@ -36,10 +36,10 @@ struct DeviceOperations<tmol::Device::CPU> {
     }
   }
 
-  template <int N_T, typename Func>
+  template <int TILE_SIZE, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f) {
     for (int i = 0; i < n_workgroups; ++i) {
-      for (int j = 0; j < N_T; ++j) {
+      for (int j = 0; j < TILE_SIZE; ++j) {
         f(j, i);
       }
     }
@@ -50,6 +50,13 @@ struct DeviceOperations<tmol::Device::CPU> {
       T* __restrict__ dst, T* __restrict__ src, int n) {
     for (int i = 0; i < n; ++i) {
       dst[i] = src[i];
+    }
+  }
+
+  template <int TILE_SIZE, typename Func>
+  static void for_each_in_workgroup(Func f) {
+    for (int i = 0; i < TILE_SIZE; ++i) {
+      f(i);
     }
   }
 
