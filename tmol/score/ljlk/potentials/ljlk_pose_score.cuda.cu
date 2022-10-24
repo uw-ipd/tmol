@@ -23,7 +23,8 @@
 
 #include <chrono>
 
-#include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
+//#include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
+#include <tmol/score/common/device_operations.cuda.impl.cuh>
 
 #include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/transform.hxx>
@@ -42,6 +43,12 @@ namespace potentials {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
+
+#ifdef __NVCC__
+#define SHARED_MEMORY __shared__
+#else
+#define SHARED_MEMORY
+#endif
 
 template <
     template <tmol::Device>
@@ -577,13 +584,19 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
            Real *__restrict__ shared_coords,
            LJLKTypeParams<Real> *__restrict__ params,
            unsigned char *__restrict__ heavy_inds) {
-        mgpu::mem_to_shared<TILE_SIZE, 3>(
+        // mgpu::mem_to_shared<TILE_SIZE, 3>(
+        //     reinterpret_cast<Real *>(
+        //         &coords[pose_ind][block_coord_offset + TILE_SIZE *
+        //         tile_ind]),
+        //     tid,
+        //     n_atoms_to_load * 3,
+        //     shared_coords,
+        //     false);
+        DeviceDispatch<D>::template copy_contiguous_data<TILE_SIZE, 3>(
+            shared_coords,
             reinterpret_cast<Real *>(
                 &coords[pose_ind][block_coord_offset + TILE_SIZE * tile_ind]),
-            tid,
-            n_atoms_to_load * 3,
-            shared_coords,
-            false);
+            n_atoms_to_load * 3);
 
         if (tid < TILE_SIZE) {
           if (tid < n_atoms_to_load) {
@@ -644,7 +657,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     };
     typedef mgpu::cta_reduce_t<nt, Real> reduce_t;
 
-    __shared__ union shared_mem_union {
+    SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
       struct {
         Real coords1[TILE_SIZE * 3];  // 786 bytes for coords
@@ -1134,7 +1147,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   gpuErrchk(cudaDeviceSynchronize());
 
   // 3
-  mgpu::cta_launch<launch_t>(eval_energies, n_block_pairs, context);
+  // mgpu::cta_launch<launch_t>(eval_energies, n_block_pairs, context);
+  DeviceDispatch<D>::template foreach_workgroup<TILE_SIZE>(
+      n_block_pairs, eval_energies);
 
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
@@ -1143,12 +1158,14 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 }
 
 template struct LJLKPoseScoreDispatch<
-    ForallDispatch,
+    // ForallDispatch,
+    DeviceOperations,
     tmol::Device::CUDA,
     float,
     int>;
 template struct LJLKPoseScoreDispatch<
-    ForallDispatch,
+    // ForallDispatch,
+    DeviceOperations,
     tmol::Device::CUDA,
     double,
     int>;

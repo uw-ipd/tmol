@@ -6,6 +6,7 @@
 
 #include <tmol/score/common/simple_dispatch.hh>
 #include <tmol/score/common/forall_dispatch.hh>
+#include <tmol/score/common/device_operations.hh>
 
 #include "lj.dispatch.hh"
 #include "lk_isotropic.dispatch.hh"
@@ -637,7 +638,7 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def(
       "score_ljlk_lk_isotropic_triu",
       &lk_score_op<LKIsotropicDispatch, AABBTriuDispatch>);
-  m.def("ljlk_pose_scores", &ljlk_pose_scores_op<ForallDispatch>);
+  m.def("ljlk_pose_scores", &ljlk_pose_scores_op<DeviceOperations>);
   m.def("score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
   m.def(
       "register_lj_lk_rotamer_pair_energy_eval",
