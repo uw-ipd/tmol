@@ -39,9 +39,8 @@ struct DeviceOperations<tmol::Device::CPU> {
   template <int TILE_SIZE, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f) {
     for (int i = 0; i < n_workgroups; ++i) {
-      for (int j = 0; j < TILE_SIZE; ++j) {
-        f(j, i);
-      }
+      // First argument is a dummy
+      f(0, i);
     }
   }
 
