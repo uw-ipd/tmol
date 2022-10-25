@@ -77,6 +77,12 @@ struct DeviceOperations<tmol::Device::CPU> {
 
   // No op on 1-core CPU
   static void synchronize_workgroup() {}
+
+  // No op on 1-core CPU
+  template <int TILE_SIZE, typename T, typename S, typename OP>
+  static T reduce_in_workgroup(T val, S, OP) {
+    return val;
+  }
 };
 
 }  // namespace common

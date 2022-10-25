@@ -26,6 +26,7 @@
 //#include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
 
+#include <moderngpu/operators.hxx>
 #include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/transform.hxx>
 
@@ -48,6 +49,26 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 #define SHARED_MEMORY __shared__
 #else
 #define SHARED_MEMORY
+#endif
+
+// typedef for use inside main device lambda for declaring
+// a reduction variable
+#ifdef __NVCC__
+#define CTA_REAL_REDUCE_T_TYPEDEF             \
+  typedef typename launch_t::sm_ptx params_t; \
+  enum {                                      \
+    nt = params_t::nt,                        \
+    vt = params_t::vt,                        \
+    vt0 = params_t::vt0,                      \
+    nv = nt * vt                              \
+  };                                          \
+  typedef mgpu::cta_reduce_t<nt, Real> reduce_t
+
+#define CTA_REAL_REDUCE_T_VARIABLE typename reduce_t::storage_t reduce
+
+#else
+#define CTA_REAL_REDUCE_T_TYPEDEF
+#define CTA_REAL_REDUCE_T_VARIABLE
 #endif
 
 template <
@@ -655,16 +676,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   // Note: the "tid" argument is needed to invoke mgpu::cta_launch but we will
   // not use it right away. The parts of this function that are outisde of a
-  // lambda are where all the threads are acting in synchrony.
+  // lambda are where all the threads are acting in synchrony. For threads to
+  // act independently, inner lambda functions will have to be wrapped in calls
+  // to DeviceDispatch::for_each_in_workgroup
   auto eval_energies = ([=] MGPU_DEVICE(int /*tid*/, int cta) {
-    typedef typename launch_t::sm_ptx params_t;
-    enum {
-      nt = params_t::nt,
-      vt = params_t::vt,
-      vt0 = params_t::vt0,
-      nv = nt * vt
-    };
-    typedef mgpu::cta_reduce_t<nt, Real> reduce_t;
+    CTA_REAL_REDUCE_T_TYPEDEF;
 
     SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
@@ -685,8 +701,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
       } m;
 
-      // TO DO: only include reduce data member if __NVCC__
-      typename reduce_t::storage_t reduce;
+      CTA_REAL_REDUCE_T_VARIABLE;
 
     } shared;
 
@@ -1032,11 +1047,17 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     // Real cta_total_lj(0), cta_total_lk(0);
 
     auto reduce_energies = ([&](int tid) {
-      Real const cta_total_lj = reduce_t().reduce(
-          tid, total_lj, shared.reduce, nt, mgpu::plus_t<Real>());
-
-      Real const cta_total_lk = reduce_t().reduce(
-          tid, total_lk, shared.reduce, nt, mgpu::plus_t<Real>());
+      // Real const cta_total_lj = reduce_t().reduce(
+      //     tid, total_lj, shared.reduce, nt, mgpu::plus_t<Real>());
+      //
+      // Real const cta_total_lk = reduce_t().reduce(
+      //     tid, total_lk, shared.reduce, nt, mgpu::plus_t<Real>());
+      Real const cta_total_lj =
+          DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+              total_lj, shared, mgpu::plus_t<Real>());
+      Real const cta_total_lk =
+          DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+              total_lk, shared, mgpu::plus_t<Real>());
 
       if (tid == 0) {
         atomicAdd(&output[0][pose_ind], cta_total_lj);

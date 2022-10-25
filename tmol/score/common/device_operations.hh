@@ -29,6 +29,9 @@ struct DeviceOperations {
   template <int TILE_SIZE, typename Func>
   static void for_each_in_workgroup(Func f);
 
+  template <int TILE_SIZE, typename T, typename S, typename OP>
+  static T reduce_in_workgroup(T val, S shared, OP op);
+
   static void synchronize_workgroup();
 };
 

@@ -2,6 +2,7 @@
 
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
+#include <moderngpu/cta_reduce.hxx>
 
 #include "device_operations.hh"
 
@@ -63,6 +64,12 @@ struct DeviceOperations<tmol::Device::CUDA> {
   }
 
   __device__ static void synchronize_workgroup() { __syncthreads(); }
+
+  template <int TILE_SIZE, typename T, typename S, typename OP>
+  __device__ static T reduce_in_workgroup(T val, S shared, OP op) {
+    typedef mgpu::cta_reduce_t<TILE_SIZE, T> reduce_t;
+    return reduce_t().reduce(threadIdx.x, val, shared.reduce, TILE_SIZE, op);
+  }
 };
 
 }  // namespace common
