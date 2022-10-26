@@ -29,6 +29,7 @@
 #include <moderngpu/operators.hxx>
 #include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/transform.hxx>
+#include <moderngpu/launch_box.hxx>
 
 // This file moves in more recent versions of Torch
 #include <c10/cuda/CUDAStream.h>
@@ -44,6 +45,23 @@ namespace potentials {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
+
+#ifdef __NVCC__
+#define LAUNCH_BOX        \
+  using namespace mgpu;   \
+  typedef launch_box_t<   \
+      arch_20_cta<32, 1>, \
+      arch_35_cta<32, 1>, \
+      arch_52_cta<32, 1>, \
+      arch_70_cta<32, 1>, \
+      arch_75_cta<32, 1>> \
+      launch_t;
+
+#else
+#define LAUNCH_BOX          \
+  int const nt = TILE_SIZE; \
+  typedef int launch_t;
+#endif
 
 #ifdef __NVCC__
 #define SHARED_MEMORY __shared__
@@ -184,14 +202,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
-  using namespace mgpu;
-  typedef launch_box_t<
-      arch_20_cta<32, 1>,
-      arch_35_cta<32, 1>,
-      arch_52_cta<32, 1>>
-      // arch_70_cta<32, 1>,
-      // arch_75_cta<32, 1>>
-      launch_t;
+  LAUNCH_BOX;
 
   // between one alternate rotamer and its neighbors in the surrounding context
   auto score_inter_pairs_lj =
@@ -594,86 +605,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     return score_total;
   });
 
-  auto load_block_coords_and_params_into_shared =
-      ([=] MGPU_DEVICE(
-           int pose_ind,
-           int block_coord_offset,
-           int n_atoms_to_load,
-           int block_type,
-           int tile_ind,
-           Real *__restrict__ shared_coords,
-           LJLKTypeParams<Real> *__restrict__ params,
-           unsigned char *__restrict__ heavy_inds) {
-        // mgpu::mem_to_shared<TILE_SIZE, 3>(
-        //     reinterpret_cast<Real *>(
-        //         &coords[pose_ind][block_coord_offset + TILE_SIZE *
-        //         tile_ind]),
-        //     tid,
-        //     n_atoms_to_load * 3,
-        //     shared_coords,
-        //     false);
-        DeviceDispatch<D>::template copy_contiguous_data<TILE_SIZE, 3>(
-            shared_coords,
-            reinterpret_cast<Real *>(
-                &coords[pose_ind][block_coord_offset + TILE_SIZE * tile_ind]),
-            n_atoms_to_load * 3);
-        auto copy_atom_types = ([=](int tid) {
-          if (tid < TILE_SIZE) {
-            if (tid < n_atoms_to_load) {
-              int const atid = TILE_SIZE * tile_ind + tid;
-              int const attype = block_type_atom_types[block_type][atid];
-              if (attype >= 0) {
-                params[tid] = type_params[attype];
-              }
-              heavy_inds[tid] =
-                  block_type_heavy_atoms_in_tile[block_type][atid];
-            }
-          }
-        });
-        DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
-            copy_atom_types);
-      });
-
-  auto load_block_into_shared =
-      ([=] MGPU_DEVICE(
-           int pose_ind,
-           int block_coord_offset,
-           int n_atoms,
-           int n_atoms_to_load,
-           int block_type,
-           int n_conn,
-           int tile_ind,
-           bool count_pair_striking_dist,
-           unsigned char *__restrict__ conn_ats,
-           Real *__restrict__ shared_coords,
-           LJLKTypeParams<Real> *__restrict__ params,
-           unsigned char *__restrict__ heavy_inds,
-           unsigned char *__restrict__ path_dist  // to conn
-       ) {
-        load_block_coords_and_params_into_shared(
-            pose_ind,
-            block_coord_offset,
-            n_atoms_to_load,
-            block_type,
-            tile_ind,
-            shared_coords,
-            params,
-            heavy_inds);
-
-        auto copy_path_dists = ([=](int tid) {
-          if (tid < n_atoms_to_load && count_pair_striking_dist) {
-            int const atid = TILE_SIZE * tile_ind + tid;
-            for (int j = 0; j < n_conn; ++j) {
-              unsigned char ij_path_dist =
-                  block_type_path_distance[block_type][conn_ats[j]][atid];
-              path_dist[j * TILE_SIZE + tid] = ij_path_dist;
-            }
-          }
-        });
-        DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
-            copy_path_dists);
-      });
-
   // Note: the "tid" argument is needed to invoke mgpu::cta_launch but we will
   // not use it right away. The parts of this function that are outisde of a
   // lambda are where all the threads are acting in synchrony. For threads to
@@ -681,6 +612,86 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // to DeviceDispatch::for_each_in_workgroup
   auto eval_energies = ([=] MGPU_DEVICE(int /*tid*/, int cta) {
     CTA_REAL_REDUCE_T_TYPEDEF;
+
+    auto load_block_coords_and_params_into_shared =
+        ([=] MGPU_DEVICE(
+             int pose_ind,
+             int block_coord_offset,
+             int n_atoms_to_load,
+             int block_type,
+             int tile_ind,
+             Real *__restrict__ shared_coords,
+             LJLKTypeParams<Real> *__restrict__ params,
+             unsigned char *__restrict__ heavy_inds) {
+          // mgpu::mem_to_shared<TILE_SIZE, 3>(
+          //     reinterpret_cast<Real *>(
+          //         &coords[pose_ind][block_coord_offset + TILE_SIZE *
+          //         tile_ind]),
+          //     tid,
+          //     n_atoms_to_load * 3,
+          //     shared_coords,
+          //     false);
+          DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
+              shared_coords,
+              reinterpret_cast<Real *>(
+                  &coords[pose_ind][block_coord_offset + TILE_SIZE * tile_ind]),
+              n_atoms_to_load * 3);
+          auto copy_atom_types = ([=](int tid) {
+            if (tid < TILE_SIZE) {
+              if (tid < n_atoms_to_load) {
+                int const atid = TILE_SIZE * tile_ind + tid;
+                int const attype = block_type_atom_types[block_type][atid];
+                if (attype >= 0) {
+                  params[tid] = type_params[attype];
+                }
+                heavy_inds[tid] =
+                    block_type_heavy_atoms_in_tile[block_type][atid];
+              }
+            }
+          });
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+              copy_atom_types);
+        });
+
+    auto load_block_into_shared =
+        ([=] MGPU_DEVICE(
+             int pose_ind,
+             int block_coord_offset,
+             int n_atoms,
+             int n_atoms_to_load,
+             int block_type,
+             int n_conn,
+             int tile_ind,
+             bool count_pair_striking_dist,
+             unsigned char *__restrict__ conn_ats,
+             Real *__restrict__ shared_coords,
+             LJLKTypeParams<Real> *__restrict__ params,
+             unsigned char *__restrict__ heavy_inds,
+             unsigned char *__restrict__ path_dist  // to conn
+         ) {
+          load_block_coords_and_params_into_shared(
+              pose_ind,
+              block_coord_offset,
+              n_atoms_to_load,
+              block_type,
+              tile_ind,
+              shared_coords,
+              params,
+              heavy_inds);
+
+          auto copy_path_dists = ([=](int tid) {
+            if (tid < n_atoms_to_load && count_pair_striking_dist) {
+              int const atid = TILE_SIZE * tile_ind + tid;
+              for (int j = 0; j < n_conn; ++j) {
+                unsigned char ij_path_dist =
+                    block_type_path_distance[block_type][conn_ats[j]][atid];
+                path_dist[j * TILE_SIZE + tid] = ij_path_dist;
+              }
+            }
+          });
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+              copy_path_dists);
+        });
 
     SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
@@ -770,7 +781,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         });
         // On CPU: a for loop executed once; on GPU threads within the workgroup
         // working in parallel will just continue to work in parallel
-        DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
+        DeviceDispatch<D>::template for_each_in_workgroup<nt>(
             load_count_pair_conn_at_data);
       }
 
@@ -799,8 +810,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 block_type_n_heavy_atoms_in_tile[block_type1][i];
           }
         });
-        DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
-            store_n_heavy1);
+        DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
 
         load_block_into_shared(
             pose_ind,
@@ -832,8 +842,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               // neighb_block_ind, shared.m.union_vals.vals.n_heavy_other);
             }
           });
-          DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
-              store_n_heavy2);
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);
 
           int j_n_atoms_to_load2 =
               min(Int(TILE_SIZE), Int((n_atoms2 - TILE_SIZE * j)));
@@ -913,7 +922,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
           // The work: On GPU threads work independently, on CPU, this will be a
           // for loop
-          DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
               eval_scores_for_atom_pairs);
 
         }  // for j
@@ -940,8 +949,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 block_type_n_heavy_atoms_in_tile[block_type1][i];
           }
         });
-        DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
-            set_n_heavy1);
+        DeviceDispatch<D>::template for_each_in_workgroup<nt>(set_n_heavy1);
 
         load_block_coords_and_params_into_shared(
             pose_ind,
@@ -972,8 +980,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               }
             });
             // Load integer into shared memory
-            DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
-                set_n_heavy2);
+            DeviceDispatch<D>::template for_each_in_workgroup<nt>(set_n_heavy2);
 
             load_block_coords_and_params_into_shared(
                 pose_ind,
@@ -1032,7 +1039,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           });
           // The work: On GPU threads work independently, on CPU, this will be a
           // for loop
-          DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
               eval_scores_for_atom_pairs);
 
         }  // for j
@@ -1064,8 +1071,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         atomicAdd(&output[1][pose_ind], cta_total_lk);
       }
     });
-    DeviceDispatch<D>::template for_each_in_workgroup<TILE_SIZE>(
-        reduce_energies);
+    DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
   });
 
   ///////////////////////////////////////////////////////////////////////
@@ -1109,127 +1115,13 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       Real(6.0),  // 6A hard coded here. Please fix! TEMP!
       context);
 
-  // // TEMP!!!
-  // auto compute_block_sphere = ([=] MGPU_DEVICE(int tid, int cta) {
-  //   // typedef typename launch_t::sm_ptx params_t;
-  //   int const pose_ind = cta / max_n_blocks;
-  //   int const block_ind = cta % max_n_blocks;
-  //   int const block_type = pose_stack_block_type[pose_ind][block_ind];
-  //   if (block_type < 0) return;
-  //   int const block_coord_offset =
-  //       pose_stack_block_coord_offset[pose_ind][block_ind];
-  //   int const n_atoms = block_type_n_atoms[block_type];
-  //   Vec<Real, 3> local_coords(0, 0, 0);
-  //   for (int i = tid; i < n_atoms; i += blockDim.x) {
-  //     Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
-  //     for (int j = 0; j < 3; ++j) {
-  //       local_coords[j] += ci[j];
-  //     }
-  //   }
-  //
-  //   // The center of mass
-  //   Vec<Real, 3> com;
-  //   Real dmax(0);
-  //
-  //   // #ifdef __CUDACC__
-  //   __syncthreads();
-  //   auto g = cooperative_groups::coalesced_threads();
-  //   for (int i = 0; i < 3; ++i) {
-  //     com[i] = tmol::score::common::reduce_tile_shfl(
-  //         g, local_coords[i], mgpu::plus_t<Real>());
-  //     com[i] /= n_atoms;
-  //     com[i] = g.shfl(com[i], 0);
-  //   }
-  //   // if (tid == 0) {
-  //   //         printf("center of mass: %d %d (%f %f %f)\n", pose_ind,
-  //   block_ind,
-  //   // com[0],com[1],com[2]);
-  //   // }
-  //   Real d2max = 0;
-  //   // Now find maximum distance
-  //   for (int i = tid; i < n_atoms; i += blockDim.x) {
-  //     Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
-  //     Real d2 =
-  //         ((ci[0] - com[0]) * (ci[0] - com[0])
-  //          + (ci[1] - com[1]) * (ci[1] - com[1])
-  //          + (ci[2] - com[2]) * (ci[2] - com[2]));
-  //     if (d2 > d2max) {
-  //       d2max = d2;
-  //     }
-  //   }
-  //   dmax = sqrt(d2max);
-  //   dmax =
-  //       tmol::score::common::reduce_tile_shfl(g, dmax,
-  //       mgpu::maximum_t<Real>());
-  //
-  //   // #endif  // __CUDACC__
-  //
-  //   if (tid == 0) {
-  //     scratch_block_spheres[pose_ind][block_ind][0] = com[0];
-  //     scratch_block_spheres[pose_ind][block_ind][1] = com[1];
-  //     scratch_block_spheres[pose_ind][block_ind][2] = com[2];
-  //     scratch_block_spheres[pose_ind][block_ind][3] = dmax;
-  //   }
-  // });
-  //
-  // auto detect_block_neighbor = ([=] MGPU_DEVICE(int ind) {
-  //   int const pose_ind = ind / (max_n_blocks * max_n_blocks);
-  //   int const block_pair_ind = ind % (max_n_blocks * max_n_blocks);
-  //   int const block_ind1 = block_pair_ind / max_n_blocks;
-  //   int const block_ind2 = block_pair_ind % max_n_blocks;
-  //
-  //   if (block_ind1 > block_ind2) {
-  //     return;
-  //   }
-  //
-  //   int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-  //   if (block_type1 < 0) {
-  //     return;
-  //   }
-  //   int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
-  //   if (block_type2 < 0) {
-  //     return;
-  //   }
-  //
-  //   Vec<Real, 4> sphere1(0, 0, 0, 0);
-  //   Vec<Real, 4> sphere2(0, 0, 0, 0);
-  //
-  //   for (int i = 0; i < 4; ++i) {
-  //     sphere1[i] = scratch_block_spheres[pose_ind][block_ind1][i];
-  //     sphere2[i] = scratch_block_spheres[pose_ind][block_ind2][i];
-  //   }
-  //
-  //   Real d2 =
-  //       ((sphere1[0] - sphere2[0]) * (sphere1[0] - sphere2[0])
-  //        + (sphere1[1] - sphere2[1]) * (sphere1[1] - sphere2[1])
-  //        + (sphere1[2] - sphere2[2]) * (sphere1[2] - sphere2[2]));
-  //
-  //   // warning: duplication of lennard-jones maximum distance threshold of 6A
-  //   // hard coded here. Please fix!
-  //   Real reach = sphere1[3] + sphere2[3] + 6.0;
-  //   // printf("spheres %d %d %d distance %f vs reach %f; (%f %f %f, %f) and
-  //   (%f
-  //   // %f %f, %f)\n",
-  //   //   pose_ind, block_ind1, block_ind2,
-  //   //   sqrt(d2), reach,
-  //   //   sphere1[0], sphere1[1], sphere1[2], sphere1[3],
-  //   //   sphere2[0], sphere2[1], sphere2[2], sphere2[3]
-  //   // );
-  //   if (d2 < reach * reach) {
-  //     scratch_block_neighbors[pose_ind][block_ind1][block_ind2] = 1;
-  //   }
-  // });
-  //
-  // std::cout << "compute_block_sphere: " <<
-  // typeid(compute_block_sphere).name() << std::endl;
-
   // DisplayHeader();
   gpuErrchk(cudaPeekAtLastError());
   gpuErrchk(cudaDeviceSynchronize());
 
   // 3
   // mgpu::cta_launch<launch_t>(eval_energies, n_block_pairs, context);
-  DeviceDispatch<D>::template foreach_workgroup<TILE_SIZE>(
+  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
       n_block_pairs, eval_energies);
 
   gpuErrchk(cudaPeekAtLastError());

@@ -46,10 +46,10 @@ struct DeviceOperations<tmol::Device::CUDA> {
         context);
   }
 
-  template <int TILE_SIZE, typename Func>
+  template <typename launch_t, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f) {
     mgpu::standard_context_t context;
-    mgpu::cta_launch<TILE_SIZE>(f, n_workgroups, context);
+    mgpu::cta_launch<launch_t>(f, n_workgroups, context);
   }
 
   template <int TILE_SIZE, int WIDTH, typename T>
