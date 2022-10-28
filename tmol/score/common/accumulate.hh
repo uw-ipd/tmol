@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <tmol/score/common/shuffle_reduce.hh>
 
 #ifdef __CUDACC__
 #include <cooperative_groups.h>
@@ -13,46 +14,6 @@ namespace score {
 namespace common {
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
-
-// #ifdef __CUDA_ARCH__
-#ifdef __CUDACC__
-
-// Perform reduction within the active threads.
-// F is a functor that needs to be associative and
-// commutative
-// This function could/should be moved elsewhere.
-template <typename T, typename F>
-__device__ __inline__ T reduce_tile_shfl(
-    cooperative_groups::coalesced_group g, T val, F f) {
-  // Adapted from https://devblogs.nvidia.com/cooperative-groups/
-
-  // First: have the lower threads shuffle from the
-  // threads that hang off the end of the largest-power-of-2
-  // less than or equal to the number of active threads.
-  unsigned int const gsize = g.size();
-  unsigned int const biggest_pow2_base = numeric::most_sig_bit(gsize);
-
-  unsigned int const overhang = gsize - biggest_pow2_base;
-  if (overhang > 0) {
-    T const overhang_val = g.shfl_down(val, biggest_pow2_base);
-    if (g.thread_rank() < overhang) {
-      val = f(val, overhang_val);
-    }
-  }
-
-  // Second: perform a canonical reduction with the group of
-  // active threads; the number of iterations would otherwise
-  // have missed the "overhang" set if the first shfl_down
-  // above had not been performed.
-  for (int i = biggest_pow2_base / 2; i > 0; i /= 2) {
-    T const shfl_val = g.shfl_down(val, i);
-    val = f(val, shfl_val);
-  }
-
-  return val;  // note: only thread 0 will return full sum
-}
-
-#endif
 
 template <tmol::Device D, typename T, class Enable = void>
 struct accumulate {};
@@ -79,6 +40,7 @@ struct accumulate<
   }
 };
 
+// template partial specialization for Eigen matrices
 template <tmol::Device D, int N, typename T>
 struct accumulate<
     D,
@@ -107,7 +69,52 @@ struct accumulate<
     // ???
   }
 
-};  // namespace potentials
+  template <class G, class OP>
+  static def reduce(const V& val, OP)->T {
+    typename V retval = val;
+    return retval;
+  }
+};
+
+template <tmol::Device D, typename T, class Enable = void>
+struct reduce {};
+
+template <typename T>
+struct reduce<
+    tmol::Device::CPU,
+    T,
+    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+  template <class G, class OP>
+  static def reduce_to_head(G&, const T& val, OP)->T {
+    typename T retval = val;
+    return retval;
+  }
+
+  template <class G, class OP>
+  static def reduce_to_all(G&, const T& val, OP)->T {
+    typename T retval = val;
+    return retval;
+  }
+};
+
+template <tmol::Device D, int N, typename T>
+struct reduce<
+    D,
+    Eigen::Matrix<T, N, 1>,
+    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+  typedef Eigen::Matrix<T, N, 1> V;
+  template <class G, class OP>
+  static def reduce_to_head(G&, const V& val, OP)->T {
+    typename V retval = val;
+    return retval;
+  }
+
+  template <class G, class OP>
+  static def reduce_to_all(G&, const V& val, OP)->T {
+    typename V retval = val;
+    return retval;
+  }
+};
 
 #ifdef __CUDACC__
 
@@ -185,12 +192,61 @@ struct accumulate<
     }
 #endif
   }
+
+  template <class G, class OP>
+  static def reduce(const T& val, OP)->T {
+    typename T retval = val;
+    return retval;
+  }
 };
+
+template <tmol::Device D, typename T, class Enable = void>
+struct reduce {};
+
+template <typename T>
+struct reduce<
+    tmol::Device::CPU,
+    T,
+    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+  template <class G, class OP>
+  static def reduce_to_head(G& g, const T& val, OP op)->T {
+    typename T retval = reduce_tile_shfl(g, val, op);
+    return retval;
+  }
+
+  template <class G, class OP>
+  static def reduce_to_all(G& g, const T& val, OP op)->T {
+    typename T retval = reduce_tile_shfl(g, val, op);
+    return retval = g.shfl(retval, 0);
+  }
+};
+
+template <tmol::Device D, int N, typename T>
+struct reduce<
+    D,
+    Eigen::Matrix<T, N, 1>,
+    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+  typedef Eigen::Matrix<T, N, 1> V;
+  template <class G, class OP>
+  static def reduce_to_head(const V& val, OP op)->T {
+    typename V retval;
+    for (int i = 0; i < N; ++i) {
+      retval[i] = reduce_tile_shfl(g, val[i], op);
+      ;
+      return retval;
+    }
+
+    template <class G, class OP>
+    static def reduce_to_all(const V& val, OP)->T {
+      typename V retval = val;
+      return retval;
+    }
+  };
 
 #endif
 
 #undef def
 
 }  // namespace common
+}  // namespace common
 }  // namespace score
-}  // namespace tmol

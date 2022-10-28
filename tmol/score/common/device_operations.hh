@@ -19,18 +19,21 @@ struct DeviceOperations {
   template <typename Int, typename Func>
   static void foreach_combination_triple(Int dim1, Int dim2, Int dim3, Func f);
 
-  template <int N_T, typename Func>
+  template <typename launch_t, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f);
 
-  template <int TILE_SIZE, int WIDTH, typename T>
+  template <int N_T, int WIDTH, typename T>
   static void copy_contiguous_data(
       T* __restrict__ dst, T* __restrict__ src, int n);
 
-  template <int TILE_SIZE, typename Func>
+  template <int N_T, typename Func>
   static void for_each_in_workgroup(Func f);
 
-  template <int TILE_SIZE, typename T, typename S, typename OP>
+  template <int N_T, typename T, typename S, typename OP>
   static T reduce_in_workgroup(T val, S shared, OP op);
+
+  template <int N_T, typename T, typename S, typename OP>
+  static T shuffle_reduce_in_workgroup(T val, OP op);
 
   static void synchronize_workgroup();
 };

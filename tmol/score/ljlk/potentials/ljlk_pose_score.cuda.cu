@@ -24,12 +24,14 @@
 #include <chrono>
 
 //#include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
+#include <tmol/score/common/diamond_macros.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
 
 #include <moderngpu/operators.hxx>
 #include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/transform.hxx>
-#include <moderngpu/launch_box.hxx>
 
 // This file moves in more recent versions of Torch
 #include <c10/cuda/CUDAStream.h>
@@ -45,49 +47,6 @@ namespace potentials {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
-
-#ifdef __NVCC__
-#define LAUNCH_BOX        \
-  using namespace mgpu;   \
-  typedef launch_box_t<   \
-      arch_20_cta<32, 1>, \
-      arch_35_cta<32, 1>, \
-      arch_52_cta<32, 1>, \
-      arch_70_cta<32, 1>, \
-      arch_75_cta<32, 1>> \
-      launch_t;
-
-#else
-#define LAUNCH_BOX          \
-  int const nt = TILE_SIZE; \
-  typedef int launch_t;
-#endif
-
-#ifdef __NVCC__
-#define SHARED_MEMORY __shared__
-#else
-#define SHARED_MEMORY
-#endif
-
-// typedef for use inside main device lambda for declaring
-// a reduction variable
-#ifdef __NVCC__
-#define CTA_REAL_REDUCE_T_TYPEDEF             \
-  typedef typename launch_t::sm_ptx params_t; \
-  enum {                                      \
-    nt = params_t::nt,                        \
-    vt = params_t::vt,                        \
-    vt0 = params_t::vt0,                      \
-    nv = nt * vt                              \
-  };                                          \
-  typedef mgpu::cta_reduce_t<nt, Real> reduce_t
-
-#define CTA_REAL_REDUCE_T_VARIABLE typename reduce_t::storage_t reduce
-
-#else
-#define CTA_REAL_REDUCE_T_TYPEDEF
-#define CTA_REAL_REDUCE_T_VARIABLE
-#endif
 
 template <
     template <tmol::Device>
@@ -202,7 +161,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
-  LAUNCH_BOX;
+  // Optimal launch box on v100 and a100 is nt=32, vt=1
+  LAUNCH_BOX_32;
 
   // between one alternate rotamer and its neighbors in the surrounding context
   auto score_inter_pairs_lj =
@@ -610,7 +570,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // lambda are where all the threads are acting in synchrony. For threads to
   // act independently, inner lambda functions will have to be wrapped in calls
   // to DeviceDispatch::for_each_in_workgroup
-  auto eval_energies = ([=] MGPU_DEVICE(int /*tid*/, int cta) {
+  auto eval_energies = ([=] MGPU_DEVICE(int cta) {
+    // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
 
     auto load_block_coords_and_params_into_shared =

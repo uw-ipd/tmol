@@ -39,8 +39,7 @@ struct DeviceOperations<tmol::Device::CPU> {
   template <int TILE_SIZE, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f) {
     for (int i = 0; i < n_workgroups; ++i) {
-      // First argument is a dummy
-      f(0, i);
+      f(i);
     }
   }
 
@@ -76,13 +75,18 @@ struct DeviceOperations<tmol::Device::CPU> {
   // }
 
   // No op on 1-core CPU
-  static void synchronize_workgroup() {}
-
-  // No op on 1-core CPU
   template <int TILE_SIZE, typename T, typename S, typename OP>
   static T reduce_in_workgroup(T val, S, OP) {
     return val;
   }
+
+  template <int N_T, typename T, typename S, typename OP>
+  static T shuffle_reduce_in_workgroup(T val, OP) {
+    return val;
+  }
+
+  // No op on 1-core CPU
+  static void synchronize_workgroup() {}
 };
 
 }  // namespace common
