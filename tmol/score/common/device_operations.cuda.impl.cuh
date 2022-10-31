@@ -6,6 +6,8 @@
 
 #include "device_operations.hh"
 
+#include <tmol/score/common/accumulate.hh>
+
 namespace tmol {
 namespace score {
 namespace common {
@@ -48,7 +50,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
 
   template <typename launch_t, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f) {
-    auto wrapper = ([=](int tid, int cta) { f(cta); });
+    auto wrapper = ([=] __device__(int tid, int cta) { f(cta); });
     mgpu::standard_context_t context;
     mgpu::cta_launch<launch_t>(wrapper, n_workgroups, context);
   }
@@ -70,34 +72,27 @@ struct DeviceOperations<tmol::Device::CUDA> {
     return reduce_t().reduce(threadIdx.x, val, shared.reduce, N_T, op);
   }
 
-  // For this to work, NT must be <= 32
-  template <int N_T, typename T, typename S, typename OP>
-  __device__ static T shuffle_reduce_in_workgroup(T val, S OP op) {
+  // For this to work, NT must be <= 32; this operation relies on intra-warp
+  // communication using the nvidia shfl primatives and is more efficient
+  // than reduction operations that rely on shared memory, but requires
+  // that the whole work group reside in a single warp's width. It can work
+  // with NT < 32, but I don't believe it is possible to launch a kernel with
+  // NT < 32, so, NT == 32 is the most reasonable use case.
+  template <int N_T, typename T, typename OP>
+  __device__ static T shuffle_reduce_in_workgroup(T val, OP op) {
+    assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
-    T reduced_val =
-        tmol::score::common::reduce_tile_shfl(g, local_coords[i], op);
-    return reduced_val;
+    return reduce<tmol::Device::CUDA, T>::reduce_to_head(g, val, op);
   }
 
-  // For this to work, NT must be <= 32
-  template <int N_T, typename T, typename S, typename OP>
-  __device__ static T shuffle_reduce_in_workgroup(T val, S OP op) {
+  // See comments for shuffle_reduce_in_workgroup above
+  template <int N_T, typename T, typename OP>
+  __device__ static T shuffle_reduce_and_broadcast_in_workgroup(T val, OP op) {
+    assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
-    T reduced_val =
-        tmol::score::common::reduce_tile_shfl(g, local_coords[i], op);
-    return reduced_val;
+    return reduce<tmol::Device::CUDA, T>::reduce_to_allç(g, val, op);
   }
 
-  template <int N_T, typename T, typename S, typename OP>
-  __device__ static T shuffle_reduce_and_broadcast_in_workgroup(
-      T val, S OP op) {
-    auto g = cooperative_groups::coalesced_threads();
-    for (int i = 0; i < 3; ++i) {
-      com[i] = tmol::score::common::reduce_tile_shfl(g, local_coords[i], op);
-      com[i] /= n_atoms;
-      com[i] = g.shfl(com[i], 0);
-    }
-  }
   __device__ static void synchronize_workgroup() { __syncthreads(); }
 };
 

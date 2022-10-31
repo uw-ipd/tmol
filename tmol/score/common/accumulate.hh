@@ -68,13 +68,10 @@ struct accumulate<
       ->void {
     // ???
   }
-
-  template <class G, class OP>
-  static def reduce(const V& val, OP)->T {
-    typename V retval = val;
-    return retval;
-  }
 };
+
+#ifndef __CUDACC__
+// Compile this reduction class only for CPU
 
 template <tmol::Device D, typename T, class Enable = void>
 struct reduce {};
@@ -86,13 +83,13 @@ struct reduce<
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   template <class G, class OP>
   static def reduce_to_head(G&, const T& val, OP)->T {
-    typename T retval = val;
+    T retval = val;
     return retval;
   }
 
   template <class G, class OP>
   static def reduce_to_all(G&, const T& val, OP)->T {
-    typename T retval = val;
+    T retval = val;
     return retval;
   }
 };
@@ -105,16 +102,18 @@ struct reduce<
   typedef Eigen::Matrix<T, N, 1> V;
   template <class G, class OP>
   static def reduce_to_head(G&, const V& val, OP)->T {
-    typename V retval = val;
+    V retval = val;
     return retval;
   }
 
   template <class G, class OP>
   static def reduce_to_all(G&, const V& val, OP)->T {
-    typename V retval = val;
+    V retval = val;
     return retval;
   }
 };
+
+#endif
 
 #ifdef __CUDACC__
 
@@ -192,12 +191,6 @@ struct accumulate<
     }
 #endif
   }
-
-  template <class G, class OP>
-  static def reduce(const T& val, OP)->T {
-    typename T retval = val;
-    return retval;
-  }
 };
 
 template <tmol::Device D, typename T, class Enable = void>
@@ -205,48 +198,52 @@ struct reduce {};
 
 template <typename T>
 struct reduce<
-    tmol::Device::CPU,
+    tmol::Device::CUDA,
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   template <class G, class OP>
   static def reduce_to_head(G& g, const T& val, OP op)->T {
-    typename T retval = reduce_tile_shfl(g, val, op);
+    T retval = reduce_tile_shfl(g, val, op);
     return retval;
   }
 
   template <class G, class OP>
   static def reduce_to_all(G& g, const T& val, OP op)->T {
-    typename T retval = reduce_tile_shfl(g, val, op);
+    T retval = reduce_tile_shfl(g, val, op);
     return retval = g.shfl(retval, 0);
   }
 };
 
-template <tmol::Device D, int N, typename T>
+template <int N, typename T>
 struct reduce<
-    D,
+    tmol::Device::CUDA,
     Eigen::Matrix<T, N, 1>,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   typedef Eigen::Matrix<T, N, 1> V;
   template <class G, class OP>
-  static def reduce_to_head(const V& val, OP op)->T {
-    typename V retval;
+  static def reduce_to_head(G& g, const V& val, OP op)->T {
+    V retval;
     for (int i = 0; i < N; ++i) {
       retval[i] = reduce_tile_shfl(g, val[i], op);
-      ;
-      return retval;
     }
+    return retval;
+  }
 
-    template <class G, class OP>
-    static def reduce_to_all(const V& val, OP)->T {
-      typename V retval = val;
-      return retval;
+  template <class G, class OP>
+  static def reduce_to_all(G& g, const V& val, OP op)->T {
+    V retval = val;
+    for (int i = 0; i < N; ++i) {
+      retval[i] = reduce_tile_shfl(g, val[i], op);
+      g.shfl(retval[i], 0);
     }
-  };
+    return retval;
+  }
+};
 
 #endif
 
 #undef def
 
 }  // namespace common
-}  // namespace common
 }  // namespace score
+}  // namespace tmol
