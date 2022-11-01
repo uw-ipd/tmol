@@ -221,7 +221,7 @@ struct reduce<
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   typedef Eigen::Matrix<T, N, 1> V;
   template <class G, class OP>
-  static def reduce_to_head(G& g, const V& val, OP op)->T {
+  static def reduce_to_head(G& g, const V& val, OP op)->V {
     V retval;
     for (int i = 0; i < N; ++i) {
       retval[i] = reduce_tile_shfl(g, val[i], op);
@@ -230,11 +230,11 @@ struct reduce<
   }
 
   template <class G, class OP>
-  static def reduce_to_all(G& g, const V& val, OP op)->T {
+  static def reduce_to_all(G& g, const V& val, OP op)->V {
     V retval = val;
     for (int i = 0; i < N; ++i) {
       retval[i] = reduce_tile_shfl(g, val[i], op);
-      g.shfl(retval[i], 0);
+      retval[i] = g.shfl(retval[i], 0);
     }
     return retval;
   }

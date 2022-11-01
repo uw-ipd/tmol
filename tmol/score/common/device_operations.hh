@@ -10,8 +10,8 @@ namespace common {
 
 template <tmol::Device D>
 struct DeviceOperations {
-  template <typename Int, typename Func>
-  static void forall(Int N, Func f);
+  template <typename launch_t, typename Func>
+  static void forall(int N, Func f);
 
   template <typename Int, typename Func>
   static void forall_stacks(Int Nstacks, Int N, Func f);

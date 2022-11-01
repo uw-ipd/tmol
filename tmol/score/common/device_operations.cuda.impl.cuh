@@ -14,10 +14,10 @@ namespace common {
 
 template <>
 struct DeviceOperations<tmol::Device::CUDA> {
-  template <typename Int, typename Func>
-  static void forall(Int N, Func f) {
+  template <typename launch_t, typename Func>
+  static void forall(int N, Func f) {
     mgpu::standard_context_t context;
-    mgpu::transform(f, N, context);
+    mgpu::transform<launch_t>(f, N, context);
   }
 
   template <typename Int, typename Func>
@@ -90,7 +90,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
   __device__ static T shuffle_reduce_and_broadcast_in_workgroup(T val, OP op) {
     assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
-    return reduce<tmol::Device::CUDA, T>::reduce_to_allç(g, val, op);
+    return reduce<tmol::Device::CUDA, T>::reduce_to_all(g, val, op);
   }
 
   __device__ static void synchronize_workgroup() { __syncthreads(); }

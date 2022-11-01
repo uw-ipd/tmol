@@ -20,6 +20,7 @@
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 #include <tmol/score/ljlk/potentials/ljlk_pose_score.hh>
 #include <tmol/score/ljlk/potentials/sphere_overlap.cuda.cuh>
+#include <tmol/score/common/sphere_overlap.impl.hh>
 
 #include <chrono>
 
@@ -1050,20 +1051,27 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   mgpu::standard_context_t context(wrapped_stream.stream());
   int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
 
-  gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaPeekAtLastError());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   // 1
-  launch_compute_block_spheres<D, Real, Int, launch_t>(
-      coords,
-      pose_stack_block_coord_offset,
-      pose_stack_block_type,
-      block_type_n_atoms,
-      scratch_block_spheres,
-      context);
+  // launch_compute_block_spheres<D, Real, Int, launch_t>(
+  //     coords,
+  //     pose_stack_block_coord_offset,
+  //     pose_stack_block_type,
+  //     block_type_n_atoms,
+  //     scratch_block_spheres,
+  //     context);
+  score::common::sphere_overlap::
+      compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
+          coords,
+          pose_stack_block_coord_offset,
+          pose_stack_block_type,
+          block_type_n_atoms,
+          scratch_block_spheres);
 
-  gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaPeekAtLastError());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   // 2
   launch_detect_block_neighbors<D, Real, Int, launch_t>(

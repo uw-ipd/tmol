@@ -9,9 +9,9 @@ namespace common {
 
 template <>
 struct DeviceOperations<tmol::Device::CPU> {
-  template <typename Int, typename Func>
-  static void forall(Int N, Func f) {
-    for (Int i = 0; i < N; ++i) {
+  template <typename launch_t, typename Func>
+  static void forall(int N, Func f) {
+    for (int i = 0; i < N; ++i) {
       f(i);
     }
   }
