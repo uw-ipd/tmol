@@ -1047,8 +1047,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // within striking distance
 
   // 0
-  at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
-  mgpu::standard_context_t context(wrapped_stream.stream());
+  // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
+  // mgpu::standard_context_t context(wrapped_stream.stream());
   int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
 
   // gpuErrchk(cudaPeekAtLastError());
@@ -1074,27 +1074,37 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // gpuErrchk(cudaDeviceSynchronize());
 
   // 2
-  launch_detect_block_neighbors<D, Real, Int, launch_t>(
-      coords,
-      pose_stack_block_coord_offset,
-      pose_stack_block_type,
-      block_type_n_atoms,
-      scratch_block_spheres,
-      scratch_block_neighbors,
-      Real(6.0),  // 6A hard coded here. Please fix! TEMP!
-      context);
+  // launch_detect_block_neighbors<D, Real, Int, launch_t>(
+  //     coords,
+  //     pose_stack_block_coord_offset,
+  //     pose_stack_block_type,
+  //     block_type_n_atoms,
+  //     scratch_block_spheres,
+  //     scratch_block_neighbors,
+  //     Real(6.0),  // 6A hard coded here. Please fix! TEMP!
+  //     context);
+
+  score::common::sphere_overlap::
+      detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
+          coords,
+          pose_stack_block_coord_offset,
+          pose_stack_block_type,
+          block_type_n_atoms,
+          scratch_block_spheres,
+          scratch_block_neighbors,
+          Real(6.0));  // 6A hard coded here. Please fix! TEMP!
 
   // DisplayHeader();
-  gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaPeekAtLastError());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   // 3
   // mgpu::cta_launch<launch_t>(eval_energies, n_block_pairs, context);
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
       n_block_pairs, eval_energies);
 
-  gpuErrchk(cudaPeekAtLastError());
-  gpuErrchk(cudaDeviceSynchronize());
+  // gpuErrchk(cudaPeekAtLastError());
+  // gpuErrchk(cudaDeviceSynchronize());
 
   return {output_t, dV_dcoords_t};
 }

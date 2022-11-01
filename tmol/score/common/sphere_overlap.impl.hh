@@ -127,7 +127,6 @@ template <
     template <tmol::Device>
     class DeviceDispatch,
     tmol::Device D,
-    int WorkgroupSize,
     typename Real,
     typename Int>
 struct detect_block_neighbors {
@@ -189,9 +188,9 @@ struct detect_block_neighbors {
         block_neighbors[pose_ind][block_ind1][block_ind2] = 1;
       }
     });
-    int n_block_pairs = pose_stack_block_type.shape[0]
-                        * pose_stack_block_type.shape[1]
-                        * pose_stack_block_type.shape[1];
+    int n_block_pairs = pose_stack_block_type.size(0)
+                        * pose_stack_block_type.size(1)
+                        * pose_stack_block_type.size(1);
 
     DeviceDispatch<D>::template forall<launch_t>(
         n_block_pairs, detect_neighbors);
