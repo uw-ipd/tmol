@@ -5,18 +5,19 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/score/common/accumulate.hh>
-#include <tmol/score/common/warp_segreduce.hh>
-#include <tmol/score/common/warp_stride_reduce.hh>
-#include <tmol/score/common/launch_box_macros.hh>
 
+// #include <tmol/score/common/warp_segreduce.hh>
+// #include <tmol/score/common/warp_stride_reduce.hh>
+// #include <tmol/score/common/launch_box_macros.hh>
 // #include <moderngpu/context.hxx>
+
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 
 // TEMP!
-// #include <moderngpu/operators.hxx>
+#include <moderngpu/operators.hxx>
 // #include <moderngpu/cta_reduce.hxx>
-#include <moderngpu/transform.hxx>
+// #include <moderngpu/transform.hxx>
 
 namespace tmol {
 namespace score {
@@ -41,7 +42,7 @@ struct compute_block_spheres {
       TView<Real, 3, D> block_spheres) {
     LAUNCH_BOX_32;
 
-    auto compute_spheres = ([=] MGPU_DEVICE(int cta) {
+    auto compute_spheres = ([=] TMOL_DEVICE_FUNC(int cta) {
       CTA_LAUNCH_T_PARAMS;
 
       int const n_poses = coords.size(0);
@@ -61,8 +62,8 @@ struct compute_block_spheres {
       int const n_atoms = block_type_n_atoms[block_type];
       Vec<Real, 3> local_coords(0, 0, 0);
 
-      auto per_thread_com = ([&] MGPU_DEVICE(int tid) {
-        for (int i = tid; i < n_atoms; i += blockDim.x) {
+      auto per_thread_com = ([&] TMOL_DEVICE_FUNC(int tid) {
+        for (int i = tid; i < n_atoms; i += nt) {
           Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
           for (int j = 0; j < 3; ++j) {
             local_coords[j] += ci[j];
@@ -86,8 +87,8 @@ struct compute_block_spheres {
 
       Real d2max = 0;
       // Now find maximum distance
-      auto per_thread_dist_to_com = ([&] MGPU_DEVICE(int tid) {
-        for (int i = tid; i < n_atoms; i += blockDim.x) {
+      auto per_thread_dist_to_com = ([&] TMOL_DEVICE_FUNC(int tid) {
+        for (int i = tid; i < n_atoms; i += nt) {
           Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
           Real d2 =
               ((ci[0] - com[0]) * (ci[0] - com[0])
@@ -105,7 +106,7 @@ struct compute_block_spheres {
       dmax = DeviceDispatch<D>::template shuffle_reduce_in_workgroup<nt>(
           dmax, mgpu::maximum_t<Real>());
 
-      auto thread0_write_out_result = ([=] MGPU_DEVICE(int tid) {
+      auto thread0_write_out_result = ([=] TMOL_DEVICE_FUNC(int tid) {
         if (tid == 0) {
           // block_spheres[pose_ind][block_ind][0] = 1.25;
           // block_spheres[pose_ind][block_ind][0] = com[0];
@@ -143,7 +144,7 @@ struct detect_block_neighbors {
     // int const tid = threadIdx.x;
     // int const cta = blockIdx.x;
 
-    auto detect_neighbors = ([=] MGPU_DEVICE(int ind) {
+    auto detect_neighbors = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const n_poses = coords.size(0);
       int const max_n_pose_atoms = coords.size(1);
       int const max_n_blocks = pose_stack_block_type.size(1);

@@ -1,6 +1,6 @@
+#include <tmol/score/common/device_operations.cpu.impl.hh>
 #include <tmol/score/ljlk/potentials/ljlk_pose_score.impl.hh>
 //#include <tmol/score/common/forall_dispatch.cpu.impl.hh>
-#include <tmol/score/common/device_operations.cpu.impl.hh>
 
 #include <tmol/pack/sim_anneal/compiled/annealer.hh>
 
