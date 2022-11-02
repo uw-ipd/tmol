@@ -6,18 +6,10 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/score/common/accumulate.hh>
 
-// #include <tmol/score/common/warp_segreduce.hh>
-// #include <tmol/score/common/warp_stride_reduce.hh>
-// #include <tmol/score/common/launch_box_macros.hh>
-// #include <moderngpu/context.hxx>
-
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 
-// TEMP!
 #include <moderngpu/operators.hxx>
-// #include <moderngpu/cta_reduce.hxx>
-// #include <moderngpu/transform.hxx>
 
 namespace tmol {
 namespace score {
@@ -108,8 +100,6 @@ struct compute_block_spheres {
 
       auto thread0_write_out_result = ([=] TMOL_DEVICE_FUNC(int tid) {
         if (tid == 0) {
-          // block_spheres[pose_ind][block_ind][0] = 1.25;
-          // block_spheres[pose_ind][block_ind][0] = com[0];
           block_spheres[pose_ind][block_ind][1] = com[1];
           block_spheres[pose_ind][block_ind][2] = com[2];
           block_spheres[pose_ind][block_ind][3] = dmax;
@@ -140,9 +130,6 @@ struct detect_block_neighbors {
       TView<Int, 3, D> block_neighbors,
       Real reach) {
     LAUNCH_BOX_32;
-
-    // int const tid = threadIdx.x;
-    // int const cta = blockIdx.x;
 
     auto detect_neighbors = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const n_poses = coords.size(0);

@@ -10,9 +10,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
-// #include <tmol/score/common/coordinate_load.cuh>
 #include <tmol/score/common/count_pair.hh>
-// #include <tmol/score/common/debug.cuh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/warp_segreduce.hh>
@@ -159,11 +157,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
 
-  // Note: the "tid" argument is needed to invoke mgpu::cta_launch but we will
-  // not use it right away. The parts of this function that are outisde of a
-  // lambda are where all the threads are acting in synchrony. For threads to
-  // act independently, inner lambda functions will have to be wrapped in calls
-  // to DeviceDispatch::for_each_in_workgroup
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
     // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
@@ -206,8 +199,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           LJGlobalParams<Real> global_params_local = global_params[0];
 
           for (int i = tid; i < n_pairs; i += nt) {
-            // auto g = cooperative_groups::coalesced_threads();
-
             int const atom_tile_ind1 = i / n_remain2;
             int const atom_tile_ind2 = i % n_remain2;
             for (int j = 0; j < 3; ++j) {
@@ -219,14 +210,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                  + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
                  + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
 
-            // This square distance check cannot be performed if we are using
-            // the segmented reduction logic later in this function, which
-            // requires that all threads arrive at the warp_segreduce_shfl call.
-            // if (dist2 > 36.0) {
-            //   // DANGER -- maximum reach of LJ potential hard coded here in a
-            //   // second place
-            //   continue;
-            // }
             auto dist_r = distance<Real>::V_dV(coord1, coord2);
             auto &dist = dist_r.V;
             auto &ddist_dat1 = dist_r.dV_dA;
@@ -265,7 +248,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               }
             }
 
-            // all threads accumulate derivatives for atom 2 to shared mem
+            // all threads accumulate derivatives for atom 2 to global memory
             Vec<Real, 3> lj_dxyz_at2 = lj.dV_ddist * ddist_dat2;
             for (int j = 0; j < 3; ++j) {
               if (lj_dxyz_at2[j] != 0) {
@@ -273,7 +256,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                     dV_dcoords[0][pose_ind]
                               [block_coord_offset2 + atom_tile_ind2
                                + start_atom2][j],
-                    // &dlj_dcoords2[atom_tile_ind2][j],
                     lj_dxyz_at2[j]);
               }
             }
@@ -319,14 +301,10 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           LJGlobalParams<Real> global_params_local = global_params[0];
 
           for (int i = tid; i < n_pairs; i += nt) {
-            // auto g = cooperative_groups::coalesced_threads();
-
             int const atom_heavy_tile_ind1 = i / n_heavy2;
             int const atom_heavy_tile_ind2 = i % n_heavy2;
             int const atom_tile_ind1 = heavy_inds1[atom_heavy_tile_ind1];
             int const atom_tile_ind2 = heavy_inds2[atom_heavy_tile_ind2];
-            // int const atom_ind1 = atom_tile_ind1 + start_atom1;
-            // int const atom_ind2 = atom_tile_ind2 + start_atom2;
 
             for (int j = 0; j < 3; ++j) {
               coord1[j] = coords1[3 * atom_tile_ind1 + j];
@@ -336,11 +314,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
                  + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
                  + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
-            // if (dist2 > 36.0) {
-            //   // DANGER -- maximum reach of LK potential hard coded here in a
-            //   // second place
-            //   continue;
-            // }
             auto dist_r = distance<Real>::V_dV(coord1, coord2);
             auto &dist = dist_r.V;
             auto &ddist_dat1 = dist_r.dV_dA;
@@ -416,11 +389,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
       int const n_pairs = n_remain1 * n_remain2;
       LJGlobalParams<Real> global_params_local = global_params[0];
-      // Real lj_weight = lj_lk_weights[0];
 
       for (int i = tid; i < n_pairs; i += nt) {
-        // auto g = cooperative_groups::coalesced_threads();
-
         int const atom_tile_ind1 = i / n_remain2;
         int const atom_tile_ind2 = i % n_remain2;
         int const atom_ind1 = atom_tile_ind1 + start_atom1;
@@ -500,7 +470,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
       int const n_pairs = n_heavy1 * n_heavy2;
       LJGlobalParams<Real> global_params_local = global_params[0];
-      // Real lk_weight = lj_lk_weights[1];
 
       for (int i = tid; i < n_pairs; i += nt) {
         int const atom_heavy_tile_ind1 = i / n_heavy2;
@@ -554,17 +523,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 lk_dxyz_at2[j]);
           }
         }
-
-        // OK! we'll go ahead and accumulate the derivatives:
-        // For each atom index, reduce within the warp, then
-        // perform a single (atomic) add if the reduction was
-        // non-zero per atom index.
-        // This feels expensive!
-        // accumulate<D, Vec<Real, 3>>::add_one_dst(
-        //     dlk_dcoords1, atom_tile_ind1, lk.dV_ddist * ddist_dat1);
-        //
-        // accumulate<D, Vec<Real, 3>>::add_one_dst(
-        //     dlk_dcoords2, atom_tile_ind2, lk.dV_ddist * ddist_dat2);
       }
       return score_total;
     });
@@ -579,14 +537,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              Real *__restrict__ shared_coords,
              LJLKTypeParams<Real> *__restrict__ params,
              unsigned char *__restrict__ heavy_inds) {
-          // mgpu::mem_to_shared<TILE_SIZE, 3>(
-          //     reinterpret_cast<Real *>(
-          //         &coords[pose_ind][block_coord_offset + TILE_SIZE *
-          //         tile_ind]),
-          //     tid,
-          //     n_atoms_to_load * 3,
-          //     shared_coords,
-          //     false);
           DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
               shared_coords,
               reinterpret_cast<Real *>(
@@ -1010,11 +960,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     // Real cta_total_lj(0), cta_total_lk(0);
 
     auto reduce_energies = ([&](int tid) {
-      // Real const cta_total_lj = reduce_t().reduce(
-      //     tid, total_lj, shared.reduce, nt, mgpu::plus_t<Real>());
-      //
-      // Real const cta_total_lk = reduce_t().reduce(
-      //     tid, total_lk, shared.reduce, nt, mgpu::plus_t<Real>());
       Real const cta_total_lj =
           DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
               total_lj, shared, mgpu::plus_t<Real>());
@@ -1041,21 +986,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // within striking distance
 
   // 0
+  // TO DO: let DeviceDispatch hold a cuda stream (??)
   // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
   // mgpu::standard_context_t context(wrapped_stream.stream());
   int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
 
-  // gpuErrchk(cudaPeekAtLastError());
-  // gpuErrchk(cudaDeviceSynchronize());
-
-  // 1
-  // launch_compute_block_spheres<D, Real, Int, launch_t>(
-  //     coords,
-  //     pose_stack_block_coord_offset,
-  //     pose_stack_block_type,
-  //     block_type_n_atoms,
-  //     scratch_block_spheres,
-  //     context);
   score::common::sphere_overlap::
       compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
           coords,
@@ -1063,20 +998,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           pose_stack_block_type,
           block_type_n_atoms,
           scratch_block_spheres);
-
-  // gpuErrchk(cudaPeekAtLastError());
-  // gpuErrchk(cudaDeviceSynchronize());
-
-  // 2
-  // launch_detect_block_neighbors<D, Real, Int, launch_t>(
-  //     coords,
-  //     pose_stack_block_coord_offset,
-  //     pose_stack_block_type,
-  //     block_type_n_atoms,
-  //     scratch_block_spheres,
-  //     scratch_block_neighbors,
-  //     Real(6.0),  // 6A hard coded here. Please fix! TEMP!
-  //     context);
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
@@ -1088,313 +1009,12 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           scratch_block_neighbors,
           Real(6.0));  // 6A hard coded here. Please fix! TEMP!
 
-  // DisplayHeader();
-  // gpuErrchk(cudaPeekAtLastError());
-  // gpuErrchk(cudaDeviceSynchronize());
-
   // 3
-  // mgpu::cta_launch<launch_t>(eval_energies, n_block_pairs, context);
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
       n_block_pairs, eval_energies);
 
-  // gpuErrchk(cudaPeekAtLastError());
-  // gpuErrchk(cudaDeviceSynchronize());
-
   return {output_t, dV_dcoords_t};
 }
-// namespace tmol {
-// namespace score {
-// namespace ljlk {
-// namespace potentials {
-//
-// template <typename Real, int N>
-// using Vec = Eigen::Matrix<Real, N, 1>;
-//
-// template <
-//     template <tmol::Device>
-//     class DeviceDispatch,
-//     tmol::Device D,
-//     typename Real,
-//     typename Int>
-// auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
-//     TView<Vec<Real, 3>, 2, D> coords,
-//     TView<Int, 2, D> pose_stack_block_coord_offset,
-//
-//     TView<Int, 2, D> pose_stack_block_type,
-//
-//     // dims: n-poses x max-n-blocks x max-n-blocks
-//     // Quick lookup: given the inds of two blocks, ask: what is the minimum
-//     // number of chemical bonds that separate any pair of atoms in those
-//     // blocks? If this minimum is greater than the crossover, then no further
-//     // logic for deciding whether two atoms in those blocks should have their
-//     // interaction energies calculated: all should. intentionally small to
-//     // (possibly) fit in constant cache
-//     TView<Int, 3, D> pose_stack_min_bond_separation,
-//
-//     // dims: n-poses x max-n-blocks x max-n-blocks x
-//     // max-n-interblock-connections x max-n-interblock-connections
-//     TView<Int, 5, D> pose_stack_inter_block_bondsep,
-//
-//     //////////////////////
-//     // Chemical properties
-//     // how many atoms for a given block
-//     // Dimsize n_block_types
-//     TView<Int, 1, D> block_type_n_atoms,
-//
-//     TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
-//     TView<Int, 2, D> block_type_heavy_atoms_in_tile,
-//
-//     // what are the atom types for these atoms
-//     // Dimsize: n_block_types x max_n_atoms
-//     TView<Int, 2, D> block_type_atom_types,
-//
-//     // how many inter-block chemical bonds are there
-//     // Dimsize: n_block_types
-//     TView<Int, 1, D> block_type_n_interblock_bonds,
-//
-//     // what atoms form the inter-block chemical bonds
-//     // Dimsize: n_block_types x max_n_interblock_bonds
-//     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
-//
-//     // what is the path distance between pairs of atoms in the block
-//     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-//     TView<Int, 3, D> block_type_path_distance,
-//     //////////////////////
-//
-//     // LJ parameters
-//     TView<LJLKTypeParams<Real>, 1, D> type_params,
-//     TView<LJGlobalParams<Real>, 1, D> global_params
-//
-//     ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
-//   int const n_poses = coords.size(0);
-//   int const max_n_pose_atoms = coords.size(1);
-//   int const max_n_blocks = pose_stack_block_type.size(1);
-//   int const max_n_block_atoms = block_type_atom_types.size(1);
-//   int const n_block_types = block_type_n_atoms.size(0);
-//   int const max_n_interblock_bonds =
-//       block_type_atoms_forming_chemical_bonds.size(1);
-//
-//   assert(pose_stack_block_type.size(0) == n_poses);
-//
-//   assert(pose_stack_min_bond_separation.size(0) == n_poses);
-//   assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-//   assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
-//
-//   assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
-//   assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-//   assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
-//   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
-//   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
-//
-//   assert(block_type_atom_types.size(0) == n_block_types);
-//   assert(block_type_n_interblock_bonds.size(0) == n_block_types);
-//   assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
-//   assert(block_type_path_distance.size(0) == n_block_types);
-//   assert(block_type_path_distance.size(1) == max_n_block_atoms);
-//   assert(block_type_path_distance.size(2) == max_n_block_atoms);
-//
-//   // auto wcts = std::chrono::system_clock::now();
-//   // clock_t start_time = clock();
-//
-//   auto output_t = TPack<Real, 2, D>::zeros({2, n_poses});
-//   auto output = output_t.view;
-//
-//   auto dV_dcoords_t =
-//       TPack<Vec<Real, 3>, 3, D>::zeros({2, n_poses, max_n_pose_atoms});
-//   auto dV_dcoords = dV_dcoords_t.view;
-//
-//   auto eval_atom_pair =
-//       ([=] TMOL_DEVICE_FUNC(
-//            int pose_ind, int block_pair_ind, int atom_pair_ind) {
-//         int const max_important_bond_separation = 4;
-//
-//         int const block_ind1 = block_pair_ind / max_n_blocks;
-//         int const block_ind2 = block_pair_ind % max_n_blocks;
-//         if (block_ind1 > block_ind2) {
-//           return;
-//         }
-//
-//         int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-//         int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
-//         if (block_type1 == -1 || block_type2 == -1) {
-//           return;
-//         }
-//
-//         int const block_coord_offset1 =
-//             pose_stack_block_coord_offset[pose_ind][block_ind1];
-//         int const block_coord_offset2 =
-//             pose_stack_block_coord_offset[pose_ind][block_ind2];
-//
-//         int atom_type1 = -1;
-//         int atom_type2 = -1;
-//         int separation = max_important_bond_separation + 1;
-//         typename common::distance<Real>::V_dV_T dist;
-//         // dist.V = 0;
-//         // dist.dV_dA.setZero();
-//         // dist.dV_dB.setZero();
-//
-//         Vec<Real, 3> coord1, coord2;
-//         int at1, at2;
-//
-//         if (block_ind1 != block_ind2) {
-//           // Inter-block interaction
-//
-//           int const n_atoms1 = block_type_n_atoms[block_type1];
-//           int const n_atoms2 = block_type_n_atoms[block_type2];
-//
-//           // for best warp cohesion, mod the atom-pair indices after
-//           // we have figured out the number of atoms in both blocks;
-//           // if we modded *before* based on the maximum number of atoms
-//           // per block, lots of warps with inactive atom-pairs
-//           // (because they are off the end of the list) would run.
-//           // By waiting to figure out the i/j inds until after we know
-//           // how many atoms pairs there will be, we can push all the inactive
-//           // threads into the same warps and kill those warps early
-//           if (atom_pair_ind >= n_atoms1 * n_atoms2) {
-//             return;
-//           }
-//
-//           int atom_ind1 = atom_pair_ind / n_atoms2;
-//           int atom_ind2 = atom_pair_ind % n_atoms2;
-//
-//           // "count pair" logic
-//           separation =
-//               common::count_pair::CountPair<D, Int>::inter_block_separation(
-//                   max_important_bond_separation,
-//                   block_ind1,
-//                   block_ind2,
-//                   block_type1,
-//                   block_type2,
-//                   atom_ind1,
-//                   atom_ind2,
-//                   pose_stack_min_bond_separation[pose_ind],
-//                   pose_stack_inter_block_bondsep[pose_ind],
-//                   block_type_n_interblock_bonds,
-//                   block_type_atoms_forming_chemical_bonds,
-//                   block_type_path_distance);
-//
-//           at1 = atom_ind1;
-//           at2 = atom_ind2;
-//           coord1 = coords[pose_ind][block_coord_offset1 + atom_ind1];
-//           coord2 = coords[pose_ind][block_coord_offset2 + atom_ind2];
-//
-//           dist = distance<Real>::V_dV(coord1, coord2);
-//
-//           atom_type1 = block_type_atom_types[block_type1][atom_ind1];
-//           atom_type2 = block_type_atom_types[block_type2][atom_ind2];
-//         } else {
-//           // alt_block_ind == neighb_block_ind:
-//           // intra-block interaction.
-//           int const n_atoms = block_type_n_atoms[block_type1];
-//           // see comment in the inter-block interaction regarding the delay
-//           of
-//           // the atom1/atom2 resolution until we know how many atoms are in
-//           the
-//           // particular block we're looking at.
-//           if (atom_pair_ind >= n_atoms * n_atoms) {
-//             return;
-//           }
-//           int const atom_ind1 = atom_pair_ind / n_atoms;
-//           int const atom_ind2 = atom_pair_ind % n_atoms;
-//           if (atom_ind1 >= atom_ind2) {
-//             // count each intra-block interaction only once
-//             return;
-//           }
-//           at1 = atom_ind1;
-//           at2 = atom_ind2;
-//
-//           // TEMP HACK! DON'T CALCULATE ENERGIES WITH BACKBONE ATOMS
-//           // if (at1 <= 3 || at2 <= 3) {
-//           //   return;
-//           // }
-//
-//           coord1 = coords[pose_ind][block_coord_offset1 + atom_ind1];
-//           coord2 = coords[pose_ind][block_coord_offset1 + atom_ind2];
-//           dist = distance<Real>::V_dV(coord1, coord2);
-//
-//           separation =
-//               block_type_path_distance[block_type1][atom_ind1][atom_ind2];
-//           atom_type1 = block_type_atom_types[block_type1][atom_ind1];
-//           atom_type2 = block_type_atom_types[block_type1][atom_ind2];
-//         }
-//
-//         // printf(
-//         //     "%d %d (%d) %d %d %d %d\n",
-//         //     alt_ind,
-//         //     neighb_ind,
-//         //     neighb_block_ind,
-//         //     atom_pair_ind,
-//         //     separation,
-//         //     atom_1_type,
-//         //     atom_2_type);
-//         auto lj = lj_score<Real>::V_dV(
-//             dist.V,
-//             separation,
-//             type_params[atom_type1].lj_params(),
-//             type_params[atom_type2].lj_params(),
-//             global_params[0]);
-//
-//         typename lk_isotropic_score<Real>::V_dV_t lk;
-//         lk.V = 0;
-//         lk.dV_ddist = 0;
-//
-//         if (type_params[atom_type1].lk_volume > 0
-//             && type_params[atom_type2].lk_volume > 0) {
-//           lk = lk_isotropic_score<Real>::V_dV(
-//               dist.V,
-//               separation,
-//               type_params[atom_type1].lk_params(),
-//               type_params[atom_type2].lk_params(),
-//               global_params[0]);
-//         }
-//
-//         accumulate<D, Real>::add_one_dst(output[0], pose_ind, lj.V);
-//         accumulate<D, Vec<Real, 3>>::add_one_dst(
-//             dV_dcoords[0][pose_ind],
-//             block_coord_offset1 + at1,
-//             lj.dV_ddist * dist.dV_dA);
-//         accumulate<D, Vec<Real, 3>>::add_one_dst(
-//             dV_dcoords[0][pose_ind],
-//             block_coord_offset2 + at2,
-//             lj.dV_ddist * dist.dV_dB);
-//
-//         accumulate<D, Real>::add_one_dst(output[1], pose_ind, lk.V);
-//         accumulate<D, Vec<Real, 3>>::add_one_dst(
-//             dV_dcoords[1][pose_ind],
-//             block_coord_offset1 + at1,
-//             lk.dV_ddist * dist.dV_dA);
-//         accumulate<D, Vec<Real, 3>>::add_one_dst(
-//             dV_dcoords[1][pose_ind],
-//             block_coord_offset2 + at2,
-//             lk.dV_ddist * dist.dV_dB);
-//       });
-//
-//   DeviceDispatch<D>::foreach_combination_triple(
-//       n_poses,
-//       max_n_blocks * max_n_blocks,
-//       max_n_block_atoms * max_n_block_atoms,
-//       eval_atom_pair);
-//
-//   return {output_t, dV_dcoords_t};
-//
-// #ifdef __CUDACC__
-//   // float first;
-//   // cudaMemcpy(&first, &output[0], sizeof(float), cudaMemcpyDeviceToHost);
-//   //
-//   // clock_t stop_time = clock();
-//   // std::chrono::duration<double> wctduration =
-//   // (std::chrono::system_clock::now() - wcts);
-//   //
-//   // std::cout << n_poses << " " << n_contexts << " " <<n_alternate_blocks <<
-//   // " "; std::cout << n_alternate_blocks * max_n_neighbors *
-//   max_n_block_atoms
-//   // * max_n_block_atoms << " "; std::cout << "runtime? " <<
-//   ((double)stop_time
-//   // - start_time) / CLOCKS_PER_SEC
-//   //           << " wall time: " << wctduration.count() << " " << first
-//   //           << std::endl;
-// #endif
-// }
 
 }  // namespace potentials
 }  // namespace ljlk
