@@ -67,7 +67,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
   }
 
   template <int N_T, typename T, typename S, typename OP>
-  __device__ static T reduce_in_workgroup(T val, S shared, OP op) {
+  __device__ static T reduce_in_workgroup(T val, S& shared, OP op) {
     typedef mgpu::cta_reduce_t<N_T, T> reduce_t;
     return reduce_t().reduce(threadIdx.x, val, shared.reduce, N_T, op);
   }
