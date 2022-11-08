@@ -35,9 +35,9 @@ def test_res_centric_score_benchmark_setup(
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
 @pytest.mark.parametrize("benchmark_pass", ["forward"])
-@pytest.mark.parametrize("n_poses", [10, 30, 100])
+@pytest.mark.parametrize("n_poses", [1, 3, 10, 30, 100])
 @pytest.mark.benchmark(group="res_centric_score_components")
-def dont_test_res_centric_score_benchmark(
+def test_res_centric_score_benchmark(
     benchmark,
     benchmark_pass,
     energy_term,
@@ -46,6 +46,7 @@ def dont_test_res_centric_score_benchmark(
     default_database,
     torch_device,
 ):
+    print("n_poses", n_poses)
     pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res, torch_device
     )
@@ -63,7 +64,7 @@ def dont_test_res_centric_score_benchmark(
         @benchmark
         def score_pass():
             scores = torch.sum(scorer(pose_stack_n.coords))
-            scores.backward(retain_graph=True)
+            scores.backward(retain_graph=True).cpu()
             return scores
 
     elif benchmark_pass == "forward":
@@ -71,6 +72,7 @@ def dont_test_res_centric_score_benchmark(
         @benchmark
         def score_pass():
             scores = torch.sum(scorer(pose_stack_n.coords))
+            scores.cpu()
             return scores
 
     elif benchmark_pass == "backward":
@@ -78,7 +80,7 @@ def dont_test_res_centric_score_benchmark(
 
         @benchmark
         def score_pass():
-            scores.backward(retain_graph=True)
+            scores.backward(retain_graph=True).cpu()
             return scores
 
     else:
