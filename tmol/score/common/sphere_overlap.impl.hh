@@ -100,6 +100,7 @@ struct compute_block_spheres {
 
       auto thread0_write_out_result = ([=] TMOL_DEVICE_FUNC(int tid) {
         if (tid == 0) {
+          block_spheres[pose_ind][block_ind][0] = com[0];
           block_spheres[pose_ind][block_ind][1] = com[1];
           block_spheres[pose_ind][block_ind][2] = com[2];
           block_spheres[pose_ind][block_ind][3] = dmax;
