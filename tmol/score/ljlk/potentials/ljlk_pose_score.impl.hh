@@ -324,13 +324,14 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                         int atom_tile_ind2,
                                         int start_atom1,
                                         int start_atom2,
-                                        int pose_ind,
-                                        int block_coord_offset1,
-                                        int block_coord_offset2,
-                                        LJLKTypeParams<Real> *params1,
-                                        LJLKTypeParams<Real> *params2,
-                                        LJGlobalParams<Real> const
-                                            &global_params,
+                                        LJLKScoringData<Real> const &score_dat,
+                                        // int pose_ind,
+                                        // int block_coord_offset1,
+                                        // int block_coord_offset2,
+                                        // LJLKTypeParams<Real> *params1,
+                                        // LJLKTypeParams<Real> *params2,
+                                        // LJGlobalParams<Real> const
+                                        //     &global_params,
                                         Real3 const &coord1,
                                         Real3 const &coord2,
                                         int cp_separation) {
@@ -341,17 +342,18 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     auto lj = lj_score<Real>::V_dV(
         dist,
         cp_separation,
-        params1[atom_tile_ind1].lj_params(),
-        params2[atom_tile_ind2].lj_params(),
-        global_params);
+        score_dat.params1[atom_tile_ind1].lj_params(),
+        score_dat.params2[atom_tile_ind2].lj_params(),
+        score_dat.global_params);
 
     // all threads accumulate derivatives for atom 1 to global memory
     Vec<Real, 3> lj_dxyz_at1 = lj.dV_ddist * ddist_dat1;
     for (int j = 0; j < 3; ++j) {
       if (lj_dxyz_at1[j] != 0) {
         accumulate<D, Real>::add(
-            dV_dcoords[0][pose_ind]
-                      [block_coord_offset1 + atom_tile_ind1 + start_atom1][j],
+            dV_dcoords[0][score_dat.pose_ind]
+                      [score_dat.block_coord_offset1 + atom_tile_ind1
+                       + start_atom1][j],
             lj_dxyz_at1[j]);
       }
     }
@@ -361,8 +363,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     for (int j = 0; j < 3; ++j) {
       if (lj_dxyz_at2[j] != 0) {
         accumulate<D, Real>::add(
-            dV_dcoords[0][pose_ind]
-                      [block_coord_offset2 + atom_tile_ind2 + start_atom2][j],
+            dV_dcoords[0][score_dat.pose_ind]
+                      [score_dat.block_coord_offset2 + atom_tile_ind2
+                       + start_atom2][j],
             lj_dxyz_at2[j]);
       }
     }
@@ -374,13 +377,14 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                         int atom_tile_ind2,
                                         int start_atom1,
                                         int start_atom2,
-                                        int pose_ind,
-                                        int block_coord_offset1,
-                                        int block_coord_offset2,
-                                        LJLKTypeParams<Real> *params1,
-                                        LJLKTypeParams<Real> *params2,
-                                        LJGlobalParams<Real> const
-                                            &global_params,
+                                        LJLKScoringData<Real> const &score_dat,
+                                        // int pose_ind,
+                                        // int block_coord_offset1,
+                                        // int block_coord_offset2,
+                                        // LJLKTypeParams<Real> *params1,
+                                        // LJLKTypeParams<Real> *params2,
+                                        // LJGlobalParams<Real> const
+                                        //     &global_params,
                                         Real3 const &coord1,
                                         Real3 const &coord2,
                                         int cp_separation) {
@@ -391,16 +395,17 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     auto lk = lk_isotropic_score<Real>::V_dV(
         dist,
         cp_separation,
-        params1[atom_tile_ind1].lk_params(),
-        params2[atom_tile_ind2].lk_params(),
-        global_params);
+        score_dat.params1[atom_tile_ind1].lk_params(),
+        score_dat.params2[atom_tile_ind2].lk_params(),
+        score_dat.global_params);
 
     Vec<Real, 3> lk_dxyz_at1 = lk.dV_ddist * ddist_dat1;
     for (int j = 0; j < 3; ++j) {
       if (lk_dxyz_at1[j] != 0) {
         accumulate<D, Real>::add(
-            dV_dcoords[1][pose_ind]
-                      [block_coord_offset1 + atom_tile_ind1 + start_atom1][j],
+            dV_dcoords[1][score_dat.pose_ind]
+                      [score_dat.block_coord_offset1 + atom_tile_ind1
+                       + start_atom1][j],
             lk_dxyz_at1[j]);
       }
     }
@@ -409,8 +414,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     for (int j = 0; j < 3; ++j) {
       if (lk_dxyz_at2[j] != 0) {
         accumulate<D, Real>::add(
-            dV_dcoords[1][pose_ind]
-                      [block_coord_offset2 + atom_tile_ind2 + start_atom2][j],
+            dV_dcoords[1][score_dat.pose_ind]
+                      [score_dat.block_coord_offset2 + atom_tile_ind2
+                       + start_atom2][j],
             lk_dxyz_at2[j]);
       }
     }
@@ -433,12 +439,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         atom_tile_ind2,
         start_atom1,
         start_atom2,
-        inter_dat.pose_ind,
-        inter_dat.block_coord_offset1,
-        inter_dat.block_coord_offset2,
-        inter_dat.params1,
-        inter_dat.params2,
-        inter_dat.global_params,
+        inter_dat,
         coord1,
         coord2,
         separation);
@@ -462,12 +463,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         atom_tile_ind2,
         start_atom1,
         start_atom2,
-        intra_dat.pose_ind,
-        intra_dat.block_coord_offset1,
-        intra_dat.block_coord_offset2,
-        intra_dat.params1,
-        intra_dat.params2,
-        intra_dat.global_params,
+        intra_dat,
         coord1,
         coord2,
         separation);
@@ -492,12 +488,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         atom_tile_ind2,
         start_atom1,
         start_atom2,
-        inter_dat.pose_ind,
-        inter_dat.block_coord_offset1,
-        inter_dat.block_coord_offset2,
-        inter_dat.params1,
-        inter_dat.params2,
-        inter_dat.global_params,
+        inter_dat,
         coord1,
         coord2,
         separation);
@@ -523,12 +514,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         atom_tile_ind2,
         start_atom1,
         start_atom2,
-        intra_dat.pose_ind,
-        intra_dat.block_coord_offset1,
-        intra_dat.block_coord_offset2,
-        intra_dat.params1,
-        intra_dat.params2,
-        intra_dat.global_params,
+        intra_dat,
         coord1,
         coord2,
         separation);
