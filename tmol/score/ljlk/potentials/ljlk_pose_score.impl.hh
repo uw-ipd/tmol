@@ -128,6 +128,36 @@ class InterResBlockEvaluation {
   }
 };
 
+template <typename Real>
+EIGEN_DEVICE_FUNC Vec<Real, 3> coord_from_shared(
+    Real *coord_array, int atom_ind) {
+  Vec<Real, 3> local_coord;
+  for (int i = 0; i < 3; ++i) {
+    local_coord[i] = coord_array[3 * atom_ind + i];
+  }
+  return local_coord;
+}
+
+template <int TILE, template <typename> typename InterEnergyData, typename Real>
+EIGEN_DEVICE_FUNC int interres_count_pair_separation(
+    InterEnergyData<Real> const &inter_dat,
+    int atom_tile_ind1,
+    int atom_tile_ind2) {
+  int separation = inter_dat.min_separation;
+  if (separation <= inter_dat.max_important_bond_separation) {
+    separation = common::count_pair::shared_mem_inter_block_separation<TILE>(
+        inter_dat.max_important_bond_separation,
+        atom_tile_ind1,
+        atom_tile_ind2,
+        inter_dat.n_conn1,
+        inter_dat.n_conn2,
+        inter_dat.path_dist1,
+        inter_dat.path_dist2,
+        inter_dat.conn_seps);
+  }
+  return separation;
+}
+
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -255,35 +285,17 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int atom_tile_ind1,
              int atom_tile_ind2,
              LJLKInterPairScoringData<Real> const &inter_dat) {
-          Real3 coord1;
-          Real3 coord2;
-          for (int j = 0; j < 3; ++j) {
-            coord1[j] = inter_dat.coords1[3 * atom_tile_ind1 + j];
-            coord2[j] = inter_dat.coords2[3 * atom_tile_ind2 + j];
-          }
-          Real dist2 =
-              ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
-               + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
-               + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
+          Real3 coord1 = coord_from_shared(inter_dat.coords1, atom_tile_ind1);
+          Real3 coord2 = coord_from_shared(inter_dat.coords2, atom_tile_ind2);
 
           auto dist_r = distance<Real>::V_dV(coord1, coord2);
           auto &dist = dist_r.V;
           auto &ddist_dat1 = dist_r.dV_dA;
           auto &ddist_dat2 = dist_r.dV_dB;
 
-          int separation = inter_dat.min_separation;
-          if (separation <= inter_dat.max_important_bond_separation) {
-            separation = common::count_pair::CountPair<D, Int>::
-                template inter_block_separation<TILE_SIZE>(
-                    inter_dat.max_important_bond_separation,
-                    atom_tile_ind1,
-                    atom_tile_ind2,
-                    inter_dat.n_conn1,
-                    inter_dat.n_conn2,
-                    inter_dat.path_dist1,
-                    inter_dat.path_dist2,
-                    inter_dat.conn_seps);
-          }
+          int separation = interres_count_pair_separation<TILE_SIZE>(
+              inter_dat, atom_tile_ind1, atom_tile_ind2);
+
           auto lj = lj_score<Real>::V_dV(
               dist,
               separation,
@@ -317,284 +329,278 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           return lj.V;
         });
 
-    auto score_inter_lk_atom_pair =
-        ([=] TMOL_DEVICE_FUNC(
-             int start_atom1,
-             int start_atom2,
-             int atom_heavy_tile_ind1,
-             int atom_heavy_tile_ind2,
-             LJLKInterPairScoringData<Real> const &inter_dat) {
-          int const atom_tile_ind1 =
-              inter_dat.heavy_inds1[atom_heavy_tile_ind1];
-          int const atom_tile_ind2 =
-              inter_dat.heavy_inds2[atom_heavy_tile_ind2];
+    auto score_inter_lk_atom_pair = ([=] TMOL_DEVICE_FUNC(
+                                         int start_atom1,
+                                         int start_atom2,
+                                         int atom_heavy_tile_ind1,
+                                         int atom_heavy_tile_ind2,
+                                         LJLKInterPairScoringData<Real> const
+                                             &inter_dat) {
+      int const atom_tile_ind1 = inter_dat.heavy_inds1[atom_heavy_tile_ind1];
+      int const atom_tile_ind2 = inter_dat.heavy_inds2[atom_heavy_tile_ind2];
 
-          Real3 coord1;
-          Real3 coord2;
-          for (int j = 0; j < 3; ++j) {
-            coord1[j] = inter_dat.coords1[3 * atom_tile_ind1 + j];
-            coord2[j] = inter_dat.coords2[3 * atom_tile_ind2 + j];
-          }
-          Real dist2 =
-              ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
-               + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
-               + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
-          auto dist_r = distance<Real>::V_dV(coord1, coord2);
-          auto &dist = dist_r.V;
-          auto &ddist_dat1 = dist_r.dV_dA;
-          auto &ddist_dat2 = dist_r.dV_dB;
+      Real3 coord1;
+      Real3 coord2;
+      for (int j = 0; j < 3; ++j) {
+        coord1[j] = inter_dat.coords1[3 * atom_tile_ind1 + j];
+        coord2[j] = inter_dat.coords2[3 * atom_tile_ind2 + j];
+      }
+      auto dist_r = distance<Real>::V_dV(coord1, coord2);
+      auto &dist = dist_r.V;
+      auto &ddist_dat1 = dist_r.dV_dA;
+      auto &ddist_dat2 = dist_r.dV_dB;
 
-          int separation = inter_dat.min_separation;
-          if (separation <= inter_dat.max_important_bond_separation) {
-            separation = common::count_pair::CountPair<D, Int>::
-                template inter_block_separation<TILE_SIZE>(
-                    inter_dat.max_important_bond_separation,
-                    atom_tile_ind1,
-                    atom_tile_ind2,
-                    inter_dat.n_conn1,
-                    inter_dat.n_conn2,
-                    inter_dat.path_dist1,
-                    inter_dat.path_dist2,
-                    inter_dat.conn_seps);
-          }
-          auto lk = lk_isotropic_score<Real>::V_dV(
-              dist,
-              separation,
-              inter_dat.params1[atom_tile_ind1].lk_params(),
-              inter_dat.params2[atom_tile_ind2].lk_params(),
-              inter_dat.global_params);
+      int separation = inter_dat.min_separation;
+      if (separation <= inter_dat.max_important_bond_separation) {
+        separation =
+            common::count_pair::shared_mem_inter_block_separation<TILE_SIZE>(
+                inter_dat.max_important_bond_separation,
+                atom_tile_ind1,
+                atom_tile_ind2,
+                inter_dat.n_conn1,
+                inter_dat.n_conn2,
+                inter_dat.path_dist1,
+                inter_dat.path_dist2,
+                inter_dat.conn_seps);
+      }
+      auto lk = lk_isotropic_score<Real>::V_dV(
+          dist,
+          separation,
+          inter_dat.params1[atom_tile_ind1].lk_params(),
+          inter_dat.params2[atom_tile_ind2].lk_params(),
+          inter_dat.global_params);
 
-          Vec<Real, 3> lk_dxyz_at1 = lk.dV_ddist * ddist_dat1;
-          for (int j = 0; j < 3; ++j) {
-            if (lk_dxyz_at1[j] != 0) {
-              accumulate<D, Real>::add(
-                  dV_dcoords[1][inter_dat.pose_ind]
-                            [inter_dat.block_coord_offset1 + atom_tile_ind1
-                             + start_atom1][j],
-                  lk_dxyz_at1[j]);
-            }
-          }
+      Vec<Real, 3> lk_dxyz_at1 = lk.dV_ddist * ddist_dat1;
+      for (int j = 0; j < 3; ++j) {
+        if (lk_dxyz_at1[j] != 0) {
+          accumulate<D, Real>::add(
+              dV_dcoords[1][inter_dat.pose_ind]
+                        [inter_dat.block_coord_offset1 + atom_tile_ind1
+                         + start_atom1][j],
+              lk_dxyz_at1[j]);
+        }
+      }
 
-          Vec<Real, 3> lk_dxyz_at2 = lk.dV_ddist * ddist_dat2;
-          for (int j = 0; j < 3; ++j) {
-            if (lk_dxyz_at2[j] != 0) {
-              accumulate<D, Real>::add(
-                  dV_dcoords[1][inter_dat.pose_ind]
-                            [inter_dat.block_coord_offset2 + atom_tile_ind2
-                             + start_atom2][j],
-                  lk_dxyz_at2[j]);
-            }
-          }
-          return lk.V;
-        });
+      Vec<Real, 3> lk_dxyz_at2 = lk.dV_ddist * ddist_dat2;
+      for (int j = 0; j < 3; ++j) {
+        if (lk_dxyz_at2[j] != 0) {
+          accumulate<D, Real>::add(
+              dV_dcoords[1][inter_dat.pose_ind]
+                        [inter_dat.block_coord_offset2 + atom_tile_ind2
+                         + start_atom2][j],
+              lk_dxyz_at2[j]);
+        }
+      }
+      return lk.V;
+    });
 
-    auto score_inter_pairs_lj =
-        ([=] TMOL_DEVICE_FUNC(
-             int pose_ind,
-             int block_ind1,
-             int block_ind2,
-             int block_coord_offset1,
-             int block_coord_offset2,
-             int tid,
-             int start_atom1,
-             int start_atom2,
-             LJLKInterPairScoringData<Real> inter_dat
-             // Real *__restrict__ coords1,                  // shared
-             // Real *__restrict__ coords2,                  // shared
-             // LJLKTypeParams<Real> *__restrict__ params1,  // shared
-             // LJLKTypeParams<Real> *__restrict__ params2,  // shared
-             // int const max_important_bond_separation,
-             // int const min_separation,
-             //
-             // int const n_atoms1,
-             // int const n_atoms2,
-             // int const n_conn1,
-             // int const n_conn2,
-             // unsigned char const *__restrict__ path_dist1,   // shared
-             // unsigned char const *__restrict__ path_dist2,   // shared
-             // unsigned char const *__restrict__ conn_seps) {  // shared
-         ) {
-          Real score_total = 0;
-          Real3 coord1;
-          Real3 coord2;
-
-          int const n_remain1 =
-              min(int(TILE_SIZE), inter_dat.n_atoms1 - start_atom1);
-          int const n_remain2 =
-              min(int(TILE_SIZE), inter_dat.n_atoms2 - start_atom2);
-
-          int const n_pairs = n_remain1 * n_remain2;
-
-          // LJGlobalParams<Real> global_params_local = global_params[0];
-
-          for (int i = tid; i < n_pairs; i += nt) {
-            int const atom_tile_ind1 = i / n_remain2;
-            int const atom_tile_ind2 = i % n_remain2;
-            for (int j = 0; j < 3; ++j) {
-              coord1[j] = inter_dat.coords1[3 * atom_tile_ind1 + j];
-              coord2[j] = inter_dat.coords2[3 * atom_tile_ind2 + j];
-            }
-            Real dist2 =
-                ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
-                 + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
-                 + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
-
-            auto dist_r = distance<Real>::V_dV(coord1, coord2);
-            auto &dist = dist_r.V;
-            auto &ddist_dat1 = dist_r.dV_dA;
-            auto &ddist_dat2 = dist_r.dV_dB;
-
-            int separation = inter_dat.min_separation;
-            if (separation <= inter_dat.max_important_bond_separation) {
-              separation = common::count_pair::CountPair<D, Int>::
-                  template inter_block_separation<TILE_SIZE>(
-                      inter_dat.max_important_bond_separation,
-                      atom_tile_ind1,
-                      atom_tile_ind2,
-                      inter_dat.n_conn1,
-                      inter_dat.n_conn2,
-                      inter_dat.path_dist1,
-                      inter_dat.path_dist2,
-                      inter_dat.conn_seps);
-            }
-            auto lj = lj_score<Real>::V_dV(
-                dist,
-                separation,
-                inter_dat.params1[atom_tile_ind1].lj_params(),
-                inter_dat.params2[atom_tile_ind2].lj_params(),
-                inter_dat.global_params);
-            score_total += lj.V;
-
-            // all threads accumulate derivatives for atom 1 to global memory
-            Vec<Real, 3> lj_dxyz_at1 = lj.dV_ddist * ddist_dat1;
-            for (int j = 0; j < 3; ++j) {
-              if (lj_dxyz_at1[j] != 0) {
-                accumulate<D, Real>::add(
-                    dV_dcoords[0][pose_ind]
-                              [block_coord_offset1 + atom_tile_ind1
-                               + start_atom1][j],
-                    lj_dxyz_at1[j]);
-              }
-            }
-
-            // all threads accumulate derivatives for atom 2 to global memory
-            Vec<Real, 3> lj_dxyz_at2 = lj.dV_ddist * ddist_dat2;
-            for (int j = 0; j < 3; ++j) {
-              if (lj_dxyz_at2[j] != 0) {
-                accumulate<D, Real>::add(
-                    dV_dcoords[0][pose_ind]
-                              [block_coord_offset2 + atom_tile_ind2
-                               + start_atom2][j],
-                    lj_dxyz_at2[j]);
-              }
-            }
-          }
-
-          return score_total;
-        });
-
-    auto score_inter_pairs_lk =
-        ([=] TMOL_DEVICE_FUNC(
-             int pose_ind,
-             int block_ind1,
-             int block_ind2,
-             int block_coord_offset1,
-             int block_coord_offset2,
-             int tid,
-             int start_atom1,
-             int start_atom2,
-             LJLKInterPairScoringData<Real> inter_dat
-             // Real *coords1,                     // shared
-             // Real *coords2,                     // shared
-             // LJLKTypeParams<Real> *params1,     // shared
-             // LJLKTypeParams<Real> *params2,     // shared
-             // unsigned char const *heavy_inds1,  // shared
-             // unsigned char const *heavy_inds2,  // shared
-             // int const max_important_bond_separation,
-             // int const min_separation,
-             // int const n_atoms1,
-             // int const n_atoms2,
-             // int const n_conn1,
-             // int const n_conn2,
-             // unsigned char const *path_dist1,  // shared
-             // unsigned char const *path_dist2,  // shared
-             // unsigned char const *conn_seps) {
-         ) {
-          Real score_total = 0;
-
-          Real3 coord1;
-          Real3 coord2;
-
-          int const n_pairs = inter_dat.n_heavy1 * inter_dat.n_heavy2;
-
-          // LJGlobalParams<Real> global_params_local = global_params[0];
-
-          for (int i = tid; i < n_pairs; i += nt) {
-            int const atom_heavy_tile_ind1 = i / inter_dat.n_heavy2;
-            int const atom_heavy_tile_ind2 = i % inter_dat.n_heavy2;
-            int const atom_tile_ind1 =
-                inter_dat.heavy_inds1[atom_heavy_tile_ind1];
-            int const atom_tile_ind2 =
-                inter_dat.heavy_inds2[atom_heavy_tile_ind2];
-
-            for (int j = 0; j < 3; ++j) {
-              coord1[j] = inter_dat.coords1[3 * atom_tile_ind1 + j];
-              coord2[j] = inter_dat.coords2[3 * atom_tile_ind2 + j];
-            }
-            Real dist2 =
-                ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
-                 + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
-                 + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
-            auto dist_r = distance<Real>::V_dV(coord1, coord2);
-            auto &dist = dist_r.V;
-            auto &ddist_dat1 = dist_r.dV_dA;
-            auto &ddist_dat2 = dist_r.dV_dB;
-
-            int separation = inter_dat.min_separation;
-            if (separation <= inter_dat.max_important_bond_separation) {
-              separation = common::count_pair::CountPair<D, Int>::
-                  template inter_block_separation<TILE_SIZE>(
-                      inter_dat.max_important_bond_separation,
-                      atom_tile_ind1,
-                      atom_tile_ind2,
-                      inter_dat.n_conn1,
-                      inter_dat.n_conn2,
-                      inter_dat.path_dist1,
-                      inter_dat.path_dist2,
-                      inter_dat.conn_seps);
-            }
-            auto lk = lk_isotropic_score<Real>::V_dV(
-                dist,
-                separation,
-                inter_dat.params1[atom_tile_ind1].lk_params(),
-                inter_dat.params2[atom_tile_ind2].lk_params(),
-                inter_dat.global_params);
-            score_total += lk.V;
-
-            Vec<Real, 3> lk_dxyz_at1 = lk.dV_ddist * ddist_dat1;
-            for (int j = 0; j < 3; ++j) {
-              if (lk_dxyz_at1[j] != 0) {
-                accumulate<D, Real>::add(
-                    dV_dcoords[1][pose_ind]
-                              [block_coord_offset1 + atom_tile_ind1
-                               + start_atom1][j],
-                    lk_dxyz_at1[j]);
-              }
-            }
-
-            Vec<Real, 3> lk_dxyz_at2 = lk.dV_ddist * ddist_dat2;
-            for (int j = 0; j < 3; ++j) {
-              if (lk_dxyz_at2[j] != 0) {
-                accumulate<D, Real>::add(
-                    dV_dcoords[1][pose_ind]
-                              [block_coord_offset2 + atom_tile_ind2
-                               + start_atom2][j],
-                    lk_dxyz_at2[j]);
-              }
-            }
-          }
-          return score_total;
-        });
+    // auto score_inter_pairs_lj =
+    //     ([=] TMOL_DEVICE_FUNC(
+    //          int pose_ind,
+    //          int block_ind1,
+    //          int block_ind2,
+    //          int block_coord_offset1,
+    //          int block_coord_offset2,
+    //          int tid,
+    //          int start_atom1,
+    //          int start_atom2,
+    //          LJLKInterPairScoringData<Real> inter_dat
+    //          // Real *__restrict__ coords1,                  // shared
+    //          // Real *__restrict__ coords2,                  // shared
+    //          // LJLKTypeParams<Real> *__restrict__ params1,  // shared
+    //          // LJLKTypeParams<Real> *__restrict__ params2,  // shared
+    //          // int const max_important_bond_separation,
+    //          // int const min_separation,
+    //          //
+    //          // int const n_atoms1,
+    //          // int const n_atoms2,
+    //          // int const n_conn1,
+    //          // int const n_conn2,
+    //          // unsigned char const *__restrict__ path_dist1,   // shared
+    //          // unsigned char const *__restrict__ path_dist2,   // shared
+    //          // unsigned char const *__restrict__ conn_seps) {  // shared
+    //      ) {
+    //       Real score_total = 0;
+    //       Real3 coord1;
+    //       Real3 coord2;
+    //
+    //       int const n_remain1 =
+    //           min(int(TILE_SIZE), inter_dat.n_atoms1 - start_atom1);
+    //       int const n_remain2 =
+    //           min(int(TILE_SIZE), inter_dat.n_atoms2 - start_atom2);
+    //
+    //       int const n_pairs = n_remain1 * n_remain2;
+    //
+    //       // LJGlobalParams<Real> global_params_local = global_params[0];
+    //
+    //       for (int i = tid; i < n_pairs; i += nt) {
+    //         int const atom_tile_ind1 = i / n_remain2;
+    //         int const atom_tile_ind2 = i % n_remain2;
+    //         for (int j = 0; j < 3; ++j) {
+    //           coord1[j] = inter_dat.coords1[3 * atom_tile_ind1 + j];
+    //           coord2[j] = inter_dat.coords2[3 * atom_tile_ind2 + j];
+    //         }
+    //         Real dist2 =
+    //             ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
+    //              + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
+    //              + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
+    //
+    //         auto dist_r = distance<Real>::V_dV(coord1, coord2);
+    //         auto &dist = dist_r.V;
+    //         auto &ddist_dat1 = dist_r.dV_dA;
+    //         auto &ddist_dat2 = dist_r.dV_dB;
+    //
+    //         int separation = inter_dat.min_separation;
+    //         if (separation <= inter_dat.max_important_bond_separation) {
+    //           separation = common::count_pair::CountPair<D, Int>::
+    //               template inter_block_separation<TILE_SIZE>(
+    //                   inter_dat.max_important_bond_separation,
+    //                   atom_tile_ind1,
+    //                   atom_tile_ind2,
+    //                   inter_dat.n_conn1,
+    //                   inter_dat.n_conn2,
+    //                   inter_dat.path_dist1,
+    //                   inter_dat.path_dist2,
+    //                   inter_dat.conn_seps);
+    //         }
+    //         auto lj = lj_score<Real>::V_dV(
+    //             dist,
+    //             separation,
+    //             inter_dat.params1[atom_tile_ind1].lj_params(),
+    //             inter_dat.params2[atom_tile_ind2].lj_params(),
+    //             inter_dat.global_params);
+    //         score_total += lj.V;
+    //
+    //         // all threads accumulate derivatives for atom 1 to global memory
+    //         Vec<Real, 3> lj_dxyz_at1 = lj.dV_ddist * ddist_dat1;
+    //         for (int j = 0; j < 3; ++j) {
+    //           if (lj_dxyz_at1[j] != 0) {
+    //             accumulate<D, Real>::add(
+    //                 dV_dcoords[0][pose_ind]
+    //                           [block_coord_offset1 + atom_tile_ind1
+    //                            + start_atom1][j],
+    //                 lj_dxyz_at1[j]);
+    //           }
+    //         }
+    //
+    //         // all threads accumulate derivatives for atom 2 to global memory
+    //         Vec<Real, 3> lj_dxyz_at2 = lj.dV_ddist * ddist_dat2;
+    //         for (int j = 0; j < 3; ++j) {
+    //           if (lj_dxyz_at2[j] != 0) {
+    //             accumulate<D, Real>::add(
+    //                 dV_dcoords[0][pose_ind]
+    //                           [block_coord_offset2 + atom_tile_ind2
+    //                            + start_atom2][j],
+    //                 lj_dxyz_at2[j]);
+    //           }
+    //         }
+    //       }
+    //
+    //       return score_total;
+    //     });
+    //
+    // auto score_inter_pairs_lk =
+    //     ([=] TMOL_DEVICE_FUNC(
+    //          int pose_ind,
+    //          int block_ind1,
+    //          int block_ind2,
+    //          int block_coord_offset1,
+    //          int block_coord_offset2,
+    //          int tid,
+    //          int start_atom1,
+    //          int start_atom2,
+    //          LJLKInterPairScoringData<Real> inter_dat
+    //          // Real *coords1,                     // shared
+    //          // Real *coords2,                     // shared
+    //          // LJLKTypeParams<Real> *params1,     // shared
+    //          // LJLKTypeParams<Real> *params2,     // shared
+    //          // unsigned char const *heavy_inds1,  // shared
+    //          // unsigned char const *heavy_inds2,  // shared
+    //          // int const max_important_bond_separation,
+    //          // int const min_separation,
+    //          // int const n_atoms1,
+    //          // int const n_atoms2,
+    //          // int const n_conn1,
+    //          // int const n_conn2,
+    //          // unsigned char const *path_dist1,  // shared
+    //          // unsigned char const *path_dist2,  // shared
+    //          // unsigned char const *conn_seps) {
+    //      ) {
+    //       Real score_total = 0;
+    //
+    //       Real3 coord1;
+    //       Real3 coord2;
+    //
+    //       int const n_pairs = inter_dat.n_heavy1 * inter_dat.n_heavy2;
+    //
+    //       // LJGlobalParams<Real> global_params_local = global_params[0];
+    //
+    //       for (int i = tid; i < n_pairs; i += nt) {
+    //         int const atom_heavy_tile_ind1 = i / inter_dat.n_heavy2;
+    //         int const atom_heavy_tile_ind2 = i % inter_dat.n_heavy2;
+    //         int const atom_tile_ind1 =
+    //             inter_dat.heavy_inds1[atom_heavy_tile_ind1];
+    //         int const atom_tile_ind2 =
+    //             inter_dat.heavy_inds2[atom_heavy_tile_ind2];
+    //
+    //         for (int j = 0; j < 3; ++j) {
+    //           coord1[j] = inter_dat.coords1[3 * atom_tile_ind1 + j];
+    //           coord2[j] = inter_dat.coords2[3 * atom_tile_ind2 + j];
+    //         }
+    //         Real dist2 =
+    //             ((coord1[0] - coord2[0]) * (coord1[0] - coord2[0])
+    //              + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
+    //              + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
+    //         auto dist_r = distance<Real>::V_dV(coord1, coord2);
+    //         auto &dist = dist_r.V;
+    //         auto &ddist_dat1 = dist_r.dV_dA;
+    //         auto &ddist_dat2 = dist_r.dV_dB;
+    //
+    //         int separation = inter_dat.min_separation;
+    //         if (separation <= inter_dat.max_important_bond_separation) {
+    //           separation = common::count_pair::CountPair<D, Int>::
+    //               template inter_block_separation<TILE_SIZE>(
+    //                   inter_dat.max_important_bond_separation,
+    //                   atom_tile_ind1,
+    //                   atom_tile_ind2,
+    //                   inter_dat.n_conn1,
+    //                   inter_dat.n_conn2,
+    //                   inter_dat.path_dist1,
+    //                   inter_dat.path_dist2,
+    //                   inter_dat.conn_seps);
+    //         }
+    //         auto lk = lk_isotropic_score<Real>::V_dV(
+    //             dist,
+    //             separation,
+    //             inter_dat.params1[atom_tile_ind1].lk_params(),
+    //             inter_dat.params2[atom_tile_ind2].lk_params(),
+    //             inter_dat.global_params);
+    //         score_total += lk.V;
+    //
+    //         Vec<Real, 3> lk_dxyz_at1 = lk.dV_ddist * ddist_dat1;
+    //         for (int j = 0; j < 3; ++j) {
+    //           if (lk_dxyz_at1[j] != 0) {
+    //             accumulate<D, Real>::add(
+    //                 dV_dcoords[1][pose_ind]
+    //                           [block_coord_offset1 + atom_tile_ind1
+    //                            + start_atom1][j],
+    //                 lk_dxyz_at1[j]);
+    //           }
+    //         }
+    //
+    //         Vec<Real, 3> lk_dxyz_at2 = lk.dV_ddist * ddist_dat2;
+    //         for (int j = 0; j < 3; ++j) {
+    //           if (lk_dxyz_at2[j] != 0) {
+    //             accumulate<D, Real>::add(
+    //                 dV_dcoords[1][pose_ind]
+    //                           [block_coord_offset2 + atom_tile_ind2
+    //                            + start_atom2][j],
+    //                 lk_dxyz_at2[j]);
+    //           }
+    //         }
+    //       }
+    //       return score_total;
+    //     });
 
     // between atoms within one block
     auto score_intra_pairs_lj = ([=] TMOL_DEVICE_FUNC(
