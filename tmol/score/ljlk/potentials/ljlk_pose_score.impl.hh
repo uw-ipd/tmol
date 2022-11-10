@@ -274,6 +274,56 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
 
+  auto lj_atom_energy_and_derivs = ([=] TMOL_DEVICE_FUNC(
+                                        int atom_tile_ind1,
+                                        int atom_tile_ind2,
+                                        int start_atom1,
+                                        int start_atom2,
+                                        int pose_ind,
+                                        int block_coord_offset1,
+                                        int block_coord_offset2,
+                                        LJLKTypeParams<Real> *params1,
+                                        LJLKTypeParams<Real> *params2,
+                                        LJGlobalParams<Real> const
+                                            &global_params,
+                                        Real3 const &coord1,
+                                        Real3 const &coord2,
+                                        int cp_separation) {
+    auto dist_r = distance<Real>::V_dV(coord1, coord2);
+    auto &dist = dist_r.V;
+    auto &ddist_dat1 = dist_r.dV_dA;
+    auto &ddist_dat2 = dist_r.dV_dB;
+    auto lj = lj_score<Real>::V_dV(
+        dist,
+        cp_separation,
+        params1[atom_tile_ind1].lj_params(),
+        params2[atom_tile_ind2].lj_params(),
+        global_params);
+
+    // all threads accumulate derivatives for atom 1 to global memory
+    Vec<Real, 3> lj_dxyz_at1 = lj.dV_ddist * ddist_dat1;
+    for (int j = 0; j < 3; ++j) {
+      if (lj_dxyz_at1[j] != 0) {
+        accumulate<D, Real>::add(
+            dV_dcoords[0][pose_ind]
+                      [block_coord_offset1 + atom_tile_ind1 + start_atom1][j],
+            lj_dxyz_at1[j]);
+      }
+    }
+
+    // all threads accumulate derivatives for atom 2 to global memory
+    Vec<Real, 3> lj_dxyz_at2 = lj.dV_ddist * ddist_dat2;
+    for (int j = 0; j < 3; ++j) {
+      if (lj_dxyz_at2[j] != 0) {
+        accumulate<D, Real>::add(
+            dV_dcoords[0][pose_ind]
+                      [block_coord_offset2 + atom_tile_ind2 + start_atom2][j],
+            lj_dxyz_at2[j]);
+      }
+    }
+    return lj.V;
+  });
+
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
     // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
@@ -288,45 +338,22 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           Real3 coord1 = coord_from_shared(inter_dat.coords1, atom_tile_ind1);
           Real3 coord2 = coord_from_shared(inter_dat.coords2, atom_tile_ind2);
 
-          auto dist_r = distance<Real>::V_dV(coord1, coord2);
-          auto &dist = dist_r.V;
-          auto &ddist_dat1 = dist_r.dV_dA;
-          auto &ddist_dat2 = dist_r.dV_dB;
-
           int separation = interres_count_pair_separation<TILE_SIZE>(
               inter_dat, atom_tile_ind1, atom_tile_ind2);
-
-          auto lj = lj_score<Real>::V_dV(
-              dist,
-              separation,
-              inter_dat.params1[atom_tile_ind1].lj_params(),
-              inter_dat.params2[atom_tile_ind2].lj_params(),
-              inter_dat.global_params);
-
-          // all threads accumulate derivatives for atom 1 to global memory
-          Vec<Real, 3> lj_dxyz_at1 = lj.dV_ddist * ddist_dat1;
-          for (int j = 0; j < 3; ++j) {
-            if (lj_dxyz_at1[j] != 0) {
-              accumulate<D, Real>::add(
-                  dV_dcoords[0][inter_dat.pose_ind]
-                            [inter_dat.block_coord_offset1 + atom_tile_ind1
-                             + start_atom1][j],
-                  lj_dxyz_at1[j]);
-            }
-          }
-
-          // all threads accumulate derivatives for atom 2 to global memory
-          Vec<Real, 3> lj_dxyz_at2 = lj.dV_ddist * ddist_dat2;
-          for (int j = 0; j < 3; ++j) {
-            if (lj_dxyz_at2[j] != 0) {
-              accumulate<D, Real>::add(
-                  dV_dcoords[0][inter_dat.pose_ind]
-                            [inter_dat.block_coord_offset2 + atom_tile_ind2
-                             + start_atom2][j],
-                  lj_dxyz_at2[j]);
-            }
-          }
-          return lj.V;
+          return lj_atom_energy_and_derivs(
+              atom_tile_ind1,
+              atom_tile_ind2,
+              start_atom1,
+              start_atom2,
+              inter_dat.pose_ind,
+              inter_dat.block_coord_offset1,
+              inter_dat.block_coord_offset2,
+              inter_dat.params1,
+              inter_dat.params2,
+              inter_dat.global_params,
+              coord1,
+              coord2,
+              separation);
         });
 
     auto score_inter_lk_atom_pair = ([=] TMOL_DEVICE_FUNC(
