@@ -44,6 +44,37 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 template <typename Real>
 class LJLKScoringData {
  public:
+  TMOL_DEVICE_FUNC
+  LJLKScoringData()
+      : pose_ind(-1),
+        block_type1(-1),
+        block_type2(-1),
+        block_ind1(-1),
+        block_ind2(-1),
+        block_coord_offset1(-1),
+        block_coord_offset2(-1),
+        max_important_bond_separation(-1),
+        min_separation(-1),
+        in_count_pair_striking_dist(0),
+        coords1(0),
+        coords2(0),
+        params1(0),
+        params2(0),
+        heavy_inds1(0),  // shared
+        heavy_inds2(0),  // shared
+        n_atoms1(-1),
+        n_atoms2(-1),
+        n_heavy1(-1),
+        n_heavy2(-1),
+        n_conn1(-1),
+        n_conn2(-1),
+        path_dist1(0),  // shared
+        path_dist2(0),  // shared
+        conn_seps(0),
+        global_params(),
+        total_lj(0),
+        total_lk(0) {}
+
   int pose_ind;
   int block_type1;
   int block_type2;
@@ -51,6 +82,8 @@ class LJLKScoringData {
   int block_ind2;
   int block_coord_offset1;
   int block_coord_offset2;
+  int max_important_bond_separation;
+  int min_separation;
   bool in_count_pair_striking_dist;
   Real *coords1;
   Real *coords2;
@@ -58,8 +91,6 @@ class LJLKScoringData {
   LJLKTypeParams<Real> *params2;
   unsigned char *heavy_inds1;  // shared
   unsigned char *heavy_inds2;  // shared
-  int max_important_bond_separation;
-  int min_separation;
   int n_atoms1;
   int n_atoms2;
   int n_heavy1;
@@ -250,17 +281,19 @@ TMOL_DEVICE_FUNC void eval_block_pair(
     LoadIntraSharedDatFunc load_intrares_data_from_shared,
     CalcIntraFunc eval_intrares_atom_pair_scores,
     StoreEnergyFunc store_calculated_intrares_energies) {
-  printf("starting %d %d\n", block_ind1, block_ind2);
+  // printf("starting %d %d\n", block_ind1, block_ind2);
   if (block_ind1 != block_ind2) {
     // Step 1: load any data that is consistent across all tile pairs
     InterResScoringData<Real> interres_data;
-    printf("calling load_constant_interres_data\n");
+    // printf("calling load_constant_interres_data\n");
     load_constant_interres_data(
         pose_ind,
         block_ind1,
         block_ind2,
         block_type1,
         block_type2,
+        n_atoms1,
+        n_atoms2,
         interres_data,
         shared_data);
 
@@ -269,34 +302,41 @@ TMOL_DEVICE_FUNC void eval_block_pair(
     int const n_iterations2 = (n_atoms2 - 1) / TILE + 1;
 
     for (int i = 0; i < n_iterations1; ++i) {
-      if (i != 0) {
-        // make sure the calculations for the previous iteration
-        // have completed before we overwrite the contents of
-        // shared memory
-        DeviceDispatch<D>::synchronize_workgroup();
-      }
+      // Make sure the constant inter-res data has been loaded
+      // if i is 0 before loading the tile data in, and make
+      // sure that the calculations from the previous iteration
+      // have completed before overwriting the data in shared
+      // memory if i > 0
+      DeviceDispatch<D>::synchronize_workgroup();
+
       int const i_n_atoms_to_load1 =
           max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
-      printf("calling load_interres1_tile_data_to_shared\n");
+      // printf("calling load_interres1_tile_data_to_shared\n");
       load_interres1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, interres_data, shared_data);
       for (int j = 0; j < n_iterations2; ++j) {
         if (j != 0) {
+          // We can safely move into the loading of tile data for j == 0
+          // because we synchronized at the top of the "for i" loop above
+          // but for j > 0, we have to wait for the calculations from the
+          // previous iteration to complete  before overwriting the data
+          // in shared memory
           DeviceDispatch<D>::synchronize_workgroup();
         }
         int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
-        printf("calling load_interres2_tile_data_to_shared\n");
+        // printf("calling load_interres2_tile_data_to_shared\n");
         load_interres2_tile_data_to_shared(
             j, TILE * j, j_n_atoms_to_load2, interres_data, shared_data);
 
-        // Wait for all loading to complete
+        // Wait for all loading to complete before moving on to any
+        // energy calculations;
         DeviceDispatch<D>::synchronize_workgroup();
 
         // Step 3: initialize combo shared/
-        printf("calling load_interres_data_from_shared\n");
+        // printf("calling load_interres_data_from_shared\n");
         load_interres_data_from_shared(i, j, shared_data, interres_data);
 
-        printf("calling eval_interres_atom_pair_scores\n");
+        // printf("calling eval_interres_atom_pair_scores\n");
         eval_interres_atom_pair_scores(interres_data, i * TILE, j * TILE);
       }
     }
@@ -304,21 +344,26 @@ TMOL_DEVICE_FUNC void eval_block_pair(
     store_calculated_interres_energies(interres_data, shared_data);
 
   } else {
-    // Step 1: load any data that is consisten across all tile pairs
+    // Step 1: load any data that is consistent across all tile pairs
     IntraResScoringData<Real> intrares_data;
-    printf("calling load_constant_intrares_data\n");
+    // printf("calling load_constant_intrares_data\n");
     load_constant_intrares_data(
-        pose_ind, block_ind1, block_type1, intrares_data, shared_data);
+        pose_ind,
+        block_ind1,
+        block_type1,
+        n_atoms1,
+        intrares_data,
+        shared_data);
 
     // Step 2: Tile data loading
     int const n_iterations = (n_atoms1 - 1) / TILE + 1;
     for (int i = 0; i < n_iterations; ++i) {
-      // make sure the calculations for the previous iteration
+      // make sure the calculatixons for the previous iteration
       // or from the tile-independent load have completed before
       // we overwrite the contents of shared memory
       DeviceDispatch<D>::synchronize_workgroup();
       int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
-      printf("calling load_intrares1_tile_data_to_shared\n");
+      // printf("calling load_intrares1_tile_data_to_shared\n");
       load_intrares1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
       for (int j = i; j < n_iterations; ++j) {
@@ -330,16 +375,16 @@ TMOL_DEVICE_FUNC void eval_block_pair(
           // completed before we overwrite the contents of shared
           // memory
           DeviceDispatch<D>::synchronize_workgroup();
-          printf("calling load_intrares2_tile_data_to_shared\n");
+          // printf("calling load_intrares2_tile_data_to_shared\n");
           load_intrares2_tile_data_to_shared(
               j, TILE * j, j_n_atoms_to_load2, intrares_data, shared_data);
         }
         // Make sure that all the data has been loaded into shared memory
         // before we start any calculations
         DeviceDispatch<D>::synchronize_workgroup();
-        printf("calling load_intrares_data_from_shared\n");
+        // printf("calling load_intrares_data_from_shared\n");
         load_intrares_data_from_shared(i, j, shared_data, intrares_data);
-        printf("calling eval_intrares_atom_pair_scores\n");
+        // printf("calling eval_intrares_atom_pair_scores\n");
         eval_intrares_atom_pair_scores(intrares_data, i * TILE, j * TILE);
       }
     }
@@ -719,8 +764,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         Real coords2[TILE_SIZE * 3];
         LJLKTypeParams<Real> params1[TILE_SIZE];  // 1536 bytes for params
         LJLKTypeParams<Real> params2[TILE_SIZE];
-        unsigned char n_heavy1;
-        unsigned char n_heavy2;
+        // unsigned char n_heavy1;
+        // unsigned char n_heavy2;
         unsigned char heavy_inds1[TILE_SIZE];
         unsigned char heavy_inds2[TILE_SIZE];
         unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
@@ -761,31 +806,38 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
     int const n_atoms1 = block_type_n_atoms[block_type1];
     int const n_atoms2 = block_type_n_atoms[block_type2];
-    int const block_coord_offset1 =
-        pose_stack_block_coord_offset[pose_ind][block_ind1];
-    int const block_coord_offset2 =
-        pose_stack_block_coord_offset[pose_ind][block_ind2];
-
-    int test = 4;
+    // int const block_coord_offset1 =
+    //     pose_stack_block_coord_offset[pose_ind][block_ind1];
+    // int const block_coord_offset2 =
+    //     pose_stack_block_coord_offset[pose_ind][block_ind2];
 
     auto load_constant_interres_data = ([=](int pose_ind,
                                             int block_ind1,
                                             int block_ind2,
                                             int block_type1,
                                             int block_type2,
+                                            int n_atoms1,
+                                            int n_atoms2,
                                             LJLKScoringData<Real> &inter_dat,
                                             shared_mem_union &shared) {
       inter_dat.pose_ind = pose_ind;
-      inter_dat.block_ind1 = block_ind1;
-      inter_dat.block_ind2 = block_ind2;
       inter_dat.block_type1 = block_type1;
       inter_dat.block_type2 = block_type2;
-      inter_dat.n_conn1 = block_type_n_interblock_bonds[block_type1];
-      inter_dat.n_conn2 = block_type_n_interblock_bonds[block_type2];
+      inter_dat.block_ind1 = block_ind1;
+      inter_dat.block_ind2 = block_ind2;
+      inter_dat.block_coord_offset1 =
+          pose_stack_block_coord_offset[pose_ind][block_ind1];
+      inter_dat.block_coord_offset2 =
+          pose_stack_block_coord_offset[pose_ind][block_ind2];
+      inter_dat.max_important_bond_separation = max_important_bond_separation;
       inter_dat.min_separation =
           pose_stack_min_bond_separation[pose_ind][block_ind1][block_ind2];
       inter_dat.in_count_pair_striking_dist =
           inter_dat.min_separation <= max_important_bond_separation;
+      inter_dat.n_atoms1 = n_atoms1;
+      inter_dat.n_atoms2 = n_atoms2;
+      inter_dat.n_conn1 = block_type_n_interblock_bonds[block_type1];
+      inter_dat.n_conn2 = block_type_n_interblock_bonds[block_type2];
 
       // set the pointers in inter_dat to point at the shared-memory arrays
       inter_dat.coords1 = shared.m.coords1;
@@ -896,6 +948,26 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     auto eval_interres_atom_pair_scores = ([=](LJLKScoringData<Real> &inter_dat,
                                                int start_atom1,
                                                int start_atom2) {
+      assert(inter_dat.pose_ind != -1);
+      assert(inter_dat.block_type1 != -1);
+      assert(inter_dat.block_type2 != -1);
+      assert(inter_dat.block_ind1 != -1);
+      assert(inter_dat.block_ind2 != -1);
+      assert(inter_dat.block_coord_offset1 != -1);
+      assert(inter_dat.block_coord_offset2 != -1);
+      assert(inter_dat.coords1 != 0);
+      assert(inter_dat.coords2 != 0);
+      assert(inter_dat.params1 != 0);
+      assert(inter_dat.params2 != 0);
+      assert(inter_dat.heavy_inds1 != 0);
+      assert(inter_dat.heavy_inds2 != 0);
+      assert(inter_dat.n_atoms1 != -1);
+      assert(inter_dat.n_atoms2 != -1);
+      assert(inter_dat.n_heavy1 != -1);
+      assert(inter_dat.n_heavy2 != -1);
+      assert(inter_dat.n_conn1 != -1);
+      assert(inter_dat.n_conn2 != -1);
+
       auto eval_scores_for_atom_pairs = ([&](int tid) {
         inter_dat.total_lj += InterResBlockEvaluation<
             LJLKScoringData,
@@ -945,6 +1017,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 score_dat.total_lk, shared, mgpu::plus_t<Real>());
 
         if (tid == 0) {
+          // printf("Storing energy %d %d %f %f\n", score_dat.block_ind1,
+          // score_dat.block_ind2, cta_total_lj, cta_total_lk);
           accumulate<D, Real>::add(output[0][score_dat.pose_ind], cta_total_lj);
           accumulate<D, Real>::add(output[1][score_dat.pose_ind], cta_total_lk);
         }
@@ -955,18 +1029,26 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     auto load_constant_intrares_data = ([=](int pose_ind,
                                             int block_ind1,
                                             int block_type1,
+                                            int n_atoms1,
                                             LJLKScoringData<Real> &intra_dat,
                                             shared_mem_union &shared) {
       intra_dat.pose_ind = pose_ind;
-      intra_dat.block_ind1 = block_ind1;
-      intra_dat.block_ind2 = block_ind1;
       intra_dat.block_type1 = block_type1;
       intra_dat.block_type2 = block_type1;
-      intra_dat.n_conn1 = block_type_n_interblock_bonds[block_type1];
-      intra_dat.n_conn2 = block_type_n_interblock_bonds[block_type1];
+      intra_dat.block_ind1 = block_ind1;
+      intra_dat.block_ind2 = block_ind1;
+      intra_dat.block_coord_offset1 =
+          pose_stack_block_coord_offset[pose_ind][block_ind1];
+      intra_dat.block_coord_offset2 = intra_dat.block_coord_offset1;
+      intra_dat.max_important_bond_separation = max_important_bond_separation;
       intra_dat.min_separation =
           0;  // Intra-residue guarantees the need for count-pair calcs
       intra_dat.in_count_pair_striking_dist = true;
+
+      intra_dat.n_atoms1 = n_atoms1;
+      intra_dat.n_atoms2 = n_atoms1;
+      intra_dat.n_conn1 = block_type_n_interblock_bonds[block_type1];
+      intra_dat.n_conn2 = intra_dat.n_conn1;
 
       // depends on tile pair! // set the pointers in intra_dat to point at the
       // shared-memory arrays depends on tile pair! intra_dat.coords1 =
@@ -978,11 +1060,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       // shared.m.heavy_inds2;
 
       // these count pair arrays are not going to be used
-      // intra_dat.conn_ats1 = shared.m.conn_ats1;
-      // intra_dat.conn_ats2 = shared.m.conn_ats2;
-      intra_dat.path_dist1 = shared.m.path_dist1;
-      intra_dat.path_dist2 = shared.m.path_dist2;
-      intra_dat.conn_seps = shared.m.conn_seps;
+      intra_dat.path_dist1 = 0;  // shared.m.path_dist1;
+      intra_dat.path_dist2 = 0;  // shared.m.path_dist2;
+      intra_dat.conn_seps = 0;   // shared.m.conn_seps;
 
       // Final data members
       intra_dat.global_params = global_params[0];
@@ -1050,6 +1130,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           // then only the "1" shared-memory arrays will be loaded with data;
           // we will point the "2" memory pointers at the "1" arrays
           bool same_tile = tile_ind1 == tile_ind2;
+          intra_dat.n_heavy2 =
+              (same_tile ? intra_dat.n_heavy1 : intra_dat.n_heavy2);
           intra_dat.coords1 = shared.m.coords1;
           intra_dat.coords2 = (same_tile ? shared.m.coords1 : shared.m.coords2);
           intra_dat.params1 = shared.m.params1;
