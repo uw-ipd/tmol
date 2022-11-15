@@ -45,29 +45,33 @@ template <typename Real>
 class LJLKScoringData {
  public:
   int pose_ind;
-  int block_type;  // just 1: only needed for intra-res
+  int block_type1;
+  int block_type2;
   int block_ind1;
   int block_ind2;
   int block_coord_offset1;
   int block_coord_offset2;
+  bool in_count_pair_striking_dist;
   Real *coords1;
   Real *coords2;
   LJLKTypeParams<Real> *params1;
   LJLKTypeParams<Real> *params2;
-  unsigned char const *heavy_inds1;  // shared
-  unsigned char const *heavy_inds2;  // shared
-  int const max_important_bond_separation;
-  int const min_separation;
-  int const n_atoms1;
-  int const n_atoms2;
+  unsigned char *heavy_inds1;  // shared
+  unsigned char *heavy_inds2;  // shared
+  int max_important_bond_separation;
+  int min_separation;
+  int n_atoms1;
+  int n_atoms2;
   int n_heavy1;
   int n_heavy2;
-  int const n_conn1;
-  int const n_conn2;
-  unsigned char const *__restrict__ path_dist1;  // shared
-  unsigned char const *__restrict__ path_dist2;  // shared
-  unsigned char const *__restrict__ conn_seps;
+  int n_conn1;
+  int n_conn2;
+  unsigned char *path_dist1;  // shared
+  unsigned char *path_dist2;  // shared
+  unsigned char *conn_seps;
   LJGlobalParams<Real> global_params;
+  Real total_lj;
+  Real total_lk;
 };
 
 template <template <typename T> typename InterPairData, typename T>
@@ -207,6 +211,147 @@ template <
     template <tmol::Device>
     class DeviceDispatch,
     tmol::Device D,
+    template <typename T>
+    typename InterResScoringData,
+    template <typename T>
+    typename IntraResScoringData,
+    typename Real,
+    int TILE,
+    typename SharedMemData,
+    typename LoadConstInterFunc,
+    typename LoadConstIntraFunc,
+    typename LoadInterDatFunc1,
+    typename LoadInterDatFunc2,
+    typename LoadIntraDatFunc1,
+    typename LoadIntraDatFunc2,
+    typename LoadInterSharedDatFunc,
+    typename LoadIntraSharedDatFunc,
+    typename CalcInterFunc,
+    typename CalcIntraFunc,
+    typename StoreEnergyFunc>
+TMOL_DEVICE_FUNC void eval_block_pair(
+    SharedMemData &shared_data,
+    int pose_ind,
+    int block_ind1,
+    int block_ind2,
+    int block_type1,
+    int block_type2,
+    int n_atoms1,
+    int n_atoms2,
+    LoadConstInterFunc load_constant_interres_data,
+    LoadInterDatFunc1 load_interres1_tile_data_to_shared,
+    LoadInterDatFunc2 load_interres2_tile_data_to_shared,
+    LoadInterSharedDatFunc load_interres_data_from_shared,
+    CalcInterFunc eval_interres_atom_pair_scores,
+    StoreEnergyFunc store_calculated_interres_energies,
+    LoadConstIntraFunc load_constant_intrares_data,
+    LoadIntraDatFunc1 load_intrares1_tile_data_to_shared,
+    LoadIntraDatFunc2 load_intrares2_tile_data_to_shared,
+    LoadIntraSharedDatFunc load_intrares_data_from_shared,
+    CalcIntraFunc eval_intrares_atom_pair_scores,
+    StoreEnergyFunc store_calculated_intrares_energies) {
+  printf("starting %d %d\n", block_ind1, block_ind2);
+  if (block_ind1 != block_ind2) {
+    // Step 1: load any data that is consistent across all tile pairs
+    InterResScoringData<Real> interres_data;
+    printf("calling load_constant_interres_data\n");
+    load_constant_interres_data(
+        pose_ind,
+        block_ind1,
+        block_ind2,
+        block_type1,
+        block_type2,
+        interres_data,
+        shared_data);
+
+    // Step 2: Tile data loading
+    int const n_iterations1 = (n_atoms1 - 1) / TILE + 1;
+    int const n_iterations2 = (n_atoms2 - 1) / TILE + 1;
+
+    for (int i = 0; i < n_iterations1; ++i) {
+      if (i != 0) {
+        // make sure the calculations for the previous iteration
+        // have completed before we overwrite the contents of
+        // shared memory
+        DeviceDispatch<D>::synchronize_workgroup();
+      }
+      int const i_n_atoms_to_load1 =
+          max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
+      printf("calling load_interres1_tile_data_to_shared\n");
+      load_interres1_tile_data_to_shared(
+          i, TILE * i, i_n_atoms_to_load1, interres_data, shared_data);
+      for (int j = 0; j < n_iterations2; ++j) {
+        if (j != 0) {
+          DeviceDispatch<D>::synchronize_workgroup();
+        }
+        int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
+        printf("calling load_interres2_tile_data_to_shared\n");
+        load_interres2_tile_data_to_shared(
+            j, TILE * j, j_n_atoms_to_load2, interres_data, shared_data);
+
+        // Wait for all loading to complete
+        DeviceDispatch<D>::synchronize_workgroup();
+
+        // Step 3: initialize combo shared/
+        printf("calling load_interres_data_from_shared\n");
+        load_interres_data_from_shared(i, j, shared_data, interres_data);
+
+        printf("calling eval_interres_atom_pair_scores\n");
+        eval_interres_atom_pair_scores(interres_data, i * TILE, j * TILE);
+      }
+    }
+    DeviceDispatch<D>::synchronize_workgroup();
+    store_calculated_interres_energies(interres_data, shared_data);
+
+  } else {
+    // Step 1: load any data that is consisten across all tile pairs
+    IntraResScoringData<Real> intrares_data;
+    printf("calling load_constant_intrares_data\n");
+    load_constant_intrares_data(
+        pose_ind, block_ind1, block_type1, intrares_data, shared_data);
+
+    // Step 2: Tile data loading
+    int const n_iterations = (n_atoms1 - 1) / TILE + 1;
+    for (int i = 0; i < n_iterations; ++i) {
+      // make sure the calculations for the previous iteration
+      // or from the tile-independent load have completed before
+      // we overwrite the contents of shared memory
+      DeviceDispatch<D>::synchronize_workgroup();
+      int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
+      printf("calling load_intrares1_tile_data_to_shared\n");
+      load_intrares1_tile_data_to_shared(
+          i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
+      for (int j = i; j < n_iterations; ++j) {
+        int const j_n_atoms_to_load2 =
+            min(int(TILE), int((n_atoms1 - TILE * j)));
+
+        if (j != i) {
+          // make sure calculations from the previous iteration have
+          // completed before we overwrite the contents of shared
+          // memory
+          DeviceDispatch<D>::synchronize_workgroup();
+          printf("calling load_intrares2_tile_data_to_shared\n");
+          load_intrares2_tile_data_to_shared(
+              j, TILE * j, j_n_atoms_to_load2, intrares_data, shared_data);
+        }
+        // Make sure that all the data has been loaded into shared memory
+        // before we start any calculations
+        DeviceDispatch<D>::synchronize_workgroup();
+        printf("calling load_intrares_data_from_shared\n");
+        load_intrares_data_from_shared(i, j, shared_data, intrares_data);
+        printf("calling eval_intrares_atom_pair_scores\n");
+        eval_intrares_atom_pair_scores(intrares_data, i * TILE, j * TILE);
+      }
+    }
+    DeviceDispatch<D>::synchronize_workgroup();
+    store_calculated_intrares_energies(intrares_data, shared_data);
+  }
+};
+
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
     typename Real,
     typename Int>
 auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
@@ -325,16 +470,10 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                         int start_atom1,
                                         int start_atom2,
                                         LJLKScoringData<Real> const &score_dat,
-                                        // int pose_ind,
-                                        // int block_coord_offset1,
-                                        // int block_coord_offset2,
-                                        // LJLKTypeParams<Real> *params1,
-                                        // LJLKTypeParams<Real> *params2,
-                                        // LJGlobalParams<Real> const
-                                        //     &global_params,
-                                        Real3 const &coord1,
-                                        Real3 const &coord2,
                                         int cp_separation) {
+    Real3 coord1 = coord_from_shared(score_dat.coords1, atom_tile_ind1);
+    Real3 coord2 = coord_from_shared(score_dat.coords2, atom_tile_ind2);
+
     auto dist_r = distance<Real>::V_dV(coord1, coord2);
     auto &dist = dist_r.V;
     auto &ddist_dat1 = dist_r.dV_dA;
@@ -378,16 +517,10 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                         int start_atom1,
                                         int start_atom2,
                                         LJLKScoringData<Real> const &score_dat,
-                                        // int pose_ind,
-                                        // int block_coord_offset1,
-                                        // int block_coord_offset2,
-                                        // LJLKTypeParams<Real> *params1,
-                                        // LJLKTypeParams<Real> *params2,
-                                        // LJGlobalParams<Real> const
-                                        //     &global_params,
-                                        Real3 const &coord1,
-                                        Real3 const &coord2,
                                         int cp_separation) {
+    Real3 coord1 = coord_from_shared(score_dat.coords1, atom_tile_ind1);
+    Real3 coord2 = coord_from_shared(score_dat.coords2, atom_tile_ind2);
+
     auto dist_r = distance<Real>::V_dV(coord1, coord2);
     auto &dist = dist_r.V;
     auto &ddist_dat1 = dist_r.dV_dA;
@@ -429,9 +562,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                        int atom_tile_ind1,
                                        int atom_tile_ind2,
                                        LJLKScoringData<Real> const &inter_dat) {
-    Real3 coord1 = coord_from_shared(inter_dat.coords1, atom_tile_ind1);
-    Real3 coord2 = coord_from_shared(inter_dat.coords2, atom_tile_ind2);
-
     int separation = interres_count_pair_separation<TILE_SIZE>(
         inter_dat, atom_tile_ind1, atom_tile_ind2);
     return lj_atom_energy_and_derivs(
@@ -440,8 +570,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         start_atom1,
         start_atom2,
         inter_dat,
-        coord1,
-        coord2,
         separation);
   });
 
@@ -451,21 +579,17 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                        int atom_tile_ind1,
                                        int atom_tile_ind2,
                                        LJLKScoringData<Real> const &intra_dat) {
-    Real3 coord1 = coord_from_shared(intra_dat.coords1, atom_tile_ind1);
-    Real3 coord2 = coord_from_shared(intra_dat.coords2, atom_tile_ind2);
     int const atom_ind1 = start_atom1 + atom_tile_ind1;
     int const atom_ind2 = start_atom2 + atom_tile_ind2;
 
     int const separation =
-        block_type_path_distance[intra_dat.block_type][atom_ind1][atom_ind2];
+        block_type_path_distance[intra_dat.block_type1][atom_ind1][atom_ind2];
     return lj_atom_energy_and_derivs(
         atom_tile_ind1,
         atom_tile_ind2,
         start_atom1,
         start_atom2,
         intra_dat,
-        coord1,
-        coord2,
         separation);
   });
 
@@ -477,8 +601,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                        LJLKScoringData<Real> const &inter_dat) {
     int const atom_tile_ind1 = inter_dat.heavy_inds1[atom_heavy_tile_ind1];
     int const atom_tile_ind2 = inter_dat.heavy_inds2[atom_heavy_tile_ind2];
-    Real3 coord1 = coord_from_shared(inter_dat.coords1, atom_tile_ind1);
-    Real3 coord2 = coord_from_shared(inter_dat.coords2, atom_tile_ind2);
 
     int separation = interres_count_pair_separation<TILE_SIZE>(
         inter_dat, atom_tile_ind1, atom_tile_ind2);
@@ -489,8 +611,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         start_atom1,
         start_atom2,
         inter_dat,
-        coord1,
-        coord2,
         separation);
   });
 
@@ -502,21 +622,17 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                        LJLKScoringData<Real> const &intra_dat) {
     int const atom_tile_ind1 = intra_dat.heavy_inds1[atom_heavy_tile_ind1];
     int const atom_tile_ind2 = intra_dat.heavy_inds2[atom_heavy_tile_ind2];
-    Real3 coord1 = coord_from_shared(intra_dat.coords1, atom_tile_ind1);
-    Real3 coord2 = coord_from_shared(intra_dat.coords2, atom_tile_ind2);
     int const atom_ind1 = start_atom1 + atom_tile_ind1;
     int const atom_ind2 = start_atom2 + atom_tile_ind2;
 
     int const separation =
-        block_type_path_distance[intra_dat.block_type][atom_ind1][atom_ind2];
+        block_type_path_distance[intra_dat.block_type1][atom_ind1][atom_ind2];
     return lk_atom_energy_and_derivs(
         atom_tile_ind1,
         atom_tile_ind2,
         start_atom1,
         start_atom2,
         intra_dat,
-        coord1,
-        coord2,
         separation);
   });
 
@@ -650,33 +766,58 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     int const block_coord_offset2 =
         pose_stack_block_coord_offset[pose_ind][block_ind2];
 
-    if (block_ind1 != block_ind2) {
-      // inter-residue energy evaluation
+    int test = 4;
 
-      int const n_conn1 = block_type_n_interblock_bonds[block_type1];
-      int const n_conn2 = block_type_n_interblock_bonds[block_type2];
-      int const min_sep =
+    auto load_constant_interres_data = ([=](int pose_ind,
+                                            int block_ind1,
+                                            int block_ind2,
+                                            int block_type1,
+                                            int block_type2,
+                                            LJLKScoringData<Real> &inter_dat,
+                                            shared_mem_union &shared) {
+      inter_dat.pose_ind = pose_ind;
+      inter_dat.block_ind1 = block_ind1;
+      inter_dat.block_ind2 = block_ind2;
+      inter_dat.block_type1 = block_type1;
+      inter_dat.block_type2 = block_type2;
+      inter_dat.n_conn1 = block_type_n_interblock_bonds[block_type1];
+      inter_dat.n_conn2 = block_type_n_interblock_bonds[block_type2];
+      inter_dat.min_separation =
           pose_stack_min_bond_separation[pose_ind][block_ind1][block_ind2];
-      bool const count_pair_striking_dist =
-          min_sep <= max_important_bond_separation;
+      inter_dat.in_count_pair_striking_dist =
+          inter_dat.min_separation <= max_important_bond_separation;
 
-      if (count_pair_striking_dist) {
+      // set the pointers in inter_dat to point at the shared-memory arrays
+      inter_dat.coords1 = shared.m.coords1;
+      inter_dat.coords2 = shared.m.coords2;
+      inter_dat.params1 = shared.m.params1;
+      inter_dat.params2 = shared.m.params2;
+      inter_dat.heavy_inds1 = shared.m.heavy_inds1;
+      inter_dat.heavy_inds2 = shared.m.heavy_inds2;
+      // inter_dat.conn_ats1 = shared.m.conn_ats1;
+      // inter_dat.conn_ats2 = shared.m.conn_ats2;
+      inter_dat.path_dist1 = shared.m.path_dist1;
+      inter_dat.path_dist2 = shared.m.path_dist2;
+      inter_dat.conn_seps = shared.m.conn_seps;
+
+      // Count pair setup that does not depend on which tile we are operating on
+      if (inter_dat.in_count_pair_striking_dist) {
         // Load data into shared arrays
         auto load_count_pair_conn_at_data = ([&](int tid) {
-          if (tid < n_conn1) {
+          if (tid < inter_dat.n_conn1) {
             shared.m.conn_ats1[tid] =
                 block_type_atoms_forming_chemical_bonds[block_type1][tid];
           }
-          if (tid < n_conn2) {
+          if (tid < inter_dat.n_conn2) {
             shared.m.conn_ats2[tid] =
                 block_type_atoms_forming_chemical_bonds[block_type2][tid];
           }
 
-          // NOTE MAX_N_CONN ^ 2 <= 32; limit MAX_N_CONN = 4 before this code
+          // NOTE MAX_N_CONN ^ 2 <= 32; limit MAX_N_CONN = 5 before this code
           // would need to be adjusted
-          if (tid < n_conn1 * n_conn2) {
-            int conn1 = tid / n_conn2;
-            int conn2 = tid % n_conn2;
+          if (tid < inter_dat.n_conn1 * inter_dat.n_conn2) {
+            int conn1 = tid / inter_dat.n_conn2;
+            int conn2 = tid % inter_dat.n_conn2;
             shared.m.conn_seps[tid] =
                 pose_stack_inter_block_bondsep[pose_ind][block_ind1][block_ind2]
                                               [conn1][conn2];
@@ -688,369 +829,659 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
             load_count_pair_conn_at_data);
       }
 
-      // Tile the sets of TILE_SIZE atoms
-      int const n_iterations1 = (n_atoms1 - 1) / TILE_SIZE + 1;
-      int const n_iterations2 = (n_atoms2 - 1) / TILE_SIZE + 1;
-      for (int i = 0; i < n_iterations1; ++i) {
-        // make sure all threads have completed their work
-        // from the previous iteration before we overwrite
-        // the contents of shared memory, and, on our first
-        // iteration, make sure that the conn_ats arrays
-        // have been written to
+      // Final data members
+      inter_dat.global_params = global_params[0];
+      inter_dat.total_lj = 0;
+      inter_dat.total_lk = 0;
+    });
 
-        // __syncthreads();
-        DeviceDispatch<D>::synchronize_workgroup();
+    auto load_interres1_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom1,
+             int n_atoms_to_load1,
+             LJLKScoringData<Real> &inter_dat,
+             shared_mem_union &shared) {
+          inter_dat.n_heavy1 =
+              block_type_n_heavy_atoms_in_tile[inter_dat.block_type1][tile_ind];
 
-        int const i_n_atoms_to_load1 =
-            max(0, min(Int(TILE_SIZE), Int((n_atoms1 - TILE_SIZE * i))));
-
-        // Let's load coordinates and Lennard-Jones parameters for
-        // TILE_SIZE atoms into shared memory
-
-        auto store_n_heavy1 = ([&](int tid) {
-          if (tid == 0) {
-            shared.m.n_heavy1 =
-                block_type_n_heavy_atoms_in_tile[block_type1][i];
-          }
-        });
-        DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
-
-        load_block_into_shared(
-            pose_ind,
-            block_coord_offset1,
-            n_atoms1,
-            i_n_atoms_to_load1,
-            block_type1,
-            n_conn1,
-            i,
-            count_pair_striking_dist,
-            shared.m.conn_ats1,
-            shared.m.coords1,
-            shared.m.params1,
-            shared.m.heavy_inds1,
-            shared.m.path_dist1);
-
-        for (int j = 0; j < n_iterations2; ++j) {
-          if (j != 0) {
-            // make sure that all threads have finished energy
-            // calculations from the previous iteration before we
-            // overwrite shared memory
-            DeviceDispatch<D>::synchronize_workgroup();
-          }
-          auto store_n_heavy2 = ([&](int tid) {
-            if (tid == 0) {
-              shared.m.n_heavy2 =
-                  block_type_n_heavy_atoms_in_tile[block_type2][j];
-              // printf("n heavy other: %d %d %d\n", alt_block_ind,
-              // neighb_block_ind, shared.m.union_vals.vals.n_heavy_other);
-            }
-          });
-          DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);
-
-          int j_n_atoms_to_load2 =
-              min(Int(TILE_SIZE), Int((n_atoms2 - TILE_SIZE * j)));
           load_block_into_shared(
-              pose_ind,
-              block_coord_offset2,
-              n_atoms2,
-              j_n_atoms_to_load2,
-              block_type2,
-              n_conn2,
-              j,
-              count_pair_striking_dist,
+              inter_dat.pose_ind,
+              inter_dat.block_coord_offset1,
+              inter_dat.n_atoms1,
+              n_atoms_to_load1,
+              inter_dat.block_type1,
+              inter_dat.n_conn1,
+              tile_ind,
+              inter_dat.in_count_pair_striking_dist,
+              shared.m.conn_ats1,
+              shared.m.coords1,
+              shared.m.params1,
+              shared.m.heavy_inds1,
+              shared.m.path_dist1);
+        });
+
+    auto load_interres2_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom2,
+             int n_atoms_to_load2,
+             LJLKScoringData<Real> &inter_dat,
+             shared_mem_union &shared) {
+          inter_dat.n_heavy2 =
+              block_type_n_heavy_atoms_in_tile[inter_dat.block_type2][tile_ind];
+
+          load_block_into_shared(
+              inter_dat.pose_ind,
+              inter_dat.block_coord_offset2,
+              inter_dat.n_atoms2,
+              n_atoms_to_load2,
+              inter_dat.block_type2,
+              inter_dat.n_conn2,
+              tile_ind,
+              inter_dat.in_count_pair_striking_dist,
               shared.m.conn_ats2,
               shared.m.coords2,
               shared.m.params2,
               shared.m.heavy_inds2,
               shared.m.path_dist2);
-
-          // make sure all shared memory writes have completed before we read
-          // from it when calculating atom-pair energies.
-          // __syncthreads();
-          DeviceDispatch<D>::synchronize_workgroup();
-          int n_heavy1 = shared.m.n_heavy1;
-          int n_heavy2 = shared.m.n_heavy2;
-
-          LJLKScoringData<Real> inter_dat{pose_ind,
-                                          0,  // unused
-                                          block_ind1,
-                                          block_ind2,
-                                          block_coord_offset1,
-                                          block_coord_offset2,
-                                          shared.m.coords1,
-                                          shared.m.coords2,
-                                          shared.m.params1,
-                                          shared.m.params2,
-                                          shared.m.heavy_inds1,
-                                          shared.m.heavy_inds2,
-                                          max_important_bond_separation,
-                                          min_sep,
-                                          n_atoms1,
-                                          n_atoms2,
-                                          n_heavy1,
-                                          n_heavy2,
-                                          n_conn1,
-                                          n_conn2,
-                                          shared.m.path_dist1,
-                                          shared.m.path_dist2,
-                                          shared.m.conn_seps,
-                                          global_params[0]};
-          auto eval_scores_for_atom_pairs = ([&](int tid) {
-            total_lj += InterResBlockEvaluation<
-                LJLKScoringData,
-                AllAtomPairSelector,
-                D,
-                TILE_SIZE,
-                nt,
-                Real,
-                Int>::
-                eval_interres_atom_pair(
-                    tid,
-                    i * TILE_SIZE,
-                    j * TILE_SIZE,
-                    score_inter_lj_atom_pair,
-                    inter_dat);
-
-            // total_lj += score_inter_pairs_lj(
-            //     pose_ind,
-            //     block_ind1,
-            //     block_ind2,
-            //     block_coord_offset1,
-            //     block_coord_offset2,
-            //     tid,
-            //     i * TILE_SIZE,
-            //     j * TILE_SIZE,
-            //         inter_dat
-            // );
-
-            // total_lk += score_inter_pairs_lk(
-            //          pose_ind,
-            //          block_ind1,
-            //          block_ind2,
-            //          block_coord_offset1,
-            //          block_coord_offset2,
-            //          tid,
-            //          i * TILE_SIZE,
-            //          j * TILE_SIZE,
-            //          inter_dat
-            // );
-            total_lk += InterResBlockEvaluation<
-                LJLKScoringData,
-                HeavyAtomPairSelector,
-                D,
-                TILE_SIZE,
-                nt,
-                Real,
-                Int>::
-                eval_interres_atom_pair(
-                    tid,
-                    i * TILE_SIZE,
-                    j * TILE_SIZE,
-                    score_inter_lk_atom_pair,
-                    inter_dat);
-          });
-
-          // The work: On GPU threads work independently, on CPU, this will be a
-          // for loop
-          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-              eval_scores_for_atom_pairs);
-
-        }  // for j
-      }    // for i
-    } else {
-      // alt_block_ind == neighb_block_ind; intra-residue energy evaluation
-
-      int const n_iterations = (n_atoms1 - 1) / TILE_SIZE + 1;
-
-      for (int i = 0; i < n_iterations; ++i) {
-        if (i != 0) {
-          // make sure the calculations for the previous iteration
-          // have completed before we overwrite the contents of
-          // shared memory
-          // __syncthreads();
-          DeviceDispatch<D>::synchronize_workgroup();
-        }
-        int const i_n_atoms_to_load1 =
-            min(Int(TILE_SIZE), Int((n_atoms1 - TILE_SIZE * i)));
-
-        auto set_n_heavy1 = ([&](int tid) {
-          if (tid == 0) {
-            shared.m.n_heavy1 =
-                block_type_n_heavy_atoms_in_tile[block_type1][i];
-          }
         });
-        DeviceDispatch<D>::template for_each_in_workgroup<nt>(set_n_heavy1);
 
-        load_block_coords_and_params_into_shared(
-            pose_ind,
-            block_coord_offset1,
-            i_n_atoms_to_load1,
-            block_type1,
-            i,
-            shared.m.coords1,
-            shared.m.params1,
-            shared.m.heavy_inds1);
+    auto load_interres_data_from_shared =
+        ([=](int, int, shared_mem_union &, LJLKScoringData<Real> &) {
+          // ?? no op ??
+        });
 
-        for (int j = i; j < n_iterations; ++j) {
-          int const j_n_atoms_to_load2 =
-              min(Int(TILE_SIZE), Int((n_atoms1 - TILE_SIZE * j)));
+    // Evaluate both the LJ and LK scores in separate dispatches
+    // over all atoms in the tile and the subset of heavy atoms in
+    // the tile
+    auto eval_interres_atom_pair_scores = ([=](LJLKScoringData<Real> &inter_dat,
+                                               int start_atom1,
+                                               int start_atom2) {
+      auto eval_scores_for_atom_pairs = ([&](int tid) {
+        inter_dat.total_lj += InterResBlockEvaluation<
+            LJLKScoringData,
+            AllAtomPairSelector,
+            D,
+            TILE_SIZE,
+            nt,
+            Real,
+            Int>::
+            eval_interres_atom_pair(
+                tid,
+                start_atom1,
+                start_atom2,
+                score_inter_lj_atom_pair,
+                inter_dat);
 
-          if (j != i) {
-            // make sure calculations from the previous iteration have
-            // completed before we overwrite the contents of shared
-            // memory
-            // __syncthreads();
-            DeviceDispatch<D>::synchronize_workgroup();
-          }
-          if (j != i) {
-            auto set_n_heavy2 = ([&](int tid) {
-              if (tid == 0) {
-                shared.m.n_heavy2 =
-                    block_type_n_heavy_atoms_in_tile[block_type1][j];
-              }
-            });
-            // Load integer into shared memory
-            DeviceDispatch<D>::template for_each_in_workgroup<nt>(set_n_heavy2);
+        inter_dat.total_lk += InterResBlockEvaluation<
+            LJLKScoringData,
+            HeavyAtomPairSelector,
+            D,
+            TILE_SIZE,
+            nt,
+            Real,
+            Int>::
+            eval_interres_atom_pair(
+                tid,
+                start_atom1,
+                start_atom2,
+                score_inter_lk_atom_pair,
+                inter_dat);
+      });
 
-            load_block_coords_and_params_into_shared(
-                pose_ind,
-                block_coord_offset2,
-                j_n_atoms_to_load2,
-                block_type1,
-                j,
-                shared.m.coords2,
-                shared.m.params2,
-                shared.m.heavy_inds2);
-          }
-
-          // we are guaranteed to hit this syncthreads call; we must wait
-          // here before reading from shared memory for the coordinates
-          // in shared.coords_alt1 to be loaded, or if j != i, for the
-          // coordinates in shared..coords2 to be loaded.
-          // __syncthreads();
-          DeviceDispatch<D>::synchronize_workgroup();
-          int const n_heavy1 = shared.m.n_heavy1;
-          int const n_heavy2 = (i == j ? n_heavy1 : shared.m.n_heavy2);
-
-          LJLKScoringData<Real> intra_dat{
-              pose_ind,
-              block_type1,
-              block_ind1,
-              block_ind1,
-              block_coord_offset1,
-              block_coord_offset1,
-              shared.m.coords1,
-              (i == j ? shared.m.coords1 : shared.m.coords2),
-              shared.m.params1,
-              (i == j ? shared.m.params1 : shared.m.params2),
-              shared.m.heavy_inds1,
-              (i == j ? shared.m.heavy_inds1 : shared.m.heavy_inds2),
-              max_important_bond_separation,
-              0,         // min_sep, unused
-              n_atoms1,  // total number of atoms
-              n_atoms1,  // total number of atoms
-              n_heavy1,  // number of heavy atoms within this tile
-              n_heavy2,  // number of heavy atoms within this tile
-              0,         // n_conn1, unused in this func
-              0,         // n_conn2, unused in this func
-              nullptr,   // shared.m.path_dist1, // unused in this func
-              nullptr,   // shared.m.path_dist2, // unused in this func
-              nullptr,   // shared.m.conn_seps, // unused in this func
-              global_params[0]};
-
-          auto eval_scores_for_atom_pairs = ([&](int tid) {
-            total_lj += IntraResBlockEvaluation<
-                LJLKScoringData,
-                AllAtomPairSelector,
-                D,
-                TILE_SIZE,
-                nt,
-                Real,
-                Int>::
-                eval_intrares_atom_pairs(
-                    tid,
-                    i * TILE_SIZE,
-                    j * TILE_SIZE,
-                    score_intra_lj_atom_pair,
-                    intra_dat);
-            // total_lj += score_intra_pairs_lj(
-            //     pose_ind,
-            //     block_ind1,
-            //     block_coord_offset1,
-            //     tid,
-            //     i * TILE_SIZE,
-            //     j * TILE_SIZE,
-            //     shared.m.coords1,
-            //     (i == j ? shared.m.coords1 : shared.m.coords2),
-            //     shared.m.params1,
-            //     (i == j ? shared.m.params1 : shared.m.params2),
-            //     max_important_bond_separation,
-            //     block_type1,
-            //     n_atoms1);
-            total_lk += IntraResBlockEvaluation<
-                LJLKScoringData,
-                HeavyAtomPairSelector,
-                D,
-                TILE_SIZE,
-                nt,
-                Real,
-                Int>::
-                eval_intrares_atom_pairs(
-                    tid,
-                    i * TILE_SIZE,
-                    j * TILE_SIZE,
-                    score_intra_lk_atom_pair,
-                    intra_dat);
-
-            // total_lk += score_intra_pairs_lk(
-            //     pose_ind,
-            //     block_ind1,
-            //     block_coord_offset1,
-            //     tid,
-            //     i * TILE_SIZE,
-            //     j * TILE_SIZE,
-            //     n_heavy1,
-            //     n_heavy2,
-            //     shared.m.coords1,
-            //     (i == j ? shared.m.coords1 : shared.m.coords2),
-            //     shared.m.params1,
-            //     (i == j ? shared.m.params1 : shared.m.params2),
-            //     shared.m.heavy_inds1,
-            //     (i == j ? shared.m.heavy_inds1 : shared.m.heavy_inds2),
-            //     max_important_bond_separation,
-            //     block_type1,
-            //     n_atoms1);
-          });
-          // The work: On GPU threads work independently, on CPU, this will be a
-          // for loop
-          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-              eval_scores_for_atom_pairs);
-
-        }  // for j
-      }    // for i
-    }      // else
-
-    // Make sure all energy calculations are complete before we overwrite
-    // the neighbor-residue data in the shared memory union
-    // __syncthreads();
-    DeviceDispatch<D>::synchronize_workgroup();
-
-    // Real cta_total_lj(0), cta_total_lk(0);
-
-    auto reduce_energies = ([&](int tid) {
-      Real const cta_total_lj =
-          DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
-              total_lj, shared, mgpu::plus_t<Real>());
-      Real const cta_total_lk =
-          DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
-              total_lk, shared, mgpu::plus_t<Real>());
-
-      if (tid == 0) {
-        accumulate<D, Real>::add(output[0][pose_ind], cta_total_lj);
-        accumulate<D, Real>::add(output[1][pose_ind], cta_total_lk);
-      }
+      // The work: On GPU threads work independently, on CPU, this will be a
+      // for loop
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_scores_for_atom_pairs);
     });
-    DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
+
+    auto store_calculated_energies = ([=](LJLKScoringData<Real> &score_dat,
+                                          shared_mem_union &shared) {
+      auto reduce_energies = ([&](int tid) {
+        Real const cta_total_lj =
+            DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+                score_dat.total_lj, shared, mgpu::plus_t<Real>());
+        Real const cta_total_lk =
+            DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+                score_dat.total_lk, shared, mgpu::plus_t<Real>());
+
+        if (tid == 0) {
+          accumulate<D, Real>::add(output[0][score_dat.pose_ind], cta_total_lj);
+          accumulate<D, Real>::add(output[1][score_dat.pose_ind], cta_total_lk);
+        }
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
+    });
+
+    auto load_constant_intrares_data = ([=](int pose_ind,
+                                            int block_ind1,
+                                            int block_type1,
+                                            LJLKScoringData<Real> &intra_dat,
+                                            shared_mem_union &shared) {
+      intra_dat.pose_ind = pose_ind;
+      intra_dat.block_ind1 = block_ind1;
+      intra_dat.block_ind2 = block_ind1;
+      intra_dat.block_type1 = block_type1;
+      intra_dat.block_type2 = block_type1;
+      intra_dat.n_conn1 = block_type_n_interblock_bonds[block_type1];
+      intra_dat.n_conn2 = block_type_n_interblock_bonds[block_type1];
+      intra_dat.min_separation =
+          0;  // Intra-residue guarantees the need for count-pair calcs
+      intra_dat.in_count_pair_striking_dist = true;
+
+      // depends on tile pair! // set the pointers in intra_dat to point at the
+      // shared-memory arrays depends on tile pair! intra_dat.coords1 =
+      // shared.m.coords1; depends on tile pair! intra_dat.coords2 =
+      // shared.m.coords2; depends on tile pair! intra_dat.params1 =
+      // shared.m.params1; depends on tile pair! intra_dat.params2 =
+      // shared.m.params1; depends on tile pair! intra_dat.heavy_inds1 =
+      // shared.m.heavy_inds1; depends on tile pair! intra_dat.heavy_inds2 =
+      // shared.m.heavy_inds2;
+
+      // these count pair arrays are not going to be used
+      // intra_dat.conn_ats1 = shared.m.conn_ats1;
+      // intra_dat.conn_ats2 = shared.m.conn_ats2;
+      intra_dat.path_dist1 = shared.m.path_dist1;
+      intra_dat.path_dist2 = shared.m.path_dist2;
+      intra_dat.conn_seps = shared.m.conn_seps;
+
+      // Final data members
+      intra_dat.global_params = global_params[0];
+      intra_dat.total_lj = 0;
+      intra_dat.total_lk = 0;
+    });
+
+    auto load_intrares1_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom1,
+             int n_atoms_to_load1,
+             LJLKScoringData<Real> &intra_dat,
+             shared_mem_union &shared) {
+          intra_dat.n_heavy1 =
+              block_type_n_heavy_atoms_in_tile[intra_dat.block_type1][tile_ind];
+
+          load_block_into_shared(
+              intra_dat.pose_ind,
+              intra_dat.block_coord_offset1,
+              intra_dat.n_atoms1,
+              n_atoms_to_load1,
+              intra_dat.block_type1,
+              intra_dat.n_conn1,
+              tile_ind,
+              intra_dat.in_count_pair_striking_dist,
+              shared.m.conn_ats1,
+              shared.m.coords1,
+              shared.m.params1,
+              shared.m.heavy_inds1,
+              shared.m.path_dist1);
+        });
+
+    auto load_intrares2_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom2,
+             int n_atoms_to_load2,
+             LJLKScoringData<Real> &intra_dat,
+             shared_mem_union &shared) {
+          intra_dat.n_heavy2 =
+              block_type_n_heavy_atoms_in_tile[intra_dat.block_type2][tile_ind];
+
+          load_block_into_shared(
+              intra_dat.pose_ind,
+              intra_dat.block_coord_offset2,
+              intra_dat.n_atoms2,
+              n_atoms_to_load2,
+              intra_dat.block_type2,
+              intra_dat.n_conn2,
+              tile_ind,
+              intra_dat.in_count_pair_striking_dist,
+              shared.m.conn_ats2,
+              shared.m.coords2,
+              shared.m.params2,
+              shared.m.heavy_inds2,
+              shared.m.path_dist2);
+        });
+
+    auto load_intrares_data_from_shared =
+        ([=](int tile_ind1,
+             int tile_ind2,
+             shared_mem_union &shared,
+             LJLKScoringData<Real> &intra_dat) {
+          // set the pointers in intra_dat to point at the shared-memory arrays
+          // If we are evaluating the energies between atoms in the same tile
+          // then only the "1" shared-memory arrays will be loaded with data;
+          // we will point the "2" memory pointers at the "1" arrays
+          bool same_tile = tile_ind1 == tile_ind2;
+          intra_dat.coords1 = shared.m.coords1;
+          intra_dat.coords2 = (same_tile ? shared.m.coords1 : shared.m.coords2);
+          intra_dat.params1 = shared.m.params1;
+          intra_dat.params2 = (same_tile ? shared.m.params1 : shared.m.params2);
+          intra_dat.heavy_inds1 = shared.m.heavy_inds1;
+          intra_dat.heavy_inds2 =
+              (same_tile ? shared.m.heavy_inds1 : shared.m.heavy_inds2);
+        });
+
+    // Evaluate both the LJ and LK scores in separate dispatches
+    // over all atoms in the tile and the subset of heavy atoms in
+    // the tile
+    auto eval_intrares_atom_pair_scores = ([=](LJLKScoringData<Real> &intra_dat,
+                                               int start_atom1,
+                                               int start_atom2) {
+      auto eval_scores_for_atom_pairs = ([&](int tid) {
+        intra_dat.total_lj += IntraResBlockEvaluation<
+            LJLKScoringData,
+            AllAtomPairSelector,
+            D,
+            TILE_SIZE,
+            nt,
+            Real,
+            Int>::
+            eval_intrares_atom_pairs(
+                tid,
+                start_atom1,
+                start_atom2,
+                score_intra_lj_atom_pair,
+                intra_dat);
+        intra_dat.total_lk += IntraResBlockEvaluation<
+            LJLKScoringData,
+            HeavyAtomPairSelector,
+            D,
+            TILE_SIZE,
+            nt,
+            Real,
+            Int>::
+            eval_intrares_atom_pairs(
+                tid,
+                start_atom1,
+                start_atom2,
+                score_intra_lk_atom_pair,
+                intra_dat);
+      });
+
+      // The work: On GPU threads work independently, on CPU, this will be a
+      // for loop
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_scores_for_atom_pairs);
+    });
+
+    eval_block_pair<
+        DeviceDispatch,
+        D,
+        LJLKScoringData,
+        LJLKScoringData,
+        Real,
+        TILE_SIZE>(
+        shared,
+        pose_ind,
+        block_ind1,
+        block_ind2,
+        block_type1,
+        block_type2,
+        n_atoms1,
+        n_atoms2,
+        load_constant_interres_data,
+        load_interres1_tile_data_to_shared,
+        load_interres2_tile_data_to_shared,
+        load_interres_data_from_shared,
+        eval_interres_atom_pair_scores,
+        store_calculated_energies,
+        load_constant_intrares_data,
+        load_intrares1_tile_data_to_shared,
+        load_intrares2_tile_data_to_shared,
+        load_intrares_data_from_shared,
+        eval_intrares_atom_pair_scores,
+        store_calculated_energies);
+
+    // if (block_ind1 != block_ind2) {
+    //   // inter-residue energy evaluation
+    //
+    //   int const n_conn1 = block_type_n_interblock_bonds[block_type1];
+    //   int const n_conn2 = block_type_n_interblock_bonds[block_type2];
+    //   int const min_sep =
+    //       pose_stack_min_bond_separation[pose_ind][block_ind1][block_ind2];
+    //   bool const count_pair_striking_dist =
+    //       min_sep <= max_important_bond_separation;
+    //
+    //   if (count_pair_striking_dist) {
+    //     // Load data into shared arrays
+    //     auto load_count_pair_conn_at_data = ([&](int tid) {
+    //       if (tid < n_conn1) {
+    //         shared.m.conn_ats1[tid] =
+    //             block_type_atoms_forming_chemical_bonds[block_type1][tid];
+    //       }
+    //       if (tid < n_conn2) {
+    //         shared.m.conn_ats2[tid] =
+    //             block_type_atoms_forming_chemical_bonds[block_type2][tid];
+    //       }
+    //
+    //       // NOTE MAX_N_CONN ^ 2 <= 32; limit MAX_N_CONN = 4 before this code
+    //       // would need to be adjusted
+    //       if (tid < n_conn1 * n_conn2) {
+    //         int conn1 = tid / n_conn2;
+    //         int conn2 = tid % n_conn2;
+    //         shared.m.conn_seps[tid] =
+    //             pose_stack_inter_block_bondsep[pose_ind][block_ind1][block_ind2]
+    //                                           [conn1][conn2];
+    //       }
+    //     });
+    //     // On CPU: a for loop executed once; on GPU threads within the
+    //     workgroup
+    //     // working in parallel will just continue to work in parallel
+    //     DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+    //         load_count_pair_conn_at_data);
+    //   }
+    //
+    //   // Tile the sets of TILE_SIZE atoms
+    //   int const n_iterations1 = (n_atoms1 - 1) / TILE_SIZE + 1;
+    //   int const n_iterations2 = (n_atoms2 - 1) / TILE_SIZE + 1;
+    //   for (int i = 0; i < n_iterations1; ++i) {
+    //     // make sure all threads have completed their work
+    //     // from the previous iteration before we overwrite
+    //     // the contents of shared memory, and, on our first
+    //     // iteration, make sure that the conn_ats arrays
+    //     // have been written to
+    //
+    //     // __syncthreads();
+    //     DeviceDispatch<D>::synchronize_workgroup();
+    //
+    //     int const i_n_atoms_to_load1 =
+    //         max(0, min(Int(TILE_SIZE), Int((n_atoms1 - TILE_SIZE * i))));
+    //
+    //     // Let's load coordinates and Lennard-Jones parameters for
+    //     // TILE_SIZE atoms into shared memory
+    //
+    //     auto store_n_heavy1 = ([&](int tid) {
+    //       if (tid == 0) {
+    //         shared.m.n_heavy1 =
+    //             block_type_n_heavy_atoms_in_tile[block_type1][i];
+    //       }
+    //     });
+    //     DeviceDispatch<D>::template
+    //     for_each_in_workgroup<nt>(store_n_heavy1);
+    //
+    //     load_block_into_shared(
+    //         pose_ind,
+    //         block_coord_offset1,
+    //         n_atoms1,
+    //         i_n_atoms_to_load1,
+    //         block_type1,
+    //         n_conn1,
+    //         i,
+    //         count_pair_striking_dist,
+    //         shared.m.conn_ats1,
+    //         shared.m.coords1,
+    //         shared.m.params1,
+    //         shared.m.heavy_inds1,
+    //         shared.m.path_dist1);
+    //
+    //     for (int j = 0; j < n_iterations2; ++j) {
+    //       if (j != 0) {
+    //         // make sure that all threads have finished energy
+    //         // calculations from the previous iteration before we
+    //         // overwrite shared memory
+    //         DeviceDispatch<D>::synchronize_workgroup();
+    //       }
+    //       auto store_n_heavy2 = ([&](int tid) {
+    //         if (tid == 0) {
+    //           shared.m.n_heavy2 =
+    //               block_type_n_heavy_atoms_in_tile[block_type2][j];
+    //           // printf("n heavy other: %d %d %d\n", alt_block_ind,
+    //           // neighb_block_ind, shared.m.union_vals.vals.n_heavy_other);
+    //         }
+    //       });
+    //       DeviceDispatch<D>::template
+    //       for_each_in_workgroup<nt>(store_n_heavy2);
+    //
+    //       int j_n_atoms_to_load2 =
+    //           min(Int(TILE_SIZE), Int((n_atoms2 - TILE_SIZE * j)));
+    //       load_block_into_shared(
+    //           pose_ind,
+    //           block_coord_offset2,
+    //           n_atoms2,
+    //           j_n_atoms_to_load2,
+    //           block_type2,
+    //           n_conn2,
+    //           j,
+    //           count_pair_striking_dist,
+    //           shared.m.conn_ats2,
+    //           shared.m.coords2,
+    //           shared.m.params2,
+    //           shared.m.heavy_inds2,
+    //           shared.m.path_dist2);
+    //
+    //       // make sure all shared memory writes have completed before we read
+    //       // from it when calculating atom-pair energies.
+    //       // __syncthreads();
+    //       DeviceDispatch<D>::synchronize_workgroup();
+    //       int n_heavy1 = shared.m.n_heavy1;
+    //       int n_heavy2 = shared.m.n_heavy2;
+    //
+    //       LJLKScoringData<Real> inter_dat{pose_ind,
+    //                                       block_type1,
+    // 					  block_type2,
+    //                                       block_ind1,
+    //                                       block_ind2,
+    //                                       block_coord_offset1,
+    //                                       block_coord_offset2,
+    //                                       shared.m.coords1,
+    //                                       shared.m.coords2,
+    //                                       shared.m.params1,
+    //                                       shared.m.params2,
+    //                                       shared.m.heavy_inds1,
+    //                                       shared.m.heavy_inds2,
+    //                                       max_important_bond_separation,
+    //                                       min_sep,
+    //                                       n_atoms1,
+    //                                       n_atoms2,
+    //                                       n_heavy1,
+    //                                       n_heavy2,
+    //                                       n_conn1,
+    //                                       n_conn2,
+    //                                       shared.m.path_dist1,
+    //                                       shared.m.path_dist2,
+    //                                       shared.m.conn_seps,
+    //                                       global_params[0]};
+    //       auto eval_scores_for_atom_pairs = ([&](int tid) {
+    //         total_lj += InterResBlockEvaluation<
+    //             LJLKScoringData,
+    //             AllAtomPairSelector,
+    //             D,
+    //             TILE_SIZE,
+    //             nt,
+    //             Real,
+    //             Int>::
+    //             eval_interres_atom_pair(
+    //                 tid,
+    //                 i * TILE_SIZE,
+    //                 j * TILE_SIZE,
+    //                 score_inter_lj_atom_pair,
+    //                 inter_dat);
+    //
+    //         total_lk += InterResBlockEvaluation<
+    //             LJLKScoringData,
+    //             HeavyAtomPairSelector,
+    //             D,
+    //             TILE_SIZE,
+    //             nt,
+    //             Real,
+    //             Int>::
+    //             eval_interres_atom_pair(
+    //                 tid,
+    //                 i * TILE_SIZE,
+    //                 j * TILE_SIZE,
+    //                 score_inter_lk_atom_pair,
+    //                 inter_dat);
+    //       });
+    //
+    //       // The work: On GPU threads work independently, on CPU, this will
+    //       be a
+    //       // for loop
+    //       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+    //           eval_scores_for_atom_pairs);
+    //
+    //     }  // for j
+    //   }    // for i
+    // } else {
+    //   // alt_block_ind == neighb_block_ind; intra-residue energy evaluation
+    //
+    //   int const n_iterations = (n_atoms1 - 1) / TILE_SIZE + 1;
+    //
+    //   for (int i = 0; i < n_iterations; ++i) {
+    //     if (i != 0) {
+    //       // make sure the calculations for the previous iteration
+    //       // have completed before we overwrite the contents of
+    //       // shared memory
+    //       // __syncthreads();
+    //       DeviceDispatch<D>::synchronize_workgroup();
+    //     }
+    //     int const i_n_atoms_to_load1 =
+    //         min(Int(TILE_SIZE), Int((n_atoms1 - TILE_SIZE * i)));
+    //
+    //     auto set_n_heavy1 = ([&](int tid) {
+    //       if (tid == 0) {
+    //         shared.m.n_heavy1 =
+    //             block_type_n_heavy_atoms_in_tile[block_type1][i];
+    //       }
+    //     });
+    //     DeviceDispatch<D>::template for_each_in_workgroup<nt>(set_n_heavy1);
+    //
+    //     load_block_coords_and_params_into_shared(
+    //         pose_ind,
+    //         block_coord_offset1,
+    //         i_n_atoms_to_load1,
+    //         block_type1,
+    //         i,
+    //         shared.m.coords1,
+    //         shared.m.params1,
+    //         shared.m.heavy_inds1);
+    //
+    //     for (int j = i; j < n_iterations; ++j) {
+    //       int const j_n_atoms_to_load2 =
+    //           min(Int(TILE_SIZE), Int((n_atoms1 - TILE_SIZE * j)));
+    //
+    //       if (j != i) {
+    //         // make sure calculations from the previous iteration have
+    //         // completed before we overwrite the contents of shared
+    //         // memory
+    //         // __syncthreads();
+    //         DeviceDispatch<D>::synchronize_workgroup();
+    //       }
+    //       if (j != i) {
+    //         auto set_n_heavy2 = ([&](int tid) {
+    //           if (tid == 0) {
+    //             shared.m.n_heavy2 =
+    //                 block_type_n_heavy_atoms_in_tile[block_type1][j];
+    //           }
+    //         });
+    //         // Load integer into shared memory
+    //         DeviceDispatch<D>::template
+    //         for_each_in_workgroup<nt>(set_n_heavy2);
+    //
+    //         load_block_coords_and_params_into_shared(
+    //             pose_ind,
+    //             block_coord_offset2,
+    //             j_n_atoms_to_load2,
+    //             block_type1,
+    //             j,
+    //             shared.m.coords2,
+    //             shared.m.params2,
+    //             shared.m.heavy_inds2);
+    //       }
+    //
+    //       // we are guaranteed to hit this syncthreads call; we must wait
+    //       // here before reading from shared memory for the coordinates
+    //       // in shared.coords_alt1 to be loaded, or if j != i, for the
+    //       // coordinates in shared..coords2 to be loaded.
+    //       // __syncthreads();
+    //       DeviceDispatch<D>::synchronize_workgroup();
+    //       int const n_heavy1 = shared.m.n_heavy1;
+    //       int const n_heavy2 = (i == j ? n_heavy1 : shared.m.n_heavy2);
+    //
+    //       LJLKScoringData<Real> intra_dat{
+    //           pose_ind,
+    //           block_type1,
+    //           block_ind1,
+    //           block_ind1,
+    //           block_coord_offset1,
+    //           block_coord_offset1,
+    //           shared.m.coords1,
+    //           (i == j ? shared.m.coords1 : shared.m.coords2),
+    //           shared.m.params1,
+    //           (i == j ? shared.m.params1 : shared.m.params2),
+    //           shared.m.heavy_inds1,
+    //           (i == j ? shared.m.heavy_inds1 : shared.m.heavy_inds2),
+    //           max_important_bond_separation,
+    //           0,         // min_sep, unused
+    //           n_atoms1,  // total number of atoms
+    //           n_atoms1,  // total number of atoms
+    //           n_heavy1,  // number of heavy atoms within this tile
+    //           n_heavy2,  // number of heavy atoms within this tile
+    //           0,         // n_conn1, unused in this func
+    //           0,         // n_conn2, unused in this func
+    //           nullptr,   // shared.m.path_dist1, // unused in this func
+    //           nullptr,   // shared.m.path_dist2, // unused in this func
+    //           nullptr,   // shared.m.conn_seps, // unused in this func
+    //           global_params[0]};
+    //
+    //       auto eval_scores_for_atom_pairs = ([&](int tid) {
+    //         total_lj += IntraResBlockEvaluation<
+    //             LJLKScoringData,
+    //             AllAtomPairSelector,
+    //             D,
+    //             TILE_SIZE,
+    //             nt,
+    //             Real,
+    //             Int>::
+    //             eval_intrares_atom_pairs(
+    //                 tid,
+    //                 i * TILE_SIZE,
+    //                 j * TILE_SIZE,
+    //                 score_intra_lj_atom_pair,
+    //                 intra_dat);
+    //         total_lk += IntraResBlockEvaluation<
+    //             LJLKScoringData,
+    //             HeavyAtomPairSelector,
+    //             D,
+    //             TILE_SIZE,
+    //             nt,
+    //             Real,
+    //             Int>::
+    //             eval_intrares_atom_pairs(
+    //                 tid,
+    //                 i * TILE_SIZE,
+    //                 j * TILE_SIZE,
+    //                 score_intra_lk_atom_pair,
+    //                 intra_dat);
+    //       });
+    //       // The work: On GPU threads work independently, on CPU, this will
+    //       be a
+    //       // for loop
+    //       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+    //           eval_scores_for_atom_pairs);
+    //
+    //     }  // for j
+    //   }    // for i
+    // }      // else
+    //
+    // // Make sure all energy calculations are complete before we overwrite
+    // // the neighbor-residue data in the shared memory union
+    // // __syncthreads();
+    // DeviceDispatch<D>::synchronize_workgroup();
+    //
+    // // Real cta_total_lj(0), cta_total_lk(0);
+    //
+    // auto reduce_energies = ([&](int tid) {
+    //   Real const cta_total_lj =
+    //       DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+    //           total_lj, shared, mgpu::plus_t<Real>());
+    //   Real const cta_total_lk =
+    //       DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+    //           total_lk, shared, mgpu::plus_t<Real>());
+    //
+    //   if (tid == 0) {
+    //     accumulate<D, Real>::add(output[0][pose_ind], cta_total_lj);
+    //     accumulate<D, Real>::add(output[1][pose_ind], cta_total_lk);
+    //   }
+    // });
+    // DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
   });
 
   ///////////////////////////////////////////////////////////////////////
