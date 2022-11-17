@@ -243,7 +243,8 @@ class LJLKPoseScoreOp
                   TCAST(block_type_path_distance),
 
                   TCAST(type_params),
-                  TCAST(global_params));
+                  TCAST(global_params),
+                  coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;

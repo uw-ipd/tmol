@@ -11,10 +11,10 @@ template <template <typename T> typename InterPairData, typename T>
 class AllAtomPairSelector {
  public:
   static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const &inter_data) {
-    return inter_data.r1.invar_dat.n_atoms;
+    return inter_data.r1.n_atoms;
   }
   static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const &inter_data) {
-    return inter_data.r2.invar_dat.n_atoms;
+    return inter_data.r2.n_atoms;
   }
 };
 
@@ -22,10 +22,10 @@ template <template <typename T> typename InterPairData, typename T>
 class HeavyAtomPairSelector {
  public:
   static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const &inter_data) {
-    return inter_data.r1.tile_dat.n_heavy;
+    return inter_data.r1.n_heavy;
   }
   static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const &inter_data) {
-    return inter_data.r2.tile_dat.n_heavy;
+    return inter_data.r2.n_heavy;
   }
 };
 

@@ -78,7 +78,8 @@ struct LJLKPoseScoreDispatch {
 
       // LJ parameters
       TView<LJLKTypeParams<Real>, 1, D> type_params,
-      TView<LJGlobalParams<Real>, 1, D> global_params
+      TView<LJGlobalParams<Real>, 1, D> global_params,
+      bool compute_derivs
 
       ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>>;
 };
