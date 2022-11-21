@@ -11,20 +11,20 @@
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/data_loading.hh>
+#include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/common/sphere_overlap.impl.hh>
+#include <tmol/score/common/tile_atom_pair_evaluation.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/warp_segreduce.hh>
 #include <tmol/score/common/warp_stride_reduce.hh>
-#include <tmol/score/common/sphere_overlap.impl.hh>
-#include <tmol/score/common/diamond_macros.hh>
-#include <tmol/score/common/launch_box_macros.hh>
-#include <tmol/score/common/tile_atom_pair_evaluation.hh>
-#include <tmol/score/common/data_loading.hh>
 
 #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/ljlk/potentials/ljlk.hh>
-#include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 #include <tmol/score/ljlk/potentials/ljlk_pose_score.hh>
+#include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 
 // Operator definitions; safe for CPU compilation
 #include <moderngpu/operators.hxx>
@@ -42,47 +42,6 @@ namespace potentials {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
-
-// class LJLKSingleResInvarData {
-//  public:
-// };
-//
-// template <typename Real>
-// class LJLKSingleResTileData {
-//  public:
-// };
-
-// template <typename Real>
-// class LJLKSingleResData {
-//  public:
-//   int block_type;
-//   int block_ind;
-//   int block_coord_offset;
-//   int n_atoms;
-//   int n_conn;
-//   int n_heavy;
-//   Real *coords;
-//   LJLKTypeParams<Real> *params;
-//   unsigned char *heavy_inds;
-//   unsigned char *path_dist;
-//   // LJLKSingleResInvarData invar_dat;
-//   // LJLKSingleResTileData<Real> tile_dat;
-// };
-//
-// template <typename Real>
-// class LJLKScoringData {
-//  public:
-//   int pose_ind;
-//   LJLKSingleResData<Real> r1;
-//   LJLKSingleResData<Real> r2;
-//   int max_important_bond_separation;
-//   int min_separation;
-//   bool in_count_pair_striking_dist;
-//   unsigned char *conn_seps;
-//   LJGlobalParams<Real> global_params;
-//   Real total_lj;
-//   Real total_lk;
-// };
 
 template <int TILE, template <typename> typename InterEnergyData, typename Real>
 EIGEN_DEVICE_FUNC int interres_count_pair_separation(
@@ -338,61 +297,63 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         separation);
   });
 
-  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
-    // Define nt and reduce_t
-    CTA_REAL_REDUCE_T_TYPEDEF;
-
-    auto load_block_coords_and_params_into_shared =
-        ([=] TMOL_DEVICE_FUNC(
-             int pose_ind,
-             LJLKSingleResData<Real> &r_dat,
-             int n_atoms_to_load,
-             int start_atom) {
-          DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
-              r_dat.coords,
-              reinterpret_cast<Real *>(
-                  &coords[pose_ind][r_dat.block_coord_offset + start_atom]),
-              n_atoms_to_load * 3);
-          auto copy_atom_types = ([=](int tid) {
-            if (tid < TILE_SIZE) {
-              if (tid < n_atoms_to_load) {
-                int const atid = start_atom + tid;
-                int const attype =
-                    block_type_atom_types[r_dat.block_type][atid];
-                if (attype >= 0) {
-                  r_dat.params[tid] = type_params[attype];
-                }
-                r_dat.heavy_inds[tid] =
-                    block_type_heavy_atoms_in_tile[r_dat.block_type][atid];
+  auto load_block_coords_and_params_into_shared =
+      ([=] TMOL_DEVICE_FUNC(
+           int pose_ind,
+           LJLKSingleResData<Real> &r_dat,
+           int n_atoms_to_load,
+           int start_atom) {
+        DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
+            r_dat.coords,
+            reinterpret_cast<Real *>(
+                &coords[pose_ind][r_dat.block_coord_offset + start_atom]),
+            n_atoms_to_load * 3);
+        auto copy_atom_types = ([=](int tid) {
+          for (int count = tid; count < n_atoms_to_load; count += nt) {
+            if (count < n_atoms_to_load) {
+              int const atid = start_atom + count;
+              int const attype = block_type_atom_types[r_dat.block_type][atid];
+              if (attype >= 0) {
+                r_dat.params[count] = type_params[attype];
               }
+              r_dat.heavy_inds[count] =
+                  block_type_heavy_atoms_in_tile[r_dat.block_type][atid];
             }
-          });
-          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-              copy_atom_types);
-        });
+          }
+        }
 
-    auto load_block_into_shared = ([=] TMOL_DEVICE_FUNC(
-                                       int pose_ind,
-                                       LJLKSingleResData<Real> &r_dat,
-                                       int n_atoms_to_load,
-                                       int start_atom,
-                                       bool count_pair_striking_dist,
-                                       unsigned char *__restrict__ conn_ats) {
-      load_block_coords_and_params_into_shared(
-          pose_ind, r_dat, n_atoms_to_load, start_atom);
+        );
+        DeviceDispatch<D>::template for_each_in_workgroup<nt>(copy_atom_types);
+      });
 
-      auto copy_path_dists = ([=](int tid) {
-        if (tid < n_atoms_to_load && count_pair_striking_dist) {
-          int const atid = start_atom + tid;
+  auto load_block_into_shared = ([=] TMOL_DEVICE_FUNC(
+                                     int pose_ind,
+                                     LJLKSingleResData<Real> &r_dat,
+                                     int n_atoms_to_load,
+                                     int start_atom,
+                                     bool count_pair_striking_dist,
+                                     unsigned char *__restrict__ conn_ats) {
+    load_block_coords_and_params_into_shared(
+        pose_ind, r_dat, n_atoms_to_load, start_atom);
+
+    auto copy_path_dists = ([=](int tid) {
+      for (int count = tid; count < n_atoms_to_load; count += nt) {
+        if (count_pair_striking_dist) {
+          int const atid = start_atom + count;
           for (int j = 0; j < r_dat.n_conn; ++j) {
             unsigned char ij_path_dist =
                 block_type_path_distance[r_dat.block_type][conn_ats[j]][atid];
-            r_dat.path_dist[j * TILE_SIZE + tid] = ij_path_dist;
+            r_dat.path_dist[j * TILE_SIZE + count] = ij_path_dist;
           }
         }
-      });
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(copy_path_dists);
+      }
     });
+    DeviceDispatch<D>::template for_each_in_workgroup<nt>(copy_path_dists);
+  });
+
+  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
+    // Define nt and reduce_t
+    CTA_REAL_REDUCE_T_TYPEDEF;
 
     SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
@@ -483,28 +444,27 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       inter_dat.r2.path_dist = shared.m.path_dist2;
       inter_dat.conn_seps = shared.m.conn_seps;
 
-      // Count pair setup that does not depend on which tile we are operating on
+      // Count pair setup that does not depend on which tile we are
+      // operating on
       if (inter_dat.in_count_pair_striking_dist) {
         // Load data into shared arrays
         auto load_count_pair_conn_at_data = ([&](int tid) {
           int n_conn_tot = inter_dat.r1.n_conn + inter_dat.r2.n_conn
                            + inter_dat.r1.n_conn * inter_dat.r2.n_conn;
-          for (int all_conn_ind = tid; all_conn_ind < n_conn_tot;
-               all_conn_ind += nt) {
-            if (all_conn_ind < inter_dat.r1.n_conn) {
-              int const conn_ind = all_conn_ind;
+          for (int count = tid; count < n_conn_tot; count += nt) {
+            if (count < inter_dat.r1.n_conn) {
+              int const conn_ind = count;
               shared.m.conn_ats1[conn_ind] =
                   block_type_atoms_forming_chemical_bonds[block_type1]
                                                          [conn_ind];
-            } else if (
-                all_conn_ind < inter_dat.r1.n_conn + inter_dat.r2.n_conn) {
-              int const conn_ind = all_conn_ind - inter_dat.r1.n_conn;
+            } else if (count < inter_dat.r1.n_conn + inter_dat.r2.n_conn) {
+              int const conn_ind = count - inter_dat.r1.n_conn;
               shared.m.conn_ats2[conn_ind] =
                   block_type_atoms_forming_chemical_bonds[block_type2]
                                                          [conn_ind];
             } else {
               int const conn_ind =
-                  all_conn_ind - inter_dat.r1.n_conn - inter_dat.r2.n_conn;
+                  count - inter_dat.r1.n_conn - inter_dat.r2.n_conn;
               int conn1 = conn_ind / inter_dat.r2.n_conn;
               int conn2 = conn_ind % inter_dat.r2.n_conn;
               shared.m.conn_seps[conn_ind] =
@@ -513,8 +473,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
             }
           }
         });
-        // On CPU: a for loop executed once; on GPU threads within the workgroup
-        // working in parallel will just continue to work in parallel
+        // On CPU: a for loop executed once; on GPU threads within the
+        // workgroup working in parallel will just continue to work in
+        // parallel
         DeviceDispatch<D>::template for_each_in_workgroup<nt>(
             load_count_pair_conn_at_data);
       }
@@ -646,8 +607,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       intra_dat.r2.block_coord_offset = intra_dat.r1.block_coord_offset;
       intra_dat.max_important_bond_separation = max_important_bond_separation;
 
-      // we are not going to load count pair data into shared memory because we
-      // are not going to use that data from shared memory
+      // we are not going to load count pair data into shared memory because
+      // we are not going to use that data from shared memory
       intra_dat.min_separation = 0;
       intra_dat.in_count_pair_striking_dist = false;
 
@@ -848,7 +809,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       n_block_pairs, eval_energies);
 
   return {output_t, dV_dcoords_t};
-}
+}  // namespace potentials
 
 }  // namespace potentials
 }  // namespace ljlk

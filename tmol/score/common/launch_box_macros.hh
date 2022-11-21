@@ -17,6 +17,7 @@ struct launch_t_cpu {
 #endif
 
 #ifdef __NVCC__
+// Create a launch box that sets nt to 32 for all (supported) architectures
 #define LAUNCH_BOX_32     \
   using namespace mgpu;   \
   typedef launch_box_t<   \
@@ -28,5 +29,7 @@ struct launch_t_cpu {
       launch_t;
 
 #else
-#define LAUNCH_BOX_32 typedef launch_t_cpu<32, 1> launch_t;
+// On the CPU, an "ntreads" of 1 is faster because there
+// is only one set of threads
+#define LAUNCH_BOX_32 typedef launch_t_cpu<1, 1> launch_t;
 #endif

@@ -7,6 +7,9 @@ namespace tmol {
 namespace score {
 namespace common {
 
+// Implements n_atoms1 and n_atoms2 to load data out of a templated class
+// "InterPairData" that should have data members "r1" and "r2" both
+// of which have a data member named "n_atoms."
 template <template <typename T> typename InterPairData, typename T>
 class AllAtomPairSelector {
  public:
@@ -18,6 +21,9 @@ class AllAtomPairSelector {
   }
 };
 
+// Implements n_atoms1 and n_atoms2 to load data out of a templated class
+// "InterPairData" that should have data members "r1" and "r2" both
+// of which have a data member named "n_heavy."
 template <template <typename T> typename InterPairData, typename T>
 class HeavyAtomPairSelector {
  public:
@@ -29,6 +35,13 @@ class HeavyAtomPairSelector {
   }
 };
 
+// Templated function for the evaluation of inter-block atom-pair energy
+// evaluations where each worker (identified by tid) steps across the available
+// atom pairs with a stride of "nt." The templated PairSelector class should
+// determine how many atoms there are in the tile; e.g. if iterating across all
+// atoms, a different number of atom-pairs will be evaluated than when iterating
+// across only the heavy-atom pairs. The AllAtomPairSelector or
+// HeavyAtomPairSelectors defined above can be used for this purpose.
 template <
     template <typename>
     typename InterEnergyData,
@@ -66,6 +79,11 @@ class InterResBlockEvaluation {
   }
 };
 
+// Templated function for iterating across a tile of intra-block work where
+// each worker (identified by tid) steps across the the available atom
+// pairs with a stride of "nt." Atom pairs are evaluated only a single time
+// so if the atom1 index is >= the atom2 index, the work is skipped.
+// TO DO: replace with upper-triangle indexing to reduce idle threads
 template <
     template <typename>
     typename IntraEnergyData,
@@ -110,6 +128,48 @@ class IntraResBlockEvaluation {
   }
 };
 
+// Templated method for tiling atom-pair energy evaluations which lets
+// energy functions define lambda functions representing the five steps
+// of tiled energy evaluation. In "tiled" evaluation of energies,
+// each block is partitioned into subsets up to a maximum fixed number
+// of atoms, (e.g. 32 atoms from block 1 and 32 atoms from block 2)
+// so that the work of evaluating all pairs of atom interactions
+// is divided into "tiles" (e.g. 32 x 32 atom pair interactions). This
+// amortizes the expense of loading O(N) data into memory over
+// O(N^2) calculations (for N < 32), maximizing the memory-bandwidth-
+// used-per floating-point operation.
+//
+// There are five steps that the user is expected to define for
+// both inter- and intra-block energy evaluations.
+//
+//   1. initializing a local-memory data structure for holding the data
+//   needed to evaluate the interaction between the atoms in a tile
+//   2. loading the data needed for the tile atoms of block 1 into
+//   shared memory
+//   3. loading the data needed for the tile atoms of block 2 into
+//   shared memory
+//   4. finalizing any relationship between the shared-memory data
+//   structure and the local-memory data structure, and lastly
+//   5. evaluating the energy between the atoms in this tile
+//
+// The structure for inter-residue calculations and intra-residue
+// calculations is remarkably similar with one notable difference:
+// The local-memory data used for inter-block evaluations should likely
+// have one set of pointers to shared-memory arrays for block 1 and
+// another set of pointers to shared-memory arrays for block 2. The
+// local-memory data structure for intra-residue calculations
+// should be similar in that when atoms from one tile are evaluated
+// against atoms in a different tile, the atom data will need to be
+// loaded into separate locations in shared memory. (Indeed there is
+// no reason that the user could not use the same data structure
+// for InterResScoringData as for IntraResScoringData.) If the user
+// plans to load data for the atom1 from the block1 shared-mem
+// pointers and atom2 from the block2 shared-mem pointers as a rule,
+// then, TAKE HEED, an important point of caution must be noted: the
+// lambda function "LoadIntraDataFunc2" is only invoked for inter-tile
+// calculations. Any pointer to block2 data should be set to point at
+// "block1" data in the "LoadInterDataFunc1" or in the
+// "LoadIntraSharedDatFunc."
 template <
     template <tmol::Device>
     class DeviceDispatch,

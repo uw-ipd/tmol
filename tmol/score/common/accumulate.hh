@@ -23,7 +23,23 @@ struct accumulate<
     tmol::Device::CPU,
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  static def add(T& target, const T& val)->void { target += val; }
+  static def add(T& target, const T& val)->void {
+    //  // Try the atomic-add solution from stack overflow:
+    //  //
+    //  https://stackoverflow.com/questions/48746540/are-there-any-more-efficient-ways-for-atomically-adding-two-floats
+    //  int *ip_x= reinterpret_cast<int*>( &target ); //1
+    //  int expected= __atomic_load_n( ip_x, __ATOMIC_SEQ_CST ); //2
+    //  int desired;
+    //  do  {
+    //    float sum= *reinterpret_cast<T*>( &expected ) + val; //3
+    //    desired=   *reinterpret_cast<int*>( &sum );
+    //  } while( ! __atomic_compare_exchange_n( ip_x, &expected, desired, //4
+    //                                          /* weak = */ true,
+    //                                          __ATOMIC_SEQ_CST,
+    //                                          __ATOMIC_SEQ_CST ) );
+    //
+    target += val;
+  }
 
   // This is safe to use when all threads are going to write to the same address
   template <class A>
