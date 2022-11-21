@@ -179,181 +179,194 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
+  // Define nt and reduce_t
+  CTA_REAL_REDUCE_T_TYPEDEF;
 
-  auto lj_atom_energy_and_derivs = ([=] TMOL_DEVICE_FUNC(
-                                        int atom_tile_ind1,
-                                        int atom_tile_ind2,
-                                        int start_atom1,
-                                        int start_atom2,
-                                        LJLKScoringData<Real> const &score_dat,
-                                        int cp_separation) {
-    return lj_atom_energy_and_derivs_full(
-        atom_tile_ind1,
-        atom_tile_ind2,
-        start_atom1,
-        start_atom2,
-        score_dat,
-        cp_separation,
-        dV_dcoords  // pass in lambda-captured tensor
-    );
-  });
+  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
+    auto lj_atom_energy_and_derivs =
+        ([=] TMOL_DEVICE_FUNC(
+             int atom_tile_ind1,
+             int atom_tile_ind2,
+             int start_atom1,
+             int start_atom2,
+             LJLKScoringData<Real> const &score_dat,
+             int cp_separation) {
+          return lj_atom_energy_and_derivs_full(
+              atom_tile_ind1,
+              atom_tile_ind2,
+              start_atom1,
+              start_atom2,
+              score_dat,
+              cp_separation,
+              dV_dcoords  // pass in lambda-captured tensor
+          );
+        });
 
-  auto lk_atom_energy_and_derivs = ([=] TMOL_DEVICE_FUNC(
-                                        int atom_tile_ind1,
-                                        int atom_tile_ind2,
-                                        int start_atom1,
-                                        int start_atom2,
-                                        LJLKScoringData<Real> const &score_dat,
-                                        int cp_separation) {
-    return lk_atom_energy_and_derivs_full(
-        atom_tile_ind1,
-        atom_tile_ind2,
-        start_atom1,
-        start_atom2,
-        score_dat,
-        cp_separation,
-        dV_dcoords  // pass in lambda-captured tensor
-    );
-  });
+    auto lk_atom_energy_and_derivs =
+        ([=] TMOL_DEVICE_FUNC(
+             int atom_tile_ind1,
+             int atom_tile_ind2,
+             int start_atom1,
+             int start_atom2,
+             LJLKScoringData<Real> const &score_dat,
+             int cp_separation) {
+          return lk_atom_energy_and_derivs_full(
+              atom_tile_ind1,
+              atom_tile_ind2,
+              start_atom1,
+              start_atom2,
+              score_dat,
+              cp_separation,
+              dV_dcoords  // pass in lambda-captured tensor
+          );
+        });
 
-  auto score_inter_lj_atom_pair = ([=] TMOL_DEVICE_FUNC(
-                                       int start_atom1,
-                                       int start_atom2,
-                                       int atom_tile_ind1,
-                                       int atom_tile_ind2,
-                                       LJLKScoringData<Real> const &inter_dat) {
-    int separation = interres_count_pair_separation<TILE_SIZE>(
-        inter_dat, atom_tile_ind1, atom_tile_ind2);
-    return lj_atom_energy_and_derivs(
-        atom_tile_ind1,
-        atom_tile_ind2,
-        start_atom1,
-        start_atom2,
-        inter_dat,
-        separation);
-  });
+    auto score_inter_lj_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int start_atom1,
+             int start_atom2,
+             int atom_tile_ind1,
+             int atom_tile_ind2,
+             LJLKScoringData<Real> const &inter_dat) {
+          int separation = interres_count_pair_separation<TILE_SIZE>(
+              inter_dat, atom_tile_ind1, atom_tile_ind2);
+          return lj_atom_energy_and_derivs(
+              atom_tile_ind1,
+              atom_tile_ind2,
+              start_atom1,
+              start_atom2,
+              inter_dat,
+              separation);
+        });
 
-  auto score_intra_lj_atom_pair = ([=] TMOL_DEVICE_FUNC(
-                                       int start_atom1,
-                                       int start_atom2,
-                                       int atom_tile_ind1,
-                                       int atom_tile_ind2,
-                                       LJLKScoringData<Real> const &intra_dat) {
-    int const atom_ind1 = start_atom1 + atom_tile_ind1;
-    int const atom_ind2 = start_atom2 + atom_tile_ind2;
+    auto score_intra_lj_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int start_atom1,
+             int start_atom2,
+             int atom_tile_ind1,
+             int atom_tile_ind2,
+             LJLKScoringData<Real> const &intra_dat) {
+          int const atom_ind1 = start_atom1 + atom_tile_ind1;
+          int const atom_ind2 = start_atom2 + atom_tile_ind2;
 
-    int const separation =
+          int const separation =
 
-        block_type_path_distance[intra_dat.r1.block_type][atom_ind1][atom_ind2];
-    return lj_atom_energy_and_derivs(
-        atom_tile_ind1,
-        atom_tile_ind2,
-        start_atom1,
-        start_atom2,
-        intra_dat,
-        separation);
-  });
+              block_type_path_distance[intra_dat.r1.block_type][atom_ind1]
+                                      [atom_ind2];
+          return lj_atom_energy_and_derivs(
+              atom_tile_ind1,
+              atom_tile_ind2,
+              start_atom1,
+              start_atom2,
+              intra_dat,
+              separation);
+        });
 
-  auto score_inter_lk_atom_pair = ([=] TMOL_DEVICE_FUNC(
-                                       int start_atom1,
-                                       int start_atom2,
-                                       int atom_heavy_tile_ind1,
-                                       int atom_heavy_tile_ind2,
-                                       LJLKScoringData<Real> const &inter_dat) {
-    int const atom_tile_ind1 = inter_dat.r1.heavy_inds[atom_heavy_tile_ind1];
-    int const atom_tile_ind2 = inter_dat.r2.heavy_inds[atom_heavy_tile_ind2];
+    auto score_inter_lk_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int start_atom1,
+             int start_atom2,
+             int atom_heavy_tile_ind1,
+             int atom_heavy_tile_ind2,
+             LJLKScoringData<Real> const &inter_dat) {
+          int const atom_tile_ind1 =
+              inter_dat.r1.heavy_inds[atom_heavy_tile_ind1];
+          int const atom_tile_ind2 =
+              inter_dat.r2.heavy_inds[atom_heavy_tile_ind2];
 
-    int separation = interres_count_pair_separation<TILE_SIZE>(
-        inter_dat, atom_tile_ind1, atom_tile_ind2);
+          int separation = interres_count_pair_separation<TILE_SIZE>(
+              inter_dat, atom_tile_ind1, atom_tile_ind2);
 
-    return lk_atom_energy_and_derivs(
-        atom_tile_ind1,
-        atom_tile_ind2,
-        start_atom1,
-        start_atom2,
-        inter_dat,
-        separation);
-  });
+          return lk_atom_energy_and_derivs(
+              atom_tile_ind1,
+              atom_tile_ind2,
+              start_atom1,
+              start_atom2,
+              inter_dat,
+              separation);
+        });
 
-  auto score_intra_lk_atom_pair = ([=] TMOL_DEVICE_FUNC(
-                                       int start_atom1,
-                                       int start_atom2,
-                                       int atom_heavy_tile_ind1,
-                                       int atom_heavy_tile_ind2,
-                                       LJLKScoringData<Real> const &intra_dat) {
-    int const atom_tile_ind1 = intra_dat.r1.heavy_inds[atom_heavy_tile_ind1];
-    int const atom_tile_ind2 = intra_dat.r2.heavy_inds[atom_heavy_tile_ind2];
-    int const atom_ind1 = start_atom1 + atom_tile_ind1;
-    int const atom_ind2 = start_atom2 + atom_tile_ind2;
+    auto score_intra_lk_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int start_atom1,
+             int start_atom2,
+             int atom_heavy_tile_ind1,
+             int atom_heavy_tile_ind2,
+             LJLKScoringData<Real> const &intra_dat) {
+          int const atom_tile_ind1 =
+              intra_dat.r1.heavy_inds[atom_heavy_tile_ind1];
+          int const atom_tile_ind2 =
+              intra_dat.r2.heavy_inds[atom_heavy_tile_ind2];
+          int const atom_ind1 = start_atom1 + atom_tile_ind1;
+          int const atom_ind2 = start_atom2 + atom_tile_ind2;
 
-    int const separation =
-        block_type_path_distance[intra_dat.r1.block_type][atom_ind1][atom_ind2];
-    return lk_atom_energy_and_derivs(
-        atom_tile_ind1,
-        atom_tile_ind2,
-        start_atom1,
-        start_atom2,
-        intra_dat,
-        separation);
-  });
+          int const separation =
+              block_type_path_distance[intra_dat.r1.block_type][atom_ind1]
+                                      [atom_ind2];
+          return lk_atom_energy_and_derivs(
+              atom_tile_ind1,
+              atom_tile_ind2,
+              start_atom1,
+              start_atom2,
+              intra_dat,
+              separation);
+        });
 
-  auto load_block_coords_and_params_into_shared =
-      ([=] TMOL_DEVICE_FUNC(
-           int pose_ind,
-           LJLKSingleResData<Real> &r_dat,
-           int n_atoms_to_load,
-           int start_atom) {
-        DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
-            r_dat.coords,
-            reinterpret_cast<Real *>(
-                &coords[pose_ind][r_dat.block_coord_offset + start_atom]),
-            n_atoms_to_load * 3);
-        auto copy_atom_types = ([=](int tid) {
-          for (int count = tid; count < n_atoms_to_load; count += nt) {
-            if (count < n_atoms_to_load) {
-              int const atid = start_atom + count;
-              int const attype = block_type_atom_types[r_dat.block_type][atid];
-              if (attype >= 0) {
-                r_dat.params[count] = type_params[attype];
+    auto load_block_coords_and_params_into_shared =
+        ([=] TMOL_DEVICE_FUNC(
+             int pose_ind,
+             LJLKSingleResData<Real> &r_dat,
+             int n_atoms_to_load,
+             int start_atom) {
+          DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
+              r_dat.coords,
+              reinterpret_cast<Real *>(
+                  &coords[pose_ind][r_dat.block_coord_offset + start_atom]),
+              n_atoms_to_load * 3);
+          auto copy_atom_types = ([=](int tid) {
+            for (int count = tid; count < n_atoms_to_load; count += nt) {
+              if (count < n_atoms_to_load) {
+                int const atid = start_atom + count;
+                int const attype =
+                    block_type_atom_types[r_dat.block_type][atid];
+                if (attype >= 0) {
+                  r_dat.params[count] = type_params[attype];
+                }
+                r_dat.heavy_inds[count] =
+                    block_type_heavy_atoms_in_tile[r_dat.block_type][atid];
               }
-              r_dat.heavy_inds[count] =
-                  block_type_heavy_atoms_in_tile[r_dat.block_type][atid];
+            }
+          }
+
+          );
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+              copy_atom_types);
+        });
+
+    auto load_block_into_shared = ([=] TMOL_DEVICE_FUNC(
+                                       int pose_ind,
+                                       LJLKSingleResData<Real> &r_dat,
+                                       int n_atoms_to_load,
+                                       int start_atom,
+                                       bool count_pair_striking_dist,
+                                       unsigned char *__restrict__ conn_ats) {
+      load_block_coords_and_params_into_shared(
+          pose_ind, r_dat, n_atoms_to_load, start_atom);
+
+      auto copy_path_dists = ([=](int tid) {
+        for (int count = tid; count < n_atoms_to_load; count += nt) {
+          if (count_pair_striking_dist) {
+            int const atid = start_atom + count;
+            for (int j = 0; j < r_dat.n_conn; ++j) {
+              unsigned char ij_path_dist =
+                  block_type_path_distance[r_dat.block_type][conn_ats[j]][atid];
+              r_dat.path_dist[j * TILE_SIZE + count] = ij_path_dist;
             }
           }
         }
-
-        );
-        DeviceDispatch<D>::template for_each_in_workgroup<nt>(copy_atom_types);
       });
-
-  auto load_block_into_shared = ([=] TMOL_DEVICE_FUNC(
-                                     int pose_ind,
-                                     LJLKSingleResData<Real> &r_dat,
-                                     int n_atoms_to_load,
-                                     int start_atom,
-                                     bool count_pair_striking_dist,
-                                     unsigned char *__restrict__ conn_ats) {
-    load_block_coords_and_params_into_shared(
-        pose_ind, r_dat, n_atoms_to_load, start_atom);
-
-    auto copy_path_dists = ([=](int tid) {
-      for (int count = tid; count < n_atoms_to_load; count += nt) {
-        if (count_pair_striking_dist) {
-          int const atid = start_atom + count;
-          for (int j = 0; j < r_dat.n_conn; ++j) {
-            unsigned char ij_path_dist =
-                block_type_path_distance[r_dat.block_type][conn_ats[j]][atid];
-            r_dat.path_dist[j * TILE_SIZE + count] = ij_path_dist;
-          }
-        }
-      }
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(copy_path_dists);
     });
-    DeviceDispatch<D>::template for_each_in_workgroup<nt>(copy_path_dists);
-  });
-
-  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
-    // Define nt and reduce_t
-    CTA_REAL_REDUCE_T_TYPEDEF;
 
     SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
