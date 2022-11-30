@@ -375,8 +375,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         Real coords2[TILE_SIZE * 3];
         LJLKTypeParams<Real> params1[TILE_SIZE];  // 1536 bytes for params
         LJLKTypeParams<Real> params2[TILE_SIZE];
-        // unsigned char n_heavy1;
-        // unsigned char n_heavy2;
+        unsigned char n_heavy1;
+        unsigned char n_heavy2;
         unsigned char heavy_inds1[TILE_SIZE];
         unsigned char heavy_inds2[TILE_SIZE];
         unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
@@ -499,45 +499,66 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       inter_dat.total_lk = 0;
     });
 
-    auto load_interres1_tile_data_to_shared = ([=](int tile_ind,
-                                                   int start_atom1,
-                                                   int n_atoms_to_load1,
-                                                   LJLKScoringData<Real>
-                                                       &inter_dat,
-                                                   shared_mem_union &shared) {
-      inter_dat.r1.n_heavy =
-          block_type_n_heavy_atoms_in_tile[inter_dat.r1.block_type][tile_ind];
+    auto load_interres1_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom1,
+             int n_atoms_to_load1,
+             LJLKScoringData<Real> &inter_dat,
+             shared_mem_union &shared) {
+          // inter_dat.r1.n_heavy =
+          // block_type_n_heavy_atoms_in_tile[inter_dat.r1.block_type][tile_ind];
 
-      load_block_into_shared(
-          inter_dat.pose_ind,
-          inter_dat.r1,
-          n_atoms_to_load1,
-          start_atom1,
-          inter_dat.in_count_pair_striking_dist,
-          shared.m.conn_ats1);
-    });
+          auto store_n_heavy1 = ([&](int tid) {
+            if (tid == 0) {
+              shared.m.n_heavy1 =
+                  block_type_n_heavy_atoms_in_tile[inter_dat.r1.block_type]
+                                                  [tile_ind];
+            }
+          });
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
 
-    auto load_interres2_tile_data_to_shared = ([=](int tile_ind,
-                                                   int start_atom2,
-                                                   int n_atoms_to_load2,
-                                                   LJLKScoringData<Real>
-                                                       &inter_dat,
-                                                   shared_mem_union &shared) {
-      inter_dat.r2.n_heavy =
-          block_type_n_heavy_atoms_in_tile[inter_dat.r2.block_type][tile_ind];
+          load_block_into_shared(
+              inter_dat.pose_ind,
+              inter_dat.r1,
+              n_atoms_to_load1,
+              start_atom1,
+              inter_dat.in_count_pair_striking_dist,
+              shared.m.conn_ats1);
+        });
 
-      load_block_into_shared(
-          inter_dat.pose_ind,
-          inter_dat.r2,
-          n_atoms_to_load2,
-          start_atom2,
-          inter_dat.in_count_pair_striking_dist,
-          shared.m.conn_ats2);
-    });
+    auto load_interres2_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom2,
+             int n_atoms_to_load2,
+             LJLKScoringData<Real> &inter_dat,
+             shared_mem_union &shared) {
+          auto store_n_heavy2 = ([&](int tid) {
+            if (tid == 0) {
+              shared.m.n_heavy2 =
+                  block_type_n_heavy_atoms_in_tile[inter_dat.r2.block_type]
+                                                  [tile_ind];
+            }
+          });
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);
+          // inter_dat.r2.n_heavy =
+          //     block_type_n_heavy_atoms_in_tile[inter_dat.r2.block_type][tile_ind];
+
+          load_block_into_shared(
+              inter_dat.pose_ind,
+              inter_dat.r2,
+              n_atoms_to_load2,
+              start_atom2,
+              inter_dat.in_count_pair_striking_dist,
+              shared.m.conn_ats2);
+        });
 
     auto load_interres_data_from_shared =
-        ([=](int, int, shared_mem_union &, LJLKScoringData<Real> &) {
-          // ?? no op ??
+        ([=](int,
+             int,
+             shared_mem_union &shared,
+             LJLKScoringData<Real> &inter_dat) {
+          inter_dat.r1.n_heavy = shared.m.n_heavy1;
+          inter_dat.r2.n_heavy = shared.m.n_heavy2;
         });
 
     // Evaluate both the LJ and LK scores in separate dispatches
@@ -652,41 +673,59 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       intra_dat.total_lk = 0;
     });
 
-    auto load_intrares1_tile_data_to_shared = ([=](int tile_ind,
-                                                   int start_atom1,
-                                                   int n_atoms_to_load1,
-                                                   LJLKScoringData<Real>
-                                                       &intra_dat,
-                                                   shared_mem_union &shared) {
-      intra_dat.r1.n_heavy =
-          block_type_n_heavy_atoms_in_tile[intra_dat.r1.block_type][tile_ind];
+    auto load_intrares1_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom1,
+             int n_atoms_to_load1,
+             LJLKScoringData<Real> &intra_dat,
+             shared_mem_union &shared) {
+          auto store_n_heavy1 = ([&](int tid) {
+            if (tid == 0) {
+              shared.m.n_heavy1 =
+                  block_type_n_heavy_atoms_in_tile[intra_dat.r1.block_type]
+                                                  [tile_ind];
+            }
+          });
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
 
-      load_block_into_shared(
-          intra_dat.pose_ind,
-          intra_dat.r1,
-          n_atoms_to_load1,
-          start_atom1,
-          intra_dat.in_count_pair_striking_dist,
-          shared.m.conn_ats1);
-    });
+          // intra_dat.r1.n_heavy =
+          //     block_type_n_heavy_atoms_in_tile[intra_dat.r1.block_type][tile_ind];
 
-    auto load_intrares2_tile_data_to_shared = ([=](int tile_ind,
-                                                   int start_atom2,
-                                                   int n_atoms_to_load2,
-                                                   LJLKScoringData<Real>
-                                                       &intra_dat,
-                                                   shared_mem_union &shared) {
-      intra_dat.r2.n_heavy =
-          block_type_n_heavy_atoms_in_tile[intra_dat.r2.block_type][tile_ind];
+          load_block_into_shared(
+              intra_dat.pose_ind,
+              intra_dat.r1,
+              n_atoms_to_load1,
+              start_atom1,
+              intra_dat.in_count_pair_striking_dist,
+              shared.m.conn_ats1);
+        });
 
-      load_block_into_shared(
-          intra_dat.pose_ind,
-          intra_dat.r2,
-          n_atoms_to_load2,
-          start_atom2,
-          intra_dat.in_count_pair_striking_dist,
-          shared.m.conn_ats2);
-    });
+    auto load_intrares2_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom2,
+             int n_atoms_to_load2,
+             LJLKScoringData<Real> &intra_dat,
+             shared_mem_union &shared) {
+          auto store_n_heavy2 = ([&](int tid) {
+            if (tid == 0) {
+              shared.m.n_heavy2 =
+                  block_type_n_heavy_atoms_in_tile[intra_dat.r2.block_type]
+                                                  [tile_ind];
+            }
+          });
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);
+
+          // intra_dat.r2.n_heavy =
+          //     block_type_n_heavy_atoms_in_tile[intra_dat.r2.block_type][tile_ind];
+
+          load_block_into_shared(
+              intra_dat.pose_ind,
+              intra_dat.r2,
+              n_atoms_to_load2,
+              start_atom2,
+              intra_dat.in_count_pair_striking_dist,
+              shared.m.conn_ats2);
+        });
 
     auto load_intrares_data_from_shared =
         ([=](int tile_ind1,
@@ -698,8 +737,11 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           // then only the "1" shared-memory arrays will be loaded with data;
           // we will point the "2" memory pointers at the "1" arrays
           bool same_tile = tile_ind1 == tile_ind2;
+          intra_dat.r1.n_heavy = shared.m.n_heavy1;
           intra_dat.r2.n_heavy =
-              (same_tile ? intra_dat.r1.n_heavy : intra_dat.r2.n_heavy);
+              same_tile ? intra_dat.r1.n_heavy : shared.m.n_heavy2;
+          // intra_dat.r2.n_heavy =
+          //     (same_tile ? intra_dat.r1.n_heavy : intra_dat.r2.n_heavy);
           intra_dat.r1.coords = shared.m.coords1;
           intra_dat.r2.coords =
               (same_tile ? shared.m.coords1 : shared.m.coords2);
