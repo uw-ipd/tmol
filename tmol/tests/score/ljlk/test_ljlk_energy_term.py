@@ -421,8 +421,8 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     numpy.set_printoptions(precision=10)
     # print(scores.cpu().detach().numpy())
 
-    print("scores!", scores.cpu().detach().numpy())
+    # print("scores!", scores.cpu().detach().numpy())
 
     numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-6, rtol=1e-6
+        gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
     )
