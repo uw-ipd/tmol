@@ -16,7 +16,6 @@ template <typename Real>
 class LJLKSingleResData {
  public:
   int block_type;
-  int block_ind;
   int block_coord_offset;
   int n_atoms;
   int n_conn;

@@ -430,8 +430,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       inter_dat.pose_ind = pose_ind;
       inter_dat.r1.block_type = block_type1;
       inter_dat.r2.block_type = block_type2;
-      inter_dat.r1.block_ind = block_ind1;
-      inter_dat.r2.block_ind = block_ind2;
       inter_dat.r1.block_coord_offset =
           pose_stack_block_coord_offset[pose_ind][block_ind1];
       inter_dat.r2.block_coord_offset =
@@ -634,8 +632,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       intra_dat.pose_ind = pose_ind;
       intra_dat.r1.block_type = block_type1;
       intra_dat.r2.block_type = block_type1;
-      intra_dat.r1.block_ind = block_ind1;
-      intra_dat.r2.block_ind = block_ind1;
       intra_dat.r1.block_coord_offset =
           pose_stack_block_coord_offset[pose_ind][block_ind1];
       intra_dat.r2.block_coord_offset = intra_dat.r1.block_coord_offset;
