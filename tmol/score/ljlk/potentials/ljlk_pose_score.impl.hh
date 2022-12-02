@@ -509,10 +509,10 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                           shared_mem_union &shared) {
       auto reduce_energies = ([&](int tid) {
         Real const cta_total_lj =
-            DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
                 score_dat.total_lj, shared, mgpu::plus_t<Real>());
         Real const cta_total_lk =
-            DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
                 score_dat.total_lk, shared, mgpu::plus_t<Real>());
 
         if (tid == 0) {
@@ -932,10 +932,10 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                           shared_mem_union &shared) {
       auto reduce_energies = ([&](int tid) {
         Real const cta_total_lj =
-            DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
                 score_dat.total_lj, shared, mgpu::plus_t<Real>());
         Real const cta_total_lk =
-            DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
                 score_dat.total_lk, shared, mgpu::plus_t<Real>());
 
         if (tid == 0) {
