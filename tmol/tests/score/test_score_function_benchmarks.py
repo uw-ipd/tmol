@@ -35,9 +35,9 @@ def dont_test_res_centric_score_benchmark_setup(
     render_whole_pose_scoring_module
 
 
-@pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
-@pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))
+@pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
+@pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
 @pytest.mark.benchmark(group="res_centric_score_components")
 def test_res_centric_score_benchmark(
     benchmark,

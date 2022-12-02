@@ -181,8 +181,8 @@ template <
     typename Real,
     int TILE,
     typename SharedMemData,
-    typename LoadConstInterFunc,
-    typename LoadConstIntraFunc,
+    typename LoadInvarInterFunc,
+    typename LoadInvarIntraFunc,
     typename LoadInterDatFunc1,
     typename LoadInterDatFunc2,
     typename LoadIntraDatFunc1,
@@ -201,13 +201,13 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
     int block_type2,
     int n_atoms1,
     int n_atoms2,
-    LoadConstInterFunc load_constant_interres_data,
+    LoadInvarInterFunc load_tile_invariant_interres_data,
     LoadInterDatFunc1 load_interres1_tile_data_to_shared,
     LoadInterDatFunc2 load_interres2_tile_data_to_shared,
     LoadInterSharedDatFunc load_interres_data_from_shared,
     CalcInterFunc eval_interres_atom_pair_scores,
     StoreEnergyFunc store_calculated_interres_energies,
-    LoadConstIntraFunc load_constant_intrares_data,
+    LoadInvarIntraFunc load_tile_invariant_intrares_data,
     LoadIntraDatFunc1 load_intrares1_tile_data_to_shared,
     LoadIntraDatFunc2 load_intrares2_tile_data_to_shared,
     LoadIntraSharedDatFunc load_intrares_data_from_shared,
@@ -217,8 +217,8 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
   if (block_ind1 != block_ind2) {
     // Step 1: load any data that is consistent across all tile pairs
     InterResScoringData<Real> interres_data;
-    // printf("calling load_constant_interres_data\n");
-    load_constant_interres_data(
+    // printf("calling load_tile_invariant_interres_data\n");
+    load_tile_invariant_interres_data(
         pose_ind,
         block_ind1,
         block_ind2,
@@ -234,7 +234,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
     int const n_iterations2 = (n_atoms2 - 1) / TILE + 1;
 
     for (int i = 0; i < n_iterations1; ++i) {
-      // Make sure the constant inter-res data has been loaded
+      // Make sure the tile-invariant inter-res data has been loaded
       // if i is 0 before loading the tile data in, and make
       // sure that the calculations from the previous iteration
       // have completed before overwriting the data in shared
@@ -278,8 +278,8 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
   } else {
     // Step 1: load any data that is consistent across all tile pairs
     IntraResScoringData<Real> intrares_data;
-    // printf("calling load_constant_intrares_data\n");
-    load_constant_intrares_data(
+    // printf("calling load_tile_invariant_intrares_data\n");
+    load_tile_invariant_intrares_data(
         pose_ind,
         block_ind1,
         block_type1,
