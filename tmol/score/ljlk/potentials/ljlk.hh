@@ -438,6 +438,68 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
       start_atom1);
 }
 
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
+    int nt,
+    int TILE_SIZE,
+    int MAX_N_CONN,
+    typename Real,
+    typename Int>
+void TMOL_DEVICE_FUNC ljlk_load_intrares2_tile_data_to_shared(
+    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Int, 2, D> block_type_atom_types,
+    TView<LJLKTypeParams<Real>, 1, D> type_params,
+    TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
+    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
+    int tile_ind,
+    int start_atom2,
+    int n_atoms_to_load2,
+    LJLKScoringData<Real> &intra_dat,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+  auto store_n_heavy2 = ([&](int tid) {
+    if (tid == 0) {
+      shared_m.n_heavy2 =
+          block_type_n_heavy_atoms_in_tile[intra_dat.r2.block_type][tile_ind];
+    }
+  });
+  DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);
+  ljlk_load_block_coords_and_params_into_shared<DeviceDispatch, D, nt>(
+      coords,
+      block_type_atom_types,
+      type_params,
+      block_type_heavy_atoms_in_tile,
+      intra_dat.pose_ind,
+      intra_dat.r2,
+      n_atoms_to_load2,
+      start_atom2);
+}
+
+template <int TILE_SIZE, int MAX_N_CONN, typename Real>
+void TMOL_DEVICE_FUNC ljlk_load_intrares_data_from_shared(
+    int tile_ind1,
+    int tile_ind2,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m,
+    LJLKScoringData<Real> &intra_dat) {
+  // set the pointers in intra_dat to point at the shared-memory arrays
+  // If we are evaluating the energies between atoms in the same tile
+  // then only the "1" shared-memory arrays will be loaded with data;
+  // we will point the "2" memory pointers at the "1" arrays
+  bool same_tile = tile_ind1 == tile_ind2;
+  intra_dat.r1.n_heavy = shared_m.n_heavy1;
+  intra_dat.r2.n_heavy = same_tile ? intra_dat.r1.n_heavy : shared_m.n_heavy2;
+  // intra_dat.r2.n_heavy =
+  //     (same_tile ? intra_dat.r1.n_heavy : intra_dat.r2.n_heavy);
+  intra_dat.r1.coords = shared_m.coords1;
+  intra_dat.r2.coords = (same_tile ? shared_m.coords1 : shared_m.coords2);
+  intra_dat.r1.params = shared_m.params1;
+  intra_dat.r2.params = (same_tile ? shared_m.params1 : shared_m.params2);
+  intra_dat.r1.heavy_inds = shared_m.heavy_inds1;
+  intra_dat.r2.heavy_inds =
+      (same_tile ? shared_m.heavy_inds1 : shared_m.heavy_inds2);
+}
+
 template <typename Real>
 TMOL_DEVICE_FUNC Real lj_atom_energy(
     int atom_tile_ind1,
