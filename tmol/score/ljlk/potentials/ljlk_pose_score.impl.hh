@@ -182,7 +182,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // Define nt and reduce_t
   CTA_REAL_REDUCE_T_TYPEDEF;
 
-  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
+  auto eval_energies_and_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto lj_atom_energy_and_derivs =
         ([=] TMOL_DEVICE_FUNC(
              int atom_tile_ind1,
@@ -663,6 +663,429 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         store_calculated_energies);
   });
 
+  auto eval_energies_only = ([=] TMOL_DEVICE_FUNC(int cta) {
+    auto score_inter_lj_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int,
+             int,
+             int atom_tile_ind1,
+             int atom_tile_ind2,
+             LJLKScoringData<Real> const &inter_dat) {
+          int separation = interres_count_pair_separation<TILE_SIZE>(
+              inter_dat, atom_tile_ind1, atom_tile_ind2);
+          return lj_atom_energy(
+              atom_tile_ind1, atom_tile_ind2, inter_dat, separation);
+        });
+
+    auto score_intra_lj_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int start_atom1,
+             int start_atom2,
+             int atom_tile_ind1,
+             int atom_tile_ind2,
+             LJLKScoringData<Real> const &intra_dat) {
+          int const atom_ind1 = start_atom1 + atom_tile_ind1;
+          int const atom_ind2 = start_atom2 + atom_tile_ind2;
+
+          int const separation =
+
+              block_type_path_distance[intra_dat.r1.block_type][atom_ind1]
+                                      [atom_ind2];
+          return lj_atom_energy(
+              atom_tile_ind1, atom_tile_ind2, intra_dat, separation);
+        });
+
+    auto score_inter_lk_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int,
+             int,
+             int atom_heavy_tile_ind1,
+             int atom_heavy_tile_ind2,
+             LJLKScoringData<Real> const &inter_dat) {
+          int const atom_tile_ind1 =
+              inter_dat.r1.heavy_inds[atom_heavy_tile_ind1];
+          int const atom_tile_ind2 =
+              inter_dat.r2.heavy_inds[atom_heavy_tile_ind2];
+
+          int separation = interres_count_pair_separation<TILE_SIZE>(
+              inter_dat, atom_tile_ind1, atom_tile_ind2);
+
+          return lk_atom_energy(
+              atom_tile_ind1, atom_tile_ind2, inter_dat, separation);
+        });
+
+    auto score_intra_lk_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int start_atom1,
+             int start_atom2,
+             int atom_heavy_tile_ind1,
+             int atom_heavy_tile_ind2,
+             LJLKScoringData<Real> const &intra_dat) {
+          int const atom_tile_ind1 =
+              intra_dat.r1.heavy_inds[atom_heavy_tile_ind1];
+          int const atom_tile_ind2 =
+              intra_dat.r2.heavy_inds[atom_heavy_tile_ind2];
+          int const atom_ind1 = start_atom1 + atom_tile_ind1;
+          int const atom_ind2 = start_atom2 + atom_tile_ind2;
+
+          int const separation =
+              block_type_path_distance[intra_dat.r1.block_type][atom_ind1]
+                                      [atom_ind2];
+          return lk_atom_energy(
+              atom_tile_ind1, atom_tile_ind2, intra_dat, separation);
+        });
+
+    auto load_block_coords_and_params_into_shared =
+        ([=] TMOL_DEVICE_FUNC(
+             int pose_ind,
+             LJLKSingleResData<Real> &r_dat,
+             int n_atoms_to_load,
+             int start_atom) {
+          ljlk_load_block_coords_and_params_into_shared<DeviceDispatch, D, nt>(
+              coords,
+              block_type_atom_types,
+              type_params,
+              block_type_heavy_atoms_in_tile,
+              pose_ind,
+              r_dat,
+              n_atoms_to_load,
+              start_atom);
+        });
+
+    auto load_block_into_shared = ([=] TMOL_DEVICE_FUNC(
+                                       int pose_ind,
+                                       LJLKSingleResData<Real> &r_dat,
+                                       int n_atoms_to_load,
+                                       int start_atom,
+                                       bool count_pair_striking_dist,
+                                       unsigned char *__restrict__ conn_ats) {
+      ljlk_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
+          coords,
+          block_type_atom_types,
+          type_params,
+          block_type_heavy_atoms_in_tile,
+          block_type_path_distance,
+          pose_ind,
+          r_dat,
+          n_atoms_to_load,
+          start_atom,
+          count_pair_striking_dist,
+          conn_ats);
+    });
+
+    SHARED_MEMORY union shared_mem_union {
+      shared_mem_union() {}
+      LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
+      CTA_REAL_REDUCE_T_VARIABLE;
+
+    } shared;
+
+    Real total_lj = 0;
+    Real total_lk = 0;
+
+    int const pose_ind = cta / (max_n_blocks * max_n_blocks);
+    int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
+    int const block_ind1 = block_ind_pair / max_n_blocks;
+    int const block_ind2 = block_ind_pair % max_n_blocks;
+    if (block_ind1 > block_ind2) {
+      return;
+    }
+
+    if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+      return;
+    }
+
+    int const max_important_bond_separation = 4;
+
+    int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
+    int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+
+    if (block_type1 < 0 || block_type2 < 0) {
+      return;
+    }
+
+    int const n_atoms1 = block_type_n_atoms[block_type1];
+    int const n_atoms2 = block_type_n_atoms[block_type2];
+
+    auto load_tile_invariant_interres_data =
+        ([=](int pose_ind,
+             int block_ind1,
+             int block_ind2,
+             int block_type1,
+             int block_type2,
+             int n_atoms1,
+             int n_atoms2,
+             LJLKScoringData<Real> &inter_dat,
+             shared_mem_union &shared) {
+          ljlk_load_tile_invariant_interres_data<DeviceDispatch, D, nt>(
+              pose_stack_block_coord_offset,
+              pose_stack_min_bond_separation,
+              block_type_n_interblock_bonds,
+              block_type_atoms_forming_chemical_bonds,
+              pose_stack_inter_block_bondsep,
+              global_params,
+              max_important_bond_separation,
+              pose_ind,
+              block_ind1,
+              block_ind2,
+              block_type1,
+              block_type2,
+              n_atoms1,
+              n_atoms2,
+              inter_dat,
+              shared.m);
+        });
+
+    auto load_interres1_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom1,
+             int n_atoms_to_load1,
+             LJLKScoringData<Real> &inter_dat,
+             shared_mem_union &shared) {
+          ljlk_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>(
+              coords,
+              block_type_atom_types,
+              type_params,
+              block_type_heavy_atoms_in_tile,
+              block_type_path_distance,
+              block_type_n_heavy_atoms_in_tile,
+              tile_ind,
+              start_atom1,
+              n_atoms_to_load1,
+              inter_dat,
+              shared.m);
+        });
+
+    auto load_interres2_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom2,
+             int n_atoms_to_load2,
+             LJLKScoringData<Real> &inter_dat,
+             shared_mem_union &shared) {
+          ljlk_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>(
+              coords,
+              block_type_atom_types,
+              type_params,
+              block_type_heavy_atoms_in_tile,
+              block_type_path_distance,
+              block_type_n_heavy_atoms_in_tile,
+              tile_ind,
+              start_atom2,
+              n_atoms_to_load2,
+              inter_dat,
+              shared.m);
+        });
+
+    auto load_interres_data_from_shared =
+        ([=](int,
+             int,
+             shared_mem_union &shared,
+             LJLKScoringData<Real> &inter_dat) {
+          ljlk_load_interres_data_from_shared(shared.m, inter_dat);
+        });
+
+    // Evaluate both the LJ and LK scores in separate dispatches
+    // over all atoms in the tile and the subset of heavy atoms in
+    // the tile
+    auto eval_interres_atom_pair_scores = ([=](LJLKScoringData<Real> &inter_dat,
+                                               int start_atom1,
+                                               int start_atom2) {
+      auto eval_scores_for_atom_pairs = ([&](int tid) {
+        inter_dat.total_lj += tmol::score::common::InterResBlockEvaluation<
+            LJLKScoringData,
+            AllAtomPairSelector,
+            D,
+            TILE_SIZE,
+            nt,
+            Real,
+            Int>::
+            eval_interres_atom_pair(
+                tid,
+                start_atom1,
+                start_atom2,
+                score_inter_lj_atom_pair,
+                inter_dat);
+
+        inter_dat.total_lk += tmol::score::common::InterResBlockEvaluation<
+            LJLKScoringData,
+            HeavyAtomPairSelector,
+            D,
+            TILE_SIZE,
+            nt,
+            Real,
+            Int>::
+            eval_interres_atom_pair(
+                tid,
+                start_atom1,
+                start_atom2,
+                score_inter_lk_atom_pair,
+                inter_dat);
+      });
+
+      // The work: On GPU threads work independently, on CPU, this will be a
+      // for loop
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_scores_for_atom_pairs);
+    });
+
+    auto store_calculated_energies = ([=](LJLKScoringData<Real> &score_dat,
+                                          shared_mem_union &shared) {
+      auto reduce_energies = ([&](int tid) {
+        Real const cta_total_lj =
+            DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+                score_dat.total_lj, shared, mgpu::plus_t<Real>());
+        Real const cta_total_lk =
+            DeviceDispatch<D>::template reduce_in_workgroup<TILE_SIZE>(
+                score_dat.total_lk, shared, mgpu::plus_t<Real>());
+
+        if (tid == 0) {
+          // printf("Storing energy %d %d %f %f\n", score_dat.block_ind1,
+          // score_dat.block_ind2, cta_total_lj, cta_total_lk);
+          accumulate<D, Real>::add(output[0][score_dat.pose_ind], cta_total_lj);
+          accumulate<D, Real>::add(output[1][score_dat.pose_ind], cta_total_lk);
+        }
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
+    });
+
+    auto load_tile_invariant_intrares_data =
+        ([=](int pose_ind,
+             int block_ind1,
+             int block_type1,
+             int n_atoms1,
+             LJLKScoringData<Real> &intra_dat,
+             shared_mem_union &shared) {
+          ljlk_load_tile_invariant_intrares_data<DeviceDispatch, D, nt>(
+              pose_stack_block_coord_offset,
+              global_params,
+              max_important_bond_separation,
+              pose_ind,
+              block_ind1,
+              block_type1,
+              n_atoms1,
+              intra_dat,
+              shared.m);
+        });
+
+    auto load_intrares1_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom1,
+             int n_atoms_to_load1,
+             LJLKScoringData<Real> &intra_dat,
+             shared_mem_union &shared) {
+          ljlk_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>(
+              coords,
+              block_type_atom_types,
+              type_params,
+              block_type_n_heavy_atoms_in_tile,
+              block_type_heavy_atoms_in_tile,
+              tile_ind,
+              start_atom1,
+              n_atoms_to_load1,
+              intra_dat,
+              shared.m);
+        });
+
+    auto load_intrares2_tile_data_to_shared =
+        ([=](int tile_ind,
+             int start_atom2,
+             int n_atoms_to_load2,
+             LJLKScoringData<Real> &intra_dat,
+             shared_mem_union &shared) {
+          ljlk_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>(
+              coords,
+              block_type_atom_types,
+              type_params,
+              block_type_n_heavy_atoms_in_tile,
+              block_type_heavy_atoms_in_tile,
+              tile_ind,
+              start_atom2,
+              n_atoms_to_load2,
+              intra_dat,
+              shared.m);
+        });
+
+    auto load_intrares_data_from_shared =
+        ([=](int tile_ind1,
+             int tile_ind2,
+             shared_mem_union &shared,
+             LJLKScoringData<Real> &intra_dat) {
+          ljlk_load_intrares_data_from_shared(
+              tile_ind1, tile_ind2, shared.m, intra_dat);
+        });
+
+    // Evaluate both the LJ and LK scores in separate dispatches
+    // over all atoms in the tile and the subset of heavy atoms in
+    // the tile
+    auto eval_intrares_atom_pair_scores = ([=](LJLKScoringData<Real> &intra_dat,
+                                               int start_atom1,
+                                               int start_atom2) {
+      auto eval_scores_for_atom_pairs = ([&](int tid) {
+        intra_dat.total_lj += tmol::score::common::IntraResBlockEvaluation<
+            LJLKScoringData,
+            AllAtomPairSelector,
+            D,
+            TILE_SIZE,
+            nt,
+            Real,
+            Int>::
+            eval_intrares_atom_pairs(
+                tid,
+                start_atom1,
+                start_atom2,
+                score_intra_lj_atom_pair,
+                intra_dat);
+        intra_dat.total_lk += tmol::score::common::IntraResBlockEvaluation<
+            LJLKScoringData,
+            HeavyAtomPairSelector,
+            D,
+            TILE_SIZE,
+            nt,
+            Real,
+            Int>::
+            eval_intrares_atom_pairs(
+                tid,
+                start_atom1,
+                start_atom2,
+                score_intra_lk_atom_pair,
+                intra_dat);
+      });
+
+      // The work: On GPU threads work independently, on CPU, this will be a
+      // for loop
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+          eval_scores_for_atom_pairs);
+    });
+
+    tmol::score::common::tile_evaluate_block_pair<
+        DeviceDispatch,
+        D,
+        LJLKScoringData,
+        LJLKScoringData,
+        Real,
+        TILE_SIZE>(
+        shared,
+        pose_ind,
+        block_ind1,
+        block_ind2,
+        block_type1,
+        block_type2,
+        n_atoms1,
+        n_atoms2,
+        load_tile_invariant_interres_data,
+        load_interres1_tile_data_to_shared,
+        load_interres2_tile_data_to_shared,
+        load_interres_data_from_shared,
+        eval_interres_atom_pair_scores,
+        store_calculated_energies,
+        load_tile_invariant_intrares_data,
+        load_intrares1_tile_data_to_shared,
+        load_intrares2_tile_data_to_shared,
+        load_intrares_data_from_shared,
+        eval_intrares_atom_pair_scores,
+        store_calculated_energies);
+  });
+
   ///////////////////////////////////////////////////////////////////////
 
   // Three steps
@@ -698,8 +1121,13 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           Real(6.0));  // 6A hard coded here. Please fix! TEMP!
 
   // 3
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      n_block_pairs, eval_energies);
+  if (compute_derivs) {
+    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+        n_block_pairs, eval_energies_and_derivs);
+  } else {
+    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+        n_block_pairs, eval_energies_only);
+  }
 
   return {output_t, dV_dcoords_t};
 }  // namespace potentials
