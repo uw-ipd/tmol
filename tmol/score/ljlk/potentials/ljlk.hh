@@ -90,6 +90,9 @@ void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
         if (attype >= 0) {
           r_dat.params[count] = type_params[attype];
         }
+        // Note that we do NOT read from shared_m.n_heavy{1,2} here
+        // we instead read the full tile's worth of data
+        // this allows us to avoid a synchronize_workgroup call
         r_dat.heavy_inds[count] =
             block_type_heavy_atoms_in_tile[r_dat.block_type][atid];
       }
@@ -324,6 +327,115 @@ void TMOL_DEVICE_FUNC ljlk_load_interres2_tile_data_to_shared(
       start_atom2,
       inter_dat.in_count_pair_striking_dist,
       shared_m.conn_ats2);
+}
+
+template <int TILE_SIZE, int MAX_N_CONN, typename Real>
+void TMOL_DEVICE_FUNC ljlk_load_interres_data_from_shared(
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m,
+    LJLKScoringData<Real> &inter_dat) {
+  inter_dat.r1.n_heavy = shared_m.n_heavy1;
+  inter_dat.r2.n_heavy = shared_m.n_heavy2;
+}
+
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
+    int nt,
+    typename Int,
+    typename Real,
+    int TILE_SIZE,
+    int MAX_N_CONN>
+void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_intrares_data(
+    TView<Int, 2, D> pose_stack_block_coord_offset,
+    TView<LJGlobalParams<Real>, 1, D> global_params,
+    int const max_important_bond_separation,
+    int pose_ind,
+    int block_ind1,
+    int block_type1,
+    int n_atoms1,
+    LJLKScoringData<Real> &intra_dat,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+  intra_dat.pose_ind = pose_ind;
+  intra_dat.r1.block_type = block_type1;
+  intra_dat.r2.block_type = block_type1;
+  intra_dat.r1.block_coord_offset =
+      pose_stack_block_coord_offset[pose_ind][block_ind1];
+  intra_dat.r2.block_coord_offset = intra_dat.r1.block_coord_offset;
+  intra_dat.max_important_bond_separation = max_important_bond_separation;
+
+  // we are not going to load count pair data into shared memory because
+  // we are not going to use that data from shared memory
+  intra_dat.min_separation = 0;
+  intra_dat.in_count_pair_striking_dist = false;
+
+  intra_dat.r1.n_atoms = n_atoms1;
+  intra_dat.r2.n_atoms = n_atoms1;
+  intra_dat.r1.n_conn =
+      0;  // not used! block_type_n_interblock_bonds[block_type1];
+  intra_dat.r2.n_conn = 0;  // not used! intra_dat.r1.n_conn;
+
+  // set the pointers in intra_dat to point at the
+  // shared-memory arrays. Note that these arrays will be reset
+  // later because which shared memory arrays we will use depends on
+  // which tile pair we are evaluating!
+  intra_dat.r1.coords = shared_m.coords1;          // depends on tile pair!
+  intra_dat.r2.coords = shared_m.coords2;          // depends on tile pair!
+  intra_dat.r1.params = shared_m.params1;          // depends on tile pair!
+  intra_dat.r2.params = shared_m.params2;          // depends on tile pair!
+  intra_dat.r1.heavy_inds = shared_m.heavy_inds1;  // depends on tile pair!
+  intra_dat.r2.heavy_inds = shared_m.heavy_inds2;
+
+  // these count pair arrays are not going to be used
+  intra_dat.r1.path_dist = 0;
+  intra_dat.r2.path_dist = 0;
+  intra_dat.conn_seps = 0;
+
+  // Final data members
+  intra_dat.global_params = global_params[0];
+  intra_dat.total_lj = 0;
+  intra_dat.total_lk = 0;
+}
+
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
+    int nt,
+    int TILE_SIZE,
+    int MAX_N_CONN,
+    typename Real,
+    typename Int>
+void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
+    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Int, 2, D> block_type_atom_types,
+    TView<LJLKTypeParams<Real>, 1, D> type_params,
+    TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
+    TView<Int, 2, D> block_type_heavy_atoms_in_tile,
+    int tile_ind,
+    int start_atom1,
+    int n_atoms_to_load1,
+    LJLKScoringData<Real> &intra_dat,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+  auto store_n_heavy1 = ([&](int tid) {
+    if (tid == 0) {
+      shared_m.n_heavy1 =
+          block_type_n_heavy_atoms_in_tile[intra_dat.r1.block_type][tile_ind];
+    }
+  });
+  DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
+
+  // intra_dat.r1.n_heavy =
+  //     block_type_n_heavy_atoms_in_tile[intra_dat.r1.block_type][tile_ind];
+  ljlk_load_block_coords_and_params_into_shared<DeviceDispatch, D, nt>(
+      coords,
+      block_type_atom_types,
+      type_params,
+      block_type_heavy_atoms_in_tile,
+      intra_dat.pose_ind,
+      intra_dat.r1,
+      n_atoms_to_load1,
+      start_atom1);
 }
 
 template <typename Real>
