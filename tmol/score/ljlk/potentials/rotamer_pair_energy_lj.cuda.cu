@@ -299,17 +299,16 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           Real dist = std::sqrt(dist2);
           int separation = min_separation;
           if (separation <= max_important_bond_separation) {
-            separation =
-                common::count_pair::CountPair<D, Int>::inter_block_separation<
-                    TILE_SIZE>(
-                    max_important_bond_separation,
-                    alt_atom_tile_ind,
-                    neighb_atom_tile_ind,
-                    alt_n_conn,
-                    neighb_n_conn,
-                    alt_path_dist,
-                    neighb_path_dist,
-                    conn_seps);
+            separation = common::count_pair::shared_mem_inter_block_separation<
+                TILE_SIZE>(
+                max_important_bond_separation,
+                alt_atom_tile_ind,
+                neighb_atom_tile_ind,
+                alt_n_conn,
+                neighb_n_conn,
+                alt_path_dist,
+                neighb_path_dist,
+                conn_seps);
           }
           Real lj = lj_score<Real>::V(
               dist,
@@ -383,17 +382,16 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           Real dist = std::sqrt(dist2);
           int separation = min_separation;
           if (separation <= max_important_bond_separation) {
-            separation =
-                common::count_pair::CountPair<D, Int>::inter_block_separation<
-                    TILE_SIZE>(
-                    max_important_bond_separation,
-                    alt_atom_ind,
-                    neighb_atom_ind,
-                    alt_n_conn,
-                    neighb_n_conn,
-                    alt_path_dist,
-                    neighb_path_dist,
-                    conn_seps);
+            separation = common::count_pair::shared_mem_inter_block_separation<
+                TILE_SIZE>(
+                max_important_bond_separation,
+                alt_atom_ind,
+                neighb_atom_ind,
+                alt_n_conn,
+                neighb_n_conn,
+                alt_path_dist,
+                neighb_path_dist,
+                conn_seps);
           }
           Real lk = lk_isotropic_score<Real>::V(
               dist,
