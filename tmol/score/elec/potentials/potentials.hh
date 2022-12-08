@@ -158,9 +158,6 @@ def elec(
     Real eps_elec = eps(low_poly_end, D, D0, S);
     Real deps_elec_d_dist = deps_ddist(low_poly_end, D, D0, S);
     Real dmax_elec = eiej * (C1 / (low_poly_end * eps_elec) - C2);
-    // Real dmax_elec_d_dist =
-    //     -C1 * eiej * (eps_elec + low_poly_end * deps_elec_d_dist)
-    //     / (low_poly_end * low_poly_end * eps_elec * eps_elec);
 
     elecE = interpolate<Real>(
         dist,
@@ -177,8 +174,6 @@ def elec(
     Real deps_elec_d_dist = deps_ddist(dist, D, D0, S);
 
     elecE = eiej * (C1 / (dist * eps_elec) - C2);
-    // delec_ddist = -C1 * eiej * (eps_elec + dist * deps_elec_d_dist)
-    //               / (dist * dist * eps_elec * eps_elec);
 
   } else if (dist < hi_poly_end) {
     // long range fade

@@ -6,10 +6,6 @@
 #include <tmol/score/elec/potentials/params.hh>
 #include <tmol/score/elec/potentials/potentials.hh>
 
-// #include <tmol/score/ljlk/potentials/common.hh>
-// #include <tmol/score/ljlk/potentials/lj.hh>
-// #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
-
 namespace tmol {
 namespace score {
 namespace elec {
@@ -43,9 +39,9 @@ class ElecScoringData {
 
 template <typename Real, int TILE_SIZE, int MAX_N_CONN>
 struct ElecBlockPairSharedData {
-  Real coords1[TILE_SIZE * 3];  // 786 bytes for coords
+  Real coords1[TILE_SIZE * 3];  // 768 bytes for coords
   Real coords2[TILE_SIZE * 3];
-  Real charges1[TILE_SIZE];  // 1536 bytes for params
+  Real charges1[TILE_SIZE];  // 256 bytes for params
   Real charges2[TILE_SIZE];
   unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
   unsigned char conn_ats2[MAX_N_CONN];
@@ -274,13 +270,6 @@ void TMOL_DEVICE_FUNC elec_load_interres2_tile_data_to_shared(
       shared_m.conn_ats2);
 }
 
-// template <int TILE_SIZE, int MAX_N_CONN, typename Real>
-// void TMOL_DEVICE_FUNC elec_load_interres_data_from_shared(
-//     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m,
-//     ElecScoringData<Real> &inter_dat) {
-//
-// }
-
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -315,9 +304,8 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_intrares_data(
 
   intra_dat.r1.n_atoms = n_atoms1;
   intra_dat.r2.n_atoms = n_atoms1;
-  intra_dat.r1.n_conn =
-      0;  // not used! block_type_n_interblock_bonds[block_type1];
-  intra_dat.r2.n_conn = 0;  // not used! intra_dat.r1.n_conn;
+  intra_dat.r1.n_conn = 0;
+  intra_dat.r2.n_conn = 0;
 
   // set the pointers in intra_dat to point at the
   // shared-memory arrays. Note that these arrays will be reset
@@ -447,12 +435,6 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
   auto &dist = dist_r.V;
   auto &ddist_dat1 = dist_r.dV_dA;
   auto &ddist_dat2 = dist_r.dV_dB;
-  // auto lj = lj_score<Real>::V_dV(
-  //     dist,
-  //     cp_separation,
-  //     score_dat.r1.params[atom_tile_ind1].lj_params(),
-  //     score_dat.r2.params[atom_tile_ind2].lj_params(),
-  //     score_dat.global_params);
   Real V(0.0), dV_ddist(0.0);
   tie(V, dV_ddist) = elec_delec_ddist(
       dist,

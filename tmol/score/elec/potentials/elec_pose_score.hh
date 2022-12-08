@@ -13,9 +13,7 @@
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 
-// #include "elec.hh"
 #include <tmol/score/elec/potentials/params.hh>
-// #include "rotamer_pair_energy_lj.hh"
 
 namespace tmol {
 namespace score {

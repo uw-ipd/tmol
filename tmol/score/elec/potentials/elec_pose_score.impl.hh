@@ -24,10 +24,6 @@
 #include <tmol/score/elec/potentials/elec.hh>
 #include <tmol/score/elec/potentials/params.hh>
 #include <tmol/score/elec/potentials/elec_pose_score.hh>
-// #include <tmol/score/ljlk/potentials/lj.hh>
-// #include <tmol/score/ljlk/potentials/ljlk.hh>
-// #include <tmol/score/ljlk/potentials/ljlk_pose_score.hh>
-// #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 
 // Operator definitions; safe for CPU compilation
 #include <moderngpu/operators.hxx>
@@ -126,7 +122,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     bool compute_derivs
 
     ) -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>> {
-  // std::cout << "compute derivs ? " << compute_derivs << std::endl;
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -135,10 +130,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   int const max_n_blocks = pose_stack_block_type.size(1);
   int const max_n_block_atoms = block_type_partial_charge.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
-  // int const max_n_tiles = block_type_n_heavy_atoms_in_tile.size(2);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
-  // int64_t const n_atom_types = type_params.size(0);
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
@@ -153,14 +146,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
   assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
   assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
-
-  // assert(block_type_n_heavy_atoms_in_tile.size(0) == n_block_types);
-
-  // assert(block_type_heavy_atoms_in_tile.size(0) == n_block_types);
-  // assert(block_type_heavy_atoms_in_tile.size(1) == TILE_SIZE * max_n_tiles);
-
-  // assert(block_type_atom_types.size(0) == n_block_types);
-  // assert(block_type_atom_types.size(1) == max_n_block_atoms);
 
   assert(block_type_n_interblock_bonds.size(0) == n_block_types);
 
@@ -209,12 +194,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               start_atom2,
               score_dat,
               cp_separation,
-              dV_dcoords  // pass in lambda-captured tensor
-          );
-          // printf("%d %d %d %d %f; q1 %f q2 %f sep %d\n",
-          // score_dat.r1.block_type, score_dat.r2.block_type, atom_tile_ind1,
-          // atom_tile_ind2, val, score_dat.r1.charges[atom_tile_ind1],
-          // score_dat.r2.charges[atom_tile_ind2], cp_separation);
+              dV_dcoords);
           return val;
         });
 
@@ -298,9 +278,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       CTA_REAL_REDUCE_T_VARIABLE;
 
     } shared;
-
-    // Real total_lj = 0;
-    // Real total_lk = 0;
 
     int const pose_ind = cta / (max_n_blocks * max_n_blocks);
     int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
@@ -390,13 +367,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         });
 
     auto load_interres_data_from_shared =
-        ([=](int, int, shared_mem_union &, ElecScoringData<Real> &) {
-          // elec_load_interres_data_from_shared(shared.m, inter_dat);
-        });
+        ([=](int, int, shared_mem_union &, ElecScoringData<Real> &) {});
 
-    // Evaluate both the LJ and LK scores in separate dispatches
-    // over all atoms in the tile and the subset of heavy atoms in
-    // the tile
     auto eval_interres_atom_pair_scores = ([=](ElecScoringData<Real> &inter_dat,
                                                int start_atom1,
                                                int start_atom2) {
@@ -417,8 +389,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 inter_dat);
       });
 
-      // The work: On GPU threads work independently, on CPU, this will be a
-      // for loop
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_scores_for_atom_pairs);
     });
@@ -497,9 +467,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               tile_ind1, tile_ind2, shared.m, intra_dat);
         });
 
-    // Evaluate both the LJ and LK scores in separate dispatches
-    // over all atoms in the tile and the subset of heavy atoms in
-    // the tile
     auto eval_intrares_atom_pair_scores = ([=](ElecScoringData<Real> &intra_dat,
                                                int start_atom1,
                                                int start_atom2) {
@@ -520,8 +487,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 intra_dat);
       });
 
-      // The work: On GPU threads work independently, on CPU, this will be a
-      // for loop
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_scores_for_atom_pairs);
     });
@@ -719,9 +684,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         });
 
     auto load_interres_data_from_shared =
-        ([=](int, int, shared_mem_union &, ElecScoringData<Real> &) {
-          // elec_load_interres_data_from_shared(shared.m, inter_dat);
-        });
+        ([=](int, int, shared_mem_union &, ElecScoringData<Real> &) {});
 
     // Evaluate both the LJ and LK scores in separate dispatches
     // over all atoms in the tile and the subset of heavy atoms in
@@ -746,8 +709,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 inter_dat);
       });
 
-      // The work: On GPU threads work independently, on CPU, this will be a
-      // for loop
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_scores_for_atom_pairs);
     });
@@ -760,8 +721,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 score_dat.total_elec, shared, mgpu::plus_t<Real>());
 
         if (tid == 0) {
-          // printf("Storing energy %d %d %f %f\n", score_dat.block_ind1,
-          // score_dat.block_ind2, cta_total_lj, cta_total_lk);
           accumulate<D, Real>::add(output[score_dat.pose_ind], cta_total_elec);
         }
       });
@@ -828,9 +787,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               tile_ind1, tile_ind2, shared.m, intra_dat);
         });
 
-    // Evaluate both the LJ and LK scores in separate dispatches
-    // over all atoms in the tile and the subset of heavy atoms in
-    // the tile
     auto eval_intrares_atom_pair_scores = ([=](ElecScoringData<Real> &intra_dat,
                                                int start_atom1,
                                                int start_atom2) {
@@ -851,8 +807,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 intra_dat);
       });
 
-      // The work: On GPU threads work independently, on CPU, this will be a
-      // for loop
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
           eval_scores_for_atom_pairs);
     });
@@ -918,7 +872,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           block_type_n_atoms,
           scratch_block_spheres,
           scratch_block_neighbors,
-          Real(6.0));  // 6A hard coded here. Please fix! TEMP!
+          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
 
   // 3
   if (compute_derivs) {
