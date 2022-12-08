@@ -8,6 +8,7 @@ from tmol.score.score_function import ScoreFunction
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
+from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
@@ -37,7 +38,9 @@ def dont_test_res_centric_score_benchmark_setup(
 
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))
 @pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
-@pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
+@pytest.mark.parametrize(
+    "energy_term", [LJLKEnergyTerm, ElecEnergyTerm], ids=["ljlk", "elec"]
+)
 @pytest.mark.benchmark(group="res_centric_score_components")
 def test_res_centric_score_benchmark(
     benchmark,
