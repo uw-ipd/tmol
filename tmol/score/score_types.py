@@ -12,5 +12,6 @@ class AutoNumber(Enum):
 class ScoreType(AutoNumber):
     fa_lj = ()
     fa_lk = ()
+    fa_elec = ()
     # keep this one last
     n_score_types = ()

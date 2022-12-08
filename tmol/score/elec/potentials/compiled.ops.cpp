@@ -143,22 +143,20 @@ class ElecPoseScoreOp
  public:
   static Tensor forward(
       AutogradContext* ctx,
-      Tensor coords,
-      Tensor posck_stack_block_coord_offset,
 
+      Tensor coords,
+      Tensor pose_stack_block_coord_offset,
       Tensor pose_stack_block_type,
       Tensor pose_stack_min_bond_separation,
       Tensor pose_stack_inter_block_bondsep,
-      Tensor block_type_n_atoms,
-      Tensor block_type_n_heavy_atoms_in_tile,
 
-      Tensor block_type_heavy_atoms_in_tile,
-      Tensor block_type_atom_types,
+      Tensor block_type_n_atoms,
+      Tensor block_type_partial_charge,
       Tensor block_type_n_interblock_bonds,
       Tensor block_type_atoms_forming_chemical_bonds,
-      Tensor block_type_path_distance,
+      Tensor block_type_inter_repr_path_distance,
 
-      Tensor type_params,
+      Tensor block_type_intra_repr_path_distance,
       Tensor global_params) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
@@ -166,28 +164,25 @@ class ElecPoseScoreOp
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.type(), "pose_score_op", ([&] {
+        coords.type(), "elec_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
           auto result =
               ElecPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::f(
                   TCAST(coords),
-                  TCAST(posck_stack_block_coord_offset),
-
+                  TCAST(pose_stack_block_coord_offset),
                   TCAST(pose_stack_block_type),
                   TCAST(pose_stack_min_bond_separation),
                   TCAST(pose_stack_inter_block_bondsep),
-                  TCAST(block_type_n_atoms),
-                  TCAST(block_type_n_heavy_atoms_in_tile),
 
-                  TCAST(block_type_heavy_atoms_in_tile),
-                  TCAST(block_type_atom_types),
+                  TCAST(block_type_n_atoms),
+                  TCAST(block_type_partial_charge),
                   TCAST(block_type_n_interblock_bonds),
                   TCAST(block_type_atoms_forming_chemical_bonds),
-                  TCAST(block_type_path_distance),
+                  TCAST(block_type_inter_repr_path_distance),
 
-                  TCAST(type_params),
+                  TCAST(block_type_intra_repr_path_distance),
                   TCAST(global_params),
                   coords.requires_grad());
 
@@ -219,9 +214,6 @@ class ElecPoseScoreOp
     return {
         dscore_dcoords,
         torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
@@ -237,6 +229,39 @@ class ElecPoseScoreOp
     };
   }
 };
+
+template <template <tmol::Device> class DispatchMethod>
+Tensor elec_pose_scores_op(
+    Tensor coords,
+    Tensor pose_stack_block_coord_offset,
+    Tensor pose_stack_block_type,
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+
+    Tensor block_type_n_atoms,
+    Tensor block_type_partial_charge,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_inter_repr_path_distance,
+
+    Tensor block_type_intra_repr_path_distance,
+    Tensor global_params) {
+  return ElecPoseScoreOp<DispatchMethod>::apply(
+      coords,
+      pose_stack_block_coord_offset,
+      pose_stack_block_type,
+      pose_stack_min_bond_separation,
+      pose_stack_inter_block_bondsep,
+
+      block_type_n_atoms,
+      block_type_partial_charge,
+      block_type_n_interblock_bonds,
+      block_type_atoms_forming_chemical_bonds,
+      block_type_inter_repr_path_distance,
+
+      block_type_intra_repr_path_distance,
+      global_params);
+}
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
@@ -254,7 +279,7 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
           ElecDispatch,
           tmol::score::common::ForallDispatch,
           tmol::score::common::AABBTriuDispatch>);
-  m.def("elec_pose_scores", &elec_pose_scores_op<DeviceOperations>);
+  m.def("elec_pose_scores", &elec_pose_scores_op<common::DeviceOperations>);
 }
 
 }  // namespace potentials

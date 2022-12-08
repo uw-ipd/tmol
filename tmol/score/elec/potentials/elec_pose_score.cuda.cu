@@ -1,23 +1,23 @@
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
-#include <tmol/score/ljlk/potentials/ljlk_pose_score.impl.hh>
+#include <tmol/score/elec/potentials/elec_pose_score.impl.hh>
 
 namespace tmol {
 namespace score {
-namespace ljlk {
+namespace elec {
 namespace potentials {
 
-template struct LJLKPoseScoreDispatch<
+template struct ElecPoseScoreDispatch<
     DeviceOperations,
     tmol::Device::CUDA,
     float,
     int>;
-template struct LJLKPoseScoreDispatch<
+template struct ElecPoseScoreDispatch<
     DeviceOperations,
     tmol::Device::CUDA,
     double,
     int>;
 
 }  // namespace potentials
-}  // namespace ljlk
+}  // namespace elec
 }  // namespace score
 }  // namespace tmol

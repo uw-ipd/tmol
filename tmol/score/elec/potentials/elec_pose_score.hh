@@ -14,7 +14,7 @@
 #include <tmol/score/common/tuple.hh>
 
 // #include "elec.hh"
-#include "params.hh"
+#include <tmol/score/elec/potentials/params.hh>
 // #include "rotamer_pair_energy_lj.hh"
 
 namespace tmol {
@@ -37,7 +37,7 @@ struct ElecPoseScoreDispatch {
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
 
-      // dims: n-systems x max-n-blocks x max-n-blocks
+      // dims: n-poses x max-n-blocks x max-n-blocks
       // Quick lookup: given the inds of two blocks, ask: what is the minimum
       // number of chemical bonds that separate any pair of atoms in those
       // blocks? If this minimum is greater than the crossover, then no further
@@ -46,7 +46,7 @@ struct ElecPoseScoreDispatch {
       // (possibly) fit in constant cache
       TView<Int, 3, D> pose_stack_min_bond_separation,
 
-      // dims: n-systems x max-n-blocks x max-n-blocks x
+      // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
       TView<Int, 5, D> pose_stack_inter_block_bondsep,
 
@@ -56,12 +56,7 @@ struct ElecPoseScoreDispatch {
       // Dimsize n_block_types
       TView<Int, 1, D> block_type_n_atoms,
 
-      TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
-      TView<Int, 2, D> block_type_heavy_atoms_in_tile,
-
-      // what are the atom types for these atoms
-      // Dimsize: n_block_types x max_n_atoms
-      TView<Int, 2, D> block_type_atom_types,
+      TView<Real, 2, D> block_type_partial_charge,
 
       // how many inter-block chemical bonds are there
       // Dimsize: n_block_types
@@ -72,16 +67,24 @@ struct ElecPoseScoreDispatch {
       TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
 
       // what is the path distance between pairs of atoms in the block
+      // denormalized by their count-pair representative; used for
+      // inter-block chemical-bond separation determination. Entry
+      // i, j stores path_dist[i, rep(j)]
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-      TView<Int, 3, D> block_type_path_distance,
+      TView<Int, 3, D> block_type_inter_repr_path_distance,
+
+      // what is the path distance between pairs of atoms in the block
+      // denormalized (twice!) by their count-pair representative;
+      // used for intra-block chemical-bond separation determination.
+      // Entry i, j stores path_dist[rep(i), rep(j)]
+      // Dimsize: n_block_types x max_n_atoms x max_n_atoms
+      TView<Int, 3, D> block_type_intra_repr_path_distance,
       //////////////////////
 
       // LJ parameters
-      TView<ElecTypeParams<Real>, 1, D> type_params,
-      TView<LJGlobalParams<Real>, 1, D> global_params,
-      bool compute_derivs
-
-      ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>>;
+      TView<ElecGlobalParams<Real>, 1, D> global_params,
+      bool compute_derivs)
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>>;
 };
 
 }  // namespace potentials

@@ -146,6 +146,24 @@ def test_elec_intra(default_database, ubq_system, torch_device):
     )
 
 
+# torch intra op
+def test_elec_intra4(default_database, ubq_res, torch_device):
+    from tmol.system.packed import PackedResidueSystem
+
+    ubq_system = PackedResidueSystem.from_residues(ubq_res[:1])
+    s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
+    op = ElecIntraModule(s.param_resolver)
+
+    print("s.tcoords, s.tpcs, s.trbpl")
+    print(s.tcoords, s.tpcs, s.trbpl)
+    val = op(s.tcoords, s.tpcs, s.trbpl)
+    print("val", val)
+
+    torch.testing.assert_allclose(
+        val.cpu(), torch.tensor((-0.1650,), dtype=torch.float64), atol=1e-4, rtol=1e-2
+    )
+
+
 # torch intra gradcheck
 def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)

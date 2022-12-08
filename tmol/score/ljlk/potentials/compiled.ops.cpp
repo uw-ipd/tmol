@@ -221,7 +221,7 @@ class LJLKPoseScoreOp
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.type(), "pose_score_op", ([&] {
+        coords.type(), "ljlk_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 

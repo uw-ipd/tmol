@@ -3,6 +3,7 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 
 #include <tmol/score/common/data_loading.hh>
+#include <tmol/score/elec/potentials/params.hh>
 #include <tmol/score/elec/potentials/potentials.hh>
 
 // #include <tmol/score/ljlk/potentials/common.hh>
@@ -58,11 +59,10 @@ template <
     class DeviceDispatch,
     tmol::Device D,
     int nt,
-    typename Real,
-    typename Int>
+    typename Real>
 void TMOL_DEVICE_FUNC elec_load_block_coords_and_charges_into_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Real, 2, D> block_type_partial_charges,
+    TView<Real, 2, D> block_type_partial_charge,
     int pose_ind,
     ElecSingleResData<Real> &r_dat,
     int n_atoms_to_load,
@@ -77,10 +77,8 @@ void TMOL_DEVICE_FUNC elec_load_block_coords_and_charges_into_shared(
       n_atoms_to_load * 3);
   DeviceDispatch<D>::template copy_contiguous_data<nt, 1>(
       r_dat.charges,
-      &block_type_partial_charges[r_dat.block_type]
-                                 [r_dat.block_coord_offset + start_atom],
+      &block_type_partial_charge[r_dat.block_type][start_atom],
       n_atoms_to_load);
-  DeviceDispatch<D>::template for_each_in_workgroup<nt>(copy_atom_types);
 }
 
 template <
@@ -93,7 +91,7 @@ template <
     typename Int>
 void TMOL_DEVICE_FUNC elec_load_block_into_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Real, 2, D> block_type_partial_charges,
+    TView<Real, 2, D> block_type_partial_charge,
     TView<Int, 3, D> block_type_representative_path_distance,
     int pose_ind,
     ElecSingleResData<Real> &r_dat,
@@ -103,9 +101,7 @@ void TMOL_DEVICE_FUNC elec_load_block_into_shared(
     unsigned char *__restrict__ conn_ats) {
   elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
       coords,
-      block_type_partial_charges,
-      type_params,
-      block_type_heavy_atoms_in_tile,
+      block_type_partial_charge,
       pose_ind,
       r_dat,
       n_atoms_to_load,
@@ -229,7 +225,7 @@ template <
     typename Int>
 void TMOL_DEVICE_FUNC elec_load_interres1_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Real, 2, D> block_type_partial_charges,
+    TView<Real, 2, D> block_type_partial_charge,
     TView<Int, 3, D> block_type_representative_path_distance,
     int tile_ind,
     int start_atom1,
@@ -238,8 +234,7 @@ void TMOL_DEVICE_FUNC elec_load_interres1_tile_data_to_shared(
     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
       coords,
-      block_type_atom_types,
-      block_type_partial_charges,
+      block_type_partial_charge,
       block_type_representative_path_distance,
       inter_dat.pose_ind,
       inter_dat.r1,
@@ -260,8 +255,8 @@ template <
     typename Int>
 void TMOL_DEVICE_FUNC elec_load_interres2_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Real, 2, D> block_type_partial_charges,
-    TView<Int, 3, D> block_type_represntative_path_distance,
+    TView<Real, 2, D> block_type_partial_charge,
+    TView<Int, 3, D> block_type_representative_path_distance,
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
@@ -269,8 +264,7 @@ void TMOL_DEVICE_FUNC elec_load_interres2_tile_data_to_shared(
     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
       coords,
-      block_type_atom_types,
-      block_type_partial_charges,
+      block_type_partial_charge,
       block_type_representative_path_distance,
       inter_dat.pose_ind,
       inter_dat.r2,
@@ -351,11 +345,10 @@ template <
     int nt,
     int TILE_SIZE,
     int MAX_N_CONN,
-    typename Real,
-    typename Int>
+    typename Real>
 void TMOL_DEVICE_FUNC elec_load_intrares1_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Real, 2, D> block_type_partial_charges,
+    TView<Real, 2, D> block_type_partial_charge,
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
@@ -363,8 +356,7 @@ void TMOL_DEVICE_FUNC elec_load_intrares1_tile_data_to_shared(
     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
       coords,
-      block_type_atom_types,
-      block_type_partial_charges,
+      block_type_partial_charge,
       intra_dat.pose_ind,
       intra_dat.r1,
       n_atoms_to_load1,
@@ -378,11 +370,10 @@ template <
     int nt,
     int TILE_SIZE,
     int MAX_N_CONN,
-    typename Real,
-    typename Int>
+    typename Real>
 void TMOL_DEVICE_FUNC elec_load_intrares2_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Real, 2, D> block_type_partial_charges,
+    TView<Real, 2, D> block_type_partial_charge,
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
@@ -390,8 +381,7 @@ void TMOL_DEVICE_FUNC elec_load_intrares2_tile_data_to_shared(
     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
       coords,
-      block_type_atom_types,
-      block_type_partial_charges,
+      block_type_partial_charge,
       intra_dat.pose_ind,
       intra_dat.r2,
       n_atoms_to_load2,
@@ -429,14 +419,14 @@ TMOL_DEVICE_FUNC Real elec_atom_energy(
   Real const dist = distance<Real>::V(coord1, coord2);
   return elec(
       dist,
-      cp_separation,
       score_dat.r1.charges[atom_tile_ind1],
       score_dat.r2.charges[atom_tile_ind2],
-      score_dat.global_params[0].D,
-      score_dat.global_params[0].D0,
-      score_dat.global_params[0].S,
-      score_dat.global_params[0].min_dis,
-      score_dat.global_params[0].max_dis);
+      Real(cp_separation),
+      score_dat.global_params.D,
+      score_dat.global_params.D0,
+      score_dat.global_params.S,
+      score_dat.global_params.min_dis,
+      score_dat.global_params.max_dis);
 }
 
 template <typename Real, tmol::Device D>
@@ -464,16 +454,16 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
   //     score_dat.r2.params[atom_tile_ind2].lj_params(),
   //     score_dat.global_params);
   Real V(0.0), dV_ddist(0.0);
-  std::tie(V, dV_ddist) = elec_delec_ddist(
+  tie(V, dV_ddist) = elec_delec_ddist(
       dist,
-      cp_separation,
       score_dat.r1.charges[atom_tile_ind1],
       score_dat.r2.charges[atom_tile_ind2],
-      score_dat.global_params[0].D,
-      score_dat.global_params[0].D0,
-      score_dat.global_params[0].S,
-      score_dat.global_params[0].min_dis,
-      score_dat.global_params[0].max_dis);
+      Real(cp_separation),
+      score_dat.global_params.D,
+      score_dat.global_params.D0,
+      score_dat.global_params.S,
+      score_dat.global_params.min_dis,
+      score_dat.global_params.max_dis);
 
   // all threads accumulate derivatives for atom 1 to global memory
   Vec<Real, 3> elec_dxyz_at1 = dV_ddist * ddist_dat1;

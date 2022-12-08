@@ -22,6 +22,8 @@
 #include <tmol/score/common/warp_stride_reduce.hh>
 
 #include <tmol/score/elec/potentials/elec.hh>
+#include <tmol/score/elec/potentials/params.hh>
+#include <tmol/score/elec/potentials/elec_pose_score.hh>
 // #include <tmol/score/ljlk/potentials/lj.hh>
 // #include <tmol/score/ljlk/potentials/ljlk.hh>
 // #include <tmol/score/ljlk/potentials/ljlk_pose_score.hh>
@@ -94,7 +96,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     // Dimsize n_block_types
     TView<Int, 1, D> block_type_n_atoms,
 
-    TView<Real, 2, D> block_type_partial_charges,
+    TView<Real, 2, D> block_type_partial_charge,
 
     // how many inter-block chemical bonds are there
     // Dimsize: n_block_types
@@ -105,8 +107,18 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
 
     // what is the path distance between pairs of atoms in the block
+    // denormalized by their count-pair representative; used for
+    // inter-block chemical-bond separation determination. Entry
+    // i, j stores path_dist[i, rep(j)]
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-    TView<Int, 3, D> block_type_representative_path_distance,
+    TView<Int, 3, D> block_type_inter_repr_path_distance,
+
+    // what is the path distance between pairs of atoms in the block
+    // denormalized (twice!) by their count-pair representative;
+    // used for intra-block chemical-bond separation determination.
+    // Entry i, j stores path_dist[rep(i), rep(j)]
+    // Dimsize: n_block_types x max_n_atoms x max_n_atoms
+    TView<Int, 3, D> block_type_intra_repr_path_distance,
     //////////////////////
 
     // LJ parameters
@@ -114,18 +126,19 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     bool compute_derivs
 
     ) -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>> {
+  // std::cout << "compute derivs ? " << compute_derivs << std::endl;
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
   int const n_poses = coords.size(0);
   int const max_n_pose_atoms = coords.size(1);
   int const max_n_blocks = pose_stack_block_type.size(1);
-  int const max_n_block_atoms = block_type_atom_types.size(1);
+  int const max_n_block_atoms = block_type_partial_charge.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
-  int const max_n_tiles = block_type_n_heavy_atoms_in_tile.size(2);
+  // int const max_n_tiles = block_type_n_heavy_atoms_in_tile.size(2);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
-  int64_t const n_atom_types = type_params.size(0);
+  // int64_t const n_atom_types = type_params.size(0);
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
@@ -153,9 +166,12 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
 
-  assert(block_type_representative_path_distance.size(0) == n_block_types);
-  assert(block_type_representative_path_distance.size(1) == max_n_block_atoms);
-  assert(block_type_representative_path_distance.size(2) == max_n_block_atoms);
+  assert(block_type_inter_repr_path_distance.size(0) == n_block_types);
+  assert(block_type_inter_repr_path_distance.size(1) == max_n_block_atoms);
+  assert(block_type_inter_repr_path_distance.size(2) == max_n_block_atoms);
+  assert(block_type_intra_repr_path_distance.size(0) == n_block_types);
+  assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
+  assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
   auto output_t = TPack<Real, 1, D>::zeros({n_poses});
   auto output = output_t.view;
@@ -186,7 +202,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int start_atom2,
              ElecScoringData<Real> const &score_dat,
              int cp_separation) {
-          return elec_atom_energy_and_derivs_full(
+          auto val = elec_atom_energy_and_derivs_full(
               atom_tile_ind1,
               atom_tile_ind2,
               start_atom1,
@@ -195,6 +211,11 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               cp_separation,
               dV_dcoords  // pass in lambda-captured tensor
           );
+          // printf("%d %d %d %d %f; q1 %f q2 %f sep %d\n",
+          // score_dat.r1.block_type, score_dat.r2.block_type, atom_tile_ind1,
+          // atom_tile_ind2, val, score_dat.r1.charges[atom_tile_ind1],
+          // score_dat.r2.charges[atom_tile_ind2], cp_separation);
+          return val;
         });
 
     auto score_inter_elec_atom_pair =
@@ -226,8 +247,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           int const atom_ind2 = start_atom2 + atom_tile_ind2;
 
           int const separation =
-              block_type_representative_path_distance[intra_dat.r1.block_type]
-                                                     [atom_ind1][atom_ind2];
+              block_type_intra_repr_path_distance[intra_dat.r1.block_type]
+                                                 [atom_ind1][atom_ind2];
           return elec_atom_energy_and_derivs(
               atom_tile_ind1,
               atom_tile_ind2,
@@ -245,7 +266,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int start_atom) {
           elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
+              block_type_partial_charge,
               pose_ind,
               r_dat,
               n_atoms_to_load,
@@ -261,8 +282,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                        unsigned char *__restrict__ conn_ats) {
       elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
           coords,
-          block_type_partial_charges,
-          block_type_representative_path_distance,
+          block_type_partial_charge,
+          block_type_inter_repr_path_distance,
           pose_ind,
           r_dat,
           n_atoms_to_load,
@@ -342,8 +363,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              shared_mem_union &shared) {
           elec_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
-              block_type_representative_path_distance,
+              block_type_partial_charge,
+              block_type_inter_repr_path_distance,
               tile_ind,
               start_atom1,
               n_atoms_to_load1,
@@ -359,8 +380,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              shared_mem_union &shared) {
           elec_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
-              block_type_representative_path_distance,
+              block_type_partial_charge,
+              block_type_inter_repr_path_distance,
               tile_ind,
               start_atom2,
               n_atoms_to_load2,
@@ -410,8 +431,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 score_dat.total_elec, shared, mgpu::plus_t<Real>());
 
         if (tid == 0) {
-          // printf("Storing energy %d %d %f %f\n", score_dat.block_ind1,
-          // score_dat.block_ind2, cta_total_lj, cta_total_lk);
           accumulate<D, Real>::add(output[score_dat.pose_ind], cta_total_elec);
         }
       });
@@ -445,7 +464,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              shared_mem_union &shared) {
           elec_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
+              block_type_partial_charge,
               tile_ind,
               start_atom1,
               n_atoms_to_load1,
@@ -461,7 +480,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              shared_mem_union &shared) {
           elec_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
+              block_type_partial_charge,
               tile_ind,
               start_atom2,
               n_atoms_to_load2,
@@ -562,8 +581,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
           int const separation =
 
-              block_type_representative_path_distance[intra_dat.r1.block_type]
-                                                     [atom_ind1][atom_ind2];
+              block_type_intra_repr_path_distance[intra_dat.r1.block_type]
+                                                 [atom_ind1][atom_ind2];
           return elec_atom_energy(
               atom_tile_ind1, atom_tile_ind2, intra_dat, separation);
         });
@@ -576,7 +595,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int start_atom) {
           elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
+              block_type_partial_charge,
               pose_ind,
               r_dat,
               n_atoms_to_load,
@@ -592,8 +611,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                        unsigned char *__restrict__ conn_ats) {
       elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
           coords,
-          block_type_partial_charges,
-          block_type_representative_path_distance,
+          block_type_partial_charge,
+          block_type_inter_repr_path_distance,
           pose_ind,
           r_dat,
           n_atoms_to_load,
@@ -673,8 +692,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              shared_mem_union &shared) {
           elec_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
-              block_type_representative_path_distance,
+              block_type_partial_charge,
+              block_type_inter_repr_path_distance,
               tile_ind,
               start_atom1,
               n_atoms_to_load1,
@@ -690,8 +709,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              shared_mem_union &shared) {
           elec_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
-              block_type_representative_path_distance,
+              block_type_partial_charge,
+              block_type_inter_repr_path_distance,
               tile_ind,
               start_atom2,
               n_atoms_to_load2,
@@ -776,7 +795,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              shared_mem_union &shared) {
           elec_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
+              block_type_partial_charge,
               tile_ind,
               start_atom1,
               n_atoms_to_load1,
@@ -792,7 +811,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              shared_mem_union &shared) {
           elec_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charges,
+              block_type_partial_charge,
               tile_ind,
               start_atom2,
               n_atoms_to_load2,
