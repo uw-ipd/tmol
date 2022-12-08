@@ -1,6 +1,5 @@
 import numpy
 import torch
-import pytest
 
 from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes

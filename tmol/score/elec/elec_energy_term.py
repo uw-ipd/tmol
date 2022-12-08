@@ -5,14 +5,12 @@ from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..bond_dependent_term import BondDependentTerm
 
 from tmol.database import ParameterDatabase
-from tmol.score.common.stack_condense import tile_subset_indices
 from tmol.score.elec.params import ElecParamResolver, ElecGlobalParams
 from tmol.score.elec.elec_whole_pose_module import ElecWholePoseScoringModule
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.types.torch import Tensor
 
 
 class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
@@ -54,15 +52,16 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         # decide whether or not two atoms i and j should have their interaction counted
         # on the basis of the number of chemical bonds that separate their respective
         # representative atoms r(i) and r(j).
-        # We will create a tensor to measure the distance of all representative atoms to:
-        # all connection atoms.
-        # let rpd be the acronym for "representative_path_distance"
-        # rpd[a,b] will be the number of chemical bonds between atom a and atom r(b). Then
-        # we can answer how far apart the representative atoms are for atoms i and j on
-        # residues k and l by computinging:
-        # min(ci cj, rpd_i[ci, i] + rpd_j[cj, j] + sep(ci, cj))
-        # over all pairs of connection atoms ci and cj on residues i and j
-        # NOTE: the connection atoms must be their own representatives for this to work
+        # We will create a tensor to measure the distance of all representative atoms
+        # to all connection atoms:
+        # Let rpd be the acronym for "representative_path_distance"
+        # inter_rpd[a,b] will be the number of chemical bonds between atom a and
+        # atom r(b). Then we can answer how far apart the representative atoms are for
+        # atoms i and j on residues k and l by computing:
+        # min(ci cj, inter_rpd_k[ck, i] + inter_rpd_l[cl, j] + sep(ck, cl))
+        # over all pairs of connection atoms ck and cl on residues k and l.
+        # The second tensor intra_rpd[a,b] will hold path_dist[rep(a), rep(b)] so that
+        # it can be looked up directly in the intra-block energy evaluation step
 
         representative_mapping = numpy.arange(block_type.n_atoms, dtype=numpy.int32)
         if block_type.name in self.param_resolver.cp_reps_by_res:
