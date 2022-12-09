@@ -425,7 +425,7 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
     int start_atom2,
     ElecScoringData<Real> const &score_dat,
     int cp_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 3, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -452,7 +452,7 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[score_dat.pose_ind]
+          dV_dcoords[0][score_dat.pose_ind]
                     [score_dat.r1.block_coord_offset + atom_tile_ind1
                      + start_atom1][j],
           elec_dxyz_at1[j]);
@@ -464,7 +464,7 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[score_dat.pose_ind]
+          dV_dcoords[0][score_dat.pose_ind]
                     [score_dat.r2.block_coord_offset + atom_tile_ind2
                      + start_atom2][j],
           elec_dxyz_at2[j]);

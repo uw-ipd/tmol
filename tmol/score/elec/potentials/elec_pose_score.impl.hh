@@ -121,7 +121,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<ElecGlobalParams<Real>, 1, D> global_params,
     bool compute_derivs
 
-    ) -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>> {
+    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -158,11 +158,11 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
-  auto output_t = TPack<Real, 1, D>::zeros({n_poses});
+  auto output_t = TPack<Real, 2, D>::zeros({1, n_poses});
   auto output = output_t.view;
 
   auto dV_dcoords_t =
-      TPack<Vec<Real, 3>, 2, D>::zeros({n_poses, max_n_pose_atoms});
+      TPack<Vec<Real, 3>, 3, D>::zeros({1, n_poses, max_n_pose_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_block_spheres_t =
@@ -401,7 +401,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 score_dat.total_elec, shared, mgpu::plus_t<Real>());
 
         if (tid == 0) {
-          accumulate<D, Real>::add(output[score_dat.pose_ind], cta_total_elec);
+          accumulate<D, Real>::add(
+              output[0][score_dat.pose_ind], cta_total_elec);
         }
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
@@ -721,7 +722,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 score_dat.total_elec, shared, mgpu::plus_t<Real>());
 
         if (tid == 0) {
-          accumulate<D, Real>::add(output[score_dat.pose_ind], cta_total_elec);
+          accumulate<D, Real>::add(
+              output[0][score_dat.pose_ind], cta_total_elec);
         }
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
