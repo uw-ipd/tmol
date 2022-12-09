@@ -85,16 +85,10 @@ class ElecParamResolver(ValidateAttrs):
             )(res_indices[i, ...], mapped_atoms[i, ...], numpy.arange(natms))
 
             # fmt: off
-            print("remap_bonded_path_lengths[i] before")
-            print(remap_bonded_path_lengths[i])
-            print("mapped_indices")
-            print(mapped_indices)
             remap_bonded_path_lengths[i, mapped_indices, :] = (
                 remap_bonded_path_lengths[i, ...])
             remap_bonded_path_lengths[i, :, mapped_indices] = (
                 remap_bonded_path_lengths[i, ...])
-            print("remap_bonded_path_lengths[i] after")
-            print(remap_bonded_path_lengths[i])
             # fmt: on
 
         return remap_bonded_path_lengths
