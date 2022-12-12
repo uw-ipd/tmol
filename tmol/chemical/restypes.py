@@ -14,6 +14,7 @@ from tmol.database.chemical import RawResidueType, ChemicalDatabase
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
+from tmol.chemical.all_bonds import bonds_and_bond_ranges
 from tmol.types.functional import validate_args
 
 
@@ -72,6 +73,23 @@ class RefinedResidueType(RawResidueType):
 
     ordered_connection_atoms: numpy.ndarray = attr.ib()
 
+    @ordered_connection_atoms.default
+    def _setup_ordered_connections(self):
+        return numpy.array(
+            [self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32
+        )
+
+    all_bonds: numpy.ndarray = attr.ib()
+
+    # NOTE: this also creates self.all_bond_ranges
+    @all_bonds.default
+    def _setup_all_bonds(self):
+        all_bonds, all_bond_ranges = bonds_and_bond_ranges(
+            self.n_atoms, self.bond_indices, self.ordered_connection_atoms
+        )
+        self.all_bond_ranges = all_bond_ranges
+        return all_bonds
+
     down_connection_ind: int = attr.ib()
 
     @down_connection_ind.default
@@ -89,12 +107,6 @@ class RefinedResidueType(RawResidueType):
             return self.connection_to_cidx["up"]
         else:
             return -1
-
-    @ordered_connection_atoms.default
-    def _setup_ordered_connections(self):
-        return numpy.array(
-            [self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32
-        )
 
     def _repr_pretty_(self, p, cycle):
         p.text(f"RefinedResidueType(name={self.name},...)")

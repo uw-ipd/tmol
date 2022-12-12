@@ -4,9 +4,7 @@ import torch
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..bond_dependent_term import BondDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
-from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver  # LJLKTypeParams,
-
-# from tmol.score.chemical_database import AtomTypeParamResolver
+from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -16,10 +14,18 @@ from tmol.types.torch import Tensor
 
 @attr.s(auto_attribs=True)
 class LKBallEnergy(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm):
-    # type_params: LJLKTypeParams
 
     ljlk_global_params: LJLKGlobalParams
     ljlk_param_resolver: LJLKParamResolver
+
+    def __init__(self, param_db: ParameterDatabase, device: torch.device):
+        ljlk_param_resolver = LJLKParamResolver.from_database(
+            param_db.chemical, param_db.scoring.ljlk, device=device
+        )
+        super(LJLKEnergyTerm, self).__init__(param_db=param_db, device=device)
+        self.type_params = ljlk_param_resolver.type_params
+        self.global_params = ljlk_param_resolver.global_params
+        self.tile_size = LJLKEnergyTerm.tile_size
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(LKBallEnergy, self).setup_block_type(block_type)
