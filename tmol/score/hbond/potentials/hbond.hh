@@ -116,14 +116,13 @@ template <
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Int, 2, D> block_type_tile_n_donH_inds,
-    TView<Int, 2, D> block_type_tile_n_acc_inds,
-    TView<Int, 2, D> block_type_tile_don_inds,
-    TView<Int, 2, D> block_type_tile_acc_inds,
-    TView<Int, 2, D> block_type_donor_type,
-    TView<Int, 2, D> block_type_acceptor_type,
-    TView<Int, 2, D> block_type_hybridization,
+    TView<Int, 3, D> block_type_tile_donH_inds,
+    TView<Int, 3, D> block_type_tile_acc_inds,
+    TView<Int, 3, D> block_type_tile_donor_type,
+    TView<Int, 3, D> block_type_tile_acceptor_type,
+    TView<Int, 3, D> block_type_tile_hybridization,
     int pose_ind,
+    int tile_ind,
     HBondSingleResData<Real> &r_dat,
     int n_atoms_to_load,
     int start_atom) {
@@ -137,23 +136,23 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
       n_atoms_to_load * 3);
   DeviceDispatch<D>::template copy_contiguous_data<nt, 1>(
       r_dat.donH_tile_inds,
-      &block_type_tile_don_inds[r_dat.block_type][start_atom],
+      &block_type_tile_donH_inds[r_dat.block_type][tile_ind][0],
       r_dat.n_donH);
   DeviceDispatch<D>::template copy_contiguous_data<nt, 1>(
       r_dat.acc_tile_inds,
-      &block_type_tile_acc_inds[r_dat.block_type][start_atom],
+      &block_type_tile_acc_inds[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);
   DeviceDispatch<D>::template copy_contiguous_data<nt, 1>(
       r_dat.don_type,
-      &block_type_donor_type[r_dat.block_type][start_atom],
+      &block_type_tile_donor_type[r_dat.block_type][tile_ind][0],
       r_dat.n_donH);
   DeviceDispatch<D>::template copy_contiguous_data<nt, 1>(
       r_dat.acc_type,
-      &block_type_acceptor_type[r_dat.block_type][start_atom],
+      &block_type_tile_acceptor_type[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);
   DeviceDispatch<D>::template copy_contiguous_data<nt, 1>(
-      r_dat.acc_hybridization,
-      &block_type_hybridization[r_dat.block_type][start_atom],
+      r_dat.acc_tile_hybridization,
+      &block_type_hybridization[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);
 }
 
@@ -167,15 +166,14 @@ template <
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Int, 2, D> block_type_tile_n_donH_inds,
-    TView<Int, 2, D> block_type_tile_n_acc_inds,
-    TView<Int, 2, D> block_type_tile_don_inds,
-    TView<Int, 2, D> block_type_tile_acc_inds,
-    TView<Int, 2, D> block_type_donor_type,
-    TView<Int, 2, D> block_type_acceptor_type,
-    TView<Int, 2, D> block_type_hybridization,
+    TView<Int, 3, D> block_type_tile_donH_inds,
+    TView<Int, 3, D> block_type_tile_acc_inds,
+    TView<Int, 3, D> block_type_tile_donor_type,
+    TView<Int, 3, D> block_type_tile_acceptor_type,
+    TView<Int, 3, D> block_type_tile_hybridization,
     TView<Int, 3, D> block_type_path_distance,
     int pose_ind,
+    int tile_ind,
     HBondSingleResData<Real> &r_dat,
     int n_atoms_to_load,
     int start_atom,
@@ -183,15 +181,13 @@ void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
     unsigned char *__restrict__ conn_ats) {
   hbond_load_block_coords_and_params_into_shared<DeviceDispatch, D, nt>(
       coords,
-      block_type_tile_n_donH_inds,
-      block_type_tile_n_acc_inds,
-      block_type_tile_don_inds,
+      block_type_tile_donH_inds,
       block_type_tile_acc_inds,
-      block_type_donor_type,
-      block_type_acceptor_type,
-      block_type_hybridization,
+      block_type_tile_donor_type,
+      block_type_tile_acceptor_type,
+      block_type_tile_hybridization,
       pose_ind,
-      r_dat,
+      tile_ind r_dat,
       n_atoms_to_load,
       start_atom);
 
@@ -224,20 +220,20 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_residue_connections,
+    TView<Int, 3, D> pose_stack_min_bond_separation,
+    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+
     TView<Int, 1, D> block_type_n_all_bonds,
     TView<Int, 3, D> block_type_all_bonds,
     TView<Int, 2, D> block_type_atom_all_bond_ranges,
-    TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
-    TView<Int, 2, D> block_type_atom_is_hydrogen,
-    TView<HBondPairParams<Real>, 2, Dev> pair_params,
-    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
-
-    TView<Int, 2, D> pose_stack_block_coord_offset,
-    TView<Int, 3, D> pose_stack_min_bond_separation,
     TView<Int, 1, D> block_type_n_interblock_bonds,
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
-    TView<Int, 5, D> pose_stack_inter_block_bondsep,
+    TView<Int, 2, D> block_type_atom_is_hydrogen,
+
+    TView<HBondPairParams<Real>, 2, Dev> pair_params,
+    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, D> global_params,
+
     int const max_important_bond_separation,
     int pose_ind,
     int block_ind1,
@@ -352,30 +348,41 @@ template <
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Int, 2, D> block_type_tile_n_donH_inds,
-    TView<Int, 2, D> block_type_tile_n_acc_inds,
-    TView<Int, 2, D> block_type_tile_don_inds,
-    TView<Int, 2, D> block_type_tile_acc_inds,
-    TView<Int, 2, D> block_type_donor_type,
-    TView<Int, 2, D> block_type_acceptor_type,
-    TView<Int, 2, D> block_type_hybridization,
+    TView<Int, 2, D> block_type_tile_n_donH,
+    TView<Int, 2, D> block_type_tile_n_acc,
+    TView<Int, 3, D> block_type_tile_donH_inds,
+    TView<Int, 3, D> block_type_tile_acc_inds,
+    TView<Int, 3, D> block_type_tile_donor_type,
+    TView<Int, 3, D> block_type_tile_acceptor_type,
+    TView<Int, 3, D> block_type_tile_hybridization,
     TView<Int, 3, D> block_type_path_distance,
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
     HBondScoringData<Real> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+  auto store_n_don_n_acc1 = ([&](int tid) {
+    int n_donH = block_type_tile_n_donH[inter_dat.r1.block_type][tile_ind];
+    int n_acc = block_type_tile_n_acc[inter_dat.r1.block_type][tile_ind];
+    inter_dat.r1.n_donH = n_donH;
+    inter_dat.r1.n_acc = n_acc;
+    if (tid == 0) {
+      shared_m.n_donH1 = n_donH;
+      shared_m.n_acc1 = n_acc;
+    }
+  });
+  DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_don_n_acc1);
+
   hbond_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
       coords,
-      block_type_tile_n_donH_inds,
-      block_type_tile_n_acc_inds,
-      block_type_tile_don_inds,
+      block_type_tile_donH_inds,
       block_type_tile_acc_inds,
-      block_type_donor_type,
-      block_type_acceptor_type,
-      block_type_hybridization,
+      block_type_tile_donor_type,
+      block_type_tile_acceptor_type,
+      block_type_tile_hybridization,
       block_type_path_distance,
       inter_dat.pair_dat.pose_ind,
+      tile_ind,
       inter_dat.r1,
       n_atoms_to_load1,
       start_atom1,
@@ -394,28 +401,38 @@ template <
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, D> coords,
-    TView<Int, 2, D> block_type_tile_n_donH_inds,
-    TView<Int, 2, D> block_type_tile_n_acc_inds,
-    TView<Int, 2, D> block_type_tile_don_inds,
-    TView<Int, 2, D> block_type_tile_acc_inds,
-    TView<Int, 2, D> block_type_donor_type,
-    TView<Int, 2, D> block_type_acceptor_type,
-    TView<Int, 2, D> block_type_hybridization,
+    TView<Int, 2, D> block_type_tile_n_donH,
+    TView<Int, 2, D> block_type_tile_n_acc,
+    TView<Int, 3, D> block_type_tile_donH_inds,
+    TView<Int, 3, D> block_type_tile_acc_inds,
+    TView<Int, 3, D> block_type_tile_donor_type,
+    TView<Int, 3, D> block_type_tile_acceptor_type,
+    TView<Int, 3, D> block_type_tile_hybridization,
     TView<Int, 3, D> block_type_path_distance,
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
     HBondScoringData<Real> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+  auto store_n_don_n_acc2 = ([&](int tid) {
+    int n_donH = block_type_tile_n_donH[inter_dat.r2.block_type][tile_ind];
+    int n_acc = block_type_tile_n_acc[inter_dat.r2.block_type][tile_ind];
+    inter_dat.r2.n_donH = n_donH;
+    inter_dat.r2.n_acc = n_acc;
+    if (tid == 0) {
+      shared_m.n_donH2 = n_donH;
+      shared_m.n_acc2 = n_acc;
+    }
+  });
+  DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_don_n_acc2);
   hbond_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
       coords,
-      block_type_tile_n_donH_inds,
-      block_type_tile_n_acc_inds,
-      block_type_tile_don_inds,
+      block_type_tile_donH_inds,
       block_type_tile_acc_inds,
-      block_type_donor_type,
-      block_type_acceptor_type,
-      block_type_hybridization,
+      block_type_tile_donor_type,
+      block_type_tile_acceptor_type,
+      block_type_tile_hybridization,
+      block_type_path_distance,
       inter_dat.pair_dat.pose_ind,
       inter_dat.r2,
       n_atoms_to_load2,
@@ -445,8 +462,6 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
     TView<Int, 2, D> block_type_atom_is_hydrogen,
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
     TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
-
-    TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<HBondGlobalParams<Real>, 1, D> global_params,
     int const max_important_bond_separation,
     int pose_ind,
@@ -532,7 +547,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, D> coords,
     TView<Int, 2, D> block_type_tile_n_donH_inds,
     TView<Int, 2, D> block_type_tile_n_acc_inds,
-    TView<Int, 2, D> block_type_tile_don_inds,
+    TView<Int, 2, D> block_type_tile_donH_inds,
     TView<Int, 2, D> block_type_tile_acc_inds,
     TView<Int, 2, D> block_type_donor_type,
     TView<Int, 2, D> block_type_acceptor_type,
@@ -546,7 +561,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared(
       coords,
       block_type_tile_n_donH_inds,
       block_type_tile_n_acc_inds,
-      block_type_tile_don_inds,
+      block_type_tile_donH_inds,
       block_type_tile_acc_inds,
       block_type_donor_type,
       block_type_acceptor_type,
@@ -570,7 +585,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, D> coords,
     TView<Int, 2, D> block_type_tile_n_donH_inds,
     TView<Int, 2, D> block_type_tile_n_acc_inds,
-    TView<Int, 2, D> block_type_tile_don_inds,
+    TView<Int, 2, D> block_type_tile_donH_inds,
     TView<Int, 2, D> block_type_tile_acc_inds,
     TView<Int, 2, D> block_type_donor_type,
     TView<Int, 2, D> block_type_acceptor_type,
@@ -585,7 +600,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared(
       coords,
       block_type_tile_n_donH_inds,
       block_type_tile_n_acc_inds,
-      block_type_tile_don_inds,
+      block_type_tile_donH_inds,
       block_type_tile_acc_inds,
       block_type_donor_type,
       block_type_acceptor_type,
@@ -658,7 +673,7 @@ Eigen::Matrix<Real, 3, 1> load_coord(
 }
 
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
-TMOL_DEVICE_FUNC Real hbond_atom_energy(
+TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
     int donH_ind,             // in [0:n_donH)
     int acc_ind,              // in [0:n_acc)
     int don_h_atom_tile_ind,  // in [0:TILE_SIZE)

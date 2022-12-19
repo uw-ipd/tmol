@@ -21,9 +21,9 @@
 #include <tmol/score/common/warp_segreduce.hh>
 #include <tmol/score/common/warp_stride_reduce.hh>
 
-#include <tmol/score/elec/potentials/elec.hh>
-#include <tmol/score/elec/potentials/params.hh>
-#include <tmol/score/elec/potentials/elec_pose_score.hh>
+// #include <tmol/score/elec/potentials/elec.hh>
+// #include <tmol/score/elec/potentials/params.hh>
+// #include <tmol/score/elec/potentials/elec_pose_score.hh>
 
 // Operator definitions; safe for CPU compilation
 #include <moderngpu/operators.hxx>
@@ -36,7 +36,7 @@
 
 namespace tmol {
 namespace score {
-namespace elec {
+namespace hbond {
 namespace potentials {
 
 template <typename Real, int N>
@@ -50,14 +50,14 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
   int separation = inter_dat.min_separation;
   if (separation <= inter_dat.max_important_bond_separation) {
     separation = common::count_pair::shared_mem_inter_block_separation<TILE>(
-        inter_dat.max_important_bond_separation,
+        inter_dat.pair_data.max_important_bond_separation,
         atom_tile_ind1,
         atom_tile_ind2,
         inter_dat.r1.n_conn,
         inter_dat.r2.n_conn,
         inter_dat.r1.path_dist,
         inter_dat.r2.path_dist,
-        inter_dat.conn_seps);
+        inter_dat.pair_data.conn_seps);
   }
   return separation;
 }
@@ -68,7 +68,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
+auto HbondPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 2, D> coords,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
@@ -118,7 +118,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     //////////////////////
 
     // LJ parameters
-    TView<ElecGlobalParams<Real>, 1, D> global_params,
+    TView<HbondGlobalParams<Real>, 1, D> global_params,
     bool compute_derivs
 
     ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
@@ -179,102 +179,143 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto eval_energies_and_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto elec_atom_energy_and_derivs =
+    auto hbond_atom_energy_and_derivs =
         ([=] TMOL_DEVICE_FUNC(
-             int atom_tile_ind1,
-             int atom_tile_ind2,
-             int start_atom1,
-             int start_atom2,
-             ElecScoringData<Real> const &score_dat,
+             int don_ind,
+             int acc_ind,
+             int don_tile_ind,
+             int acc_tile_ind,
+             int don_start,
+             int acc_start,
+             HBondSingleResData<Real> const &don_dat,
+             HBondSingleResData<Real> const &acc_dat,
+             HBondResPairData<Dev, Real, Int> const &respair_dat,
              int cp_separation) {
-          auto val = elec_atom_energy_and_derivs_full(
-              atom_tile_ind1,
-              atom_tile_ind2,
-              start_atom1,
-              start_atom2,
+          if (cp_separation < 4) {
+            return 0.0;
+          }
+          auto val = hbond_atom_energy_and_derivs_full(
+              don_ind,
+              acc_ind,
+              don_tile_ind,
+              acc_tile_ind,
+              don_start,
+              acc_start,
+              don_dat,
+              acc_dat,
               score_dat,
               cp_separation,
-              dV_dcoords);
+              dV_dcoords);  // the capture
           return val;
         });
 
-    auto score_inter_elec_atom_pair =
+    auto score_inter_hbond_atom_pair =
         ([=] TMOL_DEVICE_FUNC(
-             int start_atom1,
-             int start_atom2,
-             int atom_tile_ind1,
-             int atom_tile_ind2,
-             ElecScoringData<Real> const &inter_dat) {
+             int don_start,
+             int acc_start,
+             int don_ind,
+             int acc_ind,
+             HBondScoringData<Dev, Real, Int> const &inter_dat,
+             bool donor_first) {
+          int don_tile_ind =
+              (donor_first ? inter_dat.r1 : inter_dat.r2).donH_inds[don_ind];
+          int acc_tile_ind = (donor_first ? inter_dat.r2 : inter_dat.r1).acc_inds[acc_ind],
           int separation = interres_count_pair_separation<TILE_SIZE>(
-              inter_dat, atom_tile_ind1, atom_tile_ind2);
-          return elec_atom_energy_and_derivs(
-              atom_tile_ind1,
-              atom_tile_ind2,
-              start_atom1,
-              start_atom2,
-              inter_dat,
+            inter_dat, (donor_first ? don_ind : acc_ind), (donor_first ? acc_ind : don_ind);
+          return hbond_atom_energy_and_derivs(
+              don_ind,
+              acc_ind,
+              don_tile_ind,
+              acc_tile_ind,
+              don_start,
+              acc_atom,
+              donor_first ? inter_dat.r1 : inter_dat.r2,
+              donor_first ? inter_dat.r2 : inter_dat.r1,
+              inter_dat.pair_data,
               separation);
         });
 
-    auto score_intra_elec_atom_pair =
+    auto score_intra_hbond_atom_pair =
         ([=] TMOL_DEVICE_FUNC(
-             int start_atom1,
-             int start_atom2,
-             int atom_tile_ind1,
-             int atom_tile_ind2,
-             ElecScoringData<Real> const &intra_dat) {
-          int const atom_ind1 = start_atom1 + atom_tile_ind1;
-          int const atom_ind2 = start_atom2 + atom_tile_ind2;
+             int don_start,
+             int acc_start,
+             int don_ind int acc_ind,
+             HbondScoringData<Real> const &intra_dat,
+             bool donor_first) {
+          int don_tile_ind =
+              (donor_first ? inter_dat.r1 : inter_dat.r2).donH_inds[don_ind];
+          int acc_tile_ind =
+                  (donor_first ? inter_dat.r2 : inter_dat.r1).acc_inds[acc_ind],
+              int const don_atom_ind = don_start + don_tile_ind;
+          int const acc_atom_ind = acc_start + acc_tile_ind;
 
           int const separation =
               block_type_intra_repr_path_distance[intra_dat.r1.block_type]
-                                                 [atom_ind1][atom_ind2];
-          return elec_atom_energy_and_derivs(
-              atom_tile_ind1,
-              atom_tile_ind2,
-              start_atom1,
-              start_atom2,
-              intra_dat,
+                                                 [don_atom_ind][acc_atom_ind];
+          return hbond_atom_energy_and_derivs(
+              don_ind,
+              acc_ind,
+              don_tile_ind,
+              acc_tile_ind,
+              don_start,
+              acc_start,
+              donor_first ? intra_dat.r1 : intra_dat.r2,
+              donor_first ? intra_dat.r2 : intra_dat.r1,
+              intra_dat.pair_data,
               separation);
         });
 
-    auto load_block_coords_and_params_into_shared =
-        ([=] TMOL_DEVICE_FUNC(
-             int pose_ind,
-             ElecSingleResData<Real> &r_dat,
-             int n_atoms_to_load,
-             int start_atom) {
-          elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
-              coords,
-              block_type_partial_charge,
-              pose_ind,
-              r_dat,
-              n_atoms_to_load,
-              start_atom);
-        });
-
-    auto load_block_into_shared = ([=] TMOL_DEVICE_FUNC(
-                                       int pose_ind,
-                                       ElecSingleResData<Real> &r_dat,
-                                       int n_atoms_to_load,
-                                       int start_atom,
-                                       bool count_pair_striking_dist,
-                                       unsigned char *__restrict__ conn_ats) {
-      elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
-          coords,
-          block_type_partial_charge,
-          block_type_inter_repr_path_distance,
-          pose_ind,
-          r_dat,
-          n_atoms_to_load,
-          start_atom,
-          count_pair_striking_dist,
-          conn_ats);
-    });
+    // auto load_block_coords_and_params_into_shared =
+    //     ([=] TMOL_DEVICE_FUNC(
+    //          int pose_ind,
+    //          HbondSingleResData<Real> &r_dat,
+    //          int n_atoms_to_load,
+    //          int start_atom) {
+    //       hbond_load_block_coords_and_charges_into_shared<DeviceDispatch, D,
+    //       nt>(
+    //           coords,
+    //           block_type_tile_n_donH_inds,
+    //           block_type_tile_n_acc_inds,
+    //           block_type_tile_donH_inds,
+    //           block_type_tile_acc_inds,
+    //           block_type_donor_type,
+    //           block_type_acc_type,
+    //           block_type_hybridization,
+    //           pose_ind,
+    //           r_dat,
+    //           n_atoms_to_load,
+    //           start_atom);
+    //     });
+    //
+    // auto load_block_into_shared = ([=] TMOL_DEVICE_FUNC(
+    //                                    int pose_ind,
+    //                                    HbondSingleResData<Real> &r_dat,
+    //                                    int n_atoms_to_load,
+    //                                    int start_atom,
+    //                                    bool count_pair_striking_dist,
+    //                                    unsigned char *__restrict__ conn_ats)
+    //                                    {
+    //   hbond_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
+    //       coords,
+    //       block_type_tile_n_donH_inds,
+    //       block_type_tile_n_acc_inds,
+    //       block_type_tile_donH_inds,
+    //       block_type_tile_acc_inds,
+    //       block_type_donor_type,
+    //       block_type_acc_type,
+    //       block_type_hybridization,
+    //       block_type_path_distance,
+    //       pose_ind,
+    //       r_dat,
+    //       n_atoms_to_load,
+    //       start_atom,
+    //       count_pair_striking_dist,
+    //       conn_ats);
+    // });
 
     SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
-      ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
+      HbondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 
     } shared;
@@ -311,15 +352,26 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int block_type2,
              int n_atoms1,
              int n_atoms2,
-             ElecScoringData<Real> &inter_dat,
+             HbondScoringData<Real> &inter_dat,
              shared_mem_union &shared) {
-          elec_load_tile_invariant_interres_data<DeviceDispatch, D, nt>(
-              pose_stack_block_coord_offset,
+          hbond_load_tile_invariant_interres_data<DeviceDispatch, D, nt>(
+              coords pose_stack_block_coord_offset,
+              pose_stack_block_type,
+              pose_stack_inter_residue_connections,
               pose_stack_min_bond_separation,
+              pose_stack_inter_block_bondsep,
+
+              block_type_n_all_bonds,
+              block_type_all_bonds,
+              block_type_atom_all_bond_ranges,
               block_type_n_interblock_bonds,
               block_type_atoms_forming_chemical_bonds,
-              pose_stack_inter_block_bondsep,
+              block_type_atom_is_hydrogen,
+
+              pair_params,
+              pair_polynomials,
               global_params,
+
               max_important_bond_separation,
               pose_ind,
               block_ind1,
@@ -336,12 +388,18 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         ([=](int tile_ind,
              int start_atom1,
              int n_atoms_to_load1,
-             ElecScoringData<Real> &inter_dat,
+             HbondScoringData<Real> &inter_dat,
              shared_mem_union &shared) {
-          elec_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>(
+          hbond_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charge,
-              block_type_inter_repr_path_distance,
+              block_type_tile_n_donH,
+              block_type_tile_n_acc,
+              block_type_tile_donH_inds,
+              block_type_tile_acc_inds,
+              block_type_tile_donor_type,
+              block_type_tile_acceptor_type,
+              block_type_tile_hybridization,
+              block_type_path_distance,
               tile_ind,
               start_atom1,
               n_atoms_to_load1,
@@ -353,12 +411,18 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         ([=](int tile_ind,
              int start_atom2,
              int n_atoms_to_load2,
-             ElecScoringData<Real> &inter_dat,
+             HbondScoringData<Real> &inter_dat,
              shared_mem_union &shared) {
-          elec_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>(
+          hbond_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charge,
-              block_type_inter_repr_path_distance,
+              block_type_tile_n_donH,
+              block_type_tile_n_acc,
+              block_type_tile_donH_inds,
+              block_type_tile_acc_inds,
+              block_type_tile_donor_type,
+              block_type_tile_acceptor_type,
+              block_type_tile_hybridization,
+              block_type_path_distance,
               tile_ind,
               start_atom2,
               n_atoms_to_load2,
@@ -367,42 +431,48 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         });
 
     auto load_interres_data_from_shared =
-        ([=](int, int, shared_mem_union &, ElecScoringData<Real> &) {});
+        ([=](int, int, shared_mem_union &, HbondScoringData<Real> &) {});
 
-    auto eval_interres_atom_pair_scores = ([=](ElecScoringData<Real> &inter_dat,
-                                               int start_atom1,
-                                               int start_atom2) {
-      auto eval_scores_for_atom_pairs = ([&](int tid) {
-        inter_dat.total_elec += tmol::score::common::InterResBlockEvaluation<
-            ElecScoringData,
-            AllAtomPairSelector,
-            D,
-            TILE_SIZE,
-            nt,
-            Real,
-            Int>::
-            eval_interres_atom_pair(
-                tid,
-                start_atom1,
-                start_atom2,
-                score_inter_elec_atom_pair,
-                inter_dat);
-      });
+    auto eval_interres_atom_pair_scores =
+        ([=](HbondScoringData<Real> &inter_dat,
+             int start_atom1,
+             int start_atom2) {
+          auto eval_scores_for_don_acc_pairs = ([&](int tid) {
+            int const n_don_acc_pairs =
+                inter_dat.r1.n_donH * inter_dat.r2.n_acc
+                + inter_dat.r1.n_acc * inter_dat.r2.n_donH;
+            for (int i = tid; i < n_don_acc_pairs; i += nt) {
+              bool r1_don = i < inter_dat.r1.n_donH * inter_dat.r2.n_acc;
+              int pair_ind =
+                  r1_don ? i - inter_dat.r1.n_donH * inter_dat.r2.n_acc : i;
+              HBondSingleResData const &don_dat =
+                  r1_don ? inter_dat.r1 : inter_dat.r2;
+              HBondSingleResData const &acc_dat =
+                  r1_don ? inter_dat.r2 : inter_dat.r1;
+              int don_ind = pair_ind / acc_dat.n_acc;
+              int acc_ind = pair_ind % acc_dat.n_acc;
+              int don_start = r1_don ? start_atom1 : start_atom2;
+              int acc_start = r2_don ? start_atom2 : start_atom1;
 
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-          eval_scores_for_atom_pairs);
-    });
+              inter_dat.pair_data.total_hbond += score_inter_hbond_atom_pair(
+                  don_start, acc_start, don_ind, acc_ind, inter_dat, r1_don);
+            }
+          });
 
-    auto store_calculated_energies = ([=](ElecScoringData<Real> &score_dat,
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+              eval_scores_for_don_acc_pairs);
+        });
+
+    auto store_calculated_energies = ([=](HbondScoringData<Real> &score_dat,
                                           shared_mem_union &shared) {
       auto reduce_energies = ([&](int tid) {
-        Real const cta_total_elec =
+        Real const cta_total_hbond =
             DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-                score_dat.total_elec, shared, mgpu::plus_t<Real>());
+                score_dat.pair_data.total_hbond, shared, mgpu::plus_t<Real>());
 
         if (tid == 0) {
           accumulate<D, Real>::add(
-              output[0][score_dat.pose_ind], cta_total_elec);
+              output[0][score_dat.pair_data.pose_ind], cta_total_hbond);
         }
       });
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
@@ -413,10 +483,20 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int block_ind1,
              int block_type1,
              int n_atoms1,
-             ElecScoringData<Real> &intra_dat,
+             HbondScoringData<Real> &intra_dat,
              shared_mem_union &shared) {
-          elec_load_tile_invariant_intrares_data<DeviceDispatch, D, nt>(
+          hbond_load_tile_invariant_intrares_data<DeviceDispatch, D, nt>(
+              coords,
               pose_stack_block_coord_offset,
+              pose_stack_block_type,
+              pose_stack_inter_residue_connections,
+              block_type_n_all_bonds,
+              block_type_all_bonds,
+              block_type_atom_all_bond_ranges,
+              block_type_atoms_forming_chemical_bonds,
+              block_type_atom_is_hydrogen,
+              pair_params,
+              pair_polynomials,
               global_params,
               max_important_bond_separation,
               pose_ind,
@@ -431,11 +511,18 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         ([=](int tile_ind,
              int start_atom1,
              int n_atoms_to_load1,
-             ElecScoringData<Real> &intra_dat,
+             HbondScoringData<Real> &intra_dat,
              shared_mem_union &shared) {
-          elec_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>(
+          hbond_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charge,
+              block_type_tile_n_donH_inds,
+              block_type_tile_n_acc_inds,
+              block_type_tile_donH_inds,
+              block_type_tile_acc_inds,
+              block_type_donor_type,
+              block_type_acceptor_type,
+              block_type_hybridization,
+
               tile_ind,
               start_atom1,
               n_atoms_to_load1,
@@ -447,11 +534,17 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         ([=](int tile_ind,
              int start_atom2,
              int n_atoms_to_load2,
-             ElecScoringData<Real> &intra_dat,
+             HbondScoringData<Real> &intra_dat,
              shared_mem_union &shared) {
-          elec_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>(
+          hbond_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>(
               coords,
-              block_type_partial_charge,
+              block_type_tile_n_donH_inds,
+              block_type_tile_n_acc_inds,
+              block_type_tile_donH_inds,
+              block_type_tile_acc_inds,
+              block_type_donor_type,
+              block_type_acceptor_type,
+              block_type_hybridization,
               tile_ind,
               start_atom2,
               n_atoms_to_load2,
@@ -463,432 +556,543 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         ([=](int tile_ind1,
              int tile_ind2,
              shared_mem_union &shared,
-             ElecScoringData<Real> &intra_dat) {
-          elec_load_intrares_data_from_shared(
+             HbondScoringData<Real> &intra_dat) {
+          hbond_load_intrares_data_from_shared(
               tile_ind1, tile_ind2, shared.m, intra_dat);
         });
 
-    auto eval_intrares_atom_pair_scores = ([=](ElecScoringData<Real> &intra_dat,
+    auto eval_intrares_atom_pair_scores = ([=](HbondScoringData<Real> &intra_dat,
                                                int start_atom1,
                                                int start_atom2) {
-      auto eval_scores_for_atom_pairs = ([&](int tid) {
-        intra_dat.total_elec += tmol::score::common::IntraResBlockEvaluation<
-            ElecScoringData,
-            AllAtomPairSelector,
+      auto eval_scores_for_don_acc_pairs = ([&](int tid) {
+        if (start_atom1 == start_atom2) {
+          int const n_don_acc_pairs = intra_dat.r1.n_donH * intra_dat.r2.n_acc;
+          for (int i = tid; i < n_don_acc_pairs; i += nt) {
+            int don_ind = i / acc_dat.n_acc;
+            int acc_ind = i % acc_dat.n_acc;
+
+            intra_dat.pair_data.total_hbond += score_inter_hbond_atom_pair(
+                start_atom1, start_atom1, don_ind, acc_ind, intra_dat, true);
+          }
+          else {
+            int const n_don_acc_pairs =
+                intra_dat.r1.n_donH * intra_dat.r2.n_acc
+                + intra_dat.r1.n_acc * intra_dat.r2.n_donH;
+            for (int i = tid; i < n_don_acc_pairs; i += nt) {
+              bool r1_don = i < intra_dat.r1.n_donH * intra_dat.r2.n_acc;
+              int pair_ind =
+                  r1_don ? i - intra_dat.r1.n_donH * intra_dat.r2.n_acc : i;
+              // HBondSingleResData const & don_dat = r1_don ? intra_dat.r1 :
+              // intra_dat.r2;
+              HBondSingleResData const &acc_dat =
+                  r1_don ? intra_dat.r2 : intra_dat.r1;
+              int don_ind = pair_ind / acc_dat.n_acc;
+              int acc_ind = pair_ind % acc_dat.n_acc;
+              int don_start = r1_don ? start_atom1 : start_atom2;
+              int acc_start = r2_don ? start_atom2 : start_atom1;
+
+              intra_dat.pair_data.total_hbond += score_intra_hbond_atom_pair(
+                  don_start, acc_start, don_ind, acc_ind, intra_dat, r1_don);
+            }
+          });
+
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+              eval_scores_for_don_acc_pairs);
+        });
+
+        tmol::score::common::tile_evaluate_block_pair<
+            DeviceDispatch,
             D,
-            TILE_SIZE,
-            nt,
+            HbondScoringData,
+            HbondScoringData,
             Real,
-            Int>::
-            eval_intrares_atom_pairs(
-                tid,
-                start_atom1,
-                start_atom2,
-                score_intra_elec_atom_pair,
-                intra_dat);
+            TILE_SIZE>(
+            shared,
+            pose_ind,
+            block_ind1,
+            block_ind2,
+            block_type1,
+            block_type2,
+            n_atoms1,
+            n_atoms2,
+            load_tile_invariant_interres_data,
+            load_interres1_tile_data_to_shared,
+            load_interres2_tile_data_to_shared,
+            load_interres_data_from_shared,
+            eval_interres_atom_pair_scores,
+            store_calculated_energies,
+            load_tile_invariant_intrares_data,
+            load_intrares1_tile_data_to_shared,
+            load_intrares2_tile_data_to_shared,
+            load_intrares_data_from_shared,
+            eval_intrares_atom_pair_scores,
+            store_calculated_energies);
       });
-
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-          eval_scores_for_atom_pairs);
-    });
-
-    tmol::score::common::tile_evaluate_block_pair<
-        DeviceDispatch,
-        D,
-        ElecScoringData,
-        ElecScoringData,
-        Real,
-        TILE_SIZE>(
-        shared,
-        pose_ind,
-        block_ind1,
-        block_ind2,
-        block_type1,
-        block_type2,
-        n_atoms1,
-        n_atoms2,
-        load_tile_invariant_interres_data,
-        load_interres1_tile_data_to_shared,
-        load_interres2_tile_data_to_shared,
-        load_interres_data_from_shared,
-        eval_interres_atom_pair_scores,
-        store_calculated_energies,
-        load_tile_invariant_intrares_data,
-        load_intrares1_tile_data_to_shared,
-        load_intrares2_tile_data_to_shared,
-        load_intrares_data_from_shared,
-        eval_intrares_atom_pair_scores,
-        store_calculated_energies);
-  });
 
   auto eval_energies_only = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto score_inter_elec_atom_pair =
-        ([=] TMOL_DEVICE_FUNC(
-             int,
-             int,
-             int atom_tile_ind1,
-             int atom_tile_ind2,
-             ElecScoringData<Real> const &inter_dat) {
-          int separation = interres_count_pair_separation<TILE_SIZE>(
-              inter_dat, atom_tile_ind1, atom_tile_ind2);
-          return elec_atom_energy(
-              atom_tile_ind1, atom_tile_ind2, inter_dat, separation);
-        });
+        auto hbond_atom_energy =
+            ([=] TMOL_DEVICE_FUNC(
+                 int don_ind,
+                 int acc_ind,
+                 int don_tile_ind,
+                 int acc_tile_ind,
+                 int don_start,
+                 int acc_start,
+                 HBondSingleResData<Real> const &don_dat,
+                 HBondSingleResData<Real> const &acc_dat,
+                 HBondResPairData<Dev, Real, Int> const &respair_dat,
+                 int cp_separation) {
+              if (cp_separation < 4) {
+                return 0.0;
+              }
+              Real val = hbond_atom_energy_full(
+                  don_ind,
+                  acc_ind,
+                  don_tile_ind,
+                  acc_tile_ind,
+                  don_start,
+                  acc_start,
+                  don_dat,
+                  acc_dat,
+                  score_dat,
+                  cp_separation);
+              return val;
+            });
 
-    auto score_intra_elec_atom_pair =
-        ([=] TMOL_DEVICE_FUNC(
-             int start_atom1,
-             int start_atom2,
-             int atom_tile_ind1,
-             int atom_tile_ind2,
-             ElecScoringData<Real> const &intra_dat) {
-          int const atom_ind1 = start_atom1 + atom_tile_ind1;
-          int const atom_ind2 = start_atom2 + atom_tile_ind2;
+        auto score_inter_hbond_atom_pair =
+            ([=] TMOL_DEVICE_FUNC(
+                 int don_start,
+                 int acc_start,
+                 int don_ind,
+                 int acc_ind,
+                 HBondScoringData<Dev, Real, Int> const &inter_dat,
+                 bool donor_first) {
+              int don_tile_ind = (donor_first ? inter_dat.r1 : inter_dat.r2)
+                                     .donH_inds[don_ind];
+          int acc_tile_ind = (donor_first ? inter_dat.r2 : inter_dat.r1).acc_inds[acc_ind],
+          int separation = interres_count_pair_separation<TILE_SIZE>(
+            inter_dat, (donor_first ? don_ind : acc_ind), (donor_first ? acc_ind : don_ind);
+          return hbond_atom_energy(
+              don_ind,
+              acc_ind,
+              don_tile_ind,
+              acc_tile_ind,
+              don_start,
+              acc_atom,
+              donor_first ? inter_dat.r1 : inter_dat.r2,
+              donor_first ? inter_dat.r2 : inter_dat.r1,
+              inter_dat.pair_data,
+              separation);
+            });
+
+        auto score_intra_hbond_atom_pair = ([=] TMOL_DEVICE_FUNC(
+                                                int don_start,
+                                                int acc_start,
+                                                int don_ind int acc_ind,
+                                                HbondScoringData<Real> const
+                                                    &intra_dat,
+                                                bool donor_first) {
+          int don_tile_ind =
+              (donor_first ? inter_dat.r1 : inter_dat.r2).donH_inds[don_ind];
+          int acc_tile_ind =
+                  (donor_first ? inter_dat.r2 : inter_dat.r1).acc_inds[acc_ind],
+              int const don_atom_ind = don_start + don_tile_ind;
+          int const acc_atom_ind = acc_start + acc_tile_ind;
 
           int const separation =
-
               block_type_intra_repr_path_distance[intra_dat.r1.block_type]
-                                                 [atom_ind1][atom_ind2];
-          return elec_atom_energy(
-              atom_tile_ind1, atom_tile_ind2, intra_dat, separation);
+                                                 [don_atom_ind][acc_atom_ind];
+          return hbond_atom_energy(
+              don_ind,
+              acc_ind,
+              don_tile_ind,
+              acc_tile_ind,
+              don_start,
+              acc_start,
+              donor_first ? intra_dat.r1 : intra_dat.r2,
+              donor_first ? intra_dat.r2 : intra_dat.r1,
+              intra_dat.pair_data,
+              separation);
         });
 
-    auto load_block_coords_and_params_into_shared =
-        ([=] TMOL_DEVICE_FUNC(
-             int pose_ind,
-             ElecSingleResData<Real> &r_dat,
-             int n_atoms_to_load,
-             int start_atom) {
-          elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
-              coords,
-              block_type_partial_charge,
-              pose_ind,
-              r_dat,
-              n_atoms_to_load,
-              start_atom);
-        });
+        SHARED_MEMORY union shared_mem_union {
+          shared_mem_union() {}
+          HbondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
+          CTA_REAL_REDUCE_T_VARIABLE;
 
-    auto load_block_into_shared = ([=] TMOL_DEVICE_FUNC(
-                                       int pose_ind,
-                                       ElecSingleResData<Real> &r_dat,
-                                       int n_atoms_to_load,
-                                       int start_atom,
-                                       bool count_pair_striking_dist,
-                                       unsigned char *__restrict__ conn_ats) {
-      elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
-          coords,
-          block_type_partial_charge,
-          block_type_inter_repr_path_distance,
-          pose_ind,
-          r_dat,
-          n_atoms_to_load,
-          start_atom,
-          count_pair_striking_dist,
-          conn_ats);
-    });
+        } shared;
 
-    SHARED_MEMORY union shared_mem_union {
-      shared_mem_union() {}
-      ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
-      CTA_REAL_REDUCE_T_VARIABLE;
-
-    } shared;
-
-    Real total_lj = 0;
-    Real total_lk = 0;
-
-    int const pose_ind = cta / (max_n_blocks * max_n_blocks);
-    int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
-    int const block_ind1 = block_ind_pair / max_n_blocks;
-    int const block_ind2 = block_ind_pair % max_n_blocks;
-    if (block_ind1 > block_ind2) {
-      return;
-    }
-
-    if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-      return;
-    }
-
-    int const max_important_bond_separation = 4;
-
-    int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-    int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
-
-    if (block_type1 < 0 || block_type2 < 0) {
-      return;
-    }
-
-    int const n_atoms1 = block_type_n_atoms[block_type1];
-    int const n_atoms2 = block_type_n_atoms[block_type2];
-
-    auto load_tile_invariant_interres_data =
-        ([=](int pose_ind,
-             int block_ind1,
-             int block_ind2,
-             int block_type1,
-             int block_type2,
-             int n_atoms1,
-             int n_atoms2,
-             ElecScoringData<Real> &inter_dat,
-             shared_mem_union &shared) {
-          elec_load_tile_invariant_interres_data<DeviceDispatch, D, nt>(
-              pose_stack_block_coord_offset,
-              pose_stack_min_bond_separation,
-              block_type_n_interblock_bonds,
-              block_type_atoms_forming_chemical_bonds,
-              pose_stack_inter_block_bondsep,
-              global_params,
-              max_important_bond_separation,
-              pose_ind,
-              block_ind1,
-              block_ind2,
-              block_type1,
-              block_type2,
-              n_atoms1,
-              n_atoms2,
-              inter_dat,
-              shared.m);
-        });
-
-    auto load_interres1_tile_data_to_shared =
-        ([=](int tile_ind,
-             int start_atom1,
-             int n_atoms_to_load1,
-             ElecScoringData<Real> &inter_dat,
-             shared_mem_union &shared) {
-          elec_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>(
-              coords,
-              block_type_partial_charge,
-              block_type_inter_repr_path_distance,
-              tile_ind,
-              start_atom1,
-              n_atoms_to_load1,
-              inter_dat,
-              shared.m);
-        });
-
-    auto load_interres2_tile_data_to_shared =
-        ([=](int tile_ind,
-             int start_atom2,
-             int n_atoms_to_load2,
-             ElecScoringData<Real> &inter_dat,
-             shared_mem_union &shared) {
-          elec_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>(
-              coords,
-              block_type_partial_charge,
-              block_type_inter_repr_path_distance,
-              tile_ind,
-              start_atom2,
-              n_atoms_to_load2,
-              inter_dat,
-              shared.m);
-        });
-
-    auto load_interres_data_from_shared =
-        ([=](int, int, shared_mem_union &, ElecScoringData<Real> &) {});
-
-    // Evaluate both the LJ and LK scores in separate dispatches
-    // over all atoms in the tile and the subset of heavy atoms in
-    // the tile
-    auto eval_interres_atom_pair_scores = ([=](ElecScoringData<Real> &inter_dat,
-                                               int start_atom1,
-                                               int start_atom2) {
-      auto eval_scores_for_atom_pairs = ([&](int tid) {
-        inter_dat.total_elec += tmol::score::common::InterResBlockEvaluation<
-            ElecScoringData,
-            AllAtomPairSelector,
-            D,
-            TILE_SIZE,
-            nt,
-            Real,
-            Int>::
-            eval_interres_atom_pair(
-                tid,
-                start_atom1,
-                start_atom2,
-                score_inter_elec_atom_pair,
-                inter_dat);
-      });
-
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-          eval_scores_for_atom_pairs);
-    });
-
-    auto store_calculated_energies = ([=](ElecScoringData<Real> &score_dat,
-                                          shared_mem_union &shared) {
-      auto reduce_energies = ([&](int tid) {
-        Real const cta_total_elec =
-            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-                score_dat.total_elec, shared, mgpu::plus_t<Real>());
-
-        if (tid == 0) {
-          accumulate<D, Real>::add(
-              output[0][score_dat.pose_ind], cta_total_elec);
+        int const pose_ind = cta / (max_n_blocks * max_n_blocks);
+        int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
+        int const block_ind1 = block_ind_pair / max_n_blocks;
+        int const block_ind2 = block_ind_pair % max_n_blocks;
+        if (block_ind1 > block_ind2) {
+          return;
         }
-      });
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
-    });
 
-    auto load_tile_invariant_intrares_data =
-        ([=](int pose_ind,
-             int block_ind1,
-             int block_type1,
-             int n_atoms1,
-             ElecScoringData<Real> &intra_dat,
-             shared_mem_union &shared) {
-          elec_load_tile_invariant_intrares_data<DeviceDispatch, D, nt>(
-              pose_stack_block_coord_offset,
-              global_params,
-              max_important_bond_separation,
-              pose_ind,
-              block_ind1,
-              block_type1,
-              n_atoms1,
-              intra_dat,
-              shared.m);
+        if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+          return;
+        }
+
+        int const max_important_bond_separation = 4;
+
+        int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
+        int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+
+        if (block_type1 < 0 || block_type2 < 0) {
+          return;
+        }
+
+        int const n_atoms1 = block_type_n_atoms[block_type1];
+        int const n_atoms2 = block_type_n_atoms[block_type2];
+
+        auto load_tile_invariant_interres_data =
+            ([=](int pose_ind,
+                 int block_ind1,
+                 int block_ind2,
+                 int block_type1,
+                 int block_type2,
+                 int n_atoms1,
+                 int n_atoms2,
+                 HbondScoringData<Real> &inter_dat,
+                 shared_mem_union &shared) {
+              hbond_load_tile_invariant_interres_data<DeviceDispatch, D, nt>(
+                  coords pose_stack_block_coord_offset,
+                  pose_stack_block_type,
+                  pose_stack_inter_residue_connections,
+                  pose_stack_min_bond_separation,
+                  pose_stack_inter_block_bondsep,
+
+                  block_type_n_all_bonds,
+                  block_type_all_bonds,
+                  block_type_atom_all_bond_ranges,
+                  block_type_n_interblock_bonds,
+                  block_type_atoms_forming_chemical_bonds,
+                  block_type_atom_is_hydrogen,
+
+                  pair_params,
+                  pair_polynomials,
+                  global_params,
+
+                  max_important_bond_separation,
+                  pose_ind,
+                  block_ind1,
+                  block_ind2,
+                  block_type1,
+                  block_type2,
+                  n_atoms1,
+                  n_atoms2,
+                  inter_dat,
+                  shared.m);
+            });
+
+        auto load_interres1_tile_data_to_shared =
+            ([=](int tile_ind,
+                 int start_atom1,
+                 int n_atoms_to_load1,
+                 HbondScoringData<Real> &inter_dat,
+                 shared_mem_union &shared) {
+              hbond_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>(
+                  coords,
+                  block_type_tile_n_donH,
+                  block_type_tile_n_acc,
+                  block_type_tile_donH_inds,
+                  block_type_tile_acc_inds,
+                  block_type_tile_donor_type,
+                  block_type_tile_acceptor_type,
+                  block_type_tile_hybridization,
+                  block_type_path_distance,
+                  tile_ind,
+                  start_atom1,
+                  n_atoms_to_load1,
+                  inter_dat,
+                  shared.m);
+            });
+
+        auto load_interres2_tile_data_to_shared =
+            ([=](int tile_ind,
+                 int start_atom2,
+                 int n_atoms_to_load2,
+                 HbondScoringData<Real> &inter_dat,
+                 shared_mem_union &shared) {
+              hbond_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>(
+                  coords,
+                  block_type_tile_n_donH,
+                  block_type_tile_n_acc,
+                  block_type_tile_donH_inds,
+                  block_type_tile_acc_inds,
+                  block_type_tile_donor_type,
+                  block_type_tile_acceptor_type,
+                  block_type_tile_hybridization,
+                  block_type_path_distance,
+                  tile_ind,
+                  start_atom2,
+                  n_atoms_to_load2,
+                  inter_dat,
+                  shared.m);
+            });
+
+        auto load_interres_data_from_shared =
+            ([=](int, int, shared_mem_union &, HbondScoringData<Real> &) {});
+
+        auto eval_interres_atom_pair_scores = ([=](HbondScoringData<Real>
+                                                       &inter_dat,
+                                                   int start_atom1,
+                                                   int start_atom2) {
+          auto eval_scores_for_don_acc_pairs = ([&](int tid) {
+            int const n_don_acc_pairs =
+                inter_dat.r1.n_donH * inter_dat.r2.n_acc
+                + inter_dat.r1.n_acc * inter_dat.r2.n_donH;
+            for (int i = tid; i < n_don_acc_pairs; i += nt) {
+              bool r1_don = i < inter_dat.r1.n_donH * inter_dat.r2.n_acc;
+              int pair_ind =
+                  r1_don ? i - inter_dat.r1.n_donH * inter_dat.r2.n_acc : i;
+              HBondSingleResData const &don_dat =
+                  r1_don ? inter_dat.r1 : inter_dat.r2;
+              HBondSingleResData const &acc_dat =
+                  r1_don ? inter_dat.r2 : inter_dat.r1;
+              int don_ind = pair_ind / acc_dat.n_acc;
+              int acc_ind = pair_ind % acc_dat.n_acc;
+              int don_start = r1_don ? start_atom1 : start_atom2;
+              int acc_start = r2_don ? start_atom2 : start_atom1;
+
+              inter_dat.pair_data.total_hbond += score_inter_hbond_atom_pair(
+                  don_start, acc_start, don_ind, acc_ind, inter_dat, r1_don);
+            }
+          });
+
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+              eval_scores_for_don_acc_pairs);
         });
 
-    auto load_intrares1_tile_data_to_shared =
-        ([=](int tile_ind,
-             int start_atom1,
-             int n_atoms_to_load1,
-             ElecScoringData<Real> &intra_dat,
-             shared_mem_union &shared) {
-          elec_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>(
-              coords,
-              block_type_partial_charge,
-              tile_ind,
-              start_atom1,
-              n_atoms_to_load1,
-              intra_dat,
-              shared.m);
-        });
+        auto store_calculated_energies =
+            ([=](HbondScoringData<Real> &score_dat, shared_mem_union &shared) {
+              auto reduce_energies = ([&](int tid) {
+                Real const cta_total_hbond =
+                    DeviceDispatch<D>::template reduce_in_workgroup<nt>(
+                        score_dat.pair_data.total_hbond,
+                        shared,
+                        mgpu::plus_t<Real>());
 
-    auto load_intrares2_tile_data_to_shared =
-        ([=](int tile_ind,
-             int start_atom2,
-             int n_atoms_to_load2,
-             ElecScoringData<Real> &intra_dat,
-             shared_mem_union &shared) {
-          elec_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>(
-              coords,
-              block_type_partial_charge,
-              tile_ind,
-              start_atom2,
-              n_atoms_to_load2,
-              intra_dat,
-              shared.m);
-        });
+                if (tid == 0) {
+                  accumulate<D, Real>::add(
+                      output[0][score_dat.pair_data.pose_ind], cta_total_hbond);
+                }
+              });
+              DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+                  reduce_energies);
+            });
 
-    auto load_intrares_data_from_shared =
-        ([=](int tile_ind1,
-             int tile_ind2,
-             shared_mem_union &shared,
-             ElecScoringData<Real> &intra_dat) {
-          elec_load_intrares_data_from_shared(
-              tile_ind1, tile_ind2, shared.m, intra_dat);
-        });
+        auto load_tile_invariant_intrares_data =
+            ([=](int pose_ind,
+                 int block_ind1,
+                 int block_type1,
+                 int n_atoms1,
+                 HbondScoringData<Real> &intra_dat,
+                 shared_mem_union &shared) {
+              hbond_load_tile_invariant_intrares_data<DeviceDispatch, D, nt>(
+                  coords,
+                  pose_stack_block_coord_offset,
+                  pose_stack_block_type,
+                  pose_stack_inter_residue_connections,
+                  block_type_n_all_bonds,
+                  block_type_all_bonds,
+                  block_type_atom_all_bond_ranges,
+                  block_type_atoms_forming_chemical_bonds,
+                  block_type_atom_is_hydrogen,
+                  pair_params,
+                  pair_polynomials,
+                  global_params,
+                  max_important_bond_separation,
+                  pose_ind,
+                  block_ind1,
+                  block_type1,
+                  n_atoms1,
+                  intra_dat,
+                  shared.m);
+            });
 
-    auto eval_intrares_atom_pair_scores = ([=](ElecScoringData<Real> &intra_dat,
+        auto load_intrares1_tile_data_to_shared =
+            ([=](int tile_ind,
+                 int start_atom1,
+                 int n_atoms_to_load1,
+                 HbondScoringData<Real> &intra_dat,
+                 shared_mem_union &shared) {
+              hbond_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>(
+                  coords,
+                  block_type_tile_n_donH_inds,
+                  block_type_tile_n_acc_inds,
+                  block_type_tile_donH_inds,
+                  block_type_tile_acc_inds,
+                  block_type_donor_type,
+                  block_type_acceptor_type,
+                  block_type_hybridization,
+
+                  tile_ind,
+                  start_atom1,
+                  n_atoms_to_load1,
+                  intra_dat,
+                  shared.m);
+            });
+
+        auto load_intrares2_tile_data_to_shared =
+            ([=](int tile_ind,
+                 int start_atom2,
+                 int n_atoms_to_load2,
+                 HbondScoringData<Real> &intra_dat,
+                 shared_mem_union &shared) {
+              hbond_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>(
+                  coords,
+                  block_type_tile_n_donH_inds,
+                  block_type_tile_n_acc_inds,
+                  block_type_tile_donH_inds,
+                  block_type_tile_acc_inds,
+                  block_type_donor_type,
+                  block_type_acceptor_type,
+                  block_type_hybridization,
+                  tile_ind,
+                  start_atom2,
+                  n_atoms_to_load2,
+                  intra_dat,
+                  shared.m);
+            });
+
+        auto load_intrares_data_from_shared =
+            ([=](int tile_ind1,
+                 int tile_ind2,
+                 shared_mem_union &shared,
+                 HbondScoringData<Real> &intra_dat) {
+              hbond_load_intrares_data_from_shared(
+                  tile_ind1, tile_ind2, shared.m, intra_dat);
+            });
+
+    auto eval_intrares_atom_pair_scores = ([=](HbondScoringData<Real> &intra_dat,
                                                int start_atom1,
                                                int start_atom2) {
-      auto eval_scores_for_atom_pairs = ([&](int tid) {
-        intra_dat.total_elec += tmol::score::common::IntraResBlockEvaluation<
-            ElecScoringData,
-            AllAtomPairSelector,
-            D,
-            TILE_SIZE,
-            nt,
-            Real,
-            Int>::
-            eval_intrares_atom_pairs(
-                tid,
-                start_atom1,
-                start_atom2,
-                score_intra_elec_atom_pair,
-                intra_dat);
-      });
+          auto eval_scores_for_don_acc_pairs = ([&](int tid) {
+            if (start_atom1 == start_atom2) {
+              int const n_don_acc_pairs =
+                  intra_dat.r1.n_donH * intra_dat.r2.n_acc;
+              for (int i = tid; i < n_don_acc_pairs; i += nt) {
+                int don_ind = i / acc_dat.n_acc;
+                int acc_ind = i % acc_dat.n_acc;
 
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(
-          eval_scores_for_atom_pairs);
-    });
+                intra_dat.pair_data.total_hbond += score_inter_hbond_atom_pair(
+                    start_atom1,
+                    start_atom1,
+                    don_ind,
+                    acc_ind,
+                    intra_dat,
+                    true);
+              }
+              else {
+                int const n_don_acc_pairs =
+                    intra_dat.r1.n_donH * intra_dat.r2.n_acc
+                    + intra_dat.r1.n_acc * intra_dat.r2.n_donH;
+                for (int i = tid; i < n_don_acc_pairs; i += nt) {
+                  bool r1_don = i < intra_dat.r1.n_donH * intra_dat.r2.n_acc;
+                  int pair_ind =
+                      r1_don ? i - intra_dat.r1.n_donH * intra_dat.r2.n_acc : i;
+                  // HBondSingleResData const & don_dat = r1_don ? intra_dat.r1
+                  // : intra_dat.r2;
+                  HBondSingleResData const &acc_dat =
+                      r1_don ? intra_dat.r2 : intra_dat.r1;
+                  int don_ind = pair_ind / acc_dat.n_acc;
+                  int acc_ind = pair_ind % acc_dat.n_acc;
+                  int don_start = r1_don ? start_atom1 : start_atom2;
+                  int acc_start = r2_don ? start_atom2 : start_atom1;
 
-    tmol::score::common::tile_evaluate_block_pair<
-        DeviceDispatch,
-        D,
-        ElecScoringData,
-        ElecScoringData,
-        Real,
-        TILE_SIZE>(
-        shared,
-        pose_ind,
-        block_ind1,
-        block_ind2,
-        block_type1,
-        block_type2,
-        n_atoms1,
-        n_atoms2,
-        load_tile_invariant_interres_data,
-        load_interres1_tile_data_to_shared,
-        load_interres2_tile_data_to_shared,
-        load_interres_data_from_shared,
-        eval_interres_atom_pair_scores,
-        store_calculated_energies,
-        load_tile_invariant_intrares_data,
-        load_intrares1_tile_data_to_shared,
-        load_intrares2_tile_data_to_shared,
-        load_intrares_data_from_shared,
-        eval_intrares_atom_pair_scores,
-        store_calculated_energies);
-  });
+                  intra_dat.pair_data.total_hbond +=
+                      score_intra_hbond_atom_pair(
+                          don_start,
+                          acc_start,
+                          don_ind,
+                          acc_ind,
+                          intra_dat,
+                          r1_don);
+                }
+              });
 
-  ///////////////////////////////////////////////////////////////////////
+              DeviceDispatch<D>::template for_each_in_workgroup<nt>(
+                  eval_scores_for_don_acc_pairs);
+            });
 
-  // Three steps
-  // 0: setup
-  // 1: launch a kernel to find a small bounding sphere surrounding the blocks
-  // 2: launch a kernel to look for spheres that are within striking distance of
-  // each other
-  // 3: launch a kernel to evaluate lj/lk between pairs of blocks
-  // within striking distance
+            tmol::score::common::tile_evaluate_block_pair<
+                DeviceDispatch,
+                D,
+                HbondScoringData,
+                HbondScoringData,
+                Real,
+                TILE_SIZE>(
+                shared,
+                pose_ind,
+                block_ind1,
+                block_ind2,
+                block_type1,
+                block_type2,
+                n_atoms1,
+                n_atoms2,
+                load_tile_invariant_interres_data,
+                load_interres1_tile_data_to_shared,
+                load_interres2_tile_data_to_shared,
+                load_interres_data_from_shared,
+                eval_interres_atom_pair_scores,
+                store_calculated_energies,
+                load_tile_invariant_intrares_data,
+                load_intrares1_tile_data_to_shared,
+                load_intrares2_tile_data_to_shared,
+                load_intrares_data_from_shared,
+                eval_intrares_atom_pair_scores,
+                store_calculated_energies);
+          });
 
-  // 0
-  // TO DO: let DeviceDispatch hold a cuda stream (??)
-  // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
-  // mgpu::standard_context_t context(wrapped_stream.stream());
-  int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
+          ///////////////////////////////////////////////////////////////////////
 
-  score::common::sphere_overlap::
-      compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
-          coords,
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
-          block_type_n_atoms,
-          scratch_block_spheres);
+          // Three steps
+          // 0: setup
+          // 1: launch a kernel to find a small bounding sphere surrounding the
+          // blocks 2: launch a kernel to look for spheres that are within
+          // striking distance of each other 3: launch a kernel to evaluate
+          // lj/lk between pairs of blocks within striking distance
 
-  score::common::sphere_overlap::
-      detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
-          coords,
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
-          block_type_n_atoms,
-          scratch_block_spheres,
-          scratch_block_neighbors,
-          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+          // 0
+          // TO DO: let DeviceDispatch hold a cuda stream (??)
+          // at::cuda::CUDAStream wrapped_stream =
+          // at::cuda::getDefaultCUDAStream(); mgpu::standard_context_t
+          // context(wrapped_stream.stream());
+          int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
 
-  // 3
-  if (compute_derivs) {
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        n_block_pairs, eval_energies_and_derivs);
-  } else {
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        n_block_pairs, eval_energies_only);
-  }
+          score::common::sphere_overlap::
+              compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
+                  coords,
+                  pose_stack_block_coord_offset,
+                  pose_stack_block_type,
+                  block_type_n_atoms,
+                  scratch_block_spheres);
 
-  return {output_t, dV_dcoords_t};
+          score::common::sphere_overlap::
+              detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
+                  coords,
+                  pose_stack_block_coord_offset,
+                  pose_stack_block_type,
+                  block_type_n_atoms,
+                  scratch_block_spheres,
+                  scratch_block_neighbors,
+                  Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+
+          // 3
+          if (compute_derivs) {
+            DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+                n_block_pairs, eval_energies_and_derivs);
+          } else {
+            DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+                n_block_pairs, eval_energies_only);
+          }
+
+          return {output_t, dV_dcoords_t};
 }  // namespace potentials
 
 }  // namespace potentials
-}  // namespace elec
+}  // namespace hbond
 }  // namespace score
 }  // namespace tmol
