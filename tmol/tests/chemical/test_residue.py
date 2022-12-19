@@ -153,8 +153,8 @@ def test_all_bonds_construction(fresh_default_restype_set):
             at1 = bt.all_bonds[i, 0]
             assert at1 >= 0
             assert at1 <= bt.n_atoms
-            assert i >= bt.all_bond_ranges[at1, 0]
-            assert i < bt.all_bond_ranges[at1, 1]
+            assert i >= bt.atom_all_bond_ranges[at1, 0]
+            assert i < bt.atom_all_bond_ranges[at1, 1]
             at2 = bt.all_bonds[i, 1]
             if at2 >= 0:
                 assert at2 < bt.n_atoms

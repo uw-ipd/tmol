@@ -28,7 +28,7 @@ def bonds_and_bond_ranges(n_atoms, intra_res_bonds, ordered_connection_atoms):
             bond_ranges[i, 0] = bond_ranges[i - 1, 1]
             bond_ranges[i, 1] = bond_ranges[i - 1, 1] + i_n_bonds
 
-    bonds = numpy.zeros((n_all_bonds, 4), dtype=int_dtype)
+    bonds = numpy.zeros((n_all_bonds, 3), dtype=int_dtype)
     count_bond = numpy.zeros((n_atoms,), dtype=int_dtype)
     for i in range(n_intra_bonds):
         i_atm = intra_res_bonds[i, 0]
@@ -47,6 +47,5 @@ def bonds_and_bond_ranges(n_atoms, intra_res_bonds, ordered_connection_atoms):
         bonds[bond, 0] = i_atm
         bonds[bond, 1] = -1  # unresolved; on another residue
         bonds[bond, 2] = i  # i is the index of the inter-residue connection
-        bonds[bond, 3] = 0  # 0 chemical bonds into the other residue
 
     return bonds, bond_ranges

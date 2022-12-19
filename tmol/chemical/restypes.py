@@ -79,15 +79,28 @@ class RefinedResidueType(RawResidueType):
             [self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32
         )
 
+    # The set of "all-bonds" includes both inter- and intra- block chemical bonds
+    # Each all-bond (think of "all" here as an adjective like "inter" or "intra")
+    # is described as a pair (atom-ind1, unresolved-atom id) where the
+    # unresolved-atom id is a tuple (intra-block-atom-ind, conn-id)
+    # following the same rules for undresolved-atom ids for describing
+    # torsions, except that the "bond sep from conn" integer is always 0
+    # because the chemical bond is always defined as to the connection
+    # atom on the other residue, so it is omitted from the all-bonds info.
+    # That is, the "intra-block-atom-ind" is >= 0 if the atom to which atom_ind1
+    # is chemically bound and is in the same block as it, and is -1 otherwise;
+    # conn-id is >= 0 and represents the index of the connection on *this*
+    # block that connects atom_ind1 to its partner when the partner is
+    # on a different block and is -1 otherwise.
     all_bonds: numpy.ndarray = attr.ib()
 
-    # NOTE: this also creates self.all_bond_ranges
+    # NOTE: this also creates self.atom_all_bond_ranges
     @all_bonds.default
     def _setup_all_bonds(self):
-        all_bonds, all_bond_ranges = bonds_and_bond_ranges(
+        all_bonds, atom_all_bond_ranges = bonds_and_bond_ranges(
             self.n_atoms, self.bond_indices, self.ordered_connection_atoms
         )
-        self.all_bond_ranges = all_bond_ranges
+        self.atom_all_bond_ranges = atom_all_bond_ranges
         return all_bonds
 
     down_connection_ind: int = attr.ib()

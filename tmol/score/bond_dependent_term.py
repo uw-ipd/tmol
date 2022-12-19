@@ -38,6 +38,9 @@ class BondDependentTerm(EnergyTerm):
             assert hasattr(packed_block_types, "max_n_interblock_bonds")
             assert hasattr(packed_block_types, "n_interblock_bonds")
             assert hasattr(packed_block_types, "atoms_for_interblock_bonds")
+            assert hasattr(packed_block_types, "n_all_bonds")
+            assert hasattr(packed_block_types, "all_bonds")
+            assert hasattr(packed_block_types, "atom_all_bond_ranges")
             # assert hasattr(packed_block_types, "intrares_indexed_bonds")
             return
 
@@ -50,6 +53,8 @@ class BondDependentTerm(EnergyTerm):
             MAX_SIG_BOND_SEPARATION,
             dtype=numpy.int32,
         )
+
+        # why is this not in setup_block_type????
         for i, rt in enumerate(packed_block_types.active_block_types):
             i_nats = packed_block_types.n_atoms[i]
             # rt_bonds = numpy.zeros((i_nats, i_nats)
@@ -89,12 +94,43 @@ class BondDependentTerm(EnergyTerm):
             atoms_for_interblock_bonds, device=self.device
         )
 
+        n_all_bonds = torch.tensor(
+            (packed_block_types.n_types,),
+            dtype=torch.int32,
+            device=packed_block_types.device,
+        )
+        max_n_all_bonds = max(
+            bt.all_bonds.shape[0] for bt in packed_block_types.active_block_types
+        )
+        all_bonds = torch.tensor(
+            (packed_block_types.n_types, max_n_all_atom_bonds, 3),
+            dtype=torch.int32,
+            device=packed_block_types.device,
+        )
+        atom_all_bond_ranges = torch.tensor(
+            (packed_block_types.n_types, packed_block_types.max_n_atoms),
+            dtype=torch.int32,
+            device=packed_block_types.device,
+        )
+
+        def _t(arr):
+            return torch.tensor(arr, dtype=torch.int32, device=self.device)
+
+        for i, bt in enumerate(packed_block_types.active_block_types):
+            i_n_bonds = bt.all_bonds.shape[0]
+            n_all_bonds[i] = i_n_bonds
+            all_bonds[i, :i_n_bonds, :] = _t(bt.all_bonds)
+            atom_all_bond_ranges[i, : bt.n_atoms] = _t(bt.all_bond_ranges)
+
         setattr(packed_block_types, "bond_separation", bond_separation)
         setattr(packed_block_types, "max_n_interblock_bonds", max_n_interblock_bonds)
         setattr(packed_block_types, "n_interblock_bonds", n_interblock_bonds)
         setattr(
             packed_block_types, "atoms_for_interblock_bonds", atoms_for_interblock_bonds
         )
+        setattr(packed_block_types, "n_all_bonds", n_all_bonds)
+        setattr(packed_block_types, "all_bonds", all_bonds)
+        setattr(packed_block_types, "atom_all_bond_ranges", atom_all_bond_ranges)
 
     def setup_poses(self, pose_stack: PoseStack):
         super(BondDependentTerm, self).setup_poses(pose_stack)

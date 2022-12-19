@@ -46,6 +46,15 @@ def AH_dist_V_dV(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)
 }
 
 template <typename Real>
+def AH_dist_V(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)->Real {
+  Real dist = distance<Real>::V(A, H);
+  Real poly = bound_poly<11, double>::V(
+      dist, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
+
+  return {poly.V, poly.dV_dX * dist.dV_dA, poly.dV_dX * dist.dV_dB};
+}
+
+template <typename Real>
 def AHD_angle_V_dV(
     Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
     ->tuple<Real, Real3, Real3, Real3> {
@@ -58,6 +67,15 @@ def AHD_angle_V_dV(
           poly.dV_dX * AHD.dV_dA,
           poly.dV_dX * AHD.dV_dB,
           poly.dV_dX * AHD.dV_dC};
+}
+
+template <typename Real>
+def AHD_angle_V(Real3 A, Real3 H, Real3 D, HBondPoly<double> const& cosAHD_poly)
+    ->Real {
+  // In non-cos space
+  Real AHD = pt_interior_angle<Real>::V(A, H, D);
+  return bound_poly<11, double>::V(
+      AHD, cosAHD_poly.coeffs, cosAHD_poly.range, cosAHD_poly.bound);
 }
 
 template <typename Real>
@@ -75,6 +93,18 @@ def _BAH_angle_base_form_V_dV(
           poly.dV_dX * (-cosT.dV_dB),
           poly.dV_dX * (cosT.dV_dB - cosT.dV_dA),
           poly.dV_dX * cosT.dV_dA};
+}
+
+template <typename Real>
+def _BAH_angle_base_form_V(
+    Real3 B, Real3 A, Real3 H, HBondPoly<double> const& cosBAH_poly)
+    ->Real {
+  Real3 AH = H - A;
+  Real3 BA = A - B;
+
+  Real cosT = cos_interior_angle<Real>::V(AH, BA);
+  return bound_poly<11, double>::V(
+      cosT, cosBAH_poly.coeffs, cosBAH_poly.range, cosBAH_poly.bound);
 }
 
 template <typename Real, typename Int>
@@ -140,6 +170,41 @@ def BAH_angle_V_dV(
   }
 }
 
+template <typename Real, typename Int>
+def BAH_angle_V(
+    Real3 B,
+    Real3 B0,
+    Real3 A,
+    Real3 H,
+    Int acceptor_hybridization,
+    HBondPoly<double> const& cosBAH_poly,
+    Real hb_sp3_softmax_fade)
+    ->Real {
+  using std::exp;
+  using std::log;
+
+  if (acceptor_hybridization == AcceptorHybridization::sp2) {
+    return _BAH_angle_base_form_V(B, A, H, cosBAH_poly);
+
+  } else if (acceptor_hybridization == AcceptorHybridization::ring) {
+    Real3 Bm = (B + B0) / 2;
+    return _BAH_angle_base_form_V(Bm, A, H, cosBAH_poly);
+
+  } else if (acceptor_hybridization == AcceptorHybridization::sp3) {
+    Real PxH = _BAH_angle_base_form_V_dV(B, A, H, cosBAH_poly);
+
+    Real PxH0 = _BAH_angle_base_form_V(B0, A, H, cosBAH_poly);
+
+    return log(exp(PxH * hb_sp3_softmax_fade) + exp(PxH0 * hb_sp3_softmax_fade))
+           / hb_sp3_softmax_fade;
+
+  } else {
+#ifndef __CUDACC__
+    throw std::runtime_error("Invalid acceptor_hybridization.");
+#endif
+  }
+}
+
 template <typename Real>
 def sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
     ->tuple<Real, Real, Real> {
@@ -185,6 +250,36 @@ def sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
   }
 }
 
+template <typename Real>
+def sp2chi_energy_V(Real ang, Real chi, Real d, Real m, Real l)->Real {
+  const Real pi = EIGEN_PI;
+
+  using std::cos;
+  using std::pow;
+  using std::sin;
+
+  Real H = 0.5 * (cos(2 * chi) + 1);
+
+  if (ang > pi * 2.0 / 3.0) {
+    Real F = d / 2 * cos(3 * (pi - ang)) + d / 2 - 0.5;
+    Real G = d - 0.5;
+    return H * F + (1 - H) * G;
+  } else if (ang >= pi * (2.0 / 3.0 - l)) {
+    Real outer_rise = cos(pi - (pi * 2 / 3 - ang) / l);
+
+    Real F = m / 2 * outer_rise + m / 2 - 0.5;
+    Real G = (m - d) / 2 * outer_rise + (m - d) / 2 + d - 0.5;
+
+    return H * F + (1 - H) * G;
+
+  } else {
+    // F = m - 0.5;
+    // G = m - 0.5;
+
+    return m - 0.5;
+  }
+}
+
 template <typename Real, typename Int>
 def B0BAH_chi_V_dV(
     Real3 B0,
@@ -225,6 +320,35 @@ def B0BAH_chi_V_dV(
             Real3({0, 0, 0}),
             Real3({0, 0, 0}),
             Real3({0, 0, 0})};
+  }
+}
+
+template <typename Real, typename Int>
+def B0BAH_chi_V(
+    Real3 B0,
+    Real3 B,
+    Real3 A,
+    Real3 H,
+    Int acceptor_hybridization,
+    Real hb_sp2_BAH180_rise,
+    Real hb_sp2_range_span,
+    Real hb_sp2_outer_width)
+    ->Real {
+  if (acceptor_hybridization == AcceptorHybridization::sp2) {
+    // SP-2 Chi Angle
+    Real BAH = pt_interior_angle<Real>::V(B, A, H);
+
+    Real B0BAH = dihedral_angle<Real>::V(B0, B, A, H)
+
+        return sp2chi_energy_V(
+            BAH,
+            B0BAH,
+            hb_sp2_BAH180_rise,
+            hb_sp2_range_span,
+            hb_sp2_outer_width);
+
+  } else {
+    return 0;
   }
 }
 
@@ -324,6 +448,64 @@ struct hbond_score {
     }
 
     return {E, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0};
+  }
+
+  static def V(
+      // coordinates
+      Real3 D,
+      Real3 H,
+      Real3 A,
+      Real3 B,
+      Real3 B0,
+
+      HBondPairParams<Real> const& pair_params,
+      HBondPolynomials<double> const& polynomials,
+      HBondGlobalParams<Real> global_params)
+      ->Real {
+    Real E = 0.0;
+
+    // A-H Distance Component
+    E += AH_dist_V(A, H, polynomials.AHdist_poly);
+
+    // AHD Angle Component
+    E += AHD_angle_V(A, H, D, polynomials.cosAHD_poly);
+
+    // BAH Angle Component
+    E += BAH_angle_V(
+        B,
+        B0,
+        A,
+        H,
+        int(pair_params.acceptor_hybridization),
+        polynomials.cosBAH_poly,
+        global_params.hb_sp3_softmax_fade);
+
+    // B0BAH Chi Component
+    E += B0BAH_chi_V(
+        B0,
+        B,
+        A,
+        H,
+        int(pair_params.acceptor_hybridization),
+        global_params.hb_sp2_BAH180_rise,
+        global_params.hb_sp2_range_span,
+        global_params.hb_sp2_outer_width);
+
+    // Donor/Acceptor Weighting
+    float const ad_weight =
+        pair_params.acceptor_weight * pair_params.donor_weight;
+
+    E *= ad_weight;
+
+    // Truncate and Fade [-0.1,0.1] to [-0.1,0.0]
+    if (E > 0.1) {
+      E = 0;
+
+    } else if (E > -0.1) {
+      E = (-0.025 + 0.5 * E - 2.5 * E * E);
+    }
+
+    return E;
   }
 };
 
