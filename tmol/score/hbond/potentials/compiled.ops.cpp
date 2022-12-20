@@ -159,23 +159,37 @@ class HBondPoseScoresOp
  public:
   static Tensor forward(
       AutogradContext* ctx,
-      Tensor coords,
-      Tensor posck_stack_block_coord_offset,
 
+      Tensor coords,
+      Tensor pose_stack_block_coord_offset,
       Tensor pose_stack_block_type,
+      Tensor pose_stack_inter_residue_connections,
       Tensor pose_stack_min_bond_separation,
+
       Tensor pose_stack_inter_block_bondsep,
       Tensor block_type_n_atoms,
-      Tensor block_type_n_heavy_atoms_in_tile,
-
-      Tensor block_type_heavy_atoms_in_tile,
-      Tensor block_type_atom_types,
       Tensor block_type_n_interblock_bonds,
       Tensor block_type_atoms_forming_chemical_bonds,
-      Tensor block_type_path_distance,
+      Tensor block_type_n_all_bonds,
 
-      Tensor type_params,
-      Tensor global_params) {
+      Tensor block_type_all_bonds,
+      Tensor block_type_atom_all_bond_ranges,
+      Tensor block_type_tile_n_donH,
+      Tensor block_type_tile_n_acc,
+      Tensor block_type_tile_donH_inds,
+
+      Tensor block_type_tile_acc_inds,
+      Tensor block_type_tile_donor_type,
+      Tensor block_type_tile_acceptor_type,
+      Tensor block_type_tile_hybridization,
+      Tensor block_type_atom_is_hydrogen,
+
+      Tensor block_type_path_distance,
+      Tensor pair_params,
+      Tensor pair_polynomials,
+      Tensor global_params
+
+  ) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
 
@@ -189,21 +203,32 @@ class HBondPoseScoresOp
           auto result =
               HBondPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::f(
                   TCAST(coords),
-                  TCAST(posck_stack_block_coord_offset),
-
+                  TCAST(pose_stack_block_coord_offset),
                   TCAST(pose_stack_block_type),
+                  TCAST(pose_stack_inter_residue_connections),
                   TCAST(pose_stack_min_bond_separation),
+
                   TCAST(pose_stack_inter_block_bondsep),
                   TCAST(block_type_n_atoms),
-                  TCAST(block_type_n_heavy_atoms_in_tile),
-
-                  TCAST(block_type_heavy_atoms_in_tile),
-                  TCAST(block_type_atom_types),
                   TCAST(block_type_n_interblock_bonds),
                   TCAST(block_type_atoms_forming_chemical_bonds),
-                  TCAST(block_type_path_distance),
+                  TCAST(block_type_n_all_bonds),
 
-                  TCAST(type_params),
+                  TCAST(block_type_all_bonds),
+                  TCAST(block_type_atom_all_bond_ranges),
+                  TCAST(block_type_tile_n_donH),
+                  TCAST(block_type_tile_n_acc),
+                  TCAST(block_type_tile_donH_inds),
+
+                  TCAST(block_type_tile_acc_inds),
+                  TCAST(block_type_tile_donor_type),
+                  TCAST(block_type_tile_acceptor_type),
+                  TCAST(block_type_tile_hybridization),
+                  TCAST(block_type_atom_is_hydrogen),
+
+                  TCAST(block_type_path_distance),
+                  TCAST(pair_params),
+                  TCAST(pair_polynomials),
                   TCAST(global_params),
                   coords.requires_grad());
 
@@ -255,41 +280,63 @@ class HBondPoseScoresOp
 };
 
 template <template <tmol::Device> class DispatchMethod>
-Tensor ljlk_pose_scores_op(
+Tensor hbond_pose_scores_op(
     Tensor coords,
     Tensor pose_stack_block_coord_offset,
-
     Tensor pose_stack_block_type,
+    Tensor pose_stack_inter_residue_connections,
     Tensor pose_stack_min_bond_separation,
+
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
-    Tensor block_type_n_heavy_atoms_in_tile,
-
-    Tensor block_type_heavy_atoms_in_tile,
-    Tensor block_type_atom_types,
     Tensor block_type_n_interblock_bonds,
     Tensor block_type_atoms_forming_chemical_bonds,
-    Tensor block_type_path_distance,
+    Tensor block_type_n_all_bonds,
 
-    Tensor ljlk_type_params,
+    Tensor block_type_all_bonds,
+    Tensor block_type_atom_all_bond_ranges,
+    Tensor block_type_tile_n_donH,
+    Tensor block_type_tile_n_acc,
+    Tensor block_type_tile_donH_inds,
+
+    Tensor block_type_tile_acc_inds,
+    Tensor block_type_tile_donor_type,
+    Tensor block_type_tile_acceptor_type,
+    Tensor block_type_tile_hybridization,
+    Tensor block_type_atom_is_hydrogen,
+
+    Tensor block_type_path_distance,
+    Tensor pair_params,
+    Tensor pair_polynomials,
     Tensor global_params) {
   return HBondPoseScoresOp<DispatchMethod>::apply(
       coords,
       pose_stack_block_coord_offset,
-
       pose_stack_block_type,
+      pose_stack_inter_residue_connections,
       pose_stack_min_bond_separation,
+
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,
-      block_type_n_heavy_atoms_in_tile,
-
-      block_type_heavy_atoms_in_tile,
-      block_type_atom_types,
       block_type_n_interblock_bonds,
       block_type_atoms_forming_chemical_bonds,
-      block_type_path_distance,
+      block_type_n_all_bonds,
 
-      ljlk_type_params,
+      block_type_all_bonds,
+      block_type_atom_all_bond_ranges,
+      block_type_tile_n_donH,
+      block_type_tile_n_acc,
+      block_type_tile_donH_inds,
+
+      block_type_tile_acc_inds,
+      block_type_tile_donor_type,
+      block_type_tile_acceptor_type,
+      block_type_tile_hybridization,
+      block_type_atom_is_hydrogen,
+
+      block_type_path_distance,
+      pair_params,
+      pair_polynomials,
       global_params);
 }
 

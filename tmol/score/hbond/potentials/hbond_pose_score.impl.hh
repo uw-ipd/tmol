@@ -73,6 +73,11 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
     TView<Int, 2, Dev> pose_stack_block_coord_offset,
     TView<Int, 2, Dev> pose_stack_block_type,
 
+    // For determining which atoms to retrieve from neighboring
+    // residues we have to know how the blocks in the Pose
+    // are connected
+    TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
+
     // dims: n-poses x max-n-blocks x max-n-blocks
     // Quick lookup: given the inds of two blocks, ask: what is the minimum
     // number of chemical bonds that separate any pair of atoms in those
@@ -80,19 +85,19 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
     // logic for deciding whether two atoms in those blocks should have their
     // interaction energies calculated: all should. intentionally small to
     // (possibly) fit in constant cache
-    TView<Int, 3, Dev> pose_stack_min_bond_separation,
+    TView<Int, 3, Dev>
+        pose_stack_min_bond_separation,  // ?? needed ?? I think so
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+    TView<Int, 5, Dev>
+        pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
 
     //////////////////////
     // Chemical properties
     // how many atoms for a given block
     // Dimsize n_block_types
-    TView<Int, 1, Dev> block_type_n_atoms,
-
-    TView<Real, 2, Dev> block_type_partial_charge,
+    TView<Int, 1, Dev> block_type_n_atoms,  // ?? needed ?? I think so
 
     // how many inter-block chemical bonds are there
     // Dimsize: n_block_types
@@ -102,23 +107,31 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
     // Dimsize: n_block_types x max_n_interblock_bonds
     TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
 
-    // what is the path distance between pairs of atoms in the block
-    // denormalized by their count-pair representative; used for
-    // inter-block chemical-bond separation determination. Entry
-    // i, j stores path_dist[i, rep(j)]
-    // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-    TView<Int, 3, Dev> block_type_inter_repr_path_distance,
+    TView<Int, 1, Dev> block_type_n_all_bonds,
+    TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
+    TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
 
-    // what is the path distance between pairs of atoms in the block
-    // denormalized (twice!) by their count-pair representative;
-    // used for intra-block chemical-bond separation determination.
-    // Entry i, j stores path_dist[rep(i), rep(j)]
+    TView<Int, 2, Dev> block_type_tile_n_donH,
+    TView<Int, 2, Dev> block_type_tile_n_acc,
+    TView<Int, 3, Dev> block_type_tile_donH_inds,
+    TView<Int, 3, Dev> block_type_tile_acc_inds,
+    TView<Int, 3, Dev> block_type_tile_donor_type,
+    TView<Int, 3, Dev> block_type_tile_acceptor_type,
+    TView<Int, 3, Dev> block_type_tile_hybridization,
+    TView<Int, 2, Dev> block_type_atom_is_hydrogen,
+
+    // How many chemical bonds separate all pairs of atoms
+    // within each block type?
     // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-    TView<Int, 3, Dev> block_type_intra_repr_path_distance,
+    TView<Int, 3, Dev> block_type_path_distance,
+
     //////////////////////
 
-    // LJ parameters
-    TView<HbondGlobalParams<Real>, 1, Dev> global_params,
+    // HBond potential parameters
+    TView<HBondPairParams<Real>, 2, Dev> pair_params,
+    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+    TView<HBondGlobalParams<Real>, 1, Dev> global_params,
+
     bool compute_derivs
 
     ) -> std::tuple<TPack<Real, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>> {
@@ -128,14 +141,25 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
   int const n_poses = coords.size(0);
   int const max_n_pose_atoms = coords.size(1);
   int const max_n_blocks = pose_stack_block_type.size(1);
-  int const max_n_block_atoms = block_type_partial_charge.size(1);
+  int const max_n_conn = pose_stack_inter_residue_connections.size(2);
   int const n_block_types = block_type_n_atoms.size(0);
+  int const max_n_block_atoms = block_type_atom_is_hydrogen.size(1);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
+  int const max_n_all_bonds = block_type_all_bonds.size(1);
+  int const max_n_tiles = block_type_tile_donH_inds.size(1);
+  int const max_n_donH_per_tile = block_type_tile_donH_inds.size(2);
+  int const max_n_acc_per_tile = block_type_tile_acc_inds.size(2);
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
+  assert(pose_stack_block_coord_offset.size(0) == n_poses);
+  assert(pose_stack_block_coord_offset.size(1) == max_n_blocks);
+
   assert(pose_stack_block_type.size(0) == n_poses);
+
+  assert(pose_stack_inter_residue_connections.size(0) == n_poses);
+  assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
 
   assert(pose_stack_min_bond_separation.size(0) == n_poses);
   assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
@@ -151,12 +175,34 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
 
   assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
 
-  assert(block_type_inter_repr_path_distance.size(0) == n_block_types);
-  assert(block_type_inter_repr_path_distance.size(1) == max_n_block_atoms);
-  assert(block_type_inter_repr_path_distance.size(2) == max_n_block_atoms);
-  assert(block_type_intra_repr_path_distance.size(0) == n_block_types);
-  assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
-  assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
+  assert(block_type_n_all_bonds.size(0) == n_block_types);
+  assert(block_type_all_bonds.size(0) == n_block_types);
+  assert(block_type_atom_all_bond_ranges.size(0) == n_block_types);
+  assert(block_type_atom_all_bond_ranges.size(1) == max_n_block_atoms);
+
+  assert(block_type_tile_n_donH.size(0) == n_block_types);
+  assert(block_type_tile_n_donH.size(1) == max_n_tiles);
+  assert(block_type_tile_n_acc.size(0) == n_block_types);
+  assert(block_type_tile_n_acc.size(1) == max_n_tiles);
+  assert(block_type_tile_donH_inds.size(0) == n_block_types);
+  assert(block_type_tile_donH_inds.size(1) == max_n_tiles);
+  assert(block_type_tile_acc_inds.size(0) == n_block_types);
+  assert(block_type_tile_acc_inds.size(1) == max_n_tiles);
+  assert(block_type_tile_donor_type.size(0) == n_block_types);
+  assert(block_type_tile_donor_type.size(1) == max_n_tiles);
+  assert(block_type_tile_donor_type.size(2) == max_n_donH_per_tile);
+  assert(block_type_tile_acceptor_type.size(0) == n_block_types);
+  assert(block_type_tile_acceptor_type.size(1) == max_n_tiles);
+  assert(block_type_tile_acceptor_type.size(2) == max_n_acc_per_tile);
+  assert(block_type_tile_hybridization.size(0) == n_block_types);
+  assert(block_type_tile_hybridization.size(1) == max_n_tiles);
+  assert(block_type_tile_hybridization.size(2) == max_n_acc_per_tile);
+  assert(block_type_atom_is_hydrogen.size(0) == n_block_types);
+  assert(block_type_atom_is_hydrogen.size(1) == max_n_block_atoms);
+
+  assert(block_type_path_distance.size(0) == n_block_types);
+  assert(block_type_path_distance.size(1) == max_n_block_atoms);
+  assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
   auto output_t = TPack<Real, 2, Dev>::zeros({1, n_poses});
   auto output = output_t.view;

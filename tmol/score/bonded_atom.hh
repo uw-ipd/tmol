@@ -63,8 +63,8 @@ struct BlockCentricIndexedBonds {
 
   // Properties of the block types in this molecular system
   TView<Int, 1, D> block_type_n_all_bonds;
-  TView<Int, 3, D> block_type_all_bonds;
-  TView<Int, 2, D> block_type_atom_all_bond_ranges;
+  TView<Vec<Int, 3>, 2, D> block_type_all_bonds;
+  TView<Vec<Int, 2>, 2, D> block_type_atom_all_bond_ranges;
   TView<Int, 2, D> block_type_atoms_forming_chemical_bonds;
 
   struct BondJIter {

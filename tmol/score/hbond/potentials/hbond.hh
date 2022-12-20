@@ -63,8 +63,8 @@ class HBondResPairData {
   // And we need to know the properties of the block types
   // that we are working with to iterating across chemical bonds
   TView<Int, 1, Dev> block_type_n_all_bonds;
-  TView<Int, 3, Dev> block_type_all_bonds;
-  TView<Int, 2, Dev> block_type_atom_all_bond_ranges;
+  TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds;
+  TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges;
   TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds;
   TView<Int, 2, Dev> block_type_atom_is_hydrogen;
 
@@ -224,8 +224,8 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
     TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
 
     TView<Int, 1, Dev> block_type_n_all_bonds,
-    TView<Int, 3, Dev> block_type_all_bonds,
-    TView<Int, 2, Dev> block_type_atom_all_bond_ranges,
+    TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
+    TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
     TView<Int, 1, Dev> block_type_n_interblock_bonds,
     TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
     TView<Int, 2, Dev> block_type_atom_is_hydrogen,
@@ -456,8 +456,8 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
     TView<Int, 2, Dev> pose_stack_block_type,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
     TView<Int, 1, Dev> block_type_n_all_bonds,
-    TView<Int, 3, Dev> block_type_all_bonds,
-    TView<Int, 2, Dev> block_type_atom_all_bond_ranges,
+    TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
+    TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
     TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
     TView<Int, 2, Dev> block_type_atom_is_hydrogen,
     TView<HBondPairParams<Real>, 2, Dev> pair_params,

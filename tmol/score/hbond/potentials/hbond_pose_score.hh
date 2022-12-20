@@ -13,7 +13,7 @@
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 
-#include <tmol/score/elec/potentials/params.hh>
+#include <tmol/score/hbond/potentials/params.hh>
 
 namespace tmol {
 namespace score {
@@ -26,14 +26,19 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 template <
     template <tmol::Device>
     class DeviceOps,
-    tmol::Device D,
+    tmol::Device Dev,
     typename Real,
     typename Int>
 struct HBondPoseScoreDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> pose_stack_block_coord_offset,
-      TView<Int, 2, D> pose_stack_block_type,
+      TView<Vec<Real, 3>, 2, Dev> coords,
+      TView<Int, 2, Dev> pose_stack_block_coord_offset,
+      TView<Int, 2, Dev> pose_stack_block_type,
+
+      // For determining which atoms to retrieve from neighboring
+      // residues we have to know how the blocks in the Pose
+      // are connected
+      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
 
       // dims: n-poses x max-n-blocks x max-n-blocks
       // Quick lookup: given the inds of two blocks, ask: what is the minimum
@@ -42,47 +47,55 @@ struct HBondPoseScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, D> pose_stack_min_bond_separation,
+      TView<Int, 3, Dev>
+          pose_stack_min_bond_separation,  // ?? needed ?? I think so
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, D> pose_stack_inter_block_bondsep,
+      TView<Int, 5, Dev>
+          pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
 
       //////////////////////
       // Chemical properties
       // how many atoms for a given block
       // Dimsize n_block_types
-      TView<Int, 1, D> block_type_n_atoms,
-
-      TView<Real, 2, D> block_type_partial_charge,
+      TView<Int, 1, Dev> block_type_n_atoms,  // ?? needed ?? I think so
 
       // how many inter-block chemical bonds are there
       // Dimsize: n_block_types
-      TView<Int, 1, D> block_type_n_interblock_bonds,
+      TView<Int, 1, Dev> block_type_n_interblock_bonds,
 
       // what atoms form the inter-block chemical bonds
       // Dimsize: n_block_types x max_n_interblock_bonds
-      TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
+      TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
 
-      // what is the path distance between pairs of atoms in the block
-      // denormalized by their count-pair representative; used for
-      // inter-block chemical-bond separation determination. Entry
-      // i, j stores path_dist[i, rep(j)]
-      // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-      TView<Int, 3, D> block_type_inter_repr_path_distance,
+      TView<Int, 1, Dev> block_type_n_all_bonds,
+      TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
+      TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
 
-      // what is the path distance between pairs of atoms in the block
-      // denormalized (twice!) by their count-pair representative;
-      // used for intra-block chemical-bond separation determination.
-      // Entry i, j stores path_dist[rep(i), rep(j)]
+      TView<Int, 2, Dev> block_type_tile_n_donH,
+      TView<Int, 2, Dev> block_type_tile_n_acc,
+      TView<Int, 3, Dev> block_type_tile_donH_inds,
+      TView<Int, 3, Dev> block_type_tile_acc_inds,
+      TView<Int, 3, Dev> block_type_tile_donor_type,
+      TView<Int, 3, Dev> block_type_tile_acceptor_type,
+      TView<Int, 3, Dev> block_type_tile_hybridization,
+      TView<Int, 2, Dev> block_type_atom_is_hydrogen,
+
+      // How many chemical bonds separate all pairs of atoms
+      // within each block type?
       // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-      TView<Int, 3, D> block_type_intra_repr_path_distance,
+      TView<Int, 3, Dev> block_type_path_distance,
+
       //////////////////////
 
-      // LJ parameters
-      TView<ElecGlobalParams<Real>, 1, D> global_params,
+      // HBond potential parameters
+      TView<HBondPairParams<Real>, 2, Dev> pair_params,
+      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+      TView<HBondGlobalParams<Real>, 1, Dev> global_params,
+
       bool compute_derivs)
-      -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>>;
+      -> std::tuple<TPack<Real, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>>;
 };
 
 }  // namespace potentials
