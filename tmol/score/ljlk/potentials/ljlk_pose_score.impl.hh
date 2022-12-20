@@ -637,8 +637,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     tmol::score::common::tile_evaluate_block_pair<
         DeviceDispatch,
         D,
-        LJLKScoringData,
-        LJLKScoringData,
+        LJLKScoringData<Real>,
+        LJLKScoringData<Real>,
         Real,
         TILE_SIZE>(
         shared,
@@ -1060,8 +1060,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     tmol::score::common::tile_evaluate_block_pair<
         DeviceDispatch,
         D,
-        LJLKScoringData,
-        LJLKScoringData,
+        LJLKScoringData<Real>,
+        LJLKScoringData<Real>,
         Real,
         TILE_SIZE>(
         shared,

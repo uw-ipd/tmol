@@ -1,23 +1,23 @@
 #include <tmol/score/common/device_operations.cpu.impl.hh>
-#include <tmol/score/elec/potentials/elec_pose_score.impl.hh>
+#include <tmol/score/hbond/potentials/hbond_pose_score.impl.hh>
 
 namespace tmol {
 namespace score {
-namespace elec {
+namespace hbond {
 namespace potentials {
 
-template struct ElecPoseScoreDispatch<
+template struct HBondPoseScoreDispatch<
     DeviceOperations,
     tmol::Device::CPU,
     float,
     int>;
-template struct ElecPoseScoreDispatch<
+template struct HBondPoseScoreDispatch<
     DeviceOperations,
     tmol::Device::CPU,
     double,
     int>;
 
 }  // namespace potentials
-}  // namespace elec
+}  // namespace hbond
 }  // namespace score
 }  // namespace tmol

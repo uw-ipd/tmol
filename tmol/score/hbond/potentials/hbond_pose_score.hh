@@ -17,7 +17,7 @@
 
 namespace tmol {
 namespace score {
-namespace elec {
+namespace hbond {
 namespace potentials {
 
 template <typename Real, int N>
@@ -99,6 +99,6 @@ struct HBondPoseScoreDispatch {
 };
 
 }  // namespace potentials
-}  // namespace elec
+}  // namespace hbond
 }  // namespace score
 }  // namespace tmol

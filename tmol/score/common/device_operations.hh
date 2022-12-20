@@ -26,6 +26,10 @@ struct DeviceOperations {
   static void copy_contiguous_data(
       T* __restrict__ dst, T* __restrict__ src, int n);
 
+  template <int N_T, int WIDTH, typename TD, typename TS>
+  static void copy_and_cast_contiguous_data(
+      TD* __restrict__ dst, TS* __restrict__ src, int n);
+
   template <int N_T, typename Func>
   static void for_each_in_workgroup(Func f);
 

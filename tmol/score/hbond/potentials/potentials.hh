@@ -338,14 +338,10 @@ def B0BAH_chi_V(
     // SP-2 Chi Angle
     Real BAH = pt_interior_angle<Real>::V(B, A, H);
 
-    Real B0BAH = dihedral_angle<Real>::V(B0, B, A, H)
+    Real B0BAH = dihedral_angle<Real>::V(B0, B, A, H);
 
-        return sp2chi_energy_V(
-            BAH,
-            B0BAH,
-            hb_sp2_BAH180_rise,
-            hb_sp2_range_span,
-            hb_sp2_outer_width);
+    return sp2chi_energy_V(
+        BAH, B0BAH, hb_sp2_BAH180_rise, hb_sp2_range_span, hb_sp2_outer_width);
 
   } else {
     return 0;

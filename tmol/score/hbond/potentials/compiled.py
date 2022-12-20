@@ -5,7 +5,16 @@ from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_avail
 load(
     modulename(__name__),
     cuda_if_available(
-        relpaths(__file__, ["compiled.ops.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"])
+        relpaths(
+            __file__,
+            [
+                "compiled.ops.cpp",
+                "compiled.cpu.cpp",
+                "compiled.cuda.cu",
+                "hbond_pose_score.cpu.cpp",
+                "hbond_pose_score.cuda.cu",
+            ],
+        )
     ),
     is_python_module=False,
 )

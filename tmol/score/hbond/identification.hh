@@ -32,12 +32,12 @@ struct AcceptorBases {
   Int B;
   Int B0;
 
-  template <typename func_t, tmol::Device D>
+  template <typename func_t, tmol::Device Dev>
   static def sp2_acceptor_base(
       Int stack,
       Int A,
       Int hybridization,
-      IndexedBonds<Int, D> bonds,
+      IndexedBonds<Int, Dev> bonds,
       func_t atom_is_hydrogen)
       ->AcceptorBases {
     Int B = -1, B0 = -1;
@@ -67,12 +67,12 @@ struct AcceptorBases {
     return {A, B, B0};
   }
 
-  template <typename func_t, tmol::Device D>
+  template <typename func_t, tmol::Device Dev>
   static def sp3_acceptor_base(
       Int stack,
       Int A,
       Int hybridization,
-      IndexedBonds<Int, D> bonds,
+      IndexedBonds<Int, Dev> bonds,
       func_t atom_is_hydrogen)
       ->AcceptorBases {
     Int B = -1;
@@ -103,12 +103,12 @@ struct AcceptorBases {
     return {A, B, B0};
   }
 
-  template <typename func_t, tmol::Device D>
+  template <typename func_t, tmol::Device Dev>
   static def ring_acceptor_base(
       Int stack,
       Int A,
       Int hybridization,
-      IndexedBonds<Int, D> bonds,
+      IndexedBonds<Int, Dev> bonds,
       func_t atom_is_hydrogen)
       ->AcceptorBases {
     Int B = -1;
@@ -139,12 +139,12 @@ struct AcceptorBases {
     return {A, B, B0};
   }
 
-  template <typename func_t, tmol::Device D>
+  template <typename func_t, tmol::Device Dev>
   static def for_acceptor(
       Int stack,
       Int A,
       Int hybridization,
-      IndexedBonds<Int, D> bonds,
+      IndexedBonds<Int, Dev> bonds,
       func_t atom_is_hydrogen)
       ->AcceptorBases {
     if (hybridization == AcceptorHybridization::sp2) {
@@ -168,11 +168,11 @@ struct BlockCentricAcceptorBases {
   BlockCentricAtom<Int> B;
   BlockCentricAtom<Int> B0;
 
-  template <typename func_t, tmol::Device D>
+  template <tmol::Device Dev>
   static def sp2_acceptor_base(
       BlockCentricAtom<Int> A,
-      BlockCentricIndexedBonds<Int, D> bonds,
-      TView<Int, 2, D> bt_atom_is_hydrogen)
+      BlockCentricIndexedBonds<Int, Dev> bonds,
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
       ->BlockCentricAcceptorBases {
     BlockCentricAtom<Int> B({-1, -1, -1});
     BlockCentricAtom<Int> B0({-1, -1, -1});
@@ -212,11 +212,11 @@ struct BlockCentricAcceptorBases {
     return {A, B, B0};
   }
 
-  template <typename func_t, tmol::Device D>
+  template <tmol::Device Dev>
   static def sp3_acceptor_base(
       BlockCentricAtom<Int> A,
-      BlockCentricIndexedBonds<Int, D> bonds,
-      TView<Int, 2, D> bt_atom_is_hydrogen)
+      BlockCentricIndexedBonds<Int, Dev> bonds,
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
       ->BlockCentricAcceptorBases {
     BlockCentricAtom<Int> B({-1, -1, -1});
     BlockCentricAtom<Int> B0({-1, -1, -1});
@@ -246,11 +246,11 @@ struct BlockCentricAcceptorBases {
     return {A, B, B0};
   }
 
-  template <typename func_t, tmol::Device D>
+  template <tmol::Device Dev>
   static def ring_acceptor_base(
       BlockCentricAtom<Int> A,
-      BlockCentricIndexedBonds<Int, D> bonds,
-      TView<Int, 2, D> bt_atom_is_hydrogen)
+      BlockCentricIndexedBonds<Int, Dev> bonds,
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
       ->BlockCentricAcceptorBases {
     BlockCentricAtom<Int> B({-1, -1, -1});
     BlockCentricAtom<Int> B0({-1, -1, -1});
@@ -281,12 +281,12 @@ struct BlockCentricAcceptorBases {
     return {A, B, B0};
   }
 
-  template <typename func_t, tmol::Device D>
+  template <tmol::Device Dev>
   static def for_acceptor(
       BlockCentricAtom<Int> A,
       Int hybridization,
-      BlockCentricIndexedBonds<Int, D> bonds,
-      TView<Int, 2, D> bt_atom_is_hydrogen)
+      BlockCentricIndexedBonds<Int, Dev> bonds,
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
       ->BlockCentricAcceptorBases {
     if (hybridization == AcceptorHybridization::sp2) {
       return sp2_acceptor_base(A, bonds, bt_atom_is_hydrogen);
@@ -305,11 +305,11 @@ struct BlockCentricDonorBase {
   BlockCentricAtom<Int> H;
   BlockCentricAtom<Int> D;
 
-  template <tmol::Device D>
+  template <tmol::Device Dev>
   static def for_polar_H(
       BlockCentricAtom<Int> H,
-      BlockCentricIndexedBonds<Int, D> bonds,
-      TView<Int, 2, D> bt_atom_is_hydrogen)
+      BlockCentricIndexedBonds<Int, Dev> bonds,
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
       ->BlockCentricDonorBase<Int> {
     BlockCentricAtom<Int> D{-1, -1, -1};
     for (BlockCentricAtom<Int> other_atom : bonds.bound_to(H)) {

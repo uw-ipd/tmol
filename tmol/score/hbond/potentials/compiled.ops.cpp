@@ -5,7 +5,11 @@
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
-#include "dispatch.hh"
+#include <tmol/score/common/device_operations.hh>
+
+#include <tmol/score/hbond/potentials/dispatch.hh>
+#include <tmol/score/hbond/potentials/hbond_pose_score.hh>
+
 #include <tmol/utility/nvtx.hh>
 
 namespace tmol {
@@ -258,23 +262,19 @@ class HBondPoseScoresOp
     auto dscore_dcoords = result[i++];
 
     return {
-        dscore_dcoords,
+        dscore_dcoords,  torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(),
 
+        torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
         torch::Tensor(),
-        torch::Tensor(),
+
+        torch::Tensor(), torch::Tensor(), torch::Tensor(), torch::Tensor(),
     };
   }
 };
@@ -345,7 +345,7 @@ Tensor hbond_pose_scores_op(
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("score_hbond", &score_op<HBondDispatch, common::AABBDispatch>);
-  m.def("hbond_pose_scores", &hbond_pose_scores_op<DeviceOperations>);
+  m.def("hbond_pose_scores", &hbond_pose_scores_op<common::DeviceOperations>);
 }
 
 }  // namespace potentials

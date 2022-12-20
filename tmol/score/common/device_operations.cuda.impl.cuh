@@ -61,6 +61,16 @@ struct DeviceOperations<tmol::Device::CUDA> {
     mgpu::mem_to_shared<N_T, WIDTH>(src, threadIdx.x, n, dst, false);
   }
 
+  template <int N_T, int WIDTH, typename TD, typename TS>
+  __device__ static void copy_and_cast_contiguous_data(
+      TD* __restrict__ dst, TS* __restrict__ src, int n) {
+    // taken from mgpu::mem_to_shared w/ cast to TD inserted
+    array_t<TS, WIDTH> x =
+        mgpu::mem_to_reg_strided<N_T, WIDTH, WITCH>(mem, threadIdx.x, n);
+    mgpu::strided_iterate<N_T, WIDTH, WIDTH>(
+        [&](int i, int j) { shared[j] = TD(x[i]); }, threadIdx.x, n);
+  }
+
   template <int N_T, typename Func>
   __device__ static void for_each_in_workgroup(Func f) {
     f(threadIdx.x);
