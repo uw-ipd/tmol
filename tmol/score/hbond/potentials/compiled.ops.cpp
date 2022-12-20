@@ -153,11 +153,152 @@ Tensor score_op(
       global_params);
 }
 
+template <template <tmol::Device> class DispatchMethod>
+class HBondPoseScoresOp
+    : public torch::autograd::Function<HBondPoseScoresOp<DispatchMethod>> {
+ public:
+  static Tensor forward(
+      AutogradContext* ctx,
+      Tensor coords,
+      Tensor posck_stack_block_coord_offset,
+
+      Tensor pose_stack_block_type,
+      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_inter_block_bondsep,
+      Tensor block_type_n_atoms,
+      Tensor block_type_n_heavy_atoms_in_tile,
+
+      Tensor block_type_heavy_atoms_in_tile,
+      Tensor block_type_atom_types,
+      Tensor block_type_n_interblock_bonds,
+      Tensor block_type_atoms_forming_chemical_bonds,
+      Tensor block_type_path_distance,
+
+      Tensor type_params,
+      Tensor global_params) {
+    at::Tensor score;
+    at::Tensor dscore_dcoords;
+
+    using Int = int32_t;
+
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        coords.type(), "hbond_pose_score_op", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+
+          auto result =
+              HBondPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::f(
+                  TCAST(coords),
+                  TCAST(posck_stack_block_coord_offset),
+
+                  TCAST(pose_stack_block_type),
+                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_inter_block_bondsep),
+                  TCAST(block_type_n_atoms),
+                  TCAST(block_type_n_heavy_atoms_in_tile),
+
+                  TCAST(block_type_heavy_atoms_in_tile),
+                  TCAST(block_type_atom_types),
+                  TCAST(block_type_n_interblock_bonds),
+                  TCAST(block_type_atoms_forming_chemical_bonds),
+                  TCAST(block_type_path_distance),
+
+                  TCAST(type_params),
+                  TCAST(global_params),
+                  coords.requires_grad());
+
+          score = std::get<0>(result).tensor;
+          dscore_dcoords = std::get<1>(result).tensor;
+        }));
+
+    ctx->save_for_backward({dscore_dcoords});
+    return score;
+  }
+
+  static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    auto saved_grads = ctx->get_saved_variables();
+
+    tensor_list result;
+
+    for (auto& saved_grad : saved_grads) {
+      auto ingrad = grad_outputs[0];
+      while (ingrad.dim() < saved_grad.dim()) {
+        ingrad = ingrad.unsqueeze(-1);
+      }
+
+      result.emplace_back(saved_grad * ingrad);
+    }
+
+    int i = 0;
+    auto dscore_dcoords = result[i++];
+
+    return {
+        dscore_dcoords,
+        torch::Tensor(),
+
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+
+        torch::Tensor(),
+        torch::Tensor(),
+    };
+  }
+};
+
+template <template <tmol::Device> class DispatchMethod>
+Tensor ljlk_pose_scores_op(
+    Tensor coords,
+    Tensor pose_stack_block_coord_offset,
+
+    Tensor pose_stack_block_type,
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+    Tensor block_type_n_atoms,
+    Tensor block_type_n_heavy_atoms_in_tile,
+
+    Tensor block_type_heavy_atoms_in_tile,
+    Tensor block_type_atom_types,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_path_distance,
+
+    Tensor ljlk_type_params,
+    Tensor global_params) {
+  return HBondPoseScoresOp<DispatchMethod>::apply(
+      coords,
+      pose_stack_block_coord_offset,
+
+      pose_stack_block_type,
+      pose_stack_min_bond_separation,
+      pose_stack_inter_block_bondsep,
+      block_type_n_atoms,
+      block_type_n_heavy_atoms_in_tile,
+
+      block_type_heavy_atoms_in_tile,
+      block_type_atom_types,
+      block_type_n_interblock_bonds,
+      block_type_atoms_forming_chemical_bonds,
+      block_type_path_distance,
+
+      ljlk_type_params,
+      global_params);
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("score_hbond", &score_op<HBondDispatch, common::AABBDispatch>);
+  m.def("hbond_pose_scores", &hbond_pose_scores_op<DeviceOperations>);
 }
 
 }  // namespace potentials

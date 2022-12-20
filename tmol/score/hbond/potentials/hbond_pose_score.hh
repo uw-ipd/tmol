@@ -29,7 +29,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-struct ElecPoseScoreDispatch {
+struct HBondPoseScoreDispatch {
   static auto f(
       TView<Vec<Real, 3>, 2, D> coords,
       TView<Int, 2, D> pose_stack_block_coord_offset,
