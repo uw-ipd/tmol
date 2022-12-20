@@ -183,5 +183,5 @@ class WholePoseScoringModule:
         self.term_modules = term_modules
 
     def __call__(self, coords):
-        all_scores = torch.cat([term(coords) for term in self.term_modules])
+        all_scores = torch.cat([term(coords) for term in self.term_modules], dim=0)
         return torch.sum(self.weights * all_scores)

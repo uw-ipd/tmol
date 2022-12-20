@@ -38,6 +38,8 @@ class ElecParamResolver(ValidateAttrs):
     # map (AA,atom) to atom
     cp_reps: dict
 
+    cp_reps_by_res: dict
+
     # map (AA,atom) to partial charge
     partial_charges: dict
 
@@ -109,6 +111,11 @@ class ElecParamResolver(ValidateAttrs):
             (x.res, x.atm_outer): x.atm_inner
             for x in elec_database.atom_cp_reps_parameters
         }
+        cp_reps_by_res = {}
+        for x in elec_database.atom_cp_reps_parameters:
+            if x.res not in cp_reps_by_res:
+                cp_reps_by_res[x.res] = {}
+            cp_reps_by_res[x.res][x.atm_outer] = x.atm_inner
 
         # Read partial charges
         partial_charges = {
@@ -120,5 +127,6 @@ class ElecParamResolver(ValidateAttrs):
             global_params=global_params,
             partial_charges=partial_charges,
             cp_reps=cp_reps,
+            cp_reps_by_res=cp_reps_by_res,
             device=device,
         )

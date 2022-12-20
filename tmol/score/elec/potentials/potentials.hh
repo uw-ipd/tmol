@@ -124,6 +124,73 @@ def elec_delec_ddist(
   return {weight * elecE, weight * delec_ddist};
 }
 
+def elec(
+    Real dist,
+    Real e_i,
+    Real e_j,
+    Real bonded_path_length,
+    float D,
+    float D0,
+    float S,
+    float min_dis,
+    float max_dis)
+    ->Real {
+  Real low_poly_start = min_dis - 0.25;
+  Real low_poly_end = min_dis + 0.25;
+  Real hi_poly_start = max_dis - 1.0;
+  Real hi_poly_end = max_dis;
+
+  Real weight = connectivity_weight<Real>(bonded_path_length);
+
+  Real C1 = 322.0637;  // electrostatic energy constant
+  Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
+
+  Real eiej = e_i * e_j;
+
+  Real elecE = 0;
+  if (dist < low_poly_start) {
+    // flat part
+    Real min_dis_score = C1 / (min_dis * eps(min_dis, D, D0, S)) - C2;
+    elecE = eiej * min_dis_score;
+  } else if (dist < low_poly_end) {
+    // short range fade
+    Real min_dis_score = C1 / (min_dis * eps(min_dis, D, D0, S)) - C2;
+    Real eps_elec = eps(low_poly_end, D, D0, S);
+    Real deps_elec_d_dist = deps_ddist(low_poly_end, D, D0, S);
+    Real dmax_elec = eiej * (C1 / (low_poly_end * eps_elec) - C2);
+
+    elecE = interpolate<Real>(
+        dist,
+        low_poly_start,
+        eiej * min_dis_score,
+        0.0,
+        low_poly_end,
+        dmax_elec,
+        deps_elec_d_dist);
+
+  } else if (dist < hi_poly_start) {
+    // Coulombic part
+    Real eps_elec = eps(dist, D, D0, S);
+    Real deps_elec_d_dist = deps_ddist(dist, D, D0, S);
+
+    elecE = eiej * (C1 / (dist * eps_elec) - C2);
+
+  } else if (dist < hi_poly_end) {
+    // long range fade
+    Real eps_elec = eps(hi_poly_start, D, D0, S);
+    Real deps_elec_d_dist = deps_ddist(hi_poly_start, D, D0, S);
+    Real dmin_elec = eiej * (C1 / (hi_poly_start * eps_elec) - C2);
+    Real dmin_elec_d_dist =
+        -C1 * eiej * (eps_elec + hi_poly_start * deps_elec_d_dist)
+        / (hi_poly_start * hi_poly_start * eps_elec * eps_elec);
+
+    elecE = interpolate_to_zero(
+        dist, hi_poly_start, dmin_elec, dmin_elec_d_dist, hi_poly_end);
+  }
+
+  return weight * elecE;
+}
+
 #undef Real3
 #undef def
 }  // namespace potentials
