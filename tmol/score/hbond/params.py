@@ -253,7 +253,7 @@ class CompactedHBondDatabase(ValidateAttrs):
                         global_params["hb_sp2_outer_width"],
                         global_params["hb_sp3_softmax_fade"],
                         global_params["threshold_distance"],
-                        torch.tensor([max_ahdist], device=device, dtype=torch.float32),
+                        torch.tensor([max_ahdis], device=device, dtype=torch.float32),
                     ],
                     0,
                 )

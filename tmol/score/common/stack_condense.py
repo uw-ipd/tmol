@@ -309,8 +309,8 @@ def tile_subset_indices(
     ],
     tile_size: int,
 ):
-    n_tiles = (indices.shape[0] - 1) // tile_size + 1
     if type(indices) == torch.Tensor:
+        n_tiles = torch.max(indices) // tile_size + 1
         tiled_indices = torch.full(
             (n_tiles * tile_size,), -1, dtype=indices.dtype, device=indices.device
         )
@@ -318,6 +318,7 @@ def tile_subset_indices(
             (n_tiles,), 0, dtype=indices.dtype, device=indices.device
         )
     elif type(indices) == numpy.ndarray:
+        n_tiles = numpy.amax(indices) // tile_size + 1
         tiled_indices = numpy.full_like(indices, -1, shape=(n_tiles * tile_size,))
         n_in_tile = numpy.full_like(indices, 0, shape=(n_tiles,))
     else:
@@ -330,6 +331,47 @@ def tile_subset_indices(
             subset_size = numpy.sum(subset)
         s = slice(i * tile_size, i * tile_size + subset_size)
         tiled_indices[s] = indices[subset] - i * tile_size
+        n_in_tile[i] = subset_size
+
+    return tiled_indices, n_in_tile
+
+
+@validate_args
+def arg_tile_subset_indices(
+    indices: Union[
+        Tensor[torch.int32][:],
+        Tensor[torch.int64][:],
+        NDArray[numpy.int32][:],
+        NDArray[numpy.int64][:],
+    ],
+    tile_size: int,
+):
+    if type(indices) == torch.Tensor:
+        n_tiles = torch.max(indices) // tile_size + 1
+        tiled_indices = torch.full(
+            (n_tiles * tile_size,), -1, dtype=indices.dtype, device=indices.device
+        )
+        n_in_tile = torch.full(
+            (n_tiles,), 0, dtype=indices.dtype, device=indices.device
+        )
+        ind_arange = torch.arange(
+            indices.shape[0], dtype=indices.dtype, device=indices.device
+        )
+    elif type(indices) == numpy.ndarray:
+        n_tiles = numpy.amax(indices) // tile_size + 1
+        tiled_indices = numpy.full_like(indices, -1, shape=(n_tiles * tile_size,))
+        n_in_tile = numpy.full_like(indices, 0, shape=(n_tiles,))
+        ind_arange = numpy.arange(indices.shape[0], dtype=indices.dtype)
+    else:
+        raise ValueError
+    for i in range(n_tiles):
+        subset = (indices >= i * tile_size) & (indices < (i + 1) * tile_size)
+        if type(tiled_indices) == torch.Tensor:
+            subset_size = torch.sum(subset).cpu()
+        else:
+            subset_size = numpy.sum(subset)
+        s = slice(i * tile_size, i * tile_size + subset_size)
+        tiled_indices[s] = ind_arange[subset]
         n_in_tile[i] = subset_size
 
     return tiled_indices, n_in_tile
