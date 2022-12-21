@@ -145,7 +145,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
       &block_type_tile_acc_inds[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);
   DeviceDispatch<Dev>::template copy_and_cast_contiguous_data<nt, 1>(
-      r_dat.don_type,
+      r_dat.donH_type,
       &block_type_tile_donor_type[r_dat.block_type][tile_ind][0],
       r_dat.n_donH);
   DeviceDispatch<Dev>::template copy_and_cast_contiguous_data<nt, 1>(
@@ -153,7 +153,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
       &block_type_tile_acceptor_type[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);
   DeviceDispatch<Dev>::template copy_and_cast_contiguous_data<nt, 1>(
-      r_dat.acc_tile_hybridization,
+      r_dat.acc_hybridization,
       &block_type_tile_hybridization[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);
 }
@@ -677,7 +677,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares_data_from_shared(
 // Some coordinates are available in shared memory, some we will
 // have to go out to global memory for.
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
-Eigen::Matrix<Real, 3, 1> load_coord(
+TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
     bonded_atom::BlockCentricAtom<Int> bcat,
     HBondSingleResData<Real> const &single_res_dat,
     HBondResPairData<Dev, Real, Int> const &respair_dat,

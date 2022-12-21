@@ -64,11 +64,11 @@ struct DeviceOperations<tmol::Device::CUDA> {
   template <int N_T, int WIDTH, typename TD, typename TS>
   __device__ static void copy_and_cast_contiguous_data(
       TD* __restrict__ dst, TS* __restrict__ src, int n) {
-    // taken from mgpu::mem_to_shared w/ cast to TD inserted
-    array_t<TS, WIDTH> x =
-        mgpu::mem_to_reg_strided<N_T, WIDTH, WITCH>(mem, threadIdx.x, n);
+    // taken from mgpu::mem_to_shared w/ static cast to TD inserted
+    mgpu::array_t<TS, WIDTH> x =
+        mgpu::mem_to_reg_strided<N_T, WIDTH, WIDTH>(src, threadIdx.x, n);
     mgpu::strided_iterate<N_T, WIDTH, WIDTH>(
-        [&](int i, int j) { shared[j] = TD(x[i]); }, threadIdx.x, n);
+        [&](int i, int j) { dst[j] = static_cast<TD>(x[i]); }, threadIdx.x, n);
   }
 
   template <int N_T, typename Func>

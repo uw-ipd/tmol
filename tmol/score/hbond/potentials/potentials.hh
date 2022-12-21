@@ -48,10 +48,8 @@ def AH_dist_V_dV(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)
 template <typename Real>
 def AH_dist_V(Real3 A, Real3 H, HBondPoly<double> const& AHdist_poly)->Real {
   Real dist = distance<Real>::V(A, H);
-  Real poly = bound_poly<11, double>::V(
+  return bound_poly<11, double>::V(
       dist, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound);
-
-  return {poly.V, poly.dV_dX * dist.dV_dA, poly.dV_dX * dist.dV_dB};
 }
 
 template <typename Real>
@@ -191,7 +189,7 @@ def BAH_angle_V(
     return _BAH_angle_base_form_V(Bm, A, H, cosBAH_poly);
 
   } else if (acceptor_hybridization == AcceptorHybridization::sp3) {
-    Real PxH = _BAH_angle_base_form_V_dV(B, A, H, cosBAH_poly);
+    Real PxH = _BAH_angle_base_form_V(B, A, H, cosBAH_poly);
 
     Real PxH0 = _BAH_angle_base_form_V(B0, A, H, cosBAH_poly);
 

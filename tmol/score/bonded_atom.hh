@@ -52,6 +52,14 @@ struct BlockCentricAtom {
   Int block;
   Int block_type;
   Int atom;
+
+  bool operator==(BlockCentricAtom<Int> const& other) const {
+    return block == other.block && block_type == other.block_type
+           && atom == other.atom;
+  }
+  bool operator!=(BlockCentricAtom<Int> const& other) const {
+    return !(*this == other);
+  }
 };
 
 template <typename Int, tmol::Device D>
