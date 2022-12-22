@@ -94,21 +94,24 @@ class BondDependentTerm(EnergyTerm):
             atoms_for_interblock_bonds, device=self.device
         )
 
-        n_all_bonds = torch.tensor(
+        n_all_bonds = torch.full(
             (packed_block_types.n_types,),
+            -1,
             dtype=torch.int32,
             device=packed_block_types.device,
         )
         max_n_all_bonds = max(
             bt.all_bonds.shape[0] for bt in packed_block_types.active_block_types
         )
-        all_bonds = torch.tensor(
-            (packed_block_types.n_types, max_n_all_atom_bonds, 3),
+        all_bonds = torch.full(
+            (packed_block_types.n_types, max_n_all_bonds, 3),
+            -1,
             dtype=torch.int32,
             device=packed_block_types.device,
         )
-        atom_all_bond_ranges = torch.tensor(
-            (packed_block_types.n_types, packed_block_types.max_n_atoms),
+        atom_all_bond_ranges = torch.full(
+            (packed_block_types.n_types, packed_block_types.max_n_atoms, 2),
+            -1,
             dtype=torch.int32,
             device=packed_block_types.device,
         )
@@ -120,7 +123,7 @@ class BondDependentTerm(EnergyTerm):
             i_n_bonds = bt.all_bonds.shape[0]
             n_all_bonds[i] = i_n_bonds
             all_bonds[i, :i_n_bonds, :] = _t(bt.all_bonds)
-            atom_all_bond_ranges[i, : bt.n_atoms] = _t(bt.all_bond_ranges)
+            atom_all_bond_ranges[i, : bt.n_atoms] = _t(bt.atom_all_bond_ranges)
 
         setattr(packed_block_types, "bond_separation", bond_separation)
         setattr(packed_block_types, "max_n_interblock_bonds", max_n_interblock_bonds)
