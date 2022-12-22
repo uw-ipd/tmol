@@ -12,7 +12,10 @@ from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 
 from tmol.score.hbond.params import HBondParamResolver
-from tmol.score.common.stack_condense import condense_numpy_inds
+from tmol.score.common.stack_condense import (
+    condense_numpy_inds,
+    arg_tile_subset_indices,
+)
 from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.score.bond_dependent_term import BondDependentTerm
 
@@ -74,6 +77,7 @@ class HBondDependentTerm(BondDependentTerm):
     hbond_database: HBondDatabase
     hbond_resolver: HBondParamResolver
     device: torch.device
+    tile_size = 32
 
     @classmethod
     def from_database(cls, database: ParameterDatabase, device: torch.device):
@@ -166,6 +170,20 @@ class HBondDependentTerm(BondDependentTerm):
             atom_is_hydrogen, D_idx, indexed_bonds.bonds, indexed_bonds.bond_spans
         )
         donH_type = don_type[D_for_H]
+
+        ts = HBondDependentTerm.tile_size
+        tiled_donH_orig_inds, is_tiled_donH, n_donH_in_tile = arg_tile_subset_indices(
+            H_idx, ts
+        )
+        n_donH_tiles = n_donH_in_tile.shape[0]
+        tiled_donH_orig_inds = tiled_donH_orig_inds.reshape((n_donH_tiles, ts))
+        is_tiled_donH = is_tiled_donH.reshape((n_tiles, ts))
+
+        tile_donH_inds = numpy.full((n_tiles, ts), -1, dtype=numpy.int32)
+        tile_donorH_type = numpy.full_like(tile_donH_inds)
+
+        tile_donH_inds[is_tiled_donH] = H_idx[tiled_donH_orig_inds]
+        tile_donorH_type = donH_type[tiled_donH_orig_inds]
 
         atom_is_hydrogen = atom_is_hydrogen.astype(numpy.bool).squeeze()
 
