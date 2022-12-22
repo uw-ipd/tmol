@@ -1,5 +1,6 @@
 import attr
 import numpy
+import numba
 import torch
 import pandas
 
@@ -32,14 +33,14 @@ def attached_H_for_don(atom_is_hydrogen, D_idx, bonds, bond_spans):
     heavy_at_don_for_H = numpy.full(atom_is_hydrogen.shape, -1, dtype=numpy.int32)
     n_donH = 0
     for d in D_idx:
-        for b_ind in range(bond_spans[d, 0], bond_spands[d, 1]):
+        for b_ind in range(bond_spans[d, 0], bond_spans[d, 1]):
             neighb = bonds[b_ind, 1]
             if atom_is_hydrogen[neighb]:
                 donH[n_donH] = neighb
                 heavy_at_don_for_H[n_donH] = d
                 n_donH += 1
     donH = donH[:n_donH]
-    sort_inds = np.argsort(donH)
+    sort_inds = numpy.argsort(donH)
     return donH[sort_inds], heavy_at_don_for_H[sort_inds]
 
 
@@ -120,7 +121,7 @@ class HBondDependentTerm(BondDependentTerm):
         atom_type_idx = self.atom_type_resolver.type_idx(atom_types)
         atom_type_params = self.atom_type_resolver.params[atom_type_idx]
         ahnp = atom_type_params.acceptor_hybridization.numpy()
-        atom_acceptor_hybridization = ahnp.astype(numpy.int64)[None, :]
+        atom_acceptor_hybridization = ahnp.astype(numpy.int32)[None, :]
 
         def map_names(mapper, col_name, type_index):
             # step 1: map atom type names to hbtype names
@@ -152,50 +153,66 @@ class HBondDependentTerm(BondDependentTerm):
             self.hbond_resolver.donor_type_index,
         )
 
-        A_idx = condense_numpy_inds(is_acc[None, :])
-        atom_is_hydrogen = atom_type_params.is_hydrogen.numpy()[None, :]
+        # A_idx = condense_numpy_inds(is_acc[None, :]).squeeze(0)
+        A_idx = numpy.nonzero(is_acc)[0].astype(dtype=numpy.int32)
+        is_hydrogen = atom_type_params.is_hydrogen.numpy()
 
-        atom_acceptor_hybridization = atom_acceptor_hybridization.astype(
-            numpy.int32
-        ).squeeze()
+        tile_size = HBondDependentTerm.tile_size
+        tiled_acc_orig_inds, tile_n_acc = arg_tile_subset_indices(
+            A_idx, tile_size, block_type.n_atoms
+        )
+
+        n_tiles = tile_n_acc.shape[0]
+        tiled_acc_orig_inds = tiled_acc_orig_inds.reshape(n_tiles, tile_size)
+        is_tiled_acc = tiled_acc_orig_inds != -1
+        tile_acc_inds = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_acceptor_type = numpy.copy(tile_acc_inds)
+        tile_acceptor_hybridization = numpy.copy(tile_acc_inds)
+        tile_acc_inds[is_tiled_acc] = A_idx
+        tile_acceptor_type[is_tiled_acc] = acc_type[A_idx]
+        tile_acceptor_hybridization[is_tiled_acc] = atom_acceptor_hybridization[
+            0, A_idx
+        ]
 
         # now lets get the list of attached hydrogen atoms:
         max_n_attached = torch.max(
             block_type.intrares_indexed_bonds.bond_spans[:, :, 1]
             - block_type.intrares_indexed_bonds.bond_spans[:, :, 0]
         )
-        D_idx = condense_numpy_inds(is_don[None, :])
+        # D_idx = condense_numpy_inds(is_don[None, :])
+        D_idx = numpy.nonzero(is_don)[0].astype(dtype=numpy.int32)
         indexed_bonds = block_type.intrares_indexed_bonds
         H_idx, D_for_H = attached_H_for_don(
-            atom_is_hydrogen, D_idx, indexed_bonds.bonds, indexed_bonds.bond_spans
+            is_hydrogen,
+            D_idx,
+            indexed_bonds.bonds.cpu().numpy()[0],
+            indexed_bonds.bond_spans.cpu().numpy()[0],
         )
         donH_type = don_type[D_for_H]
 
-        ts = HBondDependentTerm.tile_size
-        tiled_donH_orig_inds, is_tiled_donH, n_donH_in_tile = arg_tile_subset_indices(
-            H_idx, ts
+        tiled_donH_orig_inds, tile_n_donH = arg_tile_subset_indices(
+            H_idx, tile_size, block_type.n_atoms
         )
-        n_donH_tiles = n_donH_in_tile.shape[0]
-        tiled_donH_orig_inds = tiled_donH_orig_inds.reshape((n_donH_tiles, ts))
-        is_tiled_donH = is_tiled_donH.reshape((n_tiles, ts))
 
-        tile_donH_inds = numpy.full((n_tiles, ts), -1, dtype=numpy.int32)
-        tile_donorH_type = numpy.full_like(tile_donH_inds)
+        assert n_tiles == tile_n_donH.shape[0]
+        tiled_donH_orig_inds = tiled_donH_orig_inds.reshape((n_tiles, tile_size))
+        is_tiled_donH = tiled_donH_orig_inds != -1
 
-        tile_donH_inds[is_tiled_donH] = H_idx[tiled_donH_orig_inds]
-        tile_donorH_type = donH_type[tiled_donH_orig_inds]
+        tile_donH_inds = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
+        tile_donorH_type = numpy.copy(tile_donH_inds)
 
-        atom_is_hydrogen = atom_is_hydrogen.astype(numpy.bool).squeeze()
+        tile_donH_inds[is_tiled_donH] = H_idx
+        tile_donorH_type[is_tiled_donH] = donH_type
 
         hbbt_params = HBondBlockTypeParams(
-            tile_n_donH,
-            tile_n_acc,
-            tile_donH_inds,
-            tile_acc_inds,
-            tile_donorH_type,
-            tile_acceptor_type,
-            tile_acceptor_hybridization,
-            is_hydrogen,
+            tile_n_donH=tile_n_donH,
+            tile_n_acc=tile_n_acc,
+            tile_donH_inds=tile_donH_inds,
+            tile_acc_inds=tile_acc_inds,
+            tile_donorH_type=tile_donorH_type,
+            tile_acceptor_type=tile_acceptor_type,
+            tile_acceptor_hybridization=tile_acceptor_hybridization,
+            is_hydrogen=is_hydrogen,
         )
         setattr(block_type, "hbbt_params", hbbt_params)
 

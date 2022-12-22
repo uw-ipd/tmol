@@ -333,6 +333,54 @@ def test_arg_tile_subset_indices_torch2(torch_device, torch_dtype):
     numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)
 
 
+@pytest.mark.parametrize("torch_dtype", [torch.int32, torch.int64])
+def test_arg_tile_subset_indices_torch_w_max_n_entries(torch_device, torch_dtype):
+    heavy_inds = torch.tensor(
+        [0, 1, 2, 8, 10, 11], dtype=torch_dtype, device=torch_device
+    )
+    tiled_subset_orig_inds, n_in_tile = sc.arg_tile_subset_indices(heavy_inds, 8, 20)
+    heavy_inds = heavy_inds.cpu()
+    assert tiled_subset_orig_inds.device == torch_device
+    assert n_in_tile.device == torch_device
+    assert tiled_subset_orig_inds.dtype == torch_dtype
+    assert n_in_tile.dtype == torch_dtype
+
+    tiled_subset_orig_inds = tiled_subset_orig_inds.cpu().numpy()
+    n_in_tile = n_in_tile.cpu().numpy()
+    gold_tiled_subset_orig_inds = numpy.array(
+        [
+            0,
+            1,
+            2,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            3,
+            4,
+            5,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+        ],
+        dtype=numpy.int64,
+    )
+    gold_n_in_tile = numpy.array([3, 3, 0], dtype=numpy.int64)
+    numpy.testing.assert_equal(gold_tiled_subset_orig_inds, tiled_subset_orig_inds)
+    numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)
+
+
 @pytest.mark.parametrize("numpy_dtype", [numpy.int32, numpy.int64])
 def test_arg_tile_subset_indices_numpy(numpy_dtype):
     heavy_inds = numpy.array([0, 1, 2, 3, 4, 5, 8, 10, 11, 12, 13], dtype=numpy_dtype)
@@ -361,5 +409,47 @@ def test_tile_subset_indices_numpy2(numpy_dtype):
         [0, 1, 2, 3, -1, -1, -1, -1, 4, 5, 6, -1, -1, -1, -1, -1], dtype=numpy_dtype
     )
     gold_n_in_tile = numpy.array([4, 3], dtype=numpy_dtype)
+    numpy.testing.assert_equal(gold_tiled_subset_orig_inds, tiled_subset_orig_inds)
+    numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)
+
+
+@pytest.mark.parametrize("numpy_dtype", [numpy.int32, numpy.int64])
+def test_tile_subset_indices_numpy_w_max_n_entries(numpy_dtype):
+    heavy_inds = numpy.array([0, 1, 2, 3, 8, 10, 11], dtype=numpy_dtype)
+    tiled_subset_orig_inds, n_in_tile = sc.arg_tile_subset_indices(heavy_inds, 8, 20)
+    heavy_inds = heavy_inds
+    assert tiled_subset_orig_inds.dtype == numpy_dtype
+    assert n_in_tile.dtype == numpy_dtype
+
+    gold_tiled_subset_orig_inds = numpy.array(
+        [
+            0,
+            1,
+            2,
+            3,
+            -1,
+            -1,
+            -1,
+            -1,
+            4,
+            5,
+            6,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+        ],
+        dtype=numpy_dtype,
+    )
+    gold_n_in_tile = numpy.array([4, 3, 0], dtype=numpy_dtype)
     numpy.testing.assert_equal(gold_tiled_subset_orig_inds, tiled_subset_orig_inds)
     numpy.testing.assert_equal(gold_n_in_tile, n_in_tile)

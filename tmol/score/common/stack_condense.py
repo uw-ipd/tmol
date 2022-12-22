@@ -2,7 +2,7 @@ import torch
 import numpy
 from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
-from typing import Union
+from typing import Union, Optional
 
 from tmol.types.functional import validate_args
 
@@ -308,9 +308,12 @@ def tile_subset_indices(
         NDArray[numpy.int64][:],
     ],
     tile_size: int,
+    max_n_entries: Optional[int] = None,
 ):
     if type(indices) == torch.Tensor:
-        n_tiles = torch.max(indices) // tile_size + 1
+        if max_n_entries is None:
+            max_n_entries = torch.max(indices)
+        n_tiles = max_n_entries // tile_size + 1
         tiled_indices = torch.full(
             (n_tiles * tile_size,), -1, dtype=indices.dtype, device=indices.device
         )
@@ -318,7 +321,9 @@ def tile_subset_indices(
             (n_tiles,), 0, dtype=indices.dtype, device=indices.device
         )
     elif type(indices) == numpy.ndarray:
-        n_tiles = numpy.amax(indices) // tile_size + 1
+        if max_n_entries is None:
+            max_n_entries = numpy.amax(indices)
+        n_tiles = max_n_entries // tile_size + 1
         tiled_indices = numpy.full_like(indices, -1, shape=(n_tiles * tile_size,))
         n_in_tile = numpy.full_like(indices, 0, shape=(n_tiles,))
     else:
@@ -345,9 +350,12 @@ def arg_tile_subset_indices(
         NDArray[numpy.int64][:],
     ],
     tile_size: int,
+    max_n_entries: Optional[int] = None,
 ):
     if type(indices) == torch.Tensor:
-        n_tiles = torch.max(indices) // tile_size + 1
+        if max_n_entries is None:
+            max_n_entries = torch.max(indices)
+        n_tiles = max_n_entries // tile_size + 1
         tiled_indices = torch.full(
             (n_tiles * tile_size,), -1, dtype=indices.dtype, device=indices.device
         )
@@ -358,7 +366,9 @@ def arg_tile_subset_indices(
             indices.shape[0], dtype=indices.dtype, device=indices.device
         )
     elif type(indices) == numpy.ndarray:
-        n_tiles = numpy.amax(indices) // tile_size + 1
+        if max_n_entries is None:
+            max_n_entries = numpy.amax(indices)
+        n_tiles = max_n_entries // tile_size + 1
         tiled_indices = numpy.full_like(indices, -1, shape=(n_tiles * tile_size,))
         n_in_tile = numpy.full_like(indices, 0, shape=(n_tiles,))
         ind_arange = numpy.arange(indices.shape[0], dtype=indices.dtype)
