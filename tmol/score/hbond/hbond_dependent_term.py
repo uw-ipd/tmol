@@ -55,7 +55,7 @@ class HBondBlockTypeParams(ValidateAttrs):
     tile_donorH_type: NDArray[numpy.int32][:, :]
     tile_acceptor_type: NDArray[numpy.int32][:, :]
     tile_acceptor_hybridization: NDArray[numpy.int32][:, :]
-    is_hydrogen: NDArray[numpy.bool][:]
+    is_hydrogen: NDArray[numpy.int32][:]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -69,7 +69,7 @@ class HBondPackedBlockTypesParams(ValidateAttrs):
     tile_donorH_type: Tensor[torch.int32][:, :, :]
     tile_acceptor_type: Tensor[torch.int32][:, :, :]
     tile_acceptor_hybridization: Tensor[torch.int32][:, :, :]
-    is_hydrogen: Tensor[torch.bool][:, :]
+    is_hydrogen: Tensor[torch.int32][:, :]
 
 
 # @attr.s(auto_attribs=True)
@@ -100,7 +100,7 @@ class HBondDependentTerm(BondDependentTerm):
         atom_types = [x.atom_type for x in block_type.atoms]
         atom_type_idx = self.atom_type_resolver.type_idx(atom_types)
         atom_type_params = self.atom_type_resolver.params[atom_type_idx]
-        ahnp = atom_type_params.acceptor_hybridization.numpy()
+        ahnp = atom_type_params.acceptor_hybridization.cpu().numpy()
         atom_acceptor_hybridization = ahnp.astype(numpy.int32)[None, :]
 
         def map_names(mapper, col_name, type_index):
@@ -135,7 +135,9 @@ class HBondDependentTerm(BondDependentTerm):
 
         # A_idx = condense_numpy_inds(is_acc[None, :]).squeeze(0)
         A_idx = numpy.nonzero(is_acc)[0].astype(dtype=numpy.int32)
-        is_hydrogen = atom_type_params.is_hydrogen.numpy()
+        is_hydrogen = (
+            atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
+        )
 
         tile_size = HBondDependentTerm.tile_size
         tiled_acc_orig_inds, tile_n_acc = arg_tile_subset_indices(
@@ -153,6 +155,7 @@ class HBondDependentTerm(BondDependentTerm):
         tile_acceptor_hybridization[is_tiled_acc] = atom_acceptor_hybridization[
             0, A_idx
         ]
+        print("tile_acceptor_hybridization", tile_acceptor_hybridization.shape)
 
         # now lets get the list of attached hydrogen atoms:
         max_n_attached = torch.max(
@@ -242,7 +245,7 @@ class HBondDependentTerm(BondDependentTerm):
             dtype=numpy.int32,  # consider making this uint8
         )
         is_hydrogen = numpy.full(
-            (pbt.n_types, pbt.max_n_atoms), False, dtype=numpy.bool
+            (pbt.n_types, pbt.max_n_atoms), False, dtype=numpy.int32
         )
 
         for i, block_type in enumerate(packed_block_types.active_block_types):
@@ -276,7 +279,7 @@ class HBondDependentTerm(BondDependentTerm):
             tile_donorH_type=_tint32(tile_donorH_type),
             tile_acceptor_type=_tint32(tile_acceptor_type),
             tile_acceptor_hybridization=_tint32(tile_acceptor_hybridization),
-            is_hydrogen=_tbool(is_hydrogen),
+            is_hydrogen=_tint32(is_hydrogen),
         )
 
         setattr(packed_block_types, "hbpbt_params", params)

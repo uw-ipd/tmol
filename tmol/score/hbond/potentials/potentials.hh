@@ -197,6 +197,7 @@ def BAH_angle_V(
            / hb_sp3_softmax_fade;
 
   } else {
+    printf("bad acceptor hybridization %d", acceptor_hybridization);
 #ifndef __CUDACC__
     throw std::runtime_error("Invalid acceptor_hybridization.");
 #endif

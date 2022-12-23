@@ -726,6 +726,13 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
 
   Real const dist = distance<Real>::V(Hxyz, Axyz);
   if (dist < respair_dat.global_params.max_ha_dis) {
+    printf(
+        "close contact %d %d %d %d dist %f\n",
+        donH_ind,
+        acc_ind,
+        don_dat.block_ind,
+        acc_dat.block_ind,
+        dist);
     BlockCentricAtom<Int> H{
         don_dat.block_ind,
         don_dat.block_type,
@@ -792,6 +799,13 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
 
   auto const dist_r = distance<Real>::V_dV(Hxyz, Axyz);
   if (dist_r.V < respair_dat.global_params.max_ha_dis) {
+    printf(
+        "close contact %d %d %d %d dist %f\n",
+        donH_ind,
+        acc_ind,
+        don_dat.block_ind,
+        acc_dat.block_ind,
+        dist_r.V);
     BlockCentricAtom<Int> H{
         don_dat.block_ind,
         don_dat.block_type,
@@ -941,6 +955,13 @@ void TMOL_DEVICE_FUNC eval_intrares_don_acc_pair_energies(
       for (int i = tid; i < n_don_acc_pairs; i += nt) {
         int don_ind = i / intra_dat.r1.n_acc;
         int acc_ind = i % intra_dat.r1.n_acc;
+        printf(
+            "intrares looking at %d %d n_acc %d don_ind %d acc_ind %d\n",
+            intra_dat.r1.block_ind,
+            intra_dat.r2.block_ind,
+            intra_dat.r1.n_acc,
+            don_ind,
+            acc_ind);
 
         intra_dat.pair_data.total_hbond +=
             f(start_atom1, start_atom1, don_ind, acc_ind, intra_dat, true);
