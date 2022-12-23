@@ -74,6 +74,7 @@ class BondDependentTerm(EnergyTerm):
             bond_separation[i, :i_nats, :i_nats] = rt_bond_closure
         bond_separation = torch.tensor(bond_separation, device=self.device)
 
+        # TO DO: verify that this is the same or different from pbt.n_conn
         n_interblock_bonds = [
             len(rt.connections) for rt in packed_block_types.active_block_types
         ]

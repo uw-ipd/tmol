@@ -72,7 +72,7 @@ class HBondPackedBlockTypesParams(ValidateAttrs):
     is_hydrogen: Tensor[torch.bool][:, :]
 
 
-@attr.s(auto_attribs=True)
+# @attr.s(auto_attribs=True)
 class HBondDependentTerm(BondDependentTerm):
     atom_type_resolver: AtomTypeParamResolver
     hbond_database: HBondDatabase
@@ -80,36 +80,16 @@ class HBondDependentTerm(BondDependentTerm):
     device: torch.device
     tile_size = 32
 
-    @classmethod
-    def from_database(cls, database: ParameterDatabase, device: torch.device):
-        atom_type_resolver = AtomTypeParamResolver.from_database(
-            database.chemical, torch.device("cpu")
+    def __init__(self, param_db: ParameterDatabase, device: torch.device):
+        super(HBondDependentTerm, self).__init__(param_db=param_db, device=device)
+        self.atom_type_resolver = AtomTypeParamResolver.from_database(
+            param_db.chemical, torch.device("cpu")
         )
-        hbdb = database.scoring.hbond
-        hbond_resolver = HBondParamResolver.from_database(
-            database.chemical, hbdb, device
+        self.hbond_database = param_db.scoring.hbond
+        self.hbond_resolver = HBondParamResolver.from_database(
+            param_db.chemical, self.hbond_database, device
         )
-        return cls.from_param_resolvers(
-            atom_type_resolver=atom_type_resolver,
-            hbond_database=hbdb,
-            hbond_resolver=hbond_resolver,
-            device=device,
-        )
-
-    @classmethod
-    def from_param_resolvers(
-        cls,
-        atom_type_resolver: AtomTypeParamResolver,
-        hbond_database: HBondDatabase,
-        hbond_resolver: HBondParamResolver,
-        device: torch.device,
-    ):
-        return cls(
-            atom_type_resolver=atom_type_resolver,
-            hbond_database=hbond_database,
-            hbond_resolver=hbond_resolver,
-            device=device,
-        )
+        self.device = device
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(HBondDependentTerm, self).setup_block_type(block_type)
