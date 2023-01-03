@@ -235,7 +235,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
              HBondSingleResData<Real> const &acc_dat,
              HBondResPairData<Dev, Real, Int> const &respair_dat,
              int cp_separation) {
-          if (cp_separation < 4) {
+          if (cp_separation < 5) {
             return Real(0.0);
           }
           Real val = hbond_atom_energy_and_derivs_full<TILE_SIZE>(
@@ -328,6 +328,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
       return;
     }
 
+    // printf("block %d and block %d neighbors? %d\n", block_ind1, block_ind2,
+    // scratch_block_neighbors[pose_ind][block_ind1][block_ind2]);
     if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
     }
@@ -595,7 +597,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
              HBondSingleResData<Real> const &acc_dat,
              HBondResPairData<Dev, Real, Int> const &respair_dat,
              int cp_separation) {
-          if (cp_separation < 4) {
+          if (cp_separation < 5) {
             return Real(0.0);
           }
           Real val = hbond_atom_energy_full<TILE_SIZE>(
@@ -628,6 +630,9 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
               inter_dat,
               (donor_first ? don_ind : acc_ind),
               (donor_first ? acc_ind : don_ind));
+          // printf("score_inter_hbond_atom_pair don_ind %d %d, acc_ind %d %d,
+          // sep %d\n",
+          //   don_ind, don_tile_ind, acc_ind, acc_tile_ind, separation);
           return hbond_atom_energy(
               don_ind,
               acc_ind,
@@ -813,6 +818,8 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
                     mgpu::plus_t<Real>());
 
             if (tid == 0) {
+              // printf("store calculated energies: pose %d E= %f\n",
+              // score_dat.pair_data.pose_ind, float(cta_total_hbond));
               accumulate<Dev, Real>::add(
                   output[0][score_dat.pair_data.pose_ind], cta_total_hbond);
             }

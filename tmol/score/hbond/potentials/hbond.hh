@@ -131,6 +131,8 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
   // pre-condition: n_atoms_to_load < TILE_SIZE
   // Note that TILE_SIZE is not explicitly passed in, but is "present"
   // in r_dat.coords allocation
+  // printf("load data %d ndon %d nacc %d n_ats_to_load %d\n", r_dat.block_ind,
+  // r_dat.n_donH, r_dat.n_acc, n_atoms_to_load);
   DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
       r_dat.coords,
       reinterpret_cast<Real *>(
@@ -195,6 +197,8 @@ void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
       start_atom);
 
   auto copy_path_dists = ([=](int tid) {
+    // printf("load_block_into_shared copy pathy dists %d %d, nats %d, n_conn
+    // %d\n", r_dat.block_ind, r_dat.block_type, n_atoms_to_load, r_dat.n_conn);
     for (int count = tid; count < n_atoms_to_load; count += nt) {
       int const atid = start_atom + count;
       for (int j = 0; j < r_dat.n_conn; ++j) {
@@ -248,6 +252,8 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
     HBondScoringData<Dev, Real, Int> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   inter_dat.pair_data.pose_ind = pose_ind;
+  inter_dat.r1.block_ind = block_ind1;
+  inter_dat.r2.block_ind = block_ind2;
   inter_dat.r1.block_type = block_type1;
   inter_dat.r2.block_type = block_type2;
   inter_dat.r1.block_coord_offset =
@@ -264,6 +270,14 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
   inter_dat.r2.n_atoms = n_atoms2;
   inter_dat.r1.n_conn = block_type_n_interblock_bonds[block_type1];
   inter_dat.r2.n_conn = block_type_n_interblock_bonds[block_type2];
+
+  // printf("loaded res %d %d, type %d %d, offset %d %d, n_ats %d %d, n_conn %d
+  // %d\n",
+  //   inter_dat.r1.block_ind, inter_dat.r2.block_ind,
+  //   inter_dat.r1.block_type, inter_dat.r2.block_type,
+  //   inter_dat.r1.block_coord_offset, inter_dat.r2.block_coord_offset,
+  //   inter_dat.r1.n_atoms, inter_dat.r2.n_atoms,
+  //   inter_dat.r1.n_conn, inter_dat.r2.n_conn);
 
   // set the pointers in inter_dat to point at the shared-memory arrays
   inter_dat.r1.coords = shared_m.coords1;
@@ -364,6 +378,8 @@ void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared(
     int n_atoms_to_load1,
     HBondScoringData<Dev, Real, Int> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+  // printf("hbond_load_interres1_tile_data_to_shared %d\n",
+  // inter_dat.r1.block_ind);
   auto store_n_don_n_acc1 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[inter_dat.r1.block_type][tile_ind];
     int n_acc = block_type_tile_n_acc[inter_dat.r1.block_type][tile_ind];
@@ -417,6 +433,8 @@ void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared(
     int n_atoms_to_load2,
     HBondScoringData<Dev, Real, Int> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+  // printf("hbond_load_interres2_tile_data_to_shared %d, nats %d\n",
+  // inter_dat.r2.block_ind, n_atoms_to_load2);
   auto store_n_don_n_acc2 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[inter_dat.r2.block_type][tile_ind];
     int n_acc = block_type_tile_n_acc[inter_dat.r2.block_type][tile_ind];
@@ -689,6 +707,7 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
       int bcat_tile_ind = bcat.atom - tile_start;
       if (bcat_tile_ind >= 0 && bcat_tile_ind < TILE_SIZE) {
         in_smem = true;
+        // printf("loading coord from shared mem: %d\n", bcat_tile_ind);
         xyz = coord_from_shared(single_res_dat.coords, bcat_tile_ind);
       }
     }
@@ -699,6 +718,9 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
                ? single_res_dat.block_coord_offset
                : respair_dat.pose_stack_block_coord_offset[respair_dat.pose_ind]
                                                           [bcat.block]);
+      // printf("loading coord from global mem: pose %d atom %d+%d = %d\n",
+      // respair_dat.pose_ind, bcat.atom, coord_offset, bcat.atom +
+      // coord_offset);
       xyz = respair_dat.coords[respair_dat.pose_ind][bcat.atom + coord_offset];
     }
   }
@@ -726,13 +748,13 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
 
   Real const dist = distance<Real>::V(Hxyz, Axyz);
   if (dist < respair_dat.global_params.max_ha_dis) {
-    printf(
-        "close contact %d %d %d %d dist %f\n",
-        donH_ind,
-        acc_ind,
-        don_dat.block_ind,
-        acc_dat.block_ind,
-        dist);
+    // printf(
+    //     "close contact %d %d %d %d dist %f\n",
+    //     donH_ind,
+    //     acc_ind,
+    //     don_dat.block_ind,
+    //     acc_dat.block_ind,
+    //     dist);
     BlockCentricAtom<Int> H{
         don_dat.block_ind,
         don_dat.block_type,
@@ -799,13 +821,13 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
 
   auto const dist_r = distance<Real>::V_dV(Hxyz, Axyz);
   if (dist_r.V < respair_dat.global_params.max_ha_dis) {
-    printf(
-        "close contact %d %d %d %d dist %f\n",
-        donH_ind,
-        acc_ind,
-        don_dat.block_ind,
-        acc_dat.block_ind,
-        dist_r.V);
+    // printf(
+    //     "close contact %d %d %d %d dist %f\n",
+    //     donH_ind,
+    //     acc_ind,
+    //     don_dat.block_ind,
+    //     acc_dat.block_ind,
+    //     dist_r.V);
     BlockCentricAtom<Int> H{
         don_dat.block_ind,
         don_dat.block_type,
@@ -918,7 +940,7 @@ void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
                                 + inter_dat.r1.n_acc * inter_dat.r2.n_donH;
     for (int i = tid; i < n_don_acc_pairs; i += nt) {
       bool r1_don = i < inter_dat.r1.n_donH * inter_dat.r2.n_acc;
-      int pair_ind = r1_don ? i - inter_dat.r1.n_donH * inter_dat.r2.n_acc : i;
+      int pair_ind = r1_don ? i : i - inter_dat.r1.n_donH * inter_dat.r2.n_acc;
       HBondSingleResData<Real> const &don_dat =
           r1_don ? inter_dat.r1 : inter_dat.r2;
       HBondSingleResData<Real> const &acc_dat =
@@ -927,6 +949,9 @@ void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
       int acc_ind = pair_ind % acc_dat.n_acc;
       int don_start = r1_don ? start_atom1 : start_atom2;
       int acc_start = r1_don ? start_atom2 : start_atom1;
+      // printf("eval_interres_don_acc_pair_energies %d, i=%d of %d, pair_ind
+      // %d, r1_don ? %d, don %d, acc %d\n",
+      //   tid, i, n_don_acc_pairs, pair_ind, int(r1_don), don_ind, acc_ind);
 
       inter_dat.pair_data.total_hbond +=
           f(don_start, acc_start, don_ind, acc_ind, inter_dat, r1_don);
@@ -955,13 +980,13 @@ void TMOL_DEVICE_FUNC eval_intrares_don_acc_pair_energies(
       for (int i = tid; i < n_don_acc_pairs; i += nt) {
         int don_ind = i / intra_dat.r1.n_acc;
         int acc_ind = i % intra_dat.r1.n_acc;
-        printf(
-            "intrares looking at %d %d n_acc %d don_ind %d acc_ind %d\n",
-            intra_dat.r1.block_ind,
-            intra_dat.r2.block_ind,
-            intra_dat.r1.n_acc,
-            don_ind,
-            acc_ind);
+        // printf(
+        //     "intrares looking at %d %d n_acc %d don_ind %d acc_ind %d\n",
+        //     intra_dat.r1.block_ind,
+        //     intra_dat.r2.block_ind,
+        //     intra_dat.r1.n_acc,
+        //     don_ind,
+        //     acc_ind);
 
         intra_dat.pair_data.total_hbond +=
             f(start_atom1, start_atom1, don_ind, acc_ind, intra_dat, true);
@@ -972,7 +997,7 @@ void TMOL_DEVICE_FUNC eval_intrares_don_acc_pair_energies(
       for (int i = tid; i < n_don_acc_pairs; i += nt) {
         bool r1_don = i < intra_dat.r1.n_donH * intra_dat.r2.n_acc;
         int pair_ind =
-            r1_don ? i - intra_dat.r1.n_donH * intra_dat.r2.n_acc : i;
+            r1_don ? i : i - intra_dat.r1.n_donH * intra_dat.r2.n_acc;
         // HBondSingleResData<Real> const & don_dat = r1_don ? intra_dat.r1 :
         // intra_dat.r2;
         HBondSingleResData<Real> const &acc_dat =
