@@ -362,6 +362,12 @@ struct hbond_score_V_dV_t {
 template <typename Real, typename Int>
 struct hbond_score {
   static def V_dV(
+      // debugging integers
+      int don_block,
+      int acc_block,
+      int donH_ind,
+      int acc_ind,
+
       // coordinates
       Real3 D,
       Real3 H,
@@ -381,37 +387,35 @@ struct hbond_score {
     Real3 dE_dB0 = {0, 0, 0};
 
     // A-H Distance Component
-    iadd(tie(E, dE_dA, dE_dH), AH_dist_V_dV(A, H, polynomials.AHdist_poly));
+    auto const E_AHdist = AH_dist_V_dV(A, H, polynomials.AHdist_poly);
+    iadd(tie(E, dE_dA, dE_dH), E_AHdist);
 
     // AHD Angle Component
-    iadd(
-        tie(E, dE_dA, dE_dH, dE_dD),
-        AHD_angle_V_dV(A, H, D, polynomials.cosAHD_poly));
+    auto const E_AHDang = AHD_angle_V_dV(A, H, D, polynomials.cosAHD_poly);
+    iadd(tie(E, dE_dA, dE_dH, dE_dD), E_AHDang);
 
     // BAH Angle Component
-    iadd(
-        tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
-        BAH_angle_V_dV(
-            B,
-            B0,
-            A,
-            H,
-            int(pair_params.acceptor_hybridization),
-            polynomials.cosBAH_poly,
-            global_params.hb_sp3_softmax_fade));
+    auto const E_BAHang = BAH_angle_V_dV(
+        B,
+        B0,
+        A,
+        H,
+        int(pair_params.acceptor_hybridization),
+        polynomials.cosBAH_poly,
+        global_params.hb_sp3_softmax_fade);
+    iadd(tie(E, dE_dB, dE_dB0, dE_dA, dE_dH), E_BAHang);
 
     // B0BAH Chi Component
-    iadd(
-        tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
-        B0BAH_chi_V_dV(
-            B0,
-            B,
-            A,
-            H,
-            int(pair_params.acceptor_hybridization),
-            global_params.hb_sp2_BAH180_rise,
-            global_params.hb_sp2_range_span,
-            global_params.hb_sp2_outer_width));
+    auto const E_B0BAHchi = B0BAH_chi_V_dV(
+        B0,
+        B,
+        A,
+        H,
+        int(pair_params.acceptor_hybridization),
+        global_params.hb_sp2_BAH180_rise,
+        global_params.hb_sp2_range_span,
+        global_params.hb_sp2_outer_width);
+    iadd(tie(E, dE_dB0, dE_dB, dE_dA, dE_dH), E_B0BAHchi);
 
     // Donor/Acceptor Weighting
     float const ad_weight =
@@ -441,6 +445,19 @@ struct hbond_score {
       dE_dB *= -5.0 * E + 0.5;
       dE_dB0 *= -5.0 * E + 0.5;
     }
+    // if (E < 0) {
+    //   printf("HBond %d %d %d %d, Etot %f AHdis %f AHDang %f BAHang %f
+    //   B0BAHchi %f, wt %f, B0 (%f, %f, %f)\n",
+    //     don_block, acc_block, donH_ind, acc_ind,
+    //     E,
+    //     get<0>(E_AHdist),
+    //     get<0>(E_AHDang),
+    //     get<0>(E_BAHang),
+    //     get<0>(E_B0BAHchi),
+    //     ad_weight,
+    // 	B0[0], B0[1], B0[2]
+    //   );
+    // }
 
     return {E, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0};
   }

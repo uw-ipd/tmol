@@ -53,11 +53,11 @@ struct BlockCentricAtom {
   Int block_type;
   Int atom;
 
-  bool operator==(BlockCentricAtom<Int> const& other) const {
+  EIGEN_DEVICE_FUNC bool operator==(BlockCentricAtom<Int> const& other) const {
     return block == other.block && block_type == other.block_type
            && atom == other.atom;
   }
-  bool operator!=(BlockCentricAtom<Int> const& other) const {
+  EIGEN_DEVICE_FUNC bool operator!=(BlockCentricAtom<Int> const& other) const {
     return !(*this == other);
   }
 };
@@ -85,16 +85,19 @@ struct BlockCentricIndexedBonds {
       bidx++;
       return *this;
     }
-    def operator==(BondJIter& other) const->bool {
+    def operator==(BondJIter const& other) const->bool {
       return bidx == other.bidx && block == other.block
              && block_type == other.block_type;
     }
-    def operator!=(BondJIter& other) const->bool { return !(*this == other); }
+    def operator!=(BondJIter const& other) const->bool {
+      return !(*this == other);
+    }
     def operator*() const->BlockCentricAtom<Int> {
       Int neighb_atm = parent.block_type_all_bonds[block_type][bidx][1];
       if (neighb_atm >= 0) {
         return {block, block_type, neighb_atm};
       } else {
+        return {-1, -1, -1};
         // Inter-block chemical bond:
         // The neighbor atom is the one on the other side of the connection
         // on this residue. 1. Look up the connection on this residue, conn_id.
@@ -106,6 +109,13 @@ struct BlockCentricIndexedBonds {
         // on the neighbor, nbr_conn_atom.
         Int conn_id = parent.block_type_all_bonds[block_type][bidx][2];
         Int nbr_conn_id = parent.inter_block_connections[block][conn_id][1];
+        if (nbr_conn_id == -1) {
+          // we have an undefined connection;
+          // weird, right? But this is how
+          // we are currently handling termini!
+          return {-1, -1, -1};
+        }
+
         Int nbr_block = parent.inter_block_connections[block][conn_id][0];
         Int nbr_block_type = parent.block_type[nbr_block];
         Int nbr_conn_atom =

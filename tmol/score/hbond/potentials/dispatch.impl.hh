@@ -129,6 +129,10 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
         int at = acceptor_type[stack][ai];
 
         auto hbond = hbond_score<Real, Int>::V_dV(
+            0,
+            0,
+            0,
+            0,
             donor_coords[stack][D[stack][di]],
             donor_coords[stack][H[stack][di]],
 

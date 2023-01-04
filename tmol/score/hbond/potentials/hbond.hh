@@ -861,6 +861,10 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     unsigned char at = acc_dat.acc_type[acc_ind];
 
     auto hbond_V_dV = hbond_score<Real, Int>::V_dV(
+        don_dat.block_ind,
+        acc_dat.block_ind,
+        donH_ind,
+        acc_ind,
         Dxyz,
         Hxyz,
         Axyz,
@@ -869,6 +873,19 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
         respair_dat.pair_params[dt][at],
         respair_dat.pair_polynomials[dt][at],
         respair_dat.global_params);
+
+    if (hbond_V_dV.V != 0) {
+      printf(
+          " atom inds: %d %d %d %d B: %d %d; B0: %d %d\n",
+          don_dat.block_ind,
+          acc_dat.block_ind,
+          donH_ind,
+          acc_ind,
+          acc_bases.B.atom,
+          acc_bases.B.block,
+          acc_bases.B0.atom,
+          acc_bases.B0.block);
+    }
 
     // accumulate don D atom derivatives to global memory
     for (int j = 0; j < 3; ++j) {
@@ -953,8 +970,13 @@ void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
       // %d, r1_don ? %d, don %d, acc %d\n",
       //   tid, i, n_don_acc_pairs, pair_ind, int(r1_don), don_ind, acc_ind);
 
-      inter_dat.pair_data.total_hbond +=
-          f(don_start, acc_start, don_ind, acc_ind, inter_dat, r1_don);
+      Real E = f(don_start, acc_start, don_ind, acc_ind, inter_dat, r1_don);
+      // if (E != Real(0.0)) {
+      // 	printf("Non-zero inter energy: %d %d, tid=%d, don %d acc %d E=
+      // %f\n", 	  don_dat.block_ind, acc_dat.block_ind, tid, don_ind,
+      // acc_ind, float(E));
+      // }
+      inter_dat.pair_data.total_hbond += E;
     }
   });
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
