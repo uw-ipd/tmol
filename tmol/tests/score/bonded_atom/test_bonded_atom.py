@@ -32,9 +32,6 @@ def test_bonded_atom_two_iterations(rts_ubq_res, default_database, torch_device)
     dbt.setup_packed_block_types(pbt)
     dbt.setup_poses(p1)
 
-    print("pbt.atom_all_bond_ranges")
-    print(pbt.atom_all_bond_ranges)
-
     one_step, two_steps = compiled.two_steps(
         p1.inter_residue_connections,
         p1.block_type_ind,
@@ -47,7 +44,29 @@ def test_bonded_atom_two_iterations(rts_ubq_res, default_database, torch_device)
 
     blah = torch.arange(100, device=torch_device)
 
-    print("one_step[0,0]")
-    print(one_step[0, 0])
-    print("two_steps[0,0]")
-    print(two_steps[0, 0])
+    one_step_gold = pbt.all_bonds[
+        0, pbt.atom_all_bond_ranges[0, :, 0].to(dtype=torch.int64), 1
+    ]
+    two_step_tentative = pbt.all_bonds[
+        0,
+        pbt.atom_all_bond_ranges[0, one_step_gold.to(dtype=torch.int64), 0].to(
+            dtype=torch.int64
+        ),
+        1,
+    ]
+
+    torch.testing.assert_close(one_step_gold, one_step[0, 0, :, 1])
+
+    two_step_wrong = two_step_tentative == torch.arange(
+        17, dtype=torch.int32, device=torch_device
+    )
+    two_step_tentative[two_step_wrong] = pbt.all_bonds[
+        0,
+        pbt.atom_all_bond_ranges[
+            0, one_step_gold[two_step_wrong].to(dtype=torch.int64), 0
+        ].to(dtype=torch.int64)
+        + 1,
+        1,
+    ]
+
+    torch.testing.assert_close(two_step_tentative, two_steps[0, 0, :, 1])

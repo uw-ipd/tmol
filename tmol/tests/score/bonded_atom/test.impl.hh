@@ -82,15 +82,11 @@ auto BondedAtomTests<Dispatch, D, Int>::f(
     BlockCentricAtom<Int> nb2{-1, -1, -1};
 
     for (auto neighb : indexed_bonds.bound_to(focused_atom)) {
-      // printf("focused atom (%d %d) neighb (%d %d)\n", focused_atom.block,
-      // focused_atom.atom, neighb.block, neighb.atom);
       if (neighb.atom != -1) {
         nb1 = neighb;
         break;
       }
     }
-    // printf("focused atom (%d %d) nb1 (%d %d)\n", focused_atom.block,
-    // focused_atom.atom, nb1.block, nb1.atom);
 
     one_step[pose_ind][block_ind][atom_ind][0] = nb1.block;
     one_step[pose_ind][block_ind][atom_ind][1] = nb1.atom;
@@ -99,62 +95,13 @@ auto BondedAtomTests<Dispatch, D, Int>::f(
       return;
     }
 
-    auto neighb_iter_range = indexed_bonds.bound_to(nb1);
-    auto neighb_iter_begin = neighb_iter_range.begin();
-    auto neighb_iter_end = neighb_iter_range.end();
-    auto neighb_iter_next = ++neighb_iter_range.begin();
-    // printf("nb1 (%d %d) begin (%d %d %d)\n", nb1.block, nb1.atom,
-    // neighb_iter_begin.block, neighb_iter_begin.block_type,
-    // neighb_iter_begin.bidx); printf("nb1 (%d %d) next (%d %d %d)\n",
-    // nb1.block, nb1.atom, neighb_iter_next.block, neighb_iter_next.block_type,
-    // neighb_iter_next.bidx); printf("nb1 (%d %d) end (%d %d %d)\n", nb1.block,
-    // nb1.atom, neighb_iter_end.block, neighb_iter_end.block_type,
-    // neighb_iter_end.bidx); printf("nb1 (%d %d) *begin (%d %d)\n", nb1.block,
-    // nb1.atom, (*neighb_iter_begin).block, (*neighb_iter_begin).atom);
-    // printf("nb1 (%d %d) *end (%d %d)\n", nb1.block, nb1.atom,
-    // (*neighb_iter_end).block, (*neighb_iter_end).atom);
-
-    // printf("nb1 (%d %d) end (%d %d %d) and next (%d %d %d) same ? %d\n",
-    // nb1.block, nb1.atom, neighb_iter_end.block, neighb_iter_end.block_type,
-    // neighb_iter_end.bidx, neighb_iter_next.block,
-    // neighb_iter_next.block_type, neighb_iter_next.bidx, (int)
-    // (neighb_iter_next == neighb_iter_end) ) ;
-
-    // for (auto neighb: indexed_bonds.bound_to(nb1)) {
-    int count = 0;
-    for (auto neighb_iter = indexed_bonds.bound_to(nb1).begin();
-         neighb_iter != indexed_bonds.bound_to(nb1).end();
-         ++neighb_iter) {
-      auto neighb = *neighb_iter;
-
-      // printf("nb1 (%d %d) neighb blah (%d %d)\n", nb1.block, nb1.atom,
-      // neighb.block, neighb.atom);
+    for (auto neighb : indexed_bonds.bound_to(nb1)) {
       if (neighb != focused_atom && neighb.atom != -1) {
-        // printf("found nb2\n");
         nb2 = neighb;
         break;
       }
-      // auto iter_next = neighb_iter;
-      // ++iter_next;
-      // printf("nb1 (%d %d) iter_next (%d %d %d)\n", nb1.block, nb1.atom,
-      // iter_next.block, iter_next.block_type, iter_next.bidx); printf("nb1 (%d
-      // %d) end (%d %d %d) and iter_next (%d %d %d) same ? %d\n", nb1.block,
-      // nb1.atom, indexed_bonds.bound_to(nb1).end().block,
-      // indexed_bonds.bound_to(nb1).end().block_type,
-      // indexed_bonds.bound_to(nb1).end().bidx, iter_next.block,
-      // iter_next.block_type, iter_next.bidx, (int) (iter_next ==
-      // indexed_bonds.bound_to(nb1).end()) ) ; printf("nb1 (%d %d) end (%d %d
-      // %d) and iter_next (%d %d %d) different ? %d\n", nb1.block, nb1.atom,
-      // indexed_bonds.bound_to(nb1).end().block,
-      // indexed_bonds.bound_to(nb1).end().block_type,
-      // indexed_bonds.bound_to(nb1).end().bidx, iter_next.block,
-      // iter_next.block_type, iter_next.bidx, (int) (iter_next !=
-      // indexed_bonds.bound_to(nb1).end()) ) ;
-      count += 1;
-      // printf("nb1 (%d %d)  count: %d\n", nb1.block, nb1.atom, count);
     }
-    // printf("nb1 (%d %d) nb2 (%d %d)\n", nb1.block, nb1.atom, nb2.block,
-    // nb2.atom);
+
     two_steps[pose_ind][block_ind][atom_ind][0] = nb2.block;
     two_steps[pose_ind][block_ind][atom_ind][1] = nb2.atom;
   });
