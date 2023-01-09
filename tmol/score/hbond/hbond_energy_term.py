@@ -3,7 +3,8 @@ import torch
 from .hbond_dependent_term import HBondDependentTerm
 from .params import CompactedHBondDatabase
 from ..atom_type_dependent_term import AtomTypeDependentTerm
-from ..bond_dependent_term import BondDependentTerm
+
+# from ..bond_dependent_term import BondDependentTerm
 
 from tmol.database import ParameterDatabase
 
@@ -14,7 +15,8 @@ from tmol.score.hbond.hbond_whole_pose_module import HBondWholePoseScoringModule
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.types.torch import Tensor
+
+# from tmol.types.torch import Tensor
 
 # from tmol.score.hbond.potentials.compiled import (
 #    score_hbond_inter_system_scores,

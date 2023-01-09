@@ -8,7 +8,7 @@ def bonds_and_bond_ranges(n_atoms, intra_res_bonds, ordered_connection_atoms):
     n_intra_bonds = intra_res_bonds.shape[0]
     n_inter_bonds = ordered_connection_atoms.shape[0]
     n_all_bonds = n_intra_bonds + n_inter_bonds
-    all_bonds = numpy.zeros((n_all_bonds,), dtype=int_dtype)
+
     count_intra_bonds = numpy.zeros((n_atoms,), dtype=int_dtype)
     count_inter_bonds = numpy.zeros((n_atoms,), dtype=int_dtype)
 

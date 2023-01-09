@@ -5,6 +5,7 @@ from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..bond_dependent_term import BondDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
 from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
+from tmol.database import ParameterDatabase
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -13,7 +14,7 @@ from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True)
-class LKBallEnergy(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm):
+class LKBallEnergyTerm(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm):
 
     ljlk_global_params: LJLKGlobalParams
     ljlk_param_resolver: LJLKParamResolver
@@ -22,19 +23,19 @@ class LKBallEnergy(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm)
         ljlk_param_resolver = LJLKParamResolver.from_database(
             param_db.chemical, param_db.scoring.ljlk, device=device
         )
-        super(LJLKEnergyTerm, self).__init__(param_db=param_db, device=device)
+        super(LKBallEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.type_params = ljlk_param_resolver.type_params
         self.global_params = ljlk_param_resolver.global_params
-        self.tile_size = LJLKEnergyTerm.tile_size
+        self.tile_size = LKBallEnergyTerm.tile_size
 
     def setup_block_type(self, block_type: RefinedResidueType):
-        super(LKBallEnergy, self).setup_block_type(block_type)
+        super(LKBallEnergyTerm, self).setup_block_type(block_type)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        super(LKBallEnergy, self).setup_packed_block_types(packed_block_types)
+        super(LKBallEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
     def setup_poses(self, pose_stack: PoseStack):
-        super(LKBallEnergy, self).setup_poses(pose_stack)
+        super(LKBallEnergyTerm, self).setup_poses(pose_stack)
 
     def inter_module(
         self,

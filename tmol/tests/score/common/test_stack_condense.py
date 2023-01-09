@@ -282,7 +282,7 @@ def test_tile_subset_indices_numpy2(numpy_dtype):
     assert n_in_tile.dtype == numpy_dtype
 
     gold_subset_wi_tile = numpy.array(
-        [0, 1, 2, 3, -1, -1, -1, -1, 0, 2, 3, -1, -1, -1, -1, -1], dtype=numpy_dtype4
+        [0, 1, 2, 3, -1, -1, -1, -1, 0, 2, 3, -1, -1, -1, -1, -1], dtype=numpy_dtype
     )
     gold_n_in_tile = numpy.array([4, 3], dtype=numpy_dtype)
     numpy.testing.assert_equal(gold_subset_wi_tile, heavy_subset_wi_tile)
@@ -398,7 +398,7 @@ def test_arg_tile_subset_indices_numpy(numpy_dtype):
 
 
 @pytest.mark.parametrize("numpy_dtype", [numpy.int32, numpy.int64])
-def test_tile_subset_indices_numpy2(numpy_dtype):
+def test_arg_tile_subset_indices_numpy2(numpy_dtype):
     heavy_inds = numpy.array([0, 1, 2, 3, 8, 10, 11], dtype=numpy_dtype)
     tiled_subset_orig_inds, n_in_tile = sc.arg_tile_subset_indices(heavy_inds, 8)
     heavy_inds = heavy_inds
@@ -414,7 +414,7 @@ def test_tile_subset_indices_numpy2(numpy_dtype):
 
 
 @pytest.mark.parametrize("numpy_dtype", [numpy.int32, numpy.int64])
-def test_tile_subset_indices_numpy_w_max_n_entries(numpy_dtype):
+def test_arg_tile_subset_indices_numpy_w_max_n_entries(numpy_dtype):
     heavy_inds = numpy.array([0, 1, 2, 3, 8, 10, 11], dtype=numpy_dtype)
     tiled_subset_orig_inds, n_in_tile = sc.arg_tile_subset_indices(heavy_inds, 8, 20)
     heavy_inds = heavy_inds

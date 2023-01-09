@@ -13,14 +13,11 @@ from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 
 from tmol.score.hbond.params import HBondParamResolver
-from tmol.score.common.stack_condense import (
-    condense_numpy_inds,
-    arg_tile_subset_indices,
-)
+from tmol.score.common.stack_condense import arg_tile_subset_indices
 from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.score.bond_dependent_term import BondDependentTerm
 
-from tmol.utility.cpp_extension import load, modulename, relpaths
+# from tmol.utility.cpp_extension import load, modulename, relpaths
 
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
@@ -157,10 +154,10 @@ class HBondDependentTerm(BondDependentTerm):
         ]
 
         # now lets get the list of attached hydrogen atoms:
-        max_n_attached = torch.max(
-            block_type.intrares_indexed_bonds.bond_spans[:, :, 1]
-            - block_type.intrares_indexed_bonds.bond_spans[:, :, 0]
-        )
+        # max_n_attached = torch.max(
+        #     block_type.intrares_indexed_bonds.bond_spans[:, :, 1]
+        #     - block_type.intrares_indexed_bonds.bond_spans[:, :, 0]
+        # )
         # D_idx = condense_numpy_inds(is_don[None, :])
         D_idx = numpy.nonzero(is_don)[0].astype(dtype=numpy.int32)
         indexed_bonds = block_type.intrares_indexed_bonds
