@@ -155,7 +155,6 @@ class HBondDependentTerm(BondDependentTerm):
         tile_acceptor_hybridization[is_tiled_acc] = atom_acceptor_hybridization[
             0, A_idx
         ]
-        print("tile_acceptor_hybridization", tile_acceptor_hybridization.shape)
 
         # now lets get the list of attached hydrogen atoms:
         max_n_attached = torch.max(

@@ -91,7 +91,7 @@ struct HBondBlockPairSharedData {
   unsigned char n_donH2;
   unsigned char n_acc1;
   unsigned char n_acc2;
-  unsigned char don_inds1[TILE_SIZE];  // 256 bytes for indices
+  unsigned char don_inds1[TILE_SIZE];  // 320 bytes for indices
   unsigned char don_inds2[TILE_SIZE];
   unsigned char acc_inds1[TILE_SIZE];
   unsigned char acc_inds2[TILE_SIZE];
@@ -131,8 +131,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
   // pre-condition: n_atoms_to_load < TILE_SIZE
   // Note that TILE_SIZE is not explicitly passed in, but is "present"
   // in r_dat.coords allocation
-  // printf("load data %d ndon %d nacc %d n_ats_to_load %d\n", r_dat.block_ind,
-  // r_dat.n_donH, r_dat.n_acc, n_atoms_to_load);
+
   DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
       r_dat.coords,
       reinterpret_cast<Real *>(
@@ -197,8 +196,6 @@ void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
       start_atom);
 
   auto copy_path_dists = ([=](int tid) {
-    // printf("load_block_into_shared copy pathy dists %d %d, nats %d, n_conn
-    // %d\n", r_dat.block_ind, r_dat.block_type, n_atoms_to_load, r_dat.n_conn);
     for (int count = tid; count < n_atoms_to_load; count += nt) {
       int const atid = start_atom + count;
       for (int j = 0; j < r_dat.n_conn; ++j) {
@@ -271,14 +268,6 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
   inter_dat.r1.n_conn = block_type_n_interblock_bonds[block_type1];
   inter_dat.r2.n_conn = block_type_n_interblock_bonds[block_type2];
 
-  // printf("loaded res %d %d, type %d %d, offset %d %d, n_ats %d %d, n_conn %d
-  // %d\n",
-  //   inter_dat.r1.block_ind, inter_dat.r2.block_ind,
-  //   inter_dat.r1.block_type, inter_dat.r2.block_type,
-  //   inter_dat.r1.block_coord_offset, inter_dat.r2.block_coord_offset,
-  //   inter_dat.r1.n_atoms, inter_dat.r2.n_atoms,
-  //   inter_dat.r1.n_conn, inter_dat.r2.n_conn);
-
   // set the pointers in inter_dat to point at the shared-memory arrays
   inter_dat.r1.coords = shared_m.coords1;
   inter_dat.r2.coords = shared_m.coords2;
@@ -298,7 +287,8 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
   inter_dat.pair_data.conn_seps = shared_m.conn_seps;
 
   // Count pair setup that does not depend on which tile we are
-  // operating on
+  // operating on; only necessary if r1 and r2 are within
+  // a minimum number of chemical bonds separation
   if (inter_dat.pair_data.in_count_pair_striking_dist) {
     // Load data into shared arrays
     auto load_count_pair_conn_at_data = ([&](int tid) {
@@ -335,7 +325,8 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
   inter_dat.pair_data.global_params = global_params[0];
   inter_dat.pair_data.total_hbond = 0;
 
-  // Keep a "copy" of the tensors needed during score evaluation
+  // Keep a "copy" of the tensors needed during score evaluation so they
+  // can be passed in to the lower-level functions when needed;
   // nvcc is smart enough not to duplicate the registers used here
   inter_dat.pair_data.coords = coords;
   inter_dat.pair_data.pose_stack_block_coord_offset =
@@ -378,8 +369,6 @@ void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared(
     int n_atoms_to_load1,
     HBondScoringData<Dev, Real, Int> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
-  // printf("hbond_load_interres1_tile_data_to_shared %d\n",
-  // inter_dat.r1.block_ind);
   auto store_n_don_n_acc1 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[inter_dat.r1.block_type][tile_ind];
     int n_acc = block_type_tile_n_acc[inter_dat.r1.block_type][tile_ind];
@@ -433,8 +422,6 @@ void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared(
     int n_atoms_to_load2,
     HBondScoringData<Dev, Real, Int> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
-  // printf("hbond_load_interres2_tile_data_to_shared %d, nats %d\n",
-  // inter_dat.r2.block_ind, n_atoms_to_load2);
   auto store_n_don_n_acc2 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[inter_dat.r2.block_type][tile_ind];
     int n_acc = block_type_tile_n_acc[inter_dat.r2.block_type][tile_ind];
@@ -504,7 +491,9 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
       max_important_bond_separation;
 
   // we are not going to load count pair data into shared memory because
-  // we are not going to use that data from shared memory
+  // we are not going to use that data from shared memory; setting
+  // in_count_pair_striking_distance to false prevents downstream loading
+  // of count-pair data, which waste memory bandwidth
   intra_dat.pair_data.min_separation = 0;
   intra_dat.pair_data.in_count_pair_striking_dist = false;
 
@@ -539,7 +528,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
   intra_dat.pair_data.global_params = global_params[0];
   intra_dat.pair_data.total_hbond = 0;
 
-  // Keep a "copy" of the tensors needed during score evaluation
+  // Keep a "copy" of the tensors needed during score evaluation;
   // nvcc is smart enough not to duplicate the registers used here
   intra_dat.pair_data.coords = coords;
   intra_dat.pair_data.pose_stack_block_coord_offset =
@@ -707,7 +696,6 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
       int bcat_tile_ind = bcat.atom - tile_start;
       if (bcat_tile_ind >= 0 && bcat_tile_ind < TILE_SIZE) {
         in_smem = true;
-        // printf("loading coord from shared mem: %d\n", bcat_tile_ind);
         xyz = coord_from_shared(single_res_dat.coords, bcat_tile_ind);
       }
     }
@@ -718,9 +706,6 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
                ? single_res_dat.block_coord_offset
                : respair_dat.pose_stack_block_coord_offset[respair_dat.pose_ind]
                                                           [bcat.block]);
-      // printf("loading coord from global mem: pose %d atom %d+%d = %d\n",
-      // respair_dat.pose_ind, bcat.atom, coord_offset, bcat.atom +
-      // coord_offset);
       xyz = respair_dat.coords[respair_dat.pose_ind][bcat.atom + coord_offset];
     }
   }
@@ -748,13 +733,6 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
 
   Real const dist = distance<Real>::V(Hxyz, Axyz);
   if (dist < respair_dat.global_params.max_ha_dis) {
-    // printf(
-    //     "close contact %d %d %d %d dist %f\n",
-    //     donH_ind,
-    //     acc_ind,
-    //     don_dat.block_ind,
-    //     acc_dat.block_ind,
-    //     dist);
     BlockCentricAtom<Int> H{
         don_dat.block_ind,
         don_dat.block_type,
@@ -821,13 +799,6 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
 
   auto const dist_r = distance<Real>::V_dV(Hxyz, Axyz);
   if (dist_r.V < respair_dat.global_params.max_ha_dis) {
-    // printf(
-    //     "close contact %d %d %d %d dist %f\n",
-    //     donH_ind,
-    //     acc_ind,
-    //     don_dat.block_ind,
-    //     acc_dat.block_ind,
-    //     dist_r.V);
     BlockCentricAtom<Int> H{
         don_dat.block_ind,
         don_dat.block_type,
@@ -861,10 +832,6 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     unsigned char at = acc_dat.acc_type[acc_ind];
 
     auto hbond_V_dV = hbond_score<Real, Int>::V_dV(
-        don_dat.block_ind,
-        acc_dat.block_ind,
-        donH_ind,
-        acc_ind,
         Dxyz,
         Hxyz,
         Axyz,
@@ -873,19 +840,6 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
         respair_dat.pair_params[dt][at],
         respair_dat.pair_polynomials[dt][at],
         respair_dat.global_params);
-
-    if (hbond_V_dV.V != 0) {
-      printf(
-          " atom inds: %d %d %d %d B: %d %d; B0: %d %d\n",
-          don_dat.block_ind,
-          acc_dat.block_ind,
-          donH_ind,
-          acc_ind,
-          acc_bases.B.atom,
-          acc_bases.B.block,
-          acc_bases.B0.atom,
-          acc_bases.B0.block);
-    }
 
     // accumulate don D atom derivatives to global memory
     for (int j = 0; j < 3; ++j) {
@@ -915,24 +869,41 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
             hbond_V_dV.dV_dA[j]);
       }
     }
-    // accumulate acc B atom derivatives to global memory
-    for (int j = 0; j < 3; ++j) {
-      if (hbond_V_dV.dV_dB[j] != 0 && acc_bases.B.atom >= 0) {
-        accumulate<Dev, Real>::add(
-            dV_dcoords[0][respair_dat.pose_ind]
-                      [acc_dat.block_coord_offset + acc_bases.B.atom][j],
-            hbond_V_dV.dV_dB[j]);
+    // accumulate acc B and B0 atom derivatives to global memory;
+    // it is possible that B or B0 are not part of the same block as A.
+    // In that case, we need to retrieve the coordinate offset for the
+    // atom's block from global memory so that we can record its
+    // derivatives to the right place. The logic for B and B0 is
+    // essentially identical, so a lambda here will save some
+    // code duplication
+
+    auto accum_for_acc_atom = ([&] TMOL_DEVICE_FUNC(
+                                   BlockCentricAtom<Int> const &bcat,
+                                   Real3 dV_dat) {
+      bool any_nonzero = false;
+      for (int j = 0; j < 3; ++j) {
+        if (dV_dat[j] != 0 && bcat.atom >= 0) {
+          any_nonzero = true;
+          break;
+        }
       }
-    }
-    // accumulate acc B0 atom derivatives to global memory
-    for (int j = 0; j < 3; ++j) {
-      if (hbond_V_dV.dV_dB0[j] != 0 && acc_bases.B0.atom >= 0) {
-        accumulate<Dev, Real>::add(
-            dV_dcoords[0][respair_dat.pose_ind]
-                      [acc_dat.block_coord_offset + acc_bases.B0.atom][j],
-            hbond_V_dV.dV_dB0[j]);
+      if (any_nonzero) {
+        int coord_offset = acc_dat.block_coord_offset;
+        if (bcat.block != acc_bases.A.block) {
+          coord_offset =
+              respair_dat.pose_stack_block_coord_offset[respair_dat.pose_ind]
+                                                       [bcat.block];
+        }
+        for (int j = 0; j < 3; ++j) {
+          accumulate<Dev, Real>::add(
+              dV_dcoords[0][respair_dat.pose_ind][coord_offset + bcat.atom][j],
+              dV_dat[j]);
+        }
       }
-    }
+    });
+
+    accum_for_acc_atom(acc_bases.B, hbond_V_dV.dV_dB);
+    accum_for_acc_atom(acc_bases.B0, hbond_V_dV.dV_dB0);
     return hbond_V_dV.V;
   } else {
     return 0;
@@ -966,16 +937,8 @@ void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
       int acc_ind = pair_ind % acc_dat.n_acc;
       int don_start = r1_don ? start_atom1 : start_atom2;
       int acc_start = r1_don ? start_atom2 : start_atom1;
-      // printf("eval_interres_don_acc_pair_energies %d, i=%d of %d, pair_ind
-      // %d, r1_don ? %d, don %d, acc %d\n",
-      //   tid, i, n_don_acc_pairs, pair_ind, int(r1_don), don_ind, acc_ind);
 
       Real E = f(don_start, acc_start, don_ind, acc_ind, inter_dat, r1_don);
-      // if (E != Real(0.0)) {
-      // 	printf("Non-zero inter energy: %d %d, tid=%d, don %d acc %d E=
-      // %f\n", 	  don_dat.block_ind, acc_dat.block_ind, tid, don_ind,
-      // acc_ind, float(E));
-      // }
       inter_dat.pair_data.total_hbond += E;
     }
   });
@@ -1002,13 +965,6 @@ void TMOL_DEVICE_FUNC eval_intrares_don_acc_pair_energies(
       for (int i = tid; i < n_don_acc_pairs; i += nt) {
         int don_ind = i / intra_dat.r1.n_acc;
         int acc_ind = i % intra_dat.r1.n_acc;
-        // printf(
-        //     "intrares looking at %d %d n_acc %d don_ind %d acc_ind %d\n",
-        //     intra_dat.r1.block_ind,
-        //     intra_dat.r2.block_ind,
-        //     intra_dat.r1.n_acc,
-        //     don_ind,
-        //     acc_ind);
 
         intra_dat.pair_data.total_hbond +=
             f(start_atom1, start_atom1, don_ind, acc_ind, intra_dat, true);
@@ -1020,8 +976,6 @@ void TMOL_DEVICE_FUNC eval_intrares_don_acc_pair_energies(
         bool r1_don = i < intra_dat.r1.n_donH * intra_dat.r2.n_acc;
         int pair_ind =
             r1_don ? i : i - intra_dat.r1.n_donH * intra_dat.r2.n_acc;
-        // HBondSingleResData<Real> const & don_dat = r1_don ? intra_dat.r1 :
-        // intra_dat.r2;
         HBondSingleResData<Real> const &acc_dat =
             r1_don ? intra_dat.r2 : intra_dat.r1;
         int don_ind = pair_ind / acc_dat.n_acc;

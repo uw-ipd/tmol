@@ -129,10 +129,6 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
         int at = acceptor_type[stack][ai];
 
         auto hbond = hbond_score<Real, Int>::V_dV(
-            0,
-            0,
-            0,
-            0,
             donor_coords[stack][D[stack][di]],
             donor_coords[stack][H[stack][di]],
 
@@ -145,6 +141,20 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
             global_params[0]);
 
         accumulate<Dev, Real>::add(V[stack], hbond.V);
+
+        if (D[stack][di] == 0 && hbond.V < 0) {
+          printf(
+              "Accumulate into dV_d_don for atom 0: %f %f %f\n",
+              hbond.dV_dD[0],
+              hbond.dV_dD[1],
+              hbond.dV_dD[2]);
+          printf(
+              "H %d (%f %f %f)\n",
+              H[stack][di],
+              donor_coords[stack][H[stack][di]][0],
+              donor_coords[stack][H[stack][di]][1],
+              donor_coords[stack][H[stack][di]][2]);
+        }
 
         accumulate<Dev, Vec<Real, 3>>::add(
             dV_d_don[stack][D[stack][di]], hbond.dV_dD);

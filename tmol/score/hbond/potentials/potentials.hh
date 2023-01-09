@@ -362,12 +362,6 @@ struct hbond_score_V_dV_t {
 template <typename Real, typename Int>
 struct hbond_score {
   static def V_dV(
-      // debugging integers
-      int don_block,
-      int acc_block,
-      int donH_ind,
-      int acc_ind,
-
       // coordinates
       Real3 D,
       Real3 H,
@@ -438,26 +432,14 @@ struct hbond_score {
       dE_dB0 = {0, 0, 0};
 
     } else if (E > -0.1) {
+      Real E0 = E;
       E = (-0.025 + 0.5 * E - 2.5 * E * E);
-      dE_dD *= -5.0 * E + 0.5;
-      dE_dH *= -5.0 * E + 0.5;
-      dE_dA *= -5.0 * E + 0.5;
-      dE_dB *= -5.0 * E + 0.5;
-      dE_dB0 *= -5.0 * E + 0.5;
+      dE_dD *= -5.0 * E0 + 0.5;
+      dE_dH *= -5.0 * E0 + 0.5;
+      dE_dA *= -5.0 * E0 + 0.5;
+      dE_dB *= -5.0 * E0 + 0.5;
+      dE_dB0 *= -5.0 * E0 + 0.5;
     }
-    // if (E < 0) {
-    //   printf("HBond %d %d %d %d, Etot %f AHdis %f AHDang %f BAHang %f
-    //   B0BAHchi %f, wt %f, B0 (%f, %f, %f)\n",
-    //     don_block, acc_block, donH_ind, acc_ind,
-    //     E,
-    //     get<0>(E_AHdist),
-    //     get<0>(E_AHDang),
-    //     get<0>(E_BAHang),
-    //     get<0>(E_B0BAHchi),
-    //     ad_weight,
-    // 	B0[0], B0[1], B0[2]
-    //   );
-    // }
 
     return {E, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0};
   }

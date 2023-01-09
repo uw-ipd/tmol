@@ -205,6 +205,9 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
   auto output_t = TPack<Real, 2, Dev>::zeros({1, n_poses});
   auto output = output_t.view;
 
+  // auto accum_output_t = TPack<double, 2, Dev>::zeros({1, n_poses});
+  // auto accum_output = accum_output_t.view;
+
   auto dV_dcoords_t =
       TPack<Vec<Real, 3>, 3, Dev>::zeros({1, n_poses, max_n_pose_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
@@ -328,8 +331,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
       return;
     }
 
-    // printf("block %d and block %d neighbors? %d\n", block_ind1, block_ind2,
-    // scratch_block_neighbors[pose_ind][block_ind1][block_ind2]);
     if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
     }
@@ -630,9 +631,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
               inter_dat,
               (donor_first ? don_ind : acc_ind),
               (donor_first ? acc_ind : don_ind));
-          // printf("score_inter_hbond_atom_pair don_ind %d %d, acc_ind %d %d,
-          // sep %d\n",
-          //   don_ind, don_tile_ind, acc_ind, acc_tile_ind, separation);
           return hbond_atom_energy(
               don_ind,
               acc_ind,
@@ -818,8 +816,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
                     mgpu::plus_t<Real>());
 
             if (tid == 0) {
-              // printf("store calculated energies: pose %d E= %f\n",
-              // score_dat.pair_data.pose_ind, float(cta_total_hbond));
               accumulate<Dev, Real>::add(
                   output[0][score_dat.pair_data.pose_ind], cta_total_hbond);
             }
@@ -992,7 +988,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
   }
 
   return {output_t, dV_dcoords_t};
-}  // namespace potentials
+}
 
 }  // namespace potentials
 }  // namespace hbond

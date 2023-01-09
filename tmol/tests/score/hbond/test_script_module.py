@@ -13,11 +13,14 @@ def _setup_inputs(coords, params, donors, acceptors, torch_device):
         t = torch.tensor(v).to(device=torch_device)
         if t.dtype == torch.float64:
             t = t.to(torch.float32)
-        return t
+        return torch.nn.Parameter(t, requires_grad=False)
+
+    def _pg(t):
+        return torch.nn.Parameter(t, requires_grad=True)
 
     return dict(
-        donor_coords=_t(coords)[None, :],
-        acceptor_coords=_t(coords)[None, :],
+        donor_coords=_pg(_t(coords)[None, :]),
+        acceptor_coords=_pg(_t(coords)[None, :]),
         D=_t(donors["d"]),
         H=_t(donors["h"]),
         donor_type=_t(params.donor_type_index.get_indexer(donors["donor_type"][0])).to(
@@ -76,6 +79,13 @@ def test_script_module_scores(default_database, ubq_system, torch_device):
     intra_module = HBondIntraModule(compact_db)
     module_score = intra_module.forward(**inputs)
     print("module score", module_score)
+    module_score.backward()
+
+    grad = inputs["donor_coords"].grad + inputs["acceptor_coords"].grad
+    g = grad.cpu().numpy()
+    numpy.set_printoptions(threshold=10000)
+    print("grad")
+    print(g)
 
     # Verify scores via back comparison to explicit evaluation
     dind, aind = map(

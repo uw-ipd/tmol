@@ -240,7 +240,6 @@ class CompactedHBondDatabase(ValidateAttrs):
             for p in hbond_database.polynomial_parameters
             if p.dimension == "hbgd_AHdist"
         )
-        print("max_ahdis", max_ahdis)
 
         # also store the distance of the longest possible hbond
         # by reading the set of hbond polynomials
