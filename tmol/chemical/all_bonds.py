@@ -17,7 +17,7 @@ def bonds_and_bond_ranges(
     two atoms it connects. The ordered-connection-atoms array lists the atom
     on this block that connects to another block such that the ith position
     in this array represents the ith inter-block connection; the cases when
-    a single atom serves as a connection point to multiple other blocks 
+    a single atom serves as a connection point to multiple other blocks
     (as might happen with metal ions) is handled correctly.
 
     This function returns a pair of arrays. The first array lists each bond

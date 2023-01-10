@@ -1,9 +1,6 @@
 import numpy
 import torch
 
-import sparse
-import scipy.sparse.csgraph as csgraph
-
 from tmol.database import ParameterDatabase
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.restypes import RefinedResidueType
