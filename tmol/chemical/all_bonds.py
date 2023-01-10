@@ -38,7 +38,6 @@ def bonds_and_bond_ranges(n_atoms, intra_res_bonds, ordered_connection_atoms):
         bonds[bond, 0] = i_atm
         bonds[bond, 1] = intra_res_bonds[i, 1]
         bonds[bond, 2] = -1
-        bonds[bond, 3] = -1
     for i in range(n_inter_bonds):
         i_atm = ordered_connection_atoms[i]
         i_count = count_bond[i_atm]
