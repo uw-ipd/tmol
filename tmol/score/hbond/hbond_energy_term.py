@@ -66,7 +66,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
             bt_n_atoms=pbt.n_atoms,
             bt_n_interblock_bonds=pbt.n_conn,
-            bt_atoms_forming_chemical_bonds=pbt.atoms_for_interblock_bonds,
+            bt_atoms_forming_chemical_bonds=pbt.conn_atom,
             bt_n_all_bonds=pbt.n_all_bonds,
             bt_all_bonds=pbt.all_bonds,
             bt_atom_all_bond_ranges=pbt.atom_all_bond_ranges,

@@ -78,14 +78,14 @@ def test_script_module_scores(default_database, ubq_system, torch_device):
     ### score via op
     intra_module = HBondIntraModule(compact_db)
     module_score = intra_module.forward(**inputs)
-    print("module score", module_score)
-    module_score.backward()
-
-    grad = inputs["donor_coords"].grad + inputs["acceptor_coords"].grad
-    g = grad.cpu().numpy()
-    numpy.set_printoptions(threshold=10000)
-    print("grad")
-    print(g)
+    # print("module score", module_score)
+    # module_score.backward()
+    #
+    # grad = inputs["donor_coords"].grad + inputs["acceptor_coords"].grad
+    # g = grad.cpu().numpy()
+    # numpy.set_printoptions(threshold=10000)
+    # print("grad")
+    # print(g)
 
     # Verify scores via back comparison to explicit evaluation
     dind, aind = map(

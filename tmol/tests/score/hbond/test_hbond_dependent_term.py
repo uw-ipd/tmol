@@ -10,8 +10,7 @@ def test_hbond_dep_term_annotate_block_types_smoke(
     hbdt = HBondDependentTerm(default_database, torch_device)
     for bt in bt_list:
         hbdt.setup_block_type(bt)
-        print("bt.hbbt_params", bt.name)
-        print(bt.hbbt_params)
+        assert hasattr(bt, "hbbt_params")
 
 
 def test_hbond_dep_term_annotate_packed_block_types_smoke(

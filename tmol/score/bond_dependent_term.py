@@ -35,15 +35,12 @@ class BondDependentTerm(EnergyTerm):
         super(BondDependentTerm, self).setup_packed_block_types(packed_block_types)
 
         if hasattr(packed_block_types, "bond_separation"):
-            assert hasattr(packed_block_types, "max_n_interblock_bonds")
-            assert hasattr(packed_block_types, "n_interblock_bonds")
-            assert hasattr(packed_block_types, "atoms_for_interblock_bonds")
             assert hasattr(packed_block_types, "n_all_bonds")
             assert hasattr(packed_block_types, "all_bonds")
             assert hasattr(packed_block_types, "atom_all_bond_ranges")
-            # assert hasattr(packed_block_types, "intrares_indexed_bonds")
             return
 
+        # Concatenate the block-type path-distances arrays into a single array
         bond_separation = numpy.full(
             (
                 packed_block_types.n_types,
@@ -53,47 +50,10 @@ class BondDependentTerm(EnergyTerm):
             MAX_SIG_BOND_SEPARATION,
             dtype=numpy.int32,
         )
-
-        # why is this not in setup_block_type????
         for i, rt in enumerate(packed_block_types.active_block_types):
             i_nats = packed_block_types.n_atoms[i]
-            # rt_bonds = numpy.zeros((i_nats, i_nats)
-            rt_bonds_sparse = sparse.COO(
-                rt.bond_indices.T,
-                data=numpy.full(len(rt.bond_indices), True),
-                shape=(len(rt.atoms), len(rt.atoms)),
-                cache=True,
-            )
-            rt_bond_closure = csgraph.dijkstra(
-                rt_bonds_sparse,
-                directed=False,
-                unweighted=True,
-                limit=MAX_SIG_BOND_SEPARATION,
-            )
-            rt_bond_closure[rt_bond_closure == numpy.inf] = MAX_SIG_BOND_SEPARATION
-            bond_separation[i, :i_nats, :i_nats] = rt_bond_closure
+            bond_separation[i, :i_nats, :i_nats] = rt.path_distance
         bond_separation = torch.tensor(bond_separation, device=self.device)
-
-        # TO DO: verify that this is the same or different from pbt.n_conn
-        n_interblock_bonds = [
-            len(rt.connections) for rt in packed_block_types.active_block_types
-        ]
-        max_n_interblock_bonds = max(n_interblock_bonds)
-        n_interblock_bonds = numpy.array(n_interblock_bonds, dtype=numpy.int32)
-        atoms_for_interblock_bonds = numpy.full(
-            (packed_block_types.n_types, max_n_interblock_bonds), -1, dtype=numpy.int32
-        )
-        for i, rt in enumerate(packed_block_types.active_block_types):
-            i_n_intres_bonds = n_interblock_bonds[i]
-            if i_n_intres_bonds == 0:
-                continue
-            cnx_atoms = [rt.atom_to_idx[conn.atom] for conn in rt.connections]
-            atoms_for_interblock_bonds[i, :i_n_intres_bonds] = cnx_atoms
-
-        n_interblock_bonds = torch.tensor(n_interblock_bonds, device=self.device)
-        atoms_for_interblock_bonds = torch.tensor(
-            atoms_for_interblock_bonds, device=self.device
-        )
 
         n_all_bonds = torch.full(
             (packed_block_types.n_types,),
@@ -127,11 +87,6 @@ class BondDependentTerm(EnergyTerm):
             atom_all_bond_ranges[i, : bt.n_atoms] = _t(bt.atom_all_bond_ranges)
 
         setattr(packed_block_types, "bond_separation", bond_separation)
-        setattr(packed_block_types, "max_n_interblock_bonds", max_n_interblock_bonds)
-        setattr(packed_block_types, "n_interblock_bonds", n_interblock_bonds)
-        setattr(
-            packed_block_types, "atoms_for_interblock_bonds", atoms_for_interblock_bonds
-        )
         setattr(packed_block_types, "n_all_bonds", n_all_bonds)
         setattr(packed_block_types, "all_bonds", all_bonds)
         setattr(packed_block_types, "atom_all_bond_ranges", atom_all_bond_ranges)
