@@ -149,6 +149,7 @@ def test_build_ideal_coords(ubq_res):
 
 def test_all_bonds_construction(fresh_default_restype_set):
     for bt in fresh_default_restype_set.residue_types:
+        assert bt.all_bonds.shape[1] == 3
         for i in range(len(bt.all_bonds)):
             at1 = bt.all_bonds[i, 0]
             assert at1 >= 0
@@ -159,8 +160,6 @@ def test_all_bonds_construction(fresh_default_restype_set):
             if at2 >= 0:
                 assert at2 < bt.n_atoms
                 assert bt.all_bonds[i, 2] == -1
-                assert bt.all_bonds[i, 3] == -1
             else:
                 conn = bt.all_bonds[i, 2]
                 assert bt.ordered_connection_atoms[conn] == at1
-                assert bt.all_bonds[i, 3] == 0
