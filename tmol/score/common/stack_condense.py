@@ -337,7 +337,7 @@ def tile_subset_indices(
     and the output will be:
     [0, 3, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1] and
     [4, 0]
-    representing the tiling of the indices and the number of indices per tile    
+    representing the tiling of the indices and the number of indices per tile
 
     Works for both torch and numpy inputs.
     """
