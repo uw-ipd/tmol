@@ -478,6 +478,97 @@ struct lk_ball_score {
   }
 };
 
+template <typename Real>
+class LKBallSingleResData {
+ public:
+  int block_ind;
+  int block_type;
+  int block_coord_offset;
+  int water_coord_offset;
+  int n_atoms;
+  int n_conn;
+  Real* atom_coords;
+  Real* water_coords;
+  unsigned char n_polars;
+  unsigned char n_occluders;
+  unsigned char* polar_tile_inds;
+  unsigned char* n_attached_waters;
+  unsgiend char* occulder_tile_inds;
+  LKBallTypeParams* lk_ball_params;
+  unsigned char* path_dist;
+};
+
+template <tmol::Device Dev, typename Real, typename Int>
+class LKBallResPairData {
+ public:
+  int pose_ind;
+  int max_important_bond_separation;
+  int min_separation;
+  bool in_count_pair_striking_dist;
+  unsigned char* conn_seps;
+
+  // load global params once; store totalE's
+  LKBallGlobalParams<Real> global_params;
+  Real total_lk_ball_iso;
+  Real total_lk_ball;
+  Real total_lk_bridge;
+  Real total_lk_bridge_uncpl;
+
+  // If the hbond involves atoms from other residues, we need
+  // to be able to retrieve their coordinates
+  TView<Vec<Real, 3>, 2, Dev> coords;
+  TView<Int, 2, Dev> pose_stack_block_coord_offset;
+  TView<Int, 2, Dev> pose_stack_block_type;
+
+  // For determining which atoms to retrieve from neighboring
+  // residues we have to know how the blocks in the Pose
+  // are connected
+  TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections;
+
+  // And we need to know the properties of the block types
+  // that we are working with to iterate across chemical bonds
+  TView<Int, 1, Dev> block_type_n_all_bonds;
+  TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds;
+  TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges;
+  TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds;
+  TView<Int, 2, Dev> block_type_atom_is_hydrogen;
+};
+
+template <tmol::Device Dev, typename Real, typename Int>
+class LKBallScoringData {
+ public:
+  LKBallSingleResData<Real> r1;
+  LKBallSingleResData<Real> r2;
+  LKBallResPairData<Dev, Real, Int> pair_data;
+};
+
+template <typename Real, int TILE_SIZE, int MAX_N_WATER, int MAX_N_CONN>
+struct HBondBlockPairSharedData {
+  Real atom_coords1[TILE_SIZE * 3];  // 768 bytes for coords
+  Real atom_coords2[TILE_SIZE * 3];
+  Real water_coords1[TILE_SIZE * MAX_N_WATER * 3];  // 768 bytes for coords
+  Real water_coords2[TILE_SIZE * MAX_N_WATER * 3];
+
+  unsigned char n_polars1;  // 4 bytes for counts
+  unsigned char n_polars2;
+  unsigned char n_occluders1;
+  unsigned char n_occluders2;
+  unsigned char polar_tile_inds1[TILE_SIZE];  // 320 bytes for indices
+  unsigned char polar_tile_inds2[TILE_SIZE];
+  unsigned char n_attached_waters1[TILE_SIZE];
+  unsigned char n_attached_waters2[TILE_SIZE];
+  unsigned char occluder_tile_inds1[TILE_SIZE];
+  unsigned char occluder_tile_inds2[TILE_SIZE];
+  LKBallTypeParams lk_ball_params1[TILE_SIZE];
+  LKBallTypeParams lk_ball_params2[TILE_SIZE];
+
+  unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
+  unsigned char conn_ats2[MAX_N_CONN];
+  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 256 bytes
+  unsigned char path_dist2[MAX_N_CONN * TILE_SIZE];
+  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
+};
+
 #undef def
 
 }  // namespace potentials

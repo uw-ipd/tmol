@@ -14,7 +14,7 @@ from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True)
-class LKBallEnergyTerm(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm):
+class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
 
     ljlk_global_params: LJLKGlobalParams
     ljlk_param_resolver: LJLKParamResolver
