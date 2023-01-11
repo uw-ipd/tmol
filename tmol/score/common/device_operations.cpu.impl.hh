@@ -51,6 +51,14 @@ struct DeviceOperations<tmol::Device::CPU> {
     }
   }
 
+  template <int N_T, int WIDTH, typename TD, typename TS>
+  static void copy_contiguous_data_and_cast(
+      TD* __restrict__ dst, TS* __restrict__ src, int n) {
+    for (int i = 0; i < n; ++i) {
+      dst[i] = static_cast<TD>(src[i]);
+    }
+  }
+
   template <int N_T, typename Func>
   static void for_each_in_workgroup(Func f) {
     for (int i = 0; i < N_T; ++i) {

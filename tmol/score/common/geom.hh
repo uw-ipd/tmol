@@ -88,7 +88,7 @@ struct pt_interior_angle {
     Real3 BA = A - B;
     Real3 BC = C - B;
 
-    return interior_angle_V(BA, BC);
+    return interior_angle<Real>::V(BA, BC);
   }
 
   static def V_dV(Real3 A, Real3 B, Real3 C)->V_dV_T {

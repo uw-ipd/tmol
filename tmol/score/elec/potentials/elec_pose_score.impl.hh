@@ -495,8 +495,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     tmol::score::common::tile_evaluate_block_pair<
         DeviceDispatch,
         D,
-        ElecScoringData,
-        ElecScoringData,
+        ElecScoringData<Real>,
+        ElecScoringData<Real>,
         Real,
         TILE_SIZE>(
         shared,
@@ -816,8 +816,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     tmol::score::common::tile_evaluate_block_pair<
         DeviceDispatch,
         D,
-        ElecScoringData,
-        ElecScoringData,
+        ElecScoringData<Real>,
+        ElecScoringData<Real>,
         Real,
         TILE_SIZE>(
         shared,

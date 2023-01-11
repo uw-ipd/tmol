@@ -145,3 +145,21 @@ def test_find_simple_polymeric_connections(ubq_res):
 def test_build_ideal_coords(ubq_res):
     for res in ubq_res:
         build_ideal_coords(res.residue_type)
+
+
+def test_all_bonds_construction(fresh_default_restype_set):
+    for bt in fresh_default_restype_set.residue_types:
+        assert bt.all_bonds.shape[1] == 3
+        for i in range(len(bt.all_bonds)):
+            at1 = bt.all_bonds[i, 0]
+            assert at1 >= 0
+            assert at1 <= bt.n_atoms
+            assert i >= bt.atom_all_bond_ranges[at1, 0]
+            assert i < bt.atom_all_bond_ranges[at1, 1]
+            at2 = bt.all_bonds[i, 1]
+            if at2 >= 0:
+                assert at2 < bt.n_atoms
+                assert bt.all_bonds[i, 2] == -1
+            else:
+                conn = bt.all_bonds[i, 2]
+                assert bt.ordered_connection_atoms[conn] == at1

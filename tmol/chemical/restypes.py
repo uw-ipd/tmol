@@ -14,6 +14,7 @@ from tmol.database.chemical import RawResidueType, ChemicalDatabase
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
+from tmol.chemical.all_bonds import bonds_and_bond_ranges
 from tmol.types.functional import validate_args
 
 
@@ -72,6 +73,36 @@ class RefinedResidueType(RawResidueType):
 
     ordered_connection_atoms: numpy.ndarray = attr.ib()
 
+    @ordered_connection_atoms.default
+    def _setup_ordered_connections(self):
+        return numpy.array(
+            [self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32
+        )
+
+    # The set of "all-bonds" includes both inter- and intra- block chemical bonds
+    # Each all-bond (think of "all" here as an adjective like "inter" or "intra")
+    # is described as a pair (atom-ind1, unresolved-atom id) where the
+    # unresolved-atom id is a tuple (intra-block-atom-ind, conn-id)
+    # following the same rules for undresolved-atom ids for describing
+    # torsions, except that the "bond sep from conn" integer is always 0
+    # because the chemical bond is always defined as to the connection
+    # atom on the other residue, so it is omitted from the all-bonds info.
+    # That is, the "intra-block-atom-ind" is >= 0 if the atom to which atom_ind1
+    # is chemically bound and is in the same block as it, and is -1 otherwise;
+    # conn-id is >= 0 and represents the index of the connection on *this*
+    # block that connects atom_ind1 to its partner when the partner is
+    # on a different block and is -1 otherwise.
+    all_bonds: numpy.ndarray = attr.ib()
+
+    # NOTE: this also creates self.atom_all_bond_ranges
+    @all_bonds.default
+    def _setup_all_bonds(self):
+        all_bonds, atom_all_bond_ranges = bonds_and_bond_ranges(
+            self.n_atoms, self.bond_indices, self.ordered_connection_atoms
+        )
+        self.atom_all_bond_ranges = atom_all_bond_ranges
+        return all_bonds
+
     down_connection_ind: int = attr.ib()
 
     @down_connection_ind.default
@@ -89,12 +120,6 @@ class RefinedResidueType(RawResidueType):
             return self.connection_to_cidx["up"]
         else:
             return -1
-
-    @ordered_connection_atoms.default
-    def _setup_ordered_connections(self):
-        return numpy.array(
-            [self.atom_to_idx[c.atom] for c in self.connections], dtype=numpy.int32
-        )
 
     def _repr_pretty_(self, p, cycle):
         p.text(f"RefinedResidueType(name={self.name},...)")

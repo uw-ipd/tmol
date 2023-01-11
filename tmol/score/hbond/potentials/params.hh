@@ -30,6 +30,7 @@ struct HBondGlobalParams {
   Real hb_sp2_outer_width;
   Real hb_sp3_softmax_fade;
   Real threshold_distance;
+  Real max_ha_dis;
 };
 
 template <typename Real>

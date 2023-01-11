@@ -174,9 +174,7 @@ template <
     template <tmol::Device>
     class DeviceDispatch,
     tmol::Device D,
-    template <typename T>
     typename InterResScoringData,
-    template <typename T>
     typename IntraResScoringData,
     typename Real,
     int TILE,
@@ -216,7 +214,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
   // printf("starting %d %d\n", block_ind1, block_ind2);
   if (block_ind1 != block_ind2) {
     // Step 1: load any data that is consistent across all tile pairs
-    InterResScoringData<Real> interres_data;
+    InterResScoringData interres_data;
     // printf("calling load_tile_invariant_interres_data\n");
     load_tile_invariant_interres_data(
         pose_ind,
@@ -277,7 +275,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
 
   } else {
     // Step 1: load any data that is consistent across all tile pairs
-    IntraResScoringData<Real> intrares_data;
+    IntraResScoringData intrares_data;
     // printf("calling load_tile_invariant_intrares_data\n");
     load_tile_invariant_intrares_data(
         pose_ind,

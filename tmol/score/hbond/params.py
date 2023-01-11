@@ -235,7 +235,14 @@ class CompactedHBondDatabase(ValidateAttrs):
             n: torch.tensor(v, device=device).expand(1).to(dtype=torch.float32)
             for n, v in attr.asdict(hbond_database.global_parameters).items()
         }
+        max_ahdis = max(
+            p.xmax
+            for p in hbond_database.polynomial_parameters
+            if p.dimension == "hbgd_AHdist"
+        )
 
+        # also store the distance of the longest possible hbond
+        # by reading the set of hbond polynomials
         global_param_table = _p(
             (
                 torch.cat(
@@ -245,6 +252,7 @@ class CompactedHBondDatabase(ValidateAttrs):
                         global_params["hb_sp2_outer_width"],
                         global_params["hb_sp3_softmax_fade"],
                         global_params["threshold_distance"],
+                        torch.tensor([max_ahdis], device=device, dtype=torch.float32),
                     ],
                     0,
                 )

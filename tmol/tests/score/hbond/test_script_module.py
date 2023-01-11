@@ -13,11 +13,14 @@ def _setup_inputs(coords, params, donors, acceptors, torch_device):
         t = torch.tensor(v).to(device=torch_device)
         if t.dtype == torch.float64:
             t = t.to(torch.float32)
-        return t
+        return torch.nn.Parameter(t, requires_grad=False)
+
+    def _pg(t):
+        return torch.nn.Parameter(t, requires_grad=True)
 
     return dict(
-        donor_coords=_t(coords)[None, :],
-        acceptor_coords=_t(coords)[None, :],
+        donor_coords=_pg(_t(coords)[None, :]),
+        acceptor_coords=_pg(_t(coords)[None, :]),
         D=_t(donors["d"]),
         H=_t(donors["h"]),
         donor_type=_t(params.donor_type_index.get_indexer(donors["donor_type"][0])).to(

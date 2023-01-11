@@ -4,9 +4,8 @@ import torch
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..bond_dependent_term import BondDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
-from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver  # LJLKTypeParams,
-
-# from tmol.score.chemical_database import AtomTypeParamResolver
+from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
+from tmol.database import ParameterDatabase
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -15,20 +14,28 @@ from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True)
-class LKBallEnergy(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm):
-    # type_params: LJLKTypeParams
+class LKBallEnergyTerm(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm):
 
     ljlk_global_params: LJLKGlobalParams
     ljlk_param_resolver: LJLKParamResolver
 
+    def __init__(self, param_db: ParameterDatabase, device: torch.device):
+        ljlk_param_resolver = LJLKParamResolver.from_database(
+            param_db.chemical, param_db.scoring.ljlk, device=device
+        )
+        super(LKBallEnergyTerm, self).__init__(param_db=param_db, device=device)
+        self.type_params = ljlk_param_resolver.type_params
+        self.global_params = ljlk_param_resolver.global_params
+        self.tile_size = LKBallEnergyTerm.tile_size
+
     def setup_block_type(self, block_type: RefinedResidueType):
-        super(LKBallEnergy, self).setup_block_type(block_type)
+        super(LKBallEnergyTerm, self).setup_block_type(block_type)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
-        super(LKBallEnergy, self).setup_packed_block_types(packed_block_types)
+        super(LKBallEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
     def setup_poses(self, pose_stack: PoseStack):
-        super(LKBallEnergy, self).setup_poses(pose_stack)
+        super(LKBallEnergyTerm, self).setup_poses(pose_stack)
 
     def inter_module(
         self,
@@ -51,8 +58,8 @@ class LKBallEnergy(HBondDependentTerm, AtomTypeDependentTerm, BondDependentTerm)
             bt_n_heavy_atoms=pbt.n_heavy_atoms,
             bt_atom_types=pbt.atom_types,
             bt_heavy_atom_inds=pbt.heavy_atom_inds,
-            bt_n_interblock_bonds=pbt.n_interblock_bonds,
-            bt_atoms_forming_chemical_bonds=pbt.atoms_for_interblock_bonds,
+            bt_n_interblock_bonds=pbt.n_conn,
+            bt_atoms_forming_chemical_bonds=pbt.conn_atom,
             bt_path_distance=pbt.bond_separation,
             bt_is_acceptor=pbt.hbpbt_params.is_acceptor,
             bt_acceptor_type=pbt.hbpbt_params.acceptor_type,
