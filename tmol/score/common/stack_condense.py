@@ -308,37 +308,40 @@ def tile_subset_indices(
         NDArray[numpy.int64][:],
     ],
     tile_size: int,
-    max_n_entries: Optional[int] = None,
+    max_entry: Optional[int] = None,
 ):
-    if type(indices) == torch.Tensor:
-        if max_n_entries is None:
-            max_n_entries = torch.max(indices)
-        n_tiles = max_n_entries // tile_size + 1
-        tiled_indices = torch.full(
-            (n_tiles * tile_size,), -1, dtype=indices.dtype, device=indices.device
-        )
-        n_in_tile = torch.full(
-            (n_tiles,), 0, dtype=indices.dtype, device=indices.device
-        )
-    elif type(indices) == numpy.ndarray:
-        if max_n_entries is None:
-            max_n_entries = numpy.amax(indices)
-        n_tiles = max_n_entries // tile_size + 1
-        tiled_indices = numpy.full_like(indices, -1, shape=(n_tiles * tile_size,))
-        n_in_tile = numpy.full_like(indices, 0, shape=(n_tiles,))
-    else:
-        raise ValueError
-    for i in range(n_tiles):
-        subset = (indices >= i * tile_size) & (indices < (i + 1) * tile_size)
-        if type(tiled_indices) == torch.Tensor:
-            subset_size = torch.sum(subset).cpu()
-        else:
-            subset_size = numpy.sum(subset)
-        s = slice(i * tile_size, i * tile_size + subset_size)
-        tiled_indices[s] = indices[subset] - i * tile_size
-        n_in_tile[i] = subset_size
+    """Take the indices of a subset of things and "tile" them so that they're
+    in groups based on the equivalence class `i // tile_size` and left-justify
+    the indices within the tile.
 
-    return tiled_indices, n_in_tile
+    E.g.
+    If the subset indices are [0, 3, 4, 7, 10, 12, 14]
+    and the tile_size is 8,
+    then the output will be:
+    [0, 3, 4, 7, -1, -1, -1, -1, 2, 4, 6, -1, -1, -1, -1, -1] and
+    [4, 3]
+    representing the tiling of the indices and the number of indices per tile,
+    reflecting there being two tiles where there are four values in
+    the first tile and three values in the second tile.
+    The indices are given as tile indices so that 10-->2,
+    12-->4, 14-->6. The entries that are in the first tile remain
+    unchanged, of course.
+
+    If desired, a maximum index can be given so that a desired number
+    of tiles can be created even if the subset includes no entries for
+    the last tile.
+
+    E.g.
+    If the subset indices are [0, 3, 4, 7]
+    and the tile size is 8 and the max_entry is 15, then two tiles are desired
+    and the output will be:
+    [0, 3, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1] and
+    [4, 0]
+    representing the tiling of the indices and the number of indices per tile    
+
+    Works for both torch and numpy inputs.
+    """
+    return _value_or_arg_tile_subset_indices(indices, tile_size, False, max_entry)
 
 
 @validate_args
@@ -350,28 +353,76 @@ def arg_tile_subset_indices(
         NDArray[numpy.int64][:],
     ],
     tile_size: int,
-    max_n_entries: Optional[int] = None,
+    max_entry: Optional[int] = None,
+):
+    """Take the indices of a subset of things and return the indices (args) that
+    would "tile" them so that they're in groups based on the equivalence class
+    `i // tile_size` and left-justify those indices within the tiles.
+    Having the indices of the tiled subset is desired in cases when there
+    is additional data for the subset that also needs to be tiled.
+
+    E.g.
+    If the subset indices are [0, 3, 4, 7, 10, 12, 14]
+    and the tile_size is 8,
+    then the output will be:
+    [0, 1, 2, 3, -1, -1, -1, -1, 4, 5, 6, -1, -1, -1, -1, -1] and
+    [4, 3]
+    representing the tiling of the indices by their indices in the input array
+    (confusingly named) indices (!) and the number of indices per tile,
+    reflecting there being two tiles, where there are four values in the
+    first tile and three values in the second tile.
+
+    If desired, a maximum index can be given so that a desired number
+    of tiles can be created even if the subset includes no entries for
+    the last tile.
+
+    E.g.
+    If the subset indices are [0, 3, 4, 7]
+    and the tile size is 8 and the max_entry is 15, then two tiles are desired
+    and the output will be:
+    [0, 1, 2, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1] and
+    [4, 0]
+    representing the tiling of the indices by their indices and the number
+    of indices per tile.
+
+    Works for both torch and numpy inputs.
+    """
+    return _value_or_arg_tile_subset_indices(indices, tile_size, True, max_entry)
+
+
+def _value_or_arg_tile_subset_indices(
+    indices: Union[
+        Tensor[torch.int32][:],
+        Tensor[torch.int64][:],
+        NDArray[numpy.int32][:],
+        NDArray[numpy.int64][:],
+    ],
+    tile_size: int,
+    return_args: bool,
+    max_entry: Optional[int] = None,
 ):
     if type(indices) == torch.Tensor:
-        if max_n_entries is None:
-            max_n_entries = torch.max(indices)
-        n_tiles = max_n_entries // tile_size + 1
+        if max_entry is None:
+            max_entry = torch.max(indices)
+        n_tiles = max_entry // tile_size + 1
         tiled_indices = torch.full(
             (n_tiles * tile_size,), -1, dtype=indices.dtype, device=indices.device
         )
         n_in_tile = torch.full(
             (n_tiles,), 0, dtype=indices.dtype, device=indices.device
         )
-        ind_arange = torch.arange(
-            indices.shape[0], dtype=indices.dtype, device=indices.device
-        )
+        if return_args:
+            ind_arange = torch.arange(
+                indices.shape[0], dtype=indices.dtype, device=indices.device
+            )
     elif type(indices) == numpy.ndarray:
-        if max_n_entries is None:
-            max_n_entries = numpy.amax(indices)
-        n_tiles = max_n_entries // tile_size + 1
+        if max_entry is None:
+            max_entry = numpy.amax(indices)
+        n_tiles = max_entry // tile_size + 1
         tiled_indices = numpy.full_like(indices, -1, shape=(n_tiles * tile_size,))
         n_in_tile = numpy.full_like(indices, 0, shape=(n_tiles,))
-        ind_arange = numpy.arange(indices.shape[0], dtype=indices.dtype)
+        if return_args:
+            ind_arange = numpy.arange(indices.shape[0], dtype=indices.dtype)
     else:
         raise ValueError
     for i in range(n_tiles):
@@ -381,7 +432,10 @@ def arg_tile_subset_indices(
         else:
             subset_size = numpy.sum(subset)
         s = slice(i * tile_size, i * tile_size + subset_size)
-        tiled_indices[s] = ind_arange[subset]
+        if return_args:
+            tiled_indices[s] = ind_arange[subset]
+        else:
+            tiled_indices[s] = indices[subset] - i * tile_size
         n_in_tile[i] = subset_size
 
     return tiled_indices, n_in_tile

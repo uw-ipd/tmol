@@ -52,10 +52,10 @@ struct DeviceOperations<tmol::Device::CPU> {
   }
 
   template <int N_T, int WIDTH, typename TD, typename TS>
-  static void copy_and_cast_contiguous_data(
+  static void copy_contiguous_data_and_cast(
       TD* __restrict__ dst, TS* __restrict__ src, int n) {
     for (int i = 0; i < n; ++i) {
-      dst[i] = TD(src[i]);
+      dst[i] = static_cast<TD>(src[i]);
     }
   }
 

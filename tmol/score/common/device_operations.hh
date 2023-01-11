@@ -26,8 +26,10 @@ struct DeviceOperations {
   static void copy_contiguous_data(
       T* __restrict__ dst, T* __restrict__ src, int n);
 
+  // Copy a block of contiguous data from src to dst and cast it
+  // to type TD from type TS
   template <int N_T, int WIDTH, typename TD, typename TS>
-  static void copy_and_cast_contiguous_data(
+  static void copy_contiguous_dat_aand_cast(
       TD* __restrict__ dst, TS* __restrict__ src, int n);
 
   template <int N_T, typename Func>

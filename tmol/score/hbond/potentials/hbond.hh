@@ -63,7 +63,7 @@ class HBondResPairData {
   TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections;
 
   // And we need to know the properties of the block types
-  // that we are working with to iterating across chemical bonds
+  // that we are working with to iterate across chemical bonds
   TView<Int, 1, Dev> block_type_n_all_bonds;
   TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds;
   TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges;
@@ -137,23 +137,23 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
       reinterpret_cast<Real *>(
           &coords[pose_ind][r_dat.block_coord_offset + start_atom]),
       n_atoms_to_load * 3);
-  DeviceDispatch<Dev>::template copy_and_cast_contiguous_data<nt, 1>(
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.donH_tile_inds,
       &block_type_tile_donH_inds[r_dat.block_type][tile_ind][0],
       r_dat.n_donH);
-  DeviceDispatch<Dev>::template copy_and_cast_contiguous_data<nt, 1>(
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.acc_tile_inds,
       &block_type_tile_acc_inds[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);
-  DeviceDispatch<Dev>::template copy_and_cast_contiguous_data<nt, 1>(
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.donH_type,
       &block_type_tile_donor_type[r_dat.block_type][tile_ind][0],
       r_dat.n_donH);
-  DeviceDispatch<Dev>::template copy_and_cast_contiguous_data<nt, 1>(
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.acc_type,
       &block_type_tile_acceptor_type[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);
-  DeviceDispatch<Dev>::template copy_and_cast_contiguous_data<nt, 1>(
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.acc_hybridization,
       &block_type_tile_hybridization[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);

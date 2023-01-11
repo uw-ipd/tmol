@@ -97,7 +97,6 @@ struct BlockCentricIndexedBonds {
       if (neighb_atm >= 0) {
         return {block, block_type, neighb_atm};
       } else {
-        return {-1, -1, -1};
         // Inter-block chemical bond:
         // The neighbor atom is the one on the other side of the connection
         // on this residue. 1. Look up the connection on this residue, conn_id.
