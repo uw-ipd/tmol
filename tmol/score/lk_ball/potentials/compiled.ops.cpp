@@ -6,10 +6,12 @@
 
 #include <tmol/score/common/simple_dispatch.hh>
 #include <tmol/score/common/forall_dispatch.hh>
+#include <tmol/score/common/device_operations.hh>
 
 #include "dispatch.hh"
 #include "gen_waters.hh"
 #include "rotamer_pair_energy_lkball.hh"
+#include "lk_ball_pose_score.hh"
 
 namespace tmol {
 namespace score {
@@ -409,6 +411,227 @@ Tensor rotamer_pair_energies(
   return rpes;
 }
 
+class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
+ public:
+  static Tensor forward(
+      AutogradContext* ctx,
+
+      Tensor pose_coords,
+      Tensor pose_coords,
+      Tensor water_coords,
+      Tensor pose_stack_block_coord_offset,
+      Tensor pose_stack_block_type,
+
+      Tensor pose_stack_inter_residue_connections,
+      Tensor pose_stack_min_bond_separation,
+      Tensor pose_stack_inter_block_bondsep,
+      Tensor block_type_n_atoms,
+      Tensor block_type_n_interblock_bonds,
+
+      Tensor block_type_atoms_forming_chemical_bonds,
+      Tensor block_type_tile_n_polar_atoms,
+      Tensor block_type_tile_n_occluder_atoms,
+      Tensor block_type_tile_polar_inds,
+      Tensor block_type_tile_occluder_inds,
+
+      Tensor block_type_tile_lk_ball_params,
+      Tensor block_type_path_distance,
+      Tensor global_params) {
+    at::Tensor score;
+    at::Tensor block_neighbors;
+
+    using Int = int32_t;
+
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        I.type(), "lk_ball_pose_score_op", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+
+          auto result =
+              LKBallPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+                  TCAST(pose_coords),
+                  TCAST(water_coords),
+                  TCAST(pose_stack_block_coord_offset),
+                  TCAST(pose_stack_block_type),
+                  TCAST(pose_stack_inter_residue_connections),
+
+                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_inter_block_bondsep),
+                  TCAST(block_type_n_atoms),
+                  TCAST(block_type_n_interblock_bonds),
+                  TCAST(block_type_atoms_forming_chemical_bonds),
+
+                  TCAST(block_type_tile_n_polar_atoms),
+                  TCAST(block_type_tile_n_occluder_atoms),
+                  TCAST(block_type_tile_polar_inds),
+                  TCAST(block_type_tile_occluder_inds),
+                  TCAST(block_type_tile_lk_ball_params),
+
+                  TCAST(block_type_path_distance),
+                  TCAST(global_params));
+
+          score = std::get < 0(result).tensor;
+          block_neighbors = std::get<1>(result).tensor;
+        }));
+
+    ctx->save_for_backward({pose_coords,
+                            pose_coords,
+                            water_coords,
+                            pose_stack_block_coord_offset,
+                            pose_stack_block_type,
+                            pose_stack_inter_residue_connections,
+                            pose_stack_min_bond_separation,
+                            pose_stack_inter_block_bondsep,
+                            block_type_n_atoms,
+                            block_type_n_interblock_bonds,
+                            block_type_atoms_forming_chemical_bonds,
+                            block_type_tile_n_polar_atoms,
+                            block_type_tile_n_occluder_atoms,
+                            block_type_tile_polar_inds,
+                            block_type_tile_occluder_inds,
+                            block_type_tile_lk_ball_params,
+                            block_type_path_distance,
+                            global_params,
+                            block_neighbors});
+
+    return score;
+  }
+
+  static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    auto saved = ctx->get_saved_variables();
+
+    int i = 0;
+
+    auto pose_coords = saved[i++];
+    auto pose_coords = saved[i++];
+    auto water_coords = saved[i++];
+    auto pose_stack_block_coord_offset = saved[i++];
+    auto pose_stack_block_type = saved[i++];
+    auto pose_stack_inter_residue_connections = saved[i++];
+    auto pose_stack_min_bond_separation = saved[i++];
+    auto pose_stack_inter_block_bondsep = saved[i++];
+    auto block_type_n_atoms = saved[i++];
+    auto block_type_n_interblock_bonds = saved[i++];
+    auto block_type_atoms_forming_chemical_bonds = saved[i++];
+    auto block_type_tile_n_polar_atoms = saved[i++];
+    auto block_type_tile_n_occluder_atoms = saved[i++];
+    auto block_type_tile_polar_inds = saved[i++];
+    auto block_type_tile_occluder_inds = saved[i++];
+    auto block_type_tile_lk_ball_params = saved[i++];
+    auto block_type_path_distance = saved[i++];
+    auto global_params = saved[i++];
+    auto block_neighbors = saved[i++];
+
+    at::Tensor dV_d_pose_coords, dV_d_water_coords;
+    using Int = int32_t;
+
+    auto dTdV = grad_outputs[0];
+
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        I.type(), "ScoreOpBackward", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+
+          auto result =
+              LKBallPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::backward(
+                  TCAST(pose_coords),
+                  TCAST(water_coords),
+                  TCAST(pose_stack_block_coord_offset),
+                  TCAST(pose_stack_block_type),
+                  TCAST(pose_stack_inter_residue_connections),
+
+                  TCAST(pose_stack_min_bond_separation),
+                  TCAST(pose_stack_inter_block_bondsep),
+                  TCAST(block_type_n_atoms),
+                  TCAST(block_type_n_interblock_bonds),
+                  TCAST(block_type_atoms_forming_chemical_bonds),
+
+                  TCAST(block_type_tile_n_polar_atoms),
+                  TCAST(block_type_tile_n_occluder_atoms),
+                  TCAST(block_type_tile_polar_inds),
+                  TCAST(block_type_tile_occluder_inds),
+                  TCAST(block_type_tile_lk_ball_params),
+
+                  TCAST(block_type_path_distance),
+                  TCAST(global_params),
+                  TCAST(block_neighbors),
+                  TCAST(dTdV));
+
+          dV_d_pose_coords = std::get<0>(result).tensor;
+          dV_d_water_coords = std::get<1>(result).tensor;
+        }));
+
+    return {dV_d_pose_coords,
+            dV_d_water_coords,
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor()};
+  }
+};
+
+template <template <tmol::Device> class Dispatch>
+Tensor lkball_pose_score(
+    Tensor pose_coords,
+    Tensor pose_coords,
+    Tensor water_coords,
+    Tensor pose_stack_block_coord_offset,
+    Tensor pose_stack_block_type,
+
+    Tensor pose_stack_inter_residue_connections,
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+    Tensor block_type_n_atoms,
+    Tensor block_type_n_interblock_bonds,
+
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_tile_n_polar_atoms,
+    Tensor block_type_tile_n_occluder_atoms,
+    Tensor block_type_tile_polar_inds,
+    Tensor block_type_tile_occluder_inds,
+
+    Tensor block_type_tile_lk_ball_params,
+    Tensor block_type_path_distance,
+    Tensor global_params) {
+  return LKBallPoseScoreOp::apply(
+      pose_coords,
+      pose_coords,
+      water_coords,
+      pose_stack_block_coord_offset,
+      pose_stack_block_type,
+
+      pose_stack_inter_residue_connections,
+      pose_stack_min_bond_separation,
+      pose_stack_inter_block_bondsep,
+      block_type_n_atoms,
+      block_type_n_interblock_bonds,
+
+      block_type_atoms_forming_chemical_bonds,
+      block_type_tile_n_polar_atoms,
+      block_type_tile_n_occluder_atoms,
+      block_type_tile_polar_inds,
+      block_type_tile_occluder_inds,
+
+      block_type_tile_lk_ball_params,
+      block_type_path_distance,
+      global_params);
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
@@ -419,6 +642,7 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def(
       "score_lkball_inter_system_scores",
       &rotamer_pair_energies<common::ForallDispatch>);
+  m.def("lkball_pose_score", &lkball_pose_score<common::DeviceOperations>);
 }
 
 }  // namespace potentials
