@@ -441,12 +441,16 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        I.type(), "lk_ball_pose_score_op", ([&] {
+        pose_coords.type(), "lk_ball_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
-          auto result =
-              LKBallPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+          auto result = LKBallPoseScoreDispatch<
+              common::DeviceOperations,
+              Dev,
+              Real,
+              Int>::
+              forward(
                   TCAST(pose_coords),
                   TCAST(water_coords),
                   TCAST(pose_stack_block_coord_offset),
@@ -467,7 +471,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
                   TCAST(global_params));
 
-          score = std::get < 0(result).tensor;
+          score = std::get<0>(result).tensor;
           block_neighbors = std::get<1>(result).tensor;
         }));
 
@@ -527,12 +531,16 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     auto dTdV = grad_outputs[0];
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        I.type(), "ScoreOpBackward", ([&] {
+        pose_coords.type(), "lk_ball_pose_score_backward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
-          auto result =
-              LKBallPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::backward(
+          auto result = LKBallPoseScoreDispatch<
+              common::DeviceOperations,
+              Dev,
+              Real,
+              Int>::
+              backward(
                   TCAST(pose_coords),
                   TCAST(water_coords),
                   TCAST(pose_stack_block_coord_offset),

@@ -6,6 +6,8 @@
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/accumulate.hh>
+#include <tmol/score/common/diamond_macros.hh>
+#include <tmol/score/common/data_loading.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 
 #include "params.hh"
