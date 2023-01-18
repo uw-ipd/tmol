@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <Eigen/Core>
@@ -71,8 +72,7 @@ struct LKBallPoseScoreDispatch {
 
       TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
       TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
-      TView<Int, 3, Dev> block_type_tile_polar_inds,
-      TView<Int, 3, Dev> block_type_tile_occluder_inds,
+      TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
       TView<Int, 3, Dev> block_type_tile_lk_ball_params,
 
       // How many chemical bonds separate all pairs of atoms
@@ -104,19 +104,17 @@ struct LKBallPoseScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev>
-          pose_stack_min_bond_separation,  // ?? needed ?? I think so
+      TView<Int, 3, Dev> pose_stack_min_bond_separation,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev>
-          pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
+      TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties
       // how many atoms for a given block
       // Dimsize n_block_types
-      TView<Int, 1, Dev> block_type_n_atoms,  // ?? needed ?? I think so
+      TView<Int, 1, Dev> block_type_n_atoms,
 
       // how many inter-block chemical bonds are there
       // Dimsize: n_block_types
@@ -128,8 +126,7 @@ struct LKBallPoseScoreDispatch {
 
       TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
       TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
-      TView<Int, 3, Dev> block_type_tile_polar_inds,
-      TView<Int, 3, Dev> block_type_tile_occluder_inds,
+      TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
       TView<Int, 3, Dev> block_type_tile_lk_ball_params,
 
       // How many chemical bonds separate all pairs of atoms
@@ -141,7 +138,7 @@ struct LKBallPoseScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
-      TView<Int, 3, Dev> scratch_block_neighbors,  // from forward pass
+      TView<Int, 3, Dev> block_neighbors,  // from forward pass
       TView<Real, 2, Dev> dTdV)
       -> std::tuple<TPack<Vec<Real, 3>, 3, Dev>, TPack<Vec<Real, 3>, 4, Dev>>;
 };

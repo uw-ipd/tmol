@@ -10,6 +10,8 @@ load(
                 "compiled.ops.cpp",
                 "compiled.cpu.cpp",
                 "compiled.cuda.cu",
+                "lk_ball_pose_score.cpu.cpp",
+                "lk_ball_pose_score.cuda.cu",
                 "rotamer_pair_energy_lkball.cpu.cpp",
                 "rotamer_pair_energy_lkball.cuda.cu",
             ],

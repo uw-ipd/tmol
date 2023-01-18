@@ -108,8 +108,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
-    TView<Int, 3, Dev> block_type_tile_polar_inds,
-    TView<Int, 3, Dev> block_type_tile_occluder_inds,
+    TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
     TView<Int, 3, Dev> block_type_tile_lk_ball_params,
 
     // How many chemical bonds separate all pairs of atoms
@@ -130,13 +129,11 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   int const max_n_blocks = pose_stack_block_type.size(1);
   int const max_n_conn = pose_stack_inter_residue_connections.size(2);
   int const n_block_types = block_type_n_atoms.size(0);
-  int const max_n_block_atoms = block_type_atom_is_hydrogen.size(1);
+  int const max_n_block_atoms = block_type_path_distance.size(1);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
   int const max_n_all_bonds = block_type_all_bonds.size(1);
-  int const max_n_tiles = block_type_tile_donH_inds.size(1);
-  int const max_n_donH_per_tile = block_type_tile_donH_inds.size(2);
-  int const max_n_acc_per_tile = block_type_tile_acc_inds.size(2);
+  int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
@@ -170,12 +167,9 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   assert(block_type_tile_n_polar_atoms.size(1) == max_n_tiles);
   assert(block_type_tile_n_occluder_atoms.size(0) == n_block_types);
   assert(block_type_tile_n_occluder_atoms.size(1) == max_n_tiles);
-  assert(block_type_tile_polar_inds.size(0) == n_block_types);
-  assert(block_type_tile_polar_inds.size(1) == max_n_tiles);
-  assert(block_type_tile_polar_inds.size(2) == TILE_SIZE);
-  assert(block_type_tile_occluder_inds.size(0) == n_block_types);
-  assert(block_type_tile_occluder_inds.size(1) == max_n_tiles);
-  assert(block_type_tile_occluder_inds.size(2) == TILE_SIZE);
+  assert(block_type_tile_pol_occ_inds.size(0) == n_block_types);
+  assert(block_type_tile_pol_occ_inds.size(1) == max_n_tiles);
+  assert(block_type_tile_pol_occ_inds.size(2) == TILE_SIZE);
   assert(block_type_tile_lk_ball_params.size(0) == n_block_types);
   assert(block_type_tile_lk_ball_params.size(1) == max_n_tiles);
   assert(block_type_tile_lk_ball_params.size(2) == TILE_SIZE);
@@ -242,9 +236,9 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
              LKBallScoringData<Real> const &inter_dat,
              bool polar_first) {
           int pol_tile_ind = (polar_first ? inter_dat.r1 : inter_dat.r2)
-                                 .polar_tile_inds[pol_ind];
-          int occ_tile_ind = (donor_first ? inter_dat.r2 : inter_dat.r1)
-                                 .occluder_tile_inds[don_ind];
+                                 .pol_occ_tile_inds[pol_ind];
+          int occ_tile_ind = (polar_first ? inter_dat.r2 : inter_dat.r1)
+                                 .pol_occ_tile_inds[occ_ind];
           int separation = interres_count_pair_separation<TILE_SIZE>(
               inter_dat,
               (polar_first ? pol_ind : occ_ind),
@@ -271,9 +265,9 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
              LKBallScoringData<Real> const &intra_dat,
              bool polar_first) {
           int pol_tile_ind = (polar_first ? intra_dat.r1 : intra_dat.r2)
-                                 .polar_tile_inds[pol_ind];
+                                 .pol_occ_tile_inds[pol_ind];
           int occ_tile_ind = (polar_first ? intra_dat.r2 : intra_dat.r1)
-                                 .occluder_tile_inds[occ_ind];
+                                 .pol_occ_tile_inds[occ_ind];
           int const pol_atom_ind = pol_start + pol_tile_ind;
           int const occ_atom_ind = occ_start + occ_tile_ind;
 
@@ -369,8 +363,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
               water_coords,
               block_type_tile_n_polar_atoms,
               block_type_tile_n_occluder_atoms,
-              block_type_tile_polar_inds,
-              block_type_tile_occluder_inds,
+              block_type_tile_pol_occ_inds,
               block_type_tile_lk_ball_params,
               block_type_path_distance,
               tile_ind,
@@ -391,8 +384,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
               water_coords,
               block_type_tile_n_polar_atoms,
               block_type_tile_n_occluder_atoms,
-              block_type_tile_polar_inds,
-              block_type_tile_occluder_inds,
+              block_type_tile_pol_occ_inds,
               block_type_tile_lk_ball_params,
               block_type_path_distance,
               tile_ind,
@@ -489,8 +481,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
               water_coords,
               block_type_tile_n_polar_atoms,
               block_type_tile_n_occluder_atoms,
-              block_type_tile_polar_inds,
-              block_type_tile_occluder_inds,
+              block_type_tile_pol_occ_inds,
               block_type_tile_lk_ball_params,
 
               tile_ind,
@@ -511,8 +502,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
               water_coords,
               block_type_tile_n_polar_atoms,
               block_type_tile_n_occluder_atoms,
-              block_type_tile_polar_inds,
-              block_type_tile_occluder_inds,
+              block_type_tile_pol_occ_inds,
               block_type_tile_lk_ball_params,
               tile_ind,
               start_atom2,
@@ -635,19 +625,17 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     // logic for deciding whether two atoms in those blocks should have their
     // interaction energies calculated: all should. intentionally small to
     // (possibly) fit in constant cache
-    TView<Int, 3, Dev>
-        pose_stack_min_bond_separation,  // ?? needed ?? I think so
+    TView<Int, 3, Dev> pose_stack_min_bond_separation,
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, Dev>
-        pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
+    TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
     // how many atoms for a given block
     // Dimsize n_block_types
-    TView<Int, 1, Dev> block_type_n_atoms,  // ?? needed ?? I think so
+    TView<Int, 1, Dev> block_type_n_atoms,
 
     // how many inter-block chemical bonds are there
     // Dimsize: n_block_types
@@ -659,8 +647,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
     TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
-    TView<Int, 3, Dev> block_type_tile_polar_inds,
-    TView<Int, 3, Dev> block_type_tile_occluder_inds,
+    TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
     TView<Int, 3, Dev> block_type_tile_lk_ball_params,
 
     // How many chemical bonds separate all pairs of atoms
@@ -683,13 +670,11 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   int const max_n_blocks = pose_stack_block_type.size(1);
   int const max_n_conn = pose_stack_inter_residue_connections.size(2);
   int const n_block_types = block_type_n_atoms.size(0);
-  int const max_n_block_atoms = block_type_atom_is_hydrogen.size(1);
+  int const max_n_block_atoms = block_type_path_distance.size(1);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
   int const max_n_all_bonds = block_type_all_bonds.size(1);
-  int const max_n_tiles = block_type_tile_donH_inds.size(1);
-  int const max_n_donH_per_tile = block_type_tile_donH_inds.size(2);
-  int const max_n_acc_per_tile = block_type_tile_acc_inds.size(2);
+  int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
@@ -723,12 +708,9 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   assert(block_type_tile_n_polar_atoms.size(1) == max_n_tiles);
   assert(block_type_tile_n_occluder_atoms.size(0) == n_block_types);
   assert(block_type_tile_n_occluder_atoms.size(1) == max_n_tiles);
-  assert(block_type_tile_polar_inds.size(0) == n_block_types);
-  assert(block_type_tile_polar_inds.size(1) == max_n_tiles);
-  assert(block_type_tile_polar_inds.size(2) == TILE_SIZE);
-  assert(block_type_tile_occluder_inds.size(0) == n_block_types);
-  assert(block_type_tile_occluder_inds.size(1) == max_n_tiles);
-  assert(block_type_tile_occluder_inds.size(2) == TILE_SIZE);
+  assert(block_type_tile_pol_occ_inds.size(0) == n_block_types);
+  assert(block_type_tile_pol_occ_inds.size(1) == max_n_tiles);
+  assert(block_type_tile_pol_occ_inds.size(2) == TILE_SIZE);
   assert(block_type_tile_lk_ball_params.size(0) == n_block_types);
   assert(block_type_tile_lk_ball_params.size(1) == max_n_tiles);
   assert(block_type_tile_lk_ball_params.size(2) == TILE_SIZE);
@@ -751,26 +733,26 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto lk_ball_atom_derivs = ([=] TMOL_DEVICE_FUNC(
-                                    int don_ind,
-                                    int acc_ind,
-                                    int don_tile_ind,
-                                    int acc_tile_ind,
-                                    int don_start,
-                                    int acc_start,
-                                    LKBallSingleResData<Real> const &don_dat,
-                                    LKBallSingleResData<Real> const &acc_dat,
+                                    int pol_ind,
+                                    int occ_ind,
+                                    int pol_tile_ind,
+                                    int occ_tile_ind,
+                                    int pol_start,
+                                    int occ_start,
+                                    LKBallSingleResData<Real> const &pol_dat,
+                                    LKBallSingleResData<Real> const &occ_dat,
                                     LKBallResPairData<Real> const &respair_dat,
                                     int cp_separation) {
       // capture dTdV, dV_d_pose_coords, & dV_d_water_coords
       lk_ball_atom_derivs_full<TILE_SIZE, MAX_N_WATER>(
-          don_ind,
-          acc_ind,
-          don_tile_ind,
-          acc_tile_ind,
-          don_start,
-          acc_start,
-          don_dat,
-          acc_dat,
+          pol_ind,
+          occ_ind,
+          pol_tile_ind,
+          occ_tile_ind,
+          pol_start,
+          occ_start,
+          pol_dat,
+          occ_dat,
           respair_dat,
           cp_separation,
           dTdV,
@@ -778,65 +760,65 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
           dV_d_water_coords);
     });
 
-    auto dscore_inter_lk_ball_atom_pair = ([=] TMOL_DEVICE_FUNC(
-                                               int don_start,
-                                               int acc_start,
-                                               int don_ind,
-                                               int acc_ind,
-                                               LKBallScoringData<Real> const
-                                                   &inter_dat,
-                                               bool donor_first) {
-      int don_tile_ind =
-          (donor_first ? inter_dat.r1 : inter_dat.r2).donH_tile_inds[don_ind];
-      int acc_tile_ind =
-          (donor_first ? inter_dat.r2 : inter_dat.r1).acc_tile_inds[acc_ind];
-      int separation = interres_count_pair_separation<TILE_SIZE>(
-          inter_dat,
-          (donor_first ? don_ind : acc_ind),
-          (donor_first ? acc_ind : don_ind));
-      lk_ball_atom_derivs(
-          don_ind,
-          acc_ind,
-          don_tile_ind,
-          acc_tile_ind,
-          don_start,
-          acc_start,
-          donor_first ? inter_dat.r1 : inter_dat.r2,
-          donor_first ? inter_dat.r2 : inter_dat.r1,
-          inter_dat.pair_data,
-          separation);
-    });
+    auto dscore_inter_lk_ball_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int pol_start,
+             int occ_start,
+             int pol_ind,
+             int occ_ind,
+             LKBallScoringData<Real> const &inter_dat,
+             bool polar_first) {
+          int pol_tile_ind = (polar_first ? inter_dat.r1 : inter_dat.r2)
+                                 .pol_occ_tile_inds[pol_ind];
+          int occ_tile_ind = (polar_first ? inter_dat.r2 : inter_dat.r1)
+                                 .occ_tile_inds[occ_ind];
+          int separation = interres_count_pair_separation<TILE_SIZE>(
+              inter_dat,
+              (polar_first ? pol_ind : occ_ind),
+              (polar_first ? occ_ind : pol_ind));
+          lk_ball_atom_derivs(
+              pol_ind,
+              occ_ind,
+              pol_tile_ind,
+              occ_tile_ind,
+              pol_start,
+              occ_start,
+              polar_first ? inter_dat.r1 : inter_dat.r2,
+              polar_first ? inter_dat.r2 : inter_dat.r1,
+              inter_dat.pair_data,
+              separation);
+        });
 
-    auto dscore_intra_lk_ball_atom_pair = ([=] TMOL_DEVICE_FUNC(
-                                               int don_start,
-                                               int acc_start,
-                                               int don_ind,
-                                               int acc_ind,
-                                               LKBallScoringData<Real> const
-                                                   &intra_dat,
-                                               bool donor_first) {
-      int don_tile_ind =
-          (donor_first ? intra_dat.r1 : intra_dat.r2).donH_tile_inds[don_ind];
-      int acc_tile_ind =
-          (donor_first ? intra_dat.r2 : intra_dat.r1).acc_tile_inds[acc_ind];
-      int const don_atom_ind = don_start + don_tile_ind;
-      int const acc_atom_ind = acc_start + acc_tile_ind;
+    auto dscore_intra_lk_ball_atom_pair =
+        ([=] TMOL_DEVICE_FUNC(
+             int pol_start,
+             int occ_start,
+             int pol_ind,
+             int occ_ind,
+             LKBallScoringData<Real> const &intra_dat,
+             bool polar_first) {
+          int pol_tile_ind = (polar_first ? intra_dat.r1 : intra_dat.r2)
+                                 .pol_occ_tile_inds[pol_ind];
+          int occ_tile_ind = (polar_first ? intra_dat.r2 : intra_dat.r1)
+                                 .occ_tile_inds[acc_ind];
+          int const don_atom_ind = don_start + don_tile_ind;
+          int const acc_atom_ind = acc_start + acc_tile_ind;
 
-      int const separation =
-          block_type_path_distance[intra_dat.r1.block_type][don_atom_ind]
-                                  [acc_atom_ind];
-      return lk_ball_atom_derivs(
-          don_ind,
-          acc_ind,
-          don_tile_ind,
-          acc_tile_ind,
-          don_start,
-          acc_start,
-          donor_first ? intra_dat.r1 : intra_dat.r2,
-          donor_first ? intra_dat.r2 : intra_dat.r1,
-          intra_dat.pair_data,
-          separation);
-    });
+          int const separation =
+              block_type_path_distance[intra_dat.r1.block_type][don_atom_ind]
+                                      [acc_atom_ind];
+          return lk_ball_atom_derivs(
+              don_ind,
+              acc_ind,
+              don_tile_ind,
+              acc_tile_ind,
+              don_start,
+              acc_start,
+              donor_first ? intra_dat.r1 : intra_dat.r2,
+              donor_first ? intra_dat.r2 : intra_dat.r1,
+              intra_dat.pair_data,
+              separation);
+        });
 
     SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
@@ -914,8 +896,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
               water_coords,
               block_type_tile_n_polar_atoms,
               block_type_tile_n_occluder_atoms,
-              block_type_tile_polar_inds,
-              block_type_tile_occluder_inds,
+              block_type_tile_pol_occ_inds,
               block_type_tile_lk_ball_params,
               block_type_path_distance,
               tile_ind,
@@ -936,8 +917,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
               water_coords,
               block_type_tile_n_polar_atoms,
               block_type_tile_n_occluder_atoms,
-              block_type_tile_polar_inds,
-              block_type_tile_occluder_inds,
+              block_type_tile_pol_occ_inds,
               block_type_tile_lk_ball_params,
               block_type_path_distance,
               tile_ind,
@@ -997,8 +977,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
               water_coords,
               block_type_tile_n_polar_atoms,
               block_type_tile_n_occluder_atoms,
-              block_type_tile_polar_inds,
-              block_type_tile_occluder_inds,
+              block_type_tile_pol_occ_inds,
               block_type_tile_lk_ball_params,
 
               tile_ind,
@@ -1019,8 +998,7 @@ auto LKBallPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
               water_coords,
               block_type_tile_n_polar_atoms,
               block_type_tile_n_occluder_atoms,
-              block_type_tile_polar_inds,
-              block_type_tile_occluder_inds,
+              block_type_tile_pol_occ_inds,
               block_type_tile_lk_ball_params,
               tile_ind,
               start_atom2,
