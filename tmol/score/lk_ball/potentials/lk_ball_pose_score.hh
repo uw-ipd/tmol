@@ -14,11 +14,11 @@
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 
-#include <tmol/score/hbond/potentials/params.hh>
+#include <tmol/score/lk_ball/potentials/params.hh>
 
 namespace tmol {
 namespace score {
-namespace hbond {
+namespace lk_ball {
 namespace potentials {
 
 template <typename Real, int N>
@@ -33,7 +33,7 @@ template <
 struct LKBallPoseScoreDispatch {
   static auto forward(
       TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Vec<Real, 3>, 2, Dev> water_coords,
+      TView<Vec<Real, 3>, 3, Dev> water_coords,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -70,8 +70,8 @@ struct LKBallPoseScoreDispatch {
       // TO DO: Rename since lots of atoms form chemical bonds
       TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
 
-      TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
-      TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
+      TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
+      TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
       TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
       TView<Int, 3, Dev> block_type_tile_lk_ball_params,
 
@@ -88,7 +88,7 @@ struct LKBallPoseScoreDispatch {
 
   static auto backward(
       TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Vec<Real, 3>, 2, Dev> water_coords,
+      TView<Vec<Real, 3>, 3, Dev> water_coords,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -124,8 +124,8 @@ struct LKBallPoseScoreDispatch {
       // Dimsize: n_block_types x max_n_interblock_bonds
       TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
 
-      TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
-      TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
+      TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
+      TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
       TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
       TView<Int, 3, Dev> block_type_tile_lk_ball_params,
 
@@ -144,6 +144,6 @@ struct LKBallPoseScoreDispatch {
 };
 
 }  // namespace potentials
-}  // namespace hbond
+}  // namespace lk_ball
 }  // namespace score
 }  // namespace tmol

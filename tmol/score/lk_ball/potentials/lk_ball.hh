@@ -535,8 +535,8 @@ class LKBallScoringData {
 
 template <typename Real, int TILE_SIZE, int MAX_N_WATER, int MAX_N_CONN>
 struct LKBallBlockPairSharedData {
-  Real atom_coords1[TILE_SIZE * 3];  // 768 bytes for coords
-  Real atom_coords2[TILE_SIZE * 3];
+  Real pose_coords1[TILE_SIZE * 3];  // 768 bytes for coords
+  Real pose_coords2[TILE_SIZE * 3];
   Real water_coords1[TILE_SIZE * MAX_N_WATER * 3];  // 3072 bytes for coords
   Real water_coords2[TILE_SIZE * MAX_N_WATER * 3];
 
@@ -615,7 +615,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_into_shared(
     TView<Vec<Real, 3>, 2, Dev> pose_coords,
     TView<Vec<Real, 3>, 3, Dev> water_coords,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<Int, 3, Dev> block_type_tile_lk_ball_params,
+    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     TView<Int, 3, Dev> block_type_path_distance,
     int pose_ind,
     int tile_ind,
@@ -776,10 +776,10 @@ template <
 void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, Dev> pose_coords,
     TView<Vec<Real, 3>, 3, Dev> water_coords,
-    TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
-    TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
+    TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
+    TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<Int, 3, Dev> block_type_tile_lk_ball_params,
+    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     TView<Int, 3, Dev> block_type_path_distance,
     int tile_ind,
     int start_atom1,
@@ -834,10 +834,10 @@ template <
 void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, Dev> pose_coords,
     TView<Vec<Real, 3>, 3, Dev> water_coords,
-    TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
-    TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
+    TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
+    TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<Int, 3, Dev> block_type_tile_lk_ball_params,
+    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     TView<Int, 3, Dev> block_type_path_distance,
     int tile_ind,
     int start_atom2,
@@ -963,10 +963,10 @@ template <
 void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, Dev> pose_coords,
     TView<Vec<Real, 3>, 3, Dev> water_coords,
-    TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
-    TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
+    TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
+    TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-    TView<Int, 3, Dev> block_type_tile_lk_ball_params,
+    TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
@@ -1015,8 +1015,8 @@ template <
 void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
     TView<Vec<Real, 3>, 2, Dev> pose_coords,
     TView<Vec<Real, 3>, 3, Dev> water_coords,
-    TView<Int, 3, Dev> block_type_tile_n_polar_atoms,
-    TView<Int, 3, Dev> block_type_tile_n_occluder_atoms,
+    TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
+    TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
     TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     int tile_ind,
@@ -1054,12 +1054,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
       start_atom2);
 }
 
-template <
-    int TILE_SIZE,
-    int MAX_N_CONN,
-    int MAX_N_WATER,
-    tmol::Device Dev,
-    typename Real>
+template <int TILE_SIZE, int MAX_N_WATER, int MAX_N_CONN, typename Real>
 void TMOL_DEVICE_FUNC lk_ball_load_intrares_data_from_shared(
     int tile_ind1,
     int tile_ind2,
@@ -1101,22 +1096,25 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
     LKBallSingleResData<Real> const &occluder_block_dat,
     LKBallResPairData<Real> const &block_pair_dat,
     int cp_separation) {
+  using tmol::score::common::coord_from_shared;
   using tmol::score::common::distance;
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   if (cp_separation <= 3) {
-    return lk_ball_Vt<Real>::Zero();
+    return {0, 0, 0, 0};
   }
 
   Real3 polar_xyz =
-      coord_from_shared(polar_block_dat.coords, polar_atom_tile_ind);
+      coord_from_shared(polar_block_dat.pose_coords, polar_atom_tile_ind);
   Real3 occluder_xyz =
-      coord_from_shared(occluder_block_dat.coords, occluder_atom_tile_ind);
+      coord_from_shared(occluder_block_dat.pose_coords, occluder_atom_tile_ind);
 
   Real const dist = distance<Real>::V(polar_xyz, occluder_xyz);
 
-  if (dist >= block_pair_dat.global_params.distance_threshold)
-    return lk_ball_Vt<Real>::Zero();
+  if (dist >= block_pair_dat.global_params.distance_threshold) {
+    return {0, 0, 0, 0};
+    ;
+  }
 
   Eigen::Matrix<Real, 4, 3> wmat_polar;
   Eigen::Matrix<Real, 4, 3> wmat_occluder;
@@ -1160,6 +1158,7 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   using WatersMat = Eigen::Matrix<Real, MAX_N_WATER, 3>;
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using tmol::score::common::accumulate;
+  using tmol::score::common::coord_from_shared;
   using tmol::score::common::distance;
 
   if (cp_separation <= 3) {
@@ -1167,9 +1166,9 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   }
 
   Real3 polar_xyz =
-      coord_from_shared(polar_block_dat.coords, polar_atom_tile_ind);
+      coord_from_shared(polar_block_dat.pose_coords, polar_atom_tile_ind);
   Real3 occluder_xyz =
-      coord_from_shared(occluder_block_dat.coords, occluder_atom_tile_ind);
+      coord_from_shared(occluder_block_dat.pose_coords, occluder_atom_tile_ind);
 
   auto const dist_r = distance<Real>::V_dV(polar_xyz, occluder_xyz);
   if (dist_r.V >= block_pair_dat.global_params.distance_threshold) return;
@@ -1225,19 +1224,19 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     accum_derivs1(block_dat, atom_ind, dV.d_lkbridge_uncpl, w_lk_bridge_uncpl);
   });
 
-  auto wate_accum_derivs1 = ([&] TMOL_DEVICE_FUNC(
-                                 LKBallSingleResData<Real> const &block_dat,
-                                 int atom_ind,
-                                 int water_ind,
-                                 WatersMat dV,
-                                 lk_ball_score_type st) {
+  auto water_accum_derivs1 = ([&] TMOL_DEVICE_FUNC(
+                                  LKBallSingleResData<Real> const &block_dat,
+                                  int atom_ind,
+                                  int water_ind,
+                                  WatersMat dV,
+                                  lk_ball_score_type st) {
     for (int j = 0; j < 3; ++j) {
-      if (dV[j] != 0) {
+      if (dV(water_ind, j) != 0) {
         accumulate<Dev, Real>::add(
             dV_d_water_coords[st][block_pair_dat.pose_ind]
                              [block_dat.block_coord_offset + atom_ind]
                              [water_ind][j],
-            dTdV_local[st] * dV.row(water_ind)[j]);
+            dTdV_local[st] * dV(water_ind, j));
       }
     }
   });
@@ -1294,13 +1293,8 @@ void TMOL_DEVICE_FUNC eval_interres_pol_occ_pair_energies(
       int pol_start = r1_polar ? start_atom1 : start_atom2;
       int occ_start = r1_polar ? start_atom2 : start_atom1;
 
-      lk_ball_Vt<Real> E =
-          f(pol_start, occ_start, pol_ind, occ_ind, inter_dat, r1_polar);
-
-      inter_dat.pair_data.total_lk_ball_iso += E.lkball_iso;
-      inter_dat.pair_data.total_lk_ball += E.lkball;
-      inter_dat.pair_data.total_lk_bridge += E.lkbridge;
-      inter_dat.pair_data.total_lk_bridge_uncpl += E.lkbridge_uncpl;
+      // Do the work!
+      f(pol_start, occ_start, pol_ind, occ_ind, inter_dat, r1_polar);
     }
   });
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
@@ -1330,12 +1324,8 @@ void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
         // An atom canot occlude itself
         if (pol_ind == occ_ind) continue;
 
-        lk_ball_Vt<Real> E =
-            f(start_atom1, start_atom1, pol_ind, occ_ind, intra_dat, true);
-        intra_dat.pair_data.total_lk_ball_iso += E.lkball_iso;
-        intra_dat.pair_data.total_lk_ball += E.lkball;
-        intra_dat.pair_data.total_lk_bridge += E.lkbridge;
-        intra_dat.pair_data.total_lk_bridge_uncpl += E.lkbridge_uncpl;
+        // Do the work!
+        f(start_atom1, start_atom1, pol_ind, occ_ind, intra_dat, true);
       }
     } else {
       int const n_pol_occ_pairs =
@@ -1352,18 +1342,14 @@ void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
         int pol_start = r1_polar ? start_atom1 : start_atom2;
         int occ_start = r1_polar ? start_atom2 : start_atom1;
 
-        lk_ball_Vt<Real> E =
-            f(pol_start, occ_start, pol_ind, occ_ind, intra_dat, r1_polar);
-        intra_dat.pair_data.total_lk_ball_iso += E.lkball_iso;
-        intra_dat.pair_data.total_lk_ball += E.lkball;
-        intra_dat.pair_data.total_lk_bridge += E.lkbridge;
-        intra_dat.pair_data.total_lk_bridge_uncpl += E.lkbridge_uncpl;
+        // Do the work!
+        f(pol_start, occ_start, pol_ind, occ_ind, intra_dat, r1_polar);
       }
     }
   });
 
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
-      eval_scores_for_don_acc_pairs);
+      eval_scores_for_pol_occ_pairs);
 }
 
 }  // namespace potentials

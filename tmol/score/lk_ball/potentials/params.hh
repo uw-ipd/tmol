@@ -20,7 +20,6 @@ struct LKBallTypeParams {
   Real is_acceptor;
 };
 
-// same (for now) as LJGlobalParams
 template <typename Real>
 struct LKBallGlobalParams {
   Real lj_hbond_dis;

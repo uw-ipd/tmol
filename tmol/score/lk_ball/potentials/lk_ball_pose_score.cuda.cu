@@ -7,12 +7,12 @@ namespace lk_ball {
 namespace potentials {
 
 template struct LKBallPoseScoreDispatch<
-    DeviceOperations,
+    common::DeviceOperations,
     tmol::Device::CUDA,
     float,
     int>;
 template struct LKBallPoseScoreDispatch<
-    DeviceOperations,
+    common::DeviceOperations,
     tmol::Device::CUDA,
     double,
     int>;
