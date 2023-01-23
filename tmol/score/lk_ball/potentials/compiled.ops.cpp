@@ -10,6 +10,7 @@
 
 #include "dispatch.hh"
 #include "gen_waters.hh"
+#include "gen_pose_waters.hh"
 #include "rotamer_pair_energy_lkball.hh"
 #include "lk_ball_pose_score.hh"
 
@@ -267,6 +268,187 @@ class WaterGen : public Function<WaterGen<WaterGenDispatch, DispatchMethod>> {
   };
 };
 
+class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
+ public:
+  static Tensor forward(
+      AutogradContext* ctx,
+
+      Tensor pose_coords,
+      Tensor pose_stack_block_coord_offset,
+      Tensor pose_stack_block_type,
+      Tensor pose_stack_inter_residue_connections,
+      Tensor block_type_n_atoms,
+
+      Tensor block_type_n_interblock_bonds,
+      Tensor block_type_atoms_forming_chemical_bonds,
+      Tensor block_type_n_all_bonds,
+      Tensor block_type_all_bonds,
+      Tensor block_type_atom_all_bond_ranges,
+
+      Tensor block_type_tile_n_donH,
+      Tensor block_type_tile_n_acc,
+      Tensor block_type_tile_donH_inds,
+      Tensor block_type_tile_don_hvy_inds,
+      Tensor block_type_tile_acc_inds,
+
+      Tensor block_type_tile_hybridization,
+      Tensor block_type_atom_is_hydrogen,
+      Tensor global_params,
+      Tensor sp2_water_tors,
+      Tensor sp3_water_tors,
+
+      Tensor ring_water_tors) {
+    at::Tensor waters;
+
+    using Int = int32_t;
+
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        pose_coords.type(), "watergen_op", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+
+          auto result =
+              GeneratePoseWaters<common::DeviceOperations, Dev, Real, Int>::
+                  forward(
+                      TCAST(pose_coords),
+                      TCAST(pose_stack_block_coord_offset),
+                      TCAST(pose_stack_block_type),
+                      TCAST(pose_stack_inter_residue_connections),
+                      TCAST(block_type_n_atoms),
+                      TCAST(block_type_n_interblock_bonds),
+                      TCAST(block_type_atoms_forming_chemical_bonds),
+                      TCAST(block_type_n_all_bonds),
+                      TCAST(block_type_all_bonds),
+                      TCAST(block_type_atom_all_bond_ranges),
+                      TCAST(block_type_tile_n_donH),
+                      TCAST(block_type_tile_n_acc),
+                      TCAST(block_type_tile_donH_inds),
+                      TCAST(block_type_tile_don_hvy_inds),
+                      TCAST(block_type_tile_acc_inds),
+                      TCAST(block_type_tile_hybridization),
+                      TCAST(block_type_atom_is_hydrogen),
+                      TCAST(global_params),
+                      TCAST(sp2_water_tors),
+                      TCAST(sp3_water_tors),
+                      TCAST(ring_water_tors));
+
+          waters = result.tensor;
+        }));
+
+    ctx->save_for_backward({pose_coords,
+                            pose_stack_block_coord_offset,
+                            pose_stack_block_type,
+                            pose_stack_inter_residue_connections,
+                            block_type_n_atoms,
+
+                            block_type_n_interblock_bonds,
+                            block_type_atoms_forming_chemical_bonds,
+                            block_type_n_all_bonds,
+                            block_type_all_bonds,
+                            block_type_atom_all_bond_ranges,
+
+                            block_type_tile_n_donH,
+                            block_type_tile_n_acc,
+                            block_type_tile_donH_inds,
+                            block_type_tile_don_hvy_inds,
+                            block_type_tile_acc_inds,
+
+                            block_type_tile_hybridization,
+                            block_type_atom_is_hydrogen,
+                            global_params,
+                            sp2_water_tors,
+                            sp3_water_tors,
+
+                            ring_water_tors});
+
+    return waters;
+  }
+
+  static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    auto saved = ctx->get_saved_variables();
+
+    int i = 0;
+
+    auto pose_coords = saved[i++];
+    auto pose_stack_block_coord_offset = saved[i++];
+    auto pose_stack_block_type = saved[i++];
+    auto pose_stack_inter_residue_connections = saved[i++];
+    auto block_type_n_atoms = saved[i++];
+
+    auto block_type_n_interblock_bonds = saved[i++];
+    auto block_type_atoms_forming_chemical_bonds = saved[i++];
+    auto block_type_n_all_bonds = saved[i++];
+    auto block_type_all_bonds = saved[i++];
+    auto block_type_atom_all_bond_ranges = saved[i++];
+
+    auto block_type_tile_n_donH = saved[i++];
+    auto block_type_tile_n_acc = saved[i++];
+    auto block_type_tile_donH_inds = saved[i++];
+    auto block_type_tile_don_hvy_inds = saved[i++];
+    auto block_type_tile_acc_inds = saved[i++];
+
+    auto block_type_tile_hybridization = saved[i++];
+    auto block_type_atom_is_hydrogen = saved[i++];
+    auto global_params = saved[i++];
+    auto sp2_water_tors = saved[i++];
+    auto sp3_water_tors = saved[i++];
+    auto ring_water_tors = saved[i++];
+
+    at::Tensor dT_d_pose_coords;
+    using Int = int64_t;
+
+    constexpr int MAX_WATER = 4;
+    auto dE_dWxyz = grad_outputs[0];
+
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        pose_coords.type(), "WaterGenOpBackward", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+
+          auto result =
+              GeneratePoseWaters<common::DeviceOperations, Dev, Real, Int>::
+                  backward(
+                      TCAST(dE_dWxyz),
+                      TCAST(pose_coords),
+                      TCAST(pose_stack_block_coord_offset),
+                      TCAST(pose_stack_block_type),
+                      TCAST(pose_stack_inter_residue_connections),
+                      TCAST(block_type_n_atoms),
+                      TCAST(block_type_n_interblock_bonds),
+                      TCAST(block_type_atoms_forming_chemical_bonds),
+                      TCAST(block_type_n_all_bonds),
+                      TCAST(block_type_all_bonds),
+                      TCAST(block_type_atom_all_bond_ranges),
+                      TCAST(block_type_tile_n_donH),
+                      TCAST(block_type_tile_n_acc),
+                      TCAST(block_type_tile_donH_inds),
+                      TCAST(block_type_tile_don_hvy_inds),
+                      TCAST(block_type_tile_acc_inds),
+                      TCAST(block_type_tile_hybridization),
+                      TCAST(block_type_atom_is_hydrogen),
+                      TCAST(global_params),
+                      TCAST(sp2_water_tors),
+                      TCAST(sp3_water_tors),
+                      TCAST(ring_water_tors));
+          dT_d_pose_coords = result.tensor;
+        }));
+
+    return {dT_d_pose_coords, torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
+
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
+
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
+
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
+
+            torch::Tensor()};
+  };
+};
+
 template <
     template <
         template <tmol::Device>
@@ -330,6 +512,55 @@ Tensor watergen_op(
       indexed_bonds,
       indexed_bond_spans,
       type_params,
+      global_params,
+      sp2_water_tors,
+      sp3_water_tors,
+      ring_water_tors);
+};
+
+Tensor pose_watergen_op(
+    Tensor pose_coords,
+    Tensor pose_stack_block_coord_offset,
+    Tensor pose_stack_block_type,
+    Tensor pose_stack_inter_residue_connections,
+    Tensor block_type_n_atoms,
+
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_n_all_bonds,
+    Tensor block_type_all_bonds,
+    Tensor block_type_atom_all_bond_ranges,
+
+    Tensor block_type_tile_n_donH,
+    Tensor block_type_tile_n_acc,
+    Tensor block_type_tile_donH_inds,
+    Tensor block_type_tile_don_hvy_inds,
+    Tensor block_type_tile_acc_inds,
+
+    Tensor block_type_tile_hybridization,
+    Tensor block_type_atom_is_hydrogen,
+    Tensor global_params,
+    Tensor sp2_water_tors,
+    Tensor sp3_water_tors,
+    Tensor ring_water_tors) {
+  return PoseWaterGen::apply(
+      pose_coords,
+      pose_stack_block_coord_offset,
+      pose_stack_block_type,
+      pose_stack_inter_residue_connections,
+      block_type_n_atoms,
+      block_type_n_interblock_bonds,
+      block_type_atoms_forming_chemical_bonds,
+      block_type_n_all_bonds,
+      block_type_all_bonds,
+      block_type_atom_all_bond_ranges,
+      block_type_tile_n_donH,
+      block_type_tile_n_acc,
+      block_type_tile_donH_inds,
+      block_type_tile_don_hvy_inds,
+      block_type_tile_acc_inds,
+      block_type_tile_hybridization,
+      block_type_atom_is_hydrogen,
       global_params,
       sp2_water_tors,
       sp3_water_tors,
@@ -589,7 +820,6 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
   }
 };
 
-template <template <tmol::Device> class Dispatch>
 Tensor lkball_pose_score(
     Tensor pose_coords,
     Tensor water_coords,
@@ -642,7 +872,8 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def(
       "score_lkball_inter_system_scores",
       &rotamer_pair_energies<common::ForallDispatch>);
-  m.def("lkball_pose_score", &lkball_pose_score<common::DeviceOperations>);
+  m.def("lk_ball_pose_score", &lkball_pose_score);
+  m.def("gen_pose_waters", &pose_watergen_op);
 }
 
 }  // namespace potentials
