@@ -7,6 +7,7 @@
 
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/diamond_macros.hh>
+#include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/hbond/identification.hh>
 
@@ -736,9 +737,9 @@ struct WaterGenSharedData {
   unsigned char n_acc;
   unsigned char don_inds[TILE_SIZE];  //
   unsigned char don_hvy_inds[TILE_SIZE];
-  unsigned char which_don_for_hvy[TILE_SIZE];
+  unsigned char which_donH_for_hvy[TILE_SIZE];
   unsigned char acc_inds[TILE_SIZE];
-  unsigned char acc_hybridization1[TILE_SIZE];
+  unsigned char acc_hybridization[TILE_SIZE];
   unsigned char acc_n_attached_H[TILE_SIZE];
 };
 
@@ -757,8 +758,6 @@ void TMOL_DEVICE_FUNC water_gen_load_block_coords_and_params_into_shared(
     TView<Int, 3, Dev> block_type_tile_don_hvy_inds,
     TView<Int, 3, Dev> block_type_tile_which_donH_for_hhvy,
     TView<Int, 3, Dev> block_type_tile_acc_inds,
-    // TView<Int, 3, Dev> block_type_tile_donor_type,
-    // TView<Int, 3, Dev> block_type_tile_acceptor_type,
     TView<Int, 3, Dev> block_type_tile_hybridization,
     TView<Int, 3, Dev> block_type_tile_acc_n_attached_H,
     int pose_ind,
@@ -852,10 +851,10 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
   // set the pointers in inter_dat to point at the shared-memory arrays
   water_gen_dat.r_dat.coords = shared_m.coords;
   water_gen_dat.r_dat.donH_tile_inds = shared_m.don_inds;
+  water_gen_dat.r_dat.which_donH_for_hvy = shared_m.which_donH_for_hvy;
   water_gen_dat.r_dat.acc_tile_inds = shared_m.acc_inds;
-  water_gen_dat.r_dat.donH_type = shared_m.don_type;
-  water_gen_dat.r_dat.acc_type = shared_m.acc_type;
   water_gen_dat.r_dat.acc_hybridization = shared_m.acc_hybridization;
+  water_gen_dat.r_dat.acc_n_attached_H = shared_m.acc_n_attached_H;
 
   // Final data members
   // Keep a "copy" of the tensors needed to traverse bonds during
@@ -893,7 +892,7 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
       int bcat_tile_ind = bcat.atom - tile_start;
       if (bcat_tile_ind >= 0 && bcat_tile_ind < TILE_SIZE) {
         in_smem = true;
-        xyz = coord_from_shared(single_res_dat.coords, bcat_tile_ind);
+        xyz = common::coord_from_shared(single_res_dat.coords, bcat_tile_ind);
       }
     }
     if (!in_smem) {
@@ -921,8 +920,10 @@ void TMOL_DEVICE_FUNC build_water_for_don(
   auto res_dat = wat_gen_dat.r_dat;
   auto context_dat = wat_gen_dat.pose_context;
   int const don_h_atom_tile_ind = res_dat.donH_tile_inds[don_h_ind];
-  Real3 Hxyz = coord_from_shared(res_dat.coords, don_h_atom_tile_ind);
-  int const D = res_dat.don_hvy_inds[don_h_ind];
+  Real3 Hxyz = common::coord_from_shared(res_dat.coords, don_h_atom_tile_ind);
+  int const Dind = res_dat.don_hvy_inds[don_h_ind];
+  bonded_atom::BlockCentricAtom<Int> const D{
+      res_dat.block_ind, res_dat.block_type, Dind};
 
   Real3 Dxyz = load_coord<TILE_SIZE>(D, res_dat, context_dat, tile_start);
 
@@ -932,7 +933,7 @@ void TMOL_DEVICE_FUNC build_water_for_don(
   // Now record the coordinates to global memory:
   int const which_water = res_dat.which_donH_for_hvy[don_h_ind];
 
-  water_coords[context_dat.pose_ind][res_dat.block_coord_offset + D]
+  water_coords[context_dat.pose_ind][res_dat.block_coord_offset + Dind]
               [which_water] = Wxyz;
 }
 
@@ -979,7 +980,7 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
 
   unsigned char acc_atom_tile_ind = res_dat.acc_tile_inds[acc_ind];
 
-  Real3 Axyz = coord_from_shared(res_dat.coords, acc_atom_tile_ind);
+  Real3 Axyz = common::coord_from_shared(res_dat.coords, acc_atom_tile_ind);
   bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds{
       context_dat.pose_stack_inter_residue_connections[context_dat.pose_ind],
       context_dat.pose_stack_block_type[context_dat.pose_ind],
@@ -1028,8 +1029,11 @@ void TMOL_DEVICE_FUNC d_build_water_for_don(
   auto context_dat = wat_gen_dat.pose_context;
   int const don_h_atom_tile_ind = res_dat.donH_tile_inds[don_h_ind];
 
-  Real3 Hxyz = coord_from_shared(res_dat.coords, don_h_atom_tile_ind);
-  int const D = res_dat.don_hvy_inds[don_h_ind];
+  Real3 Hxyz = common::coord_from_shared(res_dat.coords, don_h_atom_tile_ind);
+  int const Dind = res_dat.don_hvy_inds[don_h_ind];
+  bonded_atom::BlockCentricAtom<Int> const D{
+      res_dat.block_ind, res_dat.block_type, Dind};
+  // int const D = res_dat.don_hvy_inds[don_h_ind];
   Real3 Dxyz = load_coord<TILE_SIZE>(D, res_dat, context_dat, tile_start);
 
   auto dW = build_don_water<Real>::dV(
@@ -1039,7 +1043,7 @@ void TMOL_DEVICE_FUNC d_build_water_for_don(
   // water_coords[context_dat.pose_ind][res_dat.block_coord_offset +
   // D][which_water] = Wxyz;
   int const pose_ind = wat_gen_dat.pose_context.pose_ind;
-  int const D_atom_pose_ind = res_dat.block_coord_offset + D;
+  int const D_atom_pose_ind = res_dat.block_coord_offset + Dind;
   int const H_atom_pose_ind =
       res_dat.block_coord_offset + tile_start + don_h_atom_tile_ind;
   Real3 dE_dW = dE_dWxyz[pose_ind][D_atom_pose_ind][which_water];
@@ -1093,7 +1097,7 @@ void TMOL_DEVICE_FUNC d_build_water_for_acc(
 
   unsigned char acc_atom_tile_ind = res_dat.acc_tile_inds[acc_ind];
 
-  Real3 Axyz = coord_from_shared(res_dat.coords, acc_atom_tile_ind);
+  Real3 Axyz = common::coord_from_shared(res_dat.coords, acc_atom_tile_ind);
   bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds{
       context_dat.pose_stack_inter_residue_connections[context_dat.pose_ind],
       context_dat.pose_stack_block_type[context_dat.pose_ind],
@@ -1127,36 +1131,36 @@ void TMOL_DEVICE_FUNC d_build_water_for_acc(
   int const pose_ind = context_dat.pose_ind;
   int const A_atom_pose_ind = res_dat.block_coord_offset + A.atom;
   int const B_atom_pose_ind =
-      (acc_bases.B.block_ind == A.block_ind
+      (acc_bases.B.block == A.block
            ? res_dat.block_coord_offset
-           : context_dat.pose_stack_block_coord_offset[pose_ind]
-                                                      [acc_bases.B.block_ind])
+           : context_dat
+                 .pose_stack_block_coord_offset[pose_ind][acc_bases.B.block])
       + A.atom;
   int const B0_atom_pose_ind =
-      (acc_bases.B0.block_ind == A.block_ind
+      (acc_bases.B0.block == A.block
            ? res_dat.block_coord_offset
-           : context_dat.pose_stack_block_coord_offset[pose_ind]
-                                                      [acc_bases.B0.block_ind])
+           : context_dat
+                 .pose_stack_block_coord_offset[pose_ind][acc_bases.B0.block])
       + A.atom;
 
   Real3 dE_dW = dE_dWxyz[pose_ind][A_atom_pose_ind][water_ind + water_offset];
 
   common::accumulate<Dev, Vec<Real, 3>>::add(
-      dE_d_pose_coords[pose_ind][A_atom_pose_ind], dE_dW * dW.dA);
+      dE_d_pose_coords[pose_ind][A_atom_pose_ind], dW.dA * dE_dW);
   if (hyb == hbond::AcceptorHybridization::ring) {
     // Since the Bxyz coordinate for ring acceptors is the
     // bisector of the B and B0 atoms, apply half of the
     // derivative to B and half to B0
     common::accumulate<Dev, Vec<Real, 3>>::add(
-        dE_d_pose_coords[pose_ind][B_atom_pose_ind], dE_dW * dW.dB * 0.5);
+        dE_d_pose_coords[pose_ind][B_atom_pose_ind], 0.5 * dW.dB * dE_dW);
     common::accumulate<Dev, Vec<Real, 3>>::add(
-        dE_d_pose_coords[pose_ind][B0_atom_pose_ind], dE_dW * dW.dB * 0.5);
+        dE_d_pose_coords[pose_ind][B0_atom_pose_ind], 0.5 * dW.dB * dE_dW);
   } else {
     common::accumulate<Dev, Vec<Real, 3>>::add(
-        dE_d_pose_coords[pose_ind][B_atom_pose_ind], dE_dW * dW.dB);
+        dE_d_pose_coords[pose_ind][B_atom_pose_ind], dW.dB * dE_dW);
   }
   common::accumulate<Dev, Vec<Real, 3>>::add(
-      dE_d_pose_coords[pose_ind][B0_atom_pose_ind], dE_dW * dW.dB0);
+      dE_d_pose_coords[pose_ind][B0_atom_pose_ind], dW.dB0 * dE_dW);
 }
 
 }  // namespace potentials

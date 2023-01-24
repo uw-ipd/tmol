@@ -289,14 +289,16 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
       Tensor block_type_tile_n_acc,
       Tensor block_type_tile_donH_inds,
       Tensor block_type_tile_don_hvy_inds,
-      Tensor block_type_tile_acc_inds,
+      Tensor block_type_tile_which_donH_for_hvy,
 
+      Tensor block_type_tile_acc_inds,
       Tensor block_type_tile_hybridization,
+      Tensor block_type_tile_acc_n_attached_H,
       Tensor block_type_atom_is_hydrogen,
       Tensor global_params,
+
       Tensor sp2_water_tors,
       Tensor sp3_water_tors,
-
       Tensor ring_water_tors) {
     at::Tensor waters;
 
@@ -315,19 +317,25 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
                       TCAST(pose_stack_block_type),
                       TCAST(pose_stack_inter_residue_connections),
                       TCAST(block_type_n_atoms),
+
                       TCAST(block_type_n_interblock_bonds),
                       TCAST(block_type_atoms_forming_chemical_bonds),
                       TCAST(block_type_n_all_bonds),
                       TCAST(block_type_all_bonds),
                       TCAST(block_type_atom_all_bond_ranges),
+
                       TCAST(block_type_tile_n_donH),
                       TCAST(block_type_tile_n_acc),
                       TCAST(block_type_tile_donH_inds),
                       TCAST(block_type_tile_don_hvy_inds),
+                      TCAST(block_type_tile_which_donH_for_hvy),
+
                       TCAST(block_type_tile_acc_inds),
                       TCAST(block_type_tile_hybridization),
+                      TCAST(block_type_tile_acc_n_attached_H),
                       TCAST(block_type_atom_is_hydrogen),
                       TCAST(global_params),
+
                       TCAST(sp2_water_tors),
                       TCAST(sp3_water_tors),
                       TCAST(ring_water_tors));
@@ -351,14 +359,16 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
                             block_type_tile_n_acc,
                             block_type_tile_donH_inds,
                             block_type_tile_don_hvy_inds,
-                            block_type_tile_acc_inds,
+                            block_type_tile_which_donH_for_hvy,
 
+                            block_type_tile_acc_inds,
                             block_type_tile_hybridization,
+                            block_type_tile_acc_n_attached_H,
                             block_type_atom_is_hydrogen,
                             global_params,
+
                             sp2_water_tors,
                             sp3_water_tors,
-
                             ring_water_tors});
 
     return waters;
@@ -385,19 +395,22 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
     auto block_type_tile_n_acc = saved[i++];
     auto block_type_tile_donH_inds = saved[i++];
     auto block_type_tile_don_hvy_inds = saved[i++];
-    auto block_type_tile_acc_inds = saved[i++];
+    auto block_type_tile_which_donH_for_hvy = saved[i++];
 
+    auto block_type_tile_acc_inds = saved[i++];
     auto block_type_tile_hybridization = saved[i++];
+    auto block_type_tile_acc_n_attached_H = saved[i++];
     auto block_type_atom_is_hydrogen = saved[i++];
     auto global_params = saved[i++];
+
     auto sp2_water_tors = saved[i++];
     auto sp3_water_tors = saved[i++];
     auto ring_water_tors = saved[i++];
 
     at::Tensor dT_d_pose_coords;
-    using Int = int64_t;
 
-    constexpr int MAX_WATER = 4;
+    using Int = int32_t;
+
     auto dE_dWxyz = grad_outputs[0];
 
     TMOL_DISPATCH_FLOATING_DEVICE(
@@ -423,8 +436,10 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
                       TCAST(block_type_tile_n_acc),
                       TCAST(block_type_tile_donH_inds),
                       TCAST(block_type_tile_don_hvy_inds),
+                      TCAST(block_type_tile_which_donH_for_hvy),
                       TCAST(block_type_tile_acc_inds),
                       TCAST(block_type_tile_hybridization),
+                      TCAST(block_type_tile_acc_n_attached_H),
                       TCAST(block_type_atom_is_hydrogen),
                       TCAST(global_params),
                       TCAST(sp2_water_tors),
@@ -445,7 +460,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(),
 
-            torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
   };
 };
 
@@ -535,11 +550,14 @@ Tensor pose_watergen_op(
     Tensor block_type_tile_n_acc,
     Tensor block_type_tile_donH_inds,
     Tensor block_type_tile_don_hvy_inds,
-    Tensor block_type_tile_acc_inds,
+    Tensor block_type_tile_which_donH_for_hvy,
 
+    Tensor block_type_tile_acc_inds,
     Tensor block_type_tile_hybridization,
+    Tensor block_type_tile_acc_n_attached_H,
     Tensor block_type_atom_is_hydrogen,
     Tensor global_params,
+
     Tensor sp2_water_tors,
     Tensor sp3_water_tors,
     Tensor ring_water_tors) {
@@ -558,8 +576,10 @@ Tensor pose_watergen_op(
       block_type_tile_n_acc,
       block_type_tile_donH_inds,
       block_type_tile_don_hvy_inds,
+      block_type_tile_which_donH_for_hvy,
       block_type_tile_acc_inds,
       block_type_tile_hybridization,
+      block_type_tile_acc_n_attached_H,
       block_type_atom_is_hydrogen,
       global_params,
       sp2_water_tors,

@@ -1,5 +1,6 @@
-#include <tmol/score/common/dispatch.cpu.impl.hh>
-#include <tmol/score/hbond/identification.hh>
+#pragma once
+
+#include <tmol/score/lk_ball/potentials/params.hh>
 
 namespace tmol {
 namespace score {
@@ -47,8 +48,10 @@ struct GeneratePoseWaters {
       TView<Int, 2, Dev> block_type_tile_n_acc,
       TView<Int, 3, Dev> block_type_tile_donH_inds,
       TView<Int, 3, Dev> block_type_tile_don_hvy_inds,
+      TView<Int, 3, Dev> block_type_tile_which_donH_for_hvy,
       TView<Int, 3, Dev> block_type_tile_acc_inds,
       TView<Int, 3, Dev> block_type_tile_hybridization,
+      TView<Int, 3, Dev> block_type_tile_acc_n_attached_H,
       TView<Int, 2, Dev> block_type_atom_is_hydrogen,
 
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
@@ -90,8 +93,10 @@ struct GeneratePoseWaters {
       TView<Int, 2, Dev> block_type_tile_n_acc,
       TView<Int, 3, Dev> block_type_tile_donH_inds,
       TView<Int, 3, Dev> block_type_tile_don_hvy_inds,
+      TView<Int, 3, Dev> block_type_tile_which_donH_for_hvy,
       TView<Int, 3, Dev> block_type_tile_acc_inds,
       TView<Int, 3, Dev> block_type_tile_hybridization,
+      TView<Int, 3, Dev> block_type_tile_acc_n_attached_H,
       TView<Int, 2, Dev> block_type_atom_is_hydrogen,
 
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,

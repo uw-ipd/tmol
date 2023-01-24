@@ -30,10 +30,8 @@
 
 #include <chrono>
 
-// The maximum number of inter-residue chemical bonds
-#define MAX_N_CONN 4
-#define MAX_N_WATER 4
-#define TILE_SIZE 32
+// #include <tmol/score/lk_ball/potentials/constants.hh>
+#include "constants.hh"
 
 namespace tmol {
 namespace score {

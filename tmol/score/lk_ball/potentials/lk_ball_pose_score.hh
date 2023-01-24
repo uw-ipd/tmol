@@ -73,7 +73,7 @@ struct LKBallPoseScoreDispatch {
       TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
       TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
       TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-      TView<Int, 3, Dev> block_type_tile_lk_ball_params,
+      TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
 
       // How many chemical bonds separate all pairs of atoms
       // within each block type?
@@ -127,7 +127,7 @@ struct LKBallPoseScoreDispatch {
       TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
       TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
       TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
-      TView<Int, 3, Dev> block_type_tile_lk_ball_params,
+      TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
 
       // How many chemical bonds separate all pairs of atoms
       // within each block type?

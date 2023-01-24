@@ -10,14 +10,13 @@
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/launch_box_macros.hh>
 
 #include <tmol/score/hbond/identification.hh>
 #include <tmol/score/ljlk/potentials/params.hh>
 
 #include "water.hh"
-
-#define MAX_N_WATER 4
-#define TILE_SIZE 32
+#include <tmol/score/lk_ball/potentials/constants.hh>
 
 namespace tmol {
 namespace score {
@@ -28,8 +27,8 @@ namespace potentials {
 
 template <
     template <tmol::Device>
-    class Dispatch,
-    tmol::Device D,
+    class DeviceOps,
+    tmol::Device Dev,
     typename Real,
     typename Int>
 struct GeneratePoseWaters {
@@ -65,8 +64,10 @@ struct GeneratePoseWaters {
       TView<Int, 2, Dev> block_type_tile_n_acc,
       TView<Int, 3, Dev> block_type_tile_donH_inds,
       TView<Int, 3, Dev> block_type_tile_don_hvy_inds,
+      TView<Int, 3, Dev> block_type_tile_which_donH_for_hvy,
       TView<Int, 3, Dev> block_type_tile_acc_inds,
       TView<Int, 3, Dev> block_type_tile_hybridization,
+      TView<Int, 3, Dev> block_type_tile_acc_n_attached_H,
       TView<Int, 2, Dev> block_type_atom_is_hydrogen,
 
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
@@ -97,12 +98,21 @@ struct GeneratePoseWaters {
     assert(block_type_tile_donH_inds.size(0) == n_block_types);
     assert(block_type_tile_donH_inds.size(1) == max_n_tiles);
     assert(block_type_tile_donH_inds.size(2) == TILE_SIZE);
+    assert(block_type_tile_don_hvy_inds.size(0) == n_block_types);
+    assert(block_type_tile_don_hvy_inds.size(1) == max_n_tiles);
+    assert(block_type_tile_don_hvy_inds.size(2) == TILE_SIZE);
+    assert(block_type_tile_which_donH_for_hvy.size(0) == n_block_types);
+    assert(block_type_tile_which_donH_for_hvy.size(1) == max_n_tiles);
+    assert(block_type_tile_which_donH_for_hvy.size(2) == TILE_SIZE);
     assert(block_type_tile_acc_inds.size(0) == n_block_types);
     assert(block_type_tile_acc_inds.size(1) == max_n_tiles);
     assert(block_type_tile_acc_inds.size(2) == TILE_SIZE);
     assert(block_type_tile_hybridization.size(0) == n_block_types);
     assert(block_type_tile_hybridization.size(1) == max_n_tiles);
     assert(block_type_tile_hybridization.size(2) == TILE_SIZE);
+    assert(block_type_tile_acc_n_attached_H.size(0) == n_block_types);
+    assert(block_type_tile_acc_n_attached_H.size(1) == max_n_tiles);
+    assert(block_type_tile_acc_n_attached_H.size(2) == TILE_SIZE);
     assert(block_type_atom_is_hydrogen.size(0) == n_block_types);
     assert(block_type_atom_is_hydrogen.size(1) == max_n_block_atoms);
 
@@ -119,8 +129,10 @@ struct GeneratePoseWaters {
     nvtx_range_pop();
 
     nvtx_range_push("watergen::gen");
+    LAUNCH_BOX_32;
+    CTA_LAUNCH_T_PARAMS;
 
-    auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int ind) {
+    auto f_watergen = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const pose_ind = ind / max_n_blocks;
       int const block_ind = ind % max_n_blocks;
       int const block_type = pose_stack_block_type[pose_ind][block_ind];
@@ -130,14 +142,14 @@ struct GeneratePoseWaters {
       int const n_atoms = block_type_n_atoms[block_type];
 
       // Allocate shared mem
-      SHARED_MEMORY WaterGenSharedData<Real, TILE_SIZE, MAX_N_CONN> shared_m;
+      SHARED_MEMORY WaterGenSharedData<Real, TILE_SIZE> shared_m;
 
       // Allocate stack mem
       WaterGenData<Dev, Real, Int> water_gen_dat;
 
       // TO DO: make this "1 body" tile action templated
       // Step 1: load in tile-invariant data for this block
-      water_gen_load_tile_invariant_data(
+      water_gen_load_tile_invariant_data<DeviceOps, Dev, nt>(
           pose_coords,
           pose_stack_block_coord_offset,
           pose_stack_block_type,
@@ -165,28 +177,26 @@ struct GeneratePoseWaters {
             min(TILE_SIZE, n_atoms - TILE_SIZE * tile_ind);
 
         if (tile_ind != 0) {
-          DeviceDispatch<Dev>::synchronize();
+          DeviceOps<Dev>::synchronize_workgroup();
         }
 
         // Step 3: and load data for each tile into shared memory
-        water_gen_load_block_coords_and_params_into_shared(
+        water_gen_load_block_coords_and_params_into_shared<DeviceOps, Dev, nt>(
             pose_coords,
             block_type_tile_n_donH,
             block_type_tile_n_acc,
             block_type_tile_donH_inds,
             block_type_tile_don_hvy_inds,
-            block_type_tile_which_donH_for_hhvy,
+            block_type_tile_which_donH_for_hvy,
             block_type_tile_acc_inds,
-            block_type_tile_donor_type,
-            block_type_tile_acceptor_type,
             block_type_tile_hybridization,
             block_type_tile_acc_n_attached_H,
             pose_ind,
             tile_ind,
-            wat_gen_dat.r_dat,
+            water_gen_dat.r_dat,
             n_atoms_to_load,
-            start_atom);
-        DeviceDispatch<Dev>::synchronize();
+            tile_ind * TILE_SIZE);
+        DeviceOps<Dev>::synchronize_workgroup();
 
         auto gen_tile_waters = ([&] TMOL_DEVICE_FUNC(int tid) {
           // Each iteration will build one water
@@ -203,7 +213,7 @@ struct GeneratePoseWaters {
             if (building_donor_water) {
               build_water_for_don<TILE_SIZE>(
                   water_coords,
-                  wat_gen_dat,
+                  water_gen_dat,
                   tile_ind * TILE_SIZE,
                   i  // i is the index of the polar H within this tile
               );
@@ -217,7 +227,7 @@ struct GeneratePoseWaters {
                   sp3_water_tors,
                   ring_water_tors,
                   water_coords,
-                  wat_gen_dat,
+                  water_gen_dat,
                   tile_ind * TILE_SIZE,
                   acc_ind,
                   water_ind);
@@ -225,7 +235,7 @@ struct GeneratePoseWaters {
           }
         });
         // Step 4: ...before performing the work for each tile
-        DeviceOps<Dev>::template foreach_in_workgroup<nt>(gen_tile_waters);
+        DeviceOps<Dev>::template for_each_in_workgroup<nt>(gen_tile_waters);
       }
     });
 
@@ -268,8 +278,10 @@ struct GeneratePoseWaters {
       TView<Int, 2, Dev> block_type_tile_n_acc,
       TView<Int, 3, Dev> block_type_tile_donH_inds,
       TView<Int, 3, Dev> block_type_tile_don_hvy_inds,
+      TView<Int, 3, Dev> block_type_tile_which_donH_for_hvy,
       TView<Int, 3, Dev> block_type_tile_acc_inds,
       TView<Int, 3, Dev> block_type_tile_hybridization,
+      TView<Int, 3, Dev> block_type_tile_acc_n_attached_H,
       TView<Int, 2, Dev> block_type_atom_is_hydrogen,
 
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
@@ -278,6 +290,7 @@ struct GeneratePoseWaters {
       TView<Real, 1, Dev> ring_water_tors)
       ->TPack<Vec<Real, 3>, 2, Dev> {
     int const n_poses = pose_coords.size(0);
+    int const max_n_pose_atoms = pose_coords.size(1);
     int const max_n_blocks = pose_stack_block_type.size(1);
     int const max_n_conn = pose_stack_inter_residue_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
@@ -299,12 +312,21 @@ struct GeneratePoseWaters {
     assert(block_type_tile_donH_inds.size(0) == n_block_types);
     assert(block_type_tile_donH_inds.size(1) == max_n_tiles);
     assert(block_type_tile_donH_inds.size(2) == TILE_SIZE);
+    assert(block_type_tile_don_hvy_inds.size(0) == n_block_types);
+    assert(block_type_tile_don_hvy_inds.size(1) == max_n_tiles);
+    assert(block_type_tile_don_hvy_inds.size(2) == TILE_SIZE);
+    assert(block_type_tile_which_donH_for_hvy.size(0) == n_block_types);
+    assert(block_type_tile_which_donH_for_hvy.size(1) == max_n_tiles);
+    assert(block_type_tile_which_donH_for_hvy.size(2) == TILE_SIZE);
     assert(block_type_tile_acc_inds.size(0) == n_block_types);
     assert(block_type_tile_acc_inds.size(1) == max_n_tiles);
     assert(block_type_tile_acc_inds.size(2) == TILE_SIZE);
     assert(block_type_tile_hybridization.size(0) == n_block_types);
     assert(block_type_tile_hybridization.size(1) == max_n_tiles);
     assert(block_type_tile_hybridization.size(2) == TILE_SIZE);
+    assert(block_type_tile_acc_n_attached_H.size(0) == n_block_types);
+    assert(block_type_tile_acc_n_attached_H.size(1) == max_n_tiles);
+    assert(block_type_tile_acc_n_attached_H.size(2) == TILE_SIZE);
     assert(block_type_atom_is_hydrogen.size(0) == n_block_types);
     assert(block_type_atom_is_hydrogen.size(1) == max_n_block_atoms);
 
@@ -315,11 +337,8 @@ struct GeneratePoseWaters {
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
-    int nstacks = coords.size(0);
-    int num_Vs = coords.size(1);
-
     auto dE_d_pose_coords_t =
-        TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_atoms, MAX_N_WATER});
+        TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_pose_atoms});
     auto dE_d_pose_coords = dE_d_pose_coords_t.view;
 
     int nsp2wats = sp2_water_tors.size(0);
@@ -327,7 +346,10 @@ struct GeneratePoseWaters {
     int nringwats = ring_water_tors.size(0);
     nvtx_range_pop();
 
-    auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int ind) {
+    LAUNCH_BOX_32;
+    CTA_LAUNCH_T_PARAMS;
+
+    auto f_watergen = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const pose_ind = ind / max_n_blocks;
       int const block_ind = ind % max_n_blocks;
       int const block_type = pose_stack_block_type[pose_ind][block_ind];
@@ -337,14 +359,14 @@ struct GeneratePoseWaters {
       int const n_atoms = block_type_n_atoms[block_type];
 
       // Allocate shared mem
-      SHARED_MEMORY WaterGenSharedData<Real, TILE_SIZE, MAX_N_CONN> shared_m;
+      SHARED_MEMORY WaterGenSharedData<Real, TILE_SIZE> shared_m;
 
       // Allocate stack mem
       WaterGenData<Dev, Real, Int> water_gen_dat;
 
       // TO DO: make this "1 body" tile action templated
       // Step 1: load in tile-invariant data for this block
-      water_gen_load_tile_invariant_data(
+      water_gen_load_tile_invariant_data<DeviceOps, Dev, nt>(
           pose_coords,
           pose_stack_block_coord_offset,
           pose_stack_block_type,
@@ -372,30 +394,28 @@ struct GeneratePoseWaters {
             min(TILE_SIZE, n_atoms - TILE_SIZE * tile_ind);
 
         if (tile_ind != 0) {
-          DeviceDispatch<Dev>::synchronize();
+          DeviceOps<Dev>::synchronize_workgroup();
         }
 
         // Step 3: and load data for each tile into shared memory
-        water_gen_load_block_coords_and_params_into_shared(
+        water_gen_load_block_coords_and_params_into_shared<DeviceOps, Dev, nt>(
             pose_coords,
             block_type_tile_n_donH,
             block_type_tile_n_acc,
             block_type_tile_donH_inds,
             block_type_tile_don_hvy_inds,
-            block_type_tile_which_donH_for_hhvy,
+            block_type_tile_which_donH_for_hvy,
             block_type_tile_acc_inds,
-            block_type_tile_donor_type,
-            block_type_tile_acceptor_type,
             block_type_tile_hybridization,
             block_type_tile_acc_n_attached_H,
             pose_ind,
             tile_ind,
-            wat_gen_dat.r_dat,
+            water_gen_dat.r_dat,
             n_atoms_to_load,
-            start_atom);
-        DeviceDispatch<Dev>::synchronize();
+            tile_ind * TILE_SIZE);
+        DeviceOps<Dev>::synchronize_workgroup();
 
-        auto gen_tile_waters = ([&] TMOL_DEVICE_FUNC(int tid) {
+        auto dgen_tile_waters = ([&] TMOL_DEVICE_FUNC(int tid) {
           // Each iteration will build one water
           // Donor hydrogens build for their parent heavy atom and have to
           // know which hydrogen child they represent for their heavy atom
@@ -409,9 +429,9 @@ struct GeneratePoseWaters {
             bool building_donor_water = i < water_gen_dat.r_dat.n_donH;
             if (building_donor_water) {
               d_build_water_for_don<TILE_SIZE>(
-                  dE_dW,
+                  dE_dWxyz,
                   dE_d_pose_coords,
-                  wat_gen_dat,
+                  water_gen_dat,
                   tile_ind * TILE_SIZE,
                   i  // i is the index of the polar H within this tile
               );
@@ -424,9 +444,9 @@ struct GeneratePoseWaters {
                   sp2_water_tors,
                   sp3_water_tors,
                   ring_water_tors,
-                  dE_dW,
-                  dE_d_pose_coord,
-                  wat_gen_dat,
+                  dE_dWxyz,
+                  dE_d_pose_coords,
+                  water_gen_dat,
                   tile_ind * TILE_SIZE,
                   acc_ind,
                   water_ind);
@@ -434,7 +454,7 @@ struct GeneratePoseWaters {
           }
         });
         // Step 4: ...before performing the work for each tile
-        DeviceOps<Dev>::template foreach_in_workgroup<nt>(gen_tile_waters);
+        DeviceOps<Dev>::template for_each_in_workgroup<nt>(dgen_tile_waters);
       }
     });
 
@@ -443,7 +463,7 @@ struct GeneratePoseWaters {
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_blocks, f_watergen);
     nvtx_range_pop();
 
-    return dE_dpose_coords_t;
+    return dE_d_pose_coords_t;
   };
 };
 
