@@ -69,7 +69,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 2, D> coords,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,

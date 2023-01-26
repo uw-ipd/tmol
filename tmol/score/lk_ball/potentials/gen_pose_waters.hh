@@ -7,7 +7,7 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+// #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 template <
     template <tmol::Device>
@@ -16,7 +16,7 @@ template <
     typename Real,
     typename Int>
 struct GeneratePoseWaters {
-  static def forward(
+  static auto forward(
       TView<Vec<Real, 3>, 2, Dev> pose_coords,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
@@ -57,10 +57,9 @@ struct GeneratePoseWaters {
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
-      TView<Real, 1, Dev> ring_water_tors)
-      ->TPack<Vec<Real, 3>, 3, Dev>;
+      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 3, Dev>;
 
-  static def backward(
+  static auto backward(
       TView<Vec<Real, 3>, 3, Dev> dE_dWxyz,
       TView<Vec<Real, 3>, 2, Dev> pose_coords,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
@@ -102,8 +101,7 @@ struct GeneratePoseWaters {
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
-      TView<Real, 1, Dev> ring_water_tors)
-      ->TPack<Vec<Real, 3>, 2, Dev>;
+      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev>;
 };
 
 #undef def

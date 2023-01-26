@@ -33,6 +33,8 @@
 // #include <tmol/score/lk_ball/potentials/constants.hh>
 #include "constants.hh"
 
+#include <iostream>  // TEMP!
+
 namespace tmol {
 namespace score {
 namespace lk_ball {
@@ -242,8 +244,8 @@ class LKBallPoseScoreDispatch {
                                    .pol_occ_tile_inds[occ_ind];
             int separation = interres_count_pair_separation<TILE_SIZE>(
                 inter_dat,
-                (polar_first ? pol_ind : occ_ind),
-                (polar_first ? occ_ind : pol_ind));
+                (polar_first ? pol_tile_ind : occ_tile_ind),
+                (polar_first ? occ_tile_ind : pol_tile_ind));
             lk_ball_Vt<Real> E = lk_ball_atom_energy_full<MAX_N_WATER>(
                 pol_ind,
                 occ_ind,
@@ -783,8 +785,8 @@ class LKBallPoseScoreDispatch {
                                    .pol_occ_tile_inds[occ_ind];
             int separation = interres_count_pair_separation<TILE_SIZE>(
                 inter_dat,
-                (polar_first ? pol_ind : occ_ind),
-                (polar_first ? occ_ind : pol_ind));
+                (polar_first ? pol_tile_ind : occ_tile_ind),
+                (polar_first ? occ_tile_ind : pol_tile_ind));
             lk_ball_atom_derivs(
                 pol_ind,
                 occ_ind,

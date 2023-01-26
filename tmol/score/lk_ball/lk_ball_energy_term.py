@@ -192,7 +192,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        pbt,
+        pbt = pose_stack.packed_block_types
         ljlk_global_params = self.ljlk_param_resolver.global_params
 
         return LKBallWholePoseScoringModule(
@@ -213,16 +213,16 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             bt_tile_don_hvy_inds=pbt.hbpbt_params.tile_donH_hvy_inds,
             bt_tile_which_donH_for_hvy=pbt.hbpbt_params.tile_which_donH_of_donH_hvy,
             bt_tile_acc_inds=pbt.hbpbt_params.tile_acc_inds,
-            bt_tile_acceptor_hybridization=pbt.hbpbt_params.tile_acceptor_hybridization,
+            bt_tile_hybridization=pbt.hbpbt_params.tile_acceptor_hybridization,
             bt_tile_acc_n_attached_H=pbt.hbpbt_params.tile_acceptor_n_attached_H,
             bt_atom_is_hydrogen=pbt.hbpbt_params.is_hydrogen,
-            bt_tile_n_polar_atoms=None,  # TO DO!!
-            bt_tile_n_occluder_atoms=None,  # TO DO!!
-            bt_tile_pol_occ_inds=None,  # TO DO!!
-            bt_tile_lk_ball_params=None,  # TO DO!!
+            bt_tile_n_polar_atoms=pbt.lk_ball_params.tile_n_polar_atoms,
+            bt_tile_n_occluder_atoms=pbt.lk_ball_params.tile_n_occluder_atoms,
+            bt_tile_pol_occ_inds=pbt.lk_ball_params.tile_pol_occ_inds,
+            bt_tile_lk_ball_params=pbt.lk_ball_params.tile_lk_ball_params,
             bt_path_distance=pbt.bond_separation,
             lk_ball_global_params=self.stack_lk_ball_global_params(),
-            water_gen_global_params=self.stack_water_gen_global_params(),
+            water_gen_global_params=self.stack_lk_ball_water_gen_global_params(),
             sp2_water_tors=ljlk_global_params.lkb_water_tors_sp2,
             sp3_water_tors=ljlk_global_params.lkb_water_tors_sp3,
             ring_water_tors=ljlk_global_params.lkb_water_tors_ring,
@@ -245,7 +245,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             dim=1,
         )
 
-    def stack_lkball_water_gen_global_params(self):
+    def stack_lk_ball_water_gen_global_params(self):
         return torch.stack(
             self._tfloat(
                 [

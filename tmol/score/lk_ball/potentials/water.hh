@@ -832,6 +832,7 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
     TView<Int, 1, Dev> block_type_n_interblock_bonds,
     TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
     TView<Int, 2, Dev> block_type_atom_is_hydrogen,
+    TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
 
     int pose_ind,
     int block_ind,
@@ -841,6 +842,7 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
     WaterGenData<Dev, Real, Int> &water_gen_dat,
     WaterGenSharedData<Real, TILE_SIZE> &shared_m) {
   water_gen_dat.pose_context.pose_ind = pose_ind;
+  water_gen_dat.pose_context.global_params = global_params[0];
   water_gen_dat.r_dat.block_ind = block_ind;
   water_gen_dat.r_dat.block_type = block_type;
   water_gen_dat.r_dat.block_coord_offset =
@@ -851,6 +853,7 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
   // set the pointers in inter_dat to point at the shared-memory arrays
   water_gen_dat.r_dat.coords = shared_m.coords;
   water_gen_dat.r_dat.donH_tile_inds = shared_m.don_inds;
+  water_gen_dat.r_dat.don_hvy_inds = shared_m.don_hvy_inds;
   water_gen_dat.r_dat.which_donH_for_hvy = shared_m.which_donH_for_hvy;
   water_gen_dat.r_dat.acc_tile_inds = shared_m.acc_inds;
   water_gen_dat.r_dat.acc_hybridization = shared_m.acc_hybridization;
@@ -932,6 +935,13 @@ void TMOL_DEVICE_FUNC build_water_for_don(
 
   // Now record the coordinates to global memory:
   int const which_water = res_dat.which_donH_for_hvy[don_h_ind];
+
+  // printf("build don %d %d %d %d (%6.3f, %6.3f, %6.3f), (%6.3f, %6.3f, %6.3f)
+  // --> (%6.3f, %6.3f, %6.3f)\n",
+  //   res_dat.block_ind, don_h_atom_tile_ind, Dind, which_water,
+  //   Hxyz[0], Hxyz[1], Hxyz[2],
+  //   Dxyz[0], Dxyz[1], Dxyz[2],
+  //   Wxyz[0], Wxyz[1], Wxyz[2]);
 
   water_coords[context_dat.pose_ind][res_dat.block_coord_offset + Dind]
               [which_water] = Wxyz;

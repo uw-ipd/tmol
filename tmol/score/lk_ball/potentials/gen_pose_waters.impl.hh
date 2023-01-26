@@ -18,6 +18,8 @@
 #include "water.hh"
 #include <tmol/score/lk_ball/potentials/constants.hh>
 
+#include <iostream>  // TEMP!
+
 namespace tmol {
 namespace score {
 namespace lk_ball {
@@ -32,7 +34,7 @@ template <
     typename Real,
     typename Int>
 struct GeneratePoseWaters {
-  static def forward(
+  static auto forward(
       TView<Vec<Real, 3>, 2, Dev> pose_coords,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
@@ -73,8 +75,7 @@ struct GeneratePoseWaters {
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
-      TView<Real, 1, Dev> ring_water_tors)
-      ->TPack<Vec<Real, 3>, 3, Dev> {
+      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 3, Dev> {
     int const n_poses = pose_coords.size(0);
     int const max_n_pose_atoms = pose_coords.size(1);
     int const max_n_blocks = pose_stack_block_type.size(1);
@@ -161,6 +162,7 @@ struct GeneratePoseWaters {
           block_type_n_interblock_bonds,
           block_type_atoms_forming_chemical_bonds,
           block_type_atom_is_hydrogen,
+          global_params,
 
           pose_ind,
           block_ind,
@@ -245,7 +247,7 @@ struct GeneratePoseWaters {
     return water_coords_t;
   };
 
-  static def backward(
+  static auto backward(
       TView<Vec<Real, 3>, 3, Dev> dE_dWxyz,
       TView<Vec<Real, 3>, 2, Dev> pose_coords,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
@@ -287,8 +289,7 @@ struct GeneratePoseWaters {
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
-      TView<Real, 1, Dev> ring_water_tors)
-      ->TPack<Vec<Real, 3>, 2, Dev> {
+      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev> {
     int const n_poses = pose_coords.size(0);
     int const max_n_pose_atoms = pose_coords.size(1);
     int const max_n_blocks = pose_stack_block_type.size(1);
@@ -378,6 +379,7 @@ struct GeneratePoseWaters {
           block_type_n_interblock_bonds,
           block_type_atoms_forming_chemical_bonds,
           block_type_atom_is_hydrogen,
+          global_params,
 
           pose_ind,
           block_ind,

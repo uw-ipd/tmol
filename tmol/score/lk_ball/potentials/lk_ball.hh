@@ -498,7 +498,6 @@ class LKBallSingleResData {
   int block_ind;
   int block_type;
   int block_coord_offset;
-  int water_coord_offset;
   int n_atoms;
   int n_conn;
   Real *pose_coords;
@@ -1135,8 +1134,8 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
       wmat_polar,
       wmat_occluder,
       cp_separation,
-      polar_block_dat.lk_ball_params[polar_atom_tile_ind],
-      occluder_block_dat.lk_ball_params[occluder_atom_tile_ind],
+      polar_block_dat.lk_ball_params[polar_ind],
+      occluder_block_dat.lk_ball_params[occluder_ind],
       block_pair_dat.global_params);
 }
 
@@ -1197,8 +1196,8 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
       wmat_polar,
       wmat_occluder,
       cp_separation,
-      polar_block_dat.lk_ball_params[polar_atom_tile_ind],
-      occluder_block_dat.lk_ball_params[occluder_atom_tile_ind],
+      polar_block_dat.lk_ball_params[polar_ind],
+      occluder_block_dat.lk_ball_params[occluder_ind],
       block_pair_dat.global_params);
 
   auto accum_derivs1 = ([&] TMOL_DEVICE_FUNC(

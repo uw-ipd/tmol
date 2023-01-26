@@ -89,6 +89,30 @@ class LKBallWholePoseScoringModule(torch.nn.Module):
         building step by torch's autograd machinery
         """
 
+        # print("pose_coords"); print(pose_coords.cpu()[0,:5])
+        # print("self.pose_stack_block_coord_offset"); print(self.pose_stack_block_coord_offset.cpu()[0,:5])
+        # print("self.pose_stack_block_type"); print(self.pose_stack_block_type.cpu()[0,:5])
+        # print("self.pose_stack_inter_residue_connections"); print(self.pose_stack_inter_residue_connections.cpu()[0,:5])
+        # print("self.bt_n_atoms"); print(self.bt_n_atoms.cpu()[:])
+        # print("self.bt_n_interblock_bonds"); print(self.bt_n_interblock_bonds.cpu()[:])
+        # print("self.bt_atoms_forming_chemical_bonds"); print(self.bt_atoms_forming_chemical_bonds.cpu()[0])
+        # print("self.bt_n_all_bonds"); print(self.bt_n_all_bonds.cpu()[0])
+        # print("self.bt_all_bonds"); print(self.bt_all_bonds.cpu()[0,:5])
+        # print("self.bt_atom_all_bond_ranges"); print(self.bt_atom_all_bond_ranges.cpu()[0,:5])
+        # print("self.bt_tile_n_donH"); print(self.bt_tile_n_donH.cpu()[0])
+        # print("self.bt_tile_n_acc"); print(self.bt_tile_n_acc.cpu()[0])
+        # print("self.bt_tile_donH_inds"); print(self.bt_tile_donH_inds.cpu()[0,0,:5])
+        # print("self.bt_tile_don_hvy_inds"); print(self.bt_tile_don_hvy_inds.cpu()[0,0,:5])
+        # print("self.bt_tile_which_donH_for_hvy"); print(self.bt_tile_which_donH_for_hvy.cpu()[0,0,:5])
+        # print("self.bt_tile_acc_inds"); print(self.bt_tile_acc_inds.cpu()[0,0,:5])
+        # print("self.bt_tile_hybridization"); print(self.bt_tile_hybridization.cpu()[0,0,:5])
+        # print("self.bt_tile_acc_n_attached_H"); print(self.bt_tile_acc_n_attached_H.cpu()[0,0,:5])
+        # print("self.bt_atom_is_hydrogen"); print(self.bt_atom_is_hydrogen.cpu()[0,:5])
+        # print("self.water_gen_global_params"); print(self.water_gen_global_params.cpu()[:])
+        # print("self.sp2_water_tors"); print(self.sp2_water_tors.cpu()[:])
+        # print("self.sp3_water_tors"); print(self.sp3_water_tors.cpu()[:])
+        # print("self.ring_water_tors"); print(self.ring_water_tors.cpu()[:])
+
         water_coords = gen_pose_waters(
             pose_coords,
             self.pose_stack_block_coord_offset,
@@ -115,7 +139,10 @@ class LKBallWholePoseScoringModule(torch.nn.Module):
             self.ring_water_tors,
         )
 
-        return pose_score_lk_bal(
+        # print("water coords")
+        # print(water_coords.cpu()[0,0:5])
+
+        return pose_score_lk_ball(
             pose_coords,
             water_coords,
             self.pose_stack_block_coord_offset,
