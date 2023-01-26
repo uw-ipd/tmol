@@ -54,6 +54,10 @@ def attached_H_for_don(atom_is_hydrogen, D_idx, bonds, bond_spans):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondBlockTypeParams(ValidateAttrs):
+    donH_inds: NDArray[numpy.int32][:]
+    don_hvy_inds: NDArray[numpy.int32][:]
+    acc_inds: NDArray[numpy.int32][:]
+
     tile_n_donH: NDArray[numpy.int32][:]
     tile_n_don_hvy: NDArray[numpy.int32][:]
     tile_n_acc: NDArray[numpy.int32][:]
@@ -221,6 +225,9 @@ class HBondDependentTerm(BondDependentTerm):
         tile_which_donH_of_donH_hvy[is_tiled_donH] = which_H_for_Hs_D
 
         hbbt_params = HBondBlockTypeParams(
+            donH_inds=H_idx,
+            don_hvy_inds=D_idx,
+            acc_inds=A_idx,
             tile_n_donH=tile_n_donH,
             tile_n_don_hvy=tile_n_don_hvy,
             tile_n_acc=tile_n_acc,
