@@ -667,7 +667,8 @@ class LKBallPoseScoreDispatch {
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       TView<Int, 3, Dev> scratch_block_neighbors,  // from forward pass
       TView<Real, 2, Dev> dTdV)
-      -> std::tuple<TPack<Vec<Real, 3>, 3, Dev>, TPack<Vec<Real, 3>, 4, Dev>> {
+      -> std::tuple<TPack<Vec<Real, 3>, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>> {
+    // std::cout << "d lkball start" << std::endl;
     using tmol::score::common::accumulate;
     using Real3 = Vec<Real, 3>;
 
@@ -728,12 +729,15 @@ class LKBallPoseScoreDispatch {
     assert(scratch_block_neighbors.size(1) == max_n_blocks);
     assert(scratch_block_neighbors.size(2) == max_n_blocks);
 
+    assert(dTdV.size(0) == 4);
+    assert(dTdV.size(1) == n_poses);
+
     auto dV_d_pose_coords_t =
-        TPack<Vec<Real, 3>, 3, Dev>::zeros({2, n_poses, max_n_pose_atoms});
+        TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_pose_atoms});
     auto dV_d_pose_coords = dV_d_pose_coords_t.view;
 
-    auto dV_d_water_coords_t = TPack<Vec<Real, 3>, 4, Dev>::zeros(
-        {2, n_poses, max_n_pose_atoms, MAX_N_WATER});
+    auto dV_d_water_coords_t = TPack<Vec<Real, 3>, 3, Dev>::zeros(
+        {n_poses, max_n_pose_atoms, MAX_N_WATER});
     auto dV_d_water_coords = dV_d_water_coords_t.view;
 
     // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -755,6 +759,7 @@ class LKBallPoseScoreDispatch {
                LKBallResPairData<Real> const &respair_dat,
                int cp_separation) {
             // capture dTdV, dV_d_pose_coords, & dV_d_water_coords
+
             lk_ball_atom_derivs_full<TILE_SIZE, MAX_N_WATER>(
                 pol_ind,
                 occ_ind,
@@ -1072,6 +1077,7 @@ class LKBallPoseScoreDispatch {
     int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         n_block_pairs, eval_derivs);
+    // std::cout << "d lkball end" << std::endl;
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
   }

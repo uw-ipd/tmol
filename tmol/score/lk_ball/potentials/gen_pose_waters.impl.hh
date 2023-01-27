@@ -331,6 +331,8 @@ struct GeneratePoseWaters {
     assert(block_type_atom_is_hydrogen.size(0) == n_block_types);
     assert(block_type_atom_is_hydrogen.size(1) == max_n_block_atoms);
 
+    // std::cout << "d watergen start" << std::endl;
+
     NVTXRange _function(__FUNCTION__);
 
     nvtx_range_push("watergen::dsetup");
@@ -367,6 +369,7 @@ struct GeneratePoseWaters {
 
       // TO DO: make this "1 body" tile action templated
       // Step 1: load in tile-invariant data for this block
+      // printf("water_gen_load_tile_invariant_data %d\n", ind);
       water_gen_load_tile_invariant_data<DeviceOps, Dev, nt>(
           pose_coords,
           pose_stack_block_coord_offset,
@@ -400,6 +403,8 @@ struct GeneratePoseWaters {
         }
 
         // Step 3: and load data for each tile into shared memory
+        // printf("water_gen_load_block_coords_and_params_into_shared %d %d\n",
+        // ind, tile_ind);
         water_gen_load_block_coords_and_params_into_shared<DeviceOps, Dev, nt>(
             pose_coords,
             block_type_tile_n_donH,
@@ -428,6 +433,7 @@ struct GeneratePoseWaters {
           int const n_waters = water_gen_dat.r_dat.n_donH
                                + water_gen_dat.r_dat.n_acc * MAX_N_WATER;
           for (int i = tid; i < n_waters; i += nt) {
+            // printf("dgen_tile_waters %d %d %d\n", ind, tile_ind, tid);
             bool building_donor_water = i < water_gen_dat.r_dat.n_donH;
             if (building_donor_water) {
               d_build_water_for_don<TILE_SIZE>(
@@ -464,6 +470,8 @@ struct GeneratePoseWaters {
     nvtx_range_push("watergen::dgen");
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_blocks, f_watergen);
     nvtx_range_pop();
+
+    // std::cout << "d watergen end" << std::endl;
 
     return dE_d_pose_coords_t;
   };

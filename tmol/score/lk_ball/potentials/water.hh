@@ -1145,13 +1145,13 @@ void TMOL_DEVICE_FUNC d_build_water_for_acc(
            ? res_dat.block_coord_offset
            : context_dat
                  .pose_stack_block_coord_offset[pose_ind][acc_bases.B.block])
-      + A.atom;
+      + acc_bases.B.atom;
   int const B0_atom_pose_ind =
       (acc_bases.B0.block == A.block
            ? res_dat.block_coord_offset
            : context_dat
                  .pose_stack_block_coord_offset[pose_ind][acc_bases.B0.block])
-      + A.atom;
+      + acc_bases.B0.atom;
 
   Real3 dE_dW = dE_dWxyz[pose_ind][A_atom_pose_ind][water_ind + water_offset];
 

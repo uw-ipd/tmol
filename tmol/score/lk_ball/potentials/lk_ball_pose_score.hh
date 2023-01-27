@@ -140,7 +140,7 @@ struct LKBallPoseScoreDispatch {
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       TView<Int, 3, Dev> block_neighbors,  // from forward pass
       TView<Real, 2, Dev> dTdV)
-      -> std::tuple<TPack<Vec<Real, 3>, 3, Dev>, TPack<Vec<Real, 3>, 4, Dev>>;
+      -> std::tuple<TPack<Vec<Real, 3>, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>>;
 };
 
 }  // namespace potentials

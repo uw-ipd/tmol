@@ -8,7 +8,8 @@ import torch
 class LKBallTermCreator(TermCreator):
     _score_types = [
         ScoreType.lk_ball_iso,
-        ScoreType.lk_ball.ScoreType.lk_bridge,
+        ScoreType.lk_ball,
+        ScoreType.lk_bridge,
         ScoreType.lk_bridge_uncpl,
     ]
 
