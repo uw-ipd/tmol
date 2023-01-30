@@ -501,7 +501,7 @@ class LKBallSingleResData {
   int n_atoms;
   int n_conn;
   Real *pose_coords;
-  Real *water_coords;
+  // TEMP!! Real *water_coords;
   unsigned char n_polars;
   unsigned char n_occluders;
   unsigned char *pol_occ_tile_inds;
@@ -538,8 +538,8 @@ template <typename Real, int TILE_SIZE, int MAX_N_WATER, int MAX_N_CONN>
 struct LKBallBlockPairSharedData {
   Real pose_coords1[TILE_SIZE * 3];  // 768 bytes for coords
   Real pose_coords2[TILE_SIZE * 3];
-  Real water_coords1[TILE_SIZE * MAX_N_WATER * 3];  // 3072 bytes for coords
-  Real water_coords2[TILE_SIZE * MAX_N_WATER * 3];
+  // TEMP!! Real water_coords1[TILE_SIZE * MAX_N_WATER * 3];  // 3072 bytes for
+  // coords TEMP!! Real water_coords2[TILE_SIZE * MAX_N_WATER * 3];
 
   unsigned char n_polars1;  // 4 bytes for counts
   unsigned char n_polars2;
@@ -547,7 +547,7 @@ struct LKBallBlockPairSharedData {
   unsigned char n_occluders2;
   unsigned char pol_occ_tile_inds1[TILE_SIZE];  // 64 bytes for indices
   unsigned char pol_occ_tile_inds2[TILE_SIZE];
-  LKBallTypeParams<Real> lk_ball_params1[TILE_SIZE];
+  LKBallTypeParams<Real> lk_ball_params1[TILE_SIZE];  // 192 bytes for params
   LKBallTypeParams<Real> lk_ball_params2[TILE_SIZE];
 
   unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
@@ -586,11 +586,10 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_coords_and_params_into_shared(
       reinterpret_cast<Real *>(
           &pose_coords[pose_ind][r_dat.block_coord_offset + start_atom]),
       n_atoms_to_load * 3);
-  DeviceDispatch<Dev>::template copy_contiguous_data<nt, MAX_N_WATER * 3>(
-      r_dat.water_coords,
-      reinterpret_cast<Real *>(
-          &water_coords[pose_ind][r_dat.block_coord_offset + start_atom][0]),
-      n_atoms_to_load * MAX_N_WATER * 3);
+  // TEMP!! DeviceDispatch<Dev>::template copy_contiguous_data<nt, MAX_N_WATER *
+  // 3>( TEMP!!     r_dat.water_coords, TEMP!!     reinterpret_cast<Real *>(
+  // TEMP!!         &water_coords[pose_ind][r_dat.block_coord_offset +
+  // start_atom][0]), TEMP!!     n_atoms_to_load * MAX_N_WATER * 3);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.pol_occ_tile_inds,
       &block_type_tile_pol_occ_inds[r_dat.block_type][tile_ind][0],
@@ -708,8 +707,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
   // set the pointers in inter_dat to point at the shared-memory arrays
   inter_dat.r1.pose_coords = shared_m.pose_coords1;
   inter_dat.r2.pose_coords = shared_m.pose_coords2;
-  inter_dat.r1.water_coords = shared_m.water_coords1;
-  inter_dat.r2.water_coords = shared_m.water_coords2;
+  // TEMP!! inter_dat.r1.water_coords = shared_m.water_coords1;
+  // TEMP!! inter_dat.r2.water_coords = shared_m.water_coords2;
   inter_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   inter_dat.r2.pol_occ_tile_inds = shared_m.pol_occ_tile_inds2;
   inter_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
@@ -747,9 +746,6 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
         }
       }
     });
-    // On CPU: a for loop executed once; on GPU threads within the
-    // workgroup working in parallel will just continue to work in
-    // parallel
     DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
         load_count_pair_conn_at_data);
   }
@@ -931,8 +927,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_intrares_data(
   // which tile pair we are evaluating!
   intra_dat.r1.pose_coords = shared_m.pose_coords1;
   intra_dat.r2.pose_coords = shared_m.pose_coords2;
-  intra_dat.r1.water_coords = shared_m.water_coords1;
-  intra_dat.r2.water_coords = shared_m.water_coords2;
+  // TEMP!! intra_dat.r1.water_coords = shared_m.water_coords1;
+  // TEMP!! intra_dat.r2.water_coords = shared_m.water_coords2;
   intra_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   intra_dat.r2.pol_occ_tile_inds = shared_m.pol_occ_tile_inds2;
   intra_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
@@ -1070,9 +1066,9 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares_data_from_shared(
   intra_dat.r1.pose_coords = shared_m.pose_coords1;
   intra_dat.r2.pose_coords =
       (same_tile ? shared_m.pose_coords1 : shared_m.pose_coords2);
-  intra_dat.r1.water_coords = shared_m.water_coords1;
-  intra_dat.r2.water_coords =
-      (same_tile ? shared_m.water_coords1 : shared_m.water_coords2);
+  // intra_dat.r1.water_coords = shared_m.water_coords1;
+  // intra_dat.r2.water_coords =
+  //     (same_tile ? shared_m.water_coords1 : shared_m.water_coords2);
   intra_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   intra_dat.r2.pol_occ_tile_inds =
       (same_tile ? shared_m.pol_occ_tile_inds1 : shared_m.pol_occ_tile_inds2);
@@ -1120,12 +1116,26 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
   Eigen::Matrix<Real, 4, 3> wmat_polar;
   Eigen::Matrix<Real, 4, 3> wmat_occluder;
 
+  // TEMP! for (int wi = 0; wi < MAX_N_WATER; wi++) {
+  // TEMP!   wmat_polar.row(wi) = coord_from_shared(
+  // TEMP!       polar_block_dat.water_coords, MAX_N_WATER * polar_atom_tile_ind
+  // + wi); TEMP!   wmat_occluder.row(wi) = coord_from_shared( TEMP!
+  // occluder_block_dat.water_coords, TEMP!       MAX_N_WATER *
+  // occluder_atom_tile_ind + wi); TEMP! }
+
+  // DEBUG: load dummy coords into shared memory
   for (int wi = 0; wi < MAX_N_WATER; wi++) {
-    wmat_polar.row(wi) = coord_from_shared(
-        polar_block_dat.water_coords, MAX_N_WATER * polar_atom_tile_ind + wi);
-    wmat_occluder.row(wi) = coord_from_shared(
-        occluder_block_dat.water_coords,
-        MAX_N_WATER * occluder_atom_tile_ind + wi);
+    if (wi < 2) {
+      wmat_polar.row(wi) =
+          coord_from_shared(polar_block_dat.pose_coords, polar_atom_tile_ind)
+          + Real3{1, 1, 1};
+      wmat_occluder.row(wi) =
+          coord_from_shared(occluder_block_dat.pose_coords, polar_atom_tile_ind)
+          + Real3{1, 1, 1};
+    } else {
+      wmat_polar.row(wi) = Real3{NAN, NAN, NAN};
+      wmat_occluder.row(wi) = Real3{NAN, NAN, NAN};
+    }
   }
 
   return lk_ball_score<Real, MAX_N_WATER>::V(
@@ -1162,13 +1172,6 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   using tmol::score::common::coord_from_shared;
   using tmol::score::common::distance;
 
-  // if (polar_block_dat.block_ind == 0 && occluder_block_dat.block_ind == 1) {
-  //   if (polar_ind == 0 && occluder_ind == 0) {
-  //     printf("dTdV: [%f, %f, %f, %f]\n", dTdV[0][0], dTdV[1][0], dTdV[2][0],
-  //     dTdV[3][0]);
-  //   }
-  // }
-
   if (cp_separation <= 3) {
     return;
   }
@@ -1189,12 +1192,26 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     dTdV_local[i] = dTdV[block_pair_dat.pose_ind][i];
   }
 
+  // TEMP!! for (int wi = 0; wi < MAX_N_WATER; wi++) {
+  // TEMP!!   wmat_polar.row(wi) = coord_from_shared(
+  // TEMP!!       polar_block_dat.water_coords, MAX_N_WATER *
+  // polar_atom_tile_ind + wi); TEMP!!   wmat_occluder.row(wi) =
+  // coord_from_shared( TEMP!!       occluder_block_dat.water_coords, TEMP!!
+  // MAX_N_WATER * occluder_atom_tile_ind + wi); TEMP!! }
+
+  // DEBUG: load dummy coords into shared memory
   for (int wi = 0; wi < MAX_N_WATER; wi++) {
-    wmat_polar.row(wi) = coord_from_shared(
-        polar_block_dat.water_coords, MAX_N_WATER * polar_atom_tile_ind + wi);
-    wmat_occluder.row(wi) = coord_from_shared(
-        occluder_block_dat.water_coords,
-        MAX_N_WATER * occluder_atom_tile_ind + wi);
+    if (wi < 2) {
+      wmat_polar.row(wi) =
+          coord_from_shared(polar_block_dat.pose_coords, polar_atom_tile_ind)
+          + Real3{1, 1, 1};
+      wmat_occluder.row(wi) =
+          coord_from_shared(occluder_block_dat.pose_coords, polar_atom_tile_ind)
+          + Real3{1, 1, 1};
+    } else {
+      wmat_polar.row(wi) = Real3{NAN, NAN, NAN};
+      wmat_occluder.row(wi) = Real3{NAN, NAN, NAN};
+    }
   }
 
   auto dV = lk_ball_score<Real, 4>::dV(
@@ -1212,26 +1229,6 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
                             int atom_ind,
                             Real3 dV,
                             lk_ball_score_type st) {
-    // bool target = false;
-    // if (polar_block_dat.block_ind == 0 || occluder_block_dat.block_ind == 0)
-    // {
-    //   for (int j = 0; j <3; ++j) {
-    // 	if (dTdV_local[st] * dV[j] != 0) {
-    // 	  target = true;
-    // 	}
-    //   }
-    // }
-    // if (target) {
-    //   printf("dVdxyz pb %d ob %d pa %d oa %d st %d (%6.3f %6.3f %6.3f)\n",
-    // 	polar_block_dat.block_ind,
-    // 	occluder_block_dat.block_ind,
-    // 	polar_atom_tile_ind,
-    // 	occluder_atom_tile_ind,
-    // 	st,
-    // 	dTdV_local[st] * dV[0],
-    // 	dTdV_local[st] * dV[1],
-    // 	dTdV_local[st] * dV[2]);
-    // }
     for (int j = 0; j < 3; ++j) {
       if (dV[j] != 0) {
         accumulate<Dev, Real>::add(
@@ -1246,8 +1243,6 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
                             LKBallSingleResData<Real> const &block_dat,
                             int atom_ind,
                             lk_ball_dV_dReal3<Real> const &dV) {
-    // printf("accum for atom %d %d %d\n", block_pair_dat.pose_ind,
-    // block_dat.block_coord_offset, atom_ind);
     accum_derivs1(block_dat, atom_ind, dV.d_lkball_iso, w_lk_ball_iso);
     accum_derivs1(block_dat, atom_ind, dV.d_lkball, w_lk_ball);
     accum_derivs1(block_dat, atom_ind, dV.d_lkbridge, w_lk_bridge);
@@ -1277,8 +1272,6 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
                                   int water_ind,
                                   lk_ball_dV_dWater<Real, MAX_N_WATER> const
                                       &dV) {
-    // printf("accum for water %d %d %d\n", block_pair_dat.pose_ind,
-    // block_dat.block_coord_offset, atom_ind, water_ind);
     water_accum_derivs1(
         block_dat, atom_ind, water_ind, dV.d_lkball_iso, w_lk_ball_iso);
     water_accum_derivs1(block_dat, atom_ind, water_ind, dV.d_lkball, w_lk_ball);

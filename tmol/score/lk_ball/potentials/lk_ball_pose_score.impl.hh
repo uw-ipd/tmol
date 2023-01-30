@@ -30,10 +30,7 @@
 
 #include <chrono>
 
-// #include <tmol/score/lk_ball/potentials/constants.hh>
-#include "constants.hh"
-
-#include <iostream>  // TEMP!
+#include <tmol/score/lk_ball/potentials/constants.hh>
 
 namespace tmol {
 namespace score {
@@ -197,39 +194,6 @@ class LKBallPoseScoreDispatch {
     CTA_REAL_REDUCE_T_TYPEDEF;
 
     auto eval_energies_only = ([=] TMOL_DEVICE_FUNC(int cta) {
-      // auto lk_ball_atom_energy =
-      //   // The typical idiom is that we lambda-capture the tensor(s) into
-      //   which
-      //   // we will write the derivatives, but in the split scoring/derivative
-      //   // format, that doesn't happen here; as such, this function is
-      //   unnecessary
-      //     ([=] TMOL_DEVICE_FUNC(
-      //          int pol_ind,
-      //          int occ_ind,
-      //          int pol_tile_ind,
-      //          int occ_tile_ind,
-      //          int pol_start,
-      //          int occ_start,
-      //          LKBallSingleResData<Real> const &pol_dat,
-      //          LKBallSingleResData<Real> const &occ_dat,
-      //          LKBallResPairData<Real> const &respair_dat,
-      //          int cp_separation) {
-      //
-      //       lk_ball_Vt<Real> val = lk_ball_atom_energy_full<TILE_SIZE,
-      //       MAX_N_WATER>(
-      //           pol_ind,
-      //           occ_ind,
-      //           pol_tile_ind,
-      //           occ_tile_ind,
-      //           pol_start,
-      //           occ_start,
-      //           pol_dat,
-      //           occ_dat,
-      //           respair_dat,
-      //           cp_separation);
-      //       return val;
-      //     });
-
       auto score_inter_lk_ball_atom_pair =
           ([=] TMOL_DEVICE_FUNC(
                int pol_start,
