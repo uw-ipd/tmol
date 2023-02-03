@@ -12,6 +12,8 @@ load(
                 "compiled.cuda.cu",
                 "lk_ball_pose_score.cpu.cpp",
                 "lk_ball_pose_score.cuda.cu",
+                "lk_ball_pose_score2.cpu.cpp",
+                "lk_ball_pose_score2.cuda.cu",
                 "rotamer_pair_energy_lkball.cpu.cpp",
                 "rotamer_pair_energy_lkball.cuda.cu",
                 "gen_pose_waters.cpu.cpp",
@@ -27,3 +29,4 @@ score_lkball = _ops.score_lkball
 watergen_lkball = _ops.watergen_lkball
 gen_pose_waters = _ops.gen_pose_waters
 pose_score_lk_ball = _ops.lk_ball_pose_score
+pose_score_lk_ball2 = _ops.lk_ball_pose_score2

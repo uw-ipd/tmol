@@ -105,6 +105,38 @@ struct DeviceOperations<tmol::Device::CUDA> {
   }
 
   __device__ static void synchronize_workgroup() { __syncthreads(); }
+
+  // Perform an in-place exclusive scan within the workgroup
+  // over an array of WIDTH elements. If
+  // broadcast_and_return_total is true, then all members
+  // of the workgroup will receive the total of the scan
+  template <int N_T, int WIDTH, typename T, typename OP>
+  __device__ static T exclusive_scan_in_workgroup(
+      T* data, T identity, OP op, bool broadcast_and_return_total) {
+    // STUB
+    return identity;
+  }
+
+  // Perform an in-place inclusive scan within the workgroup
+  // over an array of WIDTH elements. If
+  // broadcast_and_return_total is true, then all members
+  // of the workgroup will receive the total of the scan
+  template <int N_T, int WIDTH, typename T, typename OP>
+  __device__ static T inclusive_scan_in_workgroup(
+      T* data, T identity, OP op, bool broadcast_and_return_total) {
+    // STUB
+    return identity;
+  }
+
+  // Perform an in-place inclusive segmented scan within the
+  // workgroup over an array of WIDTH elements with the
+  // seg_begin array informing where each segment begins.
+  template <int N_T, int WIDTH, typename T, typename S, typename OP>
+  __device__ static void inclusive_seg_scan_in_workgroup(
+      T* data, T identity, S* seg_begin, OP op) {
+    // STUB
+    return;
+  }
 };
 
 }  // namespace common

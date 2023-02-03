@@ -42,6 +42,29 @@ struct DeviceOperations {
   static T shuffle_reduce_in_workgroup(T val, OP op);
 
   static void synchronize_workgroup();
+
+  // Perform an in-place exclusive scan within the workgroup
+  // over an array of WIDTH elements. If
+  // broadcast_and_return_total is true, then all members
+  // of the workgroup will receive the total of the scan
+  template <int N_T, int WIDTH, typename T, typename OP>
+  static T exclusive_scan_in_workgroup(
+      T* data, T identity, OP op, bool broadcast_and_return_total);
+
+  // Perform an in-place inclusive scan within the workgroup
+  // over an array of WIDTH elements. If
+  // broadcast_and_return_total is true, then all members
+  // of the workgroup will receive the total of the scan
+  template <int N_T, int WIDTH, typename T, typename OP>
+  static T inclusive_scan_in_workgroup(
+      T* data, T identity, OP op, bool broadcast_and_return_total);
+
+  // Perform an in-place inclusive segmented scan within the
+  // workgroup over an array of WIDTH elements with the
+  // seg_begin array informing where each segment begins.
+  template <int N_T, int WIDTH, typename T, typename S, typename OP>
+  static void inclusive_seg_scan_in_workgroup(
+      T* data, T identity, S* seg_begin, OP op);
 };
 
 }  // namespace common
