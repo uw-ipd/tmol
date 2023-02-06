@@ -2320,20 +2320,24 @@ void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies2(
       eval_scores_for_pol_occ_pairs);
 }
 
-template <int TILE, typename InterEnergyData>
+template <int TILE, typename PairData, typename ResData>
 TMOL_DEVICE_FUNC int interres_count_pair_separation2(
-    InterEnergyData const &inter_dat, int atom_tile_ind1, int atom_tile_ind2) {
-  int separation = inter_dat.pair_data.min_separation;
-  if (separation <= inter_dat.pair_data.max_important_bond_separation) {
+    PairData const &pair_data,
+    ResData const &r1,
+    ResData const &r2,
+    int atom_tile_ind1,
+    int atom_tile_ind2) {
+  int separation = pair_data.min_separation;
+  if (separation <= pair_data.max_important_bond_separation) {
     separation = common::count_pair::shared_mem_inter_block_separation<TILE>(
-        inter_dat.pair_data.max_important_bond_separation,
+        pair_data.max_important_bond_separation,
         atom_tile_ind1,
         atom_tile_ind2,
-        inter_dat.r1.n_conn,
-        inter_dat.r2.n_conn,
-        inter_dat.r1.path_dist,
-        inter_dat.r2.path_dist,
-        inter_dat.pair_data.conn_seps);
+        r1.n_conn,
+        r2.n_conn,
+        r1.path_dist,
+        r2.path_dist,
+        pair_data.conn_seps);
   }
   return separation;
 }
@@ -2404,6 +2408,8 @@ TMOL_DEVICE_FUNC void eval_interres_polar_occluder_tile(
         int const bonded_path_length =
             interres_count_pair_separation2<TILE_SIZE>(
                 pair_dat,
+                pol_first ? pol_dat : occ_dat,
+                pol_first ? occ_dat : pol_dat,
                 pol_first ? pol_tile_ind : occ_tile_ind,
                 pol_first ? occ_tile_ind : pol_tile_ind);
 
@@ -2468,10 +2474,10 @@ TMOL_DEVICE_FUNC void eval_interres_polar_occluder_tile(
         // polar/occluder pair's offset and water count and if its waters fall
         // in the range between TILE_SIZE * (wat_occ_count) and TILE_SIZE *
         // (wat_occ_count + 1) then we have a pol/occ pair that we will examine
-        // in this itration Start by resetting some shared-memory arrays
+        // in this itration. Start by resetting some shared-memory arrays
         for (int j = tid; j < TILE_SIZE; j += nt) {
           pair_dat.line_element_for_task[j] = -1;
-          pair_dat.task_is_frist_task_for_line_element[j] = 0;
+          pair_dat.task_is_first_task_for_line_element[j] = 0;
           pair_dat.rank_for_task[j] = -1;
           pair_dat.lk_fraction_exp_d2_delta_sum[j] = 0;
         }
@@ -2837,7 +2843,7 @@ TMOL_DEVICE_FUNC void eval_interres_polar_occluder_tile(
 
             int const last_water_for_pol_pair =
                 min(TILE_SIZE - 1, j + n_wat_pairs - task_offset);
-            pair_dat.lk_bridge_exp_d2_delta_sum[pol_pair] +=
+            pair_dat.lk_bridge_fraction_exp_d2_delta_sum[pol_pair] +=
                 pair_dat.exp_d2_delta_for_task[last_water_for_pol_pair];
           }
         }
