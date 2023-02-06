@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from .params import LKBallBlockTypeParams, LKBallPackedBlockTypeParams
+from .params import LKBallBlockTypeParams2, LKBallPackedBlockTypeParams2
 from .lk_ball_whole_pose_module2 import LKBallWholePoseScoringModule2
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
@@ -9,6 +9,7 @@ from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
 from tmol.database import ParameterDatabase
 
 from tmol.chemical.restypes import RefinedResidueType
+from tmol.score.chemical_database import AcceptorHybridization
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.common.stack_condense import arg_tile_subset_indices
@@ -138,10 +139,52 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
             tiled_pols_and_occs[is_pol_or_occ]
         ]
 
-        bt_lk_ball_params = LKBallBlockTypeParams(
+        atom_n_donating_waters = numpy.full((block_type.n_atoms,), 0, dtype=numpy.int32)
+        acc_n_donating_waters = numpy.full((block_type.n_atoms,), 0, dtype=numpy.int32)
+        acc_is_sp2 = hbbt_params.acc_hybridization == AcceptorHybridization.sp2
+        acc_is_sp3 = hbbt_params.acc_hybridization == AcceptorHybridization.sp3
+        acc_is_ring = hbbt_params.acc_hybridization == AcceptorHybridization.ring
+
+        acc_n_donating_waters[
+            acc_is_sp2
+        ] = self.ljlk_param_resolver.global_params.lkb_water_tors_sp2.shape[0]
+        acc_n_donating_waters[
+            acc_is_sp3
+        ] = self.ljlk_param_resolver.global_params.lkb_water_tors_sp3.shape[0]
+        acc_n_donating_waters[
+            acc_is_ring
+        ] = self.ljlk_param_resolver.global_params.lkb_water_tors_ring.shape[0]
+
+        # print(block_type.name, "acc_n_donating_waters")
+        # print(acc_n_donating_waters)
+
+        atom_n_donating_waters[hbbt_params.acc_inds] = acc_n_donating_waters[
+            : len(hbbt_params.acc_inds)
+        ]
+        # print(block_type.name, "atom_n_donating_waters")
+        # print(atom_n_donating_waters)
+        # print(block_type.name, "hbbt_params.n_donH_for_at")
+        # print(hbbt_params.n_donH_for_at)
+
+        atom_n_waters = atom_n_donating_waters + hbbt_params.n_donH_for_at
+        # print(block_type.name, "atom_n_waters")
+        # print(atom_n_waters)
+        # print(block_type.name, "is_pol_or_occ")
+        # print(is_pol_or_occ)
+        # print(block_type.name, "tiled_pols_and_occs[is_pol_or_occ]")
+        # print(tiled_pols_and_occs[is_pol_or_occ])
+        tiled_bt_pol_occ_n_waters = numpy.zeros((n_tiles, tile_size), dtype=numpy.int32)
+        tiled_bt_pol_occ_n_waters[is_pol_or_occ] = atom_n_waters[
+            tiled_pols_and_occs[is_pol_or_occ]
+        ]
+        # print(block_type.name, "tiled_bt_pol_occ_n_waters")
+        # print(tiled_bt_pol_occ_n_waters)
+
+        bt_lk_ball_params = LKBallBlockTypeParams2(
             tile_n_polar_atoms=tile_n_polar,
             tile_n_occluder_atoms=tile_n_occ,
             tile_pol_occ_inds=tiled_pols_and_occs,
+            tile_pol_occ_n_waters=tiled_bt_pol_occ_n_waters,
             tile_lk_ball_params=tiled_bt_lk_ball_at_params,
         )
         setattr(block_type, "lk_ball_params", bt_lk_ball_params)
@@ -159,6 +202,9 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
         tile_pol_occ_inds = numpy.full(
             (n_types, n_tiles, tile_size), -1, dtype=numpy.int32
         )
+        tile_pol_occ_n_waters = numpy.full(
+            (n_types, n_tiles, tile_size), -1, dtype=numpy.int32
+        )
         tile_lk_ball_params = numpy.full(
             (n_types, n_tiles, tile_size, 8), 0, dtype=numpy.float32
         )
@@ -170,6 +216,7 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
             tile_n_polar_atoms[i, :i_n_tiles] = i_lkbp.tile_n_polar_atoms
             tile_n_occluder_atoms[i, :i_n_tiles] = i_lkbp.tile_n_occluder_atoms
             tile_pol_occ_inds[i, :i_n_tiles] = i_lkbp.tile_pol_occ_inds
+            tile_pol_occ_n_waters[i, :i_n_tiles] = i_lkbp.tile_pol_occ_n_waters
             tile_lk_ball_params[i, :i_n_tiles] = i_lkbp.tile_lk_ball_params
 
         def _t(t):
@@ -178,12 +225,14 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
         tile_n_polar_atoms = _t(tile_n_polar_atoms)
         tile_n_occluder_atoms = _t(tile_n_occluder_atoms)
         tile_pol_occ_inds = _t(tile_pol_occ_inds)
+        tile_pol_occ_n_waters = _t(tile_pol_occ_n_waters)
         tile_lk_ball_params = _t(tile_lk_ball_params)
 
-        lk_ball_params = LKBallPackedBlockTypeParams(
+        lk_ball_params = LKBallPackedBlockTypeParams2(
             tile_n_polar_atoms=tile_n_polar_atoms,
             tile_n_occluder_atoms=tile_n_occluder_atoms,
             tile_pol_occ_inds=tile_pol_occ_inds,
+            tile_pol_occ_n_waters=tile_pol_occ_n_waters,
             tile_lk_ball_params=tile_lk_ball_params,
         )
         setattr(packed_block_types, "lk_ball_params", lk_ball_params)
@@ -219,6 +268,7 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
             bt_tile_n_polar_atoms=pbt.lk_ball_params.tile_n_polar_atoms,
             bt_tile_n_occluder_atoms=pbt.lk_ball_params.tile_n_occluder_atoms,
             bt_tile_pol_occ_inds=pbt.lk_ball_params.tile_pol_occ_inds,
+            bt_tile_pol_occ_n_waters=pbt.lk_ball_params.tile_pol_occ_n_waters,
             bt_tile_lk_ball_params=pbt.lk_ball_params.tile_lk_ball_params,
             bt_path_distance=pbt.bond_separation,
             lk_ball_global_params=self.stack_lk_ball_global_params(),

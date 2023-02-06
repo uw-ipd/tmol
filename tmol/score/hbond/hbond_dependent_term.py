@@ -57,6 +57,8 @@ class HBondBlockTypeParams(ValidateAttrs):
     donH_inds: NDArray[numpy.int32][:]
     don_hvy_inds: NDArray[numpy.int32][:]
     acc_inds: NDArray[numpy.int32][:]
+    acc_hybridization: NDArray[numpy.int32][:]
+    n_donH_for_at: NDArray[numpy.int32][:]
 
     tile_n_donH: NDArray[numpy.int32][:]
     tile_n_don_hvy: NDArray[numpy.int32][:]
@@ -71,6 +73,7 @@ class HBondBlockTypeParams(ValidateAttrs):
     tile_which_donH_of_donH_hvy: NDArray[numpy.int32][
         :, :
     ]  # ind [0..nattachedH) for donH for corr hvy
+
     tile_acc_inds: NDArray[numpy.int32][:, :]  # the tile-ind of a particular acc
     tile_donorH_type: NDArray[numpy.int32][:, :]
     tile_acceptor_type: NDArray[numpy.int32][:, :]
@@ -161,6 +164,8 @@ class HBondDependentTerm(BondDependentTerm):
         is_hydrogen = (
             atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
         )
+        acc_hybridization = numpy.zeros((block_type.n_atoms,), dtype=numpy.int32)
+        acc_hybridization[: len(A_idx)] = ahnp[A_idx]
 
         tile_size = HBondDependentTerm.tile_size
         tiled_acc_orig_inds, tile_n_acc = arg_tile_subset_indices(
@@ -189,12 +194,12 @@ class HBondDependentTerm(BondDependentTerm):
             indexed_bonds.bond_spans.cpu().numpy()[0],
         )
         donH_type = don_type[D_for_H]
-        n_H_for_at = numpy.zeros(block_type.n_atoms, dtype=numpy.int32)
-        n_H_for_at[D_idx] = n_H_for_D
+        n_donH_for_at = numpy.zeros(block_type.n_atoms, dtype=numpy.int32)
+        n_donH_for_at[D_idx] = n_H_for_D
         tile_acceptor_n_attached_H = numpy.full(
             (n_tiles, tile_size), -1, dtype=numpy.int32
         )
-        tile_acceptor_n_attached_H[is_tiled_acc] = n_H_for_at[A_idx]
+        tile_acceptor_n_attached_H[is_tiled_acc] = n_donH_for_at[A_idx]
 
         tiled_donH_orig_inds, tile_n_donH = arg_tile_subset_indices(
             H_idx, tile_size, block_type.n_atoms
@@ -228,6 +233,8 @@ class HBondDependentTerm(BondDependentTerm):
             donH_inds=H_idx,
             don_hvy_inds=D_idx,
             acc_inds=A_idx,
+            acc_hybridization=acc_hybridization,
+            n_donH_for_at=n_donH_for_at,
             tile_n_donH=tile_n_donH,
             tile_n_don_hvy=tile_n_don_hvy,
             tile_n_acc=tile_n_acc,

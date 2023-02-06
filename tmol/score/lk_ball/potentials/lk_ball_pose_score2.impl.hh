@@ -108,6 +108,7 @@ class LKBallPoseScoreDispatch2 {
       TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
       TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
       TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
+      TView<Int, 3, Dev> block_type_tile_pol_occ_n_waters,
       TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
 
       // How many chemical bonds separate all pairs of atoms
@@ -168,6 +169,9 @@ class LKBallPoseScoreDispatch2 {
     assert(block_type_tile_pol_occ_inds.size(0) == n_block_types);
     assert(block_type_tile_pol_occ_inds.size(1) == max_n_tiles);
     assert(block_type_tile_pol_occ_inds.size(2) == TILE_SIZE);
+    assert(block_type_tile_pol_occ_n_waters.size(0) == n_block_types);
+    assert(block_type_tile_pol_occ_n_waters.size(1) == max_n_tiles);
+    assert(block_type_tile_pol_occ_n_waters.size(2) == TILE_SIZE);
     assert(block_type_tile_lk_ball_params.size(0) == n_block_types);
     assert(block_type_tile_lk_ball_params.size(1) == max_n_tiles);
     assert(block_type_tile_lk_ball_params.size(2) == TILE_SIZE);
@@ -339,6 +343,7 @@ class LKBallPoseScoreDispatch2 {
             block_type_tile_n_polar_atoms,
             block_type_tile_n_occluder_atoms,
             block_type_tile_pol_occ_inds,
+            block_type_tile_pol_occ_n_waters,
             block_type_tile_lk_ball_params,
             block_type_path_distance,
             tile_ind,
@@ -360,6 +365,7 @@ class LKBallPoseScoreDispatch2 {
             block_type_tile_n_polar_atoms,
             block_type_tile_n_occluder_atoms,
             block_type_tile_pol_occ_inds,
+            block_type_tile_pol_occ_n_waters,
             block_type_tile_lk_ball_params,
             block_type_path_distance,
             tile_ind,
@@ -459,6 +465,7 @@ class LKBallPoseScoreDispatch2 {
             block_type_tile_n_polar_atoms,
             block_type_tile_n_occluder_atoms,
             block_type_tile_pol_occ_inds,
+            block_type_tile_pol_occ_n_waters,
             block_type_tile_lk_ball_params,
 
             tile_ind,
@@ -480,6 +487,7 @@ class LKBallPoseScoreDispatch2 {
             block_type_tile_n_polar_atoms,
             block_type_tile_n_occluder_atoms,
             block_type_tile_pol_occ_inds,
+            block_type_tile_pol_occ_n_waters,
             block_type_tile_lk_ball_params,
             tile_ind,
             start_atom2,
@@ -619,6 +627,7 @@ class LKBallPoseScoreDispatch2 {
       TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
       TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
       TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
+      TView<Int, 3, Dev> block_type_tile_pol_occ_n_waters,
       TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
 
       // How many chemical bonds separate all pairs of atoms
@@ -682,6 +691,9 @@ class LKBallPoseScoreDispatch2 {
     assert(block_type_tile_pol_occ_inds.size(0) == n_block_types);
     assert(block_type_tile_pol_occ_inds.size(1) == max_n_tiles);
     assert(block_type_tile_pol_occ_inds.size(2) == TILE_SIZE);
+    assert(block_type_tile_pol_occ_n_waters.size(0) == n_block_types);
+    assert(block_type_tile_pol_occ_n_waters.size(1) == max_n_tiles);
+    assert(block_type_tile_pol_occ_n_waters.size(2) == TILE_SIZE);
     assert(block_type_tile_lk_ball_params.size(0) == n_block_types);
     assert(block_type_tile_lk_ball_params.size(1) == max_n_tiles);
     assert(block_type_tile_lk_ball_params.size(2) == TILE_SIZE);
@@ -878,6 +890,7 @@ class LKBallPoseScoreDispatch2 {
             block_type_tile_n_polar_atoms,
             block_type_tile_n_occluder_atoms,
             block_type_tile_pol_occ_inds,
+            block_type_tile_pol_occ_n_waters,
             block_type_tile_lk_ball_params,
             block_type_path_distance,
             tile_ind,
@@ -899,6 +912,7 @@ class LKBallPoseScoreDispatch2 {
             block_type_tile_n_polar_atoms,
             block_type_tile_n_occluder_atoms,
             block_type_tile_pol_occ_inds,
+            block_type_tile_pol_occ_n_waters,
             block_type_tile_lk_ball_params,
             block_type_path_distance,
             tile_ind,
@@ -959,6 +973,7 @@ class LKBallPoseScoreDispatch2 {
             block_type_tile_n_polar_atoms,
             block_type_tile_n_occluder_atoms,
             block_type_tile_pol_occ_inds,
+            block_type_tile_pol_occ_n_waters,
             block_type_tile_lk_ball_params,
 
             tile_ind,
@@ -980,6 +995,7 @@ class LKBallPoseScoreDispatch2 {
             block_type_tile_n_polar_atoms,
             block_type_tile_n_occluder_atoms,
             block_type_tile_pol_occ_inds,
+            block_type_tile_pol_occ_n_waters,
             block_type_tile_lk_ball_params,
             tile_ind,
             start_atom2,

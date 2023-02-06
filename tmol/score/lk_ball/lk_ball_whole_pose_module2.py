@@ -29,6 +29,7 @@ class LKBallWholePoseScoringModule2(torch.nn.Module):
         bt_tile_n_polar_atoms,
         bt_tile_n_occluder_atoms,
         bt_tile_pol_occ_inds,
+        bt_tile_pol_occ_n_waters,
         bt_tile_lk_ball_params,
         bt_path_distance,
         lk_ball_global_params,
@@ -74,13 +75,15 @@ class LKBallWholePoseScoringModule2(torch.nn.Module):
         self.bt_tile_n_polar_atoms = _p(bt_tile_n_polar_atoms)
         self.bt_tile_n_occluder_atoms = _p(bt_tile_n_occluder_atoms)
         self.bt_tile_pol_occ_inds = _p(bt_tile_pol_occ_inds)
+        self.bt_tile_pol_occ_n_waters = _p(bt_tile_pol_occ_n_waters)
         self.bt_tile_lk_ball_params = _p(bt_tile_lk_ball_params)
-        self.bt_path_distance = _p(bt_path_distance)
 
+        self.bt_path_distance = _p(bt_path_distance)
         self.lk_ball_global_params = _p(lk_ball_global_params)
         self.water_gen_global_params = _p(water_gen_global_params)
         self.sp2_water_tors = _p(sp2_water_tors)
         self.sp3_water_tors = _p(sp3_water_tors)
+
         self.ring_water_tors = _p(ring_water_tors)
 
     def forward(self, pose_coords):
@@ -115,7 +118,7 @@ class LKBallWholePoseScoringModule2(torch.nn.Module):
             self.ring_water_tors,
         )
 
-        return pose_score_lk_ball(
+        return pose_score_lk_ball2(
             pose_coords,
             water_coords,
             self.pose_stack_block_coord_offset,
@@ -129,6 +132,7 @@ class LKBallWholePoseScoringModule2(torch.nn.Module):
             self.bt_tile_n_polar_atoms,
             self.bt_tile_n_occluder_atoms,
             self.bt_tile_pol_occ_inds,
+            self.bt_tile_pol_occ_n_waters,
             self.bt_tile_lk_ball_params,
             self.bt_path_distance,
             self.lk_ball_global_params,

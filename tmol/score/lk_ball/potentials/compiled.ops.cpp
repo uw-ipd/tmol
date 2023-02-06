@@ -904,6 +904,7 @@ class LKBallPoseScoreOp2
       Tensor block_type_tile_n_polar_atoms,
       Tensor block_type_tile_n_occluder_atoms,
       Tensor block_type_tile_pol_occ_inds,
+      Tensor block_type_tile_pol_occ_n_waters,
       Tensor block_type_tile_lk_ball_params,
       Tensor block_type_path_distance,
 
@@ -939,9 +940,10 @@ class LKBallPoseScoreOp2
                   TCAST(block_type_tile_n_polar_atoms),
                   TCAST(block_type_tile_n_occluder_atoms),
                   TCAST(block_type_tile_pol_occ_inds),
+                  TCAST(block_type_tile_pol_occ_n_waters),
                   TCAST(block_type_tile_lk_ball_params),
-                  TCAST(block_type_path_distance),
 
+                  TCAST(block_type_path_distance),
                   TCAST(global_params));
 
           score = std::get<0>(result).tensor;
@@ -963,9 +965,10 @@ class LKBallPoseScoreOp2
                             block_type_tile_n_polar_atoms,
                             block_type_tile_n_occluder_atoms,
                             block_type_tile_pol_occ_inds,
+                            block_type_tile_pol_occ_n_waters,
                             block_type_tile_lk_ball_params,
-                            block_type_path_distance,
 
+                            block_type_path_distance,
                             global_params,
                             block_neighbors});
 
@@ -992,9 +995,10 @@ class LKBallPoseScoreOp2
     auto block_type_tile_n_polar_atoms = saved[i++];
     auto block_type_tile_n_occluder_atoms = saved[i++];
     auto block_type_tile_pol_occ_inds = saved[i++];
+    auto block_type_tile_pol_occ_n_waters = saved[i++];
     auto block_type_tile_lk_ball_params = saved[i++];
-    auto block_type_path_distance = saved[i++];
 
+    auto block_type_path_distance = saved[i++];
     auto global_params = saved[i++];
     auto block_neighbors = saved[i++];
 
@@ -1029,9 +1033,10 @@ class LKBallPoseScoreOp2
                   TCAST(block_type_tile_n_polar_atoms),
                   TCAST(block_type_tile_n_occluder_atoms),
                   TCAST(block_type_tile_pol_occ_inds),
+                  TCAST(block_type_tile_pol_occ_n_waters),
                   TCAST(block_type_tile_lk_ball_params),
-                  TCAST(block_type_path_distance),
 
+                  TCAST(block_type_path_distance),
                   TCAST(global_params),
                   TCAST(block_neighbors),
                   TCAST(dTdV));
@@ -1058,6 +1063,7 @@ class LKBallPoseScoreOp2
             torch::Tensor(),
             torch::Tensor(),
 
+            torch::Tensor(),
             torch::Tensor()};
   }
 };
@@ -1078,9 +1084,10 @@ Tensor lkball_pose_score2(
     Tensor block_type_tile_n_polar_atoms,
     Tensor block_type_tile_n_occluder_atoms,
     Tensor block_type_tile_pol_occ_inds,
+    Tensor block_type_tile_pol_occ_n_waters,
     Tensor block_type_tile_lk_ball_params,
-    Tensor block_type_path_distance,
 
+    Tensor block_type_path_distance,
     Tensor global_params) {
   return LKBallPoseScoreOp2::apply(
       pose_coords,
@@ -1098,9 +1105,10 @@ Tensor lkball_pose_score2(
       block_type_tile_n_polar_atoms,
       block_type_tile_n_occluder_atoms,
       block_type_tile_pol_occ_inds,
+      block_type_tile_pol_occ_n_waters,
       block_type_tile_lk_ball_params,
-      block_type_path_distance,
 
+      block_type_path_distance,
       global_params);
 }
 
@@ -1115,6 +1123,7 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
       "score_lkball_inter_system_scores",
       &rotamer_pair_energies<common::ForallDispatch>);
   m.def("lk_ball_pose_score", &lkball_pose_score);
+  m.def("lk_ball_pose_score2", &lkball_pose_score2);
   m.def("gen_pose_waters", &pose_watergen_op);
 }
 

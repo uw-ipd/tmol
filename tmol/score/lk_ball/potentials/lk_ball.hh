@@ -6,9 +6,13 @@
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/accumulate.hh>
+#include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
+
+// Operator definitions; safe for CPU compilation
+#include <moderngpu/operators.hxx>
 
 #include "params.hh"
 
@@ -567,10 +571,10 @@ class LKBallSingleResData2 {
   int n_conn;
   Real *pose_coords;
   Real *water_coords;
-  unsigned char *n_waters;
   unsigned char n_polars;
   unsigned char n_occluders;
   unsigned char *pol_occ_tile_inds;
+  unsigned char *n_waters;
   LKBallTypeParams<Real> *lk_ball_params;
   unsigned char *path_dist;
 };
@@ -625,8 +629,6 @@ struct LKBallBlockPairSharedData2 {
   Real pose_coords2[TILE_SIZE * 3];
   Real water_coords1[TILE_SIZE * MAX_N_WATER * 3];  // 3072 bytes for coords
   Real water_coords2[TILE_SIZE * MAX_N_WATER * 3];
-  unsigned char n_waters1[TILE_SIZE];
-  unsigned char n_waters2[TILE_SIZE];
 
   unsigned char n_polars1;  // 4 bytes for counts
   unsigned char n_polars2;
@@ -634,6 +636,8 @@ struct LKBallBlockPairSharedData2 {
   unsigned char n_occluders2;
   unsigned char pol_occ_tile_inds1[TILE_SIZE];  // 64 bytes for indices
   unsigned char pol_occ_tile_inds2[TILE_SIZE];
+  unsigned char n_waters1[TILE_SIZE];
+  unsigned char n_waters2[TILE_SIZE];
   LKBallTypeParams<Real> lk_ball_params1[TILE_SIZE];  // 192 bytes for params
   LKBallTypeParams<Real> lk_ball_params2[TILE_SIZE];
 
@@ -1499,6 +1503,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_coords_and_params_into_shared2(
     TView<Vec<Real, 3>, 2, Dev> pose_coords,
     TView<Vec<Real, 3>, 3, Dev> water_coords,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
+    TView<Int, 3, Dev> block_type_tile_pol_occ_n_waters,
     TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     int pose_ind,
     int tile_ind,
@@ -1523,6 +1528,10 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_coords_and_params_into_shared2(
       r_dat.pol_occ_tile_inds,
       &block_type_tile_pol_occ_inds[r_dat.block_type][tile_ind][0],
       r_dat.n_occluders);
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
+      r_dat.n_waters,
+      &block_type_tile_pol_occ_n_waters[r_dat.block_type][tile_ind][0],
+      r_dat.n_occluders);
   int const N_PARAMS = sizeof(LKBallTypeParams<Real>) / sizeof(Real);
   DeviceDispatch<Dev>::template copy_contiguous_data<nt, N_PARAMS>(
       reinterpret_cast<Real *>(r_dat.lk_ball_params),
@@ -1544,6 +1553,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_into_shared2(
     TView<Vec<Real, 3>, 2, Dev> pose_coords,
     TView<Vec<Real, 3>, 3, Dev> water_coords,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
+    TView<Int, 3, Dev> block_type_tile_pol_occ_n_waters,
     TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     TView<Int, 3, Dev> block_type_path_distance,
     int pose_ind,
@@ -1561,6 +1571,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_into_shared2(
       pose_coords,
       water_coords,
       block_type_tile_pol_occ_inds,
+      block_type_tile_pol_occ_n_waters,
       block_type_tile_lk_ball_params,
       pose_ind,
       tile_ind,
@@ -1640,6 +1651,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data2(
   inter_dat.r2.water_coords = shared_m.water_coords2;
   inter_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   inter_dat.r2.pol_occ_tile_inds = shared_m.pol_occ_tile_inds2;
+  inter_dat.r1.n_waters = shared_m.n_waters1;
+  inter_dat.r2.n_waters = shared_m.n_waters2;
   inter_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
   inter_dat.r2.lk_ball_params = shared_m.lk_ball_params2;
 
@@ -1723,6 +1736,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared2(
     TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
+    TView<Int, 3, Dev> block_type_tile_pol_occ_n_waters,
     TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     TView<Int, 3, Dev> block_type_path_distance,
     int tile_ind,
@@ -1754,6 +1768,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared2(
       pose_coords,
       water_coords,
       block_type_tile_pol_occ_inds,
+      block_type_tile_pol_occ_n_waters,
       block_type_tile_lk_ball_params,
       block_type_path_distance,
       inter_dat.pair_data.pose_ind,
@@ -1781,6 +1796,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared2(
     TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
+    TView<Int, 3, Dev> block_type_tile_pol_occ_n_waters,
     TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     TView<Int, 3, Dev> block_type_path_distance,
     int tile_ind,
@@ -1812,6 +1828,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared2(
       pose_coords,
       water_coords,
       block_type_tile_pol_occ_inds,
+      block_type_tile_pol_occ_n_waters,
       block_type_tile_lk_ball_params,
       block_type_path_distance,
       inter_dat.pair_data.pose_ind,
@@ -1878,6 +1895,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_intrares_data2(
   intra_dat.r2.water_coords = shared_m.water_coords2;
   intra_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   intra_dat.r2.pol_occ_tile_inds = shared_m.pol_occ_tile_inds2;
+  intra_dat.r1.n_waters = shared_m.n_waters1;
+  intra_dat.r2.n_waters = shared_m.n_waters2;
   intra_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
   intra_dat.r2.lk_ball_params = shared_m.lk_ball_params2;
 
@@ -1910,6 +1929,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared2(
     TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
+    TView<Int, 3, Dev> block_type_tile_pol_occ_n_waters,
     TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     int tile_ind,
     int start_atom1,
@@ -1941,6 +1961,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared2(
       pose_coords,
       water_coords,
       block_type_tile_pol_occ_inds,
+      block_type_tile_pol_occ_n_waters,
       block_type_tile_lk_ball_params,
       intra_dat.pair_data.pose_ind,
       tile_ind,
@@ -1965,6 +1986,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared2(
     TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
+    TView<Int, 3, Dev> block_type_tile_pol_occ_n_waters,
     TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     int tile_ind,
     int start_atom2,
@@ -1996,6 +2018,7 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared2(
       pose_coords,
       water_coords,
       block_type_tile_pol_occ_inds,
+      block_type_tile_pol_occ_n_waters,
       block_type_tile_lk_ball_params,
       intra_dat.pair_data.pose_ind,
       tile_ind,
@@ -2025,6 +2048,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares_data_from_shared2(
   intra_dat.r1.pol_occ_tile_inds = shared_m.pol_occ_tile_inds1;
   intra_dat.r2.pol_occ_tile_inds =
       (same_tile ? shared_m.pol_occ_tile_inds1 : shared_m.pol_occ_tile_inds2);
+  intra_dat.r1.n_waters = shared_m.n_waters1;
+  intra_dat.r2.n_waters = (same_tile ? shared_m.n_waters1 : shared_m.n_waters2);
   intra_dat.r1.lk_ball_params = shared_m.lk_ball_params1;
   intra_dat.r2.lk_ball_params =
       (same_tile ? shared_m.lk_ball_params1 : shared_m.lk_ball_params2);
@@ -2350,7 +2375,7 @@ template <
     int TILE_SIZE,
     int MAX_N_WATER,
     typename Real>
-TMOL_DEVICE_FUNC void eval_interres_polar_occluder_tile(
+TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
     LKBallSingleResData2<Real> &pol_dat,
     LKBallSingleResData2<Real> &occ_dat,
     LKBallResPairData2<Real> &pair_dat,
@@ -2456,6 +2481,17 @@ TMOL_DEVICE_FUNC void eval_interres_polar_occluder_tile(
               mgpu::plus_t<int>(),
               true);
 
+      printf("pair_dat.n_tasks_per_line_element:");
+      for (int i = 0; i < TILE_SIZE; ++i) {
+        printf(" %d", pair_dat.n_tasks_per_line_element[i]);
+      }
+      printf("\n");
+      printf("task offset:");
+      for (int i = 0; i < TILE_SIZE; ++i) {
+        printf(" %d", pair_dat.task_offset_for_line_element[i]);
+      }
+      printf("\n");
+
       // Ok, knowing how many water/occluder interactions we have, we will
       // process each chunk of TILE_SIZE water/occluder pairs. For each chunk,
       // we will need to figure out exactly which polar/occluder pair the
@@ -2521,17 +2557,28 @@ TMOL_DEVICE_FUNC void eval_interres_polar_occluder_tile(
                 mgpu::maximum_t<int32_t>(),
                 false);
 
+        printf("line element for task:");
+        for (int i = 0; i < TILE_SIZE; ++i) {
+          printf(" %d", pair_dat.line_element_for_task[i]);
+        }
+        printf("\n");
         // Now with the line_element_for_task array initialized, we need to
         // figure out the rank of the task for the pol/occ pair. This rank
         // information will be used again later in the computation, but could
         // likely be computed twice, as it is not expensive to compute
         for (int j = tid; j < TILE_SIZE; j += nt) {
           int const j_pol_occ = pair_dat.line_element_for_task[j];
-          int const j_pol_occ_offset = pair_dat.task_offset_for_line_element[j];
+          int const j_pol_occ_offset =
+              pair_dat.task_offset_for_line_element[j_pol_occ];
           pair_dat.rank_for_task[j] =
               (wat_occ_count * TILE_SIZE + j) - j_pol_occ_offset;
         }
 
+        printf("rank for task:");
+        for (int i = 0; i < TILE_SIZE; ++i) {
+          printf(" %d", pair_dat.rank_for_task[i]);
+        }
+        printf("\n");
         // OK! now we know exactly which pol/occ pair and which water each
         // wat/occ pair is going to examine. So let's compute the exp_d2_delta
         // for each wat/occ pair and store that into shared memory. We will
@@ -2764,7 +2811,8 @@ TMOL_DEVICE_FUNC void eval_interres_polar_occluder_tile(
 
         for (int j = tid; j < TILE_SIZE; j += nt) {
           int const j_pol_occ = pair_dat.line_element_for_task[j];
-          int const j_pol_occ_offset = pair_dat.task_offset_for_line_element[j];
+          int const j_pol_occ_offset =
+              pair_dat.task_offset_for_line_element[j_pol_occ];
           pair_dat.rank_for_task[j] =
               (wat_wat_count * TILE_SIZE + j) - j_pol_occ_offset;
         }
@@ -2936,13 +2984,13 @@ template <
     typename Real>
 void TMOL_DEVICE_FUNC eval_interres_pol_occ_pair_energies_new(
     LKBallScoringData2<Real> &inter_dat, int start_atom1, int start_atom2) {
-  eval_interres_polar_occluder_tile<
+  load_balanced_interres_polar_occluder_tile<
       DeviceDispatch,
       Dev,
       nt,
       TILE_SIZE,
       MAX_N_WATER>(inter_dat.r1, inter_dat.r2, inter_dat.pair_data, true);
-  eval_interres_polar_occluder_tile<
+  load_balanced_interres_polar_occluder_tile<
       DeviceDispatch,
       Dev,
       nt,
