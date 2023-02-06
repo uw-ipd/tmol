@@ -2393,6 +2393,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
   // then each group of TILE_SIZE of them would essentially be a row of
   // the tile.
   int const n_rows = (n_interacting_pairs - 1) / TILE_SIZE + 1;
+  printf("n_rows %d n_interacting_pairs %d\n", n_rows, n_interacting_pairs);
   for (int count_row = 0; count_row < n_rows; ++count_row) {
     // step 0: initialize shared memory
     auto setup_for_row = ([&] TMOL_DEVICE_FUNC(int tid) {
@@ -2412,7 +2413,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
         int const pair_ind = TILE_SIZE * count_row + i;
         int const pol_ind = pair_ind / occ_dat.n_occluders;
         int const occ_ind = pair_ind % occ_dat.n_occluders;
-        if (pol_ind > pol_dat.n_polars) {
+        if (pol_ind >= pol_dat.n_polars) {
           pair_dat.lk_iso[i] = 0;
           continue;
         }
@@ -2447,6 +2448,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
             pol_params.lk_lambda,
             occ_params.lk_volume);
         pair_dat.lk_iso[i] = lk_iso;
+        printf("%d lk_iso: %9.5f\n", i, lk_iso);
       }
     });
 
@@ -2481,6 +2483,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
               mgpu::plus_t<int>(),
               true);
 
+      printf("lk_fraction:\n");
       printf("pair_dat.n_tasks_per_line_element:");
       for (int i = 0; i < TILE_SIZE; ++i) {
         printf(" %d", pair_dat.n_tasks_per_line_element[i]);
@@ -2501,6 +2504,10 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
           (n_water_occ_pairs_in_row - 1) / TILE_SIZE + 1;
       for (int wat_occ_count = 0; wat_occ_count < n_wat_occ_iterations;
            wat_occ_count++) {
+        printf(
+            "for row %d starting water/occluder iteration %d\n",
+            count_row,
+            wat_occ_count);
         // Pause to make sure everything in shared memory has been read from
         // before we write any more things
         DeviceDispatch<Dev>::synchronize_workgroup();
@@ -2515,7 +2522,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
           pair_dat.line_element_for_task[j] = -1;
           pair_dat.task_is_first_task_for_line_element[j] = 0;
           pair_dat.rank_for_task[j] = -1;
-          pair_dat.lk_fraction_exp_d2_delta_sum[j] = 0;
+          pair_dat.exp_d2_delta_for_task[j] = 0;
         }
         DeviceDispatch<Dev>::synchronize_workgroup();
 
@@ -2588,19 +2595,30 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
           int const j_pol_occ = pair_dat.line_element_for_task[j];
           int const pair_ind = TILE_SIZE * count_row + j_pol_occ;
           int const pol_ind = pair_ind / occ_dat.n_occluders;
-          if (pol_ind > pol_dat.n_polars) {
+          if (pol_ind >= pol_dat.n_polars) {
             continue;
           }
           int const occ_ind = pair_ind % occ_dat.n_occluders;
           int const pol_tile_ind = pol_dat.pol_occ_tile_inds[pol_ind];
           int const occ_tile_ind = occ_dat.pol_occ_tile_inds[occ_ind];
           int const wat_ind = pair_dat.rank_for_task[j];
-          if (wat_ind > pair_dat.n_tasks_per_line_element[j_pol_occ]) {
+          if (wat_ind >= pair_dat.n_tasks_per_line_element[j_pol_occ]) {
             // the last pol/occ pair for a line will report tasks w/ ranks
             // greater than the number of tasks it defines, so we have to
             // skip these tasks
             continue;
           }
+          printf(
+              "j %d, j_pol_occ %d, pair_ind %d, pol_ind %d occ_ind %d "
+              "pol_tile_ind %d occ_tile_ind %d wat_ind %d\n",
+              j,
+              j_pol_occ,
+              pair_ind,
+              pol_ind,
+              occ_ind,
+              pol_tile_ind,
+              occ_tile_ind,
+              wat_ind);
 
           // Now we can go and compute exp_d2_delta for this water/occluder pair
           // This is the actual work! We have spent quite a few lines of C++
@@ -2615,6 +2633,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
           Real const d2_delta = (occ_xyz - wat_xyz).squaredNorm() - d2_low;
           Real const exp_d2_delta = std::exp(-d2_delta);
           pair_dat.exp_d2_delta_for_task[j] = exp_d2_delta;
+          printf("exp_d2_delta %d: %f\n", j, exp_d2_delta);
         }
 
         // Now that we have the exp_d2_deltas computed for each wat/occ pair,
@@ -2628,6 +2647,11 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
                 Real(0.0),
                 pair_dat.task_is_first_task_for_line_element,
                 mgpu::plus_t<Real>());
+        printf("exp d2 delta for task after seg scan:");
+        for (int i = 0; i < TILE_SIZE; ++i) {
+          printf(" %6.3f", pair_dat.exp_d2_delta_for_task[i]);
+        }
+        printf("\n");
 
         // Now accumulate the partition function into the lk-fraction array
         // After we have accumulated all the exp_d2_deltas for all water/occ
@@ -2654,7 +2678,18 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
             int const task_offset = pair_dat.rank_for_task[j];
 
             int const last_water_for_pol_pair =
-                min(TILE_SIZE - 1, j + pol_n_wat - task_offset);
+                min(TILE_SIZE - 1, j + pol_n_wat - task_offset - 1);
+            printf(
+                "accum for j %d pol_occ_line_pair %d, pair_block_ind %d, "
+                "pol_ind %d, pol_n_wat %d, last_water_for_pol_pair %d, "
+                "exp_d2_delta_for_task %6.3f\n",
+                j,
+                pol_occ_line_pair,
+                pair_block_ind,
+                pol_ind,
+                pol_n_wat,
+                last_water_for_pol_pair,
+                pair_dat.exp_d2_delta_for_task[last_water_for_pol_pair]);
             pair_dat.lk_fraction_exp_d2_delta_sum[pol_occ_line_pair] +=
                 pair_dat.exp_d2_delta_for_task[last_water_for_pol_pair];
           }
@@ -2729,6 +2764,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
 
         // Let's take care of some other initialization while we are here
         pair_dat.lk_fraction_exp_d2_delta_sum[i] = 0;
+        pair_dat.lk_bridge_fraction_exp_d2_delta_sum[i] = 0;
       }
 
       // Now perform an exclusive scan of the water counts and broadcast the
@@ -2739,6 +2775,17 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
               int(0),
               mgpu::plus_t<int>(),
               true);
+      printf("lk_bridge_fraction:\n");
+      printf("pair_dat.n_tasks_per_line_element:");
+      for (int i = 0; i < TILE_SIZE; ++i) {
+        printf(" %d", pair_dat.n_tasks_per_line_element[i]);
+      }
+      printf("\n");
+      printf("task offset:");
+      for (int i = 0; i < TILE_SIZE; ++i) {
+        printf(" %d", pair_dat.task_offset_for_line_element[i]);
+      }
+      printf("\n");
 
       // Ok, knowing how many water/water interactions we have, we will process
       // each chunk of TILE_SIZE water/water pairs. For each chunk, we will need
@@ -2761,8 +2808,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
         for (int j = tid; j < TILE_SIZE; j += nt) {
           pair_dat.line_element_for_task[j] = -1;
           pair_dat.task_is_first_task_for_line_element[j] = 0;
-          pair_dat.lk_fraction_exp_d2_delta_sum[j] = 0;
-          pair_dat.lk_bridge_fraction_exp_d2_delta_sum[j] = 0;
+          pair_dat.exp_d2_delta_for_task[j] = 0;
         }
         DeviceDispatch<Dev>::synchronize_workgroup();
 
@@ -2803,6 +2849,11 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
                 int(-1),
                 mgpu::maximum_t<int32_t>(),
                 false);
+        printf("line element for task:");
+        for (int i = 0; i < TILE_SIZE; ++i) {
+          printf(" %d", pair_dat.line_element_for_task[i]);
+        }
+        printf("\n");
 
         // Now with the line_element_for_task array initialized, we need to
         // figure out the rank of the task for the pol/occ pair. This rank
@@ -2817,6 +2868,11 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
               (wat_wat_count * TILE_SIZE + j) - j_pol_occ_offset;
         }
 
+        printf("rank for task:");
+        for (int i = 0; i < TILE_SIZE; ++i) {
+          printf(" %d", pair_dat.rank_for_task[i]);
+        }
+        printf("\n");
         // OK! now we know exactly which pol/occ pair and which water each
         // wat/wat pair is going to examine. So let's compute the exp_d2_delta
         // for each wat/wat pair and store that into shared memory; we will then
@@ -2826,12 +2882,12 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
           int const j_pol_occ = pair_dat.line_element_for_task[j];
           int const pair_ind = TILE_SIZE * count_row + j_pol_occ;
           int const pol_ind = pair_ind / occ_dat.n_occluders;
-          if (pol_ind > pol_dat.n_polars) {
+          if (pol_ind >= pol_dat.n_polars) {
             continue;
           }
           int const occ_ind = pair_ind % occ_dat.n_occluders;
           int const wat_ind = pair_dat.rank_for_task[j];
-          if (wat_ind > pair_dat.n_tasks_per_line_element[j_pol_occ]) {
+          if (wat_ind >= pair_dat.n_tasks_per_line_element[j_pol_occ]) {
             // the last pol/occ pair for a line will report tasks w/ ranks
             // greater than the number of tasks it defines, so we have to
             // skip these tasks
@@ -2843,17 +2899,47 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
           int const pol_wat_ind = wat_ind / occ_dat.n_waters[occ_ind];
           int const occ_wat_ind = wat_ind % occ_dat.n_waters[occ_ind];
 
+          if (pol_wat_ind >= pol_dat.n_waters[pol_ind]) {
+            continue;
+          }
+
+          printf(
+              "j %d, j_pol_occ %d, pair_ind %d, pol_ind %d occ_ind %d wat_ind "
+              "%d, pol_tile_ind %d, occ_tile_ind %d, pol_wat_ind %d "
+              "occ_wat_ind %d\n",
+              j,
+              j_pol_occ,
+              pair_ind,
+              pol_ind,
+              occ_ind,
+              wat_ind,
+              pol_tile_ind,
+              occ_tile_ind,
+              pol_wat_ind,
+              occ_wat_ind);
+
           // Stealing code from lk_bridge_fraction
           Real const overlap_gap_A2 = lkball_globals<Real>::overlap_gap_A2;
           Real3 pol_wat_xyz = coord_from_shared(
-              pol_dat.water_coords, pol_ind * MAX_N_WATER + pol_wat_ind);
+              pol_dat.water_coords, pol_tile_ind * MAX_N_WATER + pol_wat_ind);
           Real3 occ_wat_xyz = coord_from_shared(
-              occ_dat.water_coords, occ_ind * MAX_N_WATER + occ_wat_ind);
+              occ_dat.water_coords, occ_tile_ind * MAX_N_WATER + occ_wat_ind);
+
+          printf(
+              "j %d waters: (%6.3f %6.3f %6.3f) vs (%6.3f %6.3f %6.3f)\n",
+              j,
+              pol_wat_xyz[0],
+              pol_wat_xyz[1],
+              pol_wat_xyz[2],
+              occ_wat_xyz[0],
+              occ_wat_xyz[1],
+              occ_wat_xyz[2]);
 
           Real const d2_delta =
               (pol_wat_xyz - occ_wat_xyz).squaredNorm() - overlap_gap_A2;
           Real const exp_d2_delta = std::exp(-d2_delta);
           pair_dat.exp_d2_delta_for_task[j] = exp_d2_delta;
+          printf("exp_d2_delta %d: %f\n", j, exp_d2_delta);
         }
 
         // Now that we have the exp_d2_deltas computed for each wat/occ pair,
@@ -2867,6 +2953,11 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
                 Real(0.0),
                 pair_dat.task_is_first_task_for_line_element,
                 mgpu::plus_t<Real>());
+        printf("exp d2 delta for task after seg scan:");
+        for (int i = 0; i < TILE_SIZE; ++i) {
+          printf(" %6.3f", pair_dat.exp_d2_delta_for_task[i]);
+        }
+        printf("\n");
 
         // Now accumulate the partition function into the lk-fraction array
         // After we have accumulated all the exp_d2_deltas for all water/occ
@@ -2876,7 +2967,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
             int const pol_pair = pair_dat.line_element_for_task[j];
             int const pair_ind = TILE_SIZE * count_row + pol_pair;
             int const pol_ind = pair_ind / occ_dat.n_occluders;
-            if (pol_ind > pol_dat.n_polars) {
+            if (pol_ind >= pol_dat.n_polars) {
               continue;  // unneccessary; guaranteed that this is true by
                          // the check first_pol_water_for_wat_occ_pair above
             }
@@ -2890,7 +2981,18 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
             int const task_offset = pair_dat.rank_for_task[j];
 
             int const last_water_for_pol_pair =
-                min(TILE_SIZE - 1, j + n_wat_pairs - task_offset);
+                min(TILE_SIZE - 1, j + n_wat_pairs - task_offset - 1);
+            printf(
+                "accum for j %d pol_pair %d, pair_ind %d, pol_ind %d, "
+                "n_wat_pairs %d, last_water_for_pol_pair %d, "
+                "exp_d2_delta_for_task %6.3f\n",
+                j,
+                pol_pair,
+                pair_ind,
+                pol_ind,
+                n_wat_pairs,
+                last_water_for_pol_pair,
+                pair_dat.exp_d2_delta_for_task[last_water_for_pol_pair]);
             pair_dat.lk_bridge_fraction_exp_d2_delta_sum[pol_pair] +=
                 pair_dat.exp_d2_delta_for_task[last_water_for_pol_pair];
           }
@@ -2908,7 +3010,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
         int const pair_ind = TILE_SIZE * count_row + i;
         int const pol_ind = pair_ind / occ_dat.n_occluders;
         int const occ_ind = pair_ind % occ_dat.n_occluders;
-        if (pol_ind > pol_dat.n_polars) {
+        if (pol_ind >= pol_dat.n_polars) {
           pair_dat.lk_bridge_fraction[i] = 0;
           continue;
         }
@@ -2962,6 +3064,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
     auto accum_totals_in_registers = ([&] TMOL_DEVICE_FUNC(int tid) {
       for (int i = tid; i < TILE_SIZE; i += nt) {
         Real const lk_iso = pair_dat.lk_iso[i];
+        printf("lk_iso[%d] = %9.5f\n", i, lk_iso);
         pair_dat.total_lk_ball_iso += lk_iso;
         pair_dat.total_lk_ball += lk_iso * pair_dat.lk_fraction[i];
         pair_dat.total_lk_bridge += lk_iso * pair_dat.lk_bridge_fraction[i];
@@ -2971,7 +3074,13 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
 
     DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
         accum_totals_in_registers);
-  }
+    // printf("lk_iso:");
+    // for (int i = 0; i < TILE_SIZE; ++i) {
+    //   printf(" %f", pair_dat.lk_iso[i]);
+    // }
+    // printf("\n");
+
+  }  // for count_row
 }
 
 template <

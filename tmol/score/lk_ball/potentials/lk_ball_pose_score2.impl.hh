@@ -418,6 +418,11 @@ class LKBallPoseScoreDispatch2 {
                 accumulate<Dev, Real>::add(
                     output[w_lk_ball_iso][score_dat.pair_data.pose_ind],
                     cta_total_lk_ball_iso);
+                printf(
+                    "store %d %d lk_iso: %9.5f\n",
+                    score_dat.r1.block_ind,
+                    score_dat.r2.block_ind,
+                    cta_total_lk_ball_iso);
                 accumulate<Dev, Real>::add(
                     output[w_lk_ball][score_dat.pair_data.pose_ind],
                     cta_total_lk_ball);

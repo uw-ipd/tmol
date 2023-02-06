@@ -225,6 +225,7 @@ class LKBallPoseScoreDispatch {
             inter_dat.pair_data.total_lk_ball += E.lkball;
             inter_dat.pair_data.total_lk_bridge += E.lkbridge;
             inter_dat.pair_data.total_lk_bridge_uncpl += E.lkbridge_uncpl;
+            printf("lkball_iso %9.5f\n", E.lkball_iso);
           });
 
       auto score_intra_lk_ball_atom_pair =
@@ -410,6 +411,11 @@ class LKBallPoseScoreDispatch {
               if (tid == 0) {
                 accumulate<Dev, Real>::add(
                     output[w_lk_ball_iso][score_dat.pair_data.pose_ind],
+                    cta_total_lk_ball_iso);
+                printf(
+                    "store %d %d lk_iso: %9.5f\n",
+                    score_dat.r1.block_ind,
+                    score_dat.r2.block_ind,
                     cta_total_lk_ball_iso);
                 accumulate<Dev, Real>::add(
                     output[w_lk_ball][score_dat.pair_data.pose_ind],
