@@ -41,7 +41,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(LKBallEnergyTerm, self).setup_block_type(block_type)
         if hasattr(block_type, "lk_ball_params"):
-            print("early return")
+            # print("early return")
             return
         # ok, let's collect two things:
         # the combined set of donors and acceptors

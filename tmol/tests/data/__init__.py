@@ -95,6 +95,19 @@ def systems_bysize():
     }
 
 
+@pytest.fixture(scope="session")
+def res_bysize():
+    from tmol.system.io import ResidueReader
+
+    return {
+        40: ResidueReader.get_default().parse_pdb(pdb.data["bysize_040_res_5uoi.pdb"]),
+        75: ResidueReader.get_default().parse_pdb(pdb.data["bysize_075_res_2mtq.pdb"]),
+        150: ResidueReader.get_default().parse_pdb(pdb.data["bysize_150_res_5yzf.pdb"]),
+        300: ResidueReader.get_default().parse_pdb(pdb.data["bysize_300_res_6f8b.pdb"]),
+        600: ResidueReader.get_default().parse_pdb(pdb.data["bysize_600_res_5m4a.pdb"]),
+    }
+
+
 @pytest.fixture()
 def water_box_res():
     from tmol.system.io import ResidueReader

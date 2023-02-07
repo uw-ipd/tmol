@@ -115,23 +115,45 @@ struct DeviceOperations<tmol::Device::CUDA> {
   template <int N_T, int WIDTH, typename T, typename OP>
   __device__ static T exclusive_scan_in_workgroup(
       T* data, T identity, OP op, bool broadcast_and_return_total) {
-    auto* storage =
-        reinterpret_cast<typename mgpu::cta_scan_t<N_T, T>::storage_t*>(data);
-    T start_val = data[threadIdx.x];
-    auto result = mgpu::cta_scan_t<N_T, T>().scan(
-        threadIdx.x,
-        start_val,
-        *storage,
-        N_T,
-        op,
-        identity,
-        mgpu::scan_type_exc);
+    // auto* storage =
+    //     reinterpret_cast<typename mgpu::cta_scan_t<N_T,
+    //     T>::storage_t*>(data);
+    // T start_val = data[threadIdx.x];
+    // auto result = mgpu::cta_scan_t<N_T, T>().scan(
+    //     threadIdx.x,
+    //     start_val,
+    //     *storage,
+    //     N_T,
+    //     op,
+    //     identity,
+    //     mgpu::scan_type_exc);
+    //
+    // // printf("exc scan %d start %d final %d total %d\n", threadIdx.x,
+    // // start_val, result.scan, result.reduction);
+    // data[threadIdx.x] = result.scan;
+    //
+    // return result.reduction;
 
-    // printf("exc scan %d start %d final %d total %d\n", threadIdx.x,
-    // start_val, result.scan, result.reduction);
-    data[threadIdx.x] = result.scan;
-
-    return result.reduction;
+    // Let's do this with shuffle
+    assert(N_T == 32 && WIDTH == 32);
+    unsigned int m = 0xffffffff;
+    T val = data[threadIdx.x];
+    for (int i = 1; i < WIDTH; i *= 2) {
+      T prev = __shfl_up_sync(m, val, i);
+      if (threadIdx.x >= i) {
+        val = op(prev, val);
+      }
+    }
+    T total = identity;
+    if (broadcast_and_return_total) {
+      total = __shfl_sync(m, val, N_T - 1);
+    }
+    val = __shfl_up_sync(m, val, 1);
+    if (threadIdx.x == 0) {
+      val = identity;
+    }
+    data[threadIdx.x] = val;
+    return total;
   }
 
   // Perform an in-place inclusive scan within the workgroup
@@ -141,18 +163,34 @@ struct DeviceOperations<tmol::Device::CUDA> {
   template <int N_T, int WIDTH, typename T, typename OP>
   __device__ static T inclusive_scan_in_workgroup(
       T* data, T identity, OP op, bool broadcast_and_return_total) {
-    auto* storage =
-        reinterpret_cast<typename mgpu::cta_scan_t<N_T, T>::storage_t*>(data);
-    auto result = mgpu::cta_scan_t<N_T, T>().scan(
-        threadIdx.x,
-        data[threadIdx.x],
-        *storage,
-        N_T,
-        op,
-        identity,
-        mgpu::scan_type_inc);
-    data[threadIdx.x] = result.scan;
-    return result.reduction;
+    // auto* storage =
+    //     reinterpret_cast<typename mgpu::cta_scan_t<N_T,
+    //     T>::storage_t*>(data);
+    // auto result = mgpu::cta_scan_t<N_T, T>().scan(
+    //     threadIdx.x,
+    //     data[threadIdx.x],
+    //     *storage,
+    //     N_T,
+    //     op,
+    //     identity,
+    //     mgpu::scan_type_inc);
+    // data[threadIdx.x] = result.scan;
+    // return result.reduction;
+    assert(N_T == 32 && WIDTH == 32);
+    unsigned int m = 0xffffffff;
+    T val = data[threadIdx.x];
+    for (int i = 1; i < WIDTH; i *= 2) {
+      T prev = __shfl_up_sync(m, val, i);
+      if (threadIdx.x >= i) {
+        val = op(prev, val);
+      }
+    }
+    T total = identity;
+    if (broadcast_and_return_total) {
+      total = __shfl_sync(m, val, N_T - 1);
+    }
+    data[threadIdx.x] = val;
+    return total;
   }
 
   // Perform an in-place inclusive segmented scan within the
@@ -173,26 +211,41 @@ struct DeviceOperations<tmol::Device::CUDA> {
 
     // assert(N_T == 32);
 
+    // T val = data[threadIdx.x];
+    // S look_back = seg_begin[threadIdx.x];
+    // for (int i = 1; i < N_T; i *= 2) {
+    //   __syncthreads();
+    //
+    //   T val_prev = identity;
+    //   S look_back_prev = false;
+    //   if (threadIdx.x - i >= 0) {
+    //     val_prev = data[threadIdx.x - i];
+    //     look_back_prev = seg_begin[threadIdx.x - i];
+    //   }
+    //
+    //   __syncthreads();
+    //   if (threadIdx.x - i >= 0 && !look_back) {
+    //     val = op(val_prev, val);
+    //     data[threadIdx.x] = val;
+    //     look_back = look_back || look_back_prev;
+    //     seg_begin[threadIdx.x] = look_back;
+    //   }
+    // }
+    assert(N_T == 32 && WIDTH == 32);
+    unsigned int m = 0xffffffff;
     T val = data[threadIdx.x];
-    S look_back = seg_begin[threadIdx.x];
-    for (int i = 1; i < N_T; i *= 2) {
-      __syncthreads();
-
-      T val_prev = identity;
-      S look_back_prev = false;
-      if (threadIdx.x - i >= 0) {
-        val_prev = data[threadIdx.x - i];
-        look_back_prev = seg_begin[threadIdx.x - i];
-      }
-
-      __syncthreads();
-      if (threadIdx.x - i >= 0 && !look_back) {
-        val = op(val_prev, val);
-        data[threadIdx.x] = val;
-        look_back = look_back || look_back_prev;
-        seg_begin[threadIdx.x] = look_back;
+    bool flag = seg_begin[threadIdx.x];
+    for (int i = 1; i < WIDTH; i *= 2) {
+      T prev = __shfl_up_sync(m, val, i);
+      bool flag_prev = __shfl_up_sync(m, flag, i);
+      if (threadIdx.x >= i) {
+        if (!flag) {
+          val = op(prev, val);
+        }
+        flag = flag_prev || flag;
       }
     }
+    data[threadIdx.x] = val;
   }
 };
 

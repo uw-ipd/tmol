@@ -106,6 +106,72 @@ def test_res_centric_score_benchmark(
     # print(scores.shape)
 
 
+@pytest.mark.parametrize("system_size", zero_padded_counts([40, 75, 150, 300, 600]))
+@pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10]))
+@pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
+# @pytest.mark.parametrize(
+#     "energy_term",
+#     [LJLKEnergyTerm, ElecEnergyTerm, HBondEnergyTerm, LKBallEnergyTerm],
+#     ids=["ljlk", "elec", "hbond", "lk_ball"],
+# )
+@pytest.mark.parametrize(
+    "energy_term", [LKBallEnergyTerm, LKBallEnergyTerm2], ids=["lk_ball", "lk_ball2"]
+)
+@pytest.mark.benchmark(group="res_centric_score_varying_sizes")
+def test_res_centric_score_varying_sizes_benchmark(
+    benchmark,
+    benchmark_pass,
+    energy_term,
+    n_poses,
+    res_bysize,
+    system_size,
+    default_database,
+    torch_device,
+):
+    n_poses = int(n_poses)
+    system_size = int(system_size)
+    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        res_bysize[system_size], torch_device
+    )
+    pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
+
+    sfxn = ScoreFunction(default_database, torch_device)
+
+    for st in energy_term.score_types():
+        sfxn.set_weight(st, 1.0)
+
+    scorer = sfxn.render_whole_pose_scoring_module(pose_stack_n)
+
+    if benchmark_pass == "full":
+        pose_stack_n.coords.requires_grad_(True)
+
+        @benchmark
+        def score_pass():
+            scores = torch.sum(scorer(pose_stack_n.coords))
+            scores.backward(retain_graph=True)
+            return scores.cpu()
+
+    elif benchmark_pass == "forward":
+
+        @benchmark
+        def score_pass():
+            scores = torch.sum(scorer(pose_stack_n.coords))
+            scores.cpu()
+            return scores
+
+    elif benchmark_pass == "backward":
+        pose_stack_n.coords.requires_grad_(True)
+        scores = torch.sum(scorer(pose_stack_n.coords))
+
+        @benchmark
+        def score_pass():
+            scores.backward(retain_graph=True)
+            return scores.cpu()
+
+    else:
+        raise NotImplementedError
+
+
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))
 @pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
 @pytest.mark.parametrize(

@@ -588,6 +588,7 @@ class LKBallResPairData2 {
   bool in_count_pair_striking_dist;
   unsigned char *conn_seps;
 
+  unsigned char *pol_occ_pair_in_dist_cut;
   Real *lk_iso;
   Real *lk_fraction;
   Real *lk_bridge_fraction;
@@ -651,6 +652,7 @@ struct LKBallBlockPairSharedData2 {
   // int line_n_waters[ITLE_SIZE];
   // int line_ind_for_water[TILE_SIZE];
 
+  unsigned char pol_occ_pair_in_dist_cut[TILE_SIZE];
   Real lk_iso[TILE_SIZE];
   Real lk_fraction[TILE_SIZE];
   Real lk_bridge_fraction[TILE_SIZE];
@@ -1702,6 +1704,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data2(
   inter_dat.pair_data.total_lk_bridge_uncpl = 0;
 
   // locations in shared mem where we will keep our temporary results
+  inter_dat.pair_data.pol_occ_pair_in_dist_cut =
+      shared_m.pol_occ_pair_in_dist_cut;
   inter_dat.pair_data.lk_iso = shared_m.lk_iso;
   inter_dat.pair_data.lk_fraction = shared_m.lk_fraction;
   inter_dat.pair_data.lk_bridge_fraction = shared_m.lk_bridge_fraction;
@@ -2401,6 +2405,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
     auto setup_for_row = ([&] TMOL_DEVICE_FUNC(int tid) {
       DeviceDispatch<Dev>::synchronize_workgroup();
       for (int i = tid; i < TILE_SIZE; i += nt) {
+        pair_dat.pol_occ_pair_in_dist_cut[i] = 0;
         pair_dat.lk_iso[i] = 0;
         pair_dat.lk_fraction[i] = 0;
         pair_dat.lk_bridge_fraction[i] = 0;
@@ -2428,6 +2433,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
           // pair_dat.lk_iso[i] = 0;
           continue;
         }
+        pair_dat.pol_occ_pair_in_dist_cut[i] = 1;
         LKBallTypeParams<Real> pol_params = pol_dat.lk_ball_params[pol_ind];
         LKBallTypeParams<Real> occ_params = occ_dat.lk_ball_params[occ_ind];
         Real sigma =
@@ -2467,8 +2473,10 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
       for (int i = tid; i < TILE_SIZE; i += nt) {
         int const pair_ind = TILE_SIZE * count_row + i;
         int const pol_ind = pair_ind / occ_dat.n_occluders;
-        int const i_n_waters =
-            pol_ind < pol_dat.n_polars ? pol_dat.n_waters[pol_ind] : 0;
+        int const i_n_waters = pol_ind < pol_dat.n_polars
+                                   ? (pair_dat.pol_occ_pair_in_dist_cut[i]
+                                      * pol_dat.n_waters[pol_ind])
+                                   : 0;
         pair_dat.n_tasks_per_line_element[i] = i_n_waters;
         pair_dat.task_offset_for_line_element[i] = i_n_waters;
 
@@ -2491,7 +2499,7 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
       // 	  pol_dat.block_ind, occ_dat.block_ind, count_row,
       // 	  i, pair_dat.n_tasks_per_line_element[i]);
       // }
-
+      //
       // for (int i = tid; i < TILE_SIZE; i += nt) {
       //   printf("%d %d row %d task offset %d: %d\n",
       // 	  pol_dat.block_ind, occ_dat.block_ind, count_row,
@@ -2783,8 +2791,11 @@ TMOL_DEVICE_FUNC void load_balanced_interres_polar_occluder_tile(
             pol_ind < pol_dat.n_polars ? pol_dat.n_waters[pol_ind] : 0;
         int const occ_n_waters =
             pol_ind < pol_dat.n_polars ? occ_dat.n_waters[occ_ind] : 0;
-        pair_dat.n_tasks_per_line_element[i] = pol_n_waters * occ_n_waters;
-        pair_dat.task_offset_for_line_element[i] = pol_n_waters * occ_n_waters;
+        int const in_cutoff_dist = pair_dat.pol_occ_pair_in_dist_cut[i];
+        int const i_n_water_pairs =
+            pol_n_waters * occ_n_waters * in_cutoff_dist;
+        pair_dat.n_tasks_per_line_element[i] = i_n_water_pairs;
+        pair_dat.task_offset_for_line_element[i] = i_n_water_pairs;
 
         // Let's take care of some other initialization while we are here
         pair_dat.lk_fraction_exp_d2_delta_sum[i] = 0;

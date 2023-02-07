@@ -22,6 +22,7 @@ from .data import (  # noqa: F401
     water_box_system,
     water_box_res,
     systems_bysize,
+    res_bysize,
 )
 
 from .chemical import (  # noqa: F401
