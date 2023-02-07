@@ -3,6 +3,8 @@
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
 #include <moderngpu/cta_reduce.hxx>
+#include <moderngpu/cta_scan.hxx>
+#include <moderngpu/cta_segscan.hxx>
 
 #include "device_operations.hh"
 
@@ -113,8 +115,23 @@ struct DeviceOperations<tmol::Device::CUDA> {
   template <int N_T, int WIDTH, typename T, typename OP>
   __device__ static T exclusive_scan_in_workgroup(
       T* data, T identity, OP op, bool broadcast_and_return_total) {
-    // STUB
-    return identity;
+    auto* storage =
+        reinterpret_cast<typename mgpu::cta_scan_t<N_T, T>::storage_t*>(data);
+    T start_val = data[threadIdx.x];
+    auto result = mgpu::cta_scan_t<N_T, T>().scan(
+        threadIdx.x,
+        start_val,
+        *storage,
+        N_T,
+        op,
+        identity,
+        mgpu::scan_type_exc);
+
+    // printf("exc scan %d start %d final %d total %d\n", threadIdx.x,
+    // start_val, result.scan, result.reduction);
+    data[threadIdx.x] = result.scan;
+
+    return result.reduction;
   }
 
   // Perform an in-place inclusive scan within the workgroup
@@ -124,8 +141,18 @@ struct DeviceOperations<tmol::Device::CUDA> {
   template <int N_T, int WIDTH, typename T, typename OP>
   __device__ static T inclusive_scan_in_workgroup(
       T* data, T identity, OP op, bool broadcast_and_return_total) {
-    // STUB
-    return identity;
+    auto* storage =
+        reinterpret_cast<typename mgpu::cta_scan_t<N_T, T>::storage_t*>(data);
+    auto result = mgpu::cta_scan_t<N_T, T>().scan(
+        threadIdx.x,
+        data[threadIdx.x],
+        *storage,
+        N_T,
+        op,
+        identity,
+        mgpu::scan_type_inc);
+    data[threadIdx.x] = result.scan;
+    return result.reduction;
   }
 
   // Perform an in-place inclusive segmented scan within the
@@ -134,8 +161,38 @@ struct DeviceOperations<tmol::Device::CUDA> {
   template <int N_T, int WIDTH, typename T, typename S, typename OP>
   __device__ static void inclusive_seg_scan_in_workgroup(
       T* data, T identity, S* seg_begin, OP op) {
-    // STUB
-    return;
+    // auto * storage = reinterpret_cast<typename mgpu::cta_segscan_t<N_T,
+    // T>::storage_t *>(data); T start_val = data[threadIdx.x]; int start_head =
+    // seg_begin[threadIdx.x]; auto result = mgpu::cta_segscan_t<N_T,
+    // T>().segscan(
+    //   threadIdx.x, bool(seg_begin[threadIdx.x]), true, data[threadIdx.x],
+    //   *storage, identity, op);
+    // printf("inc seg scan %d head %d start %f final %f total %f\n",
+    // threadIdx.x, start_head, start_val, result.scan, result.reduction);
+    // data[threadIdx.x] = result.scan;
+
+    // assert(N_T == 32);
+
+    T val = data[threadIdx.x];
+    S look_back = seg_begin[threadIdx.x];
+    for (int i = 1; i < N_T; i *= 2) {
+      __syncthreads();
+
+      T val_prev = identity;
+      S look_back_prev = false;
+      if (threadIdx.x - i >= 0) {
+        val_prev = data[threadIdx.x - i];
+        look_back_prev = seg_begin[threadIdx.x - i];
+      }
+
+      __syncthreads();
+      if (threadIdx.x - i >= 0 && !look_back) {
+        val = op(val_prev, val);
+        data[threadIdx.x] = val;
+        look_back = look_back || look_back_prev;
+        seg_begin[threadIdx.x] = look_back;
+      }
+    }
   }
 };
 

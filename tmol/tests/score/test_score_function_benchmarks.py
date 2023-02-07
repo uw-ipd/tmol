@@ -11,6 +11,7 @@ from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
 from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
+from tmol.score.lk_ball.lk_ball_energy_term2 import LKBallEnergyTerm2
 
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
@@ -45,7 +46,9 @@ def dont_test_res_centric_score_benchmark_setup(
 #     [LJLKEnergyTerm, ElecEnergyTerm, HBondEnergyTerm, LKBallEnergyTerm],
 #     ids=["ljlk", "elec", "hbond", "lk_ball"],
 # )
-@pytest.mark.parametrize("energy_term", [LKBallEnergyTerm], ids=["lk_ball"])
+@pytest.mark.parametrize(
+    "energy_term", [LKBallEnergyTerm, LKBallEnergyTerm2], ids=["lk_ball", "lk_ball2"]
+)
 @pytest.mark.benchmark(group="res_centric_score_components")
 def test_res_centric_score_benchmark(
     benchmark,

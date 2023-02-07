@@ -418,11 +418,11 @@ class LKBallPoseScoreDispatch2 {
                 accumulate<Dev, Real>::add(
                     output[w_lk_ball_iso][score_dat.pair_data.pose_ind],
                     cta_total_lk_ball_iso);
-                printf(
-                    "store %d %d lk_iso: %9.5f\n",
-                    score_dat.r1.block_ind,
-                    score_dat.r2.block_ind,
-                    cta_total_lk_ball_iso);
+                // printf(
+                //     "store %d %d lk_iso: %9.5f\n",
+                //     score_dat.r1.block_ind,
+                //     score_dat.r2.block_ind,
+                //     cta_total_lk_ball_iso);
                 accumulate<Dev, Real>::add(
                     output[w_lk_ball][score_dat.pair_data.pose_ind],
                     cta_total_lk_ball);
@@ -514,11 +514,11 @@ class LKBallPoseScoreDispatch2 {
           ([=](LKBallScoringData2<Real> &intra_dat,
                int start_atom1,
                int start_atom2) {
-            eval_intrares_pol_occ_pair_energies2<DeviceDispatch, Dev, nt>(
-                intra_dat,
-                start_atom1,
-                start_atom2,
-                score_intra_lk_ball_atom_pair);
+            // eval_intrares_pol_occ_pair_energies2<DeviceDispatch, Dev, nt>(
+            //     intra_dat,
+            //     start_atom1,
+            //     start_atom2,
+            //     score_intra_lk_ball_atom_pair);
           });
 
       tmol::score::common::tile_evaluate_block_pair<

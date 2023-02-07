@@ -41,7 +41,7 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(LKBallEnergyTerm2, self).setup_block_type(block_type)
-        if hasattr(block_type, "lk_ball_params"):
+        if hasattr(block_type, "lk_ball_params2"):
             print("early return")
             return
         # ok, let's collect two things:
@@ -180,18 +180,18 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
         # print(block_type.name, "tiled_bt_pol_occ_n_waters")
         # print(tiled_bt_pol_occ_n_waters)
 
-        bt_lk_ball_params = LKBallBlockTypeParams2(
+        bt_lk_ball_params2 = LKBallBlockTypeParams2(
             tile_n_polar_atoms=tile_n_polar,
             tile_n_occluder_atoms=tile_n_occ,
             tile_pol_occ_inds=tiled_pols_and_occs,
             tile_pol_occ_n_waters=tiled_bt_pol_occ_n_waters,
             tile_lk_ball_params=tiled_bt_lk_ball_at_params,
         )
-        setattr(block_type, "lk_ball_params", bt_lk_ball_params)
+        setattr(block_type, "lk_ball_params2", bt_lk_ball_params2)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(LKBallEnergyTerm2, self).setup_packed_block_types(packed_block_types)
-        if hasattr(packed_block_types, "lk_ball_params"):
+        if hasattr(packed_block_types, "lk_ball_params2"):
             return
         n_types = packed_block_types.n_types
         n_tiles = packed_block_types.hbpbt_params.tile_donH_inds.shape[1]
@@ -210,7 +210,7 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
         )
 
         for i, bt in enumerate(packed_block_types.active_block_types):
-            i_lkbp = bt.lk_ball_params
+            i_lkbp = bt.lk_ball_params2
             i_n_tiles = i_lkbp.tile_n_polar_atoms.shape[0]
 
             tile_n_polar_atoms[i, :i_n_tiles] = i_lkbp.tile_n_polar_atoms
@@ -228,14 +228,14 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
         tile_pol_occ_n_waters = _t(tile_pol_occ_n_waters)
         tile_lk_ball_params = _t(tile_lk_ball_params)
 
-        lk_ball_params = LKBallPackedBlockTypeParams2(
+        lk_ball_params2 = LKBallPackedBlockTypeParams2(
             tile_n_polar_atoms=tile_n_polar_atoms,
             tile_n_occluder_atoms=tile_n_occluder_atoms,
             tile_pol_occ_inds=tile_pol_occ_inds,
             tile_pol_occ_n_waters=tile_pol_occ_n_waters,
             tile_lk_ball_params=tile_lk_ball_params,
         )
-        setattr(packed_block_types, "lk_ball_params", lk_ball_params)
+        setattr(packed_block_types, "lk_ball_params2", lk_ball_params2)
 
     def setup_poses(self, pose_stack: PoseStack):
         super(LKBallEnergyTerm2, self).setup_poses(pose_stack)
@@ -265,11 +265,11 @@ class LKBallEnergyTerm2(AtomTypeDependentTerm, HBondDependentTerm):
             bt_tile_hybridization=pbt.hbpbt_params.tile_acceptor_hybridization,
             bt_tile_acc_n_attached_H=pbt.hbpbt_params.tile_acceptor_n_attached_H,
             bt_atom_is_hydrogen=pbt.hbpbt_params.is_hydrogen,
-            bt_tile_n_polar_atoms=pbt.lk_ball_params.tile_n_polar_atoms,
-            bt_tile_n_occluder_atoms=pbt.lk_ball_params.tile_n_occluder_atoms,
-            bt_tile_pol_occ_inds=pbt.lk_ball_params.tile_pol_occ_inds,
-            bt_tile_pol_occ_n_waters=pbt.lk_ball_params.tile_pol_occ_n_waters,
-            bt_tile_lk_ball_params=pbt.lk_ball_params.tile_lk_ball_params,
+            bt_tile_n_polar_atoms=pbt.lk_ball_params2.tile_n_polar_atoms,
+            bt_tile_n_occluder_atoms=pbt.lk_ball_params2.tile_n_occluder_atoms,
+            bt_tile_pol_occ_inds=pbt.lk_ball_params2.tile_pol_occ_inds,
+            bt_tile_pol_occ_n_waters=pbt.lk_ball_params2.tile_pol_occ_n_waters,
+            bt_tile_lk_ball_params=pbt.lk_ball_params2.tile_lk_ball_params,
             bt_path_distance=pbt.bond_separation,
             lk_ball_global_params=self.stack_lk_ball_global_params(),
             water_gen_global_params=self.stack_lk_ball_water_gen_global_params(),
