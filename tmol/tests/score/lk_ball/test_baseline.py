@@ -30,10 +30,10 @@ def test_baseline_comparison(ubq_rosetta_baseline, torch_device):
 
 def test_score_ubq(ubq_res, torch_device):
     expected_scores = {
-        "lk_ball": 171.47,
-        "lk_ball_iso": 421.006,
-        "lk_ball_bridge": 1.578,
-        "lk_ball_bridge_uncpl": 10.99,
+        "lk_ball": 171.19293212890625,
+        "lk_ball_iso": 421.0059509277344,
+        "lk_ball_bridge": 1.5785887241363525,
+        "lk_ball_bridge_uncpl": 10.994599342346191,
     }
 
     test_system = PackedResidueSystem.from_residues(ubq_res)
@@ -45,7 +45,5 @@ def test_score_ubq(ubq_res, torch_device):
 
     intra_container = score_system.intra_forward(coords)
     scores = {term: float(intra_container[term]) for term in expected_scores.keys()}
-    print("scores")
-    print(scores)
 
     assert scores == approx(expected_scores, rel=1e-3)

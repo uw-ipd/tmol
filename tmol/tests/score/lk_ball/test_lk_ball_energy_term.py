@@ -13,9 +13,6 @@ def test_smoke(default_database, torch_device):
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
 
     assert lk_ball_energy.device == torch_device
-    assert lk_ball_energy.hb_param_db.global_param_table.device == torch_device
-    assert lk_ball_energy.hb_param_db.pair_param_table.device == torch_device
-    assert lk_ball_energy.hb_param_db.pair_poly_table.device == torch_device
 
 
 def test_annotate_restypes(

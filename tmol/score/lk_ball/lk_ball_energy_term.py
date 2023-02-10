@@ -176,11 +176,6 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         def _t(t):
             return torch.tensor(t, device=packed_block_types.device)
 
-        tile_n_polar_atoms = _t(tile_n_polar_atoms)
-        tile_n_occluder_atoms = _t(tile_n_occluder_atoms)
-        tile_pol_occ_inds = _t(tile_pol_occ_inds)
-        tile_lk_ball_params = _t(tile_lk_ball_params)
-
         lk_ball_params = LKBallPackedBlockTypeParams(
             tile_n_polar_atoms=_t(tile_n_polar_atoms),
             tile_n_occluder_atoms=_t(tile_n_occluder_atoms),
