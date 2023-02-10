@@ -40,12 +40,11 @@ def dont_test_res_centric_score_benchmark_setup(
 
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))
 @pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
-# @pytest.mark.parametrize(
-#     "energy_term",
-#     [LJLKEnergyTerm, ElecEnergyTerm, HBondEnergyTerm, LKBallEnergyTerm],
-#     ids=["ljlk", "elec", "hbond", "lk_ball"],
-# )
-@pytest.mark.parametrize("energy_term", [LKBallEnergyTerm], ids=["lk_ball"])
+@pytest.mark.parametrize(
+    "energy_term",
+    [LJLKEnergyTerm, ElecEnergyTerm, HBondEnergyTerm, LKBallEnergyTerm],
+    ids=["ljlk", "elec", "hbond", "lk_ball"],
+)
 @pytest.mark.benchmark(group="res_centric_score_components")
 def test_res_centric_score_benchmark(
     benchmark,

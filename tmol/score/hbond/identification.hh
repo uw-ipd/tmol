@@ -10,10 +10,6 @@ namespace tmol {
 namespace score {
 namespace hbond {
 
-// using tmol::score::bonded_atom::BlockCentricAtom;
-// using tmol::score::bonded_atom::BlockCentricIndexedBonds;
-// using tmol::score::bonded_atom::IndexedBonds;
-
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 struct AcceptorHybridization {
