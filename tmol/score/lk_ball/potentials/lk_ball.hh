@@ -1125,22 +1125,6 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
         MAX_N_WATER * occluder_atom_tile_ind + wi);
   }
 
-  // DEBUG: load dummy coords into shared memory
-  // for (int wi = 0; wi < MAX_N_WATER; wi++) {
-  //   if (wi < 2) {
-  //     wmat_polar.row(wi) =
-  //         coord_from_shared(polar_block_dat.pose_coords, polar_atom_tile_ind)
-  //         + Real3{1, 1, 1};
-  //     wmat_occluder.row(wi) =
-  //         coord_from_shared(occluder_block_dat.pose_coords,
-  //         polar_atom_tile_ind)
-  //         + Real3{1, 1, 1};
-  //   } else {
-  //     wmat_polar.row(wi) = Real3{NAN, NAN, NAN};
-  //     wmat_occluder.row(wi) = Real3{NAN, NAN, NAN};
-  //   }
-  // }
-
   return lk_ball_score<Real, MAX_N_WATER>::V(
       polar_xyz,
       occluder_xyz,
@@ -1153,7 +1137,7 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
 }
 
 // Calculate and write to global memory only the derivatives for the two
-// indicated atoms Does not return  the score
+// indicated atoms. Does not return the score
 template <int TILE_SIZE, int MAX_N_WATER, typename Real, tmol::Device Dev>
 TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     int polar_ind,               // in [0:n_polar)
@@ -1201,22 +1185,6 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
         occluder_block_dat.water_coords,
         MAX_N_WATER * occluder_atom_tile_ind + wi);
   }
-
-  // DEBUG: load dummy coords into shared memory
-  // for (int wi = 0; wi < MAX_N_WATER; wi++) {
-  //   if (wi < 2) {
-  //     wmat_polar.row(wi) =
-  //         coord_from_shared(polar_block_dat.pose_coords, polar_atom_tile_ind)
-  //         + Real3{1, 1, 1};
-  //     wmat_occluder.row(wi) =
-  //         coord_from_shared(occluder_block_dat.pose_coords,
-  //         polar_atom_tile_ind)
-  //         + Real3{1, 1, 1};
-  //   } else {
-  //     wmat_polar.row(wi) = Real3{NAN, NAN, NAN};
-  //     wmat_occluder.row(wi) = Real3{NAN, NAN, NAN};
-  //   }
-  // }
 
   auto dV = lk_ball_score<Real, 4>::dV(
       polar_xyz,
@@ -1325,7 +1293,8 @@ void TMOL_DEVICE_FUNC eval_interres_pol_occ_pair_energies(
       int pol_start = r1_polar ? start_atom1 : start_atom2;
       int occ_start = r1_polar ? start_atom2 : start_atom1;
 
-      // Do the work!
+      // Now that we have the pair of polar/occluder atoms to focus on,
+      // invoke the lambda function that will operate on them
       f(pol_start, occ_start, pol_ind, occ_ind, inter_dat, r1_polar);
     }
   });
@@ -1353,13 +1322,16 @@ void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
         int pol_ind = i / intra_dat.r1.n_occluders;
         int occ_ind = i % intra_dat.r1.n_occluders;
 
-        // An atom canot occlude itself
+        // No atom can occlude itself
         if (pol_ind == occ_ind) continue;
 
-        // Do the work!
+        // Now that we have the pair of polar/occluder atoms to focus on,
+        // invoke the lambda function that will operate on them
         f(start_atom1, start_atom1, pol_ind, occ_ind, intra_dat, true);
       }
     } else {
+      // Similar to the inter-residue case; all atoms of tile X
+      // are evaluated against all atoms of tile Y
       int const n_pol_occ_pairs =
           intra_dat.r1.n_polars * intra_dat.r2.n_occluders
           + intra_dat.r1.n_occluders * intra_dat.r2.n_polars;
@@ -1374,7 +1346,8 @@ void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
         int pol_start = r1_polar ? start_atom1 : start_atom2;
         int occ_start = r1_polar ? start_atom2 : start_atom1;
 
-        // Do the work!
+        // Now that we have the pair of polar/occluder atoms to focus on,
+        // invoke the lambda function that will operate on them
         f(pol_start, occ_start, pol_ind, occ_ind, intra_dat, r1_polar);
       }
     }

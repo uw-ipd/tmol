@@ -3,8 +3,6 @@ import torch
 
 from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
 
-# from tmol.score.lk_ball.params import LKBallTypeParams
-from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.autograd import gradcheck
@@ -83,13 +81,11 @@ def test_whole_pose_scoring_module_gradcheck_partial_pose(
     weights = torch.tensor(
         [[0.75], [1.25], [0.625], [0.8125]], dtype=torch.float32, device=torch_device
     )
-    # print(weights.shape)
 
     def score(coords):
         scores = lk_ball_pose_scorer(coords)
 
         wtd_score = torch.sum(weights * scores)
-        # print("wtd_score:", wtd_score.item(), weights.detach().cpu().numpy(), scores.detach().cpu().numpy() )
         return wtd_score
 
     gradcheck(

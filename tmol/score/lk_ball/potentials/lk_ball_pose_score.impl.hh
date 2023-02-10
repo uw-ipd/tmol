@@ -23,13 +23,14 @@
 
 #include <tmol/score/lk_ball/potentials/lk_ball.hh>
 #include <tmol/score/lk_ball/potentials/params.hh>
-// #include <tmol/score/lk_ball/potentials/lk_ball_pose_score.hh>
 
 // Operator definitions; safe for CPU compilation
 #include <moderngpu/operators.hxx>
 
 #include <chrono>
 
+// Definitions for TILE_SIZE and MAX_N_WATERS
+// Shared between this file and gen_pose_waters.impl.hh
 #include <tmol/score/lk_ball/potentials/constants.hh>
 
 namespace tmol {

@@ -25,8 +25,6 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         self.ljlk_param_resolver = LJLKParamResolver.from_database(
             param_db.chemical, param_db.scoring.ljlk, device=device
         )
-        # self.type_params = ljlk_param_resolver.type_params
-        # self.global_params = ljlk_param_resolver.global_params
         self.tile_size = LKBallEnergyTerm.tile_size
 
     @classmethod
@@ -43,9 +41,22 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         if hasattr(block_type, "lk_ball_params"):
             print("early return")
             return
-        # ok, let's collect two things:
-        # the combined set of donors and acceptors
-        # the set of heavy atoms
+
+        # we are going to order the data needed for score evaluation around the
+        # idea that, first, we will bin all the atoms into groups of "tile_size"
+        # and examine tile_size atoms from one residue against tile_size atoms
+        # of another residue.
+        # within each tile, the data is further structured as follows:
+        # polar atoms -- i.e. those with attached waters -- are going to be listed
+        # first and all remaining heavy atoms will be listed second.
+        # Each tile will list the number of polar atoms (heavy atoms with waters
+        # attached) and the number of "occluder" atoms (heavy atoms with waters
+        # attached and heavy atoms without waters attached) and then
+        # the tile indices of those atoms (in a single array with the first
+        # n_polar atoms representing the heavy atoms with attached waters).
+        # The lk-ball properties needed to evaluate the energy will be stored
+        # also in polars-before-non-polars order.
+
         hbbt_params = block_type.hbbt_params
         n_tiles = hbbt_params.tile_donH_inds.shape[0]
 
@@ -53,33 +64,27 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         atom_is_polar[hbbt_params.don_hvy_inds] = True
         atom_is_polar[hbbt_params.acc_inds] = True
         polar_inds = numpy.nonzero(atom_is_polar)[0].astype(numpy.int32)
-        # print("polar_inds", block_type.name)
-        # print(polar_inds)
 
         tile_size = LKBallEnergyTerm.tile_size
         tiled_polar_orig_inds, tile_n_polar = arg_tile_subset_indices(
             polar_inds, tile_size, block_type.n_atoms
         )
         tiled_polar_orig_inds = tiled_polar_orig_inds.reshape(n_tiles, tile_size)
-        # print("tile_n_polar")
-        # print(tile_n_polar)
 
         is_tiled_polar = tiled_polar_orig_inds != -1
         tiled_polars = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
         tiled_polars[is_tiled_polar] = polar_inds
-        # print("tiled_polars")
-        # print(tiled_polars)
 
         # ASSUMPTION! either h or hvy; change when VRTS are added!
         # Grace: lk parameters for VRTs should not affect score even if included
         atom_is_heavy = numpy.invert(hbbt_params.is_hydrogen == 1)
 
+        # "apolar" here means "does not build waters"; e.g. proline's N would be
+        # considered apolar.
         atom_is_heavy_apolar = numpy.logical_and(
             atom_is_heavy, numpy.invert(atom_is_polar)
         )
         heavy_apolar_inds = numpy.nonzero(atom_is_heavy_apolar)[0].astype(numpy.int32)
-        # print("heavy_apolar_inds")
-        # print(heavy_apolar_inds)
 
         tiled_heavy_apolar_orig_inds, tile_n_apolar = arg_tile_subset_indices(
             heavy_apolar_inds, tile_size, block_type.n_atoms
@@ -90,8 +95,6 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         is_tiled_heavy_apolar = tiled_heavy_apolar_orig_inds != -1
         tiled_heavy_apolar = numpy.full((n_tiles, tile_size), -1, dtype=numpy.int32)
         tiled_heavy_apolar[is_tiled_heavy_apolar] = heavy_apolar_inds
-        # print("tiled_heavy_apolar", block_type.name)
-        # print(tiled_heavy_apolar)
 
         # now lets combine the heavy polar indices and the heavy non-polar indices
         tiled_pols_and_occs = numpy.copy(tiled_polars)
@@ -100,8 +103,6 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             tile_n_occ[i] = tile_n_polar[i] + tile_n_apolar[i]
             r = slice(tile_n_polar[i], tile_n_occ[i])
             tiled_pols_and_occs[i, r] = tiled_heavy_apolar[i, : tile_n_apolar[i]]
-        # print("tiled_pols_and_occs")
-        # print(tiled_pols_and_occs)
         is_pol_or_occ = tiled_pols_and_occs != -1
 
         # ok, now let's collect the properties of the atoms in this block
@@ -181,10 +182,10 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         tile_lk_ball_params = _t(tile_lk_ball_params)
 
         lk_ball_params = LKBallPackedBlockTypeParams(
-            tile_n_polar_atoms=tile_n_polar_atoms,
-            tile_n_occluder_atoms=tile_n_occluder_atoms,
-            tile_pol_occ_inds=tile_pol_occ_inds,
-            tile_lk_ball_params=tile_lk_ball_params,
+            tile_n_polar_atoms=_t(tile_n_polar_atoms),
+            tile_n_occluder_atoms=_t(tile_n_occluder_atoms),
+            tile_pol_occ_inds=_t(tile_pol_occ_inds),
+            tile_lk_ball_params=_t(tile_lk_ball_params),
         )
         setattr(packed_block_types, "lk_ball_params", lk_ball_params)
 
