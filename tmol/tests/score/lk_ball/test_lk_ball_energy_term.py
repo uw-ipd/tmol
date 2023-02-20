@@ -23,11 +23,27 @@ def test_annotate_restypes(
 
     pbt = fresh_default_packed_block_types
 
-    for rt in pbt.active_block_types:
-        lk_ball_energy.setup_block_type(rt)
-        assert hasattr(rt, "hbbt_params")
+    first_params = {}
+    for bt in pbt.active_block_types:
+        lk_ball_energy.setup_block_type(bt)
+        assert hasattr(bt, "hbbt_params")
+        first_params[bt.name] = bt.hbbt_params
+
+    for bt in pbt.active_block_types:
+        # test that block-type annotation is not repeated;
+        # original annotation is still present in the bt
+        lk_ball_energy.setup_block_type(bt)
+        assert first_params[bt.name] is bt.hbbt_params
+
     lk_ball_energy.setup_packed_block_types(pbt)
     assert hasattr(pbt, "lk_ball_params")
+
+    init_pbt_lk_ball_params = pbt.lk_ball_params
+    lk_ball_energy.setup_packed_block_types(pbt)
+    # test that the initial packed-block-types annotation
+    # has not been repeated; initial annotation is still
+    # present in the pbt
+    assert init_pbt_lk_ball_params is pbt.lk_ball_params
 
     assert pbt.lk_ball_params.tile_n_polar_atoms.device == torch_device
     assert pbt.lk_ball_params.tile_n_occluder_atoms.device == torch_device

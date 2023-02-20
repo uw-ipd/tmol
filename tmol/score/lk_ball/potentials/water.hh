@@ -684,13 +684,14 @@ class WaterGenSingleResData {
   unsigned char n_donH;
   unsigned char n_acc;
   unsigned char *donH_tile_inds;
-  unsigned char *don_hvy_inds;  // index of heavy atom that given donH bonds;
-                                // NOTE: limit of 256 atoms per block.
-  unsigned char *which_donH_for_hvy;  // for the given donH, what's its index in
-                                      // the list of H's bound to it
+  unsigned char *don_hvy_inds;  // block-type index of heavy atom to which a
+                                // given donH binds; this is not the tile index.
+                                // The donor heavy atom may be in a different
+                                // tile NOTE: limit of 256 atoms per block.
+  unsigned char
+      *which_donH_for_hvy;  // for the given donH, what's its index in
+                            // the list of H's bound to its heavy atom?
   unsigned char *acc_tile_inds;
-  // unsigned char *donH_type;
-  // unsigned char *acc_type;
   unsigned char *acc_hybridization;
   unsigned char *acc_n_attached_H;  // for the given acc, how many H's it have?
 };
@@ -703,18 +704,18 @@ class WaterGenPoseContextData {
 
   // Tensors to help identify atoms outside of the target
   // block
-  // If the hbond involves atoms from other residues, we need
-  // to be able to retrieve their coordinates
+  // If the water's geometry depends on atoms from other blocks,
+  // we need to be able to retrieve their coordinates
   TView<Vec<Real, 3>, 2, Dev> coords;
   TView<Int, 2, Dev> pose_stack_block_coord_offset;
   TView<Int, 2, Dev> pose_stack_block_type;
 
   // For determining which atoms to retrieve from neighboring
   // residues we have to know how the blocks in the Pose
-  // are connected
+  // are connected to each other...
   TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections;
 
-  // And we need to know the properties of the block types
+  // ... and we need to know the properties of the block types
   // that we are working with to iterate across chemical bonds
   TView<Int, 1, Dev> block_type_n_all_bonds;
   TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds;
@@ -794,14 +795,6 @@ void TMOL_DEVICE_FUNC water_gen_load_block_coords_and_params_into_shared(
       r_dat.acc_tile_inds,
       &block_type_tile_acc_inds[r_dat.block_type][tile_ind][0],
       r_dat.n_acc);
-  // DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
-  //     r_dat.donH_type,
-  //     &block_type_tile_donor_type[r_dat.block_type][tile_ind][0],
-  //     r_dat.n_donH);
-  // DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
-  //     r_dat.acc_type,
-  //     &block_type_tile_acceptor_type[r_dat.block_type][tile_ind][0],
-  //     r_dat.n_acc);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.acc_hybridization,
       &block_type_tile_hybridization[r_dat.block_type][tile_ind][0],
@@ -936,13 +929,6 @@ void TMOL_DEVICE_FUNC build_water_for_don(
   // Now record the coordinates to global memory:
   int const which_water = res_dat.which_donH_for_hvy[don_h_ind];
 
-  // printf("build don %d %d %d %d (%6.3f, %6.3f, %6.3f), (%6.3f, %6.3f, %6.3f)
-  // --> (%6.3f, %6.3f, %6.3f)\n",
-  //   res_dat.block_ind, don_h_atom_tile_ind, Dind, which_water,
-  //   Hxyz[0], Hxyz[1], Hxyz[2],
-  //   Dxyz[0], Dxyz[1], Dxyz[2],
-  //   Wxyz[0], Wxyz[1], Wxyz[2]);
-
   water_coords[context_dat.pose_ind][res_dat.block_coord_offset + Dind]
               [which_water] = Wxyz;
 }
@@ -1043,15 +1029,12 @@ void TMOL_DEVICE_FUNC d_build_water_for_don(
   int const Dind = res_dat.don_hvy_inds[don_h_ind];
   bonded_atom::BlockCentricAtom<Int> const D{
       res_dat.block_ind, res_dat.block_type, Dind};
-  // int const D = res_dat.don_hvy_inds[don_h_ind];
   Real3 Dxyz = load_coord<TILE_SIZE>(D, res_dat, context_dat, tile_start);
 
   auto dW = build_don_water<Real>::dV(
       Dxyz, Hxyz, context_dat.global_params.lkb_water_dist);
   int const which_water = res_dat.which_donH_for_hvy[don_h_ind];
 
-  // water_coords[context_dat.pose_ind][res_dat.block_coord_offset +
-  // D][which_water] = Wxyz;
   int const pose_ind = wat_gen_dat.pose_context.pose_ind;
   int const D_atom_pose_ind = res_dat.block_coord_offset + Dind;
   int const H_atom_pose_ind =

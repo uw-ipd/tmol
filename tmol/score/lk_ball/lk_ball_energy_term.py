@@ -39,7 +39,6 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(LKBallEnergyTerm, self).setup_block_type(block_type)
         if hasattr(block_type, "lk_ball_params"):
-            print("early return")
             return
 
         # we are going to order the data needed for score evaluation around the
@@ -76,7 +75,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         tiled_polars[is_tiled_polar] = polar_inds
 
         # ASSUMPTION! either h or hvy; change when VRTS are added!
-        # Grace: lk parameters for VRTs should not affect score even if included
+        # Grace: lk parameters for VRTs should not affect score even if included,
+        # it would just be slightly inefficient
         atom_is_heavy = numpy.invert(hbbt_params.is_hydrogen == 1)
 
         # "apolar" here means "does not build waters"; e.g. proline's N would be

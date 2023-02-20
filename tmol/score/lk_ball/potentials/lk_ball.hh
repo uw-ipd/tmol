@@ -1111,7 +1111,6 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
 
   if (dist >= block_pair_dat.global_params.distance_threshold) {
     return {0, 0, 0, 0};
-    ;
   }
 
   Eigen::Matrix<Real, 4, 3> wmat_polar;

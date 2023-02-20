@@ -41,6 +41,7 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
+// TO DO: standardize tiled inter-block count pair
 template <int TILE, typename InterEnergyData>
 EIGEN_DEVICE_FUNC int interres_count_pair_separation(
     InterEnergyData const &inter_dat, int atom_tile_ind1, int atom_tile_ind2) {
