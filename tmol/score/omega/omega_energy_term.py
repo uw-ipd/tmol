@@ -94,5 +94,6 @@ class OmegaEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             pose_stack_block_types=pose_stack.block_type_ind,
             pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
             bt_omega_quad_uaids=pbt.omega_quad_uaids,
+            bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
             global_params=self.global_params,
         )

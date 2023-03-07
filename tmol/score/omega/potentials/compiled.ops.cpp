@@ -83,6 +83,7 @@ class OmegaPoseScoreOp
       Tensor pose_stack_block_type,
       Tensor pose_stack_inter_block_connections,
       Tensor block_type_omega_quad_uaids,
+      Tensor block_type_atom_downstream_of_conn,
       Tensor global_params) {
     // at::Tensor score;
     at::Tensor score;
@@ -102,6 +103,7 @@ class OmegaPoseScoreOp
                   TCAST(pose_stack_block_type),
                   TCAST(pose_stack_inter_block_connections),
                   TCAST(block_type_omega_quad_uaids),
+                  TCAST(block_type_atom_downstream_of_conn),
                   TCAST(global_params),
                   coords.requires_grad());
 
@@ -167,6 +169,7 @@ Tensor omega_pose_scores_op(
     Tensor pose_stack_block_type,
     Tensor pose_stack_inter_block_connections,
     Tensor block_type_omega_quad_uaids,
+    Tensor block_type_atom_downstream_of_conn,
     Tensor global_params) {
   std::cout << "TESTING" << std::endl;
   return OmegaPoseScoreOp<DispatchMethod>::apply(
@@ -175,6 +178,7 @@ Tensor omega_pose_scores_op(
       pose_stack_block_type,
       pose_stack_inter_block_connections,
       block_type_omega_quad_uaids,
+      block_type_atom_downstream_of_conn,
       global_params);
 }
 

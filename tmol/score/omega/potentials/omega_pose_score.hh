@@ -38,6 +38,7 @@ struct OmegaPoseScoreDispatch {
       TView<Int, 2, D> pose_stack_block_type,
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
       TView<Int, 3, D> block_type_omega_quad_uaids,
+      TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
       TView<OmegaGlobalParams<Real>, 1, D> global_params,
 
