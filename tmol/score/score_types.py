@@ -18,5 +18,6 @@ class ScoreType(AutoNumber):
     lk_ball = ()
     lk_bridge = ()
     lk_bridge_uncpl = ()
+    rama = ()
     # keep this one last
     n_score_types = ()
