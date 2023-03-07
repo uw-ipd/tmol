@@ -14,5 +14,6 @@ class ScoreType(AutoNumber):
     fa_lk = ()
     fa_elec = ()
     hbond = ()
+    omega = ()
     # keep this one last
     n_score_types = ()

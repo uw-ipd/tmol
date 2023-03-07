@@ -3,6 +3,7 @@ import attr
 
 from .hbond import HBondDatabase
 from .ljlk import LJLKDatabase
+from .omega import OmegaDatabase
 from .elec import ElecDatabase
 from .rama import RamaDatabase
 from .cartbonded import CartBondedDatabase
@@ -13,6 +14,7 @@ from .dunbrack_libraries import DunbrackRotamerLibrary
 class ScoringDatabase:
 
     ljlk: LJLKDatabase
+    omega: OmegaDatabase
     elec: ElecDatabase
     hbond: HBondDatabase
     rama: RamaDatabase
@@ -23,6 +25,7 @@ class ScoringDatabase:
     def from_file(cls, path=os.path.dirname(__file__)):  # noqa
         return cls(
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
+            omega=OmegaDatabase.from_file(os.path.join(path, "omega.yaml")),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
             elec=ElecDatabase.from_file(os.path.join(path, "elec.yaml")),
             rama=RamaDatabase.from_files(
