@@ -10,6 +10,7 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
+from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
 
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
@@ -41,8 +42,8 @@ def dont_test_res_centric_score_benchmark_setup(
 @pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
 @pytest.mark.parametrize(
     "energy_term",
-    [LJLKEnergyTerm, ElecEnergyTerm, HBondEnergyTerm],
-    ids=["ljlk", "elec", "hbond"],
+    [LJLKEnergyTerm, ElecEnergyTerm, HBondEnergyTerm, LKBallEnergyTerm],
+    ids=["ljlk", "elec", "hbond", "lk_ball"],
 )
 @pytest.mark.benchmark(group="res_centric_score_components")
 def test_res_centric_score_benchmark(
@@ -105,8 +106,8 @@ def test_res_centric_score_benchmark(
 @pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
 @pytest.mark.parametrize(
     "energy_terms",
-    [[LJLKEnergyTerm, ElecEnergyTerm, HBondEnergyTerm]],
-    ids=["ljlk_elec_hbond"],
+    [[LJLKEnergyTerm, ElecEnergyTerm, HBondEnergyTerm, LKBallEnergyTerm]],
+    ids=["ljlk_elec_hbond_lkb"],
 )
 @pytest.mark.benchmark(group="res_centric_combined_score_components")
 def test_combined_res_centric_score_benchmark(

@@ -90,6 +90,7 @@ class _LKBallScoreModule(torch.jit.ScriptModule):
                         param_resolver.global_params.lj_hbond_OH_donor_dis,
                         param_resolver.global_params.lj_hbond_hdis,
                         param_resolver.global_params.lkb_water_dist,
+                        param_resolver.global_params.max_dis,
                     ]
                 ),
                 dim=1,

@@ -20,13 +20,14 @@ struct LKBallTypeParams {
   Real is_acceptor;
 };
 
-// same (for now) as LJGlobalParams
 template <typename Real>
 struct LKBallGlobalParams {
   Real lj_hbond_dis;
   Real lj_hbond_OH_donor_dis;
   Real lj_hbond_hdis;
-  Real lkb_water_dist;  // needed by both watergen and scoring
+  Real lkb_water_dist;      // needed by both watergen and scoring
+  Real distance_threshold;  // maximum distance two heavy-atoms can be to have a
+                            // non-zero interaction energy
 };
 
 template <typename Int>

@@ -6,6 +6,8 @@
 #include <cppitertools/range.hpp>
 
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/score/common/diamond_macros.hh>
+#include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/hbond/identification.hh>
 
@@ -669,6 +671,490 @@ struct build_acc_water {
 };
 
 #undef def
+
+template <typename Real>
+class WaterGenSingleResData {
+ public:
+  int block_ind;
+  int block_type;
+  int block_coord_offset;
+  int n_atoms;
+  int n_conn;
+  Real *coords;
+  unsigned char n_donH;
+  unsigned char n_acc;
+  unsigned char *donH_tile_inds;
+  unsigned char *don_hvy_inds;  // block-type index of heavy atom to which a
+                                // given donH binds; this is not the tile index.
+                                // The donor heavy atom may be in a different
+                                // tile NOTE: limit of 256 atoms per block.
+  unsigned char
+      *which_donH_for_hvy;  // for the given donH, what's its index in
+                            // the list of H's bound to its heavy atom?
+  unsigned char *acc_tile_inds;
+  unsigned char *acc_hybridization;
+  unsigned char *acc_n_attached_H;  // for the given acc, how many H's it have?
+};
+
+template <tmol::Device Dev, typename Real, typename Int>
+class WaterGenPoseContextData {
+ public:
+  int pose_ind;
+  LKBallWaterGenGlobalParams<Real> global_params;
+
+  // Tensors to help identify atoms outside of the target
+  // block
+  // If the water's geometry depends on atoms from other blocks,
+  // we need to be able to retrieve their coordinates
+  TView<Vec<Real, 3>, 2, Dev> coords;
+  TView<Int, 2, Dev> pose_stack_block_coord_offset;
+  TView<Int, 2, Dev> pose_stack_block_type;
+
+  // For determining which atoms to retrieve from neighboring
+  // residues we have to know how the blocks in the Pose
+  // are connected to each other...
+  TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections;
+
+  // ... and we need to know the properties of the block types
+  // that we are working with to iterate across chemical bonds
+  TView<Int, 1, Dev> block_type_n_all_bonds;
+  TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds;
+  TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges;
+  TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds;
+  TView<Int, 2, Dev> block_type_atom_is_hydrogen;
+};
+
+template <tmol::Device Dev, typename Real, typename Int>
+class WaterGenData {
+ public:
+  WaterGenSingleResData<Real> r_dat;
+  WaterGenPoseContextData<Dev, Real, Int> pose_context;
+};
+
+template <typename Real, int TILE_SIZE>
+struct WaterGenSharedData {
+  Real coords[TILE_SIZE * 3];  // 384 bytes for coords
+  unsigned char n_donH;        // 4 bytes for counts
+  unsigned char n_acc;
+  unsigned char don_inds[TILE_SIZE];  //
+  unsigned char don_hvy_inds[TILE_SIZE];
+  unsigned char which_donH_for_hvy[TILE_SIZE];
+  unsigned char acc_inds[TILE_SIZE];
+  unsigned char acc_hybridization[TILE_SIZE];
+  unsigned char acc_n_attached_H[TILE_SIZE];
+};
+
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device Dev,
+    int nt,
+    typename Real,
+    typename Int>
+void TMOL_DEVICE_FUNC water_gen_load_block_coords_and_params_into_shared(
+    TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Int, 2, Dev> block_type_tile_n_donH,
+    TView<Int, 2, Dev> block_type_tile_n_acc,
+    TView<Int, 3, Dev> block_type_tile_donH_inds,
+    TView<Int, 3, Dev> block_type_tile_don_hvy_inds,
+    TView<Int, 3, Dev> block_type_tile_which_donH_for_hhvy,
+    TView<Int, 3, Dev> block_type_tile_acc_inds,
+    TView<Int, 3, Dev> block_type_tile_hybridization,
+    TView<Int, 3, Dev> block_type_tile_acc_n_attached_H,
+    int pose_ind,
+    int tile_ind,
+    WaterGenSingleResData<Real> &r_dat,
+    int n_atoms_to_load,
+    int start_atom) {
+  // pre-condition: n_atoms_to_load < TILE_SIZE
+  // Note that TILE_SIZE is not explicitly passed in, but is "present"
+  // in r_dat.coords allocation
+
+  r_dat.n_donH = block_type_tile_n_donH[r_dat.block_type][tile_ind];
+  r_dat.n_acc = block_type_tile_n_acc[r_dat.block_type][tile_ind];
+
+  DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
+      r_dat.coords,
+      reinterpret_cast<Real *>(
+          &coords[pose_ind][r_dat.block_coord_offset + start_atom]),
+      n_atoms_to_load * 3);
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
+      r_dat.donH_tile_inds,
+      &block_type_tile_donH_inds[r_dat.block_type][tile_ind][0],
+      r_dat.n_donH);
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
+      r_dat.don_hvy_inds,
+      &block_type_tile_don_hvy_inds[r_dat.block_type][tile_ind][0],
+      r_dat.n_donH);
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
+      r_dat.which_donH_for_hvy,
+      &block_type_tile_which_donH_for_hhvy[r_dat.block_type][tile_ind][0],
+      r_dat.n_donH);
+
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
+      r_dat.acc_tile_inds,
+      &block_type_tile_acc_inds[r_dat.block_type][tile_ind][0],
+      r_dat.n_acc);
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
+      r_dat.acc_hybridization,
+      &block_type_tile_hybridization[r_dat.block_type][tile_ind][0],
+      r_dat.n_acc);
+  DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
+      r_dat.acc_n_attached_H,
+      &block_type_tile_acc_n_attached_H[r_dat.block_type][tile_ind][0],
+      r_dat.n_acc);
+}
+
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device Dev,
+    int nt,
+    typename Int,
+    typename Real,
+    int TILE_SIZE>
+void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
+    TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Int, 2, Dev> pose_stack_block_coord_offset,
+    TView<Int, 2, Dev> pose_stack_block_type,
+    TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
+
+    TView<Int, 1, Dev> block_type_n_all_bonds,
+    TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
+    TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
+    TView<Int, 1, Dev> block_type_n_interblock_bonds,
+    TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
+    TView<Int, 2, Dev> block_type_atom_is_hydrogen,
+    TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
+
+    int pose_ind,
+    int block_ind,
+    int block_type,
+    int n_atoms,
+
+    WaterGenData<Dev, Real, Int> &water_gen_dat,
+    WaterGenSharedData<Real, TILE_SIZE> &shared_m) {
+  water_gen_dat.pose_context.pose_ind = pose_ind;
+  water_gen_dat.pose_context.global_params = global_params[0];
+  water_gen_dat.r_dat.block_ind = block_ind;
+  water_gen_dat.r_dat.block_type = block_type;
+  water_gen_dat.r_dat.block_coord_offset =
+      pose_stack_block_coord_offset[pose_ind][block_ind];
+  water_gen_dat.r_dat.n_atoms = n_atoms;
+  water_gen_dat.r_dat.n_conn = block_type_n_interblock_bonds[block_type];
+
+  // set the pointers in inter_dat to point at the shared-memory arrays
+  water_gen_dat.r_dat.coords = shared_m.coords;
+  water_gen_dat.r_dat.donH_tile_inds = shared_m.don_inds;
+  water_gen_dat.r_dat.don_hvy_inds = shared_m.don_hvy_inds;
+  water_gen_dat.r_dat.which_donH_for_hvy = shared_m.which_donH_for_hvy;
+  water_gen_dat.r_dat.acc_tile_inds = shared_m.acc_inds;
+  water_gen_dat.r_dat.acc_hybridization = shared_m.acc_hybridization;
+  water_gen_dat.r_dat.acc_n_attached_H = shared_m.acc_n_attached_H;
+
+  // Final data members
+  // Keep a "copy" of the tensors needed to traverse bonds during
+  // the water-building step so they can be passed in to the lower
+  // -level functions when needed; nvcc is smart enough not to
+  // duplicate the registers used here
+  water_gen_dat.pose_context.coords = coords;
+  water_gen_dat.pose_context.pose_stack_block_coord_offset =
+      pose_stack_block_coord_offset;
+  water_gen_dat.pose_context.pose_stack_block_type = pose_stack_block_type;
+  water_gen_dat.pose_context.pose_stack_inter_residue_connections =
+      pose_stack_inter_residue_connections;
+  water_gen_dat.pose_context.block_type_n_all_bonds = block_type_n_all_bonds;
+  water_gen_dat.pose_context.block_type_all_bonds = block_type_all_bonds;
+  water_gen_dat.pose_context.block_type_atom_all_bond_ranges =
+      block_type_atom_all_bond_ranges;
+  water_gen_dat.pose_context.block_type_atoms_forming_chemical_bonds =
+      block_type_atoms_forming_chemical_bonds;
+  water_gen_dat.pose_context.block_type_atom_is_hydrogen =
+      block_type_atom_is_hydrogen;
+}
+
+// Some coordinates are available in shared memory, some we will
+// have to go out to global memory for.
+template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
+TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
+    bonded_atom::BlockCentricAtom<Int> bcat,
+    WaterGenSingleResData<Real> const &single_res_dat,
+    WaterGenPoseContextData<Dev, Real, Int> const &context_dat,
+    int tile_start) {
+  Eigen::Matrix<Real, 3, 1> xyz{Real(0), Real(0), Real(0)};
+  if (bcat.atom != -1) {
+    bool in_smem = false;
+    if (bcat.block == single_res_dat.block_ind) {
+      int bcat_tile_ind = bcat.atom - tile_start;
+      if (bcat_tile_ind >= 0 && bcat_tile_ind < TILE_SIZE) {
+        in_smem = true;
+        xyz = common::coord_from_shared(single_res_dat.coords, bcat_tile_ind);
+      }
+    }
+    if (!in_smem) {
+      // outside of tile or on other res, retrieve from global coords
+      int coord_offset =
+          (bcat.block == single_res_dat.block_ind
+               ? single_res_dat.block_coord_offset
+               : context_dat.pose_stack_block_coord_offset[context_dat.pose_ind]
+                                                          [bcat.block]);
+      xyz = context_dat.coords[context_dat.pose_ind][bcat.atom + coord_offset];
+    }
+  }
+  return xyz;
+}
+
+template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>
+void TMOL_DEVICE_FUNC build_water_for_don(
+    TView<Vec<Real, 3>, 3, Dev> water_coords,
+    WaterGenData<Dev, Real, Int> wat_gen_dat,
+    int tile_start,
+    int don_h_ind  // [0..n_donH)
+) {
+  using Real3 = Vec<Real, 3>;
+
+  auto res_dat = wat_gen_dat.r_dat;
+  auto context_dat = wat_gen_dat.pose_context;
+  int const don_h_atom_tile_ind = res_dat.donH_tile_inds[don_h_ind];
+  Real3 Hxyz = common::coord_from_shared(res_dat.coords, don_h_atom_tile_ind);
+  int const Dind = res_dat.don_hvy_inds[don_h_ind];
+  bonded_atom::BlockCentricAtom<Int> const D{
+      res_dat.block_ind, res_dat.block_type, Dind};
+
+  Real3 Dxyz = load_coord<TILE_SIZE>(D, res_dat, context_dat, tile_start);
+
+  auto Wxyz = build_don_water<Real>::V(
+      Dxyz, Hxyz, context_dat.global_params.lkb_water_dist);
+
+  // Now record the coordinates to global memory:
+  int const which_water = res_dat.which_donH_for_hvy[don_h_ind];
+
+  water_coords[context_dat.pose_ind][res_dat.block_coord_offset + Dind]
+              [which_water] = Wxyz;
+}
+
+template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>
+void TMOL_DEVICE_FUNC build_water_for_acc(
+    TView<Real, 1, Dev> sp2_water_tors,
+    TView<Real, 1, Dev> sp3_water_tors,
+    TView<Real, 1, Dev> ring_water_tors,
+    TView<Vec<Real, 3>, 3, Dev> water_coords,
+    WaterGenData<Dev, Real, Int> wat_gen_dat,
+    int tile_start,
+    int acc_ind,   // [0..n_acc)
+    int water_ind  // [0..MAX_N_WATER)
+) {
+  using Real3 = Vec<Real, 3>;
+
+  auto res_dat = wat_gen_dat.r_dat;
+  auto context_dat = wat_gen_dat.pose_context;
+
+  unsigned char hyb = res_dat.acc_hybridization[acc_ind];
+  Real tor(0), ang(0);
+  if (hyb == hbond::AcceptorHybridization::sp2) {
+    if (water_ind >= sp2_water_tors.size(0)) {
+      return;
+    } else {
+      tor = sp2_water_tors[water_ind];
+      ang = context_dat.global_params.lkb_water_angle_sp2;
+    }
+  } else if (hyb == hbond::AcceptorHybridization::sp3) {
+    if (water_ind >= sp3_water_tors.size(0)) {
+      return;
+    } else {
+      tor = sp3_water_tors[water_ind];
+      ang = context_dat.global_params.lkb_water_angle_sp3;
+    }
+  } else if (hyb == hbond::AcceptorHybridization::ring) {
+    if (water_ind >= ring_water_tors.size(0)) {
+      return;
+    } else {
+      tor = ring_water_tors[water_ind];
+      ang = context_dat.global_params.lkb_water_angle_ring;
+    }
+  }
+
+  unsigned char acc_atom_tile_ind = res_dat.acc_tile_inds[acc_ind];
+
+  Real3 Axyz = common::coord_from_shared(res_dat.coords, acc_atom_tile_ind);
+  bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds{
+      context_dat.pose_stack_inter_residue_connections[context_dat.pose_ind],
+      context_dat.pose_stack_block_type[context_dat.pose_ind],
+      context_dat.block_type_n_all_bonds,
+      context_dat.block_type_all_bonds,
+      context_dat.block_type_atom_all_bond_ranges,
+      context_dat.block_type_atoms_forming_chemical_bonds};
+  bonded_atom::BlockCentricAtom<Int> A{
+      res_dat.block_ind, res_dat.block_type, tile_start + acc_atom_tile_ind};
+  auto acc_bases = hbond::BlockCentricAcceptorBases<Int>::for_acceptor(
+      A, hyb, bonds, context_dat.block_type_atom_is_hydrogen);
+
+  Real3 Bxyz =
+      load_coord<TILE_SIZE>(acc_bases.B, res_dat, context_dat, tile_start);
+  Real3 B0xyz =
+      load_coord<TILE_SIZE>(acc_bases.B0, res_dat, context_dat, tile_start);
+
+  if (hyb == hbond::AcceptorHybridization::ring) {
+    // take the bisector of the line between B and B0 to build from
+    Bxyz = (Bxyz + B0xyz) / 2;
+  }
+
+  auto Wxyz = build_acc_water<Real>::V(
+      Axyz, Bxyz, B0xyz, context_dat.global_params.lkb_water_dist, ang, tor);
+
+  // Now record the coordinates to global memory:
+  // offset the water by the number of polar hydrogens on
+  // this acceptor
+  unsigned char water_offset = res_dat.acc_n_attached_H[acc_ind];
+
+  water_coords[context_dat.pose_ind][res_dat.block_coord_offset + A.atom]
+              [water_ind + water_offset] = Wxyz;
+}
+
+template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>
+void TMOL_DEVICE_FUNC d_build_water_for_don(
+    TView<Vec<Real, 3>, 3, Dev> dE_dWxyz,
+    TView<Vec<Real, 3>, 2, Dev> dE_d_pose_coords,
+    WaterGenData<Dev, Real, Int> wat_gen_dat,
+    int tile_start,
+    int don_h_ind  // [0..n_donH)
+) {
+  using Real3 = Vec<Real, 3>;
+
+  auto res_dat = wat_gen_dat.r_dat;
+  auto context_dat = wat_gen_dat.pose_context;
+  int const don_h_atom_tile_ind = res_dat.donH_tile_inds[don_h_ind];
+
+  Real3 Hxyz = common::coord_from_shared(res_dat.coords, don_h_atom_tile_ind);
+  int const Dind = res_dat.don_hvy_inds[don_h_ind];
+  bonded_atom::BlockCentricAtom<Int> const D{
+      res_dat.block_ind, res_dat.block_type, Dind};
+  Real3 Dxyz = load_coord<TILE_SIZE>(D, res_dat, context_dat, tile_start);
+
+  auto dW = build_don_water<Real>::dV(
+      Dxyz, Hxyz, context_dat.global_params.lkb_water_dist);
+  int const which_water = res_dat.which_donH_for_hvy[don_h_ind];
+
+  int const pose_ind = wat_gen_dat.pose_context.pose_ind;
+  int const D_atom_pose_ind = res_dat.block_coord_offset + Dind;
+  int const H_atom_pose_ind =
+      res_dat.block_coord_offset + tile_start + don_h_atom_tile_ind;
+  Real3 dE_dW = dE_dWxyz[pose_ind][D_atom_pose_ind][which_water];
+
+  common::accumulate<Dev, Vec<Real, 3>>::add(
+      dE_d_pose_coords[pose_ind][D_atom_pose_ind], dW.dD * dE_dW);
+  common::accumulate<Dev, Vec<Real, 3>>::add(
+      dE_d_pose_coords[pose_ind][H_atom_pose_ind], dW.dH * dE_dW);
+}
+
+template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>
+void TMOL_DEVICE_FUNC d_build_water_for_acc(
+    TView<Real, 1, Dev> sp2_water_tors,
+    TView<Real, 1, Dev> sp3_water_tors,
+    TView<Real, 1, Dev> ring_water_tors,
+    TView<Vec<Real, 3>, 3, Dev> dE_dWxyz,
+    TView<Vec<Real, 3>, 2, Dev> dE_d_pose_coords,
+    WaterGenData<Dev, Real, Int> wat_gen_dat,
+    int tile_start,
+    int acc_ind,   // [0..n_acc)
+    int water_ind  // [0..MAX_N_WATER)
+) {
+  using Real3 = Vec<Real, 3>;
+  auto res_dat = wat_gen_dat.r_dat;
+  auto context_dat = wat_gen_dat.pose_context;
+
+  unsigned char hyb = res_dat.acc_hybridization[acc_ind];
+  Real tor(0), ang(0);
+  if (hyb == hbond::AcceptorHybridization::sp2) {
+    if (water_ind >= sp2_water_tors.size(0)) {
+      return;
+    } else {
+      tor = sp2_water_tors[water_ind];
+      ang = context_dat.global_params.lkb_water_angle_sp2;
+    }
+  } else if (hyb == hbond::AcceptorHybridization::sp3) {
+    if (water_ind >= sp3_water_tors.size(0)) {
+      return;
+    } else {
+      tor = sp3_water_tors[water_ind];
+      ang = context_dat.global_params.lkb_water_angle_sp3;
+    }
+  } else if (hyb == hbond::AcceptorHybridization::ring) {
+    if (water_ind >= ring_water_tors.size(0)) {
+      return;
+    } else {
+      tor = ring_water_tors[water_ind];
+      ang = context_dat.global_params.lkb_water_angle_ring;
+    }
+  }
+
+  unsigned char acc_atom_tile_ind = res_dat.acc_tile_inds[acc_ind];
+
+  Real3 Axyz = common::coord_from_shared(res_dat.coords, acc_atom_tile_ind);
+  bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds{
+      context_dat.pose_stack_inter_residue_connections[context_dat.pose_ind],
+      context_dat.pose_stack_block_type[context_dat.pose_ind],
+      context_dat.block_type_n_all_bonds,
+      context_dat.block_type_all_bonds,
+      context_dat.block_type_atom_all_bond_ranges,
+      context_dat.block_type_atoms_forming_chemical_bonds};
+  bonded_atom::BlockCentricAtom<Int> A{
+      res_dat.block_ind, res_dat.block_type, tile_start + acc_atom_tile_ind};
+  auto acc_bases = hbond::BlockCentricAcceptorBases<Int>::for_acceptor(
+      A, hyb, bonds, context_dat.block_type_atom_is_hydrogen);
+
+  Real3 Bxyz =
+      load_coord<TILE_SIZE>(acc_bases.B, res_dat, context_dat, tile_start);
+  Real3 B0xyz =
+      load_coord<TILE_SIZE>(acc_bases.B0, res_dat, context_dat, tile_start);
+
+  if (hyb == hbond::AcceptorHybridization::ring) {
+    // take the bisector of the line between B and B0 to build from
+    Bxyz = (Bxyz + B0xyz) / 2;
+  }
+
+  auto dW = build_acc_water<Real>::dV(
+      Axyz, Bxyz, B0xyz, context_dat.global_params.lkb_water_dist, ang, tor);
+
+  // Now record the coordinates to global memory:
+  // offset the water by the number of polar hydrogens on
+  // this acceptor
+  unsigned char water_offset = res_dat.acc_n_attached_H[acc_ind];
+
+  int const pose_ind = context_dat.pose_ind;
+  int const A_atom_pose_ind = res_dat.block_coord_offset + A.atom;
+  int const B_atom_pose_ind =
+      (acc_bases.B.block == A.block
+           ? res_dat.block_coord_offset
+           : context_dat
+                 .pose_stack_block_coord_offset[pose_ind][acc_bases.B.block])
+      + acc_bases.B.atom;
+  int const B0_atom_pose_ind =
+      (acc_bases.B0.block == A.block
+           ? res_dat.block_coord_offset
+           : context_dat
+                 .pose_stack_block_coord_offset[pose_ind][acc_bases.B0.block])
+      + acc_bases.B0.atom;
+
+  Real3 dE_dW = dE_dWxyz[pose_ind][A_atom_pose_ind][water_ind + water_offset];
+
+  common::accumulate<Dev, Vec<Real, 3>>::add(
+      dE_d_pose_coords[pose_ind][A_atom_pose_ind], dW.dA * dE_dW);
+  if (hyb == hbond::AcceptorHybridization::ring) {
+    // Since the Bxyz coordinate for ring acceptors is the
+    // bisector of the B and B0 atoms, apply half of the
+    // derivative to B and half to B0
+    common::accumulate<Dev, Vec<Real, 3>>::add(
+        dE_d_pose_coords[pose_ind][B_atom_pose_ind], 0.5 * dW.dB * dE_dW);
+    common::accumulate<Dev, Vec<Real, 3>>::add(
+        dE_d_pose_coords[pose_ind][B0_atom_pose_ind], 0.5 * dW.dB * dE_dW);
+  } else {
+    common::accumulate<Dev, Vec<Real, 3>>::add(
+        dE_d_pose_coords[pose_ind][B_atom_pose_ind], dW.dB * dE_dW);
+  }
+  common::accumulate<Dev, Vec<Real, 3>>::add(
+      dE_d_pose_coords[pose_ind][B0_atom_pose_ind], dW.dB0 * dE_dW);
+}
 
 }  // namespace potentials
 }  // namespace lk_ball

@@ -793,6 +793,8 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     int cp_separation,
     TView<Eigen::Matrix<Real, 3, 1>, 3, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
+  using bonded_atom::BlockCentricAtom;
+  using bonded_atom::BlockCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
@@ -878,7 +880,8 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     // code duplication
 
     auto accum_for_acc_atom = ([&] TMOL_DEVICE_FUNC(
-                                   BlockCentricAtom<Int> const &bcat,
+                                   bonded_atom::BlockCentricAtom<Int> const
+                                       &bcat,
                                    Real3 dV_dat) {
       bool any_nonzero = false;
       for (int j = 0; j < 3; ++j) {
