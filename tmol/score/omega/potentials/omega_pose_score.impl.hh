@@ -28,6 +28,8 @@
 
 #include <chrono>
 
+#include "potentials.hh"
+
 // The maximum number of inter-residue chemical bonds
 #define MAX_N_CONN 4
 #define TILE_SIZE 32
@@ -39,6 +41,8 @@ namespace potentials {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
+template <typename Real>
+using CoordQuad = Eigen::Matrix<Real, 4, 3>;
 
 template <typename Real, typename Int, tmol::Device D>
 TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
@@ -117,6 +121,7 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     int block_coord_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
 
+    CoordQuad<Real> omegacoords;
     for (int i = 0; i < 4; i++) {
       const TensorAccessor<Int, 1, D>& omega_a_uaid =
           block_type_omega_quad_uaids[block_type_index][i];
@@ -132,7 +137,9 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           block_type_omega_quad_uaids,
           block_type_atom_downstream_of_conn);
 
-      const Vec<Real, 3>& omega_a_coord = coords[pose_index][omega_a_ind];
+      const Vec<Real, 3>& omega_coord = coords[pose_index][omega_a_ind];
+
+      omegacoords.row(i) = omega_coord;
 
       /*const TensorAccessor<Int, 1, D> & omega_a_uaid =
       block_type_omega_quad_uaids[block_type_index][0]; const
@@ -152,11 +159,25 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
       if (pose_index == 0 && block_index == 0) {
 #ifndef __CUDACC__
-        std::cout << omega_a_coord << std::endl << std::endl;
+        std::cout << omega_coord << std::endl << std::endl;
         // std::cout << omega_b_coord << std::endl << std::endl;
 #endif
       }
     }
+
+    auto omega = omega_V_dV<D, Real, Int>(omegacoords, global_params[0].K);
+
+    accumulate<D, Real>::add(V[pose_index], common::get<0>(omega));
+    /*for (int j = 0; j < 4; ++j) {
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[pose_index][(int)omega_indices[pose_index][i].atoms[j]],
+          common::get<1>(omega).row(j));
+    }*/
+
+#ifndef __CUDACC__
+    std::cout << common::get<0>(omega) << std::endl << std::endl;
+    // std::cout << omega_b_coord << std::endl << std::endl;
+#endif
 
     /*auto omega_a = block_type_omega_quad_uaids;
     for (int ii = 0; ii < omega_a.size(0); ++ii) {
