@@ -87,7 +87,6 @@ class OmegaPoseScoreOp
       Tensor block_type_omega_quad_uaids,
       Tensor block_type_atom_downstream_of_conn,
       Tensor global_params) {
-    // at::Tensor score;
     at::Tensor score;
     at::Tensor dscore_dcoords;
 

@@ -106,10 +106,11 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
     bool compute_derivs
 
-    ) -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>> {
+    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
   int const n_poses = coords.size(0);
-  auto V_t = TPack<Real, 1, D>::zeros({n_poses});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({n_poses, coords.size(1)});
+  int const max_n_atoms = coords.size(1);
+  auto V_t = TPack<Real, 2, D>::zeros({1, n_poses});
+  auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({1, n_poses, max_n_atoms});
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
@@ -154,7 +155,7 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
     auto omega = omega_V_dV<D, Real, Int>(omegacoords, global_params[0].K);
 
-    accumulate<D, Real>::add(V[pose_index], common::get<0>(omega));
+    accumulate<D, Real>::add(V[0][pose_index], common::get<0>(omega));
     /*for (int j = 0; j < 4; ++j) {
       accumulate<D, Vec<Real, 3>>::add(
           dV_dx[pose_index][(int)omega_indices[pose_index][i].atoms[j]],
