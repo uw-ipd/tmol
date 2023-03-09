@@ -13,8 +13,6 @@ namespace potentials {
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
-using namespace tmol::score::common;
-
 #undef def
 
 }  // namespace potentials

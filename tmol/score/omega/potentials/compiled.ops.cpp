@@ -17,6 +17,8 @@ namespace score {
 namespace omega {
 namespace potentials {
 
+using namespace tmol::score::common;
+
 using torch::Tensor;
 using torch::autograd::AutogradContext;
 using torch::autograd::Function;
