@@ -120,8 +120,6 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto func = ([=] TMOL_DEVICE_FUNC(int pose_index, int block_index) {
-    // printf("%d,%d %f\n", pose_index, block_index, global_params[0].K);
-
     int block_type_index = pose_stack_block_type[pose_index][block_index];
 
     int block_coord_offset =
@@ -162,35 +160,10 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           dV_dx[pose_index][(int)omega_indices[pose_index][i].atoms[j]],
           common::get<1>(omega).row(j));
     }*/
-
-#ifndef __CUDACC__
-    // std::cout << common::get<0>(omega) << std::endl << std::endl;
-    // std::cout << omega_b_coord << std::endl << std::endl;
-#endif
-
-    /*auto omega_a = block_type_omega_quad_uaids;
-    for (int ii = 0; ii < omega_a.size(0); ++ii) {
-      printf("%i: ", ii);
-      for (int jj = 0; jj < omega_a.size(1); ++jj) {
-        for (int kk = 0; kk < omega_a.size(2); ++kk) {
-          printf("%i ", omega_a[ii][jj][kk]);
-        }
-        printf("  ");
-      }
-      printf("\n");
-    }*/
   });
 
-  // int num_Vs = coords.size(2);
-  // DeviceDispatch<D>::template foreach_workgroup<launch_t>(num_Vs, func);
   int total_blocks = pose_stack_block_coord_offset.size(1);
   DeviceDispatch<D>::forall_stacks(n_poses, total_blocks, func);
-
-  printf("%f", V[0]);
-#ifndef __CUDACC__
-  // printf("%f", V[0]);
-  // std::cout << omega_b_coord << std::endl << std::endl;
-#endif
 
   return {V_t, dV_dx_t};
 }  // namespace potentials
