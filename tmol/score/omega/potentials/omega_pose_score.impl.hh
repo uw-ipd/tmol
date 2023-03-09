@@ -68,6 +68,12 @@ TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
         pose_stack_inter_block_connections[pose_index][block_index]
                                           [connection_index];
     int other_block_index = connection[0];
+
+    if (other_block_index == -1) {
+      // This residue doesn't exist!
+      return -1;
+    }
+
     int other_connection_index = connection[1];
     int other_block_type_index =
         pose_stack_block_type[pose_index][other_block_index];
@@ -137,32 +143,15 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           block_type_omega_quad_uaids,
           block_type_atom_downstream_of_conn);
 
+      if (omega_a_ind == -1) {
+        // The UAID resolution failed! In this case, we should just skip the
+        // omega for this block
+        return;
+      }
+
       const Vec<Real, 3>& omega_coord = coords[pose_index][omega_a_ind];
 
       omegacoords.row(i) = omega_coord;
-
-      /*const TensorAccessor<Int, 1, D> & omega_a_uaid =
-      block_type_omega_quad_uaids[block_type_index][0]; const
-      TensorAccessor<Int, 1, D> & omega_b_uaid =
-      block_type_omega_quad_uaids[block_type_index][1]; const
-      TensorAccessor<Int, 1, D> & omega_c_uaid =
-      block_type_omega_quad_uaids[block_type_index][2]; const
-      TensorAccessor<Int, 1, D> & omega_d_uaid =
-      block_type_omega_quad_uaids[block_type_index][3];
-
-      const Vec<Real, 3> & omega_a_coord = coords[pose_index][block_coord_offset
-      + omega_a_uaid[0]]; const Vec<Real, 3> & omega_b_coord =
-      coords[pose_index][block_coord_offset + omega_b_uaid[0]]; const Vec<Real,
-      3> & omega_c_coord = coords[pose_index][block_coord_offset +
-      omega_c_uaid[0]]; const Vec<Real, 3> & omega_d_coord =
-      coords[pose_index][block_coord_offset + omega_d_uaid[0]];*/
-
-      if (pose_index == 0 && block_index == 0) {
-#ifndef __CUDACC__
-        std::cout << omega_coord << std::endl << std::endl;
-        // std::cout << omega_b_coord << std::endl << std::endl;
-#endif
-      }
     }
 
     auto omega = omega_V_dV<D, Real, Int>(omegacoords, global_params[0].K);
@@ -175,7 +164,7 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     }*/
 
 #ifndef __CUDACC__
-    std::cout << common::get<0>(omega) << std::endl << std::endl;
+    // std::cout << common::get<0>(omega) << std::endl << std::endl;
     // std::cout << omega_b_coord << std::endl << std::endl;
 #endif
 
@@ -196,6 +185,12 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   // DeviceDispatch<D>::template foreach_workgroup<launch_t>(num_Vs, func);
   int total_blocks = pose_stack_block_coord_offset.size(1);
   DeviceDispatch<D>::forall_stacks(n_poses, total_blocks, func);
+
+  printf("%f", V[0]);
+#ifndef __CUDACC__
+  // printf("%f", V[0]);
+  // std::cout << omega_b_coord << std::endl << std::endl;
+#endif
 
   return {V_t, dV_dx_t};
 }  // namespace potentials
