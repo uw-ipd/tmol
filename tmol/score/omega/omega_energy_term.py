@@ -5,28 +5,23 @@ from ..bond_dependent_term import BondDependentTerm
 
 from tmol.database import ParameterDatabase
 from tmol.score.common.stack_condense import tile_subset_indices
-from tmol.score.omega.params import OmegaParamResolver
+from tmol.score.omega.params import OmegaGlobalParams
 from tmol.score.omega.omega_whole_pose_module import OmegaWholePoseScoringModule
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.types.torch import Tensor
-
-# from tmol.score.omega.potentials.compiled import (
-#    score_ljlk_inter_system_scores,
-# )
 
 
 class OmegaEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     tile_size: int = 32
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
-        omega_param_resolver = OmegaParamResolver.from_database(
-            param_db.scoring.omega, device=device
-        )
         super(OmegaEnergyTerm, self).__init__(param_db=param_db, device=device)
-        self.global_params = omega_param_resolver.global_params
+
+        self.global_params = OmegaGlobalParams.from_database(
+            param_db.scoring.omega, device
+        )
         self.tile_size = OmegaEnergyTerm.tile_size
 
     @classmethod
@@ -82,12 +77,6 @@ class OmegaEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
-
-        # or i in range(pbt.omega_quad_uaids.size(dim=0)):
-        # print(pbt.omega_quad_uaids[i][2][2].item())
-
-        print("DEVICES")
-        print(pbt.omega_quad_uaids.device)
 
         return OmegaWholePoseScoringModule(
             pose_stack_block_coord_offset=pose_stack.block_coord_offset,
