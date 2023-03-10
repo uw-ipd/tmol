@@ -127,6 +127,7 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         pose_stack_block_coord_offset[pose_index][block_index];
 
     CoordQuad<Real> omegacoords;
+    Int omega_indices[4];
     for (int i = 0; i < 4; i++) {
       const TensorAccessor<Int, 1, D>& omega_a_uaid =
           block_type_omega_quad_uaids[block_type_index][i];
@@ -151,16 +152,16 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       const Vec<Real, 3>& omega_coord = coords[pose_index][omega_a_ind];
 
       omegacoords.row(i) = omega_coord;
+      omega_indices[i] = (omega_a_ind);
     }
 
     auto omega = omega_V_dV<D, Real, Int>(omegacoords, global_params[0].K);
 
     accumulate<D, Real>::add(V[0][pose_index], common::get<0>(omega));
-    /*for (int j = 0; j < 4; ++j) {
+    for (int j = 0; j < 4; ++j) {
       accumulate<D, Vec<Real, 3>>::add(
-          dV_dx[pose_index][(int)omega_indices[pose_index][i].atoms[j]],
-          common::get<1>(omega).row(j));
-    }*/
+          dV_dx[0][pose_index][omega_indices[j]], common::get<1>(omega).row(j));
+    }
   });
 
   int total_blocks = pose_stack_block_coord_offset.size(1);

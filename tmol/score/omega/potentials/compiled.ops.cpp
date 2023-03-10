@@ -108,19 +108,14 @@ class OmegaPoseScoreOp
                   TCAST(global_params),
                   coords.requires_grad());
 
-          std::cout << "NO CRASH" << std::endl;
-
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
-          std::cout << "NO CRASH" << std::endl;
         }));
 #ifdef __CUDA_ARCH__
     cudaDeviceSynchronize();
 #endif
 
-    std::cout << "NO CRASH" << std::endl;
-
-    // ctx->save_for_backward({dscore_dcoords});
+    ctx->save_for_backward({dscore_dcoords});
     return score;
   }
 
@@ -143,20 +138,12 @@ class OmegaPoseScoreOp
 
     return {
         dscore_dcoords,
-        torch::Tensor(),
 
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
         torch::Tensor(),
         torch::Tensor(),
     };
@@ -172,7 +159,6 @@ Tensor omega_pose_scores_op(
     Tensor block_type_omega_quad_uaids,
     Tensor block_type_atom_downstream_of_conn,
     Tensor global_params) {
-  std::cout << "TESTING" << std::endl;
   return OmegaPoseScoreOp<DispatchMethod>::apply(
       coords,
       pose_stack_block_coord_offset,
