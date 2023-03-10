@@ -13,9 +13,7 @@ def test_smoke(default_database, torch_device: torch.device):
     omega_energy = OmegaEnergyTerm(param_db=default_database, device=torch_device)
 
     assert omega_energy.device == torch_device
-    assert omega_energy.hb_param_db.global_param_table.device == torch_device
-    assert omega_energy.hb_param_db.pair_param_table.device == torch_device
-    assert omega_energy.hb_param_db.pair_poly_table.device == torch_device
+    assert omega_energy.global_params.K.device == torch_device
 
 
 def test_whole_pose_scoring_module_gradcheck_whole_pose(
