@@ -144,9 +144,7 @@ class OmegaPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-    };
+        torch::Tensor()};
   }
 };
 
