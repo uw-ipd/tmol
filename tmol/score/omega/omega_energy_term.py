@@ -14,15 +14,12 @@ from tmol.pose.pose_stack import PoseStack
 
 
 class OmegaEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
-    tile_size: int = 32
-
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(OmegaEnergyTerm, self).__init__(param_db=param_db, device=device)
 
         self.global_params = OmegaGlobalParams.from_database(
             param_db.scoring.omega, device
         )
-        self.tile_size = OmegaEnergyTerm.tile_size
 
     @classmethod
     def score_types(cls):

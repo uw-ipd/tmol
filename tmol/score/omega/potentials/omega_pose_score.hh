@@ -15,7 +15,6 @@
 
 #include "omega.hh"
 #include "params.hh"
-// #include "rotamer_pair_energy_lj.hh"
 
 namespace tmol {
 namespace score {

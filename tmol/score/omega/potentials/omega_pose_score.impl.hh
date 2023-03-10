@@ -15,8 +15,6 @@
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/launch_box_macros.hh>
-#include <tmol/score/common/sphere_overlap.impl.hh>
-#include <tmol/score/common/tile_atom_pair_evaluation.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/warp_segreduce.hh>
 #include <tmol/score/common/warp_stride_reduce.hh>
@@ -29,10 +27,6 @@
 #include <chrono>
 
 #include "potentials.hh"
-
-// The maximum number of inter-residue chemical bonds
-#define MAX_N_CONN 4
-#define TILE_SIZE 32
 
 namespace tmol {
 namespace score {

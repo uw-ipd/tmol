@@ -3,10 +3,6 @@ import yaml
 import attr
 import cattr
 
-from typing import Tuple, List
-
-from tmol.utility.units import Angle
-
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class OmegaGlobalParameters:
