@@ -29,7 +29,7 @@ class OmegaEnergyTerm(EnergyTerm):
         return tmol.score.terms.omega_creator.OmegaTermCreator.score_types()
 
     def n_bodies(self):
-        return 2
+        return 1
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(OmegaEnergyTerm, self).setup_block_type(block_type)
