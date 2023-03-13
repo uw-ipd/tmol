@@ -111,9 +111,6 @@ class OmegaPoseScoreOp
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
         }));
-#ifdef __CUDA_ARCH__
-    cudaDeviceSynchronize();
-#endif
 
     ctx->save_for_backward({dscore_dcoords});
     return score;
