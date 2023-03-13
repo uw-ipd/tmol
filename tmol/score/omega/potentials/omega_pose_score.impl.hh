@@ -111,8 +111,6 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
-  // Define nt and reduce_t
-  CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto func = ([=] TMOL_DEVICE_FUNC(int pose_index, int block_index) {
     int block_type_index = pose_stack_block_type[pose_index][block_index];
