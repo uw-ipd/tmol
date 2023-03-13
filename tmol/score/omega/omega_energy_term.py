@@ -1,10 +1,8 @@
 import torch
 
-from ..atom_type_dependent_term import AtomTypeDependentTerm
-from ..bond_dependent_term import BondDependentTerm
+from ..energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
-from tmol.score.common.stack_condense import tile_subset_indices
 from tmol.score.omega.params import OmegaGlobalParams
 from tmol.score.omega.omega_whole_pose_module import OmegaWholePoseScoringModule
 
@@ -13,13 +11,16 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
 
-class OmegaEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
+class OmegaEnergyTerm(EnergyTerm):
+    device: torch.device  # = attr.ib()
+
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(OmegaEnergyTerm, self).__init__(param_db=param_db, device=device)
 
         self.global_params = OmegaGlobalParams.from_database(
             param_db.scoring.omega, device
         )
+        self.device = device
 
     @classmethod
     def score_types(cls):
