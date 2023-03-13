@@ -174,7 +174,7 @@ Tensor score_op(Tensor coords, Tensor params) {
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("score_omega", &score_op<common::ForallDispatch>);
-  m.def("score_omega_new", &omega_pose_scores_op<DeviceOperations>);
+  m.def("omega_pose_scores", &omega_pose_scores_op<DeviceOperations>);
 }
 
 }  // namespace potentials

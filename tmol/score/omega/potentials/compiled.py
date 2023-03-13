@@ -21,4 +21,4 @@ load(
 _ops = getattr(torch.ops, modulename(__name__))
 
 score_omega = _ops.score_omega
-omega_pose_scores = _ops.score_omega_new
+omega_pose_scores = _ops.omega_pose_scores
