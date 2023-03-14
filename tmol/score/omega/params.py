@@ -5,8 +5,6 @@ import torch
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
-from tmol.types.array import NDArray
-from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
 
 from tmol.database.scoring.omega import OmegaDatabase

@@ -70,9 +70,6 @@ class OmegaEnergyTerm(EnergyTerm):
     def setup_poses(self, poses: PoseStack):
         super(OmegaEnergyTerm, self).setup_poses(poses)
 
-    def setup_poses(self, poses: PoseStack):
-        super(OmegaEnergyTerm, self).setup_poses(poses)
-
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
 
