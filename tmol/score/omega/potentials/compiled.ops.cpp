@@ -133,15 +133,14 @@ class OmegaPoseScoreOp
     int i = 0;
     auto dscore_dcoords = result[i++];
 
-    return {
-        dscore_dcoords,
+    return {dscore_dcoords,
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor()};
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor()};
   }
 };
 
