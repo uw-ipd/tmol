@@ -87,7 +87,7 @@ def make_fixture(
         logger=logger,
         warner=warner,
         disabled=disabled,
-        cprofile=cprofile,
+        use_cprofile=cprofile,
     )
 
     benchmark.extra_info.update(extra_info)
@@ -127,7 +127,7 @@ def make_subfixture(
         logger=parent._logger,
         warner=parent._warner,
         disabled=parent.disabled,
-        cprofile=parent.cprofile,
+        use_cprofile=parent.use_cprofile,
     )
 
     benchmark.extra_info.update(parent.extra_info)
