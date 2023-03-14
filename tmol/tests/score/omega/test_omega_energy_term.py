@@ -2,6 +2,7 @@ import numpy
 import torch
 
 from tmol.score.omega.omega_energy_term import OmegaEnergyTerm
+from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.autograd import gradcheck
@@ -15,8 +16,22 @@ def test_smoke(default_database, torch_device: torch.device):
     assert omega_energy.global_params.K.device == torch_device
 
 
+def test_annotate_omega_uaids(ubq_res, default_database, torch_device: torch.device):
+    omega_energy = OmegaEnergyTerm(param_db=default_database, device=torch_device)
+
+    bt_list = residue_types_from_residues(ubq_res)
+    pbt = PackedBlockTypes.from_restype_list(bt_list, torch_device)
+
+    for bt in bt_list:
+        omega_energy.setup_block_type(bt)
+        assert hasattr(bt, "omega_quad_uaids")
+    omega_energy.setup_packed_block_types(pbt)
+    assert hasattr(pbt, "omega_quad_uaids")
+    assert pbt.omega_quad_uaids.device == torch_device
+
+
 def test_whole_pose_scoring_module_gradcheck_whole_pose(
-    rts_ubq_res, default_database, torch_device
+    rts_ubq_res, default_database, torch_device: torch.device
 ):
 
     omega_energy = OmegaEnergyTerm(param_db=default_database, device=torch_device)
@@ -37,7 +52,9 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
     gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-2, rtol=5e-3)
 
 
-def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
+def test_whole_pose_scoring_module_10(
+    rts_ubq_res, default_database, torch_device: torch.device
+):
     n_poses = 10
     gold_vals = numpy.tile(numpy.array([[6.741275]], dtype=numpy.float32), (n_poses))
     omega_energy = OmegaEnergyTerm(param_db=default_database, device=torch_device)
