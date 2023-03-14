@@ -78,30 +78,35 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     CoordQuad<Real> omegacoords;
     Int omega_indices[4];
     for (int i = 0; i < 4; i++) {
-      const TensorAccessor<Int, 1, D>& omega_a_uaid =
+      const TensorAccessor<Int, 1, D>& omega_atom_uaid =
           block_type_omega_quad_uaids[block_type_index][i];
-      int omega_a_ind = resolve_atom_from_uaid<Real, Int, D>(
-          omega_a_uaid,
+
+      // Check to see if the omega uaids are actually defined for this block
+      // type. If the atom offset [0] or the connection index [1] are both -1,
+      // this is a sentinel for an undefined omega.
+      if (omega_atom_uaid[0] == -1 && omega_atom_uaid[1] == -1) return;
+
+      int omega_atom_ind = resolve_atom_from_uaid<Real, Int, D>(
+          omega_atom_uaid,
           block_index,
           pose_index,
 
-          coords,
           pose_stack_block_coord_offset,
           pose_stack_block_type,
           pose_stack_inter_block_connections,
           block_type_omega_quad_uaids,
           block_type_atom_downstream_of_conn);
 
-      if (omega_a_ind == -1) {
+      if (omega_atom_ind == -1) {
         // The UAID resolution failed! In this case, we should just skip the
         // omega for this block
         return;
       }
 
-      const Vec<Real, 3>& omega_coord = coords[pose_index][omega_a_ind];
+      const Vec<Real, 3>& omega_coord = coords[pose_index][omega_atom_ind];
 
       omegacoords.row(i) = omega_coord;
-      omega_indices[i] = (omega_a_ind);
+      omega_indices[i] = (omega_atom_ind);
     }
 
     auto omega = omega_V_dV<D, Real, Int>(omegacoords, global_params[0].K);

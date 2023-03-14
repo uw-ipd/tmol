@@ -23,7 +23,6 @@ TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
     int block_index,
     int pose_index,
 
-    TView<Vec<Real, 3>, 2, D> coords,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,

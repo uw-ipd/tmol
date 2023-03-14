@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from ..energy_term import EnergyTerm
 
@@ -37,10 +38,10 @@ class OmegaEnergyTerm(EnergyTerm):
         if hasattr(block_type, "omega_quad_uaids"):
             return
 
-        omega_quad_uaids = torch.full((4, 3), -1, dtype=torch.int32)
+        omega_quad_uaids = numpy.full((4, 3), -1, dtype=numpy.float32)
         if "omega" in block_type.torsion_to_uaids:
-            omega_quad_uaids = torch.tensor(
-                block_type.torsion_to_uaids["omega"], dtype=torch.int32
+            omega_quad_uaids = numpy.array(
+                block_type.torsion_to_uaids["omega"], dtype=numpy.float32
             )
 
         setattr(block_type, "omega_quad_uaids", omega_quad_uaids)
@@ -63,7 +64,7 @@ class OmegaEnergyTerm(EnergyTerm):
 
         for i, bt in enumerate(packed_block_types.active_block_types):
             uaids = bt.omega_quad_uaids
-            omega_quad_uaids[i, :] = uaids
+            omega_quad_uaids[i, :] = _t(uaids)
 
         setattr(packed_block_types, "omega_quad_uaids", omega_quad_uaids)
 
