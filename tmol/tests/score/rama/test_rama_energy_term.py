@@ -8,7 +8,7 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.tests.autograd import gradcheck
 
 
-def dont_test_smoke(default_database, torch_device):
+def test_smoke(default_database, torch_device):
 
     rama_energy = RamaEnergyTerm(param_db=default_database, device=torch_device)
 
@@ -51,12 +51,8 @@ def test_annotate_restypes(
     assert pbt.rama_params.bt_torsion_atoms.device == torch_device
 
 
-def dont_test_whole_pose_scoring_module_smoke(
-    rts_ubq_res, default_database, torch_device
-):
-    gold_vals = numpy.array(
-        [[421.00595092], [171.192932], [1.57858872], [10.99459934]], dtype=numpy.float32
-    )
+def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
+    gold_vals = numpy.array([[-12.743369]], dtype=numpy.float32)
     rama_energy = RamaEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device
@@ -78,7 +74,7 @@ def dont_test_whole_pose_scoring_module_smoke(
     )
 
 
-def dont_test_whole_pose_scoring_module_gradcheck_partial_pose(
+def test_whole_pose_scoring_module_gradcheck_partial_pose(
     rts_ubq_res, default_database, torch_device
 ):
 
@@ -93,9 +89,7 @@ def dont_test_whole_pose_scoring_module_gradcheck_partial_pose(
 
     rama_pose_scorer = rama_energy.render_whole_pose_scoring_module(p1)
 
-    weights = torch.tensor(
-        [[0.75], [1.25], [0.625], [0.8125]], dtype=torch.float32, device=torch_device
-    )
+    weights = torch.tensor([[0.75]], dtype=torch.float32, device=torch_device)
 
     def score(coords):
         scores = rama_pose_scorer(coords)
@@ -113,15 +107,9 @@ def dont_test_whole_pose_scoring_module_gradcheck_partial_pose(
     )
 
 
-def dont_test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
+def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
     n_poses = 10
-    gold_vals = numpy.tile(
-        numpy.array(
-            [[421.00595092], [171.192932], [1.57858872], [10.99459934]],
-            dtype=numpy.float32,
-        ),
-        (n_poses),
-    )
+    gold_vals = numpy.tile(numpy.array([[-12.743369]], dtype=numpy.float32), (n_poses))
     rama_energy = RamaEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device

@@ -11,6 +11,8 @@ class RamaWholePoseScoringModule(torch.nn.Module):
         pose_stack_inter_residue_connections,
         bt_atom_downstream_of_conn,
         bt_rama_table,
+        bt_upper_conn_ind,
+        bt_is_pro,
         bt_rama_torsion_atoms,
         rama_tables,
         table_params,
@@ -27,6 +29,8 @@ class RamaWholePoseScoringModule(torch.nn.Module):
         )
         self.bt_atom_downstream_of_conn = _p(bt_atom_downstream_of_conn)
         self.bt_rama_table = _p(bt_rama_table)
+        self.bt_upper_conn_ind = _p(bt_upper_conn_ind)
+        self.bt_is_pro = _p(bt_is_pro)
         self.bt_rama_torsion_atoms = _p(bt_rama_torsion_atoms)
         self.rama_tables = _p(rama_tables)
         self.table_params = _p(table_params)
@@ -44,6 +48,8 @@ class RamaWholePoseScoringModule(torch.nn.Module):
             self.pose_stack_inter_residue_connections,
             self.bt_atom_downstream_of_conn,
             self.bt_rama_table,
+            self.bt_upper_conn_ind,
+            self.bt_is_pro,
             self.bt_rama_torsion_atoms,
             self.rama_tables,
             self.table_params,

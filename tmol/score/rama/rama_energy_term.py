@@ -62,6 +62,9 @@ class RamaEnergyTerm(EnergyTerm):
         rname = block_type.name
         lookups = numpy.array([[rname, "_"], [rname, "PRO"]], dtype=object)
         table_inds = self.param_resolver.rama_lookup.index.get_indexer(lookups)
+        table_inds = self.param_resolver.rama_lookup.iloc[table_inds, :][
+            "table_id"
+        ].values
 
         rama_torsion_atoms = numpy.full((2, 4, 3), -1, dtype=numpy.int32)
 
@@ -130,39 +133,18 @@ class RamaEnergyTerm(EnergyTerm):
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
-        ljlk_global_params = self.ljlk_param_resolver.global_params
 
         return RamaWholePoseScoringModule(
             pose_stack_block_coord_offset=pose_stack.block_coord_offset,
             pose_stack_block_type=pose_stack.block_type_ind,
             pose_stack_inter_residue_connections=pose_stack.inter_residue_connections,
-            pose_stack_min_bond_separation=pose_stack.min_block_bondsep,
-            pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
-            bt_n_atoms=pbt.n_atoms,
-            bt_n_interblock_bonds=pbt.n_conn,
-            bt_atoms_forming_chemical_bonds=pbt.conn_atom,
-            bt_n_all_bonds=pbt.n_all_bonds,
-            bt_all_bonds=pbt.all_bonds,
-            bt_atom_all_bond_ranges=pbt.atom_all_bond_ranges,
-            bt_tile_n_donH=pbt.hbpbt_params.tile_n_donH,
-            bt_tile_n_acc=pbt.hbpbt_params.tile_n_acc,
-            bt_tile_donH_inds=pbt.hbpbt_params.tile_donH_inds,
-            bt_tile_don_hvy_inds=pbt.hbpbt_params.tile_donH_hvy_inds,
-            bt_tile_which_donH_for_hvy=pbt.hbpbt_params.tile_which_donH_of_donH_hvy,
-            bt_tile_acc_inds=pbt.hbpbt_params.tile_acc_inds,
-            bt_tile_hybridization=pbt.hbpbt_params.tile_acceptor_hybridization,
-            bt_tile_acc_n_attached_H=pbt.hbpbt_params.tile_acceptor_n_attached_H,
-            bt_atom_is_hydrogen=pbt.hbpbt_params.is_hydrogen,
-            bt_tile_n_polar_atoms=pbt.rama_params.tile_n_polar_atoms,
-            bt_tile_n_occluder_atoms=pbt.rama_params.tile_n_occluder_atoms,
-            bt_tile_pol_occ_inds=pbt.rama_params.tile_pol_occ_inds,
-            bt_tile_rama_params=pbt.rama_params.tile_rama_params,
-            bt_path_distance=pbt.bond_separation,
-            rama_global_params=self.stack_rama_global_params(),
-            water_gen_global_params=self.stack_rama_water_gen_global_params(),
-            sp2_water_tors=ljlk_global_params.lkb_water_tors_sp2,
-            sp3_water_tors=ljlk_global_params.lkb_water_tors_sp3,
-            ring_water_tors=ljlk_global_params.lkb_water_tors_ring,
+            bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
+            bt_rama_table=pbt.rama_params.bt_table,
+            bt_upper_conn_ind=pbt.rama_params.bt_upper_conn_ind,
+            bt_is_pro=pbt.rama_params.bt_is_pro,
+            bt_rama_torsion_atoms=pbt.rama_params.bt_torsion_atoms,
+            rama_tables=self.tables,
+            table_params=self.table_params,
         )
 
     def _tfloat(self, ts):
