@@ -16,7 +16,6 @@ from tmol.numeric.bspline import BSplineInterpolation
 
 from tmol.database.scoring.rama import RamaDatabase
 from tmol.types.tensor import TensorGroup
-from tmol.chemical.restypes import uaid
 
 
 # rama parameters

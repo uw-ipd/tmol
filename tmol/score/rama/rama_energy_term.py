@@ -1,25 +1,15 @@
 import numpy
 import torch
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.score.energy_term import EnergyTerm
-from .params import (
-    RamaBlockTypeParams,
-    RamaPackedBlockTypesParams,
-    RamaParams,
-    RamaParamResolver,
-)
+from .params import RamaBlockTypeParams, RamaPackedBlockTypesParams, RamaParamResolver
 from .rama_whole_pose_module import RamaWholePoseScoringModule
-from ..atom_type_dependent_term import AtomTypeDependentTerm
-from ..hbond.hbond_dependent_term import HBondDependentTerm
-from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
 from tmol.database import ParameterDatabase
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.score.common.stack_condense import arg_tile_subset_indices
 
 
 class RamaEnergyTerm(EnergyTerm):
