@@ -107,10 +107,14 @@ class RamaParamResolver(ValidateAttrs):
 class RamaBlockTypeParams:
     # which table to use if upper res is not pro, or if it is
     table_inds: NDArray[numpy.int32][2]
-    rama_torsion_atoms: NDArray[uaid][8]
+    upper_conn_ind: NDArray[numpy.int32][1]
+    is_pro: NDArray[numpy.int32][1]
+    rama_torsion_atoms: NDArray[numpy.int32][8, 3]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class RamaPackedBlockTypesParams:
-    bt_table: Tensor[torch.int32][:]
+    bt_table: Tensor[torch.int32][:, 2]
+    bt_upper_conn_ind: Tensor[torch.int32][:]
+    bt_is_pro: Tensor[torch.int32][:]
     bt_torsion_atoms: Tensor[torch.int32][:, 8, 3]

@@ -1,5 +1,7 @@
 import numpy
 import torch
+from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 from tmol.score.energy_term import EnergyTerm
 from .params import (
@@ -34,17 +36,13 @@ class RamaEnergyTerm(EnergyTerm):
             param_db.scoring.rama, device
         )
 
-        self.tables = _p(self.param_resolver.rama_params.tables)
-        self.table_params = _p(
-            torch.cat(
-                _tfloat(
-                    [
-                        self.param_resolver.rama_params.bbstarts,
-                        self.param_resolver.rama_params.bbsteps,
-                    ]
-                ),
-                dim=1,
-            )
+        self.tables = self.param_resolver.rama_params.tables
+        self.table_params = torch.cat(
+            (
+                self.param_resolver.rama_params.bbstarts.to(torch.float32),
+                self.param_resolver.rama_params.bbsteps.to(torch.float32),
+            ),
+            dim=1,
         )
 
     @classmethod
@@ -77,11 +75,24 @@ class RamaEnergyTerm(EnergyTerm):
             for i, tor in enumerate(["phi", "psi"]):
                 if tor in block_type.torsion_to_uaids:
                     rama_torsion_atoms[i] = uaids_to_np(
-                        block_type.torsion_to_usaids[tor]
+                        block_type.torsion_to_uaids[tor]
                     )
+        rama_torsion_atoms = rama_torsion_atoms.reshape(8, 3)
+
+        upper_conn_id = numpy.full((1,), -1, dtype=numpy.int32)
+        if "up" in block_type.connection_to_cidx:
+            upper_conn_id[0] = block_type.connection_to_cidx["up"]
+        is_pro = numpy.full((1,), 0, dtype=numpy.int32)
+
+        # TO DO: Better logic here to handle proline variants
+        if block_type.name == "PRO":
+            is_pro[0] = 1
 
         bt_rama_params = RamaBlockTypeParams(
-            table_inds=table_inds, rama_torsion_atoms=rama_torsion_atoms
+            table_inds=table_inds,
+            upper_conn_ind=upper_conn_id,
+            is_pro=is_pro,
+            rama_torsion_atoms=rama_torsion_atoms,
         )
         setattr(block_type, "rama_params", bt_rama_params)
 
@@ -90,35 +101,27 @@ class RamaEnergyTerm(EnergyTerm):
         if hasattr(packed_block_types, "rama_params"):
             return
         n_types = packed_block_types.n_types
-        n_tiles = packed_block_types.hbpbt_params.tile_donH_inds.shape[1]
-        tile_size = RamaEnergyTerm.tile_size
 
-        tile_n_polar_atoms = numpy.full((n_types, n_tiles), 0, dtype=numpy.int32)
-        tile_n_occluder_atoms = numpy.full((n_types, n_tiles), 0, dtype=numpy.int32)
-        tile_pol_occ_inds = numpy.full(
-            (n_types, n_tiles, tile_size), -1, dtype=numpy.int32
-        )
-        tile_rama_params = numpy.full(
-            (n_types, n_tiles, tile_size, 8), 0, dtype=numpy.float32
-        )
+        bt_table = numpy.full((n_types, 2), -1, dtype=numpy.int32)
+        bt_upper_conn_ind = numpy.full((n_types,), -1, dtype=numpy.int32)
+        bt_is_pro = numpy.full((n_types,), -1, dtype=numpy.int32)
+        bt_torsion_atoms = numpy.full((n_types, 8, 3), 0, dtype=numpy.int32)
 
         for i, bt in enumerate(packed_block_types.active_block_types):
-            i_lkbp = bt.rama_params
-            i_n_tiles = i_lkbp.tile_n_polar_atoms.shape[0]
-
-            tile_n_polar_atoms[i, :i_n_tiles] = i_lkbp.tile_n_polar_atoms
-            tile_n_occluder_atoms[i, :i_n_tiles] = i_lkbp.tile_n_occluder_atoms
-            tile_pol_occ_inds[i, :i_n_tiles] = i_lkbp.tile_pol_occ_inds
-            tile_rama_params[i, :i_n_tiles] = i_lkbp.tile_rama_params
+            i_rama_params = bt.rama_params
+            bt_table[i] = i_rama_params.table_inds
+            bt_upper_conn_ind[i] = i_rama_params.upper_conn_ind
+            bt_is_pro[i] = i_rama_params.is_pro
+            bt_torsion_atoms[i] = i_rama_params.rama_torsion_atoms
 
         def _t(t):
             return torch.tensor(t, device=packed_block_types.device)
 
-        rama_params = RamaPackedBlockTypeParams(
-            tile_n_polar_atoms=_t(tile_n_polar_atoms),
-            tile_n_occluder_atoms=_t(tile_n_occluder_atoms),
-            tile_pol_occ_inds=_t(tile_pol_occ_inds),
-            tile_rama_params=_t(tile_rama_params),
+        rama_params = RamaPackedBlockTypesParams(
+            bt_table=_t(bt_table),
+            bt_upper_conn_ind=_t(bt_upper_conn_ind),
+            bt_is_pro=_t(bt_is_pro),
+            bt_torsion_atoms=_t(bt_torsion_atoms),
         )
         setattr(packed_block_types, "rama_params", rama_params)
 

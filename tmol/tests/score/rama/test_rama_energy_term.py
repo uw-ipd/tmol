@@ -35,8 +35,6 @@ def test_annotate_restypes(
         rama_energy.setup_block_type(bt)
         assert first_params[bt.name] is bt.rama_params
 
-    return
-
     rama_energy.setup_packed_block_types(pbt)
     assert hasattr(pbt, "rama_params")
 
@@ -47,10 +45,10 @@ def test_annotate_restypes(
     # present in the pbt
     assert init_pbt_rama_params is pbt.rama_params
 
-    assert pbt.rama_params.tile_n_polar_atoms.device == torch_device
-    assert pbt.rama_params.tile_n_occluder_atoms.device == torch_device
-    assert pbt.rama_params.tile_pol_occ_inds.device == torch_device
-    assert pbt.rama_params.tile_rama_params.device == torch_device
+    assert pbt.rama_params.bt_table.device == torch_device
+    assert pbt.rama_params.bt_upper_conn_ind.device == torch_device
+    assert pbt.rama_params.bt_is_pro.device == torch_device
+    assert pbt.rama_params.bt_torsion_atoms.device == torch_device
 
 
 def dont_test_whole_pose_scoring_module_smoke(

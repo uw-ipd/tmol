@@ -3,7 +3,7 @@ import torch
 from tmol.score.rama.potentials.compiled import pose_score_rama
 
 
-class LKBallWholePoseScoringModule(torch.nn.Module):
+class RamaWholePoseScoringModule(torch.nn.Module):
     def __init__(
         self,
         pose_stack_block_coord_offset,
@@ -15,7 +15,7 @@ class LKBallWholePoseScoringModule(torch.nn.Module):
         rama_tables,
         table_params,
     ):
-        super(LKBallWholePoseScoringModule, self).__init__()
+        super(RamaWholePoseScoringModule, self).__init__()
 
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)

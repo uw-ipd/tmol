@@ -110,7 +110,7 @@ class RamaPoseScoreDispatch {
     // Define nt
     CTA_LAUNCH_T_PARAMS;
 
-    auto rama_func = ([=] EIGEN_DEVICE_FUNC(int ind) {
+    auto rama_func = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const pose_ind = ind / max_n_blocks;
       int const block_ind = ind % max_n_blocks;
       int const block_type = pose_stack_block_type[pose_ind][block_ind];
