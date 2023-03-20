@@ -12,7 +12,7 @@ class RamaTermCreator(TermCreator):
     def create_term(cls, param_db: ParameterDatabase, device: torch.device):
         import tmol.score.rama.rama_energy_term
 
-        return tmol.score.rama.rama_energy_term.LKBallEnergyTerm(param_db, device)
+        return tmol.score.rama.rama_energy_term.RamaEnergyTerm(param_db, device)
 
     @classmethod
     def score_types(cls):
