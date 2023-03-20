@@ -1,23 +1,23 @@
 #include <tmol/score/common/device_operations.cpu.impl.hh>
-#include <tmol/score/lk_ball/potentials/lk_ball_pose_score.impl.hh>
+#include <tmol/score/rama/potentials/rama_pose_score.impl.hh>
 
 namespace tmol {
 namespace score {
-namespace lk_ball {
+namespace rama {
 namespace potentials {
 
-template struct LKBallPoseScoreDispatch<
+template struct RamaPoseScoreDispatch<
     common::DeviceOperations,
     tmol::Device::CPU,
     float,
     int>;
-template struct LKBallPoseScoreDispatch<
+template struct RamaPoseScoreDispatch<
     common::DeviceOperations,
     tmol::Device::CPU,
     double,
     int>;
 
 }  // namespace potentials
-}  // namespace lk_ball
+}  // namespace rama
 }  // namespace score
 }  // namespace tmol
