@@ -16,6 +16,7 @@ from .data import (  # noqa: F401
     ubq_pdb,
     ubq_res,
     ubq_system,
+    disulfide_res,
     cst_system,
     cst_csts,
     ubq_rosetta_baseline,
@@ -28,6 +29,7 @@ from .chemical import (  # noqa: F401
     default_restype_set,
     fresh_default_restype_set,
     rts_ubq_res,
+    rts_disulfide_res,
 )
 
 from .torch import torch_device, torch_backward_coverage  # noqa: F401

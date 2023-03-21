@@ -62,6 +62,15 @@ def ubq_system():
     return read_pdb(pdb.data["1ubq"])
 
 
+@pytest.fixture(scope="session")
+def disulfide_res():
+    from tmol.system.io import ResidueReader
+
+    tmp = ResidueReader.get_default().parse_pdb(pdb.data["3plc"])
+
+    return tmp
+
+
 @pytest.fixture()
 def cst_system():
     from tmol.system.io import read_pdb

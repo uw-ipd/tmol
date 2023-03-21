@@ -15,5 +15,6 @@ class ScoreType(AutoNumber):
     fa_elec = ()
     hbond = ()
     omega = ()
+    disulfide = ()
     # keep this one last
     n_score_types = ()
