@@ -19,6 +19,7 @@ from tmol.chemical.restypes import (
     RefinedResidueType,
     Residue,
     find_simple_polymeric_connections,
+    find_disulfide_connections,
 )
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
 from tmol.pose.pose_stack import PoseStack
@@ -41,6 +42,8 @@ class PoseStackBuilder:
         cls, res: List[Residue], device: torch.device
     ) -> PoseStack:
         residue_connections = find_simple_polymeric_connections(res)
+        disulfide_connections = find_disulfide_connections(res)
+        residue_connections.extend(disulfide_connections)
         return cls.one_structure_from_residues_and_connections(
             res, residue_connections, device
         )

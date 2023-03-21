@@ -19,5 +19,6 @@ class ScoreType(AutoNumber):
     lk_bridge = ()
     lk_bridge_uncpl = ()
     omega = ()
+    disulfide = ()
     # keep this one last
     n_score_types = ()
