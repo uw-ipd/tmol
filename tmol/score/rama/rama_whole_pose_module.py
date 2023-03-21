@@ -36,11 +36,6 @@ class RamaWholePoseScoringModule(torch.nn.Module):
         self.table_params = _p(table_params)
 
     def forward(self, coords):
-        """Two step scoring: first build the waters and then score;
-        derivatives are calculated backwards through the water
-        building step by torch's autograd machinery
-        """
-
         return pose_score_rama(
             coords,
             self.pose_stack_block_coord_offset,

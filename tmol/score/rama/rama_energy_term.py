@@ -7,7 +7,7 @@ from .params import RamaBlockTypeParams, RamaPackedBlockTypesParams, RamaParamRe
 from .rama_whole_pose_module import RamaWholePoseScoringModule
 from tmol.database import ParameterDatabase
 
-from tmol.chemical.restypes import RefinedResidueType
+from tmol.chemical.restypes import RefinedResidueType, uaid_t
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
@@ -56,12 +56,12 @@ class RamaEnergyTerm(EnergyTerm):
             "table_id"
         ].values
 
-        rama_torsion_atoms = numpy.full((2, 4, 3), -1, dtype=numpy.int32)
+        rama_torsion_atoms = numpy.full((2, 4), -1, dtype=uaid_t)
 
         def uaids_to_np(tor_uaids):
-            uaids = numpy.full((4, 3), -1, dtype=numpy.int32)
+            uaids = numpy.full((4,), -1, dtype=uaid_t)
             for i in range(4):
-                uaids[i, :] = numpy.array(tor_uaids[i], dtype=numpy.int32)
+                uaids[i] = numpy.array(tor_uaids[i], dtype=uaid_t)
             return uaids
 
         if table_inds[0] != -1 or table_inds[1] != -1:
@@ -70,7 +70,7 @@ class RamaEnergyTerm(EnergyTerm):
                     rama_torsion_atoms[i] = uaids_to_np(
                         block_type.torsion_to_uaids[tor]
                     )
-        rama_torsion_atoms = rama_torsion_atoms.reshape(8, 3)
+        rama_torsion_atoms = rama_torsion_atoms.reshape(8)
 
         upper_conn_id = numpy.full((1,), -1, dtype=numpy.int32)
         if "up" in block_type.connection_to_cidx:
@@ -98,14 +98,16 @@ class RamaEnergyTerm(EnergyTerm):
         bt_table = numpy.full((n_types, 2), -1, dtype=numpy.int32)
         bt_upper_conn_ind = numpy.full((n_types,), -1, dtype=numpy.int32)
         bt_is_pro = numpy.full((n_types,), -1, dtype=numpy.int32)
-        bt_torsion_atoms = numpy.full((n_types, 8, 3), 0, dtype=numpy.int32)
+        bt_torsion_atoms = numpy.full((n_types, 8, 3), -1, dtype=numpy.int32)
 
         for i, bt in enumerate(packed_block_types.active_block_types):
             i_rama_params = bt.rama_params
             bt_table[i] = i_rama_params.table_inds
             bt_upper_conn_ind[i] = i_rama_params.upper_conn_ind
             bt_is_pro[i] = i_rama_params.is_pro
-            bt_torsion_atoms[i] = i_rama_params.rama_torsion_atoms
+            bt_torsion_atoms[i] = i_rama_params.rama_torsion_atoms.view(
+                numpy.int32
+            ).reshape(8, 3)
 
         def _t(t):
             return torch.tensor(t, device=packed_block_types.device)
@@ -135,34 +137,4 @@ class RamaEnergyTerm(EnergyTerm):
             bt_rama_torsion_atoms=pbt.rama_params.bt_torsion_atoms,
             rama_tables=self.tables,
             table_params=self.table_params,
-        )
-
-    def _tfloat(self, ts):
-        return tuple(map(lambda t: t.to(torch.float), ts))
-
-    def stack_rama_global_params(self):
-        return torch.stack(
-            self._tfloat(
-                [
-                    self.ljlk_param_resolver.global_params.lj_hbond_dis,
-                    self.ljlk_param_resolver.global_params.lj_hbond_OH_donor_dis,
-                    self.ljlk_param_resolver.global_params.lj_hbond_hdis,
-                    self.ljlk_param_resolver.global_params.lkb_water_dist,
-                    self.ljlk_param_resolver.global_params.max_dis,
-                ]
-            ),
-            dim=1,
-        )
-
-    def stack_rama_water_gen_global_params(self):
-        return torch.stack(
-            self._tfloat(
-                [
-                    self.ljlk_param_resolver.global_params.lkb_water_dist,
-                    self.ljlk_param_resolver.global_params.lkb_water_angle_sp2,
-                    self.ljlk_param_resolver.global_params.lkb_water_angle_sp3,
-                    self.ljlk_param_resolver.global_params.lkb_water_angle_ring,
-                ]
-            ),
-            dim=1,
         )

@@ -16,6 +16,7 @@ from tmol.numeric.bspline import BSplineInterpolation
 
 from tmol.database.scoring.rama import RamaDatabase
 from tmol.types.tensor import TensorGroup
+from tmol.chemical.restypes import uaid_t
 
 
 # rama parameters
@@ -108,7 +109,7 @@ class RamaBlockTypeParams:
     table_inds: NDArray[numpy.int32][2]
     upper_conn_ind: NDArray[numpy.int32][1]
     is_pro: NDArray[numpy.int32][1]
-    rama_torsion_atoms: NDArray[numpy.int32][8, 3]
+    rama_torsion_atoms: NDArray[uaid_t][8, 3]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)

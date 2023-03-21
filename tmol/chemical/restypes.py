@@ -24,7 +24,7 @@ BondCount = NewType("BondCount", int)
 
 # perhaps deserving of its own file
 UnresolvedAtomID = Tuple[AtomIndex, ConnectionIndex, BondCount]
-uaid = numpy.dtype(
+uaid_t = numpy.dtype(
     [
         ("atom_id", numpy.int32),
         ("conn_id", numpy.int32),
