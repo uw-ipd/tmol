@@ -2232,3 +2232,55 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+
+variants:
+  - name:  CarboxyTerminus
+    display_name: cterm
+    pattern: '[*]C(=O)[{up}]'
+    atoms:
+    - { name: C   ,  atom_type: CObb }
+    - { name: O   ,  atom_type: OCbb }
+    - { name: OXT ,  atom_type: OOC }
+    bonds:
+    - [   C,    \*  ]
+    - [   C,    O   ]
+    - [   C,    OXT ]
+    connections: []
+    torsions: []
+    chi_samples: []
+    icoors:
+    - { name:     C, source: C }
+    - { name:     O, source: O, theta: 60.0 deg, d:  1.2 }
+    - { name:   OXT, source: O, phi: -180.000000 deg, theta:   60.0 deg, d: 1.2, parent:  C, great_grand_parent: O }
+    properties:
+      polymer:
+        polymer_type: amino_acid
+
+  - name:  AminoTerminus
+    display_name: nterm
+    pattern: '[*][NH][{down}]'
+    atoms:
+    - { name: N   ,  atom_type: Nbb }
+    - { name: 1H  ,  atom_type: Hpol }
+    - { name: 2H  ,  atom_type: Hpol }
+    - { name: 3H  ,  atom_type: Hpol }
+
+    bonds:
+    - [   N,    \*  ]
+    - [   N,    1H  ]
+    - [   N,    2H  ]
+    - [   N,    3H  ]
+    connections: []
+    torsions: []
+    chi_samples: []
+    icoors_inherit:
+    - { name:     N  }
+    - { name:     H1,  source: H }
+    icoors:
+    - { name:    N, source: N }
+    - { name:   1H, source: H, theta: 70.5 deg, d:  1 }
+    - { name:   2H, source: H, phi: 120.000000 deg, theta:   70.5 deg, d: 1.0, great_grand_parent: 1H }
+    - { name:   3H, source: H, phi: 120.000000 deg, theta:   70.5 deg, d: 1.0, great_grand_parent: 1H }
+    properties:
+      polymer:
+        polymer_type: amino_acid

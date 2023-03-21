@@ -127,7 +127,42 @@ class RawResidueType:
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
     properties: ChemicalProperties
-    # sidechain_building: Tuple[SidechainBuilding, ...]
+    chi_samples: Tuple[ChiSamples, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class IcoorVariant:
+    name: str
+    source: Optional[str] = None
+    phi: Optional[DihedralAngle] = 0.0
+    theta: Optional[BondAngle] = 0.0
+    d: Optional[float] = 0.0
+    parent: Optional[str] = None
+    grand_parent: Optional[str] = None
+    great_grand_parent: Optional[str] = None
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class PolymerPropertiesVariant:
+    polymer_type: str
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ChemicalPropertiesVariant:
+    polymer: Optional[PolymerPropertiesVariant] = None
+
+
+@attr.s(auto_attribs=True)
+class VariantType:
+    name: str
+    display_name: str
+    pattern: str
+    atoms: Tuple[Atom, ...]
+    bonds: Tuple[Tuple[str, str], ...]
+    connections: Tuple[Connection, ...]
+    torsions: Tuple[Torsion, ...]
+    icoors: Tuple[IcoorVariant, ...]
+    properties: ChemicalPropertiesVariant
     chi_samples: Tuple[ChiSamples, ...]
 
 
@@ -136,6 +171,7 @@ class ChemicalDatabase:
     element_types: Tuple[Element, ...]
     atom_types: Tuple[AtomType, ...]
     residues: Tuple[RawResidueType, ...]
+    variants: Tuple[VariantType, ...]
 
     @classmethod
     def from_file(cls, path):
