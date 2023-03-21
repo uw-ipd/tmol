@@ -83,19 +83,17 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
     // logic for deciding whether two atoms in those blocks should have their
     // interaction energies calculated: all should. intentionally small to
     // (possibly) fit in constant cache
-    TView<Int, 3, Dev>
-        pose_stack_min_bond_separation,  // ?? needed ?? I think so
+    TView<Int, 3, Dev> pose_stack_min_bond_separation,
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, Dev>
-        pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
+    TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
 
     //////////////////////
     // Chemical properties
     // how many atoms for a given block
     // Dimsize n_block_types
-    TView<Int, 1, Dev> block_type_n_atoms,  // ?? needed ?? I think so
+    TView<Int, 1, Dev> block_type_n_atoms,
 
     // how many inter-block chemical bonds are there
     // Dimsize: n_block_types

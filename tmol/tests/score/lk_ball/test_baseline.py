@@ -26,3 +26,24 @@ def test_baseline_comparison(ubq_rosetta_baseline, torch_device):
     scores = {term: float(intra_container[term]) for term in expected_scores.keys()}
 
     assert scores == approx(expected_scores, rel=1e-3)
+
+
+def test_score_ubq(ubq_res, torch_device):
+    expected_scores = {
+        "lk_ball": 171.19293212890625,
+        "lk_ball_iso": 421.0059509277344,
+        "lk_ball_bridge": 1.5785887241363525,
+        "lk_ball_bridge_uncpl": 10.994599342346191,
+    }
+
+    test_system = PackedResidueSystem.from_residues(ubq_res)
+
+    score_system = ScoreSystem.build_for(
+        test_system, {LKBallScore}, score_method_to_even_weights_dict(LKBallScore)
+    )
+    coords = coords_for(test_system, score_system)
+
+    intra_container = score_system.intra_forward(coords)
+    scores = {term: float(intra_container[term]) for term in expected_scores.keys()}
+
+    assert scores == approx(expected_scores, rel=1e-3)

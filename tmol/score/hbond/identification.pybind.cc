@@ -28,7 +28,8 @@ void id_acceptor_bases(
   });
 
   for (int stack : iter::range(A_idx.size(0))) {
-    IndexedBonds<Int, D> indexed_bonds({bonds[stack], bond_spans[stack]});
+    bonded_atom::IndexedBonds<Int, D> indexed_bonds(
+        {bonds[stack], bond_spans[stack]});
     for (int ai : iter::range(A_idx.size(1))) {
       // atoms with negative indices are not real
       // the negative index is a sentinel value that
@@ -68,7 +69,8 @@ void id_donor_attached_hydrogens(
   int const max_n_hydrogens = H_idx.size(2);
 
   for (int stack : iter::range(D_idx.size(0))) {
-    IndexedBonds<Int, D> indexed_bonds({bonds[stack], bond_spans[stack]});
+    bonded_atom::IndexedBonds<Int, D> indexed_bonds(
+        {bonds[stack], bond_spans[stack]});
     for (int di : iter::range(D_idx.size(1))) {
       // atoms with negative indices are not real
       // the negative index is a sentinel value that
