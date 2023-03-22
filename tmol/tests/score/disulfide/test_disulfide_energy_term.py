@@ -39,14 +39,14 @@ def test_annotate_disulfide_conns(
 
 
 def test_whole_pose_scoring_module_gradcheck_whole_pose(
-    rts_ubq_res, default_database, torch_device: torch.device
+    rts_disulfide_res, default_database, torch_device: torch.device
 ):
 
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        res=rts_disulfide_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         disulfide_energy.setup_block_type(bt)
@@ -65,7 +65,7 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
 def test_whole_pose_scoring_module_single(
     rts_disulfide_res, default_database, torch_device: torch.device
 ):
-    gold_vals = numpy.array([[6.741275]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-3.257311]], dtype=numpy.float32)
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
