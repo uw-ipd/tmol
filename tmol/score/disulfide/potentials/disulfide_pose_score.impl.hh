@@ -22,10 +22,11 @@
 
 #include <tmol/score/disulfide/potentials/disulfide_pose_score.hh>
 
-// Operator definitions; safe for CPU compilation
+// Operator definitions; safe for CPU comM_PIlation
 #include <moderngpu/operators.hxx>
 
 #include <chrono>
+#include <cmath>
 
 #include "params.hh"
 #include "potentials.hh"
@@ -40,8 +41,8 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 template <typename Real>
 using CoordQuad = Eigen::Matrix<Real, 4, 3>;
 
-template <typename Real, typename Int, tmol::Device D>
-TMOL_DEVICE_FUNC int errfc(Real x) {}
+// template <typename Real, typename Int, tmol::Device D>
+// TMOL_DEVICE_FUNC int errfc(Real x) {}
 
 template <
     template <tmol::Device>
@@ -79,8 +80,6 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     int block_atom_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
 
-    Real score = 0;
-
     for (int conn_index = 0; conn_index < max_n_conns; conn_index++) {
       if (disulfide_conns[block_type_index][conn_index]) {
         int other_block_index =
@@ -91,6 +90,9 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                               [conn_index][1];  // BAD?
         int other_block_atom_offset =
             pose_stack_block_coord_offset[pose_index][other_block_index];
+
+        // Make sure we only calculate the disulfide once per pair of blocks
+        if (other_block_index < block_index) continue;
 
         if (other_block_index
             == -1) {  // Skip this disulfide if the other block doesn't exist
@@ -141,43 +143,141 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                    + block_type_atom_downstream_of_conn[other_block_type_index]
                                                        [other_conn_index][2]];
 
-        auto distance_between_sulfers =
-            distance<Real>::V_dV(block1_S, block2_S);
-        auto bond_angle_1 =
-            pt_interior_angle<Real>::V_dV(block1_CB, block1_S, block2_S);
-        auto bond_angle_2 =
-            pt_interior_angle<Real>::V_dV(block2_CB, block2_S, block1_S);
-        auto disulfide_dihedral_angle = dihedral_angle<Real>::V_dV(
-            block1_CB, block1_S, block2_S, block2_CB);
-        auto disulfide_ca_dihedral_angle_1 = dihedral_angle<Real>::V_dV(
-            block1_CA, block1_CB, block1_S, block2_S);
-        auto disulfide_ca_dihedral_angle_2 = dihedral_angle<Real>::V_dV(
-            block2_CA, block2_CB, block2_S, block1_S);
+        auto ssdist = distance<Real>::V_dV(block1_S, block2_S).V;
+        auto csang_1 =
+            pt_interior_angle<Real>::V_dV(block1_CB, block1_S, block2_S).V;
+        auto csang_2 =
+            pt_interior_angle<Real>::V_dV(block2_CB, block2_S, block1_S).V;
+        auto dihed =
+            dihedral_angle<Real>::V_dV(block1_CB, block1_S, block2_S, block2_CB)
+                .V;
+        auto disulf_ca_dihedral_angle_1 =
+            dihedral_angle<Real>::V_dV(block1_CA, block1_CB, block1_S, block2_S)
+                .V;
+        auto disulf_ca_dihedral_angle_2 =
+            dihedral_angle<Real>::V_dV(block2_CA, block2_CB, block2_S, block1_S)
+                .V;
 
-        const Real mest = exp(-20.0);
-        // Calculate Distance
-        {
-          Real z = (distance_between_sulfers.V - global_params[0].d_location)
-                   / global_params[0].d_scale;
-          // Real score_d = z*z/2 - log( errfc( -global_params[0].d_shape*z /
-          // sqrt(2.0) ) + mest );
-          printf("DIST: %f", z);
-          score = z;
+        // convert to degrees
+        Real radians_to_degrees(57.2958);
+        csang_1 *= radians_to_degrees;
+        csang_2 *= radians_to_degrees;
+        dihed *= radians_to_degrees;
+        disulf_ca_dihedral_angle_1 *= radians_to_degrees;
+        disulf_ca_dihedral_angle_2 *= radians_to_degrees;
+
+        const Real MEST = exp(-20.0);
+        const Real wt_dihSS_(0.1);
+        const Real wt_dihCS_(0.1);
+        const Real wt_ang_(0.1);
+        const Real wt_len_(0.1);
+        const Real shift_(2.0);
+
+        Real const res1_d_multiplier(1.0);
+        Real const res2_d_multiplier(1.0);
+
+        Real score = -shift_;
+
+        {  // Calculate Distance
+          Real z =
+              (ssdist - global_params[0].d_location) / global_params[0].d_scale;
+          Real score_d =
+              z * z / 2
+              - log(std::erfc(-global_params[0].d_shape * z / sqrt(2.0))
+                    + MEST);
+          score += wt_len_ * score_d;
+
+          // printf("Distance: %f\n", wt_len_*score_d);
         }
+
+        {  // Calculate Angles
+          Real ang_score(0);
+          ang_score +=
+              wt_ang_
+              * (-global_params[0].a_logA
+                 - global_params[0].a_kappa
+                       * cos(M_PI / 180 * (csang_1 - global_params[0].a_mu)));
+          ang_score +=
+              wt_ang_
+              * (-global_params[0].a_logA
+                 - global_params[0].a_kappa
+                       * cos(M_PI / 180 * (csang_2 - global_params[0].a_mu)));
+          // printf("Angles: %f\n", ang_score);
+          score += ang_score;
+        }
+
+        {  // SS dihed
+          Real ang_ss(dihed), exp_score1(0.0), exp_score2(0.0);
+          exp_score1 = exp(global_params[0].dss_logA1)
+                       * exp(global_params[0].dss_kappa1
+                             * cos(M_PI / 180
+                                   * (res1_d_multiplier * ang_ss
+                                      - global_params[0].dss_mu1)));
+          exp_score2 = exp(global_params[0].dss_logA2)
+                       * exp(global_params[0].dss_kappa2
+                             * cos(M_PI / 180
+                                   * (res1_d_multiplier * ang_ss
+                                      - global_params[0].dss_mu2)));
+          Real score_ss = -log(exp_score1 + exp_score2 + MEST);
+          // printf("Angles: %f", ang_score);
+          score += wt_dihSS_ * score_ss;
+        }
+
+        {  // CB-S dihed
+          Real exp_score1 =
+              exp(global_params[0].dcs_logA1)
+              * exp(global_params[0].dcs_kappa1
+                    * cos(M_PI / 180
+                          * (res1_d_multiplier * disulf_ca_dihedral_angle_1
+                             - global_params[0].dcs_mu1)));
+          Real exp_score2 =
+              exp(global_params[0].dcs_logA2)
+              * exp(global_params[0].dcs_kappa2
+                    * cos(M_PI / 180
+                          * (res1_d_multiplier * disulf_ca_dihedral_angle_1
+                             - global_params[0].dcs_mu2)));
+          Real exp_score3 =
+              exp(global_params[0].dcs_logA3)
+              * exp(global_params[0].dcs_kappa3
+                    * cos(M_PI / 180
+                          * (res1_d_multiplier * disulf_ca_dihedral_angle_1
+                             - global_params[0].dcs_mu3)));
+          score +=
+              wt_dihCS_ * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
+
+          exp_score1 =
+              exp(global_params[0].dcs_logA1)
+              * exp(global_params[0].dcs_kappa1
+                    * cos(M_PI / 180
+                          * (res2_d_multiplier * disulf_ca_dihedral_angle_2
+                             - global_params[0].dcs_mu1)));
+          exp_score2 =
+              exp(global_params[0].dcs_logA2)
+              * exp(global_params[0].dcs_kappa2
+                    * cos(M_PI / 180
+                          * (res2_d_multiplier * disulf_ca_dihedral_angle_2
+                             - global_params[0].dcs_mu2)));
+          exp_score3 =
+              exp(global_params[0].dcs_logA3)
+              * exp(global_params[0].dcs_kappa3
+                    * cos(M_PI / 180
+                          * (res2_d_multiplier * disulf_ca_dihedral_angle_2
+                             - global_params[0].dcs_mu3)));
+          score +=
+              wt_dihCS_ * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
+        }
+
+        accumulate<D, Real>::add(V[0][pose_index], score);
+        printf("Block %d score: %f\n", block_index, score);
       }
     }
 
     int block_coord_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
 
-    Int disulfide_indices[4];
-    for (int i = 0; i < 4; i++) {
-    }
-
     /*auto disulfide = disulfide_V_dV<D, Real, Int>(disulfidecoords,
      * global_params[0].K);*/
 
-    accumulate<D, Real>::add(V[0][pose_index], score);
     /*for (int j = 0; j < 4; ++j) {
       accumulate<D, Vec<Real, 3>>::add(
           dV_dx[0][pose_index][disulfide_indices[j]],
