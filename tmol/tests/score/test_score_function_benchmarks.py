@@ -43,7 +43,13 @@ def dont_test_res_centric_score_benchmark_setup(
 @pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
 @pytest.mark.parametrize(
     "energy_term",
-    [ElecEnergyTerm, HBondEnergyTerm, LJLKEnergyTerm, LKBallEnergyTerm, OmegaEnergyTerm],
+    [
+        ElecEnergyTerm,
+        HBondEnergyTerm,
+        LJLKEnergyTerm,
+        LKBallEnergyTerm,
+        OmegaEnergyTerm,
+    ],
     ids=["elec", "hbond", "ljlk", "lk_ball", "omega"],
 )
 @pytest.mark.benchmark(group="res_centric_score_components")
@@ -107,7 +113,15 @@ def test_res_centric_score_benchmark(
 @pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
 @pytest.mark.parametrize(
     "energy_terms",
-    [[ElecEnergyTerm, HBondEnergyTerm, LJLKEnergyTerm, LKBallEnergyTerm, OmegaEnergyTerm]],
+    [
+        [
+            ElecEnergyTerm,
+            HBondEnergyTerm,
+            LJLKEnergyTerm,
+            LKBallEnergyTerm,
+            OmegaEnergyTerm,
+        ]
+    ],
     ids=["elec_hbond_ljlk_lkb_omega"],
 )
 @pytest.mark.benchmark(group="res_centric_combined_score_components")
