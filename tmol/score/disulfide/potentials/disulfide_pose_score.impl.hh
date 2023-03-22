@@ -87,29 +87,23 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                               [conn_index][0];
         int other_conn_index =
             pose_stack_inter_block_connections[pose_index][block_index]
-                                              [conn_index][1];  // BAD?
+                                              [conn_index][1];
         int other_block_atom_offset =
             pose_stack_block_coord_offset[pose_index][other_block_index];
 
         // Make sure we only calculate the disulfide once per pair of blocks
         if (other_block_index < block_index) continue;
 
-        if (other_block_index
-            == -1) {  // Skip this disulfide if the other block doesn't exist
-          printf("no partner");
-          continue;
-        }
+        // Skip this disulfide if the other block doesn't exist
+        if (other_block_index == -1) continue;
 
         int other_block_type_index =
             pose_stack_block_type[pose_index][other_block_index];
 
-        if (!disulfide_conns[other_block_type_index]
-                            [other_conn_index]) {  // Skip this disulfide if the
-                                                   // other end isn't capable of
-                                                   // a disulfide bond
-          printf("partner isn't a disulfide");
+        // Skip this disulfide if the other end isn't capable of a disulfide
+        // bond
+        if (!disulfide_conns[other_block_type_index][other_conn_index])
           continue;
-        }
 
         auto block1_CA_ind =
             block_atom_offset
@@ -363,18 +357,6 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         accumulate<D, Real>::add(V[0][pose_index], score);
       }
     }
-
-    int block_coord_offset =
-        pose_stack_block_coord_offset[pose_index][block_index];
-
-    /*auto disulfide = disulfide_V_dV<D, Real, Int>(disulfidecoords,
-     * global_params[0].K);*/
-
-    /*for (int j = 0; j < 4; ++j) {
-      accumulate<D, Vec<Real, 3>>::add(
-          dV_dx[0][pose_index][disulfide_indices[j]],
-    common::get<1>(disulfide).row(j));
-    }*/
   });
 
   int total_blocks = pose_stack_block_coord_offset.size(1);
