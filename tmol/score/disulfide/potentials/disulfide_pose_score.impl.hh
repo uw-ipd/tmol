@@ -115,32 +115,34 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
             block_atom_offset
             + block_type_atom_downstream_of_conn[block_type_index][conn_index]
                                                 [2];
-        auto block1_CA = coords[pose_index][block1_CA_ind];
         auto block1_CB_ind =
             block_atom_offset
             + block_type_atom_downstream_of_conn[block_type_index][conn_index]
                                                 [1];
-        auto block1_CB = coords[pose_index][block1_CB_ind];
         auto block1_S_ind =
             block_atom_offset
             + block_type_atom_downstream_of_conn[block_type_index][conn_index]
                                                 [0];
-        auto block1_S = coords[pose_index][block1_S_ind];
 
         auto block2_S_ind =
             other_block_atom_offset
             + block_type_atom_downstream_of_conn[other_block_type_index]
                                                 [other_conn_index][0];
-        auto block2_S = coords[pose_index][block2_S_ind];
         auto block2_CB_ind =
             other_block_atom_offset
             + block_type_atom_downstream_of_conn[other_block_type_index]
                                                 [other_conn_index][1];
-        auto block2_CB = coords[pose_index][block2_CB_ind];
         auto block2_CA_ind =
             other_block_atom_offset
             + block_type_atom_downstream_of_conn[other_block_type_index]
                                                 [other_conn_index][2];
+
+        auto block1_CA = coords[pose_index][block1_CA_ind];
+        auto block1_CB = coords[pose_index][block1_CB_ind];
+        auto block1_S = coords[pose_index][block1_S_ind];
+
+        auto block2_S = coords[pose_index][block2_S_ind];
+        auto block2_CB = coords[pose_index][block2_CB_ind];
         auto block2_CA = coords[pose_index][block2_CA_ind];
 
         auto ssdist = distance<Real>::V_dV(block1_S, block2_S);
@@ -359,7 +361,6 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         }
 
         accumulate<D, Real>::add(V[0][pose_index], score);
-        printf("Block %d score: %f\n", block_index, score);
       }
     }
 
