@@ -15,7 +15,7 @@ def test_smoke(default_database, torch_device: torch.device):
     )
 
     assert disulfide_energy.device == torch_device
-    assert disulfide_energy.global_params.K.device == torch_device
+    assert disulfide_energy.global_params.a_mu.device == torch_device
 
 
 def test_annotate_disulfide_conns(
@@ -77,14 +77,6 @@ def test_whole_pose_scoring_module_single(
     disulfide_energy.setup_packed_block_types(p1.packed_block_types)
     disulfide_energy.setup_poses(p1)
 
-    print("OFFSETS")
-    print(p1.inter_residue_connections.size(0))
-    print(p1.inter_residue_connections.size(1))
-    print(p1.inter_residue_connections.size(2))
-    print(p1.inter_residue_connections.size(3))
-    for block_offset in p1.inter_residue_connections[0]:
-        print(block_offset[2])
-
     disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(p1)
 
     coords = torch.nn.Parameter(p1.coords.clone())
@@ -99,15 +91,15 @@ def test_whole_pose_scoring_module_single(
 
 
 def test_whole_pose_scoring_module_10(
-    rts_ubq_res, default_database, torch_device: torch.device
+    rts_disulfide_res, default_database, torch_device: torch.device
 ):
     n_poses = 10
-    gold_vals = numpy.tile(numpy.array([[6.741275]], dtype=numpy.float32), (n_poses))
+    gold_vals = numpy.tile(numpy.array([[-3.257311]], dtype=numpy.float32), (n_poses))
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        res=rts_disulfide_res, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
