@@ -35,7 +35,7 @@ struct DisulfidePoseScoreDispatch {
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
-      TView<Int, 2, D> disulfide_conns,
+      TView<bool, 2, D> disulfide_conns,
       TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
       TView<DisulfideGlobalParams<Real>, 1, D> global_params,

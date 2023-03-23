@@ -56,14 +56,14 @@ class DisulfideEnergyTerm(EnergyTerm):
 
         disulfide_conns = torch.full(
             (packed_block_types.n_types, packed_block_types.max_n_conn),
-            0,
-            dtype=torch.int32,
+            False,
+            dtype=torch.bool,
             device=self.device,
         )
 
         for i, bt in enumerate(packed_block_types.active_block_types):
             for conn in bt.disulfide_connections:
-                disulfide_conns[i, conn] = 1
+                disulfide_conns[i, conn] = True
 
         setattr(packed_block_types, "disulfide_conns", disulfide_conns)
 
