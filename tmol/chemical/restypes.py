@@ -372,10 +372,6 @@ def find_simple_polymeric_connections(
 
 @validate_args
 def find_disulfide_connections(res: List[Residue],) -> List[Tuple[int, str, int, str]]:
-    """
-    Return a 
-    """
-
     residue_connections = []
 
     cystines = [
@@ -394,5 +390,4 @@ def find_disulfide_connections(res: List[Residue],) -> List[Tuple[int, str, int,
                     residue_connections.extend(
                         [(i, "dslf", j, "dslf"), (j, "dslf", i, "dslf")]
                     )
-
     return residue_connections
