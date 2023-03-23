@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from ..energy_term import EnergyTerm
 
@@ -36,8 +37,16 @@ class DisulfideEnergyTerm(EnergyTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(DisulfideEnergyTerm, self).setup_block_type(block_type)
 
-        if hasattr(block_type, "disulfide_quad_uaids"):
+        if hasattr(block_type, "disulfide_connections"):
             return
+
+        disulfide_connections = numpy.array([], dtype=numpy.int32)
+        if "dslf" in block_type.connection_to_cidx.keys():
+            disulfide_connections = numpy.append(
+                disulfide_connections, [block_type.connection_to_cidx["dslf"]]
+            )
+
+        setattr(block_type, "disulfide_connections", disulfide_connections)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(DisulfideEnergyTerm, self).setup_packed_block_types(packed_block_types)
@@ -56,12 +65,8 @@ class DisulfideEnergyTerm(EnergyTerm):
         )
 
         for i, bt in enumerate(packed_block_types.active_block_types):
-            # TODO: hacking this in for now
-            print("RESIDUE: " + bt.name)
-            if bt.name == "CYD":
-                print(bt.connection_to_idx.keys)
-                print("CYD!")
-                disulfide_conns[i, 2] = 1  # _t(uaids)
+            for conn in bt.disulfide_connections:
+                disulfide_conns[i, conn] = 1
 
         setattr(packed_block_types, "disulfide_conns", disulfide_conns)
 
@@ -70,9 +75,6 @@ class DisulfideEnergyTerm(EnergyTerm):
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
-
-        print(pbt.disulfide_conns.size(0))
-        print(pbt.disulfide_conns.size(1))
 
         return DisulfideWholePoseScoringModule(
             pose_stack_block_coord_offset=pose_stack.block_coord_offset,

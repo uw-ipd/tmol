@@ -19,20 +19,18 @@ def test_smoke(default_database, torch_device: torch.device):
 
 
 def test_annotate_disulfide_conns(
-    ubq_res, default_database, torch_device: torch.device
+    rts_disulfide_res, default_database, torch_device: torch.device
 ):
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
 
-    bt_list = residue_types_from_residues(ubq_res)
+    bt_list = residue_types_from_residues(rts_disulfide_res)
     pbt = PackedBlockTypes.from_restype_list(bt_list, torch_device)
 
     for bt in bt_list:
-        # disulfide_energy.setup_block_type(bt)
-
-        # assert hasattr(bt, "disulfide_conns")
-        pass
+        disulfide_energy.setup_block_type(bt)
+        assert hasattr(bt, "disulfide_connections")
     disulfide_energy.setup_packed_block_types(pbt)
     assert hasattr(pbt, "disulfide_conns")
     assert pbt.disulfide_conns.device == torch_device
