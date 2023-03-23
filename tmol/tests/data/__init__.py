@@ -66,9 +66,7 @@ def ubq_system():
 def disulfide_res():
     from tmol.system.io import ResidueReader
 
-    tmp = ResidueReader.get_default().parse_pdb(pdb.data["3plc"])
-
-    return tmp
+    return ResidueReader.get_default().parse_pdb(pdb.data["3plc"])
 
 
 @pytest.fixture()

@@ -40,7 +40,7 @@ def rts_disulfide_res(fresh_default_restype_set, disulfide_res):
 
     rts = fresh_default_restype_set
 
-    tmp = [
+    return [
         attr.evolve(
             res,
             residue_type=next(
@@ -49,5 +49,3 @@ def rts_disulfide_res(fresh_default_restype_set, disulfide_res):
         )
         for res in disulfide_res
     ]
-
-    return tmp
