@@ -76,6 +76,8 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   LAUNCH_BOX_32;
 
   auto func = ([=] TMOL_DEVICE_FUNC(int pose_index, int block_index) {
+    const auto& params = global_params[0];
+
     int block_type_index = pose_stack_block_type[pose_index][block_index];
     int block_atom_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
@@ -151,14 +153,6 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         auto disulf_ca_dihedral_angle_2 = dihedral_angle<Real>::V_dV(
             block2_CA, block2_CB, block2_S, block1_S);
 
-        // convert to degrees
-        Real radians_to_degrees(57.2958);
-        csang_1.V *= radians_to_degrees;
-        csang_2.V *= radians_to_degrees;
-        dihed.V *= radians_to_degrees;
-        disulf_ca_dihedral_angle_1.V *= radians_to_degrees;
-        disulf_ca_dihedral_angle_2.V *= radians_to_degrees;
-
         const Real MEST = exp(-20.0);
         const Real wt_dihSS_(0.1);
         const Real wt_dihCS_(0.1);
@@ -199,24 +193,20 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         {  // Calculate Angles
           Real ang_score(0);
           Real angle1(csang_1.V), angle2(csang_2.V);
-          ang_score +=
-              wt_ang_
-              * (-global_params[0].a_logA
-                 - global_params[0].a_kappa
-                       * cos(M_PI / 180 * (angle1 - global_params[0].a_mu)));
-          ang_score +=
-              wt_ang_
-              * (-global_params[0].a_logA
-                 - global_params[0].a_kappa
-                       * cos(M_PI / 180 * (angle2 - global_params[0].a_mu)));
+          ang_score += wt_ang_
+                       * (-global_params[0].a_logA
+                          - global_params[0].a_kappa
+                                * cos(angle1 - global_params[0].a_mu));
+          ang_score += wt_ang_
+                       * (-global_params[0].a_logA
+                          - global_params[0].a_kappa
+                                * cos(angle2 - global_params[0].a_mu));
           score += ang_score;
 
           Real dscore_a = global_params[0].a_kappa
-                          * sin(M_PI / 180 * (angle1 - global_params[0].a_mu))
-                          * wt_ang_;
+                          * sin(angle1 - global_params[0].a_mu) * wt_ang_;
           Real dscore_b = global_params[0].a_kappa
-                          * sin(M_PI / 180 * (angle2 - global_params[0].a_mu))
-                          * wt_ang_;
+                          * sin(angle2 - global_params[0].a_mu) * wt_ang_;
           accumulate<D, Vec<Real, 3>>::add(
               dV_dx[0][pose_index][block1_CB_ind], dscore_a * csang_1.dV_dA);
           accumulate<D, Vec<Real, 3>>::add(
@@ -235,26 +225,22 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           Real ang_ss(dihed.V), exp_score1(0.0), exp_score2(0.0);
           exp_score1 = exp(global_params[0].dss_logA1)
                        * exp(global_params[0].dss_kappa1
-                             * cos(M_PI / 180
-                                   * (res1_d_multiplier * ang_ss
-                                      - global_params[0].dss_mu1)));
+                             * cos(res1_d_multiplier * ang_ss
+                                   - global_params[0].dss_mu1));
           exp_score2 = exp(global_params[0].dss_logA2)
                        * exp(global_params[0].dss_kappa2
-                             * cos(M_PI / 180
-                                   * (res1_d_multiplier * ang_ss
-                                      - global_params[0].dss_mu2)));
+                             * cos(res1_d_multiplier * ang_ss
+                                   - global_params[0].dss_mu2));
           Real score_ss = -log(exp_score1 + exp_score2 + MEST);
           score += wt_dihSS_ * score_ss;
 
           Real dscore_ss(0.0);
           dscore_ss +=
               exp_score1 * global_params[0].dss_kappa1
-              * sin(M_PI / 180
-                    * (res1_d_multiplier * dihed.V - global_params[0].dss_mu1));
+              * sin(res1_d_multiplier * dihed.V - global_params[0].dss_mu1);
           dscore_ss +=
               exp_score2 * global_params[0].dss_kappa2
-              * sin(M_PI / 180
-                    * (res1_d_multiplier * dihed.V - global_params[0].dss_mu2));
+              * sin(res1_d_multiplier * dihed.V - global_params[0].dss_mu2);
           dscore_ss /= (exp_score1 + exp_score2 + MEST);
           dscore_ss *= wt_dihSS_;
 
@@ -273,29 +259,26 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               angle2(disulf_ca_dihedral_angle_2.V);
           Real exp_score1 = exp(global_params[0].dcs_logA1)
                             * exp(global_params[0].dcs_kappa1
-                                  * cos(M_PI / 180
-                                        * (res1_d_multiplier * angle1
-                                           - global_params[0].dcs_mu1)));
+                                  * cos(res1_d_multiplier * angle1
+                                        - global_params[0].dcs_mu1));
           Real exp_score2 = exp(global_params[0].dcs_logA2)
                             * exp(global_params[0].dcs_kappa2
-                                  * cos(M_PI / 180
-                                        * (res1_d_multiplier * angle1
-                                           - global_params[0].dcs_mu2)));
+                                  * cos(res1_d_multiplier * angle1
+                                        - global_params[0].dcs_mu2));
           Real exp_score3 = exp(global_params[0].dcs_logA3)
                             * exp(global_params[0].dcs_kappa3
-                                  * cos(M_PI / 180
-                                        * (res1_d_multiplier * angle1
-                                           - global_params[0].dcs_mu3)));
+                                  * cos(res1_d_multiplier * angle1
+                                        - global_params[0].dcs_mu3));
           score +=
               wt_dihCS_ * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
 
           Real dscore_cs = 0.0;
           dscore_cs += exp_score1 * global_params[0].dcs_kappa1
-                       * sin(M_PI / 180 * (angle1 - global_params[0].dcs_mu1));
+                       * sin(angle1 - global_params[0].dcs_mu1);
           dscore_cs += exp_score2 * global_params[0].dcs_kappa2
-                       * sin(M_PI / 180 * (angle1 - global_params[0].dcs_mu2));
+                       * sin(angle1 - global_params[0].dcs_mu2);
           dscore_cs += exp_score3 * global_params[0].dcs_kappa3
-                       * sin(M_PI / 180 * (angle1 - global_params[0].dcs_mu3));
+                       * sin(angle1 - global_params[0].dcs_mu3);
           dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
           dscore_cs *= wt_dihCS_;
 
@@ -314,29 +297,26 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
           exp_score1 = exp(global_params[0].dcs_logA1)
                        * exp(global_params[0].dcs_kappa1
-                             * cos(M_PI / 180
-                                   * (res2_d_multiplier * angle2
-                                      - global_params[0].dcs_mu1)));
+                             * cos(res2_d_multiplier * angle2
+                                   - global_params[0].dcs_mu1));
           exp_score2 = exp(global_params[0].dcs_logA2)
                        * exp(global_params[0].dcs_kappa2
-                             * cos(M_PI / 180
-                                   * (res2_d_multiplier * angle2
-                                      - global_params[0].dcs_mu2)));
+                             * cos(res2_d_multiplier * angle2
+                                   - global_params[0].dcs_mu2));
           exp_score3 = exp(global_params[0].dcs_logA3)
                        * exp(global_params[0].dcs_kappa3
-                             * cos(M_PI / 180
-                                   * (res2_d_multiplier * angle2
-                                      - global_params[0].dcs_mu3)));
+                             * cos(res2_d_multiplier * angle2
+                                   - global_params[0].dcs_mu3));
           score +=
               wt_dihCS_ * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
 
           dscore_cs = 0.0;
           dscore_cs += exp_score1 * global_params[0].dcs_kappa1
-                       * sin(M_PI / 180 * (angle2 - global_params[0].dcs_mu1));
+                       * sin(angle2 - global_params[0].dcs_mu1);
           dscore_cs += exp_score2 * global_params[0].dcs_kappa2
-                       * sin(M_PI / 180 * (angle2 - global_params[0].dcs_mu2));
+                       * sin(angle2 - global_params[0].dcs_mu2);
           dscore_cs += exp_score3 * global_params[0].dcs_kappa3
-                       * sin(M_PI / 180 * (angle2 - global_params[0].dcs_mu3));
+                       * sin(angle2 - global_params[0].dcs_mu3);
           dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
           dscore_cs *= wt_dihCS_;
 
