@@ -21,17 +21,11 @@ class DisulfideGlobalParams(TensorGroup):
     a_mu: Tensor[torch.float32][...]
 
     dss_logA1: Tensor[torch.float32][...]
-    dss_mixed_logA1: Tensor[torch.float32][...]
     dss_kappa1: Tensor[torch.float32][...]
-    dss_mixed_kappa1: Tensor[torch.float32][...]
     dss_mu1: Tensor[torch.float32][...]
-    dss_mixed_mu1: Tensor[torch.float32][...]
     dss_logA2: Tensor[torch.float32][...]
-    dss_mixed_logA2: Tensor[torch.float32][...]
     dss_kappa2: Tensor[torch.float32][...]
-    dss_mixed_kappa2: Tensor[torch.float32][...]
     dss_mu2: Tensor[torch.float32][...]
-    dss_mixed_mu2: Tensor[torch.float32][...]
 
     dcs_logA1: Tensor[torch.float32][...]
     dcs_mu1: Tensor[torch.float32][...]

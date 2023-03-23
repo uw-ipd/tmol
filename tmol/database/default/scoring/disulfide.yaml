@@ -1,22 +1,20 @@
 global_parameters: 
+  # distance
   d_location : 2.01
   d_scale : 0.08
   d_shape : 6
+  # angle
   a_logA : -419.8120
   a_kappa : 419.7
   a_mu : 1.818982926
+  # dihed SS
   dss_logA1 : -32.9599
-  dss_mixed_logA1 : -28.1535
   dss_kappa1 : 30.9053
-  dss_mixed_kappa1 : 25.9429
   dss_mu1 : -1.50266629812
-  dss_mixed_mu1 : -90.0
   dss_logA2 : -23.3471
-  dss_mixed_logA2 : -28.1535
   dss_kappa2 : 20.9805
-  dss_mixed_kappa2 : 25.9429
   dss_mu2 : 1.61253656695
-  dss_mixed_mu2 : 90.0
+  # dihed CB-S
   dcs_logA1 : -15.8644
   dcs_mu1 : -1.26015618528
   dcs_kappa1 : 13.3778

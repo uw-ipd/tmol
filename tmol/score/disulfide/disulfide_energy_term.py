@@ -54,9 +54,6 @@ class DisulfideEnergyTerm(EnergyTerm):
         if hasattr(packed_block_types, "disulfide_conns"):
             return
 
-        def _t(arr):
-            return torch.tensor(arr, dtype=torch.int32, device=self.device)
-
         disulfide_conns = torch.full(
             (packed_block_types.n_types, packed_block_types.max_n_conn),
             0,

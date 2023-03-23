@@ -24,17 +24,11 @@ struct DisulfideGlobalParams {
   Real a_mu;
 
   Real dss_logA1;
-  Real dss_mixed_logA1;
   Real dss_kappa1;
-  Real dss_mixed_kappa1;
   Real dss_mu1;
-  Real dss_mixed_mu1;
   Real dss_logA2;
-  Real dss_mixed_logA2;
   Real dss_kappa2;
-  Real dss_mixed_kappa2;
   Real dss_mu2;
-  Real dss_mixed_mu2;
 
   Real dcs_logA1;
   Real dcs_mu1;
@@ -58,17 +52,11 @@ struct DisulfideGlobalParamTensors {
   TView<Real, 1, D> a_mu;
 
   TView<Real, 1, D> dss_logA1;
-  TView<Real, 1, D> dss_mixed_logA1;
   TView<Real, 1, D> dss_kappa1;
-  TView<Real, 1, D> dss_mixed_kappa1;
   TView<Real, 1, D> dss_mu1;
-  TView<Real, 1, D> dss_mixed_mu1;
   TView<Real, 1, D> dss_logA2;
-  TView<Real, 1, D> dss_mixed_logA2;
   TView<Real, 1, D> dss_kappa2;
-  TView<Real, 1, D> dss_mixed_kappa2;
   TView<Real, 1, D> dss_mu2;
-  TView<Real, 1, D> dss_mixed_mu2;
 
   TView<Real, 1, D> dcs_logA1;
   TView<Real, 1, D> dcs_mu1;
@@ -83,17 +71,16 @@ struct DisulfideGlobalParamTensors {
   template <typename Idx>
   auto operator[](Idx i) const {
     return DisulfideGlobalParams<Real>{
-        d_location[i], d_scale[i],          d_shape[i],
+        d_location[i], d_scale[i],    d_shape[i],
 
-        a_logA[i],     a_kappa[i],          a_mu[i],
+        a_logA[i],     a_kappa[i],    a_mu[i],
 
-        dss_logA1[i],  dss_mixed_logA1[i],  dss_kappa1[i], dss_mixed_kappa1[i],
-        dss_mu1[i],    dss_mixed_mu1[i],    dss_logA2[i],  dss_mixed_logA2[i],
-        dss_kappa2[i], dss_mixed_kappa2[i], dss_mu2[i],    dss_mixed_mu2[i],
+        dss_logA1[i],  dss_kappa1[i], dss_mu1[i],
+        dss_logA2[i],  dss_kappa2[i], dss_mu2[i],
 
-        dcs_logA1[i],  dcs_mu1[i],          dcs_kappa1[i], dcs_logA2[i],
-        dcs_mu2[i],    dcs_kappa2[i],       dcs_logA3[i],  dcs_mu3[i],
-        dcs_kappa3[i]};
+        dcs_logA1[i],  dcs_mu1[i],    dcs_kappa1[i],
+        dcs_logA2[i],  dcs_mu2[i],    dcs_kappa2[i],
+        dcs_logA3[i],  dcs_mu3[i],    dcs_kappa3[i]};
   }
 };
 

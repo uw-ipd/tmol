@@ -15,17 +15,11 @@ class DisulfideGlobalParameters:
     a_mu: float
 
     dss_logA1: float
-    dss_mixed_logA1: float
     dss_kappa1: float
-    dss_mixed_kappa1: float
     dss_mu1: float
-    dss_mixed_mu1: float
     dss_logA2: float
-    dss_mixed_logA2: float
     dss_kappa2: float
-    dss_mixed_kappa2: float
     dss_mu2: float
-    dss_mixed_mu2: float
 
     dcs_logA1: float
     dcs_mu1: float
