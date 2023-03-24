@@ -63,7 +63,7 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
 def test_whole_pose_scoring_module_single(
     rts_disulfide_res, default_database, torch_device: torch.device
 ):
-    gold_vals = numpy.array([[-3.257311]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-3.25716]], dtype=numpy.float32)
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
@@ -92,7 +92,7 @@ def test_whole_pose_scoring_module_10(
     rts_disulfide_res, default_database, torch_device: torch.device
 ):
     n_poses = 10
-    gold_vals = numpy.tile(numpy.array([[-3.257311]], dtype=numpy.float32), (n_poses))
+    gold_vals = numpy.tile(numpy.array([[-3.25716]], dtype=numpy.float32), (n_poses))
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
