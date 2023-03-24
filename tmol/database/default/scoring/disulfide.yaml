@@ -24,3 +24,9 @@ global_parameters:
   dcs_logA3 : -7.0219
   dcs_mu3 : -3.0115756416500004
   dcs_kappa3 : 2.9327
+  # weights
+  wt_dih_ss: 0.1
+  wt_dih_cs: 0.1
+  wt_ang: 0.1
+  wt_len: 0.1
+  shift: 2.0

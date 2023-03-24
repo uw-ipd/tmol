@@ -37,6 +37,12 @@ class DisulfideGlobalParams(TensorGroup):
     dcs_mu3: Tensor[torch.float32][...]
     dcs_kappa3: Tensor[torch.float32][...]
 
+    wt_dih_ss: Tensor[torch.float32][...]
+    wt_dih_cs: Tensor[torch.float32][...]
+    wt_ang: Tensor[torch.float32][...]
+    wt_len: Tensor[torch.float32][...]
+    shift: Tensor[torch.float32][...]
+
     @classmethod
     @validate_args
     def from_database(cls, disulfide_database: DisulfideDatabase, device: torch.device):

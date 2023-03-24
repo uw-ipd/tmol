@@ -53,23 +53,15 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
       dihedral_angle<Real>::V_dV(block2_CA, block2_CB, block2_S, block1_S);
 
   const Real MEST = exp(-20.0);
-  const Real WT_DIH_SS(0.1);
-  const Real WT_DIH_CS(0.1);
-  const Real WT_ANG(0.1);
-  const Real WT_LEN(0.1);
-  const Real SHIFT(2.0);
 
-  const Real res1_d_multiplier(1.0);
-  const Real res2_d_multiplier(1.0);
-
-  Real score = -SHIFT;
+  Real score = -params.shift;
 
   {  // Calculate Distance
     // Score
     Real z = (ssdist.V - params.d_location) / params.d_scale;
     Real score_d =
         z * z / 2 - log(std::erfc(-params.d_shape * z / sqrt(2.0)) + MEST);
-    score += WT_LEN * score_d;
+    score += params.wt_len * score_d;
 
     // Derivatives
     Real dscore_d =
@@ -78,7 +70,7 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
            * sqrt(2.0 / M_PI) * params.d_shape)
               / (params.d_scale * std::erfc(-params.d_shape * z / sqrt(2.0))
                  + 1.e-12);
-    dscore_d *= WT_LEN;
+    dscore_d *= params.wt_len;
     accumulate<D, Vec<Real, 3>>::add(
         pose_dV_dx[block1_S_ind], dscore_d * ssdist.dV_dA);
     accumulate<D, Vec<Real, 3>>::add(
@@ -90,14 +82,16 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     Real ang_score(0);
     Real angle1(csang_1.V), angle2(csang_2.V);
     ang_score +=
-        WT_ANG * (-params.a_logA - params.a_kappa * cos(angle1 - params.a_mu));
+        params.wt_ang
+        * (-params.a_logA - params.a_kappa * cos(angle1 - params.a_mu));
     ang_score +=
-        WT_ANG * (-params.a_logA - params.a_kappa * cos(angle2 - params.a_mu));
+        params.wt_ang
+        * (-params.a_logA - params.a_kappa * cos(angle2 - params.a_mu));
     score += ang_score;
 
     // Derivatives
-    Real dscore_a = params.a_kappa * sin(angle1 - params.a_mu) * WT_ANG;
-    Real dscore_b = params.a_kappa * sin(angle2 - params.a_mu) * WT_ANG;
+    Real dscore_a = params.a_kappa * sin(angle1 - params.a_mu) * params.wt_ang;
+    Real dscore_b = params.a_kappa * sin(angle2 - params.a_mu) * params.wt_ang;
     accumulate<D, Vec<Real, 3>>::add(
         pose_dV_dx[block1_CB_ind], dscore_a * csang_1.dV_dA);
     accumulate<D, Vec<Real, 3>>::add(
@@ -116,22 +110,18 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     // Score
     Real ang_ss(dihed.V), exp_score1(0.0), exp_score2(0.0);
     exp_score1 = exp(params.dss_logA1)
-                 * exp(params.dss_kappa1
-                       * cos(res1_d_multiplier * ang_ss - params.dss_mu1));
+                 * exp(params.dss_kappa1 * cos(ang_ss - params.dss_mu1));
     exp_score2 = exp(params.dss_logA2)
-                 * exp(params.dss_kappa2
-                       * cos(res1_d_multiplier * ang_ss - params.dss_mu2));
+                 * exp(params.dss_kappa2 * cos(ang_ss - params.dss_mu2));
     Real score_ss = -log(exp_score1 + exp_score2 + MEST);
-    score += WT_DIH_SS * score_ss;
+    score += params.wt_dih_ss * score_ss;
 
     // Derivatives
     Real dscore_ss(0.0);
-    dscore_ss += exp_score1 * params.dss_kappa1
-                 * sin(res1_d_multiplier * dihed.V - params.dss_mu1);
-    dscore_ss += exp_score2 * params.dss_kappa2
-                 * sin(res1_d_multiplier * dihed.V - params.dss_mu2);
+    dscore_ss += exp_score1 * params.dss_kappa1 * sin(dihed.V - params.dss_mu1);
+    dscore_ss += exp_score2 * params.dss_kappa2 * sin(dihed.V - params.dss_mu2);
     dscore_ss /= (exp_score1 + exp_score2 + MEST);
-    dscore_ss *= WT_DIH_SS;
+    dscore_ss *= params.wt_dih_ss;
 
     accumulate<D, Vec<Real, 3>>::add(
         pose_dV_dx[block1_CB_ind], dscore_ss * dihed.dV_dI);
@@ -147,15 +137,13 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     // Score (angle 1)
     Real angle1(disulf_ca_dihedral_angle_1.V);
     Real exp_score1 = exp(params.dcs_logA1)
-                      * exp(params.dcs_kappa1
-                            * cos(res1_d_multiplier * angle1 - params.dcs_mu1));
+                      * exp(params.dcs_kappa1 * cos(angle1 - params.dcs_mu1));
     Real exp_score2 = exp(params.dcs_logA2)
-                      * exp(params.dcs_kappa2
-                            * cos(res1_d_multiplier * angle1 - params.dcs_mu2));
+                      * exp(params.dcs_kappa2 * cos(angle1 - params.dcs_mu2));
     Real exp_score3 = exp(params.dcs_logA3)
-                      * exp(params.dcs_kappa3
-                            * cos(res1_d_multiplier * angle1 - params.dcs_mu3));
-    score += WT_DIH_CS * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
+                      * exp(params.dcs_kappa3 * cos(angle1 - params.dcs_mu3));
+    score +=
+        params.wt_dih_cs * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
 
     // Derivatives (angle 2)
     Real dscore_cs = 0.0;
@@ -163,7 +151,7 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     dscore_cs += exp_score2 * params.dcs_kappa2 * sin(angle1 - params.dcs_mu2);
     dscore_cs += exp_score3 * params.dcs_kappa3 * sin(angle1 - params.dcs_mu3);
     dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= WT_DIH_CS;
+    dscore_cs *= params.wt_dih_cs;
 
     accumulate<D, Vec<Real, 3>>::add(
         pose_dV_dx[block1_CA_ind],
@@ -179,15 +167,13 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     // Score (angle 2)
     Real angle2(disulf_ca_dihedral_angle_2.V);
     exp_score1 = exp(params.dcs_logA1)
-                 * exp(params.dcs_kappa1
-                       * cos(res2_d_multiplier * angle2 - params.dcs_mu1));
+                 * exp(params.dcs_kappa1 * cos(angle2 - params.dcs_mu1));
     exp_score2 = exp(params.dcs_logA2)
-                 * exp(params.dcs_kappa2
-                       * cos(res2_d_multiplier * angle2 - params.dcs_mu2));
+                 * exp(params.dcs_kappa2 * cos(angle2 - params.dcs_mu2));
     exp_score3 = exp(params.dcs_logA3)
-                 * exp(params.dcs_kappa3
-                       * cos(res2_d_multiplier * angle2 - params.dcs_mu3));
-    score += WT_DIH_CS * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
+                 * exp(params.dcs_kappa3 * cos(angle2 - params.dcs_mu3));
+    score +=
+        params.wt_dih_cs * (-log(exp_score1 + exp_score2 + exp_score3 + MEST));
 
     // Derivatives (angle 2)
     dscore_cs = 0.0;
@@ -195,7 +181,7 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     dscore_cs += exp_score2 * params.dcs_kappa2 * sin(angle2 - params.dcs_mu2);
     dscore_cs += exp_score3 * params.dcs_kappa3 * sin(angle2 - params.dcs_mu3);
     dscore_cs /= (exp_score1 + exp_score2 + exp_score3 + MEST);
-    dscore_cs *= WT_DIH_CS;
+    dscore_cs *= params.wt_dih_cs;
 
     accumulate<D, Vec<Real, 3>>::add(
         pose_dV_dx[block2_CA_ind],

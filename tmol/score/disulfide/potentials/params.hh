@@ -39,6 +39,12 @@ struct DisulfideGlobalParams {
   Real dcs_logA3;
   Real dcs_mu3;
   Real dcs_kappa3;
+
+  Real wt_dih_ss;
+  Real wt_dih_cs;
+  Real wt_ang;
+  Real wt_len;
+  Real shift;
 };
 
 template <typename Real, tmol::Device D>

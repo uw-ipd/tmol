@@ -52,6 +52,11 @@ class DisulfideWholePoseScoringModule(torch.nn.Module):
                         global_params.dcs_logA3,
                         global_params.dcs_mu3,
                         global_params.dcs_kappa3,
+                        global_params.wt_dih_ss,
+                        global_params.wt_dih_cs,
+                        global_params.wt_ang,
+                        global_params.wt_len,
+                        global_params.shift,
                     ]
                 ),
                 dim=1,

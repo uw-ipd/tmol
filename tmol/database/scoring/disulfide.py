@@ -31,6 +31,12 @@ class DisulfideGlobalParameters:
     dcs_mu3: float
     dcs_kappa3: float
 
+    wt_dih_ss: float
+    wt_dih_cs: float
+    wt_ang: float
+    wt_len: float
+    shift: float
+
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class DisulfideDatabase:
