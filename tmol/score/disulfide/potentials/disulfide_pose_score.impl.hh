@@ -105,6 +105,7 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         if (!disulfide_conns[other_block_type_index][other_conn_index])
           continue;
 
+        // Get the 6 atoms that we need for the disulfides
         auto block1_CA_ind =
             block_atom_offset
             + block_type_atom_downstream_of_conn[block_type_index][conn_index]
@@ -117,7 +118,6 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
             block_atom_offset
             + block_type_atom_downstream_of_conn[block_type_index][conn_index]
                                                 [0];
-
         auto block2_S_ind =
             other_block_atom_offset
             + block_type_atom_downstream_of_conn[other_block_type_index]
@@ -131,7 +131,8 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
             + block_type_atom_downstream_of_conn[other_block_type_index]
                                                 [other_conn_index][2];
 
-        disulfide_potential<Real, D>(
+        // Calculate score and derivatives and put them in the out tensors
+        accumulate_disulfide_potential<Real, D>(
             coords[pose_index],
             block1_CA_ind,
             block1_CB_ind,
