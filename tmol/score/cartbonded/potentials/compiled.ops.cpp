@@ -137,11 +137,96 @@ Tensor cb_score_op(
       cbhxl_params);
 }
 
+template <template <tmol::Device> class DispatchMethod>
+class CartBondedPoseScoreOp
+    : public torch::autograd::Function<CartBondedPoseScoreOp<DispatchMethod>> {
+ public:
+  static Tensor forward(
+      AutogradContext* ctx,
+      Tensor coords,
+      Tensor pose_stack_block_coord_offset,
+      Tensor pose_stack_block_type,
+      Tensor pose_stack_inter_block_connections,
+      Tensor block_type_atom_downstream_of_conn,
+      Tensor global_params) {
+    at::Tensor score;
+    at::Tensor dscore_dcoords;
+
+    using Int = int32_t;
+
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        coords.type(), "cartbonded_pose_score_op", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+
+          auto result =
+              CartBondedPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::f(
+                  TCAST(coords),
+                  TCAST(pose_stack_block_coord_offset),
+                  TCAST(pose_stack_block_type),
+                  TCAST(pose_stack_inter_block_connections),
+                  TCAST(block_type_atom_downstream_of_conn),
+                  TCAST(global_params),
+                  coords.requires_grad());
+
+          score = std::get<0>(result).tensor;
+          dscore_dcoords = std::get<1>(result).tensor;
+        }));
+
+    ctx->save_for_backward({dscore_dcoords});
+    return score;
+  }
+
+  static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    auto saved_grads = ctx->get_saved_variables();
+
+    tensor_list result;
+
+    for (auto& saved_grad : saved_grads) {
+      auto ingrad = grad_outputs[0];
+      while (ingrad.dim() < saved_grad.dim()) {
+        ingrad = ingrad.unsqueeze(-1);
+      }
+
+      result.emplace_back(saved_grad * ingrad);
+    }
+
+    int i = 0;
+    auto dscore_dcoords = result[i++];
+
+    return {dscore_dcoords,
+
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor()};
+  }
+};
+
+template <template <tmol::Device> class DispatchMethod>
+Tensor cartbonded_pose_scores_op(
+    Tensor coords,
+    Tensor pose_stack_block_coord_offset,
+    Tensor pose_stack_block_type,
+    Tensor pose_stack_inter_block_connections,
+    Tensor block_type_atom_downstream_of_conn,
+    Tensor global_params) {
+  return CartBondedPoseScoreOp<DispatchMethod>::apply(
+      coords,
+      pose_stack_block_coord_offset,
+      pose_stack_block_type,
+      pose_stack_inter_block_connections,
+      block_type_atom_downstream_of_conn,
+      global_params);
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("score_cartbonded", &cb_score_op<common::ForallDispatch>);
+  m.def("cartbonded_pose_scores", &cartbonded_pose_scores_op<DeviceOperations>);
 }
 
 }  // namespace potentials
