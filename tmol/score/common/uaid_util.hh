@@ -26,7 +26,6 @@ TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
-    TView<Int, 3, D> block_type_omega_quad_uaids,
     TView<Int, 3, D> block_type_atom_downstream_of_conn) {
   if (uaid[0] != -1) {  // This uaid resides in this block
     int block_coord_offset =

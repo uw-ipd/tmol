@@ -94,7 +94,6 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           pose_stack_block_coord_offset,
           pose_stack_block_type,
           pose_stack_inter_block_connections,
-          block_type_omega_quad_uaids,
           block_type_atom_downstream_of_conn);
 
       if (omega_atom_ind == -1) {
