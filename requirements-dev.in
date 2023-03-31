@@ -1,0 +1,9 @@
+flake8
+black
+pytest
+pytest-forked
+pytest-cov
+pytest-instafail
+pytest-repeat
+pytest-watch
+pytest-benchmark
