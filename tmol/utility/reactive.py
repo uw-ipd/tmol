@@ -408,6 +408,7 @@ import toolz
 
 def _code(
     argcount,
+    posonlyargcount,
     kwonlyargcount,
     nlocals,
     stacksize,
@@ -427,6 +428,7 @@ def _code(
     """Construct type.CodeType, ignoring unneeded kwargs."""
     return types.CodeType(
         argcount,
+        posonlyargcount,
         kwonlyargcount,
         nlocals,
         stacksize,
