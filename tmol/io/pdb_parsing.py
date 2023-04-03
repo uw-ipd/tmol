@@ -26,22 +26,22 @@ from os import path
 
 atom_record_dtype = numpy.dtype(
     [
-        ("record_name", numpy.str, 6),
-        ("modeli", numpy.int),
-        ("chaini", numpy.int),
-        ("resi", numpy.int),
-        ("atomi", numpy.int),
-        ("model", numpy.str, 64),
-        ("chain", numpy.str, 1),
-        ("resn", numpy.str, 3),
-        ("atomn", numpy.str, 4),
-        ("x", numpy.float),
-        ("y", numpy.float),
-        ("z", numpy.float),
-        ("location", numpy.str, 1),
-        ("insert", numpy.str, 1),
-        ("occupancy", numpy.float),
-        ("b", numpy.float),
+        ("record_name", str, 6),
+        ("modeli", int),
+        ("chaini", int),
+        ("resi", int),
+        ("atomi", int),
+        ("model", str, 64),
+        ("chain", str, 1),
+        ("resn", str, 3),
+        ("atomn", str, 4),
+        ("x", float),
+        ("y", float),
+        ("z", float),
+        ("location", str, 1),
+        ("insert", str, 1),
+        ("occupancy", float),
+        ("b", float),
     ]
 )
 
@@ -133,10 +133,10 @@ def parse_atom_lines(lines):
     """
     results = numpy.empty(len(lines), dtype=atom_record_dtype)
 
-    results["record_name"] = numpy.vectorize(lambda s: (s[0:6]), otypes=[numpy.str])(
+    results["record_name"] = numpy.vectorize(lambda s: (s[0:6]), otypes=[str])(
         lines
     )
-    results["atomi"] = numpy.vectorize(lambda s: int(s[6:11]), otypes=[numpy.int])(
+    results["atomi"] = numpy.vectorize(lambda s: int(s[6:11]), otypes=[int])(
         lines
     )
     # atomn are directly compared in modeling software, specifically rosetta, without
@@ -144,36 +144,36 @@ def parse_atom_lines(lines):
     #
     # atomn will be reformatted to pdb standard during output
     results["atomn"] = numpy.vectorize(
-        lambda s: str.strip(s[12:16]), otypes=[numpy.str]
+        lambda s: str.strip(s[12:16]), otypes=[str]
     )(lines)
     results["location"] = numpy.vectorize(
-        lambda s: str.strip(s[16:17]), otypes=[numpy.str]
+        lambda s: str.strip(s[16:17]), otypes=[str]
     )(lines)
     results["resn"] = numpy.vectorize(
-        lambda s: str.strip(s[17:20]), otypes=[numpy.str]
+        lambda s: str.strip(s[17:20]), otypes=[str]
     )(lines)
     results["chain"] = numpy.vectorize(
-        lambda s: str.strip(s[21:22]), otypes=[numpy.str]
+        lambda s: str.strip(s[21:22]), otypes=[str]
     )(lines)
-    results["resi"] = numpy.vectorize(lambda s: int(s[22:26]), otypes=[numpy.int])(
+    results["resi"] = numpy.vectorize(lambda s: int(s[22:26]), otypes=[int])(
         lines
     )
     results["insert"] = numpy.vectorize(
-        lambda s: str.strip(s[26:27]), otypes=[numpy.str]
+        lambda s: str.strip(s[26:27]), otypes=[str]
     )(lines)
-    results["x"] = numpy.vectorize(lambda s: float(s[30:38]), otypes=[numpy.float])(
+    results["x"] = numpy.vectorize(lambda s: float(s[30:38]), otypes=[float])(
         lines
     )
-    results["y"] = numpy.vectorize(lambda s: float(s[38:46]), otypes=[numpy.float])(
+    results["y"] = numpy.vectorize(lambda s: float(s[38:46]), otypes=[float])(
         lines
     )
-    results["z"] = numpy.vectorize(lambda s: float(s[46:54]), otypes=[numpy.float])(
+    results["z"] = numpy.vectorize(lambda s: float(s[46:54]), otypes=[float])(
         lines
     )
     results["occupancy"] = numpy.vectorize(
-        lambda s: float(s[54:60]), otypes=[numpy.float]
+        lambda s: float(s[54:60]), otypes=[float]
     )(lines)
-    results["b"] = numpy.vectorize(lambda s: float(s[60:66]), otypes=[numpy.float])(
+    results["b"] = numpy.vectorize(lambda s: float(s[60:66]), otypes=[float])(
         lines
     )
     # results["segi"]       = numpy.vectorize(lambda s: str.strip(s[72:76]), otypes = [numpy.str])(lines)

@@ -421,7 +421,7 @@ def test_lkball_deriv_full_backward_pass(default_database):
     atom_types = param_resolver.type_idx(
         ["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]
     ).numpy()
-    bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int)
+    bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int64)
     bonded_path_lengths[:3, 3:] = 5
     bonded_path_lengths[3:, :3] = 5
     attachedH = numpy.full((6, 4), -1)
@@ -493,7 +493,7 @@ def test_lkball_spotcheck(default_database):
     atom_types = param_resolver.type_idx(
         ["Nlys", "Hpol", "Hpol", "Hpol", "Nlys", "Hpol", "Hpol", "Hpol"]
     ).numpy()
-    bonded_path_lengths = numpy.ones((8, 8), dtype=numpy.int)
+    bonded_path_lengths = numpy.ones((8, 8), dtype=numpy.int64)
     bonded_path_lengths[:4, 4:] = 5
     bonded_path_lengths[4:, :4] = 5
     attachedH = numpy.full((8, 4), -1)
@@ -537,7 +537,7 @@ def test_lkball_spotcheck_sp2_nonpolar(default_database):
     )
     atom_types = param_resolver.type_idx(["CH2", "COO", "OOC", "CH3"]).numpy()
 
-    bonded_path_lengths = numpy.ones((4, 4), dtype=numpy.int)
+    bonded_path_lengths = numpy.ones((4, 4), dtype=numpy.int64)
     bonded_path_lengths[:3, 3] = 5
     bonded_path_lengths[3, :3] = 5
     attachedH = numpy.full((4, 4), -1)
@@ -583,7 +583,7 @@ def test_lkball_spotcheck_sp3_ring(default_database):
     atom_types = param_resolver.type_idx(
         ["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]
     ).numpy()
-    bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int)
+    bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int64)
     bonded_path_lengths[:3, 3:] = 5
     bonded_path_lengths[3:, :3] = 5
     attachedH = numpy.full((6, 4), -1)
