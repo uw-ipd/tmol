@@ -4,7 +4,7 @@ FROM nvidia/cuda:11.8.0-devel-ubuntu20.04 as base
 # general environment for docker
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update; apt-get install -y --no-install-recommends sudo wget curl git vim && rm -rf /var/lib/apt/lists/*
+RUN apt-get update; apt-get install -y --no-install-recommends sudo wget curl git vim rsync && rm -rf /var/lib/apt/lists/*
 
 ENV CONDA_DIR=/opt/conda
 ENV PATH ${CONDA_DIR}/bin:$PATH
@@ -33,11 +33,11 @@ WORKDIR /home/docker
 FROM base as builder
 
 ## copy requirements over first so this layer is cached and we don't have to reinstall dependencies if only source has changed
-COPY --chown=docker requirements.in env.yml .
-RUN mamba env update -n base -f env.yml
+COPY --chown=docker requirements.in env.yml /home/docker/tmol/
+RUN mamba env update -n base -f /home/docker/tmol/env.yml
 
-COPY --chown=docker requirements-dev.in .
-RUN pip install -r requirements-dev.in
+COPY --chown=docker requirements-dev.in /home/docker/tmol/
+RUN pip install -r /home/docker/tmol/requirements-dev.in
 
-COPY --chown=docker . tmol
-RUN pip install ./tmol
+COPY --chown=docker . /home/docker/tmol
+RUN pip install -e /home/docker/tmol
