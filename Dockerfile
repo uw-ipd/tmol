@@ -35,12 +35,23 @@ ENV SPARSE_AUTO_DENSIFY 1
 
 FROM base as builder
 
-## copy requirements over first so this layer is cached and we don't have to reinstall dependencies if only source has changed
-COPY --chown=docker requirements.in env.yml /home/docker/tmol/
-RUN mamba env update -n base -f /home/docker/tmol/env.yml
+# NOTE we copy requirements over first so layers are cached and we don't have
+# to reinstall dependencies if only source has changed
 
-COPY --chown=docker requirements-dev.in /home/docker/tmol/
-RUN pip install -r /home/docker/tmol/requirements-dev.in
+### NOTE Dependencies can be isntalled in two different ways
+
+### 1. install a fresh environment by re-resolving dependencies based on specification in env.yml and requirements{-dev}.in ###
+
+#COPY --chown=docker requirements.in env.yml /home/docker/tmol/
+#RUN mamba env update -n base -f /home/docker/tmol/env.yml
+#COPY --chown=docker requirements-dev.in /home/docker/tmol/
+#RUN pip install -r /home/docker/tmol/requirements-dev.in
+
+### 2. install a frozen environment with exact versions specified from env.dev.export.yml ###
+
+# we choose (2) here by default for reproducibility
+COPY --chown=docker env.dev.export.yml /home/docker/tmol/
+RUN mamba env update -n base -f /home/docker/tmol/env.dev.export.yml
 
 COPY --chown=docker . /home/docker/tmol
 RUN pip install -e /home/docker/tmol
