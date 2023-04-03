@@ -30,6 +30,9 @@ RUN echo "docker ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/docker
 USER    docker
 WORKDIR /home/docker
 
+# FIXME needed for newer versions of sparse but should be replaced by explicit casts to dense where needed
+ENV SPARSE_AUTO_DENSIFY 1
+
 FROM base as builder
 
 ## copy requirements over first so this layer is cached and we don't have to reinstall dependencies if only source has changed

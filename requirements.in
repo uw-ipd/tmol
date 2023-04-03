@@ -12,7 +12,7 @@ pint
 pyyaml
 requests
 scipy
-sparse<=0.3.1
+sparse
 toolz
 typing_extensions
 typing_inspect
