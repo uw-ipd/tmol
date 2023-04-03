@@ -147,7 +147,7 @@ class TensorGroup:
     def reshape(self, *shape):
         self._check_pure_tensor()
 
-        if len(shape) == 1 and isinstance(shape[0], collections.Sequence):
+        if len(shape) == 1 and isinstance(shape[0], collections.abc.Sequence):
             shape = tuple(shape[0])
         else:
             shape = tuple(shape)
