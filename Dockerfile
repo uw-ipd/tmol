@@ -4,6 +4,8 @@ FROM nvidia/cuda:11.8.0-devel-ubuntu20.04 as base
 # general environment for docker
 ENV DEBIAN_FRONTEND=noninteractive
 
+RUN apt-get update; apt-get install -y --no-install-recommends sudo wget curl git vim && rm -rf /var/lib/apt/lists/*
+
 ENV CONDA_DIR=/opt/conda
 ENV PATH ${CONDA_DIR}/bin:$PATH
 
