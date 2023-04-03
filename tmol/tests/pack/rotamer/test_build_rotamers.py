@@ -914,7 +914,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
         return pbt.n_atoms[poses.block_type_ind[i1, i2]]
 
     src_dof_offsets = numpy.cumsum(
-        [0, n_ats(0, 0), n_ats(0, 1), n_ats(1, 0), n_ats(1, 1)]
+        [0, n_ats(0, 0).cpu(), n_ats(0, 1).cpu(), n_ats(1, 0).cpu(), n_ats(1, 1).cpu()]
     ).repeat(6)
 
     src_gold = src_fpats_kto + src_dof_offsets + 1

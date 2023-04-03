@@ -5,7 +5,6 @@ decorator
 frozendict
 hypothesis
 ipython
-numpy<1.20
 pandas
 pint
 pyyaml
@@ -17,3 +16,4 @@ typing_extensions
 typing_inspect
 typish
 zarr
+#numpy # NOTE we get numpy from conda to ensure compat with numba
