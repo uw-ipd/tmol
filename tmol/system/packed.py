@@ -256,7 +256,7 @@ class PackedResidueSystem:
         ]
 
         if torsion_entries:
-            torsion_entries = pandas.io.json.json_normalize(torsion_entries)
+            torsion_entries = pandas.json_normalize(torsion_entries)
             for column_letter in ("a", "b", "c", "d"):
                 colname = "%s.bond_sep_from_conn" % column_letter
                 col = numpy.array(torsion_entries[colname])
@@ -340,7 +340,7 @@ class PackedResidueSystem:
                 merge = pandas.merge(
                     merge, torsion_entries_by_atom[i + 1], how="left", copy=False
                 )
-            torsion_index = merge.sort_index("columns")
+            torsion_index = merge.sort_index(axis="columns")
 
         else:
             torsion_index = pandas.DataFrame(
