@@ -12,7 +12,7 @@ pint
 pyyaml
 requests
 scipy
-sparse
+sparse # NOTE sparse>0.3.1 requires env var SPARSE_AUTO_DENSIFY=1 to be set
 toolz
 typing_extensions
 typing_inspect
