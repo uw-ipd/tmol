@@ -37,11 +37,12 @@ class CartBondedEnergyTerm(EnergyTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(CartBondedEnergyTerm, self).setup_block_type(block_type)
 
-        if "up" in self.connection_to_cidx:
-            cidx = block_type.connection_to_cidx["up"]
-            conn = block_type.connections[cidx]
-
-            conn.atom
+        foreign_atoms = ["CA", "CN", "H", "N", "C", "O"]
+        cartbonded_foreign_atoms = numpy.full(
+            (len(foreign_atoms)), -1, dtype=numpy.int32
+        )
+        for i, atm in enumerate(foreign_atoms):
+            cartbonded_foreign_atoms[i] = block_type.atom_to_idx[atm]
 
         """if hasattr(block_type, "omega_quad_uaids"):
             return
@@ -52,8 +53,13 @@ class CartBondedEnergyTerm(EnergyTerm):
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
         setup_cartbonded_lengths(packed_block_types)
-        setup_cartbonded_angles(packed_block_types)
-        setup_cartbonded_torsions(packed_block_types)
+        # setup_cartbonded_angles(packed_block_types)
+        # setup_cartbonded_torsions(packed_block_types)
+
+        setup_cartbonded_foreign_atoms(packed_block_types)
+
+    def setup_cartbonded_foreign_atoms(self, packed_block_types: PackedBlockTypes):
+        cartbonded_foreign_atoms = torch.full(())
 
     def set_cartbonded_lengths(self, packed_block_types: PackedBlockTypes):
         offset = 0
@@ -68,7 +74,7 @@ class CartBondedEnergyTerm(EnergyTerm):
                 block_type.cartbonded_lengths
                 for block_type in packed_block_types.active_block_types
             ]
-        )
+        ).size()
 
         cartbonded_length_atoms = torch.full(
             (num_lengths, 2), 0, dtype=torch.int32, device=self.device
@@ -108,6 +114,8 @@ class CartBondedEnergyTerm(EnergyTerm):
             pose_stack_block_coord_offset=pose_stack.block_coord_offset,
             pose_stack_block_types=pose_stack.block_type_ind,
             pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
-            bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
+            bt_cartbonded_length_atoms=pbt.cartbonded_length_atoms,
+            bt_cartbonded_length_x0=pbt.cartbonded_length_x0,
+            bt_cartbonded_length_K=pbt.cartbonded_length_K,
             global_params=self.global_params,
         )

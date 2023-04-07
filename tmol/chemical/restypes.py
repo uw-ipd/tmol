@@ -177,6 +177,62 @@ class RefinedResidueType(RawResidueType):
         path_distance[path_distance == numpy.inf] = MAX_SIG_BOND_SEPARATION
         return path_distance
 
+    atom_paths_from_conn: List = attr.ib()
+
+    @atom_paths_from_conn.default
+    def _setup_atom_paths_from_conn(self):
+        atom_paths_from_conn = []
+        if len(self.connections) == 0:
+            return
+
+        n_conns = len(self.connections)
+
+        def get_paths_length_2(connection):
+            return set(
+                [
+                    (atom1, atom2) if connection.atom == atom1 else (atom2, atom1)
+                    for (atom1, atom2) in self.bonds
+                    if connection.atom in [atom1, atom2]
+                ]
+            )
+
+        # construct a list of paths starting from each connection point of length 2 and record the atom indices of the atoms in those paths
+        for connection in self.connections:
+            atom_paths_from_conn.append(get_paths_length_2(connection))
+
+        print(self.name)
+        print(atom_paths_from_conn)
+        return atom_paths_from_conn
+
+        """if len(self.connections) == 0:
+            return
+
+        n_conns = len(self.connections)
+
+        def get_paths_length_2(connection):
+            i_conn_atom = self.atom_to_idx[connection.atom]
+            return numpy.array([(root, other_atom) for (root, other_atom) in self.bond_indices if root == i_conn_atom], dtype=numpy.int32)
+
+        # construct a list of paths starting from each connection point of length 2 and record the atom indices of the atoms in those paths
+        paths = []
+        for connection in self.connections:
+            paths.append(get_paths_length_2(connection))
+
+        # get the longest list for any connection. We need this so we can create the correct dimensions for the numpy array below, and the tensor later
+        max_paths_per_conn = max([len(conn_paths) for conn_paths in paths])
+
+        # create the numpy array
+        atom_paths_from_conn = numpy.full(
+            (n_conns, max_paths_per_conn, 2), -1, dtype=numpy.int32
+        )
+
+        print(self.name)
+        # fill the numpy array with our data
+        for i, conn_paths in enumerate(paths):
+            atom_paths_from_conn[i] = conn_paths
+            for path in conn_paths:
+                print(self.atoms[path[0]].name + " --- " + self.atoms[path[1]].name)"""
+
     atom_downstream_of_conn: numpy.ndarray = attr.ib()
 
     @atom_downstream_of_conn.default

@@ -2,6 +2,7 @@ import os
 import attr
 
 from .cartbonded import CartBondedDatabase
+from .cartbonded import CartBondedDatabaseNew
 from .dunbrack_libraries import DunbrackRotamerLibrary
 from .elec import ElecDatabase
 from .hbond import HBondDatabase
@@ -14,6 +15,7 @@ from .rama import RamaDatabase
 class ScoringDatabase:
 
     cartbonded: CartBondedDatabase
+    cartbonded_new: CartBondedDatabaseNew
     dun: DunbrackRotamerLibrary
     elec: ElecDatabase
     hbond: HBondDatabase
@@ -26,6 +28,9 @@ class ScoringDatabase:
         return cls(
             cartbonded=CartBondedDatabase.from_file(
                 os.path.join(path, "cartbonded.yaml")
+            ),
+            cartbonded_new=CartBondedDatabaseNew.from_file(
+                os.path.join(path, "cartbonded_new.yaml")
             ),
             dun=DunbrackRotamerLibrary.from_zarr_archive(
                 os.path.join(path, "dunbrack.yaml"), os.path.join(path, "dunbrack.bin")

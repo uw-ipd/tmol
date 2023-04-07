@@ -30,6 +30,8 @@ class PackedBlockTypes:
 
     atom_downstream_of_conn: Tensor[torch.int32][:, :, :]
 
+    atom_paths_from_conn: Tensor[torch.int32][:, :, :, 2]
+
     max_n_torsions: int
     n_torsions: Tensor[torch.int32][:]  # dim: n_types x max_n_tors
     torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_tors
@@ -71,6 +73,7 @@ class PackedBlockTypes:
         atom_downstream_of_conn = cls.join_atom_downstream_of_conn(
             active_block_types, device
         )
+        atom_paths_from_conn = cls.join_atom_paths_from_conn(active_block_types, device)
         n_torsions, torsion_is_real, torsion_uaids = cls.join_torsion_uaids(
             active_block_types, device
         )
@@ -91,6 +94,7 @@ class PackedBlockTypes:
             n_atoms=n_atoms,
             atom_is_real=atom_is_real,
             atom_downstream_of_conn=atom_downstream_of_conn,
+            atom_paths_from_conn=atom_paths_from_conn,
             max_n_torsions=torsion_is_real.shape[1],
             n_torsions=n_torsions,
             torsion_is_real=torsion_is_real,
@@ -158,6 +162,140 @@ class PackedBlockTypes:
                 i, : rt_adoc.shape[0], : rt_adoc.shape[1]
             ] = torch.tensor(rt_adoc, dtype=torch.int32, device=device)
         return atom_downstream_of_conn
+
+    """
+    Pack all the paths from the connections into a single tensor,
+    keyed on (res_ind, conn_ind, path_ind, atom_ind_within_path)
+
+    So for example:
+
+    ALA_IND:
+        DOWN_IND:
+            PATH_0:
+                N_IND
+                CA_IND
+            PATH_1:
+                N_IND
+                H_IND
+            -1:
+                -1
+                -1
+        UP_IND:
+            PATH_0:
+                C_IND
+                O_IND
+            PATH_1:
+                C_IND
+                CA_IND
+            -1:
+                -1
+                -1
+        -1: // this has to be filled because CYD has 3 connections
+            -1:
+                -1
+                -1
+            -1:
+                -1
+                -1
+    PRO_IND:
+        DOWN_IND:
+            PATH_0:
+                N_IND
+                CA_IND
+            -1: // proline doesn't have the N-H path described by others
+                -1
+                -1
+            PATH_2:
+                N_IND
+                CD_IND
+            -1:
+                -1
+                -1
+        UP_IND:
+            PATH_0:
+                C_IND
+                O_IND
+            PATH_1:
+                C_IND
+                CA_IND
+        -1: // this has to be filled because CYD has 3 connections
+            -1:
+                -1
+                -1
+            -1:
+                -1
+                -1
+            -1:
+                -1
+                -1
+    CYD_IND:
+        DOWN_IND:
+            PATH_0:
+                N_IND
+                CA_IND
+            PATH_1:
+                N_IND
+                H_IND
+            -1:
+                -1
+                -1
+        UP_IND:
+            PATH_0:
+                C_IND
+                O_IND
+            PATH_1:
+                C_IND
+                CA_IND
+            -1:
+                -1
+                -1
+        DISLF_IND:
+            PATH_0:
+                SG_IND
+                CB_IND
+            -1: // disulfide connections only have one path coming out of them
+                -1
+                -1
+            -1:
+                -1
+                -1
+    """
+
+    @classmethod
+    def join_atom_paths_from_conn(
+        clas, active_block_types: Sequence[Residue], device: torch.device
+    ):
+        n_restypes = len(active_block_types)
+        max_n_conn = max(len(rt.connections) for rt in active_block_types)
+
+        max_paths_any = 0
+        for bt in active_block_types:
+            print(bt.name)
+            print(bt.atom_paths_from_conn)
+            if len(bt.atom_paths_from_conn) == 0:
+                continue
+            # get the maximum number of paths in any connection on this block
+            max_paths_bt = max([len(paths) for paths in bt.atom_paths_from_conn])
+            # update the overall max
+            max_paths_any = max(max_paths_any, max_paths_bt)
+
+        atom_paths_from_conn = torch.full(
+            (n_restypes, max_n_conn, max_paths_any, 2),
+            -1,
+            dtype=torch.int32,
+            device=device,
+        )
+
+        for i, bt in enumerate(active_block_types):
+            paths = bt.atom_paths_from_conn
+            for j, conn_paths in enumerate(paths):
+                for k, path in enumerate(conn_paths):
+                    path_indices = (bt.atom_to_idx[path[0]], bt.atom_to_idx[path[1]])
+                    atom_paths_from_conn[i, j, k] = torch.tensor(
+                        path_indices, dtype=torch.int32, device=device
+                    )
+
+        print(atom_paths_from_conn)
 
     @classmethod
     def join_torsion_uaids(cls, active_block_types, device):
