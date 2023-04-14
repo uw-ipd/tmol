@@ -30,7 +30,7 @@ def test_annotate_omega_uaids(ubq_res, default_database, torch_device: torch.dev
     assert pbt.omega_quad_uaids.device == torch_device
 
 
-def test_whole_pose_scoring_module_gradcheck_whole_pose(
+def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
 
