@@ -53,5 +53,6 @@ FROM base as builder
 COPY --chown=docker env.dev.export.yml /home/docker/tmol/
 RUN mamba env update -n base -f /home/docker/tmol/env.dev.export.yml
 
-COPY --chown=docker . /home/docker/tmol
-RUN pip install -e /home/docker/tmol
+# optional: install tmol into the docker image; assumes that this Dockerfile lives in tmol/environments/test
+# COPY --chown=docker ../../. /home/docker/tmol
+# RUN pip install -e /home/docker/tmol
