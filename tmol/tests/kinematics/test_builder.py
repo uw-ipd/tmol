@@ -30,7 +30,7 @@ def test_stub_defined_for_jump_atom_two_descendents_of_jump():
 
     child_list = numpy.arange(9, dtype=numpy.int32) + 1
 
-    atom_is_jump = numpy.zeros((10,), dtype=numpy.bool)
+    atom_is_jump = numpy.zeros((10,), dtype=bool)
     atom_is_jump[5] = True
 
     is_defined = stub_defined_for_jump_atom(
@@ -61,7 +61,7 @@ def test_stub_defined_for_jump_atom_two_direct_children_of_jump():
 
     child_list = numpy.arange(9, dtype=numpy.int32) + 1
 
-    atom_is_jump = numpy.zeros((10,), dtype=numpy.bool)
+    atom_is_jump = numpy.zeros((10,), dtype=bool)
     atom_is_jump[5] = True
 
     is_defined = stub_defined_for_jump_atom(
@@ -92,7 +92,7 @@ def test_stub_defined_for_jump_atom_w_jump_children_of_jump():
 
     child_list = numpy.arange(9, dtype=numpy.int32) + 1
 
-    atom_is_jump = numpy.zeros((10,), dtype=numpy.bool)
+    atom_is_jump = numpy.zeros((10,), dtype=bool)
     atom_is_jump[jump_atom] = True
     atom_is_jump[jump_atom + 1] = True
 
@@ -124,7 +124,7 @@ def test_stub_defined_for_jump_atom_w_insufficient_children_excluding_jumps():
 
     child_list = numpy.arange(7, dtype=numpy.int32) + 1
 
-    atom_is_jump = numpy.zeros((8,), dtype=numpy.bool)
+    atom_is_jump = numpy.zeros((8,), dtype=bool)
     atom_is_jump[jump_atom] = True
     atom_is_jump[jump_atom + 1] = True
 
@@ -150,7 +150,7 @@ def test_get_c1_and_c2_atoms_for_jump_atom_two_descendents_of_jump():
     parents = numpy.arange(10, dtype=numpy.int32) - 1
     parents[0] = 0
 
-    atom_is_jump = numpy.zeros((10,), dtype=numpy.bool)
+    atom_is_jump = numpy.zeros((10,), dtype=bool)
     atom_is_jump[5] = True
 
     c1, c2 = get_c1_and_c2_atoms(5, atom_is_jump, child_list_span, child_list, parents)
@@ -184,7 +184,7 @@ def test_get_c1_and_c2_atoms_for_jump_atom_two_direct_children_of_jump():
     parents[0] = 0
     parents[jump_atom + 2] = jump_atom
 
-    atom_is_jump = numpy.zeros((10,), dtype=numpy.bool)
+    atom_is_jump = numpy.zeros((10,), dtype=bool)
     atom_is_jump[5] = True
 
     c1, c2 = get_c1_and_c2_atoms(5, atom_is_jump, child_list_span, child_list, parents)
@@ -217,7 +217,7 @@ def test_get_c1_and_c2_atoms_for_jump_atom_w_jump_child():
     parents[0] = 0
     parents[jump_atom + 2] = jump_atom
 
-    atom_is_jump = numpy.zeros((10,), dtype=numpy.bool)
+    atom_is_jump = numpy.zeros((10,), dtype=bool)
     atom_is_jump[jump_atom] = True
     atom_is_jump[jump_atom + 1] = True
 
@@ -251,7 +251,7 @@ def test_get_c1_and_c2_atoms_for_jump_atom_w_insufficient_children_excluding_jum
     parents[0] = 0
     parents[jump_atom + 2] = jump_atom
 
-    atom_is_jump = numpy.zeros((8,), dtype=numpy.bool)
+    atom_is_jump = numpy.zeros((8,), dtype=bool)
     atom_is_jump[jump_atom] = True
     atom_is_jump[jump_atom + 1] = True
 

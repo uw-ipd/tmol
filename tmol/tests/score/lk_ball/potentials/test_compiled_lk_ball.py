@@ -425,7 +425,7 @@ def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
         sp3_at,
     )
 
-    scores = numpy.array([i + j for i, j in zip(sp3_by_ring, ring_by_sp3)])
+    scores = numpy.array([i + j for i, j in zip(sp3_by_ring.detach(), ring_by_sp3.detach())])
     scores_ref = numpy.array([0.09018922, 0.0901892, 0.0441963, 0.4900393])
     assert scores == pytest.approx(scores_ref, abs=1e-4)
 

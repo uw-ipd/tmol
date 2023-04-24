@@ -55,7 +55,7 @@ class HBondElementAnalysis(ValidateAttrs):
             try:
                 # if there are no atoms that register as acceptors/donors,
                 # pandas will throw a KeyError (annoying!)
-                hbtypes_df = mapper.loc[atom_types[real].ravel()][col_name]
+                hbtypes_df = mapper.reindex(atom_types[real].ravel())[col_name]
                 hbtypes_df = hbtypes_df.where((pandas.notnull(hbtypes_df)), None)
                 hbtypes[real] = numpy.array(hbtypes_df)
             except KeyError:

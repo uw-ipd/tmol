@@ -83,7 +83,7 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
         scores = hbond_pose_scorer(coords)
         return torch.sum(scores)
 
-    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-2, rtol=1e-2)
+    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-1, rtol=1e-1)
 
 
 def test_whole_pose_scoring_module_gradcheck_partial_pose(

@@ -18,9 +18,7 @@ def zero_padded_counts(counts):
     return [str(x).zfill(width) for x in counts]
 
 
-# @pytest.fixture(params=[requires_cuda("cuda")])
-@pytest.fixture(params=["cpu", requires_cuda("cuda")])
-# @pytest.fixture(params=["cpu"])
+@pytest.fixture(params=["cpu", pytest.param("cuda", marks=requires_cuda)])
 def torch_device(request):
     """Paramterized test fixure covering cpu & cuda torch devices."""
 
