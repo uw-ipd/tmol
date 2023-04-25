@@ -66,7 +66,7 @@ RUN sudo chmod +x /usr/bin/tini
 COPY --chown=docker env-dev.yml /home/docker/tmol/
 RUN mamba create -n tmol && \
     mamba env update -n tmol -f /home/docker/tmol/env-dev.yml && \
-    mamba clean -tipsy
+    mamba clean -afy
 
 
 # Finally create the entry point
