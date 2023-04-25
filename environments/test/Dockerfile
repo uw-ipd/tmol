@@ -44,7 +44,7 @@ FROM base as builder
 # Question: why are we writing directly to /usr/bin?
 ENV TINI_VERSION v0.16.1
 RUN sudo wget --quiet -O /usr/bin/tini https://github.com/krallin/tini/releases/download/v0.16.1/tini
-RUN chmod +x /usr/bin/tini
+RUN sudo chmod +x /usr/bin/tini
 
 
 
