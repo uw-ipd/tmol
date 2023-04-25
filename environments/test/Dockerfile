@@ -70,11 +70,11 @@ RUN mamba create -n tmol && \
 
 
 # Finally create the entry point
-RUN echo "#!/bin/bash" > /docker-entrypoint.sh && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> /docker-entrypoint.sh && \
-    echo "conda activate tmol" >> /docker-entrypoint.sh && \
-    echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
-    chmod a+rx /docker-entrypoint.sh
+RUN sudo echo "#!/bin/bash" > /docker-entrypoint.sh && \
+    sudo echo ". /opt/conda/etc/profile.d/conda.sh" >> /docker-entrypoint.sh && \
+    sudo echo "conda activate tmol" >> /docker-entrypoint.sh && \
+    sudo echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
+    sudo chmod a+rx /docker-entrypoint.sh
 
 ENTRYPOINT [ "/usr/bin/tini", "--", "/docker-entrypoint.sh" ]
 CMD [ "/bin/bash" ]
