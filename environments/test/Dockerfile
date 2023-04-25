@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM nvidia/cuda:11.8.0-devel-ubuntu20.04 as base
+FROM nvidia/cuda:11.8.0-devel-ubuntu20.04
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 # general environment for docker
