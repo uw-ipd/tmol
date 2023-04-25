@@ -31,6 +31,20 @@ RUN useradd -m -s /bin/bash docker && echo "docker:docker" | chpasswd && adduser
 # enable passwordless sudo
 RUN echo "docker ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/docker
 
+
+# Inlined tini version in fetch url
+# Question: why are we writing directly to /usr/bin?
+ENV TINI_VERSION v0.16.1
+RUN wget --quiet -O /usr/bin/tini https://github.com/krallin/tini/releases/download/v0.16.1/tini
+RUN chmod +x /usr/bin/tini
+
+# create the entry point now before we lose sudo strength
+RUN echo "#!/bin/bash" > /docker-entrypoint.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> /docker-entrypoint.sh && \
+    echo "conda activate tmol" >> /docker-entrypoint.sh && \
+    echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
+    chmod a+rx /docker-entrypoint.sh
+
 USER    docker
 WORKDIR /home/docker
 
@@ -38,14 +52,6 @@ WORKDIR /home/docker
 ENV SPARSE_AUTO_DENSIFY 1
 
 FROM base as builder
-
-# Inlined tini version in fetch url
-# Question: why do I have to sudo this wget call?
-# Question: why are we writing directly to /usr/bin?
-ENV TINI_VERSION v0.16.1
-RUN sudo wget --quiet -O /usr/bin/tini https://github.com/krallin/tini/releases/download/v0.16.1/tini
-RUN sudo chmod +x /usr/bin/tini
-
 
 
 # NOTE we copy requirements over first so layers are cached and we don't have
@@ -68,13 +74,6 @@ RUN mamba create -n tmol && \
     mamba env update -n tmol -f /home/docker/tmol/env-dev.yml && \
     mamba clean -afy
 
-
-# Finally create the entry point
-RUN sudo echo "#!/bin/bash" > /docker-entrypoint.sh && \
-    sudo echo ". /opt/conda/etc/profile.d/conda.sh" >> /docker-entrypoint.sh && \
-    sudo echo "conda activate tmol" >> /docker-entrypoint.sh && \
-    sudo echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
-    sudo chmod a+rx /docker-entrypoint.sh
 
 ENTRYPOINT [ "/usr/bin/tini", "--", "/docker-entrypoint.sh" ]
 CMD [ "/bin/bash" ]
