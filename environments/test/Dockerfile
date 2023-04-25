@@ -40,14 +40,12 @@ ENV SPARSE_AUTO_DENSIFY 1
 FROM base as builder
 
 # Inlined tini version in fetch url
+# Question: why do I have to sudo this wget call?
+# Question: why are we writing directly to /usr/bin?
 ENV TINI_VERSION v0.16.1
-RUN wget --quiet -O /usr/bin/tini https://github.com/krallin/tini/releases/download/v0.16.1/tini
+RUN sudo wget --quiet -O /usr/bin/tini https://github.com/krallin/tini/releases/download/v0.16.1/tini
 RUN chmod +x /usr/bin/tini
 
-# Configure a docker-entrypoint.sh to activate the tmol conda environment
-RUN conda create -n tmol && \
-    conda env update -n tmol --file=/environments/env.yml && \
-    conda clean -tipsy
 
 
 # NOTE we copy requirements over first so layers are cached and we don't have
@@ -66,11 +64,12 @@ RUN conda create -n tmol && \
 # For the testing server, we choose (2) here for reproducibility
 
 COPY --chown=docker env-dev.yml /home/docker/tmol/
-RUN mamba env create -n tmol && \
+RUN mamba create -n tmol && \
     mamba env update -n tmol -f /home/docker/tmol/env-dev.yml && \
     mamba clean -tipsy
 
-# Finally, 
+
+# Finally create the entry point
 RUN echo "#!/bin/bash" > /docker-entrypoint.sh && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> /docker-entrypoint.sh && \
     echo "conda activate tmol" >> /docker-entrypoint.sh && \
