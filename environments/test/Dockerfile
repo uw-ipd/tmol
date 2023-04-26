@@ -45,8 +45,8 @@ RUN echo "#!/bin/bash" > /docker-entrypoint.sh && \
     echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
     chmod a+rx /docker-entrypoint.sh
 
-USER    docker
-WORKDIR /home/docker
+#USER    docker
+#WORKDIR /home/docker
 
 # FIXME needed for newer versions of sparse but should be replaced by explicit casts to dense where needed
 ENV SPARSE_AUTO_DENSIFY 1
@@ -69,7 +69,8 @@ FROM base as builder
 ### 2. install a frozen environment with exact versions specified from env-dev.yml ###
 # For the testing server, we choose (2) here for reproducibility
 
-COPY --chown=docker env-dev.yml /home/docker/tmol/
+#COPY --chown=docker env-dev.yml /home/docker/tmol/
+COPY env-dev.yml /home/docker/tmol/
 RUN mamba create -n tmol && \
     mamba env update -n tmol -f /home/docker/tmol/env-dev.yml && \
     mamba clean -afy
