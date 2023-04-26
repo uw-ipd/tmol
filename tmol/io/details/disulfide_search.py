@@ -3,7 +3,7 @@ import numba
 
 from tmol.types.array import NDArray
 from tmol.io.canonical_ordering import (
-    ordered_canonica_aa_types,
+    ordered_canonical_aa_types,
     ordered_canonical_aa_atoms,
 )
 
@@ -56,7 +56,7 @@ def find_disulf_numba(
         i_res = cys_res_ind[i]
         closest_match = -1
         closest_match_res = -1
-        closest_dist2 = -1.0
+        closest_dis2 = -1.0
         i_coord = coords[i_pose, i_res, sg_atom_for_co_cys]
         for j in range(i + 1, cys_pose_ind.shape[0]):
             j_pose = cys_pose_ind[j]
@@ -77,7 +77,7 @@ def find_disulf_numba(
             already_paired[closest_match] = 1
             found_dslf[n_found_dslf, 0] = i_pose
             found_dslf[n_found_dslf, 1] = i_res
-            found_dslf[n_found_dslf, 2] = j_res
+            found_dslf[n_found_dslf, 2] = closest_match_res
             n_found_dslf += 1
     found_dslf = found_dslf[:n_found_dslf]
     return found_dslf
