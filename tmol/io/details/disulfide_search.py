@@ -22,9 +22,17 @@ def find_disulfides(
             res_types == cys_co_aa_ind, atom_is_present[:, :, sg_atom_for_co_cys] != 0
         )
     )
-    return find_disulf_numba(
-        coords, cys_pose_ind, cys_res_ind, sg_atom_for_co_cys, cutoff_dis
+    restype_variant_inds = numpy.full_like(res_types, 0)
+
+    found_disulfides = find_disulf_numba(
+        coords,
+        cys_pose_ind,
+        cys_res_ind,
+        sg_atom_for_co_cys,
+        cutoff_dis,
+        restype_variant_inds,
     )
+    return found_disulfides, restype_variant_inds
 
 
 @numba.jit(nopython=True)
@@ -34,6 +42,7 @@ def find_disulf_numba(
     cys_res_ind: NDArray[numpy.int64][:],
     sg_atom_for_co_cys: int,
     cutoff_dis: float,
+    restype_variant_inds: NDArray[numpy.int32][:, :],
 ):
     # TEMP: Implement this in numpy/numba on the CPU to start
 
@@ -78,6 +87,9 @@ def find_disulf_numba(
             found_dslf[n_found_dslf, 0] = i_pose
             found_dslf[n_found_dslf, 1] = i_res
             found_dslf[n_found_dslf, 2] = closest_match_res
+            # mark these two as disulfides
+            restype_variant_inds[i_pose, i_res] = 1
+            restype_variant_inds[i_pose, closest_match_res] = 1
             n_found_dslf += 1
     found_dslf = found_dslf[:n_found_dslf]
     return found_dslf
