@@ -2,7 +2,7 @@
 
 from functools import singledispatch
 
-from typing import List, TypeVar, get_args
+from typing import List, get_args
 from typing_inspect import is_tuple_type, is_union_type
 import toolz
 

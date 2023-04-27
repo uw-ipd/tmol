@@ -127,12 +127,16 @@ def test_get_pose_stack_bonds(ubq_res, torch_device):
 
                 bonds_gold.append(
                     (
-                        (i * pose_stack.max_n_pose_atoms
-                        + pose_stack.block_coord_offset[i, j]
-                        + ijbt.ordered_connection_atoms[k]).cpu(),
-                        (i * pose_stack.max_n_pose_atoms
-                        + pose_stack.block_coord_offset[i, other_res_ind]
-                        + other_bt.ordered_connection_atoms[other_res_conn_ind]).cpu(),
+                        (
+                            i * pose_stack.max_n_pose_atoms
+                            + pose_stack.block_coord_offset[i, j]
+                            + ijbt.ordered_connection_atoms[k]
+                        ).cpu(),
+                        (
+                            i * pose_stack.max_n_pose_atoms
+                            + pose_stack.block_coord_offset[i, other_res_ind]
+                            + other_bt.ordered_connection_atoms[other_res_conn_ind]
+                        ).cpu(),
                     )
                 )
     bonds_gold = numpy.array(bonds_gold, dtype=numpy.int64)
