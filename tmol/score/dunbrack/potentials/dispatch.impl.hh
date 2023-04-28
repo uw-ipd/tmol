@@ -249,10 +249,11 @@ struct DunbrackDispatch {
     });
     Dispatch<D>::forall_stacks(nstacks, n_semirotameric_res, func_semirot);
 
-    return {V_tpack,
-            dneglnprob_rot_dbb_xyz_tpack,
-            drotchi_devpen_dtor_xyz_tpack,
-            dneglnprob_nonrot_dtor_xyz_tpack};
+    return {
+        V_tpack,
+        dneglnprob_rot_dbb_xyz_tpack,
+        drotchi_devpen_dtor_xyz_tpack,
+        dneglnprob_nonrot_dtor_xyz_tpack};
   }
 
   static auto backward(

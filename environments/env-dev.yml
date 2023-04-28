@@ -8,6 +8,7 @@ dependencies:
   - blas=1.0=mkl
   - bzip2=1.0.8=h7f98852_4
   - ca-certificates=2022.12.7=ha878542_0
+  - clangdev=16.0.2
   - codecov=2.1.13
   - cudatoolkit=11.3.1=h9edb442_11
   - icu=72.1=hcb278e6_0
