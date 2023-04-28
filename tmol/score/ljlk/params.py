@@ -114,7 +114,6 @@ class LJLKParamResolver(ValidateAttrs):
     def from_param_resolver(
         cls, atom_type_resolver: AtomTypeParamResolver, ljlk_database: LJLKDatabase
     ):
-
         # Reference existing atom type index from atom_type_resolver
         atom_type_index = atom_type_resolver.index
         device = atom_type_resolver.device

@@ -27,7 +27,6 @@ def test_resolve_modules():
 
         @classmethod
         def build_for(cls, val, system, **_kws):
-
             missing = expected_missing[cls]
             present = expected_present[cls]
 

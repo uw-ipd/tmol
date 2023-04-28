@@ -150,7 +150,6 @@ class HBondElementAnalysis(ValidateAttrs):
         atom_types: NDArray[object][:],
         bonds: NDArray[int][:, 3],
     ):
-
         atom_resolver = AtomTypeParamResolver.from_database(
             chemical_database, torch.device("cpu")
         )

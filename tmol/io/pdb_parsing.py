@@ -112,7 +112,7 @@ def parse_pdb(pdb_lines):
 
 
 def parse_atom_lines(lines):
-    """ Parses an array of pdb ATOM records into a dict of field arrays.
+    """Parses an array of pdb ATOM records into a dict of field arrays.
 
     1 -  6         Record name     "ATOM  "
     7 - 11         Integer         Atom serial number.
@@ -133,49 +133,35 @@ def parse_atom_lines(lines):
     """
     results = numpy.empty(len(lines), dtype=atom_record_dtype)
 
-    results["record_name"] = numpy.vectorize(lambda s: (s[0:6]), otypes=[str])(
-        lines
-    )
-    results["atomi"] = numpy.vectorize(lambda s: int(s[6:11]), otypes=[int])(
-        lines
-    )
+    results["record_name"] = numpy.vectorize(lambda s: (s[0:6]), otypes=[str])(lines)
+    results["atomi"] = numpy.vectorize(lambda s: int(s[6:11]), otypes=[int])(lines)
     # atomn are directly compared in modeling software, specifically rosetta, without
     # stripping whitespace, however most users use whitespace-insensitive comparisons
     #
     # atomn will be reformatted to pdb standard during output
-    results["atomn"] = numpy.vectorize(
-        lambda s: str.strip(s[12:16]), otypes=[str]
-    )(lines)
-    results["location"] = numpy.vectorize(
-        lambda s: str.strip(s[16:17]), otypes=[str]
-    )(lines)
-    results["resn"] = numpy.vectorize(
-        lambda s: str.strip(s[17:20]), otypes=[str]
-    )(lines)
-    results["chain"] = numpy.vectorize(
-        lambda s: str.strip(s[21:22]), otypes=[str]
-    )(lines)
-    results["resi"] = numpy.vectorize(lambda s: int(s[22:26]), otypes=[int])(
+    results["atomn"] = numpy.vectorize(lambda s: str.strip(s[12:16]), otypes=[str])(
         lines
     )
-    results["insert"] = numpy.vectorize(
-        lambda s: str.strip(s[26:27]), otypes=[str]
-    )(lines)
-    results["x"] = numpy.vectorize(lambda s: float(s[30:38]), otypes=[float])(
+    results["location"] = numpy.vectorize(lambda s: str.strip(s[16:17]), otypes=[str])(
         lines
     )
-    results["y"] = numpy.vectorize(lambda s: float(s[38:46]), otypes=[float])(
+    results["resn"] = numpy.vectorize(lambda s: str.strip(s[17:20]), otypes=[str])(
         lines
     )
-    results["z"] = numpy.vectorize(lambda s: float(s[46:54]), otypes=[float])(
+    results["chain"] = numpy.vectorize(lambda s: str.strip(s[21:22]), otypes=[str])(
         lines
     )
-    results["occupancy"] = numpy.vectorize(
-        lambda s: float(s[54:60]), otypes=[float]
-    )(lines)
-    results["b"] = numpy.vectorize(lambda s: float(s[60:66]), otypes=[float])(
+    results["resi"] = numpy.vectorize(lambda s: int(s[22:26]), otypes=[int])(lines)
+    results["insert"] = numpy.vectorize(lambda s: str.strip(s[26:27]), otypes=[str])(
         lines
     )
+    results["x"] = numpy.vectorize(lambda s: float(s[30:38]), otypes=[float])(lines)
+    results["y"] = numpy.vectorize(lambda s: float(s[38:46]), otypes=[float])(lines)
+    results["z"] = numpy.vectorize(lambda s: float(s[46:54]), otypes=[float])(lines)
+    results["occupancy"] = numpy.vectorize(lambda s: float(s[54:60]), otypes=[float])(
+        lines
+    )
+    results["b"] = numpy.vectorize(lambda s: float(s[60:66]), otypes=[float])(lines)
     # results["segi"]       = numpy.vectorize(lambda s: str.strip(s[72:76]), otypes = [numpy.str])(lines)
     # results["element"]    = numpy.vectorize(lambda s: str.strip(s[76:78]), otypes = [numpy.str])(lines)
     # results["charge"]     = numpy.vectorize(lambda s: float(s[78:80]), otypes     = [numpy.float])(lines)
@@ -184,14 +170,15 @@ def parse_atom_lines(lines):
 
 
 def to_pdb(atom_records):
-    """ Atom record DataFrame as pdb text."""
+    """Atom record DataFrame as pdb text."""
     return "".join(to_pdb_lines(atom_records))
 
 
 def format_atomn(atomn):
-    """ Formats atomn via pdb standard.
+    """Formats atomn via pdb standard.
 
-    If atomn is a single-letter element (N, C, O, S, H), then printed atomn record of the the format ' {atomn:<3}', else of the format '{atomn:<4}'"""
+    If atomn is a single-letter element (N, C, O, S, H), then printed atomn record of the the format ' {atomn:<3}', else of the format '{atomn:<4}'
+    """
 
     if atomn.startswith(("H", "C", "N", "O", "S")) and len(atomn) < 4:
         return " {0:<3}".format(atomn)
@@ -200,7 +187,7 @@ def format_atomn(atomn):
 
 
 def to_pdb_lines(atom_records):
-    """ Yields atom record DataFrame as pdb lines."""
+    """Yields atom record DataFrame as pdb lines."""
 
     if not isinstance(atom_records, pandas.DataFrame):
         atom_records = pandas.DataFrame(atom_records)

@@ -9,7 +9,6 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device):
-
     elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
 
     assert elec_energy.device == torch_device
@@ -17,7 +16,6 @@ def test_smoke(default_database, torch_device):
 
 
 def test_annotate_restypes(ubq_res, default_database, torch_device):
-
     elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
 
     rt_list = residue_types_from_residues(ubq_res)

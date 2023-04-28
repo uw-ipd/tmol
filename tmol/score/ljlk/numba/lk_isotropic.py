@@ -25,8 +25,8 @@ def f_desolv(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j):
         -lk_volume_j
         * lk_dgfree_i
         / (2 * pi ** (3 / 2) * lk_lambda_i)
-        * dist ** -2
-        * exp(-((dist - lj_radius_i) / lk_lambda_i) ** 2)
+        * dist**-2
+        * exp(-(((dist - lj_radius_i) / lk_lambda_i) ** 2))
     )
 
 
@@ -37,11 +37,11 @@ def f_desolv_d_dist(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j):
         * lk_dgfree_i
         / (2 * pi ** (3 / 2) * lk_lambda_i)
         * (  # (f * exp(g))' = f' * exp(g) + f g' exp(g)
-            -2 * dist ** -3 * exp(-(dist - lj_radius_i) ** 2 / lk_lambda_i ** 2)
-            + dist ** -2
+            -2 * dist**-3 * exp(-((dist - lj_radius_i) ** 2) / lk_lambda_i**2)
+            + dist**-2
             * -(2 * dist - 2 * lj_radius_i)
-            / lk_lambda_i ** 2
-            * exp(-(dist - lj_radius_i) ** 2 / lk_lambda_i ** 2)
+            / lk_lambda_i**2
+            * exp(-((dist - lj_radius_i) ** 2) / lk_lambda_i**2)
         )
     )
 
@@ -57,7 +57,7 @@ def lk_isotropic_pair(
     lj_radius_j,
     lk_volume_j,
 ):
-    d_min = lj_sigma_ij * .89
+    d_min = lj_sigma_ij * 0.89
 
     lk_cpoly_close_dmin = numpy.sqrt(d_min * d_min - 1.45)
     lk_cpoly_close_dmax = numpy.sqrt(d_min * d_min + 1.05)
@@ -116,7 +116,7 @@ def d_lk_isotropic_pair_d_dist(
     lj_radius_j,
     lk_volume_j,
 ):
-    d_min = lj_sigma_ij * .89
+    d_min = lj_sigma_ij * 0.89
 
     lk_cpoly_close_dmin = numpy.sqrt(d_min * d_min - 1.45)
     lk_cpoly_close_dmax = numpy.sqrt(d_min * d_min + 1.05)
@@ -310,7 +310,6 @@ def lk_isotropic_intra(
     v = 0
     for i in range(coords.shape[0]):
         for j in range(i + 1, coords.shape[0]):
-
             ti = atom_types[i]
             tj = atom_types[j]
 
@@ -442,7 +441,6 @@ def lk_isotropic_inter(
     v = 0
     for i in range(coords_a.shape[0]):
         for j in range(coords_b.shape[0]):
-
             ti = atom_types_a[i]
             tj = atom_types_b[j]
 

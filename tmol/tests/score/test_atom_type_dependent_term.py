@@ -16,7 +16,6 @@ def test_setup_block_type(ubq_res, default_database, torch_device):
 def test_store_atom_types_in_packed_residue_types(
     ubq_res, default_database, torch_device
 ):
-
     rt_list = residue_types_from_residues(ubq_res)
     pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
 

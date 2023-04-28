@@ -192,9 +192,9 @@ def _clone_for_score_system(
 ):
     """Override constructor.
 
-        Create from ``val.rama_database`` if possible, otherwise from
-        ``parameter_database.scoring.rama``.
-        """
+    Create from ``val.rama_database`` if possible, otherwise from
+    ``parameter_database.scoring.rama``.
+    """
     if rama_database is None:
         rama_database = RamaParameters.get(old).rama_database
 

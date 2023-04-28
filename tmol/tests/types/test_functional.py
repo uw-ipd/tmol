@@ -71,7 +71,9 @@ def union_array_func(val: Union[float, NDArray[float][:]]):
 
 
 @validate_args
-def tuple_array_func(val: Tuple[float, NDArray[float][:]],) -> NDArray[float][:]:
+def tuple_array_func(
+    val: Tuple[float, NDArray[float][:]],
+) -> NDArray[float][:]:
     m, v = val
 
     assert isinstance(m, float)

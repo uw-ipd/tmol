@@ -25,7 +25,6 @@ class IndexedBonds:
 
     @classmethod
     def from_bonds(cls, src_bonds, minlength=None):
-
         # Convert undirected (stack, i, j) bond index tuples into sorted, indexed list.
 
         uniq_bonds, src_index = numpy.unique(src_bonds, axis=0, return_index=True)

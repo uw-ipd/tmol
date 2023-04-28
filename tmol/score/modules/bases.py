@@ -16,7 +16,7 @@ class ScoreTermSummation(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, dX):
-        dE, = ctx.saved_tensors
+        (dE,) = ctx.saved_tensors
         return (None, dE * dX)
 
 
@@ -59,7 +59,6 @@ class ScoreSystem:
             module_and_deps[module] = module.depends_on()
 
             for d in module_and_deps[module]:
-
                 if d not in module_and_deps:
                     unresolved_modules.add(d)
 
@@ -86,7 +85,6 @@ class ScoreSystem:
         return total_score
 
     def intra_forward(self, coords: torch.Tensor):
-
         terms: List[Dict[str, torch.Tensor]] = [
             method.intra_forward(coords) for method in self.methods.values()
         ]
@@ -113,7 +111,6 @@ _TModule = TypeVar("_TModule", bound="ScoreModule")
 
 @attr.s(auto_attribs=True, slots=True, kw_only=True, frozen=True)
 class ScoreModule(ABC):
-
     system: ScoreSystem = attr.ib(validator=type_validator())
 
     @classmethod
@@ -121,7 +118,6 @@ class ScoreModule(ABC):
         cls: Type[_TModule],
         system_or_module: Union[ScoreSystem, "ScoreMethod", "ScoreModule"],
     ) -> _TModule:
-
         system = (
             system_or_module
             if isinstance(system_or_module, ScoreSystem)
@@ -149,7 +145,6 @@ _TMethod = TypeVar("_TMethod", bound="ScoreMethod")
 
 @attr.s(auto_attribs=True, slots=True, kw_only=True, frozen=True)
 class ScoreMethod(ABC):
-
     system: ScoreSystem = attr.ib(validator=type_validator())
 
     @classmethod

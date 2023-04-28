@@ -29,7 +29,6 @@ class _TensorTypeMeta(SubscriptableType):
 
 
 class _TensorType(metaclass=_TensorTypeMeta):
-
     _module: typing.ClassVar
     _tensortype: typing.ClassVar
 

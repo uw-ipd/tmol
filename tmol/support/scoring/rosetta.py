@@ -23,7 +23,6 @@ def strip_variants(pose):
 
 @attr.s(slots=True)
 class PoseScoreWrapper:
-
     pickled_pose: str = attr.ib()
     rosetta_version: str = attr.ib()
     atoms: pandas.DataFrame = attr.ib()

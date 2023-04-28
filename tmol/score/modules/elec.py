@@ -81,9 +81,9 @@ def _clone_for_score_system(
 ):
     """Override constructor.
 
-        Create from ``val.elec_database`` if possible, otherwise from
-        ``parameter_database.scoring.elec``.
-        """
+    Create from ``val.elec_database`` if possible, otherwise from
+    ``parameter_database.scoring.elec``.
+    """
     if elec_database is None:
         elec_database = ElecParameters.get(old).elec_database
 

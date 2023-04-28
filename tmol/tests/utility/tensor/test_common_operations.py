@@ -89,7 +89,6 @@ def test_cat_diff_sized_tensors_w_same_sizes():
 
 
 def test_cat_diff_sized_tensors_w_diff_sizes():
-
     t1 = torch.full((2, 3, 4), 1, dtype=torch.long)
     t2 = torch.full((3, 3, 3), 2, dtype=torch.long)
     t3 = torch.full((4, 3, 2), 3, dtype=torch.long)

@@ -95,9 +95,9 @@ def _clone_for_score_system(
 ):
     """Override constructor.
 
-        Create from ``val.ljlk_database`` if possible, otherwise from
-        ``parameter_database.scoring.ljlk``.
-        """
+    Create from ``val.ljlk_database`` if possible, otherwise from
+    ``parameter_database.scoring.ljlk``.
+    """
     if ljlk_database is None:
         ljlk_database = LKBallParameters.get(old).ljlk_database
 

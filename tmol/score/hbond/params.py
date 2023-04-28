@@ -124,7 +124,6 @@ class HBondParamResolver(ValidateAttrs):
         hbond_database: HBondDatabase,
         device: torch.device,
     ):
-
         donors = {g.name: g for g in hbond_database.donor_type_params}
         donor_type_index = pandas.Index(list(donors))
 
@@ -143,11 +142,11 @@ class HBondParamResolver(ValidateAttrs):
 
         # Denormalize donor/acceptor weight and class into pair parameter table
         for name, g in donors.items():
-            i, = donor_type_index.get_indexer([name])
+            (i,) = donor_type_index.get_indexer([name])
             pair_params.donor_weight[i, :] = g.weight
 
         for name, g in acceptors.items():
-            i, = acceptor_type_index.get_indexer([name])
+            (i,) = acceptor_type_index.get_indexer([name])
             pair_params.acceptor_weight[:, i] = g.weight
             pair_params.acceptor_hybridization[:, i] = int(
                 AcceptorHybridization._index.get_indexer_for(
@@ -177,10 +176,10 @@ class HBondParamResolver(ValidateAttrs):
 
         # Denormalize polynomial parameters into pair parameter table
         for pp in hbond_database.pair_parameters:
-            di, = donor_type_index.get_indexer([pp.donor_type])
+            (di,) = donor_type_index.get_indexer([pp.donor_type])
             assert di >= 0
 
-            ai, = acceptor_type_index.get_indexer([pp.acceptor_type])
+            (ai,) = acceptor_type_index.get_indexer([pp.acceptor_type])
             assert ai >= 0
 
             pair_params[di, ai].AHdist[:] = poly_params[pp.AHdist]

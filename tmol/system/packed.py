@@ -23,7 +23,6 @@ def _ceil_to_size(size, val):
 
 @attr.s(auto_attribs=True, slots=True)
 class PackedResidueSystem:
-
     # coord buffer block size, residue start indices are aligned to block boundaries
     block_size: int
 
