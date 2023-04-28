@@ -42,16 +42,16 @@ FROM base as builder
 
 ### 1. install a fresh environment by re-resolving dependencies based on specification in env.yml and requirements{-dev}.in ###
 
-#COPY --chown=docker requirements.in env.yml /home/docker/tmol/
-#RUN mamba env update -n base -f /home/docker/tmol/env.yml
-#COPY --chown=docker requirements-dev.in /home/docker/tmol/
-#RUN pip install -r /home/docker/tmol/requirements-dev.in
+COPY --chown=docker requirements.in env.yml /home/docker/tmol/
+RUN mamba env update -n base -f /home/docker/tmol/env.yml
+COPY --chown=docker requirements-dev.in /home/docker/tmol/
+RUN pip install -r /home/docker/tmol/requirements-dev.in
 
 ### 2. install a frozen environment with exact versions specified from env-dev.yml ###
 
 # we choose (2) here by default for reproducibility
-COPY --chown=docker env-dev.yml /home/docker/tmol/
-RUN mamba env update -n base -f /home/docker/tmol/env-dev.yml
+# COPY --chown=docker env-dev.yml /home/docker/tmol/
+# RUN mamba env update -n base -f /home/docker/tmol/env-dev.yml
 
 # optional: install tmol into the docker image; assumes that this Dockerfile lives in tmol/environments/test
 # COPY --chown=docker ../../. /home/docker/tmol
