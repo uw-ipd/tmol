@@ -110,6 +110,7 @@ dependencies:
       - platformdirs==3.5.0
       - pluggy==1.0.0
       - prompt-toolkit==3.0.38
+      - psutil==5.9.5
       - ptyprocess==0.7.0
       - pure-eval==0.2.2
       - py==1.11.0
