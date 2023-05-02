@@ -22,16 +22,19 @@ def pose_stack_from_canonical_form(
     assert chain_begin.device == res_types.device
     assert chain_begin.device == coords.device
 
-    # step 1: retrieve the global packed_block_types object with the 66 canonical residue types
-    # step 2: annotate this PBT with sidechain / backbone kintree data
-    # step 3: resolve disulfides
-    # step 4: resolve his tautomer
-    # step 5: resolve termini variants
-    # step 6: assign block-types to each input residue
-    # step 7: look for missing atoms
-    # step 8: if any atoms missing, build them
-    # step 9: construct PoseStack object
-    # step 10: copy coordinates into PoseStack tensor
+    # step 1: retrieve the global packed_block_types object with the 66
+    #         canonical residue types
+    # step 2: resolve disulfides
+    # step 3: resolve his tautomer
+    # step 4: resolve termini variants
+    # step 5: assign block-types to each input residue
+    # step 6: select the atoms from the canonically-ordered input tensors
+    #         (the coords and atom_is_present tensors) that belong to the
+    #         now-assigned block types, discarding/ignoring
+    #         any others that may have been provided
+    # step 7: if any atoms missing, build them
+    # step 8: construct PoseStack object
+    # step 9: copy coordinates into PoseStack tensor
 
     if atom_is_present is None:
         atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
@@ -42,30 +45,25 @@ def pose_stack_from_canonical_form(
     pbt = default_canonical_packed_block_types(chain_begin.device)
 
     # 2
-    # TO DO
-
-    # 3
     found_disulfides, res_type_variants = find_disulfides(
         res_types, coords, atom_is_present
     )
-    # 4
+    # 3
     his_taut, resolved_coords, resolved_atom_is_present = resolve_his_tautomerization(
         res_types, res_type_variants, coords, atom_is_present
     )
 
-    # 5
+    # 4
     # future!
 
-    # 6
-    block_type_assignment = assign_block_types(
-        pbt, chain_begin, res_types, restype_variants
-    )
+    # 5
+    block_types = assign_block_types(pbt, chain_begin, res_types, restype_variants)
 
-    # 7
-    missing = note_missing_atoms(
+    # 6
+    block_type_coords, missing_atoms = take_block_type_atoms_from_canonical(
         pbt,
         chain_begin,
-        res_types,
+        block_types,
         coords,
         atom_is_present,
         found_disulfides,

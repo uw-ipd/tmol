@@ -76,7 +76,7 @@ struct GeneratePoseHydrogens {
     assert(block_type_atom_ancesotrs.size(3) == 3);  // uaid = 3 indices
     assert(block_type_atom_icoors.size(0) == n_block_types);
     assert(block_type_atom_icoors.size(1) == max_n_block_atoms);
-    assert(block_type_atom_icoors.size(2) == 3);  // D, theta, phi
+    assert(block_type_atom_icoors.size(2) == 3);  // phi, theta, D
 
     auto new_coords_t =
         TPack<Real, 3, D>::zeros({n_poses, max_n_pose_atoms, 3});
@@ -130,9 +130,9 @@ struct GeneratePoseHydrogens {
             coord0,
             coord1,
             coord2,
-            block_type_atom_icoors[block_type][atom_ind][0],
-            block_type_atom_icoors[block_type][atom_ind][1],
-            block_type_atom_icoors[block_type][atom_ind][2]);
+            block_type_atom_icoors[block_type][atom_ind][2],   // D
+            block_type_atom_icoors[block_type][atom_ind][1],   // theta
+            block_type_atom_icoors[block_type][atom_ind][0]);  // phi
         new_coords[pose_ind][block_offset + atom_ind] = new_coord;
       } else {
         // copy the coordinate from the input coordinates
@@ -265,9 +265,9 @@ struct GeneratePoseHydrogens {
             coord0,
             coord1,
             coord2,
-            block_type_atom_icoors[block_type][atom_ind][0],
-            block_type_atom_icoors[block_type][atom_ind][1],
-            block_type_atom_icoors[block_type][atom_ind][2]);
+            block_type_atom_icoors[block_type][atom_ind][2],   // D
+            block_type_atom_icoors[block_type][atom_ind][1],   // theta
+            block_type_atom_icoors[block_type][atom_ind][0]);  // phi
 
         Vec<Real, 3> dE_dH = dE_d_new_coords[pose_ind][block_offset + atom_ind];
 
