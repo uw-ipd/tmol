@@ -7,3 +7,4 @@ pytest-instafail
 pytest-repeat
 pytest-watch
 pytest-benchmark
+seaborn
