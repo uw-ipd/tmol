@@ -1,23 +1,36 @@
 import torch
 
 from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.io.details.compiled.compiled import gen_pose_hydrogens
 
 
 def build_missing_hydrogens(
-    coords: Tensor[torch.int32][:, :, :, 3],
     packed_block_types: PackedBlockTypes,
-    chain_begin: Tensor[torch.int32][:, :],  # unused for now
+    atom_type_resolver: AtomTypeParamResolver,
     block_types: Tensor[torch.int32][:, :],
-    missing: Tensor[torch.int32][:, :, :],
+    real_block_atoms: Tensor[torch.bool][:, :, :],
+    block_coords: Tensor[torch.int32][:, :, :, 3],
+    block_atom_missing: Tensor[torch.int32][:, :, :],
+    inter_residue_connections: Tensor[torch.int32][:, :, :, 2],
 ):
+    """Convert the block layout into the condensed layout used by PoseStack and
+    build any missing hydrogen atoms at the same time. This is a fully differentiable
+    process, and so gradients accumulated for any hydrogen atoms that were absent
+    from the input structure will be distributed across the atoms that define the
+    geometry of those hydrogens"""
+
     # ok,
     # we're going to call gen_pose_hydrogens,
     # but first we need to prepare the input tensors
     # that are going to use
     device = packed_block_types.device
-    n_poses = coords.shape[0]
-    max_n_res = coords.shape[1]
+    n_poses = block_coords.shape[0]
+    max_n_res = block_coords.shape[1]
+
+    # make sure we have all the data we need
+    _annotate_packed_block_types_atom_is_h(pbt, atom_type_resolver)
+    _annotate_packed_block_types_w_missing_h_icoors(pbt)
 
     n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
     real_block_types = block_types != -1
@@ -34,7 +47,127 @@ def build_missing_hydrogens(
         ),
         dim=1,
     )
+    pose_at_is_real = (
+        torch.arange(max_n_ats, dtype=torch.int64).repeat(n_poses, 1)
+        < n_ats_inccumsum[:, -1:]
+    )
 
     pose_like_coords = torch.zeros(
         (n_poses, max_n_ats, 3), dtype=torch.float32, device=device
     )
+    pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
+
+    real_blocks = block_types != -1
+    block_at_is_h = torch.zeros(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.int32
+    )
+    block_at_is_h[real_blocks] = pbt.is_hydrogen[block_types[real_blocks]]
+
+    # multiplication of booleans-as-integers is equivalent to a logical "and"
+    block_h_is_missing = block_at_is_h * block_atom_missing
+
+    # ok, we're ready
+    new_pose_coords = gen_pose_hydrogens(
+        pose_coords,
+        block_h_is_missing,
+        block_coord_offset,
+        block_types,
+        inter_residue_connections,
+        pbt.n_atoms,
+        pbt.atom_downstream_of_conn,
+        pbt.build_missing_h_icoor_atom_ancestor_uaids,
+        pbt.build_missing_h_icoors_geom,
+    )
+    return new_pose_coords, block_coord_offset
+
+
+def _annotate_packed_block_types_atom_is_h(
+    pbt: PackedBlockTypes, atom_type_resolver: AtomTypeParamResolver
+):
+    if hasattr(pbt, "is_hydrogen"):
+        return
+
+    # annotate the block types, then concatenate
+
+    def ti32(x):
+        return torch.tensor(x, dtype=torch.int32, device=pbt.device)
+
+    is_hydrogen = torch.zeros((pbt.n_types, pbt.max_n_atoms), 0, torch.int32)
+
+    for i, block_type in enumerate(pbt.active_block_types):
+        atom_types = [x.atom_type for x in block_type.atoms]
+        atom_type_idx = atom_type_resolver.type_idx(atom_types)
+        atom_type_params = atom_type_resolver.params[atom_type_idx]
+        bt_is_hydrogen = (
+            atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
+        )
+        setattr(block_type, "is_hydrogen", bt_is_hydrogen)
+        is_hydrogen[i, : bt.n_atoms] = ti32(bt_is_hydrogen)
+    setattr(pbt, "is_hydrogen", is_hydrogen)
+
+
+def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
+    if hasattr(pbt, "build_missing_h_icoor_atom_ancestor_uaids"):
+        assert hasattr(pbt, "build_missing_h_icoor_geom")
+        return
+
+    assert hasattr(pbt, "is_hydrogen")
+    icorr_atom_ancestor_uaids = numpy.full(
+        (pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32
+    )
+    icorr_geom = numpy.full((pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32)
+    for i, bt in enumerate(pbt.active_block_types):
+        bt_icoor_uaids = numpy.full((bt.n_atoms, 3, 3), -1, dtype=numpy.int32)
+        bt_icoor_geom = numpy.full((bt.n_atoms, 3, 3), 0, dtype=numpy.float32)
+        for j, at in enumerate(bt.atoms):
+            atname = at.name
+            j_icoor_ind = bt.icoors_index[atname]
+            j_icoor = bt.icoors[j_icoor_ind]
+
+            def uaid_for_at(icoor_at_name):
+                if icoor_at_name == "up":
+                    return (-1, bt.up_connection_ind, 0)
+                elif icoor_at_name == "down":
+                    return (-1, bt.down_connection_ind, 0)
+                else:
+                    return (bt.atom_to_idx[icoor_at_name], -1, -1)
+
+            def icoor_at_is_h(icoor_at_name):
+                if icoor_at_name not in bt.atom_to_idx:
+                    return 0
+                return bt.is_hydrogen[bt.atom_to_idx[icoor_at_name]]
+
+            # ok, let's turn p, gp, and ggp into uaids
+            # if ggp is a hydrogen, then we need to recurse backwards through the ggps
+            # and accumulate the phi offsets
+
+            p_uaid = uaid_for_at(j_icoor.parent)
+            gp_uaid = uaid_for_at(j_icoor.grand_parent)
+
+            phi = j_icoor.phi
+            theta = j_icoor.theta
+            d = j_icoor.d
+
+            while icoor_at_is_h(j_icoor.great_grand_parent):
+                ggp_ind = bt.icoors_index[j_icoor.great_grand_parent]
+                j_icoor = bt.icoors[ggp_ind]
+                phi += j_icoor.phi
+            ggp_uaid = uaid_for_at(j_icoor.great_grand_parent)
+
+            bt_icoor_uaids[j, 0] = numpy.array(p_uaid, dtype=numpy.int32)
+            bt_icoor_uaids[j, 1] = numpy.array(gp_uaid, dtype=numpy.int32)
+            bt_icoor_uaids[j, 2] = numpy.array(ggp_uaid, dtype=numpy.int32)
+
+            bt_icoor_geom[j, 0] = phi
+            bt_icoor_geom[j, 1] = theta
+            bt_icoor_geom[j, 2] = d
+        setattr(bt, "build_missing_h_icoor_geom", bt_icoor_geom)
+        icoor_geom[i, : bt.n_atoms] = bt_icoor_geom
+        icoor_atom_ancestor_uaids[i, : bt.n_atoms] = bt_icoor_uaids
+    icoor_geom = torch.tensor(icoor_geom, dtype=torch.float32, device=pbt.device)
+    icoor_atom_ancestor_uaids = torch.tensor(
+        icoor_atom_ancestor_uaids, dtype=torch.int32, device=pbt.device
+    )
+
+    setattr(pbt, "build_missing_h_icoor_atom_ancestor_uaids", icoor_atom_ancestor_uaids)
+    setattr(pbt, "build_missing_h_icoor_geom", icoor_geom)

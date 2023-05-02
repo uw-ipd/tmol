@@ -15,8 +15,8 @@ template <
     typename Int>
 struct GeneratePoseHydrogens {
   static auto forward(
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Int, 2, Dev> h_coords_missing,
+      TView<Vec<Real, 3>, 2, Dev> coords,
+      TView<Int, 3, Dev> h_coords_missing,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -41,8 +41,8 @@ struct GeneratePoseHydrogens {
 
   static auto backward(
       TView<Vec<Real, 3>, 3, Dev> dE_dHxyz,
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Int, 2, Dev> h_coords_missing,
+      TView<Vec<Real, 3>, 2, Dev> coords,
+      TView<Int, 3, Dev> h_coords_missing,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
       // For determining which atoms to retrieve from neighboring

@@ -27,7 +27,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
  public:
   static Tensor forward(
       AutogradContext* ctx,
-      Tensor pose_coords,
+      Tensor coords,
       Tensor h_coords_missing,
       Tensor pose_stack_block_coord_offset,
       Tensor pose_stack_block_type,
@@ -41,14 +41,14 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        pose_coords.type(), "hydrogen_gen_op", ([&] {
+        coords.type(), "hydrogen_gen_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
           auto result =
               GeneratePoseHydrogens<common::DeviceOperations, Dev, Real, Int>::
                   forward(
-                      TCAST(pose_coords),
+                      TCAST(coords),
                       TCAST(h_coords_missing),
                       TCAST(pose_stack_block_coord_offset),
                       TCAST(pose_stack_block_type),
@@ -61,7 +61,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
           new_coords = result.tensor;
         }));
 
-    ctx->save_for_backward({pose_coords,
+    ctx->save_for_backward({block_type_coords,
                             h_coords_missing,
                             pose_stack_block_coord_offset,
                             pose_stack_block_type,
@@ -79,7 +79,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
 
     int i = 0;
 
-    auto pose_coords = saved[i++];
+    auto block_type_coords = saved[i++];
     auto h_coords_missing = saved[i++];
     auto pose_stack_block_coord_offset = saved[i++];
     auto pose_stack_block_type = saved[i++];
@@ -96,7 +96,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
     auto dE_d_new_coords = grad_outputs[0];
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        pose_coords.type(), "hydrogen_gen_backward", ([&] {
+        block_type_coords.type(), "hydrogen_gen_backward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -104,7 +104,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
               GeneratePoseHydrogens<common::DeviceOperations, Dev, Real, Int>::
                   backward(
                       TCAST(dE_d_new_coords),
-                      TCAST(pose_coords),
+                      TCAST(block_type_coords),
                       TCAST(h_coords_missing),
                       TCAST(pose_stack_block_coord_offset),
                       TCAST(pose_stack_block_type),
@@ -130,7 +130,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
 };
 
 Tensor pose_hgen_op(
-    Tensor pose_coords,
+    Tensor coords,
     Tensor h_coords_missing,
     Tensor pose_stack_block_coord_offset,
     Tensor pose_stack_block_type,
@@ -140,7 +140,7 @@ Tensor pose_hgen_op(
     Tensor block_type_atom_ancestors,
     Tensor block_type_atom_icoors) {
   return PoseHydrogenGen::apply(
-      Tensor pose_coords,
+      Tensor coords,
       Tensor h_coords_missing,
       Tensor pose_stack_block_coord_offset,
       Tensor pose_stack_block_type,

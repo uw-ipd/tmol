@@ -32,8 +32,8 @@ template <
     typename Int>
 struct GeneratePoseHydrogens {
   static auto forward(
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Int, 2, Dev> h_coords_missing,
+      TView<Vec<Real, 3>, 2, Dev> orig_coords,
+      TView<Int, 3, Dev> h_atom_missing,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -49,21 +49,22 @@ struct GeneratePoseHydrogens {
       TView<Int, 1, Dev> block_type_n_atoms,
       TView<Int, 3, Dev> block_type_atom_downstream_of_conn,
 
-      TView<Int, 4, Dev> block_type_atom_ancestors,  // n-bt x max-n-ats x 4 x 3
+      TView<Int, 4, Dev> block_type_atom_ancestors,  // n-bt x max-n-ats x 3 x 3
 
       TView<Real, 3, Dev>
           block_type_atom_icoors  // n-bt x max-n-ats x 3 [phi, theta, D]
 
       ) -> TPack<Vec<Real, 3>, 2, Dev> {
-    int const n_poses = pose_coords.size(0);
-    int const max_n_pose_atoms = pose_coords.size(1);
+    int const n_poses = orig_coords.size(0);
+    int const max_n_pose_atoms = orig_coords.size(1);
     int const max_n_blocks = pose_stack_block_type.size(1);
     int const max_n_conn = pose_stack_inter_residue_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_atom_downstream_of_conn.size(2);
 
-    assert(h_coords_missing.size(0) == n_poses);
-    assert(h_coords_missing.size(1) == max_n_pose_atoms);
+    assert(h_atom_missing.size(0) == n_poses);
+    assert(h_atom_missing.size(1) == max_n_blocks);
+    assert(h_atom_missing.size(2) == max_n_block_atoms);
     assert(pose_stack_block_coord_offset.size(0) == n_poses);
     assert(pose_stack_block_type.size(0) == n_poses);
     assert(pose_stack_inter_residue_connections.size(0) == n_poses);
@@ -72,14 +73,16 @@ struct GeneratePoseHydrogens {
     assert(block_type_atom_downstream_of_conn.size(1) == max_n_conn);
     assert(block_type_atom_ancestors.size(0) == n_block_types);
     assert(block_type_atom_ancestors.size(1) == max_n_block_atoms);
-    assert(block_type_atom_ancestors.size(2) == 4);
+    assert(
+        block_type_atom_ancestors.size(2)
+        == 3);  // parent, grandparent, great grandparent
     assert(block_type_atom_ancesotrs.size(3) == 3);  // uaid = 3 indices
     assert(block_type_atom_icoors.size(0) == n_block_types);
     assert(block_type_atom_icoors.size(1) == max_n_block_atoms);
     assert(block_type_atom_icoors.size(2) == 3);  // phi, theta, D
 
     auto new_coords_t =
-        TPack<Real, 3, D>::zeros({n_poses, max_n_pose_atoms, 3});
+        TPack<Vec<Real, 3>, 3, D>::zeros({n_poses, max_n_pose_atoms});
     auto new_coords = new_coords_t.view;
 
     LAUNCH_BOX_32;
@@ -102,7 +105,7 @@ struct GeneratePoseHydrogens {
           pose_stack_block_coord_offset[pose_ind][block_ind];
 
       // is this a hydrogen we should build coordinates for?
-      if (h_coord_and_missing[pose_ind][block_offset + atom_ind]) {
+      if (h_atom_missing[pose_ind][block_ind][atom_ind]) {
         // ok! build the coordinate
         auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
           return resolve_atom_from_uaid<Real, Int, Dev>(
@@ -122,9 +125,9 @@ struct GeneratePoseHydrogens {
           return;
         }
 
-        Vec<Real, 3> coord0 = load_coord(anc0);
-        Vec<Real, 3> coord1 = load_coord(anc1);
-        Vec<Real, 3> coord2 = load_coord(anc2);
+        Vec<Real, 3> coord0 = orig_coords[pose_ind][anc0];
+        Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
+        Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
 
         Vec<Real, 3> new_coord = build_coordinate.V(
             coord0,
@@ -137,13 +140,12 @@ struct GeneratePoseHydrogens {
       } else {
         // copy the coordinate from the input coordinates
         Vec<Real, 3> atom_coord =
-            pose_coords[pose_ind][block_offset + atom_ind];
-        new_pose_coords[pose_ind][block_offset + atom_ind] = atom_coord;
+            orig_coords[pose_ind][block_offset + atom_ind];
+        new_coords[pose_ind][block_offset + atom_ind] = atom_coord;
       }
     });
 
     int const n_atoms = n_poses * max_n_blocks * max_n_block_atoms;
-    ;
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(
         n_atoms, f_coord_builder);
 
@@ -152,7 +154,7 @@ struct GeneratePoseHydrogens {
 
   static auto backward(
       TView<Vec<Real, 3>, 3, Dev> dE_d_new_coords,
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
+      TView<Vec<Real, 3>, 2, Dev> orig_coords,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -193,15 +195,15 @@ struct GeneratePoseHydrogens {
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
       TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev> {
-    int const n_poses = pose_coords.size(0);
-    int const max_n_pose_atoms = pose_coords.size(1);
+    int const n_poses = orig_coords.size(0);
+    int const max_n_pose_atoms = orig_coords.size(1);
     int const max_n_blocks = pose_stack_block_type.size(1);
     int const max_n_conn = pose_stack_inter_residue_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_atom_downstream_of_conn.size(2);
 
-    assert(h_coords_missing.size(0) == n_poses);
-    assert(h_coords_missing.size(1) == max_n_pose_atoms);
+    assert(h_atom_missing.size(0) == n_poses);
+    assert(h_atom_missing.size(1) == max_n_pose_atoms);
     assert(pose_stack_block_coord_offset.size(0) == n_poses);
     assert(pose_stack_block_type.size(0) == n_poses);
     assert(pose_stack_inter_residue_connections.size(0) == n_poses);
@@ -210,14 +212,16 @@ struct GeneratePoseHydrogens {
     assert(block_type_atom_downstream_of_conn.size(1) == max_n_conn);
     assert(block_type_atom_ancestors.size(0) == n_block_types);
     assert(block_type_atom_ancestors.size(1) == max_n_block_atoms);
-    assert(block_type_atom_ancestors.size(2) == 4);
+    assert(
+        block_type_atom_ancestors.size(2)
+        == 3);  // parent, grandparent, great grandparent
     assert(block_type_atom_ancesotrs.size(3) == 3);  // uaid = 3 indices
     assert(block_type_atom_icoors.size(0) == n_block_types);
     assert(block_type_atom_icoors.size(1) == max_n_block_atoms);
     assert(block_type_atom_icoors.size(2) == 3);  // phi, theta, D
 
     auto dE_d_orig_coords_t =
-        TPack<Real, 3, D>::zeros({n_poses, max_n_pose_atoms, 3});
+        TPack<Vec<Real, 3>, 2, D>::zeros({n_poses, max_n_pose_atoms});
     auto dE_d_orig_coords = dE_d_orig_coords_t.view;
 
     auto f_coord_builder_derivs = ([=] TMOL_DEVICE_FUNC(int ind) {
@@ -237,7 +241,7 @@ struct GeneratePoseHydrogens {
           pose_stack_block_coord_offset[pose_ind][block_ind];
 
       // is this a hydrogen we should build coordinates for?
-      if (h_coord_and_missing[pose_ind][block_offset + atom_ind]) {
+      if (h_atom_missing[pose_ind][block_ind][atom_ind]) {
         // ok! build the coordinate
         auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
           return resolve_atom_from_uaid<Real, Int, Dev>(
@@ -257,9 +261,9 @@ struct GeneratePoseHydrogens {
           return;
         }
 
-        Vec<Real, 3> coord0 = load_coord(anc0);
-        Vec<Real, 3> coord1 = load_coord(anc1);
-        Vec<Real, 3> coord2 = load_coord(anc2);
+        Vec<Real, 3> coord0 = orig_coords[pose_ind][anc0];
+        Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
+        Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
 
         auto coord_derivs = build_coordinate.dV(
             coord0,
@@ -271,7 +275,6 @@ struct GeneratePoseHydrogens {
 
         Vec<Real, 3> dE_dH = dE_d_new_coords[pose_ind][block_offset + atom_ind];
 
-        // new_coords[pose_ind][block_offset + atom_ind] = new_coord;
         common::accumulate<Dev, Vec<Real, 3>>::add(
             dE_d_orig_coords[pose_ind][anc0], coord_derivs.dp * dE_dH);
         common::accumulate<Dev, Vec<Real, 3>>::add(
@@ -280,7 +283,10 @@ struct GeneratePoseHydrogens {
             dE_d_orig_coords[pose_ind][anc2], coord_derivs.dggp * dE_dH);
 
       } else {
-        // "copy" the coordinate from the input coordinates
+        // "copy" the derivative from the input derivatives; except, since we
+        // may be accumulating into the derivative the derivative wrt hydrogen
+        // atoms that depend on the coordinate of this atom, then we have to
+        // perform an atomic add
         Vec<Real, 3> atom_deriv =
             dE_d_new_coords[pose_ind][block_offset + atom_ind];
         common::accumulate<Dev, Vec<Real, 3>>::add(
@@ -289,7 +295,6 @@ struct GeneratePoseHydrogens {
     });
 
     int const n_atoms = n_poses * max_n_blocks * max_n_block_atoms;
-    ;
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(
         n_atoms, f_coord_builder_derivs);
 

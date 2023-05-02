@@ -9,6 +9,10 @@ from tmol.io.details.canonical_packed_block_types import (
 )
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
+from tmol.io.details.select_from_canonical import (
+    assign_block_types,
+    take_block_type_atoms_from_canonical,
+)
 
 
 def pose_stack_from_canonical_form(
@@ -26,7 +30,7 @@ def pose_stack_from_canonical_form(
     #         canonical residue types
     # step 2: resolve disulfides
     # step 3: resolve his tautomer
-    # step 4: resolve termini variants
+    # step 4: resolve termini variants (future)
     # step 5: assign block-types to each input residue
     # step 6: select the atoms from the canonically-ordered input tensors
     #         (the coords and atom_is_present tensors) that belong to the
@@ -34,7 +38,6 @@ def pose_stack_from_canonical_form(
     #         any others that may have been provided
     # step 7: if any atoms missing, build them
     # step 8: construct PoseStack object
-    # step 9: copy coordinates into PoseStack tensor
 
     if atom_is_present is None:
         atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
@@ -42,7 +45,7 @@ def pose_stack_from_canonical_form(
     # 1
     # this will return the same object each time to minimize the number
     # of calls to the setup_packed_block_types annotation functions
-    pbt = default_canonical_packed_block_types(chain_begin.device)
+    pbt, atom_type_resolver = default_canonical_packed_block_types(chain_begin.device)
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(
@@ -57,10 +60,12 @@ def pose_stack_from_canonical_form(
     # future!
 
     # 5
-    block_types = assign_block_types(pbt, chain_begin, res_types, restype_variants)
+    block_types, inter_residue_connections, inter_block_bondsep = assign_block_types(
+        pbt, chain_begin, res_types, restype_variants, found_disulfides
+    )
 
     # 6
-    block_type_coords, missing_atoms = take_block_type_atoms_from_canonical(
+    block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
         pbt,
         chain_begin,
         block_types,
@@ -68,4 +73,32 @@ def pose_stack_from_canonical_form(
         atom_is_present,
         found_disulfides,
         his_tautomerization,
+    )
+
+    # 7
+    pose_stack_coords, block_coord_offset = build_missing_hydrogens(
+        pbt,
+        atom_type_resolver,
+        block_types,
+        real_atoms,
+        block_type_coords,
+        missing_atoms,
+    )
+
+    def i64(x):
+        return x.to(torch.int64)
+
+    # 8
+    return PoseStack(
+        packed_block_types=pbt,
+        coords=pose_stack_coords,
+        block_coord_offset=block_coord_offset,
+        block_coord_offset64=i64(block_coord_offset),
+        inter_residue_connections=inter_residue_connections,
+        inter_residue_connections64=i64(inter_residue_connections),
+        inter_block_bondsep=inter_block_bondsep,
+        inter_block_bondsep64=i64(inter_block_bondsep),
+        block_type_ind=block_types,
+        block_type_ind64=i64(block_types),
+        device=pbt.device,
     )

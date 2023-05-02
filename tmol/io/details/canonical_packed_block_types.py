@@ -4,6 +4,7 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.chemical.restypes import RefinedResidueType
 import toolz.functoolz
 
@@ -11,6 +12,9 @@ import toolz.functoolz
 @toolz.functoolz.memoize
 def default_canonical_packed_block_types(device: torch.device):
     chem_database = ParameterDatabase.get_default().chemical
+    atom_type_resolver = AtomTypeParamResolver.from_database(
+        chem_database, torch.device("cpu")
+    )
 
     # for now, nab the "mid" residue types
     # TODO: add N- and C-term variants
@@ -49,4 +53,4 @@ def default_canonical_packed_block_types(device: torch.device):
         for rname in wanted
     ]
 
-    return PackedBlockTypes.from_restype_list(restype_list, device)
+    return PackedBlockTypes.from_restype_list(restype_list, device), atom_type_resolver
