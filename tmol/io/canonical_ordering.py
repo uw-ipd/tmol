@@ -1,5 +1,6 @@
 import numpy
 import torch
+from .pdb_parsing import parse_pdb
 
 ordered_canonical_aa_types = (
     "ALA",
@@ -468,3 +469,51 @@ ordered_canonical_aa_atoms = {
 max_n_canonical_atoms = max(
     len(atlist) for _, atlist in ordered_canonical_aa_atoms.items()
 )
+
+
+def canonical_form_from_pdb_lines(pdb_lines):
+    atom_records = parse_pdb(pdb_lines)
+    uniq_res_ind = {}
+    uniq_res_list = []
+    count_uniq = -1
+    for i, row in atom_records.iterrows():
+        resid = (row["chain"], row["resi"], row["insert"])
+        if resid not in uniq_res_ind:
+            count_uniq += 1
+            uniq_res_ind[resid] = count_uniq
+            uniq_res_list.append(resid)
+    n_res = len(uniq_res_list)
+
+    chain_begin = numpy.zeros((1, n_res), dtype=numpy.int32)
+    res_types = numpy.full((1, n_res), -2, dtype=numpy.int32)
+    coords = numpy.full(
+        (1, n_res, max_n_canonical_atoms, 3), numpy.NAN, dtype=numpy.float32
+    )
+    atom_is_present = numpy.zeros((1, n_res, max_n_canonical_atoms), dtype=numpy.int32)
+
+    chains_seen = set([])
+    for i, row in atom_records.iterrows():
+        resid = (row["chain"], row["resi"], row["insert"])
+        res_ind = uniq_res_ind[resid]
+        if row["chaini"] not in chains_seen:
+            chains_seen.add(row["chaini"])
+            chain_begin[0, res_ind] = 1
+        if res_types[0, res_ind] == -2:
+            try:
+                aa_ind = ordered_canonical_aa_types.index(row["resn"])
+                res_types[0, res_ind] = aa_ind
+            except:
+                res_types[0, res_ind] = -1
+        if res_types[0, res_ind] > 0:
+            res_at_list = ordered_canonical_aa_atoms[row["resn"]]
+            atname = row["atomn"].strip()
+            try:
+                atind = res_at_list.index(atname)
+                atom_is_present[0, res_ind, atind] = 1
+                coords[0, res_ind, atind, 0] = row["x"]
+                coords[0, res_ind, atind, 1] = row["y"]
+                coords[0, res_ind, atind, 2] = row["z"]
+            except:
+                pass
+
+    return chain_begin, res_types, coords, atom_is_present

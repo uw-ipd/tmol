@@ -1250,6 +1250,7 @@ class PoseStackBuilder:
             assert hasattr(pbt, "bt_mapping_w_lcaa_1lc_ind")
             return
 
+        # TO DO: stop putting (duplicating) this map everywehere!
         aa_codes = {
             "ALA": "A",
             "CYS": "C",

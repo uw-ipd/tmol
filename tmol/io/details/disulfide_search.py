@@ -1,7 +1,10 @@
 import numpy
+import torch
 import numba
 
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
     ordered_canonical_aa_types,
     ordered_canonical_aa_atoms,
@@ -11,28 +14,38 @@ cys_co_aa_ind = ordered_canonical_aa_types.index("CYS")
 sg_atom_for_co_cys = ordered_canonical_aa_atoms["CYS"].index("SG")
 
 
+@validate_args
 def find_disulfides(
-    res_types: NDArray[numpy.int32][:, :],
-    coords: NDArray[numpy.float32][:, :, :, 3],
-    atom_is_present: NDArray[numpy.int32][:, :, :],
+    res_types: Tensor[torch.int32][:, :],
+    coords: Tensor[torch.float32][:, :, :, 3],
+    atom_is_present: Tensor[torch.int32][:, :, :],
     cutoff_dis: float = 2.5,
 ):
+    res_types_n = res_types.cpu().numpy()
+    coords_n = coords.cpu().numpy()
+    atom_is_present_n = atom_is_present.cpu().numpy()
+
     cys_pose_ind, cys_res_ind = numpy.nonzero(
         numpy.logical_and(
-            res_types == cys_co_aa_ind, atom_is_present[:, :, sg_atom_for_co_cys] != 0
+            res_types_n == cys_co_aa_ind,
+            atom_is_present_n[:, :, sg_atom_for_co_cys] != 0,
         )
     )
-    restype_variant_inds = numpy.full_like(res_types, 0)
+    restype_variant_inds = numpy.full_like(res_types_n, 0)
 
     found_disulfides = find_disulf_numba(
-        coords,
+        coords_n,
         cys_pose_ind,
         cys_res_ind,
         sg_atom_for_co_cys,
         cutoff_dis,
         restype_variant_inds,
     )
-    return found_disulfides, restype_variant_inds
+
+    def ti32(x):
+        return torch.tensor(x, dtype=torch.int32, device=coords.device)
+
+    return ti32(found_disulfides), ti32(restype_variant_inds)
 
 
 @numba.jit(nopython=True)

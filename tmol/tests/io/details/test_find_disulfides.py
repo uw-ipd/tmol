@@ -1,8 +1,10 @@
 import numpy
+import torch
 from tmol.io.canonical_ordering import (
     ordered_canonical_aa_types,
     ordered_canonical_aa_atoms,
     max_n_canonical_atoms,
+    canonical_form_from_pdb_lines,
 )
 from tmol.io.details.disulfide_search import find_disulfides
 
@@ -49,15 +51,17 @@ from tmol.io.details.disulfide_search import find_disulfides
 
 
 def test_find_disulfide_pairs():
-    coords = numpy.zeros((1, 4, max_n_canonical_atoms, 3), dtype=numpy.float32)
-    atom_is_present = numpy.zeros((1, 4, max_n_canonical_atoms), dtype=numpy.int32)
-    res_types = numpy.full(
-        (1, 4), ordered_canonical_aa_types.index("CYS"), dtype=numpy.int32
+    coords = torch.zeros((1, 4, max_n_canonical_atoms, 3), dtype=torch.float32)
+    atom_is_present = torch.zeros((1, 4, max_n_canonical_atoms), dtype=torch.int32)
+    res_types = torch.full(
+        (1, 4), ordered_canonical_aa_types.index("CYS"), dtype=torch.int32
     )
 
     def set_coord(res_ind, at_name, xyz):
         at_ind = ordered_canonical_aa_atoms["CYS"].index(at_name.strip())
-        coords[0, res_ind, at_ind] = xyz
+        coords[0, res_ind, at_ind] = torch.tensor(
+            xyz, dtype=torch.float32, device=coords.device
+        )
         atom_is_present[0, res_ind, at_ind] = 1
 
     set_coord(0, " N  ", (-60.489, -22.492, -9.505))
@@ -101,6 +105,45 @@ def test_find_disulfide_pairs():
     set_coord(3, " HB2", (-69.933, -33.996, 12.191))
     set_coord(3, " HB3", (-70.999, -32.900, 12.502))
 
-    found_dslf = find_disulfides(res_types, coords, atom_is_present)
+    found_dslf, restype_variants = find_disulfides(res_types, coords, atom_is_present)
+
+    found_dslf = found_dslf.cpu().numpy()
     found_dslf_gold = numpy.array([[0, 0, 1], [0, 2, 3]], dtype=numpy.int32)
     numpy.testing.assert_equal(found_dslf, found_dslf_gold)
+
+    restype_variants = restype_variants.cpu().numpy()
+    restype_variants_gold = numpy.array([[1, 1, 1, 1]], dtype=numpy.int32)
+    numpy.testing.assert_equal(restype_variants, restype_variants_gold)
+
+
+def test_find_disulf_in_pdb(pertuzumab_lines):
+    chain_begin, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
+        pertuzumab_lines
+    )
+    assert chain_begin.shape[0] == res_types.shape[0]
+    assert chain_begin.shape[0] == coords.shape[0]
+    assert chain_begin.shape[0] == atom_is_present.shape[0]
+    assert chain_begin.shape[1] == res_types.shape[1]
+    assert chain_begin.shape[1] == coords.shape[1]
+    assert chain_begin.shape[1] == atom_is_present.shape[1]
+
+    chain_begin = torch.tensor(chain_begin, dtype=torch.int32)
+    res_types = torch.tensor(res_types, dtype=torch.int32)
+    coords = torch.tensor(coords, dtype=torch.float32)
+    atom_is_present = torch.tensor(atom_is_present, dtype=torch.int32)
+
+    found_dslf, restype_variants = find_disulfides(res_types, coords, atom_is_present)
+    found_dslf = found_dslf.cpu().numpy()
+
+    found_dslf_gold = numpy.array(
+        [[0, 22, 87], [0, 133, 193], [0, 213, 435], [0, 235, 309], [0, 359, 415]],
+        dtype=numpy.int32,
+    )
+    numpy.testing.assert_equal(found_dslf, found_dslf_gold)
+
+    restype_variants = restype_variants.cpu().numpy()
+    restype_variants_gold = numpy.zeros_like(restype_variants)
+    restype_variants_gold[found_dslf_gold[:, 0], found_dslf_gold[:, 1]] = 1
+    restype_variants_gold[found_dslf_gold[:, 0], found_dslf_gold[:, 2]] = 1
+
+    numpy.testing.assert_equal(restype_variants, restype_variants_gold)

@@ -1,7 +1,10 @@
 import numpy
+import torch
 import numba
 
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
     ordered_canonical_aa_types,
     ordered_canonical_aa_atoms,
@@ -36,17 +39,33 @@ class HisTautomerResolution(AutoNumber):
     his_taut_unresolved = ()  # future
 
 
+@validate_args
 def resolve_his_tautomerization(
-    res_types: NDArray[numpy.int32][:, :],
-    res_type_variants: NDArray[numpy.int32][:, :],
-    coords: NDArray[numpy.float32][:, :, :, 3],
-    atom_is_present: NDArray[numpy.int32][:, :, :],
-    res,
-) -> NDArray[numpy.int32][:, :]:
-    his_pose_ind, his_res_ind = numpy.nonzero(res_types == his_co_aa_ind)
-    return resolve_his_tautomerization_numba(
-        res_types, res_type_variants, his_pose_ind, his_res_ind, coords, atom_is_present
+    res_types: Tensor[torch.int32][:, :],
+    res_type_variants: Tensor[torch.int32][:, :],
+    coords: Tensor[torch.float32][:, :, :, 3],
+    atom_is_present: Tensor[torch.int32][:, :, :],
+) -> Tensor[torch.int32][:, :]:
+    # TEMP! Do it in numpy/numba for now
+    # This will be slower than if the tensors were
+    # to remain resident on the GPU and should be
+    # replaced with better code.
+    res_types_n = res_types.cpu().numpy()
+    res_type_variants_n = res_type_variats.cpu().numpy()
+    coords_n = coords.cpu().numpy()
+    atom_is_present_n = atom_is_present.cpu().numpy()
+
+    his_pose_ind, his_res_ind = numpy.nonzero(res_types_n == his_co_aa_ind)
+    his_taut = resolve_his_tautomerization_numba(
+        res_types_n,
+        res_type_variants_n,
+        his_pose_ind,
+        his_res_ind,
+        coords_n,
+        atom_is_present_n,
     )
+    # Now send the data back to the device
+    return torch.tensor(his_taut, dtype=torch.int32, device=coords.device)
 
 
 @numba.jit(nopython=True)

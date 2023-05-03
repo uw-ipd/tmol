@@ -3,6 +3,8 @@ import numba
 import torch
 
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
     ordered_canonical_aa_types,
     ordered_canonical_aa_atoms,
@@ -21,28 +23,152 @@ from tmol.io.details.his_taut_resolution import (
     his_CG_in_co,
 )
 from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
+@validate_args
 def assign_block_types(
     packed_block_types: PackedBlockTypes,
-    chain_begin: Tensor[torch.int32][:, :],  # unused for now
+    chain_begin: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     res_type_variants: Tensor[torch.int32][:, :],
     found_disulfides: Tensor[torch.int32][:, 3],
 ):
+    pbt = packed_block_types
+    _annotate_packed_block_types_w_canonical_res_order(pbt)
+    PoseStackBuilder._annotate_pbt_w_polymeric_down_up_bondsep_dist(pbt)
+    PoseStackBuilder._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
 
-    _annotate_packed_block_types_w_canonical_res_order(packed_block_types)
-    canonical_res_ordering_map = packed_block_types.canonical_res_ordering_map
+    device = pbt.device
+
+    # canonica_res_ordering_map dimensioned: [20aas x 3 termini types x 2 variant types]
+    # 3 termini types? 0-nterm, 1-mid, 2-cterm
+    canonical_res_ordering_map = pbt.canonical_res_ordering_map
     real_res = res_types != -1
-    # TEMP! treat everything as a "mid" termini type
+    # TEMP! treat everything as a "mid" (1) termini type
     block_type_inds = canonical_res_ordering_map[
         res_types[real_res], 1, res_type_variants[real_res]
     ]
-    if found_disulfides.shape[0] == 0:
-        pass
-    return block_type_inds, inter_residue_connections, inter_block_bondsep
+
+    # UGH: stealing/duplicating a lot of code from pose_stack_builder below
+    n_poses = chain_begin.shape[0]
+    max_n_res = chain_begin.shape[1]
+    max_n_conn = pbt.max_n_conn
+    inter_residue_connections64 = torch.full(
+        (n_poses, max_n_res, max_n_conn, 2), -1, dtype=torch.int64, device=device
+    )
+    res_is_real_and_not_n_term = real_res.clone()
+    res_is_real_and_not_n_term[chain_begin == 1] = False
+
+    res_is_real_and_not_c_term = real_res.clone()
+    npose_arange = torch.arange(n_poses, dtype=torch.int64, device=device)
+    n_res = torch.sum(real_res, dim=1)
+    res_is_real_and_not_c_term[n_pose_arange, n_res - 1] = False
+    chain_end = torch.cat(
+        (
+            chain_begin[:, 1:],
+            torch.zeros((n_poses, 1), dtype=torch.int32, device=device),
+        ),
+        dim=1,
+    )
+    res_is_real_and_not_c_term[chain_end == 1] = False
+
+    connected_up_conn_inds = pbt.up_conn_inds[
+        block_type_ind64[res_is_real_and_not_n_term]
+    ].to(torch.int64)
+    connected_down_conn_inds = pbt.down_conn_inds[
+        block_type_ind64[res_is_real_and_not_c_term]
+    ].to(torch.int64)
+
+    (
+        nz_res_is_real_and_not_n_term_pose_ind,
+        nz_res_is_real_and_not_n_term_res_ind,
+    ) = torch.nonzero(res_is_real_and_not_n_term, as_tuple=True)
+    (
+        nz_res_is_real_and_not_c_term_pose_ind,
+        nz_res_is_real_and_not_c_term_res_ind,
+    ) = torch.nonzero(res_is_real_and_not_c_term, as_tuple=True)
+
+    inter_residue_connections64[
+        nz_res_is_real_and_not_c_term_pose_ind,
+        nz_res_is_real_and_not_c_term_res_ind,
+        connected_up_conn_inds,
+        0,  # residue id
+    ] = nz_res_is_real_and_not_n_term_res_ind
+    inter_residue_connections64[
+        nz_res_is_real_and_not_c_term_pose_ind,
+        nz_res_is_real_and_not_c_term_res_ind,
+        connected_up_conn_inds,
+        1,  # connection id
+    ] = connected_down_conn_inds
+
+    inter_residue_connections64[
+        nz_res_is_real_and_not_n_term_pose_ind,
+        nz_res_is_real_and_not_n_term_res_ind,
+        connected_down_conn_inds,
+        0,  # residue id
+    ] = nz_res_is_real_and_not_c_term_res_ind
+    inter_residue_connections64[
+        nz_res_is_real_and_not_n_term_pose_ind,
+        nz_res_is_real_and_not_n_term_res_ind,
+        connected_down_conn_inds,
+        1,  # connection id
+    ] = connected_up_conn_inds
+
+    if found_disulfides.shape[0] != 0:
+        found_disulfides64 = found_disulfides.to(torch.int64)
+        cyd1_block_type64 = res_types[
+            found_disulfides64[:, 0], found_disulfides64[:, 1]
+        ]
+        cyd2_block_type64 = res_types[
+            found_disulfides64[:, 0], found_disulfides64[:, 2]
+        ]
+
+        # n- and c-term cyd residues will have different dslf connection inds
+        # than mid-cyd residues; don't just hard code "2" here
+        cyd1_dslf_conn64 = pbt.dslf_conn_ind[cyd1_block_type64].to(torch.int64)
+        cyd2_dslf_conn64 = pbt.dslf_conn_ind[cyd2_block_type64].to(torch.int64)
+        inter_residue_connections64[
+            found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 0
+        ] = found_disulfides64[:, 2]
+        inter_residue_connections64[
+            found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 1
+        ] = cyd2_dslf_conn64
+        inter_residue_connections64[
+            found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 0
+        ] = found_disulfides64[:, 1]
+        inter_residue_connections64[
+            found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 1
+        ] = cyd1_dslf_conn64
+
+    # now that we have the inter-residue connections sorted,
+    # proceed with the rest of the PoseStackBuilder's steps
+    # in constructing the inter_block_bondsep tensor
+    # 3a
+    (
+        pconn_matrix,
+        pconn_offsets,
+        block_n_conn,
+        pose_n_pconn,
+    ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
+        pbt, block_type_ind64, real_res
+    )
+
+    # 3b
+    PoseStackBuilder._incorporate_inter_residue_connections_into_connectivity_graph(
+        inter_residue_connections64, pconn_offsets, pconn_matrix
+    )
+
+    # 4
+    ibb64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
+        pbt, block_n_conn, pose_n_pconn, pconn_matrix
+    )
+    inter_block_bondsep64 = ibb64
+
+    return block_type_inds, inter_residue_connections64, inter_block_bondsep64
 
 
+@validate_args
 def take_block_type_atoms_from_canonical(
     packed_block_types: PackedBlockTypes,
     chain_begin: Tensor[torch.int32][:, :],
@@ -102,6 +228,7 @@ def take_block_type_atoms_from_canonical(
     return block_coords, missing_atoms, real_atoms
 
 
+@validate_args
 def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
     # TEMP! do everything in numpy for the moment
     # TO DO! Use torch tensors on the device!
@@ -148,6 +275,7 @@ def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
     setattr(pbt, "bt_ind_to_canonical_ind", bt_ind_to_canonical_ind)
 
 
+@validate_args
 def _annotate_packed_block_types_w_canonical_atom_order(pbt: PackedBlockTypes):
     if hasattr(pbt, "canonical_atom_ind_map"):
         return

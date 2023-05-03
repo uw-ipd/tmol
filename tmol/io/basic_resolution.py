@@ -60,7 +60,7 @@ def pose_stack_from_canonical_form(
     # future!
 
     # 5
-    block_types, inter_residue_connections, inter_block_bondsep = assign_block_types(
+    block_types, inter_residue_connections64, inter_block_bondsep64 = assign_block_types(
         pbt, chain_begin, res_types, restype_variants, found_disulfides
     )
 
@@ -88,16 +88,19 @@ def pose_stack_from_canonical_form(
     def i64(x):
         return x.to(torch.int64)
 
+    def i32(x):
+        return x.to(torch.int32)
+
     # 8
     return PoseStack(
         packed_block_types=pbt,
         coords=pose_stack_coords,
         block_coord_offset=block_coord_offset,
         block_coord_offset64=i64(block_coord_offset),
-        inter_residue_connections=inter_residue_connections,
-        inter_residue_connections64=i64(inter_residue_connections),
-        inter_block_bondsep=inter_block_bondsep,
-        inter_block_bondsep64=i64(inter_block_bondsep),
+        inter_residue_connections=i32(inter_residue_connections64),
+        inter_residue_connections64=inter_residue_connections64,
+        inter_block_bondsep=i32(inter_block_bondsep64),
+        inter_block_bondsep64=inter_block_bondsep64,
         block_type_ind=block_types,
         block_type_ind64=i64(block_types),
         device=pbt.device,

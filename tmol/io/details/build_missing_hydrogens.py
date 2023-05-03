@@ -1,10 +1,13 @@
 import torch
 
+from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.score.chemical_database import AtomTypeParamResolver
 from tmol.io.details.compiled.compiled import gen_pose_hydrogens
 
 
+@validate_args
 def build_missing_hydrogens(
     packed_block_types: PackedBlockTypes,
     atom_type_resolver: AtomTypeParamResolver,
@@ -81,6 +84,7 @@ def build_missing_hydrogens(
     return new_pose_coords, block_coord_offset
 
 
+@validate_args
 def _annotate_packed_block_types_atom_is_h(
     pbt: PackedBlockTypes, atom_type_resolver: AtomTypeParamResolver
 ):
@@ -106,6 +110,7 @@ def _annotate_packed_block_types_atom_is_h(
     setattr(pbt, "is_hydrogen", is_hydrogen)
 
 
+@validate_args
 def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
     if hasattr(pbt, "build_missing_h_icoor_atom_ancestor_uaids"):
         assert hasattr(pbt, "build_missing_h_icoor_geom")
