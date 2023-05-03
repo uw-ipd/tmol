@@ -1,5 +1,6 @@
-flake8
 black
+flake8
+itermplot
 pytest
 pytest-forked
 pytest-cov

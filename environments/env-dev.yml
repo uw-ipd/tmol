@@ -93,6 +93,7 @@ dependencies:
       - frozendict==2.3.7
       - hypothesis==6.70.2
       - idna==3.4
+      - itermplot==0.331
       - iniconfig==2.0.0
       - ipython==8.13.0
       - jedi==0.18.2
