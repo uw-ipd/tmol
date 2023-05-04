@@ -54,8 +54,6 @@ class PackedBlockTypes:
     down_conn_inds: Tensor[torch.int32][:]
     up_conn_inds: Tensor[torch.int32][:]
 
-    icoors_geom: Tensor[torch.float32][:, :, 3]
-
     device: torch.device
 
     @property
@@ -86,8 +84,6 @@ class PackedBlockTypes:
             active_block_types, device
         )
 
-        icoors_geom = cls.join_icoors_geom(active_block_types, device)
-
         return cls(
             active_block_types=active_block_types,
             restype_index=restype_index,
@@ -109,7 +105,6 @@ class PackedBlockTypes:
             conn_atom=conn_atom,
             down_conn_inds=down_conn_inds,
             up_conn_inds=up_conn_inds,
-            icoors_geom=icoors_geom,
             device=device,
         )
 
@@ -235,20 +230,6 @@ class PackedBlockTypes:
             device=device,
         )
         return down_conn_inds, up_conn_inds
-
-    @classmethod
-    def join_icoors_geom(active_block_types, device):
-        n_restypes = len(activate_block_types)
-        max_n_atoms = max(rt.n_atoms for rt in active_block_types)
-
-        icoors_geom = torch.zeros(
-            (n_restypes, max_n_atoms, 3), dtype=torch.float32, device=device
-        )
-        for i, rt in enumerate(active_block_types):
-            icoors_geom[i, : rt.n_atoms] = torch.tensor(
-                rt.icoors_geom, dtype=torch.float32, device=device
-            )
-        return icoors_geom
 
     def inds_for_res(self, residues: Sequence[Residue]):
         return self.restype_index.get_indexer(
