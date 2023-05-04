@@ -136,7 +136,7 @@ class HBondDependentTerm(BondDependentTerm):
             try:
                 # if there are no atoms that register as acceptors/donors,
                 # pandas will throw a KeyError (annoying!)
-                hbtype_df = mapper.loc[atom_types][col_name]
+                hbtype_df = mapper.reindex(atom_types)[col_name]
                 hbtype_df = hbtype_df.where((pandas.notnull(hbtype_df)), None)
                 hbtype_names[:] = numpy.array(hbtype_df)
             except KeyError:

@@ -61,10 +61,11 @@ def AHD_angle_V_dV(
   auto poly = bound_poly<11, double>::V_dV(
       AHD.V, cosAHD_poly.coeffs, cosAHD_poly.range, cosAHD_poly.bound);
 
-  return {poly.V,
-          poly.dV_dX * AHD.dV_dA,
-          poly.dV_dX * AHD.dV_dB,
-          poly.dV_dX * AHD.dV_dC};
+  return {
+      poly.V,
+      poly.dV_dX * AHD.dV_dA,
+      poly.dV_dX * AHD.dV_dB,
+      poly.dV_dX * AHD.dV_dC};
 }
 
 template <typename Real>
@@ -87,10 +88,11 @@ def _BAH_angle_base_form_V_dV(
   auto poly = bound_poly<11, double>::V_dV(
       cosT.V, cosBAH_poly.coeffs, cosBAH_poly.range, cosBAH_poly.bound);
 
-  return {poly.V,
-          poly.dV_dX * (-cosT.dV_dB),
-          poly.dV_dX * (cosT.dV_dB - cosT.dV_dA),
-          poly.dV_dX * cosT.dV_dA};
+  return {
+      poly.V,
+      poly.dV_dX * (-cosT.dV_dB),
+      poly.dV_dX * (cosT.dV_dB - cosT.dV_dA),
+      poly.dV_dX * cosT.dV_dA};
 }
 
 template <typename Real>
@@ -156,11 +158,12 @@ def BAH_angle_V_dV(
         exp(PxH0 * hb_sp3_softmax_fade)
         / (exp(PxH * hb_sp3_softmax_fade) + exp(PxH0 * hb_sp3_softmax_fade));
 
-    return {PxHfade,
-            dPxHfade_dPxH * dPxH_dB,
-            dPxHfade_dPxH0 * dPxH0_dB0,
-            (dPxHfade_dPxH * dPxH_dA) + (dPxHfade_dPxH0 * dPxH0_dA),
-            (dPxHfade_dPxH * dPxH_dH) + (dPxHfade_dPxH0 * dPxH0_dH)};
+    return {
+        PxHfade,
+        dPxHfade_dPxH * dPxH_dB,
+        dPxHfade_dPxH0 * dPxH0_dB0,
+        (dPxHfade_dPxH * dPxH_dA) + (dPxHfade_dPxH0 * dPxH0_dA),
+        (dPxHfade_dPxH * dPxH_dH) + (dPxHfade_dPxH0 * dPxH0_dH)};
   } else {
 #ifndef __CUDACC__
     throw std::runtime_error("Invalid acceptor_hybridization.");
@@ -314,11 +317,12 @@ def B0BAH_chi_V_dV(
         dE_dB0BAH * dB0BAH_dH + dE_dBAH * dBAH_dH,
     };
   } else {
-    return {0,
-            Real3({0, 0, 0}),
-            Real3({0, 0, 0}),
-            Real3({0, 0, 0}),
-            Real3({0, 0, 0})};
+    return {
+        0,
+        Real3({0, 0, 0}),
+        Real3({0, 0, 0}),
+        Real3({0, 0, 0}),
+        Real3({0, 0, 0})};
   }
 }
 

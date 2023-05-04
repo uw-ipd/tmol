@@ -80,7 +80,6 @@ def test_create_rotamer_bounding_spheres_smoke(
 def test_build_spheres_for_lots_of_rotamers(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
-
     n_poses = 10
 
     p = PoseStackBuilder.one_structure_from_polymeric_residues(

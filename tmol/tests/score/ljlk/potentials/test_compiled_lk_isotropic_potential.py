@@ -57,7 +57,7 @@ def test_lk_spotcheck(params, iname, jname):
 
     sigma = compiled.lj_sigma(i, j, g)
 
-    d_min = sigma * .89
+    d_min = sigma * 0.89
     cpoly_close_dmin = numpy.sqrt(d_min * d_min - 1.45)
     cpoly_close_dmax = numpy.sqrt(d_min * d_min + 1.05)
 

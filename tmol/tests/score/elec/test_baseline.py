@@ -20,4 +20,4 @@ def test_elec_baseline_comparison(ubq_system, torch_device):
 
     intra_container = score_system.intra_forward(coords)
 
-    assert intra_container["elec"] == approx(-131.9225, rel=1e-3)
+    assert intra_container["elec"].detach().cpu().numpy() == approx(-131.9225, rel=1e-3)

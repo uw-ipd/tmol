@@ -32,7 +32,6 @@ class _LJScoreModule(torch.jit.ScriptModule):
         )
 
     def __init__(self, param_resolver: LJLKParamResolver):
-
         super().__init__()
 
         def _p(t):
@@ -118,7 +117,6 @@ class _LKIsotropicScoreModule(torch.jit.ScriptModule):
         )
 
     def __init__(self, param_resolver: LJLKParamResolver):
-
         super().__init__()
 
         def _p(t):
@@ -164,7 +162,6 @@ class _LKIsotropicScoreModule(torch.jit.ScriptModule):
 class LKIsotropicIntraModule(_LKIsotropicScoreModule):
     @torch.jit.script_method
     def forward(self, coords_I, atom_type_I, heavyat_inds_I, bonded_path_lengths):
-
         return score_ljlk_lk_isotropic_triu(
             coords_I,
             atom_type_I,

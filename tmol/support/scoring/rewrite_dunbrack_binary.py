@@ -333,7 +333,6 @@ def write_binary_version_of_dunbrack_rotamer_library(
 
 
 if __name__ == "__main__":
-
     write_binary_version_of_dunbrack_rotamer_library(
         "/Users/andrew/rosetta/GIT/Rosetta/main/database/rotamer/beta_nov2016/",
         "/Users/andrew/rosetta/GIT/Rosetta/main/database/rotamer/ExtendedOpt1-5/",

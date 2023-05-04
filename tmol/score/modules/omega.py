@@ -19,9 +19,8 @@ from tmol.types.torch import Tensor
 
 
 def allomegas_from_packed_residue_system(
-    packed_residue_system: PackedResidueSystem
+    packed_residue_system: PackedResidueSystem,
 ) -> numpy.array:
-
     allomegas = numpy.array(
         [
             [
@@ -42,9 +41,8 @@ def allomegas_from_packed_residue_system(
 
 
 def allomegas_from_packed_residue_system_stack(
-    packed_residue_system_stack: PackedResidueSystemStack
+    packed_residue_system_stack: PackedResidueSystemStack,
 ):
-
     allomegas_list = [
         allomegas_from_packed_residue_system(system)
         for system in packed_residue_system_stack.systems
@@ -73,8 +71,7 @@ class OmegaParameters(ScoreModule):
     @staticmethod
     @singledispatch
     def build_for(val, system: ScoreSystem, **_):
-        """Override constructor.
-        """
+        """Override constructor."""
 
         allomegas = allomegas_from_packed_residue_system(val)
 
@@ -97,7 +94,7 @@ class OmegaParameters(ScoreModule):
 
     @spring_constant.default
     def _init_spring_constant(self) -> Tensor[torch.float]:
-        """ The spring constant for omega (in radians)"""
+        """The spring constant for omega (in radians)"""
         return torch.tensor(
             32.8, device=TorchDevice.get(self.system).device, dtype=torch.float
         )
@@ -105,16 +102,14 @@ class OmegaParameters(ScoreModule):
 
 @OmegaParameters.build_for.register(ScoreSystem)
 def _clone_for_score_system(old, system: ScoreSystem, **_):
-    """Override constructor.
-        """
+    """Override constructor."""
 
     return OmegaParameters(system=system, allomegas=OmegaParameters.get(old).allomegas)
 
 
 @OmegaParameters.build_for.register(PackedResidueSystemStack)
 def _build_for_stack(stack, system: ScoreSystem, **_):
-    """Override constructor.
-    """
+    """Override constructor."""
 
     allomegas = allomegas_from_packed_residue_system_stack(stack)
 

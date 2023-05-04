@@ -36,7 +36,6 @@ def test_distance_values(geom):
 
 
 def test_distance_gradcheck(geom):
-
     dists = linspace(0, 10, 100, endpoint=True)
     v1, v2 = array(list(map(dist_vecs, dists))).swapaxes(0, 1)
 
@@ -56,7 +55,6 @@ def angle_vecs(theta):
 
 # TODO Test cases for colinear and identical points.
 def test_interior_angle_values(geom):
-
     thetas = linspace(0, pi, 250, endpoint=False)
     rot = special_ortho_group.rvs(3)
 
@@ -71,7 +69,6 @@ def test_interior_angle_values(geom):
 
 
 def test_interior_angle_gradcheck(geom):
-
     thetas = linspace(1e-5, pi, 100, endpoint=False)
     v1, v2 = array(list(map(angle_vecs, thetas))).swapaxes(0, 1)
 
@@ -99,7 +96,6 @@ def test_cos_interior_angle_values(geom):
 
 
 def test_cos_interior_angle_gradcheck(geom):
-
     thetas = linspace(1e-5, pi, 100, endpoint=False)
     v1, v2 = array(list(map(angle_vecs, thetas))).swapaxes(0, 1)
 
@@ -115,7 +111,7 @@ def test_cos_interior_angle_gradcheck(geom):
 def dihedral_points(chi):
     v1, v2 = angle_vecs(chi)
 
-    return [[v1[0], v1[1], 0], [0, 0, .5], [0, 0, 1.75], [v2[0], v2[1], 2.25]]
+    return [[v1[0], v1[1], 0], [0, 0, 0.5], [0, 0, 1.75], [v2[0], v2[1], 2.25]]
 
 
 def test_dihedral_angle_values(geom):

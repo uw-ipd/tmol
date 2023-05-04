@@ -28,7 +28,7 @@ class LJScore(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, dE_dV):
-        dV, = ctx.saved_tensors
+        (dV,) = ctx.saved_tensors
 
         return dE_dV * dV, None, None, None, None
 
@@ -55,7 +55,7 @@ class LKScore(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, dE_dV):
-        dV, = ctx.saved_tensors
+        (dV,) = ctx.saved_tensors
 
         return dE_dV * dV, None, None, None, None
 

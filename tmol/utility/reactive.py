@@ -408,6 +408,7 @@ import toolz
 
 def _code(
     argcount,
+    posonlyargcount,
     kwonlyargcount,
     nlocals,
     stacksize,
@@ -427,6 +428,7 @@ def _code(
     """Construct type.CodeType, ignoring unneeded kwargs."""
     return types.CodeType(
         argcount,
+        posonlyargcount,
         kwonlyargcount,
         nlocals,
         stacksize,
@@ -657,7 +659,6 @@ class _ReactiveProperty:
 
 
 def _setup_reactive(cls):
-
     # Gather all _ReactiveProperty in this class and transform into ReactiveProperty
     cls_reactive_props = {
         n: ReactiveProperty(

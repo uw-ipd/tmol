@@ -8,7 +8,7 @@ from .rosetta import requires_rosetta_database
 from tmol.support.scoring.hbond_param_import import RosettaHBParams
 from tmol.support.scoring.rewrite_rama_binary import parse_all_tables
 from tmol.support.scoring.rewrite_dunbrack_binary import (
-    write_binary_version_of_dunbrack_rotamer_library
+    write_binary_version_of_dunbrack_rotamer_library,
 )
 from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 

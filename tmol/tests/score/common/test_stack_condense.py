@@ -6,7 +6,6 @@ import tmol.score.common.stack_condense as sc
 
 
 def test_condense_numpy_inds():
-
     vals = numpy.array(
         [[0, 1, -1, 3, 4], [-1, 1, 2, -1, -1], [0, -1, 2, 3, -1]], dtype=int
     )
@@ -18,7 +17,6 @@ def test_condense_numpy_inds():
 
 
 def test_condense_torch_inds(torch_device):
-
     vals = torch.tensor(
         [[0, 1, -1, 3, 4], [-1, 1, 2, -1, -1], [0, -1, 2, 3, -1]],
         dtype=torch.int64,

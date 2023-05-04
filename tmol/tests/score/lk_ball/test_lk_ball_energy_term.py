@@ -9,7 +9,6 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device):
-
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
 
     assert lk_ball_energy.device == torch_device
@@ -18,7 +17,6 @@ def test_smoke(default_database, torch_device):
 def test_annotate_restypes(
     fresh_default_packed_block_types, default_database, torch_device
 ):
-
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
 
     pbt = fresh_default_packed_block_types
@@ -79,7 +77,6 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
 def test_whole_pose_scoring_module_gradcheck_partial_pose(
     rts_ubq_res, default_database, torch_device
 ):
-
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res[6:12], device=torch_device

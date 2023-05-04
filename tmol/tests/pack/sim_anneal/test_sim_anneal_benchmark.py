@@ -25,7 +25,6 @@ from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 # class SimAEngine(torch.jit.ScriptModule):
 class SimAEngine:
     def __init__(self, temperature, selector, inter_module, mc_accept_reject):
-
         super().__init__()
 
         def _p(t):
@@ -94,7 +93,6 @@ def temp_dont_test_run_simA_benchmark(
     torch_device,
     dun_sampler,
 ):
-
     # print("torch device", torch_device)
     # def _p(t):
     #     return torch.nn.Parameter(t, requires_grad=False)

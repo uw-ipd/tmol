@@ -8,7 +8,6 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 
 @attr.s(auto_attribs=True)
 class PoseStack:
-
     packed_block_types: PackedBlockTypes
     # residues: List[List[Residue]]
 

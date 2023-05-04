@@ -4,7 +4,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
-//#include <tmol/pack/compiled/params.hh>
+// #include <tmol/pack/compiled/params.hh>
 
 namespace tmol {
 namespace pack {

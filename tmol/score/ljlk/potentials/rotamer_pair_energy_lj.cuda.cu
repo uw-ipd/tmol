@@ -23,13 +23,13 @@
 
 #include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
 
-//#include <moderngpu/cta_load_balance.hxx>
+// #include <moderngpu/cta_load_balance.hxx>
 #include <moderngpu/cta_reduce.hxx>
-//#include <moderngpu/cta_scan.hxx>
-//#include <moderngpu/cta_segreduce.hxx>
-//#include <moderngpu/cta_segscan.hxx>
-//#include <moderngpu/memory.hxx>
-//#include <moderngpu/search.hxx>
+// #include <moderngpu/cta_scan.hxx>
+// #include <moderngpu/cta_segreduce.hxx>
+// #include <moderngpu/cta_segscan.hxx>
+// #include <moderngpu/memory.hxx>
+// #include <moderngpu/search.hxx>
 #include <moderngpu/transform.hxx>
 
 // This file moves in more recent versions of Torch

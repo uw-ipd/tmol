@@ -12,9 +12,9 @@ def test_angle_parsing():
         "90 deg",
         ".5 * 180 deg",
         "90 degrees",
-        .5 * pi,
-        .5 * units.ureg.pi,
-        .5 * units.ureg.pi * units.ureg.rad,
+        0.5 * pi,
+        0.5 * units.ureg.pi,
+        0.5 * units.ureg.pi * units.ureg.rad,
         90 * units.ureg.deg,
     ]
 

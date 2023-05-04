@@ -154,7 +154,6 @@ def stacked_bonded_atoms_for_system(
     drop_missing_atoms: bool = False,
     **_,
 ):
-
     system_size = StackedSystem.get(system).system_size
 
     bonds_for_systems: List[BondedAtoms] = [

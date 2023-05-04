@@ -158,7 +158,6 @@ class KinematicOperation(torch.nn.Module):
 
     # TODO restore type annotations
     def forward(self, dofs: torch.Tensor) -> torch.Tensor:  # Tensor[torch.float][:, 9],
-
         kincoords = self.kin_module(dofs)
 
         coords = kincoords.new_full(size=(self.system_size, 3), fill_value=math.nan)
