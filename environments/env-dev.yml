@@ -93,11 +93,12 @@ dependencies:
       - frozendict==2.3.7
       - hypothesis==6.70.2
       - idna==3.4
-      - itermplot==0.331
+      - itermplot==0.5
       - iniconfig==2.0.0
       - ipython==8.13.0
       - jedi==0.18.2
-      - matplotlib-inline==0.1.6
+      # - matplotlib==3.7.1
+      # - matplotlib-inline==0.1.6
       - mccabe==0.7.0
       - mypy-extensions==1.0.0
       - numcodecs==0.11.0

@@ -1,6 +1,6 @@
 black
 flake8
-itermplot
+itermplot==0.5
 pytest
 pytest-forked
 pytest-cov
