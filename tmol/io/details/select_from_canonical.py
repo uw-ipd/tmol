@@ -9,9 +9,9 @@ from tmol.io.canonical_ordering import (
     ordered_canonical_aa_types,
     ordered_canonical_aa_atoms,
 )
-from tmo.io.details.disulfide_search import cys_co_aa_ind
+from tmol.io.details.disulfide_search import cys_co_aa_ind
 from tmol.io.details.his_taut_resolution import (
-    HisTautResolution,
+    HisTautomerResolution,
     his_co_aa_ind,
     his_ND1_in_co,
     his_NE2_in_co,
@@ -44,11 +44,15 @@ def assign_block_types(
     # canonica_res_ordering_map dimensioned: [20aas x 3 termini types x 2 variant types]
     # 3 termini types? 0-nterm, 1-mid, 2-cterm
     canonical_res_ordering_map = pbt.canonical_res_ordering_map
-    real_res = res_types != -1
+    res_types64 = res_types.to(torch.int64)
+    res_type_variants64 = res_type_variants.to(torch.int64)
+    real_res = res_types64 != -1
     # TEMP! treat everything as a "mid" (1) termini type
-    block_type_inds = canonical_res_ordering_map[
-        res_types[real_res], 1, res_type_variants[real_res]
+    block_type_ind64 = torch.full_like(res_types64, -1)
+    block_type_ind64[real_res] = canonical_res_ordering_map[
+        res_types64[real_res], 1, res_type_variants64[real_res]
     ]
+    # block_type_ind64 = block_type_ind.to(torch.int64)
 
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
     n_poses = chain_begin.shape[0]
@@ -61,7 +65,7 @@ def assign_block_types(
     res_is_real_and_not_n_term[chain_begin == 1] = False
 
     res_is_real_and_not_c_term = real_res.clone()
-    npose_arange = torch.arange(n_poses, dtype=torch.int64, device=device)
+    n_pose_arange = torch.arange(n_poses, dtype=torch.int64, device=device)
     n_res = torch.sum(real_res, dim=1)
     res_is_real_and_not_c_term[n_pose_arange, n_res - 1] = False
     chain_end = torch.cat(
@@ -117,10 +121,10 @@ def assign_block_types(
 
     if found_disulfides.shape[0] != 0:
         found_disulfides64 = found_disulfides.to(torch.int64)
-        cyd1_block_type64 = res_types[
+        cyd1_block_type64 = res_types64[
             found_disulfides64[:, 0], found_disulfides64[:, 1]
         ]
-        cyd2_block_type64 = res_types[
+        cyd2_block_type64 = res_types64[
             found_disulfides64[:, 0], found_disulfides64[:, 2]
         ]
 
@@ -165,7 +169,7 @@ def assign_block_types(
     )
     inter_block_bondsep64 = ibb64
 
-    return block_type_inds, inter_residue_connections64, inter_block_bondsep64
+    return block_type_ind64, inter_residue_connections64, inter_block_bondsep64
 
 
 @validate_args
@@ -271,8 +275,11 @@ def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
                 if canonical_ordering_map[i, j, k] != -1:
                     bt_ind_to_canonical_ind[canonical_ordering_map[i, j, k]] = i
 
-    setattr(pbt, "canonical_res_ordering_map", canonical_ordering_map)
-    setattr(pbt, "bt_ind_to_canonical_ind", bt_ind_to_canonical_ind)
+    def t(x):
+        return torch.tensor(x, dtype=torch.int64, device=pbt.device)
+
+    setattr(pbt, "canonical_res_ordering_map", t(canonical_ordering_map))
+    setattr(pbt, "bt_ind_to_canonical_ind", t(bt_ind_to_canonical_ind))
 
 
 @validate_args

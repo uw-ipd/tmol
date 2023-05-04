@@ -120,9 +120,10 @@ def resolve_his_tautomerization_numba(
     # To use torch.gather, we need to put the index of the source atom
     # in all three of the x, y, and z slots.
 
-    his_remapping_dst_index = (
-        numpy.arange(max_n_canonical_atoms * 3, dtype=numpy.int32) // 3
-    ).reshape((res_types.shape[0], res_types.shape[1], max_n_canonical_atoms, 3))
+    his_remapping_dst_index = numpy.tile(
+        numpy.repeat(numpy.arange(max_n_canonical_atoms, dtype=numpy.int32), 3),
+        (res_types.shape[0], res_types.shape[1], 1, 1),
+    ).reshape(res_types.shape[0], res_types.shape[1], max_n_canonical_atoms, 3)
 
     his_taut = numpy.zeros_like(res_types)
     for i in range(his_pose_ind.shape[0]):

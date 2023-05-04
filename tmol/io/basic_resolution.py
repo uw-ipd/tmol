@@ -5,7 +5,7 @@ from typing import Optional
 from tmol.pose.pose_stack import PoseStack
 
 from tmol.io.details.canonical_packed_block_types import (
-    default_canonical_packed_block_types
+    default_canonical_packed_block_types,
 )
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
@@ -21,7 +21,7 @@ def pose_stack_from_canonical_form(
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Optional[Tensor[torch.int32][:, :, :]] = None,
 ) -> PoseStack:
-    """"Create a PoseStack given atom coordinates in canonical ordering"""
+    """ "Create a PoseStack given atom coordinates in canonical ordering"""
 
     assert chain_begin.device == res_types.device
     assert chain_begin.device == coords.device
@@ -65,15 +65,19 @@ def pose_stack_from_canonical_form(
     # future!
 
     # 5
-    block_types, inter_residue_connections64, inter_block_bondsep64 = assign_block_types(
-        pbt, chain_begin, res_types, restype_variants, found_disulfides
+    (
+        block_types64,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        pbt, chain_begin, res_types, res_type_variants, found_disulfides
     )
 
     # 6
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
         pbt,
         chain_begin,
-        block_types,
+        block_types64,
         coords,
         atom_is_present,
         found_disulfides,
@@ -84,7 +88,7 @@ def pose_stack_from_canonical_form(
     pose_stack_coords, block_coord_offset = build_missing_hydrogens(
         pbt,
         atom_type_resolver,
-        block_types,
+        block_types64,
         real_atoms,
         block_type_coords,
         missing_atoms,
@@ -106,7 +110,7 @@ def pose_stack_from_canonical_form(
         inter_residue_connections64=inter_residue_connections64,
         inter_block_bondsep=i32(inter_block_bondsep64),
         inter_block_bondsep64=inter_block_bondsep64,
-        block_type_ind=block_types,
-        block_type_ind64=i64(block_types),
+        block_type_ind=i32(block_types64),
+        block_type_ind64=block_types64,
         device=pbt.device,
     )

@@ -1,3 +1,4 @@
+import numpy
 from tmol.io.canonical_ordering import (
     max_n_canonical_atoms,
     canonical_form_from_pdb_lines,
@@ -17,3 +18,4 @@ def test_canonical_form_from_pdb_lines(pertuzumab_lines):
     assert atom_is_present.shape[2] == max_n_canonical_atoms
     assert coords.shape[2] == max_n_canonical_atoms
     assert coords.shape[3] == 3
+    assert numpy.sum(chain_begin) == 2
