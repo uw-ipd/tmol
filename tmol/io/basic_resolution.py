@@ -52,7 +52,12 @@ def pose_stack_from_canonical_form(
         res_types, coords, atom_is_present
     )
     # 3
-    his_taut, resolved_coords, resolved_atom_is_present = resolve_his_tautomerization(
+    (
+        his_taut,
+        res_type_variants,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = resolve_his_tautomerization(
         res_types, res_type_variants, coords, atom_is_present
     )
 
