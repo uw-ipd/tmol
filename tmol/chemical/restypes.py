@@ -380,11 +380,11 @@ def find_disulfide_connections(res: List[Residue],) -> List[Tuple[int, str, int,
     for i, cys1 in cystines:
         for j, cys2 in cystines:
             if i < j:
-                ca_index = cys1.residue_type.atom_to_idx["SG"]
-                ca1 = cys1.coords[ca_index]
-                ca2 = cys2.coords[ca_index]
+                sg_index = cys1.residue_type.atom_to_idx["SG"]
+                sg1 = cys1.coords[sg_index]
+                sg2 = cys2.coords[sg_index]
 
-                dist = numpy.linalg.norm(ca1 - ca2)
+                dist = numpy.linalg.norm(sg1 - sg2)
 
                 if numpy.isclose(dist, 2.02, atol=0.5):
                     residue_connections.extend(
