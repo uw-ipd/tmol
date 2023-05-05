@@ -8,6 +8,7 @@ from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
     ordered_canonical_aa_types,
     ordered_canonical_aa_atoms,
+    ordered_canonical_aa_atoms_v2,
 )
 from tmol.io.details.disulfide_search import cys_co_aa_ind
 from tmol.io.details.his_taut_resolution import (
@@ -176,7 +177,7 @@ def assign_block_types(
 def take_block_type_atoms_from_canonical(
     packed_block_types: PackedBlockTypes,
     chain_begin: Tensor[torch.int32][:, :],
-    block_types: Tensor[torch.int32][:, :],
+    block_types64: Tensor[torch.int64][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Tensor[torch.int32][:, :, :],
 ):
@@ -190,13 +191,14 @@ def take_block_type_atoms_from_canonical(
     tensor as missing_atoms
     """
     pbt = packed_block_types
+    device = pbt.device
     _annotate_packed_block_types_w_canonical_res_order(pbt)
     _annotate_packed_block_types_w_canonical_atom_order(pbt)
 
-    block_types64 = block_types.to(torch.int64)
+    # block_types64 = block_types.to(torch.int64)
 
-    n_poses = block_types.shape[0]
-    max_n_blocks = block_types.shape[1]
+    n_poses = block_types64.shape[0]
+    max_n_blocks = block_types64.shape[1]
     real_block_types = block_types64 != -1
     real_atoms = torch.zeros(
         (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=pbt.device
@@ -206,7 +208,7 @@ def take_block_type_atoms_from_canonical(
     canonical_atom_inds = torch.full(
         (n_poses, max_n_blocks, pbt.max_n_atoms),
         -1,
-        dtype=torch.int32,
+        dtype=torch.int64,
         device=pbt.device,
     )
 
@@ -227,7 +229,7 @@ def take_block_type_atoms_from_canonical(
             nz_real_pose_ind, nz_real_block_ind, canonical_atom_inds[real_atoms]
         ]
         == 0
-    )
+    ).to(torch.int32)
 
     return block_coords, missing_atoms, real_atoms
 
@@ -249,7 +251,7 @@ def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
     #
 
     if hasattr(pbt, "canonical_res_ordering_map"):
-        assert hasattr(pbt, "bt_ind_to_cananonical_ind")
+        assert hasattr(pbt, "bt_ind_to_canonical_ind")
         return
 
     max_n_termini_types = 3  # TEMP! 0=Nterm, 1=mid, 2=Cterm
@@ -287,20 +289,24 @@ def _annotate_packed_block_types_w_canonical_atom_order(pbt: PackedBlockTypes):
     if hasattr(pbt, "canonical_atom_ind_map"):
         return
     canonical_atom_ind = numpy.full(
-        (pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int32
+        (pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64
     )
     canonical_res_ordering_map = pbt.canonical_res_ordering_map.cpu()
     for i, bt in enumerate(pbt.active_block_types):
+        # print("bt name:", bt.name)
         canonical_res_ind = pbt.bt_ind_to_canonical_ind[i]
         if canonical_res_ind == -1:
             continue
         canonical_res_name = ordered_canonical_aa_types[canonical_res_ind]
-        i_canonical_ordering = ordered_canonical_aa_atoms[canonical_res_name]
-        for j, name in enumerate(bt.atoms):
+        ##### TEEEEEEMP!!!!!! #####
+        # Use V2 for now
+        i_canonical_ordering = ordered_canonical_aa_atoms_v2[canonical_res_name]
+        for j, at in enumerate(bt.atoms):
             # probably this would be faster if we used a pandas indexer
             # but this is done only once, so, for now, use the slow form
-            canonical_atom_ind[i, j] = i_canonical_ordering.index(name)
+            # print("at", at.name.strip())
+            canonical_atom_ind[i, j] = i_canonical_ordering.index(at.name.strip())
     canonical_atom_ind = torch.tensor(
-        canonical_atom_ind, dtype=torch.int32, device=pbt.device
+        canonical_atom_ind, dtype=torch.int64, device=pbt.device
     )
     setattr(pbt, "canonical_atom_ind_map", canonical_atom_ind)
