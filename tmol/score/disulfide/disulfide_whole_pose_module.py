@@ -18,50 +18,13 @@ class DisulfideWholePoseScoringModule(torch.nn.Module):
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
-        def _t(ts):
-            return tuple(map(lambda t: t.to(torch.float), ts))
-
         self.pose_stack_block_coord_offset = _p(pose_stack_block_coord_offset)
         self.pose_stack_block_types = _p(pose_stack_block_types)
         self.pose_stack_inter_block_connections = _p(pose_stack_inter_block_connections)
         self.bt_disulfide_conns = _p(bt_disulfide_conns)
         self.bt_atom_downstream_of_conn = _p(bt_atom_downstream_of_conn)
 
-        self.global_params = _p(
-            torch.stack(
-                _t(
-                    [
-                        global_params.d_location,
-                        global_params.d_scale,
-                        global_params.d_shape,
-                        global_params.a_logA,
-                        global_params.a_kappa,
-                        global_params.a_mu,
-                        global_params.dss_logA1,
-                        global_params.dss_kappa1,
-                        global_params.dss_mu1,
-                        global_params.dss_logA2,
-                        global_params.dss_kappa2,
-                        global_params.dss_mu2,
-                        global_params.dcs_logA1,
-                        global_params.dcs_mu1,
-                        global_params.dcs_kappa1,
-                        global_params.dcs_logA2,
-                        global_params.dcs_mu2,
-                        global_params.dcs_kappa2,
-                        global_params.dcs_logA3,
-                        global_params.dcs_mu3,
-                        global_params.dcs_kappa3,
-                        global_params.wt_dih_ss,
-                        global_params.wt_dih_cs,
-                        global_params.wt_ang,
-                        global_params.wt_len,
-                        global_params.shift,
-                    ]
-                ),
-                dim=1,
-            )
-        )
+        self.global_params = _p(global_params)
 
     def forward(self, coords):
         return disulfide_pose_scores(
