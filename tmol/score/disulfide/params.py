@@ -46,16 +46,10 @@ class DisulfideGlobalParams(TensorGroup):
     @classmethod
     @validate_args
     def from_database(cls, disulfide_database: DisulfideDatabase, device: torch.device):
-        # Convert float entries into 1-d tensors
-        def at_least_1d(t):
-            if t.dim() == 0:
-                return t.expand((1,))
-            else:
-                return t
 
         global_params = DisulfideGlobalParams(
             **{
-                n: at_least_1d(torch.tensor(v, device=device))
+                n: torch.tensor(v, device=device).expand((1,))
                 for n, v in cattr.unstructure(
                     disulfide_database.global_parameters
                 ).items()
