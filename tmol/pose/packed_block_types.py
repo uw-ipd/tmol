@@ -30,7 +30,7 @@ class PackedBlockTypes:
 
     atom_downstream_of_conn: Tensor[torch.int32][:, :, :]
 
-    atom_paths_from_conn: Tensor[torch.int32][:, :, :, 2]
+    atom_paths_from_conn: Tensor[torch.int32][:, :, :, 3]
 
     max_n_torsions: int
     n_torsions: Tensor[torch.int32][:]  # dim: n_types x max_n_tors
@@ -268,19 +268,13 @@ class PackedBlockTypes:
         n_restypes = len(active_block_types)
         max_n_conn = max(len(rt.connections) for rt in active_block_types)
 
-        max_paths_any = 0
-        for bt in active_block_types:
-            print(bt.name)
-            print(bt.atom_paths_from_conn)
-            if len(bt.atom_paths_from_conn) == 0:
-                continue
-            # get the maximum number of paths in any connection on this block
-            max_paths_bt = max([len(paths) for paths in bt.atom_paths_from_conn])
-            # update the overall max
-            max_paths_any = max(max_paths_any, max_paths_bt)
-
         atom_paths_from_conn = torch.full(
-            (n_restypes, max_n_conn, max_paths_any, 2),
+            (
+                n_restypes,
+                max_n_conn,
+                13,
+                3,
+            ),  # TODO: constant should be somewhere globally accessible...
             -1,
             dtype=torch.int32,
             device=device,
@@ -288,14 +282,9 @@ class PackedBlockTypes:
 
         for i, bt in enumerate(active_block_types):
             paths = bt.atom_paths_from_conn
-            for j, conn_paths in enumerate(paths):
-                for k, path in enumerate(conn_paths):
-                    path_indices = (bt.atom_to_idx[path[0]], bt.atom_to_idx[path[1]])
-                    atom_paths_from_conn[i, j, k] = torch.tensor(
-                        path_indices, dtype=torch.int32, device=device
-                    )
+            atom_paths_from_conn[i] = torch.tensor(paths, device=device)
 
-        print(atom_paths_from_conn)
+        return atom_paths_from_conn
 
     @classmethod
     def join_torsion_uaids(cls, active_block_types, device):

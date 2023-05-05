@@ -5,12 +5,14 @@
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/utility/nvtx.hh>
 
+#include <tmol/score/common/device_operations.hh>
 #include <tmol/score/common/forall_dispatch.hh>
 
 #include <pybind11/pybind11.h>
 
 #include "params.hh"
 #include "dispatch.hh"
+#include "cartbonded_pose_score.hh"
 
 namespace tmol {
 namespace score {
@@ -21,6 +23,8 @@ using torch::Tensor;
 using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
+
+using namespace tmol::score::common;
 
 // The op for cartbonded dispatch
 // Uses abbreviations:
@@ -147,8 +151,13 @@ class CartBondedPoseScoreOp
       Tensor pose_stack_block_coord_offset,
       Tensor pose_stack_block_type,
       Tensor pose_stack_inter_block_connections,
-      Tensor block_type_atom_downstream_of_conn,
-      Tensor global_params) {
+      Tensor atom_paths_from_conn,
+      Tensor atom_unique_ids,
+      Tensor hash_keys,
+      Tensor hash_values,
+      Tensor cart_subgraphs,
+      Tensor cart_subgraph_offsets) {
+    // Tensor global_paTensor rams) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
 
@@ -165,8 +174,13 @@ class CartBondedPoseScoreOp
                   TCAST(pose_stack_block_coord_offset),
                   TCAST(pose_stack_block_type),
                   TCAST(pose_stack_inter_block_connections),
-                  TCAST(block_type_atom_downstream_of_conn),
-                  TCAST(global_params),
+                  TCAST(atom_paths_from_conn),
+                  TCAST(atom_unique_ids),
+                  TCAST(hash_keys),
+                  TCAST(hash_values),
+                  TCAST(cart_subgraphs),
+                  TCAST(cart_subgraph_offsets),
+                  // TCAST(global_params),
                   coords.requires_grad());
 
           score = std::get<0>(result).tensor;
@@ -210,15 +224,25 @@ Tensor cartbonded_pose_scores_op(
     Tensor pose_stack_block_coord_offset,
     Tensor pose_stack_block_type,
     Tensor pose_stack_inter_block_connections,
-    Tensor block_type_atom_downstream_of_conn,
-    Tensor global_params) {
+    Tensor atom_paths_from_conn,
+    Tensor atom_unique_ids,
+    Tensor hash_keys,
+    Tensor hash_values,
+    Tensor cart_subgraphs,
+    Tensor cart_subgraph_offsets) {
+  // Tensor global_params) {
   return CartBondedPoseScoreOp<DispatchMethod>::apply(
       coords,
       pose_stack_block_coord_offset,
       pose_stack_block_type,
       pose_stack_inter_block_connections,
-      block_type_atom_downstream_of_conn,
-      global_params);
+      atom_paths_from_conn,
+      atom_unique_ids,
+      hash_keys,
+      hash_values,
+      cart_subgraphs,
+      cart_subgraph_offsets);
+  // global_params);
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

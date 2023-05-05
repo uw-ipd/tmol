@@ -35,9 +35,14 @@ struct CartBondedPoseScoreDispatch {
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
-      TView<Int, 3, D> block_type_atom_downstream_of_conn,
+      TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
+      TView<Int, 2, D> atom_unique_ids,
+      TView<Vec<Int, 5>, 1, D> hash_keys,
+      TView<Vec<Real, 3>, 1, D> hash_values,
+      TView<Vec<Int, 4>, 1, D> cart_subgraphs,
+      TView<Int, 1, D> cart_subgraph_offsets,
 
-      TView<CartBondedGlobalParams<Real>, 1, D> global_params,
+      // TView<CartBondedGlobalParams<Real>, 1, D> global_params,
 
       bool compute_derivs
 

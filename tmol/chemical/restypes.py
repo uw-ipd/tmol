@@ -177,61 +177,46 @@ class RefinedResidueType(RawResidueType):
         path_distance[path_distance == numpy.inf] = MAX_SIG_BOND_SEPARATION
         return path_distance
 
-    atom_paths_from_conn: List = attr.ib()
+    atom_paths_from_conn: numpy.ndarray = attr.ib()
 
     @atom_paths_from_conn.default
     def _setup_atom_paths_from_conn(self):
-        atom_paths_from_conn = []
         if len(self.connections) == 0:
             return
 
         n_conns = len(self.connections)
+        MAX_PATHS = (
+            13
+        )  # TODO: if we keep this constant, it should be somewhere globally accessible...
 
-        def get_paths_length_2(connection):
-            return set(
-                [
-                    (atom1, atom2) if connection.atom == atom1 else (atom2, atom1)
-                    for (atom1, atom2) in self.bonds
-                    if connection.atom in [atom1, atom2]
-                ]
-            )
+        atom_paths = numpy.full((n_conns, MAX_PATHS, 3), -1, dtype=numpy.int32)
 
-        # construct a list of paths starting from each connection point of length 2 and record the atom indices of the atoms in those paths
-        for connection in self.connections:
-            atom_paths_from_conn.append(get_paths_length_2(connection))
+        def get_paths_length_3(connection):
+            # create a convenient datastructure for following connections
+            bondmap = {}
+            for bond in self.bond_indices:
+                if bond[0] not in bondmap.keys():
+                    bondmap[bond[0]] = set()
+                bondmap[bond[0]].add(bond[1])
 
-        print(self.name)
-        print(atom_paths_from_conn)
-        return atom_paths_from_conn
+            atoms = []
 
-        """if len(self.connections) == 0:
-            return
+            atom0 = self.atom_to_idx[connection.atom]
+            atoms.append((atom0, -1, -1))
+            for atom1 in bondmap[atom0]:
+                atoms.append((atom0, atom1, -1))
+                for atom2 in bondmap[atom1]:
+                    if atom2 != atom0:
+                        atoms.append((atom0, atom1, atom2))
 
-        n_conns = len(self.connections)
+            return atoms
 
-        def get_paths_length_2(connection):
-            i_conn_atom = self.atom_to_idx[connection.atom]
-            return numpy.array([(root, other_atom) for (root, other_atom) in self.bond_indices if root == i_conn_atom], dtype=numpy.int32)
+        # construct a list of paths starting from each connection point of length 3 and record the atom indices of the atoms in those paths
+        for i, connection in enumerate(self.connections):
+            paths = get_paths_length_3(connection)
+            atom_paths[i][: len(paths)] = paths
 
-        # construct a list of paths starting from each connection point of length 2 and record the atom indices of the atoms in those paths
-        paths = []
-        for connection in self.connections:
-            paths.append(get_paths_length_2(connection))
-
-        # get the longest list for any connection. We need this so we can create the correct dimensions for the numpy array below, and the tensor later
-        max_paths_per_conn = max([len(conn_paths) for conn_paths in paths])
-
-        # create the numpy array
-        atom_paths_from_conn = numpy.full(
-            (n_conns, max_paths_per_conn, 2), -1, dtype=numpy.int32
-        )
-
-        print(self.name)
-        # fill the numpy array with our data
-        for i, conn_paths in enumerate(paths):
-            atom_paths_from_conn[i] = conn_paths
-            for path in conn_paths:
-                print(self.atoms[path[0]].name + " --- " + self.atoms[path[1]].name)"""
+        return atom_paths
 
     atom_downstream_of_conn: numpy.ndarray = attr.ib()
 

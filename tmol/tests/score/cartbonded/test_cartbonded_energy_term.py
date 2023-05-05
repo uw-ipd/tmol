@@ -15,7 +15,6 @@ def test_smoke(default_database, torch_device: torch.device):
     )
 
     assert cartbonded_energy.device == torch_device
-    assert cartbonded_energy.global_params.K.device == torch_device
 
 
 def test_annotate_cartbonded_uaids(
@@ -28,10 +27,10 @@ def test_annotate_cartbonded_uaids(
     bt_list = residue_types_from_residues(ubq_res)
     pbt = PackedBlockTypes.from_restype_list(bt_list, torch_device)
 
-    """for bt in bt_list:
+    for bt in bt_list:
         cartbonded_energy.setup_block_type(bt)
-        assert hasattr(bt, "cartbonded_quad_uaids")
     cartbonded_energy.setup_packed_block_types(pbt)
+    """
     assert hasattr(pbt, "cartbonded_quad_uaids")
     assert pbt.cartbonded_quad_uaids.device == torch_device"""
 
@@ -63,6 +62,8 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
 def test_whole_pose_scoring_module_single(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
+    # rts_ubq_res = rts_ubq_res[0:1]
+    # print(rts_ubq_res)
     gold_vals = numpy.array([[6.741275]], dtype=numpy.float32)
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
