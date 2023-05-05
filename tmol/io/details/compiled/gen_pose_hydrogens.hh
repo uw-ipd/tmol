@@ -5,7 +5,8 @@ namespace io {
 namespace details {
 namespace compiled {
 
-// #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
@@ -23,7 +24,7 @@ struct GeneratePoseHydrogens {
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
       // are connected
-      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
+      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_block_connections,
 
       //////////////////////
       // Chemical properties
@@ -40,15 +41,15 @@ struct GeneratePoseHydrogens {
       ) -> TPack<Vec<Real, 3>, 2, Dev>;
 
   static auto backward(
-      TView<Vec<Real, 3>, 3, Dev> dE_dHxyz,
-      TView<Vec<Real, 3>, 2, Dev> coords,
+      TView<Vec<Real, 3>, 2, Dev> dE_d_new_coords,
+      TView<Vec<Real, 3>, 2, Dev> orig_coords,
       TView<Int, 3, Dev> h_coords_missing,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
       // are connected
-      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
+      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_block_connections,
 
       //////////////////////
       // Chemical properties

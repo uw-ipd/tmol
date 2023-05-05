@@ -13,6 +13,11 @@ namespace io {
 namespace details {
 namespace compiled {
 
+#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
+
 template <typename Real>
 struct build_coordinate {
   typedef Vec<Real, 3> Real3;
@@ -606,6 +611,8 @@ struct build_coordinate {
     return dcoord;
   }
 };
+
+#undef def
 
 }  // namespace compiled
 }  // namespace details

@@ -40,7 +40,7 @@ struct GeneratePoseHydrogens {
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
       // are connected
-      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
+      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_block_connections,
 
       //////////////////////
       // Chemical properties
@@ -58,7 +58,7 @@ struct GeneratePoseHydrogens {
     int const n_poses = orig_coords.size(0);
     int const max_n_pose_atoms = orig_coords.size(1);
     int const max_n_blocks = pose_stack_block_type.size(1);
-    int const max_n_conn = pose_stack_inter_residue_connections.size(2);
+    int const max_n_conn = pose_stack_inter_block_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_atom_downstream_of_conn.size(2);
 
@@ -67,8 +67,8 @@ struct GeneratePoseHydrogens {
     assert(h_atom_missing.size(2) == max_n_block_atoms);
     assert(pose_stack_block_coord_offset.size(0) == n_poses);
     assert(pose_stack_block_type.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
+    assert(pose_stack_inter_block_connections.size(0) == n_poses);
+    assert(pose_stack_inter_block_connections.size(1) == max_n_blocks);
     assert(block_type_atom_downstream_of_conn.size(0) == n_block_types);
     assert(block_type_atom_downstream_of_conn.size(1) == max_n_conn);
     assert(block_type_atom_ancestors.size(0) == n_block_types);
@@ -76,24 +76,23 @@ struct GeneratePoseHydrogens {
     assert(
         block_type_atom_ancestors.size(2)
         == 3);  // parent, grandparent, great grandparent
-    assert(block_type_atom_ancesotrs.size(3) == 3);  // uaid = 3 indices
+    assert(block_type_atom_ancestors.size(3) == 3);  // uaid = 3 indices
     assert(block_type_atom_icoors.size(0) == n_block_types);
     assert(block_type_atom_icoors.size(1) == max_n_block_atoms);
     assert(block_type_atom_icoors.size(2) == 3);  // phi, theta, D
 
     auto new_coords_t =
-        TPack<Vec<Real, 3>, 3, D>::zeros({n_poses, max_n_pose_atoms});
+        TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_pose_atoms});
     auto new_coords = new_coords_t.view;
 
     LAUNCH_BOX_32;
-    CTA_LAUNCH_T_PARAMS;
 
     auto f_coord_builder = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const pose_ind = ind / (max_n_blocks * max_n_block_atoms);
       ind = ind - (pose_ind * max_n_blocks * max_n_block_atoms);
       int const block_ind = ind / max_n_block_atoms;
       int const atom_ind = ind % max_n_block_atoms;
-      int const block_type = pose_block_type[pose_ind][block_ind];
+      int const block_type = pose_stack_block_type[pose_ind][block_ind];
       if (block_type < 0) {
         return;
       }
@@ -108,14 +107,14 @@ struct GeneratePoseHydrogens {
       if (h_atom_missing[pose_ind][block_ind][atom_ind]) {
         // ok! build the coordinate
         auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
-          return resolve_atom_from_uaid<Real, Int, Dev>(
+          return score::common::resolve_atom_from_uaid<Int, Dev>(
               block_type_atom_ancestors[block_type][atom_ind][which_anc],
               block_ind,
               pose_ind,
               pose_stack_block_coord_offset,
               pose_stack_block_type,
               pose_stack_inter_block_connections,
-              block_type_atom_downstream_of_conn)
+              block_type_atom_downstream_of_conn);
         });
         int anc0 = get_anc(0);
         int anc1 = get_anc(1);
@@ -129,7 +128,7 @@ struct GeneratePoseHydrogens {
         Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
 
-        Vec<Real, 3> new_coord = build_coordinate.V(
+        Vec<Real, 3> new_coord = build_coordinate<Real>::V(
             coord0,
             coord1,
             coord2,
@@ -146,59 +145,40 @@ struct GeneratePoseHydrogens {
     });
 
     int const n_atoms = n_poses * max_n_blocks * max_n_block_atoms;
-    DeviceOps<Dev>::template foreach_workgroup<launch_t>(
-        n_atoms, f_coord_builder);
+    DeviceOps<Dev>::template forall<launch_t>(n_atoms, f_coord_builder);
 
     return new_coords_t;
   };
 
   static auto backward(
-      TView<Vec<Real, 3>, 3, Dev> dE_d_new_coords,
+      TView<Vec<Real, 3>, 2, Dev> dE_d_new_coords,
       TView<Vec<Real, 3>, 2, Dev> orig_coords,
+      TView<Int, 3, Dev> h_atom_missing,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
       // are connected
-      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
+      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_block_connections,
 
       //////////////////////
       // Chemical properties
       // how many atoms for a given block
       // Dimsize n_block_types
       TView<Int, 1, Dev> block_type_n_atoms,
+      TView<Int, 3, Dev> block_type_atom_downstream_of_conn,
 
-      // how many inter-block chemical bonds are there
-      // Dimsize: n_block_types
-      TView<Int, 1, Dev> block_type_n_interblock_bonds,
+      TView<Int, 4, Dev> block_type_atom_ancestors,  // n-bt x max-n-ats x 3 x 3
 
-      // what atoms form the inter-block chemical bonds
-      // Dimsize: n_block_types x max_n_interblock_bonds
-      TView<Int, 2, Dev> block_type_atoms_forming_chemical_bonds,
+      TView<Real, 3, Dev>
+          block_type_atom_icoors  // n-bt x max-n-ats x 3 [phi, theta, D]
 
-      TView<Int, 1, Dev> block_type_n_all_bonds,
-      TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
-      TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
-
-      TView<Int, 2, Dev> block_type_tile_n_donH,
-      TView<Int, 2, Dev> block_type_tile_n_acc,
-      TView<Int, 3, Dev> block_type_tile_donH_inds,
-      TView<Int, 3, Dev> block_type_tile_don_hvy_inds,
-      TView<Int, 3, Dev> block_type_tile_which_donH_for_hvy,
-      TView<Int, 3, Dev> block_type_tile_acc_inds,
-      TView<Int, 3, Dev> block_type_tile_hybridization,
-      TView<Int, 3, Dev> block_type_tile_acc_n_attached_H,
-      TView<Int, 2, Dev> block_type_atom_is_hydrogen,
-
-      TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
-      TView<Real, 1, Dev> sp2_water_tors,
-      TView<Real, 1, Dev> sp3_water_tors,
-      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev> {
+      ) -> TPack<Vec<Real, 3>, 2, Dev> {
     int const n_poses = orig_coords.size(0);
     int const max_n_pose_atoms = orig_coords.size(1);
     int const max_n_blocks = pose_stack_block_type.size(1);
-    int const max_n_conn = pose_stack_inter_residue_connections.size(2);
+    int const max_n_conn = pose_stack_inter_block_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_atom_downstream_of_conn.size(2);
 
@@ -206,8 +186,8 @@ struct GeneratePoseHydrogens {
     assert(h_atom_missing.size(1) == max_n_pose_atoms);
     assert(pose_stack_block_coord_offset.size(0) == n_poses);
     assert(pose_stack_block_type.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
+    assert(pose_stack_inter_block_connections.size(0) == n_poses);
+    assert(pose_stack_inter_block_connections.size(1) == max_n_blocks);
     assert(block_type_atom_downstream_of_conn.size(0) == n_block_types);
     assert(block_type_atom_downstream_of_conn.size(1) == max_n_conn);
     assert(block_type_atom_ancestors.size(0) == n_block_types);
@@ -215,21 +195,23 @@ struct GeneratePoseHydrogens {
     assert(
         block_type_atom_ancestors.size(2)
         == 3);  // parent, grandparent, great grandparent
-    assert(block_type_atom_ancesotrs.size(3) == 3);  // uaid = 3 indices
+    assert(block_type_atom_ancestors.size(3) == 3);  // uaid = 3 indices
     assert(block_type_atom_icoors.size(0) == n_block_types);
     assert(block_type_atom_icoors.size(1) == max_n_block_atoms);
     assert(block_type_atom_icoors.size(2) == 3);  // phi, theta, D
 
     auto dE_d_orig_coords_t =
-        TPack<Vec<Real, 3>, 2, D>::zeros({n_poses, max_n_pose_atoms});
+        TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_pose_atoms});
     auto dE_d_orig_coords = dE_d_orig_coords_t.view;
+
+    LAUNCH_BOX_32;
 
     auto f_coord_builder_derivs = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const pose_ind = ind / (max_n_blocks * max_n_block_atoms);
       ind = ind - (pose_ind * max_n_blocks * max_n_block_atoms);
       int const block_ind = ind / max_n_block_atoms;
       int const atom_ind = ind % max_n_block_atoms;
-      int const block_type = pose_block_type[pose_ind][block_ind];
+      int const block_type = pose_stack_block_type[pose_ind][block_ind];
       if (block_type < 0) {
         return;
       }
@@ -244,14 +226,14 @@ struct GeneratePoseHydrogens {
       if (h_atom_missing[pose_ind][block_ind][atom_ind]) {
         // ok! build the coordinate
         auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
-          return resolve_atom_from_uaid<Real, Int, Dev>(
+          return score::common::resolve_atom_from_uaid<Int, Dev>(
               block_type_atom_ancestors[block_type][atom_ind][which_anc],
               block_ind,
               pose_ind,
               pose_stack_block_coord_offset,
               pose_stack_block_type,
               pose_stack_inter_block_connections,
-              block_type_atom_downstream_of_conn)
+              block_type_atom_downstream_of_conn);
         });
         int const anc0 = get_anc(0);
         int const anc1 = get_anc(1);
@@ -265,7 +247,7 @@ struct GeneratePoseHydrogens {
         Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
 
-        auto coord_derivs = build_coordinate.dV(
+        auto coord_derivs = build_coordinate<Real>::dV(
             coord0,
             coord1,
             coord2,
@@ -275,11 +257,11 @@ struct GeneratePoseHydrogens {
 
         Vec<Real, 3> dE_dH = dE_d_new_coords[pose_ind][block_offset + atom_ind];
 
-        common::accumulate<Dev, Vec<Real, 3>>::add(
+        score::common::accumulate<Dev, Vec<Real, 3>>::add(
             dE_d_orig_coords[pose_ind][anc0], coord_derivs.dp * dE_dH);
-        common::accumulate<Dev, Vec<Real, 3>>::add(
+        score::common::accumulate<Dev, Vec<Real, 3>>::add(
             dE_d_orig_coords[pose_ind][anc1], coord_derivs.dgp * dE_dH);
-        common::accumulate<Dev, Vec<Real, 3>>::add(
+        score::common::accumulate<Dev, Vec<Real, 3>>::add(
             dE_d_orig_coords[pose_ind][anc2], coord_derivs.dggp * dE_dH);
 
       } else {
@@ -289,14 +271,13 @@ struct GeneratePoseHydrogens {
         // perform an atomic add
         Vec<Real, 3> atom_deriv =
             dE_d_new_coords[pose_ind][block_offset + atom_ind];
-        common::accumulate<Dev, Vec<Real, 3>>::add(
+        score::common::accumulate<Dev, Vec<Real, 3>>::add(
             dE_d_orig_coords[pose_ind][block_offset + atom_ind], atom_deriv);
       }
     });
 
     int const n_atoms = n_poses * max_n_blocks * max_n_block_atoms;
-    DeviceOps<Dev>::template foreach_workgroup<launch_t>(
-        n_atoms, f_coord_builder_derivs);
+    DeviceOps<Dev>::template forall<launch_t>(n_atoms, f_coord_builder_derivs);
 
     return dE_d_orig_coords_t;
   };

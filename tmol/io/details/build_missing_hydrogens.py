@@ -11,7 +11,7 @@ from tmol.io.details.compiled.compiled import gen_pose_hydrogens
 def build_missing_hydrogens(
     packed_block_types: PackedBlockTypes,
     atom_type_resolver: AtomTypeParamResolver,
-    block_types: Tensor[torch.int32][:, :],
+    block_types64: Tensor[torch.int64][:, :],
     real_block_atoms: Tensor[torch.bool][:, :, :],
     block_coords: Tensor[torch.int32][:, :, :, 3],
     block_atom_missing: Tensor[torch.int32][:, :, :],
@@ -36,10 +36,8 @@ def build_missing_hydrogens(
     _annotate_packed_block_types_w_missing_h_icoors(pbt)
 
     n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
-    real_block_types = block_types != -1
-    n_atoms[real_block_types] = packed_block_types.n_atoms[
-        block_types[real_block_types]
-    ]
+    real_blocks = block_types64 != -1
+    n_atoms[real_blocks] = packed_block_types.n_atoms[block_types64[real_blocks]]
 
     n_ats_inccumsum = torch.cumsum(n_ats, dim=1, dtype=torch.int32)
     max_n_ats = torch.max(n_ats_inccumsum[:, -1])
@@ -60,11 +58,10 @@ def build_missing_hydrogens(
     )
     pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
 
-    real_blocks = block_types != -1
     block_at_is_h = torch.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.int32
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.int32, device=device
     )
-    block_at_is_h[real_blocks] = pbt.is_hydrogen[block_types[real_blocks]]
+    block_at_is_h[real_blocks] = pbt.is_hydrogen[block_types64[real_blocks]]
 
     # multiplication of booleans-as-integers is equivalent to a logical "and"
     block_h_is_missing = block_at_is_h * block_atom_missing
@@ -74,7 +71,7 @@ def build_missing_hydrogens(
         pose_coords,
         block_h_is_missing,
         block_coord_offset,
-        block_types,
+        block_types.to(torch.int32),
         inter_residue_connections,
         pbt.n_atoms,
         pbt.atom_downstream_of_conn,

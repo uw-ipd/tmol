@@ -27,11 +27,11 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
  public:
   static Tensor forward(
       AutogradContext* ctx,
-      Tensor coords,
+      Tensor orig_coords,
       Tensor h_coords_missing,
       Tensor pose_stack_block_coord_offset,
       Tensor pose_stack_block_type,
-      Tensor pose_stack_inter_residue_connections,
+      Tensor pose_stack_inter_block_connections,
       Tensor block_type_n_atoms,
       Tensor block_type_atom_downstream_of_conn,
       Tensor block_type_atom_ancestors,
@@ -41,31 +41,34 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.type(), "hydrogen_gen_op", ([&] {
+        orig_coords.type(), "hydrogen_gen_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
-          auto result =
-              GeneratePoseHydrogens<common::DeviceOperations, Dev, Real, Int>::
-                  forward(
-                      TCAST(coords),
-                      TCAST(h_coords_missing),
-                      TCAST(pose_stack_block_coord_offset),
-                      TCAST(pose_stack_block_type),
-                      TCAST(pose_stack_inter_residue_connections),
-                      TCAST(block_type_n_atoms),
-                      TCAST(block_type_atom_downstream_of_conn),
-                      TCAST(block_type_atom_ancestors),
-                      TCAST(block_type_atom_icoors));
+          auto result = GeneratePoseHydrogens<
+              score::common::DeviceOperations,
+              Dev,
+              Real,
+              Int>::
+              forward(
+                  TCAST(orig_coords),
+                  TCAST(h_coords_missing),
+                  TCAST(pose_stack_block_coord_offset),
+                  TCAST(pose_stack_block_type),
+                  TCAST(pose_stack_inter_block_connections),
+                  TCAST(block_type_n_atoms),
+                  TCAST(block_type_atom_downstream_of_conn),
+                  TCAST(block_type_atom_ancestors),
+                  TCAST(block_type_atom_icoors));
 
           new_coords = result.tensor;
         }));
 
-    ctx->save_for_backward({block_type_coords,
+    ctx->save_for_backward({orig_coords,
                             h_coords_missing,
                             pose_stack_block_coord_offset,
                             pose_stack_block_type,
-                            pose_stack_inter_residue_connections,
+                            pose_stack_inter_block_connections,
                             block_type_n_atoms,
                             block_type_atom_downstream_of_conn,
                             block_type_atom_ancestors,
@@ -79,11 +82,11 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
 
     int i = 0;
 
-    auto block_type_coords = saved[i++];
+    auto orig_coords = saved[i++];
     auto h_coords_missing = saved[i++];
     auto pose_stack_block_coord_offset = saved[i++];
     auto pose_stack_block_type = saved[i++];
-    auto pose_stack_inter_residue_connections = saved[i++];
+    auto pose_stack_inter_block_connections = saved[i++];
     auto block_type_n_atoms = saved[i++];
     auto block_type_atom_downstream_of_conn = saved[i++];
     auto block_type_atom_ancestors = saved[i++];
@@ -96,23 +99,26 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
     auto dE_d_new_coords = grad_outputs[0];
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        block_type_coords.type(), "hydrogen_gen_backward", ([&] {
+        orig_coords.type(), "hydrogen_gen_backward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
-          auto result =
-              GeneratePoseHydrogens<common::DeviceOperations, Dev, Real, Int>::
-                  backward(
-                      TCAST(dE_d_new_coords),
-                      TCAST(block_type_coords),
-                      TCAST(h_coords_missing),
-                      TCAST(pose_stack_block_coord_offset),
-                      TCAST(pose_stack_block_type),
-                      TCAST(pose_stack_inter_residue_connections),
-                      TCAST(block_type_n_atoms),
-                      TCAST(block_type_atom_downstream_of_conn),
-                      TCAST(block_type_atom_ancestors),
-                      TCAST(block_type_atom_icoors));
+          auto result = GeneratePoseHydrogens<
+              score::common::DeviceOperations,
+              Dev,
+              Real,
+              Int>::
+              backward(
+                  TCAST(dE_d_new_coords),
+                  TCAST(orig_coords),
+                  TCAST(h_coords_missing),
+                  TCAST(pose_stack_block_coord_offset),
+                  TCAST(pose_stack_block_type),
+                  TCAST(pose_stack_inter_block_connections),
+                  TCAST(block_type_n_atoms),
+                  TCAST(block_type_atom_downstream_of_conn),
+                  TCAST(block_type_atom_ancestors),
+                  TCAST(block_type_atom_icoors));
           dE_d_orig_coords = result.tensor;
         }));
 
@@ -134,21 +140,21 @@ Tensor pose_hgen_op(
     Tensor h_coords_missing,
     Tensor pose_stack_block_coord_offset,
     Tensor pose_stack_block_type,
-    Tensor pose_stack_inter_residue_connections,
+    Tensor pose_stack_inter_block_connections,
     Tensor block_type_n_atoms,
     Tensor block_type_atom_downstream_of_conn,
     Tensor block_type_atom_ancestors,
     Tensor block_type_atom_icoors) {
   return PoseHydrogenGen::apply(
-      Tensor coords,
-      Tensor h_coords_missing,
-      Tensor pose_stack_block_coord_offset,
-      Tensor pose_stack_block_type,
-      Tensor pose_stack_inter_residue_connections,
-      Tensor block_type_n_atoms,
-      Tensor block_type_atom_downstream_of_conn,
-      Tensor block_type_atom_ancestors,
-      Tensor block_type_atom_icoors);
+      coords,
+      h_coords_missing,
+      pose_stack_block_coord_offset,
+      pose_stack_block_type,
+      pose_stack_inter_block_connections,
+      block_type_n_atoms,
+      block_type_atom_downstream_of_conn,
+      block_type_atom_ancestors,
+      block_type_atom_icoors);
 };
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

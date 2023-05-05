@@ -5,7 +5,7 @@ from typing import Optional
 from tmol.pose.pose_stack import PoseStack
 
 from tmol.io.details.canonical_packed_block_types import (
-    default_canonical_packed_block_types,
+    default_canonical_packed_block_types
 )
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
@@ -86,12 +86,7 @@ def pose_stack_from_canonical_form(
 
     # 7
     pose_stack_coords, block_coord_offset = build_missing_hydrogens(
-        pbt,
-        atom_type_resolver,
-        block_types64,
-        real_atoms,
-        block_type_coords,
-        missing_atoms,
+        pbt, atom_type_resolver, block_types64, real_atoms, block_coords, missing_atoms
     )
 
     def i64(x):
