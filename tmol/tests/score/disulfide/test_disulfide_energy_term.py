@@ -33,7 +33,13 @@ def test_annotate_disulfide_conns(
         assert hasattr(bt, "disulfide_connections")
     disulfide_energy.setup_packed_block_types(pbt)
     assert hasattr(pbt, "disulfide_conns")
+    disulfide_conns = pbt.disulfide_conns
+    disulfide_energy.setup_packed_block_types(pbt)
+
     assert pbt.disulfide_conns.device == torch_device
+    assert (
+        pbt.disulfide_conns is disulfide_conns
+    )  # Test to make sure the parameters remain the same instance
 
 
 def test_whole_pose_scoring_module_gradcheck_whole_pose(
