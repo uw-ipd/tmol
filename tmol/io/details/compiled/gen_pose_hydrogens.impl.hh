@@ -49,10 +49,18 @@ struct GeneratePoseHydrogens {
       TView<Int, 1, Dev> block_type_n_atoms,
       TView<Int, 3, Dev> block_type_atom_downstream_of_conn,
 
-      TView<Int, 4, Dev> block_type_atom_ancestors,  // n-bt x max-n-ats x 3 x 3
+      // n-bt x max-n-ats x 3 x 3
+      TView<Int, 4, Dev> block_type_atom_ancestors,
 
-      TView<Real, 3, Dev>
-          block_type_atom_icoors  // n-bt x max-n-ats x 3 [phi, theta, D]
+      // n-bt x max-n-ats x 3 [phi, theta, D]
+      TView<Real, 3, Dev> block_type_atom_icoors,
+
+      // TEMP! Handle the case when an atom's coordinate depends on
+      // an un-resolvable atom, e.g., "down" for an N-terminal atom
+      // n-bt x max-n-ats x 3 x 3
+      TView<Int, 4, Dev> block_type_atom_ancestors_backup,
+      // n-bt x max-n-ats x 3 [phi, theta, D]
+      TView<Real, 3, Dev> block_type_atom_icoors_backup
 
       ) -> TPack<Vec<Real, 3>, 2, Dev> {
     int const n_poses = orig_coords.size(0);
@@ -116,36 +124,63 @@ struct GeneratePoseHydrogens {
               pose_stack_inter_block_connections,
               block_type_atom_downstream_of_conn);
         });
-        int anc0 = get_anc(0);
-        int anc1 = get_anc(1);
-        int anc2 = get_anc(2);
+        int anc0, anc1, anc2;
+        float D, theta, phi;
+
+        anc0 = get_anc(0);
+        anc1 = get_anc(1);
+        anc2 = get_anc(2);
         if (anc0 == -1 || anc1 == -1 || anc2 == -1) {
-          // cannot build a hydrogen if we're missing the ancestors
-          return;
+          auto get_backup_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
+            return score::common::resolve_atom_from_uaid<Int, Dev>(
+                block_type_atom_ancestors_backup[block_type][atom_ind]
+                                                [which_anc],
+                block_ind,
+                pose_ind,
+                pose_stack_block_coord_offset,
+                pose_stack_block_type,
+                pose_stack_inter_block_connections,
+                block_type_atom_downstream_of_conn);
+          });
+          anc0 = get_backup_anc(0);
+          anc1 = get_backup_anc(1);
+          anc2 = get_backup_anc(2);
+          // printf("fell back on ancestors %d %d and %d when building atom %d
+          // on res %d\n", anc0, anc1, anc2, atom_ind, block_ind);
+          if (anc0 == -1 || anc1 == -1 || anc2 == -1) {
+            // cannot build a hydrogen if we're missing the ancestors
+            return;
+          }
+          D = block_type_atom_icoors_backup[block_type][atom_ind][2];  // D
+          theta =
+              block_type_atom_icoors_backup[block_type][atom_ind][1];  // theta
+          phi = block_type_atom_icoors_backup[block_type][atom_ind][0];  // phi
+
+        } else {
+          D = block_type_atom_icoors[block_type][atom_ind][2];      // D
+          theta = block_type_atom_icoors[block_type][atom_ind][1];  // theta
+          phi = block_type_atom_icoors[block_type][atom_ind][0];    // phi
         }
 
+        // printf("res %d atom %d, ancestors %d %d and %d\n", block_ind,
+        // atom_ind, anc0, anc1, anc2);
         Vec<Real, 3> coord0 = orig_coords[pose_ind][anc0];
         Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
 
-        Vec<Real, 3> new_coord = build_coordinate<Real>::V(
-            coord0,
-            coord1,
-            coord2,
-            block_type_atom_icoors[block_type][atom_ind][2],   // D
-            block_type_atom_icoors[block_type][atom_ind][1],   // theta
-            block_type_atom_icoors[block_type][atom_ind][0]);  // phi
-        printf(
-            "new coord %d %d %d (%f %f %f), (%f %f %f)\n",
-            block_type,
-            block_ind,
-            atom_ind,
-            block_type_atom_icoors[block_type][atom_ind][2],
-            block_type_atom_icoors[block_type][atom_ind][1],
-            block_type_atom_icoors[block_type][atom_ind][0],
-            new_coord[0],
-            new_coord[1] * 180 / 3.14159,
-            new_coord[2]);
+        Vec<Real, 3> new_coord =
+            build_coordinate<Real>::V(coord0, coord1, coord2, D, theta, phi);
+        // printf(
+        //     "new coord %d %d %d (%f %f %f), (%f %f %f)\n",
+        //     block_type,
+        //     block_ind,
+        //     atom_ind,
+        //     D,
+        //     theta,
+        //     phi,
+        //     new_coord[0],
+        //     new_coord[1] * 180 / 3.14159,
+        //     new_coord[2]);
 
         new_coords[pose_ind][block_offset + atom_ind] = new_coord;
       } else {
@@ -181,10 +216,18 @@ struct GeneratePoseHydrogens {
       TView<Int, 1, Dev> block_type_n_atoms,
       TView<Int, 3, Dev> block_type_atom_downstream_of_conn,
 
-      TView<Int, 4, Dev> block_type_atom_ancestors,  // n-bt x max-n-ats x 3 x 3
+      // n-bt x max-n-ats x 3 x 3
+      TView<Int, 4, Dev> block_type_atom_ancestors,
 
-      TView<Real, 3, Dev>
-          block_type_atom_icoors  // n-bt x max-n-ats x 3 [phi, theta, D]
+      // n-bt x max-n-ats x 3 [phi, theta, D]
+      TView<Real, 3, Dev> block_type_atom_icoors,
+
+      // TEMP! Handle the case when an atom's coordinate depends on
+      // an un-resolvable atom, e.g., "down" for an N-terminal atom
+      // n-bt x max-n-ats x 3 x 3
+      TView<Int, 4, Dev> block_type_atom_ancestors_backup,
+      // n-bt x max-n-ats x 3 [phi, theta, D]
+      TView<Real, 3, Dev> block_type_atom_icoors_backup
 
       ) -> TPack<Vec<Real, 3>, 2, Dev> {
     int const n_poses = orig_coords.size(0);
@@ -247,25 +290,52 @@ struct GeneratePoseHydrogens {
               pose_stack_inter_block_connections,
               block_type_atom_downstream_of_conn);
         });
-        int const anc0 = get_anc(0);
-        int const anc1 = get_anc(1);
-        int const anc2 = get_anc(2);
+        int anc0, anc1, anc2;
+        float D, theta, phi;
+        anc0 = get_anc(0);
+        anc1 = get_anc(1);
+        anc2 = get_anc(2);
         if (anc0 == -1 || anc1 == -1 || anc2 == -1) {
-          // cannot build a hydrogen if we're missing the ancestors
-          return;
+          auto get_backup_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
+            return score::common::resolve_atom_from_uaid<Int, Dev>(
+                block_type_atom_ancestors_backup[block_type][atom_ind]
+                                                [which_anc],
+                block_ind,
+                pose_ind,
+                pose_stack_block_coord_offset,
+                pose_stack_block_type,
+                pose_stack_inter_block_connections,
+                block_type_atom_downstream_of_conn);
+          });
+          anc0 = get_backup_anc(0);
+          anc1 = get_backup_anc(1);
+          anc2 = get_backup_anc(2);
+          // printf("fell back on ancestors %d %d and %d when building atom %d
+          // on res %d\n", anc0, anc1, anc2, atom_ind, block_ind);
+          if (anc0 == -1 || anc1 == -1 || anc2 == -1) {
+            // cannot build a hydrogen if we're missing the ancestors
+            return;
+          }
+
+          D = block_type_atom_icoors_backup[block_type][atom_ind][2];  // D
+          theta =
+              block_type_atom_icoors_backup[block_type][atom_ind][1];  // theta
+          phi = block_type_atom_icoors_backup[block_type][atom_ind][0];  // phi
+
+        } else {
+          D = block_type_atom_icoors[block_type][atom_ind][2];      // D
+          theta = block_type_atom_icoors[block_type][atom_ind][1];  // theta
+          phi = block_type_atom_icoors[block_type][atom_ind][0];    // phi
         }
 
+        // printf("res %d atom %d, ancestors %d %d and %d\n", block_ind,
+        // atom_ind, anc0, anc1, anc2);
         Vec<Real, 3> coord0 = orig_coords[pose_ind][anc0];
         Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
 
-        auto coord_derivs = build_coordinate<Real>::dV(
-            coord0,
-            coord1,
-            coord2,
-            block_type_atom_icoors[block_type][atom_ind][2],   // D
-            block_type_atom_icoors[block_type][atom_ind][1],   // theta
-            block_type_atom_icoors[block_type][atom_ind][0]);  // phi
+        auto coord_derivs =
+            build_coordinate<Real>::dV(coord0, coord1, coord2, D, theta, phi);
 
         Vec<Real, 3> dE_dH = dE_d_new_coords[pose_ind][block_offset + atom_ind];
 

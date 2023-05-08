@@ -35,7 +35,9 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
       Tensor block_type_n_atoms,
       Tensor block_type_atom_downstream_of_conn,
       Tensor block_type_atom_ancestors,
-      Tensor block_type_atom_icoors) {
+      Tensor block_type_atom_icoors,
+      Tensor block_type_atom_ancestors_backup,
+      Tensor block_type_atom_icoors_backup) {
     at::Tensor new_coords;
 
     using Int = int32_t;
@@ -59,7 +61,9 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
                   TCAST(block_type_n_atoms),
                   TCAST(block_type_atom_downstream_of_conn),
                   TCAST(block_type_atom_ancestors),
-                  TCAST(block_type_atom_icoors));
+                  TCAST(block_type_atom_icoors),
+                  TCAST(block_type_atom_ancestors_backup),
+                  TCAST(block_type_atom_icoors_backup));
 
           new_coords = result.tensor;
         }));
@@ -72,7 +76,9 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
                             block_type_n_atoms,
                             block_type_atom_downstream_of_conn,
                             block_type_atom_ancestors,
-                            block_type_atom_icoors});
+                            block_type_atom_icoors,
+                            block_type_atom_ancestors_backup,
+                            block_type_atom_icoors_backup});
 
     return new_coords;
   }
@@ -91,6 +97,8 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
     auto block_type_atom_downstream_of_conn = saved[i++];
     auto block_type_atom_ancestors = saved[i++];
     auto block_type_atom_icoors = saved[i++];
+    auto block_type_atom_ancestors_backup = saved[i++];
+    auto block_type_atom_icoors_backup = saved[i++];
 
     at::Tensor dE_d_orig_coords;
 
@@ -118,7 +126,9 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
                   TCAST(block_type_n_atoms),
                   TCAST(block_type_atom_downstream_of_conn),
                   TCAST(block_type_atom_ancestors),
-                  TCAST(block_type_atom_icoors));
+                  TCAST(block_type_atom_icoors),
+                  TCAST(block_type_atom_ancestors_backup),
+                  TCAST(block_type_atom_icoors_backup));
           dE_d_orig_coords = result.tensor;
         }));
 
@@ -128,6 +138,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
             torch::Tensor(),
             torch::Tensor(),
 
+            torch::Tensor(),
             torch::Tensor(),
             torch::Tensor(),
             torch::Tensor(),
@@ -144,7 +155,9 @@ Tensor pose_hgen_op(
     Tensor block_type_n_atoms,
     Tensor block_type_atom_downstream_of_conn,
     Tensor block_type_atom_ancestors,
-    Tensor block_type_atom_icoors) {
+    Tensor block_type_atom_icoors,
+    Tensor block_type_atom_ancestors_backup,
+    Tensor block_type_atom_icoors_backup) {
   return PoseHydrogenGen::apply(
       coords,
       h_coords_missing,
@@ -154,7 +167,9 @@ Tensor pose_hgen_op(
       block_type_n_atoms,
       block_type_atom_downstream_of_conn,
       block_type_atom_ancestors,
-      block_type_atom_icoors);
+      block_type_atom_icoors,
+      block_type_atom_ancestors_backup,
+      block_type_atom_icoors_backup);
 };
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

@@ -79,6 +79,8 @@ def build_missing_hydrogens(
         pbt.atom_downstream_of_conn,
         pbt.build_missing_h_icoor_atom_ancestor_uaids,
         pbt.build_missing_h_icoor_geom,
+        pbt.build_missing_h_icoor_atom_ancestor_uaids_backup,
+        pbt.build_missing_h_icoor_geom_backup,
     )
     return new_pose_coords, block_coord_offset
 
@@ -115,6 +117,8 @@ def _annotate_packed_block_types_atom_is_h(
 def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
     if hasattr(pbt, "build_missing_h_icoor_atom_ancestor_uaids"):
         assert hasattr(pbt, "build_missing_h_icoor_geom")
+        assert hasattr(pbt, "build_missing_h_icoor_atom_ancestor_uaids_backup")
+        assert hasattr(pbt, "build_missing_h_icoor_geom_backup")
         return
 
     assert hasattr(pbt, "is_hydrogen")
@@ -122,9 +126,17 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
         (pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32
     )
     icoor_geom = numpy.full((pbt.n_types, pbt.max_n_atoms, 3), -1, dtype=numpy.float32)
+    icoor_atom_ancestor_uaids_backup = numpy.full(
+        (pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32
+    )
+    icoor_geom_backup = numpy.full(
+        (pbt.n_types, pbt.max_n_atoms, 3), -1, dtype=numpy.float32
+    )
     for i, bt in enumerate(pbt.active_block_types):
         bt_icoor_uaids = numpy.full((bt.n_atoms, 3, 3), -1, dtype=numpy.int32)
         bt_icoor_geom = numpy.full((bt.n_atoms, 3), 0, dtype=numpy.float32)
+        bt_icoor_uaids_backup = numpy.full((bt.n_atoms, 3, 3), -1, dtype=numpy.int32)
+        bt_icoor_geom_backup = numpy.full((bt.n_atoms, 3), 0, dtype=numpy.float32)
         for j, at in enumerate(bt.atoms):
             atname = at.name
             j_icoor_ind = bt.icoors_index[atname]
@@ -141,14 +153,17 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
             def icoor_at_is_h(icoor_at_name):
                 if icoor_at_name not in bt.atom_to_idx:
                     return 0
-                print(
-                    bt.name,
-                    "is H?",
-                    icoor_at_name,
-                    bt.atom_to_idx[icoor_at_name],
-                    bt.is_hydrogen[bt.atom_to_idx[icoor_at_name]],
-                )
+                # print(
+                #     bt.name,
+                #     "is H?",
+                #     icoor_at_name,
+                #     bt.atom_to_idx[icoor_at_name],
+                #     bt.is_hydrogen[bt.atom_to_idx[icoor_at_name]],
+                # )
                 return bt.is_hydrogen[bt.atom_to_idx[icoor_at_name]]
+
+            def icoor_at_is_inter_res(icoor_at_name):
+                return icoor_at_name not in bt.atom_to_idx
 
             # ok, let's turn p, gp, and ggp into uaids
             # if ggp is a hydrogen, then we need to recurse backwards through the ggps
@@ -169,6 +184,14 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
                 phi += j_icoor.phi
             ggp_uaid = uaid_for_at(j_icoor.great_grand_parent)
 
+            ggp_ind_backup = None
+            phi_backup = phi
+            while icoor_at_is_inter_res(j_icoor.great_grand_parent):
+                # print("atom",at.name,"of", bt.name, "has an inter-res ggp", j_icoor.great_grand_parent)
+                ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
+                j_icoor = bt.icoors[ggp_ind_backup]
+                phi_backup += j_icoor.phi
+
             bt_icoor_uaids[j, 0] = numpy.array(p_uaid, dtype=numpy.int32)
             bt_icoor_uaids[j, 1] = numpy.array(gp_uaid, dtype=numpy.int32)
             bt_icoor_uaids[j, 2] = numpy.array(ggp_uaid, dtype=numpy.int32)
@@ -176,13 +199,43 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
             bt_icoor_geom[j, 0] = phi
             bt_icoor_geom[j, 1] = theta
             bt_icoor_geom[j, 2] = d
+            if ggp_ind_backup is not None:
+                ggp_uaid_backup = uaid_for_at(j_icoor.great_grand_parent)
+                bt_icoor_uaids_backup[j, 0] = numpy.array(p_uaid, dtype=numpy.int32)
+                bt_icoor_uaids_backup[j, 1] = numpy.array(gp_uaid, dtype=numpy.int32)
+                bt_icoor_uaids_backup[j, 2] = numpy.array(
+                    ggp_uaid_backup, dtype=numpy.int32
+                )
+
+                bt_icoor_geom_backup[j, 0] = phi_backup
+                bt_icoor_geom_backup[j, 1] = theta
+                bt_icoor_geom_backup[j, 2] = d
+
         setattr(bt, "build_missing_h_icoor_geom", bt_icoor_geom)
         icoor_geom[i, : bt.n_atoms] = bt_icoor_geom
         icoor_atom_ancestor_uaids[i, : bt.n_atoms] = bt_icoor_uaids
+        # print(bt.name, "bt_icoor_uaids:")
+        # print(bt_icoor_uaids)
+        icoor_geom_backup[i, : bt.n_atoms] = bt_icoor_geom_backup
+        icoor_atom_ancestor_uaids_backup[i, : bt.n_atoms] = bt_icoor_uaids_backup
+        # print(bt.name, "bt_icoor_uaids_backup:")
+        # print(bt_icoor_uaids_backup)
     icoor_geom = torch.tensor(icoor_geom, dtype=torch.float32, device=pbt.device)
     icoor_atom_ancestor_uaids = torch.tensor(
         icoor_atom_ancestor_uaids, dtype=torch.int32, device=pbt.device
     )
+    icoor_geom_backup = torch.tensor(
+        icoor_geom_backup, dtype=torch.float32, device=pbt.device
+    )
+    icoor_atom_ancestor_uaids_backup = torch.tensor(
+        icoor_atom_ancestor_uaids_backup, dtype=torch.int32, device=pbt.device
+    )
 
     setattr(pbt, "build_missing_h_icoor_atom_ancestor_uaids", icoor_atom_ancestor_uaids)
     setattr(pbt, "build_missing_h_icoor_geom", icoor_geom)
+    setattr(
+        pbt,
+        "build_missing_h_icoor_atom_ancestor_uaids_backup",
+        icoor_atom_ancestor_uaids_backup,
+    )
+    setattr(pbt, "build_missing_h_icoor_geom_backup", icoor_geom_backup)

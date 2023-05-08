@@ -33,10 +33,18 @@ struct GeneratePoseHydrogens {
       TView<Int, 1, Dev> block_type_n_atoms,
       TView<Int, 3, Dev> block_type_atom_downstream_of_conn,
 
-      TView<Int, 4, Dev> block_type_atom_ancestors,  // n-bt x max-n-ats x 4 x 3
+      // n-bt x max-n-ats x 3 x 3
+      TView<Int, 4, Dev> block_type_atom_ancestors,
 
-      TView<Real, 3, Dev>
-          block_type_atom_icoors  // n-bt x max-n-ats x 3 [phi, theta, D]
+      // n-bt x max-n-ats x 3 [phi, theta, D]
+      TView<Real, 3, Dev> block_type_atom_icoors,
+
+      // TEMP! Handle the case when an atom's coordinate depends on
+      // an un-resolvable atom, e.g., "down" for an N-terminal atom
+      // n-bt x max-n-ats x 3 x 3
+      TView<Int, 4, Dev> block_type_atom_ancestors_backup,
+      // n-bt x max-n-ats x 3 [phi, theta, D]
+      TView<Real, 3, Dev> block_type_atom_icoors_backup
 
       ) -> TPack<Vec<Real, 3>, 2, Dev>;
 
@@ -58,10 +66,19 @@ struct GeneratePoseHydrogens {
       TView<Int, 1, Dev> block_type_n_atoms,
       TView<Int, 3, Dev> block_type_atom_downstream_of_conn,
 
-      TView<Int, 4, Dev> block_type_atom_ancestors,  // n-bt x max-n-ats x 4 x 3
+      // n-bt x max-n-ats x 3 x 3
+      TView<Int, 4, Dev> block_type_atom_ancestors,
 
-      TView<Real, 3, Dev>
-          block_type_atom_icoors  // n-bt x max-n-ats x 3 [phi, theta, D]
+      // n-bt x max-n-ats x 3 [phi, theta, D]
+      TView<Real, 3, Dev> block_type_atom_icoors,
+
+      // TEMP! Handle the case when an atom's coordinate depends on
+      // an un-resolvable atom, e.g., "down" for an N-terminal atom
+      // n-bt x max-n-ats x 3 x 3
+      TView<Int, 4, Dev> block_type_atom_ancestors_backup,
+      // n-bt x max-n-ats x 3 [phi, theta, D]
+      TView<Real, 3, Dev> block_type_atom_icoors_backup
+
       ) -> TPack<Vec<Real, 3>, 2, Dev>;
 };
 
