@@ -135,6 +135,18 @@ struct GeneratePoseHydrogens {
             block_type_atom_icoors[block_type][atom_ind][2],   // D
             block_type_atom_icoors[block_type][atom_ind][1],   // theta
             block_type_atom_icoors[block_type][atom_ind][0]);  // phi
+        printf(
+            "new coord %d %d %d (%f %f %f), (%f %f %f)\n",
+            block_type,
+            block_ind,
+            atom_ind,
+            block_type_atom_icoors[block_type][atom_ind][2],
+            block_type_atom_icoors[block_type][atom_ind][1],
+            block_type_atom_icoors[block_type][atom_ind][0],
+            new_coord[0],
+            new_coord[1] * 180 / 3.14159,
+            new_coord[2]);
+
         new_coords[pose_ind][block_offset + atom_ind] = new_coord;
       } else {
         // copy the coordinate from the input coordinates

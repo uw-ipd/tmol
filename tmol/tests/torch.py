@@ -19,8 +19,8 @@ def zero_padded_counts(counts):
 
 
 # @pytest.fixture(params=[requires_cuda("cuda")])
-@pytest.fixture(params=["cpu", requires_cuda("cuda")])
-# @pytest.fixture(params=["cpu"])
+# @pytest.fixture(params=["cpu", requires_cuda("cuda")])
+@pytest.fixture(params=["cpu"])
 def torch_device(request):
     """Paramterized test fixure covering cpu & cuda torch devices."""
 

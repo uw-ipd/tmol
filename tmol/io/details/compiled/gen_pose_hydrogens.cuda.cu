@@ -1,4 +1,4 @@
-#include <tmol/score/common/device_operations.cpu.impl.hh>
+#include <tmol/score/common/device_operations.cuda.impl.cuh>
 #include <tmol/io/details/compiled/gen_pose_hydrogens.impl.hh>
 
 namespace tmol {

@@ -1,10 +1,8 @@
 import numpy
 import torch
-from tmol.io.canonical_ordering import (
-    canonical_form_from_pdb_lines,
-)
+from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
 from tmol.io.details.canonical_packed_block_types import (
-    default_canonical_packed_block_types,
+    default_canonical_packed_block_types
 )
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
@@ -85,11 +83,7 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     ) = assign_block_types(pbt, ch_beg, can_rts, res_type_variants, found_disulfides)
 
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
-        pbt,
-        ch_beg,
-        block_types64,
-        coords,
-        at_is_pres,
+        pbt, ch_beg, block_types64, coords, at_is_pres
     )
 
     assert block_coords.device == torch_device
@@ -111,3 +105,50 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
         bt_i = pbt.active_block_types[bt_i_ind]
         print("atom", bt_i.atoms[nz_rm_at[i]].name, "missing from res", nz_rm_r[i])
     assert torch.sum(torch.logical_and(missing_atoms, real_atoms)).item() == 0
+
+    # ATOM      1  N   MET A   1      27.340  24.430   2.614  1.00  9.67           N
+    # ATOM      2  CA  MET A   1      26.266  25.413   2.842  1.00 10.38           C
+    # ATOM      3  C   MET A   1      26.913  26.639   3.531  1.00  9.62           C
+    # ATOM      4  O   MET A   1      27.886  26.463   4.263  1.00  9.62           O
+    # ATOM      5  CB  MET A   1      25.112  24.880   3.649  1.00 13.77           C
+    # ATOM      6  CG  MET A   1      25.353  24.860   5.134  1.00 16.29           C
+    # ATOM      7  SD  MET A   1      23.930  23.959   5.904  1.00 17.17           S
+    # ATOM      8  CE  MET A   1      24.447  23.984   7.620  1.00 16.11           C
+    # ATOM      9  H   MET A   1      27.282  23.521   3.027  1.00 11.60           H
+    # ATOM     10  HA  MET A   1      25.864  25.717   1.875  1.00 12.46           H
+    # ATOM     11 1HB  MET A   1      24.227  25.486   3.461  1.00 16.52           H
+    # ATOM     12 2HB  MET A   1      24.886  23.861   3.332  1.00 16.52           H
+    # ATOM     13 1HG  MET A   1      26.298  24.359   5.342  1.00 19.55           H
+    # ATOM     14 2HG  MET A   1      25.421  25.882   5.505  1.00 19.55           H
+    # ATOM     15 1HE  MET A   1      23.700  23.479   8.233  1.00 19.33           H
+    # ATOM     16 2HE  MET A   1      25.405  23.472   7.719  1.00 19.33           H
+    # ATOM     17 3HE  MET A   1      24.552  25.017   7.954  1.00 19.33           H
+
+    block_coords_res1_gold = numpy.zeros((pbt.max_n_atoms, 3), dtype=numpy.float32)
+    met_bt = next(x for x in pbt.active_block_types if x.name == "MET")
+
+    def set_gold_coord(name, x, y, z):
+        ind = next(i for i, at in enumerate(met_bt.atoms) if at.name == name.strip())
+        block_coords_res1_gold[ind, 0] = x
+        block_coords_res1_gold[ind, 1] = y
+        block_coords_res1_gold[ind, 2] = z
+
+    set_gold_coord("  N ", 27.340, 24.430, 2.614)
+    set_gold_coord("  CA", 26.266, 25.413, 2.842)
+    set_gold_coord("  C ", 26.913, 26.639, 3.531)
+    set_gold_coord("  O ", 27.886, 26.463, 4.263)
+    set_gold_coord("  CB", 25.112, 24.880, 3.649)
+    set_gold_coord("  CG", 25.353, 24.860, 5.134)
+    set_gold_coord("  SD", 23.930, 23.959, 5.904)
+    set_gold_coord("  CE", 24.447, 23.984, 7.620)
+    set_gold_coord("  H ", 27.282, 23.521, 3.027)
+    set_gold_coord("  HA", 25.864, 25.717, 1.875)
+    set_gold_coord(" 1HB", 24.227, 25.486, 3.461)
+    set_gold_coord(" 2HB", 24.886, 23.861, 3.332)
+    set_gold_coord(" 1HG", 26.298, 24.359, 5.342)
+    set_gold_coord(" 2HG", 25.421, 25.882, 5.505)
+    set_gold_coord(" 1HE", 23.700, 23.479, 8.233)
+    set_gold_coord(" 2HE", 25.405, 23.472, 7.719)
+    set_gold_coord(" 3HE", 24.552, 25.017, 7.954)
+
+    numpy.testing.assert_equal(block_coords[0, 0], block_coords_res1_gold)

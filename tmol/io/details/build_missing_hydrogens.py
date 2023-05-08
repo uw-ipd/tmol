@@ -1,3 +1,4 @@
+import numpy
 import torch
 
 from tmol.types.torch import Tensor
@@ -13,7 +14,7 @@ def build_missing_hydrogens(
     atom_type_resolver: AtomTypeParamResolver,
     block_types64: Tensor[torch.int64][:, :],
     real_block_atoms: Tensor[torch.bool][:, :, :],
-    block_coords: Tensor[torch.int32][:, :, :, 3],
+    block_coords: Tensor[torch.float32][:, :, :, 3],
     block_atom_missing: Tensor[torch.int32][:, :, :],
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2],
 ):
@@ -27,19 +28,20 @@ def build_missing_hydrogens(
     # we're going to call gen_pose_hydrogens,
     # but first we need to prepare the input tensors
     # that are going to use
-    device = packed_block_types.device
+    pbt = packed_block_types
+    device = pbt.device
     n_poses = block_coords.shape[0]
-    max_n_res = block_coords.shape[1]
+    max_n_blocks = block_coords.shape[1]
 
     # make sure we have all the data we need
     _annotate_packed_block_types_atom_is_h(pbt, atom_type_resolver)
     _annotate_packed_block_types_w_missing_h_icoors(pbt)
 
-    n_atoms = torch.zeros((n_poses, max_n_res), dtype=torch.int32, device=device)
+    n_atoms = torch.zeros((n_poses, max_n_blocks), dtype=torch.int32, device=device)
     real_blocks = block_types64 != -1
     n_atoms[real_blocks] = packed_block_types.n_atoms[block_types64[real_blocks]]
 
-    n_ats_inccumsum = torch.cumsum(n_ats, dim=1, dtype=torch.int32)
+    n_ats_inccumsum = torch.cumsum(n_atoms, dim=1, dtype=torch.int32)
     max_n_ats = torch.max(n_ats_inccumsum[:, -1])
     block_coord_offset = torch.cat(
         (
@@ -49,7 +51,7 @@ def build_missing_hydrogens(
         dim=1,
     )
     pose_at_is_real = (
-        torch.arange(max_n_ats, dtype=torch.int64).repeat(n_poses, 1)
+        torch.arange(max_n_ats, dtype=torch.int64, device=device).repeat(n_poses, 1)
         < n_ats_inccumsum[:, -1:]
     )
 
@@ -68,15 +70,15 @@ def build_missing_hydrogens(
 
     # ok, we're ready
     new_pose_coords = gen_pose_hydrogens(
-        pose_coords,
+        pose_like_coords,
         block_h_is_missing,
         block_coord_offset,
-        block_types.to(torch.int32),
+        block_types64.to(torch.int32),
         inter_residue_connections,
         pbt.n_atoms,
         pbt.atom_downstream_of_conn,
         pbt.build_missing_h_icoor_atom_ancestor_uaids,
-        pbt.build_missing_h_icoors_geom,
+        pbt.build_missing_h_icoor_geom,
     )
     return new_pose_coords, block_coord_offset
 
@@ -93,7 +95,9 @@ def _annotate_packed_block_types_atom_is_h(
     def ti32(x):
         return torch.tensor(x, dtype=torch.int32, device=pbt.device)
 
-    is_hydrogen = torch.zeros((pbt.n_types, pbt.max_n_atoms), 0, torch.int32)
+    is_hydrogen = torch.zeros(
+        (pbt.n_types, pbt.max_n_atoms), dtype=torch.int32, device=pbt.device
+    )
 
     for i, block_type in enumerate(pbt.active_block_types):
         atom_types = [x.atom_type for x in block_type.atoms]
@@ -103,7 +107,7 @@ def _annotate_packed_block_types_atom_is_h(
             atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
         )
         setattr(block_type, "is_hydrogen", bt_is_hydrogen)
-        is_hydrogen[i, : bt.n_atoms] = ti32(bt_is_hydrogen)
+        is_hydrogen[i, : block_type.n_atoms] = ti32(bt_is_hydrogen)
     setattr(pbt, "is_hydrogen", is_hydrogen)
 
 
@@ -114,13 +118,13 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
         return
 
     assert hasattr(pbt, "is_hydrogen")
-    icorr_atom_ancestor_uaids = numpy.full(
+    icoor_atom_ancestor_uaids = numpy.full(
         (pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32
     )
-    icorr_geom = numpy.full((pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32)
+    icoor_geom = numpy.full((pbt.n_types, pbt.max_n_atoms, 3), -1, dtype=numpy.float32)
     for i, bt in enumerate(pbt.active_block_types):
         bt_icoor_uaids = numpy.full((bt.n_atoms, 3, 3), -1, dtype=numpy.int32)
-        bt_icoor_geom = numpy.full((bt.n_atoms, 3, 3), 0, dtype=numpy.float32)
+        bt_icoor_geom = numpy.full((bt.n_atoms, 3), 0, dtype=numpy.float32)
         for j, at in enumerate(bt.atoms):
             atname = at.name
             j_icoor_ind = bt.icoors_index[atname]
@@ -137,6 +141,13 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
             def icoor_at_is_h(icoor_at_name):
                 if icoor_at_name not in bt.atom_to_idx:
                     return 0
+                print(
+                    bt.name,
+                    "is H?",
+                    icoor_at_name,
+                    bt.atom_to_idx[icoor_at_name],
+                    bt.is_hydrogen[bt.atom_to_idx[icoor_at_name]],
+                )
                 return bt.is_hydrogen[bt.atom_to_idx[icoor_at_name]]
 
             # ok, let's turn p, gp, and ggp into uaids
@@ -147,7 +158,9 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
             gp_uaid = uaid_for_at(j_icoor.grand_parent)
 
             phi = j_icoor.phi
-            theta = j_icoor.theta
+            theta = numpy.pi - j_icoor.theta
+            # print("theta", theta, theta * 180 / numpy.pi)
+            # theta = numpy.pi
             d = j_icoor.d
 
             while icoor_at_is_h(j_icoor.great_grand_parent):
