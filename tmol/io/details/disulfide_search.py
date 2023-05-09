@@ -67,7 +67,6 @@ def find_disulf_numba(
     #    mark the two as now paired
 
     n_cys = cys_pose_ind.shape[0]
-    n_poses = coords.shape[0]
     found_dslf = numpy.zeros((n_cys, 3), dtype=numpy.int32)
     already_paired = numpy.zeros((n_cys,), dtype=numpy.int32)
     n_found_dslf = 0

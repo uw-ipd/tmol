@@ -15,7 +15,6 @@ from tmol.io.details.build_missing_hydrogens import (
     build_missing_hydrogens,
 )
 
-from tmol.io.pdb_parsing import to_pdb
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 
 
@@ -143,11 +142,6 @@ def test_build_missing_hydrogens(torch_device, ubq_pdb):
     # now expand the pose coords back out to n-poses x max-n-res x max-n-ats x 3
     # and then lets compare the coordinates of the newly built coordinates to what
     # was already there in the input pdb
-    new_block_coords = torch.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms, 3),
-        dtype=torch.float32,
-        device=torch_device,
-    )
     n_ats_per_block_arange_expanded = (
         torch.arange(pbt.max_n_atoms, dtype=torch.int64, device=torch_device)
         .repeat(max_n_blocks)

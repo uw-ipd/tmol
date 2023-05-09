@@ -1,7 +1,5 @@
-import numpy
 import torch
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
-from tmol.io.pdb_parsing import to_pdb
 from tmol.io.basic_resolution import pose_stack_from_canonical_form
 
 

@@ -1,7 +1,6 @@
 import pytest
 import torch
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
-from tmol.io.pdb_parsing import to_pdb
 from tmol.io.basic_resolution import pose_stack_from_canonical_form
 
 
@@ -17,7 +16,7 @@ def test_build_pose_stack_from_canonical_form_ubq_benchmark(
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
 
     # warmup
-    pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+    pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
 
     @benchmark
     def create_pose_stack():
@@ -39,7 +38,7 @@ def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
 
     # warmup
-    pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+    pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
 
     @benchmark
     def create_pose_stack():

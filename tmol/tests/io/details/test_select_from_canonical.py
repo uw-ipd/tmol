@@ -90,8 +90,6 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     assert missing_atoms.device == torch_device
     assert block_types64.device == torch_device
 
-    n_ats = torch.sum(pbt.n_atoms[block_types64[0]])
-
     assert block_coords.shape == (1, can_rts.shape[1], pbt.max_n_atoms, 3)
     assert missing_atoms.shape == block_coords.shape[:3]
     assert real_atoms.shape == missing_atoms.shape

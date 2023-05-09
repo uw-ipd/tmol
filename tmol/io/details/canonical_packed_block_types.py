@@ -1,4 +1,3 @@
-import attr
 import cattr
 import torch
 

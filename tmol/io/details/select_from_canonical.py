@@ -1,27 +1,16 @@
 import numpy
-import numba
 import torch
 
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
     ordered_canonical_aa_types,
-    ordered_canonical_aa_atoms,
     ordered_canonical_aa_atoms_v2,
 )
 from tmol.io.details.disulfide_search import cys_co_aa_ind
 from tmol.io.details.his_taut_resolution import (
-    HisTautomerResolution,
     his_co_aa_ind,
-    his_ND1_in_co,
-    his_NE2_in_co,
-    his_HD1_in_co,
-    his_HE2_in_co,
-    his_HN_in_co,
-    his_NH_in_co,
-    his_NN_in_co,
-    his_CG_in_co,
+    his_taut_variant_ND1_protonated,
 )
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -262,18 +251,26 @@ def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
     max_n_termini_types = 3  # TEMP! 0=Nterm, 1=mid, 2=Cterm
     max_n_aa_variant_types = 2  # TEMP! CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
 
-    # forward ordering: from canonical-index + variant --> block-type index
+    # forward ordering: from canonical-index + termini type + variant --> block-type index
     canonical_ordering_map = numpy.full(
-        (len(ordered_canonical_aa_types), 3, 2), -1, dtype=numpy.int32
+        (len(ordered_canonical_aa_types), max_n_termini_types, max_n_aa_variant_types),
+        -1,
+        dtype=numpy.int32,
     )
     bt_ind_to_canonical_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
 
     # TO DO: handle N- and C-termini variants
     var0_inds = pbt.restype_index.get_indexer(ordered_canonical_aa_types)
     canonical_ordering_map[:, 1, 0] = var0_inds
+
+    # NOTE: We have two amino acids with (non-termini) "variants" that we are going to handle
+    # CYD, the disulfided CYS is variant 1; CYS is variant 0
+    # between HIS and HIS_D, one of them is variant 1 and one is variant 0
     canonical_ordering_map[
         (cys_co_aa_ind, his_co_aa_ind), 1, 1
-    ] = pbt.restype_index.get_indexer(["CYD", "HIS_D"])
+    ] = pbt.restype_index.get_indexer(
+        ["CYD", "HIS_D" if his_taut_variant_ND1_protonated == 1 else "HIS"]
+    )
 
     # map from the specific block type to the generic canoncial aa index
     for i in range(len(canonical_ordering_map)):
@@ -310,7 +307,7 @@ def _annotate_packed_block_types_w_canonical_atom_order(pbt: PackedBlockTypes):
     canonical_atom_ind = numpy.full(
         (pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64
     )
-    canonical_res_ordering_map = pbt.canonical_res_ordering_map.cpu()
+    # canonical_res_ordering_map = pbt.canonical_res_ordering_map.cpu()
     for i, bt in enumerate(pbt.active_block_types):
         # print("bt name:", bt.name)
         canonical_res_ind = pbt.bt_ind_to_canonical_ind[i]
