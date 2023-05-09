@@ -13,6 +13,7 @@ from tmol.io.details.select_from_canonical import (
     assign_block_types,
     take_block_type_atoms_from_canonical,
 )
+from tmol.io.details.build_missing_hydrogens import build_missing_hydrogens
 
 
 def pose_stack_from_canonical_form(
@@ -75,18 +76,19 @@ def pose_stack_from_canonical_form(
 
     # 6
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
-        pbt,
-        chain_begin,
-        block_types64,
-        coords,
-        atom_is_present,
-        found_disulfides,
-        his_tautomerization,
+        pbt, chain_begin, block_types64, coords, atom_is_present
     )
 
     # 7
+    inter_residue_connections = inter_residue_connections64.to(torch.int32)
     pose_stack_coords, block_coord_offset = build_missing_hydrogens(
-        pbt, atom_type_resolver, block_types64, real_atoms, block_coords, missing_atoms
+        pbt,
+        atom_type_resolver,
+        block_types64,
+        real_atoms,
+        block_coords,
+        missing_atoms,
+        inter_residue_connections,
     )
 
     def i64(x):
@@ -101,7 +103,7 @@ def pose_stack_from_canonical_form(
         coords=pose_stack_coords,
         block_coord_offset=block_coord_offset,
         block_coord_offset64=i64(block_coord_offset),
-        inter_residue_connections=i32(inter_residue_connections64),
+        inter_residue_connections=inter_residue_connections,
         inter_residue_connections64=inter_residue_connections64,
         inter_block_bondsep=i32(inter_block_bondsep64),
         inter_block_bondsep64=inter_block_bondsep64,

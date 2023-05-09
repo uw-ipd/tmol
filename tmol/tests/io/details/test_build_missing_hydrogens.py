@@ -19,35 +19,6 @@ from tmol.io.pdb_parsing import to_pdb
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 
 
-# @validate_args
-# def pdb_lines_for_pose(poses: PoseStack, ind: int) -> str:
-#     from tmol.score.score_graph import score_graph
-#     from tmol.score.bonded_atom import BondedAtomScoreGraph
-#     from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-#     from tmol.score.device import TorchDevice
-#     from tmol.io.generic import to_pdb
-#
-#     @score_graph
-#     class DummyIntra(IntraScore):
-#         @reactive_property
-#         def total_dummy(target):
-#             return target.coords.sum()
-#
-#     @score_graph
-#     class BASGCart(
-#         CartesianAtomicCoordinateProvider, BondedAtomScoreGraph, TorchDevice
-#     ):
-#         total_score_components = [
-#             ScoreComponentClasses(
-#                 "dummy", intra_container=DummyIntra, inter_container=None
-#             )
-#         ]
-#
-#     packed_system = PackedResidueSystem.from_residues(poses.residues[ind])
-#     bonded_atom_score_graph = BASGCart.build_for(packed_system)
-#     return to_pdb(bonded_atom_score_graph)
-
-
 def atom_records_from_coords(
     pbt, chain_begin, block_types64, pose_like_coords, block_coord_offset
 ):

@@ -37,6 +37,7 @@ def assign_block_types(
 ):
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(pbt)
+    _annotate_packed_block_types_w_dslf_conn_inds(pbt)
     PoseStackBuilder._annotate_pbt_w_polymeric_down_up_bondsep_dist(pbt)
     PoseStackBuilder._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
 
@@ -131,8 +132,12 @@ def assign_block_types(
 
         # n- and c-term cyd residues will have different dslf connection inds
         # than mid-cyd residues; don't just hard code "2" here
-        cyd1_dslf_conn64 = pbt.dslf_conn_ind[cyd1_block_type64].to(torch.int64)
-        cyd2_dslf_conn64 = pbt.dslf_conn_ind[cyd2_block_type64].to(torch.int64)
+        cyd1_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd1_block_type64].to(
+            torch.int64
+        )
+        cyd2_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd2_block_type64].to(
+            torch.int64
+        )
         inter_residue_connections64[
             found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 0
         ] = found_disulfides64[:, 2]
@@ -282,6 +287,20 @@ def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
 
     setattr(pbt, "canonical_res_ordering_map", t(canonical_ordering_map))
     setattr(pbt, "bt_ind_to_canonical_ind", t(bt_ind_to_canonical_ind))
+
+
+@validate_args
+def _annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
+    if hasattr(pbt, "canonical_dslf_conn_ind"):
+        return
+    canonical_dslf_conn_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int64)
+    for i, bt in enumerate(pbt.active_block_types):
+        if "dslf" in bt.connection_to_cidx:
+            canonical_dslf_conn_ind[i] = bt.connection_to_cidx["dslf"]
+    canonical_dslf_conn_ind = torch.tensor(
+        canonical_dslf_conn_ind, dtype=torch.int64, device=pbt.device
+    )
+    setattr(pbt, "canonical_dslf_conn_ind", canonical_dslf_conn_ind)
 
 
 @validate_args
