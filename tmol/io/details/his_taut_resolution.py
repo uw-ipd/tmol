@@ -62,6 +62,11 @@ def resolve_his_tautomerization(
     atom_is_present_n = atom_is_present.cpu().numpy()
 
     his_pose_ind, his_res_ind = numpy.nonzero(res_types_n == his_co_aa_ind)
+    his_remapping_dst_index = numpy.tile(
+        numpy.repeat(numpy.arange(max_n_canonical_atoms, dtype=numpy.int32), 3),
+        (res_types.shape[0], res_types.shape[1], 1, 1),
+    ).reshape(res_types.shape[0], res_types.shape[1], max_n_canonical_atoms, 3)
+
     his_taut, his_remapping_dst_index = resolve_his_tautomerization_numba(
         res_types_n,
         res_type_variants_n,
@@ -69,6 +74,7 @@ def resolve_his_tautomerization(
         his_res_ind,
         coords_n,
         atom_is_present_n,
+        his_remapping_dst_index,
     )
 
     his_remapping_dst_index = torch.tensor(
@@ -91,7 +97,7 @@ def resolve_his_tautomerization(
     )
 
 
-# @numba.jit(nopython=True)
+@numba.jit(nopython=True)
 def resolve_his_tautomerization_numba(
     res_types: NDArray[numpy.int32][:, :],
     res_type_variants: NDArray[numpy.int32][:, :],
@@ -99,6 +105,7 @@ def resolve_his_tautomerization_numba(
     his_res_ind: NDArray[numpy.int32][:],
     coords: NDArray[numpy.float32][:, :, :, 3],
     atom_is_present: NDArray[numpy.float32][:, :, :],
+    his_remapping_dst_index: NDArray[numpy.int32][:, :, :, 3],
 ):
     """Resolve which of four cases we have for HIS's tautomerization state:
     a. HIS HD1 is provided (and HE2 is not) and we are in tautomerization state HD1,
@@ -119,11 +126,6 @@ def resolve_his_tautomerization_numba(
     # This all should get translated down into C++/CUDA to make it fast.
     # To use torch.gather, we need to put the index of the source atom
     # in all three of the x, y, and z slots.
-
-    his_remapping_dst_index = numpy.tile(
-        numpy.repeat(numpy.arange(max_n_canonical_atoms, dtype=numpy.int32), 3),
-        (res_types.shape[0], res_types.shape[1], 1, 1),
-    ).reshape(res_types.shape[0], res_types.shape[1], max_n_canonical_atoms, 3)
 
     his_taut = numpy.zeros_like(res_types)
     for i in range(his_pose_ind.shape[0]):

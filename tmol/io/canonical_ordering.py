@@ -1,5 +1,4 @@
 import numpy
-import torch
 from .pdb_parsing import parse_pdb
 
 ordered_canonical_aa_types = (
@@ -946,7 +945,7 @@ def canonical_form_from_pdb_lines(pdb_lines):
             try:
                 aa_ind = ordered_canonical_aa_types.index(row["resn"])
                 res_types[0, res_ind] = aa_ind
-            except:
+            except KeyError:
                 res_types[0, res_ind] = -1
         if res_types[0, res_ind] >= 0:
             #### TEEEEEEEMP!!!!! ####
@@ -959,7 +958,9 @@ def canonical_form_from_pdb_lines(pdb_lines):
                 coords[0, res_ind, atind, 0] = row["x"]
                 coords[0, res_ind, atind, 1] = row["y"]
                 coords[0, res_ind, atind, 2] = row["z"]
-            except:
+            except KeyError:
+                # ignore atoms that are not in the canonical form
+                # TO DO: warn the user that some atoms are not being processed?
                 pass
 
     return chain_begin, res_types, coords, atom_is_present

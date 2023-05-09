@@ -96,6 +96,8 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     assert missing_atoms.shape == block_coords.shape[:3]
     assert real_atoms.shape == missing_atoms.shape
 
+    block_coords = block_coords.cpu().numpy()
+
     # all atoms are present in this weird PDB where Nterm
     # has H instead of 1H, 2H, & 3H,
     real_missing = torch.logical_and(missing_atoms, real_atoms)
