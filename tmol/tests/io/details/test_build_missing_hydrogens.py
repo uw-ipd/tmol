@@ -2,7 +2,7 @@ import numpy
 import torch
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
 from tmol.io.details.canonical_packed_block_types import (
-    default_canonical_packed_block_types
+    default_canonical_packed_block_types,
 )
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
@@ -226,7 +226,11 @@ def test_build_missing_hydrogens_backwards(torch_device, ubq_pdb):
                 pbt, ch_beg, can_rts, res_type_variants, found_disulfides
             )
 
-            block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
+            (
+                block_coords,
+                missing_atoms,
+                real_atoms,
+            ) = take_block_type_atoms_from_canonical(
                 pbt, ch_beg, block_types64, self.coords, at_is_pres
             )
             # print("block coords")

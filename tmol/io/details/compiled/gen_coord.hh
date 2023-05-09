@@ -67,9 +67,10 @@ struct build_coordinate {
     // Build water in frame
     return (
         M
-            * Real3({dist * std::cos(pi - angle),
-                     dist * std::sin(pi - angle) * std::cos(torsion),
-                     dist * std::sin(pi - angle) * std::sin(torsion)})
+            * Real3(
+                {dist * std::cos(pi - angle),
+                 dist * std::sin(pi - angle) * std::cos(torsion),
+                 dist * std::sin(pi - angle) * std::sin(torsion)})
         + A);
   }
 

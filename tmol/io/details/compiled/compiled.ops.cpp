@@ -68,17 +68,18 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
           new_coords = result.tensor;
         }));
 
-    ctx->save_for_backward({orig_coords,
-                            h_coords_missing,
-                            pose_stack_block_coord_offset,
-                            pose_stack_block_type,
-                            pose_stack_inter_block_connections,
-                            block_type_n_atoms,
-                            block_type_atom_downstream_of_conn,
-                            block_type_atom_ancestors,
-                            block_type_atom_icoors,
-                            block_type_atom_ancestors_backup,
-                            block_type_atom_icoors_backup});
+    ctx->save_for_backward(
+        {orig_coords,
+         h_coords_missing,
+         pose_stack_block_coord_offset,
+         pose_stack_block_type,
+         pose_stack_inter_block_connections,
+         block_type_n_atoms,
+         block_type_atom_downstream_of_conn,
+         block_type_atom_ancestors,
+         block_type_atom_icoors,
+         block_type_atom_ancestors_backup,
+         block_type_atom_icoors_backup});
 
     return new_coords;
   }
@@ -132,19 +133,20 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
           dE_d_orig_coords = result.tensor;
         }));
 
-    return {dE_d_orig_coords,
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+    return {
+        dE_d_orig_coords,
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor()};
+        torch::Tensor()};
   };
 };
 
