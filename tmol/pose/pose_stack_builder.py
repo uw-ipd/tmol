@@ -811,7 +811,6 @@ class PoseStackBuilder:
         block_types64: Tensor[torch.int64][:, :],
         real_blocks: Tensor[torch.bool][:, :],
     ) -> Tensor[torch.int32][:, :, :, :]:
-
         n_poses = block_types64.shape[0]
         max_n_blocks = block_types64.shape[1]
         max_n_conn = pbt_conn_at_intrablock_bond_sep.shape[1]
@@ -1096,7 +1095,6 @@ class PoseStackBuilder:
         max_n_blocks: int,
         device: torch.device,
     ) -> Tuple[Tensor[torch.float32][:, :, 3], Tensor[torch.int32][:, :]]:
-
         n_poses = sum(len(ps) for ps in pose_stacks)
         max_n_atoms = max(ps.coords.shape[1] for ps in pose_stacks)
         max_n_blocks = max(ps.block_coord_offset.shape[1] for ps in pose_stacks)
@@ -1123,7 +1121,6 @@ class PoseStackBuilder:
         orig_res: List[List[Residue]],
         residue_coords: NDArray[numpy.float64][:, :, 3],
     ) -> List[List[Residue]]:
-
         return [
             [
                 r.attach_to(
@@ -1313,7 +1310,6 @@ class PoseStackBuilder:
     @classmethod
     @validate_args
     def _annotate_pbt_w_polymeric_down_up_bondsep_dist(cls, pbt: PackedBlockTypes):
-
         if hasattr(pbt, "polymeric_down_to_up_nbonds"):
             return
 

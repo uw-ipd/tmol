@@ -368,7 +368,9 @@ void kernel_segscan(
     enum { nt = params_t::nt, vt = params_t::vt, vt0 = params_t::vt0 };
     typedef cta_load_balance_t<nt, vt> load_balance_t;
 
-    __shared__ union { typename load_balance_t::storage_t lbs; } shared;
+    __shared__ union {
+      typename load_balance_t::storage_t lbs;
+    } shared;
 
     // Need to rematerialize load balance parameters
     auto lbs = load_balance_t().load_balance(

@@ -18,9 +18,7 @@ def zero_padded_counts(counts):
     return [str(x).zfill(width) for x in counts]
 
 
-# @pytest.fixture(params=[requires_cuda("cuda")])
-@pytest.fixture(params=["cpu", requires_cuda("cuda")])
-# @pytest.fixture(params=["cpu"])
+@pytest.fixture(params=["cpu", pytest.param("cuda", marks=requires_cuda)])
 def torch_device(request):
     """Paramterized test fixure covering cpu & cuda torch devices."""
 
@@ -76,14 +74,15 @@ def torch_backward_coverage(cov):
     """
 
     if cov:
-        cov.collector.added_tracers = {threading.get_ident()}
+        print("cov collector???", hasattr(cov, "collector"))
+        cov._collector.added_tracers = {threading.get_ident()}
 
         def add_tracer(_):
             tid = threading.get_ident()
-            if tid not in cov.collector.added_tracers:
+            if tid not in cov._collector.added_tracers:
                 print(f"pytorch backward trace: {tid}")
-                cov.collector.added_tracers.add(tid)
-                cov.collector._start_tracer()
+                cov._collector.added_tracers.add(tid)
+                cov._collector._start_tracer()
 
     else:
 

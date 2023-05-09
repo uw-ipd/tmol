@@ -705,7 +705,6 @@ class DunbrackParamResolver(ValidateAttrs):
         chi: Tensor[torch.int32][:, :, 6],
         torch_device: torch.device,
     ) -> DunbrackParams:
-
         nstacks = res_names.shape[0]
         assert phi.shape[0] == nstacks
         assert psi.shape[0] == nstacks
@@ -877,7 +876,6 @@ class DunbrackParamResolver(ValidateAttrs):
     ) -> Tuple[
         Tensor[torch.int64][:, :], Tensor[torch.int64][:, :], Tensor[torch.int64][:, :]
     ]:
-
         rns_inds = self._indices_from_names(self.all_table_indices, resnames, device)
         r_inds = self._indices_from_names(
             self.rotameric_table_indices, resnames, device

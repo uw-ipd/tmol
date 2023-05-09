@@ -11,7 +11,6 @@ class LazyFileMapping(Mapping):
 
     @classmethod
     def from_list(cls, file_list, norm=lambda i: i):
-
         file_mapping = {norm(f): f for f in file_list}
 
         return cls(file_mapping=file_mapping, norm=norm)

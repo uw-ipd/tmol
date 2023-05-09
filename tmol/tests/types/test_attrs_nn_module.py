@@ -4,7 +4,6 @@ import torch
 
 @attr.s(auto_attribs=True, kw_only=True, eq=False)
 class BufferModule(torch.nn.Module):
-
     _module_init: bool = attr.ib(init=False, repr=False)
 
     @_module_init.default

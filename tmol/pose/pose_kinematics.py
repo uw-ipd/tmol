@@ -419,7 +419,6 @@ def get_root_atom_indices(
 def construct_pose_stack_kinforest(
     pose_stack: PoseStack, fold_forest: FoldForest
 ) -> KinForest:
-
     intra_block_bonds = get_all_intrablock_bonds(pose_stack)
     kin_polymeric_connections = mark_polymeric_bonds_in_foldforest_edges(
         pose_stack.n_poses, pose_stack.max_n_blocks, fold_forest.edges

@@ -7,13 +7,17 @@ import re
 
 
 def git_version():
-    git_describe = (
-        subprocess.check_output(
-            ["git", "describe", "--long", "--tags", "--match", "[0-9]*"]
+    try:
+        git_describe = (
+            subprocess.check_output(
+                ["git", "describe", "--long", "--tags", "--match", "[0-9]*"]
+            )
+            .strip()
+            .decode()
         )
-        .strip()
-        .decode()
-    )
+    except subprocess.CalledProcessError:
+        version = "0.0.0"
+        return version
 
     describe_match = re.match(
         r"(?P<version>[0-9.]+)(-(?P<post_revision>\d+)-g(?P<commit>\w+))?", git_describe

@@ -12,7 +12,6 @@ if "to" in torch.jit.ScriptModule.__dict__:
 
 class _ElecScoreModule(torch.jit.ScriptModule):
     def __init__(self, param_resolver: ElecParamResolver):
-
         super().__init__()
 
         # Pack parameters into dense tensor. Parameter ordering must match

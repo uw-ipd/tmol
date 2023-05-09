@@ -101,6 +101,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
 
   nvtx_range_push("hbond alloc");
   int nstacks = donor_coords.size(0);
+
   auto V_t = TPack<Real, 1, Dev>::zeros({nstacks});
   auto dV_d_don_t =
       TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, donor_coords.size(1)});
@@ -141,20 +142,6 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
             global_params[0]);
 
         accumulate<Dev, Real>::add(V[stack], hbond.V);
-
-        if (D[stack][di] == 0 && hbond.V < 0) {
-          printf(
-              "Accumulate into dV_d_don for atom 0: %f %f %f\n",
-              hbond.dV_dD[0],
-              hbond.dV_dD[1],
-              hbond.dV_dD[2]);
-          printf(
-              "H %d (%f %f %f)\n",
-              H[stack][di],
-              donor_coords[stack][H[stack][di]][0],
-              donor_coords[stack][H[stack][di]][1],
-              donor_coords[stack][H[stack][di]][2]);
-        }
 
         accumulate<Dev, Vec<Real, 3>>::add(
             dV_d_don[stack][D[stack][di]], hbond.dV_dD);

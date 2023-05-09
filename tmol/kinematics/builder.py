@@ -135,7 +135,6 @@ class KinematicBuilder:
         bonds: NDArray[int][:, 2],
         weights: NDArray[float][:] = numpy.ones(1),  # noqa
     ) -> sparse.csr_matrix:
-
         # if atoms are stored in a stack, the caller of this function
         # must first convert the indices of their atoms into a single
         # global indexing
@@ -488,7 +487,6 @@ def fix_jump_nodes(
 
     for jump in jumps:
         if stub_defined_for_jump_atom(jump, atom_is_jump, child_list_span, child_list):
-
             jump_c1, jump_c2 = get_c1_and_c2_atoms(
                 jump, atom_is_jump, child_list_span, child_list, parents
             )

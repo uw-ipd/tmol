@@ -7,7 +7,7 @@ from tmol.system.packed import PackedResidueSystem
 from tmol.tests.torch import requires_cuda
 from tmol.kinematics.dof_modules import CartesianDOFs, KinematicDOFs, DOFMaskingFunc
 from tmol.system.kinematic_module_support import (  # noqa: F401
-    kinematic_operation_build_for
+    kinematic_operation_build_for,
 )
 
 

@@ -14,8 +14,9 @@ struct TData {
 
   template <typename TMap>
   static TData view_tensor_map(TMap& map) {
-    return {tmol::view_tensor_item<int64_t, N, D>(map, "a"),
-            tmol::view_tensor_item<int64_t, N, D>(map, "b")};
+    return {
+        tmol::view_tensor_item<int64_t, N, D>(map, "a"),
+        tmol::view_tensor_item<int64_t, N, D>(map, "b")};
   }
 };
 

@@ -263,13 +263,13 @@ struct lk_isotropic_score {
                i.lk_lambda,
                j.lk_volume)
            + lk_isotropic_pair<Real>::V(
-                 dist,
-                 bonded_path_length,
-                 sigma,
-                 j.lj_radius,
-                 j.lk_dgfree,
-                 j.lk_lambda,
-                 i.lk_volume);
+               dist,
+               bonded_path_length,
+               sigma,
+               j.lj_radius,
+               j.lk_dgfree,
+               j.lk_lambda,
+               i.lk_volume);
   }
 
   static def V_dV(

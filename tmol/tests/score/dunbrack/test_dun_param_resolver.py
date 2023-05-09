@@ -180,7 +180,6 @@ def test_dun_param_resolver_construction(default_database, torch_device):
 
 
 def test_dun_param_resolver_construction2(default_database, torch_device):
-
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
@@ -628,7 +627,6 @@ def expected_stacked_parameters():
 
 
 def test_stacked_dun_param_resolver_construction(default_database, torch_device):
-
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )

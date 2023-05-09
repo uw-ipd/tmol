@@ -59,7 +59,6 @@ class DunSamplerPBTCache:
 # ParamResolver.
 # @attr.s(auto_attribs=True, slots=True, frozen=True)
 class DunbrackChiSampler:
-
     dun_param_resolver: DunbrackParamResolver
 
     def __eq__(self, other):
@@ -108,7 +107,6 @@ class DunbrackChiSampler:
         )[0, 0]
 
         if dun_lib_ind >= 0:
-
             n_chi = self.dun_param_resolver.scoring_db_aux.nchi_for_table_set[
                 dun_lib_ind
             ].item()

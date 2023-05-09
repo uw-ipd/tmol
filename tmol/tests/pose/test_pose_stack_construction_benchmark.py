@@ -32,7 +32,6 @@ def test_pose_construction_from_sequence(
     fresh_default_packed_block_types,
     torch_device,
 ):
-
     n_poses = int(n_poses)
     # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
     #     rts_ubq_res, torch_device

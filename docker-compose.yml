@@ -27,6 +27,7 @@ services:
       - BUILDKITE_PULL_REQUEST_REPO
       - CUDA_DEVICE_ORDER
       - CUDA_VISIBLE_DEVICES
+      - NVIDIA_DISABLE_REQUIRE=1
     working_dir: ${BUILDKITE_BUILD_CHECKOUT_PATH}
 
   buildkite-cpu:

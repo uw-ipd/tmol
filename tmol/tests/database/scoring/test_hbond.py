@@ -3,7 +3,6 @@ import tmol.database
 
 
 def test_hbond_defs(default_database: tmol.database.ParameterDatabase):
-
     db = default_database.scoring.hbond
 
     atom_types = {t.name: t for t in default_database.chemical.atom_types}
