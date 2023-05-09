@@ -238,7 +238,8 @@ struct GeneratePoseHydrogens {
     int const max_n_block_atoms = block_type_atom_downstream_of_conn.size(2);
 
     assert(h_atom_missing.size(0) == n_poses);
-    assert(h_atom_missing.size(1) == max_n_pose_atoms);
+    assert(h_atom_missing.size(1) == max_n_blocks);
+    assert(h_atom_missing.size(2) == max_n_block_atoms);
     assert(pose_stack_block_coord_offset.size(0) == n_poses);
     assert(pose_stack_block_type.size(0) == n_poses);
     assert(pose_stack_inter_block_connections.size(0) == n_poses);

@@ -58,7 +58,7 @@ def resolve_his_tautomerization(
     # replaced with better code.
     res_types_n = res_types.cpu().numpy()
     res_type_variants_n = res_type_variants.cpu().numpy()
-    coords_n = coords.cpu().numpy()
+    coords_n = coords.detach().cpu().numpy()
     atom_is_present_n = atom_is_present.cpu().numpy()
 
     his_pose_ind, his_res_ind = numpy.nonzero(res_types_n == his_co_aa_ind)

@@ -142,6 +142,8 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
             torch::Tensor(),
             torch::Tensor(),
             torch::Tensor(),
+            torch::Tensor(),
+
             torch::Tensor()};
   };
 };

@@ -22,7 +22,7 @@ def find_disulfides(
     cutoff_dis: float = 2.5,
 ):
     res_types_n = res_types.cpu().numpy()
-    coords_n = coords.cpu().numpy()
+    coords_n = coords.detach().cpu().numpy()
     atom_is_present_n = atom_is_present.cpu().numpy()
 
     cys_pose_ind, cys_res_ind = numpy.nonzero(
