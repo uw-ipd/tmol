@@ -57,12 +57,12 @@ check_call(
 # Requires an active root conda installation see:
 # https://conda.io/miniconda.html
 check_call(
-    f"mamba create -n {args.name} && mamba env update -n {args.name} --file=environments/temp_env.yml"
+    f"conda create -n {args.name} && conda env update -n {args.name} --file=environments/temp_env.yml"
 )
 
 # Conda 4.4+ compatible activation
 conda_envs = json.loads(
-    subprocess.check_output("mamba env list --json", shell=True).decode()
+    subprocess.check_output("conda env list --json", shell=True).decode()
 )
 envpath = [p for p in conda_envs["envs"] if os.path.basename(p) == args.name]
 if len(envpath) >= 1:
