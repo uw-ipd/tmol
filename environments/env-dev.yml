@@ -15,7 +15,7 @@ dependencies:
   - clang-format-16=16.0.2=default_h83cc7fd_0
   - codecov=2.1.13
   - cryptography=40.0.2=py39h079d5ae_0
-  - cudatoolkit=11.3.1=h9edb442_11
+  - cudatoolkit-dev=11.3.1=py39h3811e60_0
   - distlib=0.3.6=pyhd8ed1ab_0
   - filelock=3.12.0=pyhd8ed1ab_0
   - icu=72.1=hcb278e6_0
