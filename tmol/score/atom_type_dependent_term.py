@@ -155,11 +155,13 @@ class AtomTypeDependentTerm(EnergyTerm):
             n_heavy_atoms, dtype=torch.int32, device=self.device
         )
         atom_unique_ids = torch.tensor(atom_unique_ids, device=self.device)
+        atom_wildcard_ids = torch.tensor(atom_wildcard_ids, device=self.device)
 
         setattr(packed_block_types, "atom_types", atom_types)
         setattr(packed_block_types, "n_heavy_atoms", n_heavy_atoms)
         setattr(packed_block_types, "heavy_atom_inds", heavy_atom_inds_t)
         setattr(packed_block_types, "atom_unique_ids", atom_unique_ids)
+        setattr(packed_block_types, "atom_wildcard_ids", atom_wildcard_ids)
 
     def setup_poses(self, pose_stack: PoseStack):
         super(AtomTypeDependentTerm, self).setup_poses(pose_stack)

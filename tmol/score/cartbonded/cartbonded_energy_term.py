@@ -1,6 +1,8 @@
 import torch
 import numpy
 
+from itertools import permutations
+
 from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
 
 from tmol.database import ParameterDatabase
@@ -23,7 +25,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(CartBondedEnergyTerm, self).__init__(param_db=param_db, device=device)
 
-        self.cart_database = param_db.scoring.cartbonded
+        self.cart_database = param_db.scoring.cartbonded_new
         """self.global_params = CartBondedGlobalParams.from_database(
             param_db.scoring.cartbonded, device
         )"""
@@ -38,10 +40,11 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     def n_bodies(self):
         return 1
 
-    def find_subgraphs(self, bonds):
+    def find_subgraphs(self, bonds, block_type):
         lengths = []
         angles = []
         torsions = []
+        improper = []
 
         # create a convenient datastructure for following connections
         bondmap = {}
@@ -77,6 +80,16 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                             continue
                         torsions.append((atom1, atom2, atom3, atom4))
 
+        # get improper torsions
+        for atom3 in [block_type.atom_to_idx["CA"]]:
+            comb = list(permutations(bondmap[atom3], 3))
+            for atom1, atom2, atom4 in comb:
+                # print(atom1, atom2, atom3, atom4)
+                improper.append((atom1, atom2, atom3, atom4))
+
+        print("IMPROPER: ", improper)
+        # get hxl torsions
+
         if debug:
             print("")
             print("BONDS")
@@ -87,36 +100,58 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             print(angles)
             print(torsions)
 
-        return numpy.asarray(lengths), numpy.asarray(angles), numpy.asarray(torsions)
+        return (
+            numpy.asarray(lengths),
+            numpy.asarray(angles),
+            numpy.asarray(torsions),
+            numpy.asarray(improper),
+        )
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(CartBondedEnergyTerm, self).setup_block_type(block_type)
 
-        lengths, angles, torsions = self.find_subgraphs(block_type.bond_indices)
+        lengths, angles, torsions, improper = self.find_subgraphs(
+            block_type.bond_indices, block_type
+        )
 
         setattr(block_type, "cart_lengths", lengths)
         setattr(block_type, "cart_angles", angles)
         setattr(block_type, "cart_torsions", torsions)
+        setattr(block_type, "cart_improper", improper)
 
         params_by_atom_unique_id = {}
         all_params = (
-            self.cart_database.length_parameters
+            self.cart_database.improper_parameters
+            + self.cart_database.length_parameters
             + self.cart_database.angle_parameters
             + self.cart_database.torsion_parameters
+            + self.cart_database.hxltorsion_parameters
         )
-        for param in all_params:
+        for param_num, param in enumerate(all_params):
             if param.res != block_type.name:
                 continue
 
             fields = ["atm1", "atm2", "atm3", "atm4"]
             atoms = [getattr(param, field) for field in fields if hasattr(param, field)]
-            fields = ["x0", "K", "period"]
+            # fields = ["x0", "K", "period"]
+            fields = ["x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
             params = [
                 getattr(param, field) for field in fields if hasattr(param, field)
             ]
 
+            previous_atm = ""
+            is_wildcard = False
             for i, atom in enumerate(atoms):
-                is_wildcard = False
+                if param_num >= len(self.cart_database.improper_parameters) and (
+                    previous_atm == "N"
+                    and atom == "C"
+                    or previous_atm == "C"
+                    and atom == "N"
+                ):
+                    is_wildcard = True
+                else:
+                    print(atoms, params)
+                previous_atm = atom
                 atoms[i] = (
                     self.get_atom_wildcard_id_name(param.res, atom)
                     if is_wildcard
@@ -135,6 +170,35 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             print(params_by_atom_unique_id)
         setattr(block_type, "params_by_unique_id", params_by_atom_unique_id)
 
+    def get_wildcard_params(self,):
+        params_by_atom_unique_id = {}
+        all_params = (
+            self.cart_database.length_parameters
+            + self.cart_database.angle_parameters
+            + self.cart_database.torsion_parameters
+        )
+        for param in all_params:
+            if param.res != "_":
+                continue
+
+            fields = ["atm1", "atm2", "atm3", "atm4"]
+            atoms = [getattr(param, field) for field in fields if hasattr(param, field)]
+            fields = ["x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
+            params = [
+                getattr(param, field) for field in fields if hasattr(param, field)
+            ]
+
+            for i, atom in enumerate(atoms):
+                atoms[i] = self.get_atom_wildcard_id_name(param.res, atom)
+                if atoms[i] not in self.atom_unique_id_index:
+                    self.atom_unique_id_index[atoms[i]] = len(self.atom_unique_id_index)
+
+            key = tuple([self.atom_unique_id_index[atom] for atom in atoms])
+
+            params_by_atom_unique_id[key] = params
+
+        return params_by_atom_unique_id
+
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
@@ -144,6 +208,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             total_subgraphs += block_type.cart_lengths.shape[0]
             total_subgraphs += block_type.cart_angles.shape[0]
             total_subgraphs += block_type.cart_torsions.shape[0]
+            total_subgraphs += block_type.cart_improper.shape[0]
         subgraphs = numpy.full((total_subgraphs, 4), -1, dtype=numpy.int32)
         subgraph_offsets = []
         offset = 0
@@ -162,6 +227,10 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             subgraphs[offset : offset + torsions] = block_type.cart_torsions
             offset += torsions
 
+            improper = block_type.cart_improper.shape[0]
+            subgraphs[offset : offset + improper] = block_type.cart_improper
+            offset += improper
+
         if debug:
             print(subgraphs)
             print(subgraph_offsets)
@@ -177,6 +246,8 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 for bt in packed_block_types.active_block_types
             ]
         )
+        wildcard_params = self.get_wildcard_params().items()
+        total_params += len(wildcard_params)
         scale = 2
 
         # stupid hash function
@@ -204,7 +275,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
         hash_values = numpy.full(
-            (total_params, 3), -1, dtype=numpy.float32  # x0, K, period
+            (total_params, 6), 0, dtype=numpy.float32  # k1, k2, k3, phi1, phi2, phi3
         )
 
         cur_val = 0
@@ -212,6 +283,14 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             for key, value in bt.params_by_unique_id.items():
                 add_to_hash(hash_keys, hash_values, cur_val, key, value)
                 cur_val += 1
+
+        for key, value in wildcard_params:
+            add_to_hash(hash_keys, hash_values, cur_val, key, value)
+            cur_val += 1
+
+        print("\n")
+        for key, value in self.atom_unique_id_index.items():
+            print(key, "    ", value)
 
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)
         hash_values_tensor = torch.from_numpy(hash_values).to(device=self.device)
@@ -230,6 +309,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
             atom_paths_from_conn=pbt.atom_paths_from_conn,
             atom_unique_ids=pbt.atom_unique_ids,
+            atom_wildcard_ids=pbt.atom_wildcard_ids,
             hash_keys=pbt.hash_keys,
             hash_values=pbt.hash_values,
             cart_subgraphs=pbt.cart_subgraphs,

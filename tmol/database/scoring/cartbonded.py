@@ -130,7 +130,11 @@ class CartRes:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CartBondedDatabaseNew:
-    cartbonded_residues: typing.Dict[str, CartRes]
+    length_parameters: Tuple[LengthGroup, ...]
+    angle_parameters: Tuple[AngleGroup, ...]
+    torsion_parameters: Tuple[HxlTorsionGroup, ...]
+    improper_parameters: Tuple[HxlTorsionGroup, ...]
+    hxltorsion_parameters: Tuple[HxlTorsionGroup, ...]
 
     @classmethod
     def from_file(cls, path):

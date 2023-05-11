@@ -11,6 +11,7 @@ class CartBondedWholePoseScoringModule(torch.nn.Module):
         pose_stack_inter_block_connections,
         atom_paths_from_conn,
         atom_unique_ids,
+        atom_wildcard_ids,
         hash_keys,
         hash_values,
         cart_subgraphs,
@@ -30,6 +31,7 @@ class CartBondedWholePoseScoringModule(torch.nn.Module):
         self.pose_stack_inter_block_connections = _p(pose_stack_inter_block_connections)
         self.atom_paths_from_conn = _p(atom_paths_from_conn)
         self.atom_unique_ids = _p(atom_unique_ids)
+        self.atom_wildcard_ids = _p(atom_wildcard_ids)
         self.hash_keys = _p(hash_keys)
         self.hash_values = _p(hash_values)
         self.cart_subgraphs = _p(cart_subgraphs)
@@ -45,6 +47,7 @@ class CartBondedWholePoseScoringModule(torch.nn.Module):
             self.pose_stack_inter_block_connections,
             self.atom_paths_from_conn,
             self.atom_unique_ids,
+            self.atom_wildcard_ids,
             self.hash_keys,
             self.hash_values,
             self.cart_subgraphs,
