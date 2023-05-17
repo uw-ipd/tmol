@@ -9,7 +9,6 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device: torch.device):
-
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
@@ -45,7 +44,6 @@ def test_annotate_disulfide_conns(
 def test_whole_pose_scoring_module_gradcheck_whole_pose(
     rts_disulfide_res, default_database, torch_device: torch.device
 ):
-
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
