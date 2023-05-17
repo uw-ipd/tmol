@@ -389,7 +389,6 @@ def test_AH_dist_gradcheck(compiled, sp2_params, sp3_params, ring_params):
         return torch.tensor(t).to(dtype=torch.double)
 
     for params in (sp2_params, sp3_params, ring_params):
-
         A = _t([[0.1, 0.1, v] for v in torch.arange(0, 3, 0.1)])
         H = _t([0, 0, 0])
 
@@ -444,7 +443,7 @@ def test_sp2_chi_energy_gradcheck(compiled, sp2_params):
         sp2_params["B0"], sp2_params["B"], sp2_params["A"], sp2_params["H"]
     )
 
-    for ang in list(numpy.linspace(.1, numpy.pi, 16, endpoint=False)):
+    for ang in list(numpy.linspace(0.1, numpy.pi, 16, endpoint=False)):
         params = (
             _t(ang).requires_grad_(True),
             _t(chi).requires_grad_(True),

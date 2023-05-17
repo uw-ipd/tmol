@@ -45,7 +45,7 @@ def test_mark_polymeric_bonds_in_foldforest_edges_1():
         (2, 2, 3),
         (2, 3, 4),
     ]
-    for (pid, r1, r2) in polymeric_edges:
+    for pid, r1, r2 in polymeric_edges:
         polymeric_connections_gold[pid, r1, r2] = 1
 
     numpy.testing.assert_equal(polymeric_connections_gold, polymeric_connection_in_edge)
@@ -93,7 +93,7 @@ def test_mark_polymeric_bonds_in_foldforest_edges_2():
         (2, 2, 3),
         (2, 3, 4),
     ]
-    for (pid, r1, r2) in polymeric_edges:
+    for pid, r1, r2 in polymeric_edges:
         polymeric_connections_gold[pid, r1, r2] = 1
 
     numpy.testing.assert_equal(polymeric_connections_gold, polymeric_connection_in_edge)
@@ -145,7 +145,7 @@ def test_mark_polymeric_bonds_in_foldforest_edges_3():
         (2, 2, 3),
         (2, 3, 4),
     ]
-    for (pid, r1, r2) in polymeric_edges:
+    for pid, r1, r2 in polymeric_edges:
         polymeric_connections_gold[pid, r1, r2] = 1
 
     numpy.testing.assert_equal(polymeric_connections_gold, polymeric_connection_in_edge)
@@ -179,7 +179,7 @@ def test_bfs_proper_forest_1():
         (2, 2, 3),
         (2, 3, 4),
     ]
-    for (pid, r1, r2) in edges:
+    for pid, r1, r2 in edges:
         connections[pid, r1, r2] = 1
 
     cycles_detected, missing = bfs_proper_forest(roots, n_res_per_tree, connections)
@@ -217,7 +217,7 @@ def test_bfs_proper_forest_2():
         (2, 2, 3),
         (2, 3, 4),
     ]
-    for (pid, r1, r2) in edges:
+    for pid, r1, r2 in edges:
         connections[pid, r1, r2] = 1
 
     cycles_detected, missing = bfs_proper_forest(roots, n_res_per_tree, connections)
@@ -248,7 +248,7 @@ def test_validate_fold_forest_1():
     ]
     count_pose_edges = numpy.zeros((3,), dtype=numpy.int64)
     edges = numpy.full((3, 4, 4), -1, dtype=numpy.int64)
-    for (pid, edge_type, r1, r2) in edges_compact:
+    for pid, edge_type, r1, r2 in edges_compact:
         edges[pid, count_pose_edges[pid], 0] = edge_type
         edges[pid, count_pose_edges[pid], 1] = r1
         edges[pid, count_pose_edges[pid], 2] = r2
@@ -278,7 +278,7 @@ def test_validate_fold_forest_2():
     ]
     count_pose_edges = numpy.zeros((3,), dtype=numpy.int64)
     edges = numpy.full((3, 4, 4), -1, dtype=numpy.int64)
-    for (pid, edge_type, r1, r2) in edges_compact:
+    for pid, edge_type, r1, r2 in edges_compact:
         edges[pid, count_pose_edges[pid], 0] = edge_type
         edges[pid, count_pose_edges[pid], 1] = r1
         edges[pid, count_pose_edges[pid], 2] = r2
@@ -309,7 +309,7 @@ def test_validate_fold_forest_3():
     ]
     count_pose_edges = numpy.zeros((3,), dtype=numpy.int64)
     edges = numpy.full((3, 4, 4), -1, dtype=numpy.int64)
-    for (pid, edge_type, r1, r2) in edges_compact:
+    for pid, edge_type, r1, r2 in edges_compact:
         edges[pid, count_pose_edges[pid], 0] = edge_type
         edges[pid, count_pose_edges[pid], 1] = r1
         edges[pid, count_pose_edges[pid], 2] = r2

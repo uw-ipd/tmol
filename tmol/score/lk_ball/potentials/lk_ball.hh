@@ -117,8 +117,9 @@ struct lk_fraction {
     }
 
     // TODO nan @ 0
-    return dV_t{d_wted_d2_delta_d_WI * dfrac_dwted_d2,
-                d_wted_d2_delta_d_J * dfrac_dwted_d2};
+    return dV_t{
+        d_wted_d2_delta_d_WI * dfrac_dwted_d2,
+        d_wted_d2_delta_d_J * dfrac_dwted_d2};
   }
 };
 
@@ -304,10 +305,11 @@ struct lk_ball_dV_dWater {
   WatersMat d_lkbridge_uncpl;
 
   static def Zero()->lk_ball_dV_dWater {
-    return {WatersMat::Zero(),
-            WatersMat::Zero(),
-            WatersMat::Zero(),
-            WatersMat::Zero()};
+    return {
+        WatersMat::Zero(),
+        WatersMat::Zero(),
+        WatersMat::Zero(),
+        WatersMat::Zero()};
   }
 };
 
@@ -319,10 +321,11 @@ struct lk_ball_dVt {
   lk_ball_dV_dWater<Real, MAX_WATER> dWJ;
 
   static def Zero()->lk_ball_dVt {
-    return {lk_ball_dV_dReal3<Real>::Zero(),
-            lk_ball_dV_dReal3<Real>::Zero(),
-            lk_ball_dV_dWater<Real, MAX_WATER>::Zero(),
-            lk_ball_dV_dWater<Real, MAX_WATER>::Zero()};
+    return {
+        lk_ball_dV_dReal3<Real>::Zero(),
+        lk_ball_dV_dReal3<Real>::Zero(),
+        lk_ball_dV_dWater<Real, MAX_WATER>::Zero(),
+        lk_ball_dV_dWater<Real, MAX_WATER>::Zero()};
   }
 };
 

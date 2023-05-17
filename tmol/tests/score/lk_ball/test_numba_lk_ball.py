@@ -126,7 +126,7 @@ def test_lkball_deriv(default_database):
     ## TEST 1: LKBALL FRACTION
     a_i = numpy.array((-2.5, 0.1, 2.5))
     lkfrac = get_lk_fraction(a_i, ramp_width_A2, lj_radius_i, w_j)
-    assert lkfrac == pytest.approx(.65, abs=.01)
+    assert lkfrac == pytest.approx(0.65, abs=0.01)
 
     # analytic
     dlkfrac_i_A, dlkfrac_j_A = get_dlk_fraction_dij(
@@ -169,7 +169,7 @@ def test_lkball_deriv(default_database):
     lkbrfrac = get_lkbr_fraction(
         a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, heavyatom_water_len
     )
-    assert lkbrfrac == pytest.approx(.0265, abs=.001)
+    assert lkbrfrac == pytest.approx(0.0265, abs=0.001)
 
     # analytic
     dlkfrac_dai_A, dlkfrac_daj_A, dlkfrac_dwi_A, dlkfrac_dwj_A = get_dlkbr_fraction_dij(
@@ -421,7 +421,7 @@ def test_lkball_deriv_full_backward_pass(default_database):
     atom_types = param_resolver.type_idx(
         ["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]
     ).numpy()
-    bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int)
+    bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int64)
     bonded_path_lengths[:3, 3:] = 5
     bonded_path_lengths[3:, :3] = 5
     attachedH = numpy.full((6, 4), -1)
@@ -493,7 +493,7 @@ def test_lkball_spotcheck(default_database):
     atom_types = param_resolver.type_idx(
         ["Nlys", "Hpol", "Hpol", "Hpol", "Nlys", "Hpol", "Hpol", "Hpol"]
     ).numpy()
-    bonded_path_lengths = numpy.ones((8, 8), dtype=numpy.int)
+    bonded_path_lengths = numpy.ones((8, 8), dtype=numpy.int64)
     bonded_path_lengths[:4, 4:] = 5
     bonded_path_lengths[4:, :4] = 5
     attachedH = numpy.full((8, 4), -1)
@@ -506,7 +506,7 @@ def test_lkball_spotcheck(default_database):
     )
     pairs_ref = [[0, 4]]
     numpy.testing.assert_array_equal(pairs, pairs_ref)
-    score_ref = numpy.array([[0.335514, 0., 0.264926, 0.789612]])
+    score_ref = numpy.array([[0.335514, 0.0, 0.264926, 0.789612]])
     numpy.testing.assert_allclose(score, score_ref, atol=1e-5)
 
 
@@ -537,7 +537,7 @@ def test_lkball_spotcheck_sp2_nonpolar(default_database):
     )
     atom_types = param_resolver.type_idx(["CH2", "COO", "OOC", "CH3"]).numpy()
 
-    bonded_path_lengths = numpy.ones((4, 4), dtype=numpy.int)
+    bonded_path_lengths = numpy.ones((4, 4), dtype=numpy.int64)
     bonded_path_lengths[:3, 3] = 5
     bonded_path_lengths[3, :3] = 5
     attachedH = numpy.full((4, 4), -1)
@@ -549,7 +549,7 @@ def test_lkball_spotcheck_sp2_nonpolar(default_database):
     )
     pairs_ref = [[2, 3]]
     numpy.testing.assert_array_equal(pairs, pairs_ref)
-    score_ref = numpy.array([[0.14107985, 0.04765878, 0., 0.]])
+    score_ref = numpy.array([[0.14107985, 0.04765878, 0.0, 0.0]])
     numpy.testing.assert_allclose(score, score_ref, atol=1e-5)
 
 
@@ -583,7 +583,7 @@ def test_lkball_spotcheck_sp3_ring(default_database):
     atom_types = param_resolver.type_idx(
         ["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]
     ).numpy()
-    bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int)
+    bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int64)
     bonded_path_lengths[:3, 3:] = 5
     bonded_path_lengths[3:, :3] = 5
     attachedH = numpy.full((6, 4), -1)

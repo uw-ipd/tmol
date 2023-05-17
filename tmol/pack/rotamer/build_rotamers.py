@@ -231,7 +231,6 @@ def construct_scans_for_rotamers(
     n_atoms_for_rot: Tensor[torch.int32][:],
     n_atoms_offset_for_rot: NDArray[numpy.int64][:],
 ):
-
     scanStartsStack = pbt.rotamer_kinforest.scans[block_type_ind_for_rot]
     genStartsStack = pbt.rotamer_kinforest.gens[block_type_ind_for_rot]
 
@@ -582,7 +581,6 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     sampler_for_rotamer: Tensor[torch.int64][:],
     n_dof_atoms_offset_for_rot: Tensor[torch.int32][:],
 ) -> Tuple[Tensor[torch.int64][:], Tensor[torch.int64][:]]:
-
     # we want to copy from the orig_dofs tensor into the
     # rot_dofs tensor for the "mainchain" atoms in the
     # original residues into the appropriate positions
@@ -757,7 +755,6 @@ def copy_dofs_from_orig_to_rotamers(
     orig_dofs_kto: Tensor[torch.float32][:, 9],
     rot_dofs_kto: Tensor[torch.float32][:, 9],
 ):
-
     dst, src = create_dof_inds_to_copy_from_orig_to_rotamers(
         poses,
         task,
@@ -913,7 +910,6 @@ def get_rotamer_origin_data(task: PackerTask, rt_for_rot: Tensor[torch.int32][:]
 
 
 def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase):
-
     poses, samplers = rebuild_poses_if_necessary(poses, task)
     pbt = poses.packed_block_types
     annotate_everything(chem_db, samplers, pbt)

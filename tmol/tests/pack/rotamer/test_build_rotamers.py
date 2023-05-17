@@ -30,7 +30,6 @@ from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 def test_annotate_restypes(
     default_database, fresh_default_restype_set, torch_device, dun_sampler
 ):
-
     fixed_sampler = FixedAAChiSampler()
     samplers = (dun_sampler, fixed_sampler)
 
@@ -914,7 +913,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
         return pbt.n_atoms[poses.block_type_ind[i1, i2]]
 
     src_dof_offsets = numpy.cumsum(
-        [0, n_ats(0, 0), n_ats(0, 1), n_ats(1, 0), n_ats(1, 1)]
+        [0, n_ats(0, 0).cpu(), n_ats(0, 1).cpu(), n_ats(1, 0).cpu(), n_ats(1, 1).cpu()]
     ).repeat(6)
 
     src_gold = src_fpats_kto + src_dof_offsets + 1
@@ -999,7 +998,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 def test_build_lots_of_rotamers(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
-
     n_poses = 6
     p = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res, torch_device
@@ -1039,7 +1037,6 @@ def test_build_lots_of_rotamers(
 def test_create_dofs_for_many_rotamers(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
-
     n_poses = 6
     p = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res, torch_device

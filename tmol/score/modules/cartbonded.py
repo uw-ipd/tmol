@@ -74,8 +74,9 @@ class CartBondedParameters(ScoreModule):
         )
 
     @cartbonded_lengths.default
-    def _init_cartbonded_lengths(self,) -> Tensor[torch.int64][:, :, 3]:
-
+    def _init_cartbonded_lengths(
+        self,
+    ) -> Tensor[torch.int64][:, :, 3]:
         # combine resolved atom indices and bondlength indices
         bondlength_atom_indices = self.cartbonded_param_identifier.lengths
 
@@ -188,9 +189,9 @@ def _clone_for_score_system(
 ):
     """Override constructor.
 
-        Create from ``val.cartbonded_database`` if possible, otherwise from
-        ``parameter_database.scoring.cartbonded``.
-        """
+    Create from ``val.cartbonded_database`` if possible, otherwise from
+    ``parameter_database.scoring.cartbonded``.
+    """
     if cartbonded_database is None:
         cartbonded_database = CartBondedParameters.get(old).cartbonded_database
 

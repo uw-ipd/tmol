@@ -71,7 +71,7 @@ def test_get_bonds_for_named_torsions(ubq_res, torch_device):
                 at1 = atom_ind_to_global_index(*resolve_atom(pose_ind, i, tor.b))
                 at2 = atom_ind_to_global_index(*resolve_atom(pose_ind, i, tor.c))
                 if at1 != -1 and at2 != -1:
-                    tor_at_inds.append((at1, at2))
+                    tor_at_inds.append((at1.cpu(), at2.cpu()))
     middle_bond_ats_gold = numpy.array(tor_at_inds, dtype=numpy.int64)
     numpy.testing.assert_equal(middle_bond_ats_gold, middle_bond_ats.cpu().numpy())
 
@@ -108,7 +108,7 @@ def test_get_pose_stack_bonds(ubq_res, torch_device):
                         + i_j_bond_indices[k, el]
                     )
 
-                bonds_gold.append((bond_atom(0), bond_atom(1)))
+                bonds_gold.append((bond_atom(0).cpu(), bond_atom(1).cpu()))
     for i in range(pose_stack.n_poses):
         for j in range(pose_stack.max_n_blocks):
             ijbt_ind = pose_stack.block_type_ind[i, j]
@@ -127,12 +127,16 @@ def test_get_pose_stack_bonds(ubq_res, torch_device):
 
                 bonds_gold.append(
                     (
-                        i * pose_stack.max_n_pose_atoms
-                        + pose_stack.block_coord_offset[i, j]
-                        + ijbt.ordered_connection_atoms[k],
-                        i * pose_stack.max_n_pose_atoms
-                        + pose_stack.block_coord_offset[i, other_res_ind]
-                        + other_bt.ordered_connection_atoms[other_res_conn_ind],
+                        (
+                            i * pose_stack.max_n_pose_atoms
+                            + pose_stack.block_coord_offset[i, j]
+                            + ijbt.ordered_connection_atoms[k]
+                        ).cpu(),
+                        (
+                            i * pose_stack.max_n_pose_atoms
+                            + pose_stack.block_coord_offset[i, other_res_ind]
+                            + other_bt.ordered_connection_atoms[other_res_conn_ind]
+                        ).cpu(),
                     )
                 )
     bonds_gold = numpy.array(bonds_gold, dtype=numpy.int64)

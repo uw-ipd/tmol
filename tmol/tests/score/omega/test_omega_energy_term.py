@@ -9,7 +9,6 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device: torch.device):
-
     omega_energy = OmegaEnergyTerm(param_db=default_database, device=torch_device)
 
     assert omega_energy.device == torch_device
@@ -30,10 +29,9 @@ def test_annotate_omega_uaids(ubq_res, default_database, torch_device: torch.dev
     assert pbt.omega_quad_uaids.device == torch_device
 
 
-def test_whole_pose_scoring_module_gradcheck_whole_pose(
+def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
-
     omega_energy = OmegaEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device

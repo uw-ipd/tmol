@@ -6,7 +6,7 @@ from tmol.chemical.restypes import ResidueTypeSet
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pack.rotamer.single_residue_kinforest import (
-    construct_single_residue_kinforest
+    construct_single_residue_kinforest,
 )
 from tmol.pack.rotamer.mainchain_fingerprint import (
     create_non_sidechain_fingerprint,

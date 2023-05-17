@@ -10,8 +10,7 @@ def default_restype_set():
 
 @pytest.fixture
 def fresh_default_restype_set(default_database):
-    """Fresh ResidueTypeSet constructed for each test
-    """
+    """Fresh ResidueTypeSet constructed for each test"""
     return tmol.chemical.restypes.ResidueTypeSet.from_database(
         default_database.chemical
     )

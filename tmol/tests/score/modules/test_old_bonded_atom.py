@@ -35,7 +35,7 @@ def test_bonded_atom_clone_factory(ubq_system: PackedResidueSystem):
 
 
 def test_bonded_atom_clone_factory_from_stacked_systems(
-    ubq_system: PackedResidueSystem
+    ubq_system: PackedResidueSystem,
 ):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
     basg: ScoreSystem = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})

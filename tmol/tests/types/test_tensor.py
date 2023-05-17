@@ -47,7 +47,6 @@ def test_attr_checking():
     v = InvalidAttrType(numpy.arange(10), "arange")
 
     with pytest.raises(TypeError):
-
         v[:5]
 
 

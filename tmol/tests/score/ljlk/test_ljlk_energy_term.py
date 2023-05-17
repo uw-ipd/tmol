@@ -10,7 +10,6 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device):
-
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     assert ljlk_energy.type_params.lj_radius.device == torch_device
@@ -18,7 +17,6 @@ def test_smoke(default_database, torch_device):
 
 
 def test_annotate_heavy_ats_in_tile(ubq_res, default_database, torch_device):
-
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     rt_list = residue_types_from_residues(ubq_res)

@@ -96,11 +96,11 @@ def test_lj_spotcheck(params, iname, jname):
         return dist.grad.numpy()
 
     # Linear region
-    assert eval_lj(.6 * sigma - 1.0) == approx(
-        eval_lj(.6 * sigma) - eval_d_lj_d_dist(.6 * sigma)
+    assert eval_lj(0.6 * sigma - 1.0) == approx(
+        eval_lj(0.6 * sigma) - eval_d_lj_d_dist(0.6 * sigma)
     )
-    assert eval_d_lj_d_dist(numpy.linspace(0, .6 * sigma)) == approx(
-        float(eval_d_lj_d_dist(.6 * sigma))
+    assert eval_d_lj_d_dist(numpy.linspace(0, 0.6 * sigma)) == approx(
+        float(eval_d_lj_d_dist(0.6 * sigma))
     )
 
     # Minimum value at sigma

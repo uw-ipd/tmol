@@ -38,10 +38,10 @@ class OmegaEnergyTerm(EnergyTerm):
         if hasattr(block_type, "omega_quad_uaids"):
             return
 
-        omega_quad_uaids = numpy.full((4, 3), -1, dtype=numpy.float32)
+        omega_quad_uaids = numpy.full((4, 3), -1, dtype=numpy.int32)
         if "omega" in block_type.torsion_to_uaids:
             omega_quad_uaids = numpy.array(
-                block_type.torsion_to_uaids["omega"], dtype=numpy.float32
+                block_type.torsion_to_uaids["omega"], dtype=numpy.int32
             )
 
         setattr(block_type, "omega_quad_uaids", omega_quad_uaids)

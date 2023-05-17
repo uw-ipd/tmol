@@ -145,7 +145,6 @@ def test_create_pose_from_sequence(fresh_default_packed_block_types, torch_devic
 def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
     torch_device,
 ):
-
     # lets's conceive of a set of three bts, all w/ lcaa-like backbones
     def i64(x):
         return torch.tensor(x, dtype=torch.int64, device=torch_device)
@@ -211,7 +210,9 @@ def test_pose_stack_builder_find_inter_block_sep_for_polymeric_monomers_lcaa(
     torch.testing.assert_close(gold_inter_block_separation64, inter_block_separation64)
 
 
-def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(torch_device,):
+def test_pose_stack_builder_inter_block_sep_mix_alpha_and_beta(
+    torch_device,
+):
     # this time, mix alpha- and beta amino acids in a chain
 
     def i64(x):

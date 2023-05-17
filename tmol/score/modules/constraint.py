@@ -20,8 +20,7 @@ class ConstraintParameters(ScoreModule):
     @staticmethod
     @singledispatch
     def build_for(val, system: ScoreSystem, *, cstdata: Optional[dict] = None, **_):
-        """Override constructor.
-        """
+        """Override constructor."""
         if cstdata is None:
             cstdata = {}
 

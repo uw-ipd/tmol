@@ -130,9 +130,9 @@ def _clone_for_score_system(
 ):
     """Override constructor.
 
-        Create from ``val.hbond_database`` if possible, otherwise from
-        ``parameter_database.scoring.hbond``.
-        """
+    Create from ``val.hbond_database`` if possible, otherwise from
+    ``parameter_database.scoring.hbond``.
+    """
     if hbond_database is None:
         hbond_database = HBondParameters.get(old).hbond_database
 

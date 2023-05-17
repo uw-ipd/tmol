@@ -140,8 +140,7 @@ def find_impropers(bonds, bond_spans):
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class CartBondedIdentification:
-    """Expands a bondgraph to export all bondangles and bondlengths
-    """
+    """Expands a bondgraph to export all bondangles and bondlengths"""
 
     lengths: NDArray[int][:, :, 2]
     angles: NDArray[int][:, :, 3]

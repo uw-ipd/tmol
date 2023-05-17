@@ -13,7 +13,6 @@ from .rama import RamaDatabase
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ScoringDatabase:
-
     cartbonded: CartBondedDatabase
     disulfide: DisulfideDatabase
     dun: DunbrackRotamerLibrary

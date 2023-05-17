@@ -64,7 +64,7 @@ def unflatten(keys_values, factory=dict):
 
 
 def update_inplace(d, keys, func, default=None, factory=dict):
-    """ Update value in a (potentially) nested dictionary inplace
+    """Update value in a (potentially) nested dictionary inplace
 
     inputs:
     d - dictionary on which to operate

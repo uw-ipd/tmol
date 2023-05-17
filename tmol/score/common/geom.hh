@@ -68,9 +68,10 @@ struct interior_angle {
     auto A_norm = A.norm();
     auto B_norm = B.norm();
 
-    return {2 * std::atan2(CR.dot(z_unit), A_norm * B_norm + A.dot(B)),
-            (A / A_norm).cross(z_unit) / A_norm,
-            -(B / B_norm).cross(z_unit) / B_norm};
+    return {
+        2 * std::atan2(CR.dot(z_unit), A_norm * B_norm + A.dot(B)),
+        (A / A_norm).cross(z_unit) / A_norm,
+        -(B / B_norm).cross(z_unit) / B_norm};
   }
 };
 
@@ -121,9 +122,10 @@ struct cos_interior_angle {
 
     auto cosAB = (A.dot(B) / AB_norm);
 
-    return {cosAB,
-            -cosAB * A / (A_norm * A_norm) + B / AB_norm,
-            -cosAB * B / (B_norm * B_norm) + A / AB_norm};
+    return {
+        cosAB,
+        -cosAB * A / (A_norm * A_norm) + B / AB_norm,
+        -cosAB * B / (B_norm * B_norm) + A / AB_norm};
   }
 };
 
@@ -184,8 +186,8 @@ struct dihedral_angle {
 
     return sign
            * std::acos(std::fmax(
-                 (Real)-1.0,
-                 std::fmin(A.dot(B) / (A.norm() * B.norm()), (Real)1.0)));
+               (Real)-1.0,
+               std::fmin(A.dot(B) / (A.norm() * B.norm()), (Real)1.0)));
   }
 
   static def V_dV(Real3 I, Real3 J, Real3 K, Real3 L)->V_dV_T {
@@ -202,16 +204,17 @@ struct dihedral_angle {
     Real sign = G.dot(A.cross(B)) >= 0 ? -1.0 : 1.0;
     auto V = sign
              * std::acos(std::fmax(
-                   (Real)-1.0,
-                   std::fmin(A.dot(B) / (A.norm() * B.norm()), (Real)1.0)));
+                 (Real)-1.0,
+                 std::fmin(A.dot(B) / (A.norm() * B.norm()), (Real)1.0)));
 
-    return {V,
-            -(G.norm() / A.dot(A)) * A,
-            G.norm() / A.dot(A) * A + F.dot(G) / (A.dot(A) * G.norm()) * A
-                - (H.dot(G) / (B.dot(B) * G.norm())) * B,
-            -G.norm() / B.dot(B) * B - F.dot(G) / (A.dot(A) * G.norm()) * A
-                + (H.dot(G) / (B.dot(B) * G.norm())) * B,
-            G.norm() / B.dot(B) * B};
+    return {
+        V,
+        -(G.norm() / A.dot(A)) * A,
+        G.norm() / A.dot(A) * A + F.dot(G) / (A.dot(A) * G.norm()) * A
+            - (H.dot(G) / (B.dot(B) * G.norm())) * B,
+        -G.norm() / B.dot(B) * B - F.dot(G) / (A.dot(A) * G.norm()) * A
+            + (H.dot(G) / (B.dot(B) * G.norm())) * B,
+        G.norm() / B.dot(B) * B};
   }
 };
 

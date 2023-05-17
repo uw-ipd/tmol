@@ -2,7 +2,6 @@ from collections import Counter
 
 
 def test_ljlk_defs(default_database):
-
     db = default_database.scoring.ljlk
     atom_type_counts = Counter(n.name for n in db.atom_type_parameters)
 
