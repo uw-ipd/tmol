@@ -49,6 +49,35 @@ TMOL_DEVICE_FUNC subgraph_type get_subgraph_type(Vec<Int, 4> subgraph) {
   return subgraph_type::torsion;
 }
 
+template <typename Int, Int size>
+TMOL_DEVICE_FUNC Vec<Int, size> atom_local_to_global_indices(
+    Vec<Int, size> local_indices, Int offset) {
+  Vec<Int, size> global_indices;
+  for (int i = 0; i < size; i++) {
+    if (local_indices[i] != -1)
+      global_indices[i] = local_indices[i] + offset;
+    else
+      global_indices[i] = -1;
+  }
+  return global_indices;
+}
+
+template <typename Int, tmol::Device D>
+TMOL_DEVICE_FUNC Int
+get_atom_id(TensorAccessor<Int, 1, D> atom_id_table, Int atom_index) {
+  return (atom_index == -1) ? -1 : atom_id_table[atom_index];
+}
+
+template <typename Int, Int size, tmol::Device D>
+TMOL_DEVICE_FUNC Vec<Int, size> get_atom_ids(
+    TensorAccessor<Int, 1, D> atom_id_table, Vec<Int, size> atoms) {
+  Vec<Int, size> atom_ids;
+  for (int i = 0; i < size; i++) {
+    atom_ids[i] = get_atom_id<Int, D>(atom_id_table, atoms[i]);
+  }
+  return atom_ids;
+}
+
 template <typename Int>
 TMOL_DEVICE_FUNC void reverse_subgraph(Vec<Int, 4>& subgraph) {
   subgraph_type type = get_subgraph_type(subgraph);
@@ -177,21 +206,6 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                    : cart_subgraph_offsets[block_type + 1];
     subgraph_index += subgraph_offset;
 
-    auto get_block_type_atom_id =
-        ([=] TMOL_DEVICE_FUNC(
-             Int atom_index, Int block_type_index, bool wildcard = false) {
-          return (atom_index == -1) ? -1
-                 : (wildcard) ? atom_wildcard_ids[block_type_index][atom_index]
-                              : atom_unique_ids[block_type_index][atom_index];
-        });
-
-    auto get_param_index =
-        ([=] TMOL_DEVICE_FUNC(Vec<Int, 4> subgraph_atom_ids) {
-          int index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
-
-          return index;
-        });
-
     auto score_subgraph =
         ([&] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Int param_index) {
           Vec<Real, 6> params = hash_values[param_index];
@@ -249,6 +263,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           int other_block_index = connection[0];
           int other_block_type =
               pose_stack_block_type[pose_index][other_block_index];
+          int other_block_offset =
+              pose_stack_block_coord_offset[pose_index][other_block_index];
 
           if (other_block_index == -1) continue;
 
@@ -266,40 +282,23 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           if (res1_path[0] == -1 || res2_path[0] == -1) continue;
           res1_path.reverseInPlace();
 
-          Vec<Int, 3> res1_atom_indices;
-          Vec<Int, 3> res2_atom_indices;
+          Vec<Int, 3> res1_atom_indices =
+              atom_local_to_global_indices(res1_path, block_coord_offset);
+          Vec<Int, 3> res2_atom_indices =
+              atom_local_to_global_indices(res2_path, other_block_offset);
 
-          Vec<Int, 3> res1_subgraph_atom_ids;
-          Vec<Int, 3> res2_subgraph_atom_ids;
+          const auto& res1_atom_id_table = (wildcard)
+                                               ? atom_wildcard_ids[block_type]
+                                               : atom_unique_ids[block_type];
+          const auto& res2_atom_id_table = atom_wildcard_ids[other_block_type];
 
-          Int res1_size = 0;
-          Int res2_size = 0;
+          Vec<Int, 3> res1_subgraph_atom_ids =
+              get_atom_ids(res1_atom_id_table, res1_path);
+          Vec<Int, 3> res2_subgraph_atom_ids =
+              get_atom_ids(res2_atom_id_table, res2_path);
 
-          // Fill the other vecs with additional data and mark the start/end
-          for (int j = 0; j < 3; j++) {
-            if (res1_path[j] != -1) {
-              res1_atom_indices[j] = res1_path[j] + block_coord_offset;
-              res1_subgraph_atom_ids[j] =
-                  get_block_type_atom_id(res1_path[j], block_type, wildcard);
-              res1_size++;
-            } else {
-              res1_atom_indices[j] = -1;
-              res1_subgraph_atom_ids[j] = -1;
-            }
-
-            if (res2_path[j] != -1) {
-              res2_atom_indices[j] =
-                  res2_path[j]
-                  + pose_stack_block_coord_offset[pose_index]
-                                                 [other_block_index];
-              res2_subgraph_atom_ids[j] =
-                  get_block_type_atom_id(res2_path[j], other_block_type, true);
-              res2_size++;
-            } else {
-              res2_atom_indices[j] = -1;
-              res2_subgraph_atom_ids[j] = -1;
-            }
-          }
+          Int res1_size = (res1_atom_indices.array() != -1).count();
+          Int res2_size = (res2_atom_indices.array() != -1).count();
 
           Vec<Int, 4> path;
           Vec<Int, 4> atom_indices;
@@ -318,7 +317,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               << res1_subgraph_atom_ids.tail(res1_size),
               res2_subgraph_atom_ids.head(res2_size);
 
-          int param_index = get_param_index(subgraph_atom_ids);
+          int param_index =
+              hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
           if (param_index != -1) {
             score_subgraph(atom_indices, param_index);
@@ -332,16 +332,13 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       Vec<Int, 4> subgraph = cart_subgraphs[subgraph_index];
       if (reverse) reverse_subgraph(subgraph);
 
-      Vec<Int, 4> subgraph_atom_ids;
-      for (int i = 0; i < 4; i++) {
-        subgraph_atom_ids[i] = get_block_type_atom_id(subgraph[i], block_type);
-      }
-      int param_index = get_param_index(subgraph_atom_ids);
+      Vec<Int, 4> subgraph_atom_ids =
+          get_atom_ids(atom_unique_ids[block_type], subgraph);
+      int param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
-      Vec<Int, 4> subgraph_atom_indices;
-      for (int i = 0; i < 4; i++)
-        subgraph_atom_indices[i] =
-            (subgraph[i] == -1) ? -1 : block_coord_offset + subgraph[i];
+      Vec<Int, 4> subgraph_atom_indices =
+          atom_local_to_global_indices(subgraph, block_coord_offset);
+
       if (param_index != -1) {
         score_subgraph(subgraph_atom_indices, param_index);
       }
