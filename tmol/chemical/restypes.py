@@ -218,7 +218,6 @@ class RefinedResidueType(RawResidueType):
                     if atom2 != atom0:
                         idx += 1
 
-            # print(paths)
             return paths
 
         # construct a list of paths starting from each connection point of length 3 and record the atom indices of the atoms in those paths

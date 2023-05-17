@@ -84,21 +84,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         for atom3 in [block_type.atom_to_idx["CA"]]:
             comb = list(permutations(bondmap[atom3], 3))
             for atom1, atom2, atom4 in comb:
-                # print(atom1, atom2, atom3, atom4)
                 improper.append((atom1, atom2, atom3, atom4))
-
-        print("IMPROPER: ", improper)
-        # get hxl torsions
-
-        if debug:
-            print("")
-            print("BONDS")
-            print(bonds)
-            print("")
-            print("LENGTHS/ANGLES/TORSIONS")
-            print(lengths)
-            print(angles)
-            print(torsions)
 
         return (
             numpy.asarray(lengths),
@@ -150,7 +136,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 ):
                     is_wildcard = True
                 else:
-                    print(atoms, params)
+                    pass  # print(atoms, params)
                 previous_atm = atom
                 atoms[i] = (
                     self.get_atom_wildcard_id_name(param.res, atom)
@@ -164,10 +150,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
             params_by_atom_unique_id[key] = params
 
-        if debug:
-            print("")
-            print("PARAMS")
-            print(params_by_atom_unique_id)
         setattr(block_type, "params_by_unique_id", params_by_atom_unique_id)
 
     def get_wildcard_params(self,):
@@ -238,9 +220,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
         setattr(packed_block_types, "max_subgraphs_per_block", max_subgraphs_per_block)
 
-        if debug:
-            print(subgraphs)
-            print(subgraph_offsets)
         subgraph_offsets = numpy.asarray(subgraph_offsets, dtype=numpy.int32)
         subgraphs = torch.from_numpy(subgraphs).to(device=self.device)
         subgraph_offsets = torch.from_numpy(subgraph_offsets).to(device=self.device)
@@ -295,10 +274,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             add_to_hash(hash_keys, hash_values, cur_val, key, value)
             cur_val += 1
 
-        """print("\n")
-        for key, value in self.atom_unique_id_index.items():
-            print(key, "    ", value)"""
-
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)
         hash_values_tensor = torch.from_numpy(hash_values).to(device=self.device)
         setattr(packed_block_types, "hash_keys", hash_keys_tensor)
@@ -321,6 +296,5 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             hash_values=pbt.hash_values,
             cart_subgraphs=pbt.cart_subgraphs,
             cart_subgraph_offsets=pbt.cart_subgraph_offsets,
-            max_subgraphs_per_block=pbt.max_subgraphs_per_block
-            # global_params=self.global_params,
+            max_subgraphs_per_block=pbt.max_subgraphs_per_block,
         )

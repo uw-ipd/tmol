@@ -16,8 +16,7 @@ class CartBondedWholePoseScoringModule(torch.nn.Module):
         hash_values,
         cart_subgraphs,
         cart_subgraph_offsets,
-        max_subgraphs_per_block
-        # global_params,
+        max_subgraphs_per_block,
     ):
         super(CartBondedWholePoseScoringModule, self).__init__()
 
@@ -39,10 +38,6 @@ class CartBondedWholePoseScoringModule(torch.nn.Module):
         self.cart_subgraph_offsets = _p(cart_subgraph_offsets)
         self.max_subgraphs_per_block = torch.tensor(max_subgraphs_per_block)
 
-        print(cart_subgraph_offsets)
-
-        # self.global_params = _p(torch.stack(_t([global_params.K]), dim=1))
-
     def forward(self, coords):
         return cartbonded_pose_scores(
             coords,
@@ -56,6 +51,5 @@ class CartBondedWholePoseScoringModule(torch.nn.Module):
             self.hash_values,
             self.cart_subgraphs,
             self.cart_subgraph_offsets,
-            self.max_subgraphs_per_block
-            # self.global_params,
+            self.max_subgraphs_per_block,
         )

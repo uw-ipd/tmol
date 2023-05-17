@@ -54,11 +54,9 @@ template <typename Int, tmol::Device D>
 TMOL_DEVICE_FUNC int hash_lookup(
     Vec<Int, 4> key, TView<Vec<Int, 5>, 1, D> hash_keys) {
   int index = hash_funct<Int>(key, hash_keys.size(0));
-  // printf("index: %i\n", index);
   while (true) {
     bool match = true;
     for (int i = 0; i < 4; i++) {
-      // printf("%i %i\n", key[i], hash_keys[index][i]);
       match = match && key[i] == hash_keys[index][i];
     }
     if (match) return hash_keys[index][4];
@@ -138,8 +136,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   int const n_subgraphs = cart_subgraphs.size(0);
 
-  auto V_t = TPack<Real, 2, D>::zeros({1, n_poses});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({1, n_poses, max_n_atoms});
+  auto V_t = TPack<Real, 2, D>::zeros({3, n_poses});
+  auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({3, n_poses, max_n_atoms});
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
@@ -155,7 +153,6 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto func = ([=] TMOL_DEVICE_FUNC(
                    int pose_index, int block_index, int subgraph_index) {
     Real score = 0;
-    // printf("%d %d %d\n", pose_index, block_index, subgraph_index);
     const int CON_PATH_INDICES[][2] = {// Length
                                        {0, 0},
 
@@ -248,7 +245,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               auto eval =
                   cbangle_V_dV(atom1, atom2, atom3, params[1], params[0]);
               score = common::get<0>(eval);
-              accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
+              accumulate<D, Real>::add(V[1][pose_index], common::get<0>(eval));
               break;
             }
             case subgraph_type::torsion: {
@@ -264,7 +261,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                   params[4],
                   params[5]);
               score = common::get<0>(eval);
-              accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
+              accumulate<D, Real>::add(V[2][pose_index], common::get<0>(eval));
               break;
             }
           }
