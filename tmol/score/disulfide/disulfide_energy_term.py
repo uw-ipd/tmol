@@ -6,7 +6,7 @@ from ..energy_term import EnergyTerm
 from tmol.database import ParameterDatabase
 from tmol.score.disulfide.params import DisulfideGlobalParams
 from tmol.score.disulfide.disulfide_whole_pose_module import (
-    DisulfideWholePoseScoringModule
+    DisulfideWholePoseScoringModule,
 )
 
 from tmol.chemical.restypes import RefinedResidueType

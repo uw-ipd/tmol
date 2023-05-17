@@ -46,7 +46,6 @@ class DisulfideGlobalParams(TensorGroup):
     @classmethod
     @validate_args
     def from_database(cls, disulfide_database: DisulfideDatabase, device: torch.device):
-
         global_params = DisulfideGlobalParams(
             **{
                 n: torch.tensor(v, device=device).expand((1,))
