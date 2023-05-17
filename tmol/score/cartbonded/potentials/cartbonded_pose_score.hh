@@ -43,6 +43,8 @@ struct CartBondedPoseScoreDispatch {
       TView<Vec<Int, 4>, 1, D> cart_subgraphs,
       TView<Int, 1, D> cart_subgraph_offsets,
 
+      int max_subgraphs_per_block,
+
       // TView<CartBondedGlobalParams<Real>, 1, D> global_params,
 
       bool compute_derivs

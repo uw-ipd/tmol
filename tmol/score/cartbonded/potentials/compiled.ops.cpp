@@ -157,7 +157,8 @@ class CartBondedPoseScoreOp
       Tensor hash_keys,
       Tensor hash_values,
       Tensor cart_subgraphs,
-      Tensor cart_subgraph_offsets) {
+      Tensor cart_subgraph_offsets,
+      Tensor max_subgraphs_per_block) {
     // Tensor global_paTensor rams) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
@@ -182,6 +183,7 @@ class CartBondedPoseScoreOp
                   TCAST(hash_values),
                   TCAST(cart_subgraphs),
                   TCAST(cart_subgraph_offsets),
+                  max_subgraphs_per_block.item<int>(),
                   // TCAST(global_params),
                   coords.requires_grad());
 
@@ -232,7 +234,8 @@ Tensor cartbonded_pose_scores_op(
     Tensor hash_keys,
     Tensor hash_values,
     Tensor cart_subgraphs,
-    Tensor cart_subgraph_offsets) {
+    Tensor cart_subgraph_offsets,
+    Tensor max_subgraphs_per_block) {
   // Tensor global_params) {
   return CartBondedPoseScoreOp<DispatchMethod>::apply(
       coords,
@@ -245,7 +248,8 @@ Tensor cartbonded_pose_scores_op(
       hash_keys,
       hash_values,
       cart_subgraphs,
-      cart_subgraph_offsets);
+      cart_subgraph_offsets,
+      max_subgraphs_per_block);
   // global_params);
 }
 

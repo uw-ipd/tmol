@@ -124,13 +124,17 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
     TView<Int, 1, D> cart_subgraph_offsets,
 
+    int max_subgraphs_per_block,
+
     // TView<CartBondedGlobalParams<Real>, 1, D> global_params,
 
     bool compute_derivs
 
     ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
   int const n_poses = coords.size(0);
+  int const n_blocks = pose_stack_block_coord_offset.size(1);
   int const max_n_atoms = coords.size(1);
+  int const NUM_INTER_RES_PATHS = 34;
 
   int const n_subgraphs = cart_subgraphs.size(0);
 
@@ -140,45 +144,69 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
 
-  // Potentially useful code that is probably better replaced by 'scan'
-  /*auto n_blocks = pose_stack_block_type.size(1);
-  auto subgraph_indices_pack = TPack<Int, 2, D>::zeros({n_poses, n_blocks});
-  auto subgraph_indices = subgraph_indices_pack.view;
-  for (int i = 0; i < n_poses; i++) {
-    for (int j = 0; j < n_blocks; j++) {
-      int bt = pose_stack_block_type[i][j];
-      int subgraphs_offset = cart_subgraph_offsets[bt];
-      int subgraphs_offset_next = bt + 1 == cart_subgraph_offsets.size(0)
-                                      ? cart_subgraphs.size(0)
-                                      : cart_subgraph_offsets[bt + 1];
-      int n_bt_subgraphs = subgraphs_offset_next - subgraphs_offset;
+  int const n_block_types = cart_subgraph_offsets.size(0);
 
-      subgraph_indices[i][j] = n_bt_subgraphs + ((j == 0) ? 0 :
-  subgraph_indices[i][j-1]); printf("\n%i %i - %i", i, j,
-  subgraph_indices[i][j]);
-    }
-  }*/
+  max_subgraphs_per_block +=
+      NUM_INTER_RES_PATHS;  // Add in the inter-residue subgraphs
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
 
-  auto func = ([=] TMOL_DEVICE_FUNC(int pose_index, int block_index) {
+  auto func = ([=] TMOL_DEVICE_FUNC(
+                   int pose_index, int block_index, int subgraph_index) {
     Real score = 0;
+    // printf("%d %d %d\n", pose_index, block_index, subgraph_index);
+    const int CON_PATH_INDICES[][2] = {// Length
+                                       {0, 0},
+
+                                       // Angles
+                                       {0, 1},
+                                       {0, 2},
+                                       {0, 3},
+                                       {1, 0},
+                                       {2, 0},
+                                       {3, 0},
+
+                                       // Torsions
+                                       {0, 4},
+                                       {0, 5},
+                                       {0, 6},
+                                       {0, 7},
+                                       {0, 8},
+                                       {0, 9},
+                                       {0, 10},
+                                       {0, 11},
+                                       {0, 12},
+
+                                       {1, 1},
+                                       {1, 2},
+                                       {1, 3},
+                                       {2, 1},
+                                       {2, 2},
+                                       {2, 3},
+                                       {3, 1},
+                                       {3, 2},
+                                       {3, 3},
+
+                                       {4, 0},
+                                       {5, 0},
+                                       {6, 0},
+                                       {7, 0},
+                                       {8, 0},
+                                       {9, 0},
+                                       {10, 0},
+                                       {11, 0},
+                                       {12, 0}};
 
     int block_type = pose_stack_block_type[pose_index][block_index];
     auto pose_coords = coords[pose_index];
     int block_coord_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
-    int subgraphs_offset = cart_subgraph_offsets[block_type];
-    int subgraphs_offset_next = block_type + 1 == cart_subgraph_offsets.size(0)
-                                    ? cart_subgraphs.size(0)
-                                    : cart_subgraph_offsets[block_type + 1];
-    /*printf(
-        "%i %i %i %i\n",
-        block_type + 1,
-        cart_subgraph_offsets.size(0),
-        cart_subgraphs.size(0),
-        cart_subgraph_offsets[block_type + 1]);*/
+    int subgraph_offset = cart_subgraph_offsets[block_type];
+    int subgraph_offset_next = block_type + 1 == cart_subgraph_offsets.size(0)
+                                   ? cart_subgraphs.size(0)
+                                   : cart_subgraph_offsets[block_type + 1];
+    subgraph_index += subgraph_offset;
 
     auto get_block_type_atom_id =
         ([=] TMOL_DEVICE_FUNC(
@@ -212,13 +240,15 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           switch (type) {
             case subgraph_type::length: {
               auto eval = cblength_V_dV(atom1, atom2, params[1], params[0]);
-              score += common::get<0>(eval);
+              score = common::get<0>(eval);
+              accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
               break;
             }
             case subgraph_type::angle: {
               auto eval =
                   cbangle_V_dV(atom1, atom2, atom3, params[1], params[0]);
-              score += common::get<0>(eval);
+              score = common::get<0>(eval);
+              accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
               break;
             }
             case subgraph_type::torsion: {
@@ -233,191 +263,126 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                   params[3],
                   params[4],
                   params[5]);
-              score += common::get<0>(eval);
+              score = common::get<0>(eval);
+              accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
               break;
             }
           }
         });
 
-    // INTER-BLOCK
-    for (int i = 0; i < pose_stack_inter_block_connections.size(2); i++) {
-      const Vec<Int, 2>& connection =
-          pose_stack_inter_block_connections[pose_index][block_index][i];
-      int other_block_index = connection[0];
-      int other_block_type =
-          pose_stack_block_type[pose_index][other_block_index];
+    if (subgraph_index >= subgraph_offset_next) {
+      if (subgraph_index >= subgraph_offset_next + NUM_INTER_RES_PATHS) return;
 
-      if (other_block_index == -1) continue;
+      subgraph_index -= subgraph_offset_next;
 
-      int other_connection_index = connection[1];
+      for (int i = 0; i < pose_stack_inter_block_connections.size(2); i++) {
+        for (bool wildcard : {false, true}) {
+          const Vec<Int, 2>& connection =
+              pose_stack_inter_block_connections[pose_index][block_index][i];
+          int other_block_index = connection[0];
+          int other_block_type =
+              pose_stack_block_type[pose_index][other_block_index];
 
-      for (int j = 0; j < 13; j++) {
-        Vec<Int, 3> res1_path = atom_paths_from_conn[block_type][i][j];
-        if (res1_path[0] == -1) continue;
+          if (other_block_index == -1) continue;
 
-        for (int k = 0; k < 13; k++) {
-          for (bool wildcard : {false, true}) {
-            Vec<Int, 3> res2_path =
-                atom_paths_from_conn[other_block_type][other_connection_index]
-                                    [k];
-            if (res2_path[0] == -1) continue;
+          int other_connection_index = connection[1];
 
-            Vec<Int, 4> path;
-            Vec<Int, 4> atom_indices;
-            Vec<Int, 4> subgraph_atom_ids;
-            int idx = 0;
-            bool escaped = false;
+          int res1_path_ind = CON_PATH_INDICES[subgraph_index][0];
+          int res2_path_ind = CON_PATH_INDICES[subgraph_index][1];
 
-            for (int l = 0; l < 6; l++) {
-              int val = -1;
-              int atom_idx = -1;
-              int atom_id = -1;
-              if (l < 3) {
-                val = res1_path[2 - l];
-                atom_idx = val + block_coord_offset;
-                atom_id = get_block_type_atom_id(val, block_type, wildcard);
-              } else {
-                val = res2_path[l - 3];
-                atom_idx = val
-                           + pose_stack_block_coord_offset[pose_index]
-                                                          [other_block_index];
-                atom_id = get_block_type_atom_id(val, other_block_type, true);
-              }
+          Vec<Int, 3> res1_path =
+              atom_paths_from_conn[block_type][i][res1_path_ind];
+          Vec<Int, 3> res2_path =
+              atom_paths_from_conn[other_block_type][other_connection_index]
+                                  [res2_path_ind];
 
-              if (val != -1) {
-                if (idx >= 4) {  // we overran the path (like joining two paths
-                                 // of length 3, one from each res)
-                  escaped = true;
-                  break;
-                }
-                path[idx] = val;
-                atom_indices[idx] = atom_idx;
-                subgraph_atom_ids[idx] = atom_id;
-                idx++;
-              }
+          if (res1_path[0] == -1 || res2_path[0] == -1) continue;
+          res1_path.reverseInPlace();
+
+          Vec<Int, 3> res1_atom_indices;
+          Vec<Int, 3> res2_atom_indices;
+
+          Vec<Int, 3> res1_subgraph_atom_ids;
+          Vec<Int, 3> res2_subgraph_atom_ids;
+
+          Int res1_size = 0;
+          Int res2_size = 0;
+
+          // Fill the other vecs with additional data and mark the start/end
+          for (int j = 0; j < 3; j++) {
+            if (res1_path[j] != -1) {
+              res1_atom_indices[j] = res1_path[j] + block_coord_offset;
+              res1_subgraph_atom_ids[j] =
+                  get_block_type_atom_id(res1_path[j], block_type, wildcard);
+              res1_size++;
+            } else {
+              res1_atom_indices[j] = -1;
+              res1_subgraph_atom_ids[j] = -1;
             }
 
-            /*printf("%i %i %i \n", res1_path[0], res1_path[1], res1_path[2]);
-            printf("%i %i %i \n", res2_path[0], res2_path[1], res2_path[2]);
-            printf("connections: %i %i \n", i, other_connection_index);
-            */
-            if (escaped) {
-              // printf("Overran path\n");
-              continue;
-            }
-
-            while (idx < 4) {
-              path[idx] = -1;
-              atom_indices[idx] = -1;
-              subgraph_atom_ids[idx] = -1;
-              idx++;
-            }
-
-            /*printf("\n\nres1:    %i\n", block_index);
-            printf("res2:    %i\n", other_block_index);
-            printf("res1path %i %i %i \n", res1_path[0], res1_path[1],
-            res1_path[2]); printf("res2path %i %i %i \n", res2_path[0],
-            res2_path[1], res2_path[2]); printf("joined   %i %i %i %i\n",
-            path[0], path[1], path[2], path[3]); printf("atom_ids %i %i %i
-            %i\n", subgraph_atom_ids[0], subgraph_atom_ids[1],
-            subgraph_atom_ids[2], subgraph_atom_ids[3]);*/
-
-            for (bool reverse : {false}) {
-              if (reverse) {
-                reverse_subgraph(subgraph_atom_ids);
-                reverse_subgraph(atom_indices);
-              }
-              int param_index = get_param_index(subgraph_atom_ids);
-
-              if (param_index != -1) {
-                score_subgraph(atom_indices, param_index);
-
-                // if(score > 1) {
-                Vec<Real, 6> params = hash_values[param_index];
-                /*printf(
-                    "  %i: x0:%f K:%f period:%f\n",
-                    i,
-                    params[0],
-                    params[1],
-                    params[2]);
-                printf("  %i: score:%f\n", i, score);*/
-                //}
-              }
+            if (res2_path[j] != -1) {
+              res2_atom_indices[j] =
+                  res2_path[j]
+                  + pose_stack_block_coord_offset[pose_index]
+                                                 [other_block_index];
+              res2_subgraph_atom_ids[j] =
+                  get_block_type_atom_id(res2_path[j], other_block_type, true);
+              res2_size++;
+            } else {
+              res2_atom_indices[j] = -1;
+              res2_subgraph_atom_ids[j] = -1;
             }
           }
-        }
-      }
-    }
 
-    for (int i = subgraphs_offset; i < subgraphs_offset_next; i++) {
-      // printf("TEST");
-      for (bool reverse : {false, true}) {
-        for (bool wildcard : {false}) {  //}, true}) {
-          Vec<Int, 4> subgraph = cart_subgraphs[i];
-          if (reverse) reverse_subgraph(subgraph);
-
-#ifndef __CUDA_ARCH__
-            // printf("%i: %i %i %i %i\n", block_type, subgraph[0], subgraph[1],
-            // subgraph[2], subgraph[3]);
-#endif
+          Vec<Int, 4> path;
+          Vec<Int, 4> atom_indices;
           Vec<Int, 4> subgraph_atom_ids;
-          for (int i = 0; i < 4; i++) {
-            subgraph_atom_ids[i] =
-                get_block_type_atom_id(subgraph[i], block_type, wildcard);
-          }
+
+          path << -1, -1, -1, -1;
+          atom_indices << -1, -1, -1, -1;
+          subgraph_atom_ids << -1, -1, -1, -1;
+
+          path.head(res1_size + res2_size) << res1_path.tail(res1_size),
+              res2_path.head(res2_size);
+          atom_indices.head(res1_size + res2_size)
+              << res1_atom_indices.tail(res1_size),
+              res2_atom_indices.head(res2_size);
+          subgraph_atom_ids.head(res1_size + res2_size)
+              << res1_subgraph_atom_ids.tail(res1_size),
+              res2_subgraph_atom_ids.head(res2_size);
+
           int param_index = get_param_index(subgraph_atom_ids);
 
-          Vec<Int, 4> subgraph_atom_indices;
-          for (int i = 0; i < 4; i++)
-            subgraph_atom_indices[i] =
-                (subgraph[i] == -1) ? -1 : block_coord_offset + subgraph[i];
           if (param_index != -1) {
-            score_subgraph(subgraph_atom_indices, param_index);
-#ifndef __CUDA_ARCH__
-            printf(
-                "\nsubgraph_ind: %i %i %i %i \n",
-                subgraph[0],
-                subgraph[1],
-                subgraph[2],
-                subgraph[3]);
-            printf(
-                "atom_ids: %i %i %i %i \n",
-                subgraph_atom_ids[0],
-                subgraph_atom_ids[1],
-                subgraph_atom_ids[2],
-                subgraph_atom_ids[3]);
-            // printf("score: %f\n", score);
-            if (param_index != -1) {
-              // score_subgraph(atom_indices, param_index);
-
-              // if(score > 1) {
-              Vec<Real, 6> params = hash_values[param_index];
-              printf(
-                  "  %i: x0:%f K:%f period:%f\n",
-                  i,
-                  params[0],
-                  params[1],
-                  params[2]);
-              printf("  %i: score:%f\n", i, score);
-              //}
-            }
-#endif
+            score_subgraph(atom_indices, param_index);
           }
         }
       }
+      return;
     }
 
-    // printf("Accumulating...");
-    accumulate<D, Real>::add(V[0][pose_index], score);
-    /*printf(
-        "block_index: %d block_type:%d score:%f\n",
-        block_index,
-        block_type,
-        score);*/
+    for (bool reverse : {false, true}) {
+      Vec<Int, 4> subgraph = cart_subgraphs[subgraph_index];
+      if (reverse) reverse_subgraph(subgraph);
+
+      Vec<Int, 4> subgraph_atom_ids;
+      for (int i = 0; i < 4; i++) {
+        subgraph_atom_ids[i] = get_block_type_atom_id(subgraph[i], block_type);
+      }
+      int param_index = get_param_index(subgraph_atom_ids);
+
+      Vec<Int, 4> subgraph_atom_indices;
+      for (int i = 0; i < 4; i++)
+        subgraph_atom_indices[i] =
+            (subgraph[i] == -1) ? -1 : block_coord_offset + subgraph[i];
+      if (param_index != -1) {
+        score_subgraph(subgraph_atom_indices, param_index);
+      }
+    }
   });
 
-  int total_blocks = pose_stack_block_coord_offset.size(1);
-  DeviceDispatch<D>::forall_stacks(n_poses, total_blocks, func);
+  DeviceDispatch<D>::foreach_combination_triple(
+      n_poses, n_blocks, max_subgraphs_per_block, func);
 
   return {V_t, dV_dx_t};
 }  // namespace potentials

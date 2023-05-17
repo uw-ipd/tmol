@@ -212,6 +212,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         subgraphs = numpy.full((total_subgraphs, 4), -1, dtype=numpy.int32)
         subgraph_offsets = []
         offset = 0
+        max_subgraphs_per_block = 0
         for i, block_type in enumerate(packed_block_types.active_block_types):
             subgraph_offsets.append(offset)
 
@@ -230,6 +231,12 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             improper = block_type.cart_improper.shape[0]
             subgraphs[offset : offset + improper] = block_type.cart_improper
             offset += improper
+
+            max_subgraphs_per_block = max(
+                max_subgraphs_per_block, offset - subgraph_offsets[-1]
+            )
+
+        setattr(packed_block_types, "max_subgraphs_per_block", max_subgraphs_per_block)
 
         if debug:
             print(subgraphs)
@@ -288,9 +295,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             add_to_hash(hash_keys, hash_values, cur_val, key, value)
             cur_val += 1
 
-        print("\n")
+        """print("\n")
         for key, value in self.atom_unique_id_index.items():
-            print(key, "    ", value)
+            print(key, "    ", value)"""
 
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)
         hash_values_tensor = torch.from_numpy(hash_values).to(device=self.device)
@@ -313,6 +320,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             hash_keys=pbt.hash_keys,
             hash_values=pbt.hash_values,
             cart_subgraphs=pbt.cart_subgraphs,
-            cart_subgraph_offsets=pbt.cart_subgraph_offsets
+            cart_subgraph_offsets=pbt.cart_subgraph_offsets,
+            max_subgraphs_per_block=pbt.max_subgraphs_per_block
             # global_params=self.global_params,
         )

@@ -192,24 +192,34 @@ class RefinedResidueType(RawResidueType):
         atom_paths = numpy.full((n_conns, MAX_PATHS, 3), -1, dtype=numpy.int32)
 
         def get_paths_length_3(connection):
+            paths = numpy.full((MAX_PATHS, 3), -1, dtype=numpy.int32)
             # create a convenient datastructure for following connections
-            bondmap = {}
+            bondmap = {-1: []}
             for bond in self.bond_indices:
                 if bond[0] not in bondmap.keys():
-                    bondmap[bond[0]] = set()
-                bondmap[bond[0]].add(bond[1])
-
-            atoms = []
+                    bondmap[bond[0]] = []
+                bondmap[bond[0]].append(bond[1])
 
             atom0 = self.atom_to_idx[connection.atom]
-            atoms.append((atom0, -1, -1))
-            for atom1 in bondmap[atom0]:
-                atoms.append((atom0, atom1, -1))
-                for atom2 in bondmap[atom1]:
-                    if atom2 != atom0:
-                        atoms.append((atom0, atom1, atom2))
+            paths[0] = (atom0, -1, -1)
 
-            return atoms
+            idx = 1
+            for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
+                if atom1 != -1:
+                    # atoms.append((atom0, atom1, -1))
+                    paths[idx] = (atom0, atom1, -1)
+                idx += 1
+
+            for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
+                for atom2 in bondmap[atom1] + [-1] * (3 - len(bondmap[atom1])):
+                    if atom2 != atom0 and atom2 != -1:
+                        # atoms.append((atom0, atom1, atom2))
+                        paths[idx] = (atom0, atom1, atom2)
+                    if atom2 != atom0:
+                        idx += 1
+
+            # print(paths)
+            return paths
 
         # construct a list of paths starting from each connection point of length 3 and record the atom indices of the atoms in those paths
         for i, connection in enumerate(self.connections):
