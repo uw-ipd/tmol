@@ -218,6 +218,12 @@ class CartBondedPoseScoreOp
             torch::Tensor(),
             torch::Tensor(),
             torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
             torch::Tensor()};
   }
 };

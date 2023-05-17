@@ -26,16 +26,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         super(CartBondedEnergyTerm, self).__init__(param_db=param_db, device=device)
 
         self.cart_database = param_db.scoring.cartbonded_new
-        """self.global_params = CartBondedGlobalParams.from_database(
-            param_db.scoring.cartbonded, device
-        )"""
         self.device = device
 
     @classmethod
     def score_types(cls):
-        import tmol.score.terms.omega_creator
+        import tmol.score.terms.cartbonded_creator
 
-        return tmol.score.terms.omega_creator.CartBondedTermCreator.score_types()
+        return tmol.score.terms.cartbonded_creator.CartBondedTermCreator.score_types()
 
     def n_bodies(self):
         return 1

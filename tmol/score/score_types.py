@@ -10,6 +10,9 @@ class AutoNumber(Enum):
 
 
 class ScoreType(AutoNumber):
+    cart_length = ()
+    cart_angle = ()
+    cart_torsion = ()
     fa_lj = ()
     fa_lk = ()
     fa_elec = ()
