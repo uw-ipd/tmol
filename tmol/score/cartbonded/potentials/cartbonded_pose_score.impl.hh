@@ -14,6 +14,7 @@
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/hash_util.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/uaid_util.hh>
@@ -38,35 +39,6 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 template <typename Real>
 using CoordQuad = Eigen::Matrix<Real, 4, 3>;
-
-template <typename Int, Int key_size>
-TMOL_DEVICE_FUNC int hash_funct(Vec<Int, key_size> key, int max_size) {
-  int value = 0x1234;
-  for (int i = 0; i < key_size; i++) {
-    int k = key[i];
-    if (k == -1) break;
-    value = (k ^ value) * 3141 % max_size;
-  }
-  return value;
-}
-
-template <typename Int, Int key_size, tmol::Device D>
-TMOL_DEVICE_FUNC int hash_lookup(
-    Vec<Int, key_size> key, TView<Vec<Int, key_size + 1>, 1, D> hash_keys) {
-  int index = hash_funct<Int>(key, hash_keys.size(0));
-  while (true) {
-    bool match = true;
-    for (int i = 0; i < key_size; i++) {
-      match = match && key[i] == hash_keys[index][i];
-    }
-    if (match) return hash_keys[index][key_size];
-
-    if (hash_keys[index][0] == -1) return -1;
-
-    index++;
-    index = index % hash_keys.size(0);
-  }
-}
 
 enum class subgraph_type { length, angle, torsion };
 
