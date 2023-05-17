@@ -2,7 +2,6 @@ import os
 from .setup import generate
 
 if __name__ == "__main__":
-
     import logging
 
     logging.basicConfig(

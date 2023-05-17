@@ -181,7 +181,6 @@ class LKBallInterModule(_LKBallScoreModule):
         indexed_bond_bonds,
         indexed_bond_spans,
     ):
-
         waters_I = watergen_lkball(
             coords_I,
             atom_type_I,

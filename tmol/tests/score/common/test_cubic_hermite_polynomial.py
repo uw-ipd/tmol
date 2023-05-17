@@ -36,7 +36,6 @@ def cubic_hermite_polynomial():
 
 @hypothesis.given(real, real, real, real)
 def test_unit_interpolate(cubic_hermite_polynomial, p0, dp0, p1, dp1):
-
     from tmol.score.common.cubic_hermite_polynomial import interpolate_t, interpolate_dt
 
     params = (p0, dp0, p1, dp1)
@@ -56,7 +55,6 @@ def test_unit_interpolate(cubic_hermite_polynomial, p0, dp0, p1, dp1):
 
 @hypothesis.given(real, real)
 def test_unit_interpolate_to_zero(cubic_hermite_polynomial, p0, dp0):
-
     from tmol.score.common.cubic_hermite_polynomial import (
         interpolate_to_zero_t,
         interpolate_to_zero_dt,
@@ -79,7 +77,6 @@ def test_unit_interpolate_to_zero(cubic_hermite_polynomial, p0, dp0):
 
 @hypothesis.given(real, real, real, real, real, real)
 def test_interpolate(cubic_hermite_polynomial, x0, p0, dpdx0, x1, p1, dpdx1):
-
     from tmol.score.common.cubic_hermite_polynomial import interpolate, interpolate_dx
 
     params = (x0, p0, dpdx0, x1, p1, dpdx1)
@@ -103,7 +100,6 @@ def test_interpolate(cubic_hermite_polynomial, x0, p0, dpdx0, x1, p1, dpdx1):
 
 @hypothesis.given(real, real, real, real, real, real)
 def test_interpolate_to_zero(cubic_hermite_polynomial, x0, p0, dpdx0, x1, p1, dpdx1):
-
     from tmol.score.common.cubic_hermite_polynomial import (
         interpolate_to_zero,
         interpolate_to_zero_dx,

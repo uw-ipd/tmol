@@ -1,0 +1,11 @@
+black
+flake8
+itermplot==0.5
+pytest
+pytest-forked
+pytest-cov
+pytest-instafail
+pytest-repeat
+pytest-watch
+pytest-benchmark
+seaborn

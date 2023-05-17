@@ -10,7 +10,6 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 
 def test_annotate_residue_type_smoke(default_database):
-
     ala_restype = cattr.structure(
         cattr.unstructure(
             next(res for res in default_database.chemical.residues if res.name == "ALA")
@@ -24,7 +23,6 @@ def test_annotate_residue_type_smoke(default_database):
 
 
 def test_annotate_packed_block_types_smoke(default_database, torch_device):
-
     desired = set(["ALA", "GLY", "TYR"])
 
     all_restypes = [

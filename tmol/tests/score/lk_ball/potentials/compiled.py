@@ -36,7 +36,7 @@ class LKBallGlobalParams(TensorGroup):
 
 
 def detach_maybe_requires_grad(
-    *inputs: torch.tensor
+    *inputs: torch.tensor,
 ) -> Tuple[bool, Tuple[torch.tensor, ...]]:
     requires_grad = any(t.requires_grad for t in inputs)
 
@@ -57,7 +57,6 @@ class BuildAcceptorWater(torch.autograd.Function):
         angle: float,
         torsion: float,
     ) -> Tensor[float][:, 3]:
-
         rgrad, (A, B, B0) = detach_maybe_requires_grad(A, B, B0)
         inputs = (A, B, B0, dist, angle, torsion)
 
@@ -81,7 +80,6 @@ class BuildDonorWater(torch.autograd.Function):
     def forward(
         ctx, D: Tensor[float][:, 3], H: Tensor[float][:, 3], dist: float
     ) -> Tensor[float][:, 3]:
-
         rgrad, (D, H) = detach_maybe_requires_grad(D, H)
         inputs = (D, H, dist)
 
@@ -139,7 +137,6 @@ class LKBridgeFraction(torch.autograd.Function):
 
 @attr.s(auto_attribs=True, frozen=True)
 class LKBallScore:
-
     param_resolver: LJLKParamResolver
     atom_resolver: AtomTypeParamResolver
 

@@ -3,7 +3,6 @@ import torch
 
 
 def test_load():
-
     # Initial fetch of op fails with RuntimeError, op not registered
     with pytest.raises(RuntimeError):
         torch.ops.tmol.cpow

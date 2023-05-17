@@ -2,7 +2,7 @@
 
 from functools import singledispatch
 
-from typing import List, TypeVar
+from typing import List, get_args
 from typing_inspect import is_tuple_type, is_union_type
 import toolz
 
@@ -70,11 +70,13 @@ def validate_tuple(tup, value):
     if not isinstance(value, tuple):
         raise TypeError(f"expected {tup}, received {type(value)!r}")
 
-    if tup.__args__ and tup.__args__[-1] == Ellipsis:
-        vval = get_validator(tup.__args__[0])
+    args = get_args(tup)
+
+    if args and args[-1] == Ellipsis:
+        vval = get_validator(args[0])
         for v in value:
             vval(v)
-    elif tup.__args__:
+    elif args:
         if len(tup.__args__) != len(value):
             raise ValueError(f"expected {tup}, received invalid length: {len(value)}")
 
@@ -99,11 +101,13 @@ def validate_list(lst, value):
     if not isinstance(value, list):
         raise TypeError(f"expected {lst}, received {type(value)!r}")
 
-    if type(lst.__args__[0]) != TypeVar:
+    args = get_args(lst)
+
+    if args:
         # accept List[X] as a list with as many elements of type X as you want
         for i, v in enumerate(value):
             try:
-                get_validator(lst.__args__[0])(v)
+                get_validator(args[0])(v)
             except TypeError as err:
                 raise TypeError(
                     f"Failed to validate {lst}: {i}th argument error: {err}"

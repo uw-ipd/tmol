@@ -23,7 +23,6 @@ def accessor_funcs(tensor_accessor):
 
 
 def test_tensor_vector_accessors(accessor_funcs):
-
     tvec = torch.arange(30, dtype=torch.float).reshape(10, 3)
     expected = tvec.norm(dim=-1)
 
@@ -85,7 +84,6 @@ def test_tensor_pack_eigen_matrix(tensor_accessor):
 
 
 def test_tensor_pack_constructors(tensor_accessor):
-
     eshape = (2, 5, 3)
     res = tensor_accessor.tensor_pack_construct()
 

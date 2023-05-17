@@ -6,7 +6,7 @@ import attr
 import cattr
 
 import numpy
-import sparse
+import scipy.sparse
 import scipy.sparse.csgraph as csgraph
 
 from tmol.database import ParameterDatabase
@@ -165,11 +165,12 @@ class RefinedResidueType(RawResidueType):
 
     @path_distance.default
     def _setup_path_distance(self):
-        bonds_sparse = sparse.COO(
-            self.bond_indices.T,
-            data=numpy.full(len(self.bond_indices), True),
+        bonds_sparse = scipy.sparse.coo_matrix(
+            (
+                numpy.full(self.bond_indices.shape[0], True),
+                (self.bond_indices[:, 0], self.bond_indices[:, 1]),
+            ),
             shape=(self.n_atoms, self.n_atoms),
-            cache=True,
         )
         path_distance = csgraph.dijkstra(
             bonds_sparse, directed=False, unweighted=True, limit=MAX_SIG_BOND_SEPARATION

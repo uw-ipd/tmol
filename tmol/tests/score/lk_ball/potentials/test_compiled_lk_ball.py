@@ -100,7 +100,7 @@ def test_lk_fraction():
     lj_radius_j = tensor([1.8]).reshape(())
     lkfrac = LKFraction.apply(WI, coords_J, lj_radius_j)
 
-    assert float(lkfrac) == pytest.approx(.65, abs=.01)
+    assert float(lkfrac) == pytest.approx(0.65, abs=0.01)
 
     gradcheck(
         lambda WI, coords_J: LKFraction.apply(WI, coords_J, dist),
@@ -147,7 +147,7 @@ def test_lk_bridge_fraction():
     )
 
     lkbr_frac = LKBridgeFraction.apply(coords_I["A"], coords_J["A"], WI, WJ, dist)
-    assert float(lkbr_frac) == pytest.approx(.025, abs=.001)
+    assert float(lkbr_frac) == pytest.approx(0.025, abs=0.001)
 
     gradcheck(
         lambda coords_I, coords_J, WI, WJ: LKBridgeFraction.apply(
@@ -220,7 +220,6 @@ def lkball_score_and_gradcheck(
 
 
 def test_lk_ball_donor_donor_spotcheck(ljlk_params, atype_params):
-
     from .compiled import BuildDonorWater
 
     dist = ljlk_params.global_params.lkb_water_dist
@@ -280,12 +279,11 @@ def test_lk_ball_donor_donor_spotcheck(ljlk_params, atype_params):
     )
 
     torch.testing.assert_allclose(
-        i_by_j + j_by_i, tensor([0.3355, 0., 0.2649, 0.7896]), atol=1e-4, rtol=1e-4
+        i_by_j + j_by_i, tensor([0.3355, 0.0, 0.2649, 0.7896]), atol=1e-4, rtol=1e-4
     )
 
 
 def test_lk_ball_sp2_nonpolar_spotcheck(ljlk_params, atype_params):
-
     from .compiled import BuildAcceptorWater
 
     tensor = torch.DoubleTensor
@@ -335,7 +333,7 @@ def test_lk_ball_sp2_nonpolar_spotcheck(ljlk_params, atype_params):
         nonpolar_at,
     )
 
-    torch.testing.assert_allclose(i_by_j, tensor([0.14107985, 0.04765878, 0., 0.]))
+    torch.testing.assert_allclose(i_by_j, tensor([0.14107985, 0.04765878, 0.0, 0.0]))
 
 
 def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
@@ -425,7 +423,9 @@ def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
         sp3_at,
     )
 
-    scores = numpy.array([i + j for i, j in zip(sp3_by_ring, ring_by_sp3)])
+    scores = numpy.array(
+        [i + j for i, j in zip(sp3_by_ring.detach(), ring_by_sp3.detach())]
+    )
     scores_ref = numpy.array([0.09018922, 0.0901892, 0.0441963, 0.4900393])
     assert scores == pytest.approx(scores_ref, abs=1e-4)
 

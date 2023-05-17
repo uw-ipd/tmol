@@ -10,7 +10,7 @@
 // #include <THC/THCTensorRandom.h>
 #include <c10/core/DeviceType.h>
 #include <c10/cuda/CUDAStream.h>
-//#include <THC/THCGenerator.hpp>
+// #include <THC/THCGenerator.hpp>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>

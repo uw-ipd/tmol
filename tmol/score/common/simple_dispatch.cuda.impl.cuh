@@ -146,7 +146,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
           int j_idx = coord_idx_j[stack][j];
           if (i_idx >= 0 && j_idx >= 0
               && tbox.contains(
-                     coords_i[stack][i_idx] - coords_j[stack][j_idx])) {
+                  coords_i[stack][i_idx] - coords_j[stack][j_idx])) {
             f(stack, i, j);
           }
         },

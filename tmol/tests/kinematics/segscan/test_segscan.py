@@ -57,8 +57,7 @@ def test_segscan_exclusive(extension):
 
 @requires_cuda
 def test_segscan(extension):
-    """CUDA segscan code
-    """
+    """CUDA segscan code"""
 
     # x = torch.ones(1000000, dtype=torch.float32)
     # segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
@@ -80,8 +79,7 @@ def test_segscan(extension):
 
 @requires_cuda
 def test_segscan2(extension):
-    """CUDA segscan code
-    """
+    """CUDA segscan code"""
 
     # x = torch.ones(1000000, dtype=torch.float32)
     # segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
@@ -5221,8 +5219,7 @@ def test_segscan_highly_segmented3(extension):
 @requires_cuda
 @pytest.mark.benchmark
 def test_segscan_excl_cuda_bench(benchmark, extension):
-    """CUDA segscan benchmark
-    """
+    """CUDA segscan benchmark"""
     x = torch.ones(10000000, dtype=torch.float32)
     segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
     xcuda = x.to(device="cuda")
@@ -5237,8 +5234,7 @@ def test_segscan_excl_cuda_bench(benchmark, extension):
 @requires_cuda
 @pytest.mark.benchmark
 def test_segscan_incl_cuda_bench(benchmark, extension):
-    """CUDA segscan benchmark
-    """
+    """CUDA segscan benchmark"""
     x = torch.ones(10000000, dtype=torch.float32)
     segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
     xcuda = x.to(device="cuda")
@@ -5253,8 +5249,7 @@ def test_segscan_incl_cuda_bench(benchmark, extension):
 @requires_cuda
 @pytest.mark.benchmark
 def test_segscan_cpu_bench(benchmark, extension):
-    """CPU segscan baseline benchmark
-    """
+    """CPU segscan baseline benchmark"""
     x = torch.ones(10000000, dtype=torch.float32)
     segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
 

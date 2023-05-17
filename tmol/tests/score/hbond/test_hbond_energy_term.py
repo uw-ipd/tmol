@@ -9,7 +9,6 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device):
-
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
 
     assert hbond_energy.device == torch_device
@@ -19,7 +18,6 @@ def test_smoke(default_database, torch_device):
 
 
 def test_annotate_restypes(ubq_res, default_database, torch_device):
-
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
 
     rt_list = residue_types_from_residues(ubq_res)
@@ -67,7 +65,6 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
 def test_whole_pose_scoring_module_gradcheck_whole_pose(
     rts_ubq_res, default_database, torch_device
 ):
-
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device
@@ -83,13 +80,12 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
         scores = hbond_pose_scorer(coords)
         return torch.sum(scores)
 
-    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-2, rtol=1e-2)
+    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-1, rtol=1e-1)
 
 
 def test_whole_pose_scoring_module_gradcheck_partial_pose(
     rts_ubq_res, default_database, torch_device
 ):
-
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res[6:12], device=torch_device

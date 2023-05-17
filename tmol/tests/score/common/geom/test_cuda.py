@@ -16,7 +16,6 @@ def geom():
 
 @requires_cuda
 def test_distance(geom):
-
     A = torch.zeros((10, 3), device="cuda")
     B = torch.ones((10, 3), device="cuda")
     V = torch.full((10,), math.sqrt(3), device="cuda")

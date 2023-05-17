@@ -329,10 +329,11 @@ struct DunbrackChiSampler {
         chi_for_rotamers);
     // std::cout << "9" << std::endl;
 
-    return {n_rotamers_to_build_per_brt_tp,
-            n_rotamers_to_build_per_brt_offsets_tp,
-            brt_for_rotamer_tp,
-            chi_for_rotamers_tp};
+    return {
+        n_rotamers_to_build_per_brt_tp,
+        n_rotamers_to_build_per_brt_offsets_tp,
+        brt_for_rotamer_tp,
+        chi_for_rotamers_tp};
   }
 
   static void determine_n_possible_rots(

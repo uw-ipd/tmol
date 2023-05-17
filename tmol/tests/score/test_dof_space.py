@@ -12,7 +12,6 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_torsion_space_by_real_space_total_score(ubq_system):
-
     score_system = get_full_score_system_for(ubq_system, torch.device("cpu"))
     xyz_coords = coords_for(ubq_system, score_system)
 

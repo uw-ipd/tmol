@@ -135,10 +135,11 @@ std::vector<Tensor> dun_sample_chi(
 
   nvtx_range_pop();
 
-  return {n_rots_for_brt,
-          n_rots_for_brt_offsets,
-          brt_for_rotamer,
-          chi_for_rotamers};
+  return {
+      n_rots_for_brt,
+      n_rots_for_brt_offsets,
+      brt_for_rotamer,
+      chi_for_rotamers};
 };
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

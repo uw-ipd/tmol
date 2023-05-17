@@ -20,7 +20,6 @@ def params(default_database):
 @requires_numba_jit
 @pytest.mark.parametrize("bonded_path_length", [2, 4, 5])
 def test_lj_gradcheck(params, bonded_path_length):
-
     from tmol.score.ljlk.numba.vectorized import lj, d_lj_d_dist
 
     i = params.type_params[0]
@@ -120,11 +119,11 @@ def test_lj_spotcheck(params):
         )
 
     # Linear region
-    assert eval_lj(.6 * sigma - 1.0) == approx(
-        eval_lj(.6 * sigma) - eval_d_lj_d_dist(.6 * sigma)
+    assert eval_lj(0.6 * sigma - 1.0) == approx(
+        eval_lj(0.6 * sigma) - eval_d_lj_d_dist(0.6 * sigma)
     )
-    assert eval_d_lj_d_dist(numpy.linspace(0, .6 * sigma, 50)) == approx(
-        eval_d_lj_d_dist(.6 * sigma).repeat(50)
+    assert eval_d_lj_d_dist(numpy.linspace(0, 0.6 * sigma, 50)) == approx(
+        eval_d_lj_d_dist(0.6 * sigma).repeat(50)
     )
 
     # Minimum value at sigma

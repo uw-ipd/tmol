@@ -46,8 +46,7 @@ class ElecParamResolver(ValidateAttrs):
     def resolve_partial_charge(
         self, res_names: NDArray[object][:, :], atom_names: NDArray[object][:, :]
     ) -> NDArray[numpy.float32][...]:
-        """Convert array of atom type names to partial charges.
-        """
+        """Convert array of atom type names to partial charges."""
         pcs = numpy.vectorize(
             lambda a, b: self.partial_charges[(a, b)], otypes=[numpy.float32]
         )(res_names, atom_names)
@@ -60,8 +59,7 @@ class ElecParamResolver(ValidateAttrs):
         res_indices: NDArray[object][...],
         atom_names: NDArray[object][...],
     ) -> NDArray[object][...]:
-        """remap bonded path length to use representative atoms
-        """
+        """remap bonded path length to use representative atoms"""
         assert bonded_path_lengths.shape[0] == res_names.shape[0]
         assert bonded_path_lengths.shape[0] == res_indices.shape[0]
         assert bonded_path_lengths.shape[0] == atom_names.shape[0]

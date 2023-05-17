@@ -4,7 +4,6 @@ from tmol.tests.autograd import gradcheck, VectorizedOp
 
 
 def test_polynomial_gradcheck():
-
     from tmol.tests.score.common.polynomial.polynomial import poly_v_d
 
     ds = torch.linspace(0, 3.5, 100).to(dtype=torch.double)

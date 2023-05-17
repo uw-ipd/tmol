@@ -75,17 +75,18 @@ class ScoreOp
           score = result.tensor;
         }));
 
-    ctx->save_for_backward({I,
-                            polars_I,
-                            atom_type_I,
-                            waters_I,
-                            J,
-                            occluders_J,
-                            atom_type_J,
-                            waters_J,
-                            bonded_path_lengths,
-                            type_params,
-                            global_params});
+    ctx->save_for_backward(
+        {I,
+         polars_I,
+         atom_type_I,
+         waters_I,
+         J,
+         occluders_J,
+         atom_type_J,
+         waters_J,
+         bonded_path_lengths,
+         type_params,
+         global_params});
 
     return score;
   }
@@ -136,17 +137,18 @@ class ScoreOp
           dV_dwaters_J = std::get<3>(result).tensor;
         }));
 
-    return {dV_dI,
-            torch::Tensor(),
-            torch::Tensor(),
-            dV_dwaters_I,
-            dV_dJ,
-            torch::Tensor(),
-            torch::Tensor(),
-            dV_dwaters_J,
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor()};
+    return {
+        dV_dI,
+        torch::Tensor(),
+        torch::Tensor(),
+        dV_dwaters_I,
+        dV_dJ,
+        torch::Tensor(),
+        torch::Tensor(),
+        dV_dwaters_J,
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor()};
   }
 };
 
@@ -200,15 +202,16 @@ class WaterGen : public Function<WaterGen<WaterGenDispatch, DispatchMethod>> {
           waters = result.tensor;
         }));
 
-    ctx->save_for_backward({coords,
-                            atom_types,
-                            indexed_bonds,
-                            indexed_bond_spans,
-                            type_params,
-                            global_params,
-                            sp2_water_tors,
-                            sp3_water_tors,
-                            ring_water_tors});
+    ctx->save_for_backward(
+        {coords,
+         atom_types,
+         indexed_bonds,
+         indexed_bond_spans,
+         type_params,
+         global_params,
+         sp2_water_tors,
+         sp3_water_tors,
+         ring_water_tors});
 
     return waters;
   }
@@ -256,15 +259,16 @@ class WaterGen : public Function<WaterGen<WaterGenDispatch, DispatchMethod>> {
           dT_d_coords = result.tensor;
         }));
 
-    return {dT_d_coords,
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor()};
+    return {
+        dT_d_coords,
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor()};
   };
 };
 
@@ -343,33 +347,34 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
           waters = result.tensor;
         }));
 
-    ctx->save_for_backward({pose_coords,
-                            pose_stack_block_coord_offset,
-                            pose_stack_block_type,
-                            pose_stack_inter_residue_connections,
-                            block_type_n_atoms,
+    ctx->save_for_backward(
+        {pose_coords,
+         pose_stack_block_coord_offset,
+         pose_stack_block_type,
+         pose_stack_inter_residue_connections,
+         block_type_n_atoms,
 
-                            block_type_n_interblock_bonds,
-                            block_type_atoms_forming_chemical_bonds,
-                            block_type_n_all_bonds,
-                            block_type_all_bonds,
-                            block_type_atom_all_bond_ranges,
+         block_type_n_interblock_bonds,
+         block_type_atoms_forming_chemical_bonds,
+         block_type_n_all_bonds,
+         block_type_all_bonds,
+         block_type_atom_all_bond_ranges,
 
-                            block_type_tile_n_donH,
-                            block_type_tile_n_acc,
-                            block_type_tile_donH_inds,
-                            block_type_tile_don_hvy_inds,
-                            block_type_tile_which_donH_for_hvy,
+         block_type_tile_n_donH,
+         block_type_tile_n_acc,
+         block_type_tile_donH_inds,
+         block_type_tile_don_hvy_inds,
+         block_type_tile_which_donH_for_hvy,
 
-                            block_type_tile_acc_inds,
-                            block_type_tile_hybridization,
-                            block_type_tile_acc_n_attached_H,
-                            block_type_atom_is_hydrogen,
-                            global_params,
+         block_type_tile_acc_inds,
+         block_type_tile_hybridization,
+         block_type_tile_acc_n_attached_H,
+         block_type_atom_is_hydrogen,
+         global_params,
 
-                            sp2_water_tors,
-                            sp3_water_tors,
-                            ring_water_tors});
+         sp2_water_tors,
+         sp3_water_tors,
+         ring_water_tors});
 
     return waters;
   }
@@ -726,26 +731,27 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
           block_neighbors = std::get<1>(result).tensor;
         }));
 
-    ctx->save_for_backward({pose_coords,
-                            water_coords,
-                            pose_stack_block_coord_offset,
-                            pose_stack_block_type,
-                            pose_stack_inter_residue_connections,
+    ctx->save_for_backward(
+        {pose_coords,
+         water_coords,
+         pose_stack_block_coord_offset,
+         pose_stack_block_type,
+         pose_stack_inter_residue_connections,
 
-                            pose_stack_min_bond_separation,
-                            pose_stack_inter_block_bondsep,
-                            block_type_n_atoms,
-                            block_type_n_interblock_bonds,
-                            block_type_atoms_forming_chemical_bonds,
+         pose_stack_min_bond_separation,
+         pose_stack_inter_block_bondsep,
+         block_type_n_atoms,
+         block_type_n_interblock_bonds,
+         block_type_atoms_forming_chemical_bonds,
 
-                            block_type_tile_n_polar_atoms,
-                            block_type_tile_n_occluder_atoms,
-                            block_type_tile_pol_occ_inds,
-                            block_type_tile_lk_ball_params,
-                            block_type_path_distance,
+         block_type_tile_n_polar_atoms,
+         block_type_tile_n_occluder_atoms,
+         block_type_tile_pol_occ_inds,
+         block_type_tile_lk_ball_params,
+         block_type_path_distance,
 
-                            global_params,
-                            block_neighbors});
+         global_params,
+         block_neighbors});
 
     return score;
   }
@@ -818,25 +824,26 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
           dV_d_water_coords = std::get<1>(result).tensor;
         }));
 
-    return {dV_d_pose_coords,
-            dV_d_water_coords,
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+    return {
+        dV_d_pose_coords,
+        dV_d_water_coords,
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
-            torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
-            torch::Tensor()};
+        torch::Tensor()};
   }
 };
 

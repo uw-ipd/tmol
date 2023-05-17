@@ -130,7 +130,9 @@ def nplus1d_tensor_from_list(
     return newt, sizes, strides
 
 
-def cat_differently_sized_tensors(tensors: List,):
+def cat_differently_sized_tensors(
+    tensors: List,
+):
     assert len(tensors) > 0
     for tensor in tensors:
         assert len(tensor.shape) == len(tensors[0].shape)
