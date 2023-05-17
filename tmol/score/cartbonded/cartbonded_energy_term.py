@@ -9,7 +9,7 @@ from tmol.database import ParameterDatabase
 
 # from tmol.score.cartbonded.params import CartBondedGlobalParams
 from tmol.score.cartbonded.cartbonded_whole_pose_module import (
-    CartBondedWholePoseScoringModule
+    CartBondedWholePoseScoringModule,
 )
 
 from tmol.chemical.restypes import RefinedResidueType
@@ -149,7 +149,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
         setattr(block_type, "params_by_unique_id", params_by_atom_unique_id)
 
-    def get_wildcard_params(self,):
+    def get_wildcard_params(
+        self,
+    ):
         params_by_atom_unique_id = {}
         all_params = (
             self.cart_database.length_parameters

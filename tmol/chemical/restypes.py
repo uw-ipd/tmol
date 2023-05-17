@@ -186,9 +186,7 @@ class RefinedResidueType(RawResidueType):
             return
 
         n_conns = len(self.connections)
-        MAX_PATHS = (
-            13
-        )  # TODO: if we keep this constant, it should be somewhere globally accessible...
+        MAX_PATHS = 13  # TODO: if we keep this constant, it should be somewhere globally accessible...
 
         atom_paths = numpy.full((n_conns, MAX_PATHS, 3), -1, dtype=numpy.int32)
 

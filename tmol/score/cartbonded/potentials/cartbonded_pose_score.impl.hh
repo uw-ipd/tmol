@@ -39,10 +39,10 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 template <typename Real>
 using CoordQuad = Eigen::Matrix<Real, 4, 3>;
 
-template <typename Int>
-TMOL_DEVICE_FUNC int hash_funct(Vec<Int, 4> key, int max_size) {
+template <typename Int, Int key_size>
+TMOL_DEVICE_FUNC int hash_funct(Vec<Int, key_size> key, int max_size) {
   int value = 0x1234;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < key_size; i++) {
     int k = key[i];
     if (k == -1) break;
     value = (k ^ value) * 3141 % max_size;
@@ -50,16 +50,16 @@ TMOL_DEVICE_FUNC int hash_funct(Vec<Int, 4> key, int max_size) {
   return value;
 }
 
-template <typename Int, tmol::Device D>
+template <typename Int, Int key_size, tmol::Device D>
 TMOL_DEVICE_FUNC int hash_lookup(
-    Vec<Int, 4> key, TView<Vec<Int, 5>, 1, D> hash_keys) {
+    Vec<Int, key_size> key, TView<Vec<Int, key_size + 1>, 1, D> hash_keys) {
   int index = hash_funct<Int>(key, hash_keys.size(0));
   while (true) {
     bool match = true;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < key_size; i++) {
       match = match && key[i] == hash_keys[index][i];
     }
-    if (match) return hash_keys[index][4];
+    if (match) return hash_keys[index][key_size];
 
     if (hash_keys[index][0] == -1) return -1;
 
@@ -208,16 +208,14 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     auto get_block_type_atom_id =
         ([=] TMOL_DEVICE_FUNC(
              Int atom_index, Int block_type_index, bool wildcard = false) {
-          return (atom_index == -1)
-                     ? -1
-                     : (wildcard)
-                           ? atom_wildcard_ids[block_type_index][atom_index]
-                           : atom_unique_ids[block_type_index][atom_index];
+          return (atom_index == -1) ? -1
+                 : (wildcard) ? atom_wildcard_ids[block_type_index][atom_index]
+                              : atom_unique_ids[block_type_index][atom_index];
         });
 
     auto get_param_index =
         ([=] TMOL_DEVICE_FUNC(Vec<Int, 4> subgraph_atom_ids) {
-          int index = hash_lookup<Int, D>(subgraph_atom_ids, hash_keys);
+          int index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
           return index;
         });

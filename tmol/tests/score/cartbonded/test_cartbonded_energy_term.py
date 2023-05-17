@@ -9,7 +9,6 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device: torch.device):
-
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
@@ -38,7 +37,6 @@ def test_annotate_cartbonded_uaids(
 def test_whole_pose_scoring_module_gradcheck_whole_pose(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
-
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
