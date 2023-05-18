@@ -1,19 +1,7 @@
 import torch
 from tmol.types.torch import Tensor
 from typing import Optional
-
 from tmol.pose.pose_stack import PoseStack
-
-from tmol.io.details.canonical_packed_block_types import (
-    default_canonical_packed_block_types,
-)
-from tmol.io.details.disulfide_search import find_disulfides
-from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
-from tmol.io.details.select_from_canonical import (
-    assign_block_types,
-    take_block_type_atoms_from_canonical,
-)
-from tmol.io.details.build_missing_hydrogens import build_missing_hydrogens
 
 
 def pose_stack_from_canonical_form(
@@ -23,6 +11,17 @@ def pose_stack_from_canonical_form(
     atom_is_present: Optional[Tensor[torch.int32][:, :, :]] = None,
 ) -> PoseStack:
     """ "Create a PoseStack given atom coordinates in canonical ordering"""
+
+    from tmol.io.details.canonical_packed_block_types import (
+        default_canonical_packed_block_types,
+    )
+    from tmol.io.details.disulfide_search import find_disulfides
+    from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
+    from tmol.io.details.select_from_canonical import (
+        assign_block_types,
+        take_block_type_atoms_from_canonical,
+    )
+    from tmol.io.details.build_missing_hydrogens import build_missing_hydrogens
 
     assert chain_begin.device == res_types.device
     assert chain_begin.device == coords.device
