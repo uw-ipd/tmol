@@ -10,6 +10,7 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
+#include <tmol/score/common/connection.hh>
 #include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
@@ -62,12 +63,15 @@ TMOL_DEVICE_FUNC Vec<Int, size> atom_local_to_global_indices(
   return global_indices;
 }
 
+// Get the atom ID for an atom index from a lookup table, preserving (-1)s
 template <typename Int, tmol::Device D>
 TMOL_DEVICE_FUNC Int
 get_atom_id(TensorAccessor<Int, 1, D> atom_id_table, Int atom_index) {
   return (atom_index == -1) ? -1 : atom_id_table[atom_index];
 }
 
+// From a Vec of atom indices and a lookup table, return a new Vec with their
+// IDs preserving (-1)s
 template <typename Int, Int size, tmol::Device D>
 TMOL_DEVICE_FUNC Vec<Int, size> get_atom_ids(
     TensorAccessor<Int, 1, D> atom_id_table, Vec<Int, size> atoms) {
@@ -78,6 +82,7 @@ TMOL_DEVICE_FUNC Vec<Int, size> get_atom_ids(
   return atom_ids;
 }
 
+// Reverse the non-(-1) elements of a subgraph
 template <typename Int>
 TMOL_DEVICE_FUNC void reverse_subgraph(Vec<Int, 4>& subgraph) {
   subgraph_type type = get_subgraph_type(subgraph);
@@ -154,47 +159,6 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto func = ([=] TMOL_DEVICE_FUNC(
                    int pose_index, int block_index, int subgraph_index) {
     Real score = 0;
-    const int CON_PATH_INDICES[][2] = {// Length
-                                       {0, 0},
-
-                                       // Angles
-                                       {0, 1},
-                                       {0, 2},
-                                       {0, 3},
-                                       {1, 0},
-                                       {2, 0},
-                                       {3, 0},
-
-                                       // Torsions
-                                       {0, 4},
-                                       {0, 5},
-                                       {0, 6},
-                                       {0, 7},
-                                       {0, 8},
-                                       {0, 9},
-                                       {0, 10},
-                                       {0, 11},
-                                       {0, 12},
-
-                                       {1, 1},
-                                       {1, 2},
-                                       {1, 3},
-                                       {2, 1},
-                                       {2, 2},
-                                       {2, 3},
-                                       {3, 1},
-                                       {3, 2},
-                                       {3, 3},
-
-                                       {4, 0},
-                                       {5, 0},
-                                       {6, 0},
-                                       {7, 0},
-                                       {8, 0},
-                                       {9, 0},
-                                       {10, 0},
-                                       {11, 0},
-                                       {12, 0}};
 
     int block_type = pose_stack_block_type[pose_index][block_index];
     auto pose_coords = coords[pose_index];
@@ -221,15 +185,27 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           switch (type) {
             case subgraph_type::length: {
               auto eval = cblength_V_dV(atom1, atom2, params[1], params[0]);
-              score = common::get<0>(eval);
+
               accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
+
+              accumulate<D, Vec<Real, 3>>::add(
+                  dV_dx[0][pose_index][atoms[0]], common::get<1>(eval));
+              accumulate<D, Vec<Real, 3>>::add(
+                  dV_dx[0][pose_index][atoms[1]], common::get<2>(eval));
               break;
             }
             case subgraph_type::angle: {
               auto eval =
                   cbangle_V_dV(atom1, atom2, atom3, params[1], params[0]);
-              score = common::get<0>(eval);
+
               accumulate<D, Real>::add(V[1][pose_index], common::get<0>(eval));
+
+              accumulate<D, Vec<Real, 3>>::add(
+                  dV_dx[1][pose_index][atoms[0]], common::get<1>(eval));
+              accumulate<D, Vec<Real, 3>>::add(
+                  dV_dx[1][pose_index][atoms[1]], common::get<2>(eval));
+              accumulate<D, Vec<Real, 3>>::add(
+                  dV_dx[1][pose_index][atoms[2]], common::get<3>(eval));
               break;
             }
             case subgraph_type::torsion: {
@@ -244,8 +220,17 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                   params[3],
                   params[4],
                   params[5]);
-              score = common::get<0>(eval);
+
               accumulate<D, Real>::add(V[2][pose_index], common::get<0>(eval));
+
+              accumulate<D, Vec<Real, 3>>::add(
+                  dV_dx[2][pose_index][atoms[0]], common::get<1>(eval));
+              accumulate<D, Vec<Real, 3>>::add(
+                  dV_dx[2][pose_index][atoms[1]], common::get<2>(eval));
+              accumulate<D, Vec<Real, 3>>::add(
+                  dV_dx[2][pose_index][atoms[2]], common::get<3>(eval));
+              accumulate<D, Vec<Real, 3>>::add(
+                  dV_dx[2][pose_index][atoms[3]], common::get<4>(eval));
               break;
             }
           }
@@ -256,58 +241,75 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
       subgraph_index -= subgraph_offset_next;
 
+      // Iterate over each connection in this block
       for (int i = 0; i < pose_stack_inter_block_connections.size(2); i++) {
+        const Vec<Int, 2>& connection =
+            pose_stack_inter_block_connections[pose_index][block_index][i];
+        int other_block_index = connection[0];
+        int other_block_type =
+            pose_stack_block_type[pose_index][other_block_index];
+        int other_block_offset =
+            pose_stack_block_coord_offset[pose_index][other_block_index];
+
+        // No block on the other side of the connection, nothing to do
+        if (other_block_index == -1) continue;
+
+        int other_connection_index = connection[1];
+
+        // From our subgraph index, grab the corresponding paths indices for
+        // each block
+        std::tuple<int, int> spanning_subgraphs =
+            get_connection_spanning_subgraph_indices(subgraph_index);
+        int res1_path_ind = common::get<0>(spanning_subgraphs);
+        int res2_path_ind = common::get<1>(spanning_subgraphs);
+
+        // Grab the paths from each block
+        Vec<Int, 3> res1_path =
+            atom_paths_from_conn[block_type][i][res1_path_ind];
+        Vec<Int, 3> res2_path =
+            atom_paths_from_conn[other_block_type][other_connection_index]
+                                [res2_path_ind];
+
+        // Make sure these are valid paths
+        if (res1_path[0] == -1 || res2_path[0] == -1) continue;
+        // Reverse the first path so that we can join them head-to-head
+        res1_path.reverseInPlace();
+
+        // Get a new Vec containing the global indices of the atoms
+        Vec<Int, 3> res1_atom_indices =
+            atom_local_to_global_indices(res1_path, block_coord_offset);
+        Vec<Int, 3> res2_atom_indices =
+            atom_local_to_global_indices(res2_path, other_block_offset);
+
+        // Calculate the size of each path
+        Int res1_size = (res1_atom_indices.array() != -1).count();
+        Int res2_size = (res2_atom_indices.array() != -1).count();
+
+        // Try both unique and wildcard IDs for block 1
         for (bool wildcard : {false, true}) {
-          const Vec<Int, 2>& connection =
-              pose_stack_inter_block_connections[pose_index][block_index][i];
-          int other_block_index = connection[0];
-          int other_block_type =
-              pose_stack_block_type[pose_index][other_block_index];
-          int other_block_offset =
-              pose_stack_block_coord_offset[pose_index][other_block_index];
-
-          if (other_block_index == -1) continue;
-
-          int other_connection_index = connection[1];
-
-          int res1_path_ind = CON_PATH_INDICES[subgraph_index][0];
-          int res2_path_ind = CON_PATH_INDICES[subgraph_index][1];
-
-          Vec<Int, 3> res1_path =
-              atom_paths_from_conn[block_type][i][res1_path_ind];
-          Vec<Int, 3> res2_path =
-              atom_paths_from_conn[other_block_type][other_connection_index]
-                                  [res2_path_ind];
-
-          if (res1_path[0] == -1 || res2_path[0] == -1) continue;
-          res1_path.reverseInPlace();
-
-          Vec<Int, 3> res1_atom_indices =
-              atom_local_to_global_indices(res1_path, block_coord_offset);
-          Vec<Int, 3> res2_atom_indices =
-              atom_local_to_global_indices(res2_path, other_block_offset);
-
+          // Get the lookup tables for atom ID
           const auto& res1_atom_id_table = (wildcard)
                                                ? atom_wildcard_ids[block_type]
                                                : atom_unique_ids[block_type];
           const auto& res2_atom_id_table = atom_wildcard_ids[other_block_type];
 
+          // Get the atom IDs
           Vec<Int, 3> res1_subgraph_atom_ids =
               get_atom_ids(res1_atom_id_table, res1_path);
           Vec<Int, 3> res2_subgraph_atom_ids =
               get_atom_ids(res2_atom_id_table, res2_path);
 
-          Int res1_size = (res1_atom_indices.array() != -1).count();
-          Int res2_size = (res2_atom_indices.array() != -1).count();
-
+          // Make the joined data structures
           Vec<Int, 4> path;
           Vec<Int, 4> atom_indices;
           Vec<Int, 4> subgraph_atom_ids;
 
+          // Init with -1s
           path << -1, -1, -1, -1;
           atom_indices << -1, -1, -1, -1;
           subgraph_atom_ids << -1, -1, -1, -1;
 
+          // Join the paths into 1
           path.head(res1_size + res2_size) << res1_path.tail(res1_size),
               res2_path.head(res2_size);
           atom_indices.head(res1_size + res2_size)
@@ -317,9 +319,11 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               << res1_subgraph_atom_ids.tail(res1_size),
               res2_subgraph_atom_ids.head(res2_size);
 
+          // Do the lookup
           int param_index =
               hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
+          // If we found a param that matches, score the subgraph
           if (param_index != -1) {
             score_subgraph(atom_indices, param_index);
           }
@@ -328,6 +332,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       return;
     }
 
+    // Intra-res subgraphs
     for (bool reverse : {false, true}) {
       Vec<Int, 4> subgraph = cart_subgraphs[subgraph_index];
       if (reverse) reverse_subgraph(subgraph);
