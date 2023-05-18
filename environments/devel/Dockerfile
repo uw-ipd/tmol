@@ -4,7 +4,12 @@ FROM nvidia/cuda:11.8.0-devel-ubuntu20.04 as base
 # general environment for docker
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update; apt-get install -y --no-install-recommends sudo wget curl git vim rsync && rm -rf /var/lib/apt/lists/*
+RUN apt-get update; apt-get install -y --no-install-recommends sudo wget curl git vim rsync libxml2 && rm -rf /var/lib/apt/lists/*
+
+
+# Genentech users: uncomment the line below to download Roche certificates so that you can download from nvidia
+# RUN wget -r -l1 --no-parent --quiet -A .crt -P /usr/local/share/ca-certificates https://certinfo.roche.com/rootcerts/ && update-ca-certificates
+
 
 ENV CONDA_DIR=/opt/conda
 ENV PATH ${CONDA_DIR}/bin:$PATH
