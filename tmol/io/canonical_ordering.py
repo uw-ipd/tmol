@@ -285,7 +285,7 @@ ordered_canonical_aa_atoms = {
         "CB",
         "CG",
         "OD1",
-        "OD2",
+        "ND2",
         "H",
         "H1",
         "H2",

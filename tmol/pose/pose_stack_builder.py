@@ -858,7 +858,7 @@ class PoseStackBuilder:
             n_conn_for_block
         )
         n_conn_for_block_offset64 = n_conn_for_block_offset.to(torch.int64)
-        max_n_pose_conn = torch.max(n_conn_totals)
+        max_n_pose_conn = torch.max(n_conn_totals) + 1
 
         # nz_real_blocks_pose_ind, nz_real_blocks_block_ind = torch.nonzero(
         #     real_blocks, as_tuple=True
@@ -1524,10 +1524,10 @@ class PoseStackBuilder:
         res_is_real_and_not_c_term[npose_arange, n_res - 1] = False
 
         connected_up_conn_inds = pbt.up_conn_inds[
-            block_type_ind64[res_is_real_and_not_n_term]
+            block_type_ind64[res_is_real_and_not_c_term]
         ].to(torch.int64)
         connected_down_conn_inds = pbt.down_conn_inds[
-            block_type_ind64[res_is_real_and_not_c_term]
+            block_type_ind64[res_is_real_and_not_n_term]
         ].to(torch.int64)
 
         # TO DO: handle termini patches!

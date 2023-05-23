@@ -66,13 +66,14 @@ def assign_block_types(
         ),
         dim=1,
     )
+    chain_end[n_pose_arange, n_res - 1] = 1
     res_is_real_and_not_c_term[chain_end == 1] = False
 
     connected_up_conn_inds = pbt.up_conn_inds[
-        block_type_ind64[res_is_real_and_not_n_term]
+        block_type_ind64[res_is_real_and_not_c_term]
     ].to(torch.int64)
     connected_down_conn_inds = pbt.down_conn_inds[
-        block_type_ind64[res_is_real_and_not_c_term]
+        block_type_ind64[res_is_real_and_not_n_term]
     ].to(torch.int64)
 
     (
@@ -206,7 +207,9 @@ def take_block_type_atoms_from_canonical(
         device=pbt.device,
     )
 
-    canonical_atom_inds[real_block_types] = pbt.canonical_atom_ind_map[block_types64]
+    canonical_atom_inds[real_block_types] = pbt.canonical_atom_ind_map[
+        block_types64[real_block_types]
+    ]
     nz_real_pose_ind, nz_real_block_ind, _ = torch.nonzero(real_atoms, as_tuple=True)
 
     block_coords = torch.zeros(
