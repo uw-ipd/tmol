@@ -27,7 +27,7 @@ def exclusive_cumsum2d(
             numpy.zeros((inds.shape[0], 1), dtype=inds.dtype),
             numpy.cumsum(inds, axis=1)[:, :-1],
         ),
-        axis=0,
+        axis=1,
     )
 
 

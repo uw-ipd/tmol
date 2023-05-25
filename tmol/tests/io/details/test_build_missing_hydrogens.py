@@ -16,69 +16,12 @@ from tmol.io.details.build_missing_hydrogens import (
 )
 
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-
-
-def atom_records_from_coords(
-    pbt, chain_begin, block_types64, pose_like_coords, block_coord_offset
-):
-    from tmol.io.pdb_parsing import atom_record_dtype
-
-    assert pose_like_coords.shape[0] == 1
-    assert block_coord_offset.shape[0] == 1
-    assert block_types64.shape[0] == 1
-    assert block_types64.shape[1] == block_coord_offset.shape[1]
-
-    chain_begin = chain_begin.cpu().numpy()
-    block_types64 = block_types64.cpu().numpy()
-    pose_like_coords = pose_like_coords.cpu().numpy()
-    block_coord_offset = block_coord_offset.cpu().numpy()
-
-    n_atoms = pose_like_coords.shape[1]
-    results = numpy.empty(pose_like_coords.shape[1], dtype=atom_record_dtype)
-    results["record_name"] = numpy.full((n_atoms,), "ATOM  ", dtype=str)
-    results["modeli"] = 0
-    results["chaini"] = 0
-    # chain_begin = chain_begin.cpu().numpy()
-    res_begin = numpy.full((n_atoms,), 0, dtype=int)
-    res_begin[block_coord_offset[0]] = 1
-    res_for_atom = numpy.cumsum(res_begin) - 1
-    print("res for atom")
-    print(res_for_atom)
-    results["resi"] = res_for_atom
-    results["atomi"] = numpy.arange(n_atoms, dtype=numpy.int)
-    results["model"] = "0"
-    results["chain"] = "A"
-    print("block_types64[0, i]")
-    print([block_types64[0, i] for i in res_for_atom])
-
-    results["resn"] = numpy.array(
-        [pbt.active_block_types[block_types64[0, i]].name for i in res_for_atom],
-        dtype=str,
-    )
-    results["atomn"] = numpy.array(
-        [
-            pbt.active_block_types[block_types64[0, res_for_atom[i]]]
-            .atoms[i - block_coord_offset[0, res_for_atom[i]]]
-            .name
-            for i in range(n_atoms)
-        ],
-        dtype=str,
-    )
-    results["x"] = pose_like_coords[0, :, 0]
-    results["y"] = pose_like_coords[0, :, 1]
-    results["z"] = pose_like_coords[0, :, 2]
-    results["insert"] = " "
-    results["occupancy"] = 1
-    results["b"] = 0
-
-    return results
+from tmol.io.write_pose_stack_pdb import atom_records_from_coords
+from tmol.io.pdb_parsing import to_pdb
 
 
 def test_build_missing_hydrogens(torch_device, ubq_pdb):
     numpy.set_printoptions(threshold=100000)
-
-    # print("ubq_pdb")
-    # print(ubq_pdb)
 
     pbt, atr = default_canonical_packed_block_types(torch_device)
     ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)

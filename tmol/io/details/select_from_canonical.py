@@ -38,6 +38,11 @@ def assign_block_types(
     res_types64 = res_types.to(torch.int64)
     res_type_variants64 = res_type_variants.to(torch.int64)
     real_res = res_types64 != -1
+
+    assert torch.all(
+        real_res[chain_begin == 1]
+    ), "every residue marked as the beginning of a chain must be real"
+
     # TEMP! treat everything as a "mid" (1) termini type
     block_type_ind64 = torch.full_like(res_types64, -1)
     block_type_ind64[real_res] = canonical_res_ordering_map[
@@ -67,6 +72,9 @@ def assign_block_types(
         dim=1,
     )
     chain_end[n_pose_arange, n_res - 1] = 1
+    assert torch.all(
+        real_res[chain_end == 1]
+    ), "every residue marked as the end of a chain must be real"
     res_is_real_and_not_c_term[chain_end == 1] = False
 
     connected_up_conn_inds = pbt.up_conn_inds[

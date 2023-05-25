@@ -42,6 +42,7 @@ class PoseStackBuilder:
     def one_structure_from_polymeric_residues(
         cls, res: List[Residue], device: torch.device
     ) -> PoseStack:
+        """Archaic form of creating a monomer from a list of Residue objects"""
         residue_connections = find_simple_polymeric_connections(res)
         return cls.one_structure_from_residues_and_connections(
             res, residue_connections, device
@@ -1205,7 +1206,7 @@ class PoseStackBuilder:
         pose_stacks,  #: List["PoseStack"],
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
-        device=torch.device,
+        device: torch.device,
     ):
         n_poses = sum(len(ps) for ps in pose_stacks)
         block_type_ind = torch.full(
