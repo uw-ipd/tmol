@@ -1,5 +1,7 @@
 import numpy
 import torch
+from tmol.pose.pose_stack import PoseStack
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
@@ -7,7 +9,7 @@ from typing import Optional, Union
 
 
 def atom_records_from_pose_stack(
-    pose_stack: "PoseStack",
+    pose_stack: PoseStack,
     chain_labels: Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
 ):
     from tmol.io.chain_deduction import chain_inds_for_pose_stack
@@ -22,7 +24,7 @@ def atom_records_from_pose_stack(
     )
 
 
-# @validate_args
+@validate_args
 def atom_records_from_coords(
     pbt: "PackedBlockTypes",
     chain_ind_for_block: Union[Tensor[torch.int32][:, :], NDArray[numpy.int32][:, :]],
@@ -47,10 +49,10 @@ def atom_records_from_coords(
 
     is_real_block = block_types64 != -1
     real_block_pose, real_block_block = torch.nonzero(is_real_block, as_tuple=True)
-    n_real_blocks = torch.sum(is_real_block.to(torch.int64), dim=1)
-    pose_for_real_block = torch.arange(
-        n_poses, dtype=torch.int64, device=pbt.device
-    ).repeat_interleave(n_real_blocks, dim=0)
+    # n_real_blocks = torch.sum(is_real_block.to(torch.int64), dim=1)
+    # pose_for_real_block = torch.arange(
+    #     n_poses, dtype=torch.int64, device=pbt.device
+    # ).repeat_interleave(n_real_blocks, dim=0)
     # print("pose_for_real_block.shape")
     # print(pose_for_real_block.shape)
     # print("n_real_blocks")
@@ -132,7 +134,7 @@ def atom_records_from_coords(
         block_local_atom_index_for_real_atom.cpu().numpy()
     )
 
-    n_res = numpy.cumsum(is_real_block, axis=1)
+    # n_res = numpy.cumsum(is_real_block, axis=1)
 
     chain_ind_for_real_atom = chain_ind_for_block[
         pose_for_real_atom, block_for_real_atom
@@ -153,7 +155,11 @@ def atom_records_from_coords(
     # print("res for atom")
     # print(res_for_atom)
     results["resi"] = block_for_atom[atom_is_real] + 1
-    results["atomi"] = numpy.arange(n_atoms_total, dtype=numpy.int) + 1
+    results["atomi"] = (
+        numpy.arange(n_atoms_total, dtype=numpy.int)
+        + 1
+        - pose_atom_offsets[pose_for_real_atom]
+    )
     results["model"] = pose_for_real_atom + 1
 
     if chain_labels is None:
@@ -162,7 +168,7 @@ def atom_records_from_coords(
     if len(chain_labels.shape) == 1:
         results["chain"] = chain_labels[chain_ind_for_real_atom]
     elif len(chain_labels.shape) == 2:
-        results["chain"] = chain_labels[pose_ind_for_real_atom, chain_ind_for_real_atom]
+        results["chain"] = chain_labels[pose_for_real_atom, chain_ind_for_real_atom]
 
     # print("block_types64[0, i]")
     # print([block_types64[0, i] for i in res_for_atom])

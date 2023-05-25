@@ -16,8 +16,6 @@ from tmol.io.details.build_missing_hydrogens import (
 )
 
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.io.write_pose_stack_pdb import atom_records_from_coords
-from tmol.io.pdb_parsing import to_pdb
 
 
 def test_build_missing_hydrogens(torch_device, ubq_pdb):
@@ -113,6 +111,9 @@ def test_build_missing_hydrogens(torch_device, ubq_pdb):
     # print("built_h_pos")
     # print(built_h_pos)
 
+    # from tmol.io.write_pose_stack_pdb import atom_records_from_coords
+    # from tmol.io.pdb_parsing import to_pdb
+    #
     # atom_records = atom_records_from_coords(
     #     pbt, ch_beg, block_types64, new_pose_coords, block_coord_offset
     # )

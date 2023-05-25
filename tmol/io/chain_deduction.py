@@ -7,6 +7,7 @@ from tmol.types.array import NDArray
 from tmol.utility.ndarray.common_operations import exclusive_cumsum1d
 
 
+@validate_args
 def chain_inds_for_pose_stack(
     pose_stack: PoseStack,
 ) -> NDArray[numpy.int32][:, :]:

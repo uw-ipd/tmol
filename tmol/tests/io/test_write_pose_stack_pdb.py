@@ -3,7 +3,6 @@ import numpy
 
 from tmol.io.write_pose_stack_pdb import (
     atom_records_from_pose_stack,
-    atom_records_from_coords,
 )
 from tmol.chemical.restypes import find_simple_polymeric_connections
 from tmol.io.pdb_parsing import to_pdb
@@ -41,6 +40,11 @@ def test_atom_records_for_multi_chain_pdb(pertuzumab_lines, torch_device):
 
     records = atom_records_from_pose_stack(pose_stack, numpy.array([x for x in "LH"]))
     pdb_lines = to_pdb(records)
+    pdb_atom_lines = [x for x in pdb_lines.split("\n") if x[:6] == "ATOM  "]
+    pertuzumab_atom_lines = [
+        x for x in pertuzumab_lines.split("\n") if x[:6] == "ATOM  "
+    ]
+    assert len(pdb_atom_lines) > pertuzumab_atom_lines
 
     # out_fname = (
     #     "test_write_pose_stack_antibody_cpu.pdb"
