@@ -26,6 +26,34 @@ def test_atom_records_from_pose_stack_1(ubq_pdb, ubq_res, torch_device):
     assert len(pdb_atom_lines) == len(starting_ubq_pdb_atom_lines)
 
 
+def test_atom_records_from_pose_stack_2(ubq_pdb, ubq_res, torch_device):
+    connections5 = find_simple_polymeric_connections(ubq_res[:5])
+    p1 = PoseStackBuilder.one_structure_from_residues_and_connections(
+        ubq_res[:5], connections5, torch_device
+    )
+    connections7 = find_simple_polymeric_connections(ubq_res[:7])
+    p2 = PoseStackBuilder.one_structure_from_residues_and_connections(
+        ubq_res[:7], connections7, torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+
+    records = atom_records_from_pose_stack(poses)
+    pdb_lines = to_pdb(records)
+
+    out_fname = (
+        "test_write_multi_model_pose_stack_antibody_cpu.pdb"
+        if torch_device == torch.device("cpu")
+        else "test_write_multi_model_pose_stack_antibody_cuda.pdb"
+    )
+    with open(out_fname, "w") as fid:
+        fid.write(pdb_lines)
+
+    # pdb_atom_lines = [x for x in pdb_lines.split("\n") if x[:6] == "ATOM  "]
+    # starting_ubq_pdb_atom_lines = [x for x in ubq_pdb.split("\n") if x[:6] == "ATOM  "]
+    #
+    # assert len(pdb_atom_lines) == len(starting_ubq_pdb_atom_lines)
+
+
 def test_atom_records_for_multi_chain_pdb(pertuzumab_lines, torch_device):
     ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         pertuzumab_lines
@@ -38,13 +66,15 @@ def test_atom_records_for_multi_chain_pdb(pertuzumab_lines, torch_device):
 
     pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
 
-    records = atom_records_from_pose_stack(pose_stack, numpy.array([x for x in "LH"]))
+    records = atom_records_from_pose_stack(
+        pose_stack, numpy.array([x for x in "LH"], dtype=str)
+    )
     pdb_lines = to_pdb(records)
     pdb_atom_lines = [x for x in pdb_lines.split("\n") if x[:6] == "ATOM  "]
     pertuzumab_atom_lines = [
         x for x in pertuzumab_lines.split("\n") if x[:6] == "ATOM  "
     ]
-    assert len(pdb_atom_lines) > pertuzumab_atom_lines
+    assert len(pdb_atom_lines) > len(pertuzumab_atom_lines)
 
     # out_fname = (
     #     "test_write_pose_stack_antibody_cpu.pdb"

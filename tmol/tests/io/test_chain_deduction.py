@@ -1,8 +1,10 @@
 import numpy
+import torch
 
-# import torch
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io.chain_deduction import chain_inds_for_pose_stack
+from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
+from tmol.io.basic_resolution import pose_stack_from_canonical_form
 
 
 def test_deduce_chains_for_monomer(ubq_res, default_restype_set, torch_device):
@@ -29,3 +31,29 @@ def test_deduce_chains_two_monomers(ubq_res, default_restype_set, torch_device):
         [[0, 0, 0, 0, 0, 1, 2], [0, 0, 0, 0, 0, 0, 0]], dtype=numpy.int32
     )
     numpy.testing.assert_equal(gold_chain_inds, chain_inds)
+
+
+def test_deduce_chains_dslf_dimer(pertuzumab_lines, torch_device):
+    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        pertuzumab_lines
+    )
+
+    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    can_rts = torch.tensor(can_rts, device=torch_device)
+    coords = torch.tensor(coords, device=torch_device)
+    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+
+    pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+
+    chain_inds = chain_inds_for_pose_stack(pose_stack)
+
+    chain_inds_gold = numpy.zeros(
+        (
+            1,
+            pose_stack.max_n_blocks,
+        ),
+        dtype=numpy.int32,
+    )
+    chain_inds_gold[0, 214:] = 1
+
+    numpy.testing.assert_equal(chain_inds_gold, chain_inds)

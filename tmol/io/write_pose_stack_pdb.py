@@ -10,7 +10,7 @@ from typing import Optional, Union
 
 def atom_records_from_pose_stack(
     pose_stack: PoseStack,
-    chain_labels: Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
+    chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
 ):
     from tmol.io.chain_deduction import chain_inds_for_pose_stack
 
@@ -27,11 +27,11 @@ def atom_records_from_pose_stack(
 @validate_args
 def atom_records_from_coords(
     pbt: "PackedBlockTypes",
-    chain_ind_for_block: Union[Tensor[torch.int32][:, :], NDArray[numpy.int32][:, :]],
-    block_types64: Tensor[torch.int32][:, :],
-    pose_like_coords: Tensor[torch.int32][:, :, 3],
+    chain_ind_for_block: Union[Tensor[torch.int32][:, :], NDArray[numpy.int64][:, :]],
+    block_types64: Tensor[torch.int64][:, :],
+    pose_like_coords: Tensor[torch.float32][:, :, 3],
     block_coord_offset: Tensor[torch.int32][:, :],
-    chain_labels: Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
+    chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
 ):
     from tmol.io.pdb_parsing import atom_record_dtype
     from tmol.utility.tensor.common_operations import exclusive_cumsum1d
@@ -70,9 +70,11 @@ def atom_records_from_coords(
         real_block_pose, block_coord_offset64[real_block_pose, real_block_block]
     ] = 1
     block_for_pose_atom = torch.cumsum(block_for_pose_atom, dim=1) - 1
-    pose_for_pose_atom = torch.arange(
-        n_poses, dtype=torch.int64, device=pbt.device
-    ).repeat((1, max_n_pose_atoms))
+    pose_for_pose_atom = (
+        torch.arange(n_poses, dtype=torch.int64, device=pbt.device)
+        .repeat_interleave(max_n_pose_atoms)
+        .view(n_poses, max_n_pose_atoms)
+    )
 
     n_pose_atoms = torch.sum(n_block_atoms, dim=1)
     n_atoms_total = torch.sum(n_pose_atoms)
@@ -97,6 +99,17 @@ def atom_records_from_coords(
     ] = 1
     block_for_atom = torch.cumsum(block_for_atom, dim=1) - 1
     block_for_real_atom = block_for_atom[atom_is_real]
+
+    # print("torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat((n_poses, 1))")
+    # print(torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat((n_poses, 1)).shape)
+    #
+    # print("pose_for_pose_atom", pose_for_pose_atom.shape)
+    # print(pose_for_pose_atom[:,:30])
+    # print("block_for_pose_atom", block_for_pose_atom.shape)
+
+    # print("block_coord_offset[pose_for_pose_atom, block_for_pose_atom]")
+    # print(block_coord_offset[pose_for_pose_atom, block_for_pose_atom].shape)
+
     block_local_atom_index_for_pose_atom = (
         torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat(
             (n_poses, 1)
@@ -106,6 +119,14 @@ def atom_records_from_coords(
     block_local_atom_index_for_real_atom = block_local_atom_index_for_pose_atom[
         atom_is_real
     ]
+    # print("torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat(n_poses,1)")
+    # print(torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat(n_poses,1))
+    # print("block_coord_offset[pose_for_pose_atom, block_for_pose_atom]")
+    # print(block_coord_offset[pose_for_pose_atom, block_for_pose_atom])
+    # print("block_local_atom_index_for_pose_atom")
+    # print(block_local_atom_index_for_pose_atom)
+    # print("atom_is_real")
+    # print(atom_is_real)
 
     pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
     # chain_ind_for_block = torch.zeros(
@@ -133,6 +154,7 @@ def atom_records_from_coords(
     block_local_atom_index_for_real_atom = (
         block_local_atom_index_for_real_atom.cpu().numpy()
     )
+    pose_atom_offsets = pose_atom_offsets.cpu().numpy()
 
     # n_res = numpy.cumsum(is_real_block, axis=1)
 
@@ -181,6 +203,10 @@ def atom_records_from_coords(
             bt_atom_names[i, j] = at.name
 
     bt_for_real_atom = block_types64[pose_for_real_atom, block_for_real_atom]
+    # print("bt_for_real_atom")
+    # print(bt_for_real_atom)
+    # print("block_local_atom_index_for_real_atom")
+    # print(block_local_atom_index_for_real_atom)
     results["resn"] = bt_names[bt_for_real_atom]
     results["atomn"] = bt_atom_names[
         bt_for_real_atom, block_local_atom_index_for_real_atom
@@ -194,3 +220,47 @@ def atom_records_from_coords(
     results["b"] = 0
 
     return results
+
+
+def annotate_pbt_w_valid_connection_masks(pbt: PackedBlockTypes):
+    """We want to take the up-down polymeric connections between residues
+    that have up-down connections and not other connections, unless
+    otherwise instructed.
+
+    The logic here is to take the up- and down-connections from
+    polymeric residues as the ones that connect two residues part
+    of the same chain. This would make the C->N connection along
+    a protein backbone serve to say residues i and i+1 are part
+    of the same chain without saying that a disulfide bond
+    between residues i and j make them part of the same chain.
+    (They are at that point a single molecule, but, conceptually
+    still separate chains.)
+
+    For non-polymeric residues, all their chemical bonds should
+    be considered as connecting them to members of their same chain.
+
+    The upshot is: if a polymeric residue is connected to a
+    non-polymeric residue through one of its non-up/non-down
+    connection points, the non-polymeric residue will still be
+    considered part of the polymeric residue's chain. Either
+    connection direction is sufficient to link two residues
+    as part of the same chain.
+    """
+    if hasattr(pbt, "connection_mask_for_chain_detection"):
+        return
+
+    connection_masks = torch.zeros((pbt.n_types, pbt.max_n_conn), dtype=torch.bool)
+    for i, bt in enumerate(pbt.active_block_types):
+        if bt.properties.is_polymer:
+            # for polymeric residues: only their up/down connections are
+            # automatically considered part of chain connection identification
+            if bt.up_connection_ind >= 0:
+                connection_masks[i, bt.up_connection_ind] = True
+            if bt.down_connection_ind >= 0:
+                connection_masks[i, bt.down_connection_ind] = True
+        else:
+            # for non-polymeric residues, all their connecitons are
+            # automatically
+            connection_masks[i, : len(bt.connections)] = True
+
+    setattr(pbt, "connection_mask_for_chain_detection", connection_masks.to(pbt.device))
