@@ -286,7 +286,9 @@ def find_max_length_fp_among_res_samplers(
     return (n_fps_for_rt, max_sampler_for_rt, max_fp_for_rt, fp_to_ind)
 
 
-def find_unique_fingerprints(pbt: PackedBlockTypes,):
+def find_unique_fingerprints(
+    pbt: PackedBlockTypes,
+):
     sampler_types = set()
     for rt in pbt.active_block_types:
         if hasattr(rt, "mc_fingerprints"):

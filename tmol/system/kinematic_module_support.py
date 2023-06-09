@@ -18,7 +18,6 @@ def cartesian_dofs_get_from(self: CartesianDOFs, system: PackedResidueSystem):
 
 @CartesianDOFs.set_on.register(PackedResidueSystem)
 def cartesian_dofs_set_on(self: CartesianDOFs, system: PackedResidueSystem):
-
     coords = self()
     assert coords.shape == (1, len(system.coords), 3)
     system.coords[:] = coords[0].numpy()
@@ -61,7 +60,6 @@ def kinematic_dofs_get_from(
 def kinematic_dofs_set_on(
     self: KinematicDOFs, system: PackedResidueSystem
 ) -> PackedResidueSystem:
-
     coords = self()
     assert coords.shape == (1, len(system.coords), 3)
     system.coords[:] = coords[0].numpy()

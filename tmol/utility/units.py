@@ -30,7 +30,7 @@ def parse_angle(
     else:
         val = angle
 
-    if not isinstance(val, pint.unit.Number):
+    if not isinstance(val, pint.util.Number):
         # May have parsed to a just a number or a
         # quantity with units, if so convert to radians
         val.to(ureg.rad)

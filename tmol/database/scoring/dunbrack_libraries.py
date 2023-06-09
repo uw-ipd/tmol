@@ -196,7 +196,6 @@ class DunbrackRotamerLibrary:
 
     @classmethod
     def from_zarr_archive(cls, path_lookup, path_tables):
-
         with open(path_lookup, "r") as infile_lookup:
             raw = yaml.load(infile_lookup, Loader=yaml.FullLoader)
             dun_lookup = cattr.structure(

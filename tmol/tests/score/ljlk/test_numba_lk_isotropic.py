@@ -89,7 +89,7 @@ def test_lk_isotropic_spotcheck(params, iname, jname):
 
     sigma = ignore_unused_kwargs(lj_sigma)(**combine_params(i, j, g))
 
-    d_min = sigma * .89
+    d_min = sigma * 0.89
     cpoly_close_dmin = numpy.sqrt(d_min * d_min - 1.45)
     cpoly_close_dmax = numpy.sqrt(d_min * d_min + 1.05)
 

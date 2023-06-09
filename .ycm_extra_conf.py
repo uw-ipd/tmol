@@ -105,7 +105,6 @@ def file_language(filename):
 
 
 def Settings(**kwargs):
-
     logger.info("Settings: %s" % kwargs)
     if kwargs["language"] == "cfamily":
         # If the file is a header, try to find the corresponding source file and

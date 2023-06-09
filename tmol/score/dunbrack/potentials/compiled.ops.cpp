@@ -125,15 +125,16 @@ class DunOp : public Function<DunOp<ScoreDispatch, DispatchMethod>> {
           dneglnprob_nonrot_dtor_xyz = std::get<3>(result).tensor;
         }));
 
-    ctx->save_for_backward({coords,
-                            dneglnprob_rot_dbb_xyz,
-                            drotchi_devpen_dtor_xyz,
-                            dneglnprob_nonrot_dtor_xyz,
-                            dihedral_offset_for_res,
-                            dihedral_atom_inds,
-                            rotres2resid,
-                            rotameric_chi_desc,
-                            semirotameric_chi_desc});
+    ctx->save_for_backward(
+        {coords,
+         dneglnprob_rot_dbb_xyz,
+         drotchi_devpen_dtor_xyz,
+         dneglnprob_nonrot_dtor_xyz,
+         dihedral_offset_for_res,
+         dihedral_atom_inds,
+         rotres2resid,
+         rotameric_chi_desc,
+         semirotameric_chi_desc});
 
     return score;
   }

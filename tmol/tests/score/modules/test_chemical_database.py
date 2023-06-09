@@ -30,7 +30,7 @@ def validate_param_resolver(
     assert len(resolver.index) == len(atom_types) + 1
 
     for a in atom_types:
-        aidx, = resolver.index.get_indexer_for([a])
+        (aidx,) = resolver.index.get_indexer_for([a])
 
         assert resolver.params.is_acceptor[aidx] == atom_types[a].is_acceptor
         assert (
@@ -56,8 +56,7 @@ def validate_param_resolver(
 
 
 def test_database_parameter_resolution(default_database, torch_device):
-    """Chemical database parameters are packed into indexed torch tensors.
-    """
+    """Chemical database parameters are packed into indexed torch tensors."""
     resolver: AtomTypeParamResolver = AtomTypeParamResolver.from_database(
         chemical_database=default_database.chemical, device=torch_device
     )

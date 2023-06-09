@@ -58,11 +58,12 @@ def cbtorsion_V_dV(
   Real Keff = K / (period * period);  // map spring constant to cos
   Real E = Keff * (1.0 - std::cos(period * (torsion.V - x0)));
   Real dE = Keff * period * std::sin(period * (torsion.V - x0));
-  return {E,
-          dE * torsion.dV_dI,
-          dE * torsion.dV_dJ,
-          dE * torsion.dV_dK,
-          dE * torsion.dV_dL};
+  return {
+      E,
+      dE * torsion.dV_dI,
+      dE * torsion.dV_dJ,
+      dE * torsion.dV_dK,
+      dE * torsion.dV_dL};
 }
 
 // hydroxyl torsions use a sum of three sin funcs
@@ -89,11 +90,12 @@ def cbhxltorsion_V_dV(
             - 2.0 * K2 * std::sin(2.0 * torsion.V - phi2)
             - 3.0 * K3 * std::sin(3.0 * torsion.V - phi3);
 
-  return {E,
-          dE * torsion.dV_dI,
-          dE * torsion.dV_dJ,
-          dE * torsion.dV_dK,
-          dE * torsion.dV_dL};
+  return {
+      E,
+      dE * torsion.dV_dI,
+      dE * torsion.dV_dJ,
+      dE * torsion.dV_dK,
+      dE * torsion.dV_dL};
 }
 
 #undef Real3

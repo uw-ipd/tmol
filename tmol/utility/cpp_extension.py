@@ -55,7 +55,6 @@ _required_cuda_flags = [
 # we will query the device. This lets us use an older version of torch with a
 # more recent GPU (e.g. an A100 with cuda10.1)
 if torch.cuda.is_available():
-
     import os
 
     arch_list = os.environ.get("TORCH_CUDA_ARCH_LIST", None)

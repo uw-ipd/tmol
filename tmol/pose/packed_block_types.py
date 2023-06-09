@@ -202,7 +202,6 @@ class PackedBlockTypes:
 
     @classmethod
     def join_bond_indices(cls, active_block_types, device):
-
         bond_indices = [
             torch.tensor(bt.bond_indices.copy(), dtype=torch.int32, device=device)
             for bt in active_block_types

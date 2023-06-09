@@ -59,7 +59,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         hbbt_params = block_type.hbbt_params
         n_tiles = hbbt_params.tile_donH_inds.shape[0]
 
-        atom_is_polar = numpy.full((block_type.n_atoms,), False, dtype=numpy.bool)
+        atom_is_polar = numpy.full((block_type.n_atoms,), False, dtype=bool)
         atom_is_polar[hbbt_params.don_hvy_inds] = True
         atom_is_polar[hbbt_params.acc_inds] = True
         polar_inds = numpy.nonzero(atom_is_polar)[0].astype(numpy.int32)

@@ -122,7 +122,9 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         assert len(self.shape) == 1
 
         columns = attr.asdict(self)
-        columns["dof_type"] = vals_to_name_cat(DOFTypes, columns["dof_type"])
+        # NOTE vals_to_name_cat and other functions from
+        # tmol.utility.categorical will silently fail if passed torch.Tensor
+        columns["dof_type"] = vals_to_name_cat(DOFTypes, columns["dof_type"].numpy())
         return pandas.DataFrame(columns)
 
     @classmethod

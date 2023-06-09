@@ -72,7 +72,6 @@ try:
         """Resolve functools.wraps for @numba.vectorize."""
         return functools.wraps(f._dispatcher.py_func)
 
-
 except ImportError:
     pass
 
@@ -82,7 +81,6 @@ try:
     @_signature.register(numpy.lib.function_base.vectorize)
     def _numpy_vectorize_signature(f):
         return _signature(f.pyfunc)
-
 
 except ImportError:
     pass
@@ -109,18 +107,18 @@ def _pybind11_doc_signatures(f):
     if overloaded:
         doc_signatures = [
             m.group(1)
-            for m in re.finditer(fr"^\d+\. ({name}.*)$", f.__doc__, re.MULTILINE)
+            for m in re.finditer(rf"^\d+\. ({name}.*)$", f.__doc__, re.MULTILINE)
         ]
     else:
         doc_signatures = [
-            m.group(1) for m in re.finditer(fr"^({name}.*)$", f.__doc__, re.MULTILINE)
+            m.group(1) for m in re.finditer(rf"^({name}.*)$", f.__doc__, re.MULTILINE)
         ]
 
     return [_parse_doc_signature(ds) for ds in doc_signatures]
 
 
 def _sanitize_pybind11_signature(sig):
-    """ Sanitize a typeid signature into type annotation.
+    """Sanitize a typeid signature into type annotation.
 
     Hack attempt to sanitize c++ type signatures into syntactically valid
     python type annotations. Split off the return value annotation then
@@ -144,7 +142,7 @@ def _sanitize_pybind11_signature(sig):
 
 
 def _parse_doc_signature(sig):
-    fdef, = ast.parse(f"def {_sanitize_pybind11_signature(sig)}: pass").body
+    (fdef,) = ast.parse(f"def {_sanitize_pybind11_signature(sig)}: pass").body
 
     # Just count the number of arguments w/ default values, no attempt to parse
     # the values.

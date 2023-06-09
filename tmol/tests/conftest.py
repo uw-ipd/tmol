@@ -84,23 +84,3 @@ def pytest_addoption(parser):
         default=False,
         help="Enable nvrt profile run.",
     )
-
-
-def pytest_benchmark_fixture_post_run(config, fixture, f):
-
-    if not config.getoption("benchmark_cuda_profile"):
-        return
-
-    import torch
-    import time
-
-    with torch.cuda.profiler.profile():
-        torch.cuda.nvtx.range_push("benchmark-warmup")
-        f()
-        torch.cuda.nvtx.range_pop()
-
-        time.sleep(0.01)
-
-        torch.cuda.nvtx.range_push("benchmark-run")
-        f()
-        torch.cuda.nvtx.range_pop()

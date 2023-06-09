@@ -52,7 +52,7 @@ def armijo_linesearch(
     """
     # evaluate phi(0) if not input
     if old_fval is None:
-        phi0 = func(0.)
+        phi0 = func(0.0)
     else:
         phi0 = old_fval
 
@@ -286,7 +286,7 @@ class LBFGS_Armijo(Optimizer):
                 al = state["al"]
 
                 for i in range(num_old):
-                    ro[i] = 1. / old_dirs[i].dot(old_stps[i])
+                    ro[i] = 1.0 / old_dirs[i].dot(old_stps[i])
 
                 # iteration in L-BFGS loop collapsed to use just one buffer
                 q = flat_grad.neg()

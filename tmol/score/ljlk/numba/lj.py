@@ -22,7 +22,7 @@ def f_vdw(dist, sigma, epsilon):
 
 @jit
 def f_vdw_d_dist(dist, sigma, epsilon):
-    return epsilon * (12 * sigma ** 6 / dist ** 7 - 12 * sigma ** 12 / dist ** 13)
+    return epsilon * (12 * sigma**6 / dist**7 - 12 * sigma**12 / dist**13)
 
 
 @jit
@@ -172,7 +172,6 @@ def lj_intra(
     v = 0
     for i in range(coords.shape[0]):
         for j in range(i + 1, coords.shape[0]):
-
             ti = atom_types[i]
             tj = atom_types[j]
 
@@ -292,7 +291,6 @@ def lj_inter(
     v = 0
     for i in range(coords_a.shape[0]):
         for j in range(coords_b.shape[0]):
-
             ti = atom_types_a[i]
             tj = atom_types_b[j]
 

@@ -20,7 +20,6 @@ def coords_for_system(
     *,
     requires_grad: bool = True,
 ):
-
     stack_params = StackedSystem.get(score_system)
     device = TorchDevice.get(score_system).device
 

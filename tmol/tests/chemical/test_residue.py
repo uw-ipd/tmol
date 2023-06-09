@@ -17,7 +17,6 @@ test_names = ["1QYS", "1UBQ"]
 
 @pytest.mark.parametrize("structure", test_names)
 def test_smoke_io(structure):
-
     for tname in test_names:
         pdb = test_pdbs[tname]
         read_pdb(pdb)

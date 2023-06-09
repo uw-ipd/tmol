@@ -21,7 +21,7 @@ def test_cart_network_min(ubq_system, torch_device):
     optimizer = LBFGS_Armijo(model.parameters(), lr=0.1, max_iter=20)
 
     E0 = score_system.intra_total(coords)
-    print("E0", E0)
+    # print("E0", E0)
 
     def closure():
         optimizer.zero_grad()
@@ -33,7 +33,7 @@ def test_cart_network_min(ubq_system, torch_device):
     optimizer.step(closure)  # this optimizes coords, the tensor
 
     E1 = score_system.intra_total(coords)
-    print("E1", E1)
+    # print("E1", E1)
     assert E1 < E0
 
 
