@@ -15,6 +15,7 @@
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/uaid_util.hh>
 
 #include <tmol/score/rama/potentials/params.hh>
 #include <tmol/score/rama/potentials/potentials.hh>
@@ -47,7 +48,7 @@ class RamaPoseScoreDispatch {
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
       // are connected
-      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
+      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_block_connections,
 
       //////////////////////
       // Chemical properties
@@ -78,7 +79,7 @@ class RamaPoseScoreDispatch {
     int const n_poses = coords.size(0);
     int const max_n_pose_atoms = coords.size(1);
     int const max_n_blocks = pose_stack_block_type.size(1);
-    int const max_n_conn = pose_stack_inter_residue_connections.size(2);
+    int const max_n_conn = pose_stack_inter_block_connections.size(2);
     int const n_block_types = block_type_atom_downstream_of_conn.size(0);
     int const max_n_atoms_per_block_type =
         block_type_atom_downstream_of_conn.size(1);
@@ -89,8 +90,8 @@ class RamaPoseScoreDispatch {
 
     assert(pose_stack_block_type.size(0) == n_poses);
 
-    assert(pose_stack_inter_residue_connections.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
+    assert(pose_stack_inter_block_connections.size(0) == n_poses);
+    assert(pose_stack_inter_block_connections.size(1) == max_n_blocks);
 
     assert(block_type_rama_table.size(0) == n_block_types);
 
@@ -122,8 +123,8 @@ class RamaPoseScoreDispatch {
         return;
       }
       int const upper_nbr_ind =
-          pose_stack_inter_residue_connections[pose_ind][block_ind][upper_conn]
-                                              [0];
+          pose_stack_inter_block_connections[pose_ind][block_ind][upper_conn]
+                                            [0];
       if (upper_nbr_ind < 0) {
         return;
       }
@@ -140,43 +141,50 @@ class RamaPoseScoreDispatch {
 
       int const offset_this_block_ind =
           pose_stack_block_coord_offset[pose_ind][block_ind];
-      auto resolve_atom = ([&] TMOL_DEVICE_FUNC(UnresolvedAtomID<Int> at) {
-        if (at.atom_id >= 0) {
-          return offset_this_block_ind + at.atom_id;
-        } else {
-          if (at.n_bonds_from_conn > max_n_atoms_per_block_type) {
-            return -1;
-          }
-          int const nbr_block =
-              pose_stack_inter_residue_connections[pose_ind][block_ind]
-                                                  [at.conn_id][0];
-          int const nbr_conn =
-              pose_stack_inter_residue_connections[pose_ind][block_ind]
-                                                  [at.conn_id][1];
-          // If the inter-block connection information for this connection is
-          // incomplete in the pose, then we will calculate no rama score for
-          // this res
-          if (nbr_block < 0) {
-            return -1;
-          }
-          int const nbr_block_type = pose_stack_block_type[pose_ind][nbr_block];
-          int const nbr_atom =
-              block_type_atom_downstream_of_conn[nbr_block_type][nbr_conn]
-                                                [at.n_bonds_from_conn];
-          if (nbr_atom < 0) {
-            return -1;
-          }
-          int const nbr_offset =
-              pose_stack_block_coord_offset[pose_ind][nbr_block];
-          return nbr_offset + nbr_atom;
-        }
-      });
+      // auto resolve_atom = ([&] TMOL_DEVICE_FUNC(UnresolvedAtomID<Int> at) {
+      //   if (at.atom_id >= 0) {
+      //     return offset_this_block_ind + at.atom_id;
+      //   } else {
+      //     if (at.n_bonds_from_conn > max_n_atoms_per_block_type) {
+      //       return -1;
+      //     }
+      //     int const nbr_block =
+      //         pose_stack_inter_block_connections[pose_ind][block_ind]
+      //                                             [at.conn_id][0];
+      //     int const nbr_conn =
+      //         pose_stack_inter_block_connections[pose_ind][block_ind]
+      //                                             [at.conn_id][1];
+      //     // If the inter-block connection information for this connection is
+      //     // incomplete in the pose, then we will calculate no rama score for
+      //     // this res
+      //     if (nbr_block < 0) {
+      //       return -1;
+      //     }
+      //     int const nbr_block_type =
+      //     pose_stack_block_type[pose_ind][nbr_block]; int const nbr_atom =
+      //         block_type_atom_downstream_of_conn[nbr_block_type][nbr_conn]
+      //                                           [at.n_bonds_from_conn];
+      //     if (nbr_atom < 0) {
+      //       return -1;
+      //     }
+      //     int const nbr_offset =
+      //         pose_stack_block_coord_offset[pose_ind][nbr_block];
+      //     return nbr_offset + nbr_atom;
+      //   }
+      // });
 
       Vec<Int, 4> phi_ats;
       for (int i = 0; i < 4; ++i) {
         UnresolvedAtomID<Int> i_at =
             block_type_rama_torsion_atoms[block_type][i];
-        phi_ats[i] = resolve_atom(i_at);
+        phi_ats[i] = resolve_atom_from_uaid(
+            i_at,
+            block_ind,
+            pose_ind,
+            pose_stack_block_coord_offset,
+            pose_stack_block_type,
+            pose_stack_inter_block_connections,
+            block_type_atom_downstream_of_conn);
         if (phi_ats[i] == -1) {
           return;
         }
@@ -189,7 +197,14 @@ class RamaPoseScoreDispatch {
       for (int i = 0; i < 4; ++i) {
         UnresolvedAtomID<Int> i_at =
             block_type_rama_torsion_atoms[block_type][i + 4];
-        psi_ats[i] = resolve_atom(i_at);
+        psi_ats[i] = resolve_atom_from_uaid(
+            i_at,
+            block_ind,
+            pose_ind,
+            pose_stack_block_coord_offset,
+            pose_stack_block_type,
+            pose_stack_inter_block_connections,
+            block_type_atom_downstream_of_conn);
         if (psi_ats[i] == -1) {
           return;
         }

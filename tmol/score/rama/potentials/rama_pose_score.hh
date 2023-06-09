@@ -38,7 +38,7 @@ class RamaPoseScoreDispatch {
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
       // are connected
-      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
+      TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_block_connections,
 
       //////////////////////
       // Chemical properties

@@ -18,7 +18,7 @@ namespace common {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <typename Real, typename Int, tmol::Device D>
+template <typename Int, tmol::Device D>
 TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
     UnresolvedAtomID<Int> uaid,
     int block_index,
