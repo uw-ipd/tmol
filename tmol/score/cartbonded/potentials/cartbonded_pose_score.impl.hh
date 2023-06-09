@@ -109,6 +109,19 @@ TMOL_DEVICE_FUNC void reverse_subgraph(Vec<Int, 4>& subgraph) {
   }
 }
 
+/*
+template <typename Real, typename Int, int N, tmol::Device D>
+TMOL_DEVICE_FUNC void accumulate(
+  common::tuple<Real, Eigen::Matrix<Real, N, 3>> to_add,
+  Vec<Int, N> atoms,
+  TensorAccessor<Real, 1, D> V,
+  TensorAccessor<Vec<Real, 3>, 3, D> dV)
+{
+  for(int i = 0; i < N; i++)
+    accumulate<D, Vec<Real, 3>>::add(dV[atoms[i]],
+common::get<1>(to_add).row(i));
+}*/
+
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -124,7 +137,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 2, D> atom_unique_ids,
     TView<Int, 2, D> atom_wildcard_ids,
     TView<Vec<Int, 5>, 1, D> hash_keys,
-    TView<Vec<Real, 6>, 1, D> hash_values,
+    TView<Vec<Real, 7>, 1, D> hash_values,
     TView<Vec<Int, 4>, 1, D> cart_subgraphs,
     TView<Int, 1, D> cart_subgraph_offsets,
 
@@ -142,8 +155,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   int const n_subgraphs = cart_subgraphs.size(0);
 
-  auto V_t = TPack<Real, 2, D>::zeros({3, n_poses});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({3, n_poses, max_n_atoms});
+  auto V_t = TPack<Real, 2, D>::zeros({4, n_poses});
+  auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({4, n_poses, max_n_atoms});
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
@@ -170,71 +183,75 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                    : cart_subgraph_offsets[block_type + 1];
     subgraph_index += subgraph_offset;
 
-    auto score_subgraph =
-        ([&] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Int param_index) {
-          Vec<Real, 6> params = hash_values[param_index];
+    auto score_subgraph = ([&] TMOL_DEVICE_FUNC(
+                               Vec<Int, 4> atoms, Int param_index) {
+      Vec<Real, 7> params = hash_values[param_index];
 
-          Vec<Real, 3> atom1 = pose_coords[atoms[0]];
-          Vec<Real, 3> atom2 = pose_coords[atoms[1]];
+      Vec<Real, 3> atom1 = pose_coords[atoms[0]];
+      Vec<Real, 3> atom2 = pose_coords[atoms[1]];
+
+      subgraph_type type = get_subgraph_type(atoms);
+
+      // Real score;
+      switch (type) {
+        case subgraph_type::length: {
+          auto eval = cblength_V_dV(atom1, atom2, params[1], params[0]);
+
+          accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
+
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[0][pose_index][atoms[0]], common::get<1>(eval));
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[0][pose_index][atoms[1]], common::get<2>(eval));
+          break;
+        }
+        case subgraph_type::angle: {
+          Vec<Real, 3> atom3 = pose_coords[atoms[2]];
+          auto eval = cbangle_V_dV(atom1, atom2, atom3, params[1], params[0]);
+
+          accumulate<D, Real>::add(V[1][pose_index], common::get<0>(eval));
+
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[1][pose_index][atoms[0]], common::get<1>(eval));
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[1][pose_index][atoms[1]], common::get<2>(eval));
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[1][pose_index][atoms[2]], common::get<3>(eval));
+          break;
+        }
+        case subgraph_type::torsion: {
           Vec<Real, 3> atom3 = pose_coords[atoms[2]];
           Vec<Real, 3> atom4 = pose_coords[atoms[3]];
+          auto eval = cbhxltorsion_V_dV(
+              atom1,
+              atom2,
+              atom3,
+              atom4,
+              params[0],
+              params[1],
+              params[2],
+              params[3],
+              params[4],
+              params[5]);
 
-          subgraph_type type = get_subgraph_type(atoms);
+          // 2 = torsion, 3 = hxl_torsion
+          int torsion_type = (params[6] < 0.5) ? 2 : 3;
 
-          // Real score;
-          switch (type) {
-            case subgraph_type::length: {
-              auto eval = cblength_V_dV(atom1, atom2, params[1], params[0]);
+          accumulate<D, Real>::add(
+              V[torsion_type][pose_index], common::get<0>(eval));
 
-              accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
-
-              accumulate<D, Vec<Real, 3>>::add(
-                  dV_dx[0][pose_index][atoms[0]], common::get<1>(eval));
-              accumulate<D, Vec<Real, 3>>::add(
-                  dV_dx[0][pose_index][atoms[1]], common::get<2>(eval));
-              break;
-            }
-            case subgraph_type::angle: {
-              auto eval =
-                  cbangle_V_dV(atom1, atom2, atom3, params[1], params[0]);
-
-              accumulate<D, Real>::add(V[1][pose_index], common::get<0>(eval));
-
-              accumulate<D, Vec<Real, 3>>::add(
-                  dV_dx[1][pose_index][atoms[0]], common::get<1>(eval));
-              accumulate<D, Vec<Real, 3>>::add(
-                  dV_dx[1][pose_index][atoms[1]], common::get<2>(eval));
-              accumulate<D, Vec<Real, 3>>::add(
-                  dV_dx[1][pose_index][atoms[2]], common::get<3>(eval));
-              break;
-            }
-            case subgraph_type::torsion: {
-              auto eval = cbhxltorsion_V_dV(
-                  atom1,
-                  atom2,
-                  atom3,
-                  atom4,
-                  params[0],
-                  params[1],
-                  params[2],
-                  params[3],
-                  params[4],
-                  params[5]);
-
-              accumulate<D, Real>::add(V[2][pose_index], common::get<0>(eval));
-
-              accumulate<D, Vec<Real, 3>>::add(
-                  dV_dx[2][pose_index][atoms[0]], common::get<1>(eval));
-              accumulate<D, Vec<Real, 3>>::add(
-                  dV_dx[2][pose_index][atoms[1]], common::get<2>(eval));
-              accumulate<D, Vec<Real, 3>>::add(
-                  dV_dx[2][pose_index][atoms[2]], common::get<3>(eval));
-              accumulate<D, Vec<Real, 3>>::add(
-                  dV_dx[2][pose_index][atoms[3]], common::get<4>(eval));
-              break;
-            }
-          }
-        });
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[torsion_type][pose_index][atoms[0]], common::get<1>(eval));
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[torsion_type][pose_index][atoms[1]], common::get<2>(eval));
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[torsion_type][pose_index][atoms[2]], common::get<3>(eval));
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[torsion_type][pose_index][atoms[3]], common::get<4>(eval));
+          break;
+        }
+      }
+    });
 
     if (subgraph_index >= subgraph_offset_next) {
       if (subgraph_index >= subgraph_offset_next + NUM_INTER_RES_PATHS) return;
@@ -258,7 +275,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
         // From our subgraph index, grab the corresponding paths indices for
         // each block
-        std::tuple<int, int> spanning_subgraphs =
+        tuple<int, int> spanning_subgraphs =
             get_connection_spanning_subgraph_indices(subgraph_index);
         int res1_path_ind = common::get<0>(spanning_subgraphs);
         int res2_path_ind = common::get<1>(spanning_subgraphs);

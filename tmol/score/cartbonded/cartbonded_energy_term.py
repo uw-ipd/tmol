@@ -122,6 +122,14 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 getattr(param, field) for field in fields if hasattr(param, field)
             ]
 
+            # TODO: hacky. would prefer some other way of encoding this
+            params += [
+                0
+                if param_num
+                < len(all_params) - len(self.cart_database.hxltorsion_parameters)
+                else 1
+            ]
+
             previous_atm = ""
             is_wildcard = False
             for i, atom in enumerate(atoms):
@@ -260,7 +268,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
         hash_values = numpy.full(
-            (total_params, 6), 0, dtype=numpy.float32  # k1, k2, k3, phi1, phi2, phi3
+            (total_params, 7),
+            0,
+            dtype=numpy.float32,  # k1, k2, k3, phi1, phi2, phi3, type
         )
 
         cur_val = 0

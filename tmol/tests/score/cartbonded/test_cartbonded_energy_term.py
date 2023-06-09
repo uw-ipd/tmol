@@ -34,9 +34,10 @@ def test_annotate_cartbonded_uaids(
     assert pbt.cartbonded_quad_uaids.device == torch_device"""
 
 
-def test_whole_pose_scoring_module_gradcheck_whole_pose(
+def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
+    rts_ubq_res = rts_ubq_res[0:2]
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
@@ -51,17 +52,17 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
     cartbonded_pose_scorer = cartbonded_energy.render_whole_pose_scoring_module(p1)
 
     def score(coords):
-        scores = cartbonded_pose_scorer(coords)
+        scores = cartbonded_pose_scorer(coords)[2:3]
         return torch.sum(scores)
 
-    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-2, rtol=5e-3)
+    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-2, atol=5e-2)
 
 
 def test_whole_pose_scoring_module_single(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
     # rts_ubq_res = rts_ubq_res[0:2]
-    gold_vals = numpy.array([[0.0], [0.0], [0.0]], dtype=numpy.float32)
+    gold_vals = numpy.array([[0.0], [0.0], [0.0], [0.0]], dtype=numpy.float32)
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )

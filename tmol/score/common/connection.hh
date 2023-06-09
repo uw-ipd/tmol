@@ -15,8 +15,9 @@ namespace tmol {
 namespace score {
 namespace common {
 
-TMOL_DEVICE_FUNC std::tuple<int, int> get_connection_spanning_subgraph_indices(
-    int index) {
+template <typename Int>
+TMOL_DEVICE_FUNC tuple<Int, Int> get_connection_spanning_subgraph_indices(
+    Int index) {
   static const int CON_PATH_INDICES[][2] = {// Length
                                             {0, 0},
 
