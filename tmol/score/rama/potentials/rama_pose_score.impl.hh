@@ -141,37 +141,6 @@ class RamaPoseScoreDispatch {
 
       int const offset_this_block_ind =
           pose_stack_block_coord_offset[pose_ind][block_ind];
-      // auto resolve_atom = ([&] TMOL_DEVICE_FUNC(UnresolvedAtomID<Int> at) {
-      //   if (at.atom_id >= 0) {
-      //     return offset_this_block_ind + at.atom_id;
-      //   } else {
-      //     if (at.n_bonds_from_conn > max_n_atoms_per_block_type) {
-      //       return -1;
-      //     }
-      //     int const nbr_block =
-      //         pose_stack_inter_block_connections[pose_ind][block_ind]
-      //                                             [at.conn_id][0];
-      //     int const nbr_conn =
-      //         pose_stack_inter_block_connections[pose_ind][block_ind]
-      //                                             [at.conn_id][1];
-      //     // If the inter-block connection information for this connection is
-      //     // incomplete in the pose, then we will calculate no rama score for
-      //     // this res
-      //     if (nbr_block < 0) {
-      //       return -1;
-      //     }
-      //     int const nbr_block_type =
-      //     pose_stack_block_type[pose_ind][nbr_block]; int const nbr_atom =
-      //         block_type_atom_downstream_of_conn[nbr_block_type][nbr_conn]
-      //                                           [at.n_bonds_from_conn];
-      //     if (nbr_atom < 0) {
-      //       return -1;
-      //     }
-      //     int const nbr_offset =
-      //         pose_stack_block_coord_offset[pose_ind][nbr_block];
-      //     return nbr_offset + nbr_atom;
-      //   }
-      // });
 
       Vec<Int, 4> phi_ats;
       for (int i = 0; i < 4; ++i) {
