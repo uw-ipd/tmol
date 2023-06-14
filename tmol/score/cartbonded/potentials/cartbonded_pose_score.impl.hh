@@ -155,8 +155,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   int const n_subgraphs = cart_subgraphs.size(0);
 
-  auto V_t = TPack<Real, 2, D>::zeros({4, n_poses});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({4, n_poses, max_n_atoms});
+  auto V_t = TPack<Real, 2, D>::zeros({5, n_poses});
+  auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({5, n_poses, max_n_atoms});
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
@@ -235,7 +235,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               params[5]);
 
           // 2 = torsion, 3 = hxl_torsion
-          int torsion_type = (params[6] < 0.5) ? 2 : 3;
+          int torsion_type = params[6] + 2;
 
           accumulate<D, Real>::add(
               V[torsion_type][pose_index], common::get<0>(eval));

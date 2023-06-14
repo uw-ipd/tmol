@@ -50,6 +50,7 @@ class HxlTorsionGroup:
     phi2: float = 0.0
     k3: float = 0.0
     phi3: float = 0.0
+    type: int = 0
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

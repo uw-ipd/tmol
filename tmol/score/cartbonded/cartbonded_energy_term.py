@@ -104,44 +104,39 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
         params_by_atom_unique_id = {}
         all_params = (
-            self.cart_database.improper_parameters
-            + self.cart_database.length_parameters
+            self.cart_database.length_parameters
             + self.cart_database.angle_parameters
             + self.cart_database.torsion_parameters
+            + self.cart_database.improper_parameters
             + self.cart_database.hxltorsion_parameters
         )
+
         for param_num, param in enumerate(all_params):
             if param.res != block_type.name:
                 continue
 
             fields = ["atm1", "atm2", "atm3", "atm4"]
             atoms = [getattr(param, field) for field in fields if hasattr(param, field)]
-            # fields = ["x0", "K", "period"]
-            fields = ["x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
+            fields = ["x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3", "type"]
             params = [
                 getattr(param, field) for field in fields if hasattr(param, field)
-            ]
-
-            # TODO: hacky. would prefer some other way of encoding this
-            params += [
-                0
-                if param_num
-                < len(all_params) - len(self.cart_database.hxltorsion_parameters)
-                else 1
             ]
 
             previous_atm = ""
             is_wildcard = False
             for i, atom in enumerate(atoms):
-                if param_num >= len(self.cart_database.improper_parameters) and (
-                    previous_atm == "N"
-                    and atom == "C"
-                    or previous_atm == "C"
-                    and atom == "N"
+                if (
+                    hasattr(param, "type")
+                    and param.type != 1
+                    and (
+                        previous_atm == "N"
+                        and atom == "C"
+                        or previous_atm == "C"
+                        and atom == "N"
+                    )
                 ):
                     is_wildcard = True
-                else:
-                    pass  # print(atoms, params)
+
                 previous_atm = atom
                 atoms[i] = (
                     self.get_atom_wildcard_id_name(param.res, atom)
