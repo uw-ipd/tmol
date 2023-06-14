@@ -209,6 +209,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           Vec<Real, 3> atom3 = pose_coords[atoms[2]];
           auto eval = cbangle_V_dV(atom1, atom2, atom3, params[1], params[0]);
 
+          printf(
+              "%i %i %i: %f %f\n", atom1, atom2, atom3, params[1], params[0]);
+
           accumulate<D, Real>::add(V[1][pose_index], common::get<0>(eval));
 
           accumulate<D, Vec<Real, 3>>::add(

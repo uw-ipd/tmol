@@ -160,6 +160,8 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             self.cart_database.length_parameters
             + self.cart_database.angle_parameters
             + self.cart_database.torsion_parameters
+            + self.cart_database.improper_parameters
+            + self.cart_database.hxltorsion_parameters
         )
         for param in all_params:
             if param.res != "_":
@@ -167,7 +169,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
             fields = ["atm1", "atm2", "atm3", "atm4"]
             atoms = [getattr(param, field) for field in fields if hasattr(param, field)]
-            fields = ["x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
+            fields = ["x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3", "type"]
             params = [
                 getattr(param, field) for field in fields if hasattr(param, field)
             ]
