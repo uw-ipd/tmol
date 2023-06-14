@@ -125,15 +125,11 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             previous_atm = ""
             is_wildcard = False
             for i, atom in enumerate(atoms):
-                if (
-                    hasattr(param, "type")
-                    and param.type != 1
-                    and (
-                        previous_atm == "N"
-                        and atom == "C"
-                        or previous_atm == "C"
-                        and atom == "N"
-                    )
+                if not (hasattr(param, "type") and param.type == 1) and (
+                    previous_atm == "N"
+                    and atom == "C"
+                    or previous_atm == "C"
+                    and atom == "N"
                 ):
                     is_wildcard = True
 
