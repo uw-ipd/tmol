@@ -84,10 +84,10 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 improper.append((atom1, atom2, atom3, atom4))
 
         return (
-            numpy.asarray(lengths),
-            numpy.asarray(angles),
-            numpy.asarray(torsions),
-            numpy.asarray(improper),
+            lengths,
+            angles,
+            torsions,
+            improper,
         )
 
     def setup_block_type(self, block_type: RefinedResidueType):
@@ -96,11 +96,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         lengths, angles, torsions, improper = self.find_subgraphs(
             block_type.bond_indices, block_type
         )
+        cart_subgraphs = numpy.asarray(lengths + angles + torsions + improper)
 
-        setattr(block_type, "cart_lengths", lengths)
-        setattr(block_type, "cart_angles", angles)
-        setattr(block_type, "cart_torsions", torsions)
-        setattr(block_type, "cart_improper", improper)
+        setattr(block_type, "cart_subgraphs", cart_subgraphs)
 
         params_by_atom_unique_id = {}
         all_params = (
@@ -111,7 +109,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             + self.cart_database.hxltorsion_parameters
         )
 
-        for param_num, param in enumerate(all_params):
+        for param in all_params:
             if param.res != block_type.name:
                 continue
 
@@ -185,34 +183,19 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
         # collect lengths/angles/torsions
-        total_subgraphs = 0
-        for block_type in packed_block_types.active_block_types:
-            total_subgraphs += block_type.cart_lengths.shape[0]
-            total_subgraphs += block_type.cart_angles.shape[0]
-            total_subgraphs += block_type.cart_torsions.shape[0]
-            total_subgraphs += block_type.cart_improper.shape[0]
+        total_subgraphs = sum(
+            bt.cart_subgraphs.shape[0] for bt in packed_block_types.active_block_types
+        )
         subgraphs = numpy.full((total_subgraphs, 4), -1, dtype=numpy.int32)
         subgraph_offsets = []
         offset = 0
         max_subgraphs_per_block = 0
-        for i, block_type in enumerate(packed_block_types.active_block_types):
+        for block_type in packed_block_types.active_block_types:
             subgraph_offsets.append(offset)
 
-            lengths = block_type.cart_lengths.shape[0]
-            subgraphs[offset : offset + lengths] = block_type.cart_lengths
-            offset += lengths
-
-            angles = block_type.cart_angles.shape[0]
-            subgraphs[offset : offset + angles] = block_type.cart_angles
-            offset += angles
-
-            torsions = block_type.cart_torsions.shape[0]
-            subgraphs[offset : offset + torsions] = block_type.cart_torsions
-            offset += torsions
-
-            improper = block_type.cart_improper.shape[0]
-            subgraphs[offset : offset + improper] = block_type.cart_improper
-            offset += improper
+            n_subgraphs = block_type.cart_subgraphs.shape[0]
+            subgraphs[offset : offset + n_subgraphs] = block_type.cart_subgraphs
+            offset += n_subgraphs
 
             max_subgraphs_per_block = max(
                 max_subgraphs_per_block, offset - subgraph_offsets[-1]
