@@ -192,31 +192,33 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
       subgraph_type type = get_subgraph_type(atoms);
 
+      int score_type = params[0];
+
       // Real score;
       switch (type) {
         case subgraph_type::length: {
-          auto eval = cblength_V_dV(atom1, atom2, params[1], params[0]);
+          auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
 
           accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
 
           accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[0][pose_index][atoms[0]], common::get<1>(eval));
+              dV_dx[score_type][pose_index][atoms[0]], common::get<1>(eval));
           accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[0][pose_index][atoms[1]], common::get<2>(eval));
+              dV_dx[score_type][pose_index][atoms[1]], common::get<2>(eval));
           break;
         }
         case subgraph_type::angle: {
           Vec<Real, 3> atom3 = pose_coords[atoms[2]];
-          auto eval = cbangle_V_dV(atom1, atom2, atom3, params[1], params[0]);
+          auto eval = cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
 
           accumulate<D, Real>::add(V[1][pose_index], common::get<0>(eval));
 
           accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[1][pose_index][atoms[0]], common::get<1>(eval));
+              dV_dx[score_type][pose_index][atoms[0]], common::get<1>(eval));
           accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[1][pose_index][atoms[1]], common::get<2>(eval));
+              dV_dx[score_type][pose_index][atoms[1]], common::get<2>(eval));
           accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[1][pose_index][atoms[2]], common::get<3>(eval));
+              dV_dx[score_type][pose_index][atoms[2]], common::get<3>(eval));
           break;
         }
         case subgraph_type::torsion: {
@@ -227,27 +229,27 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               atom2,
               atom3,
               atom4,
-              params[0],
               params[1],
               params[2],
               params[3],
               params[4],
-              params[5]);
+              params[5],
+              params[6]);
 
           // 2 = torsion, 3 = hxl_torsion
           int torsion_type = params[6] + 2;
 
           accumulate<D, Real>::add(
-              V[torsion_type][pose_index], common::get<0>(eval));
+              V[score_type][pose_index], common::get<0>(eval));
 
           accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[torsion_type][pose_index][atoms[0]], common::get<1>(eval));
+              dV_dx[score_type][pose_index][atoms[0]], common::get<1>(eval));
           accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[torsion_type][pose_index][atoms[1]], common::get<2>(eval));
+              dV_dx[score_type][pose_index][atoms[1]], common::get<2>(eval));
           accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[torsion_type][pose_index][atoms[2]], common::get<3>(eval));
+              dV_dx[score_type][pose_index][atoms[2]], common::get<3>(eval));
           accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[torsion_type][pose_index][atoms[3]], common::get<4>(eval));
+              dV_dx[score_type][pose_index][atoms[3]], common::get<4>(eval));
           break;
         }
       }

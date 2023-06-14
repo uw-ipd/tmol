@@ -102,20 +102,17 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
         params_by_atom_unique_id = {}
         all_params = (
-            self.cart_database.length_parameters
-            + self.cart_database.angle_parameters
-            + self.cart_database.torsion_parameters
-            + self.cart_database.improper_parameters
-            + self.cart_database.hxltorsion_parameters
+            self.cart_database.residue_params[block_type.name].length_parameters
+            + self.cart_database.residue_params[block_type.name].angle_parameters
+            + self.cart_database.residue_params[block_type.name].torsion_parameters
+            + self.cart_database.residue_params[block_type.name].improper_parameters
+            + self.cart_database.residue_params[block_type.name].hxltorsion_parameters
         )
 
         for param in all_params:
-            if param.res != block_type.name:
-                continue
-
             fields = ["atm1", "atm2", "atm3", "atm4"]
             atoms = [getattr(param, field) for field in fields if hasattr(param, field)]
-            fields = ["x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3", "type"]
+            fields = ["type", "x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
             params = [
                 getattr(param, field) for field in fields if hasattr(param, field)
             ]
@@ -123,7 +120,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             previous_atm = ""
             is_wildcard = False
             for i, atom in enumerate(atoms):
-                if not (hasattr(param, "type") and param.type == 1) and (
+                if not (hasattr(param, "type") and param.type == 3) and (
                     previous_atm == "N"
                     and atom == "C"
                     or previous_atm == "C"
@@ -133,9 +130,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
                 previous_atm = atom
                 atoms[i] = (
-                    self.get_atom_wildcard_id_name(param.res, atom)
+                    self.get_atom_wildcard_id_name(block_type.name, atom)
                     if is_wildcard
-                    else self.get_atom_unique_id_name(param.res, atom)
+                    else self.get_atom_unique_id_name(block_type.name, atom)
                 )
                 if atoms[i] not in self.atom_unique_id_index:
                     self.atom_unique_id_index[atoms[i]] = len(self.atom_unique_id_index)
@@ -150,26 +147,24 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         self,
     ):
         params_by_atom_unique_id = {}
+        wildcard_tag = "_"
         all_params = (
-            self.cart_database.length_parameters
-            + self.cart_database.angle_parameters
-            + self.cart_database.torsion_parameters
-            + self.cart_database.improper_parameters
-            + self.cart_database.hxltorsion_parameters
+            self.cart_database.residue_params[wildcard_tag].length_parameters
+            + self.cart_database.residue_params[wildcard_tag].angle_parameters
+            + self.cart_database.residue_params[wildcard_tag].torsion_parameters
+            + self.cart_database.residue_params[wildcard_tag].improper_parameters
+            + self.cart_database.residue_params[wildcard_tag].hxltorsion_parameters
         )
         for param in all_params:
-            if param.res != "_":
-                continue
-
             fields = ["atm1", "atm2", "atm3", "atm4"]
             atoms = [getattr(param, field) for field in fields if hasattr(param, field)]
-            fields = ["x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3", "type"]
+            fields = ["type", "x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
             params = [
                 getattr(param, field) for field in fields if hasattr(param, field)
             ]
 
             for i, atom in enumerate(atoms):
-                atoms[i] = self.get_atom_wildcard_id_name(param.res, atom)
+                atoms[i] = self.get_atom_wildcard_id_name(wildcard_tag, atom)
                 if atoms[i] not in self.atom_unique_id_index:
                     self.atom_unique_id_index[atoms[i]] = len(self.atom_unique_id_index)
 

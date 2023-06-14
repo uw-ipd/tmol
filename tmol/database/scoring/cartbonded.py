@@ -84,6 +84,7 @@ class LengthGroupNew:
     atm2: str
     x0: float
     K: float
+    type: int = 0
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -93,21 +94,11 @@ class AngleGroupNew:
     atm3: str
     x0: float
     K: float
+    type: int = 1
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class TorsionGroupNew:
-    atm1: str
-    atm2: str
-    atm3: str
-    atm4: str
-    x0: float
-    K: float
-    period: int = 1
-
-
-@attr.s(auto_attribs=True, slots=True, frozen=True)
-class HxlTorsionGroupNew:
     atm1: str
     atm2: str
     atm3: str
@@ -118,6 +109,17 @@ class HxlTorsionGroupNew:
     phi2: float = 0.0
     k3: float = 0.0
     phi3: float = 0.0
+    type: int = 2
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class ImproperGroupNew(TorsionGroupNew):
+    type: int = 3
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class HxlTorsionGroupNew(TorsionGroupNew):
+    type: int = 4
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -125,17 +127,13 @@ class CartRes:
     length_parameters: Tuple[LengthGroupNew, ...]
     angle_parameters: Tuple[AngleGroupNew, ...]
     torsion_parameters: Tuple[TorsionGroupNew, ...]
-    improper_parameters: typing.Optional[Tuple[TorsionGroupNew, ...]] = None
-    hxltorsion_parameters: typing.Optional[Tuple[HxlTorsionGroupNew, ...]] = None
+    improper_parameters: Tuple[ImproperGroupNew, ...]
+    hxltorsion_parameters: Tuple[HxlTorsionGroupNew, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CartBondedDatabaseNew:
-    length_parameters: Tuple[LengthGroup, ...]
-    angle_parameters: Tuple[AngleGroup, ...]
-    torsion_parameters: Tuple[HxlTorsionGroup, ...]
-    improper_parameters: Tuple[HxlTorsionGroup, ...]
-    hxltorsion_parameters: Tuple[HxlTorsionGroup, ...]
+    residue_params: dict[str, CartRes]
 
     @classmethod
     def from_file(cls, path):
