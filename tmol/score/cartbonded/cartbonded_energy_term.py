@@ -90,81 +90,56 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             improper,
         )
 
-    def setup_block_type(self, block_type: RefinedResidueType):
-        super(CartBondedEnergyTerm, self).setup_block_type(block_type)
-
-        lengths, angles, torsions, improper = self.find_subgraphs(
-            block_type.bond_indices, block_type
+    def get_raw_params_for_res(self, res):
+        return (
+            self.cart_database.residue_params[res].length_parameters
+            + self.cart_database.residue_params[res].angle_parameters
+            + self.cart_database.residue_params[res].torsion_parameters
+            + self.cart_database.residue_params[res].improper_parameters
+            + self.cart_database.residue_params[res].hxltorsion_parameters
         )
-        cart_subgraphs = numpy.asarray(lengths + angles + torsions + improper)
 
-        setattr(block_type, "cart_subgraphs", cart_subgraphs)
+    def get_formatted_atoms_and_params(self, raw_params):
+        fields = ["atm1", "atm2", "atm3", "atm4"]
+        atoms = [
+            getattr(raw_params, field) for field in fields if hasattr(raw_params, field)
+        ]
+        fields = ["type", "x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
+        params = [
+            getattr(raw_params, field) for field in fields if hasattr(raw_params, field)
+        ]
+        return atoms, params
 
+    def get_params_for_res(self, res):
+        # Fetch the params from the database, updating the atom id store if necessary
         params_by_atom_unique_id = {}
-        all_params = (
-            self.cart_database.residue_params[block_type.name].length_parameters
-            + self.cart_database.residue_params[block_type.name].angle_parameters
-            + self.cart_database.residue_params[block_type.name].torsion_parameters
-            + self.cart_database.residue_params[block_type.name].improper_parameters
-            + self.cart_database.residue_params[block_type.name].hxltorsion_parameters
-        )
 
+        all_params = self.get_raw_params_for_res(res)
         for param in all_params:
-            fields = ["atm1", "atm2", "atm3", "atm4"]
-            atoms = [getattr(param, field) for field in fields if hasattr(param, field)]
-            fields = ["type", "x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
-            params = [
-                getattr(param, field) for field in fields if hasattr(param, field)
-            ]
+            atoms, params = self.get_formatted_atoms_and_params(param)
 
             previous_atm = ""
             is_wildcard = False
             for i, atom in enumerate(atoms):
-                if not (hasattr(param, "type") and param.type == 3) and (
-                    previous_atm == "N"
-                    and atom == "C"
-                    or previous_atm == "C"
-                    and atom == "N"
+                # Check if these atoms should be wildcard ids. This includes atoms after any bonds that span the residue connection.
+                if (
+                    res == "wildcard"
+                    or not (hasattr(param, "type") and param.type == 3)
+                    and (
+                        previous_atm == "N"
+                        and atom == "C"
+                        or previous_atm == "C"
+                        and atom == "N"
+                    )
                 ):
                     is_wildcard = True
 
                 previous_atm = atom
                 atoms[i] = (
-                    self.get_atom_wildcard_id_name(block_type.name, atom)
+                    self.get_atom_wildcard_id_name(res, atom)
                     if is_wildcard
-                    else self.get_atom_unique_id_name(block_type.name, atom)
+                    else self.get_atom_unique_id_name(res, atom)
                 )
-                if atoms[i] not in self.atom_unique_id_index:
-                    self.atom_unique_id_index[atoms[i]] = len(self.atom_unique_id_index)
-
-            key = tuple([self.atom_unique_id_index[atom] for atom in atoms])
-
-            params_by_atom_unique_id[key] = params
-
-        setattr(block_type, "params_by_unique_id", params_by_atom_unique_id)
-
-    def get_wildcard_params(
-        self,
-    ):
-        params_by_atom_unique_id = {}
-        wildcard_tag = "_"
-        all_params = (
-            self.cart_database.residue_params[wildcard_tag].length_parameters
-            + self.cart_database.residue_params[wildcard_tag].angle_parameters
-            + self.cart_database.residue_params[wildcard_tag].torsion_parameters
-            + self.cart_database.residue_params[wildcard_tag].improper_parameters
-            + self.cart_database.residue_params[wildcard_tag].hxltorsion_parameters
-        )
-        for param in all_params:
-            fields = ["atm1", "atm2", "atm3", "atm4"]
-            atoms = [getattr(param, field) for field in fields if hasattr(param, field)]
-            fields = ["type", "x0", "K", "k1", "k2", "k3", "phi1", "phi2", "phi3"]
-            params = [
-                getattr(param, field) for field in fields if hasattr(param, field)
-            ]
-
-            for i, atom in enumerate(atoms):
-                atoms[i] = self.get_atom_wildcard_id_name(wildcard_tag, atom)
                 if atoms[i] not in self.atom_unique_id_index:
                     self.atom_unique_id_index[atoms[i]] = len(self.atom_unique_id_index)
 
@@ -174,12 +149,36 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
         return params_by_atom_unique_id
 
+    def setup_block_type(self, block_type: RefinedResidueType):
+        super(CartBondedEnergyTerm, self).setup_block_type(block_type)
+        if hasattr(block_type, "cartbonded_subgraphs"):
+            assert hasattr(block_type, "cartbonded_params")
+            return
+
+        # Get the subgraphs for this block type
+        lengths, angles, torsions, improper = self.find_subgraphs(
+            block_type.bond_indices, block_type
+        )
+        cart_subgraphs = numpy.asarray(lengths + angles + torsions + improper)
+        setattr(block_type, "cartbonded_subgraphs", cart_subgraphs)
+
+        # Fetch the params from the database, updating the atom id store if necessary
+        cartbonded_params = self.get_params_for_res(block_type.name)
+        setattr(block_type, "cartbonded_params", cartbonded_params)
+
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(CartBondedEnergyTerm, self).setup_packed_block_types(packed_block_types)
+        if hasattr(packed_block_types, "cartbonded_subgraphs"):
+            assert hasattr(packed_block_types, "cartbonded_subgraph_offsets")
+            assert hasattr(packed_block_types, "cartbonded_max_subgraphs_per_block")
+            assert hasattr(packed_block_types, "cartbonded_params_hash_keys")
+            assert hasattr(packed_block_types, "cartbonded_params_hash_values")
+            return
 
-        # collect lengths/angles/torsions
+        # Aggregate the subgraphs and collect metadata
         total_subgraphs = sum(
-            bt.cart_subgraphs.shape[0] for bt in packed_block_types.active_block_types
+            bt.cartbonded_subgraphs.shape[0]
+            for bt in packed_block_types.active_block_types
         )
         subgraphs = numpy.full((total_subgraphs, 4), -1, dtype=numpy.int32)
         subgraph_offsets = []
@@ -188,31 +187,33 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         for block_type in packed_block_types.active_block_types:
             subgraph_offsets.append(offset)
 
-            n_subgraphs = block_type.cart_subgraphs.shape[0]
-            subgraphs[offset : offset + n_subgraphs] = block_type.cart_subgraphs
+            n_subgraphs = block_type.cartbonded_subgraphs.shape[0]
+            subgraphs[offset : offset + n_subgraphs] = block_type.cartbonded_subgraphs
             offset += n_subgraphs
 
             max_subgraphs_per_block = max(
                 max_subgraphs_per_block, offset - subgraph_offsets[-1]
             )
-
-        setattr(packed_block_types, "max_subgraphs_per_block", max_subgraphs_per_block)
-
-        subgraph_offsets = numpy.asarray(subgraph_offsets, dtype=numpy.int32)
         subgraphs = torch.from_numpy(subgraphs).to(device=self.device)
+        subgraph_offsets = numpy.asarray(subgraph_offsets, dtype=numpy.int32)
         subgraph_offsets = torch.from_numpy(subgraph_offsets).to(device=self.device)
-        setattr(packed_block_types, "cart_subgraphs", subgraphs)
-        setattr(packed_block_types, "cart_subgraph_offsets", subgraph_offsets)
-
-        total_params = sum(
-            [
-                len(bt.params_by_unique_id)
-                for bt in packed_block_types.active_block_types
-            ]
+        setattr(packed_block_types, "cartbonded_subgraphs", subgraphs)
+        setattr(packed_block_types, "cartbonded_subgraph_offsets", subgraph_offsets)
+        setattr(
+            packed_block_types,
+            "cartbonded_max_subgraphs_per_block",
+            max_subgraphs_per_block,
         )
-        wildcard_params = self.get_wildcard_params().items()
+
+        # Aggregate the params
+
+        # Calculate the total number of params
+        total_params = sum(
+            [len(bt.cartbonded_params) for bt in packed_block_types.active_block_types]
+        )
+        # get the params not associated with any specific residue
+        wildcard_params = self.get_params_for_res("wildcard").items()
         total_params += len(wildcard_params)
-        scale = 2
 
         # stupid hash function
         def hash_fun(key, max_size):
@@ -232,21 +233,22 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             for i, value in enumerate(values):
                 hash_values[max_value_index][i] = value
 
+        # Construct the params hash with the given scaling factor
+        scale = 2
         hash_keys = numpy.full(
             (total_params * scale, 5),  # atom1, atom2, atom3, atom4, index
             -1,
             dtype=numpy.int32,
         )
-
         hash_values = numpy.full(
             (total_params, 7),
             0,
-            dtype=numpy.float32,  # k1, k2, k3, phi1, phi2, phi3, type
+            dtype=numpy.float32,  # type, k1, k2, k3, phi1, phi2, phi3
         )
 
         cur_val = 0
         for bt in packed_block_types.active_block_types:
-            for key, value in bt.params_by_unique_id.items():
+            for key, value in bt.cartbonded_params.items():
                 add_to_hash(hash_keys, hash_values, cur_val, key, value)
                 cur_val += 1
 
@@ -256,8 +258,8 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)
         hash_values_tensor = torch.from_numpy(hash_values).to(device=self.device)
-        setattr(packed_block_types, "hash_keys", hash_keys_tensor)
-        setattr(packed_block_types, "hash_values", hash_values_tensor)
+        setattr(packed_block_types, "cartbonded_params_hash_keys", hash_keys_tensor)
+        setattr(packed_block_types, "cartbonded_params_hash_values", hash_values_tensor)
 
     def setup_poses(self, poses: PoseStack):
         super(CartBondedEnergyTerm, self).setup_poses(poses)
@@ -272,9 +274,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             atom_paths_from_conn=pbt.atom_paths_from_conn,
             atom_unique_ids=pbt.atom_unique_ids,
             atom_wildcard_ids=pbt.atom_wildcard_ids,
-            hash_keys=pbt.hash_keys,
-            hash_values=pbt.hash_values,
-            cart_subgraphs=pbt.cart_subgraphs,
-            cart_subgraph_offsets=pbt.cart_subgraph_offsets,
-            max_subgraphs_per_block=pbt.max_subgraphs_per_block,
+            hash_keys=pbt.cartbonded_params_hash_keys,
+            hash_values=pbt.cartbonded_params_hash_values,
+            cart_subgraphs=pbt.cartbonded_subgraphs,
+            cart_subgraph_offsets=pbt.cartbonded_subgraph_offsets,
+            max_subgraphs_per_block=pbt.cartbonded_max_subgraphs_per_block,
         )
