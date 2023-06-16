@@ -111,11 +111,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         return atoms, params
 
     def get_params_for_res(self, res):
-        # Fetch the params from the database, updating the atom id store if necessary
         params_by_atom_unique_id = {}
 
+        # Fetch the raw params from the DB
         all_params = self.get_raw_params_for_res(res)
+
         for param in all_params:
+            # Format the raw param
             atoms, params = self.get_formatted_atoms_and_params(param)
 
             previous_atm = ""
@@ -140,6 +142,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                     if is_wildcard
                     else self.get_atom_unique_id_name(res, atom)
                 )
+                # If the atom isn't recorded in the atom_unique_id_index (inherited from AtomTypeDependentTerm), add it
                 if atoms[i] not in self.atom_unique_id_index:
                     self.atom_unique_id_index[atoms[i]] = len(self.atom_unique_id_index)
 

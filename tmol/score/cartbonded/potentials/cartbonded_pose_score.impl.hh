@@ -40,6 +40,7 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 template <typename Real>
 using CoordQuad = Eigen::Matrix<Real, 4, 3>;
+#define Real3 Vec<Real, 3>
 
 enum class subgraph_type { length, angle, torsion };
 
@@ -109,18 +110,17 @@ TMOL_DEVICE_FUNC void reverse_subgraph(Vec<Int, 4>& subgraph) {
   }
 }
 
-/*
 template <typename Real, typename Int, int N, tmol::Device D>
-TMOL_DEVICE_FUNC void accumulate(
-  common::tuple<Real, Eigen::Matrix<Real, N, 3>> to_add,
-  Vec<Int, N> atoms,
-  TensorAccessor<Real, 1, D> V,
-  TensorAccessor<Vec<Real, 3>, 3, D> dV)
-{
-  for(int i = 0; i < N; i++)
-    accumulate<D, Vec<Real, 3>>::add(dV[atoms[i]],
-common::get<1>(to_add).row(i));
-}*/
+TMOL_DEVICE_FUNC void accumulate_result(
+    common::tuple<Real, Vec<Real3, N>> to_add,
+    Vec<Int, N> atoms,
+    Real& V,
+    TensorAccessor<Vec<Real, 3>, 1, D> dV) {
+  accumulate<D, Real>::add(V, common::get<0>(to_add));
+  for (int i = 0; i < N; i++) {
+    accumulate<D, Vec<Real, 3>>::add(dV[atoms[i]], common::get<1>(to_add)[i]);
+  }
+}
 
 template <
     template <tmol::Device>
@@ -183,77 +183,65 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                    : cart_subgraph_offsets[block_type + 1];
     subgraph_index += subgraph_offset;
 
-    auto score_subgraph = ([&] TMOL_DEVICE_FUNC(
-                               Vec<Int, 4> atoms, Int param_index) {
-      Vec<Real, 7> params = hash_values[param_index];
+    auto score_subgraph =
+        ([&] TMOL_DEVICE_FUNC(Vec<Int, 4> atoms, Int param_index) {
+          Vec<Real, 7> params = hash_values[param_index];
 
-      Vec<Real, 3> atom1 = pose_coords[atoms[0]];
-      Vec<Real, 3> atom2 = pose_coords[atoms[1]];
+          Vec<Real, 3> atom1 = pose_coords[atoms[0]];
+          Vec<Real, 3> atom2 = pose_coords[atoms[1]];
 
-      subgraph_type type = get_subgraph_type(atoms);
+          subgraph_type type = get_subgraph_type(atoms);
 
-      int score_type = params[0];
+          int score_type = params[0];
 
-      // Real score;
-      switch (type) {
-        case subgraph_type::length: {
-          auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
+          // Real score;
+          switch (type) {
+            case subgraph_type::length: {
+              auto eval = cblength_V_dV2(atom1, atom2, params[2], params[1]);
+              accumulate_result<Real, Int, 2, D>(
+                  eval,
+                  atoms.head(2),
+                  V[score_type][pose_index],
+                  dV_dx[score_type][pose_index]);
 
-          accumulate<D, Real>::add(V[0][pose_index], common::get<0>(eval));
+              break;
+            }
+            case subgraph_type::angle: {
+              Vec<Real, 3> atom3 = pose_coords[atoms[2]];
+              auto eval =
+                  cbangle_V_dV2(atom1, atom2, atom3, params[2], params[1]);
+              accumulate_result<Real, Int, 3, D>(
+                  eval,
+                  atoms.head(3),
+                  V[score_type][pose_index],
+                  dV_dx[score_type][pose_index]);
 
-          accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[score_type][pose_index][atoms[0]], common::get<1>(eval));
-          accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[score_type][pose_index][atoms[1]], common::get<2>(eval));
-          break;
-        }
-        case subgraph_type::angle: {
-          Vec<Real, 3> atom3 = pose_coords[atoms[2]];
-          auto eval = cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
+              break;
+            }
+            case subgraph_type::torsion: {
+              Vec<Real, 3> atom3 = pose_coords[atoms[2]];
+              Vec<Real, 3> atom4 = pose_coords[atoms[3]];
+              auto eval = cbtorsion_V_dV2(
+                  atom1,
+                  atom2,
+                  atom3,
+                  atom4,
+                  params[1],
+                  params[2],
+                  params[3],
+                  params[4],
+                  params[5],
+                  params[6]);
+              accumulate_result<Real, Int, 4, D>(
+                  eval,
+                  atoms.head(4),
+                  V[score_type][pose_index],
+                  dV_dx[score_type][pose_index]);
 
-          accumulate<D, Real>::add(V[1][pose_index], common::get<0>(eval));
-
-          accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[score_type][pose_index][atoms[0]], common::get<1>(eval));
-          accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[score_type][pose_index][atoms[1]], common::get<2>(eval));
-          accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[score_type][pose_index][atoms[2]], common::get<3>(eval));
-          break;
-        }
-        case subgraph_type::torsion: {
-          Vec<Real, 3> atom3 = pose_coords[atoms[2]];
-          Vec<Real, 3> atom4 = pose_coords[atoms[3]];
-          auto eval = cbhxltorsion_V_dV(
-              atom1,
-              atom2,
-              atom3,
-              atom4,
-              params[1],
-              params[2],
-              params[3],
-              params[4],
-              params[5],
-              params[6]);
-
-          // 2 = torsion, 3 = hxl_torsion
-          int torsion_type = params[6] + 2;
-
-          accumulate<D, Real>::add(
-              V[score_type][pose_index], common::get<0>(eval));
-
-          accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[score_type][pose_index][atoms[0]], common::get<1>(eval));
-          accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[score_type][pose_index][atoms[1]], common::get<2>(eval));
-          accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[score_type][pose_index][atoms[2]], common::get<3>(eval));
-          accumulate<D, Vec<Real, 3>>::add(
-              dV_dx[score_type][pose_index][atoms[3]], common::get<4>(eval));
-          break;
-        }
-      }
-    });
+              break;
+            }
+          }
+        });
 
     if (subgraph_index >= subgraph_offset_next) {
       if (subgraph_index >= subgraph_offset_next + NUM_INTER_RES_PATHS) return;
