@@ -157,13 +157,11 @@ class VariantType:
     name: str
     display_name: str
     pattern: str
-    atoms: Tuple[Atom, ...]
-    bonds: Tuple[Tuple[str, str], ...]
-    connections: Tuple[Connection, ...]
-    torsions: Tuple[Torsion, ...]
+    remove_atoms: Tuple[str, ...]
+    add_atoms: Tuple[Atom, ...]
+    add_connections: Tuple[Connection, ...]
+    add_bonds: Tuple[Tuple[str, str], ...]
     icoors: Tuple[IcoorVariant, ...]
-    properties: ChemicalPropertiesVariant
-    chi_samples: Tuple[ChiSamples, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

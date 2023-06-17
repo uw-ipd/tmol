@@ -1,0 +1,386 @@
+from typing import Tuple, Optional, NewType
+from tmol.utility.units import BondAngle, DihedralAngle
+
+from tmol.database.chemical import (
+    Element,
+    AtomType,
+    RawResidueType,
+    VariantType,
+    ChemicalDatabase,
+)
+
+import attr
+import cattr
+
+import os
+import yaml
+import re
+from enum import IntEnum
+
+import networkx as nx
+
+
+# enum for validator code
+class ResTypeValidatorErrorCodes(IntEnum):
+    success = 0
+    undefined_field = 1
+    remove_nonreference_atom = 2
+    illegal_bond = 3
+    illegal_icoor = 4
+    illegal_torsion = 5
+    illegal_connection = 6
+    duplicate_atom_name = 7
+
+
+# build a graph from a restype
+class RestypeGraphBuilder:
+    def __init__(self, atomtypedict):
+        self.atomtypedict = atomtypedict
+
+    def from_raw_res(self, r):
+        mol = nx.Graph()
+        for x in r.atoms:
+            mol.add_node(x.name, element=self.atomtypedict[x.atom_type])
+        for x in r.bonds:
+            mol.add_edge(x[0], x[1])
+        for x in r.connections:
+            mol.add_node(x.name, element="{" + x.name + "}")
+            mol.add_edge(x.name, x.atom)
+        return mol
+
+
+# remove all atom references from a raw restype
+# delete atoms, bonds, torsions, and connections involving atom
+def remove_atom(res, atom):
+    res.atoms = tuple(x for x in res.atoms if x.name != atom)
+    res.bonds = tuple((x, y) for x, y in res.bonds if x != atom and y != atom)
+    res.torsions = tuple(
+        x for x in res.torsions if atom not in [x.a.atom, x.b.atom, x.c.atom, x.d.atom]
+    )
+    res.torsions = tuple(
+        x
+        for x in res.torsions
+        if atom not in [x.a.connection, x.b.connection, x.c.connection, x.d.connection]
+    )
+    res.connections = tuple(x for x in res.connections if x.name != atom)
+    return res
+
+
+# update icoors corresponding to a patch definition
+def update_icoor(res, patch, atoms_remove, namemap):
+    new_icoor = []
+    for target_i in patch:
+        if target_i.source:
+            source_name_i = namemap[target_i.source]
+            source_idx = [i for i, x in enumerate(res) if x.name == source_name_i]
+            source_i = res[source_idx[0]]
+        else:
+            source_i = tmol.database.chemical.Icoor(
+                name=None,
+                phi=None,
+                theta=None,
+                d=None,
+                parent=None,
+                grand_parent=None,
+                great_grand_parent=None,
+            )
+
+        # map p, gp, ggp names
+        p_i = source_i.parent if not target_i.parent else target_i.parent
+        if p_i in namemap:
+            p_i = namemap[p_i]
+        gp_i = (
+            source_i.grand_parent
+            if not target_i.grand_parent
+            else target_i.grand_parent
+        )
+        if gp_i in namemap:
+            gp_i = namemap[gp_i]
+        ggp_i = (
+            source_i.great_grand_parent
+            if not target_i.great_grand_parent
+            else target_i.great_grand_parent
+        )
+        if ggp_i in namemap:
+            ggp_i = namemap[ggp_i]
+
+        icoor_i = tmol.database.chemical.Icoor(
+            name=target_i.name,
+            phi=source_i.phi if not target_i.phi else target_i.phi,
+            theta=source_i.theta if not target_i.theta else target_i.theta,
+            d=source_i.d if not target_i.d else target_i.d,
+            parent=p_i,
+            grand_parent=gp_i,
+            great_grand_parent=ggp_i,
+        )
+
+        new_icoor.append(icoor_i)
+
+    # create final icoor list
+    remove = [namemap[i] for i in atoms_remove]
+    icoor = (*(x for x in res if x.name not in remove), *new_icoor)
+
+    return icoor
+
+
+# get a list of atoms modified by a patch
+def get_modified_atoms(patch):
+    added, modded_xyz, modded_all, deleted = [], [], [], []
+
+    for i in patch.remove_atoms:
+        deleted.append(i)
+
+    for i in patch.add_atoms:
+        added.append(i.name)
+    for i in patch.add_connections:
+        added.append(i.name)
+
+    # modded finds all atoms whose CONNECTIVITY or COORDINATES have changed
+    for i, j in patch.add_bonds:
+        if i[0] == "<" and i[-1] == ">" and i not in modded_all:
+            modded_all.append(i)
+        if j[0] == "<" and j[-1] == ">" and j not in modded_all:
+            modded_all.append(j)
+
+    for i in patch.icoors:
+        if i.name[0] == "<" and i.name[-1] == ">" and i.name not in modded_all:
+            modded_all.append(i.name)
+            modded_xyz.append(i.name)
+
+    return added, modded_xyz, modded_all, deleted
+
+
+# validate raw residues
+def validate_raw_residue(res):
+    # make sure all fields are defined
+    if (
+        res.name is None
+        or res.base_name is None
+        or res.name3 is None
+        or res.atoms is None
+        or res.bonds is None
+        or res.connections is None
+        or res.torsions is None
+        or res.icoors is None
+        or res.properties is None
+    ):
+        return ResTypeValidatorErrorCodes.undefined_field
+
+    allatoms = set([i.name for i in res.atoms])
+    allconns = set([i.name for i in res.connections])
+
+    # No duplicate atom names
+    if len(allatoms) != len(res.atoms):
+        return ResTypeValidatorErrorCodes.duplicate_atom_name
+
+    # illegal bonds
+    for i, j in res.bonds:
+        if i not in allatoms or j not in allatoms:
+            return ResTypeValidatorErrorCodes.illegal_bond
+
+    # illegal torsions
+    for i in res.torsions:
+        for a_i in (i.a, i.b, i.c, i.d):
+            if a_i.atom is None:
+                if a_i.connection is None or a_i.connection not in allconns:
+                    return ResTypeValidatorErrorCodes.illegal_torsion
+            else:
+                if a_i.atom not in allatoms:
+                    return ResTypeValidatorErrorCodes.illegal_torsion
+
+    # illegal connections
+    for i in res.connections:
+        if i.atom not in allatoms:
+            return ResTypeValidatorErrorCodes.illegal_connection
+
+    # illegal icoors
+    for i in res.icoors:
+        if i.name not in allatoms and i.name not in allconns:
+            return ResTypeValidatorErrorCodes.illegal_icoor
+        for a_i in (i.parent, i.grand_parent, i.great_grand_parent):
+            if a_i not in allatoms and a_i not in allconns:
+                return ResTypeValidatorErrorCodes.illegal_icoor
+
+    return ResTypeValidatorErrorCodes.success
+
+
+# validate patches
+def validate_patch(patch):
+    # make sure all fields are defined
+    if (
+        patch.name is None
+        or patch.display_name is None
+        or patch.pattern is None
+        or patch.remove_atoms is None
+        or patch.add_atoms is None
+        or patch.add_connections is None
+        or patch.add_bonds is None
+        or patch.icoors is None
+    ):
+        return ResTypeValidatorErrorCodes.undefined_field
+
+    # make sure all removed atoms are references
+    for i in patch.remove_atoms:
+        if i[0] != "<" or i[-1] != ">":
+            return ResTypeValidatorErrorCodes.remove_nonreference_atom
+
+    # make sure all bonds are references or added atoms
+    addedatoms = [i.name for i in patch.add_atoms]
+    for i, j in patch.add_bonds:
+        if (i[0] != "<" or i[-1] != ">") and (i not in addedatoms):
+            return ResTypeValidatorErrorCodes.illegal_bond
+
+    # make sure all icoors are references or added atoms
+    for i in patch.icoors:
+        if (i.name[0] != "<" or i.name[-1] != ">") and (i.name not in addedatoms):
+            return ResTypeValidatorErrorCodes.illegal_icoor
+
+    return ResTypeValidatorErrorCodes.success
+
+
+# apply a patch to a rawresidue
+def do_patch(res, variant, resgraph, patchgraph):
+    atoms_match = (
+        lambda x, y: (not "element" in y)
+        or (not "element" in x)
+        or x["element"] == y["element"]
+    )
+    gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)
+
+    added, modded_xyz, modded_all, deleted = get_modified_atoms(variant)
+
+    # find patchsets that are unique w.r.t. list of modded atoms
+    mod_unique = []
+    namemaps = []
+    for i, subgraph_x in enumerate(gm.subgraph_monomorphisms_iter()):
+        namemap = {
+            "<" + patchgraph.nodes[y]["name"] + ">": x for x, y in subgraph_x.items()
+        }
+        mod_i = [namemap[x] for x in modded_all]
+        if mod_i not in mod_unique:
+            mod_unique.append(mod_i)
+            namemaps.append(namemap)
+
+    # apply patches
+    newreses = []
+    for namemaps in namemaps:
+        newres = tmol.database.chemical.RawResidueType(
+            name=res.name + ":" + variant.display_name,
+            base_name=res.base_name,
+            name3=res.base_name,
+            atoms=res.atoms,
+            bonds=res.bonds,
+            connections=res.connections,
+            torsions=res.torsions,
+            icoors=res.icoors,
+            properties=res.properties,
+            chi_samples=res.chi_samples,
+        )
+
+        # 1. remove atoms
+        for atom in variant.remove_atoms:
+            if atom in namemap:  # map matching names
+                atom = namemap[atom]
+            newres = remove_atom(newres, atom)
+
+        # 2. add atoms
+        newres.atoms = (*newres.atoms, *variant.add_atoms)
+
+        # 3. add connections
+        newres.connections = (*newres.connections, *variant.add_connections)
+
+        # 4. add bonds
+        newbonds = []
+        for i, j in variant.add_bonds:
+            if i in namemap:
+                i = namemap[i]
+            if j in namemap:
+                j = namemap[j]
+            newbonds.append((i, j))
+        newres.bonds = (*newres.bonds, *newbonds)
+
+        # 5. update icoors
+        newres.icoors = update_icoor(
+            newres.icoors, variant.icoors, variant.remove_atoms, namemap
+        )
+
+        newreses.append(newres)
+
+    return newreses
+
+
+# takes a ChemicalDatabase containing Tuple[RawResidueType] and Tuple[VariantType]
+# applies all patches to all residues types
+# returns PatchedChemicalDatabase containing only Tuple[RawResidueType]
+@attr.s(auto_attribs=True)
+class PatchedChemicalDatabase:
+    element_types: Tuple[Element, ...]
+    atom_types: Tuple[AtomType, ...]
+    residues: Tuple[RawResidueType, ...]
+
+    @classmethod
+    def from_chem_db(cls, chemdb: ChemicalDatabase):
+        G = RestypeGraphBuilder({x.name: x.element for x in chemdb.atom_types})
+
+        for variant in chemdb.variants:
+            val_id = validate_patch(variant)
+            if val_id != ResTypeValidatorErrorCodes.success:
+                assert False, (
+                    "Bad patch: " + variant.name + "\nError code: " + str(val_id)
+                )
+
+        for res in chemdb.residues:
+            val_id = validate_raw_residue(res)
+            if val_id != ResTypeValidatorErrorCodes.success:
+                assert False, (
+                    "Bad raw residue: " + res.name + "\nError code: " + str(val_id)
+                )
+
+        patched_residues, patched_residues_names = [], []
+        for res in chemdb.residues:
+            resgraph = G.from_raw_res(res)
+
+            done = False
+
+            resvariants, resvariantnames, marked_atoms = [res], [""], [[]]
+            while not done:
+                done = True
+                rv_new, rvn_new = [], []
+                for res_i, name_i, mark_i in zip(
+                    resvariants, resvariantnames, marked_atoms
+                ):
+                    for variant in chemdb.variants:
+                        newtag = [*name_i, variant.name]
+                        newtag.sort()
+                        newtag = ":".join(newtag)
+                        if newtag in resvariantnames:
+                            continue  # we already made this variant
+
+                        patchgraph = pysmiles.read_smiles(
+                            variant.pattern,
+                            explicit_hydrogen=True,
+                            do_fill_valence=False,
+                        )
+                        patched_reses = do_patch(res_i, variant, resgraph, patchgraph)
+
+                        if len(patched_reses) > 0:
+                            rv_new.extend(patched_reses)
+                            rvn_new.extend((newtag,) * len(patched_reses))
+                resvariants.extend(rv_new)
+                resvariantnames.extend(rvn_new)
+            patched_residues.extend(resvariants)
+            patched_residues_names.extend(resvariantnames)
+
+        for res in patched_residues:
+            val_id = validate_raw_residue(res)
+            if val_id != ResTypeValidatorErrorCodes.success:
+                print(res.icoors)
+                assert False, (
+                    "Bad raw residue: " + res.name + "\nError code: " + str(val_id)
+                )
+
+        return cls(
+            element_types=chemdb.element_types,
+            atom_types=chemdb.atom_types,
+            residues=patched_residues,
+        )

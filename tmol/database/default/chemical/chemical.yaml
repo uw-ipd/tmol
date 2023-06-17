@@ -2236,51 +2236,54 @@ residues:
 variants:
   - name:  CarboxyTerminus
     display_name: cterm
-    pattern: '[*]C(=O)[{up}]'
-    atoms:
-    - { name: C   ,  atom_type: CObb }
-    - { name: O   ,  atom_type: OCbb }
-    - { name: OXT ,  atom_type: OOC }
-    bonds:
-    - [   C,    \*  ]
-    - [   C,    O   ]
-    - [   C,    OXT ]
-    connections: []
-    torsions: []
-    chi_samples: []
+    pattern: '[*][*]C(=O)[{up}]'
+    remove_atoms:
+    - <{up}>
+    - <O1>
+    add_atoms:
+    - { name: O    ,  atom_type: OOC }
+    - { name: OXT  ,  atom_type: OOC }
+    add_connections: []
+    add_bonds:
+    - [   <C1>,    OXT ]
+    - [   <C1>,    O ]
     icoors:
-    - { name:     C, source: C }
-    - { name:     O, source: O, theta: 60.0 deg, d:  1.2 }
-    - { name:   OXT, source: O, phi: -180.000000 deg, theta:   60.0 deg, d: 1.2, parent:  C, great_grand_parent: O }
-    properties:
-      polymer:
-        polymer_type: amino_acid
+    - { name:     O, source: <O1>, phi:   80.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: <*1>}
+    - { name:   OXT, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: O }
 
   - name:  AminoTerminus
     display_name: nterm
-    pattern: '[*][NH][{down}]'
-    atoms:
-    - { name: N   ,  atom_type: Nbb }
+    pattern: '[*][*][NH][{down}]'
+    remove_atoms:
+    - <{down}>
+    - <H1>
+    add_atoms:
     - { name: 1H  ,  atom_type: Hpol }
     - { name: 2H  ,  atom_type: Hpol }
     - { name: 3H  ,  atom_type: Hpol }
-
-    bonds:
-    - [   N,    \*  ]
-    - [   N,    1H  ]
-    - [   N,    2H  ]
-    - [   N,    3H  ]
-    connections: []
-    torsions: []
-    chi_samples: []
-    icoors_inherit:
-    - { name:     N  }
-    - { name:     H1,  source: H }
+    add_connections: []
+    add_bonds:
+    - [  <N1>,    1H  ]
+    - [  <N1>,    2H  ]
+    - [  <N1>,    3H  ]
     icoors:
-    - { name:    N, source: N }
-    - { name:   1H, source: H, theta: 70.5 deg, d:  1 }
-    - { name:   2H, source: H, phi: 120.000000 deg, theta:   70.5 deg, d: 1.0, great_grand_parent: 1H }
-    - { name:   3H, source: H, phi: 120.000000 deg, theta:   70.5 deg, d: 1.0, great_grand_parent: 1H }
-    properties:
-      polymer:
-        polymer_type: amino_acid
+    - { name:   1H, source: <H1>, phi: 180.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: <*1> }
+    - { name:   2H, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: 1H }
+    - { name:   3H, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: 2H }
+
+  - name:  AminoTerminusPro
+    display_name: nterm
+    pattern: 'CN(C)[{down}]'
+    remove_atoms:
+    - <{down}>
+    add_atoms:
+    - { name: 1H  ,  atom_type: Hpol }
+    - { name: 2H  ,  atom_type: Hpol }
+    add_connections: []
+    add_bonds:
+    - [  <N1>,    1H  ]
+    - [  <N1>,    2H  ]
+    icoors:
+    - { name:   1H, phi:  120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}
+    - { name:   2H, phi: -120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}
+

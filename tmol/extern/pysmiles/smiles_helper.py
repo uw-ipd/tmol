@@ -64,7 +64,6 @@ def parse_atom(atom):
         A dictionary containing at least 'element', 'aromatic', and 'charge'. If
         present, will also contain 'hcount', 'isotope', and 'class'.
     """
-    print ('a',atom)
     defaults = {'charge': 0, 'hcount': 0, 'aromatic': False}
     if not atom.startswith('[') and not atom.endswith(']'):
         if atom != '*':
