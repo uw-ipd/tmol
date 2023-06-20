@@ -2,6 +2,7 @@ import os
 import attr
 
 from .cartbonded import CartBondedDatabase
+from .disulfide import DisulfideDatabase
 from .dunbrack_libraries import DunbrackRotamerLibrary
 from .elec import ElecDatabase
 from .hbond import HBondDatabase
@@ -13,6 +14,7 @@ from .rama import RamaDatabase
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ScoringDatabase:
     cartbonded: CartBondedDatabase
+    disulfide: DisulfideDatabase
     dun: DunbrackRotamerLibrary
     elec: ElecDatabase
     hbond: HBondDatabase
@@ -26,6 +28,7 @@ class ScoringDatabase:
             cartbonded=CartBondedDatabase.from_file(
                 os.path.join(path, "cartbonded.yaml")
             ),
+            disulfide=DisulfideDatabase.from_file(os.path.join(path, "disulfide.yaml")),
             dun=DunbrackRotamerLibrary.from_zarr_archive(
                 os.path.join(path, "dunbrack.yaml"), os.path.join(path, "dunbrack.bin")
             ),

@@ -379,3 +379,28 @@ def find_simple_polymeric_connections(
             )
 
     return residue_connections
+
+
+@validate_args
+def find_disulfide_connections(
+    res: List[Residue],
+) -> List[Tuple[int, str, int, str]]:
+    residue_connections = []
+
+    cystines = [
+        (ind, cys) for ind, cys in enumerate(res) if cys.residue_type.name == "CYD"
+    ]
+    for i, cys1 in cystines:
+        for j, cys2 in cystines:
+            if i < j:
+                sg_index = cys1.residue_type.atom_to_idx["SG"]
+                sg1 = cys1.coords[sg_index]
+                sg2 = cys2.coords[sg_index]
+
+                dist = numpy.linalg.norm(sg1 - sg2)
+
+                if numpy.isclose(dist, 2.02, atol=0.5):
+                    residue_connections.extend(
+                        [(i, "dslf", j, "dslf"), (j, "dslf", i, "dslf")]
+                    )
+    return residue_connections
