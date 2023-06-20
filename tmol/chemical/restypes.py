@@ -20,8 +20,18 @@ from tmol.types.functional import validate_args
 
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
-BondCount = NewType("ConnectionIndex", int)
+BondCount = NewType("BondCount", int)
+
+# perhaps deserving of its own file
 UnresolvedAtomID = Tuple[AtomIndex, ConnectionIndex, BondCount]
+uaid_t = numpy.dtype(
+    [
+        ("atom_id", numpy.int32),
+        ("conn_id", numpy.int32),
+        ("n_bonds_from_conn", numpy.int32),
+    ]
+)
+
 ResName3 = typing.NewType("ResName3", str)
 IcoorIndex = NewType("AtomIndex", int)
 

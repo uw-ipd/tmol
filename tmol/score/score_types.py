@@ -10,6 +10,7 @@ class AutoNumber(Enum):
 
 
 class ScoreType(AutoNumber):
+    disulfide = ()
     fa_lj = ()
     fa_lk = ()
     fa_elec = ()
@@ -19,6 +20,6 @@ class ScoreType(AutoNumber):
     lk_bridge = ()
     lk_bridge_uncpl = ()
     omega = ()
-    disulfide = ()
+    rama = ()
     # keep this one last
     n_score_types = ()

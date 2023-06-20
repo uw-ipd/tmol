@@ -12,6 +12,7 @@ from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
+from tmol.score.rama.rama_energy_term import RamaEnergyTerm
 from tmol.score.omega.omega_energy_term import OmegaEnergyTerm
 
 
@@ -51,8 +52,9 @@ def dont_test_res_centric_score_benchmark_setup(
         LJLKEnergyTerm,
         LKBallEnergyTerm,
         OmegaEnergyTerm,
+        RamaEnergyTerm,
     ],
-    ids=["disulfide", "elec", "hbond", "ljlk", "lk_ball", "omega"],
+    ids=["disulfide", "elec", "hbond", "ljlk", "lk_ball", "omega", "rama"],
 )
 @pytest.mark.benchmark(group="res_centric_score_components")
 def test_res_centric_score_benchmark(
@@ -123,9 +125,10 @@ def test_res_centric_score_benchmark(
             LJLKEnergyTerm,
             LKBallEnergyTerm,
             OmegaEnergyTerm,
+            RamaEnergyTerm,
         ]
     ],
-    ids=["disulfide_elec_hbond_ljlk_lkb_omega"],
+    ids=["disulfide_elec_hbond_ljlk_lkb_omega_rama"],
 )
 @pytest.mark.benchmark(group="res_centric_combined_score_components")
 def test_combined_res_centric_score_benchmark(
