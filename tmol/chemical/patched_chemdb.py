@@ -248,6 +248,7 @@ def do_patch(res, variant, resgraph, patchgraph):
     gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)
 
     added, modded_xyz, modded_all, deleted = get_modified_atoms(variant)
+    assert len(modded_all) > 0, "Patch " + variant.name + " does not modify any atoms!"
 
     # find patchsets that are unique w.r.t. list of modded atoms
     mod_unique = []
@@ -260,6 +261,10 @@ def do_patch(res, variant, resgraph, patchgraph):
         if mod_i not in mod_unique:
             mod_unique.append(mod_i)
             namemaps.append(namemap)
+
+    assert len(mod_unique) <= 1, (
+        "Patch " + variant.name + " applies to residue " + res.name + " multiple times!"
+    )
 
     # apply patches
     newreses = []
