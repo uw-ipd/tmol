@@ -997,15 +997,22 @@ class PoseStackBuilder:
         )
 
         bonds = numpy.concatenate([intra_res_bonds, inter_res_bonds])
-        bond_graph = sparse.COO(
-            bonds.T,
-            data=numpy.full(len(bonds), True),
+        # bond_graph = sparse.COO(
+        #    bonds.T,
+        #    data=numpy.full(len(bonds), True),
+        #    shape=(max_n_atoms * n_res, max_n_atoms * n_res),
+        #    cache=True,
+        # )
+        bond_graph = scipy.sparse.coo_matrix(
+            (
+                numpy.full(len(bonds), True),
+                (bonds[:, 1], bonds[:, 2]),
+            ),
             shape=(max_n_atoms * n_res, max_n_atoms * n_res),
-            cache=True,
         )
 
         min_bond_dist = csgraph.dijkstra(
-            bond_graph.tocsr(),
+            bond_graph,
             directed=False,
             unweighted=True,
             limit=MAX_SIG_BOND_SEPARATION,
