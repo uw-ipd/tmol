@@ -7,6 +7,7 @@ import numpy
 import torch
 import pandas
 import scipy.sparse.csgraph as csgraph
+import scipy
 
 from typing import List, Tuple, Optional
 
@@ -1006,7 +1007,7 @@ class PoseStackBuilder:
         bond_graph = scipy.sparse.coo_matrix(
             (
                 numpy.full(len(bonds), True),
-                (bonds[:, 1], bonds[:, 2]),
+                (bonds[:, 0], bonds[:, 1]),
             ),
             shape=(max_n_atoms * n_res, max_n_atoms * n_res),
         )
