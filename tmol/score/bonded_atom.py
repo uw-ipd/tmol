@@ -6,7 +6,6 @@ import numpy
 
 import toolz
 
-import sparse
 import scipy.sparse.csgraph as csgraph
 import scipy
 
