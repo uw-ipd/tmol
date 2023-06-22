@@ -14,7 +14,7 @@ from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
 
 from tmol.database.scoring.ljlk import LJLKDatabase
-from tmol.database.chemical import ChemicalDatabase
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 from ..chemical_database import AtomTypeParamResolver
 
@@ -99,7 +99,7 @@ class LJLKParamResolver(ValidateAttrs):
     @validate_args
     def from_database(
         cls,
-        chemical_database: ChemicalDatabase,
+        chemical_database: PatchedChemicalDatabase,
         ljlk_database: LJLKDatabase,
         device: torch.device,
     ):
