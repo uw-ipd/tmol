@@ -6,7 +6,6 @@ import itertools
 import numpy
 import torch
 import pandas
-import sparse
 import scipy.sparse.csgraph as csgraph
 
 from typing import List, Tuple, Optional

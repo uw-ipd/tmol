@@ -205,13 +205,13 @@ class RefinedResidueType(RawResidueType):
                 # walk up through the mainchain atoms untill we
                 # hit the first mainchain atom and then report all
                 # the other atoms downstream of the connection as the first
-                assert mc_ats[-1] == self.connections[i].atom
                 mc_ats = self.properties.polymer.mainchain_atoms
                 if mc_ats is None:
                     # weird case? The user has a "down" connection but no
                     # atoms are part of the mainchain?
                     atom_downstream_of_conn[i, :] = i_conn_atom
                 else:
+                    assert mc_ats[-1] == self.connections[i].atom
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
                             mc_ats[len(mc_ats) - j - 1]

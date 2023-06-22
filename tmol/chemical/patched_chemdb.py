@@ -7,7 +7,10 @@ from tmol.database.chemical import (
     RawResidueType,
     VariantType,
     ChemicalDatabase,
+    Icoor,
 )
+
+from tmol.extern.pysmiles.read_smiles import read_smiles
 
 import attr
 import cattr
@@ -15,9 +18,11 @@ import cattr
 import os
 import yaml
 import re
+import copy
 from enum import IntEnum
 
 import networkx as nx
+import networkx.algorithms.isomorphism as iso
 
 
 # enum for validator code
@@ -75,7 +80,7 @@ def update_icoor(res, patch, atoms_remove, namemap):
             source_idx = [i for i, x in enumerate(res) if x.name == source_name_i]
             source_i = res[source_idx[0]]
         else:
-            source_i = tmol.database.chemical.Icoor(
+            source_i = Icoor(
                 name=None,
                 phi=None,
                 theta=None,
@@ -104,7 +109,7 @@ def update_icoor(res, patch, atoms_remove, namemap):
         if ggp_i in namemap:
             ggp_i = namemap[ggp_i]
 
-        icoor_i = tmol.database.chemical.Icoor(
+        icoor_i = Icoor(
             name=target_i.name,
             phi=source_i.phi if not target_i.phi else target_i.phi,
             theta=source_i.theta if not target_i.theta else target_i.theta,
@@ -125,7 +130,7 @@ def update_icoor(res, patch, atoms_remove, namemap):
 
 # get a list of atoms modified by a patch
 def get_modified_atoms(patch):
-    added, modded_xyz, modded_all, deleted = [], [], [], []
+    added, modded, deleted = [], [], []
 
     for i in patch.remove_atoms:
         deleted.append(i)
@@ -137,17 +142,16 @@ def get_modified_atoms(patch):
 
     # modded finds all atoms whose CONNECTIVITY or COORDINATES have changed
     for i, j in patch.add_bonds:
-        if i[0] == "<" and i[-1] == ">" and i not in modded_all:
-            modded_all.append(i)
-        if j[0] == "<" and j[-1] == ">" and j not in modded_all:
-            modded_all.append(j)
+        if i[0] == "<" and i[-1] == ">" and i not in modded:
+            modded.append(i)
+        if j[0] == "<" and j[-1] == ">" and j not in modded:
+            modded.append(j)
 
     for i in patch.icoors:
-        if i.name[0] == "<" and i.name[-1] == ">" and i.name not in modded_all:
-            modded_all.append(i.name)
-            modded_xyz.append(i.name)
+        if i.name[0] == "<" and i.name[-1] == ">" and i.name not in modded:
+            modded.append(i.name)
 
-    return added, modded_xyz, modded_all, deleted
+    return added, modded, deleted
 
 
 # validate raw residues
@@ -239,7 +243,13 @@ def validate_patch(patch):
 
 
 # apply a patch to a rawresidue
-def do_patch(res, variant, resgraph, patchgraph):
+#    res, resgraph - base residue, graph
+#    variant, patchgraph - patch variant, patch graph
+#    marked - atoms modified in the base residue
+# returns:
+#    newreses - list of new residues produced by the patch (currently only support for 1)
+#    newmarked - updated list of modified atoms in new residue
+def do_patch(res, variant, resgraph, patchgraph, marked):
     atoms_match = (
         lambda x, y: (not "element" in y)
         or (not "element" in x)
@@ -247,8 +257,10 @@ def do_patch(res, variant, resgraph, patchgraph):
     )
     gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)
 
-    added, modded_xyz, modded_all, deleted = get_modified_atoms(variant)
-    assert len(modded_all) > 0, "Patch " + variant.name + " does not modify any atoms!"
+    added, modded, deleted = get_modified_atoms(variant)
+    assert len(modded) + len(deleted) > 0, (
+        "Patch " + variant.name + " does not modify any atoms!"
+    )
 
     # find patchsets that are unique w.r.t. list of modded atoms
     mod_unique = []
@@ -257,19 +269,38 @@ def do_patch(res, variant, resgraph, patchgraph):
         namemap = {
             "<" + patchgraph.nodes[y]["name"] + ">": x for x, y in subgraph_x.items()
         }
-        mod_i = [namemap[x] for x in modded_all]
+        mod_i = [namemap[x] for x in modded]
         if mod_i not in mod_unique:
             mod_unique.append(mod_i)
             namemaps.append(namemap)
 
+    # fd: this could be supported in the future, with a few issues to work out
+    #    -if the patch adds atoms, we need to figure out how to ensure unique names
+    #    -need a patch naming scheme if a patch applied twice
     assert len(mod_unique) <= 1, (
         "Patch " + variant.name + " applies to residue " + res.name + " multiple times!"
     )
 
     # apply patches
-    newreses = []
-    for namemaps in namemaps:
-        newres = tmol.database.chemical.RawResidueType(
+    newreses, newmarked = [], []
+    for namemap in namemaps:
+        newmark = copy.deepcopy(marked)
+        modded = [namemaps[0][x] for x in modded]
+        deleted = [namemaps[0][x] for x in deleted]
+
+        # -1. Add atoms bonded to deleted atoms to modded set
+        #     needs to be done after name map
+        for i, j in res.bonds:
+            if i in deleted and j not in deleted:
+                modded.append(j)
+            if j in deleted and i not in deleted:
+                modded.append(i)
+
+        # 0. check if we've already modified any of these atoms
+        if set(modded) & set(newmark):
+            continue
+
+        newres = RawResidueType(
             name=res.name + ":" + variant.display_name,
             base_name=res.base_name,
             name3=res.base_name,
@@ -309,9 +340,20 @@ def do_patch(res, variant, resgraph, patchgraph):
             newres.icoors, variant.icoors, variant.remove_atoms, namemap
         )
 
-        newreses.append(newres)
+        # 6. update modified atoms
+        # a) directly modified/added
+        newmark.extend(modded)
+        newmark.extend(added)
 
-    return newreses
+        # b) bonded to deleted atoms
+
+        # c) removed atoms
+        newmark = list(filter(lambda x: x not in deleted, newmark))
+
+        newreses.append(newres)
+        newmarked.append(newmark)
+
+    return newreses, newmarked
 
 
 # takes a ChemicalDatabase containing Tuple[RawResidueType] and Tuple[VariantType]
@@ -343,43 +385,48 @@ class PatchedChemicalDatabase:
 
         patched_residues, patched_residues_names = [], []
         for res in chemdb.residues:
-            resgraph = G.from_raw_res(res)
-
             done = False
 
             resvariants, resvariantnames, marked_atoms = [res], [""], [[]]
             while not done:
                 done = True
-                rv_new, rvn_new = [], []
+
+                # newly added variants, variant names, marked atoms
+                rv_new, rvn_new, ma_new = [], [], []
                 for res_i, name_i, mark_i in zip(
                     resvariants, resvariantnames, marked_atoms
                 ):
+                    resgraph = G.from_raw_res(res_i)
                     for variant in chemdb.variants:
                         newtag = [*name_i, variant.name]
                         newtag.sort()
-                        newtag = ":".join(newtag)
-                        if newtag in resvariantnames:
+                        if newtag in resvariantnames or newtag in rvn_new:
                             continue  # we already made this variant
 
-                        patchgraph = pysmiles.read_smiles(
+                        patchgraph = read_smiles(
                             variant.pattern,
                             explicit_hydrogen=True,
                             do_fill_valence=False,
                         )
-                        patched_reses = do_patch(res_i, variant, resgraph, patchgraph)
+                        patched_reses, mark_i_new = do_patch(
+                            res_i, variant, resgraph, patchgraph, mark_i
+                        )
 
                         if len(patched_reses) > 0:
                             rv_new.extend(patched_reses)
                             rvn_new.extend((newtag,) * len(patched_reses))
+                            ma_new.extend(mark_i_new)
+                            done = False  # added new residues
+
                 resvariants.extend(rv_new)
                 resvariantnames.extend(rvn_new)
+                marked_atoms.extend(ma_new)
             patched_residues.extend(resvariants)
             patched_residues_names.extend(resvariantnames)
 
         for res in patched_residues:
             val_id = validate_raw_residue(res)
             if val_id != ResTypeValidatorErrorCodes.success:
-                print(res.icoors)
                 assert False, (
                     "Bad raw residue: " + res.name + "\nError code: " + str(val_id)
                 )
