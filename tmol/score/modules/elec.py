@@ -53,7 +53,7 @@ class ElecParameters(ScoreModule):
     def _init_partial_charges(self) -> Tensor[torch.float32][:, :]:
         return torch.from_numpy(
             self.elec_param_resolver.resolve_partial_charge(
-                BondedAtoms.get(self).res_names, BondedAtoms.get(self).atom_names
+                BondedAtoms.get(self).res_names3, BondedAtoms.get(self).atom_names
             )
         ).to(TorchDevice.get(self).device)
 
@@ -62,7 +62,7 @@ class ElecParameters(ScoreModule):
         np_bpl = torch.from_numpy(
             self.elec_param_resolver.remap_bonded_path_lengths(
                 BondedAtoms.get(self).bonded_path_length.cpu().numpy(),
-                BondedAtoms.get(self).res_names,
+                BondedAtoms.get(self).res_names3,
                 BondedAtoms.get(self).res_indices,
                 BondedAtoms.get(self).atom_names,
             )

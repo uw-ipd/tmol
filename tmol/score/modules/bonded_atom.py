@@ -63,6 +63,9 @@ class BondedAtoms(ScoreModule):
     res_names: numpy.ndarray = attr.ib(
         validator=type_validator()
     )  # NDArray[object][:, :]
+    res_names3: numpy.ndarray = attr.ib(
+        validator=type_validator()
+    )  # NDArray[object][:, :]
     res_indices: numpy.ndarray = attr.ib(
         validator=type_validator()
     )  # NDArray[int][:, :]
@@ -133,6 +136,11 @@ def bonded_atoms_for_system(
     res_indices = system.atom_metadata["residue_index"].copy()[None, :]
     res_names = system.atom_metadata["residue_name"].copy()[None, :]
 
+    # fd: hacky but this is going away soon
+    res_names3 = numpy.vectorize(
+        lambda y: y.split(":")[0] if y else None, otypes=[object]
+    )(res_names)
+
     if drop_missing_atoms:
         atom_types[0, numpy.any(numpy.isnan(system.coords), axis=-1)] = None
 
@@ -143,6 +151,7 @@ def bonded_atoms_for_system(
         atom_names=atom_names,
         res_indices=res_indices,
         res_names=res_names,
+        res_names3=res_names3,
     )
 
 
@@ -187,6 +196,7 @@ def stacked_bonded_atoms_for_system(
         # fd float64 when unstacked; be consistent when stacked
         res_indices=stackem("res_indices", numpy.float64),
         res_names=stackem("res_names"),
+        res_names2=stackem("res_names3"),
     )
 
 
@@ -199,6 +209,7 @@ def _clone_for_score_system(old_system, system, **_) -> BondedAtoms:
         atom_types=old.atom_types,
         atom_names=old.atom_names,
         res_names=old.res_names,
+        res_names3=old.res_names3,
         res_indices=old.res_indices,
         bonds=old.bonds,
     )
