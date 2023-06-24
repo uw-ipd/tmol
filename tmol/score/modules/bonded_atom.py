@@ -196,7 +196,7 @@ def stacked_bonded_atoms_for_system(
         # fd float64 when unstacked; be consistent when stacked
         res_indices=stackem("res_indices", numpy.float64),
         res_names=stackem("res_names"),
-        res_names2=stackem("res_names3"),
+        res_names3=stackem("res_names3"),
     )
 
 

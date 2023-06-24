@@ -1,18 +1,8 @@
-import pytest
 import cattr
 import numpy
 
-from tmol.chemical.ideal_coords import normalize, build_ideal_coords
-from tmol.chemical.restypes import (
-    RefinedResidueType,
-    ResidueTypeSet,
-    find_simple_polymeric_connections,
-)
-from tmol.tests.data.pdb import data as test_pdbs
-from tmol.system.io import read_pdb
-from tmol.system.packed import PackedResidueSystem
-
-test_names = ["1QYS", "1UBQ"]
+from tmol.chemical.ideal_coords import normalize
+from tmol.chemical.restypes import RefinedResidueType
 
 
 def test_patched_residue_construction_smoke(default_database):

@@ -1,11 +1,9 @@
-from typing import Tuple, Optional, NewType
-from tmol.utility.units import BondAngle, DihedralAngle
+from typing import Tuple
 
 from tmol.database.chemical import (
     Element,
     AtomType,
     RawResidueType,
-    VariantType,
     ChemicalDatabase,
     Icoor,
 )
@@ -13,11 +11,6 @@ from tmol.database.chemical import (
 from tmol.extern.pysmiles.read_smiles import read_smiles
 
 import attr
-import cattr
-
-import os
-import yaml
-import re
 import copy
 from enum import IntEnum
 
@@ -251,7 +244,7 @@ def validate_patch(patch):
 #    newmarked - updated list of modified atoms in new residue
 def do_patch(res, variant, resgraph, patchgraph, marked):
     atoms_match = (
-        lambda x, y: (not "element" in y)
+        lambda x, y: ("element" not in y)
         or (not "element" in x)
         or x["element"] == y["element"]
     )

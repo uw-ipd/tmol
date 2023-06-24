@@ -26,6 +26,66 @@ ResName3 = typing.NewType("ResName3", str)
 IcoorIndex = NewType("AtomIndex", int)
 
 
+def three2one(three):
+    # 'static'
+    if not hasattr(three2one, "_mapping"):
+        three2one._mapping = {
+            "ALA": "A",
+            "CYS": "C",
+            "ASP": "D",
+            "GLU": "E",
+            "PHE": "F",
+            "GLY": "G",
+            "HIS": "H",
+            "ILE": "I",
+            "LYS": "K",
+            "LEU": "L",
+            "MET": "M",
+            "ASN": "N",
+            "PRO": "P",
+            "GLN": "Q",
+            "ARG": "R",
+            "SER": "S",
+            "THR": "T",
+            "VAL": "V",
+            "TRP": "W",
+            "TYR": "Y",
+        }
+    if three in three2one._mapping:
+        return three2one._mapping[three]
+    return None
+
+
+def one2three(one):
+    # 'static'
+    if not hasattr(one2three, "_mapping"):
+        one2three._mapping = {
+            "A": "ALA",
+            "C": "CYS",
+            "D": "ASP",
+            "E": "GLU",
+            "F": "PHE",
+            "G": "GLY",
+            "H": "HIS",
+            "I": "ILE",
+            "K": "LYS",
+            "L": "LEU",
+            "M": "MET",
+            "N": "ASN",
+            "P": "PRO",
+            "Q": "GLN",
+            "R": "ARG",
+            "S": "SER",
+            "T": "THR",
+            "V": "VAL",
+            "W": "TRP",
+            "Y": "TYR",
+        }
+    if one in one2three._mapping:
+        return one2three._mapping[one]
+    return None
+
+
 @attr.s
 class RefinedResidueType(RawResidueType):
     @property

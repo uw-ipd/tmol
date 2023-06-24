@@ -20,7 +20,9 @@ from tmol.chemical.restypes import (
     Residue,
     find_simple_polymeric_connections,
     find_disulfide_connections,
+    three2one,
 )
+
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
 from tmol.pose.pose_stack import PoseStack
 
@@ -1257,61 +1259,20 @@ class PoseStackBuilder:
             assert hasattr(pbt, "bt_mapping_w_lcaa_1lc_ind")
             return
 
-        aa_codes = {
-            "ALA": "A",
-            "CYS": "C",
-            "ASP": "D",
-            "GLU": "E",
-            "PHE": "F",
-            "GLY": "G",
-            "HIS": "H",
-            "ILE": "I",
-            "LYS": "K",
-            "LEU": "L",
-            "MET": "M",
-            "ASN": "N",
-            "PRO": "P",
-            "GLN": "Q",
-            "ARG": "R",
-            "SER": "S",
-            "THR": "T",
-            "VAL": "V",
-            "TRP": "W",
-            "TYR": "Y",
-        }
-
-        sorted_1lc = sorted([v for _, v in aa_codes.items()])
-        one_let_co_index = {
-            aa1: ind
-            for aa1, ind in zip(sorted_1lc, numpy.arange(20, dtype=numpy.int32))
-        }
-
-        lcaa_ind = numpy.full((20,), -1, dtype=numpy.int32)
+        lcaa_ind = {}
         for i, res in enumerate(pbt.active_block_types):
-            if res.name in aa_codes:
-                if (
-                    "NTerm" not in res.properties.connectivity
-                    and "CTerm" not in res.properties.connectivity
-                ):
-                    if res.name3 == "HIS":
-                        if res.name == "HIS_D":
-                            continue
-                    ind = one_let_co_index[aa_codes[res.name3]]
-                    assert lcaa_ind[ind] == -1
-                    lcaa_ind[ind] = i
+            one = three2one(res.name)
+            if one:
+                assert one not in lcaa_ind
+                lcaa_ind[one] = i
 
-        names = list(
-            itertools.chain([bt.name for bt in pbt.active_block_types], sorted_1lc)
-        )
-        df = pandas.DataFrame(
-            dict(
-                names=names,
-                bt_ind=itertools.chain(
-                    numpy.arange(len(pbt.active_block_types), dtype=numpy.int32),
-                    lcaa_ind,
-                ),
-            )
-        )
+        names = [*lcaa_ind.keys(), *[bt.name for bt in pbt.active_block_types]]
+        indices = [
+            *lcaa_ind.values(),
+            *range(len(pbt.active_block_types)),
+        ]
+
+        df = pandas.DataFrame(dict(names=names, bt_ind=indices))
         ind = pandas.Index(names)
         setattr(pbt, "bt_mapping_w_lcaa_1lc", df)
         setattr(pbt, "bt_mapping_w_lcaa_1lc_ind", ind)
