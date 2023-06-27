@@ -57,20 +57,16 @@ def test_build_rotamers_smoke(
 ):
     # torch_device = torch.device("cpu")
 
+    # fd TEMP: NO TERM VARIANTS
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:10], torch_device
+        rts_ubq_res[1:11], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:9], torch_device
+        rts_ubq_res[1:10], torch_device
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
-
-    # leu_set = set(["LEU"])
-    # for one_pose_rlts in task.rlts:
-    #     for rlt in one_pose_rlts:
-    #         rlt.restrict_absent_name3s(leu_set)
 
     fixed_sampler = FixedAAChiSampler()
     task.add_chi_sampler(dun_sampler)
@@ -78,17 +74,6 @@ def test_build_rotamers_smoke(
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
     assert rotamer_set is not None
-
-    # for writing rotamer coordinates into a pdb
-    # print("new coords")
-    # new_coords = rotamer_set.coords
-    # print(new_coords.shape)
-    # rot = 4
-    # for i in range(0, new_coords.shape[1]):
-    #     print(
-    #         "%7.3f %7.3f %7.3f"
-    #         % (new_coords[rot, i, 0], new_coords[rot, i, 1], new_coords[rot, i, 2])
-    #     )
 
 
 def test_construct_scans_for_rotamers(
@@ -281,8 +266,9 @@ def test_inv_kin_rotamers(
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
+    # fd TEMP: NO TERM VARIANTS
     p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:3], torch_device
+        rts_ubq_res[1:4], torch_device
     )
 
     fixed_sampler = FixedAAChiSampler()
@@ -354,9 +340,6 @@ def test_inv_kin_rotamers(
             met_ktat_i = met_rt.rotamer_kinforest.kinforest_idx[met_at_i]
             dofs_new[leu_ktat_i + 1, :] = dofs_orig[met_ktat_i + 1, :]
 
-    # print("dofs_new")
-    # print(dofs_new[:, :4])
-
     dofs_new[
         leu_rt.rotamer_kinforest.kinforest_idx[leu_rt.atom_to_idx["CB"]] + 1, 3
     ] = numpy.radians(180)
@@ -399,17 +382,6 @@ def test_inv_kin_rotamers(
     )
     reordered_coords[leu_rt.rotamer_kinforest.id] = new_coords[1:]
 
-    # for writing coordinates into a pdb
-    # print("new coords")
-    # for i in range(0, reordered_coords.shape[0]):
-    #    print("%6.3f %7.3f %7.3f" %
-    #        (
-    #            reordered_coords[i,0],
-    #            reordered_coords[i,1],
-    #            reordered_coords[i,2],
-    #        )
-    #    )
-
     # make sure that the coordinates of the mainchain atoms that should
     # have been "copied" from the original position are in essentially the same
     # position
@@ -420,7 +392,7 @@ def test_inv_kin_rotamers(
 
 
 def test_construct_kinforest_for_rotamers(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
@@ -515,7 +487,7 @@ def test_construct_kinforest_for_rotamers(
 
 
 def test_construct_kinforest_for_rotamers2(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
@@ -615,8 +587,11 @@ def test_measure_original_dofs(
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
+    # fd TEMP: NO TERM VARIANTS
+    # fd TEMP2: SINGLE RESIDUE since 'measure_dofs_from_orig_coords' if residue 0 length
+    #          is not a multiple of 'pbt.max_n_atoms'
     poses = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:2], torch_device
+        rts_ubq_res[1:2], torch_device
     )
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -638,7 +613,9 @@ def test_measure_original_dofs(
     real_block_type_ind_numpy = nz_real_block_type_ind.cpu().numpy().astype(numpy.int32)
     block_type_ind = block_type_ind[block_type_ind != -1]
     res_n_atoms = pbt.n_atoms[block_type_ind.to(torch.int64)]
+    print("res_n_atoms", res_n_atoms)
     n_total_atoms = torch.sum(res_n_atoms).item()
+    print(nz_real_block_type_ind.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms)
 
     kinforest = construct_kinforest_for_rotamers(
         pbt,
@@ -687,19 +664,7 @@ def test_measure_original_dofs(
     new_coords = torch.zeros_like(poses.coords).view(-1, 3)
     new_coords[kinforest.id.to(torch.int64)] = new_kin_coords
 
-    # print(new_kin_coords)
-
-    # for writing coordinates into a pdb
-    # print("new coords")
-    # for i in range(0, new_coords.shape[0]):
-    #     print(
-    #         "%7.3f %7.3f %7.3f" %
-    #         (
-    #             new_coords[i, 0],
-    #             new_coords[i, 1],
-    #             new_coords[i, 2]
-    #         )
-    #     )
+    # fd no assert?
 
 
 def test_measure_original_dofs2(
@@ -711,8 +676,9 @@ def test_measure_original_dofs2(
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         rts_ubq_res[5:11], torch_device
     )
+    # fd TEMP: NO TERM VARIANTS
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:7], torch_device
+        rts_ubq_res[1:8], torch_device
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
@@ -834,13 +800,20 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 ):
     # torch_device = torch.device("cpu")
 
+    # fd NOTE: THIS TEST ASSUMES NON-TERMINAL VARIANTS (and really none at all)
+    # fd   - grab structure starting at residue index 1
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:2], torch_device
+        rts_ubq_res[1:3], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:3], torch_device
+        rts_ubq_res[1:4], torch_device
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+
+    pbt = poses.packed_block_types
+    pbt_namelist = [x.name for x in pbt.active_block_types]
+    assert "LEU" not in pbt_namelist
+
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     leu_set = set(["LEU"])
@@ -854,7 +827,10 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 
     poses, samplers = rebuild_poses_if_necessary(poses, task)
     pbt = poses.packed_block_types
-    assert pbt.active_block_types[0].name == "LEU"
+
+    pbt_namelist = [x.name for x in pbt.active_block_types]
+    assert "LEU" in pbt_namelist  # may have a variant attached?
+
     leu_rt = pbt.active_block_types[0]
     annotate_everything(default_database.chemical, samplers, pbt)
 
@@ -887,6 +863,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     # in kinforest order with an offset of 19 for each
     # successive batch.
 
+    # fd hardcoded "H" fails w/ terminal variants
     fingerprint_atoms = "N", "H", "CA", "HA", "C", "O"
 
     def fp_kto(rt):
@@ -999,8 +976,10 @@ def test_build_lots_of_rotamers(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
     n_poses = 6
+
+    # fd TEMP: NO TERM VARIANTS
     p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res, torch_device
+        rts_ubq_res[1:-1], torch_device
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
@@ -1025,6 +1004,7 @@ def test_build_lots_of_rotamers(
     assert n_rots_per_pose * n_poses == n_rots
 
     new_coords = rotamer_set.coords.cpu().numpy()
+    # print (rotamer_set)
 
     for i in range(1, n_poses):
         numpy.testing.assert_almost_equal(
@@ -1038,8 +1018,10 @@ def test_create_dofs_for_many_rotamers(
     default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
 ):
     n_poses = 6
+
+    # fd TEMP: NO TERM VARIANTS
     p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res, torch_device
+        rts_ubq_res[1:-1], torch_device
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(fresh_default_restype_set)

@@ -245,7 +245,7 @@ def validate_patch(patch):
 def do_patch(res, variant, resgraph, patchgraph, marked):
     atoms_match = (
         lambda x, y: ("element" not in y)
-        or (not "element" in x)
+        or ("element" not in x)
         or x["element"] == y["element"]
     )
     gm = iso.GraphMatcher(resgraph, patchgraph, node_match=atoms_match)

@@ -9,7 +9,7 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
 from tmol.numeric.dihedrals import coord_dihedrals
-from tmol.database.chemical import ChemicalDatabase
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 
@@ -107,7 +107,7 @@ def create_non_sidechain_fingerprint(
     rt: RefinedResidueType,
     parents: NDArray[numpy.int32][:],
     sc_atoms: NDArray[numpy.int32][:],
-    chem_db: ChemicalDatabase,
+    chem_db: PatchedChemicalDatabase,
 ):
     non_sc_atoms = numpy.nonzero(sc_atoms == 0)[0]
     mc_at_names = rt.properties.polymer.mainchain_atoms
@@ -117,12 +117,21 @@ def create_non_sidechain_fingerprint(
     mc_ind = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     mc_ind[mc_atoms] = numpy.arange(mc_atoms.shape[0], dtype=numpy.int32)
 
-    # count the number of bonds for each atom
+    # fd temporary fix for terminal variants
+    # count the number of bonds to non-H for each atom
     n_bonds = numpy.zeros(rt.n_atoms, dtype=numpy.int32)
+    n_nonh_bonds = numpy.zeros(rt.n_atoms, dtype=numpy.int32)
     for i in range(rt.bond_indices.shape[0]):
+        bonded_atom_type = rt.atoms[rt.bond_indices[i, 1]].atom_type
+        bonded_elem_name = next(
+            at.element for at in chem_db.atom_types if at.name == bonded_atom_type
+        )
         n_bonds[rt.bond_indices[i, 0]] += 1
+        if bonded_elem_name != "H":
+            n_nonh_bonds[rt.bond_indices[i, 0]] += 1
     for conn in rt.connection_to_idx:
-        n_bonds[rt.connection_to_idx[conn]] += 1
+        n_bonds[rt.bond_indices[i, 0]] += 1
+        n_nonh_bonds[rt.connection_to_idx[conn]] += 1
 
     # mc_ancestors = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     # chiralities = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
@@ -148,15 +157,23 @@ def create_non_sidechain_fingerprint(
         elif bonds_from_mc == 1:
             # ok, let's figure out the number of bonds
             # that the mc atom has
-            mc_n_bonds = n_bonds[mc_anc]
-            if mc_n_bonds == 4:
+            mc_n_bonds, mc_n_nonh_bonds = n_bonds[mc_anc], n_nonh_bonds[mc_anc]
+
+            # fd note this code assumes:
+            # fd   * mc_atoms[0] connects ONLY to mc_atoms[1] and "down"
+            # fd   * and mc_atoms[-1] connects ONLY to mc_atoms[-2] and "up"
+            # fd connections to up/down should probably be enforced programmatically
+            # fd it also seems like this might not hold true generally
+            # fd   ...there might be a terminal variant with chiral center on N/C
+            # fd   ...there might be a non-terminal variant with chiral center on N/C
+            # ok, who is the first "lower" neighbor?
+            if mc_n_bonds == 4 and mc_n_nonh_bonds >= 3:
                 # now we need to measure the chirality of the atom
                 # or, rather, whether this atom is on the "left"
                 # or "right" of the chiral backbone atom.
                 # Measure the improper dihedral given by the
                 # mc atom and the two mc atoms it is bonded to.
 
-                # ok, who is the first "lower" neighbor?
                 prev_neighb = -1
                 for i, at in enumerate(mc_atoms):
                     if at == mc_anc:
@@ -223,7 +240,7 @@ def create_non_sidechain_fingerprint(
 
 @validate_args
 def create_mainchain_fingerprint(
-    rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: ChemicalDatabase
+    rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: PatchedChemicalDatabase
 ):
     id = rt.rotamer_kinforest.id
     parents = rt.rotamer_kinforest.parent.copy()
@@ -241,7 +258,7 @@ def create_mainchain_fingerprint(
 def annotate_residue_type_with_sampler_fingerprints(
     restype: RefinedResidueType,
     samplers: Tuple[ChiSampler, ...],
-    chem_db: ChemicalDatabase,
+    chem_db: PatchedChemicalDatabase,
 ):
     for sampler in samplers:
         if sampler.defines_rotamers_for_rt(restype):

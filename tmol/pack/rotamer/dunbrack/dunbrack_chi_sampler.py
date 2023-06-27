@@ -365,10 +365,11 @@ class DunbrackChiSampler:
             -1, 4
         )
 
-        phi_psi_inds = torch.cat(
-            (inds_of_phi.reshape(-1, 4), inds_of_psi.reshape(-1, 4)), dim=1
-        )
-        phi_psi_inds = phi_psi_inds.reshape(-1, 4)
+        # fd unused
+        # phi_psi_inds = torch.cat(
+        #    (inds_of_phi.reshape(-1, 4), inds_of_psi.reshape(-1, 4)), dim=1
+        # )
+        # phi_psi_inds = phi_psi_inds.reshape(-1, 4)
 
         nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
         rottable_set_for_buildable_restype = dun_rot_inds_for_rts[
