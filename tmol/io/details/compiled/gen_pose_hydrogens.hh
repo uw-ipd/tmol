@@ -50,6 +50,7 @@ struct GeneratePoseHydrogens {
 
   static auto backward(
       TView<Vec<Real, 3>, 2, Dev> dE_d_new_coords,
+      TView<Vec<Real, 3>, 2, Dev> new_coords,
       TView<Vec<Real, 3>, 2, Dev> orig_coords,
       TView<Int, 3, Dev> h_coords_missing,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,

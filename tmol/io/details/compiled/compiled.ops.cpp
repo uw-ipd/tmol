@@ -70,6 +70,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
 
     ctx->save_for_backward(
         {orig_coords,
+         new_coords,
          h_coords_missing,
          pose_stack_block_coord_offset,
          pose_stack_block_type,
@@ -90,6 +91,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
     int i = 0;
 
     auto orig_coords = saved[i++];
+    auto new_coords = saved[i++];
     auto h_coords_missing = saved[i++];
     auto pose_stack_block_coord_offset = saved[i++];
     auto pose_stack_block_type = saved[i++];
@@ -119,6 +121,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
               Int>::
               backward(
                   TCAST(dE_d_new_coords),
+                  TCAST(new_coords),
                   TCAST(orig_coords),
                   TCAST(h_coords_missing),
                   TCAST(pose_stack_block_coord_offset),

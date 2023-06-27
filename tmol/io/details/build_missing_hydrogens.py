@@ -82,6 +82,7 @@ def build_missing_hydrogens(
         pbt.build_missing_h_icoor_atom_ancestor_uaids_backup,
         pbt.build_missing_h_icoor_geom_backup,
     )
+    print("new_pose_coords.shape", new_pose_coords.shape)
     return new_pose_coords, block_coord_offset
 
 
