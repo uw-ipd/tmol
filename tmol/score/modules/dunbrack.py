@@ -58,11 +58,15 @@ def get_dunbrack_phi_psi_chi(
     )
 
     # fd: make a consistent phi/psi array
-    resids = numpy.unique((dun_phi_raw[:, 0], dun_psi_raw[:, 0]))
+    resids = numpy.concatenate((dun_phi_raw[:, 0], dun_psi_raw[:, 0]))
+    resids = numpy.unique(resids)
     dun_phi = numpy.full((resids.shape[0], 5), -1)
     dun_psi = numpy.full((resids.shape[0], 5), -1)
-    dun_phi[dun_phi_raw[:, 0]] = dun_phi_raw
-    dun_psi[dun_psi_raw[:, 0]] = dun_psi_raw
+    resids2idx = {x: i for i, x in enumerate(resids)}
+    phi_idx = numpy.vectorize(lambda x: resids2idx[x])(dun_phi_raw[:, 0])
+    psi_idx = numpy.vectorize(lambda x: resids2idx[x])(dun_psi_raw[:, 0])
+    dun_phi[phi_idx] = dun_phi_raw
+    dun_psi[psi_idx] = dun_psi_raw
     dun_phi[:, 0] = resids
     dun_psi[:, 0] = resids
 

@@ -23,11 +23,12 @@ class ResTypeValidatorErrorCodes(IntEnum):
     success = 0
     undefined_field = 1
     remove_nonreference_atom = 2
-    illegal_bond = 3
-    illegal_icoor = 4
-    illegal_torsion = 5
-    illegal_connection = 6
-    duplicate_atom_name = 7
+    modify_nonreference_atom = 3
+    illegal_bond = 4
+    illegal_icoor = 5
+    illegal_torsion = 6
+    illegal_connection = 7
+    duplicate_atom_name = 8
 
 
 # build a graph from a restype
@@ -61,6 +62,11 @@ def remove_atom(res, atom):
         if atom not in [x.a.connection, x.b.connection, x.c.connection, x.d.connection]
     )
     res.connections = tuple(x for x in res.connections if x.name != atom)
+    return res
+
+
+def modify_atom(res, atom):
+    res.atoms = tuple(x if x.name != atom.name else atom for x in res.atoms)
     return res
 
 
@@ -130,6 +136,8 @@ def get_modified_atoms(patch):
 
     for i in patch.add_atoms:
         added.append(i.name)
+    for i in patch.modify_atoms:
+        modded.append(i.name)
     for i in patch.add_connections:
         added.append(i.name)
 
@@ -221,6 +229,11 @@ def validate_patch(patch):
         if i[0] != "<" or i[-1] != ">":
             return ResTypeValidatorErrorCodes.remove_nonreference_atom
 
+    # make sure all modded atoms are references
+    for i in patch.modify_atoms:
+        if i.name[0] != "<" or i.name[-1] != ">":
+            return ResTypeValidatorErrorCodes.modify_nonreference_atom
+
     # make sure all bonds are references or added atoms
     addedatoms = [i.name for i in patch.add_atoms]
     for i, j in patch.add_bonds:
@@ -308,9 +321,12 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
 
         # 1. remove atoms
         for atom in variant.remove_atoms:
-            if atom in namemap:  # map matching names
-                atom = namemap[atom]
+            atom = namemap[atom]
             newres = remove_atom(newres, atom)
+
+        for atom in variant.modify_atoms:
+            atom = attr.evolve(atom, name=namemap[atom.name])
+            newres = modify_atom(newres, atom)
 
         # 2. add atoms
         newres.atoms = (*newres.atoms, *variant.add_atoms)

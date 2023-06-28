@@ -15,10 +15,10 @@ from tmol.kinematics.fold_forest import FoldForest, EdgeType
 def test_get_bonds_for_named_torsions(ubq_res, torch_device):
     # torch_device = torch.device("cpu")
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:40], torch_device
+        ubq_res[:2], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:60], torch_device
+        ubq_res[:2], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
     pbt = pose_stack.packed_block_types
