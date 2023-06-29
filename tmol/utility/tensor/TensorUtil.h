@@ -124,7 +124,15 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
         " expected: ",
         consumed_dims(d - N));
   }
-
+  for (int d = N; d < input_t.dim(); ++d) {
+    TORCH_CHECK(
+        input_t.stride(d) != 0,
+        "stride of zero for view_tensor is incompatible for consumed "
+        "dimension. Did torch.sum() or torch.expand() yeild a tensor with a "
+        "stride of 0?",
+        " d: ",
+        d);
+  }
   TORCH_CHECK(
       input_t.device().type() == D,
       "view_tensor of incorrect device type.",
