@@ -1,5 +1,4 @@
 import torch
-import numpy
 
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..bond_dependent_term import BondDependentTerm
