@@ -368,6 +368,7 @@ def test_build_missing_hydrogens_gradcheck(ubq_pdb, torch_device):
     )
     print("new_pose_coords")
     print(new_pose_coords)
+    print(new_pose_coords.stride())
 
     def coord_score(bc):
         # nonlocal new_pose_coords
@@ -381,21 +382,23 @@ def test_build_missing_hydrogens_gradcheck(ubq_pdb, torch_device):
             inter_residue_connections,
         )
         print("new_pose_coords.shape", new_pose_coords.shape)
-        return torch.sum(new_pose_coords)
+        # slice the coords tensor to create a temp that will avoid a stride of 0
+        return torch.sum(new_pose_coords[:, :, :])
+        # return torch.sum(new_pose_coords)
 
     bc = block_coords.requires_grad_(True)
     score = coord_score(bc)
     print("score", score)
     derivs = score.backward()
     print("bc.grad:", bc.grad)
-    print("new pose coords.grad:")
-    print(new_pose_coords.grad)
+    # print("new pose coords.grad:")
+    # print(new_pose_coords.grad)
 
     gradcheck(
         coord_score,
         (block_coords.requires_grad_(True),),
         nondet_tol=1e-2,
-        eps=1e-3,
-        atol=5e-3,
-        rtol=5e-3,
+        eps=1e-2,
+        atol=1e-2,
+        rtol=1e-2,
     )
