@@ -37,18 +37,28 @@ def git_version():
     return version
 
 
-def cpp_files(directory):
+def find_cpp_files(directory):
     paths = []
     for path, directories, filenames in os.walk(directory):
         for filename in filenames:
             _, ext = os.path.splitext(filename)
-            if ext in [".hh", ".cpp", ".cu", ".cuh", ".hpp", ".h", ".hxx"]:
+            if ext in [".hh", ".cpp", ".cu", ".cuh", ".cc", ".hpp", ".h", ".hxx"]:
                 paths.append(os.path.join("..", path, filename))
     return paths
 
 
-extra_cpp_files = cpp_files(".")
-print(extra_cpp_files)
+extra_files = find_cpp_files(".")
+extra_files.extend(
+    [
+        "../tmol/database/default/chemical/*",
+        "../tmol/database/default/scoring/*",
+        "../tmol/tests/data/pdb/*",
+        "../tmol/tests/data/pdb/*",
+        "../tmol/tests/data/rosetta_baseline/*",
+        "../tmol/tests/data/constraints/*",
+    ]
+)
+
 
 needs_pytest = {"pytest", "test"}.intersection(sys.argv)
 pytest_runner = ["pytest-runner"] if needs_pytest else []
@@ -57,7 +67,7 @@ setup(
     name="tmol",
     version=git_version(),
     packages=find_packages(),
-    package_data={"": [*extra_cpp_files, "../tmol/tests/data/pdb/*.pdb"]},
+    package_data={"": extra_files},
     setup_requires=pytest_runner,
     zip_safe=False,
 )
