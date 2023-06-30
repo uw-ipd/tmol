@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 import subprocess
 import re
+import os
 
 
 def git_version():
@@ -36,16 +37,27 @@ def git_version():
     return version
 
 
+def cpp_files(directory):
+    paths = []
+    for path, directories, filenames in os.walk(directory):
+        for filename in filenames:
+            _, ext = os.path.splitext(filename)
+            if ext in [".hh", ".cpp", ".cu", ".cuh", ".hpp", ".h", ".hxx"]:
+                paths.append(os.path.join("..", path, filename))
+    return paths
+
+
+extra_cpp_files = cpp_files(".")
+print(extra_cpp_files)
+
 needs_pytest = {"pytest", "test"}.intersection(sys.argv)
 pytest_runner = ["pytest-runner"] if needs_pytest else []
 
 setup(
     name="tmol",
     version=git_version(),
-    packages=["tmol"],
+    packages=find_packages(),
+    package_data={"": [*extra_cpp_files, "../tmol/tests/data/pdb/*.pdb"]},
     setup_requires=pytest_runner,
-    include_package_data=True,
-    # tests_require=[l.strip() for l in open("requirements.tests.txt").readlines()],
-    # install_requires=[l.strip() for l in open("requirements.txt").readlines()],
     zip_safe=False,
 )
