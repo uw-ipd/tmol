@@ -159,6 +159,7 @@ class VariantType:
     pattern: str
     remove_atoms: Tuple[str, ...]
     add_atoms: Tuple[Atom, ...]
+    modify_atoms: Tuple[Atom, ...]
     add_connections: Tuple[Connection, ...]
     add_bonds: Tuple[Tuple[str, str], ...]
     icoors: Tuple[IcoorVariant, ...]

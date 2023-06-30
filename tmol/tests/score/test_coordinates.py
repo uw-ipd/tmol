@@ -10,7 +10,7 @@ def test_coord_clone_factory_from_stacked_systems(ubq_system: PackedResidueSyste
     score_system = ScoreSystem.build_for(twoubq, {LJScore}, {"lj": 1.0})
     coords = coords_for(twoubq, score_system)
 
-    assert coords.shape == (2, 1472, 3)
+    assert coords.shape == (2, 1480, 3)
 
 
 def test_non_uniform_sized_stacked_system_coord_factory(ubq_res):

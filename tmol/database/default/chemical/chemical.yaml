@@ -2243,6 +2243,7 @@ variants:
     add_atoms:
     - { name: O    ,  atom_type: OOC }
     - { name: OXT  ,  atom_type: OOC }
+    modify_atoms: []
     add_connections: []
     add_bonds:
     - [   <C1>,    OXT ]
@@ -2261,11 +2262,13 @@ variants:
     - { name: 1H  ,  atom_type: Hpol }
     - { name: 2H  ,  atom_type: Hpol }
     - { name: 3H  ,  atom_type: Hpol }
+    modify_atoms:
+    - { name: <N1> ,  atom_type: Nlys }
     add_connections: []
     add_bonds:
-    - [  <N1>,    1H  ]
-    - [  <N1>,    2H  ]
-    - [  <N1>,    3H  ]
+    - [  <N1>,    1H   ]
+    - [  <N1>,    2H   ]
+    - [  <N1>,    3H   ]
     icoors:
     - { name:   1H, source: <H1>, phi: 180.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: <*1> }
     - { name:   2H, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: 1H }
@@ -2279,6 +2282,7 @@ variants:
     add_atoms:
     - { name: 1H  ,  atom_type: Hpol }
     - { name: 2H  ,  atom_type: Hpol }
+    modify_atoms: []
     add_connections: []
     add_bonds:
     - [  <N1>,    1H  ]

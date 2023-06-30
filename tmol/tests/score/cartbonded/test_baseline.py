@@ -20,8 +20,10 @@ def test_cartbonded_baseline_comparison(ubq_system, torch_device):
 
     intra_container = score_system.intra_forward(coords)
 
-    assert float(intra_container["cartbonded_lengths"]) == approx(37.7848, rel=1e-3)
-    assert float(intra_container["cartbonded_angles"]) == approx(183.5785, rel=1e-3)
-    assert float(intra_container["cartbonded_torsions"]) == approx(50.5842, rel=1e-3)
-    assert float(intra_container["cartbonded_impropers"]) == approx(9.4305, rel=1e-3)
-    assert float(intra_container["cartbonded_hxltorsions"]) == approx(47.4197, rel=1e-3)
+    assert float(intra_container["cartbonded_lengths"]) == approx(37.628773, rel=1e-3)
+    assert float(intra_container["cartbonded_angles"]) == approx(181.0597, rel=1e-3)
+    assert float(intra_container["cartbonded_torsions"]) == approx(50.58417, rel=1e-3)
+    assert float(intra_container["cartbonded_impropers"]) == approx(9.390318, rel=1e-3)
+    assert float(intra_container["cartbonded_hxltorsions"]) == approx(
+        47.419704, rel=1e-3
+    )

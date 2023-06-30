@@ -10,7 +10,8 @@ import scipy.sparse
 import scipy.sparse.csgraph as csgraph
 
 from tmol.database import ParameterDatabase
-from tmol.database.chemical import RawResidueType, ChemicalDatabase
+from tmol.database.chemical import RawResidueType
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
@@ -366,7 +367,7 @@ class ResidueTypeSet:
         return cls.__default
 
     @classmethod
-    def from_database(cls, chemical_db: ChemicalDatabase):
+    def from_database(cls, chemical_db: PatchedChemicalDatabase):
         residue_types = [
             cattr.structure(cattr.unstructure(r), RefinedResidueType)
             for r in chemical_db.residues

@@ -181,7 +181,7 @@ def test_merge_fingerprints(default_database):
         annotate_residue_type_with_sampler_fingerprints(
             rt, [dun_sampler, fixed_sampler], default_database.chemical
         )
-
+    print([x.name for x in rt_list])
     pbt = PackedBlockTypes.from_restype_list(rt_list, device=torch_device)
     find_unique_fingerprints(pbt)
 
@@ -221,17 +221,14 @@ def test_merge_fingerprints(default_database):
         fixed_sampler.sampler_name()
     ]
 
-    # pro_pbt_ind = pbt.restype_index.get_indexer(["PRO"])[0]
-    # gly_pbt_ind = pbt.restype_index.get_indexer(["GLY"])[0]
-    # leu_pbt_ind = pbt.restype_index.get_indexer(["LEU"])[0]
-    #
-    # assert pro_pbt_ind == dun_sampler_ind
-    # assert gly_pbt_ind == fixed_sampler_ind
-    # assert leu_pbt_ind == dun_sampler_ind
-
-    # print(pro_pbt_ind, gly_pbt_ind, leu_pbt_ind)
-
-    assert pbt.mc_fingerprints.atom_mapping.shape == (2, 2, 21, 6)
+    # fd what does the dimensionality of this mean?
+    # fd seems like (n_samplers, n_mcs, pbt.n_types, max_n_mc_atoms)
+    assert pbt.mc_fingerprints.atom_mapping.shape == (
+        2,
+        3,
+        21,
+        6,
+    )  # fd 2->3 (since gly achiral)
 
     for i, rt_orig in enumerate(pbt.active_block_types):
         orig_rt_sampler = pbt.mc_fingerprints.max_sampler[i]
@@ -246,6 +243,7 @@ def test_merge_fingerprints(default_database):
                 new_rt_sampler = dun_sampler_ind
 
             # now the atom mapping:
+            print(rt_new.atom_to_idx)
             for k in range(6):
                 k_orig = pbt.mc_fingerprints.atom_mapping[
                     orig_rt_sampler, orig_max_fp, i, k

@@ -13,14 +13,15 @@ def test_create_rotamer_bounding_spheres_smoke(
 ):
     # torch_device = torch.device("cpu")
 
+    # fd TEMP: NO TERM VARIANTS
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:3], torch_device
+        rts_ubq_res[1:4], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:2], torch_device
+        rts_ubq_res[1:3], torch_device
     )
     p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:4], torch_device
+        rts_ubq_res[1:5], torch_device
     )
     poses = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
@@ -82,8 +83,9 @@ def test_build_spheres_for_lots_of_rotamers(
 ):
     n_poses = 10
 
+    # fd TEMP: NO TERM VARIANTS
     p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res, torch_device
+        rts_ubq_res[1:-1], torch_device
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 

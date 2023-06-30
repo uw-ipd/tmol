@@ -90,7 +90,8 @@ def test_bb_identification(default_database, bb_hbond_database, ubq_system):
     acceptors = []
 
     for ri, r in zip(tsys.res_start_ind, tsys.residues):
-        if r.residue_type.name3 != "PRO":
+        # fd need to make sure terminal variants don't get added ....
+        if "H" in r.residue_type.atom_to_idx.keys():
             donors.append(
                 {
                     "d": r.residue_type.atom_to_idx["N"] + ri,
@@ -99,14 +100,15 @@ def test_bb_identification(default_database, bb_hbond_database, ubq_system):
                 }
             )
 
-        acceptors.append(
-            {
-                "a": r.residue_type.atom_to_idx["O"] + ri,
-                "b": r.residue_type.atom_to_idx["C"] + ri,
-                "b0": r.residue_type.atom_to_idx["CA"] + ri,
-                "acceptor_type": "hbacc_PBA",
-            }
-        )
+        if "OXT" not in r.residue_type.atom_to_idx.keys():
+            acceptors.append(
+                {
+                    "a": r.residue_type.atom_to_idx["O"] + ri,
+                    "b": r.residue_type.atom_to_idx["C"] + ri,
+                    "b0": r.residue_type.atom_to_idx["CA"] + ri,
+                    "acceptor_type": "hbacc_PBA",
+                }
+            )
 
     hbond_system = ScoreSystem.build_for(
         tsys, {HBondScore}, score_method_to_even_weights_dict(HBondScore)
