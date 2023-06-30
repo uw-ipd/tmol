@@ -99,10 +99,13 @@ class DunbrackChiSampler:
         # ok; lets ask the appropriate library what chi it defines samples for
         # and also incorporate additional chi that the residue type itself
         # defines its own samples for, as long as this is actually a residue type
-        # that the dunbrack library handles
+        # that the dunbrack library handles.
+        # Strip away any patches and use the "base name" of the residue type to make
+        # the "which library should I read from?" decision
+        base_name = restype.name.partition(":")[0]
         dun_lib_ind = self.dun_param_resolver._indices_from_names(
             self.dun_param_resolver.all_table_indices,
-            numpy.array([[restype.name]], dtype=object),
+            numpy.array([[base_name]], dtype=object),
             device=self.device,
         )[0, 0]
 
@@ -330,6 +333,9 @@ class DunbrackChiSampler:
         # )
 
         rt_names = numpy.array([rt.name for rt in dun_allowed_restypes], dtype=object)
+        rt_base_names = numpy.array(
+            [rt.name.partition(":")[0] for rt in dun_allowed_restypes], dtype=object
+        )
         pbt = pose_stack.packed_block_types
 
         rt_res = torch.tensor(
@@ -345,7 +351,7 @@ class DunbrackChiSampler:
 
         dun_rot_inds_for_rts = self.dun_param_resolver._indices_from_names(
             self.dun_param_resolver.all_table_indices,
-            rt_names[None, :],
+            rt_base_names[None, :],
             # ??? torch.device("cpu"),
             self.device,
         ).squeeze()
