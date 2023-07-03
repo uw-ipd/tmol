@@ -23,6 +23,8 @@ from tmol.chemical.restypes import (
 )
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
 from tmol.pose.pose_stack import PoseStack
+from tmol.io.canonical_ordering import aa_codes
+
 
 # from tmol.system.datatypes import connection_metadata_dtype
 from tmol.utility.tensor.common_operations import (
@@ -41,6 +43,7 @@ class PoseStackBuilder:
     def one_structure_from_polymeric_residues(
         cls, res: List[Residue], device: torch.device
     ) -> PoseStack:
+        """Archaic form of creating a monomer from a list of Residue objects"""
         residue_connections = find_simple_polymeric_connections(res)
         disulfide_connections = find_disulfide_connections(res)
         residue_connections.extend(disulfide_connections)
@@ -859,7 +862,7 @@ class PoseStackBuilder:
             n_conn_for_block
         )
         n_conn_for_block_offset64 = n_conn_for_block_offset.to(torch.int64)
-        max_n_pose_conn = torch.max(n_conn_totals)
+        max_n_pose_conn = torch.max(n_conn_totals) + 1
 
         # nz_real_blocks_pose_ind, nz_real_blocks_block_ind = torch.nonzero(
         #     real_blocks, as_tuple=True
@@ -1206,7 +1209,7 @@ class PoseStackBuilder:
         pose_stacks,  #: List["PoseStack"],
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
-        device=torch.device,
+        device: torch.device,
     ):
         n_poses = sum(len(ps) for ps in pose_stacks)
         block_type_ind = torch.full(
@@ -1249,29 +1252,6 @@ class PoseStackBuilder:
         if hasattr(pbt, "bt_mapping_w_lcaa_1lc"):
             assert hasattr(pbt, "bt_mapping_w_lcaa_1lc_ind")
             return
-
-        aa_codes = {
-            "ALA": "A",
-            "CYS": "C",
-            "ASP": "D",
-            "GLU": "E",
-            "PHE": "F",
-            "GLY": "G",
-            "HIS": "H",
-            "ILE": "I",
-            "LYS": "K",
-            "LEU": "L",
-            "MET": "M",
-            "ASN": "N",
-            "PRO": "P",
-            "GLN": "Q",
-            "ARG": "R",
-            "SER": "S",
-            "THR": "T",
-            "VAL": "V",
-            "TRP": "W",
-            "TYR": "Y",
-        }
 
         sorted_1lc = sorted([v for _, v in aa_codes.items()])
         one_let_co_index = {
@@ -1548,10 +1528,10 @@ class PoseStackBuilder:
         res_is_real_and_not_c_term[npose_arange, n_res - 1] = False
 
         connected_up_conn_inds = pbt.up_conn_inds[
-            block_type_ind64[res_is_real_and_not_n_term]
+            block_type_ind64[res_is_real_and_not_c_term]
         ].to(torch.int64)
         connected_down_conn_inds = pbt.down_conn_inds[
-            block_type_ind64[res_is_real_and_not_c_term]
+            block_type_ind64[res_is_real_and_not_n_term]
         ].to(torch.int64)
 
         # TO DO: handle termini patches!

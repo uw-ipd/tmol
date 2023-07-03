@@ -115,3 +115,8 @@ def water_box_system():
 
     ret = read_pdb(pdb.data["water_box"])
     return ret
+
+
+@pytest.fixture()
+def pertuzumab_lines():
+    return pdb.data["1s78.pdb"]

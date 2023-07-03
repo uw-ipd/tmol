@@ -17,7 +17,7 @@ namespace common {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <typename Real, typename Int, tmol::Device D>
+template <typename Int, tmol::Device D>
 TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
     TensorAccessor<Int, 1, D> uaid,
     int block_index,
@@ -34,6 +34,11 @@ TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
   } else {                                // We need to follow to another block
     int connection_index = uaid[1];
     int sep = uaid[2];
+    if (connection_index == -1) {
+      // sometimes the uaid's atom and connection are both -1
+      // this is an unresolvable atom
+      return -1;
+    }
 
     const Vec<Int, 2>& connection =
         pose_stack_inter_block_connections[pose_index][block_index]

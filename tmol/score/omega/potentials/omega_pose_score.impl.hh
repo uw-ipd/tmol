@@ -86,7 +86,7 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       // this is a sentinel for an undefined omega.
       if (omega_atom_uaid[0] == -1 && omega_atom_uaid[1] == -1) return;
 
-      int omega_atom_ind = resolve_atom_from_uaid<Real, Int, D>(
+      int omega_atom_ind = resolve_atom_from_uaid<Int, D>(
           omega_atom_uaid,
           block_index,
           pose_index,
