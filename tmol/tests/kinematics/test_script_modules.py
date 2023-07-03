@@ -49,7 +49,7 @@ def test_kinematic_torch_op_backward_benchmark(benchmark, ubq_system, torch_devi
     kop = KinematicModule(tkinforest, torch_device)
 
     refold_kincoords = kop(tdofs.raw)
-    total = refold_kincoords.sum()
+    total = torch.sum(refold_kincoords[:, :])
 
     @benchmark
     def refold_grad():
@@ -127,7 +127,7 @@ def test_kinematic_torch_op_smoke(
     coords = kop(tdofs.raw)
     coords.register_hook(torch_backward_coverage)
 
-    total = coords.sum()
+    total = torch.sum(coords[:, :])
     total.backward()
 
     assert tdofs.raw.grad is not None
