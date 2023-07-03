@@ -181,7 +181,7 @@ def test_merge_fingerprints(default_database):
         annotate_residue_type_with_sampler_fingerprints(
             rt, [dun_sampler, fixed_sampler], default_database.chemical
         )
-    print([x.name for x in rt_list])
+    # print([x.name for x in rt_list])
     pbt = PackedBlockTypes.from_restype_list(rt_list, device=torch_device)
     find_unique_fingerprints(pbt)
 
@@ -225,10 +225,10 @@ def test_merge_fingerprints(default_database):
     # fd seems like (n_samplers, n_mcs, pbt.n_types, max_n_mc_atoms)
     assert pbt.mc_fingerprints.atom_mapping.shape == (
         2,
-        3,
+        2,
         21,
         6,
-    )  # fd 2->3 (since gly achiral)
+    )
 
     for i, rt_orig in enumerate(pbt.active_block_types):
         orig_rt_sampler = pbt.mc_fingerprints.max_sampler[i]
@@ -243,7 +243,7 @@ def test_merge_fingerprints(default_database):
                 new_rt_sampler = dun_sampler_ind
 
             # now the atom mapping:
-            print(rt_new.atom_to_idx)
+            # print(rt_new.atom_to_idx)
             for k in range(6):
                 k_orig = pbt.mc_fingerprints.atom_mapping[
                     orig_rt_sampler, orig_max_fp, i, k

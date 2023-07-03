@@ -102,10 +102,9 @@ class DunbrackChiSampler:
         # that the dunbrack library handles.
         # Strip away any patches and use the "base name" of the residue type to make
         # the "which library should I read from?" decision
-        base_name = restype.name.partition(":")[0]
         dun_lib_ind = self.dun_param_resolver._indices_from_names(
             self.dun_param_resolver.all_table_indices,
-            numpy.array([[base_name]], dtype=object),
+            numpy.array([[restype.base_name]], dtype=object),
             device=self.device,
         )[0, 0]
 
