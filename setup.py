@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 import subprocess
 import re
+import os
 
 
 def git_version():
@@ -36,15 +37,37 @@ def git_version():
     return version
 
 
+def find_cpp_files(directory):
+    paths = []
+    for path, directories, filenames in os.walk(directory):
+        for filename in filenames:
+            _, ext = os.path.splitext(filename)
+            if ext in [".hh", ".cpp", ".cu", ".cuh", ".cc", ".hpp", ".h", ".hxx"]:
+                paths.append(os.path.join("..", path, filename))
+    return paths
+
+
+extra_files = find_cpp_files(".")
+extra_files.extend(
+    [
+        "../tmol/database/default/chemical/*",
+        "../tmol/database/default/scoring/*",
+        "../tmol/tests/data/pdb/*",
+        "../tmol/tests/data/pdb/*",
+        "../tmol/tests/data/rosetta_baseline/*",
+        "../tmol/tests/data/constraints/*",
+    ]
+)
+
+
 needs_pytest = {"pytest", "test"}.intersection(sys.argv)
 pytest_runner = ["pytest-runner"] if needs_pytest else []
 
 setup(
     name="tmol",
     version=git_version(),
-    packages=["tmol"],
+    packages=find_packages(),
+    package_data={"": extra_files},
     setup_requires=pytest_runner,
-    # tests_require=[l.strip() for l in open("requirements.tests.txt").readlines()],
-    # install_requires=[l.strip() for l in open("requirements.txt").readlines()],
     zip_safe=False,
 )
