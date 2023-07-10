@@ -22,7 +22,7 @@ class ParameterDatabase:
         return cls.__default
 
     scoring: ScoringDatabase = attr.ib()
-    chemical: ChemicalDatabase = attr.ib()
+    chemical: PatchedChemicalDatabase = attr.ib()
 
     @classmethod
     def from_file(cls, path):

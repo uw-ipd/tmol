@@ -139,6 +139,7 @@ def get_modified_atoms(patch):
     for i in patch.modify_atoms:
         modded.append(i.name)
     for i in patch.add_connections:
+        modded.append(i.atom)
         added.append(i.name)
 
     # modded finds all atoms whose CONNECTIVITY or COORDINATES have changed
@@ -157,20 +158,6 @@ def get_modified_atoms(patch):
 
 # validate raw residues
 def validate_raw_residue(res):
-    # make sure all fields are defined
-    if (
-        res.name is None
-        or res.base_name is None
-        or res.name3 is None
-        or res.atoms is None
-        or res.bonds is None
-        or res.connections is None
-        or res.torsions is None
-        or res.icoors is None
-        or res.properties is None
-    ):
-        return ResTypeValidatorErrorCodes.undefined_field
-
     allatoms = set([i.name for i in res.atoms])
     allconns = set([i.name for i in res.connections])
 
@@ -236,6 +223,7 @@ def validate_patch(patch):
 
     # make sure all bonds are references or added atoms
     addedatoms = [i.name for i in patch.add_atoms]
+    addedatoms.extend([i.name for i in patch.add_connections])
     for i, j in patch.add_bonds:
         if (i[0] != "<" or i[-1] != ">") and (i not in addedatoms):
             return ResTypeValidatorErrorCodes.illegal_bond
@@ -332,7 +320,12 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
         newres.atoms = (*newres.atoms, *variant.add_atoms)
 
         # 3. add connections
-        newres.connections = (*newres.connections, *variant.add_connections)
+        newconnections = []
+        for i in variant.add_connections:
+            if i.atom in namemap:
+                i = attr.evolve(i, atom=namemap[i.atom])
+            newconnections.append(i)
+        newres.connections = (*newres.connections, *newconnections)
 
         # 4. add bonds
         newbonds = []
