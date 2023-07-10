@@ -238,10 +238,10 @@ struct GeneratePoseHydrogens {
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_atom_downstream_of_conn.size(2);
 
-    printf(
-        "dE_d_new_coords: %d %d\n",
-        dE_d_new_coords.size(0),
-        dE_d_new_coords.size(1));
+    // printf(
+    //     "dE_d_new_coords: %d %d\n",
+    //     dE_d_new_coords.size(0),
+    //     dE_d_new_coords.size(1));
 
     assert(h_atom_missing.size(0) == n_poses);
     assert(h_atom_missing.size(1) == max_n_blocks);
@@ -346,47 +346,47 @@ struct GeneratePoseHydrogens {
 
         Vec<Real, 3> dE_dH = dE_d_new_coords[pose_ind][block_offset + atom_ind];
 
-        printf(
-            "new coord %d %d (%f %f %f)\n",
-            atom_ind,
-            block_offset,
-            new_coords[pose_ind][block_offset + atom_ind][0],
-            new_coords[pose_ind][block_offset + atom_ind][1],
-            new_coords[pose_ind][block_offset + atom_ind][2]);
+        // printf(
+        //     "new coord %d %d (%f %f %f)\n",
+        //     atom_ind,
+        //     block_offset,
+        //     new_coords[pose_ind][block_offset + atom_ind][0],
+        //     new_coords[pose_ind][block_offset + atom_ind][1],
+        //     new_coords[pose_ind][block_offset + atom_ind][2]);
 
-        printf(
-            "sum deriv %d %d %d (%f %f %f), (%f %f %f)\n",
-            atom_ind,
-            block_offset,
-            anc0,
-            dE_dH(0),
-            dE_dH(1),
-            dE_dH(2),
-            (coord_derivs.dp * dE_dH)[0],
-            (coord_derivs.dp * dE_dH)[1],
-            (coord_derivs.dp * dE_dH)[2]);
-        printf(
-            "sum deriv %d %d %d (%f %f %f), (%f %f %f)\n",
-            atom_ind,
-            block_offset,
-            anc1,
-            dE_dH(0),
-            dE_dH(1),
-            dE_dH(2),
-            (coord_derivs.dgp * dE_dH)[0],
-            (coord_derivs.dgp * dE_dH)[1],
-            (coord_derivs.dgp * dE_dH)[2]);
-        printf(
-            "sum deriv %d %d %d (%f %f %f), (%f %f %f)\n",
-            atom_ind,
-            block_offset,
-            anc2,
-            dE_dH(0),
-            dE_dH(1),
-            dE_dH(2),
-            (coord_derivs.dggp * dE_dH)[0],
-            (coord_derivs.dggp * dE_dH)[1],
-            (coord_derivs.dggp * dE_dH)[2]);
+        // printf(
+        //     "sum deriv %d %d %d (%f %f %f), (%f %f %f)\n",
+        //     atom_ind,
+        //     block_offset,
+        //     anc0,
+        //     dE_dH(0),
+        //     dE_dH(1),
+        //     dE_dH(2),
+        //     (coord_derivs.dp * dE_dH)[0],
+        //     (coord_derivs.dp * dE_dH)[1],
+        //     (coord_derivs.dp * dE_dH)[2]);
+        // printf(
+        //     "sum deriv %d %d %d (%f %f %f), (%f %f %f)\n",
+        //     atom_ind,
+        //     block_offset,
+        //     anc1,
+        //     dE_dH(0),
+        //     dE_dH(1),
+        //     dE_dH(2),
+        //     (coord_derivs.dgp * dE_dH)[0],
+        //     (coord_derivs.dgp * dE_dH)[1],
+        //     (coord_derivs.dgp * dE_dH)[2]);
+        // printf(
+        //     "sum deriv %d %d %d (%f %f %f), (%f %f %f)\n",
+        //     atom_ind,
+        //     block_offset,
+        //     anc2,
+        //     dE_dH(0),
+        //     dE_dH(1),
+        //     dE_dH(2),
+        //     (coord_derivs.dggp * dE_dH)[0],
+        //     (coord_derivs.dggp * dE_dH)[1],
+        //     (coord_derivs.dggp * dE_dH)[2]);
         score::common::accumulate<Dev, Vec<Real, 3>>::add(
             dE_d_orig_coords[pose_ind][anc0], coord_derivs.dp * dE_dH);
         score::common::accumulate<Dev, Vec<Real, 3>>::add(
@@ -401,12 +401,17 @@ struct GeneratePoseHydrogens {
         // perform an atomic add
         Vec<Real, 3> atom_deriv =
             dE_d_new_coords[pose_ind][block_offset + atom_ind];
-        printf(
-            "copy deriv %d (%f %f %f)\n",
-            atom_ind,
-            atom_deriv(0),
-            atom_deriv(1),
-            atom_deriv(2));
+        if (atom_deriv[0] != atom_deriv[0] || atom_deriv[1] != atom_deriv[1]
+            || atom_deriv[2] != atom_deriv[2]) {
+          printf(
+              "copy deriv NaN !!! %d %d %d (%f %f %f)\n",
+              pose_ind,
+              block_ind,
+              atom_ind,
+              atom_deriv(0),
+              atom_deriv(1),
+              atom_deriv(2));
+        }
         score::common::accumulate<Dev, Vec<Real, 3>>::add(
             dE_d_orig_coords[pose_ind][block_offset + atom_ind], atom_deriv);
       }
