@@ -76,6 +76,30 @@ def test_whole_pose_scoring_module_single(
     )
 
 
+def test_whole_pose_scoring_module_jagged(
+    rts_ubq_res, default_database, torch_device: torch.device
+):
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        res=rts_ubq_res[:4], device=torch_device
+    )
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        res=rts_ubq_res[:6], device=torch_device
+    )
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+
+    omega_energy = OmegaEnergyTerm(param_db=default_database, device=torch_device)
+    for bt in poses.packed_block_types.active_block_types:
+        omega_energy.setup_block_type(bt)
+    omega_energy.setup_packed_block_types(poses.packed_block_types)
+    omega_energy.setup_poses(poses)
+
+    omega_pose_scorer = omega_energy.render_whole_pose_scoring_module(poses)
+    scores = omega_pose_scorer(poses.coords)
+
+    # make sure we're still good
+    torch.arange(100, device=torch_device)
+
+
 def test_whole_pose_scoring_module_10(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
