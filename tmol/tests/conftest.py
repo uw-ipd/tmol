@@ -1,9 +1,9 @@
 import subprocess
 
-from .database import (
+from .database import (  # noqa: F401
     default_database,
     default_unpatched_chemical_database,
-)  # noqa: F401
+)
 
 # Import support fixtures
 from .support.rosetta import pyrosetta, rosetta_database  # noqa: F401

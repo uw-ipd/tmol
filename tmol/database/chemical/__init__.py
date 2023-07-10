@@ -178,7 +178,7 @@ class ChemicalDatabase:
     # fd    but I'm not sure how else to do this.  Maybe keeping the unpatched in
     # fd    the default DB alongside the patched?
     @classmethod
-    def get_default(cls) -> "ParameterDatabase":
+    def get_default(cls) -> "ChemicalDatabase":
         """Load and return default parameter database."""
         if cls.__default is None:
             cls.__default = ChemicalDatabase.from_file(

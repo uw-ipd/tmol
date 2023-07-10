@@ -2,7 +2,6 @@ import cattr
 import numpy
 import yaml
 from attrs import evolve
-import pytest
 
 from tmol.chemical.ideal_coords import normalize
 from tmol.chemical.restypes import RefinedResidueType
@@ -98,7 +97,7 @@ def test_uncommon_patching_options(default_unpatched_chemical_database):
     add_connections:
     - { name:  thiol, atom: <S1> }
     add_bonds: []
-    icoors: 
+    icoors:
     - { name: thiol, phi: -180.0 deg, theta: 84.011803 deg, d: 1.329369, parent: <S1>, grand_parent: <C2>, great_grand_parent: <C1>}
     """
     unpatched_chemical_database = evolve(
@@ -116,13 +115,13 @@ def test_uncommon_patching_options(default_unpatched_chemical_database):
     pattern: 'CC[SH]'
     remove_atoms:
     - <H1>
-    add_atoms: 
+    add_atoms:
     - { name: CDX ,  atom_type: CH3 }
     modify_atoms: []
     add_connections: []
-    add_bonds: 
+    add_bonds:
     - [  CDX,    <S1>   ]
-    icoors: 
+    icoors:
     - { name: CDX, source: <H1>}
     """
     unpatched_chemical_database = evolve(
@@ -141,20 +140,20 @@ def test_patch_error_checks(default_unpatched_chemical_database):
     display_name: dupl
     pattern: 'CC[SH]'
     remove_atoms: []
-    add_atoms: 
+    add_atoms:
     - { name: HG,  atom_type: Hpol }
     modify_atoms: []
     add_connections: []
-    add_bonds: 
+    add_bonds:
     - [  HG,    <S1>   ]
-    icoors: 
+    icoors:
     - { name: HG, source: <H1>}
     """
     unpatched_chemical_database = evolve(
         default_unpatched_chemical_database, variants=variant_from_yaml(patch)
     )
     try:
-        patched_chemdb = PatchedChemicalDatabase.from_chem_db(
+        PatchedChemicalDatabase.from_chem_db(
             unpatched_chemical_database
         )  # apply patches
     except AssertionError:
@@ -166,20 +165,20 @@ def test_patch_error_checks(default_unpatched_chemical_database):
     pattern: 'CC[SH]'
     remove_atoms:
     - <H1>
-    add_atoms: 
+    add_atoms:
     - { name: HG2,  atom_type: Hpol }
     modify_atoms: []
     add_connections: []
-    add_bonds: 
+    add_bonds:
     - [  <H1>,    HG2   ]
-    icoors: 
+    icoors:
     - { name: HG2, source: <H1>}
     """
     unpatched_chemical_database = evolve(
         default_unpatched_chemical_database, variants=variant_from_yaml(patch)
     )
     try:
-        patched_chemdb = PatchedChemicalDatabase.from_chem_db(
+        PatchedChemicalDatabase.from_chem_db(
             unpatched_chemical_database
         )  # apply patches
     except AssertionError:
@@ -204,10 +203,10 @@ def test_res_error_checks(default_unpatched_chemical_database):
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -241,7 +240,7 @@ def test_res_error_checks(default_unpatched_chemical_database):
         default_unpatched_chemical_database, residues=residues_from_yaml(rawres)
     )
     try:
-        patched_chemdb = PatchedChemicalDatabase.from_chem_db(
+        PatchedChemicalDatabase.from_chem_db(
             unpatched_chemical_database
         )  # apply patches
     except AssertionError:
