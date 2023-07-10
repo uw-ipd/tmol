@@ -94,7 +94,7 @@ def test_whole_pose_scoring_module_jagged(
     omega_energy.setup_poses(poses)
 
     omega_pose_scorer = omega_energy.render_whole_pose_scoring_module(poses)
-    scores = omega_pose_scorer(poses.coords)
+    omega_pose_scorer(poses.coords)
 
     # make sure we're still good
     torch.arange(100, device=torch_device)
