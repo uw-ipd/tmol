@@ -73,6 +73,10 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto func = ([=] TMOL_DEVICE_FUNC(int pose_index, int block_index) {
     int block_type_index = pose_stack_block_type[pose_index][block_index];
 
+    if (block_type_index < 0) {
+      return;
+    }
+
     int block_coord_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
 
@@ -114,6 +118,7 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
     accumulate<D, Real>::add(V[0][pose_index], common::get<0>(omega));
     for (int j = 0; j < 4; ++j) {
+      Vec<Real, 3> j_deriv = common::get<1>(omega).row(j);
       accumulate<D, Vec<Real, 3>>::add(
           dV_dx[0][pose_index][omega_indices[j]], common::get<1>(omega).row(j));
     }
