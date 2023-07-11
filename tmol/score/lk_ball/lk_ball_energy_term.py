@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from .params import LKBallBlockTypeParams, LKBallPackedBlockTypeParams
+from .params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
 from .lk_ball_whole_pose_module import LKBallWholePoseScoringModule
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
@@ -176,7 +176,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         def _t(t):
             return torch.tensor(t, device=packed_block_types.device)
 
-        lk_ball_params = LKBallPackedBlockTypeParams(
+        lk_ball_params = LKBallPackedBlockTypesParams(
             tile_n_polar_atoms=_t(tile_n_polar_atoms),
             tile_n_occluder_atoms=_t(tile_n_occluder_atoms),
             tile_pol_occ_inds=_t(tile_pol_occ_inds),

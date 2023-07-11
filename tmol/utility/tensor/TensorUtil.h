@@ -133,6 +133,24 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
         " d: ",
         d);
   }
+
+  // All classes w/ an associated enable_tensor_view must
+  // consume contiguous blocks of memory
+  int64_t target_stride = 1;
+  for (int d = input_t.dim() - 1; d >= N; --d) {
+    TORCH_CHECK(
+        input_t.stride(d) == target_stride,
+        " stride for input tensor at dimension ",
+        d,
+        " must match the target stride of ",
+        target_stride,
+        " to ensure that memory is allocated in a ",
+        "contiguous block, but a stride of ",
+        input_t.stride(d),
+        " was found instead.");
+    target_stride *= input_t.size(d);
+  }
+
   TORCH_CHECK(
       input_t.device().type() == D,
       "view_tensor of incorrect device type.",

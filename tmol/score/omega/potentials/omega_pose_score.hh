@@ -9,6 +9,7 @@
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/utility/nvtx.hh>
 
+#include <tmol/score/unresolved_atom.hh>
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
@@ -35,7 +36,7 @@ struct OmegaPoseScoreDispatch {
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
-      TView<Int, 3, D> block_type_omega_quad_uaids,
+      TView<UnresolvedAtomID<Int>, 2, D> block_type_omega_quad_uaids,
       TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
       TView<OmegaGlobalParams<Real>, 1, D> global_params,
