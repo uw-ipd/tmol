@@ -50,7 +50,7 @@ struct GeneratePoseHydrogens {
       TView<Int, 3, Dev> block_type_atom_downstream_of_conn,
 
       // n-bt x max-n-ats x 3 x 3
-      TView<Int, 4, Dev> block_type_atom_ancestors,
+      TView<UnresolvedAtomID<Int>, 3, Dev> block_type_atom_ancestors,
 
       // n-bt x max-n-ats x 3 [phi, theta, D]
       TView<Real, 3, Dev> block_type_atom_icoors,
@@ -58,7 +58,7 @@ struct GeneratePoseHydrogens {
       // TEMP! Handle the case when an atom's coordinate depends on
       // an un-resolvable atom, e.g., "down" for an N-terminal atom
       // n-bt x max-n-ats x 3 x 3
-      TView<Int, 4, Dev> block_type_atom_ancestors_backup,
+      TView<UnresolvedAtomID<Int>, 3, Dev> block_type_atom_ancestors_backup,
       // n-bt x max-n-ats x 3 [phi, theta, D]
       TView<Real, 3, Dev> block_type_atom_icoors_backup
 
@@ -84,10 +84,17 @@ struct GeneratePoseHydrogens {
     assert(
         block_type_atom_ancestors.size(2)
         == 3);  // parent, grandparent, great grandparent
-    assert(block_type_atom_ancestors.size(3) == 3);  // uaid = 3 indices
     assert(block_type_atom_icoors.size(0) == n_block_types);
     assert(block_type_atom_icoors.size(1) == max_n_block_atoms);
     assert(block_type_atom_icoors.size(2) == 3);  // phi, theta, D
+    assert(block_type_atom_ancestors_backup.size(0) == n_block_types);
+    assert(block_type_atom_ancestors_backup.size(1) == max_n_block_atoms);
+    assert(
+        block_type_atom_ancestors_backup.size(2)
+        == 3);  // parent, grandparent, great grandparent
+    assert(block_type_atom_icoors_backup.size(0) == n_block_types);
+    assert(block_type_atom_icoors_backup.size(1) == max_n_block_atoms);
+    assert(block_type_atom_icoors_backup.size(2) == 3);  // phi, theta, D
 
     auto new_coords_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_pose_atoms});
@@ -217,16 +224,16 @@ struct GeneratePoseHydrogens {
       TView<Int, 1, Dev> block_type_n_atoms,
       TView<Int, 3, Dev> block_type_atom_downstream_of_conn,
 
-      // n-bt x max-n-ats x 3 x 3
-      TView<Int, 4, Dev> block_type_atom_ancestors,
+      // n-bt x max-n-ats x 3
+      TView<UnresolvedAtomID<Int>, 3, Dev> block_type_atom_ancestors,
 
       // n-bt x max-n-ats x 3 [phi, theta, D]
       TView<Real, 3, Dev> block_type_atom_icoors,
 
       // TEMP! Handle the case when an atom's coordinate depends on
       // an un-resolvable atom, e.g., "down" for an N-terminal atom
-      // n-bt x max-n-ats x 3 x 3
-      TView<Int, 4, Dev> block_type_atom_ancestors_backup,
+      // n-bt x max-n-ats x 3
+      TView<UnresolvedAtomID<Int>, 3, Dev> block_type_atom_ancestors_backup,
       // n-bt x max-n-ats x 3 [phi, theta, D]
       TView<Real, 3, Dev> block_type_atom_icoors_backup
 
@@ -257,10 +264,17 @@ struct GeneratePoseHydrogens {
     assert(
         block_type_atom_ancestors.size(2)
         == 3);  // parent, grandparent, great grandparent
-    assert(block_type_atom_ancestors.size(3) == 3);  // uaid = 3 indices
     assert(block_type_atom_icoors.size(0) == n_block_types);
     assert(block_type_atom_icoors.size(1) == max_n_block_atoms);
     assert(block_type_atom_icoors.size(2) == 3);  // phi, theta, D
+    assert(block_type_atom_ancestors_backup.size(0) == n_block_types);
+    assert(block_type_atom_ancestors_backup.size(1) == max_n_block_atoms);
+    assert(
+        block_type_atom_ancestors_backup.size(2)
+        == 3);  // parent, grandparent, great grandparent
+    assert(block_type_atom_icoors_backup.size(0) == n_block_types);
+    assert(block_type_atom_icoors_backup.size(1) == max_n_block_atoms);
+    assert(block_type_atom_icoors_backup.size(2) == 3);  // phi, theta, D
 
     auto dE_d_orig_coords_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_pose_atoms});

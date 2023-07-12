@@ -208,7 +208,7 @@ def test_build_missing_hydrogens_backwards(torch_device, ubq_pdb):
                 inter_residue_connections,
             )
 
-            return torch.sum(new_pose_coords)
+            return torch.sum(new_pose_coords[:, :, :])
 
     faux_module = FauxModule(coords)
 
