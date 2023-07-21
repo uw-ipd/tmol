@@ -332,7 +332,28 @@ def test_inter_module_timing(
 
 
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
-    gold_vals = numpy.array([[-7.691674], [3.6182203]], dtype=numpy.float32)
+    # gold_vals = numpy.array([[-7.691674], [3.6182203]], dtype=numpy.float32)
+    gold_vals = numpy.array(
+        [
+            [
+                [
+                    [-0.1953, -0.5151, -0.5066, 0.0000],
+                    [-0.5151, -0.2695, -0.6816, -0.7156],
+                    [-0.5066, -0.6816, -0.0600, -0.8855],
+                    [0.0000, -0.7156, -0.8855, -0.5579],
+                ]
+            ],
+            [
+                [
+                    [0.1871, 0.4133, 0.0006, 0.0000],
+                    [0.4133, 0.2411, 0.4701, 0.1492],
+                    [0.0006, 0.4701, 0.1282, 0.3140],
+                    [0.0000, 0.1492, 0.3140, 0.3675],
+                ]
+            ],
+        ]
+    )
+
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res[0:4], device=torch_device
@@ -343,22 +364,18 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     ljlk_energy.setup_poses(p1)
 
     ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
-    # for ch in ljlk_pose_scorer.children():
-    #     print("child")
-    #     print(ch)
 
     coords = torch.nn.Parameter(p1.coords.clone())
     scores = ljlk_pose_scorer(coords)
 
     # make sure we're still good
+    # fd why is this here?  does is trigger something if gpu is left in a bad state?
     torch.arange(100, device=torch_device)
 
     numpy.set_printoptions(precision=10)
     # print(scores.cpu().detach().numpy())
 
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-6, rtol=1e-6
-    )
+    numpy.testing.assert_allclose(gold_vals, scores.cpu().detach().numpy(), atol=1e-4)
 
 
 def test_whole_pose_scoring_module_gradcheck(

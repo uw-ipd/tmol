@@ -81,7 +81,7 @@ struct LJLKPoseScoreDispatch {
       TView<LJGlobalParams<Real>, 1, D> global_params,
       bool compute_derivs
 
-      ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>>;
+      ) -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>>;
 };
 
 }  // namespace potentials

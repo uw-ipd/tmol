@@ -118,7 +118,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<LJGlobalParams<Real>, 1, D> global_params,
     bool compute_derivs
 
-    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
+    ) -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -162,9 +162,14 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(block_type_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
-  auto output_t = TPack<Real, 2, D>::zeros({2, n_poses});
+  auto output_t =
+      TPack<Real, 4, D>::zeros({2, n_poses, max_n_blocks, max_n_blocks});
+  // auto output_t = TPack<Real, 2, D>::zeros({2, n_poses});
   auto output = output_t.view;
 
+  // auto dV_dcoords_t =
+  //     TPack<Vec<Real, 3>, 4, D>::zeros({2, n_poses, max_n_blocks,
+  //     max_n_pose_atoms});
   auto dV_dcoords_t =
       TPack<Vec<Real, 3>, 3, D>::zeros({2, n_poses, max_n_pose_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
@@ -505,25 +510,43 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           eval_scores_for_atom_pairs);
     });
 
-    auto store_calculated_energies = ([=](LJLKScoringData<Real> &score_dat,
-                                          shared_mem_union &shared) {
-      auto reduce_energies = ([&](int tid) {
-        Real const cta_total_lj =
-            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-                score_dat.total_lj, shared, mgpu::plus_t<Real>());
-        Real const cta_total_lk =
-            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-                score_dat.total_lk, shared, mgpu::plus_t<Real>());
+    auto store_calculated_energies =
+        ([=](LJLKScoringData<Real> &score_dat, shared_mem_union &shared) {
+          // auto reduce_energies = ([&](int tid) {
+          //   Real const cta_total_lj =
+          //       DeviceDispatch<D>::template reduce_in_workgroup<nt>(
+          //           score_dat.total_lj, shared, mgpu::plus_t<Real>());
+          //   Real const cta_total_lk =
+          //       DeviceDispatch<D>::template reduce_in_workgroup<nt>(
+          //           score_dat.total_lk, shared, mgpu::plus_t<Real>());
 
-        if (tid == 0) {
-          // printf("Storing energy %d %d %f %f\n", score_dat.block_ind1,
-          // score_dat.block_ind2, cta_total_lj, cta_total_lk);
-          accumulate<D, Real>::add(output[0][score_dat.pose_ind], cta_total_lj);
-          accumulate<D, Real>::add(output[1][score_dat.pose_ind], cta_total_lk);
-        }
-      });
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
-    });
+          //  #printf("Storing energy %d %d\n", score_dat.block_ind1,
+          //  score_dat.block_ind2); if (tid == 0) {
+          //    accumulate<D, Real>::add(output[0][score_dat.pose_ind],
+          //    cta_total_lj); accumulate<D,
+          //    Real>::add(output[1][score_dat.pose_ind], cta_total_lk);
+          //  }
+          //});
+          auto index_energies = ([&](int tid) {
+            accumulate<D, Real>::add(
+                output[0][score_dat.pose_ind][score_dat.block_ind1]
+                      [score_dat.block_ind2],
+                0.5 * score_dat.total_lj);
+            accumulate<D, Real>::add(
+                output[0][score_dat.pose_ind][score_dat.block_ind2]
+                      [score_dat.block_ind1],
+                0.5 * score_dat.total_lj);
+            accumulate<D, Real>::add(
+                output[1][score_dat.pose_ind][score_dat.block_ind2]
+                      [score_dat.block_ind1],
+                0.5 * score_dat.total_lk);
+            accumulate<D, Real>::add(
+                output[1][score_dat.pose_ind][score_dat.block_ind1]
+                      [score_dat.block_ind2],
+                0.5 * score_dat.total_lk);
+          });
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(index_energies);
+        });
 
     auto load_tile_invariant_intrares_data =
         ([=](int pose_ind,
@@ -928,25 +951,35 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           eval_scores_for_atom_pairs);
     });
 
-    auto store_calculated_energies = ([=](LJLKScoringData<Real> &score_dat,
-                                          shared_mem_union &shared) {
-      auto reduce_energies = ([&](int tid) {
-        Real const cta_total_lj =
-            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-                score_dat.total_lj, shared, mgpu::plus_t<Real>());
-        Real const cta_total_lk =
-            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-                score_dat.total_lk, shared, mgpu::plus_t<Real>());
+    auto store_calculated_energies =
+        ([=](LJLKScoringData<Real> &score_dat, shared_mem_union &shared) {
+          // auto reduce_energies = ([&](int tid) {
+          //   Real const cta_total_lj =
+          //       DeviceDispatch<D>::template reduce_in_workgroup<nt>(
+          //           score_dat.total_lj, shared, mgpu::plus_t<Real>());
+          //   Real const cta_total_lk =
+          //       DeviceDispatch<D>::template reduce_in_workgroup<nt>(
+          //           score_dat.total_lk, shared, mgpu::plus_t<Real>());
 
-        if (tid == 0) {
-          // printf("Storing energy %d %d %f %f\n", score_dat.block_ind1,
-          // score_dat.block_ind2, cta_total_lj, cta_total_lk);
-          accumulate<D, Real>::add(output[0][score_dat.pose_ind], cta_total_lj);
-          accumulate<D, Real>::add(output[1][score_dat.pose_ind], cta_total_lk);
-        }
-      });
-      DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
-    });
+          //  #printf("Storing energy %d %d\n", score_dat.block_ind1,
+          //  score_dat.block_ind2); if (tid == 0) {
+          //    accumulate<D, Real>::add(output[0][score_dat.pose_ind],
+          //    cta_total_lj); accumulate<D,
+          //    Real>::add(output[1][score_dat.pose_ind], cta_total_lk);
+          //  }
+          //});
+          auto index_energies = ([&](int tid) {
+            output[0][score_dat.pose_ind][score_dat.block_ind1]
+                  [score_dat.block_ind2] += 0.5 * score_dat.total_lj;
+            output[0][score_dat.pose_ind][score_dat.block_ind2]
+                  [score_dat.block_ind1] += 0.5 * score_dat.total_lj;
+            output[1][score_dat.pose_ind][score_dat.block_ind2]
+                  [score_dat.block_ind1] += 0.5 * score_dat.total_lk;
+            output[1][score_dat.pose_ind][score_dat.block_ind1]
+                  [score_dat.block_ind2] += 0.5 * score_dat.total_lk;
+          });
+          DeviceDispatch<D>::template for_each_in_workgroup<nt>(index_energies);
+        });
 
     auto load_tile_invariant_intrares_data =
         ([=](int pose_ind,

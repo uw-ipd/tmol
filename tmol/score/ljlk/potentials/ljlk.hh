@@ -30,6 +30,8 @@ template <typename Real>
 class LJLKScoringData {
  public:
   int pose_ind;
+  int block_ind1;
+  int block_ind2;
   LJLKSingleResData<Real> r1;
   LJLKSingleResData<Real> r2;
   int max_important_bond_separation;
@@ -174,6 +176,8 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
     LJLKScoringData<Real> &inter_dat,
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   inter_dat.pose_ind = pose_ind;
+  inter_dat.block_ind1 = block_ind1;
+  inter_dat.block_ind2 = block_ind2;
   inter_dat.r1.block_type = block_type1;
   inter_dat.r2.block_type = block_type2;
   inter_dat.r1.block_coord_offset =
@@ -357,6 +361,8 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_intrares_data(
     LJLKScoringData<Real> &intra_dat,
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   intra_dat.pose_ind = pose_ind;
+  intra_dat.block_ind1 = block_ind1;
+  intra_dat.block_ind2 = block_ind1;
   intra_dat.r1.block_type = block_type1;
   intra_dat.r2.block_type = block_type1;
   intra_dat.r1.block_coord_offset =
@@ -554,6 +560,10 @@ TMOL_DEVICE_FUNC Real lj_atom_energy_and_derivs_full(
                     [score_dat.r1.block_coord_offset + atom_tile_ind1
                      + start_atom1][j],
           lj_dxyz_at1[j]);
+      // auto pose_idx = score_dat.pose_ind
+      // auto block_idx = score_dat
+      // accumulate<D, Real>::add(
+      //   dV_dcoords[0][pose_idx]
     }
   }
 
