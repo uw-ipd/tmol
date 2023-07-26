@@ -373,7 +373,6 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     torch.arange(100, device=torch_device)
 
     numpy.set_printoptions(precision=10)
-    # print(scores.cpu().detach().numpy())
 
     numpy.testing.assert_allclose(gold_vals, scores.cpu().detach().numpy(), atol=1e-4)
 
@@ -381,8 +380,6 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
 def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device
 ):
-    # gold_vals = numpy.array([[-7.691674], [3.6182203]], dtype=numpy.float32)
-
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res[0:4], device=torch_device
@@ -402,9 +399,8 @@ def test_whole_pose_scoring_module_gradcheck(
         score,
         (p1.coords.requires_grad_(True),),
         eps=1e-3,
-        atol=5e-3,
-        rtol=5e-3,
-        nondet_tol=1e-6,
+        atol=1e-3,
+        nondet_tol=1e-6,  # fd this is necessary here...
     )
 
 
@@ -434,9 +430,8 @@ def test_whole_pose_scoring_reweighted_gradcheck(
         score,
         (p1.coords.requires_grad_(True),),
         eps=1e-3,
-        atol=5e-3,
-        rtol=5e-3,
-        nondet_tol=1e-6,
+        atol=1e-3,
+        nondet_tol=1e-6,  # fd this is necessary here...
     )
 
 
