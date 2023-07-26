@@ -199,7 +199,7 @@ class LJLKPoseScoreOp
   static Tensor forward(
       AutogradContext* ctx,
       Tensor coords,
-      Tensor posck_stack_block_coord_offset,
+      Tensor pose_stack_block_coord_offset,
 
       Tensor pose_stack_block_type,
       Tensor pose_stack_min_bond_separation,
@@ -216,7 +216,7 @@ class LJLKPoseScoreOp
       Tensor type_params,
       Tensor global_params) {
     at::Tensor score;
-    at::Tensor dscore_dcoords;
+    at::Tensor block_neighbors;
 
     using Int = int32_t;
 
@@ -226,9 +226,9 @@ class LJLKPoseScoreOp
           constexpr tmol::Device Dev = device_t;
 
           auto result =
-              LJLKPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::f(
+              LJLKPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
                   TCAST(coords),
-                  TCAST(posck_stack_block_coord_offset),
+                  TCAST(pose_stack_block_coord_offset),
 
                   TCAST(pose_stack_block_type),
                   TCAST(pose_stack_min_bond_separation),
@@ -243,36 +243,97 @@ class LJLKPoseScoreOp
                   TCAST(block_type_path_distance),
 
                   TCAST(type_params),
-                  TCAST(global_params),
-                  coords.requires_grad());
+                  TCAST(global_params));
 
           score = std::get<0>(result).tensor;
-          dscore_dcoords = std::get<1>(result).tensor;
+          block_neighbors = std::get<1>(result).tensor;
         }));
 
-    ctx->save_for_backward({dscore_dcoords});
+    ctx->save_for_backward(
+        {coords,
+         pose_stack_block_coord_offset,
+
+         pose_stack_block_type,
+         pose_stack_min_bond_separation,
+         pose_stack_inter_block_bondsep,
+         block_type_n_atoms,
+         block_type_n_heavy_atoms_in_tile,
+
+         block_type_heavy_atoms_in_tile,
+         block_type_atom_types,
+         block_type_n_interblock_bonds,
+         block_type_atoms_forming_chemical_bonds,
+         block_type_path_distance,
+
+         type_params,
+         global_params,
+         block_neighbors});
+
     return score;
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
-    auto saved_grads = ctx->get_saved_variables();
-
-    tensor_list result;
-
-    for (auto& saved_grad : saved_grads) {
-      auto ingrad = grad_outputs[0];
-      while (ingrad.dim() < saved_grad.dim()) {
-        ingrad = ingrad.unsqueeze(-1);
-      }
-
-      result.emplace_back(saved_grad * ingrad);
-    }
+    auto saved = ctx->get_saved_variables();
 
     int i = 0;
-    auto dscore_dcoords = result[i++];
+
+    auto coords = saved[i++];
+    auto pose_stack_block_coord_offset = saved[i++];
+
+    auto pose_stack_block_type = saved[i++];
+    auto pose_stack_min_bond_separation = saved[i++];
+    auto pose_stack_inter_block_bondsep = saved[i++];
+    auto block_type_n_atoms = saved[i++];
+    auto block_type_n_heavy_atoms_in_tile = saved[i++];
+
+    auto block_type_heavy_atoms_in_tile = saved[i++];
+    auto block_type_atom_types = saved[i++];
+    auto block_type_n_interblock_bonds = saved[i++];
+    auto block_type_atoms_forming_chemical_bonds = saved[i++];
+    auto block_type_path_distance = saved[i++];
+
+    auto type_params = saved[i++];
+    auto global_params = saved[i++];
+    auto block_neighbors = saved[i++];
+
+    at::Tensor dV_d_pose_coords, dV_d_water_coords;
+    using Int = int32_t;
+
+    auto dTdV = grad_outputs[0];
+
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        coords.type(), "ljlk_pose_score_backward", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
+
+          auto result =
+              LJLKPoseScoreDispatch<common::DeviceOperations, Dev, Real, Int>::
+                  backward(
+                      TCAST(coords),
+                      TCAST(pose_stack_block_coord_offset),
+
+                      TCAST(pose_stack_block_type),
+                      TCAST(pose_stack_min_bond_separation),
+                      TCAST(pose_stack_inter_block_bondsep),
+                      TCAST(block_type_n_atoms),
+                      TCAST(block_type_n_heavy_atoms_in_tile),
+
+                      TCAST(block_type_heavy_atoms_in_tile),
+                      TCAST(block_type_atom_types),
+                      TCAST(block_type_n_interblock_bonds),
+                      TCAST(block_type_atoms_forming_chemical_bonds),
+                      TCAST(block_type_path_distance),
+
+                      TCAST(type_params),
+                      TCAST(global_params),
+                      TCAST(block_neighbors),
+                      TCAST(dTdV));
+
+          dV_d_pose_coords = result.tensor;
+        }));
 
     return {
-        dscore_dcoords,
+        dV_d_pose_coords,
         torch::Tensor(),
 
         torch::Tensor(),
@@ -288,8 +349,7 @@ class LJLKPoseScoreOp
         torch::Tensor(),
 
         torch::Tensor(),
-        torch::Tensor(),
-    };
+        torch::Tensor()};
   }
 };
 
