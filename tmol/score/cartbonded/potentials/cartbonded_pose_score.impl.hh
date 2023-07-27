@@ -112,13 +112,14 @@ TMOL_DEVICE_FUNC void reverse_subgraph(Vec<Int, 4>& subgraph) {
 
 template <typename Real, typename Int, int N, tmol::Device D>
 TMOL_DEVICE_FUNC void accumulate_result(
-    common::tuple<Real, Vec<Real3, N>> to_add,
+    common::tuple<Real, Eigen::Matrix<Real, 3, N>> to_add,
     Vec<Int, N> atoms,
     Real& V,
     TensorAccessor<Vec<Real, 3>, 1, D> dV) {
   accumulate<D, Real>::add(V, common::get<0>(to_add));
   for (int i = 0; i < N; i++) {
-    accumulate<D, Vec<Real, 3>>::add(dV[atoms[i]], common::get<1>(to_add)[i]);
+    accumulate<D, Vec<Real, 3>>::add(
+        dV[atoms[i]], common::get<1>(to_add).col(i));
   }
 }
 
