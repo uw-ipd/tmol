@@ -310,13 +310,14 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 neighb_path_dist,
                 conn_seps);
           }
-          Real lj = lj_score<Real>::V(
+          std::array<Real, 2> lj = lj_score<Real>::V(
               dist,
               separation,
               alt_params[alt_atom_tile_ind].lj_params(),
               neighb_params[neighb_atom_tile_ind].lj_params(),
               global_params_local);
-          score_total += lj;
+          score_total += std::get<0>(lj);  // fd
+          score_total += std::get<1>(lj);  // fd
         }
         return score_total * lj_weight;
       });
@@ -450,14 +451,14 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
           + (coord1[1] - coord2[1]) * (coord1[1] - coord2[1])
           + (coord1[2] - coord2[2]) * (coord1[2] - coord2[2]));
 
-      Real lj = lj_score<Real>::V(
+      std::array<Real, 2> lj = lj_score<Real>::V(
           dist,
           separation,
           params1[atom_tile_ind_1].lj_params(),
           params2[atom_tile_ind_2].lj_params(),
           global_params_local);
-
-      score_total += lj;
+      score_total += std::get<0>(lj);  // fd
+      score_total += std::get<1>(lj);  // fd
     }
     return score_total *= lj_lk_weights[0];
     ;

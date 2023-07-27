@@ -161,7 +161,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
   auto output_t =
-      TPack<Real, 4, D>::zeros({2, n_poses, max_n_blocks, max_n_blocks});
+      TPack<Real, 4, D>::zeros({3, n_poses, max_n_blocks, max_n_blocks});
   auto output = output_t.view;
 
   auto scratch_block_spheres_t =
@@ -197,7 +197,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
              int start_atom2,
              int atom_tile_ind1,
              int atom_tile_ind2,
-             LJLKScoringData<Real> const &intra_dat) {
+             LJLKScoringData<Real> const &intra_dat) -> std::array<Real, 2> {
           int const atom_ind1 = start_atom1 + atom_tile_ind1;
           int const atom_ind2 = start_atom2 + atom_tile_ind2;
 
@@ -214,7 +214,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
              int,
              int atom_heavy_tile_ind1,
              int atom_heavy_tile_ind2,
-             LJLKScoringData<Real> const &inter_dat) {
+             LJLKScoringData<Real> const &inter_dat) -> std::array<Real, 1> {
           int const atom_tile_ind1 =
               inter_dat.r1.heavy_inds[atom_heavy_tile_ind1];
           int const atom_tile_ind2 =
@@ -223,8 +223,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           int separation = interres_count_pair_separation<TILE_SIZE>(
               inter_dat, atom_tile_ind1, atom_tile_ind2);
 
-          return lk_atom_energy(
+          Real lk = lk_atom_energy(
               atom_tile_ind1, atom_tile_ind2, inter_dat, separation);
+          return {lk};
         });
 
     auto score_intra_lk_atom_pair =
@@ -233,7 +234,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
              int start_atom2,
              int atom_heavy_tile_ind1,
              int atom_heavy_tile_ind2,
-             LJLKScoringData<Real> const &intra_dat) {
+             LJLKScoringData<Real> const &intra_dat) -> std::array<Real, 1> {
           int const atom_tile_ind1 =
               intra_dat.r1.heavy_inds[atom_heavy_tile_ind1];
           int const atom_tile_ind2 =
@@ -244,8 +245,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           int const separation =
               block_type_path_distance[intra_dat.r1.block_type][atom_ind1]
                                       [atom_ind2];
-          return lk_atom_energy(
+          Real lk = lk_atom_energy(
               atom_tile_ind1, atom_tile_ind2, intra_dat, separation);
+          return {lk};
         });
 
     auto load_block_coords_and_params_into_shared =
@@ -293,7 +295,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     } shared;
 
-    Real total_lj = 0;
+    Real total_ljatr = 0;
+    Real total_ljrep = 0;
     Real total_lk = 0;
 
     int const pose_ind = cta / (max_n_blocks * max_n_blocks);
@@ -404,12 +407,13 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                                                int start_atom1,
                                                int start_atom2) {
       auto eval_scores_for_atom_pairs = ([&](int tid) {
-        inter_dat.total_lj += tmol::score::common::InterResBlockEvaluation<
+        auto LJ = tmol::score::common::InterResBlockEvaluation<
             LJLKScoringData,
             AllAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            2,
             Real,
             Int>::
             eval_interres_atom_pair(
@@ -419,12 +423,16 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                 score_inter_lj_atom_pair,
                 inter_dat);
 
-        inter_dat.total_lk += tmol::score::common::InterResBlockEvaluation<
+        inter_dat.total_ljatr += std::get<0>(LJ);
+        inter_dat.total_ljrep += std::get<1>(LJ);
+
+        auto LK = tmol::score::common::InterResBlockEvaluation<
             LJLKScoringData,
             HeavyAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            1,
             Real,
             Int>::
             eval_interres_atom_pair(
@@ -433,6 +441,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                 start_atom2,
                 score_inter_lk_atom_pair,
                 inter_dat);
+        inter_dat.total_lk += std::get<0>(LK);
       });
 
       // The work: On GPU threads work independently, on CPU, this will be a
@@ -443,36 +452,29 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     auto store_calculated_energies =
         ([=](LJLKScoringData<Real> &score_dat, shared_mem_union &shared) {
-          // auto reduce_energies = ([&](int tid) {
-          //   Real const cta_total_lj =
-          //       DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-          //           score_dat.total_lj, shared, mgpu::plus_t<Real>());
-          //   Real const cta_total_lk =
-          //       DeviceDispatch<D>::template reduce_in_workgroup<nt>(
-          //           score_dat.total_lk, shared, mgpu::plus_t<Real>());
-
-          //  #printf("Storing energy %d %d\n", score_dat.block_ind1,
-          //  score_dat.block_ind2); if (tid == 0) {
-          //    accumulate<D, Real>::add(output[0][score_dat.pose_ind],
-          //    cta_total_lj); accumulate<D,
-          //    Real>::add(output[1][score_dat.pose_ind], cta_total_lk);
-          //  }
-          //});
           auto index_energies = ([&](int tid) {
             accumulate<D, Real>::add(
                 output[0][score_dat.pose_ind][score_dat.block_ind1]
                       [score_dat.block_ind2],
-                0.5 * score_dat.total_lj);
+                0.5 * score_dat.total_ljatr);
             accumulate<D, Real>::add(
                 output[0][score_dat.pose_ind][score_dat.block_ind2]
                       [score_dat.block_ind1],
-                0.5 * score_dat.total_lj);
+                0.5 * score_dat.total_ljatr);
             accumulate<D, Real>::add(
                 output[1][score_dat.pose_ind][score_dat.block_ind2]
                       [score_dat.block_ind1],
-                0.5 * score_dat.total_lk);
+                0.5 * score_dat.total_ljrep);
             accumulate<D, Real>::add(
                 output[1][score_dat.pose_ind][score_dat.block_ind1]
+                      [score_dat.block_ind2],
+                0.5 * score_dat.total_ljrep);
+            accumulate<D, Real>::add(
+                output[2][score_dat.pose_ind][score_dat.block_ind2]
+                      [score_dat.block_ind1],
+                0.5 * score_dat.total_lk);
+            accumulate<D, Real>::add(
+                output[2][score_dat.pose_ind][score_dat.block_ind1]
                       [score_dat.block_ind2],
                 0.5 * score_dat.total_lk);
           });
@@ -552,12 +554,13 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                                                int start_atom1,
                                                int start_atom2) {
       auto eval_scores_for_atom_pairs = ([&](int tid) {
-        intra_dat.total_lj += tmol::score::common::IntraResBlockEvaluation<
+        auto LJ = tmol::score::common::IntraResBlockEvaluation<
             LJLKScoringData,
             AllAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            2,
             Real,
             Int>::
             eval_intrares_atom_pairs(
@@ -566,12 +569,17 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                 start_atom2,
                 score_intra_lj_atom_pair,
                 intra_dat);
-        intra_dat.total_lk += tmol::score::common::IntraResBlockEvaluation<
+
+        intra_dat.total_ljatr += std::get<0>(LJ);
+        intra_dat.total_ljrep += std::get<1>(LJ);
+
+        auto LK = tmol::score::common::IntraResBlockEvaluation<
             LJLKScoringData,
             HeavyAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            1,
             Real,
             Int>::
             eval_intrares_atom_pairs(
@@ -580,6 +588,8 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                 start_atom2,
                 score_intra_lk_atom_pair,
                 intra_dat);
+
+        intra_dat.total_lk += std::get<0>(LK);
       });
 
       // The work: On GPU threads work independently, on CPU, this will be a
@@ -761,13 +771,13 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(scratch_block_neighbors.size(1) == max_n_blocks);
   assert(scratch_block_neighbors.size(2) == max_n_blocks);
 
-  assert(dTdV.size(0) == 2);
+  assert(dTdV.size(0) == 3);
   assert(dTdV.size(1) == n_poses);
   assert(dTdV.size(2) == max_n_blocks);
   assert(dTdV.size(3) == max_n_blocks);
 
   auto dV_d_pose_coords_t =
-      TPack<Vec<Real, 3>, 3, D>::zeros({2, n_poses, max_n_pose_atoms});
+      TPack<Vec<Real, 3>, 3, D>::zeros({3, n_poses, max_n_pose_atoms});
   auto dV_d_pose_coords = dV_d_pose_coords_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -782,7 +792,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
              int start_atom2,
              int atom_tile_ind1,
              int atom_tile_ind2,
-             LJLKScoringData<Real> const &inter_dat) {
+             LJLKScoringData<Real> const &inter_dat) -> std::array<Real, 0> {
           int separation = interres_count_pair_separation<TILE_SIZE>(
               inter_dat, atom_tile_ind1, atom_tile_ind2);
           lj_atom_derivs(
@@ -794,7 +804,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               separation,
               dTdV,
               dV_d_pose_coords);
-          return 0.0;  // InterResBlockEvaluation expects a return value
+          return {};
         });
 
     auto dscore_intra_lj_atom_pair =
@@ -803,7 +813,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
              int start_atom2,
              int atom_tile_ind1,
              int atom_tile_ind2,
-             LJLKScoringData<Real> const &intra_dat) {
+             LJLKScoringData<Real> const &intra_dat) -> std::array<Real, 0> {
           int const atom_ind1 = start_atom1 + atom_tile_ind1;
           int const atom_ind2 = start_atom2 + atom_tile_ind2;
 
@@ -820,7 +830,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               separation,
               dTdV,
               dV_d_pose_coords);
-          return 0.0;  // InterResBlockEvaluation expects a return value
+          return {};
         });
 
     auto dscore_inter_lk_atom_pair =
@@ -829,7 +839,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
              int start_atom2,
              int atom_heavy_tile_ind1,
              int atom_heavy_tile_ind2,
-             LJLKScoringData<Real> const &inter_dat) {
+             LJLKScoringData<Real> const &inter_dat) -> std::array<Real, 0> {
           int const atom_tile_ind1 =
               inter_dat.r1.heavy_inds[atom_heavy_tile_ind1];
           int const atom_tile_ind2 =
@@ -847,7 +857,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               separation,
               dTdV,
               dV_d_pose_coords);
-          return 0.0;  // InterResBlockEvaluation expects a return value
+          return {};
         });
 
     auto dscore_intra_lk_atom_pair =
@@ -856,7 +866,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
              int start_atom2,
              int atom_heavy_tile_ind1,
              int atom_heavy_tile_ind2,
-             LJLKScoringData<Real> const &intra_dat) {
+             LJLKScoringData<Real> const &intra_dat) -> std::array<Real, 0> {
           int const atom_tile_ind1 =
               intra_dat.r1.heavy_inds[atom_heavy_tile_ind1];
           int const atom_tile_ind2 =
@@ -876,7 +886,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               separation,
               dTdV,
               dV_d_pose_coords);
-          return 0.0;  // InterResBlockEvaluation expects a return value
+          return {};
         });
 
     auto load_block_coords_and_params_into_shared =
@@ -1041,6 +1051,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             D,
             TILE_SIZE,
             nt,
+            0,
             Real,
             Int>::
             eval_interres_atom_pair(
@@ -1056,6 +1067,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             D,
             TILE_SIZE,
             nt,
+            0,
             Real,
             Int>::
             eval_interres_atom_pair(
@@ -1150,12 +1162,13 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
                                                int start_atom1,
                                                int start_atom2) {
       auto eval_derivs_for_atom_pairs = ([&](int tid) {
-        intra_dat.total_lj += tmol::score::common::IntraResBlockEvaluation<
+        tmol::score::common::IntraResBlockEvaluation<
             LJLKScoringData,
             AllAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            0,
             Real,
             Int>::
             eval_intrares_atom_pairs(
@@ -1164,12 +1177,13 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
                 start_atom2,
                 dscore_intra_lj_atom_pair,
                 intra_dat);
-        intra_dat.total_lk += tmol::score::common::IntraResBlockEvaluation<
+        tmol::score::common::IntraResBlockEvaluation<
             LJLKScoringData,
             HeavyAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            0,
             Real,
             Int>::
             eval_intrares_atom_pairs(

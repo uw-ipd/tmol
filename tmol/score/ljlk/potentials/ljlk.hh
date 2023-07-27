@@ -39,7 +39,8 @@ class LJLKScoringData {
   bool in_count_pair_striking_dist;
   unsigned char *conn_seps;
   LJGlobalParams<Real> global_params;
-  Real total_lj;
+  Real total_ljatr;
+  Real total_ljrep;
   Real total_lk;
 };
 
@@ -241,7 +242,8 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
 
   // Final data members
   inter_dat.global_params = global_params[0];
-  inter_dat.total_lj = 0;
+  inter_dat.total_ljatr = 0;
+  inter_dat.total_ljrep = 0;
   inter_dat.total_lk = 0;
 }
 
@@ -399,7 +401,8 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_intrares_data(
 
   // Final data members
   intra_dat.global_params = global_params[0];
-  intra_dat.total_lj = 0;
+  intra_dat.total_ljatr = 0;
+  intra_dat.total_ljrep = 0;
   intra_dat.total_lk = 0;
 }
 
@@ -507,7 +510,7 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares_data_from_shared(
 }
 
 template <typename Real>
-TMOL_DEVICE_FUNC Real lj_atom_energy(
+TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy(
     int atom_tile_ind1,
     int atom_tile_ind2,
     LJLKScoringData<Real> const &score_dat,
@@ -554,32 +557,53 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
       score_dat.global_params);
 
   // all threads accumulate derivatives for atom 1 to global memory
-  Real dTdV_block =
+  Real dTdVatr_block =
       0.5
       * (dTdV[0][score_dat.pose_ind][score_dat.block_ind1][score_dat.block_ind2]
          + dTdV[0][score_dat.pose_ind][score_dat.block_ind2]
                [score_dat.block_ind1]);
-  Vec<Real, 3> lj_dxyz_at1 = dTdV_block * lj.dV_ddist * ddist_dat1;
+  Real dTdVrep_block =
+      0.5
+      * (dTdV[1][score_dat.pose_ind][score_dat.block_ind1][score_dat.block_ind2]
+         + dTdV[1][score_dat.pose_ind][score_dat.block_ind2]
+               [score_dat.block_ind1]);
+  Vec<Real, 3> ljatr_dxyz_at1 = dTdVatr_block * lj.dVatr_ddist * ddist_dat1;
+  Vec<Real, 3> ljrep_dxyz_at1 = dTdVrep_block * lj.dVrep_ddist * ddist_dat1;
 
   for (int j = 0; j < 3; ++j) {
-    if (lj_dxyz_at1[j] != 0) {
+    if (ljatr_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
           dV_dcoords[0][score_dat.pose_ind]
                     [score_dat.r1.block_coord_offset + atom_tile_ind1
                      + start_atom1][j],
-          lj_dxyz_at1[j]);
+          ljatr_dxyz_at1[j]);
+    }
+    if (ljrep_dxyz_at1[j] != 0) {
+      accumulate<D, Real>::add(
+          dV_dcoords[1][score_dat.pose_ind]
+                    [score_dat.r1.block_coord_offset + atom_tile_ind1
+                     + start_atom1][j],
+          ljrep_dxyz_at1[j]);
     }
   }
 
   // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> lj_dxyz_at2 = dTdV_block * lj.dV_ddist * ddist_dat2;
+  Vec<Real, 3> ljatr_dxyz_at2 = dTdVatr_block * lj.dVatr_ddist * ddist_dat2;
+  Vec<Real, 3> ljrep_dxyz_at2 = dTdVrep_block * lj.dVrep_ddist * ddist_dat2;
   for (int j = 0; j < 3; ++j) {
-    if (lj_dxyz_at2[j] != 0) {
+    if (ljatr_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
           dV_dcoords[0][score_dat.pose_ind]
                     [score_dat.r2.block_coord_offset + atom_tile_ind2
                      + start_atom2][j],
-          lj_dxyz_at2[j]);
+          ljatr_dxyz_at2[j]);
+    }
+    if (ljrep_dxyz_at2[j] != 0) {
+      accumulate<D, Real>::add(
+          dV_dcoords[1][score_dat.pose_ind]
+                    [score_dat.r2.block_coord_offset + atom_tile_ind2
+                     + start_atom2][j],
+          ljrep_dxyz_at2[j]);
     }
   }
 }
@@ -633,15 +657,15 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
   // all threads accumulate derivatives for atom 1 to global memory
   Real dTdV_block =
       0.5
-      * (dTdV[0][score_dat.pose_ind][score_dat.block_ind1][score_dat.block_ind2]
-         + dTdV[0][score_dat.pose_ind][score_dat.block_ind2]
+      * (dTdV[2][score_dat.pose_ind][score_dat.block_ind1][score_dat.block_ind2]
+         + dTdV[2][score_dat.pose_ind][score_dat.block_ind2]
                [score_dat.block_ind1]);
   Vec<Real, 3> lj_dxyz_at1 = dTdV_block * lk.dV_ddist * ddist_dat1;
 
   for (int j = 0; j < 3; ++j) {
     if (lj_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0][score_dat.pose_ind]
+          dV_dcoords[2][score_dat.pose_ind]
                     [score_dat.r1.block_coord_offset + atom_tile_ind1
                      + start_atom1][j],
           lj_dxyz_at1[j]);
@@ -653,7 +677,7 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
   for (int j = 0; j < 3; ++j) {
     if (lj_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0][score_dat.pose_ind]
+          dV_dcoords[2][score_dat.pose_ind]
                     [score_dat.r2.block_coord_offset + atom_tile_ind2
                      + start_atom2][j],
           lj_dxyz_at2[j]);

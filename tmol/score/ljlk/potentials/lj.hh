@@ -17,6 +17,7 @@ namespace potentials {
 
 using namespace tmol::score::common;
 
+// the base vdw (no shift, linearizing, or fading applied)
 template <typename Real>
 struct vdw {
   struct dV_t {
@@ -46,13 +47,19 @@ struct vdw {
   }
 };
 
+// LJ energies, with shift, linearizing, and fading
 template <typename Real>
 struct lj_score {
   struct V_dV_t {
-    Real V;
-    Real dV_ddist;
+    Real Vatr;
+    Real Vrep;
+    Real dVatr_ddist;
+    Real dVrep_ddist;
 
-    def astuple() { return tmol::score::common::make_tuple(V, dV_ddist); }
+    def astuple() {
+      return tmol::score::common::make_tuple(
+          Vatr, Vrep, dVatr_ddist, dVrep_ddist);
+    }
   };
 
   static def V(
@@ -61,11 +68,13 @@ struct lj_score {
       LJTypeParams<Real> i,
       LJTypeParams<Real> j,
       LJGlobalParams<Real> global)
-      ->Real {
+      ->std::array<Real, 2> {
     Real sigma = lj_sigma<Real>(i, j, global);
     Real weight = connectivity_weight<Real, Real>(bonded_path_length);
     Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
 
+    // fd these hardcoded values (0.6,4.5,6.0) should probably be global
+    // parameters
     Real d_lin = sigma * 0.6;
     Real cpoly_dmin = 4.5;
     if (sigma > cpoly_dmin) cpoly_dmin = sigma;
@@ -73,26 +82,35 @@ struct lj_score {
     Real cpoly_dmax = 6.0;
     if (cpoly_dmin > cpoly_dmax - 0.1) cpoly_dmin = cpoly_dmax - 0.1;
 
+    Real ljE;
     if (dist < d_lin) {
       auto vdw_at_d_lin = vdw<Real>::V_dV(d_lin, sigma, epsilon);
-      return weight * (vdw_at_d_lin.V + vdw_at_d_lin.dV_ddist * (dist - d_lin));
+      ljE = (vdw_at_d_lin.V + vdw_at_d_lin.dV_ddist * (dist - d_lin));
     } else if (dist < cpoly_dmin) {
-      return weight * vdw<Real>::V(dist, sigma, epsilon);
+      ljE = vdw<Real>::V(dist, sigma, epsilon);
     } else if (dist < cpoly_dmax) {
       auto vdw_at_cpoly_dmin = vdw<Real>::V_dV(cpoly_dmin, sigma, epsilon);
-      return weight
-             * interpolate_to_zero(
-                 dist,
-                 cpoly_dmin,
-                 vdw_at_cpoly_dmin.V,
-                 vdw_at_cpoly_dmin.dV_ddist,
-                 cpoly_dmax);
-
-      // if (dist < cpoly_dmax) {
-      //   return weight * vdw<Real>::V(dist, sigma, epsilon);
+      ljE = interpolate_to_zero(
+          dist,
+          cpoly_dmin,
+          vdw_at_cpoly_dmin.V,
+          vdw_at_cpoly_dmin.dV_ddist,
+          cpoly_dmax);
     } else {
-      return 0.0;
+      ljE = 0.0;
     }
+
+    // split into atr/rep
+    Real Vatr, Vrep;
+    if (dist < sigma) {
+      Vatr = -epsilon;
+      Vrep = ljE + epsilon;
+    } else {
+      Vatr = ljE;
+      Vrep = 0.0;
+    }
+
+    return {weight * Vatr, weight * Vrep};
   }
 
   static def V_dV(
@@ -140,7 +158,21 @@ struct lj_score {
       d_lj_d_dist = 0.0;
     }
 
-    return {weight * lj, weight * d_lj_d_dist};
+    Real Vatr, Vrep, d_Vatr_dd, d_Vrep_dd;
+    if (dist < sigma) {
+      Vatr = -epsilon;
+      Vrep = lj + epsilon;
+      d_Vatr_dd = 0.0;
+      d_Vrep_dd = d_lj_d_dist;
+    } else {
+      Vatr = lj;
+      Vrep = 0.0;
+      d_Vatr_dd = d_lj_d_dist;
+      d_Vrep_dd = 0.0;
+    }
+
+    return {
+        weight * Vatr, weight * Vrep, weight * d_Vatr_dd, weight * d_Vrep_dd};
   }
 };
 
