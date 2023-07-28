@@ -11,7 +11,8 @@ class AutoNumber(Enum):
 
 class ScoreType(AutoNumber):
     disulfide = ()
-    fa_lj = ()
+    fa_ljatr = ()
+    fa_ljrep = ()
     fa_lk = ()
     fa_elec = ()
     hbond = ()

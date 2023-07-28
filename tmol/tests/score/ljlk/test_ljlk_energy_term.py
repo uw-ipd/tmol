@@ -430,9 +430,10 @@ def test_whole_pose_scoring_reweighted_gradcheck(
 
     def score(coords):
         scores = ljlk_pose_scorer(coords)
-        mask = torch.ones_like(scores)
-        mask[0, 0, 0:2, 0:2] = 2.0
-        return torch.sum(mask * scores)
+        scale = 0.01 * torch.arange(torch.numel(scores), device=scores.device).reshape(
+            scores.shape
+        )
+        return torch.sum(scale * scores)
 
     gradcheck(
         score,

@@ -24,7 +24,7 @@ class CartesianSfxnNetwork(torch.nn.Module):
         self.count = 0
 
     def forward(self):
-        self.count += 1
+        self.count += 1  # ??
         self.full_coords = DOFMaskingFunc.apply(
             self.masked_coords, self.coord_mask, self.full_coords
         )
