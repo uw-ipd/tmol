@@ -37,54 +37,6 @@ namespace potentials {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
-// template <typename Real>
-// using CoordQuad = Eigen::Matrix<Real, 4, 3>;
-// #define CoordQuad Eigen::Matrix<Real, 4, 3>
-
-/*template <typename Int>
-TMOL_DEVICE_FUNC CoordQuad resolve_torsion_uaids(
-    Vec<Int, 4> uaids,
-    int block_index,
-    int pose_index,
-
-    TView<Int, 2, D> pose_stack_block_coord_offset,
-    TView<Int, 2, D> pose_stack_block_type,
-    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
-    TView<Int, 3, D> block_type_atom_downstream_of_conn) {
-    /*CoordQuad<Real> coords;
-    Int omega_indices[4];
-    for (int i = 0; i < 4; i++) {
-      UnresolvedAtomID<Int> omega_atom_uaid =
-          block_type_omega_quad_uaids[block_type_index][i];
-
-      // Check to see if the omega uaids are actually defined for this block
-      // type. If the atom offset [0] or the connection index [1] are both -1,
-      // this is a sentinel for an undefined omega.
-      if (omega_atom_uaid.atom_id == -1 && omega_atom_uaid.conn_id == -1)
-        return;
-
-      int omega_atom_ind = resolve_atom_from_uaid(
-          omega_atom_uaid,
-          block_index,
-          pose_index,
-
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
-          pose_stack_inter_block_connections,
-          block_type_atom_downstream_of_conn);
-
-      if (omega_atom_ind == -1) {
-        // The UAID resolution failed! In this case, we should just skip the
-        // omega for this block
-        return;
-      }
-
-      const Vec<Real, 3>& omega_coord = coords[pose_index][omega_atom_ind];
-
-      omegacoords.row(i) = omega_coord;
-      omega_indices[i] = (omega_atom_ind);
-    }
-}*/
 
 template <
     template <tmol::Device>
@@ -282,15 +234,15 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           // drotchi_devpen_dtor_xyz[stack],
           dihedral_deriv[pose_index][block_index]);
       common::accumulate<D, Real>::add(V[1][pose_index], Erotdev);
-      printf("%i/%i deviation penalty: %f\n", block_index, ii, Erotdev);
+      // printf("%i/%i deviation penalty: %f\n", block_index, ii, Erotdev);
     }
 
-    if (false) {  // block_semirotameric_index[block_type_index] != -1) {
+    if (block_semirotameric_index[block_type_index] != -1) {
       printf("%i calculating semirot energy\n", block_index);
       printf(
-          "%i tableset:%i semioffset:%i nrotchi:%i assign:%i\n",
+          "%i semiindex:%i semioffset:%i nrotchi:%i assign:%i\n",
           block_index,
-          block_rotamer_table_set[block_type_index],
+          block_semirotameric_index[block_type_index],
           block_semirotameric_tableset_offset[block_type_index],
           block_n_rotameric_chi[block_type_index],
           semirotameric_rottable_assignment[pose_index][block_index]);
@@ -302,9 +254,9 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           semirot_step,
           semirot_periodicity,
 
-          block_rotamer_table_set[block_type_index],
+          block_semirotameric_index[block_type_index],
           block_semirotameric_tableset_offset[block_type_index],
-          block_n_rotameric_chi[block_type_index] + 1,
+          block_n_chi[block_type_index] + 1,
 
           dihedral_values[pose_index][block_index],
           semirotameric_rottable_assignment[pose_index][block_index],
