@@ -52,11 +52,28 @@ class ElecParamResolver(ValidateAttrs):
         def lookup_charge(res, atm):
             if res is None:
                 return 0.0
-            base_name, *vars = res.split(":")
-            vars.append("")
+            tag, *vars = res.split(":")
+
+            # preserve order invariance!  Make sure only one patch wants
+            # to set the charge of this atom
+            npatches_modifying_charge = sum(
+                [vj in partial_charges[tag][atm] for vj in vars]
+            )
+            if npatches_modifying_charge > 1:
+                assert False, (
+                    "Multiple patches in "
+                    + (",".join(vars))
+                    + " modifying charge of atom "
+                    + atm
+                    + " in res "
+                    + res
+                )
+
+            vars.append("")  # fallback to base type charge
             for vi in vars:
-                if vi in self.partial_charges[base_name][atm]:
-                    return self.partial_charges[base_name][atm][vi]
+                if vi in self.partial_charges[tag][atm]:
+                    has_another_charge
+                    return self.partial_charges[tag][atm][vi]
             assert False, "Elec charge for atom " + res + "," + atm + " not found"
             return 0.0
 
@@ -81,12 +98,12 @@ class ElecParamResolver(ValidateAttrs):
         def lookup_mapping(res, atm):
             if res is None:
                 return 0.0
-            base_name, *vars = res.split(":")
+            tag, *vars = res.split(":")
             vars.append("")
-            if atm in self.cp_reps[base_name]:
+            if atm in self.cp_reps[tag]:
                 for vi in vars:
-                    if vi in self.cp_reps[base_name][atm]:
-                        return self.cp_reps[base_name][atm][vi]
+                    if vi in self.cp_reps[tag][atm]:
+                        return self.cp_reps[tag][atm][vi]
             return atm
 
         mapped_atoms = numpy.vectorize(lookup_mapping)(res_names, atom_names)
@@ -181,13 +198,13 @@ class ElecParamResolver(ValidateAttrs):
         )
 
         def res_patch_from_line(line):
-            tags = line.split(":")
+            tag = line.split(":")
             assert (
-                len(tags) <= 2
+                len(tag) <= 2
             ), "Each atom charge can only be specialized by one patch!"
-            if len(tags) == 1:
-                return tags[0], ""
-            return tags[0], tags[1]
+            if len(tag) == 1:
+                return tag[0], ""
+            return tag[0], tag[1]
 
         # dicts of the form dict[res][atm][patch] = value
         #   with patch = '' for unpatched
