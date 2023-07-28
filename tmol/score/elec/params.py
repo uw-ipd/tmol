@@ -52,11 +52,11 @@ class ElecParamResolver(ValidateAttrs):
         def lookup_charge(res, atm):
             if res is None:
                 return 0.0
-            tag, *vars = res.split(":")
+            base_name, *vars = res.split(":")
             vars.append("")
             for vi in vars:
-                if vi in self.partial_charges[tag][atm]:
-                    return self.partial_charges[tag][atm][vi]
+                if vi in self.partial_charges[base_name][atm]:
+                    return self.partial_charges[base_name][atm][vi]
             assert False, "Elec charge for atom " + res + "," + atm + " not found"
             return 0.0
 
@@ -81,12 +81,12 @@ class ElecParamResolver(ValidateAttrs):
         def lookup_mapping(res, atm):
             if res is None:
                 return 0.0
-            tag, *vars = res.split(":")
+            base_name, *vars = res.split(":")
             vars.append("")
-            if atm in self.cp_reps[tag]:
+            if atm in self.cp_reps[base_name]:
                 for vi in vars:
-                    if vi in self.cp_reps[tag][atm]:
-                        return self.cp_reps[tag][atm][vi]
+                    if vi in self.cp_reps[base_name][atm]:
+                        return self.cp_reps[base_name][atm][vi]
             return atm
 
         mapped_atoms = numpy.vectorize(lookup_mapping)(res_names, atom_names)
@@ -181,13 +181,13 @@ class ElecParamResolver(ValidateAttrs):
         )
 
         def res_patch_from_line(line):
-            tag = x.res.split(":")
+            tags = line.split(":")
             assert (
-                len(tag) <= 2
+                len(tags) <= 2
             ), "Each atom charge can only be specialized by one patch!"
-            if len(tag) == 1:
-                return tag[0], ""
-            return tag[0], tag[1]
+            if len(tags) == 1:
+                return tags[0], ""
+            return tags[0], tags[1]
 
         # dicts of the form dict[res][atm][patch] = value
         #   with patch = '' for unpatched

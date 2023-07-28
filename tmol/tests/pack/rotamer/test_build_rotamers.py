@@ -613,9 +613,7 @@ def test_measure_original_dofs(
     real_block_type_ind_numpy = nz_real_block_type_ind.cpu().numpy().astype(numpy.int32)
     block_type_ind = block_type_ind[block_type_ind != -1]
     res_n_atoms = pbt.n_atoms[block_type_ind.to(torch.int64)]
-    print("res_n_atoms", res_n_atoms)
     n_total_atoms = torch.sum(res_n_atoms).item()
-    print(nz_real_block_type_ind.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms)
 
     kinforest = construct_kinforest_for_rotamers(
         pbt,
