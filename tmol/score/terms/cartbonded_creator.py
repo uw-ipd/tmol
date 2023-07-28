@@ -6,7 +6,13 @@ import torch
 
 @score_term_creator
 class CartBondedTermCreator(TermCreator):
-    _score_types = [ScoreType.cart_length, ScoreType.cart_angle, ScoreType.cart_torsion]
+    _score_types = [
+        ScoreType.cart_lengths,
+        ScoreType.cart_angles,
+        ScoreType.cart_torsions,
+        ScoreType.cart_impropers,
+        ScoreType.cart_hxltorsions,
+    ]
 
     @classmethod
     def create_term(cls, param_db: ParameterDatabase, device: torch.device):

@@ -168,7 +168,7 @@ class PackedBlockTypes:
         clas, active_block_types: Sequence[Residue], device: torch.device
     ):
         n_restypes = len(active_block_types)
-        max_n_conn = max(len(rt.connections) for rt in active_block_types)
+        max_n_conn = max(len(bt.connections) for bt in active_block_types)
 
         atom_paths_from_conn = torch.full(
             (
@@ -184,7 +184,9 @@ class PackedBlockTypes:
 
         for i, bt in enumerate(active_block_types):
             paths = bt.atom_paths_from_conn
-            atom_paths_from_conn[i] = torch.tensor(paths, device=device)
+            atom_paths_from_conn[i][0 : len(bt.connections)] = torch.tensor(
+                paths, device=device
+            )
 
         return atom_paths_from_conn
 

@@ -62,7 +62,9 @@ def test_whole_pose_scoring_module_single(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
     # rts_ubq_res = rts_ubq_res[0:2]
-    gold_vals = numpy.array([[0.0], [0.0], [0.0], [0.0], [0.0]], dtype=numpy.float32)
+    gold_vals = numpy.array(
+        [[37.7848], [183.5777], [50.5842], [9.4305], [47.4197]], dtype=numpy.float32
+    )
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
@@ -82,8 +84,6 @@ def test_whole_pose_scoring_module_single(
     # make sure we're still good
     torch.arange(100, device=torch_device)
 
-    print(scores)
-
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
     )
@@ -94,7 +94,10 @@ def test_whole_pose_scoring_module_10(
 ):
     n_poses = 10
     gold_vals = numpy.tile(
-        numpy.array([[0.0], [0.0], [0.0]], dtype=numpy.float32), (n_poses)
+        numpy.array(
+            [[37.7848], [183.5777], [50.5842], [9.4305], [47.4197]], dtype=numpy.float32
+        ),
+        (n_poses),
     )
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
