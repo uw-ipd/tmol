@@ -447,7 +447,8 @@ def test_whole_pose_scoring_reweighted_gradcheck(
 def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
     n_poses = 10
     gold_vals = numpy.tile(
-        numpy.array([[-177.09975], [297.2797]], dtype=numpy.float32), (1, n_poses)
+        numpy.array([[-417.79364], [240.69383], [297.2797]], dtype=numpy.float32),
+        (1, n_poses),
     )
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
@@ -467,8 +468,10 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
 
     coords = torch.nn.Parameter(pn.coords.clone())
     scores = ljlk_pose_scorer(coords)
+    scores = scores.sum(dim=(-2, -1))
 
     # make sure we're still good
+    # fd why is this here?  does is trigger something if gpu is left in a bad state?
     torch.arange(100, device=torch_device)
 
     numpy.set_printoptions(precision=10)
