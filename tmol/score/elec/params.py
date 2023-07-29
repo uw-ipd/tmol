@@ -197,7 +197,7 @@ class ElecParamResolver(ValidateAttrs):
         )
 
         def res_patch_from_line(line):
-            tag = line.split(":")
+            tag = line.res.split(":")
             assert (
                 len(tag) <= 2
             ), "Each atom charge can only be specialized by one patch!"
