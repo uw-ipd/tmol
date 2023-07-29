@@ -57,7 +57,7 @@ class ElecParamResolver(ValidateAttrs):
             # preserve order invariance!  Make sure only one patch wants
             # to set the charge of this atom
             npatches_modifying_charge = sum(
-                [vj in partial_charges[tag][atm] for vj in vars]
+                [vj in self.partial_charges[tag][atm] for vj in vars]
             )
             if npatches_modifying_charge > 1:
                 assert False, (
@@ -72,7 +72,6 @@ class ElecParamResolver(ValidateAttrs):
             vars.append("")  # fallback to base type charge
             for vi in vars:
                 if vi in self.partial_charges[tag][atm]:
-                    has_another_charge
                     return self.partial_charges[tag][atm][vi]
             assert False, "Elec charge for atom " + res + "," + atm + " not found"
             return 0.0
