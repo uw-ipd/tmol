@@ -48,6 +48,15 @@ def assign_block_types(
     block_type_ind64[real_res] = canonical_res_ordering_map[
         res_types64[real_res], 1, res_type_variants64[real_res]
     ]
+    # print("block_type_ind64[21]", block_type_ind64[0, 21])
+    # print("res_types64[21]", res_types64[0, 21])
+    # print("res_type_variants64[21]", res_type_variants64[0, 21])
+    # print("canonical_res_ordering_map",
+    #       canonical_res_ordering_map[
+    #           res_types64[0, 21], 1, :
+    #       ]
+    #       )
+
     # block_type_ind64 = block_type_ind.to(torch.int64)
 
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
@@ -121,12 +130,16 @@ def assign_block_types(
 
     if found_disulfides.shape[0] != 0:
         found_disulfides64 = found_disulfides.to(torch.int64)
-        cyd1_block_type64 = res_types64[
+        cyd1_block_type64 = block_type_ind64[
             found_disulfides64[:, 0], found_disulfides64[:, 1]
         ]
-        cyd2_block_type64 = res_types64[
+        cyd2_block_type64 = block_type_ind64[
             found_disulfides64[:, 0], found_disulfides64[:, 2]
         ]
+        # print("cyd1_block_type64:", cyd1_block_type64)
+        # print("cyd2_block_type64:", cyd2_block_type64)
+        # print([pbt.active_block_types[x].name for x in cyd1_block_type64])
+        # print([pbt.active_block_types[x].name for x in cyd2_block_type64])
 
         # n- and c-term cyd residues will have different dslf connection inds
         # than mid-cyd residues; don't just hard code "2" here
@@ -136,6 +149,12 @@ def assign_block_types(
         cyd2_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd2_block_type64].to(
             torch.int64
         )
+
+        # print("cyd1_dslf_conn64")
+        # print(cyd1_dslf_conn64)
+        # print("cyd2_dslf_conn64")
+        # print(cyd2_dslf_conn64)
+
         inter_residue_connections64[
             found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 0
         ] = found_disulfides64[:, 2]
@@ -303,7 +322,9 @@ def _annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
         return
     canonical_dslf_conn_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int64)
     for i, bt in enumerate(pbt.active_block_types):
+        # print("bt", bt.name, "dslf?", "dslf" in bt.connection_to_cidx, bt.connection_to_cidx)
         if "dslf" in bt.connection_to_cidx:
+
             canonical_dslf_conn_ind[i] = bt.connection_to_cidx["dslf"]
     canonical_dslf_conn_ind = torch.tensor(
         canonical_dslf_conn_ind, dtype=torch.int64, device=pbt.device
