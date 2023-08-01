@@ -7,6 +7,7 @@ from typing import Sequence
 
 from tmol.types.torch import Tensor
 
+from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.restypes import RefinedResidueType, Residue
 from tmol.utility.tensor.common_operations import join_tensors_and_report_real_entries
 
@@ -174,9 +175,9 @@ class PackedBlockTypes:
             (
                 n_restypes,
                 max_n_conn,
-                13,
+                MAX_PATHS_FROM_CONNECTION,
                 3,
-            ),  # TODO: constant should be somewhere globally accessible...
+            ),
             -1,
             dtype=torch.int32,
             device=device,
