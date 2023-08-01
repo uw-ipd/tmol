@@ -13,6 +13,7 @@ from tmol.database import ParameterDatabase
 from tmol.database.chemical import RawResidueType, ChemicalDatabase
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
 from tmol.chemical.all_bonds import bonds_and_bond_ranges
 from tmol.types.functional import validate_args
@@ -186,12 +187,13 @@ class RefinedResidueType(RawResidueType):
             return
 
         n_conns = len(self.connections)
-        MAX_PATHS = 13  # TODO: if we keep this constant, it should be somewhere globally accessible...
 
-        atom_paths = numpy.full((n_conns, MAX_PATHS, 3), -1, dtype=numpy.int32)
+        atom_paths = numpy.full(
+            (n_conns, MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32
+        )
 
         def get_paths_length_3(connection):
-            paths = numpy.full((MAX_PATHS, 3), -1, dtype=numpy.int32)
+            paths = numpy.full((MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32)
             # create a convenient datastructure for following connections
             bondmap = {-1: []}
             for bond in self.bond_indices:
