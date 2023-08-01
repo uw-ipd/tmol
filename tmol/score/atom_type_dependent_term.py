@@ -16,15 +16,13 @@ from collections import OrderedDict
 
 
 class AtomTypeDependentTerm(EnergyTerm):
+    atom_name_index: OrderedDict  # = attr.ib()
+    atom_unique_id_index: OrderedDict  # = attr.ib()
     atom_type_resolver: AtomTypeParamResolver  # = attr.ib()
     atom_type_index: pandas.Index  # = attr.ib()
     np_is_hydrogen: NDArray[bool]  # = attr.ib()
     np_is_heavyatom: NDArray[bool]  # = attr.ib()
     device: torch.device  # = attr.ib()
-
-    # TODO: should these be declared/inited here?
-    # atom_name_index # = attr.ib()
-    # atom_unique_id_index # = attr.ib()
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         atom_type_resolver = AtomTypeParamResolver.from_database(
@@ -77,8 +75,10 @@ class AtomTypeDependentTerm(EnergyTerm):
         super(AtomTypeDependentTerm, self).setup_block_type(block_type)
         if hasattr(block_type, "atom_types"):
             assert hasattr(block_type, "heavy_atom_inds")
+            assert hasattr(block_type, "atom_unique_ids")
+            assert hasattr(block_type, "atom_wildcard_ids")
             return
-        # TODO: update the block attr checks here and elsewhere
+
         self.add_atom_index(block_type)
 
         atom_types = self.atom_type_index.get_indexer(
