@@ -10,9 +10,9 @@ class HBondTermCreator(TermCreator):
 
     @classmethod
     def create_term(cls, param_db: ParameterDatabase, device: torch.device):
-        import tmol.score.elec.elec_energy_term
+        import tmol.score.hbond.hbond_energy_term
 
-        return tmol.score.elec.elec_energy_term.ElecEnergyTerm(param_db, device)
+        return tmol.score.hbond.hbond_energy_term.HBondEnergyTerm(param_db, device)
 
     @classmethod
     def score_types(cls):
