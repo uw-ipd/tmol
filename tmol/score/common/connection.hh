@@ -15,6 +15,11 @@ namespace tmol {
 namespace score {
 namespace common {
 
+// Given an integer, returns a tuple of two indices into the
+// atom_paths_from_conn tensor. Using these these indices on two connected
+// blocks will give you all combinations of paths that form lengths, angles, and
+// torsions. Chose to make this a lookup table because it is clearer and faster
+// to simply enumerate the possibilities.
 template <typename Int>
 TMOL_DEVICE_FUNC tuple<Int, Int> get_connection_spanning_subgraph_indices(
     Int index) {

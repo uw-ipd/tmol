@@ -45,8 +45,6 @@ struct CartBondedPoseScoreDispatch {
 
       int max_subgraphs_per_block,
 
-      // TView<CartBondedGlobalParams<Real>, 1, D> global_params,
-
       bool compute_derivs
 
       ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>>;

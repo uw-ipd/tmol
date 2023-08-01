@@ -184,7 +184,6 @@ class CartBondedPoseScoreOp
                   TCAST(cart_subgraphs),
                   TCAST(cart_subgraph_offsets),
                   max_subgraphs_per_block.item<int>(),
-                  // TCAST(global_params),
                   coords.requires_grad());
 
           score = std::get<0>(result).tensor;
@@ -243,7 +242,6 @@ Tensor cartbonded_pose_scores_op(
     Tensor cart_subgraphs,
     Tensor cart_subgraph_offsets,
     Tensor max_subgraphs_per_block) {
-  // Tensor global_params) {
   return CartBondedPoseScoreOp<DispatchMethod>::apply(
       coords,
       pose_stack_block_coord_offset,
@@ -257,7 +255,6 @@ Tensor cartbonded_pose_scores_op(
       cart_subgraphs,
       cart_subgraph_offsets,
       max_subgraphs_per_block);
-  // global_params);
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

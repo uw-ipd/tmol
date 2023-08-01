@@ -239,9 +239,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                 hash_values[max_value_index][i] = value
 
         # Construct the params hash with the given scaling factor
-        scale = 2
+        SCALE = 2
         hash_keys = numpy.full(
-            (total_params * scale, 5),
+            (total_params * SCALE, 5),
             -1,
             dtype=numpy.int32,
         )
