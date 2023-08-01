@@ -207,14 +207,12 @@ class RefinedResidueType(RawResidueType):
             idx = 1
             for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
                 if atom1 != -1:
-                    # atoms.append((atom0, atom1, -1))
                     paths[idx] = (atom0, atom1, -1)
                 idx += 1
 
             for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
                 for atom2 in bondmap[atom1] + [-1] * (3 - len(bondmap[atom1])):
                     if atom2 != atom0 and atom2 != -1:
-                        # atoms.append((atom0, atom1, atom2))
                         paths[idx] = (atom0, atom1, atom2)
                     if atom2 != atom0:
                         idx += 1
