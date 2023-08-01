@@ -57,8 +57,11 @@ class ScoreFunction:
         term = ScoreTermFactory.create_term_for_score_type(
             st, self._param_db, self._device
         )
-        for st in term.score_types():
-            self._term_for_st[st.value] = term
+        # sanity check: if the ScoreTermFactory returns the wrong term,
+        # we want to know
+        assert st in term.score_types()
+        for tst in term.score_types():
+            self._term_for_st[tst.value] = term
         self._all_terms_unordered.append(term)
         self._all_terms_out_of_date = True
         if term.n_bodies() == 1:
