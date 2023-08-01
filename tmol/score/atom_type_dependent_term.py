@@ -94,6 +94,8 @@ class AtomTypeDependentTerm(EnergyTerm):
         if hasattr(packed_block_types, "atom_types"):
             assert hasattr(packed_block_types, "n_heavy_atoms")
             assert hasattr(packed_block_types, "heavy_atom_inds")
+            assert hasattr(packed_block_types, "atom_unique_ids")
+            assert hasattr(packed_block_types, "atom_wildcard_ids")
             return
         atom_types = numpy.full(
             (packed_block_types.n_types, packed_block_types.max_n_atoms),
