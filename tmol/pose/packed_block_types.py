@@ -185,8 +185,6 @@ class PackedBlockTypes:
 
         for i, bt in enumerate(active_block_types):
             paths = bt.atom_paths_from_conn
-            if paths is None:
-                continue
             atom_paths_from_conn[i][0 : len(bt.connections)] = torch.tensor(
                 paths, device=device
             )

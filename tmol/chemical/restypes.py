@@ -183,14 +183,14 @@ class RefinedResidueType(RawResidueType):
 
     @atom_paths_from_conn.default
     def _setup_atom_paths_from_conn(self):
-        if len(self.connections) == 0:
-            return
-
         n_conns = len(self.connections)
 
         atom_paths = numpy.full(
             (n_conns, MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32
         )
+
+        if n_conns == 0:
+            return atom_paths
 
         def get_paths_length_3(connection):
             paths = numpy.full((MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32)
