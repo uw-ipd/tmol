@@ -112,14 +112,13 @@ TMOL_DEVICE_FUNC void reverse_subgraph(Vec<Int, 4>& subgraph) {
 
 template <typename Real, typename Int, int N, tmol::Device D>
 TMOL_DEVICE_FUNC void accumulate_result(
-    common::tuple<Real, Eigen::Matrix<Real, 3, N>> to_add,
+    common::tuple<Real, Vec<Real3, N>> to_add,
     Vec<Int, N> atoms,
     Real& V,
     TensorAccessor<Vec<Real, 3>, 1, D> dV) {
   accumulate<D, Real>::add(V, common::get<0>(to_add));
   for (int i = 0; i < N; i++) {
-    accumulate<D, Vec<Real, 3>>::add(
-        dV[atoms[i]], common::get<1>(to_add).col(i));
+    accumulate<D, Vec<Real, 3>>::add(dV[atoms[i]], common::get<1>(to_add)[i]);
   }
 }
 
@@ -198,7 +197,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           // Real score;
           switch (type) {
             case subgraph_type::length: {
-              auto eval = cblength_V_dV2(atom1, atom2, params[2], params[1]);
+              auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
               accumulate_result<Real, Int, 2, D>(
                   eval,
                   atoms.head(2),
@@ -210,7 +209,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
             case subgraph_type::angle: {
               Vec<Real, 3> atom3 = pose_coords[atoms[2]];
               auto eval =
-                  cbangle_V_dV2(atom1, atom2, atom3, params[2], params[1]);
+                  cbangle_V_dV(atom1, atom2, atom3, params[2], params[1]);
               accumulate_result<Real, Int, 3, D>(
                   eval,
                   atoms.head(3),
@@ -222,7 +221,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
             case subgraph_type::torsion: {
               Vec<Real, 3> atom3 = pose_coords[atoms[2]];
               Vec<Real, 3> atom4 = pose_coords[atoms[3]];
-              auto eval = cbtorsion_V_dV2(
+              auto eval = cbtorsion_V_dV(
                   atom1,
                   atom2,
                   atom3,
