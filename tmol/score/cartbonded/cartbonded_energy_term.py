@@ -241,14 +241,14 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # Construct the params hash with the given scaling factor
         scale = 2
         hash_keys = numpy.full(
-            (total_params * scale, 5),  # atom1, atom2, atom3, atom4, index
+            (total_params * scale, 5),
             -1,
             dtype=numpy.int32,
         )
         hash_values = numpy.full(
             (total_params, 7),
             0,
-            dtype=numpy.float32,  # type, k1, k2, k3, phi1, phi2, phi3
+            dtype=numpy.float32,
         )
 
         cur_val = 0
