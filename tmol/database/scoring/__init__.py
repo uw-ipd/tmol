@@ -1,8 +1,8 @@
 import os
 import attr
 
+from .cartbonded import CartBondedDatabaseOld
 from .cartbonded import CartBondedDatabase
-from .cartbonded import CartBondedDatabaseNew
 from .dunbrack_libraries import DunbrackRotamerLibrary
 from .elec import ElecDatabase
 from .hbond import HBondDatabase
@@ -13,8 +13,8 @@ from .rama import RamaDatabase
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ScoringDatabase:
+    cartbonded_old: CartBondedDatabaseOld
     cartbonded: CartBondedDatabase
-    cartbonded_new: CartBondedDatabaseNew
     dun: DunbrackRotamerLibrary
     elec: ElecDatabase
     hbond: HBondDatabase
@@ -25,11 +25,11 @@ class ScoringDatabase:
     @classmethod
     def from_file(cls, path=os.path.dirname(__file__)):  # noqa
         return cls(
+            cartbonded_old=CartBondedDatabaseOld.from_file(
+                os.path.join(path, "cartbonded.old.yaml")
+            ),
             cartbonded=CartBondedDatabase.from_file(
                 os.path.join(path, "cartbonded.yaml")
-            ),
-            cartbonded_new=CartBondedDatabaseNew.from_file(
-                os.path.join(path, "cartbonded_new.yaml")
             ),
             dun=DunbrackRotamerLibrary.from_zarr_archive(
                 os.path.join(path, "dunbrack.yaml"), os.path.join(path, "dunbrack.bin")

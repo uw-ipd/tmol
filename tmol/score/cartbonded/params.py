@@ -11,7 +11,7 @@ from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
 from tmol.types.functional import validate_args
 
-from tmol.database.scoring.cartbonded import CartBondedDatabase
+from tmol.database.scoring.cartbonded import CartBondedDatabaseOld
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -260,7 +260,7 @@ class CartBondedParamResolver(ValidateAttrs):
 
     @classmethod
     @validate_args
-    def from_database(cls, cb_database: CartBondedDatabase, device: torch.device):
+    def from_database(cls, cb_database: CartBondedDatabaseOld, device: torch.device):
         """Initialize param resolver for all bonded params in database."""
 
         # 1) cartbonded length params

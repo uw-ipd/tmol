@@ -25,7 +25,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(CartBondedEnergyTerm, self).__init__(param_db=param_db, device=device)
 
-        self.cart_database = param_db.scoring.cartbonded_new
+        self.cart_database = param_db.scoring.cartbonded
         self.device = device
 
     @classmethod

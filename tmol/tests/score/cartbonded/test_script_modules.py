@@ -35,10 +35,10 @@ class ScoreSetup:
             IndexedBonds.to_directed(bonds), minlength=system_size
         )
         param_resolver = CartBondedParamResolver.from_database(
-            database.scoring.cartbonded, torch_device
+            database.scoring.cartbonded_old, torch_device
         )
         param_identifier = CartBondedIdentification.setup(
-            database.scoring.cartbonded, indexed_bonds
+            database.scoring.cartbonded_old, indexed_bonds
         )
 
         atom_names = system.atom_metadata["atom_name"].copy()

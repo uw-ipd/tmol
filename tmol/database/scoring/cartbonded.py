@@ -6,8 +6,9 @@ import typing
 from typing import Tuple
 
 
+# TODO: remove all the 'Old' versions when we remove the non-res-centric version of cartbonded.
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class LengthGroup:
+class LengthGroupOld:
     res: str
     atm1: str
     atm2: str
@@ -16,7 +17,7 @@ class LengthGroup:
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class AngleGroup:
+class AngleGroupOld:
     res: str
     atm1: str
     atm2: str
@@ -26,7 +27,7 @@ class AngleGroup:
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class TorsionGroup:
+class TorsionGroupOld:
     res: str
     atm1: str
     atm2: str
@@ -38,7 +39,7 @@ class TorsionGroup:
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class HxlTorsionGroup:
+class HxlTorsionGroupOld:
     res: str
     atm1: str
     atm2: str
@@ -53,22 +54,13 @@ class HxlTorsionGroup:
     type: int = 0
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
-class CartRes:
-    length_parameters: Tuple[LengthGroup, ...]
-    angle_parameters: Tuple[AngleGroup, ...]
-    torsion_parameters: Tuple[TorsionGroup, ...]
-    improper_parameters: Tuple[TorsionGroup, ...]
-    hxltorsion_parameters: Tuple[HxlTorsionGroup, ...]
-
-
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class CartBondedDatabase:
-    length_parameters: Tuple[LengthGroup, ...]
-    angle_parameters: Tuple[AngleGroup, ...]
-    torsion_parameters: Tuple[TorsionGroup, ...]
-    improper_parameters: Tuple[TorsionGroup, ...]
-    hxltorsion_parameters: Tuple[HxlTorsionGroup, ...]
+class CartBondedDatabaseOld:
+    length_parameters: Tuple[LengthGroupOld, ...]
+    angle_parameters: Tuple[AngleGroupOld, ...]
+    torsion_parameters: Tuple[TorsionGroupOld, ...]
+    improper_parameters: Tuple[TorsionGroupOld, ...]
+    hxltorsion_parameters: Tuple[HxlTorsionGroupOld, ...]
 
     @classmethod
     def from_file(cls, path):
@@ -77,9 +69,8 @@ class CartBondedDatabase:
         return cattr.structure(raw, cls)
 
 
-# TODO: Replace the original db format with these new versions and remove the 'new' if we want to keep this change.
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class LengthGroupNew:
+class LengthGroup:
     atm1: str
     atm2: str
     x0: float
@@ -88,7 +79,7 @@ class LengthGroupNew:
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class AngleGroupNew:
+class AngleGroup:
     atm1: str
     atm2: str
     atm3: str
@@ -98,7 +89,7 @@ class AngleGroupNew:
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class TorsionGroupNew:
+class TorsionGroup:
     atm1: str
     atm2: str
     atm3: str
@@ -113,26 +104,26 @@ class TorsionGroupNew:
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class ImproperGroupNew(TorsionGroupNew):
+class ImproperGroup(TorsionGroup):
     type: int = 3
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class HxlTorsionGroupNew(TorsionGroupNew):
+class HxlTorsionGroup(TorsionGroup):
     type: int = 4
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class CartRes:
-    length_parameters: Tuple[LengthGroupNew, ...]
-    angle_parameters: Tuple[AngleGroupNew, ...]
-    torsion_parameters: Tuple[TorsionGroupNew, ...]
-    improper_parameters: Tuple[ImproperGroupNew, ...]
-    hxltorsion_parameters: Tuple[HxlTorsionGroupNew, ...]
+    length_parameters: Tuple[LengthGroup, ...]
+    angle_parameters: Tuple[AngleGroup, ...]
+    torsion_parameters: Tuple[TorsionGroup, ...]
+    improper_parameters: Tuple[ImproperGroup, ...]
+    hxltorsion_parameters: Tuple[HxlTorsionGroup, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class CartBondedDatabaseNew:
+class CartBondedDatabase:
     residue_params: dict[str, CartRes]
 
     @classmethod
