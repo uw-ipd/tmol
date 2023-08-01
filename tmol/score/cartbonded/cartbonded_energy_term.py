@@ -218,7 +218,9 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         wildcard_params = self.get_params_for_res("wildcard").items()
         total_params += len(wildcard_params)
 
-        # stupid hash function
+        # The hash function for storing the parameters in the tensors across the python/c++ barier.
+        # Note that the implementation of this function MUST match the implementation defined in the
+        # C++.
         def hash_fun(key, max_size):
             value = 0x1234
             for k in key:
