@@ -20,6 +20,7 @@ def beta2016_score_function(device: torch.device):
     sfxn.set_weight(ScoreType.lk_bridge, -0.33)
     sfxn.set_weight(ScoreType.lk_bridge_uncpl, -0.33)
     sfxn.set_weight(ScoreType.omega, 0.48)
+    sfxn.set_weight(ScoreType.rama, 0.50)
 
     # When these terms come online, here are there weights
     # sfxn.set_weight(ScoreType.dslf_fa13, 1.25)
