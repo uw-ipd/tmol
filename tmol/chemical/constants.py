@@ -19,5 +19,7 @@ MAX_SIG_BOND_SEPARATION = 6
 
 # MAX_PATHS_FROM_CONNECTION:
 #
-# The maximum number of paths coming from a particular block type's connection. Currently this is 13 - 1 for the connection atom itself, 3 for the up-to-3 neighbors of that atom, and another 9 for the up-to-3 neighbors of each of those.
+# The maximum number of paths coming from a particular block type's connection.
+# Currently this is 13 - 1 for the connection atom itself, 3 for the up-to-3 neighbors
+# of that atom, and another 9 for the up-to-3 neighbors of each of those.
 MAX_PATHS_FROM_CONNECTION = 13
