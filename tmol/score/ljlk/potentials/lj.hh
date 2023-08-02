@@ -69,47 +69,45 @@ struct lj_score {
       LJTypeParams<Real> j,
       LJGlobalParams<Real> global)
       ->std::array<Real, 2> {
-    Real sigma = lj_sigma<Real>(i, j, global);
-    Real weight = connectivity_weight<Real, Real>(bonded_path_length);
-    Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
-
-    // fd these hardcoded values (0.6,4.5,6.0) should probably be global
-    // parameters
-    Real d_lin = sigma * 0.6;
-    Real cpoly_dmin = 4.5;
-    if (sigma > cpoly_dmin) cpoly_dmin = sigma;
-
     Real cpoly_dmax = 6.0;
-    if (cpoly_dmin > cpoly_dmax - 0.1) cpoly_dmin = cpoly_dmax - 0.1;
 
-    Real ljE;
-    if (dist < d_lin) {
-      auto vdw_at_d_lin = vdw<Real>::V_dV(d_lin, sigma, epsilon);
-      ljE = (vdw_at_d_lin.V + vdw_at_d_lin.dV_ddist * (dist - d_lin));
-    } else if (dist < cpoly_dmin) {
-      ljE = vdw<Real>::V(dist, sigma, epsilon);
-    } else if (dist < cpoly_dmax) {
-      auto vdw_at_cpoly_dmin = vdw<Real>::V_dV(cpoly_dmin, sigma, epsilon);
-      ljE = interpolate_to_zero(
-          dist,
-          cpoly_dmin,
-          vdw_at_cpoly_dmin.V,
-          vdw_at_cpoly_dmin.dV_ddist,
-          cpoly_dmax);
-    } else {
-      ljE = 0.0;
-    }
-
-    // split into atr/rep
+    Real weight;
     Real Vatr, Vrep;
-    if (dist < sigma) {
-      Vatr = -epsilon;
-      Vrep = ljE + epsilon;
-    } else {
-      Vatr = ljE;
+    if (dist > cpoly_dmax) {
+      Vatr = 0.0;
       Vrep = 0.0;
-    }
+      weight = 0.0;
+    } else {
+      Real sigma = lj_sigma<Real>(i, j, global);
+      Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
+      Real d_lin = sigma * 0.6;
+      Real cpoly_dmin =
+          sigma > 4.5 ? (sigma > cpoly_dmax - 0.1 ? cpoly_dmax - 0.1 : sigma)
+                      : 4.5;
 
+      weight = connectivity_weight<Real, Real>(bonded_path_length);
+      if (dist > cpoly_dmin) {
+        auto vdw_at_cpoly_dmin = vdw<Real>::V_dV(cpoly_dmin, sigma, epsilon);
+        Vatr = interpolate_to_zero(
+            dist,
+            cpoly_dmin,
+            vdw_at_cpoly_dmin.V,
+            vdw_at_cpoly_dmin.dV_ddist,
+            cpoly_dmax);
+      } else if (dist > d_lin) {
+        Vatr = vdw<Real>::V(dist, sigma, epsilon);
+      } else {
+        auto vdw_at_d_lin = vdw<Real>::V_dV(d_lin, sigma, epsilon);
+        Vatr = (vdw_at_d_lin.V + vdw_at_d_lin.dV_ddist * (dist - d_lin));
+      }
+
+      if (dist < sigma) {
+        Vrep = Vatr + epsilon;
+        Vatr = -epsilon;
+      } else {
+        Vrep = 0.0;
+      }
+    }
     return {weight * Vatr, weight * Vrep};
   }
 

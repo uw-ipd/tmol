@@ -9,7 +9,6 @@
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/utility/nvtx.hh>
 
-#include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/data_loading.hh>
 #include <tmol/score/common/diamond_macros.hh>
@@ -117,7 +116,6 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<LJGlobalParams<Real>, 1, D> global_params)
     -> std::tuple<TPack<Real, 4, D>, TPack<Int, 3, D> > {
-  using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
   int const n_poses = coords.size(0);
@@ -450,36 +448,47 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           eval_scores_for_atom_pairs);
     });
 
-    auto store_calculated_energies =
-        ([=](LJLKScoringData<Real> &score_dat, shared_mem_union &shared) {
-          auto index_energies = ([&](int tid) {
-            accumulate<D, Real>::add(
-                output[0][score_dat.pose_ind][score_dat.block_ind1]
-                      [score_dat.block_ind2],
-                0.5 * score_dat.total_ljatr);
-            accumulate<D, Real>::add(
-                output[0][score_dat.pose_ind][score_dat.block_ind2]
-                      [score_dat.block_ind1],
-                0.5 * score_dat.total_ljatr);
-            accumulate<D, Real>::add(
-                output[1][score_dat.pose_ind][score_dat.block_ind2]
-                      [score_dat.block_ind1],
-                0.5 * score_dat.total_ljrep);
-            accumulate<D, Real>::add(
-                output[1][score_dat.pose_ind][score_dat.block_ind1]
-                      [score_dat.block_ind2],
-                0.5 * score_dat.total_ljrep);
-            accumulate<D, Real>::add(
-                output[2][score_dat.pose_ind][score_dat.block_ind2]
-                      [score_dat.block_ind1],
-                0.5 * score_dat.total_lk);
-            accumulate<D, Real>::add(
-                output[2][score_dat.pose_ind][score_dat.block_ind1]
-                      [score_dat.block_ind2],
-                0.5 * score_dat.total_lk);
-          });
-          DeviceDispatch<D>::template for_each_in_workgroup<nt>(index_energies);
-        });
+    auto store_calculated_energies = ([=](LJLKScoringData<Real> &score_dat,
+                                          shared_mem_union &shared) {
+      auto reduce_energies = ([&](int tid) {
+        Real const cta_total_ljatr =
+            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
+                score_dat.total_ljatr, shared, mgpu::plus_t<Real>());
+        Real const cta_total_ljrep =
+            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
+                score_dat.total_ljrep, shared, mgpu::plus_t<Real>());
+        Real const cta_total_lk =
+            DeviceDispatch<D>::template reduce_in_workgroup<nt>(
+                score_dat.total_lk, shared, mgpu::plus_t<Real>());
+
+        if (tid == 0) {
+          if (score_dat.block_ind1 == score_dat.block_ind2) {
+            output[0][score_dat.pose_ind][score_dat.block_ind1]
+                  [score_dat.block_ind1] = cta_total_ljatr;
+            output[1][score_dat.pose_ind][score_dat.block_ind1]
+                  [score_dat.block_ind1] = cta_total_ljrep;
+            output[2][score_dat.pose_ind][score_dat.block_ind1]
+                  [score_dat.block_ind1] = cta_total_lk;
+          } else {
+            // each warp guaranteed to write to separate address so no atomic
+            // add needed
+            output[0][score_dat.pose_ind][score_dat.block_ind1]
+                  [score_dat.block_ind2] = 0.5 * cta_total_ljatr;
+            output[1][score_dat.pose_ind][score_dat.block_ind1]
+                  [score_dat.block_ind2] = 0.5 * cta_total_ljrep;
+            output[2][score_dat.pose_ind][score_dat.block_ind1]
+                  [score_dat.block_ind2] = 0.5 * cta_total_lk;
+            output[0][score_dat.pose_ind][score_dat.block_ind2]
+                  [score_dat.block_ind1] = 0.5 * cta_total_ljatr;
+            output[1][score_dat.pose_ind][score_dat.block_ind2]
+                  [score_dat.block_ind1] = 0.5 * cta_total_ljrep;
+            output[2][score_dat.pose_ind][score_dat.block_ind2]
+                  [score_dat.block_ind1] = 0.5 * cta_total_lk;
+          }
+        }
+      });
+      DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies);
+    });
 
     auto load_tile_invariant_intrares_data =
         ([=](int pose_ind,

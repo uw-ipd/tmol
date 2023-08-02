@@ -498,8 +498,6 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares_data_from_shared(
   bool same_tile = tile_ind1 == tile_ind2;
   intra_dat.r1.n_heavy = shared_m.n_heavy1;
   intra_dat.r2.n_heavy = same_tile ? intra_dat.r1.n_heavy : shared_m.n_heavy2;
-  // intra_dat.r2.n_heavy =
-  //     (same_tile ? intra_dat.r1.n_heavy : intra_dat.r2.n_heavy);
   intra_dat.r1.coords = shared_m.coords1;
   intra_dat.r2.coords = (same_tile ? shared_m.coords1 : shared_m.coords2);
   intra_dat.r1.params = shared_m.params1;
