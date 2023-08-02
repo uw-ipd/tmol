@@ -283,6 +283,7 @@ class PackedBlockTypes:
             n_atoms=cpu_equiv(self.n_atoms),
             atom_is_real=cpu_equiv(self.atom_is_real),
             atom_downstream_of_conn=cpu_equiv(self.atom_downstream_of_conn),
+            atom_paths_from_conn=cpu_equiv(self.atom_paths_from_conn),
             max_n_torsions=cpu_equiv(self.max_n_torsions),
             n_torsions=cpu_equiv(self.n_torsions),
             torsion_is_real=cpu_equiv(self.torsion_is_real),
