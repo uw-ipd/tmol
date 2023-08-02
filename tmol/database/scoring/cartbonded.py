@@ -2,7 +2,6 @@ import attr
 import cattr
 import yaml
 
-import typing
 from typing import Tuple
 
 
