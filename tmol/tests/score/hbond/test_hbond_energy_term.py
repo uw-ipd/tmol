@@ -49,7 +49,7 @@ def test_annotate_restypes(ubq_res, default_database, torch_device):
 
 
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
-    gold_vals = numpy.array([[-54.8584]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-55.6756]], dtype=numpy.float32)
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device
@@ -115,7 +115,7 @@ def test_whole_pose_scoring_module_gradcheck_partial_pose(
 
 def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
     n_poses = 10
-    gold_vals = numpy.tile(numpy.array([[-54.8584]], dtype=numpy.float32), (n_poses))
+    gold_vals = numpy.tile(numpy.array([[-55.6756]], dtype=numpy.float32), (n_poses))
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device

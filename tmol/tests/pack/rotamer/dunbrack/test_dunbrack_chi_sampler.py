@@ -850,9 +850,12 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
         dtype=int,
     )
     rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
+    rt_base_names = numpy.array(
+        [rt.name.partition(":")[0] for rt in all_allowed_restypes], dtype=object
+    )
 
     dun_rot_inds_for_rts = param_resolver._indices_from_names(
-        param_resolver.all_table_indices, rt_names[None, :], torch.device("cpu")
+        param_resolver.all_table_indices, rt_base_names[None, :], torch.device("cpu")
     ).squeeze()
     block_type_ind_for_brt = torch.tensor(
         pbt.restype_index.get_indexer(

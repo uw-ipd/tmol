@@ -121,7 +121,7 @@ def test_array_validation(example):
             assert not spec.validate(v)
 
 
-invalid_dtypes = [numpy.dtype([("coord", float, 3), ("val", int)]), numpy.complex, "c8"]
+invalid_dtypes = [numpy.dtype([("coord", float, 3), ("val", int)]), complex, "c8"]
 
 
 @pytest.mark.parametrize("invalid_dtype", invalid_dtypes)

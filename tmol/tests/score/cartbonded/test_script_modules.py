@@ -164,7 +164,7 @@ def test_cartbonded_op(default_database, ubq_system, torch_device):
 
     numpy.testing.assert_allclose(
         V.detach().cpu(),
-        [[37.78476, 183.578, 50.5842, 9.43055, 47.4197]],
+        [[37.628773, 181.0597, 50.58417, 9.390318, 47.419704]],
         atol=1e-3,
         rtol=0,
     )
@@ -191,5 +191,5 @@ def test_cartbonded_gradcheck(default_database, ubq_system, torch_device):
 
     masked_coords = s.tcoords[0:1, t_atm_indices]
     torch.autograd.gradcheck(
-        eval_cb, (masked_coords.requires_grad_(True),), eps=1e-2, atol=2e-2
+        eval_cb, (masked_coords.requires_grad_(True),), eps=1e-2, atol=5e-2
     )

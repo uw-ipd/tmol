@@ -29,7 +29,7 @@ PhiPsiChi = namedtuple("PhiPsiChi", ["phi", "psi", "chi"])
 def get_dunbrack_phi_psi_chi(
     system: PackedResidueSystem, device: torch.device
 ) -> PhiPsiChi:
-    dun_phi = numpy.array(
+    dun_phi_raw = numpy.array(
         [
             [
                 x["residue_index"],
@@ -43,7 +43,7 @@ def get_dunbrack_phi_psi_chi(
         dtype=numpy.int32,
     )
 
-    dun_psi = numpy.array(
+    dun_psi_raw = numpy.array(
         [
             [
                 x["residue_index"],
@@ -56,6 +56,19 @@ def get_dunbrack_phi_psi_chi(
         ],
         dtype=numpy.int32,
     )
+
+    # fd: make a consistent phi/psi array
+    resids = numpy.concatenate((dun_phi_raw[:, 0], dun_psi_raw[:, 0]))
+    resids = numpy.unique(resids)
+    dun_phi = numpy.full((resids.shape[0], 5), -1)
+    dun_psi = numpy.full((resids.shape[0], 5), -1)
+    resids2idx = {x: i for i, x in enumerate(resids)}
+    phi_idx = numpy.vectorize(lambda x: resids2idx[x])(dun_phi_raw[:, 0])
+    psi_idx = numpy.vectorize(lambda x: resids2idx[x])(dun_psi_raw[:, 0])
+    dun_phi[phi_idx] = dun_phi_raw
+    dun_psi[psi_idx] = dun_psi_raw
+    dun_phi[:, 0] = resids
+    dun_psi[:, 0] = resids
 
     dun_chi1 = numpy.array(
         [
@@ -71,8 +84,6 @@ def get_dunbrack_phi_psi_chi(
         ],
         dtype=numpy.int32,
     )
-    # print("dun_chi1")
-    # print(dun_chi1)
 
     dun_chi2 = numpy.array(
         [
