@@ -78,8 +78,12 @@ struct LJLKPoseScoreDispatch {
 
       // LJ parameters
       TView<LJLKTypeParams<Real>, 1, D> type_params,
-      TView<LJGlobalParams<Real>, 1, D> global_params)
-      -> std::tuple<TPack<Real, 4, D>, TPack<Int, 3, D> >;
+      TView<LJGlobalParams<Real>, 1, D> global_params,
+
+      // should the output be per-pose (npose x nterms x 1 x 1)
+      //   or per block-pair (npose x nterms x len x len)
+      bool output_block_pair_energies) -> std::
+      tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>, TPack<Int, 3, D> >;
 
   static auto backward(
       TView<Vec<Real, 3>, 2, D> coords,
@@ -130,7 +134,7 @@ struct LJLKPoseScoreDispatch {
       TView<LJGlobalParams<Real>, 1, D> global_params,
 
       TView<Int, 3, D> scratch_block_neighbors,  // from forward pass
-      TView<Real, 4, D> dTdV                     // nterms x nposes x len x len
+      TView<Real, 4, D> dTdV  // nterms x nposes x (1|len) x (1|len)
       ) -> TPack<Vec<Real, 3>, 3, D>;
 };
 
