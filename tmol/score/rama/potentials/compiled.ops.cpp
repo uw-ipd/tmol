@@ -116,7 +116,7 @@ class PoseScoreOp
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
-          std::cout << "Rama Score Op: " << std::endl;
+          // std::cout << "Rama Score Op: " << std::endl;
 
           auto result =
               RamaPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::f(
