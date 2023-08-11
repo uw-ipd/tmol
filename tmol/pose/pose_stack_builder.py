@@ -6,8 +6,8 @@ import itertools
 import numpy
 import torch
 import pandas
-import sparse
 import scipy.sparse.csgraph as csgraph
+import scipy
 
 from typing import List, Tuple, Optional
 
@@ -20,7 +20,9 @@ from tmol.chemical.restypes import (
     Residue,
     find_simple_polymeric_connections,
     find_disulfide_connections,
+    three2one,
 )
+
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
 from tmol.pose.pose_stack import PoseStack
 from tmol.io.canonical_ordering import aa_codes
@@ -1001,15 +1003,22 @@ class PoseStackBuilder:
         )
 
         bonds = numpy.concatenate([intra_res_bonds, inter_res_bonds])
-        bond_graph = sparse.COO(
-            bonds.T,
-            data=numpy.full(len(bonds), True),
+        # bond_graph = sparse.COO(
+        #    bonds.T,
+        #    data=numpy.full(len(bonds), True),
+        #    shape=(max_n_atoms * n_res, max_n_atoms * n_res),
+        #    cache=True,
+        # )
+        bond_graph = scipy.sparse.coo_matrix(
+            (
+                numpy.full(len(bonds), True),
+                (bonds[:, 0], bonds[:, 1]),
+            ),
             shape=(max_n_atoms * n_res, max_n_atoms * n_res),
-            cache=True,
         )
 
         min_bond_dist = csgraph.dijkstra(
-            bond_graph.tocsr(),
+            bond_graph,
             directed=False,
             unweighted=True,
             limit=MAX_SIG_BOND_SEPARATION,
@@ -1253,38 +1262,20 @@ class PoseStackBuilder:
             assert hasattr(pbt, "bt_mapping_w_lcaa_1lc_ind")
             return
 
-        sorted_1lc = sorted([v for _, v in aa_codes.items()])
-        one_let_co_index = {
-            aa1: ind
-            for aa1, ind in zip(sorted_1lc, numpy.arange(20, dtype=numpy.int32))
-        }
-
-        lcaa_ind = numpy.full((20,), -1, dtype=numpy.int32)
+        lcaa_ind = {}
         for i, res in enumerate(pbt.active_block_types):
-            if res.name in aa_codes:
-                if (
-                    "NTerm" not in res.properties.connectivity
-                    and "CTerm" not in res.properties.connectivity
-                ):
-                    if res.name3 == "HIS":
-                        if res.name == "HIS_D":
-                            continue
-                    ind = one_let_co_index[aa_codes[res.name3]]
-                    assert lcaa_ind[ind] == -1
-                    lcaa_ind[ind] = i
+            one = three2one(res.name)
+            if one:
+                assert one not in lcaa_ind
+                lcaa_ind[one] = i
 
-        names = list(
-            itertools.chain([bt.name for bt in pbt.active_block_types], sorted_1lc)
-        )
-        df = pandas.DataFrame(
-            dict(
-                names=names,
-                bt_ind=itertools.chain(
-                    numpy.arange(len(pbt.active_block_types), dtype=numpy.int32),
-                    lcaa_ind,
-                ),
-            )
-        )
+        names = [*lcaa_ind.keys(), *[bt.name for bt in pbt.active_block_types]]
+        indices = [
+            *lcaa_ind.values(),
+            *range(len(pbt.active_block_types)),
+        ]
+
+        df = pandas.DataFrame(dict(names=names, bt_ind=indices))
         ind = pandas.Index(names)
         setattr(pbt, "bt_mapping_w_lcaa_1lc", df)
         setattr(pbt, "bt_mapping_w_lcaa_1lc_ind", ind)
