@@ -95,3 +95,27 @@ def test_dunbrack_for_stacked_system(ubq_system: PackedResidueSystem):
 
     sumtot = torch.sum(tot)
     sumtot.backward()
+
+
+def test_dunbrack_for_jagged_system(ubq_res):
+    ubq_system1 = PackedResidueSystem.from_residues(ubq_res[0:40])
+    ubq_system2 = PackedResidueSystem.from_residues(ubq_res[0:60])
+
+    twoubq = PackedResidueSystemStack((ubq_system1, ubq_system2))
+
+    stacked_score = ScoreSystem.build_for(
+        twoubq,
+        {DunbrackScore},
+        weights={"dunbrack_rot": 1.0, "dunbrack_rotdev": 2.0, "dunbrack_semirot": 3.0},
+    )
+
+    coords = coords_for(twoubq, stacked_score)
+    tot = stacked_score.intra_total(coords)
+
+    forward = stacked_score.intra_forward(coords)
+    assert len(forward) == 3
+    for terms in forward.values():
+        assert len(terms) == 2
+
+    sumtot = torch.sum(tot)
+    sumtot.backward()
