@@ -240,12 +240,52 @@ class DunbrackParameters(ScoreModule):
         # phi torsion. This atom will be non-negative even if other
         # atoms that define phi are negative.
         res_names = BondedAtoms.get(self).res_names
-        dun_at2_inds = dun_phi[:, :, 2].cpu().numpy()
-        dun_at2_real = dun_at2_inds != -1
-        nz_at2_real = numpy.nonzero(dun_at2_real)
-        dun_res_names[dun_at2_real] = res_names[
-            nz_at2_real[0], dun_at2_inds[dun_at2_real]
-        ]
+        # TEMP!
+        # Instead of saying that the criterion for being scored by dunbrack
+        # is that at2 is real for your phi torsion, let's say every
+        # real residue for this structure is a valid dunbrack residue.
+        #
+        #
+        # dun_at2_inds = dun_phi[:, :, 2].cpu().numpy()
+        # dun_at2_real = dun_at2_inds != -1
+        # nz_at2_real = numpy.nonzero(dun_at2_real)
+        # dun_res_names[dun_at2_real] = res_names[
+        #     nz_at2_real[0], dun_at2_inds[dun_at2_real]
+        # ]
+        res_inds = BondedAtoms.get(self).res_indices
+        first_for_pose = numpy.ones((res_inds.shape[0], 1), dtype=numpy.bool_)
+        at_is_first_for_res = res_inds[:, :-1] != res_inds[:, 1:]
+        at_is_real = res_inds[:, 1:] == res_inds[:, 1:]
+        at_is_first_for_res = numpy.logical_and(at_is_first_for_res, at_is_real)
+        first_at_for_res = numpy.concatenate(
+            (first_for_pose, at_is_first_for_res), axis=1
+        )
+        # print("res_inds.shape", res_inds.shape)
+        # print("first_at_for_res", first_at_for_res.shape)
+        # print("first at for res:", numpy.nonzero(first_at_for_res))
+        # print("res inds:", res_inds[first_at_for_res])
+        # print("res_is_uniq.shape")
+        # print(res_is_uniq.shape)
+        # nz_uniq_res = numpy.nonzero(res_is_uniq)
+        # uniq_res = numpy.concatenate(
+        #     ([0], nz_uniq_res)
+        # )
+        # dun_res_names = res_names[first_at_for_res]
+        n_poses = res_inds.shape[0]
+        # print("first_at_for_res", first_at_for_res.shape)
+        n_res_for_pose = numpy.sum(first_at_for_res, axis=1, dtype=int)
+        # print("n_res_for_pose", n_res_for_pose.shape)
+        max_n_res = numpy.max(n_res_for_pose)
+        dun_res_names = numpy.empty((n_poses, max_n_res), dtype=numpy.object)
+        # print(n_poses, max_n_res)
+        # print("arange:", numpy.arange(max_n_res).repeat(n_poses).reshape(n_poses, max_n_res))
+        res_is_good = (
+            numpy.arange(max_n_res).reshape(1, max_n_res) < n_res_for_pose[:, None]
+        )
+        # print("res_is_good", res_is_good.shape, numpy.sum(res_is_good, axis=1))
+        dun_res_names[res_is_good] = res_names[first_at_for_res]
+        # print("res_names", res_names.shape)
+        # print("dunresnames", dun_res_names.shape)
 
         return self.dunbrack_param_resolver.resolve_dunbrack_parameters(
             dun_res_names,

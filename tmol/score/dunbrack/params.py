@@ -706,6 +706,11 @@ class DunbrackParamResolver(ValidateAttrs):
         torch_device: torch.device,
     ) -> DunbrackParams:
         nstacks = res_names.shape[0]
+        # print("nstacks", nstacks)
+        # print("phi", phi.shape)
+        # print("psi", psi.shape)
+        # print("chi", chi.shape)
+
         assert phi.shape[0] == nstacks
         assert psi.shape[0] == nstacks
         assert chi.shape[0] == nstacks
