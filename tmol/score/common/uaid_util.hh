@@ -32,7 +32,7 @@ TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
     int block_coord_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
     return block_coord_offset + uaid.atom_id;  // The actual global atom index
-  } else {  // We need to follow to another block
+  } else if (uaid.conn_id != -1) {  // We need to follow to another block
     int connection_index = uaid.conn_id;
     int sep = uaid.n_bonds_from_conn;
 
@@ -60,6 +60,9 @@ TMOL_DEVICE_FUNC int resolve_atom_from_uaid(
     int block_coord_offset =
         pose_stack_block_coord_offset[pose_index][other_block_index];
     return block_coord_offset + idx;
+  } else {
+    // printf("uaid with both -1 for atom_id and conn_id\n");
+    return -1;
   }
 }
 
