@@ -70,65 +70,31 @@ def get_dunbrack_phi_psi_chi(
     dun_phi[:, 0] = resids
     dun_psi[:, 0] = resids
 
-    dun_chi1 = numpy.array(
-        [
+    def nab_chi(chi_name, chi_ind):
+        dun_chi = numpy.array(
             [
-                x["residue_index"],
-                0,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi1"]
-        ],
-        dtype=numpy.int32,
-    )
+                [
+                    x["residue_index"],
+                    chi_ind,
+                    x["atom_index_a"],
+                    x["atom_index_b"],
+                    x["atom_index_c"],
+                    x["atom_index_d"],
+                ]
+                for x in system.torsion_metadata[
+                    system.torsion_metadata["name"] == chi_name
+                ]
+            ],
+            dtype=numpy.int32,
+        )
+        if dun_chi.shape[0] == 0:
+            dun_chi = numpy.zeros((0, 6), dtype=numpy.int32)
+        return dun_chi
 
-    dun_chi2 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                1,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi2"]
-        ],
-        dtype=numpy.int32,
-    )
-
-    dun_chi3 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                2,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi3"]
-        ],
-        dtype=numpy.int32,
-    )
-
-    dun_chi4 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                3,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi4"]
-        ],
-        dtype=numpy.int32,
-    )
+    dun_chi1 = nab_chi("chi1", 0)
+    dun_chi2 = nab_chi("chi2", 1)
+    dun_chi3 = nab_chi("chi3", 2)
+    dun_chi4 = nab_chi("chi4", 3)
 
     # merge the 4 chi tensors, sorting by residue index and chi index
     join_chi = numpy.concatenate((dun_chi1, dun_chi2, dun_chi3, dun_chi4), 0)

@@ -106,7 +106,7 @@ def test_dunbrack_for_jagged_system(ubq_res):
     stacked_score = ScoreSystem.build_for(
         twoubq,
         {DunbrackScore},
-        weights={"dunbrack_rot": 1.0, "dunbrack_rotdev": 2.0, "dunbrack_semirot": 3.0},
+        weights={"dunbrack_rot": 0.7, "dunbrack_rotdev": 0.7, "dunbrack_semirot": 0.7},
     )
 
     coords = coords_for(twoubq, stacked_score)

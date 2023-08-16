@@ -705,11 +705,12 @@ class DunbrackParamResolver(ValidateAttrs):
         chi: Tensor[torch.int32][:, :, 6],
         torch_device: torch.device,
     ) -> DunbrackParams:
+        def get_base_name(x):
+            return x.partition(":")[0] if x is not None else None
+
+        vectorized_get_base_name = numpy.vectorize(get_base_name)
+        res_names = vectorized_get_base_name(res_names).astype(object)
         nstacks = res_names.shape[0]
-        # print("nstacks", nstacks)
-        # print("phi", phi.shape)
-        # print("psi", psi.shape)
-        # print("chi", chi.shape)
 
         assert phi.shape[0] == nstacks
         assert psi.shape[0] == nstacks
@@ -756,8 +757,8 @@ class DunbrackParamResolver(ValidateAttrs):
 
         chi_selected = self._select_chi(chi, nchi_for_pose_res).type(torch.int32)
 
-        phi = self._clone_and_mark_missing_bb_atoms(phi, -1)
-        psi = self._clone_and_mark_missing_bb_atoms(psi, -2)
+        phi = self._clone_and_mark_missing_bb_atoms(phi, -2)
+        psi = self._clone_and_mark_missing_bb_atoms(psi, -3)
 
         phi_wanted = take_condensed_3d_subset(
             phi[:, :, 1:], rns_inds_to_keep, nz_rns_inds
@@ -923,7 +924,9 @@ class DunbrackParamResolver(ValidateAttrs):
         self, bb_ats: Tensor[torch.int32][:, :, 5], undefined_val: int
     ) -> Tensor[torch.int32][:, :, 5]:
         bb_ats = bb_ats.clone()
-        ats_not_defined = (bb_ats == -1).byte().any(2)
+        ats_not_defined = torch.logical_and(
+            bb_ats[:, :, 0] != -1, (bb_ats[:, :, 1:] == -1).byte().any(2)
+        )
         nz_not_defined = torch.nonzero(ats_not_defined, as_tuple=False)
         bb_ats[nz_not_defined[:, 0], nz_not_defined[:, 1], :] = undefined_val
         return bb_ats
