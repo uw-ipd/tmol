@@ -37,7 +37,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     def n_bodies(self):
         return 1
 
-    def find_subgraphs(self, bonds, block_type):
+    def find_subgraphs(self, bonds, block_type):  # noqa: C901
         lengths = []
         angles = []
         torsions = []
