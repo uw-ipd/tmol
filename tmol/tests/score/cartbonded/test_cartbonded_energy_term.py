@@ -29,9 +29,17 @@ def test_annotate_cartbonded_uaids(
     for bt in bt_list:
         cartbonded_energy.setup_block_type(bt)
     cartbonded_energy.setup_packed_block_types(pbt)
-    """
-    assert hasattr(pbt, "cartbonded_quad_uaids")
-    assert pbt.cartbonded_quad_uaids.device == torch_device"""
+
+    assert hasattr(pbt, "cartbonded_subgraphs")
+    assert hasattr(pbt, "cartbonded_subgraph_offsets")
+    assert hasattr(pbt, "cartbonded_max_subgraphs_per_block")
+    assert hasattr(pbt, "cartbonded_params_hash_keys")
+    assert hasattr(pbt, "cartbonded_params_hash_values")
+
+    assert pbt.cartbonded_subgraphs.device == torch_device
+    assert pbt.cartbonded_subgraph_offsets.device == torch_device
+    assert pbt.cartbonded_params_hash_keys.device == torch_device
+    assert pbt.cartbonded_params_hash_values.device == torch_device
 
 
 def test_whole_pose_scoring_module_gradcheck(
@@ -61,7 +69,6 @@ def test_whole_pose_scoring_module_gradcheck(
 def test_whole_pose_scoring_module_single(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
-    # rts_ubq_res = rts_ubq_res[0:2]
     gold_vals = numpy.array(
         [[37.7848], [183.5777], [50.5842], [9.4305], [47.4197]], dtype=numpy.float32
     )
