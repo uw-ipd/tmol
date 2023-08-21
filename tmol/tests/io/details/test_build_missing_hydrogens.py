@@ -279,28 +279,22 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
 
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
 
-    # def coord_score(block_coords):
-    #     new_pose_coords, block_coord_offset = build_missing_hydrogens(
-    #         pbt,
-    #         atr,
-    #         block_types64,
-    #         real_atoms,
-    #         block_coords,
-    #         missing_atoms,
-    #         inter_residue_connections,
-    #     )
-    #     return torch.sum(new_pose_coords)
-
-    # print("real_atoms.unsqueeze(-1) * block_coords")
-    # print(real_atoms.unsqueeze(-1) * block_coords)
-
     def coord_score(block_coords):
-        return torch.sum(real_atoms.unsqueeze(-1) * block_coords)
+        new_pose_coords, block_coord_offset = build_missing_hydrogens(
+            pbt,
+            atr,
+            block_types64,
+            real_atoms,
+            block_coords,
+            missing_atoms,
+            inter_residue_connections,
+        )
+        return torch.sum(new_pose_coords[:])
 
     bc = block_coords.requires_grad_(True)
     score = coord_score(bc)
     derivs = score.backward()
-    # print("bc.grad:", bc.grad)
+    print("bc.grad:", bc.grad)
 
     gradcheck(
         coord_score,
