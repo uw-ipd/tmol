@@ -6,19 +6,22 @@ from tmol.io.canonical_ordering import (
 
 
 def test_canonical_form_from_pdb_lines(pertuzumab_lines):
-    chain_begin, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
+    chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
         pertuzumab_lines
     )
-    assert chain_begin.shape[0] == res_types.shape[0]
-    assert chain_begin.shape[0] == coords.shape[0]
-    assert chain_begin.shape[0] == atom_is_present.shape[0]
-    assert chain_begin.shape[1] == res_types.shape[1]
-    assert chain_begin.shape[1] == coords.shape[1]
-    assert chain_begin.shape[1] == atom_is_present.shape[1]
+    assert chain_id.shape[0] == res_types.shape[0]
+    assert chain_id.shape[0] == coords.shape[0]
+    assert chain_id.shape[0] == atom_is_present.shape[0]
+    assert chain_id.shape[1] == res_types.shape[1]
+    assert chain_id.shape[1] == coords.shape[1]
+    assert chain_id.shape[1] == atom_is_present.shape[1]
     assert atom_is_present.shape[2] == max_n_canonical_atoms
     assert coords.shape[2] == max_n_canonical_atoms
     assert coords.shape[3] == 3
-    assert numpy.sum(chain_begin) == 2
+    chain_id_gold = numpy.zeros(res_types.shape, dtype=numpy.int32)
+    chain_id_gold[0, 214:] = 1
+
+    numpy.testing.assert_equal(chain_id_gold, chain_id)
 
 
 def test_canonical_form_w_unk():
@@ -78,12 +81,12 @@ def test_canonical_form_w_unk():
         "HETATM 6185  N3  SAM B 402     -13.902  12.803   5.006  1.00 46.34           N\n",
         "HETATM 6186  C4  SAM B 402     -15.231  13.034   5.166  1.00 53.49           C\n",
     ]
-    chain_begin, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
+    chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
         sam_pdb_lines
     )
 
     # three and not four residues because the SAM is ignored
-    assert chain_begin.shape == (1, 3)
+    assert chain_id.shape == (1, 3)
     assert res_types.shape == (1, 3)
     assert coords.shape == (1, 3, 28, 3)
     assert atom_is_present.shape == (1, 3, 28)

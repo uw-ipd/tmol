@@ -110,7 +110,7 @@ def pose_stack_from_canonical_form(
 
     # 6
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
-        pbt, chain_begin, block_types64, coords, atom_is_present
+        pbt, block_types64, coords, atom_is_present
     )
 
     # 7

@@ -48,7 +48,7 @@ def test_build_missing_hydrogens(torch_device, ubq_pdb):
     ) = assign_block_types(pbt, ch_beg, can_rts, res_type_variants, found_disulfides)
 
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
-        pbt, ch_beg, block_types64, coords, at_is_pres
+        pbt, block_types64, coords, at_is_pres
     )
     # print("block coords")
     # print(block_coords.cpu().numpy())
@@ -176,7 +176,7 @@ def test_build_missing_hydrogens_backwards(torch_device, ubq_pdb):
                 missing_atoms,
                 real_atoms,
             ) = take_block_type_atoms_from_canonical(
-                pbt, ch_beg, block_types64, self.coords, at_is_pres
+                pbt, block_types64, self.coords, at_is_pres
             )
             # print("block coords")
             # print(block_coords.cpu().numpy())
@@ -254,7 +254,7 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     ) = assign_block_types(pbt, ch_beg, can_rts, res_type_variants, found_disulfides)
 
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
-        pbt, ch_beg, block_types64, coords, at_is_pres
+        pbt, block_types64, coords, at_is_pres
     )
     # print("block_coords")
     # print(block_coords)
@@ -330,7 +330,7 @@ def test_build_missing_hydrogens_gradcheck(ubq_pdb, torch_device):
     ) = assign_block_types(pbt, ch_beg, can_rts, res_type_variants, found_disulfides)
 
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
-        pbt, ch_beg, block_types64, coords, at_is_pres
+        pbt, block_types64, coords, at_is_pres
     )
     # print("block coords")
     # print(block_coords.cpu().numpy())

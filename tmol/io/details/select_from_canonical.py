@@ -31,6 +31,9 @@ def assign_block_types(
     PoseStackBuilder._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
 
     device = pbt.device
+    n_poses = chain_id.shape[0]
+    max_n_res = chain_id.shape[1]
+    max_n_conn = pbt.max_n_conn
 
     # canonica_res_ordering_map dimensioned: [20aas x 3 termini types x 2 variant types]
     # 3 termini types? 0-nterm, 1-mid, 2-cterm
@@ -42,11 +45,37 @@ def assign_block_types(
     # assert torch.all(
     #     real_res[chain_begin == 1]
     # ), "every residue marked as the beginning of a chain must be real"
+    chain_id = chain_id.clone()
+    chain_id[res_types64 == -1] = -1
+    n_term_res = torch.logical_and(
+        real_res,
+        torch.cat(
+            (
+                torch.ones((n_poses, 1), dtype=torch.bool, device=device),
+                chain_id[:, 1:] != chain_id[:, :-1],  # is i different from i-1?
+            ),
+            dim=1,
+        ),
+    )
+    c_term_res = torch.logical_and(
+        real_res,
+        torch.cat(
+            (
+                chain_id[:, :-1] != chain_id[:, 1:],  # is i different from i+1?
+                torch.ones((n_poses, 1), dtype=torch.bool, device=device),
+            ),
+            dim=1,
+        ),
+    )
+    # soon
+    termini_variants = torch.ones_like(res_types, dtype=torch.int64)
+    # termini_variants[n_term_res] = 0
+    # termini_variants[c_term_res] = 2
 
     # TEMP! treat everything as a "mid" (1) termini type
     block_type_ind64 = torch.full_like(res_types64, -1)
     block_type_ind64[real_res] = canonical_res_ordering_map[
-        res_types64[real_res], 1, res_type_variants64[real_res]
+        res_types64[real_res], termini_variants[real_res], res_type_variants64[real_res]
     ]
     # print("block_type_ind64[21]", block_type_ind64[0, 21])
     # print("res_types64[21]", res_types64[0, 21])
@@ -60,10 +89,6 @@ def assign_block_types(
     # block_type_ind64 = block_type_ind.to(torch.int64)
 
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
-    n_poses = chain_id.shape[0]
-    max_n_res = chain_id.shape[1]
-    max_n_conn = pbt.max_n_conn
-
     inter_residue_connections64 = torch.full(
         (n_poses, max_n_res, max_n_conn, 2), -1, dtype=torch.int64, device=device
     )
@@ -73,18 +98,6 @@ def assign_block_types(
     # mark the chain id for any un-real residue as -1
     # then the n-term residues will have a different chain id
     # from their i-1 residues
-    chain_id = chain_id.clone()
-    chain_id[res_types64 == -1] = -1
-    n_term_res = torch.logical_and(
-        real_res,
-        torch.cat(
-            (
-                torch.ones((n_poses, 1), dtype=torch.bool, device=device),
-                chain_id[:, 1:] != chain_id[:, :-1],  # is i different from i-1?
-            ),
-            dim=1,
-        ),
-    )
     res_is_real_and_not_n_term = real_res.clone()
     res_is_real_and_not_n_term[n_term_res] = False
 
@@ -92,27 +105,6 @@ def assign_block_types(
     n_pose_arange = torch.arange(n_poses, dtype=torch.int64, device=device)
     n_res = torch.sum(real_res, dim=1)
     res_is_real_and_not_c_term[n_pose_arange, n_res - 1] = False
-    # chain_end = torch.cat(
-    #     (
-    #         chain_begin[:, 1:],
-    #         torch.zeros((n_poses, 1), dtype=torch.int32, device=device),
-    #     ),
-    #     dim=1,
-    # )
-    # chain_end[n_pose_arange, n_res - 1] = 1
-    c_term_res = torch.logical_and(
-        real_res,
-        torch.cat(
-            (
-                chain_id[:, :-1] != chain_id[:, 1:],  # is i different from i+1?
-                torch.ones((n_poses, 1), dtype=torch.bool, device=device),
-            ),
-            dim=1,
-        ),
-    )
-    # assert torch.all(
-    #     real_res[chain_end == 1]
-    # ), "every residue marked as the end of a chain must be real"
     res_is_real_and_not_c_term[c_term_res] = False
 
     connected_up_conn_inds = pbt.up_conn_inds[
@@ -221,13 +213,12 @@ def assign_block_types(
     )
     inter_block_bondsep64 = ibb64
 
-    return block_type_ind64, inter_residue_connections64, inter_block_bondsep64
+    return (block_type_ind64, inter_residue_connections64, inter_block_bondsep64)
 
 
 @validate_args
 def take_block_type_atoms_from_canonical(
     packed_block_types: PackedBlockTypes,
-    chain_begin: Tensor[torch.int32][:, :],
     block_types64: Tensor[torch.int64][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Tensor[torch.int32][:, :, :],
