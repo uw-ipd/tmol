@@ -294,7 +294,6 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     bc = block_coords.requires_grad_(True)
     score = coord_score(bc)
     derivs = score.backward()
-    print("bc.grad:", bc.grad)
 
     gradcheck(
         coord_score,

@@ -951,20 +951,22 @@ def canonical_form_from_pdb_lines(pdb_lines):
             uniq_res_list.append(resid)
     n_res = len(uniq_res_list)
 
-    chain_begin = numpy.zeros((1, n_res), dtype=numpy.int32)
+    chain_id = numpy.zeros((1, n_res), dtype=numpy.int32)
     res_types = numpy.full((1, n_res), -2, dtype=numpy.int32)
     coords = numpy.full(
         (1, n_res, max_n_canonical_atoms, 3), numpy.NAN, dtype=numpy.float32
     )
     atom_is_present = numpy.zeros((1, n_res, max_n_canonical_atoms), dtype=numpy.int32)
 
-    chains_seen = set([])
+    chains_seen = {}
+    chain_id_counter = 0  # TO DO: determine if this is wholly redundant w/ "chaini"
     for i, row in atom_records.iterrows():
         resid = (row["chain"], row["resi"], row["insert"])
         res_ind = uniq_res_ind[resid]
         if row["chaini"] not in chains_seen:
-            chains_seen.add(row["chaini"])
-            chain_begin[0, res_ind] = 1
+            chains_seen[row["chaini"]] = chain_id_counter
+            chain_id_counter += 1
+        chain_id[0, res_ind] = chains_seen[row["chaini"]]
         if res_types[0, res_ind] == -2:
             try:
                 aa_ind = ordered_canonical_aa_types.index(row["resn"])
@@ -972,7 +974,7 @@ def canonical_form_from_pdb_lines(pdb_lines):
             except KeyError:
                 res_types[0, res_ind] = -1
         if res_types[0, res_ind] >= 0:
-            #### TEEEEEEEMP!!!!! ####
+            # TEMP!!!!! We should probably either read v3 by default or detect v2 vs v3 automatically #
             res_at_list = ordered_canonical_aa_atoms_v2[row["resn"]]
 
             atname = row["atomn"].strip()
@@ -987,4 +989,4 @@ def canonical_form_from_pdb_lines(pdb_lines):
                 # TO DO: warn the user that some atoms are not being processed?
                 pass
 
-    return chain_begin, res_types, coords, atom_is_present
+    return chain_id, res_types, coords, atom_is_present

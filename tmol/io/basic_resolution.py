@@ -5,12 +5,47 @@ from tmol.pose.pose_stack import PoseStack
 
 
 def pose_stack_from_canonical_form(
-    chain_begin: Tensor[torch.int32][:, :],
+    chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Optional[Tensor[torch.int32][:, :, :]] = None,
 ) -> PoseStack:
-    """ "Create a PoseStack given atom coordinates in canonical ordering"""
+    """Create a PoseStack given atom coordinates in canonical ordering
+
+    Arguments:
+    chain_id: an n-pose x max-n-residue tensor with an index for which chain
+        each residue belongs to. Residues belonging to the same chain must be
+        consecutive.
+    res_types: an n-pose x max-n-residue tensor with the canonically
+        ordered amino acid index for each residue. A sentinel value of "-1"
+        should be used to indicate that a given position does not contain
+        a residue (perhaps because it belongs to a pose with fewer than
+        max-n-residue residues).
+    coords: an n-pose x max-n-residue x max-n-atoms-per-residue tensor
+        providing the coordinates of some or all of the atoms. The order
+        in which atoms should appear in this tensor is given in
+        tmol.io.canonical_ordering.ordered_canonical_aa_atoms (see also
+        tmol.io.canonical_ordering.ordered_canonical_aa_atoms_v2 for
+        the older PDB v2 atom naming scheme). It is recommended that
+        atoms whose coordinates are not being provided to this function
+        have their coordinates marked as NaN to ensure that tmol is not
+        reading from positions in this array that it should not be and
+        thus delivering inaccurate energies.
+    atom_is_present: an n-pose x max-n-residue x max-n-atoms-per-residue
+        tensor answering the yes/no question of whether an atom's
+        coordinate is being provided; 0 for no, 1 for yes. If this
+        tensor is not provided, then any coordinates in the "coords"
+        tensor with a coordinate of NaN will be taken as "not present"
+        and all others (including any coordinates at the origin, e.g.)
+        will be treated as if they "are present." Note: "present" here
+        means "the coordinate is being provided" and not "this atom
+        should be modeled;" conversely, there is no way to say "do not
+        include a particular atom in tmol calculations."
+
+        Currently, all heavy atoms must be provided to tmol. Hydrogen
+        atoms are optional, though, hydroxyl hydrogens on SER and THR
+        and TYR are recommended as tmol will build them suboptimally.
+    """
 
     from tmol.io.details.canonical_packed_block_types import (
         default_canonical_packed_block_types,
@@ -23,8 +58,8 @@ def pose_stack_from_canonical_form(
     )
     from tmol.io.details.build_missing_hydrogens import build_missing_hydrogens
 
-    assert chain_begin.device == res_types.device
-    assert chain_begin.device == coords.device
+    assert chain_id.device == res_types.device
+    assert chain_id.device == coords.device
 
     # step 1: retrieve the global packed_block_types object with the 66
     #         canonical residue types
@@ -45,7 +80,7 @@ def pose_stack_from_canonical_form(
     # 1
     # this will return the same object each time to minimize the number
     # of calls to the setup_packed_block_types annotation functions
-    pbt, atom_type_resolver = default_canonical_packed_block_types(chain_begin.device)
+    pbt, atom_type_resolver = default_canonical_packed_block_types(chain_id.device)
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(
@@ -70,7 +105,7 @@ def pose_stack_from_canonical_form(
         inter_residue_connections64,
         inter_block_bondsep64,
     ) = assign_block_types(
-        pbt, chain_begin, res_types, res_type_variants, found_disulfides
+        pbt, chain_id, res_types, res_type_variants, found_disulfides
     )
 
     # 6

@@ -17,9 +17,9 @@ def test_assign_block_types(torch_device, ubq_pdb):
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
 
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
@@ -39,7 +39,7 @@ def test_assign_block_types(torch_device, ubq_pdb):
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_beg, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
 
     # ubq seq
     ubq_1lc = [
