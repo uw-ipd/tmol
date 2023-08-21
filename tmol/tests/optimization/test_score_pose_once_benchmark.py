@@ -48,7 +48,7 @@ def test_pose_construction_from_sequence(
         # for param in cart_sfxn_network.parameters():
         #     param.grad.data.zero_()
 
-        E = cart_sfxn_network()
+        E = cart_sfxn_network().sum()
         E.backward()
 
         return E

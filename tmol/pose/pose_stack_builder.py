@@ -864,7 +864,7 @@ class PoseStackBuilder:
             n_conn_for_block
         )
         n_conn_for_block_offset64 = n_conn_for_block_offset.to(torch.int64)
-        max_n_pose_conn = torch.max(n_conn_totals) + 1
+        max_n_pose_conn = torch.max(n_conn_totals)
 
         # nz_real_blocks_pose_ind, nz_real_blocks_block_ind = torch.nonzero(
         #     real_blocks, as_tuple=True

@@ -24,18 +24,22 @@ def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_dev
     cart_sfxn_network = CartesianSfxnNetwork(sfxn, pose_stack5)
     optimizer = LBFGS_Armijo(cart_sfxn_network.parameters(), lr=0.1, max_iter=20)
 
-    E0 = cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
+    E0 = cart_sfxn_network.whole_pose_scoring_module(
+        cart_sfxn_network.full_coords
+    ).sum()
     # print("E0", E0)
 
     def closure():
         optimizer.zero_grad()
-        E = cart_sfxn_network()
+        E = cart_sfxn_network().sum()
         E.backward()
         return E
 
     optimizer.step(closure)
 
-    E1 = cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
+    E1 = cart_sfxn_network.whole_pose_scoring_module(
+        cart_sfxn_network.full_coords
+    ).sum()
     # print("E1", E1)
     assert E1 < E0
 
