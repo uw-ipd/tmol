@@ -10,7 +10,7 @@ from tmol.io.details.select_from_canonical import (
     assign_block_types,
     take_block_type_atoms_from_canonical,
 )
-from tmol.io.details.build_missing_hydrogens import (
+from tmol.io.details.build_missing_leaf_atoms import (
     _annotate_packed_block_types_atom_is_leaf_atom,
     build_missing_leaf_atoms,
 )

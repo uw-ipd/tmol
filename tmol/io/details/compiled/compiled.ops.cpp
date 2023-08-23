@@ -8,10 +8,7 @@
 #include <tmol/score/common/forall_dispatch.hh>
 #include <tmol/score/common/device_operations.hh>
 
-// #include "dispatch.hh"
-#include <tmol/io/details/compiled/gen_pose_hydrogens.hh>
-// #include "rotamer_pair_energy_lkball.hh"
-// #include "lk_ball_pose_score.hh"
+#include <tmol/io/details/compiled/gen_pose_leaf_atoms.hh>
 
 namespace tmol {
 namespace io {
@@ -23,7 +20,7 @@ using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
-class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
+class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
  public:
   static Tensor forward(
       AutogradContext* ctx,
@@ -44,11 +41,11 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        orig_coords.type(), "hydrogen_gen_op", ([&] {
+        orig_coords.type(), "leaf_atom_gen_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
-          auto result = GeneratePoseHydrogens<
+          auto result = GeneratePoseLeafAtoms<
               score::common::DeviceOperations,
               Dev,
               Real,
@@ -114,11 +111,11 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
     auto dE_d_new_coords = grad_outputs[0];
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        orig_coords.type(), "hydrogen_gen_backward", ([&] {
+        orig_coords.type(), "leaf_atom_gen_backward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
-          auto result = GeneratePoseHydrogens<
+          auto result = GeneratePoseLeafAtoms<
               score::common::DeviceOperations,
               Dev,
               Real,
@@ -159,7 +156,7 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
   };
 };
 
-Tensor pose_hgen_op(
+Tensor pose_leaf_atom_gen_op(
     Tensor orig_coords,
     Tensor orig_coords_atom_missing,
     Tensor pose_stack_atom_missing,
@@ -172,7 +169,7 @@ Tensor pose_hgen_op(
     Tensor block_type_atom_icoors,
     Tensor block_type_atom_ancestors_backup,
     Tensor block_type_atom_icoors_backup) {
-  return PoseHydrogenGen::apply(
+  return PoseLeafAtomGen::apply(
       orig_coords,
       orig_coords_atom_missing,
       pose_stack_atom_missing,
@@ -191,7 +188,7 @@ Tensor pose_hgen_op(
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
-  m.def("gen_pose_hydrogens", &pose_hgen_op);
+  m.def("gen_pose_leaf_atoms", &pose_leaf_atom_gen_op);
 }
 
 }  // namespace compiled

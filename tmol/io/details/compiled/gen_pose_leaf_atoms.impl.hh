@@ -30,7 +30,7 @@ template <
     tmol::Device Dev,
     typename Real,
     typename Int>
-struct GeneratePoseHydrogens {
+struct GeneratePoseLeafAtoms {
   static auto forward(
       TView<Vec<Real, 3>, 2, Dev> orig_coords,
       TView<Int, 3, Dev> orig_coords_atom_missing,

@@ -8,8 +8,8 @@ load(
             __file__,
             [
                 "compiled.ops.cpp",
-                "gen_pose_hydrogens.cpu.cpp",
-                "gen_pose_hydrogens.cuda.cu",
+                "gen_pose_leaf_atoms.cpu.cpp",
+                "gen_pose_leaf_atoms.cuda.cu",
             ],
         )
     ),
@@ -17,4 +17,4 @@ load(
 )
 
 _ops = getattr(torch.ops, modulename(__name__))
-gen_pose_hydrogens = _ops.gen_pose_hydrogens
+gen_pose_leaf_atoms = _ops.gen_pose_leaf_atoms

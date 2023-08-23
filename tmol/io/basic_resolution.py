@@ -42,9 +42,14 @@ def pose_stack_from_canonical_form(
         should be modeled;" conversely, there is no way to say "do not
         include a particular atom in tmol calculations."
 
-        Currently, all heavy atoms must be provided to tmol. Hydrogen
-        atoms are optional, though, hydroxyl hydrogens on SER and THR
-        and TYR are recommended as tmol will build them suboptimally.
+        Currently, all heavy atoms must be provided to tmol except
+        leaf atoms. A "leaf atom" is one that has no atoms that use it
+        as a parent or grand parent when describing their icoors.
+        Hydrogen atoms are all leaf atoms. Backbone carbonyl oxygens
+        are also leaf atoms. Even thoguh hydrogen atoms are optional,
+        the hydroxyl hydrogens on SER, THR, and TYR are recommended
+        as tmol will build them suboptimally: at a dihedral of 180
+        regardless of the presence of nearby hydrogen-bond acceptors
     """
 
     from tmol.io.details.canonical_packed_block_types import (
@@ -56,7 +61,7 @@ def pose_stack_from_canonical_form(
         assign_block_types,
         take_block_type_atoms_from_canonical,
     )
-    from tmol.io.details.build_missing_hydrogens import build_missing_hydrogens
+    from tmol.io.details.build_missing_leaf_atoms import build_missing_leaf_atoms
 
     assert chain_id.device == res_types.device
     assert chain_id.device == coords.device
@@ -115,7 +120,7 @@ def pose_stack_from_canonical_form(
 
     # 7
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
-    pose_stack_coords, block_coord_offset = build_missing_hydrogens(
+    pose_stack_coords, block_coord_offset = build_missing_leaf_atoms(
         pbt,
         atom_type_resolver,
         block_types64,

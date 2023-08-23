@@ -8,7 +8,7 @@ from tmol.score.chemical_database import (
     AcceptorHybridization,
     AtomTypeParamResolver,
 )
-from tmol.io.details.compiled.compiled import gen_pose_hydrogens
+from tmol.io.details.compiled.compiled import gen_pose_leaf_atoms
 
 
 @validate_args
@@ -30,7 +30,7 @@ def build_missing_leaf_atoms(
     """
 
     # ok,
-    # we're going to call gen_pose_hydrogens,
+    # we're going to call gen_pose_leaf_atoms,
     # but first we need to prepare the input tensors
     # that are going to use
     pbt = packed_block_types
@@ -80,7 +80,7 @@ def build_missing_leaf_atoms(
     ]
 
     # ok, we're ready
-    new_pose_coords = gen_pose_hydrogens(
+    new_pose_coords = gen_pose_leaf_atoms(
         pose_like_coords,
         block_leaf_atom_is_missing,
         pose_stack_atom_is_missing,
