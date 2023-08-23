@@ -15,9 +15,7 @@ def default_canonical_packed_block_types(device: torch.device):
         chem_database, torch.device("cpu")
     )
 
-    # for now, nab the "mid" residue types
-    # TODO: add N- and C-term variants
-    wanted = [
+    wanted_base_types = [
         "ALA",
         "CYS",
         "CYD",
@@ -41,6 +39,10 @@ def default_canonical_packed_block_types(device: torch.device):
         "TRP",
         "TYR",
     ]
+    patches = ["", "nterm", "cterm"]
+    all_restypes = [
+        x if y == "" else ":".join((x, y)) for x in wanted_base_types for y in patches
+    ]
 
     restype_list = [
         cattr.structure(
@@ -49,7 +51,7 @@ def default_canonical_packed_block_types(device: torch.device):
             ),
             RefinedResidueType,
         )
-        for rname in wanted
+        for rname in all_restypes
     ]
 
     return PackedBlockTypes.from_restype_list(restype_list, device), atom_type_resolver

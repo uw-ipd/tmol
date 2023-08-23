@@ -6,7 +6,7 @@ from tmol.io.details.canonical_packed_block_types import (
 def test_default_canonical_packed_block_types(torch_device):
     pbt, atr = default_canonical_packed_block_types(torch_device)
     assert pbt.device == torch_device
-    assert pbt.n_types == 22  # will become 66 when termini variants come online
+    assert pbt.n_types == 66
 
 
 def test_default_canonical_packed_block_types_memoization(torch_device):

@@ -69,15 +69,15 @@ def assign_block_types(
     )
     # soon
     termini_variants = torch.ones_like(res_types, dtype=torch.int64)
-    # termini_variants[n_term_res] = 0
-    # termini_variants[c_term_res] = 2
+    termini_variants[n_term_res] = 0
+    termini_variants[c_term_res] = 2
 
     # TEMP! treat everything as a "mid" (1) termini type
     block_type_ind64 = torch.full_like(res_types64, -1)
     block_type_ind64[real_res] = canonical_res_ordering_map[
         res_types64[real_res], termini_variants[real_res], res_type_variants64[real_res]
     ]
-    # print("block_type_ind64[21]", block_type_ind64[0, 21])
+    # print("block_type_ind64[:10]", block_type_ind64[0, :10])
     # print("res_types64[21]", res_types64[0, 21])
     # print("res_type_variants64[21]", res_type_variants64[0, 21])
     # print("canonical_res_ordering_map",
@@ -309,17 +309,38 @@ def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
     )
     bt_ind_to_canonical_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
 
-    # TO DO: handle N- and C-termini variants
-    var0_inds = pbt.restype_index.get_indexer(ordered_canonical_aa_types)
-    canonical_ordering_map[:, 1, 0] = var0_inds
+    def bt_inds_for_variant(base_names, var):
+        return pbt.restype_index.get_indexer(
+            [
+                bt_name if var == "" else ":".join((bt_name, var))
+                for bt_name in base_names
+            ]
+        )
+
+    canonical_ordering_map[:, 0, 0] = bt_inds_for_variant(
+        ordered_canonical_aa_types, "nterm"
+    )
+    canonical_ordering_map[:, 1, 0] = bt_inds_for_variant(
+        ordered_canonical_aa_types, ""
+    )
+    canonical_ordering_map[:, 2, 0] = bt_inds_for_variant(
+        ordered_canonical_aa_types, "cterm"
+    )
 
     # NOTE: We have two amino acids with (non-termini) "variants" that we are going to handle
     # CYD, the disulfided CYS is variant 1; CYS is variant 0
     # between HIS and HIS_D, one of them is variant 1 and one is variant 0
-    canonical_ordering_map[
-        (cys_co_aa_ind, his_co_aa_ind), 1, 1
-    ] = pbt.restype_index.get_indexer(
-        ["CYD", "HIS_D" if his_taut_variant_ND1_protonated == 1 else "HIS"]
+    cys_his_var_names = [
+        "CYD",
+        "HIS_D" if his_taut_variant_ND1_protonated == 1 else "HIS",
+    ]
+    cys_his = (cys_co_aa_ind, his_co_aa_ind)
+    canonical_ordering_map[cys_his, 0, 1] = bt_inds_for_variant(
+        cys_his_var_names, "nterm"
+    )
+    canonical_ordering_map[cys_his, 1, 1] = bt_inds_for_variant(cys_his_var_names, "")
+    canonical_ordering_map[cys_his, 2, 1] = bt_inds_for_variant(
+        cys_his_var_names, "cterm"
     )
 
     # map from the specific block type to the generic canoncial aa index

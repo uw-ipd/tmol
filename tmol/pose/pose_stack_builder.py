@@ -1256,6 +1256,9 @@ class PoseStackBuilder:
 
             df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(list_of_names)
             bt_inds = pbt.bt_mapping_w_lcaa_1lc.iloc[df_inds]["bt_ind"].values
+
+        Note that this will give the base aa type for each 1lc; it will not
+        give you the bt indices of the n- and c-termini
         """
 
         if hasattr(pbt, "bt_mapping_w_lcaa_1lc"):

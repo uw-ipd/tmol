@@ -33,7 +33,8 @@ template <
 struct GeneratePoseHydrogens {
   static auto forward(
       TView<Vec<Real, 3>, 2, Dev> orig_coords,
-      TView<Int, 3, Dev> h_atom_missing,
+      TView<Int, 3, Dev> orig_coords_atom_missing,
+      TView<Int, 2, Dev> pose_stack_atom_missing,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -70,9 +71,11 @@ struct GeneratePoseHydrogens {
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_atom_downstream_of_conn.size(2);
 
-    assert(h_atom_missing.size(0) == n_poses);
-    assert(h_atom_missing.size(1) == max_n_blocks);
-    assert(h_atom_missing.size(2) == max_n_block_atoms);
+    assert(orig_coords_atom_missing.size(0) == n_poses);
+    assert(orig_coords_atom_missing.size(1) == max_n_blocks);
+    assert(orig_coords_atom_missing.size(2) == max_n_block_atoms);
+    assert(pose_stack_atom_missing.size(0) == n_poses);
+    assert(pose_stack_atom_missing.size(1) == max_n_pose_atoms);
     assert(pose_stack_block_coord_offset.size(0) == n_poses);
     assert(pose_stack_block_type.size(0) == n_poses);
     assert(pose_stack_inter_block_connections.size(0) == n_poses);
@@ -119,7 +122,7 @@ struct GeneratePoseHydrogens {
           pose_stack_block_coord_offset[pose_ind][block_ind];
 
       // is this a hydrogen we should build coordinates for?
-      if (h_atom_missing[pose_ind][block_ind][atom_ind]) {
+      if (orig_coords_atom_missing[pose_ind][block_ind][atom_ind]) {
         // ok! build the coordinate
         auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
           return score::common::resolve_atom_from_uaid<Int, Dev>(
@@ -137,7 +140,10 @@ struct GeneratePoseHydrogens {
         anc0 = get_anc(0);
         anc1 = get_anc(1);
         anc2 = get_anc(2);
-        if (anc0 == -1 || anc1 == -1 || anc2 == -1) {
+        if (anc0 == -1 || anc1 == -1 || anc2 == -1
+            || pose_stack_atom_missing[pose_ind][anc0]
+            || pose_stack_atom_missing[pose_ind][anc1]
+            || pose_stack_atom_missing[pose_ind][anc2]) {
           auto get_backup_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
             return score::common::resolve_atom_from_uaid<Int, Dev>(
                 block_type_atom_ancestors_backup[block_type][atom_ind]
@@ -154,7 +160,10 @@ struct GeneratePoseHydrogens {
           anc2 = get_backup_anc(2);
           // printf("fell back on ancestors %d %d and %d when building atom %d
           // on res %d\n", anc0, anc1, anc2, atom_ind, block_ind);
-          if (anc0 == -1 || anc1 == -1 || anc2 == -1) {
+          if (anc0 == -1 || anc1 == -1 || anc2 == -1
+              || pose_stack_atom_missing[pose_ind][anc0]
+              || pose_stack_atom_missing[pose_ind][anc1]
+              || pose_stack_atom_missing[pose_ind][anc2]) {
             // cannot build a hydrogen if we're missing the ancestors
             return;
           }
@@ -208,7 +217,8 @@ struct GeneratePoseHydrogens {
       TView<Vec<Real, 3>, 2, Dev> dE_d_new_coords,
       TView<Vec<Real, 3>, 2, Dev> new_coords,
       TView<Vec<Real, 3>, 2, Dev> orig_coords,
-      TView<Int, 3, Dev> h_atom_missing,
+      TView<Int, 3, Dev> orig_coords_atom_missing,
+      TView<Int, 2, Dev> pose_stack_atom_missing,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -250,9 +260,11 @@ struct GeneratePoseHydrogens {
     //     dE_d_new_coords.size(0),
     //     dE_d_new_coords.size(1));
 
-    assert(h_atom_missing.size(0) == n_poses);
-    assert(h_atom_missing.size(1) == max_n_blocks);
-    assert(h_atom_missing.size(2) == max_n_block_atoms);
+    assert(orig_coords_atom_missing.size(0) == n_poses);
+    assert(orig_coords_atom_missing.size(1) == max_n_blocks);
+    assert(orig_coords_atom_missing.size(2) == max_n_block_atoms);
+    assert(pose_stack_atom_missing.size(0) == n_poses);
+    assert(pose_stack_atom_missing.size(1) == max_n_pose_atoms);
     assert(pose_stack_block_coord_offset.size(0) == n_poses);
     assert(pose_stack_block_type.size(0) == n_poses);
     assert(pose_stack_inter_block_connections.size(0) == n_poses);
@@ -299,7 +311,7 @@ struct GeneratePoseHydrogens {
           pose_stack_block_coord_offset[pose_ind][block_ind];
 
       // is this a hydrogen we should build coordinates for?
-      if (h_atom_missing[pose_ind][block_ind][atom_ind]) {
+      if (orig_coords_atom_missing[pose_ind][block_ind][atom_ind]) {
         // ok! build the coordinate
         auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
           return score::common::resolve_atom_from_uaid<Int, Dev>(
@@ -316,7 +328,10 @@ struct GeneratePoseHydrogens {
         anc0 = get_anc(0);
         anc1 = get_anc(1);
         anc2 = get_anc(2);
-        if (anc0 == -1 || anc1 == -1 || anc2 == -1) {
+        if (anc0 == -1 || anc1 == -1 || anc2 == -1
+            || pose_stack_atom_missing[pose_ind][anc0]
+            || pose_stack_atom_missing[pose_ind][anc1]
+            || pose_stack_atom_missing[pose_ind][anc2]) {
           auto get_backup_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
             return score::common::resolve_atom_from_uaid<Int, Dev>(
                 block_type_atom_ancestors_backup[block_type][atom_ind]
@@ -333,7 +348,10 @@ struct GeneratePoseHydrogens {
           anc2 = get_backup_anc(2);
           // printf("fell back on ancestors %d %d and %d when building atom %d
           // on res %d\n", anc0, anc1, anc2, atom_ind, block_ind);
-          if (anc0 == -1 || anc1 == -1 || anc2 == -1) {
+          if (anc0 == -1 || anc1 == -1 || anc2 == -1
+              || pose_stack_atom_missing[pose_ind][anc0]
+              || pose_stack_atom_missing[pose_ind][anc1]
+              || pose_stack_atom_missing[pose_ind][anc2]) {
             // cannot build a hydrogen if we're missing the ancestors
             return;
           }

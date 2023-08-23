@@ -4,12 +4,15 @@ import torch
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.score.chemical_database import AtomTypeParamResolver
+from tmol.score.chemical_database import (
+    AcceptorHybridization,
+    AtomTypeParamResolver,
+)
 from tmol.io.details.compiled.compiled import gen_pose_hydrogens
 
 
 @validate_args
-def build_missing_hydrogens(
+def build_missing_leaf_atoms(
     packed_block_types: PackedBlockTypes,
     atom_type_resolver: AtomTypeParamResolver,
     block_types64: Tensor[torch.int64][:, :],
@@ -19,10 +22,12 @@ def build_missing_hydrogens(
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2],
 ):
     """Convert the block layout into the condensed layout used by PoseStack and
-    build any missing hydrogen atoms at the same time. This is a fully differentiable
-    process, and so gradients accumulated for any hydrogen atoms that were absent
+    build any missing "leaf" atoms at the same time. This is a fully differentiable
+    process, and so gradients accumulated for any leaf atoms that were absent
     from the input structure will be distributed across the atoms that define the
-    geometry of those hydrogens"""
+    geometry of those atoms. A leaf atom is an atom that is not a parent to any other
+    atom; these include hydrogens and carbonyl/carboxyl oxygens.
+    """
 
     # ok,
     # we're going to call gen_pose_hydrogens,
@@ -34,8 +39,8 @@ def build_missing_hydrogens(
     max_n_blocks = block_coords.shape[1]
 
     # make sure we have all the data we need
-    _annotate_packed_block_types_atom_is_h(pbt, atom_type_resolver)
-    _annotate_packed_block_types_w_missing_h_icoors(pbt)
+    _annotate_packed_block_types_atom_is_leaf_atom(pbt, atom_type_resolver)
+    _annotate_packed_block_types_w_leaf_atom_icoors(pbt)
 
     n_atoms = torch.zeros((n_poses, max_n_blocks), dtype=torch.int32, device=device)
     real_blocks = block_types64 != -1
@@ -60,37 +65,49 @@ def build_missing_hydrogens(
     )
     pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
 
-    block_at_is_h = torch.zeros(
+    block_at_is_leaf = torch.zeros(
         (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.int32, device=device
     )
-    block_at_is_h[real_blocks] = pbt.is_hydrogen[block_types64[real_blocks]]
+    block_at_is_leaf[real_blocks] = pbt.is_leaf_atom[block_types64[real_blocks]]
 
     # multiplication of booleans-as-integers is equivalent to a logical "and"
-    block_h_is_missing = block_at_is_h * block_atom_missing
+    block_leaf_atom_is_missing = block_at_is_leaf * block_atom_missing
+    pose_stack_atom_is_missing = torch.zeros(
+        (n_poses, max_n_ats), dtype=torch.int32, device=device
+    )
+    pose_stack_atom_is_missing[pose_at_is_real] = block_leaf_atom_is_missing[
+        real_block_atoms
+    ]
 
     # ok, we're ready
     new_pose_coords = gen_pose_hydrogens(
         pose_like_coords,
-        block_h_is_missing,
+        block_leaf_atom_is_missing,
+        pose_stack_atom_is_missing,
         block_coord_offset,
         block_types64.to(torch.int32),
         inter_residue_connections,
         pbt.n_atoms,
         pbt.atom_downstream_of_conn,
-        pbt.build_missing_h_icoor_atom_ancestor_uaids,
-        pbt.build_missing_h_icoor_geom,
-        pbt.build_missing_h_icoor_atom_ancestor_uaids_backup,
-        pbt.build_missing_h_icoor_geom_backup,
+        pbt.build_missing_leaf_atom_icoor_atom_ancestor_uaids,
+        pbt.build_missing_leaf_atom_icoor_geom,
+        pbt.build_missing_leaf_atom_icoor_atom_ancestor_uaids_backup,
+        pbt.build_missing_leaf_atom_icoor_geom_backup,
     )
     # print("new_pose_coords.shape", new_pose_coords.shape)
     return new_pose_coords, block_coord_offset
 
 
 @validate_args
-def _annotate_packed_block_types_atom_is_h(
+def _annotate_packed_block_types_atom_is_leaf_atom(
     pbt: PackedBlockTypes, atom_type_resolver: AtomTypeParamResolver
 ):
-    if hasattr(pbt, "is_hydrogen"):
+    if hasattr(pbt, "is_leaf_atom"):
+        # TO DO: it feels like "is_hydrogen" is the kind of data member
+        # that PBT ought to provide itself and does not belong as an
+        # annotation that the missing-leaf-atom-construction code
+        # ought to create.
+        assert hasattr(pbt, "is_hydrogen")
         return
 
     # annotate the block types, then concatenate
@@ -98,30 +115,62 @@ def _annotate_packed_block_types_atom_is_h(
     def ti32(x):
         return torch.tensor(x, dtype=torch.int32, device=pbt.device)
 
-    is_hydrogen = torch.zeros(
+    is_leaf_atom = torch.zeros(
         (pbt.n_types, pbt.max_n_atoms), dtype=torch.int32, device=pbt.device
     )
+    is_hydrogen = torch.zeros_like(is_leaf_atom)
 
     for i, block_type in enumerate(pbt.active_block_types):
+        is_parent = numpy.zeros(block_type.n_atoms, dtype=numpy.bool)
+        icoor_is_parent = numpy.zeros(block_type.n_icoors, dtype=numpy.bool)
+        icoor_is_parent[block_type.icoors_ancestors[:, 0]] = True
+
+        icoorind_to_atomind = numpy.full(block_type.n_icoors, -1, dtype=numpy.int32)
+        icoorind_to_atomind[block_type.at_to_icoor_ind] = numpy.arange(
+            block_type.n_atoms, dtype=numpy.int32
+        )
+
+        is_parent[icoorind_to_atomind[icoorind_to_atomind != -1]] = icoor_is_parent[
+            icoorind_to_atomind != -1
+        ]
+
+        # we also need to turn off "is leaf" for any atom that is the fourth one defining a named dihedral:
+        fourth_torsion_atoms = block_type.ordered_torsions[:, 3, 0]
+        real_fourth_torsion_atoms = fourth_torsion_atoms[fourth_torsion_atoms != -1]
+
+        # print(block_type.name, "real fourth torsion atoms", [block_type.atoms[j].name for j in real_fourth_torsion_atoms])
+        is_parent[real_fourth_torsion_atoms] = True
+
+        is_leaf = numpy.logical_not(is_parent)
+        # for j in range(block_type.n_atoms):
+        #     if is_leaf[j]:
+        #         print(block_type.name, block_type.atoms[j], j, "is leaf")
+
+        setattr(block_type, "is_leaf_atom", is_leaf)
+        is_leaf_atom[i, : block_type.n_atoms] = ti32(is_leaf)
+
         atom_types = [x.atom_type for x in block_type.atoms]
         atom_type_idx = atom_type_resolver.type_idx(atom_types)
         atom_type_params = atom_type_resolver.params[atom_type_idx]
+        # print("atom_type_params", atom_type_params)
         bt_is_hydrogen = (
             atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
         )
         setattr(block_type, "is_hydrogen", bt_is_hydrogen)
         is_hydrogen[i, : block_type.n_atoms] = ti32(bt_is_hydrogen)
+    setattr(pbt, "is_leaf_atom", is_leaf_atom)
     setattr(pbt, "is_hydrogen", is_hydrogen)
 
 
 @validate_args
-def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
-    if hasattr(pbt, "build_missing_h_icoor_atom_ancestor_uaids"):
-        assert hasattr(pbt, "build_missing_h_icoor_geom")
-        assert hasattr(pbt, "build_missing_h_icoor_atom_ancestor_uaids_backup")
-        assert hasattr(pbt, "build_missing_h_icoor_geom_backup")
+def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
+    if hasattr(pbt, "build_missing_leaf_atom_icoor_atom_ancestor_uaids"):
+        assert hasattr(pbt, "build_missing_leaf_atom_icoor_geom")
+        assert hasattr(pbt, "build_missing_leaf_atom_icoor_atom_ancestor_uaids_backup")
+        assert hasattr(pbt, "build_missing_leaf_atom_icoor_geom_backup")
         return
 
+    assert hasattr(pbt, "is_leaf_atom")
     assert hasattr(pbt, "is_hydrogen")
     icoor_atom_ancestor_uaids = numpy.full(
         (pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32
@@ -151,7 +200,7 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
                 else:
                     return (bt.atom_to_idx[icoor_at_name], -1, -1)
 
-            def icoor_at_is_h(icoor_at_name):
+            def icoor_at_is_leaf(icoor_at_name):
                 if icoor_at_name not in bt.atom_to_idx:
                     return 0
                 # print(
@@ -161,13 +210,18 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
                 #     bt.atom_to_idx[icoor_at_name],
                 #     bt.is_hydrogen[bt.atom_to_idx[icoor_at_name]],
                 # )
+                return bt.is_leaf_atom[bt.atom_to_idx[icoor_at_name]]
+
+            def icoor_at_is_h(icoor_at_name):
+                if icoor_at_name not in bt.atom_to_idx:
+                    return 0
                 return bt.is_hydrogen[bt.atom_to_idx[icoor_at_name]]
 
             def icoor_at_is_inter_res(icoor_at_name):
                 return icoor_at_name not in bt.atom_to_idx
 
             # ok, let's turn p, gp, and ggp into uaids
-            # if ggp is a hydrogen, then we need to recurse backwards through the ggps
+            # if ggp is a leaf, then we need to recurse backwards through the ggps
             # and accumulate the phi offsets
 
             p_uaid = uaid_for_at(j_icoor.parent)
@@ -179,19 +233,45 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
             # theta = numpy.pi
             d = j_icoor.d
 
-            while icoor_at_is_h(j_icoor.great_grand_parent):
-                ggp_ind = bt.icoors_index[j_icoor.great_grand_parent]
-                j_icoor = bt.icoors[ggp_ind]
-                phi += j_icoor.phi
+            if icoor_at_is_h(j_icoor.great_grand_parent):
+                # use phi offsets from the non-leaf ggp* ancestor of the ggp
+                # as the default strategy for building coords for hydrogen atoms
+                while icoor_at_is_leaf(j_icoor.great_grand_parent):
+                    ggp_ind = bt.icoors_index[j_icoor.great_grand_parent]
+                    j_icoor = bt.icoors[ggp_ind]
+                    phi += j_icoor.phi
+            else:
+                # if the ggp is not a hydrogen, even if it's a leaf atom, then try
+                # and build the coordinate for this atom based on its position first
+                # before falling back on the non-leaf ggp* ancestor. This "general"
+                # code is specifically for building the OXT atom on a cterm residue
+                # when the O atom is provided; the phi should be 180 off O and not
+                # 260 off N (and some unknown offset of O).
+                pass
             ggp_uaid = uaid_for_at(j_icoor.great_grand_parent)
 
             ggp_ind_backup = None
             phi_backup = phi
-            while icoor_at_is_inter_res(j_icoor.great_grand_parent):
-                # print("atom",at.name,"of", bt.name, "has an inter-res ggp", j_icoor.great_grand_parent)
-                ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
-                j_icoor = bt.icoors[ggp_ind_backup]
-                phi_backup += j_icoor.phi
+            if icoor_at_is_inter_res(j_icoor.great_grand_parent):
+                # Logic for when the great-grand parent atom is in another residue
+                # and is absent. This "general" logic is specifically for building
+                # the H atom on a residue where i-1 does not exist or is not
+                # chemically bonded to residue i.
+                while icoor_at_is_inter_res(j_icoor.great_grand_parent):
+                    # print("atom",at.name,"of", bt.name, "has an inter-res ggp", j_icoor.great_grand_parent)
+                    ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
+                    j_icoor = bt.icoors[ggp_ind_backup]
+                    phi_backup += j_icoor.phi
+            elif not icoor_at_is_h(j_icoor.great_grand_parent):
+                # Logic for handling when the heavy-atom great-grand parent,
+                # which itself is a leaf atom, is absent. This "general" logic
+                # is specifically for building the OXT atom on a cterm residue
+                # when the O atom is given but OXT is not.
+                while icoor_at_is_leaf(j_icoor.great_grand_parent):
+                    # print("j_icoor ggp is leaf:", j_icoor.great_grand_parent)
+                    ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
+                    j_icoor = bt.icoors[ggp_ind_backup]
+                    phi_backup += j_icoor.phi
 
             bt_icoor_uaids[j, 0] = numpy.array(p_uaid, dtype=numpy.int32)
             bt_icoor_uaids[j, 1] = numpy.array(gp_uaid, dtype=numpy.int32)
@@ -212,7 +292,7 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
                 bt_icoor_geom_backup[j, 1] = theta
                 bt_icoor_geom_backup[j, 2] = d
 
-        setattr(bt, "build_missing_h_icoor_geom", bt_icoor_geom)
+        setattr(bt, "build_missing_leaf_atom_icoor_geom", bt_icoor_geom)
         icoor_geom[i, : bt.n_atoms] = bt_icoor_geom
         icoor_atom_ancestor_uaids[i, : bt.n_atoms] = bt_icoor_uaids
         # print(bt.name, "bt_icoor_uaids:")
@@ -232,11 +312,15 @@ def _annotate_packed_block_types_w_missing_h_icoors(pbt: PackedBlockTypes):
         icoor_atom_ancestor_uaids_backup, dtype=torch.int32, device=pbt.device
     )
 
-    setattr(pbt, "build_missing_h_icoor_atom_ancestor_uaids", icoor_atom_ancestor_uaids)
-    setattr(pbt, "build_missing_h_icoor_geom", icoor_geom)
     setattr(
         pbt,
-        "build_missing_h_icoor_atom_ancestor_uaids_backup",
+        "build_missing_leaf_atom_icoor_atom_ancestor_uaids",
+        icoor_atom_ancestor_uaids,
+    )
+    setattr(pbt, "build_missing_leaf_atom_icoor_geom", icoor_geom)
+    setattr(
+        pbt,
+        "build_missing_leaf_atom_icoor_atom_ancestor_uaids_backup",
         icoor_atom_ancestor_uaids_backup,
     )
-    setattr(pbt, "build_missing_h_icoor_geom_backup", icoor_geom_backup)
+    setattr(pbt, "build_missing_leaf_atom_icoor_geom_backup", icoor_geom_backup)

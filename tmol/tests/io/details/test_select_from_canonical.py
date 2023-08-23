@@ -50,6 +50,12 @@ def test_assign_block_types(torch_device, ubq_pdb):
     ubq_bt_inds = numpy.expand_dims(
         pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
     )
+    ubq_bt_inds[0, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    ubq_bt_inds[0, -1] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY:cterm"
+    )
 
     assert block_types.device == torch_device
     assert inter_residue_connections64.device == torch_device
@@ -84,8 +90,6 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-        n_term_res,
-        c_term_res,
     ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
 
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
@@ -131,7 +135,7 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     # ATOM     17 3HE  MET A   1      24.552  25.017   7.954  1.00 19.33           H
 
     block_coords_res1_gold = numpy.zeros((pbt.max_n_atoms, 3), dtype=numpy.float32)
-    met_bt = next(x for x in pbt.active_block_types if x.name == "MET")
+    met_bt = next(x for x in pbt.active_block_types if x.name == "MET:nterm")
 
     def set_gold_coord(name, x, y, z):
         ind = next(i for i, at in enumerate(met_bt.atoms) if at.name == name.strip())
@@ -147,7 +151,9 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     set_gold_coord("  CG", 25.353, 24.860, 5.134)
     set_gold_coord("  SD", 23.930, 23.959, 5.904)
     set_gold_coord("  CE", 24.447, 23.984, 7.620)
-    set_gold_coord("  H ", 27.282, 23.521, 3.027)
+    set_gold_coord(" 1H ", 26.961, 23.619, 2.168)
+    set_gold_coord(" 2H ", 28.043, 24.834, 2.029)
+    set_gold_coord(" 3H ", 27.746, 24.169, 3.490)
     set_gold_coord("  HA", 25.864, 25.717, 1.875)
     set_gold_coord(" 1HB", 24.227, 25.486, 3.461)
     set_gold_coord(" 2HB", 24.886, 23.861, 3.332)

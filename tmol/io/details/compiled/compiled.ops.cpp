@@ -28,7 +28,8 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
   static Tensor forward(
       AutogradContext* ctx,
       Tensor orig_coords,
-      Tensor h_coords_missing,
+      Tensor orig_coords_atom_missing,
+      Tensor pose_stack_atom_missing,
       Tensor pose_stack_block_coord_offset,
       Tensor pose_stack_block_type,
       Tensor pose_stack_inter_block_connections,
@@ -54,7 +55,8 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
               Int>::
               forward(
                   TCAST(orig_coords),
-                  TCAST(h_coords_missing),
+                  TCAST(orig_coords_atom_missing),
+                  TCAST(pose_stack_atom_missing),
                   TCAST(pose_stack_block_coord_offset),
                   TCAST(pose_stack_block_type),
                   TCAST(pose_stack_inter_block_connections),
@@ -71,7 +73,8 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
     ctx->save_for_backward(
         {orig_coords,
          new_coords,
-         h_coords_missing,
+         orig_coords_atom_missing,
+         pose_stack_atom_missing,
          pose_stack_block_coord_offset,
          pose_stack_block_type,
          pose_stack_inter_block_connections,
@@ -92,7 +95,8 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
 
     auto orig_coords = saved[i++];
     auto new_coords = saved[i++];
-    auto h_coords_missing = saved[i++];
+    auto orig_coords_atom_missing = saved[i++];
+    auto pose_stack_atom_missing = saved[i++];
     auto pose_stack_block_coord_offset = saved[i++];
     auto pose_stack_block_type = saved[i++];
     auto pose_stack_inter_block_connections = saved[i++];
@@ -123,7 +127,8 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
                   TCAST(dE_d_new_coords),
                   TCAST(new_coords),
                   TCAST(orig_coords),
-                  TCAST(h_coords_missing),
+                  TCAST(orig_coords_atom_missing),
+                  TCAST(pose_stack_atom_missing),
                   TCAST(pose_stack_block_coord_offset),
                   TCAST(pose_stack_block_type),
                   TCAST(pose_stack_inter_block_connections),
@@ -149,13 +154,15 @@ class PoseHydrogenGen : public torch::autograd::Function<PoseHydrogenGen> {
         torch::Tensor(),
         torch::Tensor(),
 
+        torch::Tensor(),
         torch::Tensor()};
   };
 };
 
 Tensor pose_hgen_op(
-    Tensor coords,
-    Tensor h_coords_missing,
+    Tensor orig_coords,
+    Tensor orig_coords_atom_missing,
+    Tensor pose_stack_atom_missing,
     Tensor pose_stack_block_coord_offset,
     Tensor pose_stack_block_type,
     Tensor pose_stack_inter_block_connections,
@@ -166,8 +173,9 @@ Tensor pose_hgen_op(
     Tensor block_type_atom_ancestors_backup,
     Tensor block_type_atom_icoors_backup) {
   return PoseHydrogenGen::apply(
-      coords,
-      h_coords_missing,
+      orig_coords,
+      orig_coords_atom_missing,
+      pose_stack_atom_missing,
       pose_stack_block_coord_offset,
       pose_stack_block_type,
       pose_stack_inter_block_connections,
