@@ -9,40 +9,40 @@ from tmol.score import beta2016_score_function
 def test_build_pose_stack_from_canonical_form_ubq_benchmark(
     benchmark, torch_device, ubq_pdb
 ):
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
 
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
 
     # warmup
-    pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+    pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
 
     @benchmark
     def create_pose_stack():
-        pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+        pose_stack = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
         return pose_stack
 
 
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form_and_score")
 def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
 
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
 
     # warmup
-    ps = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+    ps = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
     sfxn = beta2016_score_function(torch_device)
     scorer = sfxn.render_whole_pose_scoring_module(ps)
     scorer(ps.coords)
 
     @benchmark
     def create_and_score_pose_stack():
-        pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+        pose_stack = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
         scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
         score = scorer(pose_stack.coords)
 
@@ -53,19 +53,17 @@ def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
 def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
     benchmark, torch_device, pertuzumab_lines
 ):
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        pertuzumab_lines
-    )
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(pertuzumab_lines)
 
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
 
     # warmup
-    pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+    pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
 
     @benchmark
     def create_pose_stack():
-        pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+        pose_stack = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
         return pose_stack

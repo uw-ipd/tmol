@@ -4,14 +4,14 @@ from tmol.io.basic_resolution import pose_stack_from_canonical_form
 
 
 def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
 
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
 
-    pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+    pose_stack = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device

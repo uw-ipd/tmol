@@ -34,16 +34,14 @@ def test_deduce_chains_two_monomers(ubq_res, default_restype_set, torch_device):
 
 
 def test_deduce_chains_dslf_dimer(pertuzumab_lines, torch_device):
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        pertuzumab_lines
-    )
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(pertuzumab_lines)
 
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
 
-    pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+    pose_stack = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
 
     chain_inds = chain_inds_for_pose_stack(pose_stack)
 

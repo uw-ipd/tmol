@@ -137,6 +137,8 @@ class ElecParamResolver(ValidateAttrs):
         vars.append("")  # unpatched last
 
         def lookup_charge(atm):
+            if atm.name not in self.partial_charges[res]:
+                print("atom", atm.name, "not found in res", block_type.name)
             for vi in vars:
                 if vi in self.partial_charges[res][atm.name]:
                     return self.partial_charges[res][atm.name][vi]

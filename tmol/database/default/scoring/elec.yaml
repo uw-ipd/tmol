@@ -441,6 +441,15 @@ atom_charge_parameters:
   - { *r: HIS:nterm ,*a: 1H, *e: 0.2946 }
   - { *r: HIS:nterm ,*a: 2H, *e: 0.2946 }
   - { *r: HIS:nterm ,*a: 3H, *e: 0.2946 }
+  - { *r: HIS_D:cterm ,*a: OXT, *e: -0.6079 }
+  - { *r: HIS_D:cterm ,*a: O, *e: -0.6079 }
+  - { *r: HIS_D:cterm ,*a: C, *e: 0.2158 }
+  - { *r: HIS_D:nterm ,*a: N, *e: -0.1987 }
+  - { *r: HIS_D:nterm ,*a: CA, *e: 0.2006 }
+  - { *r: HIS_D:nterm ,*a: HA, *e: 0.1144 }
+  - { *r: HIS_D:nterm ,*a: 1H, *e: 0.2946 }
+  - { *r: HIS_D:nterm ,*a: 2H, *e: 0.2946 }
+  - { *r: HIS_D:nterm ,*a: 3H, *e: 0.2946 }
   - { *r: ILE ,*a: 1HD1, *e: 0.12155 }
   - { *r: ILE ,*a: 1HG1, *e: 0.12155 }
   - { *r: ILE ,*a: 1HG2, *e: 0.12155 }

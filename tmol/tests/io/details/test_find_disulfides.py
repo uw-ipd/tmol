@@ -117,17 +117,17 @@ def test_find_disulfide_pairs():
 
 
 def test_find_disulf_in_pdb(pertuzumab_lines):
-    chain_begin, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
+    chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
         pertuzumab_lines
     )
-    assert chain_begin.shape[0] == res_types.shape[0]
-    assert chain_begin.shape[0] == coords.shape[0]
-    assert chain_begin.shape[0] == atom_is_present.shape[0]
-    assert chain_begin.shape[1] == res_types.shape[1]
-    assert chain_begin.shape[1] == coords.shape[1]
-    assert chain_begin.shape[1] == atom_is_present.shape[1]
+    assert chain_id.shape[0] == res_types.shape[0]
+    assert chain_id.shape[0] == coords.shape[0]
+    assert chain_id.shape[0] == atom_is_present.shape[0]
+    assert chain_id.shape[1] == res_types.shape[1]
+    assert chain_id.shape[1] == coords.shape[1]
+    assert chain_id.shape[1] == atom_is_present.shape[1]
 
-    chain_begin = torch.tensor(chain_begin, dtype=torch.int32)
+    chain_id = torch.tensor(chain_id, dtype=torch.int32)
     res_types = torch.tensor(res_types, dtype=torch.int32)
     coords = torch.tensor(coords, dtype=torch.float32)
     atom_is_present = torch.tensor(atom_is_present, dtype=torch.int32)

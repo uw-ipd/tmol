@@ -23,9 +23,9 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     numpy.set_printoptions(threshold=100000)
 
     pbt, atr = default_canonical_packed_block_types(torch_device)
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
 
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
@@ -45,7 +45,7 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_beg, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
 
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
@@ -159,7 +159,7 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     # from tmol.io.pdb_parsing import to_pdb
     #
     # atom_records = atom_records_from_coords(
-    #     pbt, ch_beg, block_types64, new_pose_coords, block_coord_offset
+    #     pbt, ch_id, block_types64, new_pose_coords, block_coord_offset
     # )
     #
     # with open("test_build_H.pdb", "w") as fid:
@@ -179,9 +179,9 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
     # print(ubq_pdb)
 
     pbt, atr = default_canonical_packed_block_types(torch_device)
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
 
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
@@ -212,7 +212,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
                 inter_residue_connections64,
                 inter_block_bondsep64,
             ) = assign_block_types(
-                pbt, ch_beg, can_rts, res_type_variants, found_disulfides
+                pbt, ch_id, can_rts, res_type_variants, found_disulfides
             )
 
             (
@@ -269,8 +269,8 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
 
 def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     pbt, atr = default_canonical_packed_block_types(torch_device)
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb[:1458])
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb[:1458])
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
@@ -295,7 +295,7 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_beg, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
 
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
@@ -350,8 +350,8 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
 
 def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     pbt, atr = default_canonical_packed_block_types(torch_device)
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb[:810])
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb[:810])
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
@@ -371,7 +371,7 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_beg, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
 
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres

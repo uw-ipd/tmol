@@ -55,16 +55,14 @@ def test_atom_records_from_pose_stack_2(ubq_pdb, ubq_res, torch_device):
 
 
 def test_atom_records_for_multi_chain_pdb(pertuzumab_lines, torch_device):
-    ch_beg, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        pertuzumab_lines
-    )
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(pertuzumab_lines)
 
-    ch_beg = torch.tensor(ch_beg, device=torch_device)
+    ch_id = torch.tensor(ch_id, device=torch_device)
     can_rts = torch.tensor(can_rts, device=torch_device)
     coords = torch.tensor(coords, device=torch_device)
     at_is_pres = torch.tensor(at_is_pres, device=torch_device)
 
-    pose_stack = pose_stack_from_canonical_form(ch_beg, can_rts, coords, at_is_pres)
+    pose_stack = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
 
     records = atom_records_from_pose_stack(
         pose_stack, numpy.array([x for x in "LH"], dtype=str)
