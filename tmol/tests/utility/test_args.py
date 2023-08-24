@@ -62,7 +62,7 @@ def test_ignore_unused_kwargs_numba():
     """ignore_unused_kwargs support numba jit & vectorize functions."""
 
     @ignore_unused_kwargs
-    @numba.jit
+    @numba.jit(nopython=True)
     def jit_foo(a):
         return a
 

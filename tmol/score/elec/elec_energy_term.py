@@ -1,5 +1,4 @@
 import torch
-import numpy
 
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..bond_dependent_term import BondDependentTerm
@@ -40,13 +39,10 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             assert hasattr(block_type, "elec_intra_repr_path_distance")
             assert hasattr(block_type, "elec_partial_charge")
             return
-        partial_charge = numpy.zeros((block_type.n_atoms,), dtype=numpy.float32)
 
-        for i, atname in enumerate(block_type.atoms):
-            if (block_type.name, atname.name) in self.param_resolver.partial_charges:
-                partial_charge[i] = self.param_resolver.partial_charges[
-                    (block_type.name, atname.name)
-                ]
+        # fd let's try not to grab data members from the param resolver ...
+
+        partial_charge = self.param_resolver.get_partial_charges_for_block(block_type)
 
         # count pair representative logic:
         # decide whether or not two atoms i and j should have their interaction counted
@@ -62,35 +58,9 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         # over all pairs of connection atoms ck and cl on residues k and l.
         # The second tensor intra_rpd[a,b] will hold path_dist[rep(a), rep(b)] so that
         # it can be looked up directly in the intra-block energy evaluation step
-
-        representative_mapping = numpy.arange(block_type.n_atoms, dtype=numpy.int32)
-        if block_type.name in self.param_resolver.cp_reps_by_res:
-            for outer, inner in self.param_resolver.cp_reps_by_res[
-                block_type.name
-            ].items():
-                if (
-                    outer not in block_type.atom_to_idx
-                    or inner not in block_type.atom_to_idx
-                ):
-                    continue
-                # note that the "inner" and "outer" atoms are flipped relative to
-                # the natural interpretation in the file. That if one inner:outer
-                # pair is "N": "1H" and another inner:outer pair is "N": "2H", one
-                # would naturally conclude that 1H's representative is N and that
-                # 2H's representative is also N. However, in actuallity, N's
-                # representative will be 2H; N's representative starts out 1H, but
-                # then it is overwritten when the 2H entry is parsed.
-                #
-                # In general, the approach is to use the further atom for the closer
-                # atom so that more interactions are counted (because the closer atom
-                # will interact with fewer other atoms; the further out something is,
-                # the more other atoms will be at least 4 chemical bonds from it.
-                # As long as all the atoms j that are listed as representatives for
-                # a particular atom i are chemically bound to i, then one atom
-                # overriding another as the representative will have no effect.
-                representative_mapping[
-                    block_type.atom_to_idx[inner]
-                ] = block_type.atom_to_idx[outer]
+        representative_mapping = (
+            self.param_resolver.get_bonded_path_length_mapping_for_block(block_type)
+        )
 
         inter_rep_path_dist = block_type.path_distance[:, representative_mapping]
         intra_rep_path_dist = inter_rep_path_dist[representative_mapping, :]

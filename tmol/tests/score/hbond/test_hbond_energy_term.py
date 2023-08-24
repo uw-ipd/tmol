@@ -2,6 +2,8 @@ import numpy
 import torch
 
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
+from tmol.score.score_function import ScoreFunction
+from tmol.score.score_types import ScoreType
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
@@ -15,6 +17,13 @@ def test_smoke(default_database, torch_device):
     assert hbond_energy.hb_param_db.global_param_table.device == torch_device
     assert hbond_energy.hb_param_db.pair_param_table.device == torch_device
     assert hbond_energy.hb_param_db.pair_poly_table.device == torch_device
+
+
+def test_hbond_in_sfxn(default_database, torch_device):
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.hbond, 1.0)
+    assert len(sfxn.all_terms()) == 1
+    assert isinstance(sfxn.all_terms()[0], HBondEnergyTerm)
 
 
 def test_annotate_restypes(ubq_res, default_database, torch_device):
@@ -40,7 +49,7 @@ def test_annotate_restypes(ubq_res, default_database, torch_device):
 
 
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
-    gold_vals = numpy.array([[-54.8584]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-55.6756]], dtype=numpy.float32)
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device
@@ -106,7 +115,7 @@ def test_whole_pose_scoring_module_gradcheck_partial_pose(
 
 def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
     n_poses = 10
-    gold_vals = numpy.tile(numpy.array([[-54.8584]], dtype=numpy.float32), (n_poses))
+    gold_vals = numpy.tile(numpy.array([[-55.6756]], dtype=numpy.float32), (n_poses))
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device

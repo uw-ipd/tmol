@@ -68,7 +68,8 @@ class ResidueReader:
             raise ValueError(f"Unknown residue name: {resn}")
 
         missing_atoms = [
-            set(a.name for a in t.atoms).difference(atomns) for t in candidate_types
+            set(a.name for a in t.atoms).symmetric_difference(atomns)
+            for t in candidate_types
         ]
 
         if len(candidate_types) == 1:
