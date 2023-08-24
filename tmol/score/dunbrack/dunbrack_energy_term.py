@@ -104,11 +104,17 @@ class DunbrackEnergyTerm(EnergyTerm):
             ][0]
         )
 
-        print(semirotameric_tableset_offset)
+        # print(semirotameric_tableset_offset)
         # semirotameric_tableset_offset = semirotameric_tableset_offset[0]
 
         phi_uaids = self.get_torsion("phi", block_type)
         psi_uaids = self.get_torsion("psi", block_type)
+
+        if phi_uaids := self.get_torsion("phi", block_type) is None:
+            phi_uaids = numpy.full((4, 3), -1, dtype=numpy.int32)
+
+        if psi_uaids := self.get_torsion("phi", block_type) is None:
+            psi_uaids = numpy.full((4, 3), -1, dtype=numpy.int32)
 
         chis = []
         n = count(1)

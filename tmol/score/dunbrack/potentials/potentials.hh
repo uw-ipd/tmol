@@ -547,7 +547,7 @@ def block_deviation_penalty_for_chi(
     int chi_ind,
     Int rotameric_rottable_assignment,
     // Out
-    // TensorAccessor<CoordQuad, 2, D> drotchi_devpen_dtor_xyz,
+    TensorAccessor<CoordQuad, 1, D> drotchi_devpen_dtor_xyz,
     TensorAccessor<CoordQuad, 1, D> ddihe_dxyz)
     ->Real {
   Real devpen, dpen_dchi;
@@ -570,17 +570,16 @@ def block_deviation_penalty_for_chi(
       chi_ind,
       rotameric_rottable_assignment);
 
-  /*for (int ii = 0; ii < NbbP1 - 1 + 1; ++ii) {
-    int tor_ind =
-        ires_dihe_offset + (ii == NbbP1 - 1 ? (NbbP1 - 1 + ichi_ind) : ii);
+  for (int ii = 0; ii < NbbP1 - 1 + 1; ++ii) {
+    int tor_ind = (ii == NbbP1 - 1 ? (NbbP1 - 1 + chi_ind) : ii);
     Real dpen_dtor = ii == NbbP1 - 1 ? dpen_dchi : dpen_dbb(ii);
     for (int jj = 0; jj < 4; ++jj) {
       for (int kk = 0; kk < 3; ++kk) {
-        drotchi_devpen_dtor_xyz[i][ii](jj, kk) =
+        drotchi_devpen_dtor_xyz[ii](jj, kk) =
             dpen_dtor * ddihe_dxyz[tor_ind](jj, kk);
       }
     }
-  }*/
+  }
 
   return devpen;
 }
@@ -856,7 +855,7 @@ def block_semirotameric_energy(
 
     TensorAccessor<Real, 1, D> dihedrals,
     Int semirotameric_rottable_assignment,
-    // TensorAccessor<CoordQuad, 2, D> dneglnprob_nonrot_dtor_xyz,
+    TensorAccessor<CoordQuad, 1, D> dneglnprob_nonrot_dtor_xyz,
     TensorAccessor<CoordQuad, 1, D> ddihe_dxyz)
     ->Real {
   Eigen::Matrix<Real, NbbP2 - 1, 1> dihe;
@@ -908,13 +907,13 @@ def block_semirotameric_energy(
     dnlp_ddihe[ii] /= dihe_step[ii];
   }
 
-  /*for (int ii = 0; ii < 3; ++ii) {
+  for (int ii = 0; ii < 3; ++ii) {
     int tor_ind = ii == 2 ? block_semirot_dihedral_index : ii;
     for (int jj = 0; jj < 4; ++jj) {
-      dneglnprob_nonrot_dtor_xyz[i][ii].row(jj) =
+      dneglnprob_nonrot_dtor_xyz[ii].row(jj) =
           dnlp_ddihe(ii) * ddihe_dxyz[tor_ind].row(jj);
     }
-  }*/
+  }
 
   return neglnprob;
 }

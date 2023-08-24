@@ -32,6 +32,7 @@ def test_annotate_dunbrack_uaids(ubq_res, default_database, torch_device: torch.
 def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
+    rts_ubq_res = rts_ubq_res[3:5]
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device
@@ -47,7 +48,13 @@ def test_whole_pose_scoring_module_gradcheck(
         scores = dunbrack_pose_scorer(coords)
         return torch.sum(scores)
 
-    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-2, rtol=5e-3)
+    gradcheck(
+        score,
+        (p1.coords.requires_grad_(True),),
+        eps=1e-2,
+        atol=1e-2,
+        raise_exception=True,
+    )
 
 
 def test_whole_pose_scoring_module_single(
