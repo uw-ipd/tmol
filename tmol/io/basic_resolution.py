@@ -9,7 +9,7 @@ def pose_stack_from_canonical_form(
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Optional[Tensor[torch.int32][:, :, :]] = None,
-    disulfides: Optional[Tensor[torch.int32][:, 3]] = None,
+    disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
 ) -> PoseStack:
     """Create a PoseStack given atom coordinates in canonical ordering
 

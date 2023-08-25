@@ -55,7 +55,7 @@ def find_disulfides(
     cys_pose_ind, cys_res_ind = torch.nonzero(cys_res, as_tuple=True)
     if cys_pose_ind.shape[0] == 0:
         return (
-            torch.zeros((0, 3), dtype=torch.int32, device=res_types.device),
+            torch.zeros((0, 3), dtype=torch.int64, device=res_types.device),
             restype_variants,
         )
 

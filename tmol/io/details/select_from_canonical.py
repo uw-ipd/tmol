@@ -22,7 +22,7 @@ def assign_block_types(
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     res_type_variants: Tensor[torch.int32][:, :],
-    found_disulfides: Tensor[torch.int32][:, 3],
+    found_disulfides64: Tensor[torch.int64][:, 3],
 ):
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(pbt)
@@ -149,8 +149,7 @@ def assign_block_types(
         1,  # connection id
     ] = connected_up_conn_inds
 
-    if found_disulfides.shape[0] != 0:
-        found_disulfides64 = found_disulfides.to(torch.int64)
+    if found_disulfides64.shape[0] != 0:
         cyd1_block_type64 = block_type_ind64[
             found_disulfides64[:, 0], found_disulfides64[:, 1]
         ]
@@ -208,6 +207,14 @@ def assign_block_types(
     )
 
     # 4
+    # # SHORT CIRCUIT
+    # inter_block_bondsep64 = torch.full(
+    #     (n_poses, max_n_res, max_n_res, max_n_conn, max_n_conn),
+    #     6,
+    #     dtype=torch.int64,
+    #     device=pbt.device,
+    # )
+
     ibb64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
         pbt, block_n_conn, pose_n_pconn, pconn_matrix
     )

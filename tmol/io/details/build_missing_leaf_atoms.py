@@ -65,6 +65,9 @@ def build_missing_leaf_atoms(
     )
     pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
 
+    # SHORT CIRCUIT
+    # return (pose_like_coords, block_coord_offset)
+
     block_at_is_leaf = torch.zeros(
         (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.int32, device=device
     )

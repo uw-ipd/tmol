@@ -52,6 +52,14 @@ def resolve_his_tautomerization(
     Tensor[torch.float32][:, :, :, 3],
     Tensor[torch.int32][:, :, :],
 ]:
+    # short circuit
+    # return (
+    #     torch.zeros_like(res_types),
+    #     res_type_variants,
+    #     coords,
+    #     atom_is_present
+    # )
+
     # TEMP! Do it in numpy/numba for now
     # This will be slower than if the tensors were
     # to remain resident on the GPU and should be
