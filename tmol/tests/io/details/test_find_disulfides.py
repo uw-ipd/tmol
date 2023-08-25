@@ -147,3 +147,44 @@ def test_find_disulf_in_pdb(pertuzumab_lines):
     restype_variants_gold[found_dslf_gold[:, 0], found_dslf_gold[:, 2]] = 1
 
     numpy.testing.assert_equal(restype_variants, restype_variants_gold)
+
+
+def test_find_disulf_w_some_provided(pertuzumab_lines):
+    chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
+        pertuzumab_lines
+    )
+    assert chain_id.shape[0] == res_types.shape[0]
+    assert chain_id.shape[0] == coords.shape[0]
+    assert chain_id.shape[0] == atom_is_present.shape[0]
+    assert chain_id.shape[1] == res_types.shape[1]
+    assert chain_id.shape[1] == coords.shape[1]
+    assert chain_id.shape[1] == atom_is_present.shape[1]
+
+    chain_id = torch.tensor(chain_id, dtype=torch.int32)
+    res_types = torch.tensor(res_types, dtype=torch.int32)
+    coords = torch.tensor(coords, dtype=torch.float32)
+    atom_is_present = torch.tensor(atom_is_present, dtype=torch.int32)
+
+    # let's imagine that [0, 213, 435] is a surprise disulfide!
+    disulfides = torch.tensor(
+        [[0, 22, 87], [0, 133, 193], [0, 235, 309], [0, 359, 415]], dtype=torch.int64
+    )
+
+    found_dslf, restype_variants = find_disulfides(
+        res_types, coords, atom_is_present, disulfides
+    )
+    found_dslf = found_dslf.cpu().numpy()
+
+    # because 213-435 is "found last" it will appear at the end of the list
+    found_dslf_gold = numpy.array(
+        [[0, 22, 87], [0, 133, 193], [0, 235, 309], [0, 359, 415], [0, 213, 435]],
+        dtype=numpy.int64,
+    )
+    numpy.testing.assert_equal(found_dslf, found_dslf_gold)
+
+    restype_variants = restype_variants.cpu().numpy()
+    restype_variants_gold = numpy.zeros_like(restype_variants)
+    restype_variants_gold[found_dslf_gold[:, 0], found_dslf_gold[:, 1]] = 1
+    restype_variants_gold[found_dslf_gold[:, 0], found_dslf_gold[:, 2]] = 1
+
+    numpy.testing.assert_equal(restype_variants, restype_variants_gold)

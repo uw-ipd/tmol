@@ -20,7 +20,7 @@ def find_disulfides(
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Tensor[torch.int32][:, :, :],
-    disulfides: Optional[Tensor[torch.int32][:, 3]] = None,
+    disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     cutoff_dis: float = 2.5,
 ):
     # short circuit:
@@ -63,16 +63,17 @@ def find_disulfides(
     coords_n = coords.detach().cpu().numpy()
     atom_is_present_n = atom_is_present.cpu().numpy()
     cys_res_n = cys_res.cpu().numpy()
-    cys_pose_ind = cys_pose_ind.cpu().numpy()
-    cys_res_ind = cys_res_ind.cpu().numpy()
+    cys_pose_ind_n = cys_pose_ind.cpu().numpy()
+    cys_res_ind_n = cys_res_ind.cpu().numpy()
 
     n_cys = cys_pose_ind.shape[0]
-    found_disulfides = numpy.zeros((n_cys, 3), dtype=numpy.int32)
+    found_disulfides = numpy.zeros((n_cys, 3), dtype=numpy.int64)
 
     if disulfides is not None and disulfides.shape[0] != 0:
         input_disulfides_n = disulfides.cpu().numpy()
         n_input_dslf = input_disulfides_n.shape[0]
         found_disulfides[:n_input_dslf] = input_disulfides_n
+        restype_variants = restype_variants.cpu().numpy()
     else:
         n_input_dslf = 0
         restype_variants = numpy.full_like(res_types_n, 0)
@@ -81,24 +82,24 @@ def find_disulfides(
         coords_n,
         n_input_dslf,
         found_disulfides,
-        cys_pose_ind,
-        cys_res_ind,
+        cys_pose_ind_n,
+        cys_res_ind_n,
         sg_atom_for_co_cys,
         cutoff_dis,
         restype_variants,
     )
 
-    def ti32(x):
-        return torch.tensor(x, dtype=torch.int32, device=coords.device)
-
-    return ti32(found_disulfides), ti32(restype_variants)
+    return (
+        torch.tensor(found_disulfides, dtype=torch.int64, device=coords.device),
+        torch.tensor(restype_variants, dtype=torch.int32, device=coords.device),
+    )
 
 
 @numba.jit(nopython=True)
 def find_disulf_numba(
     coords: NDArray[numpy.float32][:, :, :, 3],
     n_input_dslf: int,
-    found_dslf: NDArray[numpy.int32][:, 3],
+    found_dslf: NDArray[numpy.int64][:, 3],
     cys_pose_ind: NDArray[numpy.int64][:],
     cys_res_ind: NDArray[numpy.int64][:],
     sg_atom_for_co_cys: int,
