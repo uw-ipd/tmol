@@ -9,6 +9,7 @@ def pose_stack_from_canonical_form(
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Optional[Tensor[torch.int32][:, :, :]] = None,
+    disulfides: Optional[Tensor[torch.int32][:, 3]] = None,
 ) -> PoseStack:
     """Create a PoseStack given atom coordinates in canonical ordering
 
@@ -50,6 +51,18 @@ def pose_stack_from_canonical_form(
         the hydroxyl hydrogens on SER, THR, and TYR are recommended
         as tmol will build them suboptimally: at a dihedral of 180
         regardless of the presence of nearby hydrogen-bond acceptors
+
+    disulfides: an optional n-total-disulfides x 3 tensor. If this argument
+        is not provided, then the coordinates of SG atoms on CYS residues
+        will be used to determine which pairs are closest to each other and
+        within a cutoff distance of 2.5A and declare those SGs as forming
+        disulfide bonds. This means that SGs slightly longer than 2.5A
+        will not be detected. If you should know which pairs of cysteines
+        form disulfide bonds, then you can provide their pairing:
+        [ [pose_ind, cys1_ind, cys2_ind], ...]. If you provide this argument
+        then no other disulfides will be sought and the disulfide-detection
+        step will be skipped.
+
     """
 
     from tmol.io.details.canonical_packed_block_types import (
@@ -89,8 +102,9 @@ def pose_stack_from_canonical_form(
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(
-        res_types, coords, atom_is_present
+        res_types, coords, atom_is_present, disulfides
     )
+
     # 3
     (
         his_taut,

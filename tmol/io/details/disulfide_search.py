@@ -2,6 +2,7 @@ import numpy
 import torch
 import numba
 
+from typing import Optional
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
@@ -19,43 +20,90 @@ def find_disulfides(
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Tensor[torch.int32][:, :, :],
+    disulfides: Optional[Tensor[torch.int32][:, 3]] = None,
     cutoff_dis: float = 2.5,
 ):
+    # short circuit:
+    # return (
+    #     torch.zeros(
+    #         (torch.sum(res_types == cys_co_aa_ind), 3),
+    #         dtype=torch.int32,
+    #         device=res_types.device
+    #     ),
+    #     torch.zeros_like(res_types)
+    # )
+
+    cys_res = res_types == cys_co_aa_ind
+    restype_variants = torch.full_like(res_types, 0)
+    if disulfides is not None:
+        # mark the disulfide-bonded residues
+        restype_variants[disulfides[:, 0], disulfides[:, 1]] = 1
+        restype_variants[disulfides[:, 0], disulfides[:, 2]] = 1
+        unpaired_cys_present = torch.sum(
+            torch.logical_and(cys_res, restype_variants != 1)
+        )
+        # if all the cys in the PoseStack are paired, then we do not
+        # need to run disulfide detection;
+        if unpaired_cys_present == 0:
+            return disulfides, restype_variants
+
+    # else: we either have some disulfides and remaining unpaired CYS
+    # or we have not received any disulfides from the user
+    # we now proceed to detect paired cysteines
+
+    # avoid sending coordinates back to the CPU if there aren't any CYS
+    cys_pose_ind, cys_res_ind = torch.nonzero(cys_res, as_tuple=True)
+    if cys_pose_ind.shape[0] == 0:
+        return (
+            torch.zeros((0, 3), dtype=torch.int32, device=res_types.device),
+            restype_variants,
+        )
+
     res_types_n = res_types.cpu().numpy()
     coords_n = coords.detach().cpu().numpy()
     atom_is_present_n = atom_is_present.cpu().numpy()
+    cys_res_n = cys_res.cpu().numpy()
+    cys_pose_ind = cys_pose_ind.cpu().numpy()
+    cys_res_ind = cys_res_ind.cpu().numpy()
 
-    cys_pose_ind, cys_res_ind = numpy.nonzero(
-        numpy.logical_and(
-            res_types_n == cys_co_aa_ind,
-            atom_is_present_n[:, :, sg_atom_for_co_cys] != 0,
-        )
-    )
-    restype_variant_inds = numpy.full_like(res_types_n, 0)
+    n_cys = cys_pose_ind.shape[0]
+    found_disulfides = numpy.zeros((n_cys, 3), dtype=numpy.int32)
+
+    if disulfides is not None and disulfides.shape[0] != 0:
+        input_disulfides_n = disulfides.cpu().numpy()
+        n_input_dslf = input_disulfides_n.shape[0]
+        found_disulfides[:n_input_dslf] = input_disulfides_n
+    else:
+        n_input_dslf = 0
+        restype_variants = numpy.full_like(res_types_n, 0)
 
     found_disulfides = find_disulf_numba(
         coords_n,
+        n_input_dslf,
+        found_disulfides,
         cys_pose_ind,
         cys_res_ind,
         sg_atom_for_co_cys,
         cutoff_dis,
-        restype_variant_inds,
+        restype_variants,
     )
 
     def ti32(x):
         return torch.tensor(x, dtype=torch.int32, device=coords.device)
 
-    return ti32(found_disulfides), ti32(restype_variant_inds)
+    return ti32(found_disulfides), ti32(restype_variants)
 
 
 @numba.jit(nopython=True)
 def find_disulf_numba(
     coords: NDArray[numpy.float32][:, :, :, 3],
+    n_input_dslf: int,
+    found_dslf: NDArray[numpy.int32][:, 3],
     cys_pose_ind: NDArray[numpy.int64][:],
     cys_res_ind: NDArray[numpy.int64][:],
     sg_atom_for_co_cys: int,
     cutoff_dis: float,
-    restype_variant_inds: NDArray[numpy.int32][:, :],
+    restype_variants: NDArray[numpy.int32][:, :],
 ):
     # TEMP: Implement this in numpy/numba on the CPU to start
 
@@ -67,12 +115,17 @@ def find_disulf_numba(
     #    mark the two as now paired
 
     n_cys = cys_pose_ind.shape[0]
-    found_dslf = numpy.zeros((n_cys, 3), dtype=numpy.int32)
-    already_paired = numpy.zeros((n_cys,), dtype=numpy.int32)
-    n_found_dslf = 0
+    # oops -- doesn't work in nopython mode
+    # already_paired = restype_variants[cys_pose_ind, cys_res_ind] == 1
+    already_paired = numpy.zeros(n_cys, dtype=numpy.int32)
+    for i in range(n_cys):
+        already_paired[i] = restype_variants[cys_pose_ind[i], cys_res_ind[i]]
+    n_found_dslf = n_input_dslf
     cutoff_dis2 = cutoff_dis * cutoff_dis
 
-    for i in range(cys_pose_ind.shape[0]):
+    for i in range(n_cys):
+        if already_paired[i]:
+            continue
         i_pose = cys_pose_ind[i]
         i_res = cys_res_ind[i]
         closest_match = -1
@@ -100,8 +153,8 @@ def find_disulf_numba(
             found_dslf[n_found_dslf, 1] = i_res
             found_dslf[n_found_dslf, 2] = closest_match_res
             # mark these two as disulfides
-            restype_variant_inds[i_pose, i_res] = 1
-            restype_variant_inds[i_pose, closest_match_res] = 1
+            restype_variants[i_pose, i_res] = 1
+            restype_variants[i_pose, closest_match_res] = 1
             n_found_dslf += 1
     found_dslf = found_dslf[:n_found_dslf]
     return found_dslf
