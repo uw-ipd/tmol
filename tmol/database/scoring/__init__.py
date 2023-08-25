@@ -38,7 +38,7 @@ class ScoringDatabase:
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
             omega=OmegaDatabase.from_file(os.path.join(path, "omega.yaml")),
-            omega_bbdep=OmegaBBDepDatabase.from_file(
+            omega_bbdep=OmegaBBDepDatabase.from_files(
                 os.path.join(path, "omega_bbdep.yaml"),
                 os.path.join(path, "omega_bbdep.zip"),
             ),

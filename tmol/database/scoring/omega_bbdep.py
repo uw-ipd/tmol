@@ -10,7 +10,7 @@ from tmol.types.array import NDArray
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class BBDepOmegaMappingParams:
+class OmegaBBDepMappingParams:
     table_id: str
     res_middle: str
     res_upper: str = "_"
@@ -19,7 +19,7 @@ class BBDepOmegaMappingParams:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class BBDepOmegaTables:
+class OmegaBBDepTables:
     table_id: str
     mu: NDArray[float]
     sigma: NDArray[float]
@@ -27,13 +27,13 @@ class BBDepOmegaTables:
     bbstart: Tuple[float, float]
 
 
-def load_tables_from_zarr(path_tables):
+def load_bbdep_omega_tables_from_zarr(path_tables):
     alltables = []
     store = zarr.ZipStore(path_tables, mode="r")
     root = zarr.Group(store)
     for aa in root:
         alltables.append(
-            BBDepOmegaTables(
+            OmegaBBDepTables(
                 table_id=aa,
                 mu=numpy.array(root[aa]["mu"]),
                 sigma=numpy.array(root[aa]["sigma"]),
@@ -45,21 +45,25 @@ def load_tables_from_zarr(path_tables):
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class RamaDatabase:
+class OmegaBBDepDatabase:
     uniq_id: str  # unique id for memoization
-    rama_lookup: Tuple[BBDepOmegaMappingParams, ...]
-    rama_tables: Tuple[BBDepOmegaTables, ...]
+    bbdep_omega_lookup: Tuple[OmegaBBDepMappingParams, ...]
+    bbdep_omega_tables: Tuple[OmegaBBDepTables, ...]
 
     @classmethod
     def from_files(cls, path_lookup, path_tables):
         with open(path_lookup, "r") as infile_lookup:
             raw = yaml.safe_load(infile_lookup)
-            rama_lookup = cattr.structure(
-                raw["omega_bbdep_lookup"], attr.fields(cls).rama_lookup.type
+            bbdep_omega_lookup = cattr.structure(
+                raw["omega_bbdep_lookup"], attr.fields(cls).bbdep_omega_lookup.type
             )
 
-        rama_tables = load_tables_from_zarr(path_tables)
+        bbdep_omega_tables = load_bbdep_omega_tables_from_zarr(path_tables)
 
         uniq_id = path_lookup + "," + path_tables
 
-        return cls(uniq_id=uniq_id, rama_lookup=rama_lookup, rama_tables=rama_tables)
+        return cls(
+            uniq_id=uniq_id,
+            bbdep_omega_lookup=bbdep_omega_lookup,
+            bbdep_omega_tables=bbdep_omega_tables,
+        )
