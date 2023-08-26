@@ -205,7 +205,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
           block_type_atom_downstream_of_conn);
 
       // omega_atom_ind == -1 -> UAID resolution failed
-      if (omega_ats[i] != -1)
+      if (omega_ats[i] == -1)
         return;  // no omega and we already calculated rama
     }
 
@@ -214,7 +214,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
     }
 
     // accumulate omega
-    auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.6);
+    auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
+    printf("%f\n", common::get<0>(omega));
     accumulate<Dev, Real>::add(V[1][pose_ind], common::get<0>(omega));
     for (int j = 0; j < 4; ++j) {
       Vec<Real, 3> j_deriv = common::get<1>(omega).row(j);

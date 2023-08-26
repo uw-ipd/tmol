@@ -115,7 +115,6 @@ auto OmegaPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     }
 
     auto omega = omega_V_dV<D, Real, Int>(omegacoords, global_params[0].K);
-
     accumulate<D, Real>::add(V[0][pose_index], common::get<0>(omega));
     for (int j = 0; j < 4; ++j) {
       Vec<Real, 3> j_deriv = common::get<1>(omega).row(j);

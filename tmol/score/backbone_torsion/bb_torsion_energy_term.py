@@ -60,7 +60,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             ),
             dim=1,
         )
-        self.omega_tables = self.param_resolver.rama_params.tables
+        self.omega_tables = self.param_resolver.omega_params.tables
         self.omega_table_params = torch.cat(
             (
                 self.param_resolver.omega_params.bbstarts.to(torch.float32),

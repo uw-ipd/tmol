@@ -32,6 +32,7 @@ class BackboneTorsionWholePoseScoringModule(torch.nn.Module):
         )
         self.bt_atom_downstream_of_conn = _p(bt_atom_downstream_of_conn)
         self.bt_rama_table = _p(bt_rama_table)
+        self.bt_omega_table = _p(bt_omega_table)
         self.bt_upper_conn_ind = _p(bt_upper_conn_ind)
         self.bt_is_pro = _p(bt_is_pro)
         self.bt_backbone_torsion_atoms = _p(bt_backbone_torsion_atoms)
@@ -48,11 +49,12 @@ class BackboneTorsionWholePoseScoringModule(torch.nn.Module):
             self.pose_stack_inter_residue_connections,
             self.bt_atom_downstream_of_conn,
             self.bt_rama_table,
+            self.bt_omega_table,
             self.bt_upper_conn_ind,
             self.bt_is_pro,
             self.bt_backbone_torsion_atoms,
             self.rama_tables,
-            self.omega_tables,
             self.rama_table_params,
+            self.omega_tables,
             self.omega_table_params,
         )

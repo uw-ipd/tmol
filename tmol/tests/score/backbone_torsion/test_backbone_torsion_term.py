@@ -54,7 +54,7 @@ def test_annotate_restypes(
 
 
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
-    gold_vals = numpy.array([[-12.743369]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-12.743369], [6.741275]], dtype=numpy.float32)
     backbone_torsion_energy = BackboneTorsionEnergyTerm(
         param_db=default_database, device=torch_device
     )
@@ -75,7 +75,7 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
 
     # make sure we're still good
     numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-3, rtol=1e-3
+        gold_vals, scores.cpu().detach().numpy(), atol=1e-3, rtol=0
     )
 
 
@@ -110,14 +110,16 @@ def test_whole_pose_scoring_module_gradcheck_partial_pose(
         (p1.coords.requires_grad_(True),),
         eps=1e-3,
         atol=1e-2,
-        rtol=1e-2,
+        rtol=0,
         nondet_tol=1e-3,
     )
 
 
 def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
     n_poses = 10
-    gold_vals = numpy.tile(numpy.array([[-12.743369]], dtype=numpy.float32), (n_poses))
+    gold_vals = numpy.tile(
+        numpy.array([[-12.743369], [6.741275]], dtype=numpy.float32), (n_poses)
+    )
     backbone_torsion_energy = BackboneTorsionEnergyTerm(
         param_db=default_database, device=torch_device
     )
