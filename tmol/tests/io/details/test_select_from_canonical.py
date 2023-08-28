@@ -64,6 +64,107 @@ def test_assign_block_types(torch_device, ubq_pdb):
     numpy.testing.assert_equal(block_types.cpu().numpy(), ubq_bt_inds)
 
 
+def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_device):
+    # torch_device = torch.device("cpu")
+    pert_and_erbb2_lines, seg_lengths = pert_and_nearby_erbb2
+    # print("pert and erbb2")
+    # print(pert_and_erbb2_lines)
+
+    pbt, atr = default_canonical_packed_block_types(torch_device)
+    PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
+
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        pert_and_erbb2_lines
+    )
+    # print("ch_id:")
+    # print(ch_id.shape)
+    seg_range_end = numpy.cumsum(numpy.array(seg_lengths, dtype=numpy.int32))
+    seg_range_start = numpy.concatenate(
+        (numpy.zeros((1,), dtype=numpy.int32), seg_range_end[:-1])
+    )
+    n_res_tot = seg_range_end[-1]
+    # print("seg_range_start", seg_range_start)
+    # print("seg_range_end", seg_range_end)
+    res_not_connected = numpy.zeros((1, n_res_tot, 2), dtype=numpy.bool)
+    # do not make any of the ERBB2 residues n- or c-termini,
+    # and also do not connect residues that are both part of that chain
+    # that span gaps
+    res_not_connected[0, seg_range_start[2:], 0] = True
+    res_not_connected[0, seg_range_end[2:] - 1, 1] = True
+    res_not_connected = torch.tensor(res_not_connected, device=torch_device)
+
+    ch_id = torch.tensor(ch_id, device=torch_device)
+    can_rts = torch.tensor(can_rts, device=torch_device)
+    coords = torch.tensor(coords, device=torch_device)
+    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+
+    # 2
+    found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
+    # 3
+    (
+        his_taut,
+        res_type_variants,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = resolve_his_tautomerization(can_rts, res_type_variants, coords, at_is_pres)
+
+    # now we'll invoke assign_block_types
+    (
+        block_types,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        pbt, ch_id, can_rts, res_type_variants, found_disulfides, res_not_connected
+    )
+
+    assert block_types.device == torch_device
+    assert inter_residue_connections64.device == torch_device
+    assert inter_residue_connections64.dtype == torch.int64
+
+    block_types = block_types.cpu().numpy()
+    inter_residue_connections64 = inter_residue_connections64.cpu().numpy()
+
+    disconn_seg_start = set([x for x in seg_range_start[2:]])
+    disconn_seg_end = set([x - 1 for x in seg_range_end[2:]])
+    # print("disconn_seg_start")
+    # print(disconn_seg_start)
+    # print("disconn_seg_end")
+    # print(disconn_seg_end)
+
+    for i, bt_ind in enumerate(block_types[0, :]):
+        bt = pbt.active_block_types[bt_ind]
+        if i == 0 or i == seg_range_start[1]:
+            assert bt.name.partition(":")[2] == "nterm"
+            # cterm connection index is 0 for nterm-patched types
+            assert inter_residue_connections64[0, i, 0, 0] == i + 1
+            assert inter_residue_connections64[0, i, 0, 1] == 0
+        elif i == seg_range_end[0] - 1 or i == seg_range_end[1] - 1:
+            assert bt.name.partition(":")[2] == "cterm"
+            assert inter_residue_connections64[0, i, 0, 0] == i - 1
+            assert inter_residue_connections64[0, i, 0, 1] == 1
+        else:
+            assert bt.name.partition(":")[2] == ""
+            if i in disconn_seg_start:
+                assert inter_residue_connections64[0, i, 0, 0] == -1
+                assert inter_residue_connections64[0, i, 0, 1] == -1
+                assert inter_residue_connections64[0, i, 1, 0] == i + 1
+                assert inter_residue_connections64[0, i, 1, 1] == 0
+            elif i in disconn_seg_end:
+                assert inter_residue_connections64[0, i, 0, 0] == i - 1
+                assert inter_residue_connections64[0, i, 0, 1] == 1
+                assert inter_residue_connections64[0, i, 1, 0] == -1
+                assert inter_residue_connections64[0, i, 1, 1] == -1
+            else:
+                assert inter_residue_connections64[0, i, 0, 0] == i - 1
+                if i - 1 == 0 or i - 1 == seg_range_start[1]:
+                    # previous res is nterm
+                    assert inter_residue_connections64[0, i, 0, 1] == 0
+                else:
+                    assert inter_residue_connections64[0, i, 0, 1] == 1
+                assert inter_residue_connections64[0, i, 1, 0] == i + 1
+                assert inter_residue_connections64[0, i, 1, 1] == 0
+
+
 def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)

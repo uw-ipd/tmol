@@ -10,6 +10,7 @@ def pose_stack_from_canonical_form(
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Optional[Tensor[torch.int32][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
+    res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
 ) -> PoseStack:
     """Create a PoseStack given atom coordinates in canonical ordering
 
@@ -62,6 +63,16 @@ def pose_stack_from_canonical_form(
         [ [pose_ind, cys1_ind, cys2_ind], ...]. If you provide this argument
         then no other disulfides will be sought and the disulfide-detection
         step will be skipped.
+
+    res_not_connected: an optional input used to indicate that a given (polymeric)
+        residue is not connected to either its previous or next residue; for
+        termini residues, they will not be built with their termini-variant
+        types. The purpose is to allow the user to include a subset of the
+        residues in a protein where a series of "gap" residues can be omitted
+        between i and i+1 without those two residues being treated as if they
+        are chemically bonded. This will keep the Ramachandran term from scoring
+        nonsense dihdral angles and will keep the cart-bonded term from scoring
+        nonsense bond lengths and angles.
 
     """
 
@@ -124,7 +135,7 @@ def pose_stack_from_canonical_form(
         inter_residue_connections64,
         inter_block_bondsep64,
     ) = assign_block_types(
-        pbt, chain_id, res_types, res_type_variants, found_disulfides
+        pbt, chain_id, res_types, res_type_variants, found_disulfides, res_not_connected
     )
 
     # 6

@@ -42,7 +42,6 @@ def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
     scorer = sfxn.render_whole_pose_scoring_module(ps)
     sc = scorer(ps.coords)
     assert len(sc.shape) == 1
-    print(sc)
 
     @benchmark
     def create_and_score_pose_stack():
@@ -99,7 +98,6 @@ def test_build_and_score_pertuzumab_benchmark(benchmark, pertuzumab_lines, n_pos
     scorer = sfxn.render_whole_pose_scoring_module(ps)
     sc = scorer(ps.coords)
     assert len(sc.shape) == 1
-    print(sc)
 
     @benchmark
     def create_and_score_pose_stack():

@@ -1,6 +1,7 @@
 import numpy
 import torch
 
+from typing import Optional
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
@@ -23,6 +24,7 @@ def assign_block_types(
     res_types: Tensor[torch.int32][:, :],
     res_type_variants: Tensor[torch.int32][:, :],
     found_disulfides64: Tensor[torch.int64][:, 3],
+    res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
 ):
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(pbt)
@@ -40,15 +42,48 @@ def assign_block_types(
     canonical_res_ordering_map = pbt.canonical_res_ordering_map
     res_types64 = res_types.to(torch.int64)
     res_type_variants64 = res_type_variants.to(torch.int64)
-    real_res = res_types64 != -1
+    is_real_res = res_types64 != -1
+
+    if res_not_connected is None:
+        res_not_connected = torch.zeros(
+            (n_poses, max_n_res, 2), dtype=torch.bool, device=device
+        )
 
     # assert torch.all(
-    #     real_res[chain_begin == 1]
+    #     is_real_res[chain_begin == 1]
     # ), "every residue marked as the beginning of a chain must be real"
+
+    # we are going to modify the chain_id tensor, perhaps to the detriment of the caller,
+    # so clone it.
+    # mark the chain id for any un-real residue as -1
+    # then the n-term residues will have a different chain id
+    # from their i-1 residues
     chain_id = chain_id.clone()
     chain_id[res_types64 == -1] = -1
-    n_term_res = torch.logical_and(
-        real_res,
+
+    # logic for deciding what chemical bonds are present between the polymeric
+    # residues and which residues should be represented as termini:
+    # - The first and last residues in a chain are not connected to the
+    #   previous / next residues
+    # - If res_not_connected[p, i, 0] is true, then this residue will not
+    #   be connected to i-1;
+    # - If res_not_connected[p, i, 1] is true, then this residue will not
+    #   be connected to i+1
+    # - Thus: for residue i and i+1 to be connected, all the following must hold:
+    #   - i cannot be the last residue in a chain
+    #   - (equivalently, i+1 cannot be the first residue in a chain)
+    #   - res_not_connected[p, i, 1] must be false
+    #   - res_not_connected[p, i+1, 0] must be false
+    # - If a residue is the first residue in a chain and res_not_connected[p, i, 0]
+    #   is true, then it will not be treated as an n-terminal residue, rather,
+    #   it will be treated as a "mid" residue (unless it is also a c-term residue)
+    #   and, in the case of amino acids, will have a regular H atom bonded to N
+    #   instead of the 1H, 2H, and 3H atoms. Its connection to the "previous" residue
+    #   will be incomplete (-1) instead of to a particular residue.
+    # - If a residue is the last residue in a chain and res_not_connected[p, i, 1]
+    #   is true, then it will not be treated as a c-terminal residue.
+    chain_first_res = torch.logical_and(
+        is_real_res,
         torch.cat(
             (
                 torch.ones((n_poses, 1), dtype=torch.bool, device=device),
@@ -57,8 +92,8 @@ def assign_block_types(
             dim=1,
         ),
     )
-    c_term_res = torch.logical_and(
-        real_res,
+    chain_last_res = torch.logical_and(
+        is_real_res,
         torch.cat(
             (
                 chain_id[:, :-1] != chain_id[:, 1:],  # is i different from i+1?
@@ -67,16 +102,24 @@ def assign_block_types(
             dim=1,
         ),
     )
-    # soon
+    n_term_res = torch.logical_and(
+        chain_first_res, torch.logical_not(res_not_connected[:, :, 0])
+    )
+    c_term_res = torch.logical_and(
+        chain_last_res, torch.logical_not(res_not_connected[:, :, 1])
+    )
+
     termini_variants = torch.ones_like(res_types, dtype=torch.int64)
     termini_variants[n_term_res] = 0
     termini_variants[c_term_res] = 2
 
-    # TEMP! treat everything as a "mid" (1) termini type
     block_type_ind64 = torch.full_like(res_types64, -1)
-    block_type_ind64[real_res] = canonical_res_ordering_map[
-        res_types64[real_res], termini_variants[real_res], res_type_variants64[real_res]
+    block_type_ind64[is_real_res] = canonical_res_ordering_map[
+        res_types64[is_real_res],
+        termini_variants[is_real_res],
+        res_type_variants64[is_real_res],
     ]
+
     # print("block_type_ind64[:10]", block_type_ind64[0, :10])
     # print("res_types64[21]", res_types64[0, 21])
     # print("res_type_variants64[21]", res_type_variants64[0, 21])
@@ -93,62 +136,73 @@ def assign_block_types(
         (n_poses, max_n_res, max_n_conn, 2), -1, dtype=torch.int64, device=device
     )
 
-    # we are going to modify the chain_id tensor, perhaps to the detriment of the caller,
-    # so clone it.
-    # mark the chain id for any un-real residue as -1
-    # then the n-term residues will have a different chain id
-    # from their i-1 residues
-    res_is_real_and_not_n_term = real_res.clone()
-    res_is_real_and_not_n_term[n_term_res] = False
+    # is a residue both real and connected to the previous residue?
+    res_is_real_and_conn_to_prev = torch.logical_and(
+        is_real_res,
+        torch.logical_and(
+            torch.logical_not(chain_first_res),
+            torch.logical_not(res_not_connected[:, :, 0]),
+        ),
+    )
+    res_is_real_and_conn_to_next = torch.logical_and(
+        is_real_res,
+        torch.logical_and(
+            torch.logical_not(chain_last_res),
+            torch.logical_not(res_not_connected[:, :, 1]),
+        ),
+    )
 
-    res_is_real_and_not_c_term = real_res.clone()
     n_pose_arange = torch.arange(n_poses, dtype=torch.int64, device=device)
-    n_res = torch.sum(real_res, dim=1)
-    res_is_real_and_not_c_term[n_pose_arange, n_res - 1] = False
-    res_is_real_and_not_c_term[c_term_res] = False
+    n_res = torch.sum(is_real_res, dim=1)
 
     connected_up_conn_inds = pbt.up_conn_inds[
-        block_type_ind64[res_is_real_and_not_c_term]
+        block_type_ind64[res_is_real_and_conn_to_next]
     ].to(torch.int64)
     connected_down_conn_inds = pbt.down_conn_inds[
-        block_type_ind64[res_is_real_and_not_n_term]
+        block_type_ind64[res_is_real_and_conn_to_prev]
     ].to(torch.int64)
 
     (
-        nz_res_is_real_and_not_n_term_pose_ind,
-        nz_res_is_real_and_not_n_term_res_ind,
-    ) = torch.nonzero(res_is_real_and_not_n_term, as_tuple=True)
+        nz_res_is_real_and_conn_to_prev_pose_ind,
+        nz_res_is_real_and_conn_to_prev_res_ind,
+    ) = torch.nonzero(res_is_real_and_conn_to_prev, as_tuple=True)
     (
-        nz_res_is_real_and_not_c_term_pose_ind,
-        nz_res_is_real_and_not_c_term_res_ind,
-    ) = torch.nonzero(res_is_real_and_not_c_term, as_tuple=True)
+        nz_res_is_real_and_conn_to_next_pose_ind,
+        nz_res_is_real_and_conn_to_next_res_ind,
+    ) = torch.nonzero(res_is_real_and_conn_to_next, as_tuple=True)
 
+    # now let's mark for each upper-connect the residue and
+    # connection id it's connected to
     inter_residue_connections64[
-        nz_res_is_real_and_not_c_term_pose_ind,
-        nz_res_is_real_and_not_c_term_res_ind,
+        nz_res_is_real_and_conn_to_next_pose_ind,
+        nz_res_is_real_and_conn_to_next_res_ind,
         connected_up_conn_inds,
         0,  # residue id
-    ] = nz_res_is_real_and_not_n_term_res_ind
+    ] = nz_res_is_real_and_conn_to_prev_res_ind
     inter_residue_connections64[
-        nz_res_is_real_and_not_c_term_pose_ind,
-        nz_res_is_real_and_not_c_term_res_ind,
+        nz_res_is_real_and_conn_to_next_pose_ind,
+        nz_res_is_real_and_conn_to_next_res_ind,
         connected_up_conn_inds,
         1,  # connection id
     ] = connected_down_conn_inds
 
+    # now let's mark for each lower-connect the residue and
+    # connection id it's connected to
     inter_residue_connections64[
-        nz_res_is_real_and_not_n_term_pose_ind,
-        nz_res_is_real_and_not_n_term_res_ind,
+        nz_res_is_real_and_conn_to_prev_pose_ind,
+        nz_res_is_real_and_conn_to_prev_res_ind,
         connected_down_conn_inds,
         0,  # residue id
-    ] = nz_res_is_real_and_not_c_term_res_ind
+    ] = nz_res_is_real_and_conn_to_next_res_ind
     inter_residue_connections64[
-        nz_res_is_real_and_not_n_term_pose_ind,
-        nz_res_is_real_and_not_n_term_res_ind,
+        nz_res_is_real_and_conn_to_prev_pose_ind,
+        nz_res_is_real_and_conn_to_prev_res_ind,
         connected_down_conn_inds,
         1,  # connection id
     ] = connected_up_conn_inds
 
+    # if we have any disulfides, then we need to also mark those
+    # connections in the inter_residue_connections64 map
     if found_disulfides64.shape[0] != 0:
         cyd1_block_type64 = block_type_ind64[
             found_disulfides64[:, 0], found_disulfides64[:, 1]
@@ -156,13 +210,9 @@ def assign_block_types(
         cyd2_block_type64 = block_type_ind64[
             found_disulfides64[:, 0], found_disulfides64[:, 2]
         ]
-        # print("cyd1_block_type64:", cyd1_block_type64)
-        # print("cyd2_block_type64:", cyd2_block_type64)
-        # print([pbt.active_block_types[x].name for x in cyd1_block_type64])
-        # print([pbt.active_block_types[x].name for x in cyd2_block_type64])
 
-        # n- and c-term cyd residues will have different dslf connection inds
-        # than mid-cyd residues; don't just hard code "2" here
+        # n- and c-term CYD residues will have different dslf connection inds
+        # than mid-cyd residues; therefore we don't just hard code "2" here
         cyd1_dslf_conn64 = pbt.canonical_dslf_conn_ind[cyd1_block_type64].to(
             torch.int64
         )
@@ -188,9 +238,10 @@ def assign_block_types(
             found_disulfides64[:, 0], found_disulfides64[:, 2], cyd2_dslf_conn64, 1
         ] = cyd1_dslf_conn64
 
-    # now that we have the inter-residue connections sorted,
+    # now that we have the inter-residue connections established,
     # proceed with the rest of the PoseStackBuilder's steps
-    # in constructing the inter_block_bondsep tensor
+    # in constructing the inter_block_bondsep tensor using the
+    # all-pairs-shortest-path algorithm
     # 3a
     (
         pconn_matrix,
@@ -198,7 +249,7 @@ def assign_block_types(
         block_n_conn,
         pose_n_pconn,
     ) = PoseStackBuilder._take_real_conn_conn_intrablock_pairs(
-        pbt, block_type_ind64, real_res
+        pbt, block_type_ind64, is_real_res
     )
 
     # 3b
@@ -206,7 +257,6 @@ def assign_block_types(
         inter_residue_connections64, pconn_offsets, pconn_matrix
     )
 
-    # 4
     # # SHORT CIRCUIT
     # inter_block_bondsep64 = torch.full(
     #     (n_poses, max_n_res, max_n_res, max_n_conn, max_n_conn),
@@ -215,12 +265,14 @@ def assign_block_types(
     #     device=pbt.device,
     # )
 
+    # 4
+    # bad naming because python is annoying that way:
+    # inter_block_bondsep64 <= ibb64
     ibb64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
         pbt, block_n_conn, pose_n_pconn, pconn_matrix
     )
-    inter_block_bondsep64 = ibb64
 
-    return (block_type_ind64, inter_residue_connections64, inter_block_bondsep64)
+    return (block_type_ind64, inter_residue_connections64, ibb64)
 
 
 @validate_args

@@ -27,6 +27,7 @@ from .data import (  # noqa: F401
     water_box_res,
     systems_bysize,
     pertuzumab_lines,
+    pert_and_nearby_erbb2,
 )
 
 from .chemical import (  # noqa: F401
