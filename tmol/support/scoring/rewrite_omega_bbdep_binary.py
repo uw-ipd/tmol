@@ -51,10 +51,10 @@ def zarr_from_db(r3_bbdepomega_dir, output_path):
             group_aa = zgroup.create_group(aa)
             mu_aa = group_aa.create_dataset("mu", data=mu)
             mu_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
-            mu_aa.attrs["bbstart"] = [0.0, 0.0]
+            mu_aa.attrs["bbstart"] = [numpy.pi / 36.0, numpy.pi / 36.0]
             sigma_aa = group_aa.create_dataset("sigma", data=sig)
             sigma_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
-            sigma_aa.attrs["bbstart"] = [0.0, 0.0]
+            sigma_aa.attrs["bbstart"] = [numpy.pi / 36.0, numpy.pi / 36.0]
 
 
 if __name__ == "__main__":

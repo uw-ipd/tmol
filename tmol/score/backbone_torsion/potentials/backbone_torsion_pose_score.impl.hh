@@ -124,9 +124,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
     int const upper_nbr_is_pro = block_type_is_pro[upper_nbr_bt];
     int const rama_table_ind =
         block_type_rama_table[block_type][upper_nbr_is_pro];
-    if (rama_table_ind < 0) {
-      return;
-    }
+    int const omega_table_ind =
+        block_type_omega_table[block_type][upper_nbr_is_pro];
 
     int const offset_this_block_ind =
         pose_stack_block_coord_offset[pose_ind][block_ind];
@@ -168,7 +167,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
     }
 
     // accumulate rama
-    if (valid_torsion) {
+    if (valid_torsion && rama_table_ind >= 0) {
       auto rama = rama_V_dV<Dev, Real, Int>(
           phi_coords,
           psi_coords,
@@ -182,6 +181,10 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
         accumulate<Dev, Vec<Real, 3>>::add(
             dV_dxyz[0][pose_ind][psi_ats[j]], common::get<2>(rama).row(j));
       }
+    }
+
+    if (rama_table_ind < 0) {
+      return;
     }
 
     CoordQuad<Real> omega_coords;
@@ -213,9 +216,22 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
       omega_coords.row(i) = coords[pose_ind][omega_ats[i]];
     }
 
-    // accumulate omega
-    auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
-    printf("%f\n", common::get<0>(omega));
+    tuple<Real, CoordQuad<Real>> omega;
+    if (valid_torsion && rama_table_ind >= 0) {
+      omega = omega_bbdep_V_dV<Dev, Real, Int>(
+          phi_coords,
+          psi_coords,
+          omega_coords,
+          omega_tables[omega_table_ind][0],
+          omega_tables[omega_table_ind][1],
+          Eigen::Map<Vec<Real, 2>>(
+              omega_table_params[omega_table_ind].bbstarts),
+          Eigen::Map<Vec<Real, 2>>(omega_table_params[omega_table_ind].bbsteps),
+          32.8);
+    } else {
+      // if rama is undefined, fall back to old version
+      omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
+    }
     accumulate<Dev, Real>::add(V[1][pose_ind], common::get<0>(omega));
     for (int j = 0; j < 4; ++j) {
       Vec<Real, 3> j_deriv = common::get<1>(omega).row(j);

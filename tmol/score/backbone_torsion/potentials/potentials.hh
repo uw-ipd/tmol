@@ -97,6 +97,70 @@ def omega_V_dV(CoordQuad omega, Real K)->tuple<Real, CoordQuad> {
   return {V, dVdomega * dV_domegaatm};
 }
 
+// bb-dep version of omega
+template <tmol::Device D, typename Real, typename Int>
+def omega_bbdep_V_dV(
+    CoordQuad phi,
+    CoordQuad psi,
+    CoordQuad omega,
+    TensorAccessor<Real, 2, D> coeffs_mu,
+    TensorAccessor<Real, 2, D> coeffs_sig,
+    Real2 bbstart,
+    Real2 bbstep,
+    Real K)
+    ->tuple<Real, CoordQuad> {
+  Real V;
+  Real dVdomega, dVdphi = 0.0, dVdpsi = 0.0;
+  CoordQuad dV_domegaatm;
+
+  auto omegaang = dihedral_angle<Real>::V_dV(
+      omega.row(0), omega.row(1), omega.row(2), omega.row(3));
+
+  // note: the angle returned by dihedral_angle is in [-pi,pi]
+  if (omegaang.V > -0.5 * EIGEN_PI && omegaang.V < 0.5 * EIGEN_PI) {
+    // cis omega, use simple version
+    tie(V, dV_domegaatm) = omega_V_dV<D, Real, Int>(omega, K);
+  } else {
+    auto phiang = dihedral_angle<Real>::V_dV(
+        phi.row(0), phi.row(1), phi.row(2), phi.row(3));
+    auto psiang = dihedral_angle<Real>::V_dV(
+        psi.row(0), psi.row(1), psi.row(2), psi.row(3));
+
+    Real mu, sig;
+    Real2 dmudphipsi, dsigdphipsi;
+
+    Real2 phipsi_idx;
+    phipsi_idx[0] = (phiang.V - bbstart[0]) / bbstep[0];
+    phipsi_idx[1] = (psiang.V - bbstart[1]) / bbstep[1];
+
+    tie(mu, dmudphipsi) =
+        tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
+            coeffs_mu, phipsi_idx);
+    tie(sig, dsigdphipsi) =
+        tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
+            coeffs_sig, phipsi_idx);
+
+    // energy
+    Real normalization = log(1 / (6 * sqrt(2 * EIGEN_PI)));
+    Real entropy = -log(1 / (sig * sqrt(2 * EIGEN_PI)));
+    Real offset = omegaang.V * 180.0 / EIGEN_PI - mu;
+    if (offset < -180.0) {
+      offset += 360.0;
+    }
+    Real logprob = offset * offset / (2 * sig * sig);
+    V = normalization + entropy + logprob;
+
+    // V = K * omega_offset * omega_offset;
+    // dVdomega = 2 * K * omega_offset;
+
+    // dV_domegaatm.row(0) = omegaang.dV_dI;
+    // dV_domegaatm.row(1) = omegaang.dV_dJ;
+    // dV_domegaatm.row(2) = omegaang.dV_dK;
+    // dV_domegaatm.row(3) = omegaang.dV_dL;
+  }
+  return {V, dV_domegaatm};
+}
+
 #undef Real2
 #undef CoordQuad
 
