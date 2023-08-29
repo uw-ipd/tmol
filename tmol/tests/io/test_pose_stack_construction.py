@@ -2,7 +2,7 @@ import torch
 import numpy
 
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
-from tmol.io.basic_resolution import pose_stack_from_canonical_form
+from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):

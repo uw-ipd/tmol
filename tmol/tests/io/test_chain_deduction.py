@@ -4,7 +4,7 @@ import torch
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io.chain_deduction import chain_inds_for_pose_stack
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
-from tmol.io.basic_resolution import pose_stack_from_canonical_form
+from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 def test_deduce_chains_for_monomer(ubq_res, default_restype_set, torch_device):

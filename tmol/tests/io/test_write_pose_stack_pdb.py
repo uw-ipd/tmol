@@ -8,7 +8,7 @@ from tmol.chemical.restypes import find_simple_polymeric_connections
 from tmol.io.pdb_parsing import to_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
-from tmol.io.basic_resolution import pose_stack_from_canonical_form
+from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 def test_atom_records_from_pose_stack_1(ubq_pdb, ubq_res, torch_device):
