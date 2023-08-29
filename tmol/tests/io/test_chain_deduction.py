@@ -34,15 +34,13 @@ def test_deduce_chains_two_monomers(ubq_res, default_restype_set, torch_device):
 
 
 def test_deduce_chains_dslf_dimer(pertuzumab_lines, torch_device):
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(pertuzumab_lines)
+    canonical_form = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
 
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+    pose_stack = pose_stack_from_canonical_form(*canonical_form)
 
-    pose_stack = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
-
+    # note that in this test case, there is a disulfide formed between the two
+    # chains and that this chemical bond should not be used to join the two
+    # chains into a single chain
     chain_inds = chain_inds_for_pose_stack(pose_stack)
 
     chain_inds_gold = numpy.zeros(
@@ -52,6 +50,6 @@ def test_deduce_chains_dslf_dimer(pertuzumab_lines, torch_device):
         ),
         dtype=numpy.int32,
     )
-    chain_inds_gold[0, 214:] = 1
+    chain_inds_gold[0, 214:] = 1  # there is a second chain
 
     numpy.testing.assert_equal(chain_inds_gold, chain_inds)

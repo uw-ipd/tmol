@@ -5,10 +5,14 @@ from tmol.io.canonical_ordering import (
 )
 
 
-def test_canonical_form_from_pdb_lines(pertuzumab_lines):
+def test_canonical_form_from_pdb_lines(pertuzumab_lines, torch_device):
     chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        pertuzumab_lines
+        pertuzumab_lines, torch_device
     )
+    assert chain_id.device == torch_device
+    assert res_types.device == torch_device
+    assert coords.device == torch_device
+    assert atom_is_present.device == torch_device
     assert chain_id.shape[0] == res_types.shape[0]
     assert chain_id.shape[0] == coords.shape[0]
     assert chain_id.shape[0] == atom_is_present.shape[0]
@@ -21,10 +25,10 @@ def test_canonical_form_from_pdb_lines(pertuzumab_lines):
     chain_id_gold = numpy.zeros(res_types.shape, dtype=numpy.int32)
     chain_id_gold[0, 214:] = 1
 
-    numpy.testing.assert_equal(chain_id_gold, chain_id)
+    numpy.testing.assert_equal(chain_id_gold, chain_id.cpu().numpy())
 
 
-def test_canonical_form_w_unk():
+def test_canonical_form_w_unk(torch_device):
     sam_pdb_lines = [
         "ATOM      1  N   MET B   1     -31.268  39.117  48.475  1.00 77.09           N\n",
         "ATOM      2  CA  MET B   1     -31.028  38.597  49.816  1.00 67.70           C\n",
@@ -82,8 +86,13 @@ def test_canonical_form_w_unk():
         "HETATM 6186  C4  SAM B 402     -15.231  13.034   5.166  1.00 53.49           C\n",
     ]
     chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        sam_pdb_lines
+        sam_pdb_lines, torch_device
     )
+
+    assert chain_id.device == torch_device
+    assert res_types.device == torch_device
+    assert coords.device == torch_device
+    assert atom_is_present.device == torch_device
 
     # three and not four residues because the SAM is ignored
     assert chain_id.shape == (1, 3)

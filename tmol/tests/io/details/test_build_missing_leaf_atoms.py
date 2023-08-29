@@ -23,12 +23,9 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     numpy.set_printoptions(threshold=100000)
 
     pbt, atr = default_canonical_packed_block_types(torch_device)
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
-
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        ubq_pdb, torch_device
+    )
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
@@ -179,12 +176,9 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
     # print(ubq_pdb)
 
     pbt, atr = default_canonical_packed_block_types(torch_device)
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
-
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        ubq_pdb, torch_device
+    )
 
     class FauxModule(torch.nn.Module):
         def __init__(self, coords):
@@ -269,16 +263,9 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
 
 def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     pbt, atr = default_canonical_packed_block_types(torch_device)
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb[:1458])
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
-
-    # print("coords")
-    # print(coords)
-    # print("at_is_pres")
-    # print(at_is_pres)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        ubq_pdb[:1458], torch_device
+    )
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
@@ -350,11 +337,9 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
 
 def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     pbt, atr = default_canonical_packed_block_types(torch_device)
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb[:810])
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        ubq_pdb[:810], torch_device
+    )
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)

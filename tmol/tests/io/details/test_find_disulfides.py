@@ -118,7 +118,7 @@ def test_find_disulfide_pairs():
 
 def test_find_disulf_in_pdb(pertuzumab_lines):
     chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        pertuzumab_lines
+        pertuzumab_lines, torch.device("cpu")
     )
     assert chain_id.shape[0] == res_types.shape[0]
     assert chain_id.shape[0] == coords.shape[0]
@@ -126,11 +126,6 @@ def test_find_disulf_in_pdb(pertuzumab_lines):
     assert chain_id.shape[1] == res_types.shape[1]
     assert chain_id.shape[1] == coords.shape[1]
     assert chain_id.shape[1] == atom_is_present.shape[1]
-
-    chain_id = torch.tensor(chain_id, dtype=torch.int32)
-    res_types = torch.tensor(res_types, dtype=torch.int32)
-    coords = torch.tensor(coords, dtype=torch.float32)
-    atom_is_present = torch.tensor(atom_is_present, dtype=torch.int32)
 
     found_dslf, restype_variants = find_disulfides(res_types, coords, atom_is_present)
     found_dslf = found_dslf.cpu().numpy()
@@ -151,7 +146,7 @@ def test_find_disulf_in_pdb(pertuzumab_lines):
 
 def test_find_disulf_w_some_provided(pertuzumab_lines):
     chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        pertuzumab_lines
+        pertuzumab_lines, torch.device("cpu")
     )
     assert chain_id.shape[0] == res_types.shape[0]
     assert chain_id.shape[0] == coords.shape[0]
@@ -159,11 +154,6 @@ def test_find_disulf_w_some_provided(pertuzumab_lines):
     assert chain_id.shape[1] == res_types.shape[1]
     assert chain_id.shape[1] == coords.shape[1]
     assert chain_id.shape[1] == atom_is_present.shape[1]
-
-    chain_id = torch.tensor(chain_id, dtype=torch.int32)
-    res_types = torch.tensor(res_types, dtype=torch.int32)
-    coords = torch.tensor(coords, dtype=torch.float32)
-    atom_is_present = torch.tensor(atom_is_present, dtype=torch.int32)
 
     # let's imagine that [0, 213, 435] is a surprise disulfide!
     disulfides = torch.tensor(
@@ -192,7 +182,7 @@ def test_find_disulf_w_some_provided(pertuzumab_lines):
 
 def test_find_disulf_w_all_provided(pertuzumab_lines):
     chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        pertuzumab_lines
+        pertuzumab_lines, torch.device("cpu")
     )
     assert chain_id.shape[0] == res_types.shape[0]
     assert chain_id.shape[0] == coords.shape[0]
@@ -200,11 +190,6 @@ def test_find_disulf_w_all_provided(pertuzumab_lines):
     assert chain_id.shape[1] == res_types.shape[1]
     assert chain_id.shape[1] == coords.shape[1]
     assert chain_id.shape[1] == atom_is_present.shape[1]
-
-    chain_id = torch.tensor(chain_id, dtype=torch.int32)
-    res_types = torch.tensor(res_types, dtype=torch.int32)
-    coords = torch.tensor(coords, dtype=torch.float32)
-    atom_is_present = torch.tensor(atom_is_present, dtype=torch.int32)
 
     # we will provide all the disulfides but in an order the
     # disulfide detection code would not report them in; thus
@@ -240,7 +225,7 @@ def test_find_disulf_w_all_provided(pertuzumab_lines):
 
 def test_find_disulf_w_no_cys(ubq_pdb):
     chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        ubq_pdb
+        ubq_pdb, torch.device("cpu")
     )
     assert chain_id.shape[0] == res_types.shape[0]
     assert chain_id.shape[0] == coords.shape[0]
@@ -248,11 +233,6 @@ def test_find_disulf_w_no_cys(ubq_pdb):
     assert chain_id.shape[1] == res_types.shape[1]
     assert chain_id.shape[1] == coords.shape[1]
     assert chain_id.shape[1] == atom_is_present.shape[1]
-
-    chain_id = torch.tensor(chain_id, dtype=torch.int32)
-    res_types = torch.tensor(res_types, dtype=torch.int32)
-    coords = torch.tensor(coords, dtype=torch.float32)
-    atom_is_present = torch.tensor(atom_is_present, dtype=torch.int32)
 
     found_dslf, restype_variants = find_disulfides(res_types, coords, atom_is_present)
     assert (0, 3) == found_dslf.shape

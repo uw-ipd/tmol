@@ -1,4 +1,6 @@
 import numpy
+import torch
+
 from .pdb_parsing import parse_pdb
 
 ordered_canonical_aa_types = (
@@ -936,7 +938,7 @@ max_n_canonical_atoms = max(
 )
 
 
-def canonical_form_from_pdb_lines(pdb_lines):
+def canonical_form_from_pdb_lines(pdb_lines, device):
     ##### TEMP!!!! #####
     # USE PDB V2 FOR NOW!
     atom_records = parse_pdb(pdb_lines)
@@ -989,4 +991,10 @@ def canonical_form_from_pdb_lines(pdb_lines):
                 # TO DO: warn the user that some atoms are not being processed?
                 pass
 
-    return chain_id, res_types, coords, atom_is_present
+    def _ti32(x):
+        return torch.tensor(x, dtype=torch.int32, device=device)
+
+    def _tf32(x):
+        return torch.tensor(x, dtype=torch.float32, device=device)
+
+    return _ti32(chain_id), _ti32(res_types), _tf32(coords), _ti32(atom_is_present)

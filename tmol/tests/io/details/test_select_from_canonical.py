@@ -17,12 +17,9 @@ def test_assign_block_types(torch_device, ubq_pdb):
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
-
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        ubq_pdb, torch_device
+    )
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
@@ -74,17 +71,13 @@ def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_de
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        pert_and_erbb2_lines
+        pert_and_erbb2_lines, torch_device
     )
-    # print("ch_id:")
-    # print(ch_id.shape)
     seg_range_end = numpy.cumsum(numpy.array(seg_lengths, dtype=numpy.int32))
     seg_range_start = numpy.concatenate(
         (numpy.zeros((1,), dtype=numpy.int32), seg_range_end[:-1])
     )
     n_res_tot = seg_range_end[-1]
-    # print("seg_range_start", seg_range_start)
-    # print("seg_range_end", seg_range_end)
     res_not_connected = numpy.zeros((1, n_res_tot, 2), dtype=numpy.bool)
     # do not make any of the ERBB2 residues n- or c-termini,
     # and also do not connect residues that are both part of that chain
@@ -92,11 +85,6 @@ def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_de
     res_not_connected[0, seg_range_start[2:], 0] = True
     res_not_connected[0, seg_range_end[2:] - 1, 1] = True
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
-
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
@@ -169,12 +157,9 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
-
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        ubq_pdb, torch_device
+    )
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)

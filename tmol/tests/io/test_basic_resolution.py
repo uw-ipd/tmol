@@ -6,14 +6,8 @@ from tmol.io.basic_resolution import pose_stack_from_canonical_form
 
 
 def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(ubq_pdb)
-
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
-
-    pose_stack = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
+    canonical_form = canonical_form_from_pdb_lines(ubq_pdb, torch_device)
+    pose_stack = pose_stack_from_canonical_form(*canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -29,14 +23,8 @@ def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
 
 
 def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_lines):
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(pertuzumab_lines)
-
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
-
-    pose_stack = pose_stack_from_canonical_form(ch_id, can_rts, coords, at_is_pres)
+    canonical_form = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
+    pose_stack = pose_stack_from_canonical_form(*canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -54,12 +42,7 @@ def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_line
 def test_build_pose_stack_from_canonical_form_pert_w_dslf(
     torch_device, pertuzumab_lines
 ):
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(pertuzumab_lines)
-
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+    canonical_form = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
 
     disulfides = torch.tensor(
         [[0, 22, 87], [0, 213, 435], [0, 133, 193], [0, 235, 309], [0, 359, 415]],
@@ -67,9 +50,7 @@ def test_build_pose_stack_from_canonical_form_pert_w_dslf(
         device=torch_device,
     )
 
-    pose_stack = pose_stack_from_canonical_form(
-        ch_id, can_rts, coords, at_is_pres, disulfides
-    )
+    pose_stack = pose_stack_from_canonical_form(*canonical_form, disulfides)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -86,14 +67,7 @@ def test_build_pose_stack_from_canonical_form_pert_w_dslf(
 
 def test_build_pose_stack_w_disconn_segs(torch_device, pert_and_nearby_erbb2):
     pert_and_erbb2_lines, seg_lengths = pert_and_nearby_erbb2
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        pert_and_erbb2_lines
-    )
-
-    ch_id = torch.tensor(ch_id, device=torch_device)
-    can_rts = torch.tensor(can_rts, device=torch_device)
-    coords = torch.tensor(coords, device=torch_device)
-    at_is_pres = torch.tensor(at_is_pres, device=torch_device)
+    canonical_form = canonical_form_from_pdb_lines(pert_and_erbb2_lines, torch_device)
 
     seg_range_end = numpy.cumsum(numpy.array(seg_lengths, dtype=numpy.int32))
     seg_range_start = numpy.concatenate(
@@ -115,7 +89,7 @@ def test_build_pose_stack_w_disconn_segs(torch_device, pert_and_nearby_erbb2):
     )
 
     pose_stack = pose_stack_from_canonical_form(
-        ch_id, can_rts, coords, at_is_pres, disulfides, res_not_connected
+        *canonical_form, disulfides, res_not_connected
     )
 
     assert pose_stack.packed_block_types.device == torch_device
