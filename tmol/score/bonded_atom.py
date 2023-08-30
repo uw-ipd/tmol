@@ -133,4 +133,6 @@ def bonded_path_length(
         cache=True,
     )
 
-    return csgraph.dijkstra(bond_graph, directed=False, unweighted=True, limit=limit)
+    return csgraph.dijkstra(
+        bond_graph.tocsr(), directed=False, unweighted=True, limit=limit
+    )

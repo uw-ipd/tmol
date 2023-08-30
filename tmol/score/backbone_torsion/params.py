@@ -1,13 +1,11 @@
 import attr
 import cattr
 
-import numpy
 import pandas
 import torch
 
 import toolz.functoolz
 
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
 from tmol.types.functional import validate_args
@@ -16,8 +14,6 @@ from tmol.numeric.bspline import BSplineInterpolation
 
 from tmol.database.scoring.rama import RamaDatabase
 from tmol.database.scoring.omega_bbdep import OmegaBBDepDatabase
-from tmol.types.tensor import TensorGroup
-from tmol.chemical.restypes import uaid_t
 
 
 # the rama database packed into a single tensor

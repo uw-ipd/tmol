@@ -1,5 +1,4 @@
 import numpy
-import torch
 import zarr
 from pathlib import Path
 import os
