@@ -10,6 +10,8 @@ load(
                 "compiled.ops.cpp",
                 "gen_pose_leaf_atoms.cpu.cpp",
                 "gen_pose_leaf_atoms.cuda.cu",
+                "resolve_his_taut.cpu.cpp",
+                "resolve_his_taut.cuda.cu",
             ],
         )
     ),
@@ -18,3 +20,4 @@ load(
 
 _ops = getattr(torch.ops, modulename(__name__))
 gen_pose_leaf_atoms = _ops.gen_pose_leaf_atoms
+resolve_his_taut = _ops.resolve_his_taut

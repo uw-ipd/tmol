@@ -9,6 +9,7 @@
 #include <tmol/score/common/device_operations.hh>
 
 #include <tmol/io/details/compiled/gen_pose_leaf_atoms.hh>
+#include <tmol/io/details/compiled/resolve_his_taut.hh>
 
 namespace tmol {
 namespace io {
@@ -184,11 +185,45 @@ Tensor pose_leaf_atom_gen_op(
       block_type_atom_icoors_backup);
 };
 
+Tensor resolve_his_tautomerization(
+    Tensor coords,
+    Tensor res_types,
+    Tensor res_type_variants,
+    Tensor his_pose_ind,
+    Tensor his_res_ind,
+    Tensor atom_is_present,
+    Tensor his_atom_inds,
+    Tensor his_remapping_dst_index) {
+  at::Tensor his_taut;
+  TMOL_DISPATCH_FLOATING_DEVICE(coords.type(), "resolve_his_taut", ([&] {
+                                  using Real = scalar_t;
+                                  constexpr tmol::Device Dev = device_t;
+
+                                  auto result = ResolveHisTaut<
+                                      score::common::DeviceOperations,
+                                      Dev,
+                                      Real,
+                                      int32_t>::
+                                      f(TCAST(coords),
+                                        TCAST(res_types),
+                                        TCAST(res_type_variants),
+                                        TCAST(his_pose_ind),
+                                        TCAST(his_res_ind),
+                                        TCAST(atom_is_present),
+                                        TCAST(his_atom_inds),
+                                        TCAST(his_remapping_dst_index));
+                                  his_taut = result.tensor;
+                                }));
+
+  return his_taut;
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("gen_pose_leaf_atoms", &pose_leaf_atom_gen_op);
+  m.def("resolve_his_taut", &resolve_his_tautomerization);
 }
 
 }  // namespace compiled
