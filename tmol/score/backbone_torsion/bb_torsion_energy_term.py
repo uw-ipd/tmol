@@ -71,10 +71,10 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
 
     @classmethod
     def score_types(cls):
-        import tmol.score.terms.rama_omega_creator
+        import tmol.score.terms.backbone_torsion_creator
 
         return (
-            tmol.score.terms.rama_omega_creator.BackboneTorsionTermCreator.score_types()
+            tmol.score.terms.backbone_torsion_creator.BackboneTorsionTermCreator.score_types()
         )
 
     def n_bodies(self):

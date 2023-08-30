@@ -5,14 +5,16 @@ import torch
 
 
 @score_term_creator
-class OmegaTermCreator(TermCreator):
-    _score_types = [ScoreType.omega]
+class BackboneTorsionTermCreator(TermCreator):
+    _score_types = [ScoreType.rama, ScoreType.omega]
 
     @classmethod
     def create_term(cls, param_db: ParameterDatabase, device: torch.device):
-        import tmol.score.omega.omega_energy_term
+        import tmol.score.backbone_torsion.bb_torsion_energy_term
 
-        return tmol.score.omega.omega_energy_term.OmegaEnergyTerm(param_db, device)
+        return tmol.score.backbone_torsion.bb_torsion_energy_term.BackboneTorsionEnergyTerm(
+            param_db, device
+        )
 
     @classmethod
     def score_types(cls):
