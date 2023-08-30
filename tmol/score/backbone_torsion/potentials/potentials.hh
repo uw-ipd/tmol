@@ -108,10 +108,11 @@ def omega_bbdep_V_dV(
     Real2 bbstart,
     Real2 bbstep,
     Real K)
-    ->tuple<Real, CoordQuad> {
+    ->tuple<Real, CoordQuad, CoordQuad, CoordQuad> {
+  const Real pi = EIGEN_PI;
   Real V;
   Real dVdomega, dVdphi = 0.0, dVdpsi = 0.0;
-  CoordQuad dV_domegaatm;
+  CoordQuad dV_domegaatm, dV_dphiatm, dV_dpsiatm;
 
   auto omegaang = dihedral_angle<Real>::V_dV(
       omega.row(0), omega.row(1), omega.row(2), omega.row(3));
@@ -120,6 +121,8 @@ def omega_bbdep_V_dV(
   if (omegaang.V > -0.5 * EIGEN_PI && omegaang.V < 0.5 * EIGEN_PI) {
     // cis omega, use simple version
     tie(V, dV_domegaatm) = omega_V_dV<D, Real, Int>(omega, K);
+    dV_dphiatm.setZero();
+    dV_dpsiatm.setZero();
   } else {
     auto phiang = dihedral_angle<Real>::V_dV(
         phi.row(0), phi.row(1), phi.row(2), phi.row(3));
@@ -141,24 +144,41 @@ def omega_bbdep_V_dV(
             coeffs_sig, phipsi_idx);
 
     // energy
-    Real normalization = log(1 / (6 * sqrt(2 * EIGEN_PI)));
-    Real entropy = -log(1 / (sig * sqrt(2 * EIGEN_PI)));
-    Real offset = omegaang.V * 180.0 / EIGEN_PI - mu;
+    Real baseline = std::log(1. / (6. * sqrt(2. * pi)))
+                    - std::log(1. / (sig * sqrt(2. * pi)));
+    Real offset = omegaang.V * 180.0 / pi - mu;
     if (offset < -180.0) {
       offset += 360.0;
     }
     Real logprob = offset * offset / (2 * sig * sig);
-    V = normalization + entropy + logprob;
+    V = baseline + logprob;
 
-    // V = K * omega_offset * omega_offset;
-    // dVdomega = 2 * K * omega_offset;
+    // derivatives
+    dVdomega = (180.0 / pi) * offset / (sig * sig);
 
-    // dV_domegaatm.row(0) = omegaang.dV_dI;
-    // dV_domegaatm.row(1) = omegaang.dV_dJ;
-    // dV_domegaatm.row(2) = omegaang.dV_dK;
-    // dV_domegaatm.row(3) = omegaang.dV_dL;
+    Real dVdmu = -offset / (sig * sig);
+    Real dVdsig = 1 / (sig)-2.0 * logprob / sig;
+
+    dVdphi = dVdmu * dmudphipsi[0] + dVdsig * dsigdphipsi[0];
+    dVdpsi = dVdmu * dmudphipsi[1] + dVdsig * dsigdphipsi[1];
+
+    dV_dphiatm.row(0) = dVdphi * phiang.dV_dI / bbstep[0];
+    dV_dphiatm.row(1) = dVdphi * phiang.dV_dJ / bbstep[0];
+    dV_dphiatm.row(2) = dVdphi * phiang.dV_dK / bbstep[0];
+    dV_dphiatm.row(3) = dVdphi * phiang.dV_dL / bbstep[0];
+
+    dV_dpsiatm.row(0) = dVdpsi * psiang.dV_dI / bbstep[1];
+    dV_dpsiatm.row(1) = dVdpsi * psiang.dV_dJ / bbstep[1];
+    dV_dpsiatm.row(2) = dVdpsi * psiang.dV_dK / bbstep[1];
+    dV_dpsiatm.row(3) = dVdpsi * psiang.dV_dL / bbstep[1];
+
+    dV_domegaatm.row(0) = dVdomega * omegaang.dV_dI;
+    dV_domegaatm.row(1) = dVdomega * omegaang.dV_dJ;
+    dV_domegaatm.row(2) = dVdomega * omegaang.dV_dK;
+    dV_domegaatm.row(3) = dVdomega * omegaang.dV_dL;
   }
-  return {V, dV_domegaatm};
+
+  return {V, dV_dphiatm, dV_dpsiatm, dV_domegaatm};
 }
 
 #undef Real2

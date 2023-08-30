@@ -216,9 +216,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
       omega_coords.row(i) = coords[pose_ind][omega_ats[i]];
     }
 
-    tuple<Real, CoordQuad<Real>> omega;
     if (valid_torsion && rama_table_ind >= 0) {
-      omega = omega_bbdep_V_dV<Dev, Real, Int>(
+      auto omega = omega_bbdep_V_dV<Dev, Real, Int>(
           phi_coords,
           psi_coords,
           omega_coords,
@@ -228,15 +227,25 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
               omega_table_params[omega_table_ind].bbstarts),
           Eigen::Map<Vec<Real, 2>>(omega_table_params[omega_table_ind].bbsteps),
           32.8);
+      accumulate<Dev, Real>::add(V[1][pose_ind], common::get<0>(omega));
+      for (int j = 0; j < 4; ++j) {
+        // omega : [V, dVdphi, dVdpsi, dVdomega]
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_dxyz[1][pose_ind][phi_ats[j]], common::get<1>(omega).row(j));
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_dxyz[1][pose_ind][psi_ats[j]], common::get<2>(omega).row(j));
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_dxyz[1][pose_ind][omega_ats[j]], common::get<3>(omega).row(j));
+      }
     } else {
       // if rama is undefined, fall back to old version
-      omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
-    }
-    accumulate<Dev, Real>::add(V[1][pose_ind], common::get<0>(omega));
-    for (int j = 0; j < 4; ++j) {
-      Vec<Real, 3> j_deriv = common::get<1>(omega).row(j);
-      accumulate<Dev, Vec<Real, 3>>::add(
-          dV_dxyz[1][pose_ind][omega_ats[j]], common::get<1>(omega).row(j));
+      auto omega = omega_V_dV<Dev, Real, Int>(omega_coords, 32.8);
+      accumulate<Dev, Real>::add(V[1][pose_ind], common::get<0>(omega));
+      for (int j = 0; j < 4; ++j) {
+        // omega : [V, dVdomega]
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_dxyz[1][pose_ind][omega_ats[j]], common::get<1>(omega).row(j));
+      }
     }
   });
 
