@@ -25,7 +25,6 @@ from tmol.chemical.restypes import (
 
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
 from tmol.pose.pose_stack import PoseStack
-from tmol.io.canonical_ordering import aa_codes
 
 
 # from tmol.system.datatypes import connection_metadata_dtype

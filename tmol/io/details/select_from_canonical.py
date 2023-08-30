@@ -152,9 +152,6 @@ def assign_block_types(
         ),
     )
 
-    n_pose_arange = torch.arange(n_poses, dtype=torch.int64, device=device)
-    n_res = torch.sum(is_real_res, dim=1)
-
     connected_up_conn_inds = pbt.up_conn_inds[
         block_type_ind64[res_is_real_and_conn_to_next]
     ].to(torch.int64)

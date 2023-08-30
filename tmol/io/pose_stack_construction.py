@@ -112,9 +112,7 @@ def pose_stack_from_canonical_form(
     pbt, atom_type_resolver = default_canonical_packed_block_types(chain_id.device)
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(
-        res_types, coords, atom_is_present, disulfides
-    )
+    found_disulfides, res_type_variants = find_disulfides(res_types, coords, disulfides)
 
     # 3
     (

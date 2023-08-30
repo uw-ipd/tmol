@@ -19,7 +19,6 @@ sg_atom_for_co_cys = ordered_canonical_aa_atoms["CYS"].index("SG")
 def find_disulfides(
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
-    atom_is_present: Tensor[torch.int32][:, :, :],
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     cutoff_dis: float = 2.5,
 ):
@@ -47,11 +46,13 @@ def find_disulfides(
         if unpaired_cys_present == 0:
             return disulfides, restype_variants
 
-    # else: we either have some disulfides and remaining unpaired CYS
+    # If we arrive here:
+    # we either have some disulfides and remaining unpaired CYS
     # or we have not received any disulfides from the user
     # we now proceed to detect paired cysteines
 
-    # avoid sending coordinates back to the CPU if there aren't any CYS
+    # first we ask: are there even any cys residues? If not, avoid
+    # sending coordinates back to the CPU and just move on
     cys_pose_ind, cys_res_ind = torch.nonzero(cys_res, as_tuple=True)
     if cys_pose_ind.shape[0] == 0:
         return (
@@ -61,8 +62,6 @@ def find_disulfides(
 
     res_types_n = res_types.cpu().numpy()
     coords_n = coords.detach().cpu().numpy()
-    atom_is_present_n = atom_is_present.cpu().numpy()
-    cys_res_n = cys_res.cpu().numpy()
     cys_pose_ind_n = cys_pose_ind.cpu().numpy()
     cys_res_ind_n = cys_res_ind.cpu().numpy()
 

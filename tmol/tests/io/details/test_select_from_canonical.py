@@ -22,7 +22,7 @@ def test_assign_block_types(torch_device, ubq_pdb):
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
+    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
     # 3
     (
         his_taut,
@@ -87,7 +87,7 @@ def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_de
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
+    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
     # 3
     (
         his_taut,
@@ -162,7 +162,7 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
+    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
     # 3
     (
         his_taut,

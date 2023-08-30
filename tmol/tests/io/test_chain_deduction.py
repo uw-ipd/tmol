@@ -1,5 +1,4 @@
 import numpy
-import torch
 
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io.chain_deduction import chain_inds_for_pose_stack

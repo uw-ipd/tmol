@@ -28,7 +28,7 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
+    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
     # 3
     (
         his_taut,
@@ -47,8 +47,6 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
     )
-    # print("block coords")
-    # print(block_coords.cpu().numpy())
 
     # now let's just say that all the hydrogen atoms are missing so we can build
     # them back
@@ -89,7 +87,6 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     block_at_to_rebuild[0, 75, 6] = False
 
     missing_atoms[block_at_to_rebuild] = 1
-    # print("missing atoms", missing_atoms[0, -1])
 
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
@@ -101,9 +98,6 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
         missing_atoms,
         inter_residue_connections,
     )
-
-    # print("new pose coords")
-    # print(new_pose_coords.cpu().numpy())
 
     # now expand the pose coords back out to n-poses x max-n-res x max-n-ats x 3
     # and then lets compare the coordinates of the newly built coordinates to what
@@ -127,45 +121,12 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     )
     expanded_coords[real_expanded_pose_ats] = new_pose_coords[:]
 
-    # nz_block_at_is_leaf = torch.nonzero(block_at_is_leaf).cpu().numpy()
     built_leaf_pos = expanded_coords[block_at_is_leaf]
     orig_leaf_pos = block_coords[block_at_is_leaf]
 
     built_leaf_pos = built_leaf_pos.cpu().numpy()
     orig_leaf_pos = orig_leaf_pos.cpu().numpy()
 
-    # dist = numpy.linalg.norm(built_leaf_pos-orig_leaf_pos, axis=1)
-    # print(dist[dist > 1e-2])
-    # nz_big_dist = numpy.nonzero(dist > 1e-2)
-    # print("nz_big_dist", nz_big_dist)
-    # print("nz_block_at_is_leaf[nz_big_dist]", nz_block_at_is_leaf[nz_big_dist])
-    # inds = nz_block_at_is_leaf[nz_big_dist]
-    #
-    # print("built big dist:")
-    # print(built_leaf_pos[nz_big_dist])
-    # print("orig big dist:")
-    # print(orig_leaf_pos[nz_big_dist])
-
-    # print("built leaf pos", built_leaf_pos)
-    # print("orig_leaf_pos", orig_leaf_pos)
-
-    # print("built_leaf_pos")
-    # print(built_leaf_pos)
-
-    # from tmol.io.write_pose_stack_pdb import atom_records_from_coords
-    # from tmol.io.pdb_parsing import to_pdb
-    #
-    # atom_records = atom_records_from_coords(
-    #     pbt, ch_id, block_types64, new_pose_coords, block_coord_offset
-    # )
-    #
-    # with open("test_build_H.pdb", "w") as fid:
-    #     fid.writelines(to_pdb(atom_records))
-
-    # for i in range(built_h_pos.shape[0]):
-    #     print(i, built_h_pos[i], "vs", orig_h_pos[i], "dist",  numpy.linalg.norm(built_h_pos[i] - orig_h_pos[i]))
-
-    # numpy.testing.assert_allclose(built_leaf_pos[1:], orig_leaf_pos[1:], atol=1e-2, rtol=1e-3)
     numpy.testing.assert_allclose(built_leaf_pos, orig_leaf_pos, atol=1e-1, rtol=1e-3)
 
 
@@ -187,9 +148,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
             self.coords = torch.nn.Parameter(coords)
 
         def forward(self):
-            found_disulfides, res_type_variants = find_disulfides(
-                can_rts, self.coords, at_is_pres
-            )
+            found_disulfides, res_type_variants = find_disulfides(can_rts, self.coords)
             # 3
             (
                 his_taut,
@@ -216,8 +175,6 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
             ) = take_block_type_atoms_from_canonical(
                 pbt, block_types64, self.coords, at_is_pres
             )
-            # print("block coords")
-            # print(block_coords.cpu().numpy())
 
             # now let's just say that all the hydrogen atoms are missing so we can build
             # them back
@@ -268,7 +225,7 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
+    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
     # 3
     (
         his_taut,
@@ -287,12 +244,6 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
     )
-    # print("block_coords")
-    # print(block_coords)
-    # print("missing_atoms")
-    # print(missing_atoms)
-    # print("block coords")
-    # print(block_coords.cpu().numpy())
 
     # now let's just say that all the hydrogen atoms are missing so we can build
     # them back
@@ -322,10 +273,6 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
         )
         return torch.sum(new_pose_coords[:])
 
-    bc = block_coords.requires_grad_(True)
-    score = coord_score(bc)
-    derivs = score.backward()
-
     gradcheck(
         coord_score,
         (block_coords.requires_grad_(True),),
@@ -342,7 +289,7 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords, at_is_pres)
+    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
     # 3
     (
         his_taut,
@@ -361,8 +308,6 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
     )
-    # print("block coords")
-    # print(block_coords.cpu().numpy())
 
     # now let's just say that all the hydrogen atoms are missing so we can build
     # them back
@@ -388,9 +333,6 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
         missing_atoms,
         inter_residue_connections,
     )
-    # print("new_pose_coords")
-    # print(new_pose_coords)
-    # print(new_pose_coords.stride())
 
     def coord_score(bc):
         # nonlocal new_pose_coords
@@ -406,15 +348,6 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
         # print("new_pose_coords.shape", new_pose_coords.shape)
         # slice the coords tensor to create a temp that will avoid a stride of 0
         return torch.sum(new_pose_coords[:, :, :])
-        # return torch.sum(new_pose_coords)
-
-    bc = block_coords.requires_grad_(True)
-    score = coord_score(bc)
-    # print("score", score)
-    derivs = score.backward()
-    # print("bc.grad:", bc.grad)
-    # print("new pose coords.grad:")
-    # print(new_pose_coords.grad)
 
     gradcheck(
         coord_score,
