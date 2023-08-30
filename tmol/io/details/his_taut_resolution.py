@@ -1,10 +1,7 @@
-import numpy
 import torch
-import numba
 import toolz.functoolz
 
 from typing import Tuple
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
