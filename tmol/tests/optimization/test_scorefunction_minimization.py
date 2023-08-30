@@ -36,10 +36,7 @@ def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_dev
     optimizer.step(closure)
 
     E1 = cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
-    # print("E1", E1)
     assert E1 < E0
-
-    # print("n sfxn evals:", cart_sfxn_network.count)
 
 
 @pytest.mark.parametrize("n_poses", [1, 3, 10, 30])
@@ -67,22 +64,17 @@ def test_minimize_w_pose_and_sfxn_benchmark(
         cart_sfxn_network = CartesianSfxnNetwork(sfxn, pose_stack)
         optimizer = LBFGS_Armijo(cart_sfxn_network.parameters(), lr=0.1, max_iter=20)
 
-        # E0 =
         cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
 
         def closure():
             optimizer.zero_grad()
             E = cart_sfxn_network()
+            print(E)
             E.backward()
             return E
 
         optimizer.step(closure)
 
-        # E1 =
         cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
-        # print("E0", E0, "E1", E1)
-        # assert E1 < E0
-
-        # print("n sfxn evals:", cart_sfxn_network.count)
 
     run
