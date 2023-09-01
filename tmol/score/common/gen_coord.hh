@@ -9,9 +9,8 @@
 #include <tmol/utility/tensor/TensorPack.h>
 
 namespace tmol {
-namespace io {
-namespace details {
-namespace compiled {
+namespace score {
+namespace common {
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
@@ -615,7 +614,6 @@ struct build_coordinate {
 
 #undef def
 
-}  // namespace compiled
-}  // namespace details
-}  // namespace io
+}  // namespace common
+}  // namespace score
 }  // namespace tmol

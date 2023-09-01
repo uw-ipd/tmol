@@ -13,14 +13,15 @@
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/uaid_util.hh>
 
-#include <tmol/io/details/compiled/gen_coord.hh>
+#include <tmol/score/common/gen_coord.hh>
 
 namespace tmol {
 namespace io {
 namespace details {
 namespace compiled {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
@@ -181,8 +182,8 @@ struct GeneratePoseLeafAtoms {
         Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
 
-        Vec<Real, 3> new_coord =
-            build_coordinate<Real>::V(coord0, coord1, coord2, D, theta, phi);
+        Vec<Real, 3> new_coord = score::common::build_coordinate<Real>::V(
+            coord0, coord1, coord2, D, theta, phi);
 
         new_coords[pose_ind][block_offset + atom_ind] = new_coord;
       } else {
@@ -353,58 +354,15 @@ struct GeneratePoseLeafAtoms {
           phi = block_type_atom_icoors[block_type][atom_ind][0];    // phi
         }
 
-        // printf("res %d atom %d, ancestors %d %d and %d\n", block_ind,
-        // atom_ind, anc0, anc1, anc2);
         Vec<Real, 3> coord0 = orig_coords[pose_ind][anc0];
         Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
 
-        auto coord_derivs =
-            build_coordinate<Real>::dV(coord0, coord1, coord2, D, theta, phi);
+        auto coord_derivs = score::common::build_coordinate<Real>::dV(
+            coord0, coord1, coord2, D, theta, phi);
 
         Vec<Real, 3> dE_dH = dE_d_new_coords[pose_ind][block_offset + atom_ind];
 
-        // printf(
-        //     "new coord %d %d (%f %f %f)\n",
-        //     atom_ind,
-        //     block_offset,
-        //     new_coords[pose_ind][block_offset + atom_ind][0],
-        //     new_coords[pose_ind][block_offset + atom_ind][1],
-        //     new_coords[pose_ind][block_offset + atom_ind][2]);
-
-        // printf(
-        //     "sum deriv %d %d %d (%f %f %f), (%f %f %f)\n",
-        //     atom_ind,
-        //     block_offset,
-        //     anc0,
-        //     dE_dH(0),
-        //     dE_dH(1),
-        //     dE_dH(2),
-        //     (coord_derivs.dp * dE_dH)[0],
-        //     (coord_derivs.dp * dE_dH)[1],
-        //     (coord_derivs.dp * dE_dH)[2]);
-        // printf(
-        //     "sum deriv %d %d %d (%f %f %f), (%f %f %f)\n",
-        //     atom_ind,
-        //     block_offset,
-        //     anc1,
-        //     dE_dH(0),
-        //     dE_dH(1),
-        //     dE_dH(2),
-        //     (coord_derivs.dgp * dE_dH)[0],
-        //     (coord_derivs.dgp * dE_dH)[1],
-        //     (coord_derivs.dgp * dE_dH)[2]);
-        // printf(
-        //     "sum deriv %d %d %d (%f %f %f), (%f %f %f)\n",
-        //     atom_ind,
-        //     block_offset,
-        //     anc2,
-        //     dE_dH(0),
-        //     dE_dH(1),
-        //     dE_dH(2),
-        //     (coord_derivs.dggp * dE_dH)[0],
-        //     (coord_derivs.dggp * dE_dH)[1],
-        //     (coord_derivs.dggp * dE_dH)[2]);
         score::common::accumulate<Dev, Vec<Real, 3>>::add(
             dE_d_orig_coords[pose_ind][anc0], coord_derivs.dp * dE_dH);
         score::common::accumulate<Dev, Vec<Real, 3>>::add(
@@ -441,8 +399,6 @@ struct GeneratePoseLeafAtoms {
     return dE_d_orig_coords_t;
   };
 };
-
-#undef def
 
 }  // namespace compiled
 }  // namespace details

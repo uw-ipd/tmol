@@ -13,6 +13,7 @@
 #include <tmol/score/common/count_pair.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/gen_coord.hh>
 
 // #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/hbond/identification.hh>
@@ -198,7 +199,8 @@ auto LKBallRPEDispatch<DeviceDispatch, D, Real, Int, MAX_WATER>::f(
             ti,
             tors[ti]);
         waters[block_ind][atom_ind][count_waters] =
-            build_acc_water<Real>::V(XA, XB, XB0, dist, angle, tors[ti]);
+            common::build_coordinate<Real>::V(
+                XA, XB, XB0, dist, angle, tors[ti]);
         count_waters++;
       }
     }
