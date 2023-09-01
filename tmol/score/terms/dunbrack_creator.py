@@ -6,7 +6,11 @@ import torch
 
 @score_term_creator
 class DunbrackTermCreator(TermCreator):
-    _score_types = [ScoreType.dunbrack]
+    _score_types = [
+        ScoreType.dunbrack_rot,
+        ScoreType.dunbrack_rotdev,
+        ScoreType.dunbrack_semirot,
+    ]
 
     @classmethod
     def create_term(cls, param_db: ParameterDatabase, device: torch.device):

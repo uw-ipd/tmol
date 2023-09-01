@@ -11,6 +11,9 @@ class AutoNumber(Enum):
 
 class ScoreType(AutoNumber):
     disulfide = ()
+    dunbrack_rot = ()
+    dunbrack_rotdev = ()
+    dunbrack_semirot = ()
     fa_lj = ()
     fa_lk = ()
     fa_elec = ()

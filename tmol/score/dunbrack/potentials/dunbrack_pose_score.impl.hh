@@ -140,6 +140,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto func = ([=] TMOL_DEVICE_FUNC(int pose_index, int block_index) {
     int block_type_index = pose_stack_block_type[pose_index][block_index];
 
+    // printf("index:%i type:%i tableset:%i\n", block_index, block_type_index,
+    // block_rotamer_table_set[block_type_index]);
     if (block_rotamer_table_set[block_type_index] == -1) return;
 
     for (int ii = 0; ii < block_n_dihredrals[block_type_index]; ii++) {
@@ -148,7 +150,10 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       for (int jj = 0; jj < 4; jj++) {
         UnresolvedAtomID<Int> uaid = dih_uaids[jj];
 
-        if (uaid.atom_id == -1 && uaid.conn_id == -1) fail = true;
+        if (uaid.atom_id == -1 && uaid.conn_id == -1) {  // Dihedral undefined
+          fail = true;
+          break;
+        }
 
         dihedral_atom_inds[pose_index][block_index][ii][jj] =
             resolve_atom_from_uaid(
@@ -159,29 +164,32 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 pose_stack_block_type,
                 pose_stack_inter_block_connections,
                 block_type_atom_downstream_of_conn);
-        if (dihedral_atom_inds[pose_index][block_index][ii][jj] == -1) {
-          // The UAID resolution failed! In this case, we should just skip this
-          // block
+        if (dihedral_atom_inds[pose_index][block_index][ii][jj]
+            == -1) {  // UAID resolution failed
           fail = true;
+          break;
         }
-
-        // measure_dihedral_V_dV()
       }
-      if (fail) continue;
+      if (fail) {
+        dihedral_atom_inds[pose_index][block_index][ii][0] = -1;
+        dihedral_atom_inds[pose_index][block_index][ii][1] = -1;
+        dihedral_atom_inds[pose_index][block_index][ii][2] = -1;
+        dihedral_atom_inds[pose_index][block_index][ii][3] = -1;
+      }
+
+      const Real PHI_DEFAULT = -60.0 * M_PI / 180;
+      const Real PSI_DEFAULT = 60.0 * M_PI / 180;
+
+      Real dih_default = (ii == 0)   ? PHI_DEFAULT
+                         : (ii == 1) ? PSI_DEFAULT
+                                     : 0.0;
 
       measure_dihedral_V_dV(
           coords[pose_index],
           dihedral_atom_inds[pose_index][block_index][ii],
+          dih_default,
           dihedral_values[pose_index][block_index][ii],
           dihedral_deriv[pose_index][block_index][ii]);
-
-      /*printf("RES%i: %i %i %i %i - %f\n",
-        block_index,
-        dih_atom_inds[0],
-        dih_atom_inds[1],
-        dih_atom_inds[2],
-        dih_atom_inds[3],
-        dihedral_values[pose_index][block_index][ii]);*/
     }
 
     // Templated on there being 2 backbone dihedrals for canonical aas.
@@ -196,14 +204,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         rotameric_rottable_assignment[pose_index][block_index],
         semirotameric_rottable_assignment[pose_index][block_index]);
 
-    // printf("%i Rotameric table ind: %i\n", block_index,
-    // rotameric_rottable_assignment[pose_index][block_index]); printf("%i
-    // Semirotameric table ind: %i\n", block_index,
-    // semirotameric_rottable_assignment[pose_index][block_index]);
-
     if (block_rotameric_index[block_type_index] != -1) {
-      // if(rotameric_rottable_assignment[pose_index][block_index]) {
-      // printf("%i calculating rotameric\n", block_index);
       Real prob = rotameric_chi_probability_for_block(
           rotameric_neglnprob_tables,
           rotprob_table_sizes,
@@ -217,19 +218,21 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           rotameric_rottable_assignment[pose_index][block_index],
           dneglnprob_rot_dbb_xyz[pose_index][block_index],
           dihedral_deriv[pose_index][block_index]);
-      // printf("%i - %f\n", block_index, prob);
-      /*common::accumulate<D, Real>::add(V[0][pose_index], prob);
+
+      common::accumulate<D, Real>::add(V[0][pose_index], prob);
 
       Vec<Int, 4> phi_ats = dihedral_atom_inds[pose_index][block_index][0];
       Vec<Int, 4> psi_ats = dihedral_atom_inds[pose_index][block_index][1];
       for (int j = 0; j < 4; ++j) {
-        accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[0][pose_index][phi_ats[j]],
-      dneglnprob_rot_dbb_xyz[pose_index][block_index][0].row(j)); accumulate<D,
-      Vec<Real, 3>>::add( dV_dx[0][pose_index][psi_ats[j]],
-      dneglnprob_rot_dbb_xyz[pose_index][block_index][1].row(j));
-      }*/
-      // printf("%i rotameric_chi_prob: %f\n", block_index, prob);
+        if (phi_ats[j] != -1)
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[0][pose_index][phi_ats[j]],
+              dneglnprob_rot_dbb_xyz[pose_index][block_index][0].row(j));
+        if (psi_ats[j] != -1)
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[0][pose_index][psi_ats[j]],
+              dneglnprob_rot_dbb_xyz[pose_index][block_index][1].row(j));
+      }
     }
 
     for (int ii = 0; ii < block_n_rotameric_chi[block_type_index]; ii++) {
@@ -254,34 +257,30 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           // Out
           drotchi_devpen_dtor_xyz[pose_index][block_index],
           dihedral_deriv[pose_index][block_index]);
+
       common::accumulate<D, Real>::add(V[1][pose_index], Erotdev);
-      // printf("%i/%i deviation penalty: %f\n", block_index, ii, Erotdev);
+
       Vec<Int, 4> tor0_ats = dihedral_atom_inds[pose_index][block_index][0];
       Vec<Int, 4> tor1_ats = dihedral_atom_inds[pose_index][block_index][1];
       Vec<Int, 4> tor2_ats =
           dihedral_atom_inds[pose_index][block_index][2 + ii];
       for (int j = 0; j < 4; ++j) {
-        accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[1][pose_index][tor0_ats[j]],
-            drotchi_devpen_dtor_xyz[pose_index][block_index][0].row(j));
-        accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[1][pose_index][tor1_ats[j]],
-            drotchi_devpen_dtor_xyz[pose_index][block_index][1].row(j));
-        accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[1][pose_index][tor2_ats[j]],
-            drotchi_devpen_dtor_xyz[pose_index][block_index][2].row(j));
+        if (tor0_ats[j] != -1)
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[1][pose_index][tor0_ats[j]],
+              drotchi_devpen_dtor_xyz[pose_index][block_index][0].row(j));
+        if (tor1_ats[j] != -1)
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[1][pose_index][tor1_ats[j]],
+              drotchi_devpen_dtor_xyz[pose_index][block_index][1].row(j));
+        if (tor2_ats[j] != -1)
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[1][pose_index][tor2_ats[j]],
+              drotchi_devpen_dtor_xyz[pose_index][block_index][2].row(j));
       }
     }
 
     if (block_semirotameric_index[block_type_index] != -1) {
-      /*printf("%i calculating semirot energy\n", block_index);
-      printf(
-          "%i semiindex:%i semioffset:%i nrotchi:%i assign:%i\n",
-          block_index,
-          block_semirotameric_index[block_type_index],
-          block_semirotameric_tableset_offset[block_type_index],
-          block_n_rotameric_chi[block_type_index],
-          semirotameric_rottable_assignment[pose_index][block_index]);*/
       auto Esemi = block_semirotameric_energy(
           semirotameric_tables,
           semirot_table_sizes,
@@ -299,20 +298,27 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
           dneglnprob_nonrot_dtor_xyz[pose_index][block_index],
           dihedral_deriv[pose_index][block_index]);
-      /*common::accumulate<D, Real>::add(V[2][pose_index], Esemi);
-      //printf("%i semirot: %f\n", block_index, Esemi);
+
+      common::accumulate<D, Real>::add(V[2][pose_index], Esemi);
+
       int last = block_n_chi[block_type_index] + 1;
       Vec<Int, 4> tor0_ats = dihedral_atom_inds[pose_index][block_index][0];
       Vec<Int, 4> tor1_ats = dihedral_atom_inds[pose_index][block_index][1];
       Vec<Int, 4> tor2_ats = dihedral_atom_inds[pose_index][block_index][last];
       for (int j = 0; j < 4; ++j) {
-        accumulate<D, Vec<Real, 3>>::add(dV_dx[2][pose_index][tor0_ats[j]],
-      dneglnprob_nonrot_dtor_xyz[pose_index][block_index][0].row(j));
-        accumulate<D, Vec<Real, 3>>::add(dV_dx[2][pose_index][tor1_ats[j]],
-      dneglnprob_nonrot_dtor_xyz[pose_index][block_index][1].row(j));
-        accumulate<D, Vec<Real, 3>>::add(dV_dx[2][pose_index][tor2_ats[j]],
-      dneglnprob_nonrot_dtor_xyz[pose_index][block_index][2].row(j));
-      }*/
+        if (tor0_ats[j] != -1)
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[2][pose_index][tor0_ats[j]],
+              dneglnprob_nonrot_dtor_xyz[pose_index][block_index][0].row(j));
+        if (tor1_ats[j] != -1)
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[2][pose_index][tor1_ats[j]],
+              dneglnprob_nonrot_dtor_xyz[pose_index][block_index][1].row(j));
+        if (tor2_ats[j] != -1)
+          accumulate<D, Vec<Real, 3>>::add(
+              dV_dx[2][pose_index][tor2_ats[j]],
+              dneglnprob_nonrot_dtor_xyz[pose_index][block_index][2].row(j));
+      }
     }
   });
 

@@ -104,17 +104,15 @@ class DunbrackEnergyTerm(EnergyTerm):
             ][0]
         )
 
-        # print(semirotameric_tableset_offset)
-        # semirotameric_tableset_offset = semirotameric_tableset_offset[0]
+        empty_tor = numpy.full((4, 3), -1, dtype=numpy.int32)
 
         phi_uaids = self.get_torsion("phi", block_type)
+        if phi_uaids is None:
+            phi_uaids = empty_tor
+
         psi_uaids = self.get_torsion("psi", block_type)
-
-        if phi_uaids := self.get_torsion("phi", block_type) is None:
-            phi_uaids = numpy.full((4, 3), -1, dtype=numpy.int32)
-
-        if psi_uaids := self.get_torsion("phi", block_type) is None:
-            psi_uaids = numpy.full((4, 3), -1, dtype=numpy.int32)
+        if psi_uaids is None:
+            psi_uaids = empty_tor
 
         chis = []
         n = count(1)
@@ -162,9 +160,6 @@ class DunbrackEnergyTerm(EnergyTerm):
             semirotameric_tableset_offset=semirotameric_tableset_offset,
         )
 
-        # print(block_type.name)
-        # print(dunbrack_attrs)
-
         setattr(block_type, "dunbrack_attrs", dunbrack_attrs)  # +
 
     def get_torsion(self, name, block_type):
@@ -188,8 +183,6 @@ class DunbrackEnergyTerm(EnergyTerm):
             pack(lambda f: getattr(f.dunbrack_attrs, field.name))
             for field in dataclasses.fields(DunbrackBlockAttrs)
         ]
-
-        # print(pack(lambda f: f.dunbrack_attrs.semirotameric_index))
 
         setattr(packed_block_types, "dunbrack_packed_block_data", packed_data)
 
@@ -251,52 +244,3 @@ class DunbrackEnergyTerm(EnergyTerm):
             global_params=self.dunbrack_db,
             dunbrack_packed_block_data=pbt.dunbrack_packed_block_data,
         )
-
-    """
-            res_n_dihedrals=pbt.dunbrack_packed_data.res_n_dihedrals,
-            res_phi_uaids=pbt.dunbrack_packed_data.res_phi_uaids,
-            res_psi_uaids=pbt.dunbrack_packed_data.res_psi_uaids,
-            res_chi_uaids=pbt.dunbrack_packed_data.res_chi_uaids,
-            res_rotamer_table_set=pbt.dunbrack_packed_data.res_rotamer_table_set,
-            res_rotameric_index=pbt.dunbrack_packed_data.res_rotameric_index,
-            res_semirotameric_index=pbt.dunbrack_packed_data.res_semirotameric_index,
-            res_n_chi=pbt.dunbrack_packed_data.res
-            res_n_rotameric_chi=pbt.dunbrack_packed_data.res
-            res_probability_table_offset=pbt.dunbrack_packed_data.res
-            res_mean_table_offset=pbt.dunbrack_packed_data.res
-            res_rotamer_index_to_table_index_offset=pbt.dunbrack_packed_data.res"""
-
-
-"""
-
-@dataclass
-class DunbrackPackedAttrs:
-    res_n_dihedrals: Tensor[torch.int32][:]
-    res_phi_uaids: numpy.ndarray
-    res_psi_uaids: numpy.ndarray 
-    res_chi_uaids: numpy.ndarray
-    res_rotamer_table_set: Tensor[torch.int32][:]
-    res_rotameric_index: Tensor[torch.int32][:]
-    res_semirotameric_index: Tensor[torch.int32][:]
-    res_n_chi: Tensor[torch.int32][:]
-    res_n_rotameric_chi: Tensor[torch.int32][:]
-    res_probability_table_offset: Tensor[torch.int32][:]
-    res_mean_table_offset: Tensor[torch.int32][:]
-    res_rotamer_index_to_table_index_offset: Tensor[torch.int32][:]"""
-
-
-"""print(packed_data)
-packed_data = DunbrackPackedAttrs(
-    pack(lambda f: f.dunbrack_attrs.n_dihedrals),
-    pack(lambda f: f.dunbrack_attrs.phi_uaids),
-    pack(lambda f: f.dunbrack_attrs.psi_uaids),
-    pack(lambda f: f.dunbrack_attrs.chi_uaids),
-    pack(lambda f: f.dunbrack_attrs.rotamer_table_set),
-    pack(lambda f: f.dunbrack_attrs.rotameric_index),
-    pack(lambda f: f.dunbrack_attrs.semirotameric_index),
-    pack(lambda f: f.dunbrack_attrs.n_chi),
-    pack(lambda f: f.dunbrack_attrs.n_rotameric_chi),
-    pack(lambda f: f.dunbrack_attrs.probability_table_offset),
-    pack(lambda f: f.dunbrack_attrs.mean_table_offset),
-    pack(lambda f: f.dunbrack_attrs.rotamer_index_to_table_index_offset)
-)"""

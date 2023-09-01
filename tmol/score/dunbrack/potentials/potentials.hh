@@ -35,6 +35,7 @@ template <typename Real, typename Int, tmol::Device D>
 def measure_dihedral_V_dV(
     TensorAccessor<Eigen::Matrix<Real, 3, 1>, 1, D> coordinates,
     const Vec<Int, 4>& dihedral_atom_inds,
+    Real dih_default,
     Real& dihedral,
     Eigen::Matrix<Real, 4, 3>& ddihe_dxyz)
     ->void {
@@ -52,11 +53,8 @@ def measure_dihedral_V_dV(
     ddihe_dxyz.row(2) = dihe.dV_dK;
     ddihe_dxyz.row(3) = dihe.dV_dL;
   } else if (at1 == -1) {
-    // -1 is sentinel value for undefined phi dihedral
-    dihedral = -60.0 * M_PI / 180;
-  } else if (at1 == -2) {
-    // -2 is sentinel value for undefined psi dihedral
-    dihedral = 60.0 * M_PI / 180;
+    // -1 is sentinel value for undefined dihedral
+    dihedral = dih_default;
   }
 }
 
