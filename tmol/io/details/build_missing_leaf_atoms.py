@@ -96,7 +96,7 @@ def build_missing_leaf_atoms(
         pbt.build_missing_leaf_atom_icoor_atom_ancestor_uaids_backup,
         pbt.build_missing_leaf_atom_icoor_geom_backup,
     )
-    # print("new_pose_coords.shape", new_pose_coords.shape)
+
     return new_pose_coords, block_coord_offset
 
 
@@ -136,17 +136,14 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
             icoorind_to_atomind != -1
         ]
 
-        # we also need to turn off "is leaf" for any atom that is the fourth one defining a named dihedral:
+        # we also need to turn off "is leaf" for any atom that is the
+        # fourth one defining a named dihedral:
         fourth_torsion_atoms = block_type.ordered_torsions[:, 3, 0]
         real_fourth_torsion_atoms = fourth_torsion_atoms[fourth_torsion_atoms != -1]
 
-        # print(block_type.name, "real fourth torsion atoms", [block_type.atoms[j].name for j in real_fourth_torsion_atoms])
         is_parent[real_fourth_torsion_atoms] = True
 
         is_leaf = numpy.logical_not(is_parent)
-        # for j in range(block_type.n_atoms):
-        #     if is_leaf[j]:
-        #         print(block_type.name, block_type.atoms[j], j, "is leaf")
 
         setattr(block_type, "is_leaf_atom", is_leaf)
         is_leaf_atom[i, : block_type.n_atoms] = ti32(is_leaf)
@@ -154,7 +151,6 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
         atom_types = [x.atom_type for x in block_type.atoms]
         atom_type_idx = atom_type_resolver.type_idx(atom_types)
         atom_type_params = atom_type_resolver.params[atom_type_idx]
-        # print("atom_type_params", atom_type_params)
         bt_is_hydrogen = (
             atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
         )
@@ -284,7 +280,6 @@ def _determine_leaf_atom_icoors_for_block_type(bt):
             # the H atom on a residue where i-1 does not exist or is not
             # chemically bonded to residue i.
             while icoor_at_is_inter_res(j_icoor.great_grand_parent):
-                # print("atom",at.name,"of", bt.name, "has an inter-res ggp", j_icoor.great_grand_parent)
                 ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
                 j_icoor = bt.icoors[ggp_ind_backup]
                 phi_backup += j_icoor.phi
@@ -294,7 +289,6 @@ def _determine_leaf_atom_icoors_for_block_type(bt):
             # is specifically for building the OXT atom on a cterm residue
             # when the O atom is given but OXT is not.
             while icoor_at_is_leaf(j_icoor.great_grand_parent):
-                # print("j_icoor ggp is leaf:", j_icoor.great_grand_parent)
                 ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
                 j_icoor = bt.icoors[ggp_ind_backup]
                 phi_backup += j_icoor.phi

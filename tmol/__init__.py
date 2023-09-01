@@ -1,5 +1,5 @@
+from tmol.chemical.restypes import three2one  # noqa: F401
 from tmol.io.canonical_ordering import (  # noqa: F401
-    aa_codes,
     ordered_canonical_aa_atoms,
     ordered_canonical_aa_atoms_v2,
     max_n_canonical_atoms,

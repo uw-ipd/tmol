@@ -15,8 +15,6 @@
 
 #include <tmol/io/details/compiled/gen_coord.hh>
 
-// #include <iostream>  // TEMP!
-
 namespace tmol {
 namespace io {
 namespace details {
@@ -121,7 +119,7 @@ struct GeneratePoseLeafAtoms {
       int const block_offset =
           pose_stack_block_coord_offset[pose_ind][block_ind];
 
-      // is this a hydrogen we should build coordinates for?
+      // is this an atom we should build coordinates for?
       if (orig_coords_atom_missing[pose_ind][block_ind][atom_ind]) {
         // ok! build the coordinate
         auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
@@ -144,6 +142,8 @@ struct GeneratePoseLeafAtoms {
             || pose_stack_atom_missing[pose_ind][anc0]
             || pose_stack_atom_missing[pose_ind][anc1]
             || pose_stack_atom_missing[pose_ind][anc2]) {
+          // if any of the ancestors failed to resolve or if any of them
+          // are incomplete, then use the backup geometry
           auto get_backup_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
             return score::common::resolve_atom_from_uaid<Int, Dev>(
                 block_type_atom_ancestors_backup[block_type][atom_ind]
@@ -158,13 +158,12 @@ struct GeneratePoseLeafAtoms {
           anc0 = get_backup_anc(0);
           anc1 = get_backup_anc(1);
           anc2 = get_backup_anc(2);
-          // printf("fell back on ancestors %d %d and %d when building atom %d
-          // on res %d\n", anc0, anc1, anc2, atom_ind, block_ind);
+
           if (anc0 == -1 || anc1 == -1 || anc2 == -1
               || pose_stack_atom_missing[pose_ind][anc0]
               || pose_stack_atom_missing[pose_ind][anc1]
               || pose_stack_atom_missing[pose_ind][anc2]) {
-            // cannot build a hydrogen if we're missing the ancestors
+            // cannot build an atom if we're missing its ancestors
             return;
           }
           D = block_type_atom_icoors_backup[block_type][atom_ind][2];  // D
@@ -178,25 +177,12 @@ struct GeneratePoseLeafAtoms {
           phi = block_type_atom_icoors[block_type][atom_ind][0];    // phi
         }
 
-        // printf("res %d atom %d, ancestors %d %d and %d\n", block_ind,
-        // atom_ind, anc0, anc1, anc2);
         Vec<Real, 3> coord0 = orig_coords[pose_ind][anc0];
         Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
         Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
 
         Vec<Real, 3> new_coord =
             build_coordinate<Real>::V(coord0, coord1, coord2, D, theta, phi);
-        // printf(
-        //     "new coord %d %d %d (%f %f %f), (%f %f %f)\n",
-        //     block_type,
-        //     block_ind,
-        //     atom_ind,
-        //     D,
-        //     theta,
-        //     phi,
-        //     new_coord[0],
-        //     new_coord[1] * 180 / 3.14159,
-        //     new_coord[2]);
 
         new_coords[pose_ind][block_offset + atom_ind] = new_coord;
       } else {
@@ -310,7 +296,7 @@ struct GeneratePoseLeafAtoms {
       int const block_offset =
           pose_stack_block_coord_offset[pose_ind][block_ind];
 
-      // is this a hydrogen we should build coordinates for?
+      // is this an atom we should build coordinates for?
       if (orig_coords_atom_missing[pose_ind][block_ind][atom_ind]) {
         // ok! build the coordinate
         auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
