@@ -106,10 +106,6 @@ def test_res_centric_score_benchmark(
     else:
         raise NotImplementedError
 
-    # print("scores")
-    # print(scores[:,:3])
-    # print(scores.shape)
-
 
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))
 @pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
@@ -179,7 +175,3 @@ def test_combined_res_centric_score_benchmark(
 
     else:
         raise NotImplementedError
-
-    # print("scores")
-    # print(scores[:,:3])
-    # print(scores.shape)

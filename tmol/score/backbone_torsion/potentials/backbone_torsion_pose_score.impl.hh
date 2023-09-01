@@ -130,7 +130,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
     int const offset_this_block_ind =
         pose_stack_block_coord_offset[pose_ind][block_ind];
 
-    bool valid_torsion = true;
+    bool valid_phipsi = true;
     Vec<Int, 4> phi_ats;
     for (int i = 0; i < 4; ++i) {
       UnresolvedAtomID<Int> i_at = block_type_torsion_atoms[block_type][i];
@@ -142,12 +142,13 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
           pose_stack_block_type,
           pose_stack_inter_block_connections,
           block_type_atom_downstream_of_conn);
-      valid_torsion &= phi_ats[i] != -1;
+      valid_phipsi &= phi_ats[i] != -1;
     }
     CoordQuad<Real> phi_coords;
     for (int i = 0; i < 4; ++i) {
       phi_coords.row(i) = coords[pose_ind][phi_ats[i]];
     }
+
     Vec<Int, 4> psi_ats;
     for (int i = 0; i < 4; ++i) {
       UnresolvedAtomID<Int> i_at = block_type_torsion_atoms[block_type][i + 4];
@@ -159,7 +160,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
           pose_stack_block_type,
           pose_stack_inter_block_connections,
           block_type_atom_downstream_of_conn);
-      valid_torsion &= psi_ats[i] != -1;
+      valid_phipsi &= psi_ats[i] != -1;
     }
     CoordQuad<Real> psi_coords;
     for (int i = 0; i < 4; ++i) {
@@ -167,7 +168,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
     }
 
     // accumulate rama
-    if (valid_torsion && rama_table_ind >= 0) {
+    if (valid_phipsi && rama_table_ind >= 0) {
       auto rama = rama_V_dV<Dev, Real, Int>(
           phi_coords,
           psi_coords,
@@ -183,7 +184,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
       }
     }
 
-    if (rama_table_ind < 0) {
+    if (omega_table_ind < 0) {
       return;
     }
 
@@ -216,7 +217,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
       omega_coords.row(i) = coords[pose_ind][omega_ats[i]];
     }
 
-    if (valid_torsion && rama_table_ind >= 0) {
+    if (valid_phipsi && omega_table_ind >= 0) {
       auto omega = omega_bbdep_V_dV<Dev, Real, Int>(
           phi_coords,
           psi_coords,

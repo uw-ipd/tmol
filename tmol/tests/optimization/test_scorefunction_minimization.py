@@ -69,7 +69,6 @@ def test_minimize_w_pose_and_sfxn_benchmark(
         def closure():
             optimizer.zero_grad()
             E = cart_sfxn_network()
-            print(E)
             E.backward()
             return E
 

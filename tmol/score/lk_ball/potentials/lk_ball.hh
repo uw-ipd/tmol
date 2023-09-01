@@ -1178,7 +1178,7 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   Eigen::Matrix<Real, n_lk_ball_score_types, 1> dTdV_local;
 
   for (int i = 0; i < n_lk_ball_score_types; ++i) {
-    dTdV_local[i] = dTdV[block_pair_dat.pose_ind][i];
+    dTdV_local[i] = dTdV[i][block_pair_dat.pose_ind];
   }
   for (int wi = 0; wi < MAX_N_WATER; wi++) {
     wmat_polar.row(wi) = coord_from_shared(

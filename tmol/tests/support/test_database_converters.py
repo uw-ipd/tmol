@@ -7,6 +7,7 @@ from .rosetta import requires_rosetta_database
 
 from tmol.support.scoring.hbond_param_import import RosettaHBParams
 from tmol.support.scoring.rewrite_rama_binary import parse_all_tables
+from tmol.support.scoring.rewrite_omega_bbdep_binary import parse_all_tables
 from tmol.support.scoring.rewrite_dunbrack_binary import (
     write_binary_version_of_dunbrack_rotamer_library,
 )
@@ -59,6 +60,13 @@ def test_rama_table_read(rosetta_database, default_database):
         numpy.testing.assert_allclose(
             ramatables[prepro_idx].bbstart, numpy.array([-numpy.pi, -numpy.pi])
         )
+
+
+@requires_rosetta_database
+def test_bbdep_omega_table_read(rosetta_database):
+    r3_bbdepomega_dir = os.path.join(rosetta_database, "scoring/score_functions/omega/")
+
+    tables = parse_all_tables(r3_bbdepomega_dir)
 
 
 @requires_rosetta_database

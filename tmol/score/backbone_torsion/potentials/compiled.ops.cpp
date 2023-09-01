@@ -106,11 +106,13 @@ class BackboneTorsionPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
+
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
+
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor()};

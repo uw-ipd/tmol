@@ -38,11 +38,10 @@ def rama_V_dV(
     Real2 bbstart,
     Real2 bbstep)
     ->tuple<Real, CoordQuad, CoordQuad> {
-  Real V;
-  Real2 dVdphipsi;
+  Real V = 0.0;
+  Real2 dVdphipsi = {0.0, 0.0};
   CoordQuad dV_dphiatm;
   CoordQuad dV_dpsiatm;
-
   auto phiang = dihedral_angle<Real>::V_dV(
       phi.row(0), phi.row(1), phi.row(2), phi.row(3));
   auto psiang = dihedral_angle<Real>::V_dV(
@@ -56,17 +55,16 @@ def rama_V_dV(
       tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
           coeffs, phipsi_idx);
 
-  dV_dphiatm.row(0) = phiang.dV_dI / bbstep[0];
-  dV_dphiatm.row(1) = phiang.dV_dJ / bbstep[0];
-  dV_dphiatm.row(2) = phiang.dV_dK / bbstep[0];
-  dV_dphiatm.row(3) = phiang.dV_dL / bbstep[0];
+  dV_dphiatm.row(0) = dVdphipsi[0] * phiang.dV_dI / bbstep[0];
+  dV_dphiatm.row(1) = dVdphipsi[0] * phiang.dV_dJ / bbstep[0];
+  dV_dphiatm.row(2) = dVdphipsi[0] * phiang.dV_dK / bbstep[0];
+  dV_dphiatm.row(3) = dVdphipsi[0] * phiang.dV_dL / bbstep[0];
 
-  dV_dpsiatm.row(0) = psiang.dV_dI / bbstep[1];
-  dV_dpsiatm.row(1) = psiang.dV_dJ / bbstep[1];
-  dV_dpsiatm.row(2) = psiang.dV_dK / bbstep[1];
-  dV_dpsiatm.row(3) = psiang.dV_dL / bbstep[1];
-
-  return {V, dVdphipsi[0] * dV_dphiatm, dVdphipsi[1] * dV_dpsiatm};
+  dV_dpsiatm.row(0) = dVdphipsi[1] * psiang.dV_dI / bbstep[1];
+  dV_dpsiatm.row(1) = dVdphipsi[1] * psiang.dV_dJ / bbstep[1];
+  dV_dpsiatm.row(2) = dVdphipsi[1] * psiang.dV_dK / bbstep[1];
+  dV_dpsiatm.row(3) = dVdphipsi[1] * psiang.dV_dL / bbstep[1];
+  return {V, dV_dphiatm, dV_dpsiatm};
 }
 
 template <tmol::Device D, typename Real, typename Int>

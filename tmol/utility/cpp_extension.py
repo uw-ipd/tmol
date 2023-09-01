@@ -37,10 +37,8 @@ def get_torch_version():
 torch_major, torch_minor = get_torch_version()
 
 _required_cuda_flags = [
-    #    "-ccbin gcc-8", #FIX ME!
     "-std=c++14",
     "--expt-extended-lambda",
-    # "--expt-relaxed-constexpr", #fd: causes compiler errors in CUDA 10.0
     "-DWITH_NVTX",
     "-w",
     # "-G",
