@@ -12,8 +12,8 @@
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/launch_box_macros.hh>
 #include <tmol/score/common/uaid_util.hh>
-
 #include <tmol/score/common/gen_coord.hh>
+#include <tmol/io/details/compiled/leaf_atoms.hh>
 
 namespace tmol {
 namespace io {
@@ -122,68 +122,30 @@ struct GeneratePoseLeafAtoms {
 
       // is this an atom we should build coordinates for?
       if (orig_coords_atom_missing[pose_ind][block_ind][atom_ind]) {
-        // ok! build the coordinate
-        auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
-          return score::common::resolve_atom_from_uaid<Int, Dev>(
-              block_type_atom_ancestors[block_type][atom_ind][which_anc],
-              block_ind,
-              pose_ind,
-              pose_stack_block_coord_offset,
-              pose_stack_block_type,
-              pose_stack_inter_block_connections,
-              block_type_atom_downstream_of_conn);
-        });
-        int anc0, anc1, anc2;
-        float D, theta, phi;
-
-        anc0 = get_anc(0);
-        anc1 = get_anc(1);
-        anc2 = get_anc(2);
-        if (anc0 == -1 || anc1 == -1 || anc2 == -1
-            || pose_stack_atom_missing[pose_ind][anc0]
-            || pose_stack_atom_missing[pose_ind][anc1]
-            || pose_stack_atom_missing[pose_ind][anc2]) {
-          // if any of the ancestors failed to resolve or if any of them
-          // are incomplete, then use the backup geometry
-          auto get_backup_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
-            return score::common::resolve_atom_from_uaid<Int, Dev>(
-                block_type_atom_ancestors_backup[block_type][atom_ind]
-                                                [which_anc],
-                block_ind,
-                pose_ind,
-                pose_stack_block_coord_offset,
-                pose_stack_block_type,
-                pose_stack_inter_block_connections,
-                block_type_atom_downstream_of_conn);
-          });
-          anc0 = get_backup_anc(0);
-          anc1 = get_backup_anc(1);
-          anc2 = get_backup_anc(2);
-
-          if (anc0 == -1 || anc1 == -1 || anc2 == -1
-              || pose_stack_atom_missing[pose_ind][anc0]
-              || pose_stack_atom_missing[pose_ind][anc1]
-              || pose_stack_atom_missing[pose_ind][anc2]) {
-            // cannot build an atom if we're missing its ancestors
-            return;
-          }
-          D = block_type_atom_icoors_backup[block_type][atom_ind][2];  // D
-          theta =
-              block_type_atom_icoors_backup[block_type][atom_ind][1];  // theta
-          phi = block_type_atom_icoors_backup[block_type][atom_ind][0];  // phi
-
-        } else {
-          D = block_type_atom_icoors[block_type][atom_ind][2];      // D
-          theta = block_type_atom_icoors[block_type][atom_ind][1];  // theta
-          phi = block_type_atom_icoors[block_type][atom_ind][0];    // phi
+        auto geom = select_leaf_ancestors<Int, Real, Dev>::find_ancestors(
+            pose_ind,
+            block_ind,
+            atom_ind,
+            block_type,
+            pose_stack_block_coord_offset,
+            pose_stack_block_type,
+            pose_stack_inter_block_connections,
+            block_type_atom_downstream_of_conn,
+            block_type_atom_ancestors,
+            block_type_atom_icoors,
+            block_type_atom_ancestors_backup,
+            block_type_atom_icoors_backup,
+            pose_stack_atom_missing);
+        if (geom.anc0 == -1) {
+          return;
         }
 
-        Vec<Real, 3> coord0 = orig_coords[pose_ind][anc0];
-        Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
-        Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
+        Vec<Real, 3> coord0 = orig_coords[pose_ind][geom.anc0];
+        Vec<Real, 3> coord1 = orig_coords[pose_ind][geom.anc1];
+        Vec<Real, 3> coord2 = orig_coords[pose_ind][geom.anc2];
 
         Vec<Real, 3> new_coord = score::common::build_coordinate<Real>::V(
-            coord0, coord1, coord2, D, theta, phi);
+            coord0, coord1, coord2, geom.D, geom.theta, geom.phi);
 
         new_coords[pose_ind][block_offset + atom_ind] = new_coord;
       } else {
@@ -299,76 +261,39 @@ struct GeneratePoseLeafAtoms {
 
       // is this an atom we should build coordinates for?
       if (orig_coords_atom_missing[pose_ind][block_ind][atom_ind]) {
-        // ok! build the coordinate
-        auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
-          return score::common::resolve_atom_from_uaid<Int, Dev>(
-              block_type_atom_ancestors[block_type][atom_ind][which_anc],
-              block_ind,
-              pose_ind,
-              pose_stack_block_coord_offset,
-              pose_stack_block_type,
-              pose_stack_inter_block_connections,
-              block_type_atom_downstream_of_conn);
-        });
-        int anc0, anc1, anc2;
-        float D, theta, phi;
-        anc0 = get_anc(0);
-        anc1 = get_anc(1);
-        anc2 = get_anc(2);
-        if (anc0 == -1 || anc1 == -1 || anc2 == -1
-            || pose_stack_atom_missing[pose_ind][anc0]
-            || pose_stack_atom_missing[pose_ind][anc1]
-            || pose_stack_atom_missing[pose_ind][anc2]) {
-          auto get_backup_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
-            return score::common::resolve_atom_from_uaid<Int, Dev>(
-                block_type_atom_ancestors_backup[block_type][atom_ind]
-                                                [which_anc],
-                block_ind,
-                pose_ind,
-                pose_stack_block_coord_offset,
-                pose_stack_block_type,
-                pose_stack_inter_block_connections,
-                block_type_atom_downstream_of_conn);
-          });
-          anc0 = get_backup_anc(0);
-          anc1 = get_backup_anc(1);
-          anc2 = get_backup_anc(2);
-          // printf("fell back on ancestors %d %d and %d when building atom %d
-          // on res %d\n", anc0, anc1, anc2, atom_ind, block_ind);
-          if (anc0 == -1 || anc1 == -1 || anc2 == -1
-              || pose_stack_atom_missing[pose_ind][anc0]
-              || pose_stack_atom_missing[pose_ind][anc1]
-              || pose_stack_atom_missing[pose_ind][anc2]) {
-            // cannot build a hydrogen if we're missing the ancestors
-            return;
-          }
-
-          D = block_type_atom_icoors_backup[block_type][atom_ind][2];  // D
-          theta =
-              block_type_atom_icoors_backup[block_type][atom_ind][1];  // theta
-          phi = block_type_atom_icoors_backup[block_type][atom_ind][0];  // phi
-
-        } else {
-          D = block_type_atom_icoors[block_type][atom_ind][2];      // D
-          theta = block_type_atom_icoors[block_type][atom_ind][1];  // theta
-          phi = block_type_atom_icoors[block_type][atom_ind][0];    // phi
+        auto geom = select_leaf_ancestors<Int, Real, Dev>::find_ancestors(
+            pose_ind,
+            block_ind,
+            atom_ind,
+            block_type,
+            pose_stack_block_coord_offset,
+            pose_stack_block_type,
+            pose_stack_inter_block_connections,
+            block_type_atom_downstream_of_conn,
+            block_type_atom_ancestors,
+            block_type_atom_icoors,
+            block_type_atom_ancestors_backup,
+            block_type_atom_icoors_backup,
+            pose_stack_atom_missing);
+        if (geom.anc0 == -1) {
+          return;
         }
 
-        Vec<Real, 3> coord0 = orig_coords[pose_ind][anc0];
-        Vec<Real, 3> coord1 = orig_coords[pose_ind][anc1];
-        Vec<Real, 3> coord2 = orig_coords[pose_ind][anc2];
+        Vec<Real, 3> coord0 = orig_coords[pose_ind][geom.anc0];
+        Vec<Real, 3> coord1 = orig_coords[pose_ind][geom.anc1];
+        Vec<Real, 3> coord2 = orig_coords[pose_ind][geom.anc2];
 
         auto coord_derivs = score::common::build_coordinate<Real>::dV(
-            coord0, coord1, coord2, D, theta, phi);
+            coord0, coord1, coord2, geom.D, geom.theta, geom.phi);
 
         Vec<Real, 3> dE_dH = dE_d_new_coords[pose_ind][block_offset + atom_ind];
 
         score::common::accumulate<Dev, Vec<Real, 3>>::add(
-            dE_d_orig_coords[pose_ind][anc0], coord_derivs.dp * dE_dH);
+            dE_d_orig_coords[pose_ind][geom.anc0], coord_derivs.dp * dE_dH);
         score::common::accumulate<Dev, Vec<Real, 3>>::add(
-            dE_d_orig_coords[pose_ind][anc1], coord_derivs.dgp * dE_dH);
+            dE_d_orig_coords[pose_ind][geom.anc1], coord_derivs.dgp * dE_dH);
         score::common::accumulate<Dev, Vec<Real, 3>>::add(
-            dE_d_orig_coords[pose_ind][anc2], coord_derivs.dggp * dE_dH);
+            dE_d_orig_coords[pose_ind][geom.anc2], coord_derivs.dggp * dE_dH);
 
       } else {
         // "copy" the derivative from the input derivatives; except, since we
