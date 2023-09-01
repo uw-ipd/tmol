@@ -117,7 +117,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         is_pro = numpy.full((1,), 0, dtype=numpy.int32)
 
         # TO DO: Better logic here to handle proline variants
-        if block_type.name == "PRO":
+        if block_type.base_name == "PRO":
             is_pro[0] = 1
 
         bt_bbtors_params = BackboneTorsionBlockTypeParams(
