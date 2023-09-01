@@ -145,8 +145,10 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
       valid_phipsi &= phi_ats[i] != -1;
     }
     CoordQuad<Real> phi_coords;
-    for (int i = 0; i < 4; ++i) {
-      phi_coords.row(i) = coords[pose_ind][phi_ats[i]];
+    if (valid_phipsi) {
+      for (int i = 0; i < 4; ++i) {
+        phi_coords.row(i) = coords[pose_ind][phi_ats[i]];
+      }
     }
 
     Vec<Int, 4> psi_ats;
@@ -163,8 +165,10 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::f(
       valid_phipsi &= psi_ats[i] != -1;
     }
     CoordQuad<Real> psi_coords;
-    for (int i = 0; i < 4; ++i) {
-      psi_coords.row(i) = coords[pose_ind][psi_ats[i]];
+    if (valid_phipsi) {
+      for (int i = 0; i < 4; ++i) {
+        psi_coords.row(i) = coords[pose_ind][psi_ats[i]];
+      }
     }
 
     // accumulate rama
