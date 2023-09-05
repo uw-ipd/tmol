@@ -204,11 +204,6 @@ struct GeneratePoseLeafAtoms {
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_atom_downstream_of_conn.size(2);
 
-    // printf(
-    //     "dE_d_new_coords: %d %d\n",
-    //     dE_d_new_coords.size(0),
-    //     dE_d_new_coords.size(1));
-
     assert(orig_coords_atom_missing.size(0) == n_poses);
     assert(orig_coords_atom_missing.size(1) == max_n_blocks);
     assert(orig_coords_atom_missing.size(2) == max_n_block_atoms);

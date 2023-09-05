@@ -862,6 +862,10 @@ class PoseStackBuilder:
         n_conn_for_block_offset, n_conn_totals = exclusive_cumsum2d_and_totals(
             n_conn_for_block
         )
+        print("n_conn_for_block_offset")
+        print(n_conn_for_block_offset)
+        print("n_conn_totals")
+        print(n_conn_totals)
         n_conn_for_block_offset64 = n_conn_for_block_offset.to(torch.int64)
         max_n_pose_conn = torch.max(n_conn_totals)
 
@@ -881,12 +885,16 @@ class PoseStackBuilder:
         pose_for_block = stretch(
             torch.arange(n_poses, dtype=torch.int64, device=pbt_device), max_n_blocks
         )
+        print("pose_for_block")
+        print(pose_for_block)
 
         # mark the first connection in each block with a 1
         first_pconn_for_block = torch.zeros(
             (n_poses, max_n_pose_conn), dtype=torch.int32, device=pbt_device
         )
-        first_pconn_for_block[pose_for_block, n_conn_for_block_offset64.ravel()] = 1
+        first_pconn_for_block[
+            pose_for_block[real_blocks.view(-1)], n_conn_for_block_offset64[real_blocks]
+        ] = 1
         # then an inclusive cummulative sum will label all of the
         # connections coming from the same block the same; this
         # will be 1 more than the actual block index for the

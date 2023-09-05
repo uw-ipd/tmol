@@ -1,6 +1,7 @@
 import numpy
 import torch
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
+from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
 from tmol.io.details.canonical_packed_block_types import (
     default_canonical_packed_block_types,
 )
@@ -59,6 +60,87 @@ def test_assign_block_types(torch_device, ubq_pdb):
     assert inter_residue_connections64.dtype == torch.int64
 
     numpy.testing.assert_equal(block_types.cpu().numpy(), ubq_bt_inds)
+
+
+def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
+    pbt, atr = default_canonical_packed_block_types(torch_device)
+    PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
+
+    # take ten residues
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        ubq_pdb[: 81 * 167], torch_device
+    )
+
+    # put two empty residues in between res 5 and 6
+    def add_two_res(x, fill_value):
+        if len(x.shape) >= 3:
+            fill_shape = (x.shape[0], 2, *x.shape[2:])
+        else:
+            fill_shape = (x.shape[0], 2)
+        print("x shape", x.shape)
+        print("fill_shape", fill_shape)
+        return torch.cat(
+            [
+                x[:, :5],
+                torch.full(fill_shape, fill_value, dtype=x.dtype, device=x.device),
+                x[:, 5:],
+            ],
+            dim=1,
+        )
+
+    ch_id = add_two_res(ch_id, 0)
+    can_rts = add_two_res(can_rts, -1)
+    coords = add_two_res(coords, float("nan"))
+    at_is_pres = add_two_res(at_is_pres, 0)
+
+    ch_id, can_rts, coords, at_is_pres, _1, _2 = left_justify_canonical_form(
+        ch_id, can_rts, coords, at_is_pres
+    )
+
+    # 2
+    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
+    # 3
+    (
+        his_taut,
+        res_type_variants,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = resolve_his_tautomerization(can_rts, res_type_variants, coords, at_is_pres)
+
+    # now we'll invoke assign_block_types
+    (
+        block_types,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
+
+    inter_res_conn_gold = numpy.full((1, 12, 3, 2), -1, dtype=numpy.int64)
+
+    def p(x, y):
+        return numpy.array([x, y], dtype=numpy.int64)
+
+    inter_res_conn_gold[0, 0, 0, :] = p(1, 0)
+    inter_res_conn_gold[0, 1, 0, :] = p(0, 0)
+    inter_res_conn_gold[0, 1, 1, :] = p(2, 0)
+    inter_res_conn_gold[0, 2, 0, :] = p(1, 1)
+    inter_res_conn_gold[0, 2, 1, :] = p(3, 0)
+    inter_res_conn_gold[0, 3, 0, :] = p(2, 1)
+    inter_res_conn_gold[0, 3, 1, :] = p(4, 0)
+    inter_res_conn_gold[0, 4, 0, :] = p(3, 1)
+    inter_res_conn_gold[0, 4, 1, :] = p(5, 0)
+    inter_res_conn_gold[0, 5, 0, :] = p(4, 1)
+    inter_res_conn_gold[0, 5, 1, :] = p(6, 0)
+    inter_res_conn_gold[0, 6, 0, :] = p(5, 1)
+    inter_res_conn_gold[0, 6, 1, :] = p(7, 0)
+    inter_res_conn_gold[0, 7, 0, :] = p(6, 1)
+    inter_res_conn_gold[0, 7, 1, :] = p(8, 0)
+    inter_res_conn_gold[0, 8, 0, :] = p(7, 1)
+    inter_res_conn_gold[0, 8, 1, :] = p(9, 0)
+    inter_res_conn_gold[0, 9, 0, :] = p(8, 1)
+
+    numpy.testing.assert_equal(
+        inter_res_conn_gold, inter_residue_connections64.cpu().numpy()
+    )
 
 
 def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_device):

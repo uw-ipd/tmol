@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from typing import Optional
+from typing import Optional, Tuple
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
@@ -25,7 +25,11 @@ def assign_block_types(
     res_type_variants: Tensor[torch.int32][:, :],
     found_disulfides64: Tensor[torch.int64][:, 3],
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
-):
+) -> Tuple[
+    Tensor[torch.int64][:, :],
+    Tensor[torch.int64][:, :, :, 2],
+    Tensor[torch.int32][:, :, :, :, :],
+]:
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(pbt)
     _annotate_packed_block_types_w_dslf_conn_inds(pbt)
@@ -120,17 +124,6 @@ def assign_block_types(
         res_type_variants64[is_real_res],
     ]
 
-    # print("block_type_ind64[:10]", block_type_ind64[0, :10])
-    # print("res_types64[21]", res_types64[0, 21])
-    # print("res_type_variants64[21]", res_type_variants64[0, 21])
-    # print("canonical_res_ordering_map",
-    #       canonical_res_ordering_map[
-    #           res_types64[0, 21], 1, :
-    #       ]
-    #       )
-
-    # block_type_ind64 = block_type_ind.to(torch.int64)
-
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
     inter_residue_connections64 = torch.full(
         (n_poses, max_n_res, max_n_conn, 2), -1, dtype=torch.int64, device=device
@@ -217,11 +210,6 @@ def assign_block_types(
             torch.int64
         )
 
-        # print("cyd1_dslf_conn64")
-        # print(cyd1_dslf_conn64)
-        # print("cyd2_dslf_conn64")
-        # print(cyd2_dslf_conn64)
-
         inter_residue_connections64[
             found_disulfides64[:, 0], found_disulfides64[:, 1], cyd1_dslf_conn64, 0
         ] = found_disulfides64[:, 2]
@@ -254,7 +242,7 @@ def assign_block_types(
         inter_residue_connections64, pconn_offsets, pconn_matrix
     )
 
-    # # SHORT CIRCUIT
+    # # SHORT CIRCUIT: skip the all-pairs-shortest-path call
     # inter_block_bondsep64 = torch.full(
     #     (n_poses, max_n_res, max_n_res, max_n_conn, max_n_conn),
     #     6,
@@ -292,8 +280,6 @@ def take_block_type_atoms_from_canonical(
     device = pbt.device
     _annotate_packed_block_types_w_canonical_res_order(pbt)
     _annotate_packed_block_types_w_canonical_atom_order(pbt)
-
-    # block_types64 = block_types.to(torch.int64)
 
     n_poses = block_types64.shape[0]
     max_n_blocks = block_types64.shape[1]
@@ -336,9 +322,6 @@ def take_block_type_atoms_from_canonical(
 
 @validate_args
 def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
-    # TEMP! do everything in numpy for the moment
-    # TO DO! Use torch tensors on the device!
-    #
     # mapping from canonical restype index to the
     # packed-block-types index for that restype
     #
@@ -348,14 +331,13 @@ def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
     #  c. disulfide assignment
     #  d. his-d vs his-e assignment
     # and then look up into a tensor exactly which block type we are talking about
-    #
 
     if hasattr(pbt, "canonical_res_ordering_map"):
         assert hasattr(pbt, "bt_ind_to_canonical_ind")
         return
 
-    max_n_termini_types = 3  # TEMP! 0=Nterm, 1=mid, 2=Cterm
-    max_n_aa_variant_types = 2  # TEMP! CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
+    max_n_termini_types = 3  # 0=Nterm, 1=mid, 2=Cterm
+    max_n_aa_variant_types = 2  # CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
 
     # forward ordering: from canonical-index + termini type + variant --> block-type index
     canonical_ordering_map = numpy.full(
@@ -419,7 +401,6 @@ def _annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
         return
     canonical_dslf_conn_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int64)
     for i, bt in enumerate(pbt.active_block_types):
-        # print("bt", bt.name, "dslf?", "dslf" in bt.connection_to_cidx, bt.connection_to_cidx)
         if "dslf" in bt.connection_to_cidx:
             canonical_dslf_conn_ind[i] = bt.connection_to_cidx["dslf"]
     canonical_dslf_conn_ind = torch.tensor(
@@ -437,18 +418,15 @@ def _annotate_packed_block_types_w_canonical_atom_order(pbt: PackedBlockTypes):
     )
     # canonical_res_ordering_map = pbt.canonical_res_ordering_map.cpu()
     for i, bt in enumerate(pbt.active_block_types):
-        # print("bt name:", bt.name)
         canonical_res_ind = pbt.bt_ind_to_canonical_ind[i]
         if canonical_res_ind == -1:
             continue
         canonical_res_name = ordered_canonical_aa_types[canonical_res_ind]
-        ##### TEEEEEEMP!!!!!! #####
-        # Use V2 for now
+        # NOTE: We will use V2 for now, but this should be phased out
         i_canonical_ordering = ordered_canonical_aa_atoms_v2[canonical_res_name]
         for j, at in enumerate(bt.atoms):
             # probably this would be faster if we used a pandas indexer
             # but this is done only once, so, for now, use the slow form
-            # print("at", at.name.strip())
             canonical_atom_ind[i, j] = i_canonical_ordering.index(at.name.strip())
     canonical_atom_ind = torch.tensor(
         canonical_atom_ind, dtype=torch.int64, device=pbt.device

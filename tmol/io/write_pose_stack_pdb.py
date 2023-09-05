@@ -10,13 +10,16 @@ from typing import Union
 
 def atom_records_from_pose_stack(
     pose_stack: PoseStack,
+    chain_ind_for_block: Optonal[Tensor[torch.int64][:, :]] = None,
     chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
 ):
     from tmol.io.chain_deduction import chain_inds_for_pose_stack
 
+    if chain_ind_for_block is None:
+        chain_ind_for_block = chain_inds_for_pose_stack(pose_stack)
     return atom_records_from_coords(
         pose_stack.packed_block_types,
-        chain_inds_for_pose_stack(pose_stack),
+        chain_ind_for_block,
         pose_stack.block_type_ind64,
         pose_stack.coords,
         pose_stack.block_coord_offset,
@@ -49,14 +52,6 @@ def atom_records_from_coords(
 
     is_real_block = block_types64 != -1
     real_block_pose, real_block_block = torch.nonzero(is_real_block, as_tuple=True)
-    # n_real_blocks = torch.sum(is_real_block.to(torch.int64), dim=1)
-    # pose_for_real_block = torch.arange(
-    #     n_poses, dtype=torch.int64, device=pbt.device
-    # ).repeat_interleave(n_real_blocks, dim=0)
-    # print("pose_for_real_block.shape")
-    # print(pose_for_real_block.shape)
-    # print("n_real_blocks")
-    # print(n_real_blocks)
 
     n_block_atoms = torch.zeros(
         (n_poses, max_n_blocks), dtype=torch.int32, device=pbt.device
@@ -100,16 +95,6 @@ def atom_records_from_coords(
     block_for_atom = torch.cumsum(block_for_atom, dim=1) - 1
     block_for_real_atom = block_for_atom[atom_is_real]
 
-    # print("torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat((n_poses, 1))")
-    # print(torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat((n_poses, 1)).shape)
-    #
-    # print("pose_for_pose_atom", pose_for_pose_atom.shape)
-    # print(pose_for_pose_atom[:,:30])
-    # print("block_for_pose_atom", block_for_pose_atom.shape)
-
-    # print("block_coord_offset[pose_for_pose_atom, block_for_pose_atom]")
-    # print(block_coord_offset[pose_for_pose_atom, block_for_pose_atom].shape)
-
     block_local_atom_index_for_pose_atom = (
         torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat(
             (n_poses, 1)
@@ -119,23 +104,8 @@ def atom_records_from_coords(
     block_local_atom_index_for_real_atom = block_local_atom_index_for_pose_atom[
         atom_is_real
     ]
-    # print("torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat(n_poses,1)")
-    # print(torch.arange(max_n_pose_atoms, dtype=torch.int32, device=pbt.device).repeat(n_poses,1))
-    # print("block_coord_offset[pose_for_pose_atom, block_for_pose_atom]")
-    # print(block_coord_offset[pose_for_pose_atom, block_for_pose_atom])
-    # print("block_local_atom_index_for_pose_atom")
-    # print(block_local_atom_index_for_pose_atom)
-    # print("atom_is_real")
-    # print(atom_is_real)
 
     pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
-    # chain_ind_for_block = torch.zeros(
-    #     (n_poses, max_n_blocks),
-    #     dtype=torch.int32,
-    #     device=pbt.device
-    # )
-    # chain_ind_for_block[chain_begin != 0] = 1
-    # chain_ind_for_block = torch.cumsum(chain_ind_for_block, dim=1) - 1
 
     # ok, let's move everything to the cpu/numpy from here forward
     # chain_begin = chain_begin.cpu().numpy()
@@ -147,8 +117,6 @@ def atom_records_from_coords(
     n_pose_atoms = n_pose_atoms.cpu().numpy()
     pose_for_real_atom = pose_for_real_atom.cpu().numpy()
     atom_is_real = atom_is_real.cpu().numpy()
-    # chain_ind_for_block = chain_ind_for_block.cpu().numpy()
-    # chain_ind_for_real_atom = chain_ind_for_real_atom.cpu().numpy()
     block_for_atom = block_for_atom.cpu().numpy()
     block_for_real_atom = block_for_real_atom.cpu().numpy()
     block_local_atom_index_for_real_atom = (
@@ -156,26 +124,14 @@ def atom_records_from_coords(
     )
     pose_atom_offsets = pose_atom_offsets.cpu().numpy()
 
-    # n_res = numpy.cumsum(is_real_block, axis=1)
-
     chain_ind_for_real_atom = chain_ind_for_block[
         pose_for_real_atom, block_for_real_atom
     ]
 
-    # n_pose_arange = numpy.tile(numpy.arange(max_n_blocks, dtype=int), (n_poses,1))
-    # pose_res_is_real
-
-    # n_atoms = pose_like_coords.shape[1]
     results = numpy.empty(n_atoms_total, dtype=atom_record_dtype)
     results["record_name"] = numpy.full((n_atoms_total,), "ATOM  ", dtype=str)
     results["modeli"] = pose_for_real_atom
     results["chaini"] = chain_ind_for_real_atom
-    # chain_begin = chain_begin.cpu().numpy()
-    # res_begin = numpy.full((n_atoms,), 0, dtype=int)
-    # res_begin[block_coord_offset[0]] = 1
-    # res_for_atom = numpy.cumsum(res_begin) - 1
-    # print("res for atom")
-    # print(res_for_atom)
     results["resi"] = block_for_atom[atom_is_real] + 1
     results["atomi"] = (
         numpy.arange(n_atoms_total, dtype=numpy.int)
@@ -192,9 +148,6 @@ def atom_records_from_coords(
     elif len(chain_labels.shape) == 2:
         results["chain"] = chain_labels[pose_for_real_atom, chain_ind_for_real_atom]
 
-    # print("block_types64[0, i]")
-    # print([block_types64[0, i] for i in res_for_atom])
-
     # create lookup for atom names
     bt_names = numpy.array([bt.name[:3] for bt in pbt.active_block_types])
     bt_atom_names = numpy.empty((pbt.n_types, pbt.max_n_atoms), dtype=numpy.object_)
@@ -203,10 +156,6 @@ def atom_records_from_coords(
             bt_atom_names[i, j] = at.name
 
     bt_for_real_atom = block_types64[pose_for_real_atom, block_for_real_atom]
-    # print("bt_for_real_atom")
-    # print(bt_for_real_atom)
-    # print("block_local_atom_index_for_real_atom")
-    # print(block_local_atom_index_for_real_atom)
     results["resn"] = bt_names[bt_for_real_atom]
     results["atomn"] = bt_atom_names[
         bt_for_real_atom, block_local_atom_index_for_real_atom
