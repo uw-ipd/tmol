@@ -41,7 +41,7 @@ struct select_leaf_ancestors {
       TView<Real, 3, Dev> block_type_atom_icoors_backup,
       TView<Int, 2, Dev> pose_stack_atom_missing) {
     // ok! build the coordinate
-    auto get_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
+    auto get_anc = ([=] TMOL_DEVICE_FUNC(int which_anc) {
       return score::common::resolve_atom_from_uaid<Int, Dev>(
           block_type_atom_ancestors[block_type][atom_ind][which_anc],
           block_ind,
@@ -63,7 +63,7 @@ struct select_leaf_ancestors {
         || pose_stack_atom_missing[pose_ind][anc2]) {
       // if any of the ancestors failed to resolve or if any of them
       // are incomplete, then use the backup geometry
-      auto get_backup_anc = ([&] TMOL_DEVICE_FUNC(int which_anc) {
+      auto get_backup_anc = ([=] TMOL_DEVICE_FUNC(int which_anc) {
         return score::common::resolve_atom_from_uaid<Int, Dev>(
             block_type_atom_ancestors_backup[block_type][atom_ind][which_anc],
             block_ind,
