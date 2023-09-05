@@ -39,7 +39,7 @@ struct select_leaf_ancestors {
       TView<Real, 3, Dev> block_type_atom_icoors,
       TView<UnresolvedAtomID<Int>, 3, Dev> block_type_atom_ancestors_backup,
       TView<Real, 3, Dev> block_type_atom_icoors_backup,
-      TView<Int, 2, Dev> pose_stack_atom_missing) {
+      TView<Int, 2, Dev> pose_stack_atom_missing) -> anc_and_geom {
     // ok! build the coordinate
     auto get_anc = ([=] TMOL_DEVICE_FUNC(int which_anc) {
       return score::common::resolve_atom_from_uaid<Int, Dev>(
