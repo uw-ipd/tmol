@@ -22,6 +22,22 @@ def test_build_pose_stack_from_canonical_form_ubq_benchmark(
         return pose_stack
 
 
+@pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form")
+def test_build_pose_stack_from_canonical_form_pert_benchmark(
+    benchmark, torch_device, pertuzumab_lines
+):
+    canonical_form = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
+
+    # warmup
+    p = pose_stack_from_canonical_form(*canonical_form)
+    assert p.coords.shape[0] == 1
+
+    @benchmark
+    def create_pose_stack():
+        pose_stack = pose_stack_from_canonical_form(*canonical_form)
+        return pose_stack
+
+
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form_and_score")
 def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
     canonical_form = canonical_form_from_pdb_lines(ubq_pdb, torch_device)

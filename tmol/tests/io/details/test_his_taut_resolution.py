@@ -553,9 +553,3 @@ def test_resolve_his_NE2_provided_as_NH():
     resolved_atom_is_present_gold[0, 0, atind("ND1")] = 1
     resolved_atom_is_present_gold[0, 0, atind("NE2")] = 1
     numpy.testing.assert_equal(resolved_atom_is_present, resolved_atom_is_present_gold)
-
-    # his_taut_res = resolve_his_tautomerization(res_types, coords, atom_is_present)
-    # his_taut_res_gold = numpy.array(
-    #     [[HisTautomerResolution.his_taut_HE2.value]], dtype=numpy.int32
-    # )
-    # numpy.testing.assert_equal(his_taut_res, his_taut_res_gold)

@@ -99,7 +99,6 @@ class RamaPoseScoreDispatch {
     assert(block_type_rama_torsion_atoms.size(1) == 8);
 
     assert(table_params.size(0) == n_rama_tables);
-    // std::cout << "starting rama" << std::endl;
 
     auto V_t = TPack<Real, 2, Dev>::zeros({1, n_poses});
     auto dV_dxyz_t =
@@ -115,12 +114,10 @@ class RamaPoseScoreDispatch {
     auto rama_func = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const pose_ind = ind / max_n_blocks;
       int const block_ind = ind % max_n_blocks;
-      // printf("rama 1\n");
       int const block_type = pose_stack_block_type[pose_ind][block_ind];
       if (block_type < 0) {
         return;
       }
-      // printf("rama 2\n");
       int const upper_conn = block_type_upper_conn_ind[block_type];
       if (upper_conn < 0) {
         return;
@@ -128,24 +125,20 @@ class RamaPoseScoreDispatch {
       int const upper_nbr_ind =
           pose_stack_inter_block_connections[pose_ind][block_ind][upper_conn]
                                             [0];
-      // printf("rama 3\n");
       if (upper_nbr_ind < 0) {
         return;
       }
       int const upper_nbr_bt = pose_stack_block_type[pose_ind][upper_nbr_ind];
-      // printf("rama 4\n");
       if (upper_nbr_bt < 0) {
         return;
       }
       int const upper_nbr_is_pro = block_type_is_pro[upper_nbr_bt];
       int const rama_table_ind =
           block_type_rama_table[block_type][upper_nbr_is_pro];
-      // printf("rama 5\n");
       if (rama_table_ind < 0) {
         return;
       }
 
-      // printf("rama 6\n");
       int const offset_this_block_ind =
           pose_stack_block_coord_offset[pose_ind][block_ind];
 
@@ -153,9 +146,6 @@ class RamaPoseScoreDispatch {
       for (int i = 0; i < 4; ++i) {
         UnresolvedAtomID<Int> i_at =
             block_type_rama_torsion_atoms[block_type][i];
-        // if (i_at.atom_id == -1 && i_at.conn_id == -1) {
-        //   printf("phi atom iwith rama torsion atoms of -1 -1 for %d\n", i);
-        // }
         phi_ats[i] = resolve_atom_from_uaid(
             i_at,
             block_ind,
@@ -176,9 +166,6 @@ class RamaPoseScoreDispatch {
       for (int i = 0; i < 4; ++i) {
         UnresolvedAtomID<Int> i_at =
             block_type_rama_torsion_atoms[block_type][i + 4];
-        // if (i_at.atom_id == -1 && i_at.conn_id == -1) {
-        //   printf("psi atom iwith rama torsion atoms of -1 -1 for %d\n", i);
-        // }
         psi_ats[i] = resolve_atom_from_uaid(
             i_at,
             block_ind,
@@ -195,7 +182,6 @@ class RamaPoseScoreDispatch {
       for (int i = 0; i < 4; ++i) {
         psi_coords.row(i) = coords[pose_ind][psi_ats[i]];
       }
-      // printf("rama 7\n");
       auto rama = rama_V_dV<Dev, Real, Int>(
           phi_coords,
           psi_coords,

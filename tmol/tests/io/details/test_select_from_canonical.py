@@ -77,8 +77,6 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
             fill_shape = (x.shape[0], 2, *x.shape[2:])
         else:
             fill_shape = (x.shape[0], 2)
-        print("x shape", x.shape)
-        print("fill_shape", fill_shape)
         return torch.cat(
             [
                 x[:, :5],
@@ -144,10 +142,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
 
 
 def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_device):
-    # torch_device = torch.device("cpu")
     pert_and_erbb2_lines, seg_lengths = pert_and_nearby_erbb2
-    # print("pert and erbb2")
-    # print(pert_and_erbb2_lines)
 
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
@@ -196,10 +191,6 @@ def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_de
 
     disconn_seg_start = set([x for x in seg_range_start[2:]])
     disconn_seg_end = set([x - 1 for x in seg_range_end[2:]])
-    # print("disconn_seg_start")
-    # print(disconn_seg_start)
-    # print("disconn_seg_end")
-    # print(disconn_seg_end)
 
     for i, bt_ind in enumerate(block_types[0, :]):
         bt = pbt.active_block_types[bt_ind]

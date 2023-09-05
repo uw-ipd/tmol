@@ -20,8 +20,6 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
-    numpy.set_printoptions(threshold=100000)
-
     pbt, atr = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         ubq_pdb, torch_device
@@ -131,11 +129,6 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
 
 
 def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
-    numpy.set_printoptions(threshold=100000)
-
-    # print("ubq_pdb")
-    # print(ubq_pdb)
-
     pbt, atr = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         ubq_pdb, torch_device
@@ -345,7 +338,7 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
             missing_atoms,
             inter_residue_connections,
         )
-        # print("new_pose_coords.shape", new_pose_coords.shape)
+
         # slice the coords tensor to create a temp that will avoid a stride of 0
         return torch.sum(new_pose_coords[:, :, :])
 
