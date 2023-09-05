@@ -12,7 +12,7 @@ def pose_stack_from_canonical_form(
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     return_chain_ind: bool = False,
-) -> PoseStack:
+):
     """Create a PoseStack given atom coordinates in canonical ordering
 
     Arguments:
@@ -187,8 +187,7 @@ def pose_stack_from_canonical_form(
         block_type_ind64=block_types64,
         device=pbt.device,
     )
-    # if return_chain_ind:
-    #     ps_chain_ind = torch.full_like(block_types64, -1)
-    #     ps_chain_ind[block_type_ind64 != -1] =
-    #     return (ps,
-    return ps
+    if return_chain_ind:
+        return (ps, chain_id)
+    else:
+        return ps

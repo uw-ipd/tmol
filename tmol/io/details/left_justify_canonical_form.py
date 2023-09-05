@@ -36,7 +36,9 @@ def left_justify_canonical_form(
     chain_id = lj(chain_id, -1)
     res_types = lj(res_types, -1)
     coords = lj(coords, float("nan"))
-    atom_is_present = lj(atom_is_present, 0)
+    if atom_is_present is not None:
+        atom_is_present = lj(atom_is_present, 0)
+
     if disulfides is not None:
         old_2_new = torch.full(
             res_types.shape, -1, dtype=torch.int64, device=res_types.device
