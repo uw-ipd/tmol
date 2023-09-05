@@ -5,12 +5,12 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from typing import Union
+from typing import Optional, Union
 
 
 def atom_records_from_pose_stack(
     pose_stack: PoseStack,
-    chain_ind_for_block: Optonal[Tensor[torch.int64][:, :]] = None,
+    chain_ind_for_block: Optional[Tensor[torch.int64][:, :]] = None,
     chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
 ):
     from tmol.io.chain_deduction import chain_inds_for_pose_stack

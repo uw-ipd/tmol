@@ -3,7 +3,6 @@ from tmol.types.torch import Tensor
 from typing import Optional
 from tmol.score.common.stack_condense import (
     condense_torch_inds,
-    take_values_w_sentineled_index,
 )
 
 
