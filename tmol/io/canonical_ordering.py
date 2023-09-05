@@ -26,30 +26,7 @@ ordered_canonical_aa_types = (
     "TYR",
 )
 
-aa_codes = {
-    "ALA": "A",
-    "CYS": "C",
-    "ASP": "D",
-    "GLU": "E",
-    "PHE": "F",
-    "GLY": "G",
-    "HIS": "H",
-    "ILE": "I",
-    "LYS": "K",
-    "LEU": "L",
-    "MET": "M",
-    "ASN": "N",
-    "PRO": "P",
-    "GLN": "Q",
-    "ARG": "R",
-    "SER": "S",
-    "THR": "T",
-    "VAL": "V",
-    "TRP": "W",
-    "TYR": "Y",
-}
-
-
+# PDB v3 naming convention
 ordered_canonical_aa_atoms = {
     "ALA": (
         "N",

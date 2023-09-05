@@ -297,17 +297,6 @@ struct GeneratePoseLeafAtoms {
         // perform an atomic add
         Vec<Real, 3> atom_deriv =
             dE_d_new_coords[pose_ind][block_offset + atom_ind];
-        if (atom_deriv[0] != atom_deriv[0] || atom_deriv[1] != atom_deriv[1]
-            || atom_deriv[2] != atom_deriv[2]) {
-          printf(
-              "copy deriv NaN !!! %d %d %d (%f %f %f)\n",
-              pose_ind,
-              block_ind,
-              atom_ind,
-              atom_deriv(0),
-              atom_deriv(1),
-              atom_deriv(2));
-        }
         score::common::accumulate<Dev, Vec<Real, 3>>::add(
             dE_d_orig_coords[pose_ind][block_offset + atom_ind], atom_deriv);
       }

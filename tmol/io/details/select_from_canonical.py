@@ -53,10 +53,6 @@ def assign_block_types(
             (n_poses, max_n_res, 2), dtype=torch.bool, device=device
         )
 
-    # assert torch.all(
-    #     is_real_res[chain_begin == 1]
-    # ), "every residue marked as the beginning of a chain must be real"
-
     # we are going to modify the chain_id tensor, perhaps to the detriment of the caller,
     # so clone it.
     # mark the chain id for any un-real residue as -1

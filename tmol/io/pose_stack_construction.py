@@ -96,16 +96,18 @@ def pose_stack_from_canonical_form(
 
     # step 1: retrieve the global packed_block_types object with the 66
     #         canonical residue types
-    # step 2: resolve disulfides
-    # step 3: resolve his tautomer
-    # step 4: resolve termini variants, assign block-types to each input
+    # step 2: remove any "virtual residues," marked with a res-type ind of -1
+    #         by shifting all of the residues in each Pose "to the left"
+    # step 3: resolve disulfides
+    # step 4: resolve his tautomer
+    # step 5: resolve termini variants, assign block-types to each input
     #         residue, and populate the inter-block connectivity tensors
-    # step 5: select the atoms from the canonically-ordered input tensors
+    # step 6: select the atoms from the canonically-ordered input tensors
     #         (the coords and atom_is_present tensors) that belong to the
     #         now-assigned block types, discarding/ignoring
     #         any others that may have been provided
-    # step 6: if any atoms missing, build them
-    # step 7: construct PoseStack object
+    # step 7: if any atoms missing, build them
+    # step 8: construct PoseStack object
 
     if atom_is_present is None:
         atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
@@ -128,10 +130,10 @@ def pose_stack_from_canonical_form(
         chain_id, res_types, coords, atom_is_present, disulfides, res_not_connected
     )
 
-    # 2
+    # 3
     found_disulfides, res_type_variants = find_disulfides(res_types, coords, disulfides)
 
-    # 3
+    # 4
     (
         his_taut,
         res_type_variants,
@@ -141,7 +143,7 @@ def pose_stack_from_canonical_form(
         res_types, res_type_variants, coords, atom_is_present
     )
 
-    # 4
+    # 5
     (
         block_types64,
         inter_residue_connections64,
@@ -150,12 +152,12 @@ def pose_stack_from_canonical_form(
         pbt, chain_id, res_types, res_type_variants, found_disulfides, res_not_connected
     )
 
-    # 5
+    # 6
     block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, atom_is_present
     )
 
-    # 6
+    # 7
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     pose_stack_coords, block_coord_offset = build_missing_leaf_atoms(
         pbt,
@@ -173,7 +175,7 @@ def pose_stack_from_canonical_form(
     def i32(x):
         return x.to(torch.int32)
 
-    # 7
+    # 8
     ps = PoseStack(
         packed_block_types=pbt,
         coords=pose_stack_coords,
