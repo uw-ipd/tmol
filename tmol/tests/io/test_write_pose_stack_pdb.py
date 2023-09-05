@@ -1,4 +1,3 @@
-import torch
 import numpy
 
 from tmol.io.write_pose_stack_pdb import (
