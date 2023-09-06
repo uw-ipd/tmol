@@ -32,8 +32,8 @@ def test_deduce_chains_two_monomers(ubq_res, default_restype_set, torch_device):
     numpy.testing.assert_equal(gold_chain_inds, chain_inds)
 
 
-def test_deduce_chains_dslf_dimer(pertuzumab_lines, torch_device):
-    canonical_form = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
+def test_deduce_chains_dslf_dimer(pertuzumab_pdb, torch_device):
+    canonical_form = canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
 
     pose_stack = pose_stack_from_canonical_form(*canonical_form)
 

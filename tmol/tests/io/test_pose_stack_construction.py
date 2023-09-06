@@ -22,8 +22,8 @@ def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
     assert pose_stack.device == torch_device
 
 
-def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_lines):
-    canonical_form = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
+def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_pdb):
+    canonical_form = canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
     pose_stack = pose_stack_from_canonical_form(*canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
@@ -39,10 +39,8 @@ def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_line
     assert pose_stack.device == torch_device
 
 
-def test_build_pose_stack_from_canonical_form_pert_w_dslf(
-    torch_device, pertuzumab_lines
-):
-    canonical_form = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
+def test_build_pose_stack_from_canonical_form_pert_w_dslf(torch_device, pertuzumab_pdb):
+    canonical_form = canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
 
     disulfides = torch.tensor(
         [[0, 22, 87], [0, 213, 435], [0, 133, 193], [0, 235, 309], [0, 359, 415]],
@@ -65,8 +63,13 @@ def test_build_pose_stack_from_canonical_form_pert_w_dslf(
     assert pose_stack.device == torch_device
 
 
-def test_build_pose_stack_w_disconn_segs(torch_device, pert_and_nearby_erbb2):
-    pert_and_erbb2_lines, res_not_connected = pert_and_nearby_erbb2
+def test_build_pose_stack_w_disconn_segs(
+    torch_device, pertuzumab_and_nearby_erbb2_pdb_and_segments
+):
+    (
+        pert_and_erbb2_lines,
+        res_not_connected,
+    ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
     canonical_form = canonical_form_from_pdb_lines(pert_and_erbb2_lines, torch_device)
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 
@@ -77,7 +80,7 @@ def test_build_pose_stack_w_disconn_segs(torch_device, pert_and_nearby_erbb2):
     )
 
     pose_stack = pose_stack_from_canonical_form(
-        *canonical_form, disulfides, res_not_connected
+        *canonical_form, disulfides, True, res_not_connected
     )
 
     assert pose_stack.packed_block_types.device == torch_device
@@ -94,9 +97,12 @@ def test_build_pose_stack_w_disconn_segs(torch_device, pert_and_nearby_erbb2):
 
 
 def test_build_pose_stack_w_disconn_segs_and_insertions(
-    torch_device, pert_and_nearby_erbb2
+    torch_device, pertuzumab_and_nearby_erbb2_pdb_and_segments
 ):
-    pert_and_erbb2_lines, res_not_connected = pert_and_nearby_erbb2
+    (
+        pert_and_erbb2_lines,
+        res_not_connected,
+    ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
     canonical_form = canonical_form_from_pdb_lines(pert_and_erbb2_lines, torch_device)
 
     def get_add_two_fill_shape(x):
@@ -129,7 +135,11 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
     )
 
     pose_stack, chain_ind = pose_stack_from_canonical_form(
-        *canonical_form, disulfides_shifted, res_not_connected, return_chain_ind=True
+        *canonical_form,
+        disulfides_shifted,
+        True,
+        res_not_connected,
+        return_chain_ind=True
     )
 
     assert pose_stack.packed_block_types.device == torch_device

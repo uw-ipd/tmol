@@ -118,7 +118,7 @@ def water_box_system():
 
 
 @pytest.fixture()
-def pertuzumab_lines():
+def pertuzumab_pdb():
     # Pertuzumab is an antibody that binds to a protein
     # called "ERBB2." The co-crystal struction is 1s78.
     # This (truncated) PDB consists of chains A, C, and
@@ -131,12 +131,12 @@ def pertuzumab_lines():
 
 
 @pytest.fixture()
-def erbb2_and_pertuzumab_lines():
+def erbb2_and_pertuzumab_pdb():
     return pdb.data["1s78.pdb"]
 
 
 @pytest.fixture()
-def pert_and_nearby_erbb2():
+def pertuzumab_and_nearby_erbb2_pdb_and_segments():
     # Return two things that are needed for construction of a special
     # kind of Pose that contains two complete chains (the pertuzumab
     # antibody) and then a subset of the residues in the antigen chain

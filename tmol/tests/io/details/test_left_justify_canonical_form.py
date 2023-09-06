@@ -72,7 +72,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     numpy.testing.assert_equal(at_is_pres_lj_gold, at_is_pres.cpu().numpy())
 
 
-def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_lines, torch_device):
+def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
@@ -81,7 +81,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_lines, torch_device)
         orig_can_rts,
         orig_coords,
         orig_at_is_pres,
-    ) = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
+    ) = canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
 
     # the actual disulfides
     disulfides = torch.tensor(
@@ -150,8 +150,13 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_lines, torch_device)
     numpy.testing.assert_equal(disulfides.cpu().numpy(), lj_dslf.cpu().numpy())
 
 
-def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_device):
-    pert_and_erbb2_lines, res_not_connected = pert_and_nearby_erbb2
+def test_assign_block_types_for_pert_and_antigen(
+    pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device
+):
+    (
+        pert_and_erbb2_lines,
+        res_not_connected,
+    ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 

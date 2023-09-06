@@ -49,8 +49,8 @@ def test_atom_records_from_pose_stack_2(ubq_pdb, ubq_res, torch_device):
     assert len(pdb_lines) == 14644
 
 
-def test_atom_records_for_multi_chain_pdb(pertuzumab_lines, torch_device):
-    canonical_form = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
+def test_atom_records_for_multi_chain_pdb(pertuzumab_pdb, torch_device):
+    canonical_form = canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
     pose_stack = pose_stack_from_canonical_form(*canonical_form)
 
     records = atom_records_from_pose_stack(
@@ -58,7 +58,5 @@ def test_atom_records_for_multi_chain_pdb(pertuzumab_lines, torch_device):
     )
     pdb_lines = to_pdb(records)
     pdb_atom_lines = [x for x in pdb_lines.split("\n") if x[:6] == "ATOM  "]
-    pertuzumab_atom_lines = [
-        x for x in pertuzumab_lines.split("\n") if x[:6] == "ATOM  "
-    ]
+    pertuzumab_atom_lines = [x for x in pertuzumab_pdb.split("\n") if x[:6] == "ATOM  "]
     assert len(pdb_atom_lines) > len(pertuzumab_atom_lines)

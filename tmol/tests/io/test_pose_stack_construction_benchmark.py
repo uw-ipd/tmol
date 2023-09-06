@@ -24,9 +24,9 @@ def test_build_pose_stack_from_canonical_form_ubq_benchmark(
 
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form")
 def test_build_pose_stack_from_canonical_form_pert_benchmark(
-    benchmark, torch_device, pertuzumab_lines
+    benchmark, torch_device, pertuzumab_pdb
 ):
-    canonical_form = canonical_form_from_pdb_lines(pertuzumab_lines, torch_device)
+    canonical_form = canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
 
     # warmup
     p = pose_stack_from_canonical_form(*canonical_form)
@@ -63,13 +63,13 @@ def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form")
 def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
     benchmark,
-    pertuzumab_lines,
+    pertuzumab_pdb,
     n_poses,
 ):
     torch_device = torch.device("cuda")
     n_poses = int(n_poses)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        pertuzumab_lines, torch_device
+        pertuzumab_pdb, torch_device
     )
 
     ch_id = ch_id.expand(n_poses, -1)
@@ -90,11 +90,11 @@ def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
 @requires_cuda
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30]))
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form_and_score")
-def test_build_and_score_pertuzumab_benchmark(benchmark, pertuzumab_lines, n_poses):
+def test_build_and_score_pertuzumab_benchmark(benchmark, pertuzumab_pdb, n_poses):
     torch_device = torch.device("cuda")
     n_poses = int(n_poses)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        pertuzumab_lines, torch_device
+        pertuzumab_pdb, torch_device
     )
 
     ch_id = ch_id.expand(n_poses, -1)

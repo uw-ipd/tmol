@@ -5,9 +5,9 @@ from tmol.io.canonical_ordering import (
 )
 
 
-def test_canonical_form_from_pdb_lines(pertuzumab_lines, torch_device):
+def test_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
     chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        pertuzumab_lines, torch_device
+        pertuzumab_pdb, torch_device
     )
     assert chain_id.device == torch_device
     assert res_types.device == torch_device

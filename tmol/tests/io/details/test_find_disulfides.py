@@ -114,9 +114,9 @@ def test_find_disulfide_pairs():
     numpy.testing.assert_equal(restype_variants, restype_variants_gold)
 
 
-def test_find_disulf_in_pdb(pertuzumab_lines):
+def test_find_disulf_in_pdb(pertuzumab_pdb):
     chain_id, res_types, coords, _ = canonical_form_from_pdb_lines(
-        pertuzumab_lines, torch.device("cpu")
+        pertuzumab_pdb, torch.device("cpu")
     )
 
     found_dslf, restype_variants = find_disulfides(res_types, coords)
@@ -136,9 +136,9 @@ def test_find_disulf_in_pdb(pertuzumab_lines):
     numpy.testing.assert_equal(restype_variants, restype_variants_gold)
 
 
-def test_find_disulf_w_some_provided(pertuzumab_lines):
+def test_find_disulf_w_some_provided(pertuzumab_pdb):
     chain_id, res_types, coords, _ = canonical_form_from_pdb_lines(
-        pertuzumab_lines, torch.device("cpu")
+        pertuzumab_pdb, torch.device("cpu")
     )
 
     # let's imagine that [0, 213, 435] is a surprise disulfide!
@@ -164,9 +164,9 @@ def test_find_disulf_w_some_provided(pertuzumab_lines):
     numpy.testing.assert_equal(restype_variants, restype_variants_gold)
 
 
-def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_lines):
+def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_pdb):
     chain_id, res_types, coords, _ = canonical_form_from_pdb_lines(
-        pertuzumab_lines, torch.device("cpu")
+        pertuzumab_pdb, torch.device("cpu")
     )
 
     # let's imagine that [0, 213, 435] is a surprise disulfide!
@@ -186,9 +186,9 @@ def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_lines):
     numpy.testing.assert_equal(restype_variants, restype_variants_gold)
 
 
-def test_find_disulf_w_all_provided(pertuzumab_lines):
+def test_find_disulf_w_all_provided(pertuzumab_pdb):
     chain_id, res_types, coords, _ = canonical_form_from_pdb_lines(
-        pertuzumab_lines, torch.device("cpu")
+        pertuzumab_pdb, torch.device("cpu")
     )
 
     # we will provide all the disulfides but in an order the
