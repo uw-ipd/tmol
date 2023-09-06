@@ -87,10 +87,12 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_lines, torch_device)
     disulfides = torch.tensor(
         [[0, 22, 87], [0, 213, 435], [0, 133, 193], [0, 235, 309], [0, 359, 415]],
         dtype=torch.int64,
+        device=torch_device,
     )
     disulfides_shifted = torch.tensor(
         [[0, 22, 89], [0, 215, 437], [0, 135, 195], [0, 237, 311], [0, 361, 417]],
         dtype=torch.int64,
+        device=torch_device,
     )
 
     # put two empty residues in between res 50 and 51
@@ -149,7 +151,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_lines, torch_device)
 
 
 def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_device):
-    pert_and_erbb2_lines, seg_lengths = pert_and_nearby_erbb2
+    pert_and_erbb2_lines, res_not_connected = pert_and_nearby_erbb2
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
@@ -160,17 +162,6 @@ def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_de
         orig_at_is_pres,
     ) = canonical_form_from_pdb_lines(pert_and_erbb2_lines, torch_device)
 
-    seg_range_end = numpy.cumsum(numpy.array(seg_lengths, dtype=numpy.int32))
-    seg_range_start = numpy.concatenate(
-        (numpy.zeros((1,), dtype=numpy.int32), seg_range_end[:-1])
-    )
-    n_res_tot = seg_range_end[-1]
-    res_not_connected = numpy.zeros((1, n_res_tot, 2), dtype=numpy.bool)
-    # do not make any of the ERBB2 residues n- or c-termini,
-    # and also do not connect residues that are both part of that chain
-    # that span gaps
-    res_not_connected[0, seg_range_start[2:], 0] = True
-    res_not_connected[0, seg_range_end[2:] - 1, 1] = True
     orig_res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 
     # put two empty residues in between res 50 and 51

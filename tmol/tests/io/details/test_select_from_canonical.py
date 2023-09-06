@@ -142,7 +142,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
 
 
 def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_device):
-    pert_and_erbb2_lines, seg_lengths = pert_and_nearby_erbb2
+    pert_and_erbb2_lines, res_not_connected = pert_and_nearby_erbb2
 
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
@@ -150,17 +150,6 @@ def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_de
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         pert_and_erbb2_lines, torch_device
     )
-    seg_range_end = numpy.cumsum(numpy.array(seg_lengths, dtype=numpy.int32))
-    seg_range_start = numpy.concatenate(
-        (numpy.zeros((1,), dtype=numpy.int32), seg_range_end[:-1])
-    )
-    n_res_tot = seg_range_end[-1]
-    res_not_connected = numpy.zeros((1, n_res_tot, 2), dtype=numpy.bool)
-    # do not make any of the ERBB2 residues n- or c-termini,
-    # and also do not connect residues that are both part of that chain
-    # that span gaps
-    res_not_connected[0, seg_range_start[2:], 0] = True
-    res_not_connected[0, seg_range_end[2:] - 1, 1] = True
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 
     # 2
@@ -189,35 +178,35 @@ def test_assign_block_types_for_pert_and_antigen(pert_and_nearby_erbb2, torch_de
     block_types = block_types.cpu().numpy()
     inter_residue_connections64 = inter_residue_connections64.cpu().numpy()
 
-    disconn_seg_start = set([x for x in seg_range_start[2:]])
-    disconn_seg_end = set([x - 1 for x in seg_range_end[2:]])
+    chain1_last_res = 214 - 1
+    chain2_last_res = chain1_last_res + 222
 
     for i, bt_ind in enumerate(block_types[0, :]):
         bt = pbt.active_block_types[bt_ind]
-        if i == 0 or i == seg_range_start[1]:
+        if i == 0 or i == chain1_last_res + 1:
             assert bt.name.partition(":")[2] == "nterm"
             # cterm connection index is 0 for nterm-patched types
             assert inter_residue_connections64[0, i, 0, 0] == i + 1
             assert inter_residue_connections64[0, i, 0, 1] == 0
-        elif i == seg_range_end[0] - 1 or i == seg_range_end[1] - 1:
+        elif i == chain1_last_res or i == chain2_last_res:
             assert bt.name.partition(":")[2] == "cterm"
             assert inter_residue_connections64[0, i, 0, 0] == i - 1
             assert inter_residue_connections64[0, i, 0, 1] == 1
         else:
             assert bt.name.partition(":")[2] == ""
-            if i in disconn_seg_start:
+            if res_not_connected[0, i, 0]:
                 assert inter_residue_connections64[0, i, 0, 0] == -1
                 assert inter_residue_connections64[0, i, 0, 1] == -1
                 assert inter_residue_connections64[0, i, 1, 0] == i + 1
                 assert inter_residue_connections64[0, i, 1, 1] == 0
-            elif i in disconn_seg_end:
+            elif res_not_connected[0, i, 1]:
                 assert inter_residue_connections64[0, i, 0, 0] == i - 1
                 assert inter_residue_connections64[0, i, 0, 1] == 1
                 assert inter_residue_connections64[0, i, 1, 0] == -1
                 assert inter_residue_connections64[0, i, 1, 1] == -1
             else:
                 assert inter_residue_connections64[0, i, 0, 0] == i - 1
-                if i - 1 == 0 or i - 1 == seg_range_start[1]:
+                if i - 1 == 0 or i - 1 == chain1_last_res + 1:
                     # previous res is nterm
                     assert inter_residue_connections64[0, i, 0, 1] == 0
                 else:

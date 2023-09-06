@@ -53,14 +53,6 @@ def assign_block_types(
             (n_poses, max_n_res, 2), dtype=torch.bool, device=device
         )
 
-    # we are going to modify the chain_id tensor, perhaps to the detriment of the caller,
-    # so clone it.
-    # mark the chain id for any un-real residue as -1
-    # then the n-term residues will have a different chain id
-    # from their i-1 residues
-    chain_id = chain_id.clone()
-    chain_id[res_types64 == -1] = -1
-
     # logic for deciding what chemical bonds are present between the polymeric
     # residues and which residues should be represented as termini:
     # - The first and last residues in a chain are not connected to the
@@ -121,6 +113,8 @@ def assign_block_types(
     ]
 
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
+    # SHOULD THIS JUST GO IN POSE_STACK_BUILDER AND REPLACE ITS EXISTING CODE???
+    # SHOULD POSE_STACK_BUILDER BE DEPRECATED??
     inter_residue_connections64 = torch.full(
         (n_poses, max_n_res, max_n_conn, 2), -1, dtype=torch.int64, device=device
     )

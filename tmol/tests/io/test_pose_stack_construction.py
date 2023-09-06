@@ -66,20 +66,8 @@ def test_build_pose_stack_from_canonical_form_pert_w_dslf(
 
 
 def test_build_pose_stack_w_disconn_segs(torch_device, pert_and_nearby_erbb2):
-    pert_and_erbb2_lines, seg_lengths = pert_and_nearby_erbb2
+    pert_and_erbb2_lines, res_not_connected = pert_and_nearby_erbb2
     canonical_form = canonical_form_from_pdb_lines(pert_and_erbb2_lines, torch_device)
-
-    seg_range_end = numpy.cumsum(numpy.array(seg_lengths, dtype=numpy.int32))
-    seg_range_start = numpy.concatenate(
-        (numpy.zeros((1,), dtype=numpy.int32), seg_range_end[:-1])
-    )
-    n_res_tot = seg_range_end[-1]
-    res_not_connected = numpy.zeros((1, n_res_tot, 2), dtype=numpy.bool)
-    # do not make any of the ERBB2 residues n- or c-termini,
-    # and also do not connect residues that are both part of that chain
-    # that span gaps
-    res_not_connected[0, seg_range_start[2:], 0] = True
-    res_not_connected[0, seg_range_end[2:] - 1, 1] = True
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 
     disulfides = torch.tensor(
@@ -108,7 +96,7 @@ def test_build_pose_stack_w_disconn_segs(torch_device, pert_and_nearby_erbb2):
 def test_build_pose_stack_w_disconn_segs_and_insertions(
     torch_device, pert_and_nearby_erbb2
 ):
-    pert_and_erbb2_lines, seg_lengths = pert_and_nearby_erbb2
+    pert_and_erbb2_lines, res_not_connected = pert_and_nearby_erbb2
     canonical_form = canonical_form_from_pdb_lines(pert_and_erbb2_lines, torch_device)
 
     def get_add_two_fill_shape(x):
@@ -131,23 +119,13 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
 
     canonical_form = tuple(add_two_res(x, 0) for x in canonical_form)
 
-    seg_range_end = numpy.cumsum(numpy.array(seg_lengths, dtype=numpy.int32))
-    seg_range_start = numpy.concatenate(
-        (numpy.zeros((1,), dtype=numpy.int32), seg_range_end[:-1])
-    )
-    n_res_tot = seg_range_end[-1]
-    res_not_connected = numpy.zeros((1, n_res_tot, 2), dtype=numpy.bool)
-    # do not make any of the ERBB2 residues n- or c-termini,
-    # and also do not connect residues that are both part of that chain
-    # that span gaps
-    res_not_connected[0, seg_range_start[2:], 0] = True
-    res_not_connected[0, seg_range_end[2:] - 1, 1] = True
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
     res_not_connected = add_two_res(res_not_connected, False)
 
     disulfides_shifted = torch.tensor(
         [[0, 22, 89], [0, 215, 437], [0, 135, 195], [0, 237, 311], [0, 361, 417]],
         dtype=torch.int64,
+        device=torch_device,
     )
 
     pose_stack, chain_ind = pose_stack_from_canonical_form(

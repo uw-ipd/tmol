@@ -119,6 +119,10 @@ def pose_stack_from_canonical_form(
 
     # 2
     # "left justify" the input canonical-form residues: residues that are
+    # given with a "-1" residue-type should be excised from the center of
+    # their Poses to ensure that the polymeric-bond-detection logic
+    # downstream will work properly. This effectively means "shifting left"
+    # all the other residues in the Pose to fill the vacated slots.
     (
         chain_id,
         res_types,
