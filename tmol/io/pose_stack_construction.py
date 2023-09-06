@@ -10,6 +10,7 @@ def pose_stack_from_canonical_form(
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Optional[Tensor[torch.int32][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
+    find_additional_disulfides: Optional[bool] = True,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     return_chain_ind: bool = False,
 ):
@@ -61,9 +62,14 @@ def pose_stack_from_canonical_form(
         disulfide bonds. This means that SGs slightly longer than 2.5A
         will not be detected. If you should know which pairs of cysteines
         form disulfide bonds, then you can provide their pairing:
-        [ [pose_ind, cys1_ind, cys2_ind], ...]. If you provide this argument
-        then no other disulfides will be sought and the disulfide-detection
-        step will be skipped.
+        [ [pose_ind, cys1_ind, cys2_ind], ...].
+
+    find_additional_disulfides: an optional boolean argument to control whether
+        to look for disulfide bonds between pairs of CYS residues that are
+        not listed in the "disulfides" argument. By default, this is True,
+        but if you want to skip disulfide detection or want to prevent
+        unpaired CYS from being locked into disulfides, then set this flag
+        to False
 
     res_not_connected: an optional input used to indicate that a given (polymeric)
         residue is not connected to either its previous or next residue; for
@@ -135,7 +141,9 @@ def pose_stack_from_canonical_form(
     )
 
     # 3
-    found_disulfides, res_type_variants = find_disulfides(res_types, coords, disulfides)
+    found_disulfides, res_type_variants = find_disulfides(
+        res_types, coords, disulfides, find_additional_disulfides
+    )
 
     # 4
     (

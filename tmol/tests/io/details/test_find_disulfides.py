@@ -164,6 +164,28 @@ def test_find_disulf_w_some_provided(pertuzumab_lines):
     numpy.testing.assert_equal(restype_variants, restype_variants_gold)
 
 
+def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_lines):
+    chain_id, res_types, coords, _ = canonical_form_from_pdb_lines(
+        pertuzumab_lines, torch.device("cpu")
+    )
+
+    # let's imagine that [0, 213, 435] is a surprise disulfide!
+    disulfides = torch.tensor(
+        [[0, 22, 87], [0, 133, 193], [0, 235, 309], [0, 359, 415]], dtype=torch.int64
+    )
+
+    found_dslf, restype_variants = find_disulfides(res_types, coords, disulfides, False)
+    assert found_dslf is disulfides
+    found_dslf = found_dslf.cpu().numpy()
+
+    restype_variants = restype_variants.cpu().numpy()
+    restype_variants_gold = numpy.zeros_like(restype_variants)
+    restype_variants_gold[found_dslf[:, 0], found_dslf[:, 1]] = 1
+    restype_variants_gold[found_dslf[:, 0], found_dslf[:, 2]] = 1
+
+    numpy.testing.assert_equal(restype_variants, restype_variants_gold)
+
+
 def test_find_disulf_w_all_provided(pertuzumab_lines):
     chain_id, res_types, coords, _ = canonical_form_from_pdb_lines(
         pertuzumab_lines, torch.device("cpu")

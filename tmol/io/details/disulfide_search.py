@@ -20,6 +20,7 @@ def find_disulfides(
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
+    find_additional_disulfides: Optional[bool] = True,
     cutoff_dis: float = 2.5,
 ):
     # short circuit:
@@ -43,7 +44,7 @@ def find_disulfides(
         )
         # if all the cys in the PoseStack are paired, then we do not
         # need to run disulfide detection;
-        if unpaired_cys_present == 0:
+        if unpaired_cys_present == 0 or not find_additional_disulfides:
             return disulfides, restype_variants
 
     # If we arrive here:
@@ -54,7 +55,7 @@ def find_disulfides(
     # first we ask: are there even any cys residues? If not, avoid
     # sending coordinates back to the CPU and just move on
     cys_pose_ind, cys_res_ind = torch.nonzero(cys_res, as_tuple=True)
-    if cys_pose_ind.shape[0] == 0:
+    if cys_pose_ind.shape[0] == 0 or not find_additional_disulfides:
         return (
             torch.zeros((0, 3), dtype=torch.int64, device=res_types.device),
             restype_variants,
