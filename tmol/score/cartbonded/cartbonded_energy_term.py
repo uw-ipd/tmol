@@ -15,11 +15,8 @@ from tmol.score.cartbonded.cartbonded_whole_pose_module import (
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.score.common.hash_util import (
-    hash_fun,
-    add_to_hashtable,
-    make_hashtable_keys_values,
-)
+from tmol.score.common.hash_util import make_hashtable_keys_values, add_to_hashtable
+
 
 debug = False
 
