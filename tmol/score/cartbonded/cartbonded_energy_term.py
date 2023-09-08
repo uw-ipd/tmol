@@ -15,6 +15,11 @@ from tmol.score.cartbonded.cartbonded_whole_pose_module import (
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
+from tmol.score.common.hash_util import (
+    hash_fun,
+    add_to_hashtable,
+    make_hashtable_keys_values,
+)
 
 debug = False
 
@@ -78,10 +83,11 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                         torsions.append((atom1, atom2, atom3, atom4))
 
         # get improper torsions
-        for atom3 in [block_type.atom_to_idx["CA"]]:
-            comb = list(permutations(bondmap[atom3], 3))
-            for atom1, atom2, atom4 in comb:
-                improper.append((atom1, atom2, atom3, atom4))
+        if "CA" in block_type.atom_to_idx:
+            for atom3 in [block_type.atom_to_idx["CA"]]:
+                comb = list(permutations(bondmap[atom3], 3))
+                for atom1, atom2, atom4 in comb:
+                    improper.append((atom1, atom2, atom3, atom4))
 
         return (
             lengths,
@@ -218,47 +224,18 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         wildcard_params = self.get_params_for_res("wildcard").items()
         total_params += len(wildcard_params)
 
-        # The hash function for storing the parameters in the tensors across the python/c++ barier.
-        # Note that the implementation of this function MUST match the implementation defined in the
-        # C++.
-        def hash_fun(key, max_size):
-            value = 0x1234
-            for k in key:
-                value = (k ^ value) * 3141 % max_size  # XOR
-            return value
-
-        def add_to_hash(hash_keys, hash_values, max_value_index, key, values):
-            index = hash_fun(key, hash_keys.shape[0])
-            while hash_keys[index][0] != -1:
-                index = (index + 1) % hash_keys.shape[0]
-            for i, k in enumerate(key):
-                hash_keys[index][i] = k
-            hash_keys[index][4] = max_value_index
-
-            for i, value in enumerate(values):
-                hash_values[max_value_index][i] = value
-
         # Construct the params hash with the given scaling factor
-        SCALE = 2
-        hash_keys = numpy.full(
-            (total_params * SCALE, 5),
-            -1,
-            dtype=numpy.int32,
-        )
-        hash_values = numpy.full(
-            (total_params, 7),
-            0,
-            dtype=numpy.float32,
-        )
+        hash_keys, hash_values = make_hashtable_keys_values(total_params, 2, 5, 7)
 
+        # Fill the hash table
         cur_val = 0
         for bt in packed_block_types.active_block_types:
             for key, value in bt.cartbonded_params.items():
-                add_to_hash(hash_keys, hash_values, cur_val, key, value)
+                add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
                 cur_val += 1
 
         for key, value in wildcard_params:
-            add_to_hash(hash_keys, hash_values, cur_val, key, value)
+            add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
             cur_val += 1
 
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)

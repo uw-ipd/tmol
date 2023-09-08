@@ -15,6 +15,9 @@ namespace tmol {
 namespace score {
 namespace common {
 
+const int MAX_PATHS_FROM_CONN = 13;
+const int NUM_INTER_RES_PATHS = 34;
+
 // Given an integer, returns a tuple of two indices into the
 // atom_paths_from_conn tensor. Using these these indices on two connected
 // blocks will give you all combinations of paths that form lengths, angles, and

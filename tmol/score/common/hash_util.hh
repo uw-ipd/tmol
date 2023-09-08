@@ -14,8 +14,8 @@ namespace tmol {
 namespace score {
 namespace common {
 
-// This hash function must match the hash function that was used to generate the
-// key table
+// This hash function must match the hash function found in hash_util.py in this
+// same directory
 template <typename Int, Int key_size>
 TMOL_DEVICE_FUNC int hash_funct(Vec<Int, key_size> key, int max_size) {
   int value = 0x1234;

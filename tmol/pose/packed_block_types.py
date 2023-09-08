@@ -31,7 +31,7 @@ class PackedBlockTypes:
 
     atom_downstream_of_conn: Tensor[torch.int32][:, :, :]
 
-    atom_paths_from_conn: Tensor[torch.int32][:, :, :, 3]
+    atom_paths_from_conn: Tensor[torch.int32][:, :, MAX_PATHS_FROM_CONNECTION, 3]
 
     max_n_torsions: int
     n_torsions: Tensor[torch.int32][:]  # dim: n_types x max_n_tors

@@ -23,9 +23,6 @@ class CartBondedWholePoseScoringModule(torch.nn.Module):
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
-        def _t(ts):
-            return tuple(map(lambda t: t.to(torch.float), ts))
-
         self.pose_stack_block_coord_offset = _p(pose_stack_block_coord_offset)
         self.pose_stack_block_types = _p(pose_stack_block_types)
         self.pose_stack_inter_block_connections = _p(pose_stack_inter_block_connections)

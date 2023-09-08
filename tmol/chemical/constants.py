@@ -20,6 +20,12 @@ MAX_SIG_BOND_SEPARATION = 6
 # MAX_PATHS_FROM_CONNECTION:
 #
 # The maximum number of paths coming from a particular block type's connection.
-# Currently this is 13 - 1 for the connection atom itself, 3 for the up-to-3 neighbors
+# Currently this is 13: 1 for the connection atom itself, 3 for the up-to-3 neighbors
 # of that atom, and another 9 for the up-to-3 neighbors of each of those.
+#
+# Note: in the future, if we change the maximum number of possible bonds to other atoms,
+# this will need to change. Per aleaverfay, the summation would be
+# sum( 0 <= i <= 2, (MAX_N_BONDS_TO_OTHER_ATOMS - 1) ^ i )
+# where MAX_N_BONDS_TO_OTHER_ATOMS is 4.
+# If we start modeling weird chemistries, we could use that formula to rederive this size and the offsets we would need
 MAX_PATHS_FROM_CONNECTION = 13

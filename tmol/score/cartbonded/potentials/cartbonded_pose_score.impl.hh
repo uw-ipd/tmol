@@ -78,7 +78,7 @@ TMOL_DEVICE_FUNC Vec<Int, size> get_atom_ids(
     TensorAccessor<Int, 1, D> atom_id_table, Vec<Int, size> atoms) {
   Vec<Int, size> atom_ids;
   for (int i = 0; i < size; i++) {
-    atom_ids[i] = get_atom_id<Int, D>(atom_id_table, atoms[i]);
+    atom_ids[i] = get_atom_id(atom_id_table, atoms[i]);
   }
   return atom_ids;
 }
@@ -148,18 +148,39 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
   int const n_poses = coords.size(0);
   int const n_blocks = pose_stack_block_coord_offset.size(1);
-  int const max_n_atoms = coords.size(1);
-  int const NUM_INTER_RES_PATHS = 34;
-
+  int const n_max_conns = pose_stack_inter_block_connections.size(2);
+  int const n_block_types = cart_subgraph_offsets.size(0);
+  int const n_max_atoms = coords.size(1);
   int const n_subgraphs = cart_subgraphs.size(0);
+  int const n_max_atoms_per_block = atom_unique_ids.size(1);
+
+  assert(pose_stack_block_coord_offset.size(0) == n_poses);
+  assert(pose_stack_block_coord_offset.size(1) == n_blocks);
+
+  assert(pose_stack_block_type.size(0) == n_poses);
+  assert(pose_stack_block_type.size(1) == n_blocks);
+
+  assert(pose_stack_inter_block_connections.size(0) == n_poses);
+  assert(pose_stack_inter_block_connections.size(1) == n_blocks);
+  assert(pose_stack_inter_block_connections.size(2) == n_max_conns);
+
+  assert(atom_paths_from_conn.size(0) == n_block_types);
+  assert(atom_paths_from_conn.size(1) == n_max_conns);
+  assert(atom_paths_from_conn.size(2) == MAX_PATHS_FROM_CONN);
+
+  assert(atom_unique_ids.size(0) == n_block_types);
+  assert(atom_unique_ids.size(1) == n_max_atoms_per_block);
+
+  assert(atom_wildcard_ids.size(0) == n_block_types);
+  assert(atom_wildcard_ids.size(1) == n_max_atoms_per_block);
+
+  assert(cart_subgraph_offsets.size(0) == n_block_types);
 
   auto V_t = TPack<Real, 2, D>::zeros({5, n_poses});
-  auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({5, n_poses, max_n_atoms});
+  auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({5, n_poses, n_max_atoms});
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
-
-  int const n_block_types = cart_subgraph_offsets.size(0);
 
   max_subgraphs_per_block +=
       NUM_INTER_RES_PATHS;  // Add in the inter-residue subgraphs
@@ -176,8 +197,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     int block_coord_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
     int subgraph_offset = cart_subgraph_offsets[block_type];
-    int subgraph_offset_next = block_type + 1 == cart_subgraph_offsets.size(0)
-                                   ? cart_subgraphs.size(0)
+    int subgraph_offset_next = block_type + 1 == n_block_types
+                                   ? n_subgraphs
                                    : cart_subgraph_offsets[block_type + 1];
     subgraph_index += subgraph_offset;
 
@@ -246,8 +267,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
       subgraph_index -= subgraph_offset_next;
 
-      // Iterate over each connection in this block
-      for (int i = 0; i < pose_stack_inter_block_connections.size(2); i++) {
+      // Iterate over each connection in this block. We don't need to worry
+      // about the other block accidentally duplicating the energy attribution
+      // since the ordering of the atoms matters.
+      for (int i = 0; i < n_max_conns; i++) {
         const Vec<Int, 2>& connection =
             pose_stack_inter_block_connections[pose_index][block_index][i];
         int other_block_index = connection[0];

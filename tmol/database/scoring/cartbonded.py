@@ -129,5 +129,4 @@ class CartBondedDatabase:
     def from_file(cls, path):
         with open(path, "r") as infile:
             raw = yaml.safe_load(infile)
-        # print(raw)
         return cattr.structure(raw, cls)

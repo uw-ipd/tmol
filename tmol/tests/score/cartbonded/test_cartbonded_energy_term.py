@@ -16,9 +16,7 @@ def test_smoke(default_database, torch_device: torch.device):
     assert cartbonded_energy.device == torch_device
 
 
-def test_annotate_cartbonded_uaids(
-    ubq_res, default_database, torch_device: torch.device
-):
+def test_annotate_restypes(ubq_res, default_database, torch_device: torch.device):
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
@@ -40,6 +38,10 @@ def test_annotate_cartbonded_uaids(
     assert pbt.cartbonded_subgraph_offsets.device == torch_device
     assert pbt.cartbonded_params_hash_keys.device == torch_device
     assert pbt.cartbonded_params_hash_values.device == torch_device
+
+    cartbonded_subgraphs = pbt.cartbonded_subgraphs
+    cartbonded_energy.setup_packed_block_types(pbt)
+    assert cartbonded_subgraphs is pbt.cartbonded_subgraphs
 
 
 def test_whole_pose_scoring_module_gradcheck(
