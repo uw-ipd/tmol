@@ -193,8 +193,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     }
 
     // Templated on there being 2 backbone dihedrals for canonical aas.
-    // if (nrotameric_chi_for_res[stack][i] >= 0) { // TODO: can't we just skip
-    // the whole thing at the start? probably... printf("RES%i ", block_index);
     classify_rotamer_for_block<2>(
         dihedral_values[pose_index][block_index],
         block_n_rotameric_chi[block_type_index],

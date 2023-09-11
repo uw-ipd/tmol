@@ -14,8 +14,6 @@
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 
-#include "params.hh"
-
 namespace tmol {
 namespace score {
 namespace dunbrack {

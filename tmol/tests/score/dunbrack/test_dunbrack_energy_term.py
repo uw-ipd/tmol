@@ -18,7 +18,7 @@ def test_smoke(default_database, torch_device: torch.device):
     assert dunbrack_energy.global_params.K.device == torch_device
 
 
-def test_annotate_dunbrack_uaids(ubq_res, default_database, torch_device: torch.device):
+def test_annotate_block_types(ubq_res, default_database, torch_device: torch.device):
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
 
     bt_list = residue_types_from_residues(ubq_res)

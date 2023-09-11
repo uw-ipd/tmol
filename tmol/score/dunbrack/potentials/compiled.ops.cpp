@@ -208,8 +208,6 @@ class DunbrackPoseScoreOp
       Tensor pose_stack_inter_block_connections,
       Tensor block_type_atom_downstream_of_conn,
 
-      // Tensor global_params
-
       Tensor rotameric_neglnprob_tables,
       Tensor rotprob_table_sizes,
       Tensor rotprob_table_strides,
@@ -263,8 +261,6 @@ class DunbrackPoseScoreOp
                   TCAST(pose_stack_block_type),
                   TCAST(pose_stack_inter_block_connections),
                   TCAST(block_type_atom_downstream_of_conn),
-
-                  // TCAST(global_params),
 
                   TCAST(rotameric_neglnprob_tables),
                   TCAST(rotprob_table_sizes),
@@ -363,7 +359,7 @@ Tensor dunbrack_pose_scores_op(
     Tensor pose_stack_block_type,
     Tensor pose_stack_inter_block_connections,
     Tensor block_type_atom_downstream_of_conn,
-    // Tensor global_params,
+
     Tensor rotameric_neglnprob_tables,
     Tensor rotprob_table_sizes,
     Tensor rotprob_table_strides,
@@ -406,7 +402,7 @@ Tensor dunbrack_pose_scores_op(
       pose_stack_block_type,
       pose_stack_inter_block_connections,
       block_type_atom_downstream_of_conn,
-      // global_params
+
       rotameric_neglnprob_tables,
       rotprob_table_sizes,
       rotprob_table_strides,

@@ -73,13 +73,13 @@ class DunbrackEnergyTerm(EnergyTerm):
 
         inds = self.global_params.all_table_indices.index.get_indexer(
             [block_type.base_name]
-        )  # _resolve_dun_indices([block_type.name], torch_device)
+        )
         r_inds = self.global_params.rotameric_table_indices.index.get_indexer(
             [block_type.base_name]
-        )  # _resolve_dun_indices([block_type.name], torch_device)
+        )
         s_inds = self.global_params.semirotameric_table_indices.index.get_indexer(
             [block_type.base_name]
-        )  # _resolve_dun_indices([block_type.name], torch_device)
+        )
 
         inds[inds != -1] = self.global_params.all_table_indices.iloc[inds[inds != -1]][
             "dun_table_name"
@@ -160,7 +160,7 @@ class DunbrackEnergyTerm(EnergyTerm):
             semirotameric_tableset_offset=semirotameric_tableset_offset,
         )
 
-        setattr(block_type, "dunbrack_attrs", dunbrack_attrs)  # +
+        setattr(block_type, "dunbrack_attrs", dunbrack_attrs)
 
     def get_torsion(self, name, block_type):
         if name in block_type.torsion_to_uaids:
