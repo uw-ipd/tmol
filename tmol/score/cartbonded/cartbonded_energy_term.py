@@ -23,9 +23,20 @@ debug = False
 
 class CartBondedEnergyTerm(AtomTypeDependentTerm):
     device: torch.device  # = attr.ib()
+    improper_roots: set()
 
     def __init__(self, param_db: ParameterDatabase, device: torch.device):
         super(CartBondedEnergyTerm, self).__init__(param_db=param_db, device=device)
+
+        # Find the root of the improper torsions so that we can annotate them in the block types
+        def find_improper_roots(db):
+            roots = set()
+            for res, params in db.residue_params.items():
+                for imp in params.improper_parameters:
+                    roots.add(imp.atm3)
+            return roots
+
+        self.improper_roots = find_improper_roots(param_db.scoring.cartbonded)
 
         self.cart_database = param_db.scoring.cartbonded
         self.device = device
@@ -80,11 +91,12 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                         torsions.append((atom1, atom2, atom3, atom4))
 
         # get improper torsions
-        if "CA" in block_type.atom_to_idx:
-            for atom3 in [block_type.atom_to_idx["CA"]]:
-                comb = list(permutations(bondmap[atom3], 3))
-                for atom1, atom2, atom4 in comb:
-                    improper.append((atom1, atom2, atom3, atom4))
+        for improper_root in self.improper_roots:
+            if improper_root in block_type.atom_to_idx:
+                for atom3 in [block_type.atom_to_idx[improper_root]]:
+                    comb = list(permutations(bondmap[atom3], 3))
+                    for atom1, atom2, atom4 in comb:
+                        improper.append((atom1, atom2, atom3, atom4))
 
         return (
             lengths,
