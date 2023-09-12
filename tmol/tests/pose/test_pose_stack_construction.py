@@ -88,24 +88,23 @@ def test_pose_stack_builder_create_inter_residue_connections(ubq_res, torch_devi
     assert inter_residue_connections.shape == (1, 4, 2, 2)
     assert inter_residue_connections.device == torch_device
 
-    assert inter_residue_connections[0, 0, 0, 0] == -1
-    assert inter_residue_connections[0, 0, 0, 1] == -1
+    assert inter_residue_connections[0, 0, 0, 0] == 1  # nterm, connection 0 is "up"
+    assert inter_residue_connections[0, 0, 0, 1] == 0
+    assert inter_residue_connections[0, 0, 1, 0] == -1
+    assert inter_residue_connections[0, 0, 1, 1] == -1
 
-    assert inter_residue_connections[0, 0, 1, 0] == 1
-    assert inter_residue_connections[0, 0, 1, 1] == 0
     assert inter_residue_connections[0, 1, 0, 0] == 0
-    assert inter_residue_connections[0, 1, 0, 1] == 1
-
+    assert inter_residue_connections[0, 1, 0, 1] == 0
     assert inter_residue_connections[0, 1, 1, 0] == 2
     assert inter_residue_connections[0, 1, 1, 1] == 0
+
     assert inter_residue_connections[0, 2, 0, 0] == 1
     assert inter_residue_connections[0, 2, 0, 1] == 1
-
     assert inter_residue_connections[0, 2, 1, 0] == 3
     assert inter_residue_connections[0, 2, 1, 1] == 0
+
     assert inter_residue_connections[0, 3, 0, 0] == 2
     assert inter_residue_connections[0, 3, 0, 1] == 1
-
     assert inter_residue_connections[0, 3, 1, 0] == -1
     assert inter_residue_connections[0, 3, 1, 1] == -1
 
@@ -132,7 +131,7 @@ def test_concatenate_pose_stacks_ctor(ubq_res, torch_device):
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     assert poses.block_type_ind.shape == (2, 60)
-    assert poses.coords.shape == (2, 959, 3)
+    assert poses.coords.shape == (2, 961, 3)  # fd 959->961 for nterm
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 2, 2)
 
 

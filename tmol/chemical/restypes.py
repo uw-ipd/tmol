@@ -10,7 +10,8 @@ import scipy.sparse
 import scipy.sparse.csgraph as csgraph
 
 from tmol.database import ParameterDatabase
-from tmol.database.chemical import RawResidueType, ChemicalDatabase
+from tmol.database.chemical import RawResidueType
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
@@ -21,10 +22,80 @@ from tmol.types.functional import validate_args
 
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
-BondCount = NewType("ConnectionIndex", int)
+BondCount = NewType("BondCount", int)
+
+# perhaps deserving of its own file
 UnresolvedAtomID = Tuple[AtomIndex, ConnectionIndex, BondCount]
+uaid_t = numpy.dtype(
+    [
+        ("atom_id", numpy.int32),
+        ("conn_id", numpy.int32),
+        ("n_bonds_from_conn", numpy.int32),
+    ]
+)
+
 ResName3 = typing.NewType("ResName3", str)
 IcoorIndex = NewType("AtomIndex", int)
+
+
+def three2one(three):
+    # 'static'
+    if not hasattr(three2one, "_mapping"):
+        three2one._mapping = {
+            "ALA": "A",
+            "CYS": "C",
+            "ASP": "D",
+            "GLU": "E",
+            "PHE": "F",
+            "GLY": "G",
+            "HIS": "H",
+            "ILE": "I",
+            "LYS": "K",
+            "LEU": "L",
+            "MET": "M",
+            "ASN": "N",
+            "PRO": "P",
+            "GLN": "Q",
+            "ARG": "R",
+            "SER": "S",
+            "THR": "T",
+            "VAL": "V",
+            "TRP": "W",
+            "TYR": "Y",
+        }
+    if three in three2one._mapping:
+        return three2one._mapping[three]
+    return None
+
+
+def one2three(one):
+    # 'static'
+    if not hasattr(one2three, "_mapping"):
+        one2three._mapping = {
+            "A": "ALA",
+            "C": "CYS",
+            "D": "ASP",
+            "E": "GLU",
+            "F": "PHE",
+            "G": "GLY",
+            "H": "HIS",
+            "I": "ILE",
+            "K": "LYS",
+            "L": "LEU",
+            "M": "MET",
+            "N": "ASN",
+            "P": "PRO",
+            "Q": "GLN",
+            "R": "ARG",
+            "S": "SER",
+            "T": "THR",
+            "V": "VAL",
+            "W": "TRP",
+            "Y": "TYR",
+        }
+    if one in one2three._mapping:
+        return one2three._mapping[one]
+    return None
 
 
 @attr.s
@@ -261,13 +332,13 @@ class RefinedResidueType(RawResidueType):
                 # walk up through the mainchain atoms untill we
                 # hit the first mainchain atom and then report all
                 # the other atoms downstream of the connection as the first
-                assert mc_ats[-1] == self.connections[i].atom
                 mc_ats = self.properties.polymer.mainchain_atoms
                 if mc_ats is None:
                     # weird case? The user has a "down" connection but no
                     # atoms are part of the mainchain?
                     atom_downstream_of_conn[i, :] = i_conn_atom
                 else:
+                    assert mc_ats[-1] == self.connections[i].atom
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
                             mc_ats[len(mc_ats) - j - 1]
@@ -362,7 +433,7 @@ class ResidueTypeSet:
         return cls.__default
 
     @classmethod
-    def from_database(cls, chemical_db: ChemicalDatabase):
+    def from_database(cls, chemical_db: PatchedChemicalDatabase):
         residue_types = [
             cattr.structure(cattr.unstructure(r), RefinedResidueType)
             for r in chemical_db.residues
@@ -424,4 +495,29 @@ def find_simple_polymeric_connections(
                 [(i, "up", i + 1, "down"), (i + 1, "down", i, "up")]
             )
 
+    return residue_connections
+
+
+@validate_args
+def find_disulfide_connections(
+    res: List[Residue],
+) -> List[Tuple[int, str, int, str]]:
+    residue_connections = []
+
+    cystines = [
+        (ind, cys) for ind, cys in enumerate(res) if cys.residue_type.name == "CYD"
+    ]
+    for i, cys1 in cystines:
+        for j, cys2 in cystines:
+            if i < j:
+                sg_index = cys1.residue_type.atom_to_idx["SG"]
+                sg1 = cys1.coords[sg_index]
+                sg2 = cys2.coords[sg_index]
+
+                dist = numpy.linalg.norm(sg1 - sg2)
+
+                if numpy.isclose(dist, 2.02, atol=0.5):
+                    residue_connections.extend(
+                        [(i, "dslf", j, "dslf"), (j, "dslf", i, "dslf")]
+                    )
     return residue_connections

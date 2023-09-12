@@ -1,0 +1,32 @@
+global_parameters: 
+  # distance
+  d_location : 2.01
+  d_scale : 0.08
+  d_shape : 6
+  # angle
+  a_logA : -419.8120
+  a_kappa : 419.7
+  a_mu : 1.8189
+  # dihed SS
+  dss_logA1 : -32.9599
+  dss_kappa1 : 30.9053
+  dss_mu1 : -1.5026
+  dss_logA2 : -23.3471
+  dss_kappa2 : 20.9805
+  dss_mu2 : 1.6125
+  # dihed CB-S
+  dcs_logA1 : -15.8644
+  dcs_mu1 : -1.2601
+  dcs_kappa1 : 13.3778
+  dcs_logA2 : -16.9017
+  dcs_mu2 : 1.3618
+  dcs_kappa2 : 13.6370
+  dcs_logA3 : -7.0219
+  dcs_mu3 : -3.0115
+  dcs_kappa3 : 2.9327
+  # weights
+  wt_dih_ss: 0.1
+  wt_dih_cs: 0.1
+  wt_ang: 0.1
+  wt_len: 0.1
+  shift: 2.0

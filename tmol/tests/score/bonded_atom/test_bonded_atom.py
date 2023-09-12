@@ -48,7 +48,7 @@ def test_bonded_atom_two_iterations(rts_ubq_res, default_database, torch_device)
     torch.testing.assert_close(one_step_gold, one_step[0, 0, :, 1])
 
     two_step_wrong = two_step_tentative == torch.arange(
-        17, dtype=torch.int32, device=torch_device
+        19, dtype=torch.int32, device=torch_device
     )
     two_step_tentative[two_step_wrong] = pbt.all_bonds[
         0,

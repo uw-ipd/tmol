@@ -72,7 +72,8 @@ def test_whole_pose_scoring_module_single(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
     gold_vals = numpy.array(
-        [[37.7848], [183.5777], [50.5842], [9.4305], [47.4197]], dtype=numpy.float32
+        [[37.7623], [183.56903], [50.584198], [9.430531], [47.41971]],
+        dtype=numpy.float32,
     )
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
@@ -104,7 +105,8 @@ def test_whole_pose_scoring_module_10(
     n_poses = 10
     gold_vals = numpy.tile(
         numpy.array(
-            [[37.7848], [183.5777], [50.5842], [9.4305], [47.4197]], dtype=numpy.float32
+            [[37.7623], [183.56903], [50.584198], [9.430531], [47.41971]],
+            dtype=numpy.float32,
         ),
         (n_poses),
     )
@@ -141,11 +143,11 @@ def test_whole_pose_scoring_module_jagged(
     rts_ubq_40 = rts_ubq_res[:40]
     gold_vals = numpy.array(
         [
-            [37.7848, 30.0712, 19.7317],
-            [183.5777, 149.7569, 107.8989],
-            [50.5842, 38.3034, 24.6760],
-            [9.4305, 6.9274, 5.4583],
-            [47.4197, 38.3253, 29.3032],
+            [37.762302, 30.048717, 19.709312],
+            [183.56903, 149.74805, 107.8901],
+            [50.584206, 38.30348, 24.675966],
+            [9.43053, 6.9273577, 5.4583335],
+            [47.419704, 38.325336, 29.303185],
         ],
         dtype=numpy.float32,
     )
@@ -175,7 +177,6 @@ def test_whole_pose_scoring_module_jagged(
 
     # make sure we're still good
     torch.arange(100, device=torch_device)
-    print(scores.cpu().detach().numpy())
 
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5

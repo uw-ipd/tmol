@@ -51,7 +51,7 @@ def test_annotate_restypes(
 
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
     gold_vals = numpy.array(
-        [[421.00595092], [171.192932], [1.57858872], [10.99459934]], dtype=numpy.float32
+        [[422.0388], [172.1965], [1.5786], [10.9946]], dtype=numpy.float32
     )
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
@@ -112,7 +112,7 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     n_poses = 10
     gold_vals = numpy.tile(
         numpy.array(
-            [[421.00595092], [171.192932], [1.57858872], [10.99459934]],
+            [[422.0388], [172.1965], [1.5786], [10.9946]],
             dtype=numpy.float32,
         ),
         (n_poses),

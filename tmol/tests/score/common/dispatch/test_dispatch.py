@@ -4,11 +4,10 @@ import numpy
 import torch
 
 from scipy.spatial.distance import cdist
+import scipy
 
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 from tmol.tests.benchmark import subfixture, make_subfixture
-
-import sparse
 
 
 @pytest.mark.benchmark(group="dispatch")
@@ -38,8 +37,15 @@ def test_dispatch(benchmark, dispatch_type, torch_device, ubq_system):
 
     dind, dscore = dispatched
     numpy.testing.assert_array_equal(
-        sparse.COO(
-            dind.cpu().numpy().T, dscore.cpu().numpy(), scipy_dist.shape
+        # sparse.COO(
+        #    dind.cpu().numpy().T, dscore.cpu().numpy(), scipy_dist.shape
+        # ).todense(),
+        scipy.sparse.coo_matrix(
+            (
+                dscore.cpu().numpy(),
+                (dind.cpu().numpy()[:, 0], dind.cpu().numpy()[:, 1]),
+            ),
+            shape=(scipy_dist.shape),
         ).todense(),
         scipy_dist < 6.0,
     )
@@ -72,8 +78,15 @@ def test_triu_dispatch(benchmark, dispatch_type, torch_device, ubq_system):
 
     dind, dscore = dispatched
     numpy.testing.assert_array_equal(
-        sparse.COO(
-            dind.cpu().numpy().T, dscore.cpu().numpy(), scipy_dist.shape
+        # sparse.COO(
+        #    dind.cpu().numpy().T, dscore.cpu().numpy(), scipy_dist.shape
+        # ).todense(),
+        scipy.sparse.coo_matrix(
+            (
+                dscore.cpu().numpy(),
+                (dind.cpu().numpy()[:, 0], dind.cpu().numpy()[:, 1]),
+            ),
+            shape=(scipy_dist.shape),
         ).todense(),
         numpy.triu(scipy_dist < 6.0),
     )

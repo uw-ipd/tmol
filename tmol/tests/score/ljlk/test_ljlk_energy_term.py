@@ -332,7 +332,7 @@ def test_inter_module_timing(
 
 
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
-    gold_vals = numpy.array([[-7.691674], [3.6182203]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-7.717818], [3.648599]], dtype=numpy.float32)
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res[0:4], device=torch_device
@@ -392,7 +392,7 @@ def test_whole_pose_scoring_module_gradcheck(
 def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
     n_poses = 10
     gold_vals = numpy.tile(
-        numpy.array([[-177.09975], [297.2797]], dtype=numpy.float32), (1, n_poses)
+        numpy.array([[-177.242], [298.275]], dtype=numpy.float32), (1, n_poses)
     )
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(

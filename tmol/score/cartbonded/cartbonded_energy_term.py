@@ -181,7 +181,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         setattr(block_type, "cartbonded_subgraphs", cart_subgraphs)
 
         # Fetch the params from the database, updating the atom id store if necessary
-        cartbonded_params = self.get_params_for_res(block_type.name)
+        cartbonded_params = self.get_params_for_res(block_type.base_name)
         setattr(block_type, "cartbonded_params", cartbonded_params)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):

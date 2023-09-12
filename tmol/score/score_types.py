@@ -15,6 +15,7 @@ class ScoreType(AutoNumber):
     cart_torsions = ()
     cart_impropers = ()
     cart_hxltorsions = ()
+    disulfide = ()
     fa_lj = ()
     fa_lk = ()
     fa_elec = ()
@@ -24,5 +25,6 @@ class ScoreType(AutoNumber):
     lk_bridge = ()
     lk_bridge_uncpl = ()
     omega = ()
+    rama = ()
     # keep this one last
     n_score_types = ()

@@ -718,7 +718,7 @@ def test_builder_framing(ubq_system):
     atom_root_grandkids = numpy.flatnonzero(
         numpy.array(kinforest.parent) == atom_root_children[0]
     )
-    assert len(atom_root_children) == 2
+    assert len(atom_root_children) == 4  # 2
     assert len(atom_root_grandkids) == 3
 
     # The first atom has two children. The first atom and its first child are framed by
