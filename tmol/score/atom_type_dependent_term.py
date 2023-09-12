@@ -51,7 +51,6 @@ class AtomTypeDependentTerm(EnergyTerm):
         name_indices = []
         for atom_name in atom_names:
             unique_id = self.get_atom_unique_id_name(block_type.base_name, atom_name)
-            print(unique_id)
             if unique_id not in self.atom_unique_id_index:
                 self.atom_unique_id_index[unique_id] = len(self.atom_unique_id_index)
             unique_id_indices.append(self.atom_unique_id_index[unique_id])
