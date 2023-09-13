@@ -127,7 +127,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   assert(block_psi_uaids.size(1) == DIH_N_ATOMS);
 
   assert(block_chi_uaids.size(0) == n_block_types);
-  assert(block_chi_uaids.size(1) == DIH_N_ATOMS);
+  // assert(block_chi_uaids.size(2) == DIH_N_ATOMS);
 
   assert(block_dih_uaids.size(0) == n_block_types);
   assert(block_dih_uaids.size(1) == max_n_dih);

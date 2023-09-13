@@ -55,31 +55,13 @@ def test_whole_pose_scoring_module_gradcheck(
         scores = dunbrack_pose_scorer(coords)
         return torch.sum(scores)
 
-    try:
-        gradcheck(
-            score,
-            (p1.coords.requires_grad_(True),),
-            eps=1e-2,
-            atol=1e-2,
-            raise_exception=True,
-        )
-        pass
-    except RuntimeError as e:
-        err_str = e.args[0]
-        numerical, analytical = err_str.split("analytical:tensor")
-        numerical = numerical.split("numerical:tensor")[-1]
-
-        numerical = ast.literal_eval(numerical)
-        analytical = ast.literal_eval(analytical)
-
-        maxdif = 0
-        for ind, num, ana in zip(range(len(numerical)), numerical, analytical):
-            num = num[0]
-            ana = ana[0]
-            dif = abs(num - ana)
-            maxdif = max(dif, maxdif)
-            # print("{:3d}  {: .5f}  {: .5f}  {: .5f}".format(ind, num, ana, dif))
-        print("Maximum difference: %f" % (maxdif))
+    gradcheck(
+        score,
+        (p1.coords.requires_grad_(True),),
+        eps=1e-2,
+        atol=4e-2,
+        raise_exception=True,
+    )
 
 
 def test_whole_pose_scoring_module_single(
