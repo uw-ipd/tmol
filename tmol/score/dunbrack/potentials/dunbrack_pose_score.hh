@@ -36,7 +36,6 @@ struct DunbrackPoseScoreDispatch {
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
       TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
-      // TView<DunbrackGlobalParams<Real>, 1, D> global_params,
       TView<Real, 3, D> rotameric_neglnprob_tables,
       TView<Vec<int64_t, 2>, 1, D> rotprob_table_sizes,
       TView<Vec<int64_t, 2>, 1, D> rotprob_table_strides,
