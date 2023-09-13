@@ -187,6 +187,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto func = ([=] TMOL_DEVICE_FUNC(int pose_index, int block_index) {
     int block_type_index = pose_stack_block_type[pose_index][block_index];
 
+    if (block_type_index == -1) return;
+
     if (block_rotamer_table_set[block_type_index] == -1) return;
 
     for (int ii = 0; ii < block_n_dihedrals[block_type_index]; ii++) {
