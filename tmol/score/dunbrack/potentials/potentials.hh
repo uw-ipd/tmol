@@ -189,8 +189,6 @@ def classify_rotamer_for_block(
   Int rot_ind = classify_rotamer(dihedrals, nrotameric_chi_for_res, Nbb);
 
   Int ri2ti_offset = rotind2tableind_offset_for_res;
-  // printf("nchi %i, rot_ind: %i, ri2ti: %i\n", nrotameric_chi_for_res,
-  // rot_ind, ri2ti_offset);
   Int rotameric_table_ind = rotameric_rotind2tableind[ri2ti_offset + rot_ind];
   Int semirotameric_table_ind =
       semirotameric_rotind2tableind[ri2ti_offset + rot_ind];
@@ -216,11 +214,6 @@ def classify_rotamer_for_res(
   Int rot_ind =
       classify_rotamer(dihedrals, nrotameric_chi_for_res[i], dihe_offset);
   Int ri2ti_offset = rotind2tableind_offset_for_res[i];
-  printf(
-      "nchi %i, rot_ind: %i, ri2ti: %i\n",
-      nrotameric_chi_for_res[i],
-      rot_ind,
-      ri2ti_offset);
   Int rotameric_table_ind = rotameric_rotind2tableind[ri2ti_offset + rot_ind];
   Int semirotameric_table_ind =
       semirotameric_rotind2tableind[ri2ti_offset + rot_ind];
@@ -943,15 +936,6 @@ def semirotameric_energy(
   Int const semirot_dihedral_index = semirotameric_chi_desc[i][1];
   Int const semirot_table_offset = semirotameric_chi_desc[i][2];
   Int const semirot_table_set = semirotameric_chi_desc[i][3];
-
-  printf(
-      "%i tableset:%i semioffset:%i nrotchi:%i assign:%i\n",
-      resid,
-      semirot_table_set,
-      semirot_table_offset,
-      semirot_dihedral_index,
-      semirotameric_rottable_assignment[resid]);
-
   Int const res_dihe_offset = dihedral_offset_for_res[resid];
 
   Int res_dihedral_offset = dihedral_offset_for_res[resid];
