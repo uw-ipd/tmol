@@ -51,8 +51,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
     TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
-    // TView<DunbrackGlobalParams<Real>, 1, D> global_params,
-    // TView<DunbrackGlobalParams<Real>, 1, D> global_params,
     TView<Real, 3, D> rotameric_neglnprob_tables,
     TView<Vec<int64_t, 2>, 1, D> rotprob_table_sizes,
     TView<Vec<int64_t, 2>, 1, D> rotprob_table_strides,
@@ -75,10 +73,11 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 1, D> semirot_step,              // n-semirot-tabset
     TView<Vec<Real, 3>, 1, D> semirot_periodicity,       // n-semirot-tabset
 
-    TView<Int, 1, D> block_n_dihredrals,
+    TView<Int, 1, D> block_n_dihedrals,
     TView<UnresolvedAtomID<Int>, 2, D> block_phi_uaids,
     TView<UnresolvedAtomID<Int>, 2, D> block_psi_uaids,
-    TView<UnresolvedAtomID<Int>, 3, D> block_chi_uaids,
+    TView<UnresolvedAtomID<Int>, 3, D>
+        block_chi_uaids,  // TODO: unused, can probably be removed
     TView<UnresolvedAtomID<Int>, 3, D> block_dih_uaids,
     TView<Int, 1, D> block_rotamer_table_set,
     TView<Int, 1, D> block_rotameric_index,
@@ -94,20 +93,68 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
     ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
   int const n_poses = coords.size(0);
+  int const n_block_types = block_n_dihedrals.size(0);
   int const max_n_atoms = coords.size(1);
   int const max_n_blocks = pose_stack_block_coord_offset.size(1);
   int const max_n_dih = block_dih_uaids.size(1);
+  int const max_n_conns = pose_stack_inter_block_connections.size(2);
+
+  int const DIH_N_ATOMS = 4;  // TODO: is there a global for this?
+
+  assert(coords.size(0) == n_poses);
+  assert(coords.size(1) == max_n_atoms);
+
+  assert(pose_stack_block_coord_offset.size(0) == n_poses);
+  assert(pose_stack_block_coord_offset.size(1) == max_n_blocks);
+
+  assert(pose_stack_block_type.size(0) == n_poses);
+  assert(pose_stack_block_type.size(1) == max_n_blocks);
+
+  assert(pose_stack_inter_block_connections.size(0) == n_poses);
+  assert(pose_stack_inter_block_connections.size(1) == max_n_blocks);
+  assert(pose_stack_inter_block_connections.size(2) == max_n_conns);
+
+  assert(block_type_atom_downstream_of_conn.size(0) == n_block_types);
+  assert(block_type_atom_downstream_of_conn.size(1) == max_n_conns);
+  // assert(block_type_atom_downstream_of_conn.size(2) == ); TODO: what?
+
+  assert(block_n_dihedrals.size(0) == n_block_types);
+
+  assert(block_phi_uaids.size(0) == n_block_types);
+  assert(block_phi_uaids.size(1) == DIH_N_ATOMS);
+
+  assert(block_psi_uaids.size(0) == n_block_types);
+  assert(block_psi_uaids.size(1) == DIH_N_ATOMS);
+
+  assert(block_chi_uaids.size(0) == n_block_types);
+  assert(block_chi_uaids.size(1) == DIH_N_ATOMS);
+
+  assert(block_dih_uaids.size(0) == n_block_types);
+  assert(block_dih_uaids.size(1) == max_n_dih);
+  assert(block_dih_uaids.size(2) == DIH_N_ATOMS);
+
+  assert(block_rotamer_table_set.size(0) == n_block_types);
+  assert(block_rotameric_index.size(0) == n_block_types);
+  assert(block_semirotameric_index.size(0) == n_block_types);
+  assert(block_n_chi.size(0) == n_block_types);
+  assert(block_n_rotameric_chi.size(0) == n_block_types);
+  assert(block_probability_table_offset.size(0) == n_block_types);
+  assert(block_mean_table_offset.size(0) == n_block_types);
+  assert(block_rotamer_index_to_table_index.size(0) == n_block_types);
+  assert(block_semirotameric_tableset_offset.size(0) == n_block_types);
+
   auto V_t = TPack<Real, 2, D>::zeros({3, n_poses});
   auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({3, n_poses, max_n_atoms});
 
-  auto dihedral_atom_inds_t =
-      TPack<Vec<Int, 4>, 3, D>::zeros({n_poses, max_n_blocks, max_n_dih});
+  auto dihedral_atom_inds_t = TPack<Vec<Int, DIH_N_ATOMS>, 3, D>::zeros(
+      {n_poses, max_n_blocks, max_n_dih});
   auto dihedral_atom_inds = dihedral_atom_inds_t.view;
   auto dihedral_values_t =
       TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, max_n_dih});
   auto dihedral_values = dihedral_values_t.view;
-  auto dihedral_deriv_t = TPack<Eigen::Matrix<Real, 4, 3>, 3, D>::zeros(
-      {n_poses, max_n_blocks, max_n_dih});
+  auto dihedral_deriv_t =
+      TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 3, D>::zeros(
+          {n_poses, max_n_blocks, max_n_dih});
   auto dihedral_deriv = dihedral_deriv_t.view;
 
   auto rotameric_rottable_assignment_t =
@@ -144,10 +191,10 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     // block_rotamer_table_set[block_type_index]);
     if (block_rotamer_table_set[block_type_index] == -1) return;
 
-    for (int ii = 0; ii < block_n_dihredrals[block_type_index]; ii++) {
+    for (int ii = 0; ii < block_n_dihedrals[block_type_index]; ii++) {
       auto dih_uaids = block_dih_uaids[block_type_index][ii];
       bool fail = false;
-      for (int jj = 0; jj < 4; jj++) {
+      for (int jj = 0; jj < DIH_N_ATOMS; jj++) {
         UnresolvedAtomID<Int> uaid = dih_uaids[jj];
 
         if (uaid.atom_id == -1 && uaid.conn_id == -1) {  // Dihedral undefined
@@ -219,9 +266,11 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
       common::accumulate<D, Real>::add(V[0][pose_index], prob);
 
-      Vec<Int, 4> phi_ats = dihedral_atom_inds[pose_index][block_index][0];
-      Vec<Int, 4> psi_ats = dihedral_atom_inds[pose_index][block_index][1];
-      for (int j = 0; j < 4; ++j) {
+      Vec<Int, DIH_N_ATOMS> phi_ats =
+          dihedral_atom_inds[pose_index][block_index][0];
+      Vec<Int, DIH_N_ATOMS> psi_ats =
+          dihedral_atom_inds[pose_index][block_index][1];
+      for (int j = 0; j < DIH_N_ATOMS; ++j) {
         if (phi_ats[j] != -1)
           accumulate<D, Vec<Real, 3>>::add(
               dV_dx[0][pose_index][phi_ats[j]],
@@ -258,11 +307,13 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
       common::accumulate<D, Real>::add(V[1][pose_index], Erotdev);
 
-      Vec<Int, 4> tor0_ats = dihedral_atom_inds[pose_index][block_index][0];
-      Vec<Int, 4> tor1_ats = dihedral_atom_inds[pose_index][block_index][1];
-      Vec<Int, 4> tor2_ats =
+      Vec<Int, DIH_N_ATOMS> tor0_ats =
+          dihedral_atom_inds[pose_index][block_index][0];
+      Vec<Int, DIH_N_ATOMS> tor1_ats =
+          dihedral_atom_inds[pose_index][block_index][1];
+      Vec<Int, DIH_N_ATOMS> tor2_ats =
           dihedral_atom_inds[pose_index][block_index][2 + ii];
-      for (int j = 0; j < 4; ++j) {
+      for (int j = 0; j < DIH_N_ATOMS; ++j) {
         if (tor0_ats[j] != -1)
           accumulate<D, Vec<Real, 3>>::add(
               dV_dx[1][pose_index][tor0_ats[j]],
@@ -300,10 +351,13 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
       common::accumulate<D, Real>::add(V[2][pose_index], Esemi);
 
       int last = block_n_chi[block_type_index] + 1;
-      Vec<Int, 4> tor0_ats = dihedral_atom_inds[pose_index][block_index][0];
-      Vec<Int, 4> tor1_ats = dihedral_atom_inds[pose_index][block_index][1];
-      Vec<Int, 4> tor2_ats = dihedral_atom_inds[pose_index][block_index][last];
-      for (int j = 0; j < 4; ++j) {
+      Vec<Int, DIH_N_ATOMS> tor0_ats =
+          dihedral_atom_inds[pose_index][block_index][0];
+      Vec<Int, DIH_N_ATOMS> tor1_ats =
+          dihedral_atom_inds[pose_index][block_index][1];
+      Vec<Int, DIH_N_ATOMS> tor2_ats =
+          dihedral_atom_inds[pose_index][block_index][last];
+      for (int j = 0; j < DIH_N_ATOMS; ++j) {
         if (tor0_ats[j] != -1)
           accumulate<D, Vec<Real, 3>>::add(
               dV_dx[2][pose_index][tor0_ats[j]],

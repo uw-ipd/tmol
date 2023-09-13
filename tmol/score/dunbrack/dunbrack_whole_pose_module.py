@@ -1,10 +1,6 @@
-import attr
-
 import torch
 
 from tmol.score.dunbrack.potentials.compiled import dunbrack_pose_scores
-
-import dataclasses
 
 
 class DunbrackWholePoseScoringModule(torch.nn.Module):

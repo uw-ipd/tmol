@@ -230,7 +230,7 @@ class DunbrackPoseScoreOp
       Tensor semirot_step,
       Tensor semirot_periodicity,
 
-      Tensor res_n_dihredrals,
+      Tensor res_n_dihedrals,
       Tensor res_phi_uaids,
       Tensor res_psi_uaids,
       Tensor res_chi_uaids,
@@ -284,7 +284,7 @@ class DunbrackPoseScoreOp
                   TCAST(semirot_step),
                   TCAST(semirot_periodicity),
 
-                  TCAST(res_n_dihredrals),
+                  TCAST(res_n_dihedrals),
                   TCAST(res_phi_uaids),
                   TCAST(res_psi_uaids),
                   TCAST(res_chi_uaids),
@@ -382,7 +382,7 @@ Tensor dunbrack_pose_scores_op(
     Tensor semirot_step,
     Tensor semirot_periodicity,
 
-    Tensor res_n_dihredrals,
+    Tensor res_n_dihedrals,
     Tensor res_phi_uaids,
     Tensor res_psi_uaids,
     Tensor res_chi_uaids,
@@ -425,7 +425,7 @@ Tensor dunbrack_pose_scores_op(
       semirot_step,
       semirot_periodicity,
 
-      res_n_dihredrals,
+      res_n_dihedrals,
       res_phi_uaids,
       res_psi_uaids,
       res_chi_uaids,
