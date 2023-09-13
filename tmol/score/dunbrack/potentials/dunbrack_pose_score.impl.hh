@@ -187,8 +187,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   auto func = ([=] TMOL_DEVICE_FUNC(int pose_index, int block_index) {
     int block_type_index = pose_stack_block_type[pose_index][block_index];
 
-    // printf("index:%i type:%i tableset:%i\n", block_index, block_type_index,
-    // block_rotamer_table_set[block_type_index]);
     if (block_rotamer_table_set[block_type_index] == -1) return;
 
     for (int ii = 0; ii < block_n_dihedrals[block_type_index]; ii++) {
@@ -217,11 +215,10 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
           break;
         }
       }
-      if (fail) {
-        dihedral_atom_inds[pose_index][block_index][ii][0] = -1;
-        dihedral_atom_inds[pose_index][block_index][ii][1] = -1;
-        dihedral_atom_inds[pose_index][block_index][ii][2] = -1;
-        dihedral_atom_inds[pose_index][block_index][ii][3] = -1;
+      if (fail) {  // if the dihedral resolution failed, let's fill the cached
+                   // value with -1s since we might have partially filled it
+                   // above
+        dihedral_atom_inds[pose_index][block_index][ii] << -1, -1, -1, -1;
       }
 
       const Real PHI_DEFAULT = -60.0 * M_PI / 180;
