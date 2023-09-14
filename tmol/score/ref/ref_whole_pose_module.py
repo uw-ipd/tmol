@@ -29,10 +29,16 @@ class RefWholePoseScoringModule(torch.nn.Module):
         # self.global_params = _p(torch.stack(_t([global_params.K]), dim=1))
 
     def forward(self, coords):
+        score = torch.add(
+            self.pose_stack_block_types, 1
+        ).flatten()  # add 1 to the tensor to handle -1 block types (they will now index 0, which will score as 0 in the weights table). Also flatten it so that we can do the operation on all blocks/poses at the same time.
         score = torch.index_select(
-            self.ref_weights, 0, self.pose_stack_block_types.flatten()
-        )
-        score = torch.reshape(score, (self.pose_stack_block_types.size(0), -1))
-        score = torch.sum(score, 1, keepdim=True)
+            self.ref_weights, 0, score
+        )  # for all blocks in all poses, do a lookup of that block type in the weights table and use that value instead.
+        score = torch.reshape(
+            score, (self.pose_stack_block_types.size(0), -1)
+        )  # separate our blocks back into their appropriate poses
+        score = torch.sum(score, 1)  # sum the block scores for each pose
+        score = torch.unsqueeze(score, 0)  # add back in the outermose dimension
 
         return score
