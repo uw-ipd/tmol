@@ -41,7 +41,7 @@ class RefWholePoseScoringModule(torch.nn.Module):
         # sum the block scores for each pose
         score = torch.sum(score, 1)
 
-        # add back in the outermose dimension
+        # add back in the outermost dimension
         score = torch.unsqueeze(score, 0)
 
         return score
