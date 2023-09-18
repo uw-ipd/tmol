@@ -42,10 +42,8 @@ class RefEnergyTerm(EnergyTerm):
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(RefEnergyTerm, self).setup_packed_block_types(packed_block_types)
 
-        ref_weights = [
-            0.0
-        ]  # add 0.0 at index 0 so that we can handle non-existent residues
-        for i, bt in enumerate(packed_block_types.active_block_types):
+        ref_weights = []
+        for bt in packed_block_types.active_block_types:
             ref_weights += [bt.ref_weight]
 
         ref_weights = torch.as_tensor(
