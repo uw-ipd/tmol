@@ -8,8 +8,9 @@ from .dunbrack_libraries import DunbrackRotamerLibrary
 from .elec import ElecDatabase
 from .hbond import HBondDatabase
 from .ljlk import LJLKDatabase
-from .omega import OmegaDatabase
+from .omega import OmegaDatabase  # once scoring refactoring is done this can be removed
 from .rama import RamaDatabase
+from .omega_bbdep import OmegaBBDepDatabase
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -22,6 +23,7 @@ class ScoringDatabase:
     hbond: HBondDatabase
     ljlk: LJLKDatabase
     omega: OmegaDatabase
+    omega_bbdep: OmegaBBDepDatabase
     rama: RamaDatabase
 
     @classmethod
@@ -41,6 +43,10 @@ class ScoringDatabase:
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
             omega=OmegaDatabase.from_file(os.path.join(path, "omega.yaml")),
+            omega_bbdep=OmegaBBDepDatabase.from_files(
+                os.path.join(path, "omega_bbdep.yaml"),
+                os.path.join(path, "omega_bbdep.zip"),
+            ),
             rama=RamaDatabase.from_files(
                 os.path.join(path, "rama.yaml"), os.path.join(path, "rama.zip")
             ),
