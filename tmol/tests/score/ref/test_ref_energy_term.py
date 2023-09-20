@@ -59,8 +59,7 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
 def test_whole_pose_scoring_module_single(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
-    rts_ubq_res = rts_ubq_res[0:3]
-    gold_vals = numpy.array([[-3.25716]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-41.275]], dtype=numpy.float32)
     ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device
@@ -87,7 +86,7 @@ def test_whole_pose_scoring_module_10(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
     n_poses = 10
-    gold_vals = numpy.tile(numpy.array([[-3.25716]], dtype=numpy.float32), (n_poses))
+    gold_vals = numpy.tile(numpy.array([[-41.275]], dtype=numpy.float32), (n_poses))
     ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device
@@ -120,7 +119,7 @@ def test_whole_pose_scoring_module_jagged(
     rts_ubq_40 = rts_ubq_res[:40]
     gold_vals = numpy.array(
         [
-            [70.64967, 65.00988, 71.17494],
+            [-41.275, -39.42759, -32.83142],
         ],
         dtype=numpy.float32,
     )

@@ -34,7 +34,6 @@ class RefEnergyTerm(EnergyTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(RefEnergyTerm, self).setup_block_type(block_type)
 
-        print(block_type.name3)
         ref_weight = getattr(self.ref_weights, block_type.name3)
 
         setattr(block_type, "ref_weight", ref_weight)
