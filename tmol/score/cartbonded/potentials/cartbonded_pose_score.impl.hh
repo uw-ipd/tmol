@@ -281,15 +281,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         if (other_block_index == -1) continue;
         int other_block_type =
             pose_stack_block_type[pose_index][other_block_index];
-        // No block on the other side of the connection, nothing to do
-        if (other_block_type == -1) continue;
         int other_block_offset =
             pose_stack_block_coord_offset[pose_index][other_block_index];
 
         int other_connection_index = connection[1];
-        if (other_connection_index < 0) {
-          continue;
-        }
 
         // From our subgraph index, grab the corresponding paths indices for
         // each block
