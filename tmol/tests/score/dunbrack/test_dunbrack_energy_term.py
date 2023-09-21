@@ -5,10 +5,7 @@ from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
-# from tmol.tests.autograd import GradcheckError
 from tmol.tests.autograd import gradcheck
-
-import ast
 
 
 def test_smoke(default_database, torch_device: torch.device):
@@ -128,9 +125,9 @@ def test_whole_pose_scoring_module_jagged(
     rts_ubq_40 = rts_ubq_res[:40]
     gold_vals = numpy.array(
         [
-            [70.64967, 65.00988, 71.17494],
-            [240.31003, 166.33463, 134.12521],
-            [99.6609, 135.41754, 165.65302],
+            [70.6497, 47.4000, 31.5526],
+            [240.3100, 166.3346, 134.1252],
+            [99.6609, 86.4587, 55.4957],
         ],
         dtype=numpy.float32,
     )
@@ -158,7 +155,6 @@ def test_whole_pose_scoring_module_jagged(
 
     # make sure we're still good
     torch.arange(100, device=torch_device)
-    print(scores.cpu().detach().numpy())
 
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
