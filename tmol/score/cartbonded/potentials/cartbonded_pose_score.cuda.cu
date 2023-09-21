@@ -1,23 +1,23 @@
 #include <tmol/score/common/device_operations.cuda.impl.cuh>
-#include <tmol/score/rama/potentials/rama_pose_score.impl.hh>
+#include <tmol/score/cartbonded/potentials/cartbonded_pose_score.impl.hh>
 
 namespace tmol {
 namespace score {
-namespace rama {
+namespace cartbonded {
 namespace potentials {
 
-template struct RamaPoseScoreDispatch<
-    common::DeviceOperations,
+template struct CartBondedPoseScoreDispatch<
+    DeviceOperations,
     tmol::Device::CUDA,
     float,
     int>;
-template struct RamaPoseScoreDispatch<
-    common::DeviceOperations,
+template struct CartBondedPoseScoreDispatch<
+    DeviceOperations,
     tmol::Device::CUDA,
     double,
     int>;
 
 }  // namespace potentials
-}  // namespace rama
+}  // namespace cartbonded
 }  // namespace score
 }  // namespace tmol

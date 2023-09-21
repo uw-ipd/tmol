@@ -357,10 +357,14 @@ struct ndspline {
     Real interp = 0;
     RealN dinterp_dX = RealN::Constant(0.0);
 
-    // get indices to loop over
     Int nprods = 1;
+    Int stride, pt_indexer, idx_ij, idx_box_i, idx_i;
     IntN idx;
     RealN frac;
+
+    Real weight = 1;
+    RealN dweight;
+
     for (int dim = 0; dim < NDIM; ++dim) {
       idx[dim] = (Int)std::floor(X[dim]);
       frac[dim] = X[dim] - idx[dim];
@@ -374,14 +378,16 @@ struct ndspline {
 
     // do the dot product
     for (int pt = 0; pt < nprods; ++pt) {
-      Real weight = 1;
-      RealN dweight = RealN::Constant(1.0);
+      weight = 1;
+      dweight = RealN::Constant(1.0);
 
-      Int stride = 1;
-      Int pt_indexer = pt, idx_ij = 0;
+      stride = 1;
+      pt_indexer = pt;
+      idx_ij = 0;
+
       for (int dim = NDIM - 1; dim >= 0; --dim) {
-        Int idx_box_i = pt_indexer % (DEGREE + 1);
-        Int idx_i = (idx[dim] + idx_box_i) % coeffs.size(dim);
+        idx_box_i = pt_indexer % (DEGREE + 1);
+        idx_i = (idx[dim] + idx_box_i) % coeffs.size(dim);
         if (idx_i < 0) idx_i += coeffs.size(dim);
         idx_ij += stride * idx_i;
         stride *= coeffs.size(dim);
@@ -394,10 +400,9 @@ struct ndspline {
 
         pt_indexer /= (DEGREE + 1);
       }
-      Real coeff_i = coeffs.data()[idx_ij];
-      interp += weight * coeff_i;
+      interp += weight * coeffs.data()[idx_ij];
       for (int d_dim = 0; d_dim < NDIM; ++d_dim) {
-        dinterp_dX[d_dim] += dweight[d_dim] * coeff_i;
+        dinterp_dX[d_dim] += dweight[d_dim] * coeffs.data()[idx_ij];
       }
     }
 

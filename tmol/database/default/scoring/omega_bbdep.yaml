@@ -1,0 +1,43 @@
+omega_bbdep_lookup:
+  - { table_id: all, res_middle: ALA }
+  - { table_id: all ,res_middle: ARG }
+  - { table_id: all ,res_middle: ASN }
+  - { table_id: all ,res_middle: ASP }
+  - { table_id: all ,res_middle: CYS }
+  - { table_id: all ,res_middle: GLN }
+  - { table_id: all ,res_middle: GLU }
+  - { table_id: gly ,res_middle: GLY }
+  - { table_id: all ,res_middle: HIS }
+  - { table_id: all ,res_middle: HIS_D }
+  - { table_id: valile ,res_middle: ILE }
+  - { table_id: all ,res_middle: LEU }
+  - { table_id: all ,res_middle: LYS }
+  - { table_id: all ,res_middle: MET }
+  - { table_id: all ,res_middle: PHE }
+  - { table_id: pro ,res_middle: PRO }
+  - { table_id: all ,res_middle: SER }
+  - { table_id: all ,res_middle: THR }
+  - { table_id: all ,res_middle: TRP }
+  - { table_id: all ,res_middle: TYR }
+  - { table_id: valile ,res_middle: VAL }
+  - { table_id: prepro, res_middle: ALA, res_upper: PRO }
+  - { table_id: prepro ,res_middle: ARG, res_upper: PRO }
+  - { table_id: prepro ,res_middle: ASN, res_upper: PRO }
+  - { table_id: prepro ,res_middle: ASP, res_upper: PRO }
+  - { table_id: prepro ,res_middle: CYS, res_upper: PRO }
+  - { table_id: prepro ,res_middle: GLN, res_upper: PRO }
+  - { table_id: prepro ,res_middle: GLU, res_upper: PRO }
+  - { table_id: prepro ,res_middle: GLY, res_upper: PRO }
+  - { table_id: prepro ,res_middle: HIS, res_upper: PRO }
+  - { table_id: prepro ,res_middle: HIS_D, res_upper: PRO }
+  - { table_id: prepro ,res_middle: ILE, res_upper: PRO }
+  - { table_id: prepro ,res_middle: LEU, res_upper: PRO }
+  - { table_id: prepro ,res_middle: LYS, res_upper: PRO }
+  - { table_id: prepro ,res_middle: MET, res_upper: PRO }
+  - { table_id: prepro ,res_middle: PHE, res_upper: PRO }
+  - { table_id: prepro ,res_middle: PRO, res_upper: PRO }
+  - { table_id: prepro ,res_middle: SER, res_upper: PRO }
+  - { table_id: prepro ,res_middle: THR, res_upper: PRO }
+  - { table_id: prepro ,res_middle: TRP, res_upper: PRO }
+  - { table_id: prepro ,res_middle: TYR, res_upper: PRO }
+  - { table_id: prepro ,res_middle: VAL, res_upper: PRO }

@@ -1,7 +1,7 @@
 import torch
 
 from tmol.score.cartbonded.params import CartBondedParamResolver
-from tmol.database.scoring import CartBondedDatabase
+from tmol.database.scoring import CartBondedDatabaseOld
 
 # Import compiled components to load torch_ops
 from tmol.score.cartbonded.potentials.compiled import score_cartbonded
@@ -90,7 +90,7 @@ class CartBondedModule(torch.jit.ScriptModule):
         )
 
     @classmethod
-    def from_database(cls, cb_database: CartBondedDatabase, device: torch.device):
+    def from_database(cls, cb_database: CartBondedDatabaseOld, device: torch.device):
         return cls(
             param_resolver=CartBondedParamResolver.from_database(cb_database, device)
         )

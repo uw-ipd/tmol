@@ -30,7 +30,7 @@ static def square(Real v)->Real {
 }
 
 template <typename Real>
-def cblength_V_dV(Real3 atm1, Real3 atm2, Real K, Real x0)
+def cblength_V_dV_old(Real3 atm1, Real3 atm2, Real K, Real x0)
     ->tuple<Real, Real3, Real3> {
   auto dist = distance<Real>::V_dV(atm1, atm2);
   Real E = 0.5 * K * square(dist.V - x0);
@@ -39,7 +39,66 @@ def cblength_V_dV(Real3 atm1, Real3 atm2, Real K, Real x0)
 }
 
 template <typename Real>
+def cblength_V_dV(Real3 atm1, Real3 atm2, Real K, Real x0)
+    ->tuple<Real, Vec<Real3, 2>> {
+  auto dist = distance<Real>::V_dV(atm1, atm2);
+  Real E = 0.5 * K * square(dist.V - x0);
+  Real dE = K * (dist.V - x0);
+
+  Vec<Real3, 2> dEout;
+  dEout[0] = dE * dist.dV_dA;
+  dEout[1] = dE * dist.dV_dB;
+  return {E, dEout};
+}
+
+template <typename Real>
 def cbangle_V_dV(Real3 atm1, Real3 atm2, Real3 atm3, Real K, Real x0)
+    ->tuple<Real, Vec<Real3, 3>> {
+  auto angle = pt_interior_angle<Real>::V_dV(atm1, atm2, atm3);
+  Real E = 0.5 * K * square(angle.V - x0);
+  Real dE = K * (angle.V - x0);
+
+  Vec<Real3, 3> dEout;
+  dEout[0] = dE * angle.dV_dA;
+  dEout[1] = dE * angle.dV_dB;
+  dEout[2] = dE * angle.dV_dC;
+  return {E, dEout};
+}
+
+// torsions use a sum of three sin funcs
+//   sum_n K*(cos(n*x-x0)+1) for n=1,2,3
+template <typename Real>
+def cbtorsion_V_dV(
+    Real3 atm1,
+    Real3 atm2,
+    Real3 atm3,
+    Real3 atm4,
+    Real K1,
+    Real K2,
+    Real K3,
+    Real phi1,
+    Real phi2,
+    Real phi3)
+    ->tuple<Real, Vec<Real3, 4>> {
+  auto torsion = dihedral_angle<Real>::V_dV(atm1, atm2, atm3, atm4);
+
+  Real E = K1 * (std::cos(1.0 * torsion.V - phi1) + 1.0)
+           + K2 * (std::cos(2.0 * torsion.V - phi2) + 1.0)
+           + K3 * (std::cos(3.0 * torsion.V - phi3) + 1.0);
+  Real dE = -1.0 * K1 * std::sin(1.0 * torsion.V - phi1)
+            - 2.0 * K2 * std::sin(2.0 * torsion.V - phi2)
+            - 3.0 * K3 * std::sin(3.0 * torsion.V - phi3);
+
+  Vec<Real3, 4> dEout;
+  dEout[0] = dE * torsion.dV_dI;
+  dEout[1] = dE * torsion.dV_dJ;
+  dEout[2] = dE * torsion.dV_dK;
+  dEout[3] = dE * torsion.dV_dL;
+  return {E, dEout};
+}
+
+template <typename Real>
+def cbangle_V_dV_old(Real3 atm1, Real3 atm2, Real3 atm3, Real K, Real x0)
     ->tuple<Real, Real3, Real3, Real3> {
   auto angle = pt_interior_angle<Real>::V_dV(atm1, atm2, atm3);
   Real E = 0.5 * K * square(angle.V - x0);
@@ -50,7 +109,7 @@ def cbangle_V_dV(Real3 atm1, Real3 atm2, Real3 atm3, Real K, Real x0)
 // normal torsions use single sin func
 //     Keff*(1-cos(period*(x-x0)))
 template <typename Real, typename Int>
-def cbtorsion_V_dV(
+def cbtorsion_V_dV_old(
     Real3 atm1, Real3 atm2, Real3 atm3, Real3 atm4, Real K, Real x0, Int period)
     ->tuple<Real, Real3, Real3, Real3, Real3> {
   auto torsion = dihedral_angle<Real>::V_dV(atm1, atm2, atm3, atm4);
@@ -69,7 +128,7 @@ def cbtorsion_V_dV(
 // hydroxyl torsions use a sum of three sin funcs
 //   sum_n K*(cos(n*x-x0)+1) for n=1,2,3
 template <typename Real>
-def cbhxltorsion_V_dV(
+def cbhxltorsion_V_dV_old(
     Real3 atm1,
     Real3 atm2,
     Real3 atm3,

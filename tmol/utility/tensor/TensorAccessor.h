@@ -40,9 +40,7 @@ inline void handler(int sig) {
 }
 
 // Boundary assertions
-#ifdef __CUDACC__
-#define BOUNDARY_ASSERT(array_ptr, index)
-#else
+#if defined DEBUG && !defined __CUDACC__
 #define BOUNDARY_ASSERT(array_ptr, index) \
   if (index < 0) {                        \
     handler(1);                           \
@@ -53,6 +51,8 @@ inline void handler(int sig) {
   \ 
   assert(index >= 0);                     \
   assert(index < array_ptr->sizes_[0]);
+#else
+#define BOUNDARY_ASSERT(array_ptr, index)
 #endif
 
 namespace tmol {
