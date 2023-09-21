@@ -196,6 +196,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     auto pose_coords = coords[pose_index];
     int block_coord_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
+    if (block_type < 0) {
+      return;
+    }
     int subgraph_offset = cart_subgraph_offsets[block_type];
     int subgraph_offset_next = block_type + 1 == n_block_types
                                    ? n_subgraphs
@@ -274,15 +277,19 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         const Vec<Int, 2>& connection =
             pose_stack_inter_block_connections[pose_index][block_index][i];
         int other_block_index = connection[0];
+        // No block on the other side of the connection, nothing to do
+        if (other_block_index == -1) continue;
         int other_block_type =
             pose_stack_block_type[pose_index][other_block_index];
+        // No block on the other side of the connection, nothing to do
+        if (other_block_type == -1) continue;
         int other_block_offset =
             pose_stack_block_coord_offset[pose_index][other_block_index];
 
-        // No block on the other side of the connection, nothing to do
-        if (other_block_index == -1) continue;
-
         int other_connection_index = connection[1];
+        if (other_connection_index < 0) {
+          continue;
+        }
 
         // From our subgraph index, grab the corresponding paths indices for
         // each block
