@@ -1,5 +1,4 @@
 import torch
-import numpy
 
 from ..energy_term import EnergyTerm
 
@@ -9,8 +8,6 @@ from tmol.score.ref.ref_whole_pose_module import RefWholePoseScoringModule
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-
-from collections import OrderedDict
 
 
 class RefEnergyTerm(EnergyTerm):
@@ -34,12 +31,18 @@ class RefEnergyTerm(EnergyTerm):
     def setup_block_type(self, block_type: RefinedResidueType):
         super(RefEnergyTerm, self).setup_block_type(block_type)
 
+        if hasattr(block_type, "ref_weight"):
+            return
+
         ref_weight = getattr(self.ref_weights, block_type.name3)
 
         setattr(block_type, "ref_weight", ref_weight)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(RefEnergyTerm, self).setup_packed_block_types(packed_block_types)
+
+        if hasattr(packed_block_types, "ref_weights"):
+            return
 
         ref_weights = []
         for bt in packed_block_types.active_block_types:

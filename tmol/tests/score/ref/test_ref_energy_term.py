@@ -12,10 +12,11 @@ def test_smoke(default_database, torch_device: torch.device):
     ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
 
     assert ref_energy.device == torch_device
-    assert ref_energy.global_params.a_mu.device == torch_device
 
 
-def test_annotate_ref_conns(rts_ubq_res, default_database, torch_device: torch.device):
+def test_annotate_block_types(
+    rts_ubq_res, default_database, torch_device: torch.device
+):
     ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
 
     bt_list = residue_types_from_residues(rts_ubq_res)
@@ -23,15 +24,15 @@ def test_annotate_ref_conns(rts_ubq_res, default_database, torch_device: torch.d
 
     for bt in bt_list:
         ref_energy.setup_block_type(bt)
-        assert hasattr(bt, "ref_connections")
+        assert hasattr(bt, "ref_weight")
     ref_energy.setup_packed_block_types(pbt)
-    assert hasattr(pbt, "ref_conns")
-    ref_conns = pbt.ref_conns
+    assert hasattr(pbt, "ref_weights")
+    ref_weights = pbt.ref_weights
     ref_energy.setup_packed_block_types(pbt)
 
-    assert pbt.ref_conns.device == torch_device
+    assert pbt.ref_weights.device == torch_device
     assert (
-        pbt.ref_conns is ref_conns
+        pbt.ref_weights is ref_weights
     )  # Test to make sure the parameters remain the same instance
 
 
