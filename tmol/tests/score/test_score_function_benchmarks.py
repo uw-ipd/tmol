@@ -7,6 +7,7 @@ from tmol.score.score_function import ScoreFunction
 # from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
+from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
 from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
 from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
@@ -45,6 +46,7 @@ def dont_test_res_centric_score_benchmark_setup(
 @pytest.mark.parametrize(
     "energy_term",
     [
+        CartBondedEnergyTerm,
         DisulfideEnergyTerm,
         ElecEnergyTerm,
         HBondEnergyTerm,
@@ -52,7 +54,15 @@ def dont_test_res_centric_score_benchmark_setup(
         LKBallEnergyTerm,
         BackboneTorsionEnergyTerm,
     ],
-    ids=["disulfide", "elec", "hbond", "ljlk", "lk_ball", "backbone_torsion"],
+    ids=[
+        "cartbonded",
+        "disulfide",
+        "elec",
+        "hbond",
+        "ljlk",
+        "lk_ball",
+        "backbone_torsion",
+    ],
 )
 @pytest.mark.benchmark(group="res_centric_score_components")
 def test_res_centric_score_benchmark(
@@ -113,6 +123,7 @@ def test_res_centric_score_benchmark(
     "energy_terms",
     [
         [
+            CartBondedEnergyTerm,
             DisulfideEnergyTerm,
             ElecEnergyTerm,
             HBondEnergyTerm,
@@ -121,7 +132,7 @@ def test_res_centric_score_benchmark(
             BackboneTorsionEnergyTerm,
         ]
     ],
-    ids=["disulfide_elec_hbond_ljlk_lkb_bbtorsion"],
+    ids=["cartbonded_disulfide_elec_hbond_ljlk_lkb_bbtorsion"],
 )
 @pytest.mark.benchmark(group="res_centric_combined_score_components")
 def test_combined_res_centric_score_benchmark(

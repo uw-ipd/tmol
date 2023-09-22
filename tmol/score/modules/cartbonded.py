@@ -5,7 +5,7 @@ import torch
 import numpy
 from functools import singledispatch
 
-from tmol.database.scoring import CartBondedDatabase
+from tmol.database.scoring import CartBondedDatabaseOld
 
 from tmol.score.cartbonded.identification import CartBondedIdentification
 from tmol.score.cartbonded.params import CartBondedParamResolver
@@ -33,7 +33,7 @@ class CartBondedParameters(ScoreModule):
         val,
         system: ScoreSystem,
         *,
-        cartbonded_database: Optional[CartBondedDatabase] = None,
+        cartbonded_database: Optional[CartBondedDatabaseOld] = None,
         **_,
     ):
         """Override constructor.
@@ -44,13 +44,13 @@ class CartBondedParameters(ScoreModule):
         if cartbonded_database is None:
             cartbonded_database = ParamDB.get(
                 system
-            ).parameter_database.scoring.cartbonded
+            ).parameter_database.scoring.cartbonded_old
 
         return CartBondedParameters(
             system=system, cartbonded_database=cartbonded_database
         )
 
-    cartbonded_database: CartBondedDatabase = attr.ib(validator=type_validator())
+    cartbonded_database: CartBondedDatabaseOld = attr.ib(validator=type_validator())
     cartbonded_param_resolver: CartBondedParamResolver = attr.ib(init=False)
     cartbonded_param_identifier: CartBondedIdentification = attr.ib(init=False)
 
@@ -184,7 +184,7 @@ def _clone_for_score_system(
     old,
     system: ScoreSystem,
     *,
-    cartbonded_database: Optional[CartBondedDatabase] = None,
+    cartbonded_database: Optional[CartBondedDatabaseOld] = None,
     **_,
 ):
     """Override constructor.
