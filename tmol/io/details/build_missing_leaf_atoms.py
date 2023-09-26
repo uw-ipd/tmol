@@ -142,10 +142,6 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
         setattr(block_type, "is_leaf_atom", is_leaf)
         is_leaf_atom[i, : block_type.n_atoms] = ti32(is_leaf)
 
-        atom_types = [x.atom_type for x in block_type.atoms]
-        atom_type_idx = atom_type_resolver.type_idx(atom_types)
-        atom_type_params = atom_type_resolver.params[atom_type_idx]
-
     setattr(pbt, "is_leaf_atom", is_leaf_atom)
 
 
