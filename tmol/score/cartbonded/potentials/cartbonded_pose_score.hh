@@ -9,7 +9,6 @@
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/utility/nvtx.hh>
 
-#include <tmol/score/unresolved_atom.hh>
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
@@ -18,7 +17,7 @@
 
 namespace tmol {
 namespace score {
-namespace omega {
+namespace cartbonded {
 namespace potentials {
 
 template <typename Real, int N>
@@ -30,16 +29,21 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-struct OmegaPoseScoreDispatch {
+struct CartBondedPoseScoreDispatch {
   static auto f(
       TView<Vec<Real, 3>, 2, D> coords,
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
-      TView<UnresolvedAtomID<Int>, 2, D> block_type_omega_quad_uaids,
-      TView<Int, 3, D> block_type_atom_downstream_of_conn,
+      TView<Vec<Int, 3>, 3, D> atom_paths_from_conn,
+      TView<Int, 2, D> atom_unique_ids,
+      TView<Int, 2, D> atom_wildcard_ids,
+      TView<Vec<Int, 5>, 1, D> hash_keys,
+      TView<Vec<Real, 7>, 1, D> hash_values,
+      TView<Vec<Int, 4>, 1, D> cart_subgraphs,
+      TView<Int, 1, D> cart_subgraph_offsets,
 
-      TView<OmegaGlobalParams<Real>, 1, D> global_params,
+      int max_subgraphs_per_block,
 
       bool compute_derivs
 
@@ -47,6 +51,6 @@ struct OmegaPoseScoreDispatch {
 };
 
 }  // namespace potentials
-}  // namespace omega
+}  // namespace cartbonded
 }  // namespace score
 }  // namespace tmol

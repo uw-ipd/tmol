@@ -7,13 +7,13 @@ from tmol.score.score_function import ScoreFunction
 # from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
+from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
 from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
 from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
-from tmol.score.rama.rama_energy_term import RamaEnergyTerm
-from tmol.score.omega.omega_energy_term import OmegaEnergyTerm
+from tmol.score.backbone_torsion.bb_torsion_energy_term import BackboneTorsionEnergyTerm
 
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
@@ -46,15 +46,23 @@ def dont_test_res_centric_score_benchmark_setup(
 @pytest.mark.parametrize(
     "energy_term",
     [
+        CartBondedEnergyTerm,
         DisulfideEnergyTerm,
         ElecEnergyTerm,
         HBondEnergyTerm,
         LJLKEnergyTerm,
         LKBallEnergyTerm,
-        OmegaEnergyTerm,
-        RamaEnergyTerm,
+        BackboneTorsionEnergyTerm,
     ],
-    ids=["disulfide", "elec", "hbond", "ljlk", "lk_ball", "omega", "rama"],
+    ids=[
+        "cartbonded",
+        "disulfide",
+        "elec",
+        "hbond",
+        "ljlk",
+        "lk_ball",
+        "backbone_torsion",
+    ],
 )
 @pytest.mark.benchmark(group="res_centric_score_components")
 def test_res_centric_score_benchmark(
@@ -108,10 +116,6 @@ def test_res_centric_score_benchmark(
     else:
         raise NotImplementedError
 
-    # print("scores")
-    # print(scores[:,:3])
-    # print(scores.shape)
-
 
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))
 @pytest.mark.parametrize("benchmark_pass", ["forward", "full", "backward"])
@@ -119,16 +123,16 @@ def test_res_centric_score_benchmark(
     "energy_terms",
     [
         [
+            CartBondedEnergyTerm,
             DisulfideEnergyTerm,
             ElecEnergyTerm,
             HBondEnergyTerm,
             LJLKEnergyTerm,
             LKBallEnergyTerm,
-            OmegaEnergyTerm,
-            RamaEnergyTerm,
+            BackboneTorsionEnergyTerm,
         ]
     ],
-    ids=["disulfide_elec_hbond_ljlk_lkb_omega_rama"],
+    ids=["cartbonded_disulfide_elec_hbond_ljlk_lkb_bbtorsion"],
 )
 @pytest.mark.benchmark(group="res_centric_combined_score_components")
 def test_combined_res_centric_score_benchmark(
@@ -182,7 +186,3 @@ def test_combined_res_centric_score_benchmark(
 
     else:
         raise NotImplementedError
-
-    # print("scores")
-    # print(scores[:,:3])
-    # print(scores.shape)

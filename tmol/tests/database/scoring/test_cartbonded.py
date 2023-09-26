@@ -2,7 +2,7 @@ from collections import Counter
 
 
 def test_cartbonded_defs(default_database):
-    db = default_database.scoring.cartbonded
+    db = default_database.scoring.cartbonded_old
 
     bondlength_counts = Counter((n.res, n.atm1, n.atm2) for n in db.length_parameters)
 

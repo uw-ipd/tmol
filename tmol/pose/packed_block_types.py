@@ -7,6 +7,7 @@ from typing import Sequence
 
 from tmol.types.torch import Tensor
 
+from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.restypes import RefinedResidueType, Residue
 from tmol.utility.tensor.common_operations import join_tensors_and_report_real_entries
 
@@ -29,6 +30,8 @@ class PackedBlockTypes:
     atom_is_real: Tensor[torch.uint8][:, :]  # dim: n_types x max_n_atoms
 
     atom_downstream_of_conn: Tensor[torch.int32][:, :, :]
+
+    atom_paths_from_conn: Tensor[torch.int32][:, :, MAX_PATHS_FROM_CONNECTION, 3]
 
     max_n_torsions: int
     n_torsions: Tensor[torch.int32][:]  # dim: n_types x max_n_tors
@@ -71,6 +74,7 @@ class PackedBlockTypes:
         atom_downstream_of_conn = cls.join_atom_downstream_of_conn(
             active_block_types, device
         )
+        atom_paths_from_conn = cls.join_atom_paths_from_conn(active_block_types, device)
         n_torsions, torsion_is_real, torsion_uaids = cls.join_torsion_uaids(
             active_block_types, device
         )
@@ -91,6 +95,7 @@ class PackedBlockTypes:
             n_atoms=n_atoms,
             atom_is_real=atom_is_real,
             atom_downstream_of_conn=atom_downstream_of_conn,
+            atom_paths_from_conn=atom_paths_from_conn,
             max_n_torsions=torsion_is_real.shape[1],
             n_torsions=n_torsions,
             torsion_is_real=torsion_is_real,
@@ -158,6 +163,33 @@ class PackedBlockTypes:
                 i, : rt_adoc.shape[0], : rt_adoc.shape[1]
             ] = torch.tensor(rt_adoc, dtype=torch.int32, device=device)
         return atom_downstream_of_conn
+
+    @classmethod
+    def join_atom_paths_from_conn(
+        clas, active_block_types: Sequence[Residue], device: torch.device
+    ):
+        n_restypes = len(active_block_types)
+        max_n_conn = max(len(bt.connections) for bt in active_block_types)
+
+        atom_paths_from_conn = torch.full(
+            (
+                n_restypes,
+                max_n_conn,
+                MAX_PATHS_FROM_CONNECTION,
+                3,
+            ),
+            -1,
+            dtype=torch.int32,
+            device=device,
+        )
+
+        for i, bt in enumerate(active_block_types):
+            paths = bt.atom_paths_from_conn
+            atom_paths_from_conn[i][0 : len(bt.connections)] = torch.tensor(
+                paths, device=device
+            )
+
+        return atom_paths_from_conn
 
     @classmethod
     def join_torsion_uaids(cls, active_block_types, device):
@@ -251,6 +283,7 @@ class PackedBlockTypes:
             n_atoms=cpu_equiv(self.n_atoms),
             atom_is_real=cpu_equiv(self.atom_is_real),
             atom_downstream_of_conn=cpu_equiv(self.atom_downstream_of_conn),
+            atom_paths_from_conn=cpu_equiv(self.atom_paths_from_conn),
             max_n_torsions=cpu_equiv(self.max_n_torsions),
             n_torsions=cpu_equiv(self.n_torsions),
             torsion_is_real=cpu_equiv(self.torsion_is_real),

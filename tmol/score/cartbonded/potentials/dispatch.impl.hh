@@ -65,7 +65,7 @@ struct CartBondedDispatch {
         return;
       }
 
-      auto cblength = cblength_V_dV(
+      auto cblength = cblength_V_dV_old(
           coords[stack][ati],
           coords[stack][atj],
           cbl_params[pari].K,
@@ -92,7 +92,7 @@ struct CartBondedDispatch {
       }
 
       Int pari = cba_atoms[stack][i].param_index;
-      auto cbangle = cbangle_V_dV(
+      auto cbangle = cbangle_V_dV_old(
           coords[stack][ati],
           coords[stack][atj],
           coords[stack][atk],
@@ -123,7 +123,7 @@ struct CartBondedDispatch {
         return;
       }
 
-      auto cbtorsion = cbtorsion_V_dV(
+      auto cbtorsion = cbtorsion_V_dV_old(
           coords[stack][ati],
           coords[stack][atj],
           coords[stack][atk],
@@ -158,7 +158,7 @@ struct CartBondedDispatch {
         return;
       }
 
-      auto cbimproper = cbtorsion_V_dV(
+      auto cbimproper = cbtorsion_V_dV_old(
           coords[stack][ati],
           coords[stack][atj],
           coords[stack][atk],
@@ -193,7 +193,7 @@ struct CartBondedDispatch {
         return;
       }
 
-      auto cbhxltorsion = cbhxltorsion_V_dV(
+      auto cbhxltorsion = cbhxltorsion_V_dV_old(
           coords[stack][ati],
           coords[stack][atj],
           coords[stack][atk],
