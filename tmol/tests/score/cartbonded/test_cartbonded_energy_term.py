@@ -22,7 +22,9 @@ def test_annotate_restypes(ubq_res, default_database, torch_device: torch.device
     )
 
     bt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(bt_list, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, bt_list, torch_device
+    )
 
     for bt in bt_list:
         cartbonded_energy.setup_block_type(bt)
@@ -52,7 +54,7 @@ def test_whole_pose_scoring_module_gradcheck(
         param_db=default_database, device=torch_device
     )
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         cartbonded_energy.setup_block_type(bt)
@@ -79,7 +81,7 @@ def test_whole_pose_scoring_module_single(
         param_db=default_database, device=torch_device
     )
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         cartbonded_energy.setup_block_type(bt)
@@ -114,7 +116,7 @@ def test_whole_pose_scoring_module_10(
         param_db=default_database, device=torch_device
     )
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
@@ -155,13 +157,13 @@ def test_whole_pose_scoring_module_jagged(
         param_db=default_database, device=torch_device
     )
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_60, device=torch_device
+        default_database.chemical, res=rts_ubq_60, device=torch_device
     )
     p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_40, device=torch_device
+        default_database.chemical, res=rts_ubq_40, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
 

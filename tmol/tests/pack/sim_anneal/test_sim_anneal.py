@@ -52,7 +52,7 @@ def dont_test_random_rotamer_module(ubq_res, default_database, torch_device):
     ]
 
     p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:n_res], torch_device
+        default_database.chemical, ubq_res[:n_res], torch_device
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
@@ -183,7 +183,7 @@ def dont_test_mc_accept_reject_module_smoke(ubq_res, default_database, torch_dev
     ]
 
     p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:n_res], torch_device
+        default_database.chemical, ubq_res[:n_res], torch_device
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
@@ -267,7 +267,7 @@ def dont_test_accept_final_smoke(
     max_n_blocks = 10
     n_poses = 3
     p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:max_n_blocks], torch_device
+        default_database.chemical, rts_ubq_res[:max_n_blocks], torch_device
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 

@@ -54,4 +54,7 @@ def default_canonical_packed_block_types(device: torch.device):
         for rname in all_restypes
     ]
 
-    return PackedBlockTypes.from_restype_list(restype_list, device), atom_type_resolver
+    return (
+        PackedBlockTypes.from_restype_list(chem_database, restype_list, device),
+        atom_type_resolver,
+    )

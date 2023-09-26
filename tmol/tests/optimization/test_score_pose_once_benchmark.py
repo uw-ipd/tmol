@@ -28,7 +28,7 @@ def test_pose_construction_from_sequence(
     n_pose_seq = [seq] * n_poses
 
     ps1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res, torch_device
+        default_database.chemical, rts_ubq_res, torch_device
     )
 
     sfxn = ScoreFunction(default_database, torch_device)

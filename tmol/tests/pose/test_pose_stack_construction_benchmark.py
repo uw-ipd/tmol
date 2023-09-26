@@ -12,7 +12,7 @@ def test_pose_construction_benchmark_from_residues(
     benchmark, n_poses, rts_ubq_res, default_database, torch_device
 ):
     pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res, torch_device
+        default_database.chemical, rts_ubq_res, torch_device
     )
 
     @benchmark

@@ -105,11 +105,6 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
     pbt: PackedBlockTypes, atom_type_resolver: AtomTypeParamResolver
 ):
     if hasattr(pbt, "is_leaf_atom"):
-        # TO DO: it feels like "is_hydrogen" is the kind of data member
-        # that PBT ought to provide itself and does not belong as an
-        # annotation that the missing-leaf-atom-construction code
-        # ought to create.
-        assert hasattr(pbt, "is_hydrogen")
         return
 
     # annotate the block types, then concatenate
@@ -120,7 +115,6 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
     is_leaf_atom = torch.zeros(
         (pbt.n_types, pbt.max_n_atoms), dtype=torch.int32, device=pbt.device
     )
-    is_hydrogen = torch.zeros_like(is_leaf_atom)
 
     for i, block_type in enumerate(pbt.active_block_types):
         is_parent = numpy.zeros(block_type.n_atoms, dtype=numpy.bool)
@@ -151,13 +145,8 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
         atom_types = [x.atom_type for x in block_type.atoms]
         atom_type_idx = atom_type_resolver.type_idx(atom_types)
         atom_type_params = atom_type_resolver.params[atom_type_idx]
-        bt_is_hydrogen = (
-            atom_type_params.is_hydrogen.cpu().numpy().astype(dtype=numpy.int32)
-        )
-        setattr(block_type, "is_hydrogen", bt_is_hydrogen)
-        is_hydrogen[i, : block_type.n_atoms] = ti32(bt_is_hydrogen)
+
     setattr(pbt, "is_leaf_atom", is_leaf_atom)
-    setattr(pbt, "is_hydrogen", is_hydrogen)
 
 
 @validate_args
@@ -169,7 +158,7 @@ def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
         return
 
     assert hasattr(pbt, "is_leaf_atom")
-    assert hasattr(pbt, "is_hydrogen")
+    assert hasattr(pbt, "atom_is_hydrogen")
     icoor_atom_ancestor_uaids = numpy.full(
         (pbt.n_types, pbt.max_n_atoms, 3, 3), -1, dtype=numpy.int32
     )
@@ -180,8 +169,11 @@ def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
     icoor_geom_backup = numpy.full(
         (pbt.n_types, pbt.max_n_atoms, 3), -1, dtype=numpy.float32
     )
+    atom_is_hydrogen_cpu = pbt.atom_is_hydrogen.cpu()
     for i, bt in enumerate(pbt.active_block_types):
-        geom, uaids, geom_bu, uaids_bu = _determine_leaf_atom_icoors_for_block_type(bt)
+        geom, uaids, geom_bu, uaids_bu = _determine_leaf_atom_icoors_for_block_type(
+            bt, atom_is_hydrogen_cpu[i, :]
+        )
 
         icoor_geom[i, : bt.n_atoms] = geom
         icoor_atom_ancestor_uaids[i, : bt.n_atoms] = uaids
@@ -213,7 +205,7 @@ def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
     setattr(pbt, "build_missing_leaf_atom_icoor_geom_backup", icoor_geom_backup)
 
 
-def _determine_leaf_atom_icoors_for_block_type(bt):
+def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
     bt_icoor_uaids = numpy.full((bt.n_atoms, 3, 3), -1, dtype=numpy.int32)
     bt_icoor_geom = numpy.full((bt.n_atoms, 3), 0, dtype=numpy.float32)
     bt_icoor_uaids_backup = numpy.full((bt.n_atoms, 3, 3), -1, dtype=numpy.int32)
@@ -239,7 +231,7 @@ def _determine_leaf_atom_icoors_for_block_type(bt):
         def icoor_at_is_h(icoor_at_name):
             if icoor_at_name not in bt.atom_to_idx:
                 return 0
-            return bt.is_hydrogen[bt.atom_to_idx[icoor_at_name]]
+            return atom_is_hydrogen[bt.atom_to_idx[icoor_at_name]]
 
         def icoor_at_is_inter_res(icoor_at_name):
             return icoor_at_name not in bt.atom_to_idx

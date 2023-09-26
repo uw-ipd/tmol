@@ -25,7 +25,9 @@ def test_annotate_disulfide_conns(
     )
 
     bt_list = residue_types_from_residues(rts_disulfide_res)
-    pbt = PackedBlockTypes.from_restype_list(bt_list, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, bt_list, torch_device
+    )
 
     for bt in bt_list:
         disulfide_energy.setup_block_type(bt)
@@ -48,7 +50,7 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
         param_db=default_database, device=torch_device
     )
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_disulfide_res, device=torch_device
+        default_database.chemical, res=rts_disulfide_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         disulfide_energy.setup_block_type(bt)
@@ -72,7 +74,7 @@ def test_whole_pose_scoring_module_single(
         param_db=default_database, device=torch_device
     )
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_disulfide_res, device=torch_device
+        default_database.chemical, res=rts_disulfide_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         disulfide_energy.setup_block_type(bt)
@@ -101,7 +103,7 @@ def test_whole_pose_scoring_module_10(
         param_db=default_database, device=torch_device
     )
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_disulfide_res, device=torch_device
+        default_database.chemical, res=rts_disulfide_res, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 

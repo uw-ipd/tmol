@@ -15,6 +15,7 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import (
     RefinedResidueType,
     Residue,
@@ -42,26 +43,29 @@ class PoseStackBuilder:
     @classmethod
     @validate_args
     def one_structure_from_polymeric_residues(
-        cls, res: List[Residue], device: torch.device
+        cls, chem_db: PatchedChemicalDatabase, res: List[Residue], device: torch.device
     ) -> PoseStack:
         """Archaic form of creating a monomer from a list of Residue objects"""
         residue_connections = find_simple_polymeric_connections(res)
         disulfide_connections = find_disulfide_connections(res)
         residue_connections.extend(disulfide_connections)
         return cls.one_structure_from_residues_and_connections(
-            res, residue_connections, device
+            chem_db, res, residue_connections, device
         )
 
     @classmethod
     @validate_args
     def one_structure_from_residues_and_connections(
         cls,
+        chem_db: PatchedChemicalDatabase,
         res: List[Residue],
         residue_connections: List[Tuple[int, str, int, str]],
         device: torch.device,
     ) -> PoseStack:
         rt_list = residue_types_from_residues(res)
-        packed_block_types = PackedBlockTypes.from_restype_list(rt_list, device)
+        packed_block_types = PackedBlockTypes.from_restype_list(
+            chem_db, rt_list, device
+        )
 
         inter_residue_connections = cls._create_inter_residue_connections(
             res, residue_connections, device
@@ -110,6 +114,11 @@ class PoseStackBuilder:
         cls, pose_stacks: List[PoseStack], device: torch.device
     ) -> PoseStack:
         pbt0 = pose_stacks[0].packed_block_types
+        for ps in pose_stacks:
+            # all PoseStacks must be built from the same chemical database
+            # even if some of the residue types were perhaps created
+            # programmatically instead of being read from an input file
+            assert pbt0.chem_db is ps.packed_block_types.chem_db
         reuse_pbt = all(
             pose_stack.packed_block_types is pbt0 for pose_stack in pose_stacks
         )
@@ -126,7 +135,9 @@ class PoseStackBuilder:
                 if bt.name not in bt_set:
                     bt_set[bt.name] = bt
             uniq_bt = [v for _, v in bt_set.items()]
-            packed_block_types = PackedBlockTypes.from_restype_list(uniq_bt, device)
+            packed_block_types = PackedBlockTypes.from_restype_list(
+                pbt0.chem_db, uniq_bt, device
+            )
 
         max_n_blocks = max(pose_stack.max_n_blocks for pose_stack in pose_stacks)
         coords, block_coord_offset = cls._pack_pose_stack_coords(
