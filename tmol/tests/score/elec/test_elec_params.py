@@ -1,11 +1,4 @@
-import torch
-
-# import cattr
-# import attr
-
-from tmol.database import ParameterDatabase
-from tmol.database.scoring.elec import CountPairReps, PartialCharges, ElecDatabase
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+from tmol.database.scoring.elec import CountPairReps, ElecDatabase
 from tmol.score.elec.params import ElecParamResolver
 
 
