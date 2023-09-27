@@ -76,8 +76,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 1, D> block_n_dihedrals,
     TView<UnresolvedAtomID<Int>, 2, D> block_phi_uaids,
     TView<UnresolvedAtomID<Int>, 2, D> block_psi_uaids,
-    TView<UnresolvedAtomID<Int>, 3, D>
-        block_chi_uaids,  // TODO: unused, can probably be removed
     TView<UnresolvedAtomID<Int>, 3, D> block_dih_uaids,
     TView<Int, 1, D> block_rotamer_table_set,
     TView<Int, 1, D> block_rotameric_index,
@@ -125,9 +123,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   assert(block_psi_uaids.size(0) == n_block_types);
   assert(block_psi_uaids.size(1) == DIH_N_ATOMS);
-
-  assert(block_chi_uaids.size(0) == n_block_types);
-  // assert(block_chi_uaids.size(2) == DIH_N_ATOMS);
 
   assert(block_dih_uaids.size(0) == n_block_types);
   assert(block_dih_uaids.size(1) == max_n_dih);

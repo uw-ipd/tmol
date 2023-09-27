@@ -27,7 +27,6 @@ class DunbrackBlockAttrs:
     n_dihedrals: int
     phi_uaids: numpy.ndarray
     psi_uaids: numpy.ndarray
-    chi_uaids: numpy.ndarray
     dih_uaids: numpy.ndarray
     rotamer_table_set: int
     rotameric_index: int
@@ -117,7 +116,6 @@ class DunbrackEnergyTerm(EnergyTerm):
         n = count(1)
         while (t := self.get_torsion("chi" + str(next(n)), block_type)) is not None:
             chis += [t]
-        chi_uaids = numpy.array(chis) if len(chis) > 0 else None
 
         dih_uaids = numpy.array([phi_uaids] + [psi_uaids] + chis)
 
@@ -146,7 +144,6 @@ class DunbrackEnergyTerm(EnergyTerm):
             n_dihedrals=n_dihedrals,
             phi_uaids=phi_uaids,
             psi_uaids=psi_uaids,
-            chi_uaids=chi_uaids,
             dih_uaids=dih_uaids,
             rotamer_table_set=rotamer_table_set,
             rotameric_index=rotameric_index,
