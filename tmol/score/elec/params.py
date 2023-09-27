@@ -138,14 +138,16 @@ class ElecParamResolver(ValidateAttrs):
 
         def lookup_charge(atm):
             if atm.name not in self.partial_charges[res]:
-                print("atom", atm.name, "not found in res", block_type.name)
+                raise KeyError(
+                    "Elec charge for atom "
+                    + block_type.name
+                    + ","
+                    + atm.name
+                    + " not found"
+                )
             for vi in vars:
                 if vi in self.partial_charges[res][atm.name]:
                     return self.partial_charges[res][atm.name][vi]
-            assert False, (
-                "Elec charge for atom " + block_type.name + "," + atm + " not found"
-            )
-            return 0.0
 
         partial_charge = numpy.vectorize(lookup_charge, otypes=[numpy.float32])(
             block_type.atoms
@@ -162,7 +164,9 @@ class ElecParamResolver(ValidateAttrs):
         vars.append("")  # unpatched last
 
         if res not in self.cp_reps:
-            assert False, "No elec definition for " + res
+            raise KeyError(
+                "No elec count-pair representative definition for base name " + res
+            )
 
         for outer in block_type.atom_to_idx.keys():
             if outer not in self.cp_reps[res]:
@@ -176,7 +180,7 @@ class ElecParamResolver(ValidateAttrs):
                 break
 
             if inner not in block_type.atom_to_idx:
-                assert False, (
+                raise KeyError(
                     "Invalid elec cp mapping: " + res + " " + outer + "->" + inner
                 )
 
