@@ -36,7 +36,6 @@ def test_annotate_block_types(ubq_res, default_database, torch_device: torch.dev
 def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
-    rts_ubq_res = rts_ubq_res[3:5]
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         res=rts_ubq_res, device=torch_device
