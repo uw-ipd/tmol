@@ -40,7 +40,7 @@ inline void handler(int sig) {
 }
 
 // Boundary assertions
-#if defined DEBUG && !defined __CUDACC__
+#if !defined __CUDACC__
 #define BOUNDARY_ASSERT(array_ptr, index) \
   if (index < 0) {                        \
     handler(1);                           \
