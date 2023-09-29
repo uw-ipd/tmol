@@ -171,6 +171,29 @@ auto create_heap_with_gaps_clear_and_recreate(
   return std::make_tuple(node_order_tensor, heap_order_tensor, values_tensor);
 }
 
+auto pop_from_in_place_heap(at::Tensor seq_tensor) {
+  at::Tensor values_tensor;
+
+  auto seq = tmol::view_tensor<int32_t, 1, tmol::Device::CPU>(seq_tensor);
+  int n_nodes = seq.size(0);
+
+  auto values_t = tmol::TPack<int32_t, 1, tmol::Device::CPU>::zeros({n_nodes});
+  auto values = values_t.view;
+
+  tmol::InPlaceHeap<tmol::Device::CPU, int32_t> heap(n_nodes);
+  for (int i = 0; i < n_nodes; ++i) {
+    heap.heap_insert(i, seq[i]);
+  }
+  for (int i = 0; i < n_nodes; ++i) {
+    values[i] = heap.peek_val();
+    heap.pop();
+  }
+
+  values_tensor = values_t.tensor;
+
+  return values_tensor;
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(
       "create_in_place_heap",
@@ -190,4 +213,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &create_heap_with_gaps_clear_and_recreate,
       "create a heap with node/value pairs, clear it, then re-populate the "
       "heap with a second set of node/value pairs");
+  m.def(
+      "pop_from_in_place_heap",
+      &pop_from_in_place_heap,
+      "Createa a heap from an input 1D tensor, then peek  / pop values out of "
+      "it");
 }

@@ -13,13 +13,38 @@ def test_all_pairs_shortest_paths_simple_path_graph1(torch_device):
     weights[0, arange32, arange32] = 0
     weights[0, arange32[1:], arange32[:-1]] = 1
     weights[0, arange32[:-1], arange32[1:]] = 1
+    print("weights", weights)
 
     numpy.set_printoptions(threshold=10000)
-    stacked_apsp(weights)
+    stacked_apsp(weights, -1)
 
     weights_gold = torch.full((1, 32, 32), -1, dtype=torch.int32, device=torch_device)
     for i in range(32):
         weights_gold[0, i] = torch.abs(arange32 - i)
+
+    torch.testing.assert_close(weights, weights_gold)
+
+
+def test_all_pairs_shortest_paths_simple_path_graph1_w_cutoff():
+    torch_device = torch.device("cpu")
+    weights = torch.full((1, 32, 32), 6, dtype=torch.int32, device=torch_device)
+    arange32 = torch.arange(32, dtype=torch.int64, device=torch_device)
+    weights[0, arange32, arange32] = 0
+    weights[0, arange32[1:], arange32[:-1]] = 1
+    weights[0, arange32[:-1], arange32[1:]] = 1
+
+    # numpy.set_printoptions(threshold=10000)
+    # print("weights before", weights.numpy())
+    stacked_apsp(weights, 6)
+    # print("weights after", weights.numpy())
+
+    weights_gold = torch.full((1, 32, 32), 6, dtype=torch.int32, device=torch_device)
+    for i in range(32):
+        weights_gold[0, i] = torch.min(
+            torch.abs(arange32 - i), torch.full((32,), 6, dtype=torch.int32)
+        )
+
+    # print("weights gold", weights_gold.numpy())
 
     torch.testing.assert_close(weights, weights_gold)
 
@@ -33,7 +58,7 @@ def test_all_pairs_shortest_paths_simple_path_graph2(torch_device):
     weights[0, arange64[:-1], arange64[1:]] = 1
 
     numpy.set_printoptions(threshold=10000)
-    stacked_apsp(weights)
+    stacked_apsp(weights, -1)
 
     weights_gold = torch.full((1, 64, 64), -1, dtype=torch.int32, device=torch_device)
     for i in range(64):
@@ -59,7 +84,7 @@ def test_all_pairs_shortest_paths_big_simple_path_graph(torch_device):
     # print("before")
     # print(weights.cpu().numpy())
 
-    stacked_apsp(weights)
+    stacked_apsp(weights, -1)
 
     # print("after")
     # print(weights.cpu().numpy())
@@ -94,8 +119,8 @@ def test_all_pairs_shortest_paths_w_off_diagonal_bonds():
 
     weights_cuda = weights.clone().to(torch_device_cuda)
 
-    stacked_apsp(weights)
-    stacked_apsp(weights_cuda)
+    stacked_apsp(weights, -1)
+    stacked_apsp(weights_cuda, -1)
 
     torch.testing.assert_close(weights, weights_cuda.cpu())
 
@@ -130,4 +155,4 @@ def test_all_pairs_shortest_paths_benchmark(benchmark, torch_device, n_graphs, n
     @benchmark
     def run_apsp():
         weights[:] = weights_gold
-        stacked_apsp(weights)
+        stacked_apsp(weights, -1)

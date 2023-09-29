@@ -149,3 +149,16 @@ def test_heap_with_gaps2(in_place_heap, reverse_insert10_heap_structure):
     numpy.testing.assert_equal(gold_node_order2, node_order.numpy())
     numpy.testing.assert_equal(gold_heap_order2, heap_order.numpy())
     numpy.testing.assert_equal(gold_values2, values.numpy())
+
+
+def test_heap_pop(in_place_heap, reverse_insert10_heap_structure):
+    seq1 = torch.arange(10, dtype=torch.int32)
+    result = in_place_heap.pop_from_in_place_heap(seq1)
+    numpy.testing.assert_equal(seq1.numpy(), result.numpy())
+
+
+def test_heap_pop2(in_place_heap, reverse_insert10_heap_structure):
+    seq_rev = torch.flip(torch.arange(10, dtype=torch.int32), dims=[0])
+    result = in_place_heap.pop_from_in_place_heap(seq_rev)
+    gold_result = torch.arange(10, dtype=torch.int32)
+    numpy.testing.assert_equal(gold_result.numpy(), result.numpy())

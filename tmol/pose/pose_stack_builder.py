@@ -1762,7 +1762,7 @@ class PoseStackBuilder:
     def _shortest_paths_for_connectivity_graph(cls, pconn_matrix):
         from tmol.pose.compiled.apsp_ops import stacked_apsp
 
-        stacked_apsp(pconn_matrix)
+        stacked_apsp(pconn_matrix, MAX_SIG_BOND_SEPARATION)
 
     @classmethod
     @validate_args

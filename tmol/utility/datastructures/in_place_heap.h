@@ -17,6 +17,9 @@ class InPlaceHeap {
         node_heap_ind_t_(TPack<Int, 1, D>::full({max_n_nodes}, -1)),
         node_heap_ind_(node_heap_ind_t_.view) {}
 
+  AT_HOST_DEVICE
+  Int size() const { return size_; }
+
   // get the value for the smallest element of the heap
   AT_HOST_DEVICE
   Int peek_val() const {

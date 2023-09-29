@@ -13,7 +13,7 @@ __global__ void launch(F f, int i) {
 
 template <tmol::Device D, typename Int>
 struct AllPairsShortestPathsDispatch {
-  static void f(TView<Int, 3, D> weights) {
+  static void f(TView<Int, 3, D> weights, int) {
     // Warshall's Algorithm for each graph.
     // Sentintel weights below 0 are used to indicate that
     // two nodes have an infinite path weight

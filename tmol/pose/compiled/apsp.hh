@@ -16,10 +16,12 @@ namespace tmol {
 namespace pose {
 
 // compute the all-pairs-shortest paths for each graph
-// with the "weights" (distances)
+// with the "weights" (distances), optionally stopping if
+// two nodes are no closer than the cutoff distance from
+// each other
 template <tmol::Device D, typename Int>
 struct AllPairsShortestPathsDispatch {
-  static void f(TView<Int, 3, D> weights);
+  static void f(TView<Int, 3, D> weights, int cutoff = -1);
 };
 
 // compute the all-pairs shortest paths up to a given

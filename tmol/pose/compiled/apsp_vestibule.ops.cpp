@@ -14,14 +14,14 @@ namespace pose {
 
 using torch::Tensor;
 
-void apsp_op(Tensor stacked_distances) {
-  TMOL_DISPATCH_INDEX_DEVICE(
-      stacked_distances.type(), "stacked_apsp_op", ([&] {
-        using Int = index_t;
-        constexpr tmol::Device Dev = device_t;
+void apsp_op(Tensor stacked_distances, int64_t cutoff) {
+  TMOL_DISPATCH_INDEX_DEVICE(stacked_distances.type(), "stacked_apsp_op", ([&] {
+                               using Int = index_t;
+                               constexpr tmol::Device Dev = device_t;
 
-        AllPairsShortestPathsDispatch<Dev, Int>::f(TCAST(stacked_distances));
-      }));
+                               AllPairsShortestPathsDispatch<Dev, Int>::f(
+                                   TCAST(stacked_distances), int(cutoff));
+                             }));
 };
 
 // void limited_sparse_apsp_op(
