@@ -2,12 +2,8 @@ import pytest
 import torch
 import numpy
 
-# import math
-
 import tmol.utility.cpp_extension as cpp_extension
 from tmol.utility.cpp_extension import relpaths, modulename
-
-from tmol.tests.torch import requires_cuda
 
 
 @pytest.fixture
@@ -43,12 +39,12 @@ def reverse_insert10_heap_structure():
     # [(2,7) (3,6) (4,5) (6,3) (7,2) (8,1) (5,4) (9,0) (1,8)] i8,v1: step0
     # [(2,7) (3,6) (4,5) (1,8) (7,2) (8,1) (5,4) (9,0) (6,3)] i8,v1: step1: bubble 3
     # [(2,7) (1,8) (4,5) (3,6) (7,2) (8,1) (5,4) (9,0) (6,3)] i8,v1: step2: bubble 6
-    # [(1,8) (2,7) (4,5) (3,6) (7,2) (8,1) (5,4) (9,0) (6,3)] i8,v1: step2: bubble 7
+    # [(1,8) (2,7) (4,5) (3,6) (7,2) (8,1) (5,4) (9,0) (6,3)] i8,v1: step3: bubble 7
 
     # [(1,8) (2,7) (4,5) (3,6) (7,2) (8,1) (5,4) (9,0) (6,3) (0,9)] i9,v0: step0
     # [(1,8) (2,7) (4,5) (3,6) (0,9) (8,1) (5,4) (9,0) (6,3) (7,2)] i9,v0: step1 bubble 2
-    # [(1,8) (0,9) (4,5) (3,6) (2,7) (8,1) (5,4) (9,0) (6,3) (7,2)] i9,v0: step1 bubble 7
-    # [(0,9) (1,8) (4,5) (3,6) (2,7) (8,1) (5,4) (9,0) (6,3) (7,2)] i9,v0: step1 bubble 8
+    # [(1,8) (0,9) (4,5) (3,6) (2,7) (8,1) (5,4) (9,0) (6,3) (7,2)] i9,v0: step2 bubble 7
+    # [(0,9) (1,8) (4,5) (3,6) (2,7) (8,1) (5,4) (9,0) (6,3) (7,2)] i9,v0: step3 bubble 8
 
     gold_heap_order = numpy.array([9, 8, 5, 6, 7, 1, 4, 0, 3, 2], dtype=numpy.int32)
     gold_node_order = numpy.array([7, 5, 9, 8, 6, 2, 3, 4, 1, 0], dtype=numpy.int32)

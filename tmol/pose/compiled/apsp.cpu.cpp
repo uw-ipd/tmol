@@ -41,17 +41,8 @@ struct AllPairsShortestPathsDispatch {
                      : std::min(ii_jj_weight, jj_ii_weight));
 
             if (weight != INF && (cutoff == -1 || weight < cutoff)) {
-              // std::cout << "edge " << gg << " " << ii << " " << jj << " w: "
-              // << weights[gg][ii][jj] <<std::endl;
               edges[ii].push_back(std::make_pair(jj, weight));
               edges[jj].push_back(std::make_pair(ii, weight));
-            } else {
-              // std::cout << "rejecting " << gg << " " << ii << " " << jj << "
-              // w:
-              // "<< weights[gg][ii][jj] << " inf? "; std::cout <<
-              // (weights[gg][ii][jj] != INF); std::cout << " cutoff == -1 ? "
-              // << (cutoff == -1); std::cout << " weights[gg][ii][jj] < cutoff
-              // " << (weights[gg][ii][jj] < cutoff) << std::endl;
             }
           }
         }
@@ -72,22 +63,18 @@ struct AllPairsShortestPathsDispatch {
           while (heap.size() != 0
                  && (cutoff == -1 || heap.peek_val() < cutoff)) {
             ++counter;
-            if (counter > 100000) {
-              std::cout << "infinite loop detected; exiting" << std::endl;
+            if (counter > max_n_nodes) {
+              std::cout << "Critical error: infinite loop detected in "
+                           "all-pairs-shortest-path exiting"
+                        << std::endl;
               return;
             }
             int node = heap.peek_ind();
             int path_weight_to_node = heap.peek_val();
-            // std::cout << "testing node " << node << " " <<
-            // path_weight_to_node
-            // << std::endl;
             weights[gg][ii][node] = path_weight_to_node;
             for (auto neighb_weight_pair : edges[node]) {
               int neighb = neighb_weight_pair.first;
               int weight = neighb_weight_pair.second;
-              // std::cout << "weight from " << ii << " to node " << neighb << "
-              // through " << node << " : " << path_weight_to_node << " + " <<
-              // weight << std::endl;
               int new_path_weight_to_neighb = path_weight_to_node + weight;
               if (heap.node_in_heap(neighb)) {
                 if (new_path_weight_to_neighb < heap.get_node_val(neighb)) {
@@ -99,13 +86,9 @@ struct AllPairsShortestPathsDispatch {
                       && new_path_weight_to_neighb < weights[gg][ii][neighb])
                   || (cutoff == -1
                       && new_path_weight_to_neighb < weights[gg][ii][neighb])) {
-                // std::cout << "Heap insert " << ii << " " << neighb <<
-                // std::endl;
+                // Asks: have we already visited neighb and therefore we should
+                // skip adding it to the heap?
                 heap.heap_insert(neighb, new_path_weight_to_neighb);
-              } else {
-                // std::cout << "did not insert " << ii << " " << neighb << "
-                // w:"
-                // << new_path_weight_to_neighb << std::endl;
               }
             }
             heap.pop();
@@ -114,7 +97,7 @@ struct AllPairsShortestPathsDispatch {
       }
     } else {
       // Floyd Warshall algorithm
-      // more efficient than Dijkstra's when no threshold given
+      // More efficient than Dijkstra's when no threshold given
       for (int gg = 0; gg < n_graphs; ++gg) {
         // for each intermediate node, kk
         for (int kk = 0; kk < max_n_nodes; ++kk) {

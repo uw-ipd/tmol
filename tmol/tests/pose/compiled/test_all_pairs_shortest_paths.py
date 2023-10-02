@@ -1,4 +1,3 @@
-import numpy
 import torch
 import pytest
 
@@ -7,15 +6,12 @@ from tmol.tests.torch import requires_cuda, zero_padded_counts
 
 
 def test_all_pairs_shortest_paths_simple_path_graph1(torch_device):
-    #  torch_device = torch.device("cpu")
     weights = torch.full((1, 32, 32), -1, dtype=torch.int32, device=torch_device)
     arange32 = torch.arange(32, dtype=torch.int64, device=torch_device)
     weights[0, arange32, arange32] = 0
     weights[0, arange32[1:], arange32[:-1]] = 1
     weights[0, arange32[:-1], arange32[1:]] = 1
-    # print("weights", weights)
 
-    # numpy.set_printoptions(threshold=10000)
     stacked_apsp(weights, -1)
 
     weights_gold = torch.full((1, 32, 32), -1, dtype=torch.int32, device=torch_device)
@@ -33,10 +29,7 @@ def test_all_pairs_shortest_paths_simple_path_graph1_w_cutoff():
     weights[0, arange32[1:], arange32[:-1]] = 1
     weights[0, arange32[:-1], arange32[1:]] = 1
 
-    # numpy.set_printoptions(threshold=10000)
-    # print("weights before", weights.numpy())
     stacked_apsp(weights, 6)
-    # print("weights after", weights.numpy())
 
     weights_gold = torch.full((1, 32, 32), 6, dtype=torch.int32, device=torch_device)
     for i in range(32):
@@ -44,20 +37,16 @@ def test_all_pairs_shortest_paths_simple_path_graph1_w_cutoff():
             torch.abs(arange32 - i), torch.full((32,), 6, dtype=torch.int32)
         )
 
-    # print("weights gold", weights_gold.numpy())
-
     torch.testing.assert_close(weights, weights_gold)
 
 
 def test_all_pairs_shortest_paths_simple_path_graph2(torch_device):
-    # torch_device = torch.device("cpu")
     weights = torch.full((1, 64, 64), -1, dtype=torch.int32, device=torch_device)
     arange64 = torch.arange(64, dtype=torch.int64, device=torch_device)
     weights[0, arange64, arange64] = 0
     weights[0, arange64[1:], arange64[:-1]] = 1
     weights[0, arange64[:-1], arange64[1:]] = 1
 
-    # numpy.set_printoptions(threshold=10000)
     stacked_apsp(weights, -1)
 
     weights_gold = torch.full((1, 64, 64), -1, dtype=torch.int32, device=torch_device)
@@ -68,7 +57,6 @@ def test_all_pairs_shortest_paths_simple_path_graph2(torch_device):
 
 
 def test_all_pairs_shortest_paths_big_simple_path_graph(torch_device):
-    # torch_device = torch.device("cpu")
     n_nodes = 1000
     n_graphs = 5
 
@@ -80,14 +68,7 @@ def test_all_pairs_shortest_paths_big_simple_path_graph(torch_device):
     weights[:, arange_n_nodes[1:], arange_n_nodes[:-1]] = 1
     weights[:, arange_n_nodes[:-1], arange_n_nodes[1:]] = 1
 
-    # numpy.set_printoptions(threshold=10000)
-    # print("before")
-    # print(weights.cpu().numpy())
-
     stacked_apsp(weights, -1)
-
-    # print("after")
-    # print(weights.cpu().numpy())
 
     weights_gold = torch.full(
         (n_graphs, n_nodes, n_nodes), -1, dtype=torch.int32, device=torch_device
@@ -134,11 +115,6 @@ def test_all_pairs_shortest_paths_w_off_diagonal_bonds():
 @pytest.mark.parametrize("n_graphs", zero_padded_counts([1, 3, 10, 30]))
 @pytest.mark.benchmark(group="all_pairs_shortest_paths")
 def test_all_pairs_shortest_paths_benchmark(benchmark, torch_device, n_graphs, n_nodes):
-    if torch_device == torch.device("cpu"):
-        return
-    # torch_device = torch.device("cpu")
-    # n_nodes = 1000
-    # n_graphs = 5
     n_nodes = int(n_nodes)
     n_graphs = int(n_graphs)
 
