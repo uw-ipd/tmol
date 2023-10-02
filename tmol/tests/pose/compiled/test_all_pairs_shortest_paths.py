@@ -13,9 +13,9 @@ def test_all_pairs_shortest_paths_simple_path_graph1(torch_device):
     weights[0, arange32, arange32] = 0
     weights[0, arange32[1:], arange32[:-1]] = 1
     weights[0, arange32[:-1], arange32[1:]] = 1
-    print("weights", weights)
+    # print("weights", weights)
 
-    numpy.set_printoptions(threshold=10000)
+    # numpy.set_printoptions(threshold=10000)
     stacked_apsp(weights, -1)
 
     weights_gold = torch.full((1, 32, 32), -1, dtype=torch.int32, device=torch_device)
@@ -57,7 +57,7 @@ def test_all_pairs_shortest_paths_simple_path_graph2(torch_device):
     weights[0, arange64[1:], arange64[:-1]] = 1
     weights[0, arange64[:-1], arange64[1:]] = 1
 
-    numpy.set_printoptions(threshold=10000)
+    # numpy.set_printoptions(threshold=10000)
     stacked_apsp(weights, -1)
 
     weights_gold = torch.full((1, 64, 64), -1, dtype=torch.int32, device=torch_device)
