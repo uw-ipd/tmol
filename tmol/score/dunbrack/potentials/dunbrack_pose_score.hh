@@ -59,8 +59,6 @@ struct DunbrackPoseScoreDispatch {
       TView<Vec<Real, 3>, 1, D> semirot_periodicity,       // n-semirot-tabset
 
       TView<Int, 1, D> res_n_dihedrals,
-      TView<UnresolvedAtomID<Int>, 2, D> res_phi_uaids,
-      TView<UnresolvedAtomID<Int>, 2, D> res_psi_uaids,
       TView<UnresolvedAtomID<Int>, 3, D> res_dih_uaids,
       TView<Int, 1, D> res_rotamer_tablet_set,
       TView<Int, 1, D> res_rotameric_index,

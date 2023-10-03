@@ -74,8 +74,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 1, D> semirot_periodicity,       // n-semirot-tabset
 
     TView<Int, 1, D> block_n_dihedrals,
-    TView<UnresolvedAtomID<Int>, 2, D> block_phi_uaids,
-    TView<UnresolvedAtomID<Int>, 2, D> block_psi_uaids,
     TView<UnresolvedAtomID<Int>, 3, D> block_dih_uaids,
     TView<Int, 1, D> block_rotamer_table_set,
     TView<Int, 1, D> block_rotameric_index,
@@ -97,7 +95,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
   int const max_n_dih = block_dih_uaids.size(1);
   int const max_n_conns = pose_stack_inter_block_connections.size(2);
 
-  int const DIH_N_ATOMS = 4;  // TODO: is there a global for this?
+  int const DIH_N_ATOMS = 4;
 
   assert(coords.size(0) == n_poses);
   assert(coords.size(1) == max_n_atoms);
@@ -114,15 +112,10 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   assert(block_type_atom_downstream_of_conn.size(0) == n_block_types);
   assert(block_type_atom_downstream_of_conn.size(1) == max_n_conns);
-  // assert(block_type_atom_downstream_of_conn.size(2) == ); TODO: what?
+  //     block_type_atom_downstream_of_conn.size(2) == max number of atoms in
+  //     any block type
 
   assert(block_n_dihedrals.size(0) == n_block_types);
-
-  assert(block_phi_uaids.size(0) == n_block_types);
-  assert(block_phi_uaids.size(1) == DIH_N_ATOMS);
-
-  assert(block_psi_uaids.size(0) == n_block_types);
-  assert(block_psi_uaids.size(1) == DIH_N_ATOMS);
 
   assert(block_dih_uaids.size(0) == n_block_types);
   assert(block_dih_uaids.size(1) == max_n_dih);

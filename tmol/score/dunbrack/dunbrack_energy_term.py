@@ -25,8 +25,6 @@ import dataclasses
 @dataclass
 class DunbrackBlockAttrs:
     n_dihedrals: int
-    phi_uaids: numpy.ndarray
-    psi_uaids: numpy.ndarray
     dih_uaids: numpy.ndarray
     rotamer_table_set: int
     rotameric_index: int
@@ -142,8 +140,6 @@ class DunbrackEnergyTerm(EnergyTerm):
 
         dunbrack_attrs = DunbrackBlockAttrs(
             n_dihedrals=n_dihedrals,
-            phi_uaids=phi_uaids,
-            psi_uaids=psi_uaids,
             dih_uaids=dih_uaids,
             rotamer_table_set=rotamer_table_set,
             rotameric_index=rotameric_index,
