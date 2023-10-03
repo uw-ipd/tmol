@@ -4,10 +4,7 @@ import torch
 class RefWholePoseScoringModule(torch.nn.Module):
     def __init__(
         self,
-        pose_stack_block_coord_offset,
         pose_stack_block_types,
-        pose_stack_inter_block_connections,
-        bt_atom_downstream_of_conn,
         ref_weights,
     ):
         super(RefWholePoseScoringModule, self).__init__()
@@ -15,10 +12,7 @@ class RefWholePoseScoringModule(torch.nn.Module):
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
-        self.pose_stack_block_coord_offset = _p(pose_stack_block_coord_offset)
         self.pose_stack_block_types = _p(pose_stack_block_types)
-        self.pose_stack_inter_block_connections = _p(pose_stack_inter_block_connections)
-        self.bt_atom_downstream_of_conn = _p(bt_atom_downstream_of_conn)
         self.ref_weights = _p(ref_weights)
 
     def forward(self, coords):

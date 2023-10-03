@@ -64,9 +64,6 @@ class RefEnergyTerm(EnergyTerm):
         pbt = pose_stack.packed_block_types
 
         return RefWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
             pose_stack_block_types=pose_stack.block_type_ind,
-            pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
-            bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
             ref_weights=pbt.ref_weights,
         )
