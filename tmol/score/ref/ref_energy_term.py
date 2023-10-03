@@ -34,9 +34,10 @@ class RefEnergyTerm(EnergyTerm):
         if hasattr(block_type, "ref_weight"):
             return
 
-        ref_weight = self.ref_weights[
-            block_type.base_name
-        ]  # TODO: 0.0 or throw error if key not found?
+        ref_weight = 0.0
+
+        if block_type.base_name in self.ref_weights:
+            ref_weight = self.ref_weights[block_type.base_name]
 
         setattr(block_type, "ref_weight", ref_weight)
 
