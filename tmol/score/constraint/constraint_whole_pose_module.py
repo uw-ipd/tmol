@@ -65,6 +65,9 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
         print(atom1_global_atom_indices)
         print(atom2_global_atom_indices)
 
+        ideal = 4
+        harm = lambda dist: (dist - ideal) ** 2
+
         # print(coords[0, global_atom_indices])
         print("ATOM1")
         print(coords[0].index_select(0, atom1_global_atom_indices))
@@ -79,7 +82,7 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
         print("DIST")
         print(dist)
 
-        ret = torch.unsqueeze(torch.unsqueeze(torch.sum(dist - 4, 0), 0), 0)
+        ret = torch.unsqueeze(torch.unsqueeze(torch.sum(harm(dist), 0), 0), 0)
         print(ret)
         return ret
         pass
