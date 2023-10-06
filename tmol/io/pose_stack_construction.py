@@ -5,6 +5,8 @@ from tmol.pose.pose_stack import PoseStack
 
 
 def pose_stack_from_canonical_form(
+    CanonicalOrdering: canonical_ordering,
+    PackedBlockTypes: pbt,
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
@@ -147,7 +149,7 @@ def pose_stack_from_canonical_form(
     # 1
     # this will return the same object each time to minimize the number
     # of calls to the setup_packed_block_types annotation functions
-    pbt, atom_type_resolver = default_canonical_packed_block_types(chain_id.device)
+    # pbt, atom_type_resolver = default_canonical_packed_block_types(chain_id.device)
 
     # 2
     # "left justify" the input canonical-form residues: residues that are

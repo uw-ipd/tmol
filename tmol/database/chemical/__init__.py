@@ -40,8 +40,14 @@ class AtomType:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Atom:
-    name: str
-    atom_type: str
+    name: str = attr.ib()
+    atom_type: str = attr.ib()
+
+
+@attr.s(frozen=True, slots=True)
+class AtomAlias:
+    name: str = attr.ib()
+    alt_name: str = attr.ib()
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -122,6 +128,7 @@ class RawResidueType:
     base_name: str
     name3: str
     atoms: Tuple[Atom, ...]
+    atom_aliases: Tuple[AtomAlias, ...]
     bonds: Tuple[Tuple[str, str], ...]
     connections: Tuple[Connection, ...]
     torsions: Tuple[Torsion, ...]
@@ -159,6 +166,7 @@ class VariantType:
     pattern: str
     remove_atoms: Tuple[str, ...]
     add_atoms: Tuple[Atom, ...]
+    add_atom_aliases: Tuple[AtomAlias, ...]
     modify_atoms: Tuple[Atom, ...]
     add_connections: Tuple[Connection, ...]
     add_bonds: Tuple[Tuple[str, str], ...]

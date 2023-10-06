@@ -93,6 +93,7 @@ def test_uncommon_patching_options(default_unpatched_chemical_database):
     remove_atoms:
     - <H1>
     add_atoms: []
+    add_atom_aliases: []
     modify_atoms: []
     add_connections:
     - { name:  thiol, atom: <S1> }
@@ -117,6 +118,7 @@ def test_uncommon_patching_options(default_unpatched_chemical_database):
     - <H1>
     add_atoms:
     - { name: CDX ,  atom_type: CH3 }
+    add_atom_aliases: []
     modify_atoms: []
     add_connections: []
     add_bonds:
@@ -142,6 +144,7 @@ def test_patch_error_checks(default_unpatched_chemical_database):
     remove_atoms: []
     add_atoms:
     - { name: HG,  atom_type: Hpol }
+    add_atom_aliases: []
     modify_atoms: []
     add_connections: []
     add_bonds:
@@ -167,6 +170,7 @@ def test_patch_error_checks(default_unpatched_chemical_database):
     - <H1>
     add_atoms:
     - { name: HG2,  atom_type: Hpol }
+    add_atom_aliases: []
     modify_atoms: []
     add_connections: []
     add_bonds:
@@ -194,6 +198,7 @@ def test_res_error_checks(default_unpatched_chemical_database):
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
     - { name: C   ,  atom_type: CObb }
+    atom_aliases: []
     bonds:
     - [   N,   CA]
     - [  CA,    C]

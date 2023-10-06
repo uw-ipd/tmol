@@ -1,6 +1,6 @@
 import numpy
 from tmol.io.canonical_ordering import (
-    max_n_canonical_atoms,
+    # max_n_canonical_atoms,
     canonical_form_from_pdb_lines,
 )
 

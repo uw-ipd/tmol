@@ -5,8 +5,9 @@ from typing import Optional, Tuple
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
-    ordered_canonical_aa_types,
-    ordered_canonical_aa_atoms_v2,
+    CanonicalOrdering,
+    # ordered_canonical_aa_types,
+    # ordered_canonical_aa_atoms_v2,
 )
 from tmol.io.details.disulfide_search import cys_co_aa_ind
 from tmol.io.details.his_taut_resolution import (
@@ -19,6 +20,7 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 @validate_args
 def assign_block_types(
+    canonical_ordering: CanonicalOrdering,
     packed_block_types: PackedBlockTypes,
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
@@ -31,8 +33,8 @@ def assign_block_types(
     Tensor[torch.int32][:, :, :, :, :],
 ]:
     pbt = packed_block_types
-    _annotate_packed_block_types_w_canonical_res_order(pbt)
-    _annotate_packed_block_types_w_dslf_conn_inds(pbt)
+    _annotate_packed_block_types_w_canonical_res_order(canonical_ordering, pbt)
+    _annotate_packed_block_types_w_dslf_conn_inds(canonical_ordering, pbt)
     PoseStackBuilder._annotate_pbt_w_polymeric_down_up_bondsep_dist(pbt)
     PoseStackBuilder._annotate_pbt_w_intraresidue_connection_atom_distances(pbt)
 
@@ -41,8 +43,8 @@ def assign_block_types(
     max_n_res = chain_id.shape[1]
     max_n_conn = pbt.max_n_conn
 
-    # canonica_res_ordering_map dimensioned: [20aas x 3 termini types x 2 variant types]
-    # 3 termini types? 0-nterm, 1-mid, 2-cterm
+    # canonical_res_ordering_map dimensioned: [20aas x 3 termini types x 2 special-case variant types]
+    # 3 termini types? 0-nterm, 1-mid, 2-cterm,
     canonical_res_ordering_map = pbt.canonical_res_ordering_map
     res_types64 = res_types.to(torch.int64)
     res_type_variants64 = res_type_variants.to(torch.int64)
@@ -309,8 +311,16 @@ def take_block_type_atoms_from_canonical(
     return (block_coords, missing_atoms, real_atoms, real_canonical_atom_inds)
 
 
+class CanonicalOrderingBlockTypeMap:
+    def __init__(self, bt_ordering_map, bt_ind_to_canonical_ind):
+        self.bt_ordering_map = bt_ordering_map
+        self.bt_ind_to_canonical_ind = bt_ind_to_canonical_ind
+
+
 @validate_args
-def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
+def _annotate_packed_block_types_w_canonical_res_order(
+    canonical_ordering, pbt: PackedBlockTypes
+):
     # mapping from canonical restype index to the
     # packed-block-types index for that restype
     #
@@ -321,12 +331,182 @@ def _annotate_packed_block_types_w_canonical_res_order(pbt: PackedBlockTypes):
     #  d. his-d vs his-e assignment
     # and then look up into a tensor exactly which block type we are talking about
 
-    if hasattr(pbt, "canonical_res_ordering_map"):
-        assert hasattr(pbt, "bt_ind_to_canonical_ind")
+    co = canonical_ordering
+
+    if (
+        hasattr(pbt, "canonical_ording_annotation")
+        and id(co) in pbt.canonical_ordering_annotation
+    ):
         return
 
-    max_n_termini_types = 3  # 0=Nterm, 1=mid, 2=Cterm
-    max_n_aa_variant_types = 2  # CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
+    # what is the problem we are trying to solve?
+    # we have a number of "name3s" that we want to map
+    # to particular block types
+    # where the user/the chain connectivity
+    # can specify things such as:
+    # is it down-term, is it up-term, is it neither
+    # is it disulfide-bonded, is it a particular kind of his
+    # and the user has given us a list of atoms that are
+    # present or absent. These atoms will help us decide
+    # which variant the user is requesting, e.g.,
+    # phospho-serine by providing a P atom.
+    # The algorithm for deciding which block type
+    # from a set of candidates will be:
+    # from the set of bts with the "appropriate" termini,
+    # given the list of provided atoms for a given residue,
+    # find the bt whose atom list has all of the provided atoms
+    # and is missing the fewest atoms that were not provided
+    # e.g. if atoms A, B and C were provided and
+    # BT #1 has atoms A and B
+    # BT #2 has atoms A B C and D, and
+    # BT #3 has atoms A B C D and E, and
+    # then the best match is not BT #1 because it does not have
+    # provided atom C,
+    # and BT #2 is preferred to BT #3 because BT #3 is missing
+    # more atoms.
+    # so if we have array
+    # p  [1, 1, 1, 0, 0] representing provided atoms A, B, and C, and
+    # b1 [1, 1, 0, 0, 0] for BT #1, and
+    # b2 [1, 1, 1, 1, 0] for BT #2, and
+    # b3 [1, 1, 1, 1, 1] for BT #3,
+    # then
+    # sum((p - b1) == 1) = sum(p & ~b1) ==> 1
+    # sum((p - b2) == 1) = sum(p & ~b2) ==> 0
+    # sum((p - b3) == 1) = sum(p & ~b3) ==> 0
+    # so we would eliminate b1
+    # and then
+    # sum((b1 - p) == 1) = sum(b1 & ~p) ==> 0  but note this option will have been eliminated
+    # sum((b2 - p) == 1) = sum(b2 & ~p) ==> 1
+    # sum((b3 - p) == 1) = sum(b3 & ~p) ==> 2
+    # so if we take the minimum among the non-eliminated set of b2 and b3
+    # that would tell us to assign b2 to this residue.
+
+    # ok, so then, we need to know for each
+    # combination of (name3, terminus-assignment, special-case variant)
+    # the set of compatible variants
+    # and for each variant the set of "canonical atoms" that it contains
+    # (e.g. b2) and the set of canonical atoms it does not contain (e.g. ~b2)
+    # (though this second set could be computed only as needed.)
+
+    # IDEA 1
+    # For each set of block types that all have the same non-termini patches,
+    # we want to encode which are patched with the default termini, so that
+    # all-else being equal, we can break minimum-missing-atoms ties by
+    # assigning the bts patched with the default termini
+
+    # IDEA 2
+    # ignore the atoms added by termini patches when counting how many atoms
+    # in the "present" set are missing from the bt's set
+    # so e.g. if
+    # bt1 has atoms [A B C Q R] after its term patch added atoms Q and R, and
+    # bt2 has atoms [A B C S ] after its term patch added atom S, and
+    # the present set has atoms [A B C], and
+    # bt1 has been declared the "default"
+    # then both bt1 and bt2 would have the same score of 0 and
+    # the tie would go to bt1.
+    # logically, this would happen with
+    # sum(p & ~b1) as before for looking to make sure all atoms in p are contained in b1
+    # but the second part would become
+    # sum(b1_sans_termini_additions & ~p) counting only non-termini-patch-added atoms
+    # of b1 that are absent from p against b1.
+    #
+    # how is that going to be encoded???
+    # bt1 can be given the "tie breaker" status so that it appears
+    # better than bts with the same score, but not better than
+    # bt2 with a better score -- i.e. each tie-breaker residue has
+    # .25 subtracted from its score, so 0-> -0.25, 1-->0.75,
+    # and then we use "min"
+
+    max_n_termini_types = 4  # 0=down-term, 1=mid, 2=up-term, 3=down+up
+    max_n_special_case_aa_variant_types = (
+        2  # CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
+    )
+
+    max_n_defaultdict(int)
+    base_blocktypes = {}
+    for bt in pbt.active_block_types:
+        if bt.name.find(":") == -1:
+            assert bt.base_name == bt.name
+            base_blocktypes[bt.base_name] = bt
+
+    def map_term_to_int(is_down_term, is_up_term):
+        if is_down_term and is_up_term:
+            return 3
+        if is_down_term:
+            return 0
+        if is_up_term:
+            return 2
+        return 1
+
+    def map_spcase_var_to_int(is_cyd, is_hisd):
+        # spcase == SPecial CASE
+        if is_cyd or is_hisd:
+            return 1
+        return 0
+
+    def term_and_spcase_variant_lists():
+        variants = []
+        for i in range(max_n_termini_types):
+            variants.append([])
+            for j in range(max_n_special_case_aa_variant_types):
+                variants[i].append([])
+        return variants
+
+    base_name_set = set([bt.base_name for bt in pbt.active_block_types])
+    default_type_variants = {
+        base_name: term_and_spcase_variant_lists() for base_name in base_name_set
+    }
+
+    # the number of base types in this PBT, which may represent a subset
+    # of the base types in the ChemicalDatabase from whith the CO was
+    # derived
+    n_base_types = len(base_name_set)
+
+    for i, bt in enumerate(pbt.active_block_types):
+        bt_vars = bt.name.split(":")
+        var_is_down_term = False
+        var_is_up_term = False
+        var_is_non_default_term = False
+        var_is_cyd = bt.base_name == "CYD"
+        var_is_hisd = bt.base_name == "HIS_D"
+        for var_type in bt_vars[1:]:
+            if var_type in co.down_termini_variants:
+                var_is_down_term = True
+                if var_type != co.restypes_default_termini_mapping[bt.base_name][0]:
+                    var_is_non_default_term = True
+            if var_type in co.up_termini_variants:
+                var_is_up_term = True
+                if var_type != co.restypes_default_termini_mapping[bt.base_name][1]:
+                    var_is_non_default_term = True
+        term_ind = map_term_to_int(var_is_down_term, var_is_up_term)
+        spcase_var_ind = map_spcase_var_to_int(var_is_cyd, var_is_hisd)
+        base_type_variants[bt.base_name][term_ind][spcase_var_ind].append(bt)
+
+    max_variants_for_fixed_term_and_spcase = 1
+    for bt in base_type_variants:
+        for i in range(max_n_termini_types):
+            for j in range(max_n_special_case_aa_variant_types):
+                n_vars = len(base_type_variants[bt][i][j])
+                if n_vars > max_variants_for_fixed_term_and_spcase:
+                    max_variants_for_fixed_term_and_spcase = n_vars
+
+    # RESUME WORK HERE
+    bt_var_atom_is_present = torch.zeros(
+        (
+            n_base_types,
+            max_n_termini_types,
+            max_n_special_case_aa_variant_types,
+            max_variants_for_fixed_term_and_spcase,
+            co.max_n_canonical_atoms,
+        ),
+        dtype=torch.bool,
+        device=torch.device("cpu"),
+    )
+
+    variants_for_blocktypes = defaultdict(list)
+    non_default_termini_types = defaultdict(lambda: set([]))
+    for bt in bt.active_block_types:
+        variants_for_blocktypes[bt.base_name].append(bt)
 
     # forward ordering: from canonical-index + termini type + variant --> block-type index
     canonical_ordering_map = numpy.full(

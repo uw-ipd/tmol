@@ -73,9 +73,13 @@ residues:
     - { name: CB  ,  atom_type: CH3  }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
-    - { name: 3HB ,  atom_type: Hapo }
+    - { name: HB1 ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HB1 , alt_name: 1HB }
+    - { name: HB2 , alt_name: 2HB }
+    - { name: HB3 , alt_name: 3HB }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -155,17 +159,28 @@ residues:
     - { name: NH2 ,  atom_type: Narg }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
-    - { name: 1HG ,  atom_type: Hapo }
-    - { name: 2HG ,  atom_type: Hapo }
-    - { name: 1HD ,  atom_type: Hapo }
-    - { name: 2HD ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HG2 ,  atom_type: Hapo }
+    - { name: HG3 ,  atom_type: Hapo }
+    - { name: HD2 ,  atom_type: Hapo }
+    - { name: HD3 ,  atom_type: Hapo }
     - { name: HE  ,  atom_type: Hpol }
-    - { name: 1HH1,  atom_type: Hpol }
-    - { name: 2HH1,  atom_type: Hpol }
-    - { name: 1HH2,  atom_type: Hpol }
-    - { name: 2HH2,  atom_type: Hpol }
+    - { name: HH11,  atom_type: Hpol }
+    - { name: HH12,  atom_type: Hpol }
+    - { name: HH21,  atom_type: Hpol }
+    - { name: HH22,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
+    - { name: HG2 , alt_name: 1HG }
+    - { name: HG3 , alt_name: 2HG }
+    - { name: HD2 , alt_name: 1HD }
+    - { name: HD3 , alt_name: 2HD }
+    - { name: HH11, alt_name: 1HH1 }
+    - { name: HH12, alt_name: 2HH1 }
+    - { name: HH21, alt_name: 1HH2 }
+    - { name: HH22, alt_name: 2HH2 }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -274,10 +289,15 @@ residues:
     - { name: ND2 ,  atom_type: NH2O }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
-    - { name: 1HD2,  atom_type: Hpol }
-    - { name: 2HD2,  atom_type: Hpol }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HD21,  atom_type: Hpol }
+    - { name: HD22,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
+    - { name: HD21, alt_name: 1HD2}
+    - { name: HD22, alt_name: 2HD2}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -364,8 +384,11 @@ residues:
     - { name: OD2 ,  atom_type: OOC  }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }    
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -438,17 +461,20 @@ residues:
     base_name: CYS
     name3: CYS
     atoms:
-    - { name: N   ,  atom_type: Nbb  }
-    - { name: CA  ,  atom_type: CAbb }
-    - { name: C   ,  atom_type: CObb }
-    - { name: O   ,  atom_type: OCbb }
-    - { name: CB  ,  atom_type: CH2  }
-    - { name: SG  ,  atom_type: SH1  }
-    - { name: H   ,  atom_type: HNbb }
-    - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
-    - { name: HG  ,  atom_type: HS   }
+    - { name: N   , atom_type: Nbb  }
+    - { name: CA  , atom_type: CAbb }
+    - { name: C   , atom_type: CObb }
+    - { name: O   , atom_type: OCbb }
+    - { name: CB  , atom_type: CH2  }
+    - { name: SG  , atom_type: SH1  }
+    - { name: H   , atom_type: HNbb }
+    - { name: HA  , atom_type: Hapo }
+    - { name: HB2 , atom_type: Hapo }
+    - { name: HB3 , atom_type: Hapo }
+    - { name: HG  , atom_type: HS   }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB}
+    - { name: HB3 , alt_name: 2HB}    
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -530,8 +556,11 @@ residues:
     - { name: SG  ,  atom_type: SH1  }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -611,12 +640,19 @@ residues:
     - { name: NE2 ,  atom_type: NH2O }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
-    - { name: 1HG ,  atom_type: Hapo }
-    - { name: 2HG ,  atom_type: Hapo }
-    - { name: 1HE2,  atom_type: Hpol }
-    - { name: 2HE2,  atom_type: Hpol }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HG2 ,  atom_type: Hapo }
+    - { name: HG3 ,  atom_type: Hapo }
+    - { name: HE21,  atom_type: Hpol }
+    - { name: HE22,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
+    - { name: HG2 , alt_name: 1HG }
+    - { name: HG3 , alt_name: 2HG }
+    - { name: HE21, alt_name: 1HE2}
+    - { name: HE22, alt_name: 2HE2}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -711,10 +747,15 @@ residues:
     - { name: OE2 ,  atom_type: OOC  }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
-    - { name: 1HG ,  atom_type: Hapo }
-    - { name: 2HG ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HG2 ,  atom_type: Hapo }
+    - { name: HG3 ,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB}
+    - { name: HB3 , alt_name: 2HB}
+    - { name: HG2 , alt_name: 1HG}
+    - { name: HG3 , alt_name: 2HG}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -799,8 +840,11 @@ residues:
     - { name: C   ,  atom_type: CObb }
     - { name: O   ,  atom_type: OCbb }
     - { name: H   ,  atom_type: HNbb }
-    - { name: 1HA ,  atom_type: Hapo }
-    - { name: 2HA ,  atom_type: Hapo }
+    - { name: HA2 ,  atom_type: Hapo }
+    - { name: HA3 ,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HA2 , alt_name: 1HA }
+    - { name: HA3 , alt_name: 2HA }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -875,11 +919,14 @@ residues:
 
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
     - { name: HE1 ,  atom_type: Hapo }
     - { name: HD2 ,  atom_type: Hapo }
     - { name: HE2 ,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -976,11 +1023,14 @@ residues:
     #- { name: NE2 ,  atom_type: NtrpDepro }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
     - { name: HD2 ,  atom_type: Hapo }
     - { name: HE1 ,  atom_type: Hapo }
     - { name: HD1 ,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB}
+    - { name: HB3 , alt_name: 2HB}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -1075,14 +1125,23 @@ residues:
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
     - { name: HB  ,  atom_type: Hapo }
-    - { name: 1HG1,  atom_type: Hapo }
-    - { name: 2HG1,  atom_type: Hapo }
-    - { name: 1HG2,  atom_type: Hapo }
-    - { name: 2HG2,  atom_type: Hapo }
-    - { name: 3HG2,  atom_type: Hapo }
-    - { name: 1HD1,  atom_type: Hapo }
-    - { name: 2HD1,  atom_type: Hapo }
-    - { name: 3HD1,  atom_type: Hapo }
+    - { name: HG12,  atom_type: Hapo }
+    - { name: HG13,  atom_type: Hapo }
+    - { name: HG21,  atom_type: Hapo }
+    - { name: HG22,  atom_type: Hapo }
+    - { name: HG23,  atom_type: Hapo }
+    - { name: HD11,  atom_type: Hapo }
+    - { name: HD12,  atom_type: Hapo }
+    - { name: HD13,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HG12,  alt_name: 1HG1}
+    - { name: HG13,  alt_name: 2HG1}
+    - { name: HG21,  alt_name: 1HG2}
+    - { name: HG22,  alt_name: 2HG2}
+    - { name: HG23,  alt_name: 3HG2}
+    - { name: HD11,  alt_name: 1HD1}
+    - { name: HD12,  alt_name: 2HD1}
+    - { name: HD13,  alt_name: 3HD1}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -1179,15 +1238,24 @@ residues:
     - { name: CD2 ,  atom_type: CH3  }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
     - { name: HG  ,  atom_type: Hapo }
-    - { name: 1HD1,  atom_type: Hapo }
-    - { name: 2HD1,  atom_type: Hapo }
-    - { name: 3HD1,  atom_type: Hapo }
-    - { name: 1HD2,  atom_type: Hapo }
-    - { name: 2HD2,  atom_type: Hapo }
-    - { name: 3HD2,  atom_type: Hapo }
+    - { name: HD11,  atom_type: Hapo }
+    - { name: HD12,  atom_type: Hapo }
+    - { name: HD13,  atom_type: Hapo }
+    - { name: HD21,  atom_type: Hapo }
+    - { name: HD22,  atom_type: Hapo }
+    - { name: HD23,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB}
+    - { name: HB3 , alt_name: 2HB}
+    - { name: HD11, alt_name: 1HD1}
+    - { name: HD12, alt_name: 2HD1}
+    - { name: HD13, alt_name: 3HD1}
+    - { name: HD21, alt_name: 1HD2}
+    - { name: HD22, alt_name: 2HD2}
+    - { name: HD23, alt_name: 3HD2}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -1285,17 +1353,29 @@ residues:
     - { name: NZ  ,  atom_type: Nlys }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
-    - { name: 1HG ,  atom_type: Hapo }
-    - { name: 2HG ,  atom_type: Hapo }
-    - { name: 1HD ,  atom_type: Hapo }
-    - { name: 2HD ,  atom_type: Hapo }
-    - { name: 1HE ,  atom_type: Hapo }
-    - { name: 2HE ,  atom_type: Hapo }
-    - { name: 1HZ ,  atom_type: Hpol }
-    - { name: 2HZ ,  atom_type: Hpol }
-    - { name: 3HZ ,  atom_type: Hpol }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HG2 ,  atom_type: Hapo }
+    - { name: HG3 ,  atom_type: Hapo }
+    - { name: HD2 ,  atom_type: Hapo }
+    - { name: HD3 ,  atom_type: Hapo }
+    - { name: HE2 ,  atom_type: Hapo }
+    - { name: HE3 ,  atom_type: Hapo }
+    - { name: HZ1 ,  atom_type: Hpol }
+    - { name: HZ2 ,  atom_type: Hpol }
+    - { name: HZ3 ,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB}
+    - { name: HB3 , alt_name: 2HB}
+    - { name: HG2 , alt_name: 1HG}
+    - { name: HG3 , alt_name: 2HG}
+    - { name: HD2 , alt_name: 1HD}
+    - { name: HD3 , alt_name: 2HD}
+    - { name: HE2 , alt_name: 1HE}
+    - { name: HE3 , alt_name: 2HE}
+    - { name: HZ1 , alt_name: 1HZ}
+    - { name: HZ2 , alt_name: 2HZ}
+    - { name: HZ3 , alt_name: 3HZ}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -1400,13 +1480,21 @@ residues:
     - { name: CE  ,  atom_type: CH3  }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
-    - { name: 1HG ,  atom_type: Hapo }
-    - { name: 2HG ,  atom_type: Hapo }
-    - { name: 1HE ,  atom_type: Hapo }
-    - { name: 2HE ,  atom_type: Hapo }
-    - { name: 3HE ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HG2 ,  atom_type: Hapo }
+    - { name: HG3 ,  atom_type: Hapo }
+    - { name: HE1 ,  atom_type: Hapo }
+    - { name: HE2 ,  atom_type: Hapo }
+    - { name: HE3 ,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
+    - { name: HG2 , alt_name: 1HG }
+    - { name: HG3 , alt_name: 2HG }
+    - { name: HE1 , alt_name: 1HE }
+    - { name: HE2 , alt_name: 2HE }
+    - { name: HE3 , alt_name: 3HE }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -1503,13 +1591,16 @@ residues:
     - { name: CZ  ,  atom_type: Caro }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
     - { name: HD1 ,  atom_type: Haro }
     - { name: HD2 ,  atom_type: Haro }
     - { name: HE1 ,  atom_type: Haro }
     - { name: HE2 ,  atom_type: Haro }
     - { name: HZ  ,  atom_type: Haro }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -1607,12 +1698,19 @@ residues:
     - { name: CG  ,  atom_type: CH2  }
     - { name: CD  ,  atom_type: CH2  }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
-    - { name: 1HG ,  atom_type: Hapo }
-    - { name: 2HG ,  atom_type: Hapo }
-    - { name: 1HD ,  atom_type: Hapo }
-    - { name: 2HD ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HG2 ,  atom_type: Hapo }
+    - { name: HG3 ,  atom_type: Hapo }
+    - { name: HD2 ,  atom_type: Hapo }
+    - { name: HD3 ,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
+    - { name: HG2 , alt_name: 1HG }
+    - { name: HG3 , alt_name: 2HG }
+    - { name: HD2 , alt_name: 1HD }
+    - { name: HD3 , alt_name: 2HD }
     bonds:
     - [   N,   CA]
     - [  CA,    C]
@@ -1699,9 +1797,12 @@ residues:
     - { name: OG  ,  atom_type: OH   }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
     - { name: HG  ,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -1786,9 +1887,13 @@ residues:
     - { name: HA  ,  atom_type: Hapo }
     - { name: HB  ,  atom_type: Hapo }
     - { name: HG1 ,  atom_type: Hpol }
-    - { name: 1HG2,  atom_type: Hapo }
-    - { name: 2HG2,  atom_type: Hapo }
-    - { name: 3HG2,  atom_type: Hapo }
+    - { name: HG21,  atom_type: Hapo }
+    - { name: HG22,  atom_type: Hapo }
+    - { name: HG23,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HG21, alt_name: 1HG2}
+    - { name: HG22, alt_name: 2HG2}
+    - { name: HG23, alt_name: 3HG2}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -1884,14 +1989,17 @@ residues:
     - { name: CH2 ,  atom_type: Caro }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
-    - { name: 1HB ,  atom_type: Hapo }
-    - { name: 2HB ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
     - { name: HD1 ,  atom_type: Haro }
     - { name: HE1 ,  atom_type: Hpol }
     - { name: HE3 ,  atom_type: Haro }
     - { name: HZ2 ,  atom_type: Haro }
     - { name: HZ3 ,  atom_type: Haro }
     - { name: HH2 ,  atom_type: Haro }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB }
+    - { name: HB3 , alt_name: 2HB }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -2011,6 +2119,9 @@ residues:
     - { name: HE1 ,  atom_type: Haro }
     - { name: HE2 ,  atom_type: Haro }
     - { name: HH  ,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 ,  atom_type: Hapo, alt_name: 1HB}
+    - { name: HB3 ,  atom_type: Hapo, alt_name: 2HB}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -2117,12 +2228,19 @@ residues:
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
     - { name: HB  ,  atom_type: Hapo }
-    - { name: 1HG1,  atom_type: Hapo }
-    - { name: 2HG1,  atom_type: Hapo }
-    - { name: 3HG1,  atom_type: Hapo }
-    - { name: 1HG2,  atom_type: Hapo }
-    - { name: 2HG2,  atom_type: Hapo }
-    - { name: 3HG2,  atom_type: Hapo }
+    - { name: HG11,  atom_type: Hapo }
+    - { name: HG12,  atom_type: Hapo }
+    - { name: HG13,  atom_type: Hapo }
+    - { name: HG21,  atom_type: Hapo }
+    - { name: HG22,  atom_type: Hapo }
+    - { name: HG23,  atom_type: Hapo }
+    atom_aliases:
+    - { name: HG11, alt_name: 1HG1}
+    - { name: HG12, alt_name: 2HG1}
+    - { name: HG13, alt_name: 3HG1}
+    - { name: HG21, alt_name: 1HG2}
+    - { name: HG22, alt_name: 2HG2}
+    - { name: HG23, alt_name: 3HG2}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -2206,6 +2324,7 @@ residues:
     - { name:  O, atom_type: Owat  }
     - { name: H1, atom_type: Hwat }
     - { name: H2, atom_type: Hwat }
+    atom_aliases: []    
     bonds:
     - [O, H1]
     - [O, H2]
@@ -2243,6 +2362,7 @@ variants:
     add_atoms:
     - { name: O    ,  atom_type: OOC }
     - { name: OXT  ,  atom_type: OOC }
+    add_atom_aliases: []
     modify_atoms: []
     add_connections: []
     add_bonds:
@@ -2259,20 +2379,25 @@ variants:
     - <{down}>
     - <H1>
     add_atoms:
-    - { name: 1H  ,  atom_type: Hpol }
-    - { name: 2H  ,  atom_type: Hpol }
-    - { name: 3H  ,  atom_type: Hpol }
+    - { name: H1  ,  atom_type: Hpol }
+    - { name: H2  ,  atom_type: Hpol }
+    - { name: H3  ,  atom_type: Hpol }
+    add_atom_aliases:
+    - { name: H1  ,  alt_name: 1H }
+    - { name: H2  ,  alt_name: 2H }
+    - { name: H3  ,  alt_name: 3H }
+    
     modify_atoms:
     - { name: <N1> ,  atom_type: Nlys }
     add_connections: []
     add_bonds:
-    - [  <N1>,    1H   ]
-    - [  <N1>,    2H   ]
-    - [  <N1>,    3H   ]
+    - [  <N1>,    H1   ]
+    - [  <N1>,    H2   ]
+    - [  <N1>,    H3   ]
     icoors:
-    - { name:   1H, source: <H1>, phi: 180.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: <*1> }
-    - { name:   2H, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: 1H }
-    - { name:   3H, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: 2H }
+    - { name:   H1, source: <H1>, phi: 180.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: <*1> }
+    - { name:   H2, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: H1 }
+    - { name:   H3, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.0, parent:  <N1>, grand_parent: <*2>, great_grand_parent: H2 }
 
   - name:  AminoTerminusPro
     display_name: nterm
@@ -2280,13 +2405,16 @@ variants:
     remove_atoms:
     - <{down}>
     add_atoms:
-    - { name: 1H  ,  atom_type: Hpol }
-    - { name: 2H  ,  atom_type: Hpol }
+    - { name: H2  ,  atom_type: Hpol }
+    - { name: H3  ,  atom_type: Hpol }
+    add_atom_aliases:
+    - { name: H2  ,  alt_name: 1H }
+    - { name: H3  ,  alt_name: 2H }    
     modify_atoms: []
     add_connections: []
     add_bonds:
-    - [  <N1>,    1H  ]
-    - [  <N1>,    2H  ]
+    - [  <N1>,    H2  ]
+    - [  <N1>,    H3  ]
     icoors:
-    - { name:   1H, phi:  120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}
-    - { name:   2H, phi: -120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}
+    - { name:   H2, phi:  120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}
+    - { name:   H3, phi: -120.0 deg, theta:   70.5 deg, d: 1.0, parent: <N1>, grand_parent: <C1>, great_grand_parent: <C2>}

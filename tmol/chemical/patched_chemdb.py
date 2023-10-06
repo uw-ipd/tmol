@@ -29,6 +29,7 @@ class ResTypeValidatorErrorCodes(IntEnum):
     illegal_torsion = 6
     illegal_connection = 7
     duplicate_atom_name = 8
+    illegal_add_alias = 9
 
 
 # build a graph from a restype
@@ -205,6 +206,7 @@ def validate_patch(patch):
         or patch.pattern is None
         or patch.remove_atoms is None
         or patch.add_atoms is None
+        or patch.add_atom_aliases is None
         or patch.add_connections is None
         or patch.add_bonds is None
         or patch.icoors is None
@@ -221,9 +223,16 @@ def validate_patch(patch):
         if i.name[0] != "<" or i.name[-1] != ">":
             return ResTypeValidatorErrorCodes.modify_nonreference_atom
 
+    addedatoms = set([i.name for i in patch.add_atoms])
+
+    # make sure that aliases are for new atoms
+    for i in patch.add_atom_aliases:
+        if i.name not in addedatoms:
+            return ResTypeValidatorErrorCodes.illegal_add_alias
+
+    addedatoms.update([i.name for i in patch.add_connections])
+
     # make sure all bonds are references or added atoms
-    addedatoms = [i.name for i in patch.add_atoms]
-    addedatoms.extend([i.name for i in patch.add_connections])
     for i, j in patch.add_bonds:
         if (i[0] != "<" or i[-1] != ">") and (i not in addedatoms):
             return ResTypeValidatorErrorCodes.illegal_bond
@@ -231,6 +240,7 @@ def validate_patch(patch):
     # make sure all icoors are references or added atoms
     for i in patch.icoors:
         if (i.name[0] != "<" or i.name[-1] != ">") and (i.name not in addedatoms):
+            print("i", i, " and ", addedatoms)
             return ResTypeValidatorErrorCodes.illegal_icoor
 
     return ResTypeValidatorErrorCodes.success
@@ -299,6 +309,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
             base_name=res.base_name,
             name3=res.name3,
             atoms=res.atoms,
+            atom_aliases=res.atom_aliases,
             bonds=res.bonds,
             connections=res.connections,
             torsions=res.torsions,
@@ -318,6 +329,9 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
 
         # 2. add atoms
         newres.atoms = (*newres.atoms, *variant.add_atoms)
+
+        # 2b. add atom alias
+        newres.atom_aliases = (*newres.atom_aliases, *variant.add_atom_aliases)
 
         # 3. add connections
         newconnections = []
