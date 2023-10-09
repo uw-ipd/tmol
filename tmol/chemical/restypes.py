@@ -14,6 +14,7 @@ from tmol.database.chemical import RawResidueType
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
 from tmol.chemical.all_bonds import bonds_and_bond_ranges
 from tmol.types.functional import validate_args
@@ -249,6 +250,61 @@ class RefinedResidueType(RawResidueType):
         path_distance[path_distance == numpy.inf] = MAX_SIG_BOND_SEPARATION
         return path_distance
 
+    atom_paths_from_conn: numpy.ndarray = attr.ib()
+
+    @atom_paths_from_conn.default
+    def _setup_atom_paths_from_conn(self):
+        n_conns = len(self.connections)
+
+        atom_paths = numpy.full(
+            (n_conns, MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32
+        )
+
+        if n_conns == 0:
+            return atom_paths
+
+        # Create a numpy array with the paths coming from a connection.
+        # The first entry will be the immediate atom, followed by the
+        # 3 paths coming from that atom, followed by the 3 coming out
+        # of each of those in turn. If a path doesn't exist, it is
+        # filled with -1s to ensure deterministic indexing of the paths.
+        def get_paths_length_3(connection):
+            paths = numpy.full((MAX_PATHS_FROM_CONNECTION, 3), -1, dtype=numpy.int32)
+            # create a convenient datastructure for following connections
+            bondmap = {-1: []}
+            for bond in self.bond_indices:
+                if bond[0] not in bondmap.keys():
+                    bondmap[bond[0]] = []
+                bondmap[bond[0]].append(bond[1])
+
+            atom0 = self.atom_to_idx[connection.atom]
+            # Add the immediate atom
+            paths[0] = (atom0, -1, -1)
+
+            idx = 1
+            # Add the 3 paths connecting to the immediate atom
+            for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
+                if atom1 != -1:
+                    paths[idx] = (atom0, atom1, -1)
+                idx += 1
+
+            # Add the 9 paths connecting to the 3 from the previous step
+            for atom1 in bondmap[atom0] + [-1] * (3 - len(bondmap[atom0])):
+                for atom2 in bondmap[atom1] + [-1] * (3 - len(bondmap[atom1])):
+                    if atom2 != atom0 and atom2 != -1:
+                        paths[idx] = (atom0, atom1, atom2)
+                    if atom2 != atom0:
+                        idx += 1
+
+            return paths
+
+        # construct a list of paths starting from each connection point of length 3 and record the atom indices of the atoms in those paths
+        for i, connection in enumerate(self.connections):
+            paths = get_paths_length_3(connection)
+            atom_paths[i][: len(paths)] = paths
+
+        return atom_paths
+
     atom_downstream_of_conn: numpy.ndarray = attr.ib()
 
     @atom_downstream_of_conn.default
@@ -383,10 +439,15 @@ class ResidueTypeSet:
             for r in chemical_db.residues
         ]
         restype_map = groupby(lambda restype: restype.name3, residue_types)
-        return cls(residue_types=residue_types, restype_map=restype_map)
+        return cls(
+            residue_types=residue_types,
+            restype_map=restype_map,
+            chem_db=chemical_db,
+        )
 
     residue_types: Sequence[RefinedResidueType]
     restype_map: Mapping[ResName3, Sequence[RefinedResidueType]]
+    chem_db: PatchedChemicalDatabase
 
 
 @attr.s(slots=True, frozen=True)

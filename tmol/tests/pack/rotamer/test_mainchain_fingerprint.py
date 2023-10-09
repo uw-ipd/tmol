@@ -182,7 +182,9 @@ def test_merge_fingerprints(default_database):
             rt, [dun_sampler, fixed_sampler], default_database.chemical
         )
     # print([x.name for x in rt_list])
-    pbt = PackedBlockTypes.from_restype_list(rt_list, device=torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, rt_list, device=torch_device
+    )
     find_unique_fingerprints(pbt)
 
     # we should find that the pbt has been annotated

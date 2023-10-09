@@ -5,7 +5,7 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 def test_pose_score_smoke(rts_ubq_res, default_database, torch_device):
     pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:4], torch_device
+        default_database.chemical, rts_ubq_res[:4], torch_device
     )
     pose_stack100 = PoseStackBuilder.from_poses([pose_stack1] * 100, torch_device)
 

@@ -36,12 +36,12 @@ def test_annotate_block_types(
     )  # Test to make sure the parameters remain the same instance
 
 
-def test_whole_pose_scoring_module_gradcheck_whole_pose(
+def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
     ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         ref_energy.setup_block_type(bt)
@@ -63,7 +63,7 @@ def test_whole_pose_scoring_module_single(
     gold_vals = numpy.array([[-41.275]], dtype=numpy.float32)
     ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         ref_energy.setup_block_type(bt)
@@ -90,7 +90,7 @@ def test_whole_pose_scoring_module_10(
     gold_vals = numpy.tile(numpy.array([[-41.275]], dtype=numpy.float32), (n_poses))
     ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
@@ -126,13 +126,13 @@ def test_whole_pose_scoring_module_jagged(
     )
     ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_60, device=torch_device
+        default_database.chemical, res=rts_ubq_60, device=torch_device
     )
     p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_40, device=torch_device
+        default_database.chemical, res=rts_ubq_40, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
 
@@ -148,7 +148,6 @@ def test_whole_pose_scoring_module_jagged(
 
     # make sure we're still good
     torch.arange(100, device=torch_device)
-    print(scores.cpu().detach().numpy())
 
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5

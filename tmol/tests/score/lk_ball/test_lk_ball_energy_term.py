@@ -55,7 +55,7 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     )
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         lk_ball_energy.setup_block_type(bt)
@@ -79,7 +79,7 @@ def test_whole_pose_scoring_module_gradcheck_partial_pose(
 ):
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res[6:12], device=torch_device
+        default_database.chemical, res=rts_ubq_res[6:12], device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         lk_ball_energy.setup_block_type(bt)
@@ -119,7 +119,7 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     )
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 

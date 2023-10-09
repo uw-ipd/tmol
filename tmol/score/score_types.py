@@ -1,16 +1,16 @@
-from enum import Enum
-
-
-class AutoNumber(Enum):
-    def __new__(cls):
-        value = len(cls.__members__)
-        obj = object.__new__(cls)
-        obj._value_ = value
-        return obj
+from tmol.utility.auto_number import AutoNumber
 
 
 class ScoreType(AutoNumber):
+    cart_lengths = ()
+    cart_angles = ()
+    cart_torsions = ()
+    cart_impropers = ()
+    cart_hxltorsions = ()
     disulfide = ()
+    dunbrack_rot = ()
+    dunbrack_rotdev = ()
+    dunbrack_semirot = ()
     fa_lj = ()
     fa_lk = ()
     fa_elec = ()

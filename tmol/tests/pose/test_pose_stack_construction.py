@@ -6,10 +6,10 @@ from tmol.chemical.restypes import find_simple_polymeric_connections
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
-def test_pose_stack_builder_connection_ctor(ubq_res, torch_device):
+def test_pose_stack_builder_connection_ctor(ubq_res, default_database, torch_device):
     connections = find_simple_polymeric_connections(ubq_res)
     p = PoseStackBuilder.one_structure_from_residues_and_connections(
-        ubq_res, connections, torch_device
+        default_database.chemical, ubq_res, connections, torch_device
     )
 
     n_ubq_res = len(ubq_res)
@@ -60,14 +60,14 @@ def test_pose_stack_builder_connection_ctor(ubq_res, torch_device):
 
 
 def test_pose_stack_builder_one_structure_from_polymeric_residues_ctor(
-    ubq_res, torch_device
+    ubq_res, default_database, torch_device
 ):
     connections = find_simple_polymeric_connections(ubq_res)
     p_gold = PoseStackBuilder.one_structure_from_residues_and_connections(
-        ubq_res, connections, torch_device
+        default_database.chemical, ubq_res, connections, torch_device
     )
     p_new = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res, torch_device
+        default_database.chemical, ubq_res, torch_device
     )
 
     # assert p_gold.residue_coords.shape == p_new.residue_coords.shape
@@ -122,12 +122,12 @@ def test_pose_stack_builder_resolve_bond_separation(ubq_res, torch_device):
     assert bonds[0, 2, 0, 0, 1] == 4
 
 
-def test_concatenate_pose_stacks_ctor(ubq_res, torch_device):
+def test_concatenate_pose_stacks_ctor(ubq_res, default_database, torch_device):
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:40], torch_device
+        default_database.chemical, ubq_res[:40], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:60], torch_device
+        default_database.chemical, ubq_res[:60], torch_device
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     assert poses.block_type_ind.shape == (2, 60)

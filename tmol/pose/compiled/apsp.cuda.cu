@@ -197,7 +197,12 @@ struct AllPairsShortestPathsDispatch {
 
       __syncthreads();  // wait until everyone has written to shared memory
 
-      Int x_y_curr = weights[graph_ind][i][j];
+      Int x_y_curr;
+      if (i < max_n_nodes && j < max_n_nodes) {
+        x_y_curr = weights[graph_ind][i][j];
+      } else {
+        x_y_curr = -1;
+      }
 
       // Now
       for (int k = 0; k < TILE_SIZE; ++k) {

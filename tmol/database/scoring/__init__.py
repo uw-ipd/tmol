@@ -1,6 +1,7 @@
 import os
 import attr
 
+from .cartbonded import CartBondedDatabaseOld
 from .cartbonded import CartBondedDatabase
 from .disulfide import DisulfideDatabase
 from .dunbrack_libraries import DunbrackRotamerLibrary
@@ -15,6 +16,7 @@ from .omega_bbdep import OmegaBBDepDatabase
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ScoringDatabase:
+    cartbonded_old: CartBondedDatabaseOld
     cartbonded: CartBondedDatabase
     disulfide: DisulfideDatabase
     dun: DunbrackRotamerLibrary
@@ -29,6 +31,9 @@ class ScoringDatabase:
     @classmethod
     def from_file(cls, path=os.path.dirname(__file__)):  # noqa
         return cls(
+            cartbonded_old=CartBondedDatabaseOld.from_file(
+                os.path.join(path, "cartbonded.old.yaml")
+            ),
             cartbonded=CartBondedDatabase.from_file(
                 os.path.join(path, "cartbonded.yaml")
             ),

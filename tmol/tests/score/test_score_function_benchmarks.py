@@ -7,7 +7,9 @@ from tmol.score.score_function import ScoreFunction
 # from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
+from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
 from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
+from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
 from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
@@ -24,7 +26,7 @@ def dont_test_res_centric_score_benchmark_setup(
 ):
     n_poses = int(n_poses)
     pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res, torch_device
+        default_database.chemical, rts_ubq_res, torch_device
     )
 
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
@@ -46,7 +48,9 @@ def dont_test_res_centric_score_benchmark_setup(
 @pytest.mark.parametrize(
     "energy_term",
     [
+        CartBondedEnergyTerm,
         DisulfideEnergyTerm,
+        DunbrackEnergyTerm,
         ElecEnergyTerm,
         HBondEnergyTerm,
         LJLKEnergyTerm,
@@ -54,7 +58,17 @@ def dont_test_res_centric_score_benchmark_setup(
         BackboneTorsionEnergyTerm,
         RefEnergyTerm,
     ],
-    ids=["disulfide", "elec", "hbond", "ljlk", "lk_ball", "backbone_torsion", "ref"],
+    ids=[
+        "cartbonded",
+        "disulfide",
+        "dunbrack",
+        "elec",
+        "hbond",
+        "ljlk",
+        "lk_ball",
+        "backbone_torsion",
+        "ref",
+    ],
 )
 @pytest.mark.benchmark(group="res_centric_score_components")
 def test_res_centric_score_benchmark(
@@ -68,7 +82,7 @@ def test_res_centric_score_benchmark(
 ):
     n_poses = int(n_poses)
     pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res, torch_device
+        default_database.chemical, rts_ubq_res, torch_device
     )
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
@@ -115,7 +129,9 @@ def test_res_centric_score_benchmark(
     "energy_terms",
     [
         [
+            CartBondedEnergyTerm,
             DisulfideEnergyTerm,
+            DunbrackEnergyTerm,
             ElecEnergyTerm,
             HBondEnergyTerm,
             LJLKEnergyTerm,
@@ -124,7 +140,7 @@ def test_res_centric_score_benchmark(
             RefEnergyTerm,
         ]
     ],
-    ids=["disulfide_elec_hbond_ljlk_lkb_bbtorsion_ref"],
+    ids=["cartbonded_disulfide_dunbrack_elec_hbond_ljlk_lkb_bbtorsion_ref"],
 )
 @pytest.mark.benchmark(group="res_centric_combined_score_components")
 def test_combined_res_centric_score_benchmark(
@@ -138,7 +154,7 @@ def test_combined_res_centric_score_benchmark(
 ):
     n_poses = int(n_poses)
     pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res, torch_device
+        default_database.chemical, rts_ubq_res, torch_device
     )
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
