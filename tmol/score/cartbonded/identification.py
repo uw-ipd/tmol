@@ -2,7 +2,7 @@ import attr
 
 from tmol.types.functional import convert_args
 from tmol.types.array import NDArray
-from tmol.database.scoring import CartBondedDatabase
+from tmol.database.scoring import CartBondedDatabaseOld
 
 from ..bonded_atom import IndexedBonds
 
@@ -150,7 +150,7 @@ class CartBondedIdentification:
     @classmethod
     @convert_args
     def setup(
-        cls, cartbonded_database: CartBondedDatabase, indexed_bonds: IndexedBonds
+        cls, cartbonded_database: CartBondedDatabaseOld, indexed_bonds: IndexedBonds
     ):
         bonds = indexed_bonds.bonds.cpu().numpy()
         spans = indexed_bonds.bond_spans.cpu().numpy()

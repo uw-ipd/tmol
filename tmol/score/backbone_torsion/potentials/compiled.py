@@ -9,8 +9,8 @@ _compiled = load(
             __file__,
             [
                 "compiled.ops.cpp",
-                "compiled.cpu.cpp",
-                "compiled.cuda.cu",
+                "backbone_torsion_pose_score.cpu.cpp",
+                "backbone_torsion_pose_score.cuda.cu",
             ],
         )
     ),
@@ -19,4 +19,4 @@ _compiled = load(
 
 _ops = getattr(torch.ops, modulename(__name__))
 
-score_rama = _ops.score_rama
+backbone_torsion_pose_score = _ops.backbone_torsion_pose_score

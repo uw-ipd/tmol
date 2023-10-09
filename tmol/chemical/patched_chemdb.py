@@ -297,7 +297,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
         newres = RawResidueType(
             name=res.name + ":" + variant.display_name,
             base_name=res.base_name,
-            name3=res.base_name,
+            name3=res.name3,
             atoms=res.atoms,
             bonds=res.bonds,
             connections=res.connections,

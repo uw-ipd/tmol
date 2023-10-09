@@ -147,4 +147,6 @@ def bonded_path_length(
         shape=(system_size, system_size),
     )
 
-    return csgraph.dijkstra(bond_graph, directed=False, unweighted=True, limit=limit)
+    return csgraph.dijkstra(
+        bond_graph.tocsr(), directed=False, unweighted=True, limit=limit
+    )

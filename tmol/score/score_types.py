@@ -10,6 +10,11 @@ class AutoNumber(Enum):
 
 
 class ScoreType(AutoNumber):
+    cart_lengths = ()
+    cart_angles = ()
+    cart_torsions = ()
+    cart_impropers = ()
+    cart_hxltorsions = ()
     disulfide = ()
     dunbrack_rot = ()
     dunbrack_rotdev = ()
