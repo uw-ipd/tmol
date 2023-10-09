@@ -1,7 +1,7 @@
 #pragma once
 
 // Common macros for working with MGPU launch_box
-#ifdef __NVCC_
+#ifdef __NVCC__
 #include <moderngpu/launch_box.hxx>
 #endif
 

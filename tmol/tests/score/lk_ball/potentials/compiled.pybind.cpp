@@ -5,6 +5,7 @@
 #include <tmol/score/ljlk/potentials/params.pybind.hh>
 #include <tmol/score/lk_ball/potentials/params.pybind.hh>
 #include <tmol/score/lk_ball/potentials/lk_ball.hh>
+#include <tmol/score/common/gen_coord.hh>
 #include <tmol/score/lk_ball/potentials/water.hh>
 
 namespace tmol {
@@ -30,7 +31,7 @@ void bind_build_waters(pybind11::module& m) {
 
   m.def(
       "build_acc_water_V",
-      &build_acc_water<Real>::V,
+      &common::build_coordinate<Real>::V,
       "A"_a,
       "B"_a,
       "B0"_a,
@@ -41,7 +42,8 @@ void bind_build_waters(pybind11::module& m) {
   m.def(
       "build_acc_water_dV",
       [](Real3 A, Real3 B, Real3 B0, Real dist, Real angle, Real torsion) {
-        return build_acc_water<Real>::dV(A, B, B0, dist, angle, torsion)
+        return common::build_coordinate<Real>::dV(
+                   A, B, B0, dist, angle, torsion)
             .astuple();
       },
       "A"_a,

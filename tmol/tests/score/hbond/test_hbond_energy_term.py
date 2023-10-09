@@ -30,7 +30,9 @@ def test_annotate_restypes(ubq_res, default_database, torch_device):
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
 
     rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, rt_list, torch_device
+    )
 
     for rt in rt_list:
         hbond_energy.setup_block_type(rt)
@@ -52,7 +54,7 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     gold_vals = numpy.array([[-55.6756]], dtype=numpy.float32)
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         hbond_energy.setup_block_type(bt)
@@ -76,7 +78,7 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
 ):
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         hbond_energy.setup_block_type(bt)
@@ -97,7 +99,7 @@ def test_whole_pose_scoring_module_gradcheck_partial_pose(
 ):
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res[6:12], device=torch_device
+        default_database.chemical, res=rts_ubq_res[6:12], device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         hbond_energy.setup_block_type(bt)
@@ -118,7 +120,7 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     gold_vals = numpy.tile(numpy.array([[-55.6756]], dtype=numpy.float32), (n_poses))
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 

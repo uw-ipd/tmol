@@ -300,6 +300,17 @@ atom_charge_parameters:
   - { *r: CYS ,*a: HG, *e: 0.21609 }
   - { *r: CYS ,*a: N, *e: -0.77049 }
   - { *r: CYS ,*a: O, *e: -0.76511 }
+  - { *r: CYS ,*a: 1HB, *e: 0.12155 }
+  - { *r: CYS ,*a: 2HB, *e: 0.12155 }
+  - { *r: CYD ,*a: C, *e: 0.76511 }
+  - { *r: CYD ,*a: CA, *e: 0.11475 }
+  - { *r: CYD ,*a: CB, *e: -0.14856 }
+  - { *r: CYD ,*a: H, *e: 0.50819 }
+  - { *r: CYD ,*a: HA, *e: 0.14754 }
+  - { *r: CYD ,*a: N, *e: -0.77049 }
+  - { *r: CYD ,*a: O, *e: -0.76511 }
+  - { *r: CYD ,*a: 1HB, *e: 0.12155 }
+  - { *r: CYD ,*a: 2HB, *e: 0.12155 }
   - { *r: CYS:cterm ,*a: OXT, *e: -0.6079 }
   - { *r: CYS:cterm ,*a: O, *e: -0.6079 }
   - { *r: CYS:cterm ,*a: C, *e: 0.2158 }
@@ -310,6 +321,16 @@ atom_charge_parameters:
   - { *r: CYS:nterm ,*a: 2H, *e: 0.2946 }
   - { *r: CYS:nterm ,*a: 3H, *e: 0.2946 }
   - { *r: CYS ,*a: SG, *e: -0.31063 }
+  - { *r: CYD:cterm ,*a: OXT, *e: -0.6079 }
+  - { *r: CYD:cterm ,*a: O, *e: -0.6079 }
+  - { *r: CYD:cterm ,*a: C, *e: 0.2158 }
+  - { *r: CYD:nterm ,*a: N, *e: -0.1987 }
+  - { *r: CYD:nterm ,*a: CA, *e: 0.2006 }
+  - { *r: CYD:nterm ,*a: HA, *e: 0.1144 }
+  - { *r: CYD:nterm ,*a: 1H, *e: 0.2946 }
+  - { *r: CYD:nterm ,*a: 2H, *e: 0.2946 }
+  - { *r: CYD:nterm ,*a: 3H, *e: 0.2946 }
+  - { *r: CYD ,*a: SG, *e: -0.31063 }
   - { *r: GLN ,*a: 1HB, *e: 0.09669 }
   - { *r: GLN ,*a: 1HE2, *e: 0.34378 }
   - { *r: GLN ,*a: 1HG, *e: 0.09669 }
@@ -420,6 +441,15 @@ atom_charge_parameters:
   - { *r: HIS:nterm ,*a: 1H, *e: 0.2946 }
   - { *r: HIS:nterm ,*a: 2H, *e: 0.2946 }
   - { *r: HIS:nterm ,*a: 3H, *e: 0.2946 }
+  - { *r: HIS_D:cterm ,*a: OXT, *e: -0.6079 }
+  - { *r: HIS_D:cterm ,*a: O, *e: -0.6079 }
+  - { *r: HIS_D:cterm ,*a: C, *e: 0.2158 }
+  - { *r: HIS_D:nterm ,*a: N, *e: -0.1987 }
+  - { *r: HIS_D:nterm ,*a: CA, *e: 0.2006 }
+  - { *r: HIS_D:nterm ,*a: HA, *e: 0.1144 }
+  - { *r: HIS_D:nterm ,*a: 1H, *e: 0.2946 }
+  - { *r: HIS_D:nterm ,*a: 2H, *e: 0.2946 }
+  - { *r: HIS_D:nterm ,*a: 3H, *e: 0.2946 }
   - { *r: ILE ,*a: 1HD1, *e: 0.12155 }
   - { *r: ILE ,*a: 1HG1, *e: 0.12155 }
   - { *r: ILE ,*a: 1HG2, *e: 0.12155 }

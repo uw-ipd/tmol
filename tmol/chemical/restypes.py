@@ -439,10 +439,15 @@ class ResidueTypeSet:
             for r in chemical_db.residues
         ]
         restype_map = groupby(lambda restype: restype.name3, residue_types)
-        return cls(residue_types=residue_types, restype_map=restype_map)
+        return cls(
+            residue_types=residue_types,
+            restype_map=restype_map,
+            chem_db=chemical_db,
+        )
 
     residue_types: Sequence[RefinedResidueType]
     restype_map: Mapping[ResName3, Sequence[RefinedResidueType]]
+    chem_db: PatchedChemicalDatabase
 
 
 @attr.s(slots=True, frozen=True)

@@ -24,15 +24,22 @@ def test_dun_baseline_comparison(ubq_system, torch_device):
     # fa_dun_dev 239.723
     # fa_dun_rot 71.703
     # fa_dun_semi 99.705
+    #
+    # Obs as of 2023/8/3:
     # the discrepency appears to be that residue 1 and residue N are still not getting scored?
     # in R3:
     #                           fa_dun_dev fa_dun_rot fa_dun_semi
     #   MET:NtermProteinFull_1	2.60383    5.11634	  0
+    #
+    # Fix on 2023/8/21:
+    # MET:nterm is now being scored; GLY:cterm would not get scored in any case
+    # dunbrack_rot -- 66.5865 --> 70.649; 4.0625
+    # dunbrack_rotdev -- 237.8934 --> 240.3100; 2.4166
     assert intra_container["dunbrack_rot"].detach().cpu().numpy() == approx(
-        66.5865, rel=1e-3
+        70.6497, rel=1e-3
     )
     assert intra_container["dunbrack_rotdev"].detach().cpu().numpy() == approx(
-        237.8934, rel=1e-3
+        240.3100, rel=1e-3
     )
     assert intra_container["dunbrack_semirot"].detach().cpu().numpy() == approx(
         99.6609, rel=1e-3

@@ -80,11 +80,11 @@ def measure_dihedrals_V_dV(
     ddihe_dxyz[i](3, 0) = dihe.dV_dL(0);
     ddihe_dxyz[i](3, 1) = dihe.dV_dL(1);
     ddihe_dxyz[i](3, 2) = dihe.dV_dL(2);
-  } else if (at1 == -1) {
-    // -1 is sentinel value for undefined phi dihedral
+  } else if (at1 == -2) {
+    // -2 is sentinel value for undefined phi dihedral
     dihedrals[i] = -60.0 * M_PI / 180;
   } else if (at1 == -2) {
-    // -2 is sentinel value for undefined psi dihedral
+    // -3 is sentinel value for undefined psi dihedral
     dihedrals[i] = 60.0 * M_PI / 180;
   }
 }

@@ -139,7 +139,9 @@ def rebuild_poses_if_necessary(
                     all_restypes[id(rt)] = rt
 
         pbt = PackedBlockTypes.from_restype_list(
-            [rt for rt_id, rt in all_restypes.items()], poses.packed_block_types.device
+            poses.packed_block_types.chem_db,
+            [rt for rt_id, rt in all_restypes.items()],
+            poses.packed_block_types.device,
         )
 
         # rebuild the PoseStack with a new packed_block_types

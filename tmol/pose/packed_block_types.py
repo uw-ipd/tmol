@@ -8,6 +8,7 @@ from typing import Sequence
 from tmol.types.torch import Tensor
 
 from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import RefinedResidueType, Residue
 from tmol.utility.tensor.common_operations import join_tensors_and_report_real_entries
 
@@ -22,12 +23,14 @@ def residue_types_from_residues(residues):
 
 @attr.s(auto_attribs=True)
 class PackedBlockTypes:
+    chem_db: PatchedChemicalDatabase
     active_block_types: Sequence[RefinedResidueType]
     restype_index: pandas.Index
 
     max_n_atoms: int
     n_atoms: Tensor[torch.int32][:]  # dim: n_types
     atom_is_real: Tensor[torch.uint8][:, :]  # dim: n_types x max_n_atoms
+    atom_is_hydrogen: Tensor[torch.int32][:, :]  # dim: n_types x max_n_atoms
 
     atom_downstream_of_conn: Tensor[torch.int32][:, :, :]
 
@@ -65,11 +68,17 @@ class PackedBlockTypes:
 
     @classmethod
     def from_restype_list(
-        cls, active_block_types: Sequence[RefinedResidueType], device: torch.device
+        cls,
+        chem_db: PatchedChemicalDatabase,
+        active_block_types: Sequence[RefinedResidueType],
+        device: torch.device,
     ):
         max_n_atoms = cls.count_max_n_atoms(active_block_types)
         n_atoms = cls.count_n_atoms(active_block_types, device)
         atom_is_real = cls.determine_real_atoms(max_n_atoms, n_atoms, device)
+        atom_is_hydrogen = cls.determine_h_atoms(
+            chem_db, max_n_atoms, n_atoms, active_block_types, device
+        )
         restype_index = pandas.Index([restype.name for restype in active_block_types])
         atom_downstream_of_conn = cls.join_atom_downstream_of_conn(
             active_block_types, device
@@ -89,11 +98,13 @@ class PackedBlockTypes:
         )
 
         return cls(
+            chem_db=chem_db,
             active_block_types=active_block_types,
             restype_index=restype_index,
             max_n_atoms=max_n_atoms,
             n_atoms=n_atoms,
             atom_is_real=atom_is_real,
+            atom_is_hydrogen=atom_is_hydrogen,
             atom_downstream_of_conn=atom_downstream_of_conn,
             atom_paths_from_conn=atom_paths_from_conn,
             max_n_torsions=torsion_is_real.shape[1],
@@ -146,6 +157,26 @@ class PackedBlockTypes:
                 )
             ]
         ).reshape(n_atoms.shape[0], max_n_atoms)
+
+    @classmethod
+    def determine_h_atoms(
+        cls,
+        chem_db: PatchedChemicalDatabase,
+        max_n_atoms: int,
+        n_atoms: Tensor[torch.int32][:],
+        active_block_types,
+        device: torch.device,
+    ):
+        atom_is_hydrogen = torch.zeros(
+            (n_atoms.shape[0], max_n_atoms), dtype=torch.int32
+        )
+        atype_element = {atype.name: atype.element for atype in chem_db.atom_types}
+
+        for i, bt in enumerate(active_block_types):
+            for j, at in enumerate(bt.atoms):
+                atype_is_h = atype_element[at.atom_type] == "H"
+                atom_is_hydrogen[i, j] = atype_is_h
+        return atom_is_hydrogen.to(device=device)
 
     @classmethod
     def join_atom_downstream_of_conn(
@@ -273,15 +304,19 @@ class PackedBlockTypes:
         )
 
     def cpu(self):
+        # TO DO: this really should transform all the data members of
+        # the instance, not just the data members of the class
         def cpu_equiv(x):
             return x.cpu() if hasattr(x, "cpu") else x
 
         new_inst = PackedBlockTypes(
+            chem_db=self.chem_db,
             active_block_types=cpu_equiv(self.active_block_types),
             restype_index=cpu_equiv(self.restype_index),
             max_n_atoms=cpu_equiv(self.max_n_atoms),
             n_atoms=cpu_equiv(self.n_atoms),
             atom_is_real=cpu_equiv(self.atom_is_real),
+            atom_is_hydrogen=cpu_equiv(self.atom_is_hydrogen),
             atom_downstream_of_conn=cpu_equiv(self.atom_downstream_of_conn),
             atom_paths_from_conn=cpu_equiv(self.atom_paths_from_conn),
             max_n_torsions=cpu_equiv(self.max_n_torsions),

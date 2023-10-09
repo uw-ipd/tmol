@@ -35,17 +35,19 @@ def test_annotate_packed_block_types_smoke(default_database, torch_device):
     for restype in all_restypes:
         sampler.annotate_residue_type(restype)
 
-    pbt = PackedBlockTypes.from_restype_list(all_restypes, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, all_restypes, torch_device
+    )
     sampler.annotate_packed_block_types(pbt)
 
 
 def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
     torch_device = torch.device("cpu")
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[5:11], torch_device
+        default_database.chemical, ubq_res[5:11], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:7], torch_device
+        default_database.chemical, ubq_res[:7], torch_device
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(default_restype_set)

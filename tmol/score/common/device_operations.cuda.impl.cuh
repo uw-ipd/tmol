@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef __NVCC__
+error_this_should_not_be_compiled();  // gcc should not include this file
+#endif
+
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
 #include <moderngpu/cta_reduce.hxx>
