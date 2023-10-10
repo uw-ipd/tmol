@@ -10,6 +10,7 @@ from .hbond import HBondDatabase
 from .ljlk import LJLKDatabase
 from .omega import OmegaDatabase  # once scoring refactoring is done this can be removed
 from .rama import RamaDatabase
+from .ref import RefDatabase
 from .omega_bbdep import OmegaBBDepDatabase
 
 
@@ -25,6 +26,7 @@ class ScoringDatabase:
     omega: OmegaDatabase
     omega_bbdep: OmegaBBDepDatabase
     rama: RamaDatabase
+    ref: RefDatabase
 
     @classmethod
     def from_file(cls, path=os.path.dirname(__file__)):  # noqa
@@ -50,4 +52,5 @@ class ScoringDatabase:
             rama=RamaDatabase.from_files(
                 os.path.join(path, "rama.yaml"), os.path.join(path, "rama.zip")
             ),
+            ref=RefDatabase.from_file(os.path.join(path, "ref.yaml")),
         )

@@ -21,5 +21,6 @@ class ScoreType(AutoNumber):
     lk_bridge_uncpl = ()
     omega = ()
     rama = ()
+    ref = ()
     # keep this one last
     n_score_types = ()

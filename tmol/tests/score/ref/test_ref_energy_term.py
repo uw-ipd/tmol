@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
+from tmol.score.ref.ref_energy_term import RefEnergyTerm
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
@@ -9,74 +9,71 @@ from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device: torch.device):
-    dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
+    ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
 
-    assert dunbrack_energy.device == torch_device
+    assert ref_energy.device == torch_device
 
 
-def test_annotate_block_types(ubq_res, default_database, torch_device: torch.device):
-    dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
+def test_annotate_block_types(
+    rts_ubq_res, default_database, torch_device: torch.device
+):
+    ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
 
-    bt_list = residue_types_from_residues(ubq_res)
+    bt_list = residue_types_from_residues(rts_ubq_res)
     pbt = PackedBlockTypes.from_restype_list(bt_list, torch_device)
 
     for bt in bt_list:
-        dunbrack_energy.setup_block_type(bt)
-    dunbrack_energy.setup_packed_block_types(pbt)
+        ref_energy.setup_block_type(bt)
+        assert hasattr(bt, "ref_weight")
+    ref_energy.setup_packed_block_types(pbt)
+    assert hasattr(pbt, "ref_weights")
+    ref_weights = pbt.ref_weights
+    ref_energy.setup_packed_block_types(pbt)
 
-    assert hasattr(pbt, "dunbrack_packed_block_data")
-
-    first_tensor = pbt.dunbrack_packed_block_data[0]
-
-    assert first_tensor.device == torch_device
-    dunbrack_energy.setup_packed_block_types(pbt)
-    assert first_tensor is pbt.dunbrack_packed_block_data[0]
+    assert pbt.ref_weights.device == torch_device
+    assert (
+        pbt.ref_weights is ref_weights
+    )  # Test to make sure the parameters remain the same instance
 
 
 def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
-    dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
+    ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
-        dunbrack_energy.setup_block_type(bt)
-    dunbrack_energy.setup_packed_block_types(p1.packed_block_types)
-    dunbrack_energy.setup_poses(p1)
+        ref_energy.setup_block_type(bt)
+    ref_energy.setup_packed_block_types(p1.packed_block_types)
+    ref_energy.setup_poses(p1)
 
-    dunbrack_pose_scorer = dunbrack_energy.render_whole_pose_scoring_module(p1)
+    ref_pose_scorer = ref_energy.render_whole_pose_scoring_module(p1)
 
     def score(coords):
-        scores = dunbrack_pose_scorer(coords)
+        scores = ref_pose_scorer(coords)
         return torch.sum(scores)
 
-    gradcheck(
-        score,
-        (p1.coords.requires_grad_(True),),
-        eps=1e-2,
-        atol=4e-2,
-        raise_exception=True,
-    )
+    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-2, rtol=5e-3)
 
 
 def test_whole_pose_scoring_module_single(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
-    gold_vals = numpy.array([[70.6497], [240.3100], [99.6609]], dtype=numpy.float32)
-    dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
+    gold_vals = numpy.array([[-41.275]], dtype=numpy.float32)
+    ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
-        dunbrack_energy.setup_block_type(bt)
-    dunbrack_energy.setup_packed_block_types(p1.packed_block_types)
-    dunbrack_energy.setup_poses(p1)
+        ref_energy.setup_block_type(bt)
+    ref_energy.setup_packed_block_types(p1.packed_block_types)
+    ref_energy.setup_poses(p1)
 
-    dunbrack_pose_scorer = dunbrack_energy.render_whole_pose_scoring_module(p1)
+    ref_pose_scorer = ref_energy.render_whole_pose_scoring_module(p1)
 
     coords = torch.nn.Parameter(p1.coords.clone())
-    scores = dunbrack_pose_scorer(coords)
+    scores = ref_pose_scorer(coords)
 
     # make sure we're still good
     torch.arange(100, device=torch_device)
@@ -90,24 +87,23 @@ def test_whole_pose_scoring_module_10(
     rts_ubq_res, default_database, torch_device: torch.device
 ):
     n_poses = 10
-    gold_vals = numpy.tile(
-        numpy.array([[70.6497], [240.3100], [99.6609]], dtype=numpy.float32), (n_poses)
-    )
-    dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
+    gold_vals = numpy.tile(numpy.array([[-41.275]], dtype=numpy.float32), (n_poses))
+    ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:
-        dunbrack_energy.setup_block_type(bt)
-    dunbrack_energy.setup_packed_block_types(pn.packed_block_types)
-    dunbrack_energy.setup_poses(pn)
+        ref_energy.setup_block_type(bt)
+    ref_energy.setup_packed_block_types(pn.packed_block_types)
 
-    dunbrack_pose_scorer = dunbrack_energy.render_whole_pose_scoring_module(pn)
+    ref_energy.setup_poses(pn)
+
+    ref_pose_scorer = ref_energy.render_whole_pose_scoring_module(pn)
 
     coords = torch.nn.Parameter(pn.coords.clone())
-    scores = dunbrack_pose_scorer(coords)
+    scores = ref_pose_scorer(coords)
 
     # make sure we're still good
     torch.arange(100, device=torch_device)
@@ -124,13 +120,11 @@ def test_whole_pose_scoring_module_jagged(
     rts_ubq_40 = rts_ubq_res[:40]
     gold_vals = numpy.array(
         [
-            [70.6497, 47.4000, 31.5526],
-            [240.3100, 166.3346, 134.1252],
-            [99.6609, 86.4587, 55.4957],
+            [-41.275, -39.42759, -32.83142],
         ],
         dtype=numpy.float32,
     )
-    dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
+    ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         default_database.chemical, res=rts_ubq_res, device=torch_device
     )
@@ -143,14 +137,14 @@ def test_whole_pose_scoring_module_jagged(
     pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:
-        dunbrack_energy.setup_block_type(bt)
-    dunbrack_energy.setup_packed_block_types(pn.packed_block_types)
-    dunbrack_energy.setup_poses(pn)
+        ref_energy.setup_block_type(bt)
+    ref_energy.setup_packed_block_types(pn.packed_block_types)
+    ref_energy.setup_poses(pn)
 
-    dunbrack_pose_scorer = dunbrack_energy.render_whole_pose_scoring_module(pn)
+    ref_pose_scorer = ref_energy.render_whole_pose_scoring_module(pn)
 
     coords = torch.nn.Parameter(pn.coords.clone())
-    scores = dunbrack_pose_scorer(coords)
+    scores = ref_pose_scorer(coords)
 
     # make sure we're still good
     torch.arange(100, device=torch_device)
