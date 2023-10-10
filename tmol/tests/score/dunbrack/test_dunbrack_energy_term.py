@@ -18,7 +18,9 @@ def test_annotate_block_types(ubq_res, default_database, torch_device: torch.dev
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
 
     bt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(bt_list, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, bt_list, torch_device
+    )
 
     for bt in bt_list:
         dunbrack_energy.setup_block_type(bt)
