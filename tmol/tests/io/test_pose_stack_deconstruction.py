@@ -2,14 +2,11 @@ import torch
 import numpy
 
 from tmol.io.pose_stack_deconstruction import (
-    _annotate_packed_block_types_w_termini_types,
     canonical_form_from_pose_stack,
 )
 from tmol.io.canonical_ordering import (
     canonical_form_from_pdb_lines,
     max_n_canonical_atoms,
-    ordered_canonical_aa_types,
-    ordered_canonical_aa_atoms_v2,
 )
 
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
@@ -90,9 +87,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         cf_orig_coords4,
         cf_orig_at_is_pres4,
     ) = tuple(x.clone() for x in canonical_form4)
-    torch.set_printoptions(threshold=10000)
-    print("cf_orig_coords4")
-    print(cf_orig_coords4)
+
     canonical_form6 = canonical_form_from_pdb_lines(ubq_lines6, torch_device)
     # unpack
     (
@@ -101,8 +96,6 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         cf_orig_coords6,
         cf_orig_at_is_pres6,
     ) = tuple(x.clone() for x in canonical_form6)
-    print("cf_orig_coords6")
-    print(cf_orig_coords6)
 
     orig_chain_id = torch.full((2, 6), -1, dtype=torch.int32, device=torch_device)
     orig_res_types = torch.full((2, 6), -1, dtype=torch.int32, device=torch_device)
@@ -148,13 +141,6 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         res_not_connected,
     ) = restored_canonical_form
 
-    # print("cf_coords")
-    # print(cf_coords)
-    # numpy.testing.assert_equal(cf_orig_chain_id.cpu().numpy(), cf_orig_chain_id2.cpu().numpy())
-    # numpy.testing.assert_equal(cf_orig_res_types.cpu().numpy(), cf_orig_res_types2.cpu().numpy())
-    # numpy.testing.assert_equal(cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy())
-    # numpy.testing.assert_equal(cf_orig_at_is_pres.cpu().numpy(), cf_orig_at_is_pres2.cpu().numpy())
-
     assert chain_id.device == torch_device
     assert cf_res_types.device == torch_device
     assert cf_coords.device == torch_device
@@ -162,9 +148,6 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     assert res_not_connected.device == torch_device
     numpy.testing.assert_equal(chain_id.cpu().numpy(), orig_chain_id.cpu().numpy())
     numpy.testing.assert_equal(cf_res_types.cpu().numpy(), orig_res_types.cpu().numpy())
-    # print("diffs")
-    # print(numpy.nonzero(cf_coords.cpu().numpy() != orig_coords.cpu().numpy()))
-    # print(cf_coords.cpu().numpy()[cf_coords.cpu().numpy() != orig_coords.cpu().numpy()])
 
     numpy.testing.assert_equal(cf_coords.cpu().numpy(), orig_coords.cpu().numpy())
     numpy.testing.assert_equal(
@@ -338,26 +321,3 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
     numpy.testing.assert_equal(
         res_not_connected.cpu().numpy(), res_not_connected_orig_np
     )
-
-
-####
-#     numpy.set_printoptions(threshold=100000)
-#     # print("nan coords")
-#     # print(numpy.isnan(np_cf_coords[np_cf_orig_at_is_pres]))
-#
-#     can_coord_is_nan = numpy.zeros((chain_id.shape[0], chain_id.shape[1], max_n_canonical_atoms), dtype=numpy.bool)
-#     # print("numpy.isnan(np_cf_coords[np_cf_orig_at_is_pres])", numpy.isnan(np_cf_coords[np_cf_orig_at_is_pres]).shape)
-#     can_coord_is_nan[np_cf_orig_at_is_pres] = numpy.any(numpy.isnan(np_cf_coords[np_cf_orig_at_is_pres]), axis=1)
-#
-#     for i in range(chain_id.shape[0]):
-#         for j in range(chain_id.shape[1]):
-#             can_rt = ordered_canonical_aa_types[cf_orig_res_types[i, j]]
-#             can_rt_at_names = ordered_canonical_aa_atoms_v2[can_rt]
-#             for k, at in enumerate(can_rt_at_names):
-#                 if can_coord_is_nan[i, j, k]:
-#                     print("nan for", i, j, k, can_rt, at, cf_orig_coords[i, j, k])
-#
-#
-#
-#     # print("coords"),
-#     # print(np_cf_coords[np_cf_orig_at_is_pres] - np_cf_orig_coords[np_cf_orig_at_is_pres])

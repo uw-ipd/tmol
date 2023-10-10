@@ -3,8 +3,6 @@ import torch
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.io.canonical_ordering import (
-    ordered_canonical_aa_types,
-    ordered_canonical_aa_atoms_v2,
     max_n_canonical_atoms,
 )
 from tmol.io.chain_deduction import chain_inds_for_pose_stack
@@ -35,14 +33,6 @@ def canonical_form_from_pose_stack(pose_stack: PoseStack, chain_id=None):
     real_bt_inds64 = pose_stack.block_type_ind[is_real_block].to(torch.int64)
     cf_res_types[is_real_block] = pbt.bt_ind_to_canonical_ind[real_bt_inds64]
 
-    # not necessarily all blocks in the pose are representable
-    # in the canonical form; in the future, this will not
-    # necessarily be true, that any block type you can put in
-    # a PoseStack you can also put in a canonical form, BUT,
-    # for right now, canonical form only includes
-    # the canonical amino acids
-    is_cf_real_res = cf_res_types != -1
-
     expanded_coords, _ = pose_stack.expand_coords()
     block_atom_is_real = torch.zeros(
         (n_poses, max_n_res, max_n_atoms_per_res), dtype=torch.bool, device=device
@@ -56,15 +46,6 @@ def canonical_form_from_pose_stack(pose_stack: PoseStack, chain_id=None):
     # block_coord_is_real = block_atom_is_real.unsqueeze(3)
     # block_coord_is_real = block_coord_is_real.expand(-1, -1, -1, 3)
 
-    canonical_atom_inds = torch.full(
-        (n_poses, max_n_res, max_n_canonical_atoms),
-        -1,
-        dtype=torch.int32,
-        device=device,
-    )
-    is_real_canonical_atom = torch.zeros(
-        (n_poses, max_n_res, max_n_canonical_atoms), dtype=torch.bool, device=device
-    )
     canonical_atom_inds_for_bt = pbt.canonical_atom_ind_map[real_bt_inds64]
     is_real_canonical_atom_ind_for_bt = canonical_atom_inds_for_bt != -1
     real_canonical_atom_inds_for_bt = canonical_atom_inds_for_bt[
