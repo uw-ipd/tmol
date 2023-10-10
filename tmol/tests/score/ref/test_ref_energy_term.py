@@ -20,7 +20,9 @@ def test_annotate_block_types(
     ref_energy = RefEnergyTerm(param_db=default_database, device=torch_device)
 
     bt_list = residue_types_from_residues(rts_ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(bt_list, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, bt_list, torch_device
+    )
 
     for bt in bt_list:
         ref_energy.setup_block_type(bt)
