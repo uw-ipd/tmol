@@ -43,35 +43,18 @@ def canonical_form_from_pose_stack(pose_stack: PoseStack, chain_id=None):
         nz_res_ind_for_real_atom,
         nz_block_atom_ind_for_real_atom,
     ) = torch.nonzero(block_atom_is_real, as_tuple=True)
-    # block_coord_is_real = block_atom_is_real.unsqueeze(3)
-    # block_coord_is_real = block_coord_is_real.expand(-1, -1, -1, 3)
 
     canonical_atom_inds_for_bt = pbt.canonical_atom_ind_map[real_bt_inds64]
     is_real_canonical_atom_ind_for_bt = canonical_atom_inds_for_bt != -1
     real_canonical_atom_inds_for_bt = canonical_atom_inds_for_bt[
         is_real_canonical_atom_ind_for_bt
     ]
-    # is_real_canonical_atom[
-    #     nz_pose_ind_for_real_atom,
-    #     nz_block_ind_for_real_atom,
-    #     canonical_atom_inds
-    # ] = True
-    # canonical_atom_inds[is_real_canonical_atom] = pbt.canonical_atom_ind_map[pose_stack.block_type_ind[is_real_block]]
-    # is_real_canonical_atom = canonical_atom_inds != -1
-    # real_atom_inds = canonical_atom_inds[is_real_canonical_atom]
-
     cf_coords = torch.full(
         (n_poses, max_n_res, max_n_canonical_atoms, 3),
         torch.nan,
         dtype=torch.float32,
         device=device,
     )
-    # print("nz_pose_ind_for_real_atom", nz_pose_ind_for_real_atom.shape)
-    # print("nz_res_ind_for_real_atom", nz_res_ind_for_real_atom.shape)
-    # print("real_canonical_atom_inds_for_bt", real_canonical_atom_inds_for_bt.shape)
-    # print("block_atom_is_real", block_atom_is_real.shape)
-    # print("expanded coords", expanded_coords.shape)
-    # print("expanded coords[block_atom_is_real]", expanded_coords[block_atom_is_real].shape)
 
     cf_coords[
         nz_pose_ind_for_real_atom,
@@ -108,8 +91,6 @@ def canonical_form_from_pose_stack(pose_stack: PoseStack, chain_id=None):
     redundant_dslf_tuples = torch.cat(
         (_u1(nz_pose_ind_for_dslf), _u1(nz_res_ind_for_dslf), _u1(dslf_partner)), dim=1
     )
-    # print("nz_pose_ind_for_dslf", nz_pose_ind_for_dslf.shape)
-    # print("redundant_dslf_tuples", redundant_dslf_tuples.shape)
     is_non_redundant_dslf_tuple = (
         redundant_dslf_tuples[:, 1] < redundant_dslf_tuples[:, 2]
     )
@@ -229,23 +210,6 @@ def determine_res_not_connected_from_pose_stack(
     )
     res_next_ind = res_arange + 1
     res_prev_ind = res_arange - 1
-    # print("nz_down_conn_pose_ind", nz_down_conn_pose_ind.shape)
-    # print("nz_down_conn_res_ind", nz_down_conn_res_ind.shape)
-    # print("res_down_conn", res_down_conn.shape)
-    # print("res_has_down_conn", res_has_down_conn.shape)
-    # print("res_down_conn[res_has_down_conn]", res_down_conn[res_has_down_conn].shape)
-    # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections.shape)
-    # print("pose_stack.inter_residue_connections[nz_down_conn_pose_ind,nz_down_conn_res_ind,res_down_conn[res_has_down_conn]]"
-    #       , pose_stack.inter_residue_connections[
-    #         nz_down_conn_pose_ind,
-    #         nz_down_conn_res_ind,
-    #         res_down_conn[res_has_down_conn]
-    #     ].shape
-    #       )
-    # print("res_prev_ind", res_prev_ind.shape)
-    # print("nz_down_conn_pose_ind", nz_down_conn_pose_ind.shape)
-    # print("nz_down_conn_res_ind", nz_down_conn_res_ind.shape)
-    # print("res_prev_ind[nz_down_conn_pose_ind,nz_down_conn_res_ind]", res_prev_ind[nz_down_conn_pose_ind,nz_down_conn_res_ind].shape)
     is_res_disconnected_from_prev[nz_down_conn_pose_ind, nz_down_conn_res_ind] = (
         pose_stack.inter_residue_connections[
             nz_down_conn_pose_ind,
