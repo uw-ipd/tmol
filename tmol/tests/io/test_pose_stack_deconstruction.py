@@ -78,6 +78,104 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     numpy.testing.assert_equal(res_not_connected.cpu().numpy(), gold_res_not_connected)
 
 
+def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
+    ubq_lines4 = ubq_pdb[: 81 * 75]
+    ubq_lines6 = ubq_pdb[: 81 * 113]
+
+    canonical_form4 = canonical_form_from_pdb_lines(ubq_lines4, torch_device)
+    # unpack
+    (
+        cf_orig_chain_id4,
+        cf_orig_res_types4,
+        cf_orig_coords4,
+        cf_orig_at_is_pres4,
+    ) = tuple(x.clone() for x in canonical_form4)
+    torch.set_printoptions(threshold=10000)
+    print("cf_orig_coords4")
+    print(cf_orig_coords4)
+    canonical_form6 = canonical_form_from_pdb_lines(ubq_lines6, torch_device)
+    # unpack
+    (
+        cf_orig_chain_id6,
+        cf_orig_res_types6,
+        cf_orig_coords6,
+        cf_orig_at_is_pres6,
+    ) = tuple(x.clone() for x in canonical_form6)
+    print("cf_orig_coords6")
+    print(cf_orig_coords6)
+
+    orig_chain_id = torch.full((2, 6), -1, dtype=torch.int32, device=torch_device)
+    orig_res_types = torch.full((2, 6), -1, dtype=torch.int32, device=torch_device)
+    orig_coords = torch.full(
+        (2, 6, max_n_canonical_atoms, 3), numpy.nan, device=torch_device
+    )
+    orig_at_is_pres = torch.full(
+        (2, 6, max_n_canonical_atoms), 0, dtype=torch.int32, device=torch_device
+    )
+    orig_res_not_connected = torch.zeros(
+        (2, 6, 2), dtype=torch.bool, device=torch_device
+    )
+
+    orig_chain_id[0, :4] = cf_orig_chain_id4
+    orig_chain_id[1, :6] = cf_orig_chain_id6
+    orig_res_types[0, :4] = cf_orig_res_types4
+    orig_res_types[1, :6] = cf_orig_res_types6
+    orig_coords[0, :4] = cf_orig_coords4
+    orig_coords[1, :6] = cf_orig_coords6
+    orig_at_is_pres[0, :4] = cf_orig_at_is_pres4
+    orig_at_is_pres[1, :6] = cf_orig_at_is_pres6
+    # orig_res_not_connected[0, 0, 0] = True
+    # orig_res_not_connected[1, 0, 0] = True
+    orig_res_not_connected[0, 3, 1] = True  # don't add OXT
+    orig_res_not_connected[1, 5, 1] = True  # don't add OXT
+
+    pose_stack = pose_stack_from_canonical_form(
+        orig_chain_id,
+        orig_res_types,
+        orig_coords,
+        orig_at_is_pres,
+        res_not_connected=orig_res_not_connected,
+    )
+
+    restored_canonical_form = canonical_form_from_pose_stack(pose_stack)
+
+    (
+        chain_id,
+        cf_res_types,
+        cf_coords,
+        atom_is_present,
+        disulfides,
+        res_not_connected,
+    ) = restored_canonical_form
+
+    # print("cf_coords")
+    # print(cf_coords)
+    # numpy.testing.assert_equal(cf_orig_chain_id.cpu().numpy(), cf_orig_chain_id2.cpu().numpy())
+    # numpy.testing.assert_equal(cf_orig_res_types.cpu().numpy(), cf_orig_res_types2.cpu().numpy())
+    # numpy.testing.assert_equal(cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy())
+    # numpy.testing.assert_equal(cf_orig_at_is_pres.cpu().numpy(), cf_orig_at_is_pres2.cpu().numpy())
+
+    assert chain_id.device == torch_device
+    assert cf_res_types.device == torch_device
+    assert cf_coords.device == torch_device
+    assert atom_is_present.device == torch_device
+    assert res_not_connected.device == torch_device
+    numpy.testing.assert_equal(chain_id.cpu().numpy(), orig_chain_id.cpu().numpy())
+    numpy.testing.assert_equal(cf_res_types.cpu().numpy(), orig_res_types.cpu().numpy())
+    # print("diffs")
+    # print(numpy.nonzero(cf_coords.cpu().numpy() != orig_coords.cpu().numpy()))
+    # print(cf_coords.cpu().numpy()[cf_coords.cpu().numpy() != orig_coords.cpu().numpy()])
+
+    numpy.testing.assert_equal(cf_coords.cpu().numpy(), orig_coords.cpu().numpy())
+    numpy.testing.assert_equal(
+        atom_is_present.cpu().numpy(), orig_at_is_pres.cpu().numpy()
+    )
+    gold_disulfides = numpy.empty((0, 3), dtype=numpy.int64)
+    numpy.testing.assert_equal(gold_disulfides, disulfides.cpu().numpy())
+
+    numpy.testing.assert_equal(res_not_connected.cpu().numpy(), orig_res_not_connected)
+
+
 def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     canonical_form = canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
     # unpack and copy before pose stack construction
