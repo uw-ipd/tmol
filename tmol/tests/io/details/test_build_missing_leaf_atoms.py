@@ -42,7 +42,7 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
         inter_block_bondsep64,
     ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
 
-    block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
+    block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
     )
 
@@ -165,6 +165,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
                 block_coords,
                 missing_atoms,
                 real_atoms,
+                _,
             ) = take_block_type_atoms_from_canonical(
                 pbt, block_types64, self.coords, at_is_pres
             )
@@ -234,7 +235,7 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
         inter_block_bondsep64,
     ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
 
-    block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
+    block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
     )
 
@@ -298,7 +299,7 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
         inter_block_bondsep64,
     ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
 
-    block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
+    block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
     )
 

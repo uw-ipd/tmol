@@ -297,17 +297,16 @@ def take_block_type_atoms_from_canonical(
     missing_atoms = torch.zeros(
         (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.int32, device=pbt.device
     )
+    real_canonical_atom_inds = canonical_atom_inds[real_atoms]
     block_coords[real_atoms] = coords[
-        nz_real_pose_ind, nz_real_block_ind, canonical_atom_inds[real_atoms]
+        nz_real_pose_ind, nz_real_block_ind, real_canonical_atom_inds
     ]
     missing_atoms[real_atoms] = (
-        atom_is_present[
-            nz_real_pose_ind, nz_real_block_ind, canonical_atom_inds[real_atoms]
-        ]
+        atom_is_present[nz_real_pose_ind, nz_real_block_ind, real_canonical_atom_inds]
         == 0
     ).to(torch.int32)
 
-    return block_coords, missing_atoms, real_atoms
+    return (block_coords, missing_atoms, real_atoms, real_canonical_atom_inds)
 
 
 @validate_args
