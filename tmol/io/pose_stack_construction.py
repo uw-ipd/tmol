@@ -252,12 +252,18 @@ def pose_stack_from_canonical_form(
         can_atom_mapping = torch.cat(
             (
                 _u1(nz_block_layout_pose_ind),
-                _u1(nz_block_layout_res_ind),
+                _u1(nz_block_layout_block_ind),
                 _u1(real_canonical_atom_inds),
             ),
             dim=1,
         )
-        ps_atom_mapping = torch.cat((nz_block_layout_pose_ind, pose_atom_ind), dim=1)
+        ps_atom_mapping = torch.cat(
+            (
+                _u1(nz_block_layout_pose_ind),
+                _u1(pose_atom_ind),
+            ),
+            dim=1,
+        )
 
     if return_chain_ind:
         if return_atom_mapping:
