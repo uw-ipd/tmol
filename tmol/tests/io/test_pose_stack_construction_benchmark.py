@@ -1,6 +1,5 @@
 import pytest
-import torch
-from tmol.tests.torch import zero_padded_counts, requires_cuda
+from tmol.tests.torch import zero_padded_counts
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.score import beta2016_score_function
