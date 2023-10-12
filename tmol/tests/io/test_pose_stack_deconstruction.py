@@ -156,7 +156,9 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     gold_disulfides = numpy.empty((0, 3), dtype=numpy.int64)
     numpy.testing.assert_equal(gold_disulfides, disulfides.cpu().numpy())
 
-    numpy.testing.assert_equal(res_not_connected.cpu().numpy(), orig_res_not_connected)
+    numpy.testing.assert_equal(
+        res_not_connected.cpu().numpy(), orig_res_not_connected.cpu().numpy()
+    )
 
 
 def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
