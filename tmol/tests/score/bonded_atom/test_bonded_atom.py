@@ -15,7 +15,7 @@ def test_bonded_atom_two_iterations(rts_ubq_res, default_database, torch_device)
     )
 
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res[0:1], device=torch_device
+        default_database.chemical, res=rts_ubq_res[0:1], device=torch_device
     )
     pbt = p1.packed_block_types
     dbt = BondDependentTerm(default_database, torch_device)

@@ -15,6 +15,7 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import (
     RefinedResidueType,
     Residue,
@@ -25,6 +26,7 @@ from tmol.chemical.restypes import (
 
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
 from tmol.pose.pose_stack import PoseStack
+
 
 # from tmol.system.datatypes import connection_metadata_dtype
 from tmol.utility.tensor.common_operations import (
@@ -41,25 +43,29 @@ class PoseStackBuilder:
     @classmethod
     @validate_args
     def one_structure_from_polymeric_residues(
-        cls, res: List[Residue], device: torch.device
+        cls, chem_db: PatchedChemicalDatabase, res: List[Residue], device: torch.device
     ) -> PoseStack:
+        """Archaic form of creating a monomer from a list of Residue objects"""
         residue_connections = find_simple_polymeric_connections(res)
         disulfide_connections = find_disulfide_connections(res)
         residue_connections.extend(disulfide_connections)
         return cls.one_structure_from_residues_and_connections(
-            res, residue_connections, device
+            chem_db, res, residue_connections, device
         )
 
     @classmethod
     @validate_args
     def one_structure_from_residues_and_connections(
         cls,
+        chem_db: PatchedChemicalDatabase,
         res: List[Residue],
         residue_connections: List[Tuple[int, str, int, str]],
         device: torch.device,
     ) -> PoseStack:
         rt_list = residue_types_from_residues(res)
-        packed_block_types = PackedBlockTypes.from_restype_list(rt_list, device)
+        packed_block_types = PackedBlockTypes.from_restype_list(
+            chem_db, rt_list, device
+        )
 
         inter_residue_connections = cls._create_inter_residue_connections(
             res, residue_connections, device
@@ -108,6 +114,11 @@ class PoseStackBuilder:
         cls, pose_stacks: List[PoseStack], device: torch.device
     ) -> PoseStack:
         pbt0 = pose_stacks[0].packed_block_types
+        for ps in pose_stacks:
+            # all PoseStacks must be built from the same chemical database
+            # even if some of the residue types were perhaps created
+            # programmatically instead of being read from an input file
+            assert pbt0.chem_db is ps.packed_block_types.chem_db
         reuse_pbt = all(
             pose_stack.packed_block_types is pbt0 for pose_stack in pose_stacks
         )
@@ -124,7 +135,9 @@ class PoseStackBuilder:
                 if bt.name not in bt_set:
                     bt_set[bt.name] = bt
             uniq_bt = [v for _, v in bt_set.items()]
-            packed_block_types = PackedBlockTypes.from_restype_list(uniq_bt, device)
+            packed_block_types = PackedBlockTypes.from_restype_list(
+                pbt0.chem_db, uniq_bt, device
+            )
 
         max_n_blocks = max(pose_stack.max_n_blocks for pose_stack in pose_stacks)
         coords, block_coord_offset = cls._pack_pose_stack_coords(
@@ -884,7 +897,9 @@ class PoseStackBuilder:
         first_pconn_for_block = torch.zeros(
             (n_poses, max_n_pose_conn), dtype=torch.int32, device=pbt_device
         )
-        first_pconn_for_block[pose_for_block, n_conn_for_block_offset64.ravel()] = 1
+        first_pconn_for_block[
+            pose_for_block[real_blocks.view(-1)], n_conn_for_block_offset64[real_blocks]
+        ] = 1
         # then an inclusive cummulative sum will label all of the
         # connections coming from the same block the same; this
         # will be 1 more than the actual block index for the
@@ -1215,7 +1230,7 @@ class PoseStackBuilder:
         pose_stacks,  #: List["PoseStack"],
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
-        device=torch.device,
+        device: torch.device,
     ):
         n_poses = sum(len(ps) for ps in pose_stacks)
         block_type_ind = torch.full(
@@ -1253,6 +1268,9 @@ class PoseStackBuilder:
 
             df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(list_of_names)
             bt_inds = pbt.bt_mapping_w_lcaa_1lc.iloc[df_inds]["bt_ind"].values
+
+        Note that this will give the base aa type for each 1lc; it will not
+        give you the bt indices of the n- and c-termini
         """
 
         if hasattr(pbt, "bt_mapping_w_lcaa_1lc"):
@@ -1516,10 +1534,10 @@ class PoseStackBuilder:
         res_is_real_and_not_c_term[npose_arange, n_res - 1] = False
 
         connected_up_conn_inds = pbt.up_conn_inds[
-            block_type_ind64[res_is_real_and_not_n_term]
+            block_type_ind64[res_is_real_and_not_c_term]
         ].to(torch.int64)
         connected_down_conn_inds = pbt.down_conn_inds[
-            block_type_ind64[res_is_real_and_not_c_term]
+            block_type_ind64[res_is_real_and_not_n_term]
         ].to(torch.int64)
 
         # TO DO: handle termini patches!
