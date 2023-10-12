@@ -653,6 +653,13 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
     # numpy.set_printoptions(threshold=10000)
     # print("inter_block_bondsep")
     # print(inter_block_bondsep.cpu().numpy())
+    #
+    # print("diffs")
+    # print(torch.nonzero(inter_block_bondsep != inter_block_bondsep_gold))
+    # print("at")
+    # print(inter_block_bondsep[inter_block_bondsep != inter_block_bondsep_gold])
+    # print("vs")
+    # print(inter_block_bondsep_gold[inter_block_bondsep != inter_block_bondsep_gold])
 
     torch.testing.assert_close(inter_block_bondsep, inter_block_bondsep_gold)
 

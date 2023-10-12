@@ -30,8 +30,12 @@ struct AllPairsShortestPathsDispatch {
       InPlaceHeap<D, Int> heap(max_n_nodes);
       std::vector<std::vector<std::pair<int, int>>> edges(max_n_nodes);
       for (int gg = 0; gg < n_graphs; ++gg) {
+        // reset from previous iteration
         for (int ii = 0; ii < max_n_nodes; ++ii) {
           edges[ii].clear();
+        }
+        // construct edge list representation from weight matrix
+        for (int ii = 0; ii < max_n_nodes; ++ii) {
           for (int jj = ii + 1; jj < max_n_nodes; ++jj) {
             Int jj_ii_weight = weights[gg][ii][jj];
             Int ii_jj_weight = weights[gg][jj][ii];
@@ -47,6 +51,7 @@ struct AllPairsShortestPathsDispatch {
           }
         }
 
+        // Reset the weight matrix to the max distance
         for (int ii = 0; ii < max_n_nodes; ++ii) {
           for (int jj = 0; jj < max_n_nodes; ++jj) {
             weights[gg][ii][jj] = cutoff;
