@@ -82,7 +82,10 @@ struct LJLKPoseScoreDispatch {
 
       // should the output be per-pose (npose x nterms x 1 x 1)
       //   or per block-pair (npose x nterms x len x len)
-      bool output_block_pair_energies) -> std::
+      bool output_block_pair_energies,
+
+      // do we need to compute gradients?
+      bool require_gradient) -> std::
       tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>, TPack<Int, 3, D> >;
 
   static auto backward(

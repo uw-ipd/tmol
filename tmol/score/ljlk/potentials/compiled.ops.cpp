@@ -244,7 +244,8 @@ class LJLKPoseScoreOp
 
                   TCAST(type_params),
                   TCAST(global_params),
-                  output_block_pair_energies);
+                  output_block_pair_energies,
+                  coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
