@@ -41,9 +41,10 @@ class CanonicalOrdering:
     restypes_atom_index_mapping: Mapping[str, Mapping[str, int]]
     restypes_default_termini_mapping: Mapping[str, Tuple[str, str]]
     down_termini_variants: Tuple[str, ...]
-    down_termini_variant_added_atoms: Mapping[str, Tuple[str, ...]]
     up_termini_variants: Tuple[str, ...]
-    up_termini_variant_added_atoms: Mapping[str, Tuple[str, ...]]
+
+    termini_variant_added_atoms: Mapping[str, Tuple[str, ...]]
+
     max_n_canonical_atoms: int
 
     @classmethod
@@ -128,8 +129,8 @@ class CanonicalOrdering:
                 if x != ""
             ]
         )
-        up_termini_variant_added_atoms = defaultdict(lambda: set([]))
-        down_termini_variant_added_atoms = defaultdict(lambda: set([]))
+        # up_termini_variant_added_atoms = defaultdict(lambda: set([]))
+        termini_variant_added_atoms = defaultdict(lambda: set([]))
 
         # we need to know which variants create down- and up termini
         # so we can build the right termini types
@@ -140,13 +141,11 @@ class CanonicalOrdering:
                 if rm == "<{down}>":
                     down_termini_types.add(var.display_name)
                     for atom in var.add_atoms:
-                        down_termini_variant_added_atoms[var.display_name].add(
-                            atom.name
-                        )
+                        termini_variant_added_atoms[var.display_name].add(atom.name)
                 elif rm == "<{up}>":
                     up_termini_types.add(var.display_name)
                     for atom in var.add_atoms:
-                        up_termini_variant_added_atoms[var.display_name].add(atom.name)
+                        termini_variant_added_atoms[var.display_name].add(atom.name)
 
         return cls(
             restype_name3s=ordered_restypes,

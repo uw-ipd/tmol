@@ -22,6 +22,7 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 def assign_block_types(
     canonical_ordering: CanonicalOrdering,
     packed_block_types: PackedBlockTypes,
+    atom_is_present: Tensor[torch.int32][:, :, :],
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     res_type_variants: Tensor[torch.int32][:, :],
@@ -45,7 +46,8 @@ def assign_block_types(
 
     # canonical_res_ordering_map dimensioned: [20aas x 3 termini types x 2 special-case variant types]
     # 3 termini types? 0-nterm, 1-mid, 2-cterm,
-    canonical_res_ordering_map = pbt.canonical_res_ordering_map
+    # OLD ALG canonical_res_ordering_map = pbt.canonical_res_ordering_map
+    can_ann = pbt.canonical_ordering_annotations[id(canonical_ordering)]
     res_types64 = res_types.to(torch.int64)
     res_type_variants64 = res_type_variants.to(torch.int64)
     is_real_res = res_types64 != -1
@@ -96,23 +98,64 @@ def assign_block_types(
             dim=1,
         ),
     )
-    n_term_res = torch.logical_and(
+    down_term_res = torch.logical_and(
         chain_first_res, torch.logical_not(res_not_connected[:, :, 0])
     )
-    c_term_res = torch.logical_and(
+    up_term_res = torch.logical_and(
         chain_last_res, torch.logical_not(res_not_connected[:, :, 1])
     )
+    down_not_up_term_res = torch.logical_and(
+        down_term_res, torch.logical_not(up_term_res)
+    )
+    up_not_down_term_res = torch.logical_and(
+        up_term_res, torch.logical_not(down_term_res)
+    )
+    down_and_up_term_res = torch.logical_and(down_term_res, up_term_res)
 
+    # TO DO: n+c term patches
     termini_variants = torch.ones_like(res_types, dtype=torch.int64)
-    termini_variants[n_term_res] = 0
-    termini_variants[c_term_res] = 2
+    termini_variants[down_not_up_term_res] = 0
+    termini_variants[up_not_down_term_res] = 2
+    termini_variants[down_and_up_term_res] = 3
 
-    block_type_ind64 = torch.full_like(res_types64, -1)
-    block_type_ind64[is_real_res] = canonical_res_ordering_map[
+    block_type_candidates = torch.full(
+        (n_poses, max_n_res, canonical_ordering.max_variants_for_fixed_term_and_spcase),
+        -1,
+        dtype=torch.int64,
+        device=device,
+    )
+    is_real_block_type_candidate = torch.zeros(
+        (n_poses, max_n_res, canonical_ordering.max_variants_for_fixed_term_and_spcase),
+        dtype=torch.bool,
+        device=device,
+    )
+    block_type_candidates[is_real_res] = can_ann.var_combo_bt_index[
         res_types64[is_real_res],
         termini_variants[is_real_res],
-        res_type_variants64[is_real_res],
+        res_type_variant64[is_real_res],
     ]
+    is_real_block_type_candidate[is_real_res] = can_ann.var_combo_is_real_bt[
+        res_types64[is_real_res],
+        termini_variants[is_real_res],
+        res_type_variant64[is_real_res],
+    ]
+    n_provided_atoms_absent = torch.zeros(
+        (
+            n_poses,
+            max_n_res,
+            canonical_ordering,
+            max_variants_for_fixed_term_and_spcase,
+        ),
+        dtype=torch.bool,
+        device=device,
+    )
+    s
+
+    # old alg: block_type_ind64[is_real_res] = canonical_res_ordering_map[
+    # old alg:     res_types64[is_real_res],
+    # old alg:     termini_variants[is_real_res],
+    # old alg:     res_type_variants64[is_real_res],
+    # old alg: ]
 
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
     # SHOULD THIS JUST GO IN POSE_STACK_BUILDER AND REPLACE ITS EXISTING CODE???
@@ -311,10 +354,14 @@ def take_block_type_atoms_from_canonical(
     return (block_coords, missing_atoms, real_atoms, real_canonical_atom_inds)
 
 
-class CanonicalOrderingBlockTypeMap:
-    def __init__(self, bt_ordering_map, bt_ind_to_canonical_ind):
-        self.bt_ordering_map = bt_ordering_map
-        self.bt_ind_to_canonical_ind = bt_ind_to_canonical_ind
+@attr.s(auto_attribs=True, frozen=True)
+class CanonicalOrderingAnnotation:
+    max_variants_for_fixed_term_and_spcase: int
+    var_combo_n_blocktypes: Tensor[torch.int64][:, :, :]
+    var_combo_is_real_bt: Tensor[torch.bool][:, :, :, :]
+    var_combo_bt_index: Tensor[torch.int64][:, :, :, :]
+    bt_canonical_atom_is_absent: Tensor[torch.bool][:, :]
+    bt_non_termini_added_canonical_atom_is_present: Tensor[torch.bool][:, :]
 
 
 @validate_args
@@ -334,8 +381,8 @@ def _annotate_packed_block_types_w_canonical_res_order(
     co = canonical_ordering
 
     if (
-        hasattr(pbt, "canonical_ording_annotation")
-        and id(co) in pbt.canonical_ordering_annotation
+        hasattr(pbt, "canonical_ording_annotations")
+        and id(co) in pbt.canonical_ordering_annotations
     ):
         return
 
@@ -453,12 +500,15 @@ def _annotate_packed_block_types_w_canonical_res_order(
         return variants
 
     base_name_set = set([bt.base_name for bt in pbt.active_block_types])
-    default_type_variants = {
+    base_type_variants = {
         base_name: term_and_spcase_variant_lists() for base_name in base_name_set
     }
+    bt_is_non_default_terminus = torch.zeros(
+        (pbt.max_n_types,), dtype=torch.bool, device=device
+    )
 
     # the number of base types in this PBT, which may represent a subset
-    # of the base types in the ChemicalDatabase from whith the CO was
+    # of the base types in the ChemicalDatabase from which the CO was
     # derived
     n_base_types = len(base_name_set)
 
@@ -480,88 +530,164 @@ def _annotate_packed_block_types_w_canonical_res_order(
                     var_is_non_default_term = True
         term_ind = map_term_to_int(var_is_down_term, var_is_up_term)
         spcase_var_ind = map_spcase_var_to_int(var_is_cyd, var_is_hisd)
-        base_type_variants[bt.base_name][term_ind][spcase_var_ind].append(bt)
+        base_type_variants[bt.base_name][term_ind][spcase_var_ind].append((bt, i))
+        bt_is_non_default_terminus[i] = var_is_non_default_term
 
-    max_variants_for_fixed_term_and_spcase = 1
-    for bt in base_type_variants:
-        for i in range(max_n_termini_types):
-            for j in range(max_n_special_case_aa_variant_types):
-                n_vars = len(base_type_variants[bt][i][j])
-                if n_vars > max_variants_for_fixed_term_and_spcase:
-                    max_variants_for_fixed_term_and_spcase = n_vars
+    max_variants_for_fixed_term_and_spcase = max(
+        len(base_type_variants[bt][i][j][0])
+        for bt in base_type_variants
+        for i in range(max_n_termini_types)
+        for j in range(max_n_special_case_aa_variant_types)
+    )
 
     # RESUME WORK HERE
-    bt_var_atom_is_present = torch.zeros(
+    var_combo_bt_index = torch.full(
         (
             n_base_types,
             max_n_termini_types,
             max_n_special_case_aa_variant_types,
             max_variants_for_fixed_term_and_spcase,
+        ),
+        dtype=torch.int64,
+        device=torch.device("cpu"),
+    )
+    var_combo_is_real_bt = torch.zeros(
+        (
+            n_base_types,
+            max_n_termini_types,
+            max_n_special_case_aa_variant_types,
+            max_variants_for_fixed_term_and_spcase,
+        ),
+        dtype=torch.bool,
+        device=torch.device("cpu"),
+    )
+    var_combo_n_blocktypes = torch.zeros(
+        (n_base_types, max_n_termini_types, max_n_special_case_aa_variant_types),
+        dtype=torch.int64,
+        device=torch.device("cpu"),
+    )
+    for i, bt in enumerate(co.restype_name3s):
+        for j in range(max_n_termini_types):
+            for k in range(max_n_special_case_aa_variant_types):
+                var_combo_n_blocktypes[i, j, k] = len(
+                    base_type_variants[bt.base_name][j][k]
+                )
+                for l, (bt, bt_ind) in enumerate(
+                    base_type_variants[bt.base_name][j][k]
+                ):
+                    var_combo_bt_index[i, j, k, l] = bt_ind
+                    var_combo_is_real_bt[i, j, k, l] = True
+
+    # For bt i, canonical atom j, is canonical atom j absent from bt i?
+    # needed so we can compute p & ~b[i]
+    bt_canonical_atom_is_absent = torch.ones(
+        (
+            pbt.n_types,
             co.max_n_canonical_atoms,
         ),
         dtype=torch.bool,
         device=torch.device("cpu"),
     )
+    # For bt i, canonical atom j, is canonical atom j present in bt i
+    # and not put there by a termini variant?
+    bt_non_termini_added_canonical_atom_is_present = torch.zeros(
+        (
+            pbt.n_types,
+            co.max_n_canonical_atoms,
+        ),
+        dtype=torch.bool,
+        device=torch.device("cpu"),
+    )
+    for i, bt in enumerate(pbt.active_block_types):
+        bt_at_names = set([at.name for at in bt.atoms])
+        variants = bt.name(":")[1:]
+        for var in variants:
+            for can_at in co.termini_variant_added_atoms[var]:
+                bt_at_names.remove(can_at)
+        for at_name in bt_at_names:
+            can_ind = restypes_atom_index_mapping[bt.name3][at_name]
+            bt_non_termini_added_canonical_atom_is_present[i, can_ind] = True
 
-    variants_for_blocktypes = defaultdict(list)
-    non_default_termini_types = defaultdict(lambda: set([]))
-    for bt in bt.active_block_types:
-        variants_for_blocktypes[bt.base_name].append(bt)
+    if hasattr(pbt, "canonical_ordering_annotations"):
+        canonical_ordering_annotations = pbt.canonical_ordering_annotations
+    else:
+        canonical_ordering_annotations = {}
+        setattr(pbt, "canonical_ordering_annotations", canonical_ordering_annotations)
+
+    def _d(x):
+        return x.to(pbt.device)
+
+    ann = CanonicalOrderingAnnotation(
+        max_variants_for_fixed_term_and_spcase=max_variants_for_fixed_term_and_spcase,
+        var_combo_n_blocktypes=_d(var_combo_n_blocktypes),
+        var_combo_is_real_bt=_d(var_combo_is_real_bt),
+        var_combo_bt_index=_d(var_combo_bt_index),
+        bt_canonical_atom_is_absent=_d(bt_canonical_atom_is_absent),
+        bt_non_termini_added_canonical_atom_is_present=_d(
+            bt_non_termini_added_canonical_atom_is_present
+        ),
+    )
+    canonical_ordering_annotations[id(co)] = ann
+
+    # variants_for_blocktypes = defaultdict(list)
+    # non_default_termini_types = defaultdict(lambda: set([]))
+    # for bt in bt.active_block_types:
+    #     variants_for_blocktypes[bt.base_name].append(bt)
 
     # forward ordering: from canonical-index + termini type + variant --> block-type index
-    canonical_ordering_map = numpy.full(
-        (len(ordered_canonical_aa_types), max_n_termini_types, max_n_aa_variant_types),
-        -1,
-        dtype=numpy.int32,
-    )
-    bt_ind_to_canonical_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
+    # canonical_ordering_map = numpy.full(
+    #     (len(ordered_canonical_aa_types), max_n_termini_types, max_n_aa_variant_types),
+    #     -1,
+    #     dtype=numpy.int32,
+    # )
+    # bt_ind_to_canonical_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
+    #
+    # def bt_inds_for_variant(base_names, var):
+    #     return pbt.restype_index.get_indexer(
+    #         [
+    #             bt_name if var == "" else ":".join((bt_name, var))
+    #             for bt_name in base_names
+    #         ]
+    #     )
 
-    def bt_inds_for_variant(base_names, var):
-        return pbt.restype_index.get_indexer(
-            [
-                bt_name if var == "" else ":".join((bt_name, var))
-                for bt_name in base_names
-            ]
-        )
-
-    canonical_ordering_map[:, 0, 0] = bt_inds_for_variant(
-        ordered_canonical_aa_types, "nterm"
-    )
-    canonical_ordering_map[:, 1, 0] = bt_inds_for_variant(
-        ordered_canonical_aa_types, ""
-    )
-    canonical_ordering_map[:, 2, 0] = bt_inds_for_variant(
-        ordered_canonical_aa_types, "cterm"
-    )
+    # canonical_ordering_map[:, 0, 0] = bt_inds_for_variant(
+    #     ordered_canonical_aa_types, "nterm"
+    # )
+    # canonical_ordering_map[:, 1, 0] = bt_inds_for_variant(
+    #     ordered_canonical_aa_types, ""
+    # )
+    # canonical_ordering_map[:, 2, 0] = bt_inds_for_variant(
+    #     ordered_canonical_aa_types, "cterm"
+    # )
 
     # NOTE: We have two amino acids with (non-termini) "variants" that we are going to handle
     # CYD, the disulfided CYS is variant 1; CYS is variant 0
     # between HIS and HIS_D, one of them is variant 1 and one is variant 0
-    cys_his_var_names = [
-        "CYD",
-        "HIS_D" if his_taut_variant_ND1_protonated == 1 else "HIS",
-    ]
-    cys_his = (cys_co_aa_ind, his_co_aa_ind)
-    canonical_ordering_map[cys_his, 0, 1] = bt_inds_for_variant(
-        cys_his_var_names, "nterm"
-    )
-    canonical_ordering_map[cys_his, 1, 1] = bt_inds_for_variant(cys_his_var_names, "")
-    canonical_ordering_map[cys_his, 2, 1] = bt_inds_for_variant(
-        cys_his_var_names, "cterm"
-    )
+    # cys_his_var_names = [
+    #     "CYD",
+    #     "HIS_D" if his_taut_variant_ND1_protonated == 1 else "HIS",
+    # ]
+    # cys_his = (cys_co_aa_ind, his_co_aa_ind)
+    # canonical_ordering_map[cys_his, 0, 1] = bt_inds_for_variant(
+    #     cys_his_var_names, "nterm"
+    # )
+    # canonical_ordering_map[cys_his, 1, 1] = bt_inds_for_variant(cys_his_var_names, "")
+    # canonical_ordering_map[cys_his, 2, 1] = bt_inds_for_variant(
+    #     cys_his_var_names, "cterm"
+    # )
 
-    # map from the specific block type to the generic canoncial aa index
-    for i in range(len(canonical_ordering_map)):
-        for j in range(3):
-            for k in range(2):
-                if canonical_ordering_map[i, j, k] != -1:
-                    bt_ind_to_canonical_ind[canonical_ordering_map[i, j, k]] = i
+    # # map from the specific block type to the generic canoncial aa index
+    # for i in range(len(canonical_ordering_map)):
+    #     for j in range(3):
+    #         for k in range(2):
+    #             if canonical_ordering_map[i, j, k] != -1:
+    #                 bt_ind_to_canonical_ind[canonical_ordering_map[i, j, k]] = i
 
     def t(x):
         return torch.tensor(x, dtype=torch.int64, device=pbt.device)
 
-    setattr(pbt, "canonical_res_ordering_map", t(canonical_ordering_map))
-    setattr(pbt, "bt_ind_to_canonical_ind", t(bt_ind_to_canonical_ind))
+    # setattr(pbt, "canonical_res_ordering_map", t(canonical_ordering_map))
+    # setattr(pbt, "bt_ind_to_canonical_ind", t(bt_ind_to_canonical_ind))
 
 
 @validate_args
