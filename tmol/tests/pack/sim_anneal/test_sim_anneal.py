@@ -251,6 +251,7 @@ def dont_test_mc_accept_reject_module_smoke(ubq_res, default_database, torch_dev
         faux_energies,
         accepted,
     )
+    print("called mc_accept_reject go")
 
     # print(accept)
 

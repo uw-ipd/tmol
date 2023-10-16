@@ -1,6 +1,5 @@
 import pytest
-import torch
-from tmol.tests.torch import zero_padded_counts, requires_cuda
+from tmol.tests.torch import zero_padded_counts
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.score import beta2016_score_function
@@ -58,15 +57,14 @@ def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
         return score
 
 
-@requires_cuda
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30]))
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form")
 def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
     benchmark,
     pertuzumab_pdb,
     n_poses,
+    torch_device,
 ):
-    torch_device = torch.device("cuda")
     n_poses = int(n_poses)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         pertuzumab_pdb, torch_device
@@ -87,11 +85,11 @@ def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
         return pose_stack
 
 
-@requires_cuda
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30]))
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form_and_score")
-def test_build_and_score_pertuzumab_benchmark(benchmark, pertuzumab_pdb, n_poses):
-    torch_device = torch.device("cuda")
+def test_build_and_score_pertuzumab_benchmark(
+    benchmark, pertuzumab_pdb, n_poses, torch_device
+):
     n_poses = int(n_poses)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         pertuzumab_pdb, torch_device

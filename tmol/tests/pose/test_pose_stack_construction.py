@@ -547,7 +547,7 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
             ],
             [
                 [0, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala down
-                [6, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala up
+                [2, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala up
                 [6, 1, 0, 2, 3, 6, 6, 6, 6, 6, 6, 6],  # cyd down
                 [6, 6, 2, 0, 3, 1, 6, 6, 6, 6, 6, 6],  # cyd up
                 [6, 6, 3, 3, 0, 6, 6, 6, 6, 1, 6, 6],  # cyd dslf
@@ -610,14 +610,14 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
             ],
             [
                 [
-                    [[0, 2, 6], [6, 0, 6], [6, 6, 6]],
+                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
                     [[3, 5, 6], [1, 3, 4], [6, 6, 6]],
                     [[6, 6, 6], [4, 6, 6], [6, 6, 6]],
                     [[6, 6, 6], [6, 6, 5], [6, 6, 6]],
                     [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
                 ],
                 [
-                    [[6, 1, 6], [6, 3, 6], [6, 4, 6]],
+                    [[3, 1, 6], [5, 3, 6], [6, 4, 6]],
                     [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
                     [[3, 5, 6], [1, 3, 6], [4, 5, 6]],
                     [[6, 6, 4], [4, 6, 4], [4, 4, 1]],
@@ -649,6 +649,17 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
         dtype=torch.int32,
         device=torch_device,
     )
+
+    # numpy.set_printoptions(threshold=10000)
+    # print("inter_block_bondsep")
+    # print(inter_block_bondsep.cpu().numpy())
+    #
+    # print("diffs")
+    # print(torch.nonzero(inter_block_bondsep != inter_block_bondsep_gold))
+    # print("at")
+    # print(inter_block_bondsep[inter_block_bondsep != inter_block_bondsep_gold])
+    # print("vs")
+    # print(inter_block_bondsep_gold[inter_block_bondsep != inter_block_bondsep_gold])
 
     torch.testing.assert_close(inter_block_bondsep, inter_block_bondsep_gold)
 

@@ -49,8 +49,8 @@ steps:
     << : *cuda_container
 
   ### Run tests w/o numba jitting and generate coverage reports
-  - label: ':shrug: Testing - CPU w/o jit'
-    command: .buildkite/bin/testing_no_jit --cov=./tmol --junitxml=testing.cpu.junit.xml
+  - label: ':shrug: Testing - CPU debug, w/o jit'
+    command: .buildkite/bin/testing_debug_no_jit --cov=./tmol --junitxml=testing.cpu.junit.xml
     artifact_paths:
       - testing.cpunojit.junit.xml
       - .coverage

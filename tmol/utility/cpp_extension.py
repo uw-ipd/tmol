@@ -1,4 +1,5 @@
 import pathlib
+import os
 from functools import wraps
 import warnings
 
@@ -21,8 +22,12 @@ warnings.filterwarnings(
 _default_include_paths = list(tmol_include_paths() + extern_include_paths())
 
 _required_flags = ["--std=c++14", "-DWITH_NVTX", "-w"]
-_default_flags = ["-O3"]
-# _default_flags = ["-g", "-Og", "-DDEBUG"]
+
+if os.environ.get("DEBUG"):
+    _default_flags = ["-O3", "-DDEBUG"]
+    # _default_flags = ["-g", "-Og", "-DDEBUG"]
+else:
+    _default_flags = ["-O3"]
 
 
 # TO DO! Look at what OS we're running on
