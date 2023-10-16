@@ -13,6 +13,7 @@ def pose_stack_from_canonical_form(
     find_additional_disulfides: Optional[bool] = True,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     return_chain_ind: bool = False,
+    return_atom_mapping: bool = False,
 ):
     """Create a PoseStack given atom coordinates in canonical ordering
 
@@ -83,6 +84,30 @@ def pose_stack_from_canonical_form(
 
     return_chain_ind: return the chain-index tensor that has been "left-justified"
         from the chain
+
+    return_atom_mapping: return the mapping for atoms in the canonical-form tensor
+        to their PoseStack index; this could be used to update the coordinates
+        in a PoseStack without rebuilding it (as long as the chemical identity
+        is meant to be unchanged) or to perhaps remap derivatives to or from
+        pose stack ordering. If requested, the atom mapping will be the last two
+        arguments returned by this function, as two tensors:
+            ps, t1, t2 = pose_stack_from_canonical_form(
+                ...,
+                return_atom_mapping=True
+            )
+            can_ord_coords[
+                t1[:, 0], t1[:, 1], t1[:, 2]
+            ] = ps.coords[
+                t2[:, 0], t2[:, 1]
+            ]
+        where t1 is a tensor nats x 3 where
+        - position [i, 0] is the pose index
+        - position [i, 1] is the residue index, and
+        - position [i, 2] is the canonical-ordering atom index
+        and t2 is a tensor nats x 2 where
+        - position [i, 0] is the pose index, and
+        - position [i, 1] is the pose-ordered atom index
+
     """
 
     from tmol.io.details.canonical_packed_block_types import (
@@ -114,6 +139,7 @@ def pose_stack_from_canonical_form(
     #         any others that may have been provided
     # step 7: if any atoms missing, build them
     # step 8: construct PoseStack object
+    # step 9: construct the forward/reverse atom mapping indices if required
 
     if atom_is_present is None:
         atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
@@ -165,7 +191,12 @@ def pose_stack_from_canonical_form(
     )
 
     # 6
-    block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
+    (
+        block_coords,
+        missing_atoms,
+        real_atoms,
+        real_canonical_atom_inds,
+    ) = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, atom_is_present
     )
 
@@ -188,11 +219,12 @@ def pose_stack_from_canonical_form(
         return x.to(torch.int32)
 
     # 8
+    block_coord_offset64 = i64(block_coord_offset)
     ps = PoseStack(
         packed_block_types=pbt,
         coords=pose_stack_coords,
         block_coord_offset=block_coord_offset,
-        block_coord_offset64=i64(block_coord_offset),
+        block_coord_offset64=block_coord_offset64,
         inter_residue_connections=inter_residue_connections,
         inter_residue_connections64=inter_residue_connections64,
         inter_block_bondsep=inter_block_bondsep,
@@ -201,7 +233,50 @@ def pose_stack_from_canonical_form(
         block_type_ind64=block_types64,
         device=pbt.device,
     )
+
+    # 9
+    if return_atom_mapping:
+        (
+            nz_block_layout_pose_ind,
+            nz_block_layout_block_ind,
+            nz_block_at_ind,
+        ) = torch.nonzero(real_atoms, as_tuple=True)
+        pose_atom_ind = (
+            block_coord_offset64[nz_block_layout_pose_ind, nz_block_layout_block_ind]
+            + nz_block_at_ind
+        )
+
+        def _u1(x):
+            return x.unsqueeze(1)
+
+        can_atom_mapping = torch.cat(
+            (
+                _u1(nz_block_layout_pose_ind),
+                _u1(nz_block_layout_block_ind),
+                _u1(real_canonical_atom_inds),
+            ),
+            dim=1,
+        )
+        ps_atom_mapping = torch.cat(
+            (
+                _u1(nz_block_layout_pose_ind),
+                _u1(pose_atom_ind),
+            ),
+            dim=1,
+        )
+
     if return_chain_ind:
-        return (ps, chain_id)
+        if return_atom_mapping:
+            return (
+                ps,
+                chain_id,
+                can_atom_mapping,
+                ps_atom_mapping,
+            )
+        else:
+            return (ps, chain_id)
     else:
-        return ps
+        if return_atom_mapping:
+            return (ps, can_atom_mapping, ps_atom_mapping)
+        else:
+            return ps

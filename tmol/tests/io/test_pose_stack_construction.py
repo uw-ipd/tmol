@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
@@ -154,3 +155,18 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
     assert pose_stack.device == torch_device
     assert chain_ind.shape == pose_stack.block_type_ind.shape
     assert chain_ind.device == pose_stack.block_type_ind.device
+
+
+def test_build_pose_stack_from_canonical_form_ubq_w_atom_mapping(torch_device, ubq_pdb):
+    canonical_form = canonical_form_from_pdb_lines(ubq_pdb, torch_device)
+    pose_stack, cf_map, ps_map = pose_stack_from_canonical_form(
+        *canonical_form, return_atom_mapping=True
+    )
+    _1, _2, coords, _3 = canonical_form
+
+    cf_atom_coords = torch.full_like(coords, numpy.nan)
+    cf_atom_coords[cf_map[:, 0], cf_map[:, 1], cf_map[:, 2]] = pose_stack.coords[
+        ps_map[:, 0], ps_map[:, 1]
+    ]
+
+    numpy.testing.assert_equal(coords.cpu().numpy(), cf_atom_coords.cpu().numpy())

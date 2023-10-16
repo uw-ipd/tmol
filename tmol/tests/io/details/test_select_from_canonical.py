@@ -245,17 +245,22 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
         inter_block_bondsep64,
     ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
 
-    block_coords, missing_atoms, real_atoms = take_block_type_atoms_from_canonical(
-        pbt, block_types64, coords, at_is_pres
-    )
+    (
+        block_coords,
+        missing_atoms,
+        real_atoms,
+        real_canonical_atom_inds,
+    ) = take_block_type_atoms_from_canonical(pbt, block_types64, coords, at_is_pres)
 
     assert block_coords.device == torch_device
     assert missing_atoms.device == torch_device
     assert block_types64.device == torch_device
+    assert real_canonical_atom_inds.device == torch_device
 
     assert block_coords.shape == (1, can_rts.shape[1], pbt.max_n_atoms, 3)
     assert missing_atoms.shape == block_coords.shape[:3]
     assert real_atoms.shape == missing_atoms.shape
+    assert real_canonical_atom_inds.dtype == torch.int64
 
     block_coords = block_coords.cpu().numpy()
 
