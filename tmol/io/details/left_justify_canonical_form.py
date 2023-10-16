@@ -10,7 +10,7 @@ def left_justify_canonical_form(
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
-    atom_is_present: Optional[Tensor[torch.int32][:, :, :]] = None,
+    atom_is_present: Optional[Tensor[torch.bool][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
 ):

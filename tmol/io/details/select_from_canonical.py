@@ -78,7 +78,7 @@ def assign_block_types(
     #   will be incomplete (-1) instead of to a particular residue.
     # - If a residue is the last residue in a chain and res_not_connected[p, i, 1]
     #   is true, then it will not be treated as a c-terminal residue.
-    chain_first_res = torch.logical_and(
+    is_chain_first_res = torch.logical_and(
         is_real_res,
         torch.cat(
             (
@@ -88,7 +88,7 @@ def assign_block_types(
             dim=1,
         ),
     )
-    chain_last_res = torch.logical_and(
+    is_chain_last_res = torch.logical_and(
         is_real_res,
         torch.cat(
             (
@@ -98,25 +98,25 @@ def assign_block_types(
             dim=1,
         ),
     )
-    down_term_res = torch.logical_and(
-        chain_first_res, torch.logical_not(res_not_connected[:, :, 0])
+    is_down_term_res = torch.logical_and(
+        is_chain_first_res, torch.logical_not(res_not_connected[:, :, 0])
     )
-    up_term_res = torch.logical_and(
-        chain_last_res, torch.logical_not(res_not_connected[:, :, 1])
+    is_up_term_res = torch.logical_and(
+        is_chain_last_res, torch.logical_not(res_not_connected[:, :, 1])
     )
-    down_not_up_term_res = torch.logical_and(
-        down_term_res, torch.logical_not(up_term_res)
+    is_down_and_not_up_term_res = torch.logical_and(
+        is_down_term_res, torch.logical_not(is_up_term_res)
     )
-    up_not_down_term_res = torch.logical_and(
-        up_term_res, torch.logical_not(down_term_res)
+    is_up_and_not_down_term_res = torch.logical_and(
+        is_up_term_res, torch.logical_not(is_down_term_res)
     )
-    down_and_up_term_res = torch.logical_and(down_term_res, up_term_res)
+    is_both_down_and_up_term_res = torch.logical_and(is_down_term_res, is_up_term_res)
 
     # TO DO: n+c term patches
     termini_variants = torch.ones_like(res_types, dtype=torch.int64)
-    termini_variants[down_not_up_term_res] = 0
-    termini_variants[up_not_down_term_res] = 2
-    termini_variants[down_and_up_term_res] = 3
+    termini_variants[is_down_and_not_up_term_res] = 0
+    termini_variants[is_up_and_not_down_term_res] = 2
+    termini_variants[is_both_down_and_up_term_res] = 3
 
     block_type_candidates = torch.full(
         (n_poses, max_n_res, canonical_ordering.max_variants_for_fixed_term_and_spcase),
