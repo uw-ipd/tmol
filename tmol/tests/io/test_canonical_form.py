@@ -1,19 +1,37 @@
 import numpy
 from tmol.io.canonical_ordering import (
-    # max_n_canonical_atoms,
-    canonical_form_from_pdb_lines,
+    default_canonical_ordering,
+    default_canonical_form_from_pdb_lines,
     CanonicalOrdering,
 )
 
 
 def test_create_canonical_ordering_smoke(default_database):
-    co = CanonicalOrdering.from_chemdb(default_database.chemical)
+    chemdb = default_database.chemical
+    co = CanonicalOrdering.from_chemdb(chemdb)
+
+    n_name3s = len(set([x.name3 for x in chemdb.residues]))
+    assert len(co.restype_name3s) == n_name3s
+    for name3 in co.restype_name3s:
+        assert name3 in co.restypes_ordered_atom_names
+        assert name3 in co.restypes_atom_index_mapping
+
+    assert "nterm" in co.down_termini_variants
+    assert "cterm" in co.up_termini_variants
+    for x in ["H1", "H2", "H3"]:
+        assert x in co.termini_variant_added_atoms["nterm"]
+    assert "OXT" in co.termini_variant_added_atoms["cterm"]
+    assert co.max_n_canonical_atoms >= 28
 
 
-def test_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
-    chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        pertuzumab_pdb, torch_device
-    )
+def test_default_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
+    (
+        chain_id,
+        res_types,
+        coords,
+        atom_is_present,
+    ) = default_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
+    def_co = default_canonical_ordering()
     assert chain_id.device == torch_device
     assert res_types.device == torch_device
     assert coords.device == torch_device
@@ -24,8 +42,8 @@ def test_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
     assert chain_id.shape[1] == res_types.shape[1]
     assert chain_id.shape[1] == coords.shape[1]
     assert chain_id.shape[1] == atom_is_present.shape[1]
-    assert atom_is_present.shape[2] == max_n_canonical_atoms
-    assert coords.shape[2] == max_n_canonical_atoms
+    assert atom_is_present.shape[2] == def_co.max_n_canonical_atoms
+    assert coords.shape[2] == def_co.max_n_canonical_atoms
     assert coords.shape[3] == 3
     chain_id_gold = numpy.zeros(res_types.shape, dtype=numpy.int32)
     chain_id_gold[0, 214:] = 1
@@ -90,9 +108,13 @@ def test_canonical_form_w_unk(torch_device):
         "HETATM 6185  N3  SAM B 402     -13.902  12.803   5.006  1.00 46.34           N\n",
         "HETATM 6186  C4  SAM B 402     -15.231  13.034   5.166  1.00 53.49           C\n",
     ]
-    chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        sam_pdb_lines, torch_device
-    )
+    (
+        chain_id,
+        res_types,
+        coords,
+        atom_is_present,
+    ) = default_canonical_form_from_pdb_lines(sam_pdb_lines, torch_device)
+    def_co = default_canonical_ordering()
 
     assert chain_id.device == torch_device
     assert res_types.device == torch_device
@@ -102,5 +124,5 @@ def test_canonical_form_w_unk(torch_device):
     # three and not four residues because the SAM is ignored
     assert chain_id.shape == (1, 3)
     assert res_types.shape == (1, 3)
-    assert coords.shape == (1, 3, 28, 3)
-    assert atom_is_present.shape == (1, 3, 28)
+    assert coords.shape == (1, 3, def_co.max_n_canonical_atoms, 3)
+    assert atom_is_present.shape == (1, 3, def_co.max_n_canonical_atoms)

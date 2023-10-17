@@ -1,6 +1,7 @@
 import numpy
 import torch
 import attr
+from collections import defaultdict
 
 from tmol.database import ParameterDatabase
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
@@ -48,7 +49,7 @@ class CanonicalOrdering:
     max_n_canonical_atoms: int
 
     @classmethod
-    def extra_atoms():
+    def extra_atoms(cls):
         return {"HIS": ["NN", "NH", "HN"]}
 
     @classmethod
@@ -88,7 +89,7 @@ class CanonicalOrdering:
                     restypes_alt_atom_name_mapping[restype.name3][at.alt_name] = at.name
 
         # note that extra atoms are internal-use only and do not have "alternate" names
-        extra = extra_atoms()
+        extra = cls.extra_atoms()
         for rt_name3, atoms in extra.items():
             for at in atoms:
                 restypes_all_atom_names[rt_name3].add(at)
@@ -101,10 +102,10 @@ class CanonicalOrdering:
             for name3, ordered_atoms in restypes_ordered_atom_names.items()
         }
         for name3, mapping in restypes_alt_atom_name_mapping.items():
-            for alt_name, name in mapping:
+            for alt_name, name in mapping.items():
                 restypes_atom_index_mapping[name3][
                     alt_name
-                ] = restypes_atom_index_mapping[name]
+                ] = restypes_atom_index_mapping[name3][name]
 
         max_n_canonical_atoms = max(
             len(atoms) for _, atoms in restypes_ordered_atom_names.items()
@@ -120,11 +121,11 @@ class CanonicalOrdering:
         #             atom_indices[at] = i
         #     restypes_atom_index_mapping[bt] = atom_indices
 
-        default_termini_mapping = cls_temp_termini_mapping()
+        default_termini_mapping = cls._temp_termini_mapping()
         default_termini_variants = set(
             [
                 x
-                for _, up_down_tuple in default_termini_mapping
+                for _, up_down_tuple in default_termini_mapping.items()
                 for x in up_down_tuple
                 if x != ""
             ]
@@ -153,9 +154,8 @@ class CanonicalOrdering:
             restypes_atom_index_mapping=restypes_atom_index_mapping,
             restypes_default_termini_mapping=default_termini_mapping,
             down_termini_variants=down_termini_types,
-            down_termini_variant_added_atoms=down_termini_variant_added_atoms,
             up_termini_variants=up_termini_types,
-            up_termini_variant_added_atoms=up_termini_variant_added_atoms,
+            termini_variant_added_atoms=termini_variant_added_atoms,
             max_n_canonical_atoms=max_n_canonical_atoms,
         )
 

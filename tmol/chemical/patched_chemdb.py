@@ -4,6 +4,7 @@ from tmol.database.chemical import (
     Element,
     AtomType,
     RawResidueType,
+    VariantType,
     ChemicalDatabase,
     Icoor,
 )
@@ -383,6 +384,7 @@ class PatchedChemicalDatabase:
     element_types: Tuple[Element, ...]
     atom_types: Tuple[AtomType, ...]
     residues: Tuple[RawResidueType, ...]
+    variants: Tuple[VariantType, ...]
 
     @classmethod
     def from_chem_db(cls, chemdb: ChemicalDatabase):
@@ -454,4 +456,5 @@ class PatchedChemicalDatabase:
             element_types=chemdb.element_types,
             atom_types=chemdb.atom_types,
             residues=patched_residues,
+            variants=chemdb.variants,
         )
