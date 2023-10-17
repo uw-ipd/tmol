@@ -2,7 +2,12 @@ import numpy
 from tmol.io.canonical_ordering import (
     # max_n_canonical_atoms,
     canonical_form_from_pdb_lines,
+    CanonicalOrdering,
 )
+
+
+def test_create_canonical_ordering_smoke(default_database):
+    co = CanonicalOrdering.from_chemdb(default_database.chemical)
 
 
 def test_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):

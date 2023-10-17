@@ -51,6 +51,7 @@ def assign_block_types(
     res_types64 = res_types.to(torch.int64)
     res_type_variants64 = res_type_variants.to(torch.int64)
     is_real_res = res_types64 != -1
+    nz_is_real_res = torch.nonzero(is_real_res)
 
     if res_not_connected is None:
         res_not_connected = torch.zeros(
@@ -119,13 +120,13 @@ def assign_block_types(
     termini_variants[is_both_down_and_up_term_res] = 3
 
     block_type_candidates = torch.full(
-        (n_poses, max_n_res, canonical_ordering.max_variants_for_fixed_term_and_spcase),
+        (n_poses, max_n_res, can_ann.max_variants_for_fixed_term_and_spcase),
         -1,
         dtype=torch.int64,
         device=device,
     )
     is_real_block_type_candidate = torch.zeros(
-        (n_poses, max_n_res, canonical_ordering.max_variants_for_fixed_term_and_spcase),
+        (n_poses, max_n_res, can_ann.max_variants_for_fixed_term_and_spcase),
         dtype=torch.bool,
         device=device,
     )
@@ -139,17 +140,111 @@ def assign_block_types(
         termini_variants[is_real_res],
         res_type_variant64[is_real_res],
     ]
-    n_provided_atoms_absent = torch.zeros(
+    provided_atoms_absent_from_canonical = torch.zeros(
         (
             n_poses,
             max_n_res,
-            canonical_ordering,
-            max_variants_for_fixed_term_and_spcase,
+            can_ann.max_variants_for_fixed_term_and_spcase,
+            canonical_order.max_n_canonical_atoms,
         ),
         dtype=torch.bool,
         device=device,
     )
-    s
+    atom_is_present = atom_is_present.unsqueeze(2).expand(
+        -1, -1, can_ann.max_variants_for_fixed_term_and_spcase, -1
+    )
+    var_atom_is_absent = torch.zeros(
+        (
+            n_poses,
+            max_n_res,
+            can_ann.max_variants_for_fixed_term_and_spcase,
+            canonical_order.max_n_canonical_atoms,
+        ),
+        dtype=torch.bool,
+        device=device,
+    )
+    var_atom_is_absent[
+        is_real_block_type_candidate
+    ] = can_ann.bt_canonical_atom_is_absent[
+        block_type_candidates[is_real_block_type_candidate]
+    ]
+    provided_atoms_absent_from_canonical[
+        is_real_block_type_candidate
+    ] = torch.logical_and(
+        atom_is_present[is_real_block_type_candidate],
+        var_atom_is_absent[is_real_block_type_candidate],
+    )
+    # if there are any atoms that were provided for a given residue
+    # but that the variant does not contain, then that is not a match
+    exclude_variant_for_residue = torch.any(provided_atoms_absent_from_canonical, dim=3)
+    atom_is_absent = torch.logical_not(atom_is_present)
+    var_non_termini_atom_is_present = torch.zeros_like(var_atom_is_atom)
+    var_non_termini_atom_is_present[
+        is_real_block_type_candidate
+    ] = can_ann.bt_non_termini_added_canonical_atom_is_present[
+        block_type_candidates[is_real_block_type_candidate]
+    ]
+    canonical_atom_was_not_provided_for_variant = torch.zeros_like(
+        provided_atoms_absent_from_canonical, dtype=torch.int64
+    )
+    canonical_atom_was_not_provided_for_variant[
+        is_real_block_type_candidate
+    ] = torch.logical_and(
+        atom_is_absent[is_real_block_type_candidate],
+        var_non_termini_atom_is_prsent[is_real_block_type_candidate],
+    ).to(
+        torch.int64
+    )
+    var_combo_is_non_default_term = torch.zeros(
+        (n_poses, max_n_residues, can_ann.max_variants_for_fixed_term_and_spcase),
+        dtype=torch.int64,
+        device=device,
+    )
+    var_combo_is_non_default_term[
+        is_real_block_type_candidate
+    ] = can_ann.bt_is_non_default_terminus[
+        block_type_candidates[is_real_block_type_candidate]
+    ].to(
+        torch.int64
+    )
+
+    n_canonical_atoms_not_provided_for_var = torch.sum(
+        canonical_atom_was_not_provided_for_variant, dim=3
+    )
+    n_canonical_atoms_not_provided_for_var[
+        torch.logical_or(
+            torch.logical_not(is_real_block_type_candidate), exclude_variant_for_residue
+        )
+    ] = (canonical_ordering.max_n_canonical_atoms + 1)
+    variant_combo_misfit_score = (
+        2 * n_canonical_atoms_not_provided_for_var + var_combo_is_non_default_score
+    )
+    # best_fit_variant_option_ind = torch.zeros_like(res_type_variants, dtype=torch.int64)
+    best_fit_variant_option_ind = torch.argmin(variant_combo_misfit_score, dim=2)
+
+    # ok, we need to do some quality checks. If the best fit variant's score is
+    # 2 * (canonical_ordering.max_n_canonical_atoms + 1) or worse, then we have
+    # a problem. It's hard to know what to do at this point!
+    best_fit_variant_score = torch.zeros(
+        (n_poses, max_n_res), dtype=torch.int64, device=device
+    )
+    best_fit_variant_score[is_real_res] = variant_combo_misfit_score[
+        nz_is_real_res[:, 0],
+        nz_is_real_res[:, 1],
+        best_fit_variant_option_ind[is_real_res],
+    ]
+
+    if torch.any(
+        best_fit_variant_score >= 2 * (canonical_ordering.max_n_canonical_atoms + 1)
+    ):
+        raise RuntimeError("failed to resolve a block type from the options available")
+
+    block_type_ind64 = torch.zeros_like(res_types, dtype=torch.int64)
+    block_type_ind64[is_real_res] = block_type_candidates[
+        nz_is_real_res[:, 0],
+        nz_is_real_res[:, 1],
+        best_fit_variant_option_ind[is_real_res],
+    ]
 
     # old alg: block_type_ind64[is_real_res] = canonical_res_ordering_map[
     # old alg:     res_types64[is_real_res],
@@ -362,6 +457,7 @@ class CanonicalOrderingAnnotation:
     var_combo_bt_index: Tensor[torch.int64][:, :, :, :]
     bt_canonical_atom_is_absent: Tensor[torch.bool][:, :]
     bt_non_termini_added_canonical_atom_is_present: Tensor[torch.bool][:, :]
+    bt_is_non_default_terminus: Tensor[torch.bool][:]
 
 
 @validate_args
@@ -626,6 +722,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
         bt_non_termini_added_canonical_atom_is_present=_d(
             bt_non_termini_added_canonical_atom_is_present
         ),
+        bt_is_non_default_terminus=bt_is_non_default_terminus,
     )
     canonical_ordering_annotations[id(co)] = ann
 

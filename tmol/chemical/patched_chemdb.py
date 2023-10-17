@@ -169,6 +169,7 @@ def validate_raw_residue(res):
     # illegal bonds
     for i, j in res.bonds:
         if i not in allatoms or j not in allatoms:
+            print("res", res.name, "bond:", i, "to", j)
             return ResTypeValidatorErrorCodes.illegal_bond
 
     # illegal torsions
@@ -189,9 +190,11 @@ def validate_raw_residue(res):
     # illegal icoors
     for i in res.icoors:
         if i.name not in allatoms and i.name not in allconns:
+            print("res", res.name, "icoor:", i.name)
             return ResTypeValidatorErrorCodes.illegal_icoor
         for a_i in (i.parent, i.grand_parent, i.great_grand_parent):
             if a_i not in allatoms and a_i not in allconns:
+                print("res", res.name, "icoor:", i.name, "with ancestor", a_i)
                 return ResTypeValidatorErrorCodes.illegal_icoor
 
     return ResTypeValidatorErrorCodes.success
