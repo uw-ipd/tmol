@@ -75,8 +75,6 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //     LJLKScoringData<Real> const &score_dat
 //     int cp_separation)
 //   ->std::array<Real, 2>
-// captures:
-//    atom_pair_func
 #define SCORE_INTER_LJ_ATOM_PAIR(atom_pair_func)                \
   TMOL_DEVICE_FUNC(                                             \
       int start_atom1,                                          \
@@ -105,7 +103,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //     int cp_separation)
 //   ->std::array<Real, 2>
 // captures:
-//    atom_pair_func
+//    block_type_path_distance
 #define SCORE_INTRA_LJ_ATOM_PAIR(atom_pair_func)                             \
   TMOL_DEVICE_FUNC(                                                          \
       int start_atom1,                                                       \
@@ -137,7 +135,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //     int cp_separation)
 //   ->Real
 // captures:
-//    atom_pair_func
+//    None
 #define SCORE_INTER_LK_ATOM_PAIR(atom_pair_func)                              \
   TMOL_DEVICE_FUNC(                                                           \
       int start_atom1,                                                        \
@@ -170,7 +168,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //     int cp_separation)
 //   ->Real
 // captures:
-//    atom_pair_func
+//    block_type_path_distance
 #define SCORE_INTRA_LK_ATOM_PAIR(atom_pair_func)                              \
   TMOL_DEVICE_FUNC(                                                           \
       int start_atom1,                                                        \
