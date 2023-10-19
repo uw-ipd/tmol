@@ -40,7 +40,7 @@ dependencies:
   - libuv=1.44.2=h166bdaf_0
   - libxml2=2.10.4=hfdac1af_0
   - libzlib=1.2.13=h166bdaf_4
-  - llvmlite=0.39.1
+  - llvmlite=0.40.0
   - mkl=2022.1.0
   - ncurses=6.3=h27087fc_1
   - ninja=1.11.1=h924138e_0
