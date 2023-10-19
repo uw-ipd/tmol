@@ -134,7 +134,7 @@ def atom_records_from_coords(
     results["chaini"] = chain_ind_for_real_atom
     results["resi"] = block_for_atom[atom_is_real] + 1
     results["atomi"] = (
-        numpy.arange(n_atoms_total, dtype=numpy.int)
+        numpy.arange(n_atoms_total, dtype=int)
         + 1
         - pose_atom_offsets[pose_for_real_atom]
     )
@@ -150,7 +150,7 @@ def atom_records_from_coords(
 
     # create lookup for atom names
     bt_names = numpy.array([bt.name[:3] for bt in pbt.active_block_types])
-    bt_atom_names = numpy.empty((pbt.n_types, pbt.max_n_atoms), dtype=numpy.object_)
+    bt_atom_names = numpy.empty((pbt.n_types, pbt.max_n_atoms), dtype=object)
     for i, bt in enumerate(pbt.active_block_types):
         for j, at in enumerate(bt.atoms):
             bt_atom_names[i, j] = at.name

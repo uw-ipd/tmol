@@ -117,8 +117,8 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
     )
 
     for i, block_type in enumerate(pbt.active_block_types):
-        is_parent = numpy.zeros(block_type.n_atoms, dtype=numpy.bool)
-        icoor_is_parent = numpy.zeros(block_type.n_icoors, dtype=numpy.bool)
+        is_parent = numpy.zeros(block_type.n_atoms, dtype=bool)
+        icoor_is_parent = numpy.zeros(block_type.n_icoors, dtype=bool)
         icoor_is_parent[block_type.icoors_ancestors[:, 0]] = True
 
         icoorind_to_atomind = numpy.full(block_type.n_icoors, -1, dtype=numpy.int32)
