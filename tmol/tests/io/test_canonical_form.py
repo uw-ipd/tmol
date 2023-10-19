@@ -11,8 +11,8 @@ def test_create_canonical_ordering_smoke(default_database):
     co = CanonicalOrdering.from_chemdb(chemdb)
 
     n_name3s = len(set([x.name3 for x in chemdb.residues]))
-    assert len(co.restype_name3s) == n_name3s
-    for name3 in co.restype_name3s:
+    assert len(co.restype_equiv_classes) == n_name3s
+    for name3 in co.restype_equiv_classes:
         assert name3 in co.restypes_ordered_atom_names
         assert name3 in co.restypes_atom_index_mapping
 

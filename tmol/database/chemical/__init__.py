@@ -127,6 +127,7 @@ class RawResidueType:
     name: str
     base_name: str
     name3: str
+    equiv_class: str
     atoms: Tuple[Atom, ...]
     atom_aliases: Tuple[AtomAlias, ...]
     bonds: Tuple[Tuple[str, str], ...]

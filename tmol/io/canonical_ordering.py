@@ -9,33 +9,75 @@ from typing import Tuple, Mapping  # , FrozenSet
 from .pdb_parsing import parse_pdb
 import toolz.functoolz
 
-ordered_canonical_aa_types = (
-    "ALA",
-    "CYS",
-    "ASP",
-    "GLU",
-    "PHE",
-    "GLY",
-    "HIS",
-    "ILE",
-    "LYS",
-    "LEU",
-    "MET",
-    "ASN",
-    "PRO",
-    "GLN",
-    "ARG",
-    "SER",
-    "THR",
-    "VAL",
-    "TRP",
-    "TYR",
-)
+# ordered_canonical_aa_types = (
+#     "ALA",
+#     "CYS",
+#     "ASP",
+#     "GLU",
+#     "PHE",
+#     "GLY",
+#     "HIS",
+#     "ILE",
+#     "LYS",
+#     "LEU",
+#     "MET",
+#     "ASN",
+#     "PRO",
+#     "GLN",
+#     "ARG",
+#     "SER",
+#     "THR",
+#     "VAL",
+#     "TRP",
+#     "TYR",
+# )
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class CysSpecialCaseIndices:
+    cys_co_aa_ind: int
+    sg_atom_for_co_cys: int
+
+
+@attr.s(slots=True, frozen=True)
+class HisSpecialCaseIndices:
+    his_co_aa_ind: int = attr.ib()
+    his_ND1_in_co: int = attr.ib()
+    his_NE2_in_co: int = attr.ib()
+    his_HD1_in_co: int = attr.ib()
+    his_HE2_in_co: int = attr.ib()
+    his_HN_in_co: int = attr.ib()
+    his_NH_in_co: int = attr.ib()
+    his_NN_in_co: int = attr.ib()
+    his_CG_in_co: int = attr.ib()
+    _hash: int = attr.ib()
+
+    @_hash.default
+    def _init_hash(self):
+        return hash(
+            (
+                self.his_co_aa_ind,
+                self.his_ND1_in_co,
+                self.his_NE2_in_co,
+                self.his_HD1_in_co,
+                self.his_HE2_in_co,
+                self.his_HN_in_co,
+                self.his_NH_in_co,
+                self.his_NN_in_co,
+                self.his_CG_in_co,
+            )
+        )
+
+    def __hash__(self):
+        return self._hash
+
+    def __eq__(self, other):
+        return self._hash == other._hash
 
 
 @attr.s(auto_attribs=True, frozen=True)
 class CanonicalOrdering:
-    restype_name3s: Tuple[str, ...]
+    restype_equiv_classes: Tuple[str, ...]
     # the name for each atom
     restypes_ordered_atom_names: Mapping[str, Tuple[str, ...]]
     # mapping for each name3 from atom name and alternate atom name to canonical form index
@@ -43,9 +85,9 @@ class CanonicalOrdering:
     restypes_default_termini_mapping: Mapping[str, Tuple[str, str]]
     down_termini_variants: Tuple[str, ...]
     up_termini_variants: Tuple[str, ...]
-
     termini_variant_added_atoms: Mapping[str, Tuple[str, ...]]
-
+    cys_inds: CysSpecialCaseIndices
+    his_inds: HisSpecialCaseIndices
     max_n_canonical_atoms: int
 
     @classmethod
@@ -67,7 +109,7 @@ class CanonicalOrdering:
                     self.unordered_vals.add(val)
                     self.ordered_vals.append(val)
 
-        restypes = ordered_set(rt.name3 for rt in chemdb.residues)
+        restypes = ordered_set(rt.equiv_class for rt in chemdb.residues)
         ordered_restypes = restypes.ordered_vals
 
         def newset():
@@ -149,13 +191,19 @@ class CanonicalOrdering:
                         termini_variant_added_atoms[var.display_name].add(atom.name)
 
         return cls(
-            restype_name3s=ordered_restypes,
+            restype_equiv_classes=ordered_restypes,
             restypes_ordered_atom_names=restypes_ordered_atom_names,
             restypes_atom_index_mapping=restypes_atom_index_mapping,
             restypes_default_termini_mapping=default_termini_mapping,
             down_termini_variants=down_termini_types,
             up_termini_variants=up_termini_types,
             termini_variant_added_atoms=termini_variant_added_atoms,
+            cys_inds=cls._init_cys_special_case_indices(
+                ordered_restypes, restypes_ordered_atom_names
+            ),
+            his_inds=cls._init_his_special_case_indices(
+                ordered_restypes, restypes_ordered_atom_names
+            ),
             max_n_canonical_atoms=max_n_canonical_atoms,
         )
 
@@ -185,6 +233,56 @@ class CanonicalOrdering:
             "TRP": ("nterm", "cterm"),
             "TYR": ("nterm", "cterm"),
         }
+
+    @classmethod
+    def _init_cys_special_case_indices(
+        cls, restype_name3s, restypes_ordered_atom_names
+    ):
+        cys_co_aa_ind = restype_name3s.index("CYS")
+        if cys_co_aa_ind != -1:
+            return CysSpecialCaseIndices(
+                cys_co_aa_ind=cys_co_aa_ind,
+                sg_atom_for_co_cys=restypes_ordered_atom_names["CYS"].index("SG"),
+            )
+        else:
+            return CysSpecialCaseIndices(
+                cys_co_aa_ind=cys_co_aa_ind,
+                sg_atom_for_co_cys=-1,
+            )
+
+    @classmethod
+    def _init_his_special_case_indices(
+        cls, restype_name3s, restypes_ordered_atom_names
+    ):
+        his_co_aa_ind = restype_name3s.index("HIS")
+        if his_co_aa_ind == -1:
+            return HisSpecialCaseIndices(
+                his_co_aa_ind=-1,
+                his_ND1_in_co=-1,
+                his_NE2_in_co=-1,
+                his_HD1_in_co=-1,
+                his_HE2_in_co=-1,
+                his_HN_in_co=-1,
+                his_NH_in_co=-1,
+                his_NN_in_co=-1,
+                his_CG_in_co=-1,
+            )
+        else:
+
+            def his_at_ind(atname):
+                return restypes_ordered_atom_names["HIS"].index(atname)
+
+            return HisSpecialCaseIndices(
+                his_co_aa_ind=his_co_aa_ind,
+                his_ND1_in_co=his_at_ind("ND1"),
+                his_NE2_in_co=his_at_ind("NE2"),
+                his_HD1_in_co=his_at_ind("HD1"),
+                his_HE2_in_co=his_at_ind("HE2"),
+                his_HN_in_co=his_at_ind("HN"),
+                his_NH_in_co=his_at_ind("NH"),
+                his_NN_in_co=his_at_ind("NN"),
+                his_CG_in_co=his_at_ind("CG"),
+            )
 
 
 @toolz.functoolz.memoize
@@ -219,7 +317,7 @@ def canonical_form_from_pdb_lines(
     coords = numpy.full(
         (1, n_res, max_n_canonical_atoms, 3), numpy.NAN, dtype=numpy.float32
     )
-    atom_is_present = numpy.zeros((1, n_res, max_n_canonical_atoms), dtype=numpy.int32)
+    atom_is_present = numpy.zeros((1, n_res, max_n_canonical_atoms), dtype=numpy.bool)
 
     chains_seen = {}
     chain_id_counter = 0  # TO DO: determine if this is wholly redundant w/ "chaini"
@@ -232,7 +330,8 @@ def canonical_form_from_pdb_lines(
         chain_id[0, res_ind] = chains_seen[row["chaini"]]
         if res_types[0, res_ind] == -2:
             try:
-                aa_ind = ordered_canonical_aa_types.index(row["resn"])
+                aa_ind = canonical_ordering.restype_equiv_classes.index(row["resn"])
+                # print(i, 'row["resn"]', row["resn"], aa_ind)
                 res_types[0, res_ind] = aa_ind
             except KeyError:
                 res_types[0, res_ind] = -1
@@ -242,7 +341,7 @@ def canonical_form_from_pdb_lines(
             atname = row["atomn"].strip()
             try:
                 atind = res_at_mapping[atname]
-                atom_is_present[0, res_ind, atind] = 1
+                atom_is_present[0, res_ind, atind] = True
                 coords[0, res_ind, atind, 0] = row["x"]
                 coords[0, res_ind, atind, 1] = row["y"]
                 coords[0, res_ind, atind, 2] = row["z"]
@@ -257,4 +356,9 @@ def canonical_form_from_pdb_lines(
     def _tf32(x):
         return torch.tensor(x, dtype=torch.float32, device=device)
 
-    return _ti32(chain_id), _ti32(res_types), _tf32(coords), _ti32(atom_is_present)
+    return (
+        _ti32(chain_id),
+        _ti32(res_types),
+        _tf32(coords),
+        torch.tensor(atom_is_present, dtype=torch.bool, device=device),
+    )

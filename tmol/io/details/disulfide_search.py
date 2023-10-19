@@ -6,34 +6,27 @@ from typing import Optional
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from tmol.io.canonical_ordering import (
-    ordered_canonical_aa_types,
-    ordered_canonical_aa_atoms,
-)
-
-cys_co_aa_ind = ordered_canonical_aa_types.index("CYS")
-sg_atom_for_co_cys = ordered_canonical_aa_atoms["CYS"].index("SG")
+from tmol.io.canonical_ordering import CanonicalOrdering
 
 
 @validate_args
 def find_disulfides(
+    canonical_ordering: CanonicalOrdering,
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     find_additional_disulfides: Optional[bool] = True,
     cutoff_dis: float = 2.5,
 ):
-    # short circuit:
-    # return (
-    #     torch.zeros(
-    #         (torch.sum(res_types == cys_co_aa_ind), 3),
-    #         dtype=torch.int32,
-    #         device=res_types.device
-    #     ),
-    #     torch.zeros_like(res_types)
-    # )
+    if canonical_ordering.cys_inds.cys_co_aa_ind == -1:
+        # nothing to do: CYS is not a valid residue type
+        # in the ChemicalDatabase
+        return (
+            torch.zeros((0, 3), dtype=torch.int32, device=res_types.device),
+            torch.zeros_like(res_types),
+        )
 
-    cys_res = res_types == cys_co_aa_ind
+    cys_res = res_types == canonical_ordering.cys_inds.cys_co_aa_ind
     restype_variants = torch.full_like(res_types, 0)
     if disulfides is not None:
         # mark the disulfide-bonded residues
@@ -84,7 +77,7 @@ def find_disulfides(
         found_disulfides,
         cys_pose_ind_n,
         cys_res_ind_n,
-        sg_atom_for_co_cys,
+        canonical_ordering.cys_inds.sg_atom_for_co_cys,
         cutoff_dis,
         restype_variants,
     )

@@ -17,7 +17,7 @@ def build_missing_leaf_atoms(
     block_types64: Tensor[torch.int64][:, :],
     real_block_atoms: Tensor[torch.bool][:, :, :],
     block_coords: Tensor[torch.float32][:, :, :, 3],
-    block_atom_missing: Tensor[torch.int32][:, :, :],
+    block_atom_missing: Tensor[torch.bool][:, :, :],
     inter_residue_connections: Tensor[torch.int32][:, :, :, 2],
 ):
     """Convert the block layout into the condensed layout used by PoseStack and
@@ -68,14 +68,14 @@ def build_missing_leaf_atoms(
     # return (pose_like_coords, block_coord_offset)
 
     block_at_is_leaf = torch.zeros(
-        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.int32, device=device
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=device
     )
     block_at_is_leaf[real_blocks] = pbt.is_leaf_atom[block_types64[real_blocks]]
 
     # multiplication of booleans-as-integers is equivalent to a logical "and"
-    block_leaf_atom_is_missing = block_at_is_leaf * block_atom_missing
+    block_leaf_atom_is_missing = torch.logical_and(block_at_is_leaf, block_atom_missing)
     pose_stack_atom_is_missing = torch.zeros(
-        (n_poses, max_n_ats), dtype=torch.int32, device=device
+        (n_poses, max_n_ats), dtype=torch.bool, device=device
     )
     pose_stack_atom_is_missing[pose_at_is_real] = block_leaf_atom_is_missing[
         real_block_atoms
@@ -113,7 +113,7 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
         return torch.tensor(x, dtype=torch.int32, device=pbt.device)
 
     is_leaf_atom = torch.zeros(
-        (pbt.n_types, pbt.max_n_atoms), dtype=torch.int32, device=pbt.device
+        (pbt.n_types, pbt.max_n_atoms), dtype=torch.bool, device=pbt.device
     )
 
     for i, block_type in enumerate(pbt.active_block_types):
@@ -140,7 +140,7 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
         is_leaf = numpy.logical_not(is_parent)
 
         setattr(block_type, "is_leaf_atom", is_leaf)
-        is_leaf_atom[i, : block_type.n_atoms] = ti32(is_leaf)
+        is_leaf_atom[i, : block_type.n_atoms] = is_leaf
 
     setattr(pbt, "is_leaf_atom", is_leaf_atom)
 

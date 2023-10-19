@@ -1,6 +1,10 @@
 import numpy
 import torch
-from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
+from tmol.io.canonical_ordering import (
+    canonical_form_from_pdb_lines,
+    default_canonical_ordering,
+    # ?? CanonicalOrdering,
+)
 from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
 from tmol.io.details.canonical_packed_block_types import (
     default_canonical_packed_block_types,
@@ -15,29 +19,37 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
 def test_assign_block_types(torch_device, ubq_pdb):
+    co = default_canonical_ordering()
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
+    # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        ubq_pdb, torch_device
+        co, ubq_pdb, torch_device
     )
+    # print("ch_id", ch_id.shape)
+    # print("can_rts", can_rts.shape)
+    # print("coords", coords.shape)
+    # print("at_is_pres", at_is_pres.shape)
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
     # 3
     (
         his_taut,
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(can_rts, res_type_variants, coords, at_is_pres)
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     # ubq seq
     ubq_1lc = [
@@ -63,12 +75,13 @@ def test_assign_block_types(torch_device, ubq_pdb):
 
 
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
+    co = default_canonical_ordering()
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        ubq_pdb[: 81 * 167], torch_device
+        co, ubq_pdb[: 81 * 167], torch_device
     )
 
     # put two empty residues in between res 5 and 6
@@ -96,21 +109,23 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
     # 3
     (
         his_taut,
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(can_rts, res_type_variants, coords, at_is_pres)
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (
         block_types,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     inter_res_conn_gold = numpy.full((1, 12, 3, 2), -1, dtype=numpy.int64)
 
@@ -144,6 +159,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
 def test_assign_block_types_for_pert_and_antigen(
     pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device
 ):
+    co = default_canonical_ordering()
     (
         pert_and_erbb2_lines,
         res_not_connected,
@@ -153,19 +169,19 @@ def test_assign_block_types_for_pert_and_antigen(
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        pert_and_erbb2_lines, torch_device
+        co, pert_and_erbb2_lines, torch_device
     )
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
     # 3
     (
         his_taut,
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(can_rts, res_type_variants, coords, at_is_pres)
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (
@@ -173,7 +189,14 @@ def test_assign_block_types_for_pert_and_antigen(
         inter_residue_connections64,
         inter_block_bondsep64,
     ) = assign_block_types(
-        pbt, ch_id, can_rts, res_type_variants, found_disulfides, res_not_connected
+        co,
+        pbt,
+        at_is_pres,
+        ch_id,
+        can_rts,
+        res_type_variants,
+        found_disulfides,
+        res_not_connected,
     )
 
     assert block_types.device == torch_device
@@ -221,29 +244,32 @@ def test_assign_block_types_for_pert_and_antigen(
 
 
 def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
+    co = default_canonical_ordering()
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        ubq_pdb, torch_device
+        co, ubq_pdb, torch_device
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
     # 3
     (
         his_taut,
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(can_rts, res_type_variants, coords, at_is_pres)
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
 
     (
         block_coords,
@@ -309,16 +335,16 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     set_gold_coord("  CG", 25.353, 24.860, 5.134)
     set_gold_coord("  SD", 23.930, 23.959, 5.904)
     set_gold_coord("  CE", 24.447, 23.984, 7.620)
-    set_gold_coord(" 1H ", 26.961, 23.619, 2.168)
-    set_gold_coord(" 2H ", 28.043, 24.834, 2.029)
-    set_gold_coord(" 3H ", 27.746, 24.169, 3.490)
+    set_gold_coord("  H1", 26.961, 23.619, 2.168)
+    set_gold_coord("  H2", 28.043, 24.834, 2.029)
+    set_gold_coord("  H3", 27.746, 24.169, 3.490)
     set_gold_coord("  HA", 25.864, 25.717, 1.875)
-    set_gold_coord(" 1HB", 24.227, 25.486, 3.461)
-    set_gold_coord(" 2HB", 24.886, 23.861, 3.332)
-    set_gold_coord(" 1HG", 26.298, 24.359, 5.342)
-    set_gold_coord(" 2HG", 25.421, 25.882, 5.505)
-    set_gold_coord(" 1HE", 23.700, 23.479, 8.233)
-    set_gold_coord(" 2HE", 25.405, 23.472, 7.719)
-    set_gold_coord(" 3HE", 24.552, 25.017, 7.954)
+    set_gold_coord(" HB2", 24.227, 25.486, 3.461)
+    set_gold_coord(" HB3", 24.886, 23.861, 3.332)
+    set_gold_coord(" HG2", 26.298, 24.359, 5.342)
+    set_gold_coord(" HG3", 25.421, 25.882, 5.505)
+    set_gold_coord(" HE1", 23.700, 23.479, 8.233)
+    set_gold_coord(" HE2", 25.405, 23.472, 7.719)
+    set_gold_coord(" HE3", 24.552, 25.017, 7.954)
 
     numpy.testing.assert_equal(block_coords[0, 0], block_coords_res1_gold)

@@ -65,6 +65,7 @@ residues:
   - name:  ALA
     base_name: ALA
     name3: ALA
+    equiv_class: ALA
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -145,6 +146,7 @@ residues:
   - name:  ARG
     base_name: ARG
     name3: ARG
+    equiv_class: ARG
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -278,6 +280,7 @@ residues:
   - name:  ASN
     base_name: ASN
     name3: ASN
+    equiv_class: ASN
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -373,6 +376,7 @@ residues:
   - name:  ASP
     base_name: ASP
     name3: ASP
+    equiv_class: ASP
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -460,6 +464,7 @@ residues:
   - name:  CYS
     base_name: CYS
     name3: CYS
+    equiv_class: CYS
     atoms:
     - { name: N   , atom_type: Nbb  }
     - { name: CA  , atom_type: CAbb }
@@ -545,8 +550,9 @@ residues:
       samples: [60, 180, 300]
       expansions: []
   - name:  CYD
-    base_name: CYS
+    base_name: CYD
     name3: CYS
+    equiv_class: CYS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -628,6 +634,7 @@ residues:
   - name:  GLN
     base_name: GLN
     name3: GLN
+    equiv_class: GLN
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -735,6 +742,7 @@ residues:
   - name:  GLU
     base_name: GLU
     name3: GLU
+    equiv_class: GLU    
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -834,6 +842,7 @@ residues:
   - name:  GLY
     base_name: GLY
     name3: GLY
+    equiv_class: GLY
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -904,6 +913,7 @@ residues:
   - name:  HIS
     base_name: HIS
     name3: HIS
+    equiv_class: HIS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -979,8 +989,8 @@ residues:
     - { name:   NE2, phi:    0.043487 deg, theta:   71.617294 deg, d:    1.320378, parent:   CE1, grand_parent:   ND1, great_grand_parent:    CG}
     - { name:   CD2, phi:   -0.028256 deg, theta:   70.994614 deg, d:    1.373210, parent:   NE2, grand_parent:   CE1, great_grand_parent:   ND1}
     - { name:   HD2, phi:  179.968872 deg, theta:   53.600000 deg, d:    1.090336, parent:   CD2, grand_parent:   NE2, great_grand_parent:   CE1}
-    - { name:   HE2, phi: -179.986603 deg, theta:   54.200000 deg, d:    1.010082, parent:   NE2, grand_parent:   CE1, great_grand_parent:   CD2}
-    - { name:   HE1, phi: -179.977402 deg, theta:   54.200000 deg, d:    1.089785, parent:   CE1, grand_parent:   ND1, great_grand_parent:   NE2}
+    - { name:   HE1, phi: -179.986603 deg, theta:   54.200000 deg, d:    1.010082, parent:   NE2, grand_parent:   CE1, great_grand_parent:   CD2}
+    - { name:   HE2, phi: -179.977402 deg, theta:   54.200000 deg, d:    1.089785, parent:   CE1, grand_parent:   ND1, great_grand_parent:   NE2}
     - { name:   HB2, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090580, parent:    CB, grand_parent:    CA, great_grand_parent:    CG}
     - { name:   HB3, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089658, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
     - { name:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089618, parent:    CA, grand_parent:     N, great_grand_parent:    CB}
@@ -1009,6 +1019,7 @@ residues:
   - name:  HIS_D
     base_name: HIS_D
     name3: HIS
+    equiv_class: HIS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1084,7 +1095,7 @@ residues:
     - { name:   CD2, phi:   -0.028616 deg, theta:   70.994118 deg, d:    1.373207, parent:   NE2, grand_parent:   CE1, great_grand_parent:   ND1}
     - { name:   HD2, phi:  179.968964 deg, theta:   59.948441 deg, d:    1.090333, parent:   CD2, grand_parent:   NE2, great_grand_parent:   CE1}
     - { name:   HE1, phi: -179.977829 deg, theta:   59.391884 deg, d:    1.089789, parent:   CE1, grand_parent:   ND1, great_grand_parent:   NE2}
-    - { name:   HD2, phi: -174.670059 deg, theta:   53.757050 deg, d:    1.000244, parent:   ND1, grand_parent:    CG, great_grand_parent:   CE1}
+    - { name:   HD1, phi: -174.670059 deg, theta:   53.757050 deg, d:    1.000244, parent:   ND1, grand_parent:    CG, great_grand_parent:   CE1}
     - { name:   HB2, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090565, parent:    CB, grand_parent:    CA, great_grand_parent:    CG}
     - { name:   HB3, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089660, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
     - { name:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089614, parent:    CA, grand_parent:     N, great_grand_parent:    CB}
@@ -1113,6 +1124,7 @@ residues:
   - name:  ILE
     base_name: ILE
     name3: ILE
+    equiv_class: ILE
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1227,6 +1239,7 @@ residues:
   - name:  LEU
     base_name: LEU
     name3: LEU
+    equiv_class: LEU
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1341,6 +1354,7 @@ residues:
   - name:  LYS
     base_name: LYS
     name3: LYS
+    equiv_class: LYS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1469,6 +1483,7 @@ residues:
   - name:  MET
     base_name: MET
     name3: MET
+    equiv_class: MET
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1577,6 +1592,7 @@ residues:
   - name:  PHE
     base_name: PHE
     name3: PHE
+    equiv_class: PHE
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1689,6 +1705,7 @@ residues:
   - name:  PRO
     base_name: PRO
     name3: PRO
+    equiv_class: PRO
     atoms:
     - { name: N   ,  atom_type: Npro }
     - { name: CA  ,  atom_type: CAbb }
@@ -1788,6 +1805,7 @@ residues:
   - name:  SER
     base_name: SER
     name3: SER
+    equiv_class: SER
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1875,6 +1893,7 @@ residues:
   - name:  THR
     base_name: THR
     name3: THR
+    equiv_class: THR
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1972,6 +1991,7 @@ residues:
   - name:  TRP
     base_name: TRP
     name3: TRP
+    equiv_class: TRP
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2097,6 +2117,7 @@ residues:
   - name:  TYR
     base_name: TYR
     name3: TYR
+    equiv_class: TYR
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2217,6 +2238,7 @@ residues:
   - name:  VAL
     base_name: VAL
     name3: VAL
+    equiv_class: VAL
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2320,6 +2342,7 @@ residues:
   - name:  HOH
     base_name: HOH
     name3: HOH
+    equiv_class: HOH
     atoms:
     - { name:  O, atom_type: Owat  }
     - { name: H1, atom_type: Hwat }
