@@ -186,7 +186,7 @@ def pertuzumab_and_nearby_erbb2_pdb_and_segments():
         (numpy.zeros((1,), dtype=numpy.int32), seg_range_end[:-1])
     )
     n_res_tot = seg_range_end[-1]
-    res_not_connected = numpy.zeros((1, n_res_tot, 2), dtype=numpy.bool)
+    res_not_connected = numpy.zeros((1, n_res_tot, 2), dtype=bool)
     # do not make any of the ERBB2 residues n- or c-termini,
     # and also do not connect residues that are both part of that chain
     # that span gaps

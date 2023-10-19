@@ -46,7 +46,7 @@ dependencies:
   - ninja=1.11.1=h924138e_0
   - nodeenv=1.7.0=pyhd8ed1ab_0
   - numba=0.56.4
-  - numpy=1.23.5
+  - numpy=1.24.3
   - openssl=3.1.0=hd590300_2
   - pip=23.1.2=pyhd8ed1ab_0
   - pre-commit=3.2.2

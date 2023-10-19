@@ -212,7 +212,7 @@ class DunbrackParameters(ScoreModule):
         # real residue for this structure is a valid dunbrack residue.
 
         res_inds = BondedAtoms.get(self).res_indices
-        first_for_pose = numpy.ones((res_inds.shape[0], 1), dtype=numpy.bool_)
+        first_for_pose = numpy.ones((res_inds.shape[0], 1), dtype=bool)
         at_is_first_for_res = res_inds[:, :-1] != res_inds[:, 1:]
         at_is_real = res_inds[:, 1:] == res_inds[:, 1:]
         at_is_first_for_res = numpy.logical_and(at_is_first_for_res, at_is_real)
@@ -222,7 +222,7 @@ class DunbrackParameters(ScoreModule):
         n_poses = res_inds.shape[0]
         n_res_for_pose = numpy.sum(first_at_for_res, axis=1, dtype=int)
         max_n_res = numpy.max(n_res_for_pose)
-        dun_res_names = numpy.empty((n_poses, max_n_res), dtype=numpy.object)
+        dun_res_names = numpy.empty((n_poses, max_n_res), dtype=object)
         res_is_good = (
             numpy.arange(max_n_res).reshape(1, max_n_res) < n_res_for_pose[:, None]
         )
