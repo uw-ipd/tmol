@@ -176,7 +176,8 @@ def lkball_score_and_gradcheck(
 ):
     from .compiled import LKBallScore, LKFraction, LKBridgeFraction
 
-    aidx_i, aidx_j = ljlk_params.type_idx([at_i, at_j])
+    aidx_i = ljlk_params.atom_type_index.get_loc(at_i)
+    aidx_j = ljlk_params.atom_type_index.get_loc(at_j)
 
     op = LKBallScore(ljlk_params, atype_params)
 
