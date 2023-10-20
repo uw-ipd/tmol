@@ -26,7 +26,8 @@ parametrize_atom_pairs = pytest.mark.parametrize(
 def test_lj_gradcheck(params, iname, jname, bonded_path_length):
     import tmol.tests.score.ljlk.potentials.compiled as compiled
 
-    iidx, jidx = params.type_idx([iname, jname])
+    iidx = params.atom_type_index.get_loc(iname)
+    jidx = params.atom_type_index.get_loc(jname)
     i_params = params.type_params[iidx]
     j_params = params.type_params[jidx]
 
@@ -47,7 +48,8 @@ def test_lj_spotcheck(params, iname, jname):
 
     import tmol.tests.score.ljlk.potentials.compiled as compiled
 
-    iidx, jidx = params.type_idx([iname, jname])
+    iidx = params.atom_type_index.get_loc(iname)
+    jidx = params.atom_type_index.get_loc(jname)
 
     i = params.type_params[iidx]
     j = params.type_params[jidx]

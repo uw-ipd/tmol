@@ -1,8 +1,23 @@
 import torch
 
 from tmol.pose.pose_stack import PoseStack
-from tmol.optimization.modules import DOFMaskingFunc
 from tmol.score.score_function import ScoreFunction
+
+
+# mask out relevant dofs to the minimizer
+class DOFMaskingFunc(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, fg, mask, bg):
+        ctx.mask = mask
+        ctx.fg = fg
+        bg[mask] = fg
+        return bg
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad = torch.zeros_like(ctx.fg)
+        grad = grad_output[ctx.mask]
+        return grad, None, None
 
 
 class CartesianSfxnNetwork(torch.nn.Module):
