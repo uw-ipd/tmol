@@ -8,8 +8,6 @@ load(
             __file__,
             [
                 "compiled.ops.cpp",
-                "compiled.cpu.cpp",
-                "compiled.cuda.cu",
                 "elec_pose_score.cpu.cpp",
                 "elec_pose_score.cuda.cu",
             ],
@@ -20,6 +18,4 @@ load(
 
 _ops = getattr(torch.ops, modulename(__name__))
 
-score_elec = _ops.score_elec
-score_elec_triu = _ops.score_elec_triu
 elec_pose_scores = _ops.elec_pose_scores
