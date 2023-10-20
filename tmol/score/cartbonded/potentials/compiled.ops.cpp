@@ -11,7 +11,6 @@
 #include <pybind11/pybind11.h>
 
 #include "params.hh"
-#include "dispatch.hh"
 #include "cartbonded_pose_score.hh"
 
 namespace tmol {
@@ -25,121 +24,6 @@ using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
 using namespace tmol::score::common;
-
-// The op for cartbonded dispatch
-// Uses abbreviations:
-//   cbl = cartbonded_length
-//   cba = cartbonded_angle
-//   cbt = cartbonded_torsion
-//   cbi = cartbonded_improper_torsion
-//   cbhxl = cartbonded_hydroxyl_torsion
-template <template <tmol::Device> class DispatchMethod>
-class CBScoreOp : public Function<CBScoreOp<DispatchMethod>> {
- public:
-  static Tensor forward(
-      AutogradContext* ctx,
-      Tensor coords,
-      Tensor cbl_atoms,
-      Tensor cba_atoms,
-      Tensor cbt_atoms,
-      Tensor cbi_atoms,
-      Tensor cbhxl_atoms,
-      Tensor cbl_params,
-      Tensor cba_params,
-      Tensor cbt_params,
-      Tensor cbi_params,
-      Tensor cbhxl_params) {
-    at::Tensor score;
-    at::Tensor dScore;
-
-    using Int = int64_t;
-
-    TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.type(), "cb_score_op", ([&] {
-          using Real = scalar_t;
-          constexpr tmol::Device Dev = device_t;
-
-          auto result = CartBondedDispatch<DispatchMethod, Dev, Real, Int>::f(
-              TCAST(coords),
-              TCAST(cbl_atoms),
-              TCAST(cba_atoms),
-              TCAST(cbt_atoms),
-              TCAST(cbi_atoms),
-              TCAST(cbhxl_atoms),
-              TCAST(cbl_params),
-              TCAST(cba_params),
-              TCAST(cbt_params),
-              TCAST(cbi_params),
-              TCAST(cbhxl_params));
-
-          score = std::get<0>(result).tensor;
-          dScore = std::get<1>(result).tensor;
-        }));
-
-    ctx->save_for_backward({dScore});
-
-    return score;
-  }
-
-  static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
-    auto dScore = ctx->get_saved_variables()[0];
-
-    auto dT_dScore = grad_outputs[0];
-
-    std::vector<int64_t> newdims(dScore.dim(), 1);
-    newdims[0] = dT_dScore.size(0);
-    newdims[2] = dT_dScore.size(1);
-    auto dT_dCoords = (dScore * dT_dScore.view(newdims)).sum(2);
-
-    return {
-        dT_dCoords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-    };
-  }
-};
-
-// The op for cartbonded dispatch
-// Uses abbreviations:
-//   cbl = cartbonded_length
-//   cba = cartbonded_angle
-//   cbt = cartbonded_torsion
-//   cbi = cartbonded_improper_torsion
-//   cbhxl = cartbonded_hydroxyl_torsion
-template <template <tmol::Device> class DispatchMethod>
-Tensor cb_score_op(
-    Tensor coords,
-    Tensor cbl_atoms,
-    Tensor cba_atoms,
-    Tensor cbt_atoms,
-    Tensor cbi_atoms,
-    Tensor cbhxl_atoms,
-    Tensor cbl_params,
-    Tensor cba_params,
-    Tensor cbt_params,
-    Tensor cbi_params,
-    Tensor cbhxl_params) {
-  return CBScoreOp<DispatchMethod>::apply(
-      coords,
-      cbl_atoms,
-      cba_atoms,
-      cbt_atoms,
-      cbi_atoms,
-      cbhxl_atoms,
-      cbl_params,
-      cba_params,
-      cbt_params,
-      cbi_params,
-      cbhxl_params);
-}
 
 template <template <tmol::Device> class DispatchMethod>
 class CartBondedPoseScoreOp
@@ -342,7 +226,6 @@ Tensor cartbonded_pose_scores_op(
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
-  m.def("score_cartbonded", &cb_score_op<common::ForallDispatch>);
   m.def("cartbonded_pose_scores", &cartbonded_pose_scores_op<DeviceOperations>);
 }
 

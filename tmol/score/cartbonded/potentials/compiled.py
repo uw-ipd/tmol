@@ -8,8 +8,6 @@ load(
             __file__,
             [
                 "compiled.ops.cpp",
-                "compiled.cpu.cpp",
-                "compiled.cuda.cu",
                 "cartbonded_pose_score.cpu.cpp",
                 "cartbonded_pose_score.cuda.cu",
             ],
@@ -19,5 +17,4 @@ load(
 )
 
 _ops = getattr(torch.ops, modulename(__name__))
-score_cartbonded = _ops.score_cartbonded
 cartbonded_pose_scores = _ops.cartbonded_pose_scores
