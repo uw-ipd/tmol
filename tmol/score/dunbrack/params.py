@@ -8,8 +8,6 @@ import torch
 import toolz.functoolz
 import itertools
 
-from typing import Tuple
-
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
@@ -22,19 +20,9 @@ from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 
 from tmol.utility.tensor.common_operations import (
     exclusive_cumsum1d,
-    exclusive_cumsum2d,
     # print_row_numbered_tensor,
     nplus1d_tensor_from_list,
     cat_differently_sized_tensors,
-)
-
-from tmol.score.common.stack_condense import (
-    condense_torch_inds,
-    condense_subset,
-    take_condensed_3d_subset,
-    take_values_w_sentineled_index,
-    take_values_w_sentineled_index_and_dest,
-    take_values_w_sentineled_dest,
 )
 
 

@@ -4,10 +4,8 @@ import numpy.testing
 
 import pytest
 
-from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.script_modules import KinematicModule
-from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 from tmol.kinematics.datatypes import NodeType, KinForest
 
