@@ -1,6 +1,5 @@
 import numpy
 import torch
-import pandas
 
 from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import (
@@ -9,7 +8,6 @@ from tmol.kinematics.builder import (
     get_c1_and_c2_atoms,
     fix_jump_nodes,
 )
-from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 
 def test_stub_defined_for_jump_atom_two_descendents_of_jump():

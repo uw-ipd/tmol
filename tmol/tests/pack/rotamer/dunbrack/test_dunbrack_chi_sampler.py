@@ -11,13 +11,6 @@ from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
-# from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-# from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
-
-from tmol.system.packed import PackedResidueSystemStack
-
-# from tmol.score.device import TorchDevice
-# from tmol.score.score_graph import score_graph
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
