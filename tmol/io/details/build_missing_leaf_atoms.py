@@ -140,7 +140,7 @@ def _annotate_packed_block_types_atom_is_leaf_atom(
         is_leaf = numpy.logical_not(is_parent)
 
         setattr(block_type, "is_leaf_atom", is_leaf)
-        is_leaf_atom[i, : block_type.n_atoms] = is_leaf
+        is_leaf_atom[i, : block_type.n_atoms] = torch.from_numpy(is_leaf)
 
     setattr(pbt, "is_leaf_atom", is_leaf_atom)
 

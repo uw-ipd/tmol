@@ -7,8 +7,6 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import (
     CanonicalOrdering,
-    # ordered_canonical_aa_types,
-    # ordered_canonical_aa_atoms_v2,
 )
 
 # from tmol.io.details.disulfide_search import cys_co_aa_ind
@@ -266,6 +264,29 @@ def assign_block_types(
     if torch.any(
         best_candidate_score >= 2 * (canonical_ordering.max_n_canonical_atoms + 1)
     ):
+        for i in range(n_poses):
+            for j in range(max_n_res):
+                for k in range(canonical_atom_was_not_provided_for_candidate.shape[2]):
+                    if not is_real_candidate[i, j, k]:
+                        continue
+                    which_bt = block_type_candidates[i, j, k]
+                    cand_bt = pbt.active_block_types[which_bt]
+                    print(
+                        i,
+                        j,
+                        k,
+                        which_bt.item(),
+                        cand_bt.name,
+                        "restype",
+                        res_types[i, j],
+                        "equiv class",
+                        canonical_ordering.restype_io_equiv_classes[res_types[i, j]],
+                    )
+                    for l in range(
+                        canonical_atom_was_not_provided_for_candidate.shape[3]
+                    ):
+                        if canonical_atom_was_not_provided_for_variant[i, j, k, l]:
+                            print(" atom not provided:", cand_bt.atoms[l].name)
         print("Failed to find a matching block type")
         # TO DO: Useful error message here
         # print(best_fit_variant_score)

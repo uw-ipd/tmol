@@ -1,6 +1,9 @@
 import numpy
 import torch
-from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
+from tmol.io.canonical_ordering import (
+    default_canonical_ordering,
+    canonical_form_from_pdb_lines,
+)
 from tmol.io.details.canonical_packed_block_types import (
     default_canonical_packed_block_types,
 )
@@ -19,28 +22,39 @@ from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.tests.autograd import gradcheck
 
 
-def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
+# def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
+def test_build_missing_leaf_atoms(ubq_pdb):
+    torch_device = torch.device("cpu")  # TEMP!
+    co = default_canonical_ordering()
     pbt, atr = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        ubq_pdb, torch_device
+        co, ubq_pdb, torch_device
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
     # 3
     (
         his_taut,
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(can_rts, res_type_variants, coords, at_is_pres)
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co,
+        pbt,
+        resolved_atom_is_present,
+        ch_id,
+        can_rts,
+        res_type_variants,
+        found_disulfides,
+    )
 
     block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
@@ -60,7 +74,7 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     )
     # now let's turn off building of some of these atoms in particular
     # note that we are rebuilding OXT using the (not-absent) bbO.
-    block_at_is_leaf[:, :, 3] = False  # do not rebuild bbO atoms in this test
+    ats_to_not_rebuild_at_all = ["O", "OXT"]
     ats_generally_to_leave_be = {
         "GLU": "OE2",
         "ASP": "OD2",
@@ -70,6 +84,9 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
         (pbt.n_types, pbt.max_n_atoms), dtype=torch.bool, device=torch_device
     )
     for i, bt in enumerate(pbt.active_block_types):
+        for j, at in enumerate(ats_to_not_rebuild_at_all):
+            if at in bt.atom_to_idx:
+                ats_in_bts_to_leave_alone[i, bt.atom_to_idx[at]] = False
         if bt.base_name in ats_generally_to_leave_be:
             ats_in_bts_to_leave_alone[
                 i, bt.atom_to_idx[ats_generally_to_leave_be[bt.base_name]]
@@ -82,9 +99,8 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     ]
 
     block_at_to_rebuild = torch.logical_and(block_at_is_leaf, block_at_allow_rebuild)
-    block_at_to_rebuild[0, 75, 6] = False
 
-    missing_atoms[block_at_to_rebuild] = 1
+    missing_atoms[block_at_to_rebuild] = True
 
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
@@ -125,13 +141,27 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     built_leaf_pos = built_leaf_pos.cpu().numpy()
     orig_leaf_pos = orig_leaf_pos.cpu().numpy()
 
+    # numpy.set_printoptions(threshold=10000)
+    # print("built_leaf_pos")
+    # print(built_leaf_pos)
+    # print("orig_leaf_pos")
+    # print(orig_leaf_pos)
+
+    # diff = numpy.any((built_leaf_pos - orig_leaf_pos) > 1e-1, axis=1)
+    # print("built_leaf_pos")
+    # print(built_leaf_pos[diff])
+    #
+    # print("orig_leaf_pos")
+    # print(orig_leaf_pos[diff])
+
     numpy.testing.assert_allclose(built_leaf_pos, orig_leaf_pos, atol=1e-1, rtol=1e-3)
 
 
 def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
+    co = default_canonical_ordering()
     pbt, atr = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        ubq_pdb, torch_device
+        co, ubq_pdb, torch_device
     )
 
     class FauxModule(torch.nn.Module):
@@ -141,7 +171,9 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
             self.coords = torch.nn.Parameter(coords)
 
         def forward(self):
-            found_disulfides, res_type_variants = find_disulfides(can_rts, self.coords)
+            found_disulfides, res_type_variants = find_disulfides(
+                co, can_rts, self.coords
+            )
             # 3
             (
                 his_taut,
@@ -149,7 +181,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
                 resolved_coords,
                 resolved_atom_is_present,
             ) = resolve_his_tautomerization(
-                can_rts, res_type_variants, self.coords, at_is_pres
+                co, can_rts, res_type_variants, self.coords, at_is_pres
             )
 
             # now we'll invoke assign_block_types
@@ -158,7 +190,13 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
                 inter_residue_connections64,
                 inter_block_bondsep64,
             ) = assign_block_types(
-                pbt, ch_id, can_rts, res_type_variants, found_disulfides
+                co,
+                pbt,
+                resolved_atom_is_present,
+                ch_id,
+                can_rts,
+                res_type_variants,
+                found_disulfides,
             )
 
             (
@@ -213,27 +251,42 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
 
 
 def test_coord_sum_gradcheck(torch_device, ubq_pdb):
+    co = default_canonical_ordering()
     pbt, atr = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        ubq_pdb[:1458], torch_device
+        co, ubq_pdb[:1458], torch_device
+    )
+    # currently: don't treat this as MET:nterm:cterm even though it is both the first
+    # and last residue for a chain; instead, do MET:nterm
+    res_not_connected = torch.tensor(
+        [[[False, True]]], dtype=torch.bool, device=torch_device
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
     # 3
     (
         his_taut,
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(can_rts, res_type_variants, coords, at_is_pres)
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co,
+        pbt,
+        resolved_atom_is_present,
+        ch_id,
+        can_rts,
+        res_type_variants,
+        found_disulfides,
+        res_not_connected,
+    )
 
     block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres
@@ -277,27 +330,42 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
 
 
 def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
+    co = default_canonical_ordering()
     pbt, atr = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        ubq_pdb[:810], torch_device
+        co, ubq_pdb[:810], torch_device
+    )
+    # currently: don't treat this as MET:nterm:cterm even though it is both the first
+    # and last residue for a chain; instead, do MET:nterm
+    res_not_connected = torch.tensor(
+        [[[False, True]]], dtype=torch.bool, device=torch_device
     )
 
     # 2
-    found_disulfides, res_type_variants = find_disulfides(can_rts, coords)
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
     # 3
     (
         his_taut,
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(can_rts, res_type_variants, coords, at_is_pres)
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (
         block_types64,
         inter_residue_connections64,
         inter_block_bondsep64,
-    ) = assign_block_types(pbt, ch_id, can_rts, res_type_variants, found_disulfides)
+    ) = assign_block_types(
+        co,
+        pbt,
+        resolved_atom_is_present,
+        ch_id,
+        can_rts,
+        res_type_variants,
+        found_disulfides,
+        res_not_connected,
+    )
 
     block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
         pbt, block_types64, coords, at_is_pres

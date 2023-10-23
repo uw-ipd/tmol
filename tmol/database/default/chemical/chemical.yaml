@@ -989,8 +989,8 @@ residues:
     - { name:   NE2, phi:    0.043487 deg, theta:   71.617294 deg, d:    1.320378, parent:   CE1, grand_parent:   ND1, great_grand_parent:    CG}
     - { name:   CD2, phi:   -0.028256 deg, theta:   70.994614 deg, d:    1.373210, parent:   NE2, grand_parent:   CE1, great_grand_parent:   ND1}
     - { name:   HD2, phi:  179.968872 deg, theta:   53.600000 deg, d:    1.090336, parent:   CD2, grand_parent:   NE2, great_grand_parent:   CE1}
-    - { name:   HE1, phi: -179.986603 deg, theta:   54.200000 deg, d:    1.010082, parent:   NE2, grand_parent:   CE1, great_grand_parent:   CD2}
-    - { name:   HE2, phi: -179.977402 deg, theta:   54.200000 deg, d:    1.089785, parent:   CE1, grand_parent:   ND1, great_grand_parent:   NE2}
+    - { name:   HE2, phi: -179.986603 deg, theta:   54.200000 deg, d:    1.010082, parent:   NE2, grand_parent:   CE1, great_grand_parent:   CD2}
+    - { name:   HE1, phi: -179.977402 deg, theta:   54.200000 deg, d:    1.089785, parent:   CE1, grand_parent:   ND1, great_grand_parent:   NE2}
     - { name:   HB2, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090580, parent:    CB, grand_parent:    CA, great_grand_parent:    CG}
     - { name:   HB3, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089658, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
     - { name:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089618, parent:    CA, grand_parent:     N, great_grand_parent:    CB}
@@ -1672,11 +1672,11 @@ residues:
     - { name:    CZ, phi:   -0.028095 deg, theta:   59.969322 deg, d:    1.378581, parent:   CE1, grand_parent:   CD1, great_grand_parent:    CG}
     - { name:   CE2, phi:    0.026065 deg, theta:   60.128948 deg, d:    1.380491, parent:    CZ, grand_parent:   CE1, great_grand_parent:   CD1}
     - { name:   CD2, phi:    0.032582 deg, theta:   60.030773 deg, d:    1.381280, parent:   CE2, grand_parent:    CZ, great_grand_parent:   CE1}
-    - { name:   HD1, phi:  179.974045 deg, theta:   60.023750 deg, d:    1.090602, parent:   CD2, grand_parent:   CE2, great_grand_parent:    CZ}
+    - { name:   HD2, phi:  179.974045 deg, theta:   60.023750 deg, d:    1.090602, parent:   CD2, grand_parent:   CE2, great_grand_parent:    CZ}
     - { name:   HE2, phi:  179.948761 deg, theta:   60.038544 deg, d:    1.089830, parent:   CE2, grand_parent:    CZ, great_grand_parent:   CD2}
     - { name:    HZ, phi:  179.911728 deg, theta:   59.918243 deg, d:    1.089083, parent:    CZ, grand_parent:   CE1, great_grand_parent:   CE2}
     - { name:   HE1, phi: -179.984573 deg, theta:   60.032631 deg, d:    1.089717, parent:   CE1, grand_parent:   CD1, great_grand_parent:    CZ}
-    - { name:   HD2, phi: -179.958023 deg, theta:   60.766548 deg, d:    1.090326, parent:   CD1, grand_parent:    CG, great_grand_parent:   CE1}
+    - { name:   HD1, phi: -179.958023 deg, theta:   60.766548 deg, d:    1.090326, parent:   CD1, grand_parent:    CG, great_grand_parent:   CE1}
     - { name:   HB2, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.089216, parent:    CB, grand_parent:    CA, great_grand_parent:    CG}
     - { name:   HB3, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089189, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
     - { name:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090899, parent:    CA, grand_parent:     N, great_grand_parent:    CB}
