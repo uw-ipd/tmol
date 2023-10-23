@@ -11,16 +11,16 @@ def test_create_canonical_ordering_smoke(default_database):
     co = CanonicalOrdering.from_chemdb(chemdb)
 
     n_name3s = len(set([x.name3 for x in chemdb.residues]))
-    assert len(co.restype_equiv_classes) == n_name3s
-    for name3 in co.restype_equiv_classes:
+    assert co.n_restype_io_equiv_classes == n_name3s
+    for name3 in co.restype_io_equiv_classes:
         assert name3 in co.restypes_ordered_atom_names
         assert name3 in co.restypes_atom_index_mapping
 
-    assert "nterm" in co.down_termini_variants
-    assert "cterm" in co.up_termini_variants
+    assert "nterm" in co.down_termini_patches
+    assert "cterm" in co.up_termini_patches
     for x in ["H1", "H2", "H3"]:
-        assert x in co.termini_variant_added_atoms["nterm"]
-    assert "OXT" in co.termini_variant_added_atoms["cterm"]
+        assert x in co.termini_patch_added_atoms["nterm"]
+    assert "OXT" in co.termini_patch_added_atoms["cterm"]
     assert co.max_n_canonical_atoms >= 28
 
 

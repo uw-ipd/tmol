@@ -121,24 +121,25 @@ def assign_block_types(
     )
     is_both_down_and_up_term_res = torch.logical_and(is_down_term_res, is_up_term_res)
 
-    # TO DO: n+c term patches
+    # note which polymeric residues should be given their chain-ending
+    # (aka termini) patches
     termini_variants = torch.ones_like(res_types, dtype=torch.int64)
     termini_variants[is_down_and_not_up_term_res] = 0
     termini_variants[is_up_and_not_down_term_res] = 2
     termini_variants[is_both_down_and_up_term_res] = 3
 
     block_type_candidates = torch.full(
-        (n_poses, max_n_res, can_ann.max_variants_for_fixed_term_and_spcase),
+        (n_poses, max_n_res, can_ann.max_candidates_for_var_combo),
         -1,
         dtype=torch.int64,
         device=device,
     )
-    is_real_block_type_candidate = torch.zeros(
-        (n_poses, max_n_res, can_ann.max_variants_for_fixed_term_and_spcase),
+    is_real_candidate = torch.zeros(
+        (n_poses, max_n_res, can_ann.max_candidates_for_var_combo),
         dtype=torch.bool,
         device=device,
     )
-    block_type_candidates[is_real_res] = can_ann.var_combo_bt_index[
+    block_type_candidates[is_real_res] = can_ann.var_combo_candidate_bt_index[
         res_types64[is_real_res],
         termini_variants[is_real_res],
         res_type_variants64[is_real_res],
@@ -147,152 +148,139 @@ def assign_block_types(
     # print("block_type_candidates")
     # print(block_type_candidates)
 
-    is_real_block_type_candidate[is_real_res] = can_ann.var_combo_is_real_bt[
+    is_real_candidate[is_real_res] = can_ann.var_combo_is_real_candidate[
         res_types64[is_real_res],
         termini_variants[is_real_res],
         res_type_variants64[is_real_res],
     ]
-    provided_atoms_absent_from_canonical = torch.zeros(
+    provided_atoms_absent_from_candidate = torch.zeros(
         (
             n_poses,
             max_n_res,
-            can_ann.max_variants_for_fixed_term_and_spcase,
+            can_ann.max_candidates_for_var_combo,
             canonical_ordering.max_n_canonical_atoms,
         ),
         dtype=torch.bool,
         device=device,
     )
     atom_is_present = atom_is_present.unsqueeze(2).expand(
-        -1, -1, can_ann.max_variants_for_fixed_term_and_spcase, -1
+        -1, -1, can_ann.max_candidates_for_var_combo, -1
     )
-    var_atom_is_absent = torch.zeros(
+    candidate_atom_is_absent = torch.zeros(
         (
             n_poses,
             max_n_res,
-            can_ann.max_variants_for_fixed_term_and_spcase,
+            can_ann.max_candidates_for_var_combo,
             canonical_ordering.max_n_canonical_atoms,
         ),
         dtype=torch.bool,
         device=device,
     )
-    var_atom_is_absent[
-        is_real_block_type_candidate
-    ] = can_ann.bt_canonical_atom_is_absent[
-        block_type_candidates[is_real_block_type_candidate]
+    candidate_atom_is_absent[is_real_candidate] = can_ann.bt_canonical_atom_is_absent[
+        block_type_candidates[is_real_candidate]
     ]
     # print("var_atom_is_absent")
     # print(var_atom_is_absent)
-    provided_atoms_absent_from_canonical[
-        is_real_block_type_candidate
-    ] = torch.logical_and(
-        atom_is_present[is_real_block_type_candidate],
-        var_atom_is_absent[is_real_block_type_candidate],
+    provided_atoms_absent_from_candidate[is_real_candidate] = torch.logical_and(
+        atom_is_present[is_real_candidate],
+        candidate_atom_is_absent[is_real_candidate],
     )
-    # print("provided_atoms_absent_from_canonical")
-    # print(provided_atoms_absent_from_canonical)
 
     # if there are any atoms that were provided for a given residue
     # but that the variant does not contain, then that is not a match
-    exclude_variant_for_residue = torch.any(provided_atoms_absent_from_canonical, dim=3)
-    atom_is_absent = torch.logical_not(atom_is_present)
-    var_non_termini_atom_is_present = torch.zeros_like(var_atom_is_absent)
-    var_non_termini_atom_is_present[
-        is_real_block_type_candidate
-    ] = can_ann.bt_non_termini_added_canonical_atom_is_present[
-        block_type_candidates[is_real_block_type_candidate]
-    ]
-    # print("var_non_termini_atom_is_present")
-    # print(var_non_termini_atom_is_present)
-
-    canonical_atom_was_not_provided_for_variant = torch.zeros_like(
-        provided_atoms_absent_from_canonical, dtype=torch.int64
+    exclude_candidate_for_residue = torch.any(
+        provided_atoms_absent_from_candidate, dim=3
     )
-    canonical_atom_was_not_provided_for_variant[
-        is_real_block_type_candidate
+    atom_is_absent = torch.logical_not(atom_is_present)
+    candidate_non_term_patch_atom_is_present = torch.zeros_like(
+        candidate_atom_is_absent
+    )
+    candidate_non_term_patch_atom_is_present[
+        is_real_candidate
+    ] = can_ann.bt_non_term_patch_added_canonical_atom_is_present[
+        block_type_candidates[is_real_candidate]
+    ]
+
+    canonical_atom_was_not_provided_for_candidate = torch.zeros_like(
+        provided_atoms_absent_from_candidate, dtype=torch.int64
+    )
+    canonical_atom_was_not_provided_for_candidate[
+        is_real_candidate
     ] = torch.logical_and(
-        atom_is_absent[is_real_block_type_candidate],
-        var_non_termini_atom_is_present[is_real_block_type_candidate],
+        atom_is_absent[is_real_candidate],
+        candidate_non_term_patch_atom_is_present[is_real_candidate],
     ).to(
         torch.int64
     )
-    var_combo_is_non_default_term = torch.zeros(
-        (n_poses, max_n_res, can_ann.max_variants_for_fixed_term_and_spcase),
+    candidate_is_non_default_term = torch.zeros(
+        (n_poses, max_n_res, can_ann.max_candidates_for_var_combo),
         dtype=torch.int64,
         device=device,
     )
-    var_combo_is_non_default_term[
-        is_real_block_type_candidate
-    ] = can_ann.bt_is_non_default_terminus[
-        block_type_candidates[is_real_block_type_candidate]
-    ].to(
+    candidate_is_non_default_term[
+        is_real_candidate
+    ] = can_ann.bt_is_non_default_terminus[block_type_candidates[is_real_candidate]].to(
         torch.int64
     )
-    # print("canonical_atom_was_not_provided_for_variant")
-    # print(canonical_atom_was_not_provided_for_variant)
 
     # for i in range(n_poses):
     #     for j in range(max_n_res):
     #         for k in range(canonical_atom_was_not_provided_for_variant.shape[2]):
-    #             if not is_real_block_type_candidate[i, j, k]:
+    #             if not is_real_candidate[i, j, k]:
     #                 continue
     #             which_bt = block_type_candidates[i, j, k]
     #             cand_bt = pbt.active_block_types[which_bt]
-    #             print(i, j, k, which_bt.item(), cand_bt.name, "restype", res_types[i, j], "equiv class", canonical_ordering.restype_equiv_classes[res_types[i,j]])
+    #             print(i, j, k, which_bt.item(), cand_bt.name, "restype", res_types[i, j], "equiv class", canonical_ordering.restype_io_equiv_classes[res_types[i,j]])
     #             for l in range(canonical_atom_was_not_provided_for_variant.shape[3]):
     #                 if canonical_atom_was_not_provided_for_variant[i, j, k, l]:
     #                     print(" atom not provided:", cand_bt.atoms[l].name)
 
-    n_canonical_atoms_not_provided_for_var = torch.sum(
-        canonical_atom_was_not_provided_for_variant, dim=3
+    n_canonical_atoms_not_provided_for_candidate = torch.sum(
+        canonical_atom_was_not_provided_for_candidate, dim=3
     )
-    n_canonical_atoms_not_provided_for_var[
+    n_canonical_atoms_not_provided_for_candidate[
         torch.logical_or(
-            torch.logical_not(is_real_block_type_candidate), exclude_variant_for_residue
+            torch.logical_not(is_real_candidate), exclude_candidate_for_residue
         )
     ] = (canonical_ordering.max_n_canonical_atoms + 1)
     # print("n_canonical_atoms_not_provided_for_var")
     # print(n_canonical_atoms_not_provided_for_var)
 
-    variant_combo_misfit_score = (
-        2 * n_canonical_atoms_not_provided_for_var + var_combo_is_non_default_term
+    candidate_misalignment_score = (
+        2 * n_canonical_atoms_not_provided_for_candidate + candidate_is_non_default_term
     )
-    # best_fit_variant_option_ind = torch.zeros_like(res_type_variants, dtype=torch.int64)
-    best_fit_variant_option_ind = torch.argmin(variant_combo_misfit_score, dim=2)
+    best_candidate_ind = torch.argmin(candidate_misalignment_score, dim=2)
 
     # ok, we need to do some quality checks. If the best fit variant's score is
     # 2 * (canonical_ordering.max_n_canonical_atoms + 1) or worse, then we have
     # a problem. It's hard to know what to do at this point!
-    best_fit_variant_score = torch.zeros(
+    best_candidate_score = torch.zeros(
         (n_poses, max_n_res), dtype=torch.int64, device=device
     )
-    best_fit_variant_score[is_real_res] = variant_combo_misfit_score[
+    best_candidate_score[is_real_res] = candidate_misalignment_score[
         nz_is_real_res[:, 0],
         nz_is_real_res[:, 1],
-        best_fit_variant_option_ind[is_real_res],
+        best_candidate_ind[is_real_res],
     ]
 
     if torch.any(
-        best_fit_variant_score >= 2 * (canonical_ordering.max_n_canonical_atoms + 1)
+        best_candidate_score >= 2 * (canonical_ordering.max_n_canonical_atoms + 1)
     ):
-        print("didn't find a matching block type")
+        print("Failed to find a matching block type")
         # TO DO: Useful error message here
         # print(best_fit_variant_score)
         # print("bad")
         # print(torch.nonzero(best_fit_variant_score >= 2 * (canonical_ordering.max_n_canonical_atoms + 1)))
-        raise RuntimeError("failed to resolve a block type from the options available")
+        raise RuntimeError(
+            "failed to resolve a block type from the candidates available"
+        )
 
     block_type_ind64 = torch.zeros_like(res_types, dtype=torch.int64)
     block_type_ind64[is_real_res] = block_type_candidates[
         nz_is_real_res[:, 0],
         nz_is_real_res[:, 1],
-        best_fit_variant_option_ind[is_real_res],
+        best_candidate_ind[is_real_res],
     ]
-
-    # old alg: block_type_ind64[is_real_res] = canonical_res_ordering_map[
-    # old alg:     res_types64[is_real_res],
-    # old alg:     termini_variants[is_real_res],
-    # old alg:     res_type_variants64[is_real_res],
-    # old alg: ]
 
     # UGH: stealing/duplicating a lot of code from pose_stack_builder below
     # SHOULD THIS JUST GO IN POSE_STACK_BUILDER AND REPLACE ITS EXISTING CODE???
@@ -494,14 +482,25 @@ def take_block_type_atoms_from_canonical(
 
 @attr.s(auto_attribs=True, frozen=True)
 class CanonicalOrderingAnnotation:
-    max_variants_for_fixed_term_and_spcase: int
-    var_combo_n_blocktypes: Tensor[torch.int64][:, :, :]
-    var_combo_is_real_bt: Tensor[torch.bool][:, :, :, :]
-    var_combo_bt_index: Tensor[torch.int64][:, :, :, :]
+    max_candidates_for_var_combo: int
+    # n-co-equiv-class x n-term-opts x n-spcase-var
+    var_combo_n_candidates: Tensor[torch.int64][:, :, :]
+    # n-co-equiv-class x n-term-opts x n-spcase-var x max-n-candidates
+    var_combo_is_real_candidate: Tensor[torch.bool][:, :, :, :]
+    # n-co-equiv-class x n-term-opts x n-spcase-var x max-n-candidates
+    var_combo_candidate_bt_index: Tensor[torch.int64][:, :, :, :]
+    # n-pbt-block-types x max-n-canonical-atoms
     bt_canonical_atom_is_absent: Tensor[torch.bool][:, :]
-    bt_non_termini_added_canonical_atom_is_present: Tensor[torch.bool][:, :]
+    # n-pbt-block-types x max-n-canonical-atoms
+    bt_non_term_patch_added_canonical_atom_is_present: Tensor[torch.bool][:, :]
+    # n-pbt-block-types
     bt_is_non_default_terminus: Tensor[torch.bool][:]
-    # bt_ind_to_canonical_ind: Tensor[torch.int64][:] -- needed for output?
+
+    # n-pbt-block-types
+    # needed for output?
+    # bt_ind_to_canonical_io_equiv_class_ind: Tensor[torch.int64][:]
+
+    # n-pbt-block-types x max-n-atoms
     bt_canonical_atom_ind_map: Tensor[torch.int64][:, :]
 
 
@@ -525,7 +524,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
         return
 
     # what is the problem we are trying to solve?
-    # we have a number of "name3s" that we want to map
+    # we have a number of "io_equiv_class"es that we want to map
     # to particular block types
     # where the user/the chain connectivity
     # can specify things such as:
@@ -607,14 +606,6 @@ def _annotate_packed_block_types_w_canonical_res_order(
         2  # CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
     )
 
-    # max_n_defaultdict(int)
-    # base_blocktypes = {}
-    # for bt in pbt.active_block_types:
-    #     if bt.name.find(":") == -1:
-    #         print("bt.base_name", bt.base_name, "bt.name", bt.name)
-    #         assert bt.base_name == bt.name
-    #         base_blocktypes[bt.base_name] = bt
-
     def map_term_to_int(is_down_term, is_up_term):
         if is_down_term and is_up_term:
             return 3
@@ -630,103 +621,111 @@ def _annotate_packed_block_types_w_canonical_res_order(
             return 1
         return 0
 
-    def term_and_spcase_variant_lists():
-        variants = []
+    def term_and_spcase_var_candidate_lists():
+        candidates = []
         for i in range(max_n_termini_types):
-            variants.append([])
+            candidates.append([])
             for j in range(max_n_special_case_aa_variant_types):
-                variants[i].append([])
-        return variants
+                candidates[i].append([])
+        return candidates
 
-    pbt_equiv_class_name_set = set([bt.equiv_class for bt in pbt.active_block_types])
-    pbt_equiv_class_variants = {
-        equiv_class: term_and_spcase_variant_lists()
-        for equiv_class in pbt_equiv_class_name_set
+    pbt_io_equiv_class_name_set = set(
+        [bt.io_equiv_class for bt in pbt.active_block_types]
+    )
+    pbt_io_equiv_class_candidates = {
+        io_equiv_class: term_and_spcase_var_candidate_lists()
+        for io_equiv_class in pbt_io_equiv_class_name_set
     }
     bt_is_non_default_terminus = torch.zeros((pbt.n_types,), dtype=torch.bool)
 
     # the number of base types in this PBT, which may represent a subset
     # of the base types in the ChemicalDatabase from which the CO was
     # derived
-    n_co_equiv_classes = len(canonical_ordering.restype_equiv_classes)
-    n_pbt_equiv_classes = len(pbt_equiv_class_name_set)
+    n_co_io_equiv_classes = co.n_restype_io_equiv_classes
+    n_pbt_io_equiv_classes = len(pbt_io_equiv_class_name_set)
 
     for i, bt in enumerate(pbt.active_block_types):
         bt_vars = bt.name.split(":")
-        var_is_down_term = False
-        var_is_up_term = False
-        var_is_non_default_term = False
-        var_is_cyd = bt.base_name == "CYD"
-        var_is_hisd = bt.base_name == "HIS_D"
-        for var_type in bt_vars[1:]:
-            if var_type in co.down_termini_variants:
-                var_is_down_term = True
-                if var_type != co.restypes_default_termini_mapping[bt.equiv_class][0]:
-                    var_is_non_default_term = True
-            if var_type in co.up_termini_variants:
-                var_is_up_term = True
-                if var_type != co.restypes_default_termini_mapping[bt.equiv_class][1]:
-                    var_is_non_default_term = True
-        term_ind = map_term_to_int(var_is_down_term, var_is_up_term)
-        spcase_var_ind = map_spcase_var_to_int(var_is_cyd, var_is_hisd)
-        pbt_equiv_class_variants[bt.equiv_class][term_ind][spcase_var_ind].append(
-            (bt, i)
-        )
-        bt_is_non_default_terminus[i] = var_is_non_default_term
+        bt_is_down_term = False
+        bt_is_up_term = False
+        bt_is_non_default_term = False
+        bt_is_cyd = bt.base_name == "CYD"
+        bt_is_hisd = bt.base_name == "HIS_D"
+        for var_name in bt_vars[1:]:
+            if var_name in co.down_termini_patches:
+                bt_is_down_term = True
+                if (
+                    var_name
+                    != co.restypes_default_termini_mapping[bt.io_equiv_class][0]
+                ):
+                    bt_is_non_default_term = True
+            if var_name in co.up_termini_patches:
+                bt_is_up_term = True
+                if (
+                    var_name
+                    != co.restypes_default_termini_mapping[bt.io_equiv_class][1]
+                ):
+                    bt_is_non_default_term = True
+        term_ind = map_term_to_int(bt_is_down_term, bt_is_up_term)
+        spcase_var_ind = map_spcase_var_to_int(bt_is_cyd, bt_is_hisd)
+        pbt_io_equiv_class_candidates[bt.io_equiv_class][term_ind][
+            spcase_var_ind
+        ].append((bt, i))
+        bt_is_non_default_terminus[i] = bt_is_non_default_term
 
-    max_variants_for_fixed_term_and_spcase = max(
-        len(pbt_equiv_class_variants[bt][i][j][0])
-        for bt in pbt_equiv_class_variants
+    max_candidates_for_var_combo = max(
+        len(pbt_io_equiv_class_candidates[bt][i][j][0])
+        for bt in pbt_io_equiv_class_candidates
         for i in range(max_n_termini_types)
         for j in range(max_n_special_case_aa_variant_types)
-        if len(pbt_equiv_class_variants[bt][i][j]) > 0
+        if len(pbt_io_equiv_class_candidates[bt][i][j]) > 0
     )
 
-    var_combo_bt_index = torch.full(
+    var_combo_candidate_bt_index = torch.full(
         (
-            n_co_equiv_classes,
+            n_co_io_equiv_classes,
             max_n_termini_types,
             max_n_special_case_aa_variant_types,
-            max_variants_for_fixed_term_and_spcase,
+            max_candidates_for_var_combo,
         ),
         -1,
         dtype=torch.int64,
         device=torch.device("cpu"),
     )
-    var_combo_is_real_bt = torch.zeros(
+    var_combo_is_real_candidate = torch.zeros(
         (
-            n_co_equiv_classes,
+            n_co_io_equiv_classes,
             max_n_termini_types,
             max_n_special_case_aa_variant_types,
-            max_variants_for_fixed_term_and_spcase,
+            max_candidates_for_var_combo,
         ),
         dtype=torch.bool,
         device=torch.device("cpu"),
     )
-    var_combo_n_blocktypes = torch.zeros(
-        (n_co_equiv_classes, max_n_termini_types, max_n_special_case_aa_variant_types),
+    var_combo_n_candidates = torch.zeros(
+        (
+            n_co_io_equiv_classes,
+            max_n_termini_types,
+            max_n_special_case_aa_variant_types,
+        ),
         dtype=torch.int64,
         device=torch.device("cpu"),
     )
-    for i, bt_name3 in enumerate(co.restype_equiv_classes):
-        if bt_name3 not in pbt_equiv_class_variants:
+    for i, bt_name3 in enumerate(co.restype_io_equiv_classes):
+        if bt_name3 not in pbt_io_equiv_class_candidates:
             continue
         for j in range(max_n_termini_types):
             for k in range(max_n_special_case_aa_variant_types):
-                var_combo_n_blocktypes[i, j, k] = len(
-                    pbt_equiv_class_variants[bt_name3][j][k]
+                var_combo_n_candidates[i, j, k] = len(
+                    pbt_io_equiv_class_candidates[bt_name3][j][k]
                 )
-                # if bt_name3 == "CYS":
-                #     print("cys", i, j, k, "n blocktypes:", var_combo_n_blocktypes[i,j,k])
                 for l, (bt, bt_ind) in enumerate(
-                    pbt_equiv_class_variants[bt_name3][j][k]
+                    pbt_io_equiv_class_candidates[bt_name3][j][k]
                 ):
-                    var_combo_bt_index[i, j, k, l] = bt_ind
-                    var_combo_is_real_bt[i, j, k, l] = True
-                    # if bt_name3 == "CYS":
-                    #     print("  cys candidate", i, j, k, l, bt.name, bt_ind)
+                    var_combo_candidate_bt_index[i, j, k, l] = bt_ind
+                    var_combo_is_real_candidate[i, j, k, l] = True
 
-    # For bt i, canonical atom j, is canonical atom j absent from bt i?
+    # For bt i and canonical atom j, is canonical atom j absent from bt i?
     # needed so we can compute p & ~b[i]
     bt_canonical_atom_is_absent = torch.ones(
         (
@@ -736,9 +735,9 @@ def _annotate_packed_block_types_w_canonical_res_order(
         dtype=torch.bool,
         device=torch.device("cpu"),
     )
-    # For bt i, canonical atom j, is canonical atom j present in bt i
+    # For bt i and  canonical atom j, is canonical atom j present in bt i
     # and not put there by a termini variant?
-    bt_non_termini_added_canonical_atom_is_present = torch.zeros(
+    bt_non_term_patch_added_canonical_atom_is_present = torch.zeros(
         (
             pbt.n_types,
             co.max_n_canonical_atoms,
@@ -758,20 +757,18 @@ def _annotate_packed_block_types_w_canonical_res_order(
         # added by termini patches so we can mark them as present
         variants = bt.name.split(":")[1:]
         for var in variants:
-            for can_at in co.termini_variant_added_atoms[var]:
+            for can_at in co.termini_patch_added_atoms[var]:
                 if can_at in bt_at_names:
                     bt_at_names.remove(can_at)
 
-        # print("bt", bt.name)
         for at_name in bt_at_names:
-            can_ind = co.restypes_atom_index_mapping[bt.name3][at_name]
-            bt_non_termini_added_canonical_atom_is_present[i, can_ind] = True
+            can_ind = co.restypes_atom_index_mapping[bt.io_equiv_class][at_name]
+            bt_non_term_patch_added_canonical_atom_is_present[i, can_ind] = True
             bt_canonical_atom_is_absent[i, can_ind] = False
-            # print("     ", at_name, can_ind, "is present")
 
     # bt_ind_to_canonical_ind = numpy.array(
     #     [
-    #         co.restype_equiv_classes.index(bt.equiv_class)
+    #         co.restype_io_equiv_classes.index(bt.io_equiv_class)
     #         for bt in pbt.active_block_types
     #     ],
     #     dtype=numpy.int32
@@ -780,8 +777,8 @@ def _annotate_packed_block_types_w_canonical_res_order(
         (pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64
     )
     for i, bt in enumerate(pbt.active_block_types):
-        assert bt.equiv_class in co.restypes_ordered_atom_names
-        i_canonical_ordering = co.restypes_ordered_atom_names[bt.equiv_class]
+        assert bt.io_equiv_class in co.restypes_ordered_atom_names
+        i_canonical_ordering = co.restypes_ordered_atom_names[bt.io_equiv_class]
         for j, at in enumerate(bt.atoms):
             # probably this would be faster if we used a pandas indexer
             # but this is done only once, so, for now, use the slow form
@@ -792,13 +789,13 @@ def _annotate_packed_block_types_w_canonical_res_order(
         return x.to(pbt.device)
 
     ann = CanonicalOrderingAnnotation(
-        max_variants_for_fixed_term_and_spcase=max_variants_for_fixed_term_and_spcase,
-        var_combo_n_blocktypes=_d(var_combo_n_blocktypes),
-        var_combo_is_real_bt=_d(var_combo_is_real_bt),
-        var_combo_bt_index=_d(var_combo_bt_index),
+        max_candidates_for_var_combo=max_candidates_for_var_combo,
+        var_combo_n_candidates=_d(var_combo_n_candidates),
+        var_combo_is_real_candidate=_d(var_combo_is_real_candidate),
+        var_combo_candidate_bt_index=_d(var_combo_candidate_bt_index),
         bt_canonical_atom_is_absent=_d(bt_canonical_atom_is_absent),
-        bt_non_termini_added_canonical_atom_is_present=_d(
-            bt_non_termini_added_canonical_atom_is_present
+        bt_non_term_patch_added_canonical_atom_is_present=_d(
+            bt_non_term_patch_added_canonical_atom_is_present
         ),
         bt_is_non_default_terminus=_d(bt_is_non_default_terminus),
         # bt_ind_to_canonical_ind=_d(bt_ind_to_canonical_ind),

@@ -65,7 +65,7 @@ residues:
   - name:  ALA
     base_name: ALA
     name3: ALA
-    equiv_class: ALA
+    io_equiv_class: ALA
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -146,7 +146,7 @@ residues:
   - name:  ARG
     base_name: ARG
     name3: ARG
-    equiv_class: ARG
+    io_equiv_class: ARG
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -280,7 +280,7 @@ residues:
   - name:  ASN
     base_name: ASN
     name3: ASN
-    equiv_class: ASN
+    io_equiv_class: ASN
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -376,7 +376,7 @@ residues:
   - name:  ASP
     base_name: ASP
     name3: ASP
-    equiv_class: ASP
+    io_equiv_class: ASP
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -464,7 +464,7 @@ residues:
   - name:  CYS
     base_name: CYS
     name3: CYS
-    equiv_class: CYS
+    io_equiv_class: CYS
     atoms:
     - { name: N   , atom_type: Nbb  }
     - { name: CA  , atom_type: CAbb }
@@ -552,7 +552,7 @@ residues:
   - name:  CYD
     base_name: CYD
     name3: CYS
-    equiv_class: CYS
+    io_equiv_class: CYS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -634,7 +634,7 @@ residues:
   - name:  GLN
     base_name: GLN
     name3: GLN
-    equiv_class: GLN
+    io_equiv_class: GLN
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -742,7 +742,7 @@ residues:
   - name:  GLU
     base_name: GLU
     name3: GLU
-    equiv_class: GLU    
+    io_equiv_class: GLU    
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -842,7 +842,7 @@ residues:
   - name:  GLY
     base_name: GLY
     name3: GLY
-    equiv_class: GLY
+    io_equiv_class: GLY
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -913,7 +913,7 @@ residues:
   - name:  HIS
     base_name: HIS
     name3: HIS
-    equiv_class: HIS
+    io_equiv_class: HIS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1019,7 +1019,7 @@ residues:
   - name:  HIS_D
     base_name: HIS_D
     name3: HIS
-    equiv_class: HIS
+    io_equiv_class: HIS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1124,7 +1124,7 @@ residues:
   - name:  ILE
     base_name: ILE
     name3: ILE
-    equiv_class: ILE
+    io_equiv_class: ILE
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1239,7 +1239,7 @@ residues:
   - name:  LEU
     base_name: LEU
     name3: LEU
-    equiv_class: LEU
+    io_equiv_class: LEU
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1354,7 +1354,7 @@ residues:
   - name:  LYS
     base_name: LYS
     name3: LYS
-    equiv_class: LYS
+    io_equiv_class: LYS
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1483,7 +1483,7 @@ residues:
   - name:  MET
     base_name: MET
     name3: MET
-    equiv_class: MET
+    io_equiv_class: MET
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1592,7 +1592,7 @@ residues:
   - name:  PHE
     base_name: PHE
     name3: PHE
-    equiv_class: PHE
+    io_equiv_class: PHE
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1705,7 +1705,7 @@ residues:
   - name:  PRO
     base_name: PRO
     name3: PRO
-    equiv_class: PRO
+    io_equiv_class: PRO
     atoms:
     - { name: N   ,  atom_type: Npro }
     - { name: CA  ,  atom_type: CAbb }
@@ -1805,7 +1805,7 @@ residues:
   - name:  SER
     base_name: SER
     name3: SER
-    equiv_class: SER
+    io_equiv_class: SER
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1893,7 +1893,7 @@ residues:
   - name:  THR
     base_name: THR
     name3: THR
-    equiv_class: THR
+    io_equiv_class: THR
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -1991,7 +1991,7 @@ residues:
   - name:  TRP
     base_name: TRP
     name3: TRP
-    equiv_class: TRP
+    io_equiv_class: TRP
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2117,7 +2117,7 @@ residues:
   - name:  TYR
     base_name: TYR
     name3: TYR
-    equiv_class: TYR
+    io_equiv_class: TYR
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2238,7 +2238,7 @@ residues:
   - name:  VAL
     base_name: VAL
     name3: VAL
-    equiv_class: VAL
+    io_equiv_class: VAL
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -2342,7 +2342,7 @@ residues:
   - name:  HOH
     base_name: HOH
     name3: HOH
-    equiv_class: HOH
+    io_equiv_class: HOH
     atoms:
     - { name:  O, atom_type: Owat  }
     - { name: H1, atom_type: Hwat }

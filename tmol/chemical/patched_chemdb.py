@@ -312,7 +312,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
             name=res.name + ":" + variant.display_name,
             base_name=res.base_name,
             name3=res.name3,
-            equiv_class=res.equiv_class,
+            io_equiv_class=res.io_equiv_class,
             atoms=res.atoms,
             atom_aliases=res.atom_aliases,
             bonds=res.bonds,

@@ -77,18 +77,22 @@ class HisSpecialCaseIndices:
 
 @attr.s(auto_attribs=True, frozen=True)
 class CanonicalOrdering:
-    restype_equiv_classes: Tuple[str, ...]
+    restype_io_equiv_classes: Tuple[str, ...]
     # the name for each atom
     restypes_ordered_atom_names: Mapping[str, Tuple[str, ...]]
     # mapping for each name3 from atom name and alternate atom name to canonical form index
     restypes_atom_index_mapping: Mapping[str, Mapping[str, int]]
     restypes_default_termini_mapping: Mapping[str, Tuple[str, str]]
-    down_termini_variants: Tuple[str, ...]
-    up_termini_variants: Tuple[str, ...]
-    termini_variant_added_atoms: Mapping[str, Tuple[str, ...]]
+    down_termini_patches: Tuple[str, ...]
+    up_termini_patches: Tuple[str, ...]
+    termini_patch_added_atoms: Mapping[str, Tuple[str, ...]]
     cys_inds: CysSpecialCaseIndices
     his_inds: HisSpecialCaseIndices
     max_n_canonical_atoms: int
+
+    @property
+    def n_restype_io_equiv_classes(self):
+        return len(self.restype_io_equiv_classes)
 
     @classmethod
     def extra_atoms(cls):
@@ -109,7 +113,7 @@ class CanonicalOrdering:
                     self.unordered_vals.add(val)
                     self.ordered_vals.append(val)
 
-        restypes = ordered_set(rt.equiv_class for rt in chemdb.residues)
+        restypes = ordered_set(rt.io_equiv_class for rt in chemdb.residues)
         ordered_restypes = restypes.ordered_vals
 
         def newset():
@@ -173,31 +177,31 @@ class CanonicalOrdering:
             ]
         )
         # up_termini_variant_added_atoms = defaultdict(lambda: set([]))
-        termini_variant_added_atoms = defaultdict(lambda: set([]))
+        termini_patch_added_atoms = defaultdict(lambda: set([]))
 
         # we need to know which variants create down- and up termini
         # so we can build the right termini types
-        down_termini_types = set([])
-        up_termini_types = set([])
-        for var in chemdb.variants:
-            for rm in var.remove_atoms:
+        down_termini_patches = set([])
+        up_termini_patches = set([])
+        for patch in chemdb.variants:
+            for rm in patch.remove_atoms:
                 if rm == "<{down}>":
-                    down_termini_types.add(var.display_name)
-                    for atom in var.add_atoms:
-                        termini_variant_added_atoms[var.display_name].add(atom.name)
+                    down_termini_patches.add(patch.display_name)
+                    for atom in patch.add_atoms:
+                        termini_patch_added_atoms[patch.display_name].add(atom.name)
                 elif rm == "<{up}>":
-                    up_termini_types.add(var.display_name)
-                    for atom in var.add_atoms:
-                        termini_variant_added_atoms[var.display_name].add(atom.name)
+                    up_termini_patches.add(patch.display_name)
+                    for atom in patch.add_atoms:
+                        termini_patch_added_atoms[patch.display_name].add(atom.name)
 
         return cls(
-            restype_equiv_classes=ordered_restypes,
+            restype_io_equiv_classes=ordered_restypes,
             restypes_ordered_atom_names=restypes_ordered_atom_names,
             restypes_atom_index_mapping=restypes_atom_index_mapping,
             restypes_default_termini_mapping=default_termini_mapping,
-            down_termini_variants=down_termini_types,
-            up_termini_variants=up_termini_types,
-            termini_variant_added_atoms=termini_variant_added_atoms,
+            down_termini_patches=down_termini_patches,
+            up_termini_patches=up_termini_patches,
+            termini_patch_added_atoms=termini_patch_added_atoms,
             cys_inds=cls._init_cys_special_case_indices(
                 ordered_restypes, restypes_ordered_atom_names
             ),
@@ -330,7 +334,7 @@ def canonical_form_from_pdb_lines(
         chain_id[0, res_ind] = chains_seen[row["chaini"]]
         if res_types[0, res_ind] == -2:
             try:
-                aa_ind = canonical_ordering.restype_equiv_classes.index(row["resn"])
+                aa_ind = canonical_ordering.restype_io_equiv_classes.index(row["resn"])
                 # print(i, 'row["resn"]', row["resn"], aa_ind)
                 res_types[0, res_ind] = aa_ind
             except KeyError:
