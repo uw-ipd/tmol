@@ -27,7 +27,7 @@ def test_deduce_chains_two_monomers(ubq_res, default_restype_set, torch_device):
 
     chain_inds = chain_inds_for_pose_stack(poses)
     gold_chain_inds = numpy.array(
-        [[0, 0, 0, 0, 0, 1, 2], [0, 0, 0, 0, 0, 0, 0]], dtype=numpy.int32
+        [[0, 0, 0, 0, 0, -1, -1], [0, 0, 0, 0, 0, 0, 0]], dtype=numpy.int32
     )
     numpy.testing.assert_equal(gold_chain_inds, chain_inds)
 
