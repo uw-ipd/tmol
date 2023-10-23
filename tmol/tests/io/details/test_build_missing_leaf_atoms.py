@@ -26,7 +26,7 @@ from tmol.tests.autograd import gradcheck
 def test_build_missing_leaf_atoms(ubq_pdb):
     torch_device = torch.device("cpu")  # TEMP!
     co = default_canonical_ordering()
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         co, ubq_pdb, torch_device
     )
@@ -62,7 +62,7 @@ def test_build_missing_leaf_atoms(ubq_pdb):
 
     # now let's just say that all the hydrogen atoms are missing so we can build
     # them back
-    _annotate_packed_block_types_atom_is_leaf_atom(pbt, atr)
+    _annotate_packed_block_types_atom_is_leaf_atom(pbt)
     n_poses = 1
     max_n_blocks = block_types64.shape[1]
     block_at_is_leaf = torch.zeros(
@@ -105,7 +105,6 @@ def test_build_missing_leaf_atoms(ubq_pdb):
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
         pbt,
-        atr,
         block_types64,
         real_atoms,
         block_coords,
@@ -159,7 +158,7 @@ def test_build_missing_leaf_atoms(ubq_pdb):
 
 def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
     co = default_canonical_ordering()
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         co, ubq_pdb, torch_device
     )
@@ -210,7 +209,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
 
             # now let's just say that all the hydrogen atoms are missing so we can build
             # them back
-            _annotate_packed_block_types_atom_is_leaf_atom(pbt, atr)
+            _annotate_packed_block_types_atom_is_leaf_atom(pbt)
             n_poses = 1
             max_n_blocks = block_types64.shape[1]
             block_at_is_leaf = torch.zeros(
@@ -227,7 +226,6 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
             inter_residue_connections = inter_residue_connections64.to(torch.int32)
             new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
                 pbt,
-                atr,
                 block_types64,
                 real_atoms,
                 block_coords,
@@ -252,7 +250,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
 
 def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     co = default_canonical_ordering()
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         co, ubq_pdb[:1458], torch_device
     )
@@ -294,7 +292,7 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
 
     # now let's just say that all the hydrogen atoms are missing so we can build
     # them back
-    _annotate_packed_block_types_atom_is_leaf_atom(pbt, atr)
+    _annotate_packed_block_types_atom_is_leaf_atom(pbt)
     n_poses = 1
     max_n_blocks = block_types64.shape[1]
     block_at_is_leaf = torch.zeros(
@@ -311,7 +309,6 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     def coord_score(block_coords):
         new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
             pbt,
-            atr,
             block_types64,
             real_atoms,
             block_coords,
@@ -331,7 +328,7 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
 
 def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     co = default_canonical_ordering()
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         co, ubq_pdb[:810], torch_device
     )
@@ -373,7 +370,7 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
 
     # now let's just say that all the hydrogen atoms are missing so we can build
     # them back
-    _annotate_packed_block_types_atom_is_leaf_atom(pbt, atr)
+    _annotate_packed_block_types_atom_is_leaf_atom(pbt)
     n_poses = 1
     max_n_blocks = block_types64.shape[1]
     block_at_is_leaf = torch.zeros(
@@ -388,7 +385,6 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
         pbt,
-        atr,
         block_types64,
         real_atoms,
         block_coords,
@@ -400,7 +396,6 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
         # nonlocal new_pose_coords
         new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
             pbt,
-            atr,
             block_types64,
             real_atoms,
             bc,

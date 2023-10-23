@@ -6,6 +6,8 @@ from tmol.io.details.left_justify_canonical_form import left_justify_canonical_f
 from tmol.io.details.canonical_packed_block_types import (
     default_canonical_packed_block_types,
 )
+from tmol.io.canonical_ordering import default_canonical_ordering
+
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
@@ -18,12 +20,13 @@ def get_add_two_fill_shape(x):
 
 
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
+    co = default_canonical_ordering()
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
     ch_id_10, can_rts_10, coords_10, at_is_pres_10 = canonical_form_from_pdb_lines(
-        ubq_pdb[: 81 * 167], torch_device
+        co, ubq_pdb[: 81 * 167], torch_device
     )
 
     # put two empty residues in between res 5 and 6
@@ -73,6 +76,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
 
 
 def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
+    co = default_canonical_ordering()
     pbt, atr = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
@@ -81,7 +85,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
         orig_can_rts,
         orig_coords,
         orig_at_is_pres,
-    ) = canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
+    ) = canonical_form_from_pdb_lines(co, pertuzumab_pdb, torch_device)
 
     # the actual disulfides
     disulfides = torch.tensor(
@@ -153,6 +157,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
 def test_assign_block_types_for_pert_and_antigen(
     pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device
 ):
+    co = default_canonical_ordering()
     (
         pert_and_erbb2_lines,
         res_not_connected,
@@ -165,7 +170,7 @@ def test_assign_block_types_for_pert_and_antigen(
         orig_can_rts,
         orig_coords,
         orig_at_is_pres,
-    ) = canonical_form_from_pdb_lines(pert_and_erbb2_lines, torch_device)
+    ) = canonical_form_from_pdb_lines(co, pert_and_erbb2_lines, torch_device)
 
     orig_res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 

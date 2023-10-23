@@ -11,9 +11,9 @@ import toolz.functoolz
 @toolz.functoolz.memoize
 def default_canonical_packed_block_types(device: torch.device):
     chem_database = ParameterDatabase.get_default().chemical
-    atom_type_resolver = AtomTypeParamResolver.from_database(
-        chem_database, torch.device("cpu")
-    )
+    # atom_type_resolver = AtomTypeParamResolver.from_database(
+    #     chem_database, torch.device("cpu")
+    # )
 
     wanted_base_types = [
         "ALA",
@@ -54,7 +54,4 @@ def default_canonical_packed_block_types(device: torch.device):
         for rname in all_restypes
     ]
 
-    return (
-        PackedBlockTypes.from_restype_list(chem_database, restype_list, device),
-        atom_type_resolver,
-    )
+    return PackedBlockTypes.from_restype_list(chem_database, restype_list, device)

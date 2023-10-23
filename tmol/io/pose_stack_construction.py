@@ -172,7 +172,7 @@ def pose_stack_from_canonical_form(
 
     # 3
     found_disulfides, res_type_variants = find_disulfides(
-        res_types, coords, disulfides, find_additional_disulfides
+        canonical_ordering, res_types, coords, disulfides, find_additional_disulfides
     )
 
     # 4
@@ -182,7 +182,7 @@ def pose_stack_from_canonical_form(
         resolved_coords,
         resolved_atom_is_present,
     ) = resolve_his_tautomerization(
-        res_types, res_type_variants, coords, atom_is_present
+        canonical_ordering, res_types, res_type_variants, coords, atom_is_present
     )
 
     # 5
@@ -191,7 +191,14 @@ def pose_stack_from_canonical_form(
         inter_residue_connections64,
         inter_block_bondsep,
     ) = assign_block_types(
-        pbt, chain_id, res_types, res_type_variants, found_disulfides, res_not_connected
+        canonical_ordering,
+        pbt,
+        resolved_atom_is_present,
+        chain_id,
+        res_types,
+        res_type_variants,
+        found_disulfides,
+        res_not_connected,
     )
 
     # 6
@@ -208,7 +215,6 @@ def pose_stack_from_canonical_form(
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     pose_stack_coords, block_coord_offset = build_missing_leaf_atoms(
         pbt,
-        atom_type_resolver,
         block_types64,
         real_atoms,
         block_coords,

@@ -4,16 +4,16 @@ import torch
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.score.chemical_database import (
-    AtomTypeParamResolver,
-)
+
+# from tmol.score.chemical_database import (
+#     AtomTypeParamResolver,
+# )
 from tmol.io.details.compiled.compiled import gen_pose_leaf_atoms
 
 
 @validate_args
 def build_missing_leaf_atoms(
     packed_block_types: PackedBlockTypes,
-    atom_type_resolver: AtomTypeParamResolver,
     block_types64: Tensor[torch.int64][:, :],
     real_block_atoms: Tensor[torch.bool][:, :, :],
     block_coords: Tensor[torch.float32][:, :, :, 3],
@@ -38,7 +38,7 @@ def build_missing_leaf_atoms(
     max_n_blocks = block_coords.shape[1]
 
     # make sure we have all the data we need
-    _annotate_packed_block_types_atom_is_leaf_atom(pbt, atom_type_resolver)
+    _annotate_packed_block_types_atom_is_leaf_atom(pbt)
     _annotate_packed_block_types_w_leaf_atom_icoors(pbt)
 
     n_atoms = torch.zeros((n_poses, max_n_blocks), dtype=torch.int32, device=device)
@@ -101,9 +101,7 @@ def build_missing_leaf_atoms(
 
 
 @validate_args
-def _annotate_packed_block_types_atom_is_leaf_atom(
-    pbt: PackedBlockTypes, atom_type_resolver: AtomTypeParamResolver
-):
+def _annotate_packed_block_types_atom_is_leaf_atom(pbt: PackedBlockTypes):
     if hasattr(pbt, "is_leaf_atom"):
         return
 
