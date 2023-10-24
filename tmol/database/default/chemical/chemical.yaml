@@ -550,7 +550,7 @@ residues:
       samples: [60, 180, 300]
       expansions: []
   - name:  CYD
-    base_name: CYD
+    base_name: CYS
     name3: CYS
     io_equiv_class: CYS
     atoms:

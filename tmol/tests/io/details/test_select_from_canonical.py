@@ -20,7 +20,7 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 def test_assign_block_types(torch_device, ubq_pdb):
     co = default_canonical_ordering()
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
@@ -76,7 +76,7 @@ def test_assign_block_types(torch_device, ubq_pdb):
 
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     co = default_canonical_ordering()
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
@@ -165,7 +165,7 @@ def test_assign_block_types_for_pert_and_antigen(
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
 
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
@@ -245,7 +245,7 @@ def test_assign_block_types_for_pert_and_antigen(
 
 def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     co = default_canonical_ordering()
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(

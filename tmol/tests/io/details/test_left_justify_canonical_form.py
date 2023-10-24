@@ -21,7 +21,7 @@ def get_add_two_fill_shape(x):
 
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     co = default_canonical_ordering()
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
@@ -77,7 +77,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
 
 def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     (
@@ -162,7 +162,7 @@ def test_assign_block_types_for_pert_and_antigen(
         pert_and_erbb2_lines,
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
-    pbt, atr = default_canonical_packed_block_types(torch_device)
+    pbt = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     (

@@ -97,6 +97,7 @@ class ElecParamResolver(ValidateAttrs):
         def lookup_mapping(res, atm):
             if res is None:
                 return 0.0
+            print(res, atm)
             tag, *vars = res.split(":")
             vars.append("")
             if atm in self.cp_reps[tag]:
@@ -106,6 +107,8 @@ class ElecParamResolver(ValidateAttrs):
             return atm
 
         mapped_atoms = numpy.vectorize(lookup_mapping)(res_names, atom_names)
+        # mapped_atoms = [lookup_mapping(x, y) for x, y in zip(res_names, atom_names)]
+        # mapped_atoms = numpy.array(mapped_atoms)
 
         # fd this could probably be made more efficient but it is going away very soon....
         nstacks = bonded_path_lengths.shape[0]
