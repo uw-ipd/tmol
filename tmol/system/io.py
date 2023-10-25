@@ -81,9 +81,10 @@ class ResidueReader:
                 if atn in t.atom_names_set:
                     found_atoms.add(atn)
                 elif atn in t.aliases_map:
-                    print("  ", t.name, "aliased atom", atn, "to", t.aliases_map[atn])
+                    # print("  ", t.name, "aliased atom", atn, "to", t.aliases_map[atn])
                     found_atoms.add(t.aliases_map[atn])
                 else:
+                    # print("  ", t.name, "atom not found", atn)
                     t_missing.add(atn)
             t_missing.update(t.atom_names_set.difference(found_atoms))
             missing_atoms.append(t_missing)
@@ -115,6 +116,8 @@ class ResidueReader:
         for atomn, coord in atom_coords.iterrows():
             if atomn in res.residue_type.atom_to_idx:
                 res.atom_coords[atomn] = coord.values
+            elif atomn in res.residue_type.aliases_map:
+                res.atom_coords[res.residue_type.aliases_map[atomn]] = coord.values
             else:
                 self.logger.info(f"unknown atom name: {atomn}")
         return res

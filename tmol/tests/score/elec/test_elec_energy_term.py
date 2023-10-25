@@ -84,7 +84,7 @@ def test_whole_pose_scoring_module_gradcheck(
 
 def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
     n_poses = 10
-    gold_vals = numpy.tile(numpy.array([[-135.45822]], dtype=numpy.float32), (n_poses))
+    gold_vals = numpy.tile(numpy.array([[-136.45409]], dtype=numpy.float32), (n_poses))
     elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         default_database.chemical, res=rts_ubq_res, device=torch_device
