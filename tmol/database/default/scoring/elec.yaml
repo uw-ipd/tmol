@@ -24,10 +24,10 @@ atom_cp_reps_parameters:
   - { *r: ARG ,*ai: N, *ao: H }
   - { *r: ARG ,*ai: C, *ao: O }
   - { *r: ARG ,*ai: NE, *ao: HE }
-  - { *r: ARG ,*ai: N1H, *ao: HH11 }
-  - { *r: ARG ,*ai: N1H, *ao: HH12 }
-  - { *r: ARG ,*ai: N2H, *ao: HH21 }
-  - { *r: ARG ,*ai: N2H, *ao: HH22 }
+  - { *r: ARG ,*ai: NH1, *ao: HH11 }
+  - { *r: ARG ,*ai: NH1, *ao: HH12 }
+  - { *r: ARG ,*ai: NH2, *ao: HH21 }
+  - { *r: ARG ,*ai: NH2, *ao: HH22 }
   - { *r: ASN:cterm ,*ai: C, *ao: O }
   - { *r: ASN:cterm ,*ai: C, *ao: OXT }
   - { *r: ASN:nterm ,*ai: N, *ao: H1 }
@@ -148,8 +148,8 @@ atom_cp_reps_parameters:
   - { *r: PHE ,*ai: C, *ao: O }
   - { *r: PRO:cterm ,*ai: C, *ao: O }
   - { *r: PRO:cterm ,*ai: C, *ao: OXT }
-  - { *r: PRO:nterm ,*ai: N, *ao: H1 }
   - { *r: PRO:nterm ,*ai: N, *ao: H2 }
+  - { *r: PRO:nterm ,*ai: N, *ao: H3 }
   - { *r: PRO ,*ai: C, *ao: O }
   - { *r: SER:cterm ,*ai: C, *ao: O }
   - { *r: SER:cterm ,*ai: C, *ao: OXT }
@@ -621,8 +621,8 @@ atom_charge_parameters:
   - { *r: PRO:nterm ,*a: HG3, *e: 0.0917 }
   - { *r: PRO:nterm ,*a: HD2, *e: 0.0917 }
   - { *r: PRO:nterm ,*a: HD3, *e: 0.0917 }
-  - { *r: PRO:nterm ,*a: H1, *e: 0.1788 }
   - { *r: PRO:nterm ,*a: H2, *e: 0.1788 }
+  - { *r: PRO:nterm ,*a: H3, *e: 0.1788 }
   - { *r: SER ,*a: HB2, *e: 0.07337 }
   - { *r: SER ,*a: HB3, *e: 0.07337 }
   - { *r: SER ,*a: C, *e: 0.76511 }

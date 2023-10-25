@@ -98,10 +98,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -214,10 +214,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -322,10 +322,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -392,7 +392,7 @@ residues:
     - { name: HB3 ,  atom_type: Hapo }
     atom_aliases:
     - { name: HB2 , alt_name: 1HB }
-    - { name: HB3 , alt_name: 2HB }    
+    - { name: HB3 , alt_name: 2HB }
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -412,10 +412,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -479,7 +479,7 @@ residues:
     - { name: HG  , atom_type: HS   }
     atom_aliases:
     - { name: HB2 , alt_name: 1HB}
-    - { name: HB3 , alt_name: 2HB}    
+    - { name: HB3 , alt_name: 2HB}
     bonds:
     - [   N,   CA]
     - [   N,    H]
@@ -498,10 +498,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -585,10 +585,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -684,10 +684,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -742,7 +742,7 @@ residues:
   - name:  GLU
     base_name: GLU
     name3: GLU
-    io_equiv_class: GLU    
+    io_equiv_class: GLU
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
@@ -786,10 +786,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -868,10 +868,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -962,10 +962,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -1067,10 +1067,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -1180,10 +1180,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -1295,10 +1295,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -1419,10 +1419,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -1534,10 +1534,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -1645,10 +1645,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -1750,10 +1750,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -1839,10 +1839,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -1934,10 +1934,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -2053,10 +2053,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -2173,10 +2173,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -2287,10 +2287,10 @@ residues:
     - name: phi
       a: { connection: down, bond_sep_from_conn: 0 }
       b: { atom: N }
-      c: { atom: CA } 
+      c: { atom: CA }
       d: { atom: C }
     - name: psi
-      a: { atom: N }  
+      a: { atom: N }
       b: { atom: CA }
       c: { atom: C }
       d: { connection: up, bond_sep_from_conn: 0 }
@@ -2347,7 +2347,7 @@ residues:
     - { name:  O, atom_type: Owat  }
     - { name: H1, atom_type: Hwat }
     - { name: H2, atom_type: Hwat }
-    atom_aliases: []    
+    atom_aliases: []
     bonds:
     - [O, H1]
     - [O, H2]
@@ -2409,7 +2409,7 @@ variants:
     - { name: H1  ,  alt_name: 1H }
     - { name: H2  ,  alt_name: 2H }
     - { name: H3  ,  alt_name: 3H }
-    
+
     modify_atoms:
     - { name: <N1> ,  atom_type: Nlys }
     add_connections: []
@@ -2432,7 +2432,7 @@ variants:
     - { name: H3  ,  atom_type: Hpol }
     add_atom_aliases:
     - { name: H2  ,  alt_name: 1H }
-    - { name: H3  ,  alt_name: 2H }    
+    - { name: H3  ,  alt_name: 2H }
     modify_atoms: []
     add_connections: []
     add_bonds:

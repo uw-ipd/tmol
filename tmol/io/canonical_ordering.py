@@ -96,7 +96,10 @@ class CanonicalOrdering:
 
     @classmethod
     def extra_atoms(cls):
-        return {"HIS": ["NN", "NH", "HN"]}
+        return {
+            "HIS": ["NN", "NH", "HN"]
+            # to do: "CYS": ["HGT"]
+        }
 
     @classmethod
     def from_chemdb(cls, chemdb: PatchedChemicalDatabase):

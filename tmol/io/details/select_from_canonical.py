@@ -50,9 +50,6 @@ def assign_block_types(
     max_n_res = chain_id.shape[1]
     max_n_conn = pbt.max_n_conn
 
-    # canonical_res_ordering_map dimensioned: [20aas x 3 termini types x 2 special-case variant types]
-    # 3 termini types? 0-nterm, 1-mid, 2-cterm,
-    # OLD ALG canonical_res_ordering_map = pbt.canonical_res_ordering_map
     can_ann = pbt.canonical_ordering_annotation
     res_types64 = res_types.to(torch.int64)
     res_type_variants64 = res_type_variants.to(torch.int64)

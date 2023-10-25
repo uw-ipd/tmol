@@ -95,18 +95,28 @@ class ElecParamResolver(ValidateAttrs):
         assert bonded_path_lengths.shape[0] == atom_names.shape[0]
 
         def lookup_mapping(res, atm):
+            # print("lookup mapping", res, atm)
             if res is None:
                 return 0.0
-            print(res, atm)
             tag, *vars = res.split(":")
             vars.append("")
             if atm in self.cp_reps[tag]:
                 for vi in vars:
                     if vi in self.cp_reps[tag][atm]:
+                        # print("self.cp_reps[tag][atm][vi]", self.cp_reps[tag][atm][vi])
                         return self.cp_reps[tag][atm][vi]
             return atm
 
+        # print("res_names", res_names.shape)
+        # print("atom_names", atom_names.shape)
         mapped_atoms = numpy.vectorize(lookup_mapping)(res_names, atom_names)
+        # mapped_atoms = numpy.empty_like(res_names, dtype=object)
+        # for i in range(res_names.shape[0]):
+        #     for j in range(res_names.shape[1]):
+        #         mapped_atoms[i, j] = lookup_mapping(res_names[i, j], atom_names[i, j])
+
+        # mapped_atoms = numpy.array(list(map(lookup_mapping, res_names.tolist(), atom_names.tolist())), dtype=object)
+        # print(mapped_atoms)
         # mapped_atoms = [lookup_mapping(x, y) for x, y in zip(res_names, atom_names)]
         # mapped_atoms = numpy.array(mapped_atoms)
 
@@ -115,6 +125,17 @@ class ElecParamResolver(ValidateAttrs):
         remap_bonded_path_lengths = bonded_path_lengths.copy()
         for i in range(nstacks):
             natms = len(res_names[i, ...])
+            for j in range(natms):
+                matches = numpy.where(
+                    (
+                        (res_indices[i, ...] == res_indices[i, j])
+                        & (atom_names[i, ...] == atom_names[i, j])
+                    )
+                )
+                n_matches = len(matches[0])
+                if n_matches == 0 and atom_names[i, j] is not None:
+                    print(res_indices[i, j], atom_names[i, j], n_matches, matches)
+
             mapped_indices = numpy.vectorize(
                 lambda a, b, c: c
                 if a is None or numpy.isnan(a)
