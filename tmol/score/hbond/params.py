@@ -6,7 +6,6 @@ import torch
 
 import toolz
 
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
