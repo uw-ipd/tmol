@@ -24,23 +24,8 @@ def hbond_score_comparison(rosetta_baseline):
     named_atom_index = pandas.DataFrame(test_system.atom_metadata).set_index(
         ["residue_index", "atom_name"]
     )["atom_index"]
-    rosetta_hbonds = toolz.curried.reduce(pandas.merge)(
-        (
-            rosetta_baseline.hbonds,
-            (
-                named_atom_index.rename_axis(["a_res", "a_atom"])
-                .to_frame("a")
-                .reset_index()
-            ),
-            (
-                named_atom_index.rename_axis(["h_res", "h_atom"])
-                .to_frame("h")
-                .reset_index()
-            ),
-        )
-    ).set_index(["a", "h"])
 
-    return tmol_hbond_total, rosetta_hbonds
+    return tmol_hbond_total, rosetta_baseline.hbonds
 
 
 def test_pyrosetta_hbond_comparison(ubq_rosetta_baseline):

@@ -151,7 +151,7 @@ def pertuzumab_and_nearby_erbb2_pdb_and_segments():
 
     # res-res     line-line
     # 127-129 3    924- 945
-    # 154-156 3   1151-1175
+    # 154-156 3   1151-1176
     # 234-236 3   1724-1753
     # 244-258 15  1804-1924
     # 267-273 7   1984-2035
@@ -169,7 +169,7 @@ def pertuzumab_and_nearby_erbb2_pdb_and_segments():
         [
             pert_lines[4278 * 81 :],
             line_range(924, 945),
-            line_range(1151, 1175),
+            line_range(1151, 1176),
             line_range(1724, 1753),
             line_range(1804, 1924),
             line_range(1984, 2035),

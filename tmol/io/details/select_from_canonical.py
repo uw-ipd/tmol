@@ -258,12 +258,20 @@ def assign_block_types(
         best_candidate_ind[is_real_res],
     ]
 
-    if torch.any(
-        best_candidate_score >= 2 * (canonical_ordering.max_n_canonical_atoms + 1)
-    ):
+    failure_score = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
+    # print("failures")
+    # print(torch.nonzero(best_candidate_score >= failure_score))
+    # print("any?")
+    # print(torch.any(best_candidate_score >= failure_score))
+
+    if torch.any(best_candidate_score >= failure_score):
         for i in range(n_poses):
             for j in range(max_n_res):
+                if best_candidate_score[i, j] < failure_score:
+                    continue
+                print("best candidate for failure:", best_candidate_ind[i, j].item())
                 for k in range(canonical_atom_was_not_provided_for_candidate.shape[2]):
+                    print("candidate", k, " real? ", is_real_candidate[i, j, k].item())
                     if not is_real_candidate[i, j, k]:
                         continue
                     which_bt = block_type_candidates[i, j, k]
@@ -282,7 +290,7 @@ def assign_block_types(
                     for l in range(
                         canonical_atom_was_not_provided_for_candidate.shape[3]
                     ):
-                        if canonical_atom_was_not_provided_for_variant[i, j, k, l]:
+                        if canonical_atom_was_not_provided_for_candidate[i, j, k, l]:
                             print(" atom not provided:", cand_bt.atoms[l].name)
         print("Failed to find a matching block type")
         # TO DO: Useful error message here
@@ -293,7 +301,7 @@ def assign_block_types(
             "failed to resolve a block type from the candidates available"
         )
 
-    block_type_ind64 = torch.zeros_like(res_types, dtype=torch.int64)
+    block_type_ind64 = torch.full_like(res_types, -1, dtype=torch.int64)
     block_type_ind64[is_real_res] = block_type_candidates[
         nz_is_real_res[:, 0],
         nz_is_real_res[:, 1],
@@ -435,6 +443,7 @@ def assign_block_types(
         pbt, block_n_conn, pose_n_pconn, pconn_matrix
     )
 
+    # print("end assign_block_types")
     return (block_type_ind64, inter_residue_connections64, ibb64)
 
 
@@ -686,6 +695,8 @@ def _annotate_packed_block_types_w_canonical_res_order(
                     bt_is_non_default_term = True
         term_ind = map_term_to_int(bt_is_down_term, bt_is_up_term)
         spcase_var_ind = map_spcase_var_to_int(bt_is_cyd, bt_is_hisd)
+        # if bt.io_equiv_class == "CYS":
+        #     print(bt.name, term_ind, spcase_var_ind, i)
         pbt_io_equiv_class_candidates[bt.io_equiv_class][term_ind][
             spcase_var_ind
         ].append((bt, i))
@@ -740,6 +751,8 @@ def _annotate_packed_block_types_w_canonical_res_order(
                 for l, (bt, bt_ind) in enumerate(
                     pbt_io_equiv_class_candidates[bt_name3][j][k]
                 ):
+                    # if bt_name3 == "CYS":
+                    #     print(bt_name3, i, j, k, l, "bt_ind", bt_ind)
                     var_combo_candidate_bt_index[i, j, k, l] = bt_ind
                     var_combo_is_real_candidate[i, j, k, l] = True
 

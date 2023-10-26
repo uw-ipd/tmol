@@ -159,6 +159,7 @@ def pose_stack_from_canonical_form(
     # their Poses to ensure that the polymeric-bond-detection logic
     # downstream will work properly. This effectively means "shifting left"
     # all the other residues in the Pose to fill the vacated slots.
+    # print("2")
     (
         chain_id,
         res_types,
@@ -171,11 +172,13 @@ def pose_stack_from_canonical_form(
     )
 
     # 3
+    # print("3")
     found_disulfides, res_type_variants = find_disulfides(
         canonical_ordering, res_types, coords, disulfides, find_additional_disulfides
     )
 
     # 4
+    # print("4")
     (
         his_taut,
         res_type_variants,
@@ -186,6 +189,7 @@ def pose_stack_from_canonical_form(
     )
 
     # 5
+    # print("5")
     (
         block_types64,
         inter_residue_connections64,
@@ -202,6 +206,7 @@ def pose_stack_from_canonical_form(
     )
 
     # 6
+    # print("6")
     (
         block_coords,
         missing_atoms,
@@ -212,6 +217,7 @@ def pose_stack_from_canonical_form(
     )
 
     # 7
+    # print("7")
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     pose_stack_coords, block_coord_offset = build_missing_leaf_atoms(
         pbt,
@@ -229,6 +235,7 @@ def pose_stack_from_canonical_form(
         return x.to(torch.int32)
 
     # 8
+    # print("8")
     block_coord_offset64 = i64(block_coord_offset)
     ps = PoseStack(
         packed_block_types=pbt,
