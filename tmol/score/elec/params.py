@@ -160,7 +160,11 @@ class ElecParamResolver(ValidateAttrs):
         res, *vars = block_type.name.split(":")
         vars.append("")  # unpatched last
 
+        res_found = res in self.partial_charges
+
         def lookup_charge(atm):
+            if not res_found:
+                return 0.0
             if atm.name not in self.partial_charges[res]:
                 raise KeyError(
                     "Elec charge for atom "
@@ -188,9 +192,10 @@ class ElecParamResolver(ValidateAttrs):
         vars.append("")  # unpatched last
 
         if res not in self.cp_reps:
-            raise KeyError(
-                "No elec count-pair representative definition for base name " + res
-            )
+            # raise KeyError(
+            #     "No elec count-pair representative definition for base name " + res
+            # )
+            return representative_mapping
 
         for outer in block_type.atom_to_idx.keys():
             if outer not in self.cp_reps[res]:
