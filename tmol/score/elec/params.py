@@ -192,9 +192,9 @@ class ElecParamResolver(ValidateAttrs):
         vars.append("")  # unpatched last
 
         if res not in self.cp_reps:
-            # raise KeyError(
-            #     "No elec count-pair representative definition for base name " + res
-            # )
+            # some residues may not have a need for
+            # elec's count-pair-representative logic.
+            # just return the default representatives
             return representative_mapping
 
         for outer in block_type.atom_to_idx.keys():
