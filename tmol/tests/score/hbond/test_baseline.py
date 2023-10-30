@@ -1,7 +1,3 @@
-import toolz
-
-import pandas
-
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.coords import coords_for
 from tmol.score.modules.hbond import HBondScore
@@ -20,10 +16,6 @@ def hbond_score_comparison(rosetta_baseline):
     # Extract list of hbonds from packed system into summary table
     # via atom metadata
     tmol_hbond_total = hbond_system.intra_total(coords)
-
-    named_atom_index = pandas.DataFrame(test_system.atom_metadata).set_index(
-        ["residue_index", "atom_name"]
-    )["atom_index"]
 
     return tmol_hbond_total, rosetta_baseline.hbonds
 

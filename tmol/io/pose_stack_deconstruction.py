@@ -8,8 +8,6 @@ from tmol.io.canonical_ordering import (
 from tmol.io.chain_deduction import chain_inds_for_pose_stack
 from tmol.io.details.select_from_canonical import (
     _annotate_packed_block_types_w_canonical_res_order,
-    _annotate_packed_block_types_w_dslf_conn_inds,
-    # _annotate_packed_block_types_w_canonical_atom_order,
 )
 
 

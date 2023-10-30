@@ -114,9 +114,6 @@ def pose_stack_from_canonical_form(
 
     """
 
-    from tmol.io.details.canonical_packed_block_types import (
-        default_canonical_packed_block_types,
-    )
     from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
     from tmol.io.details.disulfide_search import find_disulfides
     from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
