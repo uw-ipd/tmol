@@ -406,7 +406,7 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
         icoor_geom[j, 1] = theta
         icoor_geom[j, 2] = d
         if ggp_ind_backup is not None:
-            ggp_uaid_backup = _uaid_for_at(j_icoor.great_grand_parent)
+            ggp_uaid_backup = _uaid_for_at(bt, j_icoor.great_grand_parent)
             icoor_uaids_backup[j, 0] = numpy.array(p_uaid, dtype=numpy.int32)
             icoor_uaids_backup[j, 1] = numpy.array(gp_uaid, dtype=numpy.int32)
             icoor_uaids_backup[j, 2] = numpy.array(ggp_uaid_backup, dtype=numpy.int32)
