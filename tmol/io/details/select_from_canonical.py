@@ -296,6 +296,81 @@ def select_best_block_type_candidate(
     termini_variants: Tensor[torch.int64][:, :],
     res_type_variants64: Tensor[torch.int64][:, :],
 ):
+    # what is the problem we are trying to solve?
+    # we have a number of "io_equiv_class"es that we want to map
+    # to particular block types
+    # where the user/the chain connectivity
+    # can specify things such as:
+    # "is it down-term?", "is it up-term?", "is it neither?,"
+    # "is it disulfide-bonded?", "is it a particular kind of HIS?"
+    # and the user has given us a list of atoms that are
+    # present or absent. These atoms will help us decide
+    # which block type the user is requesting, e.g.,
+    # phospho-serine by providing a P atom.
+    # The algorithm for deciding which block type
+    # from a set of candidates will be:
+    # from the set of bts with the "appropriate" termini,
+    # and given the list of provided atoms for a given residue,
+    # find the bt whose atom list has all of the provided atoms
+    # and is missing the fewest atoms that were not provided
+    # e.g. if atoms A, B and C were provided and
+    # BT #1 has atoms A and B
+    # BT #2 has atoms A B C and D, and
+    # BT #3 has atoms A B C D and E, and
+    # then the best match is not BT #1 because it does not have
+    # provided atom C,
+    # and BT #2 is preferred to BT #3 because BT #3 is missing
+    # more atoms.
+    # so if we have array
+    # p  [1, 1, 1, 0, 0] representing provided atoms A, B, and C, and
+    # b1 [1, 1, 0, 0, 0] for BT #1, and
+    # b2 [1, 1, 1, 1, 0] for BT #2, and
+    # b3 [1, 1, 1, 1, 1] for BT #3,
+    # then
+    # sum((p - b1) == 1) = sum(p & ~b1) ==> 1
+    # sum((p - b2) == 1) = sum(p & ~b2) ==> 0
+    # sum((p - b3) == 1) = sum(p & ~b3) ==> 0
+    # so we would eliminate b1
+    # and then
+    # sum((b1 - p) == 1) = sum(b1 & ~p) ==> 0  but note this option will have been eliminated
+    # sum((b2 - p) == 1) = sum(b2 & ~p) ==> 1
+    # sum((b3 - p) == 1) = sum(b3 & ~p) ==> 2
+    # so if we take the minimum among the non-eliminated set of b2 and b3
+    # that would tell us to assign b2 to this residue.
+
+    # However, sometimes residues are given to us without the atoms that define
+    # the termini, and we are expected to build those atoms. We may not be able
+    # to tell the difference between termini-type X and termini-type Y in terms
+    # of how many atoms are missing, or rather, it might be some exotic termini
+    # type has fewer missing atoms than the generic run-of-the-mill termini
+    # type. So the user is allowed to (must) specify which termini patches
+    # are the default ones. We then want to select the default-termini-patched
+    # block type regardless of how many or few of the termini-placed atoms
+    # are missing, so long as we don't have any provided atom that tells us to
+    # choose something else.
+    # Therefore, we have to ignore the atoms added by termini patches when
+    # counting how many atoms in the "present" set are missing from the bt's set
+    # so e.g. if
+    # bt1 has atoms [A B C Q R] after its term patch added atoms Q and R, and
+    # bt2 has atoms [A B C S ] after its term patch added atom S, and
+    # the present set has atoms [A B C], and
+    # bt1 has been declared the "default"
+    # then both bt1 and bt2 would have the same score of 0 and
+    # the tie would go to bt1.
+    # logically, this would happen with
+    # sum(p & ~b1) as before for looking to make sure all atoms in p are contained in b1
+    # but the second part would become
+    # sum(b1_sans_termini_additions & ~p) counting only non-termini-patch-added atoms
+    # of b1 that are absent from p against b1.
+    #
+    # how is that going to be encoded???
+    # bt2 since it is not the default atom can be given a small penalty so that
+    # it is worse than bt1 if they both have the same number of non-termini atoms
+    # present but will not be worse than if some non-termini atom is missing
+    # from bt1 but not from bt2.
+    # We can do that by setting the score as
+    # 2 * n-atoms-missing + is-non-default-term
+
     device = pbt.device
     n_poses = atom_is_present.shape[0]
     max_n_res = atom_is_present.shape[1]
@@ -580,84 +655,6 @@ def _annotate_packed_block_types_w_canonical_res_order(
     if hasattr(pbt, "canonical_ording_annotation"):
         return
 
-    # what is the problem we are trying to solve?
-    # we have a number of "io_equiv_class"es that we want to map
-    # to particular block types
-    # where the user/the chain connectivity
-    # can specify things such as:
-    # is it down-term, is it up-term, is it neither
-    # is it disulfide-bonded, is it a particular kind of his
-    # and the user has given us a list of atoms that are
-    # present or absent. These atoms will help us decide
-    # which variant the user is requesting, e.g.,
-    # phospho-serine by providing a P atom.
-    # The algorithm for deciding which block type
-    # from a set of candidates will be:
-    # from the set of bts with the "appropriate" termini,
-    # given the list of provided atoms for a given residue,
-    # find the bt whose atom list has all of the provided atoms
-    # and is missing the fewest atoms that were not provided
-    # e.g. if atoms A, B and C were provided and
-    # BT #1 has atoms A and B
-    # BT #2 has atoms A B C and D, and
-    # BT #3 has atoms A B C D and E, and
-    # then the best match is not BT #1 because it does not have
-    # provided atom C,
-    # and BT #2 is preferred to BT #3 because BT #3 is missing
-    # more atoms.
-    # so if we have array
-    # p  [1, 1, 1, 0, 0] representing provided atoms A, B, and C, and
-    # b1 [1, 1, 0, 0, 0] for BT #1, and
-    # b2 [1, 1, 1, 1, 0] for BT #2, and
-    # b3 [1, 1, 1, 1, 1] for BT #3,
-    # then
-    # sum((p - b1) == 1) = sum(p & ~b1) ==> 1
-    # sum((p - b2) == 1) = sum(p & ~b2) ==> 0
-    # sum((p - b3) == 1) = sum(p & ~b3) ==> 0
-    # so we would eliminate b1
-    # and then
-    # sum((b1 - p) == 1) = sum(b1 & ~p) ==> 0  but note this option will have been eliminated
-    # sum((b2 - p) == 1) = sum(b2 & ~p) ==> 1
-    # sum((b3 - p) == 1) = sum(b3 & ~p) ==> 2
-    # so if we take the minimum among the non-eliminated set of b2 and b3
-    # that would tell us to assign b2 to this residue.
-
-    # ok, so then, we need to know for each
-    # combination of (name3, terminus-assignment, special-case variant)
-    # the set of compatible variants
-    # and for each variant the set of "canonical atoms" that it contains
-    # (e.g. b2) and the set of canonical atoms it does not contain (e.g. ~b2)
-    # (though this second set could be computed only as needed.)
-
-    # IDEA 1
-    # For each set of block types that all have the same non-termini patches,
-    # we want to encode which are patched with the default termini, so that
-    # all-else being equal, we can break minimum-missing-atoms ties by
-    # assigning the bts patched with the default termini
-
-    # IDEA 2
-    # ignore the atoms added by termini patches when counting how many atoms
-    # in the "present" set are missing from the bt's set
-    # so e.g. if
-    # bt1 has atoms [A B C Q R] after its term patch added atoms Q and R, and
-    # bt2 has atoms [A B C S ] after its term patch added atom S, and
-    # the present set has atoms [A B C], and
-    # bt1 has been declared the "default"
-    # then both bt1 and bt2 would have the same score of 0 and
-    # the tie would go to bt1.
-    # logically, this would happen with
-    # sum(p & ~b1) as before for looking to make sure all atoms in p are contained in b1
-    # but the second part would become
-    # sum(b1_sans_termini_additions & ~p) counting only non-termini-patch-added atoms
-    # of b1 that are absent from p against b1.
-    #
-    # how is that going to be encoded???
-    # bt1 can be given the "tie breaker" status so that it appears
-    # better than bts with the same score, but not better than
-    # bt2 with a better score -- i.e. each tie-breaker residue has
-    # .25 subtracted from its score, so 0-> -0.25, 1-->0.75,
-    # and then we use "min"
-
     max_n_termini_types = 4  # 0=down-term, 1=mid, 2=up-term, 3=down+up
     max_n_special_case_aa_variant_types = (
         2  # CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
@@ -863,66 +860,6 @@ def _annotate_packed_block_types_w_canonical_res_order(
         bt_canonical_atom_ind_map=_d(bt_canonical_atom_ind),
     )
     setattr(pbt, "canonical_ordering_annotation", ann)
-
-    # variants_for_blocktypes = defaultdict(list)
-    # non_default_termini_types = defaultdict(lambda: set([]))
-    # for bt in bt.active_block_types:
-    #     variants_for_blocktypes[bt.base_name].append(bt)
-
-    # forward ordering: from canonical-index + termini type + variant --> block-type index
-    # canonical_ordering_map = numpy.full(
-    #     (len(ordered_canonical_aa_types), max_n_termini_types, max_n_aa_variant_types),
-    #     -1,
-    #     dtype=numpy.int32,
-    # )
-    # bt_ind_to_canonical_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int32)
-    #
-    # def bt_inds_for_variant(base_names, var):
-    #     return pbt.restype_index.get_indexer(
-    #         [
-    #             bt_name if var == "" else ":".join((bt_name, var))
-    #             for bt_name in base_names
-    #         ]
-    #     )
-
-    # canonical_ordering_map[:, 0, 0] = bt_inds_for_variant(
-    #     ordered_canonical_aa_types, "nterm"
-    # )
-    # canonical_ordering_map[:, 1, 0] = bt_inds_for_variant(
-    #     ordered_canonical_aa_types, ""
-    # )
-    # canonical_ordering_map[:, 2, 0] = bt_inds_for_variant(
-    #     ordered_canonical_aa_types, "cterm"
-    # )
-
-    # NOTE: We have two amino acids with (non-termini) "variants" that we are going to handle
-    # CYD, the disulfided CYS is variant 1; CYS is variant 0
-    # between HIS and HIS_D, one of them is variant 1 and one is variant 0
-    # cys_his_var_names = [
-    #     "CYD",
-    #     "HIS_D" if his_taut_variant_ND1_protonated == 1 else "HIS",
-    # ]
-    # cys_his = (cys_co_aa_ind, his_co_aa_ind)
-    # canonical_ordering_map[cys_his, 0, 1] = bt_inds_for_variant(
-    #     cys_his_var_names, "nterm"
-    # )
-    # canonical_ordering_map[cys_his, 1, 1] = bt_inds_for_variant(cys_his_var_names, "")
-    # canonical_ordering_map[cys_his, 2, 1] = bt_inds_for_variant(
-    #     cys_his_var_names, "cterm"
-    # )
-
-    # # map from the specific block type to the generic canoncial aa index
-    # for i in range(len(canonical_ordering_map)):
-    #     for j in range(3):
-    #         for k in range(2):
-    #             if canonical_ordering_map[i, j, k] != -1:
-    #                 bt_ind_to_canonical_ind[canonical_ordering_map[i, j, k]] = i
-
-    # def t(x):
-    #     return torch.tensor(x, dtype=torch.int64, device=pbt.device)
-
-    # setattr(pbt, "canonical_res_ordering_map", t(canonical_ordering_map))
-    # setattr(pbt, "bt_ind_to_canonical_ind", t(bt_ind_to_canonical_ind))
 
 
 @validate_args
