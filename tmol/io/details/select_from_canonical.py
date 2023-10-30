@@ -555,7 +555,7 @@ class CanonicalOrderingAnnotation:
 
     # n-pbt-block-types
     # needed for output?
-    # bt_ind_to_canonical_io_equiv_class_ind: Tensor[torch.int64][:]
+    bt_ind_to_canonical_io_equiv_class_ind: Tensor[torch.int64][:]
 
     # n-pbt-block-types x max-n-atoms
     bt_canonical_atom_ind_map: Tensor[torch.int64][:, :]
@@ -827,13 +827,13 @@ def _annotate_packed_block_types_w_canonical_res_order(
             bt_non_term_patch_added_canonical_atom_is_present[i, can_ind] = True
             bt_canonical_atom_is_absent[i, can_ind] = False
 
-    # bt_ind_to_canonical_ind = numpy.array(
-    #     [
-    #         co.restype_io_equiv_classes.index(bt.io_equiv_class)
-    #         for bt in pbt.active_block_types
-    #     ],
-    #     dtype=numpy.int32
-    # )
+    bt_ind_to_canonical_ind = torch.tensor(
+        [
+            co.restype_io_equiv_classes.index(bt.io_equiv_class)
+            for bt in pbt.active_block_types
+        ],
+        dtype=torch.int64,
+    )
     bt_canonical_atom_ind = numpy.full(
         (pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64
     )
@@ -859,7 +859,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
             bt_non_term_patch_added_canonical_atom_is_present
         ),
         bt_is_non_default_terminus=_d(bt_is_non_default_terminus),
-        # bt_ind_to_canonical_ind=_d(bt_ind_to_canonical_ind),
+        bt_ind_to_canonical_io_equiv_class_ind=_d(bt_ind_to_canonical_ind),
         bt_canonical_atom_ind_map=_d(bt_canonical_atom_ind),
     )
     setattr(pbt, "canonical_ordering_annotation", ann)
@@ -927,6 +927,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
 
 @validate_args
 def _annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
+    # to do: is this something that's specific to the canonical form?
     if hasattr(pbt, "canonical_dslf_conn_ind"):
         return
     canonical_dslf_conn_ind = numpy.full((pbt.n_types,), -1, dtype=numpy.int64)
@@ -937,10 +938,3 @@ def _annotate_packed_block_types_w_dslf_conn_inds(pbt: PackedBlockTypes):
         canonical_dslf_conn_ind, dtype=torch.int64, device=pbt.device
     )
     setattr(pbt, "canonical_dslf_conn_ind", canonical_dslf_conn_ind)
-
-
-# @validate_args
-# def _annotate_packed_block_types_w_canonical_atom_order(pbt: PackedBlockTypes):
-#     if hasattr(pbt, "canonical_atom_ind_map"):
-#         return
-#     setattr(pbt, "canonical_atom_ind_map", canonical_atom_ind)

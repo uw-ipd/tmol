@@ -12,6 +12,12 @@ from tmol.utility.ndarray.common_operations import exclusive_cumsum1d
 def chain_inds_for_pose_stack(
     pose_stack: PoseStack,
 ) -> NDArray[numpy.int64][:, :]:
+    """Label each residue by which chain it comes from, where "chain" is a group
+    of polymer residues that are connected by certain sets of bonds (e.g. not
+    disulfide bonds). This problem becomes one of finding the connected components
+    of a graph and is handled using scipy's (CPU) code. Gap residues are given a
+    chain ID of -1.
+    """
     pbt = pose_stack.packed_block_types
     annotate_pbt_w_valid_connection_masks(pbt)
 
@@ -34,6 +40,9 @@ def chain_inds_for_pose_stack(
         device=pose_stack.device,
     )
     real_blocks = pose_stack.block_type_ind != -1
+    unreal_blocks = (
+        torch.logical_not(real_blocks).cpu().numpy()
+    )  # save for later when on CPU
     is_valid_conn[real_blocks] = pbt.connection_mask_for_chain_detection[
         pose_stack.block_type_ind64[real_blocks]
     ]
@@ -73,6 +82,8 @@ def chain_inds_for_pose_stack(
     bond_pairs = nz_real_bond_pose.unsqueeze(dim=1) * max_n_blocks + (
         bond_pairs[is_real_bond]
     )
+
+    # Caution: here forward, we will be on the CPU!
     bond_pairs = bond_pairs.cpu().numpy()
 
     csr_bond_pairs = scipy.sparse.csr_matrix(
@@ -91,6 +102,8 @@ def chain_inds_for_pose_stack(
     n_ccs = numpy.amax(labels, axis=1) + 1
     cc_offsets = exclusive_cumsum1d(n_ccs)
     labels = labels - cc_offsets.reshape(n_poses, 1)
+    # now re-label the gap residues with a chain ind of -1
+    labels[unreal_blocks] = -1
 
     return labels
 

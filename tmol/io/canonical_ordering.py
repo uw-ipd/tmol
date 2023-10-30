@@ -54,12 +54,16 @@ class HisSpecialCaseIndices:
 
 @attr.s(auto_attribs=True, frozen=True)
 class CanonicalOrdering:
-    # There are three data members that are useful for users:
+    # There are four data members that are useful for users:
     # - restype_io_equiv_classes
     # - restypes_ordered_atom_names
     # - restypes_atom_index_mapping
     # the remaining data members are useful primarily for
     # internal tmol functionality
+
+    # max_n_canonical_atoms: the largest number of distinct atom names among all
+    # variants of a single residue type (equivalence class) across all residue types
+    max_n_canonical_atoms: int
 
     # restype_io_equiv_classes:
     # essentially the list of 3-letter codes for the residue
@@ -94,7 +98,6 @@ class CanonicalOrdering:
     termini_patch_added_atoms: Mapping[str, Tuple[str, ...]]
     cys_inds: CysSpecialCaseIndices
     his_inds: HisSpecialCaseIndices
-    max_n_canonical_atoms: int
 
     @property
     def n_restype_io_equiv_classes(self):
@@ -194,6 +197,7 @@ class CanonicalOrdering:
                         termini_patch_added_atoms[patch.display_name].add(atom.name)
 
         return cls(
+            max_n_canonical_atoms=max_n_canonical_atoms,
             restype_io_equiv_classes=ordered_restypes,
             restypes_ordered_atom_names=restypes_ordered_atom_names,
             restypes_atom_index_mapping=restypes_atom_index_mapping,
@@ -207,7 +211,6 @@ class CanonicalOrdering:
             his_inds=cls._init_his_special_case_indices(
                 ordered_restypes, restypes_ordered_atom_names
             ),
-            max_n_canonical_atoms=max_n_canonical_atoms,
         )
 
     @classmethod

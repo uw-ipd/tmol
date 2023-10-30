@@ -1446,7 +1446,7 @@ class PoseStackBuilder:
         Tensor[torch.int64][:, :],
     ]:
         device = pbt.device
-        # real_res = numpy.full((n_poses, max_n_res), True, dtype=numpy.bool)
+        # real_res = numpy.full((n_poses, max_n_res), True, dtype=bool)
         real_res = (
             numpy.tile(numpy.arange(max_n_res, dtype=numpy.int32), n_poses).reshape(
                 (n_poses, max_n_res)
