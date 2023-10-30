@@ -61,14 +61,18 @@ def assign_block_types(
             (n_poses, max_n_res, 2), dtype=torch.bool, device=device
         )
 
-    termini_variants = determine_chain_ending_status(
-        pbt, chain_id, res_not_connected, is_real_res
-    )
+    (
+        termini_variants,
+        is_chain_first_res,
+        is_chain_last_res,
+    ) = determine_chain_ending_status(pbt, chain_id, res_not_connected, is_real_res)
 
     block_type_ind64 = select_best_block_type_candidate(
+        canonical_ordering,
         pbt,
         atom_is_present,
         is_real_res,
+        nz_is_real_res,
         res_types64,
         termini_variants,
         res_type_variants64,
@@ -223,6 +227,7 @@ def determine_chain_ending_status(
     n_poses = chain_id.shape[0]
     max_n_res = chain_id.shape[1]
     max_n_conn = pbt.max_n_conn
+    device = pbt.device
 
     # logic for deciding what chemical bonds are present between the polymeric
     # residues and which residues should be represented as termini:
@@ -281,26 +286,28 @@ def determine_chain_ending_status(
 
     # note which polymeric residues should be given their chain-ending
     # (aka termini) patches
-    termini_variants = torch.ones_like(res_types, dtype=torch.int64)
+    termini_variants = torch.ones_like(chain_id, dtype=torch.int64)
     termini_variants[is_down_and_not_up_term_res] = 0
     termini_variants[is_up_and_not_down_term_res] = 2
     termini_variants[is_both_down_and_up_term_res] = 3
 
-    return termini_variants
+    return termini_variants, is_chain_first_res, is_chain_last_res
 
 
 @validate_args
 def select_best_block_type_candidate(
+    canonical_ordering: CanonicalOrdering,
     pbt: PackedBlockTypes,
     atom_is_present: Tensor[torch.bool][:, :, :],
     is_real_res: Tensor[torch.bool][:, :],
+    nz_is_real_res: Tensor[torch.int64][:, :],
     res_types64: Tensor[torch.int64][:, :],
-    termini_variants64: Tensor[torch.int64][:, :],
+    termini_variants: Tensor[torch.int64][:, :],
     res_type_variants64: Tensor[torch.int64][:, :],
 ):
     device = pbt.device
-    n_poses = chain_id.shape[0]
-    max_n_res = chain_id.shape[1]
+    n_poses = atom_is_present.shape[0]
+    max_n_res = atom_is_present.shape[1]
     can_ann = pbt.canonical_ordering_annotation
 
     block_type_candidates = torch.full(
@@ -480,7 +487,7 @@ def select_best_block_type_candidate(
             "failed to resolve a block type from the candidates available"
         )
 
-    block_type_ind64 = torch.full_like(res_types, -1, dtype=torch.int64)
+    block_type_ind64 = torch.full_like(res_types64, -1)
     block_type_ind64[is_real_res] = block_type_candidates[
         nz_is_real_res[:, 0],
         nz_is_real_res[:, 1],
