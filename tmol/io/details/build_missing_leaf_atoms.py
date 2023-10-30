@@ -271,6 +271,31 @@ def _annotate_packed_block_types_w_leaf_atom_icoors(pbt: PackedBlockTypes):
     )
 
 
+def _uaid_for_at(bt, icoor_at_name):
+    if icoor_at_name == "up":
+        return (-1, bt.up_connection_ind, 0)
+    elif icoor_at_name == "down":
+        return (-1, bt.down_connection_ind, 0)
+    else:
+        return (bt.atom_to_idx[icoor_at_name], -1, -1)
+
+
+def _icoor_at_is_leaf(bt, icoor_at_name):
+    if icoor_at_name not in bt.atom_to_idx:
+        return 0
+    return bt.leaf_atom_ann.is_leaf[bt.atom_to_idx[icoor_at_name]]
+
+
+def _icoor_at_is_h(bt, atom_is_hydrogen, icoor_at_name):
+    if icoor_at_name not in bt.atom_to_idx:
+        return 0
+    return atom_is_hydrogen[bt.atom_to_idx[icoor_at_name]]
+
+
+def _icoor_at_is_inter_res(bt, icoor_at_name):
+    return icoor_at_name not in bt.atom_to_idx
+
+
 def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
 
     if hasattr(bt, "leaf_atom_icoor_ann"):
@@ -299,39 +324,18 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
         j_icoor_ind = bt.icoors_index[atname]
         j_icoor = bt.icoors[j_icoor_ind]
 
-        def uaid_for_at(icoor_at_name):
-            if icoor_at_name == "up":
-                return (-1, bt.up_connection_ind, 0)
-            elif icoor_at_name == "down":
-                return (-1, bt.down_connection_ind, 0)
-            else:
-                return (bt.atom_to_idx[icoor_at_name], -1, -1)
-
-        def icoor_at_is_leaf(icoor_at_name):
-            if icoor_at_name not in bt.atom_to_idx:
-                return 0
-            return bt.leaf_atom_ann.is_leaf[bt.atom_to_idx[icoor_at_name]]
-
-        def icoor_at_is_h(icoor_at_name):
-            if icoor_at_name not in bt.atom_to_idx:
-                return 0
-            return atom_is_hydrogen[bt.atom_to_idx[icoor_at_name]]
-
-        def icoor_at_is_inter_res(icoor_at_name):
-            return icoor_at_name not in bt.atom_to_idx
-
         # ok, let's turn p, gp, and ggp into uaids
         # if ggp is a leaf, then we need to recurse backwards through the ggps
         # and accumulate the phi offsets
 
-        p_uaid = uaid_for_at(j_icoor.parent)
-        gp_uaid = uaid_for_at(j_icoor.grand_parent)
+        p_uaid = _uaid_for_at(bt, j_icoor.parent)
+        gp_uaid = _uaid_for_at(bt, j_icoor.grand_parent)
 
         phi = j_icoor.phi
         theta = numpy.pi - j_icoor.theta
         d = j_icoor.d
 
-        if icoor_at_is_h(j_icoor.great_grand_parent):
+        if _icoor_at_is_h(bt, atom_is_hydrogen, j_icoor.great_grand_parent):
             # use phi offsets from the non-leaf ggp* ancestor of the ggp
             # as the default strategy for building coords for hydrogen atoms
             # Note that this algorithm only works if we do not have two atoms
@@ -341,7 +345,7 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
             seen = numpy.zeros(bt.n_icoors, dtype=bool)
             seen[j_icoor_ind] = True
             # print("recurse", bt.name, j, bt.atoms[j].name)
-            while icoor_at_is_leaf(j_icoor.great_grand_parent):
+            while _icoor_at_is_leaf(bt, j_icoor.great_grand_parent):
                 ggp_ind = bt.icoors_index[j_icoor.great_grand_parent]
                 # print("    ggp", ggp_ind, bt.icoors[ggp_ind].name)
                 if seen[ggp_ind]:
@@ -371,25 +375,25 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
             # when the O atom is provided; the phi should be 180 off O and not
             # 260 off N (and some unknown offset of O).
             pass
-        ggp_uaid = uaid_for_at(j_icoor.great_grand_parent)
+        ggp_uaid = _uaid_for_at(bt, j_icoor.great_grand_parent)
 
         ggp_ind_backup = None
         phi_backup = phi
-        if icoor_at_is_inter_res(j_icoor.great_grand_parent):
+        if _icoor_at_is_inter_res(bt, j_icoor.great_grand_parent):
             # Logic for when the great-grand parent atom is in another residue
             # and is absent. This "general" logic is specifically for building
             # the H atom on a residue where i-1 does not exist or is not
             # chemically bonded to residue i.
-            while icoor_at_is_inter_res(j_icoor.great_grand_parent):
+            while _icoor_at_is_inter_res(bt, j_icoor.great_grand_parent):
                 ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
                 j_icoor = bt.icoors[ggp_ind_backup]
                 phi_backup += j_icoor.phi
-        elif not icoor_at_is_h(j_icoor.great_grand_parent):
+        elif not _icoor_at_is_h(bt, atom_is_hydrogen, j_icoor.great_grand_parent):
             # Logic for handling when the heavy-atom great-grand parent,
             # which itself is a leaf atom, is absent. This "general" logic
             # is specifically for building the OXT atom on a cterm residue
             # when the O atom is given but OXT is not.
-            while icoor_at_is_leaf(j_icoor.great_grand_parent):
+            while _icoor_at_is_leaf(bt, j_icoor.great_grand_parent):
                 ggp_ind_backup = bt.icoors_index[j_icoor.great_grand_parent]
                 j_icoor = bt.icoors[ggp_ind_backup]
                 phi_backup += j_icoor.phi
@@ -402,7 +406,7 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
         icoor_geom[j, 1] = theta
         icoor_geom[j, 2] = d
         if ggp_ind_backup is not None:
-            ggp_uaid_backup = uaid_for_at(j_icoor.great_grand_parent)
+            ggp_uaid_backup = _uaid_for_at(j_icoor.great_grand_parent)
             icoor_uaids_backup[j, 0] = numpy.array(p_uaid, dtype=numpy.int32)
             icoor_uaids_backup[j, 1] = numpy.array(gp_uaid, dtype=numpy.int32)
             icoor_uaids_backup[j, 2] = numpy.array(ggp_uaid_backup, dtype=numpy.int32)

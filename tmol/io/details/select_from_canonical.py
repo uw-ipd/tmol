@@ -5,13 +5,7 @@ import attr
 from typing import Optional, Tuple
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from tmol.io.canonical_ordering import (
-    CanonicalOrdering,
-)
-
-from tmol.io.details.his_taut_resolution import (
-    his_taut_variant_ND1_protonated,
-)
+from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
@@ -42,7 +36,6 @@ def assign_block_types(
     max_n_res = chain_id.shape[1]
     max_n_conn = pbt.max_n_conn
 
-    can_ann = pbt.canonical_ordering_annotation
     res_types64 = res_types.to(torch.int64)
     res_type_variants64 = res_type_variants.to(torch.int64)
     is_real_res = res_types64 != -1
@@ -216,8 +209,6 @@ def determine_chain_ending_status(
     is_real_res: Tensor[torch.bool][:, :],
 ):
     n_poses = chain_id.shape[0]
-    max_n_res = chain_id.shape[1]
-    max_n_conn = pbt.max_n_conn
     device = pbt.device
 
     # logic for deciding what chemical bonds are present between the polymeric
@@ -516,12 +507,12 @@ def select_best_block_type_candidate(
                         which_bt.item(),
                         cand_bt.name,
                         "restype",
-                        res_types[i, j],
+                        res_types64[i, j],
                         "equiv class",
-                        canonical_ordering.restype_io_equiv_classes[res_types[i, j]],
+                        canonical_ordering.restype_io_equiv_classes[res_types64[i, j]],
                     )
                     if exclude_candidate_for_residue[i, j, k]:
-                        equiv_class = bt.io_equiv_class
+                        equiv_class = cand_bt.io_equiv_class
                         for l in range(canonical_ordering.max_n_canonical_atoms):
                             if provided_atoms_absent_from_candidate[i, j, k, l]:
                                 print(
@@ -530,7 +521,7 @@ def select_best_block_type_candidate(
                                         equiv_class
                                     ][l],
                                     "provided but absent from candidate",
-                                    bt.name,
+                                    cand_bt.name,
                                 )
                     else:
                         for l in range(canonical_ordering.max_n_canonical_atoms):
@@ -636,20 +627,57 @@ class CanonicalOrderingAnnotation:
     bt_canonical_atom_ind_map: Tensor[torch.int64][:, :]
 
 
+def _map_term_to_int(is_down_term, is_up_term):
+    if is_down_term and is_up_term:
+        return 3
+    if is_down_term:
+        return 0
+    if is_up_term:
+        return 2
+    return 1
+
+
+def _map_spcase_var_to_int(is_cyd, is_hisd):
+    # spcase == SPecial CASE
+    if is_cyd or is_hisd:
+        return 1
+    return 0
+
+
+def _term_and_spcase_var_candidate_lists(max_n_term, max_n_spcase):
+    candidates = []
+    for i in range(max_n_term):
+        candidates.append([])
+        for j in range(max_n_spcase):
+            candidates[i].append([])
+    return candidates
+
+
+def _assign_var_inds_for_bt(co, bt):
+    bt_vars = bt.name.split(":")
+    bt_is_down_term = False
+    bt_is_up_term = False
+    bt_is_non_default_term = False
+    bt_is_cyd = bt.base_name == "CYD"
+    bt_is_hisd = bt.base_name == "HIS_D"
+    for var_name in bt_vars[1:]:
+        if var_name in co.down_termini_patches:
+            bt_is_down_term = True
+            if var_name != co.restypes_default_termini_mapping[bt.io_equiv_class][0]:
+                bt_is_non_default_term = True
+        if var_name in co.up_termini_patches:
+            bt_is_up_term = True
+            if var_name != co.restypes_default_termini_mapping[bt.io_equiv_class][1]:
+                bt_is_non_default_term = True
+    term_ind = _map_term_to_int(bt_is_down_term, bt_is_up_term)
+    spcase_var_ind = _map_spcase_var_to_int(bt_is_cyd, bt_is_hisd)
+    return term_ind, spcase_var_ind, bt_is_non_default_term
+
+
 @validate_args
 def _annotate_packed_block_types_w_canonical_res_order(
     canonical_ordering, pbt: PackedBlockTypes
 ):
-    # mapping from canonical restype index to the
-    # packed-block-types index for that restype
-    #
-    # what we want here is to be able to take four pieces of data:
-    #  a. restype by 3-letter code
-    #  b. termini assignment
-    #  c. disulfide assignment
-    #  d. his-d vs his-e assignment
-    # and then look up into a tensor exactly which block type we are talking about
-
     co = canonical_ordering
 
     if hasattr(pbt, "canonical_ording_annotation"):
@@ -660,34 +688,13 @@ def _annotate_packed_block_types_w_canonical_res_order(
         2  # CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
     )
 
-    def map_term_to_int(is_down_term, is_up_term):
-        if is_down_term and is_up_term:
-            return 3
-        if is_down_term:
-            return 0
-        if is_up_term:
-            return 2
-        return 1
-
-    def map_spcase_var_to_int(is_cyd, is_hisd):
-        # spcase == SPecial CASE
-        if is_cyd or is_hisd:
-            return 1
-        return 0
-
-    def term_and_spcase_var_candidate_lists():
-        candidates = []
-        for i in range(max_n_termini_types):
-            candidates.append([])
-            for j in range(max_n_special_case_aa_variant_types):
-                candidates[i].append([])
-        return candidates
-
     pbt_io_equiv_class_name_set = set(
         [bt.io_equiv_class for bt in pbt.active_block_types]
     )
     pbt_io_equiv_class_candidates = {
-        io_equiv_class: term_and_spcase_var_candidate_lists()
+        io_equiv_class: _term_and_spcase_var_candidate_lists(
+            max_n_termini_types, max_n_special_case_aa_variant_types
+        )
         for io_equiv_class in pbt_io_equiv_class_name_set
     }
     bt_is_non_default_terminus = torch.zeros((pbt.n_types,), dtype=torch.bool)
@@ -696,34 +703,11 @@ def _annotate_packed_block_types_w_canonical_res_order(
     # of the base types in the ChemicalDatabase from which the CO was
     # derived
     n_co_io_equiv_classes = co.n_restype_io_equiv_classes
-    n_pbt_io_equiv_classes = len(pbt_io_equiv_class_name_set)
 
     for i, bt in enumerate(pbt.active_block_types):
-        bt_vars = bt.name.split(":")
-        bt_is_down_term = False
-        bt_is_up_term = False
-        bt_is_non_default_term = False
-        bt_is_cyd = bt.base_name == "CYD"
-        bt_is_hisd = bt.base_name == "HIS_D"
-        for var_name in bt_vars[1:]:
-            if var_name in co.down_termini_patches:
-                bt_is_down_term = True
-                if (
-                    var_name
-                    != co.restypes_default_termini_mapping[bt.io_equiv_class][0]
-                ):
-                    bt_is_non_default_term = True
-            if var_name in co.up_termini_patches:
-                bt_is_up_term = True
-                if (
-                    var_name
-                    != co.restypes_default_termini_mapping[bt.io_equiv_class][1]
-                ):
-                    bt_is_non_default_term = True
-        term_ind = map_term_to_int(bt_is_down_term, bt_is_up_term)
-        spcase_var_ind = map_spcase_var_to_int(bt_is_cyd, bt_is_hisd)
-        # if bt.io_equiv_class == "CYS":
-        #     print(bt.name, term_ind, spcase_var_ind, i)
+        term_ind, spcase_var_ind, bt_is_non_default_term = _assign_var_inds_for_bt(
+            co, bt
+        )
         pbt_io_equiv_class_candidates[bt.io_equiv_class][term_ind][
             spcase_var_ind
         ].append((bt, i))

@@ -10,6 +10,20 @@ from .pdb_parsing import parse_pdb
 import toolz.functoolz
 
 
+class ordered_set:
+    def __init__(self, input_values=None):
+        self.ordered_vals = []
+        self.unordered_vals = set([])
+        if input_values is not None:
+            for val in input_values:
+                self.add(val)
+
+    def add(self, val):
+        if val not in self.unordered_vals:
+            self.unordered_vals.add(val)
+            self.ordered_vals.append(val)
+
+
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CysSpecialCaseIndices:
     cys_co_aa_ind: int
@@ -112,18 +126,6 @@ class CanonicalOrdering:
 
     @classmethod
     def from_chemdb(cls, chemdb: PatchedChemicalDatabase):
-        class ordered_set:
-            def __init__(self, input_values=None):
-                self.ordered_vals = []
-                self.unordered_vals = set([])
-                if input_values is not None:
-                    for val in input_values:
-                        self.add(val)
-
-            def add(self, val):
-                if val not in self.unordered_vals:
-                    self.unordered_vals.add(val)
-                    self.ordered_vals.append(val)
 
         restypes = ordered_set(rt.io_equiv_class for rt in chemdb.residues)
         ordered_restypes = restypes.ordered_vals
@@ -170,15 +172,6 @@ class CanonicalOrdering:
         )
 
         default_termini_mapping = cls._temp_termini_mapping()
-        default_termini_variants = set(
-            [
-                x
-                for _, up_down_tuple in default_termini_mapping.items()
-                for x in up_down_tuple
-                if x != ""
-            ]
-        )
-        # up_termini_variant_added_atoms = defaultdict(lambda: set([]))
         termini_patch_added_atoms = defaultdict(lambda: set([]))
 
         # we need to know which variants create down- and up termini
