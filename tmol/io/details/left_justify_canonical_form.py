@@ -18,10 +18,6 @@ def left_justify_canonical_form(
     cinds = condense_torch_inds(old_res_types_real, res_types.device)
     good_cinds = cinds[cinds >= 0].view(-1)
     nz_cinds = torch.nonzero(cinds >= 0, as_tuple=False)
-    # print("cinds")
-    # print(cinds.cpu().numpy())
-    # print("nz_cinds")
-    # print(nz_cinds.cpu().numpy())
 
     def lj(x, fill):
         # kinda surprised I don't already have this??
@@ -38,8 +34,6 @@ def left_justify_canonical_form(
 
     chain_id = lj(chain_id, -1)
     res_types = lj(res_types, -1)
-    # print("res_types")
-    # print(res_types)
 
     coords = lj(coords, float("nan"))
     if atom_is_present is not None:

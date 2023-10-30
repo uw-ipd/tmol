@@ -9,9 +9,7 @@ from tmol.io.canonical_ordering import (
     CanonicalOrdering,
 )
 
-# from tmol.io.details.disulfide_search import cys_co_aa_ind
 from tmol.io.details.his_taut_resolution import (
-    #     his_co_aa_ind,
     his_taut_variant_ND1_protonated,
 )
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -33,12 +31,6 @@ def assign_block_types(
     Tensor[torch.int64][:, :, :, 2],
     Tensor[torch.int32][:, :, :, :, :],
 ]:
-    # TEMP!
-    torch.set_printoptions(threshold=10000)
-
-    # print("res_types")
-    # print(res_types)
-
     pbt = packed_block_types
     _annotate_packed_block_types_w_canonical_res_order(canonical_ordering, pbt)
     _annotate_packed_block_types_w_dslf_conn_inds(pbt)
@@ -213,7 +205,6 @@ def assign_block_types(
         pbt, block_n_conn, pose_n_pconn, pconn_matrix
     )
 
-    # print("end assign_block_types")
     return (block_type_ind64, inter_residue_connections64, ibb64)
 
 
@@ -359,8 +350,6 @@ def select_best_block_type_candidate(
     candidate_atom_is_absent[is_real_candidate] = can_ann.bt_canonical_atom_is_absent[
         block_type_candidates[is_real_candidate]
     ]
-    # print("var_atom_is_absent")
-    # print(var_atom_is_absent)
     provided_atoms_absent_from_candidate[is_real_candidate] = torch.logical_and(
         atom_is_present[is_real_candidate],
         candidate_atom_is_absent[is_real_candidate],
@@ -403,18 +392,6 @@ def select_best_block_type_candidate(
         torch.int64
     )
 
-    # for i in range(n_poses):
-    #     for j in range(max_n_res):
-    #         for k in range(canonical_atom_was_not_provided_for_variant.shape[2]):
-    #             if not is_real_candidate[i, j, k]:
-    #                 continue
-    #             which_bt = block_type_candidates[i, j, k]
-    #             cand_bt = pbt.active_block_types[which_bt]
-    #             print(i, j, k, which_bt.item(), cand_bt.name, "restype", res_types[i, j], "equiv class", canonical_ordering.restype_io_equiv_classes[res_types[i,j]])
-    #             for l in range(canonical_atom_was_not_provided_for_variant.shape[3]):
-    #                 if canonical_atom_was_not_provided_for_variant[i, j, k, l]:
-    #                     print(" atom not provided:", cand_bt.atoms[l].name)
-
     n_canonical_atoms_not_provided_for_candidate = torch.sum(
         canonical_atom_was_not_provided_for_candidate, dim=3
     )
@@ -423,8 +400,6 @@ def select_best_block_type_candidate(
             torch.logical_not(is_real_candidate), exclude_candidate_for_residue
         )
     ] = (canonical_ordering.max_n_canonical_atoms + 1)
-    # print("n_canonical_atoms_not_provided_for_var")
-    # print(n_canonical_atoms_not_provided_for_var)
 
     candidate_misalignment_score = (
         2 * n_canonical_atoms_not_provided_for_candidate + candidate_is_non_default_term
@@ -444,19 +419,17 @@ def select_best_block_type_candidate(
     ]
 
     failure_score = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
-    # print("failures")
-    # print(torch.nonzero(best_candidate_score >= failure_score))
-    # print("any?")
-    # print(torch.any(best_candidate_score >= failure_score))
 
     if torch.any(best_candidate_score >= failure_score):
         for i in range(n_poses):
             for j in range(max_n_res):
                 if best_candidate_score[i, j] < failure_score:
                     continue
-                print("best candidate for failure:", best_candidate_ind[i, j].item())
+                ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
+                    res_types64[i, j]
+                ]
+                print("Failed to resolve block type for", i, j, ij_equiv_class)
                 for k in range(max_n_candidates):
-                    print("candidate", k, " real? ", is_real_candidate[i, j, k].item())
                     if not is_real_candidate[i, j, k]:
                         continue
                     which_bt = block_type_candidates[i, j, k]
@@ -492,9 +465,6 @@ def select_best_block_type_candidate(
                                 print(" atom not provided:", cand_bt.atoms[l].name)
 
         print("Failed to find a matching block type")
-        # print(best_fit_variant_score)
-        # print("bad")
-        # print(torch.nonzero(best_fit_variant_score >= 2 * (canonical_ordering.max_n_canonical_atoms + 1)))
         raise RuntimeError(
             "failed to resolve a block type from the candidates available"
         )
@@ -529,8 +499,6 @@ def take_block_type_atoms_from_canonical(
     assert hasattr(pbt, "canonical_ordering_annotation")
     can_ann = pbt.canonical_ordering_annotation
     device = pbt.device
-    # _annotate_packed_block_types_w_canonical_res_order(pbt)
-    # _annotate_packed_block_types_w_canonical_atom_order(pbt)
 
     n_poses = block_types64.shape[0]
     max_n_blocks = block_types64.shape[1]

@@ -80,7 +80,10 @@ class CanonicalOrdering:
     # mapping for each name3 from atom name and atom name alias
     # to the index of that atom for every allowed residue
     # type in the restypes_ordered_atom_names list; this is
-    #
+    # probably more useful than the restypes_ordered_atom_names
+    # list, especially if you are using the PDBv2 naming
+    # convention (as Rosetta3 does) instead of the PDBv3
+    # convention.
     restypes_atom_index_mapping: Mapping[str, Mapping[str, int]]
 
     ############# tmol internal data members below ############
@@ -162,16 +165,6 @@ class CanonicalOrdering:
         max_n_canonical_atoms = max(
             len(atoms) for _, atoms in restypes_ordered_atom_names.items()
         )
-
-        # base_restypes_atom_index_mapping = {}
-        # for name3 in ordered_restypes:
-        #     atom_indices = {}
-        #     for i, at in enumerate(restypes_ordered_atom_names[name3]):
-        #         atom_indices[at] = i
-        #     for i, at in enumerate(restypes_ordered_alt_atom_names[name3]):
-        #         if at not in atom_indices:
-        #             atom_indices[at] = i
-        #     restypes_atom_index_mapping[bt] = atom_indices
 
         default_termini_mapping = cls._temp_termini_mapping()
         default_termini_variants = set(
@@ -336,7 +329,6 @@ def canonical_form_from_pdb_lines(
         if res_types[0, res_ind] == -2:
             try:
                 aa_ind = canonical_ordering.restype_io_equiv_classes.index(row["resn"])
-                # print(i, 'row["resn"]', row["resn"], aa_ind)
                 res_types[0, res_ind] = aa_ind
             except KeyError:
                 res_types[0, res_ind] = -1

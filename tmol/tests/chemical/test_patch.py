@@ -194,6 +194,7 @@ def test_res_error_checks(default_unpatched_chemical_database):
   - name:  IllegalTorsion
     base_name: IllegalTorsion
     name3: ILL
+    io_equiv_class: ILL
     atoms:
     - { name: N   ,  atom_type: Nbb  }
     - { name: CA  ,  atom_type: CAbb }
