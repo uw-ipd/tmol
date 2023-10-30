@@ -9,29 +9,6 @@ from typing import Tuple, Mapping  # , FrozenSet
 from .pdb_parsing import parse_pdb
 import toolz.functoolz
 
-# ordered_canonical_aa_types = (
-#     "ALA",
-#     "CYS",
-#     "ASP",
-#     "GLU",
-#     "PHE",
-#     "GLY",
-#     "HIS",
-#     "ILE",
-#     "LYS",
-#     "LEU",
-#     "MET",
-#     "ASN",
-#     "PRO",
-#     "GLN",
-#     "ARG",
-#     "SER",
-#     "THR",
-#     "VAL",
-#     "TRP",
-#     "TYR",
-# )
-
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CysSpecialCaseIndices:
@@ -77,11 +54,37 @@ class HisSpecialCaseIndices:
 
 @attr.s(auto_attribs=True, frozen=True)
 class CanonicalOrdering:
+    # There are three data members that are useful for users:
+    # - restype_io_equiv_classes
+    # - restypes_ordered_atom_names
+    # - restypes_atom_index_mapping
+    # the remaining data members are useful primarily for
+    # internal tmol functionality
+
+    # restype_io_equiv_classes:
+    # essentially the list of 3-letter codes for the residue
+    # types that are readable; use the index function
+    # (e.g. co.restype_io_equiv_classes.index("TRP"))
+    # to obtain the integer meant to represent each restype
     restype_io_equiv_classes: Tuple[str, ...]
-    # the name for each atom
+
+    # restypes_ordered_atom_names:
+    # the ordered list of the names of each atom for every allowed
+    # residue type; does not include the alternate names for atoms.
+    # Atoms should be given to tmol in this order; e.g. by putting
+    # the coordinate of the ith atom in the ith entry of the
+    # coordinate tensor (e.g. coords[p, r, i] for pose p, residue r)
     restypes_ordered_atom_names: Mapping[str, Tuple[str, ...]]
-    # mapping for each name3 from atom name and alternate atom name to canonical form index
+
+    # restypes_atom_index_mapping:
+    # mapping for each name3 from atom name and atom name alias
+    # to the index of that atom for every allowed residue
+    # type in the restypes_ordered_atom_names list; this is
+    #
     restypes_atom_index_mapping: Mapping[str, Mapping[str, int]]
+
+    ############# tmol internal data members below ############
+
     restypes_default_termini_mapping: Mapping[str, Tuple[str, str]]
     down_termini_patches: Tuple[str, ...]
     up_termini_patches: Tuple[str, ...]
@@ -296,11 +299,6 @@ class CanonicalOrdering:
 def default_canonical_ordering():
     chemdb = ParameterDatabase.get_default().chemical
     return CanonicalOrdering.from_chemdb(chemdb)
-
-
-def default_canonical_form_from_pdb_lines(pdb_lines, device):
-    canonical_ordering = default_canonical_ordering()
-    return canonical_form_from_pdb_lines(canonical_ordering, pdb_lines, device)
 
 
 def canonical_form_from_pdb_lines(

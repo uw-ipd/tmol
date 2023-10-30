@@ -1,9 +1,11 @@
 import numpy
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
-    default_canonical_form_from_pdb_lines,
     CanonicalOrdering,
+    canonical_form_from_pdb_lines,
 )
+
+# from tmol.io.details.canonical_packed_block_types import default_canonical_packed_block_types
 
 
 def test_create_canonical_ordering_smoke(default_database):
@@ -24,13 +26,21 @@ def test_create_canonical_ordering_smoke(default_database):
     assert co.max_n_canonical_atoms >= 28
 
 
+def test_default_canonical_ordering():
+    co1 = default_canonical_ordering()
+    co2 = default_canonical_ordering()
+    assert co2 is co1
+
+
 def test_default_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
+    can_ord = default_canonical_ordering()
+    # can_pbt = default_canonical_packed_block_types(torch_device)
     (
         chain_id,
         res_types,
         coords,
         atom_is_present,
-    ) = default_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
+    ) = canonical_form_from_pdb_lines(can_ord, pertuzumab_pdb, torch_device)
     def_co = default_canonical_ordering()
     assert chain_id.device == torch_device
     assert res_types.device == torch_device
@@ -108,12 +118,13 @@ def test_canonical_form_w_unk(torch_device):
         "HETATM 6185  N3  SAM B 402     -13.902  12.803   5.006  1.00 46.34           N\n",
         "HETATM 6186  C4  SAM B 402     -15.231  13.034   5.166  1.00 53.49           C\n",
     ]
+    can_ord = default_canonical_ordering()
     (
         chain_id,
         res_types,
         coords,
         atom_is_present,
-    ) = default_canonical_form_from_pdb_lines(sam_pdb_lines, torch_device)
+    ) = canonical_form_from_pdb_lines(can_ord, sam_pdb_lines, torch_device)
     def_co = default_canonical_ordering()
 
     assert chain_id.device == torch_device

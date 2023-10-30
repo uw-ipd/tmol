@@ -1,8 +1,6 @@
 from tmol.chemical.restypes import three2one  # noqa: F401
 from tmol.io.canonical_ordering import (  # noqa: F401
-    # ordered_canonical_aa_atoms,
-    # ordered_canonical_aa_atoms_v2,
-    # max_n_canonical_atoms,
+    default_canonical_ordering,
     canonical_form_from_pdb_lines,
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form  # noqa: F401

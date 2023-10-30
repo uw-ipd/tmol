@@ -309,15 +309,16 @@ def select_best_block_type_candidate(
     n_poses = atom_is_present.shape[0]
     max_n_res = atom_is_present.shape[1]
     can_ann = pbt.canonical_ordering_annotation
+    max_n_candidates = can_ann.max_n_candidates_for_var_combo
 
     block_type_candidates = torch.full(
-        (n_poses, max_n_res, can_ann.max_candidates_for_var_combo),
+        (n_poses, max_n_res, can_ann.max_n_candidates_for_var_combo),
         -1,
         dtype=torch.int64,
         device=device,
     )
     is_real_candidate = torch.zeros(
-        (n_poses, max_n_res, can_ann.max_candidates_for_var_combo),
+        (n_poses, max_n_res, can_ann.max_n_candidates_for_var_combo),
         dtype=torch.bool,
         device=device,
     )
@@ -326,9 +327,6 @@ def select_best_block_type_candidate(
         termini_variants[is_real_res],
         res_type_variants64[is_real_res],
     ]
-
-    # print("block_type_candidates")
-    # print(block_type_candidates)
 
     is_real_candidate[is_real_res] = can_ann.var_combo_is_real_candidate[
         res_types64[is_real_res],
@@ -339,20 +337,20 @@ def select_best_block_type_candidate(
         (
             n_poses,
             max_n_res,
-            can_ann.max_candidates_for_var_combo,
+            can_ann.max_n_candidates_for_var_combo,
             canonical_ordering.max_n_canonical_atoms,
         ),
         dtype=torch.bool,
         device=device,
     )
     atom_is_present = atom_is_present.unsqueeze(2).expand(
-        -1, -1, can_ann.max_candidates_for_var_combo, -1
+        -1, -1, can_ann.max_n_candidates_for_var_combo, -1
     )
     candidate_atom_is_absent = torch.zeros(
         (
             n_poses,
             max_n_res,
-            can_ann.max_candidates_for_var_combo,
+            can_ann.max_n_candidates_for_var_combo,
             canonical_ordering.max_n_canonical_atoms,
         ),
         dtype=torch.bool,
@@ -395,7 +393,7 @@ def select_best_block_type_candidate(
         torch.int64
     )
     candidate_is_non_default_term = torch.zeros(
-        (n_poses, max_n_res, can_ann.max_candidates_for_var_combo),
+        (n_poses, max_n_res, can_ann.max_n_candidates_for_var_combo),
         dtype=torch.int64,
         device=device,
     )
@@ -457,7 +455,7 @@ def select_best_block_type_candidate(
                 if best_candidate_score[i, j] < failure_score:
                     continue
                 print("best candidate for failure:", best_candidate_ind[i, j].item())
-                for k in range(canonical_atom_was_not_provided_for_candidate.shape[2]):
+                for k in range(max_n_candidates):
                     print("candidate", k, " real? ", is_real_candidate[i, j, k].item())
                     if not is_real_candidate[i, j, k]:
                         continue
@@ -474,11 +472,25 @@ def select_best_block_type_candidate(
                         "equiv class",
                         canonical_ordering.restype_io_equiv_classes[res_types[i, j]],
                     )
-                    for l in range(
-                        canonical_atom_was_not_provided_for_candidate.shape[3]
-                    ):
-                        if canonical_atom_was_not_provided_for_candidate[i, j, k, l]:
-                            print(" atom not provided:", cand_bt.atoms[l].name)
+                    if exclude_candidate_for_residue[i, j, k]:
+                        equiv_class = bt.io_equiv_class
+                        for l in range(canonical_ordering.max_n_canonical_atoms):
+                            if provided_atoms_absent_from_candidate[i, j, k, l]:
+                                print(
+                                    " atom",
+                                    canonical_ordering.restypes_ordered_atom_names[
+                                        equiv_class
+                                    ][l],
+                                    "provided but absent from candidate",
+                                    bt.name,
+                                )
+                    else:
+                        for l in range(canonical_ordering.max_n_canonical_atoms):
+                            if canonical_atom_was_not_provided_for_candidate[
+                                i, j, k, l
+                            ]:
+                                print(" atom not provided:", cand_bt.atoms[l].name)
+
         print("Failed to find a matching block type")
         # print(best_fit_variant_score)
         # print("bad")
@@ -559,7 +571,7 @@ def take_block_type_atoms_from_canonical(
 
 @attr.s(auto_attribs=True, frozen=True)
 class CanonicalOrderingAnnotation:
-    max_candidates_for_var_combo: int
+    max_n_candidates_for_var_combo: int
     # n-co-equiv-class x n-term-opts x n-spcase-var
     var_combo_n_candidates: Tensor[torch.int64][:, :, :]
     # n-co-equiv-class x n-term-opts x n-spcase-var x max-n-candidates
@@ -752,7 +764,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
         ].append((bt, i))
         bt_is_non_default_terminus[i] = bt_is_non_default_term
 
-    max_candidates_for_var_combo = max(
+    max_n_candidates_for_var_combo = max(
         len(pbt_io_equiv_class_candidates[bt][i][j][0])
         for bt in pbt_io_equiv_class_candidates
         for i in range(max_n_termini_types)
@@ -765,7 +777,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
             n_co_io_equiv_classes,
             max_n_termini_types,
             max_n_special_case_aa_variant_types,
-            max_candidates_for_var_combo,
+            max_n_candidates_for_var_combo,
         ),
         -1,
         dtype=torch.int64,
@@ -776,7 +788,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
             n_co_io_equiv_classes,
             max_n_termini_types,
             max_n_special_case_aa_variant_types,
-            max_candidates_for_var_combo,
+            max_n_candidates_for_var_combo,
         ),
         dtype=torch.bool,
         device=torch.device("cpu"),
@@ -870,7 +882,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
         return x.to(pbt.device)
 
     ann = CanonicalOrderingAnnotation(
-        max_candidates_for_var_combo=max_candidates_for_var_combo,
+        max_n_candidates_for_var_combo=max_n_candidates_for_var_combo,
         var_combo_n_candidates=_d(var_combo_n_candidates),
         var_combo_is_real_candidate=_d(var_combo_is_real_candidate),
         var_combo_candidate_bt_index=_d(var_combo_candidate_bt_index),
