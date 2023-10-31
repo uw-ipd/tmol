@@ -74,6 +74,89 @@ def test_assign_block_types(torch_device, ubq_pdb):
     numpy.testing.assert_equal(block_types.cpu().numpy(), ubq_bt_inds)
 
 
+def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
+    co = default_canonical_ordering()
+    pbt = default_canonical_packed_block_types(torch_device)
+    PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
+
+    # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
+    ch_id_4, can_rts_4, coords_4, at_is_pres_4 = canonical_form_from_pdb_lines(
+        co, ubq_pdb[: (81 * 75)], torch_device
+    )
+    # first 6 res -- up through line 113
+    ch_id_6, can_rts_6, coords_6, at_is_pres_6 = canonical_form_from_pdb_lines(
+        co, ubq_pdb[: (81 * 113)], torch_device
+    )
+
+    def ext_one(x4, x6, fill_val):
+        new_shape = (2,) + x6.shape[1:]
+        x = torch.full(new_shape, fill_val, dtype=x4.dtype, device=x4.device)
+        x[0, : x4.shape[1]] = x4
+        x[1] = x6
+        return x
+
+    ch_id = ext_one(ch_id_4, ch_id_6, -1)
+    can_rts = ext_one(can_rts_4, can_rts_6, -1)
+    coords = ext_one(coords_4, coords_6, numpy.nan)
+    at_is_pres = ext_one(at_is_pres_4, at_is_pres_6, False)
+
+    # print("ch_id", ch_id.shape)
+    # print("can_rts", can_rts.shape)
+    # print("coords", coords.shape)
+    # print("at_is_pres", at_is_pres.shape)
+
+    # 2
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
+    # 3
+    (
+        his_taut,
+        res_type_variants,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+
+    # now we'll invoke assign_block_types
+    (
+        block_types,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
+
+    # ubq seq
+    ubq_1lc = [
+        x
+        for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
+    ]
+    ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
+    ubq_bt_inds = numpy.expand_dims(
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
+    )
+
+    jagged_gold_bt_inds = numpy.full((2, 6), -1, dtype=numpy.int64)
+    jagged_gold_bt_inds[0, :4] = ubq_bt_inds[0, :4]
+    jagged_gold_bt_inds[0, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    jagged_gold_bt_inds[0, 3] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "PHE:cterm"
+    )
+    jagged_gold_bt_inds[1, :6] = ubq_bt_inds[0, :6]
+    jagged_gold_bt_inds[1, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    jagged_gold_bt_inds[1, 5] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "LYS:cterm"
+    )
+
+    assert block_types.device == torch_device
+    assert inter_residue_connections64.device == torch_device
+    assert inter_residue_connections64.dtype == torch.int64
+
+    numpy.testing.assert_equal(block_types.cpu().numpy(), jagged_gold_bt_inds)
+
+
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)

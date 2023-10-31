@@ -340,7 +340,7 @@ def select_best_block_type_candidate(
     # are missing, so long as we don't have any provided atom that tells us to
     # choose something else.
     # Therefore, we have to ignore the atoms added by termini patches when
-    # counting how many atoms in the "present" set are missing from the bt's set
+    # counting how many atoms in the provided set are missing from the bt's set
     # so e.g. if
     # bt1 has atoms [A B C Q R] after its term patch added atoms Q and R, and
     # bt2 has atoms [A B C S ] after its term patch added atom S, and
@@ -360,7 +360,7 @@ def select_best_block_type_candidate(
     # present but will not be worse than if some non-termini atom is missing
     # from bt1 but not from bt2.
     # We can do that by setting the score as
-    # 2 * n-atoms-missing + is-non-default-term
+    # 2 * n-non-termini-atoms-missing + is-non-default-term
 
     device = pbt.device
     n_poses = atom_is_present.shape[0]
@@ -385,92 +385,184 @@ def select_best_block_type_candidate(
         res_type_variants64[is_real_res],
     ]
 
+    real_res_res_types64 = res_types64[is_real_res]  # s
+    real_res_termini_variants = termini_variants[is_real_res]  # s
+    real_res_res_type_variants64 = res_type_variants64[is_real_res]  # s
+
+    real_res_block_type_candidates = can_ann.var_combo_candidate_bt_index[
+        real_res_res_types64, real_res_termini_variants, real_res_res_type_variants64
+    ]  # s
+
     is_real_candidate[is_real_res] = can_ann.var_combo_is_real_candidate[
         res_types64[is_real_res],
         termini_variants[is_real_res],
         res_type_variants64[is_real_res],
     ]
-    provided_atoms_absent_from_candidate = torch.zeros(
-        (
-            n_poses,
-            max_n_res,
-            can_ann.max_n_candidates_for_var_combo,
-            canonical_ordering.max_n_canonical_atoms,
-        ),
-        dtype=torch.bool,
-        device=device,
-    )
+    is_real_cand_for_real_res = can_ann.var_combo_is_real_candidate[
+        real_res_res_types64, real_res_termini_variants, real_res_res_type_variants64
+    ]  # s
+    real_candidate_block_type = real_res_block_type_candidates[
+        is_real_cand_for_real_res
+    ]  # s
+    # print("real_candidate_block_type", real_candidate_block_type.shape)
+    # print("is_real_cand_for_real_res", is_real_cand_for_real_res.shape)
+
+    # old provided_atoms_absent_from_candidate = torch.zeros(
+    # old     (
+    # old         n_poses,
+    # old         max_n_res,
+    # old         can_ann.max_n_candidates_for_var_combo,
+    # old         canonical_ordering.max_n_canonical_atoms,
+    # old     ),
+    # old     dtype=torch.bool,
+    # old     device=device,
+    # old )
     atom_is_present = atom_is_present.unsqueeze(2).expand(
         -1, -1, can_ann.max_n_candidates_for_var_combo, -1
     )
-    candidate_atom_is_absent = torch.zeros(
+    # old candidate_atom_is_absent = torch.zeros(
+    # old     (
+    # old         n_poses,
+    # old         max_n_res,
+    # old         can_ann.max_n_candidates_for_var_combo,
+    # old         canonical_ordering.max_n_canonical_atoms,
+    # old     ),
+    # old     dtype=torch.bool,
+    # old     device=device,
+    # old )
+    # old candidate_atom_is_absent[is_real_candidate] = can_ann.bt_canonical_atom_is_absent[
+    # old     block_type_candidates[is_real_candidate]
+    # old ]
+    real_candidate_atom_is_absent = can_ann.bt_canonical_atom_is_absent[
+        real_candidate_block_type
+    ]  # s
+
+    # old provided_atoms_absent_from_candidate[is_real_candidate] = torch.logical_and(
+    # old     atom_is_present[is_real_candidate],
+    # old     candidate_atom_is_absent[is_real_candidate],
+    # old )
+    real_candidate_provided_atoms_absent = torch.logical_and(
+        atom_is_present[is_real_candidate], real_candidate_atom_is_absent
+    )  # s
+
+    # if there are any atoms that were provided for a given residue
+    # but that the variant does not contain, then that is not a match
+    # old exclude_candidate_for_residue = torch.any(
+    # old     provided_atoms_absent_from_candidate, dim=3
+    # old )
+    real_candidate_should_be_excluded = torch.any(
+        real_candidate_provided_atoms_absent, dim=1
+    )  # s
+    atom_is_absent = torch.logical_not(atom_is_present)
+    # old candidate_non_term_patch_atom_is_present = torch.zeros_like(
+    # old     candidate_atom_is_absent
+    # old )
+    # old candidate_non_term_patch_atom_is_present[
+    # old     is_real_candidate
+    # old ] = can_ann.bt_non_term_patch_added_canonical_atom_is_present[
+    # old     block_type_candidates[is_real_candidate]
+    # old ]
+    real_candidate_non_term_patch_atom_is_present = (
+        can_ann.bt_non_term_patch_added_canonical_atom_is_present[
+            real_candidate_block_type
+        ]
+    )  # s
+
+    # old canonical_atom_was_not_provided_for_candidate = torch.zeros_like(
+    # old     provided_atoms_absent_from_candidate, dtype=torch.int64
+    # old )
+    # old canonical_atom_was_not_provided_for_candidate[
+    # old     is_real_candidate
+    # old ] = torch.logical_and(
+    # old     atom_is_absent[is_real_candidate],
+    # old     candidate_non_term_patch_atom_is_present[is_real_candidate],
+    # old ).to(
+    # old     torch.int64
+    # old )
+    real_candidate_canonical_atom_was_not_provided = torch.logical_and(
+        atom_is_absent[is_real_candidate], real_candidate_non_term_patch_atom_is_present
+    )  # s
+    # old candidate_is_non_default_term = torch.zeros(
+    # old     (n_poses, max_n_res, can_ann.max_n_candidates_for_var_combo),
+    # old     dtype=torch.int64,
+    # old     device=device,
+    # old )
+    # old candidate_is_non_default_term[
+    # old     is_real_candidate
+    # old ] = can_ann.bt_is_non_default_terminus[block_type_candidates[is_real_candidate]].to(
+    # old     torch.int64
+    # old )
+    real_candidate_is_non_default_term = can_ann.bt_is_non_default_terminus[
+        real_candidate_block_type
+    ].to(
+        torch.int64
+    )  # s
+    # print("real_candidate_is_non_default_term", real_candidate_is_non_default_term.shape)
+
+    # SANITY CHECK
+    # canonical_atom_was_not_provided_for_candidate2 = torch.zeros(
+    #    (
+    #        n_poses,
+    #        max_n_res,
+    #        can_ann.max_n_candidates_for_var_combo,
+    #        canonical_ordering.max_n_canonical_atoms,
+    #    ),
+    #    dtype=torch.bool,
+    #    device=device
+    # ) # s
+    # canonical_atom_was_not_provided_for_candidate2[is_real_candidate] = real_candidate_canonical_atom_was_not_provided # s
+
+    # print("same?",
+    #       torch.all(
+    #           canonical_atom_was_not_provided_for_candidate == canonical_atom_was_not_provided_for_candidate2
+    #       )
+    # ) # s
+
+    # old n_canonical_atoms_not_provided_for_candidate = torch.sum(
+    # old     canonical_atom_was_not_provided_for_candidate, dim=3
+    # old )
+    # old n_canonical_atoms_not_provided_for_candidate[
+    # old     torch.logical_or(
+    # old         torch.logical_not(is_real_candidate), exclude_candidate_for_residue
+    # old     )
+    # old ] = (canonical_ordering.max_n_canonical_atoms + 1)
+    # print("real_candidate_canonical_atom_was_not_provided", real_candidate_canonical_atom_was_not_provided.shape)
+    real_candidate_n_canonical_atoms_not_provided = torch.sum(
+        real_candidate_canonical_atom_was_not_provided, dim=1
+    )  # s
+    # torch.set_printoptions(threshold=1000)
+    # print("real_candidate_n_canonical_atoms_not_provided", real_candidate_n_canonical_atoms_not_provided.shape)
+    # print(real_candidate_n_canonical_atoms_not_provided)
+
+    # old candidate_misalignment_score = (
+    # old     2 * n_canonical_atoms_not_provided_for_candidate + candidate_is_non_default_term
+    # old )
+    # old best_candidate_ind = torch.argmin(candidate_misalignment_score, dim=2)
+    real_candidate_misalignment_score = (
+        2 * real_candidate_n_canonical_atoms_not_provided
+        + real_candidate_is_non_default_term
+    )  # s
+    failure_score = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
+    real_candidate_misalignment_score[real_candidate_should_be_excluded] = failure_score
+    candidate_misalignment_score2 = torch.full(
         (
             n_poses,
             max_n_res,
             can_ann.max_n_candidates_for_var_combo,
-            canonical_ordering.max_n_canonical_atoms,
         ),
-        dtype=torch.bool,
-        device=device,
-    )
-    candidate_atom_is_absent[is_real_candidate] = can_ann.bt_canonical_atom_is_absent[
-        block_type_candidates[is_real_candidate]
-    ]
-    provided_atoms_absent_from_candidate[is_real_candidate] = torch.logical_and(
-        atom_is_present[is_real_candidate],
-        candidate_atom_is_absent[is_real_candidate],
-    )
-
-    # if there are any atoms that were provided for a given residue
-    # but that the variant does not contain, then that is not a match
-    exclude_candidate_for_residue = torch.any(
-        provided_atoms_absent_from_candidate, dim=3
-    )
-    atom_is_absent = torch.logical_not(atom_is_present)
-    candidate_non_term_patch_atom_is_present = torch.zeros_like(
-        candidate_atom_is_absent
-    )
-    candidate_non_term_patch_atom_is_present[
-        is_real_candidate
-    ] = can_ann.bt_non_term_patch_added_canonical_atom_is_present[
-        block_type_candidates[is_real_candidate]
-    ]
-
-    canonical_atom_was_not_provided_for_candidate = torch.zeros_like(
-        provided_atoms_absent_from_candidate, dtype=torch.int64
-    )
-    canonical_atom_was_not_provided_for_candidate[
-        is_real_candidate
-    ] = torch.logical_and(
-        atom_is_absent[is_real_candidate],
-        candidate_non_term_patch_atom_is_present[is_real_candidate],
-    ).to(
-        torch.int64
-    )
-    candidate_is_non_default_term = torch.zeros(
-        (n_poses, max_n_res, can_ann.max_n_candidates_for_var_combo),
+        failure_score,
         dtype=torch.int64,
         device=device,
-    )
-    candidate_is_non_default_term[
+    )  # s
+    candidate_misalignment_score2[
         is_real_candidate
-    ] = can_ann.bt_is_non_default_terminus[block_type_candidates[is_real_candidate]].to(
-        torch.int64
-    )
+    ] = real_candidate_misalignment_score  # s
+    # print("candidate_misalignment_score2")
+    # print(candidate_misalignment_score2.shape)
 
-    n_canonical_atoms_not_provided_for_candidate = torch.sum(
-        canonical_atom_was_not_provided_for_candidate, dim=3
-    )
-    n_canonical_atoms_not_provided_for_candidate[
-        torch.logical_or(
-            torch.logical_not(is_real_candidate), exclude_candidate_for_residue
-        )
-    ] = (canonical_ordering.max_n_canonical_atoms + 1)
+    best_candidate_ind2 = torch.argmin(candidate_misalignment_score2, dim=2)  # s
 
-    candidate_misalignment_score = (
-        2 * n_canonical_atoms_not_provided_for_candidate + candidate_is_non_default_term
-    )
-    best_candidate_ind = torch.argmin(candidate_misalignment_score, dim=2)
+    # print("same 2?", torch.all(best_candidate_ind == best_candidate_ind2))
 
     # ok, we need to do some quality checks. If the best fit variant's score is
     # 2 * (canonical_ordering.max_n_canonical_atoms + 1) or worse, then we have
@@ -478,71 +570,70 @@ def select_best_block_type_candidate(
     best_candidate_score = torch.zeros(
         (n_poses, max_n_res), dtype=torch.int64, device=device
     )
-    best_candidate_score[is_real_res] = candidate_misalignment_score[
+    best_candidate_score[is_real_res] = candidate_misalignment_score2[
         nz_is_real_res[:, 0],
         nz_is_real_res[:, 1],
-        best_candidate_ind[is_real_res],
+        best_candidate_ind2[is_real_res],
     ]
 
-    failure_score = 2 * (canonical_ordering.max_n_canonical_atoms + 1)
-
     if torch.any(best_candidate_score >= failure_score):
-        for i in range(n_poses):
-            for j in range(max_n_res):
-                if best_candidate_score[i, j] < failure_score:
-                    continue
-                ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
-                    res_types64[i, j]
-                ]
-                print("Failed to resolve block type for", i, j, ij_equiv_class)
-                for k in range(max_n_candidates):
-                    if not is_real_candidate[i, j, k]:
-                        continue
-                    which_bt = block_type_candidates[i, j, k]
-                    cand_bt = pbt.active_block_types[which_bt]
-                    print(
-                        i,
-                        j,
-                        k,
-                        which_bt.item(),
-                        cand_bt.name,
-                        "restype",
-                        res_types64[i, j],
-                        "equiv class",
-                        canonical_ordering.restype_io_equiv_classes[res_types64[i, j]],
-                    )
-                    if exclude_candidate_for_residue[i, j, k]:
-                        equiv_class = cand_bt.io_equiv_class
-                        for l in range(canonical_ordering.max_n_canonical_atoms):
-                            if provided_atoms_absent_from_candidate[i, j, k, l]:
-                                print(
-                                    " atom",
-                                    canonical_ordering.restypes_ordered_atom_names[
-                                        equiv_class
-                                    ][l],
-                                    "provided but absent from candidate",
-                                    cand_bt.name,
-                                )
-                    else:
-                        for l in range(canonical_ordering.max_n_canonical_atoms):
-                            if canonical_atom_was_not_provided_for_candidate[
-                                i, j, k, l
-                            ]:
-                                print(" atom not provided:", cand_bt.atoms[l].name)
+        nz_is_real_candidate = torch.nonzero(is_real_candidate)
+
+        for cand_ind in range(nz_is_real_candidate.shape[0]):
+            i = nz_is_real_candidate[cand_ind, 0]
+            j = nz_is_real_candidate[cand_ind, 1]
+            k = nz_is_real_candidate[cand_ind, 2]
+
+            if best_candidate_score[i, j] < failure_score:
+                continue
+            ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
+                res_types64[i, j]
+            ]
+            print("Failed to resolve block type for", i, j, ij_equiv_class)
+
+            which_bt = real_candidate_block_type[cand_ind]
+            cand_bt = pbt.active_block_types[which_bt]
+            print(i, j, k, which_bt.item(), cand_bt.name, "restype", end="")
+            print(res_types64[i, j], "equiv class", end="")
+            print(
+                canonical_ordering.restype_io_equiv_classes[res_types64[i, j]],
+            )
+            if real_candidate_should_be_excluded[cand_ind]:
+                equiv_class = cand_bt.io_equiv_class
+                for l in range(canonical_ordering.max_n_canonical_atoms):
+                    if real_candidate_provided_atoms_absent[cand_ind, l]:
+                        print(
+                            " atom",
+                            canonical_ordering.restypes_ordered_atom_names[equiv_class][
+                                l
+                            ],
+                            "provided but absent from candidate",
+                            cand_bt.name,
+                        )
+            else:
+                for l in range(canonical_ordering.max_n_canonical_atoms):
+                    if real_candidate_canonical_atom_was_not_provided[cand_ind, l]:
+                        print(" atom not provided:", cand_bt.atoms[l].name)
 
         print("Failed to find a matching block type")
         raise RuntimeError(
             "failed to resolve a block type from the candidates available"
         )
 
-    block_type_ind64 = torch.full_like(res_types64, -1)
-    block_type_ind64[is_real_res] = block_type_candidates[
+    # old block_type_ind64 = torch.full_like(res_types64, -1)
+    block_type_ind64_2 = torch.full_like(res_types64, -1)
+    # old block_type_ind64[is_real_res] = block_type_candidates[
+    # old     nz_is_real_res[:, 0],
+    # old     nz_is_real_res[:, 1],
+    # old     best_candidate_ind[is_real_res],
+    # old ]
+    block_type_ind64_2[is_real_res] = block_type_candidates[
         nz_is_real_res[:, 0],
         nz_is_real_res[:, 1],
-        best_candidate_ind[is_real_res],
+        best_candidate_ind2[is_real_res],
     ]
 
-    return block_type_ind64
+    return block_type_ind64_2
 
 
 @validate_args
@@ -714,12 +805,19 @@ def _annotate_packed_block_types_w_canonical_res_order(
         bt_is_non_default_terminus[i] = bt_is_non_default_term
 
     max_n_candidates_for_var_combo = max(
-        len(pbt_io_equiv_class_candidates[bt][i][j][0])
+        len(pbt_io_equiv_class_candidates[bt][i][j])
         for bt in pbt_io_equiv_class_candidates
         for i in range(max_n_termini_types)
         for j in range(max_n_special_case_aa_variant_types)
         if len(pbt_io_equiv_class_candidates[bt][i][j]) > 0
     )
+    # print("max_n_candidates_for_var_combo", max_n_candidates_for_var_combo)
+    # for bt in pbt_io_equiv_class_candidates:
+    #     for i in range(max_n_termini_types):
+    #         for j in range(max_n_special_case_aa_variant_types):
+    #             if len(pbt_io_equiv_class_candidates[bt][i][j]) > 1:
+    #                 for cand in pbt_io_equiv_class_candidates[bt][i][j]:
+    #                     print("cand", bt, i, j, cand[0].name)
 
     var_combo_candidate_bt_index = torch.full(
         (
