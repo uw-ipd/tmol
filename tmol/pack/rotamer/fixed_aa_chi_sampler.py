@@ -37,7 +37,7 @@ class FixedAAChiSampler(ChiSampler):
     @validate_args
     def first_sc_atoms_for_rt(self, rt: RefinedResidueType) -> Tuple[str, ...]:
         if rt.base_name == "GLY":
-            return ("2HA",)
+            return ("HA3",)
         elif rt.base_name == "ALA":
             return ("CB",)
 
