@@ -369,13 +369,13 @@ def select_best_block_type_candidate(
     max_n_candidates = can_ann.max_n_candidates_for_var_combo
 
     block_type_candidates = torch.full(
-        (n_poses, max_n_res, can_ann.max_n_candidates_for_var_combo),
+        (n_poses, max_n_res, max_n_candidates),
         -1,
         dtype=torch.int64,
         device=device,
     )
     is_real_candidate = torch.zeros(
-        (n_poses, max_n_res, can_ann.max_n_candidates_for_var_combo),
+        (n_poses, max_n_res, max_n_candidates),
         dtype=torch.bool,
         device=device,
     )
@@ -417,9 +417,7 @@ def select_best_block_type_candidate(
     # old     dtype=torch.bool,
     # old     device=device,
     # old )
-    atom_is_present = atom_is_present.unsqueeze(2).expand(
-        -1, -1, can_ann.max_n_candidates_for_var_combo, -1
-    )
+    atom_is_present = atom_is_present.unsqueeze(2).expand(-1, -1, max_n_candidates, -1)
     # old candidate_atom_is_absent = torch.zeros(
     # old     (
     # old         n_poses,
@@ -548,7 +546,7 @@ def select_best_block_type_candidate(
         (
             n_poses,
             max_n_res,
-            can_ann.max_n_candidates_for_var_combo,
+            max_n_candidates,
         ),
         failure_score,
         dtype=torch.int64,
