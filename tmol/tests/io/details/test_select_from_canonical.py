@@ -30,7 +30,6 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 def dslf_and_his_resolved_pose_stack_from_canonical_form(
     co, pbt, ch_id, can_rts, coords, at_is_pres
 ):
-
     ch_id, can_rts, coords, at_is_pres, _1, _2 = left_justify_canonical_form(
         ch_id, can_rts, coords, at_is_pres
     )

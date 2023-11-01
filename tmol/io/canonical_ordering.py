@@ -126,7 +126,6 @@ class CanonicalOrdering:
 
     @classmethod
     def from_chemdb(cls, chemdb: PatchedChemicalDatabase):
-
         restypes = ordered_set(rt.io_equiv_class for rt in chemdb.residues)
         ordered_restypes = restypes.ordered_vals
 

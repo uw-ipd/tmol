@@ -297,7 +297,6 @@ def _icoor_at_is_inter_res(bt, icoor_at_name):
 
 
 def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
-
     if hasattr(bt, "leaf_atom_icoor_ann"):
         return
 
