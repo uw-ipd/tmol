@@ -202,15 +202,21 @@ class ElecParamResolver(ValidateAttrs):
                 continue
 
             inner = None
+            if outer == "OXT":
+                print("OXT vars", vars)
+
             for v in vars:
                 if v not in self.cp_reps[res][outer]:
                     continue
                 inner = self.cp_reps[res][outer][v]
                 break
 
+            if inner is None:
+                continue
+
             if inner not in block_type.atom_to_idx:
                 raise KeyError(
-                    "Invalid elec cp mapping: " + res + " " + outer + "->" + inner
+                    "Invalid elec cp mapping: " + res + " " + outer + "->" + str(inner)
                 )
 
             representative_mapping[

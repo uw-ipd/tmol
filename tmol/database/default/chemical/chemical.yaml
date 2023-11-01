@@ -2394,24 +2394,7 @@ variants:
     icoors:
     - { name:     O, source: <O1>, phi:   80.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: <*1>}
     - { name:   OXT, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: O }
-  - name:  FakeCarboxyTerminus
-    display_name: fake_cterm
-    pattern: '[*][*]C(=O)[{up}]'
-    remove_atoms:
-    - <{up}>
-    - <O1>
-    add_atoms:
-    - { name: O    ,  atom_type: OOC }
-    - { name: OXT  ,  atom_type: OOC }
-    add_atom_aliases: []
-    modify_atoms: []
-    add_connections: []
-    add_bonds:
-    - [   <C1>,    OXT ]
-    - [   <C1>,    O ]
-    icoors:
-    - { name:     O, source: <O1>, phi:   80.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: <*1>}
-    - { name:   OXT, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: O }
+
   - name:  AminoTerminus
     display_name: nterm
     pattern: '[*][*][NH][{down}]'

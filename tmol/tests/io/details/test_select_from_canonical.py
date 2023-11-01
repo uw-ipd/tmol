@@ -1,9 +1,17 @@
 import numpy
 import torch
+
+# import attr
+import cattr
+import yaml
+from attrs import evolve
+from tmol.database.chemical import VariantType
+from tmol.chemical.restypes import RefinedResidueType
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
     canonical_form_from_pdb_lines,
     default_canonical_ordering,
-    # ?? CanonicalOrdering,
+    CanonicalOrdering,
 )
 from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
 from tmol.io.details.canonical_packed_block_types import (
@@ -16,6 +24,38 @@ from tmol.io.details.select_from_canonical import (
     take_block_type_atoms_from_canonical,
 )
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.pose.packed_block_types import PackedBlockTypes
+
+
+def dslf_and_his_resolved_pose_stack_from_canonical_form(
+    co, pbt, ch_id, can_rts, coords, at_is_pres
+):
+
+    ch_id, can_rts, coords, at_is_pres, _1, _2 = left_justify_canonical_form(
+        ch_id, can_rts, coords, at_is_pres
+    )
+
+    # 2
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
+    # 3
+    (
+        his_taut,
+        res_type_variants,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+
+    return (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
+        res_type_variants,
+        his_taut,
+        resolved_coords,
+        resolved_atom_is_present,
+    )
 
 
 def test_assign_block_types(torch_device, ubq_pdb):
@@ -27,20 +67,20 @@ def test_assign_block_types(torch_device, ubq_pdb):
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         co, ubq_pdb, torch_device
     )
-    # print("ch_id", ch_id.shape)
-    # print("can_rts", can_rts.shape)
-    # print("coords", coords.shape)
-    # print("at_is_pres", at_is_pres.shape)
 
-    # 2
-    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
-    # 3
     (
-        his_taut,
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
         res_type_variants,
+        his_taut,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
 
     # now we'll invoke assign_block_types
     (
@@ -100,20 +140,19 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
     coords = ext_one(coords_4, coords_6, numpy.nan)
     at_is_pres = ext_one(at_is_pres_4, at_is_pres_6, False)
 
-    # print("ch_id", ch_id.shape)
-    # print("can_rts", can_rts.shape)
-    # print("coords", coords.shape)
-    # print("at_is_pres", at_is_pres.shape)
-
-    # 2
-    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
-    # 3
     (
-        his_taut,
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
         res_type_variants,
+        his_taut,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
 
     # now we'll invoke assign_block_types
     (
@@ -187,19 +226,19 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     coords = add_two_res(coords, float("nan"))
     at_is_pres = add_two_res(at_is_pres, 0)
 
-    ch_id, can_rts, coords, at_is_pres, _1, _2 = left_justify_canonical_form(
-        ch_id, can_rts, coords, at_is_pres
-    )
-
-    # 2
-    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
-    # 3
     (
-        his_taut,
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
         res_type_variants,
+        his_taut,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
 
     # now we'll invoke assign_block_types
     (
@@ -256,15 +295,28 @@ def test_assign_block_types_for_pert_and_antigen(
     )
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 
-    # 2
-    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
-    # 3
     (
-        his_taut,
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
         res_type_variants,
+        his_taut,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
+    # # 2
+    # found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
+    # # 3
+    # (
+    #     his_taut,
+    #     res_type_variants,
+    #     resolved_coords,
+    #     resolved_atom_is_present,
+    # ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (
@@ -334,16 +386,29 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
         co, ubq_pdb, torch_device
     )
-
-    # 2
-    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
-    # 3
     (
-        his_taut,
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
         res_type_variants,
+        his_taut,
         resolved_coords,
         resolved_atom_is_present,
-    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
+
+    # # 2
+    # found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
+    # # 3
+    # (
+    #     his_taut,
+    #     res_type_variants,
+    #     resolved_coords,
+    #     resolved_atom_is_present,
+    # ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (
@@ -431,3 +496,233 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     set_gold_coord(" HE3", 24.552, 25.017, 7.954)
 
     numpy.testing.assert_equal(block_coords[0, 0], block_coords_res1_gold)
+
+
+def variants_from_yaml(yml_string):
+    raw = yaml.safe_load(yml_string)
+    return tuple(cattr.structure(x, VariantType) for x in raw)
+
+
+def co_and_pbt_from_new_variants(ducd, patches, device):
+    new_ucd = evolve(ducd, variants=(ducd.variants + variants_from_yaml(patches)))
+
+    new_pucd = PatchedChemicalDatabase.from_chem_db(new_ucd)
+
+    co = CanonicalOrdering.from_chemdb(new_pucd)
+    pbt = PackedBlockTypes.from_restype_list(
+        new_pucd,
+        [
+            cattr.structure(cattr.unstructure(rt), RefinedResidueType)
+            for rt in new_pucd.residues
+        ],
+        device=device,
+    )
+    return co, pbt, new_pucd
+
+
+def test_select_best_block_type_candidate_choosing_default_term(
+    torch_device, ubq_pdb, default_unpatched_chemical_database
+):
+    ducd = default_unpatched_chemical_database
+    patch = """
+  - name:  FakeCarboxyTerminus
+    display_name: fake_cterm
+    pattern: '[*][*]C(=O)[{up}]'
+    remove_atoms:
+    - <{up}>
+    - <O1>
+    add_atoms:
+    - { name: O    ,  atom_type: OOC }
+    - { name: OXT  ,  atom_type: OOC }
+    add_atom_aliases: []
+    modify_atoms: []
+    add_connections: []
+    add_bonds:
+    - [   <C1>,    OXT ]
+    - [   <C1>,    O ]
+    icoors:
+    - { name:     O, source: <O1>, phi:   80.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: <*1>}
+    - { name:   OXT, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  <C1>, grand_parent: <*2>, great_grand_parent: O }
+    """
+
+    co, pbt, new_pucd = co_and_pbt_from_new_variants(ducd, patch, torch_device)
+
+    varnames = [var.display_name for var in new_pucd.variants]
+
+    threw = True
+    try:
+        varnames.index("fake_cterm")
+        threw = False
+    except:
+        pass
+
+    assert threw == False
+
+    # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        co, ubq_pdb, torch_device
+    )
+
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
+        res_type_variants,
+        his_taut,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
+
+    (
+        block_types,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
+
+    # let's look at the block type assigned to c-term
+    bt_cterm_ind = block_types[0, -1].item()
+
+    bt_cterm = pbt.active_block_types[bt_cterm_ind]
+    assert bt_cterm.name == "GLY:cterm"
+
+
+def pser_and_mser_patches():
+    return """
+  - name:  PhosphatePatch
+    display_name: phospho
+    pattern: '[*][*]C[OH]'
+    remove_atoms:
+    - <H1>
+    add_atoms:
+    - { name: P   ,  atom_type: OOC }
+    - { name: OP1  ,  atom_type: OOC }
+    - { name: OP2  ,  atom_type: OOC }
+    - { name: OP3  ,  atom_type: OOC }
+    add_atom_aliases: []
+    modify_atoms: []
+    add_connections: []
+    add_bonds:
+    - [   <O1>,   P ]
+    - [   P,    OP1 ]
+    - [   P,    OP2 ]
+    - [   P,    OP3 ]
+    icoors:
+    - { name:     P, source: <H1>, phi:   80.0 deg, theta: 60.0 deg, d: 1.2, parent:  <O1>, grand_parent: <C1>, great_grand_parent: <*1>}
+    - { name:   OP1, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  P, grand_parent: <O1>, great_grand_parent: <*1> }
+    - { name:   OP2, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  P, grand_parent: <O1>, great_grand_parent: <C1> }
+    - { name:   OP3, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  P, grand_parent: <O1>, great_grand_parent: <C1> }
+
+  - name:  MosphatePatch
+    display_name: mospho
+    pattern: '[*][*]C[OH]'
+    remove_atoms:
+    - <H1>
+    add_atoms:
+    - { name: M   ,  atom_type: OOC }
+    - { name: OM1  ,  atom_type: OOC }
+    - { name: OM2  ,  atom_type: OOC }
+    - { name: OM3  ,  atom_type: OOC }
+    add_atom_aliases: []
+    modify_atoms: []
+    add_connections: []
+    add_bonds:
+    - [   <O1>,   M ]
+    - [   M,    OM1 ]
+    - [   M,    OM2 ]
+    - [   M,    OM3 ]
+    icoors:
+    - { name:     M, source: <H1>, phi:   80.0 deg, theta: 60.0 deg, d: 1.2, parent:  <O1>, grand_parent: <C1>, great_grand_parent: <*1>}
+    - { name:   OM1, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  M, grand_parent: <O1>, great_grand_parent: <*1> }
+    - { name:   OM2, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  M, grand_parent: <O1>, great_grand_parent: <C1> }
+    - { name:   OM3, source: <O1>, phi: -180.0 deg, theta: 60.0 deg, d: 1.2, parent:  M, grand_parent: <O1>, great_grand_parent: <C1> }
+    """
+
+
+def test_select_best_block_type_candidate_error_impossible_combo(
+    torch_device, ubq_pdb, default_unpatched_chemical_database
+):
+    ducd = default_unpatched_chemical_database
+
+    # two patches that do the job of adding atoms to the SER/THR
+    # hydroxyls but that do not do the job of defining good
+    # chemistry or geometry; that's not their jobs
+    patch = pser_and_mser_patches()
+    co, pbt, new_pucd = co_and_pbt_from_new_variants(ducd, patch, torch_device)
+
+    co_ser_ind = co.restype_io_equiv_classes.index("SER")
+    co_ser_atom_ind_map = co.restypes_atom_index_mapping["SER"]
+    co_pser_P_ind = co_ser_atom_ind_map["P"]
+    co_mser_M_ind = co_ser_atom_ind_map["M"]
+
+    varnames = [var.display_name for var in new_pucd.variants]
+    bt_names = [bt.name for bt in new_pucd.residues]
+
+    threw = True
+    try:
+        varnames.index("phospho")
+        varnames.index("mospho")
+        bt_names.index("SER:phospho")
+        bt_names.index("SER:mospho")
+        bt_names.index("THR:phospho")
+        bt_names.index("THR:mospho")
+        threw = False
+    except:
+        pass
+
+    assert threw == False
+
+    # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        co, ubq_pdb, torch_device
+    )
+
+    at_is_pres[0, 19, co_pser_P_ind] = True
+    at_is_pres[0, 19, co_mser_M_ind] = True
+    coords[0, 19, co_pser_P_ind] = 0
+    coords[0, 19, co_mser_M_ind] = 0
+
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
+        res_type_variants,
+        his_taut,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
+
+    expected_err_msg = """failed to resolve a block type from the candidates available
+ Failed to resolve block type for 0 19 SER 
+ 0 19 0 68 SER restype 15 equiv class SER 
+  atom P provided but absent from candidate SER 
+  atom M provided but absent from candidate SER 
+ Failed to resolve block type for 0 19 SER 
+ 0 19 1 71 SER:phospho restype 15 equiv class SER 
+  atom HG provided but absent from candidate SER:phospho 
+  atom M provided but absent from candidate SER:phospho 
+ Failed to resolve block type for 0 19 SER 
+ 0 19 2 72 SER:mospho restype 15 equiv class SER 
+  atom HG provided but absent from candidate SER:mospho 
+  atom P provided but absent from candidate SER:mospho 
+"""
+
+    try:
+        (
+            block_types,
+            inter_residue_connections64,
+            inter_block_bondsep64,
+        ) = assign_block_types(
+            co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+        )
+    except RuntimeError as err:
+        assert str(err) == expected_err_msg

@@ -578,7 +578,7 @@ def select_best_block_type_candidate(
 
     if torch.any(best_candidate_score >= failure_score):
         nz_is_real_candidate = torch.nonzero(is_real_candidate)
-
+        err_msg = []
         for cand_ind in range(nz_is_real_candidate.shape[0]):
             i = nz_is_real_candidate[cand_ind, 0]
             j = nz_is_real_candidate[cand_ind, 1]
@@ -589,35 +589,62 @@ def select_best_block_type_candidate(
             ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
                 res_types64[i, j]
             ]
-            print("Failed to resolve block type for", i, j, ij_equiv_class)
+            err_msg.append("Failed to resolve block type for")
+            err_msg.extend([str(x) for x in [i.item(), j.item(), ij_equiv_class]])
+            err_msg.append("\n")
 
             which_bt = real_candidate_block_type[cand_ind]
             cand_bt = pbt.active_block_types[which_bt]
-            print(i, j, k, which_bt.item(), cand_bt.name, "restype", end="")
-            print(res_types64[i, j], "equiv class", end="")
-            print(
+            err_msg.extend(
+                [
+                    str(x)
+                    for x in (
+                        i.item(),
+                        j.item(),
+                        k.item(),
+                        which_bt.item(),
+                        cand_bt.name,
+                        "restype",
+                    )
+                ]
+            )
+            err_msg.extend([str(x) for x in (res_types64[i, j].item(), "equiv class")])
+            err_msg.append(
                 canonical_ordering.restype_io_equiv_classes[res_types64[i, j]],
             )
+            err_msg.append("\n")
             if real_candidate_should_be_excluded[cand_ind]:
                 equiv_class = cand_bt.io_equiv_class
                 for l in range(canonical_ordering.max_n_canonical_atoms):
                     if real_candidate_provided_atoms_absent[cand_ind, l]:
-                        print(
-                            " atom",
-                            canonical_ordering.restypes_ordered_atom_names[equiv_class][
-                                l
-                            ],
-                            "provided but absent from candidate",
-                            cand_bt.name,
+                        err_msg.extend(
+                            [
+                                str(x)
+                                for x in (
+                                    " atom",
+                                    canonical_ordering.restypes_ordered_atom_names[
+                                        equiv_class
+                                    ][l],
+                                    "provided but absent from candidate",
+                                    cand_bt.name,
+                                    "\n",
+                                )
+                            ]
                         )
             else:
                 for l in range(canonical_ordering.max_n_canonical_atoms):
                     if real_candidate_canonical_atom_was_not_provided[cand_ind, l]:
-                        print(" atom not provided:", cand_bt.atoms[l].name)
+                        err_msg.extend(
+                            [" atom not provided:", cand_bt.atoms[l].name, "\n"]
+                        )
 
-        print("Failed to find a matching block type")
         raise RuntimeError(
-            "failed to resolve a block type from the candidates available"
+            " ".join(
+                [
+                    "failed to resolve a block type from the candidates available\n",
+                    *err_msg,
+                ]
+            )
         )
 
     # old block_type_ind64 = torch.full_like(res_types64, -1)
