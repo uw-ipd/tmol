@@ -590,8 +590,8 @@ def select_best_block_type_candidate(
                 res_types64[i, j]
             ]
             err_msg.append("Failed to resolve block type for")
-            err_msg.extend([str(x) for x in [i.item(), j.item(), ij_equiv_class]])
-            err_msg.append("\n")
+            err_msg.extend([str(x) for x in [i.item(), j.item()]])
+            err_msg.append(str(ij_equiv_class) + "\n")
 
             which_bt = real_candidate_block_type[cand_ind]
             cand_bt = pbt.active_block_types[which_bt]
@@ -610,9 +610,9 @@ def select_best_block_type_candidate(
             )
             err_msg.extend([str(x) for x in (res_types64[i, j].item(), "equiv class")])
             err_msg.append(
-                canonical_ordering.restype_io_equiv_classes[res_types64[i, j]],
+                canonical_ordering.restype_io_equiv_classes[res_types64[i, j]] + "\n"
             )
-            err_msg.append("\n")
+
             if real_candidate_should_be_excluded[cand_ind]:
                 equiv_class = cand_bt.io_equiv_class
                 for l in range(canonical_ordering.max_n_canonical_atoms):
@@ -626,8 +626,7 @@ def select_best_block_type_candidate(
                                         equiv_class
                                     ][l],
                                     "provided but absent from candidate",
-                                    cand_bt.name,
-                                    "\n",
+                                    cand_bt.name + "\n",
                                 )
                             ]
                         )
@@ -635,7 +634,7 @@ def select_best_block_type_candidate(
                 for l in range(canonical_ordering.max_n_canonical_atoms):
                     if real_candidate_canonical_atom_was_not_provided[cand_ind, l]:
                         err_msg.extend(
-                            [" atom not provided:", cand_bt.atoms[l].name, "\n"]
+                            [" atom not provided:", cand_bt.atoms[l].name + "\n"]
                         )
 
         raise RuntimeError(

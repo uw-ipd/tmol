@@ -556,7 +556,7 @@ def test_select_best_block_type_candidate_choosing_default_term(
     except ValueError:
         pass
 
-    assert threw == False
+    assert not threw
 
     # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
@@ -654,6 +654,7 @@ def test_select_best_block_type_candidate_w_mult_opts(
     # chemistry or geometry; that's not their jobs
     patch = pser_and_mser_patches()
     co, pbt, new_pucd = co_and_pbt_from_new_variants(ducd, patch, torch_device)
+    PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     co_ser_atom_ind_map = co.restypes_atom_index_mapping["SER"]
     co_ser_HG_ind = co_ser_atom_ind_map["HG"]
@@ -674,7 +675,7 @@ def test_select_best_block_type_candidate_w_mult_opts(
     except ValueError:
         pass
 
-    assert threw == False
+    assert not threw
 
     # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
@@ -707,11 +708,25 @@ def test_select_best_block_type_candidate_w_mult_opts(
         co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
     )
 
-    # let's look at the block type assigned to c-term
-    bt_mser_res_ind = block_types[0, 19].item()
-
-    bt_mser = pbt.active_block_types[bt_mser_res_ind]
-    assert bt_mser.name == "SER:mospho"
+    # ubq seq
+    ubq_1lc = [
+        x
+        for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
+    ]
+    ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
+    ubq_bt_inds = numpy.expand_dims(
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
+    )
+    ubq_bt_inds[0, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    ubq_bt_inds[0, -1] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY:cterm"
+    )
+    ubq_bt_inds[0, 19] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "SER:mospho"
+    )
+    numpy.testing.assert_equal(block_types.cpu().numpy(), ubq_bt_inds)
 
 
 def test_select_best_block_type_candidate_error_impossible_combo(
@@ -725,7 +740,6 @@ def test_select_best_block_type_candidate_error_impossible_combo(
     patch = pser_and_mser_patches()
     co, pbt, new_pucd = co_and_pbt_from_new_variants(ducd, patch, torch_device)
 
-    co_ser_ind = co.restype_io_equiv_classes.index("SER")
     co_ser_atom_ind_map = co.restypes_atom_index_mapping["SER"]
     co_pser_P_ind = co_ser_atom_ind_map["P"]
     co_mser_M_ind = co_ser_atom_ind_map["M"]
@@ -745,7 +759,7 @@ def test_select_best_block_type_candidate_error_impossible_combo(
     except ValueError:
         pass
 
-    assert threw == False
+    assert not threw
 
     # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
     ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
@@ -772,18 +786,18 @@ def test_select_best_block_type_candidate_error_impossible_combo(
     )
 
     expected_err_msg = """failed to resolve a block type from the candidates available
- Failed to resolve block type for 0 19 SER 
- 0 19 0 68 SER restype 15 equiv class SER 
-  atom P provided but absent from candidate SER 
-  atom M provided but absent from candidate SER 
- Failed to resolve block type for 0 19 SER 
- 0 19 1 71 SER:phospho restype 15 equiv class SER 
-  atom HG provided but absent from candidate SER:phospho 
-  atom M provided but absent from candidate SER:phospho 
- Failed to resolve block type for 0 19 SER 
- 0 19 2 72 SER:mospho restype 15 equiv class SER 
-  atom HG provided but absent from candidate SER:mospho 
-  atom P provided but absent from candidate SER:mospho 
+ Failed to resolve block type for 0 19 SER
+ 0 19 0 68 SER restype 15 equiv class SER
+  atom P provided but absent from candidate SER
+  atom M provided but absent from candidate SER
+ Failed to resolve block type for 0 19 SER
+ 0 19 1 71 SER:phospho restype 15 equiv class SER
+  atom HG provided but absent from candidate SER:phospho
+  atom M provided but absent from candidate SER:phospho
+ Failed to resolve block type for 0 19 SER
+ 0 19 2 72 SER:mospho restype 15 equiv class SER
+  atom HG provided but absent from candidate SER:mospho
+  atom P provided but absent from candidate SER:mospho
 """
 
     try:
