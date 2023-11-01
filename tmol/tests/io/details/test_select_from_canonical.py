@@ -553,7 +553,7 @@ def test_select_best_block_type_candidate_choosing_default_term(
     try:
         varnames.index("fake_cterm")
         threw = False
-    except:
+    except ValueError:
         pass
 
     assert threw == False
@@ -644,6 +644,76 @@ def pser_and_mser_patches():
     """
 
 
+def test_select_best_block_type_candidate_w_mult_opts(
+    torch_device, ubq_pdb, default_unpatched_chemical_database
+):
+    ducd = default_unpatched_chemical_database
+
+    # two patches that do the job of adding atoms to the SER/THR
+    # hydroxyls but that do not do the job of defining good
+    # chemistry or geometry; that's not their jobs
+    patch = pser_and_mser_patches()
+    co, pbt, new_pucd = co_and_pbt_from_new_variants(ducd, patch, torch_device)
+
+    co_ser_atom_ind_map = co.restypes_atom_index_mapping["SER"]
+    co_ser_HG_ind = co_ser_atom_ind_map["HG"]
+    co_mser_M_ind = co_ser_atom_ind_map["M"]
+
+    varnames = [var.display_name for var in new_pucd.variants]
+    bt_names = [bt.name for bt in new_pucd.residues]
+
+    threw = True
+    try:
+        varnames.index("phospho")
+        varnames.index("mospho")
+        bt_names.index("SER:phospho")
+        bt_names.index("SER:mospho")
+        bt_names.index("THR:phospho")
+        bt_names.index("THR:mospho")
+        threw = False
+    except ValueError:
+        pass
+
+    assert threw == False
+
+    # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
+    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
+        co, ubq_pdb, torch_device
+    )
+
+    at_is_pres[0, 19, co_mser_M_ind] = True
+    at_is_pres[0, 19, co_ser_HG_ind] = False
+    coords[0, 19, co_mser_M_ind] = 0
+
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
+        res_type_variants,
+        his_taut,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
+
+    (
+        block_types,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
+
+    # let's look at the block type assigned to c-term
+    bt_mser_res_ind = block_types[0, 19].item()
+
+    bt_mser = pbt.active_block_types[bt_mser_res_ind]
+    assert bt_mser.name == "SER:mospho"
+
+
 def test_select_best_block_type_candidate_error_impossible_combo(
     torch_device, ubq_pdb, default_unpatched_chemical_database
 ):
@@ -672,7 +742,7 @@ def test_select_best_block_type_candidate_error_impossible_combo(
         bt_names.index("THR:phospho")
         bt_names.index("THR:mospho")
         threw = False
-    except:
+    except ValueError:
         pass
 
     assert threw == False
