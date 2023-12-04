@@ -105,3 +105,36 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
     )
+
+
+def test_whole_pose_block_scoring(rts_ubq_res, default_database, torch_device):
+    gold_vals = numpy.array(
+        [
+            [
+                [
+                    [-0.184719, 0.13466, -0.094396, 0.0],
+                    [0.13466, 0.052935, -0.081674, -0.172729],
+                    [-0.094396, -0.081674, -0.233381, 0.218891],
+                    [0.0, -0.172729, 0.218891, 0.190685],
+                ]
+            ],
+        ]
+    )
+
+    elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        res=rts_ubq_res[0:4], device=torch_device
+    )
+    for bt in p1.packed_block_types.active_block_types:
+        elec_energy.setup_block_type(bt)
+    elec_energy.setup_packed_block_types(p1.packed_block_types)
+    elec_energy.setup_poses(p1)
+
+    elec_pose_scorer = elec_energy.render_whole_pose_scoring_module(p1)
+
+    coords = torch.nn.Parameter(p1.coords.clone())
+    scores = elec_pose_scorer(coords, output_block_pair_energies=True)
+
+    sc = scores.cpu().detach().numpy()
+
+    numpy.testing.assert_allclose(gold_vals, sc, atol=1e-4)
