@@ -153,5 +153,3 @@ def test_whole_pose_scoring_module_jagged(
     disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(pn)
 
     disulfide_pose_scorer(pn.coords)
-
-    print("ok!")
