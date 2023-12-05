@@ -124,3 +124,34 @@ def test_whole_pose_scoring_module_10(
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
     )
+
+
+def test_whole_pose_scoring_module_jagged(
+    rts_disulfide_res, default_database, torch_device: torch.device
+):
+    rts_disulfide_60 = rts_disulfide_res[:60]
+    rts_disulfide_33 = rts_disulfide_res[:33]
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        default_database.chemical, res=rts_disulfide_res, device=torch_device
+    )
+    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        default_database.chemical, res=rts_disulfide_60, device=torch_device
+    )
+    p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        default_database.chemical, res=rts_disulfide_33, device=torch_device
+    )
+    pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
+
+    disulfide_energy = DisulfideEnergyTerm(
+        param_db=default_database, device=torch_device
+    )
+    for bt in pn.packed_block_types.active_block_types:
+        disulfide_energy.setup_block_type(bt)
+    disulfide_energy.setup_packed_block_types(pn.packed_block_types)
+    disulfide_energy.setup_poses(pn)
+
+    disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(pn)
+
+    disulfide_pose_scorer(pn.coords)
+
+    print("ok!")
