@@ -151,5 +151,7 @@ def test_whole_pose_scoring_module_jagged(
     disulfide_energy.setup_poses(pn)
 
     disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(pn)
+    scores = disulfide_pose_scorer(pn.coords)
 
-    disulfide_pose_scorer(pn.coords)
+    gold_scores = numpy.array([[-3.25716, -3.25716, -1.686726]], dtype=numpy.float32)
+    numpy.testing.assert_allclose(gold_scores, scores.cpu().numpy(), rtol=1e-5)
