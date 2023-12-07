@@ -35,15 +35,15 @@ def test_default_canonical_ordering():
 def test_default_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
     can_ord = default_canonical_ordering()
     # can_pbt = default_canonical_packed_block_types(torch_device)
-    co = canonical_form_from_pdb_lines(can_ord, pertuzumab_pdb, torch_device)
+    cf = canonical_form_from_pdb_lines(can_ord, pertuzumab_pdb, torch_device)
     (
         chain_id,
         res_types,
         coords,
     ) = (
-        co["chain_id"],
-        co["res_types"],
-        co["coords"],
+        cf["chain_id"],
+        cf["res_types"],
+        cf["coords"],
     )
     def_co = default_canonical_ordering()
     assert chain_id.device == torch_device
@@ -51,10 +51,8 @@ def test_default_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
     assert coords.device == torch_device
     assert chain_id.shape[0] == res_types.shape[0]
     assert chain_id.shape[0] == coords.shape[0]
-    assert chain_id.shape[0] == atom_is_present.shape[0]
     assert chain_id.shape[1] == res_types.shape[1]
     assert chain_id.shape[1] == coords.shape[1]
-    assert chain_id.shape[1] == atom_is_present.shape[1]
     assert coords.shape[2] == def_co.max_n_canonical_atoms
     assert coords.shape[3] == 3
     chain_id_gold = numpy.zeros(res_types.shape, dtype=numpy.int32)

@@ -202,8 +202,6 @@ class ElecParamResolver(ValidateAttrs):
                 continue
 
             inner = None
-            if outer == "OXT":
-                print("OXT vars", vars)
 
             for v in vars:
                 if v not in self.cp_reps[res][outer]:

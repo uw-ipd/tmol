@@ -18,12 +18,39 @@ from tmol.io.details.build_missing_leaf_atoms import (
     build_missing_leaf_atoms,
 )
 
+# temp debug
+# from tmol.io.write_pose_stack_pdb import (atom_records_from_pose_stack,
+
+
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.tests.autograd import gradcheck
 
 
 def not_any_nancoord(coords):
     return torch.logical_not(torch.any(torch.isnan(coords), dim=3))
+
+
+def ats_to_not_rebuild(pbt, torch_device):
+    # now let's turn off building of some of these atoms in particular
+    # note that we are rebuilding OXT using the (not-absent) bbO.
+    ats_to_not_rebuild_at_all = ["O", "OXT"]
+    ats_generally_to_leave_be = {
+        "GLU": "OE2",
+        "ASP": "OD2",
+        "TRP": "CD2",
+    }
+    ats_in_bts_to_leave_alone = torch.ones(
+        (pbt.n_types, pbt.max_n_atoms), dtype=torch.bool, device=torch_device
+    )
+    for i, bt in enumerate(pbt.active_block_types):
+        for j, at in enumerate(ats_to_not_rebuild_at_all):
+            if at in bt.atom_to_idx:
+                ats_in_bts_to_leave_alone[i, bt.atom_to_idx[at]] = False
+        if bt.base_name in ats_generally_to_leave_be:
+            ats_in_bts_to_leave_alone[
+                i, bt.atom_to_idx[ats_generally_to_leave_be[bt.base_name]]
+            ] = False
+    return ats_in_bts_to_leave_alone
 
 
 def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
@@ -83,25 +110,7 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     block_at_is_leaf[real_blocks] = pbt.is_leaf_atom[block_types64[real_blocks]].to(
         torch.bool
     )
-    # now let's turn off building of some of these atoms in particular
-    # note that we are rebuilding OXT using the (not-absent) bbO.
-    ats_to_not_rebuild_at_all = ["O", "OXT"]
-    ats_generally_to_leave_be = {
-        "GLU": "OE2",
-        "ASP": "OD2",
-        "TRP": "CD2",
-    }
-    ats_in_bts_to_leave_alone = torch.ones(
-        (pbt.n_types, pbt.max_n_atoms), dtype=torch.bool, device=torch_device
-    )
-    for i, bt in enumerate(pbt.active_block_types):
-        for j, at in enumerate(ats_to_not_rebuild_at_all):
-            if at in bt.atom_to_idx:
-                ats_in_bts_to_leave_alone[i, bt.atom_to_idx[at]] = False
-        if bt.base_name in ats_generally_to_leave_be:
-            ats_in_bts_to_leave_alone[
-                i, bt.atom_to_idx[ats_generally_to_leave_be[bt.base_name]]
-            ] = False
+    ats_in_bts_to_leave_alone = ats_to_not_rebuild(pbt, torch_device)
     block_at_allow_rebuild = torch.ones(
         (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=torch_device
     )
@@ -189,7 +198,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
     # print("restypes ordered atom names: met")
     # print(co.restypes_ordered_atom_names["MET"])
 
-    return
+    ats_in_bts_to_leave_alone = ats_to_not_rebuild(pbt, torch_device)
 
     class FauxModule(torch.nn.Module):
         def __init__(self, coords):
@@ -249,7 +258,23 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
             block_at_is_leaf[real_blocks] = pbt.is_leaf_atom[
                 block_types64[real_blocks]
             ].to(torch.bool)
-            missing_atoms[block_at_is_leaf] = 1
+
+            block_at_allow_rebuild = torch.ones(
+                (n_poses, max_n_blocks, pbt.max_n_atoms),
+                dtype=torch.bool,
+                device=torch_device,
+            )
+            block_at_allow_rebuild[real_blocks] = ats_in_bts_to_leave_alone[
+                block_types64[real_blocks]
+            ]
+
+            block_at_to_rebuild = torch.logical_and(
+                block_at_is_leaf, block_at_allow_rebuild
+            )
+
+            missing_atoms[block_at_to_rebuild] = True
+
+            # missing_atoms[block_at_is_leaf] = 1
 
             inter_residue_connections = inter_residue_connections64.to(torch.int32)
             new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
@@ -260,8 +285,6 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
                 missing_atoms,
                 inter_residue_connections,
             )
-            print("nan after build missing leaf atoms?")
-            print(torch.nonzero(torch.isnan(new_pose_coords)))
 
             return torch.sum(new_pose_coords[:, :, :])
 
@@ -341,7 +364,16 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     block_at_is_leaf[real_blocks] = pbt.is_leaf_atom[block_types64[real_blocks]].to(
         torch.bool
     )
-    missing_atoms[block_at_is_leaf] = 1
+    ats_in_bts_to_leave_alone = ats_to_not_rebuild(pbt, torch_device)
+    block_at_allow_rebuild = torch.ones(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=torch_device
+    )
+    block_at_allow_rebuild[real_blocks] = ats_in_bts_to_leave_alone[
+        block_types64[real_blocks]
+    ]
+    block_at_to_rebuild = torch.logical_and(block_at_is_leaf, block_at_allow_rebuild)
+
+    missing_atoms[block_at_to_rebuild] = True
 
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
 
@@ -368,15 +400,15 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
 def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
-    co = canonical_form_from_pdb_lines(co, ubq_pdb[:810], torch_device)
+    cf = canonical_form_from_pdb_lines(co, ubq_pdb[:810], torch_device)
     (
-        chain_id,
-        res_types,
+        ch_id,
+        can_rts,
         coords,
     ) = (
-        co["chain_id"],
-        co["res_types"],
-        co["coords"],
+        cf["chain_id"],
+        cf["res_types"],
+        cf["coords"],
     )
     at_is_pres = not_any_nancoord(coords)
     # currently: don't treat this as MET:nterm:cterm even though it is both the first
@@ -427,7 +459,16 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     block_at_is_leaf[real_blocks] = pbt.is_leaf_atom[block_types64[real_blocks]].to(
         torch.bool
     )
-    missing_atoms[block_at_is_leaf] = 1
+    ats_in_bts_to_leave_alone = ats_to_not_rebuild(pbt, torch_device)
+    block_at_allow_rebuild = torch.ones(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=torch_device
+    )
+    block_at_allow_rebuild[real_blocks] = ats_in_bts_to_leave_alone[
+        block_types64[real_blocks]
+    ]
+    block_at_to_rebuild = torch.logical_and(block_at_is_leaf, block_at_allow_rebuild)
+
+    missing_atoms[block_at_to_rebuild] = True
 
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     new_pose_coords, block_coord_offset = build_missing_leaf_atoms(

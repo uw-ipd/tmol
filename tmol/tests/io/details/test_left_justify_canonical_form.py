@@ -19,13 +19,26 @@ def get_add_two_fill_shape(x):
     return fill_shape
 
 
+def cf_as_tuple_from_pdb_lines(co, pdblines, device):
+    cf = canonical_form_from_pdb_lines(co, pdblines, device)
+    return (
+        cf["chain_id"],
+        cf["res_types"],
+        cf["coords"],
+    )
+
+
+def not_any_nancoord(coords):
+    return torch.logical_not(torch.any(torch.isnan(coords), dim=3))
+
+
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
-    ch_id_10, can_rts_10, coords_10, at_is_pres_10 = canonical_form_from_pdb_lines(
+    ch_id_10, can_rts_10, coords_10 = cf_as_tuple_from_pdb_lines(
         co, ubq_pdb[: 81 * 167], torch_device
     )
 
@@ -44,7 +57,8 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     ch_id = add_two_res(ch_id_10, 0)
     can_rts = add_two_res(can_rts_10, -1)
     coords = add_two_res(coords_10, float("nan"))
-    at_is_pres = add_two_res(at_is_pres_10, 0)
+    at_is_pres_10 = not_any_nancoord(coords_10)
+    at_is_pres = not_any_nancoord(coords)
 
     ch_id, can_rts, coords, at_is_pres, _1, _2 = left_justify_canonical_form(
         ch_id, can_rts, coords, at_is_pres
@@ -67,7 +81,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     ch_id_lj_gold = add_two_res_at_end(ch_id_10, -1)
     can_rts_lj_gold = add_two_res_at_end(can_rts_10, -1)
     coords_lj_gold = add_two_res_at_end(coords_10, float("nan"))
-    at_is_pres_lj_gold = add_two_res_at_end(at_is_pres_10, 0)
+    at_is_pres_lj_gold = add_two_res_at_end(at_is_pres_10, False)
 
     numpy.testing.assert_equal(ch_id_lj_gold, ch_id.cpu().numpy())
     numpy.testing.assert_equal(can_rts_lj_gold, can_rts.cpu().numpy())
@@ -84,8 +98,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
         orig_ch_id,
         orig_can_rts,
         orig_coords,
-        orig_at_is_pres,
-    ) = canonical_form_from_pdb_lines(co, pertuzumab_pdb, torch_device)
+    ) = cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch_device)
 
     # the actual disulfides
     disulfides = torch.tensor(
@@ -114,7 +127,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
     ch_id = add_two_res(orig_ch_id, 0)
     can_rts = add_two_res(orig_can_rts, -1)
     coords = add_two_res(orig_coords, float("nan"))
-    at_is_pres = add_two_res(orig_at_is_pres, 0)
+    at_is_pres = not_any_nancoord(coords)  # add_two_res(orig_at_is_pres, 0)
 
     (
         lj_ch_id,
@@ -144,6 +157,7 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
     ch_id_lj_gold = add_two_res_at_end(orig_ch_id, -1)
     can_rts_lj_gold = add_two_res_at_end(orig_can_rts, -1)
     coords_lj_gold = add_two_res_at_end(orig_coords, float("nan"))
+    orig_at_is_pres = not_any_nancoord(orig_coords)
     at_is_pres_lj_gold = add_two_res_at_end(orig_at_is_pres, 0)
 
     numpy.testing.assert_equal(ch_id_lj_gold, lj_ch_id.cpu().numpy())
@@ -169,8 +183,7 @@ def test_assign_block_types_for_pert_and_antigen(
         orig_ch_id,
         orig_can_rts,
         orig_coords,
-        orig_at_is_pres,
-    ) = canonical_form_from_pdb_lines(co, pert_and_erbb2_lines, torch_device)
+    ) = cf_as_tuple_from_pdb_lines(co, pert_and_erbb2_lines, torch_device)
 
     orig_res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 
@@ -189,7 +202,7 @@ def test_assign_block_types_for_pert_and_antigen(
     ch_id = add_two_res(orig_ch_id, 0)
     can_rts = add_two_res(orig_can_rts, -1)
     coords = add_two_res(orig_coords, float("nan"))
-    at_is_pres = add_two_res(orig_at_is_pres, 0)
+    at_is_pres = not_any_nancoord(coords)  # add_two_res(orig_at_is_pres, 0)
     res_not_connected = add_two_res(orig_res_not_connected, False)
     (
         lj_ch_id,
