@@ -144,6 +144,13 @@ def pose_stack_from_canonical_form(
 
     if atom_is_present is None:
         atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
+    else:
+        # SANITY: don't give tmol NaNs
+        if torch.any(
+            torch.isnan(coords[atom_is_present.unsqueeze(3).expand(-1, -1, -1, 3) == 1])
+        ):
+            msg = "ERROR: NaN coordinate given in PoseStack construction for one or more atoms marked as present"
+            raise ValueError(msg)
 
     # 1
     # this will return the same object each time to minimize the number
