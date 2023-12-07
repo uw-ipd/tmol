@@ -15,7 +15,7 @@ def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -34,7 +34,7 @@ def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_pdb)
     co = default_canonical_ordering()
     canonical_form = canonical_form_from_pdb_lines(co, pertuzumab_pdb, torch_device)
     pbt = default_canonical_packed_block_types(torch_device)
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -60,7 +60,9 @@ def test_build_pose_stack_from_canonical_form_pert_w_dslf(torch_device, pertuzum
         device=torch_device,
     )
 
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form, disulfides)
+    pose_stack = pose_stack_from_canonical_form(
+        co, pbt, **canonical_form, disulfides=disulfides
+    )
 
     assert pose_stack.packed_block_types.device == torch_device
     assert pose_stack.coords.device == torch_device
@@ -102,7 +104,12 @@ def test_build_pose_stack_w_disconn_segs(
     )
 
     pose_stack = pose_stack_from_canonical_form(
-        co, pbt, *canonical_form, disulfides, True, res_not_connected
+        co,
+        pbt,
+        **canonical_form,
+        disulfides=disulfides,
+        find_additional_disulfides=True,
+        res_not_connected=res_not_connected
     )
 
     assert pose_stack.packed_block_types.device == torch_device
@@ -149,7 +156,7 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
             dim=1,
         )
 
-    canonical_form = tuple(add_two_res(x, -1) for x in canonical_form)
+    canonical_form = {n: add_two_res(x, -1) for n, x in canonical_form.items()}
 
     # numpy.set_printoptions(threshold=1000000)
     # for i, t in enumerate(canonical_form):
@@ -175,10 +182,10 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
     pose_stack, chain_ind = pose_stack_from_canonical_form(
         co,
         pbt,
-        *canonical_form,
-        disulfides_shifted,
-        True,
-        res_not_connected,
+        **canonical_form,
+        disulfides=disulfides_shifted,
+        find_additional_disulfides=True,
+        res_not_connected=res_not_connected,
         return_chain_ind=True
     )
 
@@ -202,9 +209,9 @@ def test_build_pose_stack_from_canonical_form_ubq_w_atom_mapping(torch_device, u
     pbt = default_canonical_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
     pose_stack, cf_map, ps_map = pose_stack_from_canonical_form(
-        co, pbt, *canonical_form, return_atom_mapping=True
+        co, pbt, **canonical_form, return_atom_mapping=True
     )
-    _1, _2, coords, _3 = canonical_form
+    coords = canonical_form["coords"]
 
     cf_atom_coords = torch.full_like(coords, numpy.nan)
     cf_atom_coords[cf_map[:, 0], cf_map[:, 1], cf_map[:, 2]] = pose_stack.coords[

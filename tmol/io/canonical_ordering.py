@@ -310,7 +310,6 @@ def canonical_form_from_pdb_lines(
     coords = numpy.full(
         (1, n_res, max_n_canonical_atoms, 3), numpy.NAN, dtype=numpy.float32
     )
-    atom_is_present = numpy.zeros((1, n_res, max_n_canonical_atoms), dtype=numpy.bool)
 
     chains_seen = {}
     chain_id_counter = 0  # TO DO: determine if this is wholly redundant w/ "chaini"
@@ -333,7 +332,6 @@ def canonical_form_from_pdb_lines(
             atname = row["atomn"].strip()
             try:
                 atind = res_at_mapping[atname]
-                atom_is_present[0, res_ind, atind] = True
                 coords[0, res_ind, atind, 0] = row["x"]
                 coords[0, res_ind, atind, 1] = row["y"]
                 coords[0, res_ind, atind, 2] = row["z"]
@@ -348,9 +346,8 @@ def canonical_form_from_pdb_lines(
     def _tf32(x):
         return torch.tensor(x, dtype=torch.float32, device=device)
 
-    return (
-        _ti32(chain_id),
-        _ti32(res_types),
-        _tf32(coords),
-        torch.tensor(atom_is_present, dtype=torch.bool, device=device),
+    return dict(
+        chain_id=_ti32(chain_id),
+        res_types=_ti32(res_types),
+        coords=_tf32(coords),
     )

@@ -43,7 +43,7 @@ def test_deduce_chains_dslf_dimer(pertuzumab_pdb, torch_device):
     pbt = default_canonical_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb_lines(co, pertuzumab_pdb, torch_device)
 
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     # note that in this test case, there is a disulfide formed between the two
     # chains and that this chemical bond should not be used to join the two

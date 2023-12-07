@@ -35,24 +35,26 @@ def test_default_canonical_ordering():
 def test_default_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
     can_ord = default_canonical_ordering()
     # can_pbt = default_canonical_packed_block_types(torch_device)
+    co = canonical_form_from_pdb_lines(can_ord, pertuzumab_pdb, torch_device)
     (
         chain_id,
         res_types,
         coords,
-        atom_is_present,
-    ) = canonical_form_from_pdb_lines(can_ord, pertuzumab_pdb, torch_device)
+    ) = (
+        co["chain_id"],
+        co["res_types"],
+        co["coords"],
+    )
     def_co = default_canonical_ordering()
     assert chain_id.device == torch_device
     assert res_types.device == torch_device
     assert coords.device == torch_device
-    assert atom_is_present.device == torch_device
     assert chain_id.shape[0] == res_types.shape[0]
     assert chain_id.shape[0] == coords.shape[0]
     assert chain_id.shape[0] == atom_is_present.shape[0]
     assert chain_id.shape[1] == res_types.shape[1]
     assert chain_id.shape[1] == coords.shape[1]
     assert chain_id.shape[1] == atom_is_present.shape[1]
-    assert atom_is_present.shape[2] == def_co.max_n_canonical_atoms
     assert coords.shape[2] == def_co.max_n_canonical_atoms
     assert coords.shape[3] == 3
     chain_id_gold = numpy.zeros(res_types.shape, dtype=numpy.int32)
@@ -119,21 +121,23 @@ def test_canonical_form_w_unk(torch_device):
         "HETATM 6186  C4  SAM B 402     -15.231  13.034   5.166  1.00 53.49           C\n",
     ]
     can_ord = default_canonical_ordering()
+    co = canonical_form_from_pdb_lines(can_ord, sam_pdb_lines, torch_device)
     (
         chain_id,
         res_types,
         coords,
-        atom_is_present,
-    ) = canonical_form_from_pdb_lines(can_ord, sam_pdb_lines, torch_device)
+    ) = (
+        co["chain_id"],
+        co["res_types"],
+        co["coords"],
+    )
     def_co = default_canonical_ordering()
 
     assert chain_id.device == torch_device
     assert res_types.device == torch_device
     assert coords.device == torch_device
-    assert atom_is_present.device == torch_device
 
     # three and not four residues because the SAM is ignored
     assert chain_id.shape == (1, 3)
     assert res_types.shape == (1, 3)
     assert coords.shape == (1, 3, def_co.max_n_canonical_atoms, 3)
-    assert atom_is_present.shape == (1, 3, def_co.max_n_canonical_atoms)

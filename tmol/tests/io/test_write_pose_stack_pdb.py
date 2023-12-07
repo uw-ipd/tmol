@@ -63,7 +63,7 @@ def test_atom_records_for_multi_chain_pdb(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb_lines(co, pertuzumab_pdb, torch_device)
-    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     records = atom_records_from_pose_stack(
         pose_stack, None, numpy.array([x for x in "LH"], dtype=str)

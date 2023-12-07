@@ -12,6 +12,7 @@ def pose_stack_from_canonical_form(
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
+    *,
     atom_is_present: Optional[Tensor[torch.bool][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     find_additional_disulfides: Optional[bool] = True,

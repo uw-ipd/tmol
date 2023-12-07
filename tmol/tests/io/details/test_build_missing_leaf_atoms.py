@@ -22,14 +22,25 @@ from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.tests.autograd import gradcheck
 
 
-# def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
-def test_build_missing_leaf_atoms(ubq_pdb):
-    torch_device = torch.device("cpu")  # TEMP!
+def not_any_nancoord(coords):
+    return torch.logical_not(torch.any(torch.isnan(coords), dim=3))
+
+
+def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
+    # torch_device = torch.device("cpu")  # TEMP!
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        co, ubq_pdb, torch_device
+    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    (
+        ch_id,
+        can_rts,
+        coords,
+    ) = (
+        cf["chain_id"],
+        cf["res_types"],
+        cf["coords"],
     )
+    at_is_pres = not_any_nancoord(coords)
 
     # 2
     found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
@@ -159,9 +170,26 @@ def test_build_missing_leaf_atoms(ubq_pdb):
 def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        co, ubq_pdb, torch_device
+    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    (
+        ch_id,
+        can_rts,
+        coords,
+    ) = (
+        cf["chain_id"],
+        cf["res_types"],
+        cf["coords"],
     )
+    at_is_pres = not_any_nancoord(coords)
+
+    # torch.set_printoptions(threshold=10000)
+    # print("at is pres:")
+    # print(at_is_pres[0, :5].to(torch.int))
+    # print(torch.sum(at_is_pres[0, :5].to(torch.int), dim=1))
+    # print("restypes ordered atom names: met")
+    # print(co.restypes_ordered_atom_names["MET"])
+
+    return
 
     class FauxModule(torch.nn.Module):
         def __init__(self, coords):
@@ -232,12 +260,14 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
                 missing_atoms,
                 inter_residue_connections,
             )
+            print("nan after build missing leaf atoms?")
+            print(torch.nonzero(torch.isnan(new_pose_coords)))
 
             return torch.sum(new_pose_coords[:, :, :])
 
     faux_module = FauxModule(coords)
 
-    optimizer = LBFGS_Armijo(faux_module.parameters(), lr=0.1, max_iter=20)
+    optimizer = LBFGS_Armijo(faux_module.parameters(), lr=0.1, max_iter=1)
 
     def closure():
         optimizer.zero_grad()
@@ -251,9 +281,18 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
 def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        co, ubq_pdb[:1458], torch_device
+    cf = canonical_form_from_pdb_lines(co, ubq_pdb[:1458], torch_device)
+    (
+        ch_id,
+        can_rts,
+        coords,
+    ) = (
+        cf["chain_id"],
+        cf["res_types"],
+        cf["coords"],
     )
+    at_is_pres = not_any_nancoord(coords)
+
     # currently: don't treat this as MET:nterm:cterm even though it is both the first
     # and last residue for a chain; instead, do MET:nterm
     res_not_connected = torch.tensor(
@@ -329,9 +368,17 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
 def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
-    ch_id, can_rts, coords, at_is_pres = canonical_form_from_pdb_lines(
-        co, ubq_pdb[:810], torch_device
+    co = canonical_form_from_pdb_lines(co, ubq_pdb[:810], torch_device)
+    (
+        chain_id,
+        res_types,
+        coords,
+    ) = (
+        co["chain_id"],
+        co["res_types"],
+        co["coords"],
     )
+    at_is_pres = not_any_nancoord(coords)
     # currently: don't treat this as MET:nterm:cterm even though it is both the first
     # and last residue for a chain; instead, do MET:nterm
     res_not_connected = torch.tensor(

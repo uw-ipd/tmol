@@ -158,8 +158,8 @@ def _annotate_block_type_atom_is_leaf_atom(
     is_hydrogen = is_hydrogen.cpu().numpy()[
         : block_type.n_atoms
     ]  # ugh, should this just live in the block type?!
-    is_parent = numpy.zeros(block_type.n_atoms, dtype=numpy.bool)
-    icoor_is_parent = numpy.zeros(block_type.n_icoors, dtype=numpy.bool)
+    is_parent = numpy.zeros(block_type.n_atoms, dtype=bool)
+    icoor_is_parent = numpy.zeros(block_type.n_icoors, dtype=bool)
     icoor_is_parent[block_type.icoors_ancestors[:, 0]] = True
 
     icoorind_to_atomind = numpy.full(block_type.n_icoors, -1, dtype=numpy.int32)
@@ -182,7 +182,7 @@ def _annotate_block_type_atom_is_leaf_atom(
     fourth_torsion_atoms = block_type.ordered_torsions[:, 3, 0]
     real_fourth_torsion_atoms = fourth_torsion_atoms[fourth_torsion_atoms != -1]
 
-    is_fourth_chi_atom = numpy.zeros(block_type.n_atoms, dtype=numpy.bool)
+    is_fourth_chi_atom = numpy.zeros(block_type.n_atoms, dtype=bool)
     is_fourth_chi_atom[real_fourth_torsion_atoms] = True
     is_fourth_chi_atom[is_hydrogen == 1] = False
     # for i in range(block_type.n_atoms):
