@@ -1,10 +1,12 @@
 import toolz.functoolz
 import torch
+from typing import Optional
+from tmol.database import ParameterDatabase
 
 
 @toolz.functoolz.memoize
 def beta2016_score_function(
-    device: torch.device, param_db: "Optional[ParameterDatabase]" = None
+    device: torch.device, param_db: Optional[ParameterDatabase] = None
 ):
     from tmol.database import ParameterDatabase
     from .score_function import ScoreFunction
