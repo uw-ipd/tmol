@@ -4,6 +4,12 @@ from tmol.io.canonical_ordering import (  # noqa: F401
     canonical_form_from_pdb_lines,
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form  # noqa: F401
+from tmol.io.pose_stack_from_openfold import (  # noqa: F401
+    pose_stack_from_openfold,
+    canonical_form_from_openfold,
+    canonical_ordering_for_openfold,
+    packed_block_types_for_openfold,
+)
 from tmol.io.details.canonical_packed_block_types import (  # noqa: F401
     default_canonical_packed_block_types,
 )

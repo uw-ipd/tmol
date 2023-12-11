@@ -1,6 +1,6 @@
 from tmol.io.pose_stack_from_openfold import (
     pose_stack_from_openfold,
-    paramdb_for_openfold,
+    _paramdb_for_openfold,
     canonical_ordering_for_openfold,
     packed_block_types_for_openfold,
 )
@@ -18,8 +18,8 @@ def test_create_pose_stack_from_openfold_result(
 
 
 def test_memoization_of_openfold_paramdb():
-    paramdb1 = paramdb_for_openfold()
-    paramdb2 = paramdb_for_openfold()
+    paramdb1 = _paramdb_for_openfold()
+    paramdb2 = _paramdb_for_openfold()
     assert paramdb1 is paramdb2
 
 
