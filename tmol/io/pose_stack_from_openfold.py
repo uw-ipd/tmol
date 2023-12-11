@@ -1,0 +1,228 @@
+import torch
+import numpy
+import toolz
+
+
+def pose_stack_from_openfold(openfold_result_dictionary, **kwargs):
+    from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
+
+    of_aatypes = openfold_result_dictionary["aatype"]
+    of_coords = openfold_result_dictionary["positions"][-1]
+    of_chain_ind = openfold_result_dictionary["chain_index"]
+
+    device = of_aatypes.device
+    n_poses = of_coords.shape[0]
+    max_n_res = of_coords.shape[1]
+    max_n_ats = of_coords.shape[2]
+
+    of_pose_ind_for_atom = (
+        torch.arange(n_poses, dtype=torch.int64, device=device)
+        .reshape(-1, 1, 1)
+        .expand(-1, max_n_res, max_n_ats)
+    )
+    of_res_ind_for_atom = (
+        torch.arange(max_n_res, dtype=torch.int64, device=device)
+        .reshape(1, -1, 1)
+        .expand(n_poses, -1, max_n_ats)
+    )
+
+    assert device == of_coords.device
+    assert device == of_chain_ind.device
+
+    co = canonical_ordering_for_openfold()
+    of2t_rtmap, of2t_atmap, of_at_is_real_map = _get_of_2_tmol_mappings(device)
+
+    tmol_restypes = of2t_rtmap[of_aatypes]
+    of_at_is_real = of_at_is_real_map[of_aatypes]
+
+    tmol_coords = torch.full(
+        (n_poses, max_n_res, co.max_n_canonical_atoms, 3),
+        numpy.NaN,
+        dtype=torch.float32,
+        device=device,
+    )
+    # nz_pose_ind, nz_res_ind = torch.nonzero(tmol_real_res, as_tuple=True)
+    # tmol_coords[tmol_real_res] = of_coords[
+    #     nz_pose_ind,
+    #     nz_res_ind,
+    #     blah[...] # to do
+    # ]
+
+    atom_mapping = of2t_atmap[of_aatypes]
+
+    tmol_coords[
+        of_pose_ind_for_atom[of_at_is_real],
+        of_res_ind_for_atom[of_at_is_real],
+        atom_mapping[of_at_is_real],
+    ] = of_coords[of_at_is_real]
+
+    pbt = packed_block_types_for_openfold(device)
+
+    return pose_stack_from_canonical_form(
+        co,
+        pbt,
+        of_chain_ind.to(torch.int32),
+        tmol_restypes.to(torch.int32),
+        tmol_coords,
+        **kwargs
+    )
+
+
+@toolz.functoolz.memoize
+def paramdb_for_openfold() -> "ParameterDatabase":
+    from tmol.chemical.restypes import three2one, one2three
+    from tmol.extern.openfold.residue_constants import restypes
+
+    desired_name3s = [one2three(aa1lc) for aa1lc in restypes]
+
+    # hard coding
+    desired_variants_display_names = ["nterm", "cterm"]
+
+    # END OPENFOLD SPECIFIC DECISIONS
+
+    # TO DO: Refactor ParamDB subset creation below into tmol/chemical
+    # for reuse
+    from tmol.database import ParameterDatabase
+    from tmol.database.chemical import ChemicalDatabase
+    from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+
+    default_db = ParameterDatabase.get_default()
+
+    def_chem_db = default_db.chemical
+    def_chem_elem_types = def_chem_db.element_types
+    def_chem_atom_types = def_chem_db.atom_types
+
+    # TO DO: Decide whether these should be shared between
+    # openfold DB and default DB
+    # Should we share _all_ of the residue objects or just
+    # the unpatched ones?
+
+    # The residues we retrieve should be in a stable order
+    # regardless of what happens to the ordering of residue types
+    # in tmol's chemical.yaml; therefore, iterate across the
+    # desired name3s and find the corresponding residue type
+    # from the default_chemdb for each one
+    unpatched_residue_subset = []
+    for target_name3 in desired_name3s:
+        unpatched_residue_subset.extend(
+            sorted(
+                [
+                    x
+                    for x in def_chem_db.residues
+                    if (x.name == x.base_name and x.name3 == target_name3)
+                ],
+                key=lambda x: x.name,
+            )
+        )
+
+    desired_variants = [
+        x
+        for x in def_chem_db.variants
+        if x.display_name in desired_variants_display_names
+    ]
+
+    chemical_db_subset = ChemicalDatabase(
+        element_types=def_chem_elem_types,
+        atom_types=def_chem_atom_types,
+        residues=unpatched_residue_subset,
+        variants=desired_variants,
+    )
+    patched_chemical_db_subset = PatchedChemicalDatabase.from_chem_db(
+        chemical_db_subset
+    )
+
+    return ParameterDatabase(
+        scoring=default_db.scoring, chemical=patched_chemical_db_subset
+    )
+
+
+@toolz.functoolz.memoize
+def canonical_ordering_for_openfold() -> "CanonicalOrdering":
+    from tmol.io.canonical_ordering import CanonicalOrdering
+
+    paramdb = paramdb_for_openfold()
+    return CanonicalOrdering.from_chemdb(paramdb.chemical)
+
+
+@toolz.functoolz.memoize
+def packed_block_types_for_openfold(device: torch.device):
+    import cattr
+    import attr
+    from tmol.pose.packed_block_types import PackedBlockTypes
+    from tmol.chemical.restypes import RefinedResidueType
+
+    paramdb = paramdb_for_openfold()
+
+    # TO DO: at some point, one has to wonder whether the ResidueTypeSet
+    # is ever gonna see any action. When the packer comes online, we should
+    # start using one during the PBT construction
+    restype_list = [
+        cattr.structure(
+            cattr.unstructure(r),
+            RefinedResidueType,
+        )
+        for r in paramdb.chemical.residues
+    ]
+
+    return PackedBlockTypes.from_restype_list(paramdb.chemical, restype_list, device)
+
+
+@toolz.functoolz.memoize
+def _get_of_2_tmol_mappings(device: torch.device):
+    from tmol.chemical.restypes import three2one, one2three
+
+    co = canonical_ordering_for_openfold()
+    from tmol.extern.openfold.residue_constants import (
+        residue_atoms,
+        atom_types,
+        atom_order,
+        restype_name_to_atom14_names,
+        restypes,
+        restypes_with_x,
+        restype_order,
+        restype_1to3,
+    )
+
+    of_2_tmol_restype_mapping = torch.full(
+        (len(restypes_with_x),),
+        -1,
+        dtype=torch.int64,
+    )
+
+    # how many atoms does openfold support? 14 obviously
+    # but let's future-proof this:
+    of_max_n_ats = len(restype_name_to_atom14_names[restype_1to3[restypes[0]]])
+
+    of_2_tmol_atom_mapping = torch.full(
+        (len(restypes_with_x), of_max_n_ats),
+        -1,
+        dtype=torch.int64,
+    )
+    of_at_is_real = torch.zeros((len(restypes_with_x), of_max_n_ats), dtype=torch.bool)
+
+    # do not map X; so iterate over restypes not restypes_with_x
+    for i, i_1lc in enumerate(restypes):
+        i_3lc = one2three(i_1lc)
+        of_2_tmol_restype_mapping[i] = co.restype_io_equiv_classes.index(i_3lc)
+        res_atoms = restype_name_to_atom14_names[i_3lc]
+
+        # restypes_atom_index_mapping supports atom aliasing
+        # which resolves any ambiguity in PDB naming conventions;
+        # future-proofing, really, since the PDBv2 vs PDBv3
+        # naming conventions differ only for hydrogen atom names
+        # but, some residue types at some future date may include
+        # heavy-atom ambiguities
+        tmol_res_atom_inds = co.restypes_atom_index_mapping[i_3lc]
+        for j, at in enumerate(res_atoms):
+            if at == "":
+                continue
+            if at not in tmol_res_atom_inds:
+                print("error:", i_3lc, "atom", at, "not in tmol atom set")
+            assert at in tmol_res_atom_inds
+            of_2_tmol_atom_mapping[i, j] = tmol_res_atom_inds[at]
+            of_at_is_real[i, j] = True
+
+    def _d(x):
+        return x.to(device=device)
+
+    return _d(of_2_tmol_restype_mapping), _d(of_2_tmol_atom_mapping), _d(of_at_is_real)

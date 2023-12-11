@@ -1,5 +1,6 @@
 import pytest
 import os
+import torch
 
 from . import pdb
 from . import rosetta_baseline
@@ -194,3 +195,11 @@ def pertuzumab_and_nearby_erbb2_pdb_and_segments():
     res_not_connected[0, seg_range_end[2:] - 1, 1] = True
 
     return (pert_and_erbb2_lines, res_not_connected)
+
+
+@pytest.fixture()
+def openfold_ubq_and_sumo_pred(torch_device):
+    fname = os.path.join(
+        __file__.rpartition("/")[0], "openfold", "openfold_ubq_and_sumo.pt"
+    )
+    return {x: y.to(torch_device) for x, y in torch.load(fname).items()}

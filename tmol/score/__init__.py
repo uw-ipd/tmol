@@ -3,14 +3,17 @@ import torch
 
 
 @toolz.functoolz.memoize
-def beta2016_score_function(device: torch.device):
+def beta2016_score_function(
+    device: torch.device, param_db: "Optional[ParameterDatabase]" = None
+):
     from tmol.database import ParameterDatabase
     from .score_function import ScoreFunction
     from .score_types import ScoreType
 
-    default_db = ParameterDatabase.get_default()
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
 
-    sfxn = ScoreFunction(default_db, device)
+    sfxn = ScoreFunction(param_db, device)
     sfxn.set_weight(ScoreType.fa_lj, 1.0)
     sfxn.set_weight(ScoreType.fa_lk, 1.0)
     sfxn.set_weight(ScoreType.fa_elec, 1.0)
