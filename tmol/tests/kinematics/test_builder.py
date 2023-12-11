@@ -1,6 +1,5 @@
 import numpy
 import torch
-import pandas
 
 from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import (
@@ -9,11 +8,6 @@ from tmol.kinematics.builder import (
     get_c1_and_c2_atoms,
     fix_jump_nodes,
 )
-from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
-
-# from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.score.modules.bonded_atom import BondedAtoms
-from tmol.score.modules.bases import ScoreSystem
 
 
 def test_stub_defined_for_jump_atom_two_descendents_of_jump():
@@ -751,90 +745,3 @@ def test_builder_framing(ubq_system):
         kinforest.frame_z[normal_atoms],
         kinforest.parent[kinforest.parent[normal_atoms].to(dtype=torch.long)],
     )
-
-
-def test_build_two_system_kinematics(ubq_system, torch_device):
-    natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq_system.coords[:, 0])))
-
-    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
-    # bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device).bonds.astype(
-    #    numpy.int32
-    # )
-    system = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})
-    bonds = BondedAtoms.get(system).bonds.astype(numpy.int32)
-
-    # print("bonds", bonds.shape)
-    tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=numpy.int32)
-    syssize = twoubq.systems[0].system_size
-
-    bonds_compact = bonds[:, 0:1] * syssize + bonds[:, 1:3]
-    # print("bonds_compact", bonds_compact.shape)
-    # print("bonds_compact", bonds_compact[:10])
-
-    ids, parents = KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds_compact)
-    # print("ids")
-    # print(ids[:20])
-    # print("parents")
-    # print(parents[:20])
-
-    # self_inds = numpy.arange(parents.shape[0], dtype=int)
-    # print("self parents")
-    # print(self_inds[parents[self_inds] == self_inds])
-
-    id_index = pandas.Index(ids)
-    root_index = id_index.get_indexer(tworoots)
-
-    builder = KinematicBuilder()
-    forest = builder.append_connected_components(
-        to_roots=tworoots, kfo_2_to=ids, to_parents_in_kfo=parents, to_jump_nodes=[]
-    ).kinforest
-
-    assert forest.id.shape[0] == 2 * natoms + 1
-    assert forest.id[1] == 0
-    assert forest.parent[1 + root_index[0]] == 0
-    assert forest.parent[1 + root_index[1]] == 0
-
-
-def test_build_jagged_system(ubq_res, torch_device):
-    ubq40 = PackedResidueSystem.from_residues(ubq_res[:1])
-    ubq60 = PackedResidueSystem.from_residues(ubq_res[:2])
-    natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq40.coords[:, 0]))) + numpy.sum(
-        numpy.logical_not(numpy.isnan(ubq60.coords[:, 0]))
-    )
-    twoubq = PackedResidueSystemStack((ubq40, ubq60))
-    # bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device).bonds.astype(
-    #    numpy.int32
-    # )
-    system = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})
-    bonds = BondedAtoms.get(system).bonds.astype(numpy.int32)
-
-    tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=numpy.int32)
-    syssize = twoubq.systems[1].system_size
-    bonds_compact = bonds[:, 0:1] * syssize + bonds[:, 1:3]
-
-    ids, parents = KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds_compact)
-
-    # print("ids")
-    # print(ids)
-    # print("parents")
-    # print(parents)
-
-    id_index = pandas.Index(ids)
-    root_index = id_index.get_indexer(tworoots)
-    # print("root_index")
-    # print(root_index)
-
-    builder = KinematicBuilder()
-    forest = builder.append_connected_components(
-        to_roots=tworoots, kfo_2_to=ids, to_parents_in_kfo=parents, to_jump_nodes=[]
-    ).kinforest
-
-    assert forest.id.shape[0] == natoms + 1
-    assert forest.id[1] == 0
-    assert forest.parent[1 + root_index[0]] == 0
-    assert forest.parent[1 + root_index[1]] == 0
-
-    # print("forest.parent[1 + root_index[0]]")
-    # print(forest.parent[1 + root_index[0]])
-    # print("forest.parent[1 + root_index[1]]")
-    # print(forest.parent[1 + root_index[1]])

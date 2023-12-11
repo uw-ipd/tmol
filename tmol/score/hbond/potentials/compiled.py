@@ -9,8 +9,6 @@ load(
             __file__,
             [
                 "compiled.ops.cpp",
-                "compiled.cpu.cpp",
-                "compiled.cuda.cu",
                 "hbond_pose_score.cpu.cpp",
                 "hbond_pose_score.cuda.cu",
             ],
@@ -21,5 +19,4 @@ load(
 
 _ops = getattr(torch.ops, modulename(__name__))
 
-score_hbond = _ops.score_hbond
 hbond_pose_scores = _ops.hbond_pose_scores
