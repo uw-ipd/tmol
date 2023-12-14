@@ -105,3 +105,66 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
     )
+
+
+def test_whole_pose_scoring_reweighted_block_gradcheck(
+    rts_ubq_res, default_database, torch_device
+):
+    elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        res=rts_ubq_res[0:4], device=torch_device
+    )
+    for bt in p1.packed_block_types.active_block_types:
+        elec_energy.setup_block_type(bt)
+    elec_energy.setup_packed_block_types(p1.packed_block_types)
+    elec_energy.setup_poses(p1)
+
+    elec_pose_scorer = elec_energy.render_whole_pose_scoring_module(p1)
+
+    def score(coords):
+        scores = elec_pose_scorer(coords, output_block_pair_energies=True)
+        scale = 0.01 * torch.arange(torch.numel(scores), device=scores.device).reshape(
+            scores.shape
+        )
+        return torch.sum(scale * scores)
+
+    gradcheck(
+        score,
+        (p1.coords.requires_grad_(True),),
+        eps=1e-3,
+        atol=1e-3,
+        nondet_tol=1e-6,  # fd this is necessary here...
+    )
+
+
+def test_whole_pose_block_scoring(rts_ubq_res, default_database, torch_device):
+    gold_vals = numpy.array(
+        [
+            [
+                [
+                    [-0.18471916, 0.13466036, -0.09439562, 0.0],
+                    [0.13466036, 0.0529352, -0.08167356, -0.17272939],
+                    [-0.09439562, -0.08167356, -0.23338096, 0.21889094],
+                    [0.0, -0.17272939, 0.21889094, 0.19068511],
+                ]
+            ],
+        ]
+    )
+
+    elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        res=rts_ubq_res[0:4], device=torch_device
+    )
+    for bt in p1.packed_block_types.active_block_types:
+        elec_energy.setup_block_type(bt)
+    elec_energy.setup_packed_block_types(p1.packed_block_types)
+    elec_energy.setup_poses(p1)
+
+    elec_pose_scorer = elec_energy.render_whole_pose_scoring_module(p1)
+
+    coords = torch.nn.Parameter(p1.coords.clone())
+    scores = elec_pose_scorer(coords, output_block_pair_energies=True)
+
+    sc = scores.cpu().detach().numpy()
+
+    numpy.testing.assert_allclose(gold_vals, sc, atol=1e-4)

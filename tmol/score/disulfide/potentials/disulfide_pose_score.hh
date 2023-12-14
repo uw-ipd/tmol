@@ -39,10 +39,10 @@ struct DisulfidePoseScoreDispatch {
       TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
       TView<DisulfideGlobalParams<Real>, 1, D> global_params,
-
+      bool output_block_pair_energies,
       bool compute_derivs
 
-      ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>>;
+      ) -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>>;
 };
 
 }  // namespace potentials

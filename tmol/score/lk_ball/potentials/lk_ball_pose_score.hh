@@ -83,8 +83,9 @@ struct LKBallPoseScoreDispatch {
       //////////////////////
 
       // LKBall potential parameters
-      TView<LKBallGlobalParams<Real>, 1, Dev> global_params)
-      -> std::tuple<TPack<Real, 2, Dev>, TPack<Int, 3, Dev>>;
+      TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+      bool output_block_pair_energies)
+      -> std::tuple<TPack<Real, 4, Dev>, TPack<Int, 3, Dev>>;
 
   static auto backward(
       TView<Vec<Real, 3>, 2, Dev> pose_coords,
@@ -139,7 +140,7 @@ struct LKBallPoseScoreDispatch {
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       TView<Int, 3, Dev> block_neighbors,  // from forward pass
-      TView<Real, 2, Dev> dTdV)
+      TView<Real, 4, Dev> dTdV)
       -> std::tuple<TPack<Vec<Real, 3>, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>>;
 };
 

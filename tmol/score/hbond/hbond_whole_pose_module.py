@@ -68,7 +68,7 @@ class HBondWholePoseScoringModule(torch.nn.Module):
         self.pair_polynomials = _p(pair_polynomials)
         self.global_params = _p(global_params)
 
-    def forward(self, coords):
+    def forward(self, coords, output_block_pair_energies=False):
         return hbond_pose_scores(
             coords,
             self.pose_stack_block_coord_offset,
@@ -94,4 +94,5 @@ class HBondWholePoseScoringModule(torch.nn.Module):
             self.pair_params,
             self.pair_polynomials,
             self.global_params,
+            output_block_pair_energies,
         )

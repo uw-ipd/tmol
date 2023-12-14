@@ -54,14 +54,23 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
     TView<DisulfideGlobalParams<Real>, 1, D> global_params,
-
+    bool output_block_pair_energies,
     bool compute_derivs
 
-    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
+    ) -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>> {
   int const n_poses = coords.size(0);
+  int const max_n_blocks = pose_stack_block_type.size(1);
   int const max_n_atoms = coords.size(1);
   int const max_n_conns = disulfide_conns.size(1);
-  auto V_t = TPack<Real, 2, D>::zeros({1, n_poses});
+
+  // auto V_t = TPack<Real, 2, D>::zeros({1, n_poses});
+  TPack<Real, 4, D> V_t;
+  if (output_block_pair_energies) {
+    V_t = TPack<Real, 4, D>::zeros({1, n_poses, max_n_blocks, max_n_blocks});
+  } else {
+    V_t = TPack<Real, 4, D>::zeros({1, n_poses, 1, 1});
+  }
+
   auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({1, n_poses, max_n_atoms});
 
   auto V = V_t.view;
@@ -105,6 +114,8 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         if (!disulfide_conns[other_block_type_index][other_conn_index])
           continue;
 
+        int block1_ind = block_index;
+        int block2_ind = other_block_index;
         // Get the 6 atoms that we need for the disulfides
         auto block1_CA_ind =
             block_atom_offset
@@ -134,15 +145,18 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
         // Calculate score and derivatives and put them in the out tensors
         accumulate_disulfide_potential<Real, D>(
             coords[pose_index],
+            block1_ind,
             block1_CA_ind,
             block1_CB_ind,
             block1_S_ind,
+            block2_ind,
             block2_S_ind,
             block2_CB_ind,
             block2_CA_ind,
 
             params,
 
+            output_block_pair_energies,
             pose_V,
             pose_dV_dx);
       }

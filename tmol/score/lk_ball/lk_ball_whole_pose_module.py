@@ -80,7 +80,7 @@ class LKBallWholePoseScoringModule(torch.nn.Module):
         self.sp3_water_tors = _p(sp3_water_tors)
         self.ring_water_tors = _p(ring_water_tors)
 
-    def forward(self, pose_coords):
+    def forward(self, pose_coords, output_block_pair_energies=False):
         """Two step scoring: first build the waters and then score;
         derivatives are calculated backwards through the water
         building step by torch's autograd machinery
@@ -129,4 +129,5 @@ class LKBallWholePoseScoringModule(torch.nn.Module):
             self.bt_tile_lk_ball_params,
             self.bt_path_distance,
             self.lk_ball_global_params,
+            output_block_pair_energies,
         )

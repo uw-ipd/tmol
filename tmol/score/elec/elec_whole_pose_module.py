@@ -51,7 +51,7 @@ class ElecWholePoseScoringModule(torch.nn.Module):
             )[None, :]
         )
 
-    def forward(self, coords):
+    def forward(self, coords, output_block_pair_energies=False):
         return elec_pose_scores(
             coords,
             self.pose_stack_block_coord_offset,
@@ -65,4 +65,5 @@ class ElecWholePoseScoringModule(torch.nn.Module):
             self.bt_inter_repr_path_distance,
             self.bt_intra_repr_path_distance,
             self.global_params,
+            output_block_pair_energies,
         )

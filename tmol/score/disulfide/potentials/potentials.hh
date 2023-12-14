@@ -23,16 +23,19 @@ using namespace tmol::score::common;
 template <typename Real, tmol::Device D>
 TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     const TensorAccessor<Vec<Real, 3>, 1, D> &coords,
+    int block1_ind,
     int block1_CA_ind,
     int block1_CB_ind,
     int block1_S_ind,
+    int block2_ind,
     int block2_S_ind,
     int block2_CB_ind,
     int block2_CA_ind,
 
     const DisulfideGlobalParams<Real> &params,
 
-    Real &pose_V,
+    bool output_block_pair_energies,
+    TensorAccessor<Real, 2, D> pose_V,
     TensorAccessor<Vec<Real, 3>, 1, D> pose_dV_dx) {
   auto block1_CA = coords[block1_CA_ind];
   auto block1_CB = coords[block1_CB_ind];
@@ -195,7 +198,12 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
         pose_dV_dx[block1_S_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dL);
   }
 
-  accumulate<D, Real>::add(pose_V, score);
+  if (output_block_pair_energies) {
+    accumulate<D, Real>::add(pose_V[block1_ind][block2_ind], score * 0.5);
+    accumulate<D, Real>::add(pose_V[block2_ind][block1_ind], score * 0.5);
+  } else {
+    accumulate<D, Real>::add(pose_V[0][0], score);
+  }
 }
 
 }  // namespace potentials

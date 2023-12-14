@@ -35,7 +35,8 @@ class DisulfidePoseScoreOp
       Tensor pose_stack_inter_block_connections,
       Tensor disulfide_conns,
       Tensor block_type_atom_downstream_of_conn,
-      Tensor global_params) {
+      Tensor global_params,
+      bool output_block_pair_energies) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
 
@@ -55,12 +56,16 @@ class DisulfidePoseScoreOp
                   TCAST(disulfide_conns),
                   TCAST(block_type_atom_downstream_of_conn),
                   TCAST(global_params),
+                  output_block_pair_energies,
                   coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
         }));
 
+    if (!output_block_pair_energies) {
+      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
+    }
     ctx->save_for_backward({dscore_dcoords});
     return score;
   }
@@ -90,6 +95,7 @@ class DisulfidePoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
+        torch::Tensor(),
         torch::Tensor()};
   }
 };
@@ -102,7 +108,8 @@ Tensor disulfide_pose_scores_op(
     Tensor pose_stack_inter_block_connections,
     Tensor disulfide_conns,
     Tensor block_type_atom_downstream_of_conn,
-    Tensor global_params) {
+    Tensor global_params,
+    bool output_block_pair_energies) {
   return DisulfidePoseScoreOp<DispatchMethod>::apply(
       coords,
       pose_stack_block_coord_offset,
@@ -110,7 +117,8 @@ Tensor disulfide_pose_scores_op(
       pose_stack_inter_block_connections,
       disulfide_conns,
       block_type_atom_downstream_of_conn,
-      global_params);
+      global_params,
+      output_block_pair_energies);
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
