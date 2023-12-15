@@ -186,8 +186,14 @@ class WholePoseScoringModule:
         self.term_modules = term_modules
 
     def __call__(self, coords):
-        # return a 1D tensor of size n_poses; this is the torch-like interface
-        # where the loss for a batch of size N should return a 1D tensor of
-        # size N
-        all_scores = torch.cat([term(coords) for term in self.term_modules], dim=0)
-        return torch.sum(self.weights * all_scores, dim=0)
+        all_scores = []
+        for term in self.term_modules:
+            score_i = term(coords)
+
+            # fd temporary while only some terms return block-pair energies
+            if len(score_i.shape) == 4:
+                score_i = score_i.sum(dim=(-2, -1))
+
+            all_scores.append(score_i)
+        # all_scores = torch.cat([term(coords) for term in self.term_modules], dim=0)
+        return torch.sum(self.weights * torch.cat(all_scores))

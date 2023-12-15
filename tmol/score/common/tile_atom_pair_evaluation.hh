@@ -35,6 +35,24 @@ class HeavyAtomPairSelector {
   }
 };
 
+// helper code for summing over std::arrays at compile time
+// https://stackoverflow.com/a/47563100
+template <std::size_t N>
+struct num {
+  static const constexpr auto value = N;
+};
+
+template <class F, std::size_t... Is>
+TMOL_DEVICE_FUNC void for_(F func, std::index_sequence<Is...>) {
+  using expander = int[];
+  (void)expander{0, ((void)func(num<Is>{}), 0)...};
+}
+
+template <std::size_t N, typename F>
+TMOL_DEVICE_FUNC void for_(F func) {
+  for_(func, std::make_index_sequence<N>());
+}
+
 // Templated function for the evaluation of inter-block atom-pair energy
 // evaluations where each worker (identified by tid) steps across the available
 // atom pairs with a stride of "nt." The templated PairSelector class should
@@ -50,18 +68,19 @@ template <
     tmol::Device D,
     int TILE,
     int nt,
+    int NTERMS,
     typename Real,
     typename Int>
 class InterResBlockEvaluation {
  public:
   template <typename AtomPairFunc>
-  static TMOL_DEVICE_FUNC Real eval_interres_atom_pair(
+  static TMOL_DEVICE_FUNC std::array<Real, NTERMS> eval_interres_atom_pair(
       int tid,
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
       InterEnergyData<Real> const &inter_dat) {
-    Real score_total = 0;
+    std::array<Real, NTERMS> score_total = {};
     int const n_remain1 = min(
         TILE,
         PairSelector<InterEnergyData, Real>::n_atoms1(inter_dat) - start_atom1);
@@ -72,8 +91,11 @@ class InterResBlockEvaluation {
     for (int i = tid; i < n_pairs; i += nt) {
       int const atom_tile_ind1 = i / n_remain2;
       int const atom_tile_ind2 = i % n_remain2;
-      score_total += f(
+      std::array<Real, NTERMS> score_i = f(
           start_atom1, start_atom2, atom_tile_ind1, atom_tile_ind2, inter_dat);
+      for_<NTERMS>([&](auto i) {
+        std::get<i.value>(score_total) += std::get<i.value>(score_i);
+      });
     }
     return score_total;
   }
@@ -92,18 +114,19 @@ template <
     tmol::Device D,
     int TILE,
     int nt,
+    int NTERMS,
     typename Real,
     typename Int>
 class IntraResBlockEvaluation {
  public:
   template <typename AtomPairFunc>
-  static TMOL_DEVICE_FUNC Real eval_intrares_atom_pairs(
+  static TMOL_DEVICE_FUNC std::array<Real, NTERMS> eval_intrares_atom_pairs(
       int tid,
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
       IntraEnergyData<Real> const &intra_dat) {
-    Real score_total = 0;
+    std::array<Real, NTERMS> score_total = {};
     int const n_remain1 = min(
         TILE,
         PairSelector<IntraEnergyData, Real>::n_atoms1(intra_dat) - start_atom1);
@@ -121,8 +144,11 @@ class IntraResBlockEvaluation {
       if (atom_ind1 >= atom_ind2) {
         continue;
       }
-      score_total += f(
+      std::array<Real, NTERMS> score_i = f(
           start_atom1, start_atom2, atom_tile_ind1, atom_tile_ind2, intra_dat);
+      for_<NTERMS>([&](auto i) {
+        std::get<i.value>(score_total) += std::get<i.value>(score_i);
+      });
     }
     return score_total;
   }

@@ -204,16 +204,17 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int start_atom2,
              int atom_tile_ind1,
              int atom_tile_ind2,
-             ElecScoringData<Real> const &inter_dat) {
+             ElecScoringData<Real> const &inter_dat) -> std::array<Real, 1> {
           int separation = interres_count_pair_separation<TILE_SIZE>(
               inter_dat, atom_tile_ind1, atom_tile_ind2);
-          return elec_atom_energy_and_derivs(
+          Real elec = elec_atom_energy_and_derivs(
               atom_tile_ind1,
               atom_tile_ind2,
               start_atom1,
               start_atom2,
               inter_dat,
               separation);
+          return {elec};
         });
 
     auto score_intra_elec_atom_pair =
@@ -222,20 +223,21 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int start_atom2,
              int atom_tile_ind1,
              int atom_tile_ind2,
-             ElecScoringData<Real> const &intra_dat) {
+             ElecScoringData<Real> const &intra_dat) -> std::array<Real, 1> {
           int const atom_ind1 = start_atom1 + atom_tile_ind1;
           int const atom_ind2 = start_atom2 + atom_tile_ind2;
 
           int const separation =
               block_type_intra_repr_path_distance[intra_dat.r1.block_type]
                                                  [atom_ind1][atom_ind2];
-          return elec_atom_energy_and_derivs(
+          Real elec = elec_atom_energy_and_derivs(
               atom_tile_ind1,
               atom_tile_ind2,
               start_atom1,
               start_atom2,
               intra_dat,
               separation);
+          return {elec};
         });
 
     auto load_block_coords_and_params_into_shared =
@@ -373,12 +375,13 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                                int start_atom1,
                                                int start_atom2) {
       auto eval_scores_for_atom_pairs = ([&](int tid) {
-        inter_dat.total_elec += tmol::score::common::InterResBlockEvaluation<
+        auto elecE = tmol::score::common::InterResBlockEvaluation<
             ElecScoringData,
             AllAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            1,
             Real,
             Int>::
             eval_interres_atom_pair(
@@ -387,6 +390,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 start_atom2,
                 score_inter_elec_atom_pair,
                 inter_dat);
+        inter_dat.total_elec += std::get<0>(elecE);
       });
 
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
@@ -472,12 +476,13 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                                int start_atom1,
                                                int start_atom2) {
       auto eval_scores_for_atom_pairs = ([&](int tid) {
-        intra_dat.total_elec += tmol::score::common::IntraResBlockEvaluation<
+        auto elecE = tmol::score::common::IntraResBlockEvaluation<
             ElecScoringData,
             AllAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            1,
             Real,
             Int>::
             eval_intrares_atom_pairs(
@@ -486,6 +491,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 start_atom2,
                 score_intra_elec_atom_pair,
                 intra_dat);
+        intra_dat.total_elec += std::get<0>(elecE);
       });
 
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
@@ -528,11 +534,12 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int,
              int atom_tile_ind1,
              int atom_tile_ind2,
-             ElecScoringData<Real> const &inter_dat) {
+             ElecScoringData<Real> const &inter_dat) -> std::array<Real, 1> {
           int separation = interres_count_pair_separation<TILE_SIZE>(
               inter_dat, atom_tile_ind1, atom_tile_ind2);
-          return elec_atom_energy(
+          Real elec = elec_atom_energy(
               atom_tile_ind1, atom_tile_ind2, inter_dat, separation);
+          return {elec};
         });
 
     auto score_intra_elec_atom_pair =
@@ -541,7 +548,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
              int start_atom2,
              int atom_tile_ind1,
              int atom_tile_ind2,
-             ElecScoringData<Real> const &intra_dat) {
+             ElecScoringData<Real> const &intra_dat) -> std::array<Real, 1> {
           int const atom_ind1 = start_atom1 + atom_tile_ind1;
           int const atom_ind2 = start_atom2 + atom_tile_ind2;
 
@@ -549,8 +556,9 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
               block_type_intra_repr_path_distance[intra_dat.r1.block_type]
                                                  [atom_ind1][atom_ind2];
-          return elec_atom_energy(
+          Real elec = elec_atom_energy(
               atom_tile_ind1, atom_tile_ind2, intra_dat, separation);
+          return {elec};
         });
 
     auto load_block_coords_and_params_into_shared =
@@ -694,12 +702,13 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                                int start_atom1,
                                                int start_atom2) {
       auto eval_scores_for_atom_pairs = ([&](int tid) {
-        inter_dat.total_elec += tmol::score::common::InterResBlockEvaluation<
+        auto elecE = tmol::score::common::InterResBlockEvaluation<
             ElecScoringData,
             AllAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            1,
             Real,
             Int>::
             eval_interres_atom_pair(
@@ -708,6 +717,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 start_atom2,
                 score_inter_elec_atom_pair,
                 inter_dat);
+        inter_dat.total_elec += std::get<0>(elecE);
       });
 
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(
@@ -793,12 +803,13 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                                                int start_atom1,
                                                int start_atom2) {
       auto eval_scores_for_atom_pairs = ([&](int tid) {
-        intra_dat.total_elec += tmol::score::common::IntraResBlockEvaluation<
+        auto elecE = tmol::score::common::IntraResBlockEvaluation<
             ElecScoringData,
             AllAtomPairSelector,
             D,
             TILE_SIZE,
             nt,
+            1,
             Real,
             Int>::
             eval_intrares_atom_pairs(
@@ -807,6 +818,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
                 start_atom2,
                 score_intra_elec_atom_pair,
                 intra_dat);
+        intra_dat.total_elec += std::get<0>(elecE);
       });
 
       DeviceDispatch<D>::template for_each_in_workgroup<nt>(

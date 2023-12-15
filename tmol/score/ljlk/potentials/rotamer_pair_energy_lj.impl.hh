@@ -274,12 +274,13 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
     //     separation,
     //     atom_1_type,
     //     atom_2_type);
-    Real lj = lj_score<Real>::V(
+    auto ljS = lj_score<Real>::V(
         dist,
         separation,
         type_params[atom_1_type].lj_params(),
         type_params[atom_2_type].lj_params(),
         global_params[0]);
+    Real lj = ljS[0] + ljS[1];  // fd might want to split this out
     lj *= lj_lk_weights[0];
 
     Real lk(0);

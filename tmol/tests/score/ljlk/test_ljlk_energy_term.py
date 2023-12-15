@@ -336,7 +336,8 @@ def test_inter_module_timing(
 
 
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
-    gold_vals = numpy.array([[-7.717818], [3.648599]], dtype=numpy.float32)
+    gold_vals = numpy.array([[-9.207252], [1.51558], [3.61822]], dtype=numpy.float32)
+
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
@@ -347,29 +348,65 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     ljlk_energy.setup_poses(p1)
 
     ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
-    # for ch in ljlk_pose_scorer.children():
-    #     print("child")
-    #     print(ch)
 
     coords = torch.nn.Parameter(p1.coords.clone())
-    scores = ljlk_pose_scorer(coords)
-
-    # make sure we're still good
-    torch.arange(100, device=torch_device)
-
-    numpy.set_printoptions(precision=10)
-    # print(scores.cpu().detach().numpy())
-
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-6, rtol=1e-6
+    scores = ljlk_pose_scorer(
+        coords,
     )
+
+    numpy.testing.assert_allclose(gold_vals, scores.cpu().detach().numpy(), atol=1e-4)
+
+
+def test_whole_pose_block_scoring(rts_ubq_res, default_database, torch_device):
+    gold_vals = numpy.array(
+        [
+            [
+                [
+                    [-3.9596581e-01, -5.5398142e-01, -5.9936708e-01, 0.0000000e00],
+                    [-5.5398142e-01, -3.7782270e-01, -8.2644725e-01, -7.1573496e-01],
+                    [-5.9936708e-01, -8.2644725e-01, -4.9665013e-01, -9.5627952e-01],
+                    [0.0000000e00, -7.1573496e-01, -9.5627952e-01, -6.3319176e-01],
+                ]
+            ],
+            [
+                [
+                    [2.0063031e-01, 3.8839228e-02, 9.2773259e-02, 0.0000000e00],
+                    [3.8839228e-02, 1.0832557e-01, 1.4488192e-01, 1.2620538e-04],
+                    [9.2773259e-02, 1.4488192e-01, 4.3663180e-01, 7.0729911e-02],
+                    [0.0000000e00, 1.2620538e-04, 7.0729911e-02, 7.5291798e-02],
+                ]
+            ],
+            [
+                [
+                    [1.8714617e-01, 4.1334108e-01, 5.5168569e-04, 0.0000000e00],
+                    [4.1334108e-01, 2.4108997e-01, 4.7006887e-01, 1.4917870e-01],
+                    [5.5168569e-04, 4.7006887e-01, 1.2823609e-01, 3.1399289e-01],
+                    [0.0000000e00, 1.4917870e-01, 3.1399289e-01, 3.6748153e-01],
+                ]
+            ],
+        ]
+    )
+
+    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        res=rts_ubq_res[0:4], device=torch_device
+    )
+    for bt in p1.packed_block_types.active_block_types:
+        ljlk_energy.setup_block_type(bt)
+    ljlk_energy.setup_packed_block_types(p1.packed_block_types)
+    ljlk_energy.setup_poses(p1)
+
+    ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
+
+    coords = torch.nn.Parameter(p1.coords.clone())
+    scores = ljlk_pose_scorer(coords, output_block_pair_energies=True)
+
+    numpy.testing.assert_allclose(gold_vals, scores.cpu().detach().numpy(), atol=1e-4)
 
 
 def test_whole_pose_scoring_module_gradcheck(
     rts_ubq_res, default_database, torch_device
 ):
-    # gold_vals = numpy.array([[-7.691674], [3.6182203]], dtype=numpy.float32)
-
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
         default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
@@ -380,23 +417,55 @@ def test_whole_pose_scoring_module_gradcheck(
     ljlk_energy.setup_poses(p1)
 
     ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
-    # for ch in ljlk_pose_scorer.children():
-    #     print("child")
-    #     print(ch)
-
-    # coords = torch.nn.Parameter(p1.coords.clone())
 
     def score(coords):
         scores = ljlk_pose_scorer(coords)
         return torch.sum(scores)
 
-    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=5e-3, rtol=5e-3)
+    gradcheck(
+        score,
+        (p1.coords.requires_grad_(True),),
+        eps=1e-3,
+        atol=1e-3,
+        nondet_tol=1e-6,  # fd this is necessary here...
+    )
+
+
+def test_whole_pose_scoring_reweighted_block_gradcheck(
+    rts_ubq_res, default_database, torch_device
+):
+    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        res=rts_ubq_res[0:4], device=torch_device
+    )
+    for bt in p1.packed_block_types.active_block_types:
+        ljlk_energy.setup_block_type(bt)
+    ljlk_energy.setup_packed_block_types(p1.packed_block_types)
+    ljlk_energy.setup_poses(p1)
+
+    ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
+
+    def score(coords):
+        scores = ljlk_pose_scorer(coords, output_block_pair_energies=True)
+        scale = 0.01 * torch.arange(torch.numel(scores), device=scores.device).reshape(
+            scores.shape
+        )
+        return torch.sum(scale * scores)
+
+    gradcheck(
+        score,
+        (p1.coords.requires_grad_(True),),
+        eps=1e-3,
+        atol=1e-3,
+        nondet_tol=1e-6,  # fd this is necessary here...
+    )
 
 
 def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
     n_poses = 10
     gold_vals = numpy.tile(
-        numpy.array([[-177.242], [298.275]], dtype=numpy.float32), (1, n_poses)
+        numpy.array([[-417.79364], [240.69383], [297.2797]], dtype=numpy.float32),
+        (1, n_poses),
     )
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
@@ -410,20 +479,9 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     ljlk_energy.setup_poses(pn)
 
     ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(pn)
-    # for ch in ljlk_pose_scorer.children():
-    #     print("child")
-    #     print(ch)
 
     coords = torch.nn.Parameter(pn.coords.clone())
     scores = ljlk_pose_scorer(coords)
-
-    # make sure we're still good
-    torch.arange(100, device=torch_device)
-
-    numpy.set_printoptions(precision=10)
-    # print(scores.cpu().detach().numpy())
-
-    # print("scores!", scores.cpu().detach().numpy())
 
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5

@@ -87,11 +87,12 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
             type_params[atj],
             global_params[0]);
 
-        accumulate<D, Real>::add_one_dst(V, stack, lj.V);
-        accumulate<D, Vec<Real, 3>>::add(
-            dV_dI[stack][i], lj.dV_ddist * ddist_dI);
-        accumulate<D, Vec<Real, 3>>::add(
-            dV_dJ[stack][j], lj.dV_ddist * ddist_dJ);
+        Real ljV =
+            lj.Vatr + lj.Vrep;  // fd no need to split since this is going away
+        Real ljdVddist = lj.dVatr_ddist + lj.dVrep_ddist;
+        accumulate<D, Real>::add_one_dst(V, stack, ljV);
+        accumulate<D, Vec<Real, 3>>::add(dV_dI[stack][i], ljdVddist * ddist_dI);
+        accumulate<D, Vec<Real, 3>>::add(dV_dJ[stack][j], ljdVddist * ddist_dJ);
         // accumulate<D, int>::add(count[0], 1);
       });
   nvtx_range_pop();

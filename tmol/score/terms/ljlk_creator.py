@@ -6,7 +6,7 @@ import torch
 
 @score_term_creator
 class LJLKTermCreator(TermCreator):
-    _score_types = [ScoreType.fa_lj, ScoreType.fa_lk]
+    _score_types = [ScoreType.fa_ljatr, ScoreType.fa_ljrep, ScoreType.fa_lk]
 
     @classmethod
     def create_term(cls, param_db: ParameterDatabase, device: torch.device):
