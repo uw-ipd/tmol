@@ -684,7 +684,8 @@ class LKBallPoseScoreDispatch {
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       TView<Int, 3, Dev> scratch_block_neighbors,  // from forward pass
-      TView<Real, 4, Dev> dTdV)
+      TView<Real, 4, Dev> dTdV,
+      bool block_pair_scoring)
       -> std::tuple<TPack<Vec<Real, 3>, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>> {
     // std::cout << "d lkball start" << std::endl;
     using tmol::score::common::accumulate;
@@ -791,7 +792,8 @@ class LKBallPoseScoreDispatch {
                 cp_separation,
                 dTdV,
                 dV_d_pose_coords,
-                dV_d_water_coords);
+                dV_d_water_coords,
+                block_pair_scoring);
           });
 
       auto dscore_inter_lk_ball_atom_pair =

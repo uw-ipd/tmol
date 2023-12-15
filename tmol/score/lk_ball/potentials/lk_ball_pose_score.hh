@@ -140,7 +140,8 @@ struct LKBallPoseScoreDispatch {
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       TView<Int, 3, Dev> block_neighbors,  // from forward pass
-      TView<Real, 4, Dev> dTdV)
+      TView<Real, 4, Dev> dTdV,
+      bool block_pair_scoring)
       -> std::tuple<TPack<Vec<Real, 3>, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>>;
 };
 

@@ -793,6 +793,12 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
     auto dTdV = grad_outputs[0];
 
+    bool block_pair_scoring = true;
+    if (dTdV.dim() == 2) {
+      dTdV = dTdV.unsqueeze(-1).unsqueeze(-1);
+      block_pair_scoring = false;
+    }
+
     TMOL_DISPATCH_FLOATING_DEVICE(
         pose_coords.type(), "lk_ball_pose_score_backward", ([&] {
           using Real = scalar_t;
@@ -824,7 +830,8 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
                   TCAST(global_params),
                   TCAST(block_neighbors),
-                  TCAST(dTdV));
+                  TCAST(dTdV),
+                  block_pair_scoring);
 
           dV_d_pose_coords = std::get<0>(result).tensor;
           dV_d_water_coords = std::get<1>(result).tensor;
