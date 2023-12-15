@@ -40,13 +40,13 @@ dependencies:
   - libuv=1.44.2=h166bdaf_0
   - libxml2=2.10.4=hfdac1af_0
   - libzlib=1.2.13=h166bdaf_4
-  - llvmlite=0.39.1
+  - llvmlite=0.40.0
   - mkl=2022.1.0
   - ncurses=6.3=h27087fc_1
   - ninja=1.11.1=h924138e_0
   - nodeenv=1.7.0=pyhd8ed1ab_0
-  - numba=0.56.4
-  - numpy=1.23.5
+  - numba=0.57.0
+  - numpy=1.24.3
   - openssl=3.1.0=hd590300_2
   - pip=23.1.2=pyhd8ed1ab_0
   - pre-commit=3.2.2
@@ -101,6 +101,7 @@ dependencies:
       # - matplotlib-inline==0.1.6
       - mccabe==0.7.0
       - mypy-extensions==1.0.0
+      - networkx==3.1
       - numcodecs==0.11.0
       - packaging==23.1
       - pandas==2.0.1
@@ -135,7 +136,6 @@ dependencies:
       - seaborn==0.12.2
       - six==1.16.0
       - sortedcontainers==2.4.0
-      - sparse==0.14.0
       - stack-data==0.6.2
       - tomli==2.0.1
       - toolz==0.12.0

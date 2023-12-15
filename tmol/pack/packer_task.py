@@ -46,8 +46,8 @@ class PackerPalette:
                 == orig.properties.polymer.polymer_type
                 and rt.properties.polymer.backbone_type
                 == orig.properties.polymer.backbone_type
-                and rt.properties.polymer.termini_variants
-                == orig.properties.polymer.termini_variants
+                and rt.connections
+                == orig.connections  # fd  use this instead of terminal variant check
                 and set_compare(
                     rt.properties.chemical_modifications,
                     orig.properties.chemical_modifications,

@@ -10,6 +10,7 @@
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/gen_coord.hh>
 
 #include <tmol/score/hbond/identification.hh>
 #include <tmol/score/ljlk/potentials/params.hh>
@@ -111,7 +112,8 @@ struct GenerateWaters {
 
           for (int ti = 0; ti < ntors; ti++) {
             waters[stack][intrastack_idx][wi] =
-                build_acc_water<Real>::V(XA, XB, XB0, dist, angle, tors[ti]);
+                common::build_coordinate<Real>::V(
+                    XA, XB, XB0, dist, angle, tors[ti]);
             wi++;
           }
         }
@@ -225,13 +227,13 @@ struct GenerateWaters {
           }
 
           for (int ti = 0; ti < ntors; ti++) {
-            auto dW =
-                build_acc_water<Real>::dV(XA, XB, XB0, dist, angle, tors[ti]);
+            auto dW = common::build_coordinate<Real>::dV(
+                XA, XB, XB0, dist, angle, tors[ti]);
             auto dE_dWi = dE_dW[stack][i][wi];
 
-            dE_dXA += dW.dA * dE_dWi;
-            dE_dXB += dW.dB * dE_dWi;
-            dE_dXB0 += dW.dB0 * dE_dWi;
+            dE_dXA += dW.dp * dE_dWi;
+            dE_dXB += dW.dgp * dE_dWi;
+            dE_dXB0 += dW.dggp * dE_dWi;
 
             wi++;
           }

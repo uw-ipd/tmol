@@ -7,13 +7,13 @@ from tmol.score.modules.coords import coords_for
 
 
 graph_comparisons = {
-    "lj_regression": (LJScore, {"lj": -177.1}),
-    "lk_regression": (LKScore, {"lk": 297.3}),
+    "lj_regression": (LJScore, {"lj": -177.242}),
+    "lk_regression": (LKScore, {"lk": 298.275}),
 }
 
 module_comparisons = {
-    "lj_regression": (LJScore, {"lj": -177.1}),
-    "lk_regression": (LKScore, {"lk": 297.3}),
+    "lj_regression": (LJScore, {"lj": -177.242}),
+    "lk_regression": (LKScore, {"lk": 298.275}),
 }
 
 
@@ -30,7 +30,6 @@ def test_baseline_comparison(ubq_system, torch_device, score_class, expected_sco
 
     intra_container = score_system.intra_forward(coords)
     scores = {term: float(intra_container[term]) for term in expected_scores}
-
     assert scores == approx(expected_scores, rel=1e-3)
 
 

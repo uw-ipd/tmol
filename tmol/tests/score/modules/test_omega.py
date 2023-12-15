@@ -17,7 +17,7 @@ def test_lj_score_setup(benchmark, ubq_system, torch_device):
 
 def test_omega_database_clone_factory(ubq_system):
     src = ScoreSystem._build_with_modules(ubq_system, {OmegaParameters})
-    assert OmegaParameters.get(src).allomegas.shape == (1, 76, 4)
+    assert OmegaParameters.get(src).allomegas.shape == (1, 75, 4)
 
     # Allomegas is referenced on clone
     clone = ScoreSystem._build_with_modules(src, {OmegaParameters})

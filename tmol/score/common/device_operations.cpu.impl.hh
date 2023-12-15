@@ -1,5 +1,8 @@
-
 #pragma once
+
+#ifdef __NVCC__
+error_this_should_not_be_compiled();  // nvcc should not include this file
+#endif
 
 #include "device_operations.hh"
 

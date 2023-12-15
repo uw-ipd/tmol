@@ -6,10 +6,10 @@ from tmol.chemical.restypes import find_simple_polymeric_connections
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 
-def test_pose_stack_builder_connection_ctor(ubq_res, torch_device):
+def test_pose_stack_builder_connection_ctor(ubq_res, default_database, torch_device):
     connections = find_simple_polymeric_connections(ubq_res)
     p = PoseStackBuilder.one_structure_from_residues_and_connections(
-        ubq_res, connections, torch_device
+        default_database.chemical, ubq_res, connections, torch_device
     )
 
     n_ubq_res = len(ubq_res)
@@ -60,14 +60,14 @@ def test_pose_stack_builder_connection_ctor(ubq_res, torch_device):
 
 
 def test_pose_stack_builder_one_structure_from_polymeric_residues_ctor(
-    ubq_res, torch_device
+    ubq_res, default_database, torch_device
 ):
     connections = find_simple_polymeric_connections(ubq_res)
     p_gold = PoseStackBuilder.one_structure_from_residues_and_connections(
-        ubq_res, connections, torch_device
+        default_database.chemical, ubq_res, connections, torch_device
     )
     p_new = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res, torch_device
+        default_database.chemical, ubq_res, torch_device
     )
 
     # assert p_gold.residue_coords.shape == p_new.residue_coords.shape
@@ -88,24 +88,23 @@ def test_pose_stack_builder_create_inter_residue_connections(ubq_res, torch_devi
     assert inter_residue_connections.shape == (1, 4, 2, 2)
     assert inter_residue_connections.device == torch_device
 
-    assert inter_residue_connections[0, 0, 0, 0] == -1
-    assert inter_residue_connections[0, 0, 0, 1] == -1
+    assert inter_residue_connections[0, 0, 0, 0] == 1  # nterm, connection 0 is "up"
+    assert inter_residue_connections[0, 0, 0, 1] == 0
+    assert inter_residue_connections[0, 0, 1, 0] == -1
+    assert inter_residue_connections[0, 0, 1, 1] == -1
 
-    assert inter_residue_connections[0, 0, 1, 0] == 1
-    assert inter_residue_connections[0, 0, 1, 1] == 0
     assert inter_residue_connections[0, 1, 0, 0] == 0
-    assert inter_residue_connections[0, 1, 0, 1] == 1
-
+    assert inter_residue_connections[0, 1, 0, 1] == 0
     assert inter_residue_connections[0, 1, 1, 0] == 2
     assert inter_residue_connections[0, 1, 1, 1] == 0
+
     assert inter_residue_connections[0, 2, 0, 0] == 1
     assert inter_residue_connections[0, 2, 0, 1] == 1
-
     assert inter_residue_connections[0, 2, 1, 0] == 3
     assert inter_residue_connections[0, 2, 1, 1] == 0
+
     assert inter_residue_connections[0, 3, 0, 0] == 2
     assert inter_residue_connections[0, 3, 0, 1] == 1
-
     assert inter_residue_connections[0, 3, 1, 0] == -1
     assert inter_residue_connections[0, 3, 1, 1] == -1
 
@@ -123,16 +122,16 @@ def test_pose_stack_builder_resolve_bond_separation(ubq_res, torch_device):
     assert bonds[0, 2, 0, 0, 1] == 4
 
 
-def test_concatenate_pose_stacks_ctor(ubq_res, torch_device):
+def test_concatenate_pose_stacks_ctor(ubq_res, default_database, torch_device):
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:40], torch_device
+        default_database.chemical, ubq_res[:40], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:60], torch_device
+        default_database.chemical, ubq_res[:60], torch_device
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     assert poses.block_type_ind.shape == (2, 60)
-    assert poses.coords.shape == (2, 959, 3)
+    assert poses.coords.shape == (2, 961, 3)  # fd 959->961 for nterm
     assert poses.inter_block_bondsep.shape == (2, 60, 60, 2, 2)
 
 
@@ -548,7 +547,7 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
             ],
             [
                 [0, 2, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala down
-                [6, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala up
+                [2, 0, 1, 6, 6, 6, 6, 6, 6, 6, 6, 6],  # ala up
                 [6, 1, 0, 2, 3, 6, 6, 6, 6, 6, 6, 6],  # cyd down
                 [6, 6, 2, 0, 3, 1, 6, 6, 6, 6, 6, 6],  # cyd up
                 [6, 6, 3, 3, 0, 6, 6, 6, 6, 1, 6, 6],  # cyd dslf
@@ -611,14 +610,14 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
             ],
             [
                 [
-                    [[0, 2, 6], [6, 0, 6], [6, 6, 6]],
+                    [[0, 2, 6], [2, 0, 6], [6, 6, 6]],
                     [[3, 5, 6], [1, 3, 4], [6, 6, 6]],
                     [[6, 6, 6], [4, 6, 6], [6, 6, 6]],
                     [[6, 6, 6], [6, 6, 5], [6, 6, 6]],
                     [[6, 6, 6], [6, 6, 6], [6, 6, 6]],
                 ],
                 [
-                    [[6, 1, 6], [6, 3, 6], [6, 4, 6]],
+                    [[3, 1, 6], [5, 3, 6], [6, 4, 6]],
                     [[0, 2, 3], [2, 0, 3], [3, 3, 0]],
                     [[3, 5, 6], [1, 3, 6], [4, 5, 6]],
                     [[6, 6, 4], [4, 6, 4], [4, 4, 1]],
@@ -650,6 +649,17 @@ def test_calculate_interblock_bondsep_from_connectivity_graph_heavy(torch_device
         dtype=torch.int32,
         device=torch_device,
     )
+
+    # numpy.set_printoptions(threshold=10000)
+    # print("inter_block_bondsep")
+    # print(inter_block_bondsep.cpu().numpy())
+    #
+    # print("diffs")
+    # print(torch.nonzero(inter_block_bondsep != inter_block_bondsep_gold))
+    # print("at")
+    # print(inter_block_bondsep[inter_block_bondsep != inter_block_bondsep_gold])
+    # print("vs")
+    # print(inter_block_bondsep_gold[inter_block_bondsep != inter_block_bondsep_gold])
 
     torch.testing.assert_close(inter_block_bondsep, inter_block_bondsep_gold)
 

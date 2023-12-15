@@ -127,15 +127,64 @@ class RawResidueType:
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
     properties: ChemicalProperties
-    # sidechain_building: Tuple[SidechainBuilding, ...]
     chi_samples: Tuple[ChiSamples, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class IcoorVariant:
+    name: str
+    source: Optional[str] = None
+    phi: Optional[DihedralAngle] = 0.0
+    theta: Optional[BondAngle] = 0.0
+    d: Optional[float] = 0.0
+    parent: Optional[str] = None
+    grand_parent: Optional[str] = None
+    great_grand_parent: Optional[str] = None
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class PolymerPropertiesVariant:
+    polymer_type: str
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ChemicalPropertiesVariant:
+    polymer: Optional[PolymerPropertiesVariant] = None
+
+
+@attr.s(auto_attribs=True)
+class VariantType:
+    name: str
+    display_name: str
+    pattern: str
+    remove_atoms: Tuple[str, ...]
+    add_atoms: Tuple[Atom, ...]
+    modify_atoms: Tuple[Atom, ...]
+    add_connections: Tuple[Connection, ...]
+    add_bonds: Tuple[Tuple[str, str], ...]
+    icoors: Tuple[IcoorVariant, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase:
+    __default = None
+
     element_types: Tuple[Element, ...]
     atom_types: Tuple[AtomType, ...]
     residues: Tuple[RawResidueType, ...]
+    variants: Tuple[VariantType, ...]
+
+    # fd I don't particularly like this way of providing access to the unpatched database,
+    # fd    but I'm not sure how else to do this.  Maybe keeping the unpatched in
+    # fd    the default DB alongside the patched?
+    @classmethod
+    def get_default(cls) -> "ChemicalDatabase":
+        """Load and return default parameter database."""
+        if cls.__default is None:
+            cls.__default = ChemicalDatabase.from_file(
+                os.path.join(os.path.dirname(__file__), "..", "default", "chemical")
+            )
+        return cls.__default
 
     @classmethod
     def from_file(cls, path):

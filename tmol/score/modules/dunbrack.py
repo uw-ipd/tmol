@@ -29,7 +29,7 @@ PhiPsiChi = namedtuple("PhiPsiChi", ["phi", "psi", "chi"])
 def get_dunbrack_phi_psi_chi(
     system: PackedResidueSystem, device: torch.device
 ) -> PhiPsiChi:
-    dun_phi = numpy.array(
+    dun_phi_raw = numpy.array(
         [
             [
                 x["residue_index"],
@@ -43,7 +43,7 @@ def get_dunbrack_phi_psi_chi(
         dtype=numpy.int32,
     )
 
-    dun_psi = numpy.array(
+    dun_psi_raw = numpy.array(
         [
             [
                 x["residue_index"],
@@ -57,67 +57,44 @@ def get_dunbrack_phi_psi_chi(
         dtype=numpy.int32,
     )
 
-    dun_chi1 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                0,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi1"]
-        ],
-        dtype=numpy.int32,
-    )
-    # print("dun_chi1")
-    # print(dun_chi1)
+    # fd: make a consistent phi/psi array
+    resids = numpy.concatenate((dun_phi_raw[:, 0], dun_psi_raw[:, 0]))
+    resids = numpy.unique(resids)
+    dun_phi = numpy.full((resids.shape[0], 5), -1)
+    dun_psi = numpy.full((resids.shape[0], 5), -1)
+    resids2idx = {x: i for i, x in enumerate(resids)}
+    phi_idx = numpy.vectorize(lambda x: resids2idx[x])(dun_phi_raw[:, 0])
+    psi_idx = numpy.vectorize(lambda x: resids2idx[x])(dun_psi_raw[:, 0])
+    dun_phi[phi_idx] = dun_phi_raw
+    dun_psi[psi_idx] = dun_psi_raw
+    dun_phi[:, 0] = resids
+    dun_psi[:, 0] = resids
 
-    dun_chi2 = numpy.array(
-        [
+    def nab_chi(chi_name, chi_ind):
+        dun_chi = numpy.array(
             [
-                x["residue_index"],
-                1,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi2"]
-        ],
-        dtype=numpy.int32,
-    )
+                [
+                    x["residue_index"],
+                    chi_ind,
+                    x["atom_index_a"],
+                    x["atom_index_b"],
+                    x["atom_index_c"],
+                    x["atom_index_d"],
+                ]
+                for x in system.torsion_metadata[
+                    system.torsion_metadata["name"] == chi_name
+                ]
+            ],
+            dtype=numpy.int32,
+        )
+        if dun_chi.shape[0] == 0:
+            dun_chi = numpy.zeros((0, 6), dtype=numpy.int32)
+        return dun_chi
 
-    dun_chi3 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                2,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi3"]
-        ],
-        dtype=numpy.int32,
-    )
-
-    dun_chi4 = numpy.array(
-        [
-            [
-                x["residue_index"],
-                3,
-                x["atom_index_a"],
-                x["atom_index_b"],
-                x["atom_index_c"],
-                x["atom_index_d"],
-            ]
-            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi4"]
-        ],
-        dtype=numpy.int32,
-    )
+    dun_chi1 = nab_chi("chi1", 0)
+    dun_chi2 = nab_chi("chi2", 1)
+    dun_chi3 = nab_chi("chi3", 2)
+    dun_chi4 = nab_chi("chi4", 3)
 
     # merge the 4 chi tensors, sorting by residue index and chi index
     join_chi = numpy.concatenate((dun_chi1, dun_chi2, dun_chi3, dun_chi4), 0)
@@ -229,12 +206,27 @@ class DunbrackParameters(ScoreModule):
         # phi torsion. This atom will be non-negative even if other
         # atoms that define phi are negative.
         res_names = BondedAtoms.get(self).res_names
-        dun_at2_inds = dun_phi[:, :, 2].cpu().numpy()
-        dun_at2_real = dun_at2_inds != -1
-        nz_at2_real = numpy.nonzero(dun_at2_real)
-        dun_res_names[dun_at2_real] = res_names[
-            nz_at2_real[0], dun_at2_inds[dun_at2_real]
-        ]
+        # TEMP!
+        # Instead of saying that the criterion for being scored by dunbrack
+        # is that at2 is real for your phi torsion, let's say every
+        # real residue for this structure is a valid dunbrack residue.
+
+        res_inds = BondedAtoms.get(self).res_indices
+        first_for_pose = numpy.ones((res_inds.shape[0], 1), dtype=bool)
+        at_is_first_for_res = res_inds[:, :-1] != res_inds[:, 1:]
+        at_is_real = res_inds[:, 1:] == res_inds[:, 1:]
+        at_is_first_for_res = numpy.logical_and(at_is_first_for_res, at_is_real)
+        first_at_for_res = numpy.concatenate(
+            (first_for_pose, at_is_first_for_res), axis=1
+        )
+        n_poses = res_inds.shape[0]
+        n_res_for_pose = numpy.sum(first_at_for_res, axis=1, dtype=int)
+        max_n_res = numpy.max(n_res_for_pose)
+        dun_res_names = numpy.empty((n_poses, max_n_res), dtype=object)
+        res_is_good = (
+            numpy.arange(max_n_res).reshape(1, max_n_res) < n_res_for_pose[:, None]
+        )
+        dun_res_names[res_is_good] = res_names[first_at_for_res]
 
         return self.dunbrack_param_resolver.resolve_dunbrack_parameters(
             dun_res_names,

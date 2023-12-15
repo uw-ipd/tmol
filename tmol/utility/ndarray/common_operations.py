@@ -2,14 +2,33 @@ import numpy
 from typing import Optional, Union
 from tmol.types.array import NDArray
 
-# from tmol.types.functional import validate_args
+from tmol.types.functional import validate_args
 
 
-# @validate_args
-# def exclusive_cumsum1d(
-#     inds: Union[NDArray[numpy.int32][:], NDArray[numpy.int64][:]]
-# ) -> Union[NDArray[numpy.int32][:], NDArray[numpy.int64][:]] :
-#
+@validate_args
+def exclusive_cumsum1d(
+    inds: Union[NDArray[numpy.int32][:], NDArray[numpy.int64][:]]
+) -> Union[NDArray[numpy.int32][:], NDArray[numpy.int64][:]]:
+    return numpy.concatenate(
+        (
+            numpy.array([0], dtype=inds.dtype),
+            numpy.cumsum(inds)[:-1],
+        ),
+        axis=0,
+    )
+
+
+@validate_args
+def exclusive_cumsum2d(
+    inds: Union[NDArray[numpy.int32][:, :], NDArray[numpy.int64][:, :]]
+) -> Union[NDArray[numpy.int32][:, :], NDArray[numpy.int64][:, :]]:
+    return numpy.concatenate(
+        (
+            numpy.zeros((inds.shape[0], 1), dtype=inds.dtype),
+            numpy.cumsum(inds, axis=1)[:, :-1],
+        ),
+        axis=1,
+    )
 
 
 def invert_mapping(

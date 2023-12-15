@@ -51,11 +51,11 @@ def test_annotate_restypes(
 
 def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
     gold_vals = numpy.array(
-        [[421.00595092], [171.192932], [1.57858872], [10.99459934]], dtype=numpy.float32
+        [[422.0388], [172.1965], [1.5786], [10.9946]], dtype=numpy.float32
     )
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         lk_ball_energy.setup_block_type(bt)
@@ -79,7 +79,7 @@ def test_whole_pose_scoring_module_gradcheck_partial_pose(
 ):
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res[6:12], device=torch_device
+        default_database.chemical, res=rts_ubq_res[6:12], device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         lk_ball_energy.setup_block_type(bt)
@@ -112,14 +112,14 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     n_poses = 10
     gold_vals = numpy.tile(
         numpy.array(
-            [[421.00595092], [171.192932], [1.57858872], [10.99459934]],
+            [[422.0388], [172.1965], [1.5786], [10.9946]],
             dtype=numpy.float32,
         ),
         (n_poses),
     )
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
