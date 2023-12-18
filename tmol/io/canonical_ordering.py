@@ -236,24 +236,23 @@ class CanonicalOrdering:
     def _init_cys_special_case_indices(
         cls, restype_name3s, restypes_ordered_atom_names
     ):
-        cys_co_aa_ind = restype_name3s.index("CYS")
-        if cys_co_aa_ind != -1:
+        if "CYS" not in restype_name3s:
+            return CysSpecialCaseIndices(
+                cys_co_aa_ind=-1,
+                sg_atom_for_co_cys=-1,
+            )
+        else:
+            cys_co_aa_ind = restype_name3s.index("CYS")
             return CysSpecialCaseIndices(
                 cys_co_aa_ind=cys_co_aa_ind,
                 sg_atom_for_co_cys=restypes_ordered_atom_names["CYS"].index("SG"),
-            )
-        else:
-            return CysSpecialCaseIndices(
-                cys_co_aa_ind=cys_co_aa_ind,
-                sg_atom_for_co_cys=-1,
             )
 
     @classmethod
     def _init_his_special_case_indices(
         cls, restype_name3s, restypes_ordered_atom_names
     ):
-        his_co_aa_ind = restype_name3s.index("HIS")
-        if his_co_aa_ind == -1:
+        if "HIS" not in restype_name3s:
             return HisSpecialCaseIndices(
                 his_co_aa_ind=-1,
                 his_ND1_in_co=-1,
@@ -266,6 +265,7 @@ class CanonicalOrdering:
                 his_CG_in_co=-1,
             )
         else:
+            his_co_aa_ind = restype_name3s.index("HIS")
 
             def his_at_ind(atname):
                 return restypes_ordered_atom_names["HIS"].index(atname)

@@ -139,3 +139,22 @@ def test_canonical_form_w_unk(torch_device):
     assert chain_id.shape == (1, 3)
     assert res_types.shape == (1, 3)
     assert coords.shape == (1, 3, def_co.max_n_canonical_atoms, 3)
+
+
+def test_create_src_2_tmol_mapping(default_database, torch_device):
+    aa_subset = ["ALA", "ARG"]
+    var_subset = ["nterm", "cterm"]
+    subset_paramdb = default_database.create_stable_subset(aa_subset, var_subset)
+    co = CanonicalOrdering.from_chemdb(subset_paramdb.chemical)
+
+    bad_atom_names = {
+        "ALA": ["N", "CA", "C", "O", "ZB", "", "", "", "", "", ""],
+        "ARG": ["N", "CA", "C", "O", "CB", "CG", "CD", "NE", "CZ", "NH1", "NH2"],
+    }
+
+    try:
+        co.create_src_2_tmol_mappings(aa_subset, bad_atom_names, torch_device)
+        assert False
+    except ValueError as e:
+        gold_message = "error: ALA atom ZB not in tmol atom set"
+        assert str(e) == gold_message
