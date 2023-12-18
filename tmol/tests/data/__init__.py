@@ -206,20 +206,18 @@ def openfold_ubq_and_sumo_pred(torch_device):
 
 
 @pytest.fixture()
-def rosettafold_ubq_pred(torch_device):
-    fname = os.path.join(__file__.rpartition("/")[0], "rosettafold", "ubiquitin.pt")
+def rosettafold2_ubq_pred(torch_device):
+    fname = os.path.join(__file__.rpartition("/")[0], "rosettafold2", "ubiquitin.pt")
     return {
         x: (y.to(torch_device) if hasattr(y, "to") else y)
         for x, y in torch.load(fname).items()
     }
 
-    # what = torch.load(fname)
-    # print("what:")
-    # print(what)
-    # return [x.to(torch_device) if hasattr(x, "to") else x for x in torch.load(fname)]
-
 
 @pytest.fixture()
-def rosettafold_sumo_pred(torch_device):
-    fname = os.path.join(__file__.rpartition("/")[0], "rosettafold", "sumo.pt")
-    return [x.to(torch_device) if hasattr(x, "to") else x for x in torch.load(fname)]
+def rosettafold2_sumo_pred(torch_device):
+    fname = os.path.join(__file__.rpartition("/")[0], "rosettafold2", "sumo.pt")
+    return {
+        x: (y.to(torch_device) if hasattr(y, "to") else y)
+        for x, y in torch.load(fname).items()
+    }
