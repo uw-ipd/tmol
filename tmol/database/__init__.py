@@ -63,7 +63,7 @@ class ParameterDatabase:
         # lookup
         base_rts = {x.name: x for x in chem_db.residues if x.name == x.base_name}
         for name in desired_names:
-            if name not in desired_names:
+            if name not in base_rts:
                 message = (
                     f"ERROR: could not build the requested PachedChemcialDatabase"
                     + f" subset because '{name}' is not present in the original set"
