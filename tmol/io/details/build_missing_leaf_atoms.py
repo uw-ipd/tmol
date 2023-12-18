@@ -80,25 +80,35 @@ def build_missing_leaf_atoms(
         block_atom_missing, torch.logical_not(block_at_is_leaf)
     )
     if torch.any(non_leaf_atom_is_missing):
+        err_msg = []
         leaf_atom_missing_inds = torch.nonzero(non_leaf_atom_is_missing)
         for i in range(leaf_atom_missing_inds.shape[0]):
             i_bt_ind = block_types64[
                 leaf_atom_missing_inds[i, 0], leaf_atom_missing_inds[i, 1]
             ]
             i_bt = packed_block_types.active_block_types[i_bt_ind]
-            print(
-                "missing non-leaf atom",
-                i_bt.atoms[leaf_atom_missing_inds[i, 2]].name,
-                "on residue",
-                leaf_atom_missing_inds[i, 1].item(),
-                i_bt.name,
-                "on pose",
-                leaf_atom_missing_inds[i, 0].item(),
-                "real res?",
-                real_blocks[leaf_atom_missing_inds[i, 0], leaf_atom_missing_inds[i, 1]],
+            err_msg.append(
+                " ".join(
+                    [
+                        "Error: missing non-leaf atom",
+                        i_bt.atoms[leaf_atom_missing_inds[i, 2]].name,
+                        "on residue",
+                        str(leaf_atom_missing_inds[i, 1].item()),
+                        i_bt.name,
+                        "on pose",
+                        str(leaf_atom_missing_inds[i, 0].item()),
+                        "real res?",
+                        str(
+                            real_blocks[
+                                leaf_atom_missing_inds[i, 0],
+                                leaf_atom_missing_inds[i, 1],
+                            ].item()
+                        ),
+                    ]
+                )
             )
         # TO DO: useful error message
-        raise RuntimeError("cannot build non-leaf atoms")
+        raise ValueError("\n".join(err_msg))
 
     block_leaf_atom_is_missing = torch.logical_and(block_at_is_leaf, block_atom_missing)
     pose_stack_atom_is_missing = torch.zeros(

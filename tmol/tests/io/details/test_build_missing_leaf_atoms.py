@@ -176,6 +176,110 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     numpy.testing.assert_allclose(built_leaf_pos, orig_leaf_pos, atol=1e-1, rtol=1e-3)
 
 
+def test_build_missing_leaf_atoms_error_handling(torch_device, ubq_pdb):
+    # torch_device = torch.device("cpu")  # TEMP!
+    co = default_canonical_ordering()
+    pbt = default_canonical_packed_block_types(torch_device)
+    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf["coords"][0, :, 1, :] = numpy.NaN  # turn off all the CAlphas!
+    (
+        ch_id,
+        can_rts,
+        coords,
+    ) = (
+        cf["chain_id"],
+        cf["res_types"],
+        cf["coords"],
+    )
+
+    at_is_pres = not_any_nancoord(coords)
+
+    # 2
+    found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
+    # 3
+    (
+        his_taut,
+        res_type_variants,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+
+    # now we'll invoke assign_block_types
+    (
+        block_types64,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        co,
+        pbt,
+        resolved_atom_is_present,
+        ch_id,
+        can_rts,
+        res_type_variants,
+        found_disulfides,
+    )
+
+    block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
+        pbt, block_types64, coords, at_is_pres
+    )
+
+    # now let's just say that all the hydrogen atoms are missing so we can build
+    # them back
+    _annotate_packed_block_types_atom_is_leaf_atom(pbt)
+    n_poses = 1
+    max_n_blocks = block_types64.shape[1]
+    block_at_is_leaf = torch.zeros(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=torch_device
+    )
+    real_blocks = block_types64 >= 0
+    block_at_is_leaf[real_blocks] = pbt.is_leaf_atom[block_types64[real_blocks]].to(
+        torch.bool
+    )
+    ats_in_bts_to_leave_alone = ats_to_not_rebuild(pbt, torch_device)
+    block_at_allow_rebuild = torch.ones(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=torch_device
+    )
+    block_at_allow_rebuild[real_blocks] = ats_in_bts_to_leave_alone[
+        block_types64[real_blocks]
+    ]
+
+    block_at_to_rebuild = torch.logical_and(block_at_is_leaf, block_at_allow_rebuild)
+
+    missing_atoms[block_at_to_rebuild] = True
+
+    inter_residue_connections = inter_residue_connections64.to(torch.int32)
+    try:
+        build_missing_leaf_atoms(
+            pbt,
+            block_types64,
+            real_atoms,
+            block_coords,
+            missing_atoms,
+            inter_residue_connections,
+        )
+        assert False
+    except ValueError as err:
+        gold_msg = "\n".join(
+            [
+                " ".join(
+                    [
+                        "Error: missing non-leaf atom",
+                        "CA",
+                        "on residue",
+                        str(i),
+                        pbt.active_block_types[block_types64[0, i]].name,
+                        "on pose",
+                        "0",
+                        "real res?",
+                        str(real_blocks[0, i].item()),
+                    ]
+                )
+                for i in range(can_rts.shape[1])
+            ]
+        )
+        assert str(err) == gold_msg
+
+
 def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
