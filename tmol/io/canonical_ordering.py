@@ -282,6 +282,57 @@ class CanonicalOrdering:
                 his_CG_in_co=his_at_ind("CG"),
             )
 
+    def create_src_2_tmol_mappings(
+        self, src_aa_name3s, src_atom_names_for_name3s, device
+    ):
+        src_2_tmol_restype_mapping = torch.full(
+            (len(src_aa_name3s),),
+            -1,
+            dtype=torch.int64,
+        )
+
+        # how many atoms does the src format support?
+        # each entry in the src_atom_names_for_name3s should be
+        # the same length, so we will just ask what the length is
+        # of the first name3's atom list
+        src_max_n_ats = len(src_atom_names_for_name3s[src_aa_name3s[0]])
+
+        src_2_tmol_atom_mapping = torch.full(
+            (len(src_aa_name3s), src_max_n_ats),
+            -1,
+            dtype=torch.int64,
+        )
+        src_at_is_real = torch.zeros(
+            (len(src_aa_name3s), src_max_n_ats), dtype=torch.bool
+        )
+
+        for i, i_3lc in enumerate(src_aa_name3s):
+            if i_3lc not in self.restype_io_equiv_classes:
+                # Map this RT whenever encountered to a place-holder residue
+                continue
+            src_2_tmol_restype_mapping[i] = self.restype_io_equiv_classes.index(i_3lc)
+            src_res_atoms = src_atom_names_for_name3s[i_3lc]
+
+            # restypes_atom_index_mapping supports atom aliasing
+            # which resolves any ambiguity in PDB naming conventions;
+            tmol_res_atom_inds = self.restypes_atom_index_mapping[i_3lc]
+            for j, at in enumerate(src_res_atoms):
+                if at == "":
+                    continue
+                if at not in tmol_res_atom_inds:
+                    raise ValueError(f"error: {i_3lc} atom {at} not in tmol atom set")
+                src_2_tmol_atom_mapping[i, j] = tmol_res_atom_inds[at]
+                src_at_is_real[i, j] = True
+
+        def _d(x):
+            return x.to(device=device)
+
+        return (
+            _d(src_2_tmol_restype_mapping),
+            _d(src_2_tmol_atom_mapping),
+            _d(src_at_is_real),
+        )
+
 
 @toolz.functoolz.memoize
 def default_canonical_ordering():

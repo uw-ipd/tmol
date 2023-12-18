@@ -29,6 +29,8 @@ from .data import (  # noqa: F401
     pertuzumab_pdb,
     pertuzumab_and_nearby_erbb2_pdb_and_segments,
     openfold_ubq_and_sumo_pred,
+    rosettafold_ubq_pred,
+    rosettafold_sumo_pred,
 )
 
 from .chemical import (  # noqa: F401

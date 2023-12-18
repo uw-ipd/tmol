@@ -1,5 +1,6 @@
 import os
 import attr
+from typing import List
 
 from .chemical import ChemicalDatabase
 from .scoring import ScoringDatabase
@@ -31,4 +32,60 @@ class ParameterDatabase:
         return cls(
             scoring=ScoringDatabase.from_file(os.path.join(path, "scoring")),
             chemical=patched_chemdb,
+        )
+
+    def create_stable_subset(
+        self, desired_names: List[str], desired_variants: List[str]
+    ):
+        """Create a ParameterDatabase representing a subset of the
+        RefinedResidueTypes in this PD's PatchedChemicalDatabase from a list
+        of RRT names and patched with the given variants (identified by their
+        display names) where the order in which RRTs will appear in the subset
+        will be stable over time (as long as this source PCD is only accumulating
+        new RRTs over time and not losing the RRTs that it starts with).
+
+        """
+        chem_db = self.chemical
+        chem_elem_types = chem_db.element_types
+        chem_atom_types = chem_db.atom_types
+
+        # TO DO: Decide whether these should be shared between
+        # the self PCD and the newly created PCD
+        # Should we share _all_ of the residue objects or just
+        # the unpatched ones or none?
+
+        # for stability, the order of the RRTs in the newly constructed
+        # PCD should be independent of the order that those RRTs
+        # appear in this PCD. Therefore, iterate across the desired names
+        # and find the corresponding residue type for each
+
+        # for speed, collected the unpatched subset of RRTs and create a named-based
+        # lookup
+        base_rts = {x.name: x for x in chem_db.residues if x.name == x.base_name}
+        for name in desired_names:
+            if name not in desired_names:
+                message = (
+                    f"ERROR: could not build the requested PachedChemcialDatabase"
+                    + f" subset because '{name}' is not present in the original set"
+                )
+                raise ValueError(message)
+        unpatched_residue_subset = [base_rts[name] for name in desired_names]
+
+        desired_variants = sorted(
+            [x for x in chem_db.variants if x.display_name in desired_variants],
+            key=lambda x: x.name,
+        )
+
+        chemical_db_subset = ChemicalDatabase(
+            element_types=chem_elem_types,
+            atom_types=chem_atom_types,
+            residues=unpatched_residue_subset,
+            variants=desired_variants,
+        )
+        patched_chemical_db_subset = PatchedChemicalDatabase.from_chem_db(
+            chemical_db_subset
+        )
+
+        return ParameterDatabase(
+            scoring=self.scoring, chemical=patched_chemical_db_subset
         )
