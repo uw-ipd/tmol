@@ -143,20 +143,9 @@ class PackedBlockTypes:
         cls, max_n_atoms: int, n_atoms: Tensor[torch.int32][:], device: torch.device
     ):
         n_types = n_atoms.shape[0]
-        return (
-            torch.remainder(
-                torch.arange(n_types * max_n_atoms, dtype=torch.int32, device=device),
-                max_n_atoms,
-            )
-            < n_atoms[
-                torch.floor_divide(
-                    torch.arange(
-                        n_types * max_n_atoms, dtype=torch.int64, device=device
-                    ),
-                    max_n_atoms,
-                )
-            ]
-        ).reshape(n_atoms.shape[0], max_n_atoms)
+        return torch.arange(max_n_atoms, dtype=torch.int32, device=device).unsqueeze(
+            0
+        ).expand(n_types, -1) < n_atoms.unsqueeze(1).expand(-1, max_n_atoms)
 
     @classmethod
     def determine_h_atoms(

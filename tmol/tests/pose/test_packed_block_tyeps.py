@@ -11,6 +11,17 @@ def test_load_packed_residue_types(ubq_res, default_database, torch_device):
     assert pbt
 
 
+def test_determine_real_atoms(ubq_res, default_database, torch_device):
+    rt_list = residue_types_from_residues(ubq_res)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, rt_list, torch_device
+    )
+    for i, bt in enumerate(pbt.active_block_types):
+        i_nats = bt.n_atoms
+        for j in range(pbt.max_n_atoms):
+            assert pbt.atom_is_real[i, j] == (j < i_nats)
+
+
 def test_packed_residue_type_indexer(ubq_res, default_database, torch_device):
     rt_list = residue_types_from_residues(ubq_res)
     pbt = PackedBlockTypes.from_restype_list(
