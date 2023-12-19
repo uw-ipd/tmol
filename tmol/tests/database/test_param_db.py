@@ -1,5 +1,3 @@
-import torch
-
 from tmol.database import ParameterDatabase
 
 

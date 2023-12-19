@@ -115,7 +115,6 @@ def _paramdb_for_openfold() -> ParameterDatabase:
     desired_rt_names = [one2three(aa1lc) for aa1lc in restypes] + ["HIS_D", "CYD"]
     # hard coding
     desired_variants_display_names = ["nterm", "cterm"]
-    from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
     return ParameterDatabase.get_default().create_stable_subset(
         desired_rt_names, desired_variants_display_names
@@ -174,55 +173,9 @@ def _get_of_2_tmol_mappings(device: torch.device):
     from tmol.extern.openfold.residue_constants import (
         restype_name_to_atom14_names,
         restypes,
-        restypes_with_x,
     )
 
     of_name3s = [one2three(x) for x in restypes] + ["XXX"]
     return co.create_src_2_tmol_mappings(
         of_name3s, restype_name_to_atom14_names, device
     )
-
-    # of_2_tmol_restype_mapping = torch.full(
-    #     (len(restypes_with_x),),
-    #     -1,
-    #     dtype=torch.int64,
-    # )
-    #
-    # # how many atoms does openfold support? 14 obviously
-    # # but let's future-proof this; bracing for a change to
-    # # openfold that we are quitely hoping never comes
-    # of_max_n_ats = len(restype_name_to_atom14_names[one2three(restypes[0])])
-    #
-    # of_2_tmol_atom_mapping = torch.full(
-    #     (len(restypes_with_x), of_max_n_ats),
-    #     -1,
-    #     dtype=torch.int64,
-    # )
-    # of_at_is_real = torch.zeros((len(restypes_with_x), of_max_n_ats), dtype=torch.bool)
-    #
-    # # do not map X; so iterate over restypes not restypes_with_x
-    # for i, i_1lc in enumerate(restypes):
-    #     i_3lc = one2three(i_1lc)
-    #     of_2_tmol_restype_mapping[i] = co.restype_io_equiv_classes.index(i_3lc)
-    #     res_atoms = restype_name_to_atom14_names[i_3lc]
-    #
-    #     # restypes_atom_index_mapping supports atom aliasing
-    #     # which resolves any ambiguity in PDB naming conventions;
-    #     # future-proofing, really, since the PDBv2 vs PDBv3
-    #     # naming conventions differ only for hydrogen atom names
-    #     # but, some residue types at some future date may include
-    #     # heavy-atom ambiguities
-    #     tmol_res_atom_inds = co.restypes_atom_index_mapping[i_3lc]
-    #     for j, at in enumerate(res_atoms):
-    #         if at == "":
-    #             continue
-    #         if at not in tmol_res_atom_inds:
-    #             print("error:", i_3lc, "atom", at, "not in tmol atom set")
-    #         assert at in tmol_res_atom_inds
-    #         of_2_tmol_atom_mapping[i, j] = tmol_res_atom_inds[at]
-    #         of_at_is_real[i, j] = True
-    #
-    # def _d(x):
-    #     return x.to(device=device)
-    #
-    # return _d(of_2_tmol_restype_mapping), _d(of_2_tmol_atom_mapping), _d(of_at_is_real)

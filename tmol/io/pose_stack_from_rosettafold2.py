@@ -108,8 +108,6 @@ def canonical_form_from_rosettafold2(seq, xyz, chainlens):
         chain_id = torch.cumsum(chain_id)
     chain_id = chain_id.unsqueeze(0)
 
-    atom_is_present = torch.logical_not(torch.any(torch.isnan(tmol_coords), dim=3))
-
     # Now let's turn off the H atoms for any n-term residues
     supress_atom = torch.zeros(
         (n_poses, max_n_res, co.max_n_canonical_atoms), dtype=torch.bool, device=device
@@ -142,14 +140,11 @@ def _paramdb_for_rosettafold2() -> ParameterDatabase:
     the canonical n- and c-termini patches.
     """
 
-    from tmol.chemical.restypes import one2three
     from tmol.extern.rosettafold2.chemical import num2aa
 
     desired_rt_names = sorted(num2aa[:20] + ["HIS_D", "CYD"])
     # hard coding
     desired_variants_display_names = ["nterm", "cterm"]
-
-    from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
     return ParameterDatabase.get_default().create_stable_subset(
         desired_rt_names, desired_variants_display_names

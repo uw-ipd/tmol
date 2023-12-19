@@ -65,7 +65,7 @@ class ParameterDatabase:
         for name in desired_names:
             if name not in base_rts:
                 message = (
-                    f"ERROR: could not build the requested PachedChemcialDatabase"
+                    "ERROR: could not build the requested PachedChemcialDatabase"
                     + f" subset because '{name}' is not present in the original set"
                 )
                 raise ValueError(message)

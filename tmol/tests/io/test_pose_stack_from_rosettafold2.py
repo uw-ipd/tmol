@@ -33,7 +33,7 @@ def test_load_rosettafold2_dictionary2(rosettafold2_sumo_pred, torch_device):
     assert ps.packed_block_types is pbt
 
 
-def test_create_canonical_form_from_rosettafold2_stability(
+def test_create_canonical_form_from_rosettafold2_ubq_stability(
     rosettafold2_ubq_pred, torch_device
 ):
     cf = canonical_form_from_rosettafold2(**rosettafold2_ubq_pred)
@@ -48,7 +48,7 @@ def test_create_canonical_form_from_rosettafold2_stability(
         torch.testing.assert_close(t, cf[n].cpu(), equal_nan=True, atol=1e-5, rtol=1e-5)
 
 
-def test_create_canonical_form_from_rosettafold2_stability(
+def test_create_canonical_form_from_rosettafold2_sumo_stability(
     rosettafold2_sumo_pred, torch_device
 ):
     cf = canonical_form_from_rosettafold2(**rosettafold2_sumo_pred)
