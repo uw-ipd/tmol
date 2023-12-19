@@ -5,7 +5,7 @@ import torch
 import cattr
 import yaml
 from attrs import evolve
-from tmol.database.chemical import VariantType
+from tmol.database.chemical import ChemicalDatabase, VariantType
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
@@ -64,6 +64,120 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(
 def test_assign_block_types(torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_canonical_packed_block_types(torch_device)
+    PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
+
+    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    at_is_pres = not_any_nancoord(coords)
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
+        res_type_variants,
+        his_taut,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
+
+    # now we'll invoke assign_block_types
+    (
+        block_types,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
+
+    # ubq seq
+    ubq_1lc = [
+        x
+        for x in "MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG"
+    ]
+    ubq_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(ubq_1lc)
+    ubq_bt_inds = numpy.expand_dims(
+        pbt.bt_mapping_w_lcaa_1lc.iloc[ubq_df_inds]["bt_ind"].values, axis=0
+    )
+    ubq_bt_inds[0, 0] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "MET:nterm"
+    )
+    ubq_bt_inds[0, -1] = next(
+        i for i, bt in enumerate(pbt.active_block_types) if bt.name == "GLY:cterm"
+    )
+
+    assert block_types.device == torch_device
+    assert inter_residue_connections64.device == torch_device
+    assert inter_residue_connections64.dtype == torch.int64
+
+    numpy.testing.assert_equal(block_types.cpu().numpy(), ubq_bt_inds)
+
+
+def test_assign_block_types_w_exotic_termini_options(
+    default_database, ubq_pdb, torch_device
+):
+    floro_nterm_patch = """
+  - name:  AminoFloroTerminus
+    display_name: floro_nterm
+    pattern: '[*][*][NH][{down}]'
+    remove_atoms:
+    - <{down}>
+    - <H1>
+    add_atoms:
+    - { name: F1  ,  atom_type: S }
+    - { name: F2  ,  atom_type: S }
+    - { name: F3  ,  atom_type: S }
+    add_atom_aliases:
+    - { name: F1  ,  alt_name: 1F }
+    - { name: F2  ,  alt_name: 2F }
+    - { name: F3  ,  alt_name: 3F }
+
+    modify_atoms:
+    - { name: <N1> ,  atom_type: Nlys }
+    add_connections: []
+    add_bonds:
+    - [  <N1>,    F1   ]
+    - [  <N1>,    F2   ]
+    - [  <N1>,    F3   ]
+    icoors:
+    - { name:   F1, source: <H1>, phi: 180.0 deg, theta: 70.5 deg, d: 1.35, parent:  <N1>, grand_parent: <*2>, great_grand_parent: <*1> }
+    - { name:   F2, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.35, parent:  <N1>, grand_parent: <*2>, great_grand_parent: F1 }
+    - { name:   F3, source: <H1>, phi: 120.0 deg, theta: 70.5 deg, d: 1.35, parent:  <N1>, grand_parent: <*2>, great_grand_parent: F2 }
+"""
+
+    def variant_from_yaml(yml_string):
+        raw = yaml.safe_load(yml_string)
+        return tuple(cattr.structure(x, VariantType) for x in raw)
+
+    floro_nterm_variant = variant_from_yaml(floro_nterm_patch)
+
+    chem_db = default_database.chemical
+    chem_elem_types = chem_db.element_types
+    chem_atom_types = chem_db.atom_types
+
+    unpatched_res = [res for res in chem_db.residues if res.name == res.base_name]
+    ext_chemical_db = ChemicalDatabase(
+        element_types=chem_elem_types,
+        atom_types=chem_atom_types,
+        residues=unpatched_res,
+        variants=(chem_db.variants + floro_nterm_variant),
+    )
+    patched_chem_db = PatchedChemicalDatabase.from_chem_db(ext_chemical_db)
+
+    co = CanonicalOrdering.from_chemdb(patched_chem_db)
+    restype_list = [
+        cattr.structure(
+            cattr.unstructure(r),
+            RefinedResidueType,
+        )
+        for r in patched_chem_db.residues
+    ]
+    pbt = PackedBlockTypes.from_restype_list(
+        patched_chem_db, restype_list, torch_device
+    )
+
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
