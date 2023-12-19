@@ -5,7 +5,7 @@ from collections import defaultdict
 
 from tmol.database import ParameterDatabase
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from typing import Tuple, Mapping  # , FrozenSet
+from typing import Tuple, Mapping, Optional  # , FrozenSet
 from .pdb_parsing import parse_pdb
 import toolz.functoolz
 
@@ -69,6 +69,7 @@ class HisSpecialCaseIndices:
 @attr.s(auto_attribs=True, frozen=True)
 class CanonicalOrdering:
     # There are four data members that are useful for users:
+    # - max_n_canonical_atoms
     # - restype_io_equiv_classes
     # - restypes_ordered_atom_names
     # - restypes_atom_index_mapping
@@ -340,11 +341,61 @@ def default_canonical_ordering():
     return CanonicalOrdering.from_chemdb(chemdb)
 
 
+@toolz.functoolz.memoize
+def default_packed_block_types(device: torch.device):
+    import cattr
+    from tmol.chemical.restypes import RefinedResidueType
+    from tmol.pose.packed_block_types import PackedBlockTypes
+
+    chem_database = ParameterDatabase.get_default().chemical
+
+    restype_list = [
+        cattr.structure(
+            cattr.unstructure(r),
+            RefinedResidueType,
+        )
+        for r in chem_database.residues
+    ]
+
+    return PackedBlockTypes.from_restype_list(chem_database, restype_list, device)
+
+
 def canonical_form_from_pdb_lines(
-    canonical_ordering: CanonicalOrdering, pdb_lines: str, device: torch.device
+    canonical_ordering: CanonicalOrdering,
+    pdb_lines: str,
+    device: torch.device,
+    *,
+    residue_start: Optional[int] = None,
+    residue_end: Optional[int] = None,
 ):
     max_n_canonical_atoms = canonical_ordering.max_n_canonical_atoms
     atom_records = parse_pdb(pdb_lines)
+
+    if residue_start is not None or residue_end is not None:
+        # Figure out the starting row index for each residue
+        # and take the slice of the dataframe containing
+        # every atom of every residue within that range
+        import pandas
+
+        atom_records_begin_for_res = []
+        last_res = None
+        for i, row in atom_records.iterrows():
+            this_res = (row["modeli"], row["chaini"], row["resi"])
+            if last_res is not None and last_res == this_res:
+                # atom_records_for_res[-1].append(atom)
+                pass
+            else:
+                atom_records_begin_for_res.append(i)
+                last_res = this_res
+        atom_records_begin_for_res.append(i + 1)
+        if residue_start is None:
+            residue_start = 0
+        if residue_end is None:
+            residue_end = len(atom_records_begin_for_res) - 1
+        begin = atom_records_begin_for_res[residue_start]
+        end = atom_records_begin_for_res[residue_end]
+        atom_records = atom_records.iloc[begin:end]
+
     uniq_res_ind = {}
     uniq_res_list = []
     count_uniq = -1

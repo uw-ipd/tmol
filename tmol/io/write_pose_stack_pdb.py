@@ -8,6 +8,19 @@ from tmol.types.functional import validate_args
 from typing import Optional, Union
 
 
+def write_pose_stack_pdb(
+    pose_stack: PoseStack,
+    fname_out: str,
+    **kwargs,
+):
+    from tmol.io.pdb_parsing import to_pdb
+
+    atom_records = atom_records_from_pose_stack(pose_stack, **kwargs)
+    pdbstring = to_pdb(atom_records)
+    with open(fname_out, "w") as fid:
+        fid.write(pdbstring)
+
+
 def atom_records_from_pose_stack(
     pose_stack: PoseStack,
     chain_ind_for_block: Optional[Tensor[torch.int64][:, :]] = None,

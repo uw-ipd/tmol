@@ -11,12 +11,10 @@ from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
     canonical_form_from_pdb_lines,
     default_canonical_ordering,
+    default_packed_block_types,
     CanonicalOrdering,
 )
 from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
-from tmol.io.details.canonical_packed_block_types import (
-    default_canonical_packed_block_types,
-)
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
 from tmol.io.details.select_from_canonical import (
@@ -63,7 +61,7 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(
 
 def test_assign_block_types(torch_device, ubq_pdb):
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
@@ -231,7 +229,7 @@ def test_assign_block_types_w_exotic_termini_options(
 
 def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
@@ -313,7 +311,7 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
 
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
@@ -402,7 +400,7 @@ def test_assign_block_types_for_pert_and_antigen(
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
 
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     cf = canonical_form_from_pdb_lines(co, pert_and_erbb2_lines, torch_device)
@@ -495,7 +493,7 @@ def test_assign_block_types_for_pert_and_antigen(
 
 def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)

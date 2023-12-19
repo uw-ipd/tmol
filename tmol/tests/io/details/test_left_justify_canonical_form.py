@@ -1,12 +1,12 @@
 import torch
 import numpy
 
-from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
-from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
-from tmol.io.details.canonical_packed_block_types import (
-    default_canonical_packed_block_types,
+from tmol.io.canonical_ordering import (
+    canonical_form_from_pdb_lines,
+    default_packed_block_types,
+    default_canonical_ordering,
 )
-from tmol.io.canonical_ordering import default_canonical_ordering
+from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
 
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
@@ -34,7 +34,7 @@ def not_any_nancoord(coords):
 
 def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
@@ -91,7 +91,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
 
 def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     (
@@ -176,7 +176,7 @@ def test_assign_block_types_for_pert_and_antigen(
         pert_and_erbb2_lines,
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     (

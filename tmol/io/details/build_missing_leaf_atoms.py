@@ -195,9 +195,6 @@ def _annotate_block_type_atom_is_leaf_atom(
     is_fourth_chi_atom = numpy.zeros(block_type.n_atoms, dtype=bool)
     is_fourth_chi_atom[real_fourth_torsion_atoms] = True
     is_fourth_chi_atom[is_hydrogen == 1] = False
-    # for i in range(block_type.n_atoms):
-    #     if is_fourth_chi_atom[i]:
-    #         print("fourth chi atom", block_type.atoms[i].name, "is H?", is_hydrogen[i])
     is_parent = numpy.logical_or(is_parent, is_fourth_chi_atom)
 
     is_leaf = numpy.logical_not(is_parent)
@@ -353,10 +350,8 @@ def _determine_leaf_atom_icoors_for_block_type(bt, atom_is_hydrogen):
             # that is why we handle that case
             seen = numpy.zeros(bt.n_icoors, dtype=bool)
             seen[j_icoor_ind] = True
-            # print("recurse", bt.name, j, bt.atoms[j].name)
             while _icoor_at_is_leaf(bt, j_icoor.great_grand_parent):
                 ggp_ind = bt.icoors_index[j_icoor.great_grand_parent]
-                # print("    ggp", ggp_ind, bt.icoors[ggp_ind].name)
                 if seen[ggp_ind]:
                     # infinite loop. This should never happen.
                     print(

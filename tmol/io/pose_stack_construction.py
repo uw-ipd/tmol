@@ -152,7 +152,6 @@ def pose_stack_from_canonical_form(
     # their Poses to ensure that the polymeric-bond-detection logic
     # downstream will work properly. This effectively means "shifting left"
     # all the other residues in the Pose to fill the vacated slots.
-    # print("2")
     (
         chain_id,
         res_types,
@@ -165,13 +164,11 @@ def pose_stack_from_canonical_form(
     )
 
     # 3
-    # print("3")
     found_disulfides, res_type_variants = find_disulfides(
         canonical_ordering, res_types, coords, disulfides, find_additional_disulfides
     )
 
     # 4
-    # print("4")
     (
         his_taut,
         res_type_variants,
@@ -182,7 +179,6 @@ def pose_stack_from_canonical_form(
     )
 
     # 5
-    # print("5")
     (
         block_types64,
         inter_residue_connections64,
@@ -199,7 +195,6 @@ def pose_stack_from_canonical_form(
     )
 
     # 6
-    # print("6")
     (
         block_coords,
         missing_atoms,
@@ -210,7 +205,6 @@ def pose_stack_from_canonical_form(
     )
 
     # 7
-    # print("7")
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     pose_stack_coords, block_coord_offset = build_missing_leaf_atoms(
         pbt,
@@ -228,7 +222,6 @@ def pose_stack_from_canonical_form(
         return x.to(torch.int32)
 
     # 8
-    # print("8")
     block_coord_offset64 = i64(block_coord_offset)
     ps = PoseStack(
         packed_block_types=pbt,
@@ -290,3 +283,32 @@ def pose_stack_from_canonical_form(
             return (ps, can_atom_mapping, ps_atom_mapping)
         else:
             return ps
+
+
+def pose_stack_from_pdb_lines(
+    pdb_lines,
+    device: torch.device,
+    *,
+    residue_start: Optional[int] = None,
+    residue_end: Optional[int] = None,
+    **kwargs,
+):
+    """Construct a PoseStack given the contents of a PDB file or the name of a PDB file
+    using the full set of residue types contained in tmol's chemical.yaml file.
+
+    Optionally, a subset of the residues in the range from residue_begin to residue_end-1
+    can be requested.
+    Any additional keyword arguments will be passed to pose_stack_from_canonical_form
+    """
+    from tmol.io.canonical_ordering import (
+        default_canonical_ordering,
+        default_packed_block_types,
+        canonical_form_from_pdb_lines,
+    )
+
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(device)
+    cf = canonical_form_from_pdb_lines(
+        co, pdb_lines, device, residue_start=residue_start, residue_end=residue_end
+    )
+    return pose_stack_from_canonical_form(co, pbt, **cf, **kwargs)

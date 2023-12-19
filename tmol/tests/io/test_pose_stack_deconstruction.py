@@ -6,11 +6,8 @@ from tmol.io.pose_stack_deconstruction import (
 )
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
+    default_packed_block_types,
     canonical_form_from_pdb_lines,
-    # max_n_canonical_atoms,
-)
-from tmol.io.details.canonical_packed_block_types import (
-    default_canonical_packed_block_types,
 )
 
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
@@ -29,7 +26,7 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     )
     cf_orig_at_is_pres = not_any_nancoord(cf_orig_coords)
 
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     restored_canonical_form = canonical_form_from_pose_stack(co, pose_stack)
@@ -125,7 +122,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     orig_res_not_connected[0, 3, 1] = True  # don't add OXT
     orig_res_not_connected[1, 5, 1] = True  # don't add OXT
 
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     pose_stack = pose_stack_from_canonical_form(
         co,
         pbt,
@@ -175,7 +172,7 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     )
     cf_orig_at_is_pres = not_any_nancoord(cf_orig_coords)
 
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     restored_canonical_form = canonical_form_from_pose_stack(co, pose_stack)
@@ -257,7 +254,7 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
     cf_orig_at_is_pres = not_any_nancoord(cf_orig_coords)
     assert not torch.any(torch.isnan(cf_orig_coords[cf_orig_at_is_pres.to(torch.bool)]))
 
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     pose_stack, chain_id_from_constr = pose_stack_from_canonical_form(
         co,
         pbt,

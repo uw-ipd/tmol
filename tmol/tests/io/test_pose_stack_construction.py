@@ -3,17 +3,15 @@ import numpy
 
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
+    default_packed_block_types,
     canonical_form_from_pdb_lines,
-)
-from tmol.io.details.canonical_packed_block_types import (
-    default_canonical_packed_block_types,
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
@@ -33,7 +31,7 @@ def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
 def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_pdb):
     co = default_canonical_ordering()
     canonical_form = canonical_form_from_pdb_lines(co, pertuzumab_pdb, torch_device)
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     assert pose_stack.packed_block_types.device == torch_device
@@ -51,7 +49,7 @@ def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_pdb)
 
 def test_build_pose_stack_from_canonical_form_pert_w_dslf(torch_device, pertuzumab_pdb):
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb_lines(co, pertuzumab_pdb, torch_device)
 
     disulfides = torch.tensor(
@@ -91,7 +89,7 @@ def test_build_pose_stack_w_disconn_segs(
     # print()
 
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb_lines(
         co, pert_and_erbb2_lines, torch_device
     )
@@ -133,7 +131,7 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb_lines(
         co, pert_and_erbb2_lines, torch_device
     )
@@ -206,7 +204,7 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
 
 def test_build_pose_stack_from_canonical_form_ubq_w_atom_mapping(torch_device, ubq_pdb):
     co = default_canonical_ordering()
-    pbt = default_canonical_packed_block_types(torch_device)
+    pbt = default_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
     pose_stack, cf_map, ps_map = pose_stack_from_canonical_form(
         co, pbt, **canonical_form, return_atom_mapping=True

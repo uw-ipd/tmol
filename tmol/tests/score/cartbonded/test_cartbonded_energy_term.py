@@ -139,10 +139,23 @@ def test_whole_pose_scoring_module_10(
 
 
 def test_whole_pose_scoring_module_jagged(
-    rts_ubq_res, default_database, torch_device: torch.device
+    ubq_pdb, default_database, torch_device: torch.device
 ):
-    rts_ubq_60 = rts_ubq_res[:60]
-    rts_ubq_40 = rts_ubq_res[:40]
+    # from tmol.io.canonical_ordering import (
+    #     default_canonical_ordering,
+    #     default_packed_block_types,
+    #     canonical_form_from_pdb_lines
+    # )
+    # from tmol.io.details.canonical_packed_block_types import
+    from tmol.io.pose_stack_construction import pose_stack_from_pdb_lines
+
+    # co = default_canonical_ordering()
+    # pbt = default_packed_block_types(torch_device)
+    # cf_whole = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    # cf_40 = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device, residue_end=40)
+    # cf_60 = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device, residue_end=60)
+    # rts_ubq_60 = rts_ubq_res[:60]
+    # rts_ubq_40 = rts_ubq_res[:40]
     gold_vals = numpy.array(
         [
             [37.762302, 30.048717, 19.709312],
@@ -156,15 +169,21 @@ def test_whole_pose_scoring_module_jagged(
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_60, device=torch_device
-    )
-    p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_40, device=torch_device
-    )
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, res=rts_ubq_res, device=torch_device
+    # )
+    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, res=rts_ubq_60, device=torch_device
+    # )
+    # p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, res=rts_ubq_40, device=torch_device
+    # )
+    # p1 = pose_stack_from_canonical_form(co, pbt, **cf_whole)
+    # p2 = pose_stack_from_canonical_form(co, pbt, **cf_60)
+    # p3 = pose_stack_from_canonical_form(co, pbt, **cf_40)
+    p1 = pose_stack_from_pdb_lines(ubq_pdb, torch_device)
+    p2 = pose_stack_from_pdb_lines(ubq_pdb, torch_device, residue_end=60)
+    p3 = pose_stack_from_pdb_lines(ubq_pdb, torch_device, residue_end=40)
     pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:

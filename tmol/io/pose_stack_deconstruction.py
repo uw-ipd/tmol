@@ -20,8 +20,6 @@ def canonical_form_from_pose_stack(
 
     can_ann = pbt.canonical_ordering_annotation
     device = pose_stack.device
-    # _annotate_packed_block_types_w_dslf_conn_inds(pbt)
-    # _annotate_packed_block_types_w_canonical_atom_order(pbt)
 
     n_poses = pose_stack.n_poses
     max_n_res = pose_stack.max_n_blocks
@@ -110,7 +108,7 @@ def canonical_form_from_pose_stack(
         assert chain_id.shape == (n_poses, max_n_res)
 
     res_not_connected = determine_res_not_connected_from_pose_stack(
-        pose_stack, chain_id, is_real_block, real_bt_inds64
+        co, pose_stack, chain_id, is_real_block, real_bt_inds64
     )
 
     return (
@@ -123,12 +121,10 @@ def canonical_form_from_pose_stack(
     )
 
 
-def _annotate_packed_block_types_w_termini_types(pbt: PackedBlockTypes):
-    # TEMP!
-    # for now: a bt is a down/up terminus if it includes
-    # "nterm" or "cterm" in its name; these are not good
-    # criteria and will be shortly replaced with the more
-    # general CanonicalOrdering class that looks at the
+def _annotate_packed_block_types_w_termini_types(
+    co: CanonicalOrdering, pbt: PackedBlockTypes
+):
+    # The CanonicalOrdering class examines the
     # PatchedChemicalDatabase and the Patches that define
     # the removal of up and down connections
     if hasattr(pbt, "is_term_bt"):
@@ -136,18 +132,19 @@ def _annotate_packed_block_types_w_termini_types(pbt: PackedBlockTypes):
     is_term_bt = torch.zeros((pbt.n_types, 2), dtype=torch.bool)
     for i, bt in enumerate(pbt.active_block_types):
         patches = bt.name.partition(":")
-        if "nterm" in patches:
-            is_term_bt[i, 0] = True
-        if "cterm" in patches:
-            is_term_bt[i, 1] = True
+        for patch in patches:
+            if patch in co.down_termini_patches:
+                is_term_bt[i, 0] = True
+            if patch in co.up_termini_patches:
+                is_term_bt[i, 1] = True
     setattr(pbt, "is_term_bt", is_term_bt.to(pbt.device))
 
 
 def determine_res_not_connected_from_pose_stack(
-    pose_stack, chain_id, is_real_block, real_bt_inds64
+    co, pose_stack, chain_id, is_real_block, real_bt_inds64
 ):
     pbt = pose_stack.packed_block_types
-    _annotate_packed_block_types_w_termini_types(pbt)
+    _annotate_packed_block_types_w_termini_types(co, pbt)
     # now let's figure out which residues are either a)
     # part of the same chain with i-1 or i+1 but do not
     # have a chemical bound to them or b) are the first/

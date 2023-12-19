@@ -1,11 +1,10 @@
 import numpy
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
+    default_packed_block_types,
     CanonicalOrdering,
     canonical_form_from_pdb_lines,
 )
-
-# from tmol.io.details.canonical_packed_block_types import default_canonical_packed_block_types
 
 
 def test_create_canonical_ordering_smoke(default_database):
@@ -32,9 +31,14 @@ def test_default_canonical_ordering():
     assert co2 is co1
 
 
+def test_default_packed_block_types(torch_device):
+    pbt1 = default_packed_block_types(torch_device)
+    pbt2 = default_packed_block_types(torch_device)
+    assert pbt1 is pbt2
+
+
 def test_default_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
     can_ord = default_canonical_ordering()
-    # can_pbt = default_canonical_packed_block_types(torch_device)
     cf = canonical_form_from_pdb_lines(can_ord, pertuzumab_pdb, torch_device)
     (
         chain_id,
