@@ -1,6 +1,7 @@
 import numpy
 import torch
 
+from tmol.io import pose_stack_from_pdb
 from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -14,13 +15,13 @@ def test_smoke(default_database, torch_device: torch.device):
     assert dunbrack_energy.device == torch_device
 
 
-def test_annotate_block_types(ubq_res, default_database, torch_device: torch.device):
+def test_annotate_block_types(
+    fresh_default_packed_block_types, default_database, torch_device: torch.device
+):
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
 
-    bt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, bt_list, torch_device
-    )
+    pbt = fresh_default_packed_block_types
+    bt_list = pbt.active_block_types
 
     for bt in bt_list:
         dunbrack_energy.setup_block_type(bt)
@@ -36,12 +37,10 @@ def test_annotate_block_types(ubq_res, default_database, torch_device: torch.dev
 
 
 def test_whole_pose_scoring_module_gradcheck(
-    rts_ubq_res, default_database, torch_device: torch.device
+    ubq_pdb, default_database, torch_device: torch.device
 ):
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     for bt in p1.packed_block_types.active_block_types:
         dunbrack_energy.setup_block_type(bt)
     dunbrack_energy.setup_packed_block_types(p1.packed_block_types)
@@ -63,13 +62,11 @@ def test_whole_pose_scoring_module_gradcheck(
 
 
 def test_whole_pose_scoring_module_single(
-    rts_ubq_res, default_database, torch_device: torch.device
+    ubq_pdb, default_database, torch_device: torch.device
 ):
     gold_vals = numpy.array([[70.6497], [240.3100], [99.6609]], dtype=numpy.float32)
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     for bt in p1.packed_block_types.active_block_types:
         dunbrack_energy.setup_block_type(bt)
     dunbrack_energy.setup_packed_block_types(p1.packed_block_types)
@@ -89,16 +86,14 @@ def test_whole_pose_scoring_module_single(
 
 
 def test_whole_pose_scoring_module_10(
-    rts_ubq_res, default_database, torch_device: torch.device
+    ubq_pdb, default_database, torch_device: torch.device
 ):
     n_poses = 10
     gold_vals = numpy.tile(
         numpy.array([[70.6497], [240.3100], [99.6609]], dtype=numpy.float32), (n_poses)
     )
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:
@@ -120,10 +115,10 @@ def test_whole_pose_scoring_module_10(
 
 
 def test_whole_pose_scoring_module_jagged(
-    rts_ubq_res, default_database, torch_device: torch.device
+    ubq_pdb, default_database, torch_device: torch.device
 ):
-    rts_ubq_60 = rts_ubq_res[:60]
-    rts_ubq_40 = rts_ubq_res[:40]
+    # rts_ubq_60 = rts_ubq_res[:60]
+    # rts_ubq_40 = rts_ubq_res[:40]
     gold_vals = numpy.array(
         [
             [70.6497, 47.4000, 31.5526],
@@ -133,15 +128,10 @@ def test_whole_pose_scoring_module_jagged(
         dtype=numpy.float32,
     )
     dunbrack_energy = DunbrackEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_60, device=torch_device
-    )
-    p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_40, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=60)
+    p3 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=40)
+
     pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:
