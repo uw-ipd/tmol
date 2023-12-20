@@ -2,7 +2,7 @@ import numpy
 import torch
 from tmol.io.canonical_ordering import (
     # CanonicalOrdering
-    canonical_form_from_pdb_lines,
+    canonical_form_from_pdb,
     default_canonical_ordering,
 )
 from tmol.io.details.disulfide_search import find_disulfides
@@ -50,7 +50,7 @@ from tmol.io.details.disulfide_search import find_disulfides
 
 
 def cf_as_tuple_from_pdb_lines(co, pdblines, device):
-    cf = canonical_form_from_pdb_lines(co, pdblines, device)
+    cf = canonical_form_from_pdb(co, pdblines, device)
     return (
         cf["chain_id"],
         cf["res_types"],

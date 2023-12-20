@@ -9,7 +9,7 @@ from tmol.database.chemical import ChemicalDatabase, VariantType
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
-    canonical_form_from_pdb_lines,
+    canonical_form_from_pdb,
     default_canonical_ordering,
     default_packed_block_types,
     CanonicalOrdering,
@@ -64,7 +64,7 @@ def test_assign_block_types(torch_device, ubq_pdb):
     pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
     (
@@ -178,7 +178,7 @@ def test_assign_block_types_w_exotic_termini_options(
 
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
     (
@@ -233,11 +233,11 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
-    cf4 = canonical_form_from_pdb_lines(co, ubq_pdb[: (81 * 75)], torch_device)
+    cf4 = canonical_form_from_pdb(co, ubq_pdb[: (81 * 75)], torch_device)
     ch_id_4, can_rts_4, coords_4 = cf4["chain_id"], cf4["res_types"], cf4["coords"]
     at_is_pres_4 = not_any_nancoord(coords_4)
     # first 6 res -- up through line 113
-    cf6 = canonical_form_from_pdb_lines(co, ubq_pdb[: (81 * 113)], torch_device)
+    cf6 = canonical_form_from_pdb(co, ubq_pdb[: (81 * 113)], torch_device)
     ch_id_6, can_rts_6, coords_6 = cf6["chain_id"], cf6["res_types"], cf6["coords"]
     at_is_pres_6 = not_any_nancoord(coords_6)
 
@@ -315,7 +315,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb[: 81 * 167], torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb[: 81 * 167], torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
 
@@ -403,7 +403,7 @@ def test_assign_block_types_for_pert_and_antigen(
     pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    cf = canonical_form_from_pdb_lines(co, pert_and_erbb2_lines, torch_device)
+    cf = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
@@ -496,7 +496,7 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
     (
@@ -671,7 +671,7 @@ def test_select_best_block_type_candidate_choosing_default_term(
 
     assert not threw
 
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
 
@@ -789,7 +789,7 @@ def test_select_best_block_type_candidate_w_mult_opts(
 
     assert not threw
 
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
 
@@ -872,7 +872,7 @@ def test_select_best_block_type_candidate_error_impossible_combo(
 
     assert not threw
 
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
 

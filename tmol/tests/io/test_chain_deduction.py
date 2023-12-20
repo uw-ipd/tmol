@@ -5,7 +5,7 @@ from tmol.io.chain_deduction import chain_inds_for_pose_stack
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb_lines,
+    canonical_form_from_pdb,
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
@@ -39,7 +39,7 @@ def test_deduce_chains_two_monomers(ubq_res, default_restype_set, torch_device):
 def test_deduce_chains_dslf_dimer(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb_lines(co, pertuzumab_pdb, torch_device)
+    canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
 
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 

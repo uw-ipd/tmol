@@ -2,7 +2,7 @@ import torch
 import numpy
 
 from tmol.io.canonical_ordering import (
-    canonical_form_from_pdb_lines,
+    canonical_form_from_pdb,
     default_packed_block_types,
     default_canonical_ordering,
 )
@@ -20,7 +20,7 @@ def get_add_two_fill_shape(x):
 
 
 def cf_as_tuple_from_pdb_lines(co, pdblines, device):
-    cf = canonical_form_from_pdb_lines(co, pdblines, device)
+    cf = canonical_form_from_pdb(co, pdblines, device)
     return (
         cf["chain_id"],
         cf["res_types"],

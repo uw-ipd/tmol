@@ -1,12 +1,12 @@
 from tmol.chemical.restypes import three2one  # noqa: F401
+from tmol.io import pose_stack_from_pdb  # noqa: F401
 from tmol.io.pose_stack_construction import (  # noqa: F401
     pose_stack_from_canonical_form,
-    pose_stack_from_pdb_lines,
 )
 from tmol.io.canonical_ordering import (  # noqa: F401
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb_lines,
+    canonical_form_from_pdb,
 )
 from tmol.io.pose_stack_from_openfold import (  # noqa: F401
     pose_stack_from_openfold,

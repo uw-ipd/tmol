@@ -7,7 +7,7 @@ from tmol.io.pose_stack_deconstruction import (
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb_lines,
+    canonical_form_from_pdb,
 )
 
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
@@ -19,7 +19,7 @@ def not_any_nancoord(coords):
 
 def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     # unpack
     (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords) = tuple(
         canonical_form[x].clone() for x in ["chain_id", "res_types", "coords"]
@@ -86,7 +86,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
 
     co = default_canonical_ordering()
     max_n_canonical_atoms = co.max_n_canonical_atoms
-    canonical_form4 = canonical_form_from_pdb_lines(co, ubq_lines4, torch_device)
+    canonical_form4 = canonical_form_from_pdb(co, ubq_lines4, torch_device)
     # unpack
     (
         cf_orig_chain_id4,
@@ -94,7 +94,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         cf_orig_coords4,
     ) = tuple(canonical_form4[x].clone() for x in ["chain_id", "res_types", "coords"])
 
-    canonical_form6 = canonical_form_from_pdb_lines(co, ubq_lines6, torch_device)
+    canonical_form6 = canonical_form_from_pdb(co, ubq_lines6, torch_device)
     # unpack
     (
         cf_orig_chain_id6,
@@ -165,7 +165,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
 
 def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb_lines(co, pertuzumab_pdb, torch_device)
+    canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
     # unpack and copy before pose stack construction
     (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords) = tuple(
         canonical_form[x].clone() for x in ["chain_id", "res_types", "coords"]
@@ -241,9 +241,7 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
         res_not_connected_orig_np,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
     co = default_canonical_ordering()
-    canonical_form = canonical_form_from_pdb_lines(
-        co, pert_and_erbb2_lines, torch_device
-    )
+    canonical_form = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
     res_not_connected_orig = torch.tensor(
         res_not_connected_orig_np, device=torch_device
     )

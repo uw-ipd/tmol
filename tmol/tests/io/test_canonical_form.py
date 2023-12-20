@@ -3,7 +3,7 @@ from tmol.io.canonical_ordering import (
     default_canonical_ordering,
     default_packed_block_types,
     CanonicalOrdering,
-    canonical_form_from_pdb_lines,
+    canonical_form_from_pdb,
 )
 
 
@@ -37,9 +37,9 @@ def test_default_packed_block_types(torch_device):
     assert pbt1 is pbt2
 
 
-def test_default_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
+def test_default_canonical_form_from_pdb(pertuzumab_pdb, torch_device):
     can_ord = default_canonical_ordering()
-    cf = canonical_form_from_pdb_lines(can_ord, pertuzumab_pdb, torch_device)
+    cf = canonical_form_from_pdb(can_ord, pertuzumab_pdb, torch_device)
     (
         chain_id,
         res_types,
@@ -123,7 +123,7 @@ def test_canonical_form_w_unk(torch_device):
         "HETATM 6186  C4  SAM B 402     -15.231  13.034   5.166  1.00 53.49           C\n",
     ]
     can_ord = default_canonical_ordering()
-    co = canonical_form_from_pdb_lines(can_ord, sam_pdb_lines, torch_device)
+    co = canonical_form_from_pdb(can_ord, sam_pdb_lines, torch_device)
     (
         chain_id,
         res_types,

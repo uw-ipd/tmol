@@ -3,7 +3,7 @@ import torch
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
     default_packed_block_types,
-    canonical_form_from_pdb_lines,
+    canonical_form_from_pdb,
 )
 from tmol.io.details.disulfide_search import find_disulfides
 from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
@@ -55,7 +55,7 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     # torch_device = torch.device("cpu")  # TEMP!
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     (
         ch_id,
         can_rts,
@@ -178,7 +178,7 @@ def test_build_missing_leaf_atoms_error_handling(torch_device, ubq_pdb):
     # torch_device = torch.device("cpu")  # TEMP!
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     cf["coords"][0, :, 1, :] = numpy.NaN  # turn off all the CAlphas!
     (
         ch_id,
@@ -281,7 +281,7 @@ def test_build_missing_leaf_atoms_error_handling(torch_device, ubq_pdb):
 def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     (
         ch_id,
         can_rts,
@@ -406,7 +406,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
 def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb, torch_device, residue_end=1)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=1)
     (
         ch_id,
         can_rts,
@@ -502,7 +502,7 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
 def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    cf = canonical_form_from_pdb_lines(co, ubq_pdb[:810], torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb[:810], torch_device)
     (
         ch_id,
         can_rts,

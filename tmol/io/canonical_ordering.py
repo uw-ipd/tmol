@@ -360,16 +360,21 @@ def default_packed_block_types(device: torch.device):
     return PackedBlockTypes.from_restype_list(chem_database, restype_list, device)
 
 
-def canonical_form_from_pdb_lines(
+def canonical_form_from_pdb(
     canonical_ordering: CanonicalOrdering,
-    pdb_lines: str,
+    pdb_lines_or_fname,
     device: torch.device,
     *,
     residue_start: Optional[int] = None,
     residue_end: Optional[int] = None,
 ):
+    """Create a canonical form dictionary from either the contents of a PDB file
+    as one long string or a list of individual lines from the file or
+    by providing the name/path of a PDB file
+    """
+
     max_n_canonical_atoms = canonical_ordering.max_n_canonical_atoms
-    atom_records = parse_pdb(pdb_lines)
+    atom_records = parse_pdb(pdb_lines_or_fname)
 
     if residue_start is not None or residue_end is not None:
         # Figure out the starting row index for each residue
