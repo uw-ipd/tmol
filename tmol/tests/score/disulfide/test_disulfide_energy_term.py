@@ -1,6 +1,7 @@
 import numpy
 import torch
 
+from tmol.io import pose_stack_from_pdb
 from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -18,16 +19,14 @@ def test_smoke(default_database, torch_device: torch.device):
 
 
 def test_annotate_disulfide_conns(
-    rts_disulfide_res, default_database, torch_device: torch.device
+    fresh_default_packed_block_types, default_database, torch_device: torch.device
 ):
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
 
-    bt_list = residue_types_from_residues(rts_disulfide_res)
-    pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, bt_list, torch_device
-    )
+    pbt = fresh_default_packed_block_types
+    bt_list = pbt.active_block_types
 
     for bt in bt_list:
         disulfide_energy.setup_block_type(bt)
@@ -44,14 +43,15 @@ def test_annotate_disulfide_conns(
 
 
 def test_whole_pose_scoring_module_gradcheck_whole_pose(
-    rts_disulfide_res, default_database, torch_device: torch.device
+    disulfide_pdb, default_database, torch_device: torch.device
 ):
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_disulfide_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(disulfide_pdb, torch_device)
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, res=rts_disulfide_res, device=torch_device
+    # )
     for bt in p1.packed_block_types.active_block_types:
         disulfide_energy.setup_block_type(bt)
     disulfide_energy.setup_packed_block_types(p1.packed_block_types)
@@ -67,15 +67,13 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
 
 
 def test_whole_pose_scoring_module_single(
-    rts_disulfide_res, default_database, torch_device: torch.device
+    disulfide_pdb, default_database, torch_device: torch.device
 ):
     gold_vals = numpy.array([[-3.25716]], dtype=numpy.float32)
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_disulfide_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(disulfide_pdb, torch_device)
     for bt in p1.packed_block_types.active_block_types:
         disulfide_energy.setup_block_type(bt)
     disulfide_energy.setup_packed_block_types(p1.packed_block_types)
@@ -95,16 +93,14 @@ def test_whole_pose_scoring_module_single(
 
 
 def test_whole_pose_scoring_module_10(
-    rts_disulfide_res, default_database, torch_device: torch.device
+    disulfide_pdb, default_database, torch_device: torch.device
 ):
     n_poses = 10
     gold_vals = numpy.tile(numpy.array([[-3.25716]], dtype=numpy.float32), (n_poses))
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_disulfide_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(disulfide_pdb, torch_device)
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:
@@ -124,3 +120,31 @@ def test_whole_pose_scoring_module_10(
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
     )
+
+
+def test_whole_pose_scoring_module_jagged(
+    ubq_pdb, disulfide_pdb, default_database, torch_device
+):
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    p2 = pose_stack_from_pdb(disulfide_pdb, torch_device)
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+    disulfide_energy = DisulfideEnergyTerm(
+        param_db=default_database, device=torch_device
+    )
+    for bt in poses.packed_block_types.active_block_types:
+        disulfide_energy.setup_block_type(bt)
+    disulfide_energy.setup_packed_block_types(poses.packed_block_types)
+    disulfide_energy.setup_poses(poses)
+
+    disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(poses)
+    coords = torch.nn.Parameter(poses.coords.clone())
+    scores = disulfide_pose_scorer(coords)
+    print("scores")
+    print(scores)
+
+    gold_scores = torch.tensor(
+        [[196.0713, 323.4101], [80.7462, 129.9590], [0.4837, 0.9545], [3.3417, 6.2497]],
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    assert torch.allclose(gold_scores, scores, rtol=1e-4, atol=1e-4)

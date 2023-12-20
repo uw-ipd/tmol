@@ -19,6 +19,7 @@ from .data import (  # noqa: F401
     ubq_pdb,
     ubq_res,
     ubq_system,
+    disulfide_pdb,
     disulfide_res,
     cst_system,
     cst_csts,
