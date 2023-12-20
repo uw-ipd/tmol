@@ -1,6 +1,7 @@
 import numpy
 import torch
 
+from tmol.io import pose_stack_from_pdb
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
@@ -26,15 +27,13 @@ def test_hbond_in_sfxn(default_database, torch_device):
     assert isinstance(sfxn.all_terms()[0], HBondEnergyTerm)
 
 
-def test_annotate_restypes(ubq_res, default_database, torch_device):
+def test_annotate_restypes(
+    fresh_default_packed_block_types, default_database, torch_device
+):
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
 
-    rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, rt_list, torch_device
-    )
-
-    for rt in rt_list:
+    pbt = fresh_default_packed_block_types
+    for rt in pbt.active_block_types:
         hbond_energy.setup_block_type(rt)
         assert hasattr(rt, "hbbt_params")
     hbond_energy.setup_packed_block_types(pbt)
@@ -50,12 +49,13 @@ def test_annotate_restypes(ubq_res, default_database, torch_device):
     assert pbt.hbpbt_params.is_hydrogen.device == torch_device
 
 
-def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
+def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
     gold_vals = numpy.array([[-55.6756]], dtype=numpy.float32)
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, res=rts_ubq_res, device=torch_device
+    # )
     for bt in p1.packed_block_types.active_block_types:
         hbond_energy.setup_block_type(bt)
     hbond_energy.setup_packed_block_types(p1.packed_block_types)
@@ -74,12 +74,13 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
 
 
 def test_whole_pose_scoring_module_gradcheck_whole_pose(
-    rts_ubq_res, default_database, torch_device
+    ubq_pdb, default_database, torch_device
 ):
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, res=rts_ubq_res, device=torch_device
+    # )
     for bt in p1.packed_block_types.active_block_types:
         hbond_energy.setup_block_type(bt)
     hbond_energy.setup_packed_block_types(p1.packed_block_types)
@@ -95,11 +96,19 @@ def test_whole_pose_scoring_module_gradcheck_whole_pose(
 
 
 def test_whole_pose_scoring_module_gradcheck_partial_pose(
-    rts_ubq_res, default_database, torch_device
+    ubq_pdb, default_database, torch_device
 ):
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res[6:12], device=torch_device
+
+    res_not_term = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
+    res_not_term[0, 0, 0] = True
+    res_not_term[0, 5, 1] = True
+    p1 = pose_stack_from_pdb(
+        ubq_pdb,
+        torch_device,
+        residue_start=6,
+        residue_end=12,
+        res_not_connected=res_not_term,
     )
     for bt in p1.packed_block_types.active_block_types:
         hbond_energy.setup_block_type(bt)
@@ -115,13 +124,14 @@ def test_whole_pose_scoring_module_gradcheck_partial_pose(
     gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-3, rtol=1e-3)
 
 
-def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
+def test_whole_pose_scoring_module_10(ubq_pdb, default_database, torch_device):
     n_poses = 10
     gold_vals = numpy.tile(numpy.array([[-55.6756]], dtype=numpy.float32), (n_poses))
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, res=rts_ubq_res, device=torch_device
+    # )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:
@@ -140,3 +150,23 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
     )
+
+
+def test_whole_pose_scoring_module_jagged(ubq_pdb, default_database, torch_device):
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=40)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=60)
+    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+    hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
+    for bt in poses.packed_block_types.active_block_types:
+        hbond_energy.setup_block_type(bt)
+    hbond_energy.setup_packed_block_types(poses.packed_block_types)
+    hbond_energy.setup_poses(poses)
+
+    hbond_pose_scorer = hbond_energy.render_whole_pose_scoring_module(poses)
+    coords = torch.nn.Parameter(poses.coords.clone())
+    scores = hbond_pose_scorer(coords)
+
+    gold_scores = torch.tensor(
+        [[-24.6182, -41.5365]], dtype=torch.float32, device=torch_device
+    )
+    assert torch.allclose(gold_scores, scores, rtol=1e-4, atol=1e-4)

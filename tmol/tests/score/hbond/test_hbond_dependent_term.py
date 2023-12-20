@@ -5,9 +5,9 @@ from tmol.score.hbond.hbond_dependent_term import HBondDependentTerm
 
 
 def test_hbond_dep_term_annotate_block_types_smoke(
-    default_database, rts_ubq_res, torch_device
+    default_database, fresh_default_restype_set, torch_device
 ):
-    bt_list = residue_types_from_residues(rts_ubq_res)
+    bt_list = fresh_default_restype_set.residue_types
     hbdt = HBondDependentTerm(default_database, torch_device)
     for bt in bt_list:
         hbdt.setup_block_type(bt)
@@ -15,9 +15,9 @@ def test_hbond_dep_term_annotate_block_types_smoke(
 
 
 def test_hbond_dep_term_annotate_packed_block_types_smoke(
-    default_database, rts_ubq_res, torch_device
+    default_database, fresh_default_restype_set, torch_device
 ):
-    bt_list = residue_types_from_residues(rts_ubq_res)
+    bt_list = fresh_default_restype_set.residue_types
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical, bt_list, torch_device
     )
@@ -28,9 +28,9 @@ def test_hbond_dep_term_annotate_packed_block_types_smoke(
 
 
 def test_hbond_dep_term_setup_packed_block_types(
-    default_database, rts_ubq_res, torch_device
+    default_database, fresh_default_restype_set, torch_device
 ):
-    bt_list = residue_types_from_residues(rts_ubq_res)
+    bt_list = fresh_default_restype_set.residue_types
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical, bt_list, torch_device
     )
@@ -43,9 +43,9 @@ def test_hbond_dep_term_setup_packed_block_types(
 
 
 def test_hbond_dep_term_setup_ser_block_type(
-    default_database, rts_ubq_res, torch_device
+    default_database, fresh_default_restype_set, torch_device
 ):
-    bt_list = residue_types_from_residues(rts_ubq_res)
+    bt_list = fresh_default_restype_set.residue_types
     ser_bt = next(bt for bt in bt_list if bt.name == "SER")
 
     hbdt = HBondDependentTerm(default_database, torch_device)

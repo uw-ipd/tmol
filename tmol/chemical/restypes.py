@@ -472,6 +472,8 @@ class ResidueTypeSet:
 
 @attr.s(slots=True, frozen=True)
 class Residue:
+    """A small class used in the old PackedResidueSystem, soon to be deprecated"""
+
     residue_type: RefinedResidueType = attr.ib()
     coords: numpy.ndarray = attr.ib()
 
