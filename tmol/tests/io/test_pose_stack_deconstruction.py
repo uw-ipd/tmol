@@ -76,7 +76,7 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     gold_disulfides = numpy.empty((0, 3), dtype=numpy.int64)
     numpy.testing.assert_equal(gold_disulfides, disulfides.cpu().numpy())
 
-    gold_res_not_connected = numpy.zeros((1, chain_id.shape[1], 2), bool)
+    gold_res_not_connected = numpy.zeros((1, chain_id.shape[1], 2), dtype=bool)
     numpy.testing.assert_equal(res_not_connected.cpu().numpy(), gold_res_not_connected)
 
 

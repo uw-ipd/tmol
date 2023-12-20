@@ -123,28 +123,24 @@ def test_whole_pose_scoring_module_10(
 
 
 def test_whole_pose_scoring_module_jagged(
-    ubq_pdb, disulfide_pdb, default_database, torch_device
+    disulfide_pdb, default_database, torch_device
 ):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
-    p2 = pose_stack_from_pdb(disulfide_pdb, torch_device)
-    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
+    p1 = pose_stack_from_pdb(disulfide_pdb, torch_device)
+    p2 = pose_stack_from_pdb(disulfide_pdb, torch_device, residue_end=52)
+    p3 = pose_stack_from_pdb(disulfide_pdb, torch_device, residue_end=33)
+
+    pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
+
     disulfide_energy = DisulfideEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    for bt in poses.packed_block_types.active_block_types:
+    for bt in pn.packed_block_types.active_block_types:
         disulfide_energy.setup_block_type(bt)
-    disulfide_energy.setup_packed_block_types(poses.packed_block_types)
-    disulfide_energy.setup_poses(poses)
+    disulfide_energy.setup_packed_block_types(pn.packed_block_types)
+    disulfide_energy.setup_poses(pn)
 
-    disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(poses)
-    coords = torch.nn.Parameter(poses.coords.clone())
-    scores = disulfide_pose_scorer(coords)
-    print("scores")
-    print(scores)
+    disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(pn)
+    scores = disulfide_pose_scorer(pn.coords)
 
-    gold_scores = torch.tensor(
-        [[196.0713, 323.4101], [80.7462, 129.9590], [0.4837, 0.9545], [3.3417, 6.2497]],
-        dtype=torch.float32,
-        device=torch_device,
-    )
-    assert torch.allclose(gold_scores, scores, rtol=1e-4, atol=1e-4)
+    gold_scores = numpy.array([[-3.25716, -2.5534, -1.686726]], dtype=numpy.float32)
+    numpy.testing.assert_allclose(gold_scores, scores.cpu().numpy(), rtol=1e-5)
