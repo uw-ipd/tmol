@@ -380,19 +380,16 @@ def canonical_form_from_pdb(
         # Figure out the starting row index for each residue
         # and take the slice of the dataframe containing
         # every atom of every residue within that range
-        import pandas
 
         atom_records_begin_for_res = []
         last_res = None
         for i, row in atom_records.iterrows():
             this_res = (row["modeli"], row["chaini"], row["resi"])
             if last_res is not None and last_res == this_res:
-                # atom_records_for_res[-1].append(atom)
                 pass
             else:
                 atom_records_begin_for_res.append(i)
                 last_res = this_res
-                # print("new res", len(atom_records_begin_for_res), this_res)
         atom_records_begin_for_res.append(i + 1)
         if residue_start is None:
             residue_start = 0

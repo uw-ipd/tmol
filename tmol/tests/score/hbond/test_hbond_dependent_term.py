@@ -1,6 +1,6 @@
 import numpy
 
-from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.score.hbond.hbond_dependent_term import HBondDependentTerm
 
 

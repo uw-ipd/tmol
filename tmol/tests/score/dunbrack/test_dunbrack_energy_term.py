@@ -3,7 +3,6 @@ import torch
 
 from tmol.io import pose_stack_from_pdb
 from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
-from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.autograd import gradcheck
