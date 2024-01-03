@@ -392,6 +392,7 @@ def canonical_form_from_pdb(
             else:
                 atom_records_begin_for_res.append(i)
                 last_res = this_res
+                # print("new res", len(atom_records_begin_for_res), this_res)
         atom_records_begin_for_res.append(i + 1)
         if residue_start is None:
             residue_start = 0

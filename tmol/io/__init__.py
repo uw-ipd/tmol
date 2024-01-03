@@ -13,7 +13,7 @@ def pose_stack_from_pdb(
     """Construct a PoseStack given the contents of a PDB file or the name of a PDB file,
     using the full set of residue types contained in tmol's chemical.yaml file.
 
-    Optionally, a subset of the residues in the range from residue_begin to residue_end-1
+    Optionally, a subset of the residues in the range from residue_start to residue_end-1
     can be requested.
     Any additional keyword arguments will be passed to pose_stack_from_canonical_form
     """

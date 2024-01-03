@@ -13,6 +13,15 @@ def write_pose_stack_pdb(
     fname_out: str,
     **kwargs,
 ):
+    """Write a PDB-formatted file to disk given an input PoseStack.
+    Optionally, additional arguments may be passed to the inner function
+    "atom_records_from_pose_stack," e.g. the chain_ind_for_block and
+    chain_labels arguments (which bypass the automatic-chain-detection
+    step when deciding which residues are part of the same chain and
+    give arbitrary labels to the chains, respectively) through this
+    function as kwargs. See documentation for
+    tmol.io.write_pose_stack.atom_records_from_pose_stack
+    """
     from tmol.io.pdb_parsing import to_pdb
 
     atom_records = atom_records_from_pose_stack(pose_stack, **kwargs)
@@ -26,6 +35,42 @@ def atom_records_from_pose_stack(
     chain_ind_for_block: Optional[Tensor[torch.int64][:, :]] = None,
     chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
 ):
+    """Create a Pandas DataFrame holding the atom records needed to write a
+    PDB file from a PoseStack.
+
+    Now, whereas PoseStack does not have a concept of a "chain," a PDB most
+    certainly does. The good news is that "chain" is an emergent concept from
+    the set of chemical bonds in the system. This function uses the set of
+    chemical bonds and declares any residues that are chemically bonded to be
+    part of the same chain (with the exception of disulfide bonds, which often
+    span between two chains), and then the Union/Find algorithm from there to
+    label each residue with a chain index, with residue 0 always being on chain
+    0, and then chain index increasing monotonically with residue index. These
+    chain indices are then turned into chain letters starting at 'A.' These
+    default chain-handling behaviors can be intercepted by using either or both
+    of the two arguments: chain_ind_for_block and chain_labels.
+
+    If chain_ind_for_block is given, then each residue (aka block) will be
+    labeled by the chain index indicated instead of relying on the Union/Find
+    algorithm on the bond graph. This is especially needed if you have constructed
+    a PoseStack using the res_not_connected argument to pose_stack_from_canonical_form
+    (or any of the PoseStack-construction functions that call it) to state
+    that two adjacent residues belong to the same chain but should not either
+    be treated as termini residues or have chemical bonds between them. The
+    Union/Find algorithm on the chemical graph will declare such residues to
+    be parts of different chains. When constructing such a PoseStack, it is
+    recommended to pass "return_chain_ind=True" and then give that tensor back to
+    this function when saving that PoseStack in PDB format.
+    chain_ind_for_block should be an [n-poses x max-n-residues] tensor.
+
+    If chain_labels is given, then the alphabetical characters for the chains
+    will be taken from there instead of in ascending order starting from 'A.'
+    For an antibody, e.g., chains are typically labeled 'H' and 'L' instead
+    of 'A' and 'B.' chain_labels can either be an [n-poses x max-n-chains]
+    numpy array of characters (so that different poses in the PoseStack
+    can have different chain labels) or a [max-n-chains] numpy array of
+    characters (when each PoseStack has the same chain labels).
+    """
     from tmol.io.chain_deduction import chain_inds_for_pose_stack
 
     if chain_ind_for_block is None:
@@ -49,6 +94,11 @@ def atom_records_from_coords(
     block_coord_offset: Tensor[torch.int32][:, :],
     chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
 ):
+    """Create a Pandas DataFrame holding the atom records needed to write a
+    PDB file from the coordinates and block types of a stack of structures,
+    laid out in pose-stack form.
+    """
+
     from tmol.io.pdb_parsing import atom_record_dtype
     from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 

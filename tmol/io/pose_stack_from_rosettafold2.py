@@ -36,9 +36,11 @@ def canonical_form_from_rosettafold2(seq, xyz, chainlens):
     """The canonical form is intended to represent a stable, serializable intermediate format
     for a structure so that it can be created today and then be read in years from now
     and be used to construct a PoseStack in tmol. As residue types are integers,
-    this means that we guarantee stability of these integer representations, but also
-    that the user build a PoseStack using the carefully constructed objects created by
-    canonical_ordering_for_rosettafold2 and packed_block_types_for_rosettafold2 functions.
+    this means that we must guarantee stability of these integer representations, but it also
+    means that you the user must build a PoseStack using the carefully constructed objects
+    returned by the canonical_ordering_for_rosettafold2 and packed_block_types_for_rosettafold2
+    functions.
+
     E.g.:
         seq, xyz, chainlens = rosettafold2_model.infer(sequence)
         cf = tmol.canonical_form_from_rosettafold2(seq, xyz, chainlens)
@@ -52,12 +54,8 @@ def canonical_form_from_rosettafold2(seq, xyz, chainlens):
 
     """
 
-    # of_aatypes = openfold_result_dictionary["aatype"]
-    # of_coords = openfold_result_dictionary["positions"][-1]
-    # of_chain_ind = openfold_result_dictionary["chain_index"]
-
     device = xyz.device
-    n_poses = 1  # TEMP??? RF does not do batch processing
+    n_poses = 1  # RF2 does not presently do batch processing
     max_n_res = seq.shape[0]
     max_n_ats = xyz.shape[1]
 

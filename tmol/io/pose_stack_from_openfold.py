@@ -36,9 +36,11 @@ def canonical_form_from_openfold(openfold_result_dictionary):
     """The canonical form is intended to represent a stable, serializable intermediate format
     for a structure so that it can be created today and then be read in years from now
     and be used to construct a PoseStack in tmol. As residue types (aatype) are integers,
-    this means that we guarantee stability of these integer representations, but also means
-    that the user build a PoseStack using the carefully-constructed objects created by
-    canonical_ordering_for_openfold and packed_block_types_for_openfold functions.
+    this means that we must guarantee stability of these integer representations, but it also
+    means that you the user must build a PoseStack using the carefully-constructed objects
+    returned by the canonical_ordering_for_openfold and packed_block_types_for_openfold
+    functions.
+
     E.g.:
         output = openfold_model.infer(sequences)
         cf = tmol.canonical_form_from_openfold(output)
