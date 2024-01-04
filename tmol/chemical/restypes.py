@@ -268,7 +268,7 @@ class RefinedResidueType(RawResidueType):
             bonds_sparse, directed=False, unweighted=True, limit=MAX_SIG_BOND_SEPARATION
         )
         path_distance[path_distance == numpy.inf] = MAX_SIG_BOND_SEPARATION
-        return path_distance
+        return path_distance.astype(numpy.int32)
 
     atom_paths_from_conn: numpy.ndarray = attr.ib()
 

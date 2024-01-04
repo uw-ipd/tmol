@@ -66,19 +66,18 @@ class FixedAAChiSampler(ChiSampler):
             len(all_restypes), dtype=torch.int32, device=poses.device
         )
         is_ala_rt = torch.tensor(
-            (rt_base_names == "ALA").astype(numpy.uint8),
-            dtype=torch.uint8,
+            (rt_base_names == "ALA"),
+            dtype=torch.bool,
             device=poses.device,
         )
         is_gly_rt = torch.tensor(
-            (rt_base_names == "GLY").astype(numpy.uint8),
-            dtype=torch.uint8,
+            (rt_base_names == "GLY"),
+            dtype=torch.bool,
             device=poses.device,
         )
         n_rots_for_rt[is_ala_rt] += 1
         n_rots_for_rt[is_gly_rt] += 1
-        # either_ala_or_gly = torch.logical_or(is_ala_rt, is_gly_rt)
-        either_ala_or_gly = (is_ala_rt + is_gly_rt) > 0
+        either_ala_or_gly = torch.logical_or(is_ala_rt, is_gly_rt)
 
         n_fixed_rots = torch.sum(n_rots_for_rt).item()
         # rt_for_rotamer = torch.zeros(
