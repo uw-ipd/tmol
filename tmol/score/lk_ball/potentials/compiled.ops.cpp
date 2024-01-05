@@ -755,6 +755,8 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
          global_params,
          block_neighbors});
 
+    ctx->saved_data["block_pair_scoring"] = output_block_pair_energies;
+
     if (!output_block_pair_energies) {
       score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
     }
@@ -793,10 +795,9 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
     auto dTdV = grad_outputs[0];
 
-    bool block_pair_scoring = true;
-    if (dTdV.dim() == 2) {
+    bool block_pair_scoring = ctx->saved_data["block_pair_scoring"].toBool();
+    if (!block_pair_scoring) {
       dTdV = dTdV.unsqueeze(-1).unsqueeze(-1);
-      block_pair_scoring = false;
     }
 
     TMOL_DISPATCH_FLOATING_DEVICE(
