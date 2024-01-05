@@ -197,10 +197,10 @@ struct DunbrackChiSampler {
           dihe = score::common::dihedral_angle<Real>::V(
               coords[at0], coords[at1], coords[at2], coords[at3]);
         } else if (dihe_ind == 0) {
-          // neutral phi -- assuption; first dihedral for a residue is phi
+          // neutral phi
           dihe = -60;  // As suggested by Roland Dunbrack
         } else if (dihe_ind == 1) {
-          // neutral psi -- assumption; second dihedral for a residue is psi
+          // neutral psi
           dihe = 60;  // As suggested by Roland Dunbrack
         }
         backbone_dihedrals[i] = dihe;

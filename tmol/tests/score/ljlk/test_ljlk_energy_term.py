@@ -20,7 +20,9 @@ def test_annotate_heavy_ats_in_tile(ubq_res, default_database, torch_device):
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(rt_list, torch_device)
+    pbt = PackedBlockTypes.from_restype_list(
+        default_database.chemical, rt_list, torch_device
+    )
 
     for rt in rt_list:
         ljlk_energy.setup_block_type(rt)
@@ -37,10 +39,10 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:4], torch_device
+        default_database.chemical, ubq_res[:4], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:6], torch_device
+        default_database.chemical, ubq_res[:6], torch_device
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
@@ -97,10 +99,10 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:4], torch_device
+        default_database.chemical, ubq_res[:4], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:6], torch_device
+        default_database.chemical, ubq_res[:6], torch_device
     )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
@@ -214,7 +216,9 @@ def test_inter_module_timing(
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(ubq_res, torch_device)
+    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+        default_database.chemical, ubq_res, torch_device
+    )
     nres = p1.max_n_blocks
     poses = PoseStackBuilder.from_poses([p1] * n_poses, torch_device)
 
@@ -336,7 +340,7 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res[0:4], device=torch_device
+        default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         ljlk_energy.setup_block_type(bt)
@@ -385,7 +389,7 @@ def test_whole_pose_block_scoring(rts_ubq_res, default_database, torch_device):
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res[0:4], device=torch_device
+        default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         ljlk_energy.setup_block_type(bt)
@@ -405,7 +409,7 @@ def test_whole_pose_scoring_module_gradcheck(
 ):
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res[0:4], device=torch_device
+        default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         ljlk_energy.setup_block_type(bt)
@@ -432,7 +436,7 @@ def test_whole_pose_scoring_reweighted_block_gradcheck(
 ):
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res[0:4], device=torch_device
+        default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
     )
     for bt in p1.packed_block_types.active_block_types:
         ljlk_energy.setup_block_type(bt)
@@ -465,7 +469,7 @@ def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_devic
     )
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        res=rts_ubq_res, device=torch_device
+        default_database.chemical, res=rts_ubq_res, device=torch_device
     )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 

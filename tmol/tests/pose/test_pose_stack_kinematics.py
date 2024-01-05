@@ -12,13 +12,13 @@ from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest
 from tmol.kinematics.fold_forest import FoldForest, EdgeType
 
 
-def test_get_bonds_for_named_torsions(ubq_res, torch_device):
+def test_get_bonds_for_named_torsions(ubq_res, default_database, torch_device):
     # torch_device = torch.device("cpu")
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:40], torch_device
+        default_database.chemical, ubq_res[:4], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:60], torch_device
+        default_database.chemical, ubq_res[:6], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
     pbt = pose_stack.packed_block_types
@@ -39,7 +39,7 @@ def test_get_bonds_for_named_torsions(ubq_res, torch_device):
             other_res_conn = pose_stack.inter_residue_connections[
                 pose_ind, res_ind, conn_ind, 1
             ]
-            other_res_block_type = pose_stack.block_type_ind[0, res_ind]
+            other_res_block_type = pose_stack.block_type_ind[pose_ind, other_res_ind]
 
             other_res_atom = pose_stack.packed_block_types.atom_downstream_of_conn[
                 other_res_block_type, other_res_conn, uaid.bond_sep_from_conn
@@ -76,16 +76,16 @@ def test_get_bonds_for_named_torsions(ubq_res, torch_device):
     numpy.testing.assert_equal(middle_bond_ats_gold, middle_bond_ats.cpu().numpy())
 
 
-def test_get_pose_stack_bonds(ubq_res, torch_device):
+def test_get_pose_stack_bonds(ubq_res, default_database, torch_device):
     # torch_device = torch.device("cpu")
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:24], torch_device
+        default_database.chemical, ubq_res[:24], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[6:17], torch_device
+        default_database.chemical, ubq_res[6:17], torch_device
     )
     p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[9:22], torch_device
+        default_database.chemical, ubq_res[9:22], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)
     pbt = pose_stack.packed_block_types
@@ -181,14 +181,14 @@ def polymeric_bond_inds_for_pose_stack(pose_stack, polymeric_connections_for_kin
     return numpy.array(bond_inds_gold, dtype=numpy.int64)
 
 
-def test_get_polymeric_bonds_in_fold_forest(ubq_res):
+def test_get_polymeric_bonds_in_fold_forest(ubq_res, default_database):
     torch_device = torch.device("cpu")
 
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:4], torch_device
+        default_database.chemical, ubq_res[:4], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:6], torch_device
+        default_database.chemical, ubq_res[:6], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
@@ -214,14 +214,14 @@ def test_get_polymeric_bonds_in_fold_forest(ubq_res):
     )
 
 
-def test_get_polymeric_bonds_in_fold_forest_3(ubq_res):
+def test_get_polymeric_bonds_in_fold_forest_3(ubq_res, default_database):
     torch_device = torch.device("cpu")
 
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:4], torch_device
+        default_database.chemical, ubq_res[:4], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:6], torch_device
+        default_database.chemical, ubq_res[:6], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
@@ -247,17 +247,17 @@ def test_get_polymeric_bonds_in_fold_forest_3(ubq_res):
     )
 
 
-def test_get_polymeric_bonds_in_fold_forest_c_to_n(ubq_res):
+def test_get_polymeric_bonds_in_fold_forest_c_to_n(ubq_res, default_database):
     torch_device = torch.device("cpu")
 
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:8], torch_device
+        default_database.chemical, ubq_res[:8], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:11], torch_device
+        default_database.chemical, ubq_res[:11], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:5], torch_device
+        default_database.chemical, ubq_res[:5], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
@@ -289,17 +289,17 @@ def test_get_polymeric_bonds_in_fold_forest_c_to_n(ubq_res):
     )
 
 
-def test_construct_pose_stack_kinforest(ubq_res):
+def test_construct_pose_stack_kinforest(ubq_res, default_database):
     torch_device = torch.device("cpu")
 
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:8], torch_device
+        default_database.chemical, ubq_res[:8], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:11], torch_device
+        default_database.chemical, ubq_res[:11], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        ubq_res[:5], torch_device
+        default_database.chemical, ubq_res[:5], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
 

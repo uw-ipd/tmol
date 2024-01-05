@@ -139,7 +139,9 @@ def rebuild_poses_if_necessary(
                     all_restypes[id(rt)] = rt
 
         pbt = PackedBlockTypes.from_restype_list(
-            [rt for rt_id, rt in all_restypes.items()], poses.packed_block_types.device
+            poses.packed_block_types.chem_db,
+            [rt for rt_id, rt in all_restypes.items()],
+            poses.packed_block_types.device,
         )
 
         # rebuild the PoseStack with a new packed_block_types
@@ -925,6 +927,9 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     chi_samples = [sampler.sample_chi_for_poses(poses, task) for sampler in samplers]
     merged_samples = merge_chi_samples(chi_samples)
     n_rots_for_rt, sampler_for_rotamer, rt_for_rotamer, chi_atoms, chi = merged_samples
+
+    # fd NOTE: THIS CODE FAILS IF n_rots_for_rt CONTAINS 0s
+    assert 0 not in n_rots_for_rt
 
     n_rots = chi_atoms.shape[0]
     rt_for_rot = torch.zeros(n_rots, dtype=torch.int64, device=poses.device)

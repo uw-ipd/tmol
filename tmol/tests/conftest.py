@@ -1,6 +1,9 @@
 import subprocess
 
-from .database import default_database  # noqa: F401
+from .database import (  # noqa: F401
+    default_database,
+    default_unpatched_chemical_database,
+)
 
 # Import support fixtures
 from .support.rosetta import pyrosetta, rosetta_database  # noqa: F401
@@ -23,6 +26,8 @@ from .data import (  # noqa: F401
     water_box_system,
     water_box_res,
     systems_bysize,
+    pertuzumab_pdb,
+    pertuzumab_and_nearby_erbb2_pdb_and_segments,
 )
 
 from .chemical import (  # noqa: F401

@@ -13,7 +13,7 @@ from tmol.optimization.sfxn_modules import CartesianSfxnNetwork
 
 def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_device):
     pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res[:4], torch_device
+        default_database.chemical, rts_ubq_res[:4], torch_device
     )
     pose_stack5 = PoseStackBuilder.from_poses([pose_stack1] * 5, torch_device)
 
@@ -25,22 +25,23 @@ def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_dev
     cart_sfxn_network = CartesianSfxnNetwork(sfxn, pose_stack5)
     optimizer = LBFGS_Armijo(cart_sfxn_network.parameters(), lr=0.1, max_iter=20)
 
-    E0 = cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
+    E0 = cart_sfxn_network.whole_pose_scoring_module(
+        cart_sfxn_network.full_coords
+    ).sum()
     # print("E0", E0)
 
     def closure():
         optimizer.zero_grad()
-        E = cart_sfxn_network()
+        E = cart_sfxn_network().sum()
         E.backward()
         return E
 
     optimizer.step(closure)
 
-    E1 = cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
-    # print("E1", E1)
+    E1 = cart_sfxn_network.whole_pose_scoring_module(
+        cart_sfxn_network.full_coords
+    ).sum()
     assert E1 < E0
-
-    # print("n sfxn evals:", cart_sfxn_network.count)
 
 
 @pytest.mark.parametrize("n_poses", [1, 3, 10, 30])
@@ -52,7 +53,7 @@ def test_minimize_w_pose_and_sfxn_benchmark(
         return
 
     pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        rts_ubq_res, torch_device
+        default_database.chemical, rts_ubq_res, torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
     start_coords = pose_stack.coords.clone()
@@ -69,22 +70,16 @@ def test_minimize_w_pose_and_sfxn_benchmark(
         cart_sfxn_network = CartesianSfxnNetwork(sfxn, pose_stack)
         optimizer = LBFGS_Armijo(cart_sfxn_network.parameters(), lr=0.1, max_iter=20)
 
-        # E0 =
         cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
 
         def closure():
             optimizer.zero_grad()
-            E = cart_sfxn_network()
+            E = cart_sfxn_network().sum()
             E.backward()
             return E
 
         optimizer.step(closure)
 
-        # E1 =
         cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
-        # print("E0", E0, "E1", E1)
-        # assert E1 < E0
-
-        # print("n sfxn evals:", cart_sfxn_network.count)
 
     run

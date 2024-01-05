@@ -6,8 +6,8 @@ import itertools
 import numpy
 import torch
 import pandas
-import sparse
 import scipy.sparse.csgraph as csgraph
+import scipy
 
 from typing import List, Tuple, Optional
 
@@ -15,14 +15,18 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import (
     RefinedResidueType,
     Residue,
     find_simple_polymeric_connections,
     find_disulfide_connections,
+    three2one,
 )
+
 from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
 from tmol.pose.pose_stack import PoseStack
+
 
 # from tmol.system.datatypes import connection_metadata_dtype
 from tmol.utility.tensor.common_operations import (
@@ -39,25 +43,29 @@ class PoseStackBuilder:
     @classmethod
     @validate_args
     def one_structure_from_polymeric_residues(
-        cls, res: List[Residue], device: torch.device
+        cls, chem_db: PatchedChemicalDatabase, res: List[Residue], device: torch.device
     ) -> PoseStack:
+        """Archaic form of creating a monomer from a list of Residue objects"""
         residue_connections = find_simple_polymeric_connections(res)
         disulfide_connections = find_disulfide_connections(res)
         residue_connections.extend(disulfide_connections)
         return cls.one_structure_from_residues_and_connections(
-            res, residue_connections, device
+            chem_db, res, residue_connections, device
         )
 
     @classmethod
     @validate_args
     def one_structure_from_residues_and_connections(
         cls,
+        chem_db: PatchedChemicalDatabase,
         res: List[Residue],
         residue_connections: List[Tuple[int, str, int, str]],
         device: torch.device,
     ) -> PoseStack:
         rt_list = residue_types_from_residues(res)
-        packed_block_types = PackedBlockTypes.from_restype_list(rt_list, device)
+        packed_block_types = PackedBlockTypes.from_restype_list(
+            chem_db, rt_list, device
+        )
 
         inter_residue_connections = cls._create_inter_residue_connections(
             res, residue_connections, device
@@ -106,6 +114,11 @@ class PoseStackBuilder:
         cls, pose_stacks: List[PoseStack], device: torch.device
     ) -> PoseStack:
         pbt0 = pose_stacks[0].packed_block_types
+        for ps in pose_stacks:
+            # all PoseStacks must be built from the same chemical database
+            # even if some of the residue types were perhaps created
+            # programmatically instead of being read from an input file
+            assert pbt0.chem_db is ps.packed_block_types.chem_db
         reuse_pbt = all(
             pose_stack.packed_block_types is pbt0 for pose_stack in pose_stacks
         )
@@ -122,7 +135,9 @@ class PoseStackBuilder:
                 if bt.name not in bt_set:
                     bt_set[bt.name] = bt
             uniq_bt = [v for _, v in bt_set.items()]
-            packed_block_types = PackedBlockTypes.from_restype_list(uniq_bt, device)
+            packed_block_types = PackedBlockTypes.from_restype_list(
+                pbt0.chem_db, uniq_bt, device
+            )
 
         max_n_blocks = max(pose_stack.max_n_blocks for pose_stack in pose_stacks)
         coords, block_coord_offset = cls._pack_pose_stack_coords(
@@ -882,7 +897,9 @@ class PoseStackBuilder:
         first_pconn_for_block = torch.zeros(
             (n_poses, max_n_pose_conn), dtype=torch.int32, device=pbt_device
         )
-        first_pconn_for_block[pose_for_block, n_conn_for_block_offset64.ravel()] = 1
+        first_pconn_for_block[
+            pose_for_block[real_blocks.view(-1)], n_conn_for_block_offset64[real_blocks]
+        ] = 1
         # then an inclusive cummulative sum will label all of the
         # connections coming from the same block the same; this
         # will be 1 more than the actual block index for the
@@ -998,15 +1015,22 @@ class PoseStackBuilder:
         )
 
         bonds = numpy.concatenate([intra_res_bonds, inter_res_bonds])
-        bond_graph = sparse.COO(
-            bonds.T,
-            data=numpy.full(len(bonds), True),
+        # bond_graph = sparse.COO(
+        #    bonds.T,
+        #    data=numpy.full(len(bonds), True),
+        #    shape=(max_n_atoms * n_res, max_n_atoms * n_res),
+        #    cache=True,
+        # )
+        bond_graph = scipy.sparse.coo_matrix(
+            (
+                numpy.full(len(bonds), True),
+                (bonds[:, 0], bonds[:, 1]),
+            ),
             shape=(max_n_atoms * n_res, max_n_atoms * n_res),
-            cache=True,
         )
 
         min_bond_dist = csgraph.dijkstra(
-            bond_graph.tocsr(),
+            bond_graph,
             directed=False,
             unweighted=True,
             limit=MAX_SIG_BOND_SEPARATION,
@@ -1206,7 +1230,7 @@ class PoseStackBuilder:
         pose_stacks,  #: List["PoseStack"],
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
-        device=torch.device,
+        device: torch.device,
     ):
         n_poses = sum(len(ps) for ps in pose_stacks)
         block_type_ind = torch.full(
@@ -1244,67 +1268,29 @@ class PoseStackBuilder:
 
             df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(list_of_names)
             bt_inds = pbt.bt_mapping_w_lcaa_1lc.iloc[df_inds]["bt_ind"].values
+
+        Note that this will give the base aa type for each 1lc; it will not
+        give you the bt indices of the n- and c-termini
         """
 
         if hasattr(pbt, "bt_mapping_w_lcaa_1lc"):
             assert hasattr(pbt, "bt_mapping_w_lcaa_1lc_ind")
             return
 
-        aa_codes = {
-            "ALA": "A",
-            "CYS": "C",
-            "ASP": "D",
-            "GLU": "E",
-            "PHE": "F",
-            "GLY": "G",
-            "HIS": "H",
-            "ILE": "I",
-            "LYS": "K",
-            "LEU": "L",
-            "MET": "M",
-            "ASN": "N",
-            "PRO": "P",
-            "GLN": "Q",
-            "ARG": "R",
-            "SER": "S",
-            "THR": "T",
-            "VAL": "V",
-            "TRP": "W",
-            "TYR": "Y",
-        }
-
-        sorted_1lc = sorted([v for _, v in aa_codes.items()])
-        one_let_co_index = {
-            aa1: ind
-            for aa1, ind in zip(sorted_1lc, numpy.arange(20, dtype=numpy.int32))
-        }
-
-        lcaa_ind = numpy.full((20,), -1, dtype=numpy.int32)
+        lcaa_ind = {}
         for i, res in enumerate(pbt.active_block_types):
-            if res.name in aa_codes:
-                if (
-                    "NTerm" not in res.properties.connectivity
-                    and "CTerm" not in res.properties.connectivity
-                ):
-                    if res.name3 == "HIS":
-                        if res.name == "HIS_D":
-                            continue
-                    ind = one_let_co_index[aa_codes[res.name3]]
-                    assert lcaa_ind[ind] == -1
-                    lcaa_ind[ind] = i
+            one = three2one(res.name)
+            if one:
+                assert one not in lcaa_ind
+                lcaa_ind[one] = i
 
-        names = list(
-            itertools.chain([bt.name for bt in pbt.active_block_types], sorted_1lc)
-        )
-        df = pandas.DataFrame(
-            dict(
-                names=names,
-                bt_ind=itertools.chain(
-                    numpy.arange(len(pbt.active_block_types), dtype=numpy.int32),
-                    lcaa_ind,
-                ),
-            )
-        )
+        names = [*lcaa_ind.keys(), *[bt.name for bt in pbt.active_block_types]]
+        indices = [
+            *lcaa_ind.values(),
+            *range(len(pbt.active_block_types)),
+        ]
+
+        df = pandas.DataFrame(dict(names=names, bt_ind=indices))
         ind = pandas.Index(names)
         setattr(pbt, "bt_mapping_w_lcaa_1lc", df)
         setattr(pbt, "bt_mapping_w_lcaa_1lc_ind", ind)
@@ -1460,7 +1446,7 @@ class PoseStackBuilder:
         Tensor[torch.int64][:, :],
     ]:
         device = pbt.device
-        # real_res = numpy.full((n_poses, max_n_res), True, dtype=numpy.bool)
+        # real_res = numpy.full((n_poses, max_n_res), True, dtype=bool)
         real_res = (
             numpy.tile(numpy.arange(max_n_res, dtype=numpy.int32), n_poses).reshape(
                 (n_poses, max_n_res)
@@ -1548,10 +1534,10 @@ class PoseStackBuilder:
         res_is_real_and_not_c_term[npose_arange, n_res - 1] = False
 
         connected_up_conn_inds = pbt.up_conn_inds[
-            block_type_ind64[res_is_real_and_not_n_term]
+            block_type_ind64[res_is_real_and_not_c_term]
         ].to(torch.int64)
         connected_down_conn_inds = pbt.down_conn_inds[
-            block_type_ind64[res_is_real_and_not_c_term]
+            block_type_ind64[res_is_real_and_not_n_term]
         ].to(torch.int64)
 
         # TO DO: handle termini patches!
@@ -1794,7 +1780,7 @@ class PoseStackBuilder:
     def _shortest_paths_for_connectivity_graph(cls, pconn_matrix):
         from tmol.pose.compiled.apsp_ops import stacked_apsp
 
-        stacked_apsp(pconn_matrix)
+        stacked_apsp(pconn_matrix, MAX_SIG_BOND_SEPARATION)
 
     @classmethod
     @validate_args

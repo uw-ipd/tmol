@@ -11,8 +11,6 @@ _compiled = load(
                 "compiled.ops.cpp",
                 "compiled.cpu.cpp",
                 "compiled.cuda.cu",
-                "rama_pose_score.cpu.cpp",
-                "rama_pose_score.cuda.cu",
             ],
         )
     ),
@@ -22,4 +20,3 @@ _compiled = load(
 _ops = getattr(torch.ops, modulename(__name__))
 
 score_rama = _ops.score_rama
-pose_score_rama = _ops.pose_score_rama

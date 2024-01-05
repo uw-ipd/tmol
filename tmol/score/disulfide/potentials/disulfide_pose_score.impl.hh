@@ -90,6 +90,9 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     auto& pose_dV_dx = dV_dx[0][pose_index];
 
     int block_type_index = pose_stack_block_type[pose_index][block_index];
+    if (block_type_index < 0) {
+      return;
+    }
     int block_atom_offset =
         pose_stack_block_coord_offset[pose_index][block_index];
 

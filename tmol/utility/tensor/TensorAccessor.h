@@ -20,6 +20,41 @@
 #define AT_DEVICE
 #endif
 
+#include <stdio.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+inline void handler(int sig) {
+  void* array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+
+// Boundary assertions
+#if !defined __CUDACC__
+#define BOUNDARY_ASSERT(array_ptr, index) \
+  if (index < 0) {                        \
+    handler(1);                           \
+  }                                       \
+  if (index >= array_ptr->sizes_[0]) {    \
+    handler(1);                           \
+  }                                       \
+  \ 
+  assert(index >= 0);                     \
+  assert(index < array_ptr->sizes_[0]);
+#else
+#define BOUNDARY_ASSERT(array_ptr, index)
+#endif
+
 namespace tmol {
 
 enum class Device { CPU, CUDA };
@@ -95,6 +130,7 @@ class TensorAccessor : public TensorAccessorBase<T, N, D, P> {
       : TensorAccessorBase<T, N, D, P>(data_, sizes_, strides_) {}
 
   AT_HOST_DEVICE TensorAccessor<T, N - 1, D, P> operator[](int64_t i) {
+    BOUNDARY_ASSERT(this, i);
     return TensorAccessor<T, N - 1, D, P>(
         this->data_ + this->strides_[0] * i,
         this->sizes_ + 1,
@@ -103,6 +139,7 @@ class TensorAccessor : public TensorAccessorBase<T, N, D, P> {
 
   AT_HOST_DEVICE const TensorAccessor<T, N - 1, D, P> operator[](
       int64_t i) const {
+    BOUNDARY_ASSERT(this, i);
     return TensorAccessor<T, N - 1, D, P>(
         this->data_ + this->strides_[0] * i,
         this->sizes_ + 1,
@@ -121,6 +158,7 @@ class TensorAccessor<T, 1, D, P> : public TensorAccessorBase<T, 1, D, P> {
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : TensorAccessorBase<T, 1, D, P>(data_, sizes_, strides_) {}
   AT_HOST_DEVICE T& operator[](int64_t i) const {
+    BOUNDARY_ASSERT(this, i);
     return this->data_[this->strides_[0] * i];
   }
 };
@@ -194,6 +232,7 @@ class TView : public TViewBase<T, N, D, P> {
   AT_HOST_DEVICE TView() : TViewBase<T, N, D, P>(){};
 
   AT_HOST_DEVICE TensorAccessor<T, N - 1, D, P> operator[](int64_t i) {
+    BOUNDARY_ASSERT(this, i);
     int64_t* new_sizes = this->sizes_ + 1;
     int64_t* new_strides = this->strides_ + 1;
     return TensorAccessor<T, N - 1, D, P>(
@@ -202,6 +241,7 @@ class TView : public TViewBase<T, N, D, P> {
 
   AT_HOST_DEVICE const TensorAccessor<T, N - 1, D, P> operator[](
       int64_t i) const {
+    BOUNDARY_ASSERT(this, i);
     const int64_t* new_sizes = this->sizes_ + 1;
     const int64_t* new_strides = this->strides_ + 1;
     return TensorAccessor<T, N - 1, D, P>(
@@ -237,9 +277,11 @@ class TView<T, 1, D, P> : public TViewBase<T, 1, D, P> {
   AT_HOST_DEVICE TView() : TViewBase<T, 1, D, P>(){};
 
   AT_HOST_DEVICE T& operator[](int64_t i) {
+    BOUNDARY_ASSERT(this, i);
     return this->data_[this->strides_[0] * i];
   }
   AT_HOST_DEVICE T& operator[](int64_t i) const {
+    BOUNDARY_ASSERT(this, i);
     return this->data_[this->strides_[0] * i];
   }
 };

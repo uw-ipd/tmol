@@ -9,7 +9,7 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
 from tmol.numeric.dihedrals import coord_dihedrals
-from tmol.database.chemical import ChemicalDatabase
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 
@@ -107,22 +107,36 @@ def create_non_sidechain_fingerprint(
     rt: RefinedResidueType,
     parents: NDArray[numpy.int32][:],
     sc_atoms: NDArray[numpy.int32][:],
-    chem_db: ChemicalDatabase,
+    chem_db: PatchedChemicalDatabase,
 ):
     non_sc_atoms = numpy.nonzero(sc_atoms == 0)[0]
+    # TO DO: mainchain_atoms determined programatically from
+    # shortest path between up- and down-connection atoms
     mc_at_names = rt.properties.polymer.mainchain_atoms
     mc_atoms = numpy.array(
         [rt.atom_to_idx[at] for at in mc_at_names], dtype=numpy.int32
     )
+    # mc_ind: which mainchain atom [0..n_mc_atoms) is a particular
+    # atom by atom index
     mc_ind = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     mc_ind[mc_atoms] = numpy.arange(mc_atoms.shape[0], dtype=numpy.int32)
 
-    # count the number of bonds for each atom
+    # fd temporary fix for terminal variants
+    # count the number of bonds to non-H for each atom
+    # apl maybe undoing this change
     n_bonds = numpy.zeros(rt.n_atoms, dtype=numpy.int32)
+    n_nonh_bonds = numpy.zeros(rt.n_atoms, dtype=numpy.int32)
     for i in range(rt.bond_indices.shape[0]):
+        bonded_atom_type = rt.atoms[rt.bond_indices[i, 1]].atom_type
+        bonded_elem_name = next(
+            at.element for at in chem_db.atom_types if at.name == bonded_atom_type
+        )
         n_bonds[rt.bond_indices[i, 0]] += 1
+        if bonded_elem_name != "H":
+            n_nonh_bonds[rt.bond_indices[i, 0]] += 1
     for conn in rt.connection_to_idx:
-        n_bonds[rt.connection_to_idx[conn]] += 1
+        n_bonds[rt.bond_indices[i, 0]] += 1
+        n_nonh_bonds[rt.connection_to_idx[conn]] += 1
 
     # mc_ancestors = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
     # chiralities = numpy.full(rt.n_atoms, -1, dtype=numpy.int32)
@@ -142,41 +156,32 @@ def create_non_sidechain_fingerprint(
             atom = par
             bonds_from_mc += 1
 
-        # now lets figure out the chirality of this atom??
+        # now lets figure out the chirality of this atom
+        # "chirality" here is interpretted in the most liberal of ways
+        # where it can refer to L or D for H-alpha (connected to CA), or
+        # achiral for the H or O atoms bound to the planar N and C atoms,
+        # but it will also interpret something as "chiral" if its MC atom
+        # has four substituents even when two of those substituents are
+        # chemically identical; i.e. as long as the atoms for thse
+        # substituents have different names they are different, thus the
+        # atom that binds them is chiral. So, unintuitively, glycine's CA
+        # will be declared as chiral and we will calculate the chirality
+        # of its substituents
+
         if bonds_from_mc == 0:
             chirality = 0
         elif bonds_from_mc == 1:
-            # ok, let's figure out the number of bonds
-            # that the mc atom has
-            mc_n_bonds = n_bonds[mc_anc]
-            if mc_n_bonds == 4:
+            if n_bonds[mc_anc] == 4:
                 # now we need to measure the chirality of the atom
                 # or, rather, whether this atom is on the "left"
                 # or "right" of the chiral backbone atom.
                 # Measure the improper dihedral given by the
-                # mc atom and the two mc atoms it is bonded to.
+                # mc atom and two other mc atoms
 
-                # ok, who is the first "lower" neighbor?
-                prev_neighb = -1
-                for i, at in enumerate(mc_atoms):
-                    if at == mc_anc:
-                        prev_neighb = i - 1
-                        break
-                if prev_neighb == -1:
-                    mc1_icoor_ind = rt.icoors_index["down"]
-                else:
-                    mc1_icoor_ind = rt.at_to_icoor_ind[mc_atoms[prev_neighb]]
-
-                # ok, who is the first "upper" neighbor?
-                next_neighb = -1
-                for i, at in enumerate(mc_atoms):
-                    if at == mc_anc:
-                        next_neighb = i + 1
-                        break
-                if next_neighb == -1 or next_neighb == mc_atoms.shape[0]:
-                    mc2_icoor_ind = rt.icoors_index["up"]
-                else:
-                    mc2_icoor_ind = rt.at_to_icoor_ind[mc_atoms[next_neighb]]
+                mc_ind_for_mc_anc = mc_ind[mc_anc]
+                mc1_icoor_ind, mc2_icoor_ind = _mc_inds_for_chiral_mc_atom(
+                    rt, mc_atoms, mc_ind_for_mc_anc
+                )
 
                 mc_anc_icoor_ind = rt.at_to_icoor_ind[mc_anc]
 
@@ -194,8 +199,15 @@ def create_non_sidechain_fingerprint(
                         0
                     ]
                 )
-
-                if dihe > 0:
+                # some atoms are going to be placed in the plane
+                # defined by the three "main chain" atoms. If the
+                # atoms are within an epsilon of a dihedral angle of 0 or 180
+                # then we will label their "chirality" as 3
+                epsilon = 1  # 1 degree of fudge for planarity
+                abs_dihe = numpy.absolute(dihe)
+                if abs_dihe < epsilon or numpy.absolute(180 - abs_dihe) < epsilon:
+                    chirality = 3
+                elif dihe > 0:
                     chirality = 1
                 else:
                     chirality = 2
@@ -221,9 +233,71 @@ def create_non_sidechain_fingerprint(
     return non_sc_atoms, tuple(non_sc_atom_fingerprints), at_for_fingerprint
 
 
+def _mc_inds_for_chiral_mc_atom(
+    rt,
+    mc_atoms,
+    mc_ind_for_mc_anc,
+):
+    if mc_ind_for_mc_anc == 0:
+        if "down" in rt.icoors:
+            mc1_icoor_ind = rt.icoors_index["down"]
+            mc2_icoor_ind = rt.at_to_icoor_ind[mc_atoms[mc_ind_for_mc_anc + 1]]
+        else:
+            # ok, so, this gets a little complicated if
+            # there are fewer than 3 mainchain atoms
+            # so let's handle those cases later
+            if len(mc_atoms) >= 3:
+                mc1_icoor_ind = rt.at_to_icoor_ind[mc_atoms[mc_ind_for_mc_anc + 1]]
+                mc2_icoor_ind = rt.at_to_icoor_ind[mc_atoms[mc_ind_for_mc_anc + 2]]
+            elif len(mc_atoms) == 2:
+                # TO DO
+                # ?? I don't know
+                # I am having trouble envisioning this "main chain"
+                raise NotImplementedError(
+                    "No logic yet to handle packing a two-atom main chain"
+                )
+            else:
+                # TO DO
+                # ie. elif len(mc_atoms) == 1:
+                # ?? Perhaps this might come up if the
+                # block type is just a single hydroxyl that's been
+                # sheared off a sugar residue to be packed
+                # independently and the "sidechain" is the hydroxyl H
+                # and the "mainchain" is the hydroxyl O.
+                raise NotImplementedError(
+                    "No logic yet to handle packing a one-atom main chain"
+                )
+
+    elif mc_ind_for_mc_anc == len(mc_atoms) - 1:
+        if "up" in rt.icoors:
+            mc1_icoor_ind = rt.at_to_icoor_ind[mc_atoms[mc_ind_for_mc_anc - 1]]
+            mc2_icoor_ind = rt.icoors_index["up"]
+        else:
+            # ok, so this gets a little complicated if there are
+            # fewer than 3 mainchain atoms
+            if len(mc_atoms) == 3:
+                mc1_icoor_ind = rt.at_to_icoor_ind[mc_atoms[mc_ind_for_mc_anc - 1]]
+                mc2_icoor_ind = rt.at_to_icoor_ind[mc_atoms[mc_ind_for_mc_anc - 2]]
+            else:
+                # TO DO
+                # i.e. len(mc_atoms) == 2; if there is only one MC atom, then
+                # it will be the first MC atom, and then we will not reach
+                # the "elif mc_ind_for_mc_anc == len(mc_atoms) - 1"
+                # I don't know what this mainchain looks like
+                raise NotImplementedError(
+                    "No logic yet to handle packing a two-atom main chain"
+                )
+    else:
+        # somewhere in the middle of the main chain (e.g. CA)
+        mc1_icoor_ind = rt.at_to_icoor_ind[mc_atoms[mc_ind_for_mc_anc - 1]]
+        mc2_icoor_ind = rt.at_to_icoor_ind[mc_atoms[mc_ind_for_mc_anc + 1]]
+
+    return mc1_icoor_ind, mc2_icoor_ind
+
+
 @validate_args
 def create_mainchain_fingerprint(
-    rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: ChemicalDatabase
+    rt: RefinedResidueType, sc_roots: Tuple[str, ...], chem_db: PatchedChemicalDatabase
 ):
     id = rt.rotamer_kinforest.id
     parents = rt.rotamer_kinforest.parent.copy()
@@ -241,7 +315,7 @@ def create_mainchain_fingerprint(
 def annotate_residue_type_with_sampler_fingerprints(
     restype: RefinedResidueType,
     samplers: Tuple[ChiSampler, ...],
-    chem_db: ChemicalDatabase,
+    chem_db: PatchedChemicalDatabase,
 ):
     for sampler in samplers:
         if sampler.defines_rotamers_for_rt(restype):

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+export NUMBA_DISABLE_JIT=1
+export DEBUG=1
+
+set -x
+
+echo "--- environment"
+set
+conda info
+conda list
+
+echo "--- nvidia-smi"
+nvidia-smi
+
+echo "--- nvcc"
+nvcc --version
+
+echo "+++ tests"
+set -e
+pytest -v --durations=25 "$@"
+
+echo "--- codecov"
+codecov -F `echo "${BUILDKITE_LABEL}" | sed -r 's/(\W)+/_/g'`

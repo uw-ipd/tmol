@@ -30,12 +30,12 @@ def test_cartbonded_score_setup(benchmark, ubq_system, torch_device):
 
 
 def test_cartbonded_database_clone_factory(ubq_system):
-    clone_db = copy.copy(ParameterDatabase.get_default().scoring.cartbonded)
+    clone_db = copy.copy(ParameterDatabase.get_default().scoring.cartbonded_old)
 
     src = ScoreSystem._build_with_modules(ubq_system, {CartBondedParameters})
     assert (
         CartBondedParameters.get(src).cartbonded_database
-        is ParameterDatabase.get_default().scoring.cartbonded
+        is ParameterDatabase.get_default().scoring.cartbonded_old
     )
 
     # Parameter database is overridden via kwarg
@@ -55,7 +55,7 @@ def test_cartbonded_database_clone_factory(ubq_system):
     clone = ScoreSystem._build_with_modules(
         src,
         {CartBondedParameters},
-        cartbonded_database=ParameterDatabase.get_default().scoring.cartbonded,
+        cartbonded_database=ParameterDatabase.get_default().scoring.cartbonded_old,
     )
     assert (
         CartBondedParameters.get(clone).cartbonded_database
@@ -63,7 +63,7 @@ def test_cartbonded_database_clone_factory(ubq_system):
     )
     assert (
         CartBondedParameters.get(clone).cartbonded_database
-        is ParameterDatabase.get_default().scoring.cartbonded
+        is ParameterDatabase.get_default().scoring.cartbonded_old
     )
 
 
