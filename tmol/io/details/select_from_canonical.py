@@ -498,7 +498,9 @@ def select_best_block_type_candidate(
 
             if real_candidate_should_be_excluded[cand_ind]:
                 equiv_class = cand_bt.io_equiv_class
-                for l in range(canonical_ordering.max_n_canonical_atoms):
+                for l in range(
+                    len(canonical_ordering.restypes_ordered_atom_names[equiv_class])
+                ):
                     if real_candidate_provided_atoms_absent[cand_ind, l]:
                         err_msg.extend(
                             [
