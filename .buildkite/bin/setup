@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -x
-set -e
+conda create -n tmol && \
+conda env update -n tmol -f /home/docker/tmol/env-dev.yml && \
+conda clean -afy
 
+conda activate tmol
 pip install .
