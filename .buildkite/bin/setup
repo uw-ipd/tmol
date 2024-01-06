@@ -2,8 +2,8 @@
 
 pwd 
 
-conda create -n tmol -y && \
-conda env update -n tmol -f /home/docker/tmol/env-dev.yml && \
+conda create -n tmol -y
+conda env update -n tmol -f environments/env-dev.yml
 conda clean -afy
 
 conda activate tmol
