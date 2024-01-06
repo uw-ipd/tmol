@@ -1,6 +1,8 @@
 #!/bin/bash
 
-conda create -n tmol && \
+pwd 
+
+conda create -n tmol -y && \
 conda env update -n tmol -f /home/docker/tmol/env-dev.yml && \
 conda clean -afy
 
