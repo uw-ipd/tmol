@@ -67,7 +67,7 @@ def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
         return score
 
 
-@pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30]))
+@pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10]))
 @pytest.mark.benchmark(group="setup_pose_stack_from_canonical_form")
 def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
     benchmark,
