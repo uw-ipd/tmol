@@ -32,10 +32,8 @@ def beta2016_score_function(
     sfxn.set_weight(ScoreType.cart_torsions, 0.5)
     sfxn.set_weight(ScoreType.cart_impropers, 0.5)
     sfxn.set_weight(ScoreType.cart_hxltorsions, 0.5)
-
-    # When these terms come online, here are there weights
-    # sfxn.set_weight(ScoreType.fa_dun_rot, 0.76)
-    # sfxn.set_weight(ScoreType.fa_dun_dev, 0.69)
-    # sfxn.set_weight(ScoreType.fa_dun_semi, 0.78)
+    sfxn.set_weight(ScoreType.dunbrack_rot, 0.76)
+    sfxn.set_weight(ScoreType.dunbrack_rotdev, 0.69)
+    sfxn.set_weight(ScoreType.dunbrack_semirot, 0.78)
 
     return sfxn
