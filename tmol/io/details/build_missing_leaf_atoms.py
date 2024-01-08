@@ -32,6 +32,8 @@ def build_missing_leaf_atoms(
     """
 
     (
+        real_block_atoms,
+        pose_at_is_real,
         block_leaf_atom_is_missing,
         pose_stack_atom_is_missing,
         block_coord_offset,
@@ -49,6 +51,8 @@ def build_missing_leaf_atoms(
     new_pose_coords = _actually_build_leaf_coords(
         packed_block_types,
         block_coords,
+        real_block_atoms,
+        pose_at_is_real,
         block_leaf_atom_is_missing,
         pose_stack_atom_is_missing,
         block_coord_offset,
@@ -150,6 +154,8 @@ def _setup_for_leaf_atom_coord_building(
     ]
 
     return (
+        real_block_atoms,
+        pose_at_is_real,
         block_leaf_atom_is_missing,
         pose_stack_atom_is_missing,
         block_coord_offset,
@@ -161,6 +167,8 @@ def _setup_for_leaf_atom_coord_building(
 def _actually_build_leaf_coords(
     packed_block_types,
     block_coords,
+    real_block_atoms,
+    pose_at_is_real,
     block_leaf_atom_is_missing,
     pose_stack_atom_is_missing,
     block_coord_offset,
@@ -171,6 +179,7 @@ def _actually_build_leaf_coords(
     device = pbt.device
     n_poses = block_coords.shape[0]
     max_n_blocks = block_coords.shape[1]
+    max_n_ats = pose_stack_atom_is_missing.shape[1]
 
     pose_like_coords = torch.zeros(
         (n_poses, max_n_ats, 3), dtype=torch.float32, device=device
