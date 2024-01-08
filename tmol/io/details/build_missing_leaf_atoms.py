@@ -31,6 +31,42 @@ def build_missing_leaf_atoms(
     atom; these include hydrogens and carbonyl/carboxyl oxygens.
     """
 
+    (
+        block_leaf_atom_is_missing,
+        pose_stack_atom_is_missing,
+        block_coord_offset,
+        block_types,
+        inter_residue_connections,
+    ) = _setup_for_leaf_atom_coord_building(
+        packed_block_types,
+        block_types64,
+        real_block_atoms,
+        block_coords,
+        block_atom_missing,
+        inter_residue_connections,
+    )
+
+    new_pose_coords = _actually_build_leaf_coords(
+        packed_block_types,
+        block_coords,
+        block_leaf_atom_is_missing,
+        pose_stack_atom_is_missing,
+        block_coord_offset,
+        block_types,  # int32s
+        inter_residue_connections,
+    )
+
+    return new_pose_coords, block_coord_offset
+
+
+def _setup_for_leaf_atom_coord_building(
+    packed_block_types: PackedBlockTypes,
+    block_types64: Tensor[torch.int64][:, :],
+    real_block_atoms: Tensor[torch.bool][:, :, :],
+    block_coords: Tensor[torch.float32][:, :, :, 3],
+    block_atom_missing: Tensor[torch.bool][:, :, :],
+    inter_residue_connections: Tensor[torch.int32][:, :, :, 2],
+):
     # ok,
     # we're going to call gen_pose_leaf_atoms,
     # but first we need to prepare the input tensors
@@ -61,11 +97,6 @@ def build_missing_leaf_atoms(
         torch.arange(max_n_ats, dtype=torch.int64, device=device).repeat(n_poses, 1)
         < n_ats_inccumsum[:, -1:]
     )
-
-    pose_like_coords = torch.zeros(
-        (n_poses, max_n_ats, 3), dtype=torch.float32, device=device
-    )
-    pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
 
     # SHORT CIRCUIT
     # return (pose_like_coords, block_coord_offset)
@@ -118,13 +149,41 @@ def build_missing_leaf_atoms(
         real_block_atoms
     ]
 
-    # ok, we're ready
-    new_pose_coords = gen_pose_leaf_atoms(
-        pose_like_coords,
+    return (
         block_leaf_atom_is_missing,
         pose_stack_atom_is_missing,
         block_coord_offset,
         block_types64.to(torch.int32),
+        inter_residue_connections,
+    )
+
+
+def _actually_build_leaf_coords(
+    packed_block_types,
+    block_coords,
+    block_leaf_atom_is_missing,
+    pose_stack_atom_is_missing,
+    block_coord_offset,
+    block_types,  # int32s
+    inter_residue_connections,
+):
+    pbt = packed_block_types
+    device = pbt.device
+    n_poses = block_coords.shape[0]
+    max_n_blocks = block_coords.shape[1]
+
+    pose_like_coords = torch.zeros(
+        (n_poses, max_n_ats, 3), dtype=torch.float32, device=device
+    )
+    pose_like_coords[pose_at_is_real] = block_coords[real_block_atoms]
+
+    # ok, we're ready
+    return gen_pose_leaf_atoms(
+        pose_like_coords,
+        block_leaf_atom_is_missing,
+        pose_stack_atom_is_missing,
+        block_coord_offset,
+        block_types,
         inter_residue_connections,
         pbt.n_atoms,
         pbt.atom_downstream_of_conn,
@@ -133,8 +192,6 @@ def build_missing_leaf_atoms(
         pbt.build_missing_leaf_atom_icoor_ann.anc_uaids_backup,
         pbt.build_missing_leaf_atom_icoor_ann.geom_backup,
     )
-
-    return new_pose_coords, block_coord_offset
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
