@@ -101,9 +101,9 @@ def canonical_form_from_rosettafold2(seq, xyz, chainlens):
     chain_id = torch.zeros((max_n_res,), dtype=torch.int32, device=device)
     if len(chainlens) > 1:
         t_chainlens = torch.tensor(chainlens[:-1], dtype=torch.int64, device=device)
-        chainbegins = torch.cumsum(t_chainlens)
+        chainbegins = torch.cumsum(t_chainlens, dim=0)
         chain_id[chainbegins] = 1
-        chain_id = torch.cumsum(chain_id)
+        chain_id = torch.cumsum(chain_id, dim=0, dtype=torch.int32)
     chain_id = chain_id.unsqueeze(0)
 
     # Now let's turn off the H atoms for any n-term residues

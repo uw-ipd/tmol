@@ -33,6 +33,21 @@ def test_load_rosettafold2_dictionary2(rosettafold2_sumo_pred, torch_device):
     assert ps.packed_block_types is pbt
 
 
+def test_multi_chain_rosettafold2_pose_stack_construction(
+    rosettafold2_ubq_pred, torch_device
+):
+    """Just fake a multi-chain prediction by saying ubq is two chains"""
+    # print("rosettafold_ubq_pred")
+    # print(rosettafold2_ubq_pred)
+    rosettafold2_ubq_pred["chainlens"] = [30, 46]
+
+    ps = pose_stack_from_rosettafold2(**rosettafold2_ubq_pred)
+    assert len(ps) == 1
+    assert ps.max_n_blocks == 76
+    pbt = packed_block_types_for_rosettafold2(torch_device)
+    assert ps.packed_block_types is pbt
+
+
 def test_create_canonical_form_from_rosettafold2_ubq_stability(
     rosettafold2_ubq_pred, torch_device
 ):
