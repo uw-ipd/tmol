@@ -178,7 +178,6 @@ def _actually_build_leaf_coords(
     pbt = packed_block_types
     device = pbt.device
     n_poses = block_coords.shape[0]
-    max_n_blocks = block_coords.shape[1]
     max_n_ats = pose_stack_atom_is_missing.shape[1]
 
     pose_like_coords = torch.zeros(
