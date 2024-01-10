@@ -1,10 +1,11 @@
 import numpy
 import torch
+import attr
+
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
-    # ordered_canonical_aa_types,
-    # ordered_canonical_aa_atoms,
-    # max_n_canonical_atoms,
+    CanonicalOrdering,
+    canonical_form_from_pdb,
 )
 from tmol.io.details.his_taut_resolution import (
     HisTautomerResolution,
@@ -12,6 +13,7 @@ from tmol.io.details.his_taut_resolution import (
     his_taut_variant_NE2_protonated,
     his_taut_variant_ND1_protonated,
 )
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 
 def test_resolve_his_HD1_provided():
@@ -554,3 +556,37 @@ def test_resolve_his_NE2_provided_as_NH():
     resolved_atom_is_present_gold[0, 0, atind("ND1")] = 1
     resolved_atom_is_present_gold[0, 0, atind("NE2")] = 1
     numpy.testing.assert_equal(resolved_atom_is_present, resolved_atom_is_present_gold)
+
+
+def test_resolve_his_taut_no_his_in_canonical_ordering(
+    ubq_pdb, default_database, torch_device
+):
+    chem_db = default_database.chemical
+    only_met = [res for res in chem_db.residues if res.name == "MET"]
+
+    small_chem_db = attr.evolve(chem_db, residues=only_met)
+    small_patched_chem_db = PatchedChemicalDatabase.from_chem_db(small_chem_db)
+
+    small_co = CanonicalOrdering.from_chemdb(small_patched_chem_db)
+    cf = canonical_form_from_pdb(small_co, ubq_pdb, torch_device, residue_end=1)
+
+    res_types = cf["res_types"]
+    coords = cf["coords"]
+    atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
+    orig_res_type_variants = torch.full_like(res_types, 0)
+
+    (
+        his_taut_res,
+        res_type_variants,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = resolve_his_tautomerization(
+        small_co, res_types, orig_res_type_variants, coords, atom_is_present
+    )
+    assert orig_res_type_variants is res_type_variants
+    assert resolved_coords is coords
+    assert resolved_atom_is_present is atom_is_present
+
+    numpy.testing.assert_equal(
+        res_type_variants.cpu().numpy(), his_taut_res.cpu().numpy()
+    )

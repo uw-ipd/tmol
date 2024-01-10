@@ -22,7 +22,7 @@ def find_disulfides(
         # nothing to do: CYS is not a valid residue type
         # in the ChemicalDatabase
         return (
-            torch.zeros((0, 3), dtype=torch.int32, device=res_types.device),
+            torch.zeros((0, 3), dtype=torch.int64, device=res_types.device),
             torch.zeros_like(res_types),
         )
 

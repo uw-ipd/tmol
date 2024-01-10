@@ -1,11 +1,14 @@
 import numpy
 import torch
+import attr
 from tmol.io.canonical_ordering import (
-    # CanonicalOrdering
+    CanonicalOrdering,
     canonical_form_from_pdb,
     default_canonical_ordering,
 )
 from tmol.io.details.disulfide_search import find_disulfides
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+
 
 # ATOM    160  N   CYS L  23     -60.489 -22.492  -9.505  1.00 63.92           N
 # ATOM    161  CA  CYS L  23     -60.175 -22.416  -8.082  1.00 64.85           C
@@ -243,3 +246,26 @@ def test_find_disulf_w_no_cys(ubq_pdb):
     found_dslf, restype_variants = find_disulfides(co, res_types, coords)
     assert (0, 3) == found_dslf.shape
     assert found_dslf.dtype == torch.int64
+
+
+def test_find_disulf_w_no_cys_in_canonical_ordering(
+    ubq_pdb, default_database, torch_device
+):
+    chem_db = default_database.chemical
+    only_met = [res for res in chem_db.residues if res.name == "MET"]
+
+    small_chem_db = attr.evolve(chem_db, residues=only_met)
+    small_patched_chem_db = PatchedChemicalDatabase.from_chem_db(small_chem_db)
+
+    small_co = CanonicalOrdering.from_chemdb(small_patched_chem_db)
+    cf = canonical_form_from_pdb(small_co, ubq_pdb, torch_device, residue_end=1)
+
+    res_types = cf["res_types"]
+    coords = cf["coords"]
+
+    found_dslf, restype_variants = find_disulfides(small_co, res_types, coords)
+    assert (0, 3) == found_dslf.shape
+    assert found_dslf.dtype == torch.int64
+
+    restype_variants_gold = torch.full_like(res_types, 0)
+    torch.testing.assert_close(restype_variants_gold, restype_variants)
