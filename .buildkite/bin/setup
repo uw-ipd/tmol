@@ -1,10 +1,13 @@
 #!/bin/bash
+#http://redsymbol.net/articles/unofficial-bash-strict-mode/
 
-pwd 
+set -euo pipefail
+IFS=$'\n\t'
+set -x
+set +e
 
-conda create -n tmol -y
-conda env update -n tmol -f environments/env-dev.yml
+conda env create -p ./tmol -f environments/env-dev.yml
 conda clean -afy
+conda activate ./tmol
 
-conda activate tmol
 pip install .
