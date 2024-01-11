@@ -2,4 +2,4 @@
 
 set -euo pipefail
 
-conda remove --name $BUILDKITE_BUILD_ID --all
+conda remove --name $BUILDKITE_BUILD_ID --all -y
