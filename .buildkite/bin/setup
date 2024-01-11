@@ -6,6 +6,7 @@ IFS=$'\n\t'
 set -x
 set +e
 
+printenv
 conda env create -p ./tmol -f environments/env-dev.yml
 conda clean -afy
 conda activate ./tmol
