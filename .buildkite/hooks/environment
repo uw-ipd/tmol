@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -euo pipefail
+
+conda env create -n $BUILDKITE_BUILD_ID --file environments/env-dev.yml

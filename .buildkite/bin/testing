@@ -2,8 +2,6 @@
 
 set -x
 
-conda activate ./tmol
-
 echo "--- environment"
 set
 conda info
