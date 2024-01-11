@@ -17,9 +17,11 @@ def test_create_stable_subset(default_database):
 def test_create_stable_subset_error_handline(default_database):
     rt_name_subset = ["ALA", "ASN", "ARG", "FEE"]
     variant_subset = ["nterm", "cterm"]
+    threw = False
     try:
         default_database.create_stable_subset(rt_name_subset, variant_subset)
-        assert False
     except ValueError as e:
+        threw = True
         gold_error = "ERROR: could not build the requested PachedChemcialDatabase subset because 'FEE' is not present in the original set"
         assert str(e) == gold_error
+    assert threw
