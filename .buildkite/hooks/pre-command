@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if ! [ -f /home/dimaio/.conda/envs/$BUILDKITE_BUILD_ID ]; then
-    conda create -n $BUILDKITE_BUILD_ID 
+    conda create -n $BUILDKITE_BUILD_ID -y
     conda env update -n $BUILDKITE_BUILD_ID  --file environments/env-dev.yml --prune
 fi
 conda activate $BUILDKITE_BUILD_ID
