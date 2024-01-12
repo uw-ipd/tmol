@@ -515,12 +515,16 @@ def select_best_block_type_candidate(
                                 )
                             ]
                         )
-            else:
-                for l in range(canonical_ordering.max_n_canonical_atoms):
-                    if real_candidate_canonical_atom_was_not_provided[cand_ind, l]:
-                        err_msg.extend(
-                            [" atom not provided:", cand_bt.atoms[l].name + "\n"]
-                        )
+            # should there be an `else:` here??
+            # No.
+            # If there is at least one canonical atom that does not
+            # belong to a given block type, then its score will be less than
+            # the failure-score cutoff. We would only arrive at this "else"
+            # condition if an block type had every single atom across all
+            # variants of that atom, and the largest number of atoms of all
+            # block types and it were not the default termini type and the
+            # user had provided not a single one of its atoms to us, but still
+            # claimed that there was a residue.
 
         raise RuntimeError(
             " ".join(

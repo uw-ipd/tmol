@@ -9,11 +9,6 @@ from tmol.io import pose_stack_from_pdb
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 
 
-# graph_comparisons = {
-#     "lj_regression": (LJScore, {"lj": -177.242}),
-#     "lk_regression": (LKScore, {"lk": 298.275}),
-# }
-
 module_comparisons = {
     "lj_regression": (LJScore, {"lj": -177.242}),
     "lk_regression": (LKScore, {"lk": 298.275}),

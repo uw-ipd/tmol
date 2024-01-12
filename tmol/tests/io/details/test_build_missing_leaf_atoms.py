@@ -16,9 +16,6 @@ from tmol.io.details.build_missing_leaf_atoms import (
     build_missing_leaf_atoms,
 )
 
-# temp debug
-# from tmol.io.write_pose_stack_pdb import (atom_records_from_pose_stack,
-
 
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.tests.autograd import gradcheck
@@ -52,7 +49,6 @@ def ats_to_not_rebuild(pbt, torch_device):
 
 
 def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
-    # torch_device = torch.device("cpu")  # TEMP!
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
@@ -158,24 +154,10 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     built_leaf_pos = built_leaf_pos.cpu().numpy()
     orig_leaf_pos = orig_leaf_pos.cpu().numpy()
 
-    # numpy.set_printoptions(threshold=10000)
-    # print("built_leaf_pos")
-    # print(built_leaf_pos)
-    # print("orig_leaf_pos")
-    # print(orig_leaf_pos)
-
-    # diff = numpy.any((built_leaf_pos - orig_leaf_pos) > 1e-1, axis=1)
-    # print("built_leaf_pos")
-    # print(built_leaf_pos[diff])
-    #
-    # print("orig_leaf_pos")
-    # print(orig_leaf_pos[diff])
-
     numpy.testing.assert_allclose(built_leaf_pos, orig_leaf_pos, atol=1e-1, rtol=1e-3)
 
 
 def test_build_missing_leaf_atoms_error_handling(torch_device, ubq_pdb):
-    # torch_device = torch.device("cpu")  # TEMP!
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
@@ -293,13 +275,6 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
     )
     at_is_pres = not_any_nancoord(coords)
 
-    # torch.set_printoptions(threshold=10000)
-    # print("at is pres:")
-    # print(at_is_pres[0, :5].to(torch.int))
-    # print(torch.sum(at_is_pres[0, :5].to(torch.int), dim=1))
-    # print("restypes ordered atom names: met")
-    # print(co.restypes_ordered_atom_names["MET"])
-
     ats_in_bts_to_leave_alone = ats_to_not_rebuild(pbt, torch_device)
 
     class FauxModule(torch.nn.Module):
@@ -375,8 +350,6 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
             )
 
             missing_atoms[block_at_to_rebuild] = True
-
-            # missing_atoms[block_at_is_leaf] = 1
 
             inter_residue_connections = inter_residue_connections64.to(torch.int32)
             new_pose_coords, block_coord_offset = build_missing_leaf_atoms(

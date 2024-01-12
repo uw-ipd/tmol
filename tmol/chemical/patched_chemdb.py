@@ -14,24 +14,9 @@ from tmol.extern.pysmiles.read_smiles import read_smiles
 
 import attr
 import copy
-from enum import IntEnum
 
 import networkx as nx
 import networkx.algorithms.isomorphism as iso
-
-
-# enum for validator code
-class ResTypeValidatorErrorCodes(IntEnum):
-    success = 0
-    undefined_field = 1
-    remove_nonreference_atom = 2
-    modify_nonreference_atom = 3
-    illegal_bond = 4
-    illegal_icoor = 5
-    illegal_torsion = 6
-    illegal_connection = 7
-    duplicate_atom_name = 8
-    illegal_add_alias = 9
 
 
 # build a graph from a restype
@@ -227,11 +212,9 @@ def _validate_raw_residue_torsions(res, allatoms, allconns):
             if a_i.atom is None:
                 if a_i.connection is None or a_i.connection not in allconns:
                     bad_torsions.append(("connection", a_i, i))
-                    # return ResTypeValidatorErrorCodes.illegal_torsion
             else:
                 if a_i.atom not in allatoms:
                     bad_torsions.append(("atom", a_i, i))
-                    # return ResTypeValidatorErrorCodes.illegal_torsion
     if len(bad_torsions) > 0:
 
         def str_ua(x):
@@ -305,8 +288,8 @@ def _validate_raw_residue_icoors(res, allatoms, allconns):
         raise RuntimeError(err_msg)
 
 
-# validate patches
 def validate_patch(patch):
+    """Validate a given patch object or raise a RuntimeException"""
     addedatoms = set([i.name for i in patch.add_atoms])
     added_ats_and_conns = addedatoms.union(set([i.name for i in patch.add_connections]))
 
@@ -402,7 +385,6 @@ def _validate_patch_bonds(patch, added_ats_and_conns):
     for i, j in patch.add_bonds:
         if (i[0] != "<" or i[-1] != ">") and (i not in added_ats_and_conns):
             bad_bonds.append((i, j))
-            # return ResTypeValidatorErrorCodes.illegal_bond
     if len(bad_bonds) > 0:
         err_msg = "".join(
             [
@@ -600,17 +582,9 @@ class PatchedChemicalDatabase:
 
         for variant in chemdb.variants:
             validate_patch(variant)
-            # if val_id != ResTypeValidatorErrorCodes.success:
-            #     assert False, (
-            #         "Bad patch: " + variant.name + "\nError code: " + str(val_id)
-            #     )
 
         for res in chemdb.residues:
             validate_raw_residue(res)
-            # if val_id != ResTypeValidatorErrorCodes.success:
-            #     assert False, (
-            #         "Bad raw residue: " + res.name + "\nError code: " + str(val_id)
-            #     )
 
         patched_residues, patched_residues_names = [], []
         for res in chemdb.residues:
@@ -655,10 +629,6 @@ class PatchedChemicalDatabase:
 
         for res in patched_residues:
             validate_raw_residue(res)
-            # if val_id != ResTypeValidatorErrorCodes.success:
-            #     assert False, (
-            #         "Bad raw residue: " + res.name + "\nError code: " + str(val_id)
-            #     )
 
         return cls(
             element_types=chemdb.element_types,

@@ -56,14 +56,10 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     numpy.testing.assert_equal(
         cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy()
     )
-    # numpy.testing.assert_equal(
-    #     cf_orig_at_is_pres.cpu().numpy(), cf_orig_at_is_pres2.cpu().numpy()
-    # )
 
     assert chain_id.device == torch_device
     assert cf_res_types.device == torch_device
     assert cf_coords.device == torch_device
-    # assert atom_is_present.device == torch_device
     assert res_not_connected.device == torch_device
     numpy.testing.assert_equal(chain_id.cpu().numpy(), cf_orig_chain_id.cpu().numpy())
     numpy.testing.assert_equal(
@@ -117,8 +113,6 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     orig_res_types[1, :6] = cf_orig_res_types6
     orig_coords[0, :4] = cf_orig_coords4
     orig_coords[1, :6] = cf_orig_coords6
-    # orig_res_not_connected[0, 0, 0] = True
-    # orig_res_not_connected[1, 0, 0] = True
     orig_res_not_connected[0, 3, 1] = True  # don't add OXT
     orig_res_not_connected[1, 5, 1] = True  # don't add OXT
 
@@ -146,15 +140,11 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     assert chain_id.device == torch_device
     assert cf_res_types.device == torch_device
     assert cf_coords.device == torch_device
-    # assert atom_is_present.device == torch_device
     assert res_not_connected.device == torch_device
     numpy.testing.assert_equal(chain_id.cpu().numpy(), orig_chain_id.cpu().numpy())
     numpy.testing.assert_equal(cf_res_types.cpu().numpy(), orig_res_types.cpu().numpy())
 
     numpy.testing.assert_equal(cf_coords.cpu().numpy(), orig_coords.cpu().numpy())
-    # numpy.testing.assert_equal(
-    #     atom_is_present.cpu().numpy(), orig_at_is_pres.cpu().numpy()
-    # )
     gold_disulfides = numpy.empty((0, 3), dtype=numpy.int64)
     numpy.testing.assert_equal(gold_disulfides, disulfides.cpu().numpy())
 

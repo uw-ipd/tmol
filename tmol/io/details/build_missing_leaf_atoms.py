@@ -8,9 +8,6 @@ from tmol.types.functional import validate_args
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.chemical.restypes import RefinedResidueType
 
-# from tmol.score.chemical_database import (
-#     AtomTypeParamResolver,
-# )
 from tmol.io.details.compiled.compiled import gen_pose_leaf_atoms
 
 
@@ -142,7 +139,6 @@ def _setup_for_leaf_atom_coord_building(
                     ]
                 )
             )
-        # TO DO: useful error message
         raise ValueError("\n".join(err_msg))
 
     block_leaf_atom_is_missing = torch.logical_and(block_at_is_leaf, block_atom_missing)
@@ -264,7 +260,6 @@ def _annotate_block_type_atom_is_leaf_atom(
 
     is_leaf = numpy.logical_not(is_parent)
 
-    # TEMP? TO DO?
     # special case: we cannot build missing atoms if there are not enough
     # atoms to define a coordinate frame
     if block_type.n_atoms == 3:

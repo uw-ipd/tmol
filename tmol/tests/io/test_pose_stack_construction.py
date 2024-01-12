@@ -83,11 +83,6 @@ def test_build_pose_stack_w_disconn_segs(
         res_not_connected,
     ) = pertuzumab_and_nearby_erbb2_pdb_and_segments
 
-    # print("pert_and_erbb2_lines")
-    # print(pert_and_erbb2_lines)
-    # print("-----------")
-    # print()
-
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
@@ -151,18 +146,6 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
         )
 
     canonical_form = {n: add_two_res(x, -1) for n, x in canonical_form.items()}
-
-    # numpy.set_printoptions(threshold=1000000)
-    # for i, t in enumerate(canonical_form):
-    #     print("--------", i, "---------")
-    #     if len(t.shape) > 2 :
-    #         t_cpu = t.cpu().numpy()
-    #         for j in range(t.shape[0]):
-    #             for k in range(t.shape[1]):
-    #                 print(" ", j, k, t_cpu[j, k])
-    #     else:
-    #         print(t.cpu().numpy())
-    #     print()
 
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
     res_not_connected = add_two_res(res_not_connected, False)

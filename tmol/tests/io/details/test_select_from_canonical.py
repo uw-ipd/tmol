@@ -1,7 +1,6 @@
 import numpy
 import torch
 
-# import attr
 import cattr
 import yaml
 from attrs import evolve
@@ -232,12 +231,12 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
     pbt = default_packed_block_types(torch_device)
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
-    # first 4 res -- up through line 75; ubq_pdb[:(81 * 75)]
-    cf4 = canonical_form_from_pdb(co, ubq_pdb[: (81 * 75)], torch_device)
+    # first 4 res
+    cf4 = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=4)
     ch_id_4, can_rts_4, coords_4 = cf4["chain_id"], cf4["res_types"], cf4["coords"]
     at_is_pres_4 = not_any_nancoord(coords_4)
-    # first 6 res -- up through line 113
-    cf6 = canonical_form_from_pdb(co, ubq_pdb[: (81 * 113)], torch_device)
+    # first 6 res
+    cf6 = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=6)
     ch_id_6, can_rts_6, coords_6 = cf6["chain_id"], cf6["res_types"], cf6["coords"]
     at_is_pres_6 = not_any_nancoord(coords_6)
 
@@ -315,7 +314,7 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
-    cf = canonical_form_from_pdb(co, ubq_pdb[: 81 * 167], torch_device)
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=10)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
 
@@ -421,15 +420,7 @@ def test_assign_block_types_for_pert_and_antigen(
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
         co, pbt, ch_id, can_rts, coords, at_is_pres
     )
-    # # 2
-    # found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
-    # # 3
-    # (
-    #     his_taut,
-    #     res_type_variants,
-    #     resolved_coords,
-    #     resolved_atom_is_present,
-    # ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
+    # skip dslf and his-taut steps
 
     # now we'll invoke assign_block_types
     (
@@ -512,16 +503,6 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
         co, pbt, ch_id, can_rts, coords, at_is_pres
     )
-
-    # # 2
-    # found_disulfides, res_type_variants = find_disulfides(co, can_rts, coords)
-    # # 3
-    # (
-    #     his_taut,
-    #     res_type_variants,
-    #     resolved_coords,
-    #     resolved_atom_is_present,
-    # ) = resolve_his_tautomerization(co, can_rts, res_type_variants, coords, at_is_pres)
 
     # now we'll invoke assign_block_types
     (

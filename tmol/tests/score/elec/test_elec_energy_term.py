@@ -47,9 +47,6 @@ def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device
     p1 = pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_end=3, res_not_connected=r2_not_cterm
     )
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, res=rts_ubq_res[0:3], device=torch_device
-    # )
     for bt in p1.packed_block_types.active_block_types:
         elec_energy.setup_block_type(bt)
     elec_energy.setup_packed_block_types(p1.packed_block_types)
@@ -74,9 +71,6 @@ def test_whole_pose_scoring_module_gradcheck(ubq_pdb, default_database, torch_de
     p1 = pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_end=4, res_not_connected=r3_not_cterm
     )
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
-    # )
     for bt in p1.packed_block_types.active_block_types:
         elec_energy.setup_block_type(bt)
     elec_energy.setup_packed_block_types(p1.packed_block_types)
@@ -96,9 +90,6 @@ def test_whole_pose_scoring_module_10(ubq_pdb, default_database, torch_device):
     gold_vals = numpy.tile(numpy.array([[-136.45409]], dtype=numpy.float32), (n_poses))
     elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, res=rts_ubq_res, device=torch_device
-    # )
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:
@@ -132,8 +123,6 @@ def test_whole_pose_scoring_module_jagged(ubq_pdb, default_database, torch_devic
     elec_pose_scorer = elec_energy.render_whole_pose_scoring_module(poses)
     coords = torch.nn.Parameter(poses.coords.clone())
     scores = elec_pose_scorer(coords)
-    # print("scores")
-    # print(scores)
 
     gold_scores = torch.tensor(
         [[-53.3993, -99.0136]], dtype=torch.float32, device=torch_device

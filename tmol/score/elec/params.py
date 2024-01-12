@@ -95,7 +95,6 @@ class ElecParamResolver(ValidateAttrs):
         assert bonded_path_lengths.shape[0] == atom_names.shape[0]
 
         def lookup_mapping(res, atm):
-            # print("lookup mapping", res, atm)
             if res is None:
                 return 0.0
             tag, *vars = res.split(":")
@@ -103,22 +102,10 @@ class ElecParamResolver(ValidateAttrs):
             if atm in self.cp_reps[tag]:
                 for vi in vars:
                     if vi in self.cp_reps[tag][atm]:
-                        # print("self.cp_reps[tag][atm][vi]", self.cp_reps[tag][atm][vi])
                         return self.cp_reps[tag][atm][vi]
             return atm
 
-        # print("res_names", res_names.shape)
-        # print("atom_names", atom_names.shape)
         mapped_atoms = numpy.vectorize(lookup_mapping)(res_names, atom_names)
-        # mapped_atoms = numpy.empty_like(res_names, dtype=object)
-        # for i in range(res_names.shape[0]):
-        #     for j in range(res_names.shape[1]):
-        #         mapped_atoms[i, j] = lookup_mapping(res_names[i, j], atom_names[i, j])
-
-        # mapped_atoms = numpy.array(list(map(lookup_mapping, res_names.tolist(), atom_names.tolist())), dtype=object)
-        # print(mapped_atoms)
-        # mapped_atoms = [lookup_mapping(x, y) for x, y in zip(res_names, atom_names)]
-        # mapped_atoms = numpy.array(mapped_atoms)
 
         # fd this could probably be made more efficient but it is going away very soon....
         nstacks = bonded_path_lengths.shape[0]

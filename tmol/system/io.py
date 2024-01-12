@@ -67,12 +67,7 @@ class ResidueReader:
         if not candidate_types:
             raise ValueError(f"Unknown residue name: {resn}")
 
-        # missing_atoms = [
-        #     set(a.name for a in t.atoms).symmetric_difference(atomns)
-        #     for t in candidate_types
-        # ]
-
-        # new algorithm: look for atoms and their aliases
+        # algorithm: look for atoms and their aliases
         missing_atoms = []
         for t in candidate_types:
             t_missing = set([])
@@ -81,10 +76,8 @@ class ResidueReader:
                 if atn in t.atom_names_set:
                     found_atoms.add(atn)
                 elif atn in t.aliases_map:
-                    # print("  ", t.name, "aliased atom", atn, "to", t.aliases_map[atn])
                     found_atoms.add(t.aliases_map[atn])
                 else:
-                    # print("  ", t.name, "atom not found", atn)
                     t_missing.add(atn)
             t_missing.update(t.atom_names_set.difference(found_atoms))
             missing_atoms.append(t_missing)

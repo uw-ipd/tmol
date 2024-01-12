@@ -116,8 +116,6 @@ def test_whole_pose_scoring_module_10(
 def test_whole_pose_scoring_module_jagged(
     ubq_pdb, default_database, torch_device: torch.device
 ):
-    # rts_ubq_60 = rts_ubq_res[:60]
-    # rts_ubq_40 = rts_ubq_res[:40]
     gold_vals = numpy.array(
         [
             [70.6497, 47.4000, 31.5526],

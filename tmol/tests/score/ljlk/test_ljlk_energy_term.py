@@ -111,12 +111,6 @@ def test_render_inter_module(ubq_pdb, default_database, torch_device):
 
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=6)
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[:4], torch_device
-    # )
-    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[:6], torch_device
-    # )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     # nab the ca coords for these residues
@@ -125,7 +119,6 @@ def test_render_inter_module(ubq_pdb, default_database, torch_device):
     )
     for i in range(2):
         for j in range(4 if i == 0 else 6):
-            # bounding_spheres[i, j, :3] = ubq_res[j].coords[2, :]
             bounding_spheres[i, j, :3] = get_coord_for_pose_res(poses, i, j, "CA")
     bounding_spheres[:, :, 3] = 3.0
     bounding_spheres = torch.tensor(
@@ -189,10 +182,6 @@ def test_render_inter_module(ubq_pdb, default_database, torch_device):
         poses.block_type_ind[1, 3], device=torch_device
     )
 
-    # TEMP! Just score one residue
-    # alternate_coords = alternate_coords[15:16]
-    # alternate_ids = alternate_ids[15:16]
-
     def run_once():
         rpes = inter_module.go(
             context_coords,
@@ -203,17 +192,9 @@ def test_render_inter_module(ubq_pdb, default_database, torch_device):
             alternate_ids,
         )
         assert rpes is not None
-        # print()
-        # print(rpes)
 
     run_once()
     run_once()
-
-    # rpes2 = inter_module.go(
-    #     context_coords, context_block_type, alternate_coords, alternate_ids
-    # )
-    # assert rpes2 is not None
-    # print(rpes2)
 
 
 @pytest.mark.benchmark(group="time_rpe")
@@ -223,19 +204,9 @@ def test_render_inter_module(ubq_pdb, default_database, torch_device):
 def test_inter_module_timing(
     benchmark, ubq_pdb, default_database, n_alts, n_traj, n_poses, torch_device
 ):
-    # n_traj = 100
-    # n_poses = 100
-    # n_alts = 10
-
-    # this is slow on CPU?
-    # torch_device = torch.device("cuda")
-
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res, torch_device
-    # )
     n_res = p1.max_n_blocks
     poses = PoseStackBuilder.from_poses([p1] * n_poses, torch_device)
 
@@ -243,8 +214,6 @@ def test_inter_module_timing(
         (1, n_res, 4), numpy.nan, dtype=torch.float32, device=torch_device
     )
     for i in range(n_res):
-        # atnames = set([at.name for at in ubq_res[i].residue_type.atoms])
-        # cb = ubq_res[i].coords[5, :] if "CB" in atnames else ubq_res[i].coords[2, :]
         cb = get_coord_or_alt_for_pose_res(poses, 0, i, "CB", "CA")
         i_start = poses.block_coord_offset[0, i]
         i_end = (
@@ -362,9 +331,6 @@ def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device
     p1 = pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_end=4, res_not_connected=r3_not_cterm
     )
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
-    # )
     for bt in p1.packed_block_types.active_block_types:
         ljlk_energy.setup_block_type(bt)
     ljlk_energy.setup_packed_block_types(p1.packed_block_types)
