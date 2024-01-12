@@ -1,9 +1,9 @@
 #!/bin/bash
 
-set -x
-
 source ~/.bashrc
 conda activate $BUILDKITE_BUILD_ID
+
+set -x
 
 echo "--- environment"
 set

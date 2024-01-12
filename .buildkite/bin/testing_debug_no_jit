@@ -3,10 +3,10 @@
 export NUMBA_DISABLE_JIT=1
 export DEBUG=1
 
-set -x
-
 source ~/.bashrc
 conda activate $BUILDKITE_BUILD_ID
+
+set -x
 
 echo "--- environment"
 set
