@@ -440,7 +440,7 @@ def _validate_patch_icoors(patch, added_ats_and_conns):
             [
                 f"Bad patch {patch.name}\n",
                 "Error: illegal_icoor; ",
-                f"icoor atoms must be for either atom reference ",
+                "icoor atoms must be for either atom reference ",
                 '(start with "<" and end with ">") or an added atom / connection,\n'
                 'and ancestor atoms may only be omitted (i.e. "None") if the "source" atom is provided\n'
                 "Offending icoors:\n",

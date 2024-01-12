@@ -350,7 +350,7 @@ def test_patch_validation_illegal_add_alias(default_unpatched_chemical_database)
     display_name: bad
     pattern: 'CC[SH]'
     remove_atoms: []
-    add_atoms: 
+    add_atoms:
     - {name: XX, atom_type: CH3}
     add_atom_aliases:
     - {name: YY, alt_name: ZZ}
@@ -388,12 +388,12 @@ def test_patch_validation_illegal_bond(default_unpatched_chemical_database):
     display_name: bad
     pattern: 'CC[SH]'
     remove_atoms: []
-    add_atoms: 
+    add_atoms:
     - {name: XX, atom_type: CH3}
     add_atom_aliases: []
     modify_atoms: []
     add_connections: []
-    add_bonds: 
+    add_bonds:
     - [SG, XX]
     icoors: []
     """
@@ -426,7 +426,7 @@ def test_patch_validation_illegal_icoor(default_unpatched_chemical_database):
     display_name: bad
     pattern: 'CC[SH]'
     remove_atoms: []
-    add_atoms: 
+    add_atoms:
     - {name: XX, atom_type: CH3}
     - {name: YY, atom_type: CH3}
     add_atom_aliases: []
