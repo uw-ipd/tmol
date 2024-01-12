@@ -164,6 +164,14 @@ def validate_raw_residue(res):
     allatoms = set([i.name for i in res.atoms])
     allconns = set([i.name for i in res.connections])
 
+    _validate_raw_residue_atoms(res, allatoms)
+    _validate_raw_residue_bonds(res, allatoms)
+    _validate_raw_residue_torsions(res, allatoms, allconns)
+    _validate_raw_residue_connections(res, allatoms)
+    _validate_raw_residue_icoors(res, allatoms, allconns)
+
+
+def _validate_raw_residue_atoms(res, allatoms):
     # No duplicate atom names
     if len(allatoms) != len(res.atoms):
         duplicated = defaultdict(int)
@@ -186,6 +194,8 @@ def validate_raw_residue(res):
         )
         raise RuntimeError(err_msg)
 
+
+def _validate_raw_residue_bonds(res, allatoms):
     # illegal bonds
     bad_bonds = []
     for i, j in res.bonds:
@@ -209,16 +219,8 @@ def validate_raw_residue(res):
         )
         raise RuntimeError(err_msg)
 
-    # illegal torsions
-    # for i in res.torsions:
-    #     for a_i in (i.a, i.b, i.c, i.d):
-    #         if a_i.atom is None:
-    #             if a_i.connection is None or a_i.connection not in allconns:
-    #                 return ResTypeValidatorErrorCodes.illegal_torsion
-    #         else:
-    #             if a_i.atom not in allatoms:
-    #                 return ResTypeValidatorErrorCodes.illegal_torsion
 
+def _validate_raw_residue_torsions(res, allatoms, allconns):
     bad_torsions = []
     for i in res.torsions:
         for a_i in (i.a, i.b, i.c, i.d):
@@ -254,10 +256,8 @@ def validate_raw_residue(res):
         )
         raise RuntimeError(err_msg)
 
-    # illegal connections
-    # for i in res.connections:
-    #     if i.atom not in allatoms:
-    #         return ResTypeValidatorErrorCodes.illegal_connection
+
+def _validate_raw_residue_connections(res, allatoms):
     bad_conns = []
     for i in res.connections:
         if i.atom not in allatoms:
@@ -278,7 +278,8 @@ def validate_raw_residue(res):
         )
         raise RuntimeError(err_msg)
 
-    # illegal icoors
+
+def _validate_raw_residue_icoors(res, allatoms, allconns):
     bad_icoors = []
     for i in res.icoors:
         if i.name not in allatoms and i.name not in allconns:
@@ -306,6 +307,22 @@ def validate_raw_residue(res):
 
 # validate patches
 def validate_patch(patch):
+    addedatoms = set([i.name for i in patch.add_atoms])
+    added_ats_and_conns = addedatoms.union(set([i.name for i in patch.add_connections]))
+
+    _validate_patch_fields(patch)
+    _validate_patch_atom_references(
+        patch, "remove_atoms", "remove_nonreference_atom", lambda x: x
+    )
+    _validate_patch_atom_references(
+        patch, "modify_atoms", "modify_nonreference_atom", lambda x: x.name
+    )
+    _validate_patch_atom_aliases(patch, addedatoms)
+    _validate_patch_bonds(patch, added_ats_and_conns)
+    _validate_patch_icoors(patch, added_ats_and_conns)
+
+
+def _validate_patch_fields(patch):
     # make sure all fields are defined
     missing = []
     required_attrs = [
@@ -334,36 +351,32 @@ def validate_patch(patch):
         )
         raise RuntimeError(err_msg)
 
-    def validate_atom_references(atom_list_attribute_name, error_name, get_atom_name):
-        bad_atom_inds = []
-        atom_list = getattr(patch, atom_list_attribute_name)
-        for i in range(len(atom_list)):
-            if (
-                get_atom_name(atom_list[i])[0] != "<"
-                or get_atom_name(atom_list[i])[-1] != ">"
-            ):
-                bad_atom_inds.append(i)
-        if len(bad_atom_inds) > 0:
-            err_msg = "".join(
-                [
-                    f"Bad patch: {patch.name}\n",
-                    f"Error: {error_name}; ",
-                    f'atoms listed with "{atom_list_attribute_name}" must begin with "<" and end with ">".\n',
-                    "Offending atoms: ",
-                    ",".join([get_atom_name(atom_list[i]) for i in bad_atom_inds]),
-                ]
-            )
-            raise RuntimeError(err_msg)
 
-    # make sure all removed atoms are references
-    validate_atom_references("remove_atoms", "remove_nonreference_atom", lambda x: x)
-    # make sure all modded atoms are references
-    validate_atom_references(
-        "modify_atoms", "modify_nonreference_atom", lambda x: x.name
-    )
+def _validate_patch_atom_references(
+    patch, atom_list_attribute_name, error_name, get_atom_name
+):
+    bad_atom_inds = []
+    atom_list = getattr(patch, atom_list_attribute_name)
+    for i in range(len(atom_list)):
+        if (
+            get_atom_name(atom_list[i])[0] != "<"
+            or get_atom_name(atom_list[i])[-1] != ">"
+        ):
+            bad_atom_inds.append(i)
+    if len(bad_atom_inds) > 0:
+        err_msg = "".join(
+            [
+                f"Bad patch: {patch.name}\n",
+                f"Error: {error_name}; ",
+                f'atoms listed with "{atom_list_attribute_name}" must begin with "<" and end with ">".\n',
+                "Offending atoms: ",
+                ",".join([get_atom_name(atom_list[i]) for i in bad_atom_inds]),
+            ]
+        )
+        raise RuntimeError(err_msg)
 
-    addedatoms = set([i.name for i in patch.add_atoms])
 
+def _validate_patch_atom_aliases(patch, addedatoms):
     # make sure that aliases are for new atoms
     bad_aliases = []
     for i in patch.add_atom_aliases:
@@ -382,13 +395,12 @@ def validate_patch(patch):
         )
         raise RuntimeError(err_msg)
 
-    addedatoms.update([i.name for i in patch.add_connections])
-    addedatoms_list = sorted(addedatoms)
 
+def _validate_patch_bonds(patch, added_ats_and_conns):
     # make sure all bonds are references or added atoms
     bad_bonds = []
     for i, j in patch.add_bonds:
-        if (i[0] != "<" or i[-1] != ">") and (i not in addedatoms):
+        if (i[0] != "<" or i[-1] != ">") and (i not in added_ats_and_conns):
             bad_bonds.append((i, j))
             # return ResTypeValidatorErrorCodes.illegal_bond
     if len(bad_bonds) > 0:
@@ -404,10 +416,14 @@ def validate_patch(patch):
         )
         raise RuntimeError(err_msg)
 
+
+def _validate_patch_icoors(patch, added_ats_and_conns):
     # make sure all icoors are references or added atoms
     bad_icoors = []
     for i in patch.icoors:
-        if (i.name[0] != "<" or i.name[-1] != ">") and (i.name not in addedatoms):
+        if (i.name[0] != "<" or i.name[-1] != ">") and (
+            i.name not in added_ats_and_conns
+        ):
             bad_icoors.append(("name", i))
         for anc in ("source", "parent", "grand_parent", "great_grand_parent"):
             a_i = getattr(i, anc)
@@ -416,9 +432,10 @@ def validate_patch(patch):
                 if anc != "source" and getattr(i, "source") is None:
                     bad_icoors.append((anc, i))
                 continue
-            if (a_i[0] != "<" or a_i[-1] != ">") and (a_i not in addedatoms):
+            if (a_i[0] != "<" or a_i[-1] != ">") and (a_i not in added_ats_and_conns):
                 bad_icoors.append((anc, i))
     if len(bad_icoors) > 0:
+        added_ats_and_conns_list = sorted(added_ats_and_conns)
         err_msg = "".join(
             [
                 f"Bad patch {patch.name}\n",
@@ -434,7 +451,7 @@ def validate_patch(patch):
                     ]
                 ),
                 "\nWhere the added atom / connection list is: ",
-                ", ".join([f'"{x}"' for x in addedatoms_list]),
+                ", ".join([f'"{x}"' for x in added_ats_and_conns_list]),
             ]
         )
         raise RuntimeError(err_msg)
