@@ -1,0 +1,3 @@
+#!/bin/bash
+
+conda remove --name $BUILDKITE_BUILD_ID --all -y
