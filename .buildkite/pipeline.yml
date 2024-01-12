@@ -58,7 +58,6 @@ steps:
     continue_on_failure: true
 
   - label: ':clipboard: Report'
-    command: .buildkite/bin/cleanup
     plugins:
       uw-ipd/test-summary#master:
         inputs:
@@ -70,6 +69,10 @@ steps:
             type: junit
         formatter:
           type: details
+    << : *cuda_test_agent
+
+  - label: ':clipboard: Cleanup'
+    command: .buildkite/bin/cleanup
     << : *cuda_test_agent
 
   # Disable gh-pages as docs are disabled.

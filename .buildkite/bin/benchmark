@@ -3,6 +3,9 @@
 set -x
 set -e
 
+source ~/.bashrc
+conda activate $BUILDKITE_BUILD_ID
+
 BENCHMARK_DIR=benchmark/${BUILDKITE_PIPELINE_SLUG}/${BUILDKITE_AGENT_NAME}/${BUILDKITE_BRANCH}
 BENCHMARK_RESULT=${BENCHMARK_DIR}/${BUILDKITE_BUILD_NUMBER}-`git describe --tags --dirty`.json 
 

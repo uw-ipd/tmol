@@ -7,6 +7,9 @@ set -x
 
 set +e
 
+source ~/.bashrc
+conda activate $BUILDKITE_BUILD_ID
+
 error=0
 
 pre-commit install
