@@ -1,4 +1,5 @@
 from typing import Tuple
+from collections import defaultdict
 
 from tmol.database.chemical import (
     Element,
@@ -165,96 +166,278 @@ def validate_raw_residue(res):
 
     # No duplicate atom names
     if len(allatoms) != len(res.atoms):
-        return ResTypeValidatorErrorCodes.duplicate_atom_name
+        duplicated = defaultdict(int)
+        for i, at in enumerate(res.atoms):
+            if at.name in duplicated:
+                continue
+            for j, at2 in enumerate(res.atoms[(i + 1) :]):
+                if at.name == at2.name:
+                    duplicated[at.name] += 1
+
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: duplicated_atom_name; atoms may appear only once\n",
+                "Offending atoms:\n",
+                "\n".join(
+                    [f'    "{x}" appears {duplicated[x]+1} times' for x in duplicated]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
 
     # illegal bonds
+    bad_bonds = []
     for i, j in res.bonds:
-        if i not in allatoms or j not in allatoms:
-            print("Error: illegal bond declared. Res", res.name, "bond:", i, "to", j)
-            return ResTypeValidatorErrorCodes.illegal_bond
+        if i not in allatoms:
+            bad_bonds.append((i, i, j))
+        if j not in allatoms:
+            bad_bonds.append((j, i, j))
+    if len(bad_bonds) > 0:
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: illegal_bond; must be between declared atoms\n"
+                "Offending atoms:\n",
+                "\n".join(
+                    [
+                        f'    Undeclared atom "{x[0]}" in bond ("{x[1]}", "{x[2]}")'
+                        for x in bad_bonds
+                    ]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
 
     # illegal torsions
+    # for i in res.torsions:
+    #     for a_i in (i.a, i.b, i.c, i.d):
+    #         if a_i.atom is None:
+    #             if a_i.connection is None or a_i.connection not in allconns:
+    #                 return ResTypeValidatorErrorCodes.illegal_torsion
+    #         else:
+    #             if a_i.atom not in allatoms:
+    #                 return ResTypeValidatorErrorCodes.illegal_torsion
+
+    bad_torsions = []
     for i in res.torsions:
         for a_i in (i.a, i.b, i.c, i.d):
             if a_i.atom is None:
                 if a_i.connection is None or a_i.connection not in allconns:
-                    return ResTypeValidatorErrorCodes.illegal_torsion
+                    bad_torsions.append(("connection", a_i, i))
+                    # return ResTypeValidatorErrorCodes.illegal_torsion
             else:
                 if a_i.atom not in allatoms:
-                    return ResTypeValidatorErrorCodes.illegal_torsion
+                    bad_torsions.append(("atom", a_i, i))
+                    # return ResTypeValidatorErrorCodes.illegal_torsion
+    if len(bad_torsions) > 0:
+
+        def str_ua(x):
+            return x.atom if x.atom is not None else x.connection
+
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: illegal_torsion; Torsion atoms must be either ",
+                "previously-declared connections or previously-declared atoms\n",
+                f'Offending atom{"s" if len(bad_torsions) > 1 else ""}:\n',
+                "\n".join(
+                    [
+                        f'    atom "{str_ua(x[1])}" of'
+                        f" ({str_ua(x[2].a)}, {str_ua(x[2].b)},"
+                        f" {str_ua(x[2].c)}, {str_ua(x[2].d)})"
+                        f" is not a declared {x[0]}"
+                        for x in bad_torsions
+                    ]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
 
     # illegal connections
+    # for i in res.connections:
+    #     if i.atom not in allatoms:
+    #         return ResTypeValidatorErrorCodes.illegal_connection
+    bad_conns = []
     for i in res.connections:
         if i.atom not in allatoms:
-            return ResTypeValidatorErrorCodes.illegal_connection
+            bad_conns.append(i)
+    if len(bad_conns) > 0:
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: illegal_connection; connection atom must be previously declared\n",
+                f'Offending connection{"s" if len(bad_conns) > 1 else ""}:\n',
+                "\n".join(
+                    [
+                        f'    connection "{x.name}" with undeclared atom "{x.atom}"'
+                        for x in bad_conns
+                    ]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
 
     # illegal icoors
+    bad_icoors = []
     for i in res.icoors:
         if i.name not in allatoms and i.name not in allconns:
-            print("Error: atom not found for icoor: res", res.name, "icoor:", i.name)
-            return ResTypeValidatorErrorCodes.illegal_icoor
-        for a_i in (i.parent, i.grand_parent, i.great_grand_parent):
+            bad_icoors.append((i, "name"))
+        for anc in ("parent", "grand_parent", "great_grand_parent"):
+            a_i = getattr(i, anc)
             if a_i not in allatoms and a_i not in allconns:
-                print(
-                    "Error: ancestor in icoor not found: res",
-                    res.name,
-                    "icoor:",
-                    i.name,
-                    "with ancestor",
-                    a_i,
-                )
-                return ResTypeValidatorErrorCodes.illegal_icoor
-
-    return ResTypeValidatorErrorCodes.success
+                bad_icoors.append((i, anc))
+    if len(bad_icoors) > 0:
+        err_msg = "".join(
+            [
+                f"Bad raw residue: {res.name}\n",
+                "Error: illegal_icoor; must reference previoulsy-declared atoms or connections only.\n",
+                f'Offending icoor{"s" if len(bad_icoors) > 1 else ""}\n',
+                "\n".join(
+                    [
+                        f'    icoor for {x[0].name}: {x[1]} atom "{getattr(x[0],x[1])}" undeclared'
+                        for x in bad_icoors
+                    ]
+                ),
+            ]
+        )
+        raise RuntimeError(err_msg)
 
 
 # validate patches
 def validate_patch(patch):
     # make sure all fields are defined
-    if (
-        patch.name is None
-        or patch.display_name is None
-        or patch.pattern is None
-        or patch.remove_atoms is None
-        or patch.add_atoms is None
-        or patch.add_atom_aliases is None
-        or patch.add_connections is None
-        or patch.add_bonds is None
-        or patch.icoors is None
-    ):
-        return ResTypeValidatorErrorCodes.undefined_field
+    missing = []
+    required_attrs = [
+        "name",
+        "display_name",
+        "pattern",
+        "remove_atoms",
+        "add_atoms",
+        "add_atom_aliases",
+        "modify_atoms",
+        "add_connections",
+        "add_bonds",
+        "icoors",
+    ]
+    for attribute in required_attrs:
+        if getattr(patch, attribute) is None:
+            missing.append(attribute)
+    if len(missing) > 0:
+        err_msg = "".join(
+            [
+                f"Bad patch: {patch.name}\n",
+                "Error: Undefined field",
+                ("s: " if len(missing) > 1 else ": "),
+                ", ".join(missing),
+            ]
+        )
+        raise RuntimeError(err_msg)
+
+    def validate_atom_references(atom_list_attribute_name, error_name, get_atom_name):
+        bad_atom_inds = []
+        atom_list = getattr(patch, atom_list_attribute_name)
+        for i in range(len(atom_list)):
+            if (
+                get_atom_name(atom_list[i])[0] != "<"
+                or get_atom_name(atom_list[i])[-1] != ">"
+            ):
+                bad_atom_inds.append(i)
+        if len(bad_atom_inds) > 0:
+            err_msg = "".join(
+                [
+                    f"Bad patch: {patch.name}\n",
+                    f"Error: {error_name}; ",
+                    f'atoms listed with "{atom_list_attribute_name}" must begin with "<" and end with ">".\n',
+                    "Offending atoms: ",
+                    ",".join([get_atom_name(atom_list[i]) for i in bad_atom_inds]),
+                ]
+            )
+            raise RuntimeError(err_msg)
 
     # make sure all removed atoms are references
-    for i in patch.remove_atoms:
-        if i[0] != "<" or i[-1] != ">":
-            return ResTypeValidatorErrorCodes.remove_nonreference_atom
-
+    validate_atom_references("remove_atoms", "remove_nonreference_atom", lambda x: x)
     # make sure all modded atoms are references
-    for i in patch.modify_atoms:
-        if i.name[0] != "<" or i.name[-1] != ">":
-            return ResTypeValidatorErrorCodes.modify_nonreference_atom
+    validate_atom_references(
+        "modify_atoms", "modify_nonreference_atom", lambda x: x.name
+    )
 
     addedatoms = set([i.name for i in patch.add_atoms])
 
     # make sure that aliases are for new atoms
+    bad_aliases = []
     for i in patch.add_atom_aliases:
         if i.name not in addedatoms:
-            return ResTypeValidatorErrorCodes.illegal_add_alias
+            bad_aliases.append(i)
+
+    if len(bad_aliases) > 0:
+        err_msg = "".join(
+            [
+                f"Bad patch {patch.name}\n",
+                "Error: illegal_add_alias. "
+                "Added atom alias must refer to newly added atoms. "
+                "Bad add_atom_aliases from: ",
+                ", ".join([f'"{x.name}" --> "{x.alt_name}"' for x in bad_aliases]),
+            ]
+        )
+        raise RuntimeError(err_msg)
 
     addedatoms.update([i.name for i in patch.add_connections])
+    addedatoms_list = sorted(addedatoms)
 
     # make sure all bonds are references or added atoms
+    bad_bonds = []
     for i, j in patch.add_bonds:
         if (i[0] != "<" or i[-1] != ">") and (i not in addedatoms):
-            return ResTypeValidatorErrorCodes.illegal_bond
+            bad_bonds.append((i, j))
+            # return ResTypeValidatorErrorCodes.illegal_bond
+    if len(bad_bonds) > 0:
+        err_msg = "".join(
+            [
+                f"Bad patch {patch.name}\n",
+                "Error: illegal bond; "
+                "first atom in each bond must be either atom reference ",
+                '(start with "<" and end with ">") or an added atom.\n',
+                "Offending bonds: ",
+                ", ".join([f'("{x[0]}" "{x[1]}")' for x in bad_bonds]),
+            ]
+        )
+        raise RuntimeError(err_msg)
 
     # make sure all icoors are references or added atoms
+    bad_icoors = []
     for i in patch.icoors:
         if (i.name[0] != "<" or i.name[-1] != ">") and (i.name not in addedatoms):
-            print("i", i, " and ", addedatoms)
-            return ResTypeValidatorErrorCodes.illegal_icoor
-
-    return ResTypeValidatorErrorCodes.success
+            bad_icoors.append(("name", i))
+        for anc in ("source", "parent", "grand_parent", "great_grand_parent"):
+            a_i = getattr(i, anc)
+            if a_i is None:
+                # ok for source to be None, ok for p, gp, ggp to be None if source is given
+                if anc != "source" and getattr(i, "source") is None:
+                    bad_icoors.append((anc, i))
+                continue
+            if (a_i[0] != "<" or a_i[-1] != ">") and (a_i not in addedatoms):
+                bad_icoors.append((anc, i))
+    if len(bad_icoors) > 0:
+        err_msg = "".join(
+            [
+                f"Bad patch {patch.name}\n",
+                "Error: illegal_icoor; ",
+                f"icoor atoms must be for either atom reference ",
+                '(start with "<" and end with ">") or an added atom / connection,\n'
+                'and ancestor atoms may only be omitted (i.e. "None") if the "source" atom is provided\n'
+                "Offending icoors:\n",
+                "\n".join(
+                    [
+                        f'    Icoor for {x[1].name} with atom reference "{x[0]}" of "{getattr(x[1],x[0])}"'
+                        for x in bad_icoors
+                    ]
+                ),
+                "\nWhere the added atom / connection list is: ",
+                ", ".join([f'"{x}"' for x in addedatoms_list]),
+            ]
+        )
+        raise RuntimeError(err_msg)
 
 
 # apply a patch to a rawresidue
@@ -399,18 +582,18 @@ class PatchedChemicalDatabase:
         G = RestypeGraphBuilder({x.name: x.element for x in chemdb.atom_types})
 
         for variant in chemdb.variants:
-            val_id = validate_patch(variant)
-            if val_id != ResTypeValidatorErrorCodes.success:
-                assert False, (
-                    "Bad patch: " + variant.name + "\nError code: " + str(val_id)
-                )
+            validate_patch(variant)
+            # if val_id != ResTypeValidatorErrorCodes.success:
+            #     assert False, (
+            #         "Bad patch: " + variant.name + "\nError code: " + str(val_id)
+            #     )
 
         for res in chemdb.residues:
-            val_id = validate_raw_residue(res)
-            if val_id != ResTypeValidatorErrorCodes.success:
-                assert False, (
-                    "Bad raw residue: " + res.name + "\nError code: " + str(val_id)
-                )
+            validate_raw_residue(res)
+            # if val_id != ResTypeValidatorErrorCodes.success:
+            #     assert False, (
+            #         "Bad raw residue: " + res.name + "\nError code: " + str(val_id)
+            #     )
 
         patched_residues, patched_residues_names = [], []
         for res in chemdb.residues:
@@ -454,11 +637,11 @@ class PatchedChemicalDatabase:
             patched_residues_names.extend(resvariantnames)
 
         for res in patched_residues:
-            val_id = validate_raw_residue(res)
-            if val_id != ResTypeValidatorErrorCodes.success:
-                assert False, (
-                    "Bad raw residue: " + res.name + "\nError code: " + str(val_id)
-                )
+            validate_raw_residue(res)
+            # if val_id != ResTypeValidatorErrorCodes.success:
+            #     assert False, (
+            #         "Bad raw residue: " + res.name + "\nError code: " + str(val_id)
+            #     )
 
         return cls(
             element_types=chemdb.element_types,
