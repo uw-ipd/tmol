@@ -1,4 +1,7 @@
 #!/bin/bash
 
-conda remove --name $BUILDKITE_BUILD_ID --all -y
-rm -rf ~/$BUILDKITE_JOB_ID/torch_extensions
+buildkite-agent artifact download testing.cuda.junit.xml tmp/test-summary
+buildkite-agent artifact download testing.cpu.junit.xml tmp/test-summary
+
+#conda remove --name $BUILDKITE_BUILD_ID --all -y
+#rm -rf ~/$BUILDKITE_BUILD_ID/
