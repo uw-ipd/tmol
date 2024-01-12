@@ -28,7 +28,7 @@ steps:
     artifact_paths:
       - testing.cpu.junit.xml
       - .coverage
-    << : *cuda_test_agent
+    << : *cpu_test_agent
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CUDA'
@@ -44,7 +44,7 @@ steps:
     artifact_paths:
       - testing.cpunojit.junit.xml
       - .coverage
-    << : *cuda_test_agent
+    << : *cpu_test_agent
 
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
