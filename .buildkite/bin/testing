@@ -2,6 +2,7 @@
 
 source ~/.bashrc
 conda activate $BUILDKITE_BUILD_ID
+export TORCH_EXTENSIONS_DIR=~/$BUILDKITE_BUILD_ID/torch_extensions
 
 set -x
 

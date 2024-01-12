@@ -71,9 +71,9 @@ steps:
           type: details
     << : *cuda_test_agent
 
-  #- label: ':clipboard: Cleanup'
-  #  command: .buildkite/bin/cleanup
-  #  << : *cuda_test_agent
+  - label: ':broom: Cleanup'
+    command: .buildkite/bin/cleanup
+    << : *cuda_test_agent
 
   # Disable gh-pages as docs are disabled.
   ### Deploy documentation to gh-pages iff running a master build
