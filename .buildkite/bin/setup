@@ -1,13 +1,15 @@
 #!/bin/bash
 
 set -x
-set -e
 
 # conda setup
 source ~/.bashrc
 
+set -e
+
 # create env if it does not exist
 conda create -n $BUILDKITE_BUILD_ID -y
 conda env update -n $BUILDKITE_BUILD_ID  --file environments/env-dev.yml --prune
+conda activate $BUILDKITE_BUILD_ID
 
 pip install .
