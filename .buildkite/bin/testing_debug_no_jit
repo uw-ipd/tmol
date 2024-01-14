@@ -3,6 +3,10 @@
 export NUMBA_DISABLE_JIT=1
 export DEBUG=1
 
+source ~/.bashrc
+conda activate $BUILDKITE_BUILD_ID
+export TORCH_EXTENSIONS_DIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/torch_extensions
+
 set -x
 
 echo "--- environment"
