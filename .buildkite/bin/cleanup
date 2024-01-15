@@ -1,0 +1,4 @@
+#!/bin/bash
+
+conda remove --name $BUILDKITE_BUILD_ID --all -y
+rm -rf ~/$BUILDKITE_BUILD_ID/

@@ -3,9 +3,13 @@
 
 set -euo pipefail
 IFS=$'\n\t'
-set -x
 
 set +e
+
+source ~/.bashrc
+conda activate $BUILDKITE_BUILD_ID
+
+set -x
 
 error=0
 

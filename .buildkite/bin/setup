@@ -1,6 +1,17 @@
 #!/bin/bash
 
-set -x
 set -e
 
+# conda setup
+source ~/.bashrc
+export TORCH_EXTENSIONS_DIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/torch_extensions
+
+# create env
+conda create -n $BUILDKITE_BUILD_ID -y
+conda env update -n $BUILDKITE_BUILD_ID  --file environments/env-dev.yml --prune
+conda activate $BUILDKITE_BUILD_ID
+
+set -x
+
+# install pkg
 pip install .
