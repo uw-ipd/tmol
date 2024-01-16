@@ -67,10 +67,20 @@ class ResidueReader:
         if not candidate_types:
             raise ValueError(f"Unknown residue name: {resn}")
 
-        missing_atoms = [
-            set(a.name for a in t.atoms).symmetric_difference(atomns)
-            for t in candidate_types
-        ]
+        # algorithm: look for atoms and their aliases
+        missing_atoms = []
+        for t in candidate_types:
+            t_missing = set([])
+            found_atoms = set([])
+            for atn in atomns:
+                if atn in t.atom_names_set:
+                    found_atoms.add(atn)
+                elif atn in t.aliases_map:
+                    found_atoms.add(t.aliases_map[atn])
+                else:
+                    t_missing.add(atn)
+            t_missing.update(t.atom_names_set.difference(found_atoms))
+            missing_atoms.append(t_missing)
 
         if len(candidate_types) == 1:
             self.logger.debug("unambiguous residue type")
@@ -99,6 +109,8 @@ class ResidueReader:
         for atomn, coord in atom_coords.iterrows():
             if atomn in res.residue_type.atom_to_idx:
                 res.atom_coords[atomn] = coord.values
+            elif atomn in res.residue_type.aliases_map:
+                res.atom_coords[res.residue_type.aliases_map[atomn]] = coord.values
             else:
                 self.logger.info(f"unknown atom name: {atomn}")
         return res

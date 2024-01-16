@@ -143,20 +143,9 @@ class PackedBlockTypes:
         cls, max_n_atoms: int, n_atoms: Tensor[torch.int32][:], device: torch.device
     ):
         n_types = n_atoms.shape[0]
-        return (
-            torch.remainder(
-                torch.arange(n_types * max_n_atoms, dtype=torch.int32, device=device),
-                max_n_atoms,
-            )
-            < n_atoms[
-                torch.floor_divide(
-                    torch.arange(
-                        n_types * max_n_atoms, dtype=torch.int64, device=device
-                    ),
-                    max_n_atoms,
-                )
-            ]
-        ).reshape(n_atoms.shape[0], max_n_atoms)
+        return torch.arange(max_n_atoms, dtype=torch.int32, device=device).unsqueeze(
+            0
+        ).expand(n_types, -1) < n_atoms.unsqueeze(1).expand(-1, max_n_atoms)
 
     @classmethod
     def determine_h_atoms(
@@ -237,32 +226,6 @@ class PackedBlockTypes:
         ]
         return join_tensors_and_report_real_entries(ordered_torsions)
 
-        # n_types = len(active_block_types)
-        # max_n_tor = max(len(bt.torsion_to_uaids) for bt in active_block_types)
-        # torsion_uaids = torch.full(
-        #     (n_types, max_n_tor, 4, 3), -1, dtype=torch.int32, device=device
-        # )
-        #
-        # n_torsions = torch.tensor(
-        #     [bt.ordered_torsions.shape[0] for bt in active_block_types],
-        #     dtype=torch.int32,
-        #     device=device,
-        # )
-        #
-        # for i, bt in enumerate(active_block_types):
-        #     torsion_uaids[i, : bt.ordered_torsions.shape[0]] = torch.tensor(
-        #         bt.ordered_torsions, dtype=torch.int32, device=device
-        #     )
-        #
-        # n_tors_per_bt_arange_expanded = (
-        #     torch.arange(max_n_tor, dtype=torch.int32, device=device)
-        #     .repeat(n_types)
-        #     .view(n_types, max_n_tor)
-        # )
-        # torsion_is_real = n_tors_per_bt_arange_expanded < n_torsions.unsqueeze(1)
-        #
-        # return n_torsions, torsion_is_real, torsion_uaids
-
     @classmethod
     def join_bond_indices(cls, active_block_types, device):
         bond_indices = [
@@ -304,8 +267,6 @@ class PackedBlockTypes:
         )
 
     def cpu(self):
-        # TO DO: this really should transform all the data members of
-        # the instance, not just the data members of the class
         def cpu_equiv(x):
             return x.cpu() if hasattr(x, "cpu") else x
 

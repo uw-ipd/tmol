@@ -19,6 +19,7 @@ from .data import (  # noqa: F401
     ubq_pdb,
     ubq_res,
     ubq_system,
+    disulfide_pdb,
     disulfide_res,
     cst_system,
     cst_csts,
@@ -28,6 +29,9 @@ from .data import (  # noqa: F401
     systems_bysize,
     pertuzumab_pdb,
     pertuzumab_and_nearby_erbb2_pdb_and_segments,
+    openfold_ubq_and_sumo_pred,
+    rosettafold2_ubq_pred,
+    rosettafold2_sumo_pred,
 )
 
 from .chemical import (  # noqa: F401

@@ -667,8 +667,10 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     )
 
     rot_mcfp_at_inds_kto[rot_mcfp_at_inds_kto != -1] += n_dof_atoms_offset_for_rot[
-        torch.floor_divide(
-            torch.arange(n_rots * max_n_mcfp_atoms, dtype=torch.int64), max_n_mcfp_atoms
+        torch.div(
+            torch.arange(n_rots * max_n_mcfp_atoms, dtype=torch.int64),
+            max_n_mcfp_atoms,
+            rounding_mode="trunc",
         )[rot_mcfp_at_inds_kto != -1]
     ].to(torch.int64)
 

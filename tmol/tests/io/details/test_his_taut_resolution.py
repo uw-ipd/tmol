@@ -1,9 +1,11 @@
 import numpy
 import torch
+import attr
+
 from tmol.io.canonical_ordering import (
-    ordered_canonical_aa_types,
-    ordered_canonical_aa_atoms,
-    max_n_canonical_atoms,
+    default_canonical_ordering,
+    CanonicalOrdering,
+    canonical_form_from_pdb,
 )
 from tmol.io.details.his_taut_resolution import (
     HisTautomerResolution,
@@ -11,6 +13,7 @@ from tmol.io.details.his_taut_resolution import (
     his_taut_variant_NE2_protonated,
     his_taut_variant_ND1_protonated,
 )
+from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 
 def test_resolve_his_HD1_provided():
@@ -34,15 +37,15 @@ def test_resolve_his_HD1_provided():
     # ATOM      0  HE1 HIS L 209     -96.263  12.649   1.512  1.00 62.34           H   new
     # ATOM      0  HE2 HIS L 209     -95.990  11.326   3.453  1.00 62.20           H   new <-- skip this one
 
+    co = default_canonical_ordering()
+    max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
-    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.int32)
-    res_types = torch.full(
-        (1, 1), ordered_canonical_aa_types.index("HIS"), dtype=torch.int32
-    )
+    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
-        return ordered_canonical_aa_atoms["HIS"].index(atname.strip())
+        return co.restypes_ordered_atom_names["HIS"].index(atname.strip())
 
     def xyz(x, y, z):
         return torch.tensor((x, y, z), dtype=torch.float32)
@@ -90,7 +93,7 @@ def test_resolve_his_HD1_provided():
         resolved_coords,
         resolved_atom_is_present,
     ) = resolve_his_tautomerization(
-        res_types, res_type_variants, coords, atom_is_present
+        co, res_types, res_type_variants, coords, atom_is_present
     )
 
     his_taut_res = his_taut_res.cpu().numpy()
@@ -135,15 +138,15 @@ def test_resolve_his_HE2_provided():
     # ATOM      0  HE1 HIS L 209     -96.263  12.649   1.512  1.00 62.34           H   new
     # ATOM      0  HE2 HIS L 209     -95.990  11.326   3.453  1.00 62.20           H   new
 
+    co = default_canonical_ordering()
+    max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
-    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.int32)
-    res_types = torch.full(
-        (1, 1), ordered_canonical_aa_types.index("HIS"), dtype=torch.int32
-    )
+    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
-        return ordered_canonical_aa_atoms["HIS"].index(atname.strip())
+        return co.restypes_ordered_atom_names["HIS"].index(atname.strip())
 
     def xyz(x, y, z):
         return torch.tensor((x, y, z), dtype=torch.float32)
@@ -191,7 +194,7 @@ def test_resolve_his_HE2_provided():
         resolved_coords,
         resolved_atom_is_present,
     ) = resolve_his_tautomerization(
-        res_types, res_type_variants, coords, atom_is_present
+        co, res_types, res_type_variants, coords, atom_is_present
     )
 
     his_taut_res = his_taut_res.cpu().numpy()
@@ -216,15 +219,15 @@ def test_resolve_his_HE2_provided():
 
 
 def test_resolve_his_HD1_provided_as_HN():
+    co = default_canonical_ordering()
+    max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
-    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.int32)
-    res_types = torch.full(
-        (1, 1), ordered_canonical_aa_types.index("HIS"), dtype=torch.int32
-    )
+    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
-        return ordered_canonical_aa_atoms["HIS"].index(atname.strip())
+        return co.restypes_ordered_atom_names["HIS"].index(atname.strip())
 
     def xyz(x, y, z):
         return torch.tensor((x, y, z), dtype=torch.float32)
@@ -272,7 +275,7 @@ def test_resolve_his_HD1_provided_as_HN():
         resolved_coords,
         resolved_atom_is_present,
     ) = resolve_his_tautomerization(
-        res_types, res_type_variants, coords, atom_is_present
+        co, res_types, res_type_variants, coords, atom_is_present
     )
 
     his_taut_res = his_taut_res.cpu().numpy()
@@ -299,15 +302,15 @@ def test_resolve_his_HD1_provided_as_HN():
 
 
 def test_resolve_his_HE2_provided_as_HN():
+    co = default_canonical_ordering()
+    max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
-    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.int32)
-    res_types = torch.full(
-        (1, 1), ordered_canonical_aa_types.index("HIS"), dtype=torch.int32
-    )
+    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
-        return ordered_canonical_aa_atoms["HIS"].index(atname.strip())
+        return co.restypes_ordered_atom_names["HIS"].index(atname.strip())
 
     def xyz(x, y, z):
         return torch.tensor((x, y, z), dtype=torch.float32)
@@ -355,7 +358,7 @@ def test_resolve_his_HE2_provided_as_HN():
         resolved_coords,
         resolved_atom_is_present,
     ) = resolve_his_tautomerization(
-        res_types, res_type_variants, coords, atom_is_present
+        co, res_types, res_type_variants, coords, atom_is_present
     )
 
     his_taut_res = his_taut_res.cpu().numpy()
@@ -382,15 +385,15 @@ def test_resolve_his_HE2_provided_as_HN():
 
 
 def test_resolve_his_ND1_provided_as_NH():
+    co = default_canonical_ordering()
+    max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
-    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.int32)
-    res_types = torch.full(
-        (1, 1), ordered_canonical_aa_types.index("HIS"), dtype=torch.int32
-    )
+    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
-        return ordered_canonical_aa_atoms["HIS"].index(atname.strip())
+        return co.restypes_ordered_atom_names["HIS"].index(atname.strip())
 
     def xyz(x, y, z):
         return torch.tensor((x, y, z), dtype=torch.float32)
@@ -438,7 +441,7 @@ def test_resolve_his_ND1_provided_as_NH():
         resolved_coords,
         resolved_atom_is_present,
     ) = resolve_his_tautomerization(
-        res_types, res_type_variants, coords, atom_is_present
+        co, res_types, res_type_variants, coords, atom_is_present
     )
 
     his_taut_res = his_taut_res.cpu().numpy()
@@ -469,15 +472,15 @@ def test_resolve_his_ND1_provided_as_NH():
 
 
 def test_resolve_his_NE2_provided_as_NH():
+    co = default_canonical_ordering()
+    max_n_canonical_atoms = co.max_n_canonical_atoms
     coords = torch.zeros((1, 1, max_n_canonical_atoms, 3), dtype=torch.float32)
-    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.int32)
-    res_types = torch.full(
-        (1, 1), ordered_canonical_aa_types.index("HIS"), dtype=torch.int32
-    )
+    atom_is_present = torch.zeros((1, 1, max_n_canonical_atoms), dtype=torch.bool)
+    res_types = torch.full((1, 1), co.his_inds.his_co_aa_ind, dtype=torch.int32)
     res_type_variants = torch.zeros_like(res_types)
 
     def atind(atname):
-        return ordered_canonical_aa_atoms["HIS"].index(atname.strip())
+        return co.restypes_ordered_atom_names["HIS"].index(atname.strip())
 
     def xyz(x, y, z):
         return torch.tensor((x, y, z), dtype=torch.float32)
@@ -525,7 +528,7 @@ def test_resolve_his_NE2_provided_as_NH():
         resolved_coords,
         resolved_atom_is_present,
     ) = resolve_his_tautomerization(
-        res_types, res_type_variants, coords, atom_is_present
+        co, res_types, res_type_variants, coords, atom_is_present
     )
 
     his_taut_res = his_taut_res.cpu().numpy()
@@ -553,3 +556,37 @@ def test_resolve_his_NE2_provided_as_NH():
     resolved_atom_is_present_gold[0, 0, atind("ND1")] = 1
     resolved_atom_is_present_gold[0, 0, atind("NE2")] = 1
     numpy.testing.assert_equal(resolved_atom_is_present, resolved_atom_is_present_gold)
+
+
+def test_resolve_his_taut_no_his_in_canonical_ordering(
+    ubq_pdb, default_database, torch_device
+):
+    chem_db = default_database.chemical
+    only_met = [res for res in chem_db.residues if res.name == "MET"]
+
+    small_chem_db = attr.evolve(chem_db, residues=only_met)
+    small_patched_chem_db = PatchedChemicalDatabase.from_chem_db(small_chem_db)
+
+    small_co = CanonicalOrdering.from_chemdb(small_patched_chem_db)
+    cf = canonical_form_from_pdb(small_co, ubq_pdb, torch_device, residue_end=1)
+
+    res_types = cf["res_types"]
+    coords = cf["coords"]
+    atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
+    orig_res_type_variants = torch.full_like(res_types, 0)
+
+    (
+        his_taut_res,
+        res_type_variants,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = resolve_his_tautomerization(
+        small_co, res_types, orig_res_type_variants, coords, atom_is_present
+    )
+    assert orig_res_type_variants is res_type_variants
+    assert resolved_coords is coords
+    assert resolved_atom_is_present is atom_is_present
+
+    numpy.testing.assert_equal(
+        res_type_variants.cpu().numpy(), his_taut_res.cpu().numpy()
+    )

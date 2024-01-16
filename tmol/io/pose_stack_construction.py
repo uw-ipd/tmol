@@ -2,22 +2,36 @@ import torch
 from tmol.types.torch import Tensor
 from typing import Optional
 from tmol.pose.pose_stack import PoseStack
+from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.io.canonical_ordering import CanonicalOrdering
 
 
 def pose_stack_from_canonical_form(
+    canonical_ordering: CanonicalOrdering,
+    pbt: PackedBlockTypes,
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
-    atom_is_present: Optional[Tensor[torch.int32][:, :, :]] = None,
+    *,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     find_additional_disulfides: Optional[bool] = True,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     return_chain_ind: bool = False,
     return_atom_mapping: bool = False,
 ):
-    """Create a PoseStack given atom coordinates in canonical ordering
+    """Create a PoseStack, resolving which block type is requested by the
+    presence and absence of the provided atoms for each residue type.
+    There are five required arguments and several optional arguments.
 
     Arguments:
+    canonical_ordering: an object that describes the set of atoms that each
+        residue type (aka block type) and all of its interchangable variants
+        contain and the order in which those atoms should appear in the
+        coords tensor
+    packed_block_types: the object that holds score-term annotations needed
+        by the score terms and which is intended to be shared between
+        multiple PoseStacks for efficiency; the PoseStack this function
+        creates will hold this packed_block_types object
     chain_id: an n-pose x max-n-residue tensor with an index for which chain
         each residue belongs to. Residues belonging to the same chain must be
         consecutive.
@@ -28,20 +42,11 @@ def pose_stack_from_canonical_form(
         max-n-residue residues).
     coords: an n-pose x max-n-residue x max-n-atoms-per-residue tensor
         providing the coordinates of some or all of the atoms. The order
-        in which atoms should appear in this tensor is given in
-        tmol.io.canonical_ordering.ordered_canonical_aa_atoms (see also
-        tmol.io.canonical_ordering.ordered_canonical_aa_atoms_v2 for
-        the older PDB v2 atom naming scheme). It is recommended that
-        atoms whose coordinates are not being provided to this function
-        have their coordinates marked as NaN to ensure that tmol is not
-        reading from positions in this array that it should not be and
-        thus delivering inaccurate energies.
-    atom_is_present: an n-pose x max-n-residue x max-n-atoms-per-residue
-        tensor answering the yes/no question of whether an atom's
-        coordinate is being provided; 0 for no, 1 for yes. If this
-        tensor is not provided, then any coordinates in the "coords"
-        tensor with a coordinate of NaN will be taken as "not present"
-        and all others (including any coordinates at the origin, e.g.)
+        in which atoms should appear in this tensor is given by the
+        CanonicalOrdering object. Any atoms whose coordinates are not
+        being provided to this function must have their coordinates marked
+        as NaN. Any atom with a coordinate of NaN will be taken as "not
+        present" and all others (including any coordinates at the origin, e.g.)
         will be treated as if they "are present." Note: "present" here
         means "the coordinate is being provided" and not "this atom
         should be modeled;" conversely, there is no way to say "do not
@@ -51,7 +56,7 @@ def pose_stack_from_canonical_form(
         leaf atoms. A "leaf atom" is one that has no atoms that use it
         as a parent or grand parent when describing their icoors.
         Hydrogen atoms are all leaf atoms. Backbone carbonyl oxygens
-        are also leaf atoms. Even thoguh hydrogen atoms are optional,
+        are also leaf atoms. Even though hydrogen atoms are optional,
         the hydroxyl hydrogens on SER, THR, and TYR are recommended
         as tmol will build them suboptimally: at a dihedral of 180
         regardless of the presence of nearby hydrogen-bond acceptors
@@ -110,9 +115,6 @@ def pose_stack_from_canonical_form(
 
     """
 
-    from tmol.io.details.canonical_packed_block_types import (
-        default_canonical_packed_block_types,
-    )
     from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
     from tmol.io.details.disulfide_search import find_disulfides
     from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
@@ -125,8 +127,8 @@ def pose_stack_from_canonical_form(
     assert chain_id.device == res_types.device
     assert chain_id.device == coords.device
 
-    # step 1: retrieve the global packed_block_types object with the 66
-    #         canonical residue types
+    # step 1: record which atoms the user has given us by looking for NaNs
+    #         in the input coordinate tensor.
     # step 2: remove any "virtual residues," marked with a res-type ind of -1
     #         by shifting all of the residues in each Pose "to the left"
     # step 3: resolve disulfides
@@ -141,13 +143,8 @@ def pose_stack_from_canonical_form(
     # step 8: construct PoseStack object
     # step 9: construct the forward/reverse atom mapping indices if required
 
-    if atom_is_present is None:
-        atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
-
-    # 1
-    # this will return the same object each time to minimize the number
-    # of calls to the setup_packed_block_types annotation functions
-    pbt, atom_type_resolver = default_canonical_packed_block_types(chain_id.device)
+    # 1: look for NaNs in the input coordinates tensor
+    atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
 
     # 2
     # "left justify" the input canonical-form residues: residues that are
@@ -168,7 +165,7 @@ def pose_stack_from_canonical_form(
 
     # 3
     found_disulfides, res_type_variants = find_disulfides(
-        res_types, coords, disulfides, find_additional_disulfides
+        canonical_ordering, res_types, coords, disulfides, find_additional_disulfides
     )
 
     # 4
@@ -178,7 +175,7 @@ def pose_stack_from_canonical_form(
         resolved_coords,
         resolved_atom_is_present,
     ) = resolve_his_tautomerization(
-        res_types, res_type_variants, coords, atom_is_present
+        canonical_ordering, res_types, res_type_variants, coords, atom_is_present
     )
 
     # 5
@@ -187,7 +184,14 @@ def pose_stack_from_canonical_form(
         inter_residue_connections64,
         inter_block_bondsep,
     ) = assign_block_types(
-        pbt, chain_id, res_types, res_type_variants, found_disulfides, res_not_connected
+        canonical_ordering,
+        pbt,
+        resolved_atom_is_present,
+        chain_id,
+        res_types,
+        res_type_variants,
+        found_disulfides,
+        res_not_connected,
     )
 
     # 6
@@ -204,7 +208,6 @@ def pose_stack_from_canonical_form(
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
     pose_stack_coords, block_coord_offset = build_missing_leaf_atoms(
         pbt,
-        atom_type_resolver,
         block_types64,
         real_atoms,
         block_coords,

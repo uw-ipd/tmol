@@ -1,26 +1,63 @@
 import numpy
 from tmol.io.canonical_ordering import (
-    max_n_canonical_atoms,
-    canonical_form_from_pdb_lines,
+    default_canonical_ordering,
+    default_packed_block_types,
+    CanonicalOrdering,
+    canonical_form_from_pdb,
 )
 
 
-def test_canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device):
-    chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        pertuzumab_pdb, torch_device
+def test_create_canonical_ordering_smoke(default_database):
+    chemdb = default_database.chemical
+    co = CanonicalOrdering.from_chemdb(chemdb)
+
+    n_name3s = len(set([x.name3 for x in chemdb.residues]))
+    assert co.n_restype_io_equiv_classes == n_name3s
+    for name3 in co.restype_io_equiv_classes:
+        assert name3 in co.restypes_ordered_atom_names
+        assert name3 in co.restypes_atom_index_mapping
+
+    assert "nterm" in co.down_termini_patches
+    assert "cterm" in co.up_termini_patches
+    for x in ["H1", "H2", "H3"]:
+        assert x in co.termini_patch_added_atoms["nterm"]
+    assert "OXT" in co.termini_patch_added_atoms["cterm"]
+    assert co.max_n_canonical_atoms >= 28
+
+
+def test_default_canonical_ordering():
+    co1 = default_canonical_ordering()
+    co2 = default_canonical_ordering()
+    assert co2 is co1
+
+
+def test_default_packed_block_types(torch_device):
+    pbt1 = default_packed_block_types(torch_device)
+    pbt2 = default_packed_block_types(torch_device)
+    assert pbt1 is pbt2
+
+
+def test_default_canonical_form_from_pdb(pertuzumab_pdb, torch_device):
+    can_ord = default_canonical_ordering()
+    cf = canonical_form_from_pdb(can_ord, pertuzumab_pdb, torch_device)
+    (
+        chain_id,
+        res_types,
+        coords,
+    ) = (
+        cf["chain_id"],
+        cf["res_types"],
+        cf["coords"],
     )
+    def_co = default_canonical_ordering()
     assert chain_id.device == torch_device
     assert res_types.device == torch_device
     assert coords.device == torch_device
-    assert atom_is_present.device == torch_device
     assert chain_id.shape[0] == res_types.shape[0]
     assert chain_id.shape[0] == coords.shape[0]
-    assert chain_id.shape[0] == atom_is_present.shape[0]
     assert chain_id.shape[1] == res_types.shape[1]
     assert chain_id.shape[1] == coords.shape[1]
-    assert chain_id.shape[1] == atom_is_present.shape[1]
-    assert atom_is_present.shape[2] == max_n_canonical_atoms
-    assert coords.shape[2] == max_n_canonical_atoms
+    assert coords.shape[2] == def_co.max_n_canonical_atoms
     assert coords.shape[3] == 3
     chain_id_gold = numpy.zeros(res_types.shape, dtype=numpy.int32)
     chain_id_gold[0, 214:] = 1
@@ -85,17 +122,43 @@ def test_canonical_form_w_unk(torch_device):
         "HETATM 6185  N3  SAM B 402     -13.902  12.803   5.006  1.00 46.34           N\n",
         "HETATM 6186  C4  SAM B 402     -15.231  13.034   5.166  1.00 53.49           C\n",
     ]
-    chain_id, res_types, coords, atom_is_present = canonical_form_from_pdb_lines(
-        sam_pdb_lines, torch_device
+    can_ord = default_canonical_ordering()
+    co = canonical_form_from_pdb(can_ord, sam_pdb_lines, torch_device)
+    (
+        chain_id,
+        res_types,
+        coords,
+    ) = (
+        co["chain_id"],
+        co["res_types"],
+        co["coords"],
     )
+    def_co = default_canonical_ordering()
 
     assert chain_id.device == torch_device
     assert res_types.device == torch_device
     assert coords.device == torch_device
-    assert atom_is_present.device == torch_device
 
     # three and not four residues because the SAM is ignored
     assert chain_id.shape == (1, 3)
     assert res_types.shape == (1, 3)
-    assert coords.shape == (1, 3, 28, 3)
-    assert atom_is_present.shape == (1, 3, 28)
+    assert coords.shape == (1, 3, def_co.max_n_canonical_atoms, 3)
+
+
+def test_create_src_2_tmol_mapping(default_database, torch_device):
+    aa_subset = ["ALA", "ARG"]
+    var_subset = ["nterm", "cterm"]
+    subset_paramdb = default_database.create_stable_subset(aa_subset, var_subset)
+    co = CanonicalOrdering.from_chemdb(subset_paramdb.chemical)
+
+    bad_atom_names = {
+        "ALA": ["N", "CA", "C", "O", "ZB", "", "", "", "", "", ""],
+        "ARG": ["N", "CA", "C", "O", "CB", "CG", "CD", "NE", "CZ", "NH1", "NH2"],
+    }
+
+    try:
+        co.create_src_2_tmol_mappings(aa_subset, bad_atom_names, torch_device)
+        assert False
+    except ValueError as e:
+        gold_message = "error: ALA atom ZB not in tmol atom set"
+        assert str(e) == gold_message

@@ -1,13 +1,21 @@
 import numpy
+import torch
+import os
 
 from tmol.io.write_pose_stack_pdb import (
+    write_pose_stack_pdb,
     atom_records_from_pose_stack,
 )
 from tmol.chemical.restypes import find_simple_polymeric_connections
 from tmol.io.pdb_parsing import to_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.io.canonical_ordering import canonical_form_from_pdb_lines
+from tmol.io.canonical_ordering import (
+    default_canonical_ordering,
+    default_packed_block_types,
+    canonical_form_from_pdb,
+)
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
+from tmol.io import pose_stack_from_pdb
 
 
 def test_atom_records_from_pose_stack_1(
@@ -54,8 +62,10 @@ def test_atom_records_from_pose_stack_2(
 
 
 def test_atom_records_for_multi_chain_pdb(pertuzumab_pdb, torch_device):
-    canonical_form = canonical_form_from_pdb_lines(pertuzumab_pdb, torch_device)
-    pose_stack = pose_stack_from_canonical_form(*canonical_form)
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     records = atom_records_from_pose_stack(
         pose_stack, None, numpy.array([x for x in "LH"], dtype=str)
@@ -64,3 +74,20 @@ def test_atom_records_for_multi_chain_pdb(pertuzumab_pdb, torch_device):
     pdb_atom_lines = [x for x in pdb_lines.split("\n") if x[:6] == "ATOM  "]
     pertuzumab_atom_lines = [x for x in pertuzumab_pdb.split("\n") if x[:6] == "ATOM  "]
     assert len(pdb_atom_lines) > len(pertuzumab_atom_lines)
+
+
+def test_write_pose_stack_pdb(ubq_pdb):
+    device = torch.device("cpu")
+    ps = pose_stack_from_pdb(ubq_pdb, device)
+    output_fname = "tmol/tests/io/write_pose_stack_pdb.pdb"
+    assert not os.path.isfile(output_fname)
+    write_pose_stack_pdb(ps, output_fname)
+    assert os.path.isfile(output_fname)
+
+    # incidentally: test the call path that reads a PDB from disk
+    # instead of from the contents of file
+    ps2 = pose_stack_from_pdb(output_fname, device)
+
+    torch.testing.assert_close(ps.coords, ps2.coords)
+
+    os.remove(output_fname)

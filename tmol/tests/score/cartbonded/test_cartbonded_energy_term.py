@@ -1,8 +1,8 @@
 import numpy
 import torch
 
+from tmol.io import pose_stack_from_pdb
 from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.autograd import gradcheck
@@ -16,15 +16,15 @@ def test_smoke(default_database, torch_device: torch.device):
     assert cartbonded_energy.device == torch_device
 
 
-def test_annotate_restypes(ubq_res, default_database, torch_device: torch.device):
+def test_annotate_restypes(
+    fresh_default_packed_block_types, default_database, torch_device: torch.device
+):
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
 
-    bt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, bt_list, torch_device
-    )
+    pbt = fresh_default_packed_block_types
+    bt_list = pbt.active_block_types
 
     for bt in bt_list:
         cartbonded_energy.setup_block_type(bt)
@@ -47,15 +47,12 @@ def test_annotate_restypes(ubq_res, default_database, torch_device: torch.device
 
 
 def test_whole_pose_scoring_module_gradcheck(
-    rts_ubq_res, default_database, torch_device: torch.device
+    ubq_pdb, default_database, torch_device: torch.device
 ):
-    rts_ubq_res = rts_ubq_res[0:2]
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=2)
     for bt in p1.packed_block_types.active_block_types:
         cartbonded_energy.setup_block_type(bt)
     cartbonded_energy.setup_packed_block_types(p1.packed_block_types)
@@ -71,7 +68,7 @@ def test_whole_pose_scoring_module_gradcheck(
 
 
 def test_whole_pose_scoring_module_single(
-    rts_ubq_res, default_database, torch_device: torch.device
+    ubq_pdb, default_database, torch_device: torch.device
 ):
     gold_vals = numpy.array(
         [[37.7623], [183.56903], [50.584198], [9.430531], [47.41971]],
@@ -80,9 +77,7 @@ def test_whole_pose_scoring_module_single(
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     for bt in p1.packed_block_types.active_block_types:
         cartbonded_energy.setup_block_type(bt)
     cartbonded_energy.setup_packed_block_types(p1.packed_block_types)
@@ -102,7 +97,7 @@ def test_whole_pose_scoring_module_single(
 
 
 def test_whole_pose_scoring_module_10(
-    rts_ubq_res, default_database, torch_device: torch.device
+    ubq_pdb, default_database, torch_device: torch.device
 ):
     n_poses = 10
     gold_vals = numpy.tile(
@@ -115,9 +110,7 @@ def test_whole_pose_scoring_module_10(
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:
@@ -139,10 +132,8 @@ def test_whole_pose_scoring_module_10(
 
 
 def test_whole_pose_scoring_module_jagged(
-    rts_ubq_res, default_database, torch_device: torch.device
+    ubq_pdb, default_database, torch_device: torch.device
 ):
-    rts_ubq_60 = rts_ubq_res[:60]
-    rts_ubq_40 = rts_ubq_res[:40]
     gold_vals = numpy.array(
         [
             [37.762302, 30.048717, 19.709312],
@@ -156,15 +147,9 @@ def test_whole_pose_scoring_module_jagged(
     cartbonded_energy = CartBondedEnergyTerm(
         param_db=default_database, device=torch_device
     )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_60, device=torch_device
-    )
-    p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_40, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=60)
+    p3 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=40)
     pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
 
     for bt in pn.packed_block_types.active_block_types:

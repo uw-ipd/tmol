@@ -907,8 +907,10 @@ class DunbrackParamResolver(ValidateAttrs):
         chi64 = chi.type(torch.int64)
         # get the stack indices for each of the chi once we have
         # made a 1-dimensional view.
-        stack_inds = (
-            torch.arange(chi.shape[0] * chi.shape[1], dtype=torch.int64) // chi.shape[1]
+        stack_inds = torch.div(
+            torch.arange(chi.shape[0] * chi.shape[1], dtype=torch.int64),
+            chi.shape[1],
+            rounding_mode="floor",
         )
         chi64_res = chi64[:, :, 0].view(-1)
 

@@ -186,7 +186,7 @@ def create_non_sidechain_fingerprint(
                 mc_anc_icoor_ind = rt.at_to_icoor_ind[mc_anc]
 
                 def t64(coord):
-                    return torch.tensor([coord], dtype=torch.float64)
+                    return torch.tensor(coord, dtype=torch.float64).unsqueeze(0)
 
                 at1_coord = t64(rt.ideal_coords[mc1_icoor_ind])
                 at2_coord = t64(rt.ideal_coords[mc_anc_icoor_ind])

@@ -18,18 +18,18 @@ def test_identify_sidechain_atoms_from_roots(default_database):
     sc_ats = set(atom_names[sc_ats != 0])
     gold_sc_ats = [
         "CB",
-        "1HB",
-        "2HB",
+        "HB2",
+        "HB3",
         "CG",
         "HG",
         "CD1",
-        "1HD1",
-        "2HD1",
-        "3HD1",
+        "HD11",
+        "HD12",
+        "HD13",
         "CD2",
-        "1HD2",
-        "2HD2",
-        "3HD2",
+        "HD21",
+        "HD22",
+        "HD23",
     ]
     assert len(gold_sc_ats) == len(sc_ats)
     for gold_at in gold_sc_ats:
