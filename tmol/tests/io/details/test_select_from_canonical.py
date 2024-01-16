@@ -536,10 +536,6 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     # has H instead of 1H, 2H, & 3H,
     real_missing = torch.logical_and(missing_atoms, real_atoms)
     nz_rm_p, nz_rm_r, nz_rm_at = torch.nonzero(real_missing, as_tuple=True)
-    for i in range(nz_rm_p.shape[0]):
-        bt_i_ind = block_types64[0, nz_rm_r[i]]
-        bt_i = pbt.active_block_types[bt_i_ind]
-        print("atom", bt_i.atoms[nz_rm_at[i]].name, "missing from res", nz_rm_r[i])
     assert torch.sum(torch.logical_and(missing_atoms, real_atoms)).item() == 0
 
     # ATOM      1  N   MET A   1      27.340  24.430   2.614  1.00  9.67           N
@@ -642,15 +638,7 @@ def test_select_best_block_type_candidate_choosing_default_term(
     co, pbt, new_pucd = co_and_pbt_from_new_variants(ducd, patch, torch_device)
 
     varnames = [var.display_name for var in new_pucd.variants]
-
-    threw = True
-    try:
-        varnames.index("fake_cterm")
-        threw = False
-    except ValueError:
-        pass
-
-    assert not threw
+    assert "fake_cterm" in varnames
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
@@ -756,19 +744,12 @@ def test_select_best_block_type_candidate_w_mult_opts(
     varnames = [var.display_name for var in new_pucd.variants]
     bt_names = [bt.name for bt in new_pucd.residues]
 
-    threw = True
-    try:
-        varnames.index("phospho")
-        varnames.index("mospho")
-        bt_names.index("SER:phospho")
-        bt_names.index("SER:mospho")
-        bt_names.index("THR:phospho")
-        bt_names.index("THR:mospho")
-        threw = False
-    except ValueError:
-        pass
-
-    assert not threw
+    assert "phospho" in varnames
+    assert "mospho" in varnames
+    assert "SER:phospho" in bt_names
+    assert "SER:mospho" in bt_names
+    assert "THR:phospho" in bt_names
+    assert "THR:mospho" in bt_names
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
@@ -839,19 +820,12 @@ def test_select_best_block_type_candidate_error_impossible_combo(
     varnames = [var.display_name for var in new_pucd.variants]
     bt_names = [bt.name for bt in new_pucd.residues]
 
-    threw = True
-    try:
-        varnames.index("phospho")
-        varnames.index("mospho")
-        bt_names.index("SER:phospho")
-        bt_names.index("SER:mospho")
-        bt_names.index("THR:phospho")
-        bt_names.index("THR:mospho")
-        threw = False
-    except ValueError:
-        pass
-
-    assert not threw
+    assert "phospho" in varnames
+    assert "mospho" in varnames
+    assert "SER:phospho" in bt_names
+    assert "SER:mospho" in bt_names
+    assert "THR:phospho" in bt_names
+    assert "THR:mospho" in bt_names
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
