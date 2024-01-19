@@ -142,10 +142,11 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 1, D> cart_subgraph_offsets,
 
     int max_subgraphs_per_block,
+    bool output_block_pair_energies,
 
     bool compute_derivs
 
-    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
+    ) -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>> {
   int const n_poses = coords.size(0);
   int const n_blocks = pose_stack_block_coord_offset.size(1);
   int const n_max_conns = pose_stack_inter_block_connections.size(2);
@@ -176,7 +177,15 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
 
   assert(cart_subgraph_offsets.size(0) == n_block_types);
 
-  auto V_t = TPack<Real, 2, D>::zeros({5, n_poses});
+  // auto V_t = TPack<Real, 2, D>::zeros({5, n_poses});
+  //  auto V_t = TPack<Real, 2, D>::zeros({1, n_poses});
+  TPack<Real, 4, D> V_t;
+  if (output_block_pair_energies) {
+    V_t = TPack<Real, 4, D>::zeros({5, n_poses, n_blocks, n_blocks});
+  } else {
+    V_t = TPack<Real, 4, D>::zeros({5, n_poses, 1, 1});
+  }
+
   auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({5, n_poses, n_max_atoms});
 
   auto V = V_t.view;
@@ -223,7 +232,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               accumulate_result<Real, Int, 2, D>(
                   eval,
                   atoms.head(2),
-                  V[score_type][pose_index],
+                  V[score_type][pose_index][block_index][block_index],
                   dV_dx[score_type][pose_index]);
 
               break;
@@ -235,7 +244,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               accumulate_result<Real, Int, 3, D>(
                   eval,
                   atoms.head(3),
-                  V[score_type][pose_index],
+                  V[score_type][pose_index][block_index][block_index],
                   dV_dx[score_type][pose_index]);
 
               break;
@@ -257,7 +266,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::f(
               accumulate_result<Real, Int, 4, D>(
                   eval,
                   atoms.head(4),
-                  V[score_type][pose_index],
+                  V[score_type][pose_index][block_index][block_index],
                   dV_dx[score_type][pose_index]);
 
               break;

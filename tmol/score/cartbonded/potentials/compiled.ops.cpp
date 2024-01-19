@@ -158,7 +158,8 @@ class CartBondedPoseScoreOp
       Tensor hash_values,
       Tensor cart_subgraphs,
       Tensor cart_subgraph_offsets,
-      Tensor max_subgraphs_per_block) {
+      Tensor max_subgraphs_per_block,
+      bool output_block_pair_energies) {
     // Tensor global_paTensor rams) {
     at::Tensor score;
     at::Tensor dscore_dcoords;
@@ -184,6 +185,7 @@ class CartBondedPoseScoreOp
                   TCAST(cart_subgraphs),
                   TCAST(cart_subgraph_offsets),
                   max_subgraphs_per_block.item<int>(),
+                  output_block_pair_energies,
                   coords.requires_grad());
 
           score = std::get<0>(result).tensor;
@@ -241,7 +243,8 @@ Tensor cartbonded_pose_scores_op(
     Tensor hash_values,
     Tensor cart_subgraphs,
     Tensor cart_subgraph_offsets,
-    Tensor max_subgraphs_per_block) {
+    Tensor max_subgraphs_per_block,
+    bool output_block_pair_energies) {
   return CartBondedPoseScoreOp<DispatchMethod>::apply(
       coords,
       pose_stack_block_coord_offset,
@@ -254,7 +257,8 @@ Tensor cartbonded_pose_scores_op(
       hash_values,
       cart_subgraphs,
       cart_subgraph_offsets,
-      max_subgraphs_per_block);
+      max_subgraphs_per_block,
+      output_block_pair_energies);
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

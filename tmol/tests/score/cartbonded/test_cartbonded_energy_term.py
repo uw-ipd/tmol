@@ -5,6 +5,7 @@ from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 from tmol.tests.autograd import gradcheck
 
 
@@ -183,3 +184,51 @@ def test_whole_pose_scoring_module_jagged(
     numpy.testing.assert_allclose(
         gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
     )
+
+
+class TestCartBondedEnergyTerm(EnergyTermTestBase):
+    energy_term_class = CartBondedEnergyTerm
+
+    @classmethod
+    def test_whole_pose_scoring_10(
+        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
+    ):
+        return super().test_whole_pose_scoring_10(
+            rts_ubq_res, default_database, torch_device, update_baseline
+        )
+
+    @classmethod
+    def test_whole_pose_scoring_jagged(
+        cls,
+        rts_ubq_res,
+        default_database,
+        torch_device: torch.device,
+        update_baseline=False,
+    ):
+        return super().test_whole_pose_scoring_jagged(
+            rts_ubq_res, default_database, torch_device, update_baseline
+        )
+
+    @classmethod
+    def test_whole_pose_scoring_gradcheck(
+        cls, rts_ubq_res, default_database, torch_device
+    ):
+        return super().test_whole_pose_scoring_gradcheck(
+            rts_ubq_res, default_database, torch_device
+        )
+
+    @classmethod
+    def test_block_scoring(
+        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
+    ):
+        return super().test_block_scoring(
+            rts_ubq_res[0:4], default_database, torch_device, update_baseline
+        )
+
+    @classmethod
+    def test_block_scoring_reweighted_gradcheck(
+        cls, rts_ubq_res, default_database, torch_device
+    ):
+        return super().test_block_scoring_reweighted_gradcheck(
+            rts_ubq_res[0:4], default_database, torch_device
+        )
