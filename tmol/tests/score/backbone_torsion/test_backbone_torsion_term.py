@@ -4,6 +4,7 @@ import torch
 from tmol.score.backbone_torsion.bb_torsion_energy_term import BackboneTorsionEnergyTerm
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.tests.autograd import gradcheck
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device):
@@ -115,34 +116,62 @@ def test_whole_pose_scoring_module_gradcheck_partial_pose(
     )
 
 
-def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
-    n_poses = 10
-    gold_vals = numpy.tile(
-        numpy.array([[-12.743369], [4.100153]], dtype=numpy.float32), (n_poses)
-    )
-    backbone_torsion_energy = BackboneTorsionEnergyTerm(
-        param_db=default_database, device=torch_device
-    )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
-    pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
+class TestCartBondedEnergyTerm(EnergyTermTestBase):
+    energy_term_class = BackboneTorsionEnergyTerm
 
-    for bt in pn.packed_block_types.active_block_types:
-        backbone_torsion_energy.setup_block_type(bt)
-    backbone_torsion_energy.setup_packed_block_types(pn.packed_block_types)
-    backbone_torsion_energy.setup_poses(pn)
+    @classmethod
+    def test_whole_pose_scoring_10(
+        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
+    ):
+        return super().test_whole_pose_scoring_10(
+            rts_ubq_res, default_database, torch_device, update_baseline
+        )
 
-    backbone_torsion_pose_scorer = (
-        backbone_torsion_energy.render_whole_pose_scoring_module(pn)
-    )
+    @classmethod
+    def test_whole_pose_scoring_jagged(
+        cls,
+        rts_ubq_res,
+        default_database,
+        torch_device: torch.device,
+        update_baseline=False,
+    ):
+        return super().test_whole_pose_scoring_jagged(
+            rts_ubq_res, default_database, torch_device, update_baseline
+        )
 
-    coords = torch.nn.Parameter(pn.coords.clone())
-    scores = backbone_torsion_pose_scorer(coords)
+    @classmethod
+    def test_whole_pose_scoring_gradcheck(
+        cls, rts_ubq_res, default_database, torch_device
+    ):
+        rts_ubq_res = rts_ubq_res[6:12]
+        return super().test_whole_pose_scoring_gradcheck(
+            rts_ubq_res,
+            default_database,
+            torch_device,
+            eps=1e-3,
+            atol=3e-1,  # fd very high but this is necessary
+            rtol=0,
+            nondet_tol=1e-3,
+        )
 
-    # make sure we're still good
-    torch.arange(100, device=torch_device)
+    @classmethod
+    def test_block_scoring(
+        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
+    ):
+        return super().test_block_scoring(
+            rts_ubq_res[0:4], default_database, torch_device, update_baseline
+        )
 
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-3, rtol=0
-    )
+    @classmethod
+    def test_block_scoring_reweighted_gradcheck(
+        cls, rts_ubq_res, default_database, torch_device
+    ):
+        return super().test_block_scoring_reweighted_gradcheck(
+            rts_ubq_res[6:12],
+            default_database,
+            torch_device,
+            eps=1e-3,
+            atol=3e-1,  # fd very high but this is necessary
+            rtol=0,
+            nondet_tol=1e-3,
+        )

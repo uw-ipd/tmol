@@ -30,7 +30,7 @@ template <
     typename Real,
     typename Int>
 struct DisulfidePoseScoreDispatch {
-  static auto f(
+  static auto forward(
       TView<Vec<Real, 3>, 2, D> coords,
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
@@ -43,6 +43,19 @@ struct DisulfidePoseScoreDispatch {
       bool compute_derivs
 
       ) -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>>;
+
+  static auto backward(
+      TView<Vec<Real, 3>, 2, D> coords,
+      TView<Int, 2, D> pose_stack_block_coord_offset,
+      TView<Int, 2, D> pose_stack_block_type,
+      TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+      TView<bool, 2, D> disulfide_conns,
+      TView<Int, 3, D> block_type_atom_downstream_of_conn,
+
+      TView<DisulfideGlobalParams<Real>, 1, D> global_params,
+
+      TView<Real, 4, D> dTdV  // nterms x nposes x (1|len) x (1|len)
+      ) -> TPack<Vec<Real, 3>, 3, D>;
 };
 
 }  // namespace potentials

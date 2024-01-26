@@ -27,7 +27,7 @@ class DunbrackWholePoseScoringModule(torch.nn.Module):
 
         self.dunbrack_packed_block_data = [_p(f) for f in dunbrack_packed_block_data]
 
-    def forward(self, coords):
+    def forward(self, coords, output_block_pair_energies=False):
         return dunbrack_pose_scores(
             coords,
             self.pose_stack_block_coord_offset,
@@ -36,4 +36,5 @@ class DunbrackWholePoseScoringModule(torch.nn.Module):
             self.bt_atom_downstream_of_conn,
             *self.dunbrack_database,
             *self.dunbrack_packed_block_data,
+            output_block_pair_energies
         )

@@ -113,9 +113,10 @@ class EnergyTermTestBase:
         gradcheck(
             score,
             (p1.coords.requires_grad_(True),),
-            eps=1e-3,
-            atol=1e-3,
-            nondet_tol=1e-6,  # fd this is necessary here...
+            eps=eps,
+            atol=atol,
+            rtol=rtol,
+            nondet_tol=nondet_tol,
         )
 
     @classmethod

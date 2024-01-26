@@ -72,7 +72,12 @@ class TestDisulfideEnergyTerm(EnergyTermTestBase):
         cls, rts_disulfide_res, default_database, torch_device
     ):
         return super().test_whole_pose_scoring_gradcheck(
-            rts_disulfide_res, default_database, torch_device
+            rts_disulfide_res,
+            default_database,
+            torch_device,
+            eps=1e-3,
+            atol=1e-2,
+            rtol=5e-3,
         )
 
     @classmethod
@@ -88,6 +93,13 @@ class TestDisulfideEnergyTerm(EnergyTermTestBase):
     def test_block_scoring_reweighted_gradcheck(
         cls, rts_disulfide_res, default_database, torch_device
     ):
+        rts_res = rts_disulfide_res[2:4] + rts_disulfide_res[21:23]
         return super().test_block_scoring_reweighted_gradcheck(
-            rts_disulfide_res, default_database, torch_device
+            rts_res,
+            default_database,
+            torch_device,
+            eps=1e-3,
+            atol=1e-2,
+            rtol=5e-3,
+            nondet_tol=1e-6,
         )

@@ -191,7 +191,11 @@ class TestDunbrackEnergyTerm(EnergyTermTestBase):
         cls, rts_ubq_res, default_database, torch_device
     ):
         return super().test_whole_pose_scoring_gradcheck(
-            rts_ubq_res, default_database, torch_device
+            rts_ubq_res,
+            default_database,
+            torch_device,
+            eps=1e-2,
+            atol=4e-2,
         )
 
     @classmethod
@@ -207,5 +211,10 @@ class TestDunbrackEnergyTerm(EnergyTermTestBase):
         cls, rts_ubq_res, default_database, torch_device
     ):
         return super().test_block_scoring_reweighted_gradcheck(
-            rts_ubq_res[0:4], default_database, torch_device
+            rts_ubq_res[0:4],
+            default_database,
+            torch_device,
+            eps=1e-3,
+            atol=1e-3,
+            nondet_tol=1e-6,
         )

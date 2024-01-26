@@ -41,7 +41,7 @@ class BackboneTorsionWholePoseScoringModule(torch.nn.Module):
         self.rama_table_params = _p(rama_table_params)
         self.omega_table_params = _p(omega_table_params)
 
-    def forward(self, coords):
+    def forward(self, coords, output_block_pair_energies=False):
         return backbone_torsion_pose_score(
             coords,
             self.pose_stack_block_coord_offset,
@@ -57,4 +57,5 @@ class BackboneTorsionWholePoseScoringModule(torch.nn.Module):
             self.rama_table_params,
             self.omega_tables,
             self.omega_table_params,
+            output_block_pair_energies,
         )
