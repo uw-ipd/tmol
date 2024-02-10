@@ -150,7 +150,7 @@ def test_cst_for_system(cst_system, cst_csts, torch_device):
 
     assert len(tot) == 3
     # TODO ask frank what the correct values should be
-    # torch.testing.assert_allclose(tot.cpu(), -15955.91015625)
+    # torch.testing.assert_close(tot.cpu(), -15955.91015625)
 
 
 @pytest.mark.benchmark(group="score_components")
@@ -191,4 +191,4 @@ def test_cst_for_stacked_system(benchmark, cst_system, cst_csts, nstacks, torch_
 
     assert len(tot) == 3
     # TODO ask frank what the correct values should be
-    # torch.testing.assert_allclose(tot.cpu(), -15955.91015625 * nstacks)
+    # torch.testing.assert_close(tot.cpu(), -15955.91015625 * nstacks)

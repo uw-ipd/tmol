@@ -134,7 +134,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     def op_val():
         return op(s.tcoords, s.ttype, s.tbpl)
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         op_val, torch.tensor((expected_dense,)).to(torch_device)
     )
 
@@ -145,7 +145,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
 
         return res
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         op_full, torch.tensor((expected_dense,)).to(torch_device)
     )
 
@@ -181,7 +181,7 @@ def test_lj_intra_op_stacked(benchmark, default_database, torch_device, ubq_syst
     def op_val():
         return op(coords2, atype2, atbpl)
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         op_val,
         torch.tensor(expected_dense).to(torch_device).sum().unsqueeze(0).repeat(2),
     )
@@ -210,7 +210,7 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
         s.tbpl[:, :part, part:],
     )
 
-    torch.testing.assert_allclose(val, torch.tensor((expected_dense,)).to(torch_device))
+    torch.testing.assert_close(val, torch.tensor((expected_dense,)).to(torch_device))
 
     subind = torch.arange(0, s.tcoords.shape[1], 100)
 
@@ -249,7 +249,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
     def op_val():
         return op(s.tcoords, s.ttype, s.thvy_at_inds, s.tbpl)
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         op_val, torch.tensor((expected_dense,)).to(torch_device)
     )
 
@@ -260,7 +260,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
 
         return res
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         op_full, torch.tensor((expected_dense,)).to(torch_device)
     )
 
@@ -303,7 +303,7 @@ def test_lk_inter_op(default_database, torch_device, ubq_system):
         s.tbpl[:, :part, part:],
     )
 
-    torch.testing.assert_allclose(val, torch.tensor((expected_dense,)).to(torch_device))
+    torch.testing.assert_close(val, torch.tensor((expected_dense,)).to(torch_device))
 
     subind = torch.arange(0, s.tcoords.shape[1], 100)
 

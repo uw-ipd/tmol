@@ -20,5 +20,5 @@ def test_distance(geom):
     B = torch.ones((10, 3), device="cuda")
     V = torch.full((10,), math.sqrt(3), device="cuda")
 
-    torch.testing.assert_allclose(geom.distance_V(A, B), V)
-    torch.testing.assert_allclose(geom.distance_V_dV(A, B)[0], V)
+    torch.testing.assert_close(geom.distance_V(A, B), V)
+    torch.testing.assert_close(geom.distance_V_dV(A, B)[0], V)

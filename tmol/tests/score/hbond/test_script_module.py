@@ -109,5 +109,5 @@ def test_script_module_scores(default_database, ubq_system, torch_device):
         cpu_compact_db.global_param_table,
     )
 
-    torch.testing.assert_allclose(module_score.cpu(), batch_score)
+    torch.testing.assert_close(module_score.cpu(), batch_score)
     # Derivative values validated via gradcheck

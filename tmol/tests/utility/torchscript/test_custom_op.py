@@ -17,7 +17,7 @@ def test_load():
         result = pow3_f(i)
         expected = i.pow(3.0)
 
-        torch.testing.assert_allclose(result, expected)
+        torch.testing.assert_close(result, expected)
 
         assert not result.requires_grad
         assert not expected.requires_grad
@@ -27,7 +27,7 @@ def test_load():
         result = pow3_f(i)
         expected = i.pow(3.0)
 
-        torch.testing.assert_allclose(result, expected)
+        torch.testing.assert_close(result, expected)
 
         assert result.requires_grad
         assert expected.requires_grad
@@ -41,7 +41,7 @@ def test_load():
         pow3_f(i).sum().backward()
         result_grad = i.grad
 
-        torch.testing.assert_allclose(result_grad, expected_grad)
+        torch.testing.assert_close(result_grad, expected_grad)
 
     def pow3(t):
         return cpow(t, 3.0)

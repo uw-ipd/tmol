@@ -94,20 +94,20 @@ def test_dunbrack_table_read(rosetta_database, default_database):
     assert len(default.semi_rotameric_libraries) == len(fresh.semi_rotameric_libraries)
 
     def compare_rotameric_data(default_rotdat, fresh_rotdat):
-        torch.testing.assert_allclose(default_rotdat.rotamers, fresh_rotdat.rotamers)
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(default_rotdat.rotamers, fresh_rotdat.rotamers)
+        torch.testing.assert_close(
             default_rotdat.rotamer_probabilities, fresh_rotdat.rotamer_probabilities
         )
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_rotdat.rotamer_means, fresh_rotdat.rotamer_means
         )
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_rotdat.backbone_dihedral_start, fresh_rotdat.backbone_dihedral_start
         )
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_rotdat.backbone_dihedral_step, fresh_rotdat.backbone_dihedral_step
         )
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_rotdat.rotamer_alias, fresh_rotdat.rotamer_alias
         )
 
@@ -123,23 +123,23 @@ def test_dunbrack_table_read(rosetta_database, default_database):
 
     def compare_semirotameric_data(default_srdat, fresh_srdat):
         compare_rotameric_data(default_srdat.rotameric_data, fresh_srdat.rotameric_data)
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_srdat.non_rot_chi_start, fresh_srdat.non_rot_chi_start
         )
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_srdat.non_rot_chi_step, fresh_srdat.non_rot_chi_step
         )
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_srdat.non_rot_chi_period, fresh_srdat.non_rot_chi_period
         )
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_srdat.rotameric_chi_rotamers, fresh_srdat.rotameric_chi_rotamers
         )
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_srdat.nonrotameric_chi_probabilities,
             fresh_srdat.nonrotameric_chi_probabilities,
         )
-        torch.testing.assert_allclose(
+        torch.testing.assert_close(
             default_srdat.rotamer_boundaries, fresh_srdat.rotamer_boundaries
         )
 

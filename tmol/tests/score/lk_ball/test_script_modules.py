@@ -134,7 +134,7 @@ def test_lkball_intra(test_case, torch_device, default_database):
         indexed_bonds.bond_spans,
     )
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         val.cpu(), test_case.expected_score, atol=1e-4, rtol=1e-3
     )
 
@@ -211,7 +211,7 @@ def test_lkball_inter(test_case, torch_device, default_database):
         indexed_bonds.bond_spans,
     )
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         val.cpu(), test_case.expected_score, atol=1e-4, rtol=1e-3
     )
 
