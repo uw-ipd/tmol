@@ -524,7 +524,7 @@ def merge_chi_samples(chi_samples):
     )
     sampler_for_rotamer_unsorted = torch.cat(
         [
-            torch.full((samples[1].shape[0],), i, dtype=torch.int64)
+            torch.full((samples[1].shape[0],), i, dtype=torch.int64, device=device)
             for i, samples in enumerate(chi_samples)
         ]
     )
@@ -668,7 +668,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
 
     rot_mcfp_at_inds_kto[rot_mcfp_at_inds_kto != -1] += n_dof_atoms_offset_for_rot[
         torch.div(
-            torch.arange(n_rots * max_n_mcfp_atoms, dtype=torch.int64),
+            torch.arange(n_rots * max_n_mcfp_atoms, dtype=torch.int64, device=poses.device),
             max_n_mcfp_atoms,
             rounding_mode="trunc",
         )[rot_mcfp_at_inds_kto != -1]

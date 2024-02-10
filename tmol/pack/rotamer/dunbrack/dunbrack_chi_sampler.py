@@ -627,6 +627,7 @@ class DunbrackChiSampler:
                 for rt in rlt.allowed_restypes
             ],
             dtype=torch.uint8,
+            device=self.device,
         )
         n_restypes_total = restype_is_allowed_for_dun.shape[0]
         dun_allowed_inds = torch.nonzero(restype_is_allowed_for_dun)[:, 0]
