@@ -4,7 +4,7 @@ import torch
 
 def test_load():
     # Initial fetch of op fails with RuntimeError, op not registered
-    with pytest.raises(RuntimeError):
+    with pytest.raises(AttributeError):
         torch.ops.tmol.cpow
 
     from .custom_op import cpow
