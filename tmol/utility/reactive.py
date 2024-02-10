@@ -419,8 +419,10 @@ def _code(
     varnames,
     filename,
     name,
+    qualname,
     firstlineno,
-    lnotab,
+    linetable,
+    exceptiontable,
     freevars,
     cellvars,
     **kwargs,
@@ -439,12 +441,13 @@ def _code(
         varnames,
         filename,
         name,
+        qualname,
         firstlineno,
-        lnotab,
+        linetable,
+        exceptiontable,
         freevars,
         cellvars,
     )
-
 
 def _code_attrs(c):
     """Unpack types.CodeType attrs ('co_<name>') into __init__ params ('<name>')."""
