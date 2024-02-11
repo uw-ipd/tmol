@@ -1,21 +1,30 @@
-[tool.black]
-py36 = true
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | \.conda
-  | _build
-  | buck-out
-  | build
-  | dist
-  # Project specific
-  | tmol/extern
-  | dev
-)/
-'''
+[project]
+name = "tmol"
+dynamic = ["version", "readme", "dependencies", "optional-dependencies"]
+requires-python = ">=3.11"
 
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.in"]}
+readme = {file = "README.md"}
+optional-dependencies = {dev = {file = ["requirements-dev.in"]}}
+
+[tool.setuptools]
+packages = ["tmol"]
+
+[tool.setuptools.package-data]
+"*" = ["*.hh", "*.cpp", "*.cu", "*.cuh", "*.cc", ".hpp", "*.h", "*.hxx"]
+"tmol.database.default.chemical" = ["**/*.yaml"]
+"tmol.database.default.scoring" = ["**/*.yaml"]
+"tmol.tests.data.pdb" = ["**/*.pdb"]
+"tmol.tests.data.rosetta_baselines" = ["**/*.pickle"]
+"tmol.tests.data.constraints" = ["**/*.fa", "**/*.npz"]
+
+[build-system]
+requires = ["setuptools >= 65", "setuptools_scm[toml]>=6.2"]
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools_scm]
+search_parent_directories = true
+version_scheme = "no-guess-dev"
+local_scheme = "node-and-date"
+fallback_version = "0.0.0"

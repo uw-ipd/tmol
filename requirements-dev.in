@@ -9,3 +9,4 @@ pytest-repeat
 pytest-watch
 pytest-benchmark
 seaborn
+pip-tools
