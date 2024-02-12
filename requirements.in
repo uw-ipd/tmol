@@ -10,6 +10,7 @@ hypothesis
 ipython
 networkx
 pandas
+pyarrow
 pint
 psutil
 pyyaml

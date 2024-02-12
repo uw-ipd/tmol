@@ -78,6 +78,7 @@ numpy==1.26.4
     #   numba
     #   numcodecs
     #   pandas
+    #   pyarrow
     #   scipy
     #   sparse
     #   zarr
@@ -128,6 +129,8 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
+pyarrow==15.0.0
+    # via -r ../../requirements.in
 pygments==2.17.2
     # via ipython
 python-dateutil==2.8.2
