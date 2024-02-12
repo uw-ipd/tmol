@@ -529,7 +529,7 @@ def _code_py39(
 
 
 def _code(**kwargs):
-    if sys.version_info[:2] == (2,12) or sys.version_info[:2] == (3,12):
+    if sys.version_info[:2] == (3,11) or sys.version_info[:2] == (3,12):
         return _code_py311_312(**kwargs)
     elif sys.version_info[:2] == (3,10):
         return _code_py310(**kwargs)
