@@ -1,7 +1,7 @@
 [project]
 name = "tmol"
 dynamic = ["version", "readme", "dependencies", "optional-dependencies"]
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.in"]}
