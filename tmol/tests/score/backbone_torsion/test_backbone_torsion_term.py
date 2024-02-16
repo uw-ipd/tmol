@@ -80,43 +80,7 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     )
 
 
-def test_whole_pose_scoring_module_gradcheck_partial_pose(
-    rts_ubq_res, default_database, torch_device
-):
-    backbone_torsion_energy = BackboneTorsionEnergyTerm(
-        param_db=default_database, device=torch_device
-    )
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res[6:12], device=torch_device
-    )
-    for bt in p1.packed_block_types.active_block_types:
-        backbone_torsion_energy.setup_block_type(bt)
-    backbone_torsion_energy.setup_packed_block_types(p1.packed_block_types)
-    backbone_torsion_energy.setup_poses(p1)
-
-    backbone_torsion_pose_scorer = (
-        backbone_torsion_energy.render_whole_pose_scoring_module(p1)
-    )
-
-    weights = torch.tensor([[1.0], [1.0]], dtype=torch.float32, device=torch_device)
-
-    def score(coords):
-        scores = backbone_torsion_pose_scorer(coords)
-
-        wtd_score = torch.sum(weights * scores)
-        return wtd_score
-
-    gradcheck(
-        score,
-        (p1.coords.requires_grad_(True),),
-        eps=1e-3,
-        atol=3e-1,  # fd very high but this is necessary
-        rtol=0,
-        nondet_tol=1e-3,
-    )
-
-
-class TestCartBondedEnergyTerm(EnergyTermTestBase):
+class TestBackboneTorsionEnergyTerm(EnergyTermTestBase):
     energy_term_class = BackboneTorsionEnergyTerm
 
     @classmethod

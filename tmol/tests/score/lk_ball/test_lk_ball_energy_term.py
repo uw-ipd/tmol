@@ -6,6 +6,7 @@ from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.autograd import gradcheck
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device):
@@ -74,155 +75,59 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     )
 
 
-def test_whole_pose_scoring_module_gradcheck_partial_pose(
-    rts_ubq_res, default_database, torch_device
-):
-    lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res[6:12], device=torch_device
-    )
-    for bt in p1.packed_block_types.active_block_types:
-        lk_ball_energy.setup_block_type(bt)
-    lk_ball_energy.setup_packed_block_types(p1.packed_block_types)
-    lk_ball_energy.setup_poses(p1)
+class TestLKBallEnergyTerm(EnergyTermTestBase):
+    energy_term_class = LKBallEnergyTerm
 
-    lk_ball_pose_scorer = lk_ball_energy.render_whole_pose_scoring_module(p1)
-
-    weights = torch.tensor(
-        [[0.75], [1.25], [0.625], [0.8125]], dtype=torch.float32, device=torch_device
-    )
-
-    def score(coords):
-        scores = lk_ball_pose_scorer(coords)
-
-        wtd_score = torch.sum(weights * scores)
-        return wtd_score
-
-    gradcheck(
-        score,
-        (p1.coords.requires_grad_(True),),
-        eps=1e-3,
-        atol=1e-2,
-        rtol=1e-2,
-        nondet_tol=1e-3,
-    )
-
-
-def test_whole_pose_scoring_module_10(rts_ubq_res, default_database, torch_device):
-    n_poses = 10
-    gold_vals = numpy.tile(
-        numpy.array(
-            [[422.0388], [172.1965], [1.5786], [10.9946]],
-            dtype=numpy.float32,
-        ),
-        (n_poses),
-    )
-    lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
-    pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
-
-    for bt in pn.packed_block_types.active_block_types:
-        lk_ball_energy.setup_block_type(bt)
-    lk_ball_energy.setup_packed_block_types(pn.packed_block_types)
-    lk_ball_energy.setup_poses(pn)
-
-    lk_ball_pose_scorer = lk_ball_energy.render_whole_pose_scoring_module(pn)
-
-    coords = torch.nn.Parameter(pn.coords.clone())
-    scores = lk_ball_pose_scorer(coords)
-
-    # make sure we're still good
-    torch.arange(100, device=torch_device)
-
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
-    )
-
-
-def test_whole_pose_block_scoring(rts_ubq_res, default_database, torch_device):
-    gold_vals = numpy.array(
-        [
-            [
-                [
-                    [0.19297391, 0.44536665, 0.33662647, 0.0],
-                    [0.44536665, 0.31895563, 0.7434768, 0.38836116],
-                    [0.33662647, 0.7434768, 0.23098612, 0.7423986],
-                    [0.0, 0.38836116, 0.7423986, 0.5653227],
-                ]
-            ],
-            [
-                [
-                    [0.0, 0.0, 0.00782337, 0.0],
-                    [0.0, 0.0, 0.19712329, 0.0],
-                    [0.00782337, 0.19712329, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0],
-                ]
-            ],
-            [
-                [
-                    [0.0, 0.0, 0.0016606, 0.0],
-                    [0.0, 0.0, 0.0, 0.0],
-                    [0.0016606, 0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0],
-                ]
-            ],
-            [
-                [
-                    [0.0, 0.0, 0.00471121, 0.0],
-                    [0.0, 0.0, 0.0, 0.0],
-                    [0.00471121, 0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0],
-                ]
-            ],
-        ]
-    )
-
-    lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
-    )
-    for bt in p1.packed_block_types.active_block_types:
-        lk_ball_energy.setup_block_type(bt)
-    lk_ball_energy.setup_packed_block_types(p1.packed_block_types)
-    lk_ball_energy.setup_poses(p1)
-
-    lk_ball_pose_scorer = lk_ball_energy.render_whole_pose_scoring_module(p1)
-
-    coords = torch.nn.Parameter(p1.coords.clone())
-    scores = lk_ball_pose_scorer(coords, output_block_pair_energies=True)
-
-    sc = scores.cpu().detach().numpy()
-
-    numpy.testing.assert_allclose(gold_vals, sc, atol=1e-4)
-
-
-def test_whole_pose_scoring_reweighted_block_gradcheck(
-    rts_ubq_res, default_database, torch_device
-):
-    lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
-    )
-    for bt in p1.packed_block_types.active_block_types:
-        lk_ball_energy.setup_block_type(bt)
-    lk_ball_energy.setup_packed_block_types(p1.packed_block_types)
-    lk_ball_energy.setup_poses(p1)
-
-    lk_ball_pose_scorer = lk_ball_energy.render_whole_pose_scoring_module(p1)
-
-    def score(coords):
-        scores = lk_ball_pose_scorer(coords, output_block_pair_energies=True)
-        scale = 0.01 * torch.arange(torch.numel(scores), device=scores.device).reshape(
-            scores.shape
+    @classmethod
+    def test_whole_pose_scoring_10(
+        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
+    ):
+        return super().test_whole_pose_scoring_10(
+            rts_ubq_res, default_database, torch_device, update_baseline
         )
-        return torch.sum(scale * scores)
 
-    gradcheck(
-        score,
-        (p1.coords.requires_grad_(True),),
-        eps=1e-3,
-        atol=1e-3,
-        nondet_tol=1e-6,  # fd this is necessary here...
-    )
+    @classmethod
+    def test_whole_pose_scoring_gradcheck(
+        cls, rts_ubq_res, default_database, torch_device
+    ):
+        return super().test_whole_pose_scoring_gradcheck(
+            rts_ubq_res[0:4],
+            default_database,
+            torch_device,
+            eps=1e-3,
+            atol=1e-3,
+            nondet_tol=1e-6,  # fd this is necessary here...
+        )
+
+    @classmethod
+    def test_whole_pose_scoring_jagged(
+        cls,
+        rts_ubq_res,
+        default_database,
+        torch_device: torch.device,
+        update_baseline=False,
+    ):
+        return super().test_whole_pose_scoring_jagged(
+            rts_ubq_res, default_database, torch_device, update_baseline
+        )
+
+    @classmethod
+    def test_block_scoring(
+        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
+    ):
+        return super().test_block_scoring(
+            rts_ubq_res[0:4], default_database, torch_device, update_baseline, atol=1e-4
+        )
+
+    @classmethod
+    def test_block_scoring_reweighted_gradcheck(
+        cls, rts_ubq_res, default_database, torch_device
+    ):
+        return super().test_block_scoring_reweighted_gradcheck(
+            rts_ubq_res[0:4],
+            default_database,
+            torch_device,
+            eps=1e-3,
+            atol=1e-3,
+            nondet_tol=1e-6,  # fd this is necessary here...
+        )

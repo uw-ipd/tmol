@@ -6,8 +6,8 @@ from tmol.score.ref.ref_energy_term import RefEnergyTerm
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 from tmol.tests.autograd import gradcheck
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device: torch.device):
