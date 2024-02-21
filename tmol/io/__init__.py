@@ -1,9 +1,10 @@
 import torch
-from typing import Optional
+from typing import Optional, Union
+from tmol.types.functional import validate_args
 
 
 def pose_stack_from_pdb(
-    pdb_lines_or_fname,
+    pdb_lines_or_fname: Union[str, list],
     device: torch.device,
     *,
     residue_start: Optional[int] = None,

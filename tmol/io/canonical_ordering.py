@@ -3,9 +3,11 @@ import torch
 import attr
 from collections import defaultdict
 
+from tmol.types.functional import validate_args
 from tmol.database import ParameterDatabase
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from typing import Tuple, Mapping, Optional  # , FrozenSet
+from typing import List, Mapping, Optional, Tuple, Union
 from .pdb_parsing import parse_pdb
 import toolz.functoolz
 
@@ -335,14 +337,16 @@ class CanonicalOrdering:
         )
 
 
+@validate_args
 @toolz.functoolz.memoize
-def default_canonical_ordering():
+def default_canonical_ordering() -> CanonicalOrdering:
     chemdb = ParameterDatabase.get_default().chemical
     return CanonicalOrdering.from_chemdb(chemdb)
 
 
+@validate_args
 @toolz.functoolz.memoize
-def default_packed_block_types(device: torch.device):
+def default_packed_block_types(device: torch.device) -> PackedBlockTypes:
     import cattr
     from tmol.chemical.restypes import RefinedResidueType
     from tmol.pose.packed_block_types import PackedBlockTypes
@@ -360,17 +364,21 @@ def default_packed_block_types(device: torch.device):
     return PackedBlockTypes.from_restype_list(chem_database, restype_list, device)
 
 
+@validate_args
 def canonical_form_from_pdb(
     canonical_ordering: CanonicalOrdering,
-    pdb_lines_or_fname,
+    pdb_lines_or_fname: Union[str, List],
     device: torch.device,
     *,
     residue_start: Optional[int] = None,
     residue_end: Optional[int] = None,
-):
+) -> Mapping:
     """Create a canonical form dictionary from either the contents of a PDB file
     as one long string or a list of individual lines from the file or
     by providing the name/path of a PDB file
+
+    pdb_lines_or_fname must either be a list of the lines in a PDB file or a string representing a file
+
     """
 
     max_n_canonical_atoms = canonical_ordering.max_n_canonical_atoms

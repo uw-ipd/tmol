@@ -1,11 +1,13 @@
 import torch
 from tmol.types.torch import Tensor
 from typing import Optional
+from tmol.types.functional import validate_args
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.io.canonical_ordering import CanonicalOrdering
 
 
+@validate_args
 def pose_stack_from_canonical_form(
     canonical_ordering: CanonicalOrdering,
     pbt: PackedBlockTypes,
