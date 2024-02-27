@@ -30,7 +30,7 @@ def test_condense_torch_inds(torch_device):
         dtype=torch.int64,
         device=torch_device,
     )
-    torch.testing.assert_allclose(condensed_inds, expected)
+    torch.testing.assert_close(condensed_inds, expected)
     assert condensed_inds.device == torch_device
 
 
@@ -45,7 +45,7 @@ def test_take_values_w_sentineled_index1(torch_device):
         dtype=torch.int32,
         device=torch_device,
     )
-    torch.testing.assert_allclose(index_values, expected)
+    torch.testing.assert_close(index_values, expected)
     assert index_values.dtype == torch.int32
     assert index_values.device == torch_device
 
@@ -70,7 +70,7 @@ def test_take_values_w_sentineled_index_and_dest(torch_device):
         device=torch_device,
     )
 
-    torch.testing.assert_allclose(index_values, expected)
+    torch.testing.assert_close(index_values, expected)
 
 
 def test_condense_subset(torch_device):
@@ -91,7 +91,7 @@ def test_condense_subset(torch_device):
     )
 
     subset = sc.condense_subset(vals, vals_to_keep)
-    torch.testing.assert_allclose(subset, expected)
+    torch.testing.assert_close(subset, expected)
 
 
 def test_condense_numpy_inds_from_doc_string():
@@ -105,7 +105,7 @@ def test_condense_torch_inds_from_doc_string():
     input = torch.tensor([[0, 1, 0, 1], [1, 1, 0, 1]], dtype=torch.int32) == 1
     expected_output = torch.tensor([[1, 3, -1], [0, 1, 3]], dtype=torch.int64)
     actual_output = sc.condense_torch_inds(input, torch.device("cpu"))
-    torch.testing.assert_allclose(actual_output, expected_output)
+    torch.testing.assert_close(actual_output, expected_output)
 
 
 def test_take_values_w_sentineled_index_from_doc_string():
@@ -117,7 +117,7 @@ def test_take_values_w_sentineled_index_from_doc_string():
         [[12, 11, 12, 15, -1], [11, 14, 11, 15, 12]], dtype=torch.int32
     )
     actual_output = sc.take_values_w_sentineled_index(values, sentineled_index_tensor)
-    torch.testing.assert_allclose(actual_output, expected_output)
+    torch.testing.assert_close(actual_output, expected_output)
 
 
 def test_take_values_w_sentineled_index_and_dest_from_doc_string():
@@ -137,7 +137,7 @@ def test_take_values_w_sentineled_index_and_dest_from_doc_string():
     actual_output = sc.take_values_w_sentineled_index_and_dest(
         values, sentineled_index_tensor, sentineled_dest_tensor
     )
-    torch.testing.assert_allclose(actual_output, expected_output)
+    torch.testing.assert_close(actual_output, expected_output)
 
 
 def test_take_values_w_sentineled_dest_from_doc_string():
@@ -159,7 +159,7 @@ def test_take_values_w_sentineled_dest_from_doc_string():
     actual_output = sc.take_values_w_sentineled_dest(
         values, values_to_take, sentineled_dest_tensor
     )
-    torch.testing.assert_allclose(actual_output, expected_output)
+    torch.testing.assert_close(actual_output, expected_output)
 
 
 def test_condense_subset_from_doc_string():
@@ -182,7 +182,7 @@ def test_condense_subset_from_doc_string():
         dtype=torch.int32,
     )
     actual_output = sc.condense_subset(values, values_to_keep)
-    torch.testing.assert_allclose(actual_output, expected_output)
+    torch.testing.assert_close(actual_output, expected_output)
 
 
 def test_take_condensed_3d_subset_from_doc_string():
@@ -210,7 +210,7 @@ def test_take_condensed_3d_subset_from_doc_string():
     actual_output = sc.take_condensed_3d_subset(
         values, condensed_inds_to_keep, condensed_dest_tensor
     )
-    torch.testing.assert_allclose(actual_output, expected_output)
+    torch.testing.assert_close(actual_output, expected_output)
 
 
 @pytest.mark.parametrize("torch_dtype", [torch.int32, torch.int64])

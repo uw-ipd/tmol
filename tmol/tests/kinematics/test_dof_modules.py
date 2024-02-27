@@ -20,8 +20,16 @@ def test_cartesian_coord_factory(ubq_system):
 
     # Coords are returned from forward
     assert src.coords.shape == (1, ubq_system.system_size, 3)
-    torch.testing.assert_allclose(src.coords[0], ubq_system.coords)
-    torch.testing.assert_allclose(src()[0], ubq_system.coords)
+    torch.testing.assert_close(
+        src.coords[0],
+        torch.tensor(ubq_system.coords, dtype=src.coords.dtype),
+        equal_nan=True,
+    )
+    torch.testing.assert_close(
+        src()[0],
+        torch.tensor(ubq_system.coords, dtype=src.coords.dtype),
+        equal_nan=True,
+    )
 
     # Device defaults and device clone
     clone = CartesianDOFs.build_from(src)
@@ -31,12 +39,12 @@ def test_cartesian_coord_factory(ubq_system):
 
     # Coords are copied, not referenced
     with torch.no_grad():
-        torch.testing.assert_allclose(src.coords, clone.coords)
+        torch.testing.assert_close(src.coords, clone.coords, equal_nan=True)
         clone.coords[0] += 1
         with pytest.raises(AssertionError):
-            torch.testing.assert_allclose(src.coords, clone.coords)
+            torch.testing.assert_close(src.coords, clone.coords, equal_nan=True)
         clone.coords[0] -= 1
-        torch.testing.assert_allclose(src.coords, clone.coords)
+        torch.testing.assert_close(src.coords, clone.coords, equal_nan=True)
 
     # Device can be overridden
     clone = clone.to(cuda_device)
@@ -46,8 +54,16 @@ def test_cartesian_coord_factory(ubq_system):
     assert clone().device == cuda_device
 
     # Coords are returned from forward
-    torch.testing.assert_allclose(clone.coords.cpu()[0], ubq_system.coords)
-    torch.testing.assert_allclose(clone().cpu()[0], ubq_system.coords)
+    torch.testing.assert_close(
+        clone.coords.cpu()[0],
+        torch.tensor(ubq_system.coords, dtype=clone.coords.dtype),
+        equal_nan=True,
+    )
+    torch.testing.assert_close(
+        clone().cpu()[0],
+        torch.tensor(ubq_system.coords, dtype=clone.coords.dtype),
+        equal_nan=True,
+    )
 
 
 @requires_cuda
@@ -57,7 +73,9 @@ def test_kinematic_dof_factory(ubq_system):
 
     src = KinematicDOFs.build_from(ubq_system)
 
-    torch.testing.assert_allclose(src()[0], ubq_system.coords)
+    torch.testing.assert_close(
+        src()[0], torch.tensor(ubq_system.coords), equal_nan=True
+    )
 
     # Device defaults and device clone
     clone: KinematicDOFs = KinematicDOFs.build_from(src)
@@ -66,16 +84,24 @@ def test_kinematic_dof_factory(ubq_system):
 
     # dofs are copied, not referenced
     with torch.no_grad():
-        torch.testing.assert_allclose(src.dofs, clone.dofs)
+        torch.testing.assert_close(src.dofs, clone.dofs)
         clone.dofs[0] += 1
         with pytest.raises(AssertionError):
-            torch.testing.assert_allclose(src.dofs, clone.dofs)
+            torch.testing.assert_close(src.dofs, clone.dofs)
 
         with pytest.raises(AssertionError):
-            torch.testing.assert_allclose(clone()[0], ubq_system.coords)
+            torch.testing.assert_close(
+                clone()[0],
+                torch.tensor(ubq_system.coords, dtype=clone()[0].dtype),
+                equal_nan=True,
+            )
         clone.dofs[0] -= 1
 
-    torch.testing.assert_allclose(clone()[0], ubq_system.coords)
+    torch.testing.assert_close(
+        clone()[0],
+        torch.tensor(ubq_system.coords, dtype=clone()[0].dtype),
+        equal_nan=True,
+    )
 
     # Device can be overridden
     clone = clone.to(cuda_device)
@@ -88,7 +114,11 @@ def test_kinematic_dof_factory(ubq_system):
     assert clone().device == cuda_device
 
     # Coords are returned from forward
-    torch.testing.assert_allclose(clone().cpu()[0], ubq_system.coords)
+    torch.testing.assert_close(
+        clone().cpu()[0],
+        torch.tensor(ubq_system.coords, dtype=clone().dtype),
+        equal_nan=True,
+    )
 
 
 @pytest.fixture

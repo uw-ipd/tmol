@@ -397,6 +397,7 @@ specify a set of expected argument names when added as a `reactive_property`.
 import inspect
 from collections import defaultdict
 from typing import Callable, Any, Optional, Tuple, Union
+import sys
 
 import types
 
@@ -405,8 +406,89 @@ import toolz
 
 # import tmol.utility.nvtx
 
+def _code_py311_312(
+    argcount,
+    posonlyargcount,
+    kwonlyargcount,
+    nlocals,
+    stacksize,
+    flags,
+    codestring,
+    constants,
+    names,
+    varnames,
+    filename,
+    name,
+    qualname,
+    firstlineno,
+    linetable,
+    exceptiontable,
+    freevars,
+    cellvars,
+    **kwargs,
+):
+    """Construct type.CodeType, ignoring unneeded kwargs."""
+    return types.CodeType(
+        argcount,
+        posonlyargcount,
+        kwonlyargcount,
+        nlocals,
+        stacksize,
+        flags,
+        codestring,
+        constants,
+        names,
+        varnames,
+        filename,
+        name,
+        qualname,
+        firstlineno,
+        linetable,
+        exceptiontable,
+        freevars,
+        cellvars,
+    )
 
-def _code(
+def _code_py310(
+    argcount,
+    posonlyargcount,
+    kwonlyargcount,
+    nlocals,
+    stacksize,
+    flags,
+    codestring,
+    constants,
+    names,
+    varnames,
+    filename,
+    name,
+    firstlineno,
+    linetable,
+    freevars,
+    cellvars,
+    **kwargs,
+):
+    """Construct type.CodeType, ignoring unneeded kwargs."""
+    return types.CodeType(
+        argcount,
+        posonlyargcount,
+        kwonlyargcount,
+        nlocals,
+        stacksize,
+        flags,
+        codestring,
+        constants,
+        names,
+        varnames,
+        filename,
+        name,
+        firstlineno,
+        linetable,
+        freevars,
+        cellvars,
+    )
+
+def _code_py39(
     argcount,
     posonlyargcount,
     kwonlyargcount,
@@ -445,6 +527,16 @@ def _code(
         cellvars,
     )
 
+
+def _code(**kwargs):
+    if sys.version_info[:2] == (3,11) or sys.version_info[:2] == (3,12):
+        return _code_py311_312(**kwargs)
+    elif sys.version_info[:2] == (3,10):
+        return _code_py310(**kwargs)
+    elif sys.version_info[:2] == (3,9):
+        return _code_py39(**kwargs)
+    else:
+        raise NotImplementedError(f"_code not implemented for python {sys.version_info}")
 
 def _code_attrs(c):
     """Unpack types.CodeType attrs ('co_<name>') into __init__ params ('<name>')."""
