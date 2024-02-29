@@ -1,5 +1,3 @@
-import typing
-
 class _SubscribedType(type):
     """
     This class is a placeholder to let the IDE know the attributes of the
@@ -8,6 +6,7 @@ class _SubscribedType(type):
 
     __origin__ = None
     __args__ = None
+
 
 # adapted from typish (https://github.com/ramonhagenaars/typish)
 class SubscriptableType(type):
@@ -65,5 +64,7 @@ class SubscriptableType(type):
             self_qualname = getattr(self, "__qualname__", None)
             self_origin = getattr(self, "__origin__", None)
             self_args = getattr(self, "__args__", None)
-            self._hash = hash("{}{}{}{}".format(self_module, self_qualname, self_origin, self_args))
+            self._hash = hash(
+                "{}{}{}{}".format(self_module, self_qualname, self_origin, self_args)
+            )
         return self._hash

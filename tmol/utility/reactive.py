@@ -406,6 +406,7 @@ import toolz
 
 # import tmol.utility.nvtx
 
+
 def _code_py311_312(
     argcount,
     posonlyargcount,
@@ -449,6 +450,7 @@ def _code_py311_312(
         cellvars,
     )
 
+
 def _code_py310(
     argcount,
     posonlyargcount,
@@ -487,6 +489,7 @@ def _code_py310(
         freevars,
         cellvars,
     )
+
 
 def _code_py39(
     argcount,
@@ -529,14 +532,17 @@ def _code_py39(
 
 
 def _code(**kwargs):
-    if sys.version_info[:2] == (3,11) or sys.version_info[:2] == (3,12):
+    if sys.version_info[:2] == (3, 11) or sys.version_info[:2] == (3, 12):
         return _code_py311_312(**kwargs)
-    elif sys.version_info[:2] == (3,10):
+    elif sys.version_info[:2] == (3, 10):
         return _code_py310(**kwargs)
-    elif sys.version_info[:2] == (3,9):
+    elif sys.version_info[:2] == (3, 9):
         return _code_py39(**kwargs)
     else:
-        raise NotImplementedError(f"_code not implemented for python {sys.version_info}")
+        raise NotImplementedError(
+            f"_code not implemented for python {sys.version_info}"
+        )
+
 
 def _code_attrs(c):
     """Unpack types.CodeType attrs ('co_<name>') into __init__ params ('<name>')."""
