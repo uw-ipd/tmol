@@ -373,8 +373,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   DeviceDispatch<D>::forall_stacks(n_poses, max_n_blocks, func);
 
-  printf("FORWARD SUCCESS\n");
-
   return {V_t, dV_dx_t};
 }
 
