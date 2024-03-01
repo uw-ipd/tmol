@@ -2,6 +2,7 @@ black
 codecov
 flake8
 itermplot==0.5
+pre-commit
 pytest
 pytest-forked
 pytest-cov

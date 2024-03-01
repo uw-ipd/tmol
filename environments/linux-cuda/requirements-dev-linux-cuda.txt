@@ -14,6 +14,8 @@ certifi==2024.2.2
     # via
     #   -c requirements-linux-cuda.txt
     #   requests
+cfgv==3.4.0
+    # via pre-commit
 charset-normalizer==3.3.2
     # via
     #   -c requirements-linux-cuda.txt
@@ -34,12 +36,20 @@ coverage[toml]==7.4.1
     #   pytest-cov
 cycler==0.12.1
     # via matplotlib
+distlib==0.3.8
+    # via virtualenv
 docopt==0.6.2
     # via pytest-watch
+filelock==3.13.1
+    # via
+    #   -c requirements-linux-cuda.txt
+    #   virtualenv
 flake8==7.0.0
     # via -r ../../requirements-dev.in
 fonttools==4.48.1
     # via matplotlib
+identify==2.5.35
+    # via pre-commit
 idna==3.6
     # via
     #   -c requirements-linux-cuda.txt
@@ -60,6 +70,8 @@ mypy-extensions==1.0.0
     # via
     #   -c requirements-linux-cuda.txt
     #   black
+nodeenv==1.8.0
+    # via pre-commit
 numpy==1.26.4
     # via
     #   -c requirements-linux-cuda.txt
@@ -85,9 +97,13 @@ pillow==10.2.0
 pip-tools==7.3.0
     # via -r ../../requirements-dev.in
 platformdirs==4.2.0
-    # via black
+    # via
+    #   black
+    #   virtualenv
 pluggy==1.4.0
     # via pytest
+pre-commit==3.6.2
+    # via -r ../../requirements-dev.in
 py==1.11.0
     # via pytest-forked
 py-cpuinfo==9.0.0
@@ -130,6 +146,10 @@ pytz==2024.1
     # via
     #   -c requirements-linux-cuda.txt
     #   pandas
+pyyaml==6.0.1
+    # via
+    #   -c requirements-linux-cuda.txt
+    #   pre-commit
 requests==2.31.0
     # via
     #   -c requirements-linux-cuda.txt
@@ -149,6 +169,8 @@ urllib3==2.2.0
     # via
     #   -c requirements-linux-cuda.txt
     #   requests
+virtualenv==20.25.1
+    # via pre-commit
 watchdog==4.0.0
     # via pytest-watch
 wheel==0.42.0
