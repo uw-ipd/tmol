@@ -18,16 +18,17 @@ class CartesianSfxnNetwork(torch.nn.Module):
 
         self.full_coords = pose_stack.coords
         if self.coord_mask is None:
-            self.masked_coords = torch.nn.Parameter(pose_stack.coords)
+            self.full_coords = torch.nn.Parameter(pose_stack.coords)
         else:
             self.masked_coords = torch.nn.Parameter(pose_stack.coords[self.coord_mask])
         self.count = 0
 
     def forward(self):
         self.count += 1
-        self.full_coords = DOFMaskingFunc.apply(
-            self.masked_coords, self.coord_mask, self.full_coords
-        )
+        if self.coord_mask is not None:
+            self.full_coords = DOFMaskingFunc.apply(
+                self.masked_coords, self.coord_mask, self.full_coords
+            )
         return self.whole_pose_scoring_module(self.full_coords)
 
 
