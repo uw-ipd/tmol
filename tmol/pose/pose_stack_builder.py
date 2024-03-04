@@ -1253,9 +1253,9 @@ class PoseStackBuilder:
             )
             remapped = mapping[pose_stack.block_type_ind.to(torch.int64)]
 
-            block_type_ind[
-                offset : (offset + len(pose_stack)), : remapped.shape[1]
-            ] = remapped
+            block_type_ind[offset : (offset + len(pose_stack)), : remapped.shape[1]] = (
+                remapped
+            )
         return block_type_ind
 
     @classmethod
@@ -1303,12 +1303,14 @@ class PoseStackBuilder:
 
         polymeric_down_to_up_nbonds = torch.tensor(
             [
-                bt.path_distance[
-                    bt.ordered_connection_atoms[bt.down_connection_ind],
-                    bt.ordered_connection_atoms[bt.up_connection_ind],
-                ]
-                if bt.down_connection_ind != -1 and bt.up_connection_ind != -1
-                else 0
+                (
+                    bt.path_distance[
+                        bt.ordered_connection_atoms[bt.down_connection_ind],
+                        bt.ordered_connection_atoms[bt.up_connection_ind],
+                    ]
+                    if bt.down_connection_ind != -1 and bt.up_connection_ind != -1
+                    else 0
+                )
                 for bt in pbt.active_block_types
             ],
             dtype=torch.int32,

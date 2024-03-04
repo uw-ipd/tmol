@@ -179,9 +179,9 @@ class PackedBlockTypes:
         )
         for i, rt in enumerate(active_block_types):
             rt_adoc = rt.atom_downstream_of_conn
-            atom_downstream_of_conn[
-                i, : rt_adoc.shape[0], : rt_adoc.shape[1]
-            ] = torch.tensor(rt_adoc, dtype=torch.int32, device=device)
+            atom_downstream_of_conn[i, : rt_adoc.shape[0], : rt_adoc.shape[1]] = (
+                torch.tensor(rt_adoc, dtype=torch.int32, device=device)
+            )
         return atom_downstream_of_conn
 
     @classmethod

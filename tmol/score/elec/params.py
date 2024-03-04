@@ -124,12 +124,14 @@ class ElecParamResolver(ValidateAttrs):
                     print(res_indices[i, j], atom_names[i, j], n_matches, matches)
 
             mapped_indices = numpy.vectorize(
-                lambda a, b, c: c
-                if a is None or numpy.isnan(a)
-                else (
-                    numpy.where((res_indices[i, ...] == a) & (atom_names[i, ...] == b))[
-                        0
-                    ]
+                lambda a, b, c: (
+                    c
+                    if a is None or numpy.isnan(a)
+                    else (
+                        numpy.where(
+                            (res_indices[i, ...] == a) & (atom_names[i, ...] == b)
+                        )[0]
+                    )
                 )
             )(res_indices[i, ...], mapped_atoms[i, ...], numpy.arange(natms))
 
@@ -204,9 +206,9 @@ class ElecParamResolver(ValidateAttrs):
                     "Invalid elec cp mapping: " + res + " " + outer + "->" + str(inner)
                 )
 
-            representative_mapping[
-                block_type.atom_to_idx[inner]
-            ] = block_type.atom_to_idx[outer]
+            representative_mapping[block_type.atom_to_idx[inner]] = (
+                block_type.atom_to_idx[outer]
+            )
 
         return representative_mapping
 

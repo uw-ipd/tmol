@@ -134,9 +134,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     def op_val():
         return op(s.tcoords, s.ttype, s.tbpl)
 
-    torch.testing.assert_close(
-        op_val, torch.tensor((expected_dense,)).to(torch_device)
-    )
+    torch.testing.assert_close(op_val, torch.tensor((expected_dense,)).to(torch_device))
 
     @subfixture(benchmark)
     def op_full():
@@ -249,9 +247,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
     def op_val():
         return op(s.tcoords, s.ttype, s.thvy_at_inds, s.tbpl)
 
-    torch.testing.assert_close(
-        op_val, torch.tensor((expected_dense,)).to(torch_device)
-    )
+    torch.testing.assert_close(op_val, torch.tensor((expected_dense,)).to(torch_device))
 
     @subfixture(benchmark)
     def op_full():

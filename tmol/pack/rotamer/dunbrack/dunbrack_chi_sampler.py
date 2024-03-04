@@ -174,9 +174,9 @@ class DunbrackChiSampler:
                 for i in range(n_samples):
                     for j in range(n_expansions):
                         if j == 0:
-                            non_dunbrack_samples[
-                                chi_ind, 1, n_expansions * i + j
-                            ] = rt_chi.samples[i]
+                            non_dunbrack_samples[chi_ind, 1, n_expansions * i + j] = (
+                                rt_chi.samples[i]
+                            )
                         else:
                             expansion = (j - 1) // 2
                             factor = -1 if (j - 1) % 2 == 0 else 1
@@ -233,12 +233,12 @@ class DunbrackChiSampler:
             device=packed_block_types.device,
         )
         for i, rt in enumerate(packed_block_types.active_block_types):
-            chi_defining_atom[
-                i, : rt.dun_sampler_cache.chi_defining_atom.shape[0]
-            ] = torch.tensor(
-                rt.dun_sampler_cache.chi_defining_atom,
-                dtype=torch.int32,
-                device=self.device,
+            chi_defining_atom[i, : rt.dun_sampler_cache.chi_defining_atom.shape[0]] = (
+                torch.tensor(
+                    rt.dun_sampler_cache.chi_defining_atom,
+                    dtype=torch.int32,
+                    device=self.device,
+                )
             )
         non_dunbrack_sample_counts = torch.full(
             (packed_block_types.n_types, max_n_chi, 2),
@@ -260,10 +260,10 @@ class DunbrackChiSampler:
             )
             if rt_ndsc.shape[0] == 0 or rt_nds.shape[2] == 0:
                 continue
-            non_dunbrack_samples[
-                i, : rt_ndsc.shape[0], :, : rt_nds.shape[2]
-            ] = torch.tensor(
-                rt_nds, dtype=torch.float32, device=packed_block_types.device
+            non_dunbrack_samples[i, : rt_ndsc.shape[0], :, : rt_nds.shape[2]] = (
+                torch.tensor(
+                    rt_nds, dtype=torch.float32, device=packed_block_types.device
+                )
             )
 
         cache = DunSamplerPBTCache(

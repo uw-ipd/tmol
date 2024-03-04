@@ -422,9 +422,9 @@ def find_unique_fingerprints(
                     continue
                 rt_fingerprint = rt.mc_fingerprints[sampler]
                 for ll, at_fp in enumerate(fp):
-                    mc_atom_inds_for_rt_for_sampler[
-                        ii, jj, kk, ll
-                    ] = rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
+                    mc_atom_inds_for_rt_for_sampler[ii, jj, kk, ll] = (
+                        rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
+                    )
 
     def _t(arr):
         return torch.tensor(arr, dtype=torch.int64, device=pbt.device)

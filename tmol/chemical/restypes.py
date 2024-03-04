@@ -361,9 +361,11 @@ class RefinedResidueType(RawResidueType):
                     assert mc_ats[-1] == self.connections[i].atom
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
-                            mc_ats[len(mc_ats) - j - 1]
-                            if j < len(mc_ats)
-                            else mc_ats[0]
+                            (
+                                mc_ats[len(mc_ats) - j - 1]
+                                if j < len(mc_ats)
+                                else mc_ats[0]
+                            )
                         ]
 
             else:
