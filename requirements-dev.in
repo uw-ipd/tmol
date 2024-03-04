@@ -1,5 +1,6 @@
 black
 codecov
+clang-format
 flake8
 itermplot==0.5
 pre-commit

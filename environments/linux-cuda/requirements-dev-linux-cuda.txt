@@ -4,8 +4,6 @@
 #
 #    pip-compile --constraint=requirements-linux-cuda.txt --no-emit-index-url --output-file=requirements-dev-linux-cuda.txt ../../requirements-dev.in
 #
---trusted-host data.pyg.org
-
 black==24.1.1
     # via -r ../../requirements-dev.in
 build==1.0.3
@@ -20,6 +18,8 @@ charset-normalizer==3.3.2
     # via
     #   -c requirements-linux-cuda.txt
     #   requests
+clang-format==17.0.6
+    # via -r ../../requirements-dev.in
 click==8.1.7
     # via
     #   black
