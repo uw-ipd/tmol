@@ -228,10 +228,10 @@ class EnergyTermTestBase:
         energy_term.setup_packed_block_types(p1.packed_block_types)
         energy_term.setup_poses(p1)
 
-        ljlk_pose_scorer = energy_term.render_whole_pose_scoring_module(p1)
+        whole_pose_scorer = energy_term.render_whole_pose_scoring_module(p1)
 
         def score(coords):
-            scores = ljlk_pose_scorer(coords)
+            scores = whole_pose_scorer(coords)
             return torch.sum(scores)
 
         # monkeypatch more sane error reporting
