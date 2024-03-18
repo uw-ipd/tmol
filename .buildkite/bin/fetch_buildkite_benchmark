@@ -15,6 +15,11 @@ curl -s -H \
   jq 'first | .number'
 )
 
+if [ $build_number == 'null' ]; then
+  exit
+fi
+
+
 echo "build: https://buildkite.com/uw-ipd/tmol/builds/$build_number" >&2
 
 artifact_url=$(
