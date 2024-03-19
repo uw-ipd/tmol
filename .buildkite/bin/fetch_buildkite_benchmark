@@ -16,6 +16,7 @@ curl -s -H \
 )
 
 if [ $build_number == 'null' ]; then
+  # exit before echoing anything to stdout
   exit
 fi
 
