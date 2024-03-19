@@ -14,4 +14,6 @@ conda activate $BUILDKITE_BUILD_ID
 set -x
 
 # install pkg
-pip install .[dev]
+# pip install .[dev]
+pip install -r tmol/environments/linux-cuda/requirements-dev-linux-cuda.txt
+
