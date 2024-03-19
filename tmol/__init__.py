@@ -18,6 +18,7 @@ from tmol.io.pose_stack_from_openfold import (  # noqa: F401
 )
 from tmol.io.pose_stack_from_rosettafold2 import (  # noqa: F401
     pose_stack_from_rosettafold2,
+    pose_stack_to_rosettafold2,
     canonical_form_from_rosettafold2,
     canonical_ordering_for_rosettafold2,
     packed_block_types_for_rosettafold2,
@@ -26,6 +27,12 @@ from tmol.io.write_pose_stack_pdb import (  # noqa: F401
     write_pose_stack_pdb,
     atom_records_from_pose_stack,  # TO DO: SHOULD THIS BE IN THE API??
 )
+
+from tmol.optimization.sfxn_modules import CartesianSfxnNetwork as cart_sfxn_network
+
+from tmol.optimization.lbfgs_armijo import LBFGS_Armijo as lbfgs_armijo
+
+
 from tmol.score import beta2016_score_function  # noqa: F401
 
 

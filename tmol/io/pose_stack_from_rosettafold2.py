@@ -130,6 +130,80 @@ def canonical_form_from_rosettafold2(seq, xyz, chainlens):
     )
 
 
+def pose_stack_to_rosettafold2(seq, xyz, chainlens, pose_stack):
+    """The canonical form is intended to represent a stable, serializable intermediate format
+    for a structure so that it can be created today and then be read in years from now
+    and be used to construct a PoseStack in tmol. As residue types are integers,
+    this means that we must guarantee stability of these integer representations, but it also
+    means that you the user must build a PoseStack using the carefully constructed objects
+    returned by the canonical_ordering_for_rosettafold2 and packed_block_types_for_rosettafold2
+    functions.
+
+    E.g.:
+        seq, xyz, chainlens = rosettafold2_model.infer(sequence)
+        cf = tmol.canonical_form_from_rosettafold2(seq, xyz, chainlens)
+        torch.save(cf, "saved_canonical_form.pt")
+
+        # then later
+        cf2 = {x: y.to(device) for x,y in torch.load("saved_canonical_form.pt")}
+        co = canonical_ordering_for_rosettafold2()
+        pbt = packed_block_types_for_rosettafold2(device)
+        pose_stack = tmol.pose_stack_from_canonical_form(co, pbt, **cf2)
+
+    """
+
+    from tmol.io.pose_stack_deconstruction import canonical_form_from_pose_stack
+
+    device = xyz.device
+    n_poses = 1  # RF2 does not presently do batch processing
+    max_n_res = seq.shape[0]
+    max_n_ats = xyz.shape[1]
+
+    rf2_pose_ind_for_atom = (
+        torch.arange(n_poses, dtype=torch.int64, device=device)
+        .reshape(-1, 1, 1)
+        .expand(-1, max_n_res, max_n_ats)
+    )
+    rf2_res_ind_for_atom = (
+        torch.arange(max_n_res, dtype=torch.int64, device=device)
+        .reshape(1, -1, 1)
+        .expand(n_poses, -1, max_n_ats)
+    )
+
+    assert device == seq.device
+
+    co = canonical_ordering_for_rosettafold2()
+    (
+        rf22t_rtmap,
+        rf22t_atmap,
+        rf2_at_is_real_map,
+        supress_atom_for_nterm,
+    ) = _get_rf2_2_tmol_mappings(device)
+
+    canonical_form = canonical_form_from_pose_stack(co, pose_stack)
+
+    seq = seq.unsqueeze(0)
+    xyz = xyz.unsqueeze(0)
+    tmol_restypes = rf22t_rtmap[seq]  # reverse this mapping
+    atom_mapping = rf22t_atmap[seq]
+    rf2_at_is_real = rf2_at_is_real_map[seq]
+
+    rf2_coords = torch.full(  # allocate xyz for RF2 instead, with correct size - length (sum(L_s)), 27, 3
+        xyz.shape,
+        numpy.NaN,
+        dtype=torch.float32,
+        device=device,
+    )
+
+    rf2_coords[rf2_at_is_real] = canonical_form[2][
+        rf2_pose_ind_for_atom[rf2_at_is_real],
+        rf2_res_ind_for_atom[rf2_at_is_real],
+        atom_mapping[rf2_at_is_real],
+    ]
+
+    return rf2_coords
+
+
 @toolz.functoolz.memoize
 def _paramdb_for_rosettafold2() -> ParameterDatabase:
     """Construct the paramdb representing the subset of residues that

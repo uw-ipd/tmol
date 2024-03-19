@@ -2,7 +2,8 @@ import torch
 import attr
 
 from tmol.system.kinematics import KinematicDescription
-from tmol.system.score_support import kincoords_to_coords
+
+# from tmol.system.score_support import kincoords_to_coords # causes circular import when importing tmol from RF2
 
 # modules for cartesian and torsion-space optimization
 #
@@ -74,6 +75,7 @@ def torsional_energy_network_from_system(
     )
 
 
+"""
 # torsion space minimization
 class TorsionalEnergyNetwork(torch.nn.Module):
     def __init__(self, score_system, dofs, kinforest, system_size, dof_mask=None):
@@ -103,3 +105,4 @@ class TorsionalEnergyNetwork(torch.nn.Module):
 
     def forward(self):
         return self.score_system.intra_total(self.coords())
+"""
