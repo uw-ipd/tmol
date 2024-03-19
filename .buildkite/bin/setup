@@ -15,5 +15,5 @@ set -x
 
 # install pkg
 # pip install .[dev]
-pip install -r tmol/environments/linux-cuda/requirements-dev-linux-cuda.txt
+pip install -r environments/linux-cuda/requirements-dev-linux-cuda.txt
 
