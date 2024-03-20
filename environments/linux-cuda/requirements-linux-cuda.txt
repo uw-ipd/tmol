@@ -4,6 +4,7 @@
 #
 #    pip-compile --no-emit-index-url --output-file=requirements-linux-cuda.txt ../../requirements.in
 #
+--index-url https://download.pytorch.org/whl/cu121
 --trusted-host data.pyg.org
 
 asciitree==0.3.3
@@ -159,7 +160,7 @@ sympy==1.12
     # via torch
 toolz==0.12.1
     # via -r ../../requirements.in
-torch==2.2.0
+torch==2.2.0+cu121
     # via -r ../../requirements.in
 traitlets==5.14.1
     # via
