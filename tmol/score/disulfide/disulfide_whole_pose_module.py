@@ -63,7 +63,7 @@ class DisulfideWholePoseScoringModule(torch.nn.Module):
             )
         )
 
-    def forward(self, coords):
+    def forward(self, coords, output_block_pair_energies=False):
         return disulfide_pose_scores(
             coords,
             self.pose_stack_block_coord_offset,
@@ -72,4 +72,5 @@ class DisulfideWholePoseScoringModule(torch.nn.Module):
             self.bt_disulfide_conns,
             self.bt_atom_downstream_of_conn,
             self.global_params,
+            output_block_pair_energies,
         )

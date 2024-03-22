@@ -690,7 +690,8 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
       Tensor block_type_tile_lk_ball_params,
       Tensor block_type_path_distance,
 
-      Tensor global_params) {
+      Tensor global_params,
+      bool output_block_pair_energies) {
     at::Tensor score;
     at::Tensor block_neighbors;
 
@@ -725,7 +726,8 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
                   TCAST(block_type_tile_lk_ball_params),
                   TCAST(block_type_path_distance),
 
-                  TCAST(global_params));
+                  TCAST(global_params),
+                  output_block_pair_energies);
 
           score = std::get<0>(result).tensor;
           block_neighbors = std::get<1>(result).tensor;
@@ -752,6 +754,12 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
          global_params,
          block_neighbors});
+
+    ctx->saved_data["block_pair_scoring"] = output_block_pair_energies;
+
+    if (!output_block_pair_energies) {
+      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
+    }
 
     return score;
   }
@@ -787,6 +795,11 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
     auto dTdV = grad_outputs[0];
 
+    bool block_pair_scoring = ctx->saved_data["block_pair_scoring"].toBool();
+    if (!block_pair_scoring) {
+      dTdV = dTdV.unsqueeze(-1).unsqueeze(-1);
+    }
+
     TMOL_DISPATCH_FLOATING_DEVICE(
         pose_coords.type(), "lk_ball_pose_score_backward", ([&] {
           using Real = scalar_t;
@@ -818,7 +831,8 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
                   TCAST(global_params),
                   TCAST(block_neighbors),
-                  TCAST(dTdV));
+                  TCAST(dTdV),
+                  block_pair_scoring);
 
           dV_d_pose_coords = std::get<0>(result).tensor;
           dV_d_water_coords = std::get<1>(result).tensor;
@@ -843,6 +857,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
         torch::Tensor(),
         torch::Tensor(),
 
+        torch::Tensor(),
         torch::Tensor()};
   }
 };
@@ -866,7 +881,8 @@ Tensor lkball_pose_score(
     Tensor block_type_tile_lk_ball_params,
     Tensor block_type_path_distance,
 
-    Tensor global_params) {
+    Tensor global_params,
+    bool output_block_pair_energies) {
   return LKBallPoseScoreOp::apply(
       pose_coords,
       water_coords,
@@ -886,7 +902,8 @@ Tensor lkball_pose_score(
       block_type_tile_lk_ball_params,
       block_type_path_distance,
 
-      global_params);
+      global_params,
+      output_block_pair_energies);
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

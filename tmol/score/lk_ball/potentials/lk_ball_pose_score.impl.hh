@@ -120,8 +120,9 @@ class LKBallPoseScoreDispatch {
       //////////////////////
 
       // LKBall potential parameters
-      TView<LKBallGlobalParams<Real>, 1, Dev> global_params)
-      -> std::tuple<TPack<Real, 2, Dev>, TPack<Int, 3, Dev>> {
+      TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+      bool output_block_pair_energies)
+      -> std::tuple<TPack<Real, 4, Dev>, TPack<Int, 3, Dev>> {
     using tmol::score::common::accumulate;
     using Real3 = Vec<Real, 3>;
 
@@ -178,8 +179,14 @@ class LKBallPoseScoreDispatch {
     assert(block_type_path_distance.size(1) == max_n_block_atoms);
     assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
-    auto output_t =
-        TPack<Real, 2, Dev>::zeros({n_lk_ball_score_types, n_poses});
+    TPack<Real, 4, Dev> output_t;
+    if (output_block_pair_energies) {
+      output_t = TPack<Real, 4, Dev>::zeros(
+          {n_lk_ball_score_types, n_poses, max_n_blocks, max_n_blocks});
+    } else {
+      output_t =
+          TPack<Real, 4, Dev>::zeros({n_lk_ball_score_types, n_poses, 1, 1});
+    }
     auto output = output_t.view;
 
     auto scratch_block_spheres_t =
@@ -195,7 +202,7 @@ class LKBallPoseScoreDispatch {
     // Define nt and reduce_t
     CTA_REAL_REDUCE_T_TYPEDEF;
 
-    auto eval_energies_only = ([=] TMOL_DEVICE_FUNC(int cta) {
+    auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
       auto score_inter_lk_ball_atom_pair =
           ([=] TMOL_DEVICE_FUNC(
                int pol_start,
@@ -385,48 +392,93 @@ class LKBallPoseScoreDispatch {
                 score_inter_lk_ball_atom_pair);
           });
 
-      auto store_calculated_energies =
-          ([=](LKBallScoringData<Real> &score_dat, shared_mem_union &shared) {
-            auto reduce_energies = ([&](int tid) {
-              Real const cta_total_lk_ball_iso =
-                  DeviceDispatch<Dev>::template reduce_in_workgroup<nt>(
-                      score_dat.pair_data.total_lk_ball_iso,
-                      shared,
-                      mgpu::plus_t<Real>());
-              Real const cta_total_lk_ball =
-                  DeviceDispatch<Dev>::template reduce_in_workgroup<nt>(
-                      score_dat.pair_data.total_lk_ball,
-                      shared,
-                      mgpu::plus_t<Real>());
-              Real const cta_total_lk_bridge =
-                  DeviceDispatch<Dev>::template reduce_in_workgroup<nt>(
-                      score_dat.pair_data.total_lk_bridge,
-                      shared,
-                      mgpu::plus_t<Real>());
-              Real const cta_total_lk_bridge_uncpl =
-                  DeviceDispatch<Dev>::template reduce_in_workgroup<nt>(
-                      score_dat.pair_data.total_lk_bridge_uncpl,
-                      shared,
-                      mgpu::plus_t<Real>());
+      auto store_calculated_energies = ([=](LKBallScoringData<Real> &score_dat,
+                                            shared_mem_union &shared) {
+        auto reduce_energies = ([&](int tid) {
+          Real const cta_total_lk_ball_iso =
+              DeviceDispatch<Dev>::template reduce_in_workgroup<nt>(
+                  score_dat.pair_data.total_lk_ball_iso,
+                  shared,
+                  mgpu::plus_t<Real>());
+          Real const cta_total_lk_ball =
+              DeviceDispatch<Dev>::template reduce_in_workgroup<nt>(
+                  score_dat.pair_data.total_lk_ball,
+                  shared,
+                  mgpu::plus_t<Real>());
+          Real const cta_total_lk_bridge =
+              DeviceDispatch<Dev>::template reduce_in_workgroup<nt>(
+                  score_dat.pair_data.total_lk_bridge,
+                  shared,
+                  mgpu::plus_t<Real>());
+          Real const cta_total_lk_bridge_uncpl =
+              DeviceDispatch<Dev>::template reduce_in_workgroup<nt>(
+                  score_dat.pair_data.total_lk_bridge_uncpl,
+                  shared,
+                  mgpu::plus_t<Real>());
 
-              if (tid == 0) {
-                accumulate<Dev, Real>::add(
-                    output[w_lk_ball_iso][score_dat.pair_data.pose_ind],
-                    cta_total_lk_ball_iso);
-                accumulate<Dev, Real>::add(
-                    output[w_lk_ball][score_dat.pair_data.pose_ind],
-                    cta_total_lk_ball);
-                accumulate<Dev, Real>::add(
-                    output[w_lk_bridge][score_dat.pair_data.pose_ind],
-                    cta_total_lk_bridge);
-                accumulate<Dev, Real>::add(
-                    output[w_lk_bridge_uncpl][score_dat.pair_data.pose_ind],
-                    cta_total_lk_bridge_uncpl);
+          if (tid == 0) {
+            if (!output_block_pair_energies) {
+              accumulate<Dev, Real>::add(
+                  output[w_lk_ball_iso][score_dat.pair_data.pose_ind][0][0],
+                  cta_total_lk_ball_iso);
+              accumulate<Dev, Real>::add(
+                  output[w_lk_ball][score_dat.pair_data.pose_ind][0][0],
+                  cta_total_lk_ball);
+              accumulate<Dev, Real>::add(
+                  output[w_lk_bridge][score_dat.pair_data.pose_ind][0][0],
+                  cta_total_lk_bridge);
+              accumulate<Dev, Real>::add(
+                  output[w_lk_bridge_uncpl][score_dat.pair_data.pose_ind][0][0],
+                  cta_total_lk_bridge_uncpl);
+            } else {
+              if (score_dat.r1.block_ind == score_dat.r2.block_ind) {
+                output[w_lk_ball_iso][score_dat.pair_data.pose_ind]
+                      [score_dat.r1.block_ind][score_dat.r1.block_ind] =
+                          cta_total_lk_ball_iso;
+                output[w_lk_ball][score_dat.pair_data.pose_ind]
+                      [score_dat.r1.block_ind][score_dat.r1.block_ind] =
+                          cta_total_lk_ball;
+                output[w_lk_bridge][score_dat.pair_data.pose_ind]
+                      [score_dat.r1.block_ind][score_dat.r1.block_ind] =
+                          cta_total_lk_bridge;
+                output[w_lk_bridge_uncpl][score_dat.pair_data.pose_ind]
+                      [score_dat.r1.block_ind][score_dat.r1.block_ind] =
+                          cta_total_lk_bridge_uncpl;
+              } else {
+                output[w_lk_ball_iso][score_dat.pair_data.pose_ind]
+                      [score_dat.r1.block_ind][score_dat.r2.block_ind] =
+                          0.5 * cta_total_lk_ball_iso;
+                output[w_lk_ball_iso][score_dat.pair_data.pose_ind]
+                      [score_dat.r2.block_ind][score_dat.r1.block_ind] =
+                          0.5 * cta_total_lk_ball_iso;
+
+                output[w_lk_ball][score_dat.pair_data.pose_ind]
+                      [score_dat.r1.block_ind][score_dat.r2.block_ind] =
+                          0.5 * cta_total_lk_ball;
+                output[w_lk_ball][score_dat.pair_data.pose_ind]
+                      [score_dat.r2.block_ind][score_dat.r1.block_ind] =
+                          0.5 * cta_total_lk_ball;
+
+                output[w_lk_bridge][score_dat.pair_data.pose_ind]
+                      [score_dat.r1.block_ind][score_dat.r2.block_ind] =
+                          0.5 * cta_total_lk_bridge;
+                output[w_lk_bridge][score_dat.pair_data.pose_ind]
+                      [score_dat.r2.block_ind][score_dat.r1.block_ind] =
+                          0.5 * cta_total_lk_bridge;
+
+                output[w_lk_bridge_uncpl][score_dat.pair_data.pose_ind]
+                      [score_dat.r1.block_ind][score_dat.r2.block_ind] =
+                          0.5 * cta_total_lk_bridge_uncpl;
+                output[w_lk_bridge_uncpl][score_dat.pair_data.pose_ind]
+                      [score_dat.r2.block_ind][score_dat.r1.block_ind] =
+                          0.5 * cta_total_lk_bridge_uncpl;
               }
-            });
-            DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
-                reduce_energies);
-          });
+            }
+          }
+        });
+        DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(
+            reduce_energies);
+      });
 
       auto load_tile_invariant_intrares_data =
           ([=](int pose_ind,
@@ -574,7 +626,7 @@ class LKBallPoseScoreDispatch {
 
     // 3 Only the forward pass in this calculation
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-        n_block_pairs, eval_energies_only);
+        n_block_pairs, eval_energies_by_block);
 
     return {output_t, scratch_block_neighbors_t};
   }
@@ -632,7 +684,8 @@ class LKBallPoseScoreDispatch {
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
       TView<Int, 3, Dev> scratch_block_neighbors,  // from forward pass
-      TView<Real, 2, Dev> dTdV)
+      TView<Real, 4, Dev> dTdV,
+      bool block_pair_scoring)
       -> std::tuple<TPack<Vec<Real, 3>, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>> {
     // std::cout << "d lkball start" << std::endl;
     using tmol::score::common::accumulate;
@@ -739,7 +792,8 @@ class LKBallPoseScoreDispatch {
                 cp_separation,
                 dTdV,
                 dV_d_pose_coords,
-                dV_d_water_coords);
+                dV_d_water_coords,
+                block_pair_scoring);
           });
 
       auto dscore_inter_lk_ball_atom_pair =
