@@ -211,9 +211,9 @@ class CanonicalOrdering:
         }
         for name3, mapping in restypes_alt_atom_name_mapping.items():
             for alt_name, name in mapping.items():
-                restypes_atom_index_mapping[name3][alt_name] = (
-                    restypes_atom_index_mapping[name3][name]
-                )
+                restypes_atom_index_mapping[name3][
+                    alt_name
+                ] = restypes_atom_index_mapping[name3][name]
 
         max_n_canonical_atoms = max(
             len(atoms) for _, atoms in restypes_ordered_atom_names.items()
