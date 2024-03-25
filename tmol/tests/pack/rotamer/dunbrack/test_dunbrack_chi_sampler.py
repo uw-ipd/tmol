@@ -229,7 +229,7 @@ def test_annotate_residue_type(default_database):
 
     assert hasattr(tyr_restype, "dun_sampler_cache")
 
-    assert type(tyr_restype.dun_sampler_cache.bbdihe_uaids) == numpy.ndarray
+    assert isinstance(tyr_restype.dun_sampler_cache.bbdihe_uaids, numpy.ndarray)
     assert tyr_restype.dun_sampler_cache.bbdihe_uaids.shape == (2, 4, 3)
     assert tyr_restype.dun_sampler_cache.bbdihe_uaids[0, 0, 0] == -1
     assert tyr_restype.dun_sampler_cache.bbdihe_uaids[0, 0, 1] == 0
@@ -238,7 +238,7 @@ def test_annotate_residue_type(default_database):
     assert tyr_restype.dun_sampler_cache.bbdihe_uaids[1, 3, 1] == 1
     assert tyr_restype.dun_sampler_cache.bbdihe_uaids[1, 3, 2] == 0
 
-    assert type(tyr_restype.dun_sampler_cache.chi_defining_atom) == numpy.ndarray
+    assert isinstance(tyr_restype.dun_sampler_cache.chi_defining_atom, numpy.ndarray)
     assert tyr_restype.dun_sampler_cache.chi_defining_atom.shape == (3,)
     tyr_restype.dun_sampler_cache.chi_defining_atom[0] == tyr_restype.atom_to_idx["CA"]
     tyr_restype.dun_sampler_cache.chi_defining_atom[1] == tyr_restype.atom_to_idx["CB"]
@@ -270,11 +270,11 @@ def test_annotate_packed_block_types(default_database, torch_device):
 
     assert hasattr(pbt, "dun_sampler_cache")
 
-    assert type(pbt.dun_sampler_cache.bbdihe_uaids) == torch.Tensor
+    assert isinstance(pbt.dun_sampler_cache.bbdihe_uaids, torch.Tensor)
     assert pbt.dun_sampler_cache.bbdihe_uaids.shape == (pbt.n_types, 2, 4, 3)
     assert pbt.dun_sampler_cache.bbdihe_uaids.device == torch_device
 
-    assert type(pbt.dun_sampler_cache.chi_defining_atom) == torch.Tensor
+    assert isinstance(pbt.dun_sampler_cache.chi_defining_atom, torch.Tensor)
     assert pbt.dun_sampler_cache.chi_defining_atom.shape == (pbt.n_types, 4)
     assert pbt.dun_sampler_cache.chi_defining_atom.device == torch_device
 

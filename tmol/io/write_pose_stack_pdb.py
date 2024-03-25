@@ -1,8 +1,6 @@
 import numpy
 import torch
-import pandas
 
-from tmol.types.functional import validate_args
 from tmol.io.pdb_parsing import atom_record_dtype
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -41,7 +39,7 @@ def atom_records_from_pose_stack(
     chain_ind_for_block: Optional[Tensor[torch.int64][:, :]] = None,
     chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
 ) -> NDArray[atom_record_dtype][:]:
-    """Create a Pandas DataFrame holding the atom records needed to write a
+    """Create a numpy array holding the atom records needed to write a
     PDB file from a PoseStack.
 
     Now, whereas PoseStack does not have a concept of a "chain," a PDB most
@@ -99,8 +97,8 @@ def atom_records_from_coords(
     pose_like_coords: Tensor[torch.float32][:, :, 3],
     block_coord_offset: Tensor[torch.int32][:, :],
     chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
-):
-    """Create a Pandas DataFrame holding the atom records needed to write a
+) -> NDArray[atom_record_dtype][:]:
+    """Create a numpy array holding the atom records needed to write a
     PDB file from the coordinates and block types of a stack of structures,
     laid out in pose-stack form.
     """

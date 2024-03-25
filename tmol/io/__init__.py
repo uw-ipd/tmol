@@ -3,6 +3,7 @@ from typing import Optional, Union
 from tmol.types.functional import validate_args
 
 
+@validate_args
 def pose_stack_from_pdb(
     pdb_lines_or_fname: Union[str, list],
     device: torch.device,
