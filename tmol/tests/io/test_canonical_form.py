@@ -178,4 +178,4 @@ def test_concatenate_pdb_atom_records_dataframes(disulfide_pdb):
         )
     )
     co = default_canonical_ordering()
-    cf = canonical_form_from_atom_records(co, ar, torch.device("cpu"))
+    canonical_form_from_atom_records(co, ar, torch.device("cpu"))
