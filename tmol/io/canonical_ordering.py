@@ -445,7 +445,7 @@ def select_atom_records_res_subset(
 ):
     """Figure out the starting row index for each residue
     and take the slice of the atom_records dataframe containing
-    every atom of every residue within the given range.
+    every atom of every residue within the given inclusive range.
     If either residue_start or residue_end are omitted, then
     the are treated as being the first or last residue.
     """
@@ -471,7 +471,7 @@ def select_atom_records_res_subset(
 
 def canonical_form_from_atom_records(
     canonical_ordering: CanonicalOrdering,
-    atom_records,
+    atom_records: pandas.DataFrame,
     device: torch.device,
 ):
     max_n_canonical_atoms = canonical_ordering.max_n_canonical_atoms

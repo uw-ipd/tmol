@@ -1,10 +1,15 @@
 import numpy
+import pandas
+import torch
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
     default_packed_block_types,
     CanonicalOrdering,
     canonical_form_from_pdb,
+    canonical_form_from_atom_records,
+    select_atom_records_res_subset,
 )
+from tmol.io.pdb_parsing import parse_pdb
 
 
 def test_create_canonical_ordering_smoke(default_database):
@@ -162,3 +167,15 @@ def test_create_src_2_tmol_mapping(default_database, torch_device):
     except ValueError as e:
         gold_message = "error: ALA atom ZB not in tmol atom set"
         assert str(e) == gold_message
+
+
+def test_concatenate_pdb_atom_records_dataframes(disulfide_pdb):
+    atom_records = parse_pdb(disulfide_pdb)
+    ar = pandas.concat(
+        (
+            select_atom_records_res_subset(atom_records, 2, 3),
+            select_atom_records_res_subset(atom_records, 21, 22),
+        )
+    )
+    co = default_canonical_ordering()
+    cf = canonical_form_from_atom_records(co, ar, torch.device("cpu"))
