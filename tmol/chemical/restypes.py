@@ -39,6 +39,7 @@ IcoorIndex = NewType("AtomIndex", int)
 
 
 def three2one(three):
+    """Return a mapping from the three letter amino acid codes to the one letter codes"""
     # 'static'
     if not hasattr(three2one, "_mapping"):
         three2one._mapping = {
@@ -69,6 +70,7 @@ def three2one(three):
 
 
 def one2three(one):
+    """Return a mapping from the one-letter amino acid codes to the three-letter codes"""
     # 'static'
     if not hasattr(one2three, "_mapping"):
         one2three._mapping = {
@@ -361,9 +363,11 @@ class RefinedResidueType(RawResidueType):
                     assert mc_ats[-1] == self.connections[i].atom
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
-                            mc_ats[len(mc_ats) - j - 1]
-                            if j < len(mc_ats)
-                            else mc_ats[0]
+                            (
+                                mc_ats[len(mc_ats) - j - 1]
+                                if j < len(mc_ats)
+                                else mc_ats[0]
+                            )
                         ]
 
             else:
