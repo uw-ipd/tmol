@@ -32,7 +32,7 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     def refold_kincoords():
         return kop(tdofs.raw)
 
-    torch.testing.assert_allclose(refold_kincoords, kincoords)
+    torch.testing.assert_close(refold_kincoords, kincoords)
     assert refold_kincoords.device.type == torch_device.type
 
 
@@ -55,7 +55,7 @@ def test_kinematic_torch_op_backward_benchmark(benchmark, ubq_system, torch_devi
     def refold_grad():
         total.backward(retain_graph=True)
 
-    torch.testing.assert_allclose(refold_kincoords, kincoords)
+    torch.testing.assert_close(refold_kincoords, kincoords)
     assert refold_kincoords.device.type == torch_device.type
 
 

@@ -401,6 +401,7 @@ def _value_or_arg_tile_subset_indices(
     return_args: bool,
     max_entry: Optional[int] = None,
 ):
+
     if isinstance(indices, torch.Tensor):
         if max_entry is None:
             max_entry = torch.max(indices)

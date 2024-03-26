@@ -1,3 +1,5 @@
+from importlib.metadata import PackageNotFoundError, version
+
 from tmol.chemical.restypes import one2three, three2one  # noqa: F401
 from tmol.pose.packed_block_types import PackedBlockTypes  # noqa: F401
 from tmol.pose.pose_stack import PoseStack  # noqa: F401
@@ -29,6 +31,12 @@ from tmol.io.write_pose_stack_pdb import (  # noqa: F401
 )
 from tmol.score import beta2016_score_function  # noqa: F401
 from tmol.score.score_function import ScoreFunction  # noqa: F401
+
+
+try:
+    __version__ = version("tmol")
+except PackageNotFoundError:
+    __version__ = "unknown version"
 
 
 def include_paths():

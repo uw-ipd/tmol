@@ -53,7 +53,7 @@ def test_compute_block_spheres(extension):
         (gold_com.reshape((-1, 3)), gold_sphere_radii.reshape((-1, 1))), dim=1
     ).reshape((1, 7, 4))
 
-    torch.testing.assert_allclose(gold_spheres, spheres, rtol=1e-5, atol=1e-5)
+    torch.testing.assert_close(gold_spheres, spheres, rtol=1e-5, atol=1e-5)
 
 
 @requires_cuda
@@ -109,7 +109,7 @@ def test_compute_block_spheres2(extension):
     ).reshape((1, 7, 4))
     gold_spheres2 = double_stack_depth(gold_spheres)
 
-    torch.testing.assert_allclose(gold_spheres2, spheres, rtol=1e-5, atol=1e-5)
+    torch.testing.assert_close(gold_spheres2, spheres, rtol=1e-5, atol=1e-5)
 
 
 def some_coords():

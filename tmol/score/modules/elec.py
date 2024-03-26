@@ -119,7 +119,7 @@ class ElecScore(ScoreMethod):
                 # See ElecParamResolver.resolve_partial_charge.
                 ElecParameters.get(
                     self
-                ).elec_bonded_pair_lengths  # pass this member of elec
+                ).elec_bonded_pair_lengths,  # pass this member of elec
                 # parameters, different from the usual bonded_path_lengths.
                 # See ElecParamResolver.remap_bonded_path_lengths.
             )

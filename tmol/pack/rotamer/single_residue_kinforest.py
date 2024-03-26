@@ -204,9 +204,9 @@ def coalesce_single_residue_kinforests(pbt: PackedBlockTypes):
         rt_gens[i, rt.rotamer_kinforest.gens.shape[0] :, :] = rt.rotamer_kinforest.gens[
             -1, :
         ]
-        rt_n_scans_per_gen[
-            i, : rt.rotamer_kinforest.n_scans_per_gen.shape[0]
-        ] = rt.rotamer_kinforest.n_scans_per_gen
+        rt_n_scans_per_gen[i, : rt.rotamer_kinforest.n_scans_per_gen.shape[0]] = (
+            rt.rotamer_kinforest.n_scans_per_gen
+        )
         rt_kinforest_idx[i, : rt.n_atoms] = rt.rotamer_kinforest.kinforest_idx
         rt_id[i, : rt.n_atoms] = rt.rotamer_kinforest.id
         rt_doftype[i, : rt.n_atoms] = rt.rotamer_kinforest.doftype

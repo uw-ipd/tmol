@@ -95,7 +95,7 @@ def test_refold_values_cpp(benchmark, big_system):
 
     assert dofs_cuda.device.type == "cuda"
     assert dofs_cpu.device.type == "cpu"
-    torch.testing.assert_allclose(dofs_cuda.cpu(), dofs_cpu)
+    torch.testing.assert_close(dofs_cuda.cpu(), dofs_cpu)
 
 
 @requires_cuda

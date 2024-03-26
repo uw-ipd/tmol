@@ -100,10 +100,10 @@ class AtomTypeParamResolver(ValidateAttrs):
 
         # Map acceptor hybridization from string space to index space
         param_records.loc[None, "acceptor_hybridization"] = None
-        param_records[
-            "acceptor_hybridization"
-        ] = AcceptorHybridization._index.get_indexer_for(
-            param_records["acceptor_hybridization"]
+        param_records["acceptor_hybridization"] = (
+            AcceptorHybridization._index.get_indexer_for(
+                param_records["acceptor_hybridization"]
+            )
         )
 
         # Convert boolean types for torch, setting the invalid/None

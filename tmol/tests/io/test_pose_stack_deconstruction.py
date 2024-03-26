@@ -248,7 +248,7 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
         pbt,
         **canonical_form,
         res_not_connected=res_not_connected_orig,
-        return_chain_ind=True
+        return_chain_ind=True,
     )
 
     restored_canonical_form = canonical_form_from_pose_stack(

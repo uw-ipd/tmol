@@ -71,9 +71,9 @@ def pytest_benchmark_update_machine_info(config, machine_info):
 
     machine_info["cuda"] = {
         "device": {n: device_info_dict(n) for n in range(torch.cuda.device_count())},
-        "current_device": torch.cuda.current_device()
-        if torch.cuda.device_count()
-        else None,
+        "current_device": (
+            torch.cuda.current_device() if torch.cuda.device_count() else None
+        ),
     }
 
     machine_info["cpuinfo"] = cpuinfo.get_cpu_info()

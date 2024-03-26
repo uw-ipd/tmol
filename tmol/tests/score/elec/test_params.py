@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 from tmol.system.score_support import score_method_to_even_weights_dict
@@ -67,10 +68,10 @@ def test_jagged_parameter_resolution_rbpl(ubq_res, default_database, torch_devic
         twoubq_dict.atom_names,
     )
 
-    torch.testing.assert_allclose(
+    numpy.testing.assert_allclose(
         ub40_rbpl, tubq_rbpl[0:1, : ub40_rbpl.shape[1], : ub40_rbpl.shape[1]]
     )
-    torch.testing.assert_allclose(ub60_rbpl, tubq_rbpl[1:2, :])
+    numpy.testing.assert_allclose(ub60_rbpl, tubq_rbpl[1:2, :])
 
 
 def test_jagged_parameter_resolution_part_charges(
@@ -103,5 +104,5 @@ def test_jagged_parameter_resolution_part_charges(
         twoubq_dict.res_names, twoubq_dict.atom_names
     )
 
-    torch.testing.assert_allclose(ub40_pcs, tubq_pcs[0:1, : ub40_pcs.shape[1]])
-    torch.testing.assert_allclose(ub60_pcs, tubq_pcs[1:2, :])
+    torch.testing.assert_close(ub40_pcs, tubq_pcs[0:1, : ub40_pcs.shape[1]])
+    torch.testing.assert_close(ub60_pcs, tubq_pcs[1:2, :])

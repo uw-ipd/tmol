@@ -118,17 +118,17 @@ class AtomTypeDependentTerm(EnergyTerm):
         )
 
         for i, block_type in enumerate(packed_block_types.active_block_types):
-            atom_unique_ids[
-                i, : packed_block_types.n_atoms[i]
-            ] = block_type.atom_unique_ids
-            atom_wildcard_ids[
-                i, : packed_block_types.n_atoms[i]
-            ] = block_type.atom_wildcard_ids
+            atom_unique_ids[i, : packed_block_types.n_atoms[i]] = (
+                block_type.atom_unique_ids
+            )
+            atom_wildcard_ids[i, : packed_block_types.n_atoms[i]] = (
+                block_type.atom_wildcard_ids
+            )
 
         for i, restype in enumerate(packed_block_types.active_block_types):
-            atom_types[
-                i, : packed_block_types.n_atoms[i]
-            ] = self.atom_type_index.get_indexer([x.atom_type for x in restype.atoms])
+            atom_types[i, : packed_block_types.n_atoms[i]] = (
+                self.atom_type_index.get_indexer([x.atom_type for x in restype.atoms])
+            )
 
         heavy_atom_inds = []
         for restype in packed_block_types.active_block_types:
