@@ -1,3 +1,5 @@
+from importlib.metadata import PackageNotFoundError, version
+
 from tmol.chemical.restypes import three2one  # noqa: F401
 from tmol.io import pose_stack_from_pdb  # noqa: F401
 from tmol.io.pose_stack_construction import (  # noqa: F401
@@ -25,6 +27,12 @@ from tmol.io.write_pose_stack_pdb import (  # noqa: F401
     atom_records_from_pose_stack,  # TO DO: SHOULD THIS BE IN THE API??
 )
 from tmol.score import beta2016_score_function  # noqa: F401
+
+
+try:
+    __version__ = version("tmol")
+except PackageNotFoundError:
+    __version__ = "unknown version"
 
 
 def include_paths():

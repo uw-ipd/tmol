@@ -990,9 +990,9 @@ class DunbrackParamResolver(ValidateAttrs):
 
         real_chi = chi_selected[:, :, 0] >= 0
         nz_real_chi = torch.nonzero(real_chi, as_tuple=False)
-        offsets_for_chi[
-            nz_real_chi[:, 0], nz_real_chi[:, 1]
-        ] = dihedral_offset_for_res64[nz_real_chi[:, 0], res_for_chi64[real_chi]]
+        offsets_for_chi[nz_real_chi[:, 0], nz_real_chi[:, 1]] = (
+            dihedral_offset_for_res64[nz_real_chi[:, 0], res_for_chi64[real_chi]]
+        )
 
         chi_sel_ats = chi_selected[:, :, 2:]
         chi_selected64 = chi_selected.type(torch.int64)
@@ -1142,9 +1142,9 @@ class DunbrackParamResolver(ValidateAttrs):
         semirotameric_chi_desc[nz_sres_keep[:, 0], nz_sres_keep[:, 1], 1] = (
             dihedral_offset_for_res[s_inds != -1] + 1 + nchi_for_res[s_inds != -1]
         )
-        semirotameric_chi_desc[
-            nz_sres_keep[:, 0], nz_sres_keep[:, 1], 2
-        ] = self.scoring_db_aux.semirotameric_tableset_offsets[s_inds[s_inds != -1]]
+        semirotameric_chi_desc[nz_sres_keep[:, 0], nz_sres_keep[:, 1], 2] = (
+            self.scoring_db_aux.semirotameric_tableset_offsets[s_inds[s_inds != -1]]
+        )
         semirotameric_chi_desc[nz_sres_keep[:, 0], nz_sres_keep[:, 1], 3] = s_inds[
             s_inds != -1
         ].type(torch.int32)

@@ -401,7 +401,7 @@ def _value_or_arg_tile_subset_indices(
     return_args: bool,
     max_entry: Optional[int] = None,
 ):
-    if type(indices) == torch.Tensor:
+    if type(indices) is torch.Tensor:
         if max_entry is None:
             max_entry = torch.max(indices)
         n_tiles = max_entry // tile_size + 1
@@ -415,7 +415,7 @@ def _value_or_arg_tile_subset_indices(
             ind_arange = torch.arange(
                 indices.shape[0], dtype=indices.dtype, device=indices.device
             )
-    elif type(indices) == numpy.ndarray:
+    elif type(indices) is numpy.ndarray:
         if max_entry is None:
             max_entry = numpy.amax(indices)
         n_tiles = max_entry // tile_size + 1
@@ -427,7 +427,7 @@ def _value_or_arg_tile_subset_indices(
         raise ValueError
     for i in range(n_tiles):
         subset = (indices >= i * tile_size) & (indices < (i + 1) * tile_size)
-        if type(tiled_indices) == torch.Tensor:
+        if type(tiled_indices) is torch.Tensor:
             subset_size = torch.sum(subset).cpu()
         else:
             subset_size = numpy.sum(subset)

@@ -303,18 +303,18 @@ class HBondDependentTerm(BondDependentTerm):
             tile_donH_inds[i, :i_n_tiles] = i_hb_params.tile_donH_inds
             tile_donH_hvy_inds[i, :i_n_tiles] = i_hb_params.tile_donH_hvy_inds
             tile_don_hvy_inds[i, :i_n_tiles] = i_hb_params.tile_don_hvy_inds
-            tile_which_donH_of_donH_hvy[
-                i, :i_n_tiles
-            ] = i_hb_params.tile_which_donH_of_donH_hvy
+            tile_which_donH_of_donH_hvy[i, :i_n_tiles] = (
+                i_hb_params.tile_which_donH_of_donH_hvy
+            )
             tile_acc_inds[i, :i_n_tiles] = i_hb_params.tile_acc_inds
             tile_donorH_type[i, :i_n_tiles] = i_hb_params.tile_donorH_type
             tile_acceptor_type[i, :i_n_tiles] = i_hb_params.tile_acceptor_type
-            tile_acceptor_hybridization[
-                i, :i_n_tiles
-            ] = i_hb_params.tile_acceptor_hybridization
-            tile_acceptor_n_attached_H[
-                i, :i_n_tiles
-            ] = i_hb_params.tile_acceptor_n_attached_H
+            tile_acceptor_hybridization[i, :i_n_tiles] = (
+                i_hb_params.tile_acceptor_hybridization
+            )
+            tile_acceptor_n_attached_H[i, :i_n_tiles] = (
+                i_hb_params.tile_acceptor_n_attached_H
+            )
             is_hydrogen[i, :i_n_ats] = i_hb_params.is_hydrogen
 
         def _tint32(arr):

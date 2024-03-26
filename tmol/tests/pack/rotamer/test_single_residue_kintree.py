@@ -14,18 +14,18 @@ def test_annotate_restypes(default_database):
         construct_single_residue_kinforest(rt)
         assert hasattr(rt, "rotamer_kinforest")
 
-        assert type(rt.rotamer_kinforest.kinforest_idx) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.id) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.doftype) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.parent) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.frame_x) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.frame_y) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.frame_z) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.nodes) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.scans) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.gens) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.n_scans_per_gen) == numpy.ndarray
-        assert type(rt.rotamer_kinforest.dofs_ideal) == numpy.ndarray
+        assert type(rt.rotamer_kinforest.kinforest_idx) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.id) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.doftype) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.parent) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.frame_x) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.frame_y) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.frame_z) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.nodes) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.scans) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.gens) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.n_scans_per_gen) is numpy.ndarray
+        assert type(rt.rotamer_kinforest.dofs_ideal) is numpy.ndarray
 
         assert rt.rotamer_kinforest.kinforest_idx.shape == (rt.n_atoms,)
         assert rt.rotamer_kinforest.id.shape == (rt.n_atoms,)

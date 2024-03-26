@@ -19,4 +19,4 @@ def test_tensor_collection(tensor_collection):
     ]
     tsum = tensor_collection.sum_tensor_collection(tcoll)
     expected = tcoll[0] + tcoll[1]
-    torch.testing.assert_allclose(expected, tsum)
+    torch.testing.assert_close(expected, tsum)

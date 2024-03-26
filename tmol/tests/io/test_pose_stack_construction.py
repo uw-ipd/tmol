@@ -100,7 +100,7 @@ def test_build_pose_stack_w_disconn_segs(
         **canonical_form,
         disulfides=disulfides,
         find_additional_disulfides=True,
-        res_not_connected=res_not_connected
+        res_not_connected=res_not_connected,
     )
 
     assert pose_stack.packed_block_types.device == torch_device
@@ -163,7 +163,7 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
         disulfides=disulfides_shifted,
         find_additional_disulfides=True,
         res_not_connected=res_not_connected,
-        return_chain_ind=True
+        return_chain_ind=True,
     )
 
     assert pose_stack.packed_block_types.device == torch_device

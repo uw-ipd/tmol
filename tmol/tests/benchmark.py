@@ -30,7 +30,6 @@ Example:
             assert mult == add
 """
 
-
 import types
 import logging
 import warnings

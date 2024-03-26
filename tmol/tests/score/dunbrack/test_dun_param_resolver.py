@@ -638,43 +638,43 @@ def test_stacked_dun_param_resolver_construction(default_database, torch_device)
 
     expected = expected_stacked_parameters()
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["ndihe_for_res"], dun_params.ndihe_for_res.to("cpu")
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["dihedral_offset_for_res"],
         dun_params.dihedral_offset_for_res.to("cpu"),
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["dihedral_atom_inds"], dun_params.dihedral_atom_inds.to("cpu")
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["rottable_set_for_res"], dun_params.rottable_set_for_res.to("cpu")
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["nchi_for_res"], dun_params.nchi_for_res.to("cpu")
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["nrotameric_chi_for_res"], dun_params.nrotameric_chi_for_res.to("cpu")
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["rotres2resid"], dun_params.rotres2resid.to("cpu")
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["prob_table_offset_for_rotresidue"],
         dun_params.prob_table_offset_for_rotresidue.to("cpu"),
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["rotmean_table_offset_for_residue"],
         dun_params.rotmean_table_offset_for_residue.to("cpu"),
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["rotind2tableind_offset_for_res"],
         dun_params.rotind2tableind_offset_for_res.to("cpu"),
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["rotameric_chi_desc"], dun_params.rotameric_chi_desc.to("cpu")
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         expected["semirotameric_chi_desc"], dun_params.semirotameric_chi_desc.to("cpu")
     )
