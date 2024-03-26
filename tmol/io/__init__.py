@@ -1,6 +1,7 @@
 import torch
 from typing import Optional, Union
 from tmol.types.functional import validate_args
+from tmol.pose.pose_stack import PoseStack
 
 
 @validate_args
@@ -11,7 +12,7 @@ def pose_stack_from_pdb(
     residue_start: Optional[int] = None,
     residue_end: Optional[int] = None,
     **kwargs,
-):
+) -> PoseStack:
     """Construct a PoseStack given the contents of a PDB file or the name of a PDB file,
     using the full set of residue types contained in tmol's chemical.yaml file.
 
