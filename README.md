@@ -10,5 +10,8 @@
 `tmol`, short for TensorMol, is a faithful reimplementation of the [Rosetta all atom energy
 function](https://doi.org/10.1021/acs.jctc.7b00125) ("beta_nov2016_cart") in [PyTorch](https://pytorch.org) with custom kernels written in C++ and CUDA. Given the coordinates of one or more proteins (TODO: should this say 'proteins' or 'structures'?), `tmol` can compute both energies and derivatives. `tmol` can also perform gradient-based minimization on those structures. Thus, ML models that produce cartesian coordinates for proteins can include biophysical features in their loss during training or refine their output structures using Rosetta's experimentally validated energy function.
 
+## Performance
+On appropriately equipped machines with a modern GPU, `tmol` parallelizes score function calculations across residues and structures. This allows `tmol` to scale to large numbers of structures and residues. Using Rosetta as a baseline, typical results are XXX.
+
 See our [wiki](./wiki) for details on our development environment, system
 architecture, and development workflow.
