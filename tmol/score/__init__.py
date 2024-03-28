@@ -8,6 +8,14 @@ from tmol.database import ParameterDatabase
 def beta2016_score_function(
     device: torch.device, param_db: Optional[ParameterDatabase] = None
 ):
+    """Return a ScoreFunction implementing the beta_nov2016 score function
+    of Rosetta3.
+
+    See:
+    https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081 and
+    https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125
+    """
+
     from tmol.database import ParameterDatabase
     from .score_function import ScoreFunction
     from .score_types import ScoreType

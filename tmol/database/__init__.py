@@ -11,6 +11,8 @@ from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 
 @attr.s
 class ParameterDatabase:
+    """The parameters describing the available chemical types and the scoring terms"""
+
     __default = None
 
     @classmethod

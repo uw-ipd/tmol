@@ -23,6 +23,43 @@ def residue_types_from_residues(residues):
 
 @attr.s(auto_attribs=True)
 class PackedBlockTypes:
+    """A class to aggregate the properties for a collection of residue types.
+
+    The PackedBlockTypes object holds an ordered set of residue types
+    (specifically, RefinedResidueTypes); once constructed, this order will not
+    change, so residue types may be referred to by index within this object.
+
+    The PackedBlockTypes object is the bag in which scoring terms cache their
+    tensors holding the chemical/scoring properties of the block types in use.
+    Each term needs several tensors in order to map from block-type index to
+    the data required to score that block type, and the construction of these
+    tensors and moving these tensors can be slowThe idiom we follow to ensure
+    that these tensors are preserved between score evaluations is to cache
+    them in this object. The term will annotate the PackedBlockTypes object,
+    pbt, using setattr(pbt, "tensor_name", tensor) and then will later decide
+    if the annotation has already been made using hasattr(pbt, "tensor_name").
+    Thus, it is more efficient to use a single PackedBlockTypes object between
+    multiple PoseStack objects so that the expense of creating the annotations
+    can be amortized of many score evaluations.
+
+    Annotation process:
+    There are three steps to the annotation process. 1) Terms
+    annotate individual block types, 2) terms aggregate (concattenate)
+    annotations of the individual block types for the packed_block_type,
+    and 3) terms retrieve their annotations. 1) Typically, score terms will
+    create one annotation for each of the RefinedResidueType objects that the
+    PackedBlockTypes object holds in their method named "setup_block_type,"
+    and cache these annotations on each RefinedResiduetype. The idiom we use
+    is for these residue-type annotations to be held in numpy arrays (on the
+    CPU). 2) The terms will then aggregate the annotations for each of the
+    individual residue types into a single torch Tensor, one tensor for each
+    property (or property group) the term needs, in their method named
+    "setup_packed_block_types"; the idiom is for these annotations to be moved
+    to the PackedBlockType's device in this step. 3) Finally, each term will
+    retrieve the cached annotations from the PackedBlockType in their
+    "render_whole_pose_scoring_module" method.
+    """
+
     chem_db: PatchedChemicalDatabase
     active_block_types: Sequence[RefinedResidueType]
     restype_index: pandas.Index

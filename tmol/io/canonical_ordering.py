@@ -1,11 +1,14 @@
 import numpy
 import torch
 import attr
+import pandas
 from collections import defaultdict
 
+from tmol.types.functional import validate_args
 from tmol.database import ParameterDatabase
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from typing import Tuple, Mapping, Optional  # , FrozenSet
+from typing import List, Mapping, Optional, Tuple, Union
 from .pdb_parsing import parse_pdb
 import toolz.functoolz
 
@@ -68,41 +71,86 @@ class HisSpecialCaseIndices:
 
 @attr.s(auto_attribs=True, frozen=True)
 class CanonicalOrdering:
-    # There are four data members that are useful for users:
-    # - max_n_canonical_atoms
-    # - restype_io_equiv_classes
-    # - restypes_ordered_atom_names
-    # - restypes_atom_index_mapping
-    # the remaining data members are useful primarily for
-    # internal tmol functionality
+    """The canonical ordering class describes the integer ordering
+    of residue types and for atoms within those residue types
+    for the collection of available residue types defined by a
+    PatchedChemicalDatabase.
 
-    # max_n_canonical_atoms: the largest number of distinct atom names among all
-    # variants of a single residue type (equivalence class) across all residue types
+    The canonical ordering class's purpose is to enable creation of
+    a "canonical form" dictionary that describes a molecular system
+    in the way that tmol expects in order to construct a PoseStack.
+
+    There is no "canonical form" dictionary is simply a dictionary
+    holding the at-least-three-but-as-many-as-eight arguments to
+    tmol.io.pose_stack_construction.pose_stack_from_canonical_form
+    after the first two. That is, it must contain "chain_id",
+    "res_types" and "coords" entries.
+
+    When constructing a PoseStack, there are multiple residue types
+    for each "equivalence class" (think 3-letter code); e.g. for
+    "CYS" there's the standard middle-of-a-polypeptide-chain CYS,
+    the standard middle-of-a-polypeptide-chain disulfide-forming CYS,
+    and then for those two, four variants for the N-, C-, and both-N-
+    and-C terminal forms; eight total options for a single "CYS"
+    three-letter code. tmol collects all of the various forms of
+    a single equivalence class and creates a list of all atom names
+    across all the residue types for it. You can then provide tmol
+    the set of atoms that are present at a given position by giving
+    a non-NaN coordinate for that entry in an
+    [n-poses x max-n-res x max-ats-per-res x 3] tensor of
+    coordinates. Atoms with NaN coordinates are taken as possibly
+    present in the residue type; tmol will decide the best fit
+    for which residue type to use at each position.
+    If an atom is provided to tmol and it is not present for a
+    given residue type, then that residue type will be disqualified
+    from consideration. Thus an important part of telling
+    tmol which atoms are present is mapping from an atom name to
+    an index for that atom. The CanonicalOrdering object is where
+    that mapping is encoded. It also handles the mapping from
+    alternate-atom-name to canonical-form-atom index; e.g. in
+    PDBv2, glycine's two hydrogens were named "HA1" and "HA2",
+    but in PDBv3, they are named "1HA" and "2HA." So that we can
+    parse PDB files written in PDBv2 and PDBv3, we have an idea of
+    an "alias" for an atom; see the restypes_atom_index_mapping
+    data member.
+
+    There are four data members that are useful for users:
+        - max_n_canonical_atoms
+        - restype_io_equiv_classes
+        - restypes_ordered_atom_names
+        - restypes_atom_index_mapping
+    the remaining data members are useful primarily for
+    internal tmol functionality
+
+    max_n_canonical_atoms: the largest number of distinct atom names among all
+        variants of a single residue type (equivalence class) across all residue types
+
+    restype_io_equiv_classes:
+        essentially the list of 3-letter codes for the residue
+        types that are readable; use the index function
+        (e.g. co.restype_io_equiv_classes.index("TRP"))
+        to obtain the integer meant to represent each restype
+
+    restypes_ordered_atom_names:
+        the ordered list of the names of each atom for every allowed
+        residue type; does not include the alternate names for atoms.
+        Atoms should be given to tmol in this order; e.g. by putting
+        the coordinate of the ith atom in the ith entry of the
+        coordinate tensor (e.g. coords[p, r, i] for pose p, residue r)
+
+    restypes_atom_index_mapping:
+        mapping for each name3 from atom name and atom name alias
+        to the index of that atom for every allowed residue
+        type in the restypes_ordered_atom_names list; this is
+        probably more useful than the restypes_ordered_atom_names
+        list, especially if you are using the PDBv2 naming
+        convention (as Rosetta3 does) instead of the PDBv3
+        convention.
+    """
+
     max_n_canonical_atoms: int
-
-    # restype_io_equiv_classes:
-    # essentially the list of 3-letter codes for the residue
-    # types that are readable; use the index function
-    # (e.g. co.restype_io_equiv_classes.index("TRP"))
-    # to obtain the integer meant to represent each restype
     restype_io_equiv_classes: Tuple[str, ...]
-
-    # restypes_ordered_atom_names:
-    # the ordered list of the names of each atom for every allowed
-    # residue type; does not include the alternate names for atoms.
-    # Atoms should be given to tmol in this order; e.g. by putting
-    # the coordinate of the ith atom in the ith entry of the
-    # coordinate tensor (e.g. coords[p, r, i] for pose p, residue r)
     restypes_ordered_atom_names: Mapping[str, Tuple[str, ...]]
-
-    # restypes_atom_index_mapping:
-    # mapping for each name3 from atom name and atom name alias
-    # to the index of that atom for every allowed residue
-    # type in the restypes_ordered_atom_names list; this is
-    # probably more useful than the restypes_ordered_atom_names
-    # list, especially if you are using the PDBv2 naming
-    # convention (as Rosetta3 does) instead of the PDBv3
-    # convention.
     restypes_atom_index_mapping: Mapping[str, Mapping[str, int]]
 
     ############# tmol internal data members below ############
@@ -335,14 +383,19 @@ class CanonicalOrdering:
         )
 
 
+@validate_args
 @toolz.functoolz.memoize
-def default_canonical_ordering():
+def default_canonical_ordering() -> CanonicalOrdering:
+    """Create a CanonicalOrdering object from the default set of residue types"""
+
     chemdb = ParameterDatabase.get_default().chemical
     return CanonicalOrdering.from_chemdb(chemdb)
 
 
+@validate_args
 @toolz.functoolz.memoize
-def default_packed_block_types(device: torch.device):
+def default_packed_block_types(device: torch.device) -> PackedBlockTypes:
+    """Create a PackedBlockTypes object from the default set of residue types"""
     import cattr
     from tmol.chemical.restypes import RefinedResidueType
     from tmol.pose.packed_block_types import PackedBlockTypes
@@ -360,44 +413,68 @@ def default_packed_block_types(device: torch.device):
     return PackedBlockTypes.from_restype_list(chem_database, restype_list, device)
 
 
+@validate_args
 def canonical_form_from_pdb(
     canonical_ordering: CanonicalOrdering,
-    pdb_lines_or_fname,
+    pdb_lines_or_fname: Union[str, List],
     device: torch.device,
     *,
     residue_start: Optional[int] = None,
     residue_end: Optional[int] = None,
-):
+) -> Mapping:
     """Create a canonical form dictionary from either the contents of a PDB file
     as one long string or a list of individual lines from the file or
     by providing the name/path of a PDB file
+
+    pdb_lines_or_fname must either be a list of the lines in a PDB file or
+    a string representing a file
+
+    """
+    atom_records = parse_pdb(pdb_lines_or_fname)
+    if residue_start is not None or residue_end is not None:
+        atom_records = select_atom_records_res_subset(
+            atom_records, residue_start, residue_end
+        )
+    return canonical_form_from_atom_records(canonical_ordering, atom_records, device)
+
+
+def select_atom_records_res_subset(
+    atom_records: pandas.DataFrame,
+    residue_start: Optional[int],
+    residue_end: Optional[int],
+):
+    """Figure out the starting row index for each residue
+    and take the slice of the atom_records dataframe containing
+    every atom of every residue within the given inclusive range.
+    If either residue_start or residue_end are omitted, then
+    the are treated as being the first or last residue.
     """
 
+    atom_records_begin_for_res = []
+    last_res = None
+    for i, row in atom_records.iterrows():
+        this_res = (row["modeli"], row["chaini"], row["resi"])
+        if last_res is not None and last_res == this_res:
+            pass
+        else:
+            atom_records_begin_for_res.append(i)
+            last_res = this_res
+    atom_records_begin_for_res.append(i + 1)
+    if residue_start is None:
+        residue_start = 0
+    if residue_end is None:
+        residue_end = len(atom_records_begin_for_res) - 1
+    begin = atom_records_begin_for_res[residue_start]
+    end = atom_records_begin_for_res[residue_end]
+    return atom_records.iloc[begin:end]
+
+
+def canonical_form_from_atom_records(
+    canonical_ordering: CanonicalOrdering,
+    atom_records: pandas.DataFrame,
+    device: torch.device,
+):
     max_n_canonical_atoms = canonical_ordering.max_n_canonical_atoms
-    atom_records = parse_pdb(pdb_lines_or_fname)
-
-    if residue_start is not None or residue_end is not None:
-        # Figure out the starting row index for each residue
-        # and take the slice of the dataframe containing
-        # every atom of every residue within that range
-
-        atom_records_begin_for_res = []
-        last_res = None
-        for i, row in atom_records.iterrows():
-            this_res = (row["modeli"], row["chaini"], row["resi"])
-            if last_res is not None and last_res == this_res:
-                pass
-            else:
-                atom_records_begin_for_res.append(i)
-                last_res = this_res
-        atom_records_begin_for_res.append(i + 1)
-        if residue_start is None:
-            residue_start = 0
-        if residue_end is None:
-            residue_end = len(atom_records_begin_for_res) - 1
-        begin = atom_records_begin_for_res[residue_start]
-        end = atom_records_begin_for_res[residue_end]
-        atom_records = atom_records.iloc[begin:end]
 
     uniq_res_ind = {}
     uniq_res_list = []

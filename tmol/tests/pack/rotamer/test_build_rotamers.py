@@ -37,12 +37,12 @@ def test_annotate_restypes(
         annotate_restype(rt, samplers, default_database.chemical)
         assert hasattr(rt, "rotamer_kinforest")
 
-        assert type(rt.rotamer_kinforest.id) is numpy.ndarray
-        assert type(rt.rotamer_kinforest.doftype) is numpy.ndarray
-        assert type(rt.rotamer_kinforest.parent) is numpy.ndarray
-        assert type(rt.rotamer_kinforest.frame_x) is numpy.ndarray
-        assert type(rt.rotamer_kinforest.frame_y) is numpy.ndarray
-        assert type(rt.rotamer_kinforest.frame_z) is numpy.ndarray
+        assert isinstance(rt.rotamer_kinforest.id, numpy.ndarray)
+        assert isinstance(rt.rotamer_kinforest.doftype, numpy.ndarray)
+        assert isinstance(rt.rotamer_kinforest.parent, numpy.ndarray)
+        assert isinstance(rt.rotamer_kinforest.frame_x, numpy.ndarray)
+        assert isinstance(rt.rotamer_kinforest.frame_y, numpy.ndarray)
+        assert isinstance(rt.rotamer_kinforest.frame_z, numpy.ndarray)
 
         assert rt.rotamer_kinforest.id.shape == (rt.n_atoms,)
         assert rt.rotamer_kinforest.doftype.shape == (rt.n_atoms,)

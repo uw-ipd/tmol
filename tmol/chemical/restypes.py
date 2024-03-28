@@ -1,7 +1,7 @@
 from frozendict import frozendict
 from toolz.curried import concat, map, compose, groupby
 import typing
-from typing import Mapping, Optional, NewType, Tuple, Sequence, List, Set
+from typing import Mapping, Optional, NewType, Tuple, Sequence, List, Set, Union
 import attr
 import cattr
 
@@ -38,7 +38,10 @@ ResName3 = typing.NewType("ResName3", str)
 IcoorIndex = NewType("AtomIndex", int)
 
 
-def three2one(three):
+def three2one(three: str) -> Union[str, None]:
+    """Return the one-letter amino acid code given its three letter code,
+    or None if not a valid three-letter code
+    """
     # 'static'
     if not hasattr(three2one, "_mapping"):
         three2one._mapping = {
@@ -68,7 +71,10 @@ def three2one(three):
     return None
 
 
-def one2three(one):
+def one2three(one: str) -> Union[str, None]:
+    """Return the three-letter amino acid code given its one-letter code,
+    or None if not a valid one-letter code.
+    """
     # 'static'
     if not hasattr(one2three, "_mapping"):
         one2three._mapping = {
