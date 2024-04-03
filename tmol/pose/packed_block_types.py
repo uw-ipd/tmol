@@ -149,11 +149,12 @@ class PackedBlockTypes:
                 max_n_atoms,
             )
             < n_atoms[
-                torch.floor_divide(
+                torch.div(
                     torch.arange(
                         n_types * max_n_atoms, dtype=torch.int64, device=device
                     ),
                     max_n_atoms,
+                    rounding_mode="trunc",
                 )
             ]
         ).reshape(n_atoms.shape[0], max_n_atoms)
