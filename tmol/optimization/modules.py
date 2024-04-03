@@ -14,40 +14,24 @@ from tmol.system.score_support import kincoords_to_coords
 #  - or we might want to keep that with dof creation
 
 
-# mask out relevant dofs to the minimizer
-class DOFMaskingFunc(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, fg, mask, bg):
-        ctx.mask = mask
-        ctx.fg = fg
-        bg[mask] = fg
-        return bg
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        grad = torch.zeros_like(ctx.fg)
-        grad = grad_output[ctx.mask]
-        return grad, None, None
-
-
 # cartesian space minimization
 class CartesianEnergyNetwork(torch.nn.Module):
     def __init__(self, score_system, coords, coord_mask=None):
         super(CartesianEnergyNetwork, self).__init__()
 
         self.score_system = score_system
-        self.coord_mask = coord_mask
 
         self.full_coords = coords
-        if self.coord_mask is None:
-            self.masked_coords = torch.nn.Parameter(coords)
-        else:
-            self.masked_coords = torch.nn.Parameter(coords[self.coord_mask])
+        if coord_mask is None:
+            coord_mask = torch.full(
+                coords.shape[:-1], True, device=coords.device, dtype=torch.bool
+            )
+        self.masked_coords = torch.nn.Parameter(coords[coord_mask])
+        self.mask = coord_mask
 
     def forward(self):
-        self.full_coords = DOFMaskingFunc.apply(
-            self.masked_coords, self.coord_mask, self.full_coords
-        )
+        self.full_coords = self.full_coords.detach()
+        self.full_coords[self.mask] = self.masked_coords
         return self.score_system.intra_total(self.full_coords)
 
 
@@ -82,23 +66,24 @@ class TorsionalEnergyNetwork(torch.nn.Module):
         self.score_system = score_system
         self.kinforest = kinforest
 
-        # register buffers so they get moved to GPU with module
-        for i, j in attr.asdict(kinforest).items():
-            self.register_buffer(i, j)
-        self.register_buffer("dof_mask", dof_mask)
-        self.register_buffer("full_dofs", dofs)
+        if coord_mask is None:
+            coord_mask = torch.full(
+                coords.shape[:-1], True, device=coords.device, dtype=torch.bool
+            )
 
         self.system_size = system_size
 
-        if self.dof_mask is None:
-            self.masked_dofs = torch.nn.Parameter(dofs)
-        else:
-            self.masked_dofs = torch.nn.Parameter(dofs[self.dof_mask])
+        self.fulldofs = dofs
+        if dof_mask is None:
+            dof_mask = torch.full(
+                dofs.shape[:-1], True, device=dofs.device, dtype=torch.bool
+            )
+        self.masked_dofs = torch.nn.Parameter(dofs[self.dof_mask])
+        self.mask = dof_mask
 
     def coords(self):
-        self.full_dofs = DOFMaskingFunc.apply(
-            self.masked_dofs, self.dof_mask, self.full_dofs
-        )
+        self.full_dofs = self.full_dofs.detach()
+        self.full_dofs[self.mask] = self.masked_dofs
         return kincoords_to_coords(self.full_dofs, self.kinforest, self.system_size)
 
     def forward(self):

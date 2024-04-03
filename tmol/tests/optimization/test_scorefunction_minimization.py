@@ -88,6 +88,30 @@ def test_minimize_w_pose_and_sfxn_benchmark(
 
 
 # @requires_cuda
+def test_minimizer(ubq_pdb):
+    torch_device = torch.device("cuda")
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    sfxn = beta2016_score_function(torch_device)
+
+    wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
+    wpsm(pose_stack.coords)
+
+    network = CartesianSfxnNetwork(sfxn, pose_stack)
+    optimizer = LBFGS_Armijo(network.parameters(), lr=0.1, max_iter=200)
+
+    def closure():
+        optimizer.zero_grad()
+        E = network().sum()
+        E.backward()
+        return E
+
+    Estart = network().sum()
+    optimizer.step(closure)
+    Estop = network().sum()
+    assert Estop < Estart
+
+
+# @requires_cuda
 def test_minimizer_vs_just_score(ubq_pdb):
     torch_device = torch.device("cuda")
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
