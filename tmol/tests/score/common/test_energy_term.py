@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.score.energy_term import EnergyTerm
 
 from tmol.tests.autograd import gradcheck
 import torch.autograd.gradcheck as torchgrad
@@ -212,10 +213,10 @@ class EnergyTermTestBase:
         rts_res,
         default_database,
         torch_device,
-        eps=1e-6,
-        atol=1e-5,
-        rtol=1e-3,
-        nondet_tol=0,
+        eps=1e-6,  # torch default
+        atol=1e-5,  # torch default
+        rtol=1e-3,  # torch default
+        nondet_tol=0.0,  # torch default
     ):
         energy_term = cls.energy_term_class(
             param_db=default_database, device=torch_device
@@ -242,7 +243,7 @@ class EnergyTermTestBase:
 
         gradcheck(
             score,
-            (p1.coords.requires_grad_(True),),
+            (p1.coords.double().requires_grad_(True),),
             eps=eps,
             atol=atol,
             rtol=rtol,
@@ -342,20 +343,20 @@ class EnergyTermTestBase:
         assert_allclose(gold_vals, scores, atol, rtol)
 
     @classmethod
-    # @patch(importlib.import_module('torch.autograd.gradcheck'), new_callable=_get_notallclose_msg)
     def test_block_scoring_reweighted_gradcheck(
         cls,
         rts_res,
         default_database,
         torch_device,
-        eps=1e-6,
-        atol=1e-5,
-        rtol=1e-3,
-        nondet_tol=0,
+        eps=1e-6,  # torch default
+        atol=1e-5,  # torch default
+        rtol=1e-3,  # torch default
+        nondet_tol=0.0,  # torch default
     ):
         energy_term = cls.energy_term_class(
             param_db=default_database, device=torch_device
         )
+
         p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
             default_database.chemical, res=rts_res, device=torch_device
         )
@@ -381,7 +382,7 @@ class EnergyTermTestBase:
 
         torchgrad.gradcheck(
             score,
-            (p1.coords.requires_grad_(True),),
+            (p1.coords.double().requires_grad_(True),),
             eps=eps,
             atol=atol,
             rtol=rtol,

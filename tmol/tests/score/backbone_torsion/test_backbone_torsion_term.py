@@ -112,10 +112,6 @@ class TestBackboneTorsionEnergyTerm(EnergyTermTestBase):
             rts_ubq_res,
             default_database,
             torch_device,
-            eps=1e-3,
-            atol=3e-1,  # fd very high but this is necessary
-            rtol=0,
-            nondet_tol=1e-3,
         )
 
     @classmethod
@@ -134,8 +130,4 @@ class TestBackboneTorsionEnergyTerm(EnergyTermTestBase):
             rts_ubq_res[6:12],
             default_database,
             torch_device,
-            eps=1e-3,
-            atol=3e-1,  # fd very high but this is necessary
-            rtol=0,
-            nondet_tol=1e-3,
         )

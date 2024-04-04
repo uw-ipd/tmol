@@ -75,9 +75,6 @@ class TestDisulfideEnergyTerm(EnergyTermTestBase):
             rts_disulfide_res,
             default_database,
             torch_device,
-            eps=1e-3,
-            atol=1e-2,
-            rtol=5e-3,
         )
 
     @classmethod
@@ -98,8 +95,4 @@ class TestDisulfideEnergyTerm(EnergyTermTestBase):
             rts_res,
             default_database,
             torch_device,
-            eps=1e-3,
-            atol=1e-2,
-            rtol=5e-3,
-            nondet_tol=1e-6,
         )

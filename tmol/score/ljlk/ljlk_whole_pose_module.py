@@ -1,6 +1,7 @@
 import torch
 
 from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores
+from tmol.score.common.convert_float64 import convert_float64
 
 
 class LJLKWholePoseScoringModule(torch.nn.Module):
@@ -76,7 +77,7 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
         )
 
     def forward(self, coords, output_block_pair_energies=False):
-        return ljlk_pose_scores(
+        args = [
             coords,
             self.pose_stack_block_coord_offset,
             self.pose_stack_block_types,
@@ -92,4 +93,9 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
             self.ljlk_type_params,
             self.global_params,
             output_block_pair_energies,
-        )
+        ]
+
+        if coords.dtype == torch.float64:
+            convert_float64(args)
+
+        return ljlk_pose_scores(*args)

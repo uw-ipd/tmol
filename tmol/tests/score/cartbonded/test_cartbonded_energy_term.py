@@ -76,7 +76,9 @@ class TestCartBondedEnergyTerm(EnergyTermTestBase):
     ):
         rts_ubq_res = rts_ubq_res[0:2]
         return super().test_whole_pose_scoring_gradcheck(
-            rts_ubq_res, default_database, torch_device, eps=1e-2, atol=5e-2
+            rts_ubq_res,
+            default_database,
+            torch_device,
         )
 
     @classmethod
@@ -95,7 +97,4 @@ class TestCartBondedEnergyTerm(EnergyTermTestBase):
             rts_ubq_res[0:4],
             default_database,
             torch_device,
-            eps=1e-2,
-            atol=5e-2,
-            nondet_tol=1e-6,
         )

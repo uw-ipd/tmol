@@ -378,8 +378,6 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
             rts_ubq_res[0:4],
             default_database,
             torch_device,
-            eps=1e-3,
-            atol=1e-3,
             nondet_tol=1e-6,  # fd this is necessary here...
         )
 
@@ -411,7 +409,5 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
             rts_ubq_res[0:4],
             default_database,
             torch_device,
-            eps=1e-3,
-            atol=1e-3,
             nondet_tol=1e-6,
         )
