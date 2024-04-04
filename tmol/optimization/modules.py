@@ -1,5 +1,4 @@
 import torch
-import attr
 
 from tmol.system.kinematics import KinematicDescription
 from tmol.system.score_support import kincoords_to_coords
@@ -66,9 +65,9 @@ class TorsionalEnergyNetwork(torch.nn.Module):
         self.score_system = score_system
         self.kinforest = kinforest
 
-        if coord_mask is None:
-            coord_mask = torch.full(
-                coords.shape[:-1], True, device=coords.device, dtype=torch.bool
+        if dof_mask is None:
+            dof_mask = torch.full(
+                dofs.shape[:-1], True, device=dofs.device, dtype=torch.bool
             )
 
         self.system_size = system_size
