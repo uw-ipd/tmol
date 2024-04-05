@@ -1,4 +1,5 @@
 import torch
+import attr
 
 from tmol.system.kinematics import KinematicDescription
 from tmol.system.score_support import kincoords_to_coords
@@ -72,17 +73,22 @@ class TorsionalEnergyNetwork(torch.nn.Module):
 
         self.system_size = system_size
 
-        self.fulldofs = dofs
         if dof_mask is None:
             dof_mask = torch.full(
                 dofs.shape[:-1], True, device=dofs.device, dtype=torch.bool
             )
+
+        # register buffers so they get moved to GPU with module
+        for i, j in attr.asdict(kinforest).items():
+            self.register_buffer(i, j)
+        self.register_buffer("dof_mask", dof_mask)
+        self.register_buffer("full_dofs", dofs)
+
         self.masked_dofs = torch.nn.Parameter(dofs[self.dof_mask])
-        self.mask = dof_mask
 
     def coords(self):
         self.full_dofs = self.full_dofs.detach()
-        self.full_dofs[self.mask] = self.masked_dofs
+        self.full_dofs[self.dof_mask] = self.masked_dofs
         return kincoords_to_coords(self.full_dofs, self.kinforest, self.system_size)
 
     def forward(self):
