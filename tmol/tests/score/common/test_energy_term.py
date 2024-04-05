@@ -17,8 +17,6 @@ from tmol.io.canonical_ordering import (
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
-from tmol.tests.autograd import gradcheck
-
 
 # monkeypatch function to give more sane output from torch gradcheck
 def _get_notallclose_msg(

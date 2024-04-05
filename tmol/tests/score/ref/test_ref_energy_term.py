@@ -1,4 +1,3 @@
-import numpy
 import torch
 
 from tmol.score.ref.ref_energy_term import RefEnergyTerm
