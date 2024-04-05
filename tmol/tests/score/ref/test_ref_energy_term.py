@@ -1,12 +1,8 @@
 import numpy
 import torch
-from torch._C import device
 
-from tmol.io import pose_stack_from_pdb
 from tmol.score.ref.ref_energy_term import RefEnergyTerm
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 
-from tmol.tests.autograd import gradcheck
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 

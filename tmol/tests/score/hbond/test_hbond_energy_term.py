@@ -5,9 +5,7 @@ from tmol.io import pose_stack_from_pdb
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 
-from tmol.tests.autograd import gradcheck
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 

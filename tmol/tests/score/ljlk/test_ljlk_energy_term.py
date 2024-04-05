@@ -1,7 +1,6 @@
 import numpy
 import torch
 import pytest
-from torch._C import device
 
 from tmol.io import pose_stack_from_pdb
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
@@ -9,7 +8,6 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
-from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device):
@@ -320,37 +318,6 @@ def test_inter_module_timing(
 
     vals = run
     assert vals is not None
-
-
-def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
-    gold_vals = numpy.array([[-7.717818], [3.648599]], dtype=numpy.float32)
-    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
-
-    # the gold_vals are calculated assuming the fourth residue is not a cterm res;
-    # so create a "res_not_connected" tensor to tell tmol not to treat it like a cterm
-    r3_not_cterm = torch.zeros((1, 4, 2), dtype=torch.bool, device=torch_device)
-    r3_not_cterm[0, 3, 1] = True
-    p1 = pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_end=4, res_not_connected=r3_not_cterm
-    )
-    for bt in p1.packed_block_types.active_block_types:
-        ljlk_energy.setup_block_type(bt)
-    ljlk_energy.setup_packed_block_types(p1.packed_block_types)
-    ljlk_energy.setup_poses(p1)
-
-    ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
-
-    coords = torch.nn.Parameter(p1.coords.clone())
-    scores = ljlk_pose_scorer(coords)
-
-    # make sure we're still good
-    torch.arange(100, device=torch_device)
-
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-6, rtol=1e-6
-    )
-
-    numpy.testing.assert_allclose(gold_vals, scores.cpu().detach().numpy(), atol=1e-4)
 
 
 class TestLJLKEnergyTerm(EnergyTermTestBase):

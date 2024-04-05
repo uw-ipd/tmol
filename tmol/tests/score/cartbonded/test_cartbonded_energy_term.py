@@ -1,12 +1,8 @@
-import numpy
 import torch
 
-from tmol.io import pose_stack_from_pdb
 from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
-from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device: torch.device):

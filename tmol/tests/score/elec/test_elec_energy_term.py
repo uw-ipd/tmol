@@ -4,10 +4,8 @@ import torch
 from tmol.io import pose_stack_from_pdb
 from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
-from tmol.tests.autograd import gradcheck
 
 
 def test_smoke(default_database, torch_device):

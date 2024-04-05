@@ -3,8 +3,6 @@ import torch
 
 from tmol.io import pose_stack_from_pdb
 from tmol.score.backbone_torsion.bb_torsion_energy_term import BackboneTorsionEnergyTerm
-from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.tests.autograd import gradcheck
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 

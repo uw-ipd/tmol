@@ -1,13 +1,10 @@
 import numpy
 import torch
-import pytest
-import pickle
 import os
 import yaml
 import importlib
 import functools
 import pandas
-from unittest.mock import patch
 
 from tmol.io import pose_stack_from_pdb
 from tmol.io.pdb_parsing import parse_pdb
@@ -18,12 +15,9 @@ from tmol.io.canonical_ordering import (
     canonical_form_from_atom_records,
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-from tmol.score.energy_term import EnergyTerm
 
 from tmol.tests.autograd import gradcheck
-import torch.autograd.gradcheck as torchgrad
 
 
 # monkeypatch function to give more sane output from torch gradcheck
@@ -63,7 +57,7 @@ def _get_notallclose_msg(
 def get_notallclose_msg(analytical, numerical, atol, rtol):
     resstr = "Difference between analytical and numerical tensors exceeds tolerances:\n"
     close = numpy.isclose(analytical, numerical, atol=atol, rtol=rtol)
-    badvals = numpy.argwhere(close == False)
+    badvals = numpy.argwhere(close == False)  # noqa: E712
     maxval = 0.0
     table = [("index", "analytical", "numerical", "difference")]
     table += [
@@ -164,7 +158,6 @@ class EnergyTermTestBase:
 
     @classmethod
     def block_pair_to_dict(cls, data):
-        indat = data.tolist()
         out = cls.recursive_reformat_to_dicts(
             data, names=["term", "pose", "res", "res"]
         )
@@ -172,7 +165,6 @@ class EnergyTermTestBase:
 
     @classmethod
     def whole_pose_to_dict(cls, data):
-        indat = data.tolist()
         out = cls.recursive_reformat_to_dicts(data, names=["term", "pose"])
         return out
 
@@ -204,7 +196,7 @@ class EnergyTermTestBase:
                 return numpy.array(
                     cls.recursive_reformat_from_dicts(yaml.safe_load(infile))
                 )
-        except FileNotFoundError as e:  # FileNotFoundError or whatever else
+        except FileNotFoundError:  # FileNotFoundError or whatever else
             raise Exception(
                 "Baselines not found for "
                 + cls.__name__
@@ -221,10 +213,8 @@ class EnergyTermTestBase:
         torch_device,
         resnums=None,
         update_baseline=False,
-        eps=1e-6,
         atol=1e-5,
         rtol=1e-3,
-        nondet_tol=0,
     ):
         n_poses = 10
         energy_term = cls.energy_term_class(
@@ -244,7 +234,7 @@ class EnergyTermTestBase:
         coords = torch.nn.Parameter(pn.coords.clone())
         scores = pose_scorer(coords).cpu().detach().numpy()
 
-        if True:  # update_baseline:
+        if update_baseline:
             cls.save_test_baseline_data(
                 cls.test_whole_pose_scoring_10.__name__, cls.whole_pose_to_dict(scores)
             )
@@ -285,7 +275,7 @@ class EnergyTermTestBase:
             _get_notallclose_msg, atol=atol, rtol=rtol
         )
 
-        gradcheck(
+        torchgrad.gradcheck(
             score,
             (p1.coords.double().requires_grad_(True),),
             eps=eps,
@@ -301,10 +291,8 @@ class EnergyTermTestBase:
         default_database,
         torch_device: torch.device,
         update_baseline=False,
-        eps=1e-6,
         atol=1e-5,
         rtol=1e-3,
-        nondet_tol=0,
     ):
         res_50 = [(0, 50)]
         res_30 = [(0, 30)]
@@ -324,7 +312,7 @@ class EnergyTermTestBase:
         pose_scorer = energy_term.render_whole_pose_scoring_module(pn)
         scores = pose_scorer(pn.coords).cpu().detach().numpy()
 
-        if True:  # update_baseline:
+        if update_baseline:
             cls.save_test_baseline_data(
                 cls.test_whole_pose_scoring_jagged.__name__,
                 cls.whole_pose_to_dict(scores),
@@ -362,7 +350,7 @@ class EnergyTermTestBase:
             pose_scorer(coords, output_block_pair_energies=True).cpu().detach().numpy()
         )
 
-        if True:  # update_baseline:
+        if update_baseline:
             cls.save_test_baseline_data(
                 cls.test_block_scoring.__name__, cls.block_pair_to_dict(scores)
             )
