@@ -87,9 +87,7 @@ def test_minimize_w_pose_and_sfxn_benchmark(
     run
 
 
-# @requires_cuda
-def test_minimizer(ubq_pdb):
-    torch_device = torch.device("cuda")
+def test_minimizer(ubq_pdb, torch_device):
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
     sfxn = beta2016_score_function(torch_device)
 
@@ -109,63 +107,3 @@ def test_minimizer(ubq_pdb):
     optimizer.step(closure)
     Estop = network().sum()
     assert Estop < Estart
-
-
-# @requires_cuda
-def test_minimizer_vs_just_score(ubq_pdb):
-    torch_device = torch.device("cuda")
-    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
-    sfxn = beta2016_score_function(torch_device)
-
-    wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
-    wpsm(pose_stack.coords)
-
-    network = CartesianSfxnNetwork(sfxn, pose_stack)
-    optimizer = LBFGS_Armijo(network.parameters(), lr=0.1, max_iter=20)
-
-    def closure1():
-        optimizer.zero_grad()
-        E = network().sum()
-        E.backward()
-        return E
-
-    torch.cuda.synchronize()
-    start = time.time()
-    for _ in range(400):
-        closure1()
-    torch.cuda.synchronize()
-    stop = time.time()
-    optimizer_time = stop - start
-
-    pose_stack = attrs.evolve(
-        pose_stack, coords=pose_stack.coords.clone().detach().requires_grad_(True)
-    )
-    wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
-    wpsm(pose_stack.coords)
-
-    def closure2():
-        # optimizer.zero_grad() # just score+derivs
-        # E = network().sum()
-        # E.backward()
-        E = wpsm(pose_stack.coords).sum()
-        E.backward()
-
-        return E
-
-    torch.cuda.synchronize()
-    start = time.time()
-    for _ in range(400):
-        closure2()
-    torch.cuda.synchronize()
-    stop = time.time()
-    just_score_time = stop - start
-
-    E = network().sum().cpu()
-    print(
-        "finished",
-        E.item(),
-        "optimize:",
-        optimizer_time,
-        "just score:",
-        just_score_time,
-    )
