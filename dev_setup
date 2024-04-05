@@ -36,28 +36,10 @@ def call(command):
     return subprocess.call(command, shell=True)
 
 
-def env_type():
-    if platform.system() == "Linux":
-        return "linux-64"
-    else:
-        return "osx-64"
-
-
-# create a temporary requirements.txt
-# from requirements.in and requirements-dev.in
-# and use it in a temporary env.yml
-check_call(
-    "cat environments/requirements.in environments/requirements-dev.in > environments/temp_requirements.in"
-)
-check_call(
-    "sed 's:- -r requirements.in:- -r temp_requirements.in:' environments/env.yml > environments/temp_env.yml"
-)
-
-
 # Requires an active root conda installation see:
 # https://conda.io/miniconda.html
 check_call(
-    f"conda create -n {args.name} && conda env update -n {args.name} --file=environments/temp_env.yml"
+    f"conda create -n {args.name} && conda env update -n {args.name} --file=environments/linux-cuda/env.yml"
 )
 
 # Conda 4.4+ compatible activation
@@ -70,8 +52,6 @@ if len(envpath) >= 1:
 else:
     raise ValueError("Target env not present.")
 
-check_call("%s/bin/pip install -e ." % envpath)
-check_call("rm environments/temp_env.yml environments/temp_requirements.in")
-
+check_call("%s/bin/pip install -e .[dev]" % envpath)
 call("ln -sf ../../.post-checkout .git/hooks/post-checkout")
 check_call("%s/bin/pre-commit install " % envpath)
