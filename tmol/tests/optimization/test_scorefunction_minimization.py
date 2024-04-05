@@ -1,7 +1,5 @@
 import torch
 import pytest
-import time
-import attrs
 
 # from tmol.pose.pose_stack import PoseStack
 from tmol.io import pose_stack_from_pdb
