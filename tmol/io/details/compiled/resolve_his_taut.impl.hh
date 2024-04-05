@@ -36,7 +36,7 @@ struct ResolveHisTaut {
       TView<Int, 2, Dev> res_type_variants,
       TView<int64_t, 1, Dev> his_pose_ind,
       TView<int64_t, 1, Dev> his_res_ind,
-      TView<Int, 3, Dev> atom_is_present,
+      TView<bool, 3, Dev> atom_is_present,
       TView<HisAtomIndsInCanonicalOrdering<Int>, 1, Dev> his_atom_inds,
       TView<int64_t, 3, Dev> his_remapping_dst_index
 
@@ -65,14 +65,14 @@ struct ResolveHisTaut {
       int const ip = his_pose_ind[ind];
       int const ir = his_res_ind[ind];
       HisAtomIndsInCanonicalOrdering<Int> atom_inds = his_atom_inds[0];
-      int const ND1_present = atom_is_present[ip][ir][atom_inds.his_ND1_in_co];
-      int const NE2_present = atom_is_present[ip][ir][atom_inds.his_NE2_in_co];
-      int const HD1_present = atom_is_present[ip][ir][atom_inds.his_HD1_in_co];
-      int const HE2_present = atom_is_present[ip][ir][atom_inds.his_HE2_in_co];
-      int const HN_present = atom_is_present[ip][ir][atom_inds.his_HN_in_co];
-      int const NH_present = atom_is_present[ip][ir][atom_inds.his_NH_in_co];
-      int const NN_present = atom_is_present[ip][ir][atom_inds.his_NN_in_co];
-      int const CG_present = atom_is_present[ip][ir][atom_inds.his_CG_in_co];
+      bool const ND1_present = atom_is_present[ip][ir][atom_inds.his_ND1_in_co];
+      bool const NE2_present = atom_is_present[ip][ir][atom_inds.his_NE2_in_co];
+      bool const HD1_present = atom_is_present[ip][ir][atom_inds.his_HD1_in_co];
+      bool const HE2_present = atom_is_present[ip][ir][atom_inds.his_HE2_in_co];
+      bool const HN_present = atom_is_present[ip][ir][atom_inds.his_HN_in_co];
+      bool const NH_present = atom_is_present[ip][ir][atom_inds.his_NH_in_co];
+      bool const NN_present = atom_is_present[ip][ir][atom_inds.his_NN_in_co];
+      bool const CG_present = atom_is_present[ip][ir][atom_inds.his_CG_in_co];
 
       int state = his_taut_unresolved;
 

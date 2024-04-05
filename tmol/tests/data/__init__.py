@@ -1,5 +1,6 @@
 import pytest
 import os
+import torch
 
 from . import pdb
 from . import rosetta_baseline
@@ -60,6 +61,11 @@ def ubq_system():
     from tmol.system.io import read_pdb
 
     return read_pdb(pdb.data["1ubq"])
+
+
+@pytest.fixture(scope="session")
+def disulfide_pdb():
+    return pdb.data["3plc"]
 
 
 @pytest.fixture(scope="session")
@@ -151,7 +157,7 @@ def pertuzumab_and_nearby_erbb2_pdb_and_segments():
 
     # res-res     line-line
     # 127-129 3    924- 945
-    # 154-156 3   1151-1175
+    # 154-156 3   1151-1176
     # 234-236 3   1724-1753
     # 244-258 15  1804-1924
     # 267-273 7   1984-2035
@@ -169,7 +175,7 @@ def pertuzumab_and_nearby_erbb2_pdb_and_segments():
         [
             pert_lines[4278 * 81 :],
             line_range(924, 945),
-            line_range(1151, 1175),
+            line_range(1151, 1176),
             line_range(1724, 1753),
             line_range(1804, 1924),
             line_range(1984, 2035),
@@ -194,3 +200,23 @@ def pertuzumab_and_nearby_erbb2_pdb_and_segments():
     res_not_connected[0, seg_range_end[2:] - 1, 1] = True
 
     return (pert_and_erbb2_lines, res_not_connected)
+
+
+@pytest.fixture()
+def openfold_ubq_and_sumo_pred(torch_device):
+    fname = os.path.join(
+        __file__.rpartition("/")[0], "openfold", "openfold_ubq_and_sumo.pt"
+    )
+    return torch.load(fname, map_location=torch_device)
+
+
+@pytest.fixture()
+def rosettafold2_ubq_pred(torch_device):
+    fname = os.path.join(__file__.rpartition("/")[0], "rosettafold2", "ubiquitin.pt")
+    return torch.load(fname, map_location=torch_device)
+
+
+@pytest.fixture()
+def rosettafold2_sumo_pred(torch_device):
+    fname = os.path.join(__file__.rpartition("/")[0], "rosettafold2", "sumo.pt")
+    return torch.load(fname, map_location=torch_device)

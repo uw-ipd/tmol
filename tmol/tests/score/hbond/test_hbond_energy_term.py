@@ -1,10 +1,10 @@
 import numpy
 import torch
 
+from tmol.io import pose_stack_from_pdb
 from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
-from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.autograd import gradcheck
@@ -27,15 +27,13 @@ def test_hbond_in_sfxn(default_database, torch_device):
     assert isinstance(sfxn.all_terms()[0], HBondEnergyTerm)
 
 
-def test_annotate_restypes(ubq_res, default_database, torch_device):
+def test_annotate_restypes(
+    fresh_default_packed_block_types, default_database, torch_device
+):
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
 
-    rt_list = residue_types_from_residues(ubq_res)
-    pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, rt_list, torch_device
-    )
-
-    for rt in rt_list:
+    pbt = fresh_default_packed_block_types
+    for rt in pbt.active_block_types:
         hbond_energy.setup_block_type(rt)
         assert hasattr(rt, "hbbt_params")
     hbond_energy.setup_packed_block_types(pbt)
@@ -51,12 +49,10 @@ def test_annotate_restypes(ubq_res, default_database, torch_device):
     assert pbt.hbpbt_params.is_hydrogen.device == torch_device
 
 
-def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
+def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
     gold_vals = numpy.array([[-55.6756]], dtype=numpy.float32)
     hbond_energy = HBondEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     for bt in p1.packed_block_types.active_block_types:
         hbond_energy.setup_block_type(bt)
     hbond_energy.setup_packed_block_types(p1.packed_block_types)
@@ -78,51 +74,51 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
     energy_term_class = HBondEnergyTerm
 
     @classmethod
-    def test_whole_pose_scoring_10(
-        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
-    ):
+    def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
         return super().test_whole_pose_scoring_10(
-            rts_ubq_res, default_database, torch_device, update_baseline
+            ubq_pdb, default_database, torch_device, update_baseline=False
         )
 
     @classmethod
     def test_whole_pose_scoring_jagged(
         cls,
-        rts_ubq_res,
+        ubq_pdb,
         default_database,
         torch_device: torch.device,
-        update_baseline=False,
     ):
         return super().test_whole_pose_scoring_jagged(
-            rts_ubq_res, default_database, torch_device, update_baseline
+            ubq_pdb, default_database, torch_device, update_baseline=False
         )
 
     @classmethod
-    def test_whole_pose_scoring_gradcheck(
-        cls, rts_ubq_res, default_database, torch_device
-    ):
+    def test_whole_pose_scoring_gradcheck(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(6, 8), (10, 12)]
         return super().test_whole_pose_scoring_gradcheck(
-            rts_ubq_res,
+            ubq_pdb,
             default_database,
             torch_device,
+            resnums=resnums,
         )
 
     @classmethod
-    def test_block_scoring(
-        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
-    ):
-        res = rts_ubq_res[6:8] + rts_ubq_res[10:12]
+    def test_block_scoring(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(6, 8), (10, 12)]
         return super().test_block_scoring(
-            res, default_database, torch_device, update_baseline
+            ubq_pdb,
+            default_database,
+            torch_device,
+            resnums=resnums,
+            update_baseline=False,
         )
 
     @classmethod
     def test_block_scoring_reweighted_gradcheck(
-        cls, rts_ubq_res, default_database, torch_device
+        cls, ubq_pdb, default_database, torch_device
     ):
-        res = rts_ubq_res[6:8] + rts_ubq_res[10:12]
+        resnums = [(6, 8), (10, 12)]
         return super().test_block_scoring_reweighted_gradcheck(
-            res,
+            ubq_pdb,
             default_database,
             torch_device,
+            resnums=resnums,
         )

@@ -1,7 +1,7 @@
 from frozendict import frozendict
 from toolz.curried import concat, map, compose, groupby
 import typing
-from typing import Mapping, Optional, NewType, Tuple, Sequence, List
+from typing import Mapping, Optional, NewType, Tuple, Sequence, List, Set, Union
 import attr
 import cattr
 
@@ -38,7 +38,10 @@ ResName3 = typing.NewType("ResName3", str)
 IcoorIndex = NewType("AtomIndex", int)
 
 
-def three2one(three):
+def three2one(three: str) -> Union[str, None]:
+    """Return the one-letter amino acid code given its three letter code,
+    or None if not a valid three-letter code
+    """
     # 'static'
     if not hasattr(three2one, "_mapping"):
         three2one._mapping = {
@@ -68,7 +71,10 @@ def three2one(three):
     return None
 
 
-def one2three(one):
+def one2three(one: str) -> Union[str, None]:
+    """Return the three-letter amino acid code given its one-letter code,
+    or None if not a valid one-letter code.
+    """
     # 'static'
     if not hasattr(one2three, "_mapping"):
         one2three._mapping = {
@@ -104,11 +110,31 @@ class RefinedResidueType(RawResidueType):
     def n_atoms(self):
         return len(self.atoms)
 
+    atom_names_set: Set[str] = attr.ib()
+
+    @atom_names_set.default
+    def _atom_names_set(self):
+        return set([a.name for a in self.atoms])
+
     atom_to_idx: Mapping[str, AtomIndex] = attr.ib()
 
     @atom_to_idx.default
     def _setup_atom_to_idx(self):
         return frozendict((a.name, i) for i, a in enumerate(self.atoms))
+
+    aliases_map: Mapping[str, str] = attr.ib()
+
+    @aliases_map.default
+    def _setup_atom_aliases_mapping(self):
+        # make sure no alias is for an existing atom
+        # and that there are no name colisions among
+        # the aliases
+        aliases = set([])
+        for a in self.atom_aliases:
+            assert a.alt_name not in self.atom_to_idx
+            assert a.alt_name not in aliases
+            aliases.add(a.alt_name)
+        return frozendict((a.alt_name, a.name) for a in self.atom_aliases)
 
     coord_dtype: numpy.dtype = attr.ib()
 
@@ -248,7 +274,7 @@ class RefinedResidueType(RawResidueType):
             bonds_sparse, directed=False, unweighted=True, limit=MAX_SIG_BOND_SEPARATION
         )
         path_distance[path_distance == numpy.inf] = MAX_SIG_BOND_SEPARATION
-        return path_distance
+        return path_distance.astype(numpy.int32)
 
     atom_paths_from_conn: numpy.ndarray = attr.ib()
 
@@ -341,9 +367,11 @@ class RefinedResidueType(RawResidueType):
                     assert mc_ats[-1] == self.connections[i].atom
                     for j in range(self.n_atoms):
                         atom_downstream_of_conn[i, j] = self.atom_to_idx[
-                            mc_ats[len(mc_ats) - j - 1]
-                            if j < len(mc_ats)
-                            else mc_ats[0]
+                            (
+                                mc_ats[len(mc_ats) - j - 1]
+                                if j < len(mc_ats)
+                                else mc_ats[0]
+                            )
                         ]
 
             else:
@@ -452,6 +480,8 @@ class ResidueTypeSet:
 
 @attr.s(slots=True, frozen=True)
 class Residue:
+    """A small class used in the old PackedResidueSystem, soon to be deprecated"""
+
     residue_type: RefinedResidueType = attr.ib()
     coords: numpy.ndarray = attr.ib()
 

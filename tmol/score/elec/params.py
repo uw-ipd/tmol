@@ -112,13 +112,26 @@ class ElecParamResolver(ValidateAttrs):
         remap_bonded_path_lengths = bonded_path_lengths.copy()
         for i in range(nstacks):
             natms = len(res_names[i, ...])
+            for j in range(natms):
+                matches = numpy.where(
+                    (
+                        (res_indices[i, ...] == res_indices[i, j])
+                        & (atom_names[i, ...] == atom_names[i, j])
+                    )
+                )
+                n_matches = len(matches[0])
+                if n_matches == 0 and atom_names[i, j] is not None:
+                    print(res_indices[i, j], atom_names[i, j], n_matches, matches)
+
             mapped_indices = numpy.vectorize(
-                lambda a, b, c: c
-                if a is None or numpy.isnan(a)
-                else (
-                    numpy.where((res_indices[i, ...] == a) & (atom_names[i, ...] == b))[
-                        0
-                    ]
+                lambda a, b, c: (
+                    c
+                    if a is None or numpy.isnan(a)
+                    else (
+                        numpy.where(
+                            (res_indices[i, ...] == a) & (atom_names[i, ...] == b)
+                        )[0]
+                    )
                 )
             )(res_indices[i, ...], mapped_atoms[i, ...], numpy.arange(natms))
 
@@ -136,7 +149,11 @@ class ElecParamResolver(ValidateAttrs):
         res, *vars = block_type.name.split(":")
         vars.append("")  # unpatched last
 
+        res_found = res in self.partial_charges
+
         def lookup_charge(atm):
+            if not res_found:
+                return 0.0
             if atm.name not in self.partial_charges[res]:
                 raise KeyError(
                     "Elec charge for atom "
@@ -164,29 +181,34 @@ class ElecParamResolver(ValidateAttrs):
         vars.append("")  # unpatched last
 
         if res not in self.cp_reps:
-            raise KeyError(
-                "No elec count-pair representative definition for base name " + res
-            )
+            # some residues may not have a need for
+            # elec's count-pair-representative logic.
+            # just return the default representatives
+            return representative_mapping
 
         for outer in block_type.atom_to_idx.keys():
             if outer not in self.cp_reps[res]:
                 continue
 
             inner = None
+
             for v in vars:
                 if v not in self.cp_reps[res][outer]:
                     continue
                 inner = self.cp_reps[res][outer][v]
                 break
 
+            if inner is None:
+                continue
+
             if inner not in block_type.atom_to_idx:
                 raise KeyError(
-                    "Invalid elec cp mapping: " + res + " " + outer + "->" + inner
+                    "Invalid elec cp mapping: " + res + " " + outer + "->" + str(inner)
                 )
 
-            representative_mapping[
-                block_type.atom_to_idx[inner]
-            ] = block_type.atom_to_idx[outer]
+            representative_mapping[block_type.atom_to_idx[inner]] = (
+                block_type.atom_to_idx[outer]
+            )
 
         return representative_mapping
 

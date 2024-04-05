@@ -1,24 +1,17 @@
-test_agent: &test_agent
+test_agent: &cuda_test_agent
   agents:
     queue: cuda
 
-cuda_container: &cuda_container 
-  plugins:
-    docker-compose#v2.5.1:
-        run: buildkite
-
-cpu_container: &cpu_container 
-  plugins:
-    docker-compose#v2.5.1:
-        run: buildkite-cpu
+test_agent: &cpu_test_agent
+  agents:
+    queue: nocuda
 
 steps:
   ### Test installation from source
   # Note that this tests setup and *does not* modify the runtime environment below.
   - label: ':electric_plug: Setup'
     command: .buildkite/bin/setup
-    << : *test_agent
-    << : *cuda_container
+    << : *cuda_test_agent
 
   ### Wait on setup to allow image build to complete before further, potentially parallel steps
   - wait: ~
@@ -27,8 +20,7 @@ steps:
   ### Run formatting/linting checks.
   - label: ':microscope: Linting'
     command: .buildkite/bin/linting
-    << : *test_agent
-    << : *cuda_container
+    << : *cuda_test_agent
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CPU'
@@ -36,8 +28,7 @@ steps:
     artifact_paths:
       - testing.cpu.junit.xml
       - .coverage
-    << : *test_agent
-    << : *cpu_container
+    << : *cpu_test_agent
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CUDA'
@@ -45,8 +36,7 @@ steps:
     artifact_paths:
       - testing.cuda.junit.xml
       - .coverage
-    << : *test_agent
-    << : *cuda_container
+    << : *cuda_test_agent
 
   ### Run tests w/o numba jitting and generate coverage reports
   - label: ':shrug: Testing - CPU debug, w/o jit'
@@ -54,25 +44,14 @@ steps:
     artifact_paths:
       - testing.cpunojit.junit.xml
       - .coverage
-    << : *test_agent
-    << : *cpu_container
-
-  # Disable docs build.
-  ### Generate project documentation
-  #- label: ':open_book: Docs'
-  #  command: .buildkite/bin/docs
-  #  artifact_paths:
-  #    - docs/_build/**/*
-  #  << : *test_agent
-  #  << : *cuda_container
+    << : *cpu_test_agent
 
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
     command: .buildkite/bin/benchmark --benchmark-max-time=.1 
     artifact_paths:
       - benchmark/**/*
-    << : *test_agent
-    << : *cuda_container
+    << : *cuda_test_agent
 
   ### Wait for all tests to finish and upload artifacts
   - wait: ~
@@ -80,17 +59,22 @@ steps:
 
   - label: ':clipboard: Report'
     plugins:
-      uw-ipd/test-summary#master:
-        inputs:
-          - label: Testing - CUDA
-            artifact_path: testing.cuda.junit.xml
-            type: junit
-          - label: Testing - CPU
-            artifact_path: testing.cpu.junit.xml
-            type: junit
-        formatter:
-          type: details
-    << : *test_agent
+      - bugcrowd/test-summary#master:
+          inputs:
+            - label: Testing - CUDA
+              artifact_path: testing.cuda.junit.xml
+              type: junit
+            - label: Testing - CPU
+              artifact_path: testing.cpu.junit.xml
+              type: junit
+          formatter:
+              type: details
+          run_without_docker: True
+    << : *cuda_test_agent
+
+  - label: ':broom: Cleanup'
+    command: .buildkite/bin/cleanup
+    << : *cuda_test_agent
 
   # Disable gh-pages as docs are disabled.
   ### Deploy documentation to gh-pages iff running a master build

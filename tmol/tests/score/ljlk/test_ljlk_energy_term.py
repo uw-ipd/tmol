@@ -3,8 +3,9 @@ import torch
 import pytest
 from torch._C import device
 
+from tmol.io import pose_stack_from_pdb
 from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
-from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
@@ -18,15 +19,16 @@ def test_smoke(default_database, torch_device):
     assert ljlk_energy.global_params.max_dis.device == torch_device
 
 
-def test_annotate_heavy_ats_in_tile(ubq_res, default_database, torch_device):
+def test_annotate_heavy_ats_in_tile(
+    fresh_default_restype_set, default_database, torch_device
+):
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    rt_list = residue_types_from_residues(ubq_res)
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, rt_list, torch_device
+        default_database.chemical, fresh_default_restype_set.residue_types, torch_device
     )
 
-    for rt in rt_list:
+    for rt in fresh_default_restype_set.residue_types:
         ljlk_energy.setup_block_type(rt)
         assert hasattr(rt, "ljlk_heavy_atoms_in_tile")
         assert hasattr(rt, "ljlk_n_heavy_atoms_in_tile")
@@ -35,33 +37,42 @@ def test_annotate_heavy_ats_in_tile(ubq_res, default_database, torch_device):
     assert hasattr(pbt, "ljlk_n_heavy_atoms_in_tile")
 
 
-def test_create_neighbor_list(ubq_res, default_database, torch_device):
-    #
-    # torch_device = torch.device("cpu")
+def get_coord_for_pose_res(pose_stack, pose_ind, res_ind, atom_name):
+    bt_ind = pose_stack.block_type_ind64[pose_ind, res_ind]
+    bt = pose_stack.packed_block_types.active_block_types[bt_ind]
+    atom_ind = bt.atom_to_idx[atom_name]
+    coord_offset = pose_stack.block_coord_offset64[pose_ind, res_ind]
+    return pose_stack.coords[pose_ind, coord_offset + atom_ind, :]
+
+
+def get_coord_or_alt_for_pose_res(
+    pose_stack, pose_ind, res_ind, atom_name, alt_atom_name
+):
+    bt_ind = pose_stack.block_type_ind64[pose_ind, res_ind]
+    bt = pose_stack.packed_block_types.active_block_types[bt_ind]
+    if atom_name in bt.atom_to_idx:
+        atom_ind = bt.atom_to_idx[atom_name]
+    else:
+        atom_ind = bt.atom_to_idx[alt_atom_name]
+    coord_offset = pose_stack.block_coord_offset64[pose_ind, res_ind]
+    return pose_stack.coords[pose_ind, coord_offset + atom_ind, :]
+
+
+def test_create_neighbor_list(ubq_pdb, default_database, torch_device):
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:4], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:6], torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=6)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
-    # for i, rt in enumerate(poses.packed_block_types.active_block_types):
-    #     for j, atom in enumerate(rt.atoms):
-    #         print(rt.name, j, atom.name)
-    # return
-
     # nab the ca coords for these residues
-    bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
+    bounding_spheres = torch.full(
+        (2, 6, 4), numpy.nan, dtype=torch.float32, device=torch_device
+    )
     for i in range(2):
         for j in range(4 if i == 0 else 6):
-            bounding_spheres[i, j, :3] = ubq_res[j].coords[2, :]
+            bounding_spheres[i, j, :3] = get_coord_for_pose_res(poses, i, j, "CA")
     bounding_spheres[:, :, 3] = 3.0
-    bounding_spheres = torch.tensor(
-        bounding_spheres, dtype=torch.float32, device=torch_device
-    )
 
     neighbor_list = ljlk_energy.create_block_neighbor_lists(poses, bounding_spheres)
 
@@ -94,25 +105,23 @@ def test_create_neighbor_list(ubq_res, default_database, torch_device):
                 assert neighbor_list[i, j, k] == -1
 
 
-def test_render_inter_module(ubq_res, default_database, torch_device):
+def test_render_inter_module(ubq_pdb, default_database, torch_device):
     #
     # torch_device = torch.device("cpu")
 
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:4], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:6], torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=6)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     # nab the ca coords for these residues
-    bounding_spheres = numpy.full((2, 6, 4), numpy.nan, dtype=numpy.float32)
+    bounding_spheres = torch.full(
+        (2, 6, 4), numpy.nan, dtype=torch.float32, device=torch_device
+    )
     for i in range(2):
         for j in range(4 if i == 0 else 6):
-            bounding_spheres[i, j, :3] = ubq_res[j].coords[2, :]
+            bounding_spheres[i, j, :3] = get_coord_for_pose_res(poses, i, j, "CA")
     bounding_spheres[:, :, 3] = 3.0
     bounding_spheres = torch.tensor(
         bounding_spheres, dtype=torch.float32, device=torch_device
@@ -175,10 +184,6 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
         poses.block_type_ind[1, 3], device=torch_device
     )
 
-    # TEMP! Just score one residue
-    # alternate_coords = alternate_coords[15:16]
-    # alternate_ids = alternate_ids[15:16]
-
     def run_once():
         rpes = inter_module.go(
             context_coords,
@@ -189,17 +194,9 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
             alternate_ids,
         )
         assert rpes is not None
-        # print()
-        # print(rpes)
 
     run_once()
     run_once()
-
-    # rpes2 = inter_module.go(
-    #     context_coords, context_block_type, alternate_coords, alternate_ids
-    # )
-    # assert rpes2 is not None
-    # print(rpes2)
 
 
 @pytest.mark.benchmark(group="time_rpe")
@@ -207,47 +204,35 @@ def test_render_inter_module(ubq_res, default_database, torch_device):
 @pytest.mark.parametrize("n_traj", [1])
 @pytest.mark.parametrize("n_poses", [10, 30, 100])
 def test_inter_module_timing(
-    benchmark, ubq_res, default_database, n_alts, n_traj, n_poses, torch_device
+    benchmark, ubq_pdb, default_database, n_alts, n_traj, n_poses, torch_device
 ):
-    # n_traj = 100
-    # n_poses = 100
-    # n_alts = 10
-
-    # this is slow on CPU?
-    # torch_device = torch.device("cuda")
-
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res, torch_device
-    )
-    nres = p1.max_n_blocks
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    n_res = p1.max_n_blocks
     poses = PoseStackBuilder.from_poses([p1] * n_poses, torch_device)
 
-    one_bounding_sphere_set = numpy.full((1, nres, 4), numpy.nan, dtype=numpy.float32)
-    for i in range(nres):
-        atnames = set([at.name for at in ubq_res[i].residue_type.atoms])
-        cb = ubq_res[i].coords[5, :] if "CB" in atnames else ubq_res[i].coords[2, :]
+    one_bounding_sphere_set = torch.full(
+        (1, n_res, 4), numpy.nan, dtype=torch.float32, device=torch_device
+    )
+    for i in range(n_res):
+        cb = get_coord_or_alt_for_pose_res(poses, 0, i, "CB", "CA")
+        i_start = poses.block_coord_offset[0, i]
+        i_end = (
+            poses.block_coord_offset[0, i + 1]
+            if i < n_res - 1
+            else poses.coords.shape[1]
+        )
         max_cb_dist = torch.max(
             torch.norm(
-                torch.tensor(
-                    ubq_res[i].coords[2:3, :] - ubq_res[i].coords[:, :],
-                    dtype=torch.float32,
-                    device=torch_device,
-                ),
+                poses.coords[0, i_start:i_end] - cb.unsqueeze(0),
                 dim=1,
             )
         )
         one_bounding_sphere_set[0, i, :3] = cb
         one_bounding_sphere_set[0, i, 3] = max_cb_dist.item()
-    # print("one bounding sphere set")
-    # print(one_bounding_sphere_set)
 
-    # nab the ca coords for these residues
-    bounding_spheres = numpy.repeat(one_bounding_sphere_set, n_poses, axis=0)
-    bounding_spheres = torch.tensor(
-        bounding_spheres, dtype=torch.float32, device=torch_device
-    )
+    bounding_spheres = one_bounding_sphere_set.expand(n_poses, n_res, 4)
 
     # n_traj trajectories for each system
     context_system_ids = torch.floor_divide(
@@ -266,7 +251,7 @@ def test_inter_module_timing(
     max_n_atoms_per_block = poses.packed_block_types.max_n_atoms
     # ok, let's create the contexts
     context_coords = torch.zeros(
-        (n_traj * n_poses, nres, max_n_atoms_per_block, 3),
+        (n_traj * n_poses, n_res, max_n_atoms_per_block, 3),
         dtype=torch.float32,
         device=torch_device,
     )
@@ -274,14 +259,14 @@ def test_inter_module_timing(
     context_coords[:, :, :, :] = poses_expanded_coords[0:1, :, :, :]
     context_coords = context_coords.view(n_poses, -1, 3)
     context_coord_offsets = max_n_atoms_per_block * torch.remainder(
-        torch.arange(nres * n_poses, dtype=torch.int32, device=torch_device).view(
-            n_poses, nres
+        torch.arange(n_res * n_poses, dtype=torch.int32, device=torch_device).view(
+            n_poses, n_res
         ),
-        nres,
+        n_res,
     )
 
     context_block_type = torch.zeros(
-        (n_traj * n_poses, nres), dtype=torch.int32, device=torch_device
+        (n_traj * n_poses, n_res), dtype=torch.int32, device=torch_device
     )
     context_block_type[:, :] = torch.tensor(
         poses.block_type_ind[0:1, :], device=torch_device
@@ -299,7 +284,7 @@ def test_inter_module_timing(
             ),
             n_alts,
         ),
-        nres,
+        n_res,
     )
     alternate_coords[:, :, :] = poses_expanded_coords[
         0:1, which_block.type(torch.int64), :, :
@@ -337,12 +322,16 @@ def test_inter_module_timing(
     assert vals is not None
 
 
-def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
-    gold_vals = numpy.array([[-9.207252], [1.51558], [3.61822]], dtype=numpy.float32)
-
+def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
+    gold_vals = numpy.array([[-7.717818], [3.648599]], dtype=numpy.float32)
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res[0:4], device=torch_device
+
+    # the gold_vals are calculated assuming the fourth residue is not a cterm res;
+    # so create a "res_not_connected" tensor to tell tmol not to treat it like a cterm
+    r3_not_cterm = torch.zeros((1, 4, 2), dtype=torch.bool, device=torch_device)
+    r3_not_cterm[0, 3, 1] = True
+    p1 = pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_end=4, res_not_connected=r3_not_cterm
     )
     for bt in p1.packed_block_types.active_block_types:
         ljlk_energy.setup_block_type(bt)
@@ -352,8 +341,13 @@ def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_de
     ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
 
     coords = torch.nn.Parameter(p1.coords.clone())
-    scores = ljlk_pose_scorer(
-        coords,
+    scores = ljlk_pose_scorer(coords)
+
+    # make sure we're still good
+    torch.arange(100, device=torch_device)
+
+    numpy.testing.assert_allclose(
+        gold_vals, scores.cpu().detach().numpy(), atol=1e-6, rtol=1e-6
     )
 
     numpy.testing.assert_allclose(gold_vals, scores.cpu().detach().numpy(), atol=1e-4)
@@ -363,51 +357,49 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
     energy_term_class = LJLKEnergyTerm
 
     @classmethod
-    def test_whole_pose_scoring_10(
-        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
-    ):
+    def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
         return super().test_whole_pose_scoring_10(
-            rts_ubq_res, default_database, torch_device, update_baseline
+            ubq_pdb, default_database, torch_device, update_baseline=False
         )
 
     @classmethod
-    def test_whole_pose_scoring_gradcheck(
-        cls, rts_ubq_res, default_database, torch_device
-    ):
+    def test_whole_pose_scoring_gradcheck(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(0, 4)]
         return super().test_whole_pose_scoring_gradcheck(
-            rts_ubq_res[0:4],
-            default_database,
-            torch_device,
-            nondet_tol=1e-6,  # fd this is necessary here...
+            ubq_pdb, default_database, torch_device, resnums=resnums
         )
 
     @classmethod
     def test_whole_pose_scoring_jagged(
         cls,
-        rts_ubq_res,
+        ubq_pdb,
         default_database,
         torch_device: torch.device,
-        update_baseline=False,
     ):
         return super().test_whole_pose_scoring_jagged(
-            rts_ubq_res, default_database, torch_device, update_baseline
+            ubq_pdb, default_database, torch_device, update_baseline=False
         )
 
     @classmethod
-    def test_block_scoring(
-        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
-    ):
+    def test_block_scoring(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(0, 4)]
         return super().test_block_scoring(
-            rts_ubq_res[0:4], default_database, torch_device, update_baseline
+            ubq_pdb,
+            default_database,
+            torch_device,
+            resnums=resnums,
+            update_baseline=False,
         )
 
     @classmethod
     def test_block_scoring_reweighted_gradcheck(
-        cls, rts_ubq_res, default_database, torch_device
+        cls, ubq_pdb, default_database, torch_device
     ):
+        resnums = [(0, 4)]
         return super().test_block_scoring_reweighted_gradcheck(
-            rts_ubq_res[0:4],
+            ubq_pdb,
             default_database,
             torch_device,
+            resnums=resnums,
             nondet_tol=1e-6,
         )

@@ -1,5 +1,7 @@
 import numpy
 import torch
+
+from tmol.io.pdb_parsing import atom_record_dtype
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.array import NDArray
@@ -8,11 +10,71 @@ from tmol.types.functional import validate_args
 from typing import Optional, Union
 
 
+@validate_args
+def write_pose_stack_pdb(
+    pose_stack: PoseStack,
+    fname_out: str,
+    **kwargs,
+):
+    """Write a PDB-formatted file to disk given an input PoseStack.
+    Optionally, additional arguments may be passed to the inner function
+    "atom_records_from_pose_stack," e.g. the chain_ind_for_block and
+    chain_labels arguments (which bypass the automatic-chain-detection
+    step when deciding which residues are part of the same chain and
+    give arbitrary labels to the chains, respectively) through this
+    function as kwargs. See documentation for
+    tmol.io.write_pose_stack.atom_records_from_pose_stack
+    """
+    from tmol.io.pdb_parsing import to_pdb
+
+    atom_records = atom_records_from_pose_stack(pose_stack, **kwargs)
+    pdbstring = to_pdb(atom_records)
+    with open(fname_out, "w") as fid:
+        fid.write(pdbstring)
+
+
+@validate_args
 def atom_records_from_pose_stack(
     pose_stack: PoseStack,
     chain_ind_for_block: Optional[Tensor[torch.int64][:, :]] = None,
     chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
-):
+) -> NDArray[atom_record_dtype][:]:
+    """Create a numpy array holding the atom records needed to write a
+    PDB file from a PoseStack.
+
+    Now, whereas PoseStack does not have a concept of a "chain," a PDB most
+    certainly does. The good news is that "chain" is an emergent concept from
+    the set of chemical bonds in the system. This function uses the set of
+    chemical bonds and declares any residues that are chemically bonded to be
+    part of the same chain (with the exception of disulfide bonds, which often
+    span between two chains), and then the Union/Find algorithm from there to
+    label each residue with a chain index, with residue 0 always being on chain
+    0, and then chain index increasing monotonically with residue index. These
+    chain indices are then turned into chain letters starting at 'A.' These
+    default chain-handling behaviors can be intercepted by using either or both
+    of the two arguments: chain_ind_for_block and chain_labels.
+
+    If chain_ind_for_block is given, then each residue (aka block) will be
+    labeled by the chain index indicated instead of relying on the Union/Find
+    algorithm on the bond graph. This is especially needed if you have constructed
+    a PoseStack using the res_not_connected argument to pose_stack_from_canonical_form
+    (or any of the PoseStack-construction functions that call it) to state
+    that two adjacent residues belong to the same chain but should not either
+    be treated as termini residues or have chemical bonds between them. The
+    Union/Find algorithm on the chemical graph will declare such residues to
+    be parts of different chains. When constructing such a PoseStack, it is
+    recommended to pass "return_chain_ind=True" and then give that tensor back to
+    this function when saving that PoseStack in PDB format.
+    chain_ind_for_block should be an [n-poses x max-n-residues] tensor.
+
+    If chain_labels is given, then the alphabetical characters for the chains
+    will be taken from there instead of in ascending order starting from 'A.'
+    For an antibody, e.g., chains are typically labeled 'H' and 'L' instead
+    of 'A' and 'B.' chain_labels can either be an [n-poses x max-n-chains]
+    numpy array of characters (so that different poses in the PoseStack
+    can have different chain labels) or a [max-n-chains] numpy array of
+    characters (when each PoseStack has the same chain labels).
+    """
     from tmol.io.chain_deduction import chain_inds_for_pose_stack
 
     if chain_ind_for_block is None:
@@ -35,7 +97,12 @@ def atom_records_from_coords(
     pose_like_coords: Tensor[torch.float32][:, :, 3],
     block_coord_offset: Tensor[torch.int32][:, :],
     chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
-):
+) -> NDArray[atom_record_dtype][:]:
+    """Create a numpy array holding the atom records needed to write a
+    PDB file from the coordinates and block types of a stack of structures,
+    laid out in pose-stack form.
+    """
+
     from tmol.io.pdb_parsing import atom_record_dtype
     from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
@@ -110,7 +177,7 @@ def atom_records_from_coords(
     # ok, let's move everything to the cpu/numpy from here forward
     # chain_begin = chain_begin.cpu().numpy()
     block_types64 = block_types64.cpu().numpy()
-    pose_like_coords = pose_like_coords.cpu().numpy()
+    pose_like_coords = pose_like_coords.cpu().detach().numpy()
     block_coord_offset = block_coord_offset.cpu().numpy()
     is_real_block = is_real_block.cpu().numpy()
     n_block_atoms = n_block_atoms.cpu().numpy()
@@ -169,47 +236,3 @@ def atom_records_from_coords(
     results["b"] = 0
 
     return results
-
-
-def annotate_pbt_w_valid_connection_masks(pbt: PackedBlockTypes):
-    """We want to take the up-down polymeric connections between residues
-    that have up-down connections and not other connections, unless
-    otherwise instructed.
-
-    The logic here is to take the up- and down-connections from
-    polymeric residues as the ones that connect two residues part
-    of the same chain. This would make the C->N connection along
-    a protein backbone serve to say residues i and i+1 are part
-    of the same chain without saying that a disulfide bond
-    between residues i and j make them part of the same chain.
-    (They are at that point a single molecule, but, conceptually
-    still separate chains.)
-
-    For non-polymeric residues, all their chemical bonds should
-    be considered as connecting them to members of their same chain.
-
-    The upshot is: if a polymeric residue is connected to a
-    non-polymeric residue through one of its non-up/non-down
-    connection points, the non-polymeric residue will still be
-    considered part of the polymeric residue's chain. Either
-    connection direction is sufficient to link two residues
-    as part of the same chain.
-    """
-    if hasattr(pbt, "connection_mask_for_chain_detection"):
-        return
-
-    connection_masks = torch.zeros((pbt.n_types, pbt.max_n_conn), dtype=torch.bool)
-    for i, bt in enumerate(pbt.active_block_types):
-        if bt.properties.is_polymer:
-            # for polymeric residues: only their up/down connections are
-            # automatically considered part of chain connection identification
-            if bt.up_connection_ind >= 0:
-                connection_masks[i, bt.up_connection_ind] = True
-            if bt.down_connection_ind >= 0:
-                connection_masks[i, bt.down_connection_ind] = True
-        else:
-            # for non-polymeric residues, all their connecitons are
-            # automatically
-            connection_masks[i, : len(bt.connections)] = True
-
-    setattr(pbt, "connection_mask_for_chain_detection", connection_masks.to(pbt.device))

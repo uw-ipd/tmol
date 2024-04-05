@@ -46,7 +46,7 @@ atom_record_dtype = numpy.dtype(
 )
 
 
-def parse_pdb(pdb_lines):
+def parse_pdb(pdb_lines) -> pandas.DataFrame:
     """Parses pdb file into atom records.
 
     pdb_lines : Iterable lines, a string filename, or a string of lines in PDB format.

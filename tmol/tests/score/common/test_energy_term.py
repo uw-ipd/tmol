@@ -6,8 +6,18 @@ import os
 import yaml
 import importlib
 import functools
+import pandas
 from unittest.mock import patch
 
+from tmol.io import pose_stack_from_pdb
+from tmol.io.pdb_parsing import parse_pdb
+from tmol.io.canonical_ordering import (
+    default_canonical_ordering,
+    default_packed_block_types,
+    select_atom_records_res_subset,
+    canonical_form_from_atom_records,
+)
+from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.energy_term import EnergyTerm
@@ -96,6 +106,42 @@ def print_table(table):
     return retstr
 
 
+def pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums=None):
+    if resnums is None:
+        return pose_stack_from_pdb(pdb, torch_device)
+
+    atom_records = parse_pdb(pdb)
+    atom_subsets = pandas.concat(
+        [select_atom_records_res_subset(atom_records, i, j) for i, j in resnums]
+    )
+    canonical_ordering = default_canonical_ordering()
+    packed_block_types = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_atom_records(
+        canonical_ordering, atom_subsets, torch_device
+    )
+
+    res_not_connected = []
+    for i, j in resnums:
+        for k in range(i, j):
+            if k == i:
+                if k == 0:
+                    res_not_connected.append((False, False))
+                else:
+                    res_not_connected.append((True, False))
+            elif k == j - 1:
+                res_not_connected.append((False, True))
+            else:
+                res_not_connected.append((False, False))
+    canonical_form["res_not_connected"] = torch.tensor(
+        [res_not_connected], dtype=torch.bool, device=torch_device
+    )
+
+    pose_stack = pose_stack_from_canonical_form(
+        canonical_ordering, packed_block_types, **canonical_form
+    )
+    return pose_stack
+
+
 class EnergyTermTestBase:
     energy_term_class = None
 
@@ -170,9 +216,10 @@ class EnergyTermTestBase:
     @classmethod
     def test_whole_pose_scoring_10(
         cls,
-        rts_res,
+        pdb,
         default_database,
         torch_device,
+        resnums=None,
         update_baseline=False,
         eps=1e-6,
         atol=1e-5,
@@ -184,9 +231,7 @@ class EnergyTermTestBase:
             param_db=default_database, device=torch_device
         )
 
-        p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-            default_database.chemical, res=rts_res, device=torch_device
-        )
+        p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
         pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
         for bt in pn.packed_block_types.active_block_types:
@@ -210,9 +255,10 @@ class EnergyTermTestBase:
     @classmethod
     def test_whole_pose_scoring_gradcheck(
         cls,
-        rts_res,
+        pdb,
         default_database,
         torch_device,
+        resnums=None,
         eps=1e-6,  # torch default
         atol=1e-5,  # torch default
         rtol=1e-3,  # torch default
@@ -221,9 +267,7 @@ class EnergyTermTestBase:
         energy_term = cls.energy_term_class(
             param_db=default_database, device=torch_device
         )
-        p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-            default_database.chemical, res=rts_res, device=torch_device
-        )
+        p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
         for bt in p1.packed_block_types.active_block_types:
             energy_term.setup_block_type(bt)
         energy_term.setup_packed_block_types(p1.packed_block_types)
@@ -253,7 +297,7 @@ class EnergyTermTestBase:
     @classmethod
     def test_whole_pose_scoring_jagged(
         cls,
-        rts_res,
+        pdb,
         default_database,
         torch_device: torch.device,
         update_baseline=False,
@@ -262,17 +306,11 @@ class EnergyTermTestBase:
         rtol=1e-3,
         nondet_tol=0,
     ):
-        rts_60 = rts_res[:60]
-        rts_33 = rts_res[:33]
-        p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-            default_database.chemical, res=rts_res, device=torch_device
-        )
-        p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-            default_database.chemical, res=rts_60, device=torch_device
-        )
-        p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
-            default_database.chemical, res=rts_33, device=torch_device
-        )
+        res_50 = [(0, 50)]
+        res_30 = [(0, 30)]
+        p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device)
+        p2 = pose_stack_from_pdb_and_resnums(pdb, torch_device, res_50)
+        p3 = pose_stack_from_pdb_and_resnums(pdb, torch_device, res_30)
         pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
 
         energy_term = cls.energy_term_class(
@@ -300,9 +338,10 @@ class EnergyTermTestBase:
     @classmethod
     def test_block_scoring(
         cls,
-        rts_res,
+        pdb,
         default_database,
         torch_device,
+        resnums=None,
         update_baseline=False,
         atol=1e-5,
         rtol=1e-3,
@@ -310,9 +349,7 @@ class EnergyTermTestBase:
         energy_term = cls.energy_term_class(
             param_db=default_database, device=torch_device
         )
-        p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-            default_database.chemical, res=rts_res, device=torch_device
-        )
+        p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
         for bt in p1.packed_block_types.active_block_types:
             energy_term.setup_block_type(bt)
         energy_term.setup_packed_block_types(p1.packed_block_types)
@@ -345,9 +382,10 @@ class EnergyTermTestBase:
     @classmethod
     def test_block_scoring_reweighted_gradcheck(
         cls,
-        rts_res,
+        pdb,
         default_database,
         torch_device,
+        resnums=None,
         eps=1e-6,  # torch default
         atol=1e-5,  # torch default
         rtol=1e-3,  # torch default
@@ -357,9 +395,7 @@ class EnergyTermTestBase:
             param_db=default_database, device=torch_device
         )
 
-        p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-            default_database.chemical, res=rts_res, device=torch_device
-        )
+        p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
         for bt in p1.packed_block_types.active_block_types:
             energy_term.setup_block_type(bt)
         energy_term.setup_packed_block_types(p1.packed_block_types)

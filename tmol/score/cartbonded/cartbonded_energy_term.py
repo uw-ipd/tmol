@@ -106,13 +106,16 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
     def get_raw_params_for_res(self, res):
-        return (
-            self.cart_database.residue_params[res].length_parameters
-            + self.cart_database.residue_params[res].angle_parameters
-            + self.cart_database.residue_params[res].torsion_parameters
-            + self.cart_database.residue_params[res].improper_parameters
-            + self.cart_database.residue_params[res].hxltorsion_parameters
-        )
+        if res in self.cart_database.residue_params:
+            return (
+                self.cart_database.residue_params[res].length_parameters
+                + self.cart_database.residue_params[res].angle_parameters
+                + self.cart_database.residue_params[res].torsion_parameters
+                + self.cart_database.residue_params[res].improper_parameters
+                + self.cart_database.residue_params[res].hxltorsion_parameters
+            )
+        else:
+            return []
 
     def get_formatted_atoms_and_params(self, raw_params):
         fields = ["atm1", "atm2", "atm3", "atm4"]
@@ -178,10 +181,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             block_type.bond_indices, block_type
         )
         cart_subgraphs = numpy.asarray(lengths + angles + torsions + improper)
-        setattr(block_type, "cartbonded_subgraphs", cart_subgraphs)
 
         # Fetch the params from the database, updating the atom id store if necessary
-        cartbonded_params = self.get_params_for_res(block_type.base_name)
+        temp_hack_base_name = (
+            block_type.base_name if block_type.base_name != "CYD" else "CYS"
+        )
+        cartbonded_params = self.get_params_for_res(temp_hack_base_name)
+        setattr(block_type, "cartbonded_subgraphs", cart_subgraphs)
         setattr(block_type, "cartbonded_params", cartbonded_params)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):

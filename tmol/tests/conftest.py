@@ -19,6 +19,7 @@ from .data import (  # noqa: F401
     ubq_pdb,
     ubq_res,
     ubq_system,
+    disulfide_pdb,
     disulfide_res,
     cst_system,
     cst_csts,
@@ -28,6 +29,9 @@ from .data import (  # noqa: F401
     systems_bysize,
     pertuzumab_pdb,
     pertuzumab_and_nearby_erbb2_pdb_and_segments,
+    openfold_ubq_and_sumo_pred,
+    rosettafold2_ubq_pred,
+    rosettafold2_sumo_pred,
 )
 
 from .chemical import (  # noqa: F401
@@ -67,9 +71,9 @@ def pytest_benchmark_update_machine_info(config, machine_info):
 
     machine_info["cuda"] = {
         "device": {n: device_info_dict(n) for n in range(torch.cuda.device_count())},
-        "current_device": torch.cuda.current_device()
-        if torch.cuda.device_count()
-        else None,
+        "current_device": (
+            torch.cuda.current_device() if torch.cuda.device_count() else None
+        ),
     }
 
     machine_info["cpuinfo"] = cpuinfo.get_cpu_info()

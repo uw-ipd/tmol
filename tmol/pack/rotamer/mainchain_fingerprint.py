@@ -186,7 +186,7 @@ def create_non_sidechain_fingerprint(
                 mc_anc_icoor_ind = rt.at_to_icoor_ind[mc_anc]
 
                 def t64(coord):
-                    return torch.tensor([coord], dtype=torch.float64)
+                    return torch.tensor(coord, dtype=torch.float64).unsqueeze(0)
 
                 at1_coord = t64(rt.ideal_coords[mc1_icoor_ind])
                 at2_coord = t64(rt.ideal_coords[mc_anc_icoor_ind])
@@ -422,9 +422,9 @@ def find_unique_fingerprints(
                     continue
                 rt_fingerprint = rt.mc_fingerprints[sampler]
                 for ll, at_fp in enumerate(fp):
-                    mc_atom_inds_for_rt_for_sampler[
-                        ii, jj, kk, ll
-                    ] = rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
+                    mc_atom_inds_for_rt_for_sampler[ii, jj, kk, ll] = (
+                        rt_fingerprint.at_for_fingerprint.get(at_fp, -1)
+                    )
 
     def _t(arr):
         return torch.tensor(arr, dtype=torch.int64, device=pbt.device)

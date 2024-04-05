@@ -141,6 +141,6 @@ def test_variable_bonded_path_length(ubq_res):
     numpy.testing.assert_allclose(
         inds_both.bond_spans[0, : inds4.bond_spans.shape[1]], inds4.bond_spans[0]
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         inds_both.bond_spans[1, : inds6.bond_spans.shape[1]], inds6.bond_spans[0]
     )

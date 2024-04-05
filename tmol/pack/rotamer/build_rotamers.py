@@ -524,7 +524,7 @@ def merge_chi_samples(chi_samples):
     )
     sampler_for_rotamer_unsorted = torch.cat(
         [
-            torch.full((samples[1].shape[0],), i, dtype=torch.int64)
+            torch.full((samples[1].shape[0],), i, dtype=torch.int64, device=device)
             for i, samples in enumerate(chi_samples)
         ]
     )
@@ -553,9 +553,9 @@ def merge_chi_samples(chi_samples):
         all_chi_atoms[
             offset : (offset + samples[2].shape[0]), : samples[2].shape[1]
         ] = samples[2]
-        all_chi[
-            offset : (offset + samples[2].shape[0]), : samples[3].shape[1]
-        ] = samples[3]
+        all_chi[offset : (offset + samples[2].shape[0]), : samples[3].shape[1]] = (
+            samples[3]
+        )
         offset += samples[2].shape[0]
 
     all_chi_atoms = all_chi_atoms[sort_ind_for_rotamer]
@@ -594,9 +594,11 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
 
     sampler_ind_mapping = torch.tensor(
         [
-            pbt.mc_fingerprints.sampler_mapping[sampler.sampler_name()]
-            if sampler.sampler_name() in pbt.mc_fingerprints.sampler_mapping
-            else -1
+            (
+                pbt.mc_fingerprints.sampler_mapping[sampler.sampler_name()]
+                if sampler.sampler_name() in pbt.mc_fingerprints.sampler_mapping
+                else -1
+            )
             for sampler in samplers
         ],
         dtype=torch.int64,
@@ -667,8 +669,12 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     )
 
     rot_mcfp_at_inds_kto[rot_mcfp_at_inds_kto != -1] += n_dof_atoms_offset_for_rot[
-        torch.floor_divide(
-            torch.arange(n_rots * max_n_mcfp_atoms, dtype=torch.int64), max_n_mcfp_atoms
+        torch.div(
+            torch.arange(
+                n_rots * max_n_mcfp_atoms, dtype=torch.int64, device=poses.device
+            ),
+            max_n_mcfp_atoms,
+            rounding_mode="trunc",
         )[rot_mcfp_at_inds_kto != -1]
     ].to(torch.int64)
 

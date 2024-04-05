@@ -8,6 +8,59 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 
 @attr.s(auto_attribs=True)
 class PoseStack:
+    """The PoseStack class defines a batch (a stack) of molecular systems
+
+    The PoseStack defines the per-residue chemistry, inter-residue
+    connectivity, and coordinates of a set of molecular systems.
+    The per-residue chemistry and the connectivity are meant to be
+    constant over its lifetime; however, its coordinates are allowed
+    to change. That is, a PoseStack may have its coords tensor written
+    to without any negative consequences. Thus, you can minimize the
+    coordinates in a PoseStack.
+
+    Datamembers:
+    packed_block_types: a representation of the chemical space that this
+    PoseStack can contain. The PackedBlockTypes object aggregates a set
+    of residue-types objects (RefinedResidueTypes) and holds annotations
+    for this aggregate that must be made by the terms in the ScoreFunction
+    in order for them to efficiently perform their calculations.
+
+    coords: a tensor of [n_poses x max_n_atoms_per_pose x 3] holding the
+    cartesian coordinates of the atoms in the system. The coordinates
+    of the atoms are held in a contiguous array so that mixing very
+    large residue types (e.g. heme) and very small residue types
+    (e.g. water) does not waste memory / GPU cache.
+
+    block_coord_offset: a tensor of [n_poses x max_n_residues] holding
+    the starting indices in the coords tensor for the residues; offsets
+    for custom kernels are 32-bit integers, offset for torch functions
+    are 64-bit integers. We keep around both for performance reasons.
+
+    inter_residue_connections: a tensor of
+    [n_poses x max_n_residues x max_n_conn x 2] representing for each
+    inter-residue connection point on each residue the 1) index of
+    the residue it is connected to (sentinel of -1 for "no connection
+    defined) and the connection-point index it is connected to
+    (sentinel of -1, also).
+
+    inter_block_bondsep: a integer tensor of shape
+    [n_poses x max_n_residues x max_n_residues x max_n_conn x max_n_conn]
+    stating the number of chemical bonds that separate every pair of
+    inter-residue connections for every pair of residues -- up to a
+    maximum inter-residue separation of
+    tmol.chemical.MAX_SIG_BOND_SEPARATION (6 as of March 2024) --
+    so that the number of chemical bonds separating arbitrary
+    atom pairs may be rapidly computed for the interatomic energy
+    calculations
+
+    block_type_ind: the integer index for each block type (residue type)
+    referring to the order in which that block type appears in the
+    PoseStack's PackedBlockTypes object. A sentinel of -1 for positions
+    where there is no block type.
+
+    device: the torch.device that this collection of structures lives on
+    """
+
     packed_block_types: PackedBlockTypes
     # residues: List[List[Residue]]
 

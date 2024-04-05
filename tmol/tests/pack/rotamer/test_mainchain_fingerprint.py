@@ -85,7 +85,7 @@ def test_create_non_sc_fingerprint_smoke(default_database):
 
         construct_single_residue_kinforest(rt)
 
-        sc_at_root = "CB" if rt.name != "GLY" else "2HA"
+        sc_at_root = "CB" if rt.name != "GLY" else "HA3"
 
         create_mainchain_fingerprint(rt, (sc_at_root,), default_database.chemical)
 
@@ -198,10 +198,10 @@ def test_merge_fingerprints(default_database):
     assert hasattr(pbt, "mc_fingerprints")
 
     standard_mc_atoms = ["N", "H", "CA", "HA", "C", "O"]
-    glycine_mc_atoms = ["N", "H", "CA", "1HA", "C", "O"]
+    glycine_mc_atoms = ["N", "H", "CA", "HA2", "C", "O"]
 
     standard_mc_atoms_w_pro = ["N", "CA", "HA", "C", "O"]
-    glycine_mc_atoms_w_pro = ["N", "CA", "1HA", "C", "O"]
+    glycine_mc_atoms_w_pro = ["N", "CA", "HA2", "C", "O"]
 
     def which_atoms(orig_rt, target_rt):
         if orig_rt.name == "PRO":

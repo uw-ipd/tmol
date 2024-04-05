@@ -31,7 +31,7 @@ def test_segscan_inclusive(extension):
     y = extension.segscan_incl(xcuda, segscuda)
     y = y.to(device="cpu")
 
-    torch.testing.assert_allclose(gold, y)
+    torch.testing.assert_close(gold, y)
 
 
 @requires_cuda
@@ -52,7 +52,7 @@ def test_segscan_exclusive(extension):
     y = extension.segscan_excl(xcuda, segscuda)
     y = y.to(device="cpu")
 
-    torch.testing.assert_allclose(gold, y)
+    torch.testing.assert_close(gold, y)
 
 
 @requires_cuda
@@ -69,12 +69,12 @@ def test_segscan(extension):
     y = extension.segscan_incl(x, segs)
     ycuda = extension.segscan_incl(xcuda, segscuda)
 
-    torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
+    torch.testing.assert_close(ycuda.to(device="cpu"), y)
 
     y = extension.segscan_excl(x, segs)
     ycuda = extension.segscan_excl(xcuda, segscuda)
 
-    torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
+    torch.testing.assert_close(ycuda.to(device="cpu"), y)
 
 
 @requires_cuda
@@ -91,12 +91,12 @@ def test_segscan2(extension):
     y = extension.weird_segscan_incl_128_2(x, segs)
     ycuda = extension.weird_segscan_incl_128_2(xcuda, segscuda)
 
-    torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
+    torch.testing.assert_close(ycuda.to(device="cpu"), y)
 
     y = extension.segscan_excl(x, segs)
     ycuda = extension.segscan_excl(xcuda, segscuda)
 
-    torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
+    torch.testing.assert_close(ycuda.to(device="cpu"), y)
 
 
 @requires_cuda
@@ -498,7 +498,7 @@ def test_segscan_highly_segmented(extension):
     segscuda = segs.to(device="cuda")
     y = extension.segscan_incl(x, segs)
     ycuda = extension.segscan_incl(xcuda, segscuda)
-    torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
+    torch.testing.assert_close(ycuda.to(device="cpu"), y)
 
     x = torch.ones(840, dtype=torch.float32)
     segs = torch.tensor(
@@ -813,7 +813,7 @@ def test_segscan_highly_segmented(extension):
     segscuda = segs.to(device="cuda")
     y = extension.segscan_incl_128_2(x, segs)
     ycuda = extension.segscan_incl_128_2(xcuda, segscuda)
-    torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
+    torch.testing.assert_close(ycuda.to(device="cpu"), y)
 
 
 @requires_cuda
@@ -869,7 +869,7 @@ def test_segscan_highly_segmented2(extension):
     # print(y)
     # print("y cuda")
     # print(ycuda.cpu())
-    torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
+    torch.testing.assert_close(ycuda.to(device="cpu"), y)
 
 
 def highly_segmented3():
@@ -5213,7 +5213,7 @@ def test_segscan_highly_segmented3(extension):
     # print(y)
     # print("y cuda")
     # print(ycuda.cpu())
-    torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
+    torch.testing.assert_close(ycuda.to(device="cpu"), y)
 
 
 @requires_cuda

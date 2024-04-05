@@ -21,7 +21,7 @@ warnings.filterwarnings(
 
 _default_include_paths = list(tmol_include_paths() + extern_include_paths())
 
-_required_flags = ["--std=c++14", "-DWITH_NVTX", "-w"]
+_required_flags = ["--std=c++17", "-DWITH_NVTX", "-w"]
 
 if os.environ.get("DEBUG"):
     _default_flags = ["-O3", "-DDEBUG"]
@@ -42,7 +42,7 @@ def get_torch_version():
 torch_major, torch_minor = get_torch_version()
 
 _required_cuda_flags = [
-    "-std=c++14",
+    "-std=c++17",
     "--expt-extended-lambda",
     "-DWITH_NVTX",
     "-w",

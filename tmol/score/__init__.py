@@ -1,16 +1,29 @@
 import toolz.functoolz
 import torch
+from typing import Optional
+from tmol.database import ParameterDatabase
 
 
 @toolz.functoolz.memoize
-def beta2016_score_function(device: torch.device):
+def beta2016_score_function(
+    device: torch.device, param_db: Optional[ParameterDatabase] = None
+):
+    """Return a ScoreFunction implementing the beta_nov2016 score function
+    of Rosetta3.
+
+    See:
+    https://pubs.acs.org/doi/10.1021/acs.jctc.6b0081 and
+    https://pubs.acs.org/doi/full/10.1021/acs.jctc.7b00125
+    """
+
     from tmol.database import ParameterDatabase
     from .score_function import ScoreFunction
     from .score_types import ScoreType
 
-    default_db = ParameterDatabase.get_default()
+    if param_db is None:
+        param_db = ParameterDatabase.get_default()
 
-    sfxn = ScoreFunction(default_db, device)
+    sfxn = ScoreFunction(param_db, device)
     sfxn.set_weight(ScoreType.fa_lj, 1.0)
     sfxn.set_weight(ScoreType.fa_lk, 1.0)
     sfxn.set_weight(ScoreType.fa_elec, 1.0)
@@ -27,10 +40,8 @@ def beta2016_score_function(device: torch.device):
     sfxn.set_weight(ScoreType.cart_torsions, 0.5)
     sfxn.set_weight(ScoreType.cart_impropers, 0.5)
     sfxn.set_weight(ScoreType.cart_hxltorsions, 0.5)
-
-    # When these terms come online, here are there weights
-    # sfxn.set_weight(ScoreType.fa_dun_rot, 0.76)
-    # sfxn.set_weight(ScoreType.fa_dun_dev, 0.69)
-    # sfxn.set_weight(ScoreType.fa_dun_semi, 0.78)
+    sfxn.set_weight(ScoreType.dunbrack_rot, 0.76)
+    sfxn.set_weight(ScoreType.dunbrack_rotdev, 0.69)
+    sfxn.set_weight(ScoreType.dunbrack_semirot, 0.78)
 
     return sfxn

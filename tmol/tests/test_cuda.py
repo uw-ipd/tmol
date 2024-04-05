@@ -20,7 +20,7 @@ def test_torch_cuda_smoke():
 
     c = a.cuda() @ b.cuda()
 
-    torch.testing.assert_allclose(a @ b, c.cpu())
+    torch.testing.assert_close(a @ b, c.cpu())
 
 
 @pytest.mark.parametrize("dtype", [torch.float, torch.double], ids=("single", "double"))

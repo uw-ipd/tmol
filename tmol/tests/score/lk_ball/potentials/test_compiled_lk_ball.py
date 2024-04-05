@@ -43,7 +43,7 @@ def test_build_acc_waters():
 
     for torsion, water_ref in zip(torsions, waters_ref):
         water = BuildAcceptorWater.apply(A, B, B0, dist, angle, torsion)
-        torch.testing.assert_allclose(water, water_ref)
+        torch.testing.assert_close(water, water_ref)
 
         gradcheck(
             lambda A, B, B0: BuildAcceptorWater.apply(A, B, B0, dist, angle, torsion),
@@ -66,7 +66,7 @@ def test_build_don_water():
 
     waters = BuildDonorWater.apply(D, H, dist)
     waters_ref = tensor([-7.91642236, 3.81579633, 1.5335272])
-    torch.testing.assert_allclose(waters, waters_ref)
+    torch.testing.assert_close(waters, waters_ref)
 
     gradcheck(
         lambda D, H: BuildDonorWater.apply(D, H, dist),
@@ -278,7 +278,7 @@ def test_lk_ball_donor_donor_spotcheck(ljlk_params, atype_params):
         at_j,
     )
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         i_by_j + j_by_i, tensor([0.3355, 0.0, 0.2649, 0.7896]), atol=1e-4, rtol=1e-4
     )
 
@@ -333,7 +333,7 @@ def test_lk_ball_sp2_nonpolar_spotcheck(ljlk_params, atype_params):
         nonpolar_at,
     )
 
-    torch.testing.assert_allclose(i_by_j, tensor([0.14107985, 0.04765878, 0.0, 0.0]))
+    torch.testing.assert_close(i_by_j, tensor([0.14107985, 0.04765878, 0.0, 0.0]))
 
 
 def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
@@ -441,7 +441,7 @@ def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
         atom_types[3],
     )
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         sp3_by_nonpolar, tensor([0.00385956, 0.0001626, 0.0, 0.0]), atol=1e-4, rtol=1e-4
     )
 
@@ -457,7 +457,7 @@ def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
         atom_types[5],
     )
 
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         sp3_by_nonpolar, tensor([0.00369549, 0.0028072, 0.0, 0.0]), atol=1e-4, rtol=1e-4
     )
 
@@ -472,7 +472,7 @@ def test_lk_ball_sp3_ring_spotcheck(ljlk_params, atype_params):
         ring_at,
         atom_types[0],
     )
-    torch.testing.assert_allclose(
+    torch.testing.assert_close(
         ring_by_nonpolar,
         tensor([0.01360676, 0.0135272, 0.0, 0.0]),
         atol=1e-4,

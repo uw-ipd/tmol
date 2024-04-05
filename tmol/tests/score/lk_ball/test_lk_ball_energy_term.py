@@ -1,6 +1,7 @@
 import numpy
 import torch
 
+from tmol.io import pose_stack_from_pdb
 from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
 
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -50,14 +51,12 @@ def test_annotate_restypes(
     assert pbt.lk_ball_params.tile_lk_ball_params.device == torch_device
 
 
-def test_whole_pose_scoring_module_smoke(rts_ubq_res, default_database, torch_device):
+def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
     gold_vals = numpy.array(
         [[422.0388], [172.1965], [1.5786], [10.9946]], dtype=numpy.float32
     )
     lk_ball_energy = LKBallEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res, device=torch_device
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     for bt in p1.packed_block_types.active_block_types:
         lk_ball_energy.setup_block_type(bt)
     lk_ball_energy.setup_packed_block_types(p1.packed_block_types)
@@ -79,51 +78,53 @@ class TestLKBallEnergyTerm(EnergyTermTestBase):
     energy_term_class = LKBallEnergyTerm
 
     @classmethod
-    def test_whole_pose_scoring_10(
-        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
-    ):
+    def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
         return super().test_whole_pose_scoring_10(
-            rts_ubq_res, default_database, torch_device, update_baseline
+            ubq_pdb, default_database, torch_device, update_baseline=False
         )
 
     @classmethod
-    def test_whole_pose_scoring_gradcheck(
-        cls, rts_ubq_res, default_database, torch_device
-    ):
+    def test_whole_pose_scoring_gradcheck(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(0, 4)]
         return super().test_whole_pose_scoring_gradcheck(
-            rts_ubq_res[0:4],
+            ubq_pdb,
             default_database,
             torch_device,
+            resnums=resnums,
             nondet_tol=1e-6,  # fd this is necessary here...
         )
 
     @classmethod
     def test_whole_pose_scoring_jagged(
         cls,
-        rts_ubq_res,
+        ubq_pdb,
         default_database,
         torch_device: torch.device,
-        update_baseline=False,
     ):
         return super().test_whole_pose_scoring_jagged(
-            rts_ubq_res, default_database, torch_device, update_baseline
+            ubq_pdb, default_database, torch_device, update_baseline=False
         )
 
     @classmethod
-    def test_block_scoring(
-        cls, rts_ubq_res, default_database, torch_device, update_baseline=False
-    ):
+    def test_block_scoring(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(0, 4)]
         return super().test_block_scoring(
-            rts_ubq_res[0:4], default_database, torch_device, update_baseline, atol=1e-4
+            ubq_pdb,
+            default_database,
+            torch_device,
+            update_baseline=False,
+            resnums=resnums,
         )
 
     @classmethod
     def test_block_scoring_reweighted_gradcheck(
-        cls, rts_ubq_res, default_database, torch_device
+        cls, ubq_pdb, default_database, torch_device
     ):
+        resnums = [(0, 4)]
         return super().test_block_scoring_reweighted_gradcheck(
-            rts_ubq_res[0:4],
+            ubq_pdb,
             default_database,
             torch_device,
+            resnums=resnums,
             nondet_tol=1e-6,  # fd this is necessary here...
         )

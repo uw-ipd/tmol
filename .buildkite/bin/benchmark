@@ -1,7 +1,12 @@
 #!/bin/bash
 
-set -x
 set -e
+
+source ~/.bashrc
+conda activate $BUILDKITE_BUILD_ID
+export TORCH_EXTENSIONS_DIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/torch_extensions
+
+set -x
 
 BENCHMARK_DIR=benchmark/${BUILDKITE_PIPELINE_SLUG}/${BUILDKITE_AGENT_NAME}/${BUILDKITE_BRANCH}
 BENCHMARK_RESULT=${BENCHMARK_DIR}/${BUILDKITE_BUILD_NUMBER}-`git describe --tags --dirty`.json 
@@ -15,6 +20,9 @@ echo '+++ Benchmark Summary'
 
 if [ ! -z "$BUILDKITE_PULL_REQUEST_BASE_BRANCH" ]; then
   echo '+++ Fetch PR Base Log'
+  # if fetch_buildkite_benchmark cannot locate the base branch,
+  # then it will exit without sending anything to stdout and
+  # PR_BASE_LOG will be empty
   PR_BASE_LOG=$(.buildkite/bin/fetch_buildkite_benchmark "$BUILDKITE_PULL_REQUEST_BASE_BRANCH")
 fi
 
@@ -30,7 +38,7 @@ python -m tmol.tests.score.plot_total_score_onepass $(find benchmark -name '*.js
 echo '+++ tmol.tests.score.plot_score_component_pass'
 python -m tmol.tests.score.plot_score_component_pass $(find benchmark -name '*.json')
 
-if [ ! -z "$BUILDKITE_PULL_REQUEST_BASE_BRANCH" ]; then
+if [ ! -z "$BUILDKITE_PULL_REQUEST_BASE_BRANCH" -a ! -z "$PR_BASE_LOG" ]; then
   echo '--- Cleanup PR Base Log'
   rm $PR_BASE_LOG
 fi

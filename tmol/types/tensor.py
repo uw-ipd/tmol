@@ -11,7 +11,7 @@ from .shape import Shape
 from .converters import register_converter
 from .validators import register_validator
 
-from typish import SubscriptableType
+from .subscriptable import SubscriptableType
 
 _NOTHING = object()
 
