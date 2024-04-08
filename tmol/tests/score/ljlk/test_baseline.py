@@ -1,12 +1,9 @@
 import pytest
-import torch
 from pytest import approx
 
 from tmol.score.modules.bases import ScoreSystem
 from tmol.score.modules.ljlk import LJScore, LKScore
 from tmol.score.modules.coords import coords_for
-from tmol.io import pose_stack_from_pdb
-from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 
 
 module_comparisons = {
