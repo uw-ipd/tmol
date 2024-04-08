@@ -19,7 +19,7 @@ def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_dev
 
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
-    sfxn.set_weight(ScoreType.fa_ljrep, 0.65)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
     sfxn.set_weight(ScoreType.fa_lk, 0.8)
 
     cart_sfxn_network = CartesianSfxnNetwork(sfxn, pose_stack5)
@@ -60,7 +60,7 @@ def test_minimize_w_pose_and_sfxn_benchmark(
 
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
-    sfxn.set_weight(ScoreType.fa_ljrep, 0.65)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
     sfxn.set_weight(ScoreType.fa_lk, 0.8)
 
     @benchmark

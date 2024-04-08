@@ -11,7 +11,7 @@ def test_pose_score_smoke(rts_ubq_res, default_database, torch_device):
 
     sfxn = ScoreFunction(default_database, torch_device)
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
-    sfxn.set_weight(ScoreType.fa_ljrep, 0.65)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
     sfxn.set_weight(ScoreType.fa_lk, 0.8)
 
     scorer = sfxn.render_whole_pose_scoring_module(pose_stack100)
