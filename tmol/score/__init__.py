@@ -24,7 +24,8 @@ def beta2016_score_function(
         param_db = ParameterDatabase.get_default()
 
     sfxn = ScoreFunction(param_db, device)
-    sfxn.set_weight(ScoreType.fa_lj, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
     sfxn.set_weight(ScoreType.fa_lk, 1.0)
     sfxn.set_weight(ScoreType.fa_elec, 1.0)
     sfxn.set_weight(ScoreType.hbond, 1.0)
