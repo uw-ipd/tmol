@@ -309,7 +309,7 @@ class EnergyTermTestBase:
         assert_allclose(gold_vals, scores, atol, rtol)
 
     @classmethod
-    def test_block_scoring_matches_full_pose_scoring(
+    def test_block_scoring_matches_whole_pose_scoring(
         cls, pdb, default_database, torch_device, resnums=None, atol=1e-5, rtol=1e-3
     ):
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
