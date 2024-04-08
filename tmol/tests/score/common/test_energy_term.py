@@ -152,7 +152,7 @@ class EnergyTermTestBase:
     def save_test_baseline_data(cls, testname, data):
         filename = cls.get_test_baseline_data_filename(testname)
         with open(filename, "w") as outfile:
-            yaml.safe_dump(data, outfile)  # , default_flow_style=None)
+            yaml.safe_dump(data, outfile)
 
     @classmethod
     def block_pair_to_dict(cls, data):
@@ -190,7 +190,6 @@ class EnergyTermTestBase:
         filename = cls.get_test_baseline_data_filename(testname)
         try:
             with open(filename, "r") as infile:
-                # return pickle.load(infile)
                 return numpy.array(
                     cls.recursive_reformat_from_dicts(yaml.safe_load(infile))
                 )
@@ -353,16 +352,11 @@ class EnergyTermTestBase:
                 cls.test_block_scoring.__name__, cls.block_pair_to_dict(scores)
             )
         gold_vals = cls.get_test_baseline_data(cls.test_block_scoring.__name__)
-        # print(gold_vals)
-        """
-        close = numpy.isclose(gold_vals, scores, atol=atol, rtol=rtol)
-        badvals = numpy.argwhere(close==False)
-        for bv in badvals:
-            ind = tuple(bv)
-            #print("%s: (baseline):%f (computed):%f (diff):%f" % (bv, gold_vals[ind], scores[ind], gold_vals[ind]-scores[ind]))
-            """
 
-        # numpy.testing.assert_allclose(gold_vals, scores, rtol=1e-5)
+        # compare with full-pose scoring
+        full_pose_scores = pose_scorer(coords).cpu().detach().numpy()
+        assert_allclose(full_pose_scores, scores.sum((2, 3)), atol, rtol)
+
         assert_allclose(gold_vals, scores, atol, rtol)
 
     @classmethod
