@@ -69,6 +69,14 @@ class TestDisulfideEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
+    def test_block_scoring_matches_full_pose_scoring(
+        cls, disulfide_pdb, default_database, torch_device
+    ):
+        return super().test_block_scoring_matches_full_pose_scoring(
+            disulfide_pdb, default_database, torch_device
+        )
+
+    @classmethod
     def test_block_scoring(cls, disulfide_pdb, default_database, torch_device):
         resnums = [(2, 4), (21, 23)]
         return super().test_block_scoring(

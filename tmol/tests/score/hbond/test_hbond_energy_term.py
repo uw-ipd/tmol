@@ -99,6 +99,14 @@ class TestHBondEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
+    def test_block_scoring_matches_full_pose_scoring(
+        cls, ubq_pdb, default_database, torch_device
+    ):
+        return super().test_block_scoring_matches_full_pose_scoring(
+            ubq_pdb, default_database, torch_device
+        )
+
+    @classmethod
     def test_block_scoring(cls, ubq_pdb, default_database, torch_device):
         resnums = [(6, 8), (10, 12)]
         return super().test_block_scoring(
