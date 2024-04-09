@@ -5,6 +5,7 @@ import yaml
 import importlib
 import functools
 import pandas
+import pytest
 
 from tmol.io import pose_stack_from_pdb
 from tmol.io.pdb_parsing import parse_pdb
@@ -16,6 +17,7 @@ from tmol.io.canonical_ordering import (
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.score.ref.ref_energy_term import RefEnergyTerm
 
 
 # monkeypatch function to give more sane output from torch gradcheck
@@ -391,3 +393,37 @@ class EnergyTermTestBase:
             rtol=rtol,
             nondet_tol=nondet_tol,
         )
+
+
+# We use Ref as dummy for generic energy term tests. This new class ensures it gets its own test data directory
+class DummyEnergyTerm(RefEnergyTerm):
+    pass
+
+
+class EnergyTermBaseTester(EnergyTermTestBase):
+    energy_term_class = DummyEnergyTerm
+
+
+# This test just makes sure the updating_baseline functionality works (only tests the '10' variant currently)
+def test_energy_term_base_write_baseline_smoke(ubq_pdb, default_database, torch_device):
+    test_class = EnergyTermBaseTester()
+    test_class.test_whole_pose_scoring_10(
+        ubq_pdb, default_database, torch_device, update_baseline=True
+    )
+
+
+# This test makes sure that the 'jagged' test of the DummyEnergyTerm (Ref) fails. The baselines for the Dummy term's 'jagged' test have been manually modified and should always fail
+def test_energy_term_fail(ubq_pdb, default_database, torch_device):
+    test_class = EnergyTermBaseTester()
+    failed = False
+
+    try:
+        test_class.test_whole_pose_scoring_jagged(
+            ubq_pdb, default_database, torch_device, update_baseline=False
+        )
+        failed = True
+    except AssertionError:
+        pass
+
+    if failed:
+        raise AssertionError("Test passed with bad baselines.")
