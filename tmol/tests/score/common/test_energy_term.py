@@ -5,7 +5,6 @@ import yaml
 import importlib
 import functools
 import pandas
-import pytest
 
 from tmol.io import pose_stack_from_pdb
 from tmol.io.pdb_parsing import parse_pdb
