@@ -29,7 +29,7 @@ struct build_coordinate {
 
     def astuple() { return tmol::score::common::make_tuple(dp, dgp, dggp); }
 
-    static def Zero()->dV_t {
+    static def Zero() -> dV_t {
       return {RealMat::Zero(), RealMat::Zero(), RealMat::Zero()};
     }
   };
@@ -38,7 +38,7 @@ struct build_coordinate {
   // B = grand parent
   // C = great-grant parent
   static def V(Real3 A, Real3 B, Real3 C, Real dist, Real angle, Real torsion)
-      ->Real3 {
+      -> Real3 {
     const Real pi = EIGEN_PI;
 
     // Generate orientation frame
@@ -77,7 +77,7 @@ struct build_coordinate {
   // B = grand parent
   // C = great-grant parent
   static def dV(Real3 A, Real3 B, Real3 C, Real dist, Real angle, Real torsion)
-      ->dV_t {
+      -> dV_t {
     const Real pi = EIGEN_PI;
 
     Real sin_a = std::sin(pi - angle);

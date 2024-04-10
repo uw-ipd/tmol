@@ -85,8 +85,11 @@ struct LJLKPoseScoreDispatch {
       bool output_block_pair_energies,
 
       // do we need to compute gradients?
-      bool require_gradient) -> std::
-      tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>, TPack<Int, 3, D> >;
+      bool require_gradient)
+      -> std::tuple<
+          TPack<Real, 4, D>,
+          TPack<Vec<Real, 3>, 3, D>,
+          TPack<Int, 3, D> >;
 
   static auto backward(
       TView<Vec<Real, 3>, 2, D> coords,

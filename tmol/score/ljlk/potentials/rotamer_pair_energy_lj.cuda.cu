@@ -1055,7 +1055,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             //
             // }
           }  // for j
-        }    // for i
+        }  // for i
       } else {
         // alt_block_ind == neighb_block_ind
 
@@ -1246,8 +1246,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 alt_n_atoms2);
 
           }  // for j
-        }    // for i
-      }      // else
+        }  // for i
+      }  // else
 
       // Make sure all energy calculations are complete before we overwrite
       // the neighbor-residue data in the shared memory union

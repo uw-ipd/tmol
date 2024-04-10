@@ -50,14 +50,14 @@ struct lk_fraction {
 
     def astuple() { return tmol::score::common::make_tuple(dWI, dJ); }
 
-    static def Zero()->dV_t { return {WatersMat::Zero(), Real3::Zero()}; }
+    static def Zero() -> dV_t { return {WatersMat::Zero(), Real3::Zero()}; }
   };
 
   static constexpr Real ramp_width_A2 = lkball_globals<Real>::ramp_width_A2;
 
-  static def square(Real v)->Real { return v * v; }
+  static def square(Real v) -> Real { return v * v; }
 
-  static def V(WatersMat WI, Real3 J, Real lj_radius_j)->Real {
+  static def V(WatersMat WI, Real3 J, Real lj_radius_j) -> Real {
     Real d2_low = square(1.4 + lj_radius_j) - ramp_width_A2;
     if (d2_low < 0.0) d2_low = 0.0;
 
@@ -81,7 +81,7 @@ struct lk_fraction {
     return frac;
   }
 
-  static def dV(WatersMat WI, Real3 J, Real lj_radius_j)->dV_t {
+  static def dV(WatersMat WI, Real3 J, Real lj_radius_j) -> dV_t {
     Real d2_low = square(1.4 + lj_radius_j) - ramp_width_A2;
     if (d2_low < 0.0) d2_low = 0.0;
 
@@ -136,7 +136,7 @@ struct lk_bridge_fraction {
 
     def astuple() { return tmol::score::common::make_tuple(dI, dJ, dWI, dWJ); }
 
-    static def Zero()->dV_t {
+    static def Zero() -> dV_t {
       return dV_t{
           Real3::Zero(), Real3::Zero(), WatersMat::Zero(), WatersMat::Zero()};
     }
@@ -149,11 +149,10 @@ struct lk_bridge_fraction {
   static constexpr Real angle_overlap_A2 =
       lkball_globals<Real>::angle_overlap_A2;
 
-  static def square(Real v)->Real { return v * v; }
+  static def square(Real v) -> Real { return v * v; }
 
-  static def V(
-      Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
-      ->Real {
+  static def
+  V(Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist) -> Real {
     // water overlap
     Real wted_d2_delta = 0.0;
     for (int wi = 0; wi < MAX_WATER; wi++) {
@@ -192,7 +191,7 @@ struct lk_bridge_fraction {
 
   static def dV(
       Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
-      ->dV_t {
+      -> dV_t {
     Real wted_d2_delta = 0.0;
 
     WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
@@ -290,7 +289,7 @@ struct lk_ball_dV_dReal3 {
   Real3 d_lkbridge;
   Real3 d_lkbridge_uncpl;
 
-  static def Zero()->lk_ball_dV_dReal3 {
+  static def Zero() -> lk_ball_dV_dReal3 {
     return {Real3::Zero(), Real3::Zero(), Real3::Zero(), Real3::Zero()};
   }
 };
@@ -304,7 +303,7 @@ struct lk_ball_dV_dWater {
   WatersMat d_lkbridge;
   WatersMat d_lkbridge_uncpl;
 
-  static def Zero()->lk_ball_dV_dWater {
+  static def Zero() -> lk_ball_dV_dWater {
     return {
         WatersMat::Zero(),
         WatersMat::Zero(),
@@ -320,7 +319,7 @@ struct lk_ball_dVt {
   lk_ball_dV_dWater<Real, MAX_WATER> dWI;
   lk_ball_dV_dWater<Real, MAX_WATER> dWJ;
 
-  static def Zero()->lk_ball_dVt {
+  static def Zero() -> lk_ball_dVt {
     return {
         lk_ball_dV_dReal3<Real>::Zero(),
         lk_ball_dV_dReal3<Real>::Zero(),
@@ -342,8 +341,7 @@ struct lk_ball_score {
       Real bonded_path_length,
       LKBallTypeParams<Real> i,
       LKBallTypeParams<Real> j,
-      LKBallGlobalParams<Real> global)
-      ->lk_ball_Vt<Real> {
+      LKBallGlobalParams<Real> global) -> lk_ball_Vt<Real> {
     using tmol::score::common::distance;
     using tmol::score::ljlk::potentials::lj_sigma;
     using tmol::score::ljlk::potentials::lk_isotropic_pair;
@@ -391,8 +389,7 @@ struct lk_ball_score {
       Real bonded_path_length,
       LKBallTypeParams<Real> i,
       LKBallTypeParams<Real> j,
-      LKBallGlobalParams<Real> global)
-      ->lk_ball_dVt<Real, MAX_WATER> {
+      LKBallGlobalParams<Real> global) -> lk_ball_dVt<Real, MAX_WATER> {
     using tmol::score::common::distance;
     using tmol::score::common::get;
     using tmol::score::ljlk::potentials::lj_sigma;

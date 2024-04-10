@@ -565,7 +565,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               shared.vals.path_dist2,
               shared.vals.conn_seps);
         }  // for j
-      }    // for i
+      }  // for i
     } else {
       int const alt_n_heavy_atoms = block_type_n_heavy_atoms[alt_block_type];
 
@@ -631,8 +631,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               alt_block_type,
               alt_n_heavy_atoms);
         }  // for j
-      }    // for i
-    }      // else
+      }  // for i
+    }  // else
 
     // wait for all calcs to conclude before overwriting
     // shared memory in the reduction

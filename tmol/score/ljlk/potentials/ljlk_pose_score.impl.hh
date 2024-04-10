@@ -675,8 +675,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     // should the output be per-pose (npose x nterms x 1 x 1)
     //   or per block-pair (npose x nterms x len x len)
     bool output_block_pair_energies,
-    bool require_gradient) -> std::
-    tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>, TPack<Int, 3, D> > {
+    bool require_gradient)
+    -> std::
+        tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>, TPack<Int, 3, D> > {
   using Real3 = Vec<Real, 3>;
 
   int const n_poses = coords.size(0);

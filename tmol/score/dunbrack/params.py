@@ -695,4 +695,3 @@ class DunbrackParamResolver(ValidateAttrs):
         inds[inds != -1] = dataframe.iloc[inds[inds != -1]]["dun_table_name"].values
         inds = inds.reshape(names.shape)
         return torch.tensor(inds, dtype=torch.int64, device=device)
-

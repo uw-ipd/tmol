@@ -11,7 +11,7 @@ namespace potentials {
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 template <typename Real, typename Int>
-def connectivity_weight(Int bonded_path_length)->Real {
+def connectivity_weight(Int bonded_path_length) -> Real {
   if (bonded_path_length > 4) {
     return 1.0;
   } else if (bonded_path_length == 4) {
@@ -22,7 +22,7 @@ def connectivity_weight(Int bonded_path_length)->Real {
 }
 
 template <typename Real, typename TypeParams, typename GlobalParams>
-def lj_sigma(TypeParams i, TypeParams j, GlobalParams global)->Real {
+def lj_sigma(TypeParams i, TypeParams j, GlobalParams global) -> Real {
   if ((i.is_donor && !i.is_hydroxyl && j.is_acceptor)
       || (j.is_donor && !j.is_hydroxyl && i.is_acceptor)) {
     // standard donor/acceptor pair

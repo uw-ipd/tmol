@@ -37,8 +37,7 @@ def measure_dihedral_V_dV(
     const Vec<Int, 4>& dihedral_atom_inds,
     Real dih_default,
     Real& dihedral,
-    Eigen::Matrix<Real, 4, 3>& ddihe_dxyz)
-    ->void {
+    Eigen::Matrix<Real, 4, 3>& ddihe_dxyz) -> void {
   Int at1 = dihedral_atom_inds[0];
   Int at2 = dihedral_atom_inds[1];
   Int at3 = dihedral_atom_inds[2];
@@ -64,8 +63,7 @@ def measure_dihedrals_V_dV(
     int i,
     TensorAccessor<Vec<Int, 4>, 1, D> dihedral_atom_inds,
     TensorAccessor<Real, 1, D> dihedrals,
-    TensorAccessor<Eigen::Matrix<Real, 4, 3>, 1, D> ddihe_dxyz)
-    ->void {
+    TensorAccessor<Eigen::Matrix<Real, 4, 3>, 1, D> ddihe_dxyz) -> void {
   Int at1 = dihedral_atom_inds[i][0];
   Int at2 = dihedral_atom_inds[i][1];
   Int at3 = dihedral_atom_inds[i][2];
@@ -118,7 +116,7 @@ def measure_dihedrals_V_dV(
 
 template <typename Real, tmol::Device D>
 def classify_rotamer(TensorAccessor<Real, 1, D> dihedrals, int n_rotameric_chi)
-    ->int {
+    -> int {
   // Input dihedral value must be in the range [-pi,+pi)
   // three bins: g+ (  0--120) = 0
   //             t  (120--240) = 1
@@ -147,8 +145,9 @@ def classify_rotamer(TensorAccessor<Real, 1, D> dihedrals, int n_rotameric_chi)
 
 template <typename Real, tmol::Device D>
 def classify_rotamer(
-    TensorAccessor<Real, 1, D> dihedrals, int n_rotameric_chi, int dihe_offset)
-    ->int {
+    TensorAccessor<Real, 1, D> dihedrals,
+    int n_rotameric_chi,
+    int dihe_offset) -> int {
   // Input dihedral value must be in the range [-pi,+pi)
   // three bins: g+ (  0--120) = 0
   //             t  (120--240) = 1
@@ -183,8 +182,7 @@ def classify_rotamer_for_block(
     TView<Int, 1, D> rotameric_rotind2tableind,
     TView<Int, 1, D> semirotameric_rotind2tableind,
     Int& rotameric_rottable_assignment,
-    Int& semirotameric_rottable_assignment)
-    ->void {
+    Int& semirotameric_rottable_assignment) -> void {
   // Offset by the number of backbone dihedrals for this residue
   Int rot_ind = classify_rotamer(dihedrals, nrotameric_chi_for_res, Nbb);
 
@@ -207,8 +205,7 @@ def classify_rotamer_for_res(
     TView<Int, 1, D> semirotameric_rotind2tableind,
     TensorAccessor<Int, 1, D> rotameric_rottable_assignment,
     TensorAccessor<Int, 1, D> semirotameric_rottable_assignment,
-    int i)
-    ->void {
+    int i) -> void {
   // Offset by the number of backbone dihedrals for this residue
   Int dihe_offset = dihedral_offset_for_res[i] + Nbb;
   Int rot_ind =
@@ -241,7 +238,7 @@ def block_interpolate_rotameric_tables(
     TensorAccessor<Real, 1, D> dihedrals,
     int chi_ind,
     Int rottable_assignment)
-    ->tuple<
+    -> tuple<
         Real,
         Eigen::Matrix<Real, NbbP1 - 1, 1>,
         Real,
@@ -315,7 +312,7 @@ def interpolate_rotameric_tables(
     TensorAccessor<Int, 1, D> rottable_set_for_res,
     TensorAccessor<Int, 1, D> rotmean_table_offset_for_residue,
     TensorAccessor<Int, 1, D> rottable_assignment)
-    ->tuple<
+    -> tuple<
         Real,
         Eigen::Matrix<Real, NbbP1 - 1, 1>,
         Real,
@@ -393,7 +390,7 @@ def block_chi_deviation_penalty(
     TensorAccessor<Real, 1, D> dihedrals,
     Int chi_ind,
     Int rotameric_rottable_assignment)
-    ->tuple<Real, Real, Eigen::Matrix<Real, NbbP1 - 1, 1> > {
+    -> tuple<Real, Real, Eigen::Matrix<Real, NbbP1 - 1, 1> > {
   Real mean, sdev;
   Eigen::Matrix<Real, NbbP1 - 1, 1> dmean_dbb, dsdev_dbb;
   tie(mean, dmean_dbb, sdev, dsdev_dbb) = block_interpolate_rotameric_tables(
@@ -464,7 +461,7 @@ def chi_deviation_penalty(
     TensorAccessor<Int, 1, D> rottable_set_for_res,
     TensorAccessor<Int, 1, D> rotmean_table_set_offset,
     TensorAccessor<Int, 1, D> rottable_assignment)
-    ->tuple<Real, Real, Eigen::Matrix<Real, NbbP1 - 1, 1> > {
+    -> tuple<Real, Real, Eigen::Matrix<Real, NbbP1 - 1, 1> > {
   Real mean, sdev;
   Eigen::Matrix<Real, NbbP1 - 1, 1> dmean_dbb, dsdev_dbb;
   tie(mean, dmean_dbb, sdev, dsdev_dbb) = interpolate_rotameric_tables(
@@ -539,8 +536,7 @@ def block_deviation_penalty_for_chi(
     Int rotameric_rottable_assignment,
     // Out
     TensorAccessor<CoordQuad, 1, D> drotchi_devpen_dtor_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz)
-    ->Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
   Real devpen, dpen_dchi;
   Eigen::Matrix<Real, 2, 1> dpen_dbb;
 
@@ -593,8 +589,7 @@ def deviation_penalty_for_chi(
     TensorAccessor<Int, 1, D> nchi_for_res,
     TensorAccessor<CoordQuad, 2, D> drotchi_devpen_dtor_xyz,
     TensorAccessor<CoordQuad, 1, D> ddihe_dxyz,
-    int i)
-    ->Real {
+    int i) -> Real {
   int ires = rotameric_chi_desc[i][0];
   int ichi_ind = rotameric_chi_desc[i][1];
   int inchi = nchi_for_res[ires];
@@ -648,7 +643,7 @@ def block_rotameric_chi_probability(
     TensorAccessor<Real, 1, D> dihedrals,
     Int table_set,
     Int rotameric_rottable_assignment)
-    ->tuple<Real, Eigen::Matrix<Real, NbbP1 - 1, 1> > {
+    -> tuple<Real, Eigen::Matrix<Real, NbbP1 - 1, 1> > {
   Eigen::Matrix<Real, NbbP1 - 1, 1> bbdihe, bbstep;
 
   Int const res_rottable = prob_table_offset + rotameric_rottable_assignment;
@@ -700,7 +695,7 @@ def rotameric_chi_probability(
     TensorAccessor<Int, 1, D> dihedral_offset_for_res,
     TensorAccessor<Int, 1, D> rottable_set_for_res,
     TensorAccessor<Int, 1, D> rotameric_rottable_assignment)
-    ->tuple<Real, Eigen::Matrix<Real, NbbP1 - 1, 1> > {
+    -> tuple<Real, Eigen::Matrix<Real, NbbP1 - 1, 1> > {
   Eigen::Matrix<Real, NbbP1 - 1, 1> bbdihe, bbstep;
 
   Int const table_set = rottable_set_for_res[residue_ind];
@@ -754,8 +749,7 @@ def rotameric_chi_probability_for_block(
     TensorAccessor<Real, 1, D> dihedrals,
     Int rotameric_rottable_assignment,
     TensorAccessor<CoordQuad, 1, D> dneglnprob_rot_dbb_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz)
-    ->Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
   Real neglnprobE = 0.0;
   Eigen::Matrix<Real, NbbP1 - 1, 1> dneglnprob_ddihe;
   tie(neglnprobE, dneglnprob_ddihe) = block_rotameric_chi_probability(
@@ -798,8 +792,7 @@ def rotameric_chi_probability_for_res(
     TensorAccessor<Int, 1, D> rotres2resid,
     TensorAccessor<CoordQuad, 2, D> dneglnprob_rot_dbb_xyz,
     TensorAccessor<CoordQuad, 1, D> ddihe_dxyz,
-    int i)
-    ->Real {
+    int i) -> Real {
   Real neglnprobE;
   Eigen::Matrix<Real, NbbP1 - 1, 1> dneglnprob_ddihe;
   Int ires = rotres2resid[i];
@@ -847,8 +840,7 @@ def block_semirotameric_energy(
     TensorAccessor<Real, 1, D> dihedrals,
     Int semirotameric_rottable_assignment,
     TensorAccessor<CoordQuad, 1, D> dneglnprob_nonrot_dtor_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz)
-    ->Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
   Eigen::Matrix<Real, NbbP2 - 1, 1> dihe;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_dihe_deg;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_orig_dihe_deg;
@@ -923,8 +915,7 @@ def semirotameric_energy(
     TensorAccessor<Int, 2, D> semirotameric_chi_desc,
     int i,
     TensorAccessor<CoordQuad, 2, D> dneglnprob_nonrot_dtor_xyz,
-    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz)
-    ->Real {
+    TensorAccessor<CoordQuad, 1, D> ddihe_dxyz) -> Real {
   Eigen::Matrix<Real, NbbP2 - 1, 1> dihe;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_dihe_deg;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_orig_dihe_deg;

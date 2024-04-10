@@ -35,11 +35,13 @@ struct IndexedBonds {
     Int i;
     IndexedBonds<Int, D> const& parent;
 
-    def begin()->BondJIter {
+    def begin() -> BondJIter {
       return BondJIter{parent.bond_spans[i][0], parent};
     }
 
-    def end()->BondJIter { return BondJIter{parent.bond_spans[i][1], parent}; }
+    def end() -> BondJIter {
+      return BondJIter{parent.bond_spans[i][1], parent};
+    }
   };
 
   EIGEN_DEVICE_FUNC BoundAtomRange bound_to(Int i) const {
@@ -129,14 +131,14 @@ struct BlockCentricIndexedBonds {
     BlockCentricAtom<Int> bcat;
     BlockCentricIndexedBonds<Int, D> const& parent;
 
-    def begin()->BondJIter {
+    def begin() -> BondJIter {
       return BondJIter{
           bcat.block,
           bcat.block_type,
           parent.block_type_atom_all_bond_ranges[bcat.block_type][bcat.atom][0],
           parent};
     }
-    def end()->BondJIter {
+    def end() -> BondJIter {
       return BondJIter{
           bcat.block,
           bcat.block_type,
