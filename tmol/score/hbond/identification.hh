@@ -34,7 +34,8 @@ struct AcceptorBases {
       Int A,
       Int hybridization,
       bonded_atom::IndexedBonds<Int, Dev> bonds,
-      func_t atom_is_hydrogen) -> AcceptorBases {
+      func_t atom_is_hydrogen)
+      ->AcceptorBases {
     Int B = -1, B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
@@ -68,7 +69,8 @@ struct AcceptorBases {
       Int A,
       Int hybridization,
       bonded_atom::IndexedBonds<Int, Dev> bonds,
-      func_t atom_is_hydrogen) -> AcceptorBases {
+      func_t atom_is_hydrogen)
+      ->AcceptorBases {
     Int B = -1;
     Int B0 = -1;
 
@@ -103,7 +105,8 @@ struct AcceptorBases {
       Int A,
       Int hybridization,
       bonded_atom::IndexedBonds<Int, Dev> bonds,
-      func_t atom_is_hydrogen) -> AcceptorBases {
+      func_t atom_is_hydrogen)
+      ->AcceptorBases {
     Int B = -1;
     Int B0 = -1;
 
@@ -138,7 +141,8 @@ struct AcceptorBases {
       Int A,
       Int hybridization,
       bonded_atom::IndexedBonds<Int, Dev> bonds,
-      func_t atom_is_hydrogen) -> AcceptorBases {
+      func_t atom_is_hydrogen)
+      ->AcceptorBases {
     if (hybridization == AcceptorHybridization::sp2) {
       return sp2_acceptor_base(
           stack, A, hybridization, bonds, atom_is_hydrogen);
@@ -164,7 +168,8 @@ struct BlockCentricAcceptorBases {
   static def sp2_acceptor_base(
       bonded_atom::BlockCentricAtom<Int> A,
       bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> BlockCentricAcceptorBases {
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
+      ->BlockCentricAcceptorBases {
     using bonded_atom::BlockCentricAtom;
     BlockCentricAtom<Int> B({-1, -1, -1});
     BlockCentricAtom<Int> B0({-1, -1, -1});
@@ -208,7 +213,8 @@ struct BlockCentricAcceptorBases {
   static def sp3_acceptor_base(
       bonded_atom::BlockCentricAtom<Int> A,
       bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> BlockCentricAcceptorBases {
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
+      ->BlockCentricAcceptorBases {
     using bonded_atom::BlockCentricAtom;
     BlockCentricAtom<Int> B{-1, -1, -1};
     BlockCentricAtom<Int> B0{-1, -1, -1};
@@ -242,7 +248,8 @@ struct BlockCentricAcceptorBases {
   static def ring_acceptor_base(
       bonded_atom::BlockCentricAtom<Int> A,
       bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> BlockCentricAcceptorBases {
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
+      ->BlockCentricAcceptorBases {
     using bonded_atom::BlockCentricAtom;
     BlockCentricAtom<Int> B{-1, -1, -1};
     BlockCentricAtom<Int> B0{-1, -1, -1};
@@ -278,7 +285,8 @@ struct BlockCentricAcceptorBases {
       bonded_atom::BlockCentricAtom<Int> A,
       Int hybridization,
       bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> BlockCentricAcceptorBases {
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
+      ->BlockCentricAcceptorBases {
     if (hybridization == AcceptorHybridization::sp2) {
       return sp2_acceptor_base(A, bonds, bt_atom_is_hydrogen);
     } else if (hybridization == AcceptorHybridization::sp3) {
@@ -300,7 +308,8 @@ struct BlockCentricDonorBase {
   static def for_polar_H(
       bonded_atom::BlockCentricAtom<Int> H,
       bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds,
-      TView<Int, 2, Dev> bt_atom_is_hydrogen) -> BlockCentricDonorBase<Int> {
+      TView<Int, 2, Dev> bt_atom_is_hydrogen)
+      ->BlockCentricDonorBase<Int> {
     using bonded_atom::BlockCentricAtom;
 
     BlockCentricAtom<Int> D{-1, -1, -1};

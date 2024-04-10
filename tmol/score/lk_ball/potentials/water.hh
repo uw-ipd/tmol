@@ -37,16 +37,16 @@ struct build_don_water {
 
     def astuple() { return tmol::score::common::make_tuple(dD, dH); }
 
-    static def Zero() -> dV_t { return {RealMat::Zero(), RealMat::Zero()}; }
+    static def Zero()->dV_t { return {RealMat::Zero(), RealMat::Zero()}; }
   };
 
-  static def V(Real3 D, Real3 H, Real dist) -> Real3 {
+  static def V(Real3 D, Real3 H, Real dist)->Real3 {
     return D + dist * (H - D).normalized();
   }
 
-  static def square(Real v) -> Real { return v * v; }
+  static def square(Real v)->Real { return v * v; }
 
-  static def dV(Real3 D, Real3 H, Real dist) -> dV_t {
+  static def dV(Real3 D, Real3 H, Real dist)->dV_t {
     Real dhx = -D[0] + H[0];
     Real dhx2 = dhx * dhx;
     Real dhy = -D[1] + H[1];

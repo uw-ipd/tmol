@@ -23,12 +23,12 @@ struct distance {
     Vec<Real, 3> dV_dA;
     Vec<Real, 3> dV_dB;
 
-    def astuple() -> auto { return make_tuple(V, dV_dA, dV_dB); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB); }
   };
 
-  static def V(Real3 A, Real3 B) -> Real { return (A - B).norm(); }
+  static def V(Real3 A, Real3 B)->Real { return (A - B).norm(); }
 
-  static def V_dV(Real3 A, Real3 B) -> V_dV_T {
+  static def V_dV(Real3 A, Real3 B)->V_dV_T {
     Real3 delta = (A - B);
     Real V = delta.norm();
 
@@ -48,10 +48,10 @@ struct interior_angle {
     Vec<Real, 3> dV_dA;
     Vec<Real, 3> dV_dB;
 
-    def astuple() -> auto { return make_tuple(V, dV_dA, dV_dB); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB); }
   };
 
-  static def V(Real3 A, Real3 B) -> Real {
+  static def V(Real3 A, Real3 B)->Real {
     auto CR = A.cross(B);
     auto z_unit = CR.normalized();
 
@@ -61,7 +61,7 @@ struct interior_angle {
     return 2 * std::atan2(CR.dot(z_unit), A_norm * B_norm + A.dot(B));
   }
 
-  static def V_dV(Real3 A, Real3 B) -> V_dV_T {
+  static def V_dV(Real3 A, Real3 B)->V_dV_T {
     auto CR = A.cross(B);
     auto z_unit = CR.normalized();
 
@@ -83,16 +83,16 @@ struct pt_interior_angle {
     Vec<Real, 3> dV_dB;
     Vec<Real, 3> dV_dC;
 
-    def astuple() -> auto { return make_tuple(V, dV_dA, dV_dB, dV_dC); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB, dV_dC); }
   };
-  static def V(Real3 A, Real3 B, Real3 C) -> Real {
+  static def V(Real3 A, Real3 B, Real3 C)->Real {
     Real3 BA = A - B;
     Real3 BC = C - B;
 
     return interior_angle<Real>::V(BA, BC);
   }
 
-  static def V_dV(Real3 A, Real3 B, Real3 C) -> V_dV_T {
+  static def V_dV(Real3 A, Real3 B, Real3 C)->V_dV_T {
     Real3 BA = A - B;
     Real3 BC = C - B;
 
@@ -108,14 +108,14 @@ struct cos_interior_angle {
     Vec<Real, 3> dV_dA;
     Vec<Real, 3> dV_dB;
 
-    def astuple() -> auto { return make_tuple(V, dV_dA, dV_dB); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB); }
   };
 
-  static def V(Real3 A, Real3 B) -> Real {
+  static def V(Real3 A, Real3 B)->Real {
     return A.dot(B) / (A.norm() * B.norm());
   }
 
-  static def V_dV(Real3 A, Real3 B) -> V_dV_T {
+  static def V_dV(Real3 A, Real3 B)->V_dV_T {
     auto A_norm = A.norm();
     auto B_norm = B.norm();
     auto AB_norm = A.norm() * B.norm();
@@ -137,17 +137,17 @@ struct pt_cos_interior_angle {
     Vec<Real, 3> dV_dB;
     Vec<Real, 3> dV_dC;
 
-    def astuple() -> auto { return make_tuple(V, dV_dA, dV_dB, dV_dC); }
+    def astuple()->auto { return make_tuple(V, dV_dA, dV_dB, dV_dC); }
   };
 
-  static def V(Real3 A, Real3 B, Real3 C) -> Real {
+  static def V(Real3 A, Real3 B, Real3 C)->Real {
     Real3 BA = A - B;
     Real3 BC = C - B;
 
     return cos_interior_angle<Real>::V(BA, BC);
   }
 
-  static def V_dV(Real3 A, Real3 B, Real3 C) -> V_dV_T {
+  static def V_dV(Real3 A, Real3 B, Real3 C)->V_dV_T {
     Real3 BA = A - B;
     Real3 BC = C - B;
     Real V;
@@ -168,10 +168,10 @@ struct dihedral_angle {
     Real3 dV_dK;
     Real3 dV_dL;
 
-    def astuple() -> auto { return make_tuple(V, dV_dI, dV_dJ, dV_dK, dV_dL); }
+    def astuple()->auto { return make_tuple(V, dV_dI, dV_dJ, dV_dK, dV_dL); }
   };
 
-  static def V(Real3 I, Real3 J, Real3 K, Real3 L) -> Real {
+  static def V(Real3 I, Real3 J, Real3 K, Real3 L)->Real {
     // Blondel A, Karplus M. New formulation for derivatives of torsion angles
     // and improper torsion angles in molecular mechanics: Elimination of
     // singularities. J Comput Chem. 1996;17: 1132–1141.
@@ -190,7 +190,7 @@ struct dihedral_angle {
                std::fmin(A.dot(B) / (A.norm() * B.norm()), (Real)1.0)));
   }
 
-  static def V_dV(Real3 I, Real3 J, Real3 K, Real3 L) -> V_dV_T {
+  static def V_dV(Real3 I, Real3 J, Real3 K, Real3 L)->V_dV_T {
     // Blondel A, Karplus M. New formulation for derivatives of torsion angles
     // and improper torsion angles in molecular mechanics: Elimination of
     // singularities. J Comput Chem. 1996;17: 1132–1141.

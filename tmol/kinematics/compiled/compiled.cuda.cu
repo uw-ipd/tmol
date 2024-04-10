@@ -56,9 +56,8 @@ struct f1f2VecsRawBuffer {
 // These are used to preallocate the memory used in each generation of the scan.
 template <typename Int>
 auto getScanBufferSize(
-    TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
-    Int nt,
-    Int vt) -> mgpu::tuple<Int, Int, Int> {
+    TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens, Int nt, Int vt)
+    -> mgpu::tuple<Int, Int, Int> {
   auto ngens = gens.size(0) - 1;
   Int scanSize = 0;
   for (int gen = 0; gen < ngens; ++gen) {

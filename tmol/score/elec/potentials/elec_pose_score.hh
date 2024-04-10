@@ -82,11 +82,8 @@ struct ElecPoseScoreDispatch {
       // LJ parameters
       TView<ElecGlobalParams<Real>, 1, D> global_params,
       bool output_block_pair_energies,
-      bool compute_derivs)
-      -> std::tuple<
-          TPack<Real, 4, D>,
-          TPack<Vec<Real, 3>, 3, D>,
-          TPack<Int, 3, D> >;
+      bool compute_derivs) -> std::
+      tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>, TPack<Int, 3, D> >;
 
   static auto backward(
       TView<Vec<Real, 3>, 2, D> coords,
