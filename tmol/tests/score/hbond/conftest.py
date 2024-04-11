@@ -88,13 +88,6 @@ bb_hbond_config = """
 
 
 @pytest.fixture
-def bb_hbond_database():
-    return HBondDatabase.from_raw_hbond_db(
-        cattr.structure(yaml.safe_load(bb_hbond_config), HBondDatabaseRaw)
-    )
-
-
-@pytest.fixture
 def default_hbond_database():
     return tmol.database.ParameterDatabase.get_default().scoring.hbond
 

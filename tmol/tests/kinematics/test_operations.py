@@ -10,44 +10,6 @@ from tmol.kinematics.script_modules import KinematicModule
 from tmol.kinematics.datatypes import NodeType, KinForest
 
 
-def score(coords):
-    """Dummy scorefunction for a conformation."""
-    # assert coords.shape == (20, 3)
-    dists = (coords.unsqueeze(1) - coords.unsqueeze(0)).norm(dim=-1)
-    igraph = torch.triu(
-        ~torch.eye(dists.shape[0], dtype=torch.bool, device=coords.device)
-    ) & (dists < 3.4)
-    score = (3.4 - dists[igraph]) * (3.4 - dists[igraph])
-    return torch.sum(score)
-
-
-def dscore(coords):
-    """Dummy scorefunction derivs for a conformation."""
-    # assert coords.shape == (20, 3)
-    natoms = coords.shape[0]
-    dxs = coords.unsqueeze(1) - coords.unsqueeze(0)
-    dists = dxs.norm(dim=-1)
-    igraph = (
-        torch.triu(~torch.eye(dists.shape[0], dtype=torch.bool, device=coords.device))
-        & (dists < 3.4)
-    ).nonzero()
-
-    dEdxs = torch.zeros([natoms, natoms, 3], dtype=torch.double, device=coords.device)
-    dEdxs[igraph[:, 0], igraph[:, 1], :] = (
-        -2
-        * (3.4 - dists[igraph[:, 0], igraph[:, 1]].reshape(-1, 1))
-        * (
-            dxs[igraph[:, 0], igraph[:, 1], :]
-            / dists[igraph[:, 0], igraph[:, 1]].reshape(-1, 1)
-        )
-    )
-
-    dEdx = torch.zeros([natoms, 3], device=coords.device)
-    dEdx = dEdxs.sum(dim=1) - dEdxs.sum(dim=0)
-
-    return dEdx
-
-
 @pytest.fixture
 def kinforest(torch_device):
     ROOT = NodeType.root
@@ -118,10 +80,6 @@ def coords(torch_device):
     coords[20, :] = torch.Tensor([1.561, 1.900, 3.805])
 
     return coords.to(device=torch_device)
-
-
-def test_score_smoketest(coords):
-    score(coords[1:, :])
 
 
 def test_forward_refold(kinforest, coords, torch_device):
