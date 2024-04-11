@@ -10,7 +10,7 @@ from tmol.score.score_types import ScoreType
 from tmol.score import beta2016_score_function
 
 # from tmol.optimization.modules import DOFMaskingFunc
-from tmol.optimization.sfxn_modules import CartesianSfxnNetwork
+from tmol.optimization.sfxn_modules import CartesianSfxnNetwork, KinematicSfxnNetwork
 
 
 def test_minimize_w_pose_and_sfxn_smoke(rts_ubq_res, default_database, torch_device):
@@ -87,7 +87,7 @@ def test_minimize_w_pose_and_sfxn_benchmark(
     run
 
 
-def test_minimizer(ubq_pdb, torch_device):
+def test_cart_minimizer(ubq_pdb, torch_device):
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
     sfxn = beta2016_score_function(torch_device)
 
@@ -95,7 +95,29 @@ def test_minimizer(ubq_pdb, torch_device):
     wpsm(pose_stack.coords)
 
     network = CartesianSfxnNetwork(sfxn, pose_stack)
-    optimizer = LBFGS_Armijo(network.parameters(), lr=0.1, max_iter=200)
+    optimizer = LBFGS_Armijo(network.parameters(), lr=0.1, max_iter=20)
+
+    def closure():
+        optimizer.zero_grad()
+        E = network().sum()
+        E.backward()
+        return E
+
+    Estart = network().sum()
+    optimizer.step(closure)
+    Estop = network().sum()
+    assert Estop < Estart
+
+
+def test_dof_minimizer(ubq_pdb, torch_device):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
+    sfxn = beta2016_score_function(torch_device)
+
+    wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
+    wpsm(pose_stack.coords)
+
+    network = KinematicSfxnNetwork(sfxn, pose_stack)
+    optimizer = LBFGS_Armijo(network.parameters(), lr=0.001, max_iter=20)
 
     def closure():
         optimizer.zero_grad()
