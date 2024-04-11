@@ -31,34 +31,58 @@ class CartesianSfxnNetwork(torch.nn.Module):
         self.masked_coords = torch.nn.Parameter(self.full_coords[self.coord_mask])
 
     def forward(self):
+        # apply mask to coords
         self.full_coords = self.full_coords.detach()
         self.full_coords[self.coord_mask] = self.masked_coords
+
+        # score pose
         return self.whole_pose_scoring_module(self.full_coords)
 
 
+def default_mask_ideal(kinforest):
+    mask = torch.zeros()
+    pass
+
+
+def default_mask_nonideal(kinforest):
+    pass
+
+
 class KinematicSfxnNetwork(torch.nn.Module):
-    def __init__(self, score_function, pose_stack, dof_mask=None):
+    def __init__(self, score_function, pose_stack, nonideal=False):
         super(KinematicSfxnNetwork, self).__init__()
 
         wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
         self.whole_pose_scoring_module = wpsm
 
-        # fd this still occurs on CPU (numba)
-        fold_forest = FoldForest.polymeric_forest(
-            pose_stack.n_res_per_pose.cpu()
-        )  # fd need to fix this!
-        self.kinforest = construct_pose_stack_kinforest(pose_stack, fold_forest)
+        # fd There are two issues to address:
+        # fd  1) this call only works on CPU (since we use numba)
+        # fd  2) 'pose_stack.n_res_per_pose' does not work on multichain poses
+        fold_forest = FoldForest.polymeric_forest(pose_stack.n_res_per_pose.cpu())
 
-        self.kinforest = self.kinforest.to(pose_stack.coords.device)
+        self.kinforest = construct_pose_stack_kinforest(pose_stack, fold_forest)
+        dofs = inverseKin(self.kinforest, kincoords.to(torch.double))
+        if nonideal:
+            self.dof_mask = default_mask_nonideal(self.kinforest.doftype)
+        else:
+            self.dof_mask = default_mask_ideal(self.kinforest)
+
         self.pose_stack_coords = pose_stack.coords
         coords_flat = pose_stack.coords.reshape(-1, 3)
         kincoords = coords_flat[self.kinforest.id.to(torch.long)]
 
-        dofs = inverseKin(self.kinforest, kincoords.to(torch.double))
-        self.full_dofs = torch.nn.Parameter(dofs.raw)
+        self.full_dofs = dofs.raw
+        self.masked_dofs = torch.nn.Parameter(self.full_dofs[self.dof_mask])
 
     def forward(self):
-        kincoords = forwardKin(self.kinforest, KinDOF(raw=self.full_dofs)).float()
+        # apply mask to dofs
+        self.full_dofs = self.full_dofs.detach()
+        self.full_dofs[self.dof_mask] = self.masked_dofs
+
+        # recompute coordinates from dofs
         self.pose_stack_coords = self.pose_stack_coords.detach()
+        kincoords = forwardKin(self.kinforest, KinDOF(raw=self.full_dofs)).float()
         self.pose_stack_coords.view(-1, 3)[self.kinforest.id.to(torch.long)] = kincoords
+
+        # score pose
         return self.whole_pose_scoring_module(self.pose_stack_coords)
