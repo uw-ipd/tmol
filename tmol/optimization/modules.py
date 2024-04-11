@@ -73,11 +73,6 @@ class TorsionalEnergyNetwork(torch.nn.Module):
 
         self.system_size = system_size
 
-        if dof_mask is None:
-            dof_mask = torch.full(
-                dofs.shape[:-1], True, device=dofs.device, dtype=torch.bool
-            )
-
         # register buffers so they get moved to GPU with module
         for i, j in attr.asdict(kinforest).items():
             self.register_buffer(i, j)
