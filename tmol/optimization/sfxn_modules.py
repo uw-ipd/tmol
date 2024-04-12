@@ -39,15 +39,6 @@ class CartesianSfxnNetwork(torch.nn.Module):
         return self.whole_pose_scoring_module(self.full_coords)
 
 
-def default_mask_ideal(kinforest):
-    mask = torch.zeros()
-    pass
-
-
-def default_mask_nonideal(kinforest):
-    pass
-
-
 class KinematicSfxnNetwork(torch.nn.Module):
     def __init__(self, score_function, pose_stack, nonideal=False):
         super(KinematicSfxnNetwork, self).__init__()
@@ -58,19 +49,21 @@ class KinematicSfxnNetwork(torch.nn.Module):
         # fd There are two issues to address:
         # fd  1) this call only works on CPU (since we use numba)
         # fd  2) 'pose_stack.n_res_per_pose' does not work on multichain poses
+
+        # a) construct the kinforest and dof mask
         fold_forest = FoldForest.polymeric_forest(pose_stack.n_res_per_pose.cpu())
+        self.kinforest = construct_pose_stack_kinforest(pose_stack, fold_forest).to(
+            pose_stack.coords.device
+        )
+        self.dof_mask = self.kinforest.default_mask(nonideal=nonideal)
 
-        self.kinforest = construct_pose_stack_kinforest(pose_stack, fold_forest)
-        dofs = inverseKin(self.kinforest, kincoords.to(torch.double))
-        if nonideal:
-            self.dof_mask = default_mask_nonideal(self.kinforest.doftype)
-        else:
-            self.dof_mask = default_mask_ideal(self.kinforest)
-
+        # b) inverse fold to get torsions from pose
         self.pose_stack_coords = pose_stack.coords
         coords_flat = pose_stack.coords.reshape(-1, 3)
         kincoords = coords_flat[self.kinforest.id.to(torch.long)]
+        dofs = inverseKin(self.kinforest, kincoords.to(torch.double))
 
+        # c) apply mask, allocate params
         self.full_dofs = dofs.raw
         self.masked_dofs = torch.nn.Parameter(self.full_dofs[self.dof_mask])
 

@@ -87,45 +87,58 @@ def test_minimize_w_pose_and_sfxn_benchmark(
     run
 
 
-def test_cart_minimizer(ubq_pdb, torch_device):
+@pytest.mark.benchmark(group="pose_50step_minimization")
+def test_cart_minimizer(benchmark, ubq_pdb, torch_device):
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
     sfxn = beta2016_score_function(torch_device)
 
     wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
     wpsm(pose_stack.coords)
 
-    network = CartesianSfxnNetwork(sfxn, pose_stack)
-    optimizer = LBFGS_Armijo(network.parameters(), lr=0.1, max_iter=20)
+    @benchmark
+    def do_minimize():
+        network = CartesianSfxnNetwork(sfxn, pose_stack)
+        optimizer = LBFGS_Armijo(network.parameters(), lr=0.001, max_iter=50)
 
-    def closure():
-        optimizer.zero_grad()
-        E = network().sum()
-        E.backward()
-        return E
+        def closure():
+            optimizer.zero_grad()
+            E = network().sum()
+            E.backward()
+            return E
 
-    Estart = network().sum()
-    optimizer.step(closure)
-    Estop = network().sum()
+        Estart = network().sum()
+        optimizer.step(closure)
+        Estop = network().sum()
+        return Estart, Estop
+
+    Estart, Estop = do_minimize
     assert Estop < Estart
 
 
-def test_dof_minimizer(ubq_pdb, torch_device):
+@pytest.mark.parametrize("nonideal", [False, True])
+@pytest.mark.benchmark(group="pose_50step_minimization")
+def test_dof_minimizer(benchmark, ubq_pdb, torch_device, nonideal):
     pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device)
     sfxn = beta2016_score_function(torch_device)
 
     wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
     wpsm(pose_stack.coords)
 
-    network = KinematicSfxnNetwork(sfxn, pose_stack)
-    optimizer = LBFGS_Armijo(network.parameters(), lr=0.001, max_iter=20)
+    @benchmark
+    def do_minimize():
+        network = KinematicSfxnNetwork(sfxn, pose_stack, nonideal=nonideal)
+        optimizer = LBFGS_Armijo(network.parameters(), lr=0.001, max_iter=50)
 
-    def closure():
-        optimizer.zero_grad()
-        E = network().sum()
-        E.backward()
-        return E
+        def closure():
+            optimizer.zero_grad()
+            E = network().sum()
+            E.backward()
+            return E
 
-    Estart = network().sum()
-    optimizer.step(closure)
-    Estop = network().sum()
+        Estart = network().sum()
+        optimizer.step(closure)
+        Estop = network().sum()
+        return Estart, Estop
+
+    Estart, Estop = do_minimize
     assert Estop < Estart
