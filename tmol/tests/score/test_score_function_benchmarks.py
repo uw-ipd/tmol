@@ -216,7 +216,7 @@ def test_build_posestack(
         canonical_form = canonical_form_from_pdb(
             co, systems_bysize[system_size], torch_device
         )
-        pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+        _ = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     setup
 
@@ -236,7 +236,7 @@ def test_render_module(
     @benchmark
     def setup():
         sfxn = beta2016_score_function(torch_device)
-        scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+        _ = sfxn.render_whole_pose_scoring_module(pose_stack)
 
     setup
 

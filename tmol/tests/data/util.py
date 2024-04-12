@@ -1,4 +1,3 @@
-import pickle
 import attr
 
 from collections.abc import Mapping

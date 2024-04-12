@@ -6,11 +6,7 @@ import numpy
 
 import toolz
 
-import scipy.sparse.csgraph as csgraph
-import scipy
 
-
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 

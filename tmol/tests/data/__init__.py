@@ -83,8 +83,6 @@ def water_box_res():
 
 @pytest.fixture(scope="session")
 def systems_bysize():
-    from tmol.system.io import read_pdb
-
     return {
         40: pdb.data["bysize_040_res_5uoi.pdb"],
         75: pdb.data["bysize_075_res_2mtq.pdb"],
