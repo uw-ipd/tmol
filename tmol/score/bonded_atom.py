@@ -4,9 +4,6 @@ import attr
 import torch
 import numpy
 
-import toolz
-
-
 from tmol.types.torch import Tensor
 
 
@@ -92,9 +89,4 @@ class IndexedBonds:
                 ),
             ),
             axis=0,
-        )
-
-    def to(self, device: torch.device):
-        return type(self)(
-            **toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False))
         )
