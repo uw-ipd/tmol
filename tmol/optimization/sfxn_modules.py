@@ -1,7 +1,6 @@
 import torch
 
 from tmol.pose.pose_stack import PoseStack
-from tmol.optimization.modules import DOFMaskingFunc
 from tmol.score.score_function import ScoreFunction
 
 
@@ -14,20 +13,23 @@ class CartesianSfxnNetwork(torch.nn.Module):
         wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
         self.whole_pose_scoring_module = wpsm
 
+        self.full_coords = pose_stack.coords
+        if coord_mask is None:
+            coord_mask = torch.full(
+                self.full_coords.shape[:-1],
+                True,
+                device=self.full_coords.device,
+                dtype=torch.bool,
+            )
         self.coord_mask = coord_mask
 
-        self.full_coords = pose_stack.coords
-        if self.coord_mask is None:
-            self.masked_coords = torch.nn.Parameter(pose_stack.coords)
-        else:
-            self.masked_coords = torch.nn.Parameter(pose_stack.coords[self.coord_mask])
+        self.masked_coords = torch.nn.Parameter(self.full_coords[self.coord_mask])
         self.count = 0
 
     def forward(self):
-        self.count += 1  # ??
-        self.full_coords = DOFMaskingFunc.apply(
-            self.masked_coords, self.coord_mask, self.full_coords
-        )
+        self.count += 1
+        self.full_coords = self.full_coords.detach()
+        self.full_coords[self.coord_mask] = self.masked_coords
         return self.whole_pose_scoring_module(self.full_coords)
 
 
