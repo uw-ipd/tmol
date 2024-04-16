@@ -1,6 +1,7 @@
 import torch
 
 from tmol.score.backbone_torsion.potentials.compiled import backbone_torsion_pose_score
+from tmol.score.common.convert_float64 import convert_float64
 
 
 class BackboneTorsionWholePoseScoringModule(torch.nn.Module):
@@ -41,8 +42,8 @@ class BackboneTorsionWholePoseScoringModule(torch.nn.Module):
         self.rama_table_params = _p(rama_table_params)
         self.omega_table_params = _p(omega_table_params)
 
-    def forward(self, coords):
-        return backbone_torsion_pose_score(
+    def forward(self, coords, output_block_pair_energies=False):
+        args = [
             coords,
             self.pose_stack_block_coord_offset,
             self.pose_stack_block_type,
@@ -57,4 +58,10 @@ class BackboneTorsionWholePoseScoringModule(torch.nn.Module):
             self.rama_table_params,
             self.omega_tables,
             self.omega_table_params,
-        )
+            output_block_pair_energies,
+        ]
+
+        if coords.dtype == torch.float64:
+            convert_float64(args)
+
+        return backbone_torsion_pose_score(*args)

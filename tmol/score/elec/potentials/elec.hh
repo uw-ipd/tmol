@@ -27,6 +27,8 @@ template <typename Real>
 class ElecScoringData {
  public:
   int pose_ind;
+  int block_ind1;
+  int block_ind2;
   ElecSingleResData<Real> r1;
   ElecSingleResData<Real> r2;
   int max_important_bond_separation;
@@ -161,6 +163,8 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
   inter_dat.r2.n_atoms = n_atoms2;
   inter_dat.r1.n_conn = block_type_n_interblock_bonds[block_type1];
   inter_dat.r2.n_conn = block_type_n_interblock_bonds[block_type2];
+  inter_dat.block_ind1 = block_ind1;
+  inter_dat.block_ind2 = block_ind2;
 
   // set the pointers in inter_dat to point at the shared-memory arrays
   inter_dat.r1.coords = shared_m.coords1;
@@ -290,6 +294,8 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_intrares_data(
     ElecScoringData<Real> &intra_dat,
     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   intra_dat.pose_ind = pose_ind;
+  intra_dat.block_ind1 = block_ind1;
+  intra_dat.block_ind2 = block_ind1;
   intra_dat.r1.block_type = block_type1;
   intra_dat.r2.block_type = block_type1;
   intra_dat.r1.block_coord_offset =
@@ -415,6 +421,67 @@ TMOL_DEVICE_FUNC Real elec_atom_energy(
       score_dat.global_params.S,
       score_dat.global_params.min_dis,
       score_dat.global_params.max_dis);
+}
+
+template <typename Real, tmol::Device D>
+TMOL_DEVICE_FUNC void elec_atom_derivs(
+    int atom_tile_ind1,
+    int atom_tile_ind2,
+    int start_atom1,
+    int start_atom2,
+    ElecScoringData<Real> const &score_dat,
+    int cp_separation,
+    TView<Real, 4, D> dTdV,
+    TView<Eigen::Matrix<Real, 3, 1>, 3, D> dV_dcoords) {
+  using Real3 = Eigen::Matrix<Real, 3, 1>;
+
+  Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
+  Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
+
+  auto dist_r = distance<Real>::V_dV(coord1, coord2);
+  auto &dist = dist_r.V;
+  auto &ddist_dat1 = dist_r.dV_dA;
+  auto &ddist_dat2 = dist_r.dV_dB;
+  Real V(0.0), dV_ddist(0.0);
+  tie(V, dV_ddist) = elec_delec_ddist(
+      dist,
+      score_dat.r1.charges[atom_tile_ind1],
+      score_dat.r2.charges[atom_tile_ind2],
+      Real(cp_separation),
+      score_dat.global_params.D,
+      score_dat.global_params.D0,
+      score_dat.global_params.S,
+      score_dat.global_params.min_dis,
+      score_dat.global_params.max_dis);
+
+  // all threads accumulate derivatives for atom 1 to global memory
+  Real dTdVelec =
+      0.5
+      * (dTdV[0][score_dat.pose_ind][score_dat.block_ind1][score_dat.block_ind2]
+         + dTdV[0][score_dat.pose_ind][score_dat.block_ind2]
+               [score_dat.block_ind1]);
+  Vec<Real, 3> elec_dxyz_at1 = dTdVelec * dV_ddist * ddist_dat1;
+  for (int j = 0; j < 3; ++j) {
+    if (elec_dxyz_at1[j] != 0) {
+      accumulate<D, Real>::add(
+          dV_dcoords[0][score_dat.pose_ind]
+                    [score_dat.r1.block_coord_offset + atom_tile_ind1
+                     + start_atom1][j],
+          elec_dxyz_at1[j]);
+    }
+  }
+
+  // all threads accumulate derivatives for atom 2 to global memory
+  Vec<Real, 3> elec_dxyz_at2 = dTdVelec * dV_ddist * ddist_dat2;
+  for (int j = 0; j < 3; ++j) {
+    if (elec_dxyz_at2[j] != 0) {
+      accumulate<D, Real>::add(
+          dV_dcoords[0][score_dat.pose_ind]
+                    [score_dat.r2.block_coord_offset + atom_tile_ind2
+                     + start_atom2][j],
+          elec_dxyz_at2[j]);
+    }
+  }
 }
 
 template <typename Real, tmol::Device D>

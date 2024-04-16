@@ -1,6 +1,7 @@
 import torch
 
 from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores
+from tmol.score.common.convert_float64 import convert_float64
 
 
 class LJLKWholePoseScoringModule(torch.nn.Module):
@@ -75,25 +76,8 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
             )
         )
 
-        # n_poses = pose_stack_block_types.shape[0]
-        # max_n_blocks = pose_stack_block_types.shape[1]
-        # device = pose_stack_block_types.device
-        # self.scratch_block_spheres = _p(
-        #     torch.zeros(
-        #         (n_poses, max_n_blocks, 4),
-        #         dtype=torch.float32, device=device
-        #     )
-        # )
-        # self.scratch_blocks_are_neighbors = _p(
-        #     torch.zeros(n_poses, max_n_blocks, max_n_blocks),
-        #     dtype=torch.int32, device=device
-        # )
-
-        # self.ljlk_type_params = ljlk_type_params
-        # self.global_params = global_params
-
-    def forward(self, coords):
-        return ljlk_pose_scores(
+    def forward(self, coords, output_block_pair_energies=False):
+        args = [
             coords,
             self.pose_stack_block_coord_offset,
             self.pose_stack_block_types,
@@ -108,4 +92,10 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
             self.bt_path_distance,
             self.ljlk_type_params,
             self.global_params,
-        )
+            output_block_pair_energies,
+        ]
+
+        if coords.dtype == torch.float64:
+            convert_float64(args)
+
+        return ljlk_pose_scores(*args)

@@ -1,11 +1,8 @@
-import numpy
 import torch
 
-from tmol.io import pose_stack_from_pdb
 from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 
-from tmol.tests.autograd import gradcheck
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device: torch.device):
@@ -41,102 +38,60 @@ def test_annotate_disulfide_conns(
     )  # Test to make sure the parameters remain the same instance
 
 
-def test_whole_pose_scoring_module_gradcheck_whole_pose(
-    disulfide_pdb, default_database, torch_device: torch.device
-):
-    disulfide_energy = DisulfideEnergyTerm(
-        param_db=default_database, device=torch_device
-    )
-    p1 = pose_stack_from_pdb(disulfide_pdb, torch_device)
-    for bt in p1.packed_block_types.active_block_types:
-        disulfide_energy.setup_block_type(bt)
-    disulfide_energy.setup_packed_block_types(p1.packed_block_types)
-    disulfide_energy.setup_poses(p1)
+class TestDisulfideEnergyTerm(EnergyTermTestBase):
+    energy_term_class = DisulfideEnergyTerm
 
-    disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(p1)
+    @classmethod
+    def test_whole_pose_scoring_10(cls, disulfide_pdb, default_database, torch_device):
+        return super().test_whole_pose_scoring_10(
+            disulfide_pdb, default_database, torch_device, update_baseline=False
+        )
 
-    def score(coords):
-        scores = disulfide_pose_scorer(coords)
-        return torch.sum(scores)
+    @classmethod
+    def test_whole_pose_scoring_jagged(
+        cls,
+        disulfide_pdb,
+        default_database,
+        torch_device: torch.device,
+    ):
+        return super().test_whole_pose_scoring_jagged(
+            disulfide_pdb, default_database, torch_device, update_baseline=False
+        )
 
-    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=1e-2, rtol=5e-3)
+    @classmethod
+    def test_whole_pose_scoring_gradcheck(
+        cls, disulfide_pdb, default_database, torch_device
+    ):
+        return super().test_whole_pose_scoring_gradcheck(
+            disulfide_pdb,
+            default_database,
+            torch_device,
+        )
 
+    @classmethod
+    def test_block_scoring_matches_whole_pose_scoring(
+        cls, disulfide_pdb, default_database, torch_device
+    ):
+        return super().test_block_scoring_matches_whole_pose_scoring(
+            disulfide_pdb, default_database, torch_device
+        )
 
-def test_whole_pose_scoring_module_single(
-    disulfide_pdb, default_database, torch_device: torch.device
-):
-    gold_vals = numpy.array([[-3.25716]], dtype=numpy.float32)
-    disulfide_energy = DisulfideEnergyTerm(
-        param_db=default_database, device=torch_device
-    )
-    p1 = pose_stack_from_pdb(disulfide_pdb, torch_device)
-    for bt in p1.packed_block_types.active_block_types:
-        disulfide_energy.setup_block_type(bt)
-    disulfide_energy.setup_packed_block_types(p1.packed_block_types)
-    disulfide_energy.setup_poses(p1)
+    @classmethod
+    def test_block_scoring(cls, disulfide_pdb, default_database, torch_device):
+        resnums = [(2, 4), (21, 23)]
+        return super().test_block_scoring(
+            disulfide_pdb,
+            default_database,
+            torch_device,
+            resnums=resnums,
+            update_baseline=False,
+        )
 
-    disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(p1)
-
-    coords = torch.nn.Parameter(p1.coords.clone())
-    scores = disulfide_pose_scorer(coords)
-
-    # make sure we're still good
-    torch.arange(100, device=torch_device)
-
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
-    )
-
-
-def test_whole_pose_scoring_module_10(
-    disulfide_pdb, default_database, torch_device: torch.device
-):
-    n_poses = 10
-    gold_vals = numpy.tile(numpy.array([[-3.25716]], dtype=numpy.float32), (n_poses))
-    disulfide_energy = DisulfideEnergyTerm(
-        param_db=default_database, device=torch_device
-    )
-    p1 = pose_stack_from_pdb(disulfide_pdb, torch_device)
-    pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
-
-    for bt in pn.packed_block_types.active_block_types:
-        disulfide_energy.setup_block_type(bt)
-    disulfide_energy.setup_packed_block_types(pn.packed_block_types)
-
-    disulfide_energy.setup_poses(pn)
-
-    disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(pn)
-
-    coords = torch.nn.Parameter(pn.coords.clone())
-    scores = disulfide_pose_scorer(coords)
-
-    # make sure we're still good
-    torch.arange(100, device=torch_device)
-
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
-    )
-
-
-def test_whole_pose_scoring_module_jagged(
-    disulfide_pdb, default_database, torch_device
-):
-    p1 = pose_stack_from_pdb(disulfide_pdb, torch_device)
-    p2 = pose_stack_from_pdb(disulfide_pdb, torch_device, residue_end=52)
-    p3 = pose_stack_from_pdb(disulfide_pdb, torch_device, residue_end=33)
-
-    pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
-
-    disulfide_energy = DisulfideEnergyTerm(
-        param_db=default_database, device=torch_device
-    )
-    for bt in pn.packed_block_types.active_block_types:
-        disulfide_energy.setup_block_type(bt)
-    disulfide_energy.setup_packed_block_types(pn.packed_block_types)
-    disulfide_energy.setup_poses(pn)
-
-    disulfide_pose_scorer = disulfide_energy.render_whole_pose_scoring_module(pn)
-    scores = disulfide_pose_scorer(pn.coords)
-
-    gold_scores = numpy.array([[-3.25716, -2.5534, -1.686726]], dtype=numpy.float32)
-    numpy.testing.assert_allclose(gold_scores, scores.cpu().numpy(), rtol=1e-5)
+    @classmethod
+    def test_block_scoring_reweighted_gradcheck(
+        cls, disulfide_pdb, default_database, torch_device
+    ):
+        resnums = [(2, 4), (21, 23)]
+        return super().test_block_scoring_reweighted_gradcheck(
+            disulfide_pdb, default_database, torch_device, resnums=resnums
+        )

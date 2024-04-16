@@ -1,6 +1,7 @@
 import torch
 
 from tmol.score.disulfide.potentials.compiled import disulfide_pose_scores
+from tmol.score.common.convert_float64 import convert_float64
 
 
 class DisulfideWholePoseScoringModule(torch.nn.Module):
@@ -63,8 +64,8 @@ class DisulfideWholePoseScoringModule(torch.nn.Module):
             )
         )
 
-    def forward(self, coords):
-        return disulfide_pose_scores(
+    def forward(self, coords, output_block_pair_energies=False):
+        args = [
             coords,
             self.pose_stack_block_coord_offset,
             self.pose_stack_block_types,
@@ -72,4 +73,10 @@ class DisulfideWholePoseScoringModule(torch.nn.Module):
             self.bt_disulfide_conns,
             self.bt_atom_downstream_of_conn,
             self.global_params,
-        )
+            output_block_pair_energies,
+        ]
+
+        if coords.dtype == torch.float64:
+            convert_float64(args)
+
+        return disulfide_pose_scores(*args)

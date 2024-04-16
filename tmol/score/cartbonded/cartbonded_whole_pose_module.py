@@ -1,6 +1,7 @@
 import torch
 
 from tmol.score.cartbonded.potentials.compiled import cartbonded_pose_scores
+from tmol.score.common.convert_float64 import convert_float64
 
 
 class CartBondedWholePoseScoringModule(torch.nn.Module):
@@ -35,8 +36,8 @@ class CartBondedWholePoseScoringModule(torch.nn.Module):
         self.cart_subgraph_offsets = _p(cart_subgraph_offsets)
         self.max_subgraphs_per_block = torch.tensor(max_subgraphs_per_block)
 
-    def forward(self, coords):
-        return cartbonded_pose_scores(
+    def forward(self, coords, output_block_pair_energies=False):
+        args = [
             coords,
             self.pose_stack_block_coord_offset,
             self.pose_stack_block_types,
@@ -49,4 +50,10 @@ class CartBondedWholePoseScoringModule(torch.nn.Module):
             self.cart_subgraphs,
             self.cart_subgraph_offsets,
             self.max_subgraphs_per_block,
-        )
+            output_block_pair_energies,
+        ]
+
+        if coords.dtype == torch.float64:
+            convert_float64(args)
+
+        return cartbonded_pose_scores(*args)

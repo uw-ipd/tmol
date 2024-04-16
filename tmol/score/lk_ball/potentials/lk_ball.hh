@@ -1152,9 +1152,10 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     LKBallSingleResData<Real> const &occluder_block_dat,
     LKBallResPairData<Real> const &block_pair_dat,
     int cp_separation,
-    TView<Real, 2, Dev> dTdV,
+    TView<Real, 4, Dev> dTdV,
     TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_d_pose_coords,
-    TView<Eigen::Matrix<Real, 3, 1>, 3, Dev> dV_d_water_coords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 3, Dev> dV_d_water_coords,
+    bool block_pair_scoring) {
   using WatersMat = Eigen::Matrix<Real, MAX_N_WATER, 3>;
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using tmol::score::common::accumulate;
@@ -1175,11 +1176,10 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
 
   Eigen::Matrix<Real, MAX_N_WATER, 3> wmat_polar;
   Eigen::Matrix<Real, MAX_N_WATER, 3> wmat_occluder;
-  Eigen::Matrix<Real, n_lk_ball_score_types, 1> dTdV_local;
 
-  for (int i = 0; i < n_lk_ball_score_types; ++i) {
-    dTdV_local[i] = dTdV[i][block_pair_dat.pose_ind];
-  }
+  int block1_ind = (block_pair_scoring) ? polar_block_dat.block_ind : 0;
+  int block2_ind = (block_pair_scoring) ? occluder_block_dat.block_ind : 0;
+
   for (int wi = 0; wi < MAX_N_WATER; wi++) {
     wmat_polar.row(wi) = coord_from_shared(
         polar_block_dat.water_coords, MAX_N_WATER * polar_atom_tile_ind + wi);
@@ -1208,7 +1208,11 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
         accumulate<Dev, Real>::add(
             dV_d_pose_coords[block_pair_dat.pose_ind]
                             [block_dat.block_coord_offset + atom_ind][j],
-            dTdV_local[st] * dV[j]);
+            0.5
+                * (dTdV[st][block_pair_dat.pose_ind][block1_ind][block2_ind]
+                       * dV[j]
+                   + dTdV[st][block_pair_dat.pose_ind][block2_ind][block1_ind]
+                         * dV[j]));
       }
     }
   });
@@ -1235,7 +1239,11 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
             dV_d_water_coords[block_pair_dat.pose_ind]
                              [block_dat.block_coord_offset + atom_ind]
                              [water_ind][j],
-            dTdV_local[st] * dV(water_ind, j));
+            0.5
+                * (dTdV[st][block_pair_dat.pose_ind][block1_ind][block2_ind]
+                       * dV(water_ind, j)
+                   + dTdV[st][block_pair_dat.pose_ind][block2_ind][block1_ind]
+                         * dV(water_ind, j)));
       }
     }
   });

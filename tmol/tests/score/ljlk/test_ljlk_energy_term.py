@@ -7,7 +7,7 @@ from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
-from tmol.tests.autograd import gradcheck
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device):
@@ -320,81 +320,61 @@ def test_inter_module_timing(
     assert vals is not None
 
 
-def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device):
-    gold_vals = numpy.array([[-7.717818], [3.648599]], dtype=numpy.float32)
-    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
+class TestLJLKEnergyTerm(EnergyTermTestBase):
+    energy_term_class = LJLKEnergyTerm
 
-    # the gold_vals are calculated assuming the fourth residue is not a cterm res;
-    # so create a "res_not_connected" tensor to tell tmol not to treat it like a cterm
-    r3_not_cterm = torch.zeros((1, 4, 2), dtype=torch.bool, device=torch_device)
-    r3_not_cterm[0, 3, 1] = True
-    p1 = pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_end=4, res_not_connected=r3_not_cterm
-    )
-    for bt in p1.packed_block_types.active_block_types:
-        ljlk_energy.setup_block_type(bt)
-    ljlk_energy.setup_packed_block_types(p1.packed_block_types)
-    ljlk_energy.setup_poses(p1)
+    @classmethod
+    def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
+        return super().test_whole_pose_scoring_10(
+            ubq_pdb, default_database, torch_device, update_baseline=False
+        )
 
-    ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
+    @classmethod
+    def test_whole_pose_scoring_gradcheck(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(0, 4)]
+        return super().test_whole_pose_scoring_gradcheck(
+            ubq_pdb, default_database, torch_device, resnums=resnums
+        )
 
-    coords = torch.nn.Parameter(p1.coords.clone())
-    scores = ljlk_pose_scorer(coords)
+    @classmethod
+    def test_whole_pose_scoring_jagged(
+        cls,
+        ubq_pdb,
+        default_database,
+        torch_device: torch.device,
+    ):
+        return super().test_whole_pose_scoring_jagged(
+            ubq_pdb, default_database, torch_device, update_baseline=False
+        )
 
-    # make sure we're still good
-    torch.arange(100, device=torch_device)
+    @classmethod
+    def test_block_scoring_matches_whole_pose_scoring(
+        cls, ubq_pdb, default_database, torch_device
+    ):
+        return super().test_block_scoring_matches_whole_pose_scoring(
+            ubq_pdb, default_database, torch_device
+        )
 
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-6, rtol=1e-6
-    )
+    @classmethod
+    def test_block_scoring(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(0, 4)]
+        return super().test_block_scoring(
+            ubq_pdb,
+            default_database,
+            torch_device,
+            resnums=resnums,
+            update_baseline=False,
+        )
 
-
-def test_whole_pose_scoring_module_gradcheck(ubq_pdb, default_database, torch_device):
-    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
-    # this test works whether or not the fourth res is treated like a cterm res,
-    # but let's just run it as if it's not cterm, since it isn't one
-    r3_not_cterm = torch.zeros((1, 4, 2), dtype=torch.bool, device=torch_device)
-    r3_not_cterm[0, 3, 1] = True
-    p1 = pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_end=4, res_not_connected=r3_not_cterm
-    )
-    for bt in p1.packed_block_types.active_block_types:
-        ljlk_energy.setup_block_type(bt)
-    ljlk_energy.setup_packed_block_types(p1.packed_block_types)
-    ljlk_energy.setup_poses(p1)
-
-    ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(p1)
-
-    def score(coords):
-        scores = ljlk_pose_scorer(coords)
-        return torch.sum(scores)
-
-    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=5e-3, rtol=5e-3)
-
-
-def test_whole_pose_scoring_module_10(ubq_pdb, default_database, torch_device):
-    n_poses = 10
-    gold_vals = numpy.tile(
-        numpy.array([[-177.242], [298.275]], dtype=numpy.float32), (1, n_poses)
-    )
-    ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
-    pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
-
-    for bt in pn.packed_block_types.active_block_types:
-        ljlk_energy.setup_block_type(bt)
-    ljlk_energy.setup_packed_block_types(pn.packed_block_types)
-    ljlk_energy.setup_poses(pn)
-
-    ljlk_pose_scorer = ljlk_energy.render_whole_pose_scoring_module(pn)
-
-    coords = torch.nn.Parameter(pn.coords.clone())
-    scores = ljlk_pose_scorer(coords)
-
-    # make sure the torch device is still good; this is a check
-    # that perhaps the score terms themselves ought to conduct?
-    torch.arange(100, device=torch_device)
-
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
-    )
+    @classmethod
+    def test_block_scoring_reweighted_gradcheck(
+        cls, ubq_pdb, default_database, torch_device
+    ):
+        resnums = [(0, 4)]
+        return super().test_block_scoring_reweighted_gradcheck(
+            ubq_pdb,
+            default_database,
+            torch_device,
+            resnums=resnums,
+            nondet_tol=1e-6,
+        )

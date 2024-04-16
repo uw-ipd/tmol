@@ -1,6 +1,7 @@
 import torch
 
 from tmol.score.elec.potentials.compiled import elec_pose_scores
+from tmol.score.common.convert_float64 import convert_float64
 
 
 class ElecWholePoseScoringModule(torch.nn.Module):
@@ -51,8 +52,8 @@ class ElecWholePoseScoringModule(torch.nn.Module):
             )[None, :]
         )
 
-    def forward(self, coords):
-        return elec_pose_scores(
+    def forward(self, coords, output_block_pair_energies=False):
+        args = [
             coords,
             self.pose_stack_block_coord_offset,
             self.pose_stack_block_types,
@@ -65,4 +66,10 @@ class ElecWholePoseScoringModule(torch.nn.Module):
             self.bt_inter_repr_path_distance,
             self.bt_intra_repr_path_distance,
             self.global_params,
-        )
+            output_block_pair_energies,
+        ]
+
+        if coords.dtype == torch.float64:
+            convert_float64(args)
+
+        return elec_pose_scores(*args)

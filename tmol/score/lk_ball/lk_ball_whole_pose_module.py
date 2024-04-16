@@ -1,6 +1,7 @@
 import torch
 
 from tmol.score.lk_ball.potentials.compiled import gen_pose_waters, pose_score_lk_ball
+from tmol.score.common.convert_float64 import convert_float64
 
 
 class LKBallWholePoseScoringModule(torch.nn.Module):
@@ -80,13 +81,13 @@ class LKBallWholePoseScoringModule(torch.nn.Module):
         self.sp3_water_tors = _p(sp3_water_tors)
         self.ring_water_tors = _p(ring_water_tors)
 
-    def forward(self, pose_coords):
+    def forward(self, pose_coords, output_block_pair_energies=False):
         """Two step scoring: first build the waters and then score;
         derivatives are calculated backwards through the water
         building step by torch's autograd machinery
         """
 
-        water_coords = gen_pose_waters(
+        args = [
             pose_coords,
             self.pose_stack_block_coord_offset,
             self.pose_stack_block_type,
@@ -110,9 +111,14 @@ class LKBallWholePoseScoringModule(torch.nn.Module):
             self.sp2_water_tors,
             self.sp3_water_tors,
             self.ring_water_tors,
-        )
+        ]
 
-        return pose_score_lk_ball(
+        if pose_coords.dtype == torch.float64:
+            convert_float64(args)
+
+        water_coords = gen_pose_waters(*args)
+
+        args = [
             pose_coords,
             water_coords,
             self.pose_stack_block_coord_offset,
@@ -129,4 +135,10 @@ class LKBallWholePoseScoringModule(torch.nn.Module):
             self.bt_tile_lk_ball_params,
             self.bt_path_distance,
             self.lk_ball_global_params,
-        )
+            output_block_pair_energies,
+        ]
+
+        if pose_coords.dtype == torch.float64:
+            convert_float64(args)
+
+        return pose_score_lk_ball(*args)

@@ -15,7 +15,7 @@ class RefWholePoseScoringModule(torch.nn.Module):
         self.pose_stack_block_types = _p(pose_stack_block_types)
         self.ref_weights = _p(ref_weights)
 
-    def forward(self, coords):
+    def forward(self, coords, output_block_pair_energies=False):
         block_types = self.pose_stack_block_types
 
         # fill our per-block ref scores with zeros to start
@@ -29,8 +29,11 @@ class RefWholePoseScoringModule(torch.nn.Module):
             self.ref_weights, 0, block_types[real_blocks]
         )
 
-        # for each pose, sum up the block scores
-        score = torch.sum(score, 1)
+        if output_block_pair_energies:
+            score = torch.diag_embed(score)
+        else:
+            # for each pose, sum up the block scores
+            score = torch.sum(score, 1)
 
         # wrap this all in an extra dim (the output expects an outer dim to separate sub-terms)
         score = torch.unsqueeze(score, 0)

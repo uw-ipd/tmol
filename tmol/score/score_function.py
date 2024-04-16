@@ -122,13 +122,34 @@ class ScoreFunction:
         repeatedly as the Poses change their conformation, e.g., as in
         minimization. This object will derive from torch.nn.Module and
         it will contain a set of objects rendered by the ScoreFunction's
-        terms that themselves are derived from torch.nn.Module
+        terms that themselves are derived from torch.nn.Module. This
+        object's __call__ will return a tensor of weighted energies of
+        shape (n_poses,).
         """
         self.pre_work_initialization(pose_stack)
         term_modules = [
             t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
         ]
-        return WholePoseScoringModule(self.weights_tensor(), term_modules)
+        return WholePoseScoringModule(
+            self.weights_tensor(), term_modules, output_block_pair_energies=False
+        )
+
+    def render_block_pair_scoring_module(self, pose_stack: PoseStack):
+        """Create an object designed to evaluate the score of a set of Poses
+        repeatedly as the Poses change their conformation, e.g., as in
+        minimization. This object will derive from torch.nn.Module and
+        it will contain a set of objects rendered by the ScoreFunction's
+        terms that themselves are derived from torch.nn.Module. This
+        object's __call__ will return a tensor of weighted energies of
+        shape (n_poses, max_n_blocks, max_n_blocks).
+        """
+        self.pre_work_initialization(pose_stack)
+        term_modules = [
+            t.render_whole_pose_scoring_module(pose_stack) for t in self.all_terms()
+        ]
+        return WholePoseScoringModule(
+            self.weights_tensor(), term_modules, output_block_pair_energies=True
+        )
 
     def pre_work_initialization(self, pose_stack: PoseStack):
         for block_type in pose_stack.packed_block_types.active_block_types:
@@ -179,15 +200,37 @@ class ScoreFunction:
 
 class WholePoseScoringModule:
     def __init__(
-        self, weights: Tensor[torch.float32][:], term_modules: Sequence[torch.nn.Module]
+        self,
+        weights: Tensor[torch.float32][:],
+        term_modules: Sequence[torch.nn.Module],
+        output_block_pair_energies=False,
     ):
         # super(WholePoseScoringModule, self).__init__()
         self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
         self.term_modules = term_modules
+        self.output_block_pair_energies = output_block_pair_energies
 
     def __call__(self, coords):
-        # return a 1D tensor of size n_poses; this is the torch-like interface
-        # where the loss for a batch of size N should return a 1D tensor of
-        # size N
-        all_scores = torch.cat([term(coords) for term in self.term_modules], dim=0)
-        return torch.sum(self.weights * all_scores, dim=0)
+        return torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
+
+    def unweighted_scores(self, coords):
+        return torch.cat(
+            tuple(
+                term(coords, self.output_block_pair_energies)
+                for term in self.term_modules
+            ),
+            dim=0,
+        )
+        return torch.cat([term(coords) for term in self.term_modules], dim=0)
+
+
+# class BlockPairScoringModule:
+#     def __init__(
+#         self, weights: Tensor[torch.float32][:], term_modules: Sequence[torch.nn.Module]
+#     ):
+#         # super(WholePoseScoringModule, self).__init__()
+#         self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
+#         self.term_modules = term_modules
+#
+#     def __call__(self, coords):
+#         return torch.sum(self.weights * self.unweighted_scores(coords))

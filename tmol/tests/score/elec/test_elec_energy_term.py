@@ -4,9 +4,8 @@ import torch
 from tmol.io import pose_stack_from_pdb
 from tmol.score.elec.elec_energy_term import ElecEnergyTerm
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 
-from tmol.tests.autograd import gradcheck
+from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_smoke(default_database, torch_device):
@@ -64,67 +63,64 @@ def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device
     )
 
 
-def test_whole_pose_scoring_module_gradcheck(ubq_pdb, default_database, torch_device):
-    elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
-    r3_not_cterm = torch.zeros((1, 4, 2), dtype=torch.bool, device=torch_device)
-    r3_not_cterm[0, 3, 1] = True
-    p1 = pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_end=4, res_not_connected=r3_not_cterm
-    )
-    for bt in p1.packed_block_types.active_block_types:
-        elec_energy.setup_block_type(bt)
-    elec_energy.setup_packed_block_types(p1.packed_block_types)
-    elec_energy.setup_poses(p1)
+class TestElecEnergyTerm(EnergyTermTestBase):
+    energy_term_class = ElecEnergyTerm
 
-    elec_pose_scorer = elec_energy.render_whole_pose_scoring_module(p1)
+    @classmethod
+    def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
+        return super().test_whole_pose_scoring_10(
+            ubq_pdb,
+            default_database,
+            torch_device,
+            update_baseline=False,
+        )
 
-    def score(coords):
-        scores = elec_pose_scorer(coords)
-        return torch.sum(scores)
+    @classmethod
+    def test_whole_pose_scoring_jagged(
+        cls,
+        ubq_pdb,
+        default_database,
+        torch_device: torch.device,
+    ):
+        return super().test_whole_pose_scoring_jagged(
+            ubq_pdb, default_database, torch_device, update_baseline=False
+        )
 
-    gradcheck(score, (p1.coords.requires_grad_(True),), eps=1e-3, atol=5e-3, rtol=5e-3)
+    @classmethod
+    def test_whole_pose_scoring_gradcheck(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(0, 4)]
+        return super().test_whole_pose_scoring_gradcheck(
+            ubq_pdb, default_database, torch_device, resnums=resnums
+        )
 
+    @classmethod
+    def test_block_scoring_matches_whole_pose_scoring(
+        cls, ubq_pdb, default_database, torch_device
+    ):
+        return super().test_block_scoring_matches_whole_pose_scoring(
+            ubq_pdb, default_database, torch_device
+        )
 
-def test_whole_pose_scoring_module_10(ubq_pdb, default_database, torch_device):
-    n_poses = 10
-    gold_vals = numpy.tile(numpy.array([[-136.45409]], dtype=numpy.float32), (n_poses))
-    elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device)
-    pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
+    @classmethod
+    def test_block_scoring(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(0, 4)]
+        return super().test_block_scoring(
+            ubq_pdb,
+            default_database,
+            torch_device,
+            resnums=resnums,
+            update_baseline=False,
+        )
 
-    for bt in pn.packed_block_types.active_block_types:
-        elec_energy.setup_block_type(bt)
-    elec_energy.setup_packed_block_types(pn.packed_block_types)
-    elec_energy.setup_poses(pn)
-
-    elec_pose_scorer = elec_energy.render_whole_pose_scoring_module(pn)
-
-    coords = torch.nn.Parameter(pn.coords.clone())
-    scores = elec_pose_scorer(coords)
-
-    # make sure we're still good
-    torch.arange(100, device=torch_device)
-
-    numpy.testing.assert_allclose(
-        gold_vals, scores.cpu().detach().numpy(), atol=1e-5, rtol=1e-5
-    )
-
-
-def test_whole_pose_scoring_module_jagged(ubq_pdb, default_database, torch_device):
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=40)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=60)
-    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
-    for bt in poses.packed_block_types.active_block_types:
-        elec_energy.setup_block_type(bt)
-    elec_energy.setup_packed_block_types(poses.packed_block_types)
-    elec_energy.setup_poses(poses)
-
-    elec_pose_scorer = elec_energy.render_whole_pose_scoring_module(poses)
-    coords = torch.nn.Parameter(poses.coords.clone())
-    scores = elec_pose_scorer(coords)
-
-    gold_scores = torch.tensor(
-        [[-53.3993, -99.0136]], dtype=torch.float32, device=torch_device
-    )
-    assert torch.allclose(gold_scores, scores, rtol=1e-4, atol=1e-4)
+    @classmethod
+    def test_block_scoring_reweighted_gradcheck(
+        cls, ubq_pdb, default_database, torch_device
+    ):
+        resnums = [(0, 4)]
+        return super().test_block_scoring_reweighted_gradcheck(
+            ubq_pdb,
+            default_database,
+            torch_device,
+            resnums=resnums,
+            nondet_tol=1e-6,  # fd this is necessary here...
+        )

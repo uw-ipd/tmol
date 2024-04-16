@@ -12,16 +12,21 @@ class LJScore(torch.autograd.Function):
     @staticmethod
     def forward(ctx, dist, *args):
         if dist.requires_grad:
-            V, dV = torch.tensor(
+            Vatr, Vrep, dVatr, dVrep = torch.tensor(
                 [_compiled.lj_score_V_dV(d, *args) for d in dist.reshape(-1)]
             ).transpose(0, 1)
+            V = Vatr + Vrep
+            dV = dVatr + dVrep
 
             V = V.to(dist.dtype).reshape(dist.shape)
             dV = dV.to(dist.dtype).reshape(dist.shape)
 
             ctx.save_for_backward(dV)
         else:
-            V = torch.tensor([_compiled.lj_score_V(d, *args) for d in dist.reshape(-1)])
+            Vatr, Vrep = torch.tensor(
+                [_compiled.lj_score_V(d, *args) for d in dist.reshape(-1)]
+            ).transpose(0, 1)
+            V = Vatr + Vrep
 
             V = V.to(dist.dtype).reshape(dist.shape)
         return V

@@ -128,11 +128,22 @@ struct lk_isotropic_pair {
 
     Real lk;
 
-    if (dist < cpoly_close_dmin) {
-      lk = f_desolv<Real>::V(
-          d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+    if (dist > cpoly_far_dmax) {
+      lk = 0.0;
+    } else if (dist > cpoly_far_dmin) {
+      auto f_desolv_at_dmin = f_desolv<Real>::V_dV(
+          cpoly_far_dmin, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
 
-    } else if (dist < cpoly_close_dmax) {
+      lk = interpolate_to_zero(
+          dist,
+          cpoly_far_dmin,
+          f_desolv_at_dmin.V,
+          f_desolv_at_dmin.dV_ddist,
+          cpoly_far_dmax);
+    } else if (dist > cpoly_close_dmax) {
+      lk = f_desolv<Real>::V(
+          dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+    } else if (dist > cpoly_close_dmin) {
       auto f_desolv_at_dmax = f_desolv<Real>::V_dV(
           cpoly_close_dmax, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
 
@@ -145,23 +156,9 @@ struct lk_isotropic_pair {
           cpoly_close_dmax,
           f_desolv_at_dmax.V,
           f_desolv_at_dmax.dV_ddist);
-
-    } else if (dist < cpoly_far_dmin) {
-      lk = f_desolv<Real>::V(
-          dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
-
-    } else if (dist < cpoly_far_dmax) {
-      auto f_desolv_at_dmin = f_desolv<Real>::V_dV(
-          cpoly_far_dmin, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
-
-      lk = interpolate_to_zero(
-          dist,
-          cpoly_far_dmin,
-          f_desolv_at_dmin.V,
-          f_desolv_at_dmin.dV_ddist,
-          cpoly_far_dmax);
     } else {
-      lk = 0.0;
+      lk = f_desolv<Real>::V(
+          d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
     }
 
     return weight * lk;
@@ -252,24 +249,76 @@ struct lk_isotropic_score {
       LKTypeParams<Real> j,
       LJGlobalParams<Real> global)
       ->Real {
-    Real sigma = lj_sigma<Real>(i, j, global);
+    Real lj_sigma_ij = lj_sigma<Real>(i, j, global);
 
-    return lk_isotropic_pair<Real>::V(
-               dist,
-               bonded_path_length,
-               sigma,
-               i.lj_radius,
-               i.lk_dgfree,
-               i.lk_lambda,
-               j.lk_volume)
-           + lk_isotropic_pair<Real>::V(
-               dist,
-               bonded_path_length,
-               sigma,
-               j.lj_radius,
-               j.lk_dgfree,
-               j.lk_lambda,
-               i.lk_volume);
+    Real d_min = lj_sigma_ij * .89;
+
+    Real cpoly_close_dmin = d_min * d_min - 1.45;
+    cpoly_close_dmin = cpoly_close_dmin < 0.01 ? 0.01 : cpoly_close_dmin;
+    cpoly_close_dmin = std::sqrt(cpoly_close_dmin);
+    Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
+
+    Real cpoly_far_dmin = 4.5;
+    Real cpoly_far_dmax = 6.0;
+
+    Real weight = connectivity_weight<Real>(bonded_path_length);
+
+    Real lk;
+    if (dist > cpoly_far_dmax) {
+      lk = 0.0;
+    } else if (dist > cpoly_far_dmin) {
+      auto f_desolv_at_dmin = f_desolv<Real>::V_dV(
+          cpoly_far_dmin, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume);
+      lk = interpolate_to_zero(
+          dist,
+          cpoly_far_dmin,
+          f_desolv_at_dmin.V,
+          f_desolv_at_dmin.dV_ddist,
+          cpoly_far_dmax);
+      f_desolv_at_dmin = f_desolv<Real>::V_dV(
+          cpoly_far_dmin, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume);
+      lk += interpolate_to_zero(
+          dist,
+          cpoly_far_dmin,
+          f_desolv_at_dmin.V,
+          f_desolv_at_dmin.dV_ddist,
+          cpoly_far_dmax);
+    } else if (dist > cpoly_close_dmax) {
+      lk = f_desolv<Real>::V(
+               dist, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume)
+           + f_desolv<Real>::V(
+               dist, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume);
+    } else if (dist > cpoly_close_dmin) {
+      auto f_desolv_at_dmax = f_desolv<Real>::V_dV(
+          cpoly_close_dmax, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume);
+      lk = interpolate<Real>(
+          dist,
+          cpoly_close_dmin,
+          f_desolv<Real>::V(
+              d_min, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume),
+          0.0,
+          cpoly_close_dmax,
+          f_desolv_at_dmax.V,
+          f_desolv_at_dmax.dV_ddist);
+      f_desolv_at_dmax = f_desolv<Real>::V_dV(
+          cpoly_close_dmax, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume);
+      lk += interpolate<Real>(
+          dist,
+          cpoly_close_dmin,
+          f_desolv<Real>::V(
+              d_min, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume),
+          0.0,
+          cpoly_close_dmax,
+          f_desolv_at_dmax.V,
+          f_desolv_at_dmax.dV_ddist);
+
+    } else {
+      lk = f_desolv<Real>::V(
+               d_min, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume)
+           + f_desolv<Real>::V(
+               d_min, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume);
+    }
+    return weight * lk;
   }
 
   static def V_dV(
