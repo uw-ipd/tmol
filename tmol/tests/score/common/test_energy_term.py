@@ -289,7 +289,7 @@ class EnergyTermTestBase:
         rtol=1e-3,
     ):
         res_50 = [(0, 50)]
-        res_30 = [(0, 30)]
+        res_30 = [(20, 50)]
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device)
         p2 = pose_stack_from_pdb_and_resnums(pdb, torch_device, res_50)
         p3 = pose_stack_from_pdb_and_resnums(pdb, torch_device, res_30)
