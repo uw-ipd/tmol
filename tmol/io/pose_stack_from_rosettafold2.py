@@ -143,6 +143,56 @@ def canonical_form_from_rosettafold2(
     )
 
 
+def pose_stack_to_rosettafold2(pose_stack, chainlens):
+    from tmol.io.pose_stack_deconstruction import canonical_form_from_pose_stack
+
+    device = pose_stack.device
+    n_poses = 1  # RF2 does not presently do batch processing
+    max_n_res = sum(chainlens)
+    max_n_ats = 27
+
+    rf2_pose_ind_for_atom = (
+        torch.arange(n_poses, dtype=torch.int64, device=device)
+        .reshape(-1, 1, 1)
+        .expand(-1, max_n_res, max_n_ats)
+    )
+    rf2_res_ind_for_atom = (
+        torch.arange(max_n_res, dtype=torch.int64, device=device)
+        .reshape(1, -1, 1)
+        .expand(n_poses, -1, max_n_ats)
+    )
+
+    co = canonical_ordering_for_rosettafold2()
+    (
+        _,  # rf22t_rtmap,
+        rf22t_atmap,
+        rf2_at_is_real_map,
+        _,  # supress_atom_for_nterm,
+    ) = _get_rf2_2_tmol_mappings(device)
+
+    canonical_form = canonical_form_from_pose_stack(co, pose_stack)
+
+    seq = canonical_form[1]
+    # tmol_restypes = rf22t_rtmap[seq]
+    atom_mapping = rf22t_atmap[seq]
+    rf2_at_is_real = rf2_at_is_real_map[seq]
+
+    rf2_coords = torch.full(
+        (n_poses, max_n_res, max_n_ats, 3),
+        numpy.NaN,
+        dtype=torch.float32,
+        device=device,
+    )
+
+    rf2_coords[rf2_at_is_real] = canonical_form[2][
+        rf2_pose_ind_for_atom[rf2_at_is_real],
+        rf2_res_ind_for_atom[rf2_at_is_real],
+        atom_mapping[rf2_at_is_real],
+    ]
+
+    return rf2_coords
+
+
 @toolz.functoolz.memoize
 def _paramdb_for_rosettafold2() -> ParameterDatabase:
     """Construct the paramdb representing the subset of residues that
