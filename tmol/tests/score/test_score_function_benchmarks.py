@@ -241,7 +241,7 @@ def test_render_module(
     setup
 
 
-@pytest.mark.benchmark(group="res_centric_onepass")
+@pytest.mark.benchmark(group="total_score_onepass")
 @pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
 def test_full(benchmark, systems_bysize, system_size, torch_device):
     co = default_canonical_ordering()
