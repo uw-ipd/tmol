@@ -1,4 +1,3 @@
-import pickle
 import attr
 
 from collections.abc import Mapping
@@ -26,9 +25,3 @@ class LazyContentsMapping(LazyFileMapping):
     def __getitem__(self, k):
         with open(self.file_mapping[self.norm(k)], "r") as f:
             return f.read()
-
-
-class LazyPickleMapping(LazyFileMapping):
-    def __getitem__(self, k):
-        with open(self.file_mapping[self.norm(k)], "rb") as f:
-            return pickle.load(f)

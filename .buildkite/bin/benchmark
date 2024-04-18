@@ -35,9 +35,6 @@ export MPLBACKEND="module://itermplot"
 echo '+++ tmol.tests.score.plot_total_score_onepass'
 python -m tmol.tests.score.plot_total_score_onepass $(find benchmark -name '*.json')
 
-echo '+++ tmol.tests.score.plot_score_component_pass'
-python -m tmol.tests.score.plot_score_component_pass $(find benchmark -name '*.json')
-
 if [ ! -z "$BUILDKITE_PULL_REQUEST_BASE_BRANCH" -a ! -z "$PR_BASE_LOG" ]; then
   echo '--- Cleanup PR Base Log'
   rm $PR_BASE_LOG

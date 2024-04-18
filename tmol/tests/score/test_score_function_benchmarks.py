@@ -16,6 +16,14 @@ from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
 from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
 from tmol.score.backbone_torsion.bb_torsion_energy_term import BackboneTorsionEnergyTerm
 from tmol.score.ref.ref_energy_term import RefEnergyTerm
+from tmol.score import beta2016_score_function
+
+from tmol.io.canonical_ordering import (
+    default_canonical_ordering,
+    default_packed_block_types,
+    canonical_form_from_pdb,
+)
+from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 @pytest.mark.parametrize("energy_term", [LJLKEnergyTerm], ids=["ljlk"])
@@ -194,3 +202,63 @@ def test_combined_res_centric_score_benchmark(
 
     else:
         raise NotImplementedError
+
+
+@pytest.mark.benchmark(group="res_centric_build_posestack")
+@pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
+def test_build_posestack(
+    benchmark, systems_bysize, system_size, default_database, torch_device
+):
+    @benchmark
+    def setup():
+        co = default_canonical_ordering()
+        pbt = default_packed_block_types(torch_device)
+        canonical_form = canonical_form_from_pdb(
+            co, systems_bysize[system_size], torch_device
+        )
+        _ = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+
+    setup
+
+
+@pytest.mark.benchmark(group="res_centric_render_module")
+@pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
+def test_render_module(
+    benchmark, systems_bysize, system_size, default_database, torch_device
+):
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(
+        co, systems_bysize[system_size], torch_device
+    )
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+
+    @benchmark
+    def setup():
+        sfxn = beta2016_score_function(torch_device)
+        _ = sfxn.render_whole_pose_scoring_module(pose_stack)
+
+    setup
+
+
+@pytest.mark.benchmark(group="total_score_onepass")
+@pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
+def test_full(benchmark, systems_bysize, system_size, torch_device):
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(
+        co, systems_bysize[system_size], torch_device
+    )
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    pose_stack.coords.requires_grad_(True)
+
+    sfxn = beta2016_score_function(torch_device)
+    scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
+
+    @benchmark
+    def forward_backward():
+        scores = torch.sum(scorer(pose_stack.coords))
+        scores.backward(retain_graph=True)
+        return scores.cpu()
+
+    forward_backward

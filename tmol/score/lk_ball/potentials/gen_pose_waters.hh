@@ -7,7 +7,8 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-// #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>

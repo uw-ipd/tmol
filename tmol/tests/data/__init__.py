@@ -3,7 +3,6 @@ import os
 import torch
 
 from . import pdb
-from . import rosetta_baseline
 
 
 @pytest.fixture(scope="session")
@@ -76,51 +75,21 @@ def disulfide_res():
 
 
 @pytest.fixture()
-def cst_system():
-    from tmol.system.io import read_pdb
-
-    return read_pdb(pdb.data["6DMZ_A.pdb"])
-
-
-@pytest.fixture()
-def cst_csts():
-    from numpy import load
-
-    return dict(load(os.path.dirname(__file__) + "/constraints/6DMZ_A.npz"))
-
-
-@pytest.fixture(scope="session")
-def ubq_rosetta_baseline():
-    # TODO ubq baseline does *not* contain the same conformation as ubq_pdb
-    return rosetta_baseline.data["1ubq"]
-
-
-@pytest.fixture(scope="session")
-def systems_bysize():
-    from tmol.system.io import read_pdb
-
-    return {
-        40: read_pdb(pdb.data["bysize_040_res_5uoi.pdb"]),
-        75: read_pdb(pdb.data["bysize_075_res_2mtq.pdb"]),
-        150: read_pdb(pdb.data["bysize_150_res_5yzf.pdb"]),
-        300: read_pdb(pdb.data["bysize_300_res_6f8b.pdb"]),
-        600: read_pdb(pdb.data["bysize_600_res_5m4a.pdb"]),
-    }
-
-
-@pytest.fixture()
 def water_box_res():
     from tmol.system.io import ResidueReader
 
     return ResidueReader.get_default().parse_pdb(pdb.data["water_box"])
 
 
-@pytest.fixture()
-def water_box_system():
-    from tmol.system.io import read_pdb
-
-    ret = read_pdb(pdb.data["water_box"])
-    return ret
+@pytest.fixture(scope="session")
+def systems_bysize():
+    return {
+        40: pdb.data["bysize_040_res_5uoi.pdb"],
+        75: pdb.data["bysize_075_res_2mtq.pdb"],
+        150: pdb.data["bysize_150_res_5yzf.pdb"],
+        300: pdb.data["bysize_300_res_6f8b.pdb"],
+        600: pdb.data["bysize_600_res_5m4a.pdb"],
+    }
 
 
 @pytest.fixture()

@@ -8,8 +8,6 @@ load(
             __file__,
             [
                 "compiled.ops.cpp",
-                "compiled.cpu.cpp",
-                "compiled.cuda.cu",
                 "lk_ball_pose_score.cpu.cpp",
                 "lk_ball_pose_score.cuda.cu",
                 "rotamer_pair_energy_lkball.cpu.cpp",
@@ -23,7 +21,5 @@ load(
 )
 
 _ops = getattr(torch.ops, modulename(__name__))
-score_lkball = _ops.score_lkball
-watergen_lkball = _ops.watergen_lkball
 gen_pose_waters = _ops.gen_pose_waters
 pose_score_lk_ball = _ops.lk_ball_pose_score

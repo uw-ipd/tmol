@@ -4,55 +4,10 @@ import numpy.testing
 
 import pytest
 
-from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.script_modules import KinematicModule
-from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
-
-# from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.score.modules.bonded_atom import BondedAtoms
-from tmol.score.modules.bases import ScoreSystem
-
 
 from tmol.kinematics.datatypes import NodeType, KinForest
-
-
-def score(coords):
-    """Dummy scorefunction for a conformation."""
-    # assert coords.shape == (20, 3)
-    dists = (coords.unsqueeze(1) - coords.unsqueeze(0)).norm(dim=-1)
-    igraph = torch.triu(
-        ~torch.eye(dists.shape[0], dtype=torch.bool, device=coords.device)
-    ) & (dists < 3.4)
-    score = (3.4 - dists[igraph]) * (3.4 - dists[igraph])
-    return torch.sum(score)
-
-
-def dscore(coords):
-    """Dummy scorefunction derivs for a conformation."""
-    # assert coords.shape == (20, 3)
-    natoms = coords.shape[0]
-    dxs = coords.unsqueeze(1) - coords.unsqueeze(0)
-    dists = dxs.norm(dim=-1)
-    igraph = (
-        torch.triu(~torch.eye(dists.shape[0], dtype=torch.bool, device=coords.device))
-        & (dists < 3.4)
-    ).nonzero()
-
-    dEdxs = torch.zeros([natoms, natoms, 3], dtype=torch.double, device=coords.device)
-    dEdxs[igraph[:, 0], igraph[:, 1], :] = (
-        -2
-        * (3.4 - dists[igraph[:, 0], igraph[:, 1]].reshape(-1, 1))
-        * (
-            dxs[igraph[:, 0], igraph[:, 1], :]
-            / dists[igraph[:, 0], igraph[:, 1]].reshape(-1, 1)
-        )
-    )
-
-    dEdx = torch.zeros([natoms, 3], device=coords.device)
-    dEdx = dEdxs.sum(dim=1) - dEdxs.sum(dim=0)
-
-    return dEdx
 
 
 @pytest.fixture
@@ -125,10 +80,6 @@ def coords(torch_device):
     coords[20, :] = torch.Tensor([1.561, 1.900, 3.805])
 
     return coords.to(device=torch_device)
-
-
-def test_score_smoketest(coords):
-    score(coords[1:, :])
 
 
 def test_forward_refold(kinforest, coords, torch_device):
@@ -245,83 +196,3 @@ def compute_verify_derivs(kinforest, coords):
         return op(dofsfull)
 
     torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=2e-3)
-
-
-def test_forward_refold_two_systems(ubq_system, torch_device):
-    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
-    # bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
-    system = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})
-    bonds3 = BondedAtoms.get(system).bonds.astype(numpy.int32)
-    bonds2 = (numpy.arange(2, dtype=numpy.int32) * twoubq.systems[0].system_size)[
-        bonds3[:, 0:1]
-    ] + bonds3[:, 1:3]
-    tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=numpy.int32)
-
-    coords_raw = torch.tensor(
-        numpy.concatenate((twoubq.systems[0].coords, twoubq.systems[1].coords), axis=0),
-        dtype=torch.float64,
-        device=torch_device,
-    )
-
-    kinforest = (
-        KinematicBuilder()
-        .append_connected_components(
-            tworoots, *KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds2)
-        )
-        .kinforest.to(torch_device)
-    )
-
-    ids = kinforest.id.type(torch.long)
-    coords = coords_raw[ids]
-    coords[0, :] = 0
-
-    dofs = inverseKin(kinforest, coords)
-    refold_kincoords = forwardKin(kinforest, dofs)
-    refold_kincoords[0, :] = 0
-
-    numpy.testing.assert_allclose(coords.cpu(), refold_kincoords.cpu(), atol=1e-6)
-
-
-def test_forward_refold_w_jagged_system(ubq_res, torch_device):
-    # torch_device = torch.device("cpu")
-    ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
-    ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
-    system_size = max(ubq40.system_size, ubq60.system_size)
-
-    twoubq = PackedResidueSystemStack((ubq40, ubq60))
-    # bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
-    system = ScoreSystem._build_with_modules(twoubq, {BondedAtoms})
-    bonds3 = BondedAtoms.get(system).bonds.astype(numpy.int32)
-    bonds2 = (numpy.arange(2, dtype=numpy.int32) * system_size)[
-        bonds3[:, 0:1]
-    ] + bonds3[:, 1:3]
-    tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=numpy.int32)
-
-    coords_raw = torch.zeros(
-        (2, system_size, 3), dtype=torch.float64, device=torch_device
-    )
-    coords_raw[0, 0 : ubq40.system_size, :] = torch.tensor(
-        ubq40.coords, dtype=torch.float64, device=torch_device
-    )
-    coords_raw[1, 0 : ubq60.system_size, :] = torch.tensor(
-        ubq60.coords, dtype=torch.float64, device=torch_device
-    )
-    coords_raw = coords_raw.reshape(2 * system_size, 3)
-
-    kinforest = (
-        KinematicBuilder()
-        .append_connected_components(
-            tworoots, *KinematicBuilder.bonds_to_forest(roots=tworoots, bonds=bonds2)
-        )
-        .kinforest.to(torch_device)
-    )
-
-    ids = kinforest.id.type(torch.long)
-    coords = coords_raw[ids, :]
-    coords[0, :] = 0
-
-    dofs = inverseKin(kinforest, coords)
-    refold_kincoords = forwardKin(kinforest, dofs)
-    refold_kincoords[0, :] = 0
-
-    numpy.testing.assert_allclose(coords.cpu(), refold_kincoords.cpu(), atol=1e-6)

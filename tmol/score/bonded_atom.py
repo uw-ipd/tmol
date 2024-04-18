@@ -4,13 +4,6 @@ import attr
 import torch
 import numpy
 
-import toolz
-
-import scipy.sparse.csgraph as csgraph
-import scipy
-
-
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 
@@ -97,56 +90,3 @@ class IndexedBonds:
             ),
             axis=0,
         )
-
-    def to(self, device: torch.device):
-        return type(self)(
-            **toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False))
-        )
-
-
-def bonded_path_length_stacked(
-    bonds: NDArray[int][:, 3], stack_depth: int, system_size: int, limit: int
-) -> NDArray[numpy.float32][:, :, :]:
-    # bond_graph = sparse.COO(
-    #    bonds.T,
-    #    data=numpy.full(len(bonds), True),
-    #    shape=(stack_depth, system_size, system_size),
-    #    cache=True,
-    # )
-    result = numpy.empty((stack_depth, system_size, system_size), dtype=numpy.float32)
-    for i in range(stack_depth):
-        bondmask = bonds[:, 0] == i
-        bond_graph = scipy.sparse.coo_matrix(
-            (
-                numpy.full(numpy.sum(bondmask), True),
-                (bonds[bondmask, 1], bonds[bondmask, 2]),
-            ),
-            shape=(system_size, system_size),
-        )
-        result[i] = csgraph.dijkstra(
-            bond_graph, directed=False, unweighted=True, limit=limit
-        )
-
-    return result
-
-
-def bonded_path_length(
-    bonds: NDArray[int][:, 2], system_size: int, limit: int
-) -> NDArray[numpy.float32][:, :]:
-    # bond_graph = sparse.COO(
-    #    bonds.T,
-    #    data=numpy.full(len(bonds), True),
-    #    shape=(system_size, system_size),
-    #    cache=True,
-    # )
-    bond_graph = scipy.sparse.coo_matrix(
-        (
-            numpy.full(len(bonds), True),
-            (bonds[:, 0], bonds[:, 1]),
-        ),
-        shape=(system_size, system_size),
-    )
-
-    return csgraph.dijkstra(
-        bond_graph.tocsr(), directed=False, unweighted=True, limit=limit
-    )
