@@ -167,7 +167,7 @@ def pose_stack_to_rosettafold2(pose_stack, chainlens):
         _,  # rf22t_rtmap,
         rf22t_atmap,
         rf2_at_is_real_map,
-        _,  # supress_atom_for_nterm,
+        supress_atom_for_nterm,
     ) = _get_rf2_2_tmol_mappings(device)
 
     canonical_form = canonical_form_from_pose_stack(co, pose_stack)
@@ -175,6 +175,7 @@ def pose_stack_to_rosettafold2(pose_stack, chainlens):
     seq = canonical_form[1]
     # tmol_restypes = rf22t_rtmap[seq]
     atom_mapping = rf22t_atmap[seq]
+    supressed = supress_atom_for_nterm[seq]
     rf2_at_is_real = rf2_at_is_real_map[seq]
 
     rf2_coords = torch.full(
@@ -190,7 +191,20 @@ def pose_stack_to_rosettafold2(pose_stack, chainlens):
         atom_mapping[rf2_at_is_real],
     ]
 
-    return rf2_coords
+    suppressed_mapped = torch.full(
+        (n_poses, max_n_res, max_n_ats),
+        False,
+        dtype=torch.bool,
+        device=device,
+    )
+    suppressed_mapped[rf2_at_is_real] = supressed[
+        rf2_pose_ind_for_atom[rf2_at_is_real],
+        rf2_res_ind_for_atom[rf2_at_is_real],
+        atom_mapping[rf2_at_is_real],
+    ]
+    return rf2_coords, torch.logical_and(
+        rf2_at_is_real, torch.logical_not(suppressed_mapped)
+    )
 
 
 @toolz.functoolz.memoize

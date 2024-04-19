@@ -1,6 +1,7 @@
 import os
 import torch
 
+from tmol.tests.score.common.test_energy_term import assert_allclose
 
 from tmol.io.pose_stack_from_rosettafold2 import (
     pose_stack_from_rosettafold2,
@@ -52,11 +53,10 @@ def test_multi_chain_rosettafold2_pose_stack_construction(
 def test_from_to_rosettafold2(rosettafold2_ubq_pred, torch_device):
     rosettafold2_ubq_pred["chainlens"] = [76]
     ps = pose_stack_from_rosettafold2(**rosettafold2_ubq_pred)
-    rf2ubq = pose_stack_to_rosettafold2(ps, rosettafold2_ubq_pred["chainlens"])
-    print(rosettafold2_ubq_pred["xyz"].unsqueeze(0).shape)
-    print(rf2ubq[0, 1:73])
-    assert torch.allclose(
-        rosettafold2_ubq_pred["xyz"].unsqueeze(0)[0, 1:73], rf2ubq[0, 1:73]
+
+    rf2ubq, rf2_ats = pose_stack_to_rosettafold2(ps, rosettafold2_ubq_pred["chainlens"])
+    assert_allclose(
+        rosettafold2_ubq_pred["xyz"].unsqueeze(0)[rf2_ats], rf2ubq[rf2_ats], 1e-5, 1e-3
     )
 
 
