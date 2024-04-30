@@ -254,9 +254,6 @@ def test_get_polymeric_bonds_in_fold_forest_c_to_n(ubq_res, default_database):
         default_database.chemical, ubq_res[:8], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:11], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
         default_database.chemical, ubq_res[:5], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
@@ -293,30 +290,56 @@ def test_construct_pose_stack_kinforest(ubq_res, default_database):
     torch_device = torch.device("cpu")
 
     p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:8], torch_device
+        default_database.chemical, ubq_res[:1], torch_device
     )
     p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:11], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:5], torch_device
+        default_database.chemical, ubq_res[:2], torch_device
     )
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
-
-    edges = numpy.full((3, 2, 4), -1, dtype=int)
-    edges[:, 0, 0] = EdgeType.polymer
-    edges[:, 0, 1] = 0
-    edges[0, 0, 2] = 7
-    edges[1, 0, 1] = 5
-    edges[1, 0, 2] = 0
-    edges[1, 1, 0] = EdgeType.polymer
-    edges[1, 1, 1] = 5
-    edges[1, 1, 2] = 10
-    edges[2, 0, 2] = 4
 
     fold_forest = FoldForest.polymeric_forest(pose_stack.n_res_per_pose)
 
     kinforest = construct_pose_stack_kinforest(pose_stack, fold_forest)
 
-    # TO DO: make sure kinforest is properly constructed
-    assert kinforest is not None
+    # fmt: off
+    assert (
+        (kinforest.id == torch.Tensor(
+            [-1,  0,  1, 16, 17, 18, 36,  2,  4,  8, 37, 52, 53, 54,  3,  5,  9, 10,
+            38, 40, 44,  6, 11, 12, 39, 55, 41, 45, 46,  7, 56, 64, 42, 47, 48, 13,
+            14, 15, 57, 59, 65, 43, 58, 60, 66, 67, 49, 50, 51, 61, 68, 69, 62, 63,
+            70, 71]
+        )).all()
+    )
+    assert (
+        (kinforest.parent == torch.Tensor(
+            [ 0,  0,  1,  1,  1,  1,  0,  2,  2,  2,  6,  6,  6,  6,  7,  8,  8,  8,
+            10, 10, 10, 15, 15, 15, 18, 18, 19, 19, 19, 21, 25, 25, 26, 26, 26, 29,
+            29, 29, 30, 30, 30, 32, 38, 39, 39, 39, 41, 41, 41, 43, 43, 43, 49, 49,
+            53, 53]
+        )).all()
+    )
+    assert (
+        (kinforest.frame_x == torch.Tensor(
+            [ 0,  2,  2,  3,  4,  5, 10,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17,
+            18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
+            36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53,
+            54, 55]
+        )).all()
+    )
+    assert (
+        (kinforest.frame_y == torch.Tensor(
+            [ 0,  1,  1,  1,  1,  1,  6,  2,  2,  2,  6,  6,  6,  6,  7,  8,  8,  8,
+            10, 10, 10, 15, 15, 15, 18, 18, 19, 19, 19, 21, 25, 25, 26, 26, 26, 29,
+            29, 29, 30, 30, 30, 32, 38, 39, 39, 39, 41, 41, 41, 43, 43, 43, 49, 49,
+            53, 53]
+        )).all()
+    )
+    assert (
+        (kinforest.frame_z == torch.Tensor(
+            [ 0,  7,  7,  2,  2,  2, 18,  1,  1,  1, 18, 10, 10, 10,  2,  2,  2,  2,
+            6,  6,  6,  8,  8,  8, 10, 10, 10, 10, 10, 15, 18, 18, 19, 19, 19, 21,
+            21, 21, 25, 25, 25, 26, 30, 30, 30, 30, 32, 32, 32, 39, 39, 39, 43, 43,
+            49, 49]
+        )).all()
+    )
+    # fmt: on

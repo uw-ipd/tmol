@@ -17,6 +17,29 @@ class NodeType(enum.IntEnum):
     bond = enum.auto()
 
 
+class BondDOFTypes(enum.IntEnum):
+    """Indices of bond dof types within KinDOF.raw."""
+
+    phi_p = 0
+    theta = enum.auto()
+    d = enum.auto()
+    phi_c = enum.auto()
+
+
+class JumpDOFTypes(enum.IntEnum):
+    """Indices of jump dof types within KinDOF.raw."""
+
+    RBx = 0
+    RBy = enum.auto()
+    RBz = enum.auto()
+    RBdel_alpha = enum.auto()
+    RBdel_beta = enum.auto()
+    RBdel_gamma = enum.auto()
+    RBalpha = enum.auto()
+    RBbeta = enum.auto()
+    RBgamma = enum.auto()
+
+
 @attr.s(auto_attribs=True, frozen=True)
 class KinForest(TensorGroup, ConvertAttrs):
     """A collection of atom-level kinematic trees, each of which can be processed
@@ -120,6 +143,31 @@ class KinForest(TensorGroup, ConvertAttrs):
             id=-1, doftype=NodeType.root, parent=0, frame_x=0, frame_y=0, frame_z=0
         )
 
+    def default_mask(self, nonideal=False):
+        """Get a default DOF mask corresponding to ideal or nonideal refinement.
+        This can be updated in the future to accept something equivalent to a
+        MoveMap as an input."""
+        mask = torch.zeros(
+            (self.id.shape[0], 9), dtype=torch.bool, device=self.doftype.device
+        )
+        mask[self.doftype == NodeType.jump, JumpDOFTypes.RBx : JumpDOFTypes.RBz] = (
+            True  # jump translations
+        )
+        mask[
+            self.doftype == NodeType.jump,
+            JumpDOFTypes.RBdel_alpha : JumpDOFTypes.RBdel_gamma,
+        ] = True  # jump rotations
+        mask[self.doftype == NodeType.bond, BondDOFTypes.phi_p] = True  # bond rotation
+
+        if nonideal:
+            mask[self.doftype == NodeType.bond, BondDOFTypes.theta] = True  # bond angle
+            mask[self.doftype == NodeType.bond, BondDOFTypes.d] = True  # bond length
+            mask[self.doftype == NodeType.bond, BondDOFTypes.phi_c] = (
+                True  # child bond rotation
+            )
+
+        return mask
+
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class KinDOF(TensorGroup, ConvertAttrs):
@@ -144,29 +192,6 @@ class KinDOF(TensorGroup, ConvertAttrs):
 
     def clone(self):
         return KinDOF(raw=self.raw.clone())
-
-
-class BondDOFTypes(enum.IntEnum):
-    """Indices of bond dof types within KinDOF.raw."""
-
-    phi_p = 0
-    theta = enum.auto()
-    d = enum.auto()
-    phi_c = enum.auto()
-
-
-class JumpDOFTypes(enum.IntEnum):
-    """Indices of jump dof types within KinDOF.raw."""
-
-    RBx = 0
-    RBy = enum.auto()
-    RBz = enum.auto()
-    RBdel_alpha = enum.auto()
-    RBdel_beta = enum.auto()
-    RBdel_gamma = enum.auto()
-    RBalpha = enum.auto()
-    RBbeta = enum.auto()
-    RBgamma = enum.auto()
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
