@@ -168,13 +168,18 @@ def pose_stack_to_rosettafold2(pose_stack, chainlens):
         rf22t_atmap,
         rf2_at_is_real_map,
         supress_atom_for_nterm,
-    ) = _get_rf2_2_tmol_mappings(device)
+        hydrogens,
+        h_to_h1,
+    ) = _get_tmol_2_rf2_mappings(device)
+
+    # torch.set_printoptions(threshold=10_000, linewidth=256)
 
     canonical_form = canonical_form_from_pose_stack(co, pose_stack)
 
     seq = canonical_form[1]
-    # tmol_restypes = rf22t_rtmap[seq]
     atom_mapping = rf22t_atmap[seq]
+    hydro = hydrogens[seq]
+    h1s = h_to_h1[seq]
     supressed = supress_atom_for_nterm[seq]
     rf2_at_is_real = rf2_at_is_real_map[seq]
 
@@ -189,6 +194,15 @@ def pose_stack_to_rosettafold2(pose_stack, chainlens):
         rf2_pose_ind_for_atom[rf2_at_is_real],
         rf2_res_ind_for_atom[rf2_at_is_real],
         atom_mapping[rf2_at_is_real],
+    ]
+
+    # Find any NaN hydrogens and copy from the H1 instead
+    nans = torch.isnan(rf2_coords).any(-1)
+    terminal_hs = torch.logical_and(nans, hydro)
+    rf2_coords[terminal_hs] = canonical_form[2][
+        rf2_pose_ind_for_atom[terminal_hs],
+        rf2_res_ind_for_atom[terminal_hs],
+        h1s[terminal_hs.any(-1)],
     ]
 
     suppressed_mapped = torch.full(
@@ -309,3 +323,65 @@ def _get_rf2_2_tmol_mappings(device: torch.device):
                 tmol_ind = co.restypes_atom_index_mapping[i_3lc][atname.strip()]
                 supress_atom_at_nterm[i, tmol_ind] = True
     return rt_map, atname_map, at_is_real, supress_atom_at_nterm
+
+
+@toolz.functoolz.memoize
+def _get_tmol_2_rf2_mappings(device: torch.device):
+    """Same logic is the RF2->tmol function, but additionally provides
+    a tensor marking the hydrogens in the RF2 index space, as well as
+    a tensor giving the tmol 1H index for a residue when indexed by
+    the RF2 residue type index
+    """
+
+    co = canonical_ordering_for_rosettafold2()
+    from tmol.extern.rosettafold2.chemical import (
+        num2aa,
+        aa2long,
+    )
+
+    rf2_atom_names_for_name3s = {
+        x: [at.strip() if at is not None else "" for at in y]
+        for x, y in zip(num2aa, aa2long)
+    }
+
+    (rt_map, atname_map, at_is_real) = co.create_src_2_tmol_mappings(
+        num2aa, rf2_atom_names_for_name3s, device
+    )
+
+    src_max_n_ats = len(rf2_atom_names_for_name3s[num2aa[0]])
+    hydrogens = torch.zeros(
+        (
+            len(num2aa),
+            src_max_n_ats,
+        ),
+        dtype=torch.bool,
+        device=device,
+    )
+    h_to_h1 = torch.full(
+        (len(num2aa),),
+        -1,
+        dtype=torch.int64,
+        device=device,
+    )
+
+    # also want to turn off n-term "H" atoms
+    supress_atom_at_nterm = torch.zeros(
+        (
+            len(num2aa),
+            co.max_n_canonical_atoms,
+        ),
+        dtype=torch.bool,
+        device=device,
+    )
+
+    for i, i_3lc in enumerate(num2aa):
+        if i_3lc not in co.restype_io_equiv_classes:
+            continue
+        for j, atname in enumerate(rf2_atom_names_for_name3s[i_3lc]):
+            if atname.strip() == "H":
+                tmol_ind = co.restypes_atom_index_mapping[i_3lc][atname.strip()]
+                supress_atom_at_nterm[i, tmol_ind] = True
+
+                hydrogens[i, j] = True
+                h_to_h1[i] = co.restypes_atom_index_mapping[i_3lc]["1H"]
+    return rt_map, atname_map, at_is_real, supress_atom_at_nterm, hydrogens, h_to_h1

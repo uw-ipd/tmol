@@ -83,7 +83,9 @@ def get_notallclose_msg(analytical, numerical, atol, rtol):
 
 def assert_allclose(baseline, measured, atol, rtol):
     try:
-        numpy.testing.assert_allclose(baseline, measured, atol=atol, rtol=rtol)
+        numpy.testing.assert_allclose(
+            baseline.cpu(), measured.cpu(), atol=atol, rtol=rtol
+        )
     except AssertionError:
         raise AssertionError(get_notallclose_msg(measured, baseline, atol, rtol))
 
