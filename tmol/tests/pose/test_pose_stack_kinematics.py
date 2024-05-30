@@ -8,6 +8,12 @@ from tmol.pose.pose_kinematics import (
     get_polymeric_bonds_in_fold_forest,
     construct_pose_stack_kinforest,
 )
+from tmol.io.canonical_ordering import (
+    default_canonical_ordering,
+    default_packed_block_types,
+    canonical_form_from_pdb,
+)
+from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges
 from tmol.kinematics.fold_forest import FoldForest, EdgeType
 
@@ -320,3 +326,51 @@ def test_construct_pose_stack_kinforest(ubq_res, default_database):
 
     # TO DO: make sure kinforest is properly constructed
     assert kinforest is not None
+
+
+def test_decide_scan_paths_for_foldforest(ubq_pdb):
+    torch_device = torch.device("cpu")
+
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=0, residue_end=10
+    )
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+
+    # let's make a FF with a jump:
+    # rooted at residue 2
+    #     0       5
+    #     ^       ^
+    #     |       |
+    #     2 - - > 7
+    #     |       |
+    #     v       v
+    #     4       9
+
+    edges = numpy.full((1, 5, 4), -1, dtype=int)
+    edges[0, 0, 0] = EdgeType.jump
+    edges[0, 0, 1] = 2
+    edges[0, 0, 2] = 7
+    edges[0, 0, 3] = 0
+    edges[0, 1, 0] = EdgeType.polymer
+    edges[0, 1, 1] = 2
+    edges[0, 1, 2] = 0
+    edges[0, 2, 0] = EdgeType.polymer
+    edges[0, 2, 1] = 2
+    edges[0, 2, 2] = 4
+    edges[0, 3, 0] = EdgeType.polymer
+    edges[0, 3, 1] = 7
+    edges[0, 3, 2] = 5
+    edges[0, 4, 0] = EdgeType.polymer
+    edges[0, 4, 1] = 7
+    edges[0, 4, 2] = 9
+
+    ff = FoldForest(
+        max_n_edges=5,
+        n_edges=numpy.full((1,), 5, dtype=int),
+        edges=edges,
+        roots=numpy.full((1,), 2, dtype=int),
+    )
+
+    kf = construct_pose_stack_kinforest(pose_stack, ff)

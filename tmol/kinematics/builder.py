@@ -218,6 +218,8 @@ class KinematicBuilder:
         kfo_2_to, preds = csgraph.breadth_first_order(
             bond_graph, roots[0], directed=False, return_predecessors=True
         )
+        print("kfo_2_to", kfo_2_to)
+        print("preds", preds)
         to_parents_in_kfo = preds[kfo_2_to]
 
         n_target_atoms = numpy.max(kfo_2_to) + 1

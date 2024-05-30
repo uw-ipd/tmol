@@ -448,6 +448,12 @@ class RefinedResidueType(RawResidueType):
     def compute_ideal_coords(self):
         return build_coords_from_icoors(self.icoors_ancestors, self.icoors_geom)
 
+    default_jump_connection_atom_index: int = attr.ib()
+
+    @default_jump_connection_atom_index.default
+    def get_default_jump_connection_atom_index(self):
+        return self.atom_to_idx[self.default_jump_connection_atom]
+
 
 @attr.s(auto_attribs=True)
 class ResidueTypeSet:

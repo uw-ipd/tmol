@@ -1,14 +1,19 @@
 import torch
 import numpy
+import numba
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.datatypes import KinForest
-from tmol.kinematics.fold_forest import FoldForest
+from tmol.kinematics.fold_forest import FoldForest, EdgeType
 from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges
+
+import scipy.sparse as sparse
+import scipy.sparse.csgraph as csgraph
 
 
 def get_bonds_for_named_torsions(pose_stack: PoseStack):
@@ -195,6 +200,16 @@ def get_atom_inds_for_interblock_connections(
     out whether the polymeric connections in a pose should be included in its
     fold tree; the logic for handling up-to-down connections (i.e. N->C) is identical
     to the logic for handling down-to-up connections (i.e. C->N).
+
+    Notes
+    -----
+    This code will not include a connection between residues i and i+1 if
+    there is not a bond listed between those two residues in the
+    pose_stack.inter_residue_connections64 tensor, EVEN IF these residues
+    are listed as connected by the kinematic_connections tensor.
+    So, whereas "validate_fold_forest" is happy to "fold through" a break
+    in the chain, this code is not, and the inconsistency is surely
+    going to be a problem at some point.
     """
 
     pbt = pose_stack.packed_block_types
@@ -219,6 +234,9 @@ def get_atom_inds_for_interblock_connections(
     # on the other side of the connection point and, having found the complete
     # connections, go back and refine the list of pose-inds and block-inds that
     # we will work with
+    # NOTE: it is here that we throw away possibly-desired kinematic connections
+    # between residues that are not chemically bonded. We need different
+    # logic to differentiate between incomplete inter-residue connections that
     src_conn_complete = src_conn_other_block_prelim != -1
 
     src_conn_other_block = src_conn_other_block_prelim[src_conn_complete]
@@ -399,6 +417,37 @@ def get_all_bonds(pose_stack: PoseStack):
     return bonds
 
 
+def get_jump_bonds_in_fold_forest(pose_stack, fold_forest) -> Tensor[int][:, 2]:
+    pbt = pose_stack.packed_block_types
+    t_edges = torch.tensor(
+        fold_forest.edges, dtype=torch.int64, device=pose_stack.device
+    )
+    is_jump_edge = t_edges[:, :, 0] == EdgeType.jump
+    jump_pose_ind, jump_edge_ind = torch.nonzero(is_jump_edge, as_tuple=True)
+    start_block = t_edges[jump_pose_ind, jump_edge_ind, 1]
+    stop_block = t_edges[jump_pose_ind, jump_edge_ind, 2]
+    start_block_offset = pose_stack.block_coord_offset64[jump_pose_ind, start_block]
+    stop_block_offset = pose_stack.block_coord_offset64[jump_pose_ind, stop_block]
+    start_jump_atom = pbt.default_jump_connection_atom_inds[
+        pose_stack.block_type_ind64[jump_pose_ind, start_block]
+    ].to(torch.int64)
+    stop_jump_atom = pbt.default_jump_connection_atom_inds[
+        pose_stack.block_type_ind64[jump_pose_ind, stop_block]
+    ].to(torch.int64)
+    pose_offset = pose_stack.max_n_pose_atoms * jump_pose_ind
+
+    def _u1(x):
+        return torch.unsqueeze(x, dim=1)
+
+    return torch.cat(
+        (
+            _u1(pose_offset + start_block_offset + start_jump_atom),
+            _u1(pose_offset + stop_block_offset + stop_jump_atom),
+        ),
+        dim=1,
+    )
+
+
 def get_root_atom_indices(
     pose_stack: PoseStack, fold_tree_roots: NDArray[int][:]
 ) -> Tensor[torch.int32][:]:
@@ -432,18 +481,25 @@ def construct_pose_stack_kinforest(
     # connect to. Logic in R3: take the central "mainchain" atom
     # which is only ok for polymers, but perverse for anything else.
     # What's the mainchain of a ligand?!
-    # jump_atom_pairs = get_jump_bonds_in_fold_forest(pose_stack, fold_forest)
+    jump_atom_pairs = get_jump_bonds_in_fold_forest(pose_stack, fold_forest)
 
-    all_bonds = torch.cat((intra_block_bonds, kin_polymeric_bonds), dim=0).cpu().numpy()
-    tor_bonds = get_bonds_for_named_torsions(pose_stack).cpu().numpy()
+    all_bonds = (
+        torch.cat((intra_block_bonds, kin_polymeric_bonds, jump_atom_pairs), dim=0)
+        .cpu()
+        .numpy()
+    )
+    tor_bonds = get_bonds_for_named_torsions(pose_stack)
+    prioritized_bonds = torch.cat((tor_bonds, jump_atom_pairs), dim=0).cpu().numpy()
     root_atoms = get_root_atom_indices(pose_stack, fold_forest.roots).cpu().numpy()
 
     return (
         KinematicBuilder().append_connected_components(
             root_atoms,
             *KinematicBuilder.define_trees_with_prioritized_bonds(
-                roots=root_atoms, potential_bonds=all_bonds, prioritized_bonds=tor_bonds
+                roots=root_atoms,
+                potential_bonds=all_bonds,
+                prioritized_bonds=prioritized_bonds,
             ),
-            # to do: to_jump_nodes=jump_atom_pairs[0,:]
+            to_jump_nodes=jump_atom_pairs[:, 1],
         )
     ).kinforest
