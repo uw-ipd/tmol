@@ -55,13 +55,33 @@ def jump_bt_atom(bt, spanning_tree):
 @attrs.define
 class GenSegScanPaths:
     n_gens: NDArray[numpy.int64][:, :]  # n-input x n-output
+    n_nodes_for_gen: NDArray[numpy.int64][:, :, :]
     nodes_for_generation: NDArray[numpy.int64][
         :, :, :, :
-    ]  # n-input x n-output x max-n-gen x max-n-ats-per-gen
+    ]  # n-input x n-output x max-n-gen x max-n-nodes-per-gen
     n_scans: NDArray[numpy.int64][:, :, :]
     scan_starts: NDArray[numpy.int64][:, :, :, :]
+    scan_is_real: NDArray[bool][:, :, :, :]
     scan_is_inter_block: NDArray[bool][:, :, :, :]
     scan_lengths: NDArray[numpy.int64][:, :, :, :]
+
+    @classmethod
+    def empty(
+        cls, n_input_types, n_output_types, max_n_gens, max_n_scans, max_n_nodes_per_gen
+    ):
+        io = (n_input_types, n_output_types)
+        return cls(
+            n_gens=numpy.zeros(io, dtype=int),
+            n_nodes_for_gen=numpy.zeros(io + (max_n_gens,), dtype=int),
+            nodes_for_generation=numpy.zeros(
+                io + (max_n_gens, max_n_nodes_per_gen), dtype=int
+            ),
+            n_scans=numpy.zeros(io + (max_n_gens,), dtype=int),
+            scan_starts=numpy.full(io + (max_n_gens, max_n_scans), -1, dtype=int),
+            scan_is_real=numpy.zeros(io + (max_n_gens, max_n_scans), dtype=bool),
+            scan_is_inter_block=numpy.zeros(io + (max_n_gens, max_n_scans), dtype=bool),
+            scan_lengths=numpy.zeros(io + (max_n_gens, max_n_scans), dtype=int),
+        )
 
 
 def test_kin_tree_construction(ubq_pdb):
@@ -136,6 +156,7 @@ def test_kin_tree_construction(ubq_pdb):
         for i in range(n_conn):
             is_conn_atom[bt.ordered_connection_atoms[i]] = True
 
+        scan_path_data = {}
         for i in range(n_input_types):
 
             i_conn_atom = bt.ordered_connection_atoms[i] if i < n_conn else mid_bt_atom
@@ -148,7 +169,6 @@ def test_kin_tree_construction(ubq_pdb):
             print(bt.name, i, bfto_2_orig, preds)
             print([bt.atom_name(bfto_2_orig[bfs_ind]) for bfs_ind in range(bt.n_atoms)])
             for j in range(n_output_types):
-
                 if i == j and i < n_conn:
                     # we cannot enter from one inter-residue connection point and then
                     # leave by that same inter-residue connection point unless we are
@@ -268,10 +288,12 @@ def test_kin_tree_construction(ubq_pdb):
                             # as the first descendant and so I pause and think: if we have
                             # a block type with 4 inter-residue connections where the fold
                             # forest branches at this residue, then the algorithm for constructing
-                            # the most number-of-generations-efficient KinForest here is going
+                            # the fewest-number-of-generations KinForest here is going
                             # will fail: we are treating all exit paths out of this residue
-                            # as interchangable and we might say connection c vs c' should
-                            # be first in a case where c' leads to more generations than c.
+                            # as interchangable and we might say connection c should be
+                            # ahead of connection c' in a case where c' has a greater gen_depth
+                            # than c.
+                            #
                             # The case I am designing for here is: there's a jump that has
                             # landed at a beta-amino acid's CA atom and there are exit paths
                             # through the N- and C-terminal ends of the residue and if the
@@ -288,7 +310,16 @@ def test_kin_tree_construction(ubq_pdb):
                             # If we are only dealing with polymeric residues that have an
                             # up- and a down connection that that's it (e.g. nucleic acids),
                             # then this algorithm will still produce optimal KinForests.
-
+                            #
+                            # A case that this would fail to deliver the optimally-efficient
+                            # (fewest number of generations) KinForest would be if this R group
+                            # also contained an inter-residue connection and there were an
+                            # edge in the FoldForest (a "chemical edge") leaving from that
+                            # connection to some further chain, e.g., it could be a sugar
+                            # group attached to a beta-ASN. Now if the path (CA->CB->N) takes
+                            # precedence over the path (CA->CB->R), then everything down-
+                            # stream of the R would have a generation-delay one greater than
+                            # it would otherwise.
                             for kid in k_kids:
                                 if is_on_exit_path[kid]:
                                     first_descendant[k_atom_ind] = kid
@@ -362,12 +393,70 @@ def test_kin_tree_construction(ubq_pdb):
                     for k in range(ij_n_gens)
                 ]
                 print("ij_scan_lengths", i, j, ij_scan_lengths)
+                for k in range(ij_n_gens):
+                    offset = 0
+                    for l in range(ij_n_scans[k]):
+                        ij_scan_starts[k][l] = offset
+                        offset += ij_scan_lengths[k][l]
+                ij_scan_is_inter_block = [
+                    [False] * ij_n_scans[k] for k in range(ij_n_gens)
+                ]
+                for k in range(ij_n_gens):
+                    for l in range(ij_n_scans[k]):
+                        l_first_at = gen_scan_paths[k][l][0 if k == 0 else 1]
+                        ij_scan_is_inter_block[k][l] = is_on_exit_path[l_first_at]
+
+                print("ij_scan_is_inter_block", ij_scan_is_inter_block)
                 # ij_n_nodes_for_gen =
                 ij_n_nodes_for_gen = [
                     sum(len(path) for path in gen_scan_paths[k])
                     for k in range(ij_n_gens)
                 ]
                 print("ij_n_nodes_for_gen", ij_n_nodes_for_gen)
+                scan_path_data[(i, j)] = dict(
+                    n_gens=ij_n_gens,
+                    n_nodes_for_gen=ij_n_nodes_for_gen,
+                    nodes_for_generation=gen_scan_paths,
+                    n_scans=ij_n_scans,
+                    scan_starts=ij_scan_starts,
+                    scan_is_inter_block=is_on_exit_path,
+                    scan_lengths=ij_scan_lengths,
+                )
+            # end for j
+        # end for i
+        max_n_gens = max(
+            scan_path_data[(i, j)]["n_gens"]
+            for i in range(n_input_types)
+            for j in range(n_output_types)
+            if (i, j) in scan_path_data
+        )
+        max_n_scans = max(
+            max(
+                scan_path_data[(i, j)]["n_scans"][k]
+                for k in range(scan_path_data[(i, j)]["n_gens"])
+            )
+            for i in range(n_input_types)
+            for j in range(n_output_types)
+            if (i, j) in scan_path_data
+        )
+        max_n_nodes_per_gen = max(
+            max(
+                scan_path_data[(i, j)]["n_nodes_for_gen"][k]
+                for k in range(scan_path_data[(i, j)]["n_gens"])
+            )
+            for i in range(n_input_types)
+            for j in range(n_output_types)
+            if (i, j) in scan_path_data
+        )
+        bt_gen_seg_scan_paths = GenSegScanPaths.empty(
+            n_input_types, n_output_types, max_n_gens, max_n_scans, max_n_nodes_per_gen
+        )
+        for i in range(n_input_types):
+            for j in range(n_output_types):
+                if (i, j) not in scan_path_data:
+                    continue
+                ij_n_gens = scan_path_data[(i, j)]["n_gens"]
+                bt_gen_seg_scan_paths.n_gens[i, j] = ij_n_gens
 
 
 def test_decide_scan_paths_for_foldforest(ubq_pdb):
@@ -379,5 +468,3 @@ def test_decide_scan_paths_for_foldforest(ubq_pdb):
         co, ubq_pdb, torch_device, residue_start=0, residue_end=10
     )
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
-
-    fold

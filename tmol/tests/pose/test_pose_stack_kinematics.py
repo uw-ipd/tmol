@@ -1,5 +1,6 @@
 import torch
 import numpy
+import attrs
 
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pose.pose_kinematics import (
@@ -13,9 +14,11 @@ from tmol.io.canonical_ordering import (
     default_packed_block_types,
     canonical_form_from_pdb,
 )
+from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges
 from tmol.kinematics.fold_forest import FoldForest, EdgeType
+from tmol.kinematics.operations import inverseKin, forwardKin
 
 
 def test_get_bonds_for_named_torsions(ubq_res, default_database, torch_device):
@@ -334,43 +337,84 @@ def test_decide_scan_paths_for_foldforest(ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
     canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=0, residue_end=10
+        co, ubq_pdb, torch_device, residue_start=0, residue_end=20
     )
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    write_pose_stack_pdb(pose_stack, "ubq20_orig.pdb")
 
     # let's make a FF with a jump:
     # rooted at residue 2
-    #     0       5
+    #     0       10
     #     ^       ^
     #     |       |
-    #     2 - - > 7
+    #     5 - - > 15
     #     |       |
     #     v       v
-    #     4       9
+    #     9       19
 
     edges = numpy.full((1, 5, 4), -1, dtype=int)
     edges[0, 0, 0] = EdgeType.jump
-    edges[0, 0, 1] = 2
-    edges[0, 0, 2] = 7
+    edges[0, 0, 1] = 5
+    edges[0, 0, 2] = 15
     edges[0, 0, 3] = 0
     edges[0, 1, 0] = EdgeType.polymer
-    edges[0, 1, 1] = 2
+    edges[0, 1, 1] = 5
     edges[0, 1, 2] = 0
     edges[0, 2, 0] = EdgeType.polymer
-    edges[0, 2, 1] = 2
-    edges[0, 2, 2] = 4
+    edges[0, 2, 1] = 5
+    edges[0, 2, 2] = 9
     edges[0, 3, 0] = EdgeType.polymer
-    edges[0, 3, 1] = 7
-    edges[0, 3, 2] = 5
+    edges[0, 3, 1] = 15
+    edges[0, 3, 2] = 10
     edges[0, 4, 0] = EdgeType.polymer
-    edges[0, 4, 1] = 7
-    edges[0, 4, 2] = 9
+    edges[0, 4, 1] = 15
+    edges[0, 4, 2] = 19
 
     ff = FoldForest(
         max_n_edges=5,
         n_edges=numpy.full((1,), 5, dtype=int),
         edges=edges,
-        roots=numpy.full((1,), 2, dtype=int),
+        roots=numpy.full((1,), 5, dtype=int),
     )
 
-    kf = construct_pose_stack_kinforest(pose_stack, ff)
+    kinforest = construct_pose_stack_kinforest(pose_stack, ff)
+    print(kinforest)
+    # nodes, scanStarts, genStarts = get_scans(kf.
+
+    ps_coords_shape = pose_stack.coords.shape
+    kincoords_shape = (
+        (ps_coords_shape[0] * ps_coords_shape[1]) + 1,
+        ps_coords_shape[2],
+    )
+    print("kincoords_shape", kincoords_shape)
+    kincoords = torch.zeros(
+        kincoords_shape, dtype=torch.float64, device=pose_stack.device
+    )
+
+    kincoords[1:] = pose_stack.coords.view(-1, 3).to(torch.float64)[
+        kinforest.id[1:].to(torch.int64)
+    ]
+
+    dofs = inverseKin(kinforest, kincoords)
+    pcoords = forwardKin(kinforest, dofs)
+
+    rd_dofs = dofs.clone()
+
+    print("dofs", dofs.shape)
+    print(dofs.jump[5:15])
+    rd_dofs.jump.RBx[10] += 5.1
+    rd_dofs.jump.RBy[10] += 5.2
+    rd_dofs.jump.RBz[10] += 5.3
+    print("rd_dofs", rd_dofs.shape)
+    print(rd_dofs.jump[5:15])
+
+    pert_coords = forwardKin(kinforest, rd_dofs)
+    pert_coords_shape = (ps_coords_shape[0] * ps_coords_shape[1], 3)
+    pert_coords_for_ps = torch.zeros(
+        pert_coords_shape, dtype=torch.float32, device=pose_stack.device
+    )
+    pert_coords_for_ps[kinforest.id[1:].to(torch.int64)] = pert_coords[1:].to(
+        torch.float32
+    )
+    ps2 = attrs.evolve(pose_stack, coords=pert_coords_for_ps.view(ps_coords_shape))
+    write_pose_stack_pdb(ps2, "ubq20_w_pert.pdb")

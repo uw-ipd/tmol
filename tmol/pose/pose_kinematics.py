@@ -491,6 +491,8 @@ def construct_pose_stack_kinforest(
     tor_bonds = get_bonds_for_named_torsions(pose_stack)
     prioritized_bonds = torch.cat((tor_bonds, jump_atom_pairs), dim=0).cpu().numpy()
     root_atoms = get_root_atom_indices(pose_stack, fold_forest.roots).cpu().numpy()
+    print("root atoms", root_atoms)
+    print(pose_stack.block_coord_offset)
 
     return (
         KinematicBuilder().append_connected_components(
