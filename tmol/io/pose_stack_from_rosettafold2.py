@@ -143,7 +143,7 @@ def canonical_form_from_rosettafold2(
     )
 
 
-def pose_stack_to_rosettafold2(pose_stack, chainlens):
+def pose_stack_to_rosettafold2_with_suppressed(pose_stack, chainlens):
     from tmol.io.pose_stack_deconstruction import canonical_form_from_pose_stack
 
     device = pose_stack.device
@@ -219,6 +219,10 @@ def pose_stack_to_rosettafold2(pose_stack, chainlens):
     return rf2_coords, torch.logical_and(
         rf2_at_is_real, torch.logical_not(suppressed_mapped)
     )
+
+
+def pose_stack_to_rosettafold2(pose_stack, chainlens):
+    return pose_stack_to_rosettafold2_with_suppressed(pose_stack, chainlens)[0]
 
 
 @toolz.functoolz.memoize
