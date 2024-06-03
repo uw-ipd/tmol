@@ -83,9 +83,7 @@ def get_notallclose_msg(analytical, numerical, atol, rtol):
 
 def assert_allclose(baseline, measured, atol, rtol):
     try:
-        numpy.testing.assert_allclose(
-            baseline.cpu(), measured.cpu(), atol=atol, rtol=rtol
-        )
+        numpy.testing.assert_allclose(baseline, measured, atol=atol, rtol=rtol)
     except AssertionError:
         raise AssertionError(get_notallclose_msg(measured, baseline, atol, rtol))
 
@@ -378,6 +376,7 @@ class EnergyTermTestBase:
             scale = 0.01 * torch.arange(
                 torch.numel(scores), device=scores.device
             ).reshape(scores.shape)
+            print(scale)
             return torch.sum(scale * scores)
 
         # monkeypatch more sane error reporting

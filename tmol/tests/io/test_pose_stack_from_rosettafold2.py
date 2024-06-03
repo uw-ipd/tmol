@@ -62,7 +62,10 @@ def test_from_to_rosettafold2(rosettafold2_ubq_pred, torch_device):
     )
 
     assert_allclose(
-        rosettafold2_ubq_pred["xyz"].unsqueeze(0)[rf2_ats], rf2ubq[rf2_ats], 1e-5, 1e-3
+        rosettafold2_ubq_pred["xyz"].unsqueeze(0)[rf2_ats].cpu(),
+        rf2ubq[rf2_ats].cpu(),
+        1e-5,
+        1e-3,
     )
 
 
