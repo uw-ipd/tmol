@@ -11,10 +11,10 @@ BEGIN_MGPU_NAMESPACE
 
 template<bounds_t bounds, typename a_keys_it, typename b_keys_it,
   typename comp_t>
-mem_t<int> merge_path_partitions(a_keys_it a, int64_t a_count, b_keys_it b,
+mem_t<typename std::iterator_traits<a_keys_it>::value_type> merge_path_partitions(a_keys_it a, int64_t a_count, b_keys_it b,
   int64_t b_count, int64_t spacing, comp_t comp, context_t& context) {
 
-  typedef int int_t;
+  typedef typename std::iterator_traits<a_keys_it>::value_type int_t;
   int num_partitions = (int)div_up(a_count + b_count, spacing) + 1;
   mem_t<int_t> mem(num_partitions, context);
   int_t* p = mem.data();
@@ -35,29 +35,6 @@ auto load_balance_partitions(int64_t dest_count, segments_it segments,
   return merge_path_partitions<bounds_upper>(counting_iterator_t<int_t>(0), 
     dest_count, segments, num_segments, spacing, less_t<int_t>(), context);
 }
-
-//fd  load balance partitions using preallocated memory
-//fd 
-//fd  the allocated buffer (mem) must have room for # of elts equal to:
-//fd     ceil ((dest_count + num_segments) / spacing) + 1
-//fd 
-template<typename segments_it>
-void load_balance_partitions(int64_t dest_count, segments_it segments, 
-  int num_segments, int spacing, int* mem, context_t& context) {
-  typedef typename std::iterator_traits<segments_it>::value_type int_t;
-
-  int num_partitions = div_up((int)dest_count + num_segments, spacing) + 1;
-
-  transform([=]MGPU_DEVICE(int index) {
-    int diag = (int)min(spacing * index, (int)dest_count + num_segments);
-    mem[index] = merge_path<bounds_upper>(
-        counting_iterator_t<int_t>(0), (int)dest_count,
-        segments, num_segments,
-        diag, 
-        less_t<int_t>());
-  }, num_partitions, context);
-}
-
 
 template<bounds_t bounds, typename keys_it>
 mem_t<int> binary_search_partitions(keys_it keys, int count, int num_items,
