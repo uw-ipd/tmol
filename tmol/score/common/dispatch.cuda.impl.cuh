@@ -84,7 +84,7 @@ struct ExhaustiveDispatch<tmol::Device::CUDA> {
 
   template <typename funct_t>
   void score(funct_t f) {
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
     int n_i = _n_i;
     int n_j = _n_j;
 
@@ -119,7 +119,7 @@ struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
 
   template <typename funct_t>
   void score(funct_t f) {
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
     int n_i = this->_n_i;
     int n_j = this->_n_j;
 
@@ -143,102 +143,102 @@ struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
   }
 };
 
-template <>
-struct NaiveDispatch<tmol::Device::CUDA> {
-  static const tmol::Device D = tmol::Device::CUDA;
-  typedef mgpu::stream_compact_t<mgpu::empty_t> TransformCompact;
+// template <>
+// struct NaiveDispatch<tmol::Device::CUDA> {
+//   static const tmol::Device D = tmol::Device::CUDA;
+//   typedef mgpu::stream_compact_t<mgpu::empty_t> TransformCompact;
+//
+//   int _n_i, _n_j;
+//   std::unique_ptr<mgpu::standard_context_t> _context;
+//   std::unique_ptr<TransformCompact> _compact;
+//
+//   NaiveDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
+//
+//   template <typename Real>
+//   int scan(
+//       Real threshold_distance,
+//       TView<Vec<Real, 3>, 1, D> coords_i,
+//       TView<Vec<Real, 3>, 1, D> coords_j) {
+//     _context.reset(new mgpu::standard_context_t());
+//     _compact.reset(new TransformCompact(_n_i * _n_j, *_context));
+//
+//     int n_j = _n_j;
+//
+//     return _compact->upsweep([=] MGPU_DEVICE(int index) {
+//       Eigen::AlignedBox<Real, 3> tbox(
+//           Vec<Real, 3>(
+//               -threshold_distance, -threshold_distance, -threshold_distance),
+//           Vec<Real, 3>(
+//               threshold_distance, threshold_distance, threshold_distance));
+//
+//       int i = index / n_j;
+//       int j = index % n_j;
+//
+//       return tbox.contains(coords_i[i] - coords_j[j]);
+//     });
+//   }
+//
+//   template <typename funct_t>
+//   void score(funct_t f) {
+//     int n_j = _n_j;
+//
+//     _compact->downsweep([=] MGPU_DEVICE(int dest_index, int src_index) {
+//       int i = src_index / n_j;
+//       int j = src_index % n_j;
+//
+//       f(dest_index, i, j);
+//     });
+//   }
+// };
 
-  int _n_i, _n_j;
-  std::unique_ptr<mgpu::standard_context_t> _context;
-  std::unique_ptr<TransformCompact> _compact;
-
-  NaiveDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
-
-  template <typename Real>
-  int scan(
-      Real threshold_distance,
-      TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
-    _context.reset(new mgpu::standard_context_t());
-    _compact.reset(new TransformCompact(_n_i * _n_j, *_context));
-
-    int n_j = _n_j;
-
-    return _compact->upsweep([=] MGPU_DEVICE(int index) {
-      Eigen::AlignedBox<Real, 3> tbox(
-          Vec<Real, 3>(
-              -threshold_distance, -threshold_distance, -threshold_distance),
-          Vec<Real, 3>(
-              threshold_distance, threshold_distance, threshold_distance));
-
-      int i = index / n_j;
-      int j = index % n_j;
-
-      return tbox.contains(coords_i[i] - coords_j[j]);
-    });
-  }
-
-  template <typename funct_t>
-  void score(funct_t f) {
-    int n_j = _n_j;
-
-    _compact->downsweep([=] MGPU_DEVICE(int dest_index, int src_index) {
-      int i = src_index / n_j;
-      int j = src_index % n_j;
-
-      f(dest_index, i, j);
-    });
-  }
-};
-
-template <>
-struct NaiveTriuDispatch<tmol::Device::CUDA> {
-  static const tmol::Device D = tmol::Device::CUDA;
-  typedef mgpu::stream_compact_t<mgpu::empty_t> TransformCompact;
-
-  int _n_i, _n_j;
-  std::unique_ptr<mgpu::standard_context_t> _context;
-  std::unique_ptr<TransformCompact> _compact;
-
-  NaiveTriuDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
-
-  template <typename Real>
-  int scan(
-      Real threshold_distance,
-      TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
-    _context.reset(new mgpu::standard_context_t());
-    _compact.reset(new TransformCompact(_n_i * _n_j, *_context));
-
-    return _compact->upsweep([=, n_j = _n_j] MGPU_DEVICE(int index) {
-      int i = index / n_j;
-      int j = index % n_j;
-
-      if (j < i) {
-        return false;
-      }
-
-      Eigen::AlignedBox<Real, 3> tbox(
-          Vec<Real, 3>(
-              -threshold_distance, -threshold_distance, -threshold_distance),
-          Vec<Real, 3>(
-              threshold_distance, threshold_distance, threshold_distance));
-
-      return tbox.contains(coords_i[i] - coords_j[j]);
-    });
-  }
-
-  template <typename funct_t>
-  void score(funct_t f) {
-    _compact->downsweep(
-        [=, n_j = _n_j] MGPU_DEVICE(int dest_index, int src_index) {
-          int i = src_index / n_j;
-          int j = src_index % n_j;
-
-          f(dest_index, i, j);
-        });
-  }
-};
+// template <>
+// struct NaiveTriuDispatch<tmol::Device::CUDA> {
+//   static const tmol::Device D = tmol::Device::CUDA;
+//   typedef mgpu::stream_compact_t<mgpu::empty_t> TransformCompact;
+//
+//   int _n_i, _n_j;
+//   std::unique_ptr<mgpu::standard_context_t> _context;
+//   std::unique_ptr<TransformCompact> _compact;
+//
+//   NaiveTriuDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
+//
+//   template <typename Real>
+//   int scan(
+//       Real threshold_distance,
+//       TView<Vec<Real, 3>, 1, D> coords_i,
+//       TView<Vec<Real, 3>, 1, D> coords_j) {
+//     _context.reset(new mgpu::standard_context_t(false));
+//     _compact.reset(new TransformCompact(_n_i * _n_j, *_context));
+//
+//     return _compact->upsweep([=, n_j = _n_j] MGPU_DEVICE(int index) {
+//       int i = index / n_j;
+//       int j = index % n_j;
+//
+//       if (j < i) {
+//         return false;
+//       }
+//
+//       Eigen::AlignedBox<Real, 3> tbox(
+//           Vec<Real, 3>(
+//               -threshold_distance, -threshold_distance, -threshold_distance),
+//           Vec<Real, 3>(
+//               threshold_distance, threshold_distance, threshold_distance));
+//
+//       return tbox.contains(coords_i[i] - coords_j[j]);
+//     });
+//   }
+//
+//   template <typename funct_t>
+//   void score(funct_t f) {
+//     _compact->downsweep(
+//         [=, n_j = _n_j] MGPU_DEVICE(int dest_index, int src_index) {
+//           int i = src_index / n_j;
+//           int j = src_index % n_j;
+//
+//           f(dest_index, i, j);
+//         });
+//   }
+// };
 
 }  // namespace common
 }  // namespace score

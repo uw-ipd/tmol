@@ -205,7 +205,7 @@ struct segscan<Real, Ident, OP, tmol::Device::CUDA, scan_type, nt, vt> {
       return t[index];
     };
 
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
     tmol::kinematics::kernel_segscan<mgpu::launch_params_t<nt, vt>, scan_type>(
         data_loader,
         nelts,

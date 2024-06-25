@@ -37,7 +37,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
     int n_i = coords_i.size(0);
     int n_j = coords_j.size(0);
 
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -67,7 +67,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
     int n_i = coords_i.size(1);
     int n_j = coords_j.size(1);
 
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -100,7 +100,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
     int n_i = coord_idx_i.size(0);
     int n_j = coord_idx_j.size(0);
 
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -133,7 +133,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
     int n_i = coord_idx_i.size(1);
     int n_j = coord_idx_j.size(1);
 
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -173,7 +173,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
     int n_i = coords_i.size(0);
     int n_j = coords_j.size(0);
 
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -207,7 +207,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
     int n_i = coords_i.size(1);
     int n_j = coords_j.size(1);
 
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -245,7 +245,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
     int n_i = coord_idx_i.size(0);
     int n_j = coord_idx_j.size(0);
 
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -282,7 +282,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
     int n_i = coord_idx_i.size(1);
     int n_j = coord_idx_j.size(1);
 
-    mgpu::standard_context_t context;
+    mgpu::standard_context_t context(false);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {

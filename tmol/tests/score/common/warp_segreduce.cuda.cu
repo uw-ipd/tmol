@@ -39,7 +39,7 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_full(
     }
   });
 
-  mgpu::standard_context_t context;
+  mgpu::standard_context_t context(false);
   mgpu::cta_launch<launch_t>(run_warp_segreduce, n_cta, context);
 
   return output_t;
@@ -77,7 +77,7 @@ tmol::TPack<Vec<float, 3>, 1, tmol::Device::CUDA> gpu_warp_segreduce_full_vec3(
     }
   });
 
-  mgpu::standard_context_t context;
+  mgpu::standard_context_t context(false);
   mgpu::cta_launch<launch_t>(run_warp_segreduce, n_cta, context);
 
   return output_t;
@@ -126,7 +126,7 @@ gpu_warp_segreduce_vec3_benchmark(
     }
   });
 
-  mgpu::standard_context_t context;
+  mgpu::standard_context_t context(false);
   mgpu::cta_launch<launch_t>(run_warp_segreduce, n_cta, context);
 
   return output_t;
@@ -168,7 +168,7 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_segreduce_partial(
     }
   });
 
-  mgpu::standard_context_t context;
+  mgpu::standard_context_t context(false);
   mgpu::cta_launch<launch_t>(run_warp_segreduce, n_cta, context);
 
   return output_t;

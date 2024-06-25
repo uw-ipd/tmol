@@ -36,7 +36,7 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_stride_reduce_full(
     }
   });
 
-  mgpu::standard_context_t context;
+  mgpu::standard_context_t context(false);
   mgpu::cta_launch<launch_t>(run_warp_stride_reduce, n_cta, context);
 
   return output_t;
@@ -72,7 +72,7 @@ gpu_warp_stride_reduce_full_vec3(
     }
   });
 
-  mgpu::standard_context_t context;
+  mgpu::standard_context_t context(false);
   mgpu::cta_launch<launch_t>(run_warp_stride_reduce, n_cta, context);
 
   return output_t;
@@ -108,7 +108,7 @@ tmol::TPack<float, 1, tmol::Device::CUDA> gpu_warp_stride_reduce_partial(
     }
   });
 
-  mgpu::standard_context_t context;
+  mgpu::standard_context_t context(false);
   mgpu::cta_launch<launch_t>(run_warp_stride_reduce, n_cta, context);
 
   return output_t;
