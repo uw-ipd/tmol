@@ -17,7 +17,7 @@ template <tmol::Device D>
 struct ComplexDispatch {
   template <typename Int, typename Func>
   static void forall(Int N, Func f) {
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     mgpu::transform(f, N, context);
   }
 
@@ -25,7 +25,7 @@ struct ComplexDispatch {
   static T reduce(TView<T, 1, D> vals, Func op) {
     auto v_t = tmol::TPack<T, 1, D>::zeros({1});
     auto v = v_t.view;
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
 
     mgpu::transform_reduce(
         [=] MGPU_DEVICE(int i) { return vals[i]; },
@@ -41,7 +41,7 @@ struct ComplexDispatch {
 
   template <typename T, typename Func>
   static void exclusive_scan(TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     mgpu::scan_event<mgpu::scan_type_exc>(
         &vals[0],
         vals.size(0),
@@ -54,7 +54,7 @@ struct ComplexDispatch {
 
   template <typename T, typename Func>
   static void inclusive_scan(TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     mgpu::scan_event<mgpu::scan_type_inc>(
         &vals[0],
         vals.size(0),
@@ -70,7 +70,7 @@ struct ComplexDispatch {
       TView<T, 1, D> vals, TView<T, 1, D> out, Func op) {
     auto final_val_t = TPack<T, 1, D>::empty({1});
     auto final_val = final_val_t.view;
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     mgpu::scan_event<mgpu::scan_type_exc>(
         &vals[0], vals.size(0), &out[0], op, &final_val[0], context, 0);
     T final_val_cpu;
@@ -86,7 +86,7 @@ struct ComplexDispatch {
       TView<T, 1, D> out,
       Func op) {
     assert(vals.size(0) == out.size(0));
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
 
     typedef typename mgpu::launch_params_t<128, 2> launch_t;
     constexpr int nt = launch_t::nt, vt = launch_t::vt;

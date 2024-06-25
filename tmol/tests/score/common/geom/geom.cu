@@ -31,7 +31,7 @@ void bind(pybind11::module& m) {
         auto V_t = tmol::TPack<Real, 1, D>::empty({A.size(0)});
         auto V = V_t.view;
 
-        mgpu::standard_context_t context(false);
+        mgpu::standard_context_t context;
 
         mgpu::transform(
             [=] MGPU_LAMBDA(int i) { V[i] = distance<Real>::V(A[i], B[i]); },
@@ -61,7 +61,7 @@ void bind(pybind11::module& m) {
         auto dV_dA = dV_dA_t.view;
         auto dV_dB = dV_dB_t.view;
 
-        mgpu::standard_context_t context(false);
+        mgpu::standard_context_t context;
 
         mgpu::transform(
             [=] MGPU_LAMBDA(int i) {

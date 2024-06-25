@@ -17,7 +17,7 @@ struct sum_tensor<Real, tmol::Device::CUDA> {
     auto v_t = tmol::TPack<Real, 1, D>::empty({1});
     auto v = v_t.view;
 
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
 
     mgpu::transform_reduce(
         [=] MGPU_DEVICE(int i) { return t[i]; },

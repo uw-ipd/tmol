@@ -84,7 +84,7 @@ struct ExhaustiveDispatch<tmol::Device::CUDA> {
 
   template <typename funct_t>
   void score(funct_t f) {
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     int n_i = _n_i;
     int n_j = _n_j;
 
@@ -119,7 +119,7 @@ struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
 
   template <typename funct_t>
   void score(funct_t f) {
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     int n_i = this->_n_i;
     int n_j = this->_n_j;
 
