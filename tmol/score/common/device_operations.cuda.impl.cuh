@@ -20,13 +20,13 @@ template <>
 struct DeviceOperations<tmol::Device::CUDA> {
   template <typename launch_t, typename Func>
   static void forall(int N, Func f) {
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     mgpu::transform<launch_t>(f, N, context);
   }
 
   template <typename Int, typename Func>
   static void forall_stacks(Int Nstacks, Int N, Func f) {
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
           int stack = index / N;
@@ -39,7 +39,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
 
   template <typename Int, typename Func>
   static void foreach_combination_triple(Int dim1, Int dim2, Int dim3, Func f) {
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
           int i = index / (dim2 * dim3);
@@ -55,7 +55,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
   template <typename launch_t, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f) {
     auto wrapper = ([=] __device__(int tid, int cta) { f(cta); });
-    mgpu::standard_context_t context(false);
+    mgpu::standard_context_t context;
     mgpu::cta_launch<launch_t>(wrapper, n_workgroups, context);
   }
 
