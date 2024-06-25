@@ -86,8 +86,8 @@ struct htcompose_t : public std::binary_function<
                          HTRawBuffer<Real>> {
   MGPU_HOST_DEVICE HTRawBuffer<Real> operator()(
       HTRawBuffer<Real> p, HTRawBuffer<Real> i) const {
-    HomogeneousTransform ab = Eigen::Map<HomogeneousTransform>(p.data)
-                              * Eigen::Map<HomogeneousTransform>(i.data);
+    HomogeneousTransform ab = Eigen::Map<HomogeneousTransform>(i.data)
+                              * Eigen::Map<HomogeneousTransform>(p.data);
 
     return *((HTRawBuffer<Real>*)ab.data());
   }
