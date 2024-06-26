@@ -376,7 +376,6 @@ class EnergyTermTestBase:
             scale = 0.01 * torch.arange(
                 torch.numel(scores), device=scores.device
             ).reshape(scores.shape)
-            print(scale)
             return torch.sum(scale * scores)
 
         # monkeypatch more sane error reporting

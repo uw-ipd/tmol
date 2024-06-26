@@ -33,9 +33,11 @@ from tmol.io.write_pose_stack_pdb import (  # noqa: F401
 from tmol.score import beta2016_score_function  # noqa: F401
 from tmol.score.score_function import ScoreFunction  # noqa: F401
 
-from tmol.optimization.sfxn_modules import CartesianSfxnNetwork as cart_sfxn_network
+from tmol.optimization.sfxn_modules import (
+    CartesianSfxnNetwork as cart_sfxn_network,
+)  # noqa: F401
 
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo as lbfgs_armijo
+from tmol.optimization.lbfgs_armijo import LBFGS_Armijo as lbfgs_armijo  # noqa: F401
 
 try:
     __version__ = version("tmol")
