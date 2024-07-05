@@ -24,7 +24,6 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords) = tuple(
         canonical_form[x].clone() for x in ["chain_id", "res_types", "coords"]
     )
-    cf_orig_at_is_pres = not_any_nancoord(cf_orig_coords)
 
     pbt = default_packed_block_types(torch_device)
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
