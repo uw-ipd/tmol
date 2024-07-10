@@ -16,11 +16,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           double>::f,
       "coords"_a);
 
-  // m.def(
-  //     "naive_dispatch",
-  //     &DispatchTest<tmol::score::common::NaiveDispatch, Device::CPU,
-  //     double>::f, "coords"_a);
-
   m.def(
       "exhaustive_triu_dispatch",
       &DispatchTest<
@@ -28,14 +23,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           Device::CPU,
           double>::f,
       "coords"_a);
-
-  // m.def(
-  //     "naive_triu_dispatch",
-  //     &DispatchTest<
-  //         tmol::score::common::NaiveTriuDispatch,
-  //         Device::CPU,
-  //         double>::f,
-  //     "coords"_a);
 
   m.def(
       "complex_dispatch",
@@ -63,21 +50,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           Device::CUDA,
           double>::f,
       "coords"_a);
-
-  // m.def(
-  //     "naive_dispatch",
-  //     &DispatchTest<tmol::score::common::NaiveDispatch, Device::CUDA,
-  //     double>::
-  //         f,
-  //     "coords"_a);
-  //
-  // m.def(
-  //     "naive_triu_dispatch",
-  //     &DispatchTest<
-  //         tmol::score::common::NaiveTriuDispatch,
-  //         Device::CUDA,
-  //         double>::f,
-  //     "coords"_a);
 
 #endif
 }
