@@ -490,7 +490,7 @@ def canonical_form_from_atom_records(
     chain_id = numpy.zeros((1, n_res), dtype=numpy.int32)
     res_types = numpy.full((1, n_res), -2, dtype=numpy.int32)
     coords = numpy.full(
-        (1, n_res, max_n_canonical_atoms, 3), numpy.NAN, dtype=numpy.float32
+        (1, n_res, max_n_canonical_atoms, 3), numpy.nan, dtype=numpy.float32
     )
 
     chains_seen = {}
