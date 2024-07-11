@@ -81,8 +81,8 @@ struct cta_segscan_t {
     iterate<s_log2(nt)>([&](int pass) {
       int offset = 1<< pass;
       if(tid_delta >= offset) {
-        //x = op(x, storage.values[first + tid - offset]);
-        x = op(storage.values[first + tid - offset], x); //fd earlier seg is always first in op
+        // x = op(x, storage.values[first + tid - offset]);
+	x = op(storage.values[first + tid - offset], x); //fd earlier seg is always first in op
       }
       first = nt - first;
       storage.values[first + tid] = x;

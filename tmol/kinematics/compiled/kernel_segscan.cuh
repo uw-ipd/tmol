@@ -242,7 +242,7 @@ void spine_segreduce(
 //
 //   This is because this buffer is used for both the initial call and
 //     for the recursive "spine_scan" where we perform additional scans.
-//   On each recursive call we simply slide the beffer pointer to the end
+//   On each recursive call we simply slide the buffer pointer to the end
 //     of the current level's array.
 //
 //   The temp buffer for mp_data is of size:

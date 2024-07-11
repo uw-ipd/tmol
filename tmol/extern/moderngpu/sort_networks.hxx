@@ -16,7 +16,7 @@ odd_even_sort(array_t<type_t, vt> x, comp_t comp, int flags = 0) {
     PRAGMA_UNROLL
     for(int i = 1 & I; i < vt - 1; i += 2) {
       if((0 == ((2<< i) & flags)) && comp(x[i + 1], x[i]))
-        _swap(x[i], x[i + 1]);
+        swap(x[i], x[i + 1]);
     }
   });
   return x;
@@ -29,8 +29,8 @@ odd_even_sort(kv_array_t<key_t, val_t, vt> x, comp_t comp, int flags = 0) {
     PRAGMA_UNROLL
     for(int i = 1 & I; i < vt - 1; i += 2) {
       if((0 == ((2<< i) & flags)) && comp(x.keys[i + 1], x.keys[i])) {
-        _swap(x.keys[i], x.keys[i + 1]);
-        _swap(x.vals[i], x.vals[i + 1]);
+        swap(x.keys[i], x.keys[i + 1]);
+        swap(x.vals[i], x.vals[i + 1]);
       }
     }
   });

@@ -46,7 +46,7 @@ struct compute_block_spheres {
     auto block_spheres = block_spheres_t.view;
 
     at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
-    mgpu::standard_context_t context(wrapped_stream.stream());
+    mgpu::standard_context_t context(false, wrapped_stream.stream());
 
     tmol::score::ljlk::potentials::launch_compute_block_spheres<
         tmol::Device::CUDA,
