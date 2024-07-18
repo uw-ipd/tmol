@@ -101,7 +101,7 @@ def canonical_form_from_openfold(openfold_result_dictionary) -> Mapping:
 
     tmol_coords = torch.full(
         (n_poses, max_n_res, co.max_n_canonical_atoms, 3),
-        numpy.NaN,
+        numpy.nan,
         dtype=torch.float32,
         device=device,
     )
