@@ -97,6 +97,8 @@ class PackedBlockTypes:
     down_conn_inds: Tensor[torch.int32][:]
     up_conn_inds: Tensor[torch.int32][:]
 
+    default_jump_connection_atom_inds: Tensor[torch.int32][:]
+
     device: torch.device
 
     @property
@@ -133,6 +135,9 @@ class PackedBlockTypes:
         down_conn_inds, up_conn_inds = cls.join_polymeric_connections(
             active_block_types, device
         )
+        def_jumpconn_inds = cls.join_default_jump_connection_atom_inds(
+            active_block_types, device
+        )
 
         return cls(
             chem_db=chem_db,
@@ -158,6 +163,7 @@ class PackedBlockTypes:
             conn_atom=conn_atom,
             down_conn_inds=down_conn_inds,
             up_conn_inds=up_conn_inds,
+            default_jump_connection_atom_inds=def_jumpconn_inds,
             device=device,
         )
 
@@ -293,6 +299,14 @@ class PackedBlockTypes:
         )
         return down_conn_inds, up_conn_inds
 
+    @classmethod
+    def join_default_jump_connection_atom_inds(cls, active_block_types, device):
+        return torch.tensor(
+            [bt.default_jump_connection_atom_index for bt in active_block_types],
+            dtype=torch.int32,
+            device=device,
+        )
+
     def inds_for_res(self, residues: Sequence[Residue]):
         return self.restype_index.get_indexer(
             [res.residue_type.name for res in residues]
@@ -331,6 +345,9 @@ class PackedBlockTypes:
             conn_atom=cpu_equiv(self.conn_atom),
             down_conn_inds=cpu_equiv(self.down_conn_inds),
             up_conn_inds=cpu_equiv(self.up_conn_inds),
+            default_jump_connection_atom_inds=cpu_equiv(
+                self.default_jump_connection_atom_inds
+            ),
             device=cpu_equiv(self.device),
         )
         for self_key in self.__dict__:

@@ -9,6 +9,15 @@ from tmol.kinematics.fold_forest import EdgeType
 def mark_polymeric_bonds_in_foldforest_edges(
     n_poses: int, max_n_blocks: int, edges: NDArray[int][:, :, 4]
 ):
+    """Make each implicit i-to-i+1 or i-to-(i-1) polymer bond explicit
+
+    Notes
+    -----
+    This code does not ensure that the polymeric bonds between
+    these two residues are present in the PoseStack; this means
+    that if there are missing loops, e.g., that we can still
+    "fold through" them.
+    """
     polymeric_connection_in_edge = numpy.zeros(
         (n_poses, max_n_blocks, max_n_blocks), dtype=numpy.int64
     )
@@ -85,11 +94,7 @@ def validate_fold_forest_jit(
     # ok, let's get the other edges incorporated
     for i in range(n_poses):
         for j in range(max_n_edges):
-            if edges[i, j, 0] == EdgeType.jump:
-                r1 = edges[i, j, 1]
-                r2 = edges[i, j, 2]
-                connections[i, r1, r2] += 1
-            if edges[i, j, 0] == EdgeType.chemical:
+            if edges[i, j, 0] == EdgeType.jump or edges[i, j, 0] == EdgeType.chemical:
                 r1 = edges[i, j, 1]
                 r2 = edges[i, j, 2]
                 connections[i, r1, r2] += 1
