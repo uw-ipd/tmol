@@ -21,6 +21,7 @@ def test_add_constraints(
 ):
     n_poses = 10
 
+    resnums = [(0, 5)]
     p1 = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, resnums)
     pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
@@ -31,6 +32,14 @@ def test_add_constraints(
         atoms2 = atoms[:, 1]
         diff = atoms1 - atoms2
         return (diff.pow(2).sum(1).sqrt() - params[:, 0]) ** 2
+
+    def constfn10(atoms, params):
+        return torch.full(
+            (atoms.size(0),), 10, dtype=torch.float32, device=atoms.device
+        )
+
+    def constfn5(atoms, params):
+        return torch.full((atoms.size(0),), 3, dtype=torch.float32, device=atoms.device)
 
     cnstr_atoms = torch.full((3, 2, 3), 0, dtype=torch.int32, device=torch_device)
 
@@ -55,7 +64,7 @@ def test_add_constraints(
     cnstr_atoms[2, 1, 1] = 1
     cnstr_atoms[2, 1, 2] = 1
 
-    constraints.add_constraints(harmfunc, cnstr_atoms)
+    constraints.add_constraints(constfn10, cnstr_atoms)
 
     cnstr_atoms[0, 0, 0] = 0
     cnstr_atoms[0, 0, 1] = 1
@@ -99,9 +108,9 @@ def test_add_constraints(
     cnstr_atoms[2, 1, 1] = 1
     cnstr_atoms[2, 1, 2] = 1"""
 
-    constraints.add_constraints(harmfunc, cnstr_atoms)
+    constraints.add_constraints(constfn5, cnstr_atoms)
 
-    print(constraints.constraints)
+    print(constraints.constraint_function_inds)
     print(constraints.constraint_atoms)
     print(constraints.constraint_functions)
 
@@ -118,7 +127,8 @@ def test_add_constraints(
     # pose_scorer = get_pose_scorer(pn, default_database, torch_device)
 
     coords = torch.nn.Parameter(pn.coords.clone())
-    scores = pose_scorer(coords).cpu().detach().numpy()
+    # scores = pose_scorer(coords).cpu().detach().numpy()
+    scores = pose_scorer(coords, output_block_pair_energies=True).cpu().detach().numpy()
 
     print(scores)
 
