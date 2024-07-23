@@ -24,27 +24,23 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
         self.pose_stack_inter_block_connections = _p(pose_stack_inter_block_connections)
         self.bt_atom_downstream_of_conn = _p(bt_atom_downstream_of_conn)
 
-        self.constraints = _p(constraint_set.constraints)
-        self.constraint_atoms = _p(constraint_set.constraint_atoms[:, :, 1:3])
+        self.constraint_function_inds = _p(constraint_set.constraint_function_inds)
+        self.constraint_atoms = _p(constraint_set.constraint_atoms)
         self.constraint_params = _p(constraint_set.constraint_params)
         self.constraint_functions = constraint_set.constraint_functions
 
     def forward(self, coords, output_block_pair_energies=False):
-        MAX_N_ATOMS = 4
-        cnstrs = self.constraints
+        cnstr_func_inds = self.constraint_function_inds
         cnstr_atoms = self.constraint_atoms
         cnstr_params = self.constraint_params
-        fns = self.constraint_functions
+        cnstr_fns = self.constraint_functions
 
-        atom_pose_indices = (
-            cnstrs[:, 1].unsqueeze(-1).expand(-1, MAX_N_ATOMS).reshape(-1)
-        )  # TODO: this really should be much simpler. we just want to repeat each pose ind so that we can index alongside the atom indices
-        # atom_pose_indices = cnstr_atoms[:, :, 0]
-        atom_residue_indices = cnstr_atoms[:, :, 0]
-        atom_atom_indices = cnstr_atoms[:, :, 1]
+        atom_pose_indices = cnstr_atoms[:, :, 0]
+        atom_residue_indices = cnstr_atoms[:, :, 1]
+        atom_atom_indices = cnstr_atoms[:, :, 2]
 
         atom_offsets = self.pose_stack_block_coord_offset[
-            atom_pose_indices, atom_residue_indices.view(-1)
+            atom_pose_indices.view(-1), atom_residue_indices.view(-1)
         ].view(atom_residue_indices.size())
 
         atom_global_indices = atom_offsets + atom_atom_indices
@@ -54,7 +50,7 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
                 (len(types),), 0, dtype=torch.float32, device=coords.device
             )
 
-            for ind, fn in enumerate(fns):
+            for ind, fn in enumerate(cnstr_fns):
                 # get the constraints that match this constraint type
                 c_inds = torch.nonzero(types == ind)
 
@@ -67,9 +63,9 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
 
             return cnstr_scores
 
-        atom_coords = coords[atom_pose_indices, atom_global_indices.view(-1)].view(
-            atom_global_indices.size(0), atom_global_indices.size(1), 3
-        )
+        atom_coords = coords[
+            atom_pose_indices.view(-1), atom_global_indices.view(-1)
+        ].view(atom_global_indices.size(0), atom_global_indices.size(1), 3)
 
         nblocks = self.pose_stack_block_coord_offset.size(1)
         nposes = self.pose_stack_block_coord_offset.size(0)
@@ -88,12 +84,12 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
 
             flattened = block_scores.view(-1)
             indices1 = (
-                cnstrs[:, 1] * (nblocks**2)
+                atom_pose_indices[:, 0] * (nblocks**2)
                 + atom_res_inds[:, 0] * nblocks
                 + atom_res_inds[:, 1]
             )
             indices2 = (
-                cnstrs[:, 1] * (nblocks**2)
+                atom_pose_indices[:, 0] * (nblocks**2)
                 + atom_res_inds[:, 1] * nblocks
                 + atom_res_inds[:, 0]
             )
@@ -101,7 +97,7 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
             flattened.index_add_(0, indices2, scores / 2)
             return block_scores
 
-        scores = score_cnstrs(cnstrs[:, 0], atom_coords, cnstr_params)
+        scores = score_cnstrs(cnstr_func_inds, atom_coords, cnstr_params)
         scores = distribute_scores(scores, atom_residue_indices)
 
         if output_block_pair_energies:
