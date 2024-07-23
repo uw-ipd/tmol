@@ -19,7 +19,7 @@ def test_add_constraints(
     atol=1e-5,
     rtol=1e-3,
 ):
-    n_poses = 10
+    n_poses = 3
 
     resnums = [(0, 5)]
     p1 = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, resnums)
@@ -33,15 +33,11 @@ def test_add_constraints(
         diff = atoms1 - atoms2
         return (diff.pow(2).sum(1).sqrt() - params[:, 0]) ** 2
 
-    def constfn10(atoms, params):
-        return torch.full(
-            (atoms.size(0),), 10, dtype=torch.float32, device=atoms.device
-        )
-
-    def constfn5(atoms, params):
-        return torch.full((atoms.size(0),), 3, dtype=torch.float32, device=atoms.device)
+    def constfn(atoms, params):
+        return params[:, 0]
 
     cnstr_atoms = torch.full((3, 2, 3), 0, dtype=torch.int32, device=torch_device)
+    cnstr_params = torch.full((3, 6), 0, dtype=torch.float32, device=torch_device)
 
     cnstr_atoms[0, 0, 0] = 0
     cnstr_atoms[0, 0, 1] = 0
@@ -50,21 +46,25 @@ def test_add_constraints(
     cnstr_atoms[0, 1, 1] = 1
     cnstr_atoms[0, 1, 2] = 1
 
-    cnstr_atoms[1, 0, 0] = 2
+    cnstr_atoms[1, 0, 0] = 1
     cnstr_atoms[1, 0, 1] = 0
     cnstr_atoms[1, 0, 2] = 0
-    cnstr_atoms[1, 1, 0] = 2
+    cnstr_atoms[1, 1, 0] = 1
     cnstr_atoms[1, 1, 1] = 1
     cnstr_atoms[1, 1, 2] = 1
 
-    cnstr_atoms[2, 0, 0] = 1
+    cnstr_atoms[2, 0, 0] = 2
     cnstr_atoms[2, 0, 1] = 0
     cnstr_atoms[2, 0, 2] = 0
-    cnstr_atoms[2, 1, 0] = 1
+    cnstr_atoms[2, 1, 0] = 2
     cnstr_atoms[2, 1, 1] = 1
     cnstr_atoms[2, 1, 2] = 1
 
-    constraints.add_constraints(constfn10, cnstr_atoms)
+    cnstr_params[0, 0] = 2
+    cnstr_params[1, 0] = 4
+    cnstr_params[2, 0] = 6
+
+    constraints.add_constraints(constfn, cnstr_atoms, cnstr_params)
 
     cnstr_atoms[0, 0, 0] = 0
     cnstr_atoms[0, 0, 1] = 1
@@ -73,20 +73,23 @@ def test_add_constraints(
     cnstr_atoms[0, 1, 1] = 2
     cnstr_atoms[0, 1, 2] = 1
 
-    cnstr_atoms[1, 0, 0] = 2
+    cnstr_atoms[1, 0, 0] = 1
     cnstr_atoms[1, 0, 1] = 0
     cnstr_atoms[1, 0, 2] = 0
-    cnstr_atoms[1, 1, 0] = 2
-    cnstr_atoms[1, 1, 1] = 3
+    cnstr_atoms[1, 1, 0] = 1
+    cnstr_atoms[1, 1, 1] = 2
     cnstr_atoms[1, 1, 2] = 1
 
-    cnstr_atoms[2, 0, 0] = 1
+    cnstr_atoms[2, 0, 0] = 2
     cnstr_atoms[2, 0, 1] = 0
     cnstr_atoms[2, 0, 2] = 0
-    cnstr_atoms[2, 1, 0] = 1
-    cnstr_atoms[2, 1, 1] = 2
+    cnstr_atoms[2, 1, 0] = 2
+    cnstr_atoms[2, 1, 1] = 3
     cnstr_atoms[2, 1, 2] = 1
 
+    cnstr_params[0, 0] = 20
+    cnstr_params[1, 0] = 40
+    cnstr_params[2, 0] = 60
     """cnstr_atoms[0, 0, 0] = 0
     cnstr_atoms[0, 0, 1] = 0
     cnstr_atoms[0, 0, 2] = 0
@@ -108,7 +111,7 @@ def test_add_constraints(
     cnstr_atoms[2, 1, 1] = 1
     cnstr_atoms[2, 1, 2] = 1"""
 
-    constraints.add_constraints(constfn5, cnstr_atoms)
+    constraints.add_constraints(constfn, cnstr_atoms, cnstr_params)
 
     print(constraints.constraint_function_inds)
     print(constraints.constraint_atoms)
