@@ -45,7 +45,7 @@ class VectorizedOp:
     """
 
     def __init__(self, f, signature=None):
-        if isinstance(f, numpy.lib.function_base.vectorize):
+        if isinstance(f, numpy.vectorize):
             self.f = f
             signature = f.signature
         else:

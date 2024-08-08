@@ -1273,7 +1273,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
   //   // cudaStreamCreate(&ljlk_stream);
   //   ljlk_stream = at::cuda::getStreamFromPool().stream();
   // }
-  mgpu::standard_context_t context(wrapped_stream.stream());
+  mgpu::standard_context_t context(false, wrapped_stream.stream());
   // mgpu::standard_context_t context(ljlk_stream);
 
   wait_on_annealer_event(wrapped_stream.stream(), annealer_event);

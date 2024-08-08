@@ -32,7 +32,11 @@ class NDArray(_TensorType):
     @classmethod
     def convert(cls, value):
         if not isinstance(value, numpy.ndarray):
-            value = numpy.array(value, copy=False, dtype=cls.dtype)
+            try:
+                value = numpy.array(value, copy=False, dtype=cls.dtype)
+            except ValueError:
+                # e.g. if the input is a list, then copy=False fails
+                value = numpy.array(value, dtype=cls.dtype)
         if not value.dtype == cls.dtype:
             value = value.astype(cls.dtype, casting=cls.casting.value)
         if value.shape == () and [d.size for d in cls.shape.dims] == [1]:

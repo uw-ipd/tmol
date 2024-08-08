@@ -10,15 +10,7 @@ template struct DispatchTest<
     Device::CPU,
     double>;
 template struct DispatchTest<
-    tmol::score::common::NaiveDispatch,
-    Device::CPU,
-    double>;
-template struct DispatchTest<
     tmol::score::common::ExhaustiveTriuDispatch,
-    Device::CPU,
-    double>;
-template struct DispatchTest<
-    tmol::score::common::NaiveTriuDispatch,
     Device::CPU,
     double>;
 template struct ComplexDispatchTest<

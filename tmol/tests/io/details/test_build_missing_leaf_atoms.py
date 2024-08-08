@@ -161,7 +161,7 @@ def test_build_missing_leaf_atoms_error_handling(torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    cf["coords"][0, :, 1, :] = numpy.NaN  # turn off all the CAlphas!
+    cf["coords"][0, :, 1, :] = numpy.nan  # turn off all the CAlphas!
     (
         ch_id,
         can_rts,

@@ -101,7 +101,7 @@ def canonical_form_from_rosettafold2(
 
     tmol_coords = torch.full(
         (n_poses, max_n_res, co.max_n_canonical_atoms, 3),
-        numpy.NaN,
+        numpy.nan,
         dtype=torch.float32,
         device=device,
     )
@@ -134,7 +134,7 @@ def canonical_form_from_rosettafold2(
         .expand(n_poses, -1, co.max_n_canonical_atoms)
     )
     supress = torch.logical_and(supress_atom, nterm_atom)
-    tmol_coords[supress] = numpy.NaN
+    tmol_coords[supress] = numpy.nan
 
     return dict(
         chain_id=chain_id,

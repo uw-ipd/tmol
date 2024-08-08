@@ -78,7 +78,7 @@ except ImportError:
 try:
     import numpy
 
-    @_signature.register(numpy.lib.function_base.vectorize)
+    @_signature.register(numpy.vectorize)
     def _numpy_vectorize_signature(f):
         return _signature(f.pyfunc)
 

@@ -111,13 +111,12 @@ def canonical_form_from_pose_stack(
         co, pose_stack, chain_id, is_real_block, real_bt_inds64
     )
 
-    return (
-        chain_id,
-        cf_res_types,
-        cf_coords,
-        atom_is_present,
-        disulfides,
-        res_not_connected,
+    return dict(
+        chain_id=chain_id,
+        res_types=cf_res_types.to(torch.int32),
+        coords=cf_coords,
+        disulfides=disulfides,
+        res_not_connected=res_not_connected,
     )
 
 
