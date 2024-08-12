@@ -588,7 +588,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
 
     print("parents")
     print(bt0gssp.parents[3])
-    print(bt1gssp.parents[3])
+    print(bt1gssp.parents[0])
 
     ij0 = [3, 1]  # 3 => root "input"; Q: is this different from jump input?
     ij1 = [0, 1]
@@ -609,48 +609,16 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     print("ids_gold", ids_gold.shape)
     print("ids_gold", ids_gold)
 
+    # fmt: off
     parents_gold = numpy.array(
         [
-            0,
-            2,
-            0,
-            2,
-            3,
-            2,
-            5,
-            6,
-            7,
-            7,
-            1,
-            2,
-            5,
-            5,
-            6,
-            6,
-            9,
-            9,
-            19,
-            3,
-            19,
-            20,
-            19,
-            22,
-            22,
-            23,
-            18,
-            19,
-            22,
-            23,
-            23,
-            24,
-            24,
-            24,
-            25,
-            25,
-            25,
+            0, # virtual root "atom"
+            2, 0, 2, 3, 2, 5, 6, 7, 7, 1, 2, 5, 5, 6, 6, 9, 9, # res 1
+            3, 18, 19, 20, 19, 22, 22, 23, 18, 19, 22, 23, 23, 24, 24, 24, 25, 25, 25,  # res 2
         ],
         dtype=numpy.int32,
     )
+    # fmt: on
     print("parents_gold", parents_gold.shape)
     dof_type_gold = numpy.full(1 + bt0.n_atoms + bt1.n_atoms, 2, dtype=numpy.int32)
     dof_type_gold[0] = NodeType.root.value
@@ -665,69 +633,13 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     frame_y_gold[2] = 0
     frame_z_gold[2] = 3
 
+    # fmt: off
     nodes_gold = numpy.array(
         [
-            0,
-            2,
-            3,
-            18,
-            19,
-            20,  # gen 1
-            2,
-            1,
-            2,
-            5,
-            6,
-            7,
-            9,
-            16,
-            2,
-            11,
-            3,
-            4,
-            18,
-            26,
-            19,
-            22,
-            23,
-            25,
-            34,
-            19,
-            27,
-            20,
-            21,  # gen 2
-            # 0  1  2   3  4   5  6   7  8   9 10 11 12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
-            5,
-            12,
-            5,
-            13,
-            1,
-            10,
-            6,
-            14,
-            6,
-            15,
-            7,
-            8,
-            9,
-            17,
-            22,
-            24,
-            31,
-            22,
-            28,
-            23,
-            29,
-            23,
-            30,
-            25,
-            35,
-            25,
-            36,  # gen 3
-            24,
-            32,
-            24,
-            33,  # gen 4
+            0, 2, 3, 18, 19, 20,  # gen 1
+            2, 1, 2, 5, 6, 7, 9, 16, 2, 11, 3, 4, 18, 26, 19, 22, 23, 25, 34, 19, 27, 20, 21,  # gen 2
+            5, 12, 5, 13, 1, 10, 6, 14, 6, 15, 7, 8, 9, 17, 22, 24, 31, 22, 28, 23, 29, 23, 30, 25, 35, 25, 36,  # gen 3
+            24, 32, 24, 33,  # gen 4
         ],
         dtype=numpy.int32,
     )
@@ -735,29 +647,9 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     scans_gold = numpy.array(
         [
             0,  # gen 1
-            0,
-            2,
-            8,
-            10,
-            12,
-            14,
-            19,
-            21,  # gen 2
-            0,
-            2,
-            4,
-            6,
-            8,
-            10,
-            12,
-            14,
-            17,
-            19,
-            21,
-            23,
-            25,  # gen 3;
-            0,
-            2,  # gen 4
+            0, 2, 8, 10, 12, 14, 19, 21,  # gen 2
+            0, 2, 4, 6, 8, 10, 12, 14, 17, 19, 21, 23, 25,  # gen 3;
+            0, 2,  # gen 4
         ],
         dtype=numpy.int32,
     )
@@ -772,6 +664,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
         ],
         dtype=numpy.int32,
     )
+    # fmt: on
 
     print("nodes_gold", nodes_gold.shape)
     print("scans_gold", scans_gold.shape)
@@ -795,6 +688,9 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     kincoords[1:] = pose_stack.coords.view(-1, 3)[ids_gold[1:]]
 
     # okay, now what?
+    # Let's test that the gold version of the kinforest will actually
+    # generate the input coordinates given the dofs extracted from
+    # the input coordinates
     raw_dofs = inverse_kin(
         kincoords,
         _t(parents_gold),
@@ -803,8 +699,8 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
         _t(frame_z_gold),
         _t(dof_type_gold),
     )
-    print("raw dofs", raw_dofs.shape)
-    print("raw dofs", raw_dofs[:10])
+    # print("raw dofs", raw_dofs.shape)
+    # print("raw dofs", raw_dofs[:10])
 
     def _p(t):
         return torch.nn.Parameter(t, requires_grad=False)
@@ -839,9 +735,12 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
         kinforest,
     )
 
-    print("starting coords", pose_stack.coords.view(-1, 3)[:10])
-    print("kincoords", kincoords[:10])
-    print("new coords", new_coords[:10])
+    print("starting coords", pose_stack.coords.view(-1, 3)[14:19])
+
+    print("kincoords", kincoords[15:20])
+    print("new coords", new_coords[15:20])
+
+    torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
 
 
 def test_decide_scan_paths_for_foldforest(ubq_pdb):
