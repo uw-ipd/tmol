@@ -4,6 +4,7 @@ import attr
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
+from tmol.types.array import NDArray
 
 from tmol.types.attrs import ConvertAttrs
 from tmol.types.functional import convert_args
@@ -233,3 +234,115 @@ class JumpDOF(TensorGroup, ConvertAttrs):
     @property
     def RBgamma(self):
         return self.raw[..., JumpDOFTypes.RBgamma]
+
+
+@attrs.define
+class BTGenerationalSegScanPaths:
+    jump_atom: int
+    parents: NDArray[numpy.int64][:, :]  # n-input x n-atoms
+    input_conn_atom: NDArray[numpy.int64][:]  # n-input
+    n_gens: NDArray[numpy.int64][:, :]  # n-input x n-output
+    n_nodes_for_gen: NDArray[numpy.int64][:, :, :]
+    nodes_for_gen: NDArray[numpy.int64][
+        :, :, :, :
+    ]  # n-input x n-output x max-n-gen x max-n-nodes-per-gen
+    n_scans: NDArray[numpy.int64][:, :, :]
+    scan_starts: NDArray[numpy.int64][:, :, :, :]
+    scan_is_real: NDArray[bool][:, :, :, :]
+    scan_is_inter_block: NDArray[bool][:, :, :, :]
+    scan_lengths: NDArray[numpy.int64][:, :, :, :]
+
+    @classmethod
+    def empty(
+        cls,
+        n_input_types,
+        n_output_types,
+        n_atoms,
+        max_n_gens,
+        max_n_scans,
+        max_n_nodes_per_gen,
+    ):
+        io = (n_input_types, n_output_types)
+        return cls(
+            jump_input_atom=-1,
+            parents=numpy.full(
+                (n_input_types, n_atoms), -1, dtype=int
+            ),  # independent of primary output
+            input_conn_atom=numpy.full(n_input_types, -1, dtype=int),
+            n_gens=numpy.zeros(io, dtype=int),
+            n_nodes_for_gen=numpy.zeros(io + (max_n_gens,), dtype=int),
+            nodes_for_gen=numpy.full(
+                io + (max_n_gens, max_n_nodes_per_gen), -1, dtype=int
+            ),
+            n_scans=numpy.zeros(io + (max_n_gens,), dtype=int),
+            scan_starts=numpy.full(io + (max_n_gens, max_n_scans), -1, dtype=int),
+            scan_is_real=numpy.zeros(io + (max_n_gens, max_n_scans), dtype=bool),
+            scan_is_inter_block=numpy.zeros(io + (max_n_gens, max_n_scans), dtype=bool),
+            scan_lengths=numpy.zeros(io + (max_n_gens, max_n_scans), dtype=int),
+        )
+
+
+@attrs.define
+class PBTGenerationalSegScanPaths:
+    jump_atom: NDArray[numpy.int64][:]  # n-bt
+    parents: Tensor[torch.int32][:, :, :]  # n-bt x n-input x n-atoms
+    input_conn_atom: Tensor[torch.int32][:, :]  # n-bt x n-input
+    n_gens: Tensor[torch.int32][:, :, :]  # n-bt x n-input x n-output
+    n_nodes_for_gen: Tensor[torch.int32][:, :, :, :]
+    nodes_for_gen: Tensor[torch.int32][
+        :, :, :, :, :
+    ]  # n-input x n-output x max-n-gen x max-n-nodes-per-gen
+    n_scans: Tensor[torch.int32][:, :, :, :]
+    scan_starts: Tensor[torch.int32][:, :, :, :, :]
+    scan_is_real: Tensor[bool][:, :, :, :, :]
+    scan_is_inter_block: Tensor[bool][:, :, :, :, :]
+    scan_lengths: Tensor[torch.int32][:, :, :, :, :]
+
+    @classmethod
+    def empty(
+        cls,
+        device,
+        n_bt,
+        max_n_input_types,
+        max_n_output_types,
+        max_n_atoms,
+        max_n_gens,
+        max_n_scans,
+        max_n_nodes_per_gen,
+    ):
+        io = (n_bt, max_n_input_types, max_n_output_types)
+        return cls(
+            jump_input_atom=torch.full(n_bt, -1, dtype=torch.int32, device=device),
+            parents=torch.full(
+                (n_bt, max_n_input_types, max_n_atoms),
+                -1,
+                dtype=torch.int32,
+                device=device,
+            ),  # independent of primary output
+            input_conn_atom=torch.full(
+                (n_bt, max_n_input_types), -1, dtype=torch.int32, device=device
+            ),
+            n_gens=torch.zeros(io, dtype=torch.int32, device=device),
+            n_nodes_for_gen=torch.zeros(
+                io + (max_n_gens,), dtype=torch.int32, device=device
+            ),
+            nodes_for_gen=torch.full(
+                io + (max_n_gens, max_n_nodes_per_gen),
+                -1,
+                dtype=torch.int32,
+                device=device,
+            ),
+            n_scans=torch.zeros(io + (max_n_gens,), dtype=torch.int32, device=device),
+            scan_starts=torch.full(
+                io + (max_n_gens, max_n_scans), -1, dtype=torch.int32, device=device
+            ),
+            scan_is_real=torch.zeros(
+                io + (max_n_gens, max_n_scans), dtype=torch.bool, device=device
+            ),
+            scan_is_inter_block=torch.zeros(
+                io + (max_n_gens, max_n_scans), dtype=bool, device=device
+            ),
+            scan_lengths=torch.zeros(
+                io + (max_n_gens, max_n_scans), dtype=torch.int32, device=device
+            ),
+        )
