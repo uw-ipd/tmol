@@ -58,6 +58,7 @@ def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_se
     bt_list = [bt for bt in fresh_default_restype_set.residue_types if bt.name == "LEU"]
     for bt in bt_list:
         _annotate_block_type_with_gen_scan_paths(bt)
+        assert hasattr(bt, "gen_seg_scan_paths")
 
 
 def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
@@ -76,6 +77,8 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
         co, pbt, **canonical_form, res_not_connected=res_not_connected
     )
     _annotate_packed_block_type_with_gen_scan_paths(pbt)
+
+    pbt_gssp = pbt.gen_seg_scan_paths
 
     # for bt in pbt.active_block_types:
     #     _annotate_block_type_with_gen_scan_paths(bt)
@@ -122,11 +125,11 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     print(bt1gssp.parents[0])
     print(
         "parents in pbt, res1",
-        pbt.gen_seg_scan_paths.parents[pose_stack.block_type_ind[0, 0], 3],
+        pbt_gssp.parents[pose_stack.block_type_ind[0, 0], 3],
     )
     print(
         "parents in pbt, res2",
-        pbt.gen_seg_scan_paths.parents[pose_stack.block_type_ind[0, 1], 0],
+        pbt_gssp.parents[pose_stack.block_type_ind[0, 1], 0],
     )
 
     ij0 = [3, 1]  # 3 => root "input"; Q: is this different from jump input?
@@ -352,7 +355,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
         -1,
         dtype=torch.int32,
     )
-    per_block_type_parent[is_bt_real, :] = pbt.gen_seg_scan_paths.parents[
+    per_block_type_parent[is_bt_real, :] = pbt_gssp.parents[
         pose_stack.block_type_ind64[is_bt_real],
         block_in_out[is_bt_real][:, 0],
     ]
@@ -463,11 +466,16 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     )
     print("atoms connected by nonjump", atoms_connected_by_nonjump)
 
-    real_conn_to_root_conn_atom = pbt.conn_atom[
-        pose_stack.block_type_ind64[is_connected_to_root], 0
-    ]
+    # real_conn_to_root_conn_atom = pbt.conn_atom[
+    #     pose_stack.block_type_ind64[is_connected_to_root], 0
+    # ]
+    real_conn_to_root_bt = pose_stack.block_type_ind64[is_connected_to_root]
+    real_conn_to_root_atoms = pbt_gssp.jump_atom[real_conn_to_root_bt]
+    atoms_connected_to_the_root = (
+        real_conn_to_root_atoms + kfo_block_offset[is_connected_to_root]
+    )
 
-    atoms_connected_to_the_root = 2  # TEMP! FIX ME!!!!
+    # atoms_connected_to_the_root = 2  # TEMP! FIX ME!!!!
     print("atoms connected to the root")
 
     # TO DO:

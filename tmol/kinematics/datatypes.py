@@ -1,6 +1,7 @@
 import enum
+import numpy
 import torch
-import attr
+import attrs
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
@@ -18,7 +19,7 @@ class NodeType(enum.IntEnum):
     bond = enum.auto()
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@attrs.define(auto_attribs=True, frozen=True)
 class KinForest(TensorGroup, ConvertAttrs):
     """A collection of atom-level kinematic trees, each of which can be processed
     in parallel.
@@ -122,7 +123,7 @@ class KinForest(TensorGroup, ConvertAttrs):
         )
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attrs.define(auto_attribs=True, slots=True, frozen=True)
 class KinDOF(TensorGroup, ConvertAttrs):
     """Internal coordinate data.
 
@@ -170,7 +171,7 @@ class JumpDOFTypes(enum.IntEnum):
     RBgamma = enum.auto()
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attrs.define(auto_attribs=True, slots=True, frozen=True)
 class BondDOF(TensorGroup, ConvertAttrs):
     """A bond dof view of KinDOF."""
 
@@ -193,7 +194,7 @@ class BondDOF(TensorGroup, ConvertAttrs):
         return self.raw[..., BondDOFTypes.phi_c]
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attrs.define(auto_attribs=True, slots=True, frozen=True)
 class JumpDOF(TensorGroup, ConvertAttrs):
     """A jump dof view of KinDOF."""
 
@@ -264,7 +265,7 @@ class BTGenerationalSegScanPaths:
     ):
         io = (n_input_types, n_output_types)
         return cls(
-            jump_input_atom=-1,
+            jump_atom=-1,
             parents=numpy.full(
                 (n_input_types, n_atoms), -1, dtype=int
             ),  # independent of primary output
@@ -312,7 +313,7 @@ class PBTGenerationalSegScanPaths:
     ):
         io = (n_bt, max_n_input_types, max_n_output_types)
         return cls(
-            jump_input_atom=torch.full(n_bt, -1, dtype=torch.int32, device=device),
+            jump_atom=torch.full((n_bt,), -1, dtype=torch.int32, device=device),
             parents=torch.full(
                 (n_bt, max_n_input_types, max_n_atoms),
                 -1,

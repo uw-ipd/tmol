@@ -9,6 +9,7 @@ from .datatypes import (
 )
 
 from numba import jit
+from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ConvertAttrs, ValidateAttrs
@@ -30,7 +31,8 @@ from tmol.io.canonical_ordering import (
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.kinematics.datatypes import NodeType
 from tmol.kinematics.fold_forest import EdgeType
-from tmol.kinematics.scan_ordering import get_children
+
+# from tmol.kinematics.scan_ordering import get_children
 from tmol.kinematics.compiled import inverse_kin, forward_kin_op
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
@@ -352,7 +354,7 @@ class KinForestScanOrdering(ValidateAttrs):
 def jump_atom_for_bt(bt):
     """Return the index of the atom that will be jumped to or jumped from"""
     # TEMP: CA if CA is present; ow, atom 0
-    return bt.atom_to_idx("CA") if "CA" in bt.atom_names else 0
+    return bt.atom_to_idx["CA"] if "CA" in bt.atom_names_set else 0
 
 
 def _annotate_block_type_with_gen_scan_paths(bt):
@@ -406,7 +408,7 @@ def _annotate_block_type_with_gen_scan_paths(bt):
     bond_graph = potential_bonds + prioritized_bonds
     bond_graph_spanning_tree = csgraph.minimum_spanning_tree(bond_graph.tocsr())
 
-    mid_bt_atom = jump_bt_atom(bt, bond_graph_spanning_tree)
+    mid_bt_atom = jump_atom_for_bt(bt)
 
     is_conn_atom = numpy.zeros((bt.n_atoms,), dtype=bool)
     for i in range(n_conn):
@@ -804,6 +806,11 @@ def _annotate_packed_block_type_with_gen_scan_paths(pbt):
         max_n_gens,
         max_n_scans,
         max_n_nodes_per_gen,
+    )
+    gen_seg_scan_paths.jump_atom[:] = torch.tensor(
+        [bt.gen_seg_scan_paths.jump_atom for bt in pbt.active_block_types],
+        dtype=torch.int32,
+        device=pbt.device,
     )
     varnames = [
         "parents",
