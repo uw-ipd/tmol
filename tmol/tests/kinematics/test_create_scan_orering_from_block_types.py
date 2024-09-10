@@ -166,7 +166,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     dof_type_gold[0] = NodeType.root.value
     dof_type_gold[2] = NodeType.jump.value
     frame_x_gold = numpy.arange(1 + bt0.n_atoms + bt1.n_atoms, dtype=numpy.int32)
-    frame_y_gold = parents_gold  # we will correct the jump atom below
+    frame_y_gold = parents_gold.copy()  # we will correct the jump atom below
     frame_z_gold = parents_gold[parents_gold]  # grandparents
     frame_x_gold[0] = 2
     frame_y_gold[0] = 0
@@ -291,12 +291,13 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
 
     is_bt_real = pose_stack.block_type_ind != -1
     nz_is_bt_real = torch.nonzero(is_bt_real, as_tuple=True)
-    n_atoms = torch.zeros_like(pose_stack.block_type_ind64)
-    n_atoms[is_bt_real] = pbt.n_atoms[pose_stack.block_type_ind64[is_bt_real]].to(
+    bt_n_atoms = torch.zeros_like(pose_stack.block_type_ind64)
+    bt_n_atoms[is_bt_real] = pbt.n_atoms[pose_stack.block_type_ind64[is_bt_real]].to(
         torch.int64
     )
-    n_atoms_real_bt = n_atoms[is_bt_real]
-    n_atoms_total = n_atoms.sum()
+    n_atoms_real_bt = bt_n_atoms[is_bt_real]
+    n_nonroot_kin_atoms = bt_n_atoms.sum()
+    n_kin_atoms = n_nonroot_kin_atoms + 1
 
     # let's imagine a variable that says for each residue
     # whether it is connected to its parent by a jump,
@@ -332,7 +333,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     id = torch.concatenate(  # cat?
         (
             torch.full((1,), -1, dtype=torch.int32, device=device),
-            torch.arange(n_atoms_total, dtype=torch.int32, device=device),
+            torch.arange(n_nonroot_kin_atoms, dtype=torch.int32, device=device),
         )
     )
     torch.testing.assert_close(id, ids_gold_t)
@@ -376,7 +377,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     #     (pose_stack.n_poses, pose_stack.max_n_blocks, pose_stack.max_n_atoms)
     # )
 
-    kfo_block_offset = n_atoms.clone().flatten()
+    kfo_block_offset = bt_n_atoms.clone().flatten()
     kfo_block_offset[0] += 1  # add in the virtual root
     kfo_block_offset = exclusive_cumsum1d(kfo_block_offset)
     kfo_block_offset[0] = 1  # adjust for the virtual root
@@ -501,9 +502,24 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     torch.testing.assert_close(parent, parents_gold_t)
 
     # # roots: Tensor[torch.int32][...] # not used in current kinforest
+
+    # 3-5.
     # frame_x: Tensor[torch.int32][...]
     # frame_y: Tensor[torch.int32][...]
     # frame_z: Tensor[torch.int32][...]
+
+    frame_x = torch.arange(n_kin_atoms, dtype=torch.int32, device=device)
+
+    # 4-5:
+
+    frame_y = parent
+    grandparent = parent[parent]
+
+    # needs correction!
+
+    # Will fail currently w/o correction
+    torch.testing.assert_close(frame_x, frame_x_gold_t)
+
     # (and the data members appended in get_scans)
     # nodes
     # scans

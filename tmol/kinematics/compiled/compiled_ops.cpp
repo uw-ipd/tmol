@@ -5,6 +5,7 @@
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
+#include <tmol/score/common/device_operations.hh>
 
 #include "common.hh"
 #include "common_dispatch.hh"
@@ -140,6 +141,29 @@ Tensor forward_only_op(
   return coords;
 };
 
+void fix_jump_nodes_op(
+    Tensor parents,
+    Tensor frame_x,
+    Tensor frame_y,
+    Tensor frame_z,
+    Tensor roots,
+    Tensor jumps) {
+  printf("FIX JUMP NODES OP\n");
+  TMOL_DISPATCH_INDEX_DEVICE(
+      parents.type(), "fix_jump_nodes_op", ([&] {
+        using Int = index_t;
+        // using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        FixJumpNodes<score::common::DeviceOperations, Dev, Int>::f(
+            TCAST(parents),
+            TCAST(frame_x),
+            TCAST(frame_y),
+            TCAST(frame_z),
+            TCAST(roots),
+            TCAST(jumps));
+      }));
+}
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
@@ -147,6 +171,7 @@ Tensor forward_only_op(
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("forward_kin_op", &kinematic_op);
   m.def("forward_only_op", &forward_only_op);
+  m.def("fix_jump_nodes_op", &fix_jump_nodes_op);
 }
 
 }  // namespace kinematics

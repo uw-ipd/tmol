@@ -6,6 +6,7 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
+#include <moderngpu/kernal_scan.hxx>
 #include <moderngpu/cta_reduce.hxx>
 
 #include "device_operations.hh"
@@ -59,6 +60,13 @@ struct DeviceOperations<tmol::Device::CUDA> {
     mgpu::cta_launch<launch_t>(wrapper, n_workgroups, context);
   }
 
+  template <typename T, typename OP, mgpu::scan_type_t scan_type>
+  static void scan(T* src, T* dst, int n, OP) {
+    mgpu::standard_context_t context;
+    mgpu::scan<scan_type>(
+        data, n, dst, op, mgpu::discard_iterator_t<T>(), context);
+  }
+
   template <int N_T, int WIDTH, typename T>
   __device__ static void copy_contiguous_data(
       T* __restrict__ dst, T* __restrict__ src, int n) {
@@ -109,6 +117,8 @@ struct DeviceOperations<tmol::Device::CUDA> {
   }
 
   __device__ static void synchronize_workgroup() { __syncthreads(); }
+
+  static void
 };
 
 }  // namespace common

@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/extern/moderngpu/scan_types.hxx>  // CPU-friendly
 
 namespace tmol {
 namespace score {
@@ -21,6 +22,11 @@ struct DeviceOperations {
 
   template <typename launch_t, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f);
+
+  // Note that dst[0] should be initialized to the identity value (e.g. 0) if
+  // scan_type is exclusive.
+  template <typename T, typename OP, mgpu::scan_type_t scan_type>
+  static void scan(T* src, T* dst, int n, OP op);
 
   template <int N_T, int WIDTH, typename T>
   static void copy_contiguous_data(

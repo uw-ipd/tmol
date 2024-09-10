@@ -46,6 +46,20 @@ struct DeviceOperations<tmol::Device::CPU> {
     }
   }
 
+  template <typename T, typename OP, mgpu::scan_type_t scan_type>
+  static void scan(T* src, T* dst, int n, OP) {
+    T last_val = src[0];
+    if (scan_type == mgpu::scan_type_inc) {
+      dst[0] = last_val;
+    }
+    for (int i = 1; i < n; ++i) {
+      T i_val = src[i];
+      T next_val = op(last_val, i_val);
+      dst[i] = (scan_type == mgpu::scan_type_exc) ? last_val : next_val;
+      last_val = next_val;
+    }
+  }
+
   template <int N_T, int WIDTH, typename T>
   static void copy_contiguous_data(
       T* __restrict__ dst, T* __restrict__ src, int n) {

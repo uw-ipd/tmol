@@ -153,3 +153,91 @@ def test_derivsum_values_cpp(benchmark, big_system):
     numpy.testing.assert_almost_equal(
         1.0, (torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b)).numpy()
     )
+
+
+def test_fix_jumps_op():
+    from tmol.kinematics.compiled.compiled_ops import fix_jump_nodes_op
+
+    torch_device = torch.device("cpu")
+    parents_gold = torch.tensor(
+        [
+            0,  # virtual root "atom"
+            2,
+            0,
+            2,
+            3,
+            2,
+            5,
+            6,
+            7,
+            7,
+            1,
+            2,
+            5,
+            5,
+            6,
+            6,
+            9,
+            9,  # res 1
+            3,
+            18,
+            19,
+            20,
+            19,
+            22,
+            22,
+            23,
+            18,
+            19,
+            22,
+            23,
+            23,
+            24,
+            24,
+            24,
+            25,
+            25,
+            25,  # res 2
+        ],
+        dtype=numpy.int32,
+        device=torch_device,
+    )
+
+    frame_x_start = torch.arange(
+        1 + bt0.n_atoms + bt1.n_atoms,
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    frame_y_start = parents_gold.copy()  # we will correct the jump atom below
+    frame_z_start = parents_gold[parents_gold]  # grandparents
+
+    frame_x_gold, frame_y_gold, frame_z_gold = (
+        frame_x_start.copy(),
+        frame_y_start.copy(),
+        frame_z_start.copy(),
+    )
+    frame_x_gold[0] = 2
+    frame_y_gold[0] = 0
+    frame_z_gold[0] = 3
+    frame_x_gold[2] = 2
+    frame_y_gold[2] = 0
+    frame_z_gold[2] = 3
+
+    # the CA atom on residue 1; unclear if I need this
+    roots = torch.tensor([2], dtype=torch.int32, device=torch_device)
+
+    # no jumps in this formulation
+    jumps = torch.tensor([], dtype=torch.int32, device=torch_device)
+
+    fix_jump_nodes_op(
+        parents_gold,
+        frame_x_start,
+        frame_y_start,
+        frame_z_start,
+        roots,
+        jumps,
+    )
+
+    # torch.testing.assert_close(frame_x_start, frame_x_gold)
+    # torch.testing.assert_close(frame_y_start, frame_y_gold)
+    # torch.testing.assert_close(frame_z_start, frame_z_gold)

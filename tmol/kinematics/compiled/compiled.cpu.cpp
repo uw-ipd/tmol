@@ -25,6 +25,8 @@ struct ForwardKinDispatch {
       TView<KinForestParams<Int>, 1, D> kintree)
       -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D> > {
     auto num_atoms = dofs.size(0);
+    printf("dofs.size(0): %d\n", num_atoms);
+    printf("nodes.size(0): %d\n", nodes.size(0));
 
     auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
     auto HTs = HTs_t.view;
@@ -56,11 +58,14 @@ struct ForwardKinDispatch {
       int scanstart = gens[gen].scan_start;
       int scanstop = gens[gen + 1].scan_start;
       for (int j = scanstart; j < scanstop; j++) {  // loop over scans
+        // printf("scan %d %d star %d stop %d\n", gen, j, scanstart, scanstop);
         int nodestart = gens[gen].node_start + scans[j];
         int nodestop = (j == scanstop - 1)
                            ? gens[gen + 1].node_start
                            : (gens[gen].node_start + scans[j + 1]);
+        // printf("node start %d node stop %d\n", nodestart, nodestop);
         for (int k = nodestart; k < nodestop - 1; k++) {  // loop over path
+          // printf("k: %d %d %d\n", gen, j, k);
           k_compose(nodes[k], nodes[k + 1]);
         }
       }
