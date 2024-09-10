@@ -2,13 +2,9 @@
 #pragma once
 #include "loadstore.hxx"
 #include "intrinsics.hxx"
+#include "scan_types.hxx"
 
 BEGIN_MGPU_NAMESPACE
-
-enum scan_type_t {
-  scan_type_exc,
-  scan_type_inc
-};
 
 template<typename type_t, int vt = 0, bool is_array = (vt > 0)>
 struct scan_result_t {
@@ -32,7 +28,7 @@ struct cta_scan_t {
     struct { type_t threads[nt], warps[num_warps]; };
   };
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 300  
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 300
 
   //////////////////////////////////////////////////////////////////////////////
   // Optimized CTA scan code that uses warp shfl intrinsics.
@@ -41,7 +37,7 @@ struct cta_scan_t {
 
   template<typename op_t = plus_t<type_t> >
   MGPU_DEVICE scan_result_t<type_t>
-  scan(int tid, type_t x, storage_t& storage, int count = nt, op_t op = op_t(), 
+  scan(int tid, type_t x, storage_t& storage, int count = nt, op_t op = op_t(),
     type_t init = type_t(), scan_type_t type = scan_type_exc) const {
 
     int warp = tid / warp_size;
@@ -61,7 +57,7 @@ struct cta_scan_t {
     __syncthreads();
 
     // Scan the warp reductions.
-    if(tid < num_warps) { 
+    if(tid < num_warps) {
       type_t cta_scan = storage.warps[tid];
       iterate<s_log2(num_warps)>([&](int pass) {
         cta_scan = shfl_up_op(cta_scan, 1<< pass, op, num_warps);
@@ -78,10 +74,10 @@ struct cta_scan_t {
     if(warp > 0) scan = op(scan, storage.warps[warp - 1]);
 
     type_t reduction = storage.warps[div_up(count, warp_size) - 1];
-    
-    scan_result_t<type_t> result { 
-      tid < count ? scan : reduction, 
-      reduction 
+
+    scan_result_t<type_t> result {
+      tid < count ? scan : reduction,
+      reduction
     };
     __syncthreads();
 
@@ -91,11 +87,11 @@ struct cta_scan_t {
 #else
 
   //////////////////////////////////////////////////////////////////////////////
-  // Standard CTA scan code that does not use shfl intrinsics. 
+  // Standard CTA scan code that does not use shfl intrinsics.
 
   template<typename op_t = plus_t<type_t> >
-  MGPU_DEVICE scan_result_t<type_t> 
-  scan(int tid, type_t x, storage_t& storage, int count = nt, op_t op = op_t(), 
+  MGPU_DEVICE scan_result_t<type_t>
+  scan(int tid, type_t x, storage_t& storage, int count = nt, op_t op = op_t(),
     type_t init = type_t(), scan_type_t type = scan_type_exc) const {
 
     int first = 0;
@@ -113,7 +109,7 @@ struct cta_scan_t {
 
     scan_result_t<type_t> result;
     result.reduction = storage.data[first + count - 1];
-    result.scan = (tid < count) ? 
+    result.scan = (tid < count) ?
       (scan_type_inc == type ? x :
         (tid ? storage.data[first + tid - 1] : init)) :
       result.reduction;
@@ -122,16 +118,16 @@ struct cta_scan_t {
     return result;
   }
 
-#endif  
+#endif
 
   //////////////////////////////////////////////////////////////////////////////
-  // CTA vectorized scan. Accepts multiple values per thread and adds in 
+  // CTA vectorized scan. Accepts multiple values per thread and adds in
   // optional global carry-in.
 
   template<int vt, typename op_t = plus_t<type_t> >
   MGPU_DEVICE scan_result_t<type_t, vt>
-  scan(int tid, array_t<type_t, vt> x, storage_t& storage, 
-    type_t carry_in = type_t(), bool use_carry_in = false, 
+  scan(int tid, array_t<type_t, vt> x, storage_t& storage,
+    type_t carry_in = type_t(), bool use_carry_in = false,
     int count = nt, op_t op = op_t(), type_t init = type_t(),
     scan_type_t type = scan_type_exc) const {
 
@@ -143,14 +139,14 @@ struct cta_scan_t {
     } else {
       iterate<vt>([&](int i) {
         int index = vt * tid + i;
-        x[i] = i ? 
+        x[i] = i ?
           ((index < count) ? op(x[i], x[i - 1]) : x[i - 1]) :
           (x[i] = (index < count) ? x[i] : init);
       });
     }
 
     // Scan the thread-local reductions for a carry-in for each thread.
-    scan_result_t<type_t> result = scan(tid, x[vt - 1], storage, 
+    scan_result_t<type_t> result = scan(tid, x[vt - 1], storage,
       div_up(count, vt), op, init, scan_type_exc);
 
     // Perform the scan downsweep and add both the global carry-in and the
@@ -185,7 +181,7 @@ struct cta_scan_t<nt, bool> {
     int warps[num_warps];
   };
 
-  MGPU_DEVICE scan_result_t<int> scan(int tid, bool x, 
+  MGPU_DEVICE scan_result_t<int> scan(int tid, bool x,
     storage_t& storage) const {
 
     // Store the bit totals for each warp.
@@ -207,7 +203,7 @@ struct cta_scan_t<nt, bool> {
     }
     __syncthreads();
 #else
-    
+
     if(0 == tid) {
       // Inclusive scan of partial reductions..
       int scan = 0;
@@ -217,7 +213,7 @@ struct cta_scan_t<nt, bool> {
     }
     __syncthreads();
 
-#endif    
+#endif
 
     int scan = ((warp > 0) ? storage.warps[warp - 1] : 0) +
       popc(bfe(bits, 0, lane));
