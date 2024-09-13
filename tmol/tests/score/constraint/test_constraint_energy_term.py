@@ -119,7 +119,7 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
             default_database,
             torch_device,
             edit_pose_stack_fn=add_constraints_to_all_poses,
-            update_baseline=True,
+            update_baseline=False,
         )
 
     @classmethod
@@ -134,7 +134,7 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
             default_database,
             torch_device,
             edit_pose_stack_fn=add_constraints_to_all_poses,
-            update_baseline=True,
+            update_baseline=False,
         )
 
     @classmethod
@@ -169,7 +169,7 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
             torch_device,
             resnums=resnums,
             edit_pose_stack_fn=add_test_constraints_to_pose_stack,
-            update_baseline=True,
+            update_baseline=False,
         )
 
     @classmethod
