@@ -1,5 +1,6 @@
 import torch
 import numpy
+import math
 
 from ..energy_term import EnergyTerm
 
@@ -7,6 +8,7 @@ from tmol.database import ParameterDatabase
 from tmol.score.constraint.constraint_whole_pose_module import (
     ConstraintWholePoseScoringModule,
 )
+from tmol.score.constraint.potentials.compiled import get_torsion_angle
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -29,6 +31,95 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     def n_bodies(self):
         return 1
+
+    @classmethod
+    def get_torsion_angle_test(cls, tensor):
+        return get_torsion_angle(tensor)
+
+    @classmethod
+    def harmonic(cls, atoms, params):
+        atoms1 = atoms[:, 0]
+        atoms2 = atoms[:, 1]
+        dist = torch.linalg.norm(atoms1 - atoms2, dim=-1)
+        return (dist - params[:, 0]) ** 2
+
+    @classmethod
+    def bounded(cls, atoms, params):
+        lb = params[:, 0]
+        ub = params[:, 1]
+        sd = params[:, 2]
+        rswitch = params[:, 3]
+
+        atoms1 = atoms[:, 0]
+        atoms2 = atoms[:, 1]
+        dist = torch.linalg.norm(atoms1 - atoms2, dim=-1)
+
+        ret = torch.full_like(dist, 0)
+
+        ub2 = ub + 0.5 * sd
+
+        g0 = dist < lb
+        # g1 = torch.logical_and(lb <= dist, dist <= ub) # default 0
+        g2 = torch.logical_and(ub < dist, dist <= ub2)
+        g3 = dist > ub2
+
+        ret[g0] = ((lb - dist) / sd) ** 2
+        # ret[g1] = 0
+        ret[g2] = ((dist - ub) / sd) ** 2
+        ret[g3] = 2 * rswitch * ((dist - ub) / sd) - rswitch**2
+
+        return ret
+
+    @classmethod
+    def circularharmonic_angle(cls, atoms, params):
+        return cls.circularharmonic(atoms, params)
+
+    @classmethod
+    def circularharmonic_torsion(cls, atoms, params):
+        return cls.circularharmonic(atoms, params, torsion=True)
+
+    @classmethod
+    def circularharmonic(cls, atoms, params, torsion=False):
+        x0 = params[:, 0]  # The desired angle
+        sd = params[:, 1]
+        offset = params[:, 2]
+
+        def get_angle(atms):
+            atm1 = atms[:, 0]
+            atm2 = atms[:, 1]
+            atm3 = atms[:, 2]
+
+            # get the two vectors
+            v1 = atm1 - atm2
+            v2 = atm3 - atm2
+
+            # normalize the vectors
+            v1norm = v1 / torch.linalg.norm(v1, dim=-1, keepdim=True)
+            v2norm = v2 / torch.linalg.norm(v2, dim=-1, keepdim=True)
+
+            # compute dot product between two vectors. equivalent to:
+            # sum_over_i sum_over_j v1norm_ij*v2norm_ij
+            # with the output being the the results of the summations over j
+            dot = torch.einsum("ij,ij->i", [v1norm, v2norm])
+
+            # dot product is equal to the cosine of the angle between the vectors
+            # multiplied by the magnitudes of the two vectors (both 1, since
+            # they are normalized)
+            return torch.arccos(dot)
+
+        angles = get_torsion_angle(atoms) if torsion else get_angle(atoms)
+
+        def round_away_from_zero(val):
+            return torch.trunc(val + torch.sign(val) * 0.5)
+
+        def nearest_angle_radians(angle, x0):
+            return angle - (
+                round_away_from_zero((angle - x0) / (math.pi * 2)) * (math.pi / 2)
+            )
+
+        z = (nearest_angle_radians(angles, x0) - x0) / sd
+
+        return z * z + offset
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(ConstraintEnergyTerm, self).setup_block_type(block_type)
