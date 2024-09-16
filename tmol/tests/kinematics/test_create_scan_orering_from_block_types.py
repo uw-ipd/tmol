@@ -62,10 +62,13 @@ def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_se
 
 
 def test_get_kfo_indices_for_atoms(ubq_pdb):
-    from tmol.kinematics.compiled.compiled_ops import get_kfo_indices_for_atoms
+    from tmol.kinematics.compiled.compiled_ops import (
+        get_kfo_indices_for_atoms,
+        get_kfo_atom_parents,
+    )
 
     torch_device = torch.device("cpu")
-    # device = torch_device
+    device = torch_device
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
@@ -80,6 +83,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
         co, pbt, **canonical_form, res_not_connected=res_not_connected
     )
     _annotate_packed_block_type_with_gen_scan_paths(pbt)
+    pbt_gssp = pbt.gen_seg_scan_paths
 
     bt0 = pbt.active_block_types[pose_stack.block_type_ind[0, 0]]
     bt1 = pbt.active_block_types[pose_stack.block_type_ind[0, 1]]
@@ -96,6 +100,65 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     print("block_kfo_offset", block_kfo_offset)
     print("kfo_2_orig_mapping", kfo_2_orig_mapping)
     print("atom_kfo_index", atom_kfo_index)
+
+    fold_forest_parent = torch.full(
+        (pose_stack.n_poses, pose_stack.max_n_blocks),
+        -1,
+        dtype=torch.int32,
+        device=device,
+    )
+    fold_forest_parent[0, 1] = 0
+
+    ff_conn_to_parent = torch.full(
+        (pose_stack.n_poses, pose_stack.max_n_blocks),
+        -1,
+        dtype=torch.int32,
+        device=device,
+    )
+    ff_conn_to_parent[0, 0] = 2  # jump
+    ff_conn_to_parent[0, 1] = 0  # N->C
+
+    block_in_out = torch.full(
+        (pose_stack.n_poses, pose_stack.max_n_blocks, 2),
+        -1,
+        dtype=torch.int32,
+        device=device,
+    )
+    block_in_out[0, 0, 0] = 3  # input from root
+    block_in_out[0, 0, 1] = 1  # output through upper connection
+    block_in_out[0, 1, 0] = 0  # input from lower connection
+    block_in_out[0, 1, 1] = 1  # output through upper connection
+
+    print("pose_stack.block_type_ind", pose_stack.block_type_ind.dtype)
+    print(
+        "pose_stack.inter_residue_connections",
+        pose_stack.inter_residue_connections.dtype,
+    )
+    print("fold_forest_parent", fold_forest_parent.dtype)
+    print("ff_conn_to_parent", ff_conn_to_parent.dtype)
+    print("block_in_out", block_in_out.dtype)
+    print("pbt_gssp.parents", pbt_gssp.parents.dtype)
+    print("kfo_2_orig_mapping", kfo_2_orig_mapping.dtype)
+    print("atom_kfo_index", atom_kfo_index.dtype)
+    print("pbt_gssp.jump_atom", pbt_gssp.jump_atom.dtype)
+    print("pbt.n_conn", pbt.n_conn.dtype)
+    print("pbt.conn_atom", pbt.conn_atom.dtype)
+
+    kfo_atom_parents = get_kfo_atom_parents(
+        pose_stack.block_type_ind,
+        pose_stack.inter_residue_connections,
+        fold_forest_parent,
+        ff_conn_to_parent,
+        block_in_out,
+        pbt_gssp.parents,
+        kfo_2_orig_mapping,
+        atom_kfo_index,
+        pbt_gssp.jump_atom,
+        pbt.n_conn,
+        pbt.conn_atom,
+    )
+
+    print("kfo_atom_parents", kfo_atom_parents)
 
 
 def test_construct_scan_paths_n_to_c_twores(ubq_pdb):

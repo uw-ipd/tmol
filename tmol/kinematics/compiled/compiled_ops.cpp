@@ -194,6 +194,46 @@ auto get_kfo_indices_for_atoms(
   return {block_kfo_offset_tp, kfo_2_orig_mapping_tp, atom_kfo_index};
 }
 
+auto get_kfo_atom_parents(
+    Tensor pose_stack_block_type,                 // P x L
+    Tensor pose_stack_inter_residue_connections,  // P x L x C x 2
+    Tensor pose_stack_ff_parent,                  // P x L
+    Tensor pose_stack_ff_conn_to_parent,          // P x L
+    Tensor pose_stack_block_in_and_first_out,     // P x L x 2
+    Tensor block_type_parents,                    // T x O x A
+    Tensor kfo_2_orig_mapping,                    // K x 3
+    Tensor atom_kfo_index,                        // P x L x A
+    Tensor block_type_jump_atom,                  // T
+    Tensor block_type_n_conn,                     // T
+    Tensor block_type_conn_atom) -> Tensor {
+  printf("GET KFO ATOM PARENTS\n");
+  at::Tensor kfo_parent_atoms;
+  TMOL_DISPATCH_INDEX_DEVICE(
+      pose_stack_block_type.type(), "get_kfo_atom_parents", ([&] {
+        using Int = index_t;
+        // using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                get_kfo_atom_parents(
+                    TCAST(pose_stack_block_type),
+                    TCAST(pose_stack_inter_residue_connections),
+                    TCAST(pose_stack_ff_parent),
+                    TCAST(pose_stack_ff_conn_to_parent),
+                    TCAST(pose_stack_block_in_and_first_out),
+                    TCAST(block_type_parents),
+                    TCAST(kfo_2_orig_mapping),
+                    TCAST(atom_kfo_index),
+                    TCAST(block_type_jump_atom),
+                    TCAST(block_type_n_conn),
+                    TCAST(block_type_conn_atom));
+
+        kfo_parent_atoms = result.tensor;
+      }));
+  return kfo_parent_atoms;
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
@@ -203,6 +243,7 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("forward_only_op", &forward_only_op);
   // m.def("fix_jump_nodes_op", &fix_jump_nodes_op);
   m.def("get_kfo_indices_for_atoms", &get_kfo_indices_for_atoms);
+  m.def("get_kfo_atom_parents", &get_kfo_atom_parents);
 }
 
 }  // namespace kinematics
