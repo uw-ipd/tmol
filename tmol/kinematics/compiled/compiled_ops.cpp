@@ -141,29 +141,59 @@ Tensor forward_only_op(
   return coords;
 };
 
-void fix_jump_nodes_op(
-    Tensor parents,
-    Tensor frame_x,
-    Tensor frame_y,
-    Tensor frame_z,
-    Tensor roots,
-    Tensor jumps) {
-  printf("FIX JUMP NODES OP\n");
+// void fix_jump_nodes_op(
+//     Tensor parents,
+//     Tensor frame_x,
+//     Tensor frame_y,
+//     Tensor frame_z,
+//     Tensor roots,
+//     Tensor jumps) {
+//   printf("FIX JUMP NODES OP\n");
+//   TMOL_DISPATCH_INDEX_DEVICE(
+//       parents.type(), "fix_jump_nodes_op", ([&] {
+//         using Int = index_t;
+//         // using Real = scalar_t;
+//         constexpr tmol::Device Dev = device_t;
+
+//         FixJumpNodes<score::common::DeviceOperations, Dev, Int>::f(
+//             TCAST(parents),
+//             TCAST(frame_x),
+//             TCAST(frame_y),
+//             TCAST(frame_z),
+//             TCAST(roots),
+//             TCAST(jumps));
+//       }));
+// }
+
+auto get_kfo_indices_for_atoms(
+    Tensor pose_stack_block_coord_offset,
+    Tensor pose_stack_block_type,
+    Tensor block_type_n_atoms,
+    Tensor block_type_atom_is_real) -> tensor_list {
+  printf("GET KFO INDICES FOR ATOMS\n");
+  at::Tensor block_kfo_offset_tp;
+  at::Tensor kfo_2_orig_mapping_tp;
+  at::Tensor atom_kfo_index;
   TMOL_DISPATCH_INDEX_DEVICE(
-      parents.type(), "fix_jump_nodes_op", ([&] {
+      pose_stack_block_coord_offset.type(), "get_kfo_indices_for_atoms", ([&] {
         using Int = index_t;
         // using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        FixJumpNodes<score::common::DeviceOperations, Dev, Int>::f(
-            TCAST(parents),
-            TCAST(frame_x),
-            TCAST(frame_y),
-            TCAST(frame_z),
-            TCAST(roots),
-            TCAST(jumps));
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                get_kfo_indices_for_atoms(
+                    TCAST(pose_stack_block_coord_offset),
+                    TCAST(pose_stack_block_type),
+                    TCAST(block_type_n_atoms),
+                    TCAST(block_type_atom_is_real));
+        block_kfo_offset_tp = std::get<0>(result).tensor;
+        kfo_2_orig_mapping_tp = std::get<1>(result).tensor;
+        atom_kfo_index = std::get<2>(result).tensor;
       }));
+  return {block_kfo_offset_tp, kfo_2_orig_mapping_tp, atom_kfo_index};
 }
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
@@ -171,7 +201,8 @@ void fix_jump_nodes_op(
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("forward_kin_op", &kinematic_op);
   m.def("forward_only_op", &forward_only_op);
-  m.def("fix_jump_nodes_op", &fix_jump_nodes_op);
+  // m.def("fix_jump_nodes_op", &fix_jump_nodes_op);
+  m.def("get_kfo_indices_for_atoms", &get_kfo_indices_for_atoms);
 }
 
 }  // namespace kinematics

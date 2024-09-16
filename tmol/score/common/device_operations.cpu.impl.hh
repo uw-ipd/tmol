@@ -46,7 +46,7 @@ struct DeviceOperations<tmol::Device::CPU> {
     }
   }
 
-  template <typename T, typename OP, mgpu::scan_type_t scan_type>
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void scan(T* src, T* dst, int n, OP) {
     T last_val = src[0];
     if (scan_type == mgpu::scan_type_inc) {
@@ -58,6 +58,22 @@ struct DeviceOperations<tmol::Device::CPU> {
       dst[i] = (scan_type == mgpu::scan_type_exc) ? last_val : next_val;
       last_val = next_val;
     }
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static T scan_and_return_total(T* src, T* dst, int n, OP op) {
+    T last_val = src[0];
+    if (scan_type == mgpu::scan_type_inc) {
+      dst[0] = last_val;
+    }
+    for (int i = 1; i < n; ++i) {
+      T i_val = src[i];
+      T next_val = op(last_val, i_val);
+      dst[i] = (scan_type == mgpu::scan_type_exc) ? last_val : next_val;
+      printf("scan %d: %d\n", i, dst[i]);
+      last_val = next_val;
+    }
+    return last_val;
   }
 
   template <int N_T, int WIDTH, typename T>

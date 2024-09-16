@@ -8,6 +8,11 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/diamond_macros.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+
+#include <moderngpu/scan_types.hxx>
+#include <moderngpu/operators.hxx>
 
 #include <pybind11/pybind11.h>
 
@@ -345,6 +350,121 @@ struct common {
     htinv.col(3) = Eigen::Matrix<Real, 1, 4>(0, 0, 0, 1);
     return htinv;
   }
+};
+
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
+    typename Int>
+struct KinForestFromStencil {
+  static auto get_kfo_indices_for_atoms(
+      TView<Int, 2, D> pose_stack_block_coord_offset,
+      TView<Int, 2, D> pose_stack_block_type,
+      TView<Int, 1, D> block_type_n_atoms,
+      TView<bool, 2, D> block_type_atom_is_real)
+      -> std::tuple<TPack<Int, 2, D>, TPack<Int, 2, D>, TPack<Int, 3, D>>;
+
+  //   static auto get_parent_atoms(
+  //     TView<Int, 2, D> ff_block_parent, // Which block is the parent? -1 for
+  //     root TView<Int, 2, D> ff_conn_to_parent, // What kind of connection:
+  //     1=lower connect, 2=upper connect, 3=jump TView<Int, 3, D>
+  //     block_in_and_first_out, // Which connection is the input connection,
+  //     which the output connection? TView<Int, 2, D>
+  //     pose_stack_block_coord_offset, TView<Int, 2, D> pose_stack_block_type,
+
+  //     TView<Int, 2, D> kfo_block_offset,
+  //     TView<Int, 2, D> real_bt_ind_for_bt,
+
+  //     // For determining which atoms to retrieve from neighboring
+  //     // residues we have to know how the blocks in the Pose
+  //     // are connected
+  //     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+
+  //     //////////////////////
+  //     // Chemical properties
+  //     // how many atoms for a given block
+  //     // Dimsize n_block_types
+  //     TView<Int, 1, D> block_type_n_atoms,
+  //     // TView<Int, 3, Dev> block_type_atom_downstream_of_conn,
+
+  //     // n-bt x max-n-ats x 3 x 3
+  //     // TView<UnresolvedAtomID<Int>, 3, Dev> block_type_atom_ancestors,
+
+  //     // n-bt x max-n-ats x 3 [phi, theta, D]
+  //     // TView<Real, 3, Dev> block_type_atom_icoors,
+
+  //     // TEMP! Handle the case when an atom's coordinate depends on
+  //     // an un-resolvable atom, e.g., "down" for an N-terminal atom
+  //     // n-bt x max-n-ats x 3 x 3
+  //     // TView<UnresolvedAtomID<Int>, 3, Dev>
+  //     block_type_atom_ancestors_backup,
+  //     // n-bt x max-n-ats x 3 [phi, theta, D]
+  //     // TView<Real, 3, Dev> block_type_atom_icoors_backup
+
+  //     // the maximum number of atoms in a Pose
+  //     int const max_n_atoms
+  //   ) -> TPack<Vec<Real, 3>, 2, Dev>
+  //   {
+  //     int const n_poses = ff_block_parent.size(0);
+  //     TPack<Int, 2, D> parent_atoms = TPack<Int, 2, Dev>::zeros({n_poses,
+  //     max_n_atoms});
+
+  //     auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int ind) {
+
+  //         return lj_atom_energy(
+  //             atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
+  //     });
+  //   }
+
+  // static auto EIGEN_DEVICE_FUNC get_parent(
+  // ) -> Int {
+  //   return 0;
+  // }
+
+  // static auto EIGEN_DEVICE_FUNC get_c1_and_c2_atoms(
+  //     int jump_atom,
+  //     TView<Int, 1, D> atom_is_jump,
+  //     TView<Int, 2, D> child_list_span,
+  //     TView<Int, 1, D> child_list,
+  //     TView<Int, 1, D> parents) -> tuple {
+  //   int first_nonjump_child = -1;
+  //   int second_nonjump_child = -1;
+  //   for (int child_ind = child_list_span[jump_atom][0];
+  //        child_ind < child_list_span[jump_atom][1]; ++child_ind) {
+  //     int child_atom = child_list[child_ind];
+  //     if (atom_is_jump[child_atom]) {
+  //       continue;
+  //     }
+  //     if (first_nonjump_child == -1) {
+  //       first_nonjump_child = child_atom;
+  //     } else {
+  //       second_nonjump_child = child_atom;
+  //       break;
+  //     }
+  //   }
+  //   if (first_nonjump_child == -1) {
+  //     int jump_parent = parents[jump_atom];
+  //     assert(jump_parent != jump_atom);
+  //     return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span,
+  //                                child_list, parents);
+  //   }
+  //   for (int grandchild_ind = child_list_span[first_nonjump_child][0];
+  //        grandchild_ind < child_list_span[first_nonjump_child][1];
+  //        ++grandchild_ind) {
+  //     int grandchild_atom = child_list[grandchild_ind];
+  //     if (!atom_is_jump[grandchild_atom]) {
+  //       return std::make_tuple(first_nonjump_child, grandchild_atom);
+  //     }
+  //   }
+  //   if (second_nonjump_child == -1) {
+  //     int jump_parent = parents[jump_atom];
+  //     assert(jump_parent != jump_atom);
+  //     return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span,
+  //                                child_list, parents);
+  //   }
+  //   return std::make_tuple(first_nonjump_child, second_nonjump_child);
+  // }
 };
 
 // @numba.jit(nopython=True)

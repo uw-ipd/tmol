@@ -1,9 +1,11 @@
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/score/common/device_operations.cpu.impl.hh>
 
 #include "common.hh"
 #include "params.hh"
+#include "compiled.impl.hh"
 
 namespace tmol {
 namespace kinematics {
@@ -221,6 +223,15 @@ template struct InverseKinDispatch<tmol::Device::CPU, float, int32_t>;
 template struct InverseKinDispatch<tmol::Device::CPU, double, int32_t>;
 template struct KinDerivDispatch<tmol::Device::CPU, float, int32_t>;
 template struct KinDerivDispatch<tmol::Device::CPU, double, int32_t>;
+
+template struct KinForestFromStencil<
+    tmol::score::common::DeviceOperations,
+    tmol::Device::CPU,
+    int32_t>;
+template struct KinForestFromStencil<
+    tmol::score::common::DeviceOperations,
+    tmol::Device::CPU,
+    int64_t>;
 
 #undef HomogeneousTransform
 #undef KintreeDof

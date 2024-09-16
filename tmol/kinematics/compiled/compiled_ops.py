@@ -12,4 +12,5 @@ load(
 _ops = getattr(torch.ops, modulename(__name__))
 forward_kin_op = _ops.forward_kin_op
 forward_only_op = _ops.forward_only_op
-fix_jump_nodes_op = _ops.fix_jump_nodes_op
+# fix_jump_nodes_op = _ops.fix_jump_nodes_op
+get_kfo_indices_for_atoms = _ops.get_kfo_indices_for_atoms

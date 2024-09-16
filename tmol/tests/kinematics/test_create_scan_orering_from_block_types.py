@@ -61,6 +61,43 @@ def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_se
         assert hasattr(bt, "gen_seg_scan_paths")
 
 
+def test_get_kfo_indices_for_atoms(ubq_pdb):
+    from tmol.kinematics.compiled.compiled_ops import get_kfo_indices_for_atoms
+
+    torch_device = torch.device("cpu")
+    # device = torch_device
+
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=1, residue_end=3
+    )
+
+    res_not_connected = torch.zeros((1, 2, 2), dtype=torch.bool, device=torch_device)
+    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
+    res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
+    pose_stack = pose_stack_from_canonical_form(
+        co, pbt, **canonical_form, res_not_connected=res_not_connected
+    )
+    _annotate_packed_block_type_with_gen_scan_paths(pbt)
+
+    bt0 = pbt.active_block_types[pose_stack.block_type_ind[0, 0]]
+    bt1 = pbt.active_block_types[pose_stack.block_type_ind[0, 1]]
+    print("bt0", bt0.name, bt0.n_atoms)
+    print("bt1", bt1.name, bt1.n_atoms)
+    print("n block types", pbt.n_types)
+
+    block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index = get_kfo_indices_for_atoms(
+        pose_stack.block_coord_offset,
+        pose_stack.block_type_ind,
+        pbt.n_atoms,
+        pbt.atom_is_real,
+    )
+    print("block_kfo_offset", block_kfo_offset)
+    print("kfo_2_orig_mapping", kfo_2_orig_mapping)
+    print("atom_kfo_index", atom_kfo_index)
+
+
 def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     torch_device = torch.device("cpu")
     device = torch_device

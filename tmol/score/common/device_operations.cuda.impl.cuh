@@ -60,11 +60,20 @@ struct DeviceOperations<tmol::Device::CUDA> {
     mgpu::cta_launch<launch_t>(wrapper, n_workgroups, context);
   }
 
-  template <typename T, typename OP, mgpu::scan_type_t scan_type>
-  static void scan(T* src, T* dst, int n, OP) {
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void scan(T* src, T* dst, int n, OP op) {
     mgpu::standard_context_t context;
     mgpu::scan<scan_type>(
         data, n, dst, op, mgpu::discard_iterator_t<T>(), context);
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static T scan_and_return_total(T* src, T* dst, int n, OP op) {
+    mgpu::standard_context_t context;
+    mgpu::mem_t<T> total(1, context, mgpu::memory_space_host);
+    mgpu::scan<scan_type>(data, n, dst, op, total.data(), context);
+    cudaStreamSynchronize(0);
+    return total.data()[0];
   }
 
   template <int N_T, int WIDTH, typename T>

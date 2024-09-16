@@ -66,16 +66,16 @@ struct KinDerivDispatch {
 
 //
 //
-template <template <tmol::Device> class DeviceOps, tmol::Device D, typename Int>
-struct FixJumpNodes {
-  static void f(
-      TView<Int, 1, D> parents,
-      TView<Int, 1, D> frame_x,
-      TView<Int, 1, D> frame_y,
-      TView<Int, 1, D> frame_z,
-      TView<Int, 1, D> roots,
-      TView<Int, 1, D> jumps);
-};
+// template <template <tmol::Device> class DeviceOps, tmol::Device D, typename
+// Int> struct FixJumpNodes {
+//   static void f(
+//       TView<Int, 1, D> parents,
+//       TView<Int, 1, D> frame_x,
+//       TView<Int, 1, D> frame_y,
+//       TView<Int, 1, D> frame_z,
+//       TView<Int, 1, D> roots,
+//       TView<Int, 1, D> jumps);
+// };
 
 #undef HomogeneousTransform
 #undef KintreeDof
