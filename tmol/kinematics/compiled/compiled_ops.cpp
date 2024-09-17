@@ -205,9 +205,10 @@ auto get_kfo_atom_parents(
     Tensor atom_kfo_index,                        // P x L x A
     Tensor block_type_jump_atom,                  // T
     Tensor block_type_n_conn,                     // T
-    Tensor block_type_conn_atom) -> Tensor {
+    Tensor block_type_conn_atom) -> tensor_list {
   printf("GET KFO ATOM PARENTS\n");
   at::Tensor kfo_parent_atoms;
+  at::Tensor kfo_grandparent_atoms;
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.type(), "get_kfo_atom_parents", ([&] {
         using Int = index_t;
@@ -229,9 +230,46 @@ auto get_kfo_atom_parents(
                     TCAST(block_type_n_conn),
                     TCAST(block_type_conn_atom));
 
-        kfo_parent_atoms = result.tensor;
+        kfo_parent_atoms = std::get<0>(result).tensor;
+        kfo_grandparent_atoms = std::get<1>(result).tensor;
       }));
-  return kfo_parent_atoms;
+  return {kfo_parent_atoms, kfo_grandparent_atoms};
+}
+
+auto get_children(
+    Tensor pose_stack_block_type,         // P x L
+    Tensor pose_stack_ff_conn_to_parent,  // P x L
+    Tensor kfo_2_orig_mapping,            // K x 3
+    Tensor kfo_parent_atoms,              // K
+    Tensor block_type_n_conn              // T
+    ) -> tensor_list {
+  printf("GET CHILDREN\n");
+  at::Tensor n_children;
+  at::Tensor child_list_span;
+  at::Tensor child_list;
+  at::Tensor is_atom_jump;
+
+  TMOL_DISPATCH_INDEX_DEVICE(
+      pose_stack_block_type.type(), "get_children", ([&] {
+        using Int = index_t;
+        // using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                get_children(
+                    TCAST(pose_stack_block_type),
+                    TCAST(pose_stack_ff_conn_to_parent),
+                    TCAST(kfo_2_orig_mapping),
+                    TCAST(kfo_parent_atoms),
+                    TCAST(block_type_n_conn));
+
+        n_children = std::get<0>(result).tensor;
+        child_list_span = std::get<1>(result).tensor;
+        child_list = std::get<2>(result).tensor;
+        is_atom_jump = std::get<3>(result).tensor;
+      }));
+  return {n_children, child_list_span, child_list, is_atom_jump};
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
@@ -244,6 +282,7 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   // m.def("fix_jump_nodes_op", &fix_jump_nodes_op);
   m.def("get_kfo_indices_for_atoms", &get_kfo_indices_for_atoms);
   m.def("get_kfo_atom_parents", &get_kfo_atom_parents);
+  m.def("get_children", &get_children);
 }
 
 }  // namespace kinematics

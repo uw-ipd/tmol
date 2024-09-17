@@ -376,7 +376,21 @@ struct KinForestFromStencil {
       TView<Int, 3, D> atom_kfo_index,                        // P x L x A
       TView<Int, 1, D> block_type_jump_atom,                  // T
       TView<Int, 1, D> block_type_n_conn,                     // T
-      TView<Int, 2, D> block_type_conn_atom) -> TPack<Int, 1, D>;
+      TView<Int, 2, D> block_type_conn_atom)
+      -> std::tuple<TPack<Int, 1, D>, TPack<Int, 1, D>>;
+
+  static auto get_children(
+      TView<Int, 2, D> pose_stack_block_type,         // x
+      TView<Int, 2, D> pose_stack_ff_conn_to_parent,  // x
+      TView<Int, 2, D> kfo_2_orig_mapping,            // x
+      TView<Int, 1, D> kfo_parent_atoms,              // x
+      TView<Int, 1, D> block_type_n_conn              // x
+      )
+      -> std::tuple<
+          TPack<Int, 1, D>,
+          TPack<Int, 1, D>,
+          TPack<Int, 1, D>,
+          TPack<bool, 1, D>>;
 
   //   static auto get_parent_atoms(
   //     TView<Int, 2, D> ff_block_parent, // Which block is the parent? -1 for

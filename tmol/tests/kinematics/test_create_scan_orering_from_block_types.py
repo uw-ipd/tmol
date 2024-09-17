@@ -18,7 +18,7 @@ from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.kinematics.datatypes import NodeType
 from tmol.kinematics.fold_forest import EdgeType
 from tmol.kinematics.scan_ordering import (
-    get_children,
+    # get_children,
     _annotate_block_type_with_gen_scan_paths,
     _annotate_packed_block_type_with_gen_scan_paths,
 )
@@ -65,6 +65,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     from tmol.kinematics.compiled.compiled_ops import (
         get_kfo_indices_for_atoms,
         get_kfo_atom_parents,
+        get_children,
     )
 
     torch_device = torch.device("cpu")
@@ -144,7 +145,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     print("pbt.n_conn", pbt.n_conn.dtype)
     print("pbt.conn_atom", pbt.conn_atom.dtype)
 
-    kfo_atom_parents = get_kfo_atom_parents(
+    kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         fold_forest_parent,
@@ -159,6 +160,19 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     )
 
     print("kfo_atom_parents", kfo_atom_parents)
+    print("kfo_atom_grandparents", kfo_atom_grandparents)
+
+    n_children, child_list_span, child_list, is_atom_jump = get_children(
+        pose_stack.block_type_ind,
+        ff_conn_to_parent,
+        kfo_2_orig_mapping,
+        kfo_atom_parents,
+        pbt.n_conn,
+    )
+    print("n_children", n_children)
+    print("child_list_span", child_list_span)
+    print("child_list", child_list)
+    print("is_atom_jump", is_atom_jump)
 
 
 def test_construct_scan_paths_n_to_c_twores(ubq_pdb):

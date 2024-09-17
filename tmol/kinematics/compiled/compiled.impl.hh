@@ -199,7 +199,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
     TView<Int, 1, D> block_type_jump_atom,                  // T
     TView<Int, 1, D> block_type_n_conn,                     // T
     TView<Int, 2, D> block_type_conn_atom                   // T x C
-    ) -> TPack<Int, 1, D> {
+    ) -> std::tuple<TPack<Int, 1, D>, TPack<Int, 1, D>> {
   int const n_poses = pose_stack_block_type.size(0);
   int const max_n_blocks = pose_stack_block_type.size(1);
   int const max_n_atoms_per_block = block_type_parents.size(2);
@@ -213,7 +213,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
   LAUNCH_BOX_32;
 
   auto kfo_parent_atoms_t = TPack<Int, 1, D>::zeros({n_kfo_atoms});
+  auto kfo_grandparent_atoms_t = TPack<Int, 1, D>::zeros({n_kfo_atoms});
   auto kfo_parent_atoms = kfo_parent_atoms_t.view;
+  auto kfo_grandparent_atoms = kfo_grandparent_atoms_t.view;
 
   auto get_parent_atoms = ([=] TMOL_DEVICE_FUNC(int i) {
     int const pose = kfo_2_orig_mapping[i][0];
@@ -243,8 +245,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
       int const parent_block = pose_stack_ff_parent[pose][block];
       printf("parent_block %d\n", parent_block);
       if (parent_block == -1) {
-        // Root connection
-        kfo_parent_atoms[i] = -1;
+        // Root connection -- the root is at 0
+        kfo_parent_atoms[i] = 0;
       } else {
         int const n_conn = block_type_n_conn[block_type];
         if (conn_to_parent == n_conn) {
@@ -275,55 +277,248 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(n_kfo_atoms, get_parent_atoms);
-  return kfo_parent_atoms_t;
+
+  // second step: look up parent's parent. All atoms have a parent, even the
+  // root which is its own parent.
+  auto get_grandparent_atoms = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const parent = kfo_parent_atoms[i];
+    kfo_grandparent_atoms[i] = kfo_parent_atoms[parent];
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_kfo_atoms, get_grandparent_atoms);
+  return {kfo_parent_atoms_t, kfo_grandparent_atoms_t};
 }
 
-// template <
-//     template <tmol::Device>
-//     class DeviceDispatch,
-//     tmol::Device D,
-//     typename Int>
-// auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
-//     // TView<Int, 2, D> pose_stack_block_coord_offset,
-//     TView<Int, 2, D> pose_stack_block_type,
-//     TView<Int, 2, D> kfo_2_orig_mapping,
-//     TView<Int, 1, D> block_type_n_atoms,
-//     TView<bool, 2, D> block_type_atom_is_real)
-//     -> std::tuple<TPack<Int, 2, D>, TPack<Int, 2, D>, TPack<Int, 3, D>> {
-//     int const n_kfo_atoms = kfo_2_orig_mapping.size(0);
-//   int const n_poses = pose_stack_block_type.size(0);
-//   int const max_n_blocks = pose_stack_block_type.size(1);
-//   int const max_n_atoms_per_block = block_type_atom_is_real.size(1);
-//   auto block_n_atoms_tp = TPack<Int, 2, D>::zeros({n_poses, max_n_blocks});
-//   auto block_kfo_offset_tp = TPack<Int, 2, D>::zeros({n_poses,
-//   max_n_blocks}); auto block_n_atoms = block_n_atoms_tp.view; auto
-//   block_kfo_offset = block_kfo_offset_tp.view;
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
+    typename Int>
+auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
+    TView<Int, 2, D> pose_stack_block_type,         // x
+    TView<Int, 2, D> pose_stack_ff_conn_to_parent,  // x
+    TView<Int, 2, D> kfo_2_orig_mapping,            // x
+    TView<Int, 1, D> kfo_parent_atoms,              // x
+    TView<Int, 1, D> block_type_n_conn              // x
+    )
+    -> std::tuple<
+        TPack<Int, 1, D>,
+        TPack<Int, 1, D>,
+        TPack<Int, 1, D>,
+        TPack<bool, 1, D>> {
+  using namespace tmol::score::common;
+  int const n_kfo_atoms = kfo_2_orig_mapping.size(0);
 
-//   LAUNCH_BOX_32;
+  LAUNCH_BOX_32;
 
-// // Now let's go and assign child-atom lists for each atom
-// auto child_list_t = TPack<Int, 1, D>::full({n_kfo_atoms}, -1);
-// auto child_list_span_t = TPack<Int, 1, D>::zeros({n_kfo_atoms + 1});
-// auto n_children_t = TPack<Int, 1, D>::zeros({n_kfo_atoms});
-// auto n_jump_children_t = TPack<Int, 1, D>::zeros({n_kfo_atoms});
-// auto count_n_non_jump_children_t = TPack<Int, 1, D>::zeros({n_kfo_atoms});
-// auto count_jump_children_t = TPack<Int, 1, D>::zeros({n_kfo_atoms});
+  // Now let's go and assign child-atom lists for each atom
+  auto child_list_t = TPack<Int, 1, D>::full({n_kfo_atoms}, -1);
+  auto child_list_span_t = TPack<Int, 1, D>::zeros({n_kfo_atoms + 1});
+  auto n_children_t = TPack<Int, 1, D>::zeros(
+      {n_kfo_atoms + 1});  // leave one extra space for scan
+  auto n_jump_children_t = TPack<Int, 1, D>::zeros({n_kfo_atoms + 1});
+  auto n_non_jump_children_t = TPack<Int, 1, D>::zeros({n_kfo_atoms + 1});
+  auto count_n_non_jump_children_t = TPack<Int, 1, D>::zeros({n_kfo_atoms});
+  auto count_jump_children_t = TPack<Int, 1, D>::zeros({n_kfo_atoms});
+  auto is_atom_jump_t = TPack<bool, 1, D>::zeros({n_kfo_atoms});
 
-// auto child_list = child_list_t.view;
-// auto child_list_span = child_list_span_t.view;
-// auto n_children = n_children_t.view;
-// auto n_jump_children = n_jump_children_t.view;
-// auto count_n_non_jump_children = count_n_non_jump_children_t.view;
-// auto count_jump_children = count_jump_children_t.view;
+  auto child_list = child_list_t.view;
+  auto child_list_span = child_list_span_t.view;
+  auto n_children = n_children_t.view;
+  auto n_jump_children = n_jump_children_t.view;
+  auto n_non_jump_children = n_non_jump_children_t.view;
+  auto count_n_non_jump_children = count_n_non_jump_children_t.view;
+  auto count_jump_children = count_jump_children_t.view;
+  auto is_atom_jump = is_atom_jump_t.view;
 
-// auto count_children = ([=] TMOL_DEVICE_FUNC(int i) {
-//   int const pose = kfo_2_orig_mapping[i][0];
-//   int const block = kfo_2_orig_mapping[i][1];
-//   int const atom = kfo_2_orig_mapping[i][2];
-//   int const block_type = pose_stack_block_type[pose][block];
+  auto count_children_for_parent = ([=] TMOL_DEVICE_FUNC(int i) {
+    // Each atom looks up its parent and atomic-increments its parent's
+    // child count; either recording that it's a jump child or that
+    // it's a non-jump child.
+    // As a knock-on, it also records whether it is a jump atom.
+    int const parent = kfo_parent_atoms[i];
+    if (parent == i) {
+      // nothing to be done for the root; also, it doesn't have a valid
+      // entry in the Pose, so, subseqent lookups would fail.
+      return;
+    }
+    int const pose = kfo_2_orig_mapping[i][0];
+    int const block = kfo_2_orig_mapping[i][1];
+    int const atom = kfo_2_orig_mapping[i][2];
+    int const block_type = pose_stack_block_type[pose][block];
+    // printf("count_children_for_parent %d %d %d %d %d\n", i, pose, block,
+    // atom, parent);
+    if (parent == 0) {
+      // This atom's parent is the root and is connected to it by a jump
+      accumulate<D, Int>::add(n_jump_children[parent], Int(1));
+      is_atom_jump[i] = true;
+    } else {
+      int const parent_block = kfo_2_orig_mapping[parent][1];
+      // printf("parent_block %d\n", parent_block);
+      if (parent_block == block) {
+        // Intra-residue connection
+        accumulate<D, Int>::add(n_non_jump_children[parent], 1);
+      } else {
+        // Inter-residue connection, but, is it a jump connetion?
+        int const n_conn = block_type_n_conn[block_type];
+        int const conn_to_parent = pose_stack_ff_conn_to_parent[pose][block];
+        // printf("n_conn %d conn_to_parent %d\n", n_conn, conn_to_parent);
+        if (conn_to_parent == n_conn) {
+          // Jump connection
+          accumulate<D, Int>::add(n_jump_children[parent], 1);
+          is_atom_jump[i] = true;
+        } else {
+          // Non-jump connection
+          accumulate<D, Int>::add(n_non_jump_children[parent], 1);
+        }
+      }
+    }
+  });
+  // printf("count_children_for_parent %d\n", n_kfo_atoms);
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_kfo_atoms, count_children_for_parent);
+
+  auto sum_jump_and_non_jump_children = ([=] TMOL_DEVICE_FUNC(int i) {
+    // Now each atom looks at how many jump and non-jump children it has.
+    n_children[i] = n_non_jump_children[i] + n_jump_children[i];
+  });
+  // printf("sum_jump_and_non_jump_children %d\n", n_kfo_atoms);
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_kfo_atoms, sum_jump_and_non_jump_children);
+
+  // Now get the beginning and end indices for the child-list ranges.
+  // printf("scan n_children %d\n", n_kfo_atoms);
+  DeviceDispatch<D>::template scan<mgpu::scan_type_exc>(
+      n_children.data(),
+      child_list_span.data(),
+      n_kfo_atoms + 1,
+      mgpu::plus_t<Int>());
+
+  // Okay, now ask each atom to insert itself into its parent's child-list
+  auto fill_child_list = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const parent = kfo_parent_atoms[i];
+    if (parent == i) {
+      // nothing to be done for the root
+      return;
+    }
+    bool is_jump = is_atom_jump[i];
+    if (is_jump) {
+      int const jump_offset =
+          accumulate<D, Int>::add(count_jump_children[parent], 1);
+      int const jump_start = child_list_span[parent];
+      child_list[jump_start + jump_offset] = i;
+      // printf("fill_child_list jump %d %d %d %d %d %d\n", i, parent,
+      // jump_offset, jump_start, child_list_span[parent],
+      // n_jump_children[parent]);
+    } else {
+      int const non_jump_offset =
+          accumulate<D, Int>::add(count_n_non_jump_children[parent], 1);
+      int const non_jump_start =
+          child_list_span[parent] + n_jump_children[parent];
+      child_list[non_jump_start + non_jump_offset] = i;
+      // printf("fill_child_list non-jump %d %d %d %d %d %d\n", i, parent,
+      // non_jump_offset, non_jump_start, child_list_span[parent],
+      // n_jump_children[parent]);
+    }
+  });
+  // printf("fill_child_list %d\n", n_kfo_atoms);
+  DeviceDispatch<D>::template forall<launch_t>(n_kfo_atoms, fill_child_list);
+
+  // Finally, we need to sort the child lists by atom index because
+  // the fill_child_list operation is not deterministic on the GPU
+  // and we want to ensure that the child-lists are deterministic
+  // because they will determine the connectivity of the KinForest.
+  // By having each atom sort its own children, we avoid any race
+  // conditions.
+  auto sort_child_list = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const start = child_list_span[i];
+    int const end = child_list_span[i + 1];
+    if (end - start > 1) {
+      // The jump atoms must come first, then the non-jump atoms
+      int const n_my_jump_children = n_jump_children[i];
+      // bubble sort
+      for (int j = 0; j < n_my_jump_children; ++j) {
+        for (int k = 0; k < n_my_jump_children - j - 1; ++k) {
+          int const a = child_list[start + k];
+          int const b = child_list[start + k + 1];
+          // printf("bubble sort jump children %d, %d %d, %d: %d %d %d %d\n",
+          //    i, start, end, n_my_jump_children, j, k, a, b);
+          if (a > b) {
+            child_list[start + k] = b;
+            child_list[start + k + 1] = a;
+          }
+        }
+      }
+      for (int j = 0; j < end - start; ++j) {
+        for (int k = 0; k < end - start - j - 1; ++k) {
+          int const a = child_list[start + k];
+          int const b = child_list[start + k + 1];
+          // printf("bubble sort non-jump children %d, %d %d, %d: %d %d %d
+          // %d\n",
+          //    i, start, end, n_my_jump_children, j, k, a, b);
+          if (a > b) {
+            child_list[start + k] = b;
+            child_list[start + k + 1] = a;
+          }
+        }
+      }
+    }
+  });
+  // printf("sort_child_list %d\n", n_kfo_atoms);
+  DeviceDispatch<D>::template forall<launch_t>(n_kfo_atoms, sort_child_list);
+  return {n_children_t, child_list_span_t, child_list_t, is_atom_jump_t};
+}
+
+// static auto EIGEN_DEVICE_FUNC get_c1_and_c2_atoms(
+//     int jump_atom,
+//     TView<Int, 1, D> atom_is_jump,
+//     TView<Int, 2, D> child_list_span,
+//     TView<Int, 1, D> child_list,
+//     TView<Int, 1, D> parents) -> tuple {
+//   int first_nonjump_child = -1;
+//   int second_nonjump_child = -1;
+//   for (int child_ind = child_list_span[jump_atom][0];
+//        child_ind < child_list_span[jump_atom][1]; ++child_ind) {
+//     int child_atom = child_list[child_ind];
+//     if (atom_is_jump[child_atom]) {
+//       continue;
+//     }
+//     if (first_nonjump_child == -1) {
+//       first_nonjump_child = child_atom;
+//     } else {
+//       second_nonjump_child = child_atom;
+//       break;
+//     }
+//   }
+//   if (first_nonjump_child == -1) {
+//     int jump_parent = parents[jump_atom];
+//     assert(jump_parent != jump_atom);
+//     return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span,
+//                                child_list, parents);
+//   }
+//   for (int grandchild_ind = child_list_span[first_nonjump_child][0];
+//        grandchild_ind < child_list_span[first_nonjump_child][1];
+//        ++grandchild_ind) {
+//     int grandchild_atom = child_list[grandchild_ind];
+//     if (!atom_is_jump[grandchild_atom]) {
+//       return std::make_tuple(first_nonjump_child, grandchild_atom);
+//     }
+//   }
+//   if (second_nonjump_child == -1) {
+//     int jump_parent = parents[jump_atom];
+//     assert(jump_parent != jump_atom);
+//     return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span,
+//                                child_list, parents);
+//   }
+//   return std::make_tuple(first_nonjump_child, second_nonjump_child);
+// }
 
 // }
 
+}  // namespace kinematics
+}  // namespace tmol
+
+// GARBAGE BELOW??
 //   static auto get_parent_atoms(
 //     TView<Int, 2, D> ff_block_parent, // Which block is the parent? -1 for
 //     root TView<Int, 2, D> ff_conn_to_parent, // What kind of connection:
@@ -379,52 +574,3 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
 // ) -> Int {
 //   return 0;
 // }
-
-// static auto EIGEN_DEVICE_FUNC get_c1_and_c2_atoms(
-//     int jump_atom,
-//     TView<Int, 1, D> atom_is_jump,
-//     TView<Int, 2, D> child_list_span,
-//     TView<Int, 1, D> child_list,
-//     TView<Int, 1, D> parents) -> tuple {
-//   int first_nonjump_child = -1;
-//   int second_nonjump_child = -1;
-//   for (int child_ind = child_list_span[jump_atom][0];
-//        child_ind < child_list_span[jump_atom][1]; ++child_ind) {
-//     int child_atom = child_list[child_ind];
-//     if (atom_is_jump[child_atom]) {
-//       continue;
-//     }
-//     if (first_nonjump_child == -1) {
-//       first_nonjump_child = child_atom;
-//     } else {
-//       second_nonjump_child = child_atom;
-//       break;
-//     }
-//   }
-//   if (first_nonjump_child == -1) {
-//     int jump_parent = parents[jump_atom];
-//     assert(jump_parent != jump_atom);
-//     return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span,
-//                                child_list, parents);
-//   }
-//   for (int grandchild_ind = child_list_span[first_nonjump_child][0];
-//        grandchild_ind < child_list_span[first_nonjump_child][1];
-//        ++grandchild_ind) {
-//     int grandchild_atom = child_list[grandchild_ind];
-//     if (!atom_is_jump[grandchild_atom]) {
-//       return std::make_tuple(first_nonjump_child, grandchild_atom);
-//     }
-//   }
-//   if (second_nonjump_child == -1) {
-//     int jump_parent = parents[jump_atom];
-//     assert(jump_parent != jump_atom);
-//     return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span,
-//                                child_list, parents);
-//   }
-//   return std::make_tuple(first_nonjump_child, second_nonjump_child);
-// }
-
-// }
-
-}  // namespace kinematics
-}  // namespace tmol
