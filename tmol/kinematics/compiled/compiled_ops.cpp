@@ -272,6 +272,46 @@ auto get_children(
   return {n_children, child_list_span, child_list, is_atom_jump};
 }
 
+auto get_id_and_frame_xyz(
+    int64_t max_n_pose_atoms,
+    Tensor pose_stack_block_coord_offset,
+    Tensor kfo_2_orig_mapping,  // K x 3
+    Tensor parents,             // P x L
+    Tensor child_list_span,     // P x L
+    Tensor child_list,          // K x 3
+    Tensor is_atom_jump         // K
+    ) -> tensor_list {
+  printf("GET FRAME X Y Z\n");
+  at::Tensor id;
+  at::Tensor frame_x;
+  at::Tensor frame_y;
+  at::Tensor frame_z;
+
+  TMOL_DISPATCH_INDEX_DEVICE(
+      parents.type(), "get_id_and_frame_xyz", ([&] {
+        using Int = index_t;
+        // using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                get_id_and_frame_xyz(
+                    max_n_pose_atoms,
+                    TCAST(pose_stack_block_coord_offset),
+                    TCAST(kfo_2_orig_mapping),
+                    TCAST(parents),
+                    TCAST(child_list_span),
+                    TCAST(child_list),
+                    TCAST(is_atom_jump));
+
+        id = std::get<0>(result).tensor;
+        frame_x = std::get<1>(result).tensor;
+        frame_y = std::get<2>(result).tensor;
+        frame_z = std::get<3>(result).tensor;
+      }));
+  return {id, frame_x, frame_y, frame_z};
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
@@ -283,6 +323,7 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("get_kfo_indices_for_atoms", &get_kfo_indices_for_atoms);
   m.def("get_kfo_atom_parents", &get_kfo_atom_parents);
   m.def("get_children", &get_children);
+  m.def("get_id_and_frame_xyz", &get_id_and_frame_xyz);
 }
 
 }  // namespace kinematics

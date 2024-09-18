@@ -392,6 +392,21 @@ struct KinForestFromStencil {
           TPack<Int, 1, D>,
           TPack<bool, 1, D>>;
 
+  static auto get_id_and_frame_xyz(
+      int64_t const max_n_pose_atoms,
+      TView<Int, 2, D> pose_stack_block_coord_offset,
+      TView<Int, 2, D> kfo_2_orig_mapping,  // K x 3
+      TView<Int, 1, D> parents,             // K
+      TView<Int, 1, D> child_list_span,     // K+1
+      TView<Int, 1, D> child_list,          // K
+      TView<bool, 1, D> is_atom_jump        // K
+      )
+      -> std::tuple<
+          TPack<Int, 1, D>,
+          TPack<Int, 1, D>,
+          TPack<Int, 1, D>,
+          TPack<Int, 1, D>>;
+
   //   static auto get_parent_atoms(
   //     TView<Int, 2, D> ff_block_parent, // Which block is the parent? -1 for
   //     root TView<Int, 2, D> ff_conn_to_parent, // What kind of connection:

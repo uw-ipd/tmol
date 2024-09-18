@@ -82,6 +82,151 @@ namespace kinematics {
 
 // }
 
+// @numba.jit(nopython=True)
+// def stub_defined_for_jump_atom(jump_atom, atom_is_jump, child_list_span,
+// child_list):
+//     #  have to handle a couple of cases here:
+//     #
+//     #  note -- in counting dependent atoms, exclude JumpAtom's
+//     #
+//     #
+//     #  1. no dependent atoms --> no way to define new coord sys
+//     #     on this end. ergo take parent's M and my xyz
+//     #
+//     #  2. one dependent atom --> no way to define unique coord
+//     #     on this end, still take parent's M and my xyz
+//     #
+//     #  3. two or more dependent atoms
+//     #     a) if my first atom has a dependent atom, use
+//     #        myself, my first atom, and his first atom
+//     #
+//     #     b) otherwise, use
+//     #        myself, my first atom, my second atom
+
+//     first_nonjump_child = -1
+//     for child_ind in range(
+//         child_list_span[jump_atom, 0], child_list_span[jump_atom, 1]
+//     ):
+//         child_atom = child_list[child_ind]
+//         if atom_is_jump[child_atom]:
+//             continue
+//         if first_nonjump_child == -1:
+//             first_nonjump_child = child_atom
+//         else:
+//             return True
+//     if first_nonjump_child != -1:
+//         for grandchild_ind in range(
+//             child_list_span[first_nonjump_child, 0],
+//             child_list_span[first_nonjump_child, 1],
+//         ):
+//             if not atom_is_jump[child_list[grandchild_ind]]:
+//                 return True
+//     return False
+
+// @numba.jit(nopython=True)
+// def fix_jump_nodes(
+//     parents: NDArray[int][:],
+//     frame_x: NDArray[int][:],
+//     frame_y: NDArray[int][:],
+//     frame_z: NDArray[int][:],
+//     roots: NDArray[int][:],
+//     jumps: NDArray[int][:],
+// ):
+//     # nelts = parents.shape[0]
+//     n_children, child_list_span, child_list = get_children(parents)
+
+//     atom_is_jump = numpy.full(parents.shape, 0, dtype=numpy.int32)
+//     atom_is_jump[roots] = 1
+//     atom_is_jump[jumps] = 1
+
+//     for root in roots:
+//         assert stub_defined_for_jump_atom(
+//             root, atom_is_jump, child_list_span, child_list
+//         )
+
+//         root_c1, second_descendent = get_c1_and_c2_atoms(
+//             root, atom_is_jump, child_list_span, child_list, parents
+//         )
+
+//         # set the frame_x, _y, and _z to the same values for both the root
+//         # and the root's first child
+
+//         frame_x[root] = root_c1
+//         frame_y[root] = root
+//         frame_z[root] = second_descendent
+
+//         frame_x[root_c1] = root_c1
+//         frame_y[root_c1] = root
+//         frame_z[root_c1] = second_descendent
+
+//         # all the other children of the root need an updated kinematic
+//         description for child_ind in range(child_list_span[root, 0] + 1,
+//         child_list_span[root, 1]):
+//             child = child_list[child_ind]
+//             if atom_is_jump[child]:
+//                 continue
+//             if child == root_c1:
+//                 continue
+//             frame_x[child] = child
+//             frame_y[child] = root
+//             frame_z[child] = root_c1
+
+//     for jump in jumps:
+//         if stub_defined_for_jump_atom(jump, atom_is_jump, child_list_span,
+//         child_list):
+//             jump_c1, jump_c2 = get_c1_and_c2_atoms(
+//                 jump, atom_is_jump, child_list_span, child_list, parents
+//             )
+
+//             # set the frame_x, _y, and _z to the same values for both the
+//             jump # and the jump's first child
+
+//             frame_x[jump] = jump_c1
+//             frame_y[jump] = jump
+//             frame_z[jump] = jump_c2
+
+//             frame_x[jump_c1] = jump_c1
+//             frame_y[jump_c1] = jump
+//             frame_z[jump_c1] = jump_c2
+
+//             # all the other children of the jump need an updated kinematic
+//             description for child_ind in range(
+//                 child_list_span[jump, 0] + 1, child_list_span[jump, 1]
+//             ):
+//                 child = child_list[child_ind]
+//                 if atom_is_jump[child]:
+//                     continue
+//                 if child == jump_c1:
+//                     continue
+//                 frame_x[child] = child
+//                 frame_y[child] = jump
+//                 frame_z[child] = jump_c1
+//         else:
+//             # ok, so... I don't understand the atom tree well enough to
+//             understand this # situation. If the jump has no non-jump
+//             children, then certainly none # of them need their frame
+//             definitions updated c1, c2 = get_c1_and_c2_atoms(
+//                 parents[jump], atom_is_jump, child_list_span, child_list,
+//                 parents
+//             )
+
+//             frame_x[jump] = c1
+//             frame_y[jump] = jump
+//             frame_z[jump] = c2
+
+//             # the jump may have one child; it's not entirely clear to me
+//             # what frame the child should have!
+//             # TO DO: figure this out
+//             for child_ind in range(
+//                 child_list_span[jump, 0] + 1, child_list_span[jump, 1]
+//             ):
+//                 child = child_list[child_ind]
+//                 if atom_is_jump[child]:
+//                     continue
+//                 frame_x[child] = c1
+//                 frame_y[child] = jump
+//                 frame_z[child] = c2
+
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -424,6 +569,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
   // printf("fill_child_list %d\n", n_kfo_atoms);
   DeviceDispatch<D>::template forall<launch_t>(n_kfo_atoms, fill_child_list);
 
+  // TO DO: replace with segmented sort!
+
   // Finally, we need to sort the child lists by atom index because
   // the fill_child_list operation is not deterministic on the GPU
   // and we want to ensure that the child-lists are deterministic
@@ -469,51 +616,226 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
   return {n_children_t, child_list_span_t, child_list_t, is_atom_jump_t};
 }
 
-// static auto EIGEN_DEVICE_FUNC get_c1_and_c2_atoms(
-//     int jump_atom,
-//     TView<Int, 1, D> atom_is_jump,
-//     TView<Int, 2, D> child_list_span,
-//     TView<Int, 1, D> child_list,
-//     TView<Int, 1, D> parents) -> tuple {
-//   int first_nonjump_child = -1;
-//   int second_nonjump_child = -1;
-//   for (int child_ind = child_list_span[jump_atom][0];
-//        child_ind < child_list_span[jump_atom][1]; ++child_ind) {
-//     int child_atom = child_list[child_ind];
-//     if (atom_is_jump[child_atom]) {
-//       continue;
-//     }
-//     if (first_nonjump_child == -1) {
-//       first_nonjump_child = child_atom;
-//     } else {
-//       second_nonjump_child = child_atom;
-//       break;
-//     }
-//   }
-//   if (first_nonjump_child == -1) {
-//     int jump_parent = parents[jump_atom];
-//     assert(jump_parent != jump_atom);
-//     return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span,
-//                                child_list, parents);
-//   }
-//   for (int grandchild_ind = child_list_span[first_nonjump_child][0];
-//        grandchild_ind < child_list_span[first_nonjump_child][1];
-//        ++grandchild_ind) {
-//     int grandchild_atom = child_list[grandchild_ind];
-//     if (!atom_is_jump[grandchild_atom]) {
-//       return std::make_tuple(first_nonjump_child, grandchild_atom);
-//     }
-//   }
-//   if (second_nonjump_child == -1) {
-//     int jump_parent = parents[jump_atom];
-//     assert(jump_parent != jump_atom);
-//     return get_c1_and_c2_atoms(jump_parent, atom_is_jump, child_list_span,
-//                                child_list, parents);
-//   }
-//   return std::make_tuple(first_nonjump_child, second_nonjump_child);
-// }
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
+    typename Int>
+auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
+    int64_t const max_n_pose_atoms,
+    TView<Int, 2, D> pose_stack_block_coord_offset,
+    TView<Int, 2, D> kfo_2_orig_mapping,  // K x 3
+    TView<Int, 1, D> parents,             // K
+    TView<Int, 1, D> child_list_span,     // K+1
+    TView<Int, 1, D> child_list,          // K
+    TView<bool, 1, D> is_atom_jump        // K
+    )
+    -> std::tuple<
+        TPack<Int, 1, D>,
+        TPack<Int, 1, D>,
+        TPack<Int, 1, D>,
+        TPack<Int, 1, D>> {
+  LAUNCH_BOX_32;
+  int const n_kintree_nodes = parents.size(0);
 
-// }
+  auto id_t = TPack<Int, 1, D>::zeros({n_kintree_nodes});
+  auto frame_x_t = TPack<Int, 1, D>::zeros({n_kintree_nodes});
+  auto frame_y_t = TPack<Int, 1, D>::zeros({n_kintree_nodes});
+  auto frame_z_t = TPack<Int, 1, D>::zeros({n_kintree_nodes});
+  auto id = id_t.view;
+  auto frame_x = frame_x_t.view;
+  auto frame_y = frame_y_t.view;
+  auto frame_z = frame_z_t.view;
+
+  auto first_pass_frame_xyz = ([=] TMOL_DEVICE_FUNC(int i) {
+    if (i == 0) {
+      id[i] = -1;
+    } else {
+      int const pose = kfo_2_orig_mapping[i][0];
+      int const block = kfo_2_orig_mapping[i][1];
+      int const atom = kfo_2_orig_mapping[i][2];
+      // ID represents the position of the atom in a flattened
+      // version of the pose-stack coords tensor
+      id[i] = pose * max_n_pose_atoms
+              + pose_stack_block_coord_offset[pose][block] + atom;
+    }
+    frame_x[i] = i;
+    int parent = parents[i];
+    printf("first_pass_frame_xyz %d %d\n", i, parent);
+    frame_y[i] = parent;
+    frame_z[i] = parents[parent];
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_kintree_nodes, first_pass_frame_xyz);
+
+  auto stub_defined_for_jump_atom = ([=] TMOL_DEVICE_FUNC(int jump_atom) {
+    int first_nonjump_child = -1;
+    for (int child_ind = child_list_span[jump_atom];
+         child_ind < child_list_span[jump_atom + 1];
+         ++child_ind) {
+      int child_atom = child_list[child_ind];
+      if (is_atom_jump[child_atom]) {
+        continue;
+      }
+      if (first_nonjump_child == -1) {
+        first_nonjump_child = child_atom;
+      } else {
+        return true;
+      }
+    }
+    if (first_nonjump_child != -1) {
+      for (int grandchild_ind = child_list_span[first_nonjump_child];
+           grandchild_ind < child_list_span[first_nonjump_child + 1];
+           ++grandchild_ind) {
+        if (!is_atom_jump[child_list[grandchild_ind]]) {
+          return true;
+        }
+      }
+    }
+    return false;
+  });
+
+  // "Recursive" function for finding an acceptible set of
+  // child1 and child2 atoms for a jump atom. Handles cases when
+  // there are too few children, or when the children are
+  // themselves jumps.
+  auto get_c1_and_c2_atoms = ([=] TMOL_DEVICE_FUNC(int jump_atom) {
+    while (true) {
+      int first_nonjump_child = -1;
+      int second_nonjump_child = -1;
+      for (int child_ind = child_list_span[jump_atom];
+           child_ind < child_list_span[jump_atom + 1];
+           ++child_ind) {
+        int child_atom = child_list[child_ind];
+        if (is_atom_jump[child_atom]) {
+          continue;
+        }
+        if (first_nonjump_child == -1) {
+          first_nonjump_child = child_atom;
+        } else {
+          second_nonjump_child = child_atom;
+          break;
+        }
+      }
+      if (first_nonjump_child == -1) {
+        // No non-jump children. "Recurse" to parent.
+        int jump_parent = parents[jump_atom];
+        assert(jump_parent != jump_atom);
+        jump_atom = jump_parent;
+        continue;
+      }
+      for (int grandchild_ind = child_list_span[first_nonjump_child];
+           grandchild_ind < child_list_span[first_nonjump_child + 1];
+           ++grandchild_ind) {
+        int grandchild_atom = child_list[grandchild_ind];
+        if (!is_atom_jump[grandchild_atom]) {
+          return std::make_tuple(first_nonjump_child, grandchild_atom);
+        }
+      }
+      if (second_nonjump_child == -1) {
+        // Insufficient non-jump descendants. "Recurse" to parent
+        int jump_parent = parents[jump_atom];
+        assert(jump_parent != jump_atom);
+        jump_atom = jump_parent;
+        continue;
+      }
+      printf(
+          "get_c1_and_c2_atoms: jump atom %d, %d, %d\n",
+          jump_atom,
+          first_nonjump_child,
+          second_nonjump_child);
+      return std::make_tuple(first_nonjump_child, second_nonjump_child);
+    }
+  });
+
+  auto fix_jump_node = ([=] TMOL_DEVICE_FUNC(int i) {
+    int c1 = 0;
+    int c2 = 0;
+    if (is_atom_jump[i]) {
+      bool is_root = parents[i] == 0;
+      if (is_root) {
+        auto result = get_c1_and_c2_atoms(i);
+        c1 = std::get<0>(result);
+        c2 = std::get<1>(result);
+        printf("c1 c2 %d %d\n", c1, c2);
+
+        frame_x[i] = c1;
+        frame_y[i] = i;
+        frame_z[i] = c2;
+
+        frame_x[c1] = c1;
+        frame_y[c1] = i;
+        frame_z[c1] = c2;
+
+        for (int j = child_list_span[i] + 1; j < child_list_span[i + 1]; ++j) {
+          int child = child_list[j];
+          if (is_atom_jump[child]) {
+            continue;
+          }
+          if (child == c1) {
+            continue;
+          }
+          frame_x[child] = child;
+          frame_y[child] = i;
+          frame_z[child] = c1;
+        }
+
+      } else {
+        if (stub_defined_for_jump_atom(i)) {
+          auto result = get_c1_and_c2_atoms(i);
+          c1 = std::get<0>(result);
+          c2 = std::get<1>(result);
+          printf("c1 c2 %d %d\n", c1, c2);
+
+          frame_x[i] = c1;
+          frame_y[i] = i;
+          frame_z[i] = c2;
+
+          frame_x[c1] = c1;
+          frame_y[c1] = i;
+          frame_z[c1] = c2;
+
+          for (int j = child_list_span[i] + 1; j < child_list_span[i + 1];
+               ++j) {
+            int child = child_list[j];
+            if (is_atom_jump[child]) {
+              continue;
+            }
+            if (child == c1) {
+              continue;
+            }
+            frame_x[child] = child;
+            frame_y[child] = i;
+            frame_z[child] = c1;
+          }
+        } else {
+          int parent = parents[i];
+          auto result = get_c1_and_c2_atoms(parent);
+          c1 = std::get<0>(result);
+          c2 = std::get<1>(result);
+
+          frame_x[i] = c1;
+          frame_y[i] = i;
+          frame_z[i] = c2;
+
+          // The jump may have 1 non-jump child. It's not clear
+          // what frame the child should have.
+          for (int j = child_list_span[i]; j < child_list_span[i + 1]; ++j) {
+            int child = child_list[j];
+            if (is_atom_jump[child]) {
+              continue;
+            }
+            frame_x[child] = c1;
+            frame_y[child] = i;
+            frame_z[child] = c2;
+          }
+        }
+      }
+    }
+  });
+  DeviceDispatch<D>::template forall<launch_t>(n_kintree_nodes, fix_jump_node);
+  return {id_t, frame_x_t, frame_y_t, frame_z_t};
+}
 
 }  // namespace kinematics
 }  // namespace tmol

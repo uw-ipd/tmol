@@ -16,3 +16,4 @@ forward_only_op = _ops.forward_only_op
 get_kfo_indices_for_atoms = _ops.get_kfo_indices_for_atoms
 get_kfo_atom_parents = _ops.get_kfo_atom_parents
 get_children = _ops.get_children
+get_id_and_frame_xyz = _ops.get_id_and_frame_xyz
