@@ -31,7 +31,6 @@ def add_test_constraints_to_pose_stack(pose_stack):
     )
 
     # a bounded constraint
-
     cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
     cnstr_params = torch.full((1, 4), 0, dtype=torch.float32, device=torch_device)
 
@@ -49,6 +48,7 @@ def add_test_constraints_to_pose_stack(pose_stack):
     cnstr_atoms = torch.full((1, 4, 3), 0, dtype=torch.int32, device=torch_device)
     cnstr_params = torch.full((1, 3), 0, dtype=torch.float32, device=torch_device)
 
+    # a circular harmonic constraints
     # get the omega between res1 and res2
     res1_type = pose_stack.block_type(0, 2)
     res2_type = pose_stack.block_type(0, 3)
@@ -124,10 +124,7 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
 
     @classmethod
     def test_whole_pose_scoring_jagged(
-        cls,
-        ubq_pdb,
-        default_database,
-        torch_device: torch.device,
+        cls, ubq_pdb, default_database, torch_device: torch.device
     ):
         return super().test_whole_pose_scoring_jagged(
             ubq_pdb,
