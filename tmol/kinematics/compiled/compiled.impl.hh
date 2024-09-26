@@ -869,7 +869,6 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
         TPack<Int, 2, Device::CPU>,  // first_ff_edge_for_block_cpu_t
         TPack<Int, 2, Device::CPU>,  // max_n_gens_for_ff_edge_cpu_t
         TPack<Int, 2, Device::CPU>,  // first_child_of_ff_edge_t
-        TPack<Int, 2, Device::CPU>,  // first_ff_edge_for_block_cpu_t
         TPack<Int, 2, Device::CPU>   // delay_for_edge_t
         > {
   // The final step is to construct the nodes, scans, and gens tensors
@@ -1199,7 +1198,6 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       first_ff_edge_for_block_cpu_t,
       max_gen_depth_of_ff_edge_t,
       first_child_of_ff_edge_t,
-      max_gen_depth_of_ff_edge_t,
       delay_for_edge_t};
 }
 

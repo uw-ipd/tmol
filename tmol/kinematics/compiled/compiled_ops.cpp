@@ -328,7 +328,6 @@ auto calculate_ff_edge_delays(
   Tensor first_ff_edge_for_block_cpu;
   Tensor max_gen_depth_of_ff_edge;
   Tensor first_child_of_ff_edge;
-  Tensor first_ff_edge_for_block;
   Tensor delay_for_edge;
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
@@ -350,8 +349,7 @@ auto calculate_ff_edge_delays(
         first_ff_edge_for_block_cpu = std::get<2>(result).tensor;
         max_gen_depth_of_ff_edge = std::get<3>(result).tensor;
         first_child_of_ff_edge = std::get<4>(result).tensor;
-        first_ff_edge_for_block = std::get<5>(result).tensor;
-        delay_for_edge = std::get<6>(result).tensor;
+        delay_for_edge = std::get<5>(result).tensor;
       }));
   return {
       dfs_order_of_ff_edges,
@@ -359,7 +357,6 @@ auto calculate_ff_edge_delays(
       first_ff_edge_for_block_cpu,
       max_gen_depth_of_ff_edge,
       first_child_of_ff_edge,
-      first_ff_edge_for_block,
       delay_for_edge};
 }
 

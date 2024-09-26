@@ -423,7 +423,6 @@ struct KinForestFromStencil {
           TPack<Int, 2, Device::CPU>,  // first_ff_edge_for_block_cpu_t
           TPack<Int, 2, Device::CPU>,  // max_gen_depth_of_ff_edge_t
           TPack<Int, 2, Device::CPU>,  // first_child_of_ff_edge_t
-          TPack<Int, 2, Device::CPU>,  // first_ff_edge_for_block_cpu_t
           TPack<Int, 2, Device::CPU>   // delay_for_edge_t
           >;
 };
