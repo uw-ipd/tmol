@@ -926,6 +926,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   int const max_n_scan_paths_per_gen = block_type_scan_path_starts.size(4);
 
   // Step 1:
+  printf("Step 1\n");
   // Step N-11:
   // Construct a depth-first traversal of the fold-forest edges to determine a
   // partial order (and incidental total order) of the edges in the fold forest.
@@ -934,7 +935,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   auto dfs_order_of_ff_edges_t =
       TPack<Int, 2, Device::CPU>::zeros({n_poses, max_n_edges_per_ff});
   auto dfs_order_of_ff_edges = dfs_order_of_ff_edges_t.view;
-  auto n_ff_edges_t = TPack<Int, 1, Device::CPU>::zeros({n_poses});
+  auto n_ff_edges_t =
+      TPack<Int, 1, Device::CPU>::full({n_poses}, max_n_edges_per_ff);
   auto n_ff_edges = n_ff_edges_t.view;
   std::vector<std::vector<std::list<std::tuple<int, int>>>> ff_children(
       n_poses);
@@ -946,6 +948,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   for (int pose = 0; pose < n_poses; ++pose) {
     for (int edge = 0; edge < max_n_edges_per_ff; ++edge) {
       int const ff_edge_type = ff_edges_cpu[pose][edge][0];
+      printf("ff_edge_type %d %d %d\n", pose, edge, ff_edge_type);
       if (ff_edge_type == -1) {
         n_ff_edges[pose] =
             edge;  // we are one past the last edge, thus at the number of edges
@@ -953,6 +956,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       }
       int const ff_edge_start = ff_edges_cpu[pose][edge][1];
       int const ff_edge_end = ff_edges_cpu[pose][edge][2];
+      printf(
+          "%d %d %d %d %d\n",
+          pose,
+          edge,
+          ff_edge_type,
+          ff_edge_start,
+          ff_edge_end);
       has_parent[pose][ff_edge_end] = true;
       ff_children[pose][ff_edge_start].push_back(
           std::make_tuple(ff_edge_end, edge));
@@ -971,6 +981,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
           throw std::runtime_error("Multiple root blocks in fold tree");
         }
         root_block[pose] = block;
+        printf("root_block %d %d\n", pose, block);
       }
     }
   }
@@ -986,6 +997,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       stack.pop_back();
       int const block = std::get<0>(child_edge_tuple);
       int const edge = std::get<1>(child_edge_tuple);
+      printf(
+          "dfs %d %d: e %d (%d %d)\n",
+          pose,
+          count_dfs_ind,
+          edge,
+          ff_edges_cpu[pose][edge][1],
+          ff_edges_cpu[pose][edge][2]);
       dfs_order_of_ff_edges[pose][count_dfs_ind] = edge;
       count_dfs_ind += 1;
       for (auto const& child : ff_children[pose][block]) {
@@ -995,6 +1013,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   }
 
   // Step 2:
+  printf("Step 2\n");
   // Step N-10:
   // Write down for each residue the first edge in the fold forest that builds
   // it using the partial order of the fold-forest edges. Note that an edge's
@@ -1007,9 +1026,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   auto first_ff_edge_for_block_cpu_t =
       TPack<Int, 2, Device::CPU>::full({n_poses, max_n_res_per_pose}, -1);
   auto first_ff_edge_for_block_cpu = first_ff_edge_for_block_cpu_t.view;
-  auto max_n_gens_for_ff_edge_cpu_t =
-      TPack<Int, 2, Device::CPU>::zeros({n_poses, max_n_edges_per_ff});
-  auto max_n_gens_for_ff_edge_cpu = max_n_gens_for_ff_edge_cpu_t.view;
+  // auto max_n_gens_for_ff_edge_cpu_t =
+  //    TPack<Int, 2, Device::CPU>::zeros({n_poses, max_n_edges_per_ff});
+  // auto max_n_gens_for_ff_edge_cpu = max_n_gens_for_ff_edge_cpu_t.view;
   for (int pose = 0; pose < n_poses; ++pose) {
     for (int edge_dfs_ind = 0; edge_dfs_ind < max_n_edges_per_ff;
          ++edge_dfs_ind) {
@@ -1030,19 +1049,25 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
           // danger! lives on device -- int const block_type =
           // pose_stack_block_type[pose][block];
         }
+      } else if (ff_edge_type == 1) {
+        // jump edge! The first block is not built by the jump,
+        // but the second block is.
+        first_ff_edge_for_block_cpu[pose][ff_edge_end] = edge;
       }
     }
   }
 
   // Step 3:
+  printf("Step 3\n");
   // Step N-9:
   // Find the maximum number of generations of any block type of any edge in the
   // fold forest. TEMP!!!
-  auto max_n_gens_for_ff_edge_t = TPack<Int, 1, Device::CPU>::full(
-      {n_poses * max_n_edges_per_ff}, max_n_gens);
+  auto max_n_gens_for_ff_edge_t = TPack<Int, 2, Device::CPU>::full(
+      {n_poses, max_n_edges_per_ff}, max_n_gens);
   auto max_n_gens_for_ff_edge = max_n_gens_for_ff_edge_t.view;
 
   // Step 4:
+  printf("Step 4\n");
   // Step N-8:
   // Decompose the fold-forest into paths, minimizing the maximu number of
   // generations. Determine the generational delay of each edge. Then determine
@@ -1065,22 +1090,61 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       int const ff_edge_type = ff_edges_cpu[pose][edge][0];
       int const ff_edge_start = ff_edges_cpu[pose][edge][1];
       int const ff_edge_end = ff_edges_cpu[pose][edge][2];
+      printf(
+          "reverse traversal of ff edge %d %d %d %d\n",
+          pose,
+          edge,
+          ff_edge_start,
+          ff_edge_end);
 
+      int const ff_edge_max_n_gens = max_n_gens_for_ff_edge[pose][edge];
       int max_child_gen_depth = -1;
+      int second_max_child_gen_depth = -1;
       int first_child = -1;
       for (auto const& child : ff_children[pose][ff_edge_end]) {
         int const child_edge = std::get<1>(child);
         int const child_gen_depth = max_gen_depth_of_ff_edge[pose][child_edge];
+        printf(
+            "Looking at child of res %d: %d %d, max_child_gen_depth %d second "
+            "max %d\n",
+            ff_edge_end,
+            child_edge,
+            child_gen_depth,
+            max_child_gen_depth,
+            second_max_child_gen_depth);
         if (child_gen_depth > max_child_gen_depth) {
+          if (max_child_gen_depth != -1) {
+            second_max_child_gen_depth = max_child_gen_depth;
+          }
           max_child_gen_depth = child_gen_depth;
           first_child = child_edge;
+        } else if (child_gen_depth > second_max_child_gen_depth) {
+          second_max_child_gen_depth = child_gen_depth;
         }
       }
       first_child_of_ff_edge[pose][edge] = first_child;
+      // There are three options for the generational depth of the subtree
+      // rooted at this edge, and we take the largest of them:
+      // 1. The largest generation depth of any residue built by this edge
+      // 2. The largest generation depth of any residue built by the first child
+      // of the edge
+      // 3. One larger than the largest generation depth of any child besides
+      // the first child
+      int edge_gen_depth = ff_edge_max_n_gens;
+      if (edge_gen_depth < max_child_gen_depth) {
+        edge_gen_depth = max_child_gen_depth;
+      }
+      if (edge_gen_depth < second_max_child_gen_depth + 1) {
+        edge_gen_depth = second_max_child_gen_depth + 1;
+      }
+      printf(
+          "max_gen_depth_of_ff_edge %d %d = %d\n", pose, edge, edge_gen_depth);
+      max_gen_depth_of_ff_edge[pose][edge] = edge_gen_depth;
     }
   }
 
   // Step 5:
+  printf("Step 5\n");
   // Step N-7:
   // Compute the delay for each edge given the path decomposition of the
   // fold-forest.
@@ -1133,7 +1197,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       dfs_order_of_ff_edges_t,
       n_ff_edges_t,
       first_ff_edge_for_block_cpu_t,
-      max_n_gens_for_ff_edge_cpu_t,
+      max_gen_depth_of_ff_edge_t,
       first_child_of_ff_edge_t,
       max_gen_depth_of_ff_edge_t,
       delay_for_edge_t};

@@ -322,10 +322,11 @@ auto calculate_ff_edge_delays(
     Tensor block_type_nodes_for_gens,   // y - T x I x O x G x N
     Tensor block_type_scan_path_starts  // y - T x I x O x G x S
     ) -> tensor_list {
+  printf("CALCULATE FF EDGE DELAYS\n");
   Tensor dfs_order_of_ff_edges;
   Tensor n_ff_edges;
   Tensor first_ff_edge_for_block_cpu;
-  Tensor max_n_gens_for_ff_edge_cpu;
+  Tensor max_gen_depth_of_ff_edge;
   Tensor first_child_of_ff_edge;
   Tensor first_ff_edge_for_block;
   Tensor delay_for_edge;
@@ -347,7 +348,7 @@ auto calculate_ff_edge_delays(
         dfs_order_of_ff_edges = std::get<0>(result).tensor;
         n_ff_edges = std::get<1>(result).tensor;
         first_ff_edge_for_block_cpu = std::get<2>(result).tensor;
-        max_n_gens_for_ff_edge_cpu = std::get<3>(result).tensor;
+        max_gen_depth_of_ff_edge = std::get<3>(result).tensor;
         first_child_of_ff_edge = std::get<4>(result).tensor;
         first_ff_edge_for_block = std::get<5>(result).tensor;
         delay_for_edge = std::get<6>(result).tensor;
@@ -356,7 +357,7 @@ auto calculate_ff_edge_delays(
       dfs_order_of_ff_edges,
       n_ff_edges,
       first_ff_edge_for_block_cpu,
-      max_n_gens_for_ff_edge_cpu,
+      max_gen_depth_of_ff_edge,
       first_child_of_ff_edge,
       first_ff_edge_for_block,
       delay_for_edge};
