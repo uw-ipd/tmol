@@ -357,13 +357,14 @@ def jump_atom_for_bt(bt):
     return bt.atom_to_idx["CA"] if "CA" in bt.atom_names_set else 0
 
 
+# TO DO: jit this!
 def _annotate_block_type_with_gen_scan_paths(bt):
     if hasattr(bt, "gen_seg_scan_paths"):
         return
     n_conn = len(bt.connections)
 
     n_input_types = n_conn + 2  # n_conn + jump input + root "input"
-    n_output_types = n_conn + 1  # n_conn + jump output
+    n_output_types = n_conn + 1  # n_conn + jump output + ??? no output at all ???
 
     n_gens = numpy.zeros((n_input_types, n_output_types), dtype=numpy.int64)
     nodes_for_generation = [
@@ -410,9 +411,14 @@ def _annotate_block_type_with_gen_scan_paths(bt):
 
     mid_bt_atom = jump_atom_for_bt(bt)
 
+    # As we are iterating across atoms, we need to keep track of which atoms
+    # are bridges to other resiudes, so write down the reverse mapping from
+    # atom index to the inter-residue connection index
     is_conn_atom = numpy.zeros((bt.n_atoms,), dtype=bool)
+    conn_ind_for_atom = numpy.full((bt.n_atoms,), -1, dtype=numpy.int64)
     for i in range(n_conn):
         is_conn_atom[bt.ordered_connection_atoms[i]] = True
+        conn_ind_for_atom[bt.ordered_connection_atoms[i]] = i
 
     scan_path_data = {}
     parents = numpy.full((n_input_types, bt.n_atoms), -1, dtype=numpy.int64)
@@ -441,10 +447,25 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                 # building a jump
                 continue
 
-            # now we start at the j_conn_atom and work backwards toward the root
-            # which marks the first scan path for this block type: the "primary exit path"
+            # we will generate a list of scan paths for each generation
+            # and as part of this building process, we will track which scan paths
+            # are exit paths to other blocks.
             gen_scan_paths = defaultdict(list)
+            atom_rooting_scan_path_for_interres_conn = numpy.full(
+                (n_conn,), -1, dtype=numpy.int64
+            )
+            interres_conn_scan_path_rooted_by_atom = numpy.full(
+                (bt.n_atoms,), -1, dtype=numpy.int64
+            )
+            scan_path_building_interres_conn = numpy.full(
+                (n_conn,), -1, dtype=numpy.int64
+            )
+            gen_of_scan_path_building_interres_conn = numpy.full(
+                (n_conn,), -1, dtype=numpy.int64
+            )
 
+            # now we start at the j_conn_atom and work backwards toward the root,
+            # which marks the first scan path for this block type: the "primary exit path"
             j_conn_atom = bt.ordered_connection_atoms[j] if j < n_conn else mid_bt_atom
 
             first_descendant = numpy.full((bt.n_atoms,), -9999, dtype=numpy.int64)
@@ -468,10 +489,15 @@ def _annotate_block_type_with_gen_scan_paths(bt):
             for k in range(n_conn):
                 if k == i or k == j:
                     continue  # truly unnecessary; nothing changes if I remove these two lines
-                is_on_exit_path[bt.ordered_connection_atoms[k]] = True
+                k_conn_atom = bt.ordered_connection_atoms[k]
+                is_on_exit_path[k_conn_atom] = True
+                atom_rooting_scan_path_for_interres_conn[k] = k_conn_atom
 
             # print("primary_exit_scan_path:", primary_exit_scan_path)
             gen_scan_paths[0].append(primary_exit_scan_path)
+            # our first exit scan path: keep track of the gen/scan-path indices
+            gen_of_scan_path_building_interres_conn[j] = 0
+            scan_path_building_interres_conn[j] = 0
 
             # Create a list of children for each atom.
             n_kids = numpy.zeros((bt.n_atoms,), dtype=numpy.int64)
@@ -488,7 +514,9 @@ def _annotate_block_type_with_gen_scan_paths(bt):
             # now we label each node with its "generation depth" using a
             # leaf-to-root traversal perscribed by the original DFS, taking
             # into account the fact that priority must be given to
-            # exit paths
+            # exit paths -- that is, we must describe exit paths being the
+            # first children of their parents and the other children as being
+            # younger siblings.
             gen_depth = numpy.ones((bt.n_atoms,), dtype=numpy.int64)
             on_path_from_conn_to_i_conn_atom = numpy.zeros((bt.n_atoms,), dtype=bool)
             for k in range(bt.n_atoms - 1, -1, -1):
@@ -501,10 +529,11 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                 # from here forward, we know that k_atom_ind has > 0 children
 
                 def gen_depth_given_first_descendant():
-                    # first set the first_descendant for k_atom_ind
-                    # then the logic is: we have to add one to the
-                    # gen-depth of every child but the first descendant
-                    # which we get "for free"
+                    # First, set the first_descendant for k_atom_ind.
+                    # Then, the logic is: we have to add one to the
+                    # gen-depth of every child except the first descendant
+                    # which we get "for free" since it will be built
+                    # along the same scan path as k_atom_ind
                     # print(f"atom {bt.atom_name(k_atom_ind)} with first descendant {bt.atom_name(first_descendant[k_atom_ind]) if first_descendant[k_atom_ind] >= 0 else 'None'} and depth {gen_depth[first_descendant[k_atom_ind]] if first_descendant[k_atom_ind] >= 0 else -9999}")
                     return max(
                         [
@@ -522,8 +551,8 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                     # has already been decided
                     # print("on exit path:", bt.atom_name(k_atom_ind), first_descendant[k_atom_ind], is_conn_atom[k_atom_ind])
                     if k_atom_ind == j_conn_atom:
-                        # the first descendent is the atom on the next residue to which
-                        # this residue is connected
+                        # this atom's first descendent is the atom on the next residue
+                        # to which this residue is connected
                         gen_depth[k_atom_ind] = max([gen_depth[l] for l in k_kids]) + 1
                     else:
                         # first_descendant is already determined for this atom
@@ -531,9 +560,9 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                 else:
 
                     if is_conn_atom[k_atom_ind]:
-                        # in this case, "the" connection (there can possibly be more than one!)
-                        # will be the first child and the other descendants will be second children
-                        # we save the gen depth, but when calculating the gen depth of the
+                        # In this case, "the" connection (there can possibly be more than one!)
+                        # will be the first child and the other descendants will be second children.
+                        # We save the gen depth, but when calculating the gen depth of the
                         # fold-forest, if this residue is at the upstream end of an edge, then
                         # its depth will have to be calculated as the min gen-depth of the
                         # intra-residue bits and the gen-depth of the nodes downstream of it.
@@ -547,10 +576,11 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                         # a block type with 4 inter-residue connections where the fold
                         # forest branches at this residue, then the algorithm for constructing
                         # the fewest-number-of-generations KinForest here is going
-                        # will fail: we are treating all exit paths out of this residue
+                        # to fail: we are treating all exit paths out of this residue
                         # as interchangable and we might say connection c should be
                         # ahead of connection c' in a case where c' has a greater gen_depth
-                        # than c.
+                        # than c. We will still get a valid KinForest, but it will lack
+                        # the "fewest number of generations possible" property.
                         #
                         # The case I am designing for here is: there's a jump that has
                         # landed at a beta-amino acid's CA atom and there are exit paths
@@ -566,8 +596,12 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                         #
                         # The path starting at CB should go towards N and not towards R.
                         # If we are only dealing with polymeric residues that have an
-                        # up- and a down connection that that's it (e.g. nucleic acids),
+                        # up- and a down connection and that's it (e.g. nucleic acids),
                         # then this algorithm will still produce optimal KinForests.
+                        # (I have to use a beta-amino acid as an example here because if
+                        # we consider the case of an alpha-amino acid, then the exit path
+                        # at N is already the root of a new scan path and there's no decision
+                        # making that has to be made.)
                         #
                         # A case that this would fail to deliver the optimally-efficient
                         # (fewest number of generations) KinForest would be if this R group
@@ -577,11 +611,30 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                         # group attached to a beta-ASN. Now if the path (CA->CB->N) takes
                         # precedence over the path (CA->CB->R), then everything down-
                         # stream of the R would have a generation-delay one greater than
-                        # it would otherwise.
+                        # it would otherwise. Again, a KinForest produced by this algorithm
+                        # is still valid, it could just be slightly slower to fold through
+                        # than it would be otherwise.
                         for kid in k_kids:
                             if is_on_exit_path[kid]:
                                 first_descendant[k_atom_ind] = kid
                                 is_on_exit_path[k_atom_ind] = True
+                                assert interres_conn_scan_path_rooted_by_atom[kid] >= 0
+                                kid_conn_ind = interres_conn_scan_path_rooted_by_atom[
+                                    kid
+                                ]
+                                # k_atom_ind becomes the new root of the scan path
+                                # building to the kid_conn_ind interresidue connection
+                                interres_conn_scan_path_rooted_by_atom[k_atom_ind] = (
+                                    kid_conn_ind
+                                )
+                                interres_conn_scan_path_rooted_by_atom[kid] = -1
+                                atom_rooting_scan_path_for_interres_conn[
+                                    kid_conn_ind
+                                ] = k_atom_ind
+                                # stop now to ensure that we do not ovewrite the first_descendant
+                                # of k_atom_ind if it should happen to have two kids that
+                                # are on exit paths!
+                                break
 
                         if not is_on_exit_path[k_atom_ind]:
                             # which should be the first descendant? the one with the greatest gen depth
@@ -597,6 +650,8 @@ def _annotate_block_type_with_gen_scan_paths(bt):
             # OKAY!
             # now we have paths rooted at each node up to the root
             # we need to turn these paths into scan paths
+            # Let's now traverse the atoms in bfs order and build the scan paths
+            # along the way
             processed_node_into_scan_path = is_on_primary_exit_path.copy()
             gen_to_build_atom = numpy.full((bt.n_atoms,), -1, dtype=numpy.int64)
             gen_to_build_atom[processed_node_into_scan_path] = 0
@@ -605,6 +660,9 @@ def _annotate_block_type_with_gen_scan_paths(bt):
             for k in range(bt.n_atoms):
                 k_atom_ind = bfto_2_orig[k]
                 if processed_node_into_scan_path[k_atom_ind]:
+                    # we have already added this atom and its first
+                    # descendant (and their first descendant and so on)
+                    # to a scan path, so we can continue
                     continue
 
                 # if we arrive here, that means k_atom_ind is the root of a
@@ -613,8 +671,9 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                 # we have already processed the first scan path
                 # from the entrace-point atom to the first exit-point atom
                 assert k_atom_ind != i_conn_atom
-                # put the parent of this new root at the beginning of
-                # the scan path
+                # put the _parent_ of this new root at the beginning of
+                # the scan path since we build the root's coordinate frame
+                # from its parent's coordinate frame
                 path.append(preds[k_atom_ind])
                 focused_atom = k_atom_ind
 
@@ -625,6 +684,8 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                 #     f"gen to build {bt.atom_name(focused_atom)} from {bt.atom_name(preds[focused_atom])}",
                 #     f"with gen {gen_to_build_atom[focused_atom]}",
                 # )
+
+                # now we traverse the path along each atom's first descendant
                 while focused_atom >= 0:
                     path.append(focused_atom)
                     processed_node_into_scan_path[focused_atom] = True
@@ -633,7 +694,11 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                         gen_to_build_atom[focused_atom] = gen_to_build_atom[
                             preds[focused_atom]
                         ]
+
                 if is_on_exit_path[k_atom_ind]:
+                    # we will go ahead and put exit paths at the beginning of the
+                    # list of scan paths for a generation, however, there is no
+                    # demand that we must do so.
                     gen_scan_paths[gen_to_build_atom[k_atom_ind]].insert(0, path)
                 else:
                     gen_scan_paths[gen_to_build_atom[k_atom_ind]].append(path)
@@ -672,6 +737,10 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                 for l in range(ij_n_scans[k]):
                     l_first_at = gen_scan_paths[k][l][0 if k == 0 else 1]
                     ij_scan_is_inter_block[k][l] = is_on_exit_path[l_first_at]
+                    conn_for_path = interres_conn_scan_path_rooted_by_atom[l_first_at]
+                    if conn_for_path != -1:
+                        gen_of_scan_path_building_interres_conn[conn_for_path] = k
+                        scan_path_building_interres_conn[conn_for_path] = l
 
             # print("ij_scan_is_inter_block", ij_scan_is_inter_block)
             # ij_n_nodes_for_gen =
@@ -688,6 +757,8 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                 n_nodes_for_gen=ij_n_nodes_for_gen,
                 nodes_for_generation=gen_scan_paths,
                 n_scans=ij_n_scans,
+                gen_building_output_conn=gen_of_scan_path_building_interres_conn,
+                scan_path_building_output_conn=scan_path_building_interres_conn,
                 scan_starts=ij_scan_starts,
                 scan_is_inter_block=is_on_exit_path,
                 scan_lengths=ij_scan_lengths,
@@ -725,6 +796,7 @@ def _annotate_block_type_with_gen_scan_paths(bt):
         n_input_types,
         n_output_types,
         bt.n_atoms,
+        n_conn,
         max_n_gens,
         max_n_scans,
         max_n_nodes_per_gen,
@@ -739,6 +811,12 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                 continue
             ij_n_gens = scan_path_data[(i, j)]["n_gens"]
             bt_gen_seg_scan_paths.n_gens[i, j] = ij_n_gens
+            bt_gen_seg_scan_paths.scan_path_that_builds_output_conn[i, j, :, 0] = (
+                scan_path_data[(i, j)]["gen_building_output_conn"]
+            )
+            bt_gen_seg_scan_paths.scan_path_that_builds_output_conn[i, j, :, 1] = (
+                scan_path_data[(i, j)]["scan_path_building_output_conn"]
+            )
             for k in range(ij_n_gens):
                 bt_gen_seg_scan_paths.n_nodes_for_gen[i, j, k] = scan_path_data[(i, j)][
                     "n_nodes_for_gen"
@@ -787,6 +865,7 @@ def _annotate_packed_block_type_with_gen_scan_paths(pbt):
         bt.gen_seg_scan_paths.n_gens.shape[1] for bt in pbt.active_block_types
     )
     # max_n_atoms : pbt already provides this!
+    # max_n_conn : pbt already provides this!
     max_n_gens = max(
         bt.gen_seg_scan_paths.n_nodes_for_gen.shape[2] for bt in pbt.active_block_types
     )
@@ -803,6 +882,7 @@ def _annotate_packed_block_type_with_gen_scan_paths(pbt):
         max_n_input_types,
         max_n_output_types,
         pbt.max_n_atoms,
+        pbt.max_n_conn,
         max_n_gens,
         max_n_scans,
         max_n_nodes_per_gen,
@@ -826,6 +906,14 @@ def _annotate_packed_block_type_with_gen_scan_paths(pbt):
     ]
     for i, bt in enumerate(pbt.active_block_types):
         bt_gssp = bt.gen_seg_scan_paths
+        # this data member doesn't fit the same mold as the others
+        gen_seg_scan_paths.scan_path_that_builds_output_conn[
+            i, :, :, : bt.n_conn, :
+        ] = torch.tensor(
+            bt_gssp.scan_path_that_builds_output_conn,
+            dtype=torch.int32,
+            device=pbt.device,
+        )
         for vname in varnames:
             dst = getattr(gen_seg_scan_paths, vname)
             src = getattr(bt_gssp, vname)

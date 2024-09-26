@@ -76,6 +76,32 @@ struct DeviceOperations<tmol::Device::CPU> {
     return last_val;
   }
 
+  // Segmented scan expects the indices for the beginning of each segment rather
+  // than, e.g., a boolean tensor indicating the start of each segment.
+  // The identity value (e.g. 0) must be given because pre-initialization is not
+  // always possible. seg_starts_inds must be sorted in ascending order.
+  template <mgpu::scan_type_t scan_type, typename T, typename Int, typename OP>
+  static auto segmented_scan(
+      T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
+      -> TPack<T, 1, D>;
+  {
+    auto dst_t = TPack<T, 1, D>::empty({n});
+    auto dst = dst_t.view;
+    T last_val = identity;  // position 0 is always the start of a segment
+    int count_seg = 0;
+    for (int i = 0; i < n; ++i) {
+      T i_val = src[i];
+      if (i == seg_start_inds[count_seg]) {
+        last_val = identity;
+        count_seg++;
+      }
+      T next_val = op(last_val, i_val);
+      dst[i] = (scan_type == mgpu::scan_type_exc) ? last_val : next_val;
+      last_val = next_val;
+    }
+    return dst_t;
+  }
+
   template <int N_T, int WIDTH, typename T>
   static void copy_contiguous_data(
       T* __restrict__ dst, T* __restrict__ src, int n) {

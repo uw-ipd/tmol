@@ -61,6 +61,44 @@ def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_se
         assert hasattr(bt, "gen_seg_scan_paths")
 
 
+def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb):
+    from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
+
+    torch_device = torch.device("cpu")
+    device = torch_device
+
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=1, residue_end=3
+    )
+
+    res_not_connected = torch.zeros((1, 2, 2), dtype=torch.bool, device=torch_device)
+    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
+    res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
+    pose_stack = pose_stack_from_canonical_form(
+        co, pbt, **canonical_form, res_not_connected=res_not_connected
+    )
+    _annotate_packed_block_type_with_gen_scan_paths(pbt)
+    pbt_gssp = pbt.gen_seg_scan_paths
+
+    ff_edges = torch.zeros(
+        (pose_stack.n_poses, pose_stack.max_n_blocks, 4),
+        dtype=torch.int32,
+        device="cpu",
+    )
+    ff_edges[0, 0, 1] = 0
+    ff_edges[0, 0, 2] = 1
+    result = calculate_ff_edge_delays(
+        pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
+        pose_stack.block_type,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
+        ff_edges,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
+        pbt_gssp.scan_path_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
+        pbt_gssp.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
+        pbt_gssp.scan_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
+    )
+
+
 def test_get_kfo_indices_for_atoms(ubq_pdb):
     from tmol.kinematics.compiled.compiled_ops import (
         get_kfo_indices_for_atoms,

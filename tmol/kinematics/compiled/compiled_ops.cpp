@@ -312,6 +312,56 @@ auto get_id_and_frame_xyz(
   return {id, frame_x, frame_y, frame_z};
 }
 
+auto calculate_ff_edge_delays(
+    Tensor pose_stack_block_coord_offset,  // P x L
+    Tensor pose_stack_block_type,          // x - P x L
+    Tensor ff_edges_cpu,  // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3:
+                          // jump ind
+    Tensor block_type_kts_conn_info,    // y - T x I x O x C x 2 -- 2 is for gen
+                                        // (0) and scan (1)
+    Tensor block_type_nodes_for_gens,   // y - T x I x O x G x N
+    Tensor block_type_scan_path_starts  // y - T x I x O x G x S
+    ) -> tensor_list {
+  Tensor dfs_order_of_ff_edges;
+  Tensor n_ff_edges;
+  Tensor first_ff_edge_for_block_cpu;
+  Tensor max_n_gens_for_ff_edge_cpu;
+  Tensor first_child_of_ff_edge;
+  Tensor first_ff_edge_for_block;
+  Tensor delay_for_edge;
+  TMOL_DISPATCH_INDEX_DEVICE(
+      pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
+        using Int = index_t;
+        // using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                calculate_ff_edge_delays(
+                    TCAST(pose_stack_block_coord_offset),
+                    TCAST(pose_stack_block_type),
+                    TCAST(ff_edges_cpu),
+                    TCAST(block_type_kts_conn_info),
+                    TCAST(block_type_nodes_for_gens),
+                    TCAST(block_type_scan_path_starts));
+        dfs_order_of_ff_edges = std::get<0>(result).tensor;
+        n_ff_edges = std::get<1>(result).tensor;
+        first_ff_edge_for_block_cpu = std::get<2>(result).tensor;
+        max_n_gens_for_ff_edge_cpu = std::get<3>(result).tensor;
+        first_child_of_ff_edge = std::get<4>(result).tensor;
+        first_ff_edge_for_block = std::get<5>(result).tensor;
+        delay_for_edge = std::get<6>(result).tensor;
+      }));
+  return {
+      dfs_order_of_ff_edges,
+      n_ff_edges,
+      first_ff_edge_for_block_cpu,
+      max_n_gens_for_ff_edge_cpu,
+      first_child_of_ff_edge,
+      max_gen_depth_of_ff_edge,
+      delay_for_edge};
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
@@ -324,6 +374,7 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("get_kfo_atom_parents", &get_kfo_atom_parents);
   m.def("get_children", &get_children);
   m.def("get_id_and_frame_xyz", &get_id_and_frame_xyz);
+  m.def("calculate_ff_edge_delays", &calculate_ff_edge_delays);
 }
 
 }  // namespace kinematics
