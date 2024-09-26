@@ -89,7 +89,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
       typename OP>
   static auto segmented_scan(
       T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
-      -> TPack<T, 1, D> {
+      -> TPack<T, 1, tmol::Device::CUDA> {
     mgpu::standard_context_t context;
 
     int const nt = launch_t::nt;

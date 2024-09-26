@@ -856,9 +856,9 @@ template <
 auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
     TView<Int, 2, D> pose_stack_block_coord_offset,  // P x L
     TView<Int, 2, D> pose_stack_block_type,          // x - P x L
-    TView<Int, 3, CPU> ff_edges_cpu,  // y - P x E x 4 -- 0: type, 1: start, 2:
-                                      // stop, 3: jump ind
-    TVIew<Int, 5, D> block_type_kts_conn_info,  // y - T x I x O x C x 2 -- 2 is
+    TView<Int, 3, Device::CPU> ff_edges_cpu,    // y - P x E x 4 -- 0: type, 1:
+                                                // start, 2: stop, 3: jump ind
+    TView<Int, 5, D> block_type_kts_conn_info,  // y - T x I x O x C x 2 -- 2 is
                                                 // for gen (0) and scan (1)
     TView<Int, 5, D> block_type_nodes_for_gens,   // y - T x I x O x G x N
     TView<Int, 5, D> block_type_scan_path_starts  // y - T x I x O x G x S
@@ -936,8 +936,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   auto dfs_order_of_ff_edges = dfs_order_of_ff_edges_t.view;
   auto n_ff_edges_t = TPack<Int, 1, Device::CPU>::zeros({n_poses});
   auto n_ff_edges = n_ff_edges_t.view;
-  std::vector
-      < std::vector<std::list<std::tuple<int, int>>> ff_children(n_poses);
+  std::vector<std::vector<std::list<std::tuple<int, int>>>> ff_children(
+      n_poses);
   std::vector<std::vector<bool>> has_parent(n_poses);
   for (int pose = 0; pose < n_poses; ++pose) {
     ff_children[pose].resize(max_n_res_per_pose);
@@ -982,10 +982,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       stack.push_back(child);
     }
     while (!stack.empty()) {
-      std::tuple<int, int> const child = stack.back();
+      std::tuple<int, int> const child_edge_tuple = stack.back();
       stack.pop_back();
-
-      dfs_order_of_ff_edges[pose][count_dfs_ind].push_back(std::get<1>(child));
+      int const block = std::get<0>(child_edge_tuple);
+      int const edge = std::get<1>(child_edge_tuple);
+      dfs_order_of_ff_edges[pose][count_dfs_ind] = edge;
       count_dfs_ind += 1;
       for (auto const& child : ff_children[pose][block]) {
         stack.push_back(child);
@@ -1120,10 +1121,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
         } else {
           delay_for_edge[pose][child_edge] = edge_delay + 1;
           // Note that this edge is the root of its own scan path
-          int const child_edge_type = ff_edges_cpu[pose][child_edge][0];
-          if (child_edge_type == 0) {
-            non_jump_ff_edge_rooted_at_scan_path
-          }
+          // int const child_edge_type = ff_edges_cpu[pose][child_edge][0];
+          // if (child_edge_type == 0) {
+          //   non_jump_ff_edge_rooted_at_scan_path
+          // }
         }
       }
     }

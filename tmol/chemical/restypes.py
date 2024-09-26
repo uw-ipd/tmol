@@ -155,6 +155,10 @@ class RefinedResidueType(RawResidueType):
         bond_array.flags.writeable = False
         return bond_array
 
+    @property
+    def n_conn(self):
+        return len(self.connections)
+
     # The index of the atom for a given inter-residue connection point
     connection_to_idx: Mapping[str, AtomIndex] = attr.ib()
 

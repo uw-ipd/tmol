@@ -358,7 +358,7 @@ auto calculate_ff_edge_delays(
       first_ff_edge_for_block_cpu,
       max_n_gens_for_ff_edge_cpu,
       first_child_of_ff_edge,
-      max_gen_depth_of_ff_edge,
+      first_ff_edge_for_block,
       delay_for_edge};
 }
 

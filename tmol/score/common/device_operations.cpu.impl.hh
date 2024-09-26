@@ -83,9 +83,8 @@ struct DeviceOperations<tmol::Device::CPU> {
   template <mgpu::scan_type_t scan_type, typename T, typename Int, typename OP>
   static auto segmented_scan(
       T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
-      -> TPack<T, 1, D>;
-  {
-    auto dst_t = TPack<T, 1, D>::empty({n});
+      -> TPack<T, 1, tmol::Device::CPU> {
+    auto dst_t = TPack<T, 1, Device::CPU>::empty({n});
     auto dst = dst_t.view;
     T last_val = identity;  // position 0 is always the start of a segment
     int count_seg = 0;

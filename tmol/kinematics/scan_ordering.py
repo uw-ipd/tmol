@@ -364,7 +364,9 @@ def _annotate_block_type_with_gen_scan_paths(bt):
     n_conn = len(bt.connections)
 
     n_input_types = n_conn + 2  # n_conn + jump input + root "input"
-    n_output_types = n_conn + 1  # n_conn + jump output + ??? no output at all ???
+    n_output_types = (
+        n_conn + 1
+    )  # n_conn + jump output + ??? no output at all ??? TO DO!!!!
 
     n_gens = numpy.zeros((n_input_types, n_output_types), dtype=numpy.int64)
     nodes_for_generation = [
@@ -492,12 +494,16 @@ def _annotate_block_type_with_gen_scan_paths(bt):
                 k_conn_atom = bt.ordered_connection_atoms[k]
                 is_on_exit_path[k_conn_atom] = True
                 atom_rooting_scan_path_for_interres_conn[k] = k_conn_atom
+                interres_conn_scan_path_rooted_by_atom[k_conn_atom] = k
 
             # print("primary_exit_scan_path:", primary_exit_scan_path)
             gen_scan_paths[0].append(primary_exit_scan_path)
             # our first exit scan path: keep track of the gen/scan-path indices
-            gen_of_scan_path_building_interres_conn[j] = 0
-            scan_path_building_interres_conn[j] = 0
+            # for exit paths using inter-residue connections. We don't have
+            # to worry about scan paths that exit by jump or that dont exit.
+            if j < n_conn:
+                gen_of_scan_path_building_interres_conn[j] = 0
+                scan_path_building_interres_conn[j] = 0
 
             # Create a list of children for each atom.
             n_kids = numpy.zeros((bt.n_atoms,), dtype=numpy.int64)
@@ -907,8 +913,9 @@ def _annotate_packed_block_type_with_gen_scan_paths(pbt):
     for i, bt in enumerate(pbt.active_block_types):
         bt_gssp = bt.gen_seg_scan_paths
         # this data member doesn't fit the same mold as the others
+        shape_sptboc = bt_gssp.scan_path_that_builds_output_conn.shape
         gen_seg_scan_paths.scan_path_that_builds_output_conn[
-            i, :, :, : bt.n_conn, :
+            i, : shape_sptboc[0], : shape_sptboc[1], : shape_sptboc[2], :
         ] = torch.tensor(
             bt_gssp.scan_path_that_builds_output_conn,
             dtype=torch.int32,

@@ -410,9 +410,9 @@ struct KinForestFromStencil {
   static auto calculate_ff_edge_delays(
       TView<Int, 2, D> pose_stack_block_coord_offset,  // P x L
       TView<Int, 2, D> pose_stack_block_type,          // x - P x L
-      TView<Int, 3, CPU> ff_edges_cpu,  // y - P x E x 4 -- 0: type, 1: start,
-                                        // 2: stop, 3: jump ind
-      TVIew<Int, 5, D> block_type_kts_conn_info,  // y - T x I x O x C x 2 -- 2
+      TView<Int, 3, Device::CPU> ff_edges_cpu,  // y - P x E x 4 -- 0: type, 1:
+                                                // start, 2: stop, 3: jump ind
+      TView<Int, 5, D> block_type_kts_conn_info,  // y - T x I x O x C x 2 -- 2
                                                   // is for gen (0) and scan (1)
       TView<Int, 5, D> block_type_nodes_for_gens,   // y - T x I x O x G x N
       TView<Int, 5, D> block_type_scan_path_starts  // y - T x I x O x G x S

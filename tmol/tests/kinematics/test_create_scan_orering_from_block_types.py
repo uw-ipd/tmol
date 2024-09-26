@@ -91,7 +91,7 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb):
     ff_edges[0, 0, 2] = 1
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
-        pose_stack.block_type,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
+        pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
         ff_edges,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
         pbt_gssp.scan_path_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
         pbt_gssp.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
