@@ -257,7 +257,9 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
     (
         dfs_order_of_ff_edges,
         n_ff_edges,
+        ff_edge_parent,
         first_ff_edge_for_block_cpu,
+        pose_stack_ff_parent,
         max_gen_depth_of_ff_edge,
         first_child_of_ff_edge,
         delay_for_edge,
@@ -265,11 +267,123 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
     ) = result
     print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
     print("n_ff_edges", n_ff_edges)
+    print("ff_edge_parent", ff_edge_parent)
     print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
+    print("pose_stack_ff_parent", pose_stack_ff_parent)
     print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
     print("first_child_of_ff_edge", first_child_of_ff_edge)
     print("delay_for_edge", delay_for_edge)
     print("toposort_index_for_edge", toposort_index_for_edge)
+
+
+def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(ubq_pdb):
+    from tmol.kinematics.compiled.compiled_ops import (
+        calculate_ff_edge_delays,
+        get_block_parent_connectivity_from_toposort,
+    )
+
+    torch_device = torch.device("cpu")
+    device = torch_device
+
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=1, residue_end=7
+    )
+
+    res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
+    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
+    res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
+    pose_stack = pose_stack_from_canonical_form(
+        co, pbt, **canonical_form, res_not_connected=res_not_connected
+    )
+    pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
+    _annotate_packed_block_type_with_gen_scan_paths(pbt)
+    pbt_gssp = pbt.gen_seg_scan_paths
+
+    max_n_edges = 5
+    ff_edges = torch.full(
+        (pose_stack.n_poses, max_n_edges, 4),
+        -1,
+        dtype=torch.int32,
+        device="cpu",
+    )
+    ff_edges[0, 0, 0] = 0
+    ff_edges[0, 0, 1] = 1
+    ff_edges[0, 0, 2] = 0
+
+    ff_edges[0, 1, 0] = 0
+    ff_edges[0, 1, 1] = 1
+    ff_edges[0, 1, 2] = 2
+
+    ff_edges[0, 2, 0] = 1
+    ff_edges[0, 2, 1] = 1
+    ff_edges[0, 2, 2] = 4
+
+    ff_edges[0, 3, 0] = 0
+    ff_edges[0, 3, 1] = 4
+    ff_edges[0, 3, 2] = 3
+
+    ff_edges[0, 4, 0] = 0
+    ff_edges[0, 4, 1] = 4
+    ff_edges[0, 4, 2] = 5
+
+    # Let's flip the jump and root the tree at res 4
+    ff_edges[1, 0, 0] = 0
+    ff_edges[1, 0, 1] = 1
+    ff_edges[1, 0, 2] = 0
+
+    ff_edges[1, 1, 0] = 0
+    ff_edges[1, 1, 1] = 1
+    ff_edges[1, 1, 2] = 2
+
+    ff_edges[1, 2, 0] = 1
+    ff_edges[1, 2, 1] = 4
+    ff_edges[1, 2, 2] = 1
+
+    ff_edges[1, 3, 0] = 0
+    ff_edges[1, 3, 1] = 4
+    ff_edges[1, 3, 2] = 3
+
+    ff_edges[1, 4, 0] = 0
+    ff_edges[1, 4, 1] = 4
+    ff_edges[1, 4, 2] = 5
+
+    result = calculate_ff_edge_delays(
+        pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
+        pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
+        ff_edges,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
+        pbt_gssp.scan_path_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
+        pbt_gssp.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
+        pbt_gssp.scan_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
+    )
+    # print("result", result)
+    (
+        dfs_order_of_ff_edges,
+        n_ff_edges,
+        ff_edge_parent,
+        first_ff_edge_for_block,
+        pose_stack_ff_parent,
+        max_gen_depth_of_ff_edge,
+        first_child_of_ff_edge,
+        delay_for_edge,
+        toposort_index_for_edge,
+    ) = result
+    pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
+        pose_stack.block_type_ind,
+        pose_stack.inter_residue_connections,
+        pose_stack_ff_parent,
+        dfs_order_of_ff_edges,
+        n_ff_edges,
+        ff_edges,
+        first_ff_edge_for_block,
+        first_child_of_ff_edge,
+        delay_for_edge,
+        toposort_index_for_edge,
+        pbt.n_conn,
+        pbt.polymeric_conn_inds,
+    )
+    print("pose_stack_block_in_and_first_out", pose_stack_block_in_and_first_out)
 
 
 def test_get_kfo_indices_for_atoms(ubq_pdb):

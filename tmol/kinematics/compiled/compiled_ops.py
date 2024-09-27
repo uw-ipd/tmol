@@ -18,3 +18,6 @@ get_kfo_atom_parents = _ops.get_kfo_atom_parents
 get_children = _ops.get_children
 get_id_and_frame_xyz = _ops.get_id_and_frame_xyz
 calculate_ff_edge_delays = _ops.calculate_ff_edge_delays
+get_block_parent_connectivity_from_toposort = (
+    _ops.get_block_parent_connectivity_from_toposort
+)

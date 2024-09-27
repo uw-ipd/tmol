@@ -198,13 +198,13 @@ auto get_kfo_atom_parents(
     Tensor pose_stack_block_type,                 // P x L
     Tensor pose_stack_inter_residue_connections,  // P x L x C x 2
     Tensor pose_stack_ff_parent,                  // P x L
-    Tensor pose_stack_ff_conn_to_parent,          // P x L
-    Tensor pose_stack_block_in_and_first_out,     // P x L x 2
-    Tensor block_type_parents,                    // T x O x A
-    Tensor kfo_2_orig_mapping,                    // K x 3
-    Tensor atom_kfo_index,                        // P x L x A
-    Tensor block_type_jump_atom,                  // T
-    Tensor block_type_n_conn,                     // T
+    // Tensor pose_stack_ff_conn_to_parent,          // P x L
+    Tensor pose_stack_block_in_and_first_out,  // P x L x 2
+    Tensor block_type_parents,                 // T x O x A
+    Tensor kfo_2_orig_mapping,                 // K x 3
+    Tensor atom_kfo_index,                     // P x L x A
+    Tensor block_type_jump_atom,               // T
+    Tensor block_type_n_conn,                  // T
     Tensor block_type_conn_atom) -> tensor_list {
   printf("GET KFO ATOM PARENTS\n");
   at::Tensor kfo_parent_atoms;
@@ -221,7 +221,7 @@ auto get_kfo_atom_parents(
                     TCAST(pose_stack_block_type),
                     TCAST(pose_stack_inter_residue_connections),
                     TCAST(pose_stack_ff_parent),
-                    TCAST(pose_stack_ff_conn_to_parent),
+                    // TCAST(pose_stack_ff_conn_to_parent),
                     TCAST(pose_stack_block_in_and_first_out),
                     TCAST(block_type_parents),
                     TCAST(kfo_2_orig_mapping),
@@ -325,7 +325,9 @@ auto calculate_ff_edge_delays(
   printf("CALCULATE FF EDGE DELAYS\n");
   Tensor dfs_order_of_ff_edges;
   Tensor n_ff_edges;
+  Tensor ff_edge_parent;
   Tensor first_ff_edge_for_block_cpu;
+  Tensor pose_stack_ff_parent;
   Tensor max_gen_depth_of_ff_edge;
   Tensor first_child_of_ff_edge;
   Tensor delay_for_edge;
@@ -347,21 +349,69 @@ auto calculate_ff_edge_delays(
                     TCAST(block_type_scan_path_starts));
         dfs_order_of_ff_edges = std::get<0>(result).tensor;
         n_ff_edges = std::get<1>(result).tensor;
-        first_ff_edge_for_block_cpu = std::get<2>(result).tensor;
-        max_gen_depth_of_ff_edge = std::get<3>(result).tensor;
-        first_child_of_ff_edge = std::get<4>(result).tensor;
-        delay_for_edge = std::get<5>(result).tensor;
-        toposort_index_for_edge = std::get<6>(result).tensor;
+        ff_edge_parent = std::get<2>(result).tensor;
+        first_ff_edge_for_block_cpu = std::get<3>(result).tensor;
+        pose_stack_ff_parent = std::get<4>(result).tensor;
+        max_gen_depth_of_ff_edge = std::get<5>(result).tensor;
+        first_child_of_ff_edge = std::get<6>(result).tensor;
+        delay_for_edge = std::get<7>(result).tensor;
+        toposort_index_for_edge = std::get<8>(result).tensor;
       }));
   return {
       dfs_order_of_ff_edges,
       n_ff_edges,
+      ff_edge_parent,
       first_ff_edge_for_block_cpu,
+      pose_stack_ff_parent,
       max_gen_depth_of_ff_edge,
       first_child_of_ff_edge,
       delay_for_edge,
-      toposort_index_for_edge,
-  };
+      toposort_index_for_edge};
+}
+
+auto get_block_parent_connectivity_from_toposort(
+    Tensor pose_stack_block_type,                 // P x L
+    Tensor pose_stack_inter_residue_connections,  // P x L x C x 2
+    Tensor pose_stack_ff_parent,
+    Tensor dfs_order_of_ff_edges,
+    Tensor n_ff_edges,               // P
+    Tensor ff_edges,                 // P x E x 4
+    Tensor first_ff_edge_for_block,  // P x L
+    // Tensor max_n_gens_for_ff_edge, // P x E
+    Tensor first_child_of_ff_edge,    // P x E
+    Tensor delay_for_edge,            // P x E
+    Tensor topo_sort_index_for_edge,  // (P*E)
+    Tensor block_type_n_conn,         // T
+    Tensor block_type_polymeric_conn_index) -> Tensor {
+  printf("GET BLOCK PARENT CONNECTIVITY FROM TOPOSORT\n");
+
+  Tensor pose_stack_block_in_and_first_out;
+  TMOL_DISPATCH_INDEX_DEVICE(
+      pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
+        using Int = index_t;
+        // using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                get_block_parent_connectivity_from_toposort(
+                    TCAST(pose_stack_block_type),  // P x L
+                    TCAST(
+                        pose_stack_inter_residue_connections),  // P x L x C x 2
+                    TCAST(pose_stack_ff_parent),
+                    TCAST(dfs_order_of_ff_edges),
+                    TCAST(n_ff_edges),               // P
+                    TCAST(ff_edges),                 // P x E x 4
+                    TCAST(first_ff_edge_for_block),  // P x L
+                    // TCAST(max_n_gens_for_ff_edge), // P x E
+                    TCAST(first_child_of_ff_edge),    // P x E
+                    TCAST(delay_for_edge),            // P x E
+                    TCAST(topo_sort_index_for_edge),  // (P*E)
+                    TCAST(block_type_n_conn),         // T
+                    TCAST(block_type_polymeric_conn_index));
+        pose_stack_block_in_and_first_out = result.tensor;
+      }));
+  return pose_stack_block_in_and_first_out;
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
@@ -377,6 +427,9 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("get_children", &get_children);
   m.def("get_id_and_frame_xyz", &get_id_and_frame_xyz);
   m.def("calculate_ff_edge_delays", &calculate_ff_edge_delays);
+  m.def(
+      "get_block_parent_connectivity_from_toposort",
+      &get_block_parent_connectivity_from_toposort);
 }
 
 }  // namespace kinematics
