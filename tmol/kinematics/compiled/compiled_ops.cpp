@@ -329,6 +329,7 @@ auto calculate_ff_edge_delays(
   Tensor max_gen_depth_of_ff_edge;
   Tensor first_child_of_ff_edge;
   Tensor delay_for_edge;
+  Tensor toposort_index_for_edge;
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
         using Int = index_t;
@@ -350,6 +351,7 @@ auto calculate_ff_edge_delays(
         max_gen_depth_of_ff_edge = std::get<3>(result).tensor;
         first_child_of_ff_edge = std::get<4>(result).tensor;
         delay_for_edge = std::get<5>(result).tensor;
+        toposort_index_for_edge = std::get<6>(result).tensor;
       }));
   return {
       dfs_order_of_ff_edges,
@@ -357,7 +359,9 @@ auto calculate_ff_edge_delays(
       first_ff_edge_for_block_cpu,
       max_gen_depth_of_ff_edge,
       first_child_of_ff_edge,
-      delay_for_edge};
+      delay_for_edge,
+      toposort_index_for_edge,
+  };
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

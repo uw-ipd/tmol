@@ -165,6 +165,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
         max_gen_depth_of_ff_edge,
         first_child_of_ff_edge,
         delay_for_edge,
+        toposort_index_for_edge,
     ) = result
     print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
     print("n_ff_edges", n_ff_edges)
@@ -223,6 +224,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
     ff_edges[0, 4, 1] = 4
     ff_edges[0, 4, 2] = 5
 
+    # Let's flip the jump and root the tree at res 4
     ff_edges[1, 0, 0] = 0
     ff_edges[1, 0, 1] = 1
     ff_edges[1, 0, 2] = 0
@@ -231,7 +233,6 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
     ff_edges[1, 1, 1] = 1
     ff_edges[1, 1, 2] = 2
 
-    # Let's flip the jump!
     ff_edges[1, 2, 0] = 1
     ff_edges[1, 2, 1] = 4
     ff_edges[1, 2, 2] = 1
@@ -260,6 +261,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
         max_gen_depth_of_ff_edge,
         first_child_of_ff_edge,
         delay_for_edge,
+        toposort_index_for_edge,
     ) = result
     print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
     print("n_ff_edges", n_ff_edges)
@@ -267,6 +269,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
     print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
     print("first_child_of_ff_edge", first_child_of_ff_edge)
     print("delay_for_edge", delay_for_edge)
+    print("toposort_index_for_edge", toposort_index_for_edge)
 
 
 def test_get_kfo_indices_for_atoms(ubq_pdb):
