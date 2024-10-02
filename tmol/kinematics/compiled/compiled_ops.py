@@ -21,3 +21,5 @@ calculate_ff_edge_delays = _ops.calculate_ff_edge_delays
 get_block_parent_connectivity_from_toposort = (
     _ops.get_block_parent_connectivity_from_toposort
 )
+get_kinforest_scans_from_stencils = _ops.get_kinforest_scans_from_stencils
+get_kinforest_scans_from_stencils2 = _ops.get_kinforest_scans_from_stencils2

@@ -414,6 +414,150 @@ auto get_block_parent_connectivity_from_toposort(
   return pose_stack_block_in_and_first_out;
 }
 
+auto get_scans(
+    int64_t const max_n_atoms_per_pose,
+    Tensor pose_stack_block_coord_offset,         // P x L
+    Tensor pose_stack_block_type,                 // P x L
+    Tensor pose_stack_inter_residue_connections,  // P x L x C x 2
+    Tensor ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
+    int64_t const max_delay,
+    Tensor delay_for_edge,                     // P x E
+    Tensor topo_sort_index_for_edge,           // (P*E)
+    Tensor first_ff_edge_for_block,            // P x L
+    Tensor pose_stack_ff_parent,               // P x L
+    Tensor pose_stack_block_in_and_first_out,  // P x L x 2
+    Tensor block_type_parents,                 // T x O x A
+    Tensor kfo_2_orig_mapping,                 // K x 3
+    Tensor atom_kfo_index,                     // P x L x A
+    Tensor block_type_jump_atom,               // T
+    Tensor block_type_n_conn,                  // T
+    Tensor block_type_polymeric_conn_index,  // T x 2 - 2 is for "down" and "up"
+                                             // connections.
+    Tensor block_type_n_gens,                // T x I x O
+    Tensor block_type_kts_conn_info,         // T x I x O x C x 2 - 2 is for
+                                             // gen (0) and scan (1)
+    Tensor block_type_nodes_for_gens,        // T x I x O x G x N
+    Tensor block_type_n_scan_paths,          // T x I x O x G
+    Tensor block_type_scan_path_starts,      // T x I x O x G x S
+    Tensor block_type_scan_path_is_real,     // T x I x O x G x S
+    Tensor block_type_scan_path_is_inter_block,  // T x I x O x G x S
+    Tensor block_type_scan_path_length           // T x I x O x G x S
+    ) -> tensor_list {
+  printf("GET SCANS\n");
+  Tensor nodes;
+  Tensor nodes_offset_for_scan_path_for_gen;  // don't want this?
+  TMOL_DISPATCH_INDEX_DEVICE(
+      pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
+        using Int = index_t;
+        // using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                get_scans(
+                    max_n_atoms_per_pose,
+                    TCAST(pose_stack_block_coord_offset),
+                    TCAST(pose_stack_block_type),
+                    TCAST(pose_stack_inter_residue_connections),
+                    TCAST(ff_edges),
+                    max_delay,
+                    TCAST(delay_for_edge),
+                    TCAST(topo_sort_index_for_edge),
+                    TCAST(first_ff_edge_for_block),
+                    TCAST(pose_stack_ff_parent),
+                    TCAST(pose_stack_block_in_and_first_out),
+                    TCAST(block_type_parents),
+                    TCAST(kfo_2_orig_mapping),
+                    TCAST(atom_kfo_index),
+                    TCAST(block_type_jump_atom),
+                    TCAST(block_type_n_conn),
+                    TCAST(block_type_polymeric_conn_index),
+                    TCAST(block_type_n_gens),
+                    TCAST(block_type_kts_conn_info),
+                    TCAST(block_type_nodes_for_gens),
+                    TCAST(block_type_n_scan_paths),
+                    TCAST(block_type_scan_path_starts),
+                    TCAST(block_type_scan_path_is_real),
+                    TCAST(block_type_scan_path_is_inter_block),
+                    TCAST(block_type_scan_path_length));
+        nodes = std::get<0>(result).tensor;
+        nodes_offset_for_scan_path_for_gen = std::get<1>(result).tensor;
+      }));
+  return {nodes, nodes_offset_for_scan_path_for_gen};
+}
+
+auto get_scans2(
+    int64_t const max_n_atoms_per_pose,
+    Tensor pose_stack_block_coord_offset,         // P x L
+    Tensor pose_stack_block_type,                 // P x L
+    Tensor pose_stack_inter_residue_connections,  // P x L x C x 2
+    Tensor ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
+    int64_t const max_delay,
+    Tensor delay_for_edge,                     // P x E
+    Tensor topo_sort_index_for_edge,           // (P*E)
+    Tensor first_ff_edge_for_block,            // P x L
+    Tensor pose_stack_ff_parent,               // P x L
+    Tensor pose_stack_block_in_and_first_out,  // P x L x 2
+    Tensor block_type_parents,                 // T x O x A
+    Tensor kfo_2_orig_mapping,                 // K x 3
+    Tensor atom_kfo_index,                     // P x L x A
+    Tensor block_type_jump_atom,               // T
+    Tensor block_type_n_conn,                  // T
+    Tensor block_type_polymeric_conn_index,  // T x 2 - 2 is for "down" and "up"
+                                             // connections.
+    Tensor block_type_n_gens,                // T x I x O
+    Tensor block_type_kts_conn_info,         // T x I x O x C x 2 - 2 is for
+                                             // gen (0) and scan (1)
+    Tensor block_type_nodes_for_gens,        // T x I x O x G x N
+    Tensor block_type_n_scan_paths,          // T x I x O x G
+    Tensor block_type_scan_path_starts,      // T x I x O x G x S
+    Tensor block_type_scan_path_is_real,     // T x I x O x G x S
+    Tensor block_type_scan_path_is_inter_block,  // T x I x O x G x S
+    Tensor block_type_scan_path_length           // T x I x O x G x S
+    ) -> tensor_list {
+  printf("GET SCANS2\n");
+  Tensor nodes;
+  Tensor nodes_offset_for_scan_path_for_gen;  // don't want this?
+  TMOL_DISPATCH_INDEX_DEVICE(
+      pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
+        using Int = index_t;
+        // using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                get_scans2(
+                    max_n_atoms_per_pose,
+                    TCAST(pose_stack_block_coord_offset),
+                    TCAST(pose_stack_block_type),
+                    TCAST(pose_stack_inter_residue_connections),
+                    TCAST(ff_edges),
+                    max_delay,
+                    TCAST(delay_for_edge),
+                    TCAST(topo_sort_index_for_edge),
+                    TCAST(first_ff_edge_for_block),
+                    TCAST(pose_stack_ff_parent),
+                    TCAST(pose_stack_block_in_and_first_out),
+                    TCAST(block_type_parents),
+                    TCAST(kfo_2_orig_mapping),
+                    TCAST(atom_kfo_index),
+                    TCAST(block_type_jump_atom),
+                    TCAST(block_type_n_conn),
+                    TCAST(block_type_polymeric_conn_index),
+                    TCAST(block_type_n_gens),
+                    TCAST(block_type_kts_conn_info),
+                    TCAST(block_type_nodes_for_gens),
+                    TCAST(block_type_n_scan_paths),
+                    TCAST(block_type_scan_path_starts),
+                    TCAST(block_type_scan_path_is_real),
+                    TCAST(block_type_scan_path_is_inter_block),
+                    TCAST(block_type_scan_path_length));
+        nodes = std::get<0>(result).tensor;
+        nodes_offset_for_scan_path_for_gen = std::get<1>(result).tensor;
+      }));
+  return {nodes, nodes_offset_for_scan_path_for_gen};
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
@@ -430,6 +574,8 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def(
       "get_block_parent_connectivity_from_toposort",
       &get_block_parent_connectivity_from_toposort);
+  m.def("get_kinforest_scans_from_stencils", &get_scans);
+  m.def("get_kinforest_scans_from_stencils2", &get_scans2);
 }
 
 }  // namespace kinematics
