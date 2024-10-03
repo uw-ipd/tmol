@@ -2900,34 +2900,22 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // offsets using scan
   printf("Step 12\n");
   auto nodes_offset_for_scan_path_for_gen_tp = TPack<Int, 1, D>::zeros(
-      {n_gens_total * n_poses * max_n_blocks * max_n_scan_paths_per_gen});
+      {n_blocks_building_edges_total * max_n_scan_paths_per_gen});
   auto nodes_offset_for_scan_path_for_gen =
       nodes_offset_for_scan_path_for_gen_tp.view;
   int n_nodes_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           n_atoms_for_scan_path_for_gen.data(),
           nodes_offset_for_scan_path_for_gen.data(),
-          n_gens_total * n_poses * max_n_blocks * max_n_scan_paths_per_gen,
+          n_blocks_building_edges_total * max_n_scan_paths_per_gen,
           mgpu::plus_t<Int>());
 
   for (int ind = 0;
-       ind < n_gens_total * n_poses * max_n_blocks * max_n_scan_paths_per_gen;
+       ind < n_blocks_building_edges_total * max_n_scan_paths_per_gen;
        ++ind) {
     int i = ind;
-    int const pose =
-        i / (max_n_blocks * n_gens_total * max_n_scan_paths_per_gen);
-    i = i - pose * max_n_blocks * n_gens_total * max_n_scan_paths_per_gen;
-    int const block = i / (n_gens_total * max_n_scan_paths_per_gen);
-    i = i - block * n_gens_total * max_n_scan_paths_per_gen;
-    int const gen = i / max_n_scan_paths_per_gen;
-
-    int const scan_path = i % max_n_scan_paths_per_gen;
     printf(
-        "nodes_offset_for_scan_path_for_gen[(%d, %d, %d, %d) = %d] = %d\n",
-        pose,
-        block,
-        gen,
-        scan_path,
+        "nodes_offset_for_scan_path_for_gen[%d] = %d\n",
         ind,
         nodes_offset_for_scan_path_for_gen[ind]);
   }
@@ -3026,7 +3014,14 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
 
     int edge_toposort_index = topo_sort_index_for_edge[ff_edge_global_index];
     int boftsfg = block_offset_for_tsedge_for_gen
-        [ff_edge_delay * n_poses * max_n_edges_per_ff + edge_toposort_index];
+        [ff_edge_gen * n_poses * max_n_edges_per_ff + edge_toposort_index];
+    printf(
+        "boftsfg = block_offset_for_tsedge_for_gen[%d * %d * %d + %d] = %d\n",
+        ff_edge_gen,
+        n_poses,
+        max_n_edges_per_ff,
+        edge_toposort_index,
+        boftsfg);
     printf(
         "sp_index_in_n_atoms_offset calc: %d + %d * %d (%d) + %d * %d (%d)\n",
         scan_path,
@@ -3110,7 +3105,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
                                    [scan_path];
     for (int j = 0; j < n_atoms_for_scan_path; ++j) {
       printf(
-          "setting nodes[%d] = %d\n",
+          "setting nodes[%d + %d + %d = %d] = %d\n",
+          nodes_offset,
+          j,
+          extra_atom_count,
           nodes_offset + j + extra_atom_count,
           block_type_nodes_for_gens[block_type][input_conn][first_out_conn][gen]
                                    [bt_scan_path_start + j]
