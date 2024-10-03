@@ -2820,6 +2820,14 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
           // fold forest (atom 0) to the root of the fold tree for
           // this Pose.
           extra_atom_count = 1;
+          // NO!
+          // if (is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose]) {
+          //   // This is also the root of the fold tree, so not only
+          //   // do we need a node for the start block's jump atom, but
+          //   // we also need a node for the root of the fold forest
+          //   // (atom 0)
+          //   extra_atom_count = 2;
+          // }
         }
       }
     }
@@ -2955,6 +2963,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       return;
     }
 
+    bool is_edge_ft_root = false;
+    bool is_bt_scan_path_root_of_own_scan_path = false;
     int ff_edge_on_pose = first_ff_edge_for_block[pose][block];
     int ff_edge_global_index = ff_edge_on_pose + pose * max_n_edges_per_ff;
     // note: this must be set based on the first FF edge for block;
@@ -2970,6 +2980,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       // nj_ff_edge_rooted_at_scan_path);
       ff_edge_on_pose = nj_ff_edge_rooted_at_scan_path;
       ff_edge_global_index = ff_edge_on_pose + pose * max_n_edges_per_ff;
+      is_edge_ft_root = is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose];
       if (is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose]) {
         // The path leaving the root of the fold forest (atom 0)
         // requires an extra atom that will not be listed in the
@@ -2982,6 +2993,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       int const j_ff_edge_rooted_at_scan_path =
           jump_ff_edge_rooted_at_scan_path[pose][block][gen][scan_path];
       if (j_ff_edge_rooted_at_scan_path != -1) {
+        is_edge_ft_root = is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose];
         if (is_ff_edge_root_of_scan_path[pose][ff_edge_on_pose]) {
           // Jump edge that's rooted at this scan path. For this
           // edge we must add an extra atom representing the
@@ -2992,6 +3004,14 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
           // fold forest (atom 0) to the root of the fold tree for
           // this Pose.
           extra_atom_count = 1;
+          // NO??
+          // if (is_edge_ft_root) {
+          //   // This is also the root of the fold tree, so not only
+          //   // do we need a node for the start block's jump atom, but
+          //   // we also need a node for the root of the fold forest
+          //   // (atom 0)
+          //   extra_atom_count = 2;
+          // }
         }
       }
     }
@@ -3095,9 +3115,53 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     // NOW WE ARE READY!!!
     // TO DO: MAKE THIS LOGIC RIGHT?!?!?
     if (extra_atom_count == 1) {
+      // if (is_root_path) {
+      //   // The jump edge is rooted at this scan path, so we must add an
+      //   // extra atom to the nodes tensor.
+      //   printf("Setting extra atom for jump %d %d %d %d %d (%d -> %d); "
+      //          "nodes[%d] = %d\n",
+      //          pose,
+      //          block,
+      //          gen,
+      //          scan_path,
+      //          ff_edge_on_pose,
+      //          ff_edges[pose][ff_edge_on_pose][1],
+      //          ff_edges[pose][ff_edge_on_pose][2],
+      //          nodes_offset,
+      //          block_type_jump_atom[block_type]);
+      //   nodes[nodes_offset] = block_type_jump_atom[block_type];
+      // }
+
       // The jump edge is rooted at this scan path, so we must add an
-      // extra atom to the nodes tensor.
-      nodes[nodes_offset] = block_type_jump_atom[block_type];
+      // extra atom to the nodes tensor for its parent's jump atom
+      // UNLESS this is actually the root path, in which case, we
+      // have to add node 0.
+      int parent_atom_ind = 0;
+      if (!is_edge_ft_root) {
+        // find the jump atom of the parent block type
+        int const parent_block = ff_edges[pose][ff_edge_on_pose][1];
+        int const parent_block_type = pose_stack_block_type[pose][parent_block];
+        int const parent_local_jump_atom =
+            block_type_jump_atom[parent_block_type];
+        parent_atom_ind = pose * max_n_atoms_per_pose
+                          + pose_stack_block_coord_offset[pose][parent_block]
+                          + parent_local_jump_atom;
+      }
+
+      printf(
+          "Setting extra atom for jump %d %d %d %d %d (%d -> %d); nodes[%d] = "
+          "%d\n",
+          pose,
+          block,
+          gen,
+          scan_path,
+          ff_edge_on_pose,
+          ff_edges[pose][ff_edge_on_pose][1],
+          ff_edges[pose][ff_edge_on_pose][2],
+          nodes_offset,
+          parent_atom_ind);
+
+      nodes[nodes_offset] = parent_atom_ind;
     }
 
     int const bt_scan_path_start =
