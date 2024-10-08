@@ -238,7 +238,7 @@ class JumpDOF(TensorGroup, ConvertAttrs):
 
 
 @attrs.define
-class BTGenerationalSegScanPaths:
+class BTGenerationalSegScanPathSegs:
     jump_atom: int
     parents: NDArray[numpy.int64][:, :]  # n-input x n-atoms
     input_conn_atom: NDArray[numpy.int64][:]  # n-input
@@ -247,14 +247,14 @@ class BTGenerationalSegScanPaths:
     nodes_for_gen: NDArray[numpy.int64][
         :, :, :, :
     ]  # n-input x n-output x max-n-gen x max-n-nodes-per-gen
-    n_scans: NDArray[numpy.int64][:, :, :]
-    scan_path_that_builds_output_conn: NDArray[numpy.int64][
+    n_scan_path_segs: NDArray[numpy.int64][:, :, :]  # n-input x n-output x n-gen
+    scan_path_seg_that_builds_output_conn: NDArray[numpy.int64][
         :, :, :, 2
     ]  # n-input x n-output x n-conn x 2
-    scan_starts: NDArray[numpy.int64][:, :, :, :]
-    scan_is_real: NDArray[bool][:, :, :, :]
-    scan_is_inter_block: NDArray[bool][:, :, :, :]
-    scan_lengths: NDArray[numpy.int64][:, :, :, :]
+    scan_path_seg_starts: NDArray[numpy.int64][:, :, :, :]
+    scan_path_seg_is_real: NDArray[bool][:, :, :, :]
+    scan_path_seg_is_inter_block: NDArray[bool][:, :, :, :]
+    scan_path_seg_lengths: NDArray[numpy.int64][:, :, :, :]
 
     @classmethod
     def empty(
@@ -264,7 +264,7 @@ class BTGenerationalSegScanPaths:
         n_atoms,
         n_conn,
         max_n_gens,
-        max_n_scans,
+        max_n_scan_path_segs_per_gen,
         max_n_nodes_per_gen,
     ):
         io = (n_input_types, n_output_types)
@@ -279,19 +279,27 @@ class BTGenerationalSegScanPaths:
             nodes_for_gen=numpy.full(
                 io + (max_n_gens, max_n_nodes_per_gen), -1, dtype=int
             ),
-            n_scans=numpy.zeros(io + (max_n_gens,), dtype=int),
-            scan_path_that_builds_output_conn=numpy.full(
+            n_scan_path_segs=numpy.zeros(io + (max_n_gens,), dtype=int),
+            scan_path_seg_that_builds_output_conn=numpy.full(
                 io + (n_conn, 2), -1, dtype=int
             ),
-            scan_starts=numpy.full(io + (max_n_gens, max_n_scans), -1, dtype=int),
-            scan_is_real=numpy.zeros(io + (max_n_gens, max_n_scans), dtype=bool),
-            scan_is_inter_block=numpy.zeros(io + (max_n_gens, max_n_scans), dtype=bool),
-            scan_lengths=numpy.zeros(io + (max_n_gens, max_n_scans), dtype=int),
+            scan_path_seg_starts=numpy.full(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen), -1, dtype=int
+            ),
+            scan_path_seg_is_real=numpy.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=bool
+            ),
+            scan_path_seg_is_inter_block=numpy.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=bool
+            ),
+            scan_path_seg_lengths=numpy.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=int
+            ),
         )
 
 
 @attrs.define
-class PBTGenerationalSegScanPaths:
+class PBTGenerationalSegScanPathSegs:
     jump_atom: NDArray[numpy.int64][:]  # n-bt
     parents: Tensor[torch.int32][:, :, :]  # n-bt x n-input x n-atoms
     input_conn_atom: Tensor[torch.int32][:, :]  # n-bt x n-input
@@ -300,14 +308,16 @@ class PBTGenerationalSegScanPaths:
     nodes_for_gen: Tensor[torch.int32][
         :, :, :, :, :
     ]  # n-input x n-output x max-n-gen x max-n-nodes-per-gen
-    n_scans: Tensor[torch.int32][:, :, :, :]
-    scan_path_that_builds_output_conn: NDArray[numpy.int64][
+    n_scan_path_segs: Tensor[torch.int32][
+        :, :, :, :
+    ]  # n-bt x n-input x n-output x n-gen
+    scan_path_seg_that_builds_output_conn: NDArray[numpy.int64][
         :, :, :, :, 2
     ]  # n-bt x n-input x n-output x n-conn x 2
-    scan_starts: Tensor[torch.int32][:, :, :, :, :]
-    scan_is_real: Tensor[bool][:, :, :, :, :]
-    scan_is_inter_block: Tensor[bool][:, :, :, :, :]
-    scan_lengths: Tensor[torch.int32][:, :, :, :, :]
+    scan_path_seg_starts: Tensor[torch.int32][:, :, :, :, :]
+    scan_path_seg_is_real: Tensor[bool][:, :, :, :, :]
+    scan_path_seg_is_inter_block: Tensor[bool][:, :, :, :, :]
+    scan_path_seg_lengths: Tensor[torch.int32][:, :, :, :, :]
 
     @classmethod
     def empty(
@@ -319,7 +329,7 @@ class PBTGenerationalSegScanPaths:
         max_n_atoms,
         max_n_conn,
         max_n_gens,
-        max_n_scans,
+        max_n_scan_path_segs_per_gen,
         max_n_nodes_per_gen,
     ):
         io = (n_bt, max_n_input_types, max_n_output_types)
@@ -344,20 +354,31 @@ class PBTGenerationalSegScanPaths:
                 dtype=torch.int32,
                 device=device,
             ),
-            n_scans=torch.zeros(io + (max_n_gens,), dtype=torch.int32, device=device),
-            scan_path_that_builds_output_conn=torch.full(
+            n_scan_path_segs=torch.zeros(
+                io + (max_n_gens,), dtype=torch.int32, device=device
+            ),
+            scan_path_seg_that_builds_output_conn=torch.full(
                 io + (max_n_conn, 2), -1, dtype=torch.int32, device=device
             ),
-            scan_starts=torch.full(
-                io + (max_n_gens, max_n_scans), -1, dtype=torch.int32, device=device
+            scan_path_seg_starts=torch.full(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen),
+                -1,
+                dtype=torch.int32,
+                device=device,
             ),
-            scan_is_real=torch.zeros(
-                io + (max_n_gens, max_n_scans), dtype=torch.bool, device=device
+            scan_path_seg_is_real=torch.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen),
+                dtype=torch.bool,
+                device=device,
             ),
-            scan_is_inter_block=torch.zeros(
-                io + (max_n_gens, max_n_scans), dtype=bool, device=device
+            scan_path_seg_is_inter_block=torch.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen),
+                dtype=bool,
+                device=device,
             ),
-            scan_lengths=torch.zeros(
-                io + (max_n_gens, max_n_scans), dtype=torch.int32, device=device
+            scan_path_seg_lengths=torch.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen),
+                dtype=torch.int32,
+                device=device,
             ),
         )

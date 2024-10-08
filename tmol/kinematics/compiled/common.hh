@@ -414,8 +414,8 @@ struct KinForestFromStencil {
                                                 // start, 2: stop, 3: jump ind
       TView<Int, 5, D> block_type_kts_conn_info,  // y - T x I x O x C x 2 -- 2
                                                   // is for gen (0) and scan (1)
-      TView<Int, 5, D> block_type_nodes_for_gens,   // y - T x I x O x G x N
-      TView<Int, 5, D> block_type_scan_path_starts  // y - T x I x O x G x S
+      TView<Int, 5, D> block_type_nodes_for_gens,       // y - T x I x O x G x N
+      TView<Int, 5, D> block_type_scan_path_seg_starts  // y - T x I x O x G x S
       )
       -> std::tuple<
           TPack<Int, 2, Device::CPU>,  // dfs_order_of_ff_edges_t

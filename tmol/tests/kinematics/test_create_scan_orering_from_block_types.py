@@ -20,8 +20,8 @@ from tmol.kinematics.datatypes import NodeType
 from tmol.kinematics.fold_forest import EdgeType
 from tmol.kinematics.scan_ordering import (
     # get_children,
-    _annotate_block_type_with_gen_scan_paths,
-    _annotate_packed_block_type_with_gen_scan_paths,
+    _annotate_block_type_with_gen_scan_path_segs,
+    _annotate_packed_block_type_with_gen_scan_path_segs,
 )
 from tmol.kinematics.compiled import inverse_kin, forward_kin_op
 
@@ -58,8 +58,8 @@ def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_se
 
     bt_list = [bt for bt in fresh_default_restype_set.residue_types if bt.name == "LEU"]
     for bt in bt_list:
-        _annotate_block_type_with_gen_scan_paths(bt)
-        assert hasattr(bt, "gen_seg_scan_paths")
+        _annotate_block_type_with_gen_scan_path_segs(bt)
+        assert hasattr(bt, "gen_seg_scan_path_segs")
 
 
 def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb):
@@ -80,8 +80,8 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb):
     pose_stack = pose_stack_from_canonical_form(
         co, pbt, **canonical_form, res_not_connected=res_not_connected
     )
-    _annotate_packed_block_type_with_gen_scan_paths(pbt)
-    pbt_gssp = pbt.gen_seg_scan_paths
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+    pbt_gssps = pbt.gen_seg_scan_path_segs
 
     max_n_edges = 1
     ff_edges = torch.zeros(
@@ -95,10 +95,11 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb):
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
         pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
         ff_edges,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
-        pbt_gssp.scan_path_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
-        pbt_gssp.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
-        pbt_gssp.scan_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
+        pbt_gssps.scan_path_seg_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
+        pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
+        pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
     )
+    assert result is not None
 
 
 def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
@@ -119,8 +120,8 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
     pose_stack = pose_stack_from_canonical_form(
         co, pbt, **canonical_form, res_not_connected=res_not_connected
     )
-    _annotate_packed_block_type_with_gen_scan_paths(pbt)
-    pbt_gssp = pbt.gen_seg_scan_paths
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+    pbt_gssps = pbt.gen_seg_scan_path_segs
 
     max_n_edges = 5
     ff_edges = torch.full(
@@ -153,15 +154,17 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
         pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
         ff_edges,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
-        pbt_gssp.scan_path_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
-        pbt_gssp.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
-        pbt_gssp.scan_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
+        pbt_gssps.scan_path_seg_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
+        pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
+        pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
     )
-    # print("result", result)
+
     (
         dfs_order_of_ff_edges,
         n_ff_edges,
+        ff_edge_parent,
         first_ff_edge_for_block_cpu,
+        pose_stack_ff_parent,
         max_gen_depth_of_ff_edge,
         first_child_of_ff_edge,
         delay_for_edge,
@@ -169,10 +172,13 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
     ) = result
     print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
     print("n_ff_edges", n_ff_edges)
+    print("ff_edge_parent", ff_edge_parent)
     print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
+    print("pose_stack_ff_parent", pose_stack_ff_parent)
     print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
     print("first_child_of_ff_edge", first_child_of_ff_edge)
     print("delay_for_edge", delay_for_edge)
+    print("toposort_index_for_edge", toposort_index_for_edge)
 
 
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
@@ -194,8 +200,8 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
         co, pbt, **canonical_form, res_not_connected=res_not_connected
     )
     pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
-    _annotate_packed_block_type_with_gen_scan_paths(pbt)
-    pbt_gssp = pbt.gen_seg_scan_paths
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+    pbt_gssps = pbt.gen_seg_scan_path_segs
 
     max_n_edges = 5
     ff_edges = torch.full(
@@ -249,9 +255,9 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
         pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
         ff_edges,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
-        pbt_gssp.scan_path_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
-        pbt_gssp.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
-        pbt_gssp.scan_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
+        pbt_gssps.scan_path_seg_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
+        pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
+        pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
     )
     # print("result", result)
     (
@@ -298,8 +304,8 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(ubq_
         co, pbt, **canonical_form, res_not_connected=res_not_connected
     )
     pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
-    _annotate_packed_block_type_with_gen_scan_paths(pbt)
-    pbt_gssp = pbt.gen_seg_scan_paths
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+    pbt_gssps = pbt.gen_seg_scan_path_segs
 
     max_n_edges = 5
     ff_edges = torch.full(
@@ -353,9 +359,9 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(ubq_
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
         pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
         ff_edges,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
-        pbt_gssp.scan_path_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
-        pbt_gssp.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
-        pbt_gssp.scan_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
+        pbt_gssps.scan_path_seg_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
+        pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
+        pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
     )
     # print("result", result)
     (
@@ -409,8 +415,8 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     pose_stack = pose_stack_from_canonical_form(
         co, pbt, **canonical_form, res_not_connected=res_not_connected
     )
-    _annotate_packed_block_type_with_gen_scan_paths(pbt)
-    pbt_gssp = pbt.gen_seg_scan_paths
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+    pbt_gssps = pbt.gen_seg_scan_path_segs
 
     bt0 = pbt.active_block_types[pose_stack.block_type_ind[0, 0]]
     bt1 = pbt.active_block_types[pose_stack.block_type_ind[0, 1]]
@@ -464,10 +470,10 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     print("fold_forest_parent", fold_forest_parent.dtype)
     print("ff_conn_to_parent", ff_conn_to_parent.dtype)
     print("block_in_out", block_in_out.dtype)
-    print("pbt_gssp.parents", pbt_gssp.parents.dtype)
+    print("pbt_gssps.parents", pbt_gssps.parents.dtype)
     print("kfo_2_orig_mapping", kfo_2_orig_mapping.dtype)
     print("atom_kfo_index", atom_kfo_index.dtype)
-    print("pbt_gssp.jump_atom", pbt_gssp.jump_atom.dtype)
+    print("pbt_gssps.jump_atom", pbt_gssps.jump_atom.dtype)
     print("pbt.n_conn", pbt.n_conn.dtype)
     print("pbt.conn_atom", pbt.conn_atom.dtype)
 
@@ -475,12 +481,12 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         fold_forest_parent,
-        ff_conn_to_parent,
+        # ff_conn_to_parent,
         block_in_out,
-        pbt_gssp.parents,
+        pbt_gssps.parents,
         kfo_2_orig_mapping,
         atom_kfo_index,
-        pbt_gssp.jump_atom,
+        pbt_gssps.jump_atom,
         pbt.n_conn,
         pbt.conn_atom,
     )
@@ -530,9 +536,9 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     pose_stack = pose_stack_from_canonical_form(
         co, pbt, **canonical_form, res_not_connected=res_not_connected
     )
-    _annotate_packed_block_type_with_gen_scan_paths(pbt)
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
 
-    pbt_gssp = pbt.gen_seg_scan_paths
+    pbt_gssps = pbt.gen_seg_scan_path_segs
 
     # for bt in pbt.active_block_types:
     #     _annotate_block_type_with_gen_scan_paths(bt)
@@ -560,30 +566,30 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     bt1 = pbt.active_block_types[pose_stack.block_type_ind[0, 1]]
     print("bt0", bt0.name, bt0.n_atoms)
     print("bt1", bt1.name, bt1.n_atoms)
-    bt0gssp = bt0.gen_seg_scan_paths
-    bt1gssp = bt1.gen_seg_scan_paths
+    bt0gssps = bt0.gen_seg_scan_path_segs
+    bt1gssps = bt1.gen_seg_scan_path_segs
 
     print("nodes")
-    print(bt0gssp.nodes_for_gen[3, 1])
-    print(bt1gssp.nodes_for_gen[0, 1])
+    print(bt0gssps.nodes_for_gen[3, 1])
+    print(bt1gssps.nodes_for_gen[0, 1])
 
     print("scans")
-    print(bt0gssp.scan_starts[3, 1])
-    print(bt1gssp.scan_starts[0, 1])
+    print(bt0gssps.scan_path_seg_starts[3, 1])
+    print(bt1gssps.scan_path_seg_starts[0, 1])
 
     # print("gens")
     # print(bt0gssp.
 
     print("parents")
-    print(bt0gssp.parents[3])
-    print(bt1gssp.parents[0])
+    print(bt0gssps.parents[3])
+    print(bt1gssps.parents[0])
     print(
         "parents in pbt, res1",
-        pbt_gssp.parents[pose_stack.block_type_ind[0, 0], 3],
+        pbt_gssps.parents[pose_stack.block_type_ind[0, 0], 3],
     )
     print(
         "parents in pbt, res2",
-        pbt_gssp.parents[pose_stack.block_type_ind[0, 1], 0],
+        pbt_gssps.parents[pose_stack.block_type_ind[0, 1], 0],
     )
 
     ij0 = [3, 1]  # 3 => root "input"; Q: is this different from jump input?
@@ -591,7 +597,12 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
 
     nodes = numpy.zeros((bt0.n_atoms + bt1.n_atoms,), dtype=numpy.int32)
     scans = numpy.zeros(
-        (max(bt0gssp.scan_starts.shape[2], bt1gssp.scan_starts.shape[2]),),
+        (
+            max(
+                bt0gssps.scan_path_seg_starts.shape[2],
+                bt1gssps.scan_path_seg_starts.shape[2],
+            ),
+        ),
         dtype=numpy.int32,
     )
     # gens = numpy.zeros(())
@@ -810,7 +821,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
         -1,
         dtype=torch.int32,
     )
-    per_block_type_parent[is_bt_real, :] = pbt_gssp.parents[
+    per_block_type_parent[is_bt_real, :] = pbt_gssps.parents[
         pose_stack.block_type_ind64[is_bt_real],
         block_in_out[is_bt_real][:, 0],
     ]
@@ -1004,8 +1015,11 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         co, pbt, **canonical_form, res_not_connected=res_not_connected
     )
     pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
-    _annotate_packed_block_type_with_gen_scan_paths(pbt)
-    pbt_gssp = pbt.gen_seg_scan_paths
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+    pbt_gssps = pbt.gen_seg_scan_path_segs
+
+    print("pbt_gssps.scan_path_seg_is_inter_block")
+    print(pbt_gssps.scan_path_seg_is_inter_block[24, 0, 1])
 
     max_n_edges = 5
     ff_edges_cpu = torch.full(
@@ -1061,9 +1075,9 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
         pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
         ff_edges_cpu,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
-        pbt_gssp.scan_path_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
-        pbt_gssp.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
-        pbt_gssp.scan_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
+        pbt_gssps.scan_path_seg_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
+        pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
+        pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
     )
     # print("result", result)
     (
@@ -1112,20 +1126,20 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         first_ff_edge_for_block,
         pose_stack_ff_parent,
         pose_stack_block_in_and_first_out,
-        pbt_gssp.parents,
+        pbt_gssps.parents,
         kfo_2_orig_mapping,
         atom_kfo_index,
-        pbt_gssp.jump_atom,
+        pbt_gssps.jump_atom,
         pbt.n_conn,
         pbt.polymeric_conn_inds,
-        pbt_gssp.n_gens,
-        pbt_gssp.scan_path_that_builds_output_conn,
-        pbt_gssp.nodes_for_gen,
-        pbt_gssp.n_scans,
-        pbt_gssp.scan_starts,
-        pbt_gssp.scan_is_real,
-        pbt_gssp.scan_is_inter_block,
-        pbt_gssp.scan_lengths,
+        pbt_gssps.n_gens,
+        pbt_gssps.scan_path_seg_that_builds_output_conn,
+        pbt_gssps.nodes_for_gen,
+        pbt_gssps.n_scan_path_segs,
+        pbt_gssps.scan_path_seg_starts,
+        pbt_gssps.scan_path_seg_is_real,
+        pbt_gssps.scan_path_seg_is_inter_block,
+        pbt_gssps.scan_path_seg_lengths,
     )
 
 
