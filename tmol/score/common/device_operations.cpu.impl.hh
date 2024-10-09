@@ -70,7 +70,7 @@ struct DeviceOperations<tmol::Device::CPU> {
       T i_val = src[i];
       T next_val = op(last_val, i_val);
       dst[i] = (scan_type == mgpu::scan_type_exc) ? last_val : next_val;
-      printf("scan %d: %d\n", i, dst[i]);
+      // printf("scan %d: %d\n", i, dst[i]);
       last_val = next_val;
     }
     return last_val;

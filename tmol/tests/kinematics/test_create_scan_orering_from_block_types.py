@@ -936,7 +936,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     #     pose_stack.block_type_ind64[is_connected_to_root], 0
     # ]
     real_conn_to_root_bt = pose_stack.block_type_ind64[is_connected_to_root]
-    real_conn_to_root_atoms = pbt_gssp.jump_atom[real_conn_to_root_bt]
+    real_conn_to_root_atoms = pbt_gssps.jump_atom[real_conn_to_root_bt]
     atoms_connected_to_the_root = (
         real_conn_to_root_atoms + kfo_block_offset[is_connected_to_root]
     )
