@@ -170,7 +170,7 @@ auto get_kfo_indices_for_atoms(
     Tensor pose_stack_block_type,
     Tensor block_type_n_atoms,
     Tensor block_type_atom_is_real) -> tensor_list {
-  printf("GET KFO INDICES FOR ATOMS\n");
+  // printf("GET KFO INDICES FOR ATOMS\n");
   at::Tensor block_kfo_offset_tp;
   at::Tensor kfo_2_orig_mapping_tp;
   at::Tensor atom_kfo_index;
@@ -206,7 +206,7 @@ auto get_kfo_atom_parents(
     Tensor block_type_jump_atom,               // T
     Tensor block_type_n_conn,                  // T
     Tensor block_type_conn_atom) -> tensor_list {
-  printf("GET KFO ATOM PARENTS\n");
+  // printf("GET KFO ATOM PARENTS\n");
   at::Tensor kfo_parent_atoms;
   at::Tensor kfo_grandparent_atoms;
   TMOL_DISPATCH_INDEX_DEVICE(
@@ -243,7 +243,7 @@ auto get_children(
     Tensor kfo_parent_atoms,                   // K
     Tensor block_type_n_conn                   // T
     ) -> tensor_list {
-  printf("GET CHILDREN\n");
+  // printf("GET CHILDREN\n");
   at::Tensor n_children;
   at::Tensor child_list_span;
   at::Tensor child_list;
@@ -281,7 +281,7 @@ auto get_id_and_frame_xyz(
     Tensor child_list,          // K x 3
     Tensor is_atom_jump         // K
     ) -> tensor_list {
-  printf("GET FRAME X Y Z\n");
+  // printf("GET FRAME X Y Z\n");
   at::Tensor id;
   at::Tensor frame_x;
   at::Tensor frame_y;
@@ -322,7 +322,7 @@ auto calculate_ff_edge_delays(
     Tensor block_type_nodes_for_gens,   // y - T x I x O x G x N
     Tensor block_type_scan_path_starts  // y - T x I x O x G x S
     ) -> tensor_list {
-  printf("CALCULATE FF EDGE DELAYS\n");
+  // printf("CALCULATE FF EDGE DELAYS\n");
   Tensor dfs_order_of_ff_edges;
   Tensor n_ff_edges;
   Tensor ff_edge_parent;
@@ -383,7 +383,7 @@ auto get_block_parent_connectivity_from_toposort(
     Tensor topo_sort_index_for_edge,  // (P*E)
     Tensor block_type_n_conn,         // T
     Tensor block_type_polymeric_conn_index) -> Tensor {
-  printf("GET BLOCK PARENT CONNECTIVITY FROM TOPOSORT\n");
+  // printf("GET BLOCK PARENT CONNECTIVITY FROM TOPOSORT\n");
 
   Tensor pose_stack_block_in_and_first_out;
   TMOL_DISPATCH_INDEX_DEVICE(
@@ -443,7 +443,7 @@ auto get_scans2(
     Tensor block_type_scan_path_is_inter_block,  // T x I x O x G x S
     Tensor block_type_scan_path_length           // T x I x O x G x S
     ) -> tensor_list {
-  printf("GET SCANS2\n");
+  // printf("GET SCANS2\n");
   Tensor nodes;
   Tensor scans;
   Tensor gens;

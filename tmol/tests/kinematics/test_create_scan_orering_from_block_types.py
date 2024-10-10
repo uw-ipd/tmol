@@ -1021,8 +1021,8 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
-    print("pbt_gssps.scan_path_seg_is_inter_block")
-    print(pbt_gssps.scan_path_seg_is_inter_block[24, 0, 1])
+    # print("pbt_gssps.scan_path_seg_is_inter_block")
+    # print(pbt_gssps.scan_path_seg_is_inter_block[24, 0, 1])
 
     max_n_edges = 5
     ff_edges_cpu = torch.full(
@@ -1176,9 +1176,9 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         pbt_gssps.scan_path_seg_is_inter_block,
         pbt_gssps.scan_path_seg_lengths,
     )
-    print("nodes", nodes)
-    print("scans", scans)
-    print("gens", gens)
+    # print("nodes", nodes)
+    # print("scans", scans)
+    # print("gens", gens)
 
     kincoords = torch.zeros((id.shape[0], 3), dtype=torch.float32)
     kincoords[1:] = pose_stack.coords.view(-1, 3)[id[1:]]
@@ -1187,14 +1187,14 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
     # is_atom_real = torch.zeros((pose_stack.block_type_ind.shape[0], pose_stack.block_type_ind.shape[1], pbt.max_n_atoms), dtype=torch.bool)
     is_atom_real = pbt.atom_is_real[pose_stack.block_type_ind[is_res_real]]
     # block_atom_dof_type = torch.full((pose_stack.block_type_ind.shape[0], pose_stack.block_type_ind.shape[1], pbt.max_n_atoms), -1, dtype=torch.int32)
-    print("pose_stack_block_in_and_first_out", pose_stack_block_in_and_first_out)
-    print(
-        "pose_stack_block_in_and_first_out[is_res_real][:, 0]",
-        pose_stack_block_in_and_first_out[is_res_real][:, 0],
-    )
-    print(
-        "pose_stack.block_type_ind[is_res_real]", pose_stack.block_type_ind[is_res_real]
-    )
+    # print("pose_stack_block_in_and_first_out", pose_stack_block_in_and_first_out)
+    # print(
+    #     "pose_stack_block_in_and_first_out[is_res_real][:, 0]",
+    #     pose_stack_block_in_and_first_out[is_res_real][:, 0],
+    # )
+    # print(
+    #     "pose_stack.block_type_ind[is_res_real]", pose_stack.block_type_ind[is_res_real]
+    # )
     block_atom_dof_type = pbt_gssps.dof_type[
         pose_stack.block_type_ind[is_res_real],
         pose_stack_block_in_and_first_out[is_res_real][:, 0],
@@ -1211,26 +1211,26 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
     # c1 c2 126 111
     # get_c1_and_c2_atoms: jump atom 182, 181, 167
 
-    def print_frames(jump, i):
-        print(
-            f"jump {jump}: dof_type[{i}] {dof_type[i]} frame_x[{i}] {frame_x[i]}, frame_y[{i}] {frame_y[i]}, frame_z[{i}] {frame_z[i]}"
-        )
+    # def print_frames(jump, i):
+    #     print(
+    #         f"jump {jump}: dof_type[{i}] {dof_type[i]} frame_x[{i}] {frame_x[i]}, frame_y[{i}] {frame_y[i]}, frame_z[{i}] {frame_z[i]}"
+    #     )
 
-    def print_children(jump, i):
-        for child_ind in range(child_list_span[i], child_list_span[i + 1]):
-            child = child_list[child_ind]
-            print_frames(f"child of {jump}", child)
+    # def print_children(jump, i):
+    #     for child_ind in range(child_list_span[i], child_list_span[i + 1]):
+    #         child = child_list[child_ind]
+    #         print_frames(f"child of {jump}", child)
 
-    def print_three_frames(jump, at1, at2, at3):
-        print_frames(jump, at1)
-        print_children(jump, at1)
-        print_frames(jump, at2)
-        print_frames(jump, at3)
+    # def print_three_frames(jump, at1, at2, at3):
+    #     print_frames(jump, at1)
+    #     print_children(jump, at1)
+    #     print_frames(jump, at2)
+    #     print_frames(jump, at3)
 
-    print_three_frames(1, 19, 18, 3)
-    print_three_frames(2, 74, 73, 59)
-    print_three_frames(3, 127, 126, 111)
-    print_three_frames(4, 182, 181, 167)
+    # print_three_frames(1, 19, 18, 3)
+    # print_three_frames(2, 74, 73, 59)
+    # print_three_frames(3, 127, 126, 111)
+    # print_three_frames(4, 182, 181, 167)
 
     raw_dofs = inverse_kin(
         kincoords,
@@ -1278,19 +1278,19 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
 
     # print("starting coords", pose_stack.coords.view(-1, 3)[14:19])
 
-    print("kincoords[15:20]", kincoords[15:20])
-    print("new coords[15:20]", new_coords[15:20])
+    # print("kincoords[15:20]", kincoords[15:20])
+    # print("new coords[15:20]", new_coords[15:20])
 
-    print("dof_type[70:75]", dof_type[70:75])
+    # print("dof_type[70:75]", dof_type[70:75])
 
-    print("kincoords[70:75]", kincoords[70:75])
-    print("new coords[70:75]", new_coords[70:75])
+    # print("kincoords[70:75]", kincoords[70:75])
+    # print("new coords[70:75]", new_coords[70:75])
 
-    print("kincoords[125:130]", kincoords[125:130])
-    print("new coords[125:130]", new_coords[125:130])
+    # print("kincoords[125:130]", kincoords[125:130])
+    # print("new coords[125:130]", new_coords[125:130])
 
-    print("kincoords[180:185]", kincoords[180:185])
-    print("new coords[180:185]", new_coords[180:185])
+    # print("kincoords[180:185]", kincoords[180:185])
+    # print("new coords[180:185]", new_coords[180:185])
 
     torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
 

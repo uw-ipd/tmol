@@ -27,8 +27,8 @@ struct ForwardKinDispatch {
       TView<KinForestParams<Int>, 1, D> kintree)
       -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D> > {
     auto num_atoms = dofs.size(0);
-    printf("dofs.size(0): %d\n", num_atoms);
-    printf("nodes.size(0): %d\n", nodes.size(0));
+    // printf("dofs.size(0): %d\n", num_atoms);
+    // printf("nodes.size(0): %d\n", nodes.size(0));
 
     auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
     auto HTs = HTs_t.view;
@@ -69,103 +69,107 @@ struct ForwardKinDispatch {
         for (int k = nodestart; k < nodestop - 1; k++) {  // loop over path
           // printf("k: %d %d %d\n", gen, j, k);
           //     print_three_frames(2, 74, 73, 59)
-          int kn = nodes[k];
-          int kp1n = nodes[k + 1];
-          bool any = kn == 74 || kn == 73 || kn == 59 || kp1n == 74
-                     || kp1n == 73 || kp1n == 59;
-          if (any) {
-            printf(
-                "b HT %3d: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
-                "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
-                "[%8.3f %8.3f %8.3f %8.3f]]\n",
-                kn,
-                HTs[kn](0, 0),
-                HTs[kn](0, 1),
-                HTs[kn](0, 2),
-                HTs[kn](0, 3),
-                HTs[kn](1, 0),
-                HTs[kn](1, 1),
-                HTs[kn](1, 2),
-                HTs[kn](1, 3),
-                HTs[kn](2, 0),
-                HTs[kn](2, 1),
-                HTs[kn](2, 2),
-                HTs[kn](2, 3),
-                HTs[kn](3, 0),
-                HTs[kn](3, 1),
-                HTs[kn](3, 2),
-                HTs[kn](3, 3));
-          }
-          if (any) {
-            printf(
-                "b HT %3d: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
-                "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
-                "[%8.3f %8.3f %8.3f %8.3f]]\n",
-                kp1n,
-                HTs[kp1n](0, 0),
-                HTs[kp1n](0, 1),
-                HTs[kp1n](0, 2),
-                HTs[kp1n](0, 3),
-                HTs[kp1n](1, 0),
-                HTs[kp1n](1, 1),
-                HTs[kp1n](1, 2),
-                HTs[kp1n](1, 3),
-                HTs[kp1n](2, 0),
-                HTs[kp1n](2, 1),
-                HTs[kp1n](2, 2),
-                HTs[kp1n](2, 3),
-                HTs[kp1n](3, 0),
-                HTs[kp1n](3, 1),
-                HTs[kp1n](3, 2),
-                HTs[kp1n](3, 3));
-          }
+          // int kn = nodes[k];
+          // int kp1n = nodes[k + 1];
+          // bool any = kn == 74 || kn == 73 || kn == 59 || kp1n == 74
+          //            || kp1n == 73 || kp1n == 59;
+          // if (any) {
+          //   printf(
+          //       "b HT %3d: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f
+          //       "
+          //       "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n "
+          //       "[%8.3f %8.3f %8.3f %8.3f]]\n",
+          //       kn,
+          //       HTs[kn](0, 0),
+          //       HTs[kn](0, 1),
+          //       HTs[kn](0, 2),
+          //       HTs[kn](0, 3),
+          //       HTs[kn](1, 0),
+          //       HTs[kn](1, 1),
+          //       HTs[kn](1, 2),
+          //       HTs[kn](1, 3),
+          //       HTs[kn](2, 0),
+          //       HTs[kn](2, 1),
+          //       HTs[kn](2, 2),
+          //       HTs[kn](2, 3),
+          //       HTs[kn](3, 0),
+          //       HTs[kn](3, 1),
+          //       HTs[kn](3, 2),
+          //       HTs[kn](3, 3));
+          // }
+          // if (any) {
+          //   printf(
+          //       "b HT %3d: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f
+          //       "
+          //       "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n "
+          //       "[%8.3f %8.3f %8.3f %8.3f]]\n",
+          //       kp1n,
+          //       HTs[kp1n](0, 0),
+          //       HTs[kp1n](0, 1),
+          //       HTs[kp1n](0, 2),
+          //       HTs[kp1n](0, 3),
+          //       HTs[kp1n](1, 0),
+          //       HTs[kp1n](1, 1),
+          //       HTs[kp1n](1, 2),
+          //       HTs[kp1n](1, 3),
+          //       HTs[kp1n](2, 0),
+          //       HTs[kp1n](2, 1),
+          //       HTs[kp1n](2, 2),
+          //       HTs[kp1n](2, 3),
+          //       HTs[kp1n](3, 0),
+          //       HTs[kp1n](3, 1),
+          //       HTs[kp1n](3, 2),
+          //       HTs[kp1n](3, 3));
+          // }
           k_compose(nodes[k], nodes[k + 1]);
-          if (any) {
-            printf(
-                "a HT %3d: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
-                "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
-                "[%8.3f %8.3f %8.3f %8.3f]]\n",
-                kn,
-                HTs[kn](0, 0),
-                HTs[kn](0, 1),
-                HTs[kn](0, 2),
-                HTs[kn](0, 3),
-                HTs[kn](1, 0),
-                HTs[kn](1, 1),
-                HTs[kn](1, 2),
-                HTs[kn](1, 3),
-                HTs[kn](2, 0),
-                HTs[kn](2, 1),
-                HTs[kn](2, 2),
-                HTs[kn](2, 3),
-                HTs[kn](3, 0),
-                HTs[kn](3, 1),
-                HTs[kn](3, 2),
-                HTs[kn](3, 3));
-          }
-          if (any) {
-            printf(
-                "a HT %3d: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
-                "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
-                "[%8.3f %8.3f %8.3f %8.3f]]\n",
-                kp1n,
-                HTs[kp1n](0, 0),
-                HTs[kp1n](0, 1),
-                HTs[kp1n](0, 2),
-                HTs[kp1n](0, 3),
-                HTs[kp1n](1, 0),
-                HTs[kp1n](1, 1),
-                HTs[kp1n](1, 2),
-                HTs[kp1n](1, 3),
-                HTs[kp1n](2, 0),
-                HTs[kp1n](2, 1),
-                HTs[kp1n](2, 2),
-                HTs[kp1n](2, 3),
-                HTs[kp1n](3, 0),
-                HTs[kp1n](3, 1),
-                HTs[kp1n](3, 2),
-                HTs[kp1n](3, 3));
-          }
+          // if (any) {
+          //   printf(
+          //       "a HT %3d: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f
+          //       "
+          //       "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n "
+          //       "[%8.3f %8.3f %8.3f %8.3f]]\n",
+          //       kn,
+          //       HTs[kn](0, 0),
+          //       HTs[kn](0, 1),
+          //       HTs[kn](0, 2),
+          //       HTs[kn](0, 3),
+          //       HTs[kn](1, 0),
+          //       HTs[kn](1, 1),
+          //       HTs[kn](1, 2),
+          //       HTs[kn](1, 3),
+          //       HTs[kn](2, 0),
+          //       HTs[kn](2, 1),
+          //       HTs[kn](2, 2),
+          //       HTs[kn](2, 3),
+          //       HTs[kn](3, 0),
+          //       HTs[kn](3, 1),
+          //       HTs[kn](3, 2),
+          //       HTs[kn](3, 3));
+          // }
+          // if (any) {
+          //   printf(
+          //       "a HT %3d: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f
+          //       "
+          //       "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n "
+          //       "[%8.3f %8.3f %8.3f %8.3f]]\n",
+          //       kp1n,
+          //       HTs[kp1n](0, 0),
+          //       HTs[kp1n](0, 1),
+          //       HTs[kp1n](0, 2),
+          //       HTs[kp1n](0, 3),
+          //       HTs[kp1n](1, 0),
+          //       HTs[kp1n](1, 1),
+          //       HTs[kp1n](1, 2),
+          //       HTs[kp1n](1, 3),
+          //       HTs[kp1n](2, 0),
+          //       HTs[kp1n](2, 1),
+          //       HTs[kp1n](2, 2),
+          //       HTs[kp1n](2, 3),
+          //       HTs[kp1n](3, 0),
+          //       HTs[kp1n](3, 1),
+          //       HTs[kp1n](3, 2),
+          //       HTs[kp1n](3, 3));
+          // }
         }
       }
     }
@@ -227,82 +231,82 @@ struct InverseKinDispatch {
 
         if (doftype[i] == JUMP) {
           dofs[i] = common<D, Real, Int>::invJumpTransform(lclHT);
-          printf("Jump HT: %d w/ parent %d\n", i, parent[i]);
-          printf(
-              "%4d HT: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
-              "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
-              "[%8.3f %8.3f %8.3f %8.3f]]\n",
-              i,
-              HTs[i](0, 0),
-              HTs[i](0, 1),
-              HTs[i](0, 2),
-              HTs[i](0, 3),
-              HTs[i](1, 0),
-              HTs[i](1, 1),
-              HTs[i](1, 2),
-              HTs[i](1, 3),
-              HTs[i](2, 0),
-              HTs[i](2, 1),
-              HTs[i](2, 2),
-              HTs[i](2, 3),
-              HTs[i](3, 0),
-              HTs[i](3, 1),
-              HTs[i](3, 2),
-              HTs[i](3, 3));
-          printf(
-              "%4d HT: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
-              "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
-              "[%8.3f %8.3f %8.3f %8.3f]]\n",
-              parent[i],
-              HTs[parent[i]](0, 0),
-              HTs[parent[i]](0, 1),
-              HTs[i](0, 2),
-              HTs[parent[i]](0, 3),
-              HTs[parent[i]](1, 0),
-              HTs[parent[i]](1, 1),
-              HTs[i](1, 2),
-              HTs[parent[i]](1, 3),
-              HTs[parent[i]](2, 0),
-              HTs[parent[i]](2, 1),
-              HTs[i](2, 2),
-              HTs[parent[i]](2, 3),
-              HTs[parent[i]](3, 0),
-              HTs[parent[i]](3, 1),
-              HTs[i](3, 2),
-              HTs[parent[i]](3, 3));
-          printf(
-              "jump HT: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
-              "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
-              "[%8.3f %8.3f %8.3f %8.3f]]\n",
-              lclHT(0, 0),
-              lclHT(0, 1),
-              lclHT(0, 2),
-              lclHT(0, 3),
-              lclHT(1, 0),
-              lclHT(1, 1),
-              lclHT(1, 2),
-              lclHT(1, 3),
-              lclHT(2, 0),
-              lclHT(2, 1),
-              lclHT(2, 2),
-              lclHT(2, 3),
-              lclHT(3, 0),
-              lclHT(3, 1),
-              lclHT(3, 2),
-              lclHT(3, 3));
+          // printf("Jump HT: %d w/ parent %d\n", i, parent[i]);
+          // printf(
+          //     "%4d HT: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
+          //     "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
+          //     "[%8.3f %8.3f %8.3f %8.3f]]\n",
+          //     i,
+          //     HTs[i](0, 0),
+          //     HTs[i](0, 1),
+          //     HTs[i](0, 2),
+          //     HTs[i](0, 3),
+          //     HTs[i](1, 0),
+          //     HTs[i](1, 1),
+          //     HTs[i](1, 2),
+          //     HTs[i](1, 3),
+          //     HTs[i](2, 0),
+          //     HTs[i](2, 1),
+          //     HTs[i](2, 2),
+          //     HTs[i](2, 3),
+          //     HTs[i](3, 0),
+          //     HTs[i](3, 1),
+          //     HTs[i](3, 2),
+          //     HTs[i](3, 3));
+          // printf(
+          //     "%4d HT: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
+          //     "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
+          //     "[%8.3f %8.3f %8.3f %8.3f]]\n",
+          //     parent[i],
+          //     HTs[parent[i]](0, 0),
+          //     HTs[parent[i]](0, 1),
+          //     HTs[i](0, 2),
+          //     HTs[parent[i]](0, 3),
+          //     HTs[parent[i]](1, 0),
+          //     HTs[parent[i]](1, 1),
+          //     HTs[i](1, 2),
+          //     HTs[parent[i]](1, 3),
+          //     HTs[parent[i]](2, 0),
+          //     HTs[parent[i]](2, 1),
+          //     HTs[i](2, 2),
+          //     HTs[parent[i]](2, 3),
+          //     HTs[parent[i]](3, 0),
+          //     HTs[parent[i]](3, 1),
+          //     HTs[i](3, 2),
+          //     HTs[parent[i]](3, 3));
+          // printf(
+          //     "jump HT: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f "
+          //     "%8.3f %8.3f]\n          [%8.3f %8.3f %8.3f %8.3f]\n          "
+          //     "[%8.3f %8.3f %8.3f %8.3f]]\n",
+          //     lclHT(0, 0),
+          //     lclHT(0, 1),
+          //     lclHT(0, 2),
+          //     lclHT(0, 3),
+          //     lclHT(1, 0),
+          //     lclHT(1, 1),
+          //     lclHT(1, 2),
+          //     lclHT(1, 3),
+          //     lclHT(2, 0),
+          //     lclHT(2, 1),
+          //     lclHT(2, 2),
+          //     lclHT(2, 3),
+          //     lclHT(3, 0),
+          //     lclHT(3, 1),
+          //     lclHT(3, 2),
+          //     lclHT(3, 3));
 
-          printf(
-              "jump DOFs %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f "
-              "%8.3f\n",
-              dofs[i][0],
-              dofs[i][1],
-              dofs[i][2],
-              dofs[i][3],
-              dofs[i][4],
-              dofs[i][5],
-              dofs[i][6],
-              dofs[i][7],
-              dofs[i][8]);
+          // printf(
+          //     "jump DOFs %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f %8.3f "
+          //     "%8.3f\n",
+          //     dofs[i][0],
+          //     dofs[i][1],
+          //     dofs[i][2],
+          //     dofs[i][3],
+          //     dofs[i][4],
+          //     dofs[i][5],
+          //     dofs[i][6],
+          //     dofs[i][7],
+          //     dofs[i][8]);
         } else if (doftype[i] == BOND) {
           dofs[i] = common<D, Real, Int>::invBondTransform(lclHT);
         }
