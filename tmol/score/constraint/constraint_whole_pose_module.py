@@ -1,5 +1,4 @@
 import torch
-import numpy
 
 
 class ConstraintWholePoseScoringModule(torch.nn.Module):

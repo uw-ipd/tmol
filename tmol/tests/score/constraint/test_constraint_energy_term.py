@@ -5,8 +5,6 @@ import math
 from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
-from tmol.tests.score.common.test_energy_term import pose_stack_from_pdb_and_resnums
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.pose.constraint_set import ConstraintSet
 
