@@ -1,5 +1,4 @@
 import torch
-import numpy
 import math
 
 from ..energy_term import EnergyTerm

@@ -1,9 +1,6 @@
-import attr
 import torch
 
 from tmol.types.torch import Tensor
-from tmol.chemical.restypes import RefinedResidueType
-from tmol.pose.packed_block_types import PackedBlockTypes
 
 
 class ConstraintSet:
