@@ -997,6 +997,9 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         get_block_parent_connectivity_from_toposort,
         get_kinforest_scans_from_stencils2,
         get_kfo_indices_for_atoms,
+        get_kfo_atom_parents,
+        get_children,
+        get_id_and_frame_xyz,
     )
 
     torch_device = torch.device("cpu")
@@ -1114,7 +1117,39 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         pbt.atom_is_real,
     )
 
-    result = get_kinforest_scans_from_stencils2(
+    kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
+        pose_stack.block_type_ind,
+        pose_stack.inter_residue_connections,
+        pose_stack_ff_parent,
+        # ff_conn_to_parent,
+        pose_stack_block_in_and_first_out,
+        pbt_gssps.parents,
+        kfo_2_orig_mapping,
+        atom_kfo_index,
+        pbt_gssps.jump_atom,
+        pbt.n_conn,
+        pbt.conn_atom,
+    )
+
+    n_children, child_list_span, child_list, is_atom_jump = get_children(
+        pose_stack.block_type_ind,
+        pose_stack_block_in_and_first_out,
+        kfo_2_orig_mapping,
+        kfo_atom_parents,
+        pbt.n_conn,
+    )
+
+    id, frame_x, frame_y, frame_z = get_id_and_frame_xyz(
+        pose_stack.coords.shape[1],
+        pose_stack.block_coord_offset,
+        kfo_2_orig_mapping,
+        kfo_atom_parents,
+        child_list_span,
+        child_list,
+        is_atom_jump,
+    )
+
+    nodes, scans, gens = get_kinforest_scans_from_stencils2(
         pose_stack.max_n_atoms,
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
@@ -1141,6 +1176,123 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         pbt_gssps.scan_path_seg_is_inter_block,
         pbt_gssps.scan_path_seg_lengths,
     )
+    print("nodes", nodes)
+    print("scans", scans)
+    print("gens", gens)
+
+    kincoords = torch.zeros((id.shape[0], 3), dtype=torch.float32)
+    kincoords[1:] = pose_stack.coords.view(-1, 3)[id[1:]]
+
+    is_res_real = pose_stack.block_type_ind != -1
+    # is_atom_real = torch.zeros((pose_stack.block_type_ind.shape[0], pose_stack.block_type_ind.shape[1], pbt.max_n_atoms), dtype=torch.bool)
+    is_atom_real = pbt.atom_is_real[pose_stack.block_type_ind[is_res_real]]
+    # block_atom_dof_type = torch.full((pose_stack.block_type_ind.shape[0], pose_stack.block_type_ind.shape[1], pbt.max_n_atoms), -1, dtype=torch.int32)
+    print("pose_stack_block_in_and_first_out", pose_stack_block_in_and_first_out)
+    print(
+        "pose_stack_block_in_and_first_out[is_res_real][:, 0]",
+        pose_stack_block_in_and_first_out[is_res_real][:, 0],
+    )
+    print(
+        "pose_stack.block_type_ind[is_res_real]", pose_stack.block_type_ind[is_res_real]
+    )
+    block_atom_dof_type = pbt_gssps.dof_type[
+        pose_stack.block_type_ind[is_res_real],
+        pose_stack_block_in_and_first_out[is_res_real][:, 0],
+    ]
+    dof_type = torch.zeros((id.shape[0],), dtype=torch.int32)
+    dof_type[1:] = block_atom_dof_type[is_atom_real]
+    # print("dof_type", dof_type)
+
+    # get_c1_and_c2_atoms: jump atom 19, 18, 3
+    # c1 c2 18 3
+    # get_c1_and_c2_atoms: jump atom 74, 73, 59
+    # c1 c2 73 59
+    # get_c1_and_c2_atoms: jump atom 127, 126, 111
+    # c1 c2 126 111
+    # get_c1_and_c2_atoms: jump atom 182, 181, 167
+
+    def print_frames(jump, i):
+        print(
+            f"jump {jump}: dof_type[{i}] {dof_type[i]} frame_x[{i}] {frame_x[i]}, frame_y[{i}] {frame_y[i]}, frame_z[{i}] {frame_z[i]}"
+        )
+
+    def print_children(jump, i):
+        for child_ind in range(child_list_span[i], child_list_span[i + 1]):
+            child = child_list[child_ind]
+            print_frames(f"child of {jump}", child)
+
+    def print_three_frames(jump, at1, at2, at3):
+        print_frames(jump, at1)
+        print_children(jump, at1)
+        print_frames(jump, at2)
+        print_frames(jump, at3)
+
+    print_three_frames(1, 19, 18, 3)
+    print_three_frames(2, 74, 73, 59)
+    print_three_frames(3, 127, 126, 111)
+    print_three_frames(4, 182, 181, 167)
+
+    raw_dofs = inverse_kin(
+        kincoords,
+        kfo_atom_parents,
+        frame_x,
+        frame_y,
+        frame_z,
+        dof_type,
+    )
+
+    assert raw_dofs is not None
+
+    def _p(t):
+        return torch.nn.Parameter(t, requires_grad=False)
+
+    def _tint(ts):
+        return tuple(map(lambda t: t.to(torch.int32), ts))
+
+    kinforest = _p(
+        torch.stack(
+            _tint(
+                [
+                    id,
+                    dof_type,
+                    kfo_atom_parents,
+                    frame_x,
+                    frame_y,
+                    frame_z,
+                ]
+            ),
+            dim=1,
+        )
+    )
+
+    new_coords = forward_kin_op(
+        raw_dofs,
+        nodes,
+        scans,
+        gens,
+        nodes,  # note: backward version; incorrect to assume same as forward, temp!
+        scans,
+        gens,
+        kinforest,
+    )
+
+    # print("starting coords", pose_stack.coords.view(-1, 3)[14:19])
+
+    print("kincoords[15:20]", kincoords[15:20])
+    print("new coords[15:20]", new_coords[15:20])
+
+    print("dof_type[70:75]", dof_type[70:75])
+
+    print("kincoords[70:75]", kincoords[70:75])
+    print("new coords[70:75]", new_coords[70:75])
+
+    print("kincoords[125:130]", kincoords[125:130])
+    print("new coords[125:130]", new_coords[125:130])
+
+    print("kincoords[180:185]", kincoords[180:185])
+    print("new coords[180:185]", new_coords[180:185])
+
+    torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
 
 
 def test_decide_scan_paths_for_foldforest(ubq_pdb):

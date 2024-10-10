@@ -241,6 +241,7 @@ class JumpDOF(TensorGroup, ConvertAttrs):
 class BTGenerationalSegScanPathSegs:
     jump_atom: int
     parents: NDArray[numpy.int64][:, :]  # n-input x n-atoms
+    dof_type: NDArray[numpy.int64][:, :]  # n-input x n-atoms
     input_conn_atom: NDArray[numpy.int64][:]  # n-input
     n_gens: NDArray[numpy.int64][:, :]  # n-input x n-output
     n_nodes_for_gen: NDArray[numpy.int64][:, :, :]
@@ -273,6 +274,9 @@ class BTGenerationalSegScanPathSegs:
             parents=numpy.full(
                 (n_input_types, n_atoms), -1, dtype=int
             ),  # independent of primary output
+            dof_type=numpy.full(
+                (n_input_types, n_atoms), -1, dtype=int
+            ),  # independent of primary output
             input_conn_atom=numpy.full(n_input_types, -1, dtype=int),
             n_gens=numpy.zeros(io, dtype=int),
             n_nodes_for_gen=numpy.zeros(io + (max_n_gens,), dtype=int),
@@ -302,6 +306,7 @@ class BTGenerationalSegScanPathSegs:
 class PBTGenerationalSegScanPathSegs:
     jump_atom: NDArray[numpy.int64][:]  # n-bt
     parents: Tensor[torch.int32][:, :, :]  # n-bt x n-input x n-atoms
+    dof_type: Tensor[torch.int32][:, :, :]  # n-bt x n-input x n-atoms
     input_conn_atom: Tensor[torch.int32][:, :]  # n-bt x n-input
     n_gens: Tensor[torch.int32][:, :, :]  # n-bt x n-input x n-output
     n_nodes_for_gen: Tensor[torch.int32][:, :, :, :]
@@ -336,6 +341,12 @@ class PBTGenerationalSegScanPathSegs:
         return cls(
             jump_atom=torch.full((n_bt,), -1, dtype=torch.int32, device=device),
             parents=torch.full(
+                (n_bt, max_n_input_types, max_n_atoms),
+                -1,
+                dtype=torch.int32,
+                device=device,
+            ),  # independent of primary output
+            dof_type=torch.full(
                 (n_bt, max_n_input_types, max_n_atoms),
                 -1,
                 dtype=torch.int32,

@@ -431,6 +431,14 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
     scan_path_segment_data = {}
     parents = numpy.full((n_input_types, bt.n_atoms), -1, dtype=numpy.int64)
     input_conn_atom = numpy.zeros((n_input_types,), dtype=numpy.int64)
+    dof_type = numpy.full(
+        (
+            n_input_types,
+            bt.n_atoms,
+        ),
+        NodeType.bond,
+        dtype=numpy.int64,
+    )
     for i in range(n_input_types):
 
         i_conn_atom = bt.ordered_connection_atoms[i] if i < n_conn else mid_bt_atom
@@ -442,6 +450,8 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
             return_predecessors=True,
         )
         parents[i, :] = preds
+        if i >= n_conn:
+            dof_type[i, i_conn_atom] = NodeType.jump
         # Now, the parent of the i_conn_atom comes from the previous residue, so we will
         # need to fix this atom when we are hooking the blocks together. For now, leave
         # it as -9999 (which is what csgraph labels it as) so that we can tell if we have
@@ -841,6 +851,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
     )
     bt_gen_seg_scan_path_segments.jump_atom = jump_atom_for_bt(bt)
     bt_gen_seg_scan_path_segments.parents = parents
+    bt_gen_seg_scan_path_segments.dof_type[:] = dof_type
     bt_gen_seg_scan_path_segments.input_conn_atom = input_conn_atom
     # Finally, we populate the BTGenerationalSegScanPathSegs object
     for i in range(n_input_types):
@@ -939,6 +950,7 @@ def _annotate_packed_block_type_with_gen_scan_path_segs(pbt):
     )
     varnames = [
         "parents",
+        "dof_type",
         "input_conn_atom",
         "n_gens",
         "n_nodes_for_gen",

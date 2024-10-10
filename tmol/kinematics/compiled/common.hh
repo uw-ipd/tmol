@@ -380,11 +380,11 @@ struct KinForestFromStencil {
       -> std::tuple<TPack<Int, 1, D>, TPack<Int, 1, D>>;
 
   static auto get_children(
-      TView<Int, 2, D> pose_stack_block_type,         // x
-      TView<Int, 2, D> pose_stack_ff_conn_to_parent,  // x
-      TView<Int, 2, D> kfo_2_orig_mapping,            // x
-      TView<Int, 1, D> kfo_parent_atoms,              // x
-      TView<Int, 1, D> block_type_n_conn              // x
+      TView<Int, 2, D> pose_stack_block_type,              // x
+      TView<Int, 3, D> pose_stack_block_in_and_first_out,  // x
+      TView<Int, 2, D> kfo_2_orig_mapping,                 // x
+      TView<Int, 1, D> kfo_parent_atoms,                   // x
+      TView<Int, 1, D> block_type_n_conn                   // x
       )
       -> std::tuple<
           TPack<Int, 1, D>,
@@ -447,40 +447,6 @@ struct KinForestFromStencil {
                                            // connections.
       ) -> TPack<Int, 3, D>;
 
-  static auto get_scans(
-      int64_t const max_n_atoms_per_pose,
-      TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
-      TView<Int, 2, D> pose_stack_block_type,                 // P x L
-      TView<Int, 4, D> pose_stack_inter_residue_connections,  // P x L x C x 2
-      TView<Int, 3, D>
-          ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
-      int64_t const max_delay,
-      TView<Int, 2, D> delay_for_edge,            // P x E
-      TView<Int, 1, D> topo_sort_index_for_edge,  // (P*E)
-      TView<Int, 2, D> first_ff_edge_for_block,   // P x L
-      TView<Int, 2, D> pose_stack_ff_parent,      // P x L
-      // TView<Int, 2, D> pose_stack_ff_conn_to_parent,       // P x L
-      TView<Int, 3, D> pose_stack_block_in_and_first_out,  // P x L x 2
-      TView<Int, 3, D> block_type_parents,                 // T x O x A
-      TView<Int, 2, D> kfo_2_orig_mapping,                 // K x 3
-      TView<Int, 3, D> atom_kfo_index,                     // P x L x A
-      TView<Int, 1, D> block_type_jump_atom,               // T
-      TView<Int, 1, D> block_type_n_conn,                  // T
-      TView<Int, 2, D>
-          block_type_polymeric_conn_index,  // T x 2 - 2 is for "down" and "up"
-                                            // connections.
-      TView<Int, 3, D> block_type_n_gens,   // T x I x O
-      TView<Int, 5, D> block_type_kts_conn_info,     // T x I x O x C x 2 - 2 is
-                                                     // for gen (0) and scan (1)
-      TView<Int, 5, D> block_type_nodes_for_gens,    // T x I x O x G x N
-      TView<Int, 4, D> block_type_n_scan_paths,      // T x I x O x G
-      TView<Int, 5, D> block_type_scan_path_starts,  // T x I x O x G x S
-      TView<bool, 5, D> block_type_scan_path_is_real,  // T x I x O x G x S
-      TView<bool, 5, D>
-          block_type_scan_path_is_inter_block,      // T x I x O x G x S
-      TView<Int, 5, D> block_type_scan_path_length  // T x I x O x G x S
-      ) -> std::tuple<TPack<Int, 1, D>, TPack<Int, 1, D>>;
-
   static auto get_scans2(
       int64_t const max_n_atoms_per_pose,
       TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
@@ -507,13 +473,13 @@ struct KinForestFromStencil {
       TView<Int, 5, D> block_type_kts_conn_info,     // T x I x O x C x 2 - 2 is
                                                      // for gen (0) and scan (1)
       TView<Int, 5, D> block_type_nodes_for_gens,    // T x I x O x G x N
-      TView<Int, 4, D> block_type_n_scan_paths,      // T x I x O x G
-      TView<Int, 5, D> block_type_scan_path_starts,  // T x I x O x G x S
-      TView<bool, 5, D> block_type_scan_path_is_real,  // T x I x O x G x S
+      TView<Int, 4, D> block_type_n_scan_path_segs,  // T x I x O x G
+      TView<Int, 5, D> block_type_scan_path_seg_starts,    // T x I x O x G x S
+      TView<bool, 5, D> block_type_scan_path_seg_is_real,  // T x I x O x G x S
       TView<bool, 5, D>
-          block_type_scan_path_is_inter_block,      // T x I x O x G x S
-      TView<Int, 5, D> block_type_scan_path_length  // T x I x O x G x S
-      ) -> std::tuple<TPack<Int, 1, D>, TPack<Int, 1, D>>;
+          block_type_scan_path_seg_is_inter_block,      // T x I x O x G x S
+      TView<Int, 5, D> block_type_scan_path_seg_length  // T x I x O x G x S
+      ) -> std::tuple<TPack<Int, 1, D>, TPack<Int, 1, D>, TPack<Int, 2, D>>;
 };
 
 // @numba.jit(nopython=True)
