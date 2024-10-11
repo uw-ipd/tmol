@@ -35,6 +35,13 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     torch.testing.assert_close(refold_kincoords, kincoords)
     assert refold_kincoords.device.type == torch_device.type
 
+    print("tkinforest.id[:10]", tkinforest.id[:10])
+    print("tkinforest.parent[:10]", tkinforest.parent[:10])
+    print("tkinforest.doftype[:10]", tkinforest.doftype[:10])
+    print("scans", kop.scans_f[:10])
+    print("gens", kop.gens_f)
+    print("nodes", kop.nodes_f[:10])
+
 
 @pytest.mark.benchmark(group="kinematic_backward_op")
 def test_kinematic_torch_op_backward_benchmark(benchmark, ubq_system, torch_device):
