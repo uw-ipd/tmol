@@ -16,7 +16,13 @@ from tmol.io.canonical_ordering import (
 )
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-from tmol.kinematics.datatypes import NodeType
+from tmol.kinematics.datatypes import (
+    NodeType,
+    KinForest,
+    KinForestScanData,
+    KinematicModuleData,
+)
+from tmol.kinematics.dof_modules import KinematicModule2
 from tmol.kinematics.fold_forest import EdgeType
 from tmol.kinematics.scan_ordering import (
     # get_children,
@@ -991,7 +997,10 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     # gens
 
 
-def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
+def construct_kin_module_data_for_pose(
+    pose_stack,
+    fold_forest_edges,
+):
     from tmol.kinematics.compiled.compiled_ops import (
         calculate_ff_edge_delays,
         get_block_parent_connectivity_from_toposort,
@@ -1002,77 +1011,13 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         get_id_and_frame_xyz,
     )
 
-    torch_device = torch.device("cpu")
-    device = torch_device
-
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=1, residue_end=7
-    )
-
-    res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
-    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
-    res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
-    pose_stack = pose_stack_from_canonical_form(
-        co, pbt, **canonical_form, res_not_connected=res_not_connected
-    )
-    pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
+    device = pose_stack.device
+    pbt = pose_stack.packed_block_types
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
-    # print("pbt_gssps.scan_path_seg_is_inter_block")
-    # print(pbt_gssps.scan_path_seg_is_inter_block[24, 0, 1])
-
-    max_n_edges = 5
-    ff_edges_cpu = torch.full(
-        (pose_stack.n_poses, max_n_edges, 4),
-        -1,
-        dtype=torch.int32,
-        device="cpu",
-    )
-    ff_edges_cpu[0, 0, 0] = 0
-    ff_edges_cpu[0, 0, 1] = 1
-    ff_edges_cpu[0, 0, 2] = 0
-
-    ff_edges_cpu[0, 1, 0] = 0
-    ff_edges_cpu[0, 1, 1] = 1
-    ff_edges_cpu[0, 1, 2] = 2
-
-    ff_edges_cpu[0, 2, 0] = 1
-    ff_edges_cpu[0, 2, 1] = 1
-    ff_edges_cpu[0, 2, 2] = 4
-
-    ff_edges_cpu[0, 3, 0] = 0
-    ff_edges_cpu[0, 3, 1] = 4
-    ff_edges_cpu[0, 3, 2] = 3
-
-    ff_edges_cpu[0, 4, 0] = 0
-    ff_edges_cpu[0, 4, 1] = 4
-    ff_edges_cpu[0, 4, 2] = 5
-
-    # Let's flip the jump and root the tree at res 4
-    ff_edges_cpu[1, 0, 0] = 0
-    ff_edges_cpu[1, 0, 1] = 1
-    ff_edges_cpu[1, 0, 2] = 0
-
-    ff_edges_cpu[1, 1, 0] = 0
-    ff_edges_cpu[1, 1, 1] = 1
-    ff_edges_cpu[1, 1, 2] = 2
-
-    ff_edges_cpu[1, 2, 0] = 1
-    ff_edges_cpu[1, 2, 1] = 4
-    ff_edges_cpu[1, 2, 2] = 1
-
-    ff_edges_cpu[1, 3, 0] = 0
-    ff_edges_cpu[1, 3, 1] = 4
-    ff_edges_cpu[1, 3, 2] = 3
-
-    ff_edges_cpu[1, 4, 0] = 0
-    ff_edges_cpu[1, 4, 1] = 4
-    ff_edges_cpu[1, 4, 2] = 5
-
-    ff_edges_device = ff_edges_cpu.to(torch_device)
+    ff_edges_cpu = fold_forest_edges.cpu()
+    ff_edges_device = fold_forest_edges.to(device)
 
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
@@ -1082,7 +1027,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
         pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
     )
-    # print("result", result)
+
     (
         dfs_order_of_ff_edges,
         n_ff_edges,
@@ -1093,7 +1038,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         first_child_of_ff_edge,
         delay_for_edge,
         toposort_index_for_edge,
-    ) = tuple(x.to(torch_device) for x in result)
+    ) = tuple(x.to(device) for x in result)
 
     pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
         pose_stack.block_type_ind,
@@ -1178,34 +1123,205 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
             pbt_gssps.scan_path_seg_lengths,
         )
     )
-    print("nodes_fw", nodes_fw)
-    print("scans_fw", scans_fw)
-    print("gens_fw", gens_fw)
-    print("nodes_bw", nodes_bw)
-    print("scans_bw", scans_bw)
-    print("gens_bw", gens_bw)
 
-    kincoords = torch.zeros((id.shape[0], 3), dtype=torch.float32)
-    kincoords[1:] = pose_stack.coords.view(-1, 3)[id[1:]]
-
+    # This feels so clunky after all that slick C++
     is_res_real = pose_stack.block_type_ind != -1
-    # is_atom_real = torch.zeros((pose_stack.block_type_ind.shape[0], pose_stack.block_type_ind.shape[1], pbt.max_n_atoms), dtype=torch.bool)
     is_atom_real = pbt.atom_is_real[pose_stack.block_type_ind[is_res_real]]
-    # block_atom_dof_type = torch.full((pose_stack.block_type_ind.shape[0], pose_stack.block_type_ind.shape[1], pbt.max_n_atoms), -1, dtype=torch.int32)
-    # print("pose_stack_block_in_and_first_out", pose_stack_block_in_and_first_out)
-    # print(
-    #     "pose_stack_block_in_and_first_out[is_res_real][:, 0]",
-    #     pose_stack_block_in_and_first_out[is_res_real][:, 0],
-    # )
-    # print(
-    #     "pose_stack.block_type_ind[is_res_real]", pose_stack.block_type_ind[is_res_real]
-    # )
+
     block_atom_dof_type = pbt_gssps.dof_type[
         pose_stack.block_type_ind[is_res_real],
         pose_stack_block_in_and_first_out[is_res_real][:, 0],
     ]
-    dof_type = torch.zeros((id.shape[0],), dtype=torch.int32)
-    dof_type[1:] = block_atom_dof_type[is_atom_real]
+    doftype = torch.zeros((id.shape[0],), dtype=torch.int32)
+    doftype[1:] = block_atom_dof_type[is_atom_real]
+
+    return KinematicModuleData(
+        forest=KinForest(
+            id=id,
+            doftype=doftype,
+            parent=kfo_atom_parents,
+            frame_x=frame_x,
+            frame_y=frame_y,
+            frame_z=frame_z,
+        ),
+        scan_data_fw=KinForestScanData(
+            nodes=nodes_fw,
+            scans=scans_fw,
+            gens=gens_fw,
+        ),
+        scan_data_bw=KinForestScanData(
+            nodes=nodes_bw,
+            scans=scans_bw,
+            gens=gens_bw,
+        ),
+    )
+
+
+def test_construct_kinematic_module_for_pose(ubq_pdb):
+    torch_device = torch.device("cpu")
+    device = torch_device
+
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=1, residue_end=7
+    )
+
+    res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
+    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
+    res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
+    pose_stack = pose_stack_from_canonical_form(
+        co, pbt, **canonical_form, res_not_connected=res_not_connected
+    )
+    pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
+
+    max_n_edges = 5
+    ff_edges_cpu = torch.full(
+        (pose_stack.n_poses, max_n_edges, 4),
+        -1,
+        dtype=torch.int32,
+        device="cpu",
+    )
+    ff_edges_cpu[0, 0, 0] = 0
+    ff_edges_cpu[0, 0, 1] = 1
+    ff_edges_cpu[0, 0, 2] = 0
+
+    ff_edges_cpu[0, 1, 0] = 0
+    ff_edges_cpu[0, 1, 1] = 1
+    ff_edges_cpu[0, 1, 2] = 2
+
+    ff_edges_cpu[0, 2, 0] = 1
+    ff_edges_cpu[0, 2, 1] = 1
+    ff_edges_cpu[0, 2, 2] = 4
+
+    ff_edges_cpu[0, 3, 0] = 0
+    ff_edges_cpu[0, 3, 1] = 4
+    ff_edges_cpu[0, 3, 2] = 3
+
+    ff_edges_cpu[0, 4, 0] = 0
+    ff_edges_cpu[0, 4, 1] = 4
+    ff_edges_cpu[0, 4, 2] = 5
+
+    # Let's flip the jump and root the tree at res 4
+    ff_edges_cpu[1, 0, 0] = 0
+    ff_edges_cpu[1, 0, 1] = 1
+    ff_edges_cpu[1, 0, 2] = 0
+
+    ff_edges_cpu[1, 1, 0] = 0
+    ff_edges_cpu[1, 1, 1] = 1
+    ff_edges_cpu[1, 1, 2] = 2
+
+    ff_edges_cpu[1, 2, 0] = 1
+    ff_edges_cpu[1, 2, 1] = 4
+    ff_edges_cpu[1, 2, 2] = 1
+
+    ff_edges_cpu[1, 3, 0] = 0
+    ff_edges_cpu[1, 3, 1] = 4
+    ff_edges_cpu[1, 3, 2] = 3
+
+    ff_edges_cpu[1, 4, 0] = 0
+    ff_edges_cpu[1, 4, 1] = 4
+    ff_edges_cpu[1, 4, 2] = 5
+
+    kincoords = torch.zeros((id.shape[0], 3), dtype=torch.float32)
+    kincoords[1:] = pose_stack.coords.view(-1, 3)[id[1:]]
+
+
+def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
+    from tmol.kinematics.compiled.compiled_ops import (
+        calculate_ff_edge_delays,
+        get_block_parent_connectivity_from_toposort,
+        get_kinforest_scans_from_stencils2,
+        get_kfo_indices_for_atoms,
+        get_kfo_atom_parents,
+        get_children,
+        get_id_and_frame_xyz,
+    )
+
+    torch_device = torch.device("cpu")
+    device = torch_device
+
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=1, residue_end=7
+    )
+
+    res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
+    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
+    res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
+    pose_stack = pose_stack_from_canonical_form(
+        co, pbt, **canonical_form, res_not_connected=res_not_connected
+    )
+    pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+    pbt_gssps = pbt.gen_seg_scan_path_segs
+
+    # print("pbt_gssps.scan_path_seg_is_inter_block")
+    # print(pbt_gssps.scan_path_seg_is_inter_block[24, 0, 1])
+
+    max_n_edges = 5
+    ff_edges_cpu = torch.full(
+        (pose_stack.n_poses, max_n_edges, 4),
+        -1,
+        dtype=torch.int32,
+        device="cpu",
+    )
+    ff_edges_cpu[0, 0, 0] = 0
+    ff_edges_cpu[0, 0, 1] = 1
+    ff_edges_cpu[0, 0, 2] = 0
+
+    ff_edges_cpu[0, 1, 0] = 0
+    ff_edges_cpu[0, 1, 1] = 1
+    ff_edges_cpu[0, 1, 2] = 2
+
+    ff_edges_cpu[0, 2, 0] = 1
+    ff_edges_cpu[0, 2, 1] = 1
+    ff_edges_cpu[0, 2, 2] = 4
+
+    ff_edges_cpu[0, 3, 0] = 0
+    ff_edges_cpu[0, 3, 1] = 4
+    ff_edges_cpu[0, 3, 2] = 3
+
+    ff_edges_cpu[0, 4, 0] = 0
+    ff_edges_cpu[0, 4, 1] = 4
+    ff_edges_cpu[0, 4, 2] = 5
+
+    # Let's flip the jump and root the tree at res 4
+    ff_edges_cpu[1, 0, 0] = 0
+    ff_edges_cpu[1, 0, 1] = 1
+    ff_edges_cpu[1, 0, 2] = 0
+
+    ff_edges_cpu[1, 1, 0] = 0
+    ff_edges_cpu[1, 1, 1] = 1
+    ff_edges_cpu[1, 1, 2] = 2
+
+    ff_edges_cpu[1, 2, 0] = 1
+    ff_edges_cpu[1, 2, 1] = 4
+    ff_edges_cpu[1, 2, 2] = 1
+
+    ff_edges_cpu[1, 3, 0] = 0
+    ff_edges_cpu[1, 3, 1] = 4
+    ff_edges_cpu[1, 3, 2] = 3
+
+    ff_edges_cpu[1, 4, 0] = 0
+    ff_edges_cpu[1, 4, 1] = 4
+    ff_edges_cpu[1, 4, 2] = 5
+
+    ff_edges_device = ff_edges_cpu.to(torch_device)
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+
+    print("nodes_fw", kmd.scan_data_fw.nodes)
+    print("scans_fw", kmd.scan_data_fw.scans)
+    print("gens_fw", kmd.scan_data_fw.gens)
+    print("nodes_bw", kmd.scan_data_bw.nodes)
+    print("scans_bw", kmd.scan_data_bw.scans)
+    print("gens_bw", kmd.scan_data_bw.gens)
+
+    kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32)
+    kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
+
     # print("dof_type", dof_type)
 
     # get_c1_and_c2_atoms: jump atom 19, 18, 3
@@ -1239,11 +1355,11 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
 
     raw_dofs = inverse_kin(
         kincoords,
-        kfo_atom_parents,
-        frame_x,
-        frame_y,
-        frame_z,
-        dof_type,
+        kmd.forest.parent,
+        kmd.forest.frame_x,
+        kmd.forest.frame_y,
+        kmd.forest.frame_z,
+        kmd.forest.doftype,
     )
 
     assert raw_dofs is not None
@@ -1258,12 +1374,12 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         torch.stack(
             _tint(
                 [
-                    id,
-                    dof_type,
-                    kfo_atom_parents,
-                    frame_x,
-                    frame_y,
-                    frame_z,
+                    kmd.forest.id,
+                    kmd.forest.doftype,
+                    kmd.forest.parent,
+                    kmd.forest.frame_x,
+                    kmd.forest.frame_y,
+                    kmd.forest.frame_z,
                 ]
             ),
             dim=1,
@@ -1272,30 +1388,14 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
 
     new_coords = forward_kin_op(
         raw_dofs,
-        nodes_fw,
-        scans_fw,
-        gens_fw,
-        nodes_bw,
-        scans_bw,
-        gens_bw,
+        kmd.scan_data_fw.nodes,
+        kmd.scan_data_fw.scans,
+        kmd.scan_data_fw.gens,
+        kmd.scan_data_bw.nodes,
+        kmd.scan_data_bw.scans,
+        kmd.scan_data_bw.gens,
         kinforest,
     )
-
-    # print("starting coords", pose_stack.coords.view(-1, 3)[14:19])
-
-    # print("kincoords[15:20]", kincoords[15:20])
-    # print("new coords[15:20]", new_coords[15:20])
-
-    # print("dof_type[70:75]", dof_type[70:75])
-
-    # print("kincoords[70:75]", kincoords[70:75])
-    # print("new coords[70:75]", new_coords[70:75])
-
-    # print("kincoords[125:130]", kincoords[125:130])
-    # print("new coords[125:130]", new_coords[125:130])
-
-    # print("kincoords[180:185]", kincoords[180:185])
-    # print("new coords[180:185]", new_coords[180:185])
 
     torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
 

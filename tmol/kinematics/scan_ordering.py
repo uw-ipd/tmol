@@ -4,6 +4,7 @@ import torch
 
 from .datatypes import (
     KinForest,
+    KinForestScanData,
     BTGenerationalSegScanPathSegs,
     PBTGenerationalSegScanPathSegs,
 )
@@ -214,13 +215,6 @@ def get_scans(parents, roots):
     genidx += 1
 
     return nodes[:nodeidx], scanStarts[:scanidx], genStarts[:genidx, :]
-
-
-@attr.s(auto_attribs=True, frozen=True)
-class KinForestScanData(TensorGroup, ConvertAttrs):
-    nodes: Tensor[torch.int]
-    scans: Tensor[torch.int]
-    gens: Tensor[torch.int]
 
 
 @attr.s(auto_attribs=True, frozen=True)

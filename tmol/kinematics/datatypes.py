@@ -123,6 +123,20 @@ class KinForest(TensorGroup, ConvertAttrs):
         )
 
 
+@attrs.define(auto_attribs=True, frozen=True)
+class KinForestScanData(TensorGroup, ConvertAttrs):
+    nodes: Tensor[torch.int]
+    scans: Tensor[torch.int]
+    gens: Tensor[torch.int]
+
+
+@attrs.define(auto_attribs=True, frozen=True)
+class KinematicModuleData:
+    forest: KinForest
+    scan_data_fw: KinForestScanData
+    scan_data_bw: KinForestScanData
+
+
 @attrs.define(auto_attribs=True, slots=True, frozen=True)
 class KinDOF(TensorGroup, ConvertAttrs):
     """Internal coordinate data.
