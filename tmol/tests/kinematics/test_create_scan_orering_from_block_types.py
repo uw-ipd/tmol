@@ -1149,36 +1149,41 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         is_atom_jump,
     )
 
-    nodes, scans, gens = get_kinforest_scans_from_stencils2(
-        pose_stack.max_n_atoms,
-        pose_stack.block_coord_offset,
-        pose_stack.block_type_ind,
-        pose_stack.inter_residue_connections,
-        ff_edges_device,
-        torch.max(delay_for_edge).item(),
-        delay_for_edge,
-        toposort_index_for_edge,
-        first_ff_edge_for_block,
-        pose_stack_ff_parent,
-        pose_stack_block_in_and_first_out,
-        pbt_gssps.parents,
-        kfo_2_orig_mapping,
-        atom_kfo_index,
-        pbt_gssps.jump_atom,
-        pbt.n_conn,
-        pbt.polymeric_conn_inds,
-        pbt_gssps.n_gens,
-        pbt_gssps.scan_path_seg_that_builds_output_conn,
-        pbt_gssps.nodes_for_gen,
-        pbt_gssps.n_scan_path_segs,
-        pbt_gssps.scan_path_seg_starts,
-        pbt_gssps.scan_path_seg_is_real,
-        pbt_gssps.scan_path_seg_is_inter_block,
-        pbt_gssps.scan_path_seg_lengths,
+    nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw = (
+        get_kinforest_scans_from_stencils2(
+            pose_stack.max_n_atoms,
+            pose_stack.block_coord_offset,
+            pose_stack.block_type_ind,
+            pose_stack.inter_residue_connections,
+            ff_edges_device,
+            torch.max(delay_for_edge).item(),
+            delay_for_edge,
+            toposort_index_for_edge,
+            first_ff_edge_for_block,
+            pose_stack_ff_parent,
+            pose_stack_block_in_and_first_out,
+            pbt_gssps.parents,
+            kfo_2_orig_mapping,
+            atom_kfo_index,
+            pbt_gssps.jump_atom,
+            pbt.n_conn,
+            pbt.polymeric_conn_inds,
+            pbt_gssps.n_gens,
+            pbt_gssps.scan_path_seg_that_builds_output_conn,
+            pbt_gssps.nodes_for_gen,
+            pbt_gssps.n_scan_path_segs,
+            pbt_gssps.scan_path_seg_starts,
+            pbt_gssps.scan_path_seg_is_real,
+            pbt_gssps.scan_path_seg_is_inter_block,
+            pbt_gssps.scan_path_seg_lengths,
+        )
     )
-    # print("nodes", nodes)
-    # print("scans", scans)
-    # print("gens", gens)
+    print("nodes_fw", nodes_fw)
+    print("scans_fw", scans_fw)
+    print("gens_fw", gens_fw)
+    print("nodes_bw", nodes_bw)
+    print("scans_bw", scans_bw)
+    print("gens_bw", gens_bw)
 
     kincoords = torch.zeros((id.shape[0], 3), dtype=torch.float32)
     kincoords[1:] = pose_stack.coords.view(-1, 3)[id[1:]]
@@ -1267,12 +1272,12 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
 
     new_coords = forward_kin_op(
         raw_dofs,
-        nodes,
-        scans,
-        gens,
-        nodes,  # note: backward version; incorrect to assume same as forward, temp!
-        scans,
-        gens,
+        nodes_fw,
+        scans_fw,
+        gens_fw,
+        nodes_bw,
+        scans_bw,
+        gens_bw,
         kinforest,
     )
 

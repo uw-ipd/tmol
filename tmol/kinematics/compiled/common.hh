@@ -479,7 +479,14 @@ struct KinForestFromStencil {
       TView<bool, 5, D>
           block_type_scan_path_seg_is_inter_block,      // T x I x O x G x S
       TView<Int, 5, D> block_type_scan_path_seg_length  // T x I x O x G x S
-      ) -> std::tuple<TPack<Int, 1, D>, TPack<Int, 1, D>, TPack<Int, 2, D>>;
+      )
+      -> std::tuple<
+          TPack<Int, 1, D>,
+          TPack<Int, 1, D>,
+          TPack<Int, 2, D>,
+          TPack<Int, 1, D>,
+          TPack<Int, 1, D>,
+          TPack<Int, 2, D>>;
 };
 
 // @numba.jit(nopython=True)

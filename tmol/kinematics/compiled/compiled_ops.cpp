@@ -444,9 +444,12 @@ auto get_scans2(
     Tensor block_type_scan_path_length           // T x I x O x G x S
     ) -> tensor_list {
   // printf("GET SCANS2\n");
-  Tensor nodes;
-  Tensor scans;
-  Tensor gens;
+  Tensor nodes_fw;
+  Tensor scans_fw;
+  Tensor gens_fw;
+  Tensor nodes_bw;
+  Tensor scans_bw;
+  Tensor gens_bw;
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
         using Int = index_t;
@@ -481,11 +484,14 @@ auto get_scans2(
                     TCAST(block_type_scan_path_is_real),
                     TCAST(block_type_scan_path_is_inter_block),
                     TCAST(block_type_scan_path_length));
-        nodes = std::get<0>(result).tensor;
-        scans = std::get<1>(result).tensor;
-        gens = std::get<2>(result).tensor;
+        nodes_fw = std::get<0>(result).tensor;
+        scans_fw = std::get<1>(result).tensor;
+        gens_fw = std::get<2>(result).tensor;
+        nodes_bw = std::get<3>(result).tensor;
+        scans_bw = std::get<4>(result).tensor;
+        gens_bw = std::get<5>(result).tensor;
       }));
-  return {nodes, scans, gens};
+  return {nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw};
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
