@@ -18,14 +18,14 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.kinematics.datatypes import (
     NodeType,
-    KinForest,
-    KinForestScanData,
-    KinematicModuleData,
+    # KinForest,
+    # KinForestScanData,
+    # KinematicModuleData,
 )
 from tmol.kinematics.dof_modules import KinematicModule2
 from tmol.kinematics.fold_forest import EdgeType
 from tmol.kinematics.scan_ordering import (
-    # get_children,
+    construct_kin_module_data_for_pose,
     _annotate_block_type_with_gen_scan_path_segs,
     _annotate_packed_block_type_with_gen_scan_path_segs,
 )
@@ -176,15 +176,15 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
         delay_for_edge,
         toposort_index_for_edge,
     ) = result
-    print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
-    print("n_ff_edges", n_ff_edges)
-    print("ff_edge_parent", ff_edge_parent)
-    print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
-    print("pose_stack_ff_parent", pose_stack_ff_parent)
-    print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
-    print("first_child_of_ff_edge", first_child_of_ff_edge)
-    print("delay_for_edge", delay_for_edge)
-    print("toposort_index_for_edge", toposort_index_for_edge)
+    # print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
+    # print("n_ff_edges", n_ff_edges)
+    # print("ff_edge_parent", ff_edge_parent)
+    # print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
+    # print("pose_stack_ff_parent", pose_stack_ff_parent)
+    # print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
+    # print("first_child_of_ff_edge", first_child_of_ff_edge)
+    # print("delay_for_edge", delay_for_edge)
+    # print("toposort_index_for_edge", toposort_index_for_edge)
 
 
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
@@ -277,15 +277,15 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq(ubq_pdb):
         delay_for_edge,
         toposort_index_for_edge,
     ) = result
-    print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
-    print("n_ff_edges", n_ff_edges)
-    print("ff_edge_parent", ff_edge_parent)
-    print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
-    print("pose_stack_ff_parent", pose_stack_ff_parent)
-    print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
-    print("first_child_of_ff_edge", first_child_of_ff_edge)
-    print("delay_for_edge", delay_for_edge)
-    print("toposort_index_for_edge", toposort_index_for_edge)
+    # print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
+    # print("n_ff_edges", n_ff_edges)
+    # print("ff_edge_parent", ff_edge_parent)
+    # print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
+    # print("pose_stack_ff_parent", pose_stack_ff_parent)
+    # print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
+    # print("first_child_of_ff_edge", first_child_of_ff_edge)
+    # print("delay_for_edge", delay_for_edge)
+    # print("toposort_index_for_edge", toposort_index_for_edge)
 
 
 def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(ubq_pdb):
@@ -395,7 +395,7 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(ubq_
         pbt.n_conn,
         pbt.polymeric_conn_inds,
     )
-    print("pose_stack_block_in_and_first_out", pose_stack_block_in_and_first_out)
+    # print("pose_stack_block_in_and_first_out", pose_stack_block_in_and_first_out)
 
 
 def test_get_kfo_indices_for_atoms(ubq_pdb):
@@ -426,9 +426,9 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
 
     bt0 = pbt.active_block_types[pose_stack.block_type_ind[0, 0]]
     bt1 = pbt.active_block_types[pose_stack.block_type_ind[0, 1]]
-    print("bt0", bt0.name, bt0.n_atoms)
-    print("bt1", bt1.name, bt1.n_atoms)
-    print("n block types", pbt.n_types)
+    # print("bt0", bt0.name, bt0.n_atoms)
+    # print("bt1", bt1.name, bt1.n_atoms)
+    # print("n block types", pbt.n_types)
 
     block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index = get_kfo_indices_for_atoms(
         pose_stack.block_coord_offset,
@@ -436,9 +436,9 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
         pbt.n_atoms,
         pbt.atom_is_real,
     )
-    print("block_kfo_offset", block_kfo_offset)
-    print("kfo_2_orig_mapping", kfo_2_orig_mapping)
-    print("atom_kfo_index", atom_kfo_index)
+    # print("block_kfo_offset", block_kfo_offset)
+    # print("kfo_2_orig_mapping", kfo_2_orig_mapping)
+    # print("atom_kfo_index", atom_kfo_index)
 
     fold_forest_parent = torch.full(
         (pose_stack.n_poses, pose_stack.max_n_blocks),
@@ -468,20 +468,20 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     block_in_out[0, 1, 0] = 0  # input from lower connection
     block_in_out[0, 1, 1] = 1  # output through upper connection
 
-    print("pose_stack.block_type_ind", pose_stack.block_type_ind.dtype)
-    print(
-        "pose_stack.inter_residue_connections",
-        pose_stack.inter_residue_connections.dtype,
-    )
-    print("fold_forest_parent", fold_forest_parent.dtype)
-    print("ff_conn_to_parent", ff_conn_to_parent.dtype)
-    print("block_in_out", block_in_out.dtype)
-    print("pbt_gssps.parents", pbt_gssps.parents.dtype)
-    print("kfo_2_orig_mapping", kfo_2_orig_mapping.dtype)
-    print("atom_kfo_index", atom_kfo_index.dtype)
-    print("pbt_gssps.jump_atom", pbt_gssps.jump_atom.dtype)
-    print("pbt.n_conn", pbt.n_conn.dtype)
-    print("pbt.conn_atom", pbt.conn_atom.dtype)
+    # print("pose_stack.block_type_ind", pose_stack.block_type_ind.dtype)
+    # print(
+    #     "pose_stack.inter_residue_connections",
+    #     pose_stack.inter_residue_connections.dtype,
+    # )
+    # print("fold_forest_parent", fold_forest_parent.dtype)
+    # print("ff_conn_to_parent", ff_conn_to_parent.dtype)
+    # print("block_in_out", block_in_out.dtype)
+    # print("pbt_gssps.parents", pbt_gssps.parents.dtype)
+    # print("kfo_2_orig_mapping", kfo_2_orig_mapping.dtype)
+    # print("atom_kfo_index", atom_kfo_index.dtype)
+    # print("pbt_gssps.jump_atom", pbt_gssps.jump_atom.dtype)
+    # print("pbt.n_conn", pbt.n_conn.dtype)
+    # print("pbt.conn_atom", pbt.conn_atom.dtype)
 
     kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
         pose_stack.block_type_ind,
@@ -497,20 +497,20 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
         pbt.conn_atom,
     )
 
-    print("kfo_atom_parents", kfo_atom_parents)
-    print("kfo_atom_grandparents", kfo_atom_grandparents)
+    # print("kfo_atom_parents", kfo_atom_parents)
+    # print("kfo_atom_grandparents", kfo_atom_grandparents)
 
     n_children, child_list_span, child_list, is_atom_jump = get_children(
         pose_stack.block_type_ind,
-        ff_conn_to_parent,
+        block_in_out,
         kfo_2_orig_mapping,
         kfo_atom_parents,
         pbt.n_conn,
     )
-    print("n_children", n_children)
-    print("child_list_span", child_list_span)
-    print("child_list", child_list)
-    print("is_atom_jump", is_atom_jump)
+    # print("n_children", n_children)
+    # print("child_list_span", child_list_span)
+    # print("child_list", child_list)
+    # print("is_atom_jump", is_atom_jump)
 
     id, frame_x, frame_y, frame_z = get_id_and_frame_xyz(
         pose_stack.coords.shape[1],
@@ -521,10 +521,10 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
         child_list,
         is_atom_jump,
     )
-    print("id", id)
-    print("frame_x", frame_x)
-    print("frame_y", frame_y)
-    print("frame_z", frame_z)
+    # print("id", id)
+    # print("frame_x", frame_x)
+    # print("frame_y", frame_y)
+    # print("frame_z", frame_z)
 
 
 def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
@@ -570,33 +570,33 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
 
     bt0 = pbt.active_block_types[pose_stack.block_type_ind[0, 0]]
     bt1 = pbt.active_block_types[pose_stack.block_type_ind[0, 1]]
-    print("bt0", bt0.name, bt0.n_atoms)
-    print("bt1", bt1.name, bt1.n_atoms)
+    # print("bt0", bt0.name, bt0.n_atoms)
+    # print("bt1", bt1.name, bt1.n_atoms)
     bt0gssps = bt0.gen_seg_scan_path_segs
     bt1gssps = bt1.gen_seg_scan_path_segs
 
-    print("nodes")
-    print(bt0gssps.nodes_for_gen[3, 1])
-    print(bt1gssps.nodes_for_gen[0, 1])
+    # print("nodes")
+    # print(bt0gssps.nodes_for_gen[3, 1])
+    # print(bt1gssps.nodes_for_gen[0, 1])
 
-    print("scans")
-    print(bt0gssps.scan_path_seg_starts[3, 1])
-    print(bt1gssps.scan_path_seg_starts[0, 1])
+    # print("scans")
+    # print(bt0gssps.scan_path_seg_starts[3, 1])
+    # print(bt1gssps.scan_path_seg_starts[0, 1])
 
     # print("gens")
     # print(bt0gssp.
 
-    print("parents")
-    print(bt0gssps.parents[3])
-    print(bt1gssps.parents[0])
-    print(
-        "parents in pbt, res1",
-        pbt_gssps.parents[pose_stack.block_type_ind[0, 0], 3],
-    )
-    print(
-        "parents in pbt, res2",
-        pbt_gssps.parents[pose_stack.block_type_ind[0, 1], 0],
-    )
+    # print("parents")
+    # print(bt0gssps.parents[3])
+    # print(bt1gssps.parents[0])
+    # print(
+    #     "parents in pbt, res1",
+    #     pbt_gssps.parents[pose_stack.block_type_ind[0, 0], 3],
+    # )
+    # print(
+    #     "parents in pbt, res2",
+    #     pbt_gssps.parents[pose_stack.block_type_ind[0, 1], 0],
+    # )
 
     ij0 = [3, 1]  # 3 => root "input"; Q: is this different from jump input?
     ij1 = [0, 1]
@@ -619,8 +619,8 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
             numpy.arange(bt0.n_atoms + bt1.n_atoms, dtype=numpy.int32),
         )
     )
-    print("ids_gold", ids_gold.shape)
-    print("ids_gold", ids_gold)
+    # print("ids_gold", ids_gold.shape)
+    # print("ids_gold", ids_gold)
 
     # fmt: off
     parents_gold = numpy.array(
@@ -632,7 +632,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
         dtype=numpy.int32,
     )
     # fmt: on
-    print("parents_gold", parents_gold.shape)
+    # print("parents_gold", parents_gold.shape)
     dof_type_gold = numpy.full(1 + bt0.n_atoms + bt1.n_atoms, 2, dtype=numpy.int32)
     dof_type_gold[0] = NodeType.root.value
     dof_type_gold[2] = NodeType.jump.value
@@ -679,10 +679,10 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     )
     # fmt: on
 
-    print("nodes_gold", nodes_gold.shape)
-    print("scans_gold", scans_gold.shape)
-    print("generations_gold", generations_gold.shape)
-    print("generations_gold", generations_gold)
+    # print("nodes_gold", nodes_gold.shape)
+    # print("scans_gold", scans_gold.shape)
+    # print("generations_gold", generations_gold.shape)
+    # print("generations_gold", generations_gold)
 
     def _t(x):
         return torch.tensor(x, dtype=torch.int32)
@@ -831,7 +831,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
         pose_stack.block_type_ind64[is_bt_real],
         block_in_out[is_bt_real][:, 0],
     ]
-    print("per block type parent", per_block_type_parent)
+    # print("per block type parent", per_block_type_parent)
 
     # atom_pose_ind = torch.arange(
     #     pose_stack.n_poses, dtype=torch.int32, device=device
@@ -891,12 +891,12 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     is_connected_to_ffparent_w_upper_conn = torch.logical_and(
         ff_conn_to_parent != -1, ff_conn_to_parent == 1
     )
-    print(
-        "is connected to ffparent w lower conn", is_connected_to_ffparent_w_lower_conn
-    )
-    print(
-        "is connected to ffparent w upper conn", is_connected_to_ffparent_w_upper_conn
-    )
+    # print(
+    #     "is connected to ffparent w lower conn", is_connected_to_ffparent_w_lower_conn
+    # )
+    # print(
+    #     "is connected to ffparent w upper conn", is_connected_to_ffparent_w_upper_conn
+    # )
 
     real_nonjump_ffparent = fold_forest_parent[is_connected_to_ffparent_w_non_jump]
     real_nonjump_ffparent_p_block_type = pose_stack.block_type_ind64[
@@ -913,7 +913,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     conn_ind[is_connected_to_ffparent_w_upper_conn] = pbt.up_conn_inds[
         pose_stack.block_type_ind64[is_connected_to_ffparent_w_upper_conn]
     ]
-    print("conn ind", conn_ind)
+    # print("conn ind", conn_ind)
     real_nonjump_ffparent_p_conn_ind = pose_stack.inter_residue_connections[
         nz_conn_to_ffparent_w_non_jump[0],
         nz_conn_to_ffparent_w_non_jump[1],
@@ -926,7 +926,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
         ]
         + kfo_block_offset[nz_conn_to_ffparent_w_non_jump[0], real_nonjump_ffparent]
     )
-    print("real_nonjump_ffparent_p_conn_atom", real_nonjump_ffparent_p_conn_atom)
+    # print("real_nonjump_ffparent_p_conn_atom", real_nonjump_ffparent_p_conn_atom)
     real_nonjump_ffparent_conn_atom = pbt.conn_atom[
         real_nonjump_ffparent_block_type, conn_ind[is_connected_to_ffparent_w_non_jump]
     ]
@@ -936,7 +936,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
             nz_conn_to_ffparent_w_non_jump[0], nz_conn_to_ffparent_w_non_jump[1]
         ]
     )
-    print("atoms connected by nonjump", atoms_connected_by_nonjump)
+    # print("atoms connected by nonjump", atoms_connected_by_nonjump)
 
     # real_conn_to_root_conn_atom = pbt.conn_atom[
     #     pose_stack.block_type_ind64[is_connected_to_root], 0
@@ -948,7 +948,7 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     )
 
     # atoms_connected_to_the_root = 2  # TEMP! FIX ME!!!!
-    print("atoms connected to the root")
+    # print("atoms connected to the root")
 
     # TO DO:
     # Lookup jump conn atom when connected by jump
@@ -967,8 +967,8 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
 
     # okay, but we have to adjust the parent atoms for the connection
     # atoms (with negative parent values)
-    print("parent", parent)
-    print("parents_gold_t", parents_gold_t)
+    # print("parent", parent)
+    # print("parents_gold_t", parents_gold_t)
 
     torch.testing.assert_close(parent, parents_gold_t)
 
@@ -995,236 +995,6 @@ def test_construct_scan_paths_n_to_c_twores(ubq_pdb):
     # nodes
     # scans
     # gens
-
-
-def construct_kin_module_data_for_pose(
-    pose_stack,
-    fold_forest_edges,
-):
-    from tmol.kinematics.compiled.compiled_ops import (
-        calculate_ff_edge_delays,
-        get_block_parent_connectivity_from_toposort,
-        get_kinforest_scans_from_stencils2,
-        get_kfo_indices_for_atoms,
-        get_kfo_atom_parents,
-        get_children,
-        get_id_and_frame_xyz,
-    )
-
-    device = pose_stack.device
-    pbt = pose_stack.packed_block_types
-    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
-    pbt_gssps = pbt.gen_seg_scan_path_segs
-
-    ff_edges_cpu = fold_forest_edges.cpu()
-    ff_edges_device = fold_forest_edges.to(device)
-
-    result = calculate_ff_edge_delays(
-        pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
-        pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
-        ff_edges_cpu,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
-        pbt_gssps.scan_path_seg_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
-        pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
-        pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
-    )
-
-    (
-        dfs_order_of_ff_edges,
-        n_ff_edges,
-        ff_edge_parent,
-        first_ff_edge_for_block,
-        pose_stack_ff_parent,
-        max_gen_depth_of_ff_edge,
-        first_child_of_ff_edge,
-        delay_for_edge,
-        toposort_index_for_edge,
-    ) = tuple(x.to(device) for x in result)
-
-    pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
-        pose_stack.block_type_ind,
-        pose_stack.inter_residue_connections,
-        pose_stack_ff_parent,
-        dfs_order_of_ff_edges,
-        n_ff_edges,
-        ff_edges_cpu,
-        first_ff_edge_for_block,
-        first_child_of_ff_edge,
-        delay_for_edge,
-        toposort_index_for_edge,
-        pbt.n_conn,
-        pbt.polymeric_conn_inds,
-    )
-
-    (block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index) = get_kfo_indices_for_atoms(
-        pose_stack.block_coord_offset,
-        pose_stack.block_type_ind,
-        pbt.n_atoms,
-        pbt.atom_is_real,
-    )
-
-    kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
-        pose_stack.block_type_ind,
-        pose_stack.inter_residue_connections,
-        pose_stack_ff_parent,
-        # ff_conn_to_parent,
-        pose_stack_block_in_and_first_out,
-        pbt_gssps.parents,
-        kfo_2_orig_mapping,
-        atom_kfo_index,
-        pbt_gssps.jump_atom,
-        pbt.n_conn,
-        pbt.conn_atom,
-    )
-
-    n_children, child_list_span, child_list, is_atom_jump = get_children(
-        pose_stack.block_type_ind,
-        pose_stack_block_in_and_first_out,
-        kfo_2_orig_mapping,
-        kfo_atom_parents,
-        pbt.n_conn,
-    )
-
-    id, frame_x, frame_y, frame_z = get_id_and_frame_xyz(
-        pose_stack.coords.shape[1],
-        pose_stack.block_coord_offset,
-        kfo_2_orig_mapping,
-        kfo_atom_parents,
-        child_list_span,
-        child_list,
-        is_atom_jump,
-    )
-
-    nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw = (
-        get_kinforest_scans_from_stencils2(
-            pose_stack.max_n_atoms,
-            pose_stack.block_coord_offset,
-            pose_stack.block_type_ind,
-            pose_stack.inter_residue_connections,
-            ff_edges_device,
-            torch.max(delay_for_edge).item(),
-            delay_for_edge,
-            toposort_index_for_edge,
-            first_ff_edge_for_block,
-            pose_stack_ff_parent,
-            pose_stack_block_in_and_first_out,
-            pbt_gssps.parents,
-            kfo_2_orig_mapping,
-            atom_kfo_index,
-            pbt_gssps.jump_atom,
-            pbt.n_conn,
-            pbt.polymeric_conn_inds,
-            pbt_gssps.n_gens,
-            pbt_gssps.scan_path_seg_that_builds_output_conn,
-            pbt_gssps.nodes_for_gen,
-            pbt_gssps.n_scan_path_segs,
-            pbt_gssps.scan_path_seg_starts,
-            pbt_gssps.scan_path_seg_is_real,
-            pbt_gssps.scan_path_seg_is_inter_block,
-            pbt_gssps.scan_path_seg_lengths,
-        )
-    )
-
-    # This feels so clunky after all that slick C++
-    is_res_real = pose_stack.block_type_ind != -1
-    is_atom_real = pbt.atom_is_real[pose_stack.block_type_ind[is_res_real]]
-
-    block_atom_dof_type = pbt_gssps.dof_type[
-        pose_stack.block_type_ind[is_res_real],
-        pose_stack_block_in_and_first_out[is_res_real][:, 0],
-    ]
-    doftype = torch.zeros((id.shape[0],), dtype=torch.int32)
-    doftype[1:] = block_atom_dof_type[is_atom_real]
-
-    return KinematicModuleData(
-        forest=KinForest(
-            id=id,
-            doftype=doftype,
-            parent=kfo_atom_parents,
-            frame_x=frame_x,
-            frame_y=frame_y,
-            frame_z=frame_z,
-        ),
-        scan_data_fw=KinForestScanData(
-            nodes=nodes_fw,
-            scans=scans_fw,
-            gens=gens_fw,
-        ),
-        scan_data_bw=KinForestScanData(
-            nodes=nodes_bw,
-            scans=scans_bw,
-            gens=gens_bw,
-        ),
-    )
-
-
-def test_construct_kinematic_module_for_pose(ubq_pdb):
-    torch_device = torch.device("cpu")
-    device = torch_device
-
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=1, residue_end=7
-    )
-
-    res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
-    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
-    res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
-    pose_stack = pose_stack_from_canonical_form(
-        co, pbt, **canonical_form, res_not_connected=res_not_connected
-    )
-    pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
-
-    max_n_edges = 5
-    ff_edges_cpu = torch.full(
-        (pose_stack.n_poses, max_n_edges, 4),
-        -1,
-        dtype=torch.int32,
-        device="cpu",
-    )
-    ff_edges_cpu[0, 0, 0] = 0
-    ff_edges_cpu[0, 0, 1] = 1
-    ff_edges_cpu[0, 0, 2] = 0
-
-    ff_edges_cpu[0, 1, 0] = 0
-    ff_edges_cpu[0, 1, 1] = 1
-    ff_edges_cpu[0, 1, 2] = 2
-
-    ff_edges_cpu[0, 2, 0] = 1
-    ff_edges_cpu[0, 2, 1] = 1
-    ff_edges_cpu[0, 2, 2] = 4
-
-    ff_edges_cpu[0, 3, 0] = 0
-    ff_edges_cpu[0, 3, 1] = 4
-    ff_edges_cpu[0, 3, 2] = 3
-
-    ff_edges_cpu[0, 4, 0] = 0
-    ff_edges_cpu[0, 4, 1] = 4
-    ff_edges_cpu[0, 4, 2] = 5
-
-    # Let's flip the jump and root the tree at res 4
-    ff_edges_cpu[1, 0, 0] = 0
-    ff_edges_cpu[1, 0, 1] = 1
-    ff_edges_cpu[1, 0, 2] = 0
-
-    ff_edges_cpu[1, 1, 0] = 0
-    ff_edges_cpu[1, 1, 1] = 1
-    ff_edges_cpu[1, 1, 2] = 2
-
-    ff_edges_cpu[1, 2, 0] = 1
-    ff_edges_cpu[1, 2, 1] = 4
-    ff_edges_cpu[1, 2, 2] = 1
-
-    ff_edges_cpu[1, 3, 0] = 0
-    ff_edges_cpu[1, 3, 1] = 4
-    ff_edges_cpu[1, 3, 2] = 3
-
-    ff_edges_cpu[1, 4, 0] = 0
-    ff_edges_cpu[1, 4, 1] = 4
-    ff_edges_cpu[1, 4, 2] = 5
-
-    kincoords = torch.zeros((id.shape[0], 3), dtype=torch.float32)
-    kincoords[1:] = pose_stack.coords.view(-1, 3)[id[1:]]
 
 
 def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
@@ -1312,12 +1082,12 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
 
-    print("nodes_fw", kmd.scan_data_fw.nodes)
-    print("scans_fw", kmd.scan_data_fw.scans)
-    print("gens_fw", kmd.scan_data_fw.gens)
-    print("nodes_bw", kmd.scan_data_bw.nodes)
-    print("scans_bw", kmd.scan_data_bw.scans)
-    print("gens_bw", kmd.scan_data_bw.gens)
+    # print("nodes_fw", kmd.scan_data_fw.nodes)
+    # print("scans_fw", kmd.scan_data_fw.scans)
+    # print("gens_fw", kmd.scan_data_fw.gens)
+    # print("nodes_bw", kmd.scan_data_bw.nodes)
+    # print("scans_bw", kmd.scan_data_bw.scans)
+    # print("gens_bw", kmd.scan_data_bw.gens)
 
     kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32)
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]

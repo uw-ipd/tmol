@@ -5,6 +5,7 @@ import torch
 from .datatypes import (
     KinForest,
     KinForestScanData,
+    KinematicModuleData,
     BTGenerationalSegScanPathSegs,
     PBTGenerationalSegScanPathSegs,
 )
@@ -343,6 +344,166 @@ class KinForestScanOrdering(ValidateAttrs):
             forward_scan_paths=forward_scan_paths,
             backward_scan_paths=backward_scan_paths,
         )
+
+
+def construct_kin_module_data_for_pose(
+    pose_stack,
+    fold_forest_edges,
+):
+    from tmol.kinematics.compiled.compiled_ops import (
+        calculate_ff_edge_delays,
+        get_block_parent_connectivity_from_toposort,
+        get_kinforest_scans_from_stencils2,
+        get_kfo_indices_for_atoms,
+        get_kfo_atom_parents,
+        get_children,
+        get_id_and_frame_xyz,
+    )
+
+    device = pose_stack.device
+    pbt = pose_stack.packed_block_types
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+    pbt_gssps = pbt.gen_seg_scan_path_segs
+
+    ff_edges_cpu = fold_forest_edges.cpu()
+    ff_edges_device = fold_forest_edges.to(device)
+
+    result = calculate_ff_edge_delays(
+        pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
+        pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
+        ff_edges_cpu,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
+        pbt_gssps.scan_path_seg_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
+        pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
+        pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
+    )
+
+    (
+        dfs_order_of_ff_edges,
+        n_ff_edges,
+        ff_edge_parent,
+        first_ff_edge_for_block,
+        pose_stack_ff_parent,
+        max_gen_depth_of_ff_edge,
+        first_child_of_ff_edge,
+        delay_for_edge,
+        toposort_index_for_edge,
+    ) = tuple(x.to(device) for x in result)
+
+    pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
+        pose_stack.block_type_ind,
+        pose_stack.inter_residue_connections,
+        pose_stack_ff_parent,
+        dfs_order_of_ff_edges,
+        n_ff_edges,
+        ff_edges_cpu,
+        first_ff_edge_for_block,
+        first_child_of_ff_edge,
+        delay_for_edge,
+        toposort_index_for_edge,
+        pbt.n_conn,
+        pbt.polymeric_conn_inds,
+    )
+
+    (block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index) = get_kfo_indices_for_atoms(
+        pose_stack.block_coord_offset,
+        pose_stack.block_type_ind,
+        pbt.n_atoms,
+        pbt.atom_is_real,
+    )
+
+    kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
+        pose_stack.block_type_ind,
+        pose_stack.inter_residue_connections,
+        pose_stack_ff_parent,
+        # ff_conn_to_parent,
+        pose_stack_block_in_and_first_out,
+        pbt_gssps.parents,
+        kfo_2_orig_mapping,
+        atom_kfo_index,
+        pbt_gssps.jump_atom,
+        pbt.n_conn,
+        pbt.conn_atom,
+    )
+
+    n_children, child_list_span, child_list, is_atom_jump = get_children(
+        pose_stack.block_type_ind,
+        pose_stack_block_in_and_first_out,
+        kfo_2_orig_mapping,
+        kfo_atom_parents,
+        pbt.n_conn,
+    )
+
+    id, frame_x, frame_y, frame_z = get_id_and_frame_xyz(
+        pose_stack.coords.shape[1],
+        pose_stack.block_coord_offset,
+        kfo_2_orig_mapping,
+        kfo_atom_parents,
+        child_list_span,
+        child_list,
+        is_atom_jump,
+    )
+
+    nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw = (
+        get_kinforest_scans_from_stencils2(
+            pose_stack.max_n_atoms,
+            pose_stack.block_coord_offset,
+            pose_stack.block_type_ind,
+            pose_stack.inter_residue_connections,
+            ff_edges_device,
+            torch.max(delay_for_edge).item(),
+            delay_for_edge,
+            toposort_index_for_edge,
+            first_ff_edge_for_block,
+            pose_stack_ff_parent,
+            pose_stack_block_in_and_first_out,
+            pbt_gssps.parents,
+            kfo_2_orig_mapping,
+            atom_kfo_index,
+            pbt_gssps.jump_atom,
+            pbt.n_conn,
+            pbt.polymeric_conn_inds,
+            pbt_gssps.n_gens,
+            pbt_gssps.scan_path_seg_that_builds_output_conn,
+            pbt_gssps.nodes_for_gen,
+            pbt_gssps.n_scan_path_segs,
+            pbt_gssps.scan_path_seg_starts,
+            pbt_gssps.scan_path_seg_is_real,
+            pbt_gssps.scan_path_seg_is_inter_block,
+            pbt_gssps.scan_path_seg_lengths,
+        )
+    )
+
+    # This feels so clunky after all that slick C++
+    is_res_real = pose_stack.block_type_ind != -1
+    is_atom_real = pbt.atom_is_real[pose_stack.block_type_ind[is_res_real]]
+
+    block_atom_dof_type = pbt_gssps.dof_type[
+        pose_stack.block_type_ind[is_res_real],
+        pose_stack_block_in_and_first_out[is_res_real][:, 0],
+    ]
+    doftype = torch.zeros((id.shape[0],), dtype=torch.int32)
+    doftype[1:] = block_atom_dof_type[is_atom_real]
+
+    return KinematicModuleData(
+        forest=KinForest(
+            id=id,
+            doftype=doftype,
+            parent=kfo_atom_parents,
+            frame_x=frame_x,
+            frame_y=frame_y,
+            frame_z=frame_z,
+        ),
+        scan_data_fw=KinForestScanData(
+            nodes=nodes_fw,
+            scans=scans_fw,
+            gens=gens_fw,
+        ),
+        scan_data_bw=KinForestScanData(
+            nodes=nodes_bw,
+            scans=scans_bw,
+            gens=gens_bw,
+        ),
+    )
 
 
 def jump_atom_for_bt(bt):
