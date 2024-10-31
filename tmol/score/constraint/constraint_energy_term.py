@@ -62,51 +62,20 @@ class ConstraintEnergyTerm(EnergyTerm):
         g2 = torch.logical_and(ub < dist, dist <= ub2)
         g3 = dist > ub2
 
-        ret[g0] = ((lb - dist) / sd) ** 2
+        ret[g0] = ((lb[g0] - dist[g0]) / sd[g0]) ** 2
         # ret[g1] = 0
-        ret[g2] = ((dist - ub) / sd) ** 2
-        ret[g3] = 2 * rswitch * ((dist - ub) / sd) - rswitch**2
+        ret[g2] = ((dist[g2] - ub[g2]) / sd[g2]) ** 2
+        ret[g3] = 2 * rswitch[g3] * ((dist[g3] - ub[g3]) / sd[g3]) - rswitch[g3] ** 2
 
         return ret
 
     @classmethod
-    def circularharmonic_angle(cls, atoms, params):
-        return cls.circularharmonic(atoms, params)
-
-    @classmethod
-    def circularharmonic_torsion(cls, atoms, params):
-        return cls.circularharmonic(atoms, params, torsion=True)
-
-    @classmethod
-    def circularharmonic(cls, atoms, params, torsion=False):
+    def circularharmonic(cls, atoms, params):
         x0 = params[:, 0]  # The desired angle
         sd = params[:, 1]
         offset = params[:, 2]
 
-        def get_angle(atms):
-            atm1 = atms[:, 0]
-            atm2 = atms[:, 1]
-            atm3 = atms[:, 2]
-
-            # get the two vectors
-            v1 = atm1 - atm2
-            v2 = atm3 - atm2
-
-            # normalize the vectors
-            v1norm = v1 / torch.linalg.norm(v1, dim=-1, keepdim=True)
-            v2norm = v2 / torch.linalg.norm(v2, dim=-1, keepdim=True)
-
-            # compute dot product between two vectors. equivalent to:
-            # sum_over_i sum_over_j v1norm_ij*v2norm_ij
-            # with the output being the the results of the summations over j
-            dot = torch.einsum("ij,ij->i", [v1norm, v2norm])
-
-            # dot product is equal to the cosine of the angle between the vectors
-            # multiplied by the magnitudes of the two vectors (both 1, since
-            # they are normalized)
-            return torch.arccos(dot)
-
-        angles = get_torsion_angle(atoms) if torsion else get_angle(atoms)
+        angles = get_torsion_angle(atoms)
 
         def round_away_from_zero(val):
             return torch.trunc(val + torch.sign(val) * 0.5)

@@ -46,6 +46,7 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
             )
 
             for ind, fn in enumerate(functions):
+
                 # get the constraints that match this constraint type
                 c_inds = torch.nonzero(types == ind)
 
@@ -79,11 +80,11 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
             indices1 = (
                 atom_pose_inds[:, 0] * (nblocks**2)
                 + atom_res_inds[:, 0] * nblocks
-                + atom_res_inds[:, 1]
+                + atom_res_inds[:, 3]
             )
             indices2 = (
                 atom_pose_inds[:, 0] * (nblocks**2)
-                + atom_res_inds[:, 1] * nblocks
+                + atom_res_inds[:, 3] * nblocks
                 + atom_res_inds[:, 0]
             )
             flattened.index_add_(0, indices1, scores / 2)

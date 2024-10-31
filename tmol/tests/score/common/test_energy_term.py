@@ -358,6 +358,7 @@ class EnergyTermTestBase:
         resnums=None,
         edit_pose_stack_fn=None,
         update_baseline=False,
+        override_baseline_name=None,
         atol=1e-5,
         rtol=1e-3,
     ):
@@ -373,11 +374,14 @@ class EnergyTermTestBase:
             pose_scorer(coords, output_block_pair_energies=True).cpu().detach().numpy()
         )
 
+        test_name = (
+            cls.test_block_scoring.__name__
+            if (override_baseline_name is None)
+            else override_baseline_name
+        )
         if update_baseline:
-            cls.save_test_baseline_data(
-                cls.test_block_scoring.__name__, cls.block_pair_to_dict(scores)
-            )
-        gold_vals = cls.get_test_baseline_data(cls.test_block_scoring.__name__)
+            cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(scores))
+        gold_vals = cls.get_test_baseline_data(test_name)
 
         assert_allclose(gold_vals, scores, atol, rtol)
 
