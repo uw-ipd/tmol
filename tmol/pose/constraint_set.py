@@ -13,7 +13,6 @@ class ConstraintSet:
     constraint_function_inds: Tensor[torch.int][:]
     constraint_atom: Tensor[torch.int][:, 4, 3]
     constraint_params: Tensor[torch.float32][:, :]
-    constraint_functions = []
 
     def __init__(self, device):
         self.constraint_function_inds = torch.full(
@@ -26,10 +25,12 @@ class ConstraintSet:
             (0, 1), 0, dtype=torch.float32, device=device
         )
         self.device = device
+        self.constraint_functions = []
 
     #################### PROPERTIES #####################
 
-    def add_constraints_to_all_poses(self, fn, nposes, atom_indices, params=None):
+    def add_constraints_to_all_poses(self, fn, atom_indices, params=None):
+        nposes = self.pose_stack.n_poses
         self.add_constraints(fn, atom_indices, params, nposes=nposes)
 
     def add_constraints(self, fn, atom_indices, params=None, nposes=0):
@@ -80,6 +81,8 @@ class ConstraintSet:
             (num_to_add, self.MAX_N_ATOMS, 3), 0, dtype=torch.int32, device=self.device
         )
         new_atom_indices[:, 0 : atom_indices.size(1), :] = atom_indices
+        # now copy the last real atom into the final atom slot so that we can attribute score correctly later
+        new_atom_indices[:, self.MAX_N_ATOMS - 1, :] = atom_indices[:, -1, :]
         self.constraint_atoms = torch.cat((self.constraint_atoms, new_atom_indices))
 
         new_params = torch.full(
