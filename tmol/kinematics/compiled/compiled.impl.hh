@@ -270,19 +270,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
             block_type_n_conn[block_type];
       }
     } else {
-      // oh shit. Currently do not handle leaf nodes!
-      int const in_conn =
-          pose_stack_block_in_and_first_out[pose][edge_end_block][0];
+      // leaf nodes:
       int const n_conn = block_type_n_conn[block_type];
-      int out_conn = -1;
-      if (in_conn < n_conn) {
-        out_conn = in_conn == 0 ? 1 : 0;  // BUG!? FIX THIS!
-      } else {
-        out_conn = 0;
-      }
-      pose_stack_block_in_and_first_out[pose][edge_end_block][1] = out_conn;
-      // IDEALLY we have a "leaf node" / no-output category, and we set:
-      // pose_stack_ff_conn_to_parent[pose][edge_end_block][1] = n_conn + 1;
+      pose_stack_block_in_and_first_out[pose][edge_end_block][1] = n_conn + 1;
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
@@ -918,6 +908,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   int const max_n_scan_path_segs_per_gen =
       block_type_scan_path_seg_starts.size(4);
 
+  // printf("n_poses %d max_n_edges_per_ff %d max_n_blocks %d\n", n_poses,
+  // max_n_edges_per_ff, max_n_blocks);
+
   // Step 1:
   // printf("Step 1\n");
   // Construct a depth-first traversal of the fold-forest edges to determine a
@@ -949,6 +942,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
     ff_children[pose].resize(max_n_blocks);
     has_parent[pose].resize(max_n_blocks, false);
     edge_parent_for_block[pose].resize(max_n_blocks, -1);
+    // for (int block = 0; block < max_n_blocks; ++block) {
+    //   printf("initial set size: ff_children[%d][%d] %d\n", pose, block,
+    //   ff_children[pose][block].size());
+    // }
   }
   for (int pose = 0; pose < n_poses; ++pose) {
     for (int edge = 0; edge < max_n_edges_per_ff; ++edge) {
@@ -1009,17 +1006,29 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       stack.push_back(child);
     }
     while (!stack.empty()) {
+      // for (int i = 0; i < stack.size(); ++i) {
+      //   printf(
+      //       "stack pose %d: iter: %d i: %d %d %d\n",
+      //       pose,
+      //       count_dfs_ind,
+      //       i,
+      //       std::get<0>(stack[i]),
+      //       std::get<1>(stack[i]));
+      // }
+
       std::tuple<int, int> const child_edge_tuple = stack.back();
       stack.pop_back();
       int const block = std::get<0>(child_edge_tuple);
       int const edge = std::get<1>(child_edge_tuple);
       // printf(
-      //     "dfs %d %d: e %d (%d %d)\n",
+      //     "dfs %d %d %d: e %d (%d %d) w/ %d children\n",
       //     pose,
       //     count_dfs_ind,
+      //     block,
       //     edge,
       //     ff_edges_cpu[pose][edge][1],
-      //     ff_edges_cpu[pose][edge][2]);
+      //     ff_edges_cpu[pose][edge][2],
+      //     ff_children[pose][block].size());
       dfs_order_of_ff_edges[pose][count_dfs_ind] = edge;
       count_dfs_ind += 1;
       for (auto const& child : ff_children[pose][block]) {
@@ -2492,7 +2501,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int const first_out_conn =
         pose_stack_block_in_and_first_out[pose][block][1];
     assert(input_conn >= 0 && input_conn < max_n_input_conn + 2);
-    assert(first_out_conn >= 0 && first_out_conn < max_n_output_conn + 1);
+    assert(first_out_conn >= 0 && first_out_conn <= max_n_output_conn + 1);
     if (scan_path_seg >= block_type_n_scan_path_segs[block_type][input_conn]
                                                     [first_out_conn][gen]) {
       // printf("collect_n_atoms_for_scan_paths early exit %d vs %d \n",

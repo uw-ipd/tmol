@@ -7,7 +7,10 @@ from tmol.kinematics.fold_forest import EdgeType
 
 @numba.jit(nopython=True)
 def mark_polymeric_bonds_in_foldforest_edges(
-    n_poses: int, max_n_blocks: int, edges: NDArray[int][:, :, 4]
+    n_poses: int,
+    max_n_blocks: int,
+    n_blocks: NDArray[int][:],
+    edges: NDArray[int][:, :, 4],
 ):
     """Make each implicit i-to-i+1 or i-to-(i-1) polymer bond explicit
 
@@ -21,15 +24,24 @@ def mark_polymeric_bonds_in_foldforest_edges(
     polymeric_connection_in_edge = numpy.zeros(
         (n_poses, max_n_blocks, max_n_blocks), dtype=numpy.int64
     )
+    max_n_edges = edges.shape[1]
+    bad_edges = numpy.full((n_poses, max_n_edges), -1, dtype=numpy.int64)
+    count_bad_for_pose = numpy.full((n_poses,), 0, dtype=numpy.int64)
     for i in range(n_poses):
+        count_bad = 0
         for j in range(edges.shape[1]):
+            if edges[i, j, 1] >= n_blocks[i] or edges[i, j, 2] >= n_blocks[i]:
+                bad_edges[i, count_bad] = j
+                count_bad += 1
+                continue
             if edges[i, j, 0] == EdgeType.polymer:
                 increment = 1 if edges[i, j, 1] < edges[i, j, 2] else -1
 
                 for k in range(edges[i, j, 1], edges[i, j, 2], increment):
                     polymeric_connection_in_edge[i, k, k + increment] += 1
+        count_bad_for_pose[i] = count_bad
 
-    return polymeric_connection_in_edge
+    return (polymeric_connection_in_edge, count_bad_for_pose, bad_edges)
 
 
 @numba.jit(nopython=True)
@@ -89,7 +101,19 @@ def validate_fold_forest_jit(
     n_poses = n_blocks.shape[0]
     max_n_blocks = n_blocks.max()
     max_n_edges = edges.shape[2]
-    connections = mark_polymeric_bonds_in_foldforest_edges(n_poses, max_n_blocks, edges)
+    connections, count_bad, bad_edges = mark_polymeric_bonds_in_foldforest_edges(
+        n_poses, max_n_blocks, n_blocks, edges
+    )
+    error = False
+    for i in range(n_poses):
+        if count_bad[i] > 0:
+            error = True
+    if error:
+        return False, bad_edges, None, None
+
+    # print("roots", roots)
+    # print("n_blocks", n_blocks)
+    # print("edges", edges)
 
     # ok, let's get the other edges incorporated
     for i in range(n_poses):
@@ -114,7 +138,7 @@ def validate_fold_forest_jit(
         if not good:
             break
 
-    return good, cycles_detected, missing
+    return good, bad_edges, cycles_detected, missing
 
 
 def validate_fold_forest(
@@ -122,12 +146,49 @@ def validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
-    good, cycles_detected, missing = validate_fold_forest_jit(roots, n_blocks, edges)
+    # print("roots", roots)
+    # print("n_blocks", n_blocks)
+    # print("edges", edges)
+
+    good, bad_edges, cycles_detected, missing = validate_fold_forest_jit(
+        roots, n_blocks, edges
+    )
 
     if not good:
         n_poses = n_blocks.shape[0]
+        max_n_edges = edges.shape[1]
         errors = []
         for i in range(n_poses):
+            for j in range(max_n_edges):
+                if bad_edges[i, j] == -1:
+                    # bad edges are listed first, so
+                    # if we hit "-1", there are none remaining
+                    break
+                edge_index = bad_edges[i, j]
+                edge_start = edges[i, edge_index, 1]
+                edge_end = edges[i, edge_index, 2]
+                if edge_start >= n_blocks[i]:
+                    errors.append(
+                        " ".join(
+                            [
+                                f"FOLD FOREST ERROR: Bad edge {edge_index} in pose {i}",
+                                f"gives start index {edge_start} out of range; (n_blocks[{i}] = {n_blocks[i]})",
+                            ]
+                        )
+                    )
+                if edge_end >= n_blocks[i]:
+                    errors.append(
+                        " ".join(
+                            [
+                                f"FOLD FOREST ERROR: Bad edge {edge_index} in pose {i}",
+                                f"gives end index {edge_end} out of range; (n_blocks[{i}] = {n_blocks[i]})",
+                            ]
+                        )
+                    )
+
+        for i in range(n_poses):
+            if cycles_detected is None:
+                break
             if cycles_detected[i, 0] != 0:
                 good = False
                 errors.append(

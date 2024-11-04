@@ -1,12 +1,19 @@
 import pytest
 import typing
+import numpy
 
 import torch
 
+from tmol import PoseStack, canonical_form_from_pdb, pose_stack_from_canonical_form
+from tmol.io.canonical_ordering import (
+    default_canonical_ordering,
+    default_packed_block_types,
+)
 from tmol.types.torch import Tensor
 
 from tmol.kinematics.datatypes import KinForest
-from tmol.kinematics.script_modules import KinematicModule
+from tmol.kinematics.fold_forest import FoldForest
+from tmol.kinematics.script_modules import KinematicModule, PoseStackKinematicModule
 from tmol.kinematics.operations import inverseKin
 
 from tmol.system.packed import PackedResidueSystem
@@ -138,6 +145,92 @@ def test_kinematic_torch_op_smoke(
     total.backward()
 
     assert tdofs.raw.grad is not None
+
+
+@pytest.fixture
+def pose_stack_gradcheck_test_system1(
+    ubq_pdb: str, torch_device: torch.device
+) -> typing.Tuple[PoseStack, PoseStackKinematicModule]:
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=0, residue_end=6
+    )
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+
+    # capital letter H fold forest
+    # 0       3
+    # ^       ^
+    # |       |
+    # 1* ---> 4
+    # |       |
+    # v       v
+    # 2       5
+    ff_roots = numpy.full((1,), 1, dtype=int)  # residue 1 is the root
+    ff_n_edges = numpy.full(
+        (1, 1), 5, dtype=int
+    )  # five edges for the single Pose in the PoseStack
+    ff_edges = numpy.zeros((1, 5, 3), dtype=int)
+    ff_edges[0, 0, 0] = 0
+    ff_edges[0, 0, 1] = 1
+    ff_edges[0, 0, 2] = 0
+
+    ff_edges[0, 1, 0] = 0
+    ff_edges[0, 1, 1] = 1
+    ff_edges[0, 1, 2] = 2
+
+    ff_edges[0, 2, 0] = 1
+    ff_edges[0, 2, 1] = 1
+    ff_edges[0, 2, 2] = 4
+
+    ff_edges[0, 3, 0] = 0
+    ff_edges[0, 3, 1] = 4
+    ff_edges[0, 3, 2] = 3
+
+    ff_edges[0, 4, 0] = 0
+    ff_edges[0, 4, 1] = 4
+    ff_edges[0, 4, 2] = 5
+
+    fold_forest = FoldForest(
+        max_n_edges=5,
+        n_edges=ff_n_edges,
+        edges=ff_edges,
+        roots=ff_roots,
+    )
+
+    kinematics_module = PoseStackKinematicModule(
+        pose_stack,
+        fold_forest,
+    )
+
+    return (pose_stack, kinematics_module)
+
+
+def test_pose_stack_kinematics_module_smoke(
+    pose_stack_gradcheck_test_system1, torch_backward_coverage, torch_device
+):
+    """Smoke test of kinematic operation with backward-pass code coverage."""
+    pose_stack, kinematics_module = pose_stack_gradcheck_test_system1
+    kinforest = kinematics_module.kmd.forest
+
+    kincoords = torch.zeros(
+        (kinematics_module.kmd.forest.id.shape[0], 3),
+        dtype=torch.float64,
+        device=torch_device,
+    )
+    kincoords[1:] = pose_stack.coords.view(-1, 3)[
+        kinematics_module.kmd.forest.id[1:]
+    ].to(torch.float64)
+
+    dofs = inverseKin(kinforest, kincoords, requires_grad=True)
+
+    coords = kinematics_module(dofs.raw)
+    coords.register_hook(torch_backward_coverage)
+
+    total = torch.sum(coords[:, :])
+    total.backward()
+
+    assert dofs.raw.grad is not None
 
 
 @requires_cuda

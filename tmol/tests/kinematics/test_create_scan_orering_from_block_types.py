@@ -1082,12 +1082,12 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
 
-    # print("nodes_fw", kmd.scan_data_fw.nodes)
-    # print("scans_fw", kmd.scan_data_fw.scans)
-    # print("gens_fw", kmd.scan_data_fw.gens)
-    # print("nodes_bw", kmd.scan_data_bw.nodes)
-    # print("scans_bw", kmd.scan_data_bw.scans)
-    # print("gens_bw", kmd.scan_data_bw.gens)
+    print("nodes_fw", kmd.scan_data_fw.nodes)
+    print("scans_fw", kmd.scan_data_fw.scans)
+    print("gens_fw", kmd.scan_data_fw.gens)
+    print("nodes_bw", kmd.scan_data_bw.nodes)
+    print("scans_bw", kmd.scan_data_bw.scans)
+    print("gens_bw", kmd.scan_data_bw.gens)
 
     kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32)
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
@@ -1166,6 +1166,33 @@ def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
         kmd.scan_data_bw.gens,
         kinforest,
     )
+
+    print("kincoords[35:45]", kincoords[35:45])
+    print("new_coords[35:45]", new_coords[35:45])
+
+    # print("kincoords[0:10]", kincoords[0:10])
+    # print("new_coords[0:10]", new_coords[0:10])
+
+    # print("kincoords[20:30]", kincoords[20:30])
+    # print("new_coords[20:30]", new_coords[20:30])
+
+    # print("kincoords[100:110]", kincoords[100:110])
+    # print("new_coords[100:110]", new_coords[100:110])
+
+    # print("kincoords[120:130]", kincoords[120:130])
+    # print("new_coords[120:130]", new_coords[120:130])
+
+    # nz_diff = torch.nonzero(
+    #     torch.logical_and(
+    #         torch.abs(kincoords - new_coords) > 1e-5,
+    #         torch.logical_not(torch.isnan(kincoords)),
+    #     ),
+    #     as_tuple=True,
+    # )
+    # print("diff", nz_diff[0][:10])
+    # print("diff", nz_diff[1][:10])
+    # print("kincoords", kincoords[nz_diff[:10]])
+    # print("new_coords", new_coords[nz_diff[:10]])
 
     torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
 
