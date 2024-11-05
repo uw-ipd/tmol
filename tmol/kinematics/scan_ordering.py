@@ -687,6 +687,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
             else:
                 # Case 2: A leaf node of the kinematic tree.
                 # we will not be exiting from any connection point.
+                # NOTE: this is an inter-block segment
                 primary_exit_scan_path_segment = []
                 is_on_exit_sp_segment = numpy.zeros((bt.n_atoms,), dtype=bool)
                 pass
@@ -969,7 +970,11 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                     # interblock if the last atom in the sp seg is a connection atom
                     # or the jump atom
                     ij_scan_path_segment_is_inter_block[k][l] = (
-                        is_conn_atom[l_last_at] or l_last_at == mid_bt_atom
+                        is_conn_atom[l_last_at]
+                        or l_last_at == mid_bt_atom
+                        or (
+                            k == 0 and l == 0 and j > n_conn
+                        )  # case: leaf of fold tree; inter-block, but no exit
                     )
                     conn_for_path = interres_conn_scan_path_segment_rooted_by_atom[
                         l_first_at
