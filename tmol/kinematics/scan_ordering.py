@@ -966,16 +966,17 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
             for k in range(ij_n_gens):
                 for l in range(ij_n_scan_path_segments[k]):
                     l_first_at = gen_scan_path_segments[k][l][0 if k == 0 else 1]
-                    l_last_at = gen_scan_path_segments[k][l][-1]
-                    # interblock if the last atom in the sp seg is a connection atom
-                    # or the jump atom
-                    ij_scan_path_segment_is_inter_block[k][l] = (
-                        is_conn_atom[l_last_at]
-                        or l_last_at == mid_bt_atom
-                        or (
-                            k == 0 and l == 0 and j > n_conn
-                        )  # case: leaf of fold tree; inter-block, but no exit
-                    )
+                    # "interblock" is really asking "does this scan path segment
+                    # enter from a different block?" and we can't easily answer
+                    # that question based on whether the first atom is a connection
+                    # atom, because sometimes the connection atom will have
+                    # paths distinct from the "main path" -- e.g. N is a connection
+                    # atom, and N roots a path N-Ca-C, and this is the inter-block
+                    # path we care about, but N also roots the path N-H and that
+                    # is not the inter-block path we care about.
+                    # It turns out, no path is really inter-block besides the
+                    # very first path, and all first paths are inter-block.
+                    ij_scan_path_segment_is_inter_block[k][l] = k == 0 and l == 0
                     conn_for_path = interres_conn_scan_path_segment_rooted_by_atom[
                         l_first_at
                     ]
@@ -984,7 +985,6 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                             conn_for_path
                         ] = k
                         scan_path_segment_building_interres_conn[conn_for_path] = l
-            # print(bt.name, i, j, "ij_scan_path_segment_is_inter_block", ij_scan_path_segment_is_inter_block)
 
             # print("ij_scan_is_inter_block", ij_scan_is_inter_block)
             # ij_n_nodes_for_gen =
