@@ -1412,8 +1412,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     TView<Int, 4, D> block_type_n_scan_path_segs,        // T x I x O x G
     TView<Int, 5, D> block_type_scan_path_seg_starts,    // T x I x O x G x S
     TView<bool, 5, D> block_type_scan_path_seg_is_real,  // T x I x O x G x S
-    TView<bool, 5, D>
-        block_type_scan_path_seg_is_inter_block,      // T x I x O x G x S
+    // TView<bool, 5, D>
+    //     block_type_scan_path_seg_is_inter_block,      // T x I x O x G x S
     TView<Int, 5, D> block_type_scan_path_seg_length  // T x I x O x G x S
     )
     -> std::tuple<
@@ -1974,10 +1974,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       return;
     }
 
-    bool const sps_is_inter_block =
-        block_type_scan_path_seg_is_inter_block[block_type][input_conn]
-                                               [first_out_conn][gen]
-                                               [scan_path_seg];
+    bool const sps_is_inter_block = (gen == 0 && scan_path_seg == 0);
     // Note again: "scan path" -- a contiguous, possibly-multi-block stretch of
     // atoms to be updated together vs "scan path segment" the portion of a scan
     // path belonging to a single block. Some scan path segments are scan paths;

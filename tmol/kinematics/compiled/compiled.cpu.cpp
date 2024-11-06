@@ -52,8 +52,11 @@ struct ForwardKinDispatch {
     }
 
     // scan and accumulate HTs down atom tree
-    auto k_compose =
-        ([=] EIGEN_DEVICE_FUNC(int p, int i) { HTs[i] = HTs[i] * HTs[p]; });
+    auto k_compose = ([=] EIGEN_DEVICE_FUNC(int p, int i) {
+      HTs[i] = HTs[i] * HTs[p];
+      // if (i == 58) {printf("setting 58! %6.3f %6.3f %6.3f\n", HTs[i](3, 0),
+      // HTs[i](3, 1), HTs[i](3, 2));}
+    });
 
     int ngens = gens.size(0) - 1;
     for (int gen = 0; gen < ngens; gen++) {  // loop over generations
@@ -67,13 +70,17 @@ struct ForwardKinDispatch {
                            : (gens[gen].node_start + scans[j + 1]);
         // printf("node start %d node stop %d\n", nodestart, nodestop);
         for (int k = nodestart; k < nodestop - 1; k++) {  // loop over path
+
           // printf("k: %d %d %d\n", gen, j, k);
           //     print_three_frames(2, 74, 73, 59)
           // int kn = nodes[k];
           // int kp1n = nodes[k + 1];
-          // bool any = kn == 74 || kn == 73 || kn == 59 || kp1n == 74
-          //            || kp1n == 73 || kp1n == 59;
+          // bool any = kn == 58 || kn == 59;
           // if (any) {
+          //   printf("gen %d j %d scanstart %d scanstop %d nodestart %d
+          //   nodestop %d k %d kn %d kp1n %d\n",
+          //     gen, j, scanstart, scanstop, nodestart, nodestop, k, kn, kp1n);
+          // }
           //   printf(
           //       "b HT %3d: [[%8.3f %8.3f %8.3f %8.3f]\n          [%8.3f %8.3f
           //       "
