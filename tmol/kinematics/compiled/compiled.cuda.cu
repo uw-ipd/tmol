@@ -16,6 +16,25 @@
 namespace tmol {
 namespace kinematics {
 
+// #ifdef __CUDACC__
+// #define gpuErrPeek gpuAssert(cudaPeekAtLastError(), __FILE__, __LINE__);
+// #define gpuErrSync gpuAssert(cudaDeviceSynchronize(), __FILE__, __LINE__);
+// #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+// inline void gpuAssert(cudaError_t code, const char *file, int line, bool
+// abort=true)
+// {
+//    if (code != cudaSuccess)
+//    {
+//       fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
+//       line); if (abort) exit(code);
+//    }
+// }
+// #else
+// #define gpuErrPeek
+// #define gpuErrSync
+// #define gpuErrchk(ans) { ans; }
+// #endif
+
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
@@ -163,6 +182,7 @@ struct ForwardKinDispatch {
       TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
       TView<KinForestParams<Int>, 1, D> kintree)
       -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D>> {
+    printf("ForwardKinDispatch\n");
     NVTXRange _function(__FUNCTION__);
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<128, 2> launch_t;
@@ -212,10 +232,15 @@ struct ForwardKinDispatch {
     nvtx_range_pop();
 
     auto ngens = gens.size(0) - 1;
+    printf("start gensegscans: ngens %d\n", ngens);
     for (int gen = 0; gen < ngens; ++gen) {
       int nodestart = gens[gen].node_start, scanstart = gens[gen].scan_start;
+
       int nnodes = gens[gen + 1].node_start - nodestart;
       int nscans = gens[gen + 1].scan_start - scanstart;
+      if (nnodes == 0 && nscans == 0) {
+        continue;
+      }
 
       // reindexing function
       nvtx_range_push("dispatch::segscan");
@@ -226,6 +251,7 @@ struct ForwardKinDispatch {
       // mgpu does not play nicely with eigen types
       // instead, we wrap the raw data buffer as QuatTransRawBuffer
       //      and use eigen:map to reconstruct on device
+      printf("segscan: gen %d, nnodes %d, nscans %d\n", gen, nnodes, nscans);
       tmol::kinematics::kernel_segscan<launch_t>(
           k_reindex,
           nnodes,
@@ -239,6 +265,9 @@ struct ForwardKinDispatch {
           init,
           context);
       nvtx_range_pop();
+      gpuErrPeek;
+      gpuErrSync;
+      printf("kernel_segscan gen %d\n", gen);
 
       // unindex for gen i
       // this would be nice to incorporate into kernel_segscan (as the indexing
@@ -250,6 +279,10 @@ struct ForwardKinDispatch {
 
       mgpu::transform(k_unindex, nnodes, context);
       nvtx_range_pop();
+      gpuErrPeek;
+      gpuErrSync;
+      printf("k_unindex gen %d\n", gen);
+      nvtx_range_pop();
     }
 
     // copy atom positions
@@ -258,6 +291,11 @@ struct ForwardKinDispatch {
     });
 
     mgpu::transform(k_getcoords, num_atoms, context);
+    gpuErrPeek;
+    gpuErrSync;
+    printf("k_getcoords num_atoms %d\n", num_atoms);
+
+    printf("done ForwardKinDispatch\n");
 
     return {xs_t, HTs_t};
   }
@@ -272,6 +310,7 @@ struct InverseKinDispatch {
       TView<Int, 1, D> frame_y,
       TView<Int, 1, D> frame_z,
       TView<Int, 1, D> doftype) -> TPack<KintreeDof, 1, D> {
+    printf("InverseKinDispatch\n");
     auto num_atoms = coords.size(0);
 
     // fd: we could eliminate HT allocation and calculate on the fly
@@ -311,6 +350,7 @@ struct InverseKinDispatch {
     });
 
     mgpu::transform(k_hts2dofs, num_atoms, context);
+    printf("done InverseKinDispatch\n");
 
     return dofs_t;
   }
@@ -326,6 +366,7 @@ struct KinDerivDispatch {
       TView<Int, 1, D> scans,
       TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
       TView<KinForestParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D> {
+    printf("KinDerivDispatch\n");
     NVTXRange _function(__FUNCTION__);
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<256, 3> launch_t;
@@ -431,6 +472,7 @@ struct KinDerivDispatch {
     mgpu::transform(k_f1f2s2derivs, num_atoms, context);
     nvtx_range_pop();
 
+    printf("done KinDerivDispatch\n");
     return dsc_ddofs_t;
   }
 };

@@ -31,6 +31,7 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
       Tensor scans_b,
       Tensor gens_b,
       Tensor kintree) {
+    printf("KinematicOp::forward\n");
     at::Tensor coords;
     at::Tensor HTs;
 
@@ -53,11 +54,13 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
                                   }));
 
     ctx->save_for_backward({HTs, dofs, nodes_b, scans_b, gens_b, kintree});
+    printf("KinematicOp::forward -- end\n");
 
     return coords;
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    printf("KinematicOp::backward\n");
     auto saved = ctx->get_saved_variables();
     int i = 0;
     auto HTs = saved[i++];
@@ -87,6 +90,7 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
                                     dV_ddof = result.tensor;
                                   }));
 
+    printf("KinematicOp::backward -- end\n");
     return {
         dV_ddof,
         torch::Tensor(),
@@ -109,8 +113,11 @@ Tensor kinematic_op(
     Tensor scans_b,
     Tensor gens_b,
     Tensor kintree) {
-  return KinematicOp::apply(
+  printf("kinematic_op\n");
+  Tensor retval = KinematicOp::apply(
       dofs, nodes_f, scans_f, gens_f, nodes_b, scans_b, gens_b, kintree);
+  printf("kinematic_op -- end\n");
+  return retval;
 }
 
 Tensor forward_only_op(
