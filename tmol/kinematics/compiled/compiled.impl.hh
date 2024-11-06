@@ -471,7 +471,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
     // atom, parent);
     if (parent == 0) {
       // This atom's parent is the root and is connected to it by a jump
-      accumulate<D, Int>::add(n_jump_children[parent], Int(1));
+      Int one(1);
+      accumulate<D, Int>::add(n_jump_children[parent], one);
       is_atom_jump[i] = true;
     } else {
       int const parent_block = kfo_2_orig_mapping[parent][1];
@@ -1267,7 +1268,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   // (0,2,0) < (1,1,0) and (0, 1, 2) < (0, 1, 3)
   std::vector<std::list<int>> roots_of_subpaths_by_generation(max_delay + 1);
   auto topo_sort_index_for_edge_t =
-      TPack<Int, 1, D>::full({n_poses * max_n_edges_per_ff}, -1);
+      TPack<Int, 1, Device::CPU>::full({n_poses * max_n_edges_per_ff}, -1);
   auto topo_sort_index_for_edge = topo_sort_index_for_edge_t.view;
   // Put all the root edges into the roots_of_subpaths_for_generation[0] list
   for (int pose = 0; pose < n_poses; ++pose) {
@@ -1692,9 +1693,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
         int const ff_edge_start = ff_edges[pose][edge][1];
         int const ff_edge_end = ff_edges[pose][edge][2];
         int const n_blocks =
-            (edge_type == 0 ? (ff_edge_end > ff_edge_start
-                                   ? ff_edge_end - ff_edge_start + 1
-                                   : ff_edge_start - ff_edge_end + 1)
+            (edge_type == 0 ? (
+                 ff_edge_end > ff_edge_start ? ff_edge_end - ff_edge_start + 1
+                                             : ff_edge_start - ff_edge_end + 1)
                             : 2);
         int const edge_delay = delay_for_edge[pose][edge];
         int const ff_edge_gen = gen + edge_delay;
@@ -2247,11 +2248,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int const gen_bw = n_gens_total - gen;
     int const tsedge0_block_offset =
         gen < n_gens_total ? block_offset_for_tsedge_for_gen
-                                 [gen * n_poses * max_n_edges_per_ff]
+                [gen * n_poses * max_n_edges_per_ff]
                            : n_blocks_building_edges_total;
     int const tsedge0_block_offset_bw =
         gen_bw < n_gens_total ? block_offset_for_tsedge_for_gen_bw
-                                    [gen_bw * n_poses * max_n_edges_per_ff]
+                [gen_bw * n_poses * max_n_edges_per_ff]
                               : n_blocks_building_edges_total;
     // printf(
     //     "tsedge0 for gen index %d * %d * %d = %d, and offset = %d\n",
@@ -2429,11 +2430,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       int const gen_bw = n_gens_total - ind;
       int const tsedge0_block_offset =
           ind < n_gens_total ? block_offset_for_tsedge_for_gen
-                                   [ind * n_poses * max_n_edges_per_ff]
+                  [ind * n_poses * max_n_edges_per_ff]
                              : n_blocks_building_edges_total;
       int const tsedge0_block_offset_bw =
           gen_bw < n_gens_total ? block_offset_for_tsedge_for_gen_bw
-                                      [gen_bw * n_poses * max_n_edges_per_ff]
+                  [gen_bw * n_poses * max_n_edges_per_ff]
                                 : n_blocks_building_edges_total;
       int const tsedge0_for_gen =
           tsedge0_block_offset < n_blocks_building_edges_total
@@ -2600,14 +2601,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     // What is the block offset for the first edge (topo-sort edge 0) for
     // this generation?
     int const tsedge0_block_offset =
-        ff_edge_gen < n_gens_total
-            ? block_offset_for_tsedge_for_gen
-                  [ff_edge_gen * n_poses * max_n_edges_per_ff]
-            : n_blocks_building_edges_total;
+        ff_edge_gen < n_gens_total ? block_offset_for_tsedge_for_gen
+                [ff_edge_gen * n_poses * max_n_edges_per_ff]
+                                   : n_blocks_building_edges_total;
     int const tsedge0_block_offset_bw =
         ff_edge_gen_bw < n_gens_total
             ? block_offset_for_tsedge_for_gen_bw
-                  [ff_edge_gen_bw * n_poses * max_n_edges_per_ff]
+                [ff_edge_gen_bw * n_poses * max_n_edges_per_ff]
             : n_blocks_building_edges_total;  // What is the offset for the
                                               // first scan path segment for
                                               // tsegde0?

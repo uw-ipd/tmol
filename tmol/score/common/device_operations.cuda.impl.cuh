@@ -6,7 +6,7 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
-#include <moderngpu/kernal_scan.hxx>
+#include <moderngpu/kernel_scan.hxx>
 #include <moderngpu/cta_reduce.hxx>
 
 #include "device_operations.hh"
@@ -65,14 +65,14 @@ struct DeviceOperations<tmol::Device::CUDA> {
   static void scan(T* src, T* dst, int n, OP op) {
     mgpu::standard_context_t context;
     mgpu::scan<scan_type>(
-        data, n, dst, op, mgpu::discard_iterator_t<T>(), context);
+        src, n, dst, op, mgpu::discard_iterator_t<T>(), context);
   }
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static T scan_and_return_total(T* src, T* dst, int n, OP op) {
     mgpu::standard_context_t context;
     mgpu::mem_t<T> total(1, context, mgpu::memory_space_host);
-    mgpu::scan<scan_type>(data, n, dst, op, total.data(), context);
+    mgpu::scan<scan_type>(src, n, dst, op, total.data(), context);
     cudaStreamSynchronize(0);
     return total.data()[0];
   }
@@ -107,21 +107,23 @@ struct DeviceOperations<tmol::Device::CUDA> {
       carryoutBuffer += (Int)scanleft;
     }
 
-    auto scanCarryout_t = TPack<T, 1, D>::empty({carryoutBuffer});
+    auto scanCarryout_t =
+        TPack<T, 1, tmol::Device::CUDA>::empty({carryoutBuffer});
     auto scanCarryout = scanCarryout_t.view;
-    auto scanCodes_t = TPack<Int, 1, D>::empty({carryoutBuffer});
+    auto scanCodes_t =
+        TPack<Int, 1, tmol::Device::CUDA>::empty({carryoutBuffer});
     auto scanCodes = scanCodes_t.view;
-    auto LBS_t = TPack<Int, 1, D>::empty({lbsBuffer});
+    auto LBS_t = TPack<Int, 1, tmol::Device::CUDA>::empty({lbsBuffer});
     auto LBS = LBS_t.view;
 
     // The return tensor
-    auto dst_scan_t = TPack<T, 1, D>::empty({scanBuffer});
+    auto dst_scan_t = TPack<T, 1, tmol::Device::CUDA>::empty({scanBuffer});
     auto dst_scan = dst_scan_t.view;
 
     tmol::kinematics::kernel_segscan<launch_t>(
         src_indexing,
         n,
-        &seg_start_inds.data()[0],
+        &seg_start_inds[0],
         n_segs,
         &dst_scan.data()[0],
         &scanCarryout.data()[0],
@@ -183,8 +185,6 @@ struct DeviceOperations<tmol::Device::CUDA> {
   }
 
   __device__ static void synchronize_workgroup() { __syncthreads(); }
-
-  static void
 };
 
 }  // namespace common

@@ -4,12 +4,14 @@
 
 #include <tmol/kinematics/compiled/kernel_segscan.cuh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/device_operations.cuda.impl.cuh>
 #include <tmol/utility/nvtx.hh>
 
 #include <moderngpu/transform.hxx>
 
 #include "common.hh"
 #include "params.hh"
+#include "compiled.impl.hh"
 
 namespace tmol {
 namespace kinematics {
@@ -439,6 +441,15 @@ template struct InverseKinDispatch<tmol::Device::CUDA, float, int32_t>;
 template struct InverseKinDispatch<tmol::Device::CUDA, double, int32_t>;
 template struct KinDerivDispatch<tmol::Device::CUDA, float, int32_t>;
 template struct KinDerivDispatch<tmol::Device::CUDA, double, int32_t>;
+
+template struct KinForestFromStencil<
+    tmol::score::common::DeviceOperations,
+    tmol::Device::CUDA,
+    int32_t>;
+// template struct KinForestFromStencil<
+//     tmol::score::common::DeviceOperations,
+//     tmol::Device::CUDA,
+//     int64_t>;
 
 #undef HomogeneousTransform
 #undef KintreeDof

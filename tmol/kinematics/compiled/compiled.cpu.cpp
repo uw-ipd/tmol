@@ -405,10 +405,10 @@ template struct KinForestFromStencil<
     tmol::score::common::DeviceOperations,
     tmol::Device::CPU,
     int32_t>;
-template struct KinForestFromStencil<
-    tmol::score::common::DeviceOperations,
-    tmol::Device::CPU,
-    int64_t>;
+// template struct KinForestFromStencil<
+//     tmol::score::common::DeviceOperations,
+//     tmol::Device::CPU,
+//     int64_t>;
 
 #undef HomogeneousTransform
 #undef KintreeDof

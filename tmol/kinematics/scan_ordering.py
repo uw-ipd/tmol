@@ -399,7 +399,7 @@ def construct_kin_module_data_for_pose(
         pose_stack_ff_parent,
         dfs_order_of_ff_edges,
         n_ff_edges,
-        ff_edges_cpu,
+        ff_edges_device,
         first_ff_edge_for_block,
         first_child_of_ff_edge,
         delay_for_edge,
