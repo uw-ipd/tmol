@@ -268,7 +268,7 @@ class BTGenerationalSegScanPathSegs:
     ]  # n-input x n-output x n-conn x 2
     scan_path_seg_starts: NDArray[numpy.int64][:, :, :, :]
     scan_path_seg_is_real: NDArray[bool][:, :, :, :]
-    scan_path_seg_is_inter_block: NDArray[bool][:, :, :, :]
+    # scan_path_seg_is_inter_block: NDArray[bool][:, :, :, :]
     scan_path_seg_lengths: NDArray[numpy.int64][:, :, :, :]
 
     @classmethod
@@ -307,9 +307,9 @@ class BTGenerationalSegScanPathSegs:
             scan_path_seg_is_real=numpy.zeros(
                 io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=bool
             ),
-            scan_path_seg_is_inter_block=numpy.zeros(
-                io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=bool
-            ),
+            # scan_path_seg_is_inter_block=numpy.zeros(
+            #     io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=bool
+            # ),
             scan_path_seg_lengths=numpy.zeros(
                 io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=int
             ),
@@ -335,7 +335,7 @@ class PBTGenerationalSegScanPathSegs:
     ]  # n-bt x n-input x n-output x n-conn x 2
     scan_path_seg_starts: Tensor[torch.int32][:, :, :, :, :]
     scan_path_seg_is_real: Tensor[bool][:, :, :, :, :]
-    scan_path_seg_is_inter_block: Tensor[bool][:, :, :, :, :]
+    # scan_path_seg_is_inter_block: Tensor[bool][:, :, :, :, :]
     scan_path_seg_lengths: Tensor[torch.int32][:, :, :, :, :]
 
     @classmethod
@@ -396,11 +396,11 @@ class PBTGenerationalSegScanPathSegs:
                 dtype=torch.bool,
                 device=device,
             ),
-            scan_path_seg_is_inter_block=torch.zeros(
-                io + (max_n_gens, max_n_scan_path_segs_per_gen),
-                dtype=bool,
-                device=device,
-            ),
+            # scan_path_seg_is_inter_block=torch.zeros(
+            #     io + (max_n_gens, max_n_scan_path_segs_per_gen),
+            #     dtype=bool,
+            #     device=device,
+            # ),
             scan_path_seg_lengths=torch.zeros(
                 io + (max_n_gens, max_n_scan_path_segs_per_gen),
                 dtype=torch.int32,

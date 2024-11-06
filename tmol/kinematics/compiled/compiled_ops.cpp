@@ -440,8 +440,8 @@ auto get_scans2(
     Tensor block_type_n_scan_paths,          // T x I x O x G
     Tensor block_type_scan_path_starts,      // T x I x O x G x S
     Tensor block_type_scan_path_is_real,     // T x I x O x G x S
-    Tensor block_type_scan_path_is_inter_block,  // T x I x O x G x S
-    Tensor block_type_scan_path_length           // T x I x O x G x S
+    // Tensor block_type_scan_path_is_inter_block,  // T x I x O x G x S
+    Tensor block_type_scan_path_length  // T x I x O x G x S
     ) -> tensor_list {
   // printf("GET SCANS2\n");
   Tensor nodes_fw;
@@ -482,7 +482,7 @@ auto get_scans2(
                     TCAST(block_type_n_scan_paths),
                     TCAST(block_type_scan_path_starts),
                     TCAST(block_type_scan_path_is_real),
-                    TCAST(block_type_scan_path_is_inter_block),
+                    // TCAST(block_type_scan_path_is_inter_block),
                     TCAST(block_type_scan_path_length));
         nodes_fw = std::get<0>(result).tensor;
         scans_fw = std::get<1>(result).tensor;

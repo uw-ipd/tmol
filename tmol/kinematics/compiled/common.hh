@@ -476,8 +476,8 @@ struct KinForestFromStencil {
       TView<Int, 4, D> block_type_n_scan_path_segs,  // T x I x O x G
       TView<Int, 5, D> block_type_scan_path_seg_starts,    // T x I x O x G x S
       TView<bool, 5, D> block_type_scan_path_seg_is_real,  // T x I x O x G x S
-      TView<bool, 5, D>
-          block_type_scan_path_seg_is_inter_block,      // T x I x O x G x S
+      // TView<bool, 5, D>
+      //     block_type_scan_path_seg_is_inter_block,      // T x I x O x G x S
       TView<Int, 5, D> block_type_scan_path_seg_length  // T x I x O x G x S
       )
       -> std::tuple<

@@ -368,7 +368,7 @@ def construct_kin_module_data_for_pose(
     ff_edges_cpu = fold_forest_edges.cpu()
     ff_edges_device = fold_forest_edges.to(device)
 
-    print("1")
+    # print("1")
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
         pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
@@ -377,7 +377,7 @@ def construct_kin_module_data_for_pose(
         pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
         pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
     )
-    print("2")
+    # print("2")
 
     (
         dfs_order_of_ff_edges,
@@ -391,7 +391,7 @@ def construct_kin_module_data_for_pose(
         toposort_index_for_edge,
     ) = tuple(x.to(device) for x in result)
 
-    print("3")
+    # print("3")
 
     pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
         pose_stack.block_type_ind,
@@ -408,7 +408,7 @@ def construct_kin_module_data_for_pose(
         pbt.polymeric_conn_inds,
     )
 
-    print("4")
+    # print("4")
     (block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index) = get_kfo_indices_for_atoms(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
@@ -473,7 +473,7 @@ def construct_kin_module_data_for_pose(
             pbt_gssps.n_scan_path_segs,
             pbt_gssps.scan_path_seg_starts,
             pbt_gssps.scan_path_seg_is_real,
-            pbt_gssps.scan_path_seg_is_inter_block,
+            # pbt_gssps.scan_path_seg_is_inter_block,
             pbt_gssps.scan_path_seg_lengths,
         )
     )
@@ -536,9 +536,9 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
     scan_path_seg_starts = [
         [[] for _ in range(n_output_types)] for _2 in range(n_input_types)
     ]
-    scan_path_seg_is_inter_block = [
-        [[] for _ in range(n_output_types)] for _2 in range(n_input_types)
-    ]
+    # scan_path_seg_is_inter_block = [
+    #     [[] for _ in range(n_output_types)] for _2 in range(n_input_types)
+    # ]
     scan_path_seg_lengths = [
         [[] for _ in range(n_output_types)] for _2 in range(n_input_types)
     ]
@@ -958,10 +958,10 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                     offset += ij_scan_path_segment_lengths[k][l]
             # print("ij_scan_starts", i, j, ij_scan_starts)
             # print("ij_scan_lengths cumsum?", numpy.cumsum(ij_scan_lengths))
-            ij_scan_path_segment_is_inter_block = [
-                numpy.zeros((ij_n_scan_path_segments[k],), dtype=bool)
-                for k in range(ij_n_gens)
-            ]
+            # ij_scan_path_segment_is_inter_block = [
+            #     numpy.zeros((ij_n_scan_path_segments[k],), dtype=bool)
+            #     for k in range(ij_n_gens)
+            # ]
 
             for k in range(ij_n_gens):
                 for l in range(ij_n_scan_path_segments[k]):
@@ -976,7 +976,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                     # is not the inter-block path we care about.
                     # It turns out, no path is really inter-block besides the
                     # very first path, and all first paths are inter-block.
-                    ij_scan_path_segment_is_inter_block[k][l] = k == 0 and l == 0
+                    # ij_scan_path_segment_is_inter_block[k][l] = k == 0 and l == 0
                     conn_for_path = interres_conn_scan_path_segment_rooted_by_atom[
                         l_first_at
                     ]
@@ -1005,7 +1005,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                 gen_building_output_conn=gen_of_scan_path_segment_building_interres_conn,
                 scan_path_seg_building_output_conn=scan_path_segment_building_interres_conn,
                 scan_path_seg_starts=ij_scan_path_segment_starts,
-                scan_path_seg_is_inter_block=ij_scan_path_segment_is_inter_block,
+                # scan_path_seg_is_inter_block=ij_scan_path_segment_is_inter_block,
                 scan_path_seg_lengths=ij_scan_path_segment_lengths,
             )
         # end for j
@@ -1080,9 +1080,9 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                 bt_gen_seg_scan_path_segments.scan_path_seg_starts[
                     i, j, k, :ijk_n_scan_path_segs
                 ] = scan_path_segment_data[(i, j)]["scan_path_seg_starts"][k]
-                bt_gen_seg_scan_path_segments.scan_path_seg_is_inter_block[
-                    i, j, k, :ijk_n_scan_path_segs
-                ] = scan_path_segment_data[(i, j)]["scan_path_seg_is_inter_block"][k]
+                # bt_gen_seg_scan_path_segments.scan_path_seg_is_inter_block[
+                #     i, j, k, :ijk_n_scan_path_segs
+                # ] = scan_path_segment_data[(i, j)]["scan_path_seg_is_inter_block"][k]
                 bt_gen_seg_scan_path_segments.scan_path_seg_lengths[
                     i, j, k, :ijk_n_scan_path_segs
                 ] = scan_path_segment_data[(i, j)]["scan_path_seg_lengths"][k]
@@ -1155,7 +1155,7 @@ def _annotate_packed_block_type_with_gen_scan_path_segs(pbt):
         "n_scan_path_segs",
         "scan_path_seg_starts",
         "scan_path_seg_is_real",
-        "scan_path_seg_is_inter_block",
+        # "scan_path_seg_is_inter_block",
         "scan_path_seg_lengths",
     ]
     for i, bt in enumerate(pbt.active_block_types):
