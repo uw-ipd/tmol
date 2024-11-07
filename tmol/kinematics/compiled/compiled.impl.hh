@@ -2125,7 +2125,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int boftsfg_bw = block_offset_for_tsedge_for_gen_bw
         [ff_edge_gen_bw * n_poses * max_n_edges_per_ff
          + edge_toposort_index_bw];
-    // printf("boftsfg %d boftsfg_bw %d\n", boftsfg, boftsfg_bw);
+    printf("boftsfg %d boftsfg_bw %d\n", boftsfg, boftsfg_bw);
 
     int sps_index_in_n_atoms_offset =
         (block_position_on_ff_edge + boftsfg) * max_n_scan_path_segs_per_gen
@@ -2137,19 +2137,19 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int n_atoms_for_scan_path_seg =
         block_type_scan_path_seg_length[block_type][input_conn][first_out_conn]
                                        [gen][scan_path_seg];
-    // printf(
-    //     "sp_index_in_n_atoms_offset %d = (%d + %d) * %d + %d; "
-    //     "sp_index_in_n_atoms_offset_bw %d = (%d + %d) * %d + %d\n",
-    //     sps_index_in_n_atoms_offset,
-    //     block_position_on_ff_edge,
-    //     boftsfg,
-    //     max_n_scan_path_segs_per_gen,
-    //     scan_path_seg,
-    //     sps_index_in_n_atoms_offset_bw,
-    //     block_position_on_ff_edge_bw,
-    //     boftsfg_bw,
-    //     max_n_scan_path_segs_per_gen,
-    //     scan_path_seg);
+    printf(
+        "sp_index_in_n_atoms_offset %d = (%d + %d) * %d + %d; "
+        "sp_index_in_n_atoms_offset_bw %d = (%d + %d) * %d + %d\n",
+        sps_index_in_n_atoms_offset,
+        block_position_on_ff_edge,
+        boftsfg,
+        max_n_scan_path_segs_per_gen,
+        scan_path_seg,
+        sps_index_in_n_atoms_offset_bw,
+        block_position_on_ff_edge_bw,
+        boftsfg_bw,
+        max_n_scan_path_segs_per_gen,
+        scan_path_seg);
 
     // printf(
     //     "p %d b %d g %d sp %d e %d (%d: %d->%d), ffeg %d, bo4ts4g %d, spio %d
@@ -2164,12 +2164,6 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     //     sp_index_in_n_atoms_offset,
     //     n_atoms_for_scan_path,
     //     extra_atom_count);
-    // accumulate<D, Int>::add(
-    //     temp_n_nodes_for_gen[ff_edge_gen],
-    //     n_atoms_for_scan_path_seg + extra_atom_count);
-    // accumulate<D, Int>::add(
-    //     temp_n_nodes_for_gen_bw[ff_edge_gen_bw],
-    //     n_atoms_for_scan_path_seg + extra_atom_count);
 
     n_atoms_for_scan_path_seg_for_gen[sps_index_in_n_atoms_offset] =
         n_atoms_for_scan_path_seg + extra_atom_count;  // ...TADA!
@@ -2177,9 +2171,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     n_atoms_for_scan_path_seg_for_gen_bw[sps_index_in_n_atoms_offset_bw] =
         n_atoms_for_scan_path_seg + extra_atom_count;
 
-    // printf("is_root_of_a_path %d %d\n", sp_index_in_n_atoms_offset,
-    // is_root_of_a_path);
     if (is_root_of_scan_path) {
+      printf(
+          "is_root_of_scan_path fw: %d bw: %d\n",
+          sp_index_in_n_atoms_offset,
+          sps_index_in_n_atoms_offset_bw);
       is_scan_path_seg_root_of_scan_path[sps_index_in_n_atoms_offset] = 1;
       is_scan_path_seg_root_of_scan_path_bw[sps_index_in_n_atoms_offset_bw] = 1;
       accumulate<D, Int>::add(n_scan_paths_for_gen[ff_edge_gen], 1);
@@ -2860,17 +2856,37 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       //  + pose_stack_block_coord_offset[pose][block]);
     }
     if (is_scan_path_seg_root_of_scan_path[sps_index_in_n_atoms_offset]) {
-      // printf(
-      //     "setting scans[%d] = %d; scans_bw[%d] = %d\n",
-      //     root_scan_path_offset[sps_index_in_n_atoms_offset],
-      //     nodes_offset - tsedge0_node_offset,
-      //     root_scan_path_offset_bw[sps_index_in_n_atoms_offset_bw],
-      //     nodes_offset_bw - tsedge0_node_offset_bw);
-
       int const sps_offset = root_scan_path_offset[sps_index_in_n_atoms_offset];
+      // int const sps_offset_bw =
+      //     root_scan_path_offset_bw[sps_index_in_n_atoms_offset_bw];
+      printf(
+          "setting scans[%d] = %d (%d - %d)\n",
+          sps_offset,
+          nodes_offset - tsedge0_node_offset,
+          nodes_offset,
+          tsedge0_node_offset
+          // sps_offset_bw,
+          // nodes_offset_bw - tsedge0_node_offset_bw,
+          // nodes_offset_bw, tsedge0_node_offset_bw
+      );
       scans_fw[sps_offset] = nodes_offset - tsedge0_node_offset;
+      // scans_bw[sps_offset_bw] = nodes_offset_bw - tsedge0_node_offset_bw;
+    }
+    if (is_scan_path_seg_root_of_scan_path_bw[sps_index_in_n_atoms_offset_bw]) {
+      // int const sps_offset =
+      // root_scan_path_offset[sps_index_in_n_atoms_offset];
       int const sps_offset_bw =
           root_scan_path_offset_bw[sps_index_in_n_atoms_offset_bw];
+      printf(
+          "setting scans_bw[%d] = %d (%d - %d)\n",
+          // sps_offset,
+          // nodes_offset - tsedge0_node_offset,
+          // nodes_offset, tsedge0_node_offset,
+          sps_offset_bw,
+          nodes_offset_bw - tsedge0_node_offset_bw,
+          nodes_offset_bw,
+          tsedge0_node_offset_bw);
+      // scans_fw[sps_offset] = nodes_offset - tsedge0_node_offset;
       scans_bw[sps_offset_bw] = nodes_offset_bw - tsedge0_node_offset_bw;
     }
   });

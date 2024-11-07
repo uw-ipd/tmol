@@ -5,7 +5,7 @@ from tmol.types.array import NDArray
 from tmol.kinematics.fold_forest import EdgeType
 
 
-@numba.jit(nopython=True)
+# @numba.jit(nopython=True)
 def mark_polymeric_bonds_in_foldforest_edges(
     n_poses: int,
     max_n_blocks: int,
@@ -44,7 +44,7 @@ def mark_polymeric_bonds_in_foldforest_edges(
     return (polymeric_connection_in_edge, count_bad_for_pose, bad_edges)
 
 
-@numba.jit(nopython=True)
+# @numba.jit(nopython=True)
 def bfs_proper_forest(
     roots: NDArray[numpy.int64][:],
     n_blocks: NDArray[numpy.int64][:],
@@ -92,7 +92,7 @@ def bfs_proper_forest(
     return cycles_detected, missing
 
 
-@numba.jit(nopython=True)
+# @numba.jit(nopython=True)
 def validate_fold_forest_jit(
     roots: NDArray[numpy.int64][:],
     n_blocks: NDArray[numpy.int64][:],
@@ -100,7 +100,7 @@ def validate_fold_forest_jit(
 ):
     n_poses = n_blocks.shape[0]
     max_n_blocks = n_blocks.max()
-    max_n_edges = edges.shape[2]
+    max_n_edges = edges.shape[1]
     connections, count_bad, bad_edges = mark_polymeric_bonds_in_foldforest_edges(
         n_poses, max_n_blocks, n_blocks, edges
     )
@@ -146,6 +146,7 @@ def validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
+    print("validate fold forest")
     # print("roots", roots)
     # print("n_blocks", n_blocks)
     # print("edges", edges)
@@ -216,3 +217,4 @@ def validate_fold_forest(
                         )
                     )
         raise ValueError("\n".join(errors))
+    print("done with validate fold forest")
