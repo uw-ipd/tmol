@@ -321,6 +321,10 @@ def test_pose_stack_kinematics_module_smoke(
 
     assert dofs.raw.grad is not None
 
+    print("kinematics_module.nodes_b", kinematics_module.nodes_b)
+    print("kinematics_module.scans_b", kinematics_module.scans_b)
+    print("kinematics_module.gens_b", kinematics_module.gens_b)
+
 
 def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
     pose_stack_gradcheck_test_system1, torch_device
@@ -422,7 +426,7 @@ def test_kinematic_op_device(gradcheck_test_system):
 
 
 @requires_cuda
-def test_pose_stack_kinematic_kinematic_op_device(pose_stack_system1, torch_device):
+def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     if torch_device.type != "cpu":
         return
     cpu_device = torch_device
