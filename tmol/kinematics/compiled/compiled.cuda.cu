@@ -77,8 +77,9 @@ struct f1f2VecsRawBuffer {
 // These are used to preallocate the memory used in each generation of the scan.
 template <typename Int>
 auto getScanBufferSize(
-    TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens, Int nt, Int vt)
-    -> mgpu::tuple<Int, Int, Int> {
+    TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
+    Int nt,
+    Int vt) -> mgpu::tuple<Int, Int, Int> {
   auto ngens = gens.size(0) - 1;
   Int scanSize = 0;
   for (int gen = 0; gen < ngens; ++gen) {
@@ -437,16 +438,16 @@ struct KinDerivDispatch {
         assert(
             nodes[nodestart + index] < f1f2s.size(0)
             && nodes[nodestart + index] >= 0);
-        if (nodes[nodestart + index] == 20) {
-          printf(
-              "k_reindex gen %d ns %d ind %d seg %d rank %d val: %f\n",
-              gen,
-              nodestart,
-              index,
-              seg,
-              rank,
-              f1f2s[nodes[nodestart + index]][3]);
-        }
+        // if (nodes[nodestart + index] == 20) {
+        //   printf(
+        //       "k_reindex gen %d ns %d ind %d seg %d rank %d val: %f\n",
+        //       gen,
+        //       nodestart,
+        //       index,
+        //       seg,
+        //       rank,
+        //       f1f2s[nodes[nodestart + index]][3]);
+        // }
         return *(
             (f1f2VecsRawBuffer<Real>*)f1f2s[nodes[nodestart + index]].data());
       };
@@ -479,34 +480,34 @@ struct KinDerivDispatch {
           atomicAdd(
               &(f1f2s[nodes[nodestart + index]][kk]), f1f2scan[index][kk]);
         }
-        if (nodes[nodestart + index] == 20) {
-          printf(
-              "k_unindex gen %d ns %d ind %d node %d val: %f\n",
-              gen,
-              nodestart,
-              index,
-              nodes[nodestart + index],
-              f1f2s[nodes[nodestart + index]][3]);
-        }
+        // if (nodes[nodestart + index] == 20) {
+        //   printf(
+        //       "k_unindex gen %d ns %d ind %d node %d val: %f\n",
+        //       gen,
+        //       nodestart,
+        //       index,
+        //       nodes[nodestart + index],
+        //       f1f2s[nodes[nodestart + index]][3]);
+        // }
       };
 
       mgpu::transform(k_unindex, nnodes, context);
       nvtx_range_pop();
     }
 
-    auto k_print = [=] MGPU_DEVICE(int index) {
-      printf(
-          "f1f2s[%d]: %f %f %f %f %f %f\n",
-          index,
-          f1f2s[index][0],
-          f1f2s[index][1],
-          f1f2s[index][2],
-          f1f2s[index][3],
-          f1f2s[index][4],
-          f1f2s[index][5]);
-    };
+    // auto k_print = [=] MGPU_DEVICE(int index) {
+    //   printf(
+    //       "f1f2s[%d]: %f %f %f %f %f %f\n",
+    //       index,
+    //       f1f2s[index][0],
+    //       f1f2s[index][1],
+    //       f1f2s[index][2],
+    //       f1f2s[index][3],
+    //       f1f2s[index][4],
+    //       f1f2s[index][5]);
+    // };
 
-    mgpu::transform(k_print, num_atoms, context);
+    // mgpu::transform(k_print, num_atoms, context);
 
     nvtx_range_push("dispatch::f1f2_to_deriv");
     auto k_f1f2s2derivs = ([=] EIGEN_DEVICE_FUNC(int i) {

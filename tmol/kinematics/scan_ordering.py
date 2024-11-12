@@ -368,7 +368,7 @@ def construct_kin_module_data_for_pose(
     ff_edges_cpu = fold_forest_edges.cpu()
     ff_edges_device = fold_forest_edges.to(device)
 
-    print("1")
+    # print("1")
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
         pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
@@ -377,7 +377,7 @@ def construct_kin_module_data_for_pose(
         pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
         pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
     )
-    print("2")
+    # print("2")
 
     (
         dfs_order_of_ff_edges,
@@ -391,7 +391,7 @@ def construct_kin_module_data_for_pose(
         toposort_index_for_edge,
     ) = tuple(x.to(device) for x in result)
 
-    print("3")
+    # print("3")
 
     pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
         pose_stack.block_type_ind,
@@ -408,7 +408,7 @@ def construct_kin_module_data_for_pose(
         pbt.polymeric_conn_inds,
     )
 
-    print("4")
+    # print("4")
     (block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index) = get_kfo_indices_for_atoms(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
@@ -416,7 +416,7 @@ def construct_kin_module_data_for_pose(
         pbt.atom_is_real,
     )
 
-    print("5")
+    # print("5")
     kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
@@ -431,7 +431,7 @@ def construct_kin_module_data_for_pose(
         pbt.conn_atom,
     )
 
-    print("6")
+    # print("6")
     n_children, child_list_span, child_list, is_atom_jump = get_children(
         pose_stack.block_type_ind,
         pose_stack_block_in_and_first_out,
@@ -440,7 +440,7 @@ def construct_kin_module_data_for_pose(
         pbt.n_conn,
     )
 
-    print("7")
+    # print("7")
     id, frame_x, frame_y, frame_z = get_id_and_frame_xyz(
         pose_stack.coords.shape[1],
         pose_stack.block_coord_offset,
@@ -451,7 +451,7 @@ def construct_kin_module_data_for_pose(
         is_atom_jump,
     )
 
-    print("8")
+    # print("8")
     nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw = (
         get_kinforest_scans_from_stencils2(
             pose_stack.max_n_atoms,
@@ -482,7 +482,7 @@ def construct_kin_module_data_for_pose(
         )
     )
 
-    print("9")
+    # print("9")
     # This feels so clunky after all that slick C++
     is_res_real = pose_stack.block_type_ind != -1
     is_atom_real = pbt.atom_is_real[pose_stack.block_type_ind[is_res_real]]

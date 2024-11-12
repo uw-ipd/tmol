@@ -360,9 +360,9 @@ struct KinDerivDispatch {
     // scan and accumulate f1s/f2s up atom tree
     auto k_compose = ([=] EIGEN_DEVICE_FUNC(int p, int i) {
       f1f2s[i] = f1f2s[i] + f1f2s[p];
-      if (i == 20) {
-        printf("k_compose p %d i %d val: %f\n", p, i, f1f2s[i][3]);
-      }
+      // if (i == 20) {
+      //   printf("k_compose p %d i %d val: %f\n", p, i, f1f2s[i][3]);
+      // }
     });
 
     // note: if this is parallelized (over j/k)
@@ -382,21 +382,21 @@ struct KinDerivDispatch {
       }
     }
 
-    auto k_print = [=] EIGEN_DEVICE_FUNC(int index) {
-      printf(
-          "f1f2s[%d]: %f %f %f %f %f %f\n",
-          index,
-          f1f2s[index][0],
-          f1f2s[index][1],
-          f1f2s[index][2],
-          f1f2s[index][3],
-          f1f2s[index][4],
-          f1f2s[index][5]);
-    };
+    // auto k_print = [=] EIGEN_DEVICE_FUNC(int index) {
+    //   printf(
+    //       "f1f2s[%d]: %f %f %f %f %f %f\n",
+    //       index,
+    //       f1f2s[index][0],
+    //       f1f2s[index][1],
+    //       f1f2s[index][2],
+    //       f1f2s[index][3],
+    //       f1f2s[index][4],
+    //       f1f2s[index][5]);
+    // };
 
-    for (int i = 0; i < num_atoms; ++i) {
-      k_print(i);
-    }
+    // for (int i = 0; i < num_atoms; ++i) {
+    //   k_print(i);
+    // }
 
     auto k_f1f2s2derivs = ([=] EIGEN_DEVICE_FUNC(int i) {
       Vec<Real, 3> f1 = f1f2s[i].topRows(3);

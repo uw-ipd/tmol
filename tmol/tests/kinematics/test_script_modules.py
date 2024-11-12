@@ -353,7 +353,7 @@ def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
     def func(dofs):
         return torch.sum(kinematics_module(dofs)[:, :])
 
-    kop_gradcheck_report(func, tdofs.raw)
+    kop_gradcheck_report(func, dofs.raw)
 
 
 #     kop_gradcheck_report(kinematics_module, start_dofs)

@@ -1562,7 +1562,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // the start block) and this edge is the root of the fold tree.
   // Note the terminology difference: "scan path" vs "scan path
   // segment".
-  printf("Step 6\n");
+  // printf("Step 6\n");
   auto is_ff_edge_root_of_scan_path_t =
       TPack<bool, 2, D>::zeros({n_poses, max_n_edges_per_ff});
   auto is_ff_edge_root_of_fold_tree_t =
@@ -1606,16 +1606,16 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
         //     "edge %d delay %d vs first-edge-for-start %d first edge delay
         //     %d\n", edge, ff_edge_delay, first_edge_for_start,
         //     first_edge_delay);
-        printf("edge %d on pose %d is root of scan path\n", edge, pose);
+        // printf("edge %d on pose %d is root of scan path\n", edge, pose);
         is_ff_edge_root_of_scan_path[pose][edge] = true;
       } else {
         // the parent edge continues on into this edge
         // so mark "first_edge_for_start" as not a root of a backwards
         // scan path; "edge" may still be a root, we don't know!
-        printf(
-            "edge %d on pose %d is not root of bw scan path\n",
-            first_edge_for_start,
-            pose);
+        // printf(
+        //     "edge %d on pose %d is not root of bw scan path\n",
+        //     first_edge_for_start,
+        //     pose);
         is_ff_edge_root_of_scan_path_bw[pose][first_edge_for_start] = false;
       }
     }
@@ -1638,7 +1638,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // than the global indexing, but they can be interconverted easily:
   // pose_ff_edge_index = global_edge_index % max_n_edges_per_ff
   // global_edge_index = pose * max_n_edges_per_ff + pose_ff_edge_index
-  printf("Step 7\n");
+  // printf("Step 7\n");
   auto non_jump_ff_edge_rooted_at_scan_path_seg_t = TPack<Int, 4, D>::full(
       {n_poses, max_n_blocks, max_n_gens_per_bt, max_n_scan_path_segs_per_gen},
       -1);
@@ -1751,7 +1751,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // Step N-4:
   // Count the number of scan-path segs that build each ff-edge for
   // each generation with edges ordered by their topological-sort index
-  printf("Step 8\n");
+  // printf("Step 8\n");
   auto n_blocks_that_build_tsedge_for_gen_tp =
       TPack<Int, 1, D>::zeros({n_poses * max_n_edges_per_ff * n_gens_total});
   auto n_blocks_that_build_tsedge_for_gen =
@@ -1890,7 +1890,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // Step N-3:
   // Now, run scan on n_blocks_that_build_edge_for_gen to get
   // block_offset_for_tsedge_for_gen
-  printf("Step 10\n");
+  // printf("Step 10\n");
   int const n_gens_x_n_edges = n_gens_total * n_poses * max_n_edges_per_ff;
   auto block_offset_for_tsedge_for_gen_tp =
       TPack<Int, 1, D>::zeros({n_gens_x_n_edges});
@@ -1988,7 +1988,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // the number of atoms for each real block so we can calculate the kin-atom
   // offset. Block (0,0) will say it holds natoms(0,0) + 1 to account for the
   // root of the kinforest, node "0."
-  printf("Step 11\n");
+  // printf("Step 11\n");
   auto n_atoms_for_scan_path_seg_for_gen_t = TPack<Int, 1, D>::zeros(
       {n_blocks_building_edges_total * max_n_scan_path_segs_per_gen});
   auto n_atoms_for_scan_path_seg_for_gen_bw_t = TPack<Int, 1, D>::zeros(
@@ -2031,13 +2031,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int const gen = i / max_n_scan_path_segs_per_gen;
     int const scan_path_seg = i % max_n_scan_path_segs_per_gen;
 
-    printf(
-        "collect_n_atoms_for_scan_path_segs %d %d %d %d %d\n",
-        ind,
-        pose,
-        block,
-        gen,
-        scan_path_seg);
+    // printf(
+    //     "collect_n_atoms_for_scan_path_segs %d %d %d %d %d\n",
+    //     ind,
+    //     pose,
+    //     block,
+    //     gen,
+    //     scan_path_seg);
     int const block_type = pose_stack_block_type[pose][block];
     if (block_type == -1) {
       return;
@@ -2076,18 +2076,18 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     //     scan_path_seg,
     //     sps_is_inter_block);
     if (!sps_is_inter_block) {
-      printf(
-          "sps is not interblock p %d b %d g %d sps %d\n",
-          pose,
-          block,
-          gen,
-          scan_path_seg);
+      // printf(
+      //     "sps is not interblock p %d b %d g %d sps %d\n",
+      //     pose,
+      //     block,
+      //     gen,
+      //     scan_path_seg);
       is_root_of_scan_path = true;
       is_root_of_scan_path_bw = true;
     }
 
     int ff_edge_on_pose = first_ff_edge_for_block[pose][block];
-    printf("ff_edge_on_pose %d\n", ff_edge_on_pose);
+    // printf("ff_edge_on_pose %d\n", ff_edge_on_pose);
     int ff_edge_global_index = ff_edge_on_pose + pose * max_n_edges_per_ff;
     // note: the delay must be set based on the first FF edge for block;
     // even if this scan path segment is the root of another FF edge, we keep
@@ -2103,24 +2103,24 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int extra_atom_count = 0;
     bool is_root_path = false;
     if (nj_ff_edge_rooted_at_scan_path_seg != -1) {
-      printf(
-          "nj_ff_edge_rooted_at_scan_path_seg %d %d %d %d: %d\n",
-          pose,
-          block,
-          gen,
-          scan_path_seg,
-          nj_ff_edge_rooted_at_scan_path_seg);
+      // printf(
+      //     "nj_ff_edge_rooted_at_scan_path_seg %d %d %d %d: %d\n",
+      //     pose,
+      //     block,
+      //     gen,
+      //     scan_path_seg,
+      //     nj_ff_edge_rooted_at_scan_path_seg);
 
       ff_edge_on_pose = nj_ff_edge_rooted_at_scan_path_seg;
       ff_edge_global_index = ff_edge_on_pose + pose * max_n_edges_per_ff;
       if (is_ff_edge_root_of_scan_path[pose][ff_edge_on_pose]) {
-        printf(
-            "is_ff_edge_root_of_scan_path %d %d %d %d %d\n",
-            pose,
-            block,
-            gen,
-            scan_path_seg,
-            ff_edge_on_pose);
+        // printf(
+        //     "is_ff_edge_root_of_scan_path %d %d %d %d %d\n",
+        //     pose,
+        //     block,
+        //     gen,
+        //     scan_path_seg,
+        //     ff_edge_on_pose);
         is_root_of_scan_path = true;
       }
       if (is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose]) {
@@ -2132,21 +2132,21 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       }
     }
     if (nj_ff_edge_rooted_at_scan_path_seg_bw != -1) {
-      printf(
-          "nj_ff_edge_rooted_at_scan_path_seg_bw %d vs ff_edge_on_pose %d\n",
-          nj_ff_edge_rooted_at_scan_path_seg_bw,
-          ff_edge_on_pose);
+      // printf(
+      //     "nj_ff_edge_rooted_at_scan_path_seg_bw %d vs ff_edge_on_pose %d\n",
+      //     nj_ff_edge_rooted_at_scan_path_seg_bw,
+      //     ff_edge_on_pose);
       assert(ff_edge_on_pose == nj_ff_edge_rooted_at_scan_path_seg_bw);
       assert(
           ff_edge_global_index == ff_edge_on_pose + pose * max_n_edges_per_ff);
       if (is_ff_edge_root_of_scan_path_bw[pose][ff_edge_on_pose]) {
-        printf(
-            "is_ff_edge_root_of_scan_path_bw %d %d %d %d %d\n",
-            pose,
-            block,
-            gen,
-            scan_path_seg,
-            ff_edge_on_pose);
+        // printf(
+        //     "is_ff_edge_root_of_scan_path_bw %d %d %d %d %d\n",
+        //     pose,
+        //     block,
+        //     gen,
+        //     scan_path_seg,
+        //     ff_edge_on_pose);
         is_root_of_scan_path_bw = true;
       }
     }
@@ -2185,13 +2185,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
             ff_edge_global_index
             == ff_edge_on_pose + pose * max_n_edges_per_ff);
         if (is_ff_edge_root_of_scan_path_bw[pose][ff_edge_on_pose]) {
-          printf(
-              "is_ff_edge_root_of_scan_path_bw %d %d %d %d %d\n",
-              pose,
-              block,
-              gen,
-              scan_path_seg,
-              ff_edge_on_pose);
+          // printf(
+          //     "is_ff_edge_root_of_scan_path_bw %d %d %d %d %d\n",
+          //     pose,
+          //     block,
+          //     gen,
+          //     scan_path_seg,
+          //     ff_edge_on_pose);
           is_root_of_scan_path_bw = true;
         }
       }
@@ -2236,7 +2236,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int boftsfg_bw = block_offset_for_tsedge_for_gen_bw
         [ff_edge_gen_bw * n_poses * max_n_edges_per_ff
          + edge_toposort_index_bw];
-    printf("boftsfg %d boftsfg_bw %d\n", boftsfg, boftsfg_bw);
+    // printf("boftsfg %d boftsfg_bw %d\n", boftsfg, boftsfg_bw);
 
     int sps_index_in_n_atoms_offset =
         (block_position_on_ff_edge + boftsfg) * max_n_scan_path_segs_per_gen
@@ -2248,19 +2248,19 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int n_atoms_for_scan_path_seg =
         block_type_scan_path_seg_length[block_type][input_conn][first_out_conn]
                                        [gen][scan_path_seg];
-    printf(
-        "sps_index_in_n_atoms_offset %d = (%d + %d) * %d + %d; "
-        "sps_index_in_n_atoms_offset_bw %d = (%d + %d) * %d + %d\n",
-        sps_index_in_n_atoms_offset,
-        block_position_on_ff_edge,
-        boftsfg,
-        max_n_scan_path_segs_per_gen,
-        scan_path_seg,
-        sps_index_in_n_atoms_offset_bw,
-        block_position_on_ff_edge_bw,
-        boftsfg_bw,
-        max_n_scan_path_segs_per_gen,
-        scan_path_seg);
+    // printf(
+    //     "sps_index_in_n_atoms_offset %d = (%d + %d) * %d + %d; "
+    //     "sps_index_in_n_atoms_offset_bw %d = (%d + %d) * %d + %d\n",
+    //     sps_index_in_n_atoms_offset,
+    //     block_position_on_ff_edge,
+    //     boftsfg,
+    //     max_n_scan_path_segs_per_gen,
+    //     scan_path_seg,
+    //     sps_index_in_n_atoms_offset_bw,
+    //     block_position_on_ff_edge_bw,
+    //     boftsfg_bw,
+    //     max_n_scan_path_segs_per_gen,
+    //     scan_path_seg);
 
     // printf(
     //     "p %d b %d g %d sp %d e %d (%d: %d->%d), ffeg %d, bo4ts4g %d, spio %d
@@ -2283,12 +2283,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
         n_atoms_for_scan_path_seg + extra_atom_count;
 
     if (is_root_of_scan_path) {
-      printf("is_root_of_scan_path fw: %d \n", sps_index_in_n_atoms_offset);
+      // printf("is_root_of_scan_path fw: %d \n", sps_index_in_n_atoms_offset);
       is_scan_path_seg_root_of_scan_path[sps_index_in_n_atoms_offset] = 1;
       accumulate<D, Int>::add(n_scan_paths_for_gen[ff_edge_gen], 1);
     }
     if (is_root_of_scan_path_bw) {
-      printf("is_root_of_scan_path bw: %d\n", sps_index_in_n_atoms_offset_bw);
+      // printf("is_root_of_scan_path bw: %d\n",
+      // sps_index_in_n_atoms_offset_bw);
       is_scan_path_seg_root_of_scan_path_bw[sps_index_in_n_atoms_offset_bw] = 1;
       accumulate<D, Int>::add(n_scan_paths_for_gen_bw[ff_edge_gen_bw], 1);
     }
@@ -2303,7 +2304,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // Step N-1:
   // And with the number of atoms for each scan path segment, we can now
   // calculate their offsets in the nodes tensor using scan
-  printf("Step 12\n");
+  // printf("Step 12\n");
   auto nodes_offset_for_scan_path_seg_for_gen_tp = TPack<Int, 1, D>::zeros(
       {n_blocks_building_edges_total * max_n_scan_path_segs_per_gen});
   auto nodes_offset_for_scan_path_seg_for_gen_bw_tp = TPack<Int, 1, D>::zeros(
@@ -2471,7 +2472,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   // Step N:
   // And we can now, finally, copy the scan-path-segment stencils into
   // the nodes tensor
-  printf("Step 13, n_nodes_total %d\n", n_nodes_total);
+  // printf("Step 13, n_nodes_total %d\n", n_nodes_total);
   // Fill both the forward- and backward paths at the same time.
   auto nodes_fw_t = TPack<Int, 1, D>::full(n_nodes_total, -1);
   auto nodes_fw = nodes_fw_t.view;
@@ -2971,16 +2972,16 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       int const sps_offset = root_scan_path_offset[sps_index_in_n_atoms_offset];
       // int const sps_offset_bw =
       //     root_scan_path_offset_bw[sps_index_in_n_atoms_offset_bw];
-      printf(
-          "setting scans[%d] = %d (%d - %d)\n",
-          sps_offset,
-          nodes_offset - tsedge0_node_offset,
-          nodes_offset,
-          tsedge0_node_offset
-          // sps_offset_bw,
-          // nodes_offset_bw - tsedge0_node_offset_bw,
-          // nodes_offset_bw, tsedge0_node_offset_bw
-      );
+      // printf(
+      //     "setting scans[%d] = %d (%d - %d)\n",
+      //     sps_offset,
+      //     nodes_offset - tsedge0_node_offset,
+      //     nodes_offset,
+      //     tsedge0_node_offset
+      //     // sps_offset_bw,
+      //     // nodes_offset_bw - tsedge0_node_offset_bw,
+      //     // nodes_offset_bw, tsedge0_node_offset_bw
+      // );
       scans_fw[sps_offset] = nodes_offset - tsedge0_node_offset;
       // scans_bw[sps_offset_bw] = nodes_offset_bw - tsedge0_node_offset_bw;
     }
@@ -2989,15 +2990,15 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       // root_scan_path_offset[sps_index_in_n_atoms_offset];
       int const sps_offset_bw =
           root_scan_path_offset_bw[sps_index_in_n_atoms_offset_bw];
-      printf(
-          "setting scans_bw[%d] = %d (%d - %d)\n",
-          // sps_offset,
-          // nodes_offset - tsedge0_node_offset,
-          // nodes_offset, tsedge0_node_offset,
-          sps_offset_bw,
-          nodes_offset_bw - tsedge0_node_offset_bw,
-          nodes_offset_bw,
-          tsedge0_node_offset_bw);
+      // printf(
+      //     "setting scans_bw[%d] = %d (%d - %d)\n",
+      //     // sps_offset,
+      //     // nodes_offset - tsedge0_node_offset,
+      //     // nodes_offset, tsedge0_node_offset,
+      //     sps_offset_bw,
+      //     nodes_offset_bw - tsedge0_node_offset_bw,
+      //     nodes_offset_bw,
+      //     tsedge0_node_offset_bw);
       // scans_fw[sps_offset] = nodes_offset - tsedge0_node_offset;
       scans_bw[sps_offset_bw] = nodes_offset_bw - tsedge0_node_offset_bw;
     }
