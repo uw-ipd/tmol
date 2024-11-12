@@ -47,12 +47,12 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     torch.testing.assert_close(refold_kincoords, kincoords)
     assert refold_kincoords.device.type == torch_device.type
 
-    print("tkinforest.id[:10]", tkinforest.id[:10])
-    print("tkinforest.parent[:10]", tkinforest.parent[:10])
-    print("tkinforest.doftype[:10]", tkinforest.doftype[:10])
-    print("scans", kop.scans_f[:10])
-    print("gens", kop.gens_f)
-    print("nodes", kop.nodes_f[:10])
+    # print("tkinforest.id[:10]", tkinforest.id[:10])
+    # print("tkinforest.parent[:10]", tkinforest.parent[:10])
+    # print("tkinforest.doftype[:10]", tkinforest.doftype[:10])
+    # print("scans", kop.scans_f[:10])
+    # print("gens", kop.gens_f)
+    # print("nodes", kop.nodes_f[:10])
 
 
 @pytest.mark.benchmark(group="kinematic_backward_op")
@@ -321,9 +321,9 @@ def test_pose_stack_kinematics_module_smoke(
 
     assert dofs.raw.grad is not None
 
-    print("kinematics_module.nodes_b", kinematics_module.nodes_b)
-    print("kinematics_module.scans_b", kinematics_module.scans_b)
-    print("kinematics_module.gens_b", kinematics_module.gens_b)
+    # print("kinematics_module.nodes_b", kinematics_module.nodes_b)
+    # print("kinematics_module.scans_b", kinematics_module.scans_b)
+    # print("kinematics_module.gens_b", kinematics_module.gens_b)
 
 
 def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
@@ -392,9 +392,9 @@ def test_kinematic_op_device(gradcheck_test_system):
 
     cpu_kop = KinematicModule(kinforest, torch.device("cpu"))
 
-    print("cpu_kop.nodes_b", cpu_kop.nodes_b)
-    print("cpu_kop.scans_b", cpu_kop.scans_b)
-    print("cpu_kop.gens_b", cpu_kop.gens_b)
+    # print("cpu_kop.nodes_b", cpu_kop.nodes_b)
+    # print("cpu_kop.scans_b", cpu_kop.scans_b)
+    # print("cpu_kop.gens_b", cpu_kop.gens_b)
 
     assert cpu_kop.kinforest.device.type == "cpu"
     cpu_kop(tdofs.raw.to(torch.device("cpu")))
@@ -480,9 +480,9 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     assert cuda_kinematics_module.kmd.forest.id.device.type == "cuda"
 
     # backwards scans/nodes/gens:
-    print("cpu_kinematics_module.nodes_b", cpu_kinematics_module.nodes_b)
-    print("cpu_kinematics_module.scans_b", cpu_kinematics_module.scans_b)
-    print("cpu_kinematics_module.gens_b", cpu_kinematics_module.gens_b)
+    # print("cpu_kinematics_module.nodes_b", cpu_kinematics_module.nodes_b)
+    # print("cpu_kinematics_module.scans_b", cpu_kinematics_module.scans_b)
+    # print("cpu_kinematics_module.gens_b", cpu_kinematics_module.gens_b)
     torch.testing.assert_close(
         cpu_kinematics_module.nodes_b, cuda_kinematics_module.nodes_b.to(cpu_device)
     )
@@ -517,11 +517,11 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     cuda_grads = cuda_dofs.raw.grad
 
     diff = cpu_grads - cuda_grads.to(cpu_device)
-    abs_diff = torch.abs(diff)
-    big_diff = torch.nonzero(abs_diff > 1e-3, as_tuple=False)
-    print("big diff")
-    print(big_diff.shape)
-    print(diff[big_diff[:10, :]])
+    # abs_diff = torch.abs(diff)
+    # big_diff = torch.nonzero(abs_diff > 1e-3, as_tuple=False)
+    # print("big diff")
+    # print(big_diff.shape)
+    # print(diff[big_diff[:10, :]])
 
     torch.testing.assert_close(cpu_grads, cuda_grads.to(cpu_device))
 

@@ -146,7 +146,7 @@ def validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
-    print("validate fold forest")
+    # print("validate fold forest")
     # print("roots", roots)
     # print("n_blocks", n_blocks)
     # print("edges", edges)
@@ -217,4 +217,4 @@ def validate_fold_forest(
                         )
                     )
         raise ValueError("\n".join(errors))
-    print("done with validate fold forest")
+    # print("done with validate fold forest")
