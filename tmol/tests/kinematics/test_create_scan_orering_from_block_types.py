@@ -527,6 +527,12 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     # print("frame_z", frame_z)
 
 
+# other topologies we need to test:
+# multiple jumps from single block
+# "u" instead of "H" shaped FT:
+# >1 residue in peptide edges of H shaped FT
+
+
 def test_get_scans_for_two_copies_of_6_res_ubq(ubq_pdb):
 
     torch_device = torch.device("cpu")
