@@ -33,6 +33,7 @@ from tmol.io.canonical_ordering import (
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.kinematics.datatypes import NodeType
 from tmol.kinematics.fold_forest import EdgeType
+from .check_fold_forest import validate_fold_forest
 
 # from tmol.kinematics.scan_ordering import get_children
 from tmol.kinematics.compiled import inverse_kin, forward_kin_op
@@ -360,6 +361,8 @@ def construct_kin_module_data_for_pose(
         get_id_and_frame_xyz,
     )
 
+    # validate_fold_forest()
+
     device = pose_stack.device
     pbt = pose_stack.packed_block_types
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
@@ -391,6 +394,10 @@ def construct_kin_module_data_for_pose(
         toposort_index_for_edge,
     ) = tuple(x.to(device) for x in result)
 
+    print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
+    print("ff_edge_parent", ff_edge_parent)
+    print("first_child_of_ff_edge", first_child_of_ff_edge)
+    print("first_ff_edge_for_block", first_ff_edge_for_block)
     # print("3")
 
     pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
@@ -623,9 +630,9 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
         # print([bt.atom_name(bfto_2_orig[bfs_ind]) for bfs_ind in range(bt.n_atoms)])
         for j in range(n_output_types):
             target = False
-            if bt.name == "ILE" and i == 3 and j == 2:
-                target = True
-                print(bt.name, i, j)
+            # if bt.name == "ILE" and i == 3 and j == 2:
+            #     target = True
+            #     print(bt.name, i, j)
             if i == j and i < n_conn:
                 # we cannot enter from one inter-residue connection point and then
                 # leave by that same inter-residue connection point unless we are
@@ -1010,16 +1017,16 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                     if target:
                         print(k, l, "conn_for_path", conn_for_path)
                     if conn_for_path != -1:
-                        print(
-                            bt.name,
-                            i,
-                            j,
-                            "setting conn for path",
-                            conn_for_path,
-                            "as",
-                            k,
-                            l,
-                        )
+                        # print(
+                        #     bt.name,
+                        #     i,
+                        #     j,
+                        #     "setting conn for path",
+                        #     conn_for_path,
+                        #     "as",
+                        #     k,
+                        #     l,
+                        # )
                         gen_of_scan_path_segment_building_interres_conn[
                             conn_for_path
                         ] = k

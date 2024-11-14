@@ -173,6 +173,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
       pose_stack_block_in_and_first_out_t.view;
 
   // 1. Get the parent block of each block
+  printf("get_block_parent_connectivity_from_toposort 1\n");
   auto get_parent_connections = ([=] TMOL_DEVICE_FUNC(int i) {
     int const pose = i / max_n_blocks;
     int const block = i % max_n_blocks;
@@ -180,15 +181,24 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
     if (block_type == -1) {
       return;
     }
+    printf(
+        "get_parent_connections p: %d b: %d bt: %d\n", pose, block, block_type);
     int const ff_edge = first_ff_edge_for_block[pose][block];
+    printf("ff_edge %d\n", ff_edge);
     int const edge_type = ff_edges[pose][ff_edge][0];
     int const parent_block = pose_stack_ff_parent[pose][block];
+    printf(
+        "ff_edge %d edge_type %d parent_block %d\n",
+        ff_edge,
+        edge_type,
+        parent_block);
     if (parent_block != -1) {
       int const parent_ff_edge = first_ff_edge_for_block[pose][parent_block];
       if (ff_edge == parent_ff_edge) {
         // parent is in the same FF edge
         if (edge_type == 0) {
-          // currently only support polymer (peptide) edges!
+          // currently only support polymer (peptide) edges and jumps; no
+          // "chemical" edges just yet
           int const parent_block_type =
               pose_stack_block_type[pose][parent_block];
           int const conn_to_parent =
@@ -233,7 +243,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
         }
       }
     } else {
-      // printf("looking at the root block, ff_edge %d\n", ff_edge);
+      printf("looking at the root block, ff_edge %d\n", ff_edge);
       // looking at the root block
       // "root connection" index is n_conn + 1
       pose_stack_block_in_and_first_out[pose][block][0] =
@@ -258,11 +268,16 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_blocks, get_parent_connections);
 
+  printf("get_block_parent_connectivity_from_toposort 2\n");
   // Also handle the first output connection for the end residue of each edge
   auto set_output_conn_for_edge_end = ([=] TMOL_DEVICE_FUNC(int i) {
     int const pose = i / max_n_ff_edges_per_pose;
     int const edge = i % max_n_ff_edges_per_pose;
     int const edge_type = ff_edges[pose][edge][0];
+    if (edge_type == -1) {
+      return;
+    }
+
     // int const edge_start_block = ff_edges[pose][edge][1];
     int const edge_end_block = ff_edges[pose][edge][2];
     int const block_type = pose_stack_block_type[pose][edge_end_block];
@@ -290,7 +305,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
             block_type_n_conn[block_type];
       }
     } else {
-      // leaf nodes:
+      // leaf nodes: these are denoted with an output connection of n_conn + 1
       int const n_conn = block_type_n_conn[block_type];
       pose_stack_block_in_and_first_out[pose][edge_end_block][1] = n_conn + 1;
     }
@@ -299,17 +314,18 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
       n_poses * max_n_ff_edges_per_pose, set_output_conn_for_edge_end);
 
   // TEMP!
-  // for (int pose = 0; pose < n_poses; ++pose) {
-  //   for (int block = 0; block < max_n_blocks; ++block) {
-  //     printf(
-  //         "pose_stack_block_in_and_first_out[%d][%d][:] %d %d\n",
-  //         pose,
-  //         block,
-  //         pose_stack_block_in_and_first_out[pose][block][0],
-  //         pose_stack_block_in_and_first_out[pose][block][1]);
-  //   }
-  // }
+  for (int pose = 0; pose < n_poses; ++pose) {
+    for (int block = 0; block < max_n_blocks; ++block) {
+      printf(
+          "pose_stack_block_in_and_first_out[%d][%d][:] %d %d\n",
+          pose,
+          block,
+          pose_stack_block_in_and_first_out[pose][block][0],
+          pose_stack_block_in_and_first_out[pose][block][1]);
+    }
+  }
 
+  printf("get_block_parent_connectivity_from_toposort done\n");
   return pose_stack_block_in_and_first_out_t;
 }
 
@@ -1015,7 +1031,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
           throw std::runtime_error("Multiple root blocks in fold tree");
         }
         root_block[pose] = block;
-        // printf("root_block %d %d\n", pose, block);
+        printf("root_block %d %d\n", pose, block);
       }
     }
   }
@@ -1100,13 +1116,23 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
       int const ff_edge_type = ff_edges_cpu[pose][edge][0];
       int const ff_edge_start = ff_edges_cpu[pose][edge][1];
       int const ff_edge_end = ff_edges_cpu[pose][edge][2];
+      printf(
+          "ff_edge %d %d %d %d %d\n",
+          pose,
+          edge,
+          ff_edge_type,
+          ff_edge_start,
+          ff_edge_end);
       // int max_n_gens = 0;
       if (ff_edge_type == 0) {
         int const increment = (ff_edge_start < ff_edge_end) ? 1 : -1;
+        printf("  increment %d\n", increment);
         int const stop = ff_edge_end + increment;
+        printf("  stop %d\n", stop);
         int prev_res = ff_edge_start;
         for (int block = ff_edge_start + increment; block != stop;
              block += increment) {
+          printf("    block %d\n", block);
           first_ff_edge_for_block_cpu[pose][block] = edge;
           pose_stack_ff_parent[pose][block] = prev_res;
           prev_res = block;
@@ -1222,7 +1248,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
   int max_delay = 0;
   for (int pose = 0; pose < n_poses; ++pose) {
     // Now select the first edge to be built from the root block
-    // and set the delay for all other edges to 1.
+    // and set the delay for all other edges to 1 and set their
+    // parent edge to be the root.
     int max_root_child_gen_depth = -1;
     int max_root_child_edge = -1;
     for (auto const& child : ff_children[pose][root_block[pose]]) {
@@ -1240,16 +1267,17 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
     // this will do.
 
     first_ff_edge_for_block_cpu[pose][root_block[pose]] = max_root_child_edge;
-    // printf(
-    //     "Root block %d built by edge %d\n",
-    //     root_block[pose],
-    //     max_root_child_edge);
+    printf(
+        "Root block %d built by edge %d\n",
+        root_block[pose],
+        max_root_child_edge);
     for (auto const& child : ff_children[pose][root_block[pose]]) {
       int const child_edge = std::get<1>(child);
       if (child_edge == max_root_child_edge) {
         continue;
       }
       delay_for_edge[pose][child_edge] = 1;
+      ff_edge_parent[pose][child_edge] = max_root_child_edge;
       if (max_delay < 1) {
         max_delay = 1;
       }
@@ -1620,13 +1648,21 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
                                                                   true;
         }
         if (first_edge_for_start == edge) {
+          // this is the root of the fold tree
           int start_bt = pose_stack_block_type[pose][ff_edge_start];
           int const start_bt_n_conn = block_type_n_conn[start_bt];
           int const start_in_conn =
-              pose_stack_block_in_and_first_out[pose][ff_edge_start][0];
+              pose_stack_block_in_and_first_out[pose][ff_edge_start]
+                                               [0];  // should be "root"
+                                                     // connection; n_conn + 1
           int const start_out_conn =
               pose_stack_block_in_and_first_out[pose][ff_edge_start][1];
-          // this is the root of the fold tree
+          printf(
+              "Step 6a: Root edge. start_bt %d start_in_conn %d start_out_conn "
+              "%d\n",
+              start_bt,
+              start_in_conn,
+              start_out_conn);
           for (int j = 0; j < start_bt_n_conn; ++j) {
             if (j == start_in_conn || j == start_out_conn) {
               continue;
@@ -1641,7 +1677,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
               continue;
             }
             printf(
-                "Possible root of bw scan path: pose %d block %d j %d j_gen %d "
+                "Tree root: Possible root of bw scan path: pose %d block %d j "
+                "%d j_gen %d "
                 "j_sps %d\n",
                 pose,
                 ff_edge_start,
@@ -1822,7 +1859,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       {n_poses, max_n_blocks, max_n_gens_per_bt, max_n_scan_path_segs_per_gen},
       -1);
   auto jump_ff_edge_rooted_at_scan_path_seg_bw =
-      jump_ff_edge_rooted_at_scan_path_seg_t.view;
+      jump_ff_edge_rooted_at_scan_path_seg_bw_t.view;
 
   // Unclear if this data is necessary: it seems to mirror exactly the
   // data in jump_ff_edge_rooted_At_scan_path_seg.
@@ -1841,6 +1878,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       // Not an actual edge of the fold tree
       return;
     }
+    bool const is_root = is_ff_edge_root_of_fold_tree[pose][edge];
     int const ff_edge_start = ff_edges[pose][edge][1];
     int const ff_edge_end = ff_edges[pose][edge][2];
     if (ff_edge_type == 1) {
@@ -1856,9 +1894,25 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
           first_ff_edge_for_block[pose][ff_edge_start];
       if (edge == start_block_first_edge) {
         // we are looking at the root of the fold tree
+        printf(
+            "Jump edge %d on pose %d is root of fold tree; ff_edge_start %d "
+            "ff_edge_end %d; is root %d\n",
+            edge,
+            pose,
+            ff_edge_start,
+            ff_edge_end,
+            is_root);
         jump_ff_edge_rooted_at_scan_path_seg[pose][ff_edge_start][0][0] = edge;
         jump_ff_edge_rooted_at_scan_path_seg_bw[pose][ff_edge_end][0][0] = edge;
       } else {
+        printf(
+            "Jump edge %d on pose %d is not root of fold tree; ff_edge_start "
+            "%d ff_edge_end %d; is root %d\n",
+            edge,
+            pose,
+            ff_edge_start,
+            ff_edge_end,
+            is_root);
         jump_ff_edge_rooted_at_scan_path_seg[pose][ff_edge_end][0][0] = edge;
         jump_ff_edge_rooted_at_scan_path_seg_bw[pose][ff_edge_end][0][0] = edge;
       }
@@ -1874,11 +1928,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
                                          [(ff_edge_start < ff_edge_end) ? 1
                                                                         : 0];
 
-      int const exitting_scan_path_seg_gen =
+      int const exiting_scan_path_seg_gen =
           block_type_kts_conn_info[start_block_type][start_block_in]
                                   [start_block_out]
                                   [start_block_type_out_conn_ind][0];
-      int const exitting_scan_path_seg =
+      int const exiting_scan_path_seg =
           block_type_kts_conn_info[start_block_type][start_block_in]
                                   [start_block_out]
                                   [start_block_type_out_conn_ind][1];
@@ -1898,11 +1952,34 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       //     exitting_scan_path_seg_gen,
       //     exitting_scan_path_seg,
       //     (pose * max_n_edges_per_ff + edge));
-      non_jump_ff_edge_rooted_at_scan_path_seg[pose][ff_edge_start]
-                                              [exitting_scan_path_seg_gen]
-                                              [exitting_scan_path_seg] = edge;
-      non_jump_ff_edge_rooted_at_scan_path_seg_bw[pose][ff_edge_end][0][0] =
-          edge;
+      if (is_root || exiting_scan_path_seg_gen != 0) {
+        non_jump_ff_edge_rooted_at_scan_path_seg[pose][ff_edge_start]
+                                                [exiting_scan_path_seg_gen]
+                                                [exiting_scan_path_seg] = edge;
+        non_jump_ff_edge_rooted_at_scan_path_seg_bw[pose][ff_edge_end][0][0] =
+            edge;
+      } else {
+        // This edge exits the ff_edge_start residue through the primary
+        // exit path. Therefore, when we are later looking to identify the
+        // SPS that roots this edge so that we can make sure that we treat
+        // it as the root of a scan path, we do not have to: the edge that
+        // builds this residue will either be the root of a scan path, or
+        // it will not, but in any event, this edge will not.
+        // NO.
+        // Okay, so, we have the edge that builds the start residue already;
+        // and the SPS for this residue already brings us to the connection
+        // atom for the next residue, so let's just say that the edge is
+        // "rooted" at the start + increment residue, with increment being
+        // 1 for N->C and -1 for C->N.
+        // We know that it's the generation 0 SPS for the next residue,
+        // so we don't have to look that up.
+        int const increment = (ff_edge_start < ff_edge_end) ? 1 : -1;
+        int const next_residue = ff_edge_start + increment;
+        non_jump_ff_edge_rooted_at_scan_path_seg[pose][next_residue][0][0] =
+            edge;
+        non_jump_ff_edge_rooted_at_scan_path_seg_bw[pose][ff_edge_end][0][0] =
+            edge;
+      }
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
@@ -2247,7 +2324,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       //     gen,
       //     scan_path_seg);
       is_root_of_scan_path = true;
-      is_root_of_scan_path_bw = true;  // TENATIVE!
+      is_root_of_scan_path_bw = true;  // TENTATIVE!
     }
 
     int ff_edge_on_pose = first_ff_edge_for_block[pose][block];
@@ -2267,13 +2344,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     int extra_atom_count = 0;
     bool is_root_path = false;
     if (nj_ff_edge_rooted_at_scan_path_seg != -1) {
-      // printf(
-      //     "nj_ff_edge_rooted_at_scan_path_seg %d %d %d %d: %d\n",
-      //     pose,
-      //     block,
-      //     gen,
-      //     scan_path_seg,
-      //     nj_ff_edge_rooted_at_scan_path_seg);
+      printf(
+          "nj_ff_edge_rooted_at_scan_path_seg %d %d %d %d: %d\n",
+          pose,
+          block,
+          gen,
+          scan_path_seg,
+          nj_ff_edge_rooted_at_scan_path_seg);
 
       ff_edge_on_pose = nj_ff_edge_rooted_at_scan_path_seg;
       ff_edge_global_index = ff_edge_on_pose + pose * max_n_edges_per_ff;
@@ -2299,6 +2376,12 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
         is_root_of_scan_path_bw = false;
       }
       if (is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose]) {
+        printf(
+            "Extra atom for scan path seg %d %d %d %d; line 2346\n",
+            pose,
+            block,
+            gen,
+            scan_path_seg);
         // The scan path leaving the root of the fold forest (atom 0)
         // requires an extra atom that will not be listed in the
         // block-type's-scan path, so we add it here.
@@ -2328,16 +2411,38 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     }
 
     int const ff_edge_type = ff_edges[pose][ff_edge_on_pose][0];
+    printf(
+        "pose %d block %d gen %d scan_path_seg %d, ff_edge_on_pose %d, "
+        "ff_edge_type %d\n",
+        pose,
+        block,
+        gen,
+        scan_path_seg,
+        ff_edge_on_pose,
+        ff_edge_type);
     if (ff_edge_type == 1) {
       int const j_ff_edge_rooted_at_scan_path_seg =
           jump_ff_edge_rooted_at_scan_path_seg[pose][block][gen][scan_path_seg];
+      printf(
+          "j_ff_edge_rooted_at_scan_path_seg[%d][%d][%d][%d] = %d\n",
+          pose,
+          block,
+          gen,
+          scan_path_seg,
+          j_ff_edge_rooted_at_scan_path_seg);
       if (j_ff_edge_rooted_at_scan_path_seg != -1) {
         ff_edge_on_pose = j_ff_edge_rooted_at_scan_path_seg;
         ff_edge_global_index = ff_edge_on_pose + pose * max_n_edges_per_ff;
 
         is_root_path = is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose];
-        is_root_of_scan_path = true;
+        is_root_of_scan_path = true;  // Is this always true???
         if (is_ff_edge_root_of_scan_path[pose][ff_edge_on_pose]) {
+          printf(
+              "Extra atom for scan path seg %d %d %d %d; line 2399\n",
+              pose,
+              block,
+              gen,
+              scan_path_seg);
           // Jump edge that's rooted at this scan path. For this
           // edge we must add an extra atom representing the
           // start-block atom: it will not be listed as one
@@ -2354,20 +2459,21 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
         }
       }
       int const j_ff_edge_rooted_at_scan_path_seg_bw =
-          jump_ff_edge_rooted_at_scan_path_seg[pose][block][gen][scan_path_seg];
+          jump_ff_edge_rooted_at_scan_path_seg_bw[pose][block][gen]
+                                                 [scan_path_seg];
       if (j_ff_edge_rooted_at_scan_path_seg_bw != -1) {
         assert(ff_edge_on_pose == j_ff_edge_rooted_at_scan_path_seg_bw);
         assert(
             ff_edge_global_index
             == ff_edge_on_pose + pose * max_n_edges_per_ff);
         if (is_ff_edge_root_of_scan_path_bw[pose][ff_edge_on_pose]) {
-          // printf(
-          //     "is_ff_edge_root_of_scan_path_bw %d %d %d %d %d\n",
-          //     pose,
-          //     block,
-          //     gen,
-          //     scan_path_seg,
-          //     ff_edge_on_pose);
+          printf(
+              "is_ff_edge_root_of_scan_path_bw %d %d %d %d %d\n",
+              pose,
+              block,
+              gen,
+              scan_path_seg,
+              ff_edge_on_pose);
           is_root_of_scan_path_bw = true;
         }
       }
@@ -2459,12 +2565,24 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
         n_atoms_for_scan_path_seg + extra_atom_count;
 
     if (is_root_of_scan_path) {
-      printf("is_root_of_scan_path fw: %d \n", sps_index_in_n_atoms_offset);
+      printf(
+          "is_root_of_scan_path fw: %d (p %d b %d g %d sps %d)\n",
+          sps_index_in_n_atoms_offset,
+          pose,
+          block,
+          gen,
+          scan_path_seg);
       is_scan_path_seg_root_of_scan_path[sps_index_in_n_atoms_offset] = 1;
       accumulate<D, Int>::add(n_scan_paths_for_gen[ff_edge_gen], 1);
     }
     if (is_root_of_scan_path_bw) {
-      printf("is_root_of_scan_path bw: %d\n", sps_index_in_n_atoms_offset_bw);
+      printf(
+          "is_root_of_scan_path bw: %d (p %d b %d g %d sps %d)\n",
+          sps_index_in_n_atoms_offset_bw,
+          pose,
+          block,
+          gen,
+          scan_path_seg);
       is_scan_path_seg_root_of_scan_path_bw[sps_index_in_n_atoms_offset_bw] = 1;
       accumulate<D, Int>::add(n_scan_paths_for_gen_bw[ff_edge_gen_bw], 1);
     }
@@ -2850,9 +2968,24 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       ff_edge_global_index = ff_edge_on_pose + pose * max_n_edges_per_ff;
       is_edge_ft_root = is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose];
       if (is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose]) {
+        printf(
+            "Extra atom for scan path seg %d %d %d %d; line 2912\n",
+            pose,
+            block,
+            gen,
+            scan_path_seg);
         // The path leaving the root of the fold forest (atom 0)
         // requires an extra atom that will not be listed in the
         // block-type's-scan path, so we add it here.
+        printf(
+            "is_ff_edge_root_of_fold_tree p %d b %d g %d sps %d, first edge "
+            "%d, nj_edge %d\n",
+            pose,
+            block,
+            gen,
+            scan_path_seg,
+            first_ff_edge_for_block[pose][block],
+            nj_ff_edge_rooted_at_scan_path_seg);
         extra_atom_count = 1;
       }
     }
@@ -2860,9 +2993,24 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     if (ff_edge_type == 1) {
       int const j_ff_edge_rooted_at_scan_path_seg =
           jump_ff_edge_rooted_at_scan_path_seg[pose][block][gen][scan_path_seg];
+      printf(
+          "jump_ff_edge_rooted_at_scan_path_seg[%d][%d][%d][%d] = %d\n",
+          pose,
+          block,
+          gen,
+          scan_path_seg,
+          j_ff_edge_rooted_at_scan_path_seg);
       if (j_ff_edge_rooted_at_scan_path_seg != -1) {
+        // bool const block_is_first = block ==
+        // ff_edges[pose][ff_edge_on_pose][1];
         is_edge_ft_root = is_ff_edge_root_of_fold_tree[pose][ff_edge_on_pose];
         if (is_ff_edge_root_of_scan_path[pose][ff_edge_on_pose]) {
+          printf(
+              "Extra atom for scan path seg %d %d %d %d; line 2928\n",
+              pose,
+              block,
+              gen,
+              scan_path_seg);
           // Jump edge that's rooted at this scan path. For this
           // edge we must add an extra atom representing the
           // start-block atom: it will not be listed as one
@@ -2871,6 +3019,15 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
           // well as for the jump edge that connects the root of the
           // fold forest (atom 0) to the root of the fold tree for
           // this Pose.
+          printf(
+              "is_ff_edge_root_of_fold_tree p %d b %d g %d sps %d, first edge "
+              "%d, j_edge %d\n",
+              pose,
+              block,
+              gen,
+              scan_path_seg,
+              first_ff_edge_for_block[pose][block],
+              j_ff_edge_rooted_at_scan_path_seg);
           extra_atom_count = 1;
         }
       }
@@ -3060,6 +3217,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
 
     // NOW WE ARE READY!!!
     if (extra_atom_count == 1) {
+      printf(
+          "Adding in Extra atom for scan path seg %d %d %d %d; line 3127\n",
+          pose,
+          block,
+          gen,
+          scan_path_seg);
+
       // We must add an extra atom to the nodes tensor for the parent's
       // jump atom
       // UNLESS this is actually the root path, in which case, we
@@ -3067,13 +3231,24 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       int parent_atom_ind = 0;
       if (!is_edge_ft_root) {
         // find the jump atom of the parent block type
+        printf("find the jump atom of the parent block type");
         int const parent_block = ff_edges[pose][ff_edge_on_pose][1];
         int const parent_block_type = pose_stack_block_type[pose][parent_block];
         int const parent_local_jump_atom =
             block_type_jump_atom[parent_block_type];
-        parent_atom_ind = pose * max_n_atoms_per_pose
-                          + pose_stack_block_coord_offset[pose][parent_block]
-                          + parent_local_jump_atom;
+        // parent_atom_ind = pose * max_n_atoms_per_pose
+        //                   + pose_stack_block_coord_offset[pose][parent_block]
+        //                   // WRONG!!!
+        //                   + parent_local_jump_atom;
+        parent_atom_ind =
+            atom_kfo_index[pose][parent_block][parent_local_jump_atom];
+        printf(
+            "parent block %d parent block type %d parent local jump atom %d "
+            "parent atom ind %d\n",
+            parent_block,
+            parent_block_type,
+            parent_local_jump_atom,
+            parent_atom_ind);
       }
 
       // printf(

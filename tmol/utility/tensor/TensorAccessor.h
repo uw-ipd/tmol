@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-inline void handler(int sig) {
+inline void handler(int sig, char* file, int line) {
   void* array[10];
   size_t size;
 
@@ -34,7 +34,7 @@ inline void handler(int sig) {
   size = backtrace(array, 10);
 
   // print out all the frames to stderr
-  fprintf(stderr, "Error: signal %d:\n", sig);
+  fprintf(stderr, "Error: signal %d from %s line %d:\n", sig, file, line);
   backtrace_symbols_fd(array, size, STDERR_FILENO);
   exit(1);
 }
@@ -43,12 +43,12 @@ inline void handler(int sig) {
 #if !defined __CUDACC__
 #define BOUNDARY_ASSERT(array_ptr, index) \
   if (index < 0) {                        \
-    handler(1);                           \
+    handler(1, __FILE__, __LINE__);       \
   }                                       \
   if (index >= array_ptr->sizes_[0]) {    \
-    handler(1);                           \
+    handler(1, __FILE__, __LINE__);       \
   }                                       \
-  \ 
+                                          \
   assert(index >= 0);                     \
   assert(index < array_ptr->sizes_[0]);
 #else
@@ -227,9 +227,9 @@ class TView : public TViewBase<T, N, D, P> {
 
   AT_HOST_DEVICE TView(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
-      : TViewBase<T, N, D, P>(data_, sizes_, strides_){};
+      : TViewBase<T, N, D, P>(data_, sizes_, strides_) {};
 
-  AT_HOST_DEVICE TView() : TViewBase<T, N, D, P>(){};
+  AT_HOST_DEVICE TView() : TViewBase<T, N, D, P>() {};
 
   AT_HOST_DEVICE TensorAccessor<T, N - 1, D, P> operator[](int64_t i) {
     BOUNDARY_ASSERT(this, i);
@@ -272,9 +272,9 @@ class TView<T, 1, D, P> : public TViewBase<T, 1, D, P> {
 
   AT_HOST_DEVICE TView(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
-      : TViewBase<T, 1, D, P>(data_, sizes_, strides_){};
+      : TViewBase<T, 1, D, P>(data_, sizes_, strides_) {};
 
-  AT_HOST_DEVICE TView() : TViewBase<T, 1, D, P>(){};
+  AT_HOST_DEVICE TView() : TViewBase<T, 1, D, P>() {};
 
   AT_HOST_DEVICE T& operator[](int64_t i) {
     BOUNDARY_ASSERT(this, i);

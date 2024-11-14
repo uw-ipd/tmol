@@ -299,6 +299,43 @@ def test_validate_fold_forest_2():
     assert threw
 
 
+def test_validate_fold_forest_2b():
+    """Make sure that if a node is unreachable, in this case node 4 in tree 1,
+    that the validate_fold_tree function throws an exception
+    """
+    roots = numpy.array([2, 5], dtype=numpy.int64)
+    n_res_per_tree = numpy.array([6, 6], dtype=numpy.int64)
+
+    edges_compact = [
+        (0, EdgeType.polymer, 2, 0),
+        (0, EdgeType.jump, 2, 5),
+        (0, EdgeType.polymer, 5, 3),
+        (1, EdgeType.polymer, 2, 0),
+        (1, EdgeType.jump, 5, 2),
+        (
+            1,
+            EdgeType.jump,
+            5,
+            3,
+        ),  # here's the oopsie: the user "meant" to make this a peptide edge and has now skipped block 4.
+    ]
+    count_pose_edges = numpy.zeros((3,), dtype=numpy.int64)
+    edges = numpy.full((2, 3, 4), -1, dtype=numpy.int64)
+    for pid, edge_type, r1, r2 in edges_compact:
+        edges[pid, count_pose_edges[pid], 0] = edge_type
+        edges[pid, count_pose_edges[pid], 1] = r1
+        edges[pid, count_pose_edges[pid], 2] = r2
+        count_pose_edges[pid] += 1
+
+    threw = False
+    try:
+        validate_fold_forest(roots, n_res_per_tree, edges)
+    except ValueError as verr:
+        assert verr.args[0] == "FOLD FOREST ERROR: Block 4 unreachable in pose 1"
+        threw = True
+    assert threw
+
+
 def test_validate_fold_forest_3():
     """Make sure that if two trees have errors, that both errors are reported"""
     roots = numpy.array([0, 0, 0], dtype=numpy.int64)
