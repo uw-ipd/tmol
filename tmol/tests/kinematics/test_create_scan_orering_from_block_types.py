@@ -641,14 +641,14 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
         first_child_of_ff_edge,
         delay_for_edge,
         toposort_index_for_edge,
-    ) = result
+    ) = tuple(x.to(device=torch_device) for x in result)
     pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         pose_stack_ff_parent,
         dfs_order_of_ff_edges,
         n_ff_edges,
-        ff_2ubq_6res_H,
+        ff_2ubq_6res_H.to(device=torch_device),
         first_ff_edge_for_block,
         first_child_of_ff_edge,
         delay_for_edge,
@@ -665,7 +665,7 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
         dtype=torch.int32,
     )
     torch.testing.assert_close(
-        gold_pose_stack_block_in_and_first_out, pose_stack_block_in_and_first_out
+        gold_pose_stack_block_in_and_first_out, pose_stack_block_in_and_first_out.cpu()
     )
 
 
@@ -805,7 +805,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
 
 
 def test_get_scans_for_two_copies_of_6_res_ubq_H(
-    stack_of_two_six_res_ubqs, ff_2ubq_6res_H
+    stack_of_two_six_res_ubqs, ff_2ubq_6res_H, torch_device
 ):
 
     pose_stack = stack_of_two_six_res_ubqs
@@ -820,7 +820,9 @@ def test_get_scans_for_two_copies_of_6_res_ubq_H(
     # print("scans_bw", kmd.scan_data_bw.scans)
     # print("gens_bw", kmd.scan_data_bw.gens)
 
-    kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32)
+    kincoords = torch.zeros(
+        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
+    )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
     # print("dof_type", dof_type)
@@ -929,7 +931,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_H(
 
 
 def test_get_scans_for_two_copies_of_6_res_ubq_U(
-    stack_of_two_six_res_ubqs, ff_2ubq_6res_U
+    stack_of_two_six_res_ubqs, ff_2ubq_6res_U, torch_device
 ):
 
     pose_stack = stack_of_two_six_res_ubqs
@@ -943,7 +945,9 @@ def test_get_scans_for_two_copies_of_6_res_ubq_U(
     # print("scans_bw", kmd.scan_data_bw.scans)
     # print("gens_bw", kmd.scan_data_bw.gens)
 
-    kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32)
+    kincoords = torch.zeros(
+        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
+    )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
     # print("dof_type", dof_type)
@@ -1066,7 +1070,9 @@ def test_get_scans_for_two_copies_of_6_res_ubq_K(
     # print("scans_bw", kmd.scan_data_bw.scans)
     # print("gens_bw", kmd.scan_data_bw.gens)
 
-    kincoords = torch.zeros((kmd.forest.id.shape[0], 3), dtype=torch.float32)
+    kincoords = torch.zeros(
+        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
+    )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
 
     # print("dof_type", dof_type)

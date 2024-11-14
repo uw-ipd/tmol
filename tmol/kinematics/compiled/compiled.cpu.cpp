@@ -29,7 +29,7 @@ struct ForwardKinDispatch {
     auto num_atoms = dofs.size(0);
     // printf("dofs.size(0): %d\n", num_atoms);
     // printf("nodes.size(0): %d\n", nodes.size(0));
-    printf("ForwardKinDispatch\n");
+    // printf("ForwardKinDispatch\n");
 
     auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
     auto HTs = HTs_t.view;
@@ -191,7 +191,7 @@ struct ForwardKinDispatch {
       k_getcoords(i);
     }
 
-    printf("ForwardKinDispatch ... done\n");
+    // printf("ForwardKinDispatch ... done\n");
     return {xs_t, HTs_t};
   }
 };
@@ -205,7 +205,7 @@ struct InverseKinDispatch {
       TView<Int, 1, D> frame_y,
       TView<Int, 1, D> frame_z,
       TView<Int, 1, D> doftype) -> TPack<KintreeDof, 1, D> {
-    printf("InverseKinDispatch\n");
+    // printf("InverseKinDispatch\n");
     auto num_atoms = coords.size(0);
     // auto num_atoms = parent.size(0);
     auto num_nodes = parent.size(0);
@@ -327,7 +327,7 @@ struct InverseKinDispatch {
       k_hts2dofs(i);
     }
 
-    printf("InverseKinDispatch... Done!\n");
+    // printf("InverseKinDispatch... Done!\n");
     return dofs_t;
   }
 };
