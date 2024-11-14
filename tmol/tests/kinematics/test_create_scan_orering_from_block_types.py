@@ -641,7 +641,7 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
         first_child_of_ff_edge,
         delay_for_edge,
         toposort_index_for_edge,
-    ) = result
+    ) = tuple(x.to(device=torch_device) for x in result)
     pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,

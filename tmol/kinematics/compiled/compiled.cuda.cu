@@ -77,8 +77,9 @@ struct f1f2VecsRawBuffer {
 // These are used to preallocate the memory used in each generation of the scan.
 template <typename Int>
 auto getScanBufferSize(
-    TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens, Int nt, Int vt)
-    -> mgpu::tuple<Int, Int, Int> {
+    TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
+    Int nt,
+    Int vt) -> mgpu::tuple<Int, Int, Int> {
   auto ngens = gens.size(0) - 1;
   Int scanSize = 0;
   for (int gen = 0; gen < ngens; ++gen) {
@@ -182,7 +183,7 @@ struct ForwardKinDispatch {
       TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
       TView<KinForestParams<Int>, 1, D> kintree)
       -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D>> {
-    printf("ForwardKinDispatch CUDA\n");
+    // printf("ForwardKinDispatch CUDA\n");
     NVTXRange _function(__FUNCTION__);
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<128, 2> launch_t;

@@ -394,10 +394,10 @@ def construct_kin_module_data_for_pose(
         toposort_index_for_edge,
     ) = tuple(x.to(device) for x in result)
 
-    print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
-    print("ff_edge_parent", ff_edge_parent)
-    print("first_child_of_ff_edge", first_child_of_ff_edge)
-    print("first_ff_edge_for_block", first_ff_edge_for_block)
+    # print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
+    # print("ff_edge_parent", ff_edge_parent)
+    # print("first_child_of_ff_edge", first_child_of_ff_edge)
+    # print("first_ff_edge_for_block", first_ff_edge_for_block)
     # print("3")
 
     pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
@@ -730,19 +730,19 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
             on_sp_seg_from_conn_to_i_conn_atom = numpy.zeros((bt.n_atoms,), dtype=bool)
             for k in range(bt.n_atoms - 1, -1, -1):
                 k_atom_ind = bfto_2_orig[k]
-                if target:
-                    print(
-                        "recursing upwards",
-                        i,
-                        "i_conn atom",
-                        i_conn_atom,
-                        j,
-                        "j_conn_atom",
-                        j_conn_atom,
-                        k,
-                        k_atom_ind,
-                        bt.atom_name(k_atom_ind),
-                    )
+                # if target:
+                #     print(
+                #         "recursing upwards",
+                #         i,
+                #         "i_conn atom",
+                #         i_conn_atom,
+                #         j,
+                #         "j_conn_atom",
+                #         j_conn_atom,
+                #         k,
+                #         k_atom_ind,
+                #         bt.atom_name(k_atom_ind),
+                #     )
                 k_kids = atom_kids[k_atom_ind]
                 # print("kids:", k_kids)
                 if len(k_kids) == 0:
@@ -793,8 +793,8 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                         # intra-residue bits and the gen-depth of the nodes downstream of it.
                         # TO DO: This case needs to be properly handled when calculating the
                         # maximum number of generations to run gen-seg-scan.
-                        if target:
-                            print("conn atom", bt.atom_name(k_atom_ind))
+                        # if target:
+                        #     print("conn atom", bt.atom_name(k_atom_ind))
                         gen_depth[k_atom_ind] = max([gen_depth[l] for l in k_kids]) + 1
                     else:
                         # most-common case: an atom not on the primary-exit sp seg, and that isn't
@@ -843,8 +843,8 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                         # it would otherwise. Again, a KinForest produced by this algorithm
                         # is still valid, it could just be slightly slower to fold through
                         # than it would be otherwise.
-                        if target:
-                            print("common case", k, bt.atom_name(k_atom_ind))
+                        # if target:
+                        #     print("common case", k, bt.atom_name(k_atom_ind))
                         if j != n_conn + 1:
                             for kid in k_kids:
                                 if is_on_exit_sp_segment[kid]:
@@ -994,8 +994,8 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
             for k in range(ij_n_gens):
                 for l in range(ij_n_scan_path_segments[k]):
                     l_first_at = gen_scan_path_segments[k][l][0 if k == 0 else 1]
-                    if target:
-                        print(k, l, "l_first_at", l_first_at)
+                    # if target:
+                    #     print(k, l, "l_first_at", l_first_at)
                     # "interblock" is really asking "does this scan path segment
                     # exit to a different block?". This is "answered" by whether the
                     # last atom in the scan path segment is a connection atom.
@@ -1004,8 +1004,8 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                     # of SPs in the backward pass as long as there are edges leaving
                     # from the connection atoms.
                     kl_last_atom = gen_scan_path_segments[k][l][-1]
-                    if target:
-                        print(k, l, "kl_last_atom", kl_last_atom)
+                    # if target:
+                    #     print(k, l, "kl_last_atom", kl_last_atom)
                     ij_scan_path_segment_is_inter_block[k][l] = (
                         is_conn_atom[kl_last_atom] and j != n_conn + 1
                     ) or (  # is the last atom in the path a connection atom?
@@ -1014,8 +1014,8 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                     conn_for_path = interres_conn_scan_path_segment_rooted_by_atom[
                         l_first_at
                     ]
-                    if target:
-                        print(k, l, "conn_for_path", conn_for_path)
+                    # if target:
+                    #     print(k, l, "conn_for_path", conn_for_path)
                     if conn_for_path != -1:
                         # print(
                         #     bt.name,
