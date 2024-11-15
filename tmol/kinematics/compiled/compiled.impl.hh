@@ -293,12 +293,12 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
             block_type_polymeric_conn_index
                 [block_type][(edge_end_block < first_child_end_block) ? 1 : 0];
       } else {
-        printf(
-            "pose %d edge %d end block %d edge type %d\n",
-            pose,
-            edge,
-            edge_end_block,
-            edge_type);
+        // printf(
+        //     "pose %d edge %d end block %d edge type %d\n",
+        //     pose,
+        //     edge,
+        //     edge_end_block,
+        //     edge_type);
         // jump edge
         // assert edge_type == 1
         // jump connection denoted by n_conn.

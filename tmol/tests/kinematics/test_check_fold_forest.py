@@ -336,6 +336,48 @@ def test_validate_fold_forest_2b():
     assert threw
 
 
+def test_validate_fold_forest_2c():
+    """Another version of testing if edges are listed in that are not part of the Pose"""
+    roots = numpy.array([2, 4, 4], dtype=numpy.int64)
+    n_res_per_tree = numpy.array([4, 5, 6], dtype=numpy.int64)
+
+    # in this case, we have too many residues for pose 1 and too few for pose 2
+    edges_compact = [
+        (0, EdgeType.polymer, 1, 0),
+        (0, EdgeType.polymer, 1, 2),
+        (0, EdgeType.jump, 1, 3),
+        (1, EdgeType.polymer, 1, 0),
+        (1, EdgeType.polymer, 1, 2),
+        (1, EdgeType.jump, 4, 1),
+        (1, EdgeType.polymer, 4, 3),
+        (1, EdgeType.polymer, 4, 5),
+        (2, EdgeType.polymer, 1, 0),
+        (2, EdgeType.polymer, 1, 2),
+        (2, EdgeType.jump, 4, 1),
+        (2, EdgeType.polymer, 4, 3),
+    ]
+
+    count_pose_edges = numpy.zeros((3,), dtype=numpy.int64)
+    edges = numpy.full((3, 5, 4), -1, dtype=numpy.int64)
+    for pid, edge_type, r1, r2 in edges_compact:
+        edges[pid, count_pose_edges[pid], 0] = edge_type
+        edges[pid, count_pose_edges[pid], 1] = r1
+        edges[pid, count_pose_edges[pid], 2] = r2
+        count_pose_edges[pid] += 1
+
+    threw = False
+    try:
+        validate_fold_forest(roots, n_res_per_tree, edges)
+    except ValueError as verr:
+        print(verr)
+        assert (
+            verr.args[0]
+            == "FOLD FOREST ERROR: Bad edge 4 in pose 1 gives end index 5 out of range; (n_blocks[1] = 5)"
+        )
+        threw = True
+    assert threw
+
+
 def test_validate_fold_forest_3():
     """Make sure that if two trees have errors, that both errors are reported"""
     roots = numpy.array([0, 0, 0], dtype=numpy.int64)

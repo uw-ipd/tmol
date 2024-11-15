@@ -34,34 +34,22 @@ from tmol.kinematics.compiled import inverse_kin, forward_kin_op
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
-# @jit
-# def get_branch_depth(parents):
-#     # modeled off get_children
-#     nelts = parents.shape[0]
-
-#     n_immediate_children = numpy.full(nelts, 0, dtype=numpy.int32)
-#     for i in range(nelts):
-#         p = parents[i]
-#         assert p <= i
-#         if p == i:
-#             continue
-#         n_immediate_children[p] += 1
-
-#     child_list = numpy.full(nelts, -1, dtype=numpy.int32)
-#     child_list_span = numpy.empty((nelts, 2), dtype=numpy.int32)
-
-#     child_list_span[0, 0] = 0
-#     child_list_span[0, 1] = n_immediate_children[0]
-#     for i in range(1, nelts):
-#         child_list_span[i, 0] = child_list_span[i - 1, 1]
-#         child_list_span[i, 1] = child_list_span[i, 0] + n_immediate_children[i]
-
-#     # Pass 3, fill the child list for each parent.
-#     # As we do this,
-
 
 @pytest.fixture
 def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+    canonical_form = canonical_form_from_pdb(
+        co, ubq_pdb, torch_device, residue_start=0, residue_end=6
+    )
+
+    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    return PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
+
+
+@pytest.fixture
+def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
@@ -79,6 +67,23 @@ def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
 
 
 @pytest.fixture
+def jagged_stack_of_465_res_ubqs(ubq_pdb, torch_device):
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
+
+    def pose_stack_of_nres(nres):
+        canonical_form = canonical_form_from_pdb(
+            co, ubq_pdb, torch_device, residue_start=0, residue_end=nres
+        )
+        return pose_stack_from_canonical_form(co, pbt, **canonical_form)
+
+    return PoseStackBuilder.from_poses(
+        [pose_stack_of_nres(x) for x in [4, 6, 5]], torch_device
+    )
+
+
+@pytest.fixture
 def ff_2ubq_6res_H():
     max_n_edges = 5
     ff_edges = torch.full(
@@ -87,46 +92,131 @@ def ff_2ubq_6res_H():
         dtype=torch.int32,
         device="cpu",
     )
-    ff_edges[0, 0, 0] = 0
+    ff_edges[0, 0, 0] = EdgeType.polymer
     ff_edges[0, 0, 1] = 1
     ff_edges[0, 0, 2] = 0
 
-    ff_edges[0, 1, 0] = 0
+    ff_edges[0, 1, 0] = EdgeType.polymer
     ff_edges[0, 1, 1] = 1
     ff_edges[0, 1, 2] = 2
 
-    ff_edges[0, 2, 0] = 1
+    ff_edges[0, 2, 0] = EdgeType.jump
     ff_edges[0, 2, 1] = 1
     ff_edges[0, 2, 2] = 4
 
-    ff_edges[0, 3, 0] = 0
+    ff_edges[0, 3, 0] = EdgeType.polymer
     ff_edges[0, 3, 1] = 4
     ff_edges[0, 3, 2] = 3
 
-    ff_edges[0, 4, 0] = 0
+    ff_edges[0, 4, 0] = EdgeType.polymer
     ff_edges[0, 4, 1] = 4
     ff_edges[0, 4, 2] = 5
 
     # Let's flip the jump and root the tree at res 4
-    ff_edges[1, 0, 0] = 0
+    ff_edges[1, 0, 0] = EdgeType.polymer
     ff_edges[1, 0, 1] = 1
     ff_edges[1, 0, 2] = 0
 
-    ff_edges[1, 1, 0] = 0
+    ff_edges[1, 1, 0] = EdgeType.polymer
     ff_edges[1, 1, 1] = 1
     ff_edges[1, 1, 2] = 2
 
-    ff_edges[1, 2, 0] = 1
+    ff_edges[1, 2, 0] = EdgeType.jump
     ff_edges[1, 2, 1] = 4
     ff_edges[1, 2, 2] = 1
 
-    ff_edges[1, 3, 0] = 0
+    ff_edges[1, 3, 0] = EdgeType.polymer
     ff_edges[1, 3, 1] = 4
     ff_edges[1, 3, 2] = 3
 
-    ff_edges[1, 4, 0] = 0
+    ff_edges[1, 4, 0] = EdgeType.polymer
     ff_edges[1, 4, 1] = 4
     ff_edges[1, 4, 2] = 5
+    return ff_edges
+
+
+@pytest.fixture
+def ff_3_jagged_ubq_465res_H():
+    max_n_edges = 5
+    ff_edges = torch.full(
+        (3, max_n_edges, 4),
+        -1,
+        dtype=torch.int32,
+        device="cpu",
+    )
+    # 4 res pose
+    ff_edges[0, 0, 0] = EdgeType.polymer
+    ff_edges[0, 0, 1] = 1
+    ff_edges[0, 0, 2] = 0
+
+    ff_edges[0, 1, 0] = EdgeType.polymer
+    ff_edges[0, 1, 1] = 1
+    ff_edges[0, 1, 2] = 2
+
+    ff_edges[0, 2, 0] = EdgeType.jump
+    ff_edges[0, 2, 1] = 1
+    ff_edges[0, 2, 2] = 3
+
+    # 6 res pose
+    ff_edges[1, 0, 0] = EdgeType.polymer
+    ff_edges[1, 0, 1] = 1
+    ff_edges[1, 0, 2] = 0
+
+    ff_edges[1, 1, 0] = EdgeType.polymer
+    ff_edges[1, 1, 1] = 1
+    ff_edges[1, 1, 2] = 2
+
+    ff_edges[1, 2, 0] = EdgeType.jump
+    ff_edges[1, 2, 1] = 4
+    ff_edges[1, 2, 2] = 1
+
+    ff_edges[1, 3, 0] = EdgeType.polymer
+    ff_edges[1, 3, 1] = 4
+    ff_edges[1, 3, 2] = 3
+
+    ff_edges[1, 4, 0] = EdgeType.polymer
+    ff_edges[1, 4, 1] = 4
+    ff_edges[1, 4, 2] = 5
+
+    # 5 res Pose
+    ff_edges[2, 0, 0] = EdgeType.polymer
+    ff_edges[2, 0, 1] = 1
+    ff_edges[2, 0, 2] = 0
+
+    ff_edges[2, 1, 0] = EdgeType.polymer
+    ff_edges[2, 1, 1] = 1
+    ff_edges[2, 1, 2] = 2
+
+    ff_edges[2, 2, 0] = EdgeType.jump
+    ff_edges[2, 2, 1] = 4
+    ff_edges[2, 2, 2] = 1
+
+    ff_edges[2, 3, 0] = EdgeType.polymer
+    ff_edges[2, 3, 1] = 4
+    ff_edges[2, 3, 2] = 3
+
+    return ff_edges
+
+
+@pytest.fixture
+def ff_3_jagged_ubq_465res_star():
+    max_n_edges = 5
+    ff_edges = torch.full(
+        (3, max_n_edges, 4),
+        -1,
+        dtype=torch.int32,
+        device="cpu",
+    )
+    for i, (nres, root) in enumerate([(4, 0), (6, 2), (5, 4)]):
+        count_edge = 0
+        for j in range(nres):
+            if j == root:
+                continue
+            ff_edges[i, count_edge, 0] = EdgeType.jump
+            ff_edges[i, count_edge, 1] = root
+            ff_edges[i, count_edge, 2] = j
+            count_edge += 1
+
     return ff_edges
 
 
@@ -295,23 +385,23 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
         dtype=torch.int32,
         device="cpu",
     )
-    ff_edges[0, 0, 0] = 0
+    ff_edges[0, 0, 0] = EdgeType.polymer
     ff_edges[0, 0, 1] = 1
     ff_edges[0, 0, 2] = 0
 
-    ff_edges[0, 1, 0] = 0
+    ff_edges[0, 1, 0] = EdgeType.polymer
     ff_edges[0, 1, 1] = 1
     ff_edges[0, 1, 2] = 2
 
-    ff_edges[0, 2, 0] = 1
+    ff_edges[0, 2, 0] = EdgeType.jump
     ff_edges[0, 2, 1] = 1
     ff_edges[0, 2, 2] = 4
 
-    ff_edges[0, 3, 0] = 0
+    ff_edges[0, 3, 0] = EdgeType.polymer
     ff_edges[0, 3, 1] = 4
     ff_edges[0, 3, 2] = 3
 
-    ff_edges[0, 4, 0] = 0
+    ff_edges[0, 4, 0] = EdgeType.polymer
     ff_edges[0, 4, 1] = 4
     ff_edges[0, 4, 2] = 5
 
@@ -347,11 +437,11 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
 
 
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
-    stack_of_two_six_res_ubqs, ff_2ubq_6res_H
+    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
 ):
     from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
 
-    pose_stack = stack_of_two_six_res_ubqs
+    pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
@@ -426,11 +516,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
 
 
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
-    stack_of_two_six_res_ubqs, ff_2ubq_6res_U
+    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_U
 ):
     from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
 
-    pose_stack = stack_of_two_six_res_ubqs
+    pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
@@ -496,11 +586,11 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
 
 
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
-    stack_of_two_six_res_ubqs, ff_2ubq_6res_K
+    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_K
 ):
     from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
 
-    pose_stack = stack_of_two_six_res_ubqs
+    pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
@@ -593,32 +683,14 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
 
 
 def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
-    stack_of_two_six_res_ubqs, torch_device, ff_2ubq_6res_H
+    stack_of_two_six_res_ubqs_no_term, torch_device, ff_2ubq_6res_H
 ):
     from tmol.kinematics.compiled.compiled_ops import (
         calculate_ff_edge_delays,
         get_block_parent_connectivity_from_toposort,
     )
 
-    # torch_device = torch.device("cpu")
-    # device = torch_device
-
-    # co = default_canonical_ordering()
-    # pbt = default_packed_block_types(torch_device)
-    # canonical_form = canonical_form_from_pdb(
-    #     co, ubq_pdb, torch_device, residue_start=1, residue_end=7
-    # )
-
-    # res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
-    # res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
-    # res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
-    # pose_stack = pose_stack_from_canonical_form(
-    #     co, pbt, **canonical_form, res_not_connected=res_not_connected
-    # )
-    # pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
-    # _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
-
-    pose_stack = stack_of_two_six_res_ubqs
+    pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
@@ -812,49 +884,10 @@ def test_get_scans_for_two_copies_of_6_res_ubq_H(
     ff_edges_cpu = ff_2ubq_6res_H
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-
-    # print("nodes_fw", kmd.scan_data_fw.nodes)
-    # print("scans_fw", kmd.scan_data_fw.scans)
-    # print("gens_fw", kmd.scan_data_fw.gens)
-    # print("nodes_bw", kmd.scan_data_bw.nodes)
-    # print("scans_bw", kmd.scan_data_bw.scans)
-    # print("gens_bw", kmd.scan_data_bw.gens)
-
     kincoords = torch.zeros(
         (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
     )
     kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
-
-    # print("dof_type", dof_type)
-
-    # get_c1_and_c2_atoms: jump atom 19, 18, 3
-    # c1 c2 18 3
-    # get_c1_and_c2_atoms: jump atom 74, 73, 59
-    # c1 c2 73 59
-    # get_c1_and_c2_atoms: jump atom 127, 126, 111
-    # c1 c2 126 111
-    # get_c1_and_c2_atoms: jump atom 182, 181, 167
-
-    # def print_frames(jump, i):
-    #     print(
-    #         f"jump {jump}: dof_type[{i}] {dof_type[i]} frame_x[{i}] {frame_x[i]}, frame_y[{i}] {frame_y[i]}, frame_z[{i}] {frame_z[i]}"
-    #     )
-
-    # def print_children(jump, i):
-    #     for child_ind in range(child_list_span[i], child_list_span[i + 1]):
-    #         child = child_list[child_ind]
-    #         print_frames(f"child of {jump}", child)
-
-    # def print_three_frames(jump, at1, at2, at3):
-    #     print_frames(jump, at1)
-    #     print_children(jump, at1)
-    #     print_frames(jump, at2)
-    #     print_frames(jump, at3)
-
-    # print_three_frames(1, 19, 18, 3)
-    # print_three_frames(2, 74, 73, 59)
-    # print_three_frames(3, 127, 126, 111)
-    # print_three_frames(4, 182, 181, 167)
 
     raw_dofs = inverse_kin(
         kincoords,
@@ -1189,3 +1222,177 @@ def test_decide_scan_paths_for_foldforest(ubq_pdb):
         co, ubq_pdb, torch_device, residue_start=0, residue_end=10
     )
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+
+
+def test_kinmodule_construction_for_jagged_stack_H(
+    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H, torch_device
+):
+
+    pose_stack = jagged_stack_of_465_res_ubqs
+    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kincoords = torch.zeros(
+        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
+    )
+    kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
+
+    raw_dofs = inverse_kin(
+        kincoords,
+        kmd.forest.parent,
+        kmd.forest.frame_x,
+        kmd.forest.frame_y,
+        kmd.forest.frame_z,
+        kmd.forest.doftype,
+    )
+
+    assert raw_dofs is not None
+
+    def _p(t):
+        return torch.nn.Parameter(t, requires_grad=False)
+
+    def _tint(ts):
+        return tuple(map(lambda t: t.to(torch.int32), ts))
+
+    kinforest = _p(
+        torch.stack(
+            _tint(
+                [
+                    kmd.forest.id,
+                    kmd.forest.doftype,
+                    kmd.forest.parent,
+                    kmd.forest.frame_x,
+                    kmd.forest.frame_y,
+                    kmd.forest.frame_z,
+                ]
+            ),
+            dim=1,
+        )
+    )
+
+    new_coords = forward_kin_op(
+        raw_dofs,
+        kmd.scan_data_fw.nodes,
+        kmd.scan_data_fw.scans,
+        kmd.scan_data_fw.gens,
+        kmd.scan_data_bw.nodes,
+        kmd.scan_data_bw.scans,
+        kmd.scan_data_bw.gens,
+        kinforest,
+    )
+
+    # print("kincoords[35:45]", kincoords[35:45])
+    # print("new_coords[35:45]", new_coords[35:45])
+
+    # print("kincoords[0:10]", kincoords[0:10])
+    # print("new_coords[0:10]", new_coords[0:10])
+
+    # print("kincoords[20:30]", kincoords[20:30])
+    # print("new_coords[20:30]", new_coords[20:30])
+
+    # print("kincoords[100:110]", kincoords[100:110])
+    # print("new_coords[100:110]", new_coords[100:110])
+
+    # print("kincoords[120:130]", kincoords[120:130])
+    # print("new_coords[120:130]", new_coords[120:130])
+
+    # nz_diff = torch.nonzero(
+    #     torch.logical_and(
+    #         torch.abs(kincoords - new_coords) > 1e-5,
+    #         torch.logical_not(torch.isnan(kincoords)),
+    #     ),
+    #     as_tuple=True,
+    # )
+    # print("diff", nz_diff[0][:10])
+    # print("diff", nz_diff[1][:10])
+    # print("kincoords", kincoords[nz_diff[:10]])
+    # print("new_coords", new_coords[nz_diff[:10]])
+
+    torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
+
+
+def test_kinmodule_construction_for_jagged_stack_star(
+    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_star, torch_device
+):
+
+    pose_stack = jagged_stack_of_465_res_ubqs
+    ff_edges_cpu = ff_3_jagged_ubq_465res_star
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    kincoords = torch.zeros(
+        (kmd.forest.id.shape[0], 3), dtype=torch.float32, device=torch_device
+    )
+    kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
+
+    raw_dofs = inverse_kin(
+        kincoords,
+        kmd.forest.parent,
+        kmd.forest.frame_x,
+        kmd.forest.frame_y,
+        kmd.forest.frame_z,
+        kmd.forest.doftype,
+    )
+
+    assert raw_dofs is not None
+
+    def _p(t):
+        return torch.nn.Parameter(t, requires_grad=False)
+
+    def _tint(ts):
+        return tuple(map(lambda t: t.to(torch.int32), ts))
+
+    kinforest = _p(
+        torch.stack(
+            _tint(
+                [
+                    kmd.forest.id,
+                    kmd.forest.doftype,
+                    kmd.forest.parent,
+                    kmd.forest.frame_x,
+                    kmd.forest.frame_y,
+                    kmd.forest.frame_z,
+                ]
+            ),
+            dim=1,
+        )
+    )
+
+    new_coords = forward_kin_op(
+        raw_dofs,
+        kmd.scan_data_fw.nodes,
+        kmd.scan_data_fw.scans,
+        kmd.scan_data_fw.gens,
+        kmd.scan_data_bw.nodes,
+        kmd.scan_data_bw.scans,
+        kmd.scan_data_bw.gens,
+        kinforest,
+    )
+
+    # print("kincoords[35:45]", kincoords[35:45])
+    # print("new_coords[35:45]", new_coords[35:45])
+
+    # print("kincoords[0:10]", kincoords[0:10])
+    # print("new_coords[0:10]", new_coords[0:10])
+
+    # print("kincoords[20:30]", kincoords[20:30])
+    # print("new_coords[20:30]", new_coords[20:30])
+
+    # print("kincoords[100:110]", kincoords[100:110])
+    # print("new_coords[100:110]", new_coords[100:110])
+
+    # print("kincoords[120:130]", kincoords[120:130])
+    # print("new_coords[120:130]", new_coords[120:130])
+
+    # nz_diff = torch.nonzero(
+    #     torch.logical_and(
+    #         torch.abs(kincoords - new_coords) > 1e-5,
+    #         torch.logical_not(torch.isnan(kincoords)),
+    #     ),
+    #     as_tuple=True,
+    # )
+    # print("diff", nz_diff[0][:10])
+    # print("diff", nz_diff[1][:10])
+    # print("kincoords", kincoords[nz_diff[:10]])
+    # print("new_coords", new_coords[nz_diff[:10]])
+
+    torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
