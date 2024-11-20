@@ -106,5 +106,5 @@ class ConstraintEnergyTerm(EnergyTerm):
             pose_stack_block_types=pose_stack.block_type_ind,
             pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
             bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
-            constraint_set=pose_stack.constraint_set,
+            constraint_set=pose_stack.get_constraint_set(),
         )
