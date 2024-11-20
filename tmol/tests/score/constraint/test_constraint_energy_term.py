@@ -6,8 +6,6 @@ from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
-from tmol.pose.constraint_set import ConstraintSet
-
 
 def add_test_constraints_to_pose_stack(pose_stack):
     torch_device = pose_stack.device
