@@ -94,6 +94,9 @@ def _augment_kwargs(name, sources, **kwargs):
         kwargs["extra_cflags"] += ["-DWITH_CUDA"]
         kwargs["extra_cuda_cflags"] += ["-DWITH_CUDA"]
 
+    if os.environ.get("TMOL_TORCH_EXTENSIONS_VERBOSE"):
+        kwargs["verbose"] = True
+
     return kwargs
 
 
