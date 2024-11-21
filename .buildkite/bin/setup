@@ -8,7 +8,7 @@ export TORCH_EXTENSIONS_DIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/torch_ex
 
 # create env
 conda create -n $BUILDKITE_BUILD_ID -y
-conda env update -n $BUILDKITE_BUILD_ID  --file environments/linux-cuda/env.yml --prune
+conda env update --clobber -n $BUILDKITE_BUILD_ID  --file environments/linux-cuda/env.yml --prune
 conda activate $BUILDKITE_BUILD_ID
 
 set -x
