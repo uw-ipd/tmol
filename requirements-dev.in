@@ -10,6 +10,6 @@ pytest-cov
 pytest-instafail
 pytest-repeat
 pytest-watch
-pytest-benchmark
+pytest-benchmark>=5.1.0
 seaborn
 pip-tools

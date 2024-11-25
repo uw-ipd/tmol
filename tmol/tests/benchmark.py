@@ -60,6 +60,8 @@ def make_fixture(
     warner=warnings,
     disabled=False,
     cprofile=False,
+    cprofile_loops=None,
+    cprofile_dump=None,
     **extra_info,
 ):
     """Create a pytest_benchmark fixture.
@@ -87,6 +89,8 @@ def make_fixture(
         warner=warner,
         disabled=disabled,
         cprofile=cprofile,
+        cprofile_loops=cprofile_loops,
+        cprofile_dump=cprofile_dump,
     )
 
     benchmark.extra_info.update(extra_info)
@@ -127,6 +131,8 @@ def make_subfixture(
         warner=parent._warner,
         disabled=parent.disabled,
         cprofile=parent.cprofile,
+        cprofile_loops=parent.cprofile_loops,
+        cprofile_dump=parent.cprofile_dump,
     )
 
     benchmark.extra_info.update(parent.extra_info)
