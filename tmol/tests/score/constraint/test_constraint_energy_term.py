@@ -16,8 +16,8 @@ def add_test_constraints_to_pose_stack(pose_stack):
     cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
     cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
 
-    res1_type = pose_stack.block_type(0, 0)
-    res2_type = pose_stack.block_type(0, 1)
+    res1_type = pose_stack.block_type(0, 3)
+    res2_type = pose_stack.block_type(0, 4)
     cnstr_atoms[0, 0] = torch.tensor([0, 3, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.47
@@ -30,8 +30,8 @@ def add_test_constraints_to_pose_stack(pose_stack):
     cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
     cnstr_params = torch.full((1, 4), 0, dtype=torch.float32, device=torch_device)
 
-    res1_type = pose_stack.block_type(0, 0)
-    res2_type = pose_stack.block_type(0, 1)
+    res1_type = pose_stack.block_type(0, 4)
+    res2_type = pose_stack.block_type(0, 5)
     cnstr_atoms[0, 0] = torch.tensor([0, 4, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([0, 5, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.0  # lb
@@ -46,8 +46,8 @@ def add_test_constraints_to_pose_stack(pose_stack):
 
     # a circular harmonic constraints
     # get the omega between res1 and res2
-    res1_type = pose_stack.block_type(0, 2)
-    res2_type = pose_stack.block_type(0, 3)
+    res1_type = pose_stack.block_type(0, 0)
+    res2_type = pose_stack.block_type(0, 1)
     cnstr_atoms[0, 0] = torch.tensor([0, 0, res1_type.atom_to_idx["CA"]])
     cnstr_atoms[0, 1] = torch.tensor([0, 0, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 2] = torch.tensor([0, 1, res2_type.atom_to_idx["N"]])
