@@ -26,25 +26,43 @@ def add_test_constraints_to_pose_stack(pose_stack):
         ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
     )
 
-    # a bounded constraint
+    # repeat to test function caching
     cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
-    cnstr_params = torch.full((1, 4), 0, dtype=torch.float32, device=torch_device)
+    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack.block_type(0, 4)
     res2_type = pose_stack.block_type(0, 5)
     cnstr_atoms[0, 0] = torch.tensor([0, 4, res1_type.atom_to_idx["C"]])
     cnstr_atoms[0, 1] = torch.tensor([0, 5, res2_type.atom_to_idx["N"]])
-    cnstr_params[0, 0] = 1.0  # lb
-    cnstr_params[0, 1] = 3.0  # ub
-    cnstr_params[0, 2] = 1.0  # sd
-    cnstr_params[0, 3] = 1.0  # rswitch
+    cnstr_params[0, 0] = 1.47
 
-    constraints.add_constraints(ConstraintEnergyTerm.bounded, cnstr_atoms, cnstr_params)
+    constraints.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
+    )
 
+    # double the previous constraints, but this time batch them
+    cnstr_atoms = torch.full((2, 2, 3), 0, dtype=torch.int32, device=torch_device)
+    cnstr_params = torch.full((2, 1), 0, dtype=torch.float32, device=torch_device)
+
+    res1_type = pose_stack.block_type(0, 3)
+    res2_type = pose_stack.block_type(0, 4)
+    cnstr_atoms[0, 0] = torch.tensor([0, 3, res1_type.atom_to_idx["C"]])
+    cnstr_atoms[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
+    cnstr_params[0, 0] = 1.47
+    res1_type = pose_stack.block_type(0, 4)
+    res2_type = pose_stack.block_type(0, 5)
+    cnstr_atoms[1, 0] = torch.tensor([0, 4, res1_type.atom_to_idx["C"]])
+    cnstr_atoms[1, 1] = torch.tensor([0, 5, res2_type.atom_to_idx["N"]])
+    cnstr_params[1, 0] = 1.47
+
+    constraints.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
+    )
+
+    # a circular harmonic constraint
     cnstr_atoms = torch.full((1, 4, 3), 0, dtype=torch.int32, device=torch_device)
     cnstr_params = torch.full((1, 3), 0, dtype=torch.float32, device=torch_device)
 
-    # a circular harmonic constraints
     # get the omega between res1 and res2
     res1_type = pose_stack.block_type(0, 0)
     res2_type = pose_stack.block_type(0, 1)
@@ -202,7 +220,7 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
             torch_device,
             resnums=resnums,
             edit_pose_stack_fn=add_test_constraints_to_pose_stack,
-            update_baseline=False,
+            update_baseline=True,
         )
 
     @classmethod
