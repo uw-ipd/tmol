@@ -4,6 +4,7 @@ import torch
 from tmol.types.torch import Tensor
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.pose.constraint_set import ConstraintSet
 
 
 @attr.s(auto_attribs=True)
@@ -181,3 +182,12 @@ class PoseStack:
         return self.packed_block_types.active_block_types[
             self.block_type_ind[pose_ind, block_ind]
         ]
+
+    def get_constraint_set(self):
+        # make a constraint set if it doesn't exist
+        if not hasattr(self, "_constraint_set"):
+            self._constraint_set = ConstraintSet(device=self.device)
+
+        # ensure the constraint set points back at us (after creation or deep copy)
+        self._constraint_set.pose_stack = self
+        return self._constraint_set

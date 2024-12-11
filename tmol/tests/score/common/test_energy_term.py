@@ -221,6 +221,7 @@ class EnergyTermTestBase:
         default_database,
         torch_device,
         resnums=None,
+        edit_pose_stack_fn=None,
         update_baseline=False,
         atol=1e-5,
         rtol=1e-3,
@@ -229,6 +230,9 @@ class EnergyTermTestBase:
 
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
         pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
+
+        if edit_pose_stack_fn is not None:
+            edit_pose_stack_fn(pn)
 
         pose_scorer = cls.get_pose_scorer(pn, default_database, torch_device)
 
@@ -250,12 +254,16 @@ class EnergyTermTestBase:
         default_database,
         torch_device,
         resnums=None,
+        edit_pose_stack_fn=None,
         eps=1e-6,  # torch default
         atol=1e-5,  # torch default
         rtol=1e-3,  # torch default
         nondet_tol=0.0,  # torch default
     ):
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
+
+        if edit_pose_stack_fn is not None:
+            edit_pose_stack_fn(p1)
 
         whole_pose_scorer = cls.get_pose_scorer(p1, default_database, torch_device)
 
@@ -284,6 +292,7 @@ class EnergyTermTestBase:
         pdb,
         default_database,
         torch_device: torch.device,
+        edit_pose_stack_fn=None,
         update_baseline=False,
         atol=1e-5,
         rtol=1e-3,
@@ -294,6 +303,9 @@ class EnergyTermTestBase:
         p2 = pose_stack_from_pdb_and_resnums(pdb, torch_device, res_50)
         p3 = pose_stack_from_pdb_and_resnums(pdb, torch_device, res_30)
         pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
+
+        if edit_pose_stack_fn is not None:
+            edit_pose_stack_fn(pn)
 
         pose_scorer = cls.get_pose_scorer(pn, default_database, torch_device)
         scores = pose_scorer(pn.coords).cpu().detach().numpy()
@@ -311,9 +323,19 @@ class EnergyTermTestBase:
 
     @classmethod
     def test_block_scoring_matches_whole_pose_scoring(
-        cls, pdb, default_database, torch_device, resnums=None, atol=1e-5, rtol=1e-3
+        cls,
+        pdb,
+        default_database,
+        torch_device,
+        resnums=None,
+        edit_pose_stack_fn=None,
+        atol=1e-5,
+        rtol=1e-3,
     ):
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
+
+        if edit_pose_stack_fn is not None:
+            edit_pose_stack_fn(p1)
 
         pose_scorer = cls.get_pose_scorer(p1, default_database, torch_device)
 
@@ -334,11 +356,16 @@ class EnergyTermTestBase:
         default_database,
         torch_device,
         resnums=None,
+        edit_pose_stack_fn=None,
         update_baseline=False,
+        override_baseline_name=None,
         atol=1e-5,
         rtol=1e-3,
     ):
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
+
+        if edit_pose_stack_fn is not None:
+            edit_pose_stack_fn(p1)
 
         pose_scorer = cls.get_pose_scorer(p1, default_database, torch_device)
 
@@ -347,11 +374,14 @@ class EnergyTermTestBase:
             pose_scorer(coords, output_block_pair_energies=True).cpu().detach().numpy()
         )
 
+        test_name = (
+            cls.test_block_scoring.__name__
+            if (override_baseline_name is None)
+            else override_baseline_name
+        )
         if update_baseline:
-            cls.save_test_baseline_data(
-                cls.test_block_scoring.__name__, cls.block_pair_to_dict(scores)
-            )
-        gold_vals = cls.get_test_baseline_data(cls.test_block_scoring.__name__)
+            cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(scores))
+        gold_vals = cls.get_test_baseline_data(test_name)
 
         assert_allclose(gold_vals, scores, atol, rtol)
 
@@ -362,12 +392,16 @@ class EnergyTermTestBase:
         default_database,
         torch_device,
         resnums=None,
+        edit_pose_stack_fn=None,
         eps=1e-6,  # torch default
         atol=1e-5,  # torch default
         rtol=1e-3,  # torch default
         nondet_tol=0.0,  # torch default
     ):
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
+
+        if edit_pose_stack_fn is not None:
+            edit_pose_stack_fn(p1)
 
         pose_scorer = cls.get_pose_scorer(p1, default_database, torch_device)
 
