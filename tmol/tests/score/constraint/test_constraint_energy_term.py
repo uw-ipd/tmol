@@ -192,7 +192,7 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
     def test_ensure_fail_add_cross_pose_constraint(
         cls, ubq_pdb, default_database, torch_device
     ):
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(Exception):
             super().test_whole_pose_scoring_10(
                 ubq_pdb,
                 default_database,
