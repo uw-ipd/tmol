@@ -1,6 +1,7 @@
 import numpy
 import torch
 import math
+import pytest
 
 from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 
@@ -76,6 +77,27 @@ def add_test_constraints_to_pose_stack(pose_stack):
 
     constraints.add_constraints(
         ConstraintEnergyTerm.circularharmonic, cnstr_atoms, cnstr_params
+    )
+
+
+# This should fail since the atoms are from different poses
+def check_fail_add_cross_pose_constraint(pose_stack):
+    torch_device = pose_stack.device
+
+    constraints = pose_stack.get_constraint_set()
+
+    # a distance constraint
+    cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
+    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
+
+    res1_type = pose_stack.block_type(0, 0)
+    res2_type = pose_stack.block_type(1, 1)
+    cnstr_atoms[0, 0] = torch.tensor([0, 0, res1_type.atom_to_idx["C"]])
+    cnstr_atoms[0, 1] = torch.tensor([1, 1, res2_type.atom_to_idx["N"]])
+    cnstr_params[0, 0] = 1.47
+
+    constraints.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
     )
 
 
@@ -167,6 +189,19 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
+    def test_ensure_fail_add_cross_pose_constraint(
+        cls, ubq_pdb, default_database, torch_device
+    ):
+        with pytest.raises(Exception) as exc_info:
+            super().test_whole_pose_scoring_10(
+                ubq_pdb,
+                default_database,
+                torch_device,
+                edit_pose_stack_fn=check_fail_add_cross_pose_constraint,
+                update_baseline=False,
+            )
+
+    @classmethod
     def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
         return super().test_whole_pose_scoring_10(
             ubq_pdb,
@@ -220,7 +255,7 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
             torch_device,
             resnums=resnums,
             edit_pose_stack_fn=add_test_constraints_to_pose_stack,
-            update_baseline=True,
+            update_baseline=False,
         )
 
     @classmethod
