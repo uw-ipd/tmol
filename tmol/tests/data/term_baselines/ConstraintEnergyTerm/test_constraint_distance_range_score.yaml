@@ -1,0 +1,112 @@
+term0:
+  pose0:
+    res0:
+      res0: 1.0
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.5
+      res5: 1.5
+      res6: 2.5
+      res7: 3.5
+      res8: 4.5
+      res9: 5.5
+    res1:
+      res0: 0.0
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.0
+      res5: 0.0
+      res6: 0.0
+      res7: 0.0
+      res8: 0.0
+      res9: 0.0
+    res2:
+      res0: 0.0
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.0
+      res5: 0.0
+      res6: 0.0
+      res7: 0.0
+      res8: 0.0
+      res9: 0.0
+    res3:
+      res0: 0.0
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.0
+      res5: 0.0
+      res6: 0.0
+      res7: 0.0
+      res8: 0.0
+      res9: 0.0
+    res4:
+      res0: 0.5
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.0
+      res5: 0.0
+      res6: 0.0
+      res7: 0.0
+      res8: 0.0
+      res9: 0.0
+    res5:
+      res0: 1.5
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.0
+      res5: 0.0
+      res6: 0.0
+      res7: 0.0
+      res8: 0.0
+      res9: 0.0
+    res6:
+      res0: 2.5
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.0
+      res5: 0.0
+      res6: 0.0
+      res7: 0.0
+      res8: 0.0
+      res9: 0.0
+    res7:
+      res0: 3.5
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.0
+      res5: 0.0
+      res6: 0.0
+      res7: 0.0
+      res8: 0.0
+      res9: 0.0
+    res8:
+      res0: 4.5
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.0
+      res5: 0.0
+      res6: 0.0
+      res7: 0.0
+      res8: 0.0
+      res9: 0.0
+    res9:
+      res0: 5.5
+      res1: 0.0
+      res2: 0.0
+      res3: 0.0
+      res4: 0.0
+      res5: 0.0
+      res6: 0.0
+      res7: 0.0
+      res8: 0.0
+      res9: 0.0
