@@ -7,6 +7,7 @@ class ScoreType(AutoNumber):
     cart_torsions = ()
     cart_impropers = ()
     cart_hxltorsions = ()
+    constraint = ()
     disulfide = ()
     fa_ljatr = ()
     fa_ljrep = ()
