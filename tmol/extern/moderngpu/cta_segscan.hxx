@@ -18,11 +18,11 @@ struct cta_segscan_t {
   enum { num_warps = nt / warp_size };
 
   union storage_t {
-    int delta[num_warps + nt]; 
+    int delta[num_warps + nt];
     struct { type_t values[2 * nt]; int packed[nt]; };
   };
 
-  MGPU_DEVICE int find_left_lane(int tid, bool has_head_flag, 
+  MGPU_DEVICE int find_left_lane(int tid, bool has_head_flag,
     storage_t& storage) const {
 
     int warp = tid / warp_size;
@@ -93,7 +93,7 @@ struct cta_segscan_t {
     // the carry-out value as the total.
     bool has_carry_in = tid ? (0 != (1 & storage.packed[tid - 1])) : false;
 
-    segscan_result_t<type_t> result { 
+    segscan_result_t<type_t> result {
       (has_carry_in && tid) ? storage.values[first + tid - 1] : init,
       storage.values[first + nt - 1],
       has_carry_in,

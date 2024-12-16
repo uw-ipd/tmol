@@ -155,6 +155,10 @@ class RefinedResidueType(RawResidueType):
         bond_array.flags.writeable = False
         return bond_array
 
+    @property
+    def n_conn(self):
+        return len(self.connections)
+
     # The index of the atom for a given inter-residue connection point
     connection_to_idx: Mapping[str, AtomIndex] = attr.ib()
 
@@ -447,6 +451,12 @@ class RefinedResidueType(RawResidueType):
     @ideal_coords.default
     def compute_ideal_coords(self):
         return build_coords_from_icoors(self.icoors_ancestors, self.icoors_geom)
+
+    default_jump_connection_atom_index: int = attr.ib()
+
+    @default_jump_connection_atom_index.default
+    def get_default_jump_connection_atom_index(self):
+        return self.atom_to_idx[self.default_jump_connection_atom]
 
 
 @attr.s(auto_attribs=True)
