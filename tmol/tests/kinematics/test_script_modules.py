@@ -18,7 +18,7 @@ from tmol.types.torch import Tensor
 
 from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.fold_forest import FoldForest
-from tmol.kinematics.script_modules import KinematicModule, PoseStackKinematicModule
+from tmol.kinematics.script_modules import KinematicModule, PoseStackKinematicsModule
 from tmol.kinematics.operations import inverseKin
 
 from tmol.system.packed import PackedResidueSystem
@@ -153,7 +153,7 @@ def test_kinematic_torch_op_smoke(
 
 
 def kincoords_and_dofs_for_pose_stack_system(
-    pose_stack: PoseStack, kinematics_module: PoseStackKinematicModule, torch_device
+    pose_stack: PoseStack, kinematics_module: PoseStackKinematicsModule, torch_device
 ):
     kinforest = kinematics_module.kmd.forest
 
@@ -203,13 +203,13 @@ def pose_stack_gradcheck_test_system1(
     pose_stack_system1: typing.Tuple[PoseStack, FoldForest], torch_device: torch.device
 ) -> typing.Tuple[
     PoseStack,
-    PoseStackKinematicModule,
+    PoseStackKinematicsModule,
     Tensor[torch.float64][:, 3],
     Tensor[torch.float64],
 ]:
     pose_stack, fold_forest = pose_stack_system1
 
-    kinematics_module = PoseStackKinematicModule(
+    kinematics_module = PoseStackKinematicsModule(
         pose_stack,
         fold_forest,
     )
@@ -278,13 +278,13 @@ def pose_stack_gradcheck_test_system2(
     pose_stack_system2: typing.Tuple[PoseStack, FoldForest], torch_device: torch.device
 ) -> typing.Tuple[
     PoseStack,
-    PoseStackKinematicModule,
+    PoseStackKinematicsModule,
     Tensor[torch.float64][:, 3],
     Tensor[torch.float64],
 ]:
     pose_stack, fold_forest = pose_stack_system2
 
-    kinematics_module = PoseStackKinematicModule(
+    kinematics_module = PoseStackKinematicsModule(
         pose_stack,
         fold_forest,
     )
@@ -433,7 +433,7 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     cuda_device = torch.device("cuda")
 
     cpu_pose_stack, fold_forest = pose_stack_system1
-    cpu_kinematics_module = PoseStackKinematicModule(
+    cpu_kinematics_module = PoseStackKinematicsModule(
         cpu_pose_stack,
         fold_forest,
     )
@@ -464,7 +464,7 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
         block_type_ind64=_to_cuda(cpu_pose_stack.block_type_ind64),
         device=cuda_device,
     )
-    cuda_kinematics_module = PoseStackKinematicModule(
+    cuda_kinematics_module = PoseStackKinematicsModule(
         cuda_pose_stack,
         fold_forest,
     )

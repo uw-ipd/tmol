@@ -369,7 +369,7 @@ def test_validate_fold_forest_2c():
     try:
         validate_fold_forest(roots, n_res_per_tree, edges)
     except ValueError as verr:
-        print(verr)
+        # print(verr)
         assert (
             verr.args[0]
             == "FOLD FOREST ERROR: Bad edge 4 in pose 1 gives end index 5 out of range; (n_blocks[1] = 5)"
