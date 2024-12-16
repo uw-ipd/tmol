@@ -2,7 +2,7 @@
 
 #if defined(WITH_CUDA) && defined(WITH_NVTX)
 
-#include <nvToolsExt.h>
+#include <nvtx3/nvToolsExt.h>
 
 #define nvtx_range_push(n) nvtxRangePushA(n)
 #define nvtx_range_pop() nvtxRangePop()
