@@ -74,6 +74,10 @@ if torch.cuda.is_available():
 _default_cuda_flags = []
 
 
+# Add additional flags.
+# The "verbose" flag can be controlled by adding the environment variable
+# "TMOL_TORCH_EXTENSIONS_VERBOSE" which will ask ninja to print all compiler
+# commands to the terminal
 def _augment_kwargs(name, sources, **kwargs):
     kwargs["extra_cflags"] = (
         list(kwargs.get("extra_cflags", _default_flags)) + _required_flags
@@ -93,6 +97,9 @@ def _augment_kwargs(name, sources, **kwargs):
     if kwargs["with_cuda"]:
         kwargs["extra_cflags"] += ["-DWITH_CUDA"]
         kwargs["extra_cuda_cflags"] += ["-DWITH_CUDA"]
+
+    if os.environ.get("TMOL_TORCH_EXTENSIONS_VERBOSE"):
+        kwargs["verbose"] = True
 
     return kwargs
 

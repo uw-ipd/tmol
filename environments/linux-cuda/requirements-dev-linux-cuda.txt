@@ -4,6 +4,8 @@
 #
 #    pip-compile --constraint=requirements-linux-cuda.txt --no-emit-index-url --output-file=requirements-dev-linux-cuda.txt ../../requirements-dev.in
 #
+--trusted-host data.pyg.org
+
 black==24.1.1
     # via -r ../../requirements-dev.in
 build==1.0.3
@@ -116,7 +118,7 @@ pyparsing==3.1.1
     # via matplotlib
 pyproject-hooks==1.0.0
     # via build
-pytest==8.0.0
+pytest==8.1.2
     # via
     #   -r ../../requirements-dev.in
     #   pytest-benchmark
@@ -125,7 +127,7 @@ pytest==8.0.0
     #   pytest-instafail
     #   pytest-repeat
     #   pytest-watch
-pytest-benchmark==4.0.0
+pytest-benchmark==5.1.0
     # via -r ../../requirements-dev.in
 pytest-cov==4.1.0
     # via -r ../../requirements-dev.in
