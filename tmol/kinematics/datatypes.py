@@ -135,6 +135,7 @@ class KinematicModuleData:
     forest: KinForest
     scan_data_fw: KinForestScanData
     scan_data_bw: KinForestScanData
+    block_in_and_first_out: Tensor[torch.int][:, :]
 
 
 @attrs.define(auto_attribs=True, slots=True, frozen=True)
@@ -169,6 +170,7 @@ class BondDOFTypes(enum.IntEnum):
     theta = enum.auto()
     d = enum.auto()
     phi_c = enum.auto()
+    n_movable_dofs = 4
 
 
 class JumpDOFTypes(enum.IntEnum):
@@ -180,6 +182,7 @@ class JumpDOFTypes(enum.IntEnum):
     RBdel_alpha = enum.auto()
     RBdel_beta = enum.auto()
     RBdel_gamma = enum.auto()
+    n_moveable_dofs = 6
     RBalpha = enum.auto()
     RBbeta = enum.auto()
     RBgamma = enum.auto()
@@ -270,17 +273,20 @@ class BTGenerationalSegScanPathSegs:
     scan_path_seg_is_real: NDArray[bool][:, :, :, :]
     scan_path_seg_is_inter_block: NDArray[bool][:, :, :, :]
     scan_path_seg_lengths: NDArray[numpy.int64][:, :, :, :]
+    uaid_for_torsion: NDArray[numpy.int64][:, :, 3]  # n-input x n-torsions x 3
+    torsion_direction: NDArray[numpy.int64][:, :]  # n-input x n-torsions
 
     @classmethod
     def empty(
         cls,
-        n_input_types,
-        n_output_types,
-        n_atoms,
-        n_conn,
-        max_n_gens,
-        max_n_scan_path_segs_per_gen,
-        max_n_nodes_per_gen,
+        n_input_types: int,
+        n_output_types: int,
+        n_atoms: int,
+        n_conn: int,
+        max_n_gens: int,
+        max_n_scan_path_segs_per_gen: int,
+        max_n_nodes_per_gen: int,
+        n_torsions: int,
     ):
         io = (n_input_types, n_output_types)
         return cls(
@@ -313,6 +319,8 @@ class BTGenerationalSegScanPathSegs:
             scan_path_seg_lengths=numpy.zeros(
                 io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=int
             ),
+            uaid_for_torsion=numpy.full((n_input_types, n_torsions, 3), -1, dtype=int),
+            torsion_direction=numpy.full((n_input_types, n_torsions), 1, dtype=int),
         )
 
 
@@ -337,19 +345,24 @@ class PBTGenerationalSegScanPathSegs:
     scan_path_seg_is_real: Tensor[bool][:, :, :, :, :]
     scan_path_seg_is_inter_block: Tensor[bool][:, :, :, :, :]
     scan_path_seg_lengths: Tensor[torch.int32][:, :, :, :, :]
+    uaid_for_torsion: NDArray[numpy.int64][
+        :, :, :, 3
+    ]  # n-bt x n-input x n-torsions x 3
+    torsion_direction: NDArray[numpy.int64][:, :, :]  # n-bt x n-input x n-torsions
 
     @classmethod
     def empty(
         cls,
         device,
-        n_bt,
-        max_n_input_types,
-        max_n_output_types,
-        max_n_atoms,
-        max_n_conn,
-        max_n_gens,
-        max_n_scan_path_segs_per_gen,
-        max_n_nodes_per_gen,
+        n_bt: int,
+        max_n_input_types: int,
+        max_n_output_types: int,
+        max_n_atoms: int,
+        max_n_conn: int,
+        max_n_gens: int,
+        max_n_scan_path_segs_per_gen: int,
+        max_n_nodes_per_gen: int,
+        max_n_torsions: int,
     ):
         io = (n_bt, max_n_input_types, max_n_output_types)
         return cls(
@@ -405,5 +418,11 @@ class PBTGenerationalSegScanPathSegs:
                 io + (max_n_gens, max_n_scan_path_segs_per_gen),
                 dtype=torch.int32,
                 device=device,
+            ),
+            uaid_for_torsion=torch.zeros(
+                (n_bt, max_n_input_types, max_n_torsions, 3), -1, dtype=torch.int32
+            ),
+            torsion_direction=torch.zeros(
+                (n_bt, max_n_input_types, max_n_torsions), 1, dtype=torch.int32
             ),
         )
