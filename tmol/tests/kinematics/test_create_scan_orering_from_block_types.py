@@ -855,7 +855,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     # print("child_list", child_list)
     # print("is_atom_jump", is_atom_jump)
 
-    id, frame_x, frame_y, frame_z = get_id_and_frame_xyz(
+    id, frame_x, frame_y, frame_z, keep_atom_fixed = get_id_and_frame_xyz(
         pose_stack.coords.shape[1],
         pose_stack.block_coord_offset,
         kfo_2_orig_mapping,

@@ -298,6 +298,7 @@ auto get_id_and_frame_xyz(
   at::Tensor frame_x;
   at::Tensor frame_y;
   at::Tensor frame_z;
+  at::Tensor keep_dof_fixed;
 
   TMOL_DISPATCH_INDEX_DEVICE(
       parents.type(), "get_id_and_frame_xyz", ([&] {
@@ -322,8 +323,9 @@ auto get_id_and_frame_xyz(
         frame_x = std::get<1>(result).tensor;
         frame_y = std::get<2>(result).tensor;
         frame_z = std::get<3>(result).tensor;
+        keep_dof_fixed = std::get<4>(result).tensor;
       }));
-  return {id, frame_x, frame_y, frame_z};
+  return {id, frame_x, frame_y, frame_z, keep_dof_fixed};
 }
 
 auto calculate_ff_edge_delays(
@@ -510,6 +512,83 @@ auto get_scans2(
         nodes_bw = std::get<3>(result).tensor;
         scans_bw = std::get<4>(result).tensor;
         gens_bw = std::get<5>(result).tensor;
+      }));
+  return {nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw};
+}
+
+auto minimizer_map_from_movemap(
+    Tensor kinforest_id,
+    Tensor pose_stack_block_coord_offset,
+    Tensor pose_stack_block_type,  // P x L
+    Tensor pose_stack_inter_block_connections,
+    Tensor pose_stack_block_in_and_first_out,  // P x L x 2
+    Tensor bt_uaid_for_torsion,
+    Tensor bt_torsion_direction,
+    Tensor bt_named_torsion_is_bb,
+    bool move_all_jumps,
+    bool move_all_mc,
+    bool move_all_sc,
+    bool move_all_named_torsions,
+    Tensor move_jumps,
+    Tensor move_jumps_mask,
+    Tensor move_mcs,
+    Tensor move_mcs_mask,
+    Tensor move_scs,
+    Tensor move_scs_mask,
+    Tensor move_named_torsions,
+    Tensor move_named_torsions_mask,
+    Tensor move_jump_dof,
+    Tensor move_jump_dof_mask,
+    Tensor move_mc_dof,
+    Tensor move_mc_dof_mask,
+    Tensor move_sc_dof,
+    Tensor move_sc_dof_mask,
+    Tensor move_named_torsion_dof,
+    Tensor move_named_torsion_dof_mask,
+    Tensor move_atom_dof,
+    Tensor move_atom_dof_mask) -> Tensor {
+  // Minimizer map: a boolean vector of the DOFs that are free
+  Tensor minimizer_map;  // maybe more??
+  TMOL_DISPATCH_INDEX_DEVICE(
+      pose_stack_block_type.type(), "minimizer_map_from_movemap", ([&] {
+        using Int = index_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                create_minimizer_map(
+                    TCAST(kinforest_id),
+                    TCAST(pose_stack_block_coord_offset),
+                    TCAST(pose_stack_block_type),
+                    TCAST(pose_stack_inter_block_connections),
+                    TCAST(pose_stack_block_in_and_first_out),
+                    TCAST(bt_uaid_for_torsion),
+                    TCAST(bt_torsion_direction),
+                    TCAST(bt_named_torsion_is_bb),
+                    move_all_jumps,
+                    move_all_mc,
+                    move_all_sc,
+                    move_all_named_torsions,
+                    TCAST(move_jumps),
+                    TCAST(move_jumps_mask),
+                    TCAST(move_mcs),
+                    TCAST(move_mcs_mask),
+                    TCAST(move_scs),
+                    TCAST(move_scs_mask),
+                    TCAST(move_named_torsions),
+                    TCAST(move_named_torsions_mask),
+                    TCAST(move_jump_dof),
+                    TCAST(move_jump_dof_mask),
+                    TCAST(move_mc_dof),
+                    TCAST(move_mc_dof_mask),
+                    TCAST(move_sc_dof),
+                    TCAST(move_sc_dof_mask),
+                    TCAST(move_named_torsion_dof),
+                    TCAST(move_named_torsion_dof_mask),
+                    TCAST(move_atom_dof),
+                    TCAST(move_atom_dof_mask));
+        // minimizer_map = std::get<0>(result).tensor;
+        minimizer_map = result.tensor;
       }));
   return {nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw};
 }

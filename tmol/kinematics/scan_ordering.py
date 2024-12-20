@@ -448,7 +448,7 @@ def construct_kin_module_data_for_pose(
     )
 
     # print("7")
-    id, frame_x, frame_y, frame_z = get_id_and_frame_xyz(
+    id, frame_x, frame_y, frame_z, keep_atom_fixed = get_id_and_frame_xyz(
         pose_stack.coords.shape[1],
         pose_stack.block_coord_offset,
         kfo_2_orig_mapping,
@@ -521,6 +521,7 @@ def construct_kin_module_data_for_pose(
             gens=gens_bw.cpu(),
         ),
         block_in_and_first_out=pose_stack_block_in_and_first_out,
+        keep_atom_fixed=keep_atom_fixed,
     )
 
 
@@ -705,7 +706,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
             dof_type[i, i_conn_atom] = NodeType.jump
 
         mark_kin_uaids_controlling_torsions(
-            uaid_for_torsion, torsion_direction, i, bt, preds
+            uaid_for_torsion, torsion_direction, i, i_conn_atom, bt, preds
         )
 
         # Now, the parent of the i_conn_atom comes from the previous residue, so we will

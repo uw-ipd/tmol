@@ -136,6 +136,7 @@ class KinematicModuleData:
     scan_data_fw: KinForestScanData
     scan_data_bw: KinForestScanData
     block_in_and_first_out: Tensor[torch.int][:, :]
+    keep_atom_fixed: Tensor[torch.bool][:, :]
 
 
 @attrs.define(auto_attribs=True, slots=True, frozen=True)

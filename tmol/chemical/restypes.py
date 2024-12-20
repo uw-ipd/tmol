@@ -265,7 +265,7 @@ class RefinedResidueType(RawResidueType):
 
     @property
     def n_torsions(self):
-        return self.orderd_torsions.shape[0]
+        return self.ordered_torsions.shape[0]
 
     path_distance: numpy.ndarray = attr.ib()
 

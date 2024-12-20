@@ -649,7 +649,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
         TPack<Int, 1, D>,
         TPack<Int, 1, D>,
         TPack<Int, 1, D>,
-        TPack<Int, 1, D>> {
+        TPack<Int, 1, D>,
+        TPack<bool, 2, D>> {
   LAUNCH_BOX_32;
   int const n_kintree_nodes = parents.size(0);
 
@@ -657,10 +658,12 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
   auto frame_x_t = TPack<Int, 1, D>::zeros({n_kintree_nodes});
   auto frame_y_t = TPack<Int, 1, D>::zeros({n_kintree_nodes});
   auto frame_z_t = TPack<Int, 1, D>::zeros({n_kintree_nodes});
+  auto keep_dof_fixed_t = TPack<bool, 2, D>::zeros({n_kintree_nodes, 9});
   auto id = id_t.view;
   auto frame_x = frame_x_t.view;
   auto frame_y = frame_y_t.view;
   auto frame_z = frame_z_t.view;
+  auto keep_dof_fixed = keep_dof_fixed_t.view;
 
   auto first_pass_frame_xyz = ([=] TMOL_DEVICE_FUNC(int i) {
     if (i == 0) {
@@ -854,7 +857,55 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(n_kintree_nodes, fix_jump_node);
-  return {id_t, frame_x_t, frame_y_t, frame_z_t};
+
+  // Step 3: mark the DOFs that should always be held fixed:
+  // For a "bonded atom", this happens for "theta" when its
+  // parent is a jump, and it's the "c1" atom of its parent;
+  // thus the atom appears twice in the
+  // definition of theta: atom-parent-frame_y[parent] (where
+  // frame_y[parent] == atom).
+  // It also happens for "phi_p" and "phi_c" if the atom's parent
+  // or grand parent is a jump and the atom is the frame_y
+  // or frame_z atom.
+  // For a "jump atom", this only applies to the root of the kintree
+  // (aka the root of the kinforest.)
+
+  int const n_dofs = 9;
+  auto mark_fixed_dofs = ([=] TMOL_DEVICE_FUNC(int i) {
+    int atom = i / n_dofs;
+    int dof = i % n_dofs;
+    bool is_jump = is_atom_jump[atom];
+    if (is_jump) {
+      if (atom == 0) {
+        keep_dof_fixed[atom][dof] = true;
+      } else if (dof >= 6) {
+        // We only minimize the first six dofs for jump atoms
+        // in any case.
+        keep_dof_fixed[atom][dof] = true;
+      }
+    } else {
+      int parent = parents[atom];
+      if (is_atom_jump[parent]) {
+        if (frame_y[parent] == atom && dof != bond_dof_d) {
+          keep_dof_fixed[atom][dof] = true;
+        } else if (frame_z[parent] == atom && dof != bond_dof_d) {
+          keep_dof_fixed[atom][dof] = true;
+        }
+      } else {
+        int grandparent = parents[parent];
+        if (is_atom_jump[grandparent]) {
+          if (frame_z[grandparent] == atom
+              && !(dof == bond_dof_d || dof == bond_dof_theta)) {
+            keep_dof_fixed[atom][dof] = true;
+          }
+        }
+      }
+    }
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_kintree_nodes * n_dofs, mark_fixed_dofs);
+
+  return {id_t, frame_x_t, frame_y_t, frame_z_t, keep_dof_fixed_t};
 }
 
 // P = number of poses
@@ -3382,6 +3433,269 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
 
   // std::tuple<TPack<Int, 1, D>, TPack<Int, 1, D>>
   return {nodes_fw_t, scans_fw_t, gens_fw_t, nodes_bw_t, scans_bw_t, gens_bw_t};
+}
+
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
+    typename Int>
+auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
+    TView<Int, 1, D> kinforest_id,  // K
+    int const max_n_atoms_per_pose,
+    TView<Int, 2, D> pose_stack_block_coord_offset,
+    TView<Int, 2, D> pose_stack_block_type,
+    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+    TView<Int, 3, D> pose_stack_block_in_and_first_out,  // P x L x 2
+    TView<Int, 3, D> pose_stack_atom_for_jump,           // P x J x 2
+    TView<bool, 2, D> keep_dof_fixed,                    // K x 9
+    TView<Int, 1, D> bt_n_named_torsions,
+    TView<Int, 4, D> bt_uaid_for_torsion,
+    TView<Int, 3, D> bt_torsion_direction,
+    TView<Int, 2, D> bt_named_torsion_is_mc,
+    // Map a named torsion to its index in either the list
+    // of mc or sc torsions.
+    TView<Int, 2, D> bt_which_mcsc_torsion_for_named_torsion,
+    bool move_all_jumps,
+    bool move_all_mcs,
+    bool move_all_scs,
+    bool move_all_named_torsions,
+    TView<bool, 2, D> move_jumps,
+    TView<bool, 2, D> move_jumps_mask,
+    TView<bool, 2, D> move_mcs,
+    TView<bool, 2, D> move_mcs_mask,
+    TView<bool, 2, D> move_scs,
+    TView<bool, 2, D> move_scs_mask,
+    TView<bool, 3, D> move_named_torsions,
+    TView<bool, 3, D> move_named_torsions_mask,
+    TView<bool, 3, D> move_jump_dof,
+    TView<bool, 3, D> move_jump_dof_mask,
+    TView<bool, 3, D> move_mc_dof,
+    TView<bool, 3, D> move_mc_dof_mask,
+    TView<bool, 3, D> move_sc_dof,
+    TView<bool, 3, D> move_sc_dof_mask,
+    TView<bool, 3, D> move_named_torsion_dof,
+    TView<bool, 3, D> move_named_torsion_dof_mask,
+    TView<bool, 4, D> move_atom_dof,
+    TView<bool, 4, D> move_atom_dof_mask) {
+  int const n_poses = pose_stack_block_type.size(0);
+  int const n_blocks = pose_stack_block_type.size(1);
+  int const n_kinforest_atoms = kinforest_id.size(0);
+  int const max_n_jumps_per_pose = pose_stack_atom_for_jump.size(1);
+  int const max_n_input_conn_types = bt_uaid_for_torsion.size(1);
+  int const max_n_torsions = bt_uaid_for_torsion.size(2);
+  int const max_n_atoms_per_block = move_atom_dof.size(2);
+
+  auto pose_atom_ordered_minimizer_map_t =
+      TPack<Int, 1, D>::full({n_poses * n_blocks * max_n_atoms_per_block}, -1);
+  auto pose_atom_ordered_minimizer_map = pose_atom_ordered_minimizer_map_t.view;
+  auto minimizer_map_t = TPack<bool, 2, D>::full({n_kinforest_atoms, 9}, 0);
+  auto minimizer_map = minimizer_map_t.view;
+
+  // Step 1:
+  // resolve where all the torsions live on all the blocks.
+  // Dunbrack does this.
+
+  // Step 2: torsions
+  // For each torsion, set move status based on whether it's
+  // mainchain or sidechain: look at all three levels of status
+  // and pick the one that is most restrictive
+
+  // Step 3: jumps
+  // For each jump, set its move status based on all three
+  // levels of status and pick the one that's most restrictive
+
+  // Step 4: atoms
+  // For each DOF on each atom, look at whether the "move_atom_dof"
+  // parameter has been set, and if so, override whatever else has
+  // been set for that DOF.
+
+  // Step 5: reindex
+  // Finally, map the DOFs from their pose-stack order to their kinforest
+  // order in the minimizer_map tensor; while doing this, override any
+  // setting for if keep_dof_fixed is set to true.
+
+  // Step 1:
+  auto atom_for_torsion_t =
+      TPack<Int, 4, D>::full({n_poses, n_blocks, max_n_torsions, 2}, -1);
+  auto atom_for_torsion = atom_for_torsion_t.view;
+
+  auto resolve_torsion_location = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const pose = i / (n_blocks * max_n_torsions);
+    i = i - pose * n_blocks * max_n_torsions;
+    int const block = i / max_n_torsions;
+    int const torsion = i % max_n_torsions;
+
+    int const block_type = pose_stack_block_type[pose][block];
+    if (block_type < 0) {
+      return;
+    }
+    int const n_torsions = bt_n_named_torsions[block_type];
+    if (torsion >= n_torsions) {
+      return;
+    }
+
+    int const in_conn = pose_stack_block_in_and_first_out[pose][block][0];
+    UnresolvedAtomID<Int> uaid =
+        bt_uaid_for_torsion[block_type][in_conn][torsion];
+
+    // Now resolve the atom index for this torsion; given
+    // by the pose-stack-index: this may be an atom on this residue
+    // or on anotehr residue
+    auto resolved_ind = resolve_local_atom_ind_from_uaid(
+        uaid,
+        block,
+        pose,
+        pose_stack_block_coord_offset,
+        pose_stack_block_type,
+        pose_stack_inter_block_connections,
+        block_type_atom_downstream_of_conn);
+    int const tor_atom_block = std::get<0>(resolved_ind);
+    int const tor_atom = std::get<1>(resolved_ind);
+    atom_for_torsion[pose][block][torsion][0] = tor_atom_block;
+    atom_for_torsion[pose][block][torsion][1] = tor_atom;
+  })
+
+      DeviceDispatch<D>::template forall<launch_t>(
+          n_poses * n_blocks * max_n_torsions, resolve_torsion_location);
+
+  // Step 2:
+  auto set_torsion_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const pose = i / (n_blocks * max_n_torsions);
+    i = i - pose * n_blocks * max_n_torsions;
+    int const block = i / max_n_torsions;
+    int const torsion = i % max_n_torsions;
+
+    int const block_type = pose_stack_block_type[pose][block];
+    if (block_type < 0) {
+      return;
+    }
+    int const n_torsions = bt_n_named_torsions[block_type];
+    if (torsion >= n_torsions) {
+      return;
+    }
+
+    int const tor_atom_block = atom_for_torsion[pose][block][torsion][0];
+    int const tor_atom = atom_for_torsion[pose][block][torsion][1];
+
+    int const tor_atom_global_index =
+        pose * max_n_atoms_per_pose
+        + pose_stack_block_coord_offset[pose][tor_atom_block] + tor_atom;
+    int const which_mcsc_torsion =
+        bt_which_mcsc_torsion_for_named_torsion[block_type][torsion];
+
+    auto heirarchy_of_specifications = ([&](auto const& move_mcsc_dof_mask,
+                                            auto const& move_mcsc_dof,
+                                            auto const& move_mcs_scs_mask,
+                                            auto const& move_mcs_scs,
+                                            auto move_all_mcs_scs, ) {
+      if (move_named_torsion_dof_mask[pose][block][torsion]) {
+        pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
+            move_named_torsion_dof[pose][block][torsion];
+        return;
+      }
+      // Next: did we have "move mc/sc" instructions for this named torsion?
+      if (move_mcsc_dof_mask[pose][block][which_mcsc_torsion]) {
+        pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
+            move_mcsc_dof[pose][block][which_mcsc_torsion];
+        return;
+      }
+      // Next: look at the "move mcs/scs" for this block
+      if (move_mcs_scs_mask[pose][block]) {
+        pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
+            move_mcs_scs[pose][block];
+        return;
+      }
+      // Finally: look at the global "move all mcs/scs" and
+      // "move_all_named_torsions" flags
+      pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
+          move_all_mcs_scs || move_all_named_torsions;
+    });
+
+    if (bt_named_torsion_is_mc[block_type][torsion]) {
+      heirarchy_of_specifications(
+          move_mc_dof_mask, move_mc_dof, move_mcs_mask, move_mcs, move_all_mcs);
+    } else {
+      heirarchy_of_specifications(
+          move_sc_dof_mask, move_sc_dof, move_scs_mask, move_scs, move_all_scs);
+    }
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_poses * n_blocks * max_n_torsions, set_torsion_freedom);
+
+  //  Step 3:
+  auto set_jump_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const pose = i / max_n_jumps_per_pose;
+    int const jump = i % max_n_jumps_per_pose;
+    int const block = pose_stack_atom_for_jump[pose][jump][0];
+    int const atom = pose_stack_atom_for_jump[pose][jump][1];
+    if (block == -1) {
+      return;
+    }
+    int const jump_atom_global_index =
+        pose * max_n_atoms_per_pose + pose_stack_block_coord_offset[pose][block]
+        + atom;
+
+    // Now we look at the specification heirarchy for this jump's 6 DOFs
+    for (int jump_dof = 0; jump_dof < 6; ++jump_dof) {
+      if (move_jump_dof_mask[pose][jump][jump_dof]) {
+        pose_atom_ordered_minimizer_map[jump_atom_global_index][jump_dof] =
+            move_jump_dof[pose][jump][jump_dof];
+      } else if (move_jumps_mask[pose][jump]) {
+        pose_atom_ordered_minimizer_map[jump_atom_global_index][jump_dof] =
+            move_jumps[pose][jump];
+      } else {
+        pose_atom_ordered_minimizer_map[jump_atom_global_index][jump_dof] =
+            move_all_jumps;
+      }
+    }
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_poses * n_blocks * max_n_torsions, set_torsion_freedom);
+
+  // Step 4:
+  auto set_atom_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const pose = i / (n_blocks * max_n_atoms_per_block);
+    i = i - pose * n_blocks * max_n_atoms_per_block;
+    int const block = i / max_n_atoms_per_block;
+    int const atom = i % max_n_atoms_per_block;
+
+    // int const block_type = pose_stack_block_type[pose][block];
+    // if (block_type < 0) {
+    //   return;
+    // }
+    for (int dof = 0; dof < 3; ++dof) {
+      if (move_atom_dof_mask[pose][block][atom][dof]) {
+        pose_atom_ordered_minimizer_map
+            [pose * max_n_atoms_per_pose
+             + pose_stack_block_coord_offset[pose][block] + atom][dof] =
+                move_atom_dof[pose][block][atom][dof];
+      }
+    }
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_poses * n_blocks * max_n_atoms_per_block, set_atom_freedom);
+
+  // Step 5:
+  auto reindex_minimizer_map = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const pose_atom = kinforest_id[i];
+    if (i > 0) {
+      int const pose = pose_atom / max_n_atoms_per_pose;
+      int const atom = pose_atom % max_n_atoms_per_pose;
+      for (int dof = 0; dof < 9; ++dof) {
+        if (keep_dof_fixed[i][dof]) {
+          minimizer_map[i][dof] = 0;
+        } else {
+          minimizer_map[i][dof] =
+              pose_atom_ordered_minimizer_map[pose_atom][dof];
+        }
+      }
+    }
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_kinforest_atoms, reindex_minimizer_map);
+
+  return minimizer_map;
 }
 
 }  // namespace kinematics

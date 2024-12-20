@@ -405,7 +405,8 @@ struct KinForestFromStencil {
           TPack<Int, 1, D>,
           TPack<Int, 1, D>,
           TPack<Int, 1, D>,
-          TPack<Int, 1, D>>;
+          TPack<Int, 1, D>,
+          TPack<bool, 2, D>>;
 
   static auto calculate_ff_edge_delays(
       TView<Int, 2, D> pose_stack_block_coord_offset,  // P x L
@@ -661,6 +662,7 @@ void get_c1_and_c2_atoms(
 
   // TO DO!
 }
+d
 
 #undef Dofs
 #undef HomogeneousTransform
