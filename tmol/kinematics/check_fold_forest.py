@@ -93,6 +93,50 @@ def bfs_proper_forest(
 
 
 # @numba.jit(nopython=True)
+def ensure_jumps_numbered_and_distinct(
+    edges: NDArray[numpy.int64][:, :, 4],
+):
+    n_poses = edges.shape[0]
+    max_n_edges = edges.shape[1]
+    jump_numbers = numpy.full((n_poses, max_n_edges), -1, dtype=numpy.int64)
+    count_n_jumps = numpy.zeros((n_poses,), dtype=numpy.int64)
+    found_bad_jump = False
+    bad_jump_numbers = numpy.full((n_poses, max_n_edges), -1, dtype=numpy.int64)
+    count_n_bad_jumps = numpy.zeros((n_poses,), dtype=numpy.int64)
+    for i in range(n_poses):
+        for j in range(max_n_edges):
+            if edges[i, j, 0] == EdgeType.jump:
+                count_n_jumps[i] += 1
+                if edges[i, j, 3] < 0 or edges[i, j, 3] >= max_n_edges:
+                    print("bad jump number", i, j, edges[i, j, 3], "out of range")
+                    found_bad_jump = True
+                    bad_jump_ind = count_n_bad_jumps[i]
+                    bad_jump_numbers[i, bad_jump_ind] = j
+                    count_n_bad_jumps[i] += 1
+                    continue
+                if jump_numbers[i, edges[i, j, 3]] != -1:
+                    # this jump number has already been seen
+                    print("bad jump number", i, j, edges[i, j, 3], "duplicate")
+                    found_bad_jump = True
+                    bad_jump_ind = count_n_bad_jumps[i]
+                    bad_jump_numbers[i, bad_jump_ind] = j
+                    count_n_bad_jumps[i] += 1
+                    continue
+                jump_numbers[i, edges[i, j, 3]] = j
+        # now, we look for jumps with indices >= the number of jumps
+        # that we actually counted; a fold tree with such a jump must
+        # have non-contiguous indices starting from 0.
+        for j in range(count_n_jumps[i], max_n_edges):
+            if jump_numbers[i, j] != -1:
+                print(f"jump_numbers[{i}][{j}] = {jump_numbers[i, j]}")
+                found_bad_jump = True
+                bad_jump_ind = count_n_bad_jumps[i]
+                bad_jump_numbers[i, bad_jump_ind] = jump_numbers[i, j]
+                count_n_bad_jumps[i] += 1
+    return found_bad_jump, count_n_bad_jumps, bad_jump_numbers, count_n_jumps
+
+
+# @numba.jit(nopython=True)
 def validate_fold_forest_jit(
     roots: NDArray[numpy.int64][:],
     n_blocks: NDArray[numpy.int64][:],
@@ -109,7 +153,7 @@ def validate_fold_forest_jit(
         if count_bad[i] > 0:
             error = True
     if error:
-        return False, bad_edges, None, None
+        return False, bad_edges, None, None, None, None
 
     # print("roots", roots)
     # print("n_blocks", n_blocks)
@@ -138,7 +182,20 @@ def validate_fold_forest_jit(
         if not good:
             break
 
-    return good, bad_edges, cycles_detected, missing
+    found_bad_jump, count_n_bad_jumps, bad_jump_numbers, count_n_jumps = (
+        ensure_jumps_numbered_and_distinct(edges)
+    )
+    good = good and not found_bad_jump
+
+    return (
+        good,
+        bad_edges,
+        cycles_detected,
+        missing,
+        count_n_bad_jumps,
+        bad_jump_numbers,
+        count_n_jumps,
+    )
 
 
 def validate_fold_forest(
@@ -151,9 +208,15 @@ def validate_fold_forest(
     # print("n_blocks", n_blocks)
     # print("edges", edges)
 
-    good, bad_edges, cycles_detected, missing = validate_fold_forest_jit(
-        roots, n_blocks, edges
-    )
+    (
+        good,
+        bad_edges,
+        cycles_detected,
+        missing,
+        count_n_bad_jumps,
+        bad_jump_numbers,
+        count_n_jumps,
+    ) = validate_fold_forest_jit(roots, n_blocks, edges)
 
     if not good:
         n_poses = n_blocks.shape[0]
@@ -216,5 +279,60 @@ def validate_fold_forest(
                             ]
                         )
                     )
+        for i in range(n_poses):
+            if count_n_bad_jumps is None:
+                break
+            if count_n_bad_jumps[i] > 0:
+                for j in range(count_n_bad_jumps[i]):
+                    e = edges[i, bad_jump_numbers[i, j], :]
+                    is_repeat_index = False
+                    first_edge_w_index = -1
+                    for k in range(bad_jump_numbers[i, j]):
+                        # print(f"e: {e[0]}, {e[1]}, {e[2]}, {e[3]} and k: {k} edge {edges[i, k, 0]}, {edges[i, k, 3]}")
+                        if edges[i, k, 0] == EdgeType.jump and edges[i, k, 3] == e[3]:
+                            is_repeat_index = True
+                            first_edge_w_index = k
+                            break
+                    if is_repeat_index:
+                        ek = edges[i, first_edge_w_index, :]
+                        errors.append(
+                            " ".join(
+                                [
+                                    "FOLD FOREST ERROR: Jump",
+                                    f"[p={e[0]}, s={e[1]}, e={e[2]}, ind={e[3]}]",
+                                    "in pose",
+                                    str(i),
+                                    "has repeated jump index with edge",
+                                    str(first_edge_w_index),
+                                    f"[p={ek[0]}, s={ek[1]}, e={ek[2]}, ind={ek[3]}]",
+                                ]
+                            )
+                        )
+                    else:
+                        if e[3] < 0:
+                            errors.append(
+                                " ".join(
+                                    [
+                                        "FOLD FOREST ERROR: Jump",
+                                        f"[p={e[0]}, s={e[1]}, e={e[2]}, ind={e[3]}]",
+                                        "in pose",
+                                        str(i),
+                                        "has negative jump index",
+                                    ]
+                                )
+                            )
+                        else:
+                            errors.append(
+                                " ".join(
+                                    [
+                                        "FOLD FOREST ERROR: Jump",
+                                        f"[p={e[0]}, s={e[1]}, e={e[2]}, ind={e[3]}]",
+                                        "in pose",
+                                        str(i),
+                                        "has a non-contiguous-starting-at-0 jump index",
+                                        f"(n jumps total: {count_n_jumps[i]})",
+                                    ]
+                                )
+                            )
         raise ValueError("\n".join(errors))
     # print("done with validate fold forest")

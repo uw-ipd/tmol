@@ -90,7 +90,7 @@ TMOL_DEVICE_FUNC auto resolve_local_atom_ind_from_uaid(
 
     if (other_block_index == -1) {
       // This residue doesn't exist!
-      return -1;
+      return {-1, -1};
     }
 
     int other_connection_index = connection[1];

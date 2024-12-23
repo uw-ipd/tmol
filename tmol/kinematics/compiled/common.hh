@@ -10,6 +10,7 @@
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/unresolved_atom.hh>
 
 #include <moderngpu/scan_types.hxx>
 #include <moderngpu/operators.hxx>
@@ -23,6 +24,9 @@ namespace kinematics {
 #define HomogeneousTransform Eigen::Matrix<Real, 4, 4>
 #define QuatTranslation Eigen::Matrix<Real, 7, 1>
 #define Coord Eigen::Matrix<Real, 3, 1>
+
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
 
 enum DOFtype { ROOT = 0, JUMP, BOND };
 
@@ -488,6 +492,44 @@ struct KinForestFromStencil {
           TPack<Int, 1, D>,
           TPack<Int, 1, D>,
           TPack<Int, 2, D>>;
+
+  static auto create_minimizer_map(
+      TView<Int, 1, D> kinforest_id,  // K
+      int const max_n_atoms_per_pose,
+      TView<Int, 2, D> pose_stack_block_coord_offset,
+      TView<Int, 2, D> pose_stack_block_type,
+      TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+      TView<Int, 3, D> pose_stack_block_in_and_first_out,  // P x L x 2
+      TView<Int, 3, D> pose_stack_atom_for_jump,           // P x J x 2
+      TView<bool, 2, D> keep_dof_fixed,                    // K x 9
+      TView<Int, 1, D> bt_n_named_torsions,
+      TView<UnresolvedAtomID<Int>, 3, D> bt_uaid_for_torsion,
+      TView<Int, 3, D> bt_torsion_direction,
+      TView<Int, 2, D> bt_named_torsion_is_mc,
+      TView<Int, 2, D> bt_which_mcsc_torsion_for_named_torsion,
+      TView<Int, 3, D> bt_atom_downstream_of_conn,
+      bool move_all_jumps,
+      bool move_all_mcs,
+      bool move_all_scs,
+      bool move_all_named_torsions,
+      TView<bool, 2, D> move_jumps,
+      TView<bool, 2, D> move_jumps_mask,
+      TView<bool, 2, D> move_mcs,
+      TView<bool, 2, D> move_mcs_mask,
+      TView<bool, 2, D> move_scs,
+      TView<bool, 2, D> move_scs_mask,
+      TView<bool, 3, D> move_named_torsions,
+      TView<bool, 3, D> move_named_torsions_mask,
+      TView<bool, 3, D> move_jump_dof,
+      TView<bool, 3, D> move_jump_dof_mask,
+      TView<bool, 3, D> move_mc_dof,
+      TView<bool, 3, D> move_mc_dof_mask,
+      TView<bool, 3, D> move_sc_dof,
+      TView<bool, 3, D> move_sc_dof_mask,
+      TView<bool, 3, D> move_named_torsion_dof,
+      TView<bool, 3, D> move_named_torsion_dof_mask,
+      TView<bool, 4, D> move_atom_dof,
+      TView<bool, 4, D> move_atom_dof_mask) -> TPack<bool, 2, D>;
 };
 
 // @numba.jit(nopython=True)
@@ -647,22 +689,21 @@ struct KinForestFromStencil {
 //                 frame_y[child] = jump
 //                 frame_z[child] = c2
 
-template <tmol::Device D, typename Int>
-void get_c1_and_c2_atoms(
-    int jump_atom,
-    TView<Int, 1, D> atom_is_jump,
-    TView<Int, 1, D> child_list_span,
-    TView<Int, 1, D> child_list,
-    TView<Int, 1, D> parents) {
-  // Preferably a jump should steal DOFs from its first (nonjump) child
-  // and its first (nonjump) grandchild, but if the first child does not
-  // have any children, then it can steal a DOF from its second (nonjump)
-  // child. If a jump does not have a sufficient number of descendants, then
-  // we must recurse to its parent.
+// template <tmol::Device D, typename Int>
+// void get_c1_and_c2_atoms(
+//     int jump_atom,
+//     TView<Int, 1, D> atom_is_jump,
+//     TView<Int, 1, D> child_list_span,
+//     TView<Int, 1, D> child_list,
+//     TView<Int, 1, D> parents) {
+//   // Preferably a jump should steal DOFs from its first (nonjump) child
+//   // and its first (nonjump) grandchild, but if the first child does not
+//   // have any children, then it can steal a DOF from its second (nonjump)
+//   // child. If a jump does not have a sufficient number of descendants, then
+//   // we must recurse to its parent.
 
-  // TO DO!
-}
-d
+//   // TO DO!
+// }
 
 #undef Dofs
 #undef HomogeneousTransform
