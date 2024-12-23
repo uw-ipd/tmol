@@ -510,6 +510,7 @@ def do_patch(res, variant, resgraph, patchgraph, marked):
             icoors=res.icoors,
             properties=res.properties,
             chi_samples=res.chi_samples,
+            default_jump_connection_atom=res.default_jump_connection_atom,
         )
 
         # 1. remove atoms

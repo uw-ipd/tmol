@@ -133,6 +133,80 @@ class KinematicModule(torch.nn.Module):
         )
 
 
+class KinematicModule2(torch.nn.Module):
+    """torch.autograd compatible forward kinematic operator.
+
+    Perform forward (dof to coordinate) kinematics within torch.autograd
+    compute graph. Provides support for forward kinematics over of a subset of
+    source dofs, as specified by the provided DOFMetadata entries.
+
+    The kinematic system maps between the natm x 9 internal coordinate frame
+    and the natm x 3 coordinate frame.  Some of this natm x 9 array is unused
+    or is redundant but this is not known by the kinematic module.
+
+    See KinDOF for a description of the internal coordinate representation.
+    """
+
+    def __init__(
+        self,
+        id,
+        doftype,
+        parent,
+        frame_x,
+        frame_y,
+        frame_z,
+        nodes_fw,
+        scans_fw,
+        gens_fw,
+        nodes_bw,
+        scans_bw,
+        gens_bw,
+    ):
+        super().__init__()
+
+        def _tint(ts):
+            return tuple(map(lambda t: t.to(torch.int32), ts))
+
+        self.register_buffer("kinforest", torch.tensor([]))
+        self.kinforest = torch.stack(
+            _tint(
+                [
+                    id,
+                    doftype,
+                    parent,
+                    frame_x,
+                    frame_y,
+                    frame_z,
+                ]
+            ),
+            dim=1,
+        )
+
+        self.register_buffer("nodes_f", torch.tensor([]))
+        self.register_buffer("scans_f", torch.tensor([]))
+        self.nodes_f = nodes_fw
+        self.scans_f = scans_fw
+        self.gens_f = gens_fw.cpu()  # Remains on CPU
+
+        self.register_buffer("nodes_b", torch.tensor([]))
+        self.register_buffer("scans_b", torch.tensor([]))
+        self.nodes_b = nodes_bw
+        self.scans_b = scans_bw
+        self.gens_b = gens_bw.cpu()  # Remains on CPU
+
+    def forward(self, dofs):
+        return forward_kin_op(
+            dofs,
+            self.nodes_f,
+            self.scans_f,
+            self.gens_f,
+            self.nodes_b,
+            self.scans_b,
+            self.gens_b,
+            self.kinforest,
+        )
+
+
 @attr.s(auto_attribs=True, kw_only=True, eq=False)
 class KinematicOperation(torch.nn.Module):
     @staticmethod
