@@ -1190,8 +1190,8 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
     bt_gen_seg_scan_path_segments.parents = parents
     bt_gen_seg_scan_path_segments.dof_type[:] = dof_type
     bt_gen_seg_scan_path_segments.input_conn_atom = input_conn_atom
-    bt_gen_seg_scan_path_segments.uaid_for_torsion = (uaid_for_torsion,)
-    bt_gen_seg_scan_path_segments.torsion_direction = (torsion_direction,)
+    bt_gen_seg_scan_path_segments.uaid_for_torsion = uaid_for_torsion
+    bt_gen_seg_scan_path_segments.torsion_direction = torsion_direction
     # Finally, we populate the BTGenerationalSegScanPathSegs object
     for i in range(n_input_types):
         for j in range(n_output_types):

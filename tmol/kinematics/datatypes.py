@@ -187,7 +187,7 @@ class JumpDOFTypes(enum.IntEnum):
     RBdel_alpha = enum.auto()
     RBdel_beta = enum.auto()
     RBdel_gamma = enum.auto()
-    n_moveable_dofs = 6
+    n_movable_dofs = 6
     RBalpha = enum.auto()
     RBbeta = enum.auto()
     RBgamma = enum.auto()
@@ -424,10 +424,10 @@ class PBTGenerationalSegScanPathSegs:
                 dtype=torch.int32,
                 device=device,
             ),
-            uaid_for_torsion=torch.zeros(
+            uaid_for_torsion=torch.full(
                 (n_bt, max_n_input_types, max_n_torsions, 3), -1, dtype=torch.int32
             ),
-            torsion_direction=torch.zeros(
+            torsion_direction=torch.full(
                 (n_bt, max_n_input_types, max_n_torsions), 1, dtype=torch.int32
             ),
         )

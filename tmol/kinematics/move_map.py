@@ -1,5 +1,7 @@
 import torch
 
+from typing import Optional
+
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.datatypes import JumpDOFTypes, BondDOFTypes, KinematicModuleData
 from tmol.kinematics.compiled.compiled_ops import minimizer_map_from_movemap
@@ -39,8 +41,8 @@ class MoveMap:
         self.move_named_torsions_mask = z_bool_pb()
 
         # data members on a per-DOF basis
-        self.move_jump_dof = z_bool_pb((JumpDOFTypes.n_moveable_dofs,))
-        self.move_jump_dof_mask = z_bool_pb((JumpDOFTypes.n_moveable_dofs,))
+        self.move_jump_dof = z_bool_pb((JumpDOFTypes.n_movable_dofs,))
+        self.move_jump_dof_mask = z_bool_pb((JumpDOFTypes.n_movable_dofs,))
         self.move_mc_dof = z_bool_pb((max_n_named_torsions,))
         self.move_mc_dof_mask = z_bool_pb((max_n_named_torsions,))
         self.move_sc_dof = z_bool_pb((max_n_named_torsions,))
@@ -50,10 +52,10 @@ class MoveMap:
 
         # data members on a per-atom basis
         self.move_atom_dof = z_bool_pb(
-            (max_n_atoms_per_block, BondDOFTypes.n_moveable_dofs)
+            (max_n_atoms_per_block, BondDOFTypes.n_movable_dofs)
         )
         self.move_atom_dof_mask = z_bool_pb(
-            (max_n_atoms_per_block, BondDOFTypes.n_moveable_dofs)
+            (max_n_atoms_per_block, BondDOFTypes.n_movable_dofs)
         )
 
 
