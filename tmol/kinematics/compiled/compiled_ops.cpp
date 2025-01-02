@@ -148,30 +148,6 @@ Tensor forward_only_op(
   return coords;
 };
 
-// void fix_jump_nodes_op(
-//     Tensor parents,
-//     Tensor frame_x,
-//     Tensor frame_y,
-//     Tensor frame_z,
-//     Tensor roots,
-//     Tensor jumps) {
-//   printf("FIX JUMP NODES OP\n");
-//   TMOL_DISPATCH_INDEX_DEVICE(
-//       parents.type(), "fix_jump_nodes_op", ([&] {
-//         using Int = index_t;
-//         // using Real = scalar_t;
-//         constexpr tmol::Device Dev = device_t;
-
-//         FixJumpNodes<score::common::DeviceOperations, Dev, Int>::f(
-//             TCAST(parents),
-//             TCAST(frame_x),
-//             TCAST(frame_y),
-//             TCAST(frame_z),
-//             TCAST(roots),
-//             TCAST(jumps));
-//       }));
-// }
-
 auto get_kfo_indices_for_atoms(
     Tensor pose_stack_block_coord_offset,
     Tensor pose_stack_block_type,

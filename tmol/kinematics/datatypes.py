@@ -175,7 +175,9 @@ class BondDOFTypes(enum.IntEnum):
     theta = enum.auto()
     d = enum.auto()
     phi_c = enum.auto()
-    n_movable_dofs = 4
+
+
+n_movalbe_bond_dof_types = 4
 
 
 class JumpDOFTypes(enum.IntEnum):
@@ -187,10 +189,12 @@ class JumpDOFTypes(enum.IntEnum):
     RBdel_alpha = enum.auto()
     RBdel_beta = enum.auto()
     RBdel_gamma = enum.auto()
-    n_movable_dofs = 6
     RBalpha = enum.auto()
     RBbeta = enum.auto()
     RBgamma = enum.auto()
+
+
+n_movable_jump_dof_types = 6
 
 
 @attrs.define(auto_attribs=True, slots=True, frozen=True)
