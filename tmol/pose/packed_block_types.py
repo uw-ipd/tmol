@@ -1,6 +1,7 @@
 import attr
 
 import torch
+import numpy
 import pandas
 
 from typing import Sequence
@@ -78,6 +79,14 @@ class PackedBlockTypes:
     torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_tors
     # unresolved atom ids for all named torsions in the block types
     torsion_uaids: Tensor[torch.int32][:, :, 3]
+    is_torsion_mc: Tensor[torch.bool][:, :]  # dim: n_types, max_n_tors
+    n_mc_torsions: Tensor[torch.int32][:]  # dim: n_types
+    mc_torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_mc_tors
+    mc_torsions: Tensor[torch.int32][:, :]
+    n_sc_torsions: Tensor[torch.int32][:]  # dim: n_types
+    sc_torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_sc_tors
+    sc_torsions: Tensor[torch.int32][:, :]
+    which_mcsc_torsions: Tensor[torch.int32][:, :]
 
     max_n_bonds: int
     n_bonds: Tensor[torch.int32][:]
@@ -127,6 +136,14 @@ class PackedBlockTypes:
         n_torsions, torsion_is_real, torsion_uaids = cls.join_torsion_uaids(
             active_block_types, device
         )
+        is_torsion_mc = cls.join_is_torsion_mcs(active_block_types, device)
+        n_mc_torsions, mc_torsion_is_real, mc_torsions = cls.join_mc_torsion_inds(
+            active_block_types, device
+        )
+        n_sc_torsions, sc_torsion_is_real, sc_torsions = cls.join_sc_torsion_inds(
+            active_block_types, device
+        )
+        which_mcsc_torsions = cls.join_mcsc_torsion_inds(active_block_types, device)
         n_bonds, bond_is_real, bond_indices = cls.join_bond_indices(
             active_block_types, device
         )
@@ -154,6 +171,14 @@ class PackedBlockTypes:
             n_torsions=n_torsions,
             torsion_is_real=torsion_is_real,
             torsion_uaids=torsion_uaids,
+            is_torsion_mc=is_torsion_mc,
+            n_mc_torsions=n_mc_torsions,
+            mc_torsion_is_real=mc_torsion_is_real,
+            mc_torsions=mc_torsions,
+            n_sc_torsions=n_sc_torsions,
+            sc_torsion_is_real=sc_torsion_is_real,
+            sc_torsions=sc_torsions,
+            which_mcsc_torsions=which_mcsc_torsions,
             max_n_bonds=bond_is_real.shape[1],
             n_bonds=n_bonds,
             bond_is_real=bond_is_real,
@@ -272,6 +297,42 @@ class PackedBlockTypes:
             for bt in active_block_types
         ]
         return join_tensors_and_report_real_entries(ordered_torsions)
+
+    @classmethod
+    def join_is_torsion_mcs(cls, active_block_types, device):
+        is_torsion_mc = [
+            torch.tensor(bt.is_torsion_mc.copy().astype(numpy.int32), device=device)
+            for bt in active_block_types
+        ]
+        return join_tensors_and_report_real_entries(is_torsion_mc, sentinel=0)[2].to(
+            torch.bool
+        )
+
+    @classmethod
+    def join_mc_torsion_inds(cls, active_block_types, device):
+        mc_torsions = [
+            torch.tensor(bt.mc_torsions.copy(), device=device)
+            for bt in active_block_types
+        ]
+        return join_tensors_and_report_real_entries(mc_torsions)
+
+    @classmethod
+    def join_sc_torsion_inds(cls, active_block_types, device):
+        sc_torsions = [
+            torch.tensor(bt.sc_torsions.copy(), device=device)
+            for bt in active_block_types
+        ]
+        return join_tensors_and_report_real_entries(sc_torsions)
+
+    @classmethod
+    def join_mcsc_torsion_inds(cls, active_block_types, device):
+        # only return the joined tensor of mcsc indices, index 2 of the tuple
+        # returned by join_tensors_and_report_real_entries
+        which_mcsc_torsions = [
+            torch.tensor(bt.which_mcsc_torsion.copy(), device=device)
+            for bt in active_block_types
+        ]
+        return join_tensors_and_report_real_entries(which_mcsc_torsions)[2]
 
     @classmethod
     def join_bond_indices(cls, active_block_types, device):

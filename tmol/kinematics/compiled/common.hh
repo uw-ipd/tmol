@@ -434,6 +434,13 @@ struct KinForestFromStencil {
           TPack<Int, 1, Device::CPU>   // toposort_order_of_edges_t
           >;
 
+  static auto get_jump_atom_indices(
+      TView<Int, 3, D>
+          ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
+      TView<Int, 2, D> pose_stack_block_type,  // P x L
+      TView<Int, 1, D> block_type_jump_atom    // T
+      ) -> TPack<Int, 3, D>;
+
   static auto get_block_parent_connectivity_from_toposort(
       TView<Int, 2, D> pose_stack_block_type,                 // P x L
       TView<Int, 4, D> pose_stack_inter_residue_connections,  // P x L x C x 2
@@ -495,7 +502,7 @@ struct KinForestFromStencil {
 
   static auto create_minimizer_map(
       TView<Int, 1, D> kinforest_id,  // K
-      int const max_n_atoms_per_pose,
+      int64_t const max_n_atoms_per_pose,
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
@@ -529,7 +536,7 @@ struct KinForestFromStencil {
       TView<bool, 3, D> move_named_torsion_dof,
       TView<bool, 3, D> move_named_torsion_dof_mask,
       TView<bool, 4, D> move_atom_dof,
-      TView<bool, 4, D> move_atom_dof_mask) -> TPack<bool, 2, D>;
+      TView<bool, 4, D> move_atom_dof_mask) -> TPack<Int, 2, D>;
 };
 
 // @numba.jit(nopython=True)

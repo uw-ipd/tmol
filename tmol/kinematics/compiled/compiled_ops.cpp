@@ -387,6 +387,31 @@ auto calculate_ff_edge_delays(
       toposort_index_for_edge};
 }
 
+auto get_jump_atom_indices(
+    Tensor ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
+    Tensor pose_stack_block_type,  // P x L
+    Tensor block_type_jump_atom    // T
+    ) -> Tensor {
+  Tensor pose_stack_atom_for_jump;
+  TMOL_DISPATCH_INDEX_DEVICE(
+      pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
+        // using Int = index_t;
+        using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
+                              // for signed 64-bit integers in CUDA
+        // using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+
+        auto result =
+            KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
+                get_jump_atom_indices(
+                    TCAST(ff_edges),
+                    TCAST(pose_stack_block_type),
+                    TCAST(block_type_jump_atom));
+        pose_stack_atom_for_jump = result.tensor;
+      }));
+  return pose_stack_atom_for_jump;
+}
+
 auto get_block_parent_connectivity_from_toposort(
     Tensor pose_stack_block_type,                 // P x L
     Tensor pose_stack_inter_residue_connections,  // P x L x C x 2
@@ -518,13 +543,19 @@ auto get_scans2(
 
 auto minimizer_map_from_movemap(
     Tensor kinforest_id,
+    int64_t max_n_atoms_per_pose,
     Tensor pose_stack_block_coord_offset,
     Tensor pose_stack_block_type,  // P x L
     Tensor pose_stack_inter_block_connections,
     Tensor pose_stack_block_in_and_first_out,  // P x L x 2
+    Tensor pose_stack_atom_for_jump,
+    Tensor keep_dof_fixed,
+    Tensor bt_n_named_torsions,
     Tensor bt_uaid_for_torsion,
     Tensor bt_torsion_direction,
     Tensor bt_named_torsion_is_bb,
+    Tensor bt_which_mcsc_torsion_for_named_torsion,
+    Tensor bt_atom_downstream_of_conn,
     bool move_all_jumps,
     bool move_all_mc,
     bool move_all_sc,
@@ -551,20 +582,26 @@ auto minimizer_map_from_movemap(
   Tensor minimizer_map;  // maybe more??
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.type(), "minimizer_map_from_movemap", ([&] {
-        using Int = index_t;
+        using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result =
             KinForestFromStencil<score::common::DeviceOperations, Dev, Int>::
                 create_minimizer_map(
                     TCAST(kinforest_id),
+                    max_n_atoms_per_pose,
                     TCAST(pose_stack_block_coord_offset),
                     TCAST(pose_stack_block_type),
                     TCAST(pose_stack_inter_block_connections),
                     TCAST(pose_stack_block_in_and_first_out),
+                    TCAST(pose_stack_atom_for_jump),
+                    TCAST(keep_dof_fixed),
+                    TCAST(bt_n_named_torsions),
                     TCAST(bt_uaid_for_torsion),
                     TCAST(bt_torsion_direction),
                     TCAST(bt_named_torsion_is_bb),
+                    TCAST(bt_which_mcsc_torsion_for_named_torsion),
+                    TCAST(bt_atom_downstream_of_conn),
                     move_all_jumps,
                     move_all_mc,
                     move_all_sc,
@@ -590,7 +627,7 @@ auto minimizer_map_from_movemap(
         // minimizer_map = std::get<0>(result).tensor;
         minimizer_map = result.tensor;
       }));
-  return {nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw};
+  return minimizer_map;
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
@@ -606,11 +643,13 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("get_children", &get_children);
   m.def("get_id_and_frame_xyz", &get_id_and_frame_xyz);
   m.def("calculate_ff_edge_delays", &calculate_ff_edge_delays);
+  m.def("get_jump_atom_indices", &get_jump_atom_indices);
   m.def(
       "get_block_parent_connectivity_from_toposort",
       &get_block_parent_connectivity_from_toposort);
   m.def("get_kinforest_scans_from_stencils", &get_scans2);
   m.def("get_kinforest_scans_from_stencils2", &get_scans2);
+  m.def("minimizer_map_from_movemap", &minimizer_map_from_movemap);
 }
 
 }  // namespace kinematics

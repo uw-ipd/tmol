@@ -108,7 +108,7 @@ def ensure_jumps_numbered_and_distinct(
             if edges[i, j, 0] == EdgeType.jump:
                 count_n_jumps[i] += 1
                 if edges[i, j, 3] < 0 or edges[i, j, 3] >= max_n_edges:
-                    print("bad jump number", i, j, edges[i, j, 3], "out of range")
+                    # print("bad jump number", i, j, edges[i, j, 3], "out of range")
                     found_bad_jump = True
                     bad_jump_ind = count_n_bad_jumps[i]
                     bad_jump_numbers[i, bad_jump_ind] = j
@@ -116,7 +116,7 @@ def ensure_jumps_numbered_and_distinct(
                     continue
                 if jump_numbers[i, edges[i, j, 3]] != -1:
                     # this jump number has already been seen
-                    print("bad jump number", i, j, edges[i, j, 3], "duplicate")
+                    # print("bad jump number", i, j, edges[i, j, 3], "duplicate")
                     found_bad_jump = True
                     bad_jump_ind = count_n_bad_jumps[i]
                     bad_jump_numbers[i, bad_jump_ind] = j
@@ -128,7 +128,7 @@ def ensure_jumps_numbered_and_distinct(
         # have non-contiguous indices starting from 0.
         for j in range(count_n_jumps[i], max_n_edges):
             if jump_numbers[i, j] != -1:
-                print(f"jump_numbers[{i}][{j}] = {jump_numbers[i, j]}")
+                # print(f"jump_numbers[{i}][{j}] = {jump_numbers[i, j]}")
                 found_bad_jump = True
                 bad_jump_ind = count_n_bad_jumps[i]
                 bad_jump_numbers[i, bad_jump_ind] = jump_numbers[i, j]
@@ -153,7 +153,7 @@ def validate_fold_forest_jit(
         if count_bad[i] > 0:
             error = True
     if error:
-        return False, bad_edges, None, None, None, None
+        return False, bad_edges, None, None, None, None, None
 
     # print("roots", roots)
     # print("n_blocks", n_blocks)

@@ -353,12 +353,13 @@ def construct_kin_module_data_for_pose(
 ):
     from tmol.kinematics.compiled.compiled_ops import (
         calculate_ff_edge_delays,
+        get_children,
         get_block_parent_connectivity_from_toposort,
+        get_id_and_frame_xyz,
+        get_jump_atom_indices,
         get_kinforest_scans_from_stencils2,
         get_kfo_indices_for_atoms,
         get_kfo_atom_parents,
-        get_children,
-        get_id_and_frame_xyz,
     )
 
     # validate_fold_forest()
@@ -399,6 +400,10 @@ def construct_kin_module_data_for_pose(
     # print("first_child_of_ff_edge", first_child_of_ff_edge)
     # print("first_ff_edge_for_block", first_ff_edge_for_block)
     # print("3")
+
+    pose_stack_atom_for_jump = get_jump_atom_indices(
+        ff_edges_device, pose_stack.block_type_ind, pbt_gssps.jump_atom
+    )
 
     pose_stack_block_in_and_first_out = get_block_parent_connectivity_from_toposort(
         pose_stack.block_type_ind,
@@ -522,6 +527,7 @@ def construct_kin_module_data_for_pose(
         ),
         block_in_and_first_out=pose_stack_block_in_and_first_out,
         keep_atom_fixed=keep_atom_fixed,
+        pose_stack_atom_for_jump=pose_stack_atom_for_jump,
     )
 
 
@@ -1178,7 +1184,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
         max_n_gens,
         max_n_scan_path_segments,
         max_n_nodes_per_gen,
-        bt.n_tosions,
+        bt.n_torsions,
     )
     bt_gen_seg_scan_path_segments.jump_atom = jump_atom_for_bt(bt)
     bt_gen_seg_scan_path_segments.parents = parents

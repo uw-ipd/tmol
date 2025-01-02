@@ -267,6 +267,71 @@ class RefinedResidueType(RawResidueType):
     def n_torsions(self):
         return self.ordered_torsions.shape[0]
 
+    is_torsion_mc: numpy.ndarray = attr.ib()
+
+    @is_torsion_mc.default
+    def _setup_is_torsion_mc(self):
+        # A torsion is a "main chain" torsion if all of its atoms are
+        # listed as main chain atoms, or if they are listed as parts of
+        # other residues. E.g., omega is a main chain torsion because
+        # CA and C are both main chain atoms, and the other two atoms
+        # belong to the next residue; however, chi 1 is not main chain
+        # because, even though N and CA are listed as main chain atoms,
+        # CB and CG are not.
+        def all_torsion_atoms_are_mainchain(tor_ind):
+            if not self.properties.polymer.is_polymer:
+                return False
+            # check that all atoms in the torsion are either part of the
+            # mainchain or are atoms from other residues
+            for i in range(4):
+                at_i = self.ordered_torsions[tor_ind, i, 0]
+                if at_i == -1:
+                    continue
+                atname = self.atoms[at_i].name
+                if atname not in self.properties.polymer.mainchain_atoms:
+                    return False
+            return True
+
+        return numpy.array(
+            [all_torsion_atoms_are_mainchain(tor) for tor in range(self.n_torsions)],
+            dtype=bool,
+        )
+
+    # torsions are either "main chain" or they are "side chain"; if a residue is not
+    # polymeric, then all of its named torsions are side chain.
+    mc_torsions: numpy.ndarray = attr.ib()
+
+    @mc_torsions.default
+    def _setup_mc_torsions(self):
+        return numpy.nonzero(self.is_torsion_mc)[0].astype(numpy.int32)
+
+    @property
+    def n_mc_torsions(self):
+        return len(self.mc_torsions)
+
+    sc_torsions: numpy.ndarray = attr.ib()
+
+    @sc_torsions.default
+    def _setup_sc_torsions(self):
+        return numpy.nonzero(numpy.logical_not(self.is_torsion_mc))[0].astype(
+            numpy.int32
+        )
+
+    @property
+    def n_sc_torsions(self):
+        return len(self.sc_torsions)
+
+    which_mcsc_torsion: numpy.ndarray = attr.ib()
+
+    @which_mcsc_torsion.default
+    def _setup_which_mcsc_torsion(self):
+        which_mcsc_torsion = numpy.full(self.n_torsions, -1, dtype=numpy.int32)
+        for i in range(self.n_mc_torsions):
+            which_mcsc_torsion[self.mc_torsions[i]] = i
+        for i in range(self.n_sc_torsions):
+            which_mcsc_torsion[self.sc_torsions[i]] = i
+        return which_mcsc_torsion
+
     path_distance: numpy.ndarray = attr.ib()
 
     @path_distance.default

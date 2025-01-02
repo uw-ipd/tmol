@@ -47,6 +47,9 @@ from .pose import (  # noqa: F401
     ubq_40_60_pose_stack,
     fresh_default_packed_block_types,
     two_ubq_poses,
+    stack_of_two_six_res_ubqs,
+    stack_of_two_six_res_ubqs_no_term,
+    jagged_stack_of_465_res_ubqs,
 )
 
 

@@ -909,6 +909,49 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
   return {id_t, frame_x_t, frame_y_t, frame_z_t, keep_dof_fixed_t};
 }
 
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
+    typename Int>
+auto KinForestFromStencil<DeviceDispatch, D, Int>::get_jump_atom_indices(
+    TView<Int, 3, D>
+        ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
+    TView<Int, 2, D> pose_stack_block_type,  // P x L
+    TView<Int, 1, D> block_type_jump_atom    // T
+    ) -> TPack<Int, 3, D> {
+  LAUNCH_BOX_32;
+
+  int const n_poses = pose_stack_block_type.size(0);
+  int const max_n_edges = ff_edges.size(1);  //  too many; could count fewer
+
+  assert(ff_edges.size(0) == n_poses);
+  assert(pose_stack_block_type.size(1));
+
+  auto pose_stack_atom_for_jump_t =
+      TPack<Int, 3, D>::full({n_poses, max_n_edges, 2}, -1);
+  auto pose_stack_atom_for_jump = pose_stack_atom_for_jump_t.view;
+
+  auto set_jump_atom_index = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const pose = i / max_n_edges;
+    int const edge = i % max_n_edges;
+    int const edge_type = ff_edges[pose][edge][0];
+    int const jump_ind = ff_edges[pose][edge][3];
+    if (edge_type != JUMP) {
+      return;
+    }
+    int const end_block = ff_edges[pose][edge][2];
+    int const end_block_type = pose_stack_block_type[pose][end_block];
+    int const jump_atom = block_type_jump_atom[end_block_type];
+    pose_stack_atom_for_jump[pose][jump_ind][0] = end_block;
+    pose_stack_atom_for_jump[pose][jump_ind][1] = jump_atom;
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_poses * max_n_edges, set_jump_atom_index);
+
+  return pose_stack_atom_for_jump_t;
+}
+
 // P = number of poses
 // L = length of the longest pose
 // T = number of block types
@@ -3443,7 +3486,7 @@ template <
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<Int, 1, D> kinforest_id,  // K
-    int const max_n_atoms_per_pose,
+    int64_t max_n_atoms_per_pose,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
@@ -3454,8 +3497,6 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<UnresolvedAtomID<Int>, 3, D> bt_uaid_for_torsion,
     TView<Int, 3, D> bt_torsion_direction,
     TView<Int, 2, D> bt_named_torsion_is_mc,
-    // Map a named torsion to its index in either the list
-    // of mc or sc torsions.
     TView<Int, 2, D> bt_which_mcsc_torsion_for_named_torsion,
     TView<Int, 3, D> bt_atom_downstream_of_conn,
     bool move_all_jumps,
@@ -3479,19 +3520,23 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<bool, 3, D> move_named_torsion_dof,
     TView<bool, 3, D> move_named_torsion_dof_mask,
     TView<bool, 4, D> move_atom_dof,
-    TView<bool, 4, D> move_atom_dof_mask) -> TPack<bool, 2, D> {
+    TView<bool, 4, D> move_atom_dof_mask) -> TPack<Int, 2, D> {
+  // "Optimal" launch-box size untested; going w/ nt=32, vt=1
+  using namespace score::common;
+  LAUNCH_BOX_32;
+
   int const n_poses = pose_stack_block_type.size(0);
   int const n_blocks = pose_stack_block_type.size(1);
   int const n_kinforest_atoms = kinforest_id.size(0);
   int const max_n_jumps_per_pose = pose_stack_atom_for_jump.size(1);
-  int const max_n_input_conn_types = bt_uaid_for_torsion.size(1);
-  int const max_n_torsions = bt_uaid_for_torsion.size(2);
-  int const max_n_atoms_per_block = move_atom_dof.size(2);
+  int const max_n_input_conn_types = 4;  // TEMP!! bt_uaid_for_torsion.size(1);
+  int const max_n_torsions = 4;          // TEMP!! bt_uaid_for_torsion.size(2);
+  int const max_n_atoms_per_block = 20;  // TEMP!! move_atom_dof.size(2);
 
   auto pose_atom_ordered_minimizer_map_t = TPack<Int, 2, D>::full(
       {n_poses * n_blocks * max_n_atoms_per_block, 9}, -1);
   auto pose_atom_ordered_minimizer_map = pose_atom_ordered_minimizer_map_t.view;
-  auto minimizer_map_t = TPack<bool, 2, D>::full({n_kinforest_atoms, 9}, 0);
+  auto minimizer_map_t = TPack<Int, 2, D>::full({n_kinforest_atoms, 9}, 0);
   auto minimizer_map = minimizer_map_t.view;
 
   // Step 1:
@@ -3517,14 +3562,12 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   // order in the minimizer_map tensor; while doing this, override any
   // setting for if keep_dof_fixed is set to true.
 
-  // "Optimal" launch-box size untested; going w/ nt=32, vt=1
-  LAUNCH_BOX_32;
-
   // Step 1:
   auto atom_for_torsion_t =
       TPack<Int, 4, D>::full({n_poses, n_blocks, max_n_torsions, 2}, -1);
   auto atom_for_torsion = atom_for_torsion_t.view;
 
+  /*
   auto resolve_torsion_location = ([=] TMOL_DEVICE_FUNC(int i) {
     int const pose = i / (n_blocks * max_n_torsions);
     i = i - pose * n_blocks * max_n_torsions;
@@ -3589,7 +3632,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     int const which_mcsc_torsion =
         bt_which_mcsc_torsion_for_named_torsion[block_type][torsion];
 
-    auto heirarchy_of_specifications = ([&](auto const& move_mcsc_dof_mask,
+    auto heirarchy_of_specifications = ([&] TMOL_DEVICE_FUNC (
+                                            auto const& move_mcsc_dof_mask,
                                             auto const& move_mcsc_dof,
                                             auto const& move_mcs_scs_mask,
                                             auto const& move_mcs_scs,
@@ -3699,7 +3743,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   });
   DeviceDispatch<D>::template forall<launch_t>(
       n_kinforest_atoms, reindex_minimizer_map);
-
+  */
   return minimizer_map_t;
 }
 

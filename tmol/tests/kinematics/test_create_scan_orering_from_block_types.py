@@ -36,54 +36,6 @@ from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
 @pytest.fixture
-def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=0, residue_end=6
-    )
-
-    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
-    return PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
-
-
-@pytest.fixture
-def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=1, residue_end=7
-    )
-
-    res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
-    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
-    res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
-    pose_stack = pose_stack_from_canonical_form(
-        co, pbt, **canonical_form, res_not_connected=res_not_connected
-    )
-    return PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
-
-
-@pytest.fixture
-def jagged_stack_of_465_res_ubqs(ubq_pdb, torch_device):
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
-
-    def pose_stack_of_nres(nres):
-        canonical_form = canonical_form_from_pdb(
-            co, ubq_pdb, torch_device, residue_start=0, residue_end=nres
-        )
-        return pose_stack_from_canonical_form(co, pbt, **canonical_form)
-
-    return PoseStackBuilder.from_poses(
-        [pose_stack_of_nres(x) for x in [4, 6, 5]], torch_device
-    )
-
-
-@pytest.fixture
 def ff_2ubq_6res_H():
     max_n_edges = 5
     ff_edges = torch.full(
@@ -443,6 +395,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
     ff_edges = ff_2ubq_6res_H
@@ -522,6 +475,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
     result = calculate_ff_edge_delays(
@@ -592,6 +546,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
     result = calculate_ff_edge_delays(
@@ -692,6 +647,7 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
 
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
+    _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
     result = calculate_ff_edge_delays(
@@ -1222,6 +1178,7 @@ def test_decide_scan_paths_for_foldforest(ubq_pdb):
         co, ubq_pdb, torch_device, residue_start=0, residue_end=10
     )
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    # uhhhhhhh.... where's the rest of this test?
 
 
 def test_kinmodule_construction_for_jagged_stack_H(

@@ -135,8 +135,12 @@ class KinematicModuleData:
     forest: KinForest
     scan_data_fw: KinForestScanData
     scan_data_bw: KinForestScanData
+
+    # some extra tensors we need to describe
+    # the fold forest in its entirety
     block_in_and_first_out: Tensor[torch.int][:, :]
     keep_atom_fixed: Tensor[torch.bool][:, :]
+    pose_stack_atom_for_jump: Tensor[torch.int][:, :, 2]
 
 
 @attrs.define(auto_attribs=True, slots=True, frozen=True)
