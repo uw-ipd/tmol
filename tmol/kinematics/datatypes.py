@@ -177,7 +177,7 @@ class BondDOFTypes(enum.IntEnum):
     phi_c = enum.auto()
 
 
-n_movalbe_bond_dof_types = 4
+n_movable_bond_dof_types = 4
 
 
 class JumpDOFTypes(enum.IntEnum):

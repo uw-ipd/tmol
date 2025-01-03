@@ -1,22 +1,186 @@
 import torch
 
-from typing import Optional
+from typing import Optional, Union
+from tmol.types.torch import Tensor
 
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.datatypes import (
     JumpDOFTypes,
     BondDOFTypes,
     KinematicModuleData,
-    n_movalbe_bond_dof_types,
+    n_movable_bond_dof_types,
     n_movable_jump_dof_types,
 )
 from tmol.kinematics.compiled.compiled_ops import minimizer_map_from_movemap
 
 
 class MoveMap:
+
+    @classmethod
+    def from_pose_stack_and_kmd(cls, ps: PoseStack, kmd: KinematicModuleData):
+        """Main construction utility for MoveMap."""
+        return cls(
+            ps.n_poses,
+            ps.max_n_blocks,
+            ps.packed_block_types.max_n_torsions,
+            ps.max_n_block_atoms,
+            ps.device,
+        )
+
+    def set_move_all_jump_dofs_for_jump(
+        self,
+        pose_selection: Union[Tensor, int],
+        jump_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        """Enable or disable all jump dofs for a particular set of jumps on particular poses.
+
+        If jump_selection is None, then the two dimensional settings tensor will be indexed by
+        the pose_selection tensor only; if both are not None, then the settings tensor will be indexed by
+        both the pose_selection tensor and the jump_selection tensor.
+        """
+        self._set_val_and_mask_for_2dim(pose_selection, jump_selection, "jumps", value)
+
+    def set_move_all_mc_dofs_for_blocks(
+        self,
+        pose_selection: Union[Tensor, int],
+        block_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        """Enable or disable all DOFs for a partiular set of blocks on particular poses.
+
+        If block_selection is None, then the two dimensional settings tensor will be indexed by
+        the pose_selection tensor only; if both are not None, then the tensor will be indexed by
+        the pose_selection tensor and the block_selection tensor.
+
+        Valid combinations of pose_selection and block_selection are, e.g.:
+          - pose_selection: int, block_selection: int == a particular block on a particular pose
+          - pose_selection: int, block_selection: None == all blocks on a particular pose
+          - pose_selection: Tensor[bool][n_poses, max_n_blocks], block_selection: None == pose/block pairs encoded in "pose_selection" tensor
+          - pose_selection: Tensor[bool][n_poses], block_selection: Tensor[bool][max_n_blocks] == same blocks on multiple poses, selected by boolean mask
+          - pose_selection: Tensor[int][N], block_selection: Tensor[int][N] == different blocks on different poses, selected by index
+        """
+        self._assert_valid_pose_block_selection(pose_selection, block_selection)
+        self._set_val_and_mask_for_2dim(pose_selection, block_selection, "mcs", value)
+
+    def set_move_all_sc_dofs_for_blocks(
+        self,
+        pose_selection: Union[Tensor, int],
+        block_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        self._assert_valid_pose_block_selection(pose_selection, block_selection)
+        self._set_val_and_mask_for_2dim(pose_selection, block_selection, "scs", value)
+
+    def set_move_all_named_torsions_for_blocks(
+        self,
+        pose_selection: Union[Tensor, int],
+        block_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        self._assert_valid_pose_block_selection(pose_selection, block_selection)
+        self._set_val_and_mask_for_2dim(
+            pose_selection, block_selection, "named_torsions", value
+        )
+
+    def set_move_jump_dof_for_jump(
+        self,
+        pose_selection: Union[Tensor, int],
+        jump_selection: Optional[Union[Tensor, int]] = None,
+        dof_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        """Enable or disable all jump dofs for a particular set of jumps on particular poses.
+
+        If jump_selection is None, then the two dimensional settings tensor will be indexed by
+        the pose_selection tensor only; if both are not None, then the settings tensor will be indexed by
+        both the pose_selection tensor and the jump_selection tensor.
+        """
+        self._set_val_and_mask_for_3dim(
+            pose_selection, jump_selection, dof_selection, "jump", value
+        )
+
+    def set_move_mc_dofs_for_blocks(
+        self,
+        pose_selection: Union[Tensor, int],
+        block_selection: Optional[Union[Tensor, int]] = None,
+        dof_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        """Enable or disable partiular main-chain dofs for a particular set of blocks on particular poses.
+
+        Valid combinations of block_selection and dof_selection are:
+          - pose_selection: int, block_selection: int, dof_selection: int == a single DOF
+          - pose_selection: Tensor[bool][n_poses, max_n_blocks, max_n_dofs], block_selection: None, dof_selection: None == pose/block/dof triples encoded in "pose_selection" tensor
+          - pose_selection: Tensor[bool][n_poses], block_selection: Tensor[bool][max_n_blocks], dof_selection: Tensor[bool][max_n_dofs] == same dofs on same blocks on multiple poses, selected by boolean mask
+          - pose_selection: Tensor[int][N], block_selection: Tensor[int][N], dof_selection: Tensor[int][N] == different dofs on different blocks on different poses, selected by index
+        """
+        self._assert_valid_pose_block_dof_selection(
+            pose_selection, block_selection, dof_selection
+        )
+        self._set_val_and_mask_for_3dim(
+            pose_selection, block_selection, dof_selection, "mc", value
+        )
+
+    def set_move_sc_dofs_for_blocks(
+        self,
+        pose_selection: Union[Tensor, int],
+        block_selection: Optional[Union[Tensor, int]] = None,
+        dof_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        """Enable or disable partiular side-chain dofs for a particular set of blocks on particular poses.
+
+        Valid combinations of block_selection and dof_selection are:
+          - pose_selection: int, block_selection: int, dof_selection: int == a single DOF
+          - pose_selection: Tensor[bool][n_poses, max_n_blocks, max_n_dofs], block_selection: None, dof_selection: None == pose/block/dof triples encoded in "pose_selection" tensor
+          - pose_selection: Tensor[bool][n_poses], block_selection: Tensor[bool][max_n_blocks], dof_selection: Tensor[bool][max_n_dofs] == same dofs on same blocks on multiple poses, selected by boolean mask
+          - pose_selection: Tensor[int][N], block_selection: Tensor[int][N], dof_selection: Tensor[int][N] == different dofs on different blocks on different poses, selected by index
+        """
+        self._assert_valid_pose_block_dof_selection(
+            pose_selection, block_selection, dof_selection
+        )
+        self._set_val_and_mask_for_3dim(
+            pose_selection, block_selection, dof_selection, "sc", value
+        )
+
+    def set_move_named_torsion_dofs_for_blocks(
+        self,
+        pose_selection: Union[Tensor, int],
+        block_selection: Optional[Union[Tensor, int]] = None,
+        dof_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        """Enable or disable partiular named-torsion dofs for a particular set of blocks on particular poses.
+
+        Valid combinations of block_selection and dof_selection are:
+          - pose_selection: int, block_selection: int, dof_selection: int == a single DOF
+          - pose_selection: Tensor[bool][n_poses, max_n_blocks, max_n_dofs], block_selection: None, dof_selection: None == pose/block/dof triples encoded in "pose_selection" tensor
+          - pose_selection: Tensor[bool][n_poses], block_selection: Tensor[bool][max_n_blocks], dof_selection: Tensor[bool][max_n_dofs] == same dofs on same blocks on multiple poses, selected by boolean mask
+          - pose_selection: Tensor[int][N], block_selection: Tensor[int][N], dof_selection: Tensor[int][N] == different dofs on different blocks on different poses, selected by index
+        """
+        self._assert_valid_pose_block_dof_selection(
+            pose_selection, block_selection, dof_selection
+        )
+        self._set_val_and_mask_for_3dim(
+            pose_selection, block_selection, dof_selection, "named_torsion", value
+        )
+
+    @property
+    def n_poses(self):
+        return self.move_jumps.shape[0]
+
+    @property
+    def max_n_jumps(self):
+        return self.move_jumps.shape[1]
+
+    @property
+    def max_n_blocks(self):
+        return self.move_mcs.shape[1]
+
     def __init__(
         self,
-        max_n_poses: int,
+        n_poses: int,
         max_n_blocks: int,
         max_n_named_torsions: int,
         max_n_atoms_per_block: int,
@@ -34,7 +198,7 @@ class MoveMap:
             return torch.zeros(shape, dtype=torch.bool, device=device)
 
         def z_bool_pb(remaining_shape=tuple()):
-            return z_bool((max_n_poses, max_n_blocks) + remaining_shape)
+            return z_bool((n_poses, max_n_blocks) + remaining_shape)
 
         # data members on a per-residue basis
         self.move_jumps = z_bool_pb()
@@ -58,11 +222,83 @@ class MoveMap:
 
         # data members on a per-atom basis
         self.move_atom_dof = z_bool_pb(
-            (max_n_atoms_per_block, n_movalbe_bond_dof_types)
+            (max_n_atoms_per_block, n_movable_bond_dof_types)
         )
         self.move_atom_dof_mask = z_bool_pb(
-            (max_n_atoms_per_block, n_movalbe_bond_dof_types)
+            (max_n_atoms_per_block, n_movable_bond_dof_types)
         )
+
+    def _assert_valid_pose_block_selection(self, pose_sel, block_sel):
+        if block_sel is None:
+            if isinstance(pose_sel, int):
+                return
+            if (
+                isinstance(pose_sel, torch.Tensor)
+                and pose_sel.dim() == 2
+                and pose_sel.dtype == torch.bool
+            ):
+                assert pose_sel.shape == (self.n_poses, self.max_n_blocks)
+        else:
+            if isinstance(pose_sel, torch.Tensor) and isinstance(
+                block_sel, torch.Tensor
+            ):
+                if pose_sel.dtype == torch.int64 and block_sel.dtype == torch.int64:
+                    assert pose_sel.shape == block_sel.shape
+                if pose_sel.dtype == torch.bool:
+                    assert pose_sel.shape == (self.n_poses,)
+                if block_sel.dtype == torch.bool:
+                    assert block_sel.shape == (self.max_n_blocks,)
+
+    def _assert_valid_pose_block_dof_selection(self, pose_sel, block_sel, dof_sel):
+        if block_sel is None:
+            assert dof_sel is None
+            if isinstance(pose_sel, int):
+                return
+            if (
+                isinstance(pose_sel, torch.Tensor)
+                and pose_sel.dim() == 3
+                and pose_sel.dtype == torch.bool
+            ):
+                assert pose_sel.shape == (
+                    self.n_poses,
+                    self.max_n_blocks,
+                    n_movable_bond_dof_types,
+                )
+        else:
+            if isinstance(pose_sel, torch.Tensor) and isinstance(
+                block_sel, torch.Tensor
+            ):
+                if pose_sel.dtype == torch.int64 and block_sel.dtype == torch.int64:
+                    assert pose_sel.shape == block_sel.shape
+                if pose_sel.dtype == torch.bool:
+                    assert pose_sel.shape == (self.n_poses,)
+                if block_sel.dtype == torch.bool:
+                    assert block_sel.shape == (self.max_n_blocks,)
+
+    def _set_val_and_mask_for_2dim(self, sel1, sel2, varname, value):
+        var_to_set = getattr(self, "move_" + varname)
+        mask_to_set = getattr(self, "move_" + varname + "_mask")
+        if sel2 is None:
+            var_to_set[sel1] = value
+            mask_to_set[sel1] = True
+        else:
+            var_to_set[sel1, sel2] = value
+            mask_to_set[sel1, sel2] = True
+
+    def _set_val_and_mask_for_3dim(self, sel1, sel2, sel3, varname, value):
+        var_to_set = getattr(self, "move_" + varname + "_dof")
+        mask_to_set = getattr(self, "move_" + varname + "_dof_mask")
+        print(
+            "_set_val_and_mask_for_3dim",
+            "move_" + varname + "_dof",
+            "move_" + varname + "_dof_mask",
+        )
+        if sel2 is None and sel3 is None:
+            var_to_set[sel1] = value
+            mask_to_set[sel1] = True
+        else:
+            var_to_set[sel1, sel2, sel3] = value
+            mask_to_set[sel1, sel2, sel3] = True
 
 
 class MinimizerMap:
