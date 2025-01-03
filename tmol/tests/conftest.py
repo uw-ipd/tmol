@@ -37,6 +37,14 @@ from .chemical import (  # noqa: F401
     rts_disulfide_res,
 )
 
+from .kinematics import (  # noqa: F401
+    ff_2ubq_6res_H,
+    ff_3_jagged_ubq_465res_H,
+    ff_3_jagged_ubq_465res_star,
+    ff_2ubq_6res_U,
+    ff_2ubq_6res_K,
+)
+
 from .torch import torch_device, torch_backward_coverage  # noqa: F401
 
 from .numba import numba_cudasim, numba_cuda_or_cudasim  # noqa: F401
@@ -47,6 +55,9 @@ from .pose import (  # noqa: F401
     ubq_40_60_pose_stack,
     fresh_default_packed_block_types,
     two_ubq_poses,
+    stack_of_two_six_res_ubqs,
+    stack_of_two_six_res_ubqs_no_term,
+    jagged_stack_of_465_res_ubqs,
 )
 
 

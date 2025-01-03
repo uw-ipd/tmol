@@ -143,6 +143,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  ARG
     base_name: ARG
     name3: ARG
@@ -277,6 +278,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  ASN
     base_name: ASN
     name3: ASN
@@ -373,6 +375,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  ASP
     base_name: ASP
     name3: ASP
@@ -461,6 +464,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  CYS
     base_name: CYS
     name3: CYS
@@ -549,6 +553,7 @@ residues:
     - chi_dihedral: chi2
       samples: [60, 180, 300]
       expansions: []
+    default_jump_connection_atom: CA
   - name:  CYD
     base_name: CYD
     name3: CYS
@@ -631,6 +636,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  GLN
     base_name: GLN
     name3: GLN
@@ -739,6 +745,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  GLU
     base_name: GLU
     name3: GLU
@@ -839,6 +846,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  GLY
     base_name: GLY
     name3: GLY
@@ -910,6 +918,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  HIS
     base_name: HIS
     name3: HIS
@@ -1016,6 +1025,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  HIS_D
     base_name: HIS_D
     name3: HIS
@@ -1121,6 +1131,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  ILE
     base_name: ILE
     name3: ILE
@@ -1236,6 +1247,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  LEU
     base_name: LEU
     name3: LEU
@@ -1351,6 +1363,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  LYS
     base_name: LYS
     name3: LYS
@@ -1480,6 +1493,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  MET
     base_name: MET
     name3: MET
@@ -1589,6 +1603,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  PHE
     base_name: PHE
     name3: PHE
@@ -1702,6 +1717,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  PRO
     base_name: PRO
     name3: PRO
@@ -1802,6 +1818,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  SER
     base_name: SER
     name3: SER
@@ -1890,6 +1907,7 @@ residues:
     - chi_dihedral: chi2
       samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
       expansions: []
+    default_jump_connection_atom: CA
   - name:  THR
     base_name: THR
     name3: THR
@@ -1988,6 +2006,7 @@ residues:
     - chi_dihedral: chi2
       samples: [0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300, 320, 340]
       expansions: []
+    default_jump_connection_atom: CA
   - name:  TRP
     base_name: TRP
     name3: TRP
@@ -2114,6 +2133,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  TYR
     base_name: TYR
     name3: TYR
@@ -2235,6 +2255,7 @@ residues:
     - chi_dihedral: chi3
       samples: [0, 180]
       expansions: [20]
+    default_jump_connection_atom: CA
   - name:  VAL
     base_name: VAL
     name3: VAL
@@ -2339,6 +2360,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
   - name:  HOH
     base_name: HOH
     name3: HOH
@@ -2374,6 +2396,7 @@ residues:
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: O
 
 variants:
   - name:  CarboxyTerminus
