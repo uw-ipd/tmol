@@ -3500,7 +3500,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<Int, 1, D> bt_n_named_torsions,
     TView<UnresolvedAtomID<Int>, 3, D> bt_uaid_for_torsion,
     TView<Int, 3, D> bt_torsion_direction,
-    TView<Int, 2, D> bt_named_torsion_is_mc,
+    TView<bool, 2, D> bt_named_torsion_is_mc,
     TView<Int, 2, D> bt_which_mcsc_torsion_for_named_torsion,
     TView<Int, 3, D> bt_atom_downstream_of_conn,
     bool move_all_jumps,
@@ -3513,16 +3513,16 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<bool, 2, D> move_mcs_mask,
     TView<bool, 2, D> move_scs,
     TView<bool, 2, D> move_scs_mask,
-    TView<bool, 3, D> move_named_torsions,
-    TView<bool, 3, D> move_named_torsions_mask,
+    TView<bool, 2, D> move_named_torsions,
+    TView<bool, 2, D> move_named_torsions_mask,
     TView<bool, 3, D> move_jump_dof,
     TView<bool, 3, D> move_jump_dof_mask,
-    TView<bool, 3, D> move_mc_dof,
-    TView<bool, 3, D> move_mc_dof_mask,
-    TView<bool, 3, D> move_sc_dof,
-    TView<bool, 3, D> move_sc_dof_mask,
-    TView<bool, 3, D> move_named_torsion_dof,
-    TView<bool, 3, D> move_named_torsion_dof_mask,
+    TView<bool, 3, D> move_mc,
+    TView<bool, 3, D> move_mc_mask,
+    TView<bool, 3, D> move_sc,
+    TView<bool, 3, D> move_sc_mask,
+    TView<bool, 3, D> move_named_torsion,
+    TView<bool, 3, D> move_named_torsion_mask,
     TView<bool, 4, D> move_atom_dof,
     TView<bool, 4, D> move_atom_dof_mask) -> TPack<Int, 2, D> {
   // "Optimal" launch-box size untested; going w/ nt=32, vt=1
@@ -3537,10 +3537,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   int const max_n_torsions = 4;          // TEMP!! bt_uaid_for_torsion.size(2);
   int const max_n_atoms_per_block = 20;  // TEMP!! move_atom_dof.size(2);
 
-  auto pose_atom_ordered_minimizer_map_t = TPack<Int, 2, D>::full(
-      {n_poses * n_blocks * max_n_atoms_per_block, 9}, -1);
+  auto pose_atom_ordered_minimizer_map_t =
+      TPack<Int, 2, D>::zeros({n_poses * n_blocks * max_n_atoms_per_block, 9});
   auto pose_atom_ordered_minimizer_map = pose_atom_ordered_minimizer_map_t.view;
-  auto minimizer_map_t = TPack<Int, 2, D>::full({n_kinforest_atoms, 9}, 0);
+  auto minimizer_map_t = TPack<Int, 2, D>::zeros({n_kinforest_atoms, 9});
   auto minimizer_map = minimizer_map_t.view;
 
   // Step 1:
@@ -3571,7 +3571,6 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
       TPack<Int, 4, D>::full({n_poses, n_blocks, max_n_torsions, 2}, -1);
   auto atom_for_torsion = atom_for_torsion_t.view;
 
-  /*
   auto resolve_torsion_location = ([=] TMOL_DEVICE_FUNC(int i) {
     int const pose = i / (n_blocks * max_n_torsions);
     i = i - pose * n_blocks * max_n_torsions;
@@ -3636,21 +3635,21 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     int const which_mcsc_torsion =
         bt_which_mcsc_torsion_for_named_torsion[block_type][torsion];
 
-    auto heirarchy_of_specifications = ([&] TMOL_DEVICE_FUNC (
-                                            auto const& move_mcsc_dof_mask,
-                                            auto const& move_mcsc_dof,
+    auto heirarchy_of_specifications = ([&] TMOL_DEVICE_FUNC(
+                                            auto const& move_mcsc_tor_mask,
+                                            auto const& move_mcsc_tor,
                                             auto const& move_mcs_scs_mask,
                                             auto const& move_mcs_scs,
                                             auto move_all_mcs_scs) {
-      if (move_named_torsion_dof_mask[pose][block][torsion]) {
+      if (move_named_torsion_mask[pose][block][torsion]) {
         pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
-            move_named_torsion_dof[pose][block][torsion];
+            move_named_torsion[pose][block][torsion];
         return;
       }
       // Next: did we have "move mc/sc" instructions for this named torsion?
-      if (move_mcsc_dof_mask[pose][block][which_mcsc_torsion]) {
+      if (move_mcsc_tor_mask[pose][block][which_mcsc_torsion]) {
         pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
-            move_mcsc_dof[pose][block][which_mcsc_torsion];
+            move_mcsc_tor[pose][block][which_mcsc_torsion];
         return;
       }
       // Next: look at the "move mcs/scs" for this block
@@ -3661,16 +3660,23 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
       }
       // Finally: look at the global "move all mcs/scs" and
       // "move_all_named_torsions" flags
+      printf(
+          "setting torsion freedom for %d %d %d (atom %d )= %d\n",
+          pose,
+          block,
+          torsion,
+          tor_atom_global_index,
+          move_all_mcs_scs || move_all_named_torsions);
       pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
           move_all_mcs_scs || move_all_named_torsions;
     });
 
     if (bt_named_torsion_is_mc[block_type][torsion]) {
       heirarchy_of_specifications(
-          move_mc_dof_mask, move_mc_dof, move_mcs_mask, move_mcs, move_all_mcs);
+          move_mc_mask, move_mc, move_mcs_mask, move_mcs, move_all_mcs);
     } else {
       heirarchy_of_specifications(
-          move_sc_dof_mask, move_sc_dof, move_scs_mask, move_scs, move_all_scs);
+          move_sc_mask, move_sc, move_scs_mask, move_scs, move_all_scs);
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
@@ -3747,7 +3753,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   });
   DeviceDispatch<D>::template forall<launch_t>(
       n_kinforest_atoms, reindex_minimizer_map);
-  */
+
   return minimizer_map_t;
 }
 
