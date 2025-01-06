@@ -3,8 +3,9 @@ import torch
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
 from tmol.kinematics.datatypes import NodeType, BondDOFTypes, JumpDOFTypes
-from tmol.kinematics.compiled import inverse_kin  # , forward_kin_op
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
+
+from tmol.kinematics.compiled import inverse_kin
 
 
 class CartesianSfxnNetwork(torch.nn.Module):
@@ -44,9 +45,11 @@ class KinForestSfxnNetwork(torch.nn.Module):
         kin_module: PoseStackKinematicsModule,
         dof_mask=None,
     ):
+
         super(KinForestSfxnNetwork, self).__init__()
 
         torch_device = pose_stack.device
+        self.pose_stack = pose_stack
         wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
         kmd = kin_module.kmd
         self.kin_module = kin_module
@@ -127,13 +130,13 @@ class KinForestSfxnNetwork(torch.nn.Module):
         # now evaluate the score
         return self.whole_pose_scoring_module(self.full_coords)
 
+    def pose_stack_from_dofs(self):
 
-# class KinematicSfxnNetwork(torch.nn.Module):
-#     def __init__(self, score_function, pose_stack, dof_mask=None):
-#         super(KinematicSfxnNetwork, self).__init__()
-#
-#         self.whole_pose_scoring_module = (
-#             score_function.render_whole_pose_scoring_module(pose_stack)
-#         )
-#         self.dof_mask = dof_mask
-#         # TO DO!!!
+        full_dofs = self.full_dofs.clone()
+        flat_coords = self.flat_coords.detach()
+        full_dofs[self.dof_mask] = self.masked_dofs
+        kin_coords = self.kin_module(full_dofs)
+        flat_coords[self.id[1:]] = kin_coords[1:]
+        full_coords = flat_coords.view(self.orig_coords_shape)
+
+        return self.pose_stack.clone_with_new_coords(full_coords)

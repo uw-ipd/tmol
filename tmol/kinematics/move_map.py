@@ -11,7 +11,6 @@ from tmol.kinematics.datatypes import (
     n_movable_bond_dof_types,
     n_movable_jump_dof_types,
 )
-from tmol.kinematics.compiled.compiled_ops import minimizer_map_from_movemap
 
 
 class MoveMap:
@@ -337,6 +336,8 @@ class MinimizerMap:
         kmd: KinematicModuleData,
         mm: MoveMap,
     ):
+        from tmol.kinematics.compiled.compiled_ops import minimizer_map_from_movemap
+
         pbt = pose_stack.packed_block_types
         # fmt: off
         self.dof_mask = minimizer_map_from_movemap(

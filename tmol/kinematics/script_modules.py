@@ -6,7 +6,6 @@ from .fold_forest import FoldForest
 from .check_fold_forest import validate_fold_forest
 
 from tmol import PoseStack
-from tmol.kinematics.compiled import forward_kin_op
 
 from tmol.kinematics.scan_ordering import (
     KinForestScanOrdering,
@@ -70,6 +69,8 @@ class KinematicModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, dofs):
+        from tmol.kinematics.compiled import forward_kin_op
+
         return forward_kin_op(
             dofs,
             self.nodes_f,
@@ -150,6 +151,8 @@ class PoseStackKinematicsModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, dofs):
+        from tmol.kinematics.compiled import forward_kin_op
+
         return forward_kin_op(
             dofs,
             self.nodes_f,

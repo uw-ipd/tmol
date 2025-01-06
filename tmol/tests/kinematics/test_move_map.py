@@ -15,16 +15,24 @@ from tmol.kinematics.scan_ordering import (
 )
 
 
+def mm_from_pose_stack_and_ff(pose_stack, ff_edges_cpu):
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    return mm
+
+
 @pytest.fixture
 def mm_for_two_six_res_ubqs_no_term(stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H):
     pose_stack = stack_of_two_six_res_ubqs_no_term
-    pbt = pose_stack.packed_block_types
     ff_edges_cpu = ff_2ubq_6res_H
+    return mm_from_pose_stack_and_ff(pose_stack, ff_edges_cpu)
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
 
-    return mm
+@pytest.fixture
+def mm_for_jagged_465_ubqs(jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H):
+    pose_stack = jagged_stack_of_465_res_ubqs
+    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+    return mm_from_pose_stack_and_ff(pose_stack, ff_edges_cpu)
 
 
 def test_movemap_construction_from_init(
@@ -328,6 +336,28 @@ def test_set_move_particular_doftypes_for_block_by_integer(
 
 
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
+def test_set_move_particular_doftypes_for_block_by_integer_jagged(
+    doftype, mm_for_jagged_465_ubqs
+):
+    mm = mm_for_jagged_465_ubqs
+
+    varname = f"move_{doftype}"
+    maskname = f"move_{doftype}_mask"
+
+    var = getattr(mm, varname)
+    mask = getattr(mm, maskname)
+
+    assert var[1, 4, 1] == False
+    assert mask[1, 4, 1] == False
+
+    setter = getattr(mm, move_particular_setter_name_for_doftype(doftype))
+    setter(1, 4, 1)
+
+    assert var[1, 4, 1] == True
+    assert mask[1, 4, 1] == True
+
+
+@pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
 def test_set_move_particular_doftypes_for_block_by_boolean_mask(
     doftype, mm_for_two_six_res_ubqs_no_term
 ):
@@ -340,6 +370,31 @@ def test_set_move_particular_doftypes_for_block_by_boolean_mask(
     mask = getattr(mm, maskname)
 
     bool_mask = torch.zeros((2, 6, 7), dtype=torch.bool)
+    bool_mask[1, 4, 3] = True
+
+    setter = getattr(mm, move_particular_setter_name_for_doftype(doftype))
+    setter(bool_mask)
+
+    for i in range(2):
+        for j in range(6):
+            for k in range(4):
+                assert var[i, j, k] == bool_mask[i, j, k]
+                assert mask[i, j, k] == bool_mask[i, j, k]
+
+
+@pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
+def test_set_move_particular_doftypes_for_block_by_boolean_mask_jagged(
+    doftype, mm_for_jagged_465_ubqs
+):
+    mm = mm_for_jagged_465_ubqs
+
+    varname = f"move_{doftype}"
+    maskname = f"move_{doftype}_mask"
+
+    var = getattr(mm, varname)
+    mask = getattr(mm, maskname)
+
+    bool_mask = torch.zeros((3, 6, 7), dtype=torch.bool)
     bool_mask[1, 4, 3] = True
 
     setter = getattr(mm, move_particular_setter_name_for_doftype(doftype))

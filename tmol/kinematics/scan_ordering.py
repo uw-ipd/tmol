@@ -36,7 +36,7 @@ from tmol.kinematics.fold_forest import EdgeType
 from .check_fold_forest import validate_fold_forest
 
 # from tmol.kinematics.scan_ordering import get_children
-from tmol.kinematics.compiled import inverse_kin, forward_kin_op
+# from tmol.kinematics.compiled import inverse_kin, forward_kin_op
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
