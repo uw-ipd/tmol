@@ -1,4 +1,5 @@
 import torch
+import attrs
 
 from typing import Optional, Union
 from tmol.types.torch import Tensor
@@ -13,7 +14,41 @@ from tmol.kinematics.datatypes import (
 )
 
 
+@attrs.define(slots=True, auto_attribs=True)
 class MoveMap:
+
+    move_all_jumps: bool
+    move_all_mc: bool
+    move_all_sc: bool
+    move_all_named_torsions: bool
+
+    # data members on a per-residue basis; plural, representing
+    # all of the torsions of a particular class for a residue
+    move_jumps: Tensor[torch.bool][:, :]
+    move_jumps_mask: Tensor[torch.bool][:, :]
+    move_mcs: Tensor[torch.bool][:, :]
+    move_mcs_mask: Tensor[torch.bool][:, :]
+    move_scs: Tensor[torch.bool][:, :]
+    move_scs_mask: Tensor[torch.bool][:, :]
+    move_named_torsions: Tensor[torch.bool][:, :]
+    move_named_torsions_mask: Tensor[torch.bool][:, :]
+
+    # data members on a per-torsion, per-residue basis; singular,
+    # representing a single torsion of a particular class for a residue
+    move_mc: Tensor[torch.bool][:, :, :]
+    move_mc_mask: Tensor[torch.bool][:, :, :]
+    move_sc: Tensor[torch.bool][:, :, :]
+    move_sc_mask: Tensor[torch.bool][:, :, :]
+    move_named_torsion: Tensor[torch.bool][:, :, :]
+    move_named_torsion_mask: Tensor[torch.bool][:, :, :]
+
+    # data members on a per-DOF basis:
+    # RBx,y,z and RBdel_alpha,_beta,_gamma for jumps, and
+    # phi_p, theta, d, phi_c for atoms
+    move_jump_dof: Tensor[torch.bool][:, :, :]
+    move_jump_dof_mask: Tensor[torch.bool][:, :, :]
+    move_atom_dof: Tensor[torch.bool][:, :, :, :]
+    move_atom_dof_mask: Tensor[torch.bool][:, :, :, :]
 
     @classmethod
     def from_pose_stack_and_kmd(cls, ps: PoseStack, kmd: KinematicModuleData):
@@ -339,6 +374,7 @@ class MinimizerMap:
         from tmol.kinematics.compiled.compiled_ops import minimizer_map_from_movemap
 
         pbt = pose_stack.packed_block_types
+        # print("pbt.gen_seg_scan_path_segs.uaid_for_torsion_by_inconn[82, 2, :]", pbt.gen_seg_scan_path_segs.uaid_for_torsion_by_inconn[85, 2, :])
         # fmt: off
         self.dof_mask = minimizer_map_from_movemap(
             kmd.forest.id,
@@ -350,7 +386,7 @@ class MinimizerMap:
             kmd.pose_stack_atom_for_jump,
             kmd.keep_atom_fixed,
             pbt.n_torsions,
-            pbt.torsion_uaids,
+            pbt.gen_seg_scan_path_segs.uaid_for_torsion_by_inconn,
             pbt.gen_seg_scan_path_segs.torsion_direction,
             pbt.is_torsion_mc,
             pbt.which_mcsc_torsions,

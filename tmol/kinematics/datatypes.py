@@ -282,7 +282,9 @@ class BTGenerationalSegScanPathSegs:
     scan_path_seg_is_real: NDArray[bool][:, :, :, :]
     scan_path_seg_is_inter_block: NDArray[bool][:, :, :, :]
     scan_path_seg_lengths: NDArray[numpy.int64][:, :, :, :]
-    uaid_for_torsion: NDArray[numpy.int64][:, :, 3]  # n-input x n-torsions x 3
+    uaid_for_torsion_by_inconn: NDArray[numpy.int64][
+        :, :, 3
+    ]  # n-input x n-torsions x 3
     torsion_direction: NDArray[numpy.int64][:, :]  # n-input x n-torsions
 
     @classmethod
@@ -328,7 +330,9 @@ class BTGenerationalSegScanPathSegs:
             scan_path_seg_lengths=numpy.zeros(
                 io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=int
             ),
-            uaid_for_torsion=numpy.full((n_input_types, n_torsions, 3), -1, dtype=int),
+            uaid_for_torsion_by_inconn=numpy.full(
+                (n_input_types, n_torsions, 3), -1, dtype=int
+            ),
             torsion_direction=numpy.full((n_input_types, n_torsions), 1, dtype=int),
         )
 
@@ -354,7 +358,7 @@ class PBTGenerationalSegScanPathSegs:
     scan_path_seg_is_real: Tensor[bool][:, :, :, :, :]
     scan_path_seg_is_inter_block: Tensor[bool][:, :, :, :, :]
     scan_path_seg_lengths: Tensor[torch.int32][:, :, :, :, :]
-    uaid_for_torsion: NDArray[numpy.int64][
+    uaid_for_torsion_by_inconn: NDArray[numpy.int64][
         :, :, :, 3
     ]  # n-bt x n-input x n-torsions x 3
     torsion_direction: NDArray[numpy.int64][:, :, :]  # n-bt x n-input x n-torsions
@@ -428,7 +432,7 @@ class PBTGenerationalSegScanPathSegs:
                 dtype=torch.int32,
                 device=device,
             ),
-            uaid_for_torsion=torch.full(
+            uaid_for_torsion_by_inconn=torch.full(
                 (n_bt, max_n_input_types, max_n_torsions, 3), -1, dtype=torch.int32
             ),
             torsion_direction=torch.full(

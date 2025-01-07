@@ -887,17 +887,33 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
     } else {
       int parent = parents[atom];
       if (is_atom_jump[parent]) {
-        if (frame_y[parent] == atom && dof != bond_dof_d) {
+        if (frame_y[parent] == atom
+            && (dof == bond_dof_theta || dof == bond_dof_phi_p)) {
+          // bond_dof_d and bond_dof_phi_c are okay to move here;
+          // well, it's possible that phi_c should be held fixed, but
+          // that will be determined when we find the grandchild
+          // of the jump; phi_c should be disabled here if the jumps'
+          // grandchild is jump's the frame_z atom.
           keep_dof_fixed[atom][dof] = true;
-        } else if (frame_z[parent] == atom && dof != bond_dof_d) {
+        } else if (frame_z[parent] == atom && dof == bond_dof_phi_p) {
+          // we might also be concerned about the "phi_c" that would move
+          // this atom, except that DOF does not exist: its parent is a
+          // jump atom and therefore does not have a phi_c DOF.
           keep_dof_fixed[atom][dof] = true;
         }
       } else {
         int grandparent = parents[parent];
         if (is_atom_jump[grandparent]) {
-          if (frame_z[grandparent] == atom
-              && !(dof == bond_dof_d || dof == bond_dof_theta)) {
-            keep_dof_fixed[atom][dof] = true;
+          if (frame_z[grandparent] == atom) {
+            if (dof == bond_dof_phi_c) {
+              // NOTE! The dof we are turning off here is the parent's phi_c
+              // DOF, not the atom's phi_c DOF. By construction, there is
+              // only one value of i that will disable this DOF so no race
+              // condition will occur.
+              keep_dof_fixed[parent][dof] = true;
+            } else if (dof == bond_dof_phi_p) {
+              keep_dof_fixed[atom][dof] = true;
+            }
           }
         }
       }
@@ -3533,15 +3549,30 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   int const n_blocks = pose_stack_block_type.size(1);
   int const n_kinforest_atoms = kinforest_id.size(0);
   int const max_n_jumps_per_pose = pose_stack_atom_for_jump.size(1);
-  int const max_n_input_conn_types = 4;  // TEMP!! bt_uaid_for_torsion.size(1);
-  int const max_n_torsions = 4;          // TEMP!! bt_uaid_for_torsion.size(2);
-  int const max_n_atoms_per_block = 20;  // TEMP!! move_atom_dof.size(2);
+  int const max_n_input_conn_types = bt_uaid_for_torsion.size(1);
+  int const max_n_torsions = bt_uaid_for_torsion.size(2);
+  int const max_n_atoms_per_block = move_atom_dof.size(2);
+
+  // printf("N poses: %d\n", n_poses);
+  // printf("N blocks: %d\n", n_blocks);
+  // printf("N kinforest atoms: %d\n", n_kinforest_atoms);
+  // printf("Max n jumps per pose: %d\n", max_n_jumps_per_pose);
+  // printf("Max n input conn types: %d\n", max_n_input_conn_types);
+  // printf("Max n torsions: %d\n", max_n_torsions);
+  // printf("Max n atoms per block: %d\n", max_n_atoms_per_block);
+  // printf("move all jumps %d\n", move_all_jumps);
+  // printf("move all mcs %d\n", move_all_mcs);
+  // printf("move all scs %d\n", move_all_scs);
+  // printf("move all named torsions %d\n", move_all_named_torsions);
 
   auto pose_atom_ordered_minimizer_map_t =
       TPack<Int, 2, D>::zeros({n_poses * n_blocks * max_n_atoms_per_block, 9});
   auto pose_atom_ordered_minimizer_map = pose_atom_ordered_minimizer_map_t.view;
   auto minimizer_map_t = TPack<Int, 2, D>::zeros({n_kinforest_atoms, 9});
   auto minimizer_map = minimizer_map_t.view;
+
+  // printf("Max pose-block-atom index: %d\n", n_poses * n_blocks *
+  // max_n_atoms_per_block);
 
   // Step 1:
   // resolve where all the torsions live on all the blocks.
@@ -3603,10 +3634,15 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
         bt_atom_downstream_of_conn);
     int const tor_atom_block = std::get<0>(resolved_ind);
     int const tor_atom = std::get<1>(resolved_ind);
+    // printf("resolve uaid for torsion p %d b %d (bt %d) t %d inconn %d; uaid
+    // (%d %d %d) --> tor block %d at %d\n", pose, block, block_type, torsion,
+    // in_conn, uaid.atom_id, uaid.conn_id, uaid.n_bonds_from_conn,
+    // tor_atom_block, tor_atom);
     atom_for_torsion[pose][block][torsion][0] = tor_atom_block;
     atom_for_torsion[pose][block][torsion][1] = tor_atom;
   });
 
+  // printf("Step 1\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * n_blocks * max_n_torsions, resolve_torsion_location);
 
@@ -3616,24 +3652,37 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     i = i - pose * n_blocks * max_n_torsions;
     int const block = i / max_n_torsions;
     int const torsion = i % max_n_torsions;
+    // printf("step 2 %d %d %d %d...", i, pose, block, torsion);
 
     int const block_type = pose_stack_block_type[pose][block];
     if (block_type < 0) {
+      // printf("...early exit\n");
       return;
     }
     int const n_torsions = bt_n_named_torsions[block_type];
     if (torsion >= n_torsions) {
+      // printf("...early exit\n");
       return;
     }
+    // printf("...good, bt %d n_tor %d\n", block_type, n_torsions);
 
     int const tor_atom_block = atom_for_torsion[pose][block][torsion][0];
     int const tor_atom = atom_for_torsion[pose][block][torsion][1];
+    // printf("step 2 i %d p %d b %d (bt %d) t %d... tor_atom_block %d tor_atom
+    // %d \n", i, pose, block, block_type, torsion, tor_atom_block, tor_atom);
+    if (tor_atom_block < 0) {
+      // printf("early exit\n");
+      return;
+    }
 
     int const tor_atom_global_index =
         pose * max_n_atoms_per_pose
         + pose_stack_block_coord_offset[pose][tor_atom_block] + tor_atom;
     int const which_mcsc_torsion =
         bt_which_mcsc_torsion_for_named_torsion[block_type][torsion];
+
+    //  printf("tor_atom_global_index %d which_mcsc_torsion %d\n",
+    //          tor_atom_global_index, which_mcsc_torsion);
 
     auto heirarchy_of_specifications = ([&] TMOL_DEVICE_FUNC(
                                             auto const& move_mcsc_tor_mask,
@@ -3642,43 +3691,55 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
                                             auto const& move_mcs_scs,
                                             auto move_all_mcs_scs) {
       if (move_named_torsion_mask[pose][block][torsion]) {
+        // printf("move_named_torsion %d %d %d -->
+        // pose_atom_ordered_minimizer_map[%d][%d]\n", pose, block, torsion,
+        // tor_atom_global_index, bond_dof_phi_c);
         pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
             move_named_torsion[pose][block][torsion];
         return;
       }
       // Next: did we have "move mc/sc" instructions for this named torsion?
       if (move_mcsc_tor_mask[pose][block][which_mcsc_torsion]) {
+        // printf("move_mcsc_tor %d %d %d -->
+        // pose_atom_ordered_minimizer_map[%d][%d]\n", pose, block,
+        // which_mcsc_torsion, tor_atom_global_index, bond_dof_phi_c);
         pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
             move_mcsc_tor[pose][block][which_mcsc_torsion];
         return;
       }
       // Next: look at the "move mcs/scs" for this block
       if (move_mcs_scs_mask[pose][block]) {
+        // printf("move_mcs_scs %d %d -->
+        // pose_atom_ordered_minimizer_map[%d][%d]\n", pose, block,
+        // tor_atom_global_index, bond_dof_phi_c);
         pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
             move_mcs_scs[pose][block];
         return;
       }
       // Finally: look at the global "move all mcs/scs" and
       // "move_all_named_torsions" flags
-      printf(
-          "setting torsion freedom for %d %d %d (atom %d )= %d\n",
-          pose,
-          block,
-          torsion,
-          tor_atom_global_index,
-          move_all_mcs_scs || move_all_named_torsions);
+      // printf(
+      //     "setting torsion freedom for %d %d %d (atom %d )= %d\n",
+      //     pose,
+      //     block,
+      //     torsion,
+      //     tor_atom_global_index,
+      //     move_all_mcs_scs || move_all_named_torsions);
       pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
           move_all_mcs_scs || move_all_named_torsions;
     });
 
     if (bt_named_torsion_is_mc[block_type][torsion]) {
+      // printf("is mc\n");
       heirarchy_of_specifications(
           move_mc_mask, move_mc, move_mcs_mask, move_mcs, move_all_mcs);
     } else {
+      // printf("is sc\n");
       heirarchy_of_specifications(
           move_sc_mask, move_sc, move_scs_mask, move_scs, move_all_scs);
     }
   });
+  // printf("Step 2\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * n_blocks * max_n_torsions, set_torsion_freedom);
 
@@ -3688,12 +3749,19 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     int const jump = i % max_n_jumps_per_pose;
     int const block = pose_stack_atom_for_jump[pose][jump][0];
     int const atom = pose_stack_atom_for_jump[pose][jump][1];
+    // printf("set jump freedom: i %d p %d j %d b %d a %d\n", i, pose, jump,
+    // block, atom);
     if (block == -1) {
       return;
     }
+
     int const jump_atom_global_index =
         pose * max_n_atoms_per_pose + pose_stack_block_coord_offset[pose][block]
         + atom;
+
+    // printf("jump atom global index %d * %d + %d + %d = %d\n", pose,
+    // max_n_atoms_per_pose, pose_stack_block_coord_offset[pose][block], atom,
+    // jump_atom_global_index);
 
     // Now we look at the specification heirarchy for this jump's 6 DOFs
     for (int jump_dof = 0; jump_dof < 6; ++jump_dof) {
@@ -3709,8 +3777,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
       }
     }
   });
+  // printf("Step 3\n");
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * n_blocks * max_n_torsions, set_torsion_freedom);
+      n_poses * max_n_jumps_per_pose, set_jump_freedom);
 
   // Step 4:
   auto set_atom_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -3732,6 +3801,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
       }
     }
   });
+  // printf("Step 4\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * n_blocks * max_n_atoms_per_block, set_atom_freedom);
 
@@ -3743,6 +3813,10 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
       int const atom = pose_atom % max_n_atoms_per_pose;
       for (int dof = 0; dof < 9; ++dof) {
         if (keep_dof_fixed[i][dof]) {
+          // if (pose_atom_ordered_minimizer_map[pose_atom][dof] != 0) {
+          //   printf("Setting dof %d to 0 for kin atom %d (pose atom %d)\n",
+          //   dof, i, pose_atom);
+          // }
           minimizer_map[i][dof] = 0;
         } else {
           minimizer_map[i][dof] =
@@ -3751,9 +3825,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
       }
     }
   });
+  // printf("Step 5\n");
   DeviceDispatch<D>::template forall<launch_t>(
       n_kinforest_atoms, reindex_minimizer_map);
 
+  // printf("Done\n");
   return minimizer_map_t;
 }
 

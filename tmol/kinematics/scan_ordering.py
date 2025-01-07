@@ -630,10 +630,11 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
             at2 = bt.ordered_torsions[j][1][0]
             at3 = bt.ordered_torsions[j][2][0]
             if at2 == -1 and at3 == -1:
-                # okay, then we have to make some guesses.
+                # okay, both atoms live on other residues
+                # thus, we have to make some guesses.
                 # At least atom1 has to be in this residue
                 # so if atom1 is the connection atom for
-                # the input connection i, then we will say
+                # the input connection i, then we will reason
                 # atom 3 must be the partent of atom 2
                 # on the other residue that we do not have
                 # access to; otherwise, we will conclude
@@ -642,10 +643,10 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                 # therefore atom 2 is the parent of atom 3
                 #
                 # case 1:
-                # atom3 (torsion lives in phi_c of this atom)
+                # atom3
                 #   |
                 #   v
-                # atom2
+                # atom2 (torsion lives in phi_c of this atom)
                 #   |
                 #   v
                 # atom1 (input connection atom)
@@ -654,22 +655,22 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                 # atom1 (some-non-input-connection-connection atom)
                 #   |
                 #   v
-                # atom2 (the input connectio atom on the downstream residue; torsion lives in phi_n of this atom)
+                # atom2 (the input connectio atom on the downstream residue)
                 #   |
                 #   v
-                # atom3
+                # atom3 (torsion lives in phi_c of this atom)
 
                 at1 = bt.ordered_torsions[j][0][0]
                 assert at1 != -1
                 if at1 == iconn_at:
                     # case 1
                     # atom 3 is the parent of atom 2
-                    uaid_for_torsion[i, j, :] = bt.ordered_torsions[j][2]
+                    uaid_for_torsion[i, j, :] = bt.ordered_torsions[j][1]
                     torsion_direction[i, j] = -1
                 else:
                     # case 2
                     # atom 2 is the parent of atom 3
-                    uaid_for_torsion[i, j, :] = bt.ordered_torsions[j][1]
+                    uaid_for_torsion[i, j, :] = bt.ordered_torsions[j][2]
                     torsion_direction[i, j] = 1
             else:
                 # at least one of atoms 2 and 3 are in this residue
@@ -678,24 +679,26 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                     in_res_at = at2 if at2 != -1 else at3
                     if in_res_at == iconn_at:
                         # then atom 3 is the parent of atom 2
-                        # and the torsion lives in phi_c of atom 3
-                        uaid_for_torsion[i, j, :] = bt.ordered_torsions[j][2]
+                        # and the torsion lives in phi_c of atom 2
+                        uaid_for_torsion[i, j, :] = bt.ordered_torsions[j][1]
                         torsion_direction[i, j] = -1
                     else:
                         # then atom 2 is the parent of atom 3
-                        # and the torsion lives in phi_n of atom 2
-                        uaid_for_torsion[i, j, :] = bt.ordered_torsions[j][1]
+                        # and the torsion lives in phi_c of atom 3
+                        uaid_for_torsion[i, j, :] = bt.ordered_torsions[j][2]
                         torsion_direction[i, j] = 1
                 else:
                     # easiest case! both atoms 2 and 3 are intra-residue
+                    # torsion lives in phi_c of the child atom
                     assert preds[at2] == at3 or preds[at3] == at2
                     at2_is_parent = preds[at3] == at2
                     uaid_for_torsion[i, j, :] = (
-                        bt.ordered_torsions[j][1]
+                        bt.ordered_torsions[j][2]
                         if at2_is_parent
-                        else bt.ordered_torsions[j][2]
+                        else bt.ordered_torsions[j][1]
                     )
                     torsion_direction[i, j] = 1 if at2_is_parent else -1
+                    # print(f"bt: {bt.name}, i: {i}, tor: {j},  at2 {at2}, at3 {at3} torsion_direction[i, j] {torsion_direction[i, j]} uaid_for_torsion[i, j, :] {uaid_for_torsion[i, j, :]}")
 
     for i in range(n_input_types):
 
@@ -714,6 +717,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
         mark_kin_uaids_controlling_torsions(
             uaid_for_torsion, torsion_direction, i, i_conn_atom, bt, preds
         )
+        # print(bt.name, f"uaid_for_torsion[{i}]", uaid_for_torsion[i])
 
         # Now, the parent of the i_conn_atom comes from the previous residue, so we will
         # need to fix this atom when we are hooking the blocks together. For now, leave
@@ -1190,7 +1194,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
     bt_gen_seg_scan_path_segments.parents = parents
     bt_gen_seg_scan_path_segments.dof_type[:] = dof_type
     bt_gen_seg_scan_path_segments.input_conn_atom = input_conn_atom
-    bt_gen_seg_scan_path_segments.uaid_for_torsion = uaid_for_torsion
+    bt_gen_seg_scan_path_segments.uaid_for_torsion_by_inconn = uaid_for_torsion
     bt_gen_seg_scan_path_segments.torsion_direction = torsion_direction
     # Finally, we populate the BTGenerationalSegScanPathSegs object
     for i in range(n_input_types):
@@ -1248,6 +1252,8 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
 
 
 def _annotate_packed_block_type_with_gen_scan_path_segs(pbt):
+    # for i, bt in enumerate(pbt.active_block_types):
+    #     print(f"bt {bt.name} index {i}")
     for bt in pbt.active_block_types:
         _annotate_block_type_with_gen_scan_path_segs(bt)
     max_n_input_types = max(
@@ -1300,7 +1306,7 @@ def _annotate_packed_block_type_with_gen_scan_path_segs(pbt):
         "scan_path_seg_is_real",
         "scan_path_seg_is_inter_block",
         "scan_path_seg_lengths",
-        "uaid_for_torsion",
+        "uaid_for_torsion_by_inconn",
         "torsion_direction",
     ]
     for i, bt in enumerate(pbt.active_block_types):
@@ -1334,4 +1340,5 @@ def _annotate_packed_block_type_with_gen_scan_path_segs(pbt):
                 ] = src
             else:
                 raise ValueError("unhandled shape")
+    # print("gen_seg_scan_path_segs.uaid_for_torsion[82, 2, :]", gen_seg_scan_path_segs.uaid_for_torsion[85, 2, :])
     setattr(pbt, "gen_seg_scan_path_segs", gen_seg_scan_path_segs)

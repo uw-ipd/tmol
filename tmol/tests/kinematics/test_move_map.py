@@ -15,6 +15,36 @@ from tmol.kinematics.scan_ordering import (
 )
 
 
+def kinatom_to_atom_name(
+    pose_stack: PoseStack, kmd: KinematicModuleData, kin_atom: int
+):
+    pose_atom = kmd.forest.id[kin_atom]
+    # print("kinatom_to_atom_name", kin_atom, "pose_atom", pose_atom)
+
+    pose = pose_atom // pose_stack.max_n_pose_atoms
+    pose_atom = pose_atom % pose_stack.max_n_pose_atoms
+    # print("pose", pose, "pose_atom", pose_atom)
+
+    nz_lt_offset = torch.nonzero(pose_stack.block_coord_offset[pose] > pose_atom)
+    block = (
+        nz_lt_offset[0].item() - 1
+        if nz_lt_offset.shape[0] > 0
+        else pose_stack.n_res_per_pose[pose] - 1
+    )
+    # print("block", block)
+    # print("pose_stack.block_coord_offset[pose, block]", pose_stack.block_coord_offset[pose, block])
+
+    block_type = pose_stack.block_type_ind[pose, block]
+    block_name = pose_stack.packed_block_types.active_block_types[block_type].name
+    # print("block_type", block_type, "block_name", block_name)
+    atom_name = (
+        pose_stack.packed_block_types.active_block_types[block_type]
+        .atoms[pose_atom - pose_stack.block_coord_offset[pose, block]]
+        .name
+    )
+    return pose, block, block_name, atom_name
+
+
 def mm_from_pose_stack_and_ff(pose_stack, ff_edges_cpu):
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
@@ -317,19 +347,19 @@ def test_set_move_particular_doftypes_for_block_by_integer(
 
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
-    print("var", var.shape)
+    # print("var", var.shape)
 
     assert var[1, 4, 1] == False
     assert mask[1, 4, 1] == False
 
-    print(
-        "move_particular_setter_name_for_doftype(doftype)",
-        move_particular_setter_name_for_doftype(doftype),
-    )
+    # print(
+    #     "move_particular_setter_name_for_doftype(doftype)",
+    #     move_particular_setter_name_for_doftype(doftype),
+    # )
     setter = getattr(mm, move_particular_setter_name_for_doftype(doftype))
     setter(1, 4, 1)
 
-    print("var", var)
+    # print("var", var)
 
     assert var[1, 4, 1] == True
     assert mask[1, 4, 1] == True
@@ -531,7 +561,7 @@ def test_set_move_particular_atom_dofs(
     assert mm.move_atom_dof_mask[1, 0, 2, 3] == True
 
 
-def test_minimizermap_construction_smoke(
+def test_minimizermap_construction_2_sixres_ubq(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
 ):
     pose_stack = stack_of_two_six_res_ubqs_no_term
@@ -545,4 +575,269 @@ def test_minimizermap_construction_smoke(
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None
 
+    # 14 chi, 3Q+2I+2F+1V+4K+2T
+    # 3*6 backbone torsions but no Nterm phi, nor Cterm psi+omega = 15
+    # 2 copies; 2*(14+15) = 58; it's not clear how get
+    # lost.
+    assert torch.sum(minmap.dof_mask) == 56
+
+
+def test_minimizermap_construction_2_sixres_ubq_just_sc(
+    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
+):
+    pose_stack = stack_of_two_six_res_ubqs_no_term
+    pbt = pose_stack.packed_block_types
+    ff_edges_cpu = ff_2ubq_6res_H
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm.move_all_sc = True
+    minmap = MinimizerMap(pose_stack, kmd, mm)
+    assert minmap is not None
+
+    # 14 chi, 3Q+2I+2F+1V+4K+2T
+    assert torch.sum(minmap.dof_mask) == 28
+
+    enabled_dof_atoms = [[list() for _2 in range(6)] for _1 in range(2)]
+    for i in range(minmap.dof_mask.shape[0]):
+        if minmap.dof_mask[i, 3]:
+            pose, block, _, atom_name = kinatom_to_atom_name(pose_stack, kmd, i)
+            enabled_dof_atoms[pose][block].append(atom_name)
+            # print("Enabled DOF on atom i", i, "kinatom_to_atom_name(pose_stack, kmd, i)", kinatom_to_atom_name(pose_stack, kmd, i))
+
+    dof_atoms_gold = [
+        [
+            ["CB", "CG", "CD"],
+            ["CB", "CG1"],
+            ["CB", "CG"],
+            ["CB"],
+            ["CB", "CG", "CD", "CE"],
+            ["CB", "OG1"],
+        ],
+        [
+            ["CB", "CG", "CD"],
+            ["CB", "CG1"],
+            ["CB", "CG"],
+            ["CB"],
+            ["CB", "CG", "CD", "CE"],
+            ["CB", "OG1"],
+        ],
+    ]
+
+    assert enabled_dof_atoms == dof_atoms_gold
+
+
+def test_minimizermap_construction_2_sixres_ubq_just_bb(
+    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
+):
+    pose_stack = stack_of_two_six_res_ubqs_no_term
+    pbt = pose_stack.packed_block_types
+    ff_edges_cpu = ff_2ubq_6res_H
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    # print("ID:", kmd.forest.id[:10])
+    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm.move_all_mc = True
+    minmap = MinimizerMap(pose_stack, kmd, mm)
+    assert minmap is not None
+
+    # 3*6 backbone torsions, including the n- and c-term phi and psi dihedrals that extend
+    # to the next (but absent) residues, since we have the no-termini versions here,
+    # but not the omega dihedral on the c-term that would live on the N atom of i+1,
+    # but also discounting the jump from the root to the first residue that disables
+    # one backbone dihedral and the non-root jump also disables a second backbone
+    # dihedral, but also discounting the backbone dihedral between residue 2 and 3
+    # that is "destroyed" by the cutpoint (because residue 2 is N->C and residue 3
+    # is C->N, and so the phi_c on residue 3's N atom looks like residue 2's omega
+    # in the N->C direction and it looks like residue 3's phi in the C->N direction)
+    # therefore 2*(3*6 - 1 - 2 - 1) == 28
+    assert torch.sum(minmap.dof_mask) == 28
+
+    enabled_dof_atoms = [[list() for _2 in range(6)] for _1 in range(2)]
+    for i in range(minmap.dof_mask.shape[0]):
+        if minmap.dof_mask[i, 3]:
+            pose, block, _, atom_name = kinatom_to_atom_name(pose_stack, kmd, i)
+            enabled_dof_atoms[pose][block].append(atom_name)
+            # print("Enabled DOF on atom i", i, "kinatom_to_atom_name(pose_stack, kmd, i)", kinatom_to_atom_name(pose_stack, kmd, i))
+
+    dof_atoms_gold = [
+        [
+            ["N", "CA", "C"],
+            ["C"],
+            ["N", "CA", "C"],
+            ["N", "CA", "C"],
+            ["C"],
+            ["N", "CA", "C"],
+        ],
+        [
+            ["N", "CA", "C"],
+            ["C"],
+            ["N", "CA", "C"],
+            ["N", "CA", "C"],
+            ["C"],
+            ["N", "CA", "C"],
+        ],
+    ]
+
+    assert enabled_dof_atoms == dof_atoms_gold
+
+
+def test_minimizermap_construction_2_sixres_ubq(
+    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
+):
+    pose_stack = stack_of_two_six_res_ubqs_no_term
+    pbt = pose_stack.packed_block_types
+    ff_edges_cpu = ff_2ubq_6res_H
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm.move_all_jumps = True
+    mm.move_all_named_torsions = True
+    minmap = MinimizerMap(pose_stack, kmd, mm)
+    assert minmap is not None
+
+    # 14 chi, 3Q+2I+2F+1V+4K+2T
+    # 14 bb
+    # 6 jump DOFs
+    assert torch.sum(minmap.dof_mask) == 2 * (14 + 14 + 6)
+
+
+def test_minimizermap_construction_jagged_465_ubq(
+    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
+):
+    pose_stack = jagged_stack_of_465_res_ubqs
+    # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
+    pbt = pose_stack.packed_block_types
+    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm.move_all_jumps = True
+    mm.move_all_named_torsions = True
+    minmap = MinimizerMap(pose_stack, kmd, mm)
+    assert minmap is not None
+    # print("torch.sum(minmap.dof_mask)", torch.sum(minmap.dof_mask))
+    assert torch.sum(minmap.dof_mask) == 27 + 36 + 6 * 3
+
+
+def test_minimizermap_construction_jagged_465_ubq_just_sc(
+    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
+):
+    pose_stack = jagged_stack_of_465_res_ubqs
+    # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
+    pbt = pose_stack.packed_block_types
+    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm.move_all_sc = True
+    minmap = MinimizerMap(pose_stack, kmd, mm)
+    assert minmap is not None
+    # print("torch.sum(minmap.dof_mask)", torch.sum(minmap.dof_mask))
     assert torch.sum(minmap.dof_mask) == 36
+
+    enabled_dof_atoms = [[list() for _2 in range(6)] for _1 in range(3)]
+    for i in range(minmap.dof_mask.shape[0]):
+        if minmap.dof_mask[i, 3]:
+            pose, block, _, atom_name = kinatom_to_atom_name(pose_stack, kmd, i)
+            enabled_dof_atoms[pose][block].append(atom_name)
+            # print("Enabled DOF on atom i", i, "kinatom_to_atom_name(pose_stack, kmd, i)", kinatom_to_atom_name(pose_stack, kmd, i))
+
+    dof_atoms_gold = [
+        [
+            ["CB", "CG", "SD"],
+            ["CB", "CG", "CD"],
+            ["CB", "CG1"],
+            ["CB", "CG"],
+            [],
+            [],
+        ],
+        [
+            ["CB", "CG", "SD"],
+            ["CB", "CG", "CD"],
+            ["CB", "CG1"],
+            ["CB", "CG"],
+            ["CB"],
+            ["CB", "CG", "CD", "CE"],
+        ],
+        [
+            ["CB", "CG", "SD"],
+            ["CB", "CG", "CD"],
+            ["CB", "CG1"],
+            ["CB", "CG"],
+            ["CB"],
+            [],
+        ],
+    ]
+
+    assert enabled_dof_atoms == dof_atoms_gold
+
+
+def test_minimizermap_construction_jagged_465_ubq_just_mc(
+    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
+):
+    pose_stack = jagged_stack_of_465_res_ubqs
+    # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
+    pbt = pose_stack.packed_block_types
+    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm.move_all_mc = True
+    minmap = MinimizerMap(pose_stack, kmd, mm)
+    assert minmap is not None
+    # print("torch.sum(minmap.dof_mask)", torch.sum(minmap.dof_mask))
+    assert torch.sum(minmap.dof_mask) == 27
+
+    enabled_dof_atoms = [[list() for _2 in range(6)] for _1 in range(3)]
+    for i in range(minmap.dof_mask.shape[0]):
+        if minmap.dof_mask[i, 3]:
+            pose, block, _, atom_name = kinatom_to_atom_name(pose_stack, kmd, i)
+            enabled_dof_atoms[pose][block].append(atom_name)
+            # print("Enabled DOF on atom i", i, "kinatom_to_atom_name(pose_stack, kmd, i)", kinatom_to_atom_name(pose_stack, kmd, i))
+
+    dof_atoms_gold = [
+        [  # 6
+            ["CA", "C"],
+            ["C"],
+            ["N", "CA", "C"],
+            [],
+            [],
+            [],
+        ],
+        [  # 12
+            ["CA", "C"],
+            ["C"],
+            ["N", "CA", "C"],
+            ["N", "CA", "C"],
+            ["C"],
+            ["N", "CA"],
+        ],
+        [  # 9
+            ["CA", "C"],
+            ["C"],
+            ["N", "CA", "C"],
+            ["N", "CA", "C"],
+            [],
+            [],
+        ],
+    ]
+
+    assert enabled_dof_atoms == dof_atoms_gold
+
+
+def test_minimizermap_construction_jagged_465_ubq_named_dofs(
+    jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
+):
+    pose_stack = jagged_stack_of_465_res_ubqs
+    # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
+    pbt = pose_stack.packed_block_types
+    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+
+    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
+    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm.move_all_named_torsions = True
+    minmap = MinimizerMap(pose_stack, kmd, mm)
+    assert minmap is not None
+    # print("torch.sum(minmap.dof_mask)", torch.sum(minmap.dof_mask))
+    assert torch.sum(minmap.dof_mask) == 27 + 36
