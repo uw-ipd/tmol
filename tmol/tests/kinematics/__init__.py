@@ -1,16 +1,15 @@
 import pytest
-import torch
+import numpy
 from tmol.kinematics.fold_forest import EdgeType
 
 
 @pytest.fixture
 def ff_2ubq_6res_H():
     max_n_edges = 5
-    ff_edges = torch.full(
+    ff_edges = numpy.full(
         (2, max_n_edges, 4),
         -1,
-        dtype=torch.int32,
-        device="cpu",
+        dtype=numpy.int32,
     )
     ff_edges[0, 0, 0] = EdgeType.polymer
     ff_edges[0, 0, 1] = 1
@@ -60,11 +59,10 @@ def ff_2ubq_6res_H():
 @pytest.fixture
 def ff_3_jagged_ubq_465res_H():
     max_n_edges = 5
-    ff_edges = torch.full(
+    ff_edges = numpy.full(
         (3, max_n_edges, 4),
         -1,
-        dtype=torch.int32,
-        device="cpu",
+        dtype=numpy.int32,
     )
     # 4 res pose
     ff_edges[0, 0, 0] = EdgeType.polymer
@@ -126,11 +124,10 @@ def ff_3_jagged_ubq_465res_H():
 @pytest.fixture
 def ff_3_jagged_ubq_465res_star():
     max_n_edges = 5
-    ff_edges = torch.full(
+    ff_edges = numpy.full(
         (3, max_n_edges, 4),
         -1,
-        dtype=torch.int32,
-        device="cpu",
+        dtype=numpy.int32,
     )
     for i, (nres, root) in enumerate([(4, 0), (6, 2), (5, 4)]):
         count_edge = 0
@@ -149,11 +146,10 @@ def ff_3_jagged_ubq_465res_star():
 @pytest.fixture
 def ff_2ubq_6res_U():
     max_n_edges = 3
-    ff_edges_cpu = torch.full(
+    ff_edges_cpu = numpy.full(
         (2, max_n_edges, 4),
         -1,
-        dtype=torch.int32,
-        device="cpu",
+        dtype=numpy.int32,
     )
     ff_edges_cpu[0, 0, 0] = EdgeType.polymer
     ff_edges_cpu[0, 0, 1] = 2
@@ -187,11 +183,10 @@ def ff_2ubq_6res_U():
 @pytest.fixture
 def ff_2ubq_6res_K():
     max_n_edges = 5
-    ff_edges_cpu = torch.full(
+    ff_edges_cpu = numpy.full(
         (2, max_n_edges, 4),
         -1,
-        dtype=torch.int32,
-        device="cpu",
+        dtype=numpy.int32,
     )
     ff_edges_cpu[0, 0, 0] = EdgeType.polymer
     ff_edges_cpu[0, 0, 1] = 1

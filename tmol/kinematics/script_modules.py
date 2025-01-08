@@ -14,6 +14,9 @@ from tmol.kinematics.scan_ordering import (
     _annotate_packed_block_type_with_gen_scan_path_segs,
 )
 
+from tmol.kinematics.compiled import forward_kin_op
+
+
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
 if "to" in torch.jit.ScriptModule.__dict__:
@@ -69,8 +72,6 @@ class KinematicModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, dofs):
-        from tmol.kinematics.compiled import forward_kin_op
-
         return forward_kin_op(
             dofs,
             self.nodes_f,
@@ -151,8 +152,6 @@ class PoseStackKinematicsModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, dofs):
-        from tmol.kinematics.compiled import forward_kin_op
-
         return forward_kin_op(
             dofs,
             self.nodes_f,

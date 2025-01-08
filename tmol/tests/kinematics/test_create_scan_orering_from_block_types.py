@@ -174,7 +174,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
-    ff_edges = ff_2ubq_6res_H
+    ff_edges = torch.tensor(ff_2ubq_6res_H)
 
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
@@ -253,6 +253,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_U(
     pbt = pose_stack.packed_block_types
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
+    ff_2ubq_6res_U = torch.tensor(ff_2ubq_6res_U)
 
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
@@ -324,6 +325,7 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
     pbt = pose_stack.packed_block_types
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
+    ff_2ubq_6res_K = torch.tensor(ff_2ubq_6res_K)
 
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
@@ -333,7 +335,8 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
         pbt_gssps.nodes_for_gen,
         pbt_gssps.scan_path_seg_starts,
     )
-    # print("result", result)
+    ff_2ubq_6res_K = torch.tensor(ff_2ubq_6res_K)
+
     (
         dfs_order_of_ff_edges,
         n_ff_edges,
@@ -345,16 +348,6 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_K(
         delay_for_edge,
         toposort_index_for_edge,
     ) = result
-
-    # print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
-    # print("n_ff_edges", n_ff_edges)
-    # print("ff_edge_parent", ff_edge_parent)
-    # print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
-    # print("pose_stack_ff_parent", pose_stack_ff_parent)
-    # print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
-    # print("first_child_of_ff_edge", first_child_of_ff_edge)
-    # print("delay_for_edge", delay_for_edge)
-    # print("toposort_index_for_edge", toposort_index_for_edge)
 
     gold_dfs_order_of_ff_edges = torch.tensor(
         [[3, 4, 2, 1, 0], [3, 4, 2, 1, 0]], dtype=torch.int32
@@ -425,6 +418,7 @@ def test_calculate_parent_block_conn_in_and_out_for_two_copies_of_6_res_ubq(
     pbt = pose_stack.packed_block_types
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
+    ff_2ubq_6res_H = torch.tensor(ff_2ubq_6res_H)
 
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,
@@ -613,7 +607,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_H(
 ):
 
     pose_stack = stack_of_two_six_res_ubqs
-    ff_edges_cpu = ff_2ubq_6res_H
+    ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     kincoords = torch.zeros(
@@ -700,7 +694,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_U(
 ):
 
     pose_stack = stack_of_two_six_res_ubqs
-    ff_edges_cpu = ff_2ubq_6res_U
+    ff_edges_cpu = torch.tensor(ff_2ubq_6res_U)
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
 
     # print("nodes_fw", kmd.scan_data_fw.nodes)
@@ -824,7 +818,7 @@ def test_get_scans_for_two_copies_of_6_res_ubq_K(
     stack_of_two_six_res_ubqs, torch_device, ff_2ubq_6res_K
 ):
     pose_stack = stack_of_two_six_res_ubqs
-    ff_edges_cpu = ff_2ubq_6res_K
+    ff_edges_cpu = torch.tensor(ff_2ubq_6res_K)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
 
@@ -962,7 +956,7 @@ def test_kinmodule_construction_for_jagged_stack_H(
 ):
 
     pose_stack = jagged_stack_of_465_res_ubqs
-    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+    ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     kincoords = torch.zeros(
@@ -1049,7 +1043,7 @@ def test_kinmodule_construction_for_jagged_stack_star(
 ):
 
     pose_stack = jagged_stack_of_465_res_ubqs
-    ff_edges_cpu = ff_3_jagged_ubq_465res_star
+    ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_star)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     kincoords = torch.zeros(

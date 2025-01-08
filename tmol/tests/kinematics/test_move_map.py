@@ -45,34 +45,20 @@ def kinatom_to_atom_name(
     return pose, block, block_name, atom_name
 
 
-def mm_from_pose_stack_and_ff(pose_stack, ff_edges_cpu):
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
-    return mm
+@pytest.fixture
+def mm_for_two_six_res_ubqs_no_term(stack_of_two_six_res_ubqs_no_term):
+    return MoveMap.from_pose_stack(stack_of_two_six_res_ubqs_no_term)
 
 
 @pytest.fixture
-def mm_for_two_six_res_ubqs_no_term(stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H):
-    pose_stack = stack_of_two_six_res_ubqs_no_term
-    ff_edges_cpu = ff_2ubq_6res_H
-    return mm_from_pose_stack_and_ff(pose_stack, ff_edges_cpu)
+def mm_for_jagged_465_ubqs(jagged_stack_of_465_res_ubqs):
+    return MoveMap.from_pose_stack(jagged_stack_of_465_res_ubqs)
 
 
-@pytest.fixture
-def mm_for_jagged_465_ubqs(jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H):
-    pose_stack = jagged_stack_of_465_res_ubqs
-    ff_edges_cpu = ff_3_jagged_ubq_465res_H
-    return mm_from_pose_stack_and_ff(pose_stack, ff_edges_cpu)
-
-
-def test_movemap_construction_from_init(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
-):
+def test_movemap_construction_from_init(stack_of_two_six_res_ubqs_no_term):
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
-    ff_edges_cpu = ff_2ubq_6res_H
 
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     mm = MoveMap(
         pose_stack.n_poses,
         pose_stack.max_n_blocks,
@@ -116,15 +102,10 @@ def test_movemap_construction_from_init(
     assert mm.move_atom_dof_mask.shape == (np, mxnb, mxnapb, n_movable_bond_dof_types)
 
 
-def test_movemap_construction_from_helper(
-    stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
-):
+def test_movemap_construction_from_helper(stack_of_two_six_res_ubqs_no_term):
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
-    ff_edges_cpu = ff_2ubq_6res_H
-
-    kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm = MoveMap.from_pose_stack(pose_stack)
 
     np = pose_stack.n_poses
     mxnb = pose_stack.max_n_blocks
@@ -569,7 +550,7 @@ def test_minimizermap_construction_2_sixres_ubq(
     ff_edges_cpu = ff_2ubq_6res_H
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
@@ -587,10 +568,10 @@ def test_minimizermap_construction_2_sixres_ubq_just_sc(
 ):
     pose_stack = stack_of_two_six_res_ubqs_no_term
     pbt = pose_stack.packed_block_types
-    ff_edges_cpu = ff_2ubq_6res_H
+    ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_sc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None
@@ -631,12 +612,11 @@ def test_minimizermap_construction_2_sixres_ubq_just_bb(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
 ):
     pose_stack = stack_of_two_six_res_ubqs_no_term
-    pbt = pose_stack.packed_block_types
-    ff_edges_cpu = ff_2ubq_6res_H
+    ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
     # print("ID:", kmd.forest.id[:10])
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_mc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None
@@ -686,11 +666,10 @@ def test_minimizermap_construction_2_sixres_ubq(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
 ):
     pose_stack = stack_of_two_six_res_ubqs_no_term
-    pbt = pose_stack.packed_block_types
-    ff_edges_cpu = ff_2ubq_6res_H
+    ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
@@ -707,11 +686,10 @@ def test_minimizermap_construction_jagged_465_ubq(
 ):
     pose_stack = jagged_stack_of_465_res_ubqs
     # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
-    pbt = pose_stack.packed_block_types
-    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+    ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
@@ -725,11 +703,11 @@ def test_minimizermap_construction_jagged_465_ubq_just_sc(
 ):
     pose_stack = jagged_stack_of_465_res_ubqs
     # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
-    pbt = pose_stack.packed_block_types
-    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+    # pbt = pose_stack.packed_block_types
+    ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_sc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None
@@ -778,11 +756,10 @@ def test_minimizermap_construction_jagged_465_ubq_just_mc(
 ):
     pose_stack = jagged_stack_of_465_res_ubqs
     # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
-    pbt = pose_stack.packed_block_types
-    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+    ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_mc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None
@@ -831,11 +808,11 @@ def test_minimizermap_construction_jagged_465_ubq_named_dofs(
 ):
     pose_stack = jagged_stack_of_465_res_ubqs
     # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
-    pbt = pose_stack.packed_block_types
-    ff_edges_cpu = ff_3_jagged_ubq_465res_H
+    # pbt = pose_stack.packed_block_types
+    ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    mm = MoveMap.from_pose_stack_and_kmd(pose_stack, kmd)
+    mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_named_torsions = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None

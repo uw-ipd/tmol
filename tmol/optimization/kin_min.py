@@ -24,7 +24,7 @@ def build_kinforest_network(
     return kf_network
 
 
-def run_kinmin(
+def run_kin_min(
     pose_stack: PoseStack,
     sfxn: ScoreFunction,
     ff: FoldForest,
@@ -37,5 +37,13 @@ def run_kinmin(
     """
     kf_network = build_kinforest_network(pose_stack, sfxn, ff, mm)
     optimizer = LBFGS_Armijo(kf_network.parameters())
-    optimizer.step(kf_network)
+
+    def closure():
+        optimizer.zero_grad()
+        E = kf_network().sum()
+        E.backward()
+        return E
+
+    optimizer.step(closure)
+
     return kf_network.pose_stack_from_dofs()

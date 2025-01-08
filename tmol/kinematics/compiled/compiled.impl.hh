@@ -3540,7 +3540,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<bool, 3, D> move_named_torsion,
     TView<bool, 3, D> move_named_torsion_mask,
     TView<bool, 4, D> move_atom_dof,
-    TView<bool, 4, D> move_atom_dof_mask) -> TPack<Int, 2, D> {
+    TView<bool, 4, D> move_atom_dof_mask) -> TPack<bool, 2, D> {
   // "Optimal" launch-box size untested; going w/ nt=32, vt=1
   using namespace score::common;
   LAUNCH_BOX_32;
@@ -3566,9 +3566,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   // printf("move all named torsions %d\n", move_all_named_torsions);
 
   auto pose_atom_ordered_minimizer_map_t =
-      TPack<Int, 2, D>::zeros({n_poses * n_blocks * max_n_atoms_per_block, 9});
+      TPack<bool, 2, D>::zeros({n_poses * n_blocks * max_n_atoms_per_block, 9});
   auto pose_atom_ordered_minimizer_map = pose_atom_ordered_minimizer_map_t.view;
-  auto minimizer_map_t = TPack<Int, 2, D>::zeros({n_kinforest_atoms, 9});
+  auto minimizer_map_t = TPack<bool, 2, D>::zeros({n_kinforest_atoms, 9});
   auto minimizer_map = minimizer_map_t.view;
 
   // printf("Max pose-block-atom index: %d\n", n_poses * n_blocks *

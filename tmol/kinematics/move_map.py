@@ -51,7 +51,7 @@ class MoveMap:
     move_atom_dof_mask: Tensor[torch.bool][:, :, :, :]
 
     @classmethod
-    def from_pose_stack_and_kmd(cls, ps: PoseStack, kmd: KinematicModuleData):
+    def from_pose_stack(cls, ps: PoseStack):
         """Main construction utility for MoveMap."""
         return cls(
             ps.n_poses,

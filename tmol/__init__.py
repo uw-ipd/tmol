@@ -41,7 +41,7 @@ from tmol.score.score_function import ScoreFunction  # noqa: F401
 #     CartesianSfxnNetwork,
 #     KinForestSfxnNetwork,
 # )
-from tmol.optimization.kin_min import build_kinforest_network, run_kinmin  # noqa: F401
+from tmol.optimization.kin_min import build_kinforest_network, run_kin_min  # noqa: F401
 
 try:
     __version__ = version("tmol")

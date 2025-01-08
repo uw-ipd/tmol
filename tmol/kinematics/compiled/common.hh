@@ -536,7 +536,7 @@ struct KinForestFromStencil {
       TView<bool, 3, D> move_named_torsion,
       TView<bool, 3, D> move_named_torsion_mask,
       TView<bool, 4, D> move_atom_dof,
-      TView<bool, 4, D> move_atom_dof_mask) -> TPack<Int, 2, D>;
+      TView<bool, 4, D> move_atom_dof_mask) -> TPack<bool, 2, D>;
 };
 
 // @numba.jit(nopython=True)

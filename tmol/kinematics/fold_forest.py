@@ -1,6 +1,7 @@
 import numpy
 import attr
 import enum
+from typing import Union
 
 from tmol.types.array import NDArray
 
@@ -50,3 +51,37 @@ class FoldForest:
             edges=edges,
             roots=roots,
         )
+
+    @classmethod
+    def from_edges(cls, edges: NDArray[int][:, :, 4]):
+        roots = cls.roots_from_edges(edges)
+        return cls.from_roots_and_edges(roots, edges)
+
+    @classmethod
+    def from_roots_and_edges(cls, roots: NDArray[int][:], edges: NDArray[int][:, :, 4]):
+        return cls(
+            max_n_edges=edges.shape[1],
+            n_edges=numpy.sum(edges[:, :, 0] != -1, axis=1),
+            edges=edges,
+            roots=roots,
+        )
+
+    @classmethod
+    def roots_from_edges(cls, edges: NDArray[int][:, :, 4]):
+        # somewhat slow examination of the edges to find the roots
+        # TO DO: numba-fy this
+        roots = numpy.full((edges.shape[0],), -1, dtype=int)
+        max_n_edges = edges.shape[1]
+        for i in range(edges.shape[0]):
+            verts = set([])
+            non_root_verts = []
+            for j in range(edges.shape[1]):
+                if edges[i, j, 0] == -1:
+                    break
+                verts.add(edges[i, j, 1])
+                verts.add(edges[i, j, 2])
+                non_root_verts.append(edges[i, j, 2])
+            rootish_verts = list(verts - set(non_root_verts))
+            assert len(rootish_verts) == 1
+            roots[i] = rootish_verts[0]
+        return roots

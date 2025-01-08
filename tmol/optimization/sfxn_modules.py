@@ -1,4 +1,5 @@
 import torch
+import attrs
 
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
@@ -75,7 +76,7 @@ class KinForestSfxnNetwork(torch.nn.Module):
             kmd.forest.frame_z,
             kmd.forest.doftype,
         )
-        # print("raw_dofs.device", raw_dofs.device)
+        self.full_dofs = raw_dofs
 
         if dof_mask is None:
             # Default behavior:
@@ -86,26 +87,13 @@ class KinForestSfxnNetwork(torch.nn.Module):
             dof_mask = torch.zeros(
                 raw_dofs.shape, dtype=torch.bool, device=torch_device
             )
-            # print("raw_dofs.shape", raw_dofs.shape)
             dof_mask[kmd.forest.doftype == NodeType.bond, BondDOFTypes.phi_c] = True
             dof_mask[
                 kmd.forest.doftype == NodeType.jump, : JumpDOFTypes.RBdel_gamma
             ] = True
         self.dof_mask = dof_mask
 
-        # self.full_coords = pose_stack.coords
-        # if coord_mask is None:
-        #     coord_mask = torch.full(
-        #         self.full_coords.shape[:-1],
-        #         True,
-        #         device=self.full_coords.device,
-        #         dtype=torch.bool,
-        #     )
-        # self.coord_mask = coord_mask
-        self.full_dofs = raw_dofs
-
         self.masked_dofs = torch.nn.Parameter(self.full_dofs[self.dof_mask])
-        # print("masked dofs.device", self.masked_dofs.device)
         self.count = 0
 
     def forward(self):
@@ -139,4 +127,4 @@ class KinForestSfxnNetwork(torch.nn.Module):
         flat_coords[self.id[1:]] = kin_coords[1:]
         full_coords = flat_coords.view(self.orig_coords_shape)
 
-        return self.pose_stack.clone_with_new_coords(full_coords)
+        return attrs.evolve(self.pose_stack, coords=full_coords)
