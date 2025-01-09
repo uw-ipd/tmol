@@ -48,8 +48,9 @@ def assign_block_types(
 
     (
         termini_variants,
-        is_chain_first_res,
-        is_chain_last_res,
+        is_actual_first_chain_res,
+        is_actual_last_chain_res,
+        is_polymeric,
     ) = determine_chain_ending_status(
         pbt, chain_id, res_types64, res_not_connected, is_real_res
     )
@@ -72,49 +73,52 @@ def assign_block_types(
         (n_poses, max_n_res, max_n_conn, 2), -1, dtype=torch.int64, device=device
     )
 
-    # is a residue both real and connected to the previous residue?
-    res_is_real_and_conn_to_prev = torch.logical_and(
-        is_real_res,
+    # is a residue both polymeric and connected to the previous residue?
+    res_is_polymeric_and_conn_to_prev = torch.logical_and(
+        is_polymeric,
         torch.logical_and(
-            torch.logical_not(is_chain_first_res),
+            torch.logical_not(is_actual_first_chain_res),
             torch.logical_not(res_not_connected[:, :, 0]),
         ),
     )
-    res_is_real_and_conn_to_next = torch.logical_and(
-        is_real_res,
+    res_is_polymeric_and_conn_to_next = torch.logical_and(
+        is_polymeric,
         torch.logical_and(
-            torch.logical_not(is_chain_last_res),
+            torch.logical_not(is_actual_last_chain_res),
             torch.logical_not(res_not_connected[:, :, 1]),
         ),
     )
 
     connected_up_conn_inds = pbt.up_conn_inds[
-        block_type_ind64[res_is_real_and_conn_to_next]
+        block_type_ind64[res_is_polymeric_and_conn_to_next]
     ].to(torch.int64)
     connected_down_conn_inds = pbt.down_conn_inds[
-        block_type_ind64[res_is_real_and_conn_to_prev]
+        block_type_ind64[res_is_polymeric_and_conn_to_prev]
     ].to(torch.int64)
 
+    # print("connected_up_conn_inds", connected_up_conn_inds.shape)
+    # print("connected_down_conn_inds", connected_down_conn_inds.shape)
+
     (
-        nz_res_is_real_and_conn_to_prev_pose_ind,
-        nz_res_is_real_and_conn_to_prev_res_ind,
-    ) = torch.nonzero(res_is_real_and_conn_to_prev, as_tuple=True)
+        nz_res_is_poly_and_conn_to_prev_pose_ind,
+        nz_res_is_poly_and_conn_to_prev_res_ind,
+    ) = torch.nonzero(res_is_polymeric_and_conn_to_prev, as_tuple=True)
     (
-        nz_res_is_real_and_conn_to_next_pose_ind,
-        nz_res_is_real_and_conn_to_next_res_ind,
-    ) = torch.nonzero(res_is_real_and_conn_to_next, as_tuple=True)
+        nz_res_is_poly_and_conn_to_next_pose_ind,
+        nz_res_is_poly_and_conn_to_next_res_ind,
+    ) = torch.nonzero(res_is_polymeric_and_conn_to_next, as_tuple=True)
 
     # now let's mark for each upper-connect the residue and
     # connection id it's connected to
     inter_residue_connections64[
-        nz_res_is_real_and_conn_to_next_pose_ind,
-        nz_res_is_real_and_conn_to_next_res_ind,
+        nz_res_is_poly_and_conn_to_next_pose_ind,
+        nz_res_is_poly_and_conn_to_next_res_ind,
         connected_up_conn_inds,
         0,  # residue id
-    ] = nz_res_is_real_and_conn_to_prev_res_ind
+    ] = nz_res_is_poly_and_conn_to_prev_res_ind
     inter_residue_connections64[
-        nz_res_is_real_and_conn_to_next_pose_ind,
-        nz_res_is_real_and_conn_to_next_res_ind,
+        nz_res_is_poly_and_conn_to_next_pose_ind,
+        nz_res_is_poly_and_conn_to_next_res_ind,
         connected_up_conn_inds,
         1,  # connection id
     ] = connected_down_conn_inds
@@ -122,14 +126,14 @@ def assign_block_types(
     # now let's mark for each lower-connect the residue and
     # connection id it's connected to
     inter_residue_connections64[
-        nz_res_is_real_and_conn_to_prev_pose_ind,
-        nz_res_is_real_and_conn_to_prev_res_ind,
+        nz_res_is_poly_and_conn_to_prev_pose_ind,
+        nz_res_is_poly_and_conn_to_prev_res_ind,
         connected_down_conn_inds,
         0,  # residue id
-    ] = nz_res_is_real_and_conn_to_next_res_ind
+    ] = nz_res_is_poly_and_conn_to_next_res_ind
     inter_residue_connections64[
-        nz_res_is_real_and_conn_to_prev_pose_ind,
-        nz_res_is_real_and_conn_to_prev_res_ind,
+        nz_res_is_poly_and_conn_to_prev_pose_ind,
+        nz_res_is_poly_and_conn_to_prev_res_ind,
         connected_down_conn_inds,
         1,  # connection id
     ] = connected_up_conn_inds
@@ -300,12 +304,19 @@ def determine_chain_ending_status(
         ),
     )
 
+    is_actual_first_chain_res = torch.logical_or(
+        is_chain_first_res, prev_res_on_same_chain_not_polymeric
+    )
+    is_actual_last_chain_res = torch.logical_or(
+        is_chain_last_res, next_res_on_same_chain_not_polymeric
+    )
+
     is_down_term_res = torch.logical_and(
-        torch.logical_or(is_chain_first_res, prev_res_on_same_chain_not_polymeric),
+        is_actual_first_chain_res,
         torch.logical_not(res_not_connected[:, :, 0]),
     )
     is_up_term_res = torch.logical_and(
-        torch.logical_or(is_chain_last_res, next_res_on_same_chain_not_polymeric),
+        is_actual_last_chain_res,
         torch.logical_not(res_not_connected[:, :, 1]),
     )
     is_down_and_not_up_term_res = torch.logical_and(
@@ -329,7 +340,12 @@ def determine_chain_ending_status(
     # is polymeric
     termini_variants[torch.logical_not(is_polymeric)] = 1
 
-    return termini_variants, is_chain_first_res, is_chain_last_res
+    return (
+        termini_variants,
+        is_actual_first_chain_res,
+        is_actual_last_chain_res,
+        is_polymeric,
+    )
 
 
 @validate_args
