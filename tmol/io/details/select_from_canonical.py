@@ -50,7 +50,9 @@ def assign_block_types(
         termini_variants,
         is_chain_first_res,
         is_chain_last_res,
-    ) = determine_chain_ending_status(pbt, chain_id, res_not_connected, is_real_res)
+    ) = determine_chain_ending_status(
+        pbt, chain_id, res_types64, res_not_connected, is_real_res
+    )
 
     block_type_ind64 = select_best_block_type_candidate(
         canonical_ordering,
@@ -197,11 +199,13 @@ def assign_block_types(
 def determine_chain_ending_status(
     pbt: PackedBlockTypes,
     chain_id: Tensor[torch.int32][:, :],
+    res_types64: Tensor[torch.int64][:, :],
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]],
     is_real_res: Tensor[torch.bool][:, :],
 ):
     n_poses = chain_id.shape[0]
     device = pbt.device
+    can_ann = pbt.canonical_ordering_annotation
 
     # logic for deciding what chemical bonds are present between the polymeric
     # residues and which residues should be represented as termini:
@@ -224,6 +228,18 @@ def determine_chain_ending_status(
     #   will be incomplete (-1) instead of to a particular residue.
     # - If a residue is the last residue in a chain and res_not_connected[p, i, 1]
     #   is true, then it will not be treated as a c-terminal residue.
+    #
+    # NOTE: Often non-polymeric residues are marked as belonging to the chains of
+    # polymeric residues, usually to designate them as part of the same symmetry
+    # unit, e.g. the "chain A waters" vs the "chain B waters". This complicates
+    # chain-end dection, as the last chain A residue might be a water residue, but
+    # the last polymeric chain A residue might be 30 residues back. So we look at
+    # whether the restype for a position is a polymic residue type and we will
+    # mark residue i as being the C-term residue if i+1 is non-polymeric (and real).
+    # We also have to mark the non-polymeric residue as being "mid" residue termini
+    # types (1) because it will be understood as neither an up- nor down-terminus
+    # type.
+
     is_chain_first_res = torch.logical_and(
         is_real_res,
         torch.cat(
@@ -244,11 +260,53 @@ def determine_chain_ending_status(
             dim=1,
         ),
     )
+    is_polymeric = torch.zeros_like(is_chain_first_res)
+    is_polymeric[is_real_res] = can_ann.co_equiv_class_is_polymeric[
+        res_types64[is_real_res]
+    ]
+
+    # another way a residue might be declared as a chain-ending residue is if
+    # the next residue is not polymeric yet is declared to be part of the same chain
+    next_res_on_same_chain_not_polymeric = torch.logical_and(
+        torch.cat(
+            (
+                torch.logical_not(is_polymeric[:, 1:]),
+                torch.zeros((n_poses, 1), dtype=torch.bool, device=device),
+            ),
+            dim=1,
+        ),
+        torch.cat(
+            (
+                chain_id[:, :-1] == chain_id[:, 1:],  # is i different from i+1?
+                torch.zeros((n_poses, 1), dtype=torch.bool, device=device),
+            ),
+            dim=1,
+        ),
+    )
+    prev_res_on_same_chain_not_polymeric = torch.logical_and(
+        torch.cat(
+            (
+                torch.zeros((n_poses, 1), dtype=torch.bool, device=device),
+                torch.logical_not(is_polymeric[:, :-1]),
+            ),
+            dim=1,
+        ),
+        torch.cat(
+            (
+                torch.zeros((n_poses, 1), dtype=torch.bool, device=device),
+                chain_id[:, :-1] == chain_id[:, 1:],  # is i different from i+1?
+            ),
+            dim=1,
+        ),
+    )
+
     is_down_term_res = torch.logical_and(
-        is_chain_first_res, torch.logical_not(res_not_connected[:, :, 0])
+        torch.logical_or(is_chain_first_res, prev_res_on_same_chain_not_polymeric),
+        torch.logical_not(res_not_connected[:, :, 0]),
     )
     is_up_term_res = torch.logical_and(
-        is_chain_last_res, torch.logical_not(res_not_connected[:, :, 1])
+        torch.logical_or(is_chain_last_res, next_res_on_same_chain_not_polymeric),
+        torch.logical_not(res_not_connected[:, :, 1]),
     )
     is_down_and_not_up_term_res = torch.logical_and(
         is_down_term_res, torch.logical_not(is_up_term_res)
@@ -264,6 +322,12 @@ def determine_chain_ending_status(
     termini_variants[is_down_and_not_up_term_res] = 0
     termini_variants[is_up_and_not_down_term_res] = 2
     termini_variants[is_both_down_and_up_term_res] = 3
+
+    # now, any non-polymeric residue type is marked as neither an up nor a down terminus,
+    # overriding any instances where such a residue is marked as an up or down terminus
+    # by the logic above, as that logic does not examine whether a particular residue
+    # is polymeric
+    termini_variants[torch.logical_not(is_polymeric)] = 1
 
     return termini_variants, is_chain_first_res, is_chain_last_res
 
@@ -371,11 +435,15 @@ def select_best_block_type_candidate(
         dtype=torch.bool,
         device=device,
     )
+    # print("res_types64", res_types64)
+    # print("termini_variants", termini_variants)
+    # print("res_type_variants64", res_type_variants64)
     block_type_candidates[is_real_res] = can_ann.var_combo_candidate_bt_index[
         res_types64[is_real_res],
         termini_variants[is_real_res],
         res_type_variants64[is_real_res],
     ]
+    # print("block_type_candidates", block_type_candidates)
 
     real_res_res_types64 = res_types64[is_real_res]
     real_res_termini_variants = termini_variants[is_real_res]
@@ -384,6 +452,7 @@ def select_best_block_type_candidate(
     real_res_block_type_candidates = can_ann.var_combo_candidate_bt_index[
         real_res_res_types64, real_res_termini_variants, real_res_res_type_variants64
     ]
+    # print("real_res_block_type_candidates", real_res_block_type_candidates)
 
     is_real_candidate[is_real_res] = can_ann.var_combo_is_real_candidate[
         res_types64[is_real_res],
@@ -400,16 +469,19 @@ def select_best_block_type_candidate(
     real_candidate_atom_is_absent = can_ann.bt_canonical_atom_is_absent[
         real_candidate_block_type
     ]
+    # print("real_candidate_atom_is_absent", real_candidate_atom_is_absent)
 
     real_candidate_provided_atoms_absent = torch.logical_and(
         atom_is_present[is_real_candidate], real_candidate_atom_is_absent
     )
+    # print("real_candidate_provided_atoms_absent", real_candidate_provided_atoms_absent)
 
     # if there are any atoms that were provided for a given residue
     # but that the variant does not contain, then that is not a match
     real_candidate_should_be_excluded = torch.any(
         real_candidate_provided_atoms_absent, dim=1
     )
+    # print("real_candidate_should_be_excluded", real_candidate_should_be_excluded)
     atom_is_absent = torch.logical_not(atom_is_present)
     real_candidate_non_term_patch_atom_is_present = (
         can_ann.bt_non_term_patch_added_canonical_atom_is_present[
@@ -459,7 +531,12 @@ def select_best_block_type_candidate(
         best_candidate_ind2[is_real_res],
     ]
 
+    # print("best_candidate_score", best_candidate_score)
+
     if torch.any(best_candidate_score >= failure_score):
+
+        # print("best_candidate_score >= failure_score", best_candidate_score >= failure_score)
+
         nz_is_real_candidate = torch.nonzero(is_real_candidate)
         err_msg = []
         for cand_ind in range(nz_is_real_candidate.shape[0]):
@@ -472,6 +549,7 @@ def select_best_block_type_candidate(
             ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
                 res_types64[i, j]
             ]
+            # print("ij_equiv_class", i, j, ij_equiv_class)
             err_msg.append("Failed to resolve block type for")
             err_msg.extend([str(x) for x in [i.item(), j.item()]])
             err_msg.append(str(ij_equiv_class) + "\n")
@@ -606,6 +684,8 @@ def take_block_type_atoms_from_canonical(
 @attr.s(auto_attribs=True, frozen=True)
 class CanonicalOrderingAnnotation:
     max_n_candidates_for_var_combo: int
+    # n-co-equiv-class
+    co_equiv_class_is_polymeric: Tensor[torch.bool][:]
     # n-co-equiv-class x n-term-opts x n-spcase-var
     var_combo_n_candidates: Tensor[torch.int64][:, :, :]
     # n-co-equiv-class x n-term-opts x n-spcase-var x max-n-candidates
@@ -691,6 +771,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
     pbt_io_equiv_class_name_set = set(
         [bt.io_equiv_class for bt in pbt.active_block_types]
     )
+
     pbt_io_equiv_class_candidates = {
         io_equiv_class: _term_and_spcase_var_candidate_lists(
             max_n_termini_types, max_n_special_case_aa_variant_types
@@ -751,6 +832,24 @@ def _annotate_packed_block_types_w_canonical_res_order(
         dtype=torch.int64,
         device=torch.device("cpu"),
     )
+
+    bts_for_equiv_class = {}
+    for bt in pbt.active_block_types:
+        if bt.io_equiv_class not in bts_for_equiv_class:
+            bts_for_equiv_class[bt.io_equiv_class] = []
+        bts_for_equiv_class[bt.io_equiv_class].append(bt)
+
+    # We will consider the entire IO equivalence class to be
+    # polymeric if a single block type within that equivalence class
+    # is polymeric.
+    co_equiv_class_is_polymeric = torch.zeros(
+        (n_co_io_equiv_classes,), dtype=torch.bool
+    )
+    for i, io_equiv_class in enumerate(co.restype_io_equiv_classes):
+        for bt in bts_for_equiv_class[io_equiv_class]:
+            if bt.properties.polymer.is_polymer:
+                co_equiv_class_is_polymeric[i] = True
+
     for i, bt_name3 in enumerate(co.restype_io_equiv_classes):
         if bt_name3 not in pbt_io_equiv_class_candidates:
             continue
@@ -830,6 +929,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
 
     ann = CanonicalOrderingAnnotation(
         max_n_candidates_for_var_combo=max_n_candidates_for_var_combo,
+        co_equiv_class_is_polymeric=co_equiv_class_is_polymeric,
         var_combo_n_candidates=_d(var_combo_n_candidates),
         var_combo_is_real_candidate=_d(var_combo_is_real_candidate),
         var_combo_candidate_bt_index=_d(var_combo_candidate_bt_index),

@@ -518,6 +518,7 @@ def test_res_error_checks(default_unpatched_chemical_database):
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
     """
     unpatched_chemical_database = evolve(
         default_unpatched_chemical_database, residues=residues_from_yaml(rawres)
@@ -625,6 +626,7 @@ def test_validate_restype_bad_conns(default_unpatched_chemical_database):
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
 """
     unpatched_chemical_database = evolve(
         default_unpatched_chemical_database, residues=residues_from_yaml(rawres)
@@ -731,6 +733,7 @@ def test_validate_restype_bad_icoor(default_unpatched_chemical_database):
         pH: 7
       virtual: []
     chi_samples: []
+    default_jump_connection_atom: CA
 """
     unpatched_chemical_database = evolve(
         default_unpatched_chemical_database, residues=residues_from_yaml(rawres)

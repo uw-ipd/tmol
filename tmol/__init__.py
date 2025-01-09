@@ -1,5 +1,6 @@
 from importlib.metadata import PackageNotFoundError, version
 
+from tmol.database import ParameterDatabase  # noqa: F401
 from tmol.chemical.restypes import one2three, three2one  # noqa: F401
 from tmol.pose.packed_block_types import PackedBlockTypes  # noqa: F401
 from tmol.pose.pose_stack import PoseStack  # noqa: F401

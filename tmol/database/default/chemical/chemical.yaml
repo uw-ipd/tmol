@@ -9,6 +9,7 @@ element_types:
   - {name: S, atomic_number: 16}
   - {name: Cl, atomic_number: 17}
   - {name: K, atomic_number: 19}
+  - {name: Vr, atomic_number: 0}
 
 atom_types:
   - name: CNH2
@@ -60,6 +61,7 @@ atom_types:
   - { name: HS  , element: H, is_polarh : true }
   - { name: HNbb, element: H, is_polarh : true }
   - { name: Hwat, element: H, is_polarh : true }
+  - { name: Vrt, element: Vr}
 
 residues:
   - name:  ALA
@@ -2397,6 +2399,43 @@ residues:
       virtual: []
     chi_samples: []
     default_jump_connection_atom: O
+  - name:  VRT
+    base_name: VRT
+    name3: VRT
+    io_equiv_class: VRT
+    atoms:
+    - { name: A1, atom_type: Vrt  }
+    - { name: A2, atom_type: Vrt }
+    - { name: A3, atom_type: Vrt }
+    atom_aliases: []
+    bonds:
+    - [A1, A2]
+    - [A1, A3]
+    connections: []
+    torsions: []
+    icoors:
+    - { name:    A1, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, parent:     A1, grand_parent:    A2, great_grand_parent:     A3}
+    - { name:    A2, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.000000, parent:     A1, grand_parent:    A2, great_grand_parent:     A3}
+    - { name:    A3, phi:    0.000000 deg, theta:   90.000000 deg, d:    1.000000, parent:     A1, grand_parent:    A2, great_grand_parent:     A3}
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: false
+        polymer_type: NA
+        backbone_type: NA
+        mainchain_atoms: []
+        sidechain_chirality: NA
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: A1
+
 
 variants:
   - name:  CarboxyTerminus

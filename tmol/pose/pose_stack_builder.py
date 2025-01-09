@@ -876,6 +876,9 @@ class PoseStackBuilder:
         n_conn_for_block_offset64 = n_conn_for_block_offset.to(torch.int64)
         max_n_pose_conn = torch.max(n_conn_totals)
 
+        # Not all blocks have inter-residue connections! We want the subset
+        # of real blocks that do.
+        block_has_conn = n_conn_for_block > 0
         # nz_real_blocks_pose_ind, nz_real_blocks_block_ind = torch.nonzero(
         #     real_blocks, as_tuple=True
         # )
@@ -898,7 +901,8 @@ class PoseStackBuilder:
             (n_poses, max_n_pose_conn), dtype=torch.int32, device=pbt_device
         )
         first_pconn_for_block[
-            pose_for_block[real_blocks.view(-1)], n_conn_for_block_offset64[real_blocks]
+            pose_for_block[block_has_conn.view(-1)],
+            n_conn_for_block_offset64[block_has_conn],
         ] = 1
         # then an inclusive cummulative sum will label all of the
         # connections coming from the same block the same; this
