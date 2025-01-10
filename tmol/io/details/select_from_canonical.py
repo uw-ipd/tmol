@@ -96,9 +96,6 @@ def assign_block_types(
         block_type_ind64[res_is_polymeric_and_conn_to_prev]
     ].to(torch.int64)
 
-    # print("connected_up_conn_inds", connected_up_conn_inds.shape)
-    # print("connected_down_conn_inds", connected_down_conn_inds.shape)
-
     (
         nz_res_is_poly_and_conn_to_prev_pose_ind,
         nz_res_is_poly_and_conn_to_prev_res_ind,
@@ -451,15 +448,11 @@ def select_best_block_type_candidate(
         dtype=torch.bool,
         device=device,
     )
-    # print("res_types64", res_types64)
-    # print("termini_variants", termini_variants)
-    # print("res_type_variants64", res_type_variants64)
     block_type_candidates[is_real_res] = can_ann.var_combo_candidate_bt_index[
         res_types64[is_real_res],
         termini_variants[is_real_res],
         res_type_variants64[is_real_res],
     ]
-    # print("block_type_candidates", block_type_candidates)
 
     real_res_res_types64 = res_types64[is_real_res]
     real_res_termini_variants = termini_variants[is_real_res]
@@ -468,7 +461,6 @@ def select_best_block_type_candidate(
     real_res_block_type_candidates = can_ann.var_combo_candidate_bt_index[
         real_res_res_types64, real_res_termini_variants, real_res_res_type_variants64
     ]
-    # print("real_res_block_type_candidates", real_res_block_type_candidates)
 
     is_real_candidate[is_real_res] = can_ann.var_combo_is_real_candidate[
         res_types64[is_real_res],
@@ -485,19 +477,16 @@ def select_best_block_type_candidate(
     real_candidate_atom_is_absent = can_ann.bt_canonical_atom_is_absent[
         real_candidate_block_type
     ]
-    # print("real_candidate_atom_is_absent", real_candidate_atom_is_absent)
 
     real_candidate_provided_atoms_absent = torch.logical_and(
         atom_is_present[is_real_candidate], real_candidate_atom_is_absent
     )
-    # print("real_candidate_provided_atoms_absent", real_candidate_provided_atoms_absent)
 
     # if there are any atoms that were provided for a given residue
     # but that the variant does not contain, then that is not a match
     real_candidate_should_be_excluded = torch.any(
         real_candidate_provided_atoms_absent, dim=1
     )
-    # print("real_candidate_should_be_excluded", real_candidate_should_be_excluded)
     atom_is_absent = torch.logical_not(atom_is_present)
     real_candidate_non_term_patch_atom_is_present = (
         can_ann.bt_non_term_patch_added_canonical_atom_is_present[
@@ -547,11 +536,7 @@ def select_best_block_type_candidate(
         best_candidate_ind2[is_real_res],
     ]
 
-    # print("best_candidate_score", best_candidate_score)
-
     if torch.any(best_candidate_score >= failure_score):
-
-        # print("best_candidate_score >= failure_score", best_candidate_score >= failure_score)
 
         nz_is_real_candidate = torch.nonzero(is_real_candidate)
         err_msg = []
@@ -565,7 +550,6 @@ def select_best_block_type_candidate(
             ij_equiv_class = canonical_ordering.restype_io_equiv_classes[
                 res_types64[i, j]
             ]
-            # print("ij_equiv_class", i, j, ij_equiv_class)
             err_msg.append("Failed to resolve block type for")
             err_msg.extend([str(x) for x in [i.item(), j.item()]])
             err_msg.append(str(ij_equiv_class) + "\n")

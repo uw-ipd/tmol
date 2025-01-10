@@ -16,25 +16,6 @@
 namespace tmol {
 namespace kinematics {
 
-// #ifdef __CUDACC__
-// #define gpuErrPeek gpuAssert(cudaPeekAtLastError(), __FILE__, __LINE__);
-// #define gpuErrSync gpuAssert(cudaDeviceSynchronize(), __FILE__, __LINE__);
-// #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-// inline void gpuAssert(cudaError_t code, const char *file, int line, bool
-// abort=true)
-// {
-//    if (code != cudaSuccess)
-//    {
-//       fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file,
-//       line); if (abort) exit(code);
-//    }
-// }
-// #else
-// #define gpuErrPeek
-// #define gpuErrSync
-// #define gpuErrchk(ans) { ans; }
-// #endif
-
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
@@ -183,7 +164,6 @@ struct ForwardKinDispatch {
       TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
       TView<KinForestParams<Int>, 1, D> kintree)
       -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D>> {
-    // printf("ForwardKinDispatch CUDA\n");
     NVTXRange _function(__FUNCTION__);
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<128, 2> launch_t;
@@ -233,7 +213,6 @@ struct ForwardKinDispatch {
     nvtx_range_pop();
 
     auto ngens = gens.size(0) - 1;
-    // printf("start gensegscans: ngens %d\n", ngens);
     for (int gen = 0; gen < ngens; ++gen) {
       int nodestart = gens[gen].node_start, scanstart = gens[gen].scan_start;
 
@@ -256,7 +235,6 @@ struct ForwardKinDispatch {
       // mgpu does not play nicely with eigen types
       // instead, we wrap the raw data buffer as QuatTransRawBuffer
       //      and use eigen:map to reconstruct on device
-      // printf("segscan: gen %d, nnodes %d, nscans %d\n", gen, nnodes, nscans);
       tmol::kinematics::kernel_segscan<launch_t>(
           k_reindex,
           nnodes,
@@ -272,7 +250,6 @@ struct ForwardKinDispatch {
       nvtx_range_pop();
       gpuErrPeek;
       gpuErrSync;
-      // printf("kernel_segscan gen %d\n", gen);
 
       // unindex for gen i
       // this would be nice to incorporate into kernel_segscan (as the indexing
@@ -290,7 +267,6 @@ struct ForwardKinDispatch {
       nvtx_range_pop();
       gpuErrPeek;
       gpuErrSync;
-      // printf("k_unindex gen %d\n", gen);
       nvtx_range_pop();
     }
 
@@ -303,9 +279,6 @@ struct ForwardKinDispatch {
     mgpu::transform(k_getcoords, num_atoms, context);
     gpuErrPeek;
     gpuErrSync;
-    // printf("k_getcoords num_atoms %d\n", num_atoms);
-
-    // printf("done ForwardKinDispatch CUDA\n");
 
     return {xs_t, HTs_t};
   }
@@ -320,7 +293,6 @@ struct InverseKinDispatch {
       TView<Int, 1, D> frame_y,
       TView<Int, 1, D> frame_z,
       TView<Int, 1, D> doftype) -> TPack<KintreeDof, 1, D> {
-    // printf("InverseKinDispatch\n");
     auto num_atoms = coords.size(0);
 
     // fd: we could eliminate HT allocation and calculate on the fly
@@ -360,7 +332,6 @@ struct InverseKinDispatch {
     });
 
     mgpu::transform(k_hts2dofs, num_atoms, context);
-    // printf("done InverseKinDispatch\n");
 
     return dofs_t;
   }
@@ -376,7 +347,6 @@ struct KinDerivDispatch {
       TView<Int, 1, D> scans,
       TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
       TView<KinForestParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D> {
-    // printf("KinDerivDispatch\n");
     NVTXRange _function(__FUNCTION__);
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<256, 3> launch_t;
@@ -438,16 +408,6 @@ struct KinDerivDispatch {
         assert(
             nodes[nodestart + index] < f1f2s.size(0)
             && nodes[nodestart + index] >= 0);
-        // if (nodes[nodestart + index] == 20) {
-        //   printf(
-        //       "k_reindex gen %d ns %d ind %d seg %d rank %d val: %f\n",
-        //       gen,
-        //       nodestart,
-        //       index,
-        //       seg,
-        //       rank,
-        //       f1f2s[nodes[nodestart + index]][3]);
-        // }
         return *(
             (f1f2VecsRawBuffer<Real>*)f1f2s[nodes[nodestart + index]].data());
       };
@@ -480,34 +440,11 @@ struct KinDerivDispatch {
           atomicAdd(
               &(f1f2s[nodes[nodestart + index]][kk]), f1f2scan[index][kk]);
         }
-        // if (nodes[nodestart + index] == 20) {
-        //   printf(
-        //       "k_unindex gen %d ns %d ind %d node %d val: %f\n",
-        //       gen,
-        //       nodestart,
-        //       index,
-        //       nodes[nodestart + index],
-        //       f1f2s[nodes[nodestart + index]][3]);
-        // }
       };
 
       mgpu::transform(k_unindex, nnodes, context);
       nvtx_range_pop();
     }
-
-    // auto k_print = [=] MGPU_DEVICE(int index) {
-    //   printf(
-    //       "f1f2s[%d]: %f %f %f %f %f %f\n",
-    //       index,
-    //       f1f2s[index][0],
-    //       f1f2s[index][1],
-    //       f1f2s[index][2],
-    //       f1f2s[index][3],
-    //       f1f2s[index][4],
-    //       f1f2s[index][5]);
-    // };
-
-    // mgpu::transform(k_print, num_atoms, context);
 
     nvtx_range_push("dispatch::f1f2_to_deriv");
     auto k_f1f2s2derivs = ([=] EIGEN_DEVICE_FUNC(int i) {
@@ -527,7 +464,6 @@ struct KinDerivDispatch {
     mgpu::transform(k_f1f2s2derivs, num_atoms, context);
     nvtx_range_pop();
 
-    // printf("done KinDerivDispatch\n");
     return dsc_ddofs_t;
   }
 };
@@ -543,6 +479,9 @@ template struct KinForestFromStencil<
     tmol::score::common::DeviceOperations,
     tmol::Device::CUDA,
     int32_t>;
+// NOTE: Intetionally not enabling int64_t as there are atomic_incremement
+// operations that are needed for several steps in the kin-forest construction
+// algorithm and atomic_increment is not implemented in CUDA for int64_t.
 // template struct KinForestFromStencil<
 //     tmol::score::common::DeviceOperations,
 //     tmol::Device::CUDA,

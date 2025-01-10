@@ -5,7 +5,7 @@ from tmol.types.array import NDArray
 from tmol.kinematics.fold_forest import EdgeType
 
 
-# @numba.jit(nopython=True)
+@numba.jit(nopython=True)
 def mark_polymeric_bonds_in_foldforest_edges(
     n_poses: int,
     max_n_blocks: int,
@@ -44,7 +44,7 @@ def mark_polymeric_bonds_in_foldforest_edges(
     return (polymeric_connection_in_edge, count_bad_for_pose, bad_edges)
 
 
-# @numba.jit(nopython=True)
+@numba.jit(nopython=True)
 def bfs_proper_forest(
     roots: NDArray[numpy.int64][:],
     n_blocks: NDArray[numpy.int64][:],
@@ -92,7 +92,7 @@ def bfs_proper_forest(
     return cycles_detected, missing
 
 
-# @numba.jit(nopython=True)
+@numba.jit(nopython=True)
 def ensure_jumps_numbered_and_distinct(
     edges: NDArray[numpy.int64][:, :, 4],
 ):
@@ -108,7 +108,6 @@ def ensure_jumps_numbered_and_distinct(
             if edges[i, j, 0] == EdgeType.jump:
                 count_n_jumps[i] += 1
                 if edges[i, j, 3] < 0 or edges[i, j, 3] >= max_n_edges:
-                    # print("bad jump number", i, j, edges[i, j, 3], "out of range")
                     found_bad_jump = True
                     bad_jump_ind = count_n_bad_jumps[i]
                     bad_jump_numbers[i, bad_jump_ind] = j
@@ -116,7 +115,6 @@ def ensure_jumps_numbered_and_distinct(
                     continue
                 if jump_numbers[i, edges[i, j, 3]] != -1:
                     # this jump number has already been seen
-                    # print("bad jump number", i, j, edges[i, j, 3], "duplicate")
                     found_bad_jump = True
                     bad_jump_ind = count_n_bad_jumps[i]
                     bad_jump_numbers[i, bad_jump_ind] = j
@@ -128,7 +126,6 @@ def ensure_jumps_numbered_and_distinct(
         # have non-contiguous indices starting from 0.
         for j in range(count_n_jumps[i], max_n_edges):
             if jump_numbers[i, j] != -1:
-                # print(f"jump_numbers[{i}][{j}] = {jump_numbers[i, j]}")
                 found_bad_jump = True
                 bad_jump_ind = count_n_bad_jumps[i]
                 bad_jump_numbers[i, bad_jump_ind] = jump_numbers[i, j]
@@ -136,7 +133,7 @@ def ensure_jumps_numbered_and_distinct(
     return found_bad_jump, count_n_bad_jumps, bad_jump_numbers, count_n_jumps
 
 
-# @numba.jit(nopython=True)
+@numba.jit(nopython=True)
 def validate_fold_forest_jit(
     roots: NDArray[numpy.int64][:],
     n_blocks: NDArray[numpy.int64][:],
@@ -154,10 +151,6 @@ def validate_fold_forest_jit(
             error = True
     if error:
         return False, bad_edges, None, None, None, None, None
-
-    # print("roots", roots)
-    # print("n_blocks", n_blocks)
-    # print("edges", edges)
 
     # ok, let's get the other edges incorporated
     for i in range(n_poses):
@@ -203,11 +196,6 @@ def validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
-    # print("validate fold forest")
-    # print("roots", roots)
-    # print("n_blocks", n_blocks)
-    # print("edges", edges)
-
     (
         good,
         bad_edges,
@@ -335,4 +323,3 @@ def validate_fold_forest(
                                 )
                             )
         raise ValueError("\n".join(errors))
-    # print("done with validate fold forest")
