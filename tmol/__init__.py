@@ -37,6 +37,8 @@ from tmol.io.write_pose_stack_pdb import (  # noqa: F401
 )
 from tmol.score import beta2016_score_function  # noqa: F401
 from tmol.score.score_function import ScoreFunction  # noqa: F401
+from tmol.score.score_types import ScoreType  # noqa: F401
+
 
 from tmol.optimization.kin_min import build_kinforest_network, run_kin_min  # noqa: F401
 

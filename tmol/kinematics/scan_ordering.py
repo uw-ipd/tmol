@@ -1252,6 +1252,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
 
 
 def _annotate_packed_block_type_with_gen_scan_path_segs(pbt):
+    # print("annotating packed block type with gen scan path segs", pbt.device)
     # for i, bt in enumerate(pbt.active_block_types):
     #     print(f"bt {bt.name} index {i}")
     for bt in pbt.active_block_types:

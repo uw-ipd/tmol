@@ -433,9 +433,15 @@ class PBTGenerationalSegScanPathSegs:
                 device=device,
             ),
             uaid_for_torsion_by_inconn=torch.full(
-                (n_bt, max_n_input_types, max_n_torsions, 3), -1, dtype=torch.int32
+                (n_bt, max_n_input_types, max_n_torsions, 3),
+                -1,
+                dtype=torch.int32,
+                device=device,
             ),
             torsion_direction=torch.full(
-                (n_bt, max_n_input_types, max_n_torsions), 1, dtype=torch.int32
+                (n_bt, max_n_input_types, max_n_torsions),
+                1,
+                dtype=torch.int32,
+                device=device,
             ),
         )

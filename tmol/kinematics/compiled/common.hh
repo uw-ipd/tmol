@@ -511,7 +511,6 @@ struct KinForestFromStencil {
       TView<bool, 2, D> keep_dof_fixed,                    // K x 9
       TView<Int, 1, D> bt_n_named_torsions,
       TView<UnresolvedAtomID<Int>, 3, D> bt_uaid_for_torsion,
-      TView<Int, 3, D> bt_torsion_direction,
       TView<bool, 2, D> bt_named_torsion_is_mc,
       TView<Int, 2, D> bt_which_mcsc_torsion_for_named_torsion,
       TView<Int, 3, D> bt_atom_downstream_of_conn,

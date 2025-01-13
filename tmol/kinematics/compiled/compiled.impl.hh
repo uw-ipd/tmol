@@ -1540,8 +1540,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_edges_per_ff,
       mark_ff_edge_end_block_output_conns_as_potential_bw_sp_roots);
-  gpuErrPeek;
-  gpuErrSync;
+  // gpuErrPeek;
+  // gpuErrSync;
 
   auto is_ff_edge_root_of_scan_path_t =
       TPack<bool, 2, D>::zeros({n_poses, max_n_edges_per_ff});
@@ -1636,8 +1636,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   });
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_edges_per_ff, mark_ff_edge_as_root_of_scan_path);
-  gpuErrPeek;
-  gpuErrSync;
+  // gpuErrPeek;
+  // gpuErrSync;
 
   // Step 7
   // Mark the scan-path segments that root each (jump & non-jump) fold-forest
@@ -1751,8 +1751,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_edges_per_ff,
       mark_scan_path_segs_that_root_fold_forest_edges);
-  gpuErrPeek;
-  gpuErrSync;
+  // gpuErrPeek;
+  // gpuErrSync;
 
   // Step 8
   // Step N-4:
@@ -1785,9 +1785,9 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
         int const ff_edge_start = ff_edges[pose][edge][1];
         int const ff_edge_end = ff_edges[pose][edge][2];
         int const n_blocks =
-            (edge_type == 0 ? (ff_edge_end > ff_edge_start
-                                   ? ff_edge_end - ff_edge_start + 1
-                                   : ff_edge_start - ff_edge_end + 1)
+            (edge_type == 0 ? (
+                 ff_edge_end > ff_edge_start ? ff_edge_end - ff_edge_start + 1
+                                             : ff_edge_start - ff_edge_end + 1)
                             : 2);
         int const edge_delay = delay_for_edge[pose][edge];
         int const ff_edge_gen = gen + edge_delay;
@@ -2066,8 +2066,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_blocks * max_n_gens_per_bt * max_n_scan_path_segs_per_gen,
       collect_n_atoms_for_scan_path_segs);
-  gpuErrPeek;
-  gpuErrSync;
+  // gpuErrPeek;
+  // gpuErrSync;
 
   // Step 12
   // And with the number of atoms for each scan path segment, we can now
@@ -2171,11 +2171,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       int const gen_bw = n_gens_total - ind;
       int const tsedge0_block_offset =
           ind < n_gens_total ? block_offset_for_tsedge_for_gen
-                                   [ind * n_poses * max_n_edges_per_ff]
+                  [ind * n_poses * max_n_edges_per_ff]
                              : n_blocks_building_edges_total;
       int const tsedge0_block_offset_bw =
           gen_bw < n_gens_total ? block_offset_for_tsedge_for_gen_bw
-                                      [gen_bw * n_poses * max_n_edges_per_ff]
+                  [gen_bw * n_poses * max_n_edges_per_ff]
                                 : n_blocks_building_edges_total;
       int const tsedge0_for_gen =
           tsedge0_block_offset < n_blocks_building_edges_total
@@ -2307,14 +2307,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     // What is the block offset for the first edge (topo-sort edge 0) for
     // this generation?
     int const tsedge0_block_offset =
-        ff_edge_gen < n_gens_total
-            ? block_offset_for_tsedge_for_gen
-                  [ff_edge_gen * n_poses * max_n_edges_per_ff]
-            : n_blocks_building_edges_total;
+        ff_edge_gen < n_gens_total ? block_offset_for_tsedge_for_gen
+                [ff_edge_gen * n_poses * max_n_edges_per_ff]
+                                   : n_blocks_building_edges_total;
     int const tsedge0_block_offset_bw =
         ff_edge_gen_bw < n_gens_total
             ? block_offset_for_tsedge_for_gen_bw
-                  [ff_edge_gen_bw * n_poses * max_n_edges_per_ff]
+                [ff_edge_gen_bw * n_poses * max_n_edges_per_ff]
             : n_blocks_building_edges_total;  // What is the offset for the
                                               // first scan path segment for
                                               // tsegde0?
@@ -2417,8 +2416,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       n_gens_total + 1);
   DeviceDispatch<D>::template forall<launch_t>(
       n_iter_for_fntfspss, fill_nodes_tensor_from_scan_path_seg_stencils);
-  gpuErrPeek;
-  gpuErrSync;
+  // gpuErrPeek;
+  // gpuErrSync;
 
   return {nodes_fw_t, scans_fw_t, gens_fw_t, nodes_bw_t, scans_bw_t, gens_bw_t};
 }
@@ -2430,7 +2429,7 @@ template <
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<Int, 1, D> kinforest_id,  // K
-    int64_t max_n_atoms_per_pose,
+    int64_t max_n_atoms_per_pose_in,
     TView<Int, 2, D> pose_stack_block_coord_offset,
     TView<Int, 2, D> pose_stack_block_type,
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
@@ -2439,7 +2438,6 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<bool, 2, D> keep_dof_fixed,                    // K x 9
     TView<Int, 1, D> bt_n_named_torsions,
     TView<UnresolvedAtomID<Int>, 3, D> bt_uaid_for_torsion,
-    TView<Int, 3, D> bt_torsion_direction,
     TView<bool, 2, D> bt_named_torsion_is_mc,
     TView<Int, 2, D> bt_which_mcsc_torsion_for_named_torsion,
     TView<Int, 3, D> bt_atom_downstream_of_conn,
@@ -2476,9 +2474,16 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   int const max_n_input_conn_types = bt_uaid_for_torsion.size(1);
   int const max_n_torsions = bt_uaid_for_torsion.size(2);
   int const max_n_atoms_per_block = move_atom_dof.size(2);
+  int const max_n_atoms_per_pose = max_n_atoms_per_pose_in;  // HACK!
+
+  // printf("n_kinforest_atoms = %d\n", n_kinforest_atoms);
+  // printf("n_poses * n_blocks * max_n_atoms_per_block = %d * %d * %d = %d\n",
+  //        n_poses, n_blocks, max_n_atoms_per_block,
+  //        n_poses * n_blocks * max_n_atoms_per_block);
+  // printf("max_n_atoms_per_pose = %d\n", max_n_atoms_per_pose);
 
   auto pose_atom_ordered_minimizer_map_t =
-      TPack<bool, 2, D>::zeros({n_poses * n_blocks * max_n_atoms_per_block, 9});
+      TPack<bool, 2, D>::zeros({n_poses * max_n_atoms_per_pose, 9});
   auto pose_atom_ordered_minimizer_map = pose_atom_ordered_minimizer_map_t.view;
   auto minimizer_map_t = TPack<bool, 2, D>::zeros({n_kinforest_atoms, 9});
   auto minimizer_map = minimizer_map_t.view;
@@ -2545,38 +2550,55 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     int const tor_atom = std::get<1>(resolved_ind);
     atom_for_torsion[pose][block][torsion][0] = tor_atom_block;
     atom_for_torsion[pose][block][torsion][1] = tor_atom;
+    // printf("resolved torsion %d %d %d to %d %d\n", pose, block, torsion,
+    //        tor_atom_block, tor_atom);
   });
 
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * n_blocks * max_n_torsions, resolve_torsion_location);
+  // gpuErrPeek;
+  // gpuErrSync;
 
+  // printf("Step 2\n");
   // Step 2:
   auto set_torsion_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
     int const pose = i / (n_blocks * max_n_torsions);
     i = i - pose * n_blocks * max_n_torsions;
     int const block = i / max_n_torsions;
     int const torsion = i % max_n_torsions;
+    // printf("stf: p %d b %d t %d\n", pose, block, torsion);
+    // return;
 
     int const block_type = pose_stack_block_type[pose][block];
     if (block_type < 0) {
+      // printf("bt < 0\n");
       return;
     }
     int const n_torsions = bt_n_named_torsions[block_type];
     if (torsion >= n_torsions) {
+      // printf("t %d >= nt %d\n", torsion, n_torsions);
       return;
     }
 
     int const tor_atom_block = atom_for_torsion[pose][block][torsion][0];
     int const tor_atom = atom_for_torsion[pose][block][torsion][1];
+    // printf("tab %d ta %d\n", tor_atom_block, tor_atom);
     if (tor_atom_block < 0) {
       return;
     }
+    // return;
 
     int const tor_atom_global_index =
         pose * max_n_atoms_per_pose
         + pose_stack_block_coord_offset[pose][tor_atom_block] + tor_atom;
     int const which_mcsc_torsion =
         bt_which_mcsc_torsion_for_named_torsion[block_type][torsion];
+    // printf("tagi %d = %d * %d + %d + %d\n", tor_atom_global_index, pose,
+    //        max_n_atoms_per_pose,
+    //        pose_stack_block_coord_offset[pose][tor_atom_block], tor_atom);
+    // printf("wmt %d\n", which_mcsc_torsion);
+
+    // return;
 
     auto heirarchy_of_specifications = ([&] TMOL_DEVICE_FUNC(
                                             auto const& move_mcsc_tor_mask,
@@ -2614,8 +2636,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
           move_sc_mask, move_sc, move_scs_mask, move_scs, move_all_scs);
     }
   });
+  // printf("Launch step 2, %d\n", n_poses * n_blocks * max_n_torsions);
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * n_blocks * max_n_torsions, set_torsion_freedom);
+  // gpuErrPeek;
+  // gpuErrSync;
 
   //  Step 3:
   auto set_jump_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -2647,6 +2672,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   });
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_jumps_per_pose, set_jump_freedom);
+  // gpuErrPeek;
+  // gpuErrSync;
 
   // Step 4:
   auto set_atom_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -2666,6 +2693,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   });
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * n_blocks * max_n_atoms_per_block, set_atom_freedom);
+  // gpuErrPeek;
+  // gpuErrSync;
 
   // Step 5:
   auto reindex_minimizer_map = ([=] TMOL_DEVICE_FUNC(int i) {
@@ -2685,6 +2714,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   });
   DeviceDispatch<D>::template forall<launch_t>(
       n_kinforest_atoms, reindex_minimizer_map);
+  // gpuErrPeek;
+  // gpuErrSync;
 
   return minimizer_map_t;
 }

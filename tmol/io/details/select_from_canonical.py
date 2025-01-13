@@ -843,7 +843,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
     # polymeric if a single block type within that equivalence class
     # is polymeric.
     co_equiv_class_is_polymeric = torch.zeros(
-        (n_co_io_equiv_classes,), dtype=torch.bool
+        (n_co_io_equiv_classes,), dtype=torch.bool, device=torch.device("cpu")
     )
     for i, io_equiv_class in enumerate(co.restype_io_equiv_classes):
         for bt in bts_for_equiv_class[io_equiv_class]:
@@ -929,7 +929,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
 
     ann = CanonicalOrderingAnnotation(
         max_n_candidates_for_var_combo=max_n_candidates_for_var_combo,
-        co_equiv_class_is_polymeric=co_equiv_class_is_polymeric,
+        co_equiv_class_is_polymeric=_d(co_equiv_class_is_polymeric),
         var_combo_n_candidates=_d(var_combo_n_candidates),
         var_combo_is_real_candidate=_d(var_combo_is_real_candidate),
         var_combo_candidate_bt_index=_d(var_combo_candidate_bt_index),
