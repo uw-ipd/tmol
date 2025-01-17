@@ -23,7 +23,8 @@ from tmol.kinematics.datatypes import (
     # KinForestScanData,
     # KinematicModuleData,
 )
-from tmol.kinematics.dof_modules import KinematicModule2
+
+# from tmol.kinematics.dof_modules import KinematicModule2
 from tmol.kinematics.fold_forest import EdgeType
 from tmol.kinematics.scan_ordering import (
     construct_kin_module_data_for_pose,

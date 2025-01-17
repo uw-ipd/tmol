@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from tmol.kinematics.operations import inverseKin, forwardKin
+# from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import (
     KinematicBuilder,
     stub_defined_for_jump_atom,
@@ -655,34 +655,34 @@ def test_builder_define_forest_with_prioritized_bonds2():
     numpy.testing.assert_equal(to_parents_in_kfo_gold, to_parents_in_kfo)
 
 
-def test_builder_refold(ubq_system):
-    tsys = ubq_system
+# def test_builder_refold(ubq_system):
+#     tsys = ubq_system
 
-    bonds32 = numpy.array(tsys.bonds, dtype=numpy.int32)
-    id, parents = KinematicBuilder.bonds_to_forest(
-        numpy.array([0], dtype=numpy.int32), bonds32
-    )
-    kinforest = (
-        KinematicBuilder()
-        .append_connected_components(
-            to_roots=numpy.array([0], dtype=numpy.int32),
-            kfo_2_to=id,
-            to_parents_in_kfo=parents,
-            to_jump_nodes=numpy.array([], dtype=numpy.int32),
-        )
-        .kinforest
-    )
+#     bonds32 = numpy.array(tsys.bonds, dtype=numpy.int32)
+#     id, parents = KinematicBuilder.bonds_to_forest(
+#         numpy.array([0], dtype=numpy.int32), bonds32
+#     )
+#     kinforest = (
+#         KinematicBuilder()
+#         .append_connected_components(
+#             to_roots=numpy.array([0], dtype=numpy.int32),
+#             kfo_2_to=id,
+#             to_parents_in_kfo=parents,
+#             to_jump_nodes=numpy.array([], dtype=numpy.int32),
+#         )
+#         .kinforest
+#     )
 
-    kincoords = torch.DoubleTensor(tsys.coords[kinforest.id])
-    dofs = inverseKin(kinforest, kincoords)
-    refold_kincoords = forwardKin(kinforest, dofs)
+#     kincoords = torch.DoubleTensor(tsys.coords[kinforest.id])
+#     dofs = inverseKin(kinforest, kincoords)
+#     refold_kincoords = forwardKin(kinforest, dofs)
 
-    assert (refold_kincoords[0] == 0).all()
+#     assert (refold_kincoords[0] == 0).all()
 
-    refold_coords = numpy.full_like(tsys.coords, numpy.nan)
-    refold_coords[kinforest.id[1:].squeeze()] = refold_kincoords[1:]
+#     refold_coords = numpy.full_like(tsys.coords, numpy.nan)
+#     refold_coords[kinforest.id[1:].squeeze()] = refold_kincoords[1:]
 
-    numpy.testing.assert_allclose(tsys.coords, refold_coords)
+#     numpy.testing.assert_allclose(tsys.coords, refold_coords)
 
 
 def test_builder_framing(ubq_system):

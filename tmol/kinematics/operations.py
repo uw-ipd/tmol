@@ -4,7 +4,8 @@ from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 
 from tmol.kinematics.compiled import inverse_kin
-from tmol.kinematics.script_modules import KinematicModule
+
+# from tmol.kinematics.script_modules import KinematicModule
 
 
 from .datatypes import KinForest, KinDOF
@@ -28,15 +29,15 @@ def inverseKin(kinforest: KinForest, coords: CoordArray, requires_grad=False) ->
     return KinDOF(raw=raw_dofs)
 
 
-# wrapper for the module that is used for testing
-# creates a new module each call so not particularly efficient
-@validate_args
-def forwardKin(kinforest: KinForest, dofs: KinDOF) -> CoordArray:
-    """dofs -> HTs, xyzs
-    - "forward" kinematics
-    """
+# # wrapper for the module that is used for testing
+# # creates a new module each call so not particularly efficient
+# @validate_args
+# def forwardKin(kinforest: KinForest, dofs: KinDOF) -> CoordArray:
+#     """dofs -> HTs, xyzs
+#     - "forward" kinematics
+#     """
 
-    ksm = KinematicModule(kinforest, dofs.raw.device)
-    coords = ksm(dofs.raw)
+#     ksm = KinematicModule(kinforest, dofs.raw.device)
+#     coords = ksm(dofs.raw)
 
-    return coords
+#     return coords
