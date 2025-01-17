@@ -3,7 +3,7 @@ import torch
 
 # from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import (
-    KinematicBuilder,
+    _KinematicBuilder,
     stub_defined_for_jump_atom,
     get_c1_and_c2_atoms,
     fix_jump_nodes,
@@ -587,7 +587,7 @@ def test_build_er_bonds_to_csgraph():
     bonds[9:, 0] = bonds[:9, 1]
     bonds[9:, 1] = bonds[:9:, 0]
 
-    csr_mat = KinematicBuilder.bonds_to_csgraph(9, bonds)
+    csr_mat = _KinematicBuilder.bonds_to_csgraph(9, bonds)
     mat = csr_mat.toarray()
 
     mat_gold = numpy.zeros((10, 10), dtype=numpy.float32)
@@ -613,7 +613,7 @@ def test_builder_define_forest_with_prioritized_bonds():
     (
         kfo_2_to,
         to_parents_in_kfo,
-    ) = KinematicBuilder().define_trees_with_prioritized_bonds(
+    ) = _KinematicBuilder().define_trees_with_prioritized_bonds(
         roots, potential_bonds, prioritized_bonds, 10
     )
 
@@ -643,7 +643,7 @@ def test_builder_define_forest_with_prioritized_bonds2():
     (
         kfo_2_to,
         to_parents_in_kfo,
-    ) = KinematicBuilder().define_trees_with_prioritized_bonds(
+    ) = _KinematicBuilder().define_trees_with_prioritized_bonds(
         roots, potential_bonds, prioritized_bonds, 10
     )
 
@@ -659,11 +659,11 @@ def test_builder_define_forest_with_prioritized_bonds2():
 #     tsys = ubq_system
 
 #     bonds32 = numpy.array(tsys.bonds, dtype=numpy.int32)
-#     id, parents = KinematicBuilder.bonds_to_forest(
+#     id, parents = _KinematicBuilder.bonds_to_forest(
 #         numpy.array([0], dtype=numpy.int32), bonds32
 #     )
 #     kinforest = (
-#         KinematicBuilder()
+#         _KinematicBuilder()
 #         .append_connected_components(
 #             to_roots=numpy.array([0], dtype=numpy.int32),
 #             kfo_2_to=id,
@@ -690,11 +690,11 @@ def test_builder_framing(ubq_system):
 
     tsys = ubq_system
     roots = numpy.array([0], dtype=numpy.int32)
-    ids, parents = KinematicBuilder.bonds_to_forest(
+    ids, parents = _KinematicBuilder.bonds_to_forest(
         roots=roots, bonds=tsys.bonds.astype(numpy.int32)
     )
     kinforest = (
-        KinematicBuilder()
+        _KinematicBuilder()
         .append_connected_components(
             to_roots=roots, kfo_2_to=ids, to_parents_in_kfo=parents, to_jump_nodes=[]
         )

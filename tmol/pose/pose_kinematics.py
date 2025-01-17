@@ -7,7 +7,7 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.kinematics.builder import KinematicBuilder
+from tmol.kinematics.builder import _KinematicBuilder
 from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.fold_forest import FoldForest, EdgeType
 from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges
@@ -495,9 +495,9 @@ def construct_pose_stack_kinforest(
     print(pose_stack.block_coord_offset)
 
     return (
-        KinematicBuilder().append_connected_components(
+        _KinematicBuilder().append_connected_components(
             root_atoms,
-            *KinematicBuilder.define_trees_with_prioritized_bonds(
+            *_KinematicBuilder.define_trees_with_prioritized_bonds(
                 roots=root_atoms,
                 potential_bonds=all_bonds,
                 prioritized_bonds=prioritized_bonds,

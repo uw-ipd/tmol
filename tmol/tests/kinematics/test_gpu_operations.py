@@ -4,7 +4,7 @@
 # import numpy
 
 # from tmol.kinematics.operations import inverseKin, forwardKin
-# from tmol.kinematics.builder import KinematicBuilder
+# from tmol.kinematics.builder import _KinematicBuilder
 # from tmol.kinematics.scan_ordering import KinForestScanOrdering
 # from tmol.tests.torch import requires_cuda
 # from tmol.io import pose_stack_from_pdb
@@ -17,10 +17,10 @@
 #     tsys = target_system
 #     roots = numpy.zeros((1,), dtype=numpy.int32)
 #     return (
-#         KinematicBuilder()
+#         _KinematicBuilder()
 #         .append_connected_components(
 #             roots,
-#             *KinematicBuilder.bonds_to_forest(roots, tsys.bonds.astype(numpy.int32)),
+#             *_KinematicBuilder.bonds_to_forest(roots, tsys.bonds.astype(numpy.int32)),
 #         )
 #         .kinforest
 #     )

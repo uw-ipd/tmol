@@ -69,7 +69,7 @@ class KinForest(TensorGroup, ConvertAttrs):
     and whether the values they hold are KFO or TO indices.
 
     The `KinForest` data structure itself is frozen and can not be modified post
-    construction. The `KinematicBuilder` factory class is responsible for
+    construction. The `_KinematicBuilder` factory class is responsible for
     construction of a `KinForest` with valid internal structure for atomic
     systems.
 

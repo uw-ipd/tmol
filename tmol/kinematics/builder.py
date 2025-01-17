@@ -23,12 +23,12 @@ ChildParentTuple = Tuple[NDArray[int][:], NDArray[int][:]]
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class KinematicBuilder:
+class _KinematicBuilder:
     """Supports assembly of sets of bonded atoms into a valid KinForest.
 
-    Usage: invoke KinematicBuilder.append_connected_components with the outputs from
-    KinematicBuilder.define_trees_with_prioritized_bonds and retrieve the kinforest
-    from the resulting KinematicBuilder object.
+    Usage: invoke _KinematicBuilder.append_connected_components with the outputs from
+    _KinematicBuilder.define_trees_with_prioritized_bonds and retrieve the kinforest
+    from the resulting _KinematicBuilder object.
 
     The primary way in which KinForests are built is to provide bonds_to_forest with
     the set of *potential* (directed) edges between atoms in individual trees as well

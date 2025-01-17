@@ -8,7 +8,7 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
-from tmol.kinematics.builder import KinematicBuilder
+from tmol.kinematics.builder import _KinematicBuilder
 from tmol.kinematics.metadata import DOFMetadata
 from tmol.kinematics.datatypes import KinForest
 
@@ -74,9 +74,9 @@ class KinematicDescription:
 
         bonds = bonds[:, 0:1] * system_size + bonds[:, 1:3]
         torsion_bonds = torsion_bonds[:, 0:1] * system_size + torsion_bonds[:, 1:3]
-        builder = KinematicBuilder().append_connected_components(
+        builder = _KinematicBuilder().append_connected_components(
             roots,
-            *KinematicBuilder.define_trees_with_prioritized_bonds(
+            *_KinematicBuilder.define_trees_with_prioritized_bonds(
                 roots=roots, potential_bonds=bonds, prioritized_bonds=torsion_bonds
             ),
             to_jump_nodes=numpy.array([], dtype=numpy.int32),
