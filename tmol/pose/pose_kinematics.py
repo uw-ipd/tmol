@@ -7,7 +7,7 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.kinematics.builder import _KinematicBuilder
+from tmol.kinematics.old.builder import _KinematicBuilder
 from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.fold_forest import FoldForest, EdgeType
 from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges

@@ -8,7 +8,7 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
-from tmol.kinematics.builder import _KinematicBuilder
+from tmol.kinematics.old.builder import _KinematicBuilder
 from tmol.kinematics.metadata import DOFMetadata
 from tmol.kinematics.datatypes import KinForest
 

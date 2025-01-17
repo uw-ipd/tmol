@@ -16,8 +16,8 @@ from tmol.types.tensor import cat
 
 from tmol.utility.ndarray.common_operations import invert_mapping
 
-from .datatypes import NodeType, KinForest
-from .scan_ordering import get_children
+from ..datatypes import NodeType, KinForest
+from ..scan_ordering import get_children
 
 ChildParentTuple = Tuple[NDArray[int][:], NDArray[int][:]]
 

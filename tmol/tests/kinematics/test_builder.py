@@ -2,7 +2,7 @@ import numpy
 import torch
 
 # from tmol.kinematics.operations import inverseKin, forwardKin
-from tmol.kinematics.builder import (
+from tmol.kinematics.old.builder import (
     _KinematicBuilder,
     stub_defined_for_jump_atom,
     get_c1_and_c2_atoms,

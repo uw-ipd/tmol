@@ -1,5 +1,5 @@
 import numpy
-from tmol.kinematics.builder import _KinematicBuilder
+from tmol.kinematics.old.builder import _KinematicBuilder
 from tmol.kinematics.scan_ordering import get_scans
 
 

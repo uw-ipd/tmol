@@ -6,7 +6,7 @@ from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
 from tmol.kinematics.scan_ordering import KinForestScanOrdering
-from tmol.kinematics.builder import _KinematicBuilder
+from tmol.kinematics.old.builder import _KinematicBuilder
 from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
 
 from tmol.chemical.restypes import RefinedResidueType
