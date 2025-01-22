@@ -10,18 +10,18 @@ def min_pdb():
     return pdb.data["bysize_015_res_1lu6"]
 
 
-@pytest.fixture(scope="session")
-def min_res():
-    from tmol.system.io import ResidueReader
+# @pytest.fixture(scope="session")
+# def min_res():
+#     from tmol.system.io import ResidueReader
 
-    return ResidueReader.get_default().parse_pdb(pdb.data["bysize_015_res_1lu6"])
+#     return ResidueReader.get_default().parse_pdb(pdb.data["bysize_015_res_1lu6"])
 
 
-@pytest.fixture(scope="session")
-def min_system():
-    from tmol.system.io import read_pdb
+# @pytest.fixture(scope="session")
+# def min_system():
+#     from tmol.system.io import read_pdb
 
-    return read_pdb(pdb.data["bysize_015_res_1lu6"])
+#     return read_pdb(pdb.data["bysize_015_res_1lu6"])
 
 
 @pytest.fixture(scope="session")
@@ -29,18 +29,18 @@ def big_pdb():
     return pdb.data["bysize_600_res_5m4a"]
 
 
-@pytest.fixture(scope="session")
-def big_res():
-    from tmol.system.io import ResidueReader
+# @pytest.fixture(scope="session")
+# def big_res():
+#     from tmol.system.io import ResidueReader
 
-    return ResidueReader.get_default().parse_pdb(pdb.data["bysize_600_res_5m4a"])
+#     return ResidueReader.get_default().parse_pdb(pdb.data["bysize_600_res_5m4a"])
 
 
-@pytest.fixture(scope="session")
-def big_system():
-    from tmol.system.io import read_pdb
+# @pytest.fixture(scope="session")
+# def big_system():
+#     from tmol.system.io import read_pdb
 
-    return read_pdb(pdb.data["bysize_600_res_5m4a"])
+#     return read_pdb(pdb.data["bysize_600_res_5m4a"])
 
 
 @pytest.fixture(scope="session")
@@ -48,18 +48,18 @@ def ubq_pdb():
     return pdb.data["1ubq"]
 
 
-@pytest.fixture(scope="session")
-def ubq_res():
-    from tmol.system.io import ResidueReader
+# @pytest.fixture(scope="session")
+# def ubq_res():
+#     from tmol.system.io import ResidueReader
 
-    return ResidueReader.get_default().parse_pdb(pdb.data["1ubq"])
+#     return ResidueReader.get_default().parse_pdb(pdb.data["1ubq"])
 
 
-@pytest.fixture()
-def ubq_system():
-    from tmol.system.io import read_pdb
+# @pytest.fixture()
+# def ubq_system():
+#     from tmol.system.io import read_pdb
 
-    return read_pdb(pdb.data["1ubq"])
+#     return read_pdb(pdb.data["1ubq"])
 
 
 @pytest.fixture(scope="session")
@@ -67,11 +67,16 @@ def disulfide_pdb():
     return pdb.data["3plc"]
 
 
-@pytest.fixture(scope="session")
-def disulfide_res():
-    from tmol.system.io import ResidueReader
+# @pytest.fixture(scope="session")
+# def disulfide_res():
+#     from tmol.system.io import ResidueReader
 
-    return ResidueReader.get_default().parse_pdb(pdb.data["3plc"])
+#     return ResidueReader.get_default().parse_pdb(pdb.data["3plc"])
+
+
+@pytest.fixture()
+def water_box_pdb():
+    return pdb.data["water_box"]
 
 
 @pytest.fixture()
