@@ -16,12 +16,12 @@ from tmol.kinematics.script_modules import PoseStackKinematicsModule
 from tmol.optimization.sfxn_modules import CartesianSfxnNetwork, KinForestSfxnNetwork
 
 
-def test_cart_minimize_w_pose_and_sfxn_smoke(
-    rts_ubq_res, default_database, torch_device
-):
-    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[:4], torch_device
-    )
+def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):
+
+    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[:4], torch_device
+    # )
+    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
     pose_stack5 = PoseStackBuilder.from_poses([pose_stack1] * 5, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -51,12 +51,11 @@ def test_cart_minimize_w_pose_and_sfxn_smoke(
     assert E1 < E0
 
 
-def test_kin_minimize_w_pose_and_sfxn_smoke(
-    rts_ubq_res, default_database, torch_device
-):
-    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res, torch_device
-    )
+def test_kin_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):
+    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res, torch_device
+    # )
+    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack5 = PoseStackBuilder.from_poses([pose_stack1] * 5, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -109,14 +108,15 @@ def test_kin_minimize_w_pose_and_sfxn_smoke(
 @pytest.mark.parametrize("n_poses", [1, 3, 10, 30])
 @pytest.mark.benchmark(group=["minimize_pose_stack"])
 def test_minimize_w_pose_and_sfxn_benchmark(
-    benchmark, rts_ubq_res, default_database, torch_device, n_poses
+    benchmark, ubq_pdb, default_database, torch_device, n_poses
 ):
     if torch_device == torch.device("cpu"):
         return
 
-    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res, torch_device
-    )
+    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res, torch_device
+    # )
+    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
     start_coords = pose_stack.coords.clone()
 

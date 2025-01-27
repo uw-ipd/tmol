@@ -10,7 +10,7 @@ from tmol.types.torch import Tensor
 
 from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.chemical.restypes import RefinedResidueType, Residue
+from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.utility.tensor.common_operations import join_tensors_and_report_real_entries
 
 
@@ -62,6 +62,7 @@ class PackedBlockTypes:
     """
 
     chem_db: PatchedChemicalDatabase
+    restype_set: ResidueTypeSet
     active_block_types: Sequence[RefinedResidueType]
     restype_index: pandas.Index
 
@@ -119,6 +120,7 @@ class PackedBlockTypes:
     def from_restype_list(
         cls,
         chem_db: PatchedChemicalDatabase,
+        restype_set: ResidueTypeSet,
         active_block_types: Sequence[RefinedResidueType],
         device: torch.device,
     ):
@@ -159,6 +161,7 @@ class PackedBlockTypes:
 
         return cls(
             chem_db=chem_db,
+            restype_set=restype_set,
             active_block_types=active_block_types,
             restype_index=restype_index,
             max_n_atoms=max_n_atoms,
@@ -241,7 +244,7 @@ class PackedBlockTypes:
 
     @classmethod
     def join_atom_downstream_of_conn(
-        cls, active_block_types: Sequence[Residue], device: torch.device
+        cls, active_block_types: Sequence[RefinedResidueType], device: torch.device
     ):
         n_restypes = len(active_block_types)
         max_n_conn = max(len(rt.connections) for rt in active_block_types)
@@ -258,7 +261,7 @@ class PackedBlockTypes:
 
     @classmethod
     def join_atom_paths_from_conn(
-        clas, active_block_types: Sequence[Residue], device: torch.device
+        clas, active_block_types: Sequence[RefinedResidueType], device: torch.device
     ):
         n_restypes = len(active_block_types)
         max_n_conn = max(len(bt.connections) for bt in active_block_types)
@@ -372,12 +375,19 @@ class PackedBlockTypes:
             device=device,
         )
 
-    def inds_for_res(self, residues: Sequence[Residue]):
-        return self.restype_index.get_indexer(
-            [res.residue_type.name for res in residues]
-        )
+    # def inds_for_res(self, residues: Sequence[Residue]):
+    #     return self.restype_index.get_indexer(
+    #         [res.residue_type.name for res in residues]
+    #     )
 
     def inds_for_restypes(self, res_types: Sequence[RefinedResidueType]):
+        # print("res_types")
+        # seen_restypes = set([])
+        # for i, res_type in enumerate(res_types):
+        #     if res_type.name in seen_restypes:
+        #         print(res_type.name, "seen?", res_type.name in seen_restypes)
+        #     seen_restypes.add(res_type.name)
+        # print("self.restype_index", self.restype_index)
         return self.restype_index.get_indexer(
             [residue_type.name for residue_type in res_types]
         )

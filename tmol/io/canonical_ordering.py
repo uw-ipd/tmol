@@ -8,6 +8,7 @@ from tmol.types.functional import validate_args
 from tmol.database import ParameterDatabase
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+from tmol.chemical.restypes import ResidueTypeSet
 from typing import List, Mapping, Optional, Tuple, Union
 from .pdb_parsing import parse_pdb
 import toolz.functoolz
@@ -396,21 +397,17 @@ def default_canonical_ordering() -> CanonicalOrdering:
 @toolz.functoolz.memoize
 def default_packed_block_types(device: torch.device) -> PackedBlockTypes:
     """Create a PackedBlockTypes object from the default set of residue types"""
-    import cattr
-    from tmol.chemical.restypes import RefinedResidueType
+    # import cattr
+    # from tmol.chemical.restypes import RefinedResidueType
     from tmol.pose.packed_block_types import PackedBlockTypes
 
-    chem_database = ParameterDatabase.get_default().chemical
-
-    restype_list = [
-        cattr.structure(
-            cattr.unstructure(r),
-            RefinedResidueType,
-        )
-        for r in chem_database.residues
-    ]
-
-    return PackedBlockTypes.from_restype_list(chem_database, restype_list, device)
+    restype_set = ResidueTypeSet.get_default()
+    return PackedBlockTypes.from_restype_list(
+        chem_db=restype_set.chem_db,
+        restype_set=restype_set,
+        active_block_types=restype_set.residue_types,
+        device=device,
+    )
 
 
 @validate_args

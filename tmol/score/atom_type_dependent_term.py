@@ -100,6 +100,9 @@ class AtomTypeDependentTerm(EnergyTerm):
             assert hasattr(packed_block_types, "atom_unique_ids")
             assert hasattr(packed_block_types, "atom_wildcard_ids")
             return
+        for bt in packed_block_types.active_block_types:
+            self.setup_block_type(bt)
+
         atom_types = numpy.full(
             (packed_block_types.n_types, packed_block_types.max_n_atoms),
             -1,

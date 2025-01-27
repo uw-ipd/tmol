@@ -18,9 +18,9 @@ from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import (
     RefinedResidueType,
-    Residue,
-    find_simple_polymeric_connections,
-    find_disulfide_connections,
+    # Residue,
+    # find_simple_polymeric_connections,
+    # find_disulfide_connections,
     three2one,
 )
 
@@ -136,7 +136,7 @@ class PoseStackBuilder:
                     bt_set[bt.name] = bt
             uniq_bt = [v for _, v in bt_set.items()]
             packed_block_types = PackedBlockTypes.from_restype_list(
-                pbt0.chem_db, uniq_bt, device
+                pbt0.chem_db, pbt0.restype_set, uniq_bt, device
             )
 
         max_n_blocks = max(pose_stack.max_n_blocks for pose_stack in pose_stacks)

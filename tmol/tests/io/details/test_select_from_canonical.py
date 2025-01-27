@@ -4,8 +4,9 @@ import torch
 import cattr
 import yaml
 from attrs import evolve
+from toolz.curried import groupby
 from tmol.database.chemical import ChemicalDatabase, VariantType
-from tmol.chemical.restypes import RefinedResidueType
+from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
     canonical_form_from_pdb,
@@ -171,8 +172,16 @@ def test_assign_block_types_w_exotic_termini_options(
         )
         for r in patched_chem_db.residues
     ]
+
+    restype_map = groupby(lambda restype: restype.name3, restype_list)
+    restype_set = ResidueTypeSet(
+        residue_types=restype_list,
+        restype_map=restype_map,
+        chem_db=patched_chem_db,
+    )
+
     pbt = PackedBlockTypes.from_restype_list(
-        patched_chem_db, restype_list, torch_device
+        patched_chem_db, restype_set, restype_list, torch_device
     )
 
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
@@ -707,14 +716,22 @@ def co_and_pbt_from_new_variants(ducd, patches, device):
     new_pucd = PatchedChemicalDatabase.from_chem_db(new_ucd)
 
     co = CanonicalOrdering.from_chemdb(new_pucd)
-    pbt = PackedBlockTypes.from_restype_list(
-        new_pucd,
-        [
-            cattr.structure(cattr.unstructure(rt), RefinedResidueType)
-            for rt in new_pucd.residues
-        ],
-        device=device,
+    restype_list = [
+        cattr.structure(cattr.unstructure(rt), RefinedResidueType)
+        for rt in new_pucd.residues
+    ]
+    restype_map = groupby(lambda restype: restype.name3, restype_list)
+
+    restype_set = ResidueTypeSet(
+        residue_types=restype_list,
+        restype_map=restype_map,
+        chem_db=new_pucd,
     )
+
+    pbt = PackedBlockTypes.from_restype_list(
+        new_pucd, restype_set, restype_list, device
+    )
+
     return co, pbt, new_pucd
 
 

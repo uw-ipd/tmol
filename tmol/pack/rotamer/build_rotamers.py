@@ -115,6 +115,7 @@ def rebuild_poses_if_necessary(
             for rt in rlt.allowed_restypes:
                 if id(rt) not in all_restypes:
                     all_restypes[id(rt)] = rt
+                    print("rt.name", rt.name, "id", id(rt))
 
     samplers = tuple(samplers)
 
@@ -125,6 +126,15 @@ def rebuild_poses_if_necessary(
     needs_rebuilding = False
     for rt_id in all_restypes:
         if rt_id not in pose_rts:
+            print(
+                "Needs rebuilding because",
+                all_restypes[rt_id].name,
+                "with id",
+                rt_id,
+                "is not in pose_rts",
+            )
+            for rt in poses.packed_block_types.active_block_types:
+                print("pose_rts has", rt.name, "with id", id(rt))
             needs_rebuilding = True
             break
 
@@ -140,6 +150,7 @@ def rebuild_poses_if_necessary(
 
         pbt = PackedBlockTypes.from_restype_list(
             poses.packed_block_types.chem_db,
+            poses.packed_block_types.restype_set,
             [rt for rt_id, rt in all_restypes.items()],
             poses.packed_block_types.device,
         )

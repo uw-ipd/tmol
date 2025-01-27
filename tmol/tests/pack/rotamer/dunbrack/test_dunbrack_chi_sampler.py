@@ -75,13 +75,16 @@ def test_annotate_packed_block_types(default_database, torch_device):
         for res in default_database.chemical.residues
         if res.name in desired
     ]
+    restype_set = ResidueTypeSet.from_restype_list(
+        default_database.chemical, all_restypes
+    )
 
     sampler = DunbrackChiSampler.from_database(param_resolver)
     for restype in all_restypes:
         sampler.annotate_residue_type(restype)
 
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, all_restypes, torch_device
+        default_database.chemical, restype_set, all_restypes, torch_device
     )
     sampler.annotate_packed_block_types(pbt)
 

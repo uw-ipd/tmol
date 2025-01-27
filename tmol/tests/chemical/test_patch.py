@@ -3,6 +3,7 @@ import numpy
 import yaml
 from attrs import evolve
 
+from tmol.io import pose_stack_from_pdb
 from tmol.chemical.ideal_coords import normalize
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
@@ -68,9 +69,12 @@ def test_patched_residue_ideal_coords(default_database):
     assert abs(oxtc_dis - leu_rt.icoors_geom[oxt_ind, 2]) < 1e-5
 
 
-def test_patched_pdb(ubq_res):
-    assert ubq_res[0].residue_type.name == "MET:nterm"
-    assert ubq_res[-1].residue_type.name == "GLY:cterm"
+def test_patched_pdb(ubq_pdb, torch_device):
+    ps = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pbt_abt = ps.packed_block_types.active_block_types
+
+    assert pbt_abt[ps.block_type_ind64[0, 0]].name == "MET:nterm"
+    assert pbt_abt[ps.block_type_ind64[0, -1]].name == "GLY:cterm"
 
 
 # parse a yaml string as a raw VariantType

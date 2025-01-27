@@ -1,6 +1,7 @@
 import numpy
 import torch
 
+from tmol.io import pose_stack_from_pdb
 from tmol.pack.rotamer.build_rotamers import (
     annotate_restype,
     annotate_packed_block_types,
@@ -53,17 +54,19 @@ def test_annotate_restypes(
 
 
 def test_build_rotamers_smoke(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
 
     # fd TEMP: NO TERM VARIANTS
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:11], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:10], torch_device
-    )
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:11], torch_device
+    # )
+    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:10], torch_device
+    # )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=11)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=10)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -83,7 +86,10 @@ def test_construct_scans_for_rotamers(
 
     leu_rt_list = [fresh_default_restype_set.restype_map["LEU"][0]]
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, leu_rt_list, device=torch_device
+        default_database.chemical,
+        fresh_default_restype_set,
+        leu_rt_list,
+        device=torch_device,
     )
 
     fixed_sampler = FixedAAChiSampler()
@@ -161,7 +167,10 @@ def test_construct_scans_for_rotamers2(
         fresh_default_restype_set.restype_map["MET"][0]
     ]
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, leu_met_rt_list, device=torch_device
+        default_database.chemical,
+        fresh_default_restype_set,
+        leu_met_rt_list,
+        device=torch_device,
     )
 
     fixed_sampler = FixedAAChiSampler()
@@ -253,7 +262,7 @@ def test_construct_scans_for_rotamers2(
 
 
 def test_inv_kin_rotamers(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     # steps:
     # - annotate residue types and pbt with kinforests + mainchain fingerprints
@@ -271,9 +280,10 @@ def test_inv_kin_rotamers(
     chem_db = default_database.chemical
 
     # fd TEMP: NO TERM VARIANTS
-    p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:4], torch_device
-    )
+    # p = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:4], torch_device
+    # )
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=4)
 
     fixed_sampler = FixedAAChiSampler()
     samplers = (dun_sampler, fixed_sampler)
@@ -282,7 +292,10 @@ def test_inv_kin_rotamers(
         fresh_default_restype_set.restype_map["MET"][0]
     ]
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, leu_met_rt_list, device=torch_device
+        default_database.chemical,
+        fresh_default_restype_set,
+        leu_met_rt_list,
+        device=torch_device,
     )
 
     annotate_restype(leu_met_rt_list[0], samplers, chem_db)
@@ -410,7 +423,10 @@ def test_construct_kinforest_for_rotamers(
         fresh_default_restype_set.restype_map["MET"][0]
     ]
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, leu_met_rt_list, device=torch_device
+        default_database.chemical,
+        fresh_default_restype_set,
+        leu_met_rt_list,
+        device=torch_device,
     )
 
     annotate_restype(leu_met_rt_list[0], samplers, chem_db)
@@ -507,7 +523,10 @@ def test_construct_kinforest_for_rotamers2(
         fresh_default_restype_set.restype_map["MET"][0]
     ]
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, leu_met_rt_list, device=torch_device
+        default_database.chemical,
+        fresh_default_restype_set,
+        leu_met_rt_list,
+        device=torch_device,
     )
 
     annotate_restype(leu_met_rt_list[0], samplers, chem_db)
@@ -592,7 +611,7 @@ def test_construct_kinforest_for_rotamers2(
 
 
 def test_measure_original_dofs(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
@@ -600,9 +619,10 @@ def test_measure_original_dofs(
     # fd TEMP: NO TERM VARIANTS
     # fd TEMP2: SINGLE RESIDUE since 'measure_dofs_from_orig_coords' if residue 0 length
     #          is not a multiple of 'pbt.max_n_atoms'
-    poses = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:2], torch_device
-    )
+    # poses = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:2], torch_device
+    # )
+    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=2)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -676,18 +696,21 @@ def test_measure_original_dofs(
 
 
 def test_measure_original_dofs2(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[5:11], torch_device
-    )
-    # fd TEMP: NO TERM VARIANTS
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:8], torch_device
-    )
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[5:11], torch_device
+    # )
+    # # fd TEMP: NO TERM VARIANTS
+    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:8], torch_device
+    # )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=5, residue_end=11)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=8)
+
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -804,18 +827,20 @@ def test_measure_original_dofs2(
 
 
 def test_create_dof_inds_to_copy_from_orig_to_rotamers(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
 
     # fd NOTE: THIS TEST ASSUMES NON-TERMINAL VARIANTS (and really none at all)
     # fd   - grab structure starting at residue index 1
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:3], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:4], torch_device
-    )
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:3], torch_device
+    # )
+    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:4], torch_device
+    # )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=3)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=4)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     pbt = poses.packed_block_types
@@ -907,13 +932,14 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 
 
 def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
 
-    p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[:5], torch_device
-    )
+    # p = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[:5], torch_device
+    # )
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
     poses = PoseStackBuilder.from_poses([p] * 3, torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -981,14 +1007,15 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 
 
 def test_build_lots_of_rotamers(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     n_poses = 6
 
     # fd TEMP: NO TERM VARIANTS
-    p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:-1], torch_device
-    )
+    # p = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:-1], torch_device
+    # )
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=75)
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
     palette = PackerPalette(fresh_default_restype_set)
@@ -1023,14 +1050,15 @@ def test_build_lots_of_rotamers(
 
 
 def test_create_dofs_for_many_rotamers(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     n_poses = 6
 
     # fd TEMP: NO TERM VARIANTS
-    p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:-1], torch_device
-    )
+    # p = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:-1], torch_device
+    # )
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=75)
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)

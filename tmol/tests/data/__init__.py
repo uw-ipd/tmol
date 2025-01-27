@@ -194,3 +194,21 @@ def rosettafold2_ubq_pred(torch_device):
 def rosettafold2_sumo_pred(torch_device):
     fname = os.path.join(__file__.rpartition("/")[0], "rosettafold2", "sumo.pt")
     return torch.load(fname, map_location=torch_device)
+
+
+def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end):
+    from tmol.io import pose_stack_from_pdb
+
+    n_res = residue_end - residue_start
+    res_not_connected = torch.zeros(
+        (1, n_res, 2), dtype=torch.bool, device=torch_device
+    )
+    res_not_connected[0, 0, 0] = True
+    res_not_connected[0, n_res - 1, 1] = True
+    return pose_stack_from_pdb(
+        pdb,
+        torch_device,
+        residue_start=residue_start,
+        residue_end=residue_end,
+        res_not_connected=res_not_connected,
+    )

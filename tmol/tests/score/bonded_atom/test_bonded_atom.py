@@ -2,11 +2,12 @@ import torch
 
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
+from tmol.io import pose_stack_from_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.bond_dependent_term import BondDependentTerm
 
 
-def test_bonded_atom_two_iterations(rts_ubq_res, default_database, torch_device):
+def test_bonded_atom_two_iterations(ubq_pdb, default_database, torch_device):
     compiled = load(
         modulename(__name__),
         cuda_if_available(
@@ -14,9 +15,10 @@ def test_bonded_atom_two_iterations(rts_ubq_res, default_database, torch_device)
         ),
     )
 
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, res=rts_ubq_res[0:1], device=torch_device
-    )
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, res=rts_ubq_res[0:1], device=torch_device
+    # )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=1)
     pbt = p1.packed_block_types
     dbt = BondDependentTerm(default_database, torch_device)
     for bt in pbt.active_block_types:

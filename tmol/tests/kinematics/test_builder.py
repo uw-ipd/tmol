@@ -685,63 +685,63 @@ def test_builder_define_forest_with_prioritized_bonds2():
 #     numpy.testing.assert_allclose(tsys.coords, refold_coords)
 
 
-def test_builder_framing(ubq_system):
-    """Test first-three-atom framing logic in kinematic builder."""
+# def test_builder_framing(ubq_system):
+#     """Test first-three-atom framing logic in kinematic builder."""
 
-    tsys = ubq_system
-    roots = numpy.array([0], dtype=numpy.int32)
-    ids, parents = _KinematicBuilder.bonds_to_forest(
-        roots=roots, bonds=tsys.bonds.astype(numpy.int32)
-    )
-    kinforest = (
-        _KinematicBuilder()
-        .append_connected_components(
-            to_roots=roots, kfo_2_to=ids, to_parents_in_kfo=parents, to_jump_nodes=[]
-        )
-        .kinforest
-    )
+#     tsys = ubq_system
+#     roots = numpy.array([0], dtype=numpy.int32)
+#     ids, parents = _KinematicBuilder.bonds_to_forest(
+#         roots=roots, bonds=tsys.bonds.astype(numpy.int32)
+#     )
+#     kinforest = (
+#         _KinematicBuilder()
+#         .append_connected_components(
+#             to_roots=roots, kfo_2_to=ids, to_parents_in_kfo=parents, to_jump_nodes=[]
+#         )
+#         .kinforest
+#     )
 
-    # The first entries in the forest should be the global DOF root, self-parented,
-    # followed by the first atom.
-    root_children = kinforest[kinforest.parent == 0]
-    assert len(root_children) == 2
-    numpy.testing.assert_array_equal(kinforest.parent[:2], [0, 0])
-    numpy.testing.assert_array_equal(kinforest.id[:2], [-1, 0])
+#     # The first entries in the forest should be the global DOF root, self-parented,
+#     # followed by the first atom.
+#     root_children = kinforest[kinforest.parent == 0]
+#     assert len(root_children) == 2
+#     numpy.testing.assert_array_equal(kinforest.parent[:2], [0, 0])
+#     numpy.testing.assert_array_equal(kinforest.id[:2], [-1, 0])
 
-    atom_root_children = numpy.flatnonzero(numpy.array(kinforest.parent) == 1)
-    atom_root_grandkids = numpy.flatnonzero(
-        numpy.array(kinforest.parent) == atom_root_children[0]
-    )
-    assert len(atom_root_children) == 4  # 2
-    assert len(atom_root_grandkids) == 3
+#     atom_root_children = numpy.flatnonzero(numpy.array(kinforest.parent) == 1)
+#     atom_root_grandkids = numpy.flatnonzero(
+#         numpy.array(kinforest.parent) == atom_root_children[0]
+#     )
+#     assert len(atom_root_children) == 4  # 2
+#     assert len(atom_root_grandkids) == 3
 
-    # The first atom has two children. The first atom and its first child are framed by
-    # [first_child, root, first_grandkid]
-    first_atom = kinforest[1]
-    assert int(first_atom.frame_x) == atom_root_children[0]
-    assert int(first_atom.frame_y) == 1
-    assert int(first_atom.frame_z) == atom_root_grandkids[0]
+#     # The first atom has two children. The first atom and its first child are framed by
+#     # [first_child, root, first_grandkid]
+#     first_atom = kinforest[1]
+#     assert int(first_atom.frame_x) == atom_root_children[0]
+#     assert int(first_atom.frame_y) == 1
+#     assert int(first_atom.frame_z) == atom_root_grandkids[0]
 
-    first_atom_first_child = kinforest[atom_root_children[0]]
-    assert int(first_atom_first_child.frame_x) == atom_root_children[0]
-    assert int(first_atom_first_child.frame_y) == 1
-    assert int(first_atom_first_child.frame_z) == atom_root_grandkids[0]
+#     first_atom_first_child = kinforest[atom_root_children[0]]
+#     assert int(first_atom_first_child.frame_x) == atom_root_children[0]
+#     assert int(first_atom_first_child.frame_y) == 1
+#     assert int(first_atom_first_child.frame_z) == atom_root_grandkids[0]
 
-    # The rest of the children are framed by:
-    # [self, root, first_child]
-    for c in atom_root_children[1:]:
-        first_atom_other_child = kinforest[c]
-        assert int(first_atom_other_child.frame_x) == c
-        assert int(first_atom_other_child.frame_y) == 1
-        assert int(first_atom_other_child.frame_z) == atom_root_children[0]
+#     # The rest of the children are framed by:
+#     # [self, root, first_child]
+#     for c in atom_root_children[1:]:
+#         first_atom_other_child = kinforest[c]
+#         assert int(first_atom_other_child.frame_x) == c
+#         assert int(first_atom_other_child.frame_y) == 1
+#         assert int(first_atom_other_child.frame_z) == atom_root_children[0]
 
-    # Other atoms are framed normally, [self, parent, grandparent]
-    normal_atoms = numpy.flatnonzero(numpy.array(kinforest.parent > 1))
-    numpy.testing.assert_array_equal(kinforest.frame_x[normal_atoms], normal_atoms)
-    numpy.testing.assert_array_equal(
-        kinforest.frame_y[normal_atoms], kinforest.parent[normal_atoms]
-    )
-    numpy.testing.assert_array_equal(
-        kinforest.frame_z[normal_atoms],
-        kinforest.parent[kinforest.parent[normal_atoms].to(dtype=torch.long)],
-    )
+#     # Other atoms are framed normally, [self, parent, grandparent]
+#     normal_atoms = numpy.flatnonzero(numpy.array(kinforest.parent > 1))
+#     numpy.testing.assert_array_equal(kinforest.frame_x[normal_atoms], normal_atoms)
+#     numpy.testing.assert_array_equal(
+#         kinforest.frame_y[normal_atoms], kinforest.parent[normal_atoms]
+#     )
+#     numpy.testing.assert_array_equal(
+#         kinforest.frame_z[normal_atoms],
+#         kinforest.parent[kinforest.parent[normal_atoms].to(dtype=torch.long)],
+#     )

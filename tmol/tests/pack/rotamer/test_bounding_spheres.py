@@ -6,23 +6,38 @@ from tmol.pack.rotamer.bounding_spheres import create_rotamer_bounding_spheres
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
+from tmol.io import pose_stack_from_pdb
+from tmol.tests.data import no_termini_pose_stack_from_pdb
 
 
 def test_create_rotamer_bounding_spheres_smoke(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     # torch_device = torch.device("cpu")
 
     # fd TEMP: NO TERM VARIANTS
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:4], torch_device
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:4], torch_device
+    # )
+    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:3], torch_device
+    # )
+    # p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:5], torch_device
+    # )
+    p1 = no_termini_pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=1, residue_end=4
     )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:3], torch_device
+    p2 = no_termini_pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=1, residue_end=3
     )
-    p3 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:5], torch_device
+    p3 = no_termini_pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=1, residue_end=5
     )
+
+    assert p1.packed_block_types is p2.packed_block_types
+    assert p1.packed_block_types is p3.packed_block_types
+
     poses = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)
     palette = PackerPalette(fresh_default_restype_set)
     task = PackerTask(poses, palette)
@@ -79,13 +94,17 @@ def test_create_rotamer_bounding_spheres_smoke(
 
 
 def test_build_spheres_for_lots_of_rotamers(
-    default_database, fresh_default_restype_set, rts_ubq_res, torch_device, dun_sampler
+    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
 ):
     n_poses = 10
 
     # fd TEMP: NO TERM VARIANTS
-    p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[1:-1], torch_device
+    # p = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[1:-1], torch_device
+    # )
+    # There are 76 residues in 1ubq
+    p = no_termini_pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=1, residue_end=75
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 

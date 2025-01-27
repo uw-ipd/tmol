@@ -23,9 +23,9 @@ from tmol.kinematics.fold_forest import FoldForest
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
 from tmol.kinematics.operations import inverseKin
 
-from tmol.system.packed import PackedResidueSystem
-from tmol.chemical.restypes import Residue
-from tmol.system.kinematics import KinematicDescription
+# from tmol.system.packed import PackedResidueSystem
+# from tmol.chemical.restypes import Residue
+# from tmol.system.kinematics import KinematicDescription
 
 from tmol.tests.torch import requires_cuda
 
@@ -443,6 +443,7 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     cpu_pbt = cpu_pose_stack.packed_block_types
     cuda_packed_block_types = PackedBlockTypes.from_restype_list(
         cpu_pbt.chem_db,
+        cpu_pbt.restype_set,
         cpu_pbt.active_block_types,
         cuda_device,
     )

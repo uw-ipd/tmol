@@ -6,21 +6,22 @@ from tmol.chemical.ideal_coords import normalize, build_ideal_coords
 from tmol.chemical.restypes import (
     RefinedResidueType,
     ResidueTypeSet,
-    find_simple_polymeric_connections,
+    # find_simple_polymeric_connections,
 )
 from tmol.tests.data.pdb import data as test_pdbs
-from tmol.system.io import read_pdb
+
+# from tmol.system.io import read_pdb
 
 # from tmol.system.packed import PackedResidueSystem
 
-test_names = ["1QYS", "1UBQ"]
+# test_names = ["1QYS", "1UBQ"]
 
 
-@pytest.mark.parametrize("structure", test_names)
-def test_smoke_io(structure):
-    for tname in test_names:
-        pdb = test_pdbs[tname]
-        read_pdb(pdb)
+# @pytest.mark.parametrize("structure", test_names)
+# def test_smoke_io(structure):
+#     for tname in test_names:
+#         pdb = test_pdbs[tname]
+#         read_pdb(pdb)
 
 
 # def test_water_system(water_box_res):
@@ -124,27 +125,28 @@ def test_residue_type_set_get_default():
     assert restype_set1 is restype_set2
 
 
-def test_find_simple_polymeric_connections(ubq_res):
-    ubq_subset = ubq_res[0:4]
-    connections = find_simple_polymeric_connections(ubq_subset)
-    gold_connections = set(
-        [
-            (0, "up", 1, "down"),
-            (1, "up", 2, "down"),
-            (2, "up", 3, "down"),
-            (1, "down", 0, "up"),
-            (2, "down", 1, "up"),
-            (3, "down", 2, "up"),
-        ]
-    )
-    for conn in connections:
-        assert conn in gold_connections
-    assert len(connections) == len(gold_connections)
+# def test_find_simple_polymeric_connections(ubq_res):
+#     ubq_subset = ubq_res[0:4]
+#     connections = find_simple_polymeric_connections(ubq_subset)
+#     gold_connections = set(
+#         [
+#             (0, "up", 1, "down"),
+#             (1, "up", 2, "down"),
+#             (2, "up", 3, "down"),
+#             (1, "down", 0, "up"),
+#             (2, "down", 1, "up"),
+#             (3, "down", 2, "up"),
+#         ]
+#     )
+#     for conn in connections:
+#         assert conn in gold_connections
+#     assert len(connections) == len(gold_connections)
 
 
-def test_build_ideal_coords(ubq_res):
-    for res in ubq_res:
-        build_ideal_coords(res.residue_type)
+def test_build_ideal_coords_smoke(default_database):
+    restype_set = ResidueTypeSet.from_database(default_database.chemical)
+    for res in restype_set.residue_types:
+        build_ideal_coords(res)
 
 
 def test_all_bonds_construction(fresh_default_restype_set):

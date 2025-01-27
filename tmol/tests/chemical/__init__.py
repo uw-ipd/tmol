@@ -16,21 +16,21 @@ def fresh_default_restype_set(default_database):
     )
 
 
-@pytest.fixture()
-def rts_ubq_res(fresh_default_restype_set, ubq_res):
-    import attr
+# @pytest.fixture()
+# def rts_ubq_res(fresh_default_restype_set, ubq_res):
+#     import attr
 
-    rts = fresh_default_restype_set
+#     rts = fresh_default_restype_set
 
-    return [
-        attr.evolve(
-            res,
-            residue_type=next(
-                rt for rt in rts.residue_types if rt.name == res.residue_type.name
-            ),
-        )
-        for res in ubq_res
-    ]
+#     return [
+#         attr.evolve(
+#             res,
+#             residue_type=next(
+#                 rt for rt in rts.residue_types if rt.name == res.residue_type.name
+#             ),
+#         )
+#         for res in ubq_res
+#     ]
 
 
 @pytest.fixture()

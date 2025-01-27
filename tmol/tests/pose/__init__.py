@@ -9,17 +9,20 @@ from tmol.io.canonical_ordering import (
     default_packed_block_types,
     canonical_form_from_pdb,
 )
+from tmol.io import pose_stack_from_pdb
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 @pytest.fixture
-def ubq_40_60_pose_stack(ubq_res, default_database, torch_device):
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:40], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:60], torch_device
-    )
+def ubq_40_60_pose_stack(ubq_pdb, torch_device):
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, ubq_res[:40], torch_device
+    # )
+    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, ubq_res[:60], torch_device
+    # )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=40)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=60)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     return poses
 
@@ -28,20 +31,10 @@ def ubq_40_60_pose_stack(ubq_res, default_database, torch_device):
 def fresh_default_packed_block_types(fresh_default_restype_set, torch_device):
     return PackedBlockTypes.from_restype_list(
         fresh_default_restype_set.chem_db,
+        fresh_default_restype_set,
         fresh_default_restype_set.residue_types,
         torch_device,
     )
-
-
-@pytest.fixture
-def two_ubq_poses(ubq_res, default_database, torch_device):
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:40], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:60], torch_device
-    )
-    return PoseStackBuilder.from_poses([p1, p2], torch_device)
 
 
 @pytest.fixture

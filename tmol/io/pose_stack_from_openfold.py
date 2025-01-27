@@ -4,6 +4,7 @@ import toolz
 
 from typing import Mapping
 from tmol.types.functional import validate_args
+from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -138,6 +139,12 @@ def _paramdb_for_openfold() -> ParameterDatabase:
     )
 
 
+@toolz.functoolz.memoize
+def _restype_set_for_openfold() -> ResidueTypeSet:
+    paramdb = _paramdb_for_openfold()
+    return ResidueTypeSet.from_database(paramdb.chemical)
+
+
 @validate_args
 @toolz.functoolz.memoize
 def canonical_ordering_for_openfold() -> CanonicalOrdering:
@@ -167,20 +174,11 @@ def packed_block_types_for_openfold(device: torch.device) -> PackedBlockTypes:
     import cattr
     from tmol.chemical.restypes import RefinedResidueType
 
-    paramdb = _paramdb_for_openfold()
+    restype_set = _restype_set_for_openfold()
 
-    # TO DO: at some point, one has to wonder whether the ResidueTypeSet
-    # is ever gonna see any action. When the packer comes online, we should
-    # start using one during the PBT construction
-    restype_list = [
-        cattr.structure(
-            cattr.unstructure(r),
-            RefinedResidueType,
-        )
-        for r in paramdb.chemical.residues
-    ]
-
-    return PackedBlockTypes.from_restype_list(paramdb.chemical, restype_list, device)
+    return PackedBlockTypes.from_restype_list(
+        restype_set.chem_db, restype_set, restype_set.residue_types, device
+    )
 
 
 @toolz.functoolz.memoize
