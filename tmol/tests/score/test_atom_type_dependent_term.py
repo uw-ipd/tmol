@@ -4,8 +4,8 @@ from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_re
 from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
 
 
-def test_setup_block_type(ubq_res, default_database, torch_device):
-    rt_list = residue_types_from_residues(ubq_res)
+def test_setup_block_type(fresh_default_restype_set, default_database, torch_device):
+    rt_list = fresh_default_restype_set.residue_types
     atdt = AtomTypeDependentTerm(default_database, torch_device)
     for rt in rt_list:
         atdt.setup_block_type(rt)

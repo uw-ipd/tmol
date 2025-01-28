@@ -15,9 +15,6 @@ def test_bonded_atom_two_iterations(ubq_pdb, default_database, torch_device):
         ),
     )
 
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, res=rts_ubq_res[0:1], device=torch_device
-    # )
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=1)
     pbt = p1.packed_block_types
     dbt = BondDependentTerm(default_database, torch_device)
@@ -36,12 +33,13 @@ def test_bonded_atom_two_iterations(ubq_pdb, default_database, torch_device):
         pbt.conn_atom,
     )
 
+    bt_ind = p1.block_type_ind64[0, 0]
     one_step_gold = pbt.all_bonds[
-        0, pbt.atom_all_bond_ranges[0, :, 0].to(dtype=torch.int64), 1
+        bt_ind, pbt.atom_all_bond_ranges[bt_ind, :, 0].to(dtype=torch.int64), 1
     ]
     two_step_tentative = pbt.all_bonds[
-        0,
-        pbt.atom_all_bond_ranges[0, one_step_gold.to(dtype=torch.int64), 0].to(
+        bt_ind,
+        pbt.atom_all_bond_ranges[bt_ind, one_step_gold.to(dtype=torch.int64), 0].to(
             dtype=torch.int64
         ),
         1,
@@ -50,12 +48,12 @@ def test_bonded_atom_two_iterations(ubq_pdb, default_database, torch_device):
     torch.testing.assert_close(one_step_gold, one_step[0, 0, :, 1])
 
     two_step_wrong = two_step_tentative == torch.arange(
-        19, dtype=torch.int32, device=torch_device
+        pbt.max_n_atoms, dtype=torch.int32, device=torch_device
     )
     two_step_tentative[two_step_wrong] = pbt.all_bonds[
-        0,
+        bt_ind,
         pbt.atom_all_bond_ranges[
-            0, one_step_gold[two_step_wrong].to(dtype=torch.int64), 0
+            bt_ind, one_step_gold[two_step_wrong].to(dtype=torch.int64), 0
         ].to(dtype=torch.int64)
         + 1,
         1,

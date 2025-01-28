@@ -5,6 +5,7 @@ from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol import (
+    pose_stack_from_pdb,
     beta2016_score_function,
     canonical_form_from_pdb,
     default_canonical_ordering,
@@ -13,10 +14,11 @@ from tmol import (
 )
 
 
-def test_pose_score_smoke(rts_ubq_res, default_database, torch_device):
-    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res[:4], torch_device
-    )
+def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
+    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, rts_ubq_res[:4], torch_device
+    # )
+    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
     pose_stack100 = PoseStackBuilder.from_poses([pose_stack1] * 100, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -34,10 +36,9 @@ def test_pose_score_smoke(rts_ubq_res, default_database, torch_device):
     assert scores is not None
 
 
-def test_virtual_residue_scoring(ubq_pdb, default_database, torch_device):
+def test_virtual_residue_scoring(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    # _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
 
     # vrt_ratmap = co.restypes_atom_index_mapping["VRT"]
     # print("vrt_ratmap", vrt_ratmap)
