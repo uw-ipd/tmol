@@ -92,7 +92,7 @@ def atom_records_from_pose_stack(
 @validate_args
 def atom_records_from_coords(
     pbt: "PackedBlockTypes",
-    chain_ind_for_block: Union[Tensor[torch.int32][:, :], NDArray[numpy.int64][:, :]],
+    chain_ind_for_block: Union[Tensor[torch.int64][:, :], NDArray[numpy.int64][:, :]],
     block_types64: Tensor[torch.int64][:, :],
     pose_like_coords: Tensor[torch.float32][:, :, 3],
     block_coord_offset: Tensor[torch.int32][:, :],

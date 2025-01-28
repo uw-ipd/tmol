@@ -1470,7 +1470,7 @@ residue_params:
     - {atm1: N, atm2: H1, x0: 1.01, K: 403.0}
     - {atm1: N, atm2: H2, x0: 1.01, K: 403.0}
     - {atm1: N, atm2: H3, x0: 1.01, K: 403.0}
-    # - {atm1: Vrt, atm2: Vrt, x0: 1.00, K: 0.0}
+    - {atm1: Vrt, atm2: Vrt, x0: 1.00, K: 0.0}
     angle_parameters:
     - {atm1: H1, atm2: N, atm3: H2, x0: 1.91013, K: 88}
     - {atm1: H1, atm2: N, atm3: H3, x0: 1.91013, K: 88}

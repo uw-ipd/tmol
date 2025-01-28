@@ -62,7 +62,7 @@ class PackedBlockTypes:
     """
 
     chem_db: PatchedChemicalDatabase
-    restype_set: ResidueTypeSet
+    # restype_set: ResidueTypeSet
     active_block_types: Sequence[RefinedResidueType]
     restype_index: pandas.Index
 
@@ -161,7 +161,7 @@ class PackedBlockTypes:
 
         return cls(
             chem_db=chem_db,
-            restype_set=restype_set,
+            # restype_set=restype_set,
             active_block_types=active_block_types,
             restype_index=restype_index,
             max_n_atoms=max_n_atoms,
