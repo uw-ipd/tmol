@@ -17,10 +17,6 @@ from tmol.optimization.sfxn_modules import CartesianSfxnNetwork, KinForestSfxnNe
 
 
 def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):
-
-    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, rts_ubq_res[:4], torch_device
-    # )
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
     pose_stack5 = PoseStackBuilder.from_poses([pose_stack1] * 5, torch_device)
 
@@ -35,7 +31,6 @@ def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_de
     E0 = cart_sfxn_network.whole_pose_scoring_module(
         cart_sfxn_network.full_coords
     ).sum()
-    # print("E0", E0)
 
     def closure():
         optimizer.zero_grad()
@@ -52,9 +47,6 @@ def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_de
 
 
 def test_kin_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):
-    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, rts_ubq_res, torch_device
-    # )
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack5 = PoseStackBuilder.from_poses([pose_stack1] * 5, torch_device)
 
@@ -113,9 +105,6 @@ def test_minimize_w_pose_and_sfxn_benchmark(
     if torch_device == torch.device("cpu"):
         return
 
-    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, rts_ubq_res, torch_device
-    # )
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
     start_coords = pose_stack.coords.clone()

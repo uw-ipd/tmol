@@ -196,6 +196,10 @@ def validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
+    print("validate fold forest")
+    print(roots.shape)
+    print(n_blocks.shape)
+    print(edges.shape)
     (
         good,
         bad_edges,

@@ -66,14 +66,18 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb):
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
-    max_n_edges = 1
+    max_n_edges = 2
     ff_edges = torch.zeros(
         (pose_stack.n_poses, max_n_edges, 4),
         dtype=torch.int32,
         device="cpu",
     )
+    ff_edges[0, 0, 0] = EdgeType.polymer
     ff_edges[0, 0, 1] = 0
     ff_edges[0, 0, 2] = 1
+    ff_edges[0, 1, 0] = EdgeType.root_jump
+    ff_edges[0, 1, 1] = -1
+    ff_edges[0, 1, 2] = 0
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
         pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
@@ -106,7 +110,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
-    max_n_edges = 5
+    max_n_edges = 6
     ff_edges = torch.full(
         (pose_stack.n_poses, max_n_edges, 4),
         -1,
@@ -133,6 +137,10 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
     ff_edges[0, 4, 0] = EdgeType.polymer
     ff_edges[0, 4, 1] = 4
     ff_edges[0, 4, 2] = 5
+
+    ff_edges[0, 5, 0] = EdgeType.root_jump
+    ff_edges[0, 5, 1] = -1
+    ff_edges[0, 5, 2] = 1
 
     result = calculate_ff_edge_delays(
         pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L

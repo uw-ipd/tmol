@@ -115,7 +115,6 @@ def rebuild_poses_if_necessary(
             for rt in rlt.allowed_restypes:
                 if id(rt) not in all_restypes:
                     all_restypes[id(rt)] = rt
-                    print("rt.name", rt.name, "id", id(rt))
 
     samplers = tuple(samplers)
 
@@ -126,15 +125,6 @@ def rebuild_poses_if_necessary(
     needs_rebuilding = False
     for rt_id in all_restypes:
         if rt_id not in pose_rts:
-            print(
-                "Needs rebuilding because",
-                all_restypes[rt_id].name,
-                "with id",
-                rt_id,
-                "is not in pose_rts",
-            )
-            for rt in poses.packed_block_types.active_block_types:
-                print("pose_rts has", rt.name, "with id", id(rt))
             needs_rebuilding = True
             break
 
@@ -662,6 +652,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     rot_mcfp_at_inds_rto = mcfp.atom_mapping[
         sampler_ind_for_rot, orig_res_mcfp_for_rot, block_type_ind_for_rot, :
     ].view(-1)
+    print("rot_mcfp_at_inds_rto", rot_mcfp_at_inds_rto)
 
     real_rot_mcfp_at_inds_rto = rot_mcfp_at_inds_rto[rot_mcfp_at_inds_rto != -1]
 
@@ -755,6 +746,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     both_present = torch.logical_and(
         rot_mcfp_at_inds_kto != -1, orig_mcfp_at_inds_for_rot_kto != -1
     )
+    print("rot_mcfp_at_inds_kto", rot_mcfp_at_inds_kto)
+    print("orig_mcfp_at_inds_for_rot_kto", orig_mcfp_at_inds_for_rot_kto)
 
     rot_mcfp_at_inds_kto = rot_mcfp_at_inds_kto[both_present] + 1
     orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_for_rot_kto[both_present] + 1

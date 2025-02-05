@@ -12,9 +12,6 @@ from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
 def test_deduce_chains_for_monomer(ubq_pdb, torch_device):
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_restype_set.chem_db, ubq_res[:5], torch_device
-    # )
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
     chain_inds = chain_inds_for_pose_stack(p1)
     numpy.testing.assert_equal(
@@ -24,13 +21,7 @@ def test_deduce_chains_for_monomer(ubq_pdb, torch_device):
 
 def test_deduce_chains_two_monomers(ubq_pdb, torch_device):
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_restype_set.chem_db, ubq_res[:5], torch_device
-    # )
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
-    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_restype_set.chem_db, ubq_res[:7], torch_device
-    # )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     chain_inds = chain_inds_for_pose_stack(poses)

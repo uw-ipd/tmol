@@ -30,6 +30,12 @@ enum JumpDOFTypes {
   jump_dof_RBgamma,
 };
 
+enum EdgeTypes {
+  ff_peptide_edge = 0,
+  ff_jump_edge,
+  ff_root_jump_edge,
+};
+
 template <typename Int>
 struct KinForestParams {
   Int id;

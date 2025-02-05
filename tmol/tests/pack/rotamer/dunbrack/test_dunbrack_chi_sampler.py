@@ -11,6 +11,7 @@ from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
+from tmol.io import pose_stack_from_pdb
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
@@ -620,7 +621,7 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
 #     assert chi_for_rotamers.shape[1] == 4
 
 
-def test_package_samples_for_output(default_database, ubq_res, torch_device):
+def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     # torch_device = torch.device("cpu")
     param_resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
@@ -631,22 +632,24 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
 
     # replace them with residues constructed from the residue types
     # that live in our locally constructed set of refined residue types
-    ubq_res = [
-        attr.evolve(
-            res,
-            residue_type=next(
-                rt for rt in rts.residue_types if rt.name == res.residue_type.name
-            ),
-        )
-        for res in ubq_res
-    ]
+    # ubq_res = [
+    #     attr.evolve(
+    #         res,
+    #         residue_type=next(
+    #             rt for rt in rts.residue_types if rt.name == res.residue_type.name
+    #         ),
+    #     )
+    #     for res in ubq_res
+    # ]
 
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[5:11], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:7], torch_device
-    )
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, ubq_res[5:11], torch_device
+    # )
+    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, ubq_res[:7], torch_device
+    # )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=5, residue_end=11)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=7)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     pbt = poses.packed_block_types
 
@@ -732,14 +735,16 @@ def test_package_samples_for_output(default_database, ubq_res, torch_device):
     numpy.testing.assert_equal(rt_for_rot_gold, results[1].cpu().numpy())
 
 
-def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
+def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
     torch_device = torch.device("cpu")
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:5], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:7], torch_device
-    )
+    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, ubq_res[:5], torch_device
+    # )
+    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, ubq_res[:7], torch_device
+    # )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=5)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=7)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     palette = PackerPalette(default_restype_set)
     task = PackerTask(poses, palette)
@@ -758,14 +763,15 @@ def test_chi_sampler_smoke(ubq_res, default_database, default_restype_set):
 
 
 def test_chi_sampler_build_lots_of_rotamers(
-    ubq_res, default_database, default_restype_set, torch_device
+    ubq_pdb, default_database, default_restype_set, torch_device
 ):
     # torch_device = torch.device("cpu")
     n_poses = 10
     # print([res.residue_type.name for res in ubq_res[:10]])
-    p = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, ubq_res[:10], torch_device
-    )
+    # p = PoseStackBuilder.one_structure_from_polymeric_residues(
+    #     default_database.chemical, ubq_res[:10], torch_device
+    # )
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(default_restype_set)
     task = PackerTask(poses, palette)

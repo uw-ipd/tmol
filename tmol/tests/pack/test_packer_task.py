@@ -23,13 +23,6 @@ def test_packer_palette_design_to_canonical_aas2(default_restype_set):
 
 
 def test_packer_task_smoke(ubq_pdb, default_restype_set, torch_device):
-
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_restype_set.chem_db, ubq_res[:5], torch_device
-    # )
-    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_restype_set.chem_db, ubq_res[:7], torch_device
-    # )
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
@@ -59,13 +52,6 @@ def test_residue_level_task_his_restrict_to_repacking(
 
 def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
     palette = PackerPalette(default_restype_set)
-
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_restype_set.chem_db, ubq_res[:5], torch_device
-    # )
-    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_restype_set.chem_db, ubq_res[:7], torch_device
-    # )
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)

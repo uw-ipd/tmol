@@ -46,16 +46,8 @@ def test_annotate_packed_block_types_smoke(default_database, torch_device):
     sampler.annotate_packed_block_types(pbt)
 
 
-def test_chi_sampler_smoke(
-    ubq_pdb, torch_device, default_database, default_restype_set
-):
+def test_chi_sampler_smoke(ubq_pdb, torch_device, default_restype_set):
     torch_device = torch.device("cpu")
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[5:11], torch_device
-    # )
-    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[:7], torch_device
-    # )
     p1 = pose_stack_from_pdb(
         ubq_pdb,
         torch_device,
