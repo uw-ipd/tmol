@@ -204,40 +204,40 @@ def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
         delay_for_edge,
         toposort_index_for_edge,
     ) = result
-    # print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
-    # print("n_ff_edges", n_ff_edges)
-    # print("ff_edge_parent", ff_edge_parent)
-    # print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
-    # print("pose_stack_ff_parent", pose_stack_ff_parent)
-    # print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
-    # print("first_child_of_ff_edge", first_child_of_ff_edge)
-    # print("delay_for_edge", delay_for_edge)
-    # print("toposort_index_for_edge", toposort_index_for_edge)
+    print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
+    print("n_ff_edges", n_ff_edges)
+    print("ff_edge_parent", ff_edge_parent)
+    print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
+    print("pose_stack_ff_parent", pose_stack_ff_parent)
+    print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
+    print("first_child_of_ff_edge", first_child_of_ff_edge)
+    print("delay_for_edge", delay_for_edge)
+    print("toposort_index_for_edge", toposort_index_for_edge)
 
     gold_dfs_order_of_ff_edges = torch.tensor(
-        [[2, 4, 3, 1, 0], [4, 3, 2, 1, 0]], dtype=torch.int32
+        [[5, 2, 4, 3, 1, 0], [5, 4, 3, 2, 1, 0]], dtype=torch.int32
     )
-    gold_n_ff_edges = torch.tensor([5, 5], dtype=torch.int32)
+    gold_n_ff_edges = torch.tensor([6, 6], dtype=torch.int32)
     gold_ff_edge_parent = torch.tensor(
-        [[2, 2, -1, 2, 2], [2, 2, -1, 2, 2]], dtype=torch.int32
+        [[5, 5, 5, 2, 2, -1], [2, 2, 5, 5, 5, -1]], dtype=torch.int32
     )
     gold_first_ff_edge_for_block_cpu = torch.tensor(
-        [[0, 2, 1, 3, 2, 4], [0, 2, 1, 3, 2, 4]], dtype=torch.int32
+        [[0, 5, 1, 3, 2, 4], [0, 2, 1, 3, 5, 4]], dtype=torch.int32
     )
     gold_pose_stack_ff_parent = torch.tensor(
         [[1, -1, 1, 4, 1, 4], [1, 4, 1, 4, -1, 4]], dtype=torch.int32
     )
     gold_max_gen_depth_of_ff_edge = torch.tensor(
-        [[4, 4, 5, 4, 4], [4, 4, 5, 4, 4]], dtype=torch.int32
+        [[4, 4, 5, 4, 4, 5], [4, 4, 5, 4, 4, 5]], dtype=torch.int32
     )
     gold_first_child_of_ff_edge = torch.tensor(
-        [[-1, -1, 3, -1, -1], [-1, -1, 0, -1, -1]], dtype=torch.int32
+        [[-1, -1, 3, -1, -1, 2], [-1, -1, 0, -1, -1, 2]], dtype=torch.int32
     )
     gold_delay_for_edge = torch.tensor(
-        [[1, 1, 0, 0, 1], [0, 1, 0, 1, 1]], dtype=torch.int32
+        [[1, 1, 0, 0, 1, 0], [0, 1, 0, 1, 1, 0]], dtype=torch.int32
     )
     gold_toposort_index_for_edge = torch.tensor(
-        [4, 5, 0, 1, 8, 3, 9, 2, 6, 7], dtype=torch.int32
+        [6, 7, 1, 2, 8, 0, 5, 11, 4, 9, 10, 3], dtype=torch.int32
     )
 
     torch.testing.assert_close(gold_dfs_order_of_ff_edges, dfs_order_of_ff_edges)

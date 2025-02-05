@@ -58,9 +58,9 @@ def ff_2ubq_6res_H():
     ff_edges[1, 4, 1] = 4
     ff_edges[1, 4, 2] = 5
 
-    ff_edges[5, 5, 0] = EdgeType.root_jump
-    ff_edges[5, 5, 1] = -1
-    ff_edges[5, 5, 2] = 4
+    ff_edges[1, 5, 0] = EdgeType.root_jump
+    ff_edges[1, 5, 1] = -1
+    ff_edges[1, 5, 2] = 4
 
     return ff_edges
 
