@@ -46,12 +46,13 @@ def mark_polymeric_bonds_in_foldforest_edges(
 
 @numba.jit(nopython=True)
 def bfs_proper_forest(
-    roots: NDArray[numpy.int64][:],
+    roots: NDArray[numpy.int64][:, :],
     n_blocks: NDArray[numpy.int64][:],
     connections: NDArray[numpy.int64][:, :, :],
 ):
     n_poses = connections.shape[0]
     max_n_blocks = connections.shape[1]
+    max_n_roots = roots.shape[1]
     assert n_blocks.shape[0] == n_poses
     assert roots.shape[0] == n_poses
 
@@ -64,9 +65,12 @@ def bfs_proper_forest(
         visit_queue = numpy.full((max_n_blocks,), -1, dtype=numpy.int64)
         visit_front = 0
         visit_back = 0
-        visit_queue[visit_front] = roots[i]
-        node_colors[roots[i]] = 1
-        visit_back += 1
+        for j in range(max_n_roots):
+            if roots[i, j] == -1:
+                break
+            visit_queue[visit_back] = roots[i, j]
+            node_colors[roots[i, j]] = 1
+            visit_back += 1
         while visit_front < visit_back and not found_cycle:
             focused = visit_queue[visit_front]
             for j in range(max_n_blocks):
@@ -135,7 +139,6 @@ def ensure_jumps_numbered_and_distinct(
 
 @numba.jit(nopython=True)
 def validate_fold_forest_jit(
-    roots: NDArray[numpy.int64][:],
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
@@ -153,12 +156,19 @@ def validate_fold_forest_jit(
         return False, bad_edges, None, None, None, None, None
 
     # ok, let's get the other edges incorporated
+    roots = numpy.full((n_poses, max_n_edges), -1, dtype=numpy.int64)
+    n_roots = numpy.zeros((n_poses,), dtype=numpy.int64)
     for i in range(n_poses):
         for j in range(max_n_edges):
-            if edges[i, j, 0] == EdgeType.jump or edges[i, j, 0] == EdgeType.chemical:
+            if (
+                edges[i, j, 0] == EdgeType.jump
+            ):  # or edges[i, j, 0] == EdgeType.chemical:
                 r1 = edges[i, j, 1]
                 r2 = edges[i, j, 2]
                 connections[i, r1, r2] += 1
+            elif edges[i, j, 0] == EdgeType.root_jump:
+                roots[i, n_roots[i]] = edges[i, j, 2]
+                n_roots[i] += 1
 
     # and now a BFS
     cycles_detected, missing = bfs_proper_forest(roots, n_blocks, connections)
@@ -192,14 +202,12 @@ def validate_fold_forest_jit(
 
 
 def validate_fold_forest(
-    roots: NDArray[numpy.int64][:],
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
 ):
-    print("validate fold forest")
-    print(roots.shape)
-    print(n_blocks.shape)
-    print(edges.shape)
+    # print("validate fold forest")
+    # print(n_blocks.shape)
+    # print(edges.shape)
     (
         good,
         bad_edges,
@@ -208,7 +216,7 @@ def validate_fold_forest(
         count_n_bad_jumps,
         bad_jump_numbers,
         count_n_jumps,
-    ) = validate_fold_forest_jit(roots, n_blocks, edges)
+    ) = validate_fold_forest_jit(n_blocks, edges)
 
     if not good:
         n_poses = n_blocks.shape[0]

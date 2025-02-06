@@ -16,8 +16,8 @@ from tmol.io.canonical_ordering import (
 )
 from tmol.types.torch import Tensor
 
-from tmol.kinematics.datatypes import KinForest
-from tmol.kinematics.fold_forest import FoldForest
+# from tmol.kinematics.datatypes import KinForest
+from tmol.kinematics.fold_forest import FoldForest, EdgeType
 
 # from tmol.kinematics.script_modules import KinematicModule
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
@@ -182,20 +182,22 @@ def pose_stack_system1(
         co, ubq_pdb, torch_device, residue_start=0, residue_end=2
     )
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
-    ff_roots = numpy.full((1,), 0, dtype=int)  # residue 0 is the root
+    # ff_roots = numpy.full((1,), 0, dtype=int)  # residue 0 is the root
     ff_n_edges = numpy.full(
         (1,), 1, dtype=int
     )  # one edge for the single Pose in the PoseStack
-    ff_edges = numpy.zeros((1, 1, 4), dtype=int)
-    ff_edges[0, 0, 0] = 0
-    ff_edges[0, 0, 1] = 0
-    ff_edges[0, 0, 2] = 1
+    ff_edges = numpy.zeros((1, 2, 4), dtype=int)
+    ff_edges[0, 0, 0] = EdgeType.root_jump
+    ff_edges[0, 0, 1] = -1
+    ff_edges[0, 0, 2] = 0
+    ff_edges[0, 1, 0] = EdgeType.polymer
+    ff_edges[0, 1, 1] = 0
+    ff_edges[0, 1, 2] = 1
 
     fold_forest = FoldForest(
         max_n_edges=1,
         n_edges=ff_n_edges,
         edges=ff_edges,
-        roots=ff_roots,
     )
     return pose_stack, fold_forest
 
@@ -234,6 +236,8 @@ def pose_stack_system2(
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
     # capital letter H fold forest
+    # "*" designates the root-jump residue
+    #
     # 0       3
     # ^       ^
     # |       |
@@ -241,37 +245,32 @@ def pose_stack_system2(
     # |       |
     # v       v
     # 2       5
-    ff_roots = numpy.full((1,), 1, dtype=int)  # residue 1 is the root
-    ff_n_edges = numpy.full(
-        (1, 1), 5, dtype=int
-    )  # five edges for the single Pose in the PoseStack
-    ff_edges = numpy.zeros((1, 5, 4), dtype=int)
-    ff_edges[0, 0, 0] = 0
+    ff_edges = numpy.zeros((1, 6, 4), dtype=int)
+    ff_edges[0, 0, 0] = EdgeType.polymer
     ff_edges[0, 0, 1] = 1
     ff_edges[0, 0, 2] = 0
 
-    ff_edges[0, 1, 0] = 0
+    ff_edges[0, 1, 0] = EdgeType.polymer
     ff_edges[0, 1, 1] = 1
     ff_edges[0, 1, 2] = 2
 
-    ff_edges[0, 2, 0] = 1
+    ff_edges[0, 2, 0] = EdgeType.jump
     ff_edges[0, 2, 1] = 1
     ff_edges[0, 2, 2] = 4
 
-    ff_edges[0, 3, 0] = 0
+    ff_edges[0, 3, 0] = EdgeType.polymer
     ff_edges[0, 3, 1] = 4
     ff_edges[0, 3, 2] = 3
 
-    ff_edges[0, 4, 0] = 0
+    ff_edges[0, 4, 0] = EdgeType.polymer
     ff_edges[0, 4, 1] = 4
     ff_edges[0, 4, 2] = 5
 
-    fold_forest = FoldForest(
-        max_n_edges=5,
-        n_edges=ff_n_edges,
-        edges=ff_edges,
-        roots=ff_roots,
-    )
+    ff_edges[0, 5, 0] = EdgeType.root_jump
+    ff_edges[0, 5, 1] = -1
+    ff_edges[0, 5, 2] = 1
+
+    fold_forest = FoldForest.from_edges(ff_edges)
     return pose_stack, fold_forest
 
 

@@ -111,7 +111,7 @@ class PoseStackKinematicsModule(torch.jit.ScriptModule):
         _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
 
         n_blocks = torch.sum(ps.block_type_ind != -1, dim=1).cpu().numpy()
-        validate_fold_forest(ff.roots, n_blocks, ff.edges)
+        validate_fold_forest(n_blocks, ff.edges)
 
         # pbt_gssps = pbt.gen_seg_scan_path_segs
         ff_edges_cpu = torch.from_numpy(ff.edges).to(torch.int32)
