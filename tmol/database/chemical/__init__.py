@@ -1,4 +1,6 @@
 from typing import Tuple, Optional, NewType
+import pprint
+import copy
 from tmol.utility.units import BondAngle, DihedralAngle
 
 import attr
@@ -178,7 +180,7 @@ class VariantType:
     icoors: Tuple[IcoorVariant, ...]
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=False)
 class ChemicalDatabase:
     __default = None
 
@@ -194,9 +196,20 @@ class ChemicalDatabase:
     def get_default(cls) -> "ChemicalDatabase":
         """Load and return default parameter database."""
         if cls.__default is None:
-            cls.__default = ChemicalDatabase.from_file(
+            """cls.__default = ChemicalDatabase.from_file(
+                os.path.join(os.path.dirname(__file__), "..", "default", "chemical")
+            )"""
+            default = ChemicalDatabase.from_file(
                 os.path.join(os.path.dirname(__file__), "..", "default", "chemical")
             )
+            extension = ChemicalDatabase.from_file(
+                os.path.join(
+                    os.path.dirname(__file__), "..", "default", "chemical", "extension"
+                )
+            )
+            cls.__default = cls.concat_databases(default, extension)
+        # print(cls.__default)
+        # pprint.pprint(cls.__default, width=1)
         return cls.__default
 
     @classmethod
@@ -206,3 +219,14 @@ class ChemicalDatabase:
             raw = yaml.safe_load(infile)
 
         return cattr.structure(raw, cls)
+
+    @classmethod
+    def concat_databases(cls, db1, db2):
+        element_types = db1.element_types + db2.element_types
+        atom_types = db1.atom_types + db2.atom_types
+        residues = db1.residues + db2.residues
+        variants = db1.variants + db2.variants
+
+        new_db = ChemicalDatabase(element_types, atom_types, residues, variants)
+
+        return new_db

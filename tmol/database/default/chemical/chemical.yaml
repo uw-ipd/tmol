@@ -63,6 +63,11 @@ atom_types:
   - { name: Hwat, element: H, is_polarh : true }
   - { name: Vrt, element: Vr}
 
+  - { name: Oet2, element: O, is_acceptor: true, acceptor_hybridization: sp2}
+  - { name: Oet3, element: O, is_acceptor: true, acceptor_hybridization: sp3, is_donor: true}
+  - { name: Phos, element: P}
+  - { name: Nhis, element: N, is_acceptor: true}
+
 residues:
   - name:  ALA
     base_name: ALA

@@ -324,6 +324,15 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
     energy_term_class = LJLKEnergyTerm
 
     @classmethod
+    def test_ligand_scoring(cls, atp_pdb, default_database, torch_device):
+        return super().test_block_scoring(
+            atp_pdb,
+            default_database,
+            torch_device,
+            update_baseline=True,
+        )
+
+    @classmethod
     def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
         return super().test_whole_pose_scoring_10(
             ubq_pdb, default_database, torch_device, update_baseline=False

@@ -760,7 +760,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
 ):
     co = canonical_ordering
 
-    if hasattr(pbt, "canonical_ording_annotation"):
+    if hasattr(pbt, "canonical_ordering_annotation"):
         return
 
     max_n_termini_types = 4  # 0=down-term, 1=mid, 2=up-term, 3=down+up

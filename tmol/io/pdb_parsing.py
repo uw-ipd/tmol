@@ -83,7 +83,7 @@ def parse_pdb(pdb_lines) -> pandas.DataFrame:
         elif l.startswith("TER"):
             if chain_breaks:
                 chain_breaks[-1] = True
-        elif l.startswith("ATOM  "):
+        elif l.startswith("ATOM  ") or l.startswith("HETATM"):
             atom_lines.append(l)
 
             chain_breaks.append(False)

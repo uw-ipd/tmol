@@ -74,6 +74,11 @@ def disulfide_res():
     return ResidueReader.get_default().parse_pdb(pdb.data["3plc"])
 
 
+@pytest.fixture(scope="session")
+def atp_pdb():
+    return pdb.data["9bkr"]
+
+
 @pytest.fixture()
 def water_box_res():
     from tmol.system.io import ResidueReader

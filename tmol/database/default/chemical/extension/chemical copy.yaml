@@ -1,0 +1,76 @@
+element_types:
+  - {name: He, atomic_number: 2}
+  - {name: Ne, atomic_number: 10}
+  - {name: Ar, atomic_number: 18}
+
+atom_types:
+  - { name: HE1 , element: He }
+  - { name: HE2 , element: He }
+  - { name: NEX , element: Ne }
+  - { name: ARX , element: Ar }
+
+residues:
+  - name:  DUM
+    base_name: DUM
+    name3: DUM
+    io_equiv_class: DUM
+    atoms:
+    - { name: HE11  ,  atom_type: HE1  }
+    - { name: HE22  ,  atom_type: HE2 }
+    - { name: NEXX   ,  atom_type: NEX }
+    - { name: ARXX   ,  atom_type: ARX }
+    atom_aliases:
+    - { name: HE11 , alt_name: HE111 }
+    - { name: HE22 , alt_name: HE222 }
+    bonds:
+    - [   HE11,   HE22]
+    - [   HE11,    NEXX]
+    - [  NEXX,    ARXX]
+    connections:
+    - { name:  down, atom: HE11 }
+    - { name:    up, atom: ARXX }
+    torsions:
+    - name: phi
+      a: { connection: down, bond_sep_from_conn: 0 }
+      b: { atom: HE11 }
+      c: { atom: NEXX }
+      d: { atom: ARXX }
+    - name: psi
+      a: { atom: HE11 }
+      b: { atom: NEXX }
+      c: { atom: ARXX }
+      d: { connection: up, bond_sep_from_conn: 0 }
+    - name: omega
+      a: { atom: NEXX }
+      b: { atom: ARXX }
+      c: { connection: up, bond_sep_from_conn: 0 }
+      d: { connection: up, bond_sep_from_conn: 1 }
+    icoors:
+    - { name:     HE11, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, parent:     HE11, grand_parent:    NEXX, great_grand_parent:     ARXX}
+    - { name:    NEXX, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, parent:     HE11, grand_parent:    NEXX, great_grand_parent:     ARXX}
+    - { name:     ARXX, phi:    0.000000 deg, theta:   68.799995 deg, d:    1.523259, parent:    NEXX, grand_parent:     HE11, great_grand_parent:     ARXX}
+    - { name:    up, phi:  149.999969 deg, theta:   63.800018 deg, d:    1.328685, parent:     ARXX, grand_parent:    NEXX, great_grand_parent:     HE11}
+    - { name:     HE22, phi: -179.999985 deg, theta:   59.200005 deg, d:    1.231015, parent:     ARXX, grand_parent:    NEXX, great_grand_parent:    up}
+    - { name:  down, phi: -150.000015 deg, theta:   58.300003 deg, d:    1.328685, parent:     HE11, grand_parent:    NEXX, great_grand_parent:     ARXX}
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - HE11
+        - NEXX
+        - ARXX
+        sidechain_chirality: achiral
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: []
+        protonation_state: neutral
+        pH: 7
+      virtual: []
+    chi_samples: []
+
+variants: {}

@@ -29,7 +29,9 @@ class ParameterDatabase:
 
     @classmethod
     def from_file(cls, path):
-        chemdb = ChemicalDatabase.from_file(os.path.join(path, "chemical"))
+        chemdb = (
+            ChemicalDatabase.get_default()
+        )  # from_file(os.path.join(path, "chemical"))
         patched_chemdb = PatchedChemicalDatabase.from_chem_db(chemdb)  # apply patches
         return cls(
             scoring=ScoringDatabase.from_file(os.path.join(path, "scoring")),
