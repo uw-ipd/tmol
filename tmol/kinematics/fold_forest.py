@@ -66,12 +66,15 @@ class FoldForest:
         edges[:, 0, 0] = EdgeType.root_jump
         edges[:, 0, 1] = -1
         edges[:, 0, 2] = 0
-        edges[:, 1, 0] = EdgeType.polymer
-        edges[:, 1, 1] = 0
-        edges[:, 1, 2] = numpy.array(n_res_per_tree, dtype=int) - 1
+        n_res_gt_1 = n_res_per_tree > 1
+        edges[n_res_gt_1, 1, 0] = EdgeType.polymer
+        edges[n_res_gt_1, 1, 1] = 0
+        edges[n_res_gt_1, 1, 2] = (n_res_per_tree[n_res_gt_1] - 1).astype(int)
+        n_edges = numpy.full(n_trees, 1, dtype=int)
+        n_edges[n_res_gt_1] = 2
         return cls(
-            max_n_edges=1,
-            n_edges=numpy.ones(n_trees, dtype=int),
+            max_n_edges=2,
+            n_edges=n_edges,
             edges=edges,
         )
 

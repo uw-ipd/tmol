@@ -31,7 +31,7 @@ enum JumpDOFTypes {
 };
 
 enum EdgeTypes {
-  ff_peptide_edge = 0,
+  ff_polymer_edge = 0,
   ff_jump_edge,
   ff_root_jump_edge,
 };
