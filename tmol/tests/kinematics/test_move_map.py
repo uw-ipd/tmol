@@ -303,6 +303,15 @@ def test_set_move_all_jump_dofs_for_jump_by_index(mm_for_two_six_res_ubqs_no_ter
     assert mm.move_jumps_mask[1, 0] == True
 
 
+def test_set_move_all_jump_dofs_for_root_jump_by_index(mm_for_two_six_res_ubqs_no_term):
+    mm = mm_for_two_six_res_ubqs_no_term
+    mm.set_move_all_jump_dofs_for_root_jump(0, 4)
+    assert mm.move_root_jumps[0, 0] == False
+    assert mm.move_root_jumps_mask[0, 0] == False
+    assert mm.move_root_jumps[0, 4] == True
+    assert mm.move_root_jumps_mask[0, 4] == True
+
+
 ###################
 
 
@@ -520,6 +529,17 @@ def test_set_move_particular_jump_dofs_for_jump_by_index(
     assert mm.move_jump_dof_mask[0, 0, 0] == False
     assert mm.move_jump_dof[1, 0, 0] == True
     assert mm.move_jump_dof_mask[1, 0, 0] == True
+
+
+def test_set_move_particular_jump_dofs_for_jump_by_index(
+    mm_for_two_six_res_ubqs_no_term,
+):
+    mm = mm_for_two_six_res_ubqs_no_term
+    mm.set_move_jump_dof_for_root_jumps(1, 0, 0)
+    assert mm.move_root_jump_dof[0, 0, 0] == False
+    assert mm.move_root_jump_dof_mask[0, 0, 0] == False
+    assert mm.move_root_jump_dof[1, 0, 0] == True
+    assert mm.move_root_jump_dof_mask[1, 0, 0] == True
 
 
 def test_set_move_particular_atom_dofs(
