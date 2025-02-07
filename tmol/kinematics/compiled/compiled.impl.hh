@@ -839,37 +839,55 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_jump_atom_indices(
         ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
     TView<Int, 2, D> pose_stack_block_type,  // P x L
     TView<Int, 1, D> block_type_jump_atom    // T
-    ) -> TPack<Int, 3, D> {
+    ) -> std::tuple<TPack<Int, 3, D>, TPack<Int, 2, D>> {
+  // Get the atom indices for both jumps and root-jumps.
+  // Jumps are placed in an n-poses x max-n-edges tensor
+  // with the last dimension giving 0) the block index of
+  // the downstream end of the jump and 1) the atom index
+  // on that block. Root jumps are placed in an
+  // n-poses x max-n-blocks tensor where a non-sentinel entry
+  // represents the index of the atom on a root-jump block.
   LAUNCH_BOX_32;
 
   int const n_poses = pose_stack_block_type.size(0);
+  int const max_n_blocks = pose_stack_block_type.size(1);
   int const max_n_edges = ff_edges.size(1);  //  too many; could count fewer
 
   assert(ff_edges.size(0) == n_poses);
   assert(pose_stack_block_type.size(1));
 
+  // Last dimensions:
+  // 1: end block
+  // 2: atom on end block
   auto pose_stack_atom_for_jump_t =
       TPack<Int, 3, D>::full({n_poses, max_n_edges, 2}, -1);
   auto pose_stack_atom_for_jump = pose_stack_atom_for_jump_t.view;
+  auto pose_stack_atom_for_root_jump_t =
+      TPack<Int, 2, D>::full({n_poses, max_n_blocks}, -1);
+  auto pose_stack_atom_for_root_jump = pose_stack_atom_for_root_jump_t.view;
 
-  auto set_jump_atom_index = ([=] TMOL_DEVICE_FUNC(int i) {
+  auto set_jump_and_root_jump_atom_indices = ([=] TMOL_DEVICE_FUNC(int i) {
     int const pose = i / max_n_edges;
     int const edge = i % max_n_edges;
     int const edge_type = ff_edges[pose][edge][0];
     int const jump_ind = ff_edges[pose][edge][3];
-    if (edge_type != JUMP) {
+    if (edge_type != ff_jump_edge && edge_type != ff_root_jump_edge) {
       return;
     }
     int const end_block = ff_edges[pose][edge][2];
     int const end_block_type = pose_stack_block_type[pose][end_block];
     int const jump_atom = block_type_jump_atom[end_block_type];
-    pose_stack_atom_for_jump[pose][jump_ind][0] = end_block;
-    pose_stack_atom_for_jump[pose][jump_ind][1] = jump_atom;
+    if (edge_type == ff_jump_edge) {
+      pose_stack_atom_for_jump[pose][jump_ind][0] = end_block;
+      pose_stack_atom_for_jump[pose][jump_ind][1] = jump_atom;
+    } else {
+      pose_stack_atom_for_root_jump[pose][end_block] = jump_atom;
+    }
   });
   DeviceDispatch<D>::template forall<launch_t>(
-      n_poses * max_n_edges, set_jump_atom_index);
+      n_poses * max_n_edges, set_jump_and_root_jump_atom_indices);
 
-  return pose_stack_atom_for_jump_t;
+  return {pose_stack_atom_for_jump_t, pose_stack_atom_for_root_jump_t};
 }
 
 // P = number of poses
@@ -1827,44 +1845,44 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       TPack<Int, 1, D>::zeros({n_poses * max_n_edges_per_ff * n_gens_total});
   auto n_blocks_that_build_tsedge_for_gen_bw =
       n_blocks_that_build_tsedge_for_gen_bw_tp.view;
-  auto count_n_blocks_for_ffedge_for_gen_by_topo_sort = ([=] TMOL_DEVICE_FUNC(
-                                                             int ind) {
-    int i = ind;
-    int const pose = i / (max_n_gens_per_bt * max_n_edges_per_ff);
-    i = i - pose * (max_n_gens_per_bt * max_n_edges_per_ff);
-    int const edge = i / max_n_gens_per_bt;
-    int const gen = i % max_n_gens_per_bt;
+  auto count_n_blocks_for_ffedge_for_gen_by_topo_sort =
+      ([=] TMOL_DEVICE_FUNC(int ind) {
+        int i = ind;
+        int const pose = i / (max_n_gens_per_bt * max_n_edges_per_ff);
+        i = i - pose * (max_n_gens_per_bt * max_n_edges_per_ff);
+        int const edge = i / max_n_gens_per_bt;
+        int const gen = i % max_n_gens_per_bt;
 
-    int const edge_type = ff_edges[pose][edge][0];
-    if (edge_type == -1) {
-      return;
-    }
-    // Look, we can be extra generous and allocate space
-    // for a block that is not truly built by this edge,
-    // if, e.g., the edge is a jump/root-jump and the start
-    // block would have already been built by another edge.
-    int const ff_edge_start = ff_edges[pose][edge][1];
-    int const ff_edge_end = ff_edges[pose][edge][2];
-    int const n_blocks =
-        (edge_type == ff_polymer_edge
-             ? (ff_edge_end > ff_edge_start ? ff_edge_end - ff_edge_start + 1
-                                            : ff_edge_start - ff_edge_end + 1)
-             : 2);
-    int const edge_delay = delay_for_edge[pose][edge];
-    int const ff_edge_gen = gen + edge_delay;
-    int const ff_edge_gen_bw = (n_gens_total - 1) - ff_edge_gen;
-    int const edge_toposort_index =
-        topo_sort_index_for_edge[pose * max_n_edges_per_ff + edge];
-    int const edge_toposort_index_bw =
-        n_poses * max_n_edges_per_ff - 1 - edge_toposort_index;
+        int const edge_type = ff_edges[pose][edge][0];
+        if (edge_type == -1) {
+          return;
+        }
+        // Look, we can be extra generous and allocate space
+        // for a block that is not truly built by this edge,
+        // if, e.g., the edge is a jump/root-jump and the start
+        // block would have already been built by another edge.
+        int const ff_edge_start = ff_edges[pose][edge][1];
+        int const ff_edge_end = ff_edges[pose][edge][2];
+        int const n_blocks =
+            (edge_type == ff_polymer_edge ? (
+                 ff_edge_end > ff_edge_start ? ff_edge_end - ff_edge_start + 1
+                                             : ff_edge_start - ff_edge_end + 1)
+                                          : 2);
+        int const edge_delay = delay_for_edge[pose][edge];
+        int const ff_edge_gen = gen + edge_delay;
+        int const ff_edge_gen_bw = (n_gens_total - 1) - ff_edge_gen;
+        int const edge_toposort_index =
+            topo_sort_index_for_edge[pose * max_n_edges_per_ff + edge];
+        int const edge_toposort_index_bw =
+            n_poses * max_n_edges_per_ff - 1 - edge_toposort_index;
 
-    n_blocks_that_build_tsedge_for_gen
-        [ff_edge_gen * n_poses * max_n_edges_per_ff + edge_toposort_index] =
-            n_blocks;
-    n_blocks_that_build_tsedge_for_gen_bw
-        [ff_edge_gen_bw * n_poses * max_n_edges_per_ff
-         + edge_toposort_index_bw] = n_blocks;
-  });
+        n_blocks_that_build_tsedge_for_gen
+            [ff_edge_gen * n_poses * max_n_edges_per_ff + edge_toposort_index] =
+                n_blocks;
+        n_blocks_that_build_tsedge_for_gen_bw
+            [ff_edge_gen_bw * n_poses * max_n_edges_per_ff
+             + edge_toposort_index_bw] = n_blocks;
+      });
   // std::cout << "4" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_edges_per_ff * max_n_gens_per_bt,
@@ -2391,11 +2409,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       int const gen_bw = n_gens_total - ind;
       int const tsedge0_block_offset =
           ind < n_gens_total ? block_offset_for_tsedge_for_gen
-                                   [ind * n_poses * max_n_edges_per_ff]
+                  [ind * n_poses * max_n_edges_per_ff]
                              : n_blocks_building_edges_total;
       int const tsedge0_block_offset_bw =
           gen_bw < n_gens_total ? block_offset_for_tsedge_for_gen_bw
-                                      [gen_bw * n_poses * max_n_edges_per_ff]
+                  [gen_bw * n_poses * max_n_edges_per_ff]
                                 : n_blocks_building_edges_total;
       int const tsedge0_for_gen =
           tsedge0_block_offset < n_blocks_building_edges_total
@@ -2533,14 +2551,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     // What is the block offset for the first edge (topo-sort edge 0) for
     // this generation?
     int const tsedge0_block_offset =
-        ff_edge_gen < n_gens_total
-            ? block_offset_for_tsedge_for_gen
-                  [ff_edge_gen * n_poses * max_n_edges_per_ff]
-            : n_blocks_building_edges_total;
+        ff_edge_gen < n_gens_total ? block_offset_for_tsedge_for_gen
+                [ff_edge_gen * n_poses * max_n_edges_per_ff]
+                                   : n_blocks_building_edges_total;
     int const tsedge0_block_offset_bw =
         ff_edge_gen_bw < n_gens_total
             ? block_offset_for_tsedge_for_gen_bw
-                  [ff_edge_gen_bw * n_poses * max_n_edges_per_ff]
+                [ff_edge_gen_bw * n_poses * max_n_edges_per_ff]
             : n_blocks_building_edges_total;  // What is the offset for the
                                               // first scan path segment for
                                               // tsegde0?
@@ -2663,7 +2680,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<Int, 2, D> pose_stack_block_type,
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
     TView<Int, 3, D> pose_stack_block_in_and_first_out,  // P x L x 2
-    TView<Int, 3, D> pose_stack_atom_for_jump,           // P x J x 2
+    TView<Int, 3, D> pose_stack_atom_for_jump,           // P x E x 2
+    TView<Int, 2, D> pose_stack_atom_for_root_jump,      // P x L
     TView<bool, 2, D> keep_dof_fixed,                    // K x 9
     TView<Int, 1, D> bt_n_named_torsions,
     TView<UnresolvedAtomID<Int>, 3, D> bt_uaid_for_torsion,
@@ -2671,11 +2689,14 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<Int, 2, D> bt_which_mcsc_torsion_for_named_torsion,
     TView<Int, 3, D> bt_atom_downstream_of_conn,
     bool move_all_jumps,
+    bool move_all_root_jumps,
     bool move_all_mcs,
     bool move_all_scs,
     bool move_all_named_torsions,
     TView<bool, 2, D> move_jumps,
     TView<bool, 2, D> move_jumps_mask,
+    TView<bool, 2, D> move_root_jumps,
+    TView<bool, 2, D> move_root_jumps_mask,
     TView<bool, 2, D> move_mcs,
     TView<bool, 2, D> move_mcs_mask,
     TView<bool, 2, D> move_scs,
@@ -2684,6 +2705,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     TView<bool, 2, D> move_named_torsions_mask,
     TView<bool, 3, D> move_jump_dof,
     TView<bool, 3, D> move_jump_dof_mask,
+    TView<bool, 3, D> move_root_jump_dof,
+    TView<bool, 3, D> move_root_jump_dof_mask,
     TView<bool, 3, D> move_mc,
     TView<bool, 3, D> move_mc_mask,
     TView<bool, 3, D> move_sc,
@@ -2722,7 +2745,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   // Dunbrack does this.
 
   // Step 2: torsions
-  // For each torsion, set move status based on whether it's
+  // For each torsion, set move status based on whether it is
   // mainchain or sidechain: look at all three levels of status
   // and pick the one that is most restrictive
 
@@ -2730,12 +2753,18 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   // For each jump, set its move status based on all three
   // levels of status and pick the one that's most restrictive
 
-  // Step 4: atoms
+  // Step 4: root jumps
+  // For each residue, determine if it's a root jump, and if so,
+  // activate its jump-atom DOFs according to the
+  // "move_all_root_jumps", "moove_root_jumps," and "move_root_jump_dof"
+  // instructions.
+
+  // Step 5: atoms
   // For each DOF on each atom, look at whether the "move_atom_dof"
   // parameter has been set, and if so, override whatever else has
   // been set for that DOF.
 
-  // Step 5: reindex
+  // Step 6: reindex
   // Finally, map the DOFs from their pose-stack order to their kinforest
   // order in the minimizer_map tensor; while doing this, override any
   // setting for if keep_dof_fixed is set to true.
@@ -2888,12 +2917,16 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     // Now we look at the specification heirarchy for this jump's 6 DOFs
     for (int jump_dof = 0; jump_dof < 6; ++jump_dof) {
       if (move_jump_dof_mask[pose][jump][jump_dof]) {
+        // printf("move_jump_dof %d %d %d\n", pose, jump, jump_dof);
         pose_atom_ordered_minimizer_map[jump_atom_global_index][jump_dof] =
             move_jump_dof[pose][jump][jump_dof];
       } else if (move_jumps_mask[pose][jump]) {
+        // printf("move_jumps %d %d %d\n", pose, jump, jump_dof);
         pose_atom_ordered_minimizer_map[jump_atom_global_index][jump_dof] =
             move_jumps[pose][jump];
       } else {
+        // printf("move_all_jumps %d %d %d: %d\n", pose, jump, jump_dof,
+        // move_all_jumps);
         pose_atom_ordered_minimizer_map[jump_atom_global_index][jump_dof] =
             move_all_jumps;
       }
@@ -2904,7 +2937,43 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   // gpuErrPeek;
   // gpuErrSync;
 
-  // Step 4:
+  //  Step 4:
+  auto set_root_jump_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
+    int const pose = i / n_blocks;
+    int const block = i % n_blocks;
+    int const atom = pose_stack_atom_for_root_jump[pose][block];
+    if (atom == -1) {
+      return;
+    }
+
+    int const jump_atom_global_index =
+        pose * max_n_atoms_per_pose + pose_stack_block_coord_offset[pose][block]
+        + atom;
+
+    // Now we look at the specification heirarchy for this root-jump's 6 DOFs
+    for (int jump_dof = 0; jump_dof < 6; ++jump_dof) {
+      if (move_root_jump_dof_mask[pose][block][jump_dof]) {
+        // printf("move_root_jump_dof %d %d %d\n", pose, block, jump_dof);
+        pose_atom_ordered_minimizer_map[jump_atom_global_index][jump_dof] =
+            move_root_jump_dof[pose][block][jump_dof];
+      } else if (move_root_jumps_mask[pose][block]) {
+        // printf("move_root_jumps %d %d %d\n", pose, block, jump_dof);
+        pose_atom_ordered_minimizer_map[jump_atom_global_index][jump_dof] =
+            move_root_jumps[pose][block];
+      } else {
+        // printf("move_all_root_jumps %d %d %d: %d\n", pose, block, jump_dof,
+        // move_all_root_jumps);
+        pose_atom_ordered_minimizer_map[jump_atom_global_index][jump_dof] =
+            move_all_root_jumps;
+      }
+    }
+  });
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_poses * n_blocks, set_root_jump_freedom);
+  // gpuErrPeek;
+  // gpuErrSync;
+
+  // Step 5:
   auto set_atom_freedom = ([=] TMOL_DEVICE_FUNC(int i) {
     int const pose = i / (n_blocks * max_n_atoms_per_block);
     i = i - pose * n_blocks * max_n_atoms_per_block;
@@ -2925,7 +2994,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
   // gpuErrPeek;
   // gpuErrSync;
 
-  // Step 5:
+  // Step 6:
   auto reindex_minimizer_map = ([=] TMOL_DEVICE_FUNC(int i) {
     int const pose_atom = kinforest_id[i];
     if (i > 0) {

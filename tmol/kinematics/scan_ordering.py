@@ -30,6 +30,7 @@ from tmol.io.canonical_ordering import (
     default_packed_block_types,
     canonical_form_from_pdb,
 )
+from tmol.pose.pose_stack import PoseStack
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.kinematics.datatypes import NodeType
 from tmol.kinematics.fold_forest import EdgeType
@@ -347,9 +348,10 @@ class KinForestScanOrdering(ValidateAttrs):
         )
 
 
+@validate_args
 def construct_kin_module_data_for_pose(
-    pose_stack,
-    fold_forest_edges,
+    pose_stack: PoseStack,
+    fold_forest_edges: Tensor[torch.int32][:, :, 4],
 ):
     from tmol.kinematics.compiled.compiled_ops import (
         calculate_ff_edge_delays,
@@ -401,7 +403,7 @@ def construct_kin_module_data_for_pose(
     # print("first_ff_edge_for_block", first_ff_edge_for_block)
     # print("3")
 
-    pose_stack_atom_for_jump = get_jump_atom_indices(
+    pose_stack_atom_for_jump, pose_stack_atom_for_root_jump = get_jump_atom_indices(
         ff_edges_device, pose_stack.block_type_ind, pbt_gssps.jump_atom
     )
 
@@ -528,6 +530,7 @@ def construct_kin_module_data_for_pose(
         block_in_and_first_out=pose_stack_block_in_and_first_out,
         keep_atom_fixed=keep_atom_fixed,
         pose_stack_atom_for_jump=pose_stack_atom_for_jump,
+        pose_stack_atom_for_root_jump=pose_stack_atom_for_root_jump,
     )
 
 

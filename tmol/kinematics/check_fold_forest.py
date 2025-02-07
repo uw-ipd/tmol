@@ -201,6 +201,128 @@ def validate_fold_forest_jit(
     )
 
 
+def _append_bad_edge_errors(n_poses, max_n_edges, edges, bad_edges, n_blocks, errors):
+    for i in range(n_poses):
+        for j in range(max_n_edges):
+            if bad_edges[i, j] == -1:
+                # bad edges are listed first, so
+                # if we hit "-1", there are none remaining
+                break
+            edge_index = bad_edges[i, j]
+            edge_start = edges[i, edge_index, 1]
+            edge_end = edges[i, edge_index, 2]
+            if edge_start >= n_blocks[i]:
+                errors.append(
+                    " ".join(
+                        [
+                            f"FOLD FOREST ERROR: Bad edge {edge_index} in pose {i}",
+                            f"gives start index {edge_start} out of range; (n_blocks[{i}] = {n_blocks[i]})",
+                        ]
+                    )
+                )
+            if edge_end >= n_blocks[i]:
+                errors.append(
+                    " ".join(
+                        [
+                            f"FOLD FOREST ERROR: Bad edge {edge_index} in pose {i}",
+                            f"gives end index {edge_end} out of range; (n_blocks[{i}] = {n_blocks[i]})",
+                        ]
+                    )
+                )
+
+
+def _append_cycle_errors(n_poses, n_blocks, cycles_detected, missing, errors):
+    for i in range(n_poses):
+        if cycles_detected is None:
+            break
+        if cycles_detected[i, 0] != 0:
+            # good = False
+            errors.append(
+                " ".join(
+                    [
+                        "FOLD FOREST ERROR: Cycle detected in pose",
+                        str(i),
+                        "at block",
+                        str(cycles_detected[i, 1]),
+                    ]
+                )
+            )
+            continue
+        for j in range(n_blocks[i]):
+            if missing[i, j] == 1:
+                # good = False
+                errors.append(
+                    " ".join(
+                        [
+                            "FOLD FOREST ERROR: Block",
+                            str(j),
+                            "unreachable in pose",
+                            str(i),
+                        ]
+                    )
+                )
+
+
+def _append_bad_jumps_errors(
+    n_poses, count_n_bad_jumps, bad_jump_numbers, count_n_jumps, edges, errors
+):
+    for i in range(n_poses):
+        if count_n_bad_jumps is None:
+            break
+        if count_n_bad_jumps[i] > 0:
+            for j in range(count_n_bad_jumps[i]):
+                e = edges[i, bad_jump_numbers[i, j], :]
+                is_repeat_index = False
+                first_edge_w_index = -1
+                for k in range(bad_jump_numbers[i, j]):
+                    # print(f"e: {e[0]}, {e[1]}, {e[2]}, {e[3]} and k: {k} edge {edges[i, k, 0]}, {edges[i, k, 3]}")
+                    if edges[i, k, 0] == EdgeType.jump and edges[i, k, 3] == e[3]:
+                        is_repeat_index = True
+                        first_edge_w_index = k
+                        break
+                if is_repeat_index:
+                    ek = edges[i, first_edge_w_index, :]
+                    errors.append(
+                        " ".join(
+                            [
+                                "FOLD FOREST ERROR: Jump",
+                                f"[p={e[0]}, s={e[1]}, e={e[2]}, ind={e[3]}]",
+                                "in pose",
+                                str(i),
+                                "has repeated jump index with edge",
+                                str(first_edge_w_index),
+                                f"[p={ek[0]}, s={ek[1]}, e={ek[2]}, ind={ek[3]}]",
+                            ]
+                        )
+                    )
+                else:
+                    if e[3] < 0:
+                        errors.append(
+                            " ".join(
+                                [
+                                    "FOLD FOREST ERROR: Jump",
+                                    f"[p={e[0]}, s={e[1]}, e={e[2]}, ind={e[3]}]",
+                                    "in pose",
+                                    str(i),
+                                    "has negative jump index",
+                                ]
+                            )
+                        )
+                    else:
+                        errors.append(
+                            " ".join(
+                                [
+                                    "FOLD FOREST ERROR: Jump",
+                                    f"[p={e[0]}, s={e[1]}, e={e[2]}, ind={e[3]}]",
+                                    "in pose",
+                                    str(i),
+                                    "has a non-contiguous-starting-at-0 jump index",
+                                    f"(n jumps total: {count_n_jumps[i]})",
+                                ]
+                            )
+                        )
+
+
 def validate_fold_forest(
     n_blocks: NDArray[numpy.int64][:],
     edges: NDArray[numpy.int64][:, :, 4],
@@ -222,116 +344,13 @@ def validate_fold_forest(
         n_poses = n_blocks.shape[0]
         max_n_edges = edges.shape[1]
         errors = []
-        for i in range(n_poses):
-            for j in range(max_n_edges):
-                if bad_edges[i, j] == -1:
-                    # bad edges are listed first, so
-                    # if we hit "-1", there are none remaining
-                    break
-                edge_index = bad_edges[i, j]
-                edge_start = edges[i, edge_index, 1]
-                edge_end = edges[i, edge_index, 2]
-                if edge_start >= n_blocks[i]:
-                    errors.append(
-                        " ".join(
-                            [
-                                f"FOLD FOREST ERROR: Bad edge {edge_index} in pose {i}",
-                                f"gives start index {edge_start} out of range; (n_blocks[{i}] = {n_blocks[i]})",
-                            ]
-                        )
-                    )
-                if edge_end >= n_blocks[i]:
-                    errors.append(
-                        " ".join(
-                            [
-                                f"FOLD FOREST ERROR: Bad edge {edge_index} in pose {i}",
-                                f"gives end index {edge_end} out of range; (n_blocks[{i}] = {n_blocks[i]})",
-                            ]
-                        )
-                    )
 
-        for i in range(n_poses):
-            if cycles_detected is None:
-                break
-            if cycles_detected[i, 0] != 0:
-                good = False
-                errors.append(
-                    " ".join(
-                        [
-                            "FOLD FOREST ERROR: Cycle detected in pose",
-                            str(i),
-                            "at block",
-                            str(cycles_detected[i, 1]),
-                        ]
-                    )
-                )
-                continue
-            for j in range(n_blocks[i]):
-                if missing[i, j] == 1:
-                    good = False
-                    errors.append(
-                        " ".join(
-                            [
-                                "FOLD FOREST ERROR: Block",
-                                str(j),
-                                "unreachable in pose",
-                                str(i),
-                            ]
-                        )
-                    )
-        for i in range(n_poses):
-            if count_n_bad_jumps is None:
-                break
-            if count_n_bad_jumps[i] > 0:
-                for j in range(count_n_bad_jumps[i]):
-                    e = edges[i, bad_jump_numbers[i, j], :]
-                    is_repeat_index = False
-                    first_edge_w_index = -1
-                    for k in range(bad_jump_numbers[i, j]):
-                        # print(f"e: {e[0]}, {e[1]}, {e[2]}, {e[3]} and k: {k} edge {edges[i, k, 0]}, {edges[i, k, 3]}")
-                        if edges[i, k, 0] == EdgeType.jump and edges[i, k, 3] == e[3]:
-                            is_repeat_index = True
-                            first_edge_w_index = k
-                            break
-                    if is_repeat_index:
-                        ek = edges[i, first_edge_w_index, :]
-                        errors.append(
-                            " ".join(
-                                [
-                                    "FOLD FOREST ERROR: Jump",
-                                    f"[p={e[0]}, s={e[1]}, e={e[2]}, ind={e[3]}]",
-                                    "in pose",
-                                    str(i),
-                                    "has repeated jump index with edge",
-                                    str(first_edge_w_index),
-                                    f"[p={ek[0]}, s={ek[1]}, e={ek[2]}, ind={ek[3]}]",
-                                ]
-                            )
-                        )
-                    else:
-                        if e[3] < 0:
-                            errors.append(
-                                " ".join(
-                                    [
-                                        "FOLD FOREST ERROR: Jump",
-                                        f"[p={e[0]}, s={e[1]}, e={e[2]}, ind={e[3]}]",
-                                        "in pose",
-                                        str(i),
-                                        "has negative jump index",
-                                    ]
-                                )
-                            )
-                        else:
-                            errors.append(
-                                " ".join(
-                                    [
-                                        "FOLD FOREST ERROR: Jump",
-                                        f"[p={e[0]}, s={e[1]}, e={e[2]}, ind={e[3]}]",
-                                        "in pose",
-                                        str(i),
-                                        "has a non-contiguous-starting-at-0 jump index",
-                                        f"(n jumps total: {count_n_jumps[i]})",
-                                    ]
-                                )
-                            )
+        _append_bad_edge_errors(
+            n_poses, max_n_edges, edges, bad_edges, n_blocks, errors
+        )
+        _append_cycle_errors(n_poses, n_blocks, cycles_detected, missing, errors)
+        _append_bad_jumps_errors(
+            n_poses, count_n_bad_jumps, bad_jump_numbers, count_n_jumps, edges, errors
+        )
+
         raise ValueError("\n".join(errors))

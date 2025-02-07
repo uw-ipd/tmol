@@ -6,8 +6,6 @@ from tmol.types.torch import Tensor
 
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.datatypes import (
-    JumpDOFTypes,
-    BondDOFTypes,
     KinematicModuleData,
     n_movable_bond_dof_types,
     n_movable_jump_dof_types,
@@ -18,6 +16,7 @@ from tmol.kinematics.datatypes import (
 class MoveMap:
 
     move_all_jumps: bool
+    move_all_root_jumps: bool
     move_all_mc: bool
     move_all_sc: bool
     move_all_named_torsions: bool
@@ -26,6 +25,8 @@ class MoveMap:
     # all of the torsions of a particular class for a residue
     move_jumps: Tensor[torch.bool][:, :]
     move_jumps_mask: Tensor[torch.bool][:, :]
+    move_root_jumps: Tensor[torch.bool][:, :]
+    move_root_jumps_mask: Tensor[torch.bool][:, :]
     move_mcs: Tensor[torch.bool][:, :]
     move_mcs_mask: Tensor[torch.bool][:, :]
     move_scs: Tensor[torch.bool][:, :]
@@ -47,6 +48,8 @@ class MoveMap:
     # phi_p, theta, d, phi_c for atoms
     move_jump_dof: Tensor[torch.bool][:, :, :]
     move_jump_dof_mask: Tensor[torch.bool][:, :, :]
+    move_root_jump_dof: Tensor[torch.bool][:, :, :]
+    move_root_jump_dof_mask: Tensor[torch.bool][:, :, :]
     move_atom_dof: Tensor[torch.bool][:, :, :, :]
     move_atom_dof_mask: Tensor[torch.bool][:, :, :, :]
 
@@ -74,6 +77,22 @@ class MoveMap:
         both the pose_selection tensor and the jump_selection tensor.
         """
         self._set_val_and_mask_for_2dim(pose_selection, jump_selection, "jumps", value)
+
+    def set_move_all_jump_dofs_for_root_jump(
+        self,
+        pose_selection: Union[Tensor, int],
+        root_jump_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        """Enable or disable all jump dofs for a particular set of root-jumps on particular poses.
+
+        If root_jump_selection is None, then the two dimensional settings tensor will be indexed by
+        the pose_selection tensor only; if both are not None, then the settings tensor will be indexed by
+        both the pose_selection tensor and the jump_selection tensor.
+        """
+        self._set_val_and_mask_for_2dim(
+            pose_selection, root_jump_selection, "root_jumps", value
+        )
 
     def set_move_all_mc_tors_for_blocks(
         self,
@@ -187,6 +206,26 @@ class MoveMap:
             pose_selection, jump_selection, dof_selection, "jump_dof", value
         )
 
+    def set_move_jump_dof_for_root_jumps(
+        self,
+        pose_selection: Union[Tensor, int],
+        root_jump_selection: Optional[Union[Tensor, int]] = None,
+        dof_selection: Optional[Union[Tensor, int]] = None,
+        value: bool = True,
+    ):
+        """Enable or disable all jump dofs for a particular set of root-jumps on particular poses.
+
+        If root_jump_selection is None, then the two dimensional settings tensor will be indexed by
+        the pose_selection tensor only; if both are not None, then the settings tensor will be indexed by
+        both the pose_selection tensor and the root_jump_selection tensor.
+        """
+        self._assert_valid_pose_block_dof_selection(
+            pose_selection, root_jump_selection, dof_selection, n_movable_jump_dof_types
+        )
+        self._set_val_and_mask_for_3dim(
+            pose_selection, root_jump_selection, dof_selection, "root_jump_dof", value
+        )
+
     def set_move_atom_dof_for_blocks(
         self,
         pose_selection: Union[Tensor, int],
@@ -251,6 +290,7 @@ class MoveMap:
             device = torch.device("cpu")
 
         self.move_all_jumps = False
+        self.move_all_root_jumps = False
         self.move_all_mc = False
         self.move_all_sc = False
         self.move_all_named_torsions = False
@@ -265,6 +305,8 @@ class MoveMap:
         # all of the torsions of a particular class for a residue
         self.move_jumps = z_bool_pb()
         self.move_jumps_mask = z_bool_pb()
+        self.move_root_jumps = z_bool_pb()
+        self.move_root_jumps_mask = z_bool_pb()
         self.move_mcs = z_bool_pb()
         self.move_mcs_mask = z_bool_pb()
         self.move_scs = z_bool_pb()
@@ -286,6 +328,8 @@ class MoveMap:
         # phi_p, theta, d, phi_c for atoms
         self.move_jump_dof = z_bool_pb((n_movable_jump_dof_types,))
         self.move_jump_dof_mask = z_bool_pb((n_movable_jump_dof_types,))
+        self.move_root_jump_dof = z_bool_pb((n_movable_jump_dof_types,))
+        self.move_root_jump_dof_mask = z_bool_pb((n_movable_jump_dof_types,))
         self.move_atom_dof = z_bool_pb(
             (max_n_atoms_per_block, n_movable_bond_dof_types)
         )
@@ -421,6 +465,7 @@ class MinimizerMap:
             pose_stack.inter_residue_connections,
             kmd.block_in_and_first_out,
             kmd.pose_stack_atom_for_jump,
+            kmd.pose_stack_atom_for_root_jump,
             kmd.keep_atom_fixed,
             pbt.n_torsions,
             pbt.gen_seg_scan_path_segs.uaid_for_torsion_by_inconn,
@@ -428,11 +473,14 @@ class MinimizerMap:
             pbt.which_mcsc_torsions,
             pbt.atom_downstream_of_conn,
             mm.move_all_jumps,
+            mm.move_all_root_jumps,
             mm.move_all_mc,
             mm.move_all_sc,
             mm.move_all_named_torsions,
             mm.move_jumps,
             mm.move_jumps_mask,
+            mm.move_root_jumps,
+            mm.move_root_jumps_mask,
             mm.move_mcs,
             mm.move_mcs_mask,
             mm.move_scs,
@@ -441,6 +489,8 @@ class MinimizerMap:
             mm.move_named_torsions_mask,
             mm.move_jump_dof,
             mm.move_jump_dof_mask,
+            mm.move_root_jump_dof,
+            mm.move_root_jump_dof_mask,
             mm.move_mc,
             mm.move_mc_mask,
             mm.move_sc,

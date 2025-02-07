@@ -17,7 +17,8 @@ from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
 from tmol.chemical.all_bonds import bonds_and_bond_ranges
-from tmol.types.functional import validate_args
+
+# from tmol.types.functional import validate_args
 
 
 AtomIndex = NewType("AtomIndex", int)

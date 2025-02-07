@@ -367,8 +367,9 @@ auto get_jump_atom_indices(
     Tensor ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
     Tensor pose_stack_block_type,  // P x L
     Tensor block_type_jump_atom    // T
-    ) -> Tensor {
+    ) -> tensor_list {
   Tensor pose_stack_atom_for_jump;
+  Tensor pose_stack_atom_for_root_jump;
   TMOL_DISPATCH_INDEX_DEVICE(
       pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
         // using Int = index_t;
@@ -383,9 +384,10 @@ auto get_jump_atom_indices(
                     TCAST(ff_edges),
                     TCAST(pose_stack_block_type),
                     TCAST(block_type_jump_atom));
-        pose_stack_atom_for_jump = result.tensor;
+        pose_stack_atom_for_jump = std::get<0>(result).tensor;
+        pose_stack_atom_for_root_jump = std::get<1>(result).tensor;
       }));
-  return pose_stack_atom_for_jump;
+  return {pose_stack_atom_for_jump, pose_stack_atom_for_root_jump};
 }
 
 auto get_block_parent_connectivity_from_toposort(
@@ -524,7 +526,8 @@ auto minimizer_map_from_movemap(
     Tensor pose_stack_block_type,  // P x L
     Tensor pose_stack_inter_block_connections,
     Tensor pose_stack_block_in_and_first_out,  // P x L x 2
-    Tensor pose_stack_atom_for_jump,
+    Tensor pose_stack_atom_for_jump,           // P x E x 2
+    Tensor pose_stack_atom_for_root_jump,      // P x L
     Tensor keep_dof_fixed,
     Tensor bt_n_named_torsions,
     Tensor bt_uaid_for_torsion,
@@ -532,11 +535,14 @@ auto minimizer_map_from_movemap(
     Tensor bt_which_mcsc_torsion_for_named_torsion,
     Tensor bt_atom_downstream_of_conn,
     bool move_all_jumps,
+    bool move_all_root_jumps,
     bool move_all_mc,
     bool move_all_sc,
     bool move_all_named_torsions,
     Tensor move_jumps,
     Tensor move_jumps_mask,
+    Tensor move_root_jumps,
+    Tensor move_root_jumps_mask,
     Tensor move_mcs,
     Tensor move_mcs_mask,
     Tensor move_scs,
@@ -545,6 +551,8 @@ auto minimizer_map_from_movemap(
     Tensor move_named_torsions_mask,
     Tensor move_jump_dof,
     Tensor move_jump_dof_mask,
+    Tensor move_root_jump_dof,
+    Tensor move_root_jump_dof_mask,
     Tensor move_mc,
     Tensor move_mc_mask,
     Tensor move_sc,
@@ -570,6 +578,7 @@ auto minimizer_map_from_movemap(
                     TCAST(pose_stack_inter_block_connections),
                     TCAST(pose_stack_block_in_and_first_out),
                     TCAST(pose_stack_atom_for_jump),
+                    TCAST(pose_stack_atom_for_root_jump),
                     TCAST(keep_dof_fixed),
                     TCAST(bt_n_named_torsions),
                     TCAST(bt_uaid_for_torsion),
@@ -577,11 +586,14 @@ auto minimizer_map_from_movemap(
                     TCAST(bt_which_mcsc_torsion_for_named_torsion),
                     TCAST(bt_atom_downstream_of_conn),
                     move_all_jumps,
+                    move_all_root_jumps,
                     move_all_mc,
                     move_all_sc,
                     move_all_named_torsions,
                     TCAST(move_jumps),
                     TCAST(move_jumps_mask),
+                    TCAST(move_root_jumps),
+                    TCAST(move_root_jumps_mask),
                     TCAST(move_mcs),
                     TCAST(move_mcs_mask),
                     TCAST(move_scs),
@@ -590,6 +602,8 @@ auto minimizer_map_from_movemap(
                     TCAST(move_named_torsions_mask),
                     TCAST(move_jump_dof),
                     TCAST(move_jump_dof_mask),
+                    TCAST(move_root_jump_dof),
+                    TCAST(move_root_jump_dof_mask),
                     TCAST(move_mc),
                     TCAST(move_mc_mask),
                     TCAST(move_sc),

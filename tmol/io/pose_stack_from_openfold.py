@@ -170,10 +170,6 @@ def packed_block_types_for_openfold(device: torch.device) -> PackedBlockTypes:
     function if they are constructing PoseStacks from deserialized
     canonical form objects. See canonical_form_from_openfold for details.
     """
-
-    import cattr
-    from tmol.chemical.restypes import RefinedResidueType
-
     restype_set = _restype_set_for_openfold()
 
     return PackedBlockTypes.from_restype_list(

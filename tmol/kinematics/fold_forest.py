@@ -1,7 +1,6 @@
 import numpy
 import attr
 import enum
-from typing import Union
 
 from tmol.types.array import NDArray
 

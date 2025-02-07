@@ -141,6 +141,7 @@ class KinematicModuleData:
     block_in_and_first_out: Tensor[torch.int][:, :]
     keep_atom_fixed: Tensor[torch.bool][:, :]
     pose_stack_atom_for_jump: Tensor[torch.int][:, :, 2]
+    pose_stack_atom_for_root_jump: Tensor[torch.int][:, 2]
 
 
 @attrs.define(auto_attribs=True, slots=True, frozen=True)

@@ -439,7 +439,7 @@ struct KinForestFromStencil {
           ff_edges,  // P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
       TView<Int, 2, D> pose_stack_block_type,  // P x L
       TView<Int, 1, D> block_type_jump_atom    // T
-      ) -> TPack<Int, 3, D>;
+      ) -> std::tuple<TPack<Int, 3, D>, TPack<Int, 2, D>>;
 
   static auto get_block_parent_connectivity_from_toposort(
       TView<Int, 2, D> pose_stack_block_type,                 // P x L
@@ -507,7 +507,8 @@ struct KinForestFromStencil {
       TView<Int, 2, D> pose_stack_block_type,
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
       TView<Int, 3, D> pose_stack_block_in_and_first_out,  // P x L x 2
-      TView<Int, 3, D> pose_stack_atom_for_jump,           // P x J x 2
+      TView<Int, 3, D> pose_stack_atom_for_jump,           // P x E x 2
+      TView<Int, 2, D> pose_stack_atom_for_root_jump,      // P x L
       TView<bool, 2, D> keep_dof_fixed,                    // K x 9
       TView<Int, 1, D> bt_n_named_torsions,
       TView<UnresolvedAtomID<Int>, 3, D> bt_uaid_for_torsion,
@@ -515,11 +516,14 @@ struct KinForestFromStencil {
       TView<Int, 2, D> bt_which_mcsc_torsion_for_named_torsion,
       TView<Int, 3, D> bt_atom_downstream_of_conn,
       bool move_all_jumps,
+      bool move_all_root_jumps,
       bool move_all_mcs,
       bool move_all_scs,
       bool move_all_named_torsions,
       TView<bool, 2, D> move_jumps,
       TView<bool, 2, D> move_jumps_mask,
+      TView<bool, 2, D> move_root_jumps,
+      TView<bool, 2, D> move_root_jumps_mask,
       TView<bool, 2, D> move_mcs,
       TView<bool, 2, D> move_mcs_mask,
       TView<bool, 2, D> move_scs,
@@ -528,6 +532,8 @@ struct KinForestFromStencil {
       TView<bool, 2, D> move_named_torsions_mask,
       TView<bool, 3, D> move_jump_dof,
       TView<bool, 3, D> move_jump_dof_mask,
+      TView<bool, 3, D> move_root_jump_dof,
+      TView<bool, 3, D> move_root_jump_dof_mask,
       TView<bool, 3, D> move_mc,
       TView<bool, 3, D> move_mc_mask,
       TView<bool, 3, D> move_sc,

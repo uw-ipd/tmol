@@ -397,8 +397,6 @@ def default_canonical_ordering() -> CanonicalOrdering:
 @toolz.functoolz.memoize
 def default_packed_block_types(device: torch.device) -> PackedBlockTypes:
     """Create a PackedBlockTypes object from the default set of residue types"""
-    from tmol.chemical.restypes import RefinedResidueType
-
     restype_set = ResidueTypeSet.get_default()
 
     return PackedBlockTypes.from_restype_list(
