@@ -1,4 +1,4 @@
-import pytest
+# import pytest
 import cattr
 import numpy
 
@@ -8,7 +8,8 @@ from tmol.chemical.restypes import (
     ResidueTypeSet,
     # find_simple_polymeric_connections,
 )
-from tmol.tests.data.pdb import data as test_pdbs
+
+# from tmol.tests.data.pdb import data as test_pdbs
 
 # from tmol.system.io import read_pdb
 
@@ -173,11 +174,11 @@ def test_mc_sc_torsion_properties(fresh_default_restype_set):
     )
     assert leu_restype.n_mc_torsions == 3
     assert leu_restype.n_sc_torsions == 2
-    assert leu_restype.is_torsion_mc[0] == True
-    assert leu_restype.is_torsion_mc[1] == True
-    assert leu_restype.is_torsion_mc[2] == True
-    assert leu_restype.is_torsion_mc[3] == False
-    assert leu_restype.is_torsion_mc[4] == False
+    assert leu_restype.is_torsion_mc[0]
+    assert leu_restype.is_torsion_mc[1]
+    assert leu_restype.is_torsion_mc[2]
+    assert leu_restype.is_torsion_mc[3] is False
+    assert leu_restype.is_torsion_mc[4] is False
     assert leu_restype.mc_torsions[0] == 0
     assert leu_restype.mc_torsions[1] == 1
     assert leu_restype.mc_torsions[2] == 2

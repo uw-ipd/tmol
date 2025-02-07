@@ -17,7 +17,8 @@ from tmol.io.canonical_ordering import (
     canonical_form_from_pdb,
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-from tmol.io import pose_stack_from_pdb
+
+# from tmol.io import pose_stack_from_pdb
 
 
 def test_atom_records_from_pose_stack_1(ubq_pdb, torch_device):

@@ -1,28 +1,24 @@
 import torch
-import numpy
-import attrs
-import pytest
 
-from collections import defaultdict
-from numba import jit
+# import numpy
+# import attrs
+# import pytest
 
-import scipy.sparse as sparse
-import scipy.sparse.csgraph as csgraph
-from tmol.types.torch import Tensor
+# from collections import defaultdict
+# from numba import jit
+
+# import scipy.sparse as sparse
+# import scipy.sparse.csgraph as csgraph
+# from tmol.types.torch import Tensor
 
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
     default_packed_block_types,
     canonical_form_from_pdb,
 )
-from tmol.pose.pose_stack_builder import PoseStackBuilder
+
+# from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-from tmol.kinematics.datatypes import (
-    NodeType,
-    # KinForest,
-    # KinForestScanData,
-    # KinematicModuleData,
-)
 
 # from tmol.kinematics.dof_modules import KinematicModule2
 from tmol.kinematics.fold_forest import EdgeType
@@ -33,23 +29,20 @@ from tmol.kinematics.scan_ordering import (
 )
 from tmol.kinematics.compiled import inverse_kin, forward_kin_op
 
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
+# from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
 def test_gen_seg_scan_paths_block_type_annotation_smoke(fresh_default_restype_set):
-    torch_device = torch.device("cpu")
-
     bt_list = [bt for bt in fresh_default_restype_set.residue_types if bt.name == "LEU"]
     for bt in bt_list:
         _annotate_block_type_with_gen_scan_path_segs(bt)
         assert hasattr(bt, "gen_seg_scan_path_segs")
 
 
-def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb):
+def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
     from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
 
-    torch_device = torch.device("cpu")
-    device = torch_device
+    # torch_device = torch.device("cpu")
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
@@ -93,7 +86,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
     from tmol.kinematics.compiled.compiled_ops import calculate_ff_edge_delays
 
     torch_device = torch.device("cpu")
-    device = torch_device
+    # device = torch_device
 
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
@@ -162,15 +155,16 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
         delay_for_edge,
         toposort_index_for_edge,
     ) = result
-    # print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
-    # print("n_ff_edges", n_ff_edges)
-    # print("ff_edge_parent", ff_edge_parent)
-    # print("first_ff_edge_for_block_cpu", first_ff_edge_for_block_cpu)
-    # print("pose_stack_ff_parent", pose_stack_ff_parent)
-    # print("max_gen_depth_of_ff_edge", max_gen_depth_of_ff_edge)
-    # print("first_child_of_ff_edge", first_child_of_ff_edge)
-    # print("delay_for_edge", delay_for_edge)
-    # print("toposort_index_for_edge", toposort_index_for_edge)
+
+    assert dfs_order_of_ff_edges is not None
+    assert n_ff_edges is not None
+    assert ff_edge_parent is not None
+    assert first_ff_edge_for_block_cpu is not None
+    assert pose_stack_ff_parent is not None
+    assert max_gen_depth_of_ff_edge is not None
+    assert first_child_of_ff_edge is not None
+    assert delay_for_edge is not None
+    assert toposort_index_for_edge is not None
 
 
 def test_calculate_ff_edge_delays_for_two_copies_of_6_res_ubq_H(
@@ -518,8 +512,8 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
-    bt0 = pbt.active_block_types[pose_stack.block_type_ind[0, 0]]
-    bt1 = pbt.active_block_types[pose_stack.block_type_ind[0, 1]]
+    # bt0 = pbt.active_block_types[pose_stack.block_type_ind[0, 0]]
+    # bt1 = pbt.active_block_types[pose_stack.block_type_ind[0, 1]]
     # print("bt0", bt0.name, bt0.n_atoms)
     # print("bt1", bt1.name, bt1.n_atoms)
     # print("n block types", pbt.n_types)
@@ -962,18 +956,6 @@ def test_get_scans_for_two_copies_of_6_res_ubq_K(
     # print("new_coords", new_coords[nz_diff[:10]])
 
     torch.testing.assert_close(kincoords, new_coords, rtol=1e-5, atol=1e-5)
-
-
-def test_decide_scan_paths_for_foldforest(ubq_pdb):
-    torch_device = torch.device("cpu")
-
-    co = default_canonical_ordering()
-    pbt = default_packed_block_types(torch_device)
-    canonical_form = canonical_form_from_pdb(
-        co, ubq_pdb, torch_device, residue_start=0, residue_end=10
-    )
-    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
-    # uhhhhhhh.... where's the rest of this test?
 
 
 def test_kinmodule_construction_for_jagged_stack_H(

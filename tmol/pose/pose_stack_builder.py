@@ -1,4 +1,4 @@
-import toolz
+# import toolz
 import copy
 
 import itertools
@@ -6,8 +6,9 @@ import itertools
 import numpy
 import torch
 import pandas
-import scipy.sparse.csgraph as csgraph
-import scipy
+
+# import scipy.sparse.csgraph as csgraph
+# import scipy
 
 from typing import List, Tuple, Optional
 
@@ -15,7 +16,8 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+
+# from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import (
     RefinedResidueType,
     # Residue,
@@ -24,7 +26,7 @@ from tmol.chemical.restypes import (
     three2one,
 )
 
-from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
 

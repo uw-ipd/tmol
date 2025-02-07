@@ -1,5 +1,6 @@
 import numpy
-import torch
+
+# import torch
 
 # from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.old.builder import (
