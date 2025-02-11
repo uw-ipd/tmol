@@ -14,7 +14,7 @@ def test_smoke(default_database, torch_device: torch.device):
 
 
 def test_annotate_twice(fresh_default_restype_set, default_database, torch_device):
-    cpu_device = device = torch.device("cpu")
+    cpu_device = torch.device("cpu")
     cartbonded_energy_cpu = CartBondedEnergyTerm(
         param_db=default_database, device=cpu_device
     )

@@ -1,13 +1,13 @@
-import pytest
+# import pytest
 
 import numpy
 import torch
 
-from scipy.spatial.distance import cdist
-import scipy
+# from scipy.spatial.distance import cdist
 
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
-from tmol.tests.benchmark import subfixture, make_subfixture
+
+# from tmol.tests.benchmark import subfixture, make_subfixture
 
 
 # @pytest.mark.benchmark(group="dispatch")

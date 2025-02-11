@@ -3,7 +3,6 @@ import torch
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
 from tmol.io import pose_stack_from_pdb
-from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.bond_dependent_term import BondDependentTerm
 
 

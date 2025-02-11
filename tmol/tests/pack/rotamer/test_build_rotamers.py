@@ -1,7 +1,6 @@
 import numpy
 import torch
 
-from tmol.io import pose_stack_from_pdb
 from tmol.pack.rotamer.build_rotamers import (
     annotate_restype,
     annotate_packed_block_types,

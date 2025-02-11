@@ -1,4 +1,3 @@
-import numpy
 import torch
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION

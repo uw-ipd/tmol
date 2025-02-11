@@ -1,7 +1,6 @@
 import numpy
 
-from tmol.chemical.restypes import ResidueTypeSet
-from tmol.pose.packed_block_types import residue_types_from_residues, PackedBlockTypes
+from tmol.pose.packed_block_types import PackedBlockTypes
 
 
 def test_load_packed_residue_types(

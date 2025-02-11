@@ -2,6 +2,7 @@ import numpy
 import torch
 import attr
 
+from collections import defaultdict
 from typing import Optional, Tuple
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
@@ -754,6 +755,149 @@ def _assign_var_inds_for_bt(co, bt):
     return term_ind, spcase_var_ind, bt_is_non_default_term
 
 
+def _get_co_equiv_class_is_polymeric(co, n_co_io_equiv_classes, bts_for_equiv_class):
+    # We will consider the entire IO equivalence class to be
+    # polymeric if a single block type within that equivalence class
+    # is polymeric.
+    co_equiv_class_is_polymeric = torch.zeros(
+        (n_co_io_equiv_classes,), dtype=torch.bool, device=torch.device("cpu")
+    )
+    for i, io_equiv_class in enumerate(co.restype_io_equiv_classes):
+        for bt in bts_for_equiv_class[io_equiv_class]:
+            if bt.properties.polymer.is_polymer:
+                co_equiv_class_is_polymeric[i] = True
+    return co_equiv_class_is_polymeric
+
+
+def _collect_var_combo_candidates(
+    co,
+    max_n_termini_types,
+    max_n_special_case_aa_variant_types,
+    max_n_candidates_for_var_combo,
+    pbt_io_equiv_class_candidates,
+):
+    n_co_io_equiv_classes = co.n_restype_io_equiv_classes
+    var_combo_candidate_bt_index = torch.full(
+        (
+            n_co_io_equiv_classes,
+            max_n_termini_types,
+            max_n_special_case_aa_variant_types,
+            max_n_candidates_for_var_combo,
+        ),
+        -1,
+        dtype=torch.int64,
+        device=torch.device("cpu"),
+    )
+    var_combo_is_real_candidate = torch.zeros(
+        (
+            n_co_io_equiv_classes,
+            max_n_termini_types,
+            max_n_special_case_aa_variant_types,
+            max_n_candidates_for_var_combo,
+        ),
+        dtype=torch.bool,
+        device=torch.device("cpu"),
+    )
+    var_combo_n_candidates = torch.zeros(
+        (
+            n_co_io_equiv_classes,
+            max_n_termini_types,
+            max_n_special_case_aa_variant_types,
+        ),
+        dtype=torch.int64,
+        device=torch.device("cpu"),
+    )
+
+    for i, bt_name3 in enumerate(co.restype_io_equiv_classes):
+        if bt_name3 not in pbt_io_equiv_class_candidates:
+            continue
+        for j in range(max_n_termini_types):
+            for k in range(max_n_special_case_aa_variant_types):
+                var_combo_n_candidates[i, j, k] = len(
+                    pbt_io_equiv_class_candidates[bt_name3][j][k]
+                )
+                for l, (bt, bt_ind) in enumerate(
+                    pbt_io_equiv_class_candidates[bt_name3][j][k]
+                ):
+                    var_combo_candidate_bt_index[i, j, k, l] = bt_ind
+                    var_combo_is_real_candidate[i, j, k, l] = True
+    return (
+        var_combo_candidate_bt_index,
+        var_combo_is_real_candidate,
+        var_combo_n_candidates,
+    )
+
+
+def _note_atoms_present_and_absent_from_variants(co, pbt: PackedBlockTypes):
+    # For bt i and canonical atom j, is canonical atom j absent from bt i?
+    # needed so we can compute p & ~b[i]
+    bt_canonical_atom_is_absent = torch.ones(
+        (
+            pbt.n_types,
+            co.max_n_canonical_atoms,
+        ),
+        dtype=torch.bool,
+        device=torch.device("cpu"),
+    )
+    # For bt i and  canonical atom j, is canonical atom j present in bt i
+    # and not put there by a termini variant?
+    bt_non_term_patch_added_canonical_atom_is_present = torch.zeros(
+        (
+            pbt.n_types,
+            co.max_n_canonical_atoms,
+        ),
+        dtype=torch.bool,
+        device=torch.device("cpu"),
+    )
+    for i, bt in enumerate(pbt.active_block_types):
+        bt_at_names = set([at.name for at in bt.atoms])
+        # first mark all atoms that are present as not absent
+        # including the termini atoms
+        for at_name in bt_at_names:
+            can_ind = co.restypes_atom_index_mapping[bt.name3][at_name]
+            bt_canonical_atom_is_absent[i, can_ind] = False
+
+        # now we will go and strike out all the atoms that were not
+        # added by termini patches so we can mark them as present
+        variants = bt.name.split(":")[1:]
+        for var in variants:
+            for can_at in co.termini_patch_added_atoms[var]:
+                if can_at in bt_at_names:
+                    bt_at_names.remove(can_at)
+
+        for at_name in bt_at_names:
+            can_ind = co.restypes_atom_index_mapping[bt.io_equiv_class][at_name]
+            bt_non_term_patch_added_canonical_atom_is_present[i, can_ind] = True
+            bt_canonical_atom_is_absent[i, can_ind] = False
+
+    return (
+        bt_canonical_atom_is_absent,
+        bt_non_term_patch_added_canonical_atom_is_present,
+    )
+
+
+def _create_bt_to_canonical_atom_mapping(co, pbt: PackedBlockTypes):
+    bt_ind_to_canonical_ind = torch.tensor(
+        [
+            co.restype_io_equiv_classes.index(bt.io_equiv_class)
+            for bt in pbt.active_block_types
+        ],
+        dtype=torch.int64,
+    )
+    bt_canonical_atom_ind = numpy.full(
+        (pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64
+    )
+    for i, bt in enumerate(pbt.active_block_types):
+        assert bt.io_equiv_class in co.restypes_ordered_atom_names
+        i_canonical_ordering = co.restypes_ordered_atom_names[bt.io_equiv_class]
+        for j, at in enumerate(bt.atoms):
+            # probably this would be faster if we used a pandas indexer
+            # but this is done only once, so, for now, use the slow form
+            bt_canonical_atom_ind[i, j] = i_canonical_ordering.index(at.name.strip())
+    bt_canonical_atom_ind = torch.tensor(bt_canonical_atom_ind, dtype=torch.int64)
+    return bt_ind_to_canonical_ind, bt_canonical_atom_ind
+
+
 @validate_args
 def _annotate_packed_block_types_w_canonical_res_order(
     canonical_ordering, pbt: PackedBlockTypes
@@ -802,127 +946,36 @@ def _annotate_packed_block_types_w_canonical_res_order(
         if len(pbt_io_equiv_class_candidates[bt][i][j]) > 0
     )
 
-    var_combo_candidate_bt_index = torch.full(
-        (
-            n_co_io_equiv_classes,
-            max_n_termini_types,
-            max_n_special_case_aa_variant_types,
-            max_n_candidates_for_var_combo,
-        ),
-        -1,
-        dtype=torch.int64,
-        device=torch.device("cpu"),
-    )
-    var_combo_is_real_candidate = torch.zeros(
-        (
-            n_co_io_equiv_classes,
-            max_n_termini_types,
-            max_n_special_case_aa_variant_types,
-            max_n_candidates_for_var_combo,
-        ),
-        dtype=torch.bool,
-        device=torch.device("cpu"),
-    )
-    var_combo_n_candidates = torch.zeros(
-        (
-            n_co_io_equiv_classes,
-            max_n_termini_types,
-            max_n_special_case_aa_variant_types,
-        ),
-        dtype=torch.int64,
-        device=torch.device("cpu"),
-    )
-
-    bts_for_equiv_class = {}
+    bts_for_equiv_class = defaultdict(list)
     for bt in pbt.active_block_types:
-        if bt.io_equiv_class not in bts_for_equiv_class:
-            bts_for_equiv_class[bt.io_equiv_class] = []
         bts_for_equiv_class[bt.io_equiv_class].append(bt)
 
     # We will consider the entire IO equivalence class to be
     # polymeric if a single block type within that equivalence class
     # is polymeric.
-    co_equiv_class_is_polymeric = torch.zeros(
-        (n_co_io_equiv_classes,), dtype=torch.bool, device=torch.device("cpu")
+    co_equiv_class_is_polymeric = _get_co_equiv_class_is_polymeric(
+        co, n_co_io_equiv_classes, bts_for_equiv_class
     )
-    for i, io_equiv_class in enumerate(co.restype_io_equiv_classes):
-        for bt in bts_for_equiv_class[io_equiv_class]:
-            if bt.properties.polymer.is_polymer:
-                co_equiv_class_is_polymeric[i] = True
 
-    for i, bt_name3 in enumerate(co.restype_io_equiv_classes):
-        if bt_name3 not in pbt_io_equiv_class_candidates:
-            continue
-        for j in range(max_n_termini_types):
-            for k in range(max_n_special_case_aa_variant_types):
-                var_combo_n_candidates[i, j, k] = len(
-                    pbt_io_equiv_class_candidates[bt_name3][j][k]
-                )
-                for l, (bt, bt_ind) in enumerate(
-                    pbt_io_equiv_class_candidates[bt_name3][j][k]
-                ):
-                    var_combo_candidate_bt_index[i, j, k, l] = bt_ind
-                    var_combo_is_real_candidate[i, j, k, l] = True
-
-    # For bt i and canonical atom j, is canonical atom j absent from bt i?
-    # needed so we can compute p & ~b[i]
-    bt_canonical_atom_is_absent = torch.ones(
-        (
-            pbt.n_types,
-            co.max_n_canonical_atoms,
-        ),
-        dtype=torch.bool,
-        device=torch.device("cpu"),
+    (
+        var_combo_candidate_bt_index,
+        var_combo_is_real_candidate,
+        var_combo_n_candidates,
+    ) = _collect_var_combo_candidates(
+        co,
+        max_n_termini_types,
+        max_n_special_case_aa_variant_types,
+        max_n_candidates_for_var_combo,
+        pbt_io_equiv_class_candidates,
     )
-    # For bt i and  canonical atom j, is canonical atom j present in bt i
-    # and not put there by a termini variant?
-    bt_non_term_patch_added_canonical_atom_is_present = torch.zeros(
-        (
-            pbt.n_types,
-            co.max_n_canonical_atoms,
-        ),
-        dtype=torch.bool,
-        device=torch.device("cpu"),
-    )
-    for i, bt in enumerate(pbt.active_block_types):
-        bt_at_names = set([at.name for at in bt.atoms])
-        # first mark all atoms that are present as not absent
-        # including the termini atoms
-        for at_name in bt_at_names:
-            can_ind = co.restypes_atom_index_mapping[bt.name3][at_name]
-            bt_canonical_atom_is_absent[i, can_ind] = False
 
-        # now we will go and strike out all the atoms that were not
-        # added by termini patches so we can mark them as present
-        variants = bt.name.split(":")[1:]
-        for var in variants:
-            for can_at in co.termini_patch_added_atoms[var]:
-                if can_at in bt_at_names:
-                    bt_at_names.remove(can_at)
-
-        for at_name in bt_at_names:
-            can_ind = co.restypes_atom_index_mapping[bt.io_equiv_class][at_name]
-            bt_non_term_patch_added_canonical_atom_is_present[i, can_ind] = True
-            bt_canonical_atom_is_absent[i, can_ind] = False
-
-    bt_ind_to_canonical_ind = torch.tensor(
-        [
-            co.restype_io_equiv_classes.index(bt.io_equiv_class)
-            for bt in pbt.active_block_types
-        ],
-        dtype=torch.int64,
+    (bt_canonical_atom_is_absent, bt_non_term_patch_added_canonical_atom_is_present) = (
+        _note_atoms_present_and_absent_from_variants(co, pbt)
     )
-    bt_canonical_atom_ind = numpy.full(
-        (pbt.n_types, pbt.max_n_atoms), -1, dtype=numpy.int64
+
+    (bt_ind_to_canonical_ind, bt_canonical_atom_ind) = (
+        _create_bt_to_canonical_atom_mapping(co, pbt)
     )
-    for i, bt in enumerate(pbt.active_block_types):
-        assert bt.io_equiv_class in co.restypes_ordered_atom_names
-        i_canonical_ordering = co.restypes_ordered_atom_names[bt.io_equiv_class]
-        for j, at in enumerate(bt.atoms):
-            # probably this would be faster if we used a pandas indexer
-            # but this is done only once, so, for now, use the slow form
-            bt_canonical_atom_ind[i, j] = i_canonical_ordering.index(at.name.strip())
-    bt_canonical_atom_ind = torch.tensor(bt_canonical_atom_ind, dtype=torch.int64)
 
     def _d(x):
         return x.to(pbt.device)
