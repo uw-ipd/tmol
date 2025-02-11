@@ -177,8 +177,8 @@ def test_mc_sc_torsion_properties(fresh_default_restype_set):
     assert leu_restype.is_torsion_mc[0]
     assert leu_restype.is_torsion_mc[1]
     assert leu_restype.is_torsion_mc[2]
-    assert leu_restype.is_torsion_mc[3] is False
-    assert leu_restype.is_torsion_mc[4] is False
+    assert leu_restype.is_torsion_mc[3].item() is False
+    assert leu_restype.is_torsion_mc[4].item() is False
     assert leu_restype.mc_torsions[0] == 0
     assert leu_restype.mc_torsions[1] == 1
     assert leu_restype.mc_torsions[2] == 2

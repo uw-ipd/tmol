@@ -167,8 +167,8 @@ def test_set_move_all_doftypes_for_block_by_integer(
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
 
-    assert var[1, 4] is False
-    assert mask[1, 4] is False
+    assert var[1, 4].item() is False
+    assert mask[1, 4].item() is False
 
     setter = getattr(mm, move_all_setter_name_for_doftype(doftype))
     setter(1, 4)
@@ -299,8 +299,8 @@ def test_set_move_all_doftypes_for_block_by_index_tensors(
 def test_set_move_all_jump_dofs_for_jump_by_index(mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
     mm.set_move_all_jump_dofs_for_jump(1, 0)
-    assert mm.move_jumps[0, 0] is False
-    assert mm.move_jumps_mask[0, 0] is False
+    assert mm.move_jumps[0, 0].item() is False
+    assert mm.move_jumps_mask[0, 0].item() is False
     assert mm.move_jumps[1, 0]
     assert mm.move_jumps_mask[1, 0]
 
@@ -308,8 +308,8 @@ def test_set_move_all_jump_dofs_for_jump_by_index(mm_for_two_six_res_ubqs_no_ter
 def test_set_move_all_jump_dofs_for_root_jump_by_index(mm_for_two_six_res_ubqs_no_term):
     mm = mm_for_two_six_res_ubqs_no_term
     mm.set_move_all_jump_dofs_for_root_jump(0, 4)
-    assert mm.move_root_jumps[0, 0] is False
-    assert mm.move_root_jumps_mask[0, 0] is False
+    assert mm.move_root_jumps[0, 0].item() is False
+    assert mm.move_root_jumps_mask[0, 0].item() is False
     assert mm.move_root_jumps[0, 4]
     assert mm.move_root_jumps_mask[0, 4]
 
@@ -341,8 +341,8 @@ def test_set_move_particular_doftypes_for_block_by_integer(
     mask = getattr(mm, maskname)
     # print("var", var.shape)
 
-    assert var[1, 4, 1] is False
-    assert mask[1, 4, 1] is False
+    assert var[1, 4, 1].item() is False
+    assert mask[1, 4, 1].item() is False
 
     # print(
     #     "move_particular_setter_name_for_doftype(doftype)",
@@ -369,8 +369,8 @@ def test_set_move_particular_doftypes_for_block_by_integer_jagged(
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
 
-    assert var[1, 4, 1] is False
-    assert mask[1, 4, 1] is False
+    assert var[1, 4, 1].item() is False
+    assert mask[1, 4, 1].item() is False
 
     setter = getattr(mm, move_particular_setter_name_for_doftype(doftype))
     setter(1, 4, 1)
@@ -527,8 +527,8 @@ def test_set_move_particular_jump_dofs_for_jump_by_index(
 ):
     mm = mm_for_two_six_res_ubqs_no_term
     mm.set_move_jump_dof_for_jumps(1, 0, 0)
-    assert mm.move_jump_dof[0, 0, 0] is False
-    assert mm.move_jump_dof_mask[0, 0, 0] is False
+    assert mm.move_jump_dof[0, 0, 0].item() is False
+    assert mm.move_jump_dof_mask[0, 0, 0].item() is False
     assert mm.move_jump_dof[1, 0, 0]
     assert mm.move_jump_dof_mask[1, 0, 0]
 
@@ -538,8 +538,8 @@ def test_set_move_particular_jump_dofs_for_root_jump_by_index(
 ):
     mm = mm_for_two_six_res_ubqs_no_term
     mm.set_move_jump_dof_for_root_jumps(1, 0, 0)
-    assert mm.move_root_jump_dof[0, 0, 0] is False
-    assert mm.move_root_jump_dof_mask[0, 0, 0] is False
+    assert mm.move_root_jump_dof[0, 0, 0].item() is False
+    assert mm.move_root_jump_dof_mask[0, 0, 0].item() is False
     assert mm.move_root_jump_dof[1, 0, 0]
     assert mm.move_root_jump_dof_mask[1, 0, 0]
 
