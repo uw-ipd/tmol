@@ -189,8 +189,8 @@ def test_set_move_all_doftypes_for_block_by_boolean_mask(
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
 
-    assert var[1, 4] is False
-    assert mask[1, 4] is False
+    assert var[1, 4].item() is False
+    assert mask[1, 4].item() is False
 
     bool_mask = torch.zeros((2, 6), dtype=torch.bool)
     bool_mask[1, 4] = True
@@ -216,8 +216,8 @@ def test_set_move_all_doftypes_for_block_by_boolean_mask2(
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
 
-    assert var[1, 4] is False
-    assert mask[1, 4] is False
+    assert var[1, 4].item() is False
+    assert mask[1, 4].item() is False
 
     bool_mask = torch.zeros((2, 6), dtype=torch.bool)
     bool_mask[0, 1:3] = True
@@ -244,8 +244,8 @@ def test_set_move_all_doftypes_for_block_by_boolean_masks(
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
 
-    assert var[1, 4] is False
-    assert mask[1, 4] is False
+    assert var[1, 4].item() is False
+    assert mask[1, 4].item() is False
 
     pose_mask = torch.zeros((2,), dtype=torch.bool)
     pose_mask[1] = True
@@ -273,8 +273,8 @@ def test_set_move_all_doftypes_for_block_by_index_tensors(
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
 
-    assert var[1, 4] is False
-    assert mask[1, 4] is False
+    assert var[1, 4].item() is False
+    assert mask[1, 4].item() is False
 
     pose_index_tensor = torch.zeros((8,), dtype=torch.int64)
     pose_index_tensor[0:4] = 0
