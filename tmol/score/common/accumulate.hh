@@ -23,7 +23,7 @@ struct accumulate<
     tmol::Device::CPU,
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  static def add(T& target, const T& val) -> T {
+  static def add(T& target, const T& val)->T {
     //  // Try the atomic-add solution from stack overflow:
     //  //
     //  https://stackoverflow.com/questions/48746540/are-there-any-more-efficient-ways-for-atomically-adding-two-floats
@@ -45,7 +45,7 @@ struct accumulate<
 
   // This is safe to use when all threads are going to write to the same address
   template <class A>
-  static def add_one_dst(A& target, int ind, const T& val) -> void {
+  static def add_one_dst(A& target, int ind, const T& val)->void {
     target[ind] += val;
   }
 
@@ -53,7 +53,7 @@ struct accumulate<
   // ind0s. The CPU version is safe as long as there's only one thread.
   template <class A>
   static def add_two_dim_one_dst(A& target, int ind0, int ind1, const T& val)
-      -> void {
+      ->void {
     target[ind0][ind1] += val;
   }
 };
@@ -66,7 +66,7 @@ struct accumulate<
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   typedef Eigen::Matrix<T, N, 1> V;
 
-  static def add(V& target, const V& val) -> void {
+  static def add(V& target, const V& val)->void {
 #pragma unroll
     for (int i = 0; i < N; i++) {
       accumulate<D, T>::add(target[i], val[i]);
@@ -74,7 +74,7 @@ struct accumulate<
   }
 
   template <class A>
-  static def add_one_dst(A& target, int ind, const V& val) -> void {
+  static def add_one_dst(A& target, int ind, const V& val)->void {
 #pragma unroll
     for (int i = 0; i < N; i++) {
       accumulate<D, T>::add_two_dim_one_dst(target, ind, i, val[i]);
@@ -83,7 +83,7 @@ struct accumulate<
 
   template <class A>
   static def add_two_dim_one_dst(A& target, int ind0, int ind1, const V& val)
-      -> void {
+      ->void {
     // ???
   }
 };
@@ -100,13 +100,13 @@ struct reduce<
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   template <class G, class OP>
-  static def reduce_to_head(G&, const T& val, OP) -> T {
+  static def reduce_to_head(G&, const T& val, OP)->T {
     T retval = val;
     return retval;
   }
 
   template <class G, class OP>
-  static def reduce_to_all(G&, const T& val, OP) -> T {
+  static def reduce_to_all(G&, const T& val, OP)->T {
     T retval = val;
     return retval;
   }
@@ -119,13 +119,13 @@ struct reduce<
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   typedef Eigen::Matrix<T, N, 1> V;
   template <class G, class OP>
-  static def reduce_to_head(G&, const V& val, OP) -> T {
+  static def reduce_to_head(G&, const V& val, OP)->T {
     V retval = val;
     return retval;
   }
 
   template <class G, class OP>
-  static def reduce_to_all(G&, const V& val, OP) -> T {
+  static def reduce_to_all(G&, const V& val, OP)->T {
     V retval = val;
     return retval;
   }
@@ -140,9 +140,7 @@ struct accumulate<
     tmol::Device::CUDA,
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  static def add(T& target, const T& val) -> T {
-    return atomicAdd(&target, val);
-  }
+  static def add(T& target, const T& val)->T { return atomicAdd(&target, val); }
 
   // Use this function to accummulate into an array, target, at a position,
   // ind, when most threads in a warp are going to write to the same
@@ -159,7 +157,7 @@ struct accumulate<
   // A is an array-like class that will be indexed by [ind].
   // "ind" is the index that this thread should write to.
   template <typename A>
-  static def add_one_dst(A& target, int ind, const T& val) -> void {
+  static def add_one_dst(A& target, int ind, const T& val)->void {
 #ifdef __CUDA_ARCH__
 
     auto g = cooperative_groups::coalesced_threads();
@@ -186,7 +184,7 @@ struct accumulate<
   // ind0s. The CPU version is safe as long as there's only one thread.
   template <class A>
   static def add_two_dim_one_dst(A& target, int ind0, int ind1, const T& val)
-      -> void {
+      ->void {
     // basically
     // target[ind0][ind1] += val;
     // where all threads have the same ind1 and may have different ind0s
@@ -222,13 +220,13 @@ struct reduce<
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   template <class G, class OP>
-  static def reduce_to_head(G& g, const T& val, OP op) -> T {
+  static def reduce_to_head(G& g, const T& val, OP op)->T {
     T retval = reduce_tile_shfl(g, val, op);
     return retval;
   }
 
   template <class G, class OP>
-  static def reduce_to_all(G& g, const T& val, OP op) -> T {
+  static def reduce_to_all(G& g, const T& val, OP op)->T {
     T retval = reduce_tile_shfl(g, val, op);
     return retval = g.shfl(retval, 0);
   }
@@ -241,7 +239,7 @@ struct reduce<
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   typedef Eigen::Matrix<T, N, 1> V;
   template <class G, class OP>
-  static def reduce_to_head(G& g, const V& val, OP op) -> V {
+  static def reduce_to_head(G& g, const V& val, OP op)->V {
     V retval;
     for (int i = 0; i < N; ++i) {
       retval[i] = reduce_tile_shfl(g, val[i], op);
@@ -250,7 +248,7 @@ struct reduce<
   }
 
   template <class G, class OP>
-  static def reduce_to_all(G& g, const V& val, OP op) -> V {
+  static def reduce_to_all(G& g, const V& val, OP op)->V {
     V retval = val;
     for (int i = 0; i < N; ++i) {
       retval[i] = reduce_tile_shfl(g, val[i], op);
