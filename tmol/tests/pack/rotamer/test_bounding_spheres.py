@@ -12,7 +12,7 @@ from tmol.tests.data import no_termini_pose_stack_from_pdb
 
 
 def test_create_rotamer_bounding_spheres_smoke(
-    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
+    default_database, ubq_pdb, torch_device, dun_sampler
 ):
     p1 = no_termini_pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_start=1, residue_end=4
@@ -28,7 +28,7 @@ def test_create_rotamer_bounding_spheres_smoke(
     assert p1.packed_block_types is p3.packed_block_types
 
     poses = PoseStackBuilder.from_poses([p1, p2, p3], torch_device)
-    palette = PackerPalette(fresh_default_restype_set)
+    palette = PackerPalette(poses.packed_block_types.restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
     task.rlts[0][1].disable_packing()
@@ -76,7 +76,7 @@ def test_create_rotamer_bounding_spheres_smoke(
 
 
 def test_build_spheres_for_lots_of_rotamers(
-    default_database, fresh_default_restype_set, ubq_pdb, torch_device, dun_sampler
+    default_database, ubq_pdb, torch_device, dun_sampler
 ):
     n_poses = 10
 
@@ -87,7 +87,7 @@ def test_build_spheres_for_lots_of_rotamers(
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
 
-    palette = PackerPalette(fresh_default_restype_set)
+    palette = PackerPalette(poses.packed_block_types.restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 

@@ -18,6 +18,7 @@ from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
+from tmol.tests.data import no_termini_pose_stack_from_pdb
 
 
 def get_compiled():
@@ -649,8 +650,12 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
     #     default_database.chemical, ubq_res[:7], torch_device
     # )
-    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=5, residue_end=11)
-    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=7)
+    p1 = no_termini_pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=5, residue_end=11
+    )
+    p2 = no_termini_pose_stack_from_pdb(
+        ubq_pdb, torch_device, residue_start=1, residue_end=8
+    )
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     pbt = poses.packed_block_types
 
@@ -694,7 +699,7 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
 
     # let the sampler annotate the residue types and the PBT
-    for rt in all_allowed_restypes:
+    for rt in poses.packed_block_types.active_block_types:
         dun_sampler.annotate_residue_type(rt)
     dun_sampler.annotate_packed_block_types(poses.packed_block_types)
 

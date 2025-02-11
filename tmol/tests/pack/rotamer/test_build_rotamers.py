@@ -847,14 +847,18 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     pbt_namelist = [x.name for x in pbt.active_block_types]
     assert "LEU" in pbt_namelist  # may have a variant attached?
 
-    leu_rt = next(bt for bt in pbt.active_block_types if bt.name == "LEU")
+    for i, rt in enumerate(pbt.active_block_types):
+        if rt.name == "LEU":
+            leu_rt = rt
+            leu_ind = i
+            break
     annotate_everything(default_database.chemical, samplers, pbt)
 
     rt_for_rot = torch.tensor(
         [0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=torch.int64, device=torch_device
     )
-    block_ind_for_rot = torch.tensor(
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=torch.int64, device=torch_device
+    block_ind_for_rot = torch.full(
+        (10,), leu_ind, dtype=torch.int64, device=torch_device
     )
 
     # [pbt.mc_fingerprints.sampler_mapping[dun_sampler.sampler_name()] ] * 10
@@ -889,7 +893,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
         ]
 
     dst_gold_template = numpy.array(fp_kto(leu_rt), dtype=numpy.int64)
-    print("dst_gold_template", dst_gold_template)
+    # print("dst_gold_template", dst_gold_template)
     dst_gold = numpy.arange(10).repeat(6) * 19 + numpy.tile(dst_gold_template, 10) + 1
 
     numpy.testing.assert_equal(dst_gold, dst.cpu().numpy())
@@ -921,7 +925,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     # torch_device = torch.device("cpu")
 
     p = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=5
+        ubq_pdb, torch_device, residue_start=1, residue_end=6
     )
     poses = PoseStackBuilder.from_poses([p] * 3, torch_device)
     restype_set = poses.packed_block_types.restype_set
@@ -940,6 +944,11 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     rt_for_rot = torch.floor_divide(
         torch.arange(30, dtype=torch.int64, device=torch_device), 2
     )
+    # print("poses.block_type_ind64", poses.block_type_ind64)
+    # rt_for_rot = torch.zeros(30, dtype=torch.int64, device=torch_device)
+    # rt_for_rot
+    # return
+    # rt_for_rot = poses.block_type_ind64
 
     block_ind_for_rot = torch.remainder(
         torch.floor_divide(torch.arange(30, dtype=torch.int64, device=torch_device), 2),

@@ -633,6 +633,12 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
         dtype=torch.int64,
         device=poses.device,
     )
+    # print("poses_res_to_real_poses_res")
+    # print(poses_res_to_real_poses_res)
+    # print("res_ind_for_rt")
+    # print(res_ind_for_rt)
+    # print("rt_for_rot")
+    # print(rt_for_rot)
     real_res_ind_for_rot = poses_res_to_real_poses_res[res_ind_for_rt[rt_for_rot]]
 
     # look up which mainchain fingerprint each
@@ -652,7 +658,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     rot_mcfp_at_inds_rto = mcfp.atom_mapping[
         sampler_ind_for_rot, orig_res_mcfp_for_rot, block_type_ind_for_rot, :
     ].view(-1)
-    print("rot_mcfp_at_inds_rto", rot_mcfp_at_inds_rto)
+    # print("rot_mcfp_at_inds_rto", rot_mcfp_at_inds_rto)
 
     real_rot_mcfp_at_inds_rto = rot_mcfp_at_inds_rto[rot_mcfp_at_inds_rto != -1]
 
@@ -746,8 +752,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers(
     both_present = torch.logical_and(
         rot_mcfp_at_inds_kto != -1, orig_mcfp_at_inds_for_rot_kto != -1
     )
-    print("rot_mcfp_at_inds_kto", rot_mcfp_at_inds_kto)
-    print("orig_mcfp_at_inds_for_rot_kto", orig_mcfp_at_inds_for_rot_kto)
+    # print("rot_mcfp_at_inds_kto", rot_mcfp_at_inds_kto)
+    # print("orig_mcfp_at_inds_for_rot_kto", orig_mcfp_at_inds_for_rot_kto)
 
     rot_mcfp_at_inds_kto = rot_mcfp_at_inds_kto[both_present] + 1
     orig_mcfp_at_inds_for_rot_kto = orig_mcfp_at_inds_for_rot_kto[both_present] + 1

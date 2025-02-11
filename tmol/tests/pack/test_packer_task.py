@@ -41,7 +41,7 @@ def test_residue_level_task_his_restrict_to_repacking(
     i, his_res = next(
         (i, res)
         for (i, res) in enumerate(pbt.active_block_types)
-        if res.residue_type.name in ["HIS", "HIS_D"]
+        if res.name in ["HIS", "HIS_D"]
     )
     assert his_res
     rlt = ResidueLevelTask(i, his_res, palette)
