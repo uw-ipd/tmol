@@ -328,20 +328,9 @@ def test_pose_stack_kinematics_module_smoke(
 
 
 def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
-    pose_stack_gradcheck_test_system1, torch_device
+    pose_stack_gradcheck_test_system1,
 ):
     pose_stack, kinematics_module, kincoords, dofs = pose_stack_gradcheck_test_system1
-    kinforest = kinematics_module.kmd.forest
-    # kincoords = torch.zeros(
-    #     (kinematics_module.kmd.forest.id.shape[0], 3),
-    #     dtype=torch.float64,
-    #     device=torch_device,
-    # )
-    # kincoords[1:] = pose_stack.coords.view(-1, 3)[
-    #     kinematics_module.kmd.forest.id[1:]
-    # ].to(torch.float64)
-
-    # dofs = inverseKin(kinforest, kincoords, requires_grad=True)
 
     torch.random.manual_seed(1663)
     start_dofs = (
@@ -354,10 +343,7 @@ def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
     def func(dofs):
         return torch.sum(kinematics_module(dofs)[:, :])
 
-    kop_gradcheck_report(func, dofs.raw)
-
-
-#     kop_gradcheck_report(kinematics_module, start_dofs)
+    kop_gradcheck_report(func, start_dofs)
 
 
 def test_pose_stack_kinematic_torch_op_gradcheck(
@@ -518,7 +504,7 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     cuda_total.backward()
     cuda_grads = cuda_dofs.raw.grad
 
-    diff = cpu_grads - cuda_grads.to(cpu_device)
+    # diff = cpu_grads - cuda_grads.to(cpu_device)
     # abs_diff = torch.abs(diff)
     # big_diff = torch.nonzero(abs_diff > 1e-3, as_tuple=False)
     # print("big diff")

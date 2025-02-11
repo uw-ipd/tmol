@@ -6,7 +6,8 @@ from tmol.pack.rotamer.bounding_spheres import create_rotamer_bounding_spheres
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
-from tmol.io import pose_stack_from_pdb
+
+# from tmol.io import pose_stack_from_pdb
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 
 

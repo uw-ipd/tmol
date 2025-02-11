@@ -1,6 +1,7 @@
 import torch
 import numpy
-import attr
+
+# import attr
 import cattr
 
 import tmol.pack.rotamer.dunbrack.compiled  # noqa F401
