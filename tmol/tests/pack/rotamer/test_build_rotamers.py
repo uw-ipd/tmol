@@ -892,7 +892,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
         ]
 
     dst_gold_template = numpy.array(fp_kto(leu_rt), dtype=numpy.int64)
-    # print("dst_gold_template", dst_gold_template)
     dst_gold = numpy.arange(10).repeat(6) * 19 + numpy.tile(dst_gold_template, 10) + 1
 
     numpy.testing.assert_equal(dst_gold, dst.cpu().numpy())
@@ -921,8 +920,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     default_database, ubq_pdb, torch_device, dun_sampler
 ):
-    # torch_device = torch.device("cpu")
-
     p = no_termini_pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_start=1, residue_end=6
     )
@@ -943,11 +940,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     rt_for_rot = torch.floor_divide(
         torch.arange(30, dtype=torch.int64, device=torch_device), 2
     )
-    # print("poses.block_type_ind64", poses.block_type_ind64)
-    # rt_for_rot = torch.zeros(30, dtype=torch.int64, device=torch_device)
-    # rt_for_rot
-    # return
-    # rt_for_rot = poses.block_type_ind64
 
     block_ind_for_rot = torch.remainder(
         torch.floor_divide(torch.arange(30, dtype=torch.int64, device=torch_device), 2),
@@ -1028,7 +1020,6 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     assert n_rots_per_pose * n_poses == n_rots
 
     new_coords = rotamer_set.coords.cpu().numpy()
-    # print (rotamer_set)
 
     for i in range(1, n_poses):
         numpy.testing.assert_almost_equal(
@@ -1109,10 +1100,6 @@ def test_create_dofs_for_many_rotamers(
     orig_res_block_ind = pbi[pbi != -1]
     real_orig_block_ind = orig_res_block_ind != -1
     # old coords layout
-    # nz_real_orig_block_ind = torch.nonzero(real_orig_block_ind).flatten()
-    # orig_atom_offset_for_rot = (
-    #     nz_real_orig_block_ind.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms
-    # )
     n_poses = poses.coords.shape[0]
     max_n_atoms_per_pose = poses.coords.shape[1]
     max_n_blocks_per_pose = poses.block_coord_offset.shape[1]

@@ -1,21 +1,15 @@
 import torch
 import numpy
 
-# import numba
-
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
-# from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.kinematics.old.builder import _KinematicBuilder
 from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.fold_forest import FoldForest, EdgeType
 from tmol.kinematics.check_fold_forest import mark_polymeric_bonds_in_foldforest_edges
-
-# import scipy.sparse as sparse
-# import scipy.sparse.csgraph as csgraph
 
 
 def get_bonds_for_named_torsions(pose_stack: PoseStack):
@@ -493,8 +487,6 @@ def construct_pose_stack_kinforest(
     tor_bonds = get_bonds_for_named_torsions(pose_stack)
     prioritized_bonds = torch.cat((tor_bonds, jump_atom_pairs), dim=0).cpu().numpy()
     root_atoms = get_root_atom_indices(pose_stack, fold_forest.roots).cpu().numpy()
-    print("root atoms", root_atoms)
-    print(pose_stack.block_coord_offset)
 
     return (
         _KinematicBuilder().append_connected_components(

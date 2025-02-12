@@ -233,8 +233,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # we will be adding new "wildcard" atom ids, so we will copy the
         # atom_unique_id_index annotation
         cbet_atom_unique_id_index = packed_block_types.atom_unique_id_index.copy()
-        # for k in cbet_atom_unique_id_index:
-        #     print("cbet_atom_unique_id_index", k)
 
         # get the params not associated with any specific residue
         wildcard_params = self.get_params_for_res("wildcard").items()
@@ -242,7 +240,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         # we have perhaps created new atom ids for this "wildcard" residue name,
         # so we must expand our set of unique atom ids.
         for key, _ in wildcard_params:
-            # print("key", key)
             for at in key:
                 if at not in cbet_atom_unique_id_index:
                     cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
@@ -251,7 +248,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             for key in bt.cartbonded_params:
                 for at in key:
                     if at not in cbet_atom_unique_id_index:
-                        # print("Atom", at, "previously not in cbet_atom_unique_id_index")
                         cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
 
         # Calculate the total number of params
@@ -266,7 +262,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         cur_val = 0
         for bt in packed_block_types.active_block_types:
             for key_w_str, value in bt.cartbonded_params.items():
-                # print("key_w_str", key_w_str)
                 key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
                 add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
                 cur_val += 1

@@ -11,18 +11,10 @@ from .support.rosetta import pyrosetta, rosetta_database  # noqa: F401
 # Import basic data fixtures
 from .data import (  # noqa: F401
     min_pdb,
-    # min_res,
-    # min_system,
     big_pdb,
-    # big_res,
-    # big_system,
-    # water_box_res,
     water_box_pdb,
     ubq_pdb,
-    # ubq_res,
-    # ubq_system,
     disulfide_pdb,
-    # disulfide_res,
     systems_bysize,
     pertuzumab_pdb,
     pertuzumab_and_nearby_erbb2_pdb_and_segments,
@@ -34,7 +26,6 @@ from .data import (  # noqa: F401
 from .chemical import (  # noqa: F401
     default_restype_set,
     fresh_default_restype_set,
-    # rts_ubq_res,
     rts_disulfide_res,
 )
 

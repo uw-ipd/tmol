@@ -15,9 +15,6 @@ from tmol import (
 
 
 def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
-    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, rts_ubq_res[:4], torch_device
-    # )
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
     pose_stack100 = PoseStackBuilder.from_poses([pose_stack1] * 100, torch_device)
 
@@ -29,9 +26,6 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     scorer = sfxn.render_whole_pose_scoring_module(pose_stack100)
 
     scores = scorer(pose_stack100.coords)
-    # print("scores")
-    # print(scores)
-    # print(scores.shape)
 
     assert scores is not None
 

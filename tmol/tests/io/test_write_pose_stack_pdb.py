@@ -18,14 +18,8 @@ from tmol.io.canonical_ordering import (
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
-# from tmol.io import pose_stack_from_pdb
-
 
 def test_atom_records_from_pose_stack_1(ubq_pdb, torch_device):
-    # connections = find_simple_polymeric_connections(ubq_res)
-    # p = PoseStackBuilder.one_structure_from_residues_and_connections(
-    #     default_database.chemical, ubq_res, connections, torch_device
-    # )
     p = pose_stack_from_pdb(ubq_pdb, torch_device)
 
     records = atom_records_from_pose_stack(p)
@@ -38,14 +32,6 @@ def test_atom_records_from_pose_stack_1(ubq_pdb, torch_device):
 
 
 def test_atom_records_from_pose_stack_2(ubq_pdb, torch_device):
-    # connections5 = find_simple_polymeric_connections(ubq_res[:5])
-    # p1 = PoseStackBuilder.one_structure_from_residues_and_connections(
-    #     default_database.chemical, ubq_res[:5], connections5, torch_device
-    # )
-    # connections7 = find_simple_polymeric_connections(ubq_res[:7])
-    # p2 = PoseStackBuilder.one_structure_from_residues_and_connections(
-    #     default_database.chemical, ubq_res[:7], connections7, torch_device
-    # )
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)

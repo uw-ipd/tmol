@@ -2,43 +2,27 @@ import attr
 import numpy
 import torch
 
+from collections import defaultdict
+
+from numba import jit
+import scipy.sparse as sparse
+import scipy.sparse.csgraph as csgraph
+
+from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
+from tmol.types.attrs import ValidateAttrs
+from tmol.types.functional import validate_args
+
+from tmol.pose.pose_stack import PoseStack
+
 from .datatypes import (
+    NodeType,
     KinForest,
     KinForestScanData,
     KinematicModuleData,
     BTGenerationalSegScanPathSegs,
     PBTGenerationalSegScanPathSegs,
 )
-
-from numba import jit
-from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
-from tmol.types.attrs import ValidateAttrs
-
-from tmol.types.functional import validate_args
-
-from collections import defaultdict
-
-import scipy.sparse as sparse
-import scipy.sparse.csgraph as csgraph
-
-# from tmol.io.canonical_ordering import (
-#     default_canonical_ordering,
-#     default_packed_block_types,
-#     canonical_form_from_pdb,
-# )
-from tmol.pose.pose_stack import PoseStack
-
-# from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-from tmol.kinematics.datatypes import NodeType
-
-# from tmol.kinematics.fold_forest import EdgeType
-# from .check_fold_forest import validate_fold_forest
-
-# from tmol.kinematics.scan_ordering import get_children
-# from tmol.kinematics.compiled import inverse_kin, forward_kin_op
-
-# from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
 @jit(nopython=True)
@@ -363,8 +347,6 @@ def construct_kin_module_data_for_pose(
         get_kfo_atom_parents,
     )
 
-    # validate_fold_forest()
-
     device = pose_stack.device
     pbt = pose_stack.packed_block_types
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
@@ -373,16 +355,14 @@ def construct_kin_module_data_for_pose(
     ff_edges_cpu = fold_forest_edges.cpu()
     ff_edges_device = fold_forest_edges.to(device)
 
-    # print("1")
     result = calculate_ff_edge_delays(
-        pose_stack.block_coord_offset,  # TView<Int, 2, D> pose_stack_block_coord_offset,         // P x L
-        pose_stack.block_type_ind,  # TView<Int, 2, D> pose_stack_block_type,                 // x - P x L
-        ff_edges_cpu,  # TView<Int, 3, CPU> ff_edges_cpu,                        // y - P x E x 4 -- 0: type, 1: start, 2: stop, 3: jump ind
-        pbt_gssps.scan_path_seg_that_builds_output_conn,  # TVIew<Int, 5, D> block_type_kts_conn_info,              // y - T x I x O x C x 2 -- 2 is for gen (0) and scan (1)
-        pbt_gssps.nodes_for_gen,  # TView<Int, 5, D> block_type_nodes_for_gens,             // y - T x I x O x G x N
-        pbt_gssps.scan_path_seg_starts,  # TView<Int, 5, D> block_type_scan_path_starts            // y - T x I x O x G x S
+        pose_stack.block_coord_offset,
+        pose_stack.block_type_ind,
+        ff_edges_cpu,
+        pbt_gssps.scan_path_seg_that_builds_output_conn,
+        pbt_gssps.nodes_for_gen,
+        pbt_gssps.scan_path_seg_starts,
     )
-    # print("2")
 
     (
         dfs_order_of_ff_edges,
@@ -395,12 +375,6 @@ def construct_kin_module_data_for_pose(
         delay_for_edge,
         toposort_index_for_edge,
     ) = tuple(x.to(device) for x in result)
-
-    # print("dfs_order_of_ff_edges", dfs_order_of_ff_edges)
-    # print("ff_edge_parent", ff_edge_parent)
-    # print("first_child_of_ff_edge", first_child_of_ff_edge)
-    # print("first_ff_edge_for_block", first_ff_edge_for_block)
-    # print("3")
 
     pose_stack_atom_for_jump, pose_stack_atom_for_root_jump = get_jump_atom_indices(
         ff_edges_device, pose_stack.block_type_ind, pbt_gssps.jump_atom
@@ -421,7 +395,6 @@ def construct_kin_module_data_for_pose(
         pbt.polymeric_conn_inds,
     )
 
-    # print("4")
     (block_kfo_offset, kfo_2_orig_mapping, atom_kfo_index) = get_kfo_indices_for_atoms(
         pose_stack.block_coord_offset,
         pose_stack.block_type_ind,
@@ -429,12 +402,10 @@ def construct_kin_module_data_for_pose(
         pbt.atom_is_real,
     )
 
-    # print("5")
     kfo_atom_parents, kfo_atom_grandparents = get_kfo_atom_parents(
         pose_stack.block_type_ind,
         pose_stack.inter_residue_connections,
         pose_stack_ff_parent,
-        # ff_conn_to_parent,
         pose_stack_block_in_and_first_out,
         pbt_gssps.parents,
         kfo_2_orig_mapping,
@@ -444,7 +415,6 @@ def construct_kin_module_data_for_pose(
         pbt.conn_atom,
     )
 
-    # print("6")
     n_children, child_list_span, child_list, is_atom_jump = get_children(
         pose_stack.block_type_ind,
         pose_stack_block_in_and_first_out,
@@ -453,7 +423,6 @@ def construct_kin_module_data_for_pose(
         pbt.n_conn,
     )
 
-    # print("7")
     id, frame_x, frame_y, frame_z, keep_atom_fixed = get_id_and_frame_xyz(
         pose_stack.coords.shape[1],
         pose_stack.block_coord_offset,
@@ -464,7 +433,6 @@ def construct_kin_module_data_for_pose(
         is_atom_jump,
     )
 
-    # print("8")
     nodes_fw, scans_fw, gens_fw, nodes_bw, scans_bw, gens_bw = (
         get_kinforest_scans_from_stencils2(
             pose_stack.max_n_atoms,
@@ -495,7 +463,6 @@ def construct_kin_module_data_for_pose(
         )
     )
 
-    # print("9")
     # This feels so clunky after all that slick C++
     is_res_real = pose_stack.block_type_ind != -1
     is_atom_real = pbt.atom_is_real[pose_stack.block_type_ind[is_res_real]]
@@ -533,12 +500,6 @@ def construct_kin_module_data_for_pose(
     )
 
 
-def jump_atom_for_bt(bt):
-    """Return the index of the atom that will be jumped to or jumped from"""
-    # TEMP: CA if CA is present; ow, atom 0
-    return bt.atom_to_idx["CA"] if "CA" in bt.atom_names_set else 0
-
-
 def _handle_case_on_primary_exit_path(
     k_atom_ind,
     j_conn_atom,
@@ -548,8 +509,6 @@ def _handle_case_on_primary_exit_path(
 ):
     # in this case, the first_descendant for this atom
     # has already been decided
-    # if j == n_conn + 1:
-    #     print("on exit spseg:", bt.atom_name(k_atom_ind), first_descendant[k_atom_ind], is_conn_atom[k_atom_ind])
     if k_atom_ind == j_conn_atom:
         # this atom's first descendent is the atom on the next residue
         # to which this residue is connected
@@ -620,12 +579,9 @@ def _handle_case_of_no_exit_scan_path_segment(
     # it would otherwise. Again, a KinForest produced by this algorithm
     # is still valid, it could just be slightly slower to fold through
     # than it would be otherwise.
-    # if target:
-    #     print("common case", k, bt.atom_name(k_atom_ind))
     if j != n_conn + 1:
         for kid in k_kids:
             if is_on_exit_sp_segment[kid]:
-                # print("bt", bt.name, "kid", kid, bt.atom_name(kid), "is on ext")
                 first_descendant[k_atom_ind] = kid
                 is_on_exit_sp_segment[k_atom_ind] = True
                 assert interres_conn_scan_path_segment_rooted_by_atom[kid] >= 0
@@ -649,10 +605,7 @@ def _handle_case_of_no_exit_scan_path_segment(
         first_descendant[k_atom_ind] = k_kids[
             numpy.argmax(numpy.array([gen_depth[kid] for kid in k_kids]))
         ]
-        # if j == n_conn + 1:
-        #     print("Selecting first descendant of", bt.atom_name(k_atom_ind), "as", bt.atom_name(first_descendant[k_atom_ind]))
     gen_depth[k_atom_ind] = gen_depth_given_first_descendant()
-    # print("gen_depth", bt.atom_name(k_atom_ind), "d:", gen_depth[k_atom_ind])
 
 
 def _record_scan_path_segments(
@@ -695,10 +648,6 @@ def _record_scan_path_segments(
         else:
             focused_atom = k_atom_ind
             gen_to_build_atom[focused_atom] = 0
-        # print(
-        #     f"gen to build {bt.atom_name(focused_atom)} from {bt.atom_name(preds[focused_atom])}",
-        #     f"with gen {gen_to_build_atom[focused_atom]}",
-        # )
 
         # now we traverse the path along each atom's first descendant
         while focused_atom >= 0:
@@ -722,7 +671,6 @@ def _annotate_block_type_for_in_and_out_pair(
     i_conn_atom,
     j,
     bt,
-    mid_bt_atom,
     n_conn,
     preds,
     bfto_2_orig,
@@ -755,14 +703,17 @@ def _annotate_block_type_for_in_and_out_pair(
         # Start at the j_conn_atom and work backwards toward the root,
         # which marks the first scan-path segment for this block type:
         # the "primary exit scan-path segment"
-        j_conn_atom = bt.ordered_connection_atoms[j] if j < n_conn else mid_bt_atom
+        j_conn_atom = (
+            bt.ordered_connection_atoms[j]
+            if j < n_conn
+            else bt.default_jump_connection_atom_index
+        )
 
         is_on_primary_exit_sp_seg[i_conn_atom] = True
 
         focused_atom = j_conn_atom
         primary_exit_scan_path_segment = []
         while focused_atom != i_conn_atom:
-            # print("exit path:", bt.atom_name(focused_atom))
             is_on_primary_exit_sp_seg[focused_atom] = True
             primary_exit_scan_path_segment.append(focused_atom)
             pred = preds[focused_atom]
@@ -780,7 +731,6 @@ def _annotate_block_type_for_in_and_out_pair(
             is_on_exit_sp_segment[k_conn_atom] = True
             atom_rooting_scan_path_segment_for_interres_conn[k] = k_conn_atom
             interres_conn_scan_path_segment_rooted_by_atom[k_conn_atom] = k
-        # print("primary_exit_scan_path_segment:", primary_exit_scan_path_segment)
         gen_scan_path_segments[0].append(primary_exit_scan_path_segment)
         # our first exit scan path segment: keep track of the gen/scan-path-seg indices
         # for exit scan-path segments using inter-residue connections. We don't have
@@ -815,24 +765,9 @@ def _annotate_block_type_for_in_and_out_pair(
     # being the first children of their parents and the other children
     # as being younger siblings.
     gen_depth = numpy.ones((bt.n_atoms,), dtype=numpy.int64)
-    # on_sp_seg_from_conn_to_i_conn_atom = numpy.zeros((bt.n_atoms,), dtype=bool)
     for k in range(bt.n_atoms - 1, -1, -1):
         k_atom_ind = bfto_2_orig[k]
-        # if target:
-        #     print(
-        #         "recursing upwards",
-        #         i,
-        #         "i_conn atom",
-        #         i_conn_atom,
-        #         j,
-        #         "j_conn_atom",
-        #         j_conn_atom,
-        #         k,
-        #         k_atom_ind,
-        #         bt.atom_name(k_atom_ind),
-        #     )
         k_kids = atom_kids[k_atom_ind]
-        # print("kids:", k_kids)
         if len(k_kids) == 0:
             continue
         # from here forward, we know that k_atom_ind has > 0 children
@@ -843,10 +778,6 @@ def _annotate_block_type_for_in_and_out_pair(
             # gen-depth of every child except the first descendant
             # which we get "for free" since it will be built
             # along the same-scan path segment as k_atom_ind
-            # print(f"atom {bt.atom_name(k_atom_ind)} with first descendant
-            # {bt.atom_name(first_descendant[k_atom_ind]) if first_descendant[k_atom_ind] >= 0
-            # else 'None'} and depth
-            # {gen_depth[first_descendant[k_atom_ind]] if first_descendant[k_atom_ind] >= 0 else -9999}")
             return max(
                 [
                     (
@@ -896,11 +827,7 @@ def _annotate_block_type_for_in_and_out_pair(
                     gen_depth_given_first_descendant,
                     gen_depth,
                 )
-    # print("gen_depth", gen_depth)
-    # print("is on exit path", bt.name, i, j, ":", is_on_exit_path)
     # OKAY!
-    # if j == n_conn + 1:
-    #     print("first descendants", first_descendant)
     # now we have paths rooted at each node up to the root
     # we need to turn these paths into scan paths
     # Let's now traverse the atoms in bfs order and build the scan paths
@@ -908,8 +835,6 @@ def _annotate_block_type_for_in_and_out_pair(
     processed_node_into_scan_path_segment = is_on_primary_exit_sp_seg.copy()
     gen_to_build_atom = numpy.full((bt.n_atoms,), -1, dtype=numpy.int64)
     gen_to_build_atom[is_on_primary_exit_sp_seg] = 0
-    # print("gen depth", gen_depth)
-    # print("starting bfs:", processed_node_into_scan_path_segment)
 
     _record_scan_path_segments(
         bt,
@@ -927,14 +852,10 @@ def _annotate_block_type_for_in_and_out_pair(
     )
 
     # Now we need to assemble the scan path segments in a compact way:
-    # print("gen scan path segments", gen_scan_path_segments)
-
     ij_n_gens = gen_depth[i_conn_atom]
-    # print("ij_n_gens", i, j, ij_n_gens)
     ij_n_scan_path_segments = numpy.array(
         [len(gen_scan_path_segments[k]) for k in range(ij_n_gens)], dtype=int
     )
-    # print("ij_n_scans", i, j, ij_n_scans)
     ij_scan_path_segment_starts = [
         numpy.zeros((ij_n_scan_path_segments[k],), dtype=int) for k in range(ij_n_gens)
     ]
@@ -948,14 +869,11 @@ def _annotate_block_type_for_in_and_out_pair(
         )
         for k in range(ij_n_gens)
     ]
-    # print("ij_scan_path_segment_lengths", i, j, ij_scan_lengths)
     for k in range(ij_n_gens):
         offset = 0
         for l in range(ij_n_scan_path_segments[k]):
             ij_scan_path_segment_starts[k][l] = offset
             offset += ij_scan_path_segment_lengths[k][l]
-    # print("ij_scan_starts", i, j, ij_scan_starts)
-    # print("ij_scan_lengths cumsum?", numpy.cumsum(ij_scan_lengths))
     ij_scan_path_segment_is_inter_block = [
         numpy.zeros((ij_n_scan_path_segments[k],), dtype=bool) for k in range(ij_n_gens)
     ]
@@ -963,8 +881,6 @@ def _annotate_block_type_for_in_and_out_pair(
     for k in range(ij_n_gens):
         for l in range(ij_n_scan_path_segments[k]):
             l_first_at = gen_scan_path_segments[k][l][0 if k == 0 else 1]
-            # if target:
-            #     print(k, l, "l_first_at", l_first_at)
             # "interblock" is really asking "does this scan path segment
             # exit to a different block?". This is "answered" by whether the
             # last atom in the scan path segment is a connection atom.
@@ -973,32 +889,16 @@ def _annotate_block_type_for_in_and_out_pair(
             # of SPs in the backward pass as long as there are edges leaving
             # from the connection atoms.
             kl_last_atom = gen_scan_path_segments[k][l][-1]
-            # if target:
-            #     print(k, l, "kl_last_atom", kl_last_atom)
             ij_scan_path_segment_is_inter_block[k][l] = (
                 is_conn_atom[kl_last_atom] and j != n_conn + 1
             ) or (  # is the last atom in the path a connection atom?
                 k == 0 and l == 0
             )  # the first scan path segment is always inter-block
             conn_for_path = interres_conn_scan_path_segment_rooted_by_atom[l_first_at]
-            # if target:
-            #     print(k, l, "conn_for_path", conn_for_path)
             if conn_for_path != -1:
-                # print(
-                #     bt.name,
-                #     i,
-                #     j,
-                #     "setting conn for path",
-                #     conn_for_path,
-                #     "as",
-                #     k,
-                #     l,
-                # )
                 gen_of_scan_path_segment_building_interres_conn[conn_for_path] = k
                 scan_path_segment_building_interres_conn[conn_for_path] = l
 
-    # print("ij_scan_is_inter_block", ij_scan_is_inter_block)
-    # ij_n_nodes_for_gen =
     ij_n_nodes_for_gen = numpy.array(
         [
             sum(len(path) for path in gen_scan_path_segments[k])
@@ -1006,8 +906,6 @@ def _annotate_block_type_for_in_and_out_pair(
         ],
         dtype=int,
     )
-    # if j == n_conn + 1:
-    #     print(bt.name, i, j, "gen_scan_path_segments", gen_scan_path_segments)
     scan_path_segment_data[(i, j)] = dict(
         n_gens=ij_n_gens,
         n_nodes_for_gen=ij_n_nodes_for_gen,
@@ -1096,7 +994,6 @@ def _mark_kin_uaids_controlling_torsions(
                     else bt.ordered_torsions[j][1]
                 )
                 torsion_direction[i, j] = 1 if at2_is_parent else -1
-                # print(f"bt: {bt.name}, i: {i}, tor: {j},  at2 {at2}, at3 {at3} torsion_direction[i, j] {torsion_direction[i, j]} uaid_for_torsion[i, j, :] {uaid_for_torsion[i, j, :]}")
 
 
 def _gather_scan_path_data(scan_path_segment_data, i, j, bt_gen_seg_scan_path_segments):
@@ -1129,17 +1026,12 @@ def _gather_scan_path_data(scan_path_segment_data, i, j, bt_gen_seg_scan_path_se
         bt_gen_seg_scan_path_segments.scan_path_seg_lengths[
             i, j, k, :ijk_n_scan_path_segs
         ] = scan_path_segment_data[(i, j)]["scan_path_seg_lengths"][k]
-        # for l in range(scan_path_data[(i, j)]["n_scans"][k]):
-        # bt_gen_seg_scan_paths.scan_starts[i, j, k, l] = scan_path_data[(i, j)]["scan_starts"][k][l]
-        # bt_gen_seg_scan_paths.scan_is_inter_block[i, j, k, l] = scan_path_data[(i, j)]["scan_is_inter_block"][k][l]
-        # bt_gen_seg_scan_paths.scan_lengths[i, j, k, l] = scan_path_data[(i, j)]["scan_lengths"][k][l]
         for l in range(ijk_n_scan_path_segs):
             m_offset = scan_path_segment_data[(i, j)]["scan_path_seg_starts"][k][l]
             for m in range(len(scan_path_segment_data[(i, j)]["nodes_for_gen"][k][l])):
                 bt_gen_seg_scan_path_segments.nodes_for_gen[i, j, k, m_offset + m] = (
                     scan_path_segment_data[(i, j)]["nodes_for_gen"][k][l][m]
                 )
-        # print("nodes for gen", i, j, k, bt_gen_seg_scan_paths.nodes_for_gen[i, j, k, :])
 
 
 # TO DO: jit this!
@@ -1150,23 +1042,6 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
 
     n_input_types = n_conn + 2  # n_conn + jump input + root "input"
     n_output_types = n_conn + 2  # n_conn + jump output + no output at all
-
-    # n_gens = numpy.zeros((n_input_types, n_output_types), dtype=numpy.int64)
-    # nodes_for_generation = [
-    #     [[] for _ in range(n_output_types)] for _2 in range(n_input_types)
-    # ]
-    # n_scan_path_segs = [
-    #     [[] for _ in range(n_output_types)] for _2 in range(n_input_types)
-    # ]
-    # scan_path_seg_starts = [
-    #     [[] for _ in range(n_output_types)] for _2 in range(n_input_types)
-    # ]
-    # scan_path_seg_is_inter_block = [
-    #     [[] for _ in range(n_output_types)] for _2 in range(n_input_types)
-    # ]
-    # scan_path_seg_lengths = [
-    #     [[] for _ in range(n_output_types)] for _2 in range(n_input_types)
-    # ]
 
     def _bonds_to_csgraph(
         bonds: NDArray[int][:, 2], edge_weight: float
@@ -1183,7 +1058,6 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
     # create a bond graph and then we will create the prioritized edges
     # and all edges
     potential_bonds = _bonds_to_csgraph(bt.bond_indices, -1)
-    # print("potential bonds", potential_bonds)
     tor_atoms = [
         (uaids[1][0], uaids[2][0])
         for tor, uaids in bt.torsion_to_uaids.items()
@@ -1193,14 +1067,10 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
         tor_atoms = numpy.zeros((0, 2), dtype=numpy.int64)
     else:
         tor_atoms = numpy.array(tor_atoms)
-    # print("tor atoms:", tor_atoms)
 
     prioritized_bonds = _bonds_to_csgraph(tor_atoms, -0.125)
-    # print("prioritized bonds", prioritized_bonds)
     bond_graph = potential_bonds + prioritized_bonds
     bond_graph_spanning_tree = csgraph.minimum_spanning_tree(bond_graph.tocsr())
-
-    mid_bt_atom = jump_atom_for_bt(bt)
 
     # As we are iterating across atoms, we need to keep track of which atoms
     # are bridges to other resiudes, so write down the reverse mapping from
@@ -1230,7 +1100,11 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
 
     for i in range(n_input_types):
 
-        i_conn_atom = bt.ordered_connection_atoms[i] if i < n_conn else mid_bt_atom
+        i_conn_atom = (
+            bt.ordered_connection_atoms[i]
+            if i < n_conn
+            else bt.default_jump_connection_atom_index
+        )
         input_conn_atom[i] = i_conn_atom
         bfto_2_orig, preds = csgraph.breadth_first_order(
             bond_graph_spanning_tree,
@@ -1245,19 +1119,12 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
         _mark_kin_uaids_controlling_torsions(
             uaid_for_torsion, torsion_direction, i, i_conn_atom, bt, preds
         )
-        # print(bt.name, f"uaid_for_torsion[{i}]", uaid_for_torsion[i])
 
         # Now, the parent of the i_conn_atom comes from the previous residue, so we will
         # need to fix this atom when we are hooking the blocks together. For now, leave
         # it as -9999 (which is what csgraph labels it as) so that we can tell if we have
         # not corrected this parent index later on.
-        # print(bt.name, i, bfto_2_orig, preds)
-        # print([bt.atom_name(bfto_2_orig[bfs_ind]) for bfs_ind in range(bt.n_atoms)])
         for j in range(n_output_types):
-            # target = False
-            # if bt.name == "ILE" and i == 3 and j == 2:
-            #     target = True
-            #     print(bt.name, i, j)
             if i == j and i < n_conn:
                 # we cannot enter from one inter-residue connection point and then
                 # leave by that same inter-residue connection point unless we are
@@ -1268,7 +1135,6 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
                 i_conn_atom,
                 j,
                 bt,
-                mid_bt_atom,
                 n_conn,
                 preds,
                 bfto_2_orig,
@@ -1315,7 +1181,7 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
         max_n_nodes_per_gen,
         bt.n_torsions,
     )
-    bt_gen_seg_scan_path_segments.jump_atom = jump_atom_for_bt(bt)
+    bt_gen_seg_scan_path_segments.jump_atom = bt.default_jump_connection_atom_index
     bt_gen_seg_scan_path_segments.parents = parents
     bt_gen_seg_scan_path_segments.dof_type[:] = dof_type
     bt_gen_seg_scan_path_segments.input_conn_atom = input_conn_atom
@@ -1334,9 +1200,6 @@ def _annotate_block_type_with_gen_scan_path_segs(bt):
 
 
 def _annotate_packed_block_type_with_gen_scan_path_segs(pbt):
-    # print("annotating packed block type with gen scan path segs", pbt.device)
-    # for i, bt in enumerate(pbt.active_block_types):
-    #     print(f"bt {bt.name} index {i}")
     for bt in pbt.active_block_types:
         _annotate_block_type_with_gen_scan_path_segs(bt)
     max_n_input_types = max(
@@ -1423,5 +1286,4 @@ def _annotate_packed_block_type_with_gen_scan_path_segs(pbt):
                 ] = src
             else:
                 raise ValueError("unhandled shape")
-    # print("gen_seg_scan_path_segs.uaid_for_torsion[82, 2, :]", gen_seg_scan_path_segs.uaid_for_torsion[85, 2, :])
     setattr(pbt, "gen_seg_scan_path_segs", gen_seg_scan_path_segs)

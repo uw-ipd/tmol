@@ -1,4 +1,3 @@
-# import toolz
 import copy
 
 import itertools
@@ -7,9 +6,6 @@ import numpy
 import torch
 import pandas
 
-# import scipy.sparse.csgraph as csgraph
-# import scipy
-
 from typing import List, Tuple, Optional
 
 from tmol.types.array import NDArray
@@ -17,20 +13,14 @@ from tmol.types.torch import Tensor
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 
-# from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import (
     RefinedResidueType,
-    # Residue,
-    # find_simple_polymeric_connections,
-    # find_disulfide_connections,
     three2one,
 )
 
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
-
-# from tmol.system.datatypes import connection_metadata_dtype
 from tmol.utility.tensor.common_operations import (
     exclusive_cumsum1d,
     exclusive_cumsum2d,
@@ -321,11 +311,6 @@ class PoseStackBuilder:
         packed_block_types: PackedBlockTypes,
         sequences,  # List[List[str]]
         chain_lengths,  # List[List[int]]
-        # option 1:
-        # chain_lengths: List[List[int]]
-        # option 2:
-        # sequences_w_chain_annotation
-        # [ALA:Nterm]AAAA[ALA:Cterm][ALA:Nterm]AAAAAAAAA[ALA:Cterm]
     ):
         """Construct a PoseStack given a list of sequences where the disulfide
         connectivity is known. E.g. If there is a disulfide pair between
@@ -1046,7 +1031,6 @@ class PoseStackBuilder:
         Tensor[torch.int64][:, :],
     ]:
         device = pbt.device
-        # real_res = numpy.full((n_poses, max_n_res), True, dtype=bool)
         real_res = (
             numpy.tile(numpy.arange(max_n_res, dtype=numpy.int32), n_poses).reshape(
                 (n_poses, max_n_res)
@@ -1191,7 +1175,6 @@ class PoseStackBuilder:
                         chain_lengths_t[i, j] = l
             chain_lengths_t = chain_lengths_t.to(device)
             cl_real = chain_lengths_t != -1
-            # cl_real = cl_real[:, :-1]
             cl_offsets = torch.cumsum(chain_lengths_t, dim=1)
             nz_cl_real_pose_ind, _ = torch.nonzero(cl_real, as_tuple=True)
             n_term_res = cl_offsets[cl_real]
@@ -1363,11 +1346,6 @@ class PoseStackBuilder:
         cls._shortest_paths_for_connectivity_graph(pconn_matrix)
 
         # the big assignment!
-        # print("inter_block_bondsep", inter_block_bondsep.shape)
-        # print("bconn_pair_real", bconn_pair_real.shape, torch.sum(bconn_pair_real))
-        # print("pconn_matrix", pconn_matrix.shape)
-        # print("pconn_pair_real", pconn_pair_real.shape, torch.sum(pconn_pair_real))
-
         inter_block_bondsep[bconn_pair_real] = pconn_matrix[pconn_pair_real]
 
         # now reorder so it's pose-ind x r1 x r2 x c1 x c2

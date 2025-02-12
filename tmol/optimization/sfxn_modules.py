@@ -66,7 +66,6 @@ class KinForestSfxnNetwork(torch.nn.Module):
             device=torch_device,
         )
         kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
-        # print("kincoords.shape", kincoords.shape)
 
         raw_dofs = inverse_kin(
             kincoords,
@@ -101,17 +100,13 @@ class KinForestSfxnNetwork(torch.nn.Module):
 
         # get rid of any gradients from the previous iteration
         self.full_dofs = self.full_dofs.detach()
-        # print("self.full_dofs.device", self.full_dofs.device)
         self.full_coords = self.full_coords.detach()
         self.flat_coords = self.flat_coords.detach()
-        # print("self.flat_coords.device", self.flat_coords.device)
 
         # update the full-dofs, calc the coords, and map them
         # to the pose-stack-ordered coords
         self.full_dofs[self.dof_mask] = self.masked_dofs
-        # print("self.masked_dofs.device", self.masked_dofs.device)
         kin_coords = self.kin_module(self.full_dofs)
-        # print("freshly computed kin_coords.device", kin_coords.device)
         self.flat_coords[self.id[1:]] = kin_coords[1:]
         self.full_coords = self.flat_coords.view(self.orig_coords_shape)
 

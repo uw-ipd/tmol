@@ -15,12 +15,6 @@ from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 @pytest.fixture
 def ubq_40_60_pose_stack(ubq_pdb, torch_device):
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[:40], torch_device
-    # )
-    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[:60], torch_device
-    # )
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=40)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=60)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
@@ -41,7 +35,6 @@ def fresh_default_packed_block_types(fresh_default_restype_set, torch_device):
 def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    # _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     canonical_form = canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=0, residue_end=6
     )
@@ -54,7 +47,6 @@ def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
 def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    # _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     canonical_form = canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=1, residue_end=7
     )
@@ -72,7 +64,6 @@ def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
 def jagged_stack_of_465_res_ubqs(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
-    # _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
 
     def pose_stack_of_nres(nres):
         canonical_form = canonical_form_from_pdb(

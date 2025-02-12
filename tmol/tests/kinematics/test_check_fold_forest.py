@@ -137,18 +137,6 @@ def test_mark_polymeric_bonds_in_foldforest_edges_3():
     edges[1, 3, 2] = 10
     edges[2, 1, 2] = 4
 
-    # edges[:, 0, 0] = EdgeType.polymer
-    # edges[:, 0, 1] = 0
-    # edges[0, 0, 2] = 7
-    # edges[1, 0, 1] = 0
-    # edges[1, 0, 2] = 5
-    # edges[1, 1, 0] = EdgeType.polymer
-    # edges[1, 1, 1] = 8
-    # edges[1, 1, 2] = 6
-    # edges[1, 2, 0] = EdgeType.polymer
-    # edges[1, 2, 1] = 8
-    # edges[1, 2, 2] = 10
-    # edges[2, 0, 2] = 4
     n_res_per_tree = numpy.array([8, 11, 5], dtype=numpy.int64)
 
     polymeric_connection_in_edge, _1, _2 = mark_polymeric_bonds_in_foldforest_edges(

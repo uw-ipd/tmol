@@ -4,7 +4,6 @@ from tmol.tests.torch import zero_padded_counts
 
 from tmol.score.score_function import ScoreFunction
 
-# from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io import pose_stack_from_pdb
 
@@ -34,9 +33,6 @@ def dont_test_res_centric_score_benchmark_setup(
     benchmark, energy_term, n_poses, ubq_pdb, default_database, torch_device
 ):
     n_poses = int(n_poses)
-    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, rts_ubq_res, torch_device
-    # )
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
 
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
@@ -91,9 +87,6 @@ def test_res_centric_score_benchmark(
     torch_device,
 ):
     n_poses = int(n_poses)
-    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, rts_ubq_res, torch_device
-    # )
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
@@ -164,9 +157,6 @@ def test_combined_res_centric_score_benchmark(
     torch_device,
 ):
     n_poses = int(n_poses)
-    # pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, rts_ubq_res, torch_device
-    # )
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 

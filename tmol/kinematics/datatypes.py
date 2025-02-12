@@ -69,9 +69,11 @@ class KinForest(TensorGroup, ConvertAttrs):
     and whether the values they hold are KFO or TO indices.
 
     The `KinForest` data structure itself is frozen and can not be modified post
-    construction. The `_KinematicBuilder` factory class is responsible for
-    construction of a `KinForest` with valid internal structure for atomic
-    systems.
+    construction. `KinForests` are not typically built directly by users,
+    but rather are constructed as part of building the `KinModuleData` class
+    by `construct_kin_module_data` that lives in scan_ordering.py.
+    The `_KinematicBuilder` factory class is now deprecated but use to be
+    responsible for construction of `KinForests`
 
     Indices::
         id = the TO index in KFO; i.e. kin_forest_order_2_target_order

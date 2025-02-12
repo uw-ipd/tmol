@@ -1,7 +1,6 @@
 import torch
 import numpy
 
-# import attr
 import cattr
 
 import tmol.pack.rotamer.dunbrack.compiled  # noqa F401
@@ -135,8 +134,6 @@ def test_determine_n_possible_rots(default_database, torch_device):
     n_poss_gold = dun_params.n_rotamers_for_tableset[
         rottable_set_for_buildable_restype[:, 1].to(torch.int64)
     ].to(torch.int32)
-    # print(n_possible_rotamers_per_brt)
-    # print(n_poss_gold)
     numpy.testing.assert_equal(
         n_poss_gold.cpu().numpy(), n_possible_rotamers_per_brt.cpu().numpy()
     )
@@ -590,41 +587,7 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     )
 
 
-# def test_chi_sampler_smoke(ubq_system, default_database, torch_device):
-#     # print("ubq system:", len(ubq_system.residues))
-#     # torch_device = torch.device("cpu")
-#     palette = PackerPalette(default_database.chemical)
-#     task = PackerTask(ubq_system, palette)
-#     # print("task size:", len(task.rlts))
-#     for rlt in task.rlts:
-#         rlt.restrict_to_repacking()
-#
-#     param_resolver = DunbrackParamResolver.from_database(
-#         default_database.scoring.dun, torch_device
-#     )
-#     sampler = ChiSampler.from_database(param_resolver)
-#
-#     coords = torch.tensor(ubq_system.coords, dtype=torch.float32, device=torch_device)
-#     result = sampler.chi_samples_for_residues(ubq_system, coords, task)
-#     n_rots_for_brt, n_rots_for_brt_offsets, brt_for_rotamer, chi_for_rotamers = result
-#     # print("n_rots_for_brt")
-#     # print(n_rots_for_brt.shape)
-#     # print("n_rots_for_brt_offsets")
-#     # print(n_rots_for_brt_offsets.shape)
-#     # print("brt_for_rotamer")
-#     # print(brt_for_rotamer.shape)
-#     # print("chi_for_rotamers")
-#     # print(chi_for_rotamers.shape)
-#
-#     assert n_rots_for_brt.shape == (69,)
-#     assert n_rots_for_brt_offsets.shape == n_rots_for_brt.shape
-#     assert brt_for_rotamer.shape == (1524,)
-#     assert brt_for_rotamer.shape[0] == chi_for_rotamers.shape[0]
-#     assert chi_for_rotamers.shape[1] == 4
-
-
 def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
-    # torch_device = torch.device("cpu")
     param_resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
@@ -632,24 +595,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
 
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
-    # replace them with residues constructed from the residue types
-    # that live in our locally constructed set of refined residue types
-    # ubq_res = [
-    #     attr.evolve(
-    #         res,
-    #         residue_type=next(
-    #             rt for rt in rts.residue_types if rt.name == res.residue_type.name
-    #         ),
-    #     )
-    #     for res in ubq_res
-    # ]
-
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[5:11], torch_device
-    # )
-    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[:7], torch_device
-    # )
     p1 = no_termini_pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_start=5, residue_end=11
     )
@@ -723,9 +668,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     n_rots_for_rt_gold = numpy.zeros(all_allowed_restypes.shape[0], dtype=numpy.int32)
     n_rots_for_rt_gold[dun_restype_allowed != 0] = n_rots_for_brt.cpu().numpy()
 
-    # rot_offset_for_rt_gold = numpy.zeros_like(n_rots_for_rt_gold)
-    # rot_offset_for_rt_gold[dun_restype_allowed != 0] = offsets_for_brt.cpu().numpy()
-
     rt_for_rot_gold = numpy.zeros((n_rots,), dtype=numpy.int32)
     rt_for_rot_gold[offsets_for_brt.cpu()] = 1
     rt_for_rot_gold[0] = 0
@@ -743,12 +685,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
 
 def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
     torch_device = torch.device("cpu")
-    # p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[:5], torch_device
-    # )
-    # p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[:7], torch_device
-    # )
     p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=5)
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=7)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
@@ -771,12 +707,7 @@ def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
 def test_chi_sampler_build_lots_of_rotamers(
     ubq_pdb, default_database, default_restype_set, torch_device
 ):
-    # torch_device = torch.device("cpu")
     n_poses = 10
-    # print([res.residue_type.name for res in ubq_res[:10]])
-    # p = PoseStackBuilder.one_structure_from_polymeric_residues(
-    #     default_database.chemical, ubq_res[:10], torch_device
-    # )
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(default_restype_set)
@@ -795,9 +726,6 @@ def test_chi_sampler_build_lots_of_rotamers(
     chi_samples = sampler.sample_chi_for_poses(poses, task)
 
     n_rots_for_rt, rt_for_rotamer, chi_defining_atom, chi = chi_samples
-
-    # print("rt_for_rotamer")
-    # print(rt_for_rotamer)
 
     n_rots = chi_defining_atom.shape[0]
     n_rots_per_pose = n_rots // n_poses

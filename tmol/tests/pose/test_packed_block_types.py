@@ -30,20 +30,6 @@ def test_determine_real_atoms(
             assert pbt.atom_is_real[i, j] == (j < i_nats)
 
 
-# def test_packed_residue_type_indexer(default_database, torch_device):
-#     # rt_list = residue_types_from_residues(ubq_res)
-#     # pbt = PackedBlockTypes.from_restype_list(
-#     #     default_database.chemical, rt_list, torch_device
-#     # )
-#     restype_set = ResidueTypeSet.from_database(default_database.chemical)
-#     pbt = PackedBlockTypes.from_restype_list(
-#         default_database.chemical, restype_set, restype_set.residue_types, torch_device
-#     )
-#     inds = pbt.inds_for_res(ubq_res)
-#     for i, res in enumerate(ubq_res):
-#         assert len(res.residue_type.atoms) == pbt.n_atoms[inds[i]]
-
-
 def test_packed_residue_type_atoms_downstream_of_conn(
     default_database, fresh_default_restype_set, torch_device
 ):
@@ -75,7 +61,6 @@ def test_packed_residue_type_atoms_downstream_of_conn(
 def test_packed_block_types_ordered_torsions(
     default_database, fresh_default_restype_set, torch_device
 ):
-    # rt_list = residue_types_from_residues(ubq_res)
     pbt = PackedBlockTypes.from_restype_list(
         default_database.chemical,
         fresh_default_restype_set,

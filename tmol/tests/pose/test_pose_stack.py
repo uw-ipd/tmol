@@ -25,7 +25,6 @@ def test_max_n_block_atoms(ubq_40_60_pose_stack):
 
 
 def test_max_n_pose_atoms(ubq_40_60_pose_stack):
-    # actual_n_atoms = sum(res.coords.shape[0] for res in ubq_res[:60])
     ps = ubq_40_60_pose_stack
     pbt = ps.packed_block_types
     actual_n_atoms = sum(

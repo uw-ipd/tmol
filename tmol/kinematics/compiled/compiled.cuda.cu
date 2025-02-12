@@ -247,8 +247,8 @@ struct ForwardKinDispatch {
           init,
           context);
       nvtx_range_pop();
-      gpuErrPeek;
-      gpuErrSync;
+      // gpuErrPeek;
+      // gpuErrSync;
 
       // unindex for gen i
       // this would be nice to incorporate into kernel_segscan (as the indexing
@@ -264,8 +264,8 @@ struct ForwardKinDispatch {
 
       mgpu::transform(k_unindex, nnodes, context);
       nvtx_range_pop();
-      gpuErrPeek;
-      gpuErrSync;
+      // gpuErrPeek;
+      // gpuErrSync;
       nvtx_range_pop();
     }
 
@@ -276,8 +276,8 @@ struct ForwardKinDispatch {
     });
 
     mgpu::transform(k_getcoords, num_atoms, context);
-    gpuErrPeek;
-    gpuErrSync;
+    // gpuErrPeek;
+    // gpuErrSync;
 
     return {xs_t, HTs_t};
   }

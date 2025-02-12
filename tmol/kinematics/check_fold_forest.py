@@ -236,7 +236,6 @@ def _append_cycle_errors(n_poses, n_blocks, cycles_detected, missing, errors):
         if cycles_detected is None:
             break
         if cycles_detected[i, 0] != 0:
-            # good = False
             errors.append(
                 " ".join(
                     [
@@ -250,7 +249,6 @@ def _append_cycle_errors(n_poses, n_blocks, cycles_detected, missing, errors):
             continue
         for j in range(n_blocks[i]):
             if missing[i, j] == 1:
-                # good = False
                 errors.append(
                     " ".join(
                         [

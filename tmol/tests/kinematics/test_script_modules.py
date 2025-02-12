@@ -16,80 +16,12 @@ from tmol.io.canonical_ordering import (
 )
 from tmol.types.torch import Tensor
 
-# from tmol.kinematics.datatypes import KinForest
 from tmol.kinematics.fold_forest import FoldForest, EdgeType
 
-# from tmol.kinematics.script_modules import KinematicModule
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
 from tmol.kinematics.operations import inverseKin
 
-# from tmol.system.packed import PackedResidueSystem
-# from tmol.chemical.restypes import Residue
-# from tmol.system.kinematics import KinematicDescription
-
 from tmol.tests.torch import requires_cuda
-
-
-# @pytest.mark.benchmark(group="kinematic_forward_op")
-# def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
-#     tsys = ubq_system
-#     tkin = KinematicDescription.for_system(
-#         tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
-#     )
-#     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
-#     tkinforest = tkin.kinforest.to(torch_device)
-
-#     tdofs = inverseKin(tkinforest, kincoords, requires_grad=True)
-#     kop = KinematicModule(tkinforest, torch_device)
-
-#     @benchmark
-#     def refold_kincoords():
-#         return kop(tdofs.raw)
-
-#     torch.testing.assert_close(refold_kincoords, kincoords)
-#     assert refold_kincoords.device.type == torch_device.type
-
-#     # print("tkinforest.id[:10]", tkinforest.id[:10])
-#     # print("tkinforest.parent[:10]", tkinforest.parent[:10])
-#     # print("tkinforest.doftype[:10]", tkinforest.doftype[:10])
-#     # print("scans", kop.scans_f[:10])
-#     # print("gens", kop.gens_f)
-#     # print("nodes", kop.nodes_f[:10])
-
-
-# @pytest.mark.benchmark(group="kinematic_backward_op")
-# def test_kinematic_torch_op_backward_benchmark(benchmark, ubq_system, torch_device):
-#     tsys = ubq_system
-#     tkin = KinematicDescription.for_system(
-#         tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
-#     )
-#     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
-#     tkinforest = tkin.kinforest.to(torch_device)
-
-#     tdofs = inverseKin(tkinforest, kincoords, requires_grad=True)
-#     kop = KinematicModule(tkinforest, torch_device)
-
-#     refold_kincoords = kop(tdofs.raw)
-#     total = torch.sum(refold_kincoords[:, :])
-
-#     @benchmark
-#     def refold_grad():
-#         total.backward(retain_graph=True)
-
-#     torch.testing.assert_close(refold_kincoords, kincoords)
-#     assert refold_kincoords.device.type == torch_device.type
-
-
-# @pytest.fixture
-# def gradcheck_test_system(
-#     ubq_res: typing.Sequence[Residue],
-# ) -> typing.Tuple[KinForest, Tensor[torch.float64][:, 3]]:
-#     tsys = PackedResidueSystem.from_residues(ubq_res[:4])
-#     tkin = KinematicDescription.for_system(
-#         tsys.system_size, tsys.bonds, (tsys.torsion_metadata,)
-#     )
-
-#     return (tkin.kinforest, tkin.extract_kincoords(tsys.coords))
 
 
 def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
@@ -102,56 +34,6 @@ def kop_gradcheck_report(kop, start_dofs, eps=2e-3, atol=1e-5, rtol=1e-3):
         return kop(dofsfull)
 
     torch.autograd.gradcheck(eval_kin, minimizable_dofs, atol=atol, rtol=rtol)
-
-
-# def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system, torch_device):
-#     kinforest, kincoords = gradcheck_test_system
-#     tkinforest = kinforest.to(torch_device)
-#     tkincoords = kincoords.to(torch_device)
-
-#     tdofs = inverseKin(tkinforest, tkincoords, requires_grad=True)
-#     kop = KinematicModule(tkinforest, torch_device)
-
-#     torch.random.manual_seed(1663)
-#     start_dofs = (
-#         (tdofs.raw + ((torch.rand_like(tdofs.raw) - 0.5) * 0.01))
-#         .clone()
-#         .detach()
-#         .requires_grad_(True)
-#     )
-
-#     kop_gradcheck_report(kop, start_dofs)
-
-
-# def test_kinematic_torch_op_gradcheck(gradcheck_test_system, torch_device):
-#     kinforest, kincoords = gradcheck_test_system
-#     tkinforest = kinforest.to(torch_device)
-#     tkincoords = kincoords.to(torch_device)
-
-#     tdofs = inverseKin(tkinforest, tkincoords, requires_grad=True)
-#     kop = KinematicModule(tkinforest, torch_device)
-
-#     kop_gradcheck_report(kop, tdofs.raw)
-
-
-# def test_kinematic_torch_op_smoke(
-#     gradcheck_test_system, torch_backward_coverage, torch_device
-# ):
-#     """Smoke test of kinematic operation with backward-pass code coverage."""
-#     kinforest, kincoords = gradcheck_test_system
-#     tkinforest = kinforest.to(torch_device)
-#     tkincoords = kincoords.to(torch_device)
-
-#     tdofs = inverseKin(tkinforest, tkincoords, requires_grad=True)
-#     kop = KinematicModule(tkinforest, torch_device)
-
-#     coords = kop(tdofs.raw)
-#     coords.register_hook(torch_backward_coverage)
-
-#     total = torch.sum(coords[:, :])
-#     total.backward()
-
-#     assert tdofs.raw.grad is not None
 
 
 def kincoords_and_dofs_for_pose_stack_system(
@@ -302,18 +184,6 @@ def test_pose_stack_kinematics_module_smoke(
     """Smoke test of kinematic operation with backward-pass code coverage."""
     _1, kinematics_module, _2, dofs = pose_stack_gradcheck_test_system1
 
-    # kinforest = kinematics_module.kmd.forest
-    # kincoords = torch.zeros(
-    #     (kinematics_module.kmd.forest.id.shape[0], 3),
-    #     dtype=torch.float64,
-    #     device=torch_device,
-    # )
-    # kincoords[1:] = pose_stack.coords.view(-1, 3)[
-    #     kinematics_module.kmd.forest.id[1:]
-    # ].to(torch.float64)
-
-    # dofs = inverseKin(kinforest, kincoords, requires_grad=True)
-
     coords = kinematics_module(dofs.raw)
     coords.register_hook(torch_backward_coverage)
 
@@ -321,10 +191,6 @@ def test_pose_stack_kinematics_module_smoke(
     total.backward()
 
     assert dofs.raw.grad is not None
-
-    # print("kinematics_module.nodes_b", kinematics_module.nodes_b)
-    # print("kinematics_module.scans_b", kinematics_module.scans_b)
-    # print("kinematics_module.gens_b", kinematics_module.gens_b)
 
 
 def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
@@ -350,66 +216,7 @@ def test_pose_stack_kinematic_torch_op_gradcheck(
     pose_stack_gradcheck_test_system1, torch_device
 ):
     pose_stack, kinematics_module, kincoords, dofs = pose_stack_gradcheck_test_system1
-    # kinforest = kinematics_module.kmd.forest
-    # kincoords = torch.zeros(
-    #     (kinematics_module.kmd.forest.id.shape[0], 3),
-    #     dtype=torch.float64,
-    #     device=torch_device,
-    # )
-    # kincoords[1:] = pose_stack.coords.view(-1, 3)[
-    #     kinematics_module.kmd.forest.id[1:]
-    # ].to(torch.float64)
-
-    # dofs = inverseKin(kinforest, kincoords, requires_grad=True)
-
     kop_gradcheck_report(kinematics_module, dofs.raw)
-
-    # def func(dofs):
-    #     return torch.sum(kinematics_module(dofs)[:, :])
-
-    # kop_gradcheck_report(func, dofs.raw)
-
-
-# @requires_cuda
-# def test_kinematic_op_device(gradcheck_test_system):
-#     kinforest, kincoords = gradcheck_test_system
-#     assert kincoords.device.type == "cpu"
-
-#     tdofs = inverseKin(kinforest, kincoords, requires_grad=True)
-
-#     cpu_kop = KinematicModule(kinforest, torch.device("cpu"))
-
-#     # print("cpu_kop.nodes_b", cpu_kop.nodes_b)
-#     # print("cpu_kop.scans_b", cpu_kop.scans_b)
-#     # print("cpu_kop.gens_b", cpu_kop.gens_b)
-
-#     assert cpu_kop.kinforest.device.type == "cpu"
-#     cpu_kop(tdofs.raw.to(torch.device("cpu")))
-
-#     cuda_kop = KinematicModule(kinforest, torch.device("cuda"))
-#     assert cuda_kop.kinforest.device.type == "cuda"
-#     cuda_kop(tdofs.raw.to(torch.device("cuda")))
-
-#     # Passing tensors of incorrect device for op errors
-#     with pytest.raises(RuntimeError):
-#         cpu_kop(tdofs.raw.to(torch.device("cuda")))
-
-#     with pytest.raises(RuntimeError):
-#         cuda_kop(tdofs.raw.to(torch.device("cpu")))
-
-#     cpu_coords = cpu_kop(tdofs.raw)
-#     cpu_total = torch.sum(cpu_coords[:, :])
-#     cpu_total.backward()
-#     cpu_grads = tdofs.raw.grad
-#     # print("cpu_grads", cpu_grads[:, 3])
-
-#     cuda_tdofs = tdofs.raw.clone().detach().to(torch.device("cuda"))
-#     cuda_tdofs.requires_grad_()
-#     cuda_coords = cuda_kop(cuda_tdofs)
-#     cuda_total = torch.sum(cuda_coords[:, :])
-#     cuda_total.backward()
-#     cuda_grads = cuda_tdofs.grad
-#     torch.testing.assert_close(cpu_grads, cuda_grads.to(torch.device("cpu")))
 
 
 @requires_cuda
@@ -468,9 +275,6 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     assert cuda_kinematics_module.kmd.forest.id.device.type == "cuda"
 
     # backwards scans/nodes/gens:
-    # print("cpu_kinematics_module.nodes_b", cpu_kinematics_module.nodes_b)
-    # print("cpu_kinematics_module.scans_b", cpu_kinematics_module.scans_b)
-    # print("cpu_kinematics_module.gens_b", cpu_kinematics_module.gens_b)
     torch.testing.assert_close(
         cpu_kinematics_module.nodes_b, cuda_kinematics_module.nodes_b.to(cpu_device)
     )
@@ -504,14 +308,4 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     cuda_total.backward()
     cuda_grads = cuda_dofs.raw.grad
 
-    # diff = cpu_grads - cuda_grads.to(cpu_device)
-    # abs_diff = torch.abs(diff)
-    # big_diff = torch.nonzero(abs_diff > 1e-3, as_tuple=False)
-    # print("big diff")
-    # print(big_diff.shape)
-    # print(diff[big_diff[:10, :]])
-
     torch.testing.assert_close(cpu_grads, cuda_grads.to(cpu_device))
-
-    # with pytest.raises(RuntimeError):
-    #     cuda_kop(tdofs.raw.to(torch.device("cpu")))

@@ -1,6 +1,4 @@
 import torch
-
-# import numpy
 import pytest
 
 from tmol.kinematics.move_map import MoveMap, MinimizerMap
@@ -11,7 +9,6 @@ from tmol.kinematics.datatypes import (
     n_movable_bond_dof_types,
 )
 
-# from tmol.kinematics.fold_forest import FoldForest
 from tmol.kinematics.scan_ordering import (
     construct_kin_module_data_for_pose,
 )
@@ -21,11 +18,9 @@ def kinatom_to_atom_name(
     pose_stack: PoseStack, kmd: KinematicModuleData, kin_atom: int
 ):
     pose_atom = kmd.forest.id[kin_atom]
-    # print("kinatom_to_atom_name", kin_atom, "pose_atom", pose_atom)
 
     pose = pose_atom // pose_stack.max_n_pose_atoms
     pose_atom = pose_atom % pose_stack.max_n_pose_atoms
-    # print("pose", pose, "pose_atom", pose_atom)
 
     nz_lt_offset = torch.nonzero(pose_stack.block_coord_offset[pose] > pose_atom)
     block = (
@@ -33,12 +28,9 @@ def kinatom_to_atom_name(
         if nz_lt_offset.shape[0] > 0
         else pose_stack.n_res_per_pose[pose] - 1
     )
-    # print("block", block)
-    # print("pose_stack.block_coord_offset[pose, block]", pose_stack.block_coord_offset[pose, block])
 
     block_type = pose_stack.block_type_ind[pose, block]
     block_name = pose_stack.packed_block_types.active_block_types[block_type].name
-    # print("block_type", block_type, "block_name", block_name)
     atom_name = (
         pose_stack.packed_block_types.active_block_types[block_type]
         .atoms[pose_atom - pose_stack.block_coord_offset[pose, block]]
@@ -339,19 +331,12 @@ def test_set_move_particular_doftypes_for_block_by_integer(
 
     var = getattr(mm, varname)
     mask = getattr(mm, maskname)
-    # print("var", var.shape)
 
     assert var[1, 4, 1].item() is False
     assert mask[1, 4, 1].item() is False
 
-    # print(
-    #     "move_particular_setter_name_for_doftype(doftype)",
-    #     move_particular_setter_name_for_doftype(doftype),
-    # )
     setter = getattr(mm, move_particular_setter_name_for_doftype(doftype))
     setter(1, 4, 1)
-
-    # print("var", var)
 
     assert var[1, 4, 1]
     assert mask[1, 4, 1]
@@ -455,35 +440,6 @@ def test_set_move_particular_doftypes_for_block_by_boolean_mask2(
                 assert mask[i, j, k] == bool_mask[i, j, k]
 
 
-# @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
-# def test_set_move_particular_doftypes_for_block_by_boolean_masks(
-#     doftype, mm_for_two_six_res_ubqs_no_term
-# ):
-#     mm = mm_for_two_six_res_ubqs_no_term
-
-#     varname = f"move_{doftype}"
-#     maskname = f"move_{doftype}_mask"
-
-#     var = getattr(mm, varname)
-#     mask = getattr(mm, maskname)
-
-#     pose_mask = torch.zeros((2,), dtype=torch.bool)
-#     pose_mask[1] = True
-#     block_mask = torch.zeros((6,), dtype=torch.bool)
-#     block_mask[1:4] = True
-#     dof_mask = torch.zeros((7,), dtype=torch.bool)
-#     dof_mask[1:3] = True
-
-#     setter = getattr(mm, move_particular_setter_name_for_doftype(doftype))
-#     setter(pose_mask, block_mask, dof_mask)
-
-#     for i in range(2):
-#         for j in range(6):
-#             for k in range(4):
-#                 assert var[i, j, k] == (pose_mask[i] and block_mask[j] and dof_mask[k])
-#                 assert mask[i, j, k] == (pose_mask[i] and block_mask[j] and dof_mask[k])
-
-
 @pytest.mark.parametrize("doftype", ["mc", "sc", "named_torsion"])
 def test_set_move_particular_doftypes_for_block_by_index_tensors(
     doftype, mm_for_two_six_res_ubqs_no_term
@@ -581,7 +537,6 @@ def test_minimizermap_construction_2_sixres_ubq_just_sc(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
 ):
     pose_stack = stack_of_two_six_res_ubqs_no_term
-    # pbt = pose_stack.packed_block_types
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
@@ -593,12 +548,6 @@ def test_minimizermap_construction_2_sixres_ubq_just_sc(
     # 14 chi, 3Q+2I+2F+1V+4K+2T
     assert torch.sum(minmap.dof_mask) == 28
 
-    # enabled_dof_atoms = [[list() for _2 in range(6)] for _1 in range(2)]
-    # for i in range(minmap.dof_mask.shape[0]):
-    #     if minmap.dof_mask[i, 3]:
-    #         pose, block, _, atom_name = kinatom_to_atom_name(pose_stack, kmd, i)
-    #         enabled_dof_atoms[pose][block].append(atom_name)
-    #         # print("Enabled DOF on atom i", i, "kinatom_to_atom_name(pose_stack, kmd, i)", kinatom_to_atom_name(pose_stack, kmd, i))
     enabled_dof_atoms = enabled_phi_dof_atoms_from_minimizer_map(
         pose_stack, kmd, minmap
     )
@@ -632,7 +581,6 @@ def test_minimizermap_construction_2_sixres_ubq_just_bb(
     ff_edges_cpu = torch.tensor(ff_2ubq_6res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
-    # print("ID:", kmd.forest.id[:10])
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_mc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
@@ -655,7 +603,6 @@ def test_minimizermap_construction_2_sixres_ubq_just_bb(
         if minmap.dof_mask[i, 3]:
             pose, block, _, atom_name = kinatom_to_atom_name(pose_stack, kmd, i)
             enabled_dof_atoms[pose][block].append(atom_name)
-            # print("Enabled DOF on atom i", i, "kinatom_to_atom_name(pose_stack, kmd, i)", kinatom_to_atom_name(pose_stack, kmd, i))
 
     dof_atoms_gold = [
         [
@@ -704,9 +651,6 @@ def test_minimizermap_construction_2_sixres_ubq(
         kmd.pose_stack_atom_for_root_jump == gold_pose_stack_atom_for_root_jump
     )
 
-    # print("pose_stack_atom_for_jump", kmd.pose_stack_atom_for_jump)
-    # print("pose_stack_atom_for_root_jump", kmd.pose_stack_atom_for_root_jump)
-
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
@@ -733,10 +677,6 @@ def test_minimizermap_construction_2_sixres_ubq(
     )
     jump_0_kinatom = torch.nonzero(kmd.forest.id == jump_0_atom)
     root_jump_1_kinatom = torch.nonzero(kmd.forest.id == root_jump_1_atom)
-    # print("jump_0_kinatom", jump_0_kinatom)
-    # print("root_jump_1_kinatom", root_jump_1_kinatom)
-    # print("jump 0 dofs:", minmap.dof_mask[jump_0_kinatom, :], "sum", torch.sum(minmap.dof_mask[jump_0_kinatom, :6]))
-    # print("root jump 1 dofs:", minmap.dof_mask[root_jump_1_kinatom, :], "sum", torch.sum(minmap.dof_mask[root_jump_1_kinatom, :6]))
     assert torch.sum(minmap.dof_mask[jump_0_kinatom, :6]) == 6
     assert torch.sum(minmap.dof_mask[root_jump_1_kinatom, :6]) == 0
 
@@ -747,7 +687,6 @@ def test_minimizermap_construction_2_sixres_ubq_root_jump_min(
     stack_of_two_six_res_ubqs_no_term, ff_2ubq_6res_H
 ):
     pose_stack = stack_of_two_six_res_ubqs_no_term
-    # pbt = pose_stack.packed_block_types
     ff_edges_cpu = torch.from_numpy(ff_2ubq_6res_H).to(torch.int32)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
@@ -776,10 +715,6 @@ def test_minimizermap_construction_2_sixres_ubq_root_jump_min(
     )
     jump_0_kinatom = torch.nonzero(kmd.forest.id == jump_0_atom)
     root_jump_1_kinatom = torch.nonzero(kmd.forest.id == root_jump_1_atom)
-    # print("jump_0_kinatom", jump_0_kinatom)
-    # print("root_jump_1_kinatom", root_jump_1_kinatom)
-    # print("jump 0 dofs:", minmap.dof_mask[jump_0_kinatom, :], "sum", torch.sum(minmap.dof_mask[jump_0_kinatom, :6]))
-    # print("root jump 1 dofs:", minmap.dof_mask[root_jump_1_kinatom, :], "sum", torch.sum(minmap.dof_mask[root_jump_1_kinatom, :6]))
     assert torch.sum(minmap.dof_mask[jump_0_kinatom, :6]) == 6
     assert torch.sum(minmap.dof_mask[root_jump_1_kinatom, :6]) == 6
 
@@ -788,7 +723,6 @@ def test_minimizermap_construction_jagged_465_ubq(
     jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
 ):
     pose_stack = jagged_stack_of_465_res_ubqs
-    # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
@@ -797,7 +731,6 @@ def test_minimizermap_construction_jagged_465_ubq(
     mm.move_all_named_torsions = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None
-    # print("torch.sum(minmap.dof_mask)", torch.sum(minmap.dof_mask))
     assert torch.sum(minmap.dof_mask) == 27 + 36 + 6 * 3
 
 
@@ -805,8 +738,6 @@ def test_minimizermap_construction_jagged_465_ubq_just_sc(
     jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
 ):
     pose_stack = jagged_stack_of_465_res_ubqs
-    # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
-    # pbt = pose_stack.packed_block_types
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
@@ -814,7 +745,6 @@ def test_minimizermap_construction_jagged_465_ubq_just_sc(
     mm.move_all_sc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None
-    # print("torch.sum(minmap.dof_mask)", torch.sum(minmap.dof_mask))
     assert torch.sum(minmap.dof_mask) == 36
 
     enabled_dof_atoms = [[list() for _2 in range(6)] for _1 in range(3)]
@@ -822,7 +752,6 @@ def test_minimizermap_construction_jagged_465_ubq_just_sc(
         if minmap.dof_mask[i, 3]:
             pose, block, _, atom_name = kinatom_to_atom_name(pose_stack, kmd, i)
             enabled_dof_atoms[pose][block].append(atom_name)
-            # print("Enabled DOF on atom i", i, "kinatom_to_atom_name(pose_stack, kmd, i)", kinatom_to_atom_name(pose_stack, kmd, i))
 
     dof_atoms_gold = [
         [
@@ -858,7 +787,6 @@ def test_minimizermap_construction_jagged_465_ubq_just_mc(
     jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
 ):
     pose_stack = jagged_stack_of_465_res_ubqs
-    # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
@@ -866,7 +794,6 @@ def test_minimizermap_construction_jagged_465_ubq_just_mc(
     mm.move_all_mc = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None
-    # print("torch.sum(minmap.dof_mask)", torch.sum(minmap.dof_mask))
     assert torch.sum(minmap.dof_mask) == 27
 
     enabled_dof_atoms = [[list() for _2 in range(6)] for _1 in range(3)]
@@ -874,7 +801,6 @@ def test_minimizermap_construction_jagged_465_ubq_just_mc(
         if minmap.dof_mask[i, 3]:
             pose, block, _, atom_name = kinatom_to_atom_name(pose_stack, kmd, i)
             enabled_dof_atoms[pose][block].append(atom_name)
-            # print("Enabled DOF on atom i", i, "kinatom_to_atom_name(pose_stack, kmd, i)", kinatom_to_atom_name(pose_stack, kmd, i))
 
     dof_atoms_gold = [
         [  # 6
@@ -910,8 +836,6 @@ def test_minimizermap_construction_jagged_465_ubq_named_dofs(
     jagged_stack_of_465_res_ubqs, ff_3_jagged_ubq_465res_H
 ):
     pose_stack = jagged_stack_of_465_res_ubqs
-    # print("pose_stack.inter_residue_connections", pose_stack.inter_residue_connections)
-    # pbt = pose_stack.packed_block_types
     ff_edges_cpu = torch.tensor(ff_3_jagged_ubq_465res_H)
 
     kmd = construct_kin_module_data_for_pose(pose_stack, ff_edges_cpu)
@@ -919,5 +843,4 @@ def test_minimizermap_construction_jagged_465_ubq_named_dofs(
     mm.move_all_named_torsions = True
     minmap = MinimizerMap(pose_stack, kmd, mm)
     assert minmap is not None
-    # print("torch.sum(minmap.dof_mask)", torch.sum(minmap.dof_mask))
     assert torch.sum(minmap.dof_mask) == 27 + 36

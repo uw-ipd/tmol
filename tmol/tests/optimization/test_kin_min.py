@@ -41,13 +41,7 @@ def test_run_kin_min_smoke(
     wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
 
     start_score = wpsm(pose_stack.coords)
-    # print("start score", start_score)
     minimized_pose_stack = run_kin_min(pose_stack, sfxn, ff, mm)
     end_score = wpsm(minimized_pose_stack.coords)
-    # print("end score", end_score)
-
-    # from tmol import write_pose_stack_pdb
-    # dev = str(torch_device).partition(":")[0]
-    # write_pose_stack_pdb(minimized_pose_stack, f"test_run_kin_min_smoke_{dev}.pdb")
 
     assert torch.all(end_score < start_score)

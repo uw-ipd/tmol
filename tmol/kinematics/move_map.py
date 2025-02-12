@@ -419,43 +419,6 @@ class MinimizerMap:
 
         pbt = pose_stack.packed_block_types
 
-        # print("kmd.forest.id.device", kmd.forest.id.device)
-        # print("pose_stack.max_n_pose_atoms", pose_stack.max_n_pose_atoms)
-        # print("pose_stack.block_coord_offset.device", pose_stack.block_coord_offset.device)
-        # print("pose_stack.block_type_ind.device", pose_stack.block_type_ind.device)
-        # print("pose_stack.inter_residue_connections.device", pose_stack.inter_residue_connections.device)
-        # print("kmd.block_in_and_first_out.device", kmd.block_in_and_first_out.device)
-        # print("kmd.pose_stack_atom_for_jump.device", kmd.pose_stack_atom_for_jump.device)
-        # print("kmd.keep_atom_fixed.device", kmd.keep_atom_fixed.device)
-        # print("pbt.n_torsions.device", pbt.n_torsions.device)
-        # print("pbt.gen_seg_scan_path_segs.uaid_for_torsion_by_inconn.device", pbt.gen_seg_scan_path_segs.uaid_for_torsion_by_inconn.device)
-        # print("pbt.is_torsion_mc.device", pbt.is_torsion_mc.device)
-        # print("pbt.which_mcsc_torsions.device", pbt.which_mcsc_torsions.device)
-        # print("pbt.atom_downstream_of_conn.device", pbt.atom_downstream_of_conn.device)
-        # print("mm.move_all_jumps", mm.move_all_jumps)
-        # print("mm.move_all_mc", mm.move_all_mc)
-        # print("mm.move_all_sc", mm.move_all_sc)
-        # print("mm.move_all_named_torsions", mm.move_all_named_torsions)
-        # print("mm.move_jumps.device", mm.move_jumps.device)
-        # print("mm.move_jumps_mask.device", mm.move_jumps_mask.device)
-        # print("mm.move_mcs.device", mm.move_mcs.device)
-        # print("mm.move_mcs_mask.device", mm.move_mcs_mask.device)
-        # print("mm.move_scs.device", mm.move_scs.device)
-        # print("mm.move_scs_mask.device", mm.move_scs_mask.device)
-        # print("mm.move_named_torsions.device", mm.move_named_torsions.device)
-        # print("mm.move_named_torsions_mask.device", mm.move_named_torsions_mask.device)
-        # print("mm.move_jump_dof.device", mm.move_jump_dof.device)
-        # print("mm.move_jump_dof_mask.device", mm.move_jump_dof_mask.device)
-        # print("mm.move_mc.device", mm.move_mc.device)
-        # print("mm.move_mc_mask.device", mm.move_mc_mask.device)
-        # print("mm.move_sc.device", mm.move_sc.device)
-        # print("mm.move_sc_mask.device", mm.move_sc_mask.device)
-        # print("mm.move_named_torsion.device", mm.move_named_torsion.device)
-        # print("mm.move_named_torsion_mask.device", mm.move_named_torsion_mask.device)
-        # print("mm.move_atom_dof.device", mm.move_atom_dof.device)
-        # print("mm.move_atom_dof_mask.device", mm.move_atom_dof_mask.device)
-
-        # print("pbt.gen_seg_scan_path_segs.uaid_for_torsion_by_inconn[82, 2, :]", pbt.gen_seg_scan_path_segs.uaid_for_torsion_by_inconn[85, 2, :])
         # fmt: off
         self.dof_mask = minimizer_map_from_movemap(
             kmd.forest.id,

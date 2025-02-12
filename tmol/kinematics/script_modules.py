@@ -10,7 +10,6 @@ from tmol import PoseStack
 from tmol.kinematics.scan_ordering import (
     KinForestScanOrdering,
     construct_kin_module_data_for_pose,
-    # _annotate_block_type_with_gen_scan_path_segs,
     _annotate_packed_block_type_with_gen_scan_path_segs,
 )
 

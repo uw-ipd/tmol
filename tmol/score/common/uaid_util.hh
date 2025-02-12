@@ -104,11 +104,8 @@ TMOL_DEVICE_FUNC auto resolve_local_atom_ind_from_uaid(
     if (idx < 0) {
       return {-1, -1};
     }
-    // int block_coord_offset =
-    //     pose_stack_block_coord_offset[pose_index][other_block_index];
     return {other_block_index, idx};
   } else {
-    // printf("uaid with both -1 for atom_id and conn_id\n");
     return {-1, -1};
   }
 }

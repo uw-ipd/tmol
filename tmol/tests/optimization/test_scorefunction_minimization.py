@@ -12,7 +12,6 @@ from tmol.score import beta2016_score_function
 from tmol.kinematics.fold_forest import FoldForest
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
 
-# from tmol.optimization.modules import DOFMaskingFunc
 from tmol.optimization.sfxn_modules import CartesianSfxnNetwork, KinForestSfxnNetwork
 
 
@@ -77,7 +76,6 @@ def test_kin_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_dev
     optimizer = LBFGS_Armijo(kin_sfxn_network.parameters(), lr=0.1, max_iter=20)
 
     E0 = kin_sfxn_network.whole_pose_scoring_module(kin_sfxn_network.full_coords).sum()
-    # print("E0", E0)
 
     def closure():
         optimizer.zero_grad()
@@ -88,13 +86,7 @@ def test_kin_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_dev
     optimizer.step(closure)
 
     E1 = kin_sfxn_network.whole_pose_scoring_module(kin_sfxn_network.full_coords).sum()
-    # print("E1", E1)
     assert E1 < E0
-
-    # from tmol import write_pose_stack_pdb
-    # pose_stack5.coords = kin_sfxn_network.full_coords
-    # dev = str(torch_device).partition(":")[0]
-    # write_pose_stack_pdb(pose_stack5, f"test_kin_minimize_w_pose_and_sfxn_smoke_{dev}.pdb")
 
 
 @pytest.mark.parametrize("n_poses", [1, 3, 10, 30])

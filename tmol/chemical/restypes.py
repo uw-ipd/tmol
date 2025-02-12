@@ -18,8 +18,6 @@ from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
 from tmol.chemical.all_bonds import bonds_and_bond_ranges
 
-# from tmol.types.functional import validate_args
-
 
 AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
@@ -567,83 +565,3 @@ class ResidueTypeSet:
     residue_types: Sequence[RefinedResidueType]
     restype_map: Mapping[ResName3, Sequence[RefinedResidueType]]
     chem_db: PatchedChemicalDatabase
-
-
-# @attr.s(slots=True, frozen=True)
-# class Residue:
-#     """A small class used in the old PackedResidueSystem, soon to be deprecated"""
-
-#     residue_type: RefinedResidueType = attr.ib()
-#     coords: numpy.ndarray = attr.ib()
-
-#     @coords.default
-#     def _coord_buffer(self):
-#         return numpy.full((self.residue_type.n_atoms, 3), numpy.nan, dtype=float)
-
-#     @property
-#     def atom_coords(self) -> numpy.ndarray:
-#         return self.coords.reshape(-1).view(self.residue_type.coord_dtype)
-
-#     def attach_to(self, coord_buffer):
-#         assert coord_buffer.shape == self.coords.shape
-#         assert coord_buffer.dtype == self.coords.dtype
-
-#         coord_buffer[:] = self.coords
-
-#         return attr.evolve(self, coords=coord_buffer)
-
-#     def _repr_pretty_(self, p, cycle):
-#         p.text("Residue")
-#         with p.group(1, "(", ")"):
-#             p.text("residue_type=")
-#             p.pretty(self.residue_type)
-#             p.text(", coords=")
-#             p.break_()
-#             p.pretty(self.coords)
-
-
-# @validate_args
-# def find_simple_polymeric_connections(
-#     res: List[Residue],
-# ) -> List[Tuple[int, str, int, str]]:
-#     """
-#     return a list of (int,str,int,str) quadrouples that say residue
-#     i is connected to residue i+1 from it's "up" connection to
-#     residue i+1's "down" connection and vice versa for all i"""
-
-#     residue_connections = []
-#     for i, j in zip(range(len(res) - 1), range(1, len(res))):
-#         if (
-#             "up" in res[i].residue_type.connection_to_idx
-#             and "down" in res[j].residue_type.connection_to_idx
-#         ):
-#             residue_connections.extend(
-#                 [(i, "up", i + 1, "down"), (i + 1, "down", i, "up")]
-#             )
-
-#     return residue_connections
-
-
-# @validate_args
-# def find_disulfide_connections(
-#     res: List[Residue],
-# ) -> List[Tuple[int, str, int, str]]:
-#     residue_connections = []
-
-#     cystines = [
-#         (ind, cys) for ind, cys in enumerate(res) if cys.residue_type.name == "CYD"
-#     ]
-#     for i, cys1 in cystines:
-#         for j, cys2 in cystines:
-#             if i < j:
-#                 sg_index = cys1.residue_type.atom_to_idx["SG"]
-#                 sg1 = cys1.coords[sg_index]
-#                 sg2 = cys2.coords[sg_index]
-
-#                 dist = numpy.linalg.norm(sg1 - sg2)
-
-#                 if numpy.isclose(dist, 2.02, atol=0.5):
-#                     residue_connections.extend(
-#                         [(i, "dslf", j, "dslf"), (j, "dslf", i, "dslf")]
-#                     )
-#     return residue_connections

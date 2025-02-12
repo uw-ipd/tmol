@@ -415,7 +415,6 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
 
     # Now let's add a virtual residue to the end of the chain
     vrt_co_ind = co.restype_io_equiv_classes.index("VRT")
-    # print("vrt_co_ind", vrt_co_ind)
     orig_coords = cf["coords"]
     ocs = orig_coords.shape
     new_coords = torch.full(
@@ -458,26 +457,6 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
 
     ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
     at_is_pres = not_any_nancoord(coords)
-
-    # # put two empty residues in between res 5 and 6
-    # def add_two_res(x, fill_value):
-    #     if len(x.shape) >= 3:
-    #         fill_shape = (x.shape[0], 2, *x.shape[2:])
-    #     else:
-    #         fill_shape = (x.shape[0], 2)
-    #     return torch.cat(
-    #         [
-    #             x[:, :5],
-    #             torch.full(fill_shape, fill_value, dtype=x.dtype, device=x.device),
-    #             x[:, 5:],
-    #         ],
-    #         dim=1,
-    #     )
-
-    # ch_id = add_two_res(ch_id, 0)
-    # can_rts = add_two_res(can_rts, -1)
-    # coords = add_two_res(coords, float("nan"))
-    # at_is_pres = add_two_res(at_is_pres, 0)
 
     (
         ch_id,

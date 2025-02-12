@@ -1,9 +1,5 @@
-# import torch
-# import numpy
-
 from tmol.pose.pose_stack import PoseStack
 
-# from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.kinematics.fold_forest import FoldForest
 from tmol.kinematics.move_map import MoveMap, MinimizerMap
 from tmol.score.score_function import ScoreFunction
