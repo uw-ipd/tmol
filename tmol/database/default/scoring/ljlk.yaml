@@ -40,6 +40,11 @@ atom_type_parameters:
   - &NhisD
     { name: NhisD, *ljr: 1.802452, *ljw: 0.161725, *lkd: -9.72534, *lkl: 3.500000, *lkv:  9.317700 }
   - { <<: *NhisD, name: NhisDDepro } # Deprotenated form in HIS_D
+  
+  - { name: Nhis, *ljr: 1.802452, *ljw: 0.161725, *lkd: -9.739606, *lkl:    3.5000, *lkv:  9.317700 }
+  - { name: Oet2, *ljr: 1.5500, *ljw: 0.1591, *lkd: -5.8500, *lkl:  3.5000, *lkv:   10.8000 } 
+  - { name: Oet3, *ljr: 1.5500, *ljw: 0.1591, *lkd: -6.7000, *lkl:  3.5000, *lkv:   10.8000 } 
+  - { name: Phos, *ljr: 2.1500, *ljw: 0.5850, *lkd: -24.0000, *lkl: 3.5000, *lkv:   34.8000 }
 
   - { name: NtrR, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -4.92802, *lkl: 3.500000, *lkv:  9.779200 }
   - { name: NH2O, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -7.66671, *lkl: 3.500000, *lkv: 15.689000 }
