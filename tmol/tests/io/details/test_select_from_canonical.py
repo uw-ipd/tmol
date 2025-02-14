@@ -20,6 +20,8 @@ from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
 from tmol.io.details.select_from_canonical import (
     assign_block_types,
     take_block_type_atoms_from_canonical,
+    _annotate_packed_block_types_w_canonical_res_order,
+    CanonicalOrderingAnnotation,
 )
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -57,6 +59,37 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(
         resolved_coords,
         resolved_atom_is_present,
     )
+
+
+def test_annotate_pbt_w_canonical_res_order(fresh_default_restype_set, torch_device):
+    pbt = PackedBlockTypes.from_restype_list(
+        chem_db=fresh_default_restype_set.chem_db,
+        restype_set=fresh_default_restype_set,
+        active_block_types=fresh_default_restype_set.residue_types,
+        device=torch_device,
+    )
+    co = CanonicalOrdering.from_chemdb(fresh_default_restype_set.chem_db)
+    _annotate_packed_block_types_w_canonical_res_order(co, pbt)
+    ann = pbt.canonical_ordering_annotation
+    assert isinstance(ann, CanonicalOrderingAnnotation)
+
+
+def test_annotate_pbt_w_canonical_res_order_caching(
+    fresh_default_restype_set, torch_device
+):
+    pbt = PackedBlockTypes.from_restype_list(
+        chem_db=fresh_default_restype_set.chem_db,
+        restype_set=fresh_default_restype_set,
+        active_block_types=fresh_default_restype_set.residue_types,
+        device=torch_device,
+    )
+    co = CanonicalOrdering.from_chemdb(fresh_default_restype_set.chem_db)
+    _annotate_packed_block_types_w_canonical_res_order(co, pbt)
+    ann1 = pbt.canonical_ordering_annotation
+    assert ann1 is not None
+    _annotate_packed_block_types_w_canonical_res_order(co, pbt)
+    ann2 = pbt.canonical_ordering_annotation
+    assert ann1 is ann2
 
 
 def test_assign_block_types(torch_device, ubq_pdb):
