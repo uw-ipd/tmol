@@ -270,8 +270,18 @@ void TMOL_DEVICE_FUNC ljlk_load_interres1_tile_data_to_shared(
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   auto store_n_heavy1 = ([&](int tid) {
     if (tid == 0) {
-      shared_m.n_heavy1 =
+      // This is a bit of a hack:
+      // The "eval_int(ra/er)res_atom_pairs" functions expect to iterate over
+      // the atoms indexed in the range:
+      //    start_atom1...start_atom1 + MIN(TILE_SIZE, n_atoms_total)
+      // and we are hijacking that logic to iterate across the subset of
+      // heavy-atoms that are within the tile, which could possibly be fewer
+      // than all of them. The logic upstream of this code counts how many heavy
+      // atoms total there are in this tile, and we have to pretend for a stetch
+      // that this number is start_atoms1+n-atoms-in-this-tile.
+      int tile_n_heavy =
           block_type_n_heavy_atoms_in_tile[inter_dat.r1.block_type][tile_ind];
+      shared_m.n_heavy1 = tile_n_heavy > 0 ? (tile_n_heavy + start_atom1) : 0;
     }
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
@@ -313,8 +323,18 @@ void TMOL_DEVICE_FUNC ljlk_load_interres2_tile_data_to_shared(
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   auto store_n_heavy2 = ([&](int tid) {
     if (tid == 0) {
-      shared_m.n_heavy2 =
+      // This is a bit of a hack:
+      // The "eval_int(ra/er)res_atom_pairs" functions expect to iterate over
+      // the atoms indexed in the range:
+      //    start_atom2...start_atom2 + MIN(TILE_SIZE, n_atoms_total)
+      // and we are hijacking that logic to iterate across the subset of
+      // heavy-atoms that are within the tile, which could possibly be fewer
+      // than all of them. The logic upstream of this code counts how many heavy
+      // atoms total there are in this tile, and we have to pretend for a stetch
+      // that this number is start_atoms2+n-atoms-in-this-tile.
+      int tile_n_heavy =
           block_type_n_heavy_atoms_in_tile[inter_dat.r2.block_type][tile_ind];
+      shared_m.n_heavy2 = tile_n_heavy > 0 ? (tile_n_heavy + start_atom2) : 0;
     }
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);
@@ -428,8 +448,18 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   auto store_n_heavy1 = ([&](int tid) {
     if (tid == 0) {
-      shared_m.n_heavy1 =
+      // This is a bit of a hack:
+      // The "eval_int(ra/er)res_atom_pairs" functions expect to iterate over
+      // the atoms indexed in the range:
+      //    start_atom1...start_atom1 + MIN(TILE_SIZE, n_atoms_total)
+      // and we are hijacking that logic to iterate across the subset of
+      // heavy-atoms that are within the tile, which could possibly be fewer
+      // than all of them. The logic upstream of this code counts how many heavy
+      // atoms total there are in this tile, and we have to pretend for a stetch
+      // that this number is start_atoms1+n-atoms-in-this-tile.
+      int tile_n_heavy =
           block_type_n_heavy_atoms_in_tile[intra_dat.r1.block_type][tile_ind];
+      shared_m.n_heavy1 = tile_n_heavy > 0 ? (tile_n_heavy + start_atom1) : 0;
     }
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
@@ -469,8 +499,18 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares2_tile_data_to_shared(
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   auto store_n_heavy2 = ([&](int tid) {
     if (tid == 0) {
-      shared_m.n_heavy2 =
+      // This is a bit of a hack:
+      // The "eval_int(ra/er)res_atom_pairs" functions expect to iterate over
+      // the atoms indexed in the range:
+      //    start_atom2...start_atom2 + MIN(TILE_SIZE, n_atoms_total)
+      // and we are hijacking that logic to iterate across the subset of
+      // heavy-atoms that are within the tile, which could possibly be fewer
+      // than all of them. The logic upstream of this code counts how many heavy
+      // atoms total there are in this tile, and we have to pretend for a stetch
+      // that this number is start_atoms2+n-atoms-in-this-tile.
+      int tile_n_heavy =
           block_type_n_heavy_atoms_in_tile[intra_dat.r2.block_type][tile_ind];
+      shared_m.n_heavy2 = tile_n_heavy > 0 ? (tile_n_heavy + start_atom2) : 0;
     }
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);

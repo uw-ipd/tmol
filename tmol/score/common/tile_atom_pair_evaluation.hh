@@ -81,6 +81,17 @@ class InterResBlockEvaluation {
       AtomPairFunc f,
       InterEnergyData<Real> const &inter_dat) {
     std::array<Real, NTERMS> score_total = {};
+    if (PairSelector<InterEnergyData, Real>::n_atoms1(inter_dat) <= start_atom1
+        || PairSelector<InterEnergyData, Real>::n_atoms2(inter_dat)
+               <= start_atom2) {
+      // It is possible, if unlikely, that we will make it here and be asked to
+      // score a tile with no atoms in it. Why? Sometimes we have a subset of
+      // atoms that we care about for one term, and we evaluate that term only
+      // on the subset. There might be fewer atoms in the subset than the atoms
+      // that we evaluate the other term(s) on and so one of the terms is
+      // essentially silent for a particular tile.
+      return score_total;
+    }
     int const n_remain1 = min(
         TILE,
         PairSelector<InterEnergyData, Real>::n_atoms1(inter_dat) - start_atom1);
@@ -127,6 +138,17 @@ class IntraResBlockEvaluation {
       AtomPairFunc f,
       IntraEnergyData<Real> const &intra_dat) {
     std::array<Real, NTERMS> score_total = {};
+    if (PairSelector<IntraEnergyData, Real>::n_atoms1(intra_dat) <= start_atom1
+        || PairSelector<IntraEnergyData, Real>::n_atoms2(intra_dat)
+               <= start_atom2) {
+      // It is possible, if unlikely, that we will make it here and be asked to
+      // score a tile with no atoms in it. Why? Sometimes we have a subset of
+      // atoms that we care about for one term, and we evaluate that term only
+      // on the subset. There might be fewer atoms in the subset than the atoms
+      // that we evaluate the other term(s) on and so one of the terms is
+      // essentially silent for a particular tile.
+      return score_total;
+    }
     int const n_remain1 = min(
         TILE,
         PairSelector<IntraEnergyData, Real>::n_atoms1(intra_dat) - start_atom1);
