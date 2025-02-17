@@ -20,6 +20,7 @@ class MoveMap:
     move_all_mc: bool
     move_all_sc: bool
     move_all_named_torsions: bool
+    non_ideal: bool
 
     # data members on a per-residue basis; plural, representing
     # all of the torsions of a particular class for a residue
@@ -294,6 +295,7 @@ class MoveMap:
         self.move_all_mc = False
         self.move_all_sc = False
         self.move_all_named_torsions = False
+        self.non_ideal = False
 
         def z_bool(shape):
             return torch.zeros(shape, dtype=torch.bool, device=device)
@@ -440,6 +442,7 @@ class MinimizerMap:
             mm.move_all_mc,
             mm.move_all_sc,
             mm.move_all_named_torsions,
+            mm.non_ideal,
             mm.move_jumps,
             mm.move_jumps_mask,
             mm.move_root_jumps,

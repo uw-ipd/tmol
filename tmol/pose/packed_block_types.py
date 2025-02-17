@@ -287,6 +287,24 @@ class PackedBlockTypes:
         return atom_paths_from_conn
 
     @classmethod
+    def _list_of_tensors_of_bt_attribute(
+        cls, active_block_types, attribute_name, device, dtype=None
+    ):
+        return (
+            [
+                torch.tensor(
+                    getattr(bt, attribute_name).copy().astype(dtype), device=device
+                )
+                for bt in active_block_types
+            ]
+            if dtype is not None
+            else [
+                torch.tensor(getattr(bt, attribute_name).copy(), device=device)
+                for bt in active_block_types
+            ]
+        )
+
+    @classmethod
     def join_torsion_uaids(cls, active_block_types, device):
         # unresolved atom ids are three integers:
         #  1st integer: an atom index, -1 if the atom is unresolved
@@ -294,63 +312,55 @@ class PackedBlockTypes:
         #               is on ther other side of, -1 if
         #  3rd integer: the number of chemical bonds into the other block that the
         #               unresolved atom is found.
-
-        ordered_torsions = [
-            torch.tensor(bt.ordered_torsions.copy(), device=device)
-            for bt in active_block_types
-        ]
+        ordered_torsions = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "ordered_torsions", device
+        )
         return join_tensors_and_report_real_entries(ordered_torsions)
 
     @classmethod
     def join_is_torsion_mcs(cls, active_block_types, device):
-        is_torsion_mc = [
-            torch.tensor(bt.is_torsion_mc.copy().astype(numpy.int32), device=device)
-            for bt in active_block_types
-        ]
+        is_torsion_mc = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "is_torsion_mc", device, dtype=numpy.int32
+        )
         return join_tensors_and_report_real_entries(is_torsion_mc, sentinel=0)[2].to(
             torch.bool
         )
 
     @classmethod
     def join_mc_torsion_inds(cls, active_block_types, device):
-        mc_torsions = [
-            torch.tensor(bt.mc_torsions.copy(), device=device)
-            for bt in active_block_types
-        ]
+        mc_torsions = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "mc_torsions", device
+        )
         return join_tensors_and_report_real_entries(mc_torsions)
 
     @classmethod
     def join_sc_torsion_inds(cls, active_block_types, device):
-        sc_torsions = [
-            torch.tensor(bt.sc_torsions.copy(), device=device)
-            for bt in active_block_types
-        ]
+        sc_torsions = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "sc_torsions", device
+        )
         return join_tensors_and_report_real_entries(sc_torsions)
 
     @classmethod
     def join_mcsc_torsion_inds(cls, active_block_types, device):
         # only return the joined tensor of mcsc indices, index 2 of the tuple
         # returned by join_tensors_and_report_real_entries
-        which_mcsc_torsions = [
-            torch.tensor(bt.which_mcsc_torsion.copy(), device=device)
-            for bt in active_block_types
-        ]
+        which_mcsc_torsions = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "which_mcsc_torsion", device
+        )
         return join_tensors_and_report_real_entries(which_mcsc_torsions)[2]
 
     @classmethod
     def join_bond_indices(cls, active_block_types, device):
-        bond_indices = [
-            torch.tensor(bt.bond_indices.copy(), dtype=torch.int32, device=device)
-            for bt in active_block_types
-        ]
+        bond_indices = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "bond_indices", device, dtype=numpy.int32
+        )
         return join_tensors_and_report_real_entries(bond_indices)
 
     @classmethod
     def join_conn_indices(cls, active_block_types, device):
-        conn_atoms = [
-            torch.tensor(bt.ordered_connection_atoms, dtype=torch.int32, device=device)
-            for bt in active_block_types
-        ]
+        conn_atoms = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "ordered_connection_atoms", device, dtype=numpy.int32
+        )
         return join_tensors_and_report_real_entries(conn_atoms)
 
     @classmethod
@@ -375,19 +385,7 @@ class PackedBlockTypes:
             device=device,
         )
 
-    # def inds_for_res(self, residues: Sequence[Residue]):
-    #     return self.restype_index.get_indexer(
-    #         [res.residue_type.name for res in residues]
-    #     )
-
     def inds_for_restypes(self, res_types: Sequence[RefinedResidueType]):
-        # print("res_types")
-        # seen_restypes = set([])
-        # for i, res_type in enumerate(res_types):
-        #     if res_type.name in seen_restypes:
-        #         print(res_type.name, "seen?", res_type.name in seen_restypes)
-        #     seen_restypes.add(res_type.name)
-        # print("self.restype_index", self.restype_index)
         return self.restype_index.get_indexer(
             [residue_type.name for residue_type in res_types]
         )

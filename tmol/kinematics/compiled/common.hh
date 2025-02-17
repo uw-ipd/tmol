@@ -520,6 +520,7 @@ struct KinForestFromStencil {
       bool move_all_mcs,
       bool move_all_scs,
       bool move_all_named_torsions,
+      bool non_ideal,
       TView<bool, 2, D> move_jumps,
       TView<bool, 2, D> move_jumps_mask,
       TView<bool, 2, D> move_root_jumps,

@@ -2428,6 +2428,7 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
     bool move_all_mcs,
     bool move_all_scs,
     bool move_all_named_torsions,
+    bool non_ideal,
     TView<bool, 2, D> move_jumps,
     TView<bool, 2, D> move_jumps_mask,
     TView<bool, 2, D> move_root_jumps,
@@ -2576,26 +2577,31 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(
                                             auto const& move_mcs_scs_mask,
                                             auto const& move_mcs_scs,
                                             auto move_all_mcs_scs) {
+      bool setting;
       if (move_named_torsion_mask[pose][block][torsion]) {
-        pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
-            move_named_torsion[pose][block][torsion];
-        return;
+        // First: Look whether there are instructions specifically for this
+        // named torsion
+        setting = move_named_torsion[pose][block][torsion];
+      } else if (move_mcsc_tor_mask[pose][block][which_mcsc_torsion]) {
+        // Next: did we have "move mc/sc" instructions for this torsion among
+        // the set of mc/sc torsions
+        setting = move_mcsc_tor[pose][block][which_mcsc_torsion];
+      } else if (move_mcs_scs_mask[pose][block]) {
+        // Next: look at the "move mcs/scs" directives for this block
+        setting = move_mcs_scs[pose][block];
+      } else {
+        // Otherwise, fall back on the "global" settings
+        setting = move_all_mcs_scs || move_all_named_torsions;
       }
-      // Next: did we have "move mc/sc" instructions for this named torsion?
-      if (move_mcsc_tor_mask[pose][block][which_mcsc_torsion]) {
-        pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
-            move_mcsc_tor[pose][block][which_mcsc_torsion];
-        return;
-      }
-      // Next: look at the "move mcs/scs" for this block
-      if (move_mcs_scs_mask[pose][block]) {
-        pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
-            move_mcs_scs[pose][block];
-        return;
-      }
-      // Finally: look at the global "move all mcs/scs" and
+
       pose_atom_ordered_minimizer_map[tor_atom_global_index][bond_dof_phi_c] =
-          move_all_mcs_scs || move_all_named_torsions;
+          setting;
+      if (non_ideal) {
+        for (int i = 0; i < 3; ++i) {
+          // additionally enable child-phi, theta, and d DOFs for this atom
+          pose_atom_ordered_minimizer_map[tor_atom_global_index][i] = setting;
+        }
+      }
     });
 
     if (bt_named_torsion_is_mc[block_type][torsion]) {
