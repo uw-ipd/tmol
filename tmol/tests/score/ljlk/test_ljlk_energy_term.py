@@ -23,7 +23,10 @@ def test_annotate_heavy_ats_in_tile(
     ljlk_energy = LJLKEnergyTerm(param_db=default_database, device=torch_device)
 
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, fresh_default_restype_set.residue_types, torch_device
+        default_database.chemical,
+        fresh_default_restype_set,
+        fresh_default_restype_set.residue_types,
+        torch_device,
     )
 
     for rt in fresh_default_restype_set.residue_types:

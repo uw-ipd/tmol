@@ -11,36 +11,8 @@ def min_pdb():
 
 
 @pytest.fixture(scope="session")
-def min_res():
-    from tmol.system.io import ResidueReader
-
-    return ResidueReader.get_default().parse_pdb(pdb.data["bysize_015_res_1lu6"])
-
-
-@pytest.fixture(scope="session")
-def min_system():
-    from tmol.system.io import read_pdb
-
-    return read_pdb(pdb.data["bysize_015_res_1lu6"])
-
-
-@pytest.fixture(scope="session")
 def big_pdb():
     return pdb.data["bysize_600_res_5m4a"]
-
-
-@pytest.fixture(scope="session")
-def big_res():
-    from tmol.system.io import ResidueReader
-
-    return ResidueReader.get_default().parse_pdb(pdb.data["bysize_600_res_5m4a"])
-
-
-@pytest.fixture(scope="session")
-def big_system():
-    from tmol.system.io import read_pdb
-
-    return read_pdb(pdb.data["bysize_600_res_5m4a"])
 
 
 @pytest.fixture(scope="session")
@@ -49,36 +21,13 @@ def ubq_pdb():
 
 
 @pytest.fixture(scope="session")
-def ubq_res():
-    from tmol.system.io import ResidueReader
-
-    return ResidueReader.get_default().parse_pdb(pdb.data["1ubq"])
-
-
-@pytest.fixture()
-def ubq_system():
-    from tmol.system.io import read_pdb
-
-    return read_pdb(pdb.data["1ubq"])
-
-
-@pytest.fixture(scope="session")
 def disulfide_pdb():
     return pdb.data["3plc"]
 
 
-@pytest.fixture(scope="session")
-def disulfide_res():
-    from tmol.system.io import ResidueReader
-
-    return ResidueReader.get_default().parse_pdb(pdb.data["3plc"])
-
-
 @pytest.fixture()
-def water_box_res():
-    from tmol.system.io import ResidueReader
-
-    return ResidueReader.get_default().parse_pdb(pdb.data["water_box"])
+def water_box_pdb():
+    return pdb.data["water_box"]
 
 
 @pytest.fixture(scope="session")
@@ -189,3 +138,21 @@ def rosettafold2_ubq_pred(torch_device):
 def rosettafold2_sumo_pred(torch_device):
     fname = os.path.join(__file__.rpartition("/")[0], "rosettafold2", "sumo.pt")
     return torch.load(fname, map_location=torch_device)
+
+
+def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end):
+    from tmol.io import pose_stack_from_pdb
+
+    n_res = residue_end - residue_start
+    res_not_connected = torch.zeros(
+        (1, n_res, 2), dtype=torch.bool, device=torch_device
+    )
+    res_not_connected[0, 0, 0] = True
+    res_not_connected[0, n_res - 1, 1] = True
+    return pose_stack_from_pdb(
+        pdb,
+        torch_device,
+        residue_start=residue_start,
+        residue_end=residue_end,
+        res_not_connected=res_not_connected,
+    )

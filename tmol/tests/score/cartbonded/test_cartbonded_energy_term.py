@@ -1,7 +1,7 @@
 import torch
 
 from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
-
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
@@ -11,6 +11,43 @@ def test_smoke(default_database, torch_device: torch.device):
     )
 
     assert cartbonded_energy.device == torch_device
+
+
+def test_annotate_twice(fresh_default_restype_set, default_database, torch_device):
+    cpu_device = torch.device("cpu")
+    cartbonded_energy_cpu = CartBondedEnergyTerm(
+        param_db=default_database, device=cpu_device
+    )
+    cartbonded_energy_device = CartBondedEnergyTerm(
+        param_db=default_database, device=torch_device
+    )
+
+    pbt_cpu = PackedBlockTypes.from_restype_list(
+        fresh_default_restype_set.chem_db,
+        fresh_default_restype_set,
+        fresh_default_restype_set.residue_types,
+        cpu_device,
+    )
+    pbt_device = PackedBlockTypes.from_restype_list(
+        fresh_default_restype_set.chem_db,
+        fresh_default_restype_set,
+        fresh_default_restype_set.residue_types,
+        torch_device,
+    )
+
+    bt_list_cpu = pbt_cpu.active_block_types
+    bt_list_device = pbt_device.active_block_types
+
+    for bt in bt_list_cpu:
+        cartbonded_energy_cpu.setup_block_type(bt)
+    cartbonded_energy_cpu.setup_packed_block_types(pbt_cpu)
+
+    for bt in bt_list_device:
+        cartbonded_energy_device.setup_block_type(bt)
+    cartbonded_energy_device.setup_packed_block_types(pbt_device)
+
+    assert hasattr(pbt_cpu, "cartbonded_params_hash_keys")
+    assert hasattr(pbt_device, "cartbonded_params_hash_keys")
 
 
 def test_annotate_restypes(

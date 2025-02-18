@@ -16,10 +16,6 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
 
-# to dump pdbs
-# from tmol.system.packed import PackedResidueSystem
-# from tmol.utility.reactive import reactive_property
-
 # from tmol.score.score_graph import score_graph
 # from tmol.score.bonded_atom import BondedAtomScoreGraph
 # from tmol.score.coordinates import CartesianAtomicCoordinateProvider

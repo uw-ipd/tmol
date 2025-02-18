@@ -4,8 +4,9 @@ import torch
 import cattr
 import yaml
 from attrs import evolve
+from toolz.curried import groupby
 from tmol.database.chemical import ChemicalDatabase, VariantType
-from tmol.chemical.restypes import RefinedResidueType
+from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.io.canonical_ordering import (
     canonical_form_from_pdb,
@@ -19,6 +20,8 @@ from tmol.io.details.his_taut_resolution import resolve_his_tautomerization
 from tmol.io.details.select_from_canonical import (
     assign_block_types,
     take_block_type_atoms_from_canonical,
+    _annotate_packed_block_types_w_canonical_res_order,
+    CanonicalOrderingAnnotation,
 )
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -56,6 +59,37 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(
         resolved_coords,
         resolved_atom_is_present,
     )
+
+
+def test_annotate_pbt_w_canonical_res_order(fresh_default_restype_set, torch_device):
+    pbt = PackedBlockTypes.from_restype_list(
+        chem_db=fresh_default_restype_set.chem_db,
+        restype_set=fresh_default_restype_set,
+        active_block_types=fresh_default_restype_set.residue_types,
+        device=torch_device,
+    )
+    co = CanonicalOrdering.from_chemdb(fresh_default_restype_set.chem_db)
+    _annotate_packed_block_types_w_canonical_res_order(co, pbt)
+    ann = pbt.canonical_ordering_annotation
+    assert isinstance(ann, CanonicalOrderingAnnotation)
+
+
+def test_annotate_pbt_w_canonical_res_order_caching(
+    fresh_default_restype_set, torch_device
+):
+    pbt = PackedBlockTypes.from_restype_list(
+        chem_db=fresh_default_restype_set.chem_db,
+        restype_set=fresh_default_restype_set,
+        active_block_types=fresh_default_restype_set.residue_types,
+        device=torch_device,
+    )
+    co = CanonicalOrdering.from_chemdb(fresh_default_restype_set.chem_db)
+    _annotate_packed_block_types_w_canonical_res_order(co, pbt)
+    ann1 = pbt.canonical_ordering_annotation
+    assert ann1 is not None
+    _annotate_packed_block_types_w_canonical_res_order(co, pbt)
+    ann2 = pbt.canonical_ordering_annotation
+    assert ann1 is ann2
 
 
 def test_assign_block_types(torch_device, ubq_pdb):
@@ -171,8 +205,16 @@ def test_assign_block_types_w_exotic_termini_options(
         )
         for r in patched_chem_db.residues
     ]
+
+    restype_map = groupby(lambda restype: restype.name3, restype_list)
+    restype_set = ResidueTypeSet(
+        residue_types=restype_list,
+        restype_map=restype_map,
+        chem_db=patched_chem_db,
+    )
+
     pbt = PackedBlockTypes.from_restype_list(
-        patched_chem_db, restype_list, torch_device
+        patched_chem_db, restype_set, restype_list, torch_device
     )
 
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
@@ -390,6 +432,93 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     )
 
 
+def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
+    # We should allow virtual residues and generally ligands to be labeled
+    # as being part of a given chain, even if geometrically and chemically
+    # that makes no sense; e.g., waters are often listed as being part of
+    # a particular chain. What we want to ensure happens is that
+    # the non-virtual C-terminal residue is still labeled as a C-term type.
+
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
+
+    # take ten residues
+    cf = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=10)
+
+    # Now let's add a virtual residue to the end of the chain
+    vrt_co_ind = co.restype_io_equiv_classes.index("VRT")
+    orig_coords = cf["coords"]
+    ocs = orig_coords.shape
+    new_coords = torch.full(
+        (ocs[0], ocs[1] + 1, ocs[2], ocs[3]),
+        numpy.nan,
+        dtype=torch.float32,
+        device=torch_device,
+    )
+    new_coords[0, :-1, :, :] = orig_coords
+
+    # Let's put the VRT right in the center of ILE 3
+    def xyz(x, y, z):
+        return torch.tensor((x, y, z), dtype=torch.float32, device=torch_device)
+
+    new_coords[0, -1, 0, :] = xyz(26.849, 29.656, 6.217)
+    new_coords[0, -1, 1, :] = xyz(26.849, 29.656, 6.217) + xyz(1.0, 0.0, 0.0)
+    new_coords[0, -1, 2, :] = xyz(26.849, 29.656, 6.217) + xyz(0.0, 1.0, 0.0)
+    orig_chain_id = cf["chain_id"]
+
+    ocis = orig_chain_id.shape
+    new_chain_id = torch.zeros(
+        (ocis[0], ocis[1] + 1), dtype=torch.int32, device=torch_device
+    )
+    new_chain_id[0, :-1] = orig_chain_id
+    new_chain_id[0, -1] = orig_chain_id[
+        0, -1
+    ]  # give the vrt res the same chain id as the last residue
+
+    orig_restypes = cf["res_types"]
+    ors = orig_restypes.shape
+    new_restypes = torch.full(
+        (ors[0], ors[1] + 1), -1, dtype=torch.int32, device=torch_device
+    )
+    new_restypes[0, :-1] = orig_restypes
+    new_restypes[0, -1] = vrt_co_ind
+
+    cf["coords"] = new_coords
+    cf["chain_id"] = new_chain_id
+    cf["res_types"] = new_restypes
+
+    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    at_is_pres = not_any_nancoord(coords)
+
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        found_disulfides,
+        res_type_variants,
+        his_taut,
+        resolved_coords,
+        resolved_atom_is_present,
+    ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
+        co, pbt, ch_id, can_rts, coords, at_is_pres
+    )
+
+    # now we'll invoke assign_block_types
+    (
+        block_types,
+        inter_residue_connections64,
+        inter_block_bondsep64,
+    ) = assign_block_types(
+        co, pbt, at_is_pres, ch_id, can_rts, res_type_variants, found_disulfides
+    )
+
+    penultimate_res_block_type = block_types[0, -2]
+    penultimate_bt = pbt.active_block_types[penultimate_res_block_type]
+    assert penultimate_bt.name.partition(":")[2] == "cterm"
+
+
 def test_assign_block_types_for_pert_and_antigen(
     pertuzumab_and_nearby_erbb2_pdb_and_segments, torch_device
 ):
@@ -599,14 +728,22 @@ def co_and_pbt_from_new_variants(ducd, patches, device):
     new_pucd = PatchedChemicalDatabase.from_chem_db(new_ucd)
 
     co = CanonicalOrdering.from_chemdb(new_pucd)
-    pbt = PackedBlockTypes.from_restype_list(
-        new_pucd,
-        [
-            cattr.structure(cattr.unstructure(rt), RefinedResidueType)
-            for rt in new_pucd.residues
-        ],
-        device=device,
+    restype_list = [
+        cattr.structure(cattr.unstructure(rt), RefinedResidueType)
+        for rt in new_pucd.residues
+    ]
+    restype_map = groupby(lambda restype: restype.name3, restype_list)
+
+    restype_set = ResidueTypeSet(
+        residue_types=restype_list,
+        restype_map=restype_map,
+        chem_db=new_pucd,
     )
+
+    pbt = PackedBlockTypes.from_restype_list(
+        new_pucd, restype_set, restype_list, device
+    )
+
     return co, pbt, new_pucd
 
 

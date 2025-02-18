@@ -1,12 +1,12 @@
 import numpy
-from tmol.kinematics.builder import KinematicBuilder
+from tmol.kinematics.old.builder import _KinematicBuilder
 from tmol.kinematics.scan_ordering import get_scans
 
 
 def kinforest_from_roots_and_bonds(roots, bonds):
-    kfo_2_to, parents = KinematicBuilder.bonds_to_forest(roots, bonds)
+    kfo_2_to, parents = _KinematicBuilder.bonds_to_forest(roots, bonds)
     kinforest = (
-        KinematicBuilder()
+        _KinematicBuilder()
         .append_connected_components(
             to_roots=roots,
             kfo_2_to=kfo_2_to,

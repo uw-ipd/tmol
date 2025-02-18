@@ -119,19 +119,8 @@ class ResidueLevelTask:
 
 
 class PackerTask:
-    # def __init__(self, system: PackedResidueSystem, palette: PackerPalette):
-    #     self.rlts = [
-    #         ResidueLevelTask(i, res.residue_type, palette)
-    #         for i, res in enumerate(system.residues)
-    #     ]
 
     def __init__(self, systems: PoseStack, palette: PackerPalette):
-        # print("task ctor")
-        # print(
-        #     "system sizes",
-        #     len(systems.residues),
-        #     [len(ires) for ires in systems.residues],
-        # )
         self.rlts = [
             [
                 ResidueLevelTask(j, systems.block_type(i, j), palette)

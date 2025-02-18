@@ -2,7 +2,9 @@
 
 #include <Eigen/Core>
 
+#include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/extern/moderngpu/scan_types.hxx>  // CPU-friendly
 
 namespace tmol {
 namespace score {
@@ -21,6 +23,30 @@ struct DeviceOperations {
 
   template <typename launch_t, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f);
+
+  // Note that dst[0] should be initialized to the identity value (e.g. 0) if
+  // scan_type is exclusive.
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void scan(T* src, T* dst, int n, OP op);
+
+  // Note that dst[0] should be initialized to the identity value (e.g. 0) if
+  // scan_type is exclusive.a
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static T scan_and_return_total(T* src, T* dst, int n, OP op);
+
+  // Segmented scan expects the indices for the beginning of each segment rather
+  // than, e.g., a boolean tensor indicating the start of each segment.
+  // The identity value (e.g. 0) must be given because pre-initialization is not
+  // always possible. seg_starts_inds must be sorted in ascending order.
+  template <
+      mgpu::scan_type_t scan_type,
+      typename launch_t,
+      typename T,
+      typename Int,
+      typename OP>
+  static auto segmented_scan(
+      T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
+      -> TPack<T, 1, D>;
 
   template <int N_T, int WIDTH, typename T>
   static void copy_contiguous_data(

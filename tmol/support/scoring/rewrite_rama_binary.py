@@ -148,8 +148,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         r3_paapp_dir = sys.argv[2]
     if len(sys.argv) > 3:
-        r3_paapp_dir = sys.argv[2]
+        r3_paa_dir = sys.argv[3]
     if len(sys.argv) > 4:
-        output_path = sys.argv[3]
+        output_path = sys.argv[4]
 
     zarr_from_db(0.5, r3_rama_dir, 0.61, r3_paapp_dir, r3_paa_dir, output_path)

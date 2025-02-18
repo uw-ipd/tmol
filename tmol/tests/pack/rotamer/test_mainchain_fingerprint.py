@@ -183,7 +183,7 @@ def test_merge_fingerprints(default_database):
         )
     # print([x.name for x in rt_list])
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, rt_list, device=torch_device
+        default_database.chemical, rts, rt_list, device=torch_device
     )
     find_unique_fingerprints(pbt)
 

@@ -17,7 +17,6 @@ from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
 from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.ideal_coords import build_coords_from_icoors
 from tmol.chemical.all_bonds import bonds_and_bond_ranges
-from tmol.types.functional import validate_args
 
 
 AtomIndex = NewType("AtomIndex", int)
@@ -155,6 +154,10 @@ class RefinedResidueType(RawResidueType):
         bond_array.flags.writeable = False
         return bond_array
 
+    @property
+    def n_conn(self):
+        return len(self.connections)
+
     # The index of the atom for a given inter-residue connection point
     connection_to_idx: Mapping[str, AtomIndex] = attr.ib()
 
@@ -258,6 +261,75 @@ class RefinedResidueType(RawResidueType):
                     self.torsion_to_uaids[tor.name][j], dtype=numpy.int32
                 )
         return ordered_torsions
+
+    @property
+    def n_torsions(self):
+        return self.ordered_torsions.shape[0]
+
+    is_torsion_mc: numpy.ndarray = attr.ib()
+
+    @is_torsion_mc.default
+    def _setup_is_torsion_mc(self):
+        # A torsion is a "main chain" torsion if all of its atoms are
+        # listed as main chain atoms, or if they are listed as parts of
+        # other residues. E.g., omega is a main chain torsion because
+        # CA and C are both main chain atoms, and the other two atoms
+        # belong to the next residue; however, chi 1 is not main chain
+        # because, even though N and CA are listed as main chain atoms,
+        # CB and CG are not.
+        def all_torsion_atoms_are_mainchain(tor_ind):
+            if not self.properties.polymer.is_polymer:
+                return False
+            # check that all atoms in the torsion are either part of the
+            # mainchain or are atoms from other residues
+            for i in range(4):
+                at_i = self.ordered_torsions[tor_ind, i, 0]
+                if at_i == -1:
+                    continue
+                atname = self.atoms[at_i].name
+                if atname not in self.properties.polymer.mainchain_atoms:
+                    return False
+            return True
+
+        return numpy.array(
+            [all_torsion_atoms_are_mainchain(tor) for tor in range(self.n_torsions)],
+            dtype=bool,
+        )
+
+    # torsions are either "main chain" or they are "side chain"; if a residue is not
+    # polymeric, then all of its named torsions are side chain.
+    mc_torsions: numpy.ndarray = attr.ib()
+
+    @mc_torsions.default
+    def _setup_mc_torsions(self):
+        return numpy.nonzero(self.is_torsion_mc)[0].astype(numpy.int32)
+
+    @property
+    def n_mc_torsions(self):
+        return len(self.mc_torsions)
+
+    sc_torsions: numpy.ndarray = attr.ib()
+
+    @sc_torsions.default
+    def _setup_sc_torsions(self):
+        return numpy.nonzero(numpy.logical_not(self.is_torsion_mc))[0].astype(
+            numpy.int32
+        )
+
+    @property
+    def n_sc_torsions(self):
+        return len(self.sc_torsions)
+
+    which_mcsc_torsion: numpy.ndarray = attr.ib()
+
+    @which_mcsc_torsion.default
+    def _setup_which_mcsc_torsion(self):
+        which_mcsc_torsion = numpy.full(self.n_torsions, -1, dtype=numpy.int32)
+        for i in range(self.n_mc_torsions):
+            which_mcsc_torsion[self.mc_torsions[i]] = i
+        for i in range(self.n_sc_torsions):
+            which_mcsc_torsion[self.sc_torsions[i]] = i
+        return which_mcsc_torsion
 
     path_distance: numpy.ndarray = attr.ib()
 
@@ -448,6 +520,12 @@ class RefinedResidueType(RawResidueType):
     def compute_ideal_coords(self):
         return build_coords_from_icoors(self.icoors_ancestors, self.icoors_geom)
 
+    default_jump_connection_atom_index: int = attr.ib()
+
+    @default_jump_connection_atom_index.default
+    def get_default_jump_connection_atom_index(self):
+        return self.atom_to_idx[self.default_jump_connection_atom]
+
 
 @attr.s(auto_attribs=True)
 class ResidueTypeSet:
@@ -473,86 +551,17 @@ class ResidueTypeSet:
             chem_db=chemical_db,
         )
 
+    @classmethod
+    def from_restype_list(
+        cls, chemical_db: PatchedChemicalDatabase, restypes: List[RefinedResidueType]
+    ):
+        restype_map = groupby(lambda restype: restype.name3, restypes)
+        return cls(
+            residue_types=restypes,
+            restype_map=restype_map,
+            chem_db=chemical_db,
+        )
+
     residue_types: Sequence[RefinedResidueType]
     restype_map: Mapping[ResName3, Sequence[RefinedResidueType]]
     chem_db: PatchedChemicalDatabase
-
-
-@attr.s(slots=True, frozen=True)
-class Residue:
-    """A small class used in the old PackedResidueSystem, soon to be deprecated"""
-
-    residue_type: RefinedResidueType = attr.ib()
-    coords: numpy.ndarray = attr.ib()
-
-    @coords.default
-    def _coord_buffer(self):
-        return numpy.full((self.residue_type.n_atoms, 3), numpy.nan, dtype=float)
-
-    @property
-    def atom_coords(self) -> numpy.ndarray:
-        return self.coords.reshape(-1).view(self.residue_type.coord_dtype)
-
-    def attach_to(self, coord_buffer):
-        assert coord_buffer.shape == self.coords.shape
-        assert coord_buffer.dtype == self.coords.dtype
-
-        coord_buffer[:] = self.coords
-
-        return attr.evolve(self, coords=coord_buffer)
-
-    def _repr_pretty_(self, p, cycle):
-        p.text("Residue")
-        with p.group(1, "(", ")"):
-            p.text("residue_type=")
-            p.pretty(self.residue_type)
-            p.text(", coords=")
-            p.break_()
-            p.pretty(self.coords)
-
-
-@validate_args
-def find_simple_polymeric_connections(
-    res: List[Residue],
-) -> List[Tuple[int, str, int, str]]:
-    """
-    return a list of (int,str,int,str) quadrouples that say residue
-    i is connected to residue i+1 from it's "up" connection to
-    residue i+1's "down" connection and vice versa for all i"""
-
-    residue_connections = []
-    for i, j in zip(range(len(res) - 1), range(1, len(res))):
-        if (
-            "up" in res[i].residue_type.connection_to_idx
-            and "down" in res[j].residue_type.connection_to_idx
-        ):
-            residue_connections.extend(
-                [(i, "up", i + 1, "down"), (i + 1, "down", i, "up")]
-            )
-
-    return residue_connections
-
-
-@validate_args
-def find_disulfide_connections(
-    res: List[Residue],
-) -> List[Tuple[int, str, int, str]]:
-    residue_connections = []
-
-    cystines = [
-        (ind, cys) for ind, cys in enumerate(res) if cys.residue_type.name == "CYD"
-    ]
-    for i, cys1 in cystines:
-        for j, cys2 in cystines:
-            if i < j:
-                sg_index = cys1.residue_type.atom_to_idx["SG"]
-                sg1 = cys1.coords[sg_index]
-                sg2 = cys2.coords[sg_index]
-
-                dist = numpy.linalg.norm(sg1 - sg2)
-
-                if numpy.isclose(dist, 2.02, atol=0.5):
-                    residue_connections.extend(
-                        [(i, "dslf", j, "dslf"), (j, "dslf", i, "dslf")]
-                    )
-    return residue_connections
