@@ -76,7 +76,7 @@ def resolve_his_tautomerization(
     )
 
     return (
-        torch.tensor(his_taut, dtype=torch.int32, device=coords.device),
+        his_taut.to(dtype=torch.int32, device=coords.device),
         res_type_variants,
         resolved_coords,
         resolved_atom_is_present,
