@@ -3,6 +3,16 @@ import zarr
 from pathlib import Path
 import os
 import sys
+import torch
+import yaml
+import attr
+import cattr
+
+from tmol.database.scoring.omega_bbdep import (
+    OmegaBBDepDatabase,
+    OmegaBBDepTables,
+    OmegaBBDepMappingParams,
+)
 
 # A conversion script from rosetta omega bbdep tables to
 # tmol probability tables.  For each of five classes
@@ -56,17 +66,61 @@ def zarr_from_db(r3_bbdepomega_dir, output_path):
             sigma_aa.attrs["bbstart"] = [numpy.pi / 36.0, numpy.pi / 36.0]
 
 
+def create_omega_db(r3_bbdepomega_dir):
+    """
+    Write the BBDep omega binary file
+    """
+    tables = parse_all_tables(r3_bbdepomega_dir)
+
+    bbdep_omega_tables = []
+    # write tables
+    for aa, (mu, sig) in tables.items():
+        bbdep_omega_tables.append(
+            OmegaBBDepTables(
+                table_id=aa,
+                mu=mu,
+                sigma=sig,
+                bbstep=[numpy.pi / 18.0, numpy.pi / 18.0],
+                bbstart=[numpy.pi / 36.0, numpy.pi / 36.0],
+            )
+        )
+
+    path_lookup = "tmol/database/default/scoring/omega_bbdep.yaml"
+
+    with open(path_lookup, "r") as infile_lookup:
+        raw = yaml.safe_load(infile_lookup)
+        bbdep_omega_lookup = cattr.structure(
+            raw["omega_bbdep_lookup"],
+            attr.fields(OmegaBBDepDatabase).bbdep_omega_lookup.type,
+        )
+
+    input_uniq_id = hash(r3_bbdepomega_dir)
+
+    uniq_id = path_lookup + "," + str(input_uniq_id)
+
+    return OmegaBBDepDatabase(
+        uniq_id=uniq_id,
+        bbdep_omega_lookup=bbdep_omega_lookup,
+        bbdep_omega_tables=bbdep_omega_tables,
+    )
+
+
 if __name__ == "__main__":
     r3_bbdepomega_dir = (
         str(Path.home()) + "/Rosetta/main/database/scoring/score_functions/omega/"
+    )
+    r3_bbdepomega_dir = (
+        "/home/jflat06/foldit/develop/database/scoring/score_functions/omega/"
     )
     output_path = (
         str(os.path.dirname(os.path.realpath(__file__)))
         + "/../../database/default/scoring/"
     )
+    output_path = "omega.zip"
     if len(sys.argv) > 1:
         r3_bbdepomega_dir = sys.argv[1]
     if len(sys.argv) > 2:
         output_path = sys.argv[2]
 
-    zarr_from_db(r3_bbdepomega_dir, output_path)
+    # zarr_from_db(r3_bbdepomega_dir, output_path)
+    torch.save(create_omega_db(r3_bbdepomega_dir), output_path)

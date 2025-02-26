@@ -36,12 +36,7 @@ class ScoringDatabase:
             elec=ElecDatabase.from_file(os.path.join(path, "elec.yaml")),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
-            omega_bbdep=OmegaBBDepDatabase.from_files(
-                os.path.join(path, "omega_bbdep.yaml"),
-                os.path.join(path, "omega_bbdep.zip"),
-            ),
-            rama=RamaDatabase.from_files(
-                os.path.join(path, "rama.yaml"), os.path.join(path, "rama.zip")
-            ),
+            omega_bbdep=torch.load(os.path.join(path, "omega_bbdep.zip")),
+            rama=torch.load(os.path.join(path, "rama.zip")),
             ref=RefDatabase.from_file(os.path.join(path, "ref.yaml")),
         )

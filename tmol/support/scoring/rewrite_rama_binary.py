@@ -4,8 +4,14 @@ import zarr
 from pathlib import Path
 import os
 import sys
+import torch
+import yaml
+import attr
+import cattr
+
 
 from tmol.numeric.bspline import BSplineInterpolation
+from tmol.database.scoring.rama import RamaDatabase, RamaTables
 
 # A conversion script from rosetta BB probability tables to
 # tmol probability tables.  tmol stores tables which contain
@@ -126,23 +132,53 @@ def zarr_from_db(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir, outpu
             data_aa.attrs["bbstart"] = [-numpy.pi, -numpy.pi]
 
 
+def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
+    general, prepro = parse_all_tables(
+        rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir
+    )
+
+    rama_tables = []
+    for aa, prob in general.items():
+        rama_tables.append(
+            RamaTables(
+                table_id=aa,
+                table=prob,
+                bbstep=[numpy.pi / 18.0, numpy.pi / 18.0],
+                bbstart=[-numpy.pi, -numpy.pi],
+            )
+        )
+
+    for aa, prob in prepro.items():
+        rama_tables.append(
+            RamaTables(
+                table_id=aa + "_prepro",
+                table=prob,
+                bbstep=[numpy.pi / 18.0, numpy.pi / 18.0],
+                bbstart=[-numpy.pi, -numpy.pi],
+            )
+        )
+
+    path_lookup = "tmol/database/default/scoring/rama.yaml"
+
+    with open(path_lookup, "r") as infile_lookup:
+        raw = yaml.safe_load(infile_lookup)
+        rama_lookup = cattr.structure(
+            raw["rama_lookup"], attr.fields(RamaDatabase).rama_lookup.type
+        )
+
+    input_uniq_id = hash((rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir))
+
+    uniq_id = path_lookup + "," + str(input_uniq_id)
+    return RamaDatabase(uniq_id, rama_lookup, rama_tables)
+
+
 if __name__ == "__main__":
-    r3_rama_dir = (
-        str(Path.home())
-        + "/Rosetta/main/database/scoring/score_functions/rama/fd_beta_nov2016/"
-    )
-    r3_paapp_dir = (
-        str(Path.home())
-        + "/Rosetta/main/database/scoring/"
-        + "score_functions/P_AA_pp/shapovalov/10deg/kappa131/"
-    )
+    r3_rama_dir = "/home/jflat06/foldit/develop/database/scoring/score_functions/rama/fd_beta_nov2016/"
+    r3_paapp_dir = "/home/jflat06/foldit/develop/database/scoring/score_functions/P_AA_pp/shapovalov/10deg/kappa131/"
     r3_paa_dir = (
-        str(Path.home()) + "/Rosetta/main/database/scoring/score_functions/P_AA_pp/"
+        "/home/jflat06/foldit/develop/database/scoring/score_functions/P_AA_pp/"
     )
-    output_path = (
-        str(os.path.dirname(os.path.realpath(__file__)))
-        + "/../../database/default/scoring/"
-    )
+    output_path = "rama.zip"
     if len(sys.argv) > 1:
         r3_rama_dir = sys.argv[1]
     if len(sys.argv) > 2:
@@ -152,4 +188,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 4:
         output_path = sys.argv[3]
 
-    zarr_from_db(0.5, r3_rama_dir, 0.61, r3_paapp_dir, r3_paa_dir, output_path)
+    # zarr_from_db(0.5, r3_rama_dir, 0.61, r3_paapp_dir, r3_paa_dir, output_path)
+    torch.save(
+        create_rama_database(0.5, r3_rama_dir, 0.61, r3_paapp_dir, r3_paa_dir),
+        output_path,
+    )
