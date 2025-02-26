@@ -29,9 +29,6 @@ from tmol.database.scoring.rama import RamaDatabase, RamaTables
 #
 # Note that this may lead to large changes in energies in
 # low-probability reagions of ramachandran space
-#
-# Tables are then written as zarr ZipStores.  rama energies
-# in tmol simply involve interpolating these tables.
 
 
 def parse_paa(lines):

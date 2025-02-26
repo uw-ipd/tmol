@@ -15,8 +15,6 @@ from tmol.database.scoring.omega_bbdep import (
 # A conversion script from rosetta omega bbdep tables to
 # tmol probability tables.  For each of five classes
 # of AA (general, gly, val+ile, pro, and prepro) it computes
-#
-# Tables are then written as zarr ZipStores.
 
 
 def parse_lines_as_ndarrays(lines, mucol=4, sigmacol=5):
