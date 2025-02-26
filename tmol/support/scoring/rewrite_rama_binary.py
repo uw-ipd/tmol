@@ -1,6 +1,5 @@
 import numpy
 import torch
-import zarr
 from pathlib import Path
 import os
 import sys
@@ -107,31 +106,6 @@ def parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
     return (general, prepro)
 
 
-def zarr_from_db(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir, output_path):
-    """
-    Write the Ramachandran binary file after reading Rosetta3's
-    rama and p_aa_pp, and combining the weighted sum
-    """
-    with zarr.ZipStore(output_path + "/rama.zip", mode="w") as store:
-        general, prepro = parse_all_tables(
-            rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir
-        )
-
-        # write tables
-        zgroup = zarr.group(store=store)
-        for aa, prob in general.items():
-            group_aa = zgroup.create_group(aa)
-            data_aa = group_aa.create_dataset("prob", data=prob)
-            data_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
-            data_aa.attrs["bbstart"] = [-numpy.pi, -numpy.pi]
-
-        for aa, prob in prepro.items():
-            group_aa = zgroup.create_group(aa + "_prepro")
-            data_aa = group_aa.create_dataset("prob", data=prob)
-            data_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
-            data_aa.attrs["bbstart"] = [-numpy.pi, -numpy.pi]
-
-
 def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
     general, prepro = parse_all_tables(
         rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir
@@ -173,10 +147,21 @@ def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_di
 
 
 if __name__ == "__main__":
-    r3_rama_dir = "/home/jflat06/foldit/develop/database/scoring/score_functions/rama/fd_beta_nov2016/"
-    r3_paapp_dir = "/home/jflat06/foldit/develop/database/scoring/score_functions/P_AA_pp/shapovalov/10deg/kappa131/"
+    r3_rama_dir = (
+        str(Path.home())
+        + "/Rosetta/main/database/scoring/score_functions/rama/fd_beta_nov2016/"
+    )
+    r3_paapp_dir = (
+        str(Path.home())
+        + "/Rosetta/main/database/scoring/"
+        + "score_functions/P_AA_pp/shapovalov/10deg/kappa131/"
+    )
     r3_paa_dir = (
-        "/home/jflat06/foldit/develop/database/scoring/score_functions/P_AA_pp/"
+        str(Path.home()) + "/Rosetta/main/database/scoring/score_functions/P_AA_pp/"
+    )
+    output_path = (
+        str(os.path.dirname(os.path.realpath(__file__)))
+        + "/../../database/default/scoring/"
     )
     output_path = "rama.zip"
     if len(sys.argv) > 1:
@@ -184,11 +169,10 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         r3_paapp_dir = sys.argv[2]
     if len(sys.argv) > 3:
-        r3_paapp_dir = sys.argv[2]
+        r3_paa_dir = sys.argv[3]
     if len(sys.argv) > 4:
-        output_path = sys.argv[3]
+        output_path = sys.argv[4]
 
-    # zarr_from_db(0.5, r3_rama_dir, 0.61, r3_paapp_dir, r3_paa_dir, output_path)
     torch.save(
         create_rama_database(0.5, r3_rama_dir, 0.61, r3_paapp_dir, r3_paa_dir),
         output_path,

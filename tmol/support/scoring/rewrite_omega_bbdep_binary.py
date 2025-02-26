@@ -1,5 +1,4 @@
 import numpy
-import zarr
 from pathlib import Path
 import os
 import sys
@@ -11,7 +10,6 @@ import cattr
 from tmol.database.scoring.omega_bbdep import (
     OmegaBBDepDatabase,
     OmegaBBDepTables,
-    OmegaBBDepMappingParams,
 )
 
 # A conversion script from rosetta omega bbdep tables to
@@ -44,26 +42,6 @@ def parse_all_tables(r3_bbdepomega_dir):
         )
 
     return tables
-
-
-def zarr_from_db(r3_bbdepomega_dir, output_path):
-    """
-    Write the BBDep omega binary file
-    """
-    tables = parse_all_tables(r3_bbdepomega_dir)
-
-    with zarr.ZipStore(output_path + "/omega_bbdep.zip", mode="w") as store:
-        # write tables
-        zgroup = zarr.group(store=store)
-
-        for aa, (mu, sig) in tables.items():
-            group_aa = zgroup.create_group(aa)
-            mu_aa = group_aa.create_dataset("mu", data=mu)
-            mu_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
-            mu_aa.attrs["bbstart"] = [numpy.pi / 36.0, numpy.pi / 36.0]
-            sigma_aa = group_aa.create_dataset("sigma", data=sig)
-            sigma_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
-            sigma_aa.attrs["bbstart"] = [numpy.pi / 36.0, numpy.pi / 36.0]
 
 
 def create_omega_db(r3_bbdepomega_dir):
@@ -109,18 +87,13 @@ if __name__ == "__main__":
     r3_bbdepomega_dir = (
         str(Path.home()) + "/Rosetta/main/database/scoring/score_functions/omega/"
     )
-    r3_bbdepomega_dir = (
-        "/home/jflat06/foldit/develop/database/scoring/score_functions/omega/"
-    )
     output_path = (
         str(os.path.dirname(os.path.realpath(__file__)))
         + "/../../database/default/scoring/"
     )
-    output_path = "omega.zip"
     if len(sys.argv) > 1:
         r3_bbdepomega_dir = sys.argv[1]
     if len(sys.argv) > 2:
         output_path = sys.argv[2]
 
-    # zarr_from_db(r3_bbdepomega_dir, output_path)
     torch.save(create_omega_db(r3_bbdepomega_dir), output_path)
