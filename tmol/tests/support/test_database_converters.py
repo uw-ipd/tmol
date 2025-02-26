@@ -9,7 +9,7 @@ from tmol.support.scoring.hbond_param_import import RosettaHBParams
 import tmol.support.scoring.rewrite_rama_binary as rewrite_rama_binary
 import tmol.support.scoring.rewrite_omega_bbdep_binary as rewrite_omega_bbdep_binary
 from tmol.support.scoring.rewrite_dunbrack_binary import (
-    write_binary_version_of_dunbrack_rotamer_library,
+    create_dunbrack_rotamer_library,
 )
 from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 
@@ -79,12 +79,8 @@ def test_dunbrack_table_read(rosetta_database, default_database):
 
     r3_beta16_dunbrack_dir = os.path.join(rosetta_database, "rotamer/beta_nov2016")
     r3_beta15_dunbrack_dir = os.path.join(rosetta_database, "rotamer/ExtendedOpt1-5")
-    write_binary_version_of_dunbrack_rotamer_library(
-        r3_beta16_dunbrack_dir, r3_beta15_dunbrack_dir, "test_dunbrack.bin"
-    )
-    fresh = DunbrackRotamerLibrary.from_zarr_archive(
-        os.path.join(os.path.dirname(__file__), "copy_dunbrack.yml"),
-        "test_dunbrack.bin",
+    fresh = create_dunbrack_rotamer_library(
+        r3_beta16_dunbrack_dir, r3_beta15_dunbrack_dir
     )
 
     default = default_database.scoring.dun
