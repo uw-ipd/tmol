@@ -2,13 +2,24 @@ import gzip
 import numpy
 import zarr
 import os
+import torch
+import yaml
+import attr
+import cattr
+from tmol.database.scoring.dunbrack_libraries import (
+    DunbrackRotamerLibrary,
+    RotamericDataForAA,
+    RotamericAADunbrackLibrary,
+    SemiRotamericAADunbrackLibrary,
+)
 
 rotamer_aliases = {
     "pro": numpy.array([[1, 3, 1, 1, 1, 1], [3, 1, 3, 2, 1, 1]], dtype=int)
 }
 
 
-def write_rotameric_data_for_aa(aa_lines, nchi, zgroup, rotamer_alias=None):
+def write_rotameric_data_for_aa(aa_lines, nchi, rotamer_alias=None):
+    print(nchi)
     rotamers = []
     rotamers_set = set([])
     for line in aa_lines:
@@ -65,69 +76,26 @@ def write_rotameric_data_for_aa(aa_lines, nchi, zgroup, rotamer_alias=None):
         count_rots_in_ppbin, nrots * numpy.ones([36, 36], dtype=int)
     )
 
-    rotamer_group = zgroup.create_group("rotameric_data")
-    rotamer_group.array("rotamers", sorted_rots_array)
-    rotamer_group.array("probabilities", probabilities)
-    rotamer_group.array("means", means)
-    rotamer_group.array("stdvs", stdvs)
-    rotamer_group.array("prob_sorted_rot_inds", prob_sorted_rots_by_phi_psi)
-    rotamer_group.array("backbone_dihedral_start", [-180, -180])
-    rotamer_group.array("backbone_dihedral_step", [10, 10])
-    rotamer_group.array("rotamer_alias", rotamer_alias)
-
-
-# def write_semi_rotameric_chi_table(
-#    indent, rotchi_ind, lines_for_rotchi, n_rotameric_chi, trailing_comma, out_lines
-# ):
-#    prob_start_col = 5 + 3 * n_rotameric_chi
-#    chi_prob_table = [[None for _a in range(36)] for _b in range(36)]
-#    for line in lines_for_rotchi:
-#        cols = line.split()
-#        phi_ind, psi_ind = (int(dihe) // 10 + 18 for dihe in cols[1:3])
-#        if phi_ind == 36 or psi_ind == 36:
-#            continue
-#        chi_prob_table[phi_ind][psi_ind] = cols[prob_start_col:]
-#    out_lines.append(
-#        "".join(
-#            [
-#                " " * indent,
-#                '{"rotameric_rot_index": %d, "probabilities":\n' % rotchi_ind,
-#            ]
-#        )
-#    )
-#    write_3d_table(indent + 1, chi_prob_table, False, out_lines)
-#    out_lines.append("".join([" " * indent, "}", "," if trailing_comma else ""]))
-
-
-# def write_semi_rotameric_rotamer_definition(
-#    indent, line, nchi, trailing_comma, output_lines
-# ):
-#    cols = line.split()
-#    output_lines.append(
-#        "".join(
-#            [
-#                " " * indent,
-#                '{"rotamer": [',
-#                ", ".join(cols[0:nchi]),
-#                '], "left": ',
-#                cols[6],
-#                ', "right": ',
-#                cols[8],
-#                "}",
-#                "," if trailing_comma else "",
-#                "\n",
-#            ]
-#        )
-#    )
+    return sorted_rots_array, RotamericDataForAA(
+        rotamers=torch.tensor(sorted_rots_array),
+        rotamer_probabilities=torch.tensor(probabilities, dtype=torch.float32),
+        rotamer_means=torch.tensor(means, dtype=torch.float32),
+        rotamer_stdvs=torch.tensor(stdvs, dtype=torch.float32),
+        prob_sorted_rot_inds=torch.tensor(prob_sorted_rots_by_phi_psi),
+        backbone_dihedral_start=torch.tensor([-180, -180], dtype=torch.float32),
+        backbone_dihedral_step=torch.tensor([10, 10], dtype=torch.float32),
+        rotamer_alias=torch.tensor(rotamer_alias),
+    )
 
 
 def strip_comments(lines):
     return [line for line in lines if (len(line) > 0 and line[0] != "#")]
 
 
-def write_rotameric_aa_dunbrack_library(aa3, aa_lines, nchi, zgroup, rotamer_alias):
-    lib_group = zgroup.create_group(aa3)
-    write_rotameric_data_for_aa(aa_lines, nchi, lib_group, rotamer_alias)
+def write_rotameric_aa_dunbrack_library(aa3, lines, nchi_for_aa, rotamer_alias):
+    _, data_for_aa = write_rotameric_data_for_aa(lines, nchi_for_aa, rotamer_alias)
+    print(type(data_for_aa.rotamers))
+    return RotamericAADunbrackLibrary(aa3, data_for_aa)
 
 
 def write_semi_rotameric_aa_dunbrack_library(
@@ -137,21 +105,15 @@ def write_semi_rotameric_aa_dunbrack_library(
     bbdep_density_lines,
     ref_bbdep_density_lines,
     bbind_rotamer_def_lines,
-    zgroup,
 ):
     # print("Creating", aa3, "group")
-    semirot_lib_group = zgroup.create_group(aa3)
     # print("Created", aa3, "group")
     n_rotameric_chi = nchi - 1
     bb_rotamer_lines = strip_comments(bb_rotamer_lines)
 
-    write_rotameric_data_for_aa(bb_rotamer_lines, nchi, semirot_lib_group)
-    rotameric_data_group = semirot_lib_group["rotameric_data"]
-    rotameric_rotamers = rotameric_data_group["rotamers"][:]
-    n_rotamers = rotameric_rotamers.shape[0]
-    allchi_rot_to_rot_ind = {
-        tuple(rotameric_rotamers[i, :]): i for i in range(n_rotamers)
-    }
+    rots, rotameric_data = write_rotameric_data_for_aa(bb_rotamer_lines, nchi)
+    n_rotamers = rots.shape[0]
+    allchi_rot_to_rot_ind = {tuple(rots[i, :]): i for i in range(n_rotamers)}
 
     # read the chi labels, the number of non-rotameric chi samples, and the
     # non-rotameric chi start, step and period from the comments at the top
@@ -175,11 +137,11 @@ def write_semi_rotameric_aa_dunbrack_library(
     # nonrot_chi_sampling_data[1] = nonrot_chi_step
     # nonrot_chi_sampling_data[2] = nonrot_chi_period
     # semirot_lib_group.array("nonrot_chi_sampling_data", nonrot_chi_sampling_data)
-    semirot_lib_group.attrs.update(
-        nonrot_chi_start=nonrot_chi_start,
-        nonrot_chi_step=nonrot_chi_step,
-        nonrot_chi_period=nonrot_chi_period,
-    )
+    # semirot_lib_group.attrs.update(
+    # nonrot_chi_start=nonrot_chi_start,
+    # nonrot_chi_step=nonrot_chi_step,
+    # nonrot_chi_period=nonrot_chi_period,
+    # )
 
     rotchi_rotamers = []
     rotchi_rotamers_set = set([])
@@ -198,7 +160,7 @@ def write_semi_rotameric_aa_dunbrack_library(
     n_rotchi_rotamers = len(sorted_rotchi_rotamers)
     rotameric_rot_to_rot_ind = {x: i for i, x in enumerate(sorted_rotchi_rotamers)}
 
-    semirot_lib_group.array("rotameric_chi_rotamers", sorted_rotchi_rotamers_array)
+    # semirot_lib_group.array("rotameric_chi_rotamers", sorted_rotchi_rotamers_array)
 
     # non-rotameric-chi (nrc) probabilities
     nrc_probs = numpy.zeros([n_rotchi_rotamers, 36, 36, nrc_n_samples], dtype=float)
@@ -214,7 +176,7 @@ def write_semi_rotameric_aa_dunbrack_library(
         chi = [base_prob * float(x) for x in cols[(5 + 3 * n_rotameric_chi) :]]
         rot_ind = rotameric_rot_to_rot_ind[rot]
         nrc_probs[rot_ind, phi_ind, psi_ind, :] = chi
-    semirot_lib_group.array("nonrotameric_chi_probabilities", nrc_probs)
+    # semirot_lib_group.array("nonrotameric_chi_probabilities", nrc_probs)
 
     rotamer_boundaries = numpy.zeros([n_rotamers, 2], dtype=float)
     for line in bbind_rotamer_def_lines:
@@ -226,7 +188,18 @@ def write_semi_rotameric_aa_dunbrack_library(
         # nab columns 6 and 8
         rotamer_boundaries[rot_ind, :] = [float(x) for x in cols[6:9:2]]
 
-    semirot_lib_group.array("rotamer_boundaries", rotamer_boundaries)
+    # semirot_lib_group.array("rotamer_boundaries", rotamer_boundaries)
+
+    return SemiRotamericAADunbrackLibrary(
+        table_name=aa3,
+        rotameric_data=rotameric_data,
+        non_rot_chi_start=nonrot_chi_start,
+        non_rot_chi_step=nonrot_chi_step,
+        non_rot_chi_period=nonrot_chi_period,
+        rotameric_chi_rotamers=torch.tensor(sorted_rotchi_rotamers_array),
+        nonrotameric_chi_probabilities=torch.tensor(nrc_probs, dtype=torch.float32),
+        rotamer_boundaries=torch.tensor(rotamer_boundaries, dtype=torch.float32),
+    )
 
 
 def write_binary_version_of_dunbrack_rotamer_library(
@@ -253,8 +226,14 @@ def write_binary_version_of_dunbrack_rotamer_library(
         "TYR": 2,
     }
 
-    store = zarr.ZipStore(out_path)
-    zgroup = zarr.group(store=store)
+    path_lookup = "tmol/database/default/scoring/dunbrack.yaml"
+
+    dun_lookup = None
+    with open(path_lookup, "r") as infile_lookup:
+        raw = yaml.load(infile_lookup, Loader=yaml.FullLoader)
+        dun_lookup = cattr.structure(
+            raw["dunbrack_lookup"], attr.fields(DunbrackRotamerLibrary).dun_lookup.type
+        )
 
     # Rotameric residues:
     # CYS, ILE, LYS, LEU, MET, PRO, ARG, SER, THR, VAL
@@ -270,12 +249,11 @@ def write_binary_version_of_dunbrack_rotamer_library(
         "thr",
         "val",
     ]
-    rotameric_zgroup = zgroup.create_group("rotameric_tables")
-    rotameric_zgroup.attrs.update(tables=rotameric_aas)
     lib_files = [
         os.path.join(path_to_db_dir, x + ".bbdep.rotamers.lib.gz")
         for x in rotameric_aas
     ]
+    rdls = []
     for i, lib_file in enumerate(lib_files):
         # print("processing", lib_file)
         with gzip.GzipFile(lib_file) as fid:
@@ -285,17 +263,14 @@ def write_binary_version_of_dunbrack_rotamer_library(
         rotamer_alias = None
         if aa in rotamer_aliases:
             rotamer_alias = rotamer_aliases[aa]
-        write_rotameric_aa_dunbrack_library(
-            rotameric_aas[i],
-            lines,
-            nchi_for_aa[aa.upper()],
-            rotameric_zgroup,
-            rotamer_alias,
+        rot_lib = write_rotameric_aa_dunbrack_library(
+            rotameric_aas[i], lines, nchi_for_aa[aa.upper()], rotamer_alias
         )
+        rdls.append(rot_lib)
 
     semirot_aas = ["asp", "glu", "phe", "his", "asn", "gln", "trp", "tyr"]
-    semirotameric_zgroup = zgroup.create_group("semirotameric_tables")
-    semirotameric_zgroup.attrs.update(tables=semirot_aas)
+    ##semirotameric_zgroup = zgroup.create_group("semirotameric_tables")
+    # semirotameric_zgroup.attrs.update(tables=semirot_aas)
     lib_files = [
         (
             os.path.join(path_to_db_dir, x + ".bbdep.rotamers.lib.gz"),
@@ -308,6 +283,7 @@ def write_binary_version_of_dunbrack_rotamer_library(
         )
         for x in semirot_aas
     ]
+    srdls = []
     for i, files in enumerate(lib_files):
         # print("opening files", files)
         with gzip.GzipFile(files[0]) as fid:
@@ -319,23 +295,31 @@ def write_binary_version_of_dunbrack_rotamer_library(
         with gzip.GzipFile(files[3]) as fid:
             bbind_rotamer_lines = [x.decode("utf-8") for x in fid.readlines()]
         # print("processing", files[0], files[1], files[2], files[3])
-        write_semi_rotameric_aa_dunbrack_library(
+        srot_lib = write_semi_rotameric_aa_dunbrack_library(
             semirot_aas[i],
             nchi_for_aa[semirot_aas[i].upper()],
             rotamer_lines,
             density_lines,
             ref_density_lines,
             bbind_rotamer_lines,
-            semirotameric_zgroup,
         )
+        srdls.append(srot_lib)
 
-    store.close()
+    return DunbrackRotamerLibrary(
+        dun_lookup=dun_lookup,
+        rotameric_libraries=tuple(rdls),
+        semi_rotameric_libraries=tuple(srdls),
+    )
 
 
 if __name__ == "__main__":
-    write_binary_version_of_dunbrack_rotamer_library(
-        "/Users/andrew/rosetta/GIT/Rosetta/main/database/rotamer/beta_nov2016/",
-        "/Users/andrew/rosetta/GIT/Rosetta/main/database/rotamer/ExtendedOpt1-5/",
-        "dunbrack.bin",
+    torch.set_default_dtype(torch.float32)
+    torch.save(
+        write_binary_version_of_dunbrack_rotamer_library(
+            "/home/jflat06/foldit/develop/database/rotamer/beta_nov2016/",
+            "/home/jflat06/foldit/develop/database/rotamer/ExtendedOpt1-5/",
+            "/home/jflat06/dunbrack.bin",
+        ),
+        "DUNTEST.tzip",
     )
     # open("dunbrack_library2.json", "w").writelines(outlines)

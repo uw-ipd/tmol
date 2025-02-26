@@ -1,5 +1,6 @@
 import os
 import attr
+import torch
 
 from .cartbonded import CartBondedDatabase
 from .disulfide import DisulfideDatabase
@@ -31,9 +32,7 @@ class ScoringDatabase:
                 os.path.join(path, "cartbonded.yaml")
             ),
             disulfide=DisulfideDatabase.from_file(os.path.join(path, "disulfide.yaml")),
-            dun=DunbrackRotamerLibrary.from_zarr_archive(
-                os.path.join(path, "dunbrack.yaml"), os.path.join(path, "dunbrack.bin")
-            ),
+            dun=torch.load("/home/jflat06/rosetta/tmol/DUNTEST.tzip"),
             elec=ElecDatabase.from_file(os.path.join(path, "elec.yaml")),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
