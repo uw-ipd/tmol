@@ -3,6 +3,7 @@ import torch
 from pathlib import Path
 import os
 import sys
+import argparse
 import torch
 import yaml
 import attr
@@ -144,33 +145,42 @@ def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_di
 
 
 if __name__ == "__main__":
-    r3_rama_dir = (
-        str(Path.home())
-        + "/Rosetta/main/database/scoring/score_functions/rama/fd_beta_nov2016/"
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/")
     )
-    r3_paapp_dir = (
-        str(Path.home())
-        + "/Rosetta/main/database/scoring/"
-        + "score_functions/P_AA_pp/shapovalov/10deg/kappa131/"
+    args, _ = parser.parse_known_args()
+    parser.add_argument(
+        "--r3_rama_dir",
+        default=os.path.join(
+            args.rosetta_dir, "database/scoring/score_functions/rama/fd_beta_nov2016/"
+        ),
     )
-    r3_paa_dir = (
-        str(Path.home()) + "/Rosetta/main/database/scoring/score_functions/P_AA_pp/"
+    parser.add_argument(
+        "--r3_paapp_dir",
+        default=os.path.join(
+            args.rosetta_dir,
+            "database/scoring/score_functions/P_AA_pp/shapovalov/10deg/kappa131/",
+        ),
     )
-    output_path = (
-        str(os.path.dirname(os.path.realpath(__file__)))
-        + "/../../database/default/scoring/"
+    parser.add_argument(
+        "--r3_paa_dir",
+        default=os.path.join(
+            args.rosetta_dir, "database/scoring/score_functions/P_AA_pp/"
+        ),
     )
-    output_path = "rama.zip"
-    if len(sys.argv) > 1:
-        r3_rama_dir = sys.argv[1]
-    if len(sys.argv) > 2:
-        r3_paapp_dir = sys.argv[2]
-    if len(sys.argv) > 3:
-        r3_paa_dir = sys.argv[3]
-    if len(sys.argv) > 4:
-        output_path = sys.argv[4]
+    parser.add_argument(
+        "--output",
+        default=os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "../../database/default/scoring/rama.zip",
+        ),
+    )
+    args = parser.parse_args()
 
     torch.save(
-        create_rama_database(0.5, r3_rama_dir, 0.61, r3_paapp_dir, r3_paa_dir),
-        output_path,
+        create_rama_database(
+            0.5, args.r3_rama_dir, 0.61, args.r3_paapp_dir, args.r3_paa_dir
+        ),
+        args.output_path,
     )

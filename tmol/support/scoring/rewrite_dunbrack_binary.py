@@ -1,6 +1,8 @@
 import gzip
 import numpy
 import os
+from pathlib import Path
+import argparse
 import torch
 import yaml
 import attr
@@ -288,10 +290,32 @@ def create_dunbrack_rotamer_library(path_to_db_dir, path_to_reference_db_dir):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/")
+    )
+    args, _ = parser.parse_known_args()
+    parser.add_argument(
+        "--path_to_db_dir",
+        default=os.path.join(args.rosetta_dir, "database/rotamer/beta_nov2016/"),
+    )
+    parser.add_argument(
+        "--path_to_reference_db_dir",
+        default=os.path.join(args.rosetta_dir, "database/rotamer/ExtendedOpt1-5/"),
+    )
+    parser.add_argument(
+        "--output",
+        default=os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "../../database/default/scoring/dunbrack.bin",
+        ),
+    )
+    args = parser.parse_args()
+
     torch.save(
         create_dunbrack_rotamer_library(
-            "/home/jflat06/foldit/develop/database/rotamer/beta_nov2016/",
-            "/home/jflat06/foldit/develop/database/rotamer/ExtendedOpt1-5/",
+            args.path_to_db_dir,
+            args.path_to_reference_db_dir,
         ),
-        "dunbrack.bin",
+        args.output,
     )

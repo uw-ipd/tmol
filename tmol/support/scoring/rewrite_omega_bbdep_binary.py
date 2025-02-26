@@ -2,6 +2,7 @@ import numpy
 from pathlib import Path
 import os
 import sys
+import argparse
 import torch
 import yaml
 import attr
@@ -82,16 +83,24 @@ def create_omega_db(r3_bbdepomega_dir):
 
 
 if __name__ == "__main__":
-    r3_bbdepomega_dir = (
-        str(Path.home()) + "/Rosetta/main/database/scoring/score_functions/omega/"
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/")
     )
-    output_path = (
-        str(os.path.dirname(os.path.realpath(__file__)))
-        + "/../../database/default/scoring/"
+    args, _ = parser.parse_known_args()
+    parser.add_argument(
+        "--r3_bbdepomega_dir",
+        default=os.path.join(
+            args.rosetta_dir, "database/scoring/score_functions/omega/"
+        ),
     )
-    if len(sys.argv) > 1:
-        r3_bbdepomega_dir = sys.argv[1]
-    if len(sys.argv) > 2:
-        output_path = sys.argv[2]
+    parser.add_argument(
+        "--output",
+        default=os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "../../database/default/scoring/omega_bbdep.zip",
+        ),
+    )
+    args = parser.parse_args()
 
-    torch.save(create_omega_db(r3_bbdepomega_dir), output_path)
+    torch.save(create_omega_db(args.r3_bbdepomega_dir), args.output)
