@@ -36,7 +36,7 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
 
     using Int = int32_t;
 
-    TMOL_DISPATCH_FLOATING_DEVICE(dofs.type(), "forward_kin_op", ([&] {
+    TMOL_DISPATCH_FLOATING_DEVICE(dofs.options(), "forward_kin_op", ([&] {
                                     using Real = scalar_t;
                                     constexpr tmol::Device Dev = device_t;
 
@@ -70,7 +70,7 @@ class KinematicOp : public torch::autograd::Function<KinematicOp> {
     at::Tensor dV_ddof;
     using Int = int32_t;
     auto dVdx = grad_outputs[0];
-    TMOL_DISPATCH_FLOATING_DEVICE(HTs.type(), "kin_deriv_op", ([&] {
+    TMOL_DISPATCH_FLOATING_DEVICE(HTs.options(), "kin_deriv_op", ([&] {
                                     using Real = scalar_t;
                                     constexpr tmol::Device Dev = device_t;
 
@@ -124,7 +124,7 @@ Tensor forward_only_op(
 
   using Int = int32_t;
 
-  TMOL_DISPATCH_FLOATING_DEVICE(dofs.type(), "forward_kin_only_op", ([&] {
+  TMOL_DISPATCH_FLOATING_DEVICE(dofs.options(), "forward_kin_only_op", ([&] {
                                   using Real = scalar_t;
                                   constexpr tmol::Device Dev = device_t;
 
@@ -151,7 +151,9 @@ auto get_kfo_indices_for_atoms(
   at::Tensor kfo_2_orig_mapping_tp;
   at::Tensor atom_kfo_index;
   TMOL_DISPATCH_INDEX_DEVICE(
-      pose_stack_block_coord_offset.type(), "get_kfo_indices_for_atoms", ([&] {
+      pose_stack_block_coord_offset.options(),
+      "get_kfo_indices_for_atoms",
+      ([&] {
         using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
                               // for signed 64-bit integers in CUDA
         constexpr tmol::Device Dev = device_t;
@@ -184,7 +186,7 @@ auto get_kfo_atom_parents(
   at::Tensor kfo_parent_atoms;
   at::Tensor kfo_grandparent_atoms;
   TMOL_DISPATCH_INDEX_DEVICE(
-      pose_stack_block_type.type(), "get_kfo_atom_parents", ([&] {
+      pose_stack_block_type.options(), "get_kfo_atom_parents", ([&] {
         using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
                               // for signed 64-bit integers in CUDA
         constexpr tmol::Device Dev = device_t;
@@ -223,7 +225,7 @@ auto get_children(
   at::Tensor is_atom_jump;
 
   TMOL_DISPATCH_INDEX_DEVICE(
-      pose_stack_block_type.type(), "get_children", ([&] {
+      pose_stack_block_type.options(), "get_children", ([&] {
         using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
                               // for signed 64-bit integers in CUDA
         constexpr tmol::Device Dev = device_t;
@@ -261,7 +263,7 @@ auto get_id_and_frame_xyz(
   at::Tensor keep_dof_fixed;
 
   TMOL_DISPATCH_INDEX_DEVICE(
-      parents.type(), "get_id_and_frame_xyz", ([&] {
+      parents.options(), "get_id_and_frame_xyz", ([&] {
         using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
                               // for signed 64-bit integers in CUDA
         constexpr tmol::Device Dev = device_t;
@@ -306,7 +308,7 @@ auto calculate_ff_edge_delays(
   Tensor delay_for_edge;
   Tensor toposort_index_for_edge;
   TMOL_DISPATCH_INDEX_DEVICE(
-      pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
+      pose_stack_block_type.options(), "calculate_ff_edge_delays", ([&] {
         using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
                               // for signed 64-bit integers in CUDA
         constexpr tmol::Device Dev = device_t;
@@ -350,7 +352,7 @@ auto get_jump_atom_indices(
   Tensor pose_stack_atom_for_jump;
   Tensor pose_stack_atom_for_root_jump;
   TMOL_DISPATCH_INDEX_DEVICE(
-      pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
+      pose_stack_block_type.options(), "calculate_ff_edge_delays", ([&] {
         using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
                               // for signed 64-bit integers in CUDA
         constexpr tmol::Device Dev = device_t;
@@ -382,7 +384,7 @@ auto get_block_parent_connectivity_from_toposort(
     Tensor block_type_polymeric_conn_index) -> Tensor {
   Tensor pose_stack_block_in_and_first_out;
   TMOL_DISPATCH_INDEX_DEVICE(
-      pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
+      pose_stack_block_type.options(), "calculate_ff_edge_delays", ([&] {
         using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
                               // for signed 64-bit integers in CUDA
         constexpr tmol::Device Dev = device_t;
@@ -445,7 +447,7 @@ auto get_scans2(
   Tensor scans_bw;
   Tensor gens_bw;
   TMOL_DISPATCH_INDEX_DEVICE(
-      pose_stack_block_type.type(), "calculate_ff_edge_delays", ([&] {
+      pose_stack_block_type.options(), "calculate_ff_edge_delays", ([&] {
         using Int = int32_t;  // ONLY 32-bit integers supported! No atomicAdd
                               // for signed 64-bit integers in CUDA
         constexpr tmol::Device Dev = device_t;
@@ -534,7 +536,7 @@ auto minimizer_map_from_movemap(
   // Minimizer map: a boolean vector of the DOFs that are free
   Tensor minimizer_map;
   TMOL_DISPATCH_INDEX_DEVICE(
-      pose_stack_block_type.type(), "minimizer_map_from_movemap", ([&] {
+      pose_stack_block_type.options(), "minimizer_map_from_movemap", ([&] {
         using Int = int32_t;
         constexpr tmol::Device Dev = device_t;
 

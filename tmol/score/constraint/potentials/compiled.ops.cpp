@@ -35,7 +35,7 @@ class GetTorsionAngleOp
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.type(), "get_torsion_angle_op", ([&] {
+        coords.options(), "get_torsion_angle_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
