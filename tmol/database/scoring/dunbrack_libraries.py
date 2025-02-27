@@ -1,4 +1,5 @@
 import attr
+import torch
 from typing import Tuple
 
 from tmol.types.torch import Tensor
@@ -67,3 +68,16 @@ class DunbrackRotamerLibrary:
     dun_lookup: Tuple[DunMappingParams, ...]
     rotameric_libraries: Tuple[RotamericAADunbrackLibrary, ...]
     semi_rotameric_libraries: Tuple[SemiRotamericAADunbrackLibrary, ...]
+
+    @classmethod
+    def from_file(cls, fname: str):
+        with torch.serialization.safe_globals(
+            [
+                DunbrackRotamerLibrary,
+                DunMappingParams,
+                SemiRotamericAADunbrackLibrary,
+                RotamericAADunbrackLibrary,
+                RotamericDataForAA,
+            ]
+        ):
+            return torch.load(fname)

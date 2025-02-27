@@ -1,4 +1,6 @@
 import attr
+import torch
+import numpy
 
 from typing import Tuple
 
@@ -27,3 +29,18 @@ class RamaDatabase:
     uniq_id: str  # unique id for memoization
     rama_lookup: Tuple[RamaMappingParams, ...]
     rama_tables: Tuple[RamaTables, ...]
+
+    @classmethod
+    def from_file(cls, fname: str):
+        with torch.serialization.safe_globals(
+            [
+                RamaDatabase,
+                RamaTables,
+                RamaMappingParams,
+                numpy.core.multiarray._reconstruct,
+                numpy.ndarray,
+                numpy.dtype,
+                numpy.dtypes.Float64DType,
+            ]
+        ):
+            return torch.load(fname)

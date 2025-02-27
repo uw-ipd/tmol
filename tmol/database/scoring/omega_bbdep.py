@@ -1,4 +1,6 @@
 import attr
+import torch
+import numpy
 
 from typing import Tuple
 
@@ -28,3 +30,18 @@ class OmegaBBDepDatabase:
     uniq_id: str  # unique id for memoization
     bbdep_omega_lookup: Tuple[OmegaBBDepMappingParams, ...]
     bbdep_omega_tables: Tuple[OmegaBBDepTables, ...]
+
+    @classmethod
+    def from_file(cls, fname: str):
+        with torch.serialization.safe_globals(
+            [
+                OmegaBBDepDatabase,
+                OmegaBBDepMappingParams,
+                OmegaBBDepTables,
+                numpy.core.multiarray._reconstruct,
+                numpy.ndarray,
+                numpy.dtype,
+                numpy.dtypes.Float64DType,
+            ]
+        ):
+            return torch.load(fname)
