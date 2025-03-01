@@ -59,7 +59,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        pose_coords.type(), "watergen_op", ([&] {
+        pose_coords.options(), "watergen_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -169,7 +169,7 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
     auto dE_dWxyz = grad_outputs[0];
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        pose_coords.type(), "WaterGenOpBackward", ([&] {
+        pose_coords.options(), "WaterGenOpBackward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -313,7 +313,7 @@ Tensor rotamer_pair_energies(
   constexpr int MAX_WATER = 4;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
-      context_coords.type(), "rotamer_rpe_evaluation", ([&] {
+      context_coords.options(), "rotamer_rpe_evaluation", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
@@ -379,7 +379,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        pose_coords.type(), "lk_ball_pose_score_op", ([&] {
+        pose_coords.options(), "lk_ball_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -482,7 +482,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     }
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        pose_coords.type(), "lk_ball_pose_score_backward", ([&] {
+        pose_coords.options(), "lk_ball_pose_score_backward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
