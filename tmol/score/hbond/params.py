@@ -179,16 +179,23 @@ class CompactedHBondDatabase(ValidateAttrs):
     pair_param_table: Tensor[torch.float32][:, :, :]
     pair_poly_table: Tensor[torch.float64][:, :, :]
 
-    @classmethod
-    @validate_args
-    @toolz.functoolz.memoize(
-        cache=_from_db_cache,
-        key=lambda args, kwargs: (
+    def lam(args, kwargs):
+        key = (
             id(args[1]),
             id(args[2]),
             args[3].type,
             args[3].index,
-        ),
+        )
+
+        print(key)
+
+        return key
+
+    @classmethod
+    @validate_args
+    @toolz.functoolz.memoize(
+        cache=_from_db_cache,
+        key=lam,
     )
     def from_database(
         cls,
