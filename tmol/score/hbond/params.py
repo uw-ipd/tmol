@@ -179,29 +179,23 @@ class CompactedHBondDatabase(ValidateAttrs):
     pair_param_table: Tensor[torch.float32][:, :, :]
     pair_poly_table: Tensor[torch.float64][:, :, :]
 
-    def lam(args, kwargs):
-        key = (
-            id(args[1]),
-            id(args[2]),
-            args[3].type,
-            args[3].index,
-        )
-
-        print(key)
-
-        return key
-
     @classmethod
     @validate_args
     @toolz.functoolz.memoize(
         cache=_from_db_cache,
-        key=lam,
+        key=lambda args, kwargs: (
+            id(args[1]),
+            id(args[2]),
+            args[3].type,
+            args[3].index,
+        ),
     )
     def from_database(
         cls,
         chemical_database: ChemicalDatabase,
         hbond_database: HBondDatabase,
         device: torch.device,
+        /,  # force positional arguments prior to the / so that we can properly form a cache key
     ):
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
