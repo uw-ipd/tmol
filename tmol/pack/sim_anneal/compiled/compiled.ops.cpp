@@ -91,7 +91,7 @@ Tensor register_standard_random_rotamer_picker(
   using Int = int32_t;
   try {
     TMOL_DISPATCH_FLOATING_DEVICE(
-        context_coords.type(), "register_rot_picker", ([&] {
+        context_coords.options(), "register_rot_picker", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -145,30 +145,31 @@ Tensor register_standard_metropolis_accept_or_rejector(
     Tensor annealer) {
   using Int = int32_t;
   try {
-    TMOL_DISPATCH_FLOATING_DEVICE(context_coords.type(), "register_mc", ([&] {
-                                    using Real = scalar_t;
-                                    constexpr tmol::Device Dev = device_t;
+    TMOL_DISPATCH_FLOATING_DEVICE(
+        context_coords.options(), "register_mc", ([&] {
+          using Real = scalar_t;
+          constexpr tmol::Device Dev = device_t;
 
-                                    using tmol::score::common::ForallDispatch;
-                                    MetropolisAcceptRejectStepRegistrator<
-                                        ForallDispatch,
-                                        Dev,
-                                        Real,
-                                        Int>::
-                                        f(TCAST(temperature),
-                                          TCAST(context_coords),
-                                          TCAST(context_coord_offsets),
-                                          TCAST(context_block_type),
-                                          TCAST(alternate_coords),
-                                          TCAST(alternate_coord_offsets),
-                                          TCAST(alternate_ids),
-                                          TCAST(rotamer_component_energies),
-                                          TCAST(accepted),
-                                          TCAST(block_type_n_atoms),
-                                          Int(max_n_atoms),
-                                          TCAST(score_events),
-                                          TCAST(annealer));
-                                  }));
+          using tmol::score::common::ForallDispatch;
+          MetropolisAcceptRejectStepRegistrator<
+              ForallDispatch,
+              Dev,
+              Real,
+              Int>::
+              f(TCAST(temperature),
+                TCAST(context_coords),
+                TCAST(context_coord_offsets),
+                TCAST(context_block_type),
+                TCAST(alternate_coords),
+                TCAST(alternate_coord_offsets),
+                TCAST(alternate_ids),
+                TCAST(rotamer_component_energies),
+                TCAST(accepted),
+                TCAST(block_type_n_atoms),
+                Int(max_n_atoms),
+                TCAST(score_events),
+                TCAST(annealer));
+        }));
   } catch (at::Error err) {
     std::cerr << "caught exception:\n"
               << err.what_without_backtrace() << std::endl;
@@ -227,7 +228,7 @@ Tensor pick_random_rotamers(
 
   try {
     TMOL_DISPATCH_FLOATING_DEVICE(
-        context_coords.type(), "score_op", ([&] {
+        context_coords.options(), "score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -281,7 +282,7 @@ Tensor metropolis_accept_reject(
 
   try {
     TMOL_DISPATCH_FLOATING_DEVICE(
-        context_coords.type(), "score_op", ([&] {
+        context_coords.options(), "score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 

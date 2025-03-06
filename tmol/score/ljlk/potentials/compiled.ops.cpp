@@ -51,7 +51,7 @@ class LJLKPoseScoreOp
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.type(), "ljlk_pose_score_op", ([&] {
+        coords.options(), "ljlk_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -164,7 +164,7 @@ class LJLKPoseScoreOp
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
-          coords.type(), "ljlk_pose_score_backward", ([&] {
+          coords.options(), "ljlk_pose_score_backward", ([&] {
             using Real = scalar_t;
             constexpr tmol::Device Dev = device_t;
 
@@ -293,7 +293,7 @@ Tensor rotamer_pair_energies_op(
       TPack<int64_t, 1, tmol::Device::CPU>::zeros({1});
 
   TMOL_DISPATCH_FLOATING_DEVICE(
-      context_coords.type(), "score_op", ([&] {
+      context_coords.options(), "score_op", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
@@ -363,7 +363,7 @@ Tensor register_lj_lk_rotamer_pair_energy_eval(
   using Int = int32_t;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
-      context_coords.type(), "score_op", ([&] {
+      context_coords.options(), "score_op", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 

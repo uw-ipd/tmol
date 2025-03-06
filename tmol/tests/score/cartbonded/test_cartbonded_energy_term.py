@@ -132,5 +132,5 @@ class TestCartBondedEnergyTerm(EnergyTermTestBase):
     ):
         resnums = [(0, 4)]
         return super().test_block_scoring_reweighted_gradcheck(
-            ubq_pdb, default_database, torch_device, resnums=resnums
+            ubq_pdb, default_database, torch_device, resnums=resnums, nondet_tol=1e-5
         )

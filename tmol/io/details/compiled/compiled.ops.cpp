@@ -42,7 +42,7 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        orig_coords.type(), "leaf_atom_gen_op", ([&] {
+        orig_coords.options(), "leaf_atom_gen_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -112,7 +112,7 @@ class PoseLeafAtomGen : public torch::autograd::Function<PoseLeafAtomGen> {
     auto dE_d_new_coords = grad_outputs[0];
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        orig_coords.type(), "leaf_atom_gen_backward", ([&] {
+        orig_coords.options(), "leaf_atom_gen_backward", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -195,7 +195,7 @@ Tensor resolve_his_tautomerization(
     Tensor his_atom_inds,
     Tensor his_remapping_dst_index) {
   at::Tensor his_taut;
-  TMOL_DISPATCH_FLOATING_DEVICE(coords.type(), "resolve_his_taut", ([&] {
+  TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "resolve_his_taut", ([&] {
                                   using Real = scalar_t;
                                   constexpr tmol::Device Dev = device_t;
 

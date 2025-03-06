@@ -71,7 +71,7 @@ std::vector<Tensor> dun_sample_chi(
 
   try {
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.type(), "dunbrack_sample_chi", ([&] {
+        coords.options(), "dunbrack_sample_chi", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
           auto result = DunbrackChiSampler<DispatchMethod, Dev, Real, Int>::f(
