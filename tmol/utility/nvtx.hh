@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(WITH_CUDA) && defined(WITH_NVTX)
+#if defined(WITH_CUDA) && defined(WITH_NVTX) && defined(__NVCC__)
 
 #include <nvtx3/nvToolsExt.h>
 
