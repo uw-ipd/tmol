@@ -98,6 +98,8 @@ class DunbrackEnergyTerm(EnergyTerm):
             else self.global_params.scoring_db_aux.semirotameric_tableset_offsets[
                 s_inds[s_inds != -1]
             ][0]
+            .cpu()
+            .numpy()
         )
 
         empty_tor = numpy.full((4, 3), -1, dtype=numpy.int32)
@@ -117,25 +119,27 @@ class DunbrackEnergyTerm(EnergyTerm):
 
         dih_uaids = numpy.array([phi_uaids] + [psi_uaids] + chis)
 
-        n_chi = self.global_params.scoring_db_aux.nchi_for_table_set[rotamer_table_set]
+        n_chi = self.global_params.scoring_db_aux.nchi_for_table_set[
+            rotamer_table_set
+        ].item()
         n_rotameric_chi = n_chi - (1 if semirotameric else 0)
         n_dihedrals = n_chi + 2
 
-        probability_table_offset = (
+        probability_table_offset = int(
             self.global_params.scoring_db_aux.rotameric_prob_tableset_offsets[
                 rotameric_index
-            ]
+            ].item()
         )
 
-        mean_table_offset = (
+        mean_table_offset = int(
             self.global_params.scoring_db_aux.rotameric_meansdev_tableset_offsets[
                 rotamer_table_set
-            ]
+            ].item()
         )
-        rotamer_index_to_table_index_offset = (
+        rotamer_index_to_table_index_offset = int(
             self.global_params.scoring_db_aux.rotameric_chi_ri2ti_offsets[
                 rotamer_table_set
-            ]
+            ].item()
         )
 
         dunbrack_attrs = DunbrackBlockAttrs(
@@ -171,6 +175,7 @@ class DunbrackEnergyTerm(EnergyTerm):
             packed_block_types.active_block_types,
             device=self.device,
         )
+
         packed_data = [
             pack(lambda f: getattr(f.dunbrack_attrs, field.name))
             for field in dataclasses.fields(DunbrackBlockAttrs)
@@ -190,7 +195,7 @@ class DunbrackEnergyTerm(EnergyTerm):
             cur = numpy.shape(bt_data)
             if max_size is None:
                 max_size = cur
-                dtype = bt_data.dtype
+                dtype = bt_data.dtype if not isinstance(bt_data, int) else int
             max_size = numpy.maximum(max_size, cur)
 
         n_block_types = (len(active_block_types),)
@@ -215,7 +220,11 @@ class DunbrackEnergyTerm(EnergyTerm):
             bt_data = field_getter(bt)
             if bt_data is None:
                 continue
-            slices = [i] + [*map(dim_slices, bt_data.shape)]
+            slices = [i] + (
+                [*map(dim_slices, bt_data.shape)]
+                if not isinstance(bt_data, int)
+                else []
+            )
             tensor[slices] = torch.tensor(
                 bt_data, dtype=dtype_conversion[dtype], device=device
             )
