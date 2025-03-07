@@ -34,6 +34,18 @@ class ConstraintSet:
         self.add_constraints(fn, atom_indices, params, nposes=nposes)
 
     def add_constraints(self, fn, atom_indices, params=None, nposes=0):
+        """Add multiple constraints all using the same functional form.
+
+        fn: the constraint function to use. It should take two arguments
+            1. the set of atom coordinates as an [n_csts x n_atoms_per_cst x 3] tensor
+            2. the set of parameters as an [n_csts x n_param_vals_per_cst] tensor
+        atom_indices: [n_csts x n_atoms_per_cst x 3]
+           Atom indices should be given as tuples of (pose_index, block_index, atom_within_block_index)
+           All of the indices for a single constraint must live in the same pose.
+        params: [n_csts x n_param_vals_per_cst]
+           Parameters for each of the constraints; e.g. x0 and k for a harmonic constraint.
+        """
+
         def find_or_insert(value, lst):
             if value in lst:
                 return lst.index(value)

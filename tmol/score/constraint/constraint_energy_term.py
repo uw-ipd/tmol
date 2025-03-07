@@ -7,7 +7,6 @@ from tmol.database import ParameterDatabase
 from tmol.score.constraint.constraint_whole_pose_module import (
     ConstraintWholePoseScoringModule,
 )
-from tmol.score.constraint.potentials.compiled import get_torsion_angle
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -33,6 +32,8 @@ class ConstraintEnergyTerm(EnergyTerm):
 
     @classmethod
     def get_torsion_angle_test(cls, tensor):
+        from tmol.score.constraint.potentials.compiled import get_torsion_angle
+
         return get_torsion_angle(tensor)
 
     @classmethod
@@ -41,6 +42,12 @@ class ConstraintEnergyTerm(EnergyTerm):
         atoms2 = atoms[:, 1]
         dist = torch.linalg.norm(atoms1 - atoms2, dim=-1)
         return (dist - params[:, 0]) ** 2
+
+    @classmethod
+    def harmonic_coord_constraint(cls, atoms, params):
+        """Harmonic penalty for the coordinates deviating from some set of target coordinates"""
+        dist = torch.linalg.norm(atoms[:, 0, :] - params, dim=-1)
+        return dist**2
 
     @classmethod
     def bounded(cls, atoms, params):
