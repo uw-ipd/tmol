@@ -20,7 +20,7 @@ def test_annotate_restypes(fresh_default_restype_set, default_database, torch_de
 
     rt_list = fresh_default_restype_set.residue_types
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, rt_list, torch_device
+        default_database.chemical, fresh_default_restype_set, rt_list, torch_device
     )
 
     for rt in rt_list:

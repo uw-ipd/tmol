@@ -4,8 +4,8 @@ from tmol.tests.torch import zero_padded_counts
 
 from tmol.score.score_function import ScoreFunction
 
-# from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.io import pose_stack_from_pdb
 
 from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
 from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
@@ -30,12 +30,10 @@ from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 @pytest.mark.parametrize("n_poses", zero_padded_counts([1, 3, 10, 30, 100]))
 @pytest.mark.benchmark(group="setup_res_centric_scoring")
 def dont_test_res_centric_score_benchmark_setup(
-    benchmark, energy_term, n_poses, rts_ubq_res, default_database, torch_device
+    benchmark, energy_term, n_poses, ubq_pdb, default_database, torch_device
 ):
     n_poses = int(n_poses)
-    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res, torch_device
-    )
+    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
 
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
     sfxn = ScoreFunction(default_database, torch_device)
@@ -84,14 +82,12 @@ def test_res_centric_score_benchmark(
     benchmark_pass,
     energy_term,
     n_poses,
-    rts_ubq_res,
+    ubq_pdb,
     default_database,
     torch_device,
 ):
     n_poses = int(n_poses)
-    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res, torch_device
-    )
+    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)
@@ -156,14 +152,12 @@ def test_combined_res_centric_score_benchmark(
     benchmark_pass,
     energy_terms,
     n_poses,
-    rts_ubq_res,
+    ubq_pdb,
     default_database,
     torch_device,
 ):
     n_poses = int(n_poses)
-    pose_stack1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_database.chemical, rts_ubq_res, torch_device
-    )
+    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
     pose_stack_n = PoseStackBuilder.from_poses([pose_stack1] * n_poses, torch_device)
 
     sfxn = ScoreFunction(default_database, torch_device)

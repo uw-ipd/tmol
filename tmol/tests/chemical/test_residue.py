@@ -1,4 +1,3 @@
-import pytest
 import cattr
 import numpy
 
@@ -6,34 +5,7 @@ from tmol.chemical.ideal_coords import normalize, build_ideal_coords
 from tmol.chemical.restypes import (
     RefinedResidueType,
     ResidueTypeSet,
-    find_simple_polymeric_connections,
 )
-from tmol.tests.data.pdb import data as test_pdbs
-from tmol.system.io import read_pdb
-from tmol.system.packed import PackedResidueSystem
-
-test_names = ["1QYS", "1UBQ"]
-
-
-@pytest.mark.parametrize("structure", test_names)
-def test_smoke_io(structure):
-    for tname in test_names:
-        pdb = test_pdbs[tname]
-        read_pdb(pdb)
-
-
-def test_water_system(water_box_res):
-    water_system = PackedResidueSystem.from_residues(water_box_res)
-
-    nwat = len(water_box_res)
-
-    assert len(water_system.residues) == nwat
-
-    assert water_system.block_size > 3
-    assert len(water_system.atom_metadata) == nwat * water_system.block_size
-
-    assert len(water_system.torsion_metadata) == 0
-    assert len(water_system.connection_metadata) == 0
 
 
 def test_refined_residue_construction_smoke(default_database):
@@ -123,27 +95,10 @@ def test_residue_type_set_get_default():
     assert restype_set1 is restype_set2
 
 
-def test_find_simple_polymeric_connections(ubq_res):
-    ubq_subset = ubq_res[0:4]
-    connections = find_simple_polymeric_connections(ubq_subset)
-    gold_connections = set(
-        [
-            (0, "up", 1, "down"),
-            (1, "up", 2, "down"),
-            (2, "up", 3, "down"),
-            (1, "down", 0, "up"),
-            (2, "down", 1, "up"),
-            (3, "down", 2, "up"),
-        ]
-    )
-    for conn in connections:
-        assert conn in gold_connections
-    assert len(connections) == len(gold_connections)
-
-
-def test_build_ideal_coords(ubq_res):
-    for res in ubq_res:
-        build_ideal_coords(res.residue_type)
+def test_build_ideal_coords_smoke(default_database):
+    restype_set = ResidueTypeSet.from_database(default_database.chemical)
+    for res in restype_set.residue_types:
+        build_ideal_coords(res)
 
 
 def test_all_bonds_construction(fresh_default_restype_set):
@@ -162,3 +117,26 @@ def test_all_bonds_construction(fresh_default_restype_set):
             else:
                 conn = bt.all_bonds[i, 2]
                 assert bt.ordered_connection_atoms[conn] == at1
+
+
+def test_mc_sc_torsion_properties(fresh_default_restype_set):
+    leu_restype = next(
+        x for x in fresh_default_restype_set.residue_types if x.name == "LEU"
+    )
+    assert leu_restype.n_mc_torsions == 3
+    assert leu_restype.n_sc_torsions == 2
+    assert leu_restype.is_torsion_mc[0]
+    assert leu_restype.is_torsion_mc[1]
+    assert leu_restype.is_torsion_mc[2]
+    assert leu_restype.is_torsion_mc[3].item() is False
+    assert leu_restype.is_torsion_mc[4].item() is False
+    assert leu_restype.mc_torsions[0] == 0
+    assert leu_restype.mc_torsions[1] == 1
+    assert leu_restype.mc_torsions[2] == 2
+    assert leu_restype.sc_torsions[0] == 3
+    assert leu_restype.sc_torsions[1] == 4
+    assert leu_restype.which_mcsc_torsion[0] == 0
+    assert leu_restype.which_mcsc_torsion[1] == 1
+    assert leu_restype.which_mcsc_torsion[2] == 2
+    assert leu_restype.which_mcsc_torsion[3] == 0
+    assert leu_restype.which_mcsc_torsion[4] == 1

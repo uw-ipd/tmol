@@ -2,11 +2,13 @@ import numpy
 import torch
 import os
 
+from tmol.io import pose_stack_from_pdb
 from tmol.io.write_pose_stack_pdb import (
     write_pose_stack_pdb,
     atom_records_from_pose_stack,
 )
-from tmol.chemical.restypes import find_simple_polymeric_connections
+
+# from tmol.chemical.restypes import find_simple_polymeric_connections
 from tmol.io.pdb_parsing import to_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io.canonical_ordering import (
@@ -15,16 +17,10 @@ from tmol.io.canonical_ordering import (
     canonical_form_from_pdb,
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
-from tmol.io import pose_stack_from_pdb
 
 
-def test_atom_records_from_pose_stack_1(
-    ubq_pdb, ubq_res, default_database, torch_device
-):
-    connections = find_simple_polymeric_connections(ubq_res)
-    p = PoseStackBuilder.one_structure_from_residues_and_connections(
-        default_database.chemical, ubq_res, connections, torch_device
-    )
+def test_atom_records_from_pose_stack_1(ubq_pdb, torch_device):
+    p = pose_stack_from_pdb(ubq_pdb, torch_device)
 
     records = atom_records_from_pose_stack(p)
     pdb_lines = to_pdb(records)
@@ -35,17 +31,9 @@ def test_atom_records_from_pose_stack_1(
     assert len(pdb_atom_lines) == len(starting_ubq_pdb_atom_lines)
 
 
-def test_atom_records_from_pose_stack_2(
-    ubq_pdb, ubq_res, default_database, torch_device
-):
-    connections5 = find_simple_polymeric_connections(ubq_res[:5])
-    p1 = PoseStackBuilder.one_structure_from_residues_and_connections(
-        default_database.chemical, ubq_res[:5], connections5, torch_device
-    )
-    connections7 = find_simple_polymeric_connections(ubq_res[:7])
-    p2 = PoseStackBuilder.one_structure_from_residues_and_connections(
-        default_database.chemical, ubq_res[:7], connections7, torch_device
-    )
+def test_atom_records_from_pose_stack_2(ubq_pdb, torch_device):
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     records = atom_records_from_pose_stack(poses)
@@ -58,7 +46,7 @@ def test_atom_records_from_pose_stack_2(
     # is bigger by almost 300 characters??
     # target_len = 67 * 214 + len("TER\n") * 2 + len("MODEL 1\n") * 2 + len("ENDMDL\n") * 2
 
-    assert len(pdb_lines) == 14644
+    assert len(pdb_lines) == 14778
 
 
 def test_atom_records_for_multi_chain_pdb(pertuzumab_pdb, torch_device):

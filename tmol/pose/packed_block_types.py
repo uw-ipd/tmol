@@ -1,6 +1,7 @@
 import attr
 
 import torch
+import numpy
 import pandas
 
 from typing import Sequence
@@ -9,7 +10,7 @@ from tmol.types.torch import Tensor
 
 from tmol.chemical.constants import MAX_PATHS_FROM_CONNECTION
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.chemical.restypes import RefinedResidueType, Residue
+from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.utility.tensor.common_operations import join_tensors_and_report_real_entries
 
 
@@ -61,6 +62,7 @@ class PackedBlockTypes:
     """
 
     chem_db: PatchedChemicalDatabase
+    restype_set: ResidueTypeSet
     active_block_types: Sequence[RefinedResidueType]
     restype_index: pandas.Index
 
@@ -78,6 +80,14 @@ class PackedBlockTypes:
     torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_tors
     # unresolved atom ids for all named torsions in the block types
     torsion_uaids: Tensor[torch.int32][:, :, 3]
+    is_torsion_mc: Tensor[torch.bool][:, :]  # dim: n_types, max_n_tors
+    n_mc_torsions: Tensor[torch.int32][:]  # dim: n_types
+    mc_torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_mc_tors
+    mc_torsions: Tensor[torch.int32][:, :]
+    n_sc_torsions: Tensor[torch.int32][:]  # dim: n_types
+    sc_torsion_is_real: Tensor[torch.uint8][:, :]  # dim: n_types, max_n_sc_tors
+    sc_torsions: Tensor[torch.int32][:, :]
+    which_mcsc_torsions: Tensor[torch.int32][:, :]
 
     max_n_bonds: int
     n_bonds: Tensor[torch.int32][:]
@@ -96,6 +106,9 @@ class PackedBlockTypes:
 
     down_conn_inds: Tensor[torch.int32][:]
     up_conn_inds: Tensor[torch.int32][:]
+    polymeric_conn_inds: Tensor[torch.int32][:, 2]
+
+    default_jump_connection_atom_inds: Tensor[torch.int32][:]
 
     device: torch.device
 
@@ -107,6 +120,7 @@ class PackedBlockTypes:
     def from_restype_list(
         cls,
         chem_db: PatchedChemicalDatabase,
+        restype_set: ResidueTypeSet,
         active_block_types: Sequence[RefinedResidueType],
         device: torch.device,
     ):
@@ -124,6 +138,14 @@ class PackedBlockTypes:
         n_torsions, torsion_is_real, torsion_uaids = cls.join_torsion_uaids(
             active_block_types, device
         )
+        is_torsion_mc = cls.join_is_torsion_mcs(active_block_types, device)
+        n_mc_torsions, mc_torsion_is_real, mc_torsions = cls.join_mc_torsion_inds(
+            active_block_types, device
+        )
+        n_sc_torsions, sc_torsion_is_real, sc_torsions = cls.join_sc_torsion_inds(
+            active_block_types, device
+        )
+        which_mcsc_torsions = cls.join_mcsc_torsion_inds(active_block_types, device)
         n_bonds, bond_is_real, bond_indices = cls.join_bond_indices(
             active_block_types, device
         )
@@ -133,9 +155,13 @@ class PackedBlockTypes:
         down_conn_inds, up_conn_inds = cls.join_polymeric_connections(
             active_block_types, device
         )
+        def_jumpconn_inds = cls.join_default_jump_connection_atom_inds(
+            active_block_types, device
+        )
 
         return cls(
             chem_db=chem_db,
+            restype_set=restype_set,
             active_block_types=active_block_types,
             restype_index=restype_index,
             max_n_atoms=max_n_atoms,
@@ -148,6 +174,14 @@ class PackedBlockTypes:
             n_torsions=n_torsions,
             torsion_is_real=torsion_is_real,
             torsion_uaids=torsion_uaids,
+            is_torsion_mc=is_torsion_mc,
+            n_mc_torsions=n_mc_torsions,
+            mc_torsion_is_real=mc_torsion_is_real,
+            mc_torsions=mc_torsions,
+            n_sc_torsions=n_sc_torsions,
+            sc_torsion_is_real=sc_torsion_is_real,
+            sc_torsions=sc_torsions,
+            which_mcsc_torsions=which_mcsc_torsions,
             max_n_bonds=bond_is_real.shape[1],
             n_bonds=n_bonds,
             bond_is_real=bond_is_real,
@@ -158,6 +192,10 @@ class PackedBlockTypes:
             conn_atom=conn_atom,
             down_conn_inds=down_conn_inds,
             up_conn_inds=up_conn_inds,
+            polymeric_conn_inds=torch.cat(
+                [down_conn_inds.unsqueeze(1), up_conn_inds.unsqueeze(1)], dim=1
+            ),
+            default_jump_connection_atom_inds=def_jumpconn_inds,
             device=device,
         )
 
@@ -206,7 +244,7 @@ class PackedBlockTypes:
 
     @classmethod
     def join_atom_downstream_of_conn(
-        cls, active_block_types: Sequence[Residue], device: torch.device
+        cls, active_block_types: Sequence[RefinedResidueType], device: torch.device
     ):
         n_restypes = len(active_block_types)
         max_n_conn = max(len(rt.connections) for rt in active_block_types)
@@ -223,7 +261,7 @@ class PackedBlockTypes:
 
     @classmethod
     def join_atom_paths_from_conn(
-        clas, active_block_types: Sequence[Residue], device: torch.device
+        clas, active_block_types: Sequence[RefinedResidueType], device: torch.device
     ):
         n_restypes = len(active_block_types)
         max_n_conn = max(len(bt.connections) for bt in active_block_types)
@@ -249,6 +287,24 @@ class PackedBlockTypes:
         return atom_paths_from_conn
 
     @classmethod
+    def _list_of_tensors_of_bt_attribute(
+        cls, active_block_types, attribute_name, device, dtype=None
+    ):
+        return (
+            [
+                torch.tensor(
+                    getattr(bt, attribute_name).copy().astype(dtype), device=device
+                )
+                for bt in active_block_types
+            ]
+            if dtype is not None
+            else [
+                torch.tensor(getattr(bt, attribute_name).copy(), device=device)
+                for bt in active_block_types
+            ]
+        )
+
+    @classmethod
     def join_torsion_uaids(cls, active_block_types, device):
         # unresolved atom ids are three integers:
         #  1st integer: an atom index, -1 if the atom is unresolved
@@ -256,27 +312,55 @@ class PackedBlockTypes:
         #               is on ther other side of, -1 if
         #  3rd integer: the number of chemical bonds into the other block that the
         #               unresolved atom is found.
-
-        ordered_torsions = [
-            torch.tensor(bt.ordered_torsions.copy(), device=device)
-            for bt in active_block_types
-        ]
+        ordered_torsions = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "ordered_torsions", device
+        )
         return join_tensors_and_report_real_entries(ordered_torsions)
 
     @classmethod
+    def join_is_torsion_mcs(cls, active_block_types, device):
+        is_torsion_mc = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "is_torsion_mc", device, dtype=numpy.int32
+        )
+        return join_tensors_and_report_real_entries(is_torsion_mc, sentinel=0)[2].to(
+            torch.bool
+        )
+
+    @classmethod
+    def join_mc_torsion_inds(cls, active_block_types, device):
+        mc_torsions = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "mc_torsions", device
+        )
+        return join_tensors_and_report_real_entries(mc_torsions)
+
+    @classmethod
+    def join_sc_torsion_inds(cls, active_block_types, device):
+        sc_torsions = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "sc_torsions", device
+        )
+        return join_tensors_and_report_real_entries(sc_torsions)
+
+    @classmethod
+    def join_mcsc_torsion_inds(cls, active_block_types, device):
+        # only return the joined tensor of mcsc indices, index 2 of the tuple
+        # returned by join_tensors_and_report_real_entries
+        which_mcsc_torsions = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "which_mcsc_torsion", device
+        )
+        return join_tensors_and_report_real_entries(which_mcsc_torsions)[2]
+
+    @classmethod
     def join_bond_indices(cls, active_block_types, device):
-        bond_indices = [
-            torch.tensor(bt.bond_indices.copy(), dtype=torch.int32, device=device)
-            for bt in active_block_types
-        ]
+        bond_indices = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "bond_indices", device, dtype=numpy.int32
+        )
         return join_tensors_and_report_real_entries(bond_indices)
 
     @classmethod
     def join_conn_indices(cls, active_block_types, device):
-        conn_atoms = [
-            torch.tensor(bt.ordered_connection_atoms, dtype=torch.int32, device=device)
-            for bt in active_block_types
-        ]
+        conn_atoms = cls._list_of_tensors_of_bt_attribute(
+            active_block_types, "ordered_connection_atoms", device, dtype=numpy.int32
+        )
         return join_tensors_and_report_real_entries(conn_atoms)
 
     @classmethod
@@ -293,9 +377,12 @@ class PackedBlockTypes:
         )
         return down_conn_inds, up_conn_inds
 
-    def inds_for_res(self, residues: Sequence[Residue]):
-        return self.restype_index.get_indexer(
-            [res.residue_type.name for res in residues]
+    @classmethod
+    def join_default_jump_connection_atom_inds(cls, active_block_types, device):
+        return torch.tensor(
+            [bt.default_jump_connection_atom_index for bt in active_block_types],
+            dtype=torch.int32,
+            device=device,
         )
 
     def inds_for_restypes(self, res_types: Sequence[RefinedResidueType]):
@@ -309,6 +396,7 @@ class PackedBlockTypes:
 
         new_inst = PackedBlockTypes(
             chem_db=self.chem_db,
+            restype_set=self.restype_set,
             active_block_types=cpu_equiv(self.active_block_types),
             restype_index=cpu_equiv(self.restype_index),
             max_n_atoms=cpu_equiv(self.max_n_atoms),
@@ -331,6 +419,10 @@ class PackedBlockTypes:
             conn_atom=cpu_equiv(self.conn_atom),
             down_conn_inds=cpu_equiv(self.down_conn_inds),
             up_conn_inds=cpu_equiv(self.up_conn_inds),
+            polymeric_conn_inds=cpu_equiv(self.polymeric_conn_inds),
+            default_jump_connection_atom_inds=cpu_equiv(
+                self.default_jump_connection_atom_inds
+            ),
             device=cpu_equiv(self.device),
         )
         for self_key in self.__dict__:

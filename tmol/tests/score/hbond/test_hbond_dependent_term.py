@@ -19,7 +19,7 @@ def test_hbond_dep_term_annotate_packed_block_types_smoke(
 ):
     bt_list = fresh_default_restype_set.residue_types
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, bt_list, torch_device
+        default_database.chemical, fresh_default_restype_set, bt_list, torch_device
     )
     hbdt = HBondDependentTerm(default_database, torch_device)
     for bt in bt_list:
@@ -32,7 +32,7 @@ def test_hbond_dep_term_setup_packed_block_types(
 ):
     bt_list = fresh_default_restype_set.residue_types
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, bt_list, torch_device
+        default_database.chemical, fresh_default_restype_set, bt_list, torch_device
     )
 
     hbdt = HBondDependentTerm(default_database, torch_device)

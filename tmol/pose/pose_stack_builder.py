@@ -1,4 +1,3 @@
-import toolz
 import copy
 
 import itertools
@@ -6,8 +5,6 @@ import itertools
 import numpy
 import torch
 import pandas
-import scipy.sparse.csgraph as csgraph
-import scipy
 
 from typing import List, Tuple, Optional
 
@@ -15,20 +12,15 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.chemical.constants import MAX_SIG_BOND_SEPARATION
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
+
 from tmol.chemical.restypes import (
     RefinedResidueType,
-    Residue,
-    find_simple_polymeric_connections,
-    find_disulfide_connections,
     three2one,
 )
 
-from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
-
-# from tmol.system.datatypes import connection_metadata_dtype
 from tmol.utility.tensor.common_operations import (
     exclusive_cumsum1d,
     exclusive_cumsum2d,
@@ -40,73 +32,6 @@ from tmol.types.functional import validate_args
 
 
 class PoseStackBuilder:
-    @classmethod
-    @validate_args
-    def one_structure_from_polymeric_residues(
-        cls, chem_db: PatchedChemicalDatabase, res: List[Residue], device: torch.device
-    ) -> PoseStack:
-        """Archaic form of creating a monomer from a list of Residue objects"""
-        residue_connections = find_simple_polymeric_connections(res)
-        disulfide_connections = find_disulfide_connections(res)
-        residue_connections.extend(disulfide_connections)
-        return cls.one_structure_from_residues_and_connections(
-            chem_db, res, residue_connections, device
-        )
-
-    @classmethod
-    @validate_args
-    def one_structure_from_residues_and_connections(
-        cls,
-        chem_db: PatchedChemicalDatabase,
-        res: List[Residue],
-        residue_connections: List[Tuple[int, str, int, str]],
-        device: torch.device,
-    ) -> PoseStack:
-        rt_list = residue_types_from_residues(res)
-        packed_block_types = PackedBlockTypes.from_restype_list(
-            chem_db, rt_list, device
-        )
-
-        inter_residue_connections = cls._create_inter_residue_connections(
-            res, residue_connections, device
-        )
-        inter_block_bondsep = cls._determine_single_structure_inter_block_bondsep(
-            res, residue_connections, device
-        )
-
-        block_type_ind = torch.tensor(
-            packed_block_types.inds_for_res(res), dtype=torch.int32, device=device
-        ).unsqueeze(0)
-
-        # real_blocks = block_type_ind != -1
-        # n_ats = torch.zeros_like(block_type_ind)
-        # n_ats[real_blocks] = packed_block_types.n_atoms[
-        #     block_type_ind[real_blocks].to(torch.int64)
-        # ]
-        # block_coord_offset = exclusive_cumsum2d(n_ats)
-
-        coords, block_coord_offset, _ = cls._pack_residue_coords(
-            packed_block_types, block_type_ind, [res]
-        )
-        coords = torch.tensor(coords, dtype=torch.float32, device=device)
-        # attached_res = cls._attach_residues(block_coord_offset, [res], residue_coords)
-
-        def i64(t):
-            return t.to(torch.int64)
-
-        return PoseStack(
-            packed_block_types=packed_block_types,
-            coords=coords,
-            block_coord_offset=block_coord_offset,
-            block_coord_offset64=i64(block_coord_offset),
-            inter_residue_connections=inter_residue_connections,
-            inter_residue_connections64=i64(inter_residue_connections),
-            inter_block_bondsep=inter_block_bondsep,
-            inter_block_bondsep64=i64(inter_block_bondsep),
-            block_type_ind=block_type_ind,
-            block_type_ind64=i64(block_type_ind),
-            device=device,
-        )
 
     @classmethod
     @validate_args
@@ -136,7 +61,7 @@ class PoseStackBuilder:
                     bt_set[bt.name] = bt
             uniq_bt = [v for _, v in bt_set.items()]
             packed_block_types = PackedBlockTypes.from_restype_list(
-                pbt0.chem_db, uniq_bt, device
+                pbt0.chem_db, pbt0.restype_set, uniq_bt, device
             )
 
         max_n_blocks = max(pose_stack.max_n_blocks for pose_stack in pose_stacks)
@@ -386,11 +311,6 @@ class PoseStackBuilder:
         packed_block_types: PackedBlockTypes,
         sequences,  # List[List[str]]
         chain_lengths,  # List[List[int]]
-        # option 1:
-        # chain_lengths: List[List[int]]
-        # option 2:
-        # sequences_w_chain_annotation
-        # [ALA:Nterm]AAAA[ALA:Cterm][ALA:Nterm]AAAAAAAAA[ALA:Cterm]
     ):
         """Construct a PoseStack given a list of sequences where the disulfide
         connectivity is known. E.g. If there is a disulfide pair between
@@ -526,10 +446,6 @@ class PoseStackBuilder:
         # the PoseStack's existing set of in-use residue types (but not necessarily
         # all of the block types that its PackedBlockTypes object holds)
 
-        # for pose_res_list in ps.residues:
-        #     for res in pose_res_list:
-        #         assert res.residue_type in packed_block_types.active_block_types
-        # orig_pose_bt_ind = ps.block_type_ind.cpu()
         for i in range(ps.n_poses):
             for j in range(ps.max_n_blocks):
                 if ps.is_real_block(i, j):
@@ -542,12 +458,6 @@ class PoseStackBuilder:
             ps.block_type_ind, -1, device=torch.device("cpu")
         )
         # this could be more efficient if we mapped orig_block_type to new_block_type
-        # for i, res in enumerate(ps.residues):
-        #     block_type_ind[i, : len(res)] = torch.tensor(
-        #         packed_block_types.inds_for_res(res),
-        #         dtype=torch.int32,
-        #         device=ps.device,
-        #     )
         for i in range(ps.n_poses):
             for j in range(ps.max_n_blocks):
                 orig_bt_ind = ps.block_type_ind64[i, j]
@@ -558,19 +468,11 @@ class PoseStackBuilder:
                     ).item()
         block_type_ind = block_type_ind.to(ps.device)
 
-        # residue_coords = coords.to(dtype=torch.float64).cpu().numpy()
-
-        # residues = cls._attach_residues(
-        #    ps.block_coord_offset.cpu(), ps.residues, residue_coords
-        # )
-
         def i64(t):
             return t.to(torch.int64)
 
         return PoseStack(
             packed_block_types=packed_block_types,
-            # residues=residues,
-            # residue_coords=residue_coords,
             coords=coords,
             block_coord_offset=ps.block_coord_offset,
             block_coord_offset64=ps.block_coord_offset64,
@@ -587,163 +489,6 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
-    def _create_inter_residue_connections(
-        cls,
-        res: List[Residue],
-        residue_connections: List[Tuple[int, str, int, str]],
-        device: torch.device,
-    ) -> Tensor[torch.int32][:, :, :, 2]:
-        """Return a torch tensor of integer-indices describing
-        which residues are bound to which other residues through
-        which connections using the indices of those
-        connections and not their names
-        """
-
-        max_n_conn = max(len(r.residue_type.connections) for r in res)
-        connection_inds = pandas.DataFrame.from_records(
-            [
-                (r_ind, conn.name, c_ind)
-                for r_ind, r in enumerate(res)
-                for c_ind, conn in enumerate(r.residue_type.connections)
-            ],
-            columns=["resi", "cname", "cind"],
-        )
-
-        inter_conn_inds = toolz.reduce(
-            toolz.curry(pandas.merge)(how="left", copy=False),
-            (
-                pandas.DataFrame.from_records(
-                    residue_connections,
-                    columns=["from_res_ind", "from_conn", "to_res_ind", "to_conn"],
-                ),
-                connection_inds.rename(
-                    columns={
-                        "resi": "from_res_ind",
-                        "cname": "from_conn",
-                        "cind": "from_conn_ind",
-                    }
-                ),
-                connection_inds.rename(
-                    columns={
-                        "resi": "to_res_ind",
-                        "cname": "to_conn",
-                        "cind": "to_conn_ind",
-                    }
-                ),
-            ),
-        )[["from_res_ind", "from_conn_ind", "to_res_ind", "to_conn_ind"]].values.astype(
-            numpy.int32
-        )
-
-        # .values is deprecated, and to_numpy  is preferred, but the
-        # version of pandas I'm currently using does not yet have to_numpy
-        #
-        # .to_numpy(
-        #    dtype=numpy.int32
-        # )
-
-        inter_residue_connections = numpy.full(
-            (1, len(res), max_n_conn, 2), -1, dtype=numpy.int32
-        )
-        inter_residue_connections[
-            0, inter_conn_inds[:, 0], inter_conn_inds[:, 1], :
-        ] = inter_conn_inds[:, 2:]
-        inter_residue_connections = torch.tensor(
-            inter_residue_connections, dtype=torch.int32, device=device
-        )
-        return inter_residue_connections
-
-    @classmethod
-    @validate_args
-    def _determine_single_structure_inter_block_bondsep(
-        cls,
-        res: List[Residue],
-        residue_connections: List[Tuple[int, str, int, str]],
-        device: torch.device,
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
-        """
-        With a list of blocks (residues) from a single structure,
-        construct the set of chemical-bond-path-distances between all pairs of
-        inter-block connection points in an
-        nblock x nblock x max-n-conn x max-n-conn tensor.
-        This code relies on the named residue connections (strings) of
-        the (assumed) polymer residues, "up" and "down," and is therefore not
-        as fast as perhaps an integer-based method. That said, it uses pandas
-        for the string comparison logic and is efficient on that level.
-        """
-
-        max_n_atoms = max(r.coords.shape[0] for r in res)
-
-        ### Index residue connectivity
-        # Generate a table of residue connections, with "from" and "to" entries
-        # for *both* directions across the connection.
-
-        for f_i, f_n, t_i, t_n in residue_connections:
-            assert (
-                f_n in res[f_i].residue_type.connection_to_idx
-            ), f"residue missing named connection: {f_n!r} res:\n{res[f_i]}"
-            assert (
-                t_n in res[t_i].residue_type.connection_to_idx
-            ), f"residue missing named connection: {t_n!r} res:\n{res[t_i]}"
-
-        connection_index = pandas.DataFrame.from_records(
-            residue_connections,
-            columns=pandas.MultiIndex.from_tuples(
-                [("from", "resi"), ("from", "cname"), ("to", "resi"), ("to", "cname")]
-            ),
-        )
-
-        # # Unpack the connection metadata table
-        # connection_metadata = numpy.empty(
-        #     len(connection_index), dtype=connection_metadata_dtype
-        # )
-        #
-        # connection_metadata["from_residue_index"] = connection_index["from"]["resi"]
-        # connection_metadata[
-        #     "from_connection_name"
-        # ] = connection_index["from"]["cname"]
-        #
-        # connection_metadata["to_residue_index"] = connection_index["to"]["resi"]
-        # connection_metadata["to_connection_name"] = connection_index["to"]["cname"]
-
-        # Generate an index of all the connection atoms in the system,
-        # resolving the internal and global index of the connection atoms
-        connection_atoms = pandas.DataFrame.from_records(
-            [
-                (ri, cidx, cname, c_aidx, c_aidx + max_n_atoms * ri)
-                for ri, r in enumerate(res)
-                for cidx, (cname, c_aidx) in enumerate(
-                    r.residue_type.connection_to_idx.items()
-                )
-            ],
-            columns=["resi", "cidx", "cname", "internal_aidx", "aidx"],
-        )
-
-        # Merge against the connection table to generate a connection entry
-        # with the residue index, the connection name, the local atom index,
-        # and the global atom index for the connection by merging on the
-        # "cname", "resi" columns.
-        #
-        # columns:
-        # cname resi internal_aidx  aidx
-        from_connections = pandas.merge(connection_index["from"], connection_atoms)
-        to_connections = pandas.merge(connection_index["to"], connection_atoms)
-
-        # for c in from_connections.columns:
-        #     connection_index["from", c] = from_connections[c]
-        # for c in to_connections.columns:
-        #     connection_index["to", c] = to_connections[c]
-
-        inter_res_bonds = numpy.vstack(
-            [from_connections["aidx"].values, to_connections["aidx"].values]
-        ).T
-
-        return cls._resolve_inter_block_bondsep(
-            res, inter_res_bonds, connection_atoms, device
-        )
-
-    @classmethod
-    @validate_args
     def _find_connection_pairs_for_residue_subset(
         cls,
         pbt: PackedBlockTypes,
@@ -756,20 +501,6 @@ class PoseStackBuilder:
         few connections one-by-one.
         """
         ps_conn_inds = []
-        # bt_names = [
-        #     (sequences[i, r1], sequences[i, r2])
-        #     for i in range(len(residue_connections))
-        #     for r1, _1, r2, _2 in residue_connections[i]
-        # ]
-        # bt_df_inds = pbt.bt_mapping_w_lcaa_1lc_ind.get_indexer(
-        #     itertools.chain.from_iterable(bt_names)
-        # )
-        # if numpy.any(condensed_non_df_inds) == -1:
-        #     # TO DO: better error message
-        #     # error check
-        #     error = "Fatal error: could not resolve residue type"
-        #     raise ValueEerror(error)
-        # bt_inds = pbt.bt_mapping_w_lcaa_1lc["bt_ind"][bt_df_inds].values
         bt_inds = block_types64.cpu()
 
         def conn_ind_for_bt(bt_ind, c_name):
@@ -876,16 +607,27 @@ class PoseStackBuilder:
         n_conn_for_block_offset64 = n_conn_for_block_offset.to(torch.int64)
         max_n_pose_conn = torch.max(n_conn_totals)
 
-        # nz_real_blocks_pose_ind, nz_real_blocks_block_ind = torch.nonzero(
-        #     real_blocks, as_tuple=True
-        # )
-
         pconn_matrix = torch.full(
             (n_poses, max_n_pose_conn, max_n_pose_conn),
             MAX_SIG_BOND_SEPARATION,
             dtype=torch.int32,
             device=pbt_device,
         )
+
+        if max_n_pose_conn == 0:
+            # early exit: we are looking at either an empty pose
+            # or a bunch of residues with no inter-residue connections;
+            # in either case, no work remains.
+            return (
+                pconn_matrix,
+                n_conn_for_block_offset64,
+                n_conn_for_block,
+                n_conn_totals,
+            )
+
+        # Not all blocks have inter-residue connections! We want the subset
+        # of real blocks that do.
+        block_has_conn = n_conn_for_block > 0
 
         # let's identify which pairs of connections are part
         # of the same block
@@ -898,7 +640,8 @@ class PoseStackBuilder:
             (n_poses, max_n_pose_conn), dtype=torch.int32, device=pbt_device
         )
         first_pconn_for_block[
-            pose_for_block[real_blocks.view(-1)], n_conn_for_block_offset64[real_blocks]
+            pose_for_block[block_has_conn.view(-1)],
+            n_conn_for_block_offset64[block_has_conn],
         ] = 1
         # then an inclusive cummulative sum will label all of the
         # connections coming from the same block the same; this
@@ -976,143 +719,6 @@ class PoseStackBuilder:
 
         return pconn_matrix, n_conn_for_block_offset64, n_conn_for_block, n_conn_totals
 
-    # @classmethod
-    # @validate_args
-    # def _mark_polymeric_intrablock_connections(
-    #         cls,
-    #         pbt,
-    #         block_type64,
-    #         real_blocks,
-    #         pconn_matrix
-    # ):
-    #     pass
-
-    @classmethod
-    @validate_args
-    def _resolve_inter_block_bondsep(
-        cls,
-        res: List[Residue],
-        inter_res_bonds: NDArray[int][:, 2],
-        connection_atoms: pandas.DataFrame,
-        device: torch.device,
-    ) -> Tensor[torch.int32][:, :, :, :, :]:
-        """
-        Resolve chemical-bond path distances between all pairs of interblock connections
-        in a single structure given a list of the interblock chemical bonds.
-        """
-
-        n_res = len(res)
-        max_n_atoms = max(r.coords.shape[0] for r in res)
-        max_n_conn = max(len(r.residue_type.connections) for r in res)
-
-        ### Generate the bond graph
-        #
-        intra_res_bonds = numpy.concatenate(
-            [
-                r.residue_type.bond_indices + rind * max_n_atoms
-                for rind, r in zip(numpy.arange(len(res), dtype=int), res)
-            ]
-        )
-
-        bonds = numpy.concatenate([intra_res_bonds, inter_res_bonds])
-        # bond_graph = sparse.COO(
-        #    bonds.T,
-        #    data=numpy.full(len(bonds), True),
-        #    shape=(max_n_atoms * n_res, max_n_atoms * n_res),
-        #    cache=True,
-        # )
-        bond_graph = scipy.sparse.coo_matrix(
-            (
-                numpy.full(len(bonds), True),
-                (bonds[:, 0], bonds[:, 1]),
-            ),
-            shape=(max_n_atoms * n_res, max_n_atoms * n_res),
-        )
-
-        min_bond_dist = csgraph.dijkstra(
-            bond_graph,
-            directed=False,
-            unweighted=True,
-            limit=MAX_SIG_BOND_SEPARATION,
-        )
-
-        # ok, now we want to ask: for each pair of connections, what is
-        # the minimum number of chemical bonds that connects them.
-
-        inter_block_bondsep = numpy.full(
-            (1, n_res, n_res, max_n_conn, max_n_conn),
-            MAX_SIG_BOND_SEPARATION,
-            dtype=numpy.int32,
-        )
-        min_bond_dist[min_bond_dist == numpy.inf] = MAX_SIG_BOND_SEPARATION
-
-        ainds_conn1 = connection_atoms["aidx"].values
-        ainds_conn2 = connection_atoms["aidx"].values
-        rinds_conn1 = connection_atoms["resi"].values
-        rinds_conn2 = connection_atoms["resi"].values
-        cinds_conn1 = connection_atoms["cidx"].values
-        cinds_conn2 = connection_atoms["cidx"].values
-
-        ainds_all_pairs = numpy.array(
-            list(itertools.product(ainds_conn1, ainds_conn2)), dtype=int
-        )
-        rinds_all_pairs = numpy.array(
-            list(itertools.product(rinds_conn1, rinds_conn2)), dtype=int
-        )
-        cinds_all_pairs = numpy.array(
-            list(itertools.product(cinds_conn1, cinds_conn2)), dtype=int
-        )
-
-        inter_block_bondsep[
-            0,
-            rinds_all_pairs[:, 0],
-            rinds_all_pairs[:, 1],
-            cinds_all_pairs[:, 0],
-            cinds_all_pairs[:, 1],
-        ] = min_bond_dist[ainds_all_pairs[:, 0], ainds_all_pairs[:, 1]]
-
-        return torch.tensor(inter_block_bondsep, dtype=torch.int32, device=device)
-
-    @classmethod
-    @validate_args
-    def _pack_residue_coords(
-        cls,
-        packed_block_types: PackedBlockTypes,
-        block_type_ind: Tensor[torch.int32][:, :],
-        res: List[List[Residue]],
-    ):
-        device = block_type_ind.device
-        btind64 = block_type_ind.to(torch.int64)
-        n_ats = torch.zeros(block_type_ind.shape, dtype=torch.int32, device=device)
-
-        n_ats[btind64 != -1] = packed_block_types.n_atoms[btind64[btind64 != -1]]
-        n_ats_inccumsum = torch.cumsum(n_ats, dim=1, dtype=torch.int32)
-        max_n_ats = torch.max(n_ats_inccumsum[:, -1])
-        block_coord_offset = torch.cat(
-            (
-                torch.zeros(
-                    (block_type_ind.shape[0], 1), dtype=torch.int32, device=device
-                ),
-                n_ats_inccumsum[:, :-1],
-            ),
-            dim=1,
-        )
-        block_coord_offset_cpu = block_coord_offset.cpu()
-
-        coords = numpy.zeros((len(res), max_n_ats, 3), dtype=numpy.float64)
-        attached_res = []
-        for i, rlist in enumerate(res):
-            attached_res.append([])
-            for j, r in enumerate(rlist):
-                j_offset = block_coord_offset_cpu[i, j]
-                coords[i, j_offset : (j_offset + len(r.residue_type.atoms))] = r.coords
-                attached_res[i].append(
-                    r.attach_to(
-                        coords[i, j_offset : (j_offset + len(r.residue_type.atoms))]
-                    )
-                )
-        return coords, block_coord_offset, attached_res
-
     @classmethod
     @validate_args
     def _pack_pose_stack_coords(
@@ -1139,29 +745,6 @@ class PoseStackBuilder:
             ] = p.block_coord_offset
             count += len(p)
         return coords, block_coord_offset
-
-    @classmethod
-    @validate_args
-    def _attach_residues(
-        cls,
-        block_coord_offset_cpu: Tensor[torch.int32][:, :],
-        orig_res: List[List[Residue]],
-        residue_coords: NDArray[numpy.float64][:, :, 3],
-    ) -> List[List[Residue]]:
-        return [
-            [
-                r.attach_to(
-                    residue_coords[
-                        i,
-                        block_coord_offset_cpu[i, j] : (
-                            block_coord_offset_cpu[i, j] + len(r.residue_type.atoms)
-                        ),
-                    ]
-                )
-                for j, r in enumerate(orig_res_list)
-            ]
-            for i, orig_res_list in enumerate(orig_res)
-        ]
 
     @classmethod
     @validate_args
@@ -1448,7 +1031,6 @@ class PoseStackBuilder:
         Tensor[torch.int64][:, :],
     ]:
         device = pbt.device
-        # real_res = numpy.full((n_poses, max_n_res), True, dtype=bool)
         real_res = (
             numpy.tile(numpy.arange(max_n_res, dtype=numpy.int32), n_poses).reshape(
                 (n_poses, max_n_res)
@@ -1593,7 +1175,6 @@ class PoseStackBuilder:
                         chain_lengths_t[i, j] = l
             chain_lengths_t = chain_lengths_t.to(device)
             cl_real = chain_lengths_t != -1
-            # cl_real = cl_real[:, :-1]
             cl_offsets = torch.cumsum(chain_lengths_t, dim=1)
             nz_cl_real_pose_ind, _ = torch.nonzero(cl_real, as_tuple=True)
             n_term_res = cl_offsets[cl_real]
@@ -1765,11 +1346,6 @@ class PoseStackBuilder:
         cls._shortest_paths_for_connectivity_graph(pconn_matrix)
 
         # the big assignment!
-        # print("inter_block_bondsep", inter_block_bondsep.shape)
-        # print("bconn_pair_real", bconn_pair_real.shape, torch.sum(bconn_pair_real))
-        # print("pconn_matrix", pconn_matrix.shape)
-        # print("pconn_pair_real", pconn_pair_real.shape, torch.sum(pconn_pair_real))
-
         inter_block_bondsep[bconn_pair_real] = pconn_matrix[pconn_pair_real]
 
         # now reorder so it's pose-ind x r1 x r2 x c1 x c2

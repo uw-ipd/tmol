@@ -23,7 +23,7 @@ struct accumulate<
     tmol::Device::CPU,
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  static def add(T& target, const T& val)->void {
+  static def add(T& target, const T& val)->T {
     //  // Try the atomic-add solution from stack overflow:
     //  //
     //  https://stackoverflow.com/questions/48746540/are-there-any-more-efficient-ways-for-atomically-adding-two-floats
@@ -38,7 +38,9 @@ struct accumulate<
     //                                          __ATOMIC_SEQ_CST,
     //                                          __ATOMIC_SEQ_CST ) );
     //
+    T old_target = target;
     target += val;
+    return old_target;
   }
 
   // This is safe to use when all threads are going to write to the same address
@@ -138,7 +140,7 @@ struct accumulate<
     tmol::Device::CUDA,
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  static def add(T& target, const T& val)->void { atomicAdd(&target, val); }
+  static def add(T& target, const T& val)->T { return atomicAdd(&target, val); }
 
   // Use this function to accummulate into an array, target, at a position,
   // ind, when most threads in a warp are going to write to the same

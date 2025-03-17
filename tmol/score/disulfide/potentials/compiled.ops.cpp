@@ -43,7 +43,7 @@ class DisulfidePoseScoreOp
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.type(), "disulfide_pose_score_op", ([&] {
+        coords.options(), "disulfide_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -122,7 +122,7 @@ class DisulfidePoseScoreOp
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
-          coords.type(), "disulfide_pose_score_backward", ([&] {
+          coords.options(), "disulfide_pose_score_backward", ([&] {
             using Real = scalar_t;
             constexpr tmol::Device Dev = device_t;
 

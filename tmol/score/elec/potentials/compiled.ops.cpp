@@ -49,7 +49,7 @@ class ElecPoseScoreOp
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.type(), "elec_pose_score_op", ([&] {
+        coords.options(), "elec_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -155,7 +155,7 @@ class ElecPoseScoreOp
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
-          coords.type(), "elec_pose_score_backward", ([&] {
+          coords.options(), "elec_pose_score_backward", ([&] {
             using Real = scalar_t;
             constexpr tmol::Device Dev = device_t;
 

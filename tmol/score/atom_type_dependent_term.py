@@ -16,8 +16,6 @@ from collections import OrderedDict
 
 
 class AtomTypeDependentTerm(EnergyTerm):
-    atom_name_index: OrderedDict  # = attr.ib()
-    atom_unique_id_index: OrderedDict  # = attr.ib()
     atom_type_resolver: AtomTypeParamResolver  # = attr.ib()
     atom_type_index: pandas.Index  # = attr.ib()
     np_is_hydrogen: NDArray[bool]  # = attr.ib()
@@ -34,45 +32,25 @@ class AtomTypeDependentTerm(EnergyTerm):
         self.np_is_hydrogen = atom_type_resolver.params.is_hydrogen.cpu().numpy()
         self.np_is_heavyatom = numpy.logical_not(self.np_is_hydrogen)
 
-        self.atom_name_index = OrderedDict()
-        self.atom_unique_id_index = OrderedDict()
         self.device = device
 
     def get_atom_unique_id_name(self, block_name, atom_name):
         return "UNIQUE_ID:" + block_name + ":" + atom_name
 
-    def get_atom_wildcard_id_name(self, block_name, atom_name):
+    def get_atom_wildcard_id_name(self, atom_name):
         return "WILDCARD_ID:" + atom_name
 
-    def add_atom_index(self, block_type):
+    def _create_uniq_and_wildcard_names_for_bt(self, block_type):
         atom_names = [x.name for x in block_type.atoms]
 
-        unique_id_indices = []
-        name_indices = []
-        for atom_name in atom_names:
-            unique_id = self.get_atom_unique_id_name(block_type.base_name, atom_name)
-            if unique_id not in self.atom_unique_id_index:
-                self.atom_unique_id_index[unique_id] = len(self.atom_unique_id_index)
-            unique_id_indices.append(self.atom_unique_id_index[unique_id])
-
-            wildcard_id = self.get_atom_wildcard_id_name(
-                block_type.base_name, atom_name
-            )
-            if wildcard_id not in self.atom_unique_id_index:
-                self.atom_unique_id_index[wildcard_id] = len(self.atom_unique_id_index)
-            name_indices.append(self.atom_unique_id_index[wildcard_id])
-
-        bt_atom_name_index = numpy.full((len(atom_names)), -1, dtype=numpy.int32)
-        bt_atom_unique_id_index = numpy.full((len(atom_names)), -1, dtype=numpy.int32)
-
-        for index, unique_id_index in enumerate(unique_id_indices):
-            bt_atom_unique_id_index[index] = unique_id_index
-
-        for index, name_index in enumerate(name_indices):
-            bt_atom_name_index[index] = name_index
-
-        setattr(block_type, "atom_unique_ids", bt_atom_unique_id_index)
-        setattr(block_type, "atom_wildcard_ids", bt_atom_name_index)
+        unique_ids = [
+            self.get_atom_unique_id_name(block_type.base_name, atom_name)
+            for atom_name in atom_names
+        ]
+        wildcard_ids = [
+            self.get_atom_wildcard_id_name(atom_name) for atom_name in atom_names
+        ]
+        return unique_ids, wildcard_ids
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(AtomTypeDependentTerm, self).setup_block_type(block_type)
@@ -82,14 +60,19 @@ class AtomTypeDependentTerm(EnergyTerm):
             assert hasattr(block_type, "atom_wildcard_ids")
             return
 
-        self.add_atom_index(block_type)
+        unique_ids, wildcard_ids = self._create_uniq_and_wildcard_names_for_bt(
+            block_type
+        )
 
         atom_types = self.atom_type_index.get_indexer(
             [x.atom_type for x in block_type.atoms]
         )
         heavy_inds = numpy.nonzero(self.np_is_heavyatom[atom_types])[0]
+
         setattr(block_type, "atom_types", atom_types)
         setattr(block_type, "heavy_atom_inds", heavy_inds)
+        setattr(block_type, "atom_unique_ids", unique_ids)
+        setattr(block_type, "atom_wildcard_ids", wildcard_ids)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
         super(AtomTypeDependentTerm, self).setup_packed_block_types(packed_block_types)
@@ -99,7 +82,13 @@ class AtomTypeDependentTerm(EnergyTerm):
             assert hasattr(packed_block_types, "heavy_atom_inds")
             assert hasattr(packed_block_types, "atom_unique_ids")
             assert hasattr(packed_block_types, "atom_wildcard_ids")
+            assert hasattr(packed_block_types, "atom_unique_id_index")
             return
+
+        # TO DO: Figure out why this add was necessary
+        for bt in packed_block_types.active_block_types:
+            self.setup_block_type(bt)
+
         atom_types = numpy.full(
             (packed_block_types.n_types, packed_block_types.max_n_atoms),
             -1,
@@ -117,13 +106,16 @@ class AtomTypeDependentTerm(EnergyTerm):
             dtype=numpy.int32,
         )
 
-        for i, block_type in enumerate(packed_block_types.active_block_types):
-            atom_unique_ids[i, : packed_block_types.n_atoms[i]] = (
-                block_type.atom_unique_ids
-            )
-            atom_wildcard_ids[i, : packed_block_types.n_atoms[i]] = (
-                block_type.atom_wildcard_ids
-            )
+        atom_unique_id_index = OrderedDict()
+        for i, bt in enumerate(packed_block_types.active_block_types):
+            for j, atom_name in enumerate(bt.atom_unique_ids):
+                if atom_name not in atom_unique_id_index:
+                    atom_unique_id_index[atom_name] = len(atom_unique_id_index)
+                atom_unique_ids[i, j] = atom_unique_id_index[atom_name]
+            for j, atom_name in enumerate(bt.atom_wildcard_ids):
+                if atom_name not in atom_unique_id_index:
+                    atom_unique_id_index[atom_name] = len(atom_unique_id_index)
+                atom_wildcard_ids[i, j] = atom_unique_id_index[atom_name]
 
         for i, restype in enumerate(packed_block_types.active_block_types):
             atom_types[i, : packed_block_types.n_atoms[i]] = (
@@ -167,6 +159,7 @@ class AtomTypeDependentTerm(EnergyTerm):
         setattr(packed_block_types, "heavy_atom_inds", heavy_atom_inds_t)
         setattr(packed_block_types, "atom_unique_ids", atom_unique_ids)
         setattr(packed_block_types, "atom_wildcard_ids", atom_wildcard_ids)
+        setattr(packed_block_types, "atom_unique_id_index", atom_unique_id_index)
 
     def setup_poses(self, pose_stack: PoseStack):
         super(AtomTypeDependentTerm, self).setup_poses(pose_stack)

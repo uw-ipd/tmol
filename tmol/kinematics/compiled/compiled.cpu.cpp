@@ -1,9 +1,11 @@
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/score/common/device_operations.cpu.impl.hh>
 
 #include "common.hh"
 #include "params.hh"
+#include "compiled.impl.hh"
 
 namespace tmol {
 namespace kinematics {
@@ -89,7 +91,6 @@ struct InverseKinDispatch {
       TView<Int, 1, D> frame_z,
       TView<Int, 1, D> doftype) -> TPack<KintreeDof, 1, D> {
     auto num_atoms = coords.size(0);
-    // auto num_atoms = parent.size(0);
     auto num_nodes = parent.size(0);
 
     // fd: we could eliminate HT allocation and calculate on the fly
@@ -216,6 +217,19 @@ template struct InverseKinDispatch<tmol::Device::CPU, float, int32_t>;
 template struct InverseKinDispatch<tmol::Device::CPU, double, int32_t>;
 template struct KinDerivDispatch<tmol::Device::CPU, float, int32_t>;
 template struct KinDerivDispatch<tmol::Device::CPU, double, int32_t>;
+
+template struct KinForestFromStencil<
+    tmol::score::common::DeviceOperations,
+    tmol::Device::CPU,
+    int32_t>;
+
+// NOTE: Intetionally not enabling int64_t as there are atomic_incremement
+// operations that are needed for several steps in the kin-forest construction
+// algorithm and atomic_increment is not implemented in CUDA for int64_t.
+// template struct KinForestFromStencil<
+//     tmol::score::common::DeviceOperations,
+//     tmol::Device::CPU,
+//     int64_t>;
 
 #undef HomogeneousTransform
 #undef KintreeDof

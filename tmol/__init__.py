@@ -1,8 +1,15 @@
 from importlib.metadata import PackageNotFoundError, version
 
+from tmol.database import ParameterDatabase  # noqa: F401
 from tmol.chemical.restypes import one2three, three2one  # noqa: F401
 from tmol.pose.packed_block_types import PackedBlockTypes  # noqa: F401
 from tmol.pose.pose_stack import PoseStack  # noqa: F401
+
+from tmol.kinematics.fold_forest import FoldForest, EdgeType  # noqa: F401
+from tmol.kinematics.datatypes import KinematicModuleData  # noqa: F401
+from tmol.kinematics.move_map import MoveMap  # noqa: F401
+
+
 from tmol.io import pose_stack_from_pdb  # noqa: F401
 from tmol.io.pose_stack_construction import (  # noqa: F401
     pose_stack_from_canonical_form,
@@ -31,7 +38,10 @@ from tmol.io.write_pose_stack_pdb import (  # noqa: F401
 )
 from tmol.score import beta2016_score_function  # noqa: F401
 from tmol.score.score_function import ScoreFunction  # noqa: F401
+from tmol.score.score_types import ScoreType  # noqa: F401
 
+
+from tmol.optimization.kin_min import build_kinforest_network, run_kin_min  # noqa: F401
 
 try:
     __version__ = version("tmol")

@@ -1,4 +1,4 @@
-global_parameters: 
+global_parameters:
   elec_min_dis: 1.6
   elec_max_dis: 5.5
   elec_sigmoidal_die_D: 79.931
@@ -754,5 +754,7 @@ atom_charge_parameters:
   - { *r: VAL:nterm ,*a: H1, *e: 0.2946 }
   - { *r: VAL:nterm ,*a: H2, *e: 0.2946 }
   - { *r: VAL:nterm ,*a: H3, *e: 0.2946 }
-
+  - { *r: VRT, *a: A1, *e: 0.00000 }
+  - { *r: VRT, *a: A2, *e: 0.00000 }
+  - { *r: VRT, *a: A3, *e: 0.00000 }
 

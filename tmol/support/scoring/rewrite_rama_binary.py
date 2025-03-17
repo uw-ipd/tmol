@@ -169,6 +169,7 @@ if __name__ == "__main__":
             args.rosetta_dir, "database/scoring/score_functions/P_AA_pp/"
         ),
     )
+
     parser.add_argument(
         "--output",
         default=os.path.join(
