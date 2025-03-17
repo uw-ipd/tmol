@@ -48,7 +48,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         return tmol.score.terms.cartbonded_creator.CartBondedTermCreator.score_types()
 
     def n_bodies(self):
-        return 1
+        return 2
 
     def find_subgraphs(self, bonds, block_type):  # noqa: C901
         lengths = []
