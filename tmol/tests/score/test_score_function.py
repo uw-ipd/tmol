@@ -1,6 +1,7 @@
 import torch
 import numpy
 
+from tmol.score import _non_memoized_beta2016
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -108,3 +109,145 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
 
     torch.testing.assert_close(scores_wo_vrt, scores_w_vrt)
     torch.testing.assert_close(unweighted_scores_wo_vrt, unweighted_scores_w_vrt)
+
+
+def test_score_function_all_score_types(ubq_pdb):
+    device = torch.device("cpu")
+    ps = pose_stack_from_pdb(ubq_pdb, device)
+    sfxn = beta2016_score_function(device)
+
+    wpsm = sfxn.render_whole_pose_scoring_module(ps)
+    unweighted_scores = wpsm.unweighted_scores(ps.coords)
+    score_types = sfxn.all_score_types()
+    unweighted_score_map = {
+        st: unweighted_scores[i, :].detach().cpu().numpy()
+        for i, st in enumerate(score_types)
+    }
+
+    def n(x):
+        return numpy.array(x)
+
+    gold_score_map = {
+        ScoreType.cart_lengths: n([37.762318]),
+        ScoreType.cart_angles: n([183.56915]),
+        ScoreType.cart_torsions: n([50.584225]),
+        ScoreType.cart_impropers: n([9.430529]),
+        ScoreType.cart_hxltorsions: n([47.41971]),
+        ScoreType.disulfide: n([0.0]),
+        ScoreType.fa_ljatr: n([-417.9582]),
+        ScoreType.fa_ljrep: n([240.7147]),
+        ScoreType.fa_lk: n([298.27637]),
+        ScoreType.fa_elec: n([-136.454]),
+        ScoreType.hbond: n([-55.675613]),
+        ScoreType.lk_ball_iso: n([422.03955]),
+        ScoreType.lk_ball: n([172.19647]),
+        ScoreType.lk_bridge: n([1.5785888]),
+        ScoreType.lk_bridge_uncpl: n([10.9946]),
+        ScoreType.rama: n([-12.743372]),
+        ScoreType.omega: n([4.100171]),
+        ScoreType.ref: n([-41.275]),
+        ScoreType.dunbrack_rot: n([70.64968]),
+        ScoreType.dunbrack_rotdev: n([240.31009]),
+        ScoreType.dunbrack_semirot: n([99.660904]),
+    }
+    for st in score_types:
+        numpy.testing.assert_allclose(
+            unweighted_score_map[st], gold_score_map[st], rtol=1e-4, atol=1e-4
+        )
+
+
+def test_score_function_one_body_terms_getter():
+    from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
+    from tmol.score.ref.ref_energy_term import RefEnergyTerm
+
+    device = torch.device("cpu")
+    sfxn = _non_memoized_beta2016(device)
+    assert sfxn._one_body_terms_out_of_date
+
+    terms_1b = sfxn.one_body_terms()
+    assert not sfxn._one_body_terms_out_of_date
+
+    valid_one_body_terms = [DunbrackEnergyTerm, RefEnergyTerm]
+    for term in terms_1b:
+        found = False
+        for valid_option in valid_one_body_terms:
+            if isinstance(term, valid_option):
+                found = True
+                break
+        assert found
+
+
+def test_score_function_two_body_terms_getter():
+    from tmol.score.backbone_torsion.bb_torsion_energy_term import (
+        BackboneTorsionEnergyTerm,
+    )
+    from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
+    from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
+    from tmol.score.elec.elec_energy_term import ElecEnergyTerm
+    from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
+    from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
+    from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
+
+    device = torch.device("cpu")
+    sfxn = _non_memoized_beta2016(device)
+    assert sfxn._two_body_terms_out_of_date
+
+    terms_2b = sfxn.two_body_terms()
+    assert not sfxn._two_body_terms_out_of_date
+
+    valid_two_body_terms = [
+        BackboneTorsionEnergyTerm,
+        CartBondedEnergyTerm,
+        DisulfideEnergyTerm,
+        ElecEnergyTerm,
+        HBondEnergyTerm,
+        LJLKEnergyTerm,
+        LKBallEnergyTerm,
+    ]
+    for term in terms_2b:
+        found = False
+        for valid_option in valid_two_body_terms:
+            if isinstance(term, valid_option):
+                found = True
+                break
+        assert found
+
+
+def test_score_function_all_terms_getter():
+    from tmol.score.backbone_torsion.bb_torsion_energy_term import (
+        BackboneTorsionEnergyTerm,
+    )
+    from tmol.score.cartbonded.cartbonded_energy_term import CartBondedEnergyTerm
+    from tmol.score.disulfide.disulfide_energy_term import DisulfideEnergyTerm
+    from tmol.score.dunbrack.dunbrack_energy_term import DunbrackEnergyTerm
+    from tmol.score.elec.elec_energy_term import ElecEnergyTerm
+    from tmol.score.hbond.hbond_energy_term import HBondEnergyTerm
+    from tmol.score.ljlk.ljlk_energy_term import LJLKEnergyTerm
+    from tmol.score.lk_ball.lk_ball_energy_term import LKBallEnergyTerm
+    from tmol.score.ref.ref_energy_term import RefEnergyTerm
+
+    device = torch.device("cpu")
+    sfxn = _non_memoized_beta2016(device)
+    assert sfxn._all_terms_out_of_date
+
+    all_terms = sfxn.all_terms()
+    assert not sfxn._all_terms_out_of_date
+
+    valid_terms = [
+        DunbrackEnergyTerm,
+        RefEnergyTerm,
+        BackboneTorsionEnergyTerm,
+        CartBondedEnergyTerm,
+        DisulfideEnergyTerm,
+        ElecEnergyTerm,
+        HBondEnergyTerm,
+        LJLKEnergyTerm,
+        LKBallEnergyTerm,
+    ]
+    for term in all_terms:
+        found = False
+        for valid_option in valid_terms:
+            if isinstance(term, valid_option):
+                found = True
+                break
+        assert found

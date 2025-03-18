@@ -21,6 +21,8 @@ class ScoreFunction:
         self._all_terms_unordered = []
         self._all_terms_out_of_date = False
 
+        self._all_score_types = []
+
         self._one_body_terms = []
         self._one_body_terms_unordered = []
         self._one_body_terms_out_of_date = False
@@ -89,28 +91,43 @@ class ScoreFunction:
         Do not modify this list directly
         """
         if self._all_terms_out_of_date:
-            self._all_terms = self.get_sorted_terms(self._all_terms_unordered)
+            self._all_terms, self._all_score_types = self.get_sorted_terms(
+                self._all_terms_unordered
+            )
             self._all_terms_out_of_date = False
 
         return self._all_terms
 
+    def all_score_types(self):
+        if self._all_terms_out_of_date:
+            self._all_terms, self._all_score_types = self.get_sorted_terms(
+                self._all_terms_unordered
+            )
+            self._all_terms_out_of_date = False
+
+        return self._all_score_types
+
     def one_body_terms(self):
         if self._one_body_terms_out_of_date:
-            self._one_body_terms = self.get_sorted_terms(self._one_body_terms_unordered)
+            self._one_body_terms, _ = self.get_sorted_terms(
+                self._one_body_terms_unordered
+            )
             self._one_body_terms_out_of_date = False
 
         return self._one_body_terms
 
     def two_body_terms(self):
         if self._two_body_terms_out_of_date:
-            self._two_body_terms = self.get_sorted_terms(self._two_body_terms_unordered)
+            self._two_body_terms, _ = self.get_sorted_terms(
+                self._two_body_terms_unordered
+            )
             self._two_body_terms_out_of_date = False
 
         return self._two_body_terms
 
     def multi_body_terms(self):
         if self._multi_body_terms_out_of_date:
-            self._multi_body_terms = self.get_sorted_terms(
+            self._multi_body_terms, _ = self.get_sorted_terms(
                 self._multi_body_terms_unordered
             )
             self._multi_body_terms_out_of_date = False
@@ -177,6 +194,7 @@ class ScoreFunction:
     @staticmethod
     def get_sorted_terms(term_list):
         sorted_term_list = []
+        sorted_score_type_list = []
         term_covered = [False] * ScoreType.n_score_types.value
         terms_by_st = [None] * ScoreType.n_score_types.value
         for term in term_list:
@@ -195,7 +213,8 @@ class ScoreFunction:
                     sorted_term_list.append(term)
                     for term_st in term.score_types():
                         term_covered[term_st.value] = True
-        return sorted_term_list
+                        sorted_score_type_list.append(term_st)
+        return sorted_term_list, sorted_score_type_list
 
 
 class WholePoseScoringModule:
