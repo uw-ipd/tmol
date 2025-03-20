@@ -32,7 +32,7 @@ class DisulfideEnergyTerm(EnergyTerm):
         return tmol.score.terms.disulfide_creator.DisulfideTermCreator.score_types()
 
     def n_bodies(self):
-        return 1
+        return 2
 
     def setup_block_type(self, block_type: RefinedResidueType):
         super(DisulfideEnergyTerm, self).setup_block_type(block_type)
