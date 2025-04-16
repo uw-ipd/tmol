@@ -150,6 +150,11 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("dun_sample_chi", &dun_sample_chi<score::common::ComplexDispatch>);
 }
 
+//#define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("dun_sample_chi", &dun_sample_chi<score::common::ComplexDispatch>);
+}
+
 }  // namespace dunbrack
 }  // namespace rotamer
 }  // namespace pack

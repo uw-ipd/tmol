@@ -1,15 +1,12 @@
 import torch
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
-load(
-    modulename(__name__),
-    cuda_if_available(
-        relpaths(__file__, ["apsp_vestibule.ops.cpp", "apsp.cpu.cpp", "apsp.cuda.cu"])
-    ),
-    is_python_module=False,
-)
+from tmol.utility.cpp_extension import relpaths, TorchOpLoader
 
-_ops = getattr(torch.ops, modulename(__name__))
+sources = relpaths(__file__, ["apsp_vestibule.ops.cpp", "apsp.cpu.cpp", "apsp.cuda.cu"])
+
+functions = ["apsp_op"]
+
+loader = TorchOpLoader(__name__, sources, functions)
 
 
 def stacked_apsp(weights, threshold=-1):
@@ -26,6 +23,6 @@ def stacked_apsp(weights, threshold=-1):
     thresholded for the GPU version as its implementation does not respect the
     threshold parameter.
     """
-    _ops.apsp_op(weights, threshold)
+    loader.apsp_op(weights, threshold)
     if threshold > 0 and weights.device != torch.device("cpu"):
         weights[weights > threshold] = threshold

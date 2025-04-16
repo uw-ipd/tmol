@@ -598,6 +598,15 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("gen_pose_waters", &pose_watergen_op);
 }
 
+//#define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def(
+      "score_lkball_inter_system_scores",
+      &rotamer_pair_energies<common::ForallDispatch>);
+  m.def("lk_ball_pose_score", &lkball_pose_score);
+  m.def("gen_pose_waters", &pose_watergen_op);
+}
+
 }  // namespace potentials
 }  // namespace lk_ball
 }  // namespace score

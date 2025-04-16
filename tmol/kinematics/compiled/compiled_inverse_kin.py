@@ -1,16 +1,13 @@
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
+from tmol.utility.cpp_extension import relpaths, TorchOpLoader
 
-_compiled = load(
-    modulename(__name__),
-    cuda_if_available(
-        relpaths(
-            __file__,
-            ["compiled_inverse_kin.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"],
-        )
-    ),
-    is_python_module=True,
+sources = relpaths(
+    __file__, ["compiled_inverse_kin.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"]
 )
+
+functions = ["inverse_kin"]
+
+loader = TorchOpLoader(__name__, sources, functions)
 
 
 def inverse_kin(*args, **kwargs):
-    return _compiled.inverse_kin[(args[0].device.type, args[0].dtype)](*args, **kwargs)
+    return loader.inverse_kin[(args[0].device.type, args[0].dtype)](*args, **kwargs)

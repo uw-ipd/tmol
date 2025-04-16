@@ -407,6 +407,15 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
       &register_lj_lk_rotamer_pair_energy_eval);
 }
 
+//#define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("ljlk_pose_scores", &ljlk_pose_scores_op<DeviceOperations>);
+  m.def("score_ljlk_inter_system_scores", &rotamer_pair_energies_op);
+  m.def(
+      "register_lj_lk_rotamer_pair_energy_eval",
+      &register_lj_lk_rotamer_pair_energy_eval);
+}
+
 }  // namespace potentials
 }  // namespace ljlk
 }  // namespace score

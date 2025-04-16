@@ -333,6 +333,25 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("run_sim_annealing", &run_sim_annealing);
 }
 
+//#define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def(
+      "pick_random_rotamers",
+      &pick_random_rotamers<tmol::score::common::ForallDispatch>);
+  m.def(
+      "metropolis_accept_reject",
+      &metropolis_accept_reject<tmol::score::common::ForallDispatch>);
+  m.def("create_sim_annealer", &create_sim_annealer);
+  m.def("delete_sim_annealer", &delete_sim_annealer);
+  m.def(
+      "register_standard_random_rotamer_picker",
+      &register_standard_random_rotamer_picker);
+  m.def(
+      "register_standard_metropolis_accept_or_rejector",
+      &register_standard_metropolis_accept_or_rejector);
+  m.def("run_sim_annealing", &run_sim_annealing);
+}
+
 }  // namespace compiled
 }  // namespace sim_anneal
 }  // namespace pack

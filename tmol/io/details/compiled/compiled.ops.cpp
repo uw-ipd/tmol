@@ -226,6 +226,12 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("resolve_his_taut", &resolve_his_tautomerization);
 }
 
+//#define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("gen_pose_leaf_atoms", &pose_leaf_atom_gen_op);
+  m.def("resolve_his_taut", &resolve_his_tautomerization);
+}
+
 }  // namespace compiled
 }  // namespace details
 }  // namespace io

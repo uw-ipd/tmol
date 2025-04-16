@@ -149,5 +149,11 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("forward_only_op", &forward_only_op);
 }
 
+//#define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("forward_kin_op", &kinematic_op);
+  m.def("forward_only_op", &forward_only_op);
+}
+
 }  // namespace kinematics
 }  // namespace tmol

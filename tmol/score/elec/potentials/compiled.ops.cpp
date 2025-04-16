@@ -248,6 +248,11 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("elec_pose_scores", &elec_pose_scores_op<common::DeviceOperations>);
 }
 
+//#define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("elec_pose_scores", &elec_pose_scores_op<common::DeviceOperations>);
+}
+
 }  // namespace potentials
 }  // namespace elec
 }  // namespace score

@@ -1,14 +1,12 @@
-import torch
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
+from tmol.utility.cpp_extension import relpaths, TorchOpLoader
 
-load(
-    modulename(__name__),
-    cuda_if_available(
-        relpaths(__file__, ["compiled_ops.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"])
-    ),
-    is_python_module=False,
+sources = relpaths(
+    __file__, ["compiled_ops.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"]
 )
 
-_ops = getattr(torch.ops, modulename(__name__))
-forward_kin_op = _ops.forward_kin_op
-forward_only_op = _ops.forward_only_op
+functions = ["forward_kin_op", "forward_only_op"]
+
+loader = TorchOpLoader(__name__, sources, functions)
+
+forward_kin_op = loader.forward_kin_op
+forward_only_op = loader.forward_only_op

@@ -229,6 +229,11 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("cartbonded_pose_scores", &cartbonded_pose_scores_op<DeviceOperations>);
 }
 
+//#define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("cartbonded_pose_scores", &cartbonded_pose_scores_op<DeviceOperations>);
+}
+
 }  // namespace potentials
 }  // namespace cartbonded
 }  // namespace score
