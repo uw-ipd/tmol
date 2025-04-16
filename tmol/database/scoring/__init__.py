@@ -1,6 +1,5 @@
 import os
 import attr
-import torch
 
 from .cartbonded import CartBondedDatabase
 from .disulfide import DisulfideDatabase

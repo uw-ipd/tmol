@@ -1,5 +1,3 @@
-from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
-
 import pytest
 import os
 import torch

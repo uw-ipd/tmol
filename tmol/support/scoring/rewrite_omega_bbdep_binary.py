@@ -1,17 +1,13 @@
 import numpy
 from pathlib import Path
 import os
-import sys
 import argparse
 import torch
 import yaml
 import attr
 import cattr
 
-from tmol.database.scoring.omega_bbdep import (
-    OmegaBBDepDatabase,
-    OmegaBBDepTables,
-)
+from tmol.database.scoring.omega_bbdep import OmegaBBDepDatabase, OmegaBBDepTables
 
 # A conversion script from rosetta omega bbdep tables to
 # tmol probability tables.  For each of five classes

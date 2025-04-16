@@ -2,9 +2,7 @@ import numpy
 import torch
 from pathlib import Path
 import os
-import sys
 import argparse
-import torch
 import yaml
 import attr
 import cattr
