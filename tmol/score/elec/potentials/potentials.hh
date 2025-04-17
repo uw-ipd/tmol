@@ -75,6 +75,11 @@ def elec_delec_ddist(
   Real eiej = e_i * e_j;
 
   Real elecE = 0, delec_ddist = 0;
+  if (eiej == 0) {
+    // Early exit for virtual atoms / atoms with a charge of 0
+    return {elecE, delec_ddist};
+  }
+
   if (dist < low_poly_start) {
     // flat part
     Real min_dis_score = C1 / (min_dis * eps(min_dis, D, D0, S)) - C2;
@@ -82,6 +87,9 @@ def elec_delec_ddist(
     delec_ddist = 0;
   } else if (dist < low_poly_end) {
     // short range fade
+    // Interesting thing to note here: If eiej is 0, you might
+    // expect that interpolating between 0 and 0 would give you 0
+    // everywhere, but it does NOT!
     Real min_dis_score = C1 / (min_dis * eps(min_dis, D, D0, S)) - C2;
     Real eps_elec = eps(low_poly_end, D, D0, S);
     Real deps_elec_d_dist = deps_ddist(low_poly_end, D, D0, S);
@@ -146,6 +154,10 @@ def elec(
   Real C2 = C1 / (max_dis * eps(max_dis, D, D0, S));
 
   Real eiej = e_i * e_j;
+  if (eiej == 0) {
+    // Early exit for virtual atoms / atoms with a charge of 0
+    return 0;
+  }
 
   Real elecE = 0;
   if (dist < low_poly_start) {
@@ -154,6 +166,9 @@ def elec(
     elecE = eiej * min_dis_score;
   } else if (dist < low_poly_end) {
     // short range fade
+    // Interesting thing to note here: If eiej is 0, you might
+    // expect that interpolating between 0 and 0 would give you 0
+    // everywhere, but it does NOT!
     Real min_dis_score = C1 / (min_dis * eps(min_dis, D, D0, S)) - C2;
     Real eps_elec = eps(low_poly_end, D, D0, S);
     Real deps_elec_d_dist = deps_ddist(low_poly_end, D, D0, S);

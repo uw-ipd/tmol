@@ -6,11 +6,13 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
+#include <moderngpu/kernel_scan.hxx>
 #include <moderngpu/cta_reduce.hxx>
 
 #include "device_operations.hh"
 
 #include <tmol/score/common/accumulate.hh>
+#include <tmol/kinematics/compiled/kernel_segscan.cuh>
 
 namespace tmol {
 namespace score {
@@ -57,6 +59,80 @@ struct DeviceOperations<tmol::Device::CUDA> {
     auto wrapper = ([=] __device__(int tid, int cta) { f(cta); });
     mgpu::standard_context_t context;
     mgpu::cta_launch<launch_t>(wrapper, n_workgroups, context);
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void scan(T* src, T* dst, int n, OP op) {
+    mgpu::standard_context_t context;
+    mgpu::scan<scan_type>(
+        src, n, dst, op, mgpu::discard_iterator_t<T>(), context);
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static T scan_and_return_total(T* src, T* dst, int n, OP op) {
+    mgpu::standard_context_t context;
+    mgpu::mem_t<T> total(1, context, mgpu::memory_space_host);
+    mgpu::scan<scan_type>(src, n, dst, op, total.data(), context);
+    cudaStreamSynchronize(0);
+    return total.data()[0];
+  }
+
+  // Segmented scan expects the indices for the beginning of each segment rather
+  // than, e.g., a boolean tensor indicating the start of each segment.
+  // The identity value (e.g. 0) must be given because pre-initialization is not
+  // always possible. seg_starts_inds must be sorted in ascending order.
+  template <
+      mgpu::scan_type_t scan_type,
+      typename launch_t,
+      typename T,
+      typename Int,
+      typename OP>
+  static auto segmented_scan(
+      T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
+      -> TPack<T, 1, tmol::Device::CUDA> {
+    mgpu::standard_context_t context;
+
+    int const nt = launch_t::nt;
+    int const vt = launch_t::vt;
+
+    auto src_indexing = [=] MGPU_DEVICE(int i) { return src[i]; };
+
+    // Copying Frank's code from kinematics/compiled/compiled.cuda.cuh
+    int const scanBuffer = n + n_segs;
+    float scanleft = std::ceil(((float)scanBuffer) / (nt * vt));
+    Int lbsBuffer = (Int)scanleft + 1;
+    Int carryoutBuffer = (Int)scanleft;
+    while (scanleft > 1) {
+      scanleft = std::ceil(scanleft / nt);
+      carryoutBuffer += (Int)scanleft;
+    }
+
+    auto scanCarryout_t =
+        TPack<T, 1, tmol::Device::CUDA>::empty({carryoutBuffer});
+    auto scanCarryout = scanCarryout_t.view;
+    auto scanCodes_t =
+        TPack<Int, 1, tmol::Device::CUDA>::empty({carryoutBuffer});
+    auto scanCodes = scanCodes_t.view;
+    auto LBS_t = TPack<Int, 1, tmol::Device::CUDA>::empty({lbsBuffer});
+    auto LBS = LBS_t.view;
+
+    // The return tensor
+    auto dst_scan_t = TPack<T, 1, tmol::Device::CUDA>::empty({scanBuffer});
+    auto dst_scan = dst_scan_t.view;
+
+    tmol::kinematics::kernel_segscan<launch_t>(
+        src_indexing,
+        n,
+        &seg_start_inds[0],
+        n_segs,
+        &dst_scan.data()[0],
+        &scanCarryout.data()[0],
+        &scanCodes.data()[0],
+        &LBS.data()[0],
+        op,
+        identity,
+        context);
+    return dst_scan_t;
   }
 
   template <int N_T, int WIDTH, typename T>

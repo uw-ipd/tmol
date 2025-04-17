@@ -5,6 +5,7 @@ import toolz
 from typing import List, Mapping
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
+from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -162,6 +163,12 @@ def _paramdb_for_rosettafold2() -> ParameterDatabase:
     )
 
 
+@toolz.functoolz.memoize
+def _restype_set_for_rosettafold2() -> ResidueTypeSet:
+    paramdb = _paramdb_for_rosettafold2()
+    return ResidueTypeSet.from_database(paramdb.chemical)
+
+
 @validate_args
 @toolz.functoolz.memoize
 def canonical_ordering_for_rosettafold2() -> CanonicalOrdering:
@@ -188,23 +195,11 @@ def packed_block_types_for_rosettafold2(device: torch.device) -> PackedBlockType
     canonical form objects. See canonical_form_from_rosettafold2 for details.
     """
 
-    import cattr
-    from tmol.chemical.restypes import RefinedResidueType
+    restype_set = _restype_set_for_rosettafold2()
 
-    paramdb = _paramdb_for_rosettafold2()
-
-    # TO DO: at some point, one has to wonder whether the ResidueTypeSet
-    # is ever gonna see any action. When the packer comes online, we should
-    # start using one during the PBT construction
-    restype_list = [
-        cattr.structure(
-            cattr.unstructure(r),
-            RefinedResidueType,
-        )
-        for r in paramdb.chemical.residues
-    ]
-
-    return PackedBlockTypes.from_restype_list(paramdb.chemical, restype_list, device)
+    return PackedBlockTypes.from_restype_list(
+        restype_set.chem_db, restype_set, restype_set.residue_types, device
+    )
 
 
 @toolz.functoolz.memoize

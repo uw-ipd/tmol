@@ -1,3 +1,5 @@
+#pragma once
+
 #include <moderngpu/cta_load_balance.hxx>
 #include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/cta_scan.hxx>

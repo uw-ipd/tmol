@@ -231,6 +231,16 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
         pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
+        from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
+
+        write_pose_stack_pdb(
+            pn,
+            "test_whole_pose_scoring_10_new.pdb",
+            chain_ind_for_block=torch.zeros(
+                (pn.n_poses, pn.max_n_blocks), dtype=torch.int64
+            ),
+        )
+
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(pn)
 

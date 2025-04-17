@@ -48,7 +48,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         return tmol.score.terms.cartbonded_creator.CartBondedTermCreator.score_types()
 
     def n_bodies(self):
-        return 1
+        return 2
 
     def find_subgraphs(self, bonds, block_type):  # noqa: C901
         lengths = []
@@ -105,7 +105,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             improper,
         )
 
-    def get_raw_params_for_res(self, res):
+    def get_raw_params_for_res(self, res: str):
         if res in self.cart_database.residue_params:
             return (
                 self.cart_database.residue_params[res].length_parameters
@@ -128,7 +128,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         ]
         return atoms, params
 
-    def get_params_for_res(self, res):
+    def get_params_for_res(self, res: str):
         params_by_atom_unique_id = {}
 
         # Fetch the raw params from the DB
@@ -142,6 +142,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
             is_wildcard = False
             for i, atom in enumerate(atoms):
                 # Check if these atoms should be wildcard ids. This includes atoms after any bonds that span the residue connection.
+                # TO DO: should this code handle generic inter-residue connections and not merely peptide bonds?
                 if (
                     res == "wildcard"
                     or not (hasattr(param, "type") and param.type == 3)
@@ -156,15 +157,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
                 previous_atm = atom
                 atoms[i] = (
-                    self.get_atom_wildcard_id_name(res, atom)
+                    self.get_atom_wildcard_id_name(atom)
                     if is_wildcard
                     else self.get_atom_unique_id_name(res, atom)
                 )
-                # If the atom isn't recorded in the atom_unique_id_index (inherited from AtomTypeDependentTerm), add it
-                if atoms[i] not in self.atom_unique_id_index:
-                    self.atom_unique_id_index[atoms[i]] = len(self.atom_unique_id_index)
 
-            key = tuple([self.atom_unique_id_index[atom] for atom in atoms])
+            # key = tuple([self.atom_unique_id_index[atom] for atom in atoms])
+            key = tuple(atoms)
 
             params_by_atom_unique_id[key] = params
 
@@ -195,6 +194,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         if hasattr(packed_block_types, "cartbonded_subgraphs"):
             assert hasattr(packed_block_types, "cartbonded_subgraph_offsets")
             assert hasattr(packed_block_types, "cartbonded_max_subgraphs_per_block")
+            assert hasattr(packed_block_types, "cartbonded_atom_unique_id_index")
             assert hasattr(packed_block_types, "cartbonded_params_hash_keys")
             assert hasattr(packed_block_types, "cartbonded_params_hash_values")
             return
@@ -230,31 +230,54 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
 
         # Aggregate the params
+        # we will be adding new "wildcard" atom ids, so we will copy the
+        # atom_unique_id_index annotation
+        cbet_atom_unique_id_index = packed_block_types.atom_unique_id_index.copy()
 
-        # Calculate the total number of params
-        total_params = sum(
-            [len(bt.cartbonded_params) for bt in packed_block_types.active_block_types]
-        )
         # get the params not associated with any specific residue
         wildcard_params = self.get_params_for_res("wildcard").items()
-        total_params += len(wildcard_params)
+
+        # we have perhaps created new atom ids for this "wildcard" residue name,
+        # so we must expand our set of unique atom ids.
+        for key, _ in wildcard_params:
+            for at in key:
+                if at not in cbet_atom_unique_id_index:
+                    cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
+
+        for bt in packed_block_types.active_block_types:
+            for key in bt.cartbonded_params:
+                for at in key:
+                    if at not in cbet_atom_unique_id_index:
+                        cbet_atom_unique_id_index[at] = len(cbet_atom_unique_id_index)
+
+        # Calculate the total number of params
+        n_total_params = sum(
+            [len(bt.cartbonded_params) for bt in packed_block_types.active_block_types]
+        ) + len(wildcard_params)
 
         # Construct the params hash with the given scaling factor
-        hash_keys, hash_values = make_hashtable_keys_values(total_params, 2, 5, 7)
+        hash_keys, hash_values = make_hashtable_keys_values(n_total_params, 2, 5, 7)
 
         # Fill the hash table
         cur_val = 0
         for bt in packed_block_types.active_block_types:
-            for key, value in bt.cartbonded_params.items():
+            for key_w_str, value in bt.cartbonded_params.items():
+                key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
                 add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
                 cur_val += 1
 
-        for key, value in wildcard_params:
+        for key_w_str, value in wildcard_params:
+            key = tuple(cbet_atom_unique_id_index[at] for at in key_w_str)
             add_to_hashtable(hash_keys, hash_values, cur_val, key, value)
             cur_val += 1
 
         hash_keys_tensor = torch.from_numpy(hash_keys).to(device=self.device)
         hash_values_tensor = torch.from_numpy(hash_values).to(device=self.device)
+        setattr(
+            packed_block_types,
+            "cartbonded_atom_unique_id_index",
+            cbet_atom_unique_id_index,
+        )
         setattr(packed_block_types, "cartbonded_params_hash_keys", hash_keys_tensor)
         setattr(packed_block_types, "cartbonded_params_hash_values", hash_values_tensor)
 

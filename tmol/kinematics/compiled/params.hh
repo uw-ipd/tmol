@@ -6,6 +6,36 @@
 namespace tmol {
 namespace kinematics {
 
+enum BondDOFTypes {
+  // Indices of bond dof types within KinDOF.raw
+
+  bond_dof_phi_p = 0,
+  bond_dof_theta,
+  bond_dof_d,
+  bond_dof_phi_c,
+  bond_dof_n_movable_dofs
+};
+
+enum JumpDOFTypes {
+  // Indices of jump dof types within KinDOF.raw
+
+  jump_dof_RBx = 0,
+  jump_dof_RBy,
+  jump_dof_RBz,
+  jump_dof_RBdel_alpha,
+  jump_dof_RBdel_beta,
+  jump_dof_RBdel_gamma,
+  jump_dof_RBalpha,
+  jump_dof_RBbeta,
+  jump_dof_RBgamma,
+};
+
+enum EdgeTypes {
+  ff_polymer_edge = 0,
+  ff_jump_edge,
+  ff_root_jump_edge,
+};
+
 template <typename Int>
 struct KinForestParams {
   Int id;

@@ -11,17 +11,10 @@ from .support.rosetta import pyrosetta, rosetta_database  # noqa: F401
 # Import basic data fixtures
 from .data import (  # noqa: F401
     min_pdb,
-    min_res,
-    min_system,
     big_pdb,
-    big_res,
-    big_system,
-    water_box_res,
+    water_box_pdb,
     ubq_pdb,
-    ubq_res,
-    ubq_system,
     disulfide_pdb,
-    disulfide_res,
     systems_bysize,
     pertuzumab_pdb,
     pertuzumab_and_nearby_erbb2_pdb_and_segments,
@@ -33,8 +26,15 @@ from .data import (  # noqa: F401
 from .chemical import (  # noqa: F401
     default_restype_set,
     fresh_default_restype_set,
-    rts_ubq_res,
     rts_disulfide_res,
+)
+
+from .kinematics import (  # noqa: F401
+    ff_2ubq_6res_H,
+    ff_3_jagged_ubq_465res_H,
+    ff_3_jagged_ubq_465res_star,
+    ff_2ubq_6res_U,
+    ff_2ubq_6res_K,
 )
 
 from .torch import torch_device, torch_backward_coverage  # noqa: F401
@@ -46,7 +46,9 @@ from .pack.rotamer.dunbrack import dun_sampler  # noqa: F401
 from .pose import (  # noqa: F401
     ubq_40_60_pose_stack,
     fresh_default_packed_block_types,
-    two_ubq_poses,
+    stack_of_two_six_res_ubqs,
+    stack_of_two_six_res_ubqs_no_term,
+    jagged_stack_of_465_res_ubqs,
 )
 
 

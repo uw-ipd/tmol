@@ -1,6 +1,7 @@
 import numpy
 
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.io import pose_stack_from_pdb
 from tmol.io.chain_deduction import chain_inds_for_pose_stack
 from tmol.io.canonical_ordering import (
     default_canonical_ordering,
@@ -10,23 +11,17 @@ from tmol.io.canonical_ordering import (
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 
 
-def test_deduce_chains_for_monomer(ubq_res, default_restype_set, torch_device):
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_restype_set.chem_db, ubq_res[:5], torch_device
-    )
+def test_deduce_chains_for_monomer(ubq_pdb, torch_device):
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
     chain_inds = chain_inds_for_pose_stack(p1)
     numpy.testing.assert_equal(
         numpy.zeros(5, dtype=numpy.int32).reshape((1, 5)), chain_inds
     )
 
 
-def test_deduce_chains_two_monomers(ubq_res, default_restype_set, torch_device):
-    p1 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_restype_set.chem_db, ubq_res[:5], torch_device
-    )
-    p2 = PoseStackBuilder.one_structure_from_polymeric_residues(
-        default_restype_set.chem_db, ubq_res[:7], torch_device
-    )
+def test_deduce_chains_two_monomers(ubq_pdb, torch_device):
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     chain_inds = chain_inds_for_pose_stack(poses)

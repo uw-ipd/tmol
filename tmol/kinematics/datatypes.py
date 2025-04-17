@@ -1,9 +1,11 @@
 import enum
+import numpy
 import torch
-import attr
+import attrs
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
+from tmol.types.array import NDArray
 
 from tmol.types.attrs import ConvertAttrs
 from tmol.types.functional import convert_args
@@ -17,7 +19,7 @@ class NodeType(enum.IntEnum):
     bond = enum.auto()
 
 
-@attr.s(auto_attribs=True, frozen=True)
+@attrs.define(auto_attribs=True, frozen=True)
 class KinForest(TensorGroup, ConvertAttrs):
     """A collection of atom-level kinematic trees, each of which can be processed
     in parallel.
@@ -67,9 +69,11 @@ class KinForest(TensorGroup, ConvertAttrs):
     and whether the values they hold are KFO or TO indices.
 
     The `KinForest` data structure itself is frozen and can not be modified post
-    construction. The `KinematicBuilder` factory class is responsible for
-    construction of a `KinForest` with valid internal structure for atomic
-    systems.
+    construction. `KinForests` are not typically built directly by users,
+    but rather are constructed as part of building the `KinModuleData` class
+    by `construct_kin_module_data` that lives in scan_ordering.py.
+    The `_KinematicBuilder` factory class is now deprecated but use to be
+    responsible for construction of `KinForests`
 
     Indices::
         id = the TO index in KFO; i.e. kin_forest_order_2_target_order
@@ -121,7 +125,28 @@ class KinForest(TensorGroup, ConvertAttrs):
         )
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attrs.define(auto_attribs=True, frozen=True)
+class KinForestScanData(TensorGroup, ConvertAttrs):
+    nodes: Tensor[torch.int]
+    scans: Tensor[torch.int]
+    gens: Tensor[torch.int]
+
+
+@attrs.define(auto_attribs=True, frozen=True)
+class KinematicModuleData:
+    forest: KinForest
+    scan_data_fw: KinForestScanData
+    scan_data_bw: KinForestScanData
+
+    # some extra tensors we need to describe
+    # the fold forest in its entirety
+    block_in_and_first_out: Tensor[torch.int][:, :]
+    keep_atom_fixed: Tensor[torch.bool][:, :]
+    pose_stack_atom_for_jump: Tensor[torch.int][:, :, 2]
+    pose_stack_atom_for_root_jump: Tensor[torch.int][:, 2]
+
+
+@attrs.define(auto_attribs=True, slots=True, frozen=True)
 class KinDOF(TensorGroup, ConvertAttrs):
     """Internal coordinate data.
 
@@ -155,6 +180,9 @@ class BondDOFTypes(enum.IntEnum):
     phi_c = enum.auto()
 
 
+n_movable_bond_dof_types = 4
+
+
 class JumpDOFTypes(enum.IntEnum):
     """Indices of jump dof types within KinDOF.raw."""
 
@@ -169,7 +197,10 @@ class JumpDOFTypes(enum.IntEnum):
     RBgamma = enum.auto()
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+n_movable_jump_dof_types = 6
+
+
+@attrs.define(auto_attribs=True, slots=True, frozen=True)
 class BondDOF(TensorGroup, ConvertAttrs):
     """A bond dof view of KinDOF."""
 
@@ -192,7 +223,7 @@ class BondDOF(TensorGroup, ConvertAttrs):
         return self.raw[..., BondDOFTypes.phi_c]
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attrs.define(auto_attribs=True, slots=True, frozen=True)
 class JumpDOF(TensorGroup, ConvertAttrs):
     """A jump dof view of KinDOF."""
 
@@ -233,3 +264,187 @@ class JumpDOF(TensorGroup, ConvertAttrs):
     @property
     def RBgamma(self):
         return self.raw[..., JumpDOFTypes.RBgamma]
+
+
+@attrs.define
+class BTGenerationalSegScanPathSegs:
+    jump_atom: int
+    parents: NDArray[numpy.int64][:, :]  # n-input x n-atoms
+    dof_type: NDArray[numpy.int64][:, :]  # n-input x n-atoms
+    input_conn_atom: NDArray[numpy.int64][:]  # n-input
+    n_gens: NDArray[numpy.int64][:, :]  # n-input x n-output
+    n_nodes_for_gen: NDArray[numpy.int64][:, :, :]
+    nodes_for_gen: NDArray[numpy.int64][
+        :, :, :, :
+    ]  # n-input x n-output x max-n-gen x max-n-nodes-per-gen
+    n_scan_path_segs: NDArray[numpy.int64][:, :, :]  # n-input x n-output x n-gen
+    scan_path_seg_that_builds_output_conn: NDArray[numpy.int64][
+        :, :, :, 2
+    ]  # n-input x n-output x n-conn x 2
+    scan_path_seg_starts: NDArray[numpy.int64][:, :, :, :]
+    scan_path_seg_is_real: NDArray[bool][:, :, :, :]
+    scan_path_seg_is_inter_block: NDArray[bool][:, :, :, :]
+    scan_path_seg_lengths: NDArray[numpy.int64][:, :, :, :]
+    uaid_for_torsion_by_inconn: NDArray[numpy.int64][
+        :, :, 3
+    ]  # n-input x n-torsions x 3
+    torsion_direction: NDArray[numpy.int64][:, :]  # n-input x n-torsions
+
+    @classmethod
+    def empty(
+        cls,
+        n_input_types: int,
+        n_output_types: int,
+        n_atoms: int,
+        n_conn: int,
+        max_n_gens: int,
+        max_n_scan_path_segs_per_gen: int,
+        max_n_nodes_per_gen: int,
+        n_torsions: int,
+    ):
+        io = (n_input_types, n_output_types)
+        return cls(
+            jump_atom=-1,
+            parents=numpy.full(
+                (n_input_types, n_atoms), -1, dtype=int
+            ),  # independent of primary output
+            dof_type=numpy.full(
+                (n_input_types, n_atoms), -1, dtype=int
+            ),  # independent of primary output
+            input_conn_atom=numpy.full(n_input_types, -1, dtype=int),
+            n_gens=numpy.zeros(io, dtype=int),
+            n_nodes_for_gen=numpy.zeros(io + (max_n_gens,), dtype=int),
+            nodes_for_gen=numpy.full(
+                io + (max_n_gens, max_n_nodes_per_gen), -1, dtype=int
+            ),
+            n_scan_path_segs=numpy.zeros(io + (max_n_gens,), dtype=int),
+            scan_path_seg_that_builds_output_conn=numpy.full(
+                io + (n_conn, 2), -1, dtype=int
+            ),
+            scan_path_seg_starts=numpy.full(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen), -1, dtype=int
+            ),
+            scan_path_seg_is_real=numpy.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=bool
+            ),
+            scan_path_seg_is_inter_block=numpy.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=bool
+            ),
+            scan_path_seg_lengths=numpy.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen), dtype=int
+            ),
+            uaid_for_torsion_by_inconn=numpy.full(
+                (n_input_types, n_torsions, 3), -1, dtype=int
+            ),
+            torsion_direction=numpy.full((n_input_types, n_torsions), 1, dtype=int),
+        )
+
+
+@attrs.define
+class PBTGenerationalSegScanPathSegs:
+    jump_atom: NDArray[numpy.int64][:]  # n-bt
+    parents: Tensor[torch.int32][:, :, :]  # n-bt x n-input x n-atoms
+    dof_type: Tensor[torch.int32][:, :, :]  # n-bt x n-input x n-atoms
+    input_conn_atom: Tensor[torch.int32][:, :]  # n-bt x n-input
+    n_gens: Tensor[torch.int32][:, :, :]  # n-bt x n-input x n-output
+    n_nodes_for_gen: Tensor[torch.int32][:, :, :, :]
+    nodes_for_gen: Tensor[torch.int32][
+        :, :, :, :, :
+    ]  # n-input x n-output x max-n-gen x max-n-nodes-per-gen
+    n_scan_path_segs: Tensor[torch.int32][
+        :, :, :, :
+    ]  # n-bt x n-input x n-output x n-gen
+    scan_path_seg_that_builds_output_conn: NDArray[numpy.int64][
+        :, :, :, :, 2
+    ]  # n-bt x n-input x n-output x n-conn x 2
+    scan_path_seg_starts: Tensor[torch.int32][:, :, :, :, :]
+    scan_path_seg_is_real: Tensor[bool][:, :, :, :, :]
+    scan_path_seg_is_inter_block: Tensor[bool][:, :, :, :, :]
+    scan_path_seg_lengths: Tensor[torch.int32][:, :, :, :, :]
+    uaid_for_torsion_by_inconn: NDArray[numpy.int64][
+        :, :, :, 3
+    ]  # n-bt x n-input x n-torsions x 3
+    torsion_direction: NDArray[numpy.int64][:, :, :]  # n-bt x n-input x n-torsions
+
+    @classmethod
+    def empty(
+        cls,
+        device,
+        n_bt: int,
+        max_n_input_types: int,
+        max_n_output_types: int,
+        max_n_atoms: int,
+        max_n_conn: int,
+        max_n_gens: int,
+        max_n_scan_path_segs_per_gen: int,
+        max_n_nodes_per_gen: int,
+        max_n_torsions: int,
+    ):
+        io = (n_bt, max_n_input_types, max_n_output_types)
+        return cls(
+            jump_atom=torch.full((n_bt,), -1, dtype=torch.int32, device=device),
+            parents=torch.full(
+                (n_bt, max_n_input_types, max_n_atoms),
+                -1,
+                dtype=torch.int32,
+                device=device,
+            ),  # independent of primary output
+            dof_type=torch.full(
+                (n_bt, max_n_input_types, max_n_atoms),
+                -1,
+                dtype=torch.int32,
+                device=device,
+            ),  # independent of primary output
+            input_conn_atom=torch.full(
+                (n_bt, max_n_input_types), -1, dtype=torch.int32, device=device
+            ),
+            n_gens=torch.zeros(io, dtype=torch.int32, device=device),
+            n_nodes_for_gen=torch.zeros(
+                io + (max_n_gens,), dtype=torch.int32, device=device
+            ),
+            nodes_for_gen=torch.full(
+                io + (max_n_gens, max_n_nodes_per_gen),
+                -1,
+                dtype=torch.int32,
+                device=device,
+            ),
+            n_scan_path_segs=torch.zeros(
+                io + (max_n_gens,), dtype=torch.int32, device=device
+            ),
+            scan_path_seg_that_builds_output_conn=torch.full(
+                io + (max_n_conn, 2), -1, dtype=torch.int32, device=device
+            ),
+            scan_path_seg_starts=torch.full(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen),
+                -1,
+                dtype=torch.int32,
+                device=device,
+            ),
+            scan_path_seg_is_real=torch.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen),
+                dtype=torch.bool,
+                device=device,
+            ),
+            scan_path_seg_is_inter_block=torch.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen),
+                dtype=bool,
+                device=device,
+            ),
+            scan_path_seg_lengths=torch.zeros(
+                io + (max_n_gens, max_n_scan_path_segs_per_gen),
+                dtype=torch.int32,
+                device=device,
+            ),
+            uaid_for_torsion_by_inconn=torch.full(
+                (n_bt, max_n_input_types, max_n_torsions, 3),
+                -1,
+                dtype=torch.int32,
+                device=device,
+            ),
+            torsion_direction=torch.full(
+                (n_bt, max_n_input_types, max_n_torsions),
+                1,
+                dtype=torch.int32,
+                device=device,
+            ),
+        )

@@ -4,12 +4,14 @@
 
 #include <tmol/kinematics/compiled/kernel_segscan.cuh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/device_operations.cuda.impl.cuh>
 #include <tmol/utility/nvtx.hh>
 
 #include <moderngpu/transform.hxx>
 
 #include "common.hh"
 #include "params.hh"
+#include "compiled.impl.hh"
 
 namespace tmol {
 namespace kinematics {
@@ -212,12 +214,20 @@ struct ForwardKinDispatch {
     auto ngens = gens.size(0) - 1;
     for (int gen = 0; gen < ngens; ++gen) {
       int nodestart = gens[gen].node_start, scanstart = gens[gen].scan_start;
+
       int nnodes = gens[gen + 1].node_start - nodestart;
       int nscans = gens[gen + 1].scan_start - scanstart;
+      if (nnodes == 0 && nscans == 0) {
+        continue;
+      }
 
       // reindexing function
       nvtx_range_push("dispatch::segscan");
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
+        assert(nodestart + index < nodes.size(0) && nodestart + index >= 0);
+        assert(
+            nodes[nodestart + index] < HTs.size(0)
+            && nodes[nodestart + index] >= 0);
         return *((HTRawBuffer<Real>*)HTs[nodes[nodestart + index]].data());
       };
 
@@ -237,25 +247,37 @@ struct ForwardKinDispatch {
           init,
           context);
       nvtx_range_pop();
+      // gpuErrPeek;
+      // gpuErrSync;
 
       // unindex for gen i
       // this would be nice to incorporate into kernel_segscan (as the indexing
       // is)
       nvtx_range_push("dispatch::unindex");
       auto k_unindex = [=] MGPU_DEVICE(int index) {
+        assert(nodestart + index < nodes.size(0) && nodestart + index >= 0);
+        assert(
+            nodes[nodestart + index] < HTs.size(0)
+            && nodes[nodestart + index] >= 0);
         HTs[nodes[nodestart + index]] = HTscan[index];
       };
 
       mgpu::transform(k_unindex, nnodes, context);
       nvtx_range_pop();
+      // gpuErrPeek;
+      // gpuErrSync;
+      nvtx_range_pop();
     }
 
     // copy atom positions
     auto k_getcoords = ([=] EIGEN_DEVICE_FUNC(int i) {
+      assert(i < HTs.size(0) && i >= 0);
       xs[i] = HTs[i].block(3, 0, 1, 3).transpose();
     });
 
     mgpu::transform(k_getcoords, num_atoms, context);
+    // gpuErrPeek;
+    // gpuErrSync;
 
     return {xs_t, HTs_t};
   }
@@ -374,9 +396,17 @@ struct KinDerivDispatch {
       int nnodes = gens[gen + 1].node_start - nodestart;
       int nscans = gens[gen + 1].scan_start - scanstart;
 
+      if (nnodes == 0 && nscans == 0) {
+        continue;
+      }
+
       // reindexing function
       nvtx_range_push("dispatch::dsegscan");
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
+        assert(nodestart + index < nodes.size(0) && nodestart + index >= 0);
+        assert(
+            nodes[nodestart + index] < f1f2s.size(0)
+            && nodes[nodestart + index] >= 0);
         return *(
             (f1f2VecsRawBuffer<Real>*)f1f2s[nodes[nodestart + index]].data());
       };
@@ -401,6 +431,10 @@ struct KinDerivDispatch {
       // unindex for gen i.  ENSURE ATOMIC
       nvtx_range_push("dispatch::dunindex");
       auto k_unindex = [=] MGPU_DEVICE(int index) {
+        assert(nodestart + index < nodes.size(0) && nodestart + index >= 0);
+        assert(
+            nodes[nodestart + index] < f1f2s.size(0)
+            && nodes[nodestart + index] >= 0);
         for (int kk = 0; kk < 6; ++kk) {
           atomicAdd(
               &(f1f2s[nodes[nodestart + index]][kk]), f1f2scan[index][kk]);
@@ -439,6 +473,18 @@ template struct InverseKinDispatch<tmol::Device::CUDA, float, int32_t>;
 template struct InverseKinDispatch<tmol::Device::CUDA, double, int32_t>;
 template struct KinDerivDispatch<tmol::Device::CUDA, float, int32_t>;
 template struct KinDerivDispatch<tmol::Device::CUDA, double, int32_t>;
+
+template struct KinForestFromStencil<
+    tmol::score::common::DeviceOperations,
+    tmol::Device::CUDA,
+    int32_t>;
+// NOTE: Intetionally not enabling int64_t as there are atomic_incremement
+// operations that are needed for several steps in the kin-forest construction
+// algorithm and atomic_increment is not implemented in CUDA for int64_t.
+// template struct KinForestFromStencil<
+//     tmol::score::common::DeviceOperations,
+//     tmol::Device::CUDA,
+//     int64_t>;
 
 #undef HomogeneousTransform
 #undef KintreeDof

@@ -147,8 +147,8 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             i_bbtors_params = bt.backbone_torsion_params
             bt_rama_table[i] = i_bbtors_params.rama_table_inds
             bt_omega_table[i] = i_bbtors_params.omega_table_inds
-            bt_upper_conn_ind[i] = i_bbtors_params.upper_conn_ind
-            bt_is_pro[i] = i_bbtors_params.is_pro
+            bt_upper_conn_ind[i] = i_bbtors_params.upper_conn_ind[0]
+            bt_is_pro[i] = i_bbtors_params.is_pro[0]
             bt_backbone_torsion_atoms[i] = i_bbtors_params.backbone_torsion_atoms.view(
                 numpy.int32
             ).reshape(12, 3)

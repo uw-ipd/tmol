@@ -1,11 +1,11 @@
 import torch
 
-from tmol.pose.packed_block_types import PackedBlockTypes, residue_types_from_residues
+from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
 
 
-def test_setup_block_type(ubq_res, default_database, torch_device):
-    rt_list = residue_types_from_residues(ubq_res)
+def test_setup_block_type(fresh_default_restype_set, default_database, torch_device):
+    rt_list = fresh_default_restype_set.residue_types
     atdt = AtomTypeDependentTerm(default_database, torch_device)
     for rt in rt_list:
         atdt.setup_block_type(rt)
@@ -14,11 +14,13 @@ def test_setup_block_type(ubq_res, default_database, torch_device):
 
 
 def test_store_atom_types_in_packed_residue_types(
-    ubq_res, default_database, torch_device
+    default_database, fresh_default_restype_set, torch_device
 ):
-    rt_list = residue_types_from_residues(ubq_res)
     pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, rt_list, torch_device
+        default_database.chemical,
+        fresh_default_restype_set,
+        fresh_default_restype_set.residue_types,
+        torch_device,
     )
 
     atdt = AtomTypeDependentTerm(default_database, torch_device)
@@ -29,7 +31,7 @@ def test_store_atom_types_in_packed_residue_types(
     assert pbt.atom_types.dtype == torch.int32
     assert pbt.atom_types.device == torch_device
 
-    for i, rt in enumerate(rt_list):
+    for i, rt in enumerate(fresh_default_restype_set.residue_types):
         for j, at in enumerate(rt.atoms):
             # print(
             #     at.atom_type,

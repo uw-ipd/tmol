@@ -136,6 +136,10 @@ class RawResidueType:
     icoors: Tuple[Icoor, ...]
     properties: ChemicalProperties
     chi_samples: Tuple[ChiSamples, ...]
+    default_jump_connection_atom: str
+
+    def atom_name(self, index):
+        return self.atoms[index].name
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

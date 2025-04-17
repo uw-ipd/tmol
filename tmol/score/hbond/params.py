@@ -126,7 +126,7 @@ class HBondParamResolver(ValidateAttrs):
             pair_params.acceptor_hybridization[:, i] = int(
                 AcceptorHybridization._index.get_indexer_for(
                     [acceptor_type_hybridization[name]]
-                )
+                )[0]
             )
 
         # Get polynomial parameters indexed by polynomial name
