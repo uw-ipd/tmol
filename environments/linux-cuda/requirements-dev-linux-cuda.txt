@@ -4,7 +4,7 @@
 #
 #    pip-compile --constraint=requirements-linux-cuda.txt --no-emit-index-url ../../requirements-dev.in
 #
-black==25.1.0
+black==24.1.1
     # via -r ../../requirements-dev.in
 build==1.2.2.post1
     # via pip-tools
@@ -18,7 +18,7 @@ charset-normalizer==3.4.1
     # via
     #   -c requirements-linux-cuda.txt
     #   requests
-clang-format==20.1.0
+clang-format==17.0.6
     # via -r ../../requirements-dev.in
 click==8.1.8
     # via
