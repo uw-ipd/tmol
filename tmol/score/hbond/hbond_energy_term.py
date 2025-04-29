@@ -21,7 +21,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         super(HBondEnergyTerm, self).__init__(param_db=param_db, device=device)
         self.tile_size = HBondEnergyTerm.tile_size
         self.hb_param_db = CompactedHBondDatabase.from_database(
-            param_db.chemical, param_db.scoring.hbond, device=device
+            param_db.chemical, param_db.scoring.hbond, device
         )
 
     @classmethod

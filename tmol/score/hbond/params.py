@@ -195,6 +195,7 @@ class CompactedHBondDatabase(ValidateAttrs):
         chemical_database: ChemicalDatabase,
         hbond_database: HBondDatabase,
         device: torch.device,
+        /,  # force positional arguments prior to the / so that we can properly form a cache key
     ):
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
