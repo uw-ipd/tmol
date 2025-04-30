@@ -1,14 +1,17 @@
 import numpy
-import zarr
 from pathlib import Path
 import os
-import sys
+import argparse
+import torch
+import yaml
+import attr
+import cattr
+
+from tmol.database.scoring.omega_bbdep import OmegaBBDepDatabase, OmegaBBDepTables
 
 # A conversion script from rosetta omega bbdep tables to
 # tmol probability tables.  For each of five classes
 # of AA (general, gly, val+ile, pro, and prepro) it computes
-#
-# Tables are then written as zarr ZipStores.
 
 
 def parse_lines_as_ndarrays(lines, mucol=4, sigmacol=5):
@@ -36,37 +39,64 @@ def parse_all_tables(r3_bbdepomega_dir):
     return tables
 
 
-def zarr_from_db(r3_bbdepomega_dir, output_path):
+def create_omega_db(r3_bbdepomega_dir):
     """
     Write the BBDep omega binary file
     """
     tables = parse_all_tables(r3_bbdepomega_dir)
 
-    with zarr.ZipStore(output_path + "/omega_bbdep.zip", mode="w") as store:
-        # write tables
-        zgroup = zarr.group(store=store)
+    bbdep_omega_tables = []
+    # write tables
+    for aa, (mu, sig) in tables.items():
+        bbdep_omega_tables.append(
+            OmegaBBDepTables(
+                table_id=aa,
+                mu=mu,
+                sigma=sig,
+                bbstep=[numpy.pi / 18.0, numpy.pi / 18.0],
+                bbstart=[numpy.pi / 36.0, numpy.pi / 36.0],
+            )
+        )
 
-        for aa, (mu, sig) in tables.items():
-            group_aa = zgroup.create_group(aa)
-            mu_aa = group_aa.create_dataset("mu", data=mu)
-            mu_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
-            mu_aa.attrs["bbstart"] = [numpy.pi / 36.0, numpy.pi / 36.0]
-            sigma_aa = group_aa.create_dataset("sigma", data=sig)
-            sigma_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
-            sigma_aa.attrs["bbstart"] = [numpy.pi / 36.0, numpy.pi / 36.0]
+    path_lookup = "tmol/database/default/scoring/omega_bbdep.yaml"
+
+    with open(path_lookup, "r") as infile_lookup:
+        raw = yaml.safe_load(infile_lookup)
+        bbdep_omega_lookup = cattr.structure(
+            raw["omega_bbdep_lookup"],
+            attr.fields(OmegaBBDepDatabase).bbdep_omega_lookup.type,
+        )
+
+    input_uniq_id = hash(r3_bbdepomega_dir)
+
+    uniq_id = path_lookup + "," + str(input_uniq_id)
+
+    return OmegaBBDepDatabase(
+        uniq_id=uniq_id,
+        bbdep_omega_lookup=bbdep_omega_lookup,
+        bbdep_omega_tables=bbdep_omega_tables,
+    )
 
 
 if __name__ == "__main__":
-    r3_bbdepomega_dir = (
-        str(Path.home()) + "/Rosetta/main/database/scoring/score_functions/omega/"
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--rosetta_dir", default=os.path.join(Path.home(), "Rosetta/main/")
     )
-    output_path = (
-        str(os.path.dirname(os.path.realpath(__file__)))
-        + "/../../database/default/scoring/"
+    args, _ = parser.parse_known_args()
+    parser.add_argument(
+        "--r3_bbdepomega_dir",
+        default=os.path.join(
+            args.rosetta_dir, "database/scoring/score_functions/omega/"
+        ),
     )
-    if len(sys.argv) > 1:
-        r3_bbdepomega_dir = sys.argv[1]
-    if len(sys.argv) > 2:
-        output_path = sys.argv[2]
+    parser.add_argument(
+        "--output",
+        default=os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            "../../database/default/scoring/omega_bbdep.zip",
+        ),
+    )
+    args = parser.parse_args()
 
-    zarr_from_db(r3_bbdepomega_dir, output_path)
+    torch.save(create_omega_db(args.r3_bbdepomega_dir), args.output)
