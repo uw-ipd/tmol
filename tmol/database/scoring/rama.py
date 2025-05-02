@@ -43,4 +43,4 @@ class RamaDatabase:
                 numpy.dtypes.Float64DType,
             ]
         ):
-            return torch.load(fname, weights_only=False)
+            return torch.load(fname)

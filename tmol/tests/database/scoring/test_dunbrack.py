@@ -11,7 +11,6 @@ def test_load_dunbrack_from_binary(benchmark):
     def db():
         return torch.load(
             os.path.join(dirname, "../../../database/default/scoring/dunbrack.bin"),
-            weights_only=False,
         )
 
     assert db is not None

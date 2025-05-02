@@ -80,4 +80,4 @@ class DunbrackRotamerLibrary:
                 RotamericDataForAA,
             ]
         ):
-            return torch.load(fname, weights_only=False)
+            return torch.load(fname)
