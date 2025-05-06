@@ -1,10 +1,9 @@
 import attr
 import torch
-import numpy
 
 from typing import Tuple
 
-from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -19,7 +18,7 @@ class RamaMappingParams:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaTables:
     table_id: str
-    table: NDArray[float]
+    table: Tensor[torch.float32]
     bbstep: Tuple[float, float]
     bbstart: Tuple[float, float]
 
@@ -37,10 +36,6 @@ class RamaDatabase:
                 RamaDatabase,
                 RamaTables,
                 RamaMappingParams,
-                numpy.core.multiarray._reconstruct,
-                numpy.ndarray,
-                numpy.dtype,
-                numpy.dtypes.Float64DType,
             ]
         ):
             return torch.load(fname)

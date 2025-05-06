@@ -1,10 +1,9 @@
 import attr
 import torch
-import numpy
 
 from typing import Tuple
 
-from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -19,8 +18,8 @@ class OmegaBBDepMappingParams:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class OmegaBBDepTables:
     table_id: str
-    mu: NDArray[float]
-    sigma: NDArray[float]
+    mu: Tensor[torch.float32]
+    sigma: Tensor[torch.float32]
     bbstep: Tuple[float, float]
     bbstart: Tuple[float, float]
 
@@ -38,10 +37,7 @@ class OmegaBBDepDatabase:
                 OmegaBBDepDatabase,
                 OmegaBBDepMappingParams,
                 OmegaBBDepTables,
-                numpy.core.multiarray._reconstruct,
-                numpy.ndarray,
-                numpy.dtype,
-                numpy.dtypes.Float64DType,
             ]
         ):
+            print("safe globals: ", torch.serialization.get_safe_globals())
             return torch.load(fname)

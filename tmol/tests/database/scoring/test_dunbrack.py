@@ -2,6 +2,8 @@ import pytest
 import os
 import torch
 
+from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
+
 
 @pytest.mark.benchmark(group="dun_load", min_rounds=1)
 def test_load_dunbrack_from_binary(benchmark):
@@ -9,7 +11,7 @@ def test_load_dunbrack_from_binary(benchmark):
 
     @benchmark
     def db():
-        return torch.load(
+        return DunbrackRotamerLibrary.from_file(
             os.path.join(dirname, "../../../database/default/scoring/dunbrack.bin"),
         )
 

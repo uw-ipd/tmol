@@ -112,7 +112,7 @@ def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_di
         rama_tables.append(
             RamaTables(
                 table_id=aa,
-                table=prob,
+                table=torch.Tensor(prob),
                 bbstep=[numpy.pi / 18.0, numpy.pi / 18.0],
                 bbstart=[-numpy.pi, -numpy.pi],
             )
@@ -122,7 +122,7 @@ def create_rama_database(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_di
         rama_tables.append(
             RamaTables(
                 table_id=aa + "_prepro",
-                table=prob,
+                table=torch.Tensor(prob),
                 bbstep=[numpy.pi / 18.0, numpy.pi / 18.0],
                 bbstart=[-numpy.pi, -numpy.pi],
             )
@@ -180,5 +180,5 @@ if __name__ == "__main__":
         create_rama_database(
             0.5, args.r3_rama_dir, 0.61, args.r3_paapp_dir, args.r3_paa_dir
         ),
-        args.output_path,
+        args.output,
     )

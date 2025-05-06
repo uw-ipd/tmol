@@ -51,8 +51,8 @@ def create_omega_db(r3_bbdepomega_dir):
         bbdep_omega_tables.append(
             OmegaBBDepTables(
                 table_id=aa,
-                mu=mu,
-                sigma=sig,
+                mu=torch.Tensor(mu),
+                sigma=torch.Tensor(sig),
                 bbstep=[numpy.pi / 18.0, numpy.pi / 18.0],
                 bbstart=[numpy.pi / 36.0, numpy.pi / 36.0],
             )
