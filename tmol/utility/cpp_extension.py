@@ -3,7 +3,6 @@ import os
 import sys
 from functools import wraps, partial
 import warnings
-import setuptools
 import importlib
 
 from ..extern import include_paths as extern_include_paths
@@ -235,10 +234,7 @@ class TorchOpLoader:
 
     def load_mod(self):
         try:
-            # print("TRY STATIC LOAD", self.name)
             importlib.import_module(self.name)
-
-            # print("trying load", self.name)
 
             for function in self.functions:
                 setattr(
@@ -247,11 +243,9 @@ class TorchOpLoader:
                     getattr(sys.modules[self.name], function),
                 )
 
-        except:
-            # print("TRY JIT", self.name)
+        except ModuleNotFoundError:
             self.jit_load()
 
-            # _ops = getattr(torch.ops, modulename(__name__))
             importlib.import_module(self.name)
 
             for function in self.functions:
