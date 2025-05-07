@@ -421,6 +421,11 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("dunbrack_pose_scores", &dunbrack_pose_scores_op<DeviceOperations>);
 }
 
+// #define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("dunbrack_pose_scores", &dunbrack_pose_scores_op<DeviceOperations>);
+}
+
 }  // namespace potentials
 }  // namespace dunbrack
 }  // namespace score

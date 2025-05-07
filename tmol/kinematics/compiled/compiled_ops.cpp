@@ -19,6 +19,66 @@ using torch::autograd::AutogradContext;
 using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
+class InverseKinematicOp
+    : public torch::autograd::Function<InverseKinematicOp> {
+ public:
+  static Tensor forward(
+      AutogradContext* ctx,
+      Tensor coords,
+      Tensor parent,
+      Tensor frame_x,
+      Tensor frame_y,
+      Tensor frame_z,
+      Tensor doftype) {
+    at::Tensor ret;
+
+    using Int = int32_t;
+
+    TMOL_DISPATCH_FLOATING_DEVICE(coords.options(), "inverse_kin_op", ([&] {
+                                    using Real = scalar_t;
+                                    constexpr tmol::Device Dev = device_t;
+
+                                    auto result =
+                                        InverseKinDispatch<Dev, Real, Int>::f(
+                                            TCAST(coords),
+                                            TCAST(parent),
+                                            TCAST(frame_x),
+                                            TCAST(frame_y),
+                                            TCAST(frame_z),
+                                            TCAST(doftype));
+                                    ret = result.tensor;
+                                  }));
+
+    // ctx->save_for_backward({HTs, dofs, nodes_b, scans_b, gens_b, kintree});
+
+    return ret;
+  }
+
+  static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
+    // auto saved = ctx->get_saved_variables();
+
+    return {
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+    };
+  }
+};
+
+Tensor inverse_kin_op(
+    Tensor coords,
+    Tensor parent,
+    Tensor frame_x,
+    Tensor frame_y,
+    Tensor frame_z,
+    Tensor doftype) {
+  return InverseKinematicOp::apply(
+      coords, parent, frame_x, frame_y, frame_z, doftype);
+}
+
 class KinematicOp : public torch::autograd::Function<KinematicOp> {
  public:
   static Tensor forward(
@@ -609,6 +669,25 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("get_kinforest_scans_from_stencils", &get_scans2);
   m.def("get_kinforest_scans_from_stencils2", &get_scans2);
   m.def("minimizer_map_from_movemap", &minimizer_map_from_movemap);
+}
+
+// #define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("forward_kin_op", &kinematic_op);
+  m.def("forward_only_op", &forward_only_op);
+  m.def("get_kfo_indices_for_atoms", &get_kfo_indices_for_atoms);
+  m.def("get_kfo_atom_parents", &get_kfo_atom_parents);
+  m.def("get_children", &get_children);
+  m.def("get_id_and_frame_xyz", &get_id_and_frame_xyz);
+  m.def("calculate_ff_edge_delays", &calculate_ff_edge_delays);
+  m.def("get_jump_atom_indices", &get_jump_atom_indices);
+  m.def(
+      "get_block_parent_connectivity_from_toposort",
+      &get_block_parent_connectivity_from_toposort);
+  m.def("get_kinforest_scans_from_stencils", &get_scans2);
+  m.def("get_kinforest_scans_from_stencils2", &get_scans2);
+  m.def("minimizer_map_from_movemap", &minimizer_map_from_movemap);
+  m.def("inverse_kin", &inverse_kin_op);
 }
 
 }  // namespace kinematics

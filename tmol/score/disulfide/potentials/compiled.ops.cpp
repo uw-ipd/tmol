@@ -186,6 +186,11 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("disulfide_pose_scores", &disulfide_pose_scores_op<DeviceOperations>);
 }
 
+// #define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("disulfide_pose_scores", &disulfide_pose_scores_op<DeviceOperations>);
+}
+
 }  // namespace potentials
 }  // namespace disulfide
 }  // namespace score
