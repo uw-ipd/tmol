@@ -2,7 +2,13 @@ import pytest
 
 import torch
 
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
+from tmol.utility.cpp_extension import (
+    load,
+    relpaths,
+    modulename,
+    cuda_if_available,
+    get_prebuild_extensions,
+)
 
 from tmol.tests.torch import requires_cuda
 
@@ -68,3 +74,10 @@ def test_hybrid_nocuda():
     if torch.cuda.is_available():
         with pytest.raises(TypeError):
             extension_nocuda.sum(torch.ones(10, device="cuda"))
+
+
+def test_get_prebuild_extensions_smoke():
+    """
+    Just make sure this function runs. Should probably inspect the output for validity with a better test
+    """
+    get_prebuild_extensions()

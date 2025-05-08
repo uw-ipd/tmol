@@ -161,7 +161,7 @@ def modulename(src_name):
     return src_name.replace(".", "_")
 
 
-def prebuild():
+def get_prebuild_extensions():
 
     from pkgutil import iter_modules
     from setuptools import find_packages
@@ -174,7 +174,7 @@ def prebuild():
         for info in iter_modules([pkgpath]):
             if not info.ispkg and info.name in name_filter and "test" not in pkgpath:
                 module_info = {"name": pkg + "." + info.name}
-                print(module_info)
+                # print(module_info)
 
                 importlib.import_module(module_info["name"])
                 func = getattr(
@@ -183,7 +183,6 @@ def prebuild():
                 )
                 compiled_modules.append(func("/home/jflat06/rosetta/tmol"))
 
-    print(compiled_modules)
     return compiled_modules
 
 
@@ -208,7 +207,7 @@ class TorchOpLoader:
 
     def build_CUDA_extension(self, f, **kwargs):
         src = [os.path.relpath(s, f) for s in self.sources]
-        print(src)
+        # print(src)
 
         kwargs = _augment_kwargs(self.name, src, **kwargs)
         kwargs["extra_cuda_cflags"] += ["-gencode=arch=compute_75,code=sm_75"]
@@ -217,8 +216,8 @@ class TorchOpLoader:
             "nvcc": kwargs["extra_cuda_cflags"],
         }
 
-        print("KWARGS")
-        print(kwargs)
+        # print("KWARGS")
+        # print(kwargs)
 
         cuda_ext = torch.utils.cpp_extension.CUDAExtension(
             name=self.name,
