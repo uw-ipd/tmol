@@ -309,7 +309,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     met_kt_frame_y = it(0, met_rt.rotamer_kinforest.frame_y + 1)
     met_kt_frame_z = it(0, met_rt.rotamer_kinforest.frame_z + 1)
 
-    from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
+    from tmol.kinematics.compiled.compiled_ops import inverse_kin
 
     coords = torch.cat(
         (
