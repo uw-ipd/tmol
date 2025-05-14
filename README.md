@@ -124,6 +124,10 @@ A pull request should land as an "atomic" unit of work, representing a single se
 ### Automated Testing
 We maintain an automated test suite executed via buildkite. The test suite must always be passing for master, and is available for any open branch via pull request. By default, the test suit will run on any PR
 
+## Citation
+If you use `tmol` in your work, please cite:
+
+Andrew Leaver-Fay, Jeff Flatten, Alex Ford, Joseph Kleinhenz, Henry Solberg, David Baker, Andrew M. Watkins, Brian Kuhlman, Frank DiMaio, _tmol: a GPU-accelarated, PyTorch implementation of Rosetta’s relax protocol_, (manuscript in preparation)
 
 
 
