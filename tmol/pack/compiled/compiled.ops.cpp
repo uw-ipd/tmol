@@ -35,7 +35,7 @@ std::vector<Tensor> anneal(
   at::Tensor scores;
   at::Tensor rotamer_assignments;
 
-  TMOL_DISPATCH_FLOATING_DEVICE(energy1b.type(), "pack_anneal", ([&] {
+  TMOL_DISPATCH_FLOATING_DEVICE(energy1b.options(), "pack_anneal", ([&] {
                                   constexpr tmol::Device Dev = device_t;
 
                                   std::cout << "HOLA!" << std::endl;
@@ -119,9 +119,18 @@ torch::Tensor validate_energies(
   return result.tensor;
 }
 
+/*
 static auto registry = torch::jit::RegisterOperators()
                            .op("tmol::pack_anneal", &anneal)
                            .op("tmol::validate_energies", &validate_energies);
+*/
+// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
+// See https://stackoverflow.com/a/3221914
+#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
+TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+  m.def("tmol::pack_anneal", &anneal);
+  m.def("tmol::validate_energies", &validate_energies);
+}
 
 }  // namespace compiled
 }  // namespace pack

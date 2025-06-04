@@ -1,8 +1,8 @@
-#include <c10/DeviceType.h>
+#include <c10/core/DeviceType.h>
 #include <ATen/Context.h>
-#include <ATen/CUDAGenerator.h>
+/*#include <ATen/cuda/CUDAGeneratorImpl.h>
 #include <THC/THCGenerator.hpp>
-#include <THC/THCTensorRandom.h>
+#include <THC/THCTensorRandom.h>*/
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -25,7 +25,7 @@
 // Stolen from torch, v1.0.0
 // Expose part of the torch library that otherwise is
 // not part of the API.
-THCGenerator* THCRandom_getGenerator(THCState* state);
+// THCGenerator* THCRandom_getGenerator(THCState* state);
 
 // Stolen from torch, v1.0.0;
 // unnecessary in the latest release, where this function
@@ -33,11 +33,11 @@ THCGenerator* THCRandom_getGenerator(THCState* state);
 // Modified slightly as the input Generator is unused.
 // increment should be at least the number of curand() random numbers used in
 // each thread.
-std::pair<uint64_t, uint64_t> next_philox_seed(uint64_t increment) {
+/*std::pair<uint64_t, uint64_t> next_philox_seed(uint64_t increment) {
   auto gen_ = THCRandom_getGenerator(at::globalContext().getTHCState());
   uint64_t offset = gen_->state.philox_seed_offset.fetch_add(increment);
   return std::make_pair(gen_->state.initial_seed, offset);
-}
+}*/
 
 namespace tmol {
 namespace pack {
@@ -640,7 +640,7 @@ MGPU_DEVICE float spbr(
 
 template <tmol::Device D, class IG>
 struct Annealer {
-  static auto run_simulated_annealing(IG ig)
+  static auto run_simulated_annealing(IG ig, int seed)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> > {
     int const nres = ig.nres_cpu();            // nrotamers_for_res.size(0);
     int const nrotamers = ig.nrotamers_cpu();  // res_for_rot.size(0);
@@ -737,30 +737,41 @@ struct Annealer {
     // the quench / non-quench cycles +
     // 2: nres = the initial seed state of the system is created by
     // picking a single random rotamer per residue.
-    auto philox_seed_hitemp = next_philox_seed(
+    /*auto philox_seed_hitemp = next_philox_seed(
         nrotamers +  // initial random rotamer assignment
         n_outer_iterations_hitemp * n_inner_iterations_hitemp
         +  // hitemp annealing
         (nrotamers / 31
          + nres)  // hitemp random permutation of quenchlite rotamers
-    );
+    );*/
 
-    auto philox_seed_lotemp = next_philox_seed(
+    int hitemp_cnt =
+        nrotamers +  // initial random rotamer assignment
+        n_outer_iterations_hitemp * n_inner_iterations_hitemp
+        +  // hitemp annealing
+        (nrotamers / 31
+         + nres);  // hitemp random permutation of quenchlite rotamers
+
+    /*auto philox_seed_lotemp = next_philox_seed(
         n_outer_iterations_lotemp * n_outer_iterations_lotemp
         +  // lotemp annealing
         (nrotamers / 31
          + nres)  // lowtemp random permuation of quenchlite rotamers
-    );
+    );*/
 
-    auto philox_seed_quench = next_philox_seed(nrotamers);
+    int lotemp_cnt =
+        n_outer_iterations_lotemp * n_outer_iterations_lotemp
+        +  // lotemp annealing
+        (nrotamers / 31
+         + nres);  // lowtemp random permuation of quenchlite rotamers
+
+    // auto philox_seed_quench = next_philox_seed(nrotamers);
+
+    int quench_cnt = nrotamers;
 
     auto hitemp_simulated_annealing = [=] MGPU_DEVICE(int thread_id) {
       curandStatePhilox4_32_10_t state;
-      curand_init(
-          philox_seed_hitemp.first,
-          thread_id,
-          philox_seed_hitemp.second,
-          &state);
+      curand_init(seed, thread_id, 0, &state);
 
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
@@ -828,11 +839,7 @@ struct Annealer {
 
     auto lotemp_simulated_annealing = [=] MGPU_DEVICE(int thread_id) {
       curandStatePhilox4_32_10_t state;
-      curand_init(
-          philox_seed_lotemp.first,
-          thread_id,
-          philox_seed_lotemp.second,
-          &state);
+      curand_init(seed, thread_id, hitemp_cnt, &state);
 
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
@@ -894,11 +901,7 @@ struct Annealer {
 
     auto fullquench = [=] MGPU_DEVICE(int thread_id) {
       curandStatePhilox4_32_10_t state;
-      curand_init(
-          philox_seed_quench.first,
-          thread_id,
-          philox_seed_quench.second,
-          &state);
+      curand_init(seed, thread_id, hitemp_cnt + lotemp_cnt, &state);
 
       cooperative_groups::thread_block_tile<32> g =
           cooperative_groups::tiled_partition<32>(
@@ -980,8 +983,8 @@ struct AnnealerDispatch {
       TView<int64_t, 2, D> twob_offsets,
       TView<int, 1, D> fine_chunk_offsets,
       TView<float, 1, D> energy1b,
-      TView<float, 1, D> energy2b)
-      -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> > {
+      TView<float, 1, D> energy2b,
+      int seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> > {
     clock_t start = clock();
 
     InteractionGraph<D, int, float> ig(
@@ -998,7 +1001,7 @@ struct AnnealerDispatch {
 
     auto result =
         Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
-            ig);
+            ig, seed);
 
     cudaDeviceSynchronize();
     clock_t stop = clock();
