@@ -43,6 +43,34 @@ namespace tmol {
 namespace pack {
 namespace compiled {
 
+template <unsigned int nthreads, typename T, typename op_t>
+MGPU_DEVICE __inline__ T reduce_shfl_and_broadcast(
+    cooperative_groups::thread_block_tile<nthreads> g, T val, op_t op) {
+  // T val_orig(val);
+  // mgpu::shfl_reduce_t<T, nthreads> reducer;
+  // val = reducer. template reduce<op_t>(
+  //   g.thread_rank(), val, nthreads, op);
+  //
+  // T hand_rolled_val(val_orig);
+  for (unsigned int i = nthreads / 2; i > 0; i /= 2) {
+    T const shfl_val = g.shfl_down(val, i);
+    if (g.thread_rank() < 32 - i) {
+      val = op(val, shfl_val);
+    }
+  }
+
+  // thread 0 shares its reduced value with everyone
+  // so that there is no disagreement on the
+  // partition function value
+  T val_bcast = g.shfl(val, 0);
+
+  // printf("%d %d shfl orig %f reduce %f bcast %f vs %f\n", g.thread_rank(),
+  // threadIdx.x, float(val_orig), float(val), float(val_bcast),
+  // float(hand_rolled_val));
+
+  return val_bcast;
+}
+
 template <tmol::Device D, typename Int, typename Real>
 struct InteractionGraph {
  public:
@@ -194,34 +222,6 @@ struct InteractionGraph {
 MGPU_DEVICE
 int curand_in_range(curandStatePhilox4_32_10_t* state, int n) {
   return int(curand_uniform(state) * n) % n;
-}
-
-template <unsigned int nthreads, typename T, typename op_t>
-MGPU_DEVICE __inline__ T reduce_shfl_and_broadcast(
-    cooperative_groups::thread_block_tile<nthreads> g, T val, op_t op) {
-  // T val_orig(val);
-  // mgpu::shfl_reduce_t<T, nthreads> reducer;
-  // val = reducer. template reduce<op_t>(
-  //   g.thread_rank(), val, nthreads, op);
-  //
-  // T hand_rolled_val(val_orig);
-  for (unsigned int i = nthreads / 2; i > 0; i /= 2) {
-    T const shfl_val = g.shfl_down(val, i);
-    if (g.thread_rank() < 32 - i) {
-      val = op(val, shfl_val);
-    }
-  }
-
-  // thread 0 shares its reduced value with everyone
-  // so that there is no disagreement on the
-  // partition function value
-  T val_bcast = g.shfl(val, 0);
-
-  // printf("%d %d shfl orig %f reduce %f bcast %f vs %f\n", g.thread_rank(),
-  // threadIdx.x, float(val_orig), float(val), float(val_bcast),
-  // float(hand_rolled_val));
-
-  return val_bcast;
 }
 
 template <unsigned int nthreads, typename T, typename F>
@@ -640,7 +640,7 @@ MGPU_DEVICE float spbr(
 
 template <tmol::Device D, class IG>
 struct Annealer {
-  static auto run_simulated_annealing(IG ig, int seed)
+  static auto run_simulated_annealing(IG ig, int64_t seed)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> > {
     int const nres = ig.nres_cpu();            // nrotamers_for_res.size(0);
     int const nrotamers = ig.nrotamers_cpu();  // res_for_rot.size(0);
@@ -984,7 +984,7 @@ struct AnnealerDispatch {
       TView<int, 1, D> fine_chunk_offsets,
       TView<float, 1, D> energy1b,
       TView<float, 1, D> energy2b,
-      int seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> > {
+      int64_t seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> > {
     clock_t start = clock();
 
     InteractionGraph<D, int, float> ig(

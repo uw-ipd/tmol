@@ -4,7 +4,7 @@
 #include <torch/csrc/autograd/saved_variable.h>  // ??
 #include <torch/types.h>
 
-#include <tmol/utility/autograd.hh>
+#include <tmol/utility/nvtx.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
@@ -30,7 +30,8 @@ std::vector<Tensor> anneal(
     Tensor twob_offsets,
     Tensor fine_chunk_offsets,
     Tensor energy1b,
-    Tensor energy2b) {
+    Tensor energy2b,
+    int64_t seed) {
   nvtx_range_push("pack_anneal");
   at::Tensor scores;
   at::Tensor rotamer_assignments;
@@ -49,7 +50,8 @@ std::vector<Tensor> anneal(
                                       TCAST(twob_offsets),
                                       TCAST(fine_chunk_offsets),
                                       TCAST(energy1b),
-                                      TCAST(energy2b));
+                                      TCAST(energy2b),
+                                      seed);
                                   scores = std::get<0>(result).tensor;
                                   rotamer_assignments =
                                       std::get<1>(result).tensor;
@@ -128,8 +130,8 @@ static auto registry = torch::jit::RegisterOperators()
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
-  m.def("tmol::pack_anneal", &anneal);
-  m.def("tmol::validate_energies", &validate_energies);
+  m.def("pack_anneal", &anneal);
+  m.def("validate_energies", &validate_energies);
 }
 
 }  // namespace compiled

@@ -6,6 +6,7 @@ import pickle
 
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
+from tmol.pack.compiled.compiled import validate_energies
 from tmol.utility.cumsum import exclusive_cumsum
 
 
@@ -591,7 +592,7 @@ def test_run_sim_annealing():
     # print("assignment 0", rotamer_assignments[0,0:20])
     # print("sorted assignment 0", best_rot_assignments[0,0:20])
 
-    validated_scores = torch.ops.tmol.validate_energies(
+    validated_scores = validate_energies(
         et.nrotamers_for_res,
         et.oneb_offsets,
         et.res_for_rot,
@@ -656,7 +657,7 @@ def test_run_sim_annealing_on_repacking_jobs():
         rotamer_assignments = best_rot_assignments.cpu()
         # print("scores", " ".join([str(scores[i].item()) for i in range(scores.shape[0])]))
 
-        validated_scores = torch.ops.tmol.validate_energies(
+        validated_scores = validate_energies(
             et.nrotamers_for_res,
             et.oneb_offsets,
             et.res_for_rot,
@@ -727,7 +728,7 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
             "scores", " ".join([str(scores[i].item()) for i in range(scores.shape[0])])
         )
 
-        validated_scores = torch.ops.tmol.validate_energies(
+        validated_scores = validate_energies(
             et.nrotamers_for_res,
             et.oneb_offsets,
             et.res_for_rot,

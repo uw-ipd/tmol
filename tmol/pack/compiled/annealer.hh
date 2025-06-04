@@ -22,7 +22,7 @@ struct AnnealerDispatch {
       TView<int, 1, D> fine_chunk_offsets,
       TView<float, 1, D> energy1b,
       TView<float, 1, D> energy2b,
-      int seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> >;
+      int64_t seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> >;
 };
 
 }  // namespace compiled
