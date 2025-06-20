@@ -277,18 +277,9 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
               score_dat.pair_data.total_hbond, shared, mgpu::plus_t<Real>());  \
       if (tid == 0) {                                                          \
         if (!output_block_pair_energies) {                                     \
-          accumulate<Dev, Real>::add(                                          \
-              output[0][score_dat.pair_data.pose_ind][0][0], cta_total_hbond); \
+          accumulate<Dev, Real>::add(output[cta], cta_total_hbond);            \
         } else {                                                               \
-          if (score_dat.r1.block_ind == score_dat.r2.block_ind) {              \
-            output[0][score_dat.pair_data.pose_ind][score_dat.r1.block_ind]    \
-                  [score_dat.r1.block_ind] = cta_total_hbond;                  \
-          } else {                                                             \
-            output[0][score_dat.pair_data.pose_ind][score_dat.r1.block_ind]    \
-                  [score_dat.r2.block_ind] = 0.5 * cta_total_hbond;            \
-            output[0][score_dat.pair_data.pose_ind][score_dat.r2.block_ind]    \
-                  [score_dat.r1.block_ind] = 0.5 * cta_total_hbond;            \
-          }                                                                    \
+          output[cta] = cta_total_hbond;                                       \
         }                                                                      \
       }                                                                        \
     });                                                                        \
@@ -391,13 +382,13 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
   }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
 auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Int, 2, Dev> block_pair_dispatch_indices,
     TView<Int, 2, Dev> pose_stack_block_coord_offset,
     TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -463,7 +454,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     )
     -> std::tuple<
-        TPack<Real, 4, Dev>,
+        TPack<Real, 1, Dev>,
         TPack<Vec<Real, 3>, 3, Dev>,
         TPack<Int, 3, Dev> > {
   using tmol::score::common::accumulate;
@@ -535,13 +526,16 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   assert(block_type_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
-  TPack<Real, 4, Dev> output_t;
+  /*TPack<Real, 4, Dev> output_t;
   if (output_block_pair_energies) {
     output_t =
         TPack<Real, 4, Dev>::zeros({1, n_poses, max_n_blocks, max_n_blocks});
   } else {
     output_t = TPack<Real, 4, Dev>::zeros({1, n_poses, 1, 1});
-  }
+  }*/
+
+  TPack<Real, 1, Dev> output_t;
+  output_t = TPack<Real, 1, Dev>::zeros({block_pair_dispatch_indices.size(1)});
   auto output = output_t.view;
 
   // auto accum_output_t = TPack<double, 2, Dev>::zeros({1, n_poses});
@@ -578,13 +572,16 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
     } shared;
 
-    int const pose_ind = cta / (max_n_blocks * max_n_blocks);
-    int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
-    int const block_ind1 = block_ind_pair / max_n_blocks;
-    int const block_ind2 = block_ind_pair % max_n_blocks;
-    if (block_ind1 > block_ind2) {
+    // int const pose_ind = block_pair_dispatch_indices[0][cta];//cta /
+    // (max_n_blocks * max_n_blocks); int const block_ind_pair = cta %
+    // (max_n_blocks * max_n_blocks); int const block_ind1 = block_ind_pair /
+    // max_n_blocks; int const block_ind2 = block_ind_pair % max_n_blocks;
+    int const pose_ind = block_pair_dispatch_indices[0][cta];
+    int const block_ind1 = block_pair_dispatch_indices[1][cta];
+    int const block_ind2 = block_pair_dispatch_indices[2][cta];
+    /*if (block_ind1 > block_ind2) {
       return;
-    }
+    }*/
 
     if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
@@ -675,6 +672,11 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   // context(wrapped_stream.stream());
   int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
 
+  /*TPack<Real, 1, Dev> pair_dispatch_indices;
+    output_t =
+        TPack<Real, 1, Dev>::zeros({block_pair_dispatch_indices.size(1)});
+  auto output = output_t.view;*/
+
   score::common::sphere_overlap::
       compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
           coords,
@@ -693,21 +695,23 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
           scratch_block_neighbors,
           Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
 
+  auto test = scratch_block_neighbors == true;
+
   // 3
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      n_block_pairs, eval_energies);
+      block_pair_dispatch_indices.size(1), eval_energies);
 
-  return {output_t, dV_dcoords_t, scratch_block_neighbors_t};
+  return {output_t, dV_dcoords_t, scratch_block_neighbors};
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
 auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Int, 2, Dev> block_pair_dispatch_indices,
     TView<Int, 2, Dev> pose_stack_block_coord_offset,
     TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -769,7 +773,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
     TView<Int, 3, Dev> scratch_block_neighbors,  // from forward pass
-    TView<Real, 4, Dev> dTdV                     // nterms x nposes x len x len
+    TView<Real, 1, Dev> dTdV                     // nterms x nposes x len x len
     ) -> TPack<Vec<Real, 3>, 3, Dev>
 
 {
@@ -825,7 +829,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
               acc_dat,
               respair_dat,
               cp_separation,
-              dTdV,
+              dTdV[cta],
               dV_dcoords);
           return Real(0.0);
         });
@@ -841,13 +845,16 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
     } shared;
 
-    int const pose_ind = cta / (max_n_blocks * max_n_blocks);
-    int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
-    int const block_ind1 = block_ind_pair / max_n_blocks;
-    int const block_ind2 = block_ind_pair % max_n_blocks;
-    if (block_ind1 > block_ind2) {
-      return;
-    }
+    int const pose_ind = block_pair_dispatch_indices[0][cta];
+    int const block_ind1 = block_pair_dispatch_indices[1][cta];
+    int const block_ind2 = block_pair_dispatch_indices[2][cta];
+    // int const pose_ind = cta / (max_n_blocks * max_n_blocks);
+    // int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
+    // int const block_ind1 = block_ind_pair / max_n_blocks;
+    // int const block_ind2 = block_ind_pair % max_n_blocks;
+    // if (block_ind1 > block_ind2) {
+    // return;
+    //}
 
     if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
       return;
@@ -929,7 +936,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   // there's only a single kernel launch here
   int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      n_block_pairs, eval_derivs);
+      block_pair_dispatch_indices.size(1), eval_derivs);
 
   return dV_dcoords_t;
 }

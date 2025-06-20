@@ -38,7 +38,9 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
 
         self.atom_global_indices = atom_offsets + constraint_atom_atom_inds
 
-    def forward(self, coords, output_block_pair_energies=False):
+    def forward(
+        self, coords, block_pair_dispatch_indices, output_block_pair_energies=False
+    ):
 
         def score_cnstrs(functions, types, atom_coords, params):
             cnstr_scores = torch.full(
@@ -65,6 +67,41 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
         nposes = self.pose_stack_block_coord_offset.size(0)
 
         def distribute_scores(scores, atom_pose_inds, atom_res_inds):
+            """# make sure i <= j
+            res_ind_min = torch.minimum(atom_res_inds[:,0], atom_res_inds[:,3])
+            res_ind_max = torch.maximum(atom_res_inds[:,0], atom_res_inds[:,3])
+
+            print(atom_pose_inds[:,0])
+            print(res_ind_min)
+            print(atom_res_inds[:,0])
+            print(res_ind_max)
+            print(atom_res_inds[:,3])
+            # assemble our indices into a sparse tensor index
+            indices = torch.stack([atom_pose_inds[:, 0], res_ind_min, res_ind_max])
+            print(indices)
+            # make a sparse tensor from the index and scores, and coalesce it to sum duplicates
+            constraint_scores = torch.sparse_coo_tensor(indices, scores, device=coords.device).coalesce()
+
+            # get the indices of both the block pair dispatch and constraint score output
+            cnstr_inds = constraint_scores.indices().swapaxes(0, 1)
+            block_inds = block_pair_dispatch_indices.swapaxes(0, 1)
+            cnstr_vals = constraint_scores.values()
+
+            # generate a mapping from the block pair index to the constraint score index
+            mapping = (block_inds.unsqueeze(1) == cnstr_inds).all(dim=2).nonzero()
+
+            # map the scores into the block pair dispatch output
+            scores_out = torch.zeros(block_pair_dispatch_indices.size(1), dtype=torch.float32)
+            scores_out[mapping[:,0]] = cnstr_vals[mapping[:,1]]
+
+
+            final_scores = torch.sparse_coo_tensor(block_pair_dispatch_indices, scores_out, device=coords.device).coalesce()
+
+            print(final_scores.to_dense()[:,:6,:6])
+
+            return
+            return sparse_scores.coalesce().values()
+            """
             block_scores = torch.full(
                 (
                     nposes,
@@ -87,9 +124,21 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
                 + atom_res_inds[:, 3] * nblocks
                 + atom_res_inds[:, 0]
             )
-            flattened.index_add_(0, indices1, scores / 2)
-            flattened.index_add_(0, indices2, scores / 2)
-            return block_scores
+            flattened.index_add_(0, indices1, scores)
+            flattened.index_add_(0, indices2, scores)
+
+            diag = block_scores.diagonal(dim1=1, dim2=2)
+            diag.copy_(diag / 2)
+
+            temp_indices = torch.sparse_coo_tensor(
+                block_pair_dispatch_indices,
+                torch.zeros(block_pair_dispatch_indices.size(1), device=coords.device),
+                device=coords.device,
+            )
+
+            sparse_scores = block_scores.sparse_mask(temp_indices)
+
+            return sparse_scores.coalesce().values()
 
         scores = score_cnstrs(
             self.constraint_functions,
@@ -105,8 +154,9 @@ class ConstraintWholePoseScoringModule(torch.nn.Module):
             pass
         else:
             # for each pose, sum up the block scores
-            scores = torch.sum(scores, (1, 2))
+            pass
+            # scores = torch.sum(scores, (1, 2))
 
         # wrap this all in an extra dim (the output expects an outer dim to separate sub-terms)
-        scores = torch.unsqueeze(scores, 0)
+        # scores = torch.unsqueeze(scores, 0)
         return scores

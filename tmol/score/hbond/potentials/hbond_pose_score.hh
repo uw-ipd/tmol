@@ -24,14 +24,14 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device>
-    class DeviceOps,
+    template <tmol::Device> class DeviceOps,
     tmol::Device Dev,
     typename Real,
     typename Int>
 struct HBondPoseScoreDispatch {
   static auto forward(
       TView<Vec<Real, 3>, 2, Dev> coords,
+      TView<Int, 2, Dev> block_pair_dispatch_indices,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -97,12 +97,13 @@ struct HBondPoseScoreDispatch {
       bool output_block_pair_energies,
       bool compute_derivs)
       -> std::tuple<
-          TPack<Real, 4, Dev>,
+          TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 3, Dev>,
           TPack<Int, 3, Dev> >;
 
   static auto backward(
       TView<Vec<Real, 3>, 2, Dev> coords,
+      TView<Int, 2, Dev> block_pair_dispatch_indices,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -166,7 +167,7 @@ struct HBondPoseScoreDispatch {
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
       TView<Int, 3, Dev> scratch_block_neighbors,  // from forward pass
-      TView<Real, 4, Dev> dTdV  // nterms x nposes x len x len
+      TView<Real, 1, Dev> dTdV  // nterms x nposes x len x len
       ) -> TPack<Vec<Real, 3>, 3, Dev>;
 };
 

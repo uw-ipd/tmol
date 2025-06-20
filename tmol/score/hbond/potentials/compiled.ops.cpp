@@ -29,6 +29,7 @@ class HBondPoseScoresOp
       AutogradContext* ctx,
 
       Tensor coords,
+      Tensor block_pair_dispatch_indices,
       Tensor pose_stack_block_coord_offset,
       Tensor pose_stack_block_type,
       Tensor pose_stack_inter_residue_connections,
@@ -73,6 +74,7 @@ class HBondPoseScoresOp
           auto result =
               HBondPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
                   TCAST(coords),
+                  TCAST(block_pair_dispatch_indices),
                   TCAST(pose_stack_block_coord_offset),
                   TCAST(pose_stack_block_type),
                   TCAST(pose_stack_inter_residue_connections),
@@ -112,6 +114,7 @@ class HBondPoseScoresOp
       // save inputs for deriv call in backwards
       ctx->save_for_backward(
           {coords,
+           block_pair_dispatch_indices,
            pose_stack_block_coord_offset,
            pose_stack_block_type,
            pose_stack_inter_residue_connections,
@@ -176,6 +179,7 @@ class HBondPoseScoresOp
       int i = 0;
 
       auto coords = saved[i++];
+      auto block_pair_dispatch_indices = saved[i++];
       auto pose_stack_block_coord_offset = saved[i++];
       auto pose_stack_block_type = saved[i++];
       auto pose_stack_inter_residue_connections = saved[i++];
@@ -221,6 +225,7 @@ class HBondPoseScoresOp
                 Int>::
                 backward(
                     TCAST(coords),
+                    TCAST(block_pair_dispatch_indices),
                     TCAST(pose_stack_block_coord_offset),
                     TCAST(pose_stack_block_type),
                     TCAST(pose_stack_inter_residue_connections),
@@ -256,7 +261,7 @@ class HBondPoseScoresOp
     }
 
     return {dV_d_pose_coords, torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
 
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(),
@@ -275,6 +280,7 @@ class HBondPoseScoresOp
 template <template <tmol::Device> class DispatchMethod>
 Tensor hbond_pose_scores_op(
     Tensor coords,
+    Tensor block_pair_dispatch_indices,
     Tensor pose_stack_block_coord_offset,
     Tensor pose_stack_block_type,
     Tensor pose_stack_inter_residue_connections,
@@ -305,6 +311,7 @@ Tensor hbond_pose_scores_op(
     bool output_block_pair_energies) {
   return HBondPoseScoresOp<DispatchMethod>::apply(
       coords,
+      block_pair_dispatch_indices,
       pose_stack_block_coord_offset,
       pose_stack_block_type,
       pose_stack_inter_residue_connections,

@@ -110,8 +110,7 @@ struct HBondBlockPairSharedData {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Real,
@@ -160,8 +159,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -211,8 +209,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Int,
@@ -346,8 +343,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -399,8 +395,7 @@ void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -451,8 +446,7 @@ void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Int,
@@ -548,8 +542,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -596,8 +589,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     int TILE_SIZE,
@@ -791,7 +783,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     HBondSingleResData<Real> const &acc_dat,
     HBondResPairData<Dev, Real, Int> const &respair_dat,
     int cp_separation,
-    TView<Real, 4, Dev> dTdV,
+    Real dTdV,
     TView<Eigen::Matrix<Real, 3, 1>, 3, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
@@ -844,11 +836,16 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
         respair_dat.pair_polynomials[dt][at],
         respair_dat.global_params);
 
-    Real dVdT_m =
-        0.5
-        * (dTdV[0][respair_dat.pose_ind][don_dat.block_ind][acc_dat.block_ind]
-           + dTdV[0][respair_dat.pose_ind][acc_dat.block_ind]
-                 [don_dat.block_ind]);
+    printf("RESDAT:\n");
+    // printf("%i %i %i\n", donH_ind, don_dat.block_ind, don_h_atom_tile_ind);
+    // printf("%i %i %i\n", acc_ind, acc_dat.block_ind, acc_atom_tile_ind);
+    printf("%f\n", dTdV);
+
+    Real dVdT_m = dTdV;
+    // 0.5
+    //* (dTdV[0][respair_dat.pose_ind][don_dat.block_ind][acc_dat.block_ind]
+    //+ dTdV[0][respair_dat.pose_ind][acc_dat.block_ind]
+    //[don_dat.block_ind]);
 
     // accumulate don D atom derivatives to global memory
     for (int j = 0; j < 3; ++j) {
@@ -1055,8 +1052,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Func,
@@ -1092,8 +1088,7 @@ void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Func,
