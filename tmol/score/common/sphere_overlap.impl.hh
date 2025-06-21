@@ -20,8 +20,7 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -116,8 +115,7 @@ struct compute_block_spheres {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -183,6 +181,57 @@ struct detect_block_neighbors {
 
     DeviceDispatch<D>::template forall<launch_t>(
         n_block_pairs, detect_neighbors);
+  }
+};
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename Int>
+struct block_neighbor_indices {
+  static auto f(
+      TView<Int, 3, D> block_neighbors
+      // TPack<Int, 2, D> block_neighbor_indices
+      ) -> TPack<Int, 2, D> {
+    LAUNCH_BOX_32;
+
+    int n_pose = block_neighbors.size(0);
+    int n_res = block_neighbors.size(1);
+
+    int n_cells = n_pose * n_res * n_res;
+    auto offset_for_cell_tp = TPack<Int, 3, D>::zeros_like(block_neighbors);
+    auto offset_for_cell = offset_for_cell_tp.view;
+
+    int n_dispatch_total =
+        DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+            block_neighbors.data(),
+            offset_for_cell.data(),
+            n_cells,
+            mgpu::plus_t<Int>());
+
+    auto block_neighbor_indices =
+        TPack<Int, 2, D>::full({3, n_dispatch_total}, -1);
+    auto block_neighbor_indices_v = block_neighbor_indices.view;
+
+    printf("total %i\n", n_dispatch_total);
+    auto fill_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
+      int pose = ind / (n_res * n_res);
+      ind = ind % (n_res * n_res);
+      int res1 = ind / n_res;
+      int res2 = ind % n_res;
+
+      if (block_neighbors[pose][res1][res2]) {
+        int offset = offset_for_cell[pose][res1][res2];
+        block_neighbor_indices_v[0][offset] = pose;
+        block_neighbor_indices_v[1][offset] = res1;
+        block_neighbor_indices_v[2][offset] = res2;
+        printf("%i %i %i %i\n", offset, pose, res1, res2);
+      }
+    });
+
+    DeviceDispatch<D>::template forall<launch_t>(n_cells, fill_indices);
+
+    return block_neighbor_indices;
   }
 };
 

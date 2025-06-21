@@ -553,6 +553,31 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
       TPack<Int, 3, Dev>::zeros({n_poses, max_n_blocks, max_n_blocks});
   auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
+  // TPack<Int, 2, Dev> dispatch_indices_t;
+
+  score::common::sphere_overlap::
+      compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
+          coords,
+          pose_stack_block_coord_offset,
+          pose_stack_block_type,
+          block_type_n_atoms,
+          scratch_block_spheres);
+
+  score::common::sphere_overlap::
+      detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
+          coords,
+          pose_stack_block_coord_offset,
+          pose_stack_block_type,
+          block_type_n_atoms,
+          scratch_block_spheres,
+          scratch_block_neighbors,
+          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+
+  auto dispatch_indices_t = score::common::sphere_overlap::
+      block_neighbor_indices<DeviceDispatch, Dev, Int>::f(
+          scratch_block_neighbors);
+  auto dispatch_indices = dispatch_indices_t.view;
+
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
   // Define nt and reduce_t
@@ -576,9 +601,16 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     // (max_n_blocks * max_n_blocks); int const block_ind_pair = cta %
     // (max_n_blocks * max_n_blocks); int const block_ind1 = block_ind_pair /
     // max_n_blocks; int const block_ind2 = block_ind_pair % max_n_blocks;
-    int const pose_ind = block_pair_dispatch_indices[0][cta];
-    int const block_ind1 = block_pair_dispatch_indices[1][cta];
-    int const block_ind2 = block_pair_dispatch_indices[2][cta];
+
+    // int const pose_ind = block_pair_dispatch_indices[0][cta];
+    // int const block_ind1 = block_pair_dispatch_indices[1][cta];
+    // int const block_ind2 = block_pair_dispatch_indices[2][cta];
+    // printf("A: %i %i %i\n", pose_ind, block_ind1, block_ind2);
+    int const pose_ind = dispatch_indices[0][cta];
+    int const block_ind1 = dispatch_indices[1][cta];
+    int const block_ind2 = dispatch_indices[2][cta];
+    // printf("B: %i %i %i\n", t_pose_ind, t_block_ind1, t_block_ind2);
+
     /*if (block_ind1 > block_ind2) {
       return;
     }*/
@@ -677,31 +709,11 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
         TPack<Real, 1, Dev>::zeros({block_pair_dispatch_indices.size(1)});
   auto output = output_t.view;*/
 
-  score::common::sphere_overlap::
-      compute_block_spheres<DeviceDispatch, Dev, Real, Int>::f(
-          coords,
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
-          block_type_n_atoms,
-          scratch_block_spheres);
-
-  score::common::sphere_overlap::
-      detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
-          coords,
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
-          block_type_n_atoms,
-          scratch_block_spheres,
-          scratch_block_neighbors,
-          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
-
-  auto test = scratch_block_neighbors == true;
-
   // 3
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      block_pair_dispatch_indices.size(1), eval_energies);
+      dispatch_indices.size(1), eval_energies);
 
-  return {output_t, dV_dcoords_t, scratch_block_neighbors};
+  return {output_t, dV_dcoords_t, scratch_block_neighbors_t};
 }
 
 template <
