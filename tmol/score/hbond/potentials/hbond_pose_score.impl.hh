@@ -534,10 +534,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     output_t = TPack<Real, 4, Dev>::zeros({1, n_poses, 1, 1});
   }*/
 
-  TPack<Real, 1, Dev> output_t;
-  output_t = TPack<Real, 1, Dev>::zeros({block_pair_dispatch_indices.size(1)});
-  auto output = output_t.view;
-
   // auto accum_output_t = TPack<double, 2, Dev>::zeros({1, n_poses});
   // auto accum_output = accum_output_t.view;
 
@@ -578,6 +574,10 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
           scratch_block_neighbors);
   auto dispatch_indices = dispatch_indices_t.view;
 
+  TPack<Real, 1, Dev> output_t;
+  output_t = TPack<Real, 1, Dev>::zeros({dispatch_indices.size(1)});
+  auto output = output_t.view;
+
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
   // Define nt and reduce_t
@@ -614,10 +614,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     /*if (block_ind1 > block_ind2) {
       return;
     }*/
-
-    if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-      return;
-    }
 
     int const max_important_bond_separation = 4;
 

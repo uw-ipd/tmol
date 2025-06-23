@@ -262,7 +262,9 @@ class EnergyTermTestBase:
 
         nres = pn.block_coord_offset.size(1)
 
-        block_pair_dispatch_indices = cls.get_block_pair_dispatch_indices(nres)
+        block_pair_dispatch_indices = cls.get_block_pair_dispatch_indices(
+            nres, device=torch_device
+        )
 
         coords = torch.nn.Parameter(pn.coords.clone())
         scores = (
@@ -273,7 +275,7 @@ class EnergyTermTestBase:
             .detach()
             .numpy()
         )
-        scores_t = torch.tensor(scores)
+        scores_t = torch.tensor(scores, device=torch_device)
 
         # print(scores)
         print(scores.shape)
