@@ -389,6 +389,7 @@ template <
 auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Vec<Real, 3>, 2, Dev> coords,
     TView<Int, 2, Dev> block_pair_dispatch_indices,
+    TView<Int, 2, Dev> rotamer_rot_ind_to_res_ind,
     TView<Int, 2, Dev> pose_stack_block_coord_offset,
     TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -456,7 +457,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     -> std::tuple<
         TPack<Real, 1, Dev>,
         TPack<Vec<Real, 3>, 3, Dev>,
-        TPack<Int, 3, Dev> > {
+        TPack<Int, 2, Dev> > {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -562,6 +563,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
           coords,
+          rotamer_rot_ind_to_res_ind,
           pose_stack_block_coord_offset,
           pose_stack_block_type,
           block_type_n_atoms,
@@ -709,7 +711,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
       dispatch_indices.size(1), eval_energies);
 
-  return {output_t, dV_dcoords_t, scratch_block_neighbors_t};
+  return {output_t, dV_dcoords_t, dispatch_indices_t};
 }
 
 template <

@@ -32,6 +32,7 @@ struct HBondPoseScoreDispatch {
   static auto forward(
       TView<Vec<Real, 3>, 2, Dev> coords,
       TView<Int, 2, Dev> block_pair_dispatch_indices,
+      TView<Int, 2, Dev> rotamer_rot_ind_to_res_ind,
       TView<Int, 2, Dev> pose_stack_block_coord_offset,
       TView<Int, 2, Dev> pose_stack_block_type,
 
@@ -99,7 +100,7 @@ struct HBondPoseScoreDispatch {
       -> std::tuple<
           TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 3, Dev>,
-          TPack<Int, 3, Dev> >;
+          TPack<Int, 2, Dev> >;
 
   static auto backward(
       TView<Vec<Real, 3>, 2, Dev> coords,

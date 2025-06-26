@@ -122,6 +122,7 @@ template <
 struct detect_block_neighbors {
   static void f(
       TView<Vec<Real, 3>, 2, D> coords,
+      TView<Int, 2, D> rotamer_rot_ind_to_res_ind,
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
       TView<Int, 1, D> block_type_n_atoms,
@@ -144,6 +145,13 @@ struct detect_block_neighbors {
       int const block_ind2 = block_pair_ind % max_n_blocks;
 
       if (block_ind1 > block_ind2) {
+        return;
+      }
+
+      bool same_rot = block_ind1 == block_ind2;
+      bool same_block = rotamer_rot_ind_to_res_ind[pose_ind][block_ind1]
+                        == rotamer_rot_ind_to_res_ind[pose_ind][block_ind2];
+      if (same_block && !same_rot) {
         return;
       }
 
@@ -213,7 +221,6 @@ struct block_neighbor_indices {
         TPack<Int, 2, D>::full({3, n_dispatch_total}, -1);
     auto block_neighbor_indices_v = block_neighbor_indices.view;
 
-    printf("total %i\n", n_dispatch_total);
     auto fill_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
       int pose = ind / (n_res * n_res);
       ind = ind % (n_res * n_res);
@@ -225,7 +232,6 @@ struct block_neighbor_indices {
         block_neighbor_indices_v[0][offset] = pose;
         block_neighbor_indices_v[1][offset] = res1;
         block_neighbor_indices_v[2][offset] = res2;
-        printf("%i %i %i %i\n", offset, pose, res1, res2);
       }
     });
 

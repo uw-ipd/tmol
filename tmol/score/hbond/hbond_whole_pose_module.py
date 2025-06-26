@@ -7,6 +7,7 @@ from tmol.score.common.convert_float64 import convert_float64
 class HBondWholePoseScoringModule(torch.nn.Module):
     def __init__(
         self,
+        identity_map,
         pose_stack_block_coord_offset,
         pose_stack_block_type,
         pose_stack_inter_residue_connections,
@@ -39,6 +40,7 @@ class HBondWholePoseScoringModule(torch.nn.Module):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
 
+        self.block_identity_map = _p(identity_map)
         self.pose_stack_block_coord_offset = _p(pose_stack_block_coord_offset)
         self.pose_stack_block_type = _p(pose_stack_block_type)
         self.pose_stack_inter_residue_connections = _p(
@@ -70,11 +72,20 @@ class HBondWholePoseScoringModule(torch.nn.Module):
         self.global_params = _p(global_params)
 
     def forward(
-        self, coords, block_pair_dispatch_indices, output_block_pair_energies=False
+        self,
+        coords,
+        block_pair_dispatch_indices,
+        rot_to_res_map=None,
+        output_block_pair_energies=False,
     ):
+        if rot_to_res_map is None:
+            rot_to_res_map = self.block_identity_map
+
+        print(rot_to_res_map)
         args = [
             coords,
             block_pair_dispatch_indices,
+            rot_to_res_map,
             self.pose_stack_block_coord_offset,
             self.pose_stack_block_type,
             self.pose_stack_inter_residue_connections,
@@ -104,4 +115,7 @@ class HBondWholePoseScoringModule(torch.nn.Module):
         if coords.dtype == torch.float64:
             convert_float64(args)
 
-        return hbond_pose_scores(*args)
+        scores, indices = hbond_pose_scores(*args)
+        print("indices", indices)
+
+        return scores, indices

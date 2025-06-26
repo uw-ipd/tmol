@@ -191,3 +191,12 @@ class PoseStack:
         # ensure the constraint set points back at us (after creation or deep copy)
         self._constraint_set.pose_stack = self
         return self._constraint_set
+
+    def block_identity_map(self):
+        print("bco size: ", self.block_coord_offset.size())
+        identity_map = torch.zeros_like(self.block_coord_offset)
+        print("im size: ", identity_map.size())
+        identity_map[:, :] = torch.arange(
+            self.block_coord_offset.size(1), device=self.device
+        )
+        return identity_map

@@ -6,6 +6,7 @@
 
 #include <tmol/score/common/simple_dispatch.hh>
 #include <tmol/score/common/device_operations.hh>
+#include <tmol/score/common/tuple.hh>
 
 #include <tmol/score/hbond/potentials/hbond_pose_score.hh>
 
@@ -25,11 +26,12 @@ template <template <tmol::Device> class DispatchMethod>
 class HBondPoseScoresOp
     : public torch::autograd::Function<HBondPoseScoresOp<DispatchMethod>> {
  public:
-  static Tensor forward(
+  static std::vector<Tensor> forward(
       AutogradContext* ctx,
 
       Tensor coords,
       Tensor block_pair_dispatch_indices,
+      Tensor rot_to_res_map,
       Tensor pose_stack_block_coord_offset,
       Tensor pose_stack_block_type,
       Tensor pose_stack_inter_residue_connections,
@@ -75,6 +77,7 @@ class HBondPoseScoresOp
               HBondPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
                   TCAST(coords),
                   TCAST(block_pair_dispatch_indices),
+                  TCAST(rot_to_res_map),
                   TCAST(pose_stack_block_coord_offset),
                   TCAST(pose_stack_block_type),
                   TCAST(pose_stack_inter_residue_connections),
@@ -147,7 +150,8 @@ class HBondPoseScoresOp
       score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
       ctx->save_for_backward({dscore_dcoords});
     }
-    return score;
+
+    return {score, block_neighbors};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
@@ -278,9 +282,10 @@ class HBondPoseScoresOp
 };
 
 template <template <tmol::Device> class DispatchMethod>
-Tensor hbond_pose_scores_op(
+std::vector<Tensor> hbond_pose_scores_op(
     Tensor coords,
     Tensor block_pair_dispatch_indices,
+    Tensor rot_to_res_map,
     Tensor pose_stack_block_coord_offset,
     Tensor pose_stack_block_type,
     Tensor pose_stack_inter_residue_connections,
@@ -312,6 +317,7 @@ Tensor hbond_pose_scores_op(
   return HBondPoseScoresOp<DispatchMethod>::apply(
       coords,
       block_pair_dispatch_indices,
+      rot_to_res_map,
       pose_stack_block_coord_offset,
       pose_stack_block_type,
       pose_stack_inter_residue_connections,

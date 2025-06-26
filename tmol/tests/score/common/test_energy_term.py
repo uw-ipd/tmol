@@ -267,24 +267,24 @@ class EnergyTermTestBase:
         )
 
         coords = torch.nn.Parameter(pn.coords.clone())
-        scores = (
-            pose_scorer(
-                coords, block_pair_dispatch_indices, output_block_pair_energies=True
-            )
-            .cpu()
-            .detach()
-            .numpy()
+        scores, indices = pose_scorer(
+            coords, block_pair_dispatch_indices, output_block_pair_energies=True
         )
-        scores_t = torch.tensor(scores, device=torch_device)
+        # .cpu()
+        # .detach()
+        # .numpy()
 
-        # print(scores)
-        print(scores.shape)
+        """print(scores.shape)
         print(scores_t[torch.nonzero(scores_t)])
-        print(torch.sum(scores_t))
+        print(torch.sum(scores_t))"""
 
-        sparse = torch.sparse_coo_tensor(block_pair_dispatch_indices, scores_t)
+        sparse = torch.sparse_coo_tensor(indices, scores)
         print("sparse", sparse.to_dense()[0, 0:6, 0:6])
-        # torchshow.show(sparse.to_dense())
+        print("SHAPE: ", scores.shape, indices.shape)
+        sparse_csr = sparse.to_dense().to_sparse_csr()
+        print(sparse_csr)
+        print("TOTAL: ", torch.sum(sparse))
+        torchshow.show(sparse.to_dense())
 
         if update_baseline:
             cls.save_test_baseline_data(
