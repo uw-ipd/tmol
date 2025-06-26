@@ -23,6 +23,12 @@ AtomIndex = NewType("AtomIndex", int)
 ConnectionIndex = NewType("ConnectionIndex", int)
 BondCount = NewType("BondCount", int)
 
+# As of cattr 24.1.0, more types must be explicitly registered in order to
+# use cattr.structure. We use that here
+cattr.register_structure_hook(numpy.dtype, lambda d, _: numpy.dtype(d))
+cattr.register_structure_hook(numpy.ndarray, lambda d, _: numpy.array(d))
+
+
 # perhaps deserving of its own file
 UnresolvedAtomID = Tuple[AtomIndex, ConnectionIndex, BondCount]
 uaid_t = numpy.dtype(
@@ -149,7 +155,6 @@ class RefinedResidueType(RawResidueType):
             [(ai, bi), (bi, ai)]
             for ai, bi in map(map(self.atom_to_idx.get), self.bonds)
         )
-
         bond_array = numpy.array(bondi, dtype=numpy.int32)
         bond_array.flags.writeable = False
         return bond_array
@@ -472,7 +477,7 @@ class RefinedResidueType(RawResidueType):
     def _setup_icoors_index(self):
         return {icoor.name: i for i, icoor in enumerate(self.icoors)}
 
-    at_to_icoor_ind: numpy.array = attr.ib()
+    at_to_icoor_ind: numpy.ndarray = attr.ib()
 
     @at_to_icoor_ind.default
     def _setup_at_to_icoor_ind(self):
