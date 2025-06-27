@@ -1,5 +1,4 @@
 #include <torch/script.h>
-// #include <tmol/utility/autograd.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
