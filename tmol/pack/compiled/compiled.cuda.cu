@@ -4,6 +4,7 @@
 #include <THC/THCGenerator.hpp>
 #include <THC/THCTensorRandom.h>*/
 
+#include <tmol/score/common/device_operations.cuda.impl.cuh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
@@ -21,6 +22,8 @@
 #include <curand_philox4x32_x.h>
 
 #include <ctime>
+
+#include "compiled.impl.hh"
 
 // Stolen from torch, v1.0.0
 // Expose part of the torch library that otherwise is
@@ -972,48 +975,57 @@ struct Annealer {
 };
 
 template <tmol::Device D>
-struct AnnealerDispatch {
-  static auto forward(
-      TView<int, 1, D> nrotamers_for_res,
-      TView<int, 1, D> oneb_offsets,
-      TView<int, 1, D> res_for_rot,
-      TView<int, 2, D> respair_nenergies,
-      TView<int, 1, D> chunk_size,
-      TView<int, 2, D> chunk_offset_offsets,
-      TView<int64_t, 2, D> twob_offsets,
-      TView<int, 1, D> fine_chunk_offsets,
-      TView<float, 1, D> energy1b,
-      TView<float, 1, D> energy2b,
-      int64_t seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> > {
-    clock_t start = clock();
+auto AnnealerDispatch<D>::forward(
+    TView<int, 1, D> nrotamers_for_res,
+    TView<int, 1, D> oneb_offsets,
+    TView<int, 1, D> res_for_rot,
+    TView<int, 2, D> respair_nenergies,
+    TView<int, 1, D> chunk_size,
+    TView<int, 2, D> chunk_offset_offsets,
+    TView<int64_t, 2, D> twob_offsets,
+    TView<int, 1, D> fine_chunk_offsets,
+    TView<float, 1, D> energy1b,
+    TView<float, 1, D> energy2b,
+    int64_t seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> > {
+  clock_t start = clock();
 
-    InteractionGraph<D, int, float> ig(
-        {nrotamers_for_res,
-         oneb_offsets,
-         res_for_rot,
-         respair_nenergies,
-         chunk_size,
-         chunk_offset_offsets,
-         twob_offsets,
-         fine_chunk_offsets,
-         energy1b,
-         energy2b});
+  InteractionGraph<D, int, float> ig(
+      {nrotamers_for_res,
+       oneb_offsets,
+       res_for_rot,
+       respair_nenergies,
+       chunk_size,
+       chunk_offset_offsets,
+       twob_offsets,
+       fine_chunk_offsets,
+       energy1b,
+       energy2b});
 
-    auto result =
-        Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
-            ig, seed);
+  auto result =
+      Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
+          ig, seed);
 
-    cudaDeviceSynchronize();
-    clock_t stop = clock();
-    std::cout << "GPU simulated annealing in "
-              << ((double)stop - start) / CLOCKS_PER_SEC << " seconds"
-              << std::endl;
+  cudaDeviceSynchronize();
+  clock_t stop = clock();
+  std::cout << "GPU simulated annealing in "
+            << ((double)stop - start) / CLOCKS_PER_SEC << " seconds"
+            << std::endl;
 
-    return result;
-  }
-};
+  return result;
+}
 
 template struct AnnealerDispatch<tmol::Device::CUDA>;
+
+template struct InteractionGraphBuilder<
+    score::common::DeviceOperations,
+    tmol::Device::CUDA,
+    float,
+    int64_t>;
+template struct InteractionGraphBuilder<
+    score::common::DeviceOperations,
+    tmol::Device::CUDA,
+    double,
+    int64_t>;
 
 }  // namespace compiled
 }  // namespace pack

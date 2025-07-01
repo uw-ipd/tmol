@@ -9,6 +9,27 @@ namespace tmol {
 namespace pack {
 namespace compiled {
 
+template <
+    template <tmol::Device>
+    class DeviceDispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+struct InteractionGraphBuilder {
+  static auto f(
+      int const chunk_size,
+      TView<Int, 1, D> n_rots_for_pose,
+      TView<Int, 1, D> rot_offset_for_pose,
+      TView<Int, 2, D> n_rots_for_block,
+      TView<Int, 2, D> rot_offset_for_block,
+      TView<Int, 1, D> pose_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<int32_t, 1, D> block_ind_for_rot,
+      TView<int32_t, 2, D> sparse_inds,
+      TView<Real, 1, D> sparse_energies) -> std::
+      tuple<TPack<int64_t, 3, D>, TPack<int64_t, 1, D>, TPack<Real, 1, D> >;
+};
+
 template <tmol::Device D>
 struct AnnealerDispatch {
   static auto forward(

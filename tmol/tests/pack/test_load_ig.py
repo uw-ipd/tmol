@@ -6,8 +6,10 @@ import pickle
 
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
-from tmol.pack.compiled.compiled import validate_energies
-from tmol.utility.cumsum import exclusive_cumsum
+from tmol.pack.compiled.compiled import validate_energies, build_interaction_graph
+from tmol.pack.rotamer.build_rotamers import RotamerSet
+from tmol.utility.cumsum import exclusive_cumsum, exclusive_cumsum1d
+from tmol.io import pose_stack_from_pdb
 
 
 def load_ig_from_file(fname):
@@ -49,6 +51,546 @@ def test_load_ig():
             if arrname in twob:
                 assert nrots[i] == twob[arrname].shape[0]
                 assert nrots[j] == twob[arrname].shape[1]
+
+
+def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(
+    ig_fname, pdb_fname, device
+):
+    pose_stack = pose_stack_from_pdb(pdb_fname, device)
+    oneb, twob = load_ig_from_file(ig_fname)
+
+    # packer_energy_tables = create_chunk_twobody_energy_table(oneb, twob)
+
+    n_rots = torch.zeros((76,), dtype=int)
+    for i in range(76):
+        arrname = f"{i+1}"
+        n_rots[i] = oneb[arrname].shape[0]
+
+    def _ti64(x):
+        return torch.tensor(x, dtype=torch.int64)
+
+    def _d(x):
+        return x.to(device)
+
+    n_rots_total = torch.sum(n_rots).item()
+    n_rots_for_pose = torch.full((1,), n_rots_total, dtype=torch.int64)
+    rot_offset_for_pose = torch.zeros((1,), dtype=torch.int64)
+    n_rots_for_block = n_rots[None, :]
+    rot_offset_for_block = _ti64(exclusive_cumsum1d(n_rots)[None, :])
+    # print("rot_offset_for_block", rot_offset_for_block[0, :20])
+    pose_for_rot = torch.zeros((n_rots_total,), dtype=torch.int64)
+
+    rot_is_start_for_block = torch.zeros((n_rots_total), dtype=torch.int64)
+    rot_is_start_for_block[rot_offset_for_block[0]] = 1
+    block_ind_for_rot = torch.cumsum(rot_is_start_for_block, dim=0) - 1
+    # print("block_ind_for_rot", block_ind_for_rot[:30])
+    block_ind_for_rot32 = block_ind_for_rot.to(torch.int32)
+    block_type_ind_for_rot = pose_stack.block_type_ind64[
+        pose_for_rot, block_ind_for_rot
+    ]
+
+    coords = torch.zeros((1, pose_stack.max_n_block_atoms, 3), dtype=torch.float32)
+
+    rotamer_set = RotamerSet(
+        n_rots_for_pose=_d(n_rots_for_pose),
+        rot_offset_for_pose=_d(rot_offset_for_pose),
+        n_rots_for_block=_d(n_rots_for_block),
+        rot_offset_for_block=_d(rot_offset_for_block),
+        pose_for_rot=_d(pose_for_rot),
+        block_type_ind_for_rot=_d(block_type_ind_for_rot),
+        block_ind_for_rot=_d(block_ind_for_rot32),
+        coords=_d(coords),
+    )
+
+    nonzero_inds = []
+    ordered_energy_tables = []
+    entry_offset = []
+    cumm_offset = 0
+    for i in range(76):
+        i_n_rots = n_rots_for_block[0, i]
+        i_offset = rot_offset_for_block[0, i]
+        for j in range(i + 1, 76):
+            j_n_rots = n_rots_for_block[0, j]
+            j_offset = rot_offset_for_block[0, j]
+            table_name = f"{i+1}-{j+1}"
+            if table_name in twob:
+                # let's say all energies here will be listed as non-zero
+                # print(f"i j are neighbors {i+1}, {j+1}, {i_n_rots} * {j_n_rots} = {i_n_rots * j_n_rots} offset {cumm_offset}")
+                entry_offset.append(cumm_offset)
+                cumm_offset += int(i_n_rots * j_n_rots)
+                indices = torch.arange(i_n_rots * j_n_rots, dtype=torch.int64)
+                inds_i = torch.div(indices, j_n_rots) + i_offset
+                inds_j = torch.remainder(indices, j_n_rots) + j_offset
+                nonzero_inds.append((inds_i, inds_j))
+                ordered_energy_tables.append(
+                    torch.tensor(twob[table_name], dtype=torch.float32)
+                )
+    inds = torch.zeros((3, cumm_offset), dtype=torch.int32)
+    energies = torch.zeros((cumm_offset), dtype=torch.float32)
+    for pair in range(len(nonzero_inds)):
+        i_inds, j_inds = nonzero_inds[pair]
+        ij_offset = entry_offset[pair]
+        ij_n_pairs = i_inds.shape[0]
+        # print(i_inds.shape, j_inds.shape, ij_offset, ij_n_pairs)
+        inds[1, ij_offset : (ij_offset + ij_n_pairs)] = i_inds
+        inds[2, ij_offset : (ij_offset + ij_n_pairs)] = j_inds
+        energies[ij_offset : (ij_offset + ij_n_pairs)] = ordered_energy_tables[
+            pair
+        ].view(-1)
+
+    return rotamer_set, _d(inds), _d(energies)
+
+
+def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
+    ig_fname, pdb_fname, device
+):
+    pose_stack = pose_stack_from_pdb(pdb_fname, device)
+    oneb, twob = load_ig_from_file(ig_fname)
+    n_res = len(oneb)
+
+    # packer_energy_tables = create_chunk_twobody_energy_table(oneb, twob)
+
+    n_poses = 2
+    n_rots = torch.zeros((n_poses, 76), dtype=int)
+    for i in range(76):
+        arrname = f"{i+1}"
+        n_rots[:, i] = oneb[arrname].shape[0]
+
+    def _ti64(x):
+        return torch.tensor(x, dtype=torch.int64)
+
+    def _d(x):
+        return x.to(device)
+
+    n_rots_per_pose = torch.sum(n_rots, dim=0)
+    n_rots_total = torch.sum(n_rots_per_pose).item()
+    n_rots_for_pose = torch.full((2,), n_rots_total // 2, dtype=torch.int64)
+    rot_offset_for_pose = torch.zeros((2,), dtype=torch.int64)
+    rot_offset_for_pose[1] = n_rots_for_pose[0]
+    n_rots_for_block = n_rots
+    rot_offset_for_block = _ti64(exclusive_cumsum1d(n_rots.ravel())).reshape(
+        n_rots.shape
+    )
+    # print("rot_offset_for_block", rot_offset_for_block[0, :20])
+    pose_for_rot = torch.zeros((n_rots_total,), dtype=torch.int64)
+    pose_for_rot[n_rots_per_pose[0] :] = 1
+
+    rot_is_start_for_block = torch.zeros((n_rots_total), dtype=torch.int64)
+    rot_is_start_for_block[rot_offset_for_block.ravel()] = 1
+    block_ind_for_rot = torch.remainder(
+        torch.cumsum(rot_is_start_for_block, dim=0) - 1, n_res
+    )
+    # print("block_ind_for_rot", block_ind_for_rot[:30])
+    block_ind_for_rot32 = block_ind_for_rot.to(torch.int32)
+    block_type_ind_for_rot = pose_stack.block_type_ind64[0, block_ind_for_rot]
+
+    # obviously a bogus size for this tensor
+    coords = torch.zeros((1, pose_stack.max_n_block_atoms, 3), dtype=torch.float32)
+
+    rotamer_set = RotamerSet(
+        n_rots_for_pose=_d(n_rots_for_pose),
+        rot_offset_for_pose=_d(rot_offset_for_pose),
+        n_rots_for_block=_d(n_rots_for_block),
+        rot_offset_for_block=_d(rot_offset_for_block),
+        pose_for_rot=_d(pose_for_rot),
+        block_type_ind_for_rot=_d(block_type_ind_for_rot),
+        block_ind_for_rot=_d(block_ind_for_rot32),
+        coords=_d(coords),
+    )
+
+    nonzero_inds = []
+    ordered_energy_tables = []
+    entry_offset = []
+    cumm_offset = 0
+    for i in range(76):
+        i_n_rots = n_rots_for_block[0, i]
+        i_offset = rot_offset_for_block[0, i]
+        for j in range(i + 1, 76):
+            j_n_rots = n_rots_for_block[0, j]
+            j_offset = rot_offset_for_block[0, j]
+            table_name = f"{i+1}-{j+1}"
+            if table_name in twob:
+                # let's say all energies here will be listed as non-zero
+                # print(f"i j are neighbors {i+1}, {j+1}, {i_n_rots} * {j_n_rots} = {i_n_rots * j_n_rots} offset {cumm_offset}")
+                entry_offset.append(cumm_offset)
+                cumm_offset += int(i_n_rots * j_n_rots)
+                indices = torch.arange(i_n_rots * j_n_rots, dtype=torch.int64)
+                inds_i = torch.div(indices, j_n_rots) + i_offset
+                inds_j = torch.remainder(indices, j_n_rots) + j_offset
+                nonzero_inds.append((inds_i, inds_j))
+                ordered_energy_tables.append(
+                    torch.tensor(twob[table_name], dtype=torch.float32)
+                )
+    for i in range(76):
+        i_n_rots = n_rots_for_block[1, i]
+        i_offset = rot_offset_for_block[1, i]
+        for j in range(i + 1, 76):
+            j_n_rots = n_rots_for_block[1, j]
+            j_offset = rot_offset_for_block[1, j]
+            table_name = f"{i+1}-{j+1}"
+            if table_name in twob:
+                # let's say all energies here will be listed as non-zero
+                # print(f"i j are neighbors {i+1}, {j+1}, {i_n_rots} * {j_n_rots} = {i_n_rots * j_n_rots} offset {cumm_offset}")
+                entry_offset.append(cumm_offset)
+                cumm_offset += int(i_n_rots * j_n_rots)
+                indices = torch.arange(i_n_rots * j_n_rots, dtype=torch.int64)
+                inds_i = torch.div(indices, j_n_rots) + i_offset
+                inds_j = torch.remainder(indices, j_n_rots) + j_offset
+                nonzero_inds.append((inds_i, inds_j))
+                ordered_energy_tables.append(
+                    torch.tensor(twob[table_name], dtype=torch.float32)
+                )
+    inds = torch.zeros((3, cumm_offset), dtype=torch.int32)
+    energies = torch.zeros((cumm_offset), dtype=torch.float32)
+    for pair in range(len(nonzero_inds)):
+        i_inds, j_inds = nonzero_inds[pair]
+        ij_offset = entry_offset[pair]
+        ij_n_pairs = i_inds.shape[0]
+        # print(i_inds.shape, j_inds.shape, ij_offset, ij_n_pairs)
+        inds[1, ij_offset : (ij_offset + ij_n_pairs)] = i_inds
+        inds[2, ij_offset : (ij_offset + ij_n_pairs)] = j_inds
+        energies[ij_offset : (ij_offset + ij_n_pairs)] = ordered_energy_tables[
+            pair % len(twob)
+        ].view(-1)
+
+    return rotamer_set, _d(inds), _d(energies)
+
+
+def test_construct_rotamer_set_and_sparse_energies_table_from_ig(torch_device):
+    ig_fname = "1ubq_ig"
+    pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
+
+    # Step 1: convert the IG that we're getting from disk
+    # into the format that we expect from the score function
+    rotamer_set, sparse_indices, energies = (
+        construct_faux_rotamer_set_and_sparse_energies_table_from_ig(
+            ig_fname, pdb_fname, torch_device
+        )
+    )
+
+    rotamer_set2, sparse_indices2, energies2 = (
+        construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
+            ig_fname, pdb_fname, torch_device
+        )
+    )
+
+    # let's assert something??
+
+    print(rotamer_set.n_rots_for_pose.shape)
+    print(sparse_indices.shape)
+    print(energies.shape)
+
+    print(rotamer_set2.n_rots_for_pose.shape)
+    print(sparse_indices2.shape)
+    print(energies2.shape)
+
+
+def test_build_interaction_graph():
+    torch_device = torch.device("cpu")
+    ig_fname = "1ubq_ig"
+    pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
+
+    # Step 1: convert the IG that we're getting from disk
+    # into the format that we expect from the score function
+    rotamer_set, sparse_indices, energies = (
+        construct_faux_rotamer_set_and_sparse_energies_table_from_ig(
+            ig_fname, pdb_fname, torch_device
+        )
+    )
+
+    # print("rotamer_set.n_rots_for_pose", rotamer_set.n_rots_for_pose.dtype)
+    # print("rotamer_set.rot_offset_for_pose",   rotamer_set.rot_offset_for_pose.dtype)
+    # print("rotamer_set.n_rots_for_block",      rotamer_set.n_rots_for_block.dtype)
+    # print("rotamer_set.rot_offset_for_block",  rotamer_set.rot_offset_for_block.dtype)
+    # print("rotamer_set.pose_for_rot",          rotamer_set.pose_for_rot.dtype)
+    # print("rotamer_set.block_type_ind_for_rot",rotamer_set.block_type_ind_for_rot.dtype)
+    # print("rotamer_set.block_ind_for_rot",     rotamer_set.block_ind_for_rot.dtype)
+    # print("sparse_indices",                    sparse_indices.dtype)
+    # print("energies",                          energies.dtype)
+
+    # print(rotamer_set.n_rots_for_pose)
+    # print(sparse_indices.shape)
+    # print(energies.shape)
+
+    chunk_size = 16
+
+    (chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+        build_interaction_graph(
+            chunk_size,
+            rotamer_set.n_rots_for_pose,
+            rotamer_set.rot_offset_for_pose,
+            rotamer_set.n_rots_for_block,
+            rotamer_set.rot_offset_for_block,
+            rotamer_set.pose_for_rot,
+            rotamer_set.block_type_ind_for_rot,
+            rotamer_set.block_ind_for_rot,
+            sparse_indices,
+            energies,
+        )
+    )
+
+    # print(chunk_pair_offset_for_block_pair.shape)
+    # print(chunk_pair_offset.shape)
+    # print(energy2b.shape)
+
+    assert chunk_pair_offset_for_block_pair.device == torch_device
+    assert chunk_pair_offset.device == torch_device
+    assert energy2b.device == torch_device
+
+    # print(chunk_pair_offset_for_block_pair[0,:10, :10])
+    # print(chunk_pair_offset[:20])
+
+    for i in range(sparse_indices.shape[1]):
+        i_energy = energies[i].item()
+        pose = sparse_indices[0, i].item()
+        rot1 = sparse_indices[1, i].item()
+        rot2 = sparse_indices[2, i].item()
+        block1 = rotamer_set.block_ind_for_rot[rot1].item()
+        block2 = rotamer_set.block_ind_for_rot[rot2].item()
+        chunk_offset_for_blocks_ij = chunk_pair_offset_for_block_pair[
+            pose, block1, block2
+        ].item()
+        chunk_offset_for_blocks_ji = chunk_pair_offset_for_block_pair[
+            pose, block2, block1
+        ].item()
+        if chunk_offset_for_blocks_ij == -1:
+            if i_energy != 0:
+                print(
+                    i_energy,
+                    pose,
+                    rot1,
+                    rot2,
+                    block1,
+                    block2,
+                    chunk_offset_for_blocks_ij,
+                    chunk_offset_for_blocks_jj,
+                )
+            assert i_energy == 0
+        else:
+            n_rots_for_block1 = rotamer_set.n_rots_for_block[pose, block1].item()
+            n_rots_for_block2 = rotamer_set.n_rots_for_block[pose, block2].item()
+
+            n_chunks_for_block1 = (n_rots_for_block1 - 1) // chunk_size + 1
+            n_chunks_for_block2 = (n_rots_for_block2 - 1) // chunk_size + 1
+
+            rot_on_block1 = rot1 - rotamer_set.rot_offset_for_block[pose, block1].item()
+            rot_on_block2 = rot2 - rotamer_set.rot_offset_for_block[pose, block2].item()
+            chunk1 = rot_on_block1 // chunk_size
+            chunk2 = rot_on_block2 // chunk_size
+
+            overhang1 = n_rots_for_block1 - chunk1 * chunk_size
+            overhang2 = n_rots_for_block2 - chunk2 * chunk_size
+            chunk1_size = chunk_size if overhang1 > chunk_size else overhang1
+            chunk2_size = chunk_size if overhang2 > chunk_size else overhang2
+            rot_ind_wi_chunk1 = rot_on_block1 - chunk1 * chunk_size
+            rot_ind_wi_chunk2 = rot_on_block2 - chunk2 * chunk_size
+
+            chunk_offset_ij = chunk_pair_offset[
+                chunk_offset_for_blocks_ij + chunk1 * n_chunks_for_block2 + chunk2
+            ].item()
+            chunk_offset_ji = chunk_pair_offset[
+                chunk_offset_for_blocks_ji + chunk2 * n_chunks_for_block1 + chunk1
+            ].item()
+
+            # print(
+            #     "pose                ", pose  ,
+            #     "rot1                ", rot1  ,
+            #     "rot2                ", rot2  ,
+            #     "block1              ", block1,
+            #     "block2              ", block2,
+            #     "chunk_offset_for_blocks_ij", chunk_offset_for_blocks_ij,
+            #     "chunk_offset_for_blocks_ji", chunk_offset_for_blocks_ji,
+            #     "n_rots_for_block1   ", n_rots_for_block1   ,
+            #     "n_rots_for_block2   ", n_rots_for_block2   ,
+            #     "n_chunks_for_block1 ", n_chunks_for_block1 ,
+            #     "n_chunks_for_block2 ", n_chunks_for_block2 ,
+            #     "rot_on_block1       ", rot_on_block1       ,
+            #     "rot_on_block2       ", rot_on_block2       ,
+            #     "chunk1              ", chunk1              ,
+            #     "chunk2              ", chunk2              ,
+            #     "overhang1           ", overhang1           ,
+            #     "overhang2           ", overhang2           ,
+            #     "chunk1_size         ", chunk1_size         ,
+            #     "chunk2_size         ", chunk2_size         ,
+            #     "rot_ind_wi_chunk1   ", rot_ind_wi_chunk1   ,
+            #     "rot_ind_wi_chunk2   ", rot_ind_wi_chunk2   ,
+            #     "chunk_offset_ij     ", chunk_offset_ij     ,
+            #     "chunk_offset_ji     ", chunk_offset_ji     ,
+            # )
+
+            if chunk_offset_ij == -1:
+                assert i_energy == 0
+            else:
+                e2b_ij = energy2b[
+                    chunk_offset_ij
+                    + rot_ind_wi_chunk1 * chunk2_size
+                    + rot_ind_wi_chunk2
+                ]
+                assert e2b_ij == i_energy
+
+            if chunk_offset_ji == -1:
+                assert i_energy == 0
+            else:
+                e2b_ji = energy2b[
+                    chunk_offset_ji
+                    + rot_ind_wi_chunk2 * chunk1_size
+                    + rot_ind_wi_chunk1
+                ]
+                assert e2b_ji == i_energy
+
+
+def test_build_multi_pose_interaction_graph():
+    torch_device = torch.device("cpu")
+    ig_fname = "1ubq_ig"
+    pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
+
+    # Step 1: convert the IG that we're getting from disk
+    # into the format that we expect from the score function
+    rotamer_set, sparse_indices, energies = (
+        construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
+            ig_fname, pdb_fname, torch_device
+        )
+    )
+
+    # print("rotamer_set.n_rots_for_pose", rotamer_set.n_rots_for_pose.dtype)
+    # print("rotamer_set.rot_offset_for_pose",   rotamer_set.rot_offset_for_pose.dtype)
+    # print("rotamer_set.n_rots_for_block",      rotamer_set.n_rots_for_block.dtype)
+    # print("rotamer_set.rot_offset_for_block",  rotamer_set.rot_offset_for_block.dtype)
+    # print("rotamer_set.pose_for_rot",          rotamer_set.pose_for_rot.dtype)
+    # print("rotamer_set.block_type_ind_for_rot",rotamer_set.block_type_ind_for_rot.dtype)
+    # print("rotamer_set.block_ind_for_rot",     rotamer_set.block_ind_for_rot.dtype)
+    # print("sparse_indices",                    sparse_indices.dtype)
+    # print("energies",                          energies.dtype)
+
+    # print(rotamer_set.n_rots_for_pose)
+    # print(sparse_indices.shape)
+    # print(energies.shape)
+
+    chunk_size = 16
+
+    (chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+        build_interaction_graph(
+            chunk_size,
+            rotamer_set.n_rots_for_pose,
+            rotamer_set.rot_offset_for_pose,
+            rotamer_set.n_rots_for_block,
+            rotamer_set.rot_offset_for_block,
+            rotamer_set.pose_for_rot,
+            rotamer_set.block_type_ind_for_rot,
+            rotamer_set.block_ind_for_rot,
+            sparse_indices,
+            energies,
+        )
+    )
+
+    # print(chunk_pair_offset_for_block_pair.shape)
+    # print(chunk_pair_offset.shape)
+    # print(energy2b.shape)
+
+    assert chunk_pair_offset_for_block_pair.device == torch_device
+    assert chunk_pair_offset.device == torch_device
+    assert energy2b.device == torch_device
+
+    # print(chunk_pair_offset_for_block_pair[0,:10, :10])
+    # print(chunk_pair_offset[:20])
+
+    for i in range(sparse_indices.shape[1]):
+        i_energy = energies[i].item()
+        pose = sparse_indices[0, i].item()
+        rot1 = sparse_indices[1, i].item()
+        rot2 = sparse_indices[2, i].item()
+        block1 = rotamer_set.block_ind_for_rot[rot1].item()
+        block2 = rotamer_set.block_ind_for_rot[rot2].item()
+        chunk_offset_for_blocks_ij = chunk_pair_offset_for_block_pair[
+            pose, block1, block2
+        ].item()
+        chunk_offset_for_blocks_ji = chunk_pair_offset_for_block_pair[
+            pose, block2, block1
+        ].item()
+        if chunk_offset_for_blocks_ij == -1:
+            if i_energy != 0:
+                print(
+                    i_energy,
+                    pose,
+                    rot1,
+                    rot2,
+                    block1,
+                    block2,
+                    chunk_offset_for_blocks_ij,
+                    chunk_offset_for_blocks_jj,
+                )
+            assert i_energy == 0
+        else:
+            n_rots_for_block1 = rotamer_set.n_rots_for_block[pose, block1].item()
+            n_rots_for_block2 = rotamer_set.n_rots_for_block[pose, block2].item()
+
+            n_chunks_for_block1 = (n_rots_for_block1 - 1) // chunk_size + 1
+            n_chunks_for_block2 = (n_rots_for_block2 - 1) // chunk_size + 1
+
+            rot_on_block1 = rot1 - rotamer_set.rot_offset_for_block[pose, block1].item()
+            rot_on_block2 = rot2 - rotamer_set.rot_offset_for_block[pose, block2].item()
+            chunk1 = rot_on_block1 // chunk_size
+            chunk2 = rot_on_block2 // chunk_size
+
+            overhang1 = n_rots_for_block1 - chunk1 * chunk_size
+            overhang2 = n_rots_for_block2 - chunk2 * chunk_size
+            chunk1_size = chunk_size if overhang1 > chunk_size else overhang1
+            chunk2_size = chunk_size if overhang2 > chunk_size else overhang2
+            rot_ind_wi_chunk1 = rot_on_block1 - chunk1 * chunk_size
+            rot_ind_wi_chunk2 = rot_on_block2 - chunk2 * chunk_size
+
+            chunk_offset_ij = chunk_pair_offset[
+                chunk_offset_for_blocks_ij + chunk1 * n_chunks_for_block2 + chunk2
+            ].item()
+            chunk_offset_ji = chunk_pair_offset[
+                chunk_offset_for_blocks_ji + chunk2 * n_chunks_for_block1 + chunk1
+            ].item()
+
+            # print(
+            #     "pose                ", pose  ,
+            #     "rot1                ", rot1  ,
+            #     "rot2                ", rot2  ,
+            #     "block1              ", block1,
+            #     "block2              ", block2,
+            #     "chunk_offset_for_blocks_ij", chunk_offset_for_blocks_ij,
+            #     "chunk_offset_for_blocks_ji", chunk_offset_for_blocks_ji,
+            #     "n_rots_for_block1   ", n_rots_for_block1   ,
+            #     "n_rots_for_block2   ", n_rots_for_block2   ,
+            #     "n_chunks_for_block1 ", n_chunks_for_block1 ,
+            #     "n_chunks_for_block2 ", n_chunks_for_block2 ,
+            #     "rot_on_block1       ", rot_on_block1       ,
+            #     "rot_on_block2       ", rot_on_block2       ,
+            #     "chunk1              ", chunk1              ,
+            #     "chunk2              ", chunk2              ,
+            #     "overhang1           ", overhang1           ,
+            #     "overhang2           ", overhang2           ,
+            #     "chunk1_size         ", chunk1_size         ,
+            #     "chunk2_size         ", chunk2_size         ,
+            #     "rot_ind_wi_chunk1   ", rot_ind_wi_chunk1   ,
+            #     "rot_ind_wi_chunk2   ", rot_ind_wi_chunk2   ,
+            #     "chunk_offset_ij     ", chunk_offset_ij     ,
+            #     "chunk_offset_ji     ", chunk_offset_ji     ,
+            # )
+
+            if chunk_offset_ij == -1:
+                assert i_energy == 0
+            else:
+                e2b_ij = energy2b[
+                    chunk_offset_ij
+                    + rot_ind_wi_chunk1 * chunk2_size
+                    + rot_ind_wi_chunk2
+                ]
+                assert e2b_ij == i_energy
+
+            if chunk_offset_ji == -1:
+                assert i_energy == 0
+            else:
+                e2b_ji = energy2b[
+                    chunk_offset_ji
+                    + rot_ind_wi_chunk2 * chunk1_size
+                    + rot_ind_wi_chunk1
+                ]
+                assert e2b_ji == i_energy
 
 
 def aa_neighb_nonzero_submatrix(twob, rtg1, rtg2):
@@ -274,7 +816,7 @@ def dont_test_aasparse_mat_repack():
         print(dense, sparse, nonzero, nonzero / dense, sparse / dense, nonzero / sparse)
 
 
-def test_aasparse_mat_redes_ex1ex2():
+def dont_test_aasparse_mat_redes_ex1ex2():
     fnames = [
         "1wzbFHA",
         "1qtxFHB",

@@ -10,6 +10,7 @@
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/forall_dispatch.hh>
+#include <tmol/score/common/device_operations.hh>
 
 #include "annealer.hh"
 #include "simulated_annealing.hh"
@@ -19,6 +20,55 @@ namespace pack {
 namespace compiled {
 
 using torch::Tensor;
+
+std::vector<Tensor> build_interaction_graph(
+    int64_t const chunk_size,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    Tensor pose_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor block_ind_for_rot,
+    Tensor sparse_inds,
+    Tensor sparse_energies) {
+  nvtx_range_push("pack_build_ig");
+  at::Tensor chunk_pair_offset_for_block_pair;
+  at::Tensor chunk_pair_offset;
+  at::Tensor energy2b;
+
+  using Int = int64_t;
+
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      sparse_energies.options(), "pack_build_ig", ([&] {
+        constexpr tmol::Device Dev = device_t;
+        using Real = scalar_t;
+
+        std::cout << "Hello!" << std::endl;
+        auto result = InteractionGraphBuilder<
+            score::common::DeviceOperations,
+            Dev,
+            Real,
+            Int>::
+            f(chunk_size,
+              TCAST(n_rots_for_pose),
+              TCAST(rot_offset_for_pose),
+              TCAST(n_rots_for_block),
+              TCAST(rot_offset_for_block),
+              TCAST(pose_for_rot),
+              TCAST(block_type_ind_for_rot),
+              TCAST(block_ind_for_rot),
+              TCAST(sparse_inds),
+              TCAST(sparse_energies));
+        chunk_pair_offset_for_block_pair = std::get<0>(result).tensor;
+        chunk_pair_offset = std::get<1>(result).tensor;
+        energy2b = std::get<2>(result).tensor;
+      }));
+
+  std::vector<torch::Tensor> result(
+      {chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b});
+  return result;
+}
 
 std::vector<Tensor> anneal(
     Tensor nrotamers_for_res,
@@ -132,6 +182,7 @@ static auto registry = torch::jit::RegisterOperators()
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("pack_anneal", &anneal);
   m.def("validate_energies", &validate_energies);
+  m.def("build_interaction_graph", &build_interaction_graph);
 }
 
 }  // namespace compiled
