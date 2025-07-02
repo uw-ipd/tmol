@@ -215,13 +215,16 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
                 entry_offset.append(cumm_offset)
                 cumm_offset += int(i_n_rots * j_n_rots)
                 indices = torch.arange(i_n_rots * j_n_rots, dtype=torch.int64)
+                pose_inds = torch.zeros(i_n_rots * j_n_rots, dtype=torch.int64)
                 inds_i = torch.div(indices, j_n_rots) + i_offset
                 inds_j = torch.remainder(indices, j_n_rots) + j_offset
-                nonzero_inds.append((inds_i, inds_j))
+                nonzero_inds.append((pose_inds, inds_i, inds_j))
                 ordered_energy_tables.append(
                     torch.tensor(twob[table_name], dtype=torch.float32)
                 )
+    # Now insert the indices for the second pose
     for i in range(76):
+
         i_n_rots = n_rots_for_block[1, i]
         i_offset = rot_offset_for_block[1, i]
         for j in range(i + 1, 76):
@@ -234,19 +237,21 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
                 entry_offset.append(cumm_offset)
                 cumm_offset += int(i_n_rots * j_n_rots)
                 indices = torch.arange(i_n_rots * j_n_rots, dtype=torch.int64)
+                pose_inds = torch.full((i_n_rots * j_n_rots,), 1, dtype=torch.int64)
                 inds_i = torch.div(indices, j_n_rots) + i_offset
                 inds_j = torch.remainder(indices, j_n_rots) + j_offset
-                nonzero_inds.append((inds_i, inds_j))
+                nonzero_inds.append((pose_inds, inds_i, inds_j))
                 ordered_energy_tables.append(
                     torch.tensor(twob[table_name], dtype=torch.float32)
                 )
     inds = torch.zeros((3, cumm_offset), dtype=torch.int32)
     energies = torch.zeros((cumm_offset), dtype=torch.float32)
     for pair in range(len(nonzero_inds)):
-        i_inds, j_inds = nonzero_inds[pair]
+        pose_inds, i_inds, j_inds = nonzero_inds[pair]
         ij_offset = entry_offset[pair]
         ij_n_pairs = i_inds.shape[0]
         # print(i_inds.shape, j_inds.shape, ij_offset, ij_n_pairs)
+        inds[0, ij_offset : (ij_offset + ij_n_pairs)] = pose_inds
         inds[1, ij_offset : (ij_offset + ij_n_pairs)] = i_inds
         inds[2, ij_offset : (ij_offset + ij_n_pairs)] = j_inds
         energies[ij_offset : (ij_offset + ij_n_pairs)] = ordered_energy_tables[
@@ -285,8 +290,8 @@ def test_construct_rotamer_set_and_sparse_energies_table_from_ig(torch_device):
     print(energies2.shape)
 
 
-def test_build_interaction_graph():
-    torch_device = torch.device("cpu")
+def test_build_interaction_graph(torch_device):
+    # torch_device = torch.device("cpu")
     ig_fname = "1ubq_ig"
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
@@ -439,8 +444,8 @@ def test_build_interaction_graph():
                 assert e2b_ji == i_energy
 
 
-def test_build_multi_pose_interaction_graph():
-    torch_device = torch.device("cpu")
+def test_build_multi_pose_interaction_graph(torch_device):
+    # torch_device = torch.device("cpu")
     ig_fname = "1ubq_ig"
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
 
@@ -452,19 +457,66 @@ def test_build_multi_pose_interaction_graph():
         )
     )
 
-    # print("rotamer_set.n_rots_for_pose", rotamer_set.n_rots_for_pose.dtype)
-    # print("rotamer_set.rot_offset_for_pose",   rotamer_set.rot_offset_for_pose.dtype)
-    # print("rotamer_set.n_rots_for_block",      rotamer_set.n_rots_for_block.dtype)
-    # print("rotamer_set.rot_offset_for_block",  rotamer_set.rot_offset_for_block.dtype)
-    # print("rotamer_set.pose_for_rot",          rotamer_set.pose_for_rot.dtype)
-    # print("rotamer_set.block_type_ind_for_rot",rotamer_set.block_type_ind_for_rot.dtype)
-    # print("rotamer_set.block_ind_for_rot",     rotamer_set.block_ind_for_rot.dtype)
-    # print("sparse_indices",                    sparse_indices.dtype)
-    # print("energies",                          energies.dtype)
+    n_energies_per_pose = 608852 // 2
+    print("n_energies_per_pose", n_energies_per_pose)
 
-    # print(rotamer_set.n_rots_for_pose)
-    # print(sparse_indices.shape)
-    # print(energies.shape)
+    print("rotamer_set.n_rots_for_pose", rotamer_set.n_rots_for_pose.dtype)
+    print("rotamer_set.rot_offset_for_pose", rotamer_set.rot_offset_for_pose.dtype)
+    print("rotamer_set.n_rots_for_block", rotamer_set.n_rots_for_block.dtype)
+    print("rotamer_set.rot_offset_for_block", rotamer_set.rot_offset_for_block.dtype)
+    print("rotamer_set.pose_for_rot", rotamer_set.pose_for_rot.dtype)
+    print(
+        "rotamer_set.block_type_ind_for_rot", rotamer_set.block_type_ind_for_rot.dtype
+    )
+    print("rotamer_set.block_ind_for_rot", rotamer_set.block_ind_for_rot.dtype)
+    print("sparse_indices", sparse_indices.dtype)
+    print("energies", energies.dtype)
+
+    print("rotamer_set.n_rots_for_pose", rotamer_set.n_rots_for_pose.shape)
+    print("rotamer_set.rot_offset_for_pose", rotamer_set.rot_offset_for_pose.shape)
+    print("rotamer_set.n_rots_for_block", rotamer_set.n_rots_for_block.shape)
+    print("rotamer_set.rot_offset_for_block", rotamer_set.rot_offset_for_block.shape)
+    print("rotamer_set.pose_for_rot", rotamer_set.pose_for_rot.shape)
+    print(
+        "rotamer_set.block_type_ind_for_rot", rotamer_set.block_type_ind_for_rot.shape
+    )
+    print("rotamer_set.block_ind_for_rot", rotamer_set.block_ind_for_rot.shape)
+    print("sparse_indices", sparse_indices.shape)
+    print("energies", energies.shape)
+
+    print("rotamer_set.n_rots_for_pose", rotamer_set.n_rots_for_pose)
+    print("rotamer_set.rot_offset_for_pose", rotamer_set.rot_offset_for_pose)
+    print("rotamer_set.n_rots_for_block", rotamer_set.n_rots_for_block[:, :5])
+    print("rotamer_set.rot_offset_for_block", rotamer_set.rot_offset_for_block[:, :5])
+    print(
+        "rotamer_set.pose_for_rot",
+        rotamer_set.pose_for_rot[:5],
+        rotamer_set.pose_for_rot[1518:1523],
+    )
+    print(
+        "rotamer_set.block_type_ind_for_rot",
+        rotamer_set.block_type_ind_for_rot[:5],
+        rotamer_set.block_type_ind_for_rot[1518:1523],
+    )
+    print(
+        "rotamer_set.block_ind_for_rot",
+        rotamer_set.block_ind_for_rot[:5],
+        rotamer_set.block_ind_for_rot[1518:1523],
+    )
+    print(
+        "sparse_indices",
+        sparse_indices[:, :5],
+        sparse_indices[:, n_energies_per_pose : (n_energies_per_pose + 5)],
+    )
+    print(
+        "energies",
+        energies[:5],
+        energies[n_energies_per_pose : (n_energies_per_pose + 5)],
+    )
+
+    print(rotamer_set.n_rots_for_pose)
+    print(sparse_indices.shape)
+    print(energies.shape)
 
     chunk_size = 16
 
