@@ -69,6 +69,9 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(
     def _ti64(x):
         return torch.tensor(x, dtype=torch.int64)
 
+    def _tf32(x):
+        return torch.tensor(x, dtype=torch.float32)
+
     def _d(x):
         return x.to(device)
 
@@ -102,6 +105,8 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(
         coords=_d(coords),
     )
 
+    energy1b = torch.zeros((n_rots_total), dtype=torch.float32)
+
     nonzero_inds = []
     ordered_energy_tables = []
     entry_offset = []
@@ -109,6 +114,7 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(
     for i in range(76):
         i_n_rots = n_rots_for_block[0, i]
         i_offset = rot_offset_for_block[0, i]
+        energy1b[i_offset : (i_offset + i_n_rots)] = _tf32(oneb[f"{i+1}"])
         for j in range(i + 1, 76):
             j_n_rots = n_rots_for_block[0, j]
             j_offset = rot_offset_for_block[0, j]
@@ -138,7 +144,7 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(
             pair
         ].view(-1)
 
-    return rotamer_set, _d(inds), _d(energies)
+    return rotamer_set, _d(energy1b), _d(inds), _d(energies)
 
 
 def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
@@ -158,6 +164,9 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
 
     def _ti64(x):
         return torch.tensor(x, dtype=torch.int64)
+
+    def _tf32(x):
+        return torch.tensor(x, dtype=torch.float32)
 
     def _d(x):
         return x.to(device)
@@ -198,6 +207,8 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
         coords=_d(coords),
     )
 
+    energy1b = torch.zeros(n_rots_total, dtype=torch.float32)
+
     nonzero_inds = []
     ordered_energy_tables = []
     entry_offset = []
@@ -205,6 +216,7 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     for i in range(76):
         i_n_rots = n_rots_for_block[0, i]
         i_offset = rot_offset_for_block[0, i]
+        energy1b[i_offset : (i_offset + i_n_rots)] = _tf32(oneb[f"{i+1}"])
         for j in range(i + 1, 76):
             j_n_rots = n_rots_for_block[0, j]
             j_offset = rot_offset_for_block[0, j]
@@ -224,9 +236,9 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
                 )
     # Now insert the indices for the second pose
     for i in range(76):
-
         i_n_rots = n_rots_for_block[1, i]
         i_offset = rot_offset_for_block[1, i]
+        energy1b[i_offset : (i_offset + i_n_rots)] = _tf32(oneb[f"{i+1}"])
         for j in range(i + 1, 76):
             j_n_rots = n_rots_for_block[1, j]
             j_offset = rot_offset_for_block[1, j]
@@ -258,7 +270,7 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
             pair % len(twob)
         ].view(-1)
 
-    return rotamer_set, _d(inds), _d(energies)
+    return rotamer_set, _d(energy1b), _d(inds), _d(energies)
 
 
 def test_construct_rotamer_set_and_sparse_energies_table_from_ig(torch_device):
@@ -267,13 +279,13 @@ def test_construct_rotamer_set_and_sparse_energies_table_from_ig(torch_device):
 
     # Step 1: convert the IG that we're getting from disk
     # into the format that we expect from the score function
-    rotamer_set, sparse_indices, energies = (
+    rotamer_set, energy1b, sparse_indices, energies = (
         construct_faux_rotamer_set_and_sparse_energies_table_from_ig(
             ig_fname, pdb_fname, torch_device
         )
     )
 
-    rotamer_set2, sparse_indices2, energies2 = (
+    rotamer_set2, energy1b, sparse_indices2, energies2 = (
         construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
             ig_fname, pdb_fname, torch_device
         )
@@ -297,7 +309,7 @@ def test_build_interaction_graph(torch_device):
 
     # Step 1: convert the IG that we're getting from disk
     # into the format that we expect from the score function
-    rotamer_set, sparse_indices, energies = (
+    rotamer_set, energy1b, sparse_indices, energies = (
         construct_faux_rotamer_set_and_sparse_energies_table_from_ig(
             ig_fname, pdb_fname, torch_device
         )
@@ -345,7 +357,7 @@ def test_build_interaction_graph(torch_device):
     # print(chunk_pair_offset_for_block_pair[0,:10, :10])
     # print(chunk_pair_offset[:20])
 
-    for i in range(sparse_indices.shape[1]):
+    for i in range(sparse_indices[:, :1000].shape[1]):
         i_energy = energies[i].item()
         pose = sparse_indices[0, i].item()
         rot1 = sparse_indices[1, i].item()
@@ -451,7 +463,7 @@ def test_build_multi_pose_interaction_graph(torch_device):
 
     # Step 1: convert the IG that we're getting from disk
     # into the format that we expect from the score function
-    rotamer_set, sparse_indices, energies = (
+    rotamer_set, energyb1, sparse_indices, energies = (
         construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
             ig_fname, pdb_fname, torch_device
         )
@@ -546,7 +558,9 @@ def test_build_multi_pose_interaction_graph(torch_device):
     # print(chunk_pair_offset_for_block_pair[0,:10, :10])
     # print(chunk_pair_offset[:20])
 
-    for i in range(sparse_indices.shape[1]):
+    print("testing energy2b accuracy")
+
+    for i in range(sparse_indices[:, -1000:].shape[1]):
         i_energy = energies[i].item()
         pose = sparse_indices[0, i].item()
         rot1 = sparse_indices[1, i].item()

@@ -81,7 +81,7 @@ struct InteractionGraph {
   TView<Int, 1, D> oneb_offsets_;
   TView<Int, 1, D> res_for_rot_;
   TView<Int, 2, D> respair_nenergies_;
-  TView<Int, 1, D> chunk_size_;
+  int32_t chunk_size_;
   TView<Int, 2, D> chunk_offset_offsets_;
   TView<int64_t, 2, D> twob_offsets_;
   TView<Int, 1, D> fine_chunk_offsets_;
@@ -124,11 +124,11 @@ struct InteractionGraph {
     if (this_thread_active) {
       new_e = energy1b_[global_sub_rot];
     }
-    int sub_rot_chunk = local_sub_rot / chunk_size_[0];
-    int sub_rot_in_chunk = local_sub_rot - sub_rot_chunk * chunk_size_[0];
-    int sub_res_nchunks = (sub_res_nrots - 1) / chunk_size_[0] + 1;
+    int sub_rot_chunk = local_sub_rot / chunk_size_;
+    int sub_rot_in_chunk = local_sub_rot - sub_rot_chunk * chunk_size_;
+    int sub_res_nchunks = (sub_res_nrots - 1) / chunk_size_ + 1;
     int sub_rot_chunk_size =
-        min(chunk_size_[0], sub_res_nrots - chunk_size_[0] * sub_rot_chunk);
+        min(chunk_size_, sub_res_nrots - chunk_size_ * sub_rot_chunk);
 
     // Temp: iterate across all residues instead of just the
     // neighbors of ran_rot_res
@@ -138,13 +138,13 @@ struct InteractionGraph {
           continue;
         }
         int const local_k_rot = rotamer_assignments[k];
-        int const k_chunk = local_k_rot / chunk_size_[0];
+        int const k_chunk = local_k_rot / chunk_size_;
         int const k_sub_chunk_offset_offset = chunk_offset_offsets_[k][sub_res];
 
-        int const k_in_chunk = local_k_rot - k_chunk * chunk_size_[0];
+        int const k_in_chunk = local_k_rot - k_chunk * chunk_size_;
         int const k_res_nrots = nrotamers_for_res_[k];
         int const k_chunk_size =
-            min(chunk_size_[0], k_res_nrots - chunk_size_[0] * k_chunk);
+            min(chunk_size_, k_res_nrots - chunk_size_ * k_chunk);
         int const k_sub_chunk_start = fine_chunk_offsets_
             [k_sub_chunk_offset_offset + k_chunk * sub_res_nchunks
              + sub_rot_chunk];
@@ -180,26 +180,26 @@ struct InteractionGraph {
 
     for (int i = g.thread_rank(); i < nres; i += nthreads) {
       int const irot_local = rotamer_assignment[i];
-      int const irot_chunk = irot_local / chunk_size_[0];
-      int const irot_in_chunk = irot_local - chunk_size_[0] * irot_chunk;
+      int const irot_chunk = irot_local / chunk_size_;
+      int const irot_in_chunk = irot_local - chunk_size_ * irot_chunk;
       int const ires_nrots = nrotamers_for_res_[i];
-      int const ires_nchunks = (ires_nrots - 1) / chunk_size_[0] + 1;
+      int const ires_nchunks = (ires_nrots - 1) / chunk_size_ + 1;
       int const irot_chunk_size =
-          min(chunk_size_[0], ires_nrots - chunk_size_[0] * irot_chunk);
+          min(chunk_size_, ires_nrots - chunk_size_ * irot_chunk);
 
       for (int j = i + 1; j < nres; ++j) {
         int const jrot_local = rotamer_assignment[j];
         if (respair_nenergies_[i][j] == 0) {
           continue;
         }
-        int const jrot_chunk = jrot_local / chunk_size_[0];
-        int const jrot_in_chunk = jrot_local - chunk_size_[0] * jrot_chunk;
+        int const jrot_chunk = jrot_local / chunk_size_;
+        int const jrot_in_chunk = jrot_local - chunk_size_ * jrot_chunk;
         int const ij_chunk_offset_offset = chunk_offset_offsets_[i][j];
 
         int const jres_nrots = nrotamers_for_res_[j];
-        int const jres_nchunks = (jres_nrots - 1) / chunk_size_[0] + 1;
+        int const jres_nchunks = (jres_nrots - 1) / chunk_size_ + 1;
         int const jrot_chunk_size =
-            min(chunk_size_[0], jres_nrots - chunk_size_[0] * jrot_chunk);
+            min(chunk_size_, jres_nrots - chunk_size_ * jrot_chunk);
         int const ij_chunk_offset = fine_chunk_offsets_
             [ij_chunk_offset_offset + irot_chunk * jres_nchunks + jrot_chunk];
         if (ij_chunk_offset < 0) {
@@ -980,7 +980,7 @@ auto AnnealerDispatch<D>::forward(
     TView<int, 1, D> oneb_offsets,
     TView<int, 1, D> res_for_rot,
     TView<int, 2, D> respair_nenergies,
-    TView<int, 1, D> chunk_size,
+    int32_t chunk_size,
     TView<int, 2, D> chunk_offset_offsets,
     TView<int64_t, 2, D> twob_offsets,
     TView<int, 1, D> fine_chunk_offsets,

@@ -14,16 +14,15 @@ namespace pack {
 namespace compiled {
 
 template <tmol::Device D>
-void set_quench_order(TView<int, 1, D> quench_order) {
+void set_quench_order(TView<int, 1, D> quench_order, int const n_rots) {
   // Create a random permutation of all the rotamers
   // and visit them in this order to ensure all of them
   // are seen during the quench step
-  int const nrots = quench_order.size(0);
-  for (int i = 0; i < nrots; ++i) {
+  for (int i = 0; i < n_rots; ++i) {
     quench_order[i] = i;
   }
-  for (int i = 0; i <= nrots - 2; ++i) {
-    int j = i + rand() % (nrots - i);
+  for (int i = 0; i <= n_rots - 2; ++i) {
+    int j = i + rand() % (n_rots - i);
     // swap i and j;
     int jval = quench_order[j];
     quench_order[j] = quench_order[i];
@@ -33,230 +32,240 @@ void set_quench_order(TView<int, 1, D> quench_order) {
 
 template <tmol::Device D>
 auto AnnealerDispatch<D>::forward(
-    TView<int, 1, D> nrotamers_for_res,
-    TView<int, 1, D> oneb_offsets,
-    TView<int, 1, D> res_for_rot,
-    TView<int, 2, D> respair_nenergies,
-    TView<int, 1, D> chunk_size_t,
-    TView<int, 2, D> chunk_offset_offsets,
-    TView<int64_t, 2, D> twob_offsets,
-    TView<int, 1, D> fine_chunk_offsets,
+    TView<int, 1, D> pose_n_res,                           // n-poses
+    TView<int, 2, tmol::Device::CPU> n_rotamers_for_pose,  // n-poses
+    TView<int, 1, D> rotamer_offset_for_pose,              // n-poses
+    TView<int, 2, D> n_rotamers_for_res,  // n-poses x max-n-res
+    TView<int, 2, D> oneb_offsets,        // n-poses x max-n-res
+    TView<int, 1, D> res_for_rot,         // n-rots
+    int32_t chunk_size,
+    TView<int64_t, 3, D>
+        chunk_offset_offsets,            // n-poses x max-n-res x max-n-res
+    TView<int64_t, 1, D> chunk_offsets,  // n-chunks-on-interacting-res
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b,
-    int64_t seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> > {
+    int64_t seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
   clock_t start = clock();
 
   // No Frills Simulated Annealing!
-  int const nres = nrotamers_for_res.size(0);
-  int const nrotamers = res_for_rot.size(0);
-  int const chunk_size = chunk_size_t[0];
+  int const n_poses = pose_n_res.size(0);
+  int const max_n_res = n_rotamers_for_res.size(1);
+  int const n_rotamers = res_for_rot.size(0);
 
-  int ntraj = 1;
+  int n_traj = 1;
   int const n_outer_iterations = 20;
   int const n_inner_iterations_factor = 20;
-  int const n_inner_iterations = n_inner_iterations_factor * nrotamers;
 
-  auto scores_t = TPack<float, 2, D>::zeros({1, ntraj});
-  auto rotamer_assignments_t = TPack<int, 2, D>::zeros({ntraj, nres});
-  auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({ntraj, nres});
-  auto quench_order_t = TPack<int, 1, D>::zeros({nrotamers});
+  // move to inside for(n_poses) loop:
+  // int const n_inner_iterations = n_inner_iterations_factor * nrotamers;
+
+  auto scores_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
+  auto current_rotamer_assignments_t =
+      TPack<int, 3, D>::zeros({n_poses, n_traj, max_n_res});
+  auto best_rotamer_assignments_t =
+      TPack<int, 3, D>::zeros({n_poses, n_traj, max_n_res});
+  auto quench_order_t = TPack<int, 1, D>::zeros({n_rotamers});
   // auto rotamer_attempts_t = TPack<int, 1, D>::zeros({nrotamers});
 
   auto scores = scores_t.view;
-  auto rotamer_assignments = rotamer_assignments_t.view;
-  auto best_rotamer_assignments = rotamer_assignments_t.view;
+  auto current_rotamer_assignments = current_rotamer_assignments_t.view;
+  auto best_rotamer_assignments = best_rotamer_assignments_t.view;
   auto quench_order = quench_order_t.view;
   // auto rotamer_attempts = rotamer_attempts_t.view;
 
   float const high_temp = 100;
   float const low_temp = 0.2;
 
-  for (int traj = 0; traj < ntraj; ++traj) {
-    // std::cout << "Starting trajectory " << traj+1 << std::endl;
+  for (int pose = 0; pose < n_poses; ++pose) {
+    int const pose_n_rotamers = n_rotamers_for_pose[pose];
+    int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
+    int const n_inner_iterations = n_inner_iterations_factor * pose_n_rotamers;
 
-    for (int i = 0; i < nres; ++i) {
-      int const i_nrots = nrotamers_for_res[i];
-      rotamer_assignments[traj][i] = rand() % i_nrots;
-      best_rotamer_assignments[traj][i] = rand() % i_nrots;
-    }
-    // std::cout << "Assigned random rotamers to all residues" << std::endl;
+    for (int traj = 0; traj < ntraj; ++traj) {
+      // std::cout << "Starting trajectory " << traj+1 << std::endl;
 
-    float temperature = high_temp;
-    double best_energy = total_energy_for_assignment(
-        nrotamers_for_res,
-        oneb_offsets,
-        res_for_rot,
-        respair_nenergies,
-        chunk_size_t,
-        chunk_offset_offsets,
-        twob_offsets,
-        fine_chunk_offsets,
-        energy1b,
-        energy2b,
-        rotamer_assignments,
-        traj);
-    double current_total_energy = best_energy;
-    int naccepts = 0;
-    for (int i = 0; i < n_outer_iterations; ++i) {
-      // std::cout << "starting round " << i+1 << std::endl;
-      bool quench = false;
-      if (i == n_outer_iterations - 1) {
-        quench = true;
-        temperature = 0;
-        for (int j = 0; j < nres; ++j) {
-          rotamer_assignments[traj][j] = best_rotamer_assignments[traj][j];
-        }
-        current_total_energy = total_energy_for_assignment(
-            nrotamers_for_res,
-            oneb_offsets,
-            res_for_rot,
-            respair_nenergies,
-            chunk_size_t,
-            chunk_offset_offsets,
-            twob_offsets,
-            fine_chunk_offsets,
-            energy1b,
-            energy2b,
-            rotamer_assignments,
-            traj);
+      // Initial assignment: assign a rotamer to every residue
+      for (int i = 0; i < max_n_res; ++i) {
+        int const i_n_rots = n_rotamers_for_res[pose][i];
+        int rand_rot = rand() % i_n_rots;
+        current_rotamer_assignments[pose][traj][i] = rand_rot;
+        best_rotamer_assignments[pose][traj][i] = rand_rot;
       }
+      // std::cout << "Assigned random rotamers to all residues" << std::endl;
 
-      for (int j = 0; j < n_inner_iterations; ++j) {
-        int global_ran_rot;
-        if (quench) {
-          if (j % nrotamers == 0) {
-            set_quench_order(quench_order);
+      float temperature = high_temp;
+      double best_energy = total_energy_for_assignment(
+          n_rotamers_for_res[pose],
+          oneb_offsets[pose],
+          chunk_size,
+          chunk_offset_offsets[pose],
+          chunk_offsets,
+          energy1b,
+          energy2b,
+          current_rotamer_assignments[pose][traj]);
+      double current_total_energy = best_energy;
+      int naccepts = 0;
+      for (int i = 0; i < n_outer_iterations; ++i) {
+        // std::cout << "starting round " << i+1 << std::endl;
+        bool quench = false;
+        if (i == n_outer_iterations - 1) {
+          quench = true;
+          temperature = 0;
+          for (int j = 0; j < nres; ++j) {
+            current_rotamer_assignments[traj][j] =
+                best_rotamer_assignments[traj][j];
           }
-          global_ran_rot = quench_order[j % nrotamers];
-        } else {
-          global_ran_rot = rand() % nrotamers;
-        }
-        // ++rotamer_attempts[ran_rot];
-
-        int const ran_res = res_for_rot[global_ran_rot];
-        int const local_prev_rot = rotamer_assignments[traj][ran_res];
-        int const ran_res_nrots = nrotamers_for_res[ran_res];
-        int const ran_res_nchunks = (ran_res_nrots - 1) / chunk_size + 1;
-        int const ran_res_offset = oneb_offsets[ran_res];
-        int const local_ran_rot = global_ran_rot - ran_res_offset;
-        int const ran_rot_chunk = local_ran_rot / chunk_size;
-        int const prev_rot_chunk = local_prev_rot / chunk_size;
-        int const ran_rot_in_chunk = local_ran_rot - chunk_size * ran_rot_chunk;
-        int const prev_rot_in_chunk =
-            local_prev_rot - chunk_size * prev_rot_chunk;
-        int const ran_rot_chunk_size =
-            std::min(chunk_size, ran_res_nrots - chunk_size * ran_rot_chunk);
-        int const prev_rot_chunk_size =
-            std::min(chunk_size, ran_res_nrots - chunk_size * prev_rot_chunk);
-        int const global_prev_rot = local_prev_rot + ran_res_offset;
-
-        double new_e = energy1b[global_ran_rot];
-        double prev_e = energy1b[global_prev_rot];
-        double deltaE = new_e - prev_e;
-
-        // Temp: iterate across all residues instead of just the
-        // neighbors of ran_rot_res
-        for (int k = 0; k < nres; ++k) {
-          if (k == ran_res) continue;
-          if (respair_nenergies[ran_res][k] == 0) continue;
-          int const local_k_rot = rotamer_assignments[traj][k];
-          int const k_nrots = nrotamers_for_res[k];
-          int const kres_nchunks = (k_nrots - 1) / chunk_size + 1;
-          int const krot_chunk = local_k_rot / chunk_size;
-          int const krot_in_chunk = local_k_rot - krot_chunk * chunk_size;
-          int const k_ran_chunk_offset_offset =
-              chunk_offset_offsets[k][ran_res];
-          int const krot_ranrot_chunk_offset = fine_chunk_offsets
-              [k_ran_chunk_offset_offset + krot_chunk * ran_res_nchunks
-               + ran_rot_chunk];
-          int const krot_prevrot_chunk_offset = fine_chunk_offsets
-              [k_ran_chunk_offset_offset + krot_chunk * ran_res_nchunks
-               + prev_rot_chunk];
-
-          int64_t const k_ran_offset = twob_offsets[k][ran_res];
-
-          // new_e += energy2b[ran_k_offset + kres_nrots * local_ran_rot +
-          // local_k_rot];
-          double k_new_e = 0;
-          double k_prev_e = 0;
-
-          if (krot_ranrot_chunk_offset >= 0) {
-            k_new_e = energy2b
-                [k_ran_offset + krot_ranrot_chunk_offset
-                 + krot_in_chunk * ran_rot_chunk_size + ran_rot_in_chunk];
-          }
-          if (krot_prevrot_chunk_offset >= 0) {
-            k_prev_e = energy2b
-                [k_ran_offset + krot_prevrot_chunk_offset
-                 + krot_in_chunk * prev_rot_chunk_size + prev_rot_in_chunk];
-          }
-          deltaE += k_new_e - k_prev_e;
-          new_e += k_new_e;
-          prev_e += k_prev_e;
+          current_total_energy = total_energy_for_assignment(
+              n_rotamers_for_res[pose],
+              oneb_offsets[pose],
+              chunk_size,
+              chunk_offset_offsets,
+              chunk_offsets,
+              energy1b,
+              energy2b,
+              current_rotamer_assignments[pose]);
         }
 
-        float const uniform_random = float(rand()) / RAND_MAX;
-
-        if (pass_metropolis(
-                temperature, uniform_random, deltaE, prev_e, quench)) {
-          rotamer_assignments[traj][ran_res] = local_ran_rot;
-          current_total_energy += deltaE;
-          ++naccepts;
-          if (naccepts > 1000) {
-            naccepts = 0;
-            float new_current_total_energy = total_energy_for_assignment(
-                nrotamers_for_res,
-                oneb_offsets,
-                res_for_rot,
-                respair_nenergies,
-                chunk_size_t,
-                chunk_offset_offsets,
-                twob_offsets,
-                fine_chunk_offsets,
-                energy1b,
-                energy2b,
-                rotamer_assignments,
-                traj);
-            current_total_energy = new_current_total_energy;
-          }
-          if (current_total_energy < best_energy) {
-            for (int k = 0; k < nres; ++k) {
-              best_rotamer_assignments[traj][k] = rotamer_assignments[traj][k];
+        for (int j = 0; j < n_inner_iterations; ++j) {
+          int global_ran_rot;
+          if (quench) {
+            if (j % nrotamers == 0) {
+              set_quench_order(quench_order);
             }
-            best_energy = current_total_energy;
+            global_ran_rot = quench_order[j % nrotamers];
+          } else {
+            global_ran_rot = rand() % nrotamers;
           }
-        }
+          // ++rotamer_attempts[ran_rot];
 
-      }  // end inner loop
+          int const ran_res = res_for_rot[global_ran_rot];
+          int const local_prev_rot = rotamer_assignments[traj][ran_res];
+          int const ran_res_nrots = nrotamers_for_res[ran_res];
+          int const ran_res_nchunks = (ran_res_nrots - 1) / chunk_size + 1;
+          int const ran_res_offset = oneb_offsets[ran_res];
+          int const local_ran_rot = global_ran_rot - ran_res_offset;
+          int const ran_rot_chunk = local_ran_rot / chunk_size;
+          int const prev_rot_chunk = local_prev_rot / chunk_size;
+          int const ran_rot_in_chunk =
+              local_ran_rot - chunk_size * ran_rot_chunk;
+          int const prev_rot_in_chunk =
+              local_prev_rot - chunk_size * prev_rot_chunk;
+          int const ran_rot_chunk_size =
+              std::min(chunk_size, ran_res_nrots - chunk_size * ran_rot_chunk);
+          int const prev_rot_chunk_size =
+              std::min(chunk_size, ran_res_nrots - chunk_size * prev_rot_chunk);
+          int const global_prev_rot = local_prev_rot + ran_res_offset;
 
-      // std::cout << "temperature " << temperature << " energy " <<
-      //   total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-      //     res_for_rot, nenergies, twob_offsets, energy1b, energy2b,
-      //     rotamer_assignments, traj) <<
-      //   std::endl;
+          double new_e = energy1b[global_ran_rot];
+          double prev_e = energy1b[global_prev_rot];
+          double deltaE = new_e - prev_e;
 
-      // geometric cooling toward 0.3
-      // temperature = 0.35 * (temperature - 0.3) + 0.3;
-      temperature = (high_temp - low_temp) * std::exp(-1 * (i + 1)) + low_temp;
+          // Temp: iterate across all residues instead of just the
+          // neighbors of ran_rot_res
+          for (int k = 0; k < nres; ++k) {
+            if (k == ran_res) continue;
+            if (respair_nenergies[ran_res][k] == 0) continue;
+            int const local_k_rot = rotamer_assignments[traj][k];
+            int const k_nrots = nrotamers_for_res[k];
+            int const kres_nchunks = (k_nrots - 1) / chunk_size + 1;
+            int const krot_chunk = local_k_rot / chunk_size;
+            int const krot_in_chunk = local_k_rot - krot_chunk * chunk_size;
+            int const k_ran_chunk_offset_offset =
+                chunk_offset_offsets[k][ran_res];
+            int const krot_ranrot_chunk_offset = fine_chunk_offsets
+                [k_ran_chunk_offset_offset + krot_chunk * ran_res_nchunks
+                 + ran_rot_chunk];
+            int const krot_prevrot_chunk_offset = fine_chunk_offsets
+                [k_ran_chunk_offset_offset + krot_chunk * ran_res_nchunks
+                 + prev_rot_chunk];
 
-    }  // end outer loop
+            int64_t const k_ran_offset = twob_offsets[k][ran_res];
 
-    scores[0][traj] = total_energy_for_assignment(
-        nrotamers_for_res,
-        oneb_offsets,
-        res_for_rot,
-        respair_nenergies,
-        chunk_size_t,
-        chunk_offset_offsets,
-        twob_offsets,
-        fine_chunk_offsets,
-        energy1b,
-        energy2b,
-        rotamer_assignments,
-        traj);
-    // std::cout << "Traj " << traj << " with score " << scores[traj] <<
-    // std::endl;
-  }  // end trajectory loop
+            // new_e += energy2b[ran_k_offset + kres_nrots * local_ran_rot +
+            // local_k_rot];
+            double k_new_e = 0;
+            double k_prev_e = 0;
+
+            if (krot_ranrot_chunk_offset >= 0) {
+              k_new_e = energy2b
+                  [k_ran_offset + krot_ranrot_chunk_offset
+                   + krot_in_chunk * ran_rot_chunk_size + ran_rot_in_chunk];
+            }
+            if (krot_prevrot_chunk_offset >= 0) {
+              k_prev_e = energy2b
+                  [k_ran_offset + krot_prevrot_chunk_offset
+                   + krot_in_chunk * prev_rot_chunk_size + prev_rot_in_chunk];
+            }
+            deltaE += k_new_e - k_prev_e;
+            new_e += k_new_e;
+            prev_e += k_prev_e;
+          }
+
+          float const uniform_random = float(rand()) / RAND_MAX;
+
+          if (pass_metropolis(
+                  temperature, uniform_random, deltaE, prev_e, quench)) {
+            rotamer_assignments[traj][ran_res] = local_ran_rot;
+            current_total_energy += deltaE;
+            ++naccepts;
+            if (naccepts > 1000) {
+              naccepts = 0;
+              float new_current_total_energy = total_energy_for_assignment(
+                  nrotamers_for_res,
+                  oneb_offsets,
+                  res_for_rot,
+                  respair_nenergies,
+                  chunk_size,
+                  chunk_offset_offsets,
+                  twob_offsets,
+                  fine_chunk_offsets,
+                  energy1b,
+                  energy2b,
+                  rotamer_assignments,
+                  traj);
+              current_total_energy = new_current_total_energy;
+            }
+            if (current_total_energy < best_energy) {
+              for (int k = 0; k < nres; ++k) {
+                best_rotamer_assignments[traj][k] =
+                    rotamer_assignments[traj][k];
+              }
+              best_energy = current_total_energy;
+            }
+          }
+
+        }  // end inner loop
+
+        // std::cout << "temperature " << temperature << " energy " <<
+        //   total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
+        //     res_for_rot, nenergies, twob_offsets, energy1b, energy2b,
+        //     rotamer_assignments, traj) <<
+        //   std::endl;
+
+        // geometric cooling toward 0.3
+        // temperature = 0.35 * (temperature - 0.3) + 0.3;
+        temperature =
+            (high_temp - low_temp) * std::exp(-1 * (i + 1)) + low_temp;
+
+      }  // end outer loop
+
+      scores[0][traj] = total_energy_for_assignment(
+          nrotamers_for_res,
+          oneb_offsets,
+          res_for_rot,
+          respair_nenergies,
+          chunk_size,
+          chunk_offset_offsets,
+          twob_offsets,
+          fine_chunk_offsets,
+          energy1b,
+          energy2b,
+          rotamer_assignments,
+          traj);
+      // std::cout << "Traj " << traj << " with score " << scores[traj] <<
+      // std::endl;
+    }  // end trajectory loop
+  }    // end pose loop
 
   // find the stdev of rotamer attempts
   // float variance = 0;
