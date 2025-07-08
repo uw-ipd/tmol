@@ -63,6 +63,9 @@ struct LJLKPoseScoreDispatch {
       // Dimsize: n_block_types x max_n_atoms
       TView<Int, 2, D> block_type_atom_types,
 
+      TView<Int, 1, D> block_type_n_heavy_atoms,    // temp
+      TView<Int, 2, D> block_type_heavy_atom_inds,  // temp
+
       // how many inter-block chemical bonds are there
       // Dimsize: n_block_types
       TView<Int, 1, D> block_type_n_interblock_bonds,
@@ -118,6 +121,9 @@ struct LJLKPoseScoreDispatch {
       // what are the atom types for these atoms
       // Dimsize: n_block_types x max_n_atoms
       TView<Int, 2, D> block_type_atom_types,
+
+      TView<Int, 1, D> block_type_n_heavy_atoms,    // temp
+      TView<Int, 2, D> block_type_heavy_atom_inds,  // temp
 
       // how many inter-block chemical bonds are there
       // Dimsize: n_block_types

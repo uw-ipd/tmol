@@ -39,6 +39,8 @@ class LJLKPoseScoreOp
 
       Tensor block_type_heavy_atoms_in_tile,
       Tensor block_type_atom_types,
+      Tensor block_type_n_heavy_atoms,    // temp
+      Tensor block_type_heavy_atom_inds,  // temp
       Tensor block_type_n_interblock_bonds,
       Tensor block_type_atoms_forming_chemical_bonds,
       Tensor block_type_path_distance,
@@ -68,6 +70,8 @@ class LJLKPoseScoreOp
 
                   TCAST(block_type_heavy_atoms_in_tile),
                   TCAST(block_type_atom_types),
+                  TCAST(block_type_n_heavy_atoms),    // temp
+                  TCAST(block_type_heavy_atom_inds),  // temp
                   TCAST(block_type_n_interblock_bonds),
                   TCAST(block_type_atoms_forming_chemical_bonds),
                   TCAST(block_type_path_distance),
@@ -96,6 +100,8 @@ class LJLKPoseScoreOp
 
            block_type_heavy_atoms_in_tile,
            block_type_atom_types,
+           block_type_n_heavy_atoms,    // temp
+           block_type_heavy_atom_inds,  // temp
            block_type_n_interblock_bonds,
            block_type_atoms_forming_chemical_bonds,
            block_type_path_distance,
@@ -151,6 +157,8 @@ class LJLKPoseScoreOp
 
       auto block_type_heavy_atoms_in_tile = saved[i++];
       auto block_type_atom_types = saved[i++];
+      auto block_type_n_heavy_atoms = saved[i++];    // temp
+      auto block_type_heavy_atom_inds = saved[i++];  // temp
       auto block_type_n_interblock_bonds = saved[i++];
       auto block_type_atoms_forming_chemical_bonds = saved[i++];
       auto block_type_path_distance = saved[i++];
@@ -185,6 +193,8 @@ class LJLKPoseScoreOp
 
                     TCAST(block_type_heavy_atoms_in_tile),
                     TCAST(block_type_atom_types),
+                    TCAST(block_type_n_heavy_atoms),    // temp
+                    TCAST(block_type_heavy_atom_inds),  // temp
                     TCAST(block_type_n_interblock_bonds),
                     TCAST(block_type_atoms_forming_chemical_bonds),
                     TCAST(block_type_path_distance),
@@ -213,6 +223,8 @@ class LJLKPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
 
         torch::Tensor(),
         torch::Tensor(),
@@ -233,6 +245,8 @@ Tensor ljlk_pose_scores_op(
 
     Tensor block_type_heavy_atoms_in_tile,
     Tensor block_type_atom_types,
+    Tensor block_type_n_heavy_atoms,    // temp
+    Tensor block_type_heavy_atom_inds,  // temp
     Tensor block_type_n_interblock_bonds,
     Tensor block_type_atoms_forming_chemical_bonds,
     Tensor block_type_path_distance,
@@ -252,6 +266,8 @@ Tensor ljlk_pose_scores_op(
 
       block_type_heavy_atoms_in_tile,
       block_type_atom_types,
+      block_type_n_heavy_atoms,
+      block_type_heavy_atom_inds,
       block_type_n_interblock_bonds,
       block_type_atoms_forming_chemical_bonds,
       block_type_path_distance,

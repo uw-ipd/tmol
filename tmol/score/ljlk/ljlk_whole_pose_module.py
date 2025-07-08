@@ -13,10 +13,10 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
         pose_stack_inter_block_bondsep,
         bt_n_atoms,
         bt_n_heavy_atoms,
+        bt_heavy_atom_inds,
         bt_n_heavy_atoms_in_tile,
         bt_heavy_atoms_in_tile,
         bt_atom_types,
-        bt_heavy_atom_inds,
         bt_n_interblock_bonds,
         bt_atoms_forming_chemical_bonds,
         bt_path_distance,
@@ -39,6 +39,7 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
         self.bt_n_heavy_atoms_in_tile = _p(bt_n_heavy_atoms_in_tile)
         self.bt_heavy_atoms_in_tile = _p(bt_heavy_atoms_in_tile)
         self.bt_atom_types = _p(bt_atom_types)
+        self.bt_n_heavy_atoms = _p(bt_n_heavy_atoms)
         self.bt_heavy_atom_inds = _p(bt_heavy_atom_inds)
         self.bt_n_interblock_bonds = _p(bt_n_interblock_bonds)
         self.bt_atoms_forming_chemical_bonds = _p(bt_atoms_forming_chemical_bonds)
@@ -87,6 +88,8 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
             self.bt_n_heavy_atoms_in_tile,
             self.bt_heavy_atoms_in_tile,
             self.bt_atom_types,
+            self.bt_n_heavy_atoms,
+            self.bt_heavy_atom_inds,
             self.bt_n_interblock_bonds,
             self.bt_atoms_forming_chemical_bonds,
             self.bt_path_distance,
