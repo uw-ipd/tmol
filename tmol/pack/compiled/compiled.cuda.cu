@@ -88,7 +88,7 @@ struct InteractionGraph {
   TView<Int, 2, D> oneb_offsets_;
   TView<Int, 1, D> res_for_rot_;
   int32_t chunk_size_;
-  TView<int64_t, 2, D> chunk_offset_offsets_;
+  TView<int64_t, 3, D> chunk_offset_offsets_;
   TView<int64_t, 1, D> chunk_offsets_;
   TView<Real, 1, D> energy1b_;
   TView<Real, 1, D> energy2b_;
@@ -113,7 +113,7 @@ struct InteractionGraph {
   }
 
   MGPU_DEVICE
-  TView<Int, 1, D> const& oneb_offsets() const { return oneb_offsets_; }
+  TView<Int, 2, D> const& oneb_offsets() const { return oneb_offsets_; }
 
   MGPU_DEVICE
   TView<Int, 1, D> const& res_for_rot() const { return res_for_rot_; }
@@ -157,7 +157,7 @@ struct InteractionGraph {
         }
 
         int const k_in_chunk = local_k_rot - k_chunk * chunk_size_;
-        int const k_res_n_rots = n_rotamers_for_res_[k];
+        int const k_res_n_rots = n_rotamers_for_res_[pose][k];
         int const k_chunk_size =
             min(chunk_size_, k_res_n_rots - chunk_size_ * k_chunk);
         int const k_sub_chunk_start = chunk_offsets_
@@ -189,7 +189,7 @@ struct InteractionGraph {
     int const n_res = pose_n_res_[pose];
     for (int i = g.thread_rank(); i < n_res; i += n_threads) {
       int const irot_local = rotamer_assignment[i];
-      int const irot_global = irot_local + oneb_offsets_[i];
+      int const irot_global = irot_local + oneb_offsets_[pose][i];
 
       totalE += energy1b_[irot_global];
     }
@@ -199,14 +199,14 @@ struct InteractionGraph {
       int const irot_local = rotamer_assignment[i];
       int const irot_chunk = irot_local / chunk_size_;
       int const irot_in_chunk = irot_local - chunk_size_ * irot_chunk;
-      int const ires_n_rots = n_rotamers_for_res_[i];
+      int const ires_n_rots = n_rotamers_for_res_[pose][i];
       int const ires_n_chunks = (ires_n_rots - 1) / chunk_size_ + 1;
       int const irot_chunk_size =
           min(chunk_size_, ires_n_rots - chunk_size_ * irot_chunk);
 
       for (int j = i + 1; j < n_res; ++j) {
         int const jrot_local = rotamer_assignment[j];
-        int const ij_chunk_offset_offset = chunk_offset_offsets_[i][j];
+        int const ij_chunk_offset_offset = chunk_offset_offsets_[pose][i][j];
         if (ij_chunk_offset_offset == -1) {
           continue;
         }
@@ -415,7 +415,7 @@ MGPU_DEVICE float warp_wide_sim_annealing(
       int const ran_res = ig.res_for_rot()[ran_rot];
       int const local_prev_rot = current_rotamer_assignment[ran_res];
       int const ran_res_n_rots = ig.n_rotamers_for_res()[pose][ran_res];
-      int const ran_res_rotamer_offset = ig.oneb_offsets()[ran_res];
+      int const ran_res_rotamer_offset = ig.oneb_offsets()[pose][ran_res];
 
       bool prev_rot_in_range = false;
       int thread_w_prev_rot = 0;
@@ -816,9 +816,9 @@ struct Annealer {
     at::PhiloxCudaState quench_philox_state;
     {
       std::lock_guard<std::mutex> lock(gen->mutex_);
-      hitemp_philox_state = gen->philox_engine_inputs(hitemp_cnt);
-      lotemp_philox_state = gen->philox_engine_inputs(lotemp_cnt);
-      quench_philox_state = gen->philox_engine_inputs(fullquench_cnt);
+      hitemp_philox_state = gen->philox_cuda_state(hitemp_cnt);
+      lotemp_philox_state = gen->philox_cuda_state(lotemp_cnt);
+      quench_philox_state = gen->philox_cuda_state(fullquench_cnt);
     }
 
     auto hitemp_simulated_annealing = [=] MGPU_DEVICE(int thread_id) {
@@ -969,7 +969,7 @@ struct Annealer {
           true,
           true);
       if (g.thread_rank() == 0) {
-        scores_lotemp[traj_id] = after_lotemp_quench_lite_totalE;
+        scores_lotemp[pose][traj_id] = after_lotemp_quench_lite_totalE;
       }
     };
 
@@ -1004,6 +1004,7 @@ struct Annealer {
       float after_full_quench_totalE = 0;
       for (int i = 0; i < 1; ++i) {
         after_full_quench_totalE = warp_wide_sim_annealing(
+            pose,
             &state,
             g,
             ig,
