@@ -33,18 +33,19 @@ struct InteractionGraphBuilder {
 template <tmol::Device D>
 struct AnnealerDispatch {
   static auto forward(
+      int max_n_rotamers_per_pose,
       TView<int, 1, D> pose_n_res,
-      TView<int, 2, D> nrotamers_for_res,
+      TView<int, 1, D> pose_n_rotamers,
+      TView<int, 1, D> pose_rotamer_offset,
+      TView<int, 2, D> n_rotamers_for_res,
       TView<int, 2, D> oneb_offsets,
       TView<int, 1, D> res_for_rot,
-      TView<int, 2, D> respair_nenergies,
       int32_t chunk_size,
-      TView<int, 3, D> chunk_offset_offsets,
-      TView<int64_t, 2, D> twob_offsets,
-      TView<int, 1, D> fine_chunk_offsets,
+      TView<int64_t, 3, D> chunk_offset_offsets,
+      TView<int64_t, 1, D> chunk_offsets,
       TView<float, 1, D> energy1b,
-      TView<float, 1, D> energy2b,
-      int64_t seed) -> std::tuple<TPack<float, 2, D>, TPack<int, 2, D> >;
+      TView<float, 1, D> energy2b)
+      -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> >;
 };
 
 }  // namespace compiled

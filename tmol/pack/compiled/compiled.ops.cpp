@@ -71,6 +71,10 @@ std::vector<Tensor> build_interaction_graph(
 }
 
 std::vector<Tensor> anneal(
+    max_n_rotamers_per_pose,
+    Tensor pose_n_res,
+    Tensor pose_n_rotamers,
+    Tensor pose_rotamer_offset,
     Tensor nrotamers_for_res,
     Tensor oneb_offsets,
     Tensor res_for_rot,
@@ -80,8 +84,7 @@ std::vector<Tensor> anneal(
     Tensor twob_offsets,
     Tensor fine_chunk_offsets,
     Tensor energy1b,
-    Tensor energy2b,
-    int64_t seed) {
+    Tensor energy2b) {
   nvtx_range_push("pack_anneal");
   at::Tensor scores;
   at::Tensor rotamer_assignments;
@@ -91,6 +94,10 @@ std::vector<Tensor> anneal(
 
                                   std::cout << "HOLA!" << std::endl;
                                   auto result = AnnealerDispatch<Dev>::forward(
+                                      max_n_rotamers_per_pose,
+                                      TCAST(pose_n_res),
+                                      TCAST(pose_n_rotamers),
+                                      TCAST(pose_rotamer_offset),
                                       TCAST(nrotamers_for_res),
                                       TCAST(oneb_offsets),
                                       TCAST(res_for_rot),
@@ -100,8 +107,7 @@ std::vector<Tensor> anneal(
                                       TCAST(twob_offsets),
                                       TCAST(fine_chunk_offsets),
                                       TCAST(energy1b),
-                                      TCAST(energy2b),
-                                      seed);
+                                      TCAST(energy2b));
                                   scores = std::get<0>(result).tensor;
                                   rotamer_assignments =
                                       std::get<1>(result).tensor;

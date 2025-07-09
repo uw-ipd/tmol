@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>  // std::min
+
 namespace tmol {
 namespace pack {
 namespace compiled {
@@ -76,6 +78,10 @@ inline
         TensorAccessor<float, 2, D>
             current_pair_energies  // max-n-res x max-n-res
     ) {
+#ifndef __CUDACC__
+  using std::min;
+#endif
+
   // Read the energies from energ1b and energy2b for the given
   // rotamer_assignment (represented as the local indices for
   // each rotamer on each block) and record each energy in the
@@ -99,7 +105,7 @@ inline
     int const irot_chunk = irot_local / chunk_size;
     int const irot_in_chunk = irot_local - chunk_size * irot_chunk;
     int const irot_chunk_size =
-        std::min(chunk_size, ires_n_rots - chunk_size * irot_chunk);
+        min(chunk_size, ires_n_rots - chunk_size * irot_chunk);
 
     totalE += energy1b[irot_global];
     for (int j = i + 1; j < n_res; ++j) {
@@ -116,17 +122,17 @@ inline
         current_pair_energies[j][i] = 0;
         continue;
       }
-      int const jres_nrots = nrotamers_for_res[j];
-      int const jres_nchunks = (jres_nrots - 1) / chunk_size + 1;
+      int const jres_n_rots = n_rotamers_for_res[j];
+      int const jres_n_chunks = (jres_n_rots - 1) / chunk_size + 1;
       int const jrot_chunk = jrot_local / chunk_size;
       int const jrot_in_chunk = jrot_local - chunk_size * jrot_chunk;
       int const jrot_chunk_size =
-          std::min(chunk_size, jres_nrots - chunk_size * jrot_chunk);
+          min(chunk_size, jres_n_rots - chunk_size * jrot_chunk);
 
       // int const ij_chunk_offset_offset = chunk_offset_offsets[i][j];
       int64_t const ij_chunk_offset =
           (chunk_offsets
-               [ij_chunk_offset_offset + irot_chunk * jres_nchunks
+               [ij_chunk_offset_offset + irot_chunk * jres_n_chunks
                 + jrot_chunk]);
       if (ij_chunk_offset == -1) {
         current_pair_energies[i][j] = 0;
@@ -162,11 +168,15 @@ inline
         TView<float, 1, D> energy1b,         // n-rotamers-total
         TView<float, 1, D> energy2b,         // n-interacting-rotamer-pairs
         TensorAccessor<int, 1, D>
-            rotamer_assignment,  // local rotamer indices; max-n-res
+            rotamer_assignment  // local rotamer indices; max-n-res
     ) {
   // Read the energies from energ1b and energy2b for the given
   // rotamer_assignment (represented as the local indices for
   // each rotamer on each block)
+
+#ifndef __CUDACC__
+  using std::min;
+#endif
 
   float totalE = 0;
   int const n_res = n_rotamers_for_res.size(0);
@@ -183,7 +193,7 @@ inline
     int const irot_chunk = irot_local / chunk_size;
     int const irot_in_chunk = irot_local - chunk_size * irot_chunk;
     int const irot_chunk_size =
-        std::min(chunk_size, ires_n_rots - chunk_size * irot_chunk);
+        min(chunk_size, ires_n_rots - chunk_size * irot_chunk);
 
     totalE += energy1b[irot_global];
     for (int j = i + 1; j < n_res; ++j) {
@@ -196,17 +206,17 @@ inline
         // Then this pair of residues do not interact
         continue;
       }
-      int const jres_nrots = nrotamers_for_res[j];
-      int const jres_nchunks = (jres_nrots - 1) / chunk_size + 1;
+      int const jres_n_rots = n_rotamers_for_res[j];
+      int const jres_n_chunks = (jres_n_rots - 1) / chunk_size + 1;
       int const jrot_chunk = jrot_local / chunk_size;
       int const jrot_in_chunk = jrot_local - chunk_size * jrot_chunk;
       int const jrot_chunk_size =
-          std::min(chunk_size, jres_nrots - chunk_size * jrot_chunk);
+          min(chunk_size, jres_n_rots - chunk_size * jrot_chunk);
 
       // int const ij_chunk_offset_offset = chunk_offset_offsets[i][j];
       int64_t const ij_chunk_offset =
           (chunk_offsets
-               [ij_chunk_offset_offset + irot_chunk * jres_nchunks
+               [ij_chunk_offset_offset + irot_chunk * jres_n_chunks
                 + jrot_chunk]);
       if (ij_chunk_offset == -1) {
         continue;

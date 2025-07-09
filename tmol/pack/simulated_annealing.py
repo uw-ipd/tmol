@@ -18,5 +18,4 @@ def run_simulated_annealing(
         energy_tables.fine_chunk_offsets,
         energy_tables.energy1b,
         energy_tables.energy2b,
-        0,
     )
