@@ -94,7 +94,7 @@ struct InteractionGraph {
   TView<Real, 1, D> energy2b_;
 
   int n_poses_cpu() const { return pose_n_res_.size(0); }
-  int n_res_cpu() const { return n_rotamers_for_res_.size(0); }
+  int max_n_res_cpu() const { return n_rotamers_for_res_.size(1); }
   int n_rotamers_total_cpu() const { return res_for_rot_.size(0); }
   int max_n_rotamers_per_pose_cpu() const { return max_n_rotamers_per_pose_; }
 
@@ -150,7 +150,7 @@ struct InteractionGraph {
         }
         int const local_k_rot = rotamer_assignment[k];
         int const k_chunk = local_k_rot / chunk_size_;
-        int const k_sub_chunk_offset_offset =
+        int64_t const k_sub_chunk_offset_offset =
             chunk_offset_offsets_[pose][k][sub_res];
         if (k_sub_chunk_offset_offset == -1) {
           continue;
@@ -160,7 +160,7 @@ struct InteractionGraph {
         int const k_res_n_rots = n_rotamers_for_res_[pose][k];
         int const k_chunk_size =
             min(chunk_size_, k_res_n_rots - chunk_size_ * k_chunk);
-        int const k_sub_chunk_start = chunk_offsets_
+        int64_t const k_sub_chunk_start = chunk_offsets_
             [k_sub_chunk_offset_offset + k_chunk * sub_res_n_chunks
              + sub_rot_chunk];
 
@@ -168,13 +168,18 @@ struct InteractionGraph {
           continue;
         }
 
-        // printf("%d inds %d %d, %d, %d, %d * %d, %d\n", threadIdx.x, sub_res,
-        // k,
-        //   twob_offsets_[k][sub_res], k_sub_chunk_start, sub_rot_chunk_size,
-        //   k_in_chunk, sub_rot_in_chunk);
         new_e += energy2b_
             [k_sub_chunk_start + sub_rot_chunk_size * k_in_chunk
              + sub_rot_in_chunk];
+        // printf("%d inds %d %d, %lld, %lld, %d * %d + %d = %d; e2b[%lld] = %f
+        // \n",
+        //   threadIdx.x, sub_res, k,
+        //   chunk_offset_offsets_[pose][k][sub_res],
+        //   k_sub_chunk_start, sub_rot_chunk_size, k_in_chunk,
+        //   sub_rot_in_chunk, sub_rot_chunk_size * k_in_chunk +
+        //   sub_rot_in_chunk, k_sub_chunk_start + sub_rot_chunk_size *
+        //   k_in_chunk + sub_rot_in_chunk, new_e
+        // );
       }
     }
     return new_e;
@@ -206,7 +211,8 @@ struct InteractionGraph {
 
       for (int j = i + 1; j < n_res; ++j) {
         int const jrot_local = rotamer_assignment[j];
-        int const ij_chunk_offset_offset = chunk_offset_offsets_[pose][i][j];
+        int64_t const ij_chunk_offset_offset =
+            chunk_offset_offsets_[pose][i][j];
         if (ij_chunk_offset_offset == -1) {
           continue;
         }
@@ -217,7 +223,7 @@ struct InteractionGraph {
         int const jres_n_chunks = (jres_n_rots - 1) / chunk_size_ + 1;
         int const jrot_chunk_size =
             min(chunk_size_, jres_n_rots - chunk_size_ * jrot_chunk);
-        int const ij_chunk_offset = chunk_offsets_
+        int64_t const ij_chunk_offset = chunk_offsets_
             [ij_chunk_offset_offset + irot_chunk * jres_n_chunks + jrot_chunk];
         if (ij_chunk_offset == -1) {
           continue;
@@ -330,6 +336,7 @@ MGPU_DEVICE int set_quench_32_order(
 template <tmol::Device D, uint n_threads, typename Int, typename Real>
 MGPU_DEVICE float warp_wide_sim_annealing(
     int pose,
+    int traj_id,  // debugging purposes only
     curandStatePhilox4_32_10_t* state,
     cooperative_groups::thread_block_tile<n_threads> g,
     InteractionGraph<D, Int, Real> ig,
@@ -353,9 +360,9 @@ MGPU_DEVICE float warp_wide_sim_annealing(
   float current_total_energy = best_energy;
   int n_trials = 0;
   for (int i = 0; i < n_outer_iterations; ++i) {
-    // if (g.thread_rank() == 0) {
-    //   printf("top of outer loop %d currentE %f bestE %f temp %f\n", i,
-    //   current_total_energy, best_energy, temperature);
+    // if (g.thread_rank() == 0 && traj_id == 0) {
+    //   printf("p %d t %d top of outer loop %d currentE %f bestE %f temp %f\n",
+    // 	pose, traj_id, i, current_total_energy, best_energy, temperature);
     // }
     bool quench = false;
     int quench_period = n_rotamers;
@@ -406,7 +413,8 @@ MGPU_DEVICE float warp_wide_sim_annealing(
           // then broadcast to other threads their rngs % 32; also, use all 4
           // rands and not just the first two.
           float4 four_rands = curand_uniform4(state);
-          ran_rot = int(four_rands.x * n_rotamers) % n_rotamers;
+          ran_rot =
+              int(four_rands.x * n_rotamers) % n_rotamers + pose_rotamer_offset;
           accept_prob = four_rands.y;
         }
         ran_rot = g.shfl(ran_rot, 0);
@@ -459,7 +467,10 @@ MGPU_DEVICE float warp_wide_sim_annealing(
       // }
       float const min_e =
           reduce_shfl_and_broadcast(g, new_e, mgpu::minimum_t<float>());
-      // printf("thread %d min_e %f\n", thread_id, min_e);
+      // if (traj_id == 0) {
+      // 	printf("thread %d new_e %f min_e %f\n", g.thread_rank(), new_e,
+      // min_e);
+      // }
       float myexp = expf(-1 * (new_e - min_e) / temperature);
       // printf("thread %d myexp %f\n", thread_id, myexp);
       // if (g.thread_rank() == 0) {
@@ -512,7 +523,9 @@ MGPU_DEVICE float warp_wide_sim_annealing(
       bool new_best = false;
       if (accept) {
         float deltaE = new_e - prev_e;
-        // printf("deltaE: %f (%f - %f)\n", deltaE, new_e, prev_e);
+        // if (traj_id == 0 ) {
+        //   printf("deltaE: %f (%f - %f)\n", deltaE, new_e, prev_e);
+        // }
         current_rotamer_assignment[ran_res] = local_ran_rot;
         current_total_energy = current_total_energy + deltaE;
         // for (int k=0; k < nres; ++k) {
@@ -676,7 +689,7 @@ struct Annealer {
   static auto run_simulated_annealing(IG ig, at::CUDAGeneratorImpl* gen)
       -> std::tuple<TPack<float, 2, D>, TPack<int, 3, D> > {
     int const n_poses = ig.n_poses_cpu();
-    int const n_res = ig.n_res_cpu();  // nrotamers_for_res.size(0);
+    int const max_n_res = ig.max_n_res_cpu();  // nrotamers_for_res.size(0);
     int const n_rotamers_total =
         ig.n_rotamers_total_cpu();  // res_for_rot.size(0);
     int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
@@ -706,11 +719,11 @@ struct Annealer {
     auto scores_hitemp_t =
         TPack<float, 2, D>::zeros({n_poses, n_hitemp_simA_traj});
     auto current_rotamer_assignments_hitemp_t =
-        TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, n_res});
+        TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
     auto best_rotamer_assignments_hitemp_t =
-        TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, n_res});
+        TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
     auto current_rotamer_assignments_hitemp_quenchlite_t =
-        TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, n_res});
+        TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
     auto sorted_hitemp_traj_t =
         TPack<int, 2, D>::zeros({n_poses, n_hitemp_simA_traj});
     auto segment_heads_hitemp_t = TPack<int, 1, D>::zeros(
@@ -721,18 +734,18 @@ struct Annealer {
     auto scores_lotemp_t =
         TPack<float, 2, D>::zeros({n_poses, n_lotemp_simA_traj});
     auto current_rotamer_assignments_lotemp_t =
-        TPack<int, 3, D>::zeros({n_poses, n_lotemp_simA_traj, n_res});
+        TPack<int, 3, D>::zeros({n_poses, n_lotemp_simA_traj, max_n_res});
     auto best_rotamer_assignments_lotemp_t =
-        TPack<int, 3, D>::zeros({n_poses, n_lotemp_simA_traj, n_res});
+        TPack<int, 3, D>::zeros({n_poses, n_lotemp_simA_traj, max_n_res});
     auto sorted_lotemp_traj_t =
         TPack<int, 2, D>::zeros({n_poses, n_lotemp_simA_traj});
 
     auto scores_fullquench_t =
         TPack<float, 2, D>::zeros({n_poses, n_fullquench_traj});
     auto current_rotamer_assignments_fullquench_t =
-        TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, n_res});
+        TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
     auto best_rotamer_assignments_fullquench_t =
-        TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, n_res});
+        TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
 
     auto quench_order_t =
         TPack<int, 3, D>::zeros({n_poses, max_traj, max_n_rotamers});
@@ -793,7 +806,7 @@ struct Annealer {
     // if quench-lite, all performed by thread 0..
 
     int const hitemp_cnt =
-        (n_res - 1) / 32 + 1 +  // initial random rotamer assignment
+        (max_n_res - 1) / 32 + 1 +  // initial random rotamer assignment
         n_outer_iterations_hitemp * n_inner_iterations_hitemp * 4
         +  // hitemp annealing; curand4
         (max_n_rotamers * 4
@@ -832,6 +845,8 @@ struct Annealer {
       int const cta_id = thread_id / 32;
       int const pose = cta_id / n_hitemp_simA_traj;
       int const traj_id = cta_id % n_hitemp_simA_traj;
+      // printf("thread %d cta %d pose %d traj_id %d\n", thread_id, cta_id,
+      // pose, traj_id);
 
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
@@ -857,6 +872,7 @@ struct Annealer {
 
       float rotstate_energy_after_high_temp = warp_wide_sim_annealing(
           pose,
+          traj_id,
           &state,
           g,
           ig,
@@ -886,6 +902,7 @@ struct Annealer {
       // will end up after low-temperature annealing
       float after_first_quench_lite_totalE = warp_wide_sim_annealing(
           pose,
+          traj_id,
           &state,
           g,
           ig,
@@ -937,6 +954,7 @@ struct Annealer {
       // Now run a low-temperature cooling trajectory
       float low_temp_totalE = warp_wide_sim_annealing(
           pose,
+          traj_id,
           &state,
           g,
           ig,
@@ -955,6 +973,7 @@ struct Annealer {
       // ok, we will run quench lite on first state
       float after_lotemp_quench_lite_totalE = warp_wide_sim_annealing(
           pose,
+          traj_id,
           &state,
           g,
           ig,
@@ -986,6 +1005,7 @@ struct Annealer {
       int const traj_id = cta_id % n_lotemp_simA_traj;
       int const source_traj = sorted_lotemp_traj[pose][traj_id];
 
+      int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
       // if (g.thread_rank() == 0) {
       //         printf("warp %d fullquench source_traj %d (%d) %f\n", warp_id,
@@ -1005,6 +1025,7 @@ struct Annealer {
       for (int i = 0; i < 1; ++i) {
         after_full_quench_totalE = warp_wide_sim_annealing(
             pose,
+            traj_id,
             &state,
             g,
             ig,
@@ -1026,10 +1047,12 @@ struct Annealer {
 
     mgpu::standard_context_t context;
 
-    mgpu::transform<128, 1>(
+    printf("launch hitemp\n");
+    mgpu::transform<32, 1>(
         hitemp_simulated_annealing, n_hitemp_simA_threads, context);
 
     // now let's rank the trajectories for each pose
+    printf("launch segsort\n");
     mgpu::segmented_sort(
         scores_hitemp.data(),
         sorted_hitemp_traj.data(),
@@ -1039,9 +1062,11 @@ struct Annealer {
         mgpu::less_t<float>(),
         context);
 
-    mgpu::transform<128, 1>(
+    // printf("temp no launch lotemp\n");
+    mgpu::transform<32, 1>(
         lotemp_simulated_annealing, n_lotemp_simA_threads, context);
 
+    // printf("temp no launch segsort2\n");
     mgpu::segmented_sort(
         scores_lotemp.data(),
         sorted_lotemp_traj.data(),
@@ -1051,8 +1076,10 @@ struct Annealer {
         mgpu::less_t<float>(),
         context);
 
-    mgpu::transform<128, 1>(fullquench, n_fullquench_threads, context);
+    // printf("temp no launch fullquench\n");
+    mgpu::transform<32, 1>(fullquench, n_fullquench_threads, context);
 
+    // printf("done!\n");
     return {scores_fullquench_t, best_rotamer_assignments_fullquench_t};
   }
 };

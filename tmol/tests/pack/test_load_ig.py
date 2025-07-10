@@ -372,6 +372,22 @@ def test_build_interaction_graph(torch_device):
         )
     )
 
+    # for i in range(76):
+    #     i_n_rots = rotamer_set.n_rots_for_block[0, i].item()
+    #     i_n_chunks = (i_n_rots - 1) // chunk_size + 1;
+    #     print(f"i: {i} {i_n_rots} {i_n_chunks}")
+    #     for j in range(76):
+    #         j_n_rots = rotamer_set.n_rots_for_block[0, j].item()
+    #         j_n_chunks = (j_n_rots - 1) // chunk_size + 1;
+    #         print(f" j: {j} {j_n_rots} {j_n_chunks}")
+    #         ij_chunk_offset_offset = chunk_pair_offset_for_block_pair[0, i, j].item()
+    #         print(f"{i} w {j}: chunk_offset_offset {chunk_pair_offset_for_block_pair[0, i, j]}")
+    #         if ij_chunk_offset_offset != -1:
+    #             ij_chunk_offsets = chunk_pair_offset[ij_chunk_offset_offset:(ij_chunk_offset_offset + i_n_chunks*j_n_chunks)].view(i_n_chunks, j_n_chunks)
+    #             print(f"{i} {j} chunk_offsets:")
+    #             print(ij_chunk_offsets)
+    # return
+
     # print(chunk_pair_offset_for_block_pair.shape)
     # print(chunk_pair_offset.shape)
     # print(energy2b.shape)
