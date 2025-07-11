@@ -4,6 +4,7 @@ import attr
 import os
 import pickle
 
+from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
 from tmol.pack.compiled.compiled import validate_energies, build_interaction_graph
@@ -270,6 +271,7 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
             pair % len(twob)
         ].view(-1)
 
+    pose_stack = PoseStackBuilder.from_poses([pose_stack, pose_stack], device=device)
     return pose_stack, rotamer_set, _d(energy1b), _d(inds), _d(energies)
 
 
@@ -701,7 +703,7 @@ def test_build_multi_pose_interaction_graph(torch_device):
                 assert e2b_ji == i_energy
 
 
-def test_build_packer_energy_tables(torch_device):
+def test_run_single_pose_simA(torch_device):
     # torch_device = torch.device("cpu")
     ig_fname = "1ubq_ig"
     pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
@@ -757,7 +759,64 @@ def test_build_packer_energy_tables(torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
     print(scores.shape)
-    print(scores[:, 0])
+    print(scores[:, :30])
+    print(rotamer_assignments.shape)
+
+
+def test_run_two_pose_simA(torch_device):
+    ig_fname = "1ubq_ig"
+    pdb_fname = "tmol/tests/data/pdb/1ubq.pdb"
+
+    ps, rotamer_set, energy1b, sparse_indices, energies = (
+        construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
+            ig_fname, pdb_fname, torch_device
+        )
+    )
+
+    # print("rotamer_set.n_rots_for_pose", rotamer_set.n_rots_for_pose.dtype)
+    # print("rotamer_set.rot_offset_for_pose",   rotamer_set.rot_offset_for_pose.dtype)
+    # print("rotamer_set.n_rots_for_block",      rotamer_set.n_rots_for_block.dtype)
+    # print("rotamer_set.rot_offset_for_block",  rotamer_set.rot_offset_for_block.dtype)
+    # print("rotamer_set.pose_for_rot",          rotamer_set.pose_for_rot.dtype)
+    # print("rotamer_set.block_type_ind_for_rot",rotamer_set.block_type_ind_for_rot.dtype)
+    # print("rotamer_set.block_ind_for_rot",     rotamer_set.block_ind_for_rot.dtype)
+    # print("sparse_indices",                    sparse_indices.dtype)
+    # print("energies",                          energies.dtype)
+
+    # print(rotamer_set.n_rots_for_pose)
+    # print(sparse_indices.shape)
+    # print(energies.shape)
+
+    chunk_size = 16
+
+    (chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+        build_interaction_graph(
+            chunk_size,
+            rotamer_set.n_rots_for_pose,
+            rotamer_set.rot_offset_for_pose,
+            rotamer_set.n_rots_for_block,
+            rotamer_set.rot_offset_for_block,
+            rotamer_set.pose_for_rot,
+            rotamer_set.block_type_ind_for_rot,
+            rotamer_set.block_ind_for_rot,
+            sparse_indices,
+            energies,
+        )
+    )
+
+    packer_energy_tables = create_packer_energy_tables(
+        ps,
+        rotamer_set,
+        chunk_size,
+        chunk_pair_offset_for_block_pair,
+        chunk_pair_offset,
+        energy1b,
+        energy2b,
+    )
+
+    scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
+    print(scores.shape)
+    print(scores[:, :30])
     print(rotamer_assignments.shape)
 
 

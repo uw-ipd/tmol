@@ -177,9 +177,19 @@ inline
 #ifndef __CUDACC__
   using std::min;
 #endif
-
-  float totalE = 0;
   int const n_res = n_rotamers_for_res.size(0);
+
+  // std::cout << "total energy for assignment:" << std::endl;
+  // for (int i = 0; i < n_res; ++i) {
+  //   if (i % 30 == 29) {
+  //     std::cout << "\n";
+  //   }
+  //   std::cout << std::setw(4) << rotamer_assignment[i];
+  // }
+  // std::cout << std::endl;
+
+  int count_out = 0;
+  float totalE = 0;
   for (int i = 0; i < n_res; ++i) {
     int const irot_local = rotamer_assignment[i];
 
@@ -226,9 +236,16 @@ inline
           (energy2b
                [ij_chunk_offset + irot_in_chunk * jrot_chunk_size
                 + jrot_in_chunk]);
+      // ++count_out;
+      // if (count_out % 10 == 9) {
+      // 	std::cout << "\n";
+      // }
+      // std::cout << std::setprecision(6) << std::setw(10) << ij_energy;
       totalE += ij_energy;
     }
   }
+  // std::cout << "\n" << totalE << std::endl;
+  // std::cout << std::endl;
   return totalE;
 }
 

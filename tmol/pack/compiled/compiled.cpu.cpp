@@ -14,12 +14,15 @@ namespace pack {
 namespace compiled {
 
 template <tmol::Device D>
-void set_quench_order(TView<int, 1, D> quench_order, int const n_rots) {
+void set_quench_order(
+    TView<int, 1, D> quench_order,
+    int const n_rots,
+    int const pose_rotamer_offset) {
   // Create a random permutation of all the rotamers
   // and visit them in this order to ensure all of them
   // are seen during the quench step
   for (int i = 0; i < n_rots; ++i) {
-    quench_order[i] = i;
+    quench_order[i] = i + pose_rotamer_offset;
   }
   for (int i = 0; i <= n_rots - 2; ++i) {
     int j = i + rand() % (n_rots - i);
@@ -77,11 +80,15 @@ auto AnnealerDispatch<D>::forward(
   float const high_temp = 100;
   float const low_temp = 0.2;
 
+  std::cout << "Startng simulated annealing, first rng:" << rand() << std::endl;
+
   for (int pose = 0; pose < n_poses; ++pose) {
     int const n_res = pose_n_res[pose];
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
     int const n_inner_iterations = n_inner_iterations_factor * pose_n_rotamers;
+    // std::cout << "Starting pose " << pose << " with " << pose_n_rotamers << "
+    // rotamers and offset " << pose_rotamer_offset << std::endl;
 
     for (int traj = 0; traj < n_traj; ++traj) {
       // std::cout << "Starting trajectory " << traj+1 << std::endl;
@@ -131,10 +138,13 @@ auto AnnealerDispatch<D>::forward(
         for (int j = 0; j < n_inner_iterations; ++j) {
           int global_ran_rot;
           if (quench) {
-            if (j % n_rotamers == 0) {
-              set_quench_order(quench_order, n_rotamers);
+            if (j % pose_n_rotamers == 0) {
+              // std::cout << "setting quench order..." << std::flush;
+              set_quench_order(
+                  quench_order, pose_n_rotamers, pose_rotamer_offset);
+              // std::cout << "...done" << std::endl;
             }
-            global_ran_rot = quench_order[j % n_rotamers];
+            global_ran_rot = quench_order[j % pose_n_rotamers];
           } else {
             global_ran_rot = rand() % pose_n_rotamers + pose_rotamer_offset;
           }
@@ -167,9 +177,11 @@ auto AnnealerDispatch<D>::forward(
           // neighbors of ran_rot_res
           for (int k = 0; k < n_res; ++k) {
             if (k == ran_res) continue;
-            int const k_ran_chunk_offset_offset =
+            int64_t const k_ran_chunk_offset_offset =
                 chunk_offset_offsets[pose][k][ran_res];
             if (k_ran_chunk_offset_offset == -1) {
+              // then neither prev_rot nor ran_rot interact with the rotamer at
+              // k
               continue;
             }
             int const local_k_rot = current_rotamer_assignments[pose][traj][k];
@@ -177,10 +189,10 @@ auto AnnealerDispatch<D>::forward(
             int const kres_n_chunks = (k_n_rots - 1) / chunk_size + 1;
             int const krot_chunk = local_k_rot / chunk_size;
             int const krot_in_chunk = local_k_rot - krot_chunk * chunk_size;
-            int const krot_ranrot_chunk_offset = chunk_offsets
+            int64_t const krot_ranrot_chunk_offset = chunk_offsets
                 [k_ran_chunk_offset_offset + krot_chunk * ran_res_n_chunks
                  + ran_rot_chunk];
-            int const krot_prevrot_chunk_offset = chunk_offsets
+            int64_t const krot_prevrot_chunk_offset = chunk_offsets
                 [k_ran_chunk_offset_offset + krot_chunk * ran_res_n_chunks
                  + prev_rot_chunk];
 
@@ -246,6 +258,7 @@ auto AnnealerDispatch<D>::forward(
 
       }  // end outer loop
 
+      // std::cout << "calc total energy" << std::flush;
       scores[pose][traj] = total_energy_for_assignment(
           n_rotamers_for_res[pose],
           oneb_offsets[pose],
@@ -255,8 +268,8 @@ auto AnnealerDispatch<D>::forward(
           energy1b,
           energy2b,
           best_rotamer_assignments[pose][traj]);
-      // std::cout << "Traj " << traj << " with score " << scores[traj] <<
-      // std::endl;
+      // std::cout << "Traj " << traj << " for pose " << pose << " with score "
+      // << scores[pose][traj] << std::endl;
     }  // end trajectory loop
   }    // end pose loop
 

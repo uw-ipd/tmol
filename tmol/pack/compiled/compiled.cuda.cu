@@ -693,8 +693,14 @@ struct Annealer {
     int const n_rotamers_total =
         ig.n_rotamers_total_cpu();  // res_for_rot.size(0);
     int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
+    printf(
+        "n poses: %d, max_n_res %d, n_rotamers_total %d, max_n_rotamers %d\n",
+        n_poses,
+        max_n_res,
+        n_rotamers_total,
+        max_n_rotamers);
 
-    int const n_hitemp_simA_traj = 2000;
+    int const n_hitemp_simA_traj = 20;  // temp 2000;
     int const n_hitemp_simA_threads = 32 * n_poses * n_hitemp_simA_traj;
     float const round1_cut = 0.25;
     int const n_lotemp_expansions = 10;
@@ -703,7 +709,7 @@ struct Annealer {
     int const n_lotemp_simA_threads = 32 * n_poses * n_lotemp_simA_traj;
     float const round2_cut = 0.25;
     int const n_fullquench_traj = int(n_lotemp_simA_traj * round2_cut);
-    int const n_fullquench_threads = 32 * n_fullquench_traj;
+    int const n_fullquench_threads = 32 * n_poses * n_fullquench_traj;
     int const n_outer_iterations_hitemp = 10;
     int const n_inner_iterations_hitemp = max_n_rotamers / 8;
     int const n_outer_iterations_lotemp = 10;
@@ -730,6 +736,8 @@ struct Annealer {
         {n_poses});  // arange(n_poses) * n_hitemp_simA_traj
     auto segment_heads_lotemp_t = TPack<int, 1, D>::zeros(
         {n_poses});  // arange(n_poses) * n_lotemp_simA_traj
+    auto segment_heads_fullquench_t = TPack<int, 1, D>::zeros(
+        {n_poses});  // arange(n_poses) * n_fulquench_traj
 
     auto scores_lotemp_t =
         TPack<float, 2, D>::zeros({n_poses, n_lotemp_simA_traj});
@@ -746,6 +754,13 @@ struct Annealer {
         TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
     auto best_rotamer_assignments_fullquench_t =
         TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
+    auto sorted_fullquench_traj_t =
+        TPack<int, 2, D>::zeros({n_poses, n_hitemp_simA_traj});
+
+    auto scores_final_t =
+        TPack<float, 2, D>::zeros({n_poses, n_fullquench_traj});
+    auto rotamer_assignments_final_t =
+        TPack<int, 3, D>::zeros({n_poses, n_fullquench_traj, max_n_res});
 
     auto quench_order_t =
         TPack<int, 3, D>::zeros({n_poses, max_traj, max_n_rotamers});
@@ -760,6 +775,7 @@ struct Annealer {
     auto sorted_hitemp_traj = sorted_hitemp_traj_t.view;
     auto segment_heads_hitemp = segment_heads_hitemp_t.view;
     auto segment_heads_lotemp = segment_heads_lotemp_t.view;
+    auto segment_heads_fullquench = segment_heads_fullquench_t.view;
 
     auto scores_lotemp = scores_lotemp_t.view;
     auto current_rotamer_assignments_lotemp =
@@ -775,7 +791,11 @@ struct Annealer {
         current_rotamer_assignments_fullquench_t.view;
     auto best_rotamer_assignments_fullquench =
         best_rotamer_assignments_fullquench_t.view;
+    auto sorted_fullquench_traj = sorted_fullquench_traj_t.view;
     // auto sorted_fullquench_traj = sorted_lotem_traj_t.view;
+
+    auto scores_final = scores_final_t.view;
+    auto rotamer_assignments_final = rotamer_assignments_final_t.view;
 
     auto quench_order = quench_order_t.view;
 
@@ -845,8 +865,9 @@ struct Annealer {
       int const cta_id = thread_id / 32;
       int const pose = cta_id / n_hitemp_simA_traj;
       int const traj_id = cta_id % n_hitemp_simA_traj;
-      // printf("thread %d cta %d pose %d traj_id %d\n", thread_id, cta_id,
-      // pose, traj_id);
+      // printf("hitemp thread %d cta %d pose %d traj_id %d\n", thread_id,
+      // cta_id,
+      //   pose, traj_id);
 
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
@@ -861,6 +882,7 @@ struct Annealer {
         // begin.
         segment_heads_hitemp[pose] = pose * n_hitemp_simA_traj;
         segment_heads_lotemp[pose] = pose * n_lotemp_simA_traj;
+        segment_heads_fullquench[pose] = pose * n_fullquench_traj;
       }
 
       for (int i = g.thread_rank(); i < n_res; i += 32) {
@@ -886,6 +908,13 @@ struct Annealer {
           n_rotamers,  // irrelevant; no quench here
           false,
           false);
+      if (g.thread_rank() == 0) {
+        printf(
+            "hitemp wwsa done: pose %d traj %d E = %f\n",
+            pose,
+            traj_id,
+            rotstate_energy_after_high_temp);
+      }
 
       // Save the state before moving into quench
       for (int i = g.thread_rank(); i < n_res; i += 32) {
@@ -939,6 +968,10 @@ struct Annealer {
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
 
+      // printf("lotemp thread %d cta %d pose %d traj_id %d source_traj %d\n",
+      // thread_id, cta_id,
+      //   pose, traj_id, source_traj);
+
       if (g.thread_rank() == 0) {
         sorted_lotemp_traj[pose][traj_id] = traj_id;
       }
@@ -969,6 +1002,13 @@ struct Annealer {
           false,
           false);
 
+      if (g.thread_rank() == 0) {
+        printf(
+            "lotemp wwsa done: pose %d traj %d E = %f\n",
+            pose,
+            traj_id,
+            low_temp_totalE);
+      }
       // now we'll run a quench-lite
       // ok, we will run quench lite on first state
       float after_lotemp_quench_lite_totalE = warp_wide_sim_annealing(
@@ -992,7 +1032,7 @@ struct Annealer {
       }
     };
 
-    auto fullquench = [=] MGPU_DEVICE(int thread_id) {
+    auto fullquench = ([=] MGPU_DEVICE(int thread_id) {
       auto seeds = at::cuda::philox::unpack(quench_philox_state);
       curandStatePhilox4_32_10_t state;
       curand_init(std::get<0>(seeds), thread_id, std::get<1>(seeds), &state);
@@ -1001,8 +1041,8 @@ struct Annealer {
           cooperative_groups::tiled_partition<32>(
               cooperative_groups::this_thread_block());
       int const cta_id = thread_id / 32;
-      int const pose = cta_id / n_lotemp_simA_traj;
-      int const traj_id = cta_id % n_lotemp_simA_traj;
+      int const pose = cta_id / n_fullquench_traj;
+      int const traj_id = cta_id % n_fullquench_traj;
       int const source_traj = sorted_lotemp_traj[pose][traj_id];
 
       int const n_res = ig.n_res(pose);
@@ -1043,7 +1083,25 @@ struct Annealer {
       if (g.thread_rank() == 0) {
         scores_fullquench[pose][traj_id] = after_full_quench_totalE;
       }
-    };
+    });
+
+    auto final_reindexing = ([=] MGPU_DEVICE(int thread_id) {
+      cooperative_groups::thread_block_tile<32> g =
+          cooperative_groups::tiled_partition<32>(
+              cooperative_groups::this_thread_block());
+      int const cta_id = thread_id / 32;
+      int const pose = cta_id / n_fullquench_traj;
+      int const traj_id = cta_id % n_fullquench_traj;
+      int const source_traj = sorted_fullquench_traj[pose][traj_id];
+      int const n_res = ig.n_res(pose);
+      if (g.thread_rank() == 0) {
+        scores_final[pose][traj_id] = scores_fullquench[pose][source_traj];
+      }
+      for (int i = g.thread_rank(); i < n_res; i += 32) {
+        rotamer_assignments_final[pose][traj_id][i] =
+            best_rotamer_assignments_fullquench[pose][source_traj][i];
+      }
+    });
 
     mgpu::standard_context_t context;
 
@@ -1079,8 +1137,20 @@ struct Annealer {
     // printf("temp no launch fullquench\n");
     mgpu::transform<32, 1>(fullquench, n_fullquench_threads, context);
 
-    // printf("done!\n");
-    return {scores_fullquench_t, best_rotamer_assignments_fullquench_t};
+    mgpu::segmented_sort(
+        scores_fullquench.data(),
+        sorted_fullquench_traj.data(),
+        n_fullquench_traj,
+        segment_heads_fullquench.data(),
+        n_poses,
+        mgpu::less_t<float>(),
+        context);
+
+    // printf("temp no launch fullquench\n");
+    mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, context);
+
+    printf("done!\n");
+    return {scores_final_t, rotamer_assignments_final_t};
   }
 };
 
