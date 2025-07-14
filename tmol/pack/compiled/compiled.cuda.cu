@@ -693,14 +693,11 @@ struct Annealer {
     int const n_rotamers_total =
         ig.n_rotamers_total_cpu();  // res_for_rot.size(0);
     int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
-    printf(
-        "n poses: %d, max_n_res %d, n_rotamers_total %d, max_n_rotamers %d\n",
-        n_poses,
-        max_n_res,
-        n_rotamers_total,
-        max_n_rotamers);
+    // printf(
+    //     "n poses: %d, max_n_res %d, n_rotamers_total %d, max_n_rotamers
+    //     %d\n", n_poses, max_n_res, n_rotamers_total, max_n_rotamers);
 
-    int const n_hitemp_simA_traj = 20;  // temp 2000;
+    int const n_hitemp_simA_traj = 2000;
     int const n_hitemp_simA_threads = 32 * n_poses * n_hitemp_simA_traj;
     float const round1_cut = 0.25;
     int const n_lotemp_expansions = 10;
@@ -908,13 +905,13 @@ struct Annealer {
           n_rotamers,  // irrelevant; no quench here
           false,
           false);
-      if (g.thread_rank() == 0) {
-        printf(
-            "hitemp wwsa done: pose %d traj %d E = %f\n",
-            pose,
-            traj_id,
-            rotstate_energy_after_high_temp);
-      }
+      // if (g.thread_rank() == 0) {
+      //   printf(
+      //       "hitemp wwsa done: pose %d traj %d E = %f\n",
+      //       pose,
+      //       traj_id,
+      //       rotstate_energy_after_high_temp);
+      // }
 
       // Save the state before moving into quench
       for (int i = g.thread_rank(); i < n_res; i += 32) {
@@ -1002,13 +999,13 @@ struct Annealer {
           false,
           false);
 
-      if (g.thread_rank() == 0) {
-        printf(
-            "lotemp wwsa done: pose %d traj %d E = %f\n",
-            pose,
-            traj_id,
-            low_temp_totalE);
-      }
+      // if (g.thread_rank() == 0) {
+      //   printf(
+      //       "lotemp wwsa done: pose %d traj %d E = %f\n",
+      //       pose,
+      //       traj_id,
+      //       low_temp_totalE);
+      // }
       // now we'll run a quench-lite
       // ok, we will run quench lite on first state
       float after_lotemp_quench_lite_totalE = warp_wide_sim_annealing(
@@ -1105,12 +1102,12 @@ struct Annealer {
 
     mgpu::standard_context_t context;
 
-    printf("launch hitemp\n");
+    // printf("launch hitemp\n");
     mgpu::transform<32, 1>(
         hitemp_simulated_annealing, n_hitemp_simA_threads, context);
 
     // now let's rank the trajectories for each pose
-    printf("launch segsort\n");
+    // printf("launch segsort\n");
     mgpu::segmented_sort(
         scores_hitemp.data(),
         sorted_hitemp_traj.data(),

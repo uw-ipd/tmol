@@ -44,7 +44,6 @@ std::vector<Tensor> build_interaction_graph(
         constexpr tmol::Device Dev = device_t;
         using Real = scalar_t;
 
-        std::cout << "Hello!" << std::endl;
         auto result = InteractionGraphBuilder<
             score::common::DeviceOperations,
             Dev,
@@ -90,7 +89,6 @@ std::vector<Tensor> anneal(
   TMOL_DISPATCH_FLOATING_DEVICE(energy1b.options(), "pack_anneal", ([&] {
                                   constexpr tmol::Device Dev = device_t;
 
-                                  std::cout << "HOLA!" << std::endl;
                                   auto result = AnnealerDispatch<Dev>::forward(
                                       max_n_rotamers_per_pose,
                                       TCAST(pose_n_res),

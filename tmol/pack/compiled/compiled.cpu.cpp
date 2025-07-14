@@ -80,7 +80,8 @@ auto AnnealerDispatch<D>::forward(
   float const high_temp = 100;
   float const low_temp = 0.2;
 
-  std::cout << "Startng simulated annealing, first rng:" << rand() << std::endl;
+  // std::cout << "Startng simulated annealing, first rng:" << rand() <<
+  // std::endl;
 
   for (int pose = 0; pose < n_poses; ++pose) {
     int const n_res = pose_n_res[pose];
