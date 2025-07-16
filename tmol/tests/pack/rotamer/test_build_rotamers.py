@@ -16,6 +16,7 @@ from tmol.pack.rotamer.build_rotamers import (
     assign_dofs_from_samples,
     create_dof_inds_to_copy_from_orig_to_rotamers,
 )
+from tmol.io import pose_stack_from_pdb
 
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -55,12 +56,9 @@ def test_annotate_restypes(
 
 
 def test_build_rotamers_smoke(default_database, ubq_pdb, torch_device, dun_sampler):
-    p1 = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=11
-    )
-    p2 = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=10
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=11)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
+
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     restype_set = poses.packed_block_types.restype_set
     palette = PackerPalette(restype_set)
@@ -268,10 +266,7 @@ def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
 
     chem_db = default_database.chemical
 
-    # fd TEMP: NO TERM VARIANTS
-    p = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=4
-    )
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=4)
     restype_set = p.packed_block_types.restype_set
 
     fixed_sampler = FixedAAChiSampler()
@@ -600,15 +595,10 @@ def test_construct_kinforest_for_rotamers2(
 
 
 def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_sampler):
-    # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
-    # fd TEMP: NO TERM VARIANTS
-    # fd TEMP2: SINGLE RESIDUE since 'measure_dofs_from_orig_coords' if residue 0 length
-    #          is not a multiple of 'pbt.max_n_atoms'
-    poses = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=2
-    )
+    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=25)
+
     restype_set = poses.packed_block_types.restype_set
     palette = PackerPalette(restype_set)
     task = PackerTask(poses, palette)
@@ -629,6 +619,7 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
     nz_real_block_type_ind = torch.nonzero(real_block_type_ind).flatten()
     real_block_type_ind_numpy = nz_real_block_type_ind.cpu().numpy().astype(numpy.int32)
     block_type_ind = block_type_ind[block_type_ind != -1]
+    block_type_ind_numpy = block_type_ind.cpu().numpy()
     res_n_atoms = pbt.n_atoms[block_type_ind.to(torch.int64)]
     n_total_atoms = torch.sum(res_n_atoms).item()
 
@@ -637,11 +628,11 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
         block_type_ind.cpu().numpy(),
         n_total_atoms,
         res_n_atoms,
-        nz_real_block_type_ind.cpu().numpy().astype(numpy.int32) * pbt.max_n_atoms,
+        poses.block_coord_offset.flatten().cpu().numpy(),
         torch_device,
     )
 
-    dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kinforest)
+    dofs = measure_dofs_from_orig_coords(poses.coords.view(-1, 3), kinforest)
 
     # let's refold and make sure the coordinates are the same?
     # forward folding; let's build leu on the met's coords
@@ -665,7 +656,7 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
         exclusive_cumsum1d(res_n_atoms).cpu().numpy().astype(numpy.int64)
     )
     nodes, scans, gens = construct_scans_for_rotamers(
-        pbt, real_block_type_ind_numpy, res_n_atoms, n_atoms_offset_for_rot
+        pbt, block_type_ind_numpy, res_n_atoms, n_atoms_offset_for_rot
     )
 
     new_kin_coords = forward_only_op(
@@ -685,13 +676,8 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
 def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sampler):
     chem_db = default_database.chemical
 
-    # # fd TEMP: NO TERM VARIANTS
-    p1 = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=5, residue_end=11
-    )
-    p2 = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=8
-    )
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=11)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
     restype_set = poses.packed_block_types.restype_set
@@ -742,8 +728,6 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
     )
 
     dofs = measure_dofs_from_orig_coords(poses.coords.view(-1), kinforest)
-    # print("dofs")
-    # print(dofs[:, :4])
 
     # let's refold and make sure the coordinates are the same?
     # forward folding; let's build leu on the met's coords
@@ -794,8 +778,6 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
                 decimal=5,
             )
 
-    # print(new_kin_coords)
-
     # for writing coordinates into a pdb
     # print("new coords")
     # for i in range(0, new_coords.shape[0]):
@@ -812,10 +794,13 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
 def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     default_database, ubq_pdb, torch_device, dun_sampler
 ):
-    # torch_device = torch.device("cpu")
-
-    # fd NOTE: THIS TEST ASSUMES NON-TERMINAL VARIANTS (and really none at all)
-    # fd   - grab structure starting at residue index 1
+    """This test makes sure that the DOFs from the starting
+    backbone are copied over. Part of the validity of its
+    logic depends on all of the residues being mid-protein
+    (i.e. not termini); this is a requirement of the test,
+    not of the code itself, which is happy to build
+    rotamers for termini.
+    """
     p1 = no_termini_pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_start=1, residue_end=3
     )
@@ -920,9 +905,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
 def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     default_database, ubq_pdb, torch_device, dun_sampler
 ):
-    p = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=6
-    )
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=6)
     poses = PoseStackBuilder.from_poses([p] * 3, torch_device)
     restype_set = poses.packed_block_types.restype_set
     palette = PackerPalette(restype_set)
@@ -938,15 +921,15 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     annotate_everything(default_database.chemical, samplers, pbt)
 
     rt_for_rot = torch.floor_divide(
-        torch.arange(30, dtype=torch.int64, device=torch_device), 2
+        torch.arange(36, dtype=torch.int64, device=torch_device), 2
     )
 
     block_ind_for_rot = torch.remainder(
-        torch.floor_divide(torch.arange(30, dtype=torch.int64, device=torch_device), 2),
-        5,
+        torch.floor_divide(torch.arange(36, dtype=torch.int64, device=torch_device), 2),
+        6,
     )
 
-    sampler_for_rotamer = torch.zeros(30, dtype=torch.int64, device=torch_device)
+    sampler_for_rotamer = torch.zeros(36, dtype=torch.int64, device=torch_device)
 
     n_dof_atoms_offset_for_rot = exclusive_cumsum1d(pbt.n_atoms[block_ind_for_rot])
 
@@ -973,7 +956,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     n_ats_per_pose = torch.sum(
         pbt.n_atoms[poses.block_type_ind[0].to(torch.int64)]
     ).item()
-    n_rot_ats_per_pose = torch.sum(pbt.n_atoms[block_ind_for_rot[:10]]).item()
+    n_rot_ats_per_pose = torch.sum(pbt.n_atoms[block_ind_for_rot[:12]]).item()
 
     src0 = src[:n_dofs_per_pose]
     src1 = src[n_dofs_per_pose : 2 * n_dofs_per_pose]
@@ -993,10 +976,7 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     n_poses = 6
 
-    # fd TEMP: NO TERM VARIANTS
-    p = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=75
-    )
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     restype_set = poses.packed_block_types.restype_set
     palette = PackerPalette(restype_set)
@@ -1034,10 +1014,7 @@ def test_create_dofs_for_many_rotamers(
 ):
     n_poses = 6
 
-    # fd TEMP: NO TERM VARIANTS
-    p = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=75
-    )
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
     restype_set = p.packed_block_types.restype_set
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     palette = PackerPalette(restype_set)
