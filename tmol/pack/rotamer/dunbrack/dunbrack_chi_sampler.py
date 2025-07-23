@@ -55,7 +55,7 @@ class DunSamplerPBTCache:
 # memoized. So each database should construct one and only one
 # ParamResolver.
 # @attr.s(auto_attribs=True, slots=True, frozen=True)
-class DunbrackChiSampler:
+class DunbrackChiSampler(ChiSampler):
     dun_param_resolver: DunbrackParamResolver
 
     def __eq__(self, other):
@@ -86,7 +86,7 @@ class DunbrackChiSampler:
         if hasattr(restype, "dun_sampler_cache"):
             return
 
-        # #chi = 2; #atoms in a dihedral = 4; #entries in a uaid  = 3
+        # n-bb-dihedrals = 2; n-atoms in a dihedral = 4; n-entries in a uaid  = 3
         uaids = numpy.full((2, 4, 3), -1, dtype=numpy.int32)
         if "phi" in restype.torsion_to_uaids:
             uaids[0] = numpy.array(restype.torsion_to_uaids["phi"], dtype=numpy.int32)
@@ -306,40 +306,40 @@ class DunbrackChiSampler:
         assert self.device == pose_stack.coords.device
         max_n_blocks = pose_stack.block_type_ind.shape[1]
 
-        dun_allowed_restypes = numpy.array(
+        dun_allowed_blocktypes = numpy.array(
             [
-                rt
-                for one_pose_rlts in task.rlts
-                for rlt in one_pose_rlts
-                for rt in rlt.allowed_restypes
-                if self in rlt.chi_samplers
+                bt
+                for one_pose_blts in task.blts
+                for blt in one_pose_blts
+                for bt in blt.allowed_blocktypes
+                if self in blt.conformer_samplers
             ],
             dtype=object,
         )
 
         # n_allowed_per_pose = torch.tensor(
         #     [
-        #         len(rlt.allowed_restypes)
+        #         len(rlt.allowed_blocktypes)
         #         for one_pose_rlts in task.rlts
         #         for rlt in one_pose_rlts
-        #         if self in rlt.chi_samplers
+        #         if self in rlt.conformer_samplers
         #     ],
         #     dtype=torch.int32,
         #     device=self.device,
         # )
 
-        rt_names = numpy.array([rt.name for rt in dun_allowed_restypes], dtype=object)
+        rt_names = numpy.array([rt.name for rt in dun_allowed_blocktypes], dtype=object)
         rt_base_names = numpy.array(
-            [rt.name.partition(":")[0] for rt in dun_allowed_restypes], dtype=object
+            [rt.name.partition(":")[0] for rt in dun_allowed_blocktypes], dtype=object
         )
         pbt = pose_stack.packed_block_types
 
         rt_res = torch.tensor(
             [
                 i * max_n_blocks + j
-                for i, one_pose_rlts in enumerate(task.rlts)
-                for j, rlt in enumerate(one_pose_rlts)
-                for rt in rlt.allowed_restypes
+                for i, one_pose_blts in enumerate(task.blts)
+                for j, blt in enumerate(one_pose_blts)
+                for rt in blt.allowed_blocktypes
             ],
             dtype=torch.int32,
             device=self.device,
@@ -383,7 +383,7 @@ class DunbrackChiSampler:
         # numbering. We will need to keep this array as it will be used by the
         # caller to understand what block types we are defining samples for.
         # We will shortly be renumbering the residues to talk about only the ones
-        # that we will build rotamers for
+        # that we will build rotamers for: BRT = "buildable residue type"
         orig_residue_for_buildable_restype = rt_res[nonzero_dunrot_inds_for_rts]
 
         uniq_res_for_brt, uniq_inds = torch.unique(
@@ -408,7 +408,7 @@ class DunbrackChiSampler:
         n_sampling_res = uniq_res_for_brt.shape[0]
 
         # map the residue-numbered list of dihedral angles to their positions in
-        # the set of residues that the Dunbrack library will provice chi samples for
+        # the set of residues that the Dunbrack library will provide chi samples for
         dihedral_atom_inds = torch.full(
             (2 * n_sampling_res, 4), -1, dtype=torch.int32, device=self.device
         )
@@ -618,10 +618,10 @@ class DunbrackChiSampler:
     ):
         restype_is_allowed_for_dun = torch.tensor(
             [
-                True if self in rlt.chi_samplers else False
-                for one_pose_rlts in task.rlts
-                for rlt in one_pose_rlts
-                for rt in rlt.allowed_restypes
+                True if self in blt.conformer_samplers else False
+                for one_pose_blts in task.blts
+                for blt in one_pose_blts
+                for bt in blt.allowed_blocktypes
             ],
             dtype=torch.uint8,
             device=self.device,
@@ -647,9 +647,9 @@ class DunbrackChiSampler:
         # Now lets map back to the original set of rts per block type.
         # lots of reindxing below
         # max_n_rts = max(
-        #     len(rts.allowed_restypes)
-        #     for one_pose_rlts in task.rlts
-        #     for rts in one_pose_rlts
+        #     len(rts.allowed_blocktypes)
+        #     for one_pose_blts in task.blts
+        #     for rts in one_pose_blts
         # )
 
         rt_global_index = torch.arange(

@@ -52,11 +52,11 @@ class FixedAAChiSampler(ChiSampler):
     ]:
         all_restypes = numpy.array(
             [
-                rt
-                for one_pose_rlts in task.rlts
-                for rlt in one_pose_rlts
-                for rt in rlt.allowed_restypes
-                if self in rlt.chi_samplers
+                bt
+                for one_pose_blts in task.blts
+                for blt in one_pose_blts
+                for bt in blt.allowed_blocktypes
+                if self in blt.conformer_samplers
             ],
             dtype=object,
         )
