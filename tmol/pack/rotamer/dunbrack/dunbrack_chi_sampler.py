@@ -683,6 +683,8 @@ class DunbrackChiSampler(ChiSampler):
         chi_defining_atom_for_rotamer[:, :max_n_chi] = pbt_cda[
             block_type_ind_for_brt[brt_for_rotamer.to(torch.int64)], :max_n_chi
         ]
+        # print("rt_for_rotamer")
+        # print(rt_for_rotamer)
 
         return (
             n_rots_for_rt,

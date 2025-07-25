@@ -88,6 +88,7 @@ class FixedAAChiSampler(ChiSampler):
         rt_for_rotamer = torch.arange(
             len(rt_base_names), dtype=torch.int32, device=poses.device
         )[either_ala_or_gly]
+        # print("fixed_aa_chi_sampler rt for rotamer", rt_for_rotamer)
         chi_for_rotamers = torch.zeros(
             (n_fixed_rots, 1), dtype=torch.float32, device=poses.device
         )

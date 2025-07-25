@@ -51,7 +51,7 @@ class ChiSampler(ConformerSampler):
             chi_defining_atom_for_rotamer,
             chi_for_rotamers,
         ) = self.sample_chi_for_poses(pose_stack, task)
-        print("Sampling:", self.sampler_name(), chi_for_rotamers.shape)
+        # print("Sampling:", self.sampler_name(), chi_for_rotamers.shape)
         return (
             n_rots_for_gbt,
             gbt_for_rotamer,
@@ -84,7 +84,7 @@ class ChiSampler(ConformerSampler):
         conformer_built_by_sampler: Tensor[torch.bool][:],
         # mapping orig conformer samples to merged conformer samples for this sampler
         conf_inds_for_sampler: Tensor[torch.int64][:],
-        sampler_n_rots_for_bt: Tensor[torch.int32][:],
+        sampler_n_rots_for_gbt: Tensor[torch.int32][:],
         sampler_gbt_for_rotamer: Tensor[torch.int32][:],
         sample_dict: dict,
         conf_dofs_kto: Tensor[torch.float32][:, 9],
@@ -99,7 +99,7 @@ class ChiSampler(ConformerSampler):
             gbt_for_conformer,
             block_type_ind_for_conformer,
             conf_inds_for_sampler,
-            sampler_n_rots_for_bt,
+            sampler_n_rots_for_gbt,
             sampler_gbt_for_rotamer,
             n_dof_atoms_offset_for_conformer,
             orig_dofs_kto,
@@ -115,7 +115,7 @@ class ChiSampler(ConformerSampler):
             pose_stack.packed_block_types,
             block_type_ind_for_conformer,
             conf_inds_for_sampler,
-            sampler_n_rots_for_bt,
+            sampler_n_rots_for_gbt,
             sampler_gbt_for_rotamer,
             n_dof_atoms_offset_for_conformer,
             chi_atoms,
@@ -127,12 +127,12 @@ class ChiSampler(ConformerSampler):
 @validate_args
 def copy_dofs_from_orig_to_rotamers_for_sampler(
     poses: PoseStack,
-    task,  # : # "PackerTask",  # noqa F821
+    task,
     sampler_name: str,
     gbt_for_rot: Tensor[torch.int64][:],
     block_type_ind_for_rot: Tensor[torch.int64][:],
     conf_inds_for_sampler: Tensor[torch.int64][:],
-    sampler_n_rots_for_bt: Tensor[torch.int32][:],
+    sampler_n_rots_for_gbt: Tensor[torch.int32][:],
     sampler_gbt_for_rotamer: Tensor[torch.int32][:],
     n_dof_atoms_offset_for_rot: Tensor[torch.int64][:],
     orig_dofs_kto: Tensor[torch.float32][:, 9],
@@ -145,7 +145,7 @@ def copy_dofs_from_orig_to_rotamers_for_sampler(
         gbt_for_rot,
         block_type_ind_for_rot,
         conf_inds_for_sampler,
-        sampler_n_rots_for_bt,
+        sampler_n_rots_for_gbt,
         sampler_gbt_for_rotamer,
         n_dof_atoms_offset_for_rot,
     )
@@ -153,16 +153,14 @@ def copy_dofs_from_orig_to_rotamers_for_sampler(
     rot_dofs_kto[dst, :] = orig_dofs_kto[src, :]
 
 
-# @validate_args
 def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     poses: PoseStack,
     task: "PackerTask",  # noqa F821
     sampler_name: str,
     gbt_for_rot: Tensor[torch.int64][:],  # max-n-rots
     block_type_ind_for_rot: Tensor[torch.int64][:],
-    # sampler_for_rotamer: Tensor[torch.int64][:],
     conf_inds_for_sampler: Tensor[torch.int64][:],
-    sampler_n_rots_for_bt: Tensor[torch.int32][:],
+    sampler_n_rots_for_gbt: Tensor[torch.int32][:],
     sampler_gbt_for_rotamer: Tensor[torch.int32][:],
     n_dof_atoms_offset_for_rot: Tensor[torch.int64][:],
 ) -> Tuple[Tensor[torch.int64][:], Tensor[torch.int64][:]]:
@@ -177,35 +175,22 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
 
     # This could 100% be pre-computed
     pbts_sampler_ind = pbt.mc_fingerprints.sampler_mapping[sampler_name]
-    # sampler_ind_mapping = torch.tensor(
-    #     [
-    #         (
-    #             pbt.mc_fingerprints.sampler_mapping[sampler.sampler_name()]
-    #             if sampler.sampler_name() in pbt.mc_fingerprints.sampler_mapping
-    #             else -1
-    #         )
-    #         for sampler in samplers
-    #     ],
-    #     dtype=torch.int64,
-    #     device=poses.device,
-    # )
 
-    # sampler_ind_for_rot = sampler_ind_mapping[sampler_for_rotamer]
     orig_block_type_ind = (
         poses.block_type_ind[poses.block_type_ind != -1].view(-1).to(torch.int64)
     )
 
     # consider making this an argument and passing in
-    print("poses.block_type_ind.shape", poses.block_type_ind.shape)
+    # print("poses.block_type_ind.shape", poses.block_type_ind.shape)
     poses_res_to_real_poses_res = torch.full(
         (poses.block_type_ind.shape[0] * poses.block_type_ind.shape[1],),
         -1,
         dtype=torch.int64,
         device=poses.device,
     )
-    print("poses_res_to_real_poses_res")
-    print(poses_res_to_real_poses_res.shape)
-    print(poses_res_to_real_poses_res[-10:])
+    # print("poses_res_to_real_poses_res")
+    # print(poses_res_to_real_poses_res.shape)
+    # print(poses_res_to_real_poses_res[-10:])
     poses_res_to_real_poses_res[poses.block_type_ind.view(-1) != -1] = torch.arange(
         orig_block_type_ind.shape[0], dtype=torch.int64, device=poses.device
     )
@@ -222,11 +207,20 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         dtype=torch.int64,
         device=poses.device,
     )
+    # print("res_ind_for_gbt")
+    # print(res_ind_for_gbt)
     gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]
+    # torch.set_printoptions(threshold=10000)
+    # print("gbt_for_samplers_rots")
+    # print(gbt_for_samplers_rots)
     res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
+    # print("res_ind_for_samplers_rots")
+    # print(res_ind_for_samplers_rots)
     real_res_ind_for_samplers_rots = poses_res_to_real_poses_res[
         res_ind_for_samplers_rots
     ]
+    # print("real_res_ind_for_samplers_rots")
+    # print(real_res_ind_for_samplers_rots)
     block_type_ind_for_samplers_rots = block_type_ind_for_rot[conf_inds_for_sampler]
 
     # look up which mainchain fingerprint each
@@ -255,7 +249,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         is_samplers_rots_mcfp_at_inds_rto_real
     ]
 
-    print("block_type_ind_for_samplers_rots", block_type_ind_for_samplers_rots.shape)
+    # print("block_type_ind_for_samplers_rots", block_type_ind_for_samplers_rots.shape)
     real_samplers_rots_block_type_ind_for_mcfp_ats = stretch(
         block_type_ind_for_samplers_rots, max_n_mcfp_atoms
     )[is_samplers_rots_mcfp_at_inds_rto_real]
@@ -271,22 +265,25 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
             device=pbt.device,
         )
     )
-    print(
-        "real_samplers_rots_block_type_ind_for_mcfp_ats",
-        real_samplers_rots_block_type_ind_for_mcfp_ats.shape,
-    )
+    # print(
+    #     "real_samplers_rots_block_type_ind_for_mcfp_ats",
+    #     real_samplers_rots_block_type_ind_for_mcfp_ats.shape,
+    # )
 
     is_samplers_rots_mcfp_at_inds_kto_real = samplers_rots_mcfp_at_inds_kto != -1
-    print(
-        "is_samplers_rots_mcfp_at_inds_kto_real",
-        is_samplers_rots_mcfp_at_inds_kto_real.shape,
-    )
-    print(
-        "n_rots_for_sampler * max_n_mcfp_atoms", n_rots_for_sampler * max_n_mcfp_atoms
-    )
+    # print(
+    #     "is_samplers_rots_mcfp_at_inds_kto_real",
+    #     is_samplers_rots_mcfp_at_inds_kto_real.shape,
+    # )
+    # print(
+    #     "n_rots_for_sampler * max_n_mcfp_atoms", n_rots_for_sampler * max_n_mcfp_atoms
+    # )
+    n_dof_atoms_offset_for_samplers_rot = n_dof_atoms_offset_for_rot[
+        conf_inds_for_sampler
+    ]
     samplers_rots_mcfp_at_inds_kto[
         is_samplers_rots_mcfp_at_inds_kto_real
-    ] += n_dof_atoms_offset_for_rot[
+    ] += n_dof_atoms_offset_for_samplers_rot[
         torch.div(  # to do: replace with expand
             torch.arange(
                 n_rots_for_sampler * max_n_mcfp_atoms,
@@ -372,12 +369,12 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         orig_mcfp_at_inds_for_samplers_rots_kto[both_present] + 1
     )
 
-    print("samplers_rots_mcfp_at_inds_kto")
-    print(samplers_rots_mcfp_at_inds_kto.shape)
-    print(samplers_rots_mcfp_at_inds_kto[:30])
-    print("orig_mcfp_at_inds_for_samplers_rots_kto")
-    print(orig_mcfp_at_inds_for_samplers_rots_kto.shape)
-    print(orig_mcfp_at_inds_for_samplers_rots_kto[:30])
+    # print("samplers_rots_mcfp_at_inds_kto")
+    # print(samplers_rots_mcfp_at_inds_kto.shape)
+    # print(samplers_rots_mcfp_at_inds_kto[:30])
+    # print("orig_mcfp_at_inds_for_samplers_rots_kto")
+    # print(orig_mcfp_at_inds_for_samplers_rots_kto.shape)
+    # print(orig_mcfp_at_inds_for_samplers_rots_kto[:30])
 
     return samplers_rots_mcfp_at_inds_kto, orig_mcfp_at_inds_for_samplers_rots_kto
 
