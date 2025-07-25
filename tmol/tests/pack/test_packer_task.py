@@ -1,4 +1,4 @@
-from tmol.pack.packer_task import PackerPalette, ResidueLevelTask, PackerTask
+from tmol.pack.packer_task import PackerPalette, BlockLevelTask, PackerTask
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io import pose_stack_from_pdb
 
@@ -11,14 +11,14 @@ def test_packer_palette_smoke(default_restype_set):
 def test_packer_palette_design_to_canonical_aas(default_restype_set):
     pp = PackerPalette(default_restype_set)
     arg_rt = next(rt for rt in default_restype_set.residue_types if rt.name == "ARG")
-    allowed = pp.restypes_from_original(arg_rt)
+    allowed = pp.block_types_from_original(arg_rt)
     assert len(allowed) == 21
 
 
 def test_packer_palette_design_to_canonical_aas2(default_restype_set):
     pp = PackerPalette(default_restype_set)
     gly_rt = next(rt for rt in default_restype_set.residue_types if rt.name == "GLY")
-    allowed = pp.restypes_from_original(gly_rt)
+    allowed = pp.block_types_from_original(gly_rt)
     assert len(allowed) == 21
 
 
@@ -44,10 +44,10 @@ def test_residue_level_task_his_restrict_to_repacking(
         if res.name in ["HIS", "HIS_D"]
     )
     assert his_res
-    rlt = ResidueLevelTask(i, his_res, palette)
-    assert len(rlt.allowed_restypes) == 21
-    rlt.restrict_to_repacking()
-    assert len(rlt.allowed_restypes) == 2
+    blt = BlockLevelTask(i, his_res, palette)
+    assert len(blt.allowed_blocktypes) == 21
+    blt.restrict_to_repacking()
+    assert len(blt.allowed_blocktypes) == 2
 
 
 def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
@@ -57,6 +57,6 @@ def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
     poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
 
     task = PackerTask(poses, palette)
-    assert len(task.rlts) == 2
-    assert len(task.rlts[0]) == 5
-    assert len(task.rlts[1]) == 7
+    assert len(task.blts) == 2
+    assert len(task.blts[0]) == 5
+    assert len(task.blts[1]) == 7

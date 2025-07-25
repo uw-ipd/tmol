@@ -606,15 +606,15 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
 
     palette = PackerPalette(rts)
     task = PackerTask(poses, palette)
-    task.add_chi_sampler(dun_sampler)
+    task.add_conformer_sampler(dun_sampler)
     task.restrict_to_repacking()
 
     all_allowed_restypes = numpy.array(
         [
-            rt
-            for one_pose_rlts in task.rlts
-            for rlt in one_pose_rlts
-            for rt in rlt.allowed_restypes
+            bt
+            for one_pose_blts in task.blts
+            for blt in one_pose_blts
+            for bt in blt.allowed_blocktypes
         ],
         dtype=object,
     )
@@ -696,7 +696,7 @@ def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
         default_database.scoring.dun, torch_device
     )
     sampler = DunbrackChiSampler.from_database(param_resolver)
-    task.add_chi_sampler(sampler)
+    task.add_conformer_sampler(sampler)
 
     for rt in poses.packed_block_types.active_block_types:
         sampler.annotate_residue_type(rt)
@@ -718,7 +718,7 @@ def test_chi_sampler_build_lots_of_rotamers(
         default_database.scoring.dun, torch_device
     )
     sampler = DunbrackChiSampler.from_database(param_resolver)
-    task.add_chi_sampler(sampler)
+    task.add_conformer_sampler(sampler)
 
     for rt in poses.packed_block_types.active_block_types:
         sampler.annotate_residue_type(rt)

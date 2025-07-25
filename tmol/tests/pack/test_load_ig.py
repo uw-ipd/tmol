@@ -69,7 +69,7 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, 
         pose_for_rot, block_ind_for_rot
     ]
 
-    coords = torch.zeros((1, pose_stack.max_n_block_atoms, 3), dtype=torch.float32)
+    coords = torch.zeros((pose_stack.max_n_block_atoms, 3), dtype=torch.float32)
 
     rotamer_set = RotamerSet(
         n_rots_for_pose=_d(n_rots_for_pose),
@@ -165,7 +165,7 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     block_type_ind_for_rot = pose_stack.block_type_ind64[0, block_ind_for_rot]
 
     # obviously a bogus size for this tensor
-    coords = torch.zeros((1, pose_stack.max_n_block_atoms, 3), dtype=torch.float32)
+    coords = torch.zeros((pose_stack.max_n_block_atoms, 3), dtype=torch.float32)
 
     rotamer_set = RotamerSet(
         n_rots_for_pose=_d(n_rots_for_pose),

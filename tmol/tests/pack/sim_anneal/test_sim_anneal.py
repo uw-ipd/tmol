@@ -277,8 +277,8 @@ def dont_test_accept_final_smoke(
     # task.restrict_to_repacking()
 
     fixed_sampler = FixedAAChiSampler()
-    task.add_chi_sampler(dun_sampler)
-    task.add_chi_sampler(fixed_sampler)
+    task.add_conformer_sampler(dun_sampler)
+    task.add_conformer_sampler(fixed_sampler)
 
     poses, rotamer_set = build_rotamers(poses, task, default_database.chemical)
 

@@ -60,7 +60,7 @@ def test_chi_sampler_smoke(ubq_pdb, torch_device, default_restype_set):
     task.restrict_to_repacking()
 
     sampler = FixedAAChiSampler()
-    task.add_chi_sampler(sampler)
+    task.add_conformer_sampler(sampler)
 
     for rt in poses.packed_block_types.active_block_types:
         sampler.annotate_residue_type(rt)
