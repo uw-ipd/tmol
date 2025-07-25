@@ -1286,6 +1286,8 @@ def test_new_rotamer_building_logic1(
     def _t(t, dtype):
         return torch.tensor(t, dtype=dtype, device=pbt.device)
 
+    gbt_for_conformer_np = gbt_for_conformer.cpu().numpy()
+
     gbt_for_conformer_torch = _t(gbt_for_conformer, torch.int64)
     # fd NOTE: THIS CODE FAILS IF n_rots_for_gbt CONTAINS 0s
     assert 0 not in n_rots_for_gbt
@@ -1296,7 +1298,7 @@ def test_new_rotamer_building_logic1(
     # gbt_for_rot[n_rots_for_gbt_cumsum[:-1]] = 1
     # gbt_for_rot = torch.cumsum(gbt_for_rot, dim=0).cpu().numpy()
 
-    block_type_ind_for_conformer = gbt_block_type_ind[gbt_for_conformer]
+    block_type_ind_for_conformer = gbt_block_type_ind[gbt_for_conformer_np]
     block_type_ind_for_conformer_torch = _t(block_type_ind_for_conformer, torch.int64)
 
     n_atoms_for_conformer = pbt.n_atoms[block_type_ind_for_conformer_torch]
