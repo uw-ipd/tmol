@@ -288,6 +288,8 @@ class HBondPoseScoresOp2
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
       Tensor rot_coords,
+      Tensor first_rot_for_block,
+      Tensor first_rot_block_type,
       // Tensor block_pair_dispatch_indices,
       Tensor block_ind_for_rot,
       Tensor pose_ind_for_rot,
@@ -343,6 +345,8 @@ class HBondPoseScoresOp2
           auto result =
               HBondPoseScoreDispatch2<DispatchMethod, Dev, Real, Int>::forward(
                   TCAST(rot_coords),
+                  TCAST(first_rot_for_block),
+                  TCAST(first_rot_block_type),
                   // TCAST(block_pair_dispatch_indices),
                   TCAST(block_ind_for_rot),
                   TCAST(pose_ind_for_rot),
@@ -627,6 +631,8 @@ std::vector<Tensor> hbond_pose_scores_op(
 template <template <tmol::Device> class DispatchMethod>
 std::vector<Tensor> hbond_pose_scores_op_2(
     Tensor rot_coords,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
     // Tensor block_pair_dispatch_indices,
     Tensor block_ind_for_rot,
     Tensor pose_ind_for_rot,
@@ -667,6 +673,8 @@ std::vector<Tensor> hbond_pose_scores_op_2(
     bool output_block_pair_energies) {
   return HBondPoseScoresOp2<DispatchMethod>::apply(
       rot_coords,
+      first_rot_for_block,
+      first_rot_block_type,
       // block_pair_dispatch_indices,
       block_ind_for_rot,
       pose_ind_for_rot,

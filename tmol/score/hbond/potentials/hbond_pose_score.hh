@@ -182,10 +182,12 @@ struct HBondPoseScoreDispatch2 {
       // TView<Vec<Real, 3>, 2, Dev> coords,
 
       // TView<Vec<Real, 3>, 2, Dev> coords,
-      TView<Vec<Real, 3>, 2, Dev> rot_coords,
+      TView<Vec<Real, 3>, 1, Dev> rot_coords,
       // TView<Int, 2, Dev> block_pair_dispatch_indices,
       // TView<Int, 2, Dev> block_pair_dispatch_indices,
       // TView<Int, 2, Dev> rotamer_rot_ind_to_res_ind,
+      TView<Int, 2, Dev> first_rot_for_block,
+      TView<Int, 2, Dev> first_rot_block_type,
       TView<Int, 1, Dev> block_ind_for_rot,
       TView<Int, 1, Dev> pose_ind_for_rot,
 

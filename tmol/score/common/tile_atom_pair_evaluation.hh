@@ -396,6 +396,8 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
     // printf("calling load_tile_invariant_interres_data\n");
     load_tile_invariant_interres_data(
         pose_ind,
+        rot_ind1,
+        rot_ind2,
         block_ind1,
         block_ind2,
         block_type1,
