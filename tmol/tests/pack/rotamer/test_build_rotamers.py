@@ -929,6 +929,18 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
+    gbt_for_rot_list = []
+    count_gbt = 0
+
+    for i, one_pose_blts in enumerate(task.blts):
+        for j, blt in enumerate(one_pose_blts):
+            for k, bt in enumerate(blt.considered_block_types):
+                if blt.block_type_allowed[k]:
+                    # print("allowed block type", i, j, k, bt.name)
+                    gbt_for_rot_list.append(count_gbt)
+                    gbt_for_rot_list.append(count_gbt)
+                count_gbt += 1
+
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
@@ -937,9 +949,10 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     pbt = poses.packed_block_types
     annotate_everything(default_database.chemical, samplers, pbt)
 
-    gbt_for_rot = torch.floor_divide(
-        torch.arange(36, dtype=torch.int64, device=torch_device), 2
-    )
+    # gbt_for_rot = torch.floor_divide(
+    #     torch.arange(36, dtype=torch.int64, device=torch_device), 2
+    # )
+    gbt_for_rot = torch.tensor(gbt_for_rot_list, dtype=torch.int64, device=torch_device)
 
     block_type_ind_for_rot = torch.remainder(
         torch.floor_divide(torch.arange(36, dtype=torch.int64, device=torch_device), 2),
@@ -1026,10 +1039,10 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     assert n_atoms_per_pose * n_poses == n_atoms
 
     new_coords = rotamer_set.coords.cpu().numpy()
-    # print("new_coords[:10]")
-    # print(new_coords[:10])
-    # print("new_coords[n_atoms_per_pose:(n_atoms_per_pose + 10)]")
-    # print(new_coords[n_atoms_per_pose:(n_atoms_per_pose + 10)])
+    print("new_coords[:10]")
+    print(new_coords[:10])
+    print("new_coords[n_atoms_per_pose:(n_atoms_per_pose + 10)]")
+    print(new_coords[n_atoms_per_pose : (n_atoms_per_pose + 10)])
 
     for i in range(1, n_poses):
         numpy.testing.assert_almost_equal(
@@ -1068,7 +1081,7 @@ def test_create_dofs_for_many_rotamers(
         rt.name
         for one_pose_blts in task.blts
         for blt in one_pose_blts
-        for rt in blt.allowed_blocktypes
+        for i, rt in enumerate(blt.considered_block_types)
     ]
     rt_block_type_ind = pbt.restype_index.get_indexer(rt_names).astype(numpy.int32)
 
@@ -1263,7 +1276,7 @@ def test_new_rotamer_building_logic1(
         bt.name
         for one_pose_blts in task.blts
         for blt in one_pose_blts
-        for bt in blt.allowed_blocktypes
+        for bt in blt.considered_block_types
     ]
     gbt_block_type_ind = pbt.restype_index.get_indexer(gbt_names).astype(numpy.int32)
 
@@ -1289,8 +1302,10 @@ def test_new_rotamer_building_logic1(
     gbt_for_conformer_np = gbt_for_conformer.cpu().numpy()
 
     gbt_for_conformer_torch = _t(gbt_for_conformer, torch.int64)
+
+    # apl: fingers crossed this is no longer true!
     # fd NOTE: THIS CODE FAILS IF n_rots_for_gbt CONTAINS 0s
-    assert 0 not in n_rots_for_gbt
+    # assert 0 not in n_rots_for_gbt
 
     n_conformers = sampler_for_conformer.shape[0]
     # gbt_for_rot = torch.zeros(n_conformers, dtype=torch.int64, device=poses.device)

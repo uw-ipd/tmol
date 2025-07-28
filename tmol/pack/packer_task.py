@@ -1,3 +1,5 @@
+import numpy
+
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
 from tmol.pose.pose_stack import PoseStack
 from tmol.pack.rotamer.conformer_sampler import ConformerSampler
@@ -93,39 +95,56 @@ class PackerPalette:
 
         return keepers
 
+    def default_conformer_samplers(self, block_type):
+        """All positions must build one rotamer, even if they are not being optimized.
+
+        Each block must have coordinates represented in the tensor with the other
+        rotamers, and the easiest way to do that is to create a rotamer with the
+        DOFs of the input conformation. The IncludeCurrentSampler copies these
+        DOFs from the inverse-folded coordinates of the starting Pose's blocks.
+        Future versions of PackerPalette have the option to override this method.
+        """
+        from tmol.pack.rotamer.include_current_conformer_sampler import (
+            IncludeCurrentSampler,
+        )
+
+        return [IncludeCurrentSampler()]
+
 
 class BlockLevelTask:
     def __init__(
-        self, seqpos: int, blocktype: RefinedResidueType, palette: PackerPalette
+        self, seqpos: int, block_type: RefinedResidueType, palette: PackerPalette
     ):
         self.seqpos = seqpos
-        self.original_blocktype = blocktype
-        self.allowed_blocktypes = palette.block_types_from_original(blocktype)
-        self.conformer_samplers = []
+        self.original_block_type = block_type
+        self.considered_block_types = palette.block_types_from_original(block_type)
+        self.block_type_allowed = numpy.full(
+            len(self.considered_block_types), True, dtype=bool
+        )
+        self.conformer_samplers = palette.default_conformer_samplers(block_type)
         self.is_chi_sampler = []
+        self.include_current = False
 
     def restrict_to_repacking(self):
-        orig = self.original_blocktype
-        self.allowed_blocktypes = [
-            bt
-            for bt in self.allowed_blocktypes
-            if bt.name3 == orig.name3  # this isn't what we want long term
-        ]
+        orig = self.original_block_type
+        for i, bt in enumerate(self.considered_block_types):
+            if bt.name3 != orig.name3:
+                self.block_type_allowed[i] = False
 
     def disable_packing(self):
         # Note: we will always include at least one rotamer from every block
         # in the RotamerSet, falling back on the coordinates of the starting
         # block if this block-level-task is marked as kept fixed.
-        self.allowed_blocktypes = []
+        self.block_type_allowed[:] = False
 
     def add_conformer_sampler(self, sampler: ConformerSampler):
         self.conformer_samplers.append(sampler)
         self.is_chi_sampler.append(isinstance(sampler, ChiSampler))
 
     def restrict_absent_name3s(self, name3s):
-        self.allowed_blocktypes = [
-            bt for bt in self.allowed_blocktypes if bt.name3 in name3s
-        ]
+        for i, bt in enumerate(self.considered_block_types):
+            if bt.name3 not in name3s:
+                self.block_type_allowed[i] = False
 
 
 class PackerTask:
@@ -149,3 +168,8 @@ class PackerTask:
         for one_pose_blts in self.blts:
             for blt in one_pose_blts:
                 blt.add_conformer_sampler(sampler)
+
+    def set_include_current(self):
+        for one_pose_blts in self.blts:
+            for blt in one_pose_blts:
+                blt.include_current = True

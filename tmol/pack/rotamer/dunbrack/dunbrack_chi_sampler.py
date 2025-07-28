@@ -311,11 +311,23 @@ class DunbrackChiSampler(ChiSampler):
                 bt
                 for one_pose_blts in task.blts
                 for blt in one_pose_blts
-                for bt in blt.allowed_blocktypes
-                if self in blt.conformer_samplers
+                for i, bt in enumerate(blt.considered_block_types)
+                if self in blt.conformer_samplers and blt.block_type_allowed[i]
             ],
             dtype=object,
         )
+        gbt_is_allowed = numpy.array(
+            [
+                blt.block_type_allowed[i]
+                for one_pose_blts in task.blts
+                for blt in one_pose_blts
+                for i, bt in enumerate(blt.considered_block_types)
+            ],
+            dtype=bool,
+        )
+        n_allowed = numpy.sum(gbt_is_allowed)
+        allowed_bt_to_gbt = numpy.full((gbt_is_allowed.shape[0],), dtype=numpy.int64)
+        allowed_bt_to_gbt[gbt_is_allowed] = numpy.arange(n_allowed, dtype=numpy.int64)
 
         # n_allowed_per_pose = torch.tensor(
         #     [
@@ -332,14 +344,17 @@ class DunbrackChiSampler(ChiSampler):
         rt_base_names = numpy.array(
             [rt.name.partition(":")[0] for rt in dun_allowed_blocktypes], dtype=object
         )
+        print("rt_base_names[:20]", rt_base_names[:20])
         pbt = pose_stack.packed_block_types
 
+        # the source block for each allowed block type
         rt_res = torch.tensor(
             [
                 i * max_n_blocks + j
                 for i, one_pose_blts in enumerate(task.blts)
                 for j, blt in enumerate(one_pose_blts)
-                for rt in blt.allowed_blocktypes
+                for k, rt in enumerate(blt.considered_block_types)
+                if blt.block_type_allowed[k]
             ],
             dtype=torch.int32,
             device=self.device,
@@ -352,6 +367,7 @@ class DunbrackChiSampler(ChiSampler):
             self.device,
         ).squeeze()
 
+        # the pbt-assigned block-type indices for each allowed global block type
         block_type_ind_for_brt = torch.tensor(
             pbt.restype_index.get_indexer(
                 rt_names[dun_rot_inds_for_rts.cpu().numpy() != -1]
@@ -618,19 +634,30 @@ class DunbrackChiSampler(ChiSampler):
     ):
         restype_is_allowed_for_dun = torch.tensor(
             [
-                True if self in blt.conformer_samplers else False
+                (
+                    True
+                    if self in blt.conformer_samplers and blt.block_type_allowed[i]
+                    else False
+                )
                 for one_pose_blts in task.blts
                 for blt in one_pose_blts
-                for bt in blt.allowed_blocktypes
+                for i, bt in enumerate(blt.considered_block_types)
             ],
             dtype=torch.uint8,
             device=self.device,
         )
         n_restypes_total = restype_is_allowed_for_dun.shape[0]
         dun_allowed_inds = torch.nonzero(restype_is_allowed_for_dun)[:, 0]
+
+        # temp!
+        torch.set_printoptions(threshold=10000)
+        print("nonzero_dunrot_inds_for_rts[:, 0]")
+        print(nonzero_dunrot_inds_for_rts[:, 0])
         dun_brt_global_inds = dun_allowed_inds[nonzero_dunrot_inds_for_rts[:, 0]].to(
             self.device
         )
+        print("dun_brt_global_inds")
+        print(dun_brt_global_inds)
 
         n_rots_for_rt = torch.zeros(
             (n_restypes_total,), dtype=torch.int32, device=self.device
@@ -657,7 +684,13 @@ class DunbrackChiSampler(ChiSampler):
         )
         global_rt_ind_for_brt = rt_global_index[nonzero_dunrot_inds_for_rts.squeeze()]
 
+        print("brt_for_rotamer")
+        print(brt_for_rotamer)
         rt_for_rotamer = global_rt_ind_for_brt[brt_for_rotamer.to(torch.int64)]
+        print("rt_for_rotamer")
+        print(rt_for_rotamer)
+        print("global_rt_ind_for_brt")
+        print(global_rt_ind_for_brt)
 
         pbt_cda = pbt.dun_sampler_cache.chi_defining_atom
         chi_defining_atom_for_rotamer = torch.full(

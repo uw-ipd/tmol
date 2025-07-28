@@ -614,14 +614,41 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
             bt
             for one_pose_blts in task.blts
             for blt in one_pose_blts
-            for bt in blt.allowed_blocktypes
+            for i, bt in enumerate(blt.considered_block_types)
+            if blt.block_type_allowed[i]
         ],
         dtype=object,
     )
-    dun_restype_allowed = numpy.array(
+    all_considered_restypes = numpy.array(
         [
-            1 if rt.name != "ALA" and rt.name != "GLY" else 0
-            for rt in all_allowed_restypes
+            bt
+            for one_pose_blts in task.blts
+            for blt in one_pose_blts
+            for i, bt in enumerate(blt.considered_block_types)
+        ],
+        dtype=object,
+    )
+    considered_restypes_allowed = numpy.array(
+        [
+            blt.block_type_allowed[i]
+            for one_pose_blts in task.blts
+            for blt in one_pose_blts
+            for i, bt in enumerate(blt.considered_block_types)
+        ],
+        dtype=object,
+    )
+    dun_considered_restype_allowed = numpy.array(
+        [
+            (
+                1
+                if (
+                    rt.name != "ALA"
+                    and rt.name != "GLY"
+                    and considered_restypes_allowed[i]
+                )
+                else 0
+            )
+            for i, rt in enumerate(all_considered_restypes)
         ],
         dtype=int,
     )
@@ -665,8 +692,12 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         pbt, task, block_type_ind_for_brt, 4, nonzero_dunrot_inds_for_rts, sampled_chi
     )
 
-    n_rots_for_rt_gold = numpy.zeros(all_allowed_restypes.shape[0], dtype=numpy.int32)
-    n_rots_for_rt_gold[dun_restype_allowed != 0] = n_rots_for_brt.cpu().numpy()
+    n_rots_for_rt_gold = numpy.zeros(
+        all_considered_restypes.shape[0], dtype=numpy.int32
+    )
+    n_rots_for_rt_gold[dun_considered_restype_allowed != 0] = (
+        n_rots_for_brt.cpu().numpy()
+    )
 
     rt_for_rot_gold = numpy.zeros((n_rots,), dtype=numpy.int32)
     rt_for_rot_gold[offsets_for_brt.cpu()] = 1

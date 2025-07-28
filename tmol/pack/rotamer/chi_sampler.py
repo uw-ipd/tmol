@@ -202,7 +202,7 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
             i * max_n_blocks + j
             for i, one_pose_blts in enumerate(task.blts)
             for j, blt in enumerate(one_pose_blts)
-            for _ in blt.allowed_blocktypes
+            for _ in blt.considered_block_types
         ],
         dtype=torch.int64,
         device=poses.device,
@@ -210,9 +210,9 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     # print("res_ind_for_gbt")
     # print(res_ind_for_gbt)
     gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]
-    # torch.set_printoptions(threshold=10000)
-    # print("gbt_for_samplers_rots")
-    # print(gbt_for_samplers_rots)
+    torch.set_printoptions(threshold=10000)
+    print("gbt_for_samplers_rots")
+    print(gbt_for_samplers_rots)
     res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
     # print("res_ind_for_samplers_rots")
     # print(res_ind_for_samplers_rots)
@@ -369,12 +369,12 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         orig_mcfp_at_inds_for_samplers_rots_kto[both_present] + 1
     )
 
-    # print("samplers_rots_mcfp_at_inds_kto")
-    # print(samplers_rots_mcfp_at_inds_kto.shape)
-    # print(samplers_rots_mcfp_at_inds_kto[:30])
-    # print("orig_mcfp_at_inds_for_samplers_rots_kto")
-    # print(orig_mcfp_at_inds_for_samplers_rots_kto.shape)
-    # print(orig_mcfp_at_inds_for_samplers_rots_kto[:30])
+    print("samplers_rots_mcfp_at_inds_kto")
+    print(samplers_rots_mcfp_at_inds_kto.shape)
+    print(samplers_rots_mcfp_at_inds_kto[:30])
+    print("orig_mcfp_at_inds_for_samplers_rots_kto")
+    print(orig_mcfp_at_inds_for_samplers_rots_kto.shape)
+    print(orig_mcfp_at_inds_for_samplers_rots_kto[:30])
 
     return samplers_rots_mcfp_at_inds_kto, orig_mcfp_at_inds_for_samplers_rots_kto
 

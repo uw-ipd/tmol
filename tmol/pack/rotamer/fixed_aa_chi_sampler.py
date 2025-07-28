@@ -55,29 +55,45 @@ class FixedAAChiSampler(ChiSampler):
                 bt
                 for one_pose_blts in task.blts
                 for blt in one_pose_blts
-                for bt in blt.allowed_blocktypes
+                for i, bt in enumerate(blt.considered_block_types)
                 if self in blt.conformer_samplers
             ],
             dtype=object,
+        )
+        restype_allowed = torch.tensor(
+            [
+                (self in blt.conformer_samplers and blt.block_type_allowed[i])
+                for one_pose_blts in task.blts
+                for blt in one_pose_blts
+                for i, bt in enumerate(blt.considered_block_types)
+            ],
+            dtype=bool,
+            device=poses.device,
         )
 
         rt_base_names = numpy.array([rt.base_name for rt in all_restypes], dtype=object)
         n_rots_for_rt = torch.zeros(
             len(all_restypes), dtype=torch.int32, device=poses.device
         )
-        is_ala_rt = torch.tensor(
-            (rt_base_names == "ALA"),
-            dtype=torch.bool,
-            device=poses.device,
+        is_allowed_ala_rt = torch.logical_and(
+            torch.tensor(
+                (rt_base_names == "ALA"),
+                dtype=torch.bool,
+                device=poses.device,
+            ),
+            restype_allowed,
         )
-        is_gly_rt = torch.tensor(
-            (rt_base_names == "GLY"),
-            dtype=torch.bool,
-            device=poses.device,
+        is_allowed_gly_rt = torch.logical_and(
+            torch.tensor(
+                (rt_base_names == "GLY"),
+                dtype=torch.bool,
+                device=poses.device,
+            ),
+            restype_allowed,
         )
-        n_rots_for_rt[is_ala_rt] += 1
-        n_rots_for_rt[is_gly_rt] += 1
-        either_ala_or_gly = torch.logical_or(is_ala_rt, is_gly_rt)
+        n_rots_for_rt[is_allowed_ala_rt] += 1
+        n_rots_for_rt[is_allowed_gly_rt] += 1
+        either_ala_or_gly = torch.logical_or(is_allowed_ala_rt, is_allowed_gly_rt)
 
         n_fixed_rots = torch.sum(n_rots_for_rt).item()
         # rt_for_rotamer = torch.zeros(

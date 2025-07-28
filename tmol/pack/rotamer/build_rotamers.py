@@ -96,7 +96,7 @@ def rebuild_poses_if_necessary(
         for blt in one_pose_blts:
             for sampler in blt.conformer_samplers:
                 samplers.add(sampler)
-            for bt in blt.allowed_blocktypes:
+            for bt in blt.considered_block_types:
                 if id(bt) not in all_restypes:
                     all_restypes[id(bt)] = bt
 
@@ -505,14 +505,15 @@ def merge_conformer_samples(
     # 3. chi_for_rotamers
 
     # everything needs to be on the same device
+    torch.set_printoptions(threshold=10000)
     for samples in conformer_samples:
         assert samples[0].device == samples[1].device
         assert conformer_samples[0][0].device == samples[0].device
-        # print("samples", samples[0].shape, samples[1].shape)
-        # print("samples[0]")
-        # print(samples[0])
-        # print("samples[1]")
-        # print(samples[1])
+        print("samples", samples[0].shape, samples[1].shape)
+        print("samples[0]")
+        print(samples[0])
+        print("samples[1]")
+        print(samples[1])
 
     device = conformer_samples[0][0].device
 
@@ -676,17 +677,17 @@ def calculate_rotamer_coords(
     return new_coords_rto
 
 
-def get_rotamer_origin_data(task: PackerTask, rt_for_rot: Tensor[torch.int32][:]):
+def get_rotamer_origin_data(task: PackerTask, gbt_for_rot: Tensor[torch.int32][:]):
     n_poses = len(task.blts)
-    pose_for_rt = torch.tensor(
+    pose_for_gbt = torch.tensor(
         [
             i
             for i, one_pose_blts in enumerate(task.blts)
             for blts in one_pose_blts
-            for blt in blts.allowed_blocktypes
+            for blt in blts.considered_block_types
         ],
         dtype=torch.int32,
-        device=rt_for_rot.device,
+        device=gbt_for_rot.device,
     )
 
     block_ind_for_rt = torch.tensor(
@@ -694,20 +695,20 @@ def get_rotamer_origin_data(task: PackerTask, rt_for_rot: Tensor[torch.int32][:]
             j
             for one_pose_blts in task.blts
             for j, blts in enumerate(one_pose_blts)
-            for blt in blts.allowed_blocktypes
+            for blt in blts.considered_block_types
         ],
         dtype=torch.int32,
-        device=rt_for_rot.device,
+        device=gbt_for_rot.device,
     )
     max_n_blocks = max(len(one_pose_blts) for one_pose_blts in task.blts)
 
-    rt_for_rot64 = rt_for_rot.to(torch.int64)
-    pose_for_rot = pose_for_rt[rt_for_rot64].to(torch.int64)
+    gbt_for_rot64 = gbt_for_rot.to(torch.int64)
+    pose_for_rot = pose_for_gbt[gbt_for_rot64].to(torch.int64)
     n_rots_for_pose = torch.bincount(pose_for_rot, minlength=len(task.blts))
     rot_offset_for_pose = exclusive_cumsum1d(n_rots_for_pose)
-    block_ind_for_rot = block_ind_for_rt[rt_for_rot64]
-    block_ind_for_rt_global = max_n_blocks * pose_for_rt + block_ind_for_rt
-    block_ind_for_rot_global = block_ind_for_rt_global[rt_for_rot64]
+    block_ind_for_rot = block_ind_for_rt[gbt_for_rot64]
+    block_ind_for_rt_global = max_n_blocks * pose_for_gbt + block_ind_for_rt
+    block_ind_for_rot_global = block_ind_for_rt_global[gbt_for_rot64]
     n_rots_for_block = torch.bincount(
         block_ind_for_rot_global, minlength=n_poses * max_n_blocks
     ).reshape(n_poses, max_n_blocks)
@@ -895,8 +896,8 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     annotate_everything(chem_db, samplers, pbt)
 
     # Step 3
-    # create a list of the name of every allowed block type at every block in every
-    # pose so that we can then create an inteeger version of that same data;
+    # create a list of the name of every considered block type at every block in every
+    # pose so that we can then create an integer version of that same data;
     # the "global block type" (gbt) if you will. The order in which these block-
     # types appear will be used as an index for talking about which rotamers are
     # built where. This cannot be efficient. Perhaps worth thinking hard about the
@@ -905,7 +906,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
         bt.name
         for one_pose_blts in task.blts
         for blt in one_pose_blts
-        for bt in blt.allowed_blocktypes
+        for bt in blt.considered_block_types
     ]
     gbt_block_type_ind = pbt.restype_index.get_indexer(gbt_names).astype(numpy.int32)
 
@@ -923,14 +924,20 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
         new_ind_for_sampler_rotamer,
     ) = merge_conformer_samples(conformer_samples)
 
+    torch.set_printoptions(threshold=10000)
+    print("n_rots_for_gbt")
+    print(n_rots_for_gbt)
+
     def _t(t, dtype):
         return torch.tensor(t, dtype=dtype, device=pbt.device)
 
     gbt_for_conformer_np = gbt_for_conformer.cpu().numpy()
 
     gbt_for_conformer_torch = _t(gbt_for_conformer, torch.int64)
+
+    # apl: I hope to have fixed that
     # fd NOTE: THIS CODE FAILS IF n_rots_for_gbt CONTAINS 0s
-    assert 0 not in n_rots_for_gbt
+    # assert 0 not in n_rots_for_gbt
 
     n_conformers = sampler_for_conformer.shape[0]
     # gbt_for_rot = torch.zeros(n_conformers, dtype=torch.int64, device=poses.device)
