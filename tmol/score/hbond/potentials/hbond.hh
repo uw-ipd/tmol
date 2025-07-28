@@ -109,6 +109,32 @@ struct HBondBlockPairSharedData {
   unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
 };
 
+template <typename Real, int TILE_SIZE, int MAX_N_CONN>
+struct HBondRotPairSharedData {
+  Real coords1[TILE_SIZE * 3];  // 768 bytes for coords
+  Real coords2[TILE_SIZE * 3];
+  unsigned char n_donH1;  // 4 bytes for counts
+  unsigned char n_donH2;
+  unsigned char n_acc1;
+  unsigned char n_acc2;
+  unsigned char don_inds1[TILE_SIZE];  // 320 bytes for indices
+  unsigned char don_inds2[TILE_SIZE];
+  unsigned char acc_inds1[TILE_SIZE];
+  unsigned char acc_inds2[TILE_SIZE];
+  unsigned char don_type1[TILE_SIZE];
+  unsigned char don_type2[TILE_SIZE];
+  unsigned char acc_type1[TILE_SIZE];
+  unsigned char acc_type2[TILE_SIZE];
+  unsigned char acc_hybridization1[TILE_SIZE];
+  unsigned char acc_hybridization2[TILE_SIZE];
+
+  unsigned char conn_ats1[MAX_N_CONN];  // 8 bytes
+  unsigned char conn_ats2[MAX_N_CONN];
+  unsigned char path_dist1[MAX_N_CONN * TILE_SIZE];  // 256 bytes
+  unsigned char path_dist2[MAX_N_CONN * TILE_SIZE];
+  unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
+};
+
 template <
     template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,

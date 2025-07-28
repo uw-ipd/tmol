@@ -17,6 +17,17 @@ template struct HBondPoseScoreDispatch<
     double,
     int>;
 
+template struct HBondPoseScoreDispatch2<
+    DeviceOperations,
+    tmol::Device::CUDA,
+    float,
+    int>;
+template struct HBondPoseScoreDispatch2<
+    DeviceOperations,
+    tmol::Device::CUDA,
+    double,
+    int>;
+
 }  // namespace potentials
 }  // namespace hbond
 }  // namespace score

@@ -28,6 +28,11 @@ from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 
+from tmol.score.hbond.hbond_energy_term import (
+    HBondEnergyTerm,
+    HBondRotamerScoringModule,
+)
+
 
 def test_annotate_restypes(
     default_database, fresh_default_restype_set, torch_device, dun_sampler
@@ -995,10 +1000,13 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
 
     # fd TEMP: NO TERM VARIANTS
     p = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=75
+        ubq_pdb, torch_device, residue_start=1, residue_end=5
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     restype_set = poses.packed_block_types.restype_set
+    for restype in restype_set.residue_types:
+        print(restype.name, restype.base_name, restype.name3)
+
     palette = PackerPalette(restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -1013,7 +1021,43 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
         len(poses.packed_block_types.active_block_types),
     )
 
+    n_poses = rotamer_set.n_rots_for_pose.shape[0]
     n_rots = rotamer_set.coords.shape[0]
+    max_n_rotamers = torch.max(rotamer_set.n_rots_for_pose)
+    n_rots_for_pose = rotamer_set.n_rots_for_pose.tolist()
+
+    split_coords = torch.split(rotamer_set.coords, n_rots_for_pose)
+    split_block_types = torch.split(rotamer_set.block_type_ind_for_rot, n_rots_for_pose)
+
+    coords = torch.nn.utils.rnn.pad_sequence(split_coords, batch_first=True).flatten(
+        start_dim=1, end_dim=-2
+    )
+    block_types = torch.nn.utils.rnn.pad_sequence(
+        split_block_types, batch_first=True, padding_value=-1
+    )
+
+    print(rotamer_set.block_type_ind_for_rot)
+    print(block_types)
+
+    block_coord_offset = torch.zeros(
+        (n_poses, max_n_rotamers), dtype=torch.int32, device=torch_device
+    )
+    block_coord_offset[:] = torch.arange(max_n_rotamers) * rotamer_set.coords.shape[1]
+
+    print(coords.shape)
+    print(block_coord_offset)
+    print(rotamer_set.block_ind_for_rot)
+
+    energy_term = HBondEnergyTerm(default_database, torch_device)
+    for bt in poses.packed_block_types.active_block_types:
+        energy_term.setup_block_type(bt)
+    energy_term.setup_packed_block_types(poses.packed_block_types)
+    energy_term.setup_poses(poses)
+
+    pose_scorer = energy_term.render_rotamer_scoring_module(poses, rotamer_set)
+
+    coords = torch.nn.Parameter(rotamer_set.coords.clone())
+    scores, indices = pose_scorer(coords, output_block_pair_energies=True)
 
     # all the rotamers should be the same on all n_poses copies of ubq
     n_rots_per_pose = n_rots // n_poses

@@ -75,47 +75,91 @@ class HBondWholePoseScoringModule(torch.nn.Module):
         self,
         coords,
         block_pair_dispatch_indices,
-        rot_to_res_map=None,
+        new_fn=True,
         output_block_pair_energies=False,
     ):
-        if rot_to_res_map is None:
+        if new_fn:
+            args = [
+                coords,
+                block_pair_dispatch_indices,
+                self.block_ind_for_rot,
+                self.pose_ind_for_rot,
+                self.rot_coord_offset,
+                self.block_type_ind_for_rot,
+                self.n_rots_for_pose,
+                self.rot_offset_for_pose,
+                self.n_rots_for_block,
+                self.rot_offset_for_block,
+                self.pose_stack_inter_residue_connections,
+                self.pose_stack_min_bond_separation,
+                self.pose_stack_inter_block_bondsep,
+                self.bt_n_atoms,
+                self.bt_n_interblock_bonds,
+                self.bt_atoms_forming_chemical_bonds,
+                self.bt_n_all_bonds,
+                self.bt_all_bonds,
+                self.bt_atom_all_bond_ranges,
+                self.bt_tile_n_donH,
+                self.bt_tile_n_acc,
+                self.bt_tile_donH_inds,
+                self.bt_tile_acc_inds,
+                self.bt_tile_donor_type,
+                self.bt_tile_acceptor_type,
+                self.bt_tile_acceptor_hybridization,
+                self.bt_atom_is_hydrogen,
+                self.bt_path_distance,
+                self.pair_params,
+                self.pair_polynomials,
+                self.global_params,
+                output_block_pair_energies,
+            ]
+
+            if coords.dtype == torch.float64:
+                convert_float64(args)
+
+            scores, indices = hbond_pose_scores(*args)
+            print("indices", indices)
+
+            return scores, indices
+            pass
+        else:
             rot_to_res_map = self.block_identity_map
 
-        print(rot_to_res_map)
-        args = [
-            coords,
-            block_pair_dispatch_indices,
-            rot_to_res_map,
-            self.pose_stack_block_coord_offset,
-            self.pose_stack_block_type,
-            self.pose_stack_inter_residue_connections,
-            self.pose_stack_min_bond_separation,
-            self.pose_stack_inter_block_bondsep,
-            self.bt_n_atoms,
-            self.bt_n_interblock_bonds,
-            self.bt_atoms_forming_chemical_bonds,
-            self.bt_n_all_bonds,
-            self.bt_all_bonds,
-            self.bt_atom_all_bond_ranges,
-            self.bt_tile_n_donH,
-            self.bt_tile_n_acc,
-            self.bt_tile_donH_inds,
-            self.bt_tile_acc_inds,
-            self.bt_tile_donor_type,
-            self.bt_tile_acceptor_type,
-            self.bt_tile_acceptor_hybridization,
-            self.bt_atom_is_hydrogen,
-            self.bt_path_distance,
-            self.pair_params,
-            self.pair_polynomials,
-            self.global_params,
-            output_block_pair_energies,
-        ]
+            print(rot_to_res_map)
+            args = [
+                coords,
+                block_pair_dispatch_indices,
+                rot_to_res_map,
+                self.pose_stack_block_coord_offset,
+                self.pose_stack_block_type,
+                self.pose_stack_inter_residue_connections,
+                self.pose_stack_min_bond_separation,
+                self.pose_stack_inter_block_bondsep,
+                self.bt_n_atoms,
+                self.bt_n_interblock_bonds,
+                self.bt_atoms_forming_chemical_bonds,
+                self.bt_n_all_bonds,
+                self.bt_all_bonds,
+                self.bt_atom_all_bond_ranges,
+                self.bt_tile_n_donH,
+                self.bt_tile_n_acc,
+                self.bt_tile_donH_inds,
+                self.bt_tile_acc_inds,
+                self.bt_tile_donor_type,
+                self.bt_tile_acceptor_type,
+                self.bt_tile_acceptor_hybridization,
+                self.bt_atom_is_hydrogen,
+                self.bt_path_distance,
+                self.pair_params,
+                self.pair_polynomials,
+                self.global_params,
+                output_block_pair_energies,
+            ]
 
-        if coords.dtype == torch.float64:
-            convert_float64(args)
+            if coords.dtype == torch.float64:
+                convert_float64(args)
 
-        scores, indices = hbond_pose_scores(*args)
-        print("indices", indices)
+            scores, indices = hbond_pose_scores(*args)
+            print("indices", indices)
 
-        return scores, indices
+            return scores, indices
