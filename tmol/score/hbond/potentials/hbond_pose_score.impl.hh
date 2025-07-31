@@ -517,11 +517,11 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       HBondScoringData2<Dev, Real, Int> &inter_dat,                     \
       shared_mem_union &shared) {                                       \
     hbond_load_tile_invariant_interres_data_2<DeviceDispatch, Dev, nt>( \
-        coords,                                                         \
+        rot_coords,                                                     \
         first_rot_for_block,                                            \
         first_rot_block_type,                                           \
         rot_coord_offset,                                               \
-        block_type_for_rot,                                             \
+        block_type_ind_for_rot,                                         \
         pose_stack_inter_residue_connections,                           \
         pose_stack_min_bond_separation,                                 \
         pose_stack_inter_block_bondsep,                                 \
@@ -557,7 +557,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       HBondScoringData2<Dev, Real, Int> &inter_dat,                      \
       shared_mem_union &shared) {                                        \
     hbond_load_interres1_tile_data_to_shared_2<DeviceDispatch, Dev, nt>( \
-        coords,                                                          \
+        rot_coords,                                                      \
         block_type_tile_n_donH,                                          \
         block_type_tile_n_acc,                                           \
         block_type_tile_donH_inds,                                       \
@@ -574,28 +574,28 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
   }
 
 // done
-#define LOAD_INTERRES2_TILE_DATA_TO_SHARED_2                           \
-  TMOL_DEVICE_FUNC(                                                    \
-      int tile_ind,                                                    \
-      int start_atom2,                                                 \
-      int n_atoms_to_load2,                                            \
-      HBondScoringData2<Dev, Real, Int> &inter_dat,                    \
-      shared_mem_union &shared) {                                      \
-    hbond_load_interres2_tile_data_to_shared<DeviceDispatch, Dev, nt>( \
-        coords,                                                        \
-        block_type_tile_n_donH,                                        \
-        block_type_tile_n_acc,                                         \
-        block_type_tile_donH_inds,                                     \
-        block_type_tile_acc_inds,                                      \
-        block_type_tile_donor_type,                                    \
-        block_type_tile_acceptor_type,                                 \
-        block_type_tile_hybridization,                                 \
-        block_type_path_distance,                                      \
-        tile_ind,                                                      \
-        start_atom2,                                                   \
-        n_atoms_to_load2,                                              \
-        inter_dat,                                                     \
-        shared.m);                                                     \
+#define LOAD_INTERRES2_TILE_DATA_TO_SHARED_2                             \
+  TMOL_DEVICE_FUNC(                                                      \
+      int tile_ind,                                                      \
+      int start_atom2,                                                   \
+      int n_atoms_to_load2,                                              \
+      HBondScoringData2<Dev, Real, Int> &inter_dat,                      \
+      shared_mem_union &shared) {                                        \
+    hbond_load_interres2_tile_data_to_shared_2<DeviceDispatch, Dev, nt>( \
+        rot_coords,                                                      \
+        block_type_tile_n_donH,                                          \
+        block_type_tile_n_acc,                                           \
+        block_type_tile_donH_inds,                                       \
+        block_type_tile_acc_inds,                                        \
+        block_type_tile_donor_type,                                      \
+        block_type_tile_acceptor_type,                                   \
+        block_type_tile_hybridization,                                   \
+        block_type_path_distance,                                        \
+        tile_ind,                                                        \
+        start_atom2,                                                     \
+        n_atoms_to_load2,                                                \
+        inter_dat,                                                       \
+        shared.m);                                                       \
   }
 
 // done
@@ -644,11 +644,11 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       HBondScoringData2<Dev, Real, Int> &intra_dat,                     \
       shared_mem_union &shared) {                                       \
     hbond_load_tile_invariant_intrares_data_2<DeviceDispatch, Dev, nt>( \
-        coords,                                                         \
+        rot_coords,                                                     \
         first_rot_for_block,                                            \
         first_rot_block_type,                                           \
         rot_coord_offset,                                               \
-        block_type_for_rot,                                             \
+        block_type_ind_for_rot,                                         \
         pose_stack_inter_residue_connections,                           \
         block_type_n_all_bonds,                                         \
         block_type_all_bonds,                                           \
@@ -677,7 +677,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       HBondScoringData2<Dev, Real, Int> &intra_dat,                      \
       shared_mem_union &shared) {                                        \
     hbond_load_intrares1_tile_data_to_shared_2<DeviceDispatch, Dev, nt>( \
-        coords,                                                          \
+        rot_coords,                                                      \
         block_type_tile_n_donH,                                          \
         block_type_tile_n_acc,                                           \
         block_type_tile_donH_inds,                                       \
@@ -701,7 +701,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       HBondScoringData2<Dev, Real, Int> &intra_dat,                      \
       shared_mem_union &shared) {                                        \
     hbond_load_intrares2_tile_data_to_shared_2<DeviceDispatch, Dev, nt>( \
-        coords,                                                          \
+        rot_coords,                                                      \
         block_type_tile_n_donH,                                          \
         block_type_tile_n_acc,                                           \
         block_type_tile_donH_inds,                                       \
@@ -1317,6 +1317,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::forward(
 
     // TView<Vec<Real, 3>, 2, Dev> coords,
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
+    TView<Int, 1, Dev> rot_coord_offset,
     // TView<Int, 2, Dev> block_pair_dispatch_indices,
     // TView<Int, 2, Dev> block_pair_dispatch_indices,
     // TView<Int, 2, Dev> rotamer_rot_ind_to_res_ind,
@@ -1326,7 +1327,6 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Int, 1, Dev> pose_ind_for_rot,
 
     // TView<Int, 2, Dev> pose_stack_block_coord_offset,
-    // TView<Int, 1, Dev> rot_coord_offset,
     // TView<Int, 2, Dev> pose_stack_block_type,
     TView<Int, 1, Dev> block_type_ind_for_rot,
 
@@ -1401,7 +1401,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::forward(
     )
     -> std::tuple<
         TPack<Real, 1, Dev>,
-        TPack<Vec<Real, 3>, 3, Dev>,
+        TPack<Vec<Real, 3>, 2, Dev>,
         TPack<Int, 2, Dev> > {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
@@ -1486,11 +1486,11 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::forward(
   // auto accum_output_t = TPack<double, 2, Dev>::zeros({1, n_poses});
   // auto accum_output = accum_output_t.view;
 
-  auto n_rots = rot_coords.size(0);
-  auto rot_max_n_atoms = rot_coords.size(1);
+  auto n_rots = rot_coord_offset.size(0);
+  // auto rot_max_n_atoms = rot_coords.size(1);
+  auto n_atoms = rot_coords.size(0);
 
-  auto dV_dcoords_t =
-      TPack<Vec<Real, 3>, 3, Dev>::zeros({1, n_rots, rot_max_n_atoms});
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_rot_spheres_t = TPack<Real, 2, Dev>::zeros({n_rots, 4});
@@ -1506,6 +1506,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::forward(
   score::common::sphere_overlap::
       compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
           rot_coords,
+          rot_coord_offset,
           block_type_ind_for_rot,
           block_type_n_atoms,
           scratch_rot_spheres);
@@ -1548,7 +1549,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::forward(
 
     SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
-      HBondRotPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
+      HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
 
     } shared;
@@ -1610,12 +1611,14 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::forward(
     tmol::score::common::tile_evaluate_rot_pair<
         DeviceDispatch,
         Dev,
-        HBondScoringData<Dev, Real, Int>,
-        HBondScoringData<Dev, Real, Int>,
+        HBondScoringData2<Dev, Real, Int>,
+        HBondScoringData2<Dev, Real, Int>,
         Real,
         TILE_SIZE>(
         shared,
         pose_ind,
+        rot_ind1,
+        rot_ind2,
         block_ind1,
         block_ind2,
         block_type1,
@@ -1857,7 +1860,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
 
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
-    tmol::score::common::tile_evaluate_block_pair<
+    /*tmol::score::common::tile_evaluate_block_pair<
         DeviceDispatch,
         Dev,
         HBondScoringData<Dev, Real, Int>,
@@ -1883,7 +1886,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
         load_intrares2_tile_data_to_shared,
         load_intrares_data_from_shared,
         eval_intrares_atom_pair_scores,
-        store_calculated_energies);
+        store_calculated_energies);*/
   });
 
   // Since we have the sphere overlap results from the forward pass,

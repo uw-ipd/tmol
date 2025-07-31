@@ -1708,7 +1708,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared_2(
-    TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
     TView<Int, 3, Dev> block_type_tile_donH_inds,
@@ -1809,7 +1809,7 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord_2(
       int coord_offset =
           (bcat.block == single_res_dat.block_ind
                ? single_res_dat.rot_coord_offset
-               : rotpaid_dat
+               : rotpair_dat
                      .rot_coord_offset[rotpair_dat.first_rot_for_block
                                            [rotpair_dat.pose_ind][bcat.block]]);
 
@@ -1864,11 +1864,11 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full_2(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
-        load_coord<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
+        load_coord_2<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
     Real3 Bxyz =
-        load_coord<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
+        load_coord_2<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
     Real3 B0xyz =
-        load_coord<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
+        load_coord_2<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];
@@ -2011,9 +2011,9 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs_2(
             int coord_offset = acc_dat.rot_coord_offset;
             if (bcat.block != acc_bases.A.block) {
               coord_offset =
-                  respair_data
-                      .rot_coord_offset[respair_data.first_rot_for_block
-                                            [respair_dat.pose_ind][bcat.block]]
+                  respair_dat
+                      .rot_coord_offset[respair_dat.first_rot_for_block
+                                            [respair_dat.pose_ind][bcat.block]];
             }
             for (int j = 0; j < 3; ++j) {
               accumulate<Dev, Real>::add(
@@ -2077,11 +2077,11 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full_2(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
-        load_coord<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
+        load_coord_2<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
     Real3 Bxyz =
-        load_coord<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
+        load_coord_2<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
     Real3 B0xyz =
-        load_coord<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
+        load_coord_2<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];
@@ -2143,9 +2143,9 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full_2(
             int coord_offset = acc_dat.rot_coord_offset;
             if (bcat.block != acc_bases.A.block) {
               coord_offset =
-                  respair_data
-                      .rot_coord_offset[respair_data.first_rot_for_block
-                                            [respair_dat.pose_ind][bcat.block]]
+                  respair_dat
+                      .rot_coord_offset[respair_dat.first_rot_for_block
+                                            [respair_dat.pose_ind][bcat.block]];
             }
             for (int j = 0; j < 3; ++j) {
               accumulate<Dev, Real>::add(

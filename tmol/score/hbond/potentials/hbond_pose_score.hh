@@ -183,6 +183,7 @@ struct HBondPoseScoreDispatch2 {
 
       // TView<Vec<Real, 3>, 2, Dev> coords,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Int, 1, Dev> rot_coord_offset,
       // TView<Int, 2, Dev> block_pair_dispatch_indices,
       // TView<Int, 2, Dev> block_pair_dispatch_indices,
       // TView<Int, 2, Dev> rotamer_rot_ind_to_res_ind,
@@ -265,7 +266,7 @@ struct HBondPoseScoreDispatch2 {
       bool compute_derivs)
       -> std::tuple<
           TPack<Real, 1, Dev>,
-          TPack<Vec<Real, 3>, 3, Dev>,
+          TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Int, 2, Dev> >;
 
   static auto backward(

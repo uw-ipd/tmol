@@ -388,7 +388,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
     StoreEnergyFunc store_calculated_intrares_energies) {
   assert(
       !(block_ind1 == block_ind2
-        && !rot_ind == rot_ind2));  // working under this assumption
+        && !rot_ind1 == rot_ind2));  // working under this assumption
   // printf("starting %d %d\n", block_ind1, block_ind2);
   if (block_ind1 != block_ind2) {
     // Step 1: load any data that is consistent across all tile pairs
@@ -459,6 +459,7 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
     // printf("calling load_tile_invariant_intrares_data\n");
     load_tile_invariant_intrares_data(
         pose_ind,
+        rot_ind1,
         block_ind1,
         block_type1,
         n_atoms1,

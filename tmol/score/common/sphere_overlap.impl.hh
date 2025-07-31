@@ -26,7 +26,8 @@ template <
     typename Int>
 struct compute_rot_spheres {
   static void f(
-      TView<Vec<Real, 3>, 2, D> rot_coords,
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
       TView<Int, 1, D> block_type_ind_for_rot,
       TView<Int, 1, D> block_type_n_atoms,
       TView<Real, 2, D> rot_spheres) {
@@ -36,6 +37,7 @@ struct compute_rot_spheres {
       CTA_LAUNCH_T_PARAMS;
 
       int const rot_ind = cta;
+      int const coord_offset = rot_coord_offset[rot_ind];
       int const block_type = block_type_ind_for_rot[rot_ind];
 
       if (block_type < 0) return;
@@ -44,7 +46,7 @@ struct compute_rot_spheres {
 
       auto per_thread_com = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_atoms; i += nt) {
-          Vec<Real, 3> ci = rot_coords[rot_ind][i];
+          Vec<Real, 3> ci = rot_coords[coord_offset + i];
           for (int j = 0; j < 3; ++j) {
             local_coords[j] += ci[j];
           }
@@ -69,7 +71,7 @@ struct compute_rot_spheres {
       // Now find maximum distance
       auto per_thread_dist_to_com = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_atoms; i += nt) {
-          Vec<Real, 3> ci = rot_coords[rot_ind][i];
+          Vec<Real, 3> ci = rot_coords[coord_offset + i];
           Real d2 =
               ((ci[0] - com[0]) * (ci[0] - com[0])
                + (ci[1] - com[1]) * (ci[1] - com[1])
@@ -99,7 +101,7 @@ struct compute_rot_spheres {
     });
 
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        rot_coords.size(0), compute_spheres);
+        rot_coord_offset.size(0), compute_spheres);
   }
 };
 
