@@ -62,7 +62,7 @@ class FixedAAChiSampler(ChiSampler):
         )
         restype_allowed = torch.tensor(
             [
-                (self in blt.conformer_samplers and blt.block_type_allowed[i])
+                (self in blt.conformer_samplers and bool(blt.block_type_allowed[i]))
                 for one_pose_blts in task.blts
                 for blt in one_pose_blts
                 for i, bt in enumerate(blt.considered_block_types)

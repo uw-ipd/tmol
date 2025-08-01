@@ -509,11 +509,11 @@ def merge_conformer_samples(
     for samples in conformer_samples:
         assert samples[0].device == samples[1].device
         assert conformer_samples[0][0].device == samples[0].device
-        print("samples", samples[0].shape, samples[1].shape)
-        print("samples[0]")
-        print(samples[0])
-        print("samples[1]")
-        print(samples[1])
+        # print("samples", samples[0].shape, samples[1].shape)
+        # print("samples[0]")
+        # print(samples[0])
+        # print("samples[1]")
+        # print(samples[1])
 
     device = conformer_samples[0][0].device
 
@@ -924,9 +924,9 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
         new_ind_for_sampler_rotamer,
     ) = merge_conformer_samples(conformer_samples)
 
-    torch.set_printoptions(threshold=10000)
-    print("n_rots_for_gbt")
-    print(n_rots_for_gbt)
+    # torch.set_printoptions(threshold=10000)
+    # print("n_rots_for_gbt")
+    # print(n_rots_for_gbt)
 
     def _t(t, dtype):
         return torch.tensor(t, dtype=dtype, device=pbt.device)
