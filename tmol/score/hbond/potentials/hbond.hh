@@ -1850,7 +1850,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full_2(
         acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
     BlockCentricIndexedBonds<Int, Dev> bonds{
         respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
-        respair_dat.first_rot_block_type[respair_dat.pose_ind],
+        respair_dat.rot_block_type,
         respair_dat.block_type_n_all_bonds,
         respair_dat.block_type_all_bonds,
         respair_dat.block_type_atom_all_bond_ranges,

@@ -1535,6 +1535,13 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::forward(
   output_t = TPack<Real, 1, Dev>::zeros({dispatch_indices.size(1)});
   auto output = output_t.view;
 
+  /*for(int i = 0; i < dispatch_indices.size(1); i++){
+    printf("DISPATCH %i, %i %i %i", i,
+      dispatch_indices[0][i],
+      dispatch_indices[1][i],
+      dispatch_indices[2][i]);
+  }*/
+
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
   // Define nt and reduce_t

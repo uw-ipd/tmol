@@ -386,9 +386,10 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
     LoadIntraSharedDatFunc load_intrares_data_from_shared,
     CalcIntraFunc eval_intrares_atom_pair_scores,
     StoreEnergyFunc store_calculated_intrares_energies) {
+  // printf("")
   assert(
       !(block_ind1 == block_ind2
-        && !rot_ind1 == rot_ind2));  // working under this assumption
+        && rot_ind1 != rot_ind2));  // working under this assumption
   // printf("starting %d %d\n", block_ind1, block_ind2);
   if (block_ind1 != block_ind2) {
     // Step 1: load any data that is consistent across all tile pairs

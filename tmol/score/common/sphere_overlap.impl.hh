@@ -277,7 +277,7 @@ struct detect_rot_neighbors {
       Real d_threshold = sphere1[3] + sphere2[3] + reach;
 
       if (d2 < d_threshold * d_threshold) {
-        rot_neighbors[pose_ind][block_ind1][block_ind2] = 1;
+        rot_neighbors[pose_ind][rot_ind1][rot_ind2] = 1;
       }
     });
     int n_rot_pairs =

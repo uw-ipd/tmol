@@ -75,11 +75,14 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             global_params=self.hb_param_db.global_param_table,
         )
 
-    def render_rotamer_scoring_module(self, pose_stack: PoseStack, rotamer_set):
+    def render_rotamer_scoring_module(
+        self, pose_stack: PoseStack, rotamer_set, rot_coord_offset
+    ):
         pbt = pose_stack.packed_block_types
 
         return HBondRotamerScoringModule(
             rotamer_set,
+            rot_coord_offset,
             pose_stack_inter_residue_connections=pose_stack.inter_residue_connections,
             pose_stack_min_bond_separation=pose_stack.min_block_bondsep,
             pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
