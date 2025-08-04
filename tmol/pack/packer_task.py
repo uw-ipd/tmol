@@ -104,7 +104,7 @@ class PackerPalette:
         DOFs from the inverse-folded coordinates of the starting Pose's blocks.
         Future versions of PackerPalette have the option to override this method.
         """
-        from tmol.pack.rotamer.include_current_conformer_sampler import (
+        from tmol.pack.rotamer.include_current_sampler import (
             IncludeCurrentSampler,
         )
 

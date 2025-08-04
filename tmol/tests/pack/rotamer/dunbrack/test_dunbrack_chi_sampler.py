@@ -601,24 +601,233 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     p2 = no_termini_pose_stack_from_pdb(
         ubq_pdb, torch_device, residue_start=1, residue_end=8
     )
-    poses = PoseStackBuilder.from_poses([p1, p2], torch_device)
-    pbt = poses.packed_block_types
+    pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
+    pbt = pose_stack.packed_block_types
 
     palette = PackerPalette(rts)
-    task = PackerTask(poses, palette)
+    task = PackerTask(pose_stack, palette)
     task.add_conformer_sampler(dun_sampler)
     task.restrict_to_repacking()
 
-    all_allowed_restypes = numpy.array(
+    ################ contents of sample_chi_for_poses
+
+    for rt in pose_stack.packed_block_types.active_block_types:
+        dun_sampler.annotate_residue_type(rt)
+    dun_sampler.annotate_packed_block_types(pose_stack.packed_block_types)
+
+    max_n_blocks = pose_stack.max_n_blocks
+    dun_allowed_blocktypes = numpy.array(
         [
             bt
             for one_pose_blts in task.blts
             for blt in one_pose_blts
             for i, bt in enumerate(blt.considered_block_types)
-            if blt.block_type_allowed[i]
+            if dun_sampler in blt.conformer_samplers and blt.block_type_allowed[i]
         ],
         dtype=object,
     )
+    # print("dun_allowed_blocktypes shape", dun_allowed_blocktypes.shape)
+    is_gbt_dun_allowed = numpy.array(
+        [
+            dun_sampler in blt.conformer_samplers and blt.block_type_allowed[i]
+            for one_pose_blts in task.blts
+            for blt in one_pose_blts
+            for i, bt in enumerate(blt.considered_block_types)
+        ],
+        dtype=bool,
+    )
+    n_gbt_total = is_gbt_dun_allowed.shape[0]
+    # print("is_gbt_dun_allowed shape", is_gbt_dun_allowed.shape)
+    # equiv: numpy.nonzero(is_gbt_dun_allowed)
+    dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[
+        is_gbt_dun_allowed
+    ]
+    dun_allowed_bt_to_gbt_torch = torch.tensor(
+        dun_allowed_bt_to_gbt, device=dun_sampler.device
+    )
+
+    dun_allowed_bt_names = numpy.array(
+        [bt.name for bt in dun_allowed_blocktypes], dtype=object
+    )
+    dun_allowed_bt_base_names = numpy.array(
+        [bt.name.partition(":")[0] for bt in dun_allowed_blocktypes], dtype=object
+    )
+    # print("dun_allowed_bt_base_names[:20]", dun_allowed_bt_base_names[:20])
+    pbt = pose_stack.packed_block_types
+
+    # the source block for each dun-allowed block type
+    dun_allowed_bt_block = torch.tensor(
+        [
+            i * max_n_blocks + j
+            for i, one_pose_blts in enumerate(task.blts)
+            for j, blt in enumerate(one_pose_blts)
+            for k, _ in enumerate(blt.considered_block_types)
+            if blt.block_type_allowed[k] and dun_sampler in blt.conformer_samplers
+        ],
+        dtype=torch.int32,
+        device=dun_sampler.device,
+    )
+
+    dun_rot_inds_for_dun_allowed_bts = dun_sampler.dun_param_resolver._indices_from_names(
+        dun_sampler.dun_param_resolver.all_table_indices,
+        dun_allowed_bt_base_names[None, :],
+        # ??? torch.device("cpu"),
+        dun_sampler.device,
+    ).squeeze()
+
+    # the pbt-assigned block-type indices for each buildable block type
+    # the subset of dun_rot_inds_for_dun_allowed_bts with a non-sentinel
+    # value represents the buildable block types
+    block_type_ind_for_bbt = torch.tensor(
+        pbt.restype_index.get_indexer(
+            dun_allowed_bt_names[dun_rot_inds_for_dun_allowed_bts.cpu().numpy() != -1]
+        ),
+        dtype=torch.int64,
+        device=dun_sampler.device,
+    )
+
+    inds_of_phi = dun_sampler.atom_indices_for_backbone_dihedral(pose_stack, 0).reshape(
+        -1, 4
+    )
+    inds_of_psi = dun_sampler.atom_indices_for_backbone_dihedral(pose_stack, 1).reshape(
+        -1, 4
+    )
+
+    is_dun_allowed_bt_bbt = dun_rot_inds_for_dun_allowed_bts != -1
+    dun_allowed_bt_that_are_bbt = torch.nonzero(is_dun_allowed_bt_bbt)[:, 0]
+    # print("dun_allowed_bt_that_are_bbt", dun_allowed_bt_that_are_bbt.shape)
+    bbt_to_gbt_torch = dun_allowed_bt_to_gbt_torch[dun_allowed_bt_that_are_bbt]
+    rottable_set_for_bbt = dun_rot_inds_for_dun_allowed_bts[dun_allowed_bt_that_are_bbt]
+
+    # the "indices" of the blocks that the block types we will be building come
+    # from, assuming we are colapsing the n_sys x max_n_blocks into a single
+    # numbering. We will need to keep this array as it will be used by the
+    # caller to understand what block types we are defining samples for.
+    # We will shortly be renumbering the residues to talk about only the ones
+    # that we will build rotamers for: BRT = "buildable residue type"
+    block_for_bbt = dun_allowed_bt_block[dun_allowed_bt_that_are_bbt]
+
+    uniq_block_for_bbt, uniq_inds = torch.unique(block_for_bbt, return_inverse=True)
+    uniq_block_for_bbt = uniq_block_for_bbt.to(torch.int64)
+
+    rottable_set_for_bbt = torch.tensor(
+        torch.cat(
+            (
+                uniq_inds.reshape(-1, 1),
+                rottable_set_for_bbt.reshape(-1, 1),
+            ),
+            dim=1,
+        ),
+        dtype=torch.int32,
+        device=dun_sampler.device,
+    )
+
+    # phi_psi_res_inds = numpy.arange(n_sys * max_n_blocks, dtype=numpy.int32)
+
+    n_sampling_blocks = uniq_block_for_bbt.shape[0]
+
+    # map the residue-numbered list of dihedral angles to their positions in
+    # the set of residues that the Dunbrack library will provide chi samples for
+    dihedral_atom_inds = torch.full(
+        (2 * n_sampling_blocks, 4), -1, dtype=torch.int32, device=dun_sampler.device
+    )
+    dihedral_atom_inds[
+        2
+        * torch.arange(n_sampling_blocks, dtype=torch.int64, device=dun_sampler.device),
+        :,
+    ] = inds_of_phi[uniq_block_for_bbt, :]
+    dihedral_atom_inds[
+        2
+        * torch.arange(n_sampling_blocks, dtype=torch.int64, device=dun_sampler.device)
+        + 1,
+        :,
+    ] = inds_of_psi[uniq_block_for_bbt, :]
+
+    n_dihe_for_block = torch.full(
+        (n_sampling_blocks,), 2, dtype=torch.int32, device=dun_sampler.device
+    )
+    dihedral_offset_for_block = 2 * torch.arange(
+        n_sampling_blocks, dtype=torch.int32, device=dun_sampler.device
+    )
+
+    n_bbts = dun_allowed_bt_that_are_bbt.shape[0]
+
+    max_n_chi = pose_stack.packed_block_types.dun_sampler_cache.max_n_chi
+    chi_expansion_for_bbt = torch.full(
+        (n_bbts, max_n_chi), 0, dtype=torch.int32, device=dun_sampler.device
+    )
+
+    # ok, we'll go to the block types and look at their protonation
+    # state expansions and we'll put that information into the
+    # chi_expansions_for_buildable_restype tensor
+
+    sampling_db = dun_sampler.dun_param_resolver.sampling_db
+    n_chi_for_bbt = sampling_db.nchi_for_table_set[
+        rottable_set_for_bbt[:, 1].to(torch.int64)
+    ]
+
+    non_dunbrack_expansion_counts_for_bbt = torch.zeros(
+        (n_bbts, max_n_chi), dtype=torch.int32, device=dun_sampler.device
+    )
+
+    # TEMP! Treat everything as exposed (0)
+    sc = pbt.dun_sampler_cache
+    ndecfbbt = sc.non_dunbrack_sample_counts[block_type_ind_for_bbt, 0]
+    non_dunbrack_expansion_counts_for_bbt = ndecfbbt
+
+    # TEMP! Treat everything as exposed (0)
+    non_dunbrack_expansion_for_bbt = sc.non_dunbrack_samples[block_type_ind_for_bbt, 0]
+
+    # treat all residues as if they are exposed
+    prob_cumsum_limit_for_bbt = torch.full(
+        (n_bbts,), 0.95, dtype=torch.float32, device=dun_sampler.device
+    )
+
+    # the sampled chi returned are a tuple containing info for BBTs:
+    # these have to be mapped back to info for GBTs, which is handled
+    # in the next step
+    sampled_chi = dun_sampler.launch_rotamer_building(
+        pose_stack.coords.reshape(-1, 3),
+        n_dihe_for_block,
+        dihedral_offset_for_block,
+        dihedral_atom_inds,
+        rottable_set_for_bbt,
+        chi_expansion_for_bbt,
+        non_dunbrack_expansion_for_bbt,
+        non_dunbrack_expansion_counts_for_bbt,
+        prob_cumsum_limit_for_bbt,
+        n_chi_for_bbt,
+    )
+    n_rots_for_bbt = sampled_chi[0]
+    chi_for_rotamers = sampled_chi[3]
+    n_rots = chi_for_rotamers.shape[0]
+
+    results = dun_sampler.package_samples_for_output(
+        pbt,
+        task,
+        n_gbt_total,
+        bbt_to_gbt_torch,
+        block_type_ind_for_bbt,
+        max_n_chi,
+        sampled_chi,
+    )
+    (
+        n_rots_for_gbt,
+        gbt_for_rotamer,
+        chi_defining_atom_for_rotamer,
+        chi_for_rotamers,
+    ) = results
+
+    # all_allowed_restypes = numpy.array(
+    #     [
+    #         bt
+    #         for one_pose_blts in task.blts
+    #         for blt in one_pose_blts
+    #         for i, bt in enumerate(blt.considered_block_types)
+    #         if blt.block_type_allowed[i]
+    #     ],
+    #     dtype=object,
+    # )
     all_considered_restypes = numpy.array(
         [
             bt
@@ -628,89 +837,111 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         ],
         dtype=object,
     )
-    considered_restypes_allowed = numpy.array(
-        [
-            blt.block_type_allowed[i]
-            for one_pose_blts in task.blts
-            for blt in one_pose_blts
-            for i, bt in enumerate(blt.considered_block_types)
-        ],
-        dtype=object,
-    )
-    dun_considered_restype_allowed = numpy.array(
-        [
-            (
-                1
-                if (
-                    rt.name != "ALA"
-                    and rt.name != "GLY"
-                    and considered_restypes_allowed[i]
-                )
-                else 0
-            )
-            for i, rt in enumerate(all_considered_restypes)
-        ],
-        dtype=int,
-    )
-    rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
-    rt_base_names = numpy.array(
-        [rt.name.partition(":")[0] for rt in all_allowed_restypes], dtype=object
-    )
+    # n_gbt_total = all_considered_restypes.shape[0]
+    # considered_restypes_allowed = numpy.array(
+    #     [
+    #         blt.block_type_allowed[i]
+    #         for one_pose_blts in task.blts
+    #         for blt in one_pose_blts
+    #         for i, bt in enumerate(blt.considered_block_types)
+    #     ],
+    #     dtype=object,
+    # )
+    # dun_considered_restype_allowed = numpy.array(
+    #     [
+    #         (
+    #             rt.name != "ALA"
+    #             and rt.name != "GLY"
+    #             and considered_restypes_allowed[i]
+    #         )
+    #         for i, rt in enumerate(all_considered_restypes)
+    #     ],
+    #     dtype=bool,
+    # )
+    # rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
+    # rt_base_names = numpy.array(
+    #     [rt.name.partition(":")[0] for rt in all_allowed_restypes], dtype=object
+    # )
+    #
+    # dun_rot_inds_for_rts = param_resolver._indices_from_names(
+    #     param_resolver.all_table_indices, rt_base_names[None, :], torch.device("cpu")
+    # ).squeeze()
+    # block_type_ind_for_brt = torch.tensor(
+    #     pbt.restype_index.get_indexer(
+    #         rt_names[dun_rot_inds_for_rts.cpu().numpy() != -1]
+    #     ),
+    #     dtype=torch.int64,
+    #     device=torch_device,
+    # )
+    #
+    # nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
+    #
+    # # let the sampler annotate the residue types and the PBT
+    # for rt in poses.packed_block_types.active_block_types:
+    #     dun_sampler.annotate_residue_type(rt)
+    # dun_sampler.annotate_packed_block_types(poses.packed_block_types)
+    #
+    # n_rots_for_brt = torch.arange(12, dtype=torch.int32, device=torch_device) + 1
+    offsets_for_gbt = exclusive_cumsum1d(n_rots_for_gbt)
+    # n_rots = torch.sum(n_rots_for_brt).item()
+    # brt_for_rotamer = torch.zeros((n_rots,), dtype=torch.int32, device=torch_device)
+    # brt_for_rotamer[offsets_for_brt.to(torch.int64)] = 1
+    # brt_for_rotamer[0] = 0
+    # brt_for_rotamer = torch.cumsum(brt_for_rotamer, dim=0)
+    # chi_for_rotamers = torch.zeros(
+    #     (n_rots, 4), dtype=torch.float32, device=torch_device
+    # )
+    #
+    # sampled_chi = (n_rots_for_brt, offsets_for_brt, {"brt_for_rotamer": brt_for_rotamer, "chi_for_rotamers": chi_for_rotamers})
+    #
+    # dun_considered_restype_allowed = torch.tensor(dun_considered_restype_allowed, dtype=torch.bool, device=torch_device)
+    # dun_allowed_bt_that_are_bbt = torch.nonzero(dun_considered_restype_allowed)[:, 0]
+    # dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[
+    #     dun_considered_restype_allowed
+    # ]
+    # dun_allowed_bt_to_gbt_torch = torch.tensor(
+    #     dun_allowed_bt_to_gbt, device=torch_device
+    # )
+    # bbt_to_gbt_torch = dun_allowed_bt_to_gbt_torch[dun_allowed_bt_that_are_bbt]
+    #
+    # results = dun_sampler.package_samples_for_output(
+    #     pbt, task, n_gbt_total, dun_allowed_bt_to_gbt_torch, block_type_ind_for_brt, 4, nonzero_dunrot_inds_for_rts, sampled_chi
+    # )
 
-    dun_rot_inds_for_rts = param_resolver._indices_from_names(
-        param_resolver.all_table_indices, rt_base_names[None, :], torch.device("cpu")
-    ).squeeze()
-    block_type_ind_for_brt = torch.tensor(
-        pbt.restype_index.get_indexer(
-            rt_names[dun_rot_inds_for_rts.cpu().numpy() != -1]
-        ),
-        dtype=torch.int64,
-        device=torch_device,
-    )
-
-    nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
-
-    # let the sampler annotate the residue types and the PBT
-    for rt in poses.packed_block_types.active_block_types:
-        dun_sampler.annotate_residue_type(rt)
-    dun_sampler.annotate_packed_block_types(poses.packed_block_types)
-
-    n_rots_for_brt = torch.arange(12, dtype=torch.int32, device=torch_device) + 1
-    offsets_for_brt = exclusive_cumsum1d(n_rots_for_brt)
-    n_rots = torch.sum(n_rots_for_brt).item()
-    brt_for_rotamer = torch.zeros((n_rots,), dtype=torch.int32, device=torch_device)
-    brt_for_rotamer[offsets_for_brt.to(torch.int64)] = 1
-    brt_for_rotamer[0] = 0
-    brt_for_rotamer = torch.cumsum(brt_for_rotamer, dim=0)
-    chi_for_rotamers = torch.zeros(
-        (n_rots, 4), dtype=torch.float32, device=torch_device
-    )
-
-    sampled_chi = (n_rots_for_brt, offsets_for_brt, brt_for_rotamer, chi_for_rotamers)
-
-    results = dun_sampler.package_samples_for_output(
-        pbt, task, block_type_ind_for_brt, 4, nonzero_dunrot_inds_for_rts, sampled_chi
-    )
-
-    n_rots_for_rt_gold = numpy.zeros(
+    n_rots_for_gbt_gold = numpy.zeros(
         all_considered_restypes.shape[0], dtype=numpy.int32
     )
-    n_rots_for_rt_gold[dun_considered_restype_allowed != 0] = (
-        n_rots_for_brt.cpu().numpy()
+
+    n_rots_for_gbt_gold[dun_allowed_bt_to_gbt[is_dun_allowed_bt_bbt.cpu().numpy()]] = (
+        n_rots_for_bbt.cpu().numpy()
     )
 
-    rt_for_rot_gold = numpy.zeros((n_rots,), dtype=numpy.int32)
-    rt_for_rot_gold[offsets_for_brt.cpu()] = 1
-    rt_for_rot_gold[0] = 0
-    rt_for_rot_gold[offsets_for_brt[4].cpu()] += 1
-    rt_for_rot_gold = numpy.cumsum(rt_for_rot_gold)
+    rt_for_rot_gold = numpy.zeros((n_rots + 1,), dtype=numpy.int32)
+    offsets_for_gbt_np = offsets_for_gbt.cpu().numpy()
+    for i, rotamer in enumerate(offsets_for_gbt_np):
+        rt_for_rot_gold[rotamer] += 1
+    # print("rt_for_rot_gold before cumsum")
+    # print(rt_for_rot_gold)
+    # rt_for_rot_gold[offsets_for_gbt.cpu().numpy()] += 1
+    rt_for_rot_gold = rt_for_rot_gold[:-1]  # lop off the "last" rotamer
+    # rt_for_rot_gold[0] = 0
+    # rt_for_rot_gold[offsets_for_gbt[4].cpu()] += 1
+    rt_for_rot_gold = numpy.cumsum(rt_for_rot_gold) - 1
+    # print("offsets_for_gbt")
+    # print(offsets_for_gbt.cpu().numpy())
+    # print("rt_for_rot_gold")
+    # print(rt_for_rot_gold)
+    # print("results[0].cpu().numpy()")
+    # print(results[0].cpu().numpy())
+    # print("results[1].cpu().numpy()")
+    # print(results[1].cpu().numpy())
 
     assert results[0].device == torch_device
     assert results[1].device == torch_device
     assert results[2].device == torch_device
     assert results[3].device == torch_device
 
-    numpy.testing.assert_equal(n_rots_for_rt_gold, results[0].cpu().numpy())
+    numpy.testing.assert_equal(n_rots_for_gbt_gold, results[0].cpu().numpy())
     numpy.testing.assert_equal(rt_for_rot_gold, results[1].cpu().numpy())
 
 

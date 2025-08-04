@@ -640,7 +640,6 @@ class DunbrackChiSampler(ChiSampler):
         pbt: PackedBlockTypes,
         task: PackerTask,
         n_gbt_total: int,
-        # bbt_to_gbt: NDArray[numpy.int64][:],
         bbt_to_gbt: Tensor[torch.int64][:],
         block_type_ind_for_brt: Tensor[torch.int64][:],
         max_n_chi: int,

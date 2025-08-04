@@ -67,7 +67,7 @@ def test_chi_sampler_smoke(ubq_pdb, torch_device, default_restype_set):
     sampler.annotate_packed_block_types(poses.packed_block_types)
     results = sampler.sample_chi_for_poses(poses, task)
 
-    assert results[0].shape[0] == 13
+    assert results[0].shape[0] == 21 * 13
     assert results[1].shape[0] == 1
     assert results[2].shape == (1, 1)
     assert results[3].shape == (1, 1)
@@ -77,9 +77,10 @@ def test_chi_sampler_smoke(ubq_pdb, torch_device, default_restype_set):
     assert results[2].device == torch_device
     assert results[3].device == torch_device
 
-    n_rots_for_rt_gold = numpy.zeros((13,), dtype=numpy.int32)
-    n_rots_for_rt_gold[4] = 1
+    n_rots_for_rt_gold = numpy.zeros((21 * 13,), dtype=numpy.int32)
+    gly_ind = [bt.name for bt in task.blts[0][4].considered_block_types].index("GLY")
+    n_rots_for_rt_gold[4 * 21 + gly_ind] = 1
     numpy.testing.assert_equal(n_rots_for_rt_gold, results[0].cpu().numpy())
 
-    rt_for_rot_gold = numpy.full((1,), 4, dtype=numpy.int32)
+    rt_for_rot_gold = numpy.full((1,), 4 * 21 + gly_ind, dtype=numpy.int32)
     numpy.testing.assert_equal(rt_for_rot_gold, results[1].cpu().numpy())
