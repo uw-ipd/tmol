@@ -45,9 +45,11 @@ def test_residue_level_task_his_restrict_to_repacking(
     )
     assert his_res
     blt = BlockLevelTask(i, his_res, palette)
-    assert len(blt.allowed_blocktypes) == 21
+    assert len(blt.considered_block_types) == 21
+    assert len(blt.block_type_allowed) == 21
+    assert sum(blt.block_type_allowed) == 21
     blt.restrict_to_repacking()
-    assert len(blt.allowed_blocktypes) == 2
+    assert sum(blt.block_type_allowed) == 2
 
 
 def test_packer_task_ctor(ubq_pdb, default_restype_set, torch_device):
