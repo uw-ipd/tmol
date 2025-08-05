@@ -262,6 +262,71 @@ def test_construct_scans_for_rotamers2(
     numpy.testing.assert_equal(gens_gold, gens)
 
 
+def test_measure_pose_dofs(default_database, ubq_pdb, torch_device, dun_sampler):
+    """Create single residue kinforests for the original pose and refold."""
+    chem_db = default_database.chemical
+
+    poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    restype_set = poses.packed_block_types.restype_set
+
+    fixed_sampler = FixedAAChiSampler()
+    samplers = (dun_sampler, fixed_sampler)
+
+    pbt = poses.packed_block_types
+
+    for bt in pbt.active_block_types:
+        annotate_restype(bt, samplers, chem_db)
+    annotate_packed_block_types(pbt)
+
+    orig_kinforest, orig_dofs_kto = measure_pose_dofs(poses)
+
+    block_type_ind_for_conformer = poses.block_type_ind64.view(-1)
+    block_type_ind_for_conformer_np = poses.block_type_ind.view(-1).cpu().numpy()
+    n_atoms_for_conformer = pbt.n_atoms[block_type_ind_for_conformer].to(torch.int32)
+    n_atoms_offset_for_conformer = poses.block_coord_offset64.view(-1).cpu().numpy()
+
+    nodes, scans, gens = construct_scans_for_conformers(
+        pbt,
+        block_type_ind_for_conformer_np,
+        n_atoms_for_conformer,
+        n_atoms_offset_for_conformer,
+    )
+
+    n_conformers = poses.max_n_blocks
+    n_atoms_total = poses.max_n_pose_atoms
+    # conf_dofs_kto = torch.zeros(
+    #     (n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device
+    # )
+
+    # torch.set_printoptions(threshold=10000)
+    # print("orig_kinforest id")
+    # print(orig_kinforest.id)
+    # print("orig_kinforest parent")
+    # print(orig_kinforest.parent)
+    # print("orig_kinforest frame x")
+    # print(orig_kinforest.frame_x)
+    # print("orig_kinforest frame y")
+    # print(orig_kinforest.frame_y)
+    # print("orig_kinforest frame z")
+    # print(orig_kinforest.frame_z)
+
+    rotamer_coords = calculate_rotamer_coords(
+        pbt,
+        n_conformers,
+        n_atoms_total,
+        orig_kinforest,
+        nodes,
+        scans,
+        gens,
+        orig_dofs_kto,
+    )
+    # torch.set_printoptions(threshold=10000)
+    # print("rotamer_coords")
+    # print(rotamer_coords)
+
+    torch.testing.assert_close(rotamer_coords, poses.coords.view(-1, 3))
+
+
 def test_inv_kin_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
     # steps:
     # - annotate residue types and pbt with kinforests + mainchain fingerprints
@@ -1406,3 +1471,73 @@ def test_new_rotamer_building_logic2(
     ###########################################
 
     poses, rotamer_set = build_rotamers(poses, task, chem_db)
+
+
+def test_new_rotamer_building_logic3(
+    default_database, ubq_pdb, torch_device, dun_sampler
+):
+    n_poses = 6
+    p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
+    restype_set = p.packed_block_types.restype_set
+    poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
+
+    palette = PackerPalette(restype_set)
+    task = PackerTask(poses, palette)
+    task.restrict_to_repacking()
+
+    residues_to_fix = [(0, 0), (0, 12), (0, 24), (1, 18), (1, 31), (1, 52)]
+    for pose, res in residues_to_fix:
+        task.blts[pose][res].disable_packing()
+
+    fixed_sampler = FixedAAChiSampler()
+    task.add_conformer_sampler(dun_sampler)
+    task.add_conformer_sampler(fixed_sampler)
+    chem_db = default_database.chemical
+    ###########################################
+
+    poses, rotamer_set = build_rotamers(poses, task, chem_db)
+    print("rotamer_set.block_ind_for_rot", rotamer_set.block_ind_for_rot.shape)
+
+    for p, r in residues_to_fix:
+        # first rotamer for block will also be the block's only rotamer
+        current_rot = rotamer_set.rot_offset_for_block[p][r]
+        current_rot_offset = rotamer_set.coord_offset_for_rot[current_rot]
+        current_rot_blocktype = rotamer_set.block_type_ind_for_rot[current_rot]
+        current_rot_pose = rotamer_set.pose_for_rot[current_rot]
+        assert current_rot_pose == p
+        current_rot_block = rotamer_set.block_ind_for_rot[current_rot]
+        assert current_rot_block == r
+        current_rot_n_atoms = poses.packed_block_types.n_atoms[current_rot_blocktype]
+        assert current_rot_blocktype == poses.block_type_ind[p, r]
+        print(
+            f"current_rot_coords {p}, {r}, rot {current_rot} xyz offset {current_rot_offset}"
+        )
+        print(
+            rotamer_set.coords[
+                (current_rot_offset) : (current_rot_offset + current_rot_n_atoms), :
+            ]
+        )
+        pose_stack_coord_offset = poses.block_coord_offset64[p, r]
+        print("pose coords")
+        print(
+            poses.coords[
+                p,
+                pose_stack_coord_offset : (
+                    pose_stack_coord_offset + current_rot_n_atoms
+                ),
+            ]
+        )
+
+        torch.testing.assert_close(
+            poses.coords[
+                p,
+                pose_stack_coord_offset : (
+                    pose_stack_coord_offset + current_rot_n_atoms
+                ),
+            ],
+            rotamer_set.coords[
+                (current_rot_offset) : (current_rot_offset + current_rot_n_atoms), :
+            ],
+            atol=1e-3,
+            rtol=1e-5,
+        )

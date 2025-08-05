@@ -87,7 +87,7 @@ class IncludeCurrentSampler(ConformerSampler):
 
         dst, src = (
             create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
-                poses,
+                pose_stack,
                 task,
                 gbt_for_conformer,
                 block_type_ind_for_conformer,
@@ -97,10 +97,17 @@ class IncludeCurrentSampler(ConformerSampler):
                 n_dof_atoms_offset_for_conformer,
             )
         )
+        print("dst")
+        print(dst)
+        print("src")
+        print(src)
+        print("src dofs")
+        print(orig_dofs_kto[src, :])
 
         conf_dofs_kto[dst, :] = orig_dofs_kto[src, :]
 
 
+# @validate_args
 def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler(
     poses: PoseStack,
     task: "PackerTask",  # noqa F821
@@ -116,6 +123,9 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
     # original residues into the appropriate positions
     # for the rotamers thta we are building at those
     # residues. This requires a good deal of reindexing.
+
+    # print("Include current: n_dof_atoms_offset_for_rot")
+    # print(n_dof_atoms_offset_for_rot)
 
     pbt = poses.packed_block_types
     n_rots_for_sampler = sampler_gbt_for_rotamer.shape[0]
@@ -151,6 +161,8 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
         dtype=torch.int64,
         device=poses.device,
     )
+    pose_ind_for_gbt = torch.floor_divide(res_ind_for_gbt, max_n_blocks).to(torch.int64)
+
     # print("res_ind_for_gbt")
     # print(res_ind_for_gbt)
     gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]
@@ -158,8 +170,8 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
     # print("gbt_for_samplers_rots")
     # print(gbt_for_samplers_rots)
     res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
-    # print("res_ind_for_samplers_rots")
-    # print(res_ind_for_samplers_rots)
+    print("res_ind_for_samplers_rots")
+    print(res_ind_for_samplers_rots)
     real_res_ind_for_samplers_rots = poses_res_to_real_poses_res[
         res_ind_for_samplers_rots
     ]
@@ -173,24 +185,38 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
     # now lets note which atoms are real
     dummy_rotamer_atom_inds = (
         torch.arange(pbt.max_n_atoms, dtype=torch.int64, device=poses.device)
-        .view(1, max_n_atoms)
+        .view(1, pbt.max_n_atoms)
         .expand(n_rots_for_sampler, -1)
+    )
+    print("dummy_rotamer_atom_inds")
+    print(dummy_rotamer_atom_inds.shape)
+    print("orig_res_n_atoms")
+    print(
+        orig_res_n_atoms.unsqueeze(1).expand(n_rots_for_sampler, pbt.max_n_atoms).shape
     )
 
     atom_is_real_for_rot = dummy_rotamer_atom_inds < orig_res_n_atoms.unsqueeze(
         1
     ).expand(n_rots_for_sampler, pbt.max_n_atoms)
     orig_atom_inds = (
-        poses.block_coord_offset64[real_res_ind_for_samplers_rots]
+        (
+            poses.block_coord_offset64.view(-1)[res_ind_for_samplers_rots]
+            + pose_ind_for_gbt[gbt_for_samplers_rots] * poses.max_n_pose_atoms
+        )
         .unsqueeze(1)
         .expand(-1, pbt.max_n_atoms)
         + dummy_rotamer_atom_inds
     )[atom_is_real_for_rot]
 
+    print("conf_inds_for_sampler")
+    print(conf_inds_for_sampler)
+    print("n_dof_atoms_offset_for_rot[conf_inds_for_sampler]")
+    print(n_dof_atoms_offset_for_rot[conf_inds_for_sampler])
+
     rot_atom_inds = (
-        n_dof_atoms_offset_for_rot[sampler_gbt_for_rotamer]
+        n_dof_atoms_offset_for_rot[conf_inds_for_sampler]
         .unsqueeze(1)
-        .expand(-1, pdb.max_n_atoms)
+        .expand(-1, pbt.max_n_atoms)
         + dummy_rotamer_atom_inds
     )[atom_is_real_for_rot]
     return rot_atom_inds, orig_atom_inds

@@ -45,6 +45,7 @@ class RotamerSet(ValidateAttrs):
     pose_for_rot: Tensor[torch.int64][:]
     block_type_ind_for_rot: Tensor[torch.int64][:]
     block_ind_for_rot: Tensor[torch.int32][:]
+    coord_offset_for_rot: Tensor[torch.int32][:]
     coords: Tensor[torch.float32][:, :]
 
 
@@ -671,7 +672,7 @@ def calculate_rotamer_coords(
     # print("id")
     # print(rot_kinforest.id)
 
-    new_coords_rto[rot_kinforest.id.to(torch.int64)] = new_coords_kto
+    new_coords_rto[rot_kinforest.id[1:].to(torch.int64)] = new_coords_kto[1:]
     # new_coords_rto = new_coords_rto.view(n_rots, pbt.max_n_atoms, 3)
     # print("new_coords_rto.shape", new_coords_rto.shape)
     return new_coords_rto
@@ -1023,6 +1024,50 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     #     rot_dofs_kto,
     # )
 
+    print("conf_dofs_kto")
+    print(
+        conf_dofs_kto[
+            torch.tensor(
+                # [    0,     1,     2,     3,     4,     5,     6,     7,     8,     9,
+                #     10,    11,    12,    13,    14,    15,    16,    17,    18],
+                [
+                    14952,
+                    14953,
+                    14954,
+                    14955,
+                    14956,
+                    14957,
+                    14958,
+                    14959,
+                    14960,
+                    14961,
+                    14962,
+                    14963,
+                    14964,
+                    14965,
+                    14956,
+                    14957,
+                ],
+                dtype=torch.int64,
+                device=pbt.device,
+            ),
+            :,
+        ]
+    )
+    is_pro_rot = torch.logical_and(
+        conformer_kinforest.id >= 14952, conformer_kinforest.id < 14966
+    )
+    print("id:")
+    print(torch.nonzero(is_pro_rot))
+    print("conformer_kinforest.parent")
+    print(conformer_kinforest.parent[14953:14967])
+    print("conformer_kinforest.frame_x")
+    print(conformer_kinforest.frame_x[14953:14967])
+    print("conformer_kinforest.frame_y")
+    print(conformer_kinforest.frame_y[14953:14967])
+    print("conformer_kinforest.frame_z")
+    print(conformer_kinforest.frame_z[14953:14967])
+
     # assign_dofs_from_samples(
     #     pbt,
     #     rt_for_rot_torch,
@@ -1060,6 +1105,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
             pose_for_rot=pose_for_rot,
             block_type_ind_for_rot=block_type_ind_for_conformer_torch,
             block_ind_for_rot=block_ind_for_rot,
+            coord_offset_for_rot=n_atoms_offset_for_conformer_torch.to(torch.int32),
             coords=rotamer_coords,
         ),
     )
