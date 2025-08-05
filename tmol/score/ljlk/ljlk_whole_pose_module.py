@@ -67,6 +67,7 @@ class LJLKWholePoseScoringModule(torch.nn.Module):
             torch.stack(
                 _t(
                     [
+                        global_params.lj_dlin_sigma_factor,
                         global_params.lj_hbond_dis,
                         global_params.lj_hbond_OH_donor_dis,
                         global_params.lj_hbond_hdis,

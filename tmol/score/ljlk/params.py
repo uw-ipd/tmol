@@ -21,6 +21,7 @@ from ..chemical_database import AtomTypeParamResolver
 class LJLKGlobalParams(TensorGroup):
     max_dis: Tensor[torch.float32][...]
     spline_start: Tensor[torch.float32][...]
+    lj_dlin_sigma_factor: Tensor[torch.float32][...]
     lj_hbond_OH_donor_dis: Tensor[torch.float32][...]
     lj_hbond_dis: Tensor[torch.float32][...]
     lj_hbond_hdis: Tensor[torch.float32][...]

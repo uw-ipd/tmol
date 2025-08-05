@@ -297,6 +297,7 @@ class LJLKInterSystemModule:
             torch.stack(
                 _t(
                     [
+                        global_params.lj_dlin_sigmal_factor,
                         global_params.lj_hbond_dis,
                         global_params.lj_hbond_OH_donor_dis,
                         global_params.lj_hbond_hdis,
