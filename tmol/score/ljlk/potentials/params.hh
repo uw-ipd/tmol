@@ -62,6 +62,7 @@ struct LJLKTypeParams {
 
 template <typename Real>
 struct LJGlobalParams {
+  Real lj_dlin_sigma_factor;
   Real lj_hbond_dis;
   Real lj_hbond_OH_donor_dis;
   Real lj_hbond_hdis;
