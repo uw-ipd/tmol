@@ -21,6 +21,11 @@ def ubq_pdb():
 
 
 @pytest.fixture(scope="session")
+def kin_minimized_ubq_pdb():
+    return pdb.data["kin_minimized_1ubq"]
+
+
+@pytest.fixture(scope="session")
 def disulfide_pdb():
     return pdb.data["3plc"]
 

@@ -4,8 +4,8 @@ import math
 import pytest
 
 from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
-
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol import pose_stack_from_pdb, ScoreFunction, ScoreType
 
 
 def add_test_constraints_to_pose_stack(pose_stack):
@@ -271,3 +271,64 @@ class TestConstraintEnergyTerm(EnergyTermTestBase):
             edit_pose_stack_fn=add_test_constraints_to_pose_stack,
             eps=1e-3,
         )
+
+
+def test_create_coordinate_constraints(
+    ubq_pdb, kin_minimized_ubq_pdb, default_database, torch_device
+):
+    ps = pose_stack_from_pdb(ubq_pdb, device=torch_device)
+    pbt = ps.packed_block_types
+    constraints = ps.get_constraint_set()
+
+    is_heavy_atom = torch.zeros(
+        (ps.n_poses, ps.max_n_blocks, ps.max_n_block_atoms),
+        dtype=torch.bool,
+        device=torch_device,
+    )
+    # is_real_atom = torch.zeros(
+    #     (ps.n_poses, ps.max_n_blocks, ps.max_n_block_atoms),
+    #     dtype=torch.bool,
+    #     device=torch_device,
+    # )
+    is_real_block = ps.block_type_ind64 != -1
+
+    is_heavy_atom[is_real_block, :] = pbt.atom_is_hydrogen[
+        ps.block_type_ind64[is_real_block]
+    ].to(torch.bool)
+    heavy_atom_inds = torch.nonzero(is_heavy_atom, as_tuple=True)
+    heavy_atom_inds = torch.stack(heavy_atom_inds, dim=1).unsqueeze(1)
+    # print("heavy atom inds.shape", heavy_atom_inds.shape)
+
+    # n_constrained_atoms = heavy_atom_inds.size(0)
+    # print("n_constrained_atoms", n_constrained_atoms)
+
+    expanded_coords, _ = ps.expand_coords()
+    # print("expanded_coords", expanded_coords.shape)
+    # print("is_heavy_atom", is_heavy_atom.shape)
+    target_coords = expanded_coords[is_heavy_atom]
+    # print("ideal_coords", ideal_coords.shape)
+
+    constraints.add_constraints(
+        ConstraintEnergyTerm.harmonic_coord_constraint,
+        heavy_atom_inds,
+        target_coords,
+    )
+
+    cst_sfxn = ScoreFunction(default_database.scoring, torch_device)
+    cst_sfxn.set_weight(ScoreType.constraint, 1.0)
+    wpsm = cst_sfxn.render_whole_pose_scoring_module(ps)
+    s = wpsm(ps.coords)
+    torch.testing.assert_close(s, torch.tensor([0.0], device=torch_device))
+    # print("s", s)
+
+    ps2 = pose_stack_from_pdb(kin_minimized_ubq_pdb, device=torch_device)
+    constraints2 = ps2.get_constraint_set()
+    constraints2.add_constraints(
+        ConstraintEnergyTerm.harmonic_coord_constraint,
+        heavy_atom_inds,
+        target_coords,
+    )
+    wpsm = cst_sfxn.render_whole_pose_scoring_module(ps2)
+    s2 = wpsm(ps2.coords)
+    # print("s2", s2)
+    torch.testing.assert_close(s2, torch.tensor([4886.4336], device=torch_device))
