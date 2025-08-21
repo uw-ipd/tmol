@@ -21,6 +21,7 @@ def assign_block_types(
     res_type_variants: Tensor[torch.int32][:, :],
     found_disulfides64: Tensor[torch.int64][:, 3],
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
+    hack_rosetta3_i_ip2_count_pair: bool = False,
 ) -> Tuple[
     Tensor[torch.int64][:, :],
     Tensor[torch.int64][:, :, :, 2],
@@ -193,6 +194,46 @@ def assign_block_types(
     ibb64 = PoseStackBuilder._calculate_interblock_bondsep_from_connectivity_graph(
         pbt, block_n_conn, pose_n_pconn, pconn_matrix
     )
+    if hack_rosetta3_i_ip2_count_pair:
+        # overwrite the i to i+2 bond separation for the upper/lower pair
+        # to reflect rosetta3's count pair logic that treats the C on i
+        # and the N on i+2 at full strength.
+        # NOTE: this only works for pure-alpha-amino-acid monomers; the logic
+        # assumes that i is connected to i+1 and i+1 is connected to i+2.
+        print("ibb64 before")
+        print(
+            ibb64[
+                nz_res_is_poly_and_conn_to_next_pose_ind[:-1][:5],
+                nz_res_is_poly_and_conn_to_next_res_ind[:-1][:5],
+                nz_res_is_poly_and_conn_to_prev_res_ind[1:][:5],
+                connected_up_conn_inds[:-1][:5],
+                connected_down_conn_inds[1:][:5],
+            ]
+        )
+        ibb64[
+            nz_res_is_poly_and_conn_to_next_pose_ind[:-1],
+            nz_res_is_poly_and_conn_to_next_res_ind[:-1],
+            nz_res_is_poly_and_conn_to_prev_res_ind[1:],
+            connected_up_conn_inds[:-1],
+            connected_down_conn_inds[1:],
+        ] = MAX_SIG_BOND_SEPARATION
+        ibb64[
+            nz_res_is_poly_and_conn_to_next_pose_ind[:-1],
+            nz_res_is_poly_and_conn_to_prev_res_ind[1:],
+            nz_res_is_poly_and_conn_to_next_res_ind[:-1],
+            connected_down_conn_inds[1:],
+            connected_up_conn_inds[:-1],
+        ] = MAX_SIG_BOND_SEPARATION
+        print("ibb64 after")
+        print(
+            ibb64[
+                nz_res_is_poly_and_conn_to_next_pose_ind[:-1][:5],
+                nz_res_is_poly_and_conn_to_next_res_ind[:-1][:5],
+                nz_res_is_poly_and_conn_to_prev_res_ind[1:][:5],
+                connected_up_conn_inds[:-1][:5],
+                connected_down_conn_inds[1:][:5],
+            ]
+        )
 
     return (block_type_ind64, inter_residue_connections64, ibb64)
 
