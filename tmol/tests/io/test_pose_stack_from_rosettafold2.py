@@ -1,9 +1,11 @@
 import os
 import torch
 
+from tmol.tests.score.common.test_energy_term import assert_allclose
 
 from tmol.io.pose_stack_from_rosettafold2 import (
     pose_stack_from_rosettafold2,
+    pose_stack_to_rosettafold2_with_suppressed,
     canonical_form_from_rosettafold2,
     _paramdb_for_rosettafold2,
     canonical_ordering_for_rosettafold2,
@@ -46,6 +48,25 @@ def test_multi_chain_rosettafold2_pose_stack_construction(
     assert ps.max_n_blocks == 76
     pbt = packed_block_types_for_rosettafold2(torch_device)
     assert ps.packed_block_types is pbt
+
+
+def test_from_to_rosettafold2(rosettafold2_ubq_pred, torch_device):
+    rosettafold2_ubq_pred["chainlens"] = [76]
+
+    # RF2->tmol
+    ps = pose_stack_from_rosettafold2(**rosettafold2_ubq_pred)
+
+    # tmol->RF2
+    rf2ubq, rf2_ats = pose_stack_to_rosettafold2_with_suppressed(
+        ps, rosettafold2_ubq_pred["chainlens"]
+    )
+
+    assert_allclose(
+        rosettafold2_ubq_pred["xyz"].unsqueeze(0)[rf2_ats].cpu(),
+        rf2ubq[rf2_ats].cpu(),
+        1e-5,
+        1e-3,
+    )
 
 
 def test_create_canonical_form_from_rosettafold2_ubq_stability(
