@@ -414,7 +414,7 @@ def construct_kinforest_for_rotamers(
 def measure_dofs_from_orig_coords(
     coords: Tensor[torch.float32][:, :, :], kinforest: KinForest
 ):
-    from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
+    from tmol.kinematics.compiled.compiled_ops import inverse_kin
 
     kinforest_coords = coords.view(-1, 3)[kinforest.id.to(torch.int64)]
     kinforest_coords[0, :] = 0  # reset root

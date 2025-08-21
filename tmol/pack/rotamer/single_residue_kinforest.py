@@ -7,7 +7,7 @@ from tmol.types.array import NDArray
 
 from tmol.kinematics.scan_ordering import KinForestScanOrdering
 from tmol.kinematics.old.builder import _KinematicBuilder
-from tmol.kinematics.compiled.compiled_inverse_kin import inverse_kin
+from tmol.kinematics.compiled.compiled_ops import inverse_kin
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes

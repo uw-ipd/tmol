@@ -1,7 +1,9 @@
 import pathlib
 import os
-from functools import wraps
+import sys
+from functools import wraps, partial
 import warnings
+import importlib
 
 from ..extern import include_paths as extern_include_paths
 from .. import include_paths as tmol_include_paths
@@ -141,6 +143,12 @@ def relpaths(src_path, paths):
     return [str(pathlib.Path(src_path).parent / s) for s in paths]
 
 
+def actual_relpaths(src_path, paths):
+    if isinstance(paths, (str, bytes)):
+        paths = [paths]
+    return [str(pathlib.Path(src_path).parent / s) for s in paths]
+
+
 def modulename(src_name):
     """Adapt module name to valid cpp extension name.
 
@@ -151,3 +159,97 @@ def modulename(src_name):
     """
 
     return src_name.replace(".", "_")
+
+
+def get_prebuild_extensions():
+
+    from pkgutil import iter_modules
+    from setuptools import find_packages
+
+    name_filter = {"compiled", "compiled_ops", "apsp_ops"}
+
+    compiled_modules = []
+    for pkg in find_packages("."):
+        pkgpath = "." + "/" + pkg.replace(".", "/")
+        for info in iter_modules([pkgpath]):
+            if not info.ispkg and info.name in name_filter and "test" not in pkgpath:
+                module_info = {"name": pkg + "." + info.name}
+                # print(module_info)
+
+                importlib.import_module(module_info["name"])
+                func = getattr(
+                    getattr(sys.modules[module_info["name"]], "loader"),
+                    "build_CUDA_extension",
+                )
+                compiled_modules.append(func("/home/jflat06/rosetta/tmol"))
+
+    return compiled_modules
+
+
+class TorchOpLoader:
+    _suffix = "_internal"
+
+    def __init__(self, fname, sources, functions):
+        self.name = modulename(fname + "_CUDA")
+        self.sources = sources
+        self.functions = functions
+
+        for function in self.functions:
+            setattr(self, function, partial(self.check_load_and_run, function))
+
+        pass
+
+    def check_load_and_run(self, function, *args, **kwargs):
+        if not hasattr(self, function + self._suffix):
+            self.load_mod()
+
+        return getattr(self, function + self._suffix)(*args, **kwargs)
+
+    def build_CUDA_extension(self, f, **kwargs):
+        src = [os.path.relpath(s, f) for s in self.sources]
+        # print(src)
+
+        kwargs = _augment_kwargs(self.name, src, **kwargs)
+        kwargs["extra_cuda_cflags"] += ["-gencode=arch=compute_75,code=sm_75"]
+        extra_args = {
+            "cxx": kwargs["extra_cflags"],
+            "nvcc": kwargs["extra_cuda_cflags"],
+        }
+
+        # print("KWARGS")
+        # print(kwargs)
+
+        cuda_ext = torch.utils.cpp_extension.CUDAExtension(
+            name=self.name,
+            sources=src,
+            include_dirs=_default_include_paths,
+            extra_compile_args=extra_args,
+        )
+
+        return cuda_ext
+
+    def jit_load(self):
+        load(self.name, cuda_if_available(self.sources), is_python_module=True)
+
+    def load_mod(self):
+        try:
+            importlib.import_module(self.name)
+
+            for function in self.functions:
+                setattr(
+                    self,
+                    function + self._suffix,
+                    getattr(sys.modules[self.name], function),
+                )
+
+        except ModuleNotFoundError:
+            self.jit_load()
+
+            importlib.import_module(self.name)
+
+            for function in self.functions:
+                setattr(
+                    self,
+                    function + self._suffix,
+                    getattr(sys.modules[self.name], function),
+                )
