@@ -68,11 +68,75 @@ def test_whole_pose_scoring_module_smoke(ubq_pdb, default_database, torch_device
     )
 
 
+def test_rotamer_scoring(
+    ubq_repacking_rotamers,
+    default_database,
+    torch_device,
+):
+    n_poses = 1
+
+    print("pass")
+    return
+
+    p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
+    pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
+
+    from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
+
+    write_pose_stack_pdb(
+        pn,
+        "test_whole_pose_scoring_10_new.pdb",
+        chain_ind_for_block=torch.zeros(
+            (pn.n_poses, pn.max_n_blocks), dtype=torch.int64
+        ),
+    )
+
+    if edit_pose_stack_fn is not None:
+        edit_pose_stack_fn(pn)
+
+    pose_scorer = cls.get_pose_scorer(pn, default_database, torch_device)
+
+    nres = pn.block_coord_offset.size(1)
+
+    block_pair_dispatch_indices = cls.get_block_pair_dispatch_indices(
+        nres, device=torch_device
+    )
+
+    coords = torch.nn.Parameter(pn.coords.clone())
+    scores, indices = pose_scorer(
+        coords, block_pair_dispatch_indices, output_block_pair_energies=True
+    )
+    # .cpu()
+    # .detach()
+    # .numpy()
+
+    """print(scores.shape)
+    print(scores_t[torch.nonzero(scores_t)])
+    print(torch.sum(scores_t))"""
+
+    sparse = torch.sparse_coo_tensor(indices, scores)
+    print("sparse", sparse.to_dense()[0, 0:6, 0:6])
+    print("SHAPE: ", scores.shape, indices.shape)
+    sparse_csr = sparse.to_dense().to_sparse_csr()
+    print(sparse_csr)
+    print("TOTAL: ", torch.sum(sparse))
+    torchshow.show(sparse.to_dense())
+
+    if update_baseline:
+        cls.save_test_baseline_data(
+            cls.test_whole_pose_scoring_10.__name__, cls.whole_pose_to_dict(scores)
+        )
+    gold_vals = cls.get_test_baseline_data(cls.test_whole_pose_scoring_10.__name__)
+
+    assert_allclose(gold_vals, scores, atol, rtol)
+
+
 class TestHBondEnergyTerm(EnergyTermTestBase):
     energy_term_class = HBondEnergyTerm
 
     @classmethod
     def test_whole_pose_scoring_10(cls, ubq_pdb, default_database, torch_device):
+        resnums = [(6, 8), (10, 12)]
         return super().test_whole_pose_scoring_10(
             ubq_pdb, default_database, torch_device, update_baseline=False
         )

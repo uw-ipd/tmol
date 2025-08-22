@@ -267,9 +267,7 @@ class EnergyTermTestBase:
         )
 
         coords = torch.nn.Parameter(pn.coords.clone())
-        scores, indices = pose_scorer(
-            coords, block_pair_dispatch_indices, output_block_pair_energies=True
-        )
+        scores, indices = pose_scorer(coords, output_block_pair_energies=True)
         # .cpu()
         # .detach()
         # .numpy()

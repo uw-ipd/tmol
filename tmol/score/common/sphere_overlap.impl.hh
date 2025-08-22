@@ -240,8 +240,8 @@ struct detect_rot_neighbors {
         return;
       }
 
-      int const global_rot_ind1 = rot_ind1 + n_rots_for_pose[pose_ind];
-      int const global_rot_ind2 = rot_ind2 + n_rots_for_pose[pose_ind];
+      int const global_rot_ind1 = rot_ind1 + rot_offset_for_pose[pose_ind];
+      int const global_rot_ind2 = rot_ind2 + rot_offset_for_pose[pose_ind];
 
       int const block_ind1 = block_ind_for_rot[global_rot_ind1];
       int const block_ind2 = block_ind_for_rot[global_rot_ind2];

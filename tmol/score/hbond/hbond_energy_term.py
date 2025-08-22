@@ -49,6 +49,7 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         identity_map = pose_stack.block_identity_map()
 
         return HBondWholePoseScoringModule(
+            pose_stack,
             identity_map=identity_map,
             pose_stack_block_coord_offset=pose_stack.block_coord_offset,
             pose_stack_block_type=pose_stack.block_type_ind,
