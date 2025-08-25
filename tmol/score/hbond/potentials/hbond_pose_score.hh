@@ -270,10 +270,22 @@ struct HBondPoseScoreDispatch2 {
           TPack<Int, 2, Dev> >;
 
   static auto backward(
-      TView<Vec<Real, 3>, 2, Dev> coords,
-      TView<Int, 2, Dev> block_pair_dispatch_indices,
-      TView<Int, 2, Dev> pose_stack_block_coord_offset,
-      TView<Int, 2, Dev> pose_stack_block_type,
+      TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Int, 1, Dev> rot_coord_offset,
+
+      TView<Int, 2, Dev> first_rot_for_block,
+      TView<Int, 2, Dev> first_rot_block_type,
+
+      TView<Int, 1, Dev> block_ind_for_rot,
+      TView<Int, 1, Dev> pose_ind_for_rot,
+
+      TView<Int, 1, Dev> block_type_ind_for_rot,
+
+      TView<Int, 1, Dev> n_rots_for_pose,
+      TView<Int, 1, Dev> rot_offset_for_pose,
+      TView<Int, 2, Dev> n_rots_for_block,
+      TView<Int, 2, Dev> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
@@ -287,13 +299,11 @@ struct HBondPoseScoreDispatch2 {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev>
-          pose_stack_min_bond_separation,  // ?? needed ?? I think so
+      TView<Int, 3, Dev> pose_stack_min_bond_separation,
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev>
-          pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
+      TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
 
       //////////////////////
       // Chemical properties
@@ -334,9 +344,9 @@ struct HBondPoseScoreDispatch2 {
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
-      TView<Int, 3, Dev> scratch_block_neighbors,  // from forward pass
-      TView<Real, 1, Dev> dTdV  // nterms x nposes x len x len
-      ) -> TPack<Vec<Real, 3>, 3, Dev>;
+      TView<Int, 2, Dev> dispatch_indices,  // from forward pass
+      TView<Real, 1, Dev> dTdV              // nterms x nposes x len x len
+      ) -> TPack<Vec<Real, 3>, 1, Dev>;
 };
 
 }  // namespace potentials

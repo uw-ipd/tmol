@@ -1667,10 +1667,22 @@ template <
     typename Real,
     typename Int>
 auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
-    TView<Vec<Real, 3>, 2, Dev> coords,
-    TView<Int, 2, Dev> block_pair_dispatch_indices,
-    TView<Int, 2, Dev> pose_stack_block_coord_offset,
-    TView<Int, 2, Dev> pose_stack_block_type,
+    TView<Vec<Real, 3>, 1, Dev> rot_coords,
+    TView<Int, 1, Dev> rot_coord_offset,
+
+    TView<Int, 2, Dev> first_rot_for_block,
+    TView<Int, 2, Dev> first_rot_block_type,
+
+    TView<Int, 1, Dev> block_ind_for_rot,
+    TView<Int, 1, Dev> pose_ind_for_rot,
+
+    TView<Int, 1, Dev> block_type_ind_for_rot,
+
+    TView<Int, 1, Dev> n_rots_for_pose,
+    TView<Int, 1, Dev> rot_offset_for_pose,
+    TView<Int, 2, Dev> n_rots_for_block,
+    TView<Int, 2, Dev> rot_offset_for_block,
+    Int max_n_rots_per_pose,
 
     // For determining which atoms to retrieve from neighboring
     // residues we have to know how the blocks in the Pose
@@ -1729,17 +1741,18 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
     TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
-    TView<Int, 3, Dev> scratch_block_neighbors,  // from forward pass
-    TView<Real, 1, Dev> dTdV                     // nterms x nposes x len x len
-    ) -> TPack<Vec<Real, 3>, 3, Dev>
-
+    TView<Int, 2, Dev> dispatch_indices,  // from forward pass
+    TView<Real, 1, Dev> dTdV              // nterms x nposes x len x len
+    ) -> TPack<Vec<Real, 3>, 1, Dev>      // TODO: add extra dimension for terms
 {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
-  int const n_poses = coords.size(0);
-  int const max_n_pose_atoms = coords.size(1);
-  int const max_n_blocks = pose_stack_block_type.size(1);
+  printf("CHECK0\n");
+
+  int const n_poses = n_rots_for_pose.size(0);
+  // int const max_n_pose_atoms = rot_coords.size(1);
+  // int const max_n_blocks = pose_stack_block_type.size(1);
   int const max_n_conn = pose_stack_inter_residue_connections.size(2);
   int const n_block_types = block_type_n_atoms.size(0);
   int const max_n_block_atoms = block_type_atom_is_hydrogen.size(1);
@@ -1750,9 +1763,23 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
   int const max_n_donH_per_tile = block_type_tile_donH_inds.size(2);
   int const max_n_acc_per_tile = block_type_tile_acc_inds.size(2);
 
-  auto dV_dcoords_t =
-      TPack<Vec<Real, 3>, 3, Dev>::zeros({1, n_poses, max_n_pose_atoms});
+  assert(max_n_interblock_bonds <= MAX_N_CONN);
+  printf("CHECK1\n");
+
+  auto n_rots = rot_coord_offset.size(0);
+  // auto rot_max_n_atoms = rot_coords.size(1);
+  auto n_atoms = rot_coords.size(0);
+
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({n_atoms});  // TODO
   auto dV_dcoords = dV_dcoords_t.view;
+
+  auto scratch_rot_spheres_t = TPack<Real, 2, Dev>::zeros({n_rots, 4});
+  auto scratch_rot_spheres = scratch_rot_spheres_t.view;
+
+  auto scratch_rot_neighbors_t = TPack<Int, 3, Dev>::zeros(
+      {n_poses, max_n_rots_per_pose, max_n_rots_per_pose});
+  auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
+  printf("CHECK2\n");
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
@@ -1775,7 +1802,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
           if (cp_separation < 5) {
             return Real(0.0);
           }
-          Real val = hbond_atom_derivs<TILE_SIZE>(
+          Real val = hbond_atom_derivs_2<TILE_SIZE>(
               don_ind,
               acc_ind,
               don_tile_ind,
@@ -1791,9 +1818,9 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
           return Real(0.0);
         });
 
-    auto score_inter_hbond_atom_pair = ([=] SCORE_INTER_HBOND_ATOM_PAIR);
+    auto score_inter_hbond_atom_pair = ([=] SCORE_INTER_HBOND_ATOM_PAIR_2);
 
-    auto score_intra_hbond_atom_pair = ([=] SCORE_INTRA_HBOND_ATOM_PAIR);
+    auto score_intra_hbond_atom_pair = ([=] SCORE_INTRA_HBOND_ATOM_PAIR_2);
 
     SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
@@ -1802,73 +1829,68 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
 
     } shared;
 
-    int const pose_ind = block_pair_dispatch_indices[0][cta];
-    int const block_ind1 = block_pair_dispatch_indices[1][cta];
-    int const block_ind2 = block_pair_dispatch_indices[2][cta];
-    // int const pose_ind = cta / (max_n_blocks * max_n_blocks);
-    // int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
-    // int const block_ind1 = block_ind_pair / max_n_blocks;
-    // int const block_ind2 = block_ind_pair % max_n_blocks;
-    // if (block_ind1 > block_ind2) {
-    // return;
-    //}
-
-    if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-      return;
-    }
-
     int const max_important_bond_separation = 4;
 
-    int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-    int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+    int const pose_ind = dispatch_indices[0][cta];
 
-    if (block_type1 < 0 || block_type2 < 0) {
-      return;
-    }
+    int const rot_ind1 = dispatch_indices[1][cta];
+    int const rot_ind2 = dispatch_indices[2][cta];
+
+    int const block_ind1 = block_ind_for_rot[rot_ind1];
+    int const block_ind2 = block_ind_for_rot[rot_ind2];
+
+    int const block_type1 = block_type_ind_for_rot[rot_ind1];
+    int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
     int const n_atoms1 = block_type_n_atoms[block_type1];
     int const n_atoms2 = block_type_n_atoms[block_type2];
 
     auto load_tile_invariant_interres_data =
-        ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
+        ([=] LOAD_TILE_INVARIANT_INTERRES_DATA_2);
 
     auto load_interres1_tile_data_to_shared =
-        ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
+        ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED_2);
 
     auto load_interres2_tile_data_to_shared =
-        ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
+        ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED_2);
 
-    auto load_interres_data_from_shared = ([=] LOAD_INTERRES_DATA_FROM_SHARED);
+    auto load_interres_data_from_shared =
+        ([=] LOAD_INTERRES_DATA_FROM_SHARED_2);
 
-    auto eval_interres_atom_pair_scores = ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
+    auto eval_interres_atom_pair_scores =
+        ([=] EVAL_INTERRES_ATOM_PAIR_SCORES_2);
 
     auto store_calculated_energies =
         ([=] TMOL_DEVICE_FUNC(
-             HBondScoringData<Dev, Real, Int> & score_dat,
+             HBondScoringData2<Dev, Real, Int> & score_dat,
              shared_mem_union & shared) { ; });
 
     auto load_tile_invariant_intrares_data =
-        ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
+        ([=] LOAD_TILE_INVARIANT_INTRARES_DATA_2);
 
     auto load_intrares1_tile_data_to_shared =
-        ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
+        ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED_2);
 
     auto load_intrares2_tile_data_to_shared =
-        ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
+        ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED_2);
 
-    auto load_intrares_data_from_shared = ([=] LOAD_INTRARES_DATA_FROM_SHARED);
+    auto load_intrares_data_from_shared =
+        ([=] LOAD_INTRARES_DATA_FROM_SHARED_2);
 
-    auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
+    auto eval_intrares_atom_pair_scores =
+        ([=] EVAL_INTRARES_ATOM_PAIR_SCORES_2);
 
-    /*tmol::score::common::tile_evaluate_block_pair<
+    tmol::score::common::tile_evaluate_rot_pair<
         DeviceDispatch,
         Dev,
-        HBondScoringData<Dev, Real, Int>,
-        HBondScoringData<Dev, Real, Int>,
+        HBondScoringData2<Dev, Real, Int>,
+        HBondScoringData2<Dev, Real, Int>,
         Real,
         TILE_SIZE>(
         shared,
         pose_ind,
+        rot_ind1,
+        rot_ind2,
         block_ind1,
         block_ind2,
         block_type1,
@@ -1886,14 +1908,27 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
         load_intrares2_tile_data_to_shared,
         load_intrares_data_from_shared,
         eval_intrares_atom_pair_scores,
-        store_calculated_energies);*/
+        store_calculated_energies);
   });
 
-  // Since we have the sphere overlap results from the forward pass,
-  // there's only a single kernel launch here
-  int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
+  ///////////////////////////////////////////////////////////////////////
+
+  // Three steps
+  // 0: setup
+  // 1: launch a kernel to find a small bounding sphere surrounding the
+  // blocks 2: launch a kernel to look for spheres that are within
+  // striking distance of each other 3: launch a kernel to evaluate
+  // lj/lk between pairs of blocks within striking distance
+
+  // 0
+  // TO DO: let DeviceDispatch hold a cuda stream (??)
+  // at::cuda::CUDAStream wrapped_stream =
+  // at::cuda::getDefaultCUDAStream(); mgpu::standard_context_t
+  // context(wrapped_stream.stream());
+
+  // 3
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      block_pair_dispatch_indices.size(1), eval_derivs);
+      dispatch_indices.size(1), eval_energies);
 
   return dV_dcoords_t;
 }

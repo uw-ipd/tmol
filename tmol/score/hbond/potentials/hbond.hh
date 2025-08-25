@@ -1901,7 +1901,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs_2(
     HBondRotPairData<Dev, Real, Int> const &respair_dat,
     int cp_separation,
     Real dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 1, Dev> dV_dcoords) {  // TODO
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
   using bonded_atom::BlockCentricIndexedBonds;
@@ -1934,11 +1934,11 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs_2(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
-        load_coord<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
+        load_coord_2<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
     Real3 Bxyz =
-        load_coord<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
+        load_coord_2<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
     Real3 B0xyz =
-        load_coord<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
+        load_coord_2<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];

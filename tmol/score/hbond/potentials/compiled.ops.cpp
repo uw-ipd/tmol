@@ -291,14 +291,12 @@ class HBondPoseScoresOp2
       Tensor rot_coord_offset,
       Tensor first_rot_for_block,
       Tensor first_rot_block_type,
-      // Tensor block_pair_dispatch_indices,
+
       Tensor block_ind_for_rot,
       Tensor pose_ind_for_rot,
-
-      // Tensor rot_coord_offset,
       Tensor block_type_ind_for_rot,
-
       Tensor n_rots_for_pose,
+
       Tensor rot_offset_for_pose,
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
@@ -306,14 +304,14 @@ class HBondPoseScoresOp2
 
       Tensor pose_stack_inter_residue_connections,
       Tensor pose_stack_min_bond_separation,
-
       Tensor pose_stack_inter_block_bondsep,
       Tensor block_type_n_atoms,
+
       Tensor block_type_n_interblock_bonds,
       Tensor block_type_atoms_forming_chemical_bonds,
       Tensor block_type_n_all_bonds,
-
       Tensor block_type_all_bonds,
+
       Tensor block_type_atom_all_bond_ranges,
       Tensor block_type_tile_n_donH,
       Tensor block_type_tile_n_acc,
@@ -323,11 +321,12 @@ class HBondPoseScoresOp2
       Tensor block_type_tile_donor_type,
       Tensor block_type_tile_acceptor_type,
       Tensor block_type_tile_hybridization,
-      Tensor block_type_atom_is_hydrogen,
 
+      Tensor block_type_atom_is_hydrogen,
       Tensor block_type_path_distance,
       Tensor pair_params,
       Tensor pair_polynomials,
+
       Tensor global_params,
       bool output_block_pair_energies
 
@@ -349,11 +348,9 @@ class HBondPoseScoresOp2
                   TCAST(rot_coord_offset),
                   TCAST(first_rot_for_block),
                   TCAST(first_rot_block_type),
-                  // TCAST(block_pair_dispatch_indices),
                   TCAST(block_ind_for_rot),
                   TCAST(pose_ind_for_rot),
 
-                  // TCAST(rot_coord_offset),
                   TCAST(block_type_ind_for_rot),
 
                   TCAST(n_rots_for_pose),
@@ -397,11 +394,24 @@ class HBondPoseScoresOp2
 
     if (output_block_pair_energies) {
       // save inputs for deriv call in backwards
-      /*ctx->save_for_backward(
-          {coords,
-           block_pair_dispatch_indices,
-           pose_stack_block_coord_offset,
-           pose_stack_block_type,
+      auto max_n_rots_per_pose_tp =
+          TPack<int32_t, 1, tmol::Device::CPU>({max_n_rots_per_pose});
+      ctx->save_for_backward(
+          {rot_coords,
+           rot_coord_offset,
+           first_rot_for_block,
+           first_rot_block_type,
+           block_ind_for_rot,
+           pose_ind_for_rot,
+
+           block_type_ind_for_rot,
+
+           n_rots_for_pose,
+           rot_offset_for_pose,
+           n_rots_for_block,
+           rot_offset_for_block,
+           max_n_rots_per_pose_tp.tensor,
+
            pose_stack_inter_residue_connections,
            pose_stack_min_bond_separation,
 
@@ -427,7 +437,9 @@ class HBondPoseScoresOp2
            pair_params,
            pair_polynomials,
            global_params,
-           block_neighbors});*/
+           block_neighbors
+
+          });
     } else {
       score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
       ctx->save_for_backward({dscore_dcoords});
@@ -464,10 +476,21 @@ class HBondPoseScoresOp2
       // block-pair mode
       int i = 0;
 
-      auto coords = saved[i++];
-      auto block_pair_dispatch_indices = saved[i++];
-      auto pose_stack_block_coord_offset = saved[i++];
-      auto pose_stack_block_type = saved[i++];
+      auto rot_coords = saved[i++];
+      auto rot_coord_offset = saved[i++];
+      auto first_rot_for_block = saved[i++];
+      auto first_rot_block_type = saved[i++];
+      auto block_ind_for_rot = saved[i++];
+      auto pose_ind_for_rot = saved[i++];
+
+      auto block_type_ind_for_rot = saved[i++];
+
+      auto n_rots_for_pose = saved[i++];
+      auto rot_offset_for_pose = saved[i++];
+      auto n_rots_for_block = saved[i++];
+      auto rot_offset_for_block = saved[i++];
+      auto max_n_rots_per_pose = saved[i++][0];
+
       auto pose_stack_inter_residue_connections = saved[i++];
       auto pose_stack_min_bond_separation = saved[i++];
 
@@ -500,7 +523,7 @@ class HBondPoseScoresOp2
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
-          coords.options(), "hbond_pose_score_backward", ([&] {
+          rot_coords.options(), "hbond_pose_score_backward", ([&] {
             using Real = scalar_t;
             constexpr tmol::Device Dev = device_t;
 
@@ -510,10 +533,21 @@ class HBondPoseScoresOp2
                 Real,
                 Int>::
                 backward(
-                    TCAST(coords),
-                    TCAST(block_pair_dispatch_indices),
-                    TCAST(pose_stack_block_coord_offset),
-                    TCAST(pose_stack_block_type),
+                    TCAST(rot_coords),
+                    TCAST(rot_coord_offset),
+                    TCAST(first_rot_for_block),
+                    TCAST(first_rot_block_type),
+                    TCAST(block_ind_for_rot),
+                    TCAST(pose_ind_for_rot),
+
+                    TCAST(block_type_ind_for_rot),
+
+                    TCAST(n_rots_for_pose),
+                    TCAST(rot_offset_for_pose),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    max_n_rots_per_pose,
+
                     TCAST(pose_stack_inter_residue_connections),
                     TCAST(pose_stack_min_bond_separation),
 
@@ -546,19 +580,13 @@ class HBondPoseScoresOp2
           }));
     }
 
-    return {dV_d_pose_coords, torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
-
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
-
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
-
-            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+    return {dV_d_pose_coords, torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor()};
   }
 };
