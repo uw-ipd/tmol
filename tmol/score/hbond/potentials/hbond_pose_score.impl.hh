@@ -1930,6 +1930,12 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
       dispatch_indices.size(1), eval_derivs);
 
+  // for(int i = 0; i < dV_dcoords.size(1); i++) {
+  // for(int j = 0; j < 3; j++)
+  // printf("%f ", dV_dcoords[0][i][j]);
+  // printf("\n");
+  //}
+
   return dV_dcoords_t;
 }
 

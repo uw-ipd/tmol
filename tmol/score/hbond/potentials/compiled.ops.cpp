@@ -588,6 +588,7 @@ class HBondPoseScoresOp2
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor()};
   }
 };
