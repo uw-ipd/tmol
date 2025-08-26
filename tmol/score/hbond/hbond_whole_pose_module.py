@@ -1,6 +1,6 @@
 import torch
 
-from tmol.score.hbond.potentials.compiled import hbond_pose_scores, hbond_pose_scores2
+from tmol.score.hbond.potentials.compiled import hbond_pose_scores2
 from tmol.score.common.convert_float64 import convert_float64
 
 

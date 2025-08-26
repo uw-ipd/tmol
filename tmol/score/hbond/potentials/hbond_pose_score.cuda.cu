@@ -6,17 +6,6 @@ namespace score {
 namespace hbond {
 namespace potentials {
 
-template struct HBondPoseScoreDispatch<
-    DeviceOperations,
-    tmol::Device::CUDA,
-    float,
-    int>;
-template struct HBondPoseScoreDispatch<
-    DeviceOperations,
-    tmol::Device::CUDA,
-    double,
-    int>;
-
 template struct HBondPoseScoreDispatch2<
     DeviceOperations,
     tmol::Device::CUDA,
