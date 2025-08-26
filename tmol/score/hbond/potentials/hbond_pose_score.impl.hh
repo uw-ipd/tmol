@@ -1743,7 +1743,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
 
     TView<Int, 2, Dev> dispatch_indices,  // from forward pass
     TView<Real, 1, Dev> dTdV              // nterms x nposes x len x len
-    ) -> TPack<Vec<Real, 3>, 1, Dev>      // TODO: add extra dimension for terms
+    ) -> TPack<Vec<Real, 3>, 2, Dev>      // TODO: add extra dimension for terms
 {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
@@ -1770,7 +1770,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
   // auto rot_max_n_atoms = rot_coords.size(1);
   auto n_atoms = rot_coords.size(0);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({n_atoms});  // TODO
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms});  // TODO
   auto dV_dcoords = dV_dcoords_t.view;
 
   auto scratch_rot_spheres_t = TPack<Real, 2, Dev>::zeros({n_rots, 4});
@@ -1797,7 +1797,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
              int acc_start,
              HBondSingleResData<Real> const &don_dat,
              HBondSingleResData<Real> const &acc_dat,
-             HBondResPairData<Dev, Real, Int> const &respair_dat,
+             HBondRotPairData<Dev, Real, Int> const &respair_dat,
              int cp_separation) {
           if (cp_separation < 5) {
             return Real(0.0);
@@ -1928,7 +1928,7 @@ auto HBondPoseScoreDispatch2<DeviceDispatch, Dev, Real, Int>::backward(
 
   // 3
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-      dispatch_indices.size(1), eval_energies);
+      dispatch_indices.size(1), eval_derivs);
 
   return dV_dcoords_t;
 }

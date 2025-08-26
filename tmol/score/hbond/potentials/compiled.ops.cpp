@@ -395,7 +395,7 @@ class HBondPoseScoresOp2
     if (output_block_pair_energies) {
       // save inputs for deriv call in backwards
       auto max_n_rots_per_pose_tp =
-          TPack<int32_t, 1, tmol::Device::CPU>({max_n_rots_per_pose});
+          TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
       ctx->save_for_backward(
           {rot_coords,
            rot_coord_offset,
@@ -489,7 +489,8 @@ class HBondPoseScoresOp2
       auto rot_offset_for_pose = saved[i++];
       auto n_rots_for_block = saved[i++];
       auto rot_offset_for_block = saved[i++];
-      auto max_n_rots_per_pose = saved[i++][0];
+      auto max_n_rots_per_pose =
+          TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
 
       auto pose_stack_inter_residue_connections = saved[i++];
       auto pose_stack_min_bond_separation = saved[i++];

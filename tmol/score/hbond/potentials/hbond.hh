@@ -1901,7 +1901,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs_2(
     HBondRotPairData<Dev, Real, Int> const &respair_dat,
     int cp_separation,
     Real dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 1, Dev> dV_dcoords) {  // TODO
+    TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
   using bonded_atom::BlockCentricIndexedBonds;
