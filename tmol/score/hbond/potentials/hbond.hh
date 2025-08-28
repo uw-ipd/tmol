@@ -81,7 +81,7 @@ class HBondRotPairData {
 };
 
 template <tmol::Device Dev, typename Real, typename Int>
-class HBondScoringData2 {
+class HBondScoringData {
  public:
   HBondSingleResData<Real> r1;
   HBondSingleResData<Real> r2;
@@ -135,7 +135,7 @@ template <
     int nt,
     typename Real,
     typename Int>
-void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared_2(
+void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
     TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 3, Dev> block_type_tile_donH_inds,
     TView<Int, 3, Dev> block_type_tile_acc_inds,
@@ -185,7 +185,7 @@ template <
     int TILE_SIZE,
     typename Real,
     typename Int>
-void TMOL_DEVICE_FUNC hbond_load_block_into_shared_2(
+void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
     TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 3, Dev> block_type_tile_donH_inds,
     TView<Int, 3, Dev> block_type_tile_acc_inds,
@@ -200,7 +200,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_into_shared_2(
     int start_atom,
     bool count_pair_striking_dist,
     unsigned char *__restrict__ conn_ats) {
-  hbond_load_block_coords_and_params_into_shared_2<DeviceDispatch, Dev, nt>(
+  hbond_load_block_coords_and_params_into_shared<DeviceDispatch, Dev, nt>(
       coords,
       block_type_tile_donH_inds,
       block_type_tile_acc_inds,
@@ -237,7 +237,7 @@ template <
     typename Real,
     int TILE_SIZE,
     int MAX_N_CONN>
-void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data_2(
+void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
     TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> first_rot_for_block,
     TView<Int, 2, Dev> first_rot_block_type,
@@ -268,7 +268,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data_2(
     int block_type2,
     int n_atoms1,
     int n_atoms2,
-    HBondScoringData2<Dev, Real, Int> &inter_dat,
+    HBondScoringData<Dev, Real, Int> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   inter_dat.pair_data.pose_ind = pose_ind;
   inter_dat.r1.rot_ind = rot_ind1;
@@ -377,7 +377,7 @@ template <
     int MAX_N_CONN,
     typename Real,
     typename Int>
-void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared_2(
+void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared(
     TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
@@ -390,7 +390,7 @@ void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared_2(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    HBondScoringData2<Dev, Real, Int> &inter_dat,
+    HBondScoringData<Dev, Real, Int> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   auto store_n_don_n_acc1 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[inter_dat.r1.block_type][tile_ind];
@@ -404,7 +404,7 @@ void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared_2(
   });
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_don_n_acc1);
 
-  hbond_load_block_into_shared_2<DeviceDispatch, Dev, nt, TILE_SIZE>(
+  hbond_load_block_into_shared<DeviceDispatch, Dev, nt, TILE_SIZE>(
       coords,
       block_type_tile_donH_inds,
       block_type_tile_acc_inds,
@@ -430,7 +430,7 @@ template <
     int MAX_N_CONN,
     typename Real,
     typename Int>
-void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared_2(
+void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared(
     TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
@@ -443,7 +443,7 @@ void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared_2(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    HBondScoringData2<Dev, Real, Int> &inter_dat,
+    HBondScoringData<Dev, Real, Int> &inter_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   auto store_n_don_n_acc2 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[inter_dat.r2.block_type][tile_ind];
@@ -456,7 +456,7 @@ void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared_2(
     }
   });
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_don_n_acc2);
-  hbond_load_block_into_shared_2<DeviceDispatch, Dev, nt, TILE_SIZE>(
+  hbond_load_block_into_shared<DeviceDispatch, Dev, nt, TILE_SIZE>(
       coords,
       block_type_tile_donH_inds,
       block_type_tile_acc_inds,
@@ -482,7 +482,7 @@ template <
     typename Real,
     int TILE_SIZE,
     int MAX_N_CONN>
-void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data_2(
+void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
     TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> first_rot_for_block,
     TView<Int, 2, Dev> first_rot_block_type,
@@ -503,7 +503,7 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data_2(
     int block_ind1,
     int block_type1,
     int n_atoms1,
-    HBondScoringData2<Dev, Real, Int> &intra_dat,
+    HBondScoringData<Dev, Real, Int> &intra_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   intra_dat.pair_data.pose_ind = pose_ind;
   intra_dat.r1.rot_ind = rot_ind1;
@@ -584,7 +584,7 @@ template <
     int MAX_N_CONN,
     typename Real,
     typename Int>
-void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared_2(
+void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared(
     TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
@@ -596,7 +596,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared_2(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    HBondScoringData2<Dev, Real, Int> &intra_dat,
+    HBondScoringData<Dev, Real, Int> &intra_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   auto store_n_don_n_acc1 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[intra_dat.r1.block_type][tile_ind];
@@ -609,7 +609,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared_2(
     }
   });
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_don_n_acc1);
-  hbond_load_block_coords_and_params_into_shared_2<DeviceDispatch, Dev, nt>(
+  hbond_load_block_coords_and_params_into_shared<DeviceDispatch, Dev, nt>(
       coords,
       block_type_tile_donH_inds,
       block_type_tile_acc_inds,
@@ -632,7 +632,7 @@ template <
     int MAX_N_CONN,
     typename Real,
     typename Int>
-void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared_2(
+void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared(
     TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
@@ -644,7 +644,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared_2(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    HBondScoringData2<Dev, Real, Int> &intra_dat,
+    HBondScoringData<Dev, Real, Int> &intra_dat,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   auto store_n_don_n_acc2 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[intra_dat.r2.block_type][tile_ind];
@@ -657,7 +657,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared_2(
     }
   });
   DeviceDispatch<Dev>::template for_each_in_workgroup<nt>(store_n_don_n_acc2);
-  hbond_load_block_coords_and_params_into_shared_2<DeviceDispatch, Dev, nt>(
+  hbond_load_block_coords_and_params_into_shared<DeviceDispatch, Dev, nt>(
       coords,
       block_type_tile_donH_inds,
       block_type_tile_acc_inds,
@@ -678,11 +678,11 @@ template <
     tmol::Device Dev,
     typename Real,
     typename Int>
-void TMOL_DEVICE_FUNC hbond_load_intrares_data_from_shared_2(
+void TMOL_DEVICE_FUNC hbond_load_intrares_data_from_shared(
     int tile_ind1,
     int tile_ind2,
     HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m,
-    HBondScoringData2<Dev, Real, Int> &intra_dat) {
+    HBondScoringData<Dev, Real, Int> &intra_dat) {
   // set the pointers in intra_dat to point at the shared-memory arrays
   // If we are evaluating the energies between atoms in the same tile
   // then only the "1" shared-memory arrays will be loaded with data;
@@ -714,7 +714,7 @@ void TMOL_DEVICE_FUNC hbond_load_intrares_data_from_shared_2(
 // Some coordinates are available in shared memory, some we will
 // have to go out to global memory for.
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
-TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord_2(
+TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
     bonded_atom::BlockCentricAtom<Int> bcat,
     HBondSingleResData<Real> const &single_res_dat,
     HBondRotPairData<Dev, Real, Int> const &rotpair_dat,
@@ -746,7 +746,7 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord_2(
 
 // done
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
-TMOL_DEVICE_FUNC Real hbond_atom_energy_full_2(
+TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
     int donH_ind,             // in [0:n_donH)
     int acc_ind,              // in [0:n_acc)
     int don_h_atom_tile_ind,  // in [0:TILE_SIZE)
@@ -789,11 +789,11 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full_2(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
-        load_coord_2<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
+        load_coord<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
     Real3 Bxyz =
-        load_coord_2<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
+        load_coord<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
     Real3 B0xyz =
-        load_coord_2<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
+        load_coord<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];
@@ -814,7 +814,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full_2(
 
 // done
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
-TMOL_DEVICE_FUNC Real hbond_atom_derivs_2(
+TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     int donH_ind,             // in [0:n_donH)
     int acc_ind,              // in [0:n_acc)
     int don_h_atom_tile_ind,  // in [0:TILE_SIZE)
@@ -859,11 +859,11 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs_2(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
-        load_coord_2<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
+        load_coord<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
     Real3 Bxyz =
-        load_coord_2<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
+        load_coord<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
     Real3 B0xyz =
-        load_coord_2<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
+        load_coord<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];
@@ -958,7 +958,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs_2(
 
 // done
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
-TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full_2(
+TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     int donH_ind,             // in [0:n_donH)
     int acc_ind,              // in [0:n_acc)
     int don_h_atom_tile_ind,  // in [0:TILE_SIZE)
@@ -1002,11 +1002,11 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full_2(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
-        load_coord_2<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
+        load_coord<TILE_SIZE>(don_bases.D, don_dat, respair_dat, don_start);
     Real3 Bxyz =
-        load_coord_2<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
+        load_coord<TILE_SIZE>(acc_bases.B, acc_dat, respair_dat, acc_start);
     Real3 B0xyz =
-        load_coord_2<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
+        load_coord<TILE_SIZE>(acc_bases.B0, acc_dat, respair_dat, acc_start);
 
     unsigned char dt = don_dat.donH_type[donH_ind];
     unsigned char at = acc_dat.acc_type[acc_ind];
@@ -1095,8 +1095,8 @@ template <
     typename Func,
     typename Real,
     typename Int>
-void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies_2(
-    HBondScoringData2<Dev, Real, Int> &inter_dat,
+void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
+    HBondScoringData<Dev, Real, Int> &inter_dat,
     int start_atom1,
     int start_atom2,
     Func f) {
@@ -1132,8 +1132,8 @@ template <
     typename Func,
     typename Real,
     typename Int>
-void TMOL_DEVICE_FUNC eval_intrares_don_acc_pair_energies_2(
-    HBondScoringData2<Dev, Real, Int> &intra_dat,
+void TMOL_DEVICE_FUNC eval_intrares_don_acc_pair_energies(
+    HBondScoringData<Dev, Real, Int> &intra_dat,
     int start_atom1,
     int start_atom2,
     Func f) {

@@ -23,8 +23,8 @@ using torch::autograd::Function;
 using torch::autograd::tensor_list;
 
 template <template <tmol::Device> class DispatchMethod>
-class HBondPoseScoresOp2
-    : public torch::autograd::Function<HBondPoseScoresOp2<DispatchMethod>> {
+class HBondPoseScoresOp
+    : public torch::autograd::Function<HBondPoseScoresOp<DispatchMethod>> {
  public:
   static std::vector<Tensor> forward(
       AutogradContext* ctx,
@@ -84,7 +84,7 @@ class HBondPoseScoresOp2
           constexpr tmol::Device Dev = device_t;
 
           auto result =
-              HBondPoseScoreDispatch2<DispatchMethod, Dev, Real, Int>::forward(
+              HBondPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
                   TCAST(first_rot_for_block),
@@ -269,7 +269,7 @@ class HBondPoseScoresOp2
             using Real = scalar_t;
             constexpr tmol::Device Dev = device_t;
 
-            auto result = HBondPoseScoreDispatch2<
+            auto result = HBondPoseScoreDispatch<
                 common::DeviceOperations,
                 Dev,
                 Real,
@@ -335,7 +335,7 @@ class HBondPoseScoresOp2
 };
 
 template <template <tmol::Device> class DispatchMethod>
-std::vector<Tensor> hbond_pose_scores_op_2(
+std::vector<Tensor> hbond_pose_scores_op(
     Tensor rot_coords,
     Tensor rot_coord_offset,
     Tensor first_rot_for_block,
@@ -378,7 +378,7 @@ std::vector<Tensor> hbond_pose_scores_op_2(
     Tensor pair_polynomials,
     Tensor global_params,
     bool output_block_pair_energies) {
-  return HBondPoseScoresOp2<DispatchMethod>::apply(
+  return HBondPoseScoresOp<DispatchMethod>::apply(
       rot_coords,
       rot_coord_offset,
       first_rot_for_block,
@@ -427,8 +427,7 @@ std::vector<Tensor> hbond_pose_scores_op_2(
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
-  m.def(
-      "hbond_pose_scores_2", &hbond_pose_scores_op_2<common::DeviceOperations>);
+  m.def("hbond_pose_scores", &hbond_pose_scores_op<common::DeviceOperations>);
 }
 
 }  // namespace potentials

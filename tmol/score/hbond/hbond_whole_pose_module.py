@@ -1,6 +1,6 @@
 import torch
 
-from tmol.score.hbond.potentials.compiled import hbond_pose_scores2
+from tmol.score.hbond.potentials.compiled import hbond_pose_scores
 from tmol.score.common.convert_float64 import convert_float64
 
 
@@ -151,7 +151,7 @@ class HBondWholePoseScoringModule(torch.nn.Module):
         if coords.dtype == torch.float64:
             convert_float64(args)
 
-        scores, indices = hbond_pose_scores2(*args)
+        scores, indices = hbond_pose_scores(*args)
         # print("indices", indices)
 
         return scores, indices

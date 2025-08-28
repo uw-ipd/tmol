@@ -19,4 +19,4 @@ load(
 
 _ops = getattr(torch.ops, modulename(__name__))
 
-hbond_pose_scores2 = _ops.hbond_pose_scores_2
+hbond_pose_scores = _ops.hbond_pose_scores

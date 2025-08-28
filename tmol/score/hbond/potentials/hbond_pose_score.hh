@@ -28,7 +28,7 @@ template <
     tmol::Device Dev,
     typename Real,
     typename Int>
-struct HBondPoseScoreDispatch2 {
+struct HBondPoseScoreDispatch {
   static auto forward(
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
@@ -107,7 +107,7 @@ struct HBondPoseScoreDispatch2 {
       bool output_block_pair_energies,
       bool compute_derivs)
       -> std::tuple<
-          TPack<Real, 1, Dev>,
+          TPack<Real, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Int, 2, Dev> >;
 
@@ -187,7 +187,7 @@ struct HBondPoseScoreDispatch2 {
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
 
       TView<Int, 2, Dev> dispatch_indices,  // from forward pass
-      TView<Real, 1, Dev> dTdV              // nterms x nposes x len x len
+      TView<Real, 2, Dev> dTdV              // nterms x nposes x len x len
       ) -> TPack<Vec<Real, 3>, 2, Dev>;
 };
 
