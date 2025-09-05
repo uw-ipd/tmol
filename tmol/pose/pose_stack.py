@@ -86,6 +86,70 @@ class PoseStack:
 
     device: torch.device
 
+    #################### INIT #####################
+
+    def __attrs_post_init__(self):
+
+        n_poses = self.block_coord_offset.size(0)
+        n_blocks = self.block_coord_offset.size(1)
+
+        block_inds = torch.zeros_like(self.block_coord_offset)
+        block_inds[:, :] = torch.arange(0, n_blocks)
+        self.block_ind_for_rot = block_inds.flatten()
+
+        pose_inds = (
+            torch.arange(0, n_poses, dtype=torch.int32, device=self.device)
+            .unsqueeze(1)
+            .expand((n_poses, n_blocks))
+        )
+        self.pose_ind_for_rot = pose_inds.flatten()
+
+        # self.rot_coord_offset = _p(rotamer_set.rot_coord_offset)
+        self.block_type_ind_for_rot = self.block_type_ind.flatten()
+
+        self.rot_offset_for_block = torch.arange(
+            0, n_poses * n_blocks, dtype=torch.int32, device=self.device
+        ).view(n_poses, n_blocks)
+        self.first_rot_for_block = self.rot_offset_for_block
+        self.first_rot_block_type = self.block_type_ind
+
+        self.n_rots_for_pose = torch.tensor(
+            [n_blocks], dtype=torch.int32, device=self.device
+        ).expand(n_poses)
+        self.rot_offset_for_pose = self.n_rots_for_pose * torch.arange(
+            0, n_poses, dtype=torch.int32, device=self.device
+        )
+        coord_offset_for_pose = self.coords.size(1) * torch.arange(
+            0, n_poses, dtype=torch.int32, device=self.device
+        )
+        self.n_rots_for_block = torch.full_like(self.block_coord_offset, 1)
+
+        # pose_coord_offset = torch.cumsum(self.n_rots_for_pose, 0).roll(1,0)
+
+        print("rot_offset_for_pose: ", self.rot_offset_for_pose)
+        # print("pose_coord_offset: ", pose_coord_offset)
+        self.rot_coord_offset = (
+            self.block_coord_offset.flatten()
+            + torch.repeat_interleave(coord_offset_for_pose, n_blocks)
+        )
+        print("rot_coord_offset: ", self.rot_coord_offset)
+        print("block_coord_offset: ", self.block_coord_offset)
+
+        self.max_n_rots_per_pose = n_blocks
+
+        pose_atom_offsets = self.rot_coord_offset.index_select(
+            0, self.rot_offset_for_pose
+        )
+        atom_to_pose = torch.zeros(
+            self.coords.size(0) * self.coords.size(1),
+            dtype=torch.int32,
+            device=self.device,
+        )
+        print(self.coords.size(0) * self.coords.size(1), self.n_poses, n_poses)
+        atom_to_pose[pose_atom_offsets] = 1
+        atom_to_pose[0] = 0
+        self.pose_ind_for_atom = atom_to_pose.cumsum(0, dtype=torch.int32)
+
     #################### PROPERTIES #####################
 
     def __len__(self):
@@ -193,9 +257,9 @@ class PoseStack:
         return self._constraint_set
 
     def block_identity_map(self):
-        print("bco size: ", self.block_coord_offset.size())
+        # print("bco size: ", self.block_coord_offset.size())
         identity_map = torch.zeros_like(self.block_coord_offset)
-        print("im size: ", identity_map.size())
+        # print("im size: ", identity_map.size())
         identity_map[:, :] = torch.arange(
             self.block_coord_offset.size(1), device=self.device
         )

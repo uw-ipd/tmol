@@ -292,9 +292,9 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
               score_dat.pair_data.total_hbond, shared, mgpu::plus_t<Real>());  \
       if (tid == 0) {                                                          \
         if (!output_block_pair_energies) {                                     \
-          accumulate<Dev, Real>::add(output[0][0], cta_total_hbond);           \
+          accumulate<Dev, Real>::add(output[0][pose_ind], cta_total_hbond);    \
         } else {                                                               \
-          output[cta][0] = cta_total_hbond;                                    \
+          output[0][cta] = cta_total_hbond;                                    \
         }                                                                      \
       }                                                                        \
     });                                                                        \
@@ -413,6 +413,7 @@ template <
 auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
+    TView<Int, 1, Dev> pose_ind_for_atom,
 
     TView<Int, 2, Dev> first_rot_for_block,
     TView<Int, 2, Dev> first_rot_block_type,
@@ -616,9 +617,9 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   TPack<Real, 2, Dev> output_t;
   if (output_block_pair_energies) {
-    output_t = TPack<Real, 2, Dev>::zeros({dispatch_indices.size(1), 1});
+    output_t = TPack<Real, 2, Dev>::zeros({1, dispatch_indices.size(1)});
   } else {
-    output_t = TPack<Real, 2, Dev>::zeros({1, 1});
+    output_t = TPack<Real, 2, Dev>::zeros({1, n_poses});
   }
   auto output = output_t.view;
 
@@ -754,6 +755,7 @@ template <
 auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
+    TView<Int, 1, Dev> pose_ind_for_atom,
 
     TView<Int, 2, Dev> first_rot_for_block,
     TView<Int, 2, Dev> first_rot_block_type,
@@ -866,6 +868,22 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
+    int const max_important_bond_separation = 4;
+
+    int const pose_ind = dispatch_indices[0][cta];
+
+    int const rot_ind1 = dispatch_indices[1][cta];
+    int const rot_ind2 = dispatch_indices[2][cta];
+
+    int const block_ind1 = block_ind_for_rot[rot_ind1];
+    int const block_ind2 = block_ind_for_rot[rot_ind2];
+
+    int const block_type1 = block_type_ind_for_rot[rot_ind1];
+    int const block_type2 = block_type_ind_for_rot[rot_ind2];
+
+    int const n_atoms1 = block_type_n_atoms[block_type1];
+    int const n_atoms2 = block_type_n_atoms[block_type2];
+
     auto hbond_atom_energy =
         ([=] TMOL_DEVICE_FUNC(
              int don_ind,
@@ -892,7 +910,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
               acc_dat,
               respair_dat,
               cp_separation,
-              dTdV[cta][0],
+              dTdV[0][pose_ind],
               dV_dcoords);
           return Real(0.0);
         });
@@ -907,22 +925,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
       CTA_REAL_REDUCE_T_VARIABLE;
 
     } shared;
-
-    int const max_important_bond_separation = 4;
-
-    int const pose_ind = dispatch_indices[0][cta];
-
-    int const rot_ind1 = dispatch_indices[1][cta];
-    int const rot_ind2 = dispatch_indices[2][cta];
-
-    int const block_ind1 = block_ind_for_rot[rot_ind1];
-    int const block_ind2 = block_ind_for_rot[rot_ind2];
-
-    int const block_type1 = block_type_ind_for_rot[rot_ind1];
-    int const block_type2 = block_type_ind_for_rot[rot_ind2];
-
-    int const n_atoms1 = block_type_n_atoms[block_type1];
-    int const n_atoms2 = block_type_n_atoms[block_type2];
 
     auto load_tile_invariant_interres_data =
         ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);

@@ -32,6 +32,7 @@ struct HBondPoseScoreDispatch {
   static auto forward(
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
+      TView<Int, 1, Dev> pose_ind_for_atom,
       TView<Int, 2, Dev> first_rot_for_block,
       TView<Int, 2, Dev> first_rot_block_type,
       TView<Int, 1, Dev> block_ind_for_rot,
@@ -114,6 +115,7 @@ struct HBondPoseScoreDispatch {
   static auto backward(
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
+      TView<Int, 1, Dev> pose_ind_for_atom,
 
       TView<Int, 2, Dev> first_rot_for_block,
       TView<Int, 2, Dev> first_rot_block_type,

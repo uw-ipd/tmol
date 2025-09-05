@@ -295,7 +295,6 @@ template <
 struct detect_block_neighbors {
   static void f(
       TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> rotamer_rot_ind_to_res_ind,
       TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
       TView<Int, 1, D> block_type_n_atoms,
@@ -317,13 +316,6 @@ struct detect_block_neighbors {
       int const block_ind2 = block_pair_ind % max_n_blocks;
 
       if (block_ind1 > block_ind2) {
-        return;
-      }
-
-      bool same_rot = block_ind1 == block_ind2;
-      bool same_block = rotamer_rot_ind_to_res_ind[pose_ind][block_ind1]
-                        == rotamer_rot_ind_to_res_ind[pose_ind][block_ind2];
-      if (same_block && !same_rot) {
         return;
       }
 
@@ -373,7 +365,6 @@ struct rot_neighbor_indices {
       TView<Int, 3, D> rot_neighbors, TView<Int, 1, D> rot_offset_for_pose)
       -> TPack<Int, 2, D> {
     LAUNCH_BOX_32;
-    printf("PASS00\n");
 
     int n_pose = rot_neighbors.size(0);
     int n_rot = rot_neighbors.size(1);
@@ -381,7 +372,6 @@ struct rot_neighbor_indices {
     int n_cells = n_pose * n_rot * n_rot;
     auto offset_for_cell_tp = TPack<Int, 3, D>::zeros_like(rot_neighbors);
     auto offset_for_cell = offset_for_cell_tp.view;
-    printf("PASS0\n");
 
     int n_dispatch_total =
         DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
@@ -393,8 +383,6 @@ struct rot_neighbor_indices {
     auto rot_neighbor_indices =
         TPack<Int, 2, D>::full({3, n_dispatch_total}, -1);
     auto rot_neighbor_indices_v = rot_neighbor_indices.view;
-
-    printf("PASS1\n");
 
     auto fill_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
       int pose = ind / (n_rot * n_rot);
@@ -411,7 +399,6 @@ struct rot_neighbor_indices {
     });
 
     DeviceDispatch<D>::template forall<launch_t>(n_cells, fill_indices);
-    printf("PASS2\n");
 
     return rot_neighbor_indices;
   }

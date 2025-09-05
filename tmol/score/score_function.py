@@ -230,9 +230,28 @@ class WholePoseScoringModule:
         self.output_block_pair_energies = output_block_pair_energies
 
     def __call__(self, coords):
-        return torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
+        # weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
+        weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
+        print(weighted)
+        return weighted
 
     def unweighted_scores(self, coords):
+        # scores = [
+        # [
+        # torch.sparse_coo_tensor(values[:,subterm],indices) for (values,indices) in term(coords, self.output_block_pair_energies) for subterm in range(values.size(1))
+        # ]
+        # for term in self.term_modules
+        # ]
+
+        scores = []
+        for term in self.term_modules:
+            values = term(coords)
+            print(values)
+            scores += values
+        print(scores)
+
+        return torch.stack(scores)
+
         return torch.cat(
             tuple(
                 term(coords, self.output_block_pair_energies)
@@ -253,3 +272,51 @@ class WholePoseScoringModule:
 #
 #     def __call__(self, coords):
 #         return torch.sum(self.weights * self.unweighted_scores(coords))
+
+
+class BlockPairScoringModule:
+    def __init__(
+        self,
+        weights: Tensor[torch.float32][:],
+        term_modules: Sequence[torch.nn.Module],
+        output_block_pair_energies=False,
+    ):
+        # super(WholePoseScoringModule, self).__init__()
+        self.weights = torch.nn.Parameter(weights.unsqueeze(1), requires_grad=False)
+        self.term_modules = term_modules
+        self.output_block_pair_energies = output_block_pair_energies
+
+    def __call__(self, coords):
+        weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
+        print(weighted)
+        return weighted
+
+    def unweighted_scores(self, coords):
+        # scores = [
+        # [
+        # torch.sparse_coo_tensor(values[:,subterm],indices) for (values,indices) in term(coords, self.output_block_pair_energies) for subterm in range(values.size(1))
+        # ]
+        # for term in self.term_modules
+        # ]
+
+        scores = []
+        for term in self.term_modules:
+            values, indices = term(coords)
+            print(values, indices)
+            if self.output_block_pair_energies:
+                for subterm in range(values.size(1)):
+                    scores += torch.sparse_coo_tensor(indices, values[:, subterm])
+            else:
+                scores += values
+        print(scores)
+
+        return torch.stack(scores)
+
+        return torch.cat(
+            tuple(
+                term(coords, self.output_block_pair_energies)
+                for term in self.term_modules
+            ),
+            dim=0,
+        )
+        return torch.cat([term(coords) for term in self.term_modules], dim=0)

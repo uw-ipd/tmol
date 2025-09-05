@@ -109,7 +109,6 @@ class HBondWholePoseScoringModule(torch.nn.Module):
     def forward(
         self,
         coords,
-        output_block_pair_energies=False,
     ):
         args = [
             coords.flatten(start_dim=0, end_dim=-2),
@@ -145,13 +144,14 @@ class HBondWholePoseScoringModule(torch.nn.Module):
             self.pair_params,
             self.pair_polynomials,
             self.global_params,
-            output_block_pair_energies,
+            False,
         ]
 
         if coords.dtype == torch.float64:
             convert_float64(args)
 
-        scores, indices = hbond_pose_scores(*args)
-        # print("indices", indices)
+        scores, _ = hbond_pose_scores(*args)
 
-        return scores, indices
+        print("scores", scores)
+
+        return scores

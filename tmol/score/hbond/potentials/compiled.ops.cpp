@@ -30,6 +30,7 @@ class HBondPoseScoresOp
       AutogradContext* ctx,
       Tensor rot_coords,
       Tensor rot_coord_offset,
+      Tensor pose_ind_for_atom,
       Tensor first_rot_for_block,
       Tensor first_rot_block_type,
 
@@ -87,6 +88,7 @@ class HBondPoseScoresOp
               HBondPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
                   TCAST(rot_coords),
                   TCAST(rot_coord_offset),
+                  TCAST(pose_ind_for_atom),
                   TCAST(first_rot_for_block),
                   TCAST(first_rot_block_type),
                   TCAST(block_ind_for_rot),
@@ -140,6 +142,7 @@ class HBondPoseScoresOp
       ctx->save_for_backward(
           {rot_coords,
            rot_coord_offset,
+           pose_ind_for_atom,
            first_rot_for_block,
            first_rot_block_type,
            block_ind_for_rot,
@@ -182,8 +185,21 @@ class HBondPoseScoresOp
 
           });
     } else {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
-      ctx->save_for_backward({dscore_dcoords});
+      // score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
+      //  block_neighbors = TPack<Int, 2, D>::full({1,n_poses}, -1);
+
+      auto pose_atom_offsets =
+          rot_coord_offset.index_select(0, rot_offset_for_pose);
+      auto atom_pose = torch::zeros(
+          {rot_coords.size(0)},
+          torch::TensorOptions()
+              .dtype(torch::kInt32)
+              .device(rot_coord_offset.device()));
+      atom_pose.index({pose_atom_offsets}) = 1;
+      atom_pose[0] = 0;
+      auto atom_to_pose = atom_pose.cumsum(0, torch::kInt32);
+
+      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 
     return {score, block_neighbors};
@@ -196,20 +212,31 @@ class HBondPoseScoresOp
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 1) {
+    if (saved.size() == 2) {
       // single-score mode
       auto saved_grads = ctx->get_saved_variables();
+      auto saved_grad = saved_grads[0];
+      auto pose_ind_for_atom = saved_grads[1];
 
       tensor_list result;
 
-      for (auto& saved_grad : saved_grads) {
-        auto ingrad = grad_outputs[0];
-        while (ingrad.dim() < saved_grad.dim()) {
-          ingrad = ingrad.unsqueeze(-1);
-        }
+      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
 
-        result.emplace_back(saved_grad * ingrad);
+      while (atom_ingrads.dim() < saved_grad.dim()) {
+        atom_ingrads = atom_ingrads.unsqueeze(-1);
       }
+
+      printf("SAVED_GRAD\n");
+      for (int ii = 0; ii < saved_grad.dim(); ii++)
+        printf("%i\n", saved_grad.size(ii));
+
+      printf("ATOM_INGRAD\n");
+      for (int ii = 0; ii < atom_ingrads.dim(); ii++)
+        printf("%i\n", atom_ingrads.size(ii));
+
+      result.emplace_back(saved_grad * atom_ingrads);
+      printf("post mult grad\n");
+      //}
 
       int i = 0;
       dV_d_pose_coords = result[i++];
@@ -219,6 +246,7 @@ class HBondPoseScoresOp
 
       auto rot_coords = saved[i++];
       auto rot_coord_offset = saved[i++];
+      auto pose_ind_for_atom = saved[i++];
       auto first_rot_for_block = saved[i++];
       auto first_rot_block_type = saved[i++];
       auto block_ind_for_rot = saved[i++];
@@ -277,6 +305,7 @@ class HBondPoseScoresOp
                 backward(
                     TCAST(rot_coords),
                     TCAST(rot_coord_offset),
+                    TCAST(pose_ind_for_atom),
                     TCAST(first_rot_for_block),
                     TCAST(first_rot_block_type),
                     TCAST(block_ind_for_rot),
@@ -330,7 +359,7 @@ class HBondPoseScoresOp
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
   }
 };
 
@@ -338,6 +367,7 @@ template <template <tmol::Device> class DispatchMethod>
 std::vector<Tensor> hbond_pose_scores_op(
     Tensor rot_coords,
     Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
     Tensor first_rot_for_block,
     Tensor first_rot_block_type,
     // Tensor block_pair_dispatch_indices,
@@ -381,6 +411,7 @@ std::vector<Tensor> hbond_pose_scores_op(
   return HBondPoseScoresOp<DispatchMethod>::apply(
       rot_coords,
       rot_coord_offset,
+      pose_ind_for_atom,
       first_rot_for_block,
       first_rot_block_type,
       // block_pair_dispatch_indices,
