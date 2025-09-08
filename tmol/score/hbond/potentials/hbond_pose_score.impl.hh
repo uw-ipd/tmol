@@ -411,17 +411,15 @@ template <
     typename Real,
     typename Int>
 auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
+    // common params
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
     TView<Int, 1, Dev> pose_ind_for_atom,
-
     TView<Int, 2, Dev> first_rot_for_block,
     TView<Int, 2, Dev> first_rot_block_type,
     TView<Int, 1, Dev> block_ind_for_rot,
     TView<Int, 1, Dev> pose_ind_for_rot,
-
     TView<Int, 1, Dev> block_type_ind_for_rot,
-
     TView<Int, 1, Dev> n_rots_for_pose,
     TView<Int, 1, Dev> rot_offset_for_pose,
     TView<Int, 2, Dev> n_rots_for_block,
@@ -432,8 +430,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     // residues we have to know how the blocks in the Pose
     // are connected
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
-    // void*, //Unsure how to proceed - for hbond i guess we can just rely on
-    // dispatch to take care of this?
 
     // dims: n-poses x max-n-blocks x max-n-blocks
     // Quick lookup: given the inds of two blocks, ask: what is the minimum
@@ -442,17 +438,19 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     // logic for deciding whether two atoms in those blocks should have their
     // interaction energies calculated: all should. intentionally small to
     // (possibly) fit in constant cache
-    TView<Int, 3, Dev> pose_stack_min_bond_separation,
+    TView<Int, 3, Dev>
+        pose_stack_min_bond_separation,  // ?? needed ?? I think so
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+    TView<Int, 5, Dev>
+        pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
 
     //////////////////////
     // Chemical properties
     // how many atoms for a given block
     // Dimsize n_block_types
-    TView<Int, 1, Dev> block_type_n_atoms,
+    TView<Int, 1, Dev> block_type_n_atoms,  // ?? needed ?? I think so
 
     // how many inter-block chemical bonds are there
     // Dimsize: n_block_types
@@ -465,6 +463,10 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Int, 1, Dev> block_type_n_all_bonds,
     TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
     TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
+    // How many chemical bonds separate all pairs of atoms
+    // within each block type?
+    // Dimsize: n_block_types x max_n_atoms x max_n_atoms
+    TView<Int, 3, Dev> block_type_path_distance,
 
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
@@ -474,13 +476,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Int, 3, Dev> block_type_tile_acceptor_type,
     TView<Int, 3, Dev> block_type_tile_hybridization,
     TView<Int, 2, Dev> block_type_atom_is_hydrogen,
-
-    // How many chemical bonds separate all pairs of atoms
-    // within each block type?
-    // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-    TView<Int, 3, Dev> block_type_path_distance,
-
-    //////////////////////
 
     // HBond potential parameters
     TView<HBondPairParams<Real>, 2, Dev> pair_params,
@@ -753,18 +748,15 @@ template <
     typename Real,
     typename Int>
 auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
+    // common params
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 1, Dev> rot_coord_offset,
     TView<Int, 1, Dev> pose_ind_for_atom,
-
     TView<Int, 2, Dev> first_rot_for_block,
     TView<Int, 2, Dev> first_rot_block_type,
-
     TView<Int, 1, Dev> block_ind_for_rot,
     TView<Int, 1, Dev> pose_ind_for_rot,
-
     TView<Int, 1, Dev> block_type_ind_for_rot,
-
     TView<Int, 1, Dev> n_rots_for_pose,
     TView<Int, 1, Dev> rot_offset_for_pose,
     TView<Int, 2, Dev> n_rots_for_block,
@@ -783,17 +775,19 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     // logic for deciding whether two atoms in those blocks should have their
     // interaction energies calculated: all should. intentionally small to
     // (possibly) fit in constant cache
-    TView<Int, 3, Dev> pose_stack_min_bond_separation,
+    TView<Int, 3, Dev>
+        pose_stack_min_bond_separation,  // ?? needed ?? I think so
 
     // dims: n-poses x max-n-blocks x max-n-blocks x
     // max-n-interblock-connections x max-n-interblock-connections
-    TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+    TView<Int, 5, Dev>
+        pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
 
     //////////////////////
     // Chemical properties
     // how many atoms for a given block
     // Dimsize n_block_types
-    TView<Int, 1, Dev> block_type_n_atoms,
+    TView<Int, 1, Dev> block_type_n_atoms,  // ?? needed ?? I think so
 
     // how many inter-block chemical bonds are there
     // Dimsize: n_block_types
@@ -806,6 +800,10 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     TView<Int, 1, Dev> block_type_n_all_bonds,
     TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
     TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
+    // How many chemical bonds separate all pairs of atoms
+    // within each block type?
+    // Dimsize: n_block_types x max_n_atoms x max_n_atoms
+    TView<Int, 3, Dev> block_type_path_distance,
 
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
@@ -815,11 +813,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     TView<Int, 3, Dev> block_type_tile_acceptor_type,
     TView<Int, 3, Dev> block_type_tile_hybridization,
     TView<Int, 2, Dev> block_type_atom_is_hydrogen,
-
-    // How many chemical bonds separate all pairs of atoms
-    // within each block type?
-    // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-    TView<Int, 3, Dev> block_type_path_distance,
 
     //////////////////////
 

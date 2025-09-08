@@ -30,6 +30,7 @@ template <
     typename Int>
 struct HBondPoseScoreDispatch {
   static auto forward(
+      // common params
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -37,9 +38,7 @@ struct HBondPoseScoreDispatch {
       TView<Int, 2, Dev> first_rot_block_type,
       TView<Int, 1, Dev> block_ind_for_rot,
       TView<Int, 1, Dev> pose_ind_for_rot,
-
       TView<Int, 1, Dev> block_type_ind_for_rot,
-
       TView<Int, 1, Dev> n_rots_for_pose,
       TView<Int, 1, Dev> rot_offset_for_pose,
       TView<Int, 2, Dev> n_rots_for_block,
@@ -83,6 +82,10 @@ struct HBondPoseScoreDispatch {
       TView<Int, 1, Dev> block_type_n_all_bonds,
       TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
       TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
+      // How many chemical bonds separate all pairs of atoms
+      // within each block type?
+      // Dimsize: n_block_types x max_n_atoms x max_n_atoms
+      TView<Int, 3, Dev> block_type_path_distance,
 
       TView<Int, 2, Dev> block_type_tile_n_donH,
       TView<Int, 2, Dev> block_type_tile_n_acc,
@@ -92,11 +95,6 @@ struct HBondPoseScoreDispatch {
       TView<Int, 3, Dev> block_type_tile_acceptor_type,
       TView<Int, 3, Dev> block_type_tile_hybridization,
       TView<Int, 2, Dev> block_type_atom_is_hydrogen,
-
-      // How many chemical bonds separate all pairs of atoms
-      // within each block type?
-      // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-      TView<Int, 3, Dev> block_type_path_distance,
 
       //////////////////////
 
@@ -116,15 +114,11 @@ struct HBondPoseScoreDispatch {
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
-
       TView<Int, 2, Dev> first_rot_for_block,
       TView<Int, 2, Dev> first_rot_block_type,
-
       TView<Int, 1, Dev> block_ind_for_rot,
       TView<Int, 1, Dev> pose_ind_for_rot,
-
       TView<Int, 1, Dev> block_type_ind_for_rot,
-
       TView<Int, 1, Dev> n_rots_for_pose,
       TView<Int, 1, Dev> rot_offset_for_pose,
       TView<Int, 2, Dev> n_rots_for_block,
@@ -143,11 +137,13 @@ struct HBondPoseScoreDispatch {
       // logic for deciding whether two atoms in those blocks should have their
       // interaction energies calculated: all should. intentionally small to
       // (possibly) fit in constant cache
-      TView<Int, 3, Dev> pose_stack_min_bond_separation,
+      TView<Int, 3, Dev>
+          pose_stack_min_bond_separation,  // ?? needed ?? I think so
 
       // dims: n-poses x max-n-blocks x max-n-blocks x
       // max-n-interblock-connections x max-n-interblock-connections
-      TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
+      TView<Int, 5, Dev>
+          pose_stack_inter_block_bondsep,  // ?? needed ?? I think so
 
       //////////////////////
       // Chemical properties
@@ -166,6 +162,10 @@ struct HBondPoseScoreDispatch {
       TView<Int, 1, Dev> block_type_n_all_bonds,
       TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
       TView<Vec<Int, 2>, 2, Dev> block_type_atom_all_bond_ranges,
+      // How many chemical bonds separate all pairs of atoms
+      // within each block type?
+      // Dimsize: n_block_types x max_n_atoms x max_n_atoms
+      TView<Int, 3, Dev> block_type_path_distance,
 
       TView<Int, 2, Dev> block_type_tile_n_donH,
       TView<Int, 2, Dev> block_type_tile_n_acc,
@@ -176,17 +176,13 @@ struct HBondPoseScoreDispatch {
       TView<Int, 3, Dev> block_type_tile_hybridization,
       TView<Int, 2, Dev> block_type_atom_is_hydrogen,
 
-      // How many chemical bonds separate all pairs of atoms
-      // within each block type?
-      // Dimsize: n_block_types x max_n_atoms x max_n_atoms
-      TView<Int, 3, Dev> block_type_path_distance,
-
       //////////////////////
 
       // HBond potential parameters
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params,
+      //////////////////////
 
       TView<Int, 2, Dev> dispatch_indices,  // from forward pass
       TView<Real, 2, Dev> dTdV              // nterms x nposes x len x len
