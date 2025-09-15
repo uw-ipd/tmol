@@ -264,25 +264,21 @@ class LJLKPoseScoreOp
           }));
     }
 
-    return {
-        dV_d_pose_coords,
-        torch::Tensor(),
+    return {dV_d_pose_coords, torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor()};
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
+
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(),
+
+            torch::Tensor(),  torch::Tensor(), torch::Tensor()};
   }
 };
 

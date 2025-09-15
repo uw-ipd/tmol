@@ -907,7 +907,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
               acc_dat,
               respair_dat,
               cp_separation,
-              dTdV[0][pose_ind],
+              dTdV[0][cta],
               dV_dcoords);
           return Real(0.0);
         });
