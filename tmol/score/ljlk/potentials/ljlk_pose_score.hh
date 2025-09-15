@@ -26,16 +26,26 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device>
-    class DeviceOps,
+    template <tmol::Device> class DeviceOps,
     tmol::Device D,
     typename Real,
     typename Int>
 struct LJLKPoseScoreDispatch {
   static auto forward(
-      TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> pose_stack_block_coord_offset,
-      TView<Int, 2, D> pose_stack_block_type,
+      // common params
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 1, D> pose_ind_for_atom,
+      TView<Int, 2, D> first_rot_for_block,
+      TView<Int, 2, D> first_rot_block_type,
+      TView<Int, 1, D> block_ind_for_rot,
+      TView<Int, 1, D> pose_ind_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<Int, 1, D> n_rots_for_pose,
+      TView<Int, 1, D> rot_offset_for_pose,
+      TView<Int, 2, D> n_rots_for_block,
+      TView<Int, 2, D> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // dims: n-systems x max-n-blocks x max-n-blocks
       // Quick lookup: given the inds of two blocks, ask: what is the minimum
@@ -86,12 +96,23 @@ struct LJLKPoseScoreDispatch {
 
       // do we need to compute gradients?
       bool require_gradient) -> std::
-      tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>, TPack<Int, 3, D> >;
+      tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D> >;
 
   static auto backward(
-      TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> pose_stack_block_coord_offset,
-      TView<Int, 2, D> pose_stack_block_type,
+      // common params
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 1, D> pose_ind_for_atom,
+      TView<Int, 2, D> first_rot_for_block,
+      TView<Int, 2, D> first_rot_block_type,
+      TView<Int, 1, D> block_ind_for_rot,
+      TView<Int, 1, D> pose_ind_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<Int, 1, D> n_rots_for_pose,
+      TView<Int, 1, D> rot_offset_for_pose,
+      TView<Int, 2, D> n_rots_for_block,
+      TView<Int, 2, D> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // dims: n-systems x max-n-blocks x max-n-blocks
       // Quick lookup: given the inds of two blocks, ask: what is the minimum
@@ -136,9 +157,9 @@ struct LJLKPoseScoreDispatch {
       TView<LJLKTypeParams<Real>, 1, D> type_params,
       TView<LJGlobalParams<Real>, 1, D> global_params,
 
-      TView<Int, 3, D> scratch_block_neighbors,  // from forward pass
-      TView<Real, 4, D> dTdV  // nterms x nposes x (1|len) x (1|len)
-      ) -> TPack<Vec<Real, 3>, 3, D>;
+      TView<Int, 2, D> dispatch_indices,  // from forward pass
+      TView<Real, 2, D> dTdV              // nterms x nposes x (1|len) x (1|len)
+      ) -> TPack<Vec<Real, 3>, 2, D>;
 };
 
 }  // namespace potentials

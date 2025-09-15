@@ -26,12 +26,23 @@ template <template <tmol::Device> class DispatchMethod>
 class LJLKPoseScoreOp
     : public torch::autograd::Function<LJLKPoseScoreOp<DispatchMethod>> {
  public:
-  static Tensor forward(
+  static std::vector<Tensor> forward(
       AutogradContext* ctx,
-      Tensor coords,
-      Tensor pose_stack_block_coord_offset,
+      // common params
+      Tensor rot_coords,
+      Tensor rot_coord_offset,
+      Tensor pose_ind_for_atom,
+      Tensor first_rot_for_block,
+      Tensor first_rot_block_type,
+      Tensor block_ind_for_rot,
+      Tensor pose_ind_for_rot,
+      Tensor block_type_ind_for_rot,
+      Tensor n_rots_for_pose,
+      Tensor rot_offset_for_pose,
+      Tensor n_rots_for_block,
+      Tensor rot_offset_for_block,
+      int64_t max_n_rots_per_pose,
 
-      Tensor pose_stack_block_type,
       Tensor pose_stack_min_bond_separation,
       Tensor pose_stack_inter_block_bondsep,
       Tensor block_type_n_atoms,
@@ -51,16 +62,27 @@ class LJLKPoseScoreOp
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.options(), "ljlk_pose_score_op", ([&] {
+        rot_coords.options(), "ljlk_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
           auto result =
               LJLKPoseScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
-                  TCAST(coords),
-                  TCAST(pose_stack_block_coord_offset),
+                  // common params
+                  TCAST(rot_coords),
+                  TCAST(rot_coord_offset),
+                  TCAST(pose_ind_for_atom),
+                  TCAST(first_rot_for_block),
+                  TCAST(first_rot_block_type),
+                  TCAST(block_ind_for_rot),
+                  TCAST(pose_ind_for_rot),
+                  TCAST(block_type_ind_for_rot),
+                  TCAST(n_rots_for_pose),
+                  TCAST(rot_offset_for_pose),
+                  TCAST(n_rots_for_block),
+                  TCAST(rot_offset_for_block),
+                  max_n_rots_per_pose,
 
-                  TCAST(pose_stack_block_type),
                   TCAST(pose_stack_min_bond_separation),
                   TCAST(pose_stack_inter_block_bondsep),
                   TCAST(block_type_n_atoms),
@@ -75,7 +97,7 @@ class LJLKPoseScoreOp
                   TCAST(type_params),
                   TCAST(global_params),
                   output_block_pair_energies,
-                  coords.requires_grad());
+                  rot_coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -84,11 +106,23 @@ class LJLKPoseScoreOp
 
     if (output_block_pair_energies) {
       // save inputs for deriv call in backwards
+      auto max_n_rots_per_pose_tp =
+          TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
       ctx->save_for_backward(
-          {coords,
-           pose_stack_block_coord_offset,
+          {rot_coords,
+           rot_coord_offset,
+           pose_ind_for_atom,
+           first_rot_for_block,
+           first_rot_block_type,
+           block_ind_for_rot,
+           pose_ind_for_rot,
+           block_type_ind_for_rot,
+           n_rots_for_pose,
+           rot_offset_for_pose,
+           n_rots_for_block,
+           rot_offset_for_block,
+           max_n_rots_per_pose_tp.tensor,
 
-           pose_stack_block_type,
            pose_stack_min_bond_separation,
            pose_stack_inter_block_bondsep,
            block_type_n_atoms,
@@ -104,11 +138,10 @@ class LJLKPoseScoreOp
            global_params,
            block_neighbors});
     } else {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
-      ctx->save_for_backward({dscore_dcoords});
+      ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 
-    return score;
+    return {score, block_neighbors};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
@@ -118,32 +151,54 @@ class LJLKPoseScoreOp
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 1) {
+    if (saved.size() == 2) {
       // single-score mode
       auto saved_grads = ctx->get_saved_variables();
+      auto saved_grad = saved_grads[0];
+      auto pose_ind_for_atom = saved_grads[1];
 
       tensor_list result;
 
-      for (auto& saved_grad : saved_grads) {
-        auto ingrad = grad_outputs[0];
-        while (ingrad.dim() < saved_grad.dim()) {
-          ingrad = ingrad.unsqueeze(-1);
-        }
+      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
 
-        result.emplace_back(saved_grad * ingrad);
+      while (atom_ingrads.dim() < saved_grad.dim()) {
+        atom_ingrads = atom_ingrads.unsqueeze(-1);
       }
+
+      printf("SAVED_GRAD\n");
+      for (int ii = 0; ii < saved_grad.dim(); ii++)
+        printf("%i\n", saved_grad.size(ii));
+
+      printf("ATOM_INGRAD\n");
+      for (int ii = 0; ii < atom_ingrads.dim(); ii++)
+        printf("%i\n", atom_ingrads.size(ii));
+
+      result.emplace_back(saved_grad * atom_ingrads);
+      printf("post mult grad\n");
+      //}
 
       int i = 0;
       dV_d_pose_coords = result[i++];
-
     } else {
       // block-pair mode
       int i = 0;
 
-      auto coords = saved[i++];
-      auto pose_stack_block_coord_offset = saved[i++];
+      // common params
+      auto rot_coords = saved[i++];
+      auto rot_coord_offset = saved[i++];
+      auto pose_ind_for_atom = saved[i++];
+      auto first_rot_for_block = saved[i++];
+      auto first_rot_block_type = saved[i++];
+      auto block_ind_for_rot = saved[i++];
+      auto pose_ind_for_rot = saved[i++];
+      auto block_type_ind_for_rot = saved[i++];
+      auto n_rots_for_pose = saved[i++];
+      auto rot_offset_for_pose = saved[i++];
+      auto n_rots_for_block = saved[i++];
+      auto rot_offset_for_block = saved[i++];
+      auto max_n_rots_per_pose =
+          TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
 
-      auto pose_stack_block_type = saved[i++];
       auto pose_stack_min_bond_separation = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
       auto block_type_n_atoms = saved[i++];
@@ -164,7 +219,7 @@ class LJLKPoseScoreOp
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
-          coords.options(), "ljlk_pose_score_backward", ([&] {
+          rot_coords.options(), "ljlk_pose_score_backward", ([&] {
             using Real = scalar_t;
             constexpr tmol::Device Dev = device_t;
 
@@ -174,10 +229,21 @@ class LJLKPoseScoreOp
                 Real,
                 Int>::
                 backward(
-                    TCAST(coords),
-                    TCAST(pose_stack_block_coord_offset),
+                    // common params
+                    TCAST(rot_coords),
+                    TCAST(rot_coord_offset),
+                    TCAST(pose_ind_for_atom),
+                    TCAST(first_rot_for_block),
+                    TCAST(first_rot_block_type),
+                    TCAST(block_ind_for_rot),
+                    TCAST(pose_ind_for_rot),
+                    TCAST(block_type_ind_for_rot),
+                    TCAST(n_rots_for_pose),
+                    TCAST(rot_offset_for_pose),
+                    TCAST(n_rots_for_block),
+                    TCAST(rot_offset_for_block),
+                    max_n_rots_per_pose,
 
-                    TCAST(pose_stack_block_type),
                     TCAST(pose_stack_min_bond_separation),
                     TCAST(pose_stack_inter_block_bondsep),
                     TCAST(block_type_n_atoms),
@@ -221,11 +287,22 @@ class LJLKPoseScoreOp
 };
 
 template <template <tmol::Device> class DispatchMethod>
-Tensor ljlk_pose_scores_op(
-    Tensor coords,
-    Tensor pose_stack_block_coord_offset,
+std::vector<Tensor> ljlk_pose_scores_op(
+    // common params
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    int64_t max_n_rots_per_pose,
 
-    Tensor pose_stack_block_type,
     Tensor pose_stack_min_bond_separation,
     Tensor pose_stack_inter_block_bondsep,
     Tensor block_type_n_atoms,
@@ -241,10 +318,21 @@ Tensor ljlk_pose_scores_op(
     Tensor global_params,
     bool output_block_pair_energies) {
   return LJLKPoseScoreOp<DispatchMethod>::apply(
-      coords,
-      pose_stack_block_coord_offset,
+      // common params
+      rot_coords,
+      rot_coord_offset,
+      pose_ind_for_atom,
+      first_rot_for_block,
+      first_rot_block_type,
+      block_ind_for_rot,
+      pose_ind_for_rot,
+      block_type_ind_for_rot,
+      n_rots_for_pose,
+      rot_offset_for_pose,
+      n_rots_for_block,
+      rot_offset_for_block,
+      max_n_rots_per_pose,
 
-      pose_stack_block_type,
       pose_stack_min_bond_separation,
       pose_stack_inter_block_bondsep,
       block_type_n_atoms,

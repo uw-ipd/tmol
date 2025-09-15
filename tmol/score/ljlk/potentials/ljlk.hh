@@ -15,8 +15,9 @@ namespace potentials {
 template <typename Real>
 class LJLKSingleResData {
  public:
+  int rot_ind;
   int block_type;
-  int block_coord_offset;
+  int rot_coord_offset;
   int n_atoms;
   int n_conn;
   int n_heavy;
@@ -30,6 +31,8 @@ template <typename Real>
 class LJLKScoringData {
  public:
   int pose_ind;
+  int rot_ind1;
+  int rot_ind2;
   int block_ind1;
   int block_ind2;
   LJLKSingleResData<Real> r1;
@@ -62,14 +65,13 @@ struct LJLKBlockPairSharedData {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<Int, 2, D> block_type_heavy_atoms_in_tile,
@@ -82,8 +84,7 @@ void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
   // in r_dat.coords allocation
   DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
       r_dat.coords,
-      reinterpret_cast<Real *>(
-          &coords[pose_ind][r_dat.block_coord_offset + start_atom]),
+      reinterpret_cast<Real *>(&coords[r_dat.rot_coord_offset + start_atom]),
       n_atoms_to_load * 3);
   auto copy_atom_types = ([=](int tid) {
     for (int count = tid; count < n_atoms_to_load; count += nt) {
@@ -105,15 +106,14 @@ void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC ljlk_load_block_into_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<Int, 2, D> block_type_heavy_atoms_in_tile,
@@ -150,8 +150,7 @@ void TMOL_DEVICE_FUNC ljlk_load_block_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -159,7 +158,7 @@ template <
     int TILE_SIZE,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
-    TView<Int, 2, D> pose_stack_block_coord_offset,
+    TView<Int, 1, D> rot_coord_offset,
     TView<Int, 3, D> pose_stack_min_bond_separation,
     TView<Int, 1, D> block_type_n_interblock_bonds,
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
@@ -168,6 +167,8 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
 
     int const max_important_bond_separation,
     int pose_ind,
+    int rot_ind1,
+    int rot_ind2,
     int block_ind1,
     int block_ind2,
     int block_type1,
@@ -177,14 +178,18 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
     LJLKScoringData<Real> &inter_dat,
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   inter_dat.pose_ind = pose_ind;
+  inter_dat.r1.rot_ind = rot_ind1;
+  inter_dat.r2.rot_ind = rot_ind2;
   inter_dat.block_ind1 = block_ind1;
   inter_dat.block_ind2 = block_ind2;
   inter_dat.r1.block_type = block_type1;
   inter_dat.r2.block_type = block_type2;
-  inter_dat.r1.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind1];
-  inter_dat.r2.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind2];
+  inter_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
+  inter_dat.r2.rot_coord_offset = rot_coord_offset[rot_ind2];
+  // inter_dat.r1.block_coord_offset =
+  // pose_stack_block_coord_offset[pose_ind][block_ind1];
+  // inter_dat.r2.block_coord_offset =
+  // pose_stack_block_coord_offset[pose_ind][block_ind2];
   inter_dat.max_important_bond_separation = max_important_bond_separation;
   inter_dat.min_separation =
       pose_stack_min_bond_separation[pose_ind][block_ind1][block_ind2];
@@ -248,8 +253,7 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -257,7 +261,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC ljlk_load_interres1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<Int, 2, D> block_type_heavy_atoms_in_tile,
@@ -291,8 +295,7 @@ void TMOL_DEVICE_FUNC ljlk_load_interres1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -300,7 +303,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC ljlk_load_interres2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<Int, 2, D> block_type_heavy_atoms_in_tile,
@@ -344,8 +347,7 @@ void TMOL_DEVICE_FUNC ljlk_load_interres_data_from_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -353,23 +355,25 @@ template <
     int TILE_SIZE,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_intrares_data(
-    TView<Int, 2, D> pose_stack_block_coord_offset,
+    TView<Int, 1, D> rot_coord_offset,
     TView<LJGlobalParams<Real>, 1, D> global_params,
     int const max_important_bond_separation,
     int pose_ind,
+    int rot_ind1,
     int block_ind1,
     int block_type1,
     int n_atoms1,
     LJLKScoringData<Real> &intra_dat,
     LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   intra_dat.pose_ind = pose_ind;
+  intra_dat.r1.rot_ind = rot_ind1;
+  intra_dat.r2.rot_ind = rot_ind1;
   intra_dat.block_ind1 = block_ind1;
   intra_dat.block_ind2 = block_ind1;
   intra_dat.r1.block_type = block_type1;
   intra_dat.r2.block_type = block_type1;
-  intra_dat.r1.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind1];
-  intra_dat.r2.block_coord_offset = intra_dat.r1.block_coord_offset;
+  intra_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
+  intra_dat.r2.rot_coord_offset = intra_dat.r1.rot_coord_offset;
   intra_dat.max_important_bond_separation = max_important_bond_separation;
 
   // we are not going to load count pair data into shared memory because
@@ -407,8 +411,7 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_intrares_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -416,7 +419,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
@@ -448,8 +451,7 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -457,7 +459,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC ljlk_load_intrares2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Int, 2, D> block_type_atom_types,
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<Int, 2, D> block_type_n_heavy_atoms_in_tile,
@@ -617,7 +619,7 @@ TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy_and_derivs_full(
     int start_atom2,
     LJLKScoringData<Real> const &score_dat,
     int cp_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 3, D> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -640,15 +642,15 @@ TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy_and_derivs_full(
   for (int j = 0; j < 3; ++j) {
     if (ljatr_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0][score_dat.pose_ind]
-                    [score_dat.r1.block_coord_offset + atom_tile_ind1
+          dV_dcoords[0]
+                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
                      + start_atom1][j],
           ljatr_dxyz_at1[j]);
     }
     if (ljrep_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[1][score_dat.pose_ind]
-                    [score_dat.r1.block_coord_offset + atom_tile_ind1
+          dV_dcoords[1]
+                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
                      + start_atom1][j],
           ljrep_dxyz_at1[j]);
     }
@@ -660,15 +662,15 @@ TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy_and_derivs_full(
   for (int j = 0; j < 3; ++j) {
     if (ljatr_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0][score_dat.pose_ind]
-                    [score_dat.r2.block_coord_offset + atom_tile_ind2
+          dV_dcoords[0]
+                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
                      + start_atom2][j],
           ljatr_dxyz_at2[j]);
     }
     if (ljrep_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[1][score_dat.pose_ind]
-                    [score_dat.r2.block_coord_offset + atom_tile_ind2
+          dV_dcoords[1]
+                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
                      + start_atom2][j],
           ljrep_dxyz_at2[j]);
     }
@@ -704,7 +706,7 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
     LJLKScoringData<Real> const &score_dat,
     int cp_separation,
     TView<Real, 4, D> dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 3, D> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -733,8 +735,8 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
   for (int j = 0; j < 3; ++j) {
     if (lj_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[2][score_dat.pose_ind]
-                    [score_dat.r1.block_coord_offset + atom_tile_ind1
+          dV_dcoords[2]
+                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
                      + start_atom1][j],
           lj_dxyz_at1[j]);
     }
@@ -745,8 +747,8 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
   for (int j = 0; j < 3; ++j) {
     if (lj_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[2][score_dat.pose_ind]
-                    [score_dat.r2.block_coord_offset + atom_tile_ind2
+          dV_dcoords[2]
+                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
                      + start_atom2][j],
           lj_dxyz_at2[j]);
     }
@@ -761,7 +763,7 @@ TMOL_DEVICE_FUNC Real lk_atom_energy_and_derivs_full(
     int start_atom2,
     LJLKScoringData<Real> const &score_dat,
     int cp_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 3, D> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
@@ -781,8 +783,8 @@ TMOL_DEVICE_FUNC Real lk_atom_energy_and_derivs_full(
   for (int j = 0; j < 3; ++j) {
     if (lk_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[2][score_dat.pose_ind]
-                    [score_dat.r1.block_coord_offset + atom_tile_ind1
+          dV_dcoords[2]
+                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
                      + start_atom1][j],
           lk_dxyz_at1[j]);
     }
@@ -792,8 +794,8 @@ TMOL_DEVICE_FUNC Real lk_atom_energy_and_derivs_full(
   for (int j = 0; j < 3; ++j) {
     if (lk_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[2][score_dat.pose_ind]
-                    [score_dat.r2.block_coord_offset + atom_tile_ind2
+          dV_dcoords[2]
+                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
                      + start_atom2][j],
           lk_dxyz_at2[j]);
     }
