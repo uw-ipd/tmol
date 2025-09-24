@@ -232,7 +232,6 @@ class WholePoseScoringModule:
     def __call__(self, coords):
         # weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
         weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
-        print(weighted)
         return weighted
 
     def unweighted_scores(self, coords):
@@ -246,9 +245,7 @@ class WholePoseScoringModule:
         scores = []
         for term in self.term_modules:
             values = term(coords)
-            print(values)
             scores += values
-        print(scores)
 
         return torch.stack(scores)
 
