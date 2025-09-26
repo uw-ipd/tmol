@@ -56,7 +56,7 @@ class PoseScoringModule(ScoringModule):
                 pose_stack.rot_coord_offset,
                 pose_stack.pose_ind_for_atom,
                 pose_stack.first_rot_for_block,
-                pose_stack.first_rot_for_block,
+                pose_stack.block_type_ind,  # block_type for first rot for block
                 pose_stack.block_ind_for_rot,
                 pose_stack.pose_ind_for_rot,
                 pose_stack.block_type_ind_for_rot,
@@ -103,25 +103,29 @@ class RotamerScoringModule(ScoringModule):
         term_parameters,
         term_score_poses,
     ):
-        super(ScoringModule, self).__init__(term_parameters, term_score_poses)
+        super(RotamerScoringModule, self).__init__(term_parameters, term_score_poses)
 
         self.common_parameters = []
+
+        def _i32(x):
+            return x if isinstance(x, int) else x.to(torch.int32)
 
         self.add_parameters(
             self.common_parameters,
             [
-                i.to(torch.int32)
-                for i in [
-                    rotamer_set.rot_coord_offset,
-                    rotamer_set.first_rot_for_block,
-                    rotamer_set.first_rot_for_block,
+                _i32(t)
+                for t in [
+                    rotamer_set.coord_offset_for_rot,  # rot coord offset
+                    rotamer_set.pose_ind_for_atom,  # pose_ind_for_atom?? unused
+                    rotamer_set.rot_offset_for_block,  # first rot for block
+                    rotamer_set.first_rot_block_type,  # first rot block type
                     rotamer_set.block_ind_for_rot,
-                    rotamer_set.pose_ind_for_rot,
+                    rotamer_set.pose_for_rot,
                     rotamer_set.block_type_ind_for_rot,
                     rotamer_set.n_rots_for_pose,
                     rotamer_set.rot_offset_for_pose,
                     rotamer_set.n_rots_for_block,
-                    rotamer_set.rot_offset_for_block,
+                    rotamer_set.rot_offset_for_block,  # three times?!
                     rotamer_set.max_n_rots_per_pose,
                 ]
             ],
@@ -133,4 +137,4 @@ class RotamerScoringModule(ScoringModule):
     ):
         scores, indices = self.term_score_poses(*self.format_arguments(coords, True))
 
-        return scores
+        return scores, indices

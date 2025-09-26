@@ -39,5 +39,5 @@ class OmegaBBDepDatabase:
                 OmegaBBDepTables,
             ]
         ):
-            print("safe globals: ", torch.serialization.get_safe_globals())
+            # print("safe globals: ", torch.serialization.get_safe_globals())
             return torch.load(fname)

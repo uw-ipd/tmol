@@ -52,32 +52,48 @@ class FixedAAChiSampler(ChiSampler):
     ]:
         all_restypes = numpy.array(
             [
-                rt
-                for one_pose_rlts in task.rlts
-                for rlt in one_pose_rlts
-                for rt in rlt.allowed_restypes
-                if self in rlt.chi_samplers
+                bt
+                for one_pose_blts in task.blts
+                for blt in one_pose_blts
+                for i, bt in enumerate(blt.considered_block_types)
+                if self in blt.conformer_samplers
             ],
             dtype=object,
+        )
+        restype_allowed = torch.tensor(
+            [
+                (self in blt.conformer_samplers and bool(blt.block_type_allowed[i]))
+                for one_pose_blts in task.blts
+                for blt in one_pose_blts
+                for i, bt in enumerate(blt.considered_block_types)
+            ],
+            dtype=bool,
+            device=poses.device,
         )
 
         rt_base_names = numpy.array([rt.base_name for rt in all_restypes], dtype=object)
         n_rots_for_rt = torch.zeros(
             len(all_restypes), dtype=torch.int32, device=poses.device
         )
-        is_ala_rt = torch.tensor(
-            (rt_base_names == "ALA"),
-            dtype=torch.bool,
-            device=poses.device,
+        is_allowed_ala_rt = torch.logical_and(
+            torch.tensor(
+                (rt_base_names == "ALA"),
+                dtype=torch.bool,
+                device=poses.device,
+            ),
+            restype_allowed,
         )
-        is_gly_rt = torch.tensor(
-            (rt_base_names == "GLY"),
-            dtype=torch.bool,
-            device=poses.device,
+        is_allowed_gly_rt = torch.logical_and(
+            torch.tensor(
+                (rt_base_names == "GLY"),
+                dtype=torch.bool,
+                device=poses.device,
+            ),
+            restype_allowed,
         )
-        n_rots_for_rt[is_ala_rt] += 1
-        n_rots_for_rt[is_gly_rt] += 1
-        either_ala_or_gly = torch.logical_or(is_ala_rt, is_gly_rt)
+        n_rots_for_rt[is_allowed_ala_rt] += 1
+        n_rots_for_rt[is_allowed_gly_rt] += 1
+        either_ala_or_gly = torch.logical_or(is_allowed_ala_rt, is_allowed_gly_rt)
 
         n_fixed_rots = torch.sum(n_rots_for_rt).item()
         # rt_for_rotamer = torch.zeros(
@@ -88,6 +104,7 @@ class FixedAAChiSampler(ChiSampler):
         rt_for_rotamer = torch.arange(
             len(rt_base_names), dtype=torch.int32, device=poses.device
         )[either_ala_or_gly]
+        # print("fixed_aa_chi_sampler rt for rotamer", rt_for_rotamer)
         chi_for_rotamers = torch.zeros(
             (n_fixed_rots, 1), dtype=torch.float32, device=poses.device
         )

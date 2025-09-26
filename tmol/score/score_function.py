@@ -232,7 +232,7 @@ class WholePoseScoringModule:
     def __call__(self, coords):
         # weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
         weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
-        print(weighted)
+        # print(weighted)
         return weighted
 
     def unweighted_scores(self, coords):
@@ -246,9 +246,9 @@ class WholePoseScoringModule:
         scores = []
         for term in self.term_modules:
             values = term(coords)
-            print(values)
+            # print(values)
             scores += values
-        print(scores)
+        # print(scores)
 
         return torch.stack(scores)
 
@@ -288,7 +288,7 @@ class BlockPairScoringModule:
 
     def __call__(self, coords):
         weighted = torch.sum(self.weights * self.unweighted_scores(coords), dim=0)
-        print(weighted)
+        # print(weighted)
         return weighted
 
     def unweighted_scores(self, coords):
@@ -302,13 +302,13 @@ class BlockPairScoringModule:
         scores = []
         for term in self.term_modules:
             values, indices = term(coords)
-            print(values, indices)
+            # print(values, indices)
             if self.output_block_pair_energies:
                 for subterm in range(values.size(1)):
                     scores += torch.sparse_coo_tensor(indices, values[:, subterm])
             else:
                 scores += values
-        print(scores)
+        # print(scores)
 
         return torch.stack(scores)
 

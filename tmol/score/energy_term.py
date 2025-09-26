@@ -115,6 +115,6 @@ class EnergyTerm:
     ):
         return RotamerScoringModule(
             rotamer_set,
-            self.get_score_term_attributes(),
+            self.get_score_term_attributes(pose_stack),
             self.get_score_term_function(),
         )

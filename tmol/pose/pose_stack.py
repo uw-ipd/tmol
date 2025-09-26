@@ -126,14 +126,14 @@ class PoseStack:
 
         # pose_coord_offset = torch.cumsum(self.n_rots_for_pose, 0).roll(1,0)
 
-        print("rot_offset_for_pose: ", self.rot_offset_for_pose)
+        # print("rot_offset_for_pose: ", self.rot_offset_for_pose)
         # print("pose_coord_offset: ", pose_coord_offset)
         self.rot_coord_offset = (
             self.block_coord_offset.flatten()
             + torch.repeat_interleave(coord_offset_for_pose, n_blocks)
         )
-        print("rot_coord_offset: ", self.rot_coord_offset)
-        print("block_coord_offset: ", self.block_coord_offset)
+        # print("rot_coord_offset: ", self.rot_coord_offset)
+        # print("block_coord_offset: ", self.block_coord_offset)
 
         self.max_n_rots_per_pose = n_blocks
 
@@ -145,7 +145,7 @@ class PoseStack:
             dtype=torch.int32,
             device=self.device,
         )
-        print(self.coords.size(0) * self.coords.size(1), self.n_poses, n_poses)
+        # print(self.coords.size(0) * self.coords.size(1), self.n_poses, n_poses)
         atom_to_pose[pose_atom_offsets] = 1
         atom_to_pose[0] = 0
         self.pose_ind_for_atom = atom_to_pose.cumsum(0, dtype=torch.int32)
