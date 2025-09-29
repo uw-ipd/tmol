@@ -80,6 +80,10 @@ class RotamerSet(ValidateAttrs):
         pifa = torch.cumsum(pifa, dim=0)
         return pifa
 
+    @property
+    def n_rotamers_total(self):
+        return self.block_ind_for_rot.shape[0]
+
 
 # from tmol.system.restype import RefinedResidueType
 

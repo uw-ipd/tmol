@@ -168,6 +168,24 @@ class ScoreFunction:
             self.weights_tensor(), term_modules, output_block_pair_energies=True
         )
 
+    def render_rotamer_scoring_module(
+        self, pose_stack: PoseStack, rotamer_set: "RotamerSet"
+    ):
+        """Create an object designed to evaluate the score a RotamerSet
+        repeatedly as the Poses change their conformation, e.g., as in
+        minimization. This object will derive from torch.nn.Module and
+        it will contain a set of objects rendered by the ScoreFunction's
+        terms that themselves are derived from torch.nn.Module. This
+        object's __call__ will return a tensor of weighted energies of
+        shape (n_poses, max_n_blocks, max_n_blocks).
+        """
+        self.pre_work_initialization(pose_stack)
+        term_modules = [
+            t.render_rotamer_scoring_module(pose_stack, rotamer_set)
+            for t in self.all_terms()
+        ]
+        return RotamerScoringModule(self.weights_tensor(), term_modules)
+
     def pre_work_initialization(self, pose_stack: PoseStack):
         for block_type in pose_stack.packed_block_types.active_block_types:
             for energy_term in self.all_terms():
@@ -320,3 +338,43 @@ class BlockPairScoringModule:
             dim=0,
         )
         return torch.cat([term(coords) for term in self.term_modules], dim=0)
+
+
+class RotamerScoringModule:
+    def __init__(
+        self,
+        weights: Tensor[torch.float32][:],
+        term_modules: Sequence[torch.nn.Module],
+    ):
+        # super(WholePoseScoringModule, self).__init__()
+        self.weights = torch.nn.Parameter(
+            weights.view(-1, 1, 1, 1), requires_grad=False
+        )
+        self.term_modules = term_modules
+
+    def __call__(self, coords):
+        weighted_scores = None
+        weights_offset = 0
+        for term in self.term_modules:
+            sparse_values = term(coords)
+            n_weights_for_term = sparse_values.shape[0]
+            weighted = torch.sum(
+                self.weights[weights_offset : (n_weights_for_term + weights_offset)]
+                * sparse_values,
+                dim=0,
+            )
+            weights_offset += n_weights_for_term
+            if weighted_scores is None:
+                weighted_scores = weighted
+            else:
+                weighted_scores += weighted
+        if weighted_scores is None:
+            return torch.sparse_coo_tensor(
+                indices=torch.zeros((0, 3), dtype=torch.int32, device=coords.device),
+                values=torch.zeros((0, 1), dtype=torch.float32, device=coords.device),
+                size=(0, 0),
+                nnz=0,
+                layout=torch.sparse_coo,
+            )
+        else:
+            return weighted_scores

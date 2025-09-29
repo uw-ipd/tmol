@@ -4,13 +4,13 @@ import torch
 from tmol.score.common.convert_float64 import convert_float64
 
 
-class ScoringModule(torch.nn.Module):
+class TermScoringModule(torch.nn.Module):
     def __init__(
         self,
         term_parameters,
         term_score_poses,
     ):
-        super(ScoringModule, self).__init__()
+        super(TermScoringModule, self).__init__()
 
         self.term_parameters = []
 
@@ -39,14 +39,14 @@ class ScoringModule(torch.nn.Module):
             table += [_p(param) if type(param) is torch.Tensor else param]
 
 
-class PoseScoringModule(ScoringModule):
+class TermPoseScoringModule(TermScoringModule):
     def __init__(
         self,
         pose_stack,
         term_parameters,
         term_score_poses,
     ):
-        super(PoseScoringModule, self).__init__(term_parameters, term_score_poses)
+        super(TermPoseScoringModule, self).__init__(term_parameters, term_score_poses)
 
         self.common_parameters = []
 
@@ -69,7 +69,7 @@ class PoseScoringModule(ScoringModule):
         )
 
 
-class WholePoseScoringModule(PoseScoringModule):
+class TermWholePoseScoringModule(TermPoseScoringModule):
     def forward(
         self,
         coords,
@@ -79,7 +79,7 @@ class WholePoseScoringModule(PoseScoringModule):
         return scores
 
 
-class BlockPairScoringModule(PoseScoringModule):
+class TermBlockPairScoringModule(TermPoseScoringModule):
     def forward(
         self,
         coords,
@@ -96,14 +96,16 @@ class BlockPairScoringModule(PoseScoringModule):
         return sparse_result
 
 
-class RotamerScoringModule(ScoringModule):
+class TermRotamerScoringModule(TermScoringModule):
     def __init__(
         self,
         rotamer_set,
         term_parameters,
         term_score_poses,
     ):
-        super(RotamerScoringModule, self).__init__(term_parameters, term_score_poses)
+        super(TermRotamerScoringModule, self).__init__(
+            term_parameters, term_score_poses
+        )
 
         self.common_parameters = []
 
@@ -137,4 +139,10 @@ class RotamerScoringModule(ScoringModule):
     ):
         scores, indices = self.term_score_poses(*self.format_arguments(coords, True))
 
-        return scores, indices
+        sparse_result = torch.stack(
+            [
+                torch.sparse_coo_tensor(indices, scores[subterm, :])
+                for subterm in range(scores.size(0))
+            ]
+        )
+        return sparse_result

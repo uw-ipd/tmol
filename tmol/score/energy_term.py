@@ -3,9 +3,9 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.pack.rotamer.build_rotamers import RotamerSet
 from tmol.score.common.scoring_module import (
-    WholePoseScoringModule,
-    BlockPairScoringModule,
-    RotamerScoringModule,
+    TermWholePoseScoringModule,
+    TermBlockPairScoringModule,
+    TermRotamerScoringModule,
 )
 
 
@@ -97,14 +97,14 @@ class EnergyTerm:
         raise NotImplementedError()
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        return WholePoseScoringModule(
+        return TermWholePoseScoringModule(
             pose_stack,
             self.get_score_term_attributes(pose_stack),
             self.get_score_term_function(),
         )
 
     def render_block_pair_scoring_module(self, pose_stack: PoseStack):
-        return BlockPairScoringModule(
+        return TermBlockPairScoringModule(
             pose_stack,
             self.get_score_term_attributes(pose_stack),
             self.get_score_term_function(),
@@ -113,7 +113,7 @@ class EnergyTerm:
     def render_rotamer_scoring_module(
         self, pose_stack: PoseStack, rotamer_set: RotamerSet
     ):
-        return RotamerScoringModule(
+        return TermRotamerScoringModule(
             rotamer_set,
             self.get_score_term_attributes(pose_stack),
             self.get_score_term_function(),
