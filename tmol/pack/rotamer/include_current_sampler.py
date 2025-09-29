@@ -97,14 +97,9 @@ class IncludeCurrentSampler(ConformerSampler):
                 n_dof_atoms_offset_for_conformer,
             )
         )
-        print("dst")
-        print(dst)
-        print("src")
-        print(src)
-        print("src dofs")
-        print(orig_dofs_kto[src, :])
 
-        conf_dofs_kto[dst, :] = orig_dofs_kto[src, :]
+        # add one for the virtual root
+        conf_dofs_kto[dst + 1, :] = orig_dofs_kto[src + 1, :]
 
 
 # @validate_args

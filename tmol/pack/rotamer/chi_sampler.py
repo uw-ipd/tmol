@@ -418,9 +418,9 @@ def assign_chi_dofs_from_samples(
         dtype=torch.int64,
         device=pbt.device,
     )
+
     # increment with the atom offsets for the source rotamer and by
     # one to include the virtual root
-
     rot_chi_atoms_kto += (
         n_dof_atoms_offset_for_rot[global_rot_ind_for_real_atom].to(torch.int64) + 1
     )

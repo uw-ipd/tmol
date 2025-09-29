@@ -69,6 +69,7 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, 
         pose_for_rot, block_ind_for_rot
     ]
 
+    coord_offset_for_rotamer = torch.zeros((n_rots_total,), dtype=torch.int32)
     coords = torch.zeros((pose_stack.max_n_block_atoms, 3), dtype=torch.float32)
 
     rotamer_set = RotamerSet(
@@ -79,6 +80,7 @@ def construct_faux_rotamer_set_and_sparse_energies_table_from_ig(ig, pdb_fname, 
         pose_for_rot=_d(pose_for_rot),
         block_type_ind_for_rot=_d(block_type_ind_for_rot),
         block_ind_for_rot=_d(block_ind_for_rot32),
+        coord_offset_for_rot=_d(coord_offset_for_rotamer),
         coords=_d(coords),
     )
 
@@ -164,10 +166,12 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
     block_ind_for_rot32 = block_ind_for_rot.to(torch.int32)
     block_type_ind_for_rot = pose_stack.block_type_ind64[0, block_ind_for_rot]
 
-    # obviously a bogus size for this tensor
+    # a bogus size for the coords tensor and bogus values for its offsets
+    coord_offset_for_rotamer = torch.zeros((n_rots_total,), dtype=torch.int32)
     coords = torch.zeros((pose_stack.max_n_block_atoms, 3), dtype=torch.float32)
 
     rotamer_set = RotamerSet(
+        max_n_rots_per_pose=torch.max(n_rots_for_pose).item(),
         n_rots_for_pose=_d(n_rots_for_pose),
         rot_offset_for_pose=_d(rot_offset_for_pose),
         n_rots_for_block=_d(n_rots_for_block),
@@ -175,6 +179,7 @@ def construct_stacked_faux_rotamer_set_and_sparse_energies_table_from_ig(
         pose_for_rot=_d(pose_for_rot),
         block_type_ind_for_rot=_d(block_type_ind_for_rot),
         block_ind_for_rot=_d(block_ind_for_rot32),
+        coord_offset_for_rot=_d(coord_offset_for_rotamer),
         coords=_d(coords),
     )
 

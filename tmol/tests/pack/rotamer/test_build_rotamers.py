@@ -21,9 +21,18 @@ from tmol.pack.rotamer.build_rotamers import (
     get_rotamer_origin_data,
 )
 from tmol.pack.rotamer.chi_sampler import (
-    # copy_dofs_from_orig_to_rotamers_for_sampler
     create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler,
-    # assign_chi_dofs_from_samples
+    # copy_dofs_from_orig_to_rotamers_for_sampler
+)
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+    DunbrackChiSampler,
+)
+from tmol.pack.rotamer.fixed_aa_chi_sampler import (
+    FixedAAChiSampler,
+)
+from tmol.pack.rotamer.include_current_sampler import (
+    IncludeCurrentSampler,
+    create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler,
 )
 
 
@@ -1663,7 +1672,33 @@ def test_new_rotamer_building_logic3(
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
-    residues_to_fix = [(0, 0), (0, 12), (0, 24), (1, 18), (1, 31), (1, 52)]
+    residues_to_fix = [
+        (0, 0),
+        (0, 1),
+        (0, 2),
+        (0, 3),
+        (0, 7),
+        (0, 8),
+        (0, 9),
+        (0, 10),
+        (0, 11),
+        (0, 12),
+        (0, 15),
+        (0, 16),
+        (0, 17),
+        (0, 18),
+        (0, 20),
+        (0, 21),
+        (0, 22),
+        (0, 23),
+        (0, 24),
+        (0, 25),
+        (0, 26),
+        (0, 27),
+        (1, 18),
+        (1, 31),
+        (1, 52),
+    ]
     for pose, res in residues_to_fix:
         task.blts[pose][res].disable_packing()
 
@@ -1674,7 +1709,6 @@ def test_new_rotamer_building_logic3(
     ###########################################
 
     poses, rotamer_set = build_rotamers(poses, task, chem_db)
-    print("rotamer_set.block_ind_for_rot", rotamer_set.block_ind_for_rot.shape)
 
     for p, r in residues_to_fix:
         # first rotamer for block will also be the block's only rotamer
@@ -1687,24 +1721,33 @@ def test_new_rotamer_building_logic3(
         assert current_rot_block == r
         current_rot_n_atoms = poses.packed_block_types.n_atoms[current_rot_blocktype]
         assert current_rot_blocktype == poses.block_type_ind[p, r]
-        print(
-            f"current_rot_coords {p}, {r}, rot {current_rot} xyz offset {current_rot_offset}"
-        )
-        print(
-            rotamer_set.coords[
-                (current_rot_offset) : (current_rot_offset + current_rot_n_atoms), :
-            ]
-        )
+        bt = poses.packed_block_types.active_block_types[current_rot_blocktype]
+
+        # torch.testing.assert_close(
+        #     poses.coords[
+        #         p,
+        #         pose_stack_coord_offset : (
+        #             pose_stack_coord_offset + current_rot_n_atoms
+        #         ),
+        #     ],
+        #     rotamer_set.coords[
+        #         (current_rot_offset) : (current_rot_offset + current_rot_n_atoms), :
+        #     ],
+        #     atol=1e-3,
+        #     rtol=1e-5,
+        # )
+
         pose_stack_coord_offset = poses.block_coord_offset64[p, r]
-        print("pose coords")
-        print(
-            poses.coords[
-                p,
-                pose_stack_coord_offset : (
-                    pose_stack_coord_offset + current_rot_n_atoms
-                ),
-            ]
-        )
+        # dst = torch.linalg.norm(
+        #     poses.coords[
+        #         p,
+        #         pose_stack_coord_offset : (
+        #             pose_stack_coord_offset + current_rot_n_atoms
+        #         ),
+        #     ] - rotamer_set.coords[
+        #         (current_rot_offset) : (current_rot_offset + current_rot_n_atoms), :
+        #     ]
+        # )
 
         torch.testing.assert_close(
             poses.coords[
