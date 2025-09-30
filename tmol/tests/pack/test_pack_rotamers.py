@@ -20,8 +20,10 @@ from tmol.pack.rotamer.fixed_aa_chi_sampler import (
 )
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
+from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
 
 from tmol.io import pose_stack_from_pdb
+from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 
 
 def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
@@ -93,4 +95,13 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    print("scores", scores)
+    print("scores", scores[:, 0])
+
+    new_pose_stack = impose_top_rotamer_assignments(
+        pose_stack, rotamer_set, rotamer_assignments
+    )
+    write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq.pdb")
+
+    wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
+    new_scores = wpsm(new_pose_stack.coords)
+    print("confirm new scores", new_scores)
