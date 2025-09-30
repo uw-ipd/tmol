@@ -29,6 +29,7 @@ from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
     # torch_device = torch.device("cpu")
     n_poses = 2
+    # print("Device!", torch_device)
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
@@ -59,11 +60,11 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
     energies = energies.coalesce()
 
     n_rots_total = rotamer_set.n_rotamers_total
-    energy1b = torch.zeros((n_rots_total), dtype=torch.float32, device=torch_device)
+    # energy1b = torch.zeros((n_rots_total), dtype=torch.float32, device=torch_device)
 
     chunk_size = 16
 
-    (chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+    (energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
         build_interaction_graph(
             chunk_size,
             rotamer_set.n_rots_for_pose,
@@ -95,7 +96,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    print("scores", scores[:, 0])
+    # print("scores", scores[:, 0])
 
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack, rotamer_set, rotamer_assignments
@@ -104,4 +105,5 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
 
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
     new_scores = wpsm(new_pose_stack.coords)
-    print("confirm new scores", new_scores)
+    # print("confirm new scores", new_scores)
+    torch.testing.assert_close(scores[:, 0], new_scores)

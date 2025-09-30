@@ -10,8 +10,7 @@ namespace pack {
 namespace compiled {
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -26,8 +25,12 @@ struct InteractionGraphBuilder {
       TView<Int, 1, D> block_type_ind_for_rot,
       TView<int32_t, 1, D> block_ind_for_rot,
       TView<int32_t, 2, D> sparse_inds,
-      TView<Real, 1, D> sparse_energies) -> std::
-      tuple<TPack<int64_t, 3, D>, TPack<int64_t, 1, D>, TPack<Real, 1, D> >;
+      TView<Real, 1, D> sparse_energies)
+      -> std::tuple<
+          TPack<Real, 1, D>,
+          TPack<int64_t, 3, D>,
+          TPack<int64_t, 1, D>,
+          TPack<Real, 1, D> >;
 };
 
 template <tmol::Device D>

@@ -362,7 +362,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
 
     chunk_size = 16
 
-    (chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+    (_, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
         build_interaction_graph(
             chunk_size,
             rotamer_set.n_rots_for_pose,
@@ -474,7 +474,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
     n_energies_per_pose = 608852 // 2
     chunk_size = 16
 
-    (chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+    (_, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
         build_interaction_graph(
             chunk_size,
             rotamer_set.n_rots_for_pose,
@@ -586,7 +586,7 @@ def test_run_single_pose_simA(ubq_ig, torch_device):
 
     chunk_size = 16
 
-    (chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+    (_, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
         build_interaction_graph(
             chunk_size,
             rotamer_set.n_rots_for_pose,
@@ -634,7 +634,7 @@ def test_run_two_poses_simA(ubq_ig, torch_device):
 
     chunk_size = 16
 
-    (chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+    (_, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
         build_interaction_graph(
             chunk_size,
             rotamer_set.n_rots_for_pose,

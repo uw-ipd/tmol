@@ -33,6 +33,7 @@ std::vector<Tensor> build_interaction_graph(
     Tensor sparse_inds,
     Tensor sparse_energies) {
   nvtx_range_push("pack_build_ig");
+  at::Tensor energy1b;
   at::Tensor chunk_pair_offset_for_block_pair;
   at::Tensor chunk_pair_offset;
   at::Tensor energy2b;
@@ -59,13 +60,17 @@ std::vector<Tensor> build_interaction_graph(
               TCAST(block_ind_for_rot),
               TCAST(sparse_inds),
               TCAST(sparse_energies));
-        chunk_pair_offset_for_block_pair = std::get<0>(result).tensor;
-        chunk_pair_offset = std::get<1>(result).tensor;
-        energy2b = std::get<2>(result).tensor;
+        energy1b = std::get<0>(result).tensor;
+        chunk_pair_offset_for_block_pair = std::get<1>(result).tensor;
+        chunk_pair_offset = std::get<2>(result).tensor;
+        energy2b = std::get<3>(result).tensor;
       }));
 
   std::vector<torch::Tensor> result(
-      {chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b});
+      {energy1b,
+       chunk_pair_offset_for_block_pair,
+       chunk_pair_offset,
+       energy2b});
   return result;
 }
 

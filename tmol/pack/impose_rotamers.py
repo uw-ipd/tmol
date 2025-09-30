@@ -45,8 +45,8 @@ def impose_top_rotamer_assignments(
         assignment[:, 0, :].to(torch.int64) + rotamer_set.rot_offset_for_block
     )
 
-    print("New rot for block")
-    print(new_rot_for_block64)
+    # print("New rot for block")
+    # print(new_rot_for_block64)
 
     is_real_block = orig_pose_stack.block_type_ind64 != -1
 

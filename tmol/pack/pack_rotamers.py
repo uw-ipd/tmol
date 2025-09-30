@@ -23,13 +23,13 @@ def pack_rotamers(pose_stack: PoseStack, task: PackerTask, sfxn: ScoreFunction):
     energies = energies.coalesce()
 
     n_rots_total = rotamer_set.n_rotamers_total
-    energy1b = torch.zeros(
-        (n_rots_total), dtype=torch.float32, device=pose_stack.device
-    )
+    # energy1b = torch.zeros(
+    #     (n_rots_total), dtype=torch.float32, device=pose_stack.device
+    # )
 
     chunk_size = 16
 
-    (chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
+    (energy1b, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
         build_interaction_graph(
             chunk_size,
             rotamer_set.n_rots_for_pose,
