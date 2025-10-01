@@ -31,6 +31,24 @@ def test_deduce_chains_two_monomers(ubq_pdb, torch_device):
     numpy.testing.assert_equal(gold_chain_inds, chain_inds)
 
 
+def test_deduce_chains_four_monomers(ubq_pdb, torch_device):
+    p1 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=5)
+    p2 = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=7)
+    poses = PoseStackBuilder.from_poses([p1, p2, p1, p2], torch_device)
+
+    chain_inds = chain_inds_for_pose_stack(poses)
+    gold_chain_inds = numpy.array(
+        [
+            [0, 0, 0, 0, 0, -1, -1],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, -1, -1],
+            [0, 0, 0, 0, 0, 0, 0],
+        ],
+        dtype=numpy.int32,
+    )
+    numpy.testing.assert_equal(gold_chain_inds, chain_inds)
+
+
 def test_deduce_chains_dslf_dimer(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
