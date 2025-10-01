@@ -1,16 +1,14 @@
 import numpy
 import torch
-import attr
-import os
 import pickle
 import pytest
 
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
-from tmol.pack.compiled.compiled import validate_energies, build_interaction_graph
+from tmol.pack.compiled.compiled import build_interaction_graph
 from tmol.pack.rotamer.build_rotamers import RotamerSet
-from tmol.utility.cumsum import exclusive_cumsum, exclusive_cumsum1d
+from tmol.utility.cumsum import exclusive_cumsum1d
 from tmol.io import pose_stack_from_pdb
 
 
@@ -410,7 +408,7 @@ def test_build_interaction_graph(ubq_ig, torch_device):
                     block1,
                     block2,
                     chunk_offset_for_blocks_ij,
-                    chunk_offset_for_blocks_jj,
+                    chunk_offset_for_blocks_ji,
                 )
             assert i_energy == 0
         else:
@@ -471,7 +469,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
         )
     )
 
-    n_energies_per_pose = 608852 // 2
+    # n_energies_per_pose = 608852 // 2
     chunk_size = 16
 
     (_, chunk_pair_offset_for_block_pair, chunk_pair_offset, energy2b) = (
@@ -523,7 +521,7 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
                     block1,
                     block2,
                     chunk_offset_for_blocks_ij,
-                    chunk_offset_for_blocks_jj,
+                    chunk_offset_for_blocks_ji,
                 )
             assert i_energy == 0
         else:

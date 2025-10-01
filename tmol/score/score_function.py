@@ -169,7 +169,7 @@ class ScoreFunction:
         )
 
     def render_rotamer_scoring_module(
-        self, pose_stack: PoseStack, rotamer_set: "RotamerSet"
+        self, pose_stack: PoseStack, rotamer_set: "RotamerSet"  # noqa: F405
     ):
         """Create an object designed to evaluate the score a RotamerSet
         repeatedly as the Poses change their conformation, e.g., as in

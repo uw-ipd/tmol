@@ -1,21 +1,13 @@
 import torch
 import time
 
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
-from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 
-from tmol.pack.compiled.compiled import validate_energies, build_interaction_graph
+from tmol.pack.compiled.compiled import build_interaction_graph
 from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.build_rotamers import (
-    build_rotamers,
-    RotamerSet,
-)
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
-    DunbrackChiSampler,
-)
+from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.rotamer.fixed_aa_chi_sampler import (
     FixedAAChiSampler,
 )
@@ -67,7 +59,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
     energies = energies.coalesce()
     print("done")
 
-    n_rots_total = rotamer_set.n_rotamers_total
+    # n_rots_total = rotamer_set.n_rotamers_total
     # energy1b = torch.zeros((n_rots_total), dtype=torch.float32, device=torch_device)
 
     chunk_size = 16

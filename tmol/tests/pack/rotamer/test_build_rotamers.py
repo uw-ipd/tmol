@@ -2,7 +2,7 @@ import numpy
 import torch
 
 from tmol.pack.rotamer.build_rotamers import (
-    RotamerSet,
+    # RotamerSet,
     annotate_restype,
     annotate_packed_block_types,
     build_rotamers,
@@ -708,8 +708,8 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
     annotate_packed_block_types(pbt)
 
     block_type_ind = poses.block_type_ind.view(-1)
-    real_block_type_ind = block_type_ind != -1
-    nz_real_block_type_ind = torch.nonzero(real_block_type_ind).flatten()
+    # real_block_type_ind = block_type_ind != -1
+    # nz_real_block_type_ind = torch.nonzero(real_block_type_ind).flatten()
     # real_block_type_ind_numpy = nz_real_block_type_ind.cpu().numpy().astype(numpy.int32)
     block_type_ind = block_type_ind[block_type_ind != -1]
     block_type_ind_numpy = block_type_ind.cpu().numpy()

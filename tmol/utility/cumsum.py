@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from typing import Optional, Union, Tuple
+from typing import Union, Tuple
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
