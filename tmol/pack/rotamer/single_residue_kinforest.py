@@ -70,7 +70,7 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     if hasattr(restype, "rotamer_kinforest"):
         return
 
-    is_focused_rrt = restype.name == "PRO"
+    # is_focused_rrt = restype.name == "PRO"
 
     torsion_pairs = numpy.array(
         [uaids[1:3] for tor, uaids in restype.torsion_to_uaids.items()]
@@ -95,13 +95,13 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
             )
             .kinforest
         )
-        if is_focused_rrt:
-            print("PRO")
-            print("id\n", kinforest.id)
-            print("parent\n", kinforest.parent)
-            print("frame_x\n", kinforest.frame_x)
-            print("frame_y\n", kinforest.frame_y)
-            print("frame_z\n", kinforest.frame_z)
+        # if is_focused_rrt:
+        #     print("PRO")
+        #     print("id\n", kinforest.id)
+        #     print("parent\n", kinforest.parent)
+        #     print("frame_x\n", kinforest.frame_x)
+        #     print("frame_y\n", kinforest.frame_y)
+        #     print("frame_z\n", kinforest.frame_z)
 
     else:
         # print("bonds")

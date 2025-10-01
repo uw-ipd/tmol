@@ -124,6 +124,9 @@ class BlockLevelTask:
         self.conformer_samplers = palette.default_conformer_samplers(block_type)
         self.is_chi_sampler = []
         self.include_current = False
+        self.chi_expansion = numpy.zeros(
+            (len(self.considered_block_types), 4), dtype=numpy.int32
+        )
 
     def restrict_to_repacking(self):
         orig = self.original_block_type
@@ -145,6 +148,12 @@ class BlockLevelTask:
         for i, bt in enumerate(self.considered_block_types):
             if bt.name3 not in name3s:
                 self.block_type_allowed[i] = False
+
+    def or_expand_chi(self, chi_ind: int):
+        self.chi_expansion[:, chi_ind] = 1
+
+    def or_expand_chi_to(self, chi_ind: int, sample_level: int):
+        self.chi_expansion[:, chi_ind] = sample_level
 
 
 class PackerTask:
@@ -173,3 +182,13 @@ class PackerTask:
         for one_pose_blts in self.blts:
             for blt in one_pose_blts:
                 blt.include_current = True
+
+    def or_expand_chi(self, chi_ind: int):
+        for one_pose_blts in self.blts:
+            for blt in one_pose_blts:
+                blt.or_expand_chi(chi_ind)
+
+    def or_expand_chi_to(self, chi_ind: int, sample_level: int):
+        for one_pose_blts in self.blts:
+            for blt in one_pose_blts:
+                blt.or_expand_chi_to(chi_ind, sample_level)

@@ -458,6 +458,17 @@ class DunbrackChiSampler(ChiSampler):
         chi_expansion_for_bbt = torch.full(
             (n_bbts, max_n_chi), 0, dtype=torch.int32, device=self.device
         )
+        chi_expansion_for_gbt = torch.cat(
+            [
+                torch.tensor(blt.chi_expansion)
+                for one_pose_blts in task.blts
+                for blt in one_pose_blts
+            ],
+        ).to(self.device)
+        chi_expansion_for_bbt = (chi_expansion_for_gbt[is_gbt_dun_allowed])[
+            is_dun_allowed_bt_bbt
+        ]
+        # chi_expansion_for_bbt = chi_expansion_for_bbt
 
         # ok, we'll go to the block types and look at their protonation
         # state expansions and we'll put that information into the

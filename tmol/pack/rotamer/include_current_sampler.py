@@ -165,8 +165,6 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
     # print("gbt_for_samplers_rots")
     # print(gbt_for_samplers_rots)
     res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
-    print("res_ind_for_samplers_rots")
-    print(res_ind_for_samplers_rots)
     real_res_ind_for_samplers_rots = poses_res_to_real_poses_res[
         res_ind_for_samplers_rots
     ]
@@ -183,13 +181,6 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
         .view(1, pbt.max_n_atoms)
         .expand(n_rots_for_sampler, -1)
     )
-    print("dummy_rotamer_atom_inds")
-    print(dummy_rotamer_atom_inds.shape)
-    print("orig_res_n_atoms")
-    print(
-        orig_res_n_atoms.unsqueeze(1).expand(n_rots_for_sampler, pbt.max_n_atoms).shape
-    )
-
     atom_is_real_for_rot = dummy_rotamer_atom_inds < orig_res_n_atoms.unsqueeze(
         1
     ).expand(n_rots_for_sampler, pbt.max_n_atoms)
@@ -202,11 +193,6 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
         .expand(-1, pbt.max_n_atoms)
         + dummy_rotamer_atom_inds
     )[atom_is_real_for_rot]
-
-    print("conf_inds_for_sampler")
-    print(conf_inds_for_sampler)
-    print("n_dof_atoms_offset_for_rot[conf_inds_for_sampler]")
-    print(n_dof_atoms_offset_for_rot[conf_inds_for_sampler])
 
     rot_atom_inds = (
         n_dof_atoms_offset_for_rot[conf_inds_for_sampler]
