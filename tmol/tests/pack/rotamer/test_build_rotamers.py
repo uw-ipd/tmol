@@ -24,16 +24,18 @@ from tmol.pack.rotamer.chi_sampler import (
     create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler,
     # copy_dofs_from_orig_to_rotamers_for_sampler
 )
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
-    DunbrackChiSampler,
-)
+
+# from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
+#     DunbrackChiSampler,
+# )
 from tmol.pack.rotamer.fixed_aa_chi_sampler import (
     FixedAAChiSampler,
 )
-from tmol.pack.rotamer.include_current_sampler import (
-    IncludeCurrentSampler,
-    create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler,
-)
+
+# from tmol.pack.rotamer.include_current_sampler import (
+#     IncludeCurrentSampler,
+#     create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler,
+# )
 
 
 from tmol.io import pose_stack_from_pdb
@@ -41,7 +43,6 @@ from tmol.io import pose_stack_from_pdb
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 
 from tmol.kinematics.compiled.compiled_ops import forward_only_op
 
@@ -282,7 +283,7 @@ def test_measure_pose_dofs(default_database, ubq_pdb, torch_device, dun_sampler)
     chem_db = default_database.chemical
 
     poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    restype_set = poses.packed_block_types.restype_set
+    # restype_set = poses.packed_block_types.restype_set
 
     fixed_sampler = FixedAAChiSampler()
     samplers = (dun_sampler, fixed_sampler)
@@ -709,7 +710,7 @@ def test_measure_original_dofs(default_database, ubq_pdb, torch_device, dun_samp
     block_type_ind = poses.block_type_ind.view(-1)
     real_block_type_ind = block_type_ind != -1
     nz_real_block_type_ind = torch.nonzero(real_block_type_ind).flatten()
-    real_block_type_ind_numpy = nz_real_block_type_ind.cpu().numpy().astype(numpy.int32)
+    # real_block_type_ind_numpy = nz_real_block_type_ind.cpu().numpy().astype(numpy.int32)
     block_type_ind = block_type_ind[block_type_ind != -1]
     block_type_ind_numpy = block_type_ind.cpu().numpy()
     res_n_atoms = pbt.n_atoms[block_type_ind.to(torch.int64)]
@@ -1163,10 +1164,10 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     )
 
     n_poses = rotamer_set.n_rots_for_pose.shape[0]
-    n_rots = rotamer_set.coords.shape[0]
-    max_n_rotamers = torch.max(rotamer_set.n_rots_for_pose)
-    max_n_atoms = poses.packed_block_types.max_n_atoms
-    n_rots_for_pose = rotamer_set.n_rots_for_pose.tolist()
+    # n_rots = rotamer_set.coords.shape[0]
+    # max_n_rotamers = torch.max(rotamer_set.n_rots_for_pose)
+    # max_n_atoms = poses.packed_block_types.max_n_atoms
+    # n_rots_for_pose = rotamer_set.n_rots_for_pose.tolist()
 
     # split_coords = torch.split(rotamer_set.coords, n_rots_for_pose)
     # split_block_types = torch.split(rotamer_set.block_type_ind_for_rot, n_rots_for_pose)
@@ -1175,7 +1176,7 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     #     start_dim=1, end_dim=-2
     # )
 
-    block_types = rotamer_set.block_type_ind_for_rot
+    # block_types = rotamer_set.block_type_ind_for_rot
     # block_types = torch.nn.utils.rnn.pad_sequence(
     #     split_block_types, batch_first=True, padding_value=-1
     # )
@@ -1247,8 +1248,8 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     # print("nz_vals.shape", nz_vals.shape)
     rot_scores = scores[nz_vals]
     rot_inds = indices[:, nz_vals[0]]
-    rot_block_ind1 = rotamer_set.block_ind_for_rot[rot_inds[1, :]]
-    rot_block_ind2 = rotamer_set.block_ind_for_rot[rot_inds[2, :]]
+    # rot_block_ind1 = rotamer_set.block_ind_for_rot[rot_inds[1, :]]
+    # rot_block_ind2 = rotamer_set.block_ind_for_rot[rot_inds[2, :]]
 
     # blo = rotamer_set.block
 
@@ -1372,9 +1373,7 @@ def test_create_dofs_for_many_rotamers(
     # fd NOTE: THIS CODE FAILS IF n_rots_for_gbt CONTAINS 0s
     # assert 0 not in n_rots_for_gbt
 
-    n_conformers = sampler_for_conformer.shape[0]
     # gbt_for_rot = torch.zeros(n_conformers, dtype=torch.int64, device=poses.device)
-    n_rots_for_gbt_cumsum = torch.cumsum(n_rots_for_gbt, dim=0)
     # gbt_for_rot[n_rots_for_gbt_cumsum[:-1]] = 1
     # gbt_for_rot = torch.cumsum(gbt_for_rot, dim=0).cpu().numpy()
 
@@ -1399,6 +1398,7 @@ def test_create_dofs_for_many_rotamers(
         n_atoms_offset_for_conformer,
         pbt.device,
     )
+    assert conformer_kinforest is not None
 
     nodes, scans, gens = construct_scans_for_conformers(
         pbt,
@@ -1421,10 +1421,6 @@ def test_create_dofs_for_many_rotamers(
         ],
         dtype=torch.float32,
         device=pbt.device,
-    )
-
-    rt_for_conformer_torch = torch.tensor(
-        block_type_ind_for_conformer, dtype=torch.int64, device=pbt.device
     )
 
     for i, sampler in enumerate(samplers):
@@ -1534,7 +1530,6 @@ def test_new_rotamer_building_logic1(
 
     n_conformers = sampler_for_conformer.shape[0]
     # gbt_for_rot = torch.zeros(n_conformers, dtype=torch.int64, device=poses.device)
-    n_rots_for_gbt_cumsum = torch.cumsum(n_rots_for_gbt, dim=0)
     # gbt_for_rot[n_rots_for_gbt_cumsum[:-1]] = 1
     # gbt_for_rot = torch.cumsum(gbt_for_rot, dim=0).cpu().numpy()
 
@@ -1583,10 +1578,6 @@ def test_new_rotamer_building_logic1(
         device=pbt.device,
     )
 
-    rt_for_conformer_torch = torch.tensor(
-        block_type_ind_for_conformer, dtype=torch.int64, device=pbt.device
-    )
-
     for i, sampler in enumerate(samplers):
         # print("fill dofs for samples", sampler.sampler_name())
         sampler.fill_dofs_for_samples(
@@ -1623,6 +1614,8 @@ def test_new_rotamer_building_logic1(
         pose_for_rot,
         block_ind_for_rot,
     ) = get_rotamer_origin_data(task, gbt_for_conformer_torch)
+
+    assert rotamer_coords is not None
 
     # return (
     #     poses,
@@ -1721,7 +1714,6 @@ def test_new_rotamer_building_logic3(
         assert current_rot_block == r
         current_rot_n_atoms = poses.packed_block_types.n_atoms[current_rot_blocktype]
         assert current_rot_blocktype == poses.block_type_ind[p, r]
-        bt = poses.packed_block_types.active_block_types[current_rot_blocktype]
 
         # torch.testing.assert_close(
         #     poses.coords[

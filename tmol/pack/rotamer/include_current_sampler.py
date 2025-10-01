@@ -1,11 +1,9 @@
-import numpy
 import torch
 import attr
 
 from typing import Tuple
 
 from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from tmol.types.functional import validate_args
 
 from tmol.chemical.restypes import RefinedResidueType
@@ -39,13 +37,14 @@ class IncludeCurrentSampler(ConformerSampler):
         return (rt.default_jump_connection_atom,)
 
     def create_samples_for_poses(
-        self, pose_stack: PoseStack, task: "PackerTask"
+        self,
+        pose_stack: PoseStack,
+        task: "PackerTask",  # noqa: 821
     ) -> Tuple[  # noqa F821
         Tensor[torch.int32][:],  # n_rots_for_gbt
         Tensor[torch.int32][:],  # gbt_for_rotamer
         dict,  # anything else the sampler wants to save for later
     ]:
-        n_poses = pose_stack.n_poses
         n_rots_for_gbt_list = [
             (
                 1
@@ -66,7 +65,7 @@ class IncludeCurrentSampler(ConformerSampler):
     def fill_dofs_for_samples(
         self,
         pose_stack: PoseStack,
-        task: "PackerTask",
+        task: "PackerTask",  # noqa: 821
         orig_kinforest: KinForest,
         orig_dofs_kto: Tensor[torch.float32][:, 9],
         gbt_for_conformer: Tensor[torch.int64][:],
@@ -165,9 +164,6 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
     # print("gbt_for_samplers_rots")
     # print(gbt_for_samplers_rots)
     res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
-    real_res_ind_for_samplers_rots = poses_res_to_real_poses_res[
-        res_ind_for_samplers_rots
-    ]
     # print("real_res_ind_for_samplers_rots")
     # print(real_res_ind_for_samplers_rots)
     block_type_ind_for_samplers_rots = block_type_ind_for_rot[conf_inds_for_sampler]

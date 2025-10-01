@@ -2,7 +2,6 @@ import torch
 
 from tmol.types.torch import Tensor
 from tmol.pose.pose_stack import PoseStack
-from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pack.rotamer.build_rotamers import RotamerSet
 from tmol.utility.cumsum import exclusive_cumsum2d_w_totals
 

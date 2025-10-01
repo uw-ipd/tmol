@@ -1,15 +1,11 @@
 import torch
 
-from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
 
-from tmol.pack.compiled.compiled import validate_energies, build_interaction_graph
+from tmol.pack.compiled.compiled import build_interaction_graph
 from tmol.pack.packer_task import PackerTask
-from tmol.pack.rotamer.build_rotamers import (
-    build_rotamers,
-    RotamerSet,
-)
+from tmol.pack.rotamer.build_rotamers import build_rotamers
 from tmol.pack.datatypes import PackerEnergyTables
 from tmol.pack.simulated_annealing import run_simulated_annealing
 from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
@@ -24,11 +20,6 @@ def pack_rotamers(pose_stack: PoseStack, sfxn: ScoreFunction, task: PackerTask):
 
     energies = rotamer_scoring_module(rotamer_set.coords)
     energies = energies.coalesce()
-
-    n_rots_total = rotamer_set.n_rotamers_total
-    # energy1b = torch.zeros(
-    #     (n_rots_total), dtype=torch.float32, device=pose_stack.device
-    # )
 
     chunk_size = 16
 

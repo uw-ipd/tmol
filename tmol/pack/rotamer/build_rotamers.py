@@ -162,7 +162,7 @@ def rebuild_poses_if_necessary(
         pbt = PackedBlockTypes.from_restype_list(
             poses.packed_block_types.chem_db,
             poses.packed_block_types.restype_set,
-            [brt for bt_id, bt in all_restypes.items()],
+            [bt for bt_id, bt in all_restypes.items()],
             poses.packed_block_types.device,
         )
 
@@ -562,7 +562,6 @@ def merge_conformer_samples(
     all_gbt_for_conformer_unsorted = torch.cat(
         [samples[1] for samples in conformer_samples]
     )
-    n_conformers_total = all_gbt_for_conformer_unsorted.shape[0]  # formerly n_rotamers
     max_n_conformers_per_gbt_per_sampler = max(
         torch.max(samples[0]).item() for samples in conformer_samples
     )
@@ -978,7 +977,6 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
 
     n_conformers = sampler_for_conformer.shape[0]
     # gbt_for_rot = torch.zeros(n_conformers, dtype=torch.int64, device=poses.device)
-    n_rots_for_gbt_cumsum = torch.cumsum(n_rots_for_gbt, dim=0)
     # gbt_for_rot[n_rots_for_gbt_cumsum[:-1]] = 1
     # gbt_for_rot = torch.cumsum(gbt_for_rot, dim=0).cpu().numpy()
 
@@ -1025,10 +1023,6 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
         ],
         dtype=torch.float32,
         device=pbt.device,
-    )
-
-    rt_for_conformer_torch = torch.tensor(
-        block_type_ind_for_conformer, dtype=torch.int64, device=pbt.device
     )
 
     for i, sampler in enumerate(samplers):
@@ -1090,9 +1084,6 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
     #         :,
     #     ]
     # )
-    is_pro_rot = torch.logical_and(
-        conformer_kinforest.id >= 14952, conformer_kinforest.id < 14966
-    )
     # print("id:")
     # print(torch.nonzero(is_pro_rot))
     # print("conformer_kinforest.parent")

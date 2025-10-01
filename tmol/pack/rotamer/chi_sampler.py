@@ -1,11 +1,9 @@
-import numpy
 import torch
 import attr
 
 from typing import Tuple
 
 from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from tmol.types.functional import validate_args
 
 from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
@@ -39,7 +37,9 @@ class ChiSampler(ConformerSampler):
         raise NotImplementedError()
 
     def create_samples_for_poses(
-        self, pose_stack: PoseStack, task: "PackerTask"
+        self,
+        pose_stack: PoseStack,
+        task: "PackerTask",  # noqa: 821
     ) -> Tuple[  # noqa F821
         Tensor[torch.int32][:],  # n_rots_for_gbt
         Tensor[torch.int32][:],  # bt_for_rotamer
@@ -74,7 +74,7 @@ class ChiSampler(ConformerSampler):
     def fill_dofs_for_samples(
         self,
         pose_stack: PoseStack,
-        task: "PackerTask",
+        task: "PackerTask",  # noqa: 821
         orig_kinforest: KinForest,
         orig_dofs_kto: Tensor[torch.float32][:, 9],
         gbt_for_conformer: Tensor[torch.int64][:],
@@ -89,9 +89,6 @@ class ChiSampler(ConformerSampler):
         sample_dict: dict,
         conf_dofs_kto: Tensor[torch.float32][:, 9],
     ):
-        chi_defining_atom_for_rotamer = sample_dict["chi_defining_atom_for_rotamer"]
-        chi_for_rotamers = sample_dict["chi_for_rotamers"]
-
         copy_dofs_from_orig_to_rotamers_for_sampler(
             pose_stack,
             task,
@@ -394,7 +391,6 @@ def assign_chi_dofs_from_samples(
     assert chi_atoms.shape == chi.shape
 
     n_rots_for_sampler = sampler_gbt_for_rotamer.shape[0]
-    block_type_ind_for_samplers_rots = block_type_ind_for_rot[conf_inds_for_sampler]
 
     max_n_chi_atoms = chi_atoms.shape[1]
     real_atoms = chi_atoms.view(-1) != -1

@@ -1,11 +1,9 @@
-import numpy
 import torch
 import attr
 
 from typing import Tuple
 
 from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from tmol.types.functional import validate_args
 
 from tmol.chemical.restypes import RefinedResidueType
@@ -37,7 +35,9 @@ class ConformerSampler:
         raise NotImplementedError()
 
     def create_samples_for_poses(
-        self, pose_stack: PoseStack, task: "PackerTask"
+        self,
+        pose_stack: PoseStack,
+        task: "PackerTask",  # noqa: 821
     ) -> Tuple[  # noqa F821
         Tensor[torch.int32][:],  # n_rots_for_bt
         Tensor[torch.int32][:],  # bt_for_rotamer
@@ -48,7 +48,7 @@ class ConformerSampler:
     def fill_dofs_for_samples(
         self,
         pose_stack: PoseStack,
-        task: "PackerTask",
+        task: "PackerTask",  # noqa: 821
         orig_kinforest: KinForest,
         orig_dofs_kto: Tensor[torch.float32][:, 9],
         gbt_for_conformer: Tensor[torch.int64][:],
@@ -63,4 +63,4 @@ class ConformerSampler:
         sample_dict: dict,
         conf_dofs_kto: Tensor[torch.float32][:, 9],
     ):
-        raise NotImpllementedError
+        raise NotImplementedError
