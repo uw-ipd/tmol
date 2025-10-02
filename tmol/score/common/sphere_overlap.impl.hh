@@ -231,8 +231,8 @@ struct detect_rot_neighbors {
       int const rot_ind1 = rot_pair_ind / max_n_rots;
       int const rot_ind2 = rot_pair_ind % max_n_rots;
 
-      if (rot_ind1 > n_rots_for_pose[pose_ind]
-          || rot_ind2 > n_rots_for_pose[pose_ind]) {
+      if (rot_ind1 >= n_rots_for_pose[pose_ind]
+          || rot_ind2 >= n_rots_for_pose[pose_ind]) {
         return;
       }
 

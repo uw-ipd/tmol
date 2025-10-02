@@ -168,3 +168,61 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
     print(f"Execution time: {elapsed_time:.6f} seconds")
 
     write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
+
+
+def test_pack_rotamers_irregular_sized_poses(
+    default_database, ubq_pdb, dun_sampler, torch_device
+):
+
+    if torch_device == torch.device("cpu"):
+        return
+    n_poses = 20
+    # print("Device!", torch_device)
+
+    pose_stack = PoseStackBuilder.from_poses(
+        [
+            pose_stack_from_pdb(
+                ubq_pdb, torch_device, residue_start=0, residue_end=20 + i
+            )
+            for i in range(n_poses)
+        ],
+        torch_device,
+    )
+    # from tmol.io.chain_deduction import chain_inds_for_pose_stack
+    # chain_ind_for_block = chain_inds_for_pose_stack(pose_stack)
+    # print("chain_ind_for_block", chain_ind_for_block[:,0])
+    # return
+
+    restype_set = pose_stack.packed_block_types.restype_set
+
+    palette = PackerPalette(restype_set)
+    task = PackerTask(pose_stack, palette)
+    task.restrict_to_repacking()
+    task.set_include_current()
+    # task.or_expand_chi(1)
+    # task.or_expand_chi(2)
+
+    fixed_sampler = FixedAAChiSampler()
+    task.add_conformer_sampler(dun_sampler)
+    task.add_conformer_sampler(fixed_sampler)
+
+    sfxn = ScoreFunction(param_db=default_database, device=torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
+    sfxn.set_weight(ScoreType.fa_lk, 1.0)
+    sfxn.set_weight(ScoreType.hbond, 1.0)
+
+    print("starting packer steps")
+    start_time = time.perf_counter()
+
+    new_pose_stack = pack_rotamers(pose_stack, sfxn, task)
+
+    if torch_device == torch.device("cuda"):
+        torch.cuda.synchronize()
+    stop_time = time.perf_counter()
+
+    elapsed_time = stop_time - start_time
+
+    print(f"Execution time: {elapsed_time:.6f} seconds")
+
+    write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")

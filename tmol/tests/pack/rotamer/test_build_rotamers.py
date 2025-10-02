@@ -1215,8 +1215,8 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     rotamer_scorer = energy_term.render_rotamer_scoring_module(poses, rotamer_set)
 
     coords = torch.nn.Parameter(rotamer_set.coords.clone())
-    scores, indices = rotamer_scorer(rot_coords)
-    # print("scores.shape", scores.shape, "indices.shape", indices.shape)
+    sparse_scores = rotamer_scorer(rot_coords).coalesce()
+    # print("sparse_scores.values().shape", sparse_scores.values().shape, "sparse_scores.indices().shape", sparse_scores.indices().shape)
 
     # print()
     # torch.set_
@@ -1244,10 +1244,10 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
         pose_block_inds.append((int(pose_ind), int(block_ind)))
 
     torch.set_printoptions(threshold=10000)
-    nz_vals = scores != 0
+    nz_vals = sparse_scores.values() != 0
     # print("nz_vals.shape", nz_vals.shape)
-    rot_scores = scores[nz_vals]
-    rot_inds = indices[:, nz_vals[0]]
+    rot_scores = sparse_scores.values()[nz_vals]
+    rot_inds = sparse_scores.indices()[:, nz_vals]
     # rot_block_ind1 = rotamer_set.block_ind_for_rot[rot_inds[1, :]]
     # rot_block_ind2 = rotamer_set.block_ind_for_rot[rot_inds[2, :]]
 

@@ -36,8 +36,8 @@ def impose_top_rotamer_assignments(
 
     # lets figure out how many atoms per pose
 
-    new_block_type_ind64 = torch.zeros(
-        (n_poses, max_n_blocks), dtype=torch.int64, device=device
+    new_block_type_ind64 = torch.full(
+        (n_poses, max_n_blocks), -1, dtype=torch.int64, device=device
     )
     # rot_for_block = torch.zeros((n_poses, max_n_blocks), dtype=torch.int64, device=device)
     new_rot_for_block64 = (
