@@ -124,7 +124,7 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
 
     if torch_device == torch.device("cpu"):
         return
-    n_poses = 4
+    n_poses = 100
     # print("Device!", torch_device)
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
@@ -153,6 +153,18 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
     sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
     sfxn.set_weight(ScoreType.fa_lk, 1.0)
     sfxn.set_weight(ScoreType.hbond, 1.0)
+
+    # warmup:
+    print("starting warmup packer run")
+    start_time = time.perf_counter()
+    new_pose_stack = pack_rotamers(pose_stack, sfxn, task)
+    if torch_device == torch.device("cuda"):
+        torch.cuda.synchronize()
+    stop_time = time.perf_counter()
+
+    elapsed_time = stop_time - start_time
+
+    print(f"warmup execution time: {elapsed_time:.6f} seconds")
 
     print("starting packer steps")
     start_time = time.perf_counter()
@@ -199,8 +211,8 @@ def test_pack_rotamers_irregular_sized_poses(
     task = PackerTask(pose_stack, palette)
     task.restrict_to_repacking()
     task.set_include_current()
-    # task.or_expand_chi(1)
-    # task.or_expand_chi(2)
+    task.or_expand_chi(1)
+    task.or_expand_chi(2)
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
@@ -211,6 +223,18 @@ def test_pack_rotamers_irregular_sized_poses(
     sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
     sfxn.set_weight(ScoreType.fa_lk, 1.0)
     sfxn.set_weight(ScoreType.hbond, 1.0)
+
+    # warmup:
+    print("starting warmup packer run")
+    start_time = time.perf_counter()
+    new_pose_stack = pack_rotamers(pose_stack, sfxn, task)
+    if torch_device == torch.device("cuda"):
+        torch.cuda.synchronize()
+    stop_time = time.perf_counter()
+
+    elapsed_time = stop_time - start_time
+
+    print(f"warmup execution time: {elapsed_time:.6f} seconds")
 
     print("starting packer steps")
     start_time = time.perf_counter()
