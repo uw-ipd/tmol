@@ -165,17 +165,7 @@ class LJLKPoseScoreOp
         atom_ingrads = atom_ingrads.unsqueeze(-1);
       }
 
-      printf("SAVED_GRAD\n");
-      for (int ii = 0; ii < saved_grad.dim(); ii++)
-        printf("%i\n", saved_grad.size(ii));
-
-      printf("ATOM_INGRAD\n");
-      for (int ii = 0; ii < atom_ingrads.dim(); ii++)
-        printf("%i\n", atom_ingrads.size(ii));
-
       result.emplace_back(saved_grad * atom_ingrads);
-      printf("post mult grad\n");
-      //}
 
       int i = 0;
       dV_d_pose_coords = result[i++];
