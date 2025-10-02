@@ -1,14 +1,13 @@
 #!/bin/bash
 #http://redsymbol.net/articles/unofficial-bash-strict-mode/
 
+source ~/.bashrc
+conda activate $BUILDKITE_BUILD_ID
+
 set -euo pipefail
 IFS=$'\n\t'
 
 set +e
-
-source ~/.bashrc
-conda activate $BUILDKITE_BUILD_ID
-
 set -x
 
 error=0
