@@ -8,6 +8,7 @@ from tmol.database import ParameterDatabase
 from tmol.score.common.stack_condense import tile_subset_indices
 from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.score.ljlk.ljlk_whole_pose_module import LJLKWholePoseScoringModule
+from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -88,7 +89,56 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     def setup_poses(self, poses: PoseStack):
         super(LJLKEnergyTerm, self).setup_poses(poses)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    def get_score_term_function(self):
+        return ljlk_pose_scores
+
+    def get_score_term_attributes(self, pose_stack):
+        def _t(ts):
+            return tuple(map(lambda t: t.to(torch.float), ts))
+
+        type_params = torch.stack(
+            _t(
+                [
+                    self.type_params.lj_radius,
+                    self.type_params.lj_wdepth,
+                    self.type_params.lk_dgfree,
+                    self.type_params.lk_lambda,
+                    self.type_params.lk_volume,
+                    self.type_params.is_donor,
+                    self.type_params.is_hydroxyl,
+                    self.type_params.is_polarh,
+                    self.type_params.is_acceptor,
+                ]
+            ),
+            dim=1,
+        )
+        global_params = torch.stack(
+            _t(
+                [
+                    self.global_params.lj_hbond_dis,
+                    self.global_params.lj_hbond_OH_donor_dis,
+                    self.global_params.lj_hbond_hdis,
+                ]
+            ),
+            dim=1,
+        )
+        return [
+            # pose_stack_block_coord_offset=pose_stack.block_coord_offset,
+            # pose_stack_block_types=pose_stack.block_type_ind,
+            pose_stack.min_block_bondsep,
+            pose_stack.inter_block_bondsep,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.ljlk_n_heavy_atoms_in_tile,
+            pose_stack.packed_block_types.ljlk_heavy_atoms_in_tile,
+            pose_stack.packed_block_types.atom_types,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.bond_separation,
+            type_params,
+            global_params,
+        ]
+
+    def render_whole_pose_scoring_module_old(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
         return LJLKWholePoseScoringModule(
             pose_stack_block_coord_offset=pose_stack.block_coord_offset,

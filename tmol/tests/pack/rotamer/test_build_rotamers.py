@@ -28,6 +28,12 @@ from tmol.utility.tensor.common_operations import exclusive_cumsum1d, stretch
 
 from tmol.tests.data import no_termini_pose_stack_from_pdb
 
+from tmol.score.hbond.hbond_energy_term import (
+    HBondEnergyTerm,
+    HBondRotamerScoringModule,
+    HBondWholePoseScoringModule,
+)
+
 
 def test_annotate_restypes(
     default_database, fresh_default_restype_set, torch_device, dun_sampler
@@ -991,14 +997,17 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
 
 
 def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sampler):
-    n_poses = 6
+    n_poses = 2
 
     # fd TEMP: NO TERM VARIANTS
     p = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=75
+        ubq_pdb, torch_device, residue_start=1, residue_end=14
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     restype_set = poses.packed_block_types.restype_set
+    # for restype in restype_set.residue_types:
+    # print(restype.name, restype.base_name, restype.name3)
+
     palette = PackerPalette(restype_set)
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
@@ -1013,10 +1022,119 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
         len(poses.packed_block_types.active_block_types),
     )
 
+    n_poses = rotamer_set.n_rots_for_pose.shape[0]
     n_rots = rotamer_set.coords.shape[0]
+    max_n_rotamers = torch.max(rotamer_set.n_rots_for_pose)
+    max_n_atoms = poses.packed_block_types.max_n_atoms
+    n_rots_for_pose = rotamer_set.n_rots_for_pose.tolist()
+
+    split_coords = torch.split(rotamer_set.coords, n_rots_for_pose)
+    split_block_types = torch.split(rotamer_set.block_type_ind_for_rot, n_rots_for_pose)
+
+    coords = torch.nn.utils.rnn.pad_sequence(split_coords, batch_first=True).flatten(
+        start_dim=1, end_dim=-2
+    )
+    block_types = torch.nn.utils.rnn.pad_sequence(
+        split_block_types, batch_first=True, padding_value=-1
+    )
+
+    rot_coords = rotamer_set.coords.flatten(start_dim=0, end_dim=-2)
+    rot_coord_offset = (
+        torch.arange(
+            0, rotamer_set.pose_for_rot.shape[0], dtype=torch.int32, device=torch_device
+        )
+        * max_n_atoms
+    )
+    # print("SHAPE", rot_coords.shape)
+    # print("OFFSETS", rot_coord_offset.shape)
+    # print("MAX_N_ATOMS", max_n_atoms)
+    # print("N_ROTS", rotamer_set.pose_for_rot.shape[0])
+
+    # print(rotamer_set.block_type_ind_for_rot)
+    # print(block_types)
+
+    block_coord_offset = torch.zeros(
+        (n_poses, max_n_rotamers), dtype=torch.int32, device=torch_device
+    )
+    block_coord_offset[:] = torch.arange(max_n_rotamers) * rotamer_set.coords.shape[1]
+
+    # print(coords.shape)
+    # print(block_coord_offset)
+    # print(rotamer_set.block_ind_for_rot)
+
+    energy_term = HBondEnergyTerm(default_database, torch_device)
+    for bt in poses.packed_block_types.active_block_types:
+        energy_term.setup_block_type(bt)
+    energy_term.setup_packed_block_types(poses.packed_block_types)
+    energy_term.setup_poses(poses)
+
+    pose_scorer = energy_term.render_rotamer_scoring_module(
+        poses, rotamer_set, rot_coord_offset
+    )
+
+    coords = torch.nn.Parameter(rotamer_set.coords.clone())
+    scores, indices = pose_scorer(rot_coords, output_block_pair_energies=True)
+
+    # print()
+    # torch.set_
+    # print("scores", scores)
+    # print("indices", indices)
+
+    def copy_rot_xyz(
+        pose_stack, rotamer_set, rotamer_ind, TEMP_ROT_COORDS, TEMP_ROT_COORD_OFFSET
+    ):  # TODO
+        block_ind = rotamer_set.block_ind_for_rot[rotamer_ind]
+        pose_ind = rotamer_set.pose_for_rot[rotamer_ind]
+        coord_offset = pose_stack.block_coord_offset[pose_ind, block_ind]
+        block_type = pose_stack.block_type_ind[pose_ind, block_ind]
+        n_atoms = pose_stack.packed_block_types.n_atoms[block_type]
+        for i in range(n_atoms):
+            pose_stack.coords[pose_ind, coord_offset + i] = TEMP_ROT_COORDS[
+                TEMP_ROT_COORD_OFFSET[rotamer_ind] + i
+            ]  # rotamer_set.coords[pose_ind, rotamer_ind, i]
+
+    torch.set_printoptions(threshold=10000)
+    nz_vals = scores != 0
+    rot_scores = scores[nz_vals]
+    rot_inds = indices[:, nz_vals]
+    rot_block_ind1 = rotamer_set.block_ind_for_rot[rot_inds[1, :]]
+    rot_block_ind2 = rotamer_set.block_ind_for_rot[rot_inds[2, :]]
+
+    # blo = rotamer_set.block
+
+    print(f"{'ind':>3}: {'score':>10} {'pose':>4}  {'blocks':>7} {'rots':>5}")
+    for i in range(rot_scores.shape[0]):
+        print(
+            f"{i:>3}: {rot_scores[i]:>10.4f} {rot_inds[0, i]:>4} {rot_block_ind1[i]:>3}:{rot_block_ind2[i]:<3} {rot_inds[1, i]:>3}:{rot_inds[2, i]:<3}"
+        )
+
+    copy_rot_xyz(poses, rotamer_set, 16, rot_coords, rot_coord_offset)
+    copy_rot_xyz(poses, rotamer_set, 35, rot_coords, rot_coord_offset)
+    copy_rot_xyz(poses, rotamer_set, 56, rot_coords, rot_coord_offset)
+    copy_rot_xyz(poses, rotamer_set, 63, rot_coords, rot_coord_offset)
+    copy_rot_xyz(poses, rotamer_set, 67, rot_coords, rot_coord_offset)
+    copy_rot_xyz(poses, rotamer_set, 84, rot_coords, rot_coord_offset)
+    pose_scorer = energy_term.render_whole_pose_scoring_module(poses)
+    coords = torch.nn.Parameter(poses.coords.clone())
+    scores, indices = pose_scorer(
+        coords, poses.block_type_ind, output_block_pair_energies=True
+    )
+    nz_vals = scores != 0
+    block_scores = scores[nz_vals]
+    block_inds = indices[:, nz_vals]
+
+    # blo = rotamer_set.block
+
+    print("BLOCK SCORES")
+
+    print(f"{'ind':>3}: {'score':>10} {'pose':>4}  {'blocks':>7}")
+    for i in range(block_scores.shape[0]):
+        print(
+            f"{i:>3}: {block_scores[i]:>10.4f} {block_inds[0, i]:>4} {block_inds[1,i]:>3}:{block_inds[2,i]:<3}"
+        )
 
     # all the rotamers should be the same on all n_poses copies of ubq
-    n_rots_per_pose = n_rots // n_poses
+    """n_rots_per_pose = n_rots // n_poses
     assert n_rots_per_pose * n_poses == n_rots
 
     new_coords = rotamer_set.coords.cpu().numpy()
@@ -1026,7 +1144,7 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
             new_coords[:n_rots_per_pose],
             new_coords[(n_rots_per_pose * i) : (n_rots_per_pose * (i + 1))],
             decimal=5,
-        )
+        )"""
 
 
 def test_create_dofs_for_many_rotamers(

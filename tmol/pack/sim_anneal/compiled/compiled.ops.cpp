@@ -4,8 +4,6 @@
 #include <torch/csrc/autograd/saved_variable.h>  // ??
 #include <torch/types.h>
 
-// #include <tmol/utility/autograd.hh>
-
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
 
