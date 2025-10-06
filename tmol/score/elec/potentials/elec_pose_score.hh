@@ -31,9 +31,19 @@ template <
     typename Int>
 struct ElecPoseScoreDispatch {
   static auto forward(
-      TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> pose_stack_block_coord_offset,
-      TView<Int, 2, D> pose_stack_block_type,
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 1, D> pose_ind_for_atom,
+      TView<Int, 2, D> first_rot_for_block,
+      TView<Int, 2, D> first_rot_block_type,
+      TView<Int, 1, D> block_ind_for_rot,
+      TView<Int, 1, D> pose_ind_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<Int, 1, D> n_rots_for_pose,
+      TView<Int, 1, D> rot_offset_for_pose,
+      TView<Int, 2, D> n_rots_for_block,
+      TView<Int, 2, D> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // dims: n-poses x max-n-blocks x max-n-blocks
       // Quick lookup: given the inds of two blocks, ask: what is the minimum
@@ -83,12 +93,23 @@ struct ElecPoseScoreDispatch {
       TView<ElecGlobalParams<Real>, 1, D> global_params,
       bool output_block_pair_energies,
       bool compute_derivs) -> std::
-      tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>, TPack<Int, 3, D> >;
+      tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D> >;
 
   static auto backward(
-      TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> pose_stack_block_coord_offset,
-      TView<Int, 2, D> pose_stack_block_type,
+      // common params
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 1, D> pose_ind_for_atom,
+      TView<Int, 2, D> first_rot_for_block,
+      TView<Int, 2, D> first_rot_block_type,
+      TView<Int, 1, D> block_ind_for_rot,
+      TView<Int, 1, D> pose_ind_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<Int, 1, D> n_rots_for_pose,
+      TView<Int, 1, D> rot_offset_for_pose,
+      TView<Int, 2, D> n_rots_for_block,
+      TView<Int, 2, D> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // dims: n-poses x max-n-blocks x max-n-blocks
       // Quick lookup: given the inds of two blocks, ask: what is the minimum
@@ -137,9 +158,9 @@ struct ElecPoseScoreDispatch {
       // LJ parameters
       TView<ElecGlobalParams<Real>, 1, D> global_params,
 
-      TView<Int, 3, D> scratch_block_neighbors,  // from forward pass
+      TView<Int, 2, D> dispatch_indices,  // from forward pass
       TView<Real, 4, D> dTdV                     // nterms x nposes x len x len
-      ) -> TPack<Vec<Real, 3>, 3, D>;
+      ) -> TPack<Vec<Real, 3>, 2, D>;
 };
 
 }  // namespace potentials

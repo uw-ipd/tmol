@@ -14,8 +14,9 @@ namespace potentials {
 template <typename Real>
 class ElecSingleResData {
  public:
+  int rot_ind;
   int block_type;
-  int block_coord_offset;
+  int rot_coord_offset;
   int n_atoms;
   int n_conn;
   Real *coords;
@@ -27,6 +28,8 @@ template <typename Real>
 class ElecScoringData {
  public:
   int pose_ind;
+  int rot_ind1;
+  int rot_ind2;
   int block_ind1;
   int block_ind2;
   ElecSingleResData<Real> r1;
@@ -59,7 +62,7 @@ template <
     int nt,
     typename Real>
 void TMOL_DEVICE_FUNC elec_load_block_coords_and_charges_into_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Real, 2, D> block_type_partial_charge,
     int pose_ind,
     ElecSingleResData<Real> &r_dat,
@@ -71,7 +74,7 @@ void TMOL_DEVICE_FUNC elec_load_block_coords_and_charges_into_shared(
   DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
       r_dat.coords,
       reinterpret_cast<Real *>(
-          &coords[pose_ind][r_dat.block_coord_offset + start_atom]),
+          &coords[r_dat.rot_coord_offset + start_atom]),
       n_atoms_to_load * 3);
   DeviceDispatch<D>::template copy_contiguous_data<nt, 1>(
       r_dat.charges,
@@ -88,7 +91,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC elec_load_block_into_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Real, 2, D> block_type_partial_charge,
     TView<Int, 3, D> block_type_representative_path_distance,
     int pose_ind,
@@ -131,7 +134,7 @@ template <
     int TILE_SIZE,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
-    TView<Int, 2, D> pose_stack_block_coord_offset,
+    TView<Int, 1, D> rot_coord_offset,
     TView<Int, 3, D> pose_stack_min_bond_separation,
     TView<Int, 1, D> block_type_n_interblock_bonds,
     TView<Int, 2, D> block_type_atoms_forming_chemical_bonds,
@@ -139,6 +142,8 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
     TView<ElecGlobalParams<Real>, 1, D> global_params,
     int const max_important_bond_separation,
     int pose_ind,
+    int rot_ind1,
+    int rot_ind2,
     int block_ind1,
     int block_ind2,
     int block_type1,
@@ -148,12 +153,12 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
     ElecScoringData<Real> &inter_dat,
     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   inter_dat.pose_ind = pose_ind;
+  inter_dat.r1.rot_ind = rot_ind1;
+  inter_dat.r2.rot_ind = rot_ind2;
   inter_dat.r1.block_type = block_type1;
   inter_dat.r2.block_type = block_type2;
-  inter_dat.r1.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind1];
-  inter_dat.r2.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind2];
+  inter_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
+  inter_dat.r2.rot_coord_offset = rot_coord_offset[rot_ind2];
   inter_dat.max_important_bond_separation = max_important_bond_separation;
   inter_dat.min_separation =
       pose_stack_min_bond_separation[pose_ind][block_ind1][block_ind2];
@@ -224,7 +229,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC elec_load_interres1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Real, 2, D> block_type_partial_charge,
     TView<Int, 3, D> block_type_representative_path_distance,
     int tile_ind,
@@ -254,7 +259,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC elec_load_interres2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Real, 2, D> block_type_partial_charge,
     TView<Int, 3, D> block_type_representative_path_distance,
     int tile_ind,
@@ -284,23 +289,25 @@ template <
     int TILE_SIZE,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC elec_load_tile_invariant_intrares_data(
-    TView<Int, 2, D> pose_stack_block_coord_offset,
+    TView<Int, 1, D> rot_coord_offset,
     TView<ElecGlobalParams<Real>, 1, D> global_params,
     int const max_important_bond_separation,
     int pose_ind,
+    int rot_ind1,
     int block_ind1,
     int block_type1,
     int n_atoms1,
     ElecScoringData<Real> &intra_dat,
     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
   intra_dat.pose_ind = pose_ind;
+  intra_dat.r1.rot_ind = rot_ind1;
+  intra_dat.r2.rot_ind = rot_ind1;
   intra_dat.block_ind1 = block_ind1;
   intra_dat.block_ind2 = block_ind1;
   intra_dat.r1.block_type = block_type1;
   intra_dat.r2.block_type = block_type1;
-  intra_dat.r1.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind1];
-  intra_dat.r2.block_coord_offset = intra_dat.r1.block_coord_offset;
+  intra_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
+  intra_dat.r2.rot_coord_offset = intra_dat.r1.rot_coord_offset;
   intra_dat.max_important_bond_separation = max_important_bond_separation;
 
   // we are not going to load count pair data into shared memory because
@@ -341,7 +348,7 @@ template <
     int MAX_N_CONN,
     typename Real>
 void TMOL_DEVICE_FUNC elec_load_intrares1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Real, 2, D> block_type_partial_charge,
     int tile_ind,
     int start_atom1,
@@ -366,7 +373,7 @@ template <
     int MAX_N_CONN,
     typename Real>
 void TMOL_DEVICE_FUNC elec_load_intrares2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, D> coords,
+    TView<Vec<Real, 3>, 1, D> coords,
     TView<Real, 2, D> block_type_partial_charge,
     int tile_ind,
     int start_atom2,
@@ -432,7 +439,7 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
     ElecScoringData<Real> const &score_dat,
     int cp_separation,
     TView<Real, 4, D> dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 3, D> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -464,10 +471,10 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0][score_dat.pose_ind]
-                    [score_dat.r1.block_coord_offset + atom_tile_ind1
+          dV_dcoords[0]
+                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
                      + start_atom1][j],
-          elec_dxyz_at1[j]);
+        elec_dxyz_at1[j]);
     }
   }
 
@@ -476,8 +483,8 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0][score_dat.pose_ind]
-                    [score_dat.r2.block_coord_offset + atom_tile_ind2
+          dV_dcoords[0]
+                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
                      + start_atom2][j],
           elec_dxyz_at2[j]);
     }
@@ -492,7 +499,7 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
     int start_atom2,
     ElecScoringData<Real> const &score_dat,
     int cp_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 3, D> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -519,8 +526,8 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0][score_dat.pose_ind]
-                    [score_dat.r1.block_coord_offset + atom_tile_ind1
+          dV_dcoords[0]
+                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
                      + start_atom1][j],
           elec_dxyz_at1[j]);
     }
@@ -531,8 +538,8 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0][score_dat.pose_ind]
-                    [score_dat.r2.block_coord_offset + atom_tile_ind2
+          dV_dcoords[0]
+                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
                      + start_atom2][j],
           elec_dxyz_at2[j]);
     }

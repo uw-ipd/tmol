@@ -114,7 +114,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int n_atoms_to_load,                                                 \
       int start_atom) {                                                    \
     elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>( \
-        coords,                                                            \
+        rot_coords,                                                        \
         block_type_partial_charge,                                         \
         pose_ind,                                                          \
         r_dat,                                                             \
@@ -131,7 +131,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       bool count_pair_striking_dist,                               \
       unsigned char *__restrict__ conn_ats) {                      \
     elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>( \
-        coords,                                                    \
+        rot_coords,                                                \
         block_type_partial_charge,                                 \
         block_type_inter_repr_path_distance,                       \
         pose_ind,                                                  \
@@ -145,6 +145,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 #define LOAD_TILE_INVARIANT_INTERRES_DATA                          \
   TMOL_DEVICE_FUNC(                                                \
       int pose_ind,                                                \
+      int rot_ind1,                                                \
+      int rot_ind2,                                                \
       int block_ind1,                                              \
       int block_ind2,                                              \
       int block_type1,                                             \
@@ -154,7 +156,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       ElecScoringData<Real> &inter_dat,                            \
       shared_mem_union &shared) {                                  \
     elec_load_tile_invariant_interres_data<DeviceDispatch, D, nt>( \
-        pose_stack_block_coord_offset,                             \
+        rot_coord_offset,                                          \
         pose_stack_min_bond_separation,                            \
         block_type_n_interblock_bonds,                             \
         block_type_atoms_forming_chemical_bonds,                   \
@@ -162,6 +164,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         global_params,                                             \
         max_important_bond_separation,                             \
         pose_ind,                                                  \
+        rot_ind1,                                                  \
+        rot_ind2,                                                  \
         block_ind1,                                                \
         block_ind2,                                                \
         block_type1,                                               \
@@ -180,7 +184,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       ElecScoringData<Real> &inter_dat,                             \
       shared_mem_union &shared) {                                   \
     elec_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>( \
-        coords,                                                     \
+        rot_coords,                                                 \
         block_type_partial_charge,                                  \
         block_type_inter_repr_path_distance,                        \
         tile_ind,                                                   \
@@ -198,7 +202,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       ElecScoringData<Real> &inter_dat,                             \
       shared_mem_union &shared) {                                   \
     elec_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>( \
-        coords,                                                     \
+        rot_coords,                                                 \
         block_type_partial_charge,                                  \
         block_type_inter_repr_path_distance,                        \
         tile_ind,                                                   \
@@ -246,17 +250,9 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       if (tid == 0) {                                                       \
         if (!output_block_pair_energies) {                                  \
           accumulate<D, Real>::add(                                         \
-              output[0][score_dat.pose_ind][0][0], cta_total_elec);         \
+              output[0][score_dat.pose_ind], cta_total_elec);         \
         } else {                                                            \
-          if (score_dat.block_ind1 == score_dat.block_ind2) {               \
-            output[0][score_dat.pose_ind][score_dat.block_ind1]             \
-                  [score_dat.block_ind1] = cta_total_elec;                  \
-          } else {                                                          \
-            output[0][score_dat.pose_ind][score_dat.block_ind1]             \
-                  [score_dat.block_ind2] = 0.5 * cta_total_elec;            \
-            output[0][score_dat.pose_ind][score_dat.block_ind2]             \
-                  [score_dat.block_ind1] = 0.5 * cta_total_elec;            \
-          }                                                                 \
+          output[0][cta] = cta_total_elec;                  \
         }                                                                   \
       }                                                                     \
     });                                                                     \
@@ -266,16 +262,18 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 #define LOAD_TILE_INVARIANT_INTRARES_DATA                          \
   TMOL_DEVICE_FUNC(                                                \
       int pose_ind,                                                \
+      int rot_ind1,                                                \
       int block_ind1,                                              \
       int block_type1,                                             \
       int n_atoms1,                                                \
       ElecScoringData<Real> &intra_dat,                            \
       shared_mem_union &shared) {                                  \
     elec_load_tile_invariant_intrares_data<DeviceDispatch, D, nt>( \
-        pose_stack_block_coord_offset,                             \
+        rot_coord_offset,                                          \
         global_params,                                             \
         max_important_bond_separation,                             \
         pose_ind,                                                  \
+        rot_ind1,                                                  \
         block_ind1,                                                \
         block_type1,                                               \
         n_atoms1,                                                  \
@@ -291,7 +289,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       ElecScoringData<Real> &intra_dat,                             \
       shared_mem_union &shared) {                                   \
     elec_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>( \
-        coords,                                                     \
+        rot_coords,                                                 \
         block_type_partial_charge,                                  \
         tile_ind,                                                   \
         start_atom1,                                                \
@@ -308,7 +306,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       ElecScoringData<Real> &intra_dat,                             \
       shared_mem_union &shared) {                                   \
     elec_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>( \
-        coords,                                                     \
+        rot_coords,                                                 \
         block_type_partial_charge,                                  \
         tile_ind,                                                   \
         start_atom2,                                                \
@@ -359,10 +357,21 @@ template <
     typename Real,
     typename Int>
 auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
-    TView<Vec<Real, 3>, 2, D> coords,
-    TView<Int, 2, D> pose_stack_block_coord_offset,
-    TView<Int, 2, D> pose_stack_block_type,
-
+    // common params
+    TView<Vec<Real, 3>, 1, D> rot_coords,
+    TView<Int, 1, D> rot_coord_offset,
+    TView<Int, 1, D> pose_ind_for_atom,
+    TView<Int, 2, D> first_rot_for_block,
+    TView<Int, 2, D> first_rot_block_type,
+    TView<Int, 1, D> block_ind_for_rot,
+    TView<Int, 1, D> pose_ind_for_rot,
+    TView<Int, 1, D> block_type_ind_for_rot,
+    TView<Int, 1, D> n_rots_for_pose,
+    TView<Int, 1, D> rot_offset_for_pose,
+    TView<Int, 2, D> n_rots_for_block,
+    TView<Int, 2, D> rot_offset_for_block,
+    Int max_n_rots_per_pose,
+    
     // dims: n-poses x max-n-blocks x max-n-blocks
     // Quick lookup: given the inds of two blocks, ask: what is the minimum
     // number of chemical bonds that separate any pair of atoms in those
@@ -411,13 +420,16 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<ElecGlobalParams<Real>, 1, D> global_params,
     bool output_block_pair_energies,
     bool compute_derivs) -> std::
-    tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>, TPack<Int, 3, D> > {
+    tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D> > {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
-  int const n_poses = coords.size(0);
-  int const max_n_pose_atoms = coords.size(1);
-  int const max_n_blocks = pose_stack_block_type.size(1);
+  int const n_atoms = rot_coords.size(0);
+  int const n_poses = first_rot_for_block.size(0);
+  int const n_rots = rot_coord_offset.size(0);
+  int const max_n_blocks = first_rot_for_block.size(1);
+  
+  // int const max_n_pose_atoms = coords.size(1);
   int const max_n_block_atoms = block_type_partial_charge.size(1);
   int const n_block_types = block_type_n_atoms.size(0);
   int const max_n_interblock_bonds =
@@ -425,7 +437,21 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-  assert(pose_stack_block_type.size(0) == n_poses);
+  assert(first_rot_block_type.size(0) == n_poses);
+  assert(first_rot_block_type.size(1) == max_n_blocks);
+
+  assert(block_ind_for_rot.size(0) == n_rots);
+  assert(pose_ind_for_rot.size(0) == n_rots);
+  assert(block_type_ind_for_rot.size(0) == n_rots);
+
+  assert(n_rots_for_pose.size(0) == n_poses);
+  assert(rot_offset_for_pose.size(0) == n_poses);
+
+  assert(n_rots_for_block.size(0) == n_poses);
+  assert(n_rots_for_block.size(1) == max_n_blocks);
+
+  assert(rot_offset_for_block.size(0) == n_poses);
+  assert(rot_offset_for_block.size(1) == max_n_blocks);
 
   assert(pose_stack_min_bond_separation.size(0) == n_poses);
   assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
@@ -448,29 +474,54 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
+  auto dV_dcoords_t =
+      TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  auto dV_dcoords = dV_dcoords_t.view;
+
+  auto scratch_rot_spheres_t = TPack<Real, 2, D>::zeros({n_rots, 4});
+  auto scratch_rot_spheres = scratch_rot_spheres_t.view;
+
+  auto scratch_rot_neighbors_t = TPack<Int, 3, D>::zeros(
+      {n_poses, max_n_rots_per_pose, max_n_rots_per_pose});
+  auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
+
+  score::common::sphere_overlap::
+      compute_rot_spheres<DeviceDispatch, D, Real, Int>::f(
+          rot_coords,
+          rot_coord_offset,
+          block_type_ind_for_rot,
+          block_type_n_atoms,
+          scratch_rot_spheres);
+
+  score::common::sphere_overlap::
+      detect_rot_neighbors<DeviceDispatch, D, Real, Int>::f(
+          max_n_rots_per_pose,
+          block_ind_for_rot,
+          block_type_ind_for_rot,
+          block_type_n_atoms,
+          n_rots_for_pose,
+          rot_offset_for_pose,
+          n_rots_for_block,
+          scratch_rot_spheres,
+          scratch_rot_neighbors,
+          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+
+  auto dispatch_indices_t = score::common::sphere_overlap::
+      rot_neighbor_indices<DeviceDispatch, D, Int>::f(
+          scratch_rot_neighbors, rot_offset_for_pose);
+  auto dispatch_indices = dispatch_indices_t.view;
+
   // auto output_t = TPack<Real, 2, D>::zeros({1, n_poses});
   //  auto output_t =
   //      TPack<Real, 4, D>::zeros({3, n_poses, max_n_blocks, max_n_blocks});
-  TPack<Real, 4, D> output_t;
+  TPack<Real, 2, D> output_t;
   if (output_block_pair_energies) {
     output_t =
-        TPack<Real, 4, D>::zeros({1, n_poses, max_n_blocks, max_n_blocks});
+        TPack<Real, 2, D>::zeros({1, dispatch_indices.size(1)});
   } else {
-    output_t = TPack<Real, 4, D>::zeros({1, n_poses, 1, 1});
+    output_t = TPack<Real, 2, D>::zeros({1, n_poses});
   }
   auto output = output_t.view;
-
-  auto dV_dcoords_t =
-      TPack<Vec<Real, 3>, 3, D>::zeros({1, n_poses, max_n_pose_atoms});
-  auto dV_dcoords = dV_dcoords_t.view;
-
-  auto scratch_block_spheres_t =
-      TPack<Real, 3, D>::zeros({n_poses, max_n_blocks, 4});
-  auto scratch_block_spheres = scratch_block_spheres_t.view;
-
-  auto scratch_block_neighbors_t =
-      TPack<Int, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
-  auto scratch_block_neighbors = scratch_block_neighbors_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
@@ -482,8 +533,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         ([=] TMOL_DEVICE_FUNC(
              int atom_tile_ind1,
              int atom_tile_ind2,
-             int start_atom1,
-             int start_atom2,
+             int,
+             int,
              ElecScoringData<Real> const &score_dat,
              int cp_separation) {
           return elec_atom_energy(
@@ -506,22 +557,18 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     } shared;
 
-    int const pose_ind = cta / (max_n_blocks * max_n_blocks);
-    int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
-    int const block_ind1 = block_ind_pair / max_n_blocks;
-    int const block_ind2 = block_ind_pair % max_n_blocks;
-    if (block_ind1 > block_ind2) {
-      return;
-    }
-
-    if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-      return;
-    }
-
     int const max_important_bond_separation = 4;
 
-    int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-    int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+    int const pose_ind = dispatch_indices[0][cta];
+
+    int const rot_ind1 = dispatch_indices[1][cta];
+    int const rot_ind2 = dispatch_indices[2][cta];
+
+    int const block_ind1 = block_ind_for_rot[rot_ind1];
+    int const block_ind2 = block_ind_for_rot[rot_ind2];
+
+    int const block_type1 = block_type_ind_for_rot[rot_ind1];
+    int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
     if (block_type1 < 0 || block_type2 < 0) {
       return;
@@ -529,6 +576,25 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     int const n_atoms1 = block_type_n_atoms[block_type1];
     int const n_atoms2 = block_type_n_atoms[block_type2];
+
+    // int const pose_ind = cta / (max_n_blocks * max_n_blocks);
+    // int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
+    // int const block_ind1 = block_ind_pair / max_n_blocks;
+    // int const block_ind2 = block_ind_pair % max_n_blocks;
+    // if (block_ind1 > block_ind2) {
+    //   return;
+    // }
+
+    // if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
+    //   return;
+    // }
+
+    // int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
+    // int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+
+    // if (block_type1 < 0 || block_type2 < 0) {
+    //   return;
+    // }
 
     auto load_tile_invariant_interres_data =
         ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
@@ -558,7 +624,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
-    tmol::score::common::tile_evaluate_block_pair<
+    tmol::score::common::tile_evaluate_rot_pair<
         DeviceDispatch,
         D,
         ElecScoringData<Real>,
@@ -567,6 +633,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         TILE_SIZE>(
         shared,
         pose_ind,
+        rot_ind1,
+        rot_ind2,
         block_ind1,
         block_ind2,
         block_type1,
@@ -628,22 +696,19 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     } shared;
 
-    int const pose_ind = cta / (max_n_blocks * max_n_blocks);
-    int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
-    int const block_ind1 = block_ind_pair / max_n_blocks;
-    int const block_ind2 = block_ind_pair % max_n_blocks;
-    if (block_ind1 > block_ind2) {
-      return;
-    }
-
-    if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-      return;
-    }
 
     int const max_important_bond_separation = 4;
 
-    int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-    int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+    int const pose_ind = dispatch_indices[0][cta];
+
+    int const rot_ind1 = dispatch_indices[1][cta];
+    int const rot_ind2 = dispatch_indices[2][cta];
+
+    int const block_ind1 = block_ind_for_rot[rot_ind1];
+    int const block_ind2 = block_ind_for_rot[rot_ind2];
+
+    int const block_type1 = block_type_ind_for_rot[rot_ind1];
+    int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
     if (block_type1 < 0 || block_type2 < 0) {
       return;
@@ -680,7 +745,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
-    tmol::score::common::tile_evaluate_block_pair<
+    tmol::score::common::tile_evaluate_rot_pair<
         DeviceDispatch,
         D,
         ElecScoringData<Real>,
@@ -689,6 +754,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         TILE_SIZE>(
         shared,
         pose_ind,
+        rot_ind1,
+        rot_ind2,
         block_ind1,
         block_ind2,
         block_type1,
@@ -723,36 +790,17 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // TO DO: let DeviceDispatch hold a cuda stream (??)
   // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
   // mgpu::standard_context_t context(wrapped_stream.stream());
-  int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
-
-  score::common::sphere_overlap::
-      compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
-          coords,
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
-          block_type_n_atoms,
-          scratch_block_spheres);
-
-  score::common::sphere_overlap::
-      detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
-          coords,
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
-          block_type_n_atoms,
-          scratch_block_spheres,
-          scratch_block_neighbors,
-          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
 
   // 3
   if (output_block_pair_energies) {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        n_block_pairs, eval_energies_by_block);
+        dispatch_indices.size(1), eval_energies_by_block);
   } else {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        n_block_pairs, eval_energies);
+        dispatch_indices.size(1), eval_energies);
   }
 
-  return {output_t, dV_dcoords_t, scratch_block_neighbors_t};
+  return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // namespace potentials
 
 template <
@@ -762,10 +810,21 @@ template <
     typename Real,
     typename Int>
 auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
-    TView<Vec<Real, 3>, 2, D> coords,
-    TView<Int, 2, D> pose_stack_block_coord_offset,
-    TView<Int, 2, D> pose_stack_block_type,
-
+    // common params
+    TView<Vec<Real, 3>, 1, D> rot_coords,
+    TView<Int, 1, D> rot_coord_offset,
+    TView<Int, 1, D> pose_ind_for_atom,
+    TView<Int, 2, D> first_rot_for_block,
+    TView<Int, 2, D> first_rot_block_type,
+    TView<Int, 1, D> block_ind_for_rot,
+    TView<Int, 1, D> pose_ind_for_rot,
+    TView<Int, 1, D> block_type_ind_for_rot,
+    TView<Int, 1, D> n_rots_for_pose,
+    TView<Int, 1, D> rot_offset_for_pose,
+    TView<Int, 2, D> n_rots_for_block,
+    TView<Int, 2, D> rot_offset_for_block,
+    Int max_n_rots_per_pose,
+    
     // dims: n-poses x max-n-blocks x max-n-blocks
     // Quick lookup: given the inds of two blocks, ask: what is the minimum
     // number of chemical bonds that separate any pair of atoms in those
@@ -813,23 +872,39 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // LJ parameters
     TView<ElecGlobalParams<Real>, 1, D> global_params,
 
-    TView<Int, 3, D> scratch_block_neighbors,  // from forward pass
+    TView<Int, 2, D> dispatch_indices,  // from forward pass
     TView<Real, 4, D> dTdV                     // nterms x nposes x len x len
-    ) -> TPack<Vec<Real, 3>, 3, D> {
+    ) -> TPack<Vec<Real, 3>, 2, D> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
-  int const n_poses = coords.size(0);
-  int const max_n_pose_atoms = coords.size(1);
-  int const max_n_blocks = pose_stack_block_type.size(1);
-  int const max_n_block_atoms = block_type_partial_charge.size(1);
+  int const n_atoms = rot_coords.size(0);
+  int const n_rots = rot_coord_offset.size(0);
+  int const n_poses = first_rot_for_block.size(0);
+  int const max_n_blocks = first_rot_for_block.size(1);
+
   int const n_block_types = block_type_n_atoms.size(0);
+  int const max_n_block_atoms = block_type_partial_charge.size(1);
   int const max_n_interblock_bonds =
       block_type_atoms_forming_chemical_bonds.size(1);
 
-  assert(max_n_interblock_bonds <= MAX_N_CONN);
+    assert(first_rot_block_type.size(0) == n_poses);
+  assert(first_rot_block_type.size(1) == max_n_blocks);
 
-  assert(pose_stack_block_type.size(0) == n_poses);
+  assert(block_ind_for_rot.size(0) == n_rots);
+  assert(pose_ind_for_rot.size(0) == n_rots);
+  assert(block_type_ind_for_rot.size(0) == n_rots);
+
+  assert(n_rots_for_pose.size(0) == n_poses);
+  assert(rot_offset_for_pose.size(0) == n_poses);
+
+  assert(n_rots_for_block.size(0) == n_poses);
+  assert(n_rots_for_block.size(1) == max_n_blocks);
+
+  assert(rot_offset_for_block.size(0) == n_poses);
+  assert(rot_offset_for_block.size(1) == max_n_blocks);
+
+  assert(max_n_interblock_bonds <= MAX_N_CONN);
 
   assert(pose_stack_min_bond_separation.size(0) == n_poses);
   assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
@@ -853,7 +928,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
   auto dV_dcoords_t =
-      TPack<Vec<Real, 3>, 3, D>::zeros({1, n_poses, max_n_pose_atoms});
+      TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -898,22 +973,17 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
     } shared;
 
-    int const pose_ind = cta / (max_n_blocks * max_n_blocks);
-    int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
-    int const block_ind1 = block_ind_pair / max_n_blocks;
-    int const block_ind2 = block_ind_pair % max_n_blocks;
-    if (block_ind1 > block_ind2) {
-      return;
-    }
-
-    if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-      return;
-    }
-
     int const max_important_bond_separation = 4;
+    int const pose_ind = dispatch_indices[0][cta];
 
-    int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-    int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+    int const rot_ind1 = dispatch_indices[1][cta];
+    int const rot_ind2 = dispatch_indices[2][cta];
+
+    int const block_ind1 = block_ind_for_rot[rot_ind1];
+    int const block_ind2 = block_ind_for_rot[rot_ind2];
+
+    int const block_type1 = block_type_ind_for_rot[rot_ind1];
+    int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
     if (block_type1 < 0 || block_type2 < 0) {
       return;
@@ -953,7 +1023,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
-    tmol::score::common::tile_evaluate_block_pair<
+    tmol::score::common::tile_evaluate_rot_pair<
         DeviceDispatch,
         D,
         ElecScoringData<Real>,
@@ -962,6 +1032,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
         TILE_SIZE>(
         shared,
         pose_ind,
+        rot_ind1,
+        rot_ind2,
         block_ind1,
         block_ind2,
         block_type1,
@@ -984,9 +1056,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
   // Since we have the sphere overlap results from the forward pass,
   // there's only a single kernel launch here
-  int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-      n_block_pairs, eval_derivs);
+      dispatch_indices.size(1), eval_derivs);
 
   return dV_dcoords_t;
 }
