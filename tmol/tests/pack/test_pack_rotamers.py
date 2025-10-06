@@ -42,6 +42,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
     sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
     sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
     sfxn.set_weight(ScoreType.fa_lk, 1.0)
+    sfxn.set_weight(ScoreType.fa_elec, 1.0)
     sfxn.set_weight(ScoreType.hbond, 1.0)
 
     pbt = pose_stack.packed_block_types
@@ -96,10 +97,10 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    # print("top scores", scores[:, 0])
-    # for i in range(n_poses):
-    #     for j in range(scores.shape[1]):
-    #         print("score", i, j, scores[i,j])
+    print("top scores", scores[:, 0])
+    for i in range(n_poses):
+        for j in range(scores.shape[1]):
+            print("score", i, j, scores[i,j])
 
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack, rotamer_set, rotamer_assignments
