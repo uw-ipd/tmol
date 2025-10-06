@@ -852,13 +852,6 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms});  // TODO
   auto dV_dcoords = dV_dcoords_t.view;
 
-  auto scratch_rot_spheres_t = TPack<Real, 2, Dev>::zeros({n_rots, 4});
-  auto scratch_rot_spheres = scratch_rot_spheres_t.view;
-
-  auto scratch_rot_neighbors_t = TPack<Int, 3, Dev>::zeros(
-      {n_poses, max_n_rots_per_pose, max_n_rots_per_pose});
-  auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
-
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
   // Define nt and reduce_t
