@@ -159,7 +159,7 @@ struct ElecPoseScoreDispatch {
       TView<ElecGlobalParams<Real>, 1, D> global_params,
 
       TView<Int, 2, D> dispatch_indices,  // from forward pass
-      TView<Real, 4, D> dTdV                     // nterms x nposes x len x len
+      TView<Real, 2, D> dTdV                     // nterms x n_block_pairs
       ) -> TPack<Vec<Real, 3>, 2, D>;
 };
 

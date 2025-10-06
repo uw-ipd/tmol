@@ -438,7 +438,7 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
     int start_atom2,
     ElecScoringData<Real> const &score_dat,
     int cp_separation,
-    TView<Real, 4, D> dTdV,
+    Real dTdV,
     TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
@@ -463,11 +463,7 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
 
   // all threads accumulate derivatives for atom 1 to global memory
   // Remove "0.5 *" as the energy is no longer split between the i,j and j,i pair
-  Real dTdVelec = 0.5 *
-      (dTdV[0][score_dat.pose_ind][score_dat.block_ind1][score_dat.block_ind2]
-         + dTdV[0][score_dat.pose_ind][score_dat.block_ind2]
-               [score_dat.block_ind1]);
-  Vec<Real, 3> elec_dxyz_at1 = dTdVelec * dV_ddist * ddist_dat1;
+  Vec<Real, 3> elec_dxyz_at1 = dTdV * dV_ddist * ddist_dat1;
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
@@ -479,7 +475,7 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
   }
 
   // all threads accumulate derivatives for atom 2 to global memory
-  Vec<Real, 3> elec_dxyz_at2 = dTdVelec * dV_ddist * ddist_dat2;
+  Vec<Real, 3> elec_dxyz_at2 = dTdV * dV_ddist * ddist_dat2;
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(

@@ -873,7 +873,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<ElecGlobalParams<Real>, 1, D> global_params,
 
     TView<Int, 2, D> dispatch_indices,  // from forward pass
-    TView<Real, 4, D> dTdV                     // nterms x nposes x len x len
+    TView<Real, 2, D> dTdV                     // nterms x nposes x len x len
     ) -> TPack<Vec<Real, 3>, 2, D> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
@@ -952,7 +952,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               start_atom2,
               score_dat,
               cp_separation,
-              dTdV,
+              dTdV[0][cta],
               dV_dcoords);
           return 0.0;
         });
