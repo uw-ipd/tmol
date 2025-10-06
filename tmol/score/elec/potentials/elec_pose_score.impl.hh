@@ -957,6 +957,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           return 0.0;
         });
 
+    // TEST!
     auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
     auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);

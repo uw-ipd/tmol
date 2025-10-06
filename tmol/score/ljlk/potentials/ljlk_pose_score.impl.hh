@@ -773,6 +773,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   if (output_block_pair_energies) {
     output_t = TPack<Real, 2, D>::zeros({3, dispatch_indices.size(1)});
   } else {
+    // printf("n poses for whole-pose scoring? %d\n", n_poses);
     output_t = TPack<Real, 2, D>::zeros({3, n_poses});
   }
   auto output = output_t.view;

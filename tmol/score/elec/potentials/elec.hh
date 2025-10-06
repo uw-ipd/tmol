@@ -462,9 +462,9 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
       score_dat.global_params.max_dis);
 
   // all threads accumulate derivatives for atom 1 to global memory
-  Real dTdVelec =
-      0.5
-      * (dTdV[0][score_dat.pose_ind][score_dat.block_ind1][score_dat.block_ind2]
+  // Remove "0.5 *" as the energy is no longer split between the i,j and j,i pair
+  Real dTdVelec = 0.5 *
+      (dTdV[0][score_dat.pose_ind][score_dat.block_ind1][score_dat.block_ind2]
          + dTdV[0][score_dat.pose_ind][score_dat.block_ind2]
                [score_dat.block_ind1]);
   Vec<Real, 3> elec_dxyz_at1 = dTdVelec * dV_ddist * ddist_dat1;

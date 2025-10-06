@@ -205,7 +205,7 @@ class EnergyTermTestBase:
             )
 
     @classmethod
-    def get_pose_scorer(cls, pose_stack, param_db, device):
+    def get_whole_pose_scorer(cls, pose_stack, param_db, device):
         energy_term = cls.energy_term_class(param_db=param_db, device=device)
 
         for bt in pose_stack.packed_block_types.active_block_types:
@@ -214,6 +214,17 @@ class EnergyTermTestBase:
         energy_term.setup_poses(pose_stack)
 
         return energy_term.render_whole_pose_scoring_module(pose_stack)
+
+    @classmethod
+    def get_block_pair_scorer(cls, pose_stack, param_db, device):
+        energy_term = cls.energy_term_class(param_db=param_db, device=device)
+
+        for bt in pose_stack.packed_block_types.active_block_types:
+            energy_term.setup_block_type(bt)
+        energy_term.setup_packed_block_types(pose_stack.packed_block_types)
+        energy_term.setup_poses(pose_stack)
+
+        return energy_term.render_block_pair_scoring_module(pose_stack)
 
     @classmethod
     def get_block_pair_dispatch_indices(cls, nres, device):
@@ -240,7 +251,7 @@ class EnergyTermTestBase:
         atol=1e-5,
         rtol=1e-3,
     ):
-        n_poses = 1
+        n_poses = 10
 
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
         pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
@@ -258,31 +269,30 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(pn)
 
-        pose_scorer = cls.get_pose_scorer(pn, default_database, torch_device)
+        pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
+        # block_pair_scorer = cls.get_block_pair_scorer(pn, default_database, torch_device)
+        # nres = pn.block_coord_offset.size(1)
 
-        nres = pn.block_coord_offset.size(1)
-
-        block_pair_dispatch_indices = cls.get_block_pair_dispatch_indices(
-            nres, device=torch_device
-        )
+        # block_pair_dispatch_indices = cls.get_block_pair_dispatch_indices(
+        #     nres, device=torch_device
+        # )
 
         coords = torch.nn.Parameter(pn.coords.clone())
-        scores, indices = pose_scorer(coords, output_block_pair_energies=True)
-        # .cpu()
-        # .detach()
-        # .numpy()
+        scores = pose_scorer(coords).cpu().detach().numpy()
+        # sparse = block_pair_scorer(coords).coalesce()
 
-        """print(scores.shape)
-        print(scores_t[torch.nonzero(scores_t)])
-        print(torch.sum(scores_t))"""
 
-        sparse = torch.sparse_coo_tensor(indices, scores)
-        print("sparse", sparse.to_dense()[0, 0:6, 0:6])
-        print("SHAPE: ", scores.shape, indices.shape)
-        sparse_csr = sparse.to_dense().to_sparse_csr()
-        print(sparse_csr)
-        print("TOTAL: ", torch.sum(sparse))
-        torchshow.show(sparse.to_dense())
+        # """print(scores.shape)
+        # print(scores_t[torch.nonzero(scores_t)])
+        # print(torch.sum(scores_t))"""
+
+        # # sparse = torch.sparse_coo_tensor(indices, scores)
+        # print("sparse", sparse.to_dense()[0, 0:6, 0:6])
+        # print("SHAPE: ", sparse.values().shape, sparse.indices().shape)
+        # sparse_csr = sparse.to_dense().to_sparse_csr()
+        # print(sparse_csr)
+        # print("TOTAL: ", torch.sum(sparse))
+        # torchshow.show(sparse.to_dense())
 
         if update_baseline:
             cls.save_test_baseline_data(
@@ -310,33 +320,31 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(p1)
 
-        pose_scorer = cls.get_pose_scorer(p1, default_database, torch_device)
+        pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
 
-        nres = p1.block_coord_offset.size(1)
-        block_pair_dispatch_indices = cls.get_block_pair_dispatch_indices(
-            nres, device=torch_device
-        )
-        print(block_pair_dispatch_indices)
+        # nres = p1.block_coord_offset.size(1)
+        # block_pair_dispatch_indices = cls.get_block_pair_dispatch_indices(
+        #     nres, device=torch_device
+        # ) #????
+        # print(block_pair_dispatch_indices)
 
         wt = torch.rand((10,), device=torch_device)
 
         print(wt)
 
         def score(coords):
-            scores = pose_scorer(
-                coords, block_pair_dispatch_indices, output_block_pair_energies=True
-            )
+            scores = pose_scorer(coords)
 
             # wt = torch.full_like(scores, 0.5)
-            score = wt * scores
+            score = (wt * scores).sum()
 
-            out = (
-                torch.sparse_coo_tensor(block_pair_dispatch_indices, score)
-                .to_dense()
-                .sum()
-            )
+            # out = (
+            #     torch.sparse_coo_tensor(block_pair_dispatch_indices, score)
+            #     .to_dense()
+            #     .sum()
+            # )
 
-            return out
+            return score
 
         # monkeypatch more sane error reporting
         torchgrad = importlib.import_module("torch.autograd.gradcheck")
@@ -374,7 +382,7 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(pn)
 
-        pose_scorer = cls.get_pose_scorer(pn, default_database, torch_device)
+        pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
         scores = pose_scorer(pn.coords).cpu().detach().numpy()
 
         if update_baseline:
@@ -404,14 +412,15 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(p1)
 
-        pose_scorer = cls.get_pose_scorer(p1, default_database, torch_device)
+        pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
+        block_pair_scorer = cls.get_block_pair_scorer(p1, default_database, torch_device)
 
         coords = torch.nn.Parameter(p1.coords.clone())
         block_pair_scores = (
-            pose_scorer(coords, output_block_pair_energies=True).cpu().detach().numpy()
+            block_pair_scorer(coords).to_dense().cpu().detach().numpy()
         )
         full_pose_scores = (
-            pose_scorer(coords, output_block_pair_energies=False).cpu().detach().numpy()
+            pose_scorer(coords).cpu().detach().numpy()
         )
 
         assert_allclose(full_pose_scores, block_pair_scores.sum((2, 3)), atol, rtol)
@@ -434,11 +443,11 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(p1)
 
-        pose_scorer = cls.get_pose_scorer(p1, default_database, torch_device)
+        block_pair_scorer = cls.get_block_pair_scorer(p1, default_database, torch_device)
 
         coords = torch.nn.Parameter(p1.coords.clone())
         scores = (
-            pose_scorer(coords, output_block_pair_energies=True).cpu().detach().numpy()
+            block_pair_scorer(coords).to_dense().cpu().detach().numpy()
         )
 
         print(scores)
@@ -452,7 +461,23 @@ class EnergyTermTestBase:
             cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(scores))
         gold_vals = cls.get_test_baseline_data(test_name)
 
-        assert_allclose(gold_vals, scores, atol, rtol)
+        # reshape these values for the new block-pair scoring scheme
+        gold_vals_upper_triangle = numpy.zeros_like(gold_vals)
+        assert gold_vals.shape[2] == gold_vals.shape[3]
+        n_terms = gold_vals.shape[0]
+        n_poses = gold_vals.shape[1]
+        n_res = gold_vals.shape[2]
+        assert n_poses == 1
+        inds_arange = numpy.arange(n_res, dtype=int)
+        inds_arange_i = inds_arange.reshape(-1, 1)
+        inds_arange_j = inds_arange.reshape(1, -1)
+        ij_is_upper_triangle = inds_arange_i < inds_arange_j
+        ij_is_lower_triangle = inds_arange_i > inds_arange_j
+        ij_is_diagonal = inds_arange_i == inds_arange_j
+        gold_vals_upper_triangle[:, :, ij_is_diagonal] = gold_vals[:, :, ij_is_diagonal]
+        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] = 2 * gold_vals[:, :, ij_is_upper_triangle]
+
+        assert_allclose(gold_vals_upper_triangle, scores, atol, rtol)
 
     @classmethod
     def test_block_scoring_reweighted_gradcheck(
@@ -472,10 +497,10 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(p1)
 
-        pose_scorer = cls.get_pose_scorer(p1, default_database, torch_device)
+        block_pair_scorer = cls.get_block_pair_scorer(p1, default_database, torch_device)
 
         def score(coords):
-            scores = pose_scorer(coords, output_block_pair_energies=True)
+            scores = block_pair_scorer(coords)
             scale = 0.01 * torch.arange(
                 torch.numel(scores), device=scores.device
             ).reshape(scores.shape)
