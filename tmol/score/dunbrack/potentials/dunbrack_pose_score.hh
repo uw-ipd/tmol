@@ -30,9 +30,21 @@ template <
     typename Int>
 struct DunbrackPoseScoreDispatch {
   static auto forward(
-      TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> pose_stack_block_coord_offset,
-      TView<Int, 2, D> pose_stack_block_type,
+      // common params
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 1, D> pose_ind_for_atom,
+      TView<Int, 2, D> first_rot_for_block,
+      TView<Int, 2, D> first_rot_block_type,
+      TView<Int, 1, D> block_ind_for_rot,
+      TView<Int, 1, D> pose_ind_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<Int, 1, D> n_rots_for_pose,
+      TView<Int, 1, D> rot_offset_for_pose,
+      TView<Int, 2, D> n_rots_for_block,
+      TView<Int, 2, D> rot_offset_for_block,
+      Int max_n_rots_per_pose,
+
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
       TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
@@ -73,12 +85,24 @@ struct DunbrackPoseScoreDispatch {
 
       bool compute_derivs
 
-      ) -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 3, D>>;
+      ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D>>;
 
   static auto backward(
-      TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> pose_stack_block_coord_offset,
-      TView<Int, 2, D> pose_stack_block_type,
+      // common params
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 1, D> pose_ind_for_atom,
+      TView<Int, 2, D> first_rot_for_block,
+      TView<Int, 2, D> first_rot_block_type,
+      TView<Int, 1, D> block_ind_for_rot,
+      TView<Int, 1, D> pose_ind_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
+      TView<Int, 1, D> n_rots_for_pose,
+      TView<Int, 1, D> rot_offset_for_pose,
+      TView<Int, 2, D> n_rots_for_block,
+      TView<Int, 2, D> rot_offset_for_block,
+      Int max_n_rots_per_pose,
+
       TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
       TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
@@ -115,8 +139,8 @@ struct DunbrackPoseScoreDispatch {
       TView<Int, 1, D> res_mean_table_offset,
       TView<Int, 1, D> res_rotamer_index_to_table_index,
       TView<Int, 1, D> block_semirotameric_tableset_offset,
-      TView<Real, 4, D> dTdV  // nterms x nposes x (1|len) x (1|len)
-      ) -> TPack<Vec<Real, 3>, 3, D>;
+      TView<Real, 2, D> dTdV  // n_terms x n_rotamers
+      ) -> TPack<Vec<Real, 3>, 2, D>;
 };
 
 }  // namespace potentials

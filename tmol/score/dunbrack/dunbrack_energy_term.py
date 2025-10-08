@@ -11,6 +11,7 @@ from tmol.score.dunbrack.dunbrack_whole_pose_module import (
 )
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.score.dunbrack.params import ScoringDunbrackDatabaseView
+from tmol.score.dunbrack.potentials.compiled import dunbrack_pose_scores
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -234,14 +235,35 @@ class DunbrackEnergyTerm(EnergyTerm):
     def setup_poses(self, poses: PoseStack):
         super(DunbrackEnergyTerm, self).setup_poses(poses)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    def get_score_term_function(self):
+        return dunbrack_pose_scores
+
+    def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types
 
-        return DunbrackWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            pose_stack_block_types=pose_stack.block_type_ind,
-            pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
-            bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
-            global_params=self.dunbrack_db,
-            dunbrack_packed_block_data=pbt.dunbrack_packed_block_data,
-        )
+        # def _t(ts):
+        #     return tuple(map(lambda t: t.to(torch.float), ts))
+
+        # dunbrack_database = [f for f in self.dunbrack_db]
+        # dunbrack_packed_block_data = [f for f in pbt.dunbrack_packed_block_data]
+
+        return [
+            pose_stack.inter_residue_connections,
+            pbt.atom_downstream_of_conn,
+            *self.dunbrack_db,
+            *pbt.dunbrack_packed_block_data,
+        ]
+        
+    # def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    #     pbt = pose_stack.packed_block_types
+
+    #     return DunbrackWholePoseScoringModule(
+    #         pose_stack_block_coord_offset=pose_stack.block_coord_offset,
+    #         pose_stack_block_types=pose_stack.block_type_ind,
+    #         pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
+    #         bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
+    #         global_params=self.dunbrack_db,
+    #         dunbrack_packed_block_data=pbt.dunbrack_packed_block_data,
+    #     )
+
+
