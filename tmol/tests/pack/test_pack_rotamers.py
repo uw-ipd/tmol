@@ -21,6 +21,21 @@ from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 from tmol.pack.pack_rotamers import pack_rotamers
 
 
+def get_packer_sfxn(default_database, torch_device):
+    sfxn = ScoreFunction(param_db=default_database, device=torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
+    sfxn.set_weight(ScoreType.fa_lk, 1.0)
+    sfxn.set_weight(ScoreType.fa_elec, 1.0)
+    sfxn.set_weight(ScoreType.hbond, 1.0)
+    sfxn.set_weight(ScoreType.hbond, 1.0)
+    sfxn.set_weight(ScoreType.dunbrack_rot, 0.76)
+    sfxn.set_weight(ScoreType.dunbrack_rotdev, 0.69)
+    sfxn.set_weight(ScoreType.dunbrack_semirot, 0.78)
+
+    return sfxn
+
+
 def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
     n_poses = 4
 
@@ -38,12 +53,7 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
 
-    sfxn = ScoreFunction(param_db=default_database, device=torch_device)
-    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
-    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
-    sfxn.set_weight(ScoreType.fa_lk, 1.0)
-    sfxn.set_weight(ScoreType.fa_elec, 1.0)
-    sfxn.set_weight(ScoreType.hbond, 1.0)
+    sfxn = get_packer_sfxn(default_database, torch_device)
 
     pbt = pose_stack.packed_block_types
 
@@ -149,11 +159,7 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
 
-    sfxn = ScoreFunction(param_db=default_database, device=torch_device)
-    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
-    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
-    sfxn.set_weight(ScoreType.fa_lk, 1.0)
-    sfxn.set_weight(ScoreType.hbond, 1.0)
+    sfxn = get_packer_sfxn(default_database, torch_device)
 
     # warmup:
     print("starting warmup packer run")
@@ -219,11 +225,8 @@ def test_pack_rotamers_irregular_sized_poses(
     task.add_conformer_sampler(dun_sampler)
     task.add_conformer_sampler(fixed_sampler)
 
-    sfxn = ScoreFunction(param_db=default_database, device=torch_device)
-    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
-    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
-    sfxn.set_weight(ScoreType.fa_lk, 1.0)
-    sfxn.set_weight(ScoreType.hbond, 1.0)
+    sfxn = get_packer_sfxn(default_database, torch_device)
+
 
     # warmup:
     print("starting warmup packer run")
