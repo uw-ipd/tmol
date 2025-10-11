@@ -249,6 +249,13 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
       &backbone_torsion_pose_score_op<DeviceOperations>);
 }
 
+// #define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def(
+      "backbone_torsion_pose_score",
+      &backbone_torsion_pose_score_op<DeviceOperations>);
+}
+
 }  // namespace potentials
 }  // namespace backbone_torsion
 }  // namespace score

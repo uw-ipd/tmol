@@ -31,5 +31,8 @@ void apsp_op(Tensor stacked_distances, int64_t cutoff) {
 
 TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) { m.def("apsp_op", &apsp_op); }
 
+// #define PYBIND11_MODULE_(ns, m) PYBIND11_MODULE(ns, m)
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) { m.def("apsp_op", &apsp_op); }
+
 }  // namespace pose
 }  // namespace tmol
