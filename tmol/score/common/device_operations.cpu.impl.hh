@@ -75,6 +75,18 @@ struct DeviceOperations<tmol::Device::CPU> {
     return last_val;
   }
 
+  template <typename T, typename OP>
+  static T reduce(T* src, int n, OP op)
+  {
+    assert(n > 0);
+    T val = src[0];
+    for (int i = 1; i < n; ++i) {
+      val = op(val, src[i]);
+    }
+    return val;
+  }
+
+
   // Segmented scan expects the indices for the beginning of each segment rather
   // than, e.g., a boolean tensor indicating the start of each segment.
   // The identity value (e.g. 0) must be given because pre-initialization is not

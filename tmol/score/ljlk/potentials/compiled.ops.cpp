@@ -57,7 +57,7 @@ class LJLKPoseScoreOp
       Tensor type_params,
       Tensor global_params,
       bool output_block_pair_energies) {
-    at::Tensor score, dscore_dcoords, block_neighbors;
+    at::Tensor score, dscore_dcoords, dispatch_indices;
 
     using Int = int32_t;
 
@@ -101,7 +101,7 @@ class LJLKPoseScoreOp
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
-          block_neighbors = std::get<2>(result).tensor;
+          dispatch_indices = std::get<2>(result).tensor;
         }));
 
     if (output_block_pair_energies) {
@@ -136,7 +136,7 @@ class LJLKPoseScoreOp
 
            type_params,
            global_params,
-           block_neighbors});
+           dispatch_indices});
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
@@ -202,7 +202,7 @@ class LJLKPoseScoreOp
 
       auto type_params = saved[i++];
       auto global_params = saved[i++];
-      auto block_neighbors = saved[i++];
+      auto dispatch_indices = saved[i++];
 
       using Int = int32_t;
 
@@ -247,7 +247,7 @@ class LJLKPoseScoreOp
 
                     TCAST(type_params),
                     TCAST(global_params),
-                    TCAST(block_neighbors),
+                    TCAST(dispatch_indices),
                     TCAST(dTdV));
 
             dV_d_pose_coords = result.tensor;

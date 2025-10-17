@@ -9,11 +9,11 @@ class ScoreType(AutoNumber):
     cart_hxltorsions = ()
     constraint = ()
     disulfide = ()
-    fa_ljatr = ()
-    fa_ljrep = ()
-    fa_lk = ()
-    fa_elec = ()
-    hbond = ()
+    fa_ljatr = () # packer enabled
+    fa_ljrep = () # packer enabled
+    fa_lk = () # packer enabled
+    fa_elec = () # packer enabled
+    hbond = () # packer enabled
     lk_ball_iso = ()
     lk_ball = ()
     lk_bridge = ()
@@ -21,8 +21,8 @@ class ScoreType(AutoNumber):
     omega = ()
     rama = ()
     ref = ()
-    dunbrack_rot = ()
-    dunbrack_rotdev = ()
-    dunbrack_semirot = ()
+    dunbrack_rot = () # packer enabled
+    dunbrack_rotdev = () # packer enabled
+    dunbrack_semirot = () # packer enabled
     # keep this one last
     n_score_types = ()

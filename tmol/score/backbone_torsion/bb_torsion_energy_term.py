@@ -15,11 +15,14 @@ from tmol.chemical.restypes import RefinedResidueType, uaid_t
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
+from tmol.score.backbone_torsion.potentials.compiled import backbone_torsion_pose_score
+
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class BackboneTorsionBlockTypeParams:
     rama_table_inds: NDArray[numpy.int32][2]  # non-prepro/prepro
     omega_table_inds: NDArray[numpy.int32][2]  # non-prepro/prepro
+    lower_conn_ind: NDArray[numpy.int32][1]
     upper_conn_ind: NDArray[numpy.int32][1]
     is_pro: NDArray[numpy.int32][1]
     backbone_torsion_atoms: NDArray[uaid_t][12, 3]
@@ -29,6 +32,7 @@ class BackboneTorsionBlockTypeParams:
 class BackboneTorsionPackedBlockTypesParams:
     bt_rama_table: Tensor[torch.int32][:, 2]  # non-prepro/prepro
     bt_omega_table: Tensor[torch.int32][:, 2]  # non-prepro/prepro
+    bt_lower_conn_ind: Tensor[torch.int32][:]
     bt_upper_conn_ind: Tensor[torch.int32][:]
     bt_is_pro: Tensor[torch.int32][:]
     bt_backbone_torsion_atoms: Tensor[torch.int32][:, 12, 3]
@@ -111,6 +115,9 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
                     )
         backbone_torsion_atoms = backbone_torsion_atoms.reshape(-1)
 
+        lower_conn_id = numpy.full((1,), -1, dtype=numpy.int32)
+        if "down" in block_type.connection_to_cidx:
+            lower_conn_id[0] = block_type.connection_to_cidx["down"]
         upper_conn_id = numpy.full((1,), -1, dtype=numpy.int32)
         if "up" in block_type.connection_to_cidx:
             upper_conn_id[0] = block_type.connection_to_cidx["up"]
@@ -123,6 +130,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         bt_bbtors_params = BackboneTorsionBlockTypeParams(
             rama_table_inds=rama_table_inds,
             omega_table_inds=omega_table_inds,
+            lower_conn_ind=lower_conn_id,
             upper_conn_ind=upper_conn_id,
             is_pro=is_pro,
             backbone_torsion_atoms=backbone_torsion_atoms,
@@ -139,6 +147,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
 
         bt_rama_table = numpy.full((n_types, 2), -1, dtype=numpy.int32)
         bt_omega_table = numpy.full((n_types, 2), -1, dtype=numpy.int32)
+        bt_lower_conn_ind = numpy.full((n_types,), -1, dtype=numpy.int32)
         bt_upper_conn_ind = numpy.full((n_types,), -1, dtype=numpy.int32)
         bt_is_pro = numpy.full((n_types,), -1, dtype=numpy.int32)
         bt_backbone_torsion_atoms = numpy.full((n_types, 12, 3), -1, dtype=numpy.int32)
@@ -147,6 +156,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             i_bbtors_params = bt.backbone_torsion_params
             bt_rama_table[i] = i_bbtors_params.rama_table_inds
             bt_omega_table[i] = i_bbtors_params.omega_table_inds
+            bt_lower_conn_ind[i] = i_bbtors_params.lower_conn_ind[0]
             bt_upper_conn_ind[i] = i_bbtors_params.upper_conn_ind[0]
             bt_is_pro[i] = i_bbtors_params.is_pro[0]
             bt_backbone_torsion_atoms[i] = i_bbtors_params.backbone_torsion_atoms.view(
@@ -159,6 +169,7 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         backbone_torsion_params = BackboneTorsionPackedBlockTypesParams(
             bt_rama_table=_t(bt_rama_table),
             bt_omega_table=_t(bt_omega_table),
+            bt_lower_conn_ind=_t(bt_lower_conn_ind),
             bt_upper_conn_ind=_t(bt_upper_conn_ind),
             bt_is_pro=_t(bt_is_pro),
             bt_backbone_torsion_atoms=_t(bt_backbone_torsion_atoms),
@@ -168,21 +179,43 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
     def setup_poses(self, pose_stack: PoseStack):
         super(BackboneTorsionEnergyTerm, self).setup_poses(pose_stack)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        pbt = pose_stack.packed_block_types
+    def get_score_term_function(self):
+        return backbone_torsion_pose_score
 
-        return BackboneTorsionWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            pose_stack_block_type=pose_stack.block_type_ind,
-            pose_stack_inter_residue_connections=pose_stack.inter_residue_connections,
-            bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
-            bt_rama_table=pbt.backbone_torsion_params.bt_rama_table,
-            bt_omega_table=pbt.backbone_torsion_params.bt_omega_table,
-            bt_upper_conn_ind=pbt.backbone_torsion_params.bt_upper_conn_ind,
-            bt_is_pro=pbt.backbone_torsion_params.bt_is_pro,
-            bt_backbone_torsion_atoms=pbt.backbone_torsion_params.bt_backbone_torsion_atoms,
-            rama_tables=self.rama_tables,
-            rama_table_params=self.rama_table_params,
-            omega_tables=self.omega_tables,
-            omega_table_params=self.omega_table_params,
-        )
+    def get_score_term_attributes(self, pose_stack):
+        pbt = pose_stack.packed_block_types
+        return [
+            pose_stack.block_type_ind,
+            pose_stack.inter_residue_connections,
+            pbt.atom_downstream_of_conn,
+            pbt.backbone_torsion_params.bt_rama_table,
+            pbt.backbone_torsion_params.bt_omega_table,
+            pbt.backbone_torsion_params.bt_lower_conn_ind,
+            pbt.backbone_torsion_params.bt_upper_conn_ind,
+            pbt.backbone_torsion_params.bt_is_pro,
+            pbt.backbone_torsion_params.bt_backbone_torsion_atoms,
+            self.rama_tables,
+            self.omega_tables,
+            self.rama_table_params,
+            self.omega_table_params,
+        ]
+
+        
+    # def render_whole_pose_scoring_module_old(self, pose_stack: PoseStack):
+    #     pbt = pose_stack.packed_block_types
+
+    #     return BackboneTorsionWholePoseScoringModule(
+    #         pose_stack_block_coord_offset=pose_stack.block_coord_offset,
+    #         pose_stack_block_type=pose_stack.block_type_ind,
+    #         pose_stack_inter_residue_connections=pose_stack.inter_residue_connections,
+    #         bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
+    #         bt_rama_table=pbt.backbone_torsion_params.bt_rama_table,
+    #         bt_omega_table=pbt.backbone_torsion_params.bt_omega_table,
+    #         bt_upper_conn_ind=pbt.backbone_torsion_params.bt_upper_conn_ind,
+    #         bt_is_pro=pbt.backbone_torsion_params.bt_is_pro,
+    #         bt_backbone_torsion_atoms=pbt.backbone_torsion_params.bt_backbone_torsion_atoms,
+    #         rama_tables=self.rama_tables,
+    #         rama_table_params=self.rama_table_params,
+    #         omega_tables=self.omega_tables,
+    #         omega_table_params=self.omega_table_params,
+    #     )

@@ -34,6 +34,11 @@ struct DeviceOperations {
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static T scan_and_return_total(T* src, T* dst, int n, OP op);
 
+  // Perform a reduction on a given device array and return the result to the CPU.
+  // n must be greater than zero.
+  template <typename T, typename OP>
+  static T reduce(T* src, int n, OP op);
+
   // Segmented scan expects the indices for the beginning of each segment rather
   // than, e.g., a boolean tensor indicating the start of each segment.
   // The identity value (e.g. 0) must be given because pre-initialization is not

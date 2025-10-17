@@ -77,6 +77,17 @@ struct DeviceOperations<tmol::Device::CUDA> {
     return total.data()[0];
   }
 
+
+  template <typename T, typename OP>
+  static T reduce(T* src, int n, OP op)
+  {
+    mgpu::standard_context_t context;
+    mgpu::mem_t<T> total(1, context, mgpu::memory_space_host);
+    mgpu::reduce(src, n, total.data(), op, context);
+    cudaStreamSynchronize(0);
+    return total.data()[0];    
+  }
+
   // Segmented scan expects the indices for the beginning of each segment rather
   // than, e.g., a boolean tensor indicating the start of each segment.
   // The identity value (e.g. 0) must be given because pre-initialization is not

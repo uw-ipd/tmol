@@ -166,7 +166,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Derivative calculation on the forward pass for rotamers
   // will be inaccurate, but go ahead and do it anyways?
   auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
-  auto dispatch_indices = dispatch_indices_t.view;
 
   auto dihedral_atom_inds_t = TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros(
       {n_rots, max_n_dih});
@@ -202,6 +201,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
+  auto dispatch_indices = dispatch_indices_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
