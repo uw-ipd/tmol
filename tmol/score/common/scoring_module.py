@@ -140,7 +140,7 @@ class TermRotamerScoringModule(TermScoringModule):
                 ]
             ],
         )
-
+        self.n_poses = rotamer_set.n_rots_for_pose.shape[0]
         self.n_rots = rotamer_set.coord_offset_for_rot.shape[0]
 
     def forward(
@@ -148,13 +148,13 @@ class TermRotamerScoringModule(TermScoringModule):
         coords,
     ):
         scores, indices = self.term_score_poses(*self.format_arguments(coords, True))
-
+        print("scores", scores.shape, "indices", indices.shape)
         sparse_result = torch.stack(
             [
                 torch.sparse_coo_tensor(
                     indices,
                     scores[subterm, :],
-                    size=(self.n_rots, self.n_rots)
+                    size=(self.n_poses, self.n_rots, self.n_rots)
                 )
                 for subterm in range(scores.size(0))
             ]

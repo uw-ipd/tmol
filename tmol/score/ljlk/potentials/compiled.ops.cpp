@@ -140,8 +140,7 @@ class LJLKPoseScoreOp
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
-
-    return {score, block_neighbors};
+    return {score, dispatch_indices};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {

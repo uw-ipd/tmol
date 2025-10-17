@@ -66,6 +66,7 @@ class BackboneTorsionPoseScoreOp
     at::Tensor dispatch_indices;
 
     using Int = int32_t;
+    std::cout << "Starting backbone energy eval" << std::endl;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
         rot_coords.options(), "backbone_torsion_pose_score_op", ([&] {
@@ -145,6 +146,8 @@ class BackboneTorsionPoseScoreOp
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
+    std::cout << "Leaving backbone energy eval" << std::endl;
+
     return {score, dispatch_indices};
   }
 

@@ -224,7 +224,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
       return;
     }
     int const n_rots1 = n_rots_for_block[pose_ind][block1_ind];
-    if (local_rot1_ind > n_rots1) {
+    if (local_rot1_ind >= n_rots1) {
       return;
     }
 
@@ -246,7 +246,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
         // chemically impossible.
         int const upper_n_rots = n_rots_for_block[pose_ind][upper_nbr_block_ind]; 
 
-        if (local_rot2_ind > upper_n_rots) {
+        if (local_rot2_ind >= upper_n_rots) {
           return;
         }
         int const sparse_index = block1_sparse_dispatch_offset + local_rot1_ind * upper_n_rots + local_rot2_ind;
@@ -264,7 +264,6 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     n_poses * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block,
     mark_dispatch_indices
   );
-
 
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];
@@ -434,7 +433,6 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   });
 
   DeviceDispatch<Dev>::template forall<launch_t>(n_dispatch_total, rama_omega_func);
-
   return {V_t, dV_dxyz_t, dispatch_indices_t};
 };
 
