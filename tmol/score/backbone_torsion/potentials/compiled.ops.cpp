@@ -28,7 +28,7 @@ class BackboneTorsionPoseScoreOp
     : public torch::autograd::Function<
           BackboneTorsionPoseScoreOp<DispatchMethod>> {
  public:
-  static Tensor forward(
+  static std::vector<Tensor> forward(
       AutogradContext* ctx,
 
       // common params
@@ -145,7 +145,7 @@ class BackboneTorsionPoseScoreOp
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
-    return score;
+    return {score, dispatch_indices};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
@@ -280,7 +280,7 @@ class BackboneTorsionPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
 
-        // 13 more arguments
+        // 14 more arguments
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
@@ -293,6 +293,7 @@ class BackboneTorsionPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
 
+        torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor()};
@@ -300,7 +301,7 @@ class BackboneTorsionPoseScoreOp
 };
 
 template <template <tmol::Device> class DispatchMethod>
-Tensor backbone_torsion_pose_score_op(
+std::vector<Tensor> backbone_torsion_pose_score_op(
     // common params
     Tensor rot_coords,
     Tensor rot_coord_offset,

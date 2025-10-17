@@ -416,6 +416,7 @@ class EnergyTermTestBase:
             block_pair_scorer(coords).to_dense().cpu().detach().numpy()
         )
 
+        # print("Scores (fresh)")
         # print(scores)
 
         test_name = (
@@ -424,8 +425,30 @@ class EnergyTermTestBase:
             else override_baseline_name
         )
         if update_baseline:
-            cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(scores))
+            # okay, huge annoying workaround for the sake of preserving
+            # the old residue-pair format for now:
+            # spread the scores out to upper and lower triangles
+            gold_vals_upper_and_lower_triangle = numpy.zeros_like(scores)
+            n_terms = scores.shape[0]
+            n_poses = scores.shape[1]
+            n_res = scores.shape[2]
+            assert n_poses == 1
+            inds_arange = numpy.arange(n_res, dtype=int)
+            inds_arange_i = inds_arange.reshape(-1, 1)
+            inds_arange_j = inds_arange.reshape(1, -1)
+            ij_is_upper_triangle = inds_arange_i < inds_arange_j
+            nz_ij_is_upper_triangle = numpy.nonzero(ij_is_upper_triangle)
+
+            ij_is_diagonal = inds_arange_i == inds_arange_j
+            gold_vals_upper_and_lower_triangle[:, :, ij_is_diagonal] = scores[:, :, ij_is_diagonal]
+            gold_vals_upper_and_lower_triangle[:, :, nz_ij_is_upper_triangle[0], nz_ij_is_upper_triangle[1]] = 0.5 * scores[:, :, ij_is_upper_triangle]
+            gold_vals_upper_and_lower_triangle[:, :, nz_ij_is_upper_triangle[1], nz_ij_is_upper_triangle[0]] = 0.5 * scores[:, :, ij_is_upper_triangle]
+
+            # print("gold_vals_upper_and_lower_triangle", gold_vals_upper_and_lower_triangle)
+            cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(gold_vals_upper_and_lower_triangle))
         gold_vals = cls.get_test_baseline_data(test_name)
+        # print("Gold scores")
+        # print(gold_vals)
 
         # reshape these values for the new block-pair scoring scheme
         gold_vals_upper_triangle = numpy.zeros_like(gold_vals)

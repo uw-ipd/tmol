@@ -195,8 +195,8 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             pbt.backbone_torsion_params.bt_is_pro,
             pbt.backbone_torsion_params.bt_backbone_torsion_atoms,
             self.rama_tables,
-            self.omega_tables,
             self.rama_table_params,
+            self.omega_tables,
             self.omega_table_params,
         ]
 

@@ -67,6 +67,8 @@ class TermPoseScoringModule(TermScoringModule):
                 pose_stack.max_n_rots_per_pose,
             ],
         )
+        self.n_poses = pose_stack.first_rot_for_block.shape[0]
+        self.max_n_blocks = pose_stack.first_rot_for_block.shape[1]
 
 
 class TermWholePoseScoringModule(TermPoseScoringModule):
@@ -90,7 +92,11 @@ class TermBlockPairScoringModule(TermPoseScoringModule):
 
         sparse_result = torch.stack(
             [
-                torch.sparse_coo_tensor(indices, scores[subterm, :])
+                torch.sparse_coo_tensor(
+                    indices,
+                    scores[subterm, :],
+                    size=(self.n_poses, self.max_n_blocks, self.max_n_blocks)
+                )
                 for subterm in range(scores.size(0))
             ]
         )
@@ -135,6 +141,8 @@ class TermRotamerScoringModule(TermScoringModule):
             ],
         )
 
+        self.n_rots = rotamer_set.coord_offset_for_rot.shape[0]
+
     def forward(
         self,
         coords,
@@ -143,7 +151,11 @@ class TermRotamerScoringModule(TermScoringModule):
 
         sparse_result = torch.stack(
             [
-                torch.sparse_coo_tensor(indices, scores[subterm, :])
+                torch.sparse_coo_tensor(
+                    indices,
+                    scores[subterm, :],
+                    size=(self.n_rots, self.n_rots)
+                )
                 for subterm in range(scores.size(0))
             ]
         )
