@@ -70,6 +70,20 @@ if torch.cuda.is_available():
         _major, _minor = arch_list.replace(" ", ";").split(";")[0].split(".")
     _required_cuda_flags.append(f"--gpu-architecture=sm_{_major}{_minor}")
 
+    # we need to add the search path for nvtx3
+    # which should be installed relative to nvcc
+
+    import subprocess
+    import sys
+
+    path = subprocess.run(["which", "nvcc"], capture_output=True, text=True)
+    print("NVCC PATH:", path.stdout)
+    nvcc_dir = os.path.dirname(path.stdout)
+
+    ver_info = sys.version_info
+    _default_include_paths.append(
+        f"{nvcc_dir}/../lib/python{ver_info.major}.{ver_info.minor}/site-packages/nvidia/nvtx/include"
+    )
 
 _default_cuda_flags = []
 
