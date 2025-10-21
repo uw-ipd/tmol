@@ -8,6 +8,7 @@ from tmol.score.disulfide.params import DisulfideGlobalParams
 from tmol.score.disulfide.disulfide_whole_pose_module import (
     DisulfideWholePoseScoringModule,
 )
+from tmol.score.disulfide.potentials.compiled import disulfide_pose_scores
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -70,14 +71,21 @@ class DisulfideEnergyTerm(EnergyTerm):
     def setup_poses(self, poses: PoseStack):
         super(DisulfideEnergyTerm, self).setup_poses(poses)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        pbt = pose_stack.packed_block_types
+    # def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    #     pbt = pose_stack.packed_block_types
 
-        return DisulfideWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            pose_stack_block_types=pose_stack.block_type_ind,
-            pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
-            bt_disulfide_conns=pbt.disulfide_conns,
-            bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
-            global_params=self.global_params,
-        )
+    #     return DisulfideWholePoseScoringModule(
+    #         pose_stack_block_coord_offset=pose_stack.block_coord_offset,
+    #         pose_stack_block_types=pose_stack.block_type_ind,
+    #         pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
+    #         bt_disulfide_conns=pbt.disulfide_conns,
+    #         bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
+    #         global_params=self.global_params,
+    #     )
+
+    def get_score_term_function(self):
+        return disulfide_pose_scores
+
+    def get_score_term_attributes(self, pose_stack):
+        def _t(ts):
+            return tuple(map(lambda t: t.to(torch.float), ts))
