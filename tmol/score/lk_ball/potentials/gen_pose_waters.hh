@@ -11,16 +11,25 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device>
-    class Dispatch,
+    template <tmol::Device> class Dispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
 struct GeneratePoseWaters {
   static auto forward(
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Int, 2, Dev> pose_stack_block_coord_offset,
-      TView<Int, 2, Dev> pose_stack_block_type,
+      TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Int, 1, Dev> rot_coord_offset,
+      TView<Int, 1, Dev> pose_ind_for_atom,
+      TView<Int, 2, Dev> first_rot_for_block,
+      TView<Int, 2, Dev> first_rot_block_type,
+      TView<Int, 1, Dev> block_ind_for_rot,
+      TView<Int, 1, Dev> pose_ind_for_rot,
+      TView<Int, 1, Dev> block_type_ind_for_rot,
+      TView<Int, 1, Dev> n_rots_for_pose,
+      TView<Int, 1, Dev> rot_offset_for_pose,
+      TView<Int, 2, Dev> n_rots_for_block,
+      TView<Int, 2, Dev> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
@@ -58,13 +67,23 @@ struct GeneratePoseWaters {
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
-      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 3, Dev>;
+      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev>;
 
   static auto backward(
       TView<Vec<Real, 3>, 3, Dev> dE_dWxyz,
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Int, 2, Dev> pose_stack_block_coord_offset,
-      TView<Int, 2, Dev> pose_stack_block_type,
+      TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Int, 1, Dev> rot_coord_offset,
+      TView<Int, 1, Dev> pose_ind_for_atom,
+      TView<Int, 2, Dev> first_rot_for_block,
+      TView<Int, 2, Dev> first_rot_block_type,
+      TView<Int, 1, Dev> block_ind_for_rot,
+      TView<Int, 1, Dev> pose_ind_for_rot,
+      TView<Int, 1, Dev> block_type_ind_for_rot,
+      TView<Int, 1, Dev> n_rots_for_pose,
+      TView<Int, 1, Dev> rot_offset_for_pose,
+      TView<Int, 2, Dev> n_rots_for_block,
+      TView<Int, 2, Dev> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose

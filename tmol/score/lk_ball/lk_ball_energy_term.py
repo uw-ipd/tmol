@@ -3,6 +3,7 @@ import torch
 
 from .params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
 from .lk_ball_whole_pose_module import LKBallWholePoseScoringModule
+from tmol.score.lk_ball.potentials.compiled import pose_score_lk_ball, gen_pose_waters
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
 from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
@@ -187,7 +188,70 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def setup_poses(self, pose_stack: PoseStack):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    def score_lk_ball(self, *args):
+        common_args = args[:-2]
+        pose_stack = args[-2]
+        block_pair_scoring = args[-1]
+
+        print(common_args[-1])
+
+        args = [
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.n_all_bonds,
+            pose_stack.packed_block_types.all_bonds,
+            pose_stack.packed_block_types.atom_all_bond_ranges,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_hvy_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_which_donH_of_donH_hvy,
+            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
+            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            self.stack_lk_ball_water_gen_global_params(),
+            self.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_ring,
+        ]
+        water_coords = gen_pose_waters(*args)
+
+        # print(water_coords)
+        torch.save(water_coords, "/home/jflat06/lkball_new.pt")
+
+        args = [
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.min_block_bondsep,
+            pose_stack.inter_block_bondsep,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_polar_atoms,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_occluder_atoms,
+            pose_stack.packed_block_types.lk_ball_params.tile_pol_occ_inds,
+            pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
+            pose_stack.packed_block_types.bond_separation,
+            self.stack_lk_ball_global_params(),
+            water_coords,
+            block_pair_scoring,
+        ]
+
+        return pose_score_lk_ball(*args)
+
+    def get_score_term_function(self):
+        return self.score_lk_ball
+
+    def get_score_term_attributes(self, pose_stack):
+        return [
+            pose_stack,
+        ]
+
+    def render_whole_pose_scoring_module_old(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types
         ljlk_global_params = self.ljlk_param_resolver.global_params
 
