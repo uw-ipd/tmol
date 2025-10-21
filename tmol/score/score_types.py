@@ -18,8 +18,8 @@ class ScoreType(AutoNumber):
     lk_ball = ()
     lk_bridge = ()
     lk_bridge_uncpl = ()
-    omega = ()
-    rama = ()
+    omega = () # packer enabled
+    rama = () # packer enabled
     ref = ()
     dunbrack_rot = () # packer enabled
     dunbrack_rotdev = () # packer enabled
