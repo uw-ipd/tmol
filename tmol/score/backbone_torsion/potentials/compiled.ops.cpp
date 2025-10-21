@@ -45,7 +45,7 @@ class BackboneTorsionPoseScoreOp
       Tensor n_rots_for_block,
       Tensor rot_offset_for_block,
       int64_t max_n_rots_per_pose,
-      
+
       Tensor pose_stack_block_type,
       Tensor pose_stack_inter_block_connections,
       Tensor block_type_atom_downstream_of_conn,
@@ -66,7 +66,6 @@ class BackboneTorsionPoseScoreOp
     at::Tensor dispatch_indices;
 
     using Int = int32_t;
-    std::cout << "Starting backbone energy eval" << std::endl;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
         rot_coords.options(), "backbone_torsion_pose_score_op", ([&] {
@@ -90,7 +89,7 @@ class BackboneTorsionPoseScoreOp
                       TCAST(n_rots_for_block),
                       TCAST(rot_offset_for_block),
                       max_n_rots_per_pose,
-                      
+
                       TCAST(pose_stack_block_type),
                       TCAST(pose_stack_inter_block_connections),
                       TCAST(block_type_atom_downstream_of_conn),
@@ -114,7 +113,7 @@ class BackboneTorsionPoseScoreOp
     if (output_block_pair_energies) {
       auto max_n_rots_per_pose_tp =
           TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
-        ctx->save_for_backward(
+      ctx->save_for_backward(
           {rot_coords,
            rot_coord_offset,
            pose_ind_for_atom,
@@ -128,7 +127,7 @@ class BackboneTorsionPoseScoreOp
            n_rots_for_block,
            rot_offset_for_block,
            max_n_rots_per_pose_tp.tensor,
-           
+
            pose_stack_block_type,
            pose_stack_inter_block_connections,
            block_type_atom_downstream_of_conn,
@@ -146,7 +145,6 @@ class BackboneTorsionPoseScoreOp
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
-    std::cout << "Leaving backbone energy eval" << std::endl;
 
     return {score, dispatch_indices};
   }
@@ -319,7 +317,7 @@ std::vector<Tensor> backbone_torsion_pose_score_op(
     Tensor n_rots_for_block,
     Tensor rot_offset_for_block,
     int64_t max_n_rots_per_pose,
-    
+
     Tensor pose_stack_block_type,
     Tensor pose_stack_inter_block_connections,
     Tensor block_type_atom_downstream_of_conn,
@@ -350,7 +348,7 @@ std::vector<Tensor> backbone_torsion_pose_score_op(
       n_rots_for_block,
       rot_offset_for_block,
       max_n_rots_per_pose,
-      
+
       pose_stack_block_type,
       pose_stack_inter_block_connections,
       block_type_atom_downstream_of_conn,

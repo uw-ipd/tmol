@@ -6,6 +6,7 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
+#include <moderngpu/kernel_reduce.hxx>
 #include <moderngpu/kernel_scan.hxx>
 #include <moderngpu/cta_reduce.hxx>
 
@@ -77,15 +78,13 @@ struct DeviceOperations<tmol::Device::CUDA> {
     return total.data()[0];
   }
 
-
   template <typename T, typename OP>
-  static T reduce(T* src, int n, OP op)
-  {
+  static T reduce(T* src, int n, OP op) {
     mgpu::standard_context_t context;
     mgpu::mem_t<T> total(1, context, mgpu::memory_space_host);
     mgpu::reduce(src, n, total.data(), op, context);
     cudaStreamSynchronize(0);
-    return total.data()[0];    
+    return total.data()[0];
   }
 
   // Segmented scan expects the indices for the beginning of each segment rather
@@ -184,7 +183,8 @@ struct DeviceOperations<tmol::Device::CUDA> {
   __device__ static T shuffle_reduce_in_workgroup(T val, OP op) {
     assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
-    return reduce<tmol::Device::CUDA, T>::reduce_to_head(g, val, op);
+    return tmol::score::common::reduce<tmol::Device::CUDA, T>::reduce_to_head(
+        g, val, op);
   }
 
   // See comments for shuffle_reduce_in_workgroup above
@@ -192,7 +192,8 @@ struct DeviceOperations<tmol::Device::CUDA> {
   __device__ static T shuffle_reduce_and_broadcast_in_workgroup(T val, OP op) {
     assert(N_T <= 32);
     auto g = cooperative_groups::coalesced_threads();
-    return reduce<tmol::Device::CUDA, T>::reduce_to_all(g, val, op);
+    return tmol::score::common::reduce<tmol::Device::CUDA, T>::reduce_to_all(
+        g, val, op);
   }
 
   __device__ static void synchronize_workgroup() { __syncthreads(); }
