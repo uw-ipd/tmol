@@ -20,7 +20,7 @@ class ScoreType(AutoNumber):
     lk_bridge_uncpl = ()
     omega = () # packer enabled
     rama = () # packer enabled
-    ref = ()
+    ref = () # packer enabled
     dunbrack_rot = () # packer enabled
     dunbrack_rotdev = () # packer enabled
     dunbrack_semirot = () # packer enabled

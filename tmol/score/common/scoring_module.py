@@ -78,6 +78,7 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
     ):
         # ignore the dispatch_indices return tensor
         args = self.format_arguments(coords, False)
+        # print("len(args)", len(args))
         scores, _ = self.term_score_poses(*args)
 
         return scores

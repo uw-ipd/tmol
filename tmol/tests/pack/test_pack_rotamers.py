@@ -34,6 +34,7 @@ def get_packer_sfxn(default_database, torch_device):
     sfxn.set_weight(ScoreType.dunbrack_semirot, 0.78)
     sfxn.set_weight(ScoreType.omega, 0.48)
     sfxn.set_weight(ScoreType.rama, 0.50)
+    sfxn.set_weight(ScoreType.ref, 1.0)
 
     return sfxn
 
