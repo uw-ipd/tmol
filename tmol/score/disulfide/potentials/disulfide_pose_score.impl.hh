@@ -129,6 +129,9 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
 
     int const rot_block_type = block_type_ind_for_rot[rot_ind];
+    if (rot_block_type == -1) {
+      return;
+    }
     int n_energies = 0;
     for (int conn_index = 0; conn_index < max_n_conns; conn_index++) {
       if (disulfide_conns[rot_block_type][conn_index]) {
@@ -150,15 +153,19 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       n_energies_for_rot[rot_ind] = n_energies;
     }
   });
+  // std::cout << "Counting dispatch indices" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(n_rots, count_dispatch_indices);
+  // std::cout << "done" << std::endl;
   auto n_energies_for_rot_offset_t = TPack<Int, 1, D>::zeros({n_rots});
   auto n_energies_for_rot_offset = n_energies_for_rot_offset_t.view;
+  // std::cout << "scan dispatch total" << std::endl;
   int n_dispatch_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           n_energies_for_rot.data(),
           n_energies_for_rot_offset.data(),
           n_rots,
           mgpu::plus_t<Int>());
+  // std::cout << "done" << std::endl;
 
 
   TPack<Real, 2, D> V_t;
@@ -247,10 +254,12 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       }
     }
   });
+  // std::cout << "Marking dispatch indices" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
     n_rots * max_n_energies_for_rot,
     mark_dispatch_indices
   );  
+  // std::cout << "done" << std::endl;
 
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int dispatch_ind) {
     int const pose_ind = dispatch_indices[0][dispatch_ind];
@@ -327,8 +336,9 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         dV_dx);
   }
   );
-
+  // std::cout << "Evaluating energies" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(n_dispatch_total, eval_energies);
+  // std::cout << "Done" << std::endl;
 
   return {V_t, dV_dx_t, dispatch_indices_t, conns_for_dispatch_indices_t};
 }
