@@ -151,6 +151,7 @@ class LJLKPoseScoreOp
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
     if (saved.size() == 2) {
+      // TO DO: make this a function so it's not duplicated everywhere
       // single-score mode
       auto saved_grads = ctx->get_saved_variables();
       auto saved_grad = saved_grads[0];

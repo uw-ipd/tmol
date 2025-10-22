@@ -89,3 +89,45 @@ class DisulfideEnergyTerm(EnergyTerm):
     def get_score_term_attributes(self, pose_stack):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
+
+        global_params = torch.stack(
+            _t(
+                [
+                    self.global_params.d_location,
+                    self.global_params.d_scale,
+                    self.global_params.d_shape,
+                    self.global_params.a_logA,
+                    self.global_params.a_kappa,
+                    self.global_params.a_mu,
+                    self.global_params.dss_logA1,
+                    self.global_params.dss_kappa1,
+                    self.global_params.dss_mu1,
+                    self.global_params.dss_logA2,
+                    self.global_params.dss_kappa2,
+                    self.global_params.dss_mu2,
+                    self.global_params.dcs_logA1,
+                    self.global_params.dcs_mu1,
+                    self.global_params.dcs_kappa1,
+                    self.global_params.dcs_logA2,
+                    self.global_params.dcs_mu2,
+                    self.global_params.dcs_kappa2,
+                    self.global_params.dcs_logA3,
+                    self.global_params.dcs_mu3,
+                    self.global_params.dcs_kappa3,
+                    self.global_params.wt_dih_ss,
+                    self.global_params.wt_dih_cs,
+                    self.global_params.wt_ang,
+                    self.global_params.wt_len,
+                    self.global_params.shift,
+                ]
+            ),
+            dim=1,
+        )
+        pbt = pose_stack.packed_block_types
+        return [
+            pose_stack.block_type_ind,
+            pose_stack.inter_residue_connections,
+            pbt.disulfide_conns,
+            pbt.atom_downstream_of_conn,
+            global_params,
+        ]

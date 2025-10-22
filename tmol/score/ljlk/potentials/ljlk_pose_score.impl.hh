@@ -1157,7 +1157,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<LJGlobalParams<Real>, 1, D> global_params,
 
     TView<Int, 2, D> dispatch_indices,  // from forward pass
-    TView<Real, 2, D> dTdV              // nterms x nposes x len x len
+    TView<Real, 2, D> dTdV              // nterms x n-dispatch
     ) -> TPack<Vec<Real, 3>, 2, D> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
