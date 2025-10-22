@@ -8,7 +8,7 @@ class ScoreType(AutoNumber):
     cart_impropers = ()
     cart_hxltorsions = ()
     constraint = ()
-    disulfide = ()
+    disulfide = () # packer enabled
     fa_ljatr = () # packer enabled
     fa_ljrep = () # packer enabled
     fa_lk = () # packer enabled
