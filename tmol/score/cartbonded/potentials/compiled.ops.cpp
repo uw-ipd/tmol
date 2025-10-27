@@ -69,13 +69,13 @@ class CartBondedPoseScoreOp
     at::Tensor rotconn_for_lengths;
     at::Tensor count_n_at_trip_angls_for_rotconn_offset;
     at::Tensor rotconn_for_angles;
-    at::Tensor count_n_at_trip_angls_for_rotconn_offset;
+    at::Tensor count_n_at_quad_dihes_for_rotconn_offset;
     at::Tensor rotconn_for_torsions;
 
     using Int = int32_t;
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-        coords.options(), "cartbonded_pose_score_op", ([&] {
+        rot_coords.options(), "cartbonded_pose_score_op", ([&] {
           using Real = scalar_t;
           constexpr tmol::Device Dev = device_t;
 
@@ -109,7 +109,7 @@ class CartBondedPoseScoreOp
                       TCAST(cart_subgraph_type_offsets),
 
                       output_block_pair_energies,
-                      coords.requires_grad());
+                      rot_coords.requires_grad());
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
@@ -120,7 +120,7 @@ class CartBondedPoseScoreOp
           rotconn_for_lengths = std::get<6>(result).tensor;
           count_n_at_trip_angls_for_rotconn_offset = std::get<7>(result).tensor;
           rotconn_for_angles = std::get<8>(result).tensor;
-          count_n_at_trip_angls_for_rotconn_offset = std::get<9>(result).tensor;
+          count_n_at_quad_dihes_for_rotconn_offset = std::get<9>(result).tensor;
           rotconn_for_torsions = std::get<10>(result).tensor;
 
         }));
@@ -153,13 +153,15 @@ class CartBondedPoseScoreOp
            cart_subgraph_offsets,
            cart_subgraph_type_counts,
            cart_subgraph_type_offsets,
+
+           dispatch_indices,
            n_intxns_for_rot_conn_offset,
            rotconn_for_intxn,
            count_n_at_pair_dists_for_rotconn_offset,
            rotconn_for_lengths,
            count_n_at_trip_angls_for_rotconn_offset,
            rotconn_for_angles,
-           count_n_at_trip_angls_for_rotconn_offset,
+           count_n_at_quad_dihes_for_rotconn_offset,
            rotconn_for_torsions});
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
@@ -226,13 +228,14 @@ class CartBondedPoseScoreOp
       auto cart_subgraph_type_offsets = saved[i++];
 
       // Tensors generated during the forward pass
+      auto dispatch_indices = saved[i++];
       auto n_intxns_for_rot_conn_offset = saved[i++];
       auto rotconn_for_intxn = saved[i++];
       auto count_n_at_pair_dists_for_rotconn_offset = saved[i++];
       auto rotconn_for_lengths = saved[i++];
       auto count_n_at_trip_angls_for_rotconn_offset = saved[i++];
       auto rotconn_for_angles = saved[i++];
-      auto count_n_at_trip_angls_for_rotconn_offset = saved[i++];
+      auto count_n_at_quad_dihes_for_rotconn_offset = saved[i++];
       auto rotconn_for_torsions = saved[i++];
 
       // int max_subgraphs_per_block =
@@ -243,7 +246,7 @@ class CartBondedPoseScoreOp
       auto dTdV = grad_outputs[0];
 
       TMOL_DISPATCH_FLOATING_DEVICE(
-          coords.options(), "cartbonded_pose_score_backward", ([&] {
+          rot_coords.options(), "cartbonded_pose_score_backward", ([&] {
             using Real = scalar_t;
             constexpr tmol::Device Dev = device_t;
 
@@ -276,13 +279,14 @@ class CartBondedPoseScoreOp
                         TCAST(cart_subgraph_type_counts),
                         TCAST(cart_subgraph_type_offsets),
                         
+                        TCAST(dispatch_indices),
                         TCAST(n_intxns_for_rot_conn_offset),
                         TCAST(rotconn_for_intxn),
                         TCAST(count_n_at_pair_dists_for_rotconn_offset),
                         TCAST(rotconn_for_lengths),
                         TCAST(count_n_at_trip_angls_for_rotconn_offset),
                         TCAST(rotconn_for_angles),
-                        TCAST(count_n_at_trip_angls_for_rotconn_offset),
+                        TCAST(count_n_at_quad_dihes_for_rotconn_offset),
                         TCAST(rotconn_for_torsions),
 
                         TCAST(dTdV));

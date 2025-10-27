@@ -45,7 +45,7 @@ struct DeviceOperations {
   template <typename launch_t, typename Int>
   static TPack<Int, 1, D> load_balancing_search(
     int n_work_units_total,  // The count of the total number of work units
-    T * exc_scan_offsets, 
+    Int * exc_scan_offsets, 
     int n_generators
   );
 

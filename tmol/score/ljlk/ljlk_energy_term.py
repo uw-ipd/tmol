@@ -123,8 +123,6 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             dim=1,
         )
         return [
-            # pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            # pose_stack_block_types=pose_stack.block_type_ind,
             pose_stack.min_block_bondsep,
             pose_stack.inter_block_bondsep,
             pose_stack.packed_block_types.n_atoms,

@@ -6,6 +6,7 @@ error_this_should_not_be_compiled();  // gcc should not include this file
 
 #include <moderngpu/transform.hxx>
 #include <moderngpu/loadstore.hxx>
+#include <moderngpu/kernel_load_balance.hxx>
 #include <moderngpu/kernel_reduce.hxx>
 #include <moderngpu/kernel_scan.hxx>
 #include <moderngpu/cta_reduce.hxx>
@@ -76,6 +77,30 @@ struct DeviceOperations<tmol::Device::CUDA> {
     mgpu::scan<scan_type>(src, n, dst, op, total.data(), context);
     cudaStreamSynchronize(0);
     return total.data()[0];
+  }
+
+  // Construct load-balanced-search mapping of work items to their generator
+  // index; see https://moderngpu.github.io/loadbalance.html
+  // Arguments:
+  //   - n_work_units_total: the sum of the number of work units 
+  //
+  //   - exc_scan_offsets: the result of running exclusive scan on the
+  //     the number of work units that each generator produces
+  //.  - n_generators: the number of generators / length of exc_scan_offset 
+  template <typename launch_t, typename Int>
+  static TPack<Int, 1, tmol::Device::CUDA> load_balancing_search(
+    int n_work_units_total,  // The count of the total number of work units
+    Int * exc_scan_offsets, 
+    int n_generators
+  )
+  {
+    mgpu::standard_context_t context;
+
+    auto gen_for_work_item_t = TPack<Int, 1, tmol::Device::CUDA>::zeros({n_work_units_total});
+    auto gen_for_work_item = gen_for_work_item_t.view;
+
+    load_balance_search(n_work_units_total, exc_scan_offsets, n_generators, gen_for_work_item.data(), context);
+    return gen_for_work_item_t;
   }
 
   template <typename T, typename OP>

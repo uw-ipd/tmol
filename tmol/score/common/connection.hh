@@ -30,7 +30,7 @@ enum subgraph_type {
 // torsions. Chose to make this a lookup table because it is clearer and faster
 // to simply enumerate the possibilities.
 template <typename Int>
-TMOL_DEVICE_FUNC tuple<Int, Int> get_connection_spanning_subgraph_indices(
+TMOL_DEVICE_FUNC tuple<Int, Int, Int> get_connection_spanning_subgraph_indices(
     Int index) {
   static const int CON_PATH_INDICES[][3] =
   {// Length
@@ -75,11 +75,10 @@ TMOL_DEVICE_FUNC tuple<Int, Int> get_connection_spanning_subgraph_indices(
     {Int(subgraph_torsion), 11, 0},
     {Int(subgraph_torsion), 12, 0}
   };
-  return {CON_PATH_INDICES[index][0], CON_PATH_INDICES[index][1]};
+  return {CON_PATH_INDICES[index][0], CON_PATH_INDICES[index][1], CON_PATH_INDICES[index][2]};
 }
 
-template <typename Int>
-TMOL_DEVICE_FUNC tuple<Int, Int> get_n_connection_spanning_subgraphs(
+TMOL_DEVICE_FUNC int get_n_connection_spanning_subgraphs(
     subgraph_type st)
 {
   /// Return the number of connection-spanning (i.e. inter-residue) subgraphs
@@ -92,8 +91,7 @@ TMOL_DEVICE_FUNC tuple<Int, Int> get_n_connection_spanning_subgraphs(
   };
 }
 
-template <typename Int>
-TMOL_DEVICE_FUNC tuple<Int, Int> get_connection_spanning_subgraphs_offset(
+TMOL_DEVICE_FUNC int get_connection_spanning_subgraphs_offset(
     subgraph_type st)
 {
   switch (st) {

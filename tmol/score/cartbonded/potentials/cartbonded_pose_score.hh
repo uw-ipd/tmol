@@ -71,7 +71,7 @@ struct CartBondedPoseScoreDispatch {
 
     bool compute_derivs
 
-  ) -> tuple<
+  ) -> std::tuple<
       TPack<Real, 2, D>,          // V_t,    
       TPack<Vec<Real, 3>, 2, D>,  // dV_dx_t,           
       TPack<Int, 2, D>,           // dispatch_indices_t,  
@@ -128,7 +128,7 @@ struct CartBondedPoseScoreDispatch {
     TView<Int, 1, D> rotconn_for_lengths,
     TView<Int, 1, D> count_n_at_trip_angls_for_rotconn_offset,
     TView<Int, 1, D> rotconn_for_angles,
-    TView<Int, 1, D> count_n_at_trip_angls_for_rotconn_offset,
+    TView<Int, 1, D> count_n_at_quad_dihes_for_rotconn_offset,
     TView<Int, 1, D> rotconn_for_torsions,
 
     TView<Real, 2, D> dTdV              // nterms x n-dispatch
