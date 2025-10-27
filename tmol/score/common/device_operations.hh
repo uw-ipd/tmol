@@ -34,6 +34,21 @@ struct DeviceOperations {
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static T scan_and_return_total(T* src, T* dst, int n, OP op);
 
+  // Construct load-balanced-search mapping of work items to their generator
+  // index; see https://moderngpu.github.io/loadbalance.html
+  // Arguments:
+  //   - n_work_units_total: the sum of the number of work units 
+  //
+  //   - exc_scan_offsets: the result of running exclusive scan on the
+  //     the number of work units that each generator produces
+  //.  - n_generators: the number of generators / length of exc_scan_offset 
+  template <typename launch_t, typename Int>
+  static TPack<Int, 1, D> load_balancing_search(
+    int n_work_units_total,  // The count of the total number of work units
+    T * exc_scan_offsets, 
+    int n_generators
+  );
+
   // Perform a reduction on a given device array and return the result to the CPU.
   // n must be greater than zero.
   template <typename T, typename OP>
