@@ -154,7 +154,7 @@ class EnergyTermTestBase:
     def save_test_baseline_data(cls, testname, data):
         filename = cls.get_test_baseline_data_filename(testname)
         with open(filename, "w") as outfile:
-            yaml.safe_dump(data, outfile)
+            yaml.safe_dump(data, outfile, sort_keys=False)
 
     @classmethod
     def block_pair_to_dict(cls, data):
