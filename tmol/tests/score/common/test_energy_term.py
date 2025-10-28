@@ -416,8 +416,8 @@ class EnergyTermTestBase:
             block_pair_scorer(coords).to_dense().cpu().detach().numpy()
         )
 
-        # print("Scores (fresh)")
-        # print(scores)
+        print("Scores (fresh)")
+        print(scores)
 
         test_name = (
             cls.test_block_scoring.__name__
@@ -447,8 +447,8 @@ class EnergyTermTestBase:
             # print("gold_vals_upper_and_lower_triangle", gold_vals_upper_and_lower_triangle)
             cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(gold_vals_upper_and_lower_triangle))
         gold_vals = cls.get_test_baseline_data(test_name)
-        # print("Gold scores")
-        # print(gold_vals)
+        print("Gold scores")
+        print(gold_vals)
 
         # reshape these values for the new block-pair scoring scheme
         gold_vals_upper_triangle = numpy.zeros_like(gold_vals)
@@ -465,6 +465,10 @@ class EnergyTermTestBase:
         ij_is_diagonal = inds_arange_i == inds_arange_j
         gold_vals_upper_triangle[:, :, ij_is_diagonal] = gold_vals[:, :, ij_is_diagonal]
         gold_vals_upper_triangle[:, :, ij_is_upper_triangle] = 2 * gold_vals[:, :, ij_is_upper_triangle]
+
+        gold_vals_sum = gold_vals_upper_triangle.sum(-1).sum(-1)
+        scores_sum = scores.sum(-1).sum(-1)
+        print("GOLD SUM:", gold_vals_sum, "SCORES SUM", scores_sum)
 
         assert_allclose(gold_vals_upper_triangle, scores, atol, rtol)
 

@@ -276,6 +276,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     int const pose_ind = pose_ind_for_rot[rot_ind];
     int const block_ind = block_ind_for_rot[rot_ind];
     int const block_type_ind = block_type_ind_for_rot[rot_ind];
+    if (block_type_ind == -1) {
+      // Not a real residue!
+      return;
+    }
 
     bool const is_intra_conn = conn_ind == n_max_conns;
 
@@ -291,17 +295,20 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       int const other_conn_ind = pose_stack_inter_block_connections[
         pose_ind
       ][block_ind][conn_ind][1];
-      // if (other_block_ind == -1) {
-      //   return;
-      // }
-      if (other_block_ind < block_ind) {
-        // Not an upper neighbor; therefore we will
-        // count this interaction from the other direction
-        // and should skip it from tihs directions
-        // Because block_ind >= 0, this also handles
-        // the case when other_block_ind == -1
+
+      if (other_block_ind == -1) {
         return;
       }
+
+      // SCORE EACH CONNECTION TWICE BECAUSE ATOM ORDERING MATTERS
+      // if (other_block_ind < block_ind) {
+      //   // Not an upper neighbor; therefore we will
+      //   // count this interaction from the other direction
+      //   // and should skip it from tihs directions
+      //   // Because block_ind >= 0, this also handles
+      //   // the case when other_block_ind == -1
+      //   return;
+      // }
       int const other_block_n_rots = n_rots_for_block[pose_ind][other_block_ind];
       n_intxns_for_rot_conn[rot_ind * (n_max_conns + 1) + conn_ind] = other_block_n_rots;
       count_n_at_pair_dists_for_rotconn[index] = other_block_n_rots * get_n_connection_spanning_subgraphs(subgraph_length);
@@ -310,16 +317,20 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
   });
   // Launch this kernel for max_n_interactions threads
+  std::cout << "count_intxns_for_rot_conn" << std::endl;
+
   DeviceDispatch<D>::template forall<launch_t>(
     max_n_interactions, count_intxns_for_rot_conn);
 
   // Scan and load-balancing sort on n intxns
+  std::cout << "scan 1" << std::endl;
   int n_intxns_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           n_intxns_for_rot_conn.data(),
           n_intxns_for_rot_conn_offset.data(),
           max_n_interactions,
           mgpu::plus_t<Int>());
+  std::cout << "lbs 1" << std::endl;
   TPack<Int, 1, D> rotconn_for_intxn_t =
         DeviceDispatch<D>::template load_balancing_search<launch_t>(
           n_intxns_total,
@@ -340,12 +351,14 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
 
   // Scan and load-balancing sort on distances
+  std::cout << "scan 2" << std::endl;
   int n_length_intxns_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           count_n_at_pair_dists_for_rotconn.data(),
           count_n_at_pair_dists_for_rotconn_offset.data(),
           max_n_interactions,
           mgpu::plus_t<Int>());
+  std::cout << "lbs 2" << std::endl;
   TPack<Int, 1, D> rotconn_for_lengths_t =
         DeviceDispatch<D>::template load_balancing_search<launch_t>(
           n_length_intxns_total,
@@ -355,12 +368,14 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto rotconn_for_lengths = rotconn_for_lengths_t.view;
 
   // Scan and load-balancing sort on angles
+  std::cout << "scan 3" << std::endl;
   int n_angle_intxns_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           count_n_at_trip_angls_for_rotconn.data(),
           count_n_at_trip_angls_for_rotconn_offset.data(),
           max_n_interactions,
           mgpu::plus_t<Int>());
+  std::cout << "lbs 3" << std::endl;
   TPack<Int, 1, D> rotconn_for_angles_t =
         DeviceDispatch<D>::template load_balancing_search<launch_t>(
           n_angle_intxns_total,
@@ -370,20 +385,35 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto rotconn_for_angles = rotconn_for_angles_t.view;
 
   // Scan and load-balancing sort on torsions
+  std::cout << "scan 4" << std::endl;
   int n_torsion_intxns_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           count_n_at_quad_dihes_for_rotconn.data(),
           count_n_at_quad_dihes_for_rotconn_offset.data(),
           max_n_interactions,
           mgpu::plus_t<Int>());
+  std::cout << "Torsion Offsets" << std::endl;
+  // for (int i = 0; i < max_n_interactions; ++i) {
+  //   printf(" %5d", count_n_at_quad_dihes_for_rotconn_offset[i]);
+  //   if (i % (n_max_conns+1) == n_max_conns) {
+  //     std::cout << std::endl;
+  //   }
+  // }
+
+  std::cout << "lbs 4" << std::endl;
   TPack<Int, 1, D> rotconn_for_torsions_t =
         DeviceDispatch<D>::template load_balancing_search<launch_t>(
           n_torsion_intxns_total,
           count_n_at_quad_dihes_for_rotconn_offset.data(),
           max_n_interactions
         );
-  auto rotconn_for_torsions = rotconn_for_angles_t.view;
-
+  auto rotconn_for_torsions = rotconn_for_torsions_t.view;
+  // for (int i = 0; i < rotconn_for_torsions.size(0); ++i) {
+  //   printf(" %5d", rotconn_for_torsions[i]);
+  //   if (i % 20 == 19) {
+  //     std::cout << std::endl;
+  //   }
+  // }
 
   auto record_dispatch_indices_for_intxns = ([=] TMOL_DEVICE_FUNC (int index) {
     int const rotconn_ind = rotconn_for_intxn[index];
@@ -409,6 +439,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   });
   // Record the rotamer pair indices for the interactions; though we will
   // only use them downstream if we are in output_block_pair_energies mode
+  std::cout << "record_dispatch_indices_for_intxns" << std::endl; 
   DeviceDispatch<D>::template forall<launch_t>(
     n_intxns_total, record_dispatch_indices_for_intxns);
 
@@ -433,14 +464,15 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     if (conn_ind1 == n_max_conns) {
       // intra-residue!
 
-      // There is only one interaction for this conn_ind1, so the
-      // "dispatch index" is equal to the rotconn_offset.
+      // There is only one interaction for this conn_ind1 -- the rotamer with itself
+      // -- so the "dispatch index" is equal to the rotconn_offset.
       dispatch_ind = rotconn_offset;
       int const subgraph_offset = cart_subgraph_offsets[block_type1];
       // int const subgraph_offset_next = block_type1 + 1 == n_block_types
       //                               ? n_subgraphs
       //                               : cart_subgraph_offsets[block_type1 + 1];
       int const subgraph_ind = subgraph_offset + local_length_ind_for_rotconn;
+      // printf("looking at intra-res length %d = %d + %d\n", subgraph_ind, subgraph_offset,  local_length_ind_for_rotconn);
 
       for (bool reverse : {false, true}) {
         Vec<Int, 4> subgraph = cart_subgraphs[subgraph_ind];
@@ -451,6 +483,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
         subgraph_atom_indices = atom_local_to_global_indices(subgraph, rot_coord_offset1);
+        if (param_index != -1) {
+          break;
+        }
       }
     } else {
       // inter residue!
@@ -533,11 +568,12 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             res2_subgraph_atom_ids.head(res2_size);
 
         // Do the lookup
-        int param_index =
+        param_index =
             hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
         if (param_index != -1) {
           // we found it!
           subgraph_atom_indices = atom_indices;
+          // printf("inter-residue length for ats %d %d\n", subgraph_atom_indices[0], subgraph_atom_indices[1]);
           break;
         }
       }
@@ -553,7 +589,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
       int V_ind = (output_block_pair_energies) ? dispatch_ind : pose_ind;
 
+      // printf("Scoring length for ats %d %d\n", subgraph_atom_indices[0], subgraph_atom_indices[1]);
       auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
+      // printf("score: %f\n", common::get<0>(eval));
       accumulate_result<Real, Int, 2, D>(
           eval,
           subgraph_atom_indices.head(2),
@@ -562,6 +600,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           1.0);
     }
   });
+  std::cout << "evaluate lengths" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
     n_length_intxns_total, eval_lengths);
 
@@ -648,6 +687,11 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           atom_paths_from_conn[block_type1][conn_ind1][res1_path_ind];
       Vec<Int, 3> res2_path =
           atom_paths_from_conn[block_type2][conn_ind2][res2_path_ind];
+      printf("examining angle path ind %d local_angle_ind %d: %d (%d %d %d), %d (%d %d %d)\n",
+        index, local_angle_ind,
+        res1_path_ind, res1_path[0], res1_path[1], res1_path[2], 
+        res2_path_ind, res2_path[0], res2_path[1], res2_path[2]
+      );
 
       // Now make sure these are valid paths
       if (res1_path[0] == -1 || res2_path[0] == -1) return;
@@ -659,8 +703,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       Vec<Int, 3> res2_atom_indices =
           atom_local_to_global_indices(res2_path, rot_coord_offset2);
       // Calculate the size of each path
-      Int res1_size = 1; // (res1_atom_indices.array() != -1).count();
-      Int res2_size = 1; // (res2_atom_indices.array() != -1).count();
+      Int res1_size = (res1_atom_indices.array() != -1).count();
+      Int res2_size = (res2_atom_indices.array() != -1).count();
 
       // Try both unique and wildcard IDs for block 1
       for (bool wildcard : {false, true}) {
@@ -675,6 +719,12 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             get_atom_ids(res1_atom_id_table, res1_path);
         Vec<Int, 3> res2_subgraph_atom_ids =
             get_atom_ids(res2_atom_id_table, res2_path);
+        
+        printf("examining angle path ind %d local_angle_ind %d: ids (%d %d %d), %d (%d %d %d)\n",
+          index, local_angle_ind,
+          res1_path_ind, res1_subgraph_atom_ids[0], res1_subgraph_atom_ids[1], res1_subgraph_atom_ids[2], 
+          res2_path_ind, res2_subgraph_atom_ids[0], res2_subgraph_atom_ids[1], res2_subgraph_atom_ids[2]
+        );
 
         // Make the joined data structures
         Vec<Int, 4> path;
@@ -696,12 +746,17 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             << res1_subgraph_atom_ids.tail(res1_size),
             res2_subgraph_atom_ids.head(res2_size);
 
+        printf("subgraph_atom_ids: (%d %d %d %d)\n",
+          subgraph_atom_ids[0], subgraph_atom_ids[1], subgraph_atom_ids[2], subgraph_atom_ids[3]
+        );
         // Do the lookup
-        int param_index =
+        param_index =
             hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
+        printf("lookup: %d\n", param_index);
         if (param_index != -1) {
           // we found it!
           subgraph_atom_indices = atom_indices;
+          printf("inter-residue angle for ats %d %d %d\n", subgraph_atom_indices[0], subgraph_atom_indices[1], subgraph_atom_indices[2]);
           break;
         }
       }
@@ -729,6 +784,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           1.0);
     }
   });
+  std::cout << "evaluate angles" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
     n_angle_intxns_total, eval_angles);
 
@@ -740,6 +796,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     int const conn_ind1 = rotconn_ind % (n_max_conns + 1);
     int const rotconn_torsion_offset = count_n_at_quad_dihes_for_rotconn_offset[rotconn_ind];
     int const local_rot_and_torsion_ind_for_rotconn = index - rotconn_torsion_offset;
+    // printf("torsion %d, rotconn %d, rot_ind %d, conn_ind %d, offset %d local_rot/tor_ind %d\n",
+    //   index, rotconn_ind, rot_ind1, conn_ind1, rotconn_torsion_offset, local_rot_and_torsion_ind_for_rotconn
+    // );
 
     int const pose_ind = pose_ind_for_rot[rot_ind1];
     int const block_ind1 = block_ind_for_rot[rot_ind1];
@@ -826,8 +885,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       Vec<Int, 3> res2_atom_indices =
           atom_local_to_global_indices(res2_path, rot_coord_offset2);
       // Calculate the size of each path
-      Int res1_size = 1; // (res1_atom_indices.array() != -1).count();
-      Int res2_size = 1; // (res2_atom_indices.array() != -1).count();
+      Int res1_size = (res1_atom_indices.array() != -1).count();
+      Int res2_size = (res2_atom_indices.array() != -1).count();
 
       // Try both unique and wildcard IDs for block 1
       for (bool wildcard : {false, true}) {
@@ -864,11 +923,12 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
             res2_subgraph_atom_ids.head(res2_size);
 
         // Do the lookup
-        int param_index =
+        param_index =
             hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
         if (param_index != -1) {
           // we found it!
           subgraph_atom_indices = atom_indices;
+          printf("inter-residue torsion for ats %d %d %d %d\n", subgraph_atom_indices[0], subgraph_atom_indices[1], subgraph_atom_indices[2], subgraph_atom_indices[3]);
           break;
         }
       }
@@ -907,8 +967,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     }
 
   });
+  std::cout << "evaluate torsions" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
     n_torsion_intxns_total, eval_torsions);
+  std::cout << "DONE" << std::endl;
 
   return {
     V_t,
@@ -1298,6 +1360,9 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
         param_index = hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
 
         subgraph_atom_indices = atom_local_to_global_indices(subgraph, rot_coord_offset1);
+        if (param_index != -1) {
+          break;
+        }
       }
     } else {
       // inter residue!
@@ -1380,7 +1445,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             res2_subgraph_atom_ids.head(res2_size);
 
         // Do the lookup
-        int param_index =
+        param_index =
             hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
         if (param_index != -1) {
           // we found it!
@@ -1411,6 +1476,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           block_weight);
     }
   });
+  std::cout << "evaluate lengths" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
     rotconn_for_lengths.size(0), eval_lengths);
 
@@ -1508,8 +1574,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       Vec<Int, 3> res2_atom_indices =
           atom_local_to_global_indices(res2_path, rot_coord_offset2);
       // Calculate the size of each path
-      Int res1_size = 1; // (res1_atom_indices.array() != -1).count();
-      Int res2_size = 1; // (res2_atom_indices.array() != -1).count();
+      Int res1_size = (res1_atom_indices.array() != -1).count();
+      Int res2_size = (res2_atom_indices.array() != -1).count();
 
       // Try both unique and wildcard IDs for block 1
       for (bool wildcard : {false, true}) {
@@ -1546,7 +1612,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             res2_subgraph_atom_ids.head(res2_size);
 
         // Do the lookup
-        int param_index =
+        param_index =
             hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
         if (param_index != -1) {
           // we found it!
@@ -1579,6 +1645,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           block_weight);
     }
   });
+  std::cout << "evaluate angles" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
     rotconn_for_angles.size(0), eval_angles);
 
@@ -1676,8 +1743,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       Vec<Int, 3> res2_atom_indices =
           atom_local_to_global_indices(res2_path, rot_coord_offset2);
       // Calculate the size of each path
-      Int res1_size = 1; // (res1_atom_indices.array() != -1).count();
-      Int res2_size = 1; // (res2_atom_indices.array() != -1).count();
+      Int res1_size = (res1_atom_indices.array() != -1).count();
+      Int res2_size = (res2_atom_indices.array() != -1).count();
 
       // Try both unique and wildcard IDs for block 1
       for (bool wildcard : {false, true}) {
@@ -1714,7 +1781,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
             res2_subgraph_atom_ids.head(res2_size);
 
         // Do the lookup
-        int param_index =
+        param_index =
             hash_lookup<Int, 4, D>(subgraph_atom_ids, hash_keys);
         if (param_index != -1) {
           // we found it!
@@ -1758,8 +1825,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     }
 
   });
+  std::cout << "evaluate torsions" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
     rotconn_for_torsions.size(0), eval_torsions);
+  std::cout << "DONE" << std::endl;
 
   return dV_dx_t;
 

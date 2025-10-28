@@ -97,8 +97,10 @@ struct DeviceOperations<tmol::Device::CPU> {
       int i_offset = exc_scan_offsets[i];
       int i_n_work_units = (i + 1 == n_generators ?
         n_work_units_total : exc_scan_offsets[i + 1]) - i_offset;
+      // printf("lbs: i %d i_offset %d i_n_work_units %d\n", i, i_offset, i_n_work_units);
       for (int j = 0; j < i_n_work_units; ++j) {
         gen_for_work_item[i_offset + j] = i;
+        // printf("gen_for_work_item[%d + %d == %d] = %d\n", i_offset, j, i_offset+j, i );
       }
     }
     return gen_for_work_item_t;
