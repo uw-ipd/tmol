@@ -216,6 +216,16 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
 
     auto dE_dWxyz = grad_outputs[0];
 
+    for (int i = 0; i < dE_dWxyz.size(0); i++)
+      for (int j = 0; j < dE_dWxyz.size(1); j++)
+        printf(
+            "DE_WXYZ: %i %i %f %f %f\n",
+            i,
+            j,
+            dE_dWxyz[i][j][0].item<float>(),
+            dE_dWxyz[i][j][1].item<float>(),
+            dE_dWxyz[i][j][2].item<float>());
+
     TMOL_DISPATCH_FLOATING_DEVICE(
         rot_coords.options(), "WaterGenOpBackward", ([&] {
           using Real = scalar_t;
@@ -262,17 +272,18 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
         }));
 
     return {dT_d_pose_coords, torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
 
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
 
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
 
             torch::Tensor(),  torch::Tensor(), torch::Tensor(),
-            torch::Tensor(),  torch::Tensor(),
-
+            torch::Tensor(),  torch::Tensor(), torch::Tensor(),
             torch::Tensor(),  torch::Tensor(), torch::Tensor()};
   };
 };
@@ -554,10 +565,6 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
     ctx->saved_data["block_pair_scoring"] = output_block_pair_energies;
 
-    if (!output_block_pair_energies) {
-      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
-    }
-
     return {score, block_neighbors};
   }
 
@@ -604,9 +611,9 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
     auto dTdV = grad_outputs[0];
 
     bool block_pair_scoring = ctx->saved_data["block_pair_scoring"].toBool();
-    if (!block_pair_scoring) {
+    /*if (!block_pair_scoring) {
       dTdV = dTdV.unsqueeze(-1).unsqueeze(-1);
-    }
+    }*/
 
     TMOL_DISPATCH_FLOATING_DEVICE(
         rot_coords.options(), "lk_ball_pose_score_backward", ([&] {
@@ -620,6 +627,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
               Int>::
               backward(
                   TCAST(rot_coords),
+                  TCAST(water_coords),
                   TCAST(rot_coord_offset),
                   TCAST(pose_ind_for_atom),
                   TCAST(first_rot_for_block),
@@ -647,7 +655,6 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
                   TCAST(block_type_path_distance),
 
                   TCAST(global_params),
-                  TCAST(water_coords),
                   TCAST(block_neighbors),
                   TCAST(dTdV),
                   block_pair_scoring);
@@ -657,26 +664,15 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
         }));
 
     return {
-        dV_d_pose_coords,
-        dV_d_water_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+        dV_d_pose_coords, torch::Tensor(),   torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  torch::Tensor(),   torch::Tensor(), torch::Tensor(),
+        torch::Tensor(),  dV_d_water_coords, torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-
-        torch::Tensor(),
-        torch::Tensor()};
+    };
   }
 };
 

@@ -1157,7 +1157,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
     TView<Int, 2, D> dispatch_indices,  // from forward pass
     TView<Real, 2, D> dTdV              // nterms x nposes x len x len
-    ) -> TPack<Vec<Real, 3>, 2, D> {
+    ) -> TPack<Vec<Real, 3>, 1, D> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -1218,7 +1218,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(block_type_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 1, D>::zeros({n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1

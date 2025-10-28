@@ -13,6 +13,7 @@ from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.common.stack_condense import arg_tile_subset_indices
+from tmol.score.common.convert_float64 import convert_float64
 
 
 class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
@@ -218,6 +219,9 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
             self.ljlk_param_resolver.global_params.lkb_water_tors_ring,
         ]
+        if common_args[0].dtype == torch.float64:
+            convert_float64(args)
+
         water_coords = gen_pose_waters(*args)
 
         # print(water_coords)
@@ -240,6 +244,8 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
             water_coords,
             block_pair_scoring,
         ]
+        if common_args[0].dtype == torch.float64:
+            convert_float64(args)
 
         return pose_score_lk_ball(*args)
 

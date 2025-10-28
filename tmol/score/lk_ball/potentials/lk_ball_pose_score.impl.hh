@@ -611,6 +611,7 @@ class LKBallPoseScoreDispatch {
 
   static auto backward(
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Vec<Real, 3>, 2, Dev> water_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
       TView<Int, 2, Dev> first_rot_for_block,
@@ -670,17 +671,17 @@ class LKBallPoseScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
-      TView<Vec<Real, 3>, 2, Dev> water_coords,
       TView<Int, 2, Dev> dispatch_indices,  // from forward pass
       TView<Real, 2, Dev> dTdV,
       bool block_pair_scoring)
-      -> std::tuple<TPack<Vec<Real, 3>, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>> {
+      -> std::tuple<TPack<Vec<Real, 3>, 1, Dev>, TPack<Vec<Real, 3>, 2, Dev>> {
     // std::cout << "d lkball start" << std::endl;
     using tmol::score::common::accumulate;
     using Real3 = Vec<Real, 3>;
 
-    // int const n_poses = pose_coords.size(0);
-    int const max_n_pose_atoms = water_coords.size(1);
+    int const n_rots = rot_coord_offset.size(0);
+    int const n_poses = n_rots_for_pose.size(0);
+    int const n_atoms = water_coords.size(0);
     int const max_n_conn = pose_stack_inter_residue_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_path_distance.size(1);
@@ -688,62 +689,11 @@ class LKBallPoseScoreDispatch {
         block_type_atoms_forming_chemical_bonds.size(1);
     int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
 
-    /*assert(max_n_interblock_bonds <= MAX_N_CONN);
-
-    assert(water_coords.size(0) == n_poses);
-    assert(water_coords.size(1) == max_n_pose_atoms);
-    assert(water_coords.size(2) == MAX_N_WATER);
-
-    assert(pose_stack_block_coord_offset.size(0) == n_poses);
-    assert(pose_stack_block_coord_offset.size(1) == max_n_blocks);
-
-    assert(pose_stack_block_type.size(0) == n_poses);
-
-    assert(pose_stack_inter_residue_connections.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
-
-    assert(pose_stack_min_bond_separation.size(0) == n_poses);
-    assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-    assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
-
-    assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
-    assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-    assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
-    assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
-    assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
-
-    assert(block_type_n_interblock_bonds.size(0) == n_block_types);
-
-    assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
-
-    assert(block_type_tile_n_polar_atoms.size(0) == n_block_types);
-    assert(block_type_tile_n_polar_atoms.size(1) == max_n_tiles);
-    assert(block_type_tile_n_occluder_atoms.size(0) == n_block_types);
-    assert(block_type_tile_n_occluder_atoms.size(1) == max_n_tiles);
-    assert(block_type_tile_pol_occ_inds.size(0) == n_block_types);
-    assert(block_type_tile_pol_occ_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_pol_occ_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_lk_ball_params.size(0) == n_block_types);
-    assert(block_type_tile_lk_ball_params.size(1) == max_n_tiles);
-    assert(block_type_tile_lk_ball_params.size(2) == TILE_SIZE);
-
-    assert(block_type_path_distance.size(0) == n_block_types);
-    assert(block_type_path_distance.size(1) == max_n_block_atoms);
-    assert(block_type_path_distance.size(2) == max_n_block_atoms);
-
-    assert(scratch_block_neighbors.size(0) == n_poses);
-    assert(scratch_block_neighbors.size(1) == max_n_blocks);
-    assert(scratch_block_neighbors.size(2) == max_n_blocks);
-
-    assert(dTdV.size(0) == 4);
-    assert(dTdV.size(1) == n_poses);*/
-
-    /*auto dV_d_pose_coords_t =
-        TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_pose_atoms});
+    auto dV_d_pose_coords_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({n_atoms});
     auto dV_d_pose_coords = dV_d_pose_coords_t.view;
 
-    auto dV_d_water_coords_t = TPack<Vec<Real, 3>, 3, Dev>::zeros(
-        {n_poses, max_n_pose_atoms, MAX_N_WATER});
+    auto dV_d_water_coords_t =
+        TPack<Vec<Real, 3>, 2, Dev>::zeros({n_atoms, MAX_N_WATER});
     auto dV_d_water_coords = dV_d_water_coords_t.view;
 
     // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -851,32 +801,26 @@ class LKBallPoseScoreDispatch {
 
       } shared;
 
-      int const pose_ind = cta / (max_n_blocks * max_n_blocks);
-      int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
-      int const block_ind1 = block_ind_pair / max_n_blocks;
-      int const block_ind2 = block_ind_pair % max_n_blocks;
-      if (block_ind1 > block_ind2) {
-        return;
-      }
-
-      if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-        return;
-      }
-
       int const max_important_bond_separation = 4;
 
-      int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-      int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
+      int const pose_ind = dispatch_indices[0][cta];
 
-      if (block_type1 < 0 || block_type2 < 0) {
-        return;
-      }
+      int const rot_ind1 = dispatch_indices[1][cta];
+      int const rot_ind2 = dispatch_indices[2][cta];
+
+      int const block_ind1 = block_ind_for_rot[rot_ind1];
+      int const block_ind2 = block_ind_for_rot[rot_ind2];
+
+      int const block_type1 = block_type_ind_for_rot[rot_ind1];
+      int const block_type2 = block_type_ind_for_rot[rot_ind2];
 
       int const n_atoms1 = block_type_n_atoms[block_type1];
       int const n_atoms2 = block_type_n_atoms[block_type2];
 
       auto load_tile_invariant_interres_data =
           ([=](int pose_ind,
+               int rot_ind1,
+               int rot_ind2,
                int block_ind1,
                int block_ind2,
                int block_type1,
@@ -886,8 +830,8 @@ class LKBallPoseScoreDispatch {
                LKBallScoringData<Real> &inter_dat,
                shared_mem_union &shared) {
             lk_ball_load_tile_invariant_interres_data<DeviceDispatch, Dev, nt>(
-                pose_stack_block_coord_offset,
-                pose_stack_block_type,
+                rot_coord_offset,
+                block_type_ind_for_rot,
                 pose_stack_inter_residue_connections,
                 pose_stack_min_bond_separation,
                 pose_stack_inter_block_bondsep,
@@ -897,6 +841,8 @@ class LKBallPoseScoreDispatch {
                 global_params,
                 max_important_bond_separation,
                 pose_ind,
+                rot_ind1,
+                rot_ind2,
 
                 block_ind1,
                 block_ind2,
@@ -916,7 +862,7 @@ class LKBallPoseScoreDispatch {
                LKBallScoringData<Real> &inter_dat,
                shared_mem_union &shared) {
             lk_ball_load_interres1_tile_data_to_shared<DeviceDispatch, Dev, nt>(
-                pose_coords,
+                rot_coords,
                 water_coords,
                 block_type_tile_n_polar_atoms,
                 block_type_tile_n_occluder_atoms,
@@ -937,7 +883,7 @@ class LKBallPoseScoreDispatch {
                LKBallScoringData<Real> &inter_dat,
                shared_mem_union &shared) {
             lk_ball_load_interres2_tile_data_to_shared<DeviceDispatch, Dev, nt>(
-                pose_coords,
+                rot_coords,
                 water_coords,
                 block_type_tile_n_polar_atoms,
                 block_type_tile_n_occluder_atoms,
@@ -972,17 +918,19 @@ class LKBallPoseScoreDispatch {
 
       auto load_tile_invariant_intrares_data =
           ([=](int pose_ind,
+               int rot_ind1,
                int block_ind1,
                int block_type1,
                int n_atoms1,
                LKBallScoringData<Real> &intra_dat,
                shared_mem_union &shared) {
             lk_ball_load_tile_invariant_intrares_data<DeviceDispatch, Dev, nt>(
-                pose_stack_block_coord_offset,
-                pose_stack_block_type,
+                rot_coord_offset,
+                block_type_ind_for_rot,
                 global_params,
                 max_important_bond_separation,
                 pose_ind,
+                rot_ind1,
                 block_ind1,
                 block_type1,
                 n_atoms1,
@@ -997,7 +945,7 @@ class LKBallPoseScoreDispatch {
                LKBallScoringData<Real> &intra_dat,
                shared_mem_union &shared) {
             lk_ball_load_intrares1_tile_data_to_shared<DeviceDispatch, Dev, nt>(
-                pose_coords,
+                rot_coords,
                 water_coords,
                 block_type_tile_n_polar_atoms,
                 block_type_tile_n_occluder_atoms,
@@ -1018,7 +966,7 @@ class LKBallPoseScoreDispatch {
                LKBallScoringData<Real> &intra_dat,
                shared_mem_union &shared) {
             lk_ball_load_intrares2_tile_data_to_shared<DeviceDispatch, Dev, nt>(
-                pose_coords,
+                rot_coords,
                 water_coords,
                 block_type_tile_n_polar_atoms,
                 block_type_tile_n_occluder_atoms,
@@ -1051,7 +999,7 @@ class LKBallPoseScoreDispatch {
                 dscore_intra_lk_ball_atom_pair);
           });
 
-      tmol::score::common::tile_evaluate_block_pair<
+      tmol::score::common::tile_evaluate_rot_pair<
           DeviceDispatch,
           Dev,
           LKBallScoringData<Real>,
@@ -1060,6 +1008,8 @@ class LKBallPoseScoreDispatch {
           TILE_SIZE>(
           shared,
           pose_ind,
+          rot_ind1,
+          rot_ind2,
           block_ind1,
           block_ind2,
           block_type1,
@@ -1082,12 +1032,11 @@ class LKBallPoseScoreDispatch {
 
     // Since we have the sphere overlap results from the forward pass,
     // there's only a single kernel launch here
-    int const n_block_pairs = n_poses * max_n_blocks * max_n_blocks;
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
-        n_block_pairs, eval_derivs);
+        dispatch_indices.size(1), eval_derivs);
     // std::cout << "d lkball end" << std::endl;
 
-    return {dV_d_pose_coords_t, dV_d_water_coords_t};*/
+    return {dV_d_pose_coords_t, dV_d_water_coords_t};
   }
 };
 

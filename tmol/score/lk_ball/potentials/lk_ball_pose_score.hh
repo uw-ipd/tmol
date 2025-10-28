@@ -98,6 +98,7 @@ struct LKBallPoseScoreDispatch {
 
   static auto backward(
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Vec<Real, 3>, 2, Dev> water_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
       TView<Int, 2, Dev> first_rot_for_block,
@@ -157,11 +158,10 @@ struct LKBallPoseScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
-      TView<Vec<Real, 3>, 2, Dev> water_coords,
       TView<Int, 2, Dev> dispatch_indices,  // from forward pass
       TView<Real, 2, Dev> dTdV,
       bool block_pair_scoring)
-      -> std::tuple<TPack<Vec<Real, 3>, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>>;
+      -> std::tuple<TPack<Vec<Real, 3>, 1, Dev>, TPack<Vec<Real, 3>, 2, Dev>>;
 };
 
 }  // namespace potentials

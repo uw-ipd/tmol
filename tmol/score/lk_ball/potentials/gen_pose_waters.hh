@@ -70,7 +70,7 @@ struct GeneratePoseWaters {
       TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev>;
 
   static auto backward(
-      TView<Vec<Real, 3>, 3, Dev> dE_dWxyz,
+      TView<Vec<Real, 3>, 2, Dev> dE_dWxyz,
       TView<Vec<Real, 3>, 1, Dev> rot_coords,
       TView<Int, 1, Dev> rot_coord_offset,
       TView<Int, 1, Dev> pose_ind_for_atom,
@@ -121,7 +121,7 @@ struct GeneratePoseWaters {
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
-      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev>;
+      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 1, Dev>;
 };
 
 #undef def

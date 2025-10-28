@@ -186,7 +186,7 @@ struct HBondPoseScoreDispatch {
 
       TView<Int, 2, Dev> dispatch_indices,  // from forward pass
       TView<Real, 2, Dev> dTdV              // nterms x nposes x len x len
-      ) -> TPack<Vec<Real, 3>, 2, Dev>;
+      ) -> TPack<Vec<Real, 3>, 1, Dev>;
 };
 
 }  // namespace potentials
