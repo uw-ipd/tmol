@@ -1194,11 +1194,14 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
                             int atom_ind,
                             Real3 dV,
                             lk_ball_score_type st) {
+    auto dTdV_val = block_pair_scoring
+                        ? dTdV[st][cta]
+                        : dTdV[st][block_pair_dat.pose_ind];  // TODO: right?
     for (int j = 0; j < 3; ++j) {
       if (dV[j] != 0) {
         accumulate<Dev, Real>::add(
             dV_d_pose_coords[block_dat.rot_coord_offset + atom_ind][j],
-            dTdV[st][cta] * dV[j]);
+            dTdV_val * dV[j]);
       }
     }
   });
@@ -1219,12 +1222,15 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
                                   int water_ind,
                                   WatersMat dV,
                                   lk_ball_score_type st) {
+    auto dTdV_val = block_pair_scoring
+                        ? dTdV[st][cta]
+                        : dTdV[st][block_pair_dat.pose_ind];  // TODO: right?
     for (int j = 0; j < 3; ++j) {
       if (dV(water_ind, j) != 0) {
         accumulate<Dev, Real>::add(
             dV_d_water_coords[block_dat.rot_coord_offset + atom_ind][water_ind]
                              [j],
-            dTdV[st][cta] * dV(water_ind, j));
+            dTdV_val * dV(water_ind, j));
       }
     }
   });

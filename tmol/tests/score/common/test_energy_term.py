@@ -292,7 +292,7 @@ class EnergyTermTestBase:
             # wt = torch.full_like(scores, 0.5)
             # score = wt * scores
 
-            return scores
+            return scores.sum()
 
         # monkeypatch more sane error reporting
         torchgrad = importlib.import_module("torch.autograd.gradcheck")
@@ -393,7 +393,14 @@ class EnergyTermTestBase:
 
         coords = torch.nn.Parameter(p1.coords.clone())
         scores = pose_scorer(coords)
-        scores = scores.to_dense().cpu().detach().numpy()
+        scores = scores.to_dense()
+
+        dim = scores.size(2)
+        i, j = torch.triu_indices(dim, dim)
+        scores[:, :, i, j] /= 2
+        torch.transpose(scores, 2, 3)[:, :, i, j] += scores[:, :, i, j]
+
+        scores = scores.cpu().detach().numpy()
 
         test_name = (
             cls.test_block_scoring.__name__
@@ -424,7 +431,9 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(p1)
 
-        pose_scorer = cls.get_pose_scorer(p1, default_database, torch_device)
+        pose_scorer = cls.get_pose_scorer(
+            p1, default_database, torch_device, block_pair_scoring=True
+        )
 
         def score(coords):
             scores = pose_scorer(coords)
