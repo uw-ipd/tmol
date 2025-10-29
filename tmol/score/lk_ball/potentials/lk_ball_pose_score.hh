@@ -25,17 +25,25 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device>
-    class DeviceOps,
+    template <tmol::Device> class DeviceOps,
     tmol::Device Dev,
     typename Real,
     typename Int>
 struct LKBallPoseScoreDispatch {
   static auto forward(
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Vec<Real, 3>, 3, Dev> water_coords,
-      TView<Int, 2, Dev> pose_stack_block_coord_offset,
-      TView<Int, 2, Dev> pose_stack_block_type,
+      TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Int, 1, Dev> rot_coord_offset,
+      TView<Int, 1, Dev> pose_ind_for_atom,
+      TView<Int, 2, Dev> first_rot_for_block,
+      TView<Int, 2, Dev> first_rot_block_type,
+      TView<Int, 1, Dev> block_ind_for_rot,
+      TView<Int, 1, Dev> pose_ind_for_rot,
+      TView<Int, 1, Dev> block_type_ind_for_rot,
+      TView<Int, 1, Dev> n_rots_for_pose,
+      TView<Int, 1, Dev> rot_offset_for_pose,
+      TView<Int, 2, Dev> n_rots_for_block,
+      TView<Int, 2, Dev> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
@@ -84,14 +92,25 @@ struct LKBallPoseScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
+      TView<Vec<Real, 3>, 2, Dev> water_coords,
       bool output_block_pair_energies)
-      -> std::tuple<TPack<Real, 4, Dev>, TPack<Int, 3, Dev>>;
+      -> std::tuple<TPack<Real, 2, Dev>, TPack<Int, 2, Dev>>;
 
   static auto backward(
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Vec<Real, 3>, 3, Dev> water_coords,
-      TView<Int, 2, Dev> pose_stack_block_coord_offset,
-      TView<Int, 2, Dev> pose_stack_block_type,
+      TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Vec<Real, 3>, 2, Dev> water_coords,
+      TView<Int, 1, Dev> rot_coord_offset,
+      TView<Int, 1, Dev> pose_ind_for_atom,
+      TView<Int, 2, Dev> first_rot_for_block,
+      TView<Int, 2, Dev> first_rot_block_type,
+      TView<Int, 1, Dev> block_ind_for_rot,
+      TView<Int, 1, Dev> pose_ind_for_rot,
+      TView<Int, 1, Dev> block_type_ind_for_rot,
+      TView<Int, 1, Dev> n_rots_for_pose,
+      TView<Int, 1, Dev> rot_offset_for_pose,
+      TView<Int, 2, Dev> n_rots_for_block,
+      TView<Int, 2, Dev> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
@@ -139,10 +158,10 @@ struct LKBallPoseScoreDispatch {
 
       // LKBall potential parameters
       TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
-      TView<Int, 3, Dev> block_neighbors,  // from forward pass
-      TView<Real, 4, Dev> dTdV,
+      TView<Int, 2, Dev> dispatch_indices,  // from forward pass
+      TView<Real, 2, Dev> dTdV,
       bool block_pair_scoring)
-      -> std::tuple<TPack<Vec<Real, 3>, 2, Dev>, TPack<Vec<Real, 3>, 3, Dev>>;
+      -> std::tuple<TPack<Vec<Real, 3>, 1, Dev>, TPack<Vec<Real, 3>, 2, Dev>>;
 };
 
 }  // namespace potentials

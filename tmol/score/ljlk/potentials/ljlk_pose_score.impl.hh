@@ -44,7 +44,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <int TILE, template <typename> typename InterEnergyData, typename Real>
 EIGEN_DEVICE_FUNC int interres_count_pair_separation(
-    InterEnergyData<Real> const &inter_dat,
+    InterEnergyData<Real> const& inter_dat,
     int atom_tile_ind1,
     int atom_tile_ind2) {
   int separation = inter_dat.min_separation;
@@ -81,7 +81,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int start_atom2,                                          \
       int atom_tile_ind1,                                       \
       int atom_tile_ind2,                                       \
-      LJLKScoringData<Real> const &inter_dat) {                 \
+      LJLKScoringData<Real> const& inter_dat) {                 \
     int separation = interres_count_pair_separation<TILE_SIZE>( \
         inter_dat, atom_tile_ind1, atom_tile_ind2);             \
     return atom_pair_func(                                      \
@@ -110,7 +110,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int start_atom2,                                                       \
       int atom_tile_ind1,                                                    \
       int atom_tile_ind2,                                                    \
-      LJLKScoringData<Real> const &intra_dat)                                \
+      LJLKScoringData<Real> const& intra_dat)                                \
       ->std::array<Real, 2> {                                                \
     int const atom_ind1 = start_atom1 + atom_tile_ind1;                      \
     int const atom_ind2 = start_atom2 + atom_tile_ind2;                      \
@@ -142,7 +142,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int start_atom2,                                                        \
       int atom_heavy_tile_ind1,                                               \
       int atom_heavy_tile_ind2,                                               \
-      LJLKScoringData<Real> const &inter_dat)                                 \
+      LJLKScoringData<Real> const& inter_dat)                                 \
       ->std::array<Real, 1> {                                                 \
     int const atom_tile_ind1 = inter_dat.r1.heavy_inds[atom_heavy_tile_ind1]; \
     int const atom_tile_ind2 = inter_dat.r2.heavy_inds[atom_heavy_tile_ind2]; \
@@ -175,7 +175,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int start_atom2,                                                        \
       int atom_heavy_tile_ind1,                                               \
       int atom_heavy_tile_ind2,                                               \
-      LJLKScoringData<Real> const &intra_dat)                                 \
+      LJLKScoringData<Real> const& intra_dat)                                 \
       ->std::array<Real, 1> {                                                 \
     int const atom_tile_ind1 = intra_dat.r1.heavy_inds[atom_heavy_tile_ind1]; \
     int const atom_tile_ind2 = intra_dat.r2.heavy_inds[atom_heavy_tile_ind2]; \
@@ -202,7 +202,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 #define LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED                          \
   TMOL_DEVICE_FUNC(                                                       \
       int pose_ind,                                                       \
-      LJLKSingleResData<Real> &r_dat,                                     \
+      LJLKSingleResData<Real>& r_dat,                                     \
       int n_atoms_to_load,                                                \
       int start_atom) {                                                   \
     ljlk_load_block_coords_and_params_into_shared<DeviceDispatch, D, nt>( \
@@ -226,11 +226,11 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 #define LOAD_BLOCK_INTO_SHARED                                     \
   TMOL_DEVICE_FUNC(                                                \
       int pose_ind,                                                \
-      LJLKSingleResData<Real> &r_dat,                              \
+      LJLKSingleResData<Real>& r_dat,                              \
       int n_atoms_to_load,                                         \
       int start_atom,                                              \
       bool count_pair_striking_dist,                               \
-      unsigned char *__restrict__ conn_ats) {                      \
+      unsigned char* __restrict__ conn_ats) {                      \
     ljlk_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>( \
         rot_coords,                                                \
         block_type_atom_types,                                     \
@@ -265,8 +265,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int block_type2,                                             \
       int n_atoms1,                                                \
       int n_atoms2,                                                \
-      LJLKScoringData<Real> &inter_dat,                            \
-      shared_mem_union &shared) {                                  \
+      LJLKScoringData<Real>& inter_dat,                            \
+      shared_mem_union& shared) {                                  \
     ljlk_load_tile_invariant_interres_data<DeviceDispatch, D, nt>( \
         rot_coord_offset,                                          \
         pose_stack_min_bond_separation,                            \
@@ -301,8 +301,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int tile_ind,                                                 \
       int start_atom1,                                              \
       int n_atoms_to_load1,                                         \
-      LJLKScoringData<Real> &inter_dat,                             \
-      shared_mem_union &shared) {                                   \
+      LJLKScoringData<Real>& inter_dat,                             \
+      shared_mem_union& shared) {                                   \
     ljlk_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>( \
         rot_coords,                                                 \
         block_type_atom_types,                                      \
@@ -331,8 +331,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int tile_ind,                                                 \
       int start_atom2,                                              \
       int n_atoms_to_load2,                                         \
-      LJLKScoringData<Real> &inter_dat,                             \
-      shared_mem_union &shared) {                                   \
+      LJLKScoringData<Real>& inter_dat,                             \
+      shared_mem_union& shared) {                                   \
     ljlk_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>( \
         rot_coords,                                                 \
         block_type_atom_types,                                      \
@@ -352,7 +352,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    nothing
 #define LOAD_INTERRES_DATA_FROM_SHARED                                        \
   TMOL_DEVICE_FUNC(                                                           \
-      int, int, shared_mem_union &shared, LJLKScoringData<Real> &inter_dat) { \
+      int, int, shared_mem_union& shared, LJLKScoringData<Real>& inter_dat) { \
     ljlk_load_interres_data_from_shared(shared.m, inter_dat);                 \
   }
 
@@ -362,7 +362,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    score_inter_lk_atom_pair (lambda)
 #define EVAL_INTERRES_ATOM_PAIR_SCORES                                      \
   TMOL_DEVICE_FUNC(                                                         \
-      LJLKScoringData<Real> &inter_dat, int start_atom1, int start_atom2) { \
+      LJLKScoringData<Real>& inter_dat, int start_atom1, int start_atom2) { \
     auto eval_scores_for_atom_pairs = ([&](int tid) {                       \
       auto LJ = tmol::score::common::InterResBlockEvaluation<               \
           LJLKScoringData,                                                  \
@@ -410,7 +410,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    output (TView<Real, 4, D>)
 #define STORE_CALCULATED_ENERGIES                                              \
   TMOL_DEVICE_FUNC(                                                            \
-      LJLKScoringData<Real> &score_dat, shared_mem_union &shared) {            \
+      LJLKScoringData<Real>& score_dat, shared_mem_union& shared) {            \
     auto reduce_energies = ([&](int tid) {                                     \
       Real const cta_total_ljatr =                                             \
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(                 \
@@ -439,7 +439,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    output (TView<Real, 4, D>)
 #define STORE_CALCULATED_ENERGIES_BLOCKPAIR                                 \
   TMOL_DEVICE_FUNC(                                                         \
-      LJLKScoringData<Real> &score_dat, shared_mem_union &shared) {         \
+      LJLKScoringData<Real>& score_dat, shared_mem_union& shared) {         \
     auto reduce_energies = ([&](int tid) {                                  \
       Real const cta_total_ljatr =                                          \
           DeviceDispatch<D>::template reduce_in_workgroup<nt>(              \
@@ -470,8 +470,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int block_ind1,                                              \
       int block_type1,                                             \
       int n_atoms1,                                                \
-      LJLKScoringData<Real> &intra_dat,                            \
-      shared_mem_union &shared) {                                  \
+      LJLKScoringData<Real>& intra_dat,                            \
+      shared_mem_union& shared) {                                  \
     ljlk_load_tile_invariant_intrares_data<DeviceDispatch, D, nt>( \
         rot_coord_offset,                                          \
         global_params,                                             \
@@ -497,8 +497,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int tile_ind,                                                 \
       int start_atom1,                                              \
       int n_atoms_to_load1,                                         \
-      LJLKScoringData<Real> &intra_dat,                             \
-      shared_mem_union &shared) {                                   \
+      LJLKScoringData<Real>& intra_dat,                             \
+      shared_mem_union& shared) {                                   \
     ljlk_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>( \
         rot_coords,                                                 \
         block_type_atom_types,                                      \
@@ -525,8 +525,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int tile_ind,                                                 \
       int start_atom2,                                              \
       int n_atoms_to_load2,                                         \
-      LJLKScoringData<Real> &intra_dat,                             \
-      shared_mem_union &shared) {                                   \
+      LJLKScoringData<Real>& intra_dat,                             \
+      shared_mem_union& shared) {                                   \
     ljlk_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>( \
         rot_coords,                                                 \
         block_type_atom_types,                                      \
@@ -547,8 +547,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
   TMOL_DEVICE_FUNC(                                 \
       int tile_ind1,                                \
       int tile_ind2,                                \
-      shared_mem_union &shared,                     \
-      LJLKScoringData<Real> &intra_dat) {           \
+      shared_mem_union& shared,                     \
+      LJLKScoringData<Real>& intra_dat) {           \
     ljlk_load_intrares_data_from_shared(            \
         tile_ind1, tile_ind2, shared.m, intra_dat); \
   }
@@ -559,7 +559,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 //    score_intra_lk_atom_pair (lambda)
 #define EVAL_INTRARES_ATOM_PAIR_SCORES                                      \
   TMOL_DEVICE_FUNC(                                                         \
-      LJLKScoringData<Real> &intra_dat, int start_atom1, int start_atom2) { \
+      LJLKScoringData<Real>& intra_dat, int start_atom1, int start_atom2) { \
     auto eval_scores_for_atom_pairs = ([&](int tid) {                       \
       auto LJ = tmol::score::common::IntraResBlockEvaluation<               \
           LJLKScoringData,                                                  \
@@ -789,7 +789,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                                 int atom_tile_ind2,
                                 int,
                                 int,
-                                LJLKScoringData<Real> const &score_dat,
+                                LJLKScoringData<Real> const& score_dat,
                                 int cp_separation) {
       return lj_atom_energy(
           atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
@@ -800,7 +800,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                                 int atom_tile_ind2,
                                 int,
                                 int,
-                                LJLKScoringData<Real> const &score_dat,
+                                LJLKScoringData<Real> const& score_dat,
                                 int cp_separation) {
       return lk_atom_energy(
           atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
@@ -924,7 +924,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                                 int atom_tile_ind2,
                                 int start_atom1,
                                 int start_atom2,
-                                LJLKScoringData<Real> const &score_dat,
+                                LJLKScoringData<Real> const& score_dat,
                                 int cp_separation) {
       if (require_gradient) {  // captured
         return lj_atom_energy_and_derivs_full(
@@ -947,7 +947,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                                 int atom_tile_ind2,
                                 int start_atom1,
                                 int start_atom2,
-                                LJLKScoringData<Real> const &score_dat,
+                                LJLKScoringData<Real> const& score_dat,
                                 int cp_separation) {
       if (require_gradient) {  // captured
         return lk_atom_energy_and_derivs_full(
@@ -1157,8 +1157,9 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<LJGlobalParams<Real>, 1, D> global_params,
 
     TView<Int, 2, D> dispatch_indices,  // from forward pass
-    TView<Real, 2, D> dTdV              // nterms x n-dispatch
-    ) -> TPack<Vec<Real, 3>, 2, D> {
+
+    TView<Real, 2, D> dTdV  // nterms x n-dispatch
+    ) -> TPack<Vec<Real, 3>, 1, D> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -1219,7 +1220,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(block_type_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 1, D>::zeros({n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -1234,7 +1235,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
              int atom_tile_ind2,
              int start_atom1,
              int start_atom2,
-             LJLKScoringData<Real> const &score_dat,
+             LJLKScoringData<Real> const& score_dat,
              int cp_separation) -> std::array<Real, 2> {
           lj_atom_derivs(
               atom_tile_ind1,
@@ -1256,7 +1257,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
              int atom_tile_ind2,
              int start_atom1,
              int start_atom2,
-             LJLKScoringData<Real> const &score_dat,
+             LJLKScoringData<Real> const& score_dat,
              int cp_separation) -> Real {
           lk_atom_derivs(
               atom_tile_ind1,
@@ -1332,7 +1333,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     auto eval_interres_atom_pair_scores = ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
     auto store_calculated_energies =
-        ([=](LJLKScoringData<Real> &score_dat, shared_mem_union &shared) {
+        ([=](LJLKScoringData<Real>& score_dat, shared_mem_union& shared) {
           ;  // no op for gradients ()
         });
 

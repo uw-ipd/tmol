@@ -154,7 +154,7 @@ class EnergyTermTestBase:
     def save_test_baseline_data(cls, testname, data):
         filename = cls.get_test_baseline_data_filename(testname)
         with open(filename, "w") as outfile:
-            yaml.safe_dump(data, outfile)
+            yaml.safe_dump(data, outfile, sort_keys=False)
 
     @classmethod
     def block_pair_to_dict(cls, data):
@@ -308,9 +308,7 @@ class EnergyTermTestBase:
         def score(coords):
             scores = pose_scorer(coords)
             score = (wt * scores).sum()
-
-
-            return score
+            return scores.sum()
 
         # monkeypatch more sane error reporting
         torchgrad = importlib.import_module("torch.autograd.gradcheck")
@@ -387,15 +385,13 @@ class EnergyTermTestBase:
             edit_pose_stack_fn(p1)
 
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
-        block_pair_scorer = cls.get_block_pair_scorer(p1, default_database, torch_device)
+        block_pair_scorer = cls.get_block_pair_scorer(
+            p1, default_database, torch_device
+        )
 
         coords = torch.nn.Parameter(p1.coords.clone())
-        block_pair_scores = (
-            block_pair_scorer(coords).to_dense().cpu().detach().numpy()
-        )
-        full_pose_scores = (
-            pose_scorer(coords).cpu().detach().numpy()
-        )
+        block_pair_scores = block_pair_scorer(coords).to_dense().cpu().detach().numpy()
+        full_pose_scores = pose_scorer(coords).cpu().detach().numpy()
 
         assert_allclose(full_pose_scores, block_pair_scores.sum((2, 3)), atol, rtol)
 
@@ -417,12 +413,12 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(p1)
 
-        block_pair_scorer = cls.get_block_pair_scorer(p1, default_database, torch_device)
+        block_pair_scorer = cls.get_block_pair_scorer(
+            p1, default_database, torch_device
+        )
 
         coords = torch.nn.Parameter(p1.coords.clone())
-        scores = (
-            block_pair_scorer(coords).to_dense().cpu().detach().numpy()
-        )
+        scores = block_pair_scorer(coords).to_dense().cpu().detach().numpy()
 
         # print("Scores (fresh)")
         # print(scores)
@@ -446,7 +442,7 @@ class EnergyTermTestBase:
             # inds_arange_j = inds_arange.reshape(1, -1)
             # ij_is_upper_triangle = inds_arange_i < inds_arange_j
             # nz_ij_is_upper_triangle = numpy.nonzero(ij_is_upper_triangle)
-# 
+            #
             # ij_is_diagonal = inds_arange_i == inds_arange_j
             # gold_vals_upper_and_lower_triangle[:, :, ij_is_diagonal] = scores[:, :, ij_is_diagonal]
             # gold_vals_upper_and_lower_triangle[:, :, nz_ij_is_upper_triangle[0], nz_ij_is_upper_triangle[1]] = 0.5 * scores[:, :, ij_is_upper_triangle]
@@ -472,17 +468,25 @@ class EnergyTermTestBase:
         # ij_is_lower_triangle = inds_arange_i > inds_arange_j
         ij_is_diagonal = inds_arange_i == inds_arange_j
         gold_vals_upper_triangle[:, :, ij_is_diagonal] = gold_vals[:, :, ij_is_diagonal]
-        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] = gold_vals[:, :, ij_is_upper_triangle]
+        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] = gold_vals[
+            :, :, ij_is_upper_triangle
+        ]
         gold_vals_transposed = numpy.transpose(gold_vals, (0, 1, 3, 2))
         # print("gold_vals_transposed")
         # print(gold_vals_transposed)
-        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] += gold_vals_transposed[:, :, ij_is_upper_triangle]
+        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] += gold_vals_transposed[
+            :, :, ij_is_upper_triangle
+        ]
 
         scores_upper_triangle = numpy.zeros_like(scores)
         scores_upper_triangle[:, :, ij_is_diagonal] = scores[:, :, ij_is_diagonal]
-        scores_upper_triangle[:, :, ij_is_upper_triangle] = scores[:, :, ij_is_upper_triangle]
+        scores_upper_triangle[:, :, ij_is_upper_triangle] = scores[
+            :, :, ij_is_upper_triangle
+        ]
         scores_transposed = numpy.transpose(scores, (0, 1, 3, 2))
-        scores_upper_triangle[:, :, ij_is_upper_triangle] += scores_transposed[:, :, ij_is_upper_triangle]
+        scores_upper_triangle[:, :, ij_is_upper_triangle] += scores_transposed[
+            :, :, ij_is_upper_triangle
+        ]
 
         # print("gold vals upper triangle")
         # print(gold_vals_upper_triangle)
@@ -511,7 +515,9 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(p1)
 
-        block_pair_scorer = cls.get_block_pair_scorer(p1, default_database, torch_device)
+        block_pair_scorer = cls.get_block_pair_scorer(
+            p1, default_database, torch_device
+        )
 
         def score(coords):
             scores = block_pair_scorer(coords)

@@ -541,7 +541,7 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
     int cp_separation,
     Real dTdV_atr,
     Real dTdV_rep,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 1, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -568,16 +568,14 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
   for (int j = 0; j < 3; ++j) {
     if (ljatr_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0]
-                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
-                     + start_atom1][j],
+          dV_dcoords
+              [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
           ljatr_dxyz_at1[j]);
     }
     if (ljrep_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[1]
-                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
-                     + start_atom1][j],
+          dV_dcoords
+              [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
           ljrep_dxyz_at1[j]);
     }
   }
@@ -588,16 +586,14 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
   for (int j = 0; j < 3; ++j) {
     if (ljatr_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[0]
-                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
-                     + start_atom2][j],
+          dV_dcoords
+              [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
           ljatr_dxyz_at2[j]);
     }
     if (ljrep_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[1]
-                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
-                     + start_atom2][j],
+          dV_dcoords
+              [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
           ljrep_dxyz_at2[j]);
     }
   }
@@ -699,7 +695,7 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
     LJLKScoringData<Real> const &score_dat,
     int cp_separation,
     Real dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 1, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -724,9 +720,8 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
   for (int j = 0; j < 3; ++j) {
     if (lj_dxyz_at1[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[2]
-                    [score_dat.r1.rot_coord_offset + atom_tile_ind1
-                     + start_atom1][j],
+          dV_dcoords
+              [score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1][j],
           lj_dxyz_at1[j]);
     }
   }
@@ -736,9 +731,8 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
   for (int j = 0; j < 3; ++j) {
     if (lj_dxyz_at2[j] != 0) {
       accumulate<D, Real>::add(
-          dV_dcoords[2]
-                    [score_dat.r2.rot_coord_offset + atom_tile_ind2
-                     + start_atom2][j],
+          dV_dcoords
+              [score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2][j],
           lj_dxyz_at2[j]);
     }
   }

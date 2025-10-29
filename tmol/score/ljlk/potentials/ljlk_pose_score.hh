@@ -159,7 +159,7 @@ struct LJLKPoseScoreDispatch {
 
       TView<Int, 2, D> dispatch_indices,  // from forward pass
       TView<Real, 2, D> dTdV              // nterms x nposes x (1|len) x (1|len)
-      ) -> TPack<Vec<Real, 3>, 2, D>;
+      ) -> TPack<Vec<Real, 3>, 1, D>;
 };
 
 }  // namespace potentials

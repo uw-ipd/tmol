@@ -827,7 +827,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 
     TView<Int, 2, Dev> dispatch_indices,  // from forward pass
     TView<Real, 2, Dev> dTdV              // nterms x nposes x len x len
-    ) -> TPack<Vec<Real, 3>, 2, Dev>      // TODO: add extra dimension for terms
+    ) -> TPack<Vec<Real, 3>, 1, Dev>      // TODO: add extra dimension for terms
 {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
@@ -849,7 +849,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   // auto rot_max_n_atoms = rot_coords.size(1);
   auto n_atoms = rot_coords.size(0);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({1, n_atoms});  // TODO
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({n_atoms});  // TODO
   auto dV_dcoords = dV_dcoords_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1

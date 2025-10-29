@@ -826,7 +826,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     HBondRotPairData<Dev, Real, Int> const &respair_dat,
     int cp_separation,
     Real dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 1, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
   using bonded_atom::BlockCentricIndexedBonds;
@@ -893,7 +893,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     for (int j = 0; j < 3; ++j) {
       if (hbond_V_dV.dV_dD[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_dcoords[0][don_dat.rot_coord_offset + don_bases.D.atom][j],
+            dV_dcoords[don_dat.rot_coord_offset + don_bases.D.atom][j],
             dVdT_m * hbond_V_dV.dV_dD[j]);
       }
     }
@@ -901,7 +901,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     for (int j = 0; j < 3; ++j) {
       if (hbond_V_dV.dV_dH[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_dcoords[0][don_dat.rot_coord_offset + H.atom][j],
+            dV_dcoords[don_dat.rot_coord_offset + H.atom][j],
             dVdT_m * hbond_V_dV.dV_dH[j]);
       }
     }
@@ -910,7 +910,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     for (int j = 0; j < 3; ++j) {
       if (hbond_V_dV.dV_dA[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_dcoords[0][acc_dat.rot_coord_offset + A.atom][j],
+            dV_dcoords[acc_dat.rot_coord_offset + A.atom][j],
             dVdT_m * hbond_V_dV.dV_dA[j]);
       }
     }
@@ -942,8 +942,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
             }
             for (int j = 0; j < 3; ++j) {
               accumulate<Dev, Real>::add(
-                  dV_dcoords[0][coord_offset + bcat.atom][j],
-                  dVdT_m * dV_dat[j]);
+                  dV_dcoords[coord_offset + bcat.atom][j], dVdT_m * dV_dat[j]);
             }
           }
         });

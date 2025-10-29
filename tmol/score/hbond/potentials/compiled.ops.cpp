@@ -222,19 +222,10 @@ class HBondPoseScoresOp
       auto saved_grads = ctx->get_saved_variables();
       auto saved_grad = saved_grads[0];
       auto pose_ind_for_atom = saved_grads[1];
+      auto atom_ingrads =
+          grad_outputs[0].index_select(1, pose_ind_for_atom).unsqueeze(-1);
 
-      tensor_list result;
-
-      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
-
-      while (atom_ingrads.dim() < saved_grad.dim()) {
-        atom_ingrads = atom_ingrads.unsqueeze(-1);
-      }
-
-      result.emplace_back(saved_grad * atom_ingrads);
-
-      int i = 0;
-      dV_d_pose_coords = result[i++];
+      dV_d_pose_coords = saved_grad * atom_ingrads;
     } else {
       // block-pair mode
       int i = 0;

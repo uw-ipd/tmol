@@ -138,6 +138,12 @@ class LJLKPoseScoreOp
            global_params,
            dispatch_indices});
     } else {
+      /*for(int i = 0; i < dscore_dcoords.size(0); i++)
+        if ((dscore_dcoords[i][0].item<float>() > 0.000001) ||
+        (dscore_dcoords[i][1].item<float>() > 0.000001) ||
+        (dscore_dcoords[i][2].item<float>() > 0.000001)) printf("FGRAD %i %f %f
+        %f\n", i,
+        dscore_dcoords[i][0].item<float>(),dscore_dcoords[i][1].item<float>(),dscore_dcoords[i][2].item<float>());*/
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
     return {score, dispatch_indices};
@@ -156,19 +162,10 @@ class LJLKPoseScoreOp
       auto saved_grads = ctx->get_saved_variables();
       auto saved_grad = saved_grads[0];
       auto pose_ind_for_atom = saved_grads[1];
+      auto atom_ingrads =
+          grad_outputs[0].index_select(1, pose_ind_for_atom).unsqueeze(-1);
 
-      tensor_list result;
-
-      auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
-
-      while (atom_ingrads.dim() < saved_grad.dim()) {
-        atom_ingrads = atom_ingrads.unsqueeze(-1);
-      }
-
-      result.emplace_back(saved_grad * atom_ingrads);
-
-      int i = 0;
-      dV_d_pose_coords = result[i++];
+      dV_d_pose_coords = saved_grad * atom_ingrads;
     } else {
       // block-pair mode
       int i = 0;
@@ -250,7 +247,12 @@ class LJLKPoseScoreOp
                     TCAST(dispatch_indices),
                     TCAST(dTdV));
 
-            dV_d_pose_coords = result.tensor;
+            dV_d_pose_coords = result.tensor;  // torch::stack({result.tensor /
+                                               // 3, 3 * result.tensor / 3});
+            printf(
+                "tensor dims: %i %i\n",
+                result.tensor.size(0),
+                result.tensor.size(1));
           }));
     }
 
