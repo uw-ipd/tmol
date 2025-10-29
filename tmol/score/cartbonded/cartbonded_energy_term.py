@@ -89,6 +89,18 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                             continue
                         if atom1 >= atom4:
                             continue
+                        # if (
+                        #         block_type.name == "SER" and
+                        #         (
+                        #             block_type.atoms[atom1].name == "HG" or
+                        #             block_type.atoms[atom4].name == "HG"
+                        #         )
+                        # ):
+                        #     print("hydroxyl torsion!")
+                        #     print(block_type.atoms[atom1].name)
+                        #     print(block_type.atoms[atom2].name)
+                        #     print(block_type.atoms[atom3].name)
+                        #     print(block_type.atoms[atom4].name)
                         torsions.append((atom1, atom2, atom3, atom4))
 
         # get improper torsions

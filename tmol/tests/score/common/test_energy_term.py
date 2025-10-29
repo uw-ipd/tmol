@@ -351,6 +351,9 @@ class EnergyTermTestBase:
         pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
         scores = pose_scorer(pn.coords).cpu().detach().numpy()
 
+        # print("Scores (fresh)")
+        # print(scores)
+
         if update_baseline:
             cls.save_test_baseline_data(
                 cls.test_whole_pose_scoring_jagged.__name__,
@@ -359,6 +362,11 @@ class EnergyTermTestBase:
         gold_vals = cls.get_test_baseline_data(
             cls.test_whole_pose_scoring_jagged.__name__
         )
+        # print("Gold")
+        # print(gold_vals)
+
+        # print("diff")
+        # print(gold_vals - scores)
 
         assert_allclose(gold_vals, scores, atol, rtol)
 
@@ -416,8 +424,8 @@ class EnergyTermTestBase:
             block_pair_scorer(coords).to_dense().cpu().detach().numpy()
         )
 
-        print("Scores (fresh)")
-        print(scores)
+        # print("Scores (fresh)")
+        # print(scores)
 
         test_name = (
             cls.test_block_scoring.__name__
@@ -428,32 +436,32 @@ class EnergyTermTestBase:
             # okay, huge annoying workaround for the sake of preserving
             # the old residue-pair format for now:
             # spread the scores out to upper and lower triangles
-            gold_vals_upper_and_lower_triangle = numpy.zeros_like(scores)
-            n_terms = scores.shape[0]
-            n_poses = scores.shape[1]
-            n_res = scores.shape[2]
-            assert n_poses == 1
-            inds_arange = numpy.arange(n_res, dtype=int)
-            inds_arange_i = inds_arange.reshape(-1, 1)
-            inds_arange_j = inds_arange.reshape(1, -1)
-            ij_is_upper_triangle = inds_arange_i < inds_arange_j
-            nz_ij_is_upper_triangle = numpy.nonzero(ij_is_upper_triangle)
-
-            ij_is_diagonal = inds_arange_i == inds_arange_j
-            gold_vals_upper_and_lower_triangle[:, :, ij_is_diagonal] = scores[:, :, ij_is_diagonal]
-            gold_vals_upper_and_lower_triangle[:, :, nz_ij_is_upper_triangle[0], nz_ij_is_upper_triangle[1]] = 0.5 * scores[:, :, ij_is_upper_triangle]
-            gold_vals_upper_and_lower_triangle[:, :, nz_ij_is_upper_triangle[1], nz_ij_is_upper_triangle[0]] = 0.5 * scores[:, :, ij_is_upper_triangle]
+            # gold_vals_upper_and_lower_triangle = numpy.zeros_like(scores)
+            # n_terms = scores.shape[0]
+            # n_poses = scores.shape[1]
+            # n_res = scores.shape[2]
+            # assert n_poses == 1
+            # inds_arange = numpy.arange(n_res, dtype=int)
+            # inds_arange_i = inds_arange.reshape(-1, 1)
+            # inds_arange_j = inds_arange.reshape(1, -1)
+            # ij_is_upper_triangle = inds_arange_i < inds_arange_j
+            # nz_ij_is_upper_triangle = numpy.nonzero(ij_is_upper_triangle)
+# 
+            # ij_is_diagonal = inds_arange_i == inds_arange_j
+            # gold_vals_upper_and_lower_triangle[:, :, ij_is_diagonal] = scores[:, :, ij_is_diagonal]
+            # gold_vals_upper_and_lower_triangle[:, :, nz_ij_is_upper_triangle[0], nz_ij_is_upper_triangle[1]] = 0.5 * scores[:, :, ij_is_upper_triangle]
+            # gold_vals_upper_and_lower_triangle[:, :, nz_ij_is_upper_triangle[1], nz_ij_is_upper_triangle[0]] = 0.5 * scores[:, :, ij_is_upper_triangle]
 
             # print("gold_vals_upper_and_lower_triangle", gold_vals_upper_and_lower_triangle)
-            cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(gold_vals_upper_and_lower_triangle))
+            cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(scores))
         gold_vals = cls.get_test_baseline_data(test_name)
-        print("Gold scores")
-        print(gold_vals)
+        # print("Gold scores")
+        # print(gold_vals)
 
         # reshape these values for the new block-pair scoring scheme
         gold_vals_upper_triangle = numpy.zeros_like(gold_vals)
         assert gold_vals.shape[2] == gold_vals.shape[3]
-        n_terms = gold_vals.shape[0]
+        # n_terms = gold_vals.shape[0]
         n_poses = gold_vals.shape[1]
         n_res = gold_vals.shape[2]
         assert n_poses == 1
@@ -461,16 +469,29 @@ class EnergyTermTestBase:
         inds_arange_i = inds_arange.reshape(-1, 1)
         inds_arange_j = inds_arange.reshape(1, -1)
         ij_is_upper_triangle = inds_arange_i < inds_arange_j
-        ij_is_lower_triangle = inds_arange_i > inds_arange_j
+        # ij_is_lower_triangle = inds_arange_i > inds_arange_j
         ij_is_diagonal = inds_arange_i == inds_arange_j
         gold_vals_upper_triangle[:, :, ij_is_diagonal] = gold_vals[:, :, ij_is_diagonal]
-        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] = 2 * gold_vals[:, :, ij_is_upper_triangle]
+        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] = gold_vals[:, :, ij_is_upper_triangle]
+        gold_vals_transposed = numpy.transpose(gold_vals, (0, 1, 3, 2))
+        # print("gold_vals_transposed")
+        # print(gold_vals_transposed)
+        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] += gold_vals_transposed[:, :, ij_is_upper_triangle]
+
+        scores_upper_triangle = numpy.zeros_like(scores)
+        scores_upper_triangle[:, :, ij_is_diagonal] = scores[:, :, ij_is_diagonal]
+        scores_upper_triangle[:, :, ij_is_upper_triangle] = scores[:, :, ij_is_upper_triangle]
+        scores_transposed = numpy.transpose(scores, (0, 1, 3, 2))
+        scores_upper_triangle[:, :, ij_is_upper_triangle] += scores_transposed[:, :, ij_is_upper_triangle]
+
+        # print("gold vals upper triangle")
+        # print(gold_vals_upper_triangle)
 
         gold_vals_sum = gold_vals_upper_triangle.sum(-1).sum(-1)
         scores_sum = scores.sum(-1).sum(-1)
-        print("GOLD SUM:", gold_vals_sum, "SCORES SUM", scores_sum)
+        # print("GOLD SUM:", gold_vals_sum, "SCORES SUM", scores_sum)
 
-        assert_allclose(gold_vals_upper_triangle, scores, atol, rtol)
+        assert_allclose(gold_vals_upper_triangle, scores_upper_triangle, atol, rtol)
 
     @classmethod
     def test_block_scoring_reweighted_gradcheck(
