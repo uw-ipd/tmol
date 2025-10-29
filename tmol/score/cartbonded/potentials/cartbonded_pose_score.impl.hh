@@ -124,6 +124,39 @@ TMOL_DEVICE_FUNC void accumulate_result(
   }
 }
 
+template <typename Int, tmol::Device D>
+TMOL_DEVICE_FUNC
+int
+dispatch_index_for_rot_pair(
+  TView<Int, 1, D> n_output_intxns_for_rot_conn_offset,
+  int const n_max_conns,
+  int const block_ind1,
+  int const block_ind2,
+  int const rot_ind1, 
+  int const rot_ind2,
+  int const local_rot_ind1,
+  int const local_rot_ind2,
+  int const conn_ind1,
+  int const conn_ind2
+){
+  // int const lower_block = block_ind1 < block_ind2 ? block_ind1 : block_ind2;
+  // int const upper_block = block_ind1 < block_ind2 ? block_ind2 : block_ind1;
+  int const lower_rot = block_ind1 < block_ind2 ? rot_ind1 : rot_ind2;
+  int const upper_rot = block_ind1 < block_ind2 ? rot_ind2 : rot_ind1;
+  int const lower_local_rot = block_ind1 < block_ind2 ? local_rot_ind1 : local_rot_ind2;
+  int const upper_local_rot = block_ind1 < block_ind2 ? local_rot_ind2 : local_rot_ind1;
+  int const lower_conn = block_ind1 < block_ind2 ? conn_ind1 : conn_ind2;
+  // int const upper_n_rots = block_ind1 < block_ind2 ? n_rots2 : n_rots1;
+
+  int const offset = n_output_intxns_for_rot_conn_offset[lower_rot * (n_max_conns+1) + lower_conn];
+  if (lower_rot == upper_rot) {
+    return offset;
+  } else {
+    return offset + upper_local_rot;
+  }
+}
+
+
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -175,6 +208,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       TPack<Real, 2, D>,          // V_t,    
       TPack<Vec<Real, 3>, 2, D>,  // dV_dx_t,           
       TPack<Int, 2, D>,           // dispatch_indices_t,  
+      TPack<Int, 1, D>,           // n_output_intxns_for_rot_conn_offset,  
       TPack<Int, 1, D>,           // n_intxns_for_rot_conn_offset_t,  
       TPack<Int, 1, D>,           // rotconn_for_intxn_t,  
       TPack<Int, 1, D>,           // count_n_at_pair_dists_for_rotconn_offset_t,  
@@ -249,11 +283,19 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // Convention: conn == n_max_conns ==> the intra-rotamer set of cart energies
   int const max_n_interactions = n_rots * (n_max_conns + 1);
 
+  // We have one set of tensors for tracking the i-to-i+1 as well as the i+1-to-i interactions
+  // and a separate set of "output" tensors that colapse these two interactions together
+  // for the sake of generating a sparse matrix that includes only upper-traingle entries.
   auto n_intxns_for_rot_conn_t = TPack<Int, 1, D>::zeros({max_n_interactions});
   auto n_intxns_for_rot_conn = n_intxns_for_rot_conn_t.view;
   auto n_intxns_for_rot_conn_offset_t = TPack<Int, 1, D>::zeros({max_n_interactions});
   auto n_intxns_for_rot_conn_offset = n_intxns_for_rot_conn_offset_t.view;
 
+  // Here we only count the rotconns to "upper" neighbors
+  auto n_output_intxns_for_rot_conn_t = TPack<Int, 1, D>::zeros({max_n_interactions});
+  auto n_output_intxns_for_rot_conn = n_output_intxns_for_rot_conn_t.view;
+  auto n_output_intxns_for_rot_conn_offset_t = TPack<Int, 1, D>::zeros({max_n_interactions});
+  auto n_output_intxns_for_rot_conn_offset = n_output_intxns_for_rot_conn_offset_t.view;
 
   auto count_n_at_pair_dists_for_rotconn_t = TPack<Int, 1, D>::zeros({max_n_interactions});
   auto count_n_at_trip_angls_for_rotconn_t = TPack<Int, 1, D>::zeros({max_n_interactions});
@@ -285,6 +327,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     if (is_intra_conn) {
       n_intxns_for_rot_conn[rot_ind * (n_max_conns + 1) + conn_ind] = 1;
+      n_output_intxns_for_rot_conn[rot_ind * (n_max_conns + 1) + conn_ind] = 1;
       count_n_at_pair_dists_for_rotconn[index] = cart_subgraph_type_counts[block_type_ind][subgraph_length];
       count_n_at_trip_angls_for_rotconn[index] = cart_subgraph_type_counts[block_type_ind][subgraph_angle];
       count_n_at_quad_dihes_for_rotconn[index] = cart_subgraph_type_counts[block_type_ind][subgraph_torsion];
@@ -314,6 +357,10 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       count_n_at_pair_dists_for_rotconn[index] = other_block_n_rots * get_n_connection_spanning_subgraphs(subgraph_length);
       count_n_at_trip_angls_for_rotconn[index] = other_block_n_rots * get_n_connection_spanning_subgraphs(subgraph_angle);
       count_n_at_quad_dihes_for_rotconn[index] = other_block_n_rots * get_n_connection_spanning_subgraphs(subgraph_torsion);
+      if (block_ind < other_block_ind) {
+        // For output purposes, only keep track of the upper-connection rotconns.
+        n_output_intxns_for_rot_conn[rot_ind * (n_max_conns + 1) + conn_ind] = other_block_n_rots;
+      }
     }
   });
   // Launch this kernel for max_n_interactions threads
@@ -338,12 +385,26 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           max_n_interactions
         );
   auto rotconn_for_intxn = rotconn_for_intxn_t.view;
+  // Scan and LBS on n output intxns
+  int n_output_intxns_total =
+      DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
+          n_output_intxns_for_rot_conn.data(),
+          n_output_intxns_for_rot_conn_offset.data(),
+          max_n_interactions,
+          mgpu::plus_t<Int>());
+  TPack<Int, 1, D> rotconn_for_output_intxn_t =
+        DeviceDispatch<D>::template load_balancing_search<launch_t>(
+          n_output_intxns_total,
+          n_output_intxns_for_rot_conn_offset.data(),
+          max_n_interactions
+        );
+  auto rotconn_for_output_intxn = rotconn_for_output_intxn_t.view;
 
   // Allocate the tensors to which we will write our outputs
-  int const n_V = output_block_pair_energies ? n_intxns_total : n_poses;
+  int const n_V = output_block_pair_energies ? n_output_intxns_total : n_poses;
   auto V_t = TPack<Real, 2, D>::zeros({5, n_V});
   auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms});
-  auto dispatch_indices_t = TPack<Int, 2, D>::zeros({3, n_intxns_total});
+  auto dispatch_indices_t = TPack<Int, 2, D>::zeros({3, n_output_intxns_total});
 
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
@@ -415,8 +476,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   //   }
   // }
 
-  auto record_dispatch_indices_for_intxns = ([=] TMOL_DEVICE_FUNC (int index) {
-    int const rotconn_ind = rotconn_for_intxn[index];
+  auto record_dispatch_indices_for_output_intxns = ([=] TMOL_DEVICE_FUNC (int index) {
+    int const rotconn_ind = rotconn_for_output_intxn[index];
     int const rot_ind1 = rotconn_ind / (n_max_conns + 1);
     int const conn_ind1 = rotconn_ind % (n_max_conns + 1);
     int const pose_ind = pose_ind_for_rot[rot_ind1];
@@ -430,18 +491,29 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     } else {
       // inter-residue
       int const block_ind1 = block_ind_for_rot[rot_ind1];
-      int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
+      int const rotconn_offset = n_output_intxns_for_rot_conn_offset[rotconn_ind];
       int const local_rot_ind2 = index - rotconn_offset;
       int const block_ind2 = pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1][0];
+
       rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
+      // printf(" b1 %d rco %d lr2 %d b2 %d\n", block_ind1, rotconn_offset, local_rot_ind2, block_ind2);
     }
     dispatch_indices[2][index] = rot_ind2;
+    // printf("dispatch_indices[ %d ] = [%d %d %d] for rc %d (%d %d)\n",
+    //   index,
+    //   pose_ind,
+    //   rot_ind1,
+    //   rot_ind2,
+    //   rotconn_ind,
+    //   rot_ind1,
+    //   conn_ind1
+    // );
   });
-  // Record the rotamer pair indices for the interactions; though we will
+  // Record the rotamer pair indices for the output interactions; though we will
   // only use them downstream if we are in output_block_pair_energies mode
   // std::cout << "record_dispatch_indices_for_intxns" << std::endl; 
   DeviceDispatch<D>::template forall<launch_t>(
-    n_intxns_total, record_dispatch_indices_for_intxns);
+    n_output_intxns_total, record_dispatch_indices_for_output_intxns);
 
   auto eval_lengths = ([=] TMOL_DEVICE_FUNC (int index) {
     int const rotconn_ind = rotconn_for_lengths[index];
@@ -454,19 +526,20 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     int const block_ind1 = block_ind_for_rot[rot_ind1];
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const rot_coord_offset1 = rot_coord_offset[rot_ind1];
+    int const rot_offset_for_block1 = rot_offset_for_block[pose_ind][block_ind1];
+    int const local_rot_ind1 = rot_ind1 - rot_offset_for_block1;
 
     int param_index = -1;
     Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
 
-    int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
     int dispatch_ind;
 
     if (conn_ind1 == n_max_conns) {
       // intra-residue!
 
       // There is only one interaction for this conn_ind1 -- the rotamer with itself
-      // -- so the "dispatch index" is equal to the rotconn_offset.
-      dispatch_ind = rotconn_offset;
+      // -- so the "dispatch index" is equal to the output offset.
+      dispatch_ind = n_output_intxns_for_rot_conn_offset[rotconn_ind];
       int const subgraph_offset = cart_subgraph_offsets[block_type1];
       // int const subgraph_offset_next = block_type1 + 1 == n_block_types
       //                               ? n_subgraphs
@@ -497,15 +570,35 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       // so let's skip the math.
       int const local_rot_ind2 = local_length_ind_for_rotconn;
 
-      // The "dispatch index" is rotconn_offset + the local index of the
-      // block2 rotamer
-      dispatch_ind = rotconn_offset + local_rot_ind2;
-
       int const local_subgraph_ind = 0; // only one length and its the first one
       int const subgraph_offset = get_connection_spanning_subgraphs_offset(subgraph_length);
-      int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
+      int const rot_ind2 = rot_offset_for_block[pose_ind][block_ind2] + local_rot_ind2;
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
+
+      dispatch_ind = dispatch_index_for_rot_pair(
+        n_output_intxns_for_rot_conn_offset,
+        n_max_conns,
+        block_ind1,
+        block_ind2,
+        rot_ind1, 
+        rot_ind2,
+        local_rot_ind1,
+        local_rot_ind2,
+        conn_ind1,
+        conn_ind2
+      );
+      // printf("dispatch ind %d from b %d %d r %d %d lr %d %d c %d %d \n",
+      //   dispatch_ind,
+      //   block_ind1,
+      //   block_ind2,
+      //   rot_ind1, 
+      //   rot_ind2,
+      //   local_rot_ind1,
+      //   local_rot_ind2,
+      //   conn_ind1,
+      //   conn_ind2
+      // );
 
       // this is a long way to go to add 0 to 0!
       int const subgraph_index = local_subgraph_ind + subgraph_offset;
@@ -588,6 +681,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       int score_type = params[0];
 
       int V_ind = (output_block_pair_energies) ? dispatch_ind : pose_ind;
+      // printf("V_ind %d (of %d)\n", V_ind, V.size(1));
 
       // printf("Scoring length for ats %d %d\n", subgraph_atom_indices[0], subgraph_atom_indices[1]);
       auto eval = cblength_V_dV(atom1, atom2, params[2], params[1]);
@@ -616,11 +710,13 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     int const block_ind1 = block_ind_for_rot[rot_ind1];
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const rot_coord_offset1 = rot_coord_offset[rot_ind1];
+    int const rot_offset_for_block1 = rot_offset_for_block[pose_ind][block_ind1];
+    int const local_rot_ind1 = rot_ind1 - rot_offset_for_block1;
 
     int param_index = -1;
     Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
 
-    int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
+    // int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
     int dispatch_ind;
 
     if (conn_ind1 == n_max_conns) {
@@ -628,7 +724,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
       // There is only one interaction for this conn_ind1, so the
       // "dispatch index" is equal to the rotconn_offset.
-      dispatch_ind = rotconn_offset;
+      dispatch_ind = n_output_intxns_for_rot_conn_offset[rotconn_ind];
 
       // Get the subgraph for this particular angle we are looking at
       int const subgraph_offset = cart_subgraph_offsets[block_type1] +
@@ -659,17 +755,25 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       int const n_intra_angles = get_n_connection_spanning_subgraphs(subgraph_angle);
       int const local_rot_ind2 = local_rot_and_angle_ind_for_rotconn / n_intra_angles;
       int const local_angle_ind = local_rot_and_angle_ind_for_rotconn % n_intra_angles;
-
-      // The "dispatch index" is rotconn_offset + the local index of the
-      // block2 rotamer
-      dispatch_ind = rotconn_offset + local_rot_ind2;
-
       // which angle for this rotconn?
 
       int const subgraph_offset = get_connection_spanning_subgraphs_offset(subgraph_angle);
       int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
+
+      dispatch_ind = dispatch_index_for_rot_pair(
+        n_output_intxns_for_rot_conn_offset,
+        n_max_conns,
+        block_ind1,
+        block_ind2,
+        rot_ind1, 
+        rot_ind2,
+        local_rot_ind1,
+        local_rot_ind2,
+        conn_ind1,
+        conn_ind2
+      );
 
       // the index of this subgraph in the list of inter-block subgraphs
       // from connection.hh. We do not know if this angle is defined
@@ -804,19 +908,21 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     int const block_ind1 = block_ind_for_rot[rot_ind1];
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const rot_coord_offset1 = rot_coord_offset[rot_ind1];
+    int const rot_offset_for_block1 = rot_offset_for_block[pose_ind][block_ind1];
+    int const local_rot_ind1 = rot_ind1 - rot_offset_for_block1;
 
     int param_index = -1;
     Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
 
-    int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
+    // int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
     int dispatch_ind;
 
     if (conn_ind1 == n_max_conns) {
       // intra-residue!
 
-      // There is only one interaction for this conn_ind1, so the
-      // "dispatch index" is equal to the rotconn_offset.
-      dispatch_ind = rotconn_offset;
+      // There is only one interaction for this conn_ind1 -- the rotamer with itself
+      // -- so the "dispatch index" is equal to the output offset.
+      dispatch_ind = n_output_intxns_for_rot_conn_offset[rotconn_ind];
 
       // Get the subgraph for this particular angle we are looking at
       int const subgraph_offset = cart_subgraph_offsets[block_type1] +
@@ -848,15 +954,23 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       int const local_rot_ind2 = local_rot_and_torsion_ind_for_rotconn / n_intra_torsions;
       int const local_torsion_ind = local_rot_and_torsion_ind_for_rotconn % n_intra_torsions;
 
-      // The "dispatch index" is rotconn_offset + the local index of the
-      // block2 rotamer
-      dispatch_ind = rotconn_offset + local_rot_ind2;
-
-
       int const subgraph_offset = get_connection_spanning_subgraphs_offset(subgraph_torsion);
       int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
+
+      dispatch_ind = dispatch_index_for_rot_pair(
+        n_output_intxns_for_rot_conn_offset,
+        n_max_conns,
+        block_ind1,
+        block_ind2,
+        rot_ind1, 
+        rot_ind2,
+        local_rot_ind1,
+        local_rot_ind2,
+        conn_ind1,
+        conn_ind2
+      );
 
       // the index of this subgraph in the list of inter-block subgraphs
       // from connection.hh. We do not know if this angle is defined
@@ -975,6 +1089,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     V_t,
     dV_dx_t,
     dispatch_indices_t,
+    n_output_intxns_for_rot_conn_offset_t,
     n_intxns_for_rot_conn_offset_t,
     rotconn_for_intxn_t,
     count_n_at_pair_dists_for_rotconn_offset_t,
@@ -1253,6 +1368,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
 
     TView<Int, 2, D> dispatch_indices,
+    TView<Int, 1, D> n_output_intxns_for_rot_conn_offset,
     TView<Int, 1, D> n_intxns_for_rot_conn_offset,
     TView<Int, 1, D> rotconn_for_intxn,
     TView<Int, 1, D> count_n_at_pair_dists_for_rotconn_offset,
@@ -1310,11 +1426,11 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   // Optimal launch box on v100 and a100 is nt=32, vt=1
   LAUNCH_BOX_32;
 
-  int const n_intxns_total = dispatch_indices.size(1);
+  int const n_output_intxns_total = dispatch_indices.size(1);
   // We only call backward if we are in output_block_pair_energies mode,
   // so we will just go directly to allocating V_t w/ n_intxns_total size
   // int const n_V = output_block_pair_energies ? n_intxns_total : n_poses;
-  auto V_t = TPack<Real, 2, D>::zeros({5, n_intxns_total});
+  auto V_t = TPack<Real, 2, D>::zeros({5, n_output_intxns_total});
   auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({5, n_atoms});
   auto V = V_t.view;
   auto dV_dx = dV_dx_t.view;
@@ -1331,19 +1447,22 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     int const block_ind1 = block_ind_for_rot[rot_ind1];
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const rot_coord_offset1 = rot_coord_offset[rot_ind1];
+    int const rot_offset_for_block1 = rot_offset_for_block[pose_ind][block_ind1];
+    int const local_rot_ind1 = rot_ind1 - rot_offset_for_block1;
 
     int param_index = -1;
     Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
 
-    int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
+    // int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
     int dispatch_ind;
 
     if (conn_ind1 == n_max_conns) {
       // intra-residue!
 
-      // There is only one interaction for this conn_ind1, so the
-      // "dispatch index" is equal to the rotconn_offset.
-      dispatch_ind = rotconn_offset;
+      // There is only one interaction for this conn_ind1 -- the rotamer with itself
+      // -- so the "dispatch index" is equal to the output offset.
+      dispatch_ind = n_output_intxns_for_rot_conn_offset[rotconn_ind];
+
       int const subgraph_offset = cart_subgraph_offsets[block_type1];
       // int const subgraph_offset_next = block_type1 + 1 == n_block_types
       //                               ? n_subgraphs
@@ -1373,15 +1492,24 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       // so let's skip the math.
       int const local_rot_ind2 = local_length_ind_for_rotconn;
 
-      // The "dispatch index" is rotconn_offset + the local index of the
-      // block2 rotamer
-      dispatch_ind = rotconn_offset + local_rot_ind2;
-
       int const local_subgraph_ind = 0; // only one length and its the first one
       int const subgraph_offset = get_connection_spanning_subgraphs_offset(subgraph_length);
       int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
+
+      dispatch_ind = dispatch_index_for_rot_pair(
+        n_output_intxns_for_rot_conn_offset,
+        n_max_conns,
+        block_ind1,
+        block_ind2,
+        rot_ind1, 
+        rot_ind2,
+        local_rot_ind1,
+        local_rot_ind2,
+        conn_ind1,
+        conn_ind2
+      );
 
       // this is a long way to go to add 0 to 0!
       int const subgraph_index = local_subgraph_ind + subgraph_offset;
@@ -1491,19 +1619,21 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     int const block_ind1 = block_ind_for_rot[rot_ind1];
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const rot_coord_offset1 = rot_coord_offset[rot_ind1];
+    int const rot_offset_for_block1 = rot_offset_for_block[pose_ind][block_ind1];
+    int const local_rot_ind1 = rot_ind1 - rot_offset_for_block1;
 
     int param_index = -1;
     Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
 
-    int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
+    // int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
     int dispatch_ind;
 
     if (conn_ind1 == n_max_conns) {
       // intra-residue!
 
-      // There is only one interaction for this conn_ind1, so the
-      // "dispatch index" is equal to the rotconn_offset.
-      dispatch_ind = rotconn_offset;
+      // There is only one interaction for this conn_ind1 -- the rotamer with itself
+      // -- so the "dispatch index" is equal to the output offset.
+      dispatch_ind = n_output_intxns_for_rot_conn_offset[rotconn_ind];
 
       // Get the subgraph for this particular angle we are looking at
       int const subgraph_offset = cart_subgraph_offsets[block_type1] +
@@ -1535,17 +1665,25 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       int const local_rot_ind2 = local_rot_and_angle_ind_for_rotconn / n_intra_angles;
       int const local_angle_ind = local_rot_and_angle_ind_for_rotconn % n_intra_angles;
 
-      // The "dispatch index" is rotconn_offset + the local index of the
-      // block2 rotamer
-      dispatch_ind = rotconn_offset + local_rot_ind2;
-
       // which angle for this rotconn?
-
       int const subgraph_offset = get_connection_spanning_subgraphs_offset(subgraph_angle);
       int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
 
+      dispatch_ind = dispatch_index_for_rot_pair(
+        n_output_intxns_for_rot_conn_offset,
+        n_max_conns,
+        block_ind1,
+        block_ind2,
+        rot_ind1, 
+        rot_ind2,
+        local_rot_ind1,
+        local_rot_ind2,
+        conn_ind1,
+        conn_ind2
+      );
+      
       // the index of this subgraph in the list of inter-block subgraphs
       // from connection.hh. We do not know if this angle is defined
       // for this pair of block types yet, so we will attempt to resolve
@@ -1661,19 +1799,21 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     int const block_ind1 = block_ind_for_rot[rot_ind1];
     int const block_type1 = block_type_ind_for_rot[rot_ind1];
     int const rot_coord_offset1 = rot_coord_offset[rot_ind1];
+    int const rot_offset_for_block1 = rot_offset_for_block[pose_ind][block_ind1];
+    int const local_rot_ind1 = rot_ind1 - rot_offset_for_block1;
 
     int param_index = -1;
     Vec<Int, 4> subgraph_atom_indices = {-1, -1, -1, -1};
 
-    int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
+    // int const rotconn_offset = n_intxns_for_rot_conn_offset[rotconn_ind];
     int dispatch_ind;
 
     if (conn_ind1 == n_max_conns) {
       // intra-residue!
 
-      // There is only one interaction for this conn_ind1, so the
-      // "dispatch index" is equal to the rotconn_offset.
-      dispatch_ind = rotconn_offset;
+      // There is only one interaction for this conn_ind1 -- the rotamer with itself
+      // -- so the "dispatch index" is equal to the output offset.
+      dispatch_ind = n_output_intxns_for_rot_conn_offset[rotconn_ind];
 
       // Get the subgraph for this particular angle we are looking at
       int const subgraph_offset = cart_subgraph_offsets[block_type1] +
@@ -1705,15 +1845,23 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       int const local_rot_ind2 = local_rot_and_torsion_ind_for_rotconn / n_intra_torsions;
       int const local_torsion_ind = local_rot_and_torsion_ind_for_rotconn % n_intra_torsions;
 
-      // The "dispatch index" is rotconn_offset + the local index of the
-      // block2 rotamer
-      dispatch_ind = rotconn_offset + local_rot_ind2;
-
-
       int const subgraph_offset = get_connection_spanning_subgraphs_offset(subgraph_torsion);
       int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
       int const block_type2 = block_type_ind_for_rot[rot_ind2];
       int const rot_coord_offset2 = rot_coord_offset[rot_ind2];
+
+      dispatch_ind = dispatch_index_for_rot_pair(
+        n_output_intxns_for_rot_conn_offset,
+        n_max_conns,
+        block_ind1,
+        block_ind2,
+        rot_ind1, 
+        rot_ind2,
+        local_rot_ind1,
+        local_rot_ind2,
+        conn_ind1,
+        conn_ind2
+      );
 
       // the index of this subgraph in the list of inter-block subgraphs
       // from connection.hh. We do not know if this angle is defined
@@ -2052,7 +2200,7 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
   // return dV_dx_t;
 
-}  // namespace potentials
+}  // backward
 
 }  // namespace potentials
 }  // namespace cartbonded

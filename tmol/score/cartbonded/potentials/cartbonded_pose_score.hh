@@ -75,6 +75,7 @@ struct CartBondedPoseScoreDispatch {
       TPack<Real, 2, D>,          // V_t,    
       TPack<Vec<Real, 3>, 2, D>,  // dV_dx_t,           
       TPack<Int, 2, D>,           // dispatch_indices_t,  
+      TPack<Int, 1, D>,           // n_output_intxns_for_rot_conn_offset_t,  
       TPack<Int, 1, D>,           // n_intxns_for_rot_conn_offset_t,  
       TPack<Int, 1, D>,           // rotconn_for_intxn_t,  
       TPack<Int, 1, D>,           // count_n_at_pair_dists_for_rotconn_offset_t,  
@@ -122,6 +123,7 @@ struct CartBondedPoseScoreDispatch {
     TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
 
     TView<Int, 2, D> dispatch_indices,
+    TView<Int, 1, D> n_output_intxns_for_rot_conn_offset,
     TView<Int, 1, D> n_intxns_for_rot_conn_offset,
     TView<Int, 1, D> rotconn_for_intxn,
     TView<Int, 1, D> count_n_at_pair_dists_for_rotconn_offset,

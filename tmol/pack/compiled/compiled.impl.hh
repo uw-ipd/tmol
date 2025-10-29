@@ -29,7 +29,7 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     TView<Int, 1, D> pose_for_rot,
     TView<Int, 1, D> block_type_ind_for_rot,
     TView<int32_t, 1, D> block_ind_for_rot,
-    TView<int32_t, 2, D> sparse_inds,  // if we are ever dealing w > 4B
+    TView<int32_t, 2, D> sparse_inds,  // why int32? well, if we are ever dealing w > 4B
                                        // rotamers, we are in trouble
     TView<Real, 1, D> sparse_energies)
     -> std::tuple<

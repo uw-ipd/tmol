@@ -63,6 +63,7 @@ class CartBondedPoseScoreOp
     at::Tensor score;
     at::Tensor dscore_dcoords;
     at::Tensor dispatch_indices;
+    at::Tensor n_output_intxns_for_rot_conn_offset;
     at::Tensor n_intxns_for_rot_conn_offset;
     at::Tensor rotconn_for_intxn;
     at::Tensor count_n_at_pair_dists_for_rotconn_offset;
@@ -114,14 +115,15 @@ class CartBondedPoseScoreOp
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
           dispatch_indices = std::get<2>(result).tensor;
-          n_intxns_for_rot_conn_offset = std::get<3>(result).tensor;
-          rotconn_for_intxn = std::get<4>(result).tensor;
-          count_n_at_pair_dists_for_rotconn_offset = std::get<5>(result).tensor;
-          rotconn_for_lengths = std::get<6>(result).tensor;
-          count_n_at_trip_angls_for_rotconn_offset = std::get<7>(result).tensor;
-          rotconn_for_angles = std::get<8>(result).tensor;
-          count_n_at_quad_dihes_for_rotconn_offset = std::get<9>(result).tensor;
-          rotconn_for_torsions = std::get<10>(result).tensor;
+          n_output_intxns_for_rot_conn_offset = std::get<3>(result).tensor;
+          n_intxns_for_rot_conn_offset = std::get<4>(result).tensor;
+          rotconn_for_intxn = std::get<5>(result).tensor;
+          count_n_at_pair_dists_for_rotconn_offset = std::get<6>(result).tensor;
+          rotconn_for_lengths = std::get<7>(result).tensor;
+          count_n_at_trip_angls_for_rotconn_offset = std::get<8>(result).tensor;
+          rotconn_for_angles = std::get<9>(result).tensor;
+          count_n_at_quad_dihes_for_rotconn_offset = std::get<10>(result).tensor;
+          rotconn_for_torsions = std::get<11>(result).tensor;
 
         }));
 
@@ -155,6 +157,7 @@ class CartBondedPoseScoreOp
            cart_subgraph_type_offsets,
 
            dispatch_indices,
+           n_output_intxns_for_rot_conn_offset,
            n_intxns_for_rot_conn_offset,
            rotconn_for_intxn,
            count_n_at_pair_dists_for_rotconn_offset,
@@ -229,6 +232,7 @@ class CartBondedPoseScoreOp
 
       // Tensors generated during the forward pass
       auto dispatch_indices = saved[i++];
+      auto n_output_intxns_for_rot_conn_offset = saved[i++];
       auto n_intxns_for_rot_conn_offset = saved[i++];
       auto rotconn_for_intxn = saved[i++];
       auto count_n_at_pair_dists_for_rotconn_offset = saved[i++];
@@ -280,6 +284,7 @@ class CartBondedPoseScoreOp
                         TCAST(cart_subgraph_type_offsets),
                         
                         TCAST(dispatch_indices),
+                        TCAST(n_output_intxns_for_rot_conn_offset),
                         TCAST(n_intxns_for_rot_conn_offset),
                         TCAST(rotconn_for_intxn),
                         TCAST(count_n_at_pair_dists_for_rotconn_offset),
