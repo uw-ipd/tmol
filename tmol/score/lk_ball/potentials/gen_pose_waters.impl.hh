@@ -148,6 +148,10 @@ struct GeneratePoseWaters {
       int const pose_ind = pose_ind_for_rot[rot_ind];
       int const block_type = block_type_ind_for_rot[rot_ind];
       int const block_ind = block_ind_for_rot[rot_ind];
+      // std::cout << "f_watergen " << pose_ind << " " << block_type << " " << block_ind << std::endl;
+      if (block_type == -1) {
+        return;
+      }
 
       int const n_atoms = block_type_n_atoms[block_type];
 
@@ -162,6 +166,7 @@ struct GeneratePoseWaters {
       water_gen_load_tile_invariant_data<DeviceOps, Dev, nt>(
           rot_coords,
           first_rot_for_block,
+          first_rot_block_type,
           rot_coord_offset,
           block_type_ind_for_rot,
           pose_stack_inter_residue_connections,
@@ -250,12 +255,13 @@ struct GeneratePoseWaters {
         // Step 4: ...before performing the work for each tile
         DeviceOps<Dev>::template for_each_in_workgroup<nt>(gen_tile_waters);
       }
+      // std::cout << "f_watergen done" << std::endl;
     });
 
     int const n_blocks = n_poses * max_n_blocks;
-    std::cout << "Build waters" << std::endl;
+    // std::cout << "Build waters" << std::endl;
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
-    std::cout << "Done" << std::endl;
+    // std::cout << "Done" << std::endl;
 
     return water_coords_t;
   };
@@ -471,6 +477,9 @@ auto f_watergen = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const pose_ind = pose_ind_for_rot[rot_ind];
       int const block_type = block_type_ind_for_rot[rot_ind];
       int const block_ind = block_ind_for_rot[rot_ind];
+      if (block_type == -1) {
+        return;
+      }
 
       int const n_atoms = block_type_n_atoms[block_type];
 
@@ -485,6 +494,7 @@ auto f_watergen = ([=] TMOL_DEVICE_FUNC(int ind) {
       water_gen_load_tile_invariant_data<DeviceOps, Dev, nt>(
           rot_coords,
           first_rot_for_block,
+          first_rot_block_type,
           rot_coord_offset,
           block_type_ind_for_rot,
           pose_stack_inter_residue_connections,
@@ -580,14 +590,13 @@ auto f_watergen = ([=] TMOL_DEVICE_FUNC(int ind) {
 
     int const n_blocks = n_poses * max_n_blocks;
     nvtx_range_push("watergen::dgen");
-    std::cout << "Build waters backwards" << std::endl;
+    // std::cout << "Build waters backwards" << std::endl;
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
-    std::cout << "done" << std::endl;
+    // std::cout << "done" << std::endl;
 
     nvtx_range_pop();
 
     // std::cout << "d watergen end" << std::endl;
-
     return dE_d_pose_coords_t;
   };
 };

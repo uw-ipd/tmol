@@ -759,7 +759,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
     int cp_separation) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
-  using bonded_atom::BlockCentricIndexedBonds;
+  using bonded_atom::RotamerCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
@@ -773,19 +773,21 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
     };
     BlockCentricAtom<Int> A{
         acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
-    BlockCentricIndexedBonds<Int, Dev> bonds{
+    RotamerCentricIndexedBonds<Int, Dev> bonds{
+        acc_dat.block_ind,
+        acc_dat.block_type,
         respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
-        respair_dat.rot_block_type,
+        respair_dat.first_rot_block_type[respair_dat.pose_ind],
         respair_dat.block_type_n_all_bonds,
         respair_dat.block_type_all_bonds,
         respair_dat.block_type_atom_all_bond_ranges,
         respair_dat.block_type_atoms_forming_chemical_bonds};
-    auto acc_bases = BlockCentricAcceptorBases<Int>::for_acceptor(
+    auto acc_bases = RotamerCentricAcceptorBases<Int>::for_acceptor(
         A,
         acc_dat.acc_hybridization[acc_ind],
         bonds,
         respair_dat.block_type_atom_is_hydrogen);
-    auto don_bases = BlockCentricDonorBase<Int>::for_polar_H(
+    auto don_bases = RotamerCentricDonorBase<Int>::for_polar_H(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
@@ -829,7 +831,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     TView<Eigen::Matrix<Real, 3, 1>, 1, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
-  using bonded_atom::BlockCentricIndexedBonds;
+  using bonded_atom::RotamerCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
@@ -843,19 +845,21 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     };
     BlockCentricAtom<Int> A{
         acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
-    BlockCentricIndexedBonds<Int, Dev> bonds{
+    RotamerCentricIndexedBonds<Int, Dev> bonds{
+        acc_dat.block_ind,
+        acc_dat.block_type,
         respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
         respair_dat.first_rot_block_type[respair_dat.pose_ind],
         respair_dat.block_type_n_all_bonds,
         respair_dat.block_type_all_bonds,
         respair_dat.block_type_atom_all_bond_ranges,
         respair_dat.block_type_atoms_forming_chemical_bonds};
-    auto acc_bases = BlockCentricAcceptorBases<Int>::for_acceptor(
+    auto acc_bases = RotamerCentricAcceptorBases<Int>::for_acceptor(
         A,
         acc_dat.acc_hybridization[acc_ind],
         bonds,
         respair_dat.block_type_atom_is_hydrogen);
-    auto don_bases = BlockCentricDonorBase<Int>::for_polar_H(
+    auto don_bases = RotamerCentricDonorBase<Int>::for_polar_H(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
@@ -971,7 +975,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
-  using bonded_atom::BlockCentricIndexedBonds;
+  using bonded_atom::RotamerCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
@@ -985,19 +989,21 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     };
     BlockCentricAtom<Int> A{
         acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
-    BlockCentricIndexedBonds<Int, Dev> bonds{
+    RotamerCentricIndexedBonds<Int, Dev> bonds{
+        acc_dat.block_ind,
+        acc_dat.block_type,
         respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
         respair_dat.first_rot_block_type[respair_dat.pose_ind],
         respair_dat.block_type_n_all_bonds,
         respair_dat.block_type_all_bonds,
         respair_dat.block_type_atom_all_bond_ranges,
         respair_dat.block_type_atoms_forming_chemical_bonds};
-    auto acc_bases = BlockCentricAcceptorBases<Int>::for_acceptor(
+    auto acc_bases = RotamerCentricAcceptorBases<Int>::for_acceptor(
         A,
         acc_dat.acc_hybridization[acc_ind],
         bonds,
         respair_dat.block_type_atom_is_hydrogen);
-    auto don_bases = BlockCentricDonorBase<Int>::for_polar_H(
+    auto don_bases = RotamerCentricDonorBase<Int>::for_polar_H(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =

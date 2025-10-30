@@ -2,11 +2,11 @@ from tmol.utility.auto_number import AutoNumber
 
 
 class ScoreType(AutoNumber):
-    cart_lengths = ()
-    cart_angles = ()
-    cart_torsions = ()
-    cart_impropers = ()
-    cart_hxltorsions = ()
+    cart_lengths = () # packer enabled
+    cart_angles = () # packer enabled
+    cart_torsions = () # packer enabled
+    cart_impropers = () # packer enabled
+    cart_hxltorsions = () # packer enabled
     constraint = ()
     disulfide = () # packer enabled
     fa_ljatr = () # packer enabled

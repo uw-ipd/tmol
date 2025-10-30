@@ -216,15 +216,15 @@ class PoseWaterGen : public torch::autograd::Function<PoseWaterGen> {
 
     auto dE_dWxyz = grad_outputs[0];
 
-    for (int i = 0; i < dE_dWxyz.size(0); i++)
-      for (int j = 0; j < dE_dWxyz.size(1); j++)
-        printf(
-            "DE_WXYZ: %i %i %f %f %f\n",
-            i,
-            j,
-            dE_dWxyz[i][j][0].item<float>(),
-            dE_dWxyz[i][j][1].item<float>(),
-            dE_dWxyz[i][j][2].item<float>());
+    // for (int i = 0; i < dE_dWxyz.size(0); i++)
+    //   for (int j = 0; j < dE_dWxyz.size(1); j++)
+    //     printf(
+    //         "DE_WXYZ: %i %i %f %f %f\n",
+    //         i,
+    //         j,
+    //         dE_dWxyz[i][j][0].item<float>(),
+    //         dE_dWxyz[i][j][1].item<float>(),
+    //         dE_dWxyz[i][j][2].item<float>());
 
     TMOL_DISPATCH_FLOATING_DEVICE(
         rot_coords.options(), "WaterGenOpBackward", ([&] {

@@ -194,7 +194,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         pose_stack = args[-2]
         block_pair_scoring = args[-1]
 
-        print(common_args[-1])
+        # print(common_args[-1])
 
         args = [
             *common_args,
@@ -225,7 +225,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         water_coords = gen_pose_waters(*args)
 
         # print(water_coords)
-        torch.save(water_coords, "/home/jflat06/lkball_new.pt")
+        # torch.save(water_coords, "/home/jflat06/lkball_new.pt")
 
         args = [
             *common_args,

@@ -733,6 +733,19 @@ class DunbrackChiSampler(ChiSampler):
         )
         max_n_chi = min((max_n_chi, pbt_cda.shape[1]))
 
+        if chi_for_rotamers.shape[1] < max_n_chi:
+            # we must keep chi_for_rotamers
+            # and chi_defining_atom_for_rotamer the
+            # same shape
+            new_chi_for_rotamers = torch.zeros(
+                (chi_for_rotamers.shape[0], max_n_chi),
+                dtype=chi_for_rotamers.dtype,
+                device=chi_for_rotamers.device
+            )
+            old_n_chi = chi_for_rotamers.shape[1]
+            new_chi_for_rotamers[:, :old_n_chi] = chi_for_rotamers
+            chi_for_rotamers = new_chi_for_rotamers
+
         # block_type_ind_for_brt_old = torch.tensor(
         #     pbt.restype_index.get_indexer(
         #         rt_names[nonzero_dunrot_inds_for_rts.cpu()[:, 0]]

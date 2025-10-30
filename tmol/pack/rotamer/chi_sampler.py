@@ -52,6 +52,11 @@ class ChiSampler(ConformerSampler):
             chi_for_rotamers,
         ) = self.sample_chi_for_poses(pose_stack, task)
         # print("Sampling:", self.sampler_name(), chi_for_rotamers.shape)
+        # print(self.sampler_name())
+        # print("chi_defining_atom_for_rotamer")
+        # print(chi_defining_atom_for_rotamer.shape)
+        # print("chi_for_rotamers")
+        # print(chi_for_rotamers.shape)
         return (
             n_rots_for_gbt,
             gbt_for_rotamer,
@@ -388,6 +393,7 @@ def assign_chi_dofs_from_samples(
     chi: Tensor[torch.float32][:, :],
     rot_dofs_kto: Tensor[torch.float32][:, 9],
 ):
+    # print("chi atoms", chi_atoms.shape, "chi",)
     assert chi_atoms.shape == chi.shape
 
     n_rots_for_sampler = sampler_gbt_for_rotamer.shape[0]

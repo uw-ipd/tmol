@@ -125,6 +125,7 @@ class WaterGenPoseContextData {
   TView<Int, 1, Dev> block_type_ind_for_rot;
 
   TView<Int, 2, Dev> first_rot_for_block;
+  TView<Int, 2, Dev> first_rot_block_type;
 
   // For determining which atoms to retrieve from neighboring
   // residues we have to know how the blocks in the Pose
@@ -230,6 +231,7 @@ template <
 void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
     TView<Vec<Real, 3>, 1, Dev> rot_coords,
     TView<Int, 2, Dev> first_rot_for_block,
+    TView<Int, 2, Dev> first_rot_block_type,
     TView<Int, 1, Dev> rot_coord_offset,
     TView<Int, 1, Dev> block_type_ind_for_rot,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
@@ -275,6 +277,7 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
   // duplicate the registers used here
   water_gen_dat.pose_context.rot_coords = rot_coords;
   water_gen_dat.pose_context.first_rot_for_block = first_rot_for_block;
+  water_gen_dat.pose_context.first_rot_block_type = first_rot_block_type;
   water_gen_dat.pose_context.rot_coord_offset = rot_coord_offset;
   water_gen_dat.pose_context.block_type_ind_for_rot = block_type_ind_for_rot;
   water_gen_dat.pose_context.pose_stack_inter_residue_connections =
@@ -347,12 +350,12 @@ void TMOL_DEVICE_FUNC build_water_for_don(
   // Now record the coordinates to global memory:
   int const which_water = res_dat.which_donH_for_hvy[don_h_ind];
 
-  if (res_dat.rot_coord_offset + Dind == 94) {
-    printf("AT94\n");
-    printf("%i\n", res_dat.rot_ind);
-    printf("%i\n", res_dat.rot_coord_offset);
-    printf("%i\n", Dind);
-  }
+  // if (res_dat.rot_coord_offset + Dind == 94) {
+  //   printf("AT94\n");
+  //   printf("%i\n", res_dat.rot_ind);
+  //   printf("%i\n", res_dat.rot_coord_offset);
+  //   printf("%i\n", Dind);
+  // }
 
   water_coords[res_dat.rot_coord_offset + Dind][which_water] = Wxyz;
 }
@@ -372,11 +375,13 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
 
   auto res_dat = wat_gen_dat.r_dat;
   auto context_dat = wat_gen_dat.pose_context;
+  // std::cout << "bwfa " << wat_gen_dat.r_dat.block_ind << " " << acc_ind << std::flush;
 
   unsigned char hyb = res_dat.acc_hybridization[acc_ind];
   Real tor(0), ang(0);
   if (hyb == hbond::AcceptorHybridization::sp2) {
     if (water_ind >= sp2_water_tors.size(0)) {
+      // std::cout << "...done " << wat_gen_dat.r_dat.block_ind << std::endl;
       return;
     } else {
       tor = sp2_water_tors[water_ind];
@@ -384,6 +389,7 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
     }
   } else if (hyb == hbond::AcceptorHybridization::sp3) {
     if (water_ind >= sp3_water_tors.size(0)) {
+      // std::cout << "...done " << wat_gen_dat.r_dat.block_ind << std::endl;
       return;
     } else {
       tor = sp3_water_tors[water_ind];
@@ -391,6 +397,7 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
     }
   } else if (hyb == hbond::AcceptorHybridization::ring) {
     if (water_ind >= ring_water_tors.size(0)) {
+      // std::cout << "...done " << wat_gen_dat.r_dat.block_ind << std::endl;
       return;
     } else {
       tor = ring_water_tors[water_ind];
@@ -401,16 +408,18 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
   unsigned char acc_atom_tile_ind = res_dat.acc_tile_inds[acc_ind];
 
   Real3 Axyz = common::coord_from_shared(res_dat.coords, acc_atom_tile_ind);
-  bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds{
+  bonded_atom::RotamerCentricIndexedBonds<Int, Dev> bonds{
+      res_dat.block_ind,
+      res_dat.block_type,
       context_dat.pose_stack_inter_residue_connections[context_dat.pose_ind],
-      context_dat.block_type_ind_for_rot,  // TODO:
+      context_dat.first_rot_block_type[context_dat.pose_ind],
       context_dat.block_type_n_all_bonds,
       context_dat.block_type_all_bonds,
       context_dat.block_type_atom_all_bond_ranges,
       context_dat.block_type_atoms_forming_chemical_bonds};
   bonded_atom::BlockCentricAtom<Int> A{
       res_dat.block_ind, res_dat.block_type, tile_start + acc_atom_tile_ind};
-  auto acc_bases = hbond::BlockCentricAcceptorBases<Int>::for_acceptor(
+  auto acc_bases = hbond::RotamerCentricAcceptorBases<Int>::for_acceptor(
       A, hyb, bonds, context_dat.block_type_atom_is_hydrogen);
 
   Real3 Bxyz =
@@ -431,15 +440,17 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
   // this acceptor
   unsigned char water_offset = res_dat.acc_n_attached_H[acc_ind];
 
-  if (res_dat.rot_coord_offset + A.atom == 94) {
-    printf("AT94 acc\n");
-    printf("%i\n", res_dat.rot_ind);
-    printf("%i\n", res_dat.rot_coord_offset);
-    printf("%i\n", A.atom);
-  }
+  // if (res_dat.rot_coord_offset + A.atom == 94) {
+  //   printf("AT94 acc\n");
+  //   printf("%i\n", res_dat.rot_ind);
+  //   printf("%i\n", res_dat.rot_coord_offset);
+  //   printf("%i\n", A.atom);
+  // }
 
   water_coords[res_dat.rot_coord_offset + A.atom][water_ind + water_offset] =
       Wxyz;
+  // std::cout << "...done " << wat_gen_dat.r_dat.block_ind << std::endl;
+
 }
 
 template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>
@@ -522,16 +533,18 @@ void TMOL_DEVICE_FUNC d_build_water_for_acc(
   unsigned char acc_atom_tile_ind = res_dat.acc_tile_inds[acc_ind];
 
   Real3 Axyz = common::coord_from_shared(res_dat.coords, acc_atom_tile_ind);
-  bonded_atom::BlockCentricIndexedBonds<Int, Dev> bonds{
+  bonded_atom::RotamerCentricIndexedBonds<Int, Dev> bonds{
+      res_dat.block_ind,
+      res_dat.block_type,
       context_dat.pose_stack_inter_residue_connections[context_dat.pose_ind],
-      context_dat.block_type_ind_for_rot,  // TODO:
+      context_dat.first_rot_block_type[context_dat.pose_ind],
       context_dat.block_type_n_all_bonds,
       context_dat.block_type_all_bonds,
       context_dat.block_type_atom_all_bond_ranges,
       context_dat.block_type_atoms_forming_chemical_bonds};
   bonded_atom::BlockCentricAtom<Int> A{
       res_dat.block_ind, res_dat.block_type, tile_start + acc_atom_tile_ind};
-  auto acc_bases = hbond::BlockCentricAcceptorBases<Int>::for_acceptor(
+  auto acc_bases = hbond::RotamerCentricAcceptorBases<Int>::for_acceptor(
       A, hyb, bonds, context_dat.block_type_atom_is_hydrogen);
 
   Real3 Bxyz =

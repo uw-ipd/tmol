@@ -603,10 +603,10 @@ class LKBallPoseScoreDispatch {
     // context(wrapped_stream.stream());
 
     // 3 Only the forward pass in this calculation
-    std::cout << "lkball forward" << std::endl;
+    // std::cout << "lkball forward" << std::endl;
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         dispatch_indices.size(1), eval_energies_by_block);
-    std::cout << "done" << std::endl;
+    // std::cout << "done" << std::endl;
 
     return {output_t, dispatch_indices_t};
   }
@@ -1034,10 +1034,10 @@ class LKBallPoseScoreDispatch {
 
     // Since we have the sphere overlap results from the forward pass,
     // there's only a single kernel launch here
-    std::cout << "lkball backward" << std::endl;
+    // std::cout << "lkball backward" << std::endl;
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         dispatch_indices.size(1), eval_derivs);
-    std::cout << "done" << std::endl;
+    // std::cout << "done" << std::endl;
     // std::cout << "d lkball end" << std::endl;
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
