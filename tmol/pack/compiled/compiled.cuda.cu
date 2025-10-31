@@ -1146,7 +1146,7 @@ struct Annealer {
     // printf("temp no launch fullquench\n");
     mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, context);
 
-    printf("done!\n");
+    // printf("done!\n");
     return {scores_final_t, rotamer_assignments_final_t};
   }
 };
@@ -1189,11 +1189,11 @@ auto AnnealerDispatch<D>::forward(
       Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
           ig, gen);
 
-  cudaDeviceSynchronize();
-  clock_t stop = clock();
-  std::cout << "GPU simulated annealing in "
-            << ((double)stop - start) / CLOCKS_PER_SEC << " seconds"
-            << std::endl;
+  // cudaDeviceSynchronize();
+  // clock_t stop = clock();
+  // std::cout << "GPU simulated annealing in "
+  //           << ((double)stop - start) / CLOCKS_PER_SEC << " seconds"
+  //           << std::endl;
 
   return result;
 }

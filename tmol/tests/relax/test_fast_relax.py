@@ -54,11 +54,12 @@ def get_relax_sfxn(default_database, torch_device):
 
     return sfxn
 
+
 def test_fast_relax_100(default_database, ubq_pdb, dun_sampler, torch_device):
 
-    # if torch_device == torch.device("cpu"):
-    #     return
-    n_poses = 3
+    if torch_device == torch.device("cpu"):
+        return
+    n_poses = 10
     # print("Device!", torch_device)
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
@@ -92,7 +93,8 @@ def test_fast_relax_100(default_database, ubq_pdb, dun_sampler, torch_device):
         palette,
         mm,
         fold_forest,
-        [task_op]
+        [task_op],
+        False,  # True
     )
 
     if torch_device == torch.device("cuda"):
@@ -102,4 +104,5 @@ def test_fast_relax_100(default_database, ubq_pdb, dun_sampler, torch_device):
     elapsed_time = stop_time - start_time
 
     print(f"Execution time: {elapsed_time:.6f} seconds")
-    
+
+    write_pose_stack_pdb(new_pose_stack, "tmol_relaxed_1ubq.pdb")

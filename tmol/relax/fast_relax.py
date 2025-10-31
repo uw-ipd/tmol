@@ -1,3 +1,6 @@
+import torch
+import time
+
 from tmol.pose.pose_stack import PoseStack
 from tmol.score.score_function import ScoreFunction
 from tmol.kinematics.move_map import MoveMap
@@ -10,12 +13,13 @@ from tmol.optimization.kin_min import run_kin_min
 
 
 def fast_relax(
-        pose_stack: PoseStack,
-        sfxn: ScoreFunction,
-        packer_pallete: PackerPalette,
-        move_map: MoveMap,
-        fold_forest: FoldForest,
-        task_operations = None
+    pose_stack: PoseStack,
+    sfxn: ScoreFunction,
+    packer_pallete: PackerPalette,
+    move_map: MoveMap,
+    fold_forest: FoldForest,
+    task_operations=None,
+    verbose=False,
 ):
     # Jack Maguire's tuned MonomerRelax2019.txt
     # repeat %%nrepeats%%
@@ -41,7 +45,6 @@ def fast_relax(
     # accept_to_best
     # endrepeat
 
-
     if task_operations is None:
         # Create a default task operation that
         # 1. builds rotamers using the Dunbrack rotamer library
@@ -58,7 +61,7 @@ def fast_relax(
             default_database.scoring.dun, torch_device
         )
         dun_sampler = DunbrackChiSampler.from_database(param_resolver)
-        
+
         def default_op(task):
             task.restrict_to_repacking()
             task.set_include_current()
@@ -66,9 +69,10 @@ def fast_relax(
             fixed_sampler = FixedAAChiSampler()
             task.add_conformer_sampler(dun_sampler)
             task.add_conformer_sampler(fixed_sampler)
+
         task_operations = [default_op]
 
-    fa_rep_start = sfxn._weights[ScoreType.fa_ljrep.value]
+    fa_rep_start = float(sfxn._weights[ScoreType.fa_ljrep.value])
 
     rpms_args = [
         pose_stack,
@@ -78,7 +82,8 @@ def fast_relax(
         packer_pallete,
         0,
         0,
-        task_operations
+        task_operations,
+        verbose,
     ]
     ps = pose_stack
     for _ in range(5):
@@ -93,11 +98,6 @@ def fast_relax(
         ps = relax_pack_min_step(*rpms_args)
 
         rpms_args[0] = ps
-        rpms_args[5] = 0.040 * fa_rep_start
-        rpms_args[6] = 0.051 * fa_rep_start
-        ps = relax_pack_min_step(*rpms_args)
-
-        rpms_args[0] = ps
         rpms_args[5] = 0.559 * fa_rep_start
         rpms_args[6] = 0.581 * fa_rep_start
         ps = relax_pack_min_step(*rpms_args)
@@ -108,31 +108,51 @@ def fast_relax(
         ps = relax_pack_min_step(*rpms_args)
     return ps
 
+
 def relax_pack_min_step(
-        pose_stack,
-        sfxn,
-        fold_forest,
-        move_map,
-        packer_pallete,
-        fa_rep_pack_weight,
-        fa_rep_min_weight,
-        task_operations
-    ):
-    
+    pose_stack,
+    sfxn,
+    fold_forest,
+    move_map,
+    packer_pallete,
+    fa_rep_pack_weight,
+    fa_rep_min_weight,
+    task_operations,
+    verbose,
+):
+
+    if verbose and torch.cuda.is_available():
+        torch.cuda.synchronize()
+    start_time = time.perf_counter()
     task = PackerTask(pose_stack, packer_pallete)
     for op in task_operations:
         op(task)
 
     sfxn.set_weight(ScoreType.fa_ljrep, fa_rep_pack_weight)
-    print("packing with fa_rep of", fa_rep_pack_weight)
-    packed_pose_stack = pack_rotamers(pose_stack, sfxn, task)
+    if verbose:
+        print(f"packing with fa_rep of {fa_rep_pack_weight: .2f}")
+    if verbose and torch.cuda.is_available():
+        torch.cuda.synchronize()
+    end_time1 = time.perf_counter()
+    packed_pose_stack = pack_rotamers(pose_stack, sfxn, task, verbose)
 
     sfxn.set_weight(ScoreType.fa_ljrep, fa_rep_min_weight)
-    print("minimizing with fa_rep of", fa_rep_min_weight)
-    minimized_pose_stack = run_kin_min(packed_pose_stack, sfxn, fold_forest, move_map)
+    if verbose:
+        print(f"minimizing with fa_rep of {fa_rep_min_weight: .2f}")
+    if verbose and torch.cuda.is_available():
+        torch.cuda.synchronize()
+    end_time2 = time.perf_counter()
+    minimized_pose_stack = run_kin_min(
+        packed_pose_stack, sfxn, fold_forest, move_map, verbose
+    )
+    if verbose and torch.cuda.is_available():
+        torch.cuda.synchronize()
+    end_time3 = time.perf_counter()
+
+    if verbose:
+        print(
+            f"pack-min {end_time3 - start_time: .2f} task-init {end_time1 - start_time: .2f}"
+            + f" packing {end_time2 - end_time1: .2f} min {end_time3-end_time2: .2f}"
+        )
+
     return minimized_pose_stack
-
-
-
-
-    
