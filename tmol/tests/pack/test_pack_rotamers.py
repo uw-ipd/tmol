@@ -120,10 +120,10 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    print("top scores", scores[:, 0])
-    for i in range(n_poses):
-        for j in range(scores.shape[1]):
-            print("score", i, j, scores[i,j])
+    # print("top scores", scores[:, 0])
+    # for i in range(n_poses):
+    #     for j in range(scores.shape[1]):
+    #         print("score", i, j, scores[i,j])
 
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack, rotamer_set, rotamer_assignments
@@ -143,7 +143,10 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
     print("confirm new scores", new_scores)
     torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
 
-def test_pack_rotamers_w_dslf(default_database, disulfide_pdb, dun_sampler, torch_device):
+
+def test_pack_rotamers_w_dslf(
+    default_database, disulfide_pdb, dun_sampler, torch_device
+):
     n_poses = 4
 
     p = pose_stack_from_pdb(disulfide_pdb, torch_device)
@@ -214,10 +217,10 @@ def test_pack_rotamers_w_dslf(default_database, disulfide_pdb, dun_sampler, torc
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    print("top scores", scores[:, 0])
-    for i in range(n_poses):
-        for j in range(scores.shape[1]):
-            print("score", i, j, scores[i,j])
+    # print("top scores", scores[:, 0])
+    # for i in range(n_poses):
+    #     for j in range(scores.shape[1]):
+    #         print("score", i, j, scores[i,j])
 
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack, rotamer_set, rotamer_assignments
@@ -333,7 +336,6 @@ def test_pack_rotamers_irregular_sized_poses(
     task.add_conformer_sampler(fixed_sampler)
 
     sfxn = get_packer_sfxn(default_database, torch_device)
-
 
     # warmup:
     print("starting warmup packer run")

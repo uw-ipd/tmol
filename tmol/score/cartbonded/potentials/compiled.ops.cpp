@@ -59,19 +59,11 @@ class CartBondedPoseScoreOp
       Tensor cart_subgraph_type_offsets,
 
       bool output_block_pair_energies) {
-
     at::Tensor score;
     at::Tensor dscore_dcoords;
     at::Tensor dispatch_indices;
     at::Tensor n_output_intxns_for_rot_conn_offset;
-    at::Tensor n_intxns_for_rot_conn_offset;
-    at::Tensor rotconn_for_intxn;
-    at::Tensor count_n_at_pair_dists_for_rotconn_offset;
-    at::Tensor rotconn_for_lengths;
-    at::Tensor count_n_at_trip_angls_for_rotconn_offset;
-    at::Tensor rotconn_for_angles;
-    at::Tensor count_n_at_quad_dihes_for_rotconn_offset;
-    at::Tensor rotconn_for_torsions;
+    at::Tensor rotconn_for_output_intxn;
 
     using Int = int32_t;
 
@@ -97,7 +89,7 @@ class CartBondedPoseScoreOp
                       TCAST(n_rots_for_block),
                       TCAST(rot_offset_for_block),
                       max_n_rots_per_pose,
-                  
+
                       TCAST(pose_stack_inter_block_connections),
                       TCAST(atom_paths_from_conn),
                       TCAST(atom_unique_ids),
@@ -116,15 +108,7 @@ class CartBondedPoseScoreOp
           dscore_dcoords = std::get<1>(result).tensor;
           dispatch_indices = std::get<2>(result).tensor;
           n_output_intxns_for_rot_conn_offset = std::get<3>(result).tensor;
-          n_intxns_for_rot_conn_offset = std::get<4>(result).tensor;
-          rotconn_for_intxn = std::get<5>(result).tensor;
-          count_n_at_pair_dists_for_rotconn_offset = std::get<6>(result).tensor;
-          rotconn_for_lengths = std::get<7>(result).tensor;
-          count_n_at_trip_angls_for_rotconn_offset = std::get<8>(result).tensor;
-          rotconn_for_angles = std::get<9>(result).tensor;
-          count_n_at_quad_dihes_for_rotconn_offset = std::get<10>(result).tensor;
-          rotconn_for_torsions = std::get<11>(result).tensor;
-
+          rotconn_for_output_intxn = std::get<4>(result).tensor;
         }));
 
     if (output_block_pair_energies) {
@@ -158,14 +142,7 @@ class CartBondedPoseScoreOp
 
            dispatch_indices,
            n_output_intxns_for_rot_conn_offset,
-           n_intxns_for_rot_conn_offset,
-           rotconn_for_intxn,
-           count_n_at_pair_dists_for_rotconn_offset,
-           rotconn_for_lengths,
-           count_n_at_trip_angls_for_rotconn_offset,
-           rotconn_for_angles,
-           count_n_at_quad_dihes_for_rotconn_offset,
-           rotconn_for_torsions});
+           rotconn_for_output_intxn});
     } else {
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
@@ -233,14 +210,7 @@ class CartBondedPoseScoreOp
       // Tensors generated during the forward pass
       auto dispatch_indices = saved[i++];
       auto n_output_intxns_for_rot_conn_offset = saved[i++];
-      auto n_intxns_for_rot_conn_offset = saved[i++];
-      auto rotconn_for_intxn = saved[i++];
-      auto count_n_at_pair_dists_for_rotconn_offset = saved[i++];
-      auto rotconn_for_lengths = saved[i++];
-      auto count_n_at_trip_angls_for_rotconn_offset = saved[i++];
-      auto rotconn_for_angles = saved[i++];
-      auto count_n_at_quad_dihes_for_rotconn_offset = saved[i++];
-      auto rotconn_for_torsions = saved[i++];
+      auto rotconn_for_output_intxn = saved[i++];
 
       // int max_subgraphs_per_block =
       // ctx->saved_data["block_pair_scoring"].toInt();
@@ -271,7 +241,7 @@ class CartBondedPoseScoreOp
                         TCAST(n_rots_for_block),
                         TCAST(rot_offset_for_block),
                         max_n_rots_per_pose,
-                      
+
                         TCAST(pose_stack_inter_block_connections),
                         TCAST(atom_paths_from_conn),
                         TCAST(atom_unique_ids),
@@ -282,17 +252,10 @@ class CartBondedPoseScoreOp
                         TCAST(cart_subgraph_offsets),
                         TCAST(cart_subgraph_type_counts),
                         TCAST(cart_subgraph_type_offsets),
-                        
+
                         TCAST(dispatch_indices),
                         TCAST(n_output_intxns_for_rot_conn_offset),
-                        TCAST(n_intxns_for_rot_conn_offset),
-                        TCAST(rotconn_for_intxn),
-                        TCAST(count_n_at_pair_dists_for_rotconn_offset),
-                        TCAST(rotconn_for_lengths),
-                        TCAST(count_n_at_trip_angls_for_rotconn_offset),
-                        TCAST(rotconn_for_angles),
-                        TCAST(count_n_at_quad_dihes_for_rotconn_offset),
-                        TCAST(rotconn_for_torsions),
+                        TCAST(rotconn_for_output_intxn),
 
                         TCAST(dTdV));
 
@@ -317,8 +280,8 @@ class CartBondedPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
-        
-        // Cart-bonded specific parameters      
+
+        // Cart-bonded specific parameters
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
@@ -330,41 +293,41 @@ class CartBondedPoseScoreOp
         torch::Tensor(),
         torch::Tensor(),
         torch::Tensor(),
-      
+
         torch::Tensor()};
   }
 };
 
 template <template <tmol::Device> class DispatchMethod>
 std::vector<Tensor> cartbonded_pose_scores_op(
-      // common params
-      Tensor rot_coords,
-      Tensor rot_coord_offset,
-      Tensor pose_ind_for_atom,
-      Tensor first_rot_for_block,
-      Tensor first_rot_block_type,
-      Tensor block_ind_for_rot,
-      Tensor pose_ind_for_rot,
-      Tensor block_type_ind_for_rot,
-      Tensor n_rots_for_pose,
-      Tensor rot_offset_for_pose,
-      Tensor n_rots_for_block,
-      Tensor rot_offset_for_block,
-      int64_t max_n_rots_per_pose,
+    // common params
+    Tensor rot_coords,
+    Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    int64_t max_n_rots_per_pose,
 
-      Tensor pose_stack_inter_block_connections,
-      Tensor atom_paths_from_conn,
-      Tensor atom_unique_ids,
-      Tensor atom_wildcard_ids,
-      Tensor hash_keys,
+    Tensor pose_stack_inter_block_connections,
+    Tensor atom_paths_from_conn,
+    Tensor atom_unique_ids,
+    Tensor atom_wildcard_ids,
+    Tensor hash_keys,
 
-      Tensor hash_values,
-      Tensor cart_subgraphs,
-      Tensor cart_subgraph_offsets,
-      Tensor cart_subgraph_type_counts,
-      Tensor cart_subgraph_type_offsets,
+    Tensor hash_values,
+    Tensor cart_subgraphs,
+    Tensor cart_subgraph_offsets,
+    Tensor cart_subgraph_type_counts,
+    Tensor cart_subgraph_type_offsets,
 
-      bool output_block_pair_energies) {
+    bool output_block_pair_energies) {
   return CartBondedPoseScoreOp<DispatchMethod>::apply(
       // common params
       rot_coords,
