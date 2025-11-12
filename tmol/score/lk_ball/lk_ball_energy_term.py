@@ -194,8 +194,6 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         pose_stack = args[-2]
         block_pair_scoring = args[-1]
 
-        # print(common_args[-1])
-
         args = [
             *common_args,
             pose_stack.inter_residue_connections,
@@ -253,9 +251,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         return self.score_lk_ball
 
     def get_score_term_attributes(self, pose_stack):
-        return [
-            pose_stack,
-        ]
+        return [pose_stack]
 
     def render_whole_pose_scoring_module_old(self, pose_stack: PoseStack):
         pbt = pose_stack.packed_block_types

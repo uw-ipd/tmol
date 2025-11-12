@@ -28,7 +28,8 @@ namespace potentials {
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 template <
-    template <tmol::Device> class DeviceOps,
+    template <tmol::Device>
+    class DeviceOps,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -319,135 +320,6 @@ struct GeneratePoseWaters {
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
       TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 1, Dev> {
-    /*
-int const n_poses = pose_coords.size(0);
-int const max_n_pose_atoms = pose_coords.size(1);
-int const max_n_blocks = pose_stack_block_type.size(1);
-int const max_n_conn = pose_stack_inter_residue_connections.size(2);
-int const n_block_types = block_type_n_atoms.size(0);
-int const max_n_block_atoms = block_type_atom_all_bond_ranges.size(1);
-int const max_n_tiles = block_type_tile_n_donH.size(1);
-
-assert(pose_stack_block_coord_offset.size(0) == n_poses);
-assert(pose_stack_block_type.size(0) == n_poses);
-assert(pose_stack_inter_residue_connections.size(0) == n_poses);
-assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
-assert(block_type_n_interblock_bonds.size(0) == n_block_types);
-assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
-assert(block_type_atoms_forming_chemical_bonds.size(1) == max_n_conn);
-assert(block_type_n_all_bonds.size(0) == n_block_types);
-assert(block_type_atom_all_bond_ranges.size(0) == n_block_types);
-assert(block_type_tile_n_donH.size(0) == n_block_types);
-assert(block_type_tile_n_acc.size(0) == n_block_types);
-assert(block_type_tile_n_acc.size(1) == max_n_tiles);
-assert(block_type_tile_donH_inds.size(0) == n_block_types);
-assert(block_type_tile_donH_inds.size(1) == max_n_tiles);
-assert(block_type_tile_donH_inds.size(2) == TILE_SIZE);
-assert(block_type_tile_don_hvy_inds.size(0) == n_block_types);
-assert(block_type_tile_don_hvy_inds.size(1) == max_n_tiles);
-assert(block_type_tile_don_hvy_inds.size(2) == TILE_SIZE);
-assert(block_type_tile_which_donH_for_hvy.size(0) == n_block_types);
-assert(block_type_tile_which_donH_for_hvy.size(1) == max_n_tiles);
-assert(block_type_tile_which_donH_for_hvy.size(2) == TILE_SIZE);
-assert(block_type_tile_acc_inds.size(0) == n_block_types);
-assert(block_type_tile_acc_inds.size(1) == max_n_tiles);
-assert(block_type_tile_acc_inds.size(2) == TILE_SIZE);
-assert(block_type_tile_hybridization.size(0) == n_block_types);
-assert(block_type_tile_hybridization.size(1) == max_n_tiles);
-assert(block_type_tile_hybridization.size(2) == TILE_SIZE);
-assert(block_type_tile_acc_n_attached_H.size(0) == n_block_types);
-assert(block_type_tile_acc_n_attached_H.size(1) == max_n_tiles);
-assert(block_type_tile_acc_n_attached_H.size(2) == TILE_SIZE);
-assert(block_type_atom_is_hydrogen.size(0) == n_block_types);
-assert(block_type_atom_is_hydrogen.size(1) == max_n_block_atoms);
-
-// std::cout << "d watergen start" << std::endl;
-
-NVTXRange _function(__FUNCTION__);
-
-nvtx_range_push("watergen::dsetup");
-
-using tmol::score::hbond::AcceptorBases;
-using tmol::score::hbond::AcceptorHybridization;
-
-auto dE_d_pose_coords_t =
-    TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_pose_atoms});
-auto dE_d_pose_coords = dE_d_pose_coords_t.view;
-
-nvtx_range_pop();
-
-LAUNCH_BOX_32;
-CTA_LAUNCH_T_PARAMS;
-
-auto f_watergen = ([=] TMOL_DEVICE_FUNC(int ind) {
-  int const pose_ind = ind / max_n_blocks;
-  int const block_ind = ind % max_n_blocks;
-  int const block_type = pose_stack_block_type[pose_ind][block_ind];
-
-  if (block_type < 0) return;
-
-  int const n_atoms = block_type_n_atoms[block_type];
-
-  // Allocate shared mem
-  SHARED_MEMORY WaterGenSharedData<Real, TILE_SIZE> shared_m;
-
-  // Allocate stack mem
-  WaterGenData<Dev, Real, Int> water_gen_dat;
-
-  // TO DO: make this "1 body" tile action templated
-  // Step 1: load in tile-invariant data for this block
-  // printf("water_gen_load_tile_invariant_data %d\n", ind);
-  water_gen_load_tile_invariant_data<DeviceOps, Dev, nt>(
-      pose_coords,
-      pose_stack_block_coord_offset,
-      pose_stack_block_type,
-      pose_stack_inter_residue_connections,
-
-      block_type_n_all_bonds,
-      block_type_all_bonds,
-      block_type_atom_all_bond_ranges,
-      block_type_n_interblock_bonds,
-      block_type_atoms_forming_chemical_bonds,
-      block_type_atom_is_hydrogen,
-      global_params,
-
-      pose_ind,
-      block_ind,
-      block_type,
-      n_atoms,
-
-      water_gen_dat,
-      shared_m);
-
-  // Step 2: iterate accross tiles of atoms for this block
-  int const n_iterations = (n_atoms - 1) / TILE_SIZE + 1;
-  for (int tile_ind = 0; tile_ind < n_iterations; ++tile_ind) {
-    int const n_atoms_to_load =
-        min(TILE_SIZE, n_atoms - TILE_SIZE * tile_ind);
-
-    if (tile_ind != 0) {
-      DeviceOps<Dev>::synchronize_workgroup();
-    }
-
-    // Step 3: and load data for each tile into shared memory
-    // printf("water_gen_load_block_coords_and_params_into_shared %d %d\n",
-    // ind, tile_ind);
-    water_gen_load_block_coords_and_params_into_shared<DeviceOps, Dev, nt>(
-        pose_coords,
-        block_type_tile_n_donH,
-        block_type_tile_n_acc,
-        block_type_tile_donH_inds,
-        block_type_tile_don_hvy_inds,
-        block_type_tile_which_donH_for_hvy,
-        block_type_tile_acc_inds,
-        block_type_tile_hybridization,
-        block_type_tile_acc_n_attached_H,
-        pose_ind,
-        tile_ind,
-        water_gen_dat.r_dat,
-        n_atoms_to_load,
-        tile_ind * TILE_SIZE);
-    DeviceOps<Dev>::synchronize_workgroup();*/
     int const n_poses = first_rot_for_block.size(0);
     int const n_rots = rot_coord_offset.size(0);
     int const n_atoms = rot_coords.size(0);

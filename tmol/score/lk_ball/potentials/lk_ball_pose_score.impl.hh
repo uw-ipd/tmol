@@ -61,7 +61,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -135,8 +136,10 @@ class LKBallPoseScoreDispatch {
     using tmol::score::common::accumulate;
     using Real3 = Vec<Real, 3>;
 
+    int const n_atoms = rot_coords.size(0);
     int const n_rots = rot_coord_offset.size(0);
     int const n_poses = n_rots_for_pose.size(0);
+    int const max_n_blocks = first_rot_for_block.size(1);
     int const max_n_pose_atoms = water_coords.size(1);
     int const max_n_conn = pose_stack_inter_residue_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
@@ -145,16 +148,23 @@ class LKBallPoseScoreDispatch {
         block_type_atoms_forming_chemical_bonds.size(1);
     int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
 
-    /*assert(max_n_interblock_bonds <= MAX_N_CONN);
+    assert(max_n_interblock_bonds <= MAX_N_CONN);
 
-    assert(water_coords.size(0) == n_poses);
-    assert(water_coords.size(1) == max_n_pose_atoms);
-    assert(water_coords.size(2) == MAX_N_WATER);
+    assert(first_rot_block_type.size(0) == n_poses);
+    assert(first_rot_block_type.size(1) == max_n_blocks);
 
-    assert(pose_stack_block_coord_offset.size(0) == n_poses);
-    assert(pose_stack_block_coord_offset.size(1) == max_n_blocks);
+    assert(block_ind_for_rot.size(0) == n_rots);
+    assert(pose_ind_for_rot.size(0) == n_rots);
+    assert(block_type_ind_for_rot.size(0) == n_rots);
 
-    assert(pose_stack_block_type.size(0) == n_poses);
+    assert(n_rots_for_pose.size(0) == n_poses);
+    assert(rot_offset_for_pose.size(0) == n_poses);
+
+    assert(n_rots_for_block.size(0) == n_poses);
+    assert(n_rots_for_block.size(1) == max_n_blocks);
+
+    assert(rot_offset_for_block.size(0) == n_poses);
+    assert(rot_offset_for_block.size(1) == max_n_blocks);
 
     assert(pose_stack_inter_residue_connections.size(0) == n_poses);
     assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
@@ -168,6 +178,8 @@ class LKBallPoseScoreDispatch {
     assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
     assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
     assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
+
+    assert(water_coords.size(0) == n_atoms);
 
     assert(block_type_n_interblock_bonds.size(0) == n_block_types);
 
@@ -186,7 +198,7 @@ class LKBallPoseScoreDispatch {
 
     assert(block_type_path_distance.size(0) == n_block_types);
     assert(block_type_path_distance.size(1) == max_n_block_atoms);
-    assert(block_type_path_distance.size(2) == max_n_block_atoms);*/
+    assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
     auto scratch_rot_spheres_t = TPack<Real, 2, Dev>::zeros({n_rots, 4});
     auto scratch_rot_spheres = scratch_rot_spheres_t.view;
@@ -681,15 +693,69 @@ class LKBallPoseScoreDispatch {
     using tmol::score::common::accumulate;
     using Real3 = Vec<Real, 3>;
 
+    int const n_atoms = rot_coords.size(0);
     int const n_rots = rot_coord_offset.size(0);
     int const n_poses = n_rots_for_pose.size(0);
-    int const n_atoms = water_coords.size(0);
+    int const max_n_blocks = first_rot_for_block.size(1);
+    int const max_n_pose_atoms = water_coords.size(1);
     int const max_n_conn = pose_stack_inter_residue_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_path_distance.size(1);
     int const max_n_interblock_bonds =
         block_type_atoms_forming_chemical_bonds.size(1);
     int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
+
+    assert(max_n_interblock_bonds <= MAX_N_CONN);
+
+    assert(first_rot_block_type.size(0) == n_poses);
+    assert(first_rot_block_type.size(1) == max_n_blocks);
+
+    assert(block_ind_for_rot.size(0) == n_rots);
+    assert(pose_ind_for_rot.size(0) == n_rots);
+    assert(block_type_ind_for_rot.size(0) == n_rots);
+
+    assert(n_rots_for_pose.size(0) == n_poses);
+    assert(rot_offset_for_pose.size(0) == n_poses);
+
+    assert(n_rots_for_block.size(0) == n_poses);
+    assert(n_rots_for_block.size(1) == max_n_blocks);
+
+    assert(rot_offset_for_block.size(0) == n_poses);
+    assert(rot_offset_for_block.size(1) == max_n_blocks);
+
+    assert(pose_stack_inter_residue_connections.size(0) == n_poses);
+    assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
+
+    assert(pose_stack_min_bond_separation.size(0) == n_poses);
+    assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
+    assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
+
+    assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
+    assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
+    assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
+    assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
+    assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
+
+    assert(water_coords.size(0) == n_atoms);
+
+    assert(block_type_n_interblock_bonds.size(0) == n_block_types);
+
+    assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
+
+    assert(block_type_tile_n_polar_atoms.size(0) == n_block_types);
+    assert(block_type_tile_n_polar_atoms.size(1) == max_n_tiles);
+    assert(block_type_tile_n_occluder_atoms.size(0) == n_block_types);
+    assert(block_type_tile_n_occluder_atoms.size(1) == max_n_tiles);
+    assert(block_type_tile_pol_occ_inds.size(0) == n_block_types);
+    assert(block_type_tile_pol_occ_inds.size(1) == max_n_tiles);
+    assert(block_type_tile_pol_occ_inds.size(2) == TILE_SIZE);
+    assert(block_type_tile_lk_ball_params.size(0) == n_block_types);
+    assert(block_type_tile_lk_ball_params.size(1) == max_n_tiles);
+    assert(block_type_tile_lk_ball_params.size(2) == TILE_SIZE);
+
+    assert(block_type_path_distance.size(0) == n_block_types);
+    assert(block_type_path_distance.size(1) == max_n_block_atoms);
+    assert(block_type_path_distance.size(2) == max_n_block_atoms);
 
     auto dV_d_pose_coords_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({n_atoms});
     auto dV_d_pose_coords = dV_d_pose_coords_t.view;
