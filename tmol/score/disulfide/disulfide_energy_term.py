@@ -27,6 +27,10 @@ class DisulfideEnergyTerm(EnergyTerm):
         self.device = device
 
     @classmethod
+    def class_name(cls):
+        return "Disulfide"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.disulfide_creator
 

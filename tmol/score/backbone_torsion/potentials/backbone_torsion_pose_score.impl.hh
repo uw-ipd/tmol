@@ -37,8 +37,7 @@ template <typename Real>
 using CoordQuad = Eigen::Matrix<Real, 4, 3>;
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -76,7 +75,10 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     TView<Real, 4, Dev> omega_tables,
     TView<RamaTableParams<Real>, 1, Dev> omega_table_params,
     bool output_block_pair_energies)
-    -> std::tuple<TPack<Real, 2, Dev>, TPack<Vec<Real, 3>, 2, Dev>, TPack<Int, 2, Dev>> {
+    -> std::tuple<
+        TPack<Real, 2, Dev>,
+        TPack<Vec<Real, 3>, 2, Dev>,
+        TPack<Int, 2, Dev>> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -125,7 +127,6 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   assert(rama_table_params.size(0) == n_rama_tables);
   assert(omega_table_params.size(0) == n_omega_tables);
 
-
   LAUNCH_BOX_32;
   // Define nt
   CTA_LAUNCH_T_PARAMS;
@@ -133,16 +134,17 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   // RamaPrePro is a pseudo-1body term that's really a 2-body term:
   // the score for residue i changes if residue i+1 becomes proline.
   // Thus we will first count the number
-  // sum(i<N-1, n_rots[i]*n_rots[i+1]) + n_rots[N-1] for each Pose 
+  // sum(i<N-1, n_rots[i]*n_rots[i+1]) + n_rots[N-1] for each Pose
   // and allocate that many scores to cacluate, then calculate
   // them in the second step.
 
-  auto n_energies_for_block_t = TPack<Int, 2, Dev>::zeros({n_poses, max_n_blocks});
+  auto n_energies_for_block_t =
+      TPack<Int, 2, Dev>::zeros({n_poses, max_n_blocks});
   auto n_energies_for_block = n_energies_for_block_t.view;
-  auto count_n_rotamer_energies = ([=] TMOL_DEVICE_FUNC (int index) {
-    // Look at each residue and make sure that it has both upper and lower neighbors
-    // and then write down the number of rotamer pair energies to evaluate 
-    // as n_rots_i * n_rots_upper
+  auto count_n_rotamer_energies = ([=] TMOL_DEVICE_FUNC(int index) {
+    // Look at each residue and make sure that it has both upper and lower
+    // neighbors and then write down the number of rotamer pair energies to
+    // evaluate as n_rots_i * n_rots_upper
     int const pose_ind = index / max_n_blocks;
     int const block_ind = index % max_n_blocks;
 
@@ -176,13 +178,15 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     // the n_rots_i x n_rots_j rotamers for this pair.
     // This will properly include upper neighbors for circular peptides,
     // too.
-    int const upper_n_rots = n_rots_for_block[pose_ind][upper_nbr_block_ind]; 
+    int const upper_n_rots = n_rots_for_block[pose_ind][upper_nbr_block_ind];
 
     n_energies_for_block[pose_ind][block_ind] = n_rots * upper_n_rots;
   });
-  DeviceDispatch<Dev>::template forall<launch_t>(n_poses * max_n_blocks, count_n_rotamer_energies);
+  DeviceDispatch<Dev>::template forall<launch_t>(
+      n_poses * max_n_blocks, count_n_rotamer_energies);
 
-  auto n_energies_for_block_offset_t = TPack<Int, 2, Dev>::zeros({n_poses, max_n_blocks});
+  auto n_energies_for_block_offset_t =
+      TPack<Int, 2, Dev>::zeros({n_poses, max_n_blocks});
   auto n_energies_for_block_offset = n_energies_for_block_offset_t.view;
   int n_dispatch_total =
       DeviceDispatch<Dev>::template scan_and_return_total<mgpu::scan_type_exc>(
@@ -201,18 +205,18 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   auto dV_dxyz_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({2, n_atoms});
 
   int const max_n_rots_per_block = DeviceDispatch<Dev>::reduce(
-    n_rots_for_block.data(), n_poses * max_n_blocks, mgpu::maximum_t<Int>()
-  );
-
-
+      n_rots_for_block.data(), n_poses * max_n_blocks, mgpu::maximum_t<Int>());
 
   auto V = V_t.view;
   auto dV_dxyz = dV_dxyz_t.view;
   auto dispatch_indices = dispatch_indices_t.view;
 
-  auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC (int ind) {
-    int const pose_ind = ind / (max_n_blocks * max_n_rots_per_block * max_n_rots_per_block);
-    ind = ind - pose_ind * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block;
+  auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
+    int const pose_ind =
+        ind / (max_n_blocks * max_n_rots_per_block * max_n_rots_per_block);
+    ind =
+        ind
+        - pose_ind * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block;
     int const block1_ind = ind / (max_n_rots_per_block * max_n_rots_per_block);
     ind = ind - block1_ind * max_n_rots_per_block * max_n_rots_per_block;
     int const local_rot1_ind = ind / max_n_rots_per_block;
@@ -228,7 +232,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
       return;
     }
 
-    int const block1_sparse_dispatch_offset = n_energies_for_block_offset[pose_ind][block1_ind];
+    int const block1_sparse_dispatch_offset =
+        n_energies_for_block_offset[pose_ind][block1_ind];
     int const block1_rot_offset = first_rot_for_block[pose_ind][block1_ind];
 
     bool block1_has_upper_neighbor = true;
@@ -237,33 +242,36 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
       block1_has_upper_neighbor = false;
     } else {
       int const upper_nbr_block_ind =
-          pose_stack_inter_block_connections[pose_ind][block1_ind][upper_conn][0];
+          pose_stack_inter_block_connections[pose_ind][block1_ind][upper_conn]
+                                            [0];
       if (upper_nbr_block_ind != -1) {
         // the upper neighbor is a real residue: we will score
         // the n_rots_i x n_rots_j rotamers for this pair
         // This will properly include upper neighbors for circular peptides,
         // too, unless we have a two residue circular peptide which feels
         // chemically impossible.
-        int const upper_n_rots = n_rots_for_block[pose_ind][upper_nbr_block_ind]; 
+        int const upper_n_rots =
+            n_rots_for_block[pose_ind][upper_nbr_block_ind];
 
         if (local_rot2_ind >= upper_n_rots) {
           return;
         }
-        int const sparse_index = block1_sparse_dispatch_offset + local_rot1_ind * upper_n_rots + local_rot2_ind;
+        int const sparse_index = block1_sparse_dispatch_offset
+                                 + local_rot1_ind * upper_n_rots
+                                 + local_rot2_ind;
         int const rot1_ind = block1_rot_offset + local_rot1_ind;
-        int const rot2_ind = first_rot_for_block[pose_ind][upper_nbr_block_ind] + local_rot2_ind;
+        int const rot2_ind =
+            first_rot_for_block[pose_ind][upper_nbr_block_ind] + local_rot2_ind;
 
         dispatch_indices[0][sparse_index] = pose_ind;
         dispatch_indices[1][sparse_index] = rot1_ind;
         dispatch_indices[2][sparse_index] = rot2_ind;
-
-      }  
+      }
     }
   });
   DeviceDispatch<Dev>::template forall<launch_t>(
-    n_poses * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block,
-    mark_dispatch_indices
-  );
+      n_poses * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block,
+      mark_dispatch_indices);
 
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = dispatch_indices[0][ind];
@@ -350,8 +358,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
           rama_tables[rama_table_ind],
           Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbstarts),
           Eigen::Map<Vec<Real, 2>>(rama_table_params[rama_table_ind].bbsteps));
-      accumulate<Dev, Real>::add(
-          V[0][V_ind], common::get<0>(rama));
+      accumulate<Dev, Real>::add(V[0][V_ind], common::get<0>(rama));
       for (int j = 0; j < 4; ++j) {
         accumulate<Dev, Vec<Real, 3>>::add(
             dV_dxyz[0][phi_ats[j]], common::get<1>(rama).row(j));
@@ -432,13 +439,15 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
     }
   });
 
-  DeviceDispatch<Dev>::template forall<launch_t>(n_dispatch_total, rama_omega_func);
+  DeviceDispatch<Dev>::template forall<launch_t>(
+      n_dispatch_total, rama_omega_func);
+  // DeviceDispatch<Dev>::synchronize_device();
+
   return {V_t, dV_dxyz_t, dispatch_indices_t};
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -477,7 +486,7 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     TView<RamaTableParams<Real>, 1, Dev> omega_table_params,
 
     TView<Int, 2, Dev> dispatch_indices,  // from forward pass
-    TView<Real, 2, Dev> dTdV  // nterms x nposes x (1|len) x (1|len)
+    TView<Real, 2, Dev> dTdV              // nterms x nposes x (1|len) x (1|len)
     ) -> TPack<Vec<Real, 3>, 2, Dev> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
@@ -486,10 +495,11 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
   int const n_poses = first_rot_for_block.size(0);
   int const n_rots = rot_coord_offset.size(0);
   int const max_n_blocks = first_rot_for_block.size(1);
-  
+
   int const max_n_conn = pose_stack_inter_block_connections.size(2);
   int const n_block_types = block_type_atom_downstream_of_conn.size(0);
-  int const max_n_atoms_per_block_type = block_type_atom_downstream_of_conn.size(1);
+  int const max_n_atoms_per_block_type =
+      block_type_atom_downstream_of_conn.size(1);
   int const n_rama_tables = rama_tables.size(0);
   int const n_omega_tables = omega_tables.size(0);
 
@@ -550,8 +560,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     // In block-pair-scoring mode, we store one energy per rotamer;
     // In non-block-pair-scoring mode, we store one energy per pose
     // (using atomic_add to accumulate for each block/rotamer in the pose)
-    // NOTE: we only ever call this function if output_block_pair_energies is true
-    // so previous logic just boils down to V_ind = ind;
+    // NOTE: we only ever call this function if output_block_pair_energies is
+    // true so previous logic just boils down to V_ind = ind;
     int const V_ind = ind;
 
     int const upper_nbr_is_pro = block_type_is_pro[block_type2];
@@ -706,7 +716,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
     }
   });
 
-  DeviceDispatch<Dev>::template forall<launch_t>(dispatch_indices.size(1), rama_omega_func);
+  DeviceDispatch<Dev>::template forall<launch_t>(
+      dispatch_indices.size(1), rama_omega_func);
 
   return dV_dxyz_t;
 };

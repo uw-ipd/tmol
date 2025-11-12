@@ -767,6 +767,12 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices<DeviceDispatch, D, Int>::f(
           scratch_rot_neighbors, rot_offset_for_pose);
+  // auto rni_result = score::common::sphere_overlap::
+  //     rot_neighbor_indices<DeviceDispatch, D, Int>::f(
+  //         scratch_rot_neighbors, rot_offset_for_pose);
+  auto dispatch_indices_t = std::get<0>(rni_result);
+  // auto offset_for_cell_t = std::get<1>(rni_result);
+
   auto dispatch_indices = dispatch_indices_t.view;
 
   TPack<Real, 2, D> output_t;
@@ -1088,6 +1094,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         dispatch_indices.size(1), eval_energies);
   }
+  // DeviceDispatch<D>::synchronize_device();
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // LJLKPoseScoreDispatch::forward

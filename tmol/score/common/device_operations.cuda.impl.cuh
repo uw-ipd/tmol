@@ -82,24 +82,28 @@ struct DeviceOperations<tmol::Device::CUDA> {
   // Construct load-balanced-search mapping of work items to their generator
   // index; see https://moderngpu.github.io/loadbalance.html
   // Arguments:
-  //   - n_work_units_total: the sum of the number of work units 
+  //   - n_work_units_total: the sum of the number of work units
   //
   //   - exc_scan_offsets: the result of running exclusive scan on the
   //     the number of work units that each generator produces
-  //.  - n_generators: the number of generators / length of exc_scan_offset 
+  //.  - n_generators: the number of generators / length of exc_scan_offset
   template <typename launch_t, typename Int>
   static TPack<Int, 1, tmol::Device::CUDA> load_balancing_search(
-    int n_work_units_total,  // The count of the total number of work units
-    Int * exc_scan_offsets, 
-    int n_generators
-  )
-  {
+      int n_work_units_total,  // The count of the total number of work units
+      Int* exc_scan_offsets,
+      int n_generators) {
     mgpu::standard_context_t context;
 
-    auto gen_for_work_item_t = TPack<Int, 1, tmol::Device::CUDA>::zeros({n_work_units_total});
+    auto gen_for_work_item_t =
+        TPack<Int, 1, tmol::Device::CUDA>::zeros({n_work_units_total});
     auto gen_for_work_item = gen_for_work_item_t.view;
 
-    load_balance_search(n_work_units_total, exc_scan_offsets, n_generators, gen_for_work_item.data(), context);
+    load_balance_search(
+        n_work_units_total,
+        exc_scan_offsets,
+        n_generators,
+        gen_for_work_item.data(),
+        context);
     return gen_for_work_item_t;
   }
 
@@ -222,6 +226,9 @@ struct DeviceOperations<tmol::Device::CUDA> {
   }
 
   __device__ static void synchronize_workgroup() { __syncthreads(); }
+
+  // No op on 1-core CPU
+  static void synchronize_device() { cudaStreamSynchronize(0); }
 };
 
 }  // namespace common

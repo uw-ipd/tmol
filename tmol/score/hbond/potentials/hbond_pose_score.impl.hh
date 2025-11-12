@@ -44,7 +44,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <int TILE, typename InterEnergyData>
 EIGEN_DEVICE_FUNC int interres_count_pair_separation(
-    InterEnergyData const &inter_dat, int atom_tile_ind1, int atom_tile_ind2) {
+    InterEnergyData const& inter_dat, int atom_tile_ind1, int atom_tile_ind2) {
   int separation = inter_dat.pair_data.min_separation;
   if (separation <= inter_dat.pair_data.max_important_bond_separation) {
     separation = common::count_pair::shared_mem_inter_block_separation<TILE>(
@@ -69,9 +69,9 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int acc_tile_ind,                                        \
       int don_start,                                           \
       int acc_start,                                           \
-      HBondSingleResData<Real> const &don_dat,                 \
-      HBondSingleResData<Real> const &acc_dat,                 \
-      HBondRotPairData<Dev, Real, Int> const &respair_dat,     \
+      HBondSingleResData<Real> const& don_dat,                 \
+      HBondSingleResData<Real> const& acc_dat,                 \
+      HBondRotPairData<Dev, Real, Int> const& respair_dat,     \
       int cp_separation) {                                     \
     if (cp_separation < 5) {                                   \
       return Real(0.0);                                        \
@@ -113,7 +113,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int acc_start,                                                         \
       int don_ind,                                                           \
       int acc_ind,                                                           \
-      HBondScoringData<Dev, Real, Int> const &inter_dat,                     \
+      HBondScoringData<Dev, Real, Int> const& inter_dat,                     \
       bool donor_first)                                                      \
       ->std::array<Real, 1> {                                                \
     int don_tile_ind =                                                       \
@@ -145,7 +145,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int acc_start,                                                         \
       int don_ind,                                                           \
       int acc_ind,                                                           \
-      HBondScoringData<Dev, Real, Int> const &intra_dat,                     \
+      HBondScoringData<Dev, Real, Int> const& intra_dat,                     \
       bool donor_first)                                                      \
       ->std::array<Real, 1> {                                                \
     int don_tile_ind =                                                       \
@@ -183,8 +183,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int block_type2,                                                \
       int n_atoms1,                                                   \
       int n_atoms2,                                                   \
-      HBondScoringData<Dev, Real, Int> &inter_dat,                    \
-      shared_mem_union &shared) {                                     \
+      HBondScoringData<Dev, Real, Int>& inter_dat,                    \
+      shared_mem_union& shared) {                                     \
     hbond_load_tile_invariant_interres_data<DeviceDispatch, Dev, nt>( \
         rot_coords,                                                   \
         first_rot_for_block,                                          \
@@ -223,8 +223,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int tile_ind,                                                    \
       int start_atom1,                                                 \
       int n_atoms_to_load1,                                            \
-      HBondScoringData<Dev, Real, Int> &inter_dat,                     \
-      shared_mem_union &shared) {                                      \
+      HBondScoringData<Dev, Real, Int>& inter_dat,                     \
+      shared_mem_union& shared) {                                      \
     hbond_load_interres1_tile_data_to_shared<DeviceDispatch, Dev, nt>( \
         rot_coords,                                                    \
         block_type_tile_n_donH,                                        \
@@ -248,8 +248,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int tile_ind,                                                    \
       int start_atom2,                                                 \
       int n_atoms_to_load2,                                            \
-      HBondScoringData<Dev, Real, Int> &inter_dat,                     \
-      shared_mem_union &shared) {                                      \
+      HBondScoringData<Dev, Real, Int>& inter_dat,                     \
+      shared_mem_union& shared) {                                      \
     hbond_load_interres2_tile_data_to_shared<DeviceDispatch, Dev, nt>( \
         rot_coords,                                                    \
         block_type_tile_n_donH,                                        \
@@ -270,12 +270,12 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 // done
 #define LOAD_INTERRES_DATA_FROM_SHARED \
   TMOL_DEVICE_FUNC(                    \
-      int, int, shared_mem_union &, HBondScoringData<Dev, Real, Int> &) {}
+      int, int, shared_mem_union&, HBondScoringData<Dev, Real, Int>&) {}
 
 // done
 #define EVAL_INTERRES_ATOM_PAIR_SCORES                                     \
   TMOL_DEVICE_FUNC(                                                        \
-      HBondScoringData<Dev, Real, Int> &inter_dat,                         \
+      HBondScoringData<Dev, Real, Int>& inter_dat,                         \
       int start_atom1,                                                     \
       int start_atom2) {                                                   \
     eval_interres_don_acc_pair_energies<DeviceDispatch, Dev, nt>(          \
@@ -285,7 +285,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 // done
 #define STORE_CALCULATED_ENERGIES                                              \
   TMOL_DEVICE_FUNC(                                                            \
-      HBondScoringData<Dev, Real, Int> &score_dat, shared_mem_union &shared) { \
+      HBondScoringData<Dev, Real, Int>& score_dat, shared_mem_union& shared) { \
     auto reduce_energies = ([&](int tid) {                                     \
       Real const cta_total_hbond =                                             \
           DeviceDispatch<Dev>::template reduce_in_workgroup<nt>(               \
@@ -309,8 +309,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int block_ind1,                                                 \
       int block_type1,                                                \
       int n_atoms1,                                                   \
-      HBondScoringData<Dev, Real, Int> &intra_dat,                    \
-      shared_mem_union &shared) {                                     \
+      HBondScoringData<Dev, Real, Int>& intra_dat,                    \
+      shared_mem_union& shared) {                                     \
     hbond_load_tile_invariant_intrares_data<DeviceDispatch, Dev, nt>( \
         rot_coords,                                                   \
         first_rot_for_block,                                          \
@@ -342,8 +342,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int tile_ind,                                                    \
       int start_atom1,                                                 \
       int n_atoms_to_load1,                                            \
-      HBondScoringData<Dev, Real, Int> &intra_dat,                     \
-      shared_mem_union &shared) {                                      \
+      HBondScoringData<Dev, Real, Int>& intra_dat,                     \
+      shared_mem_union& shared) {                                      \
     hbond_load_intrares1_tile_data_to_shared<DeviceDispatch, Dev, nt>( \
         rot_coords,                                                    \
         block_type_tile_n_donH,                                        \
@@ -366,8 +366,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
       int tile_ind,                                                    \
       int start_atom2,                                                 \
       int n_atoms_to_load2,                                            \
-      HBondScoringData<Dev, Real, Int> &intra_dat,                     \
-      shared_mem_union &shared) {                                      \
+      HBondScoringData<Dev, Real, Int>& intra_dat,                     \
+      shared_mem_union& shared) {                                      \
     hbond_load_intrares2_tile_data_to_shared<DeviceDispatch, Dev, nt>( \
         rot_coords,                                                    \
         block_type_tile_n_donH,                                        \
@@ -389,8 +389,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
   TMOL_DEVICE_FUNC(                                  \
       int tile_ind1,                                 \
       int tile_ind2,                                 \
-      shared_mem_union &shared,                      \
-      HBondScoringData<Dev, Real, Int> &intra_dat) { \
+      shared_mem_union& shared,                      \
+      HBondScoringData<Dev, Real, Int>& intra_dat) { \
     hbond_load_intrares_data_from_shared(            \
         tile_ind1, tile_ind2, shared.m, intra_dat);  \
   }
@@ -398,7 +398,7 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 // done
 #define EVAL_INTRARES_ATOM_PAIR_SCORES                                     \
   TMOL_DEVICE_FUNC(                                                        \
-      HBondScoringData<Dev, Real, Int> &intra_dat,                         \
+      HBondScoringData<Dev, Real, Int>& intra_dat,                         \
       int start_atom1,                                                     \
       int start_atom2) {                                                   \
     eval_intrares_don_acc_pair_energies<DeviceDispatch, Dev, nt>(          \
@@ -608,6 +608,12 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices<DeviceDispatch, Dev, Int>::f(
           scratch_rot_neighbors, rot_offset_for_pose);
+  // auto rni_result = score::common::sphere_overlap::
+  //     rot_neighbor_indices<DeviceDispatch, Dev, Int>::f(
+  //         scratch_rot_neighbors, rot_offset_for_pose);
+  // auto dispatch_indices_t = std::get<0>(rni_result);
+  // auto offset_for_cell_t = std::get<1>(rni_result);
+
   auto dispatch_indices = dispatch_indices_t.view;
 
   TPack<Real, 2, Dev> output_t;
@@ -743,6 +749,7 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
   DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
       dispatch_indices.size(1), eval_energies);
 
+  // DeviceDispatch<Dev>::synchronize_device();
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }
 
@@ -882,9 +889,9 @@ auto HBondPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
              int acc_tile_ind,
              int don_start,
              int acc_start,
-             HBondSingleResData<Real> const &don_dat,
-             HBondSingleResData<Real> const &acc_dat,
-             HBondRotPairData<Dev, Real, Int> const &respair_dat,
+             HBondSingleResData<Real> const& don_dat,
+             HBondSingleResData<Real> const& acc_dat,
+             HBondRotPairData<Dev, Real, Int> const& respair_dat,
              int cp_separation) {
           if (cp_separation < 5) {
             return Real(0.0);

@@ -43,6 +43,10 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         self.device = device
 
     @classmethod
+    def class_name(cls):
+        return "CartBonded"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.cartbonded_creator
 
@@ -196,17 +200,13 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
         cart_subgraphs = numpy.asarray(lengths + angles + torsions + improper)
         cart_subgraph_type_counts = numpy.array(
-            [
-                len(lengths),
-                len(angles),
-                len(torsions) + len(improper)
-            ]            
+            [len(lengths), len(angles), len(torsions) + len(improper)]
         )
         cart_subgraph_type_offsets = numpy.array(
             [
                 0,
                 cart_subgraph_type_counts[0],
-                cart_subgraph_type_counts[0] + cart_subgraph_type_counts[1]
+                cart_subgraph_type_counts[0] + cart_subgraph_type_counts[1],
             ]
         )
 
@@ -216,8 +216,12 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         )
         cartbonded_params = self.get_params_for_res(temp_hack_base_name)
         setattr(block_type, "cartbonded_subgraphs", cart_subgraphs)
-        setattr(block_type, "cartbonded_subgraph_type_counts", cart_subgraph_type_counts)
-        setattr(block_type, "cartbonded_subgraph_type_offsets", cart_subgraph_type_offsets)
+        setattr(
+            block_type, "cartbonded_subgraph_type_counts", cart_subgraph_type_counts
+        )
+        setattr(
+            block_type, "cartbonded_subgraph_type_offsets", cart_subgraph_type_offsets
+        )
         setattr(block_type, "cartbonded_params", cartbonded_params)
 
     def setup_packed_block_types(self, packed_block_types: PackedBlockTypes):
@@ -244,7 +248,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         for block_type in packed_block_types.active_block_types:
             subgraph_offsets.append(offset)
 
-
             n_subgraphs = block_type.cartbonded_subgraphs.shape[0]
             subgraph_type_counts.append(block_type.cartbonded_subgraph_type_counts)
             subgraph_type_offsets.append(block_type.cartbonded_subgraph_type_offsets)
@@ -259,12 +262,22 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
         subgraph_type_counts = numpy.asarray(subgraph_type_counts, dtype=numpy.int32)
         subgraph_type_offsets = numpy.asarray(subgraph_type_offsets, dtype=numpy.int32)
         subgraph_offsets = torch.from_numpy(subgraph_offsets).to(device=self.device)
-        subgraph_type_counts = torch.from_numpy(subgraph_type_counts).to(device=self.device)
-        subgraph_type_offsets = torch.from_numpy(subgraph_type_offsets).to(device=self.device)
+        subgraph_type_counts = torch.from_numpy(subgraph_type_counts).to(
+            device=self.device
+        )
+        subgraph_type_offsets = torch.from_numpy(subgraph_type_offsets).to(
+            device=self.device
+        )
         setattr(packed_block_types, "cartbonded_subgraphs", subgraphs)
         setattr(packed_block_types, "cartbonded_subgraph_offsets", subgraph_offsets)
-        setattr(packed_block_types, "cartbonded_subgraph_type_counts", subgraph_type_counts)
-        setattr(packed_block_types, "cartbonded_subgraph_type_offsets", subgraph_type_offsets)
+        setattr(
+            packed_block_types, "cartbonded_subgraph_type_counts", subgraph_type_counts
+        )
+        setattr(
+            packed_block_types,
+            "cartbonded_subgraph_type_offsets",
+            subgraph_type_offsets,
+        )
         setattr(
             packed_block_types,
             "cartbonded_max_subgraphs_per_block",
@@ -348,6 +361,7 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types
+
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))
 

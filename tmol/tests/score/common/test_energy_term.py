@@ -274,6 +274,7 @@ class EnergyTermTestBase:
 
         coords = torch.nn.Parameter(pn.coords.clone())
         scores = pose_scorer(coords).cpu().detach().numpy()
+        print("scores", scores)
 
         if update_baseline:
             cls.save_test_baseline_data(

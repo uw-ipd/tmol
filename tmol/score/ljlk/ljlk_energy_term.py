@@ -36,6 +36,10 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         self.tile_size = LJLKEnergyTerm.tile_size
 
     @classmethod
+    def class_name(cls):
+        return "LJLK"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.ljlk_creator
 

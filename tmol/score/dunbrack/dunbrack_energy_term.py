@@ -54,6 +54,10 @@ class DunbrackEnergyTerm(EnergyTerm):
         self.device = device
 
     @classmethod
+    def class_name(cls):
+        return "Dunbrack"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.dunbrack_creator
 
@@ -253,7 +257,7 @@ class DunbrackEnergyTerm(EnergyTerm):
             *self.dunbrack_db,
             *pbt.dunbrack_packed_block_data,
         ]
-        
+
     # def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
     #     pbt = pose_stack.packed_block_types
 
@@ -265,5 +269,3 @@ class DunbrackEnergyTerm(EnergyTerm):
     #         global_params=self.dunbrack_db,
     #         dunbrack_packed_block_data=pbt.dunbrack_packed_block_data,
     #     )
-
-

@@ -20,6 +20,10 @@ class RefEnergyTerm(EnergyTerm):
         self.device = device
 
     @classmethod
+    def class_name(cls):
+        return "Ref"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.ref_creator
 
@@ -69,6 +73,7 @@ class RefEnergyTerm(EnergyTerm):
         # print("n atts:", len(atts))
         return atts
 
+
 def eval_ref_energy_for_rotamers(
     # common args
     rot_coords,
@@ -84,9 +89,7 @@ def eval_ref_energy_for_rotamers(
     _n_rots_for_block,
     _rot_offset_for_block,
     _max_n_rots_per_pose,
-
     ref_weights,
-
     output_block_pair_energies: bool,
 ):
     block_type_ind_for_rot64 = block_type_ind_for_rot.to(torch.int64)
@@ -102,25 +105,18 @@ def eval_ref_energy_for_rotamers(
 
     if output_block_pair_energies:
         n_rotamers = pose_ind_for_rot.shape[0]
-        indices = torch.zeros(
-            (3, n_rotamers),
-            dtype=torch.int32,
-            device=device
-        )
-        indices[0,:] = pose_ind_for_rot
+        indices = torch.zeros((3, n_rotamers), dtype=torch.int32, device=device)
+        indices[0, :] = pose_ind_for_rot
         rot_ind = torch.arange(n_rotamers, dtype=torch.int32, device=device)
-        indices[1,:] = rot_ind
-        indices[2,:] = rot_ind
+        indices[1, :] = rot_ind
+        indices[2, :] = rot_ind
         output_scores = rotamer_scores
     else:
         # for each pose, sum up the block scores
         pose_ind_for_rot64 = pose_ind_for_rot.to(torch.int64)
         output_scores = torch.zeros_like((n_rots_for_pose), dtype=dtype)
-        output_scores.index_add_(
-            0, pose_ind_for_rot64[is_real_rot], rotamer_scores
-        )
+        output_scores.index_add_(0, pose_ind_for_rot64[is_real_rot], rotamer_scores)
         indices = torch.zeros((0,), dtype=torch.int32, device=device)
     output_scores = output_scores.unsqueeze(0)
     output_scores.requires_grad = True  # a bit of a hack to make the benchmark test not error out because there are no grads
     return output_scores, indices
-   

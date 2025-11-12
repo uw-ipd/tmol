@@ -112,9 +112,11 @@ template <
     typename Int>
 struct compute_block_spheres {
   static void f(
-      TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> pose_stack_block_coord_offset,
-      TView<Int, 2, D> pose_stack_block_type,
+      TView<Vec<Real, 3>, 1, D> rot_coords,
+      TView<Int, 1, D> rot_coord_offset,
+      TView<Int, 1, D> block_ind_for_rot,
+      TView<Int, 1, D> pose_ind_for_rot,
+      TView<Int, 1, D> block_type_ind_for_rot,
       TView<Int, 1, D> block_type_n_atoms,
       TView<Real, 3, D> block_spheres) {
     LAUNCH_BOX_32;
@@ -122,26 +124,25 @@ struct compute_block_spheres {
     auto compute_spheres = ([=] TMOL_DEVICE_FUNC(int cta) {
       CTA_LAUNCH_T_PARAMS;
 
-      int const n_poses = coords.size(0);
-      int const max_n_pose_atoms = coords.size(1);
-      int const max_n_blocks = pose_stack_block_type.size(1);
+      // int const n_poses = coords.size(0);
+      // int const max_n_pose_atoms = coords.size(1);
+      // int const max_n_blocks = pose_stack_block_type.size(1);
 
-      int const pose_ind = cta / max_n_blocks;
-      int const block_ind = cta % max_n_blocks;
-
-      if (pose_ind >= n_poses) return;
-
-      int const block_type = pose_stack_block_type[pose_ind][block_ind];
+      int const pose_ind = pose_ind_for_rot[cta];
+      int const block_ind = block_ind_for_rot[cta];
+      int const block_type = block_type_ind_for_rot[cta];
+      int const coord_offset = rot_coord_offset[cta];
+      // printf("compute spheres cta %d pose_ind %d block_ind %d block_type
+      // %d\n",
+      //   cta, pose_ind, block_ind, block_type);
 
       if (block_type < 0) return;
-      int const block_coord_offset =
-          pose_stack_block_coord_offset[pose_ind][block_ind];
       int const n_atoms = block_type_n_atoms[block_type];
       Vec<Real, 3> local_coords(0, 0, 0);
 
       auto per_thread_com = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_atoms; i += nt) {
-          Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
+          Vec<Real, 3> ci = rot_coords[coord_offset + i];
           for (int j = 0; j < 3; ++j) {
             local_coords[j] += ci[j];
           }
@@ -166,7 +167,7 @@ struct compute_block_spheres {
       // Now find maximum distance
       auto per_thread_dist_to_com = ([&] TMOL_DEVICE_FUNC(int tid) {
         for (int i = tid; i < n_atoms; i += nt) {
-          Vec<Real, 3> ci = coords[pose_ind][block_coord_offset + i];
+          Vec<Real, 3> ci = rot_coords[coord_offset + i];
           Real d2 =
               ((ci[0] - com[0]) * (ci[0] - com[0])
                + (ci[1] - com[1]) * (ci[1] - com[1])
@@ -196,7 +197,7 @@ struct compute_block_spheres {
     });
 
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-        coords.size(0) * pose_stack_block_type.size(1), compute_spheres);
+        block_ind_for_rot.size(0), compute_spheres);
   }
 };
 
@@ -294,19 +295,16 @@ template <
     typename Int>
 struct detect_block_neighbors {
   static void f(
-      TView<Vec<Real, 3>, 2, D> coords,
-      TView<Int, 2, D> pose_stack_block_coord_offset,
       TView<Int, 2, D> pose_stack_block_type,
-      TView<Int, 1, D> block_type_n_atoms,
       TView<Real, 3, D> block_spheres,
       TView<Int, 3, D> block_neighbors,
       Real reach) {
     LAUNCH_BOX_32;
 
     auto detect_neighbors = ([=] TMOL_DEVICE_FUNC(int ind) {
-      int const n_poses = coords.size(0);
+      int const n_poses = pose_stack_block_type.size(0);
       int const max_n_blocks = pose_stack_block_type.size(1);
-      int const n_block_types = block_type_n_atoms.size(0);
+      // int const n_block_types = block_type_n_atoms.size(0);
 
       if (ind >= n_poses * max_n_blocks * max_n_blocks) return;
 

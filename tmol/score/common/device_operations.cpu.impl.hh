@@ -78,37 +78,38 @@ struct DeviceOperations<tmol::Device::CPU> {
   // Construct load-balanced-search mapping of work items to their generator
   // index; see https://moderngpu.github.io/loadbalance.html
   // Arguments:
-  //   - n_work_units_total: the sum of the number of work units 
+  //   - n_work_units_total: the sum of the number of work units
   //
   //   - exc_scan_offsets: the result of running exclusive scan on the
   //     the number of work units that each generator produces
-  //.  - n_generators: the number of generators / length of exc_scan_offset 
+  //.  - n_generators: the number of generators / length of exc_scan_offset
   template <typename launch_t, typename Int>
   static TPack<Int, 1, tmol::Device::CPU> load_balancing_search(
-    int n_work_units_total,  // The count of the total number of work units
-    Int * exc_scan_offsets, 
-    int n_generators
-  )
-  {
-    auto gen_for_work_item_t = TPack<Int, 1, tmol::Device::CPU>::zeros({n_work_units_total});
+      int n_work_units_total,  // The count of the total number of work units
+      Int* exc_scan_offsets,
+      int n_generators) {
+    auto gen_for_work_item_t =
+        TPack<Int, 1, tmol::Device::CPU>::zeros({n_work_units_total});
     auto gen_for_work_item = gen_for_work_item_t.view;
 
     for (int i = 0; i < n_generators; ++i) {
       int i_offset = exc_scan_offsets[i];
-      int i_n_work_units = (i + 1 == n_generators ?
-        n_work_units_total : exc_scan_offsets[i + 1]) - i_offset;
-      // printf("lbs: i %d i_offset %d i_n_work_units %d\n", i, i_offset, i_n_work_units);
+      int i_n_work_units =
+          (i + 1 == n_generators ? n_work_units_total : exc_scan_offsets[i + 1])
+          - i_offset;
+      // printf("lbs: i %d i_offset %d i_n_work_units %d\n", i, i_offset,
+      // i_n_work_units);
       for (int j = 0; j < i_n_work_units; ++j) {
         gen_for_work_item[i_offset + j] = i;
-        // printf("gen_for_work_item[%d + %d == %d] = %d\n", i_offset, j, i_offset+j, i );
+        // printf("gen_for_work_item[%d + %d == %d] = %d\n", i_offset, j,
+        // i_offset+j, i );
       }
     }
     return gen_for_work_item_t;
   }
 
   template <typename T, typename OP>
-  static T reduce(T* src, int n, OP op)
-  {
+  static T reduce(T* src, int n, OP op) {
     assert(n > 0);
     T val = src[0];
     for (int i = 1; i < n; ++i) {
@@ -116,7 +117,6 @@ struct DeviceOperations<tmol::Device::CPU> {
     }
     return val;
   }
-
 
   // Segmented scan expects the indices for the beginning of each segment rather
   // than, e.g., a boolean tensor indicating the start of each segment.
@@ -190,6 +190,9 @@ struct DeviceOperations<tmol::Device::CPU> {
 
   // No op on 1-core CPU
   static void synchronize_workgroup() {}
+
+  // No op on 1-core CPU
+  static void synchronize_device() {}
 };
 
 }  // namespace common

@@ -37,20 +37,19 @@ struct DeviceOperations {
   // Construct load-balanced-search mapping of work items to their generator
   // index; see https://moderngpu.github.io/loadbalance.html
   // Arguments:
-  //   - n_work_units_total: the sum of the number of work units 
+  //   - n_work_units_total: the sum of the number of work units
   //
   //   - exc_scan_offsets: the result of running exclusive scan on the
   //     the number of work units that each generator produces
-  //.  - n_generators: the number of generators / length of exc_scan_offset 
+  //.  - n_generators: the number of generators / length of exc_scan_offset
   template <typename launch_t, typename Int>
   static TPack<Int, 1, D> load_balancing_search(
-    int n_work_units_total,  // The count of the total number of work units
-    Int * exc_scan_offsets, 
-    int n_generators
-  );
+      int n_work_units_total,  // The count of the total number of work units
+      Int* exc_scan_offsets,
+      int n_generators);
 
-  // Perform a reduction on a given device array and return the result to the CPU.
-  // n must be greater than zero.
+  // Perform a reduction on a given device array and return the result to the
+  // CPU. n must be greater than zero.
   template <typename T, typename OP>
   static T reduce(T* src, int n, OP op);
 
@@ -88,6 +87,8 @@ struct DeviceOperations {
   static T shuffle_reduce_in_workgroup(T val, OP op);
 
   static void synchronize_workgroup();
+
+  static void synchroinize_device();
 };
 
 }  // namespace common

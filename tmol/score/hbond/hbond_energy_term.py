@@ -30,6 +30,10 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         )
 
     @classmethod
+    def class_name(cls):
+        return "HBond"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.hbond_creator
 

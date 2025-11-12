@@ -747,6 +747,8 @@ auto CartBondedPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       dispatch_indices.size(1), eval_subgraphs_for_interaction);
   //   std::cout << "end forward eval_subgraphs_for_interaction" << std::endl;
 
+  // DeviceDispatch<D>::synchronize_device();
+
   //   auto eval_lengths = ([=] TMOL_DEVICE_FUNC(int index) {
   //     int const rotconn_ind = rotconn_for_lengths[index];
   //     int const rot_ind1 = rotconn_ind / (n_max_conns + 1);

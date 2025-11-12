@@ -2,6 +2,13 @@ import torch
 import numpy
 import pytest
 
+from torch.utils import benchmark
+
+import time
+from contextlib import contextmanager
+import pathlib
+
+
 # from tmol.pose.pose_stack import PoseStack
 from tmol.io import pose_stack_from_pdb
 from tmol.pose.pose_stack_builder import PoseStackBuilder
@@ -13,6 +20,8 @@ from tmol.kinematics.fold_forest import FoldForest
 from tmol.kinematics.script_modules import PoseStackKinematicsModule
 
 from tmol.optimization.sfxn_modules import CartesianSfxnNetwork, KinForestSfxnNetwork
+from tmol.kinematics.move_map import MoveMap
+from tmol.optimization.kin_min import build_kinforest_network
 
 
 def test_cart_minimize_w_pose_and_sfxn_smoke(ubq_pdb, default_database, torch_device):
@@ -148,3 +157,80 @@ def test_minimizer(ubq_pdb, torch_device):
     optimizer.step(closure)
     Estop = network().sum()
     assert Estop < Estart
+
+
+def make_benchmark_timer(
+    f,
+    closure,
+):
+    timer = benchmark.Timer(
+        stmt="f(closure)",
+        globals={"f": f, "closure": closure},
+        label=f"{f.__name__=}, {closure=}",
+    )
+
+    return timer
+
+
+@contextmanager
+def mark_and_time(name: str):
+    torch.cuda.synchronize()
+    start = time.perf_counter()
+    with torch.profiler.record_function(name):
+        try:
+            yield
+        finally:
+            torch.cuda.synchronize()
+            elapsed = time.perf_counter() - start
+            print(f"{name}: {1000 * elapsed:0.2f}ms")
+
+
+def test_profile_minimizer(ubq_pdb, torch_device):
+    N_poses = 100
+    if torch_device == torch.device("cpu"):
+        return
+    pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
+    pose_stackN = PoseStackBuilder.from_poses([pose_stack1] * N_poses, torch_device)
+
+    sfxn = beta2016_score_function(torch_device)
+    ff = FoldForest.polymeric_forest(
+        numpy.full(N_poses, pose_stackN.max_n_blocks, dtype=numpy.int32)
+    )
+    mm = MoveMap.from_pose_stack(pose_stackN)
+    mm.move_all_jumps = True
+    mm.move_all_named_torsions = True
+
+    network = build_kinforest_network(pose_stackN, sfxn, ff, mm)
+    wpsm = sfxn.render_whole_pose_scoring_module(pose_stackN)
+    wpsm(pose_stackN.coords)
+
+    optimizer = LBFGS_Armijo(network.parameters(), lr=0.1, max_iter=200)
+
+    def closure():
+        optimizer.zero_grad()
+        E = network().sum()
+        E.backward()
+        return E
+
+    t1 = make_benchmark_timer(optimizer.step, closure)
+
+    with torch.profiler.profile(
+        activities=[
+            torch.profiler.ProfilerActivity.CPU,
+            torch.profiler.ProfilerActivity.CUDA,
+        ],
+        record_shapes=False,
+        profile_memory=False,
+        with_stack=False,
+        experimental_config=torch._C._profiler._ExperimentalConfig(verbose=True),
+        schedule=torch.profiler.schedule(wait=1, warmup=1, active=1, repeat=1),
+        execution_trace_observer=None,
+    ) as prof:
+        for _ in range(4):
+            with mark_and_time("kin_min"):
+                t1.timeit(10)
+            prof.step()
+
+    (pathlib.Path(".").resolve() / "output").mkdir(exist_ok=True)
+
+    prof.export_chrome_trace("output/kinmin.json")

@@ -74,6 +74,10 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
         )
 
     @classmethod
+    def class_name(cls):
+        return "BackboneTorsion"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.backbone_torsion_creator
 
@@ -200,7 +204,6 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             self.omega_table_params,
         ]
 
-        
     # def render_whole_pose_scoring_module_old(self, pose_stack: PoseStack):
     #     pbt = pose_stack.packed_block_types
 

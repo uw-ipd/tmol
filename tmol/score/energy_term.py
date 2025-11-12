@@ -13,6 +13,10 @@ class EnergyTerm:
     def __init__(self, **kwargs):
         pass
 
+    @classmethod
+    def class_name(self):
+        raise NotImplementedError()
+
     def score_types(self):
         """Return the list of score types that this EnergyTerm computes
 
@@ -96,25 +100,48 @@ class EnergyTerm:
     def get_score_term_function(self):
         raise NotImplementedError()
 
+    def get_pose_score_term_function(self):
+        raise NotImplementedError()
+
+    def get_rotamer_score_term_function(self):
+        raise NotImplementedError()
+
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+        try:
+            f = self.get_pose_score_term_function()
+        except NotImplementedError:
+            f = self.get_score_term_function()
+
         return TermWholePoseScoringModule(
+            self.class_name(),
             pose_stack,
             self.get_score_term_attributes(pose_stack),
-            self.get_score_term_function(),
+            f,
         )
 
     def render_block_pair_scoring_module(self, pose_stack: PoseStack):
+        try:
+            f = self.get_pose_score_term_function()
+        except NotImplementedError:
+            f = self.get_score_term_function()
         return TermBlockPairScoringModule(
+            self.class_name(),
             pose_stack,
             self.get_score_term_attributes(pose_stack),
-            self.get_score_term_function(),
+            f,
         )
 
     def render_rotamer_scoring_module(
         self, pose_stack: PoseStack, rotamer_set: RotamerSet
     ):
+        try:
+            f = self.get_rotamer_score_term_function()
+        except NotImplementedError:
+            f = self.get_score_term_function()
+
         return TermRotamerScoringModule(
+            self.class_name(),
             rotamer_set,
             self.get_score_term_attributes(pose_stack),
-            self.get_score_term_function(),
+            f,
         )

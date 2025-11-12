@@ -30,6 +30,10 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         self.tile_size = LKBallEnergyTerm.tile_size
 
     @classmethod
+    def class_name(cls):
+        return "LKBall"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.lk_ball_creator
 

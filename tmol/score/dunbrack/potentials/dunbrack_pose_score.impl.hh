@@ -39,8 +39,7 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -59,7 +58,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     TView<Int, 2, D> n_rots_for_block,
     TView<Int, 2, D> rot_offset_for_block,
     Int max_n_rots_per_pose,
-    
+
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
     TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
@@ -100,7 +99,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
     bool compute_derivs
 
-    ) -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D>> {
+    ) -> std::
+    tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Int, 2, D>> {
   int const n_atoms = rot_coords.size(0);
   int const n_poses = first_rot_for_block.size(0);
   int const n_rots = rot_coord_offset.size(0);
@@ -167,32 +167,27 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // will be inaccurate, but go ahead and do it anyways?
   auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
 
-  auto dihedral_atom_inds_t = TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros(
-      {n_rots, max_n_dih});
+  auto dihedral_atom_inds_t =
+      TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros({n_rots, max_n_dih});
   auto dihedral_atom_inds = dihedral_atom_inds_t.view;
-  auto dihedral_values_t =
-      TPack<Real, 2, D>::zeros({n_rots, max_n_dih});
+  auto dihedral_values_t = TPack<Real, 2, D>::zeros({n_rots, max_n_dih});
   auto dihedral_values = dihedral_values_t.view;
   auto dihedral_deriv_t =
       TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
           {n_rots, max_n_dih});
   auto dihedral_deriv = dihedral_deriv_t.view;
 
-  auto rotameric_rottable_assignment_t =
-      TPack<Int, 1, D>::zeros({n_rots});
+  auto rotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
   auto rotameric_rottable_assignment = rotameric_rottable_assignment_t.view;
 
-  auto semirotameric_rottable_assignment_t =
-      TPack<Int, 1, D>::zeros({n_rots});
+  auto semirotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
   auto semirotameric_rottable_assignment =
       semirotameric_rottable_assignment_t.view;
 
-  auto dneglnprob_rot_dbb_xyz_t =
-      TPack<CoordQuad, 2, D>::zeros({n_rots, 2});
+  auto dneglnprob_rot_dbb_xyz_t = TPack<CoordQuad, 2, D>::zeros({n_rots, 2});
   auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_t.view;
 
-  auto drotchi_devpen_dtor_xyz_t =
-      TPack<CoordQuad, 2, D>::zeros({n_rots, 3});
+  auto drotchi_devpen_dtor_xyz_t = TPack<CoordQuad, 2, D>::zeros({n_rots, 3});
   auto drotchi_devpen_dtor_xyz = drotchi_devpen_dtor_xyz_t.view;
 
   auto dneglnprob_nonrot_dtor_xyz_t =
@@ -209,33 +204,33 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto func = ([=] TMOL_DEVICE_FUNC(int rotamer_index) {
-
     int const pose_index = pose_ind_for_rot[rotamer_index];
     int const block_index = block_ind_for_rot[rotamer_index];
     int const block_type_index = block_type_ind_for_rot[rotamer_index];
     if (block_type_index == -1) {
-        // in non-rotamer scoring (both whole-pose and block-pair scoring)
-        // we will launch n_poses * max_n_blocks_per_pose threads
-        // with some threads being launched for blocks with -1 block type.
-        return;
+      // in non-rotamer scoring (both whole-pose and block-pair scoring)
+      // we will launch n_poses * max_n_blocks_per_pose threads
+      // with some threads being launched for blocks with -1 block type.
+      return;
     }
 
     // Where will we write the output?
     // In block-pair-scoring mode, we store one energy per rotamer;
     // In non-block-pair-scoring mode, we store one energy per pose
     // (using atomic_add to accumulate for each block/rotamer in the pose)
-    int const V_index = (output_block_pair_energies) ? rotamer_index : pose_index;
+    int const V_index =
+        (output_block_pair_energies) ? rotamer_index : pose_index;
 
     if (output_block_pair_energies) {
-        // Label all rotamer pair indices -- unlabeled
-        // entries in the dispatch_indices tensor will be
-        // 0's, representing pose 0, rotamer 0, and their
-        // corresponding entry in the V tensor of 0 will
-        // get accumulated into this rotamer's one-body energy
-        // without changing it.
-        dispatch_indices[0][rotamer_index] = pose_index;
-        dispatch_indices[1][rotamer_index] = rotamer_index;
-        dispatch_indices[2][rotamer_index] = rotamer_index;
+      // Label all rotamer pair indices -- unlabeled
+      // entries in the dispatch_indices tensor will be
+      // 0's, representing pose 0, rotamer 0, and their
+      // corresponding entry in the V tensor of 0 will
+      // get accumulated into this rotamer's one-body energy
+      // without changing it.
+      dispatch_indices[0][rotamer_index] = pose_index;
+      dispatch_indices[1][rotamer_index] = rotamer_index;
+      dispatch_indices[2][rotamer_index] = rotamer_index;
     }
 
     if (block_rotamer_table_set[block_type_index] == -1) return;
@@ -262,7 +257,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                 first_rot_block_type,
                 pose_stack_inter_block_connections,
                 block_type_atom_downstream_of_conn);
-        if (dihedral_atom_inds[rotamer_index][ii][jj] == -1) { 
+        if (dihedral_atom_inds[rotamer_index][ii][jj] == -1) {
           // UAID resolution failed
           fail = true;
           break;
@@ -282,7 +277,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
                                      : 0.0;
 
       measure_dihedral_V_dV(
-          TensorAccessor<Vec<Real, 3>, 1, D> (rot_coords),
+          TensorAccessor<Vec<Real, 3>, 1, D>(rot_coords),
           dihedral_atom_inds[rotamer_index][ii],
           dih_default,
           dihedral_values[rotamer_index][ii],
@@ -320,10 +315,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       // into the phi and psi definiing atoms of the _first rotamers_
       // of residues i+1 and i-1 respectively. This is dedicedly weird
       // unless there is only one rotmaer for each residue
-      Vec<Int, DIH_N_ATOMS> phi_ats =
-          dihedral_atom_inds[rotamer_index][0];
-      Vec<Int, DIH_N_ATOMS> psi_ats =
-          dihedral_atom_inds[rotamer_index][1];
+      Vec<Int, DIH_N_ATOMS> phi_ats = dihedral_atom_inds[rotamer_index][0];
+      Vec<Int, DIH_N_ATOMS> psi_ats = dihedral_atom_inds[rotamer_index][1];
       for (int j = 0; j < DIH_N_ATOMS; ++j) {
         if (phi_ats[j] != -1)
           accumulate<D, Vec<Real, 3>>::add(
@@ -361,10 +354,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
       common::accumulate<D, Real>::add(V[1][V_index], Erotdev);
 
-      Vec<Int, DIH_N_ATOMS> tor0_ats =
-          dihedral_atom_inds[rotamer_index][0];
-      Vec<Int, DIH_N_ATOMS> tor1_ats =
-          dihedral_atom_inds[rotamer_index][1];
+      Vec<Int, DIH_N_ATOMS> tor0_ats = dihedral_atom_inds[rotamer_index][0];
+      Vec<Int, DIH_N_ATOMS> tor1_ats = dihedral_atom_inds[rotamer_index][1];
       Vec<Int, DIH_N_ATOMS> tor2_ats =
           dihedral_atom_inds[rotamer_index][2 + ii];
       for (int j = 0; j < DIH_N_ATOMS; ++j) {
@@ -402,16 +393,12 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           dneglnprob_nonrot_dtor_xyz[rotamer_index],
           dihedral_deriv[rotamer_index]);
 
-      common::accumulate<D, Real>::add(
-          V[2][V_index], Esemi);
+      common::accumulate<D, Real>::add(V[2][V_index], Esemi);
 
-      int last = block_n_chi[block_type_index] + 1; // = +2 - 1
-      Vec<Int, DIH_N_ATOMS> tor0_ats =
-          dihedral_atom_inds[rotamer_index][0];
-      Vec<Int, DIH_N_ATOMS> tor1_ats =
-          dihedral_atom_inds[rotamer_index][1];
-      Vec<Int, DIH_N_ATOMS> tor2_ats =
-          dihedral_atom_inds[rotamer_index][last];
+      int last = block_n_chi[block_type_index] + 1;  // = +2 - 1
+      Vec<Int, DIH_N_ATOMS> tor0_ats = dihedral_atom_inds[rotamer_index][0];
+      Vec<Int, DIH_N_ATOMS> tor1_ats = dihedral_atom_inds[rotamer_index][1];
+      Vec<Int, DIH_N_ATOMS> tor2_ats = dihedral_atom_inds[rotamer_index][last];
       for (int j = 0; j < DIH_N_ATOMS; ++j) {
         if (tor0_ats[j] != -1)
           accumulate<D, Vec<Real, 3>>::add(
@@ -430,13 +417,13 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   });
 
   DeviceDispatch<D>::template forall<launch_t>(n_rots, func);
+  //   DeviceDispatch<D>::synchronize_device();
 
   return {V_t, dV_dx_t, dispatch_indices_t};
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -455,7 +442,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Int, 2, D> n_rots_for_block,
     TView<Int, 2, D> rot_offset_for_block,
     Int max_n_rots_per_pose,
-    
+
     TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
     TView<Int, 3, D> block_type_atom_downstream_of_conn,
 
@@ -550,32 +537,27 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
   auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({3, n_atoms});
 
-  auto dihedral_atom_inds_t = TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros(
-      {n_rots, max_n_dih});
+  auto dihedral_atom_inds_t =
+      TPack<Vec<Int, DIH_N_ATOMS>, 2, D>::zeros({n_rots, max_n_dih});
   auto dihedral_atom_inds = dihedral_atom_inds_t.view;
-  auto dihedral_values_t =
-      TPack<Real, 2, D>::zeros({n_rots, max_n_dih});
+  auto dihedral_values_t = TPack<Real, 2, D>::zeros({n_rots, max_n_dih});
   auto dihedral_values = dihedral_values_t.view;
   auto dihedral_deriv_t =
       TPack<Eigen::Matrix<Real, DIH_N_ATOMS, 3>, 2, D>::zeros(
           {n_rots, max_n_dih});
   auto dihedral_deriv = dihedral_deriv_t.view;
 
-  auto rotameric_rottable_assignment_t =
-      TPack<Int, 1, D>::zeros({n_rots});
+  auto rotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
   auto rotameric_rottable_assignment = rotameric_rottable_assignment_t.view;
 
-  auto semirotameric_rottable_assignment_t =
-      TPack<Int, 1, D>::zeros({n_rots});
+  auto semirotameric_rottable_assignment_t = TPack<Int, 1, D>::zeros({n_rots});
   auto semirotameric_rottable_assignment =
       semirotameric_rottable_assignment_t.view;
 
-  auto dneglnprob_rot_dbb_xyz_t =
-      TPack<CoordQuad, 2, D>::zeros({n_rots, 2});
+  auto dneglnprob_rot_dbb_xyz_t = TPack<CoordQuad, 2, D>::zeros({n_rots, 2});
   auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_t.view;
 
-  auto drotchi_devpen_dtor_xyz_t =
-      TPack<CoordQuad, 2, D>::zeros({n_rots, 3});
+  auto drotchi_devpen_dtor_xyz_t = TPack<CoordQuad, 2, D>::zeros({n_rots, 3});
   auto drotchi_devpen_dtor_xyz = drotchi_devpen_dtor_xyz_t.view;
 
   auto dneglnprob_nonrot_dtor_xyz_t =
@@ -592,10 +574,10 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     int const block_index = block_ind_for_rot[rotamer_index];
     int const block_type_index = block_type_ind_for_rot[rotamer_index];
     if (block_type_index == -1) {
-        // in non-rotamer scoring (both whole-pose and block-pair scoring)
-        // we will launch n_poses * max_n_blocks_per_pose threads
-        // with some threads being launched for blocks with -1 block type.
-        return;
+      // in non-rotamer scoring (both whole-pose and block-pair scoring)
+      // we will launch n_poses * max_n_blocks_per_pose threads
+      // with some threads being launched for blocks with -1 block type.
+      return;
     }
 
     if (block_rotamer_table_set[block_type_index] == -1) return;
@@ -622,7 +604,7 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
                 first_rot_block_type,
                 pose_stack_inter_block_connections,
                 block_type_atom_downstream_of_conn);
-        if (dihedral_atom_inds[rotamer_index][ii][jj] == -1) {  
+        if (dihedral_atom_inds[rotamer_index][ii][jj] == -1) {
           // UAID resolution failed
           fail = true;
           break;
@@ -674,22 +656,18 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           dneglnprob_rot_dbb_xyz[rotamer_index],
           dihedral_deriv[rotamer_index]);
 
-      Vec<Int, DIH_N_ATOMS> phi_ats =
-          dihedral_atom_inds[rotamer_index][0];
-      Vec<Int, DIH_N_ATOMS> psi_ats =
-          dihedral_atom_inds[rotamer_index][1];
+      Vec<Int, DIH_N_ATOMS> phi_ats = dihedral_atom_inds[rotamer_index][0];
+      Vec<Int, DIH_N_ATOMS> psi_ats = dihedral_atom_inds[rotamer_index][1];
       Real block_weight_0 = dTdV[0][rotamer_index];
       for (int j = 0; j < DIH_N_ATOMS; ++j) {
         if (phi_ats[j] != -1)
           accumulate<D, Vec<Real, 3>>::add(
               dV_dx[0][phi_ats[j]],
-              dneglnprob_rot_dbb_xyz[rotamer_index][0].row(j)
-                  * block_weight_0);
+              dneglnprob_rot_dbb_xyz[rotamer_index][0].row(j) * block_weight_0);
         if (psi_ats[j] != -1)
           accumulate<D, Vec<Real, 3>>::add(
               dV_dx[0][psi_ats[j]],
-              dneglnprob_rot_dbb_xyz[rotamer_index][1].row(j)
-                  * block_weight_0);
+              dneglnprob_rot_dbb_xyz[rotamer_index][1].row(j) * block_weight_0);
       }
     }
 
@@ -717,10 +695,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
           dihedral_deriv[rotamer_index]);
 
       Real block_weight_1 = dTdV[1][rotamer_index];
-      Vec<Int, DIH_N_ATOMS> tor0_ats =
-          dihedral_atom_inds[rotamer_index][0];
-      Vec<Int, DIH_N_ATOMS> tor1_ats =
-          dihedral_atom_inds[rotamer_index][1];
+      Vec<Int, DIH_N_ATOMS> tor0_ats = dihedral_atom_inds[rotamer_index][0];
+      Vec<Int, DIH_N_ATOMS> tor1_ats = dihedral_atom_inds[rotamer_index][1];
       Vec<Int, DIH_N_ATOMS> tor2_ats =
           dihedral_atom_inds[rotamer_index][2 + ii];
       for (int j = 0; j < DIH_N_ATOMS; ++j) {
@@ -764,12 +740,9 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       Real block_weight_2 = dTdV[2][rotamer_index];
 
       int last = block_n_chi[block_type_index] + 1;
-      Vec<Int, DIH_N_ATOMS> tor0_ats =
-          dihedral_atom_inds[rotamer_index][0];
-      Vec<Int, DIH_N_ATOMS> tor1_ats =
-          dihedral_atom_inds[rotamer_index][1];
-      Vec<Int, DIH_N_ATOMS> tor2_ats =
-          dihedral_atom_inds[rotamer_index][last];
+      Vec<Int, DIH_N_ATOMS> tor0_ats = dihedral_atom_inds[rotamer_index][0];
+      Vec<Int, DIH_N_ATOMS> tor1_ats = dihedral_atom_inds[rotamer_index][1];
+      Vec<Int, DIH_N_ATOMS> tor2_ats = dihedral_atom_inds[rotamer_index][last];
       for (int j = 0; j < DIH_N_ATOMS; ++j) {
         if (tor0_ats[j] != -1)
           accumulate<D, Vec<Real, 3>>::add(

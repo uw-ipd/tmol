@@ -23,6 +23,10 @@ class ConstraintEnergyTerm(EnergyTerm):
         self.device = device
 
     @classmethod
+    def class_name(cls):
+        return "Constraint"
+
+    @classmethod
     def score_types(cls):
         import tmol.score.terms.constraint_creator
 

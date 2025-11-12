@@ -148,7 +148,8 @@ struct GeneratePoseWaters {
       int const pose_ind = pose_ind_for_rot[rot_ind];
       int const block_type = block_type_ind_for_rot[rot_ind];
       int const block_ind = block_ind_for_rot[rot_ind];
-      // std::cout << "f_watergen " << pose_ind << " " << block_type << " " << block_ind << std::endl;
+      // std::cout << "f_watergen " << pose_ind << " " << block_type << " " <<
+      // block_ind << std::endl;
       if (block_type == -1) {
         return;
       }
@@ -262,6 +263,7 @@ struct GeneratePoseWaters {
     // std::cout << "Build waters" << std::endl;
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
     // std::cout << "Done" << std::endl;
+    // DeviceOps<Dev>::synchronize_device();
 
     return water_coords_t;
   };
