@@ -226,15 +226,19 @@ class LBFGS_Armijo(Optimizer):
         state.setdefault("func_evals", 0)
         state.setdefault("n_iter", 0)
 
+        # Optimization: work directly with the single parameter tensor
+        assert len(self._params) == 1, "This optimized version requires single tensor"
+        param = self._params[0]
+
         # evaluate initial f(x)
         orig_loss = closure()
         loss = float(orig_loss)
         current_evals = 1
         state["func_evals"] += 1
 
-        # ... and df/dx
-        x = self._gather_flat_x()
-        flat_grad = self._gather_flat_grad()
+        # ... and df/dx - direct reference instead of gather
+        x = param.data.view(-1)
+        flat_grad = param.grad.data.view(-1)
         max_grad = flat_grad.max()
 
         # tensors cached in state
@@ -246,6 +250,18 @@ class LBFGS_Armijo(Optimizer):
 
         prev_flat_grad = state.get("prev_flat_grad")  # previous grad
         prev_loss = state.get("prev_loss")  # previous energy
+
+        # Pre-allocate stacked matrices for L-BFGS (reused each iteration)
+        L = x.numel()
+        if "old_dirs_mat" not in state:
+            state["old_dirs_mat"] = torch.empty(
+                (history_size, L), device=x.device, dtype=x.dtype
+            )
+            state["old_stps_mat"] = torch.empty(
+                (history_size, L), device=x.device, dtype=x.dtype
+            )
+        old_dirs_mat = state["old_dirs_mat"]
+        old_stps_mat = state["old_stps_mat"]
 
         n_iter = 0
 
@@ -279,26 +295,48 @@ class LBFGS_Armijo(Optimizer):
                 # multiplied by the gradient
                 num_old = len(old_dirs)
 
-                if "ro" not in state:
-                    state["ro"] = [None] * history_size
-                    state["al"] = [None] * history_size
-                ro = state["ro"]
-                al = state["al"]
+                if num_old == 0:
+                    # No history: use steepest descent direction
+                    d = r = flat_grad.neg()
+                else:
+                    # Copy lists into pre-allocated matrices (only copy num_old rows)
+                    for i in range(num_old):
+                        old_dirs_mat[i].copy_(old_dirs[i])
+                        old_stps_mat[i].copy_(old_stps[i])
 
-                for i in range(num_old):
-                    ro[i] = 1.0 / old_dirs[i].dot(old_stps[i])
+                    # Use views to work with only the active portion
+                    old_dirs_view = old_dirs_mat[:num_old]
+                    old_stps_view = old_stps_mat[:num_old]
 
-                # iteration in L-BFGS loop collapsed to use just one buffer
-                q = flat_grad.neg()
-                for i in range(num_old - 1, -1, -1):
-                    al[i] = old_stps[i].dot(q) * ro[i]
-                    q.add_(old_dirs[i], alpha=-al[i])
+                    # Compute all ro values in one batched operation
+                    # Shape: (num_old,)
+                    ro = 1.0 / torch.sum(old_dirs_view * old_stps_view, dim=1)
 
-                # r/d is the final direction
-                d = r = q
-                for i in range(num_old):
-                    be_i = old_dirs[i].dot(r) * ro[i]
-                    r.add_(old_stps[i], alpha=al[i] - be_i)
+                    # First loop: backward pass - fully batched
+                    q = flat_grad.neg()
+
+                    # Compute all dot products: old_stps_mat @ q
+                    # Shape: (num_old,)
+                    stps_dot_q = torch.mv(old_stps_view, q)
+                    al = stps_dot_q * ro
+
+                    # Compute cumulative updates in reverse order
+                    al_flipped = torch.flip(al, dims=[0])
+                    old_dirs_flipped = torch.flip(old_dirs_view, dims=[0])
+
+                    # Apply all updates at once: q -= old_dirs_mat.T @ al_flipped
+                    q.add_(torch.mv(old_dirs_flipped.t(), al_flipped), alpha=-1.0)
+
+                    # Second loop: forward pass - fully batched
+                    r = q
+                    be = (
+                        torch.mv(old_dirs_view, r) * ro
+                    )  # All dot products in one matmul
+
+                    # Single batched update: r += old_stps_mat.T @ (al - be)
+                    r.add_(torch.mv(old_stps_view.t(), al - be))
+
+                    d = r
 
             if prev_flat_grad is None:
                 prev_flat_grad = flat_grad.clone()
@@ -333,9 +371,13 @@ class LBFGS_Armijo(Optimizer):
             # we do not need to compute gradients in here
             self.ls_func_evals = 0
 
+            # Optimization: save original position and work directly with param.data
+            x_backup = x.clone()
+
             def linefn(alpha_test):
                 self.ls_func_evals += 1
-                self._set_x_from_flat(x + alpha_test * d)
+                # Direct parameter update - eliminates _set_x_from_flat overhead
+                x.copy_(x_backup).add_(d, alpha=alpha_test)
                 E = closure()
                 return E.to(dtype=gtd.dtype)
 
@@ -351,11 +393,12 @@ class LBFGS_Armijo(Optimizer):
                 minstep=1e-12,
             )
 
-            # update
-            x = x + t * d
-            self._set_x_from_flat(x)
+            # update - direct modification
+            x.copy_(x_backup).add_(d, alpha=t)
+
             closure()  # fd: needed for derivatives, but adds an extra func eval...
-            flat_grad = self._gather_flat_grad()
+
+            flat_grad = param.grad.data.view(-1)  # Direct reference
             max_grad = flat_grad.max()
 
             # update func eval
@@ -373,13 +416,6 @@ class LBFGS_Armijo(Optimizer):
             # converge check 3: rel tol
             if 2 * abs(loss - prev_loss) <= rtol * (abs(loss) + abs(prev_loss) + 1e-10):
                 break
-
-            # report if we have hit max cycles (mimicing R3)
-            # if state['n_iter'] == max_iter - 1:
-            #    print(
-            #        "LBFGS_Armijo finished ", max_iter,
-            #        " cycles without converging."
-            #    )
 
         state["d"] = d
         state["t"] = t
