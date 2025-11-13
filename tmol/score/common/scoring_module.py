@@ -100,11 +100,7 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
             args = self.format_arguments(coords, False)
             # print("len(args)", len(args))
             scores, _ = self.term_score_poses(*args)
-
-            # squeeze the last two singleton dimensions
-            # TO DO: put this in the C++??
-            print("scores", scores, self.count)
-            return scores.squeeze(-1).squeeze(-1)
+            return scores
 
 
 class TermBlockPairScoringModule(TermPoseScoringModule):

@@ -302,17 +302,18 @@ class EnergyTermTestBase:
         if edit_pose_stack_fn is not None:
             edit_pose_stack_fn(p1)
 
+        n_score_types = len(cls.energy_term_class.score_types())
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
 
-        wt = torch.rand((1,), device=torch_device)
-        # print("weight", wt)
+        wt = torch.rand((n_score_types,), device=torch_device)
+        print("weight", wt)
 
         def score(coords):
             scores = pose_scorer(coords)
             # print("scores", scores)
-            score = (wt * scores).sum()
-            # print("weighted score", score)
-            return scores.sum()
+            wtd_score = (wt * scores).sum()
+            print("weighted score", wtd_score)
+            return wtd_score.sum()
 
         # monkeypatch more sane error reporting
         torchgrad = importlib.import_module("torch.autograd.gradcheck")

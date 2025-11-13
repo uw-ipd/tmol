@@ -133,7 +133,7 @@ class ElecPoseScoreOp
            global_params,
            block_neighbors});
     } else {
-      // score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
+      score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 
@@ -153,36 +153,12 @@ class ElecPoseScoreOp
       auto saved_grad = saved_grads[0];
       auto pose_ind_for_atom = saved_grads[1];
 
-      tensor_list result;
       auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
-      std::cout << atom_ingrads.size(0) << " " << atom_ingrads.size(1) << ": "
-                << atom_ingrads.data<double>()[0] << std::endl;
 
       while (atom_ingrads.dim() < saved_grad.dim()) {
         atom_ingrads = atom_ingrads.unsqueeze(-1);
       }
-      result.emplace_back(saved_grad * atom_ingrads);
-      auto derivs = result[0];
-      std::cout << "Derivs after backward:" << std::endl;
-      for (int i = 0; i < derivs.size(0); i++) {
-        for (int j = 0; j < derivs.size(1); j++) {
-          std::cout << "deriv[" << i << "," << j
-                    << "] = " << derivs.data<double>()[i * derivs.size(1) + j]
-                    << std::endl;
-        }
-      }
-
-      // for (auto& saved_grad : saved_grads) {
-      //   auto ingrad = grad_outputs[0];
-      //   while (ingrad.dim() < saved_grad.dim()) {
-      //     ingrad = ingrad.unsqueeze(-1);
-      //   }
-
-      //   result.emplace_back(saved_grad * ingrad);
-      // }
-
-      int i = 0;
-      dV_d_pose_coords = result[i++];
+      dV_d_pose_coords = saved_grad * atom_ingrads;
 
     } else {
       // block-pair mode
@@ -319,9 +295,10 @@ class ElecRotamerScoreOp
       Tensor block_type_intra_repr_path_distance,
       Tensor global_params,
       bool output_block_pair_energies) {
+    assert(output_block_pair_energies);
     at::Tensor score;
     at::Tensor dscore_dcoords;
-    at::Tensor block_neighbors;
+    at::Tensor dispatch_inds;
 
     using Int = int32_t;
 
@@ -363,7 +340,7 @@ class ElecRotamerScoreOp
 
           score = std::get<0>(result).tensor;
           dscore_dcoords = std::get<1>(result).tensor;
-          block_neighbors = std::get<2>(result).tensor;
+          dispatch_inds = std::get<2>(result).tensor;
         }));
 
     if (output_block_pair_energies) {
@@ -396,13 +373,13 @@ class ElecRotamerScoreOp
 
            block_type_intra_repr_path_distance,
            global_params,
-           block_neighbors});
+           dispatch_inds});
     } else {
       // score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 
-    return {score, block_neighbors};
+    return {score, dispatch_inds};
   }
 
   static tensor_list backward(AutogradContext* ctx, tensor_list grad_outputs) {
@@ -412,7 +389,7 @@ class ElecRotamerScoreOp
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 5) {
+    if (saved.size() == 2) {
       // single-score mode
       auto saved_grads = ctx->get_saved_variables();
       auto saved_grad = saved_grads[0];
@@ -473,7 +450,7 @@ class ElecRotamerScoreOp
 
       auto block_type_intra_repr_path_distance = saved[i++];
       auto global_params = saved[i++];
-      auto block_neighbors = saved[i++];
+      auto dispatch_inds = saved[i++];
 
       using Int = int32_t;
 
@@ -516,7 +493,7 @@ class ElecRotamerScoreOp
 
                     TCAST(block_type_intra_repr_path_distance),
                     TCAST(global_params),
-                    TCAST(block_neighbors),
+                    TCAST(dispatch_inds),
                     TCAST(dTdV));
 
             dV_d_pose_coords = result.tensor;

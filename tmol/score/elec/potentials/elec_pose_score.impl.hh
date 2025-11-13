@@ -853,21 +853,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies);
   }
-  printf("computed energies\n");
-
-  static int count = 0;
-  if (count == 0 || count == 449) {
-    printf("derivs, count %d\n", count);
-    for (int i = 0; i < n_atoms; i++) {
-      printf(
-          "atom %d dV_dcoords: %8.4f %8.4f %8.4f\n",
-          i,
-          dV_dcoords[0][i][0],
-          dV_dcoords[0][i][1],
-          dV_dcoords[0][i][2]);
-    }
-  }
-  count += 1;
 
   // DeviceDispatch<D>::synchronize_device();
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};

@@ -517,7 +517,7 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
           dV_dcoords[0]
                     [score_dat.r1.rot_coord_offset + atom_tile_ind1
                      + start_atom1][j],
-          elec_dxyz_at1[j]);
+          elec_dxyz_at1[j]);  // TEMP: F it up!
     }
   }
 
@@ -529,7 +529,7 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
           dV_dcoords[0]
                     [score_dat.r2.rot_coord_offset + atom_tile_ind2
                      + start_atom2][j],
-          elec_dxyz_at2[j]);
+          elec_dxyz_at2[j]);  // TEMP: F it up!
     }
   }
   // printf("deriv for atom %d (%8.3f %8.3f %8.3f) and atom %d (%8.3f %8.3f
