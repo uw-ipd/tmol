@@ -770,7 +770,7 @@ auto LJLKPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // auto rni_result = score::common::sphere_overlap::
   //     rot_neighbor_indices<DeviceDispatch, D, Int>::f(
   //         scratch_rot_neighbors, rot_offset_for_pose);
-  auto dispatch_indices_t = std::get<0>(rni_result);
+  // auto dispatch_indices_t = std::get<0>(rni_result);
   // auto offset_for_cell_t = std::get<1>(rni_result);
 
   auto dispatch_indices = dispatch_indices_t.view;

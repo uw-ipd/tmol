@@ -19,9 +19,9 @@ class ElecSingleResData {
   int rot_coord_offset;
   int n_atoms;
   int n_conn;
-  Real *coords;
-  Real *charges;
-  unsigned char *path_dist;
+  Real* coords;
+  Real* charges;
+  unsigned char* path_dist;
 };
 
 template <typename Real>
@@ -37,7 +37,7 @@ class ElecScoringData {
   int max_important_bond_separation;
   int min_separation;
   bool in_count_pair_striking_dist;
-  unsigned char *conn_seps;
+  unsigned char* conn_seps;
   ElecGlobalParams<Real> global_params;
   Real total_elec;
 };
@@ -56,8 +56,7 @@ struct ElecBlockPairSharedData {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Real>
@@ -65,7 +64,7 @@ void TMOL_DEVICE_FUNC elec_load_block_coords_and_charges_into_shared(
     TView<Vec<Real, 3>, 1, D> coords,
     TView<Real, 2, D> block_type_partial_charge,
     int pose_ind,
-    ElecSingleResData<Real> &r_dat,
+    ElecSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom) {
   // pre-condition: n_atoms_to_load < TILE_SIZE
@@ -73,8 +72,7 @@ void TMOL_DEVICE_FUNC elec_load_block_coords_and_charges_into_shared(
   // in r_dat.coords allocation
   DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
       r_dat.coords,
-      reinterpret_cast<Real *>(
-          &coords[r_dat.rot_coord_offset + start_atom]),
+      reinterpret_cast<Real*>(&coords[r_dat.rot_coord_offset + start_atom]),
       n_atoms_to_load * 3);
   DeviceDispatch<D>::template copy_contiguous_data<nt, 1>(
       r_dat.charges,
@@ -83,8 +81,7 @@ void TMOL_DEVICE_FUNC elec_load_block_coords_and_charges_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -95,11 +92,11 @@ void TMOL_DEVICE_FUNC elec_load_block_into_shared(
     TView<Real, 2, D> block_type_partial_charge,
     TView<Int, 3, D> block_type_representative_path_distance,
     int pose_ind,
-    ElecSingleResData<Real> &r_dat,
+    ElecSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom,
     bool count_pair_striking_dist,
-    unsigned char *__restrict__ conn_ats) {
+    unsigned char* __restrict__ conn_ats) {
   elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
       coords,
       block_type_partial_charge,
@@ -125,8 +122,7 @@ void TMOL_DEVICE_FUNC elec_load_block_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -150,8 +146,8 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
     int block_type2,
     int n_atoms1,
     int n_atoms2,
-    ElecScoringData<Real> &inter_dat,
-    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    ElecScoringData<Real>& inter_dat,
+    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   inter_dat.pose_ind = pose_ind;
   inter_dat.r1.rot_ind = rot_ind1;
   inter_dat.r2.rot_ind = rot_ind2;
@@ -220,8 +216,7 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -235,8 +230,8 @@ void TMOL_DEVICE_FUNC elec_load_interres1_tile_data_to_shared(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    ElecScoringData<Real> &inter_dat,
-    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    ElecScoringData<Real>& inter_dat,
+    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
       coords,
       block_type_partial_charge,
@@ -250,8 +245,7 @@ void TMOL_DEVICE_FUNC elec_load_interres1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -265,8 +259,8 @@ void TMOL_DEVICE_FUNC elec_load_interres2_tile_data_to_shared(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    ElecScoringData<Real> &inter_dat,
-    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    ElecScoringData<Real>& inter_dat,
+    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
       coords,
       block_type_partial_charge,
@@ -280,8 +274,7 @@ void TMOL_DEVICE_FUNC elec_load_interres2_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -297,8 +290,8 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_intrares_data(
     int block_ind1,
     int block_type1,
     int n_atoms1,
-    ElecScoringData<Real> &intra_dat,
-    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    ElecScoringData<Real>& intra_dat,
+    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   intra_dat.pose_ind = pose_ind;
   intra_dat.r1.rot_ind = rot_ind1;
   intra_dat.r2.rot_ind = rot_ind1;
@@ -340,8 +333,7 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_intrares_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -353,8 +345,8 @@ void TMOL_DEVICE_FUNC elec_load_intrares1_tile_data_to_shared(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    ElecScoringData<Real> &intra_dat,
-    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    ElecScoringData<Real>& intra_dat,
+    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
       coords,
       block_type_partial_charge,
@@ -365,8 +357,7 @@ void TMOL_DEVICE_FUNC elec_load_intrares1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -378,8 +369,8 @@ void TMOL_DEVICE_FUNC elec_load_intrares2_tile_data_to_shared(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    ElecScoringData<Real> &intra_dat,
-    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    ElecScoringData<Real>& intra_dat,
+    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>(
       coords,
       block_type_partial_charge,
@@ -393,8 +384,8 @@ template <int TILE_SIZE, int MAX_N_CONN, typename Real>
 void TMOL_DEVICE_FUNC elec_load_intrares_data_from_shared(
     int tile_ind1,
     int tile_ind2,
-    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m,
-    ElecScoringData<Real> &intra_dat) {
+    ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m,
+    ElecScoringData<Real>& intra_dat) {
   // set the pointers in intra_dat to point at the shared-memory arrays
   // If we are evaluating the energies between atoms in the same tile
   // then only the "1" shared-memory arrays will be loaded with data;
@@ -410,7 +401,7 @@ template <typename Real>
 TMOL_DEVICE_FUNC Real elec_atom_energy(
     int atom_tile_ind1,
     int atom_tile_ind2,
-    ElecScoringData<Real> const &score_dat,
+    ElecScoringData<Real> const& score_dat,
     int cp_separation) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
@@ -436,7 +427,7 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
     int atom_tile_ind2,
     int start_atom1,
     int start_atom2,
-    ElecScoringData<Real> const &score_dat,
+    ElecScoringData<Real> const& score_dat,
     int cp_separation,
     Real dTdV,
     TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
@@ -446,9 +437,9 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
 
   auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto &dist = dist_r.V;
-  auto &ddist_dat1 = dist_r.dV_dA;
-  auto &ddist_dat2 = dist_r.dV_dB;
+  auto& dist = dist_r.V;
+  auto& ddist_dat1 = dist_r.dV_dA;
+  auto& ddist_dat2 = dist_r.dV_dB;
   Real V(0.0), dV_ddist(0.0);
   tie(V, dV_ddist) = elec_delec_ddist(
       dist,
@@ -462,7 +453,8 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
       score_dat.global_params.max_dis);
 
   // all threads accumulate derivatives for atom 1 to global memory
-  // Remove "0.5 *" as the energy is no longer split between the i,j and j,i pair
+  // Remove "0.5 *" as the energy is no longer split between the i,j and j,i
+  // pair
   Vec<Real, 3> elec_dxyz_at1 = dTdV * dV_ddist * ddist_dat1;
   for (int j = 0; j < 3; ++j) {
     if (elec_dxyz_at1[j] != 0) {
@@ -470,7 +462,7 @@ TMOL_DEVICE_FUNC void elec_atom_derivs(
           dV_dcoords[0]
                     [score_dat.r1.rot_coord_offset + atom_tile_ind1
                      + start_atom1][j],
-        elec_dxyz_at1[j]);
+          elec_dxyz_at1[j]);
     }
   }
 
@@ -493,7 +485,7 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
     int atom_tile_ind2,
     int start_atom1,
     int start_atom2,
-    ElecScoringData<Real> const &score_dat,
+    ElecScoringData<Real> const& score_dat,
     int cp_separation,
     TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
@@ -502,9 +494,9 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
 
   auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto &dist = dist_r.V;
-  auto &ddist_dat1 = dist_r.dV_dA;
-  auto &ddist_dat2 = dist_r.dV_dB;
+  auto& dist = dist_r.V;
+  auto& ddist_dat1 = dist_r.dV_dA;
+  auto& ddist_dat2 = dist_r.dV_dB;
   Real V(0.0), dV_ddist(0.0);
   tie(V, dV_ddist) = elec_delec_ddist(
       dist,
@@ -540,6 +532,21 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
           elec_dxyz_at2[j]);
     }
   }
+  // printf("deriv for atom %d (%8.3f %8.3f %8.3f) and atom %d (%8.3f %8.3f
+  // %8.3f): "
+  //        "dist %8.3f elec %8.3f dV_ddist %8.3f\n",
+  //        score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1,
+  //        elec_dxyz_at1[0],
+  //        elec_dxyz_at1[1],
+  //        elec_dxyz_at1[2],
+  //        score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2,
+  //        elec_dxyz_at2[0],
+  //        elec_dxyz_at2[1],
+  //        elec_dxyz_at2[2],
+  //        dist,
+  //        V,
+  //        dV_ddist);
+
   return V;
 }
 

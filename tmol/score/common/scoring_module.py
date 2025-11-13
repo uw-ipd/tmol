@@ -76,10 +76,23 @@ class TermPoseScoringModule(TermScoringModule):
 
 
 class TermWholePoseScoringModule(TermPoseScoringModule):
+    def __init__(
+        self,
+        classname,
+        pose_stack,
+        term_parameters,
+        term_score_poses,
+    ):
+        super(TermWholePoseScoringModule, self).__init__(
+            classname, pose_stack, term_parameters, term_score_poses
+        )
+        self.count = 0
+
     def forward(
         self,
         coords,
     ):
+        self.count += 1
         with torch.profiler.record_function(
             f"{self.classname} WholePoseScoringModule forward"
         ):
@@ -89,6 +102,8 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
             scores, _ = self.term_score_poses(*args)
 
             # squeeze the last two singleton dimensions
+            # TO DO: put this in the C++??
+            print("scores", scores, self.count)
             return scores.squeeze(-1).squeeze(-1)
 
 

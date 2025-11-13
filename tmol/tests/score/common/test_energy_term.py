@@ -304,11 +304,14 @@ class EnergyTermTestBase:
 
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
 
-        wt = torch.rand((10,), device=torch_device)
+        wt = torch.rand((1,), device=torch_device)
+        # print("weight", wt)
 
         def score(coords):
             scores = pose_scorer(coords)
+            # print("scores", scores)
             score = (wt * scores).sum()
+            # print("weighted score", score)
             return scores.sum()
 
         # monkeypatch more sane error reporting

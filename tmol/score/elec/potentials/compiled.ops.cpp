@@ -147,7 +147,7 @@ class ElecPoseScoreOp
 
     // use the number of stashed variables to determine if we are in
     //   block-pair scoring mode or single-score mode
-    if (saved.size() == 5) {
+    if (saved.size() == 2) {
       // single-score mode
       auto saved_grads = ctx->get_saved_variables();
       auto saved_grad = saved_grads[0];
@@ -155,11 +155,22 @@ class ElecPoseScoreOp
 
       tensor_list result;
       auto atom_ingrads = grad_outputs[0].index_select(1, pose_ind_for_atom);
+      std::cout << atom_ingrads.size(0) << " " << atom_ingrads.size(1) << ": "
+                << atom_ingrads.data<double>()[0] << std::endl;
 
       while (atom_ingrads.dim() < saved_grad.dim()) {
         atom_ingrads = atom_ingrads.unsqueeze(-1);
       }
       result.emplace_back(saved_grad * atom_ingrads);
+      auto derivs = result[0];
+      std::cout << "Derivs after backward:" << std::endl;
+      for (int i = 0; i < derivs.size(0); i++) {
+        for (int j = 0; j < derivs.size(1); j++) {
+          std::cout << "deriv[" << i << "," << j
+                    << "] = " << derivs.data<double>()[i * derivs.size(1) + j]
+                    << std::endl;
+        }
+      }
 
       // for (auto& saved_grad : saved_grads) {
       //   auto ingrad = grad_outputs[0];

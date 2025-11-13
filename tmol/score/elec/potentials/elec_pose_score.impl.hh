@@ -241,6 +241,9 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
         eval_scores_for_atom_pairs);                                        \
   }
 
+// In block-pair scoring mode, we are safe to simply write the calculated
+// energies to the output tensor, since each block-pair energy is assigned
+// to its own CTA: no need for an atomic-add call.
 #define STORE_CALCULATED_POSE_ENERGIES                                      \
   TMOL_DEVICE_FUNC(                                                         \
       ElecScoringData<Real>& score_dat, shared_mem_union& shared) {         \
@@ -253,9 +256,10 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
           accumulate<D, Real>::add(                                         \
               output[0][score_dat.pose_ind][0][0], cta_total_elec);         \
         } else {                                                            \
+          int const p = score_dat.pose_ind;                                 \
           int const b1 = score_dat.block_ind1;                              \
           int const b2 = score_dat.block_ind2;                              \
-          output[0][cta][b1][b2] = cta_total_elec;                          \
+          output[0][p][b1][b2] = cta_total_elec;                            \
         }                                                                   \
       }                                                                     \
     });                                                                     \
@@ -542,6 +546,17 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // The total number of unique block pairs (including self-pairs)
   int const max_n_upper_triangle_inds = (max_n_blocks * (max_n_blocks + 1)) / 2;
 
+  // We define two device lambdas, one for block-pair scoring and
+  // one for full pose scoring. They are nearly identical, except
+  // that when we are in block-pair scoring mode, whether or not
+  // the input rot_coords tensor has save_grads as true, we do not
+  // need to calculate the derivaties in the forward pass. In full
+  // pose scoring mode, if save_grads is true, then we'll compute
+  // the atom derivatives in the forward pass and we save them for
+  // rapid retrieval in the backward pass (weighting them by the
+  // weight applied to the elec energy.)
+
+  // Device lambda for block-pair scoring: no derivative evaluation
   auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
     auto elec_atom_energy_and_derivs =
         ([=] TMOL_DEVICE_FUNC(
@@ -828,6 +843,9 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // mgpu::standard_context_t context(wrapped_stream.stream());
 
   // 3
+  // printf("Computing %d * %d = %d energies for %d * (%d+1) / 2 blocks\n",
+  // n_poses, max_n_upper_triangle_inds,
+  //  n_poses * max_n_upper_triangle_inds, max_n_blocks, max_n_blocks);
   if (output_block_pair_energies) {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
@@ -835,7 +853,21 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies);
   }
-  // printf("computed energies\n");
+  printf("computed energies\n");
+
+  static int count = 0;
+  if (count == 0 || count == 449) {
+    printf("derivs, count %d\n", count);
+    for (int i = 0; i < n_atoms; i++) {
+      printf(
+          "atom %d dV_dcoords: %8.4f %8.4f %8.4f\n",
+          i,
+          dV_dcoords[0][i][0],
+          dV_dcoords[0][i][1],
+          dV_dcoords[0][i][2]);
+    }
+  }
+  count += 1;
 
   // DeviceDispatch<D>::synchronize_device();
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
@@ -910,7 +942,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<ElecGlobalParams<Real>, 1, D> global_params,
     TView<Int, 3, D> scratch_rot_neighbors,
 
-    TView<Real, 2, D> dTdV  // nterms x nposes x len x len
+    TView<Real, 4, D> dTdV  // nterms x nposes x len x len
     ) -> TPack<Vec<Real, 3>, 2, D> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
@@ -991,11 +1023,11 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               start_atom2,
               score_dat,
               cp_separation,
-              dTdV[0][cta],
+              dTdV[0][score_dat.pose_ind][score_dat.block_ind1]
+                  [score_dat.block_ind2],
               dV_dcoords);
           return 0.0;
         });
-
     // TEST!
     auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
@@ -1054,7 +1086,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
     auto store_calculated_energies =
         ([=](ElecScoringData<Real>& score_dat, shared_mem_union& shared) {
-          ;  // no op for gradients ()
+          ;  // no op when what we're computing are the gradients ()
         });
 
     auto load_tile_invariant_intrares_data =
