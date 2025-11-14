@@ -274,7 +274,7 @@ class EnergyTermTestBase:
 
         coords = torch.nn.Parameter(pn.coords.clone())
         scores = pose_scorer(coords).cpu().detach().numpy()
-        print("scores", scores)
+        # print("scores", scores)
 
         if update_baseline:
             cls.save_test_baseline_data(
@@ -306,13 +306,13 @@ class EnergyTermTestBase:
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
 
         wt = torch.rand((n_score_types,), device=torch_device)
-        print("weight", wt)
+        # print("weight", wt)
 
         def score(coords):
             scores = pose_scorer(coords)
             # print("scores", scores)
             wtd_score = (wt * scores).sum()
-            print("weighted score", wtd_score)
+            # print("weighted score", wtd_score)
             return wtd_score.sum()
 
         # monkeypatch more sane error reporting

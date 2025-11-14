@@ -59,7 +59,7 @@ def test_fast_relax_100(default_database, ubq_pdb, dun_sampler, torch_device):
 
     if torch_device == torch.device("cpu"):
         return
-    n_poses = 10
+    n_poses = 100
     # print("Device!", torch_device)
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)

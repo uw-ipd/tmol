@@ -7,7 +7,7 @@ from ..atom_type_dependent_term import AtomTypeDependentTerm
 from tmol.database import ParameterDatabase
 
 # from tmol.score.hbond.hbond_whole_pose_module import HBondWholePoseScoringModule
-from tmol.score.hbond.potentials.compiled import hbond_pose_scores
+from tmol.score.hbond.potentials.compiled import hbond_pose_scores, hbond_rotamer_scores
 
 # from tmol.score.hbond.hbond_scoring_module import HBondWholePoseScoringModule
 # from tmol.score.hbond.hbond_scoring_module import HBondBlockPairScoringModule
@@ -51,8 +51,13 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def setup_poses(self, poses: PoseStack):
         super(HBondEnergyTerm, self).setup_poses(poses)
 
-    def get_score_term_function(self):
+    # def get_score_term_function(self):
+    #     return hbond_pose_scores
+    def get_pose_score_term_function(self):
         return hbond_pose_scores
+
+    def get_rotamer_score_term_function(self):
+        return hbond_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack: PoseStack):
         return [
