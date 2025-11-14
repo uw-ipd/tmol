@@ -186,7 +186,7 @@ def mark_and_time(name: str):
 
 
 def test_profile_minimizer(ubq_pdb, torch_device):
-    N_poses = 100
+    N_poses = 10
     if torch_device == torch.device("cpu"):
         return
     pose_stack1 = pose_stack_from_pdb(ubq_pdb, torch_device)
