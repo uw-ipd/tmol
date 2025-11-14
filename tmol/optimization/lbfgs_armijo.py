@@ -210,6 +210,7 @@ class LBFGS_Armijo(Optimizer):
             Despite the name, this performs the full LBFGS minimization trajectory.
             Stores lots of information in self.state
         """
+        # lbfgs only works w/ single parameter group
         assert len(self.param_groups) == 1
 
         group = self.param_groups[0]
@@ -245,9 +246,6 @@ class LBFGS_Armijo(Optimizer):
         d = state.get("d")  # search direction
         t = state.get("t")  # stepsize
 
-        old_dirs = state.get("old_dirs")  # history of directions
-        old_stps = state.get("old_stps")  # history of stepsizes
-
         prev_flat_grad = state.get("prev_flat_grad")  # previous grad
         prev_loss = state.get("prev_loss")  # previous energy
 
@@ -260,8 +258,13 @@ class LBFGS_Armijo(Optimizer):
             state["old_stps_mat"] = torch.empty(
                 (history_size, L), device=x.device, dtype=x.dtype
             )
+            state["history_start"] = 0  # Circular buffer start index
+            state["history_count"] = 0  # Number of items in history
+
         old_dirs_mat = state["old_dirs_mat"]
         old_stps_mat = state["old_stps_mat"]
+        history_start = state["history_start"]
+        history_count = state["history_count"]
 
         n_iter = 0
 
@@ -273,50 +276,55 @@ class LBFGS_Armijo(Optimizer):
             if state["n_iter"] == 1:
                 # initialize
                 d = flat_grad.neg()
-                old_dirs = []
-                old_stps = []
+                history_count = 0
             else:
                 # do lbfgs update (update memory)
                 y = flat_grad.sub(prev_flat_grad)
                 s = d.mul(t)
                 ys = y.dot(s)  # y*s
                 if ys > 1e-10:
-                    # updating memory
-                    if len(old_dirs) == history_size:
-                        # shift history by one (limited-memory)
-                        old_dirs.pop(0)
-                        old_stps.pop(0)
+                    # updating memory - write directly into circular buffer
+                    if history_count < history_size:
+                        # Still filling up the buffer
+                        idx = history_count
+                        history_count += 1
+                    else:
+                        # Buffer full, overwrite oldest entry
+                        idx = history_start
+                        history_start = (history_start + 1) % history_size
 
-                    # store new direction/step
-                    old_dirs.append(y)
-                    old_stps.append(s)
+                    old_dirs_mat[idx].copy_(y)
+                    old_stps_mat[idx].copy_(s)
 
                 # compute the approximate (L-BFGS) inverse Hessian
-                # multiplied by the gradient
-                num_old = len(old_dirs)
-
-                if num_old == 0:
+                if history_count == 0:
                     # No history: use steepest descent direction
                     d = r = flat_grad.neg()
                 else:
-                    # Copy lists into pre-allocated matrices (only copy num_old rows)
-                    for i in range(num_old):
-                        old_dirs_mat[i].copy_(old_dirs[i])
-                        old_stps_mat[i].copy_(old_stps[i])
-
-                    # Use views to work with only the active portion
-                    old_dirs_view = old_dirs_mat[:num_old]
-                    old_stps_view = old_stps_mat[:num_old]
+                    # Create views old -> new
+                    if history_count < history_size:
+                        old_dirs_view = old_dirs_mat[:history_count]
+                        old_stps_view = old_stps_mat[:history_count]
+                    else:
+                        # Buffer full, need to reorder: [start:end] + [0:start]
+                        indices = torch.cat(
+                            [
+                                torch.arange(
+                                    history_start, history_size, device=x.device
+                                ),
+                                torch.arange(0, history_start, device=x.device),
+                            ]
+                        )
+                        old_dirs_view = old_dirs_mat[indices]
+                        old_stps_view = old_stps_mat[indices]
 
                     # Compute all ro values in one batched operation
-                    # Shape: (num_old,)
                     ro = 1.0 / torch.sum(old_dirs_view * old_stps_view, dim=1)
 
                     # First loop: backward pass - fully batched
                     q = flat_grad.neg()
 
                     # Compute all dot products: old_stps_mat @ q
-                    # Shape: (num_old,)
                     stps_dot_q = torch.mv(old_stps_view, q)
                     al = stps_dot_q * ro
 
@@ -419,8 +427,8 @@ class LBFGS_Armijo(Optimizer):
 
         state["d"] = d
         state["t"] = t
-        state["old_dirs"] = old_dirs
-        state["old_stps"] = old_stps
+        state["history_start"] = history_start
+        state["history_count"] = history_count
         state["prev_flat_grad"] = prev_flat_grad
         state["prev_loss"] = prev_loss
 
