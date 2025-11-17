@@ -17,6 +17,7 @@ from .data import (  # noqa: F401
     disulfide_pdb,
     systems_bysize,
     pertuzumab_pdb,
+    erbb2_and_pertuzumab_pdb,
     pertuzumab_and_nearby_erbb2_pdb_and_segments,
     openfold_ubq_and_sumo_pred,
     rosettafold2_ubq_pred,

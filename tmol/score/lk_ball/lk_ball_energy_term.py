@@ -2,8 +2,13 @@ import numpy
 import torch
 
 from .params import LKBallBlockTypeParams, LKBallPackedBlockTypesParams
-from .lk_ball_whole_pose_module import LKBallWholePoseScoringModule
-from tmol.score.lk_ball.potentials.compiled import pose_score_lk_ball, gen_pose_waters
+
+# from .lk_ball_whole_pose_module import LKBallWholePoseScoringModule
+from tmol.score.lk_ball.potentials.compiled import (
+    lk_ball_pose_score,
+    lk_ball_rotamer_score,
+    gen_pose_waters,
+)
 from ..atom_type_dependent_term import AtomTypeDependentTerm
 from ..hbond.hbond_dependent_term import HBondDependentTerm
 from ..ljlk.params import LJLKGlobalParams, LJLKParamResolver
@@ -193,7 +198,7 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def setup_poses(self, pose_stack: PoseStack):
         super(LKBallEnergyTerm, self).setup_poses(pose_stack)
 
-    def score_lk_ball(self, *args):
+    def pose_score_lk_ball(self, *args):
         common_args = args[:-2]
         pose_stack = args[-2]
         block_pair_scoring = args[-1]
@@ -251,52 +256,115 @@ class LKBallEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
         if common_args[0].dtype == torch.float64:
             convert_float64(args)
 
-        return pose_score_lk_ball(*args)
+        return lk_ball_pose_score(*args)
 
-    def get_score_term_function(self):
-        return self.score_lk_ball
+    def rotamer_score_lk_ball(self, *args):
+        common_args = args[:-2]
+        pose_stack = args[-2]
+        block_pair_scoring = args[-1]
+
+        # print(common_args[-1])
+
+        args = [
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.n_all_bonds,
+            pose_stack.packed_block_types.all_bonds,
+            pose_stack.packed_block_types.atom_all_bond_ranges,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_donH,
+            pose_stack.packed_block_types.hbpbt_params.tile_n_acc,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_donH_hvy_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_which_donH_of_donH_hvy,
+            pose_stack.packed_block_types.hbpbt_params.tile_acc_inds,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_hybridization,
+            pose_stack.packed_block_types.hbpbt_params.tile_acceptor_n_attached_H,
+            pose_stack.packed_block_types.hbpbt_params.is_hydrogen,
+            self.stack_lk_ball_water_gen_global_params(),
+            self.ljlk_param_resolver.global_params.lkb_water_tors_sp2,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_sp3,
+            self.ljlk_param_resolver.global_params.lkb_water_tors_ring,
+        ]
+        if common_args[0].dtype == torch.float64:
+            convert_float64(args)
+
+        water_coords = gen_pose_waters(*args)
+
+        # print(water_coords)
+        # torch.save(water_coords, "/home/jflat06/lkball_new.pt")
+
+        args = [
+            *common_args,
+            pose_stack.inter_residue_connections,
+            pose_stack.min_block_bondsep,
+            pose_stack.inter_block_bondsep,
+            pose_stack.packed_block_types.n_atoms,
+            pose_stack.packed_block_types.n_conn,
+            pose_stack.packed_block_types.conn_atom,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_polar_atoms,
+            pose_stack.packed_block_types.lk_ball_params.tile_n_occluder_atoms,
+            pose_stack.packed_block_types.lk_ball_params.tile_pol_occ_inds,
+            pose_stack.packed_block_types.lk_ball_params.tile_lk_ball_params,
+            pose_stack.packed_block_types.bond_separation,
+            self.stack_lk_ball_global_params(),
+            water_coords,
+            block_pair_scoring,
+        ]
+        if common_args[0].dtype == torch.float64:
+            convert_float64(args)
+
+        return lk_ball_rotamer_score(*args)
+
+    def get_pose_score_term_function(self):
+        return self.pose_score_lk_ball
+
+    def get_rotamer_score_term_function(self):
+        return self.rotamer_score_lk_ball
 
     def get_score_term_attributes(self, pose_stack):
         return [
             pose_stack,
         ]
 
-    def render_whole_pose_scoring_module_old(self, pose_stack: PoseStack):
-        pbt = pose_stack.packed_block_types
-        ljlk_global_params = self.ljlk_param_resolver.global_params
+    # def render_whole_pose_scoring_module_old(self, pose_stack: PoseStack):
+    #     pbt = pose_stack.packed_block_types
+    #     ljlk_global_params = self.ljlk_param_resolver.global_params
 
-        return LKBallWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            pose_stack_block_type=pose_stack.block_type_ind,
-            pose_stack_inter_residue_connections=pose_stack.inter_residue_connections,
-            pose_stack_min_bond_separation=pose_stack.min_block_bondsep,
-            pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
-            bt_n_atoms=pbt.n_atoms,
-            bt_n_interblock_bonds=pbt.n_conn,
-            bt_atoms_forming_chemical_bonds=pbt.conn_atom,
-            bt_n_all_bonds=pbt.n_all_bonds,
-            bt_all_bonds=pbt.all_bonds,
-            bt_atom_all_bond_ranges=pbt.atom_all_bond_ranges,
-            bt_tile_n_donH=pbt.hbpbt_params.tile_n_donH,
-            bt_tile_n_acc=pbt.hbpbt_params.tile_n_acc,
-            bt_tile_donH_inds=pbt.hbpbt_params.tile_donH_inds,
-            bt_tile_don_hvy_inds=pbt.hbpbt_params.tile_donH_hvy_inds,
-            bt_tile_which_donH_for_hvy=pbt.hbpbt_params.tile_which_donH_of_donH_hvy,
-            bt_tile_acc_inds=pbt.hbpbt_params.tile_acc_inds,
-            bt_tile_hybridization=pbt.hbpbt_params.tile_acceptor_hybridization,
-            bt_tile_acc_n_attached_H=pbt.hbpbt_params.tile_acceptor_n_attached_H,
-            bt_atom_is_hydrogen=pbt.hbpbt_params.is_hydrogen,
-            bt_tile_n_polar_atoms=pbt.lk_ball_params.tile_n_polar_atoms,
-            bt_tile_n_occluder_atoms=pbt.lk_ball_params.tile_n_occluder_atoms,
-            bt_tile_pol_occ_inds=pbt.lk_ball_params.tile_pol_occ_inds,
-            bt_tile_lk_ball_params=pbt.lk_ball_params.tile_lk_ball_params,
-            bt_path_distance=pbt.bond_separation,
-            lk_ball_global_params=self.stack_lk_ball_global_params(),
-            water_gen_global_params=self.stack_lk_ball_water_gen_global_params(),
-            sp2_water_tors=ljlk_global_params.lkb_water_tors_sp2,
-            sp3_water_tors=ljlk_global_params.lkb_water_tors_sp3,
-            ring_water_tors=ljlk_global_params.lkb_water_tors_ring,
-        )
+    #     return LKBallWholePoseScoringModule(
+    #         pose_stack_block_coord_offset=pose_stack.block_coord_offset,
+    #         pose_stack_block_type=pose_stack.block_type_ind,
+    #         pose_stack_inter_residue_connections=pose_stack.inter_residue_connections,
+    #         pose_stack_min_bond_separation=pose_stack.min_block_bondsep,
+    #         pose_stack_inter_block_bondsep=pose_stack.inter_block_bondsep,
+    #         bt_n_atoms=pbt.n_atoms,
+    #         bt_n_interblock_bonds=pbt.n_conn,
+    #         bt_atoms_forming_chemical_bonds=pbt.conn_atom,
+    #         bt_n_all_bonds=pbt.n_all_bonds,
+    #         bt_all_bonds=pbt.all_bonds,
+    #         bt_atom_all_bond_ranges=pbt.atom_all_bond_ranges,
+    #         bt_tile_n_donH=pbt.hbpbt_params.tile_n_donH,
+    #         bt_tile_n_acc=pbt.hbpbt_params.tile_n_acc,
+    #         bt_tile_donH_inds=pbt.hbpbt_params.tile_donH_inds,
+    #         bt_tile_don_hvy_inds=pbt.hbpbt_params.tile_donH_hvy_inds,
+    #         bt_tile_which_donH_for_hvy=pbt.hbpbt_params.tile_which_donH_of_donH_hvy,
+    #         bt_tile_acc_inds=pbt.hbpbt_params.tile_acc_inds,
+    #         bt_tile_hybridization=pbt.hbpbt_params.tile_acceptor_hybridization,
+    #         bt_tile_acc_n_attached_H=pbt.hbpbt_params.tile_acceptor_n_attached_H,
+    #         bt_atom_is_hydrogen=pbt.hbpbt_params.is_hydrogen,
+    #         bt_tile_n_polar_atoms=pbt.lk_ball_params.tile_n_polar_atoms,
+    #         bt_tile_n_occluder_atoms=pbt.lk_ball_params.tile_n_occluder_atoms,
+    #         bt_tile_pol_occ_inds=pbt.lk_ball_params.tile_pol_occ_inds,
+    #         bt_tile_lk_ball_params=pbt.lk_ball_params.tile_lk_ball_params,
+    #         bt_path_distance=pbt.bond_separation,
+    #         lk_ball_global_params=self.stack_lk_ball_global_params(),
+    #         water_gen_global_params=self.stack_lk_ball_water_gen_global_params(),
+    #         sp2_water_tors=ljlk_global_params.lkb_water_tors_sp2,
+    #         sp3_water_tors=ljlk_global_params.lkb_water_tors_sp3,
+    #         ring_water_tors=ljlk_global_params.lkb_water_tors_ring,
+    #     )
 
     def _tfloat(self, ts):
         return tuple(map(lambda t: t.to(torch.float), ts))

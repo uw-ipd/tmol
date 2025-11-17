@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from tmol.relax.fast_relax import fast_relax
 import time
@@ -11,7 +12,7 @@ from tmol.score.score_types import ScoreType
 from tmol.pack.packer_task import PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.kinematics.move_map import MoveMap
-from tmol.kinematics.fold_forest import FoldForest
+from tmol.kinematics.fold_forest import EdgeType, FoldForest
 
 # from tmol.pack.rotamer.build_rotamers import build_rotamers
 # from tmol.pack.rotamer.fixed_aa_chi_sampler import (
@@ -76,6 +77,93 @@ def test_fast_relax_100(default_database, ubq_pdb, dun_sampler, torch_device):
     fold_forest = FoldForest.polymeric_forest(
         torch.sum(pose_stack.block_type_ind != -1, dim=1).detach().cpu().numpy()
     )
+
+    def task_op(task):
+        task.restrict_to_repacking()
+        task.set_include_current()
+
+        fixed_sampler = FixedAAChiSampler()
+        task.add_conformer_sampler(dun_sampler)
+        task.add_conformer_sampler(fixed_sampler)
+
+    start_time = time.perf_counter()
+
+    new_pose_stack = fast_relax(
+        pose_stack,
+        sfxn,
+        palette,
+        mm,
+        fold_forest,
+        [task_op],
+        False,  # True
+    )
+
+    if torch_device == torch.device("cuda"):
+        torch.cuda.synchronize()
+    stop_time = time.perf_counter()
+
+    elapsed_time = stop_time - start_time
+
+    print(f"Execution time: {elapsed_time:.6f} seconds")
+
+    write_pose_stack_pdb(new_pose_stack, "tmol_relaxed_1ubq.pdb")
+
+
+def test_fast_relax_pertuz(
+    default_database, erbb2_and_pertuzumab_pdb, dun_sampler, torch_device
+):
+
+    if torch_device == torch.device("cpu"):
+        return
+    n_poses = 1
+    # print("Device!", torch_device)
+
+    res_not_connected = torch.zeros(
+        (1, 564 - 9 + 214 + 216 + 6, 2), dtype=torch.bool, device=torch_device
+    )
+    res_not_connected[0, 100, 1] = True
+    res_not_connected[0, 101, 0] = True
+
+    p = pose_stack_from_pdb(
+        erbb2_and_pertuzumab_pdb, torch_device, res_not_connected=res_not_connected
+    )
+
+    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
+    sfxn = get_relax_sfxn(default_database, torch_device)
+    restype_set = pose_stack.packed_block_types.restype_set
+
+    edges = numpy.array(
+        [
+            [EdgeType.root_jump, -1, 0, 0],
+            [EdgeType.polymer, 0, 100, 0],
+            [EdgeType.jump, 0, 101, 0],
+            [EdgeType.polymer, 101, 563 - 9, 0],
+            [EdgeType.jump, 0, 563 - 9 + 1, 1],
+            [EdgeType.jump, 0, 563 - 9 + 214 + 1, 2],
+            [EdgeType.polymer, 563 - 9 + 1, 563 - 9 + 214, 0],
+            [EdgeType.polymer, 563 - 9 + 214 + 1, 563 - 9 + 214 + 216 + 6, 0],
+        ],
+        dtype=numpy.int32,
+    )
+    edges = numpy.tile(edges, (n_poses, 1, 1)).reshape(n_poses, -1, 4)
+    print("Edges", edges)
+
+    # sfxn = beta2016_score_function(torch_device)
+    fold_forest = FoldForest.from_edges(edges)
+    mm = MoveMap.from_pose_stack(pose_stack)
+    # keep Jump 0 fixed, as this is the jump connecting the ends of the missing loop and we don't want that moving
+    mm.set_move_all_jump_dofs_for_jump(
+        torch.arange(n_poses, dtype=torch.int64, device=torch_device), 1
+    )
+    mm.set_move_all_jump_dofs_for_jump(
+        torch.arange(n_poses, dtype=torch.int64, device=torch_device), 2
+    )
+    mm.move_all_named_torsions = True
+
+    palette = PackerPalette(restype_set)
+    # fold_forest = FoldForest.polymeric_forest(
+    #     torch.sum(pose_stack.block_type_ind != -1, dim=1).detach().cpu().numpy()
+    # )
 
     def task_op(task):
         task.restrict_to_repacking()
