@@ -72,11 +72,8 @@ struct CartBondedPoseScoreDispatch {
 
       )
       -> std::tuple<
-          TPack<Real, 2, D>,          // V_t,
-          TPack<Vec<Real, 3>, 2, D>,  // dV_dx_t,
-          TPack<Int, 2, D>,           // dispatch_indices_t,
-          TPack<Int, 1, D>,           // n_output_intxns_for_rot_conn_offset,
-          TPack<Int, 1, D>            // rotconn_for_output_intxn,
+          TPack<Real, 4, D>,         // V_t,
+          TPack<Vec<Real, 3>, 2, D>  // dV_dx_t,
           >;
 
   static auto backward(
@@ -115,11 +112,7 @@ struct CartBondedPoseScoreDispatch {
       // do the subgraphs for each of the three types begin?
       TView<Vec<Int, 3>, 1, D> cart_subgraph_type_offsets,
 
-      TView<Int, 2, D> dispatch_indices,
-      TView<Int, 1, D> n_output_intxns_for_rot_conn_offset,
-      TView<Int, 1, D> rotconn_for_output_intxn,
-
-      TView<Real, 2, D> dTdV  // nterms x n-dispatch
+      TView<Real, 4, D> dTdV  // nterms x n-dispatch
       ) -> TPack<Vec<Real, 3>, 2, D>;
 };
 

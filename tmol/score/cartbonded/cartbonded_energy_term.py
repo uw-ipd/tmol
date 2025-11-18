@@ -11,7 +11,10 @@ from tmol.database import ParameterDatabase
 from tmol.score.cartbonded.cartbonded_whole_pose_module import (
     CartBondedWholePoseScoringModule,
 )
-from tmol.score.cartbonded.potentials.compiled import cartbonded_pose_scores
+from tmol.score.cartbonded.potentials.compiled import (
+    cartbonded_pose_scores,
+    cartbonded_rotamer_scores,
+)
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -339,25 +342,11 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
     def setup_poses(self, poses: PoseStack):
         super(CartBondedEnergyTerm, self).setup_poses(poses)
 
-    # def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-    #     pbt = pose_stack.packed_block_types
-
-    #     return CartBondedWholePoseScoringModule(
-    #         pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-    #         pose_stack_block_types=pose_stack.block_type_ind,
-    #         pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
-    #         atom_paths_from_conn=pbt.atom_paths_from_conn,
-    #         atom_unique_ids=pbt.atom_unique_ids,
-    #         atom_wildcard_ids=pbt.atom_wildcard_ids,
-    #         hash_keys=pbt.cartbonded_params_hash_keys,
-    #         hash_values=pbt.cartbonded_params_hash_values,
-    #         cart_subgraphs=pbt.cartbonded_subgraphs,
-    #         cart_subgraph_offsets=pbt.cartbonded_subgraph_offsets,
-    #         max_subgraphs_per_block=pbt.cartbonded_max_subgraphs_per_block,
-    #     )
-
-    def get_score_term_function(self):
+    def get_pose_score_term_function(self):
         return cartbonded_pose_scores
+
+    def get_rotamer_score_term_function(self):
+        return cartbonded_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types
