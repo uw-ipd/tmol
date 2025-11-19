@@ -13,6 +13,7 @@ class ConstraintSet:
     constraint_function_inds: Tensor[torch.int][:]
     constraint_atom: Tensor[torch.int][:, 4, 3]
     constraint_params: Tensor[torch.float32][:, :]
+    constraint_num_unique_blocks: Tensor[torch.int][:]
 
     def __init__(self, device):
         self.constraint_function_inds = torch.full(
@@ -24,10 +25,25 @@ class ConstraintSet:
         self.constraint_params = torch.full(
             (0, 1), 0, dtype=torch.float32, device=device
         )
+        self.constraint_num_unique_blocks = torch.full(
+            (0,), 0, dtype=torch.int32, device=device
+        )
         self.device = device
         self.constraint_functions = []
 
     #################### PROPERTIES #####################
+
+    def count_unique_blocks(self, atom_indices):
+        # sorted_blocks_per_constraint, _ = atom_indices[:,:,1]
+        # now shift by 1 and count the differences
+        # diffs = sorted_blocks_per_constraint[:, 1:] != sorted_blocks_per_constraint[:, :-1]
+        constraint_blocks = atom_indices[:, :, 1]
+        # now shift by 1 and count the differences
+        diffs = constraint_blocks[:, 1:] != constraint_blocks[:, :-1]
+
+        temp = diffs.sum(dim=1) + 1
+        print(temp)
+        return temp
 
     def add_constraints_to_all_poses(self, fn, atom_indices, params=None):
         nposes = self.pose_stack.n_poses
@@ -77,8 +93,13 @@ class ConstraintSet:
             (self.constraint_function_inds, new_constraint_function_inds)
         )
 
+        num_unique_blocks_per_constraint = self.count_unique_blocks(atom_indices)
+        self.constraint_num_unique_blocks = torch.cat(
+            (self.constraint_num_unique_blocks, num_unique_blocks_per_constraint)
+        )
+
         new_atom_indices = torch.full(
-            (num_to_add, self.MAX_N_ATOMS, 3), 0, dtype=torch.int32, device=self.device
+            (num_to_add, self.MAX_N_ATOMS, 3), -1, dtype=torch.int32, device=self.device
         )
         new_atom_indices[:, 0 : atom_indices.size(1), :] = atom_indices
         # now copy the last real atom into the final atom slot so that we can attribute score correctly later
