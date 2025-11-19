@@ -8,7 +8,10 @@ from tmol.score.disulfide.params import DisulfideGlobalParams
 from tmol.score.disulfide.disulfide_whole_pose_module import (
     DisulfideWholePoseScoringModule,
 )
-from tmol.score.disulfide.potentials.compiled import disulfide_pose_scores
+from tmol.score.disulfide.potentials.compiled import (
+    disulfide_pose_scores,
+    disulfide_rotamer_scores,
+)
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes

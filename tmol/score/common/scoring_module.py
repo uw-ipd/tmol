@@ -171,6 +171,7 @@ class TermRotamerScoringModule(TermScoringModule):
         self,
         coords,
     ):
+        print(f"{self.classname} RotamerScoringModule forward called")
         with torch.profiler.record_function(
             f"{self.classname} RotamerScoringModule forward"
         ):
@@ -188,4 +189,5 @@ class TermRotamerScoringModule(TermScoringModule):
                     for subterm in range(scores.size(0))
                 ]
             )
+            print(f"{self.classname} RotamerScoringModule forward done")
             return sparse_result

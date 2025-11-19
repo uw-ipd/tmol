@@ -50,6 +50,7 @@ def get_packer_sfxn(default_database, torch_device):
 
 
 def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
+    print("starting test_pack_rotamers")
     n_poses = 4
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
