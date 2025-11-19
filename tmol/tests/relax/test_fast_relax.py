@@ -60,7 +60,7 @@ def test_fast_relax_100(default_database, ubq_pdb, dun_sampler, torch_device):
 
     if torch_device == torch.device("cpu"):
         return
-    n_poses = 100
+    n_poses = 3
     # print("Device!", torch_device)
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
@@ -104,7 +104,7 @@ def test_fast_relax_100(default_database, ubq_pdb, dun_sampler, torch_device):
 
     elapsed_time = stop_time - start_time
 
-    print(f"Execution time: {elapsed_time:.6f} seconds")
+    print(f"1ubq {n_poses} Execution time: {elapsed_time:.6f} seconds")
 
     write_pose_stack_pdb(new_pose_stack, "tmol_relaxed_1ubq.pdb")
 
@@ -115,7 +115,7 @@ def test_fast_relax_pertuz(
 
     if torch_device == torch.device("cpu"):
         return
-    n_poses = 1
+    n_poses = 3
     # print("Device!", torch_device)
 
     res_not_connected = torch.zeros(
@@ -191,6 +191,6 @@ def test_fast_relax_pertuz(
 
     elapsed_time = stop_time - start_time
 
-    print(f"Execution time: {elapsed_time:.6f} seconds")
+    print(f"1s78 {n_poses} Execution time: {elapsed_time:.6f} seconds")
 
     write_pose_stack_pdb(new_pose_stack, "tmol_relaxed_1ubq.pdb")

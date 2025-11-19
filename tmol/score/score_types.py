@@ -16,7 +16,6 @@ class ScoreType(AutoNumber):
     disulfide = ()
     omega = ()
     rama = ()
-    ref = ()
     dunbrack_rot = ()
     dunbrack_rotdev = ()
     dunbrack_semirot = ()
@@ -24,5 +23,6 @@ class ScoreType(AutoNumber):
     lk_ball = ()
     lk_bridge = ()
     lk_bridge_uncpl = ()
+    ref = ()
     # keep this one last
     n_score_types = ()

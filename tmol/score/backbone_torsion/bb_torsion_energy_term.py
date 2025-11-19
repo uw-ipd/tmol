@@ -15,7 +15,10 @@ from tmol.chemical.restypes import RefinedResidueType, uaid_t
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
-from tmol.score.backbone_torsion.potentials.compiled import backbone_torsion_pose_score
+from tmol.score.backbone_torsion.potentials.compiled import (
+    backbone_torsion_pose_score,
+    backbone_torsion_rotamer_score,
+)
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -183,8 +186,11 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
     def setup_poses(self, pose_stack: PoseStack):
         super(BackboneTorsionEnergyTerm, self).setup_poses(pose_stack)
 
-    def get_score_term_function(self):
+    def get_pose_score_term_function(self):
         return backbone_torsion_pose_score
+
+    def get_rotamer_score_term_function(self):
+        return backbone_torsion_rotamer_score
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types

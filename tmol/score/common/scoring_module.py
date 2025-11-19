@@ -93,14 +93,14 @@ class TermWholePoseScoringModule(TermPoseScoringModule):
         coords,
     ):
         # self.count += 1
-        with torch.profiler.record_function(
-            f"{self.classname} WholePoseScoringModule forward"
-        ):
-            # ignore the dispatch_indices return tensor
-            args = self.format_arguments(coords, False)
-            # print("len(args)", len(args))
-            scores, _ = self.term_score_poses(*args)
-            return scores
+        # with torch.profiler.record_function(
+        #     f"{self.classname} WholePoseScoringModule forward"
+        # ):
+        # ignore the dispatch_indices return tensor
+        args = self.format_arguments(coords, False)
+        # print("len(args)", len(args))
+        scores, _ = self.term_score_poses(*args)
+        return scores
 
 
 class TermBlockPairScoringModule(TermPoseScoringModule):
@@ -108,23 +108,23 @@ class TermBlockPairScoringModule(TermPoseScoringModule):
         self,
         coords,
     ):
-        with torch.profiler.record_function(
-            f"{self.classname} BlockPairScoringModule forward"
-        ):
-            scores, _ = self.term_score_poses(*self.format_arguments(coords, True))
+        # with torch.profiler.record_function(
+        #     f"{self.classname} BlockPairScoringModule forward"
+        # ):
+        scores, _ = self.term_score_poses(*self.format_arguments(coords, True))
 
-            # sparse_result = torch.stack(
-            #     [
-            #         torch.sparse_coo_tensor(
-            #             indices,
-            #             scores[subterm, :],
-            #             size=(self.n_poses, self.max_n_blocks, self.max_n_blocks)
-            #         )
-            #         for subterm in range(scores.size(0))
-            #     ]
-            # )
+        # sparse_result = torch.stack(
+        #     [
+        #         torch.sparse_coo_tensor(
+        #             indices,
+        #             scores[subterm, :],
+        #             size=(self.n_poses, self.max_n_blocks, self.max_n_blocks)
+        #         )
+        #         for subterm in range(scores.size(0))
+        #     ]
+        # )
 
-            return scores
+        return scores
 
 
 class TermRotamerScoringModule(TermScoringModule):
@@ -171,23 +171,21 @@ class TermRotamerScoringModule(TermScoringModule):
         self,
         coords,
     ):
-        print(f"{self.classname} RotamerScoringModule forward called")
-        with torch.profiler.record_function(
-            f"{self.classname} RotamerScoringModule forward"
-        ):
-            scores, indices = self.term_score_poses(
-                *self.format_arguments(coords, True)
-            )
-            # print("scores", scores.shape, "indices", indices.shape)
-            sparse_result = torch.stack(
-                [
-                    torch.sparse_coo_tensor(
-                        indices,
-                        scores[subterm, :],
-                        size=(self.n_poses, self.n_rots, self.n_rots),
-                    )
-                    for subterm in range(scores.size(0))
-                ]
-            )
-            print(f"{self.classname} RotamerScoringModule forward done")
-            return sparse_result
+        # print(f"{self.classname} RotamerScoringModule forward called")
+        # with torch.profiler.record_function(
+        #     f"{self.classname} RotamerScoringModule forward"
+        # ):
+        scores, indices = self.term_score_poses(*self.format_arguments(coords, True))
+        # print("scores", scores.shape, "indices", indices.shape)
+        sparse_result = torch.stack(
+            [
+                torch.sparse_coo_tensor(
+                    indices,
+                    scores[subterm, :],
+                    size=(self.n_poses, self.n_rots, self.n_rots),
+                )
+                for subterm in range(scores.size(0))
+            ]
+        )
+        # print(f"{self.classname} RotamerScoringModule forward done")
+        return sparse_result
