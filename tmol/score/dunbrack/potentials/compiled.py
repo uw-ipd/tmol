@@ -19,3 +19,4 @@ load(
 _ops = getattr(torch.ops, modulename(__name__))
 
 dunbrack_pose_scores = _ops.dunbrack_pose_scores
+dunbrack_rotamer_scores = _ops.dunbrack_rotamer_scores
