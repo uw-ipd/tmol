@@ -11,7 +11,10 @@ from tmol.score.dunbrack.dunbrack_whole_pose_module import (
 )
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.score.dunbrack.params import ScoringDunbrackDatabaseView
-from tmol.score.dunbrack.potentials.compiled import dunbrack_pose_scores
+from tmol.score.dunbrack.potentials.compiled import (
+    dunbrack_pose_scores,
+    dunbrack_rotamer_scores,
+)
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -239,8 +242,11 @@ class DunbrackEnergyTerm(EnergyTerm):
     def setup_poses(self, poses: PoseStack):
         super(DunbrackEnergyTerm, self).setup_poses(poses)
 
-    def get_score_term_function(self):
+    def get_pose_score_term_function(self):
         return dunbrack_pose_scores
+
+    def get_rotamer_score_term_function(self):
+        return dunbrack_rotamer_scores
 
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types
