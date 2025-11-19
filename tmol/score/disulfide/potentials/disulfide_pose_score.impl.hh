@@ -85,6 +85,415 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     bool output_block_pair_energies,
     bool compute_derivs
 
+    ) -> std::tuple<TPack<Real, 4, D>, TPack<Vec<Real, 3>, 2, D>> {
+  int const n_atoms = rot_coords.size(0);
+  int const n_rots = rot_coord_offset.size(0);
+  int const n_poses = first_rot_for_block.size(0);
+  int const max_n_blocks = first_rot_for_block.size(1);
+  int const max_n_conns = disulfide_conns.size(1);
+
+  assert(first_rot_block_type.size(0) == n_poses);
+  assert(first_rot_block_type.size(1) == max_n_blocks);
+
+  assert(block_ind_for_rot.size(0) == n_rots);
+  assert(pose_ind_for_rot.size(0) == n_rots);
+  assert(block_type_ind_for_rot.size(0) == n_rots);
+
+  assert(n_rots_for_pose.size(0) == n_poses);
+  assert(rot_offset_for_pose.size(0) == n_poses);
+
+  assert(n_rots_for_block.size(0) == n_poses);
+  assert(n_rots_for_block.size(1) == max_n_blocks);
+
+  assert(rot_offset_for_block.size(0) == n_poses);
+  assert(rot_offset_for_block.size(1) == max_n_blocks);
+
+  assert(pose_stack_inter_block_connections.size(0) == n_poses);
+  assert(pose_stack_inter_block_connections.size(1) == max_n_blocks);
+  assert(pose_stack_inter_block_connections.size(2) == max_n_conns);
+
+  // auto n_energies_for_rot_t = TPack<Int, 1, D>::zeros({n_rots});
+  // auto n_energies_for_rot = n_energies_for_rot_t.view;
+
+  // Optimal launch box on v100 and a100 is nt=32, vt=1
+  LAUNCH_BOX_32;
+
+  int n_V;
+  if (output_block_pair_energies) {
+    n_V = max_n_blocks;
+  } else {
+    n_V = 1;
+  }
+  TPack<Real, 4, D> V_t = TPack<Real, 4, D>::zeros({1, n_poses, n_V, n_V});
+  auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+
+  auto V = V_t.view;
+  auto dV_dx = dV_dx_t.view;
+
+  // // keep track of which connection between residues we are
+  // // scoring as it is possible (though I've never seen it!)
+  // // to imagine a disulfide-like chemical bond forming twice
+  // // between two residues
+  // auto conns_for_dispatch_indices = conns_for_dispatch_indices_t.view;
+
+  // int const max_n_energies_for_rot = DeviceDispatch<D>::reduce(
+  //     n_energies_for_rot.data(), n_rots, mgpu::maximum_t<Int>());
+
+  // auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
+  //   int const rot_ind1 = ind / max_n_energies_for_rot;
+  //   // which disulfide connection to upper neighbors is this?
+  //   int const upper_rot_ind = ind % max_n_energies_for_rot;
+  //   int local_rot_ind2 = upper_rot_ind;
+
+  //   int const pose_ind = pose_ind_for_rot[rot_ind1];
+  //   int const block_ind1 = block_ind_for_rot[rot_ind1];
+  //   if (pose_ind == -1 || block_ind1 == -1) {
+  //     return;
+  //   }
+  //   int const n_energies = n_energies_for_rot[rot_ind1];
+  //   if (upper_rot_ind >= n_energies) {
+  //     // either n_energies is 0 because this rotamer has
+  //     // no RPEs to evaluate or we have some upper neighbor
+  //     // energies to calculate, but fewer than the maximum
+  //     // and thus we are "of the end" of the list.
+  //     return;
+  //   }
+  //   // int const n_rots1 = n_rots_for_block[pose_ind][block_ind1];
+
+  //   int const block_type1 = block_type_ind_for_rot[rot_ind1];
+
+  //   int const offset_for_conn = 0;
+  //   for (int conn_ind1 = 0; conn_ind1 < max_n_conns; conn_ind1++) {
+  //     if (disulfide_conns[block_type1][conn_ind1]) {
+  //       int const block_ind2 =
+  //           pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+  //                                             [0];
+  //       if (block_ind2 < block_ind1) {
+  //         // Only count disulfides to upper residues
+  //         continue;
+  //       }
+  //       int const conn_ind2 =
+  //           pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+  //                                             [1];
+
+  //       int const n_rots2 = n_rots_for_block[pose_ind][block_ind2];
+  //       if (local_rot_ind2 < n_rots2) {
+  //         // We have figured out which upper rotamer this
+  //         // index is referring to
+  //         int const rot_ind2 =
+  //             first_rot_for_block[pose_ind][block_ind2] + local_rot_ind2;
+  //         int const sparse_index =
+  //             n_energies_for_rot_offset[rot_ind1] + upper_rot_ind;
+
+  //         dispatch_indices[0][sparse_index] = pose_ind;
+  //         dispatch_indices[1][sparse_index] = rot_ind1;
+  //         dispatch_indices[2][sparse_index] = rot_ind2;
+  //         conns_for_dispatch_indices[0][sparse_index] = conn_ind1;
+  //         conns_for_dispatch_indices[1][sparse_index] = conn_ind2;
+  //         break;
+  //       } else {
+  //         // this code is only reachable if we have some block
+  //         // type wherein there are two or more disulfides -- imagine
+  //         // something like valine but two sulfurs instead of two methyls
+  //         // -- and residue i has disulfide bonds to both residues
+  //         // j and k; so we evaluate i's rotamer's energies with j's
+  //         // rotamers and also and i's rotamer's energies with k's
+  //         // rotamers. Well, we have walked off the end of the list for
+  //         // residue j, so we must instead go to the next connection
+  //         // for residue k.
+  //         local_rot_ind2 -= n_rots2;
+  //       }
+  //     }
+  //   }
+  // });
+  // // std::cout << "Marking dispatch indices" << std::endl;
+  // DeviceDispatch<D>::template forall<launch_t>(
+  //     n_rots * max_n_energies_for_rot, mark_dispatch_indices);
+  // // std::cout << "done" << std::endl;
+
+  auto eval_energies = ([=] TMOL_DEVICE_FUNC(int ind) {
+    int const pose_ind = ind / max_n_blocks;
+    int const block_ind1 = ind % max_n_blocks;
+
+    // int const pose_ind = dispatch_indices[0][dispatch_ind];
+    int const rot_ind1 = first_rot_for_block[pose_ind][block_ind1];
+    if (rot_ind1 < 0) {
+      return;
+    }
+    int const block_type1 = first_rot_block_type[pose_ind][block_ind1];
+    if (block_type1 < 0) {
+      return;
+    }
+    // int const rot_ind2 = dispatch_indices[2][dispatch_ind];
+    for (int conn_ind1 = 0; conn_ind1 < max_n_conns; conn_ind1++) {
+      if (disulfide_conns[block_type1][conn_ind1]) {
+        int const block_ind2 =
+            pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+                                              [0];
+        int const conn_ind2 =
+            pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+                                              [1];
+        if (block_ind2 < block_ind1) {
+          // Only count disulfides to upper residues;
+          // coincidentally handles the case when block_ind2 == -1
+          continue;
+        }
+        int const block_type2 = first_rot_block_type[pose_ind][block_ind2];
+        int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2];
+        if (rot_ind2 < 0) {
+          continue;
+        }
+
+        const auto& params = global_params[0];
+        // const auto& inter_block_connections =
+        //     pose_stack_inter_block_connections[pose_ind];
+
+        int atom_offset1 = rot_coord_offset[rot_ind1];
+        int atom_offset2 = rot_coord_offset[rot_ind2];
+
+        // Skip if the other end isn't capable of a disulfide
+        // bond -- imagine a CYS with a chemical bond to some
+        // kind of funky group; it could happen!
+        if (!disulfide_conns[block_type2][conn_ind2]) {
+          return;
+        }
+
+        // Get the 6 atoms that we need for the disulfides
+        auto block1_CA_ind =
+            atom_offset1
+            + block_type_atom_downstream_of_conn[block_type1][conn_ind1][2];
+        auto block1_CB_ind =
+            atom_offset1
+            + block_type_atom_downstream_of_conn[block_type1][conn_ind1][1];
+        auto block1_S_ind =
+            atom_offset1
+            + block_type_atom_downstream_of_conn[block_type1][conn_ind1][0];
+        auto block2_S_ind =
+            atom_offset2
+            + block_type_atom_downstream_of_conn[block_type2][conn_ind2][0];
+        auto block2_CB_ind =
+            atom_offset2
+            + block_type_atom_downstream_of_conn[block_type2][conn_ind2][1];
+        auto block2_CA_ind =
+            atom_offset2
+            + block_type_atom_downstream_of_conn[block_type2][conn_ind2][2];
+
+        int const Vind1 = output_block_pair_energies ? block_ind1 : 0;
+        int const Vind2 = output_block_pair_energies ? block_ind2 : 0;
+        // Calculate score and derivatives and put them in the out tensors
+        accumulate_disulfide_potential<Real, D>(
+            rot_coords,
+            pose_ind,
+            block_ind1,
+            block1_CA_ind,
+            block1_CB_ind,
+            block1_S_ind,
+            block_ind2,
+            block2_S_ind,
+            block2_CB_ind,
+            block2_CA_ind,
+
+            params,
+
+            output_block_pair_energies,
+            V[0][pose_ind][Vind1][Vind2],
+            dV_dx);
+      }
+    }
+  });
+  // std::cout << "Evaluating energies" << std::endl;
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_poses * max_n_blocks, eval_energies);
+  // std::cout << "Done" << std::endl;
+  // DeviceDispatch<D>::synchronize_device();
+
+  return {V_t, dV_dx_t};
+}
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+    // common params
+    TView<Vec<Real, 3>, 1, D> rot_coords,
+    TView<Int, 1, D> rot_coord_offset,
+    TView<Int, 1, D> pose_ind_for_atom,
+    TView<Int, 2, D> first_rot_for_block,
+    TView<Int, 2, D> first_rot_block_type,
+    TView<Int, 1, D> block_ind_for_rot,
+    TView<Int, 1, D> pose_ind_for_rot,
+    TView<Int, 1, D> block_type_ind_for_rot,
+    TView<Int, 1, D> n_rots_for_pose,
+    TView<Int, 1, D> rot_offset_for_pose,
+    TView<Int, 2, D> n_rots_for_block,
+    TView<Int, 2, D> rot_offset_for_block,
+    Int max_n_rots_per_pose,
+
+    TView<Int, 2, D> pose_stack_block_type,
+    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+    TView<bool, 2, D> disulfide_conns,
+    TView<Int, 3, D> block_type_atom_downstream_of_conn,
+
+    TView<DisulfideGlobalParams<Real>, 1, D> global_params,
+
+    TView<Real, 4, D> dTdV  // n_terms x n_dispatch_total
+    ) -> TPack<Vec<Real, 3>, 2, D> {
+  int const n_atoms = rot_coords.size(0);
+  int const n_rots = rot_coord_offset.size(0);
+  int const n_poses = first_rot_for_block.size(0);
+  int const max_n_blocks = first_rot_for_block.size(1);
+  int const max_n_conns = disulfide_conns.size(1);
+
+  assert(first_rot_block_type.size(0) == n_poses);
+  assert(first_rot_block_type.size(1) == max_n_blocks);
+
+  assert(block_ind_for_rot.size(0) == n_rots);
+  assert(pose_ind_for_rot.size(0) == n_rots);
+  assert(block_type_ind_for_rot.size(0) == n_rots);
+
+  assert(n_rots_for_pose.size(0) == n_poses);
+  assert(rot_offset_for_pose.size(0) == n_poses);
+
+  assert(n_rots_for_block.size(0) == n_poses);
+  assert(n_rots_for_block.size(1) == max_n_blocks);
+
+  assert(rot_offset_for_block.size(0) == n_poses);
+  assert(rot_offset_for_block.size(1) == max_n_blocks);
+
+  assert(pose_stack_inter_block_connections.size(0) == n_poses);
+  assert(pose_stack_inter_block_connections.size(1) == max_n_blocks);
+  assert(pose_stack_inter_block_connections.size(2) == max_n_conns);
+
+  assert(dTdV.size(0) == 1);
+  assert(dTdV.size(1) == n_poses);
+  // backward pass only when block_pair_scoring
+  assert(dTdV.size(2) == max_n_blocks);
+  assert(dTdV.size(3) == max_n_blocks);
+
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  auto dV_dx = dV_dcoords_t.view;
+
+  // Optimal launch box on v100 and a100 is nt=32, vt=1
+  LAUNCH_BOX_32;
+
+  auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int ind) {
+    int const pose_ind = ind / max_n_blocks;
+    int const block_ind1 = (ind % max_n_blocks);
+
+    // int const pose_ind = dispatch_indices[0][dispatch_ind];
+    int const rot_ind1 = first_rot_for_block[pose_ind][block_ind1];
+    if (rot_ind1 < 0) {
+      return;
+    }
+    int const block_type1 = first_rot_block_type[pose_ind][block_ind1];
+    if (block_type1 < 0) {
+      return;
+    }
+    for (int conn_ind1 = 0; conn_ind1 < max_n_conns; conn_ind1++) {
+      if (disulfide_conns[block_type1][conn_ind1]) {
+        int const block_ind2 =
+            pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+                                              [0];
+        int const conn_ind2 =
+            pose_stack_inter_block_connections[pose_ind][block_ind1][conn_ind1]
+                                              [1];
+        if (block_ind2 < block_ind1) {
+          // Only count disulfides to upper residues;
+          // coincidentally handles the case when block_ind2 == -1
+          continue;
+        }
+        int const block_type2 = first_rot_block_type[pose_ind][block_ind2];
+        int const rot_ind2 = first_rot_for_block[pose_ind][block_ind2];
+        if (rot_ind2 < 0) {
+          continue;
+        }
+
+        const auto& params = global_params[0];
+
+        int atom_offset1 = rot_coord_offset[rot_ind1];
+        int atom_offset2 = rot_coord_offset[rot_ind2];
+
+        if (!disulfide_conns[block_type2][conn_ind2]) {
+          return;
+        }
+        // Get the 6 atoms that we need for the disulfides
+        auto block1_CA_ind =
+            atom_offset1
+            + block_type_atom_downstream_of_conn[block_type1][conn_ind1][2];
+        auto block1_CB_ind =
+            atom_offset1
+            + block_type_atom_downstream_of_conn[block_type1][conn_ind1][1];
+        auto block1_S_ind =
+            atom_offset1
+            + block_type_atom_downstream_of_conn[block_type1][conn_ind1][0];
+        auto block2_S_ind =
+            atom_offset2
+            + block_type_atom_downstream_of_conn[block_type2][conn_ind2][0];
+        auto block2_CB_ind =
+            atom_offset2
+            + block_type_atom_downstream_of_conn[block_type2][conn_ind2][1];
+        auto block2_CA_ind =
+            atom_offset2
+            + block_type_atom_downstream_of_conn[block_type2][conn_ind2][2];
+
+        // Calculate score and derivatives and put them in the out tensors
+        accumulate_disulfide_derivs<Real, D>(
+            rot_coords,
+            block_ind1,
+            block1_CA_ind,
+            block1_CB_ind,
+            block1_S_ind,
+            block_ind2,
+            block2_S_ind,
+            block2_CB_ind,
+            block2_CA_ind,
+
+            params,
+
+            dV_dx,
+            dTdV[0][pose_ind][block_ind1][block_ind2]);
+      }
+    }
+  });
+
+  DeviceDispatch<D>::template forall<launch_t>(
+      n_poses * max_n_blocks, eval_derivs);
+
+  return dV_dcoords_t;
+}
+
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
+auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+    // common params
+    TView<Vec<Real, 3>, 1, D> rot_coords,
+    TView<Int, 1, D> rot_coord_offset,
+    TView<Int, 1, D> pose_ind_for_atom,
+    TView<Int, 2, D> first_rot_for_block,
+    TView<Int, 2, D> first_rot_block_type,
+    TView<Int, 1, D> block_ind_for_rot,
+    TView<Int, 1, D> pose_ind_for_rot,
+    TView<Int, 1, D> block_type_ind_for_rot,
+    TView<Int, 1, D> n_rots_for_pose,
+    TView<Int, 1, D> rot_offset_for_pose,
+    TView<Int, 2, D> n_rots_for_block,
+    TView<Int, 2, D> rot_offset_for_block,
+    Int max_n_rots_per_pose,
+
+    TView<Int, 2, D> pose_stack_block_type,
+    TView<Vec<Int, 2>, 3, D> pose_stack_inter_block_connections,
+    TView<bool, 2, D> disulfide_conns,
+    TView<Int, 3, D> block_type_atom_downstream_of_conn,
+
+    TView<DisulfideGlobalParams<Real>, 1, D> global_params,
+    bool output_block_pair_energies,
+    bool compute_derivs
+
     )
     -> std::tuple<
         TPack<Real, 2, D>,
@@ -317,7 +726,6 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     accumulate_disulfide_potential<Real, D>(
         rot_coords,
         pose_ind,
-        dispatch_ind,
         block_ind1,
         block1_CA_ind,
         block1_CB_ind,
@@ -330,7 +738,7 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         params,
 
         output_block_pair_energies,
-        V,
+        V[0][dispatch_ind],
         dV_dx);
   });
   // std::cout << "Evaluating energies" << std::endl;
@@ -346,7 +754,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,

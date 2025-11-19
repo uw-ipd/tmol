@@ -19,3 +19,4 @@ load(
 _ops = getattr(torch.ops, modulename(__name__))
 
 disulfide_pose_scores = _ops.disulfide_pose_scores
+disulfide_rotamer_scores = _ops.disulfide_rotamer_scores

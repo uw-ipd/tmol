@@ -24,7 +24,6 @@ template <typename Real, tmol::Device D>
 TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     TView<Vec<Real, 3>, 1, D> rot_coords,
     int pose_ind,
-    int dispatch_ind,
     int rot1_ind,
     int rot1_CA_ind,
 
@@ -35,11 +34,10 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     int rot2_CB_ind,
 
     int rot2_CA_ind,
-    const DisulfideGlobalParams<Real> &params,
+    const DisulfideGlobalParams<Real>& params,
     bool output_block_pair_energies,
-    TView<Real, 2, D> V,
-    TView<Vec<Real, 3>, 2, D> dV_dx
-) {
+    Real& V,
+    TView<Vec<Real, 3>, 2, D> dV_dx) {
   auto rot1_CA = rot_coords[rot1_CA_ind];
   auto rot1_CB = rot_coords[rot1_CB_ind];
   auto rot1_S = rot_coords[rot1_S_ind];
@@ -51,8 +49,7 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
   auto ssdist = distance<Real>::V_dV(rot1_S, rot2_S);
   auto csang_1 = pt_interior_angle<Real>::V_dV(rot1_CB, rot1_S, rot2_S);
   auto csang_2 = pt_interior_angle<Real>::V_dV(rot2_CB, rot2_S, rot1_S);
-  auto dihed =
-      dihedral_angle<Real>::V_dV(rot1_CB, rot1_S, rot2_S, rot2_CB);
+  auto dihed = dihedral_angle<Real>::V_dV(rot1_CB, rot1_S, rot2_S, rot2_CB);
   auto disulf_ca_dihedral_angle_1 =
       dihedral_angle<Real>::V_dV(rot1_CA, rot1_CB, rot1_S, rot2_S);
   auto disulf_ca_dihedral_angle_2 =
@@ -160,11 +157,9 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     dscore_cs *= params.wt_dih_cs;
 
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_CA_ind],
-        dscore_cs * disulf_ca_dihedral_angle_1.dV_dI);
+        dV_dx[0][rot1_CA_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dI);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot1_CB_ind],
-        dscore_cs * disulf_ca_dihedral_angle_1.dV_dJ);
+        dV_dx[0][rot1_CB_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dJ);
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][rot1_S_ind], dscore_cs * disulf_ca_dihedral_angle_1.dV_dK);
     accumulate<D, Vec<Real, 3>>::add(
@@ -190,11 +185,9 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
     dscore_cs *= params.wt_dih_cs;
 
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_CA_ind],
-        dscore_cs * disulf_ca_dihedral_angle_2.dV_dI);
+        dV_dx[0][rot2_CA_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dI);
     accumulate<D, Vec<Real, 3>>::add(
-        dV_dx[0][rot2_CB_ind],
-        dscore_cs * disulf_ca_dihedral_angle_2.dV_dJ);
+        dV_dx[0][rot2_CB_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dJ);
     accumulate<D, Vec<Real, 3>>::add(
         dV_dx[0][rot2_S_ind], dscore_cs * disulf_ca_dihedral_angle_2.dV_dK);
     accumulate<D, Vec<Real, 3>>::add(
@@ -202,9 +195,16 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_potential(
   }
 
   if (output_block_pair_energies) {
-    accumulate<D, Real>::add(V[0][dispatch_ind], score);
+    // Note that we must still use atomic increment here
+    // because, even though in block-pair scoring we only
+    // assign a single thread to each block pair, in
+    // rotamer-pair scoring, we assign one output thread
+    // per disulfide connection, which, you could possibly
+    // imagine there being more than one of in a single block
+    // type (some hypothetical di-cysteine non-canonical AA)
+    accumulate<D, Real>::add(V, score);
   } else {
-    accumulate<D, Real>::add(V[0][pose_ind], score);
+    accumulate<D, Real>::add(V, score);
   }
 }
 
@@ -220,13 +220,12 @@ TMOL_DEVICE_FUNC void accumulate_disulfide_derivs(
     int block2_CB_ind,
     int block2_CA_ind,
 
-    const DisulfideGlobalParams<Real> &params,
+    const DisulfideGlobalParams<Real>& params,
 
     TView<Vec<Real, 3>, 2, D> dV_dx,
-    Real dTdV
-) {
-//   Real block_weight =
-//       0.5 * (dTdV[block1_ind][block2_ind] + dTdV[block2_ind][block1_ind]);
+    Real dTdV) {
+  //   Real block_weight =
+  //       0.5 * (dTdV[block1_ind][block2_ind] + dTdV[block2_ind][block1_ind]);
 
   auto block1_CA = rot_coords[block1_CA_ind];
   auto block1_CB = rot_coords[block1_CB_ind];

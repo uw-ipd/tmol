@@ -17,6 +17,16 @@ template struct DisulfidePoseScoreDispatch<
     double,
     int>;
 
+template struct DisulfideRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CPU,
+    float,
+    int>;
+template struct DisulfideRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CPU,
+    double,
+    int>;
 }  // namespace potentials
 }  // namespace disulfide
 }  // namespace score
