@@ -8,6 +8,16 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
+from tmol.score.ljlk.potentials.compiled import (
+    create_ljlk_fusion_module,
+    free_fusion_module,
+    test_run_forward,
+)
+
+# temp
+from tmol.io import pose_stack_from_pdb
+from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.tests.score.common.test_energy_term import pose_stack_from_pdb_and_resnums
 
 
 def test_smoke(default_database, torch_device):
@@ -381,3 +391,28 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
             resnums=resnums,
             nondet_tol=1e-6,
         )
+
+    @classmethod
+    def test_create_fusion_module_smoke(
+        cls, ubq_pdb, default_database, torch_device: torch.device
+    ):
+        n_poses = 10
+
+        p1 = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, None)
+        pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
+
+        energy_term = cls.energy_term_class(
+            param_db=default_database, device=torch_device
+        )
+
+        for bt in pn.packed_block_types.active_block_types:
+            energy_term.setup_block_type(bt)
+        energy_term.setup_packed_block_types(pn.packed_block_types)
+        energy_term.setup_poses(pn)
+
+        # pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
+        fusion_module = energy_term.render_fusion_module(pn, False)
+        print("fusion_module:", fusion_module)
+        test_run_forward(fusion_module, pn.coords.reshape(-1, 3))
+        free_fusion_module(fusion_module)
+        print("freed fusion module", fusion_module)

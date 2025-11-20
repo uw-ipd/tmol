@@ -186,6 +186,20 @@ class ScoreFunction:
         ]
         return RotamerScoringModule(self.weights_tensor(), term_modules)
 
+    def render_fused_score_function(self, pose_stack: PoseStack):
+        """Create an object designed to evaluate the score of a set of Poses
+        repeatedly as the Poses change their conformation, e.g., as in
+        minimization. This object will utilize fused scoring modules where
+        possible to accelerate scoring.
+
+        This object's __call__ will return a tensor of weighted energies of
+        shape (n_poses,).
+        """
+        self.pre_work_initialization(pose_stack)
+        return FusedScoreFunction(
+            self.all_terms(), self.weights_tensor(), pose_stack, self._device
+        )
+
     def pre_work_initialization(self, pose_stack: PoseStack):
         for block_type in pose_stack.packed_block_types.active_block_types:
             for energy_term in self.all_terms():
@@ -375,3 +389,62 @@ class RotamerScoringModule:
             )
         else:
             return weighted_scores
+
+
+class FusedScoreFunction:
+    def __init__(self, all_terms, weights, pose_stack, device: torch.device):
+        self._device = device
+        fused_modules = []
+        unfused_modules = []
+        fused_weights = []
+        unfused_weights = []
+
+        st_offset = 0
+        for term in all_terms:
+            n_sts = len(term.score_types())
+            try:
+                module = term.render_fusion_module(pose_stack, False)
+                fused_modules.append(module)
+                fused_weights.append(weights[st_offset : st_offset + n_sts])
+            except Exception as e:
+                unfused_modules.append(
+                    term.render_whole_pose_scoring_module(pose_stack)
+                )
+                unfused_weights.append(weights[st_offset : st_offset + n_sts])
+                pass
+            st_offset += n_sts
+        # fused modules (pointers to C++ objects) will live on the CPU
+        self._fused_modules = torch.tensor(
+            fused_modules, dtype=torch.int64, device=torch.device("cpu")
+        )
+        self._fused_weights = torch.stack(fused_weights).to(self._device)
+        self._unfused_modules = unfused_modules if len(unfused_modules) > 0 else None
+
+    def __call__(self, coords):
+        from tmol.score.compiled.compiled import fused_score_function
+
+        fused_score = fused_score_function(coords, self._fused_modules)
+        fused_score_sum = torch.sum(self._fused_weights * fused_score, dim=0)
+
+        if self._unfused_modules is not None:
+            scores = []
+            for term in self._unfused_modules:
+                values = term(coords)
+                scores += values
+
+            unweighted_scores = torch.stack(scores)
+
+            unfused_score_sum = torch.sum(
+                self._unfused_weights * unweighted_scores,
+                dim=0,
+            )
+            fused_score_sum += unfused_score_sum
+
+        return fused_score_sum
+
+    def __del__(self):
+        from tmol.score.compiled.compiled import free_scoring_modules
+
+        # we have to manage the deallocation of the C++ variables
+        # which will not be freed automatically
+        free_scoring_modules(self._fused_modules)

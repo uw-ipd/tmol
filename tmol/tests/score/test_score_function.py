@@ -31,6 +31,21 @@ def test_pose_score_smoke(ubq_pdb, default_database, torch_device):
     assert scores is not None
 
 
+def test_fused_score_function(ubq_pdb, default_database, torch_device):
+    pose_stack = pose_stack_from_pdb(ubq_pdb, torch_device, residue_end=4)
+
+    sfxn = ScoreFunction(default_database, torch_device)
+    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
+    sfxn.set_weight(ScoreType.fa_lk, 0.8)
+
+    scorer = sfxn.render_fused_score_function(pose_stack)
+
+    scores = scorer(pose_stack.coords)
+
+    assert scores is not None
+
+
 def test_virtual_residue_scoring(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)

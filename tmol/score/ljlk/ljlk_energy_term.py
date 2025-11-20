@@ -9,7 +9,11 @@ from tmol.score.common.stack_condense import tile_subset_indices
 from tmol.score.ljlk.params import LJLKParamResolver
 
 # from tmol.score.ljlk.ljlk_whole_pose_module import LJLKWholePoseScoringModule
-from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores, ljlk_rotamer_scores
+from tmol.score.ljlk.potentials.compiled import (
+    ljlk_pose_scores,
+    ljlk_rotamer_scores,
+    create_ljlk_fusion_module,
+)
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -99,6 +103,17 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
     def get_rotamer_score_term_function(self):
         return ljlk_rotamer_scores
+
+    def render_fusion_module(
+        self, pose_stack: PoseStack, output_block_pair_energies: bool = False
+    ):
+        scoring_module = self.render_whole_pose_scoring_module(pose_stack)
+        fusion_module_tensor = create_ljlk_fusion_module(
+            *scoring_module.format_arguments(
+                pose_stack.coords.reshape(-1, 3), output_block_pair_energies
+            )
+        )
+        return fusion_module_tensor
 
     # def get_score_term_function(self):
     #     return ljlk_pose_scores

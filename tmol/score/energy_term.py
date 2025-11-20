@@ -145,3 +145,8 @@ class EnergyTerm:
             self.get_score_term_attributes(pose_stack),
             f,
         )
+
+    def render_fusion_module(
+        self, pose_stack: PoseStack, output_block_pair_energies: bool = False
+    ):
+        raise NotImplementedError()
