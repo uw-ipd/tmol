@@ -1,3 +1,4 @@
+import attr
 import torch
 import time
 
@@ -74,6 +75,10 @@ def fast_relax(
 
     fa_rep_start = float(sfxn._weights[ScoreType.fa_ljrep.value])
 
+    wpsm = sfxn.render_whole_pose_scoring_module(pose_stack)
+    best_score = wpsm(pose_stack.coords)
+    best_ps = pose_stack.clone()
+
     rpms_args = [
         pose_stack,
         sfxn,
@@ -106,6 +111,9 @@ def fast_relax(
         rpms_args[5] = fa_rep_start
         rpms_args[6] = fa_rep_start
         ps = relax_pack_min_step(*rpms_args)
+
+        best_ps, best_score = accept_best(sfxn, best_ps, best_score, ps, verbose)
+        ps = best_ps.clone()
     return ps
 
 
@@ -156,3 +164,48 @@ def relax_pack_min_step(
         )
 
     return minimized_pose_stack
+
+
+def accept_best(
+    sfxn: ScoreFunction,
+    best_pose_stack: PoseStack,
+    best_pose_score: torch.Tensor,
+    candidate_pose_stack: PoseStack,
+    verbose=False,
+):
+    wpsm = sfxn.render_whole_pose_scoring_module(candidate_pose_stack)
+    candidate_score = wpsm(candidate_pose_stack.coords)
+    better_mask = candidate_score < best_pose_score
+
+    def select_better(tensor_name):
+        tensor = getattr(best_pose_stack, tensor_name)
+        new_tensor = tensor.detach().clone()
+        new_tensor[better_mask] = getattr(candidate_pose_stack, tensor_name)[
+            better_mask
+        ]
+        return new_tensor
+
+    if better_mask.any():
+        if verbose:
+            print("accepting new best scores")
+            print(f" old best score: {best_pose_score[better_mask]}")
+            print(f" new best score: {candidate_score[better_mask]}")
+
+        new_coords = select_better("coords")
+        new_block_coord_offset = select_better("block_coord_offset")
+        new_block_coord_offset64 = select_better("block_coord_offset64")
+        new_block_type_ind = select_better("block_type_ind")
+        new_block_type_ind64 = select_better("block_type_ind64")
+        new_best_pose_stack = attr.evolve(
+            best_pose_stack,
+            coords=new_coords,
+            block_coord_offset=new_block_coord_offset,
+            block_coord_offset64=new_block_coord_offset64,
+            block_type_ind=new_block_type_ind,
+            block_type_ind64=new_block_type_ind64,
+        )
+        new_best_pose_score = best_pose_score.detach().clone()
+        new_best_pose_score[better_mask] = candidate_score[better_mask]
+        return new_best_pose_stack, new_best_pose_score
+    else:  # no change
+        return best_pose_stack, best_pose_score
