@@ -451,6 +451,48 @@ struct block_neighbor_indices {
   }
 };
 
+template <
+    template <tmol::Device> class DeviceDispatch,
+    tmol::Device D,
+    typename Int>
+struct asynch_block_neighbor_indices {
+  static void f(
+      TView<Int, 3, D> block_neighbors TPack<Int, 1, D> offset_for_cell,
+      TView<Int, 2, D> block_neighbor_indices,
+      void* event,
+      void* total) -> TPack<Int, 2, D> {
+    LAUNCH_BOX_32;
+
+    int n_pose = block_neighbors.size(0);
+    int n_res = block_neighbors.size(1);
+    int n_cells = n_pose * n_res * n_res;
+
+    DeviceDispatch<D>::template submit_scan_w_event<mgpu::scan_type_exc>(
+        block_neighbors.data(),
+        block_neighbor_offsets.data(),
+        n_cells,
+        event,
+        total,
+        mgpu::plus_t<Int>());
+
+    auto fill_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
+      int pose = ind / (n_res * n_res);
+      ind = ind % (n_res * n_res);
+      int res1 = ind / n_res;
+      int res2 = ind % n_res;
+
+      if (block_neighbors[pose][res1][res2]) {
+        int offset = offset_for_cell[pose][res1][res2];
+        block_neighbor_indices[0][offset] = pose;
+        block_neighbor_indices[1][offset] = res1;
+        block_neighbor_indices[2][offset] = res2;
+      }
+    });
+
+    DeviceDispatch<D>::template forall<launch_t>(n_cells, fill_indices);
+  }
+};
+
 }  // namespace sphere_overlap
 }  // namespace common
 }  // namespace score

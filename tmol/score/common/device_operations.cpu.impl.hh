@@ -75,6 +75,49 @@ struct DeviceOperations<tmol::Device::CPU> {
     return last_val;
   }
 
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void* allocate_scan_total_storage() {
+    T* total = new T();
+    return reinterpret_cast<void*>(total);
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void deallocate_scan_total_storage(void* total) {
+    T* total_t = reinterpret_cast<T*>(total);
+    delete total_t;
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void* allocate_synchronization_event() {
+    // No event needed on CPU
+    return nullptr;
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void deallocate_synchronization_event(void* event) {
+    // No event needed on CPU
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void synchronize_on_event(void* event) {
+    // No synchronization needed on CPU
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void submit_scan_w_event(
+      T* src, T* dst, int n, void* event, void* total, OP op) {
+    T tot = DeviceOperations<tmol::Device::CPU>::template scan_and_return_total(
+        src, dst, n, op);
+    T* total_t = reinterpret_cast<T*>(total);
+    *total_t = tot;
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static T read_scan_total(void* total) {
+    T* total_t = reinterpret_cast<T*>(total);
+    return *total_t;
+  }
+
   // Construct load-balanced-search mapping of work items to their generator
   // index; see https://moderngpu.github.io/loadbalance.html
   // Arguments:

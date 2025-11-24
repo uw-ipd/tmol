@@ -1,6 +1,4 @@
 #pragma once
-#include <torch/torch.h>
-
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -10,14 +8,32 @@
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/utility/nvtx.hh>
 
-#include <tmol/score/common/accumulate.hh>
+#include <tmol/score/common/count_pair.hh>
+#include <tmol/score/common/data_loading.hh>
+#include <tmol/score/common/diamond_macros.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/launch_box_macros.hh>
+#include <tmol/score/common/sphere_overlap.impl.hh>
+#include <tmol/score/common/tile_atom_pair_evaluation.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/upper_triangle_indices.hh>
+#include <tmol/score/common/warp_segreduce.hh>
+#include <tmol/score/common/warp_stride_reduce.hh>
 
-#include "ljlk_fusion_module.hh"
-#include "lj.hh"
-#include "params.hh"
-// #include "rotamer_pair_energy_lj.hh"
+#include <tmol/score/ljlk/potentials/lj.hh>
+#include <tmol/score/ljlk/potentials/ljlk.hh>
+#include <tmol/score/ljlk/potentials/ljlk_scoring_macros.hh>
+#include <tmol/score/ljlk/potentials/ljlk_pose_score.hh>
+#include <tmol/score/ljlk/potentials/lk_isotropic.hh>
+
+// Operator definitions; safe for CPU compilation
+#include <moderngpu/operators.hxx>
+
+#include <chrono>
+
+// The maximum number of inter-residue chemical bonds
+#define MAX_N_CONN 4
+#define TILE_SIZE 32
 
 namespace tmol {
 namespace score {
@@ -120,8 +136,38 @@ template <
     typename Real,
     typename Int>
 void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
-    prepare_for_scoring(Tensor coords) {
+    prepare_for_scoring(Tensor rot_coords) {
   printf("LJLKPoseScoreFusionModule::prepare_for_scoring\n");
+
+  score::common::sphere_overlap::
+      compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
+          rot_coords,
+          rot_coord_offset_,
+          block_type_ind_for_rot_,
+          block_type_n_atoms_,
+          scratch_rot_spheres_);
+
+  score::common::sphere_overlap::
+      detect_rot_neighbors<DeviceOperations, D, Real, Int>::f(
+          max_n_rots_per_pose_,
+          block_ind_for_rot_,
+          block_type_ind_for_rot_,
+          block_type_n_atoms_,
+          n_rots_for_pose_,
+          rot_offset_for_pose_,
+          n_rots_for_block_,
+          scratch_rot_spheres_,
+          scratch_rot_neighbors_,
+          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+
+  // TO DO: Replace this call with one that submits the
+  // scan task and returns a cudaEvent that we'll hold on to
+  auto dispatch_indices_t = score::common::sphere_overlap::
+      rot_neighbor_indices<DeviceOperations, D, Int>::f(
+          scratch_rot_neighbors_, rot_offset_for_pose_);
+  // TEMP! just store the tensor that we just created
+  // instead of re-using the one inside the class
+  dispatch_indices_ = dispatch_indices_t.tensor;
 }
 
 template <
@@ -133,6 +179,8 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::forward(
     Tensor coords, Tensor V) {
   printf("LJLKPoseScoreFusionModule::forward\n");
   printf("V size: %d %d %d %d\n", V.size(0), V.size(1), V.size(2), V.size(3));
+
+  // TO DO: Wait on the event that signals that the dispatch indices are ready
 }
 
 template <
