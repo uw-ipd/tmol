@@ -62,7 +62,7 @@ class KinForestSfxnNetwork(torch.nn.Module):
 
         kincoords = torch.zeros(
             (kin_module.kmd.forest.id.shape[0], 3),
-            dtype=torch.float32,
+            dtype=pose_stack.coords.dtype,  # preserve the dtype of the input PoseStack
             device=torch_device,
         )
         kincoords[1:] = pose_stack.coords.view(-1, 3)[kmd.forest.id[1:]]
@@ -106,6 +106,13 @@ class KinForestSfxnNetwork(torch.nn.Module):
         # update the full-dofs, calc the coords, and map them
         # to the pose-stack-ordered coords
         self.full_dofs[self.dof_mask] = self.masked_dofs
+
+        # f64 calculation
+        # self.full_dofs64 = self.full_dofs.to(torch.float64)
+        # kin_coords64 = self.kin_module(self.full_dofs64)
+        # self.flat_coords[self.id[1:]] = kin_coords64[1:].to(torch.float32)
+
+        # f32 calculation
         kin_coords = self.kin_module(self.full_dofs)
         self.flat_coords[self.id[1:]] = kin_coords[1:]
         self.full_coords = self.flat_coords.view(self.orig_coords_shape)

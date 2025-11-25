@@ -96,6 +96,8 @@ def armijo_linesearch(
                     " Finite=",
                     finite_diff,
                 )
+                if hasattr(func, "debug_inaccurate_g"):
+                    func.debug_inaccurate_g(alpha1, minstep)
                 return 0.0, phi0
             return alpha1, phi_a1
 
@@ -389,9 +391,31 @@ class LBFGS_Armijo(Optimizer):
                 E = closure()
                 return E.to(dtype=gtd.dtype)
 
+            class debug_multifunc:
+                def __init__(self, closure_func):
+                    self.func = closure_func
+                    self.ls_func_evals = 0
+
+                def __call__(self, alpha_test):
+                    self.ls_func_evals += 1
+                    # Direct parameter update - eliminates _set_x_from_flat overhead
+                    x.copy_(x_backup).add_(d, alpha=alpha_test)
+                    E = closure()
+                    return E.to(dtype=gtd.dtype)
+
+                def debug_inaccurate_g(self, alpha_test, step):
+                    print("DEBUG INACCURATE G!")
+                    if hasattr(self.func, "debug"):
+                        x_m_step = x_backup.clone().add_(d, alpha=alpha_test - step)
+                        x_center = x_backup.clone().add_(d, alpha=alpha_test)
+                        x_p_step = x_backup.clone().add_(d, alpha=alpha_test + step)
+                        self.func.debug(x_m_step, x_center, x_p_step, step)
+
+            debug_linefn = debug_multifunc(closure)
+
             # do the line search
             t, loss = armijo_linesearch(
-                linefn,  # callback for energy eval
+                debug_linefn,  # callback for energy eval
                 gtd,  # directional derivative
                 prev_loss,  # current function value (at x)
                 alpha0=t,  # stepsize

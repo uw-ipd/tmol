@@ -163,6 +163,8 @@ struct ForwardKinDispatch {
       TView<KinForestGenData<Int>, 1, tmol::Device::CPU> gens,
       TView<KinForestParams<Int>, 1, D> kintree)
       -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D>> {
+    // printf("Forward kinematics; sizeof(Real) %d\n", sizeof(Real));
+
     NVTXRange _function(__FUNCTION__);
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<128, 2> launch_t;

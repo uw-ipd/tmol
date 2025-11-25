@@ -1,3 +1,4 @@
+import attrs
 import torch
 import time
 
@@ -19,6 +20,9 @@ def pack_rotamers(
         torch.cuda.synchronize()
     start_time = time.perf_counter()
     pbt = pose_stack.packed_block_types
+
+    input_pose_stack_coords_dtype = pose_stack.coords.dtype
+    pose_stack = attrs.evolve(pose_stack, coords=pose_stack.coords.to(torch.float32))
 
     pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
     if verbose and torch.cuda.is_available():
@@ -90,4 +94,9 @@ def pack_rotamers(
             + f" run SA: {end_time5-end_time4: .2f} pose ctor: {end_time6 - end_time5: .2f}"
         )
 
+    if new_pose_stack.coords.dtype != input_pose_stack_coords_dtype:
+        new_pose_stack = attrs.evolve(
+            new_pose_stack,
+            coords=new_pose_stack.coords.to(input_pose_stack_coords_dtype),
+        )
     return new_pose_stack

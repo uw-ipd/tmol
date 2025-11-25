@@ -91,7 +91,7 @@ def fast_relax(
         verbose,
     ]
     ps = pose_stack
-    for _ in range(5):
+    for i in range(5):
         rpms_args[0] = ps
         rpms_args[5] = 0.040 * fa_rep_start
         rpms_args[6] = 0.051 * fa_rep_start
@@ -114,6 +114,8 @@ def fast_relax(
 
         best_ps, best_score = accept_best(sfxn, best_ps, best_score, ps, verbose)
         ps = best_ps.clone()
+        if verbose and i == 4:
+            print("best_score", best_score)
     return ps
 
 

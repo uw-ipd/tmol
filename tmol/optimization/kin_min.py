@@ -1,3 +1,4 @@
+import attrs
 import time
 import torch
 from tmol.pose.pose_stack import PoseStack
@@ -18,6 +19,9 @@ def build_kinforest_network(
 ):
     from tmol.kinematics.script_modules import PoseStackKinematicsModule
     from tmol.optimization.sfxn_modules import KinForestSfxnNetwork
+
+    # TEMP!
+    # pose_stack.coords = pose_stack.coords.to(torch.float64)
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
@@ -62,22 +66,92 @@ def run_kin_min(
     Note that this function constructs a new kinematics module and discards it
     at the conclusion of minimization.
     """
+    input_pose_stack_coords_dtype = pose_stack.coords.dtype
+    # TEMP!
+    pose_stack = attrs.evolve(pose_stack, coords=pose_stack.coords.to(torch.float64))
+
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     start_time = time.perf_counter()
     kf_network = build_kinforest_network(pose_stack, sfxn, ff, mm, verbose)
     optimizer = LBFGS_Armijo(kf_network.parameters())
 
-    def closure():
-        optimizer.zero_grad()
-        E = kf_network().sum()
-        E.backward()
-        return E
+    class debug_closure:
+        def __call__(self):
+            optimizer.zero_grad()
+            E = kf_network().sum()
+            E.backward()
+            return E
+
+        def no_debug(self, coords1, coords_center, coords2, step):
+            old_wpsm = kf_network.whole_pose_scoring_module
+
+            for st in sfxn.all_score_types():
+                print("Grad check only with term:", st)
+                new_sfxn = ScoreFunction(sfxn._param_db, sfxn._device)
+                new_sfxn.set_weight(st, 1.0)
+                new_wpsm = new_sfxn.render_whole_pose_scoring_module(pose_stack)
+
+                # kf_network.whole_pose_scoring_module = new_wpsm
+
+                # get rid of any gradients from the previous iteration
+                kf_network.full_dofs = kf_network.full_dofs.detach()
+                kf_network.full_coords = kf_network.full_coords.detach()
+                kf_network.flat_coords = kf_network.flat_coords.detach()
+
+                kf_network.full_dofs[kf_network.dof_mask] = coords_center
+                kin_coords = kf_network.kin_module(kf_network.full_dofs)
+                kf_network.flat_coords[kf_network.id[1:]] = kin_coords[1:]
+                kf_network.full_coords = kf_network.flat_coords.view(
+                    kf_network.orig_coords_shape
+                )
+                kf_network.full_coords = kf_network.full_coords.to(torch.float64)
+
+                # # now evaluate the score
+                # da_score = kf_network.whole_pose_scoring_module(kf_network.full_coords).sum()
+                # # print("da score:", da_score.item())
+                # return da_score
+
+                def score(coords):
+                    return new_wpsm(coords).sum()
+
+                # monkeypatch more sane error reporting
+                from tmol.tests.score.common.test_energy_term import (
+                    _get_notallclose_msg,
+                )
+                import importlib
+                import functools
+
+                eps = 1e-6  # torch default
+                atol = 1e-4  # torch default
+                rtol = 1e-5  # torch default
+                nondet_tol = 1e-5
+
+                torchgrad = importlib.import_module("torch.autograd.gradcheck")
+                torchgrad._get_notallclose_msg = functools.partial(
+                    _get_notallclose_msg, atol=atol, rtol=rtol
+                )
+
+                torchgrad.gradcheck(
+                    score,
+                    (kf_network.full_coords.requires_grad_(True),),
+                    eps=eps,
+                    atol=atol,
+                    rtol=rtol,
+                    nondet_tol=nondet_tol,
+                )
+
+                # term.debug_energy_gradient(coords1, coords2)
+
+    closure = debug_closure()
 
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time1 = time.perf_counter()
+
+    # Perform the minimization
     optimizer.step(closure)
+
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time2 = time.perf_counter()
@@ -93,4 +167,9 @@ def run_kin_min(
             + f" opt {end_time2 - end_time1: .2f} stack-ctor: {end_time3-end_time2: .2f}"
         )
 
+    if new_pose_stack.coords.dtype != input_pose_stack_coords_dtype:
+        new_pose_stack = attrs.evolve(
+            new_pose_stack,
+            coords=new_pose_stack.coords.to(input_pose_stack_coords_dtype),
+        )
     return new_pose_stack
