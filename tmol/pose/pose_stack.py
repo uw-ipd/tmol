@@ -198,6 +198,22 @@ class PoseStack:
         n_ats_per_pose = torch.sum(self.n_ats_per_block, dim=1).unsqueeze(1)
         return n_ats_per_pose_arange_expanded < n_ats_per_pose
 
+    def clone(self) -> "PoseStack":
+        """Deep-copy clone of this PoseStack"""
+        return PoseStack(
+            packed_block_types=self.packed_block_types,
+            coords=self.coords.detach().clone(),
+            block_coord_offset=self.block_coord_offset.detach().clone(),
+            block_coord_offset64=self.block_coord_offset64.detach().clone(),
+            inter_residue_connections=self.inter_residue_connections.detach().clone(),
+            inter_residue_connections64=self.inter_residue_connections64.detach().clone(),
+            inter_block_bondsep=self.inter_block_bondsep.detach().clone(),
+            inter_block_bondsep64=self.inter_block_bondsep64.detach().clone(),
+            block_type_ind=self.block_type_ind.detach().clone(),
+            block_type_ind64=self.block_type_ind64.detach().clone(),
+            device=self.device,
+        )
+
     def expand_coords(self):
         """Load the coordinates into a 4D tensor:
         n_poses x max_n_blocks x max_n_atoms_per_block x 3

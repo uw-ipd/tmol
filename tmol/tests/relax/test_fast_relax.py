@@ -88,14 +88,9 @@ def test_fast_relax_100(default_database, ubq_pdb, dun_sampler, torch_device):
 
     start_time = time.perf_counter()
 
+    verbose = True
     new_pose_stack = fast_relax(
-        pose_stack,
-        sfxn,
-        palette,
-        mm,
-        fold_forest,
-        [task_op],
-        False,  # True
+        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose
     )
 
     if torch_device == torch.device("cuda"):
@@ -175,14 +170,9 @@ def test_fast_relax_pertuz(
 
     start_time = time.perf_counter()
 
+    verbose = True
     new_pose_stack = fast_relax(
-        pose_stack,
-        sfxn,
-        palette,
-        mm,
-        fold_forest,
-        [task_op],
-        False,  # True
+        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose
     )
 
     if torch_device == torch.device("cuda"):
