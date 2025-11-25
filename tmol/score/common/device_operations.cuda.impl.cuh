@@ -141,7 +141,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
         src, n, dst, op, total_mem->data(), context, *cuda_event);
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <typename T>
   static T read_scan_total(void* total) {
     // For the asyncronous scan-launch; wait for result combo:
     // in "submit_scan_w_event". Make sure that you have called
