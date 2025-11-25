@@ -44,26 +44,6 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-// template <int TILE, template <typename> typename InterEnergyData, typename
-// Real> EIGEN_DEVICE_FUNC int interres_count_pair_separation(
-//     InterEnergyData<Real> const& inter_dat,
-//     int atom_tile_ind1,
-//     int atom_tile_ind2) {
-//   int separation = inter_dat.min_separation;
-//   if (separation <= inter_dat.max_important_bond_separation) {
-//     separation = common::count_pair::shared_mem_inter_block_separation<TILE>(
-//         inter_dat.max_important_bond_separation,
-//         atom_tile_ind1,
-//         atom_tile_ind2,
-//         inter_dat.r1.n_conn,
-//         inter_dat.r2.n_conn,
-//         inter_dat.r1.path_dist,
-//         inter_dat.r2.path_dist,
-//         inter_dat.conn_seps);
-//   }
-//   return separation;
-// }
-
 template <
     template <tmol::Device> class DeviceOperations,
     tmol::Device D,
@@ -428,51 +408,9 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   });
 
   auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto atom_pair_lj_fn = ([=] TMOL_DEVICE_FUNC(
-                                int atom_tile_ind1,
-                                int atom_tile_ind2,
-                                int start_atom1,
-                                int start_atom2,
-                                LJLKScoringData<Real> const& score_dat,
-                                int cp_separation) {
-      if (require_gradient) {  // captured
-        return lj_atom_energy_and_derivs_full(
-            atom_tile_ind1,
-            atom_tile_ind2,
-            start_atom1,
-            start_atom2,
-            score_dat,
-            cp_separation,
-            dV_dcoords  // captured
-        );
-      } else {
-        return lj_atom_energy(
-            atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-      }
-    });
+    auto atom_pair_lj_fn = ([=] ATOM_PAIR_LJ_SCORE_W_GRADIENT_EVAL);
 
-    auto atom_pair_lk_fn = ([=] TMOL_DEVICE_FUNC(
-                                int atom_tile_ind1,
-                                int atom_tile_ind2,
-                                int start_atom1,
-                                int start_atom2,
-                                LJLKScoringData<Real> const& score_dat,
-                                int cp_separation) {
-      if (require_gradient) {  // captured
-        return lk_atom_energy_and_derivs_full(
-            atom_tile_ind1,
-            atom_tile_ind2,
-            start_atom1,
-            start_atom2,
-            score_dat,
-            cp_separation,
-            dV_dcoords  // captured
-        );
-      } else {
-        return lk_atom_energy(
-            atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-      }
-    });
+    auto atom_pair_lk_fn = ([=] ATOM_PAIR_LK_SCORE_W_GRADIENT_EVAL);
 
     auto score_inter_lj_atom_pair =
         ([=] SCORE_INTER_LJ_ATOM_PAIR(atom_pair_lj_fn));
@@ -784,51 +722,9 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
   int const max_n_upper_triangle_inds = (max_n_blocks * (max_n_blocks + 1)) / 2;
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto atom_pair_lj_fn =
-        ([=] TMOL_DEVICE_FUNC(
-             int atom_tile_ind1,
-             int atom_tile_ind2,
-             int start_atom1,
-             int start_atom2,
-             LJLKScoringData<Real> const& score_dat,
-             int cp_separation) -> std::array<Real, 2> {
-          lj_atom_derivs(
-              atom_tile_ind1,
-              atom_tile_ind2,
-              start_atom1,
-              start_atom2,
-              score_dat,
-              cp_separation,
-              dTdV[0][score_dat.pose_ind][score_dat.block_ind1]
-                  [score_dat.block_ind2],
-              dTdV[1][score_dat.pose_ind][score_dat.block_ind1]
-                  [score_dat.block_ind2],
-              dV_dcoords  // captured
-          );
-          return {0.0, 0.0};
-        });
+    auto atom_pair_lj_fn = ([=] ATOM_PAIR_LJ_BLOCK_SCORING_DERIVS_EVAL);
 
-    auto atom_pair_lk_fn =
-        ([=] TMOL_DEVICE_FUNC(
-             int atom_tile_ind1,
-             int atom_tile_ind2,
-             int start_atom1,
-             int start_atom2,
-             LJLKScoringData<Real> const& score_dat,
-             int cp_separation) -> Real {
-          lk_atom_derivs(
-              atom_tile_ind1,
-              atom_tile_ind2,
-              start_atom1,
-              start_atom2,
-              score_dat,
-              cp_separation,
-              dTdV[2][score_dat.pose_ind][score_dat.block_ind1]
-                  [score_dat.block_ind2],
-              dV_dcoords  // captured
-          );
-          return 0.0;
-        });
+    auto atom_pair_lk_fn = ([=] ATOM_PAIR_LK_BLOCK_SCORING_DERIVS_EVAL);
 
     auto score_inter_lj_atom_pair =
         ([=] SCORE_INTER_LJ_ATOM_PAIR(atom_pair_lj_fn));
@@ -1149,27 +1045,9 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto eval_energies_by_block = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto atom_pair_lj_fn = ([=] TMOL_DEVICE_FUNC(
-                                int atom_tile_ind1,
-                                int atom_tile_ind2,
-                                int,
-                                int,
-                                LJLKScoringData<Real> const& score_dat,
-                                int cp_separation) {
-      return lj_atom_energy(
-          atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-    });
+    auto atom_pair_lj_fn = ([=] ATOM_PAIR_LJ_SCORE_WO_GRADIENT_EVAL);
 
-    auto atom_pair_lk_fn = ([=] TMOL_DEVICE_FUNC(
-                                int atom_tile_ind1,
-                                int atom_tile_ind2,
-                                int,
-                                int,
-                                LJLKScoringData<Real> const& score_dat,
-                                int cp_separation) {
-      return lk_atom_energy(
-          atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-    });
+    auto atom_pair_lk_fn = ([=] ATOM_PAIR_LK_SCORE_WO_GRADIENT_EVAL);
 
     auto score_inter_lj_atom_pair =
         ([=] SCORE_INTER_LJ_ATOM_PAIR(atom_pair_lj_fn));
@@ -1438,48 +1316,9 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto atom_pair_lj_fn =
-        ([=] TMOL_DEVICE_FUNC(
-             int atom_tile_ind1,
-             int atom_tile_ind2,
-             int start_atom1,
-             int start_atom2,
-             LJLKScoringData<Real> const& score_dat,
-             int cp_separation) -> std::array<Real, 2> {
-          lj_atom_derivs(
-              atom_tile_ind1,
-              atom_tile_ind2,
-              start_atom1,
-              start_atom2,
-              score_dat,
-              cp_separation,
-              dTdV[0][cta],
-              dTdV[1][cta],
-              dV_dcoords  // captured
-          );
-          return {0.0, 0.0};
-        });
+    auto atom_pair_lj_fn = ([=] ATOM_PAIR_LJ_SPARSE_IND_SCORING_DERIVS_EVAL);
 
-    auto atom_pair_lk_fn =
-        ([=] TMOL_DEVICE_FUNC(
-             int atom_tile_ind1,
-             int atom_tile_ind2,
-             int start_atom1,
-             int start_atom2,
-             LJLKScoringData<Real> const& score_dat,
-             int cp_separation) -> Real {
-          lk_atom_derivs(
-              atom_tile_ind1,
-              atom_tile_ind2,
-              start_atom1,
-              start_atom2,
-              score_dat,
-              cp_separation,
-              dTdV[2][cta],
-              dV_dcoords  // captured
-          );
-          return 0.0;
-        });
+    auto atom_pair_lk_fn = ([=] ATOM_PAIR_LK_SPARSE_IND_SCORING_DERIVS_EVAL);
 
     auto score_inter_lj_atom_pair =
         ([=] SCORE_INTER_LJ_ATOM_PAIR(atom_pair_lj_fn));

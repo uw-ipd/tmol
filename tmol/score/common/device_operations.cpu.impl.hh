@@ -75,30 +75,27 @@ struct DeviceOperations<tmol::Device::CPU> {
     return last_val;
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <typename T>
   static void* allocate_scan_total_storage() {
     T* total = new T();
     return reinterpret_cast<void*>(total);
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <typename T>
   static void deallocate_scan_total_storage(void* total) {
     T* total_t = reinterpret_cast<T*>(total);
     delete total_t;
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void* allocate_synchronization_event() {
     // No event needed on CPU
     return nullptr;
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void deallocate_synchronization_event(void* event) {
     // No event needed on CPU
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void synchronize_on_event(void* event) {
     // No synchronization needed on CPU
   }
@@ -106,16 +103,23 @@ struct DeviceOperations<tmol::Device::CPU> {
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void submit_scan_w_event(
       T* src, T* dst, int n, void* event, void* total, OP op) {
-    T tot = DeviceOperations<tmol::Device::CPU>::template scan_and_return_total(
-        src, dst, n, op);
-    T* total_t = reinterpret_cast<T*>(total);
-    *total_t = tot;
+    T tot = DeviceOperations<tmol::Device::CPU>::template scan_and_return_total<
+        scan_type>(src, dst, n, op);
+    T* total_T = reinterpret_cast<T*>(total);
+    *total_T = tot;
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <typename T>
   static T read_scan_total(void* total) {
-    T* total_t = reinterpret_cast<T*>(total);
-    return *total_t;
+    T* total_T = reinterpret_cast<T*>(total);
+    return *total_T;
+  }
+
+  template <typename T>
+  static void set_zero(T* dst, int n) {
+    for (int i = 0; i < n; ++i) {
+      dst[i] = T(0);
+    }
   }
 
   // Construct load-balanced-search mapping of work items to their generator

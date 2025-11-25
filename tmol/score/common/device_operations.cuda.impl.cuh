@@ -79,7 +79,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
     return total.data()[0];
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <typename T>
   static void* allocate_scan_total_storage() {
     // When we need the total computed from scan, we should allocate
     // page-locked host memory to hold it, and we can read from
@@ -93,14 +93,13 @@ struct DeviceOperations<tmol::Device::CUDA> {
     return reinterpret_cast<void*>(total);
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <typename T>
   static void deallocate_scan_total_storage(void* total) {
     // This will synchronize with the device, so we only do this when we're done
     // done.
     delete reinterpret_cast<mgpu::mem_t<T>*>(total);
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void* allocate_synchronization_event() {
     // Allocate a cudaEvent_t object, create the event, and return the pointer
     cudaEvent_t* cuda_event = new cudaEvent_t();
@@ -108,7 +107,6 @@ struct DeviceOperations<tmol::Device::CUDA> {
     return reinterpret_cast<void*>(cuda_event);
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void deallocate_synchronization_event(void* event) {
     // Destroy the event _and_ the cudaEvent_t object
     cudaEvent_t* cuda_event = reinterpret_cast<cudaEvent_t*>(event);
@@ -116,7 +114,6 @@ struct DeviceOperations<tmol::Device::CUDA> {
     delete cuda_event;
   }
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void synchronize_on_event(void* event) {
     // Destroy the event _and_ the cudaEvent_t object
     cudaEvent_t* cuda_event = reinterpret_cast<cudaEvent_t*>(event);
@@ -151,6 +148,11 @@ struct DeviceOperations<tmol::Device::CUDA> {
     // syncrhonize_on_event before calling this function.
     mgpu::mem_t<T>* total_mem = reinterpret_cast<mgpu::mem_t<T>*>(total);
     return total_mem->data()[0];
+  }
+
+  template <typename T>
+  static void set_zero(T* dst, int n) {
+    cudaMemset(dst, 0, n * sizeof(T));
   }
 
   // Construct load-balanced-search mapping of work items to their generator

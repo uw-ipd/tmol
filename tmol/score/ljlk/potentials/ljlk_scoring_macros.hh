@@ -2,6 +2,165 @@
 //    these define functions that are used in multiple lambda captures
 //    variables that are expected to be captured for each macro are specified
 
+#define ATOM_PAIR_LJ_SCORE_W_GRADIENT_EVAL                           \
+  TMOL_DEVICE_FUNC(                                                  \
+      int atom_tile_ind1,                                            \
+      int atom_tile_ind2,                                            \
+      int start_atom1,                                               \
+      int start_atom2,                                               \
+      LJLKScoringData<Real> const& score_dat,                        \
+      int cp_separation) {                                           \
+    if (require_gradient) {                                          \
+      return lj_atom_energy_and_derivs_full(                         \
+          atom_tile_ind1,                                            \
+          atom_tile_ind2,                                            \
+          start_atom1,                                               \
+          start_atom2,                                               \
+          score_dat,                                                 \
+          cp_separation,                                             \
+          dV_dcoords);                                               \
+    } else {                                                         \
+      return lj_atom_energy(                                         \
+          atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation); \
+    }                                                                \
+  }
+
+#define ATOM_PAIR_LK_SCORE_W_GRADIENT_EVAL                           \
+  TMOL_DEVICE_FUNC(                                                  \
+      int atom_tile_ind1,                                            \
+      int atom_tile_ind2,                                            \
+      int start_atom1,                                               \
+      int start_atom2,                                               \
+      LJLKScoringData<Real> const& score_dat,                        \
+      int cp_separation) {                                           \
+    if (require_gradient) {                                          \
+      return lk_atom_energy_and_derivs_full(                         \
+          atom_tile_ind1,                                            \
+          atom_tile_ind2,                                            \
+          start_atom1,                                               \
+          start_atom2,                                               \
+          score_dat,                                                 \
+          cp_separation,                                             \
+          dV_dcoords);                                               \
+    } else {                                                         \
+      return lk_atom_energy(                                         \
+          atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation); \
+    }                                                                \
+  }
+
+#define ATOM_PAIR_LJ_BLOCK_SCORING_DERIVS_EVAL            \
+  TMOL_DEVICE_FUNC(                                       \
+      int atom_tile_ind1,                                 \
+      int atom_tile_ind2,                                 \
+      int start_atom1,                                    \
+      int start_atom2,                                    \
+      LJLKScoringData<Real> const& score_dat,             \
+      int cp_separation)                                  \
+      ->std::array<Real, 2> {                             \
+    lj_atom_derivs(                                       \
+        atom_tile_ind1,                                   \
+        atom_tile_ind2,                                   \
+        start_atom1,                                      \
+        start_atom2,                                      \
+        score_dat,                                        \
+        cp_separation,                                    \
+        dTdV[0][score_dat.pose_ind][score_dat.block_ind1] \
+            [score_dat.block_ind2],                       \
+        dTdV[1][score_dat.pose_ind][score_dat.block_ind1] \
+            [score_dat.block_ind2],                       \
+        dV_dcoords);                                      \
+    return {0.0, 0.0};                                    \
+  }
+
+#define ATOM_PAIR_LK_BLOCK_SCORING_DERIVS_EVAL            \
+  TMOL_DEVICE_FUNC(                                       \
+      int atom_tile_ind1,                                 \
+      int atom_tile_ind2,                                 \
+      int start_atom1,                                    \
+      int start_atom2,                                    \
+      LJLKScoringData<Real> const& score_dat,             \
+      int cp_separation)                                  \
+      ->Real {                                            \
+    lk_atom_derivs(                                       \
+        atom_tile_ind1,                                   \
+        atom_tile_ind2,                                   \
+        start_atom1,                                      \
+        start_atom2,                                      \
+        score_dat,                                        \
+        cp_separation,                                    \
+        dTdV[2][score_dat.pose_ind][score_dat.block_ind1] \
+            [score_dat.block_ind2],                       \
+        dV_dcoords);                                      \
+    return 0.0;                                           \
+  }
+
+#define ATOM_PAIR_LJ_SCORE_WO_GRADIENT_EVAL                        \
+  TMOL_DEVICE_FUNC(                                                \
+      int atom_tile_ind1,                                          \
+      int atom_tile_ind2,                                          \
+      int,                                                         \
+      int,                                                         \
+      LJLKScoringData<Real> const& score_dat,                      \
+      int cp_separation) {                                         \
+    return lj_atom_energy(                                         \
+        atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation); \
+  }
+
+#define ATOM_PAIR_LK_SCORE_WO_GRADIENT_EVAL                        \
+  TMOL_DEVICE_FUNC(                                                \
+      int atom_tile_ind1,                                          \
+      int atom_tile_ind2,                                          \
+      int,                                                         \
+      int,                                                         \
+      LJLKScoringData<Real> const& score_dat,                      \
+      int cp_separation) {                                         \
+    return lk_atom_energy(                                         \
+        atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation); \
+  }
+
+#define ATOM_PAIR_LJ_SPARSE_IND_SCORING_DERIVS_EVAL \
+  TMOL_DEVICE_FUNC(                                 \
+      int atom_tile_ind1,                           \
+      int atom_tile_ind2,                           \
+      int start_atom1,                              \
+      int start_atom2,                              \
+      LJLKScoringData<Real> const& score_dat,       \
+      int cp_separation)                            \
+      ->std::array<Real, 2> {                       \
+    lj_atom_derivs(                                 \
+        atom_tile_ind1,                             \
+        atom_tile_ind2,                             \
+        start_atom1,                                \
+        start_atom2,                                \
+        score_dat,                                  \
+        cp_separation,                              \
+        dTdV[0][cta],                               \
+        dTdV[1][cta],                               \
+        dV_dcoords);                                \
+    return {0.0, 0.0};                              \
+  }
+
+#define ATOM_PAIR_LK_SPARSE_IND_SCORING_DERIVS_EVAL \
+  TMOL_DEVICE_FUNC(                                 \
+      int atom_tile_ind1,                           \
+      int atom_tile_ind2,                           \
+      int start_atom1,                              \
+      int start_atom2,                              \
+      LJLKScoringData<Real> const& score_dat,       \
+      int cp_separation)                            \
+      ->Real {                                      \
+    lk_atom_derivs(                                 \
+        atom_tile_ind1,                             \
+        atom_tile_ind2,                             \
+        start_atom1,                                \
+        start_atom2,                                \
+        score_dat,                                  \
+        cp_separation,                              \
+        dTdV[2][cta],                               \
+        dV_dcoords);                                \
+    return 0.0;                                     \
+  }
+
 // SCORE_INTER_LJ_ATOM_PAIR
 // input argument:  a function with signature (
 //     int atom_tile_idx1

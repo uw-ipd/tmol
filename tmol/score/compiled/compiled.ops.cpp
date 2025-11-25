@@ -112,7 +112,7 @@ class FusedScoreFunction
               fused_sfxn_modules[i].item<int64_t>());
       n_terms += module->n_terms();
     }
-    dV_d_pose_coords = rot_coords.new_zeros({n_terms, rot_coords.size(0), 3});
+    dV_d_pose_coords = rot_coords.new_zeros({rot_coords.size(0), 3});
 
     auto dTdV = grad_outputs[0];
 
@@ -136,11 +136,11 @@ class FusedScoreFunction
              torch::indexing::Slice(),
              torch::indexing::Slice()});
       }
-      Tensor module_dV_d_pose_coords = dV_d_pose_coords.index(
-          {torch::indexing::Slice(count_terms, count_terms + module_n_terms),
-           torch::indexing::Slice()});
+      // Tensor module_dV_d_pose_coords = dV_d_pose_coords.index(
+      //     {torch::indexing::Slice(count_terms, count_terms + module_n_terms),
+      //      torch::indexing::Slice()});
 
-      module->backward(rot_coords, module_dTdV, module_dV_d_pose_coords);
+      module->backward(rot_coords, module_dTdV, dV_d_pose_coords);
       count_terms += module_n_terms;
     }
 

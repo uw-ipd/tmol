@@ -456,11 +456,14 @@ template <
     tmol::Device D,
     typename Int>
 struct asynch_block_neighbor_indices {
+  // Launch the block-neighbor calculation and return without
+  // blocking; part2 will block on the event before continuing
   static void f(
-      TView<Int, 3, D> block_neighbors TPack<Int, 1, D> offset_for_cell,
+      TView<Int, 3, D> block_neighbors,
+      TView<Int, 1, D> block_neighbor_offsets,
       TView<Int, 2, D> block_neighbor_indices,
       void* event,
-      void* total) -> TPack<Int, 2, D> {
+      void* total) {
     LAUNCH_BOX_32;
 
     int n_pose = block_neighbors.size(0);
@@ -482,7 +485,8 @@ struct asynch_block_neighbor_indices {
       int res2 = ind % n_res;
 
       if (block_neighbors[pose][res1][res2]) {
-        int offset = offset_for_cell[pose][res1][res2];
+        int offset =
+            block_neighbor_offsets[pose * n_res * n_res + res1 * n_res + res2];
         block_neighbor_indices[0][offset] = pose;
         block_neighbor_indices[1][offset] = res1;
         block_neighbor_indices[2][offset] = res2;

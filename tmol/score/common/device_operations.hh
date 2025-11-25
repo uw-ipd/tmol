@@ -34,27 +34,27 @@ struct DeviceOperations {
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static T scan_and_return_total(T* src, T* dst, int n, OP op);
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <typename T>
   static void* allocate_scan_total_storage();
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <typename T>
   static void deallocate_scan_total_storage(void* total);
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void* allocate_synchronization_event();
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void deallocate_synchronization_event(void* event);
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void synchronize_on_event(void* event);
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void submit_scan_w_event(
       T* src, T* dst, int n, void* event, void* total, OP op);
 
-  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  template <typename T>
   static T read_scan_total(void* total);
+
+  template <typename T>
+  static void set_zero(T* dst, int n);
 
   // Construct load-balanced-search mapping of work items to their generator
   // index; see https://moderngpu.github.io/loadbalance.html

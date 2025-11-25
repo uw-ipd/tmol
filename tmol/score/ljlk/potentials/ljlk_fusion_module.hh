@@ -31,41 +31,43 @@ template <
     typename Int>
 class LJLKPoseScoreFusionModule : public common::PoseScoreFusionModule {
  private:
-  torch::Tensor rot_coord_offset_;
-  torch::Tensor pose_ind_for_atom_;
-  torch::Tensor first_rot_for_block_;
-  torch::Tensor first_rot_block_type_;
-  torch::Tensor block_ind_for_rot_;
-  torch::Tensor pose_ind_for_rot_;
-  torch::Tensor block_type_ind_for_rot_;
-  torch::Tensor n_rots_for_pose_;
-  torch::Tensor rot_offset_for_pose_;
-  torch::Tensor n_rots_for_block_;
-  torch::Tensor rot_offset_for_block_;
+  torch::Tensor rot_coord_offset_t_;
+  torch::Tensor pose_ind_for_atom_t_;
+  torch::Tensor first_rot_for_block_t_;
+  torch::Tensor first_rot_block_type_t_;
+  torch::Tensor block_ind_for_rot_t_;
+  torch::Tensor pose_ind_for_rot_t_;
+  torch::Tensor block_type_ind_for_rot_t_;
+  torch::Tensor n_rots_for_pose_t_;
+  torch::Tensor rot_offset_for_pose_t_;
+  torch::Tensor n_rots_for_block_t_;
+  torch::Tensor rot_offset_for_block_t_;
   Int max_n_rots_per_pose_;
-  torch::Tensor pose_stack_min_bond_separation_;
-  torch::Tensor pose_stack_inter_block_bondsep_;
-  torch::Tensor block_type_n_atoms_;
-  torch::Tensor block_type_n_heavy_atoms_in_tile_;
-  torch::Tensor block_type_heavy_atoms_in_tile_;
-  torch::Tensor block_type_atom_types_;
-  torch::Tensor block_type_n_interblock_bonds_;
-  torch::Tensor block_type_atoms_forming_chemical_bonds_;
-  torch::Tensor block_type_path_distance_;
+  torch::Tensor pose_stack_min_bond_separation_t_;
+  torch::Tensor pose_stack_inter_block_bondsep_t_;
+  torch::Tensor block_type_n_atoms_t_;
+  torch::Tensor block_type_n_heavy_atoms_in_tile_t_;
+  torch::Tensor block_type_heavy_atoms_in_tile_t_;
+  torch::Tensor block_type_atom_types_t_;
+  torch::Tensor block_type_n_interblock_bonds_t_;
+  torch::Tensor block_type_atoms_forming_chemical_bonds_t_;
+  torch::Tensor block_type_path_distance_t_;
 
   // LJ parameters
-  torch::Tensor type_params_;
-  torch::Tensor global_params_;
+  torch::Tensor type_params_t_;
+  torch::Tensor global_params_t_;
   bool output_block_pair_energies_;
 
   // do we need to compute gradients?
   bool require_gradient_;
 
-  torch::Tensor scratch_rot_spheres_;
-  torch::Tensor scratch_rot_neighbors_;
-  torch::Tensor scratch_rot_neighbors_offset_;
-  torch::Tensor dispatch_indices_;
-  torch::Tensor events_;  // for cuda events; we need pointers to cudaEvent_t
+  torch::Tensor scratch_rot_spheres_t_;
+  torch::Tensor scratch_rot_neighbors_t_;
+  torch::Tensor scratch_rot_neighbors_offset_t_;
+  torch::Tensor dV_dcoords_t_;
+  torch::Tensor dispatch_indices_t_;
+  std::vector<void*>
+      events_;            // for cuda events; we need pointers to cudaEvent_t
                           // for forward and backward passes that we'll wait on
   void* n_dispatch_ptr_;  // IDEA: we need a mgpu::mem_t for CUDA and just a
                           // wimpy int on CPU
