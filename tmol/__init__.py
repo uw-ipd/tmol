@@ -1,3 +1,42 @@
+# BEFORE IMPORTING TORCH:
+#
+# def get_gpu_compute_capability():
+#     import subprocess
+#     import re
+#     try:
+#         # Run nvidia-smi command to get XML output
+#         result = subprocess.run(
+#             ['nvidia-smi', '-q', '-x'],
+#             stdout=subprocess.PIPE,
+#             stderr=subprocess.PIPE,
+#             check=True,
+#             text=True
+#         )
+#         xml_output = result.stdout
+#
+#         # Use regex to find the compute capability (major and minor)
+#         # This approach can be brittle if NVIDIA changes the output format significantly
+#         major_match = re.search(r'<cuda_compute_capability><major>(\d+)</major>', xml_output)
+#         minor_match = re.search(r'<cuda_compute_capability><minor>(\d+)</minor></cuda_compute_capability>', xml_output)
+#         if major_match and minor_match:
+#             major = major_match.group(1)
+#             minor = minor_match.group(1)
+#             print("major:", major, "minor:", minor, f"{major}.{minor}")
+#             return f"{major}.{minor}"
+#         else:
+#             return "Could not parse compute capability from nvidia-smi output."
+#     except FileNotFoundError:
+#         return "nvidia-smi command not found. Ensure NVIDIA drivers are installed and in your PATH."
+#     except subprocess.CalledProcessError as e:
+#         return f"Error running nvidia-smi: {e.stderr}"
+#
+# import os
+#
+# if os.environ.get('TORCH_CUDA_ARCH_LIST') is None:
+#     compute_capability = get_gpu_compute_capability()
+#     os.environ['TORCH_CUDA_ARCH_LIST'] = compute_capability
+
+
 from importlib.metadata import PackageNotFoundError, version
 
 from tmol.database import ParameterDatabase  # noqa: F401

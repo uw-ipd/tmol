@@ -66,6 +66,8 @@ class LJLKPoseScoreFusionModule : public common::PoseScoreFusionModule {
   torch::Tensor scratch_rot_neighbors_offset_t_;
   torch::Tensor dV_dcoords_t_;
   torch::Tensor dispatch_indices_t_;
+
+  void* context_;  // on GPU, the CUDA context
   std::vector<void*>
       events_;            // for cuda events; we need pointers to cudaEvent_t
                           // for forward and backward passes that we'll wait on

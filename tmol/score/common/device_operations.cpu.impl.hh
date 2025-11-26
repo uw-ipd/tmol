@@ -12,11 +12,23 @@ namespace common {
 
 template <>
 struct DeviceOperations<tmol::Device::CPU> {
+  static void* get_current_context() { return nullptr; }
+
+  static void release_context(void* context) {
+    // No context to release on CPU
+  }
+
   template <typename launch_t, typename Func>
   static void forall(int N, Func f) {
     for (int i = 0; i < N; ++i) {
       f(i);
     }
+  }
+
+  template <typename launch_t, typename Func>
+  static void forall(void* context, int N, Func f) {
+    // Identical to non-context version on CPU
+    return forall<launch_t>(N, f);
   }
 
   template <typename Int, typename Func>
@@ -26,6 +38,12 @@ struct DeviceOperations<tmol::Device::CPU> {
         f(stack, i);
       }
     }
+  }
+
+  template <typename Int, typename Func>
+  static void forall_stacks(void* context, Int Nstacks, Int N, Func f) {
+    // Identical to non-context version on CPU
+    return forall_stacks(Nstacks, N, f);
   }
 
   template <typename Int, typename Func>
@@ -39,11 +57,24 @@ struct DeviceOperations<tmol::Device::CPU> {
     }
   }
 
+  template <typename Int, typename Func>
+  static void foreach_combination_triple(
+      void* context, Int dim1, Int dim2, Int dim3, Func f) {
+    // Identical to non-context version on CPU
+    return foreach_combination_triple(dim1, dim2, dim3, f);
+  }
+
   template <typename launch_t, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f) {
     for (int i = 0; i < n_workgroups; ++i) {
       f(i);
     }
+  }
+
+  template <typename launch_t, typename Func>
+  static void foreach_workgroup(void* context, int n_workgroups, Func f) {
+    // Identical to non-context version on CPU
+    return foreach_workgroup<launch_t>(n_workgroups, f);
   }
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
@@ -61,6 +92,11 @@ struct DeviceOperations<tmol::Device::CPU> {
   }
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void scan(void* context, T* src, T* dst, int n, OP op) {
+    return scan<scan_type>(src, dst, n, op);
+  }
+
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static T scan_and_return_total(T* src, T* dst, int n, OP op) {
     T last_val = src[0];
     if (scan_type == mgpu::scan_type_inc) {
@@ -75,14 +111,20 @@ struct DeviceOperations<tmol::Device::CPU> {
     return last_val;
   }
 
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static T scan_and_return_total(void* context, T* src, T* dst, int n, OP op) {
+    return scan_and_return_total<scan_type>(src, dst, n, op);
+  }
+
   template <typename T>
-  static void* allocate_scan_total_storage() {
+  static void* allocate_scan_total_storage(void* context) {
+    // Just a new instane of type T on CPU; nothing fancy.
     T* total = new T();
     return reinterpret_cast<void*>(total);
   }
 
   template <typename T>
-  static void deallocate_scan_total_storage(void* total) {
+  static void deallocate_scan_total_storage(void* context, void* total) {
     T* total_t = reinterpret_cast<T*>(total);
     delete total_t;
   }
@@ -102,10 +144,13 @@ struct DeviceOperations<tmol::Device::CPU> {
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void submit_scan_w_event(
-      T* src, T* dst, int n, void* event, void* total, OP op) {
+      void* context, T* src, T* dst, int n, void* event, void* total, OP op) {
+    printf("cpu submit scan w/ event\n");
     T tot = DeviceOperations<tmol::Device::CPU>::template scan_and_return_total<
         scan_type>(src, dst, n, op);
+
     T* total_T = reinterpret_cast<T*>(total);
+    printf("writing total of %d to %p", total, total_T);
     *total_T = tot;
   }
 
@@ -116,7 +161,7 @@ struct DeviceOperations<tmol::Device::CPU> {
   }
 
   template <typename T>
-  static void set_zero(T* dst, int n) {
+  static void set_zero(void* context, T* dst, int n) {
     for (int i = 0; i < n; ++i) {
       dst[i] = T(0);
     }
@@ -155,6 +200,16 @@ struct DeviceOperations<tmol::Device::CPU> {
     return gen_for_work_item_t;
   }
 
+  template <typename launch_t, typename Int>
+  static TPack<Int, 1, tmol::Device::CPU> load_balancing_search(
+      void* context,
+      int n_work_units_total,  // The count of the total number of work units
+      Int* exc_scan_offsets,
+      int n_generators) {
+    return load_balancing_search<launch_t>(
+        n_work_units_total, exc_scan_offsets, n_generators);
+  }
+
   template <typename T, typename OP>
   static T reduce(T* src, int n, OP op) {
     assert(n > 0);
@@ -163,6 +218,11 @@ struct DeviceOperations<tmol::Device::CPU> {
       val = op(val, src[i]);
     }
     return val;
+  }
+
+  template <typename T, typename OP>
+  static T reduce(void* context, T* src, int n, OP op) {
+    return reduce(src, n, op);
   }
 
   // Segmented scan expects the indices for the beginning of each segment rather
@@ -193,6 +253,24 @@ struct DeviceOperations<tmol::Device::CPU> {
       last_val = next_val;
     }
     return dst_t;
+  }
+
+  template <
+      mgpu::scan_type_t scan_type,
+      typename launch_t,
+      typename T,
+      typename Int,
+      typename OP>
+  static auto segmented_scan(
+      void* context,
+      T* src,
+      Int* seg_start_inds,
+      int n,
+      int n_segs,
+      OP op,
+      T identity) -> TPack<T, 1, tmol::Device::CPU> {
+    return segmented_scan<scan_type, launch_t>(
+        src, seg_start_inds, n, n_segs, op, identity);
   }
 
   template <int N_T, int WIDTH, typename T>

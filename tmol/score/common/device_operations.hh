@@ -12,17 +12,34 @@ namespace common {
 
 template <tmol::Device D>
 struct DeviceOperations {
+  static void* get_current_context();
+
+  static void release_context(void* context);
+
   template <typename launch_t, typename Func>
   static void forall(int N, Func f);
+
+  template <typename launch_t, typename Func>
+  static void forall(void* context, int N, Func f);
 
   template <typename Int, typename Func>
   static void forall_stacks(Int Nstacks, Int N, Func f);
 
   template <typename Int, typename Func>
+  static void forall_stacks(void* context, Int Nstacks, Int N, Func f);
+
+  template <typename Int, typename Func>
   static void foreach_combination_triple(Int dim1, Int dim2, Int dim3, Func f);
+
+  template <typename Int, typename Func>
+  static void foreach_combination_triple(
+      void* context, Int dim1, Int dim2, Int dim3, Func f);
 
   template <typename launch_t, typename Func>
   static void foreach_workgroup(int n_workgroups, Func f);
+
+  template <typename launch_t, typename Func>
+  static void foreach_workgroup(void* context, int n_workgroups, Func f);
 
   // Note that dst[0] should be initialized to the identity value (e.g. 0) if
   // scan_type is exclusive.
@@ -30,31 +47,41 @@ struct DeviceOperations {
   static void scan(T* src, T* dst, int n, OP op);
 
   // Note that dst[0] should be initialized to the identity value (e.g. 0) if
+  // scan_type is exclusive.
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static void scan(void* context, T* src, T* dst, int n, OP op);
+
+  // Note that dst[0] should be initialized to the identity value (e.g. 0) if
   // scan_type is exclusive.a
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static T scan_and_return_total(T* src, T* dst, int n, OP op);
 
-  template <typename T>
-  static void* allocate_scan_total_storage();
+  // Note that dst[0] should be initialized to the identity value (e.g. 0) if
+  // scan_type is exclusive.a
+  template <mgpu::scan_type_t scan_type, typename T, typename OP>
+  static T scan_and_return_total(void* context, T* src, T* dst, int n, OP op);
 
   template <typename T>
-  static void deallocate_scan_total_storage(void* total);
+  static void* allocate_scan_total_storage(void* context);
+
+  template <typename T>
+  static void deallocate_scan_total_storage(void* context, void* total);
 
   static void* allocate_synchronization_event();
 
-  static void deallocate_synchronization_event(void* event);
+  static void deallocate_synchronization_event();
 
   static void synchronize_on_event(void* event);
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void submit_scan_w_event(
-      T* src, T* dst, int n, void* event, void* total, OP op);
+      void* context, T* src, T* dst, int n, void* event, void* total, OP op);
 
   template <typename T>
   static T read_scan_total(void* total);
 
   template <typename T>
-  static void set_zero(T* dst, int n);
+  static void set_zero(void* context, T* dst, int n);
 
   // Construct load-balanced-search mapping of work items to their generator
   // index; see https://moderngpu.github.io/loadbalance.html
@@ -70,10 +97,22 @@ struct DeviceOperations {
       Int* exc_scan_offsets,
       int n_generators);
 
+  template <typename launch_t, typename Int>
+  static TPack<Int, 1, D> load_balancing_search(
+      void* context,
+      int n_work_units_total,  // The count of the total number of work units
+      Int* exc_scan_offsets,
+      int n_generators);
+
   // Perform a reduction on a given device array and return the result to the
   // CPU. n must be greater than zero.
   template <typename T, typename OP>
   static T reduce(T* src, int n, OP op);
+
+  // Perform a reduction on a given device array and return the result to the
+  // CPU. n must be greater than zero.
+  template <typename T, typename OP>
+  static T reduce(void* context, T* src, int n, OP op);
 
   // Segmented scan expects the indices for the beginning of each segment rather
   // than, e.g., a boolean tensor indicating the start of each segment.
@@ -89,6 +128,21 @@ struct DeviceOperations {
       T* src, Int* seg_start_inds, int n, int n_segs, OP op, T identity)
       -> TPack<T, 1, D>;
 
+  template <
+      mgpu::scan_type_t scan_type,
+      typename launch_t,
+      typename T,
+      typename Int,
+      typename OP>
+  static auto segmented_scan(
+      void* context,
+      T* src,
+      Int* seg_start_inds,
+      int n,
+      int n_segs,
+      OP op,
+      T identity) -> TPack<T, 1, D>;
+
   template <int N_T, int WIDTH, typename T>
   static void copy_contiguous_data(
       T* __restrict__ dst, T* __restrict__ src, int n);
@@ -96,7 +150,7 @@ struct DeviceOperations {
   // Copy a block of contiguous data from src to dst and cast it
   // to type TD from type TS
   template <int N_T, int WIDTH, typename TD, typename TS>
-  static void copy_contiguous_dat_aand_cast(
+  static void copy_contiguous_data_and_cast(
       TD* __restrict__ dst, TS* __restrict__ src, int n);
 
   template <int N_T, typename Func>

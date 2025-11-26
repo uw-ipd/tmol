@@ -732,6 +732,7 @@ Tensor test_run_forward(Tensor fusion_module, Tensor rot_coords) {
   common::PoseScoreFusionModule* fusion_module_ptr =
       reinterpret_cast<common::PoseScoreFusionModule*>(
           fusion_module[0].item<int64_t>());
+  fusion_module_ptr->prepare_for_scoring(rot_coords);
   int const n_poses = fusion_module_ptr->n_poses();
   Tensor V = torch::zeros(
       {fusion_module_ptr->n_terms(), n_poses, 1, 1}, rot_coords.options());
@@ -745,6 +746,7 @@ void free_fusion_module(Tensor fusion_module) {
           fusion_module[0].item<int64_t>());
   delete fusion_module_ptr;
   fusion_module[0] = 0;
+  printf("freed fusion module ptr\n");
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

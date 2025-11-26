@@ -124,10 +124,13 @@ LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
   dispatch_indices_t_ = first_rot_for_block_t_.new_zeros(
       {3, n_poses * max_n_blocks * max_n_blocks}, torch::kInt32);
 
+  context_ = DeviceOperations<D>::get_current_context();
+
   events_.resize(1);
+  events_[0] = 0;
 
   n_dispatch_ptr_ =
-      DeviceOperations<D>::template allocate_scan_total_storage<Int>();
+      DeviceOperations<D>::template allocate_scan_total_storage<Int>(context_);
 }
 
 template <
@@ -139,14 +142,19 @@ LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
     ~LJLKPoseScoreFusionModule() {
   printf("LJLKPoseScoreFusionModule destructor\n");
   if (events_[0]) {
+    printf("deallocating synchronization event %p\n", events_[0]);
     DeviceOperations<D>::deallocate_synchronization_event(events_[0]);
     events_[0] = 0;
   }
   if (n_dispatch_ptr_) {
+    printf("deallocating scan total storage %p\n", n_dispatch_ptr_);
     DeviceOperations<D>::template deallocate_scan_total_storage<Int>(
-        n_dispatch_ptr_);
+        context_, n_dispatch_ptr_);
     n_dispatch_ptr_ = 0;
+    DeviceOperations<D>::release_context(context_);
+    context_ = 0;
   }
+  printf("Destructor complete\n");
 }
 
 template <
@@ -161,50 +169,78 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
   // Zero initialize the arrays we need in order to figure out which
   // pairs of residues are interacting
   DeviceOperations<D>::template set_zero<Int>(
-      dispatch_indices_t_.data_ptr<Int>(), dispatch_indices_t_.numel());
+      context_,
+      dispatch_indices_t_.data_ptr<Int>(),
+      dispatch_indices_t_.numel());
   DeviceOperations<D>::template set_zero<Int>(
+      context_,
       scratch_rot_neighbors_t_.data_ptr<Int>(),
       scratch_rot_neighbors_t_.numel());
   DeviceOperations<D>::template set_zero<Int>(
+      context_,
       scratch_rot_neighbors_offset_t_.data_ptr<Int>(),
       scratch_rot_neighbors_offset_t_.numel());
 
+  printf("computing block spheres\n");
+  //   score::common::sphere_overlap::
+  //       compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
+  //           TCAST(rot_coords_t),
+  //           TCAST(rot_coord_offset_t_),
+  //           TCAST(block_type_ind_for_rot_t_),
+  //           TCAST(block_type_n_atoms_t_),
+  //           TCAST(scratch_rot_spheres_t_));
   score::common::sphere_overlap::
-      compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
+      compute_block_spheres<DeviceOperations, D, Real, Int>::f(
+          context_,
           TCAST(rot_coords_t),
           TCAST(rot_coord_offset_t_),
+          TCAST(block_ind_for_rot_t_),
+          TCAST(pose_ind_for_rot_t_),
           TCAST(block_type_ind_for_rot_t_),
           TCAST(block_type_n_atoms_t_),
           TCAST(scratch_rot_spheres_t_));
 
+  printf("detecting block neighbors\n");
+  //   score::common::sphere_overlap::
+  //       detect_rot_neighbors<DeviceOperations, D, Real, Int>::f(
+  //           max_n_rots_per_pose_,
+  //           TCAST(block_ind_for_rot_t_),
+  //           TCAST(block_type_ind_for_rot_t_),
+  //           TCAST(block_type_n_atoms_t_),
+  //           TCAST(n_rots_for_pose_t_),
+  //           TCAST(rot_offset_for_pose_t_),
+  //           TCAST(n_rots_for_block_t_),
+  //           TCAST(scratch_rot_spheres_t_),
+  //           TCAST(scratch_rot_neighbors_t_),
+  //           Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+
   score::common::sphere_overlap::
-      detect_rot_neighbors<DeviceOperations, D, Real, Int>::f(
-          max_n_rots_per_pose_,
-          TCAST(block_ind_for_rot_t_),
-          TCAST(block_type_ind_for_rot_t_),
-          TCAST(block_type_n_atoms_t_),
-          TCAST(n_rots_for_pose_t_),
-          TCAST(rot_offset_for_pose_t_),
-          TCAST(n_rots_for_block_t_),
+      detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
+          context_,
+          TCAST(first_rot_block_type_t_),
           TCAST(scratch_rot_spheres_t_),
           TCAST(scratch_rot_neighbors_t_),
-          Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
+          Real(5.5));
 
+  printf("allocating synchronization event\n");
   events_[0] = DeviceOperations<D>::allocate_synchronization_event();
+  printf("allocated event %p\n", events_[0]);
 
   // TO DO: Replace this call with one that submits the
   // scan task and returns a cudaEvent that we'll hold on to
+  printf("computing rot neighbor indices\n");
   score::common::sphere_overlap::
       asynch_block_neighbor_indices<DeviceOperations, D, Int>::f(
+          context_,
           TCAST(scratch_rot_neighbors_t_),
-          TCAST(rot_offset_for_pose_t_),
+          TCAST(scratch_rot_neighbors_offset_t_),
           TCAST(dispatch_indices_t_),
           events_[0],
           n_dispatch_ptr_);
 
   // Zero initialize the remaining things
   DeviceOperations<D>::template set_zero<Real>(
-      dV_dcoords_t_.data_ptr<Real>(), dV_dcoords_t_.numel());
+      context_, dV_dcoords_t_.data_ptr<Real>(), dV_dcoords_t_.numel());
 }
 
 template <
@@ -391,17 +427,22 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::forward(
 
   // Wait on the event that signals that the number of interacting block pairs
   // is ready to be read from
+  printf("synchronizing on event\n");
   DeviceOperations<D>::synchronize_on_event(events_[0]);
 
   // Now that we're done with this event, we need to deallocate it
+  printf("deallocating event\n");
   DeviceOperations<D>::deallocate_synchronization_event(events_[0]);
   events_[0] = nullptr;  // reset the event handle
 
+  printf("reading n_dispatch\n");
   int const n_dispatch =
       DeviceOperations<D>::template read_scan_total<Int>(n_dispatch_ptr_);
+  printf("n_dispatch: %d\n", n_dispatch);
 
   DeviceOperations<D>::template foreach_workgroup<launch_t>(
-      n_dispatch, eval_energies_sparse_dispatch);
+      context_, n_dispatch, eval_energies_sparse_dispatch);
+  printf("forward done\n");
 }
 
 template <
@@ -614,7 +655,7 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::backward(
         DeviceOperations<D>::template read_scan_total<Int>(n_dispatch_ptr_);
 
     DeviceOperations<D>::template foreach_workgroup<launch_t>(
-        n_dispatch, eval_derivs);
+        context_, n_dispatch, eval_derivs);
   }
 }
 

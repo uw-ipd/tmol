@@ -413,6 +413,7 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
         # pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
         fusion_module = energy_term.render_fusion_module(pn, False)
         print("fusion_module:", fusion_module)
-        test_run_forward(fusion_module, pn.coords.reshape(-1, 3))
+        scores = test_run_forward(fusion_module, pn.coords.reshape(-1, 3))
+        print("Scores:", scores)
         free_fusion_module(fusion_module)
         print("freed fusion module", fusion_module)
