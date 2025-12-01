@@ -17,6 +17,7 @@ from tmol.io.canonical_ordering import (
 )
 from tmol.io.pose_stack_construction import pose_stack_from_canonical_form
 from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.score.score_function import ScoreFunction
 from tmol.score.ref.ref_energy_term import RefEnergyTerm
 
 
@@ -306,6 +307,59 @@ class EnergyTermTestBase:
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
 
         wt = torch.rand((n_score_types,), device=torch_device)
+        # print("weight", wt)
+
+        def score(coords):
+            scores = pose_scorer(coords)
+            # print("scores", scores)
+            wtd_score = (wt * scores).sum()
+            # print("weighted score", wtd_score)
+            return wtd_score.sum()
+
+        # monkeypatch more sane error reporting
+        torchgrad = importlib.import_module("torch.autograd.gradcheck")
+        torchgrad._get_notallclose_msg = functools.partial(
+            _get_notallclose_msg, atol=atol, rtol=rtol
+        )
+
+        torchgrad.gradcheck(
+            score,
+            (p1.coords.double().requires_grad_(True),),
+            eps=eps,
+            atol=atol,
+            rtol=rtol,
+            nondet_tol=nondet_tol,
+        )
+
+    @classmethod
+    def test_fused_whole_pose_scoring_gradcheck(
+        cls,
+        pdb,
+        default_database,
+        torch_device,
+        resnums=None,
+        edit_pose_stack_fn=None,
+        eps=1e-6,  # torch default
+        atol=1e-5,  # torch default
+        rtol=1e-3,  # torch default
+        nondet_tol=0.0,  # torch default
+    ):
+        p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
+
+        if edit_pose_stack_fn is not None:
+            edit_pose_stack_fn(p1)
+
+        sfxn = ScoreFunction(default_database, torch_device)
+        n_score_types = len(cls.energy_term_class.score_types())
+        wt = torch.rand((n_score_types,), device=torch_device)
+
+        for i, term in enumerate(cls.energy_term_class.score_types()):
+            print("setting weight", term, "to", wt[i])
+            sfxn.set_weight(term, wt[i])
+
+        n_score_types = len(cls.energy_term_class.score_types())
+        pose_scorer = sfxn.render_fused_score_function(p1, dtype=torch.float64)
+
         # print("weight", wt)
 
         def score(coords):

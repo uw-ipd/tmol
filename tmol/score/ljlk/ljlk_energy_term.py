@@ -105,12 +105,15 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
         return ljlk_rotamer_scores
 
     def render_fusion_module(
-        self, pose_stack: PoseStack, output_block_pair_energies: bool = False
+        self,
+        pose_stack: PoseStack,
+        dtype=torch.float32,
+        output_block_pair_energies: bool = False,
     ):
         scoring_module = self.render_whole_pose_scoring_module(pose_stack)
         fusion_module_tensor = create_ljlk_fusion_module(
             *scoring_module.format_arguments(
-                pose_stack.coords.reshape(-1, 3), output_block_pair_energies
+                pose_stack.coords.reshape(-1, 3).to(dtype), output_block_pair_energies
             )
         )
         return fusion_module_tensor

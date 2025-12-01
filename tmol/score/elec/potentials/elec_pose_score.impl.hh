@@ -23,6 +23,7 @@
 #include <tmol/score/common/warp_stride_reduce.hh>
 
 #include <tmol/score/elec/potentials/elec.hh>
+#include <tmol/score/elec/potentials/elec_scoring_macros.hh>
 #include <tmol/score/elec/potentials/params.hh>
 #include <tmol/score/elec/potentials/elec_pose_score.hh>
 
@@ -43,340 +44,323 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <int TILE, template <typename> typename InterEnergyData, typename Real>
-EIGEN_DEVICE_FUNC int interres_count_pair_separation(
-    InterEnergyData<Real> const& inter_dat,
-    int atom_tile_ind1,
-    int atom_tile_ind2) {
-  int separation = inter_dat.min_separation;
-  if (separation <= inter_dat.max_important_bond_separation) {
-    separation = common::count_pair::shared_mem_inter_block_separation<TILE>(
-        inter_dat.max_important_bond_separation,
-        atom_tile_ind1,
-        atom_tile_ind2,
-        inter_dat.r1.n_conn,
-        inter_dat.r2.n_conn,
-        inter_dat.r1.path_dist,
-        inter_dat.r2.path_dist,
-        inter_dat.conn_seps);
-  }
-  return separation;
-}
-
 // MACROS
 
-#define SCORE_INTER_ELEC_ATOM_PAIR                              \
-  TMOL_DEVICE_FUNC(                                             \
-      int start_atom1,                                          \
-      int start_atom2,                                          \
-      int atom_tile_ind1,                                       \
-      int atom_tile_ind2,                                       \
-      ElecScoringData<Real> const& inter_dat)                   \
-      ->std::array<Real, 1> {                                   \
-    int separation = interres_count_pair_separation<TILE_SIZE>( \
-        inter_dat, atom_tile_ind1, atom_tile_ind2);             \
-    Real elec = elec_atom_energy_and_derivs(                    \
-        atom_tile_ind1,                                         \
-        atom_tile_ind2,                                         \
-        start_atom1,                                            \
-        start_atom2,                                            \
-        inter_dat,                                              \
-        separation);                                            \
-    return {elec};                                              \
-  }
+// #define SCORE_INTER_ELEC_ATOM_PAIR                              \
+//   TMOL_DEVICE_FUNC(                                             \
+//       int start_atom1,                                          \
+//       int start_atom2,                                          \
+//       int atom_tile_ind1,                                       \
+//       int atom_tile_ind2,                                       \
+//       ElecScoringData<Real> const& inter_dat)                   \
+//       ->std::array<Real, 1> {                                   \
+//     int separation = interres_count_pair_separation<TILE_SIZE>( \
+//         inter_dat, atom_tile_ind1, atom_tile_ind2);             \
+//     Real elec = elec_atom_energy_and_derivs(                    \
+//         atom_tile_ind1,                                         \
+//         atom_tile_ind2,                                         \
+//         start_atom1,                                            \
+//         start_atom2,                                            \
+//         inter_dat,                                              \
+//         separation);                                            \
+//     return {elec};                                              \
+//   }
 
-#define SCORE_INTRA_ELEC_ATOM_PAIR                                   \
-  TMOL_DEVICE_FUNC(                                                  \
-      int start_atom1,                                               \
-      int start_atom2,                                               \
-      int atom_tile_ind1,                                            \
-      int atom_tile_ind2,                                            \
-      ElecScoringData<Real> const& intra_dat)                        \
-      ->std::array<Real, 1> {                                        \
-    int const atom_ind1 = start_atom1 + atom_tile_ind1;              \
-    int const atom_ind2 = start_atom2 + atom_tile_ind2;              \
-    int const separation =                                           \
-        block_type_intra_repr_path_distance[intra_dat.r1.block_type] \
-                                           [atom_ind1][atom_ind2];   \
-    Real elec = elec_atom_energy_and_derivs(                         \
-        atom_tile_ind1,                                              \
-        atom_tile_ind2,                                              \
-        start_atom1,                                                 \
-        start_atom2,                                                 \
-        intra_dat,                                                   \
-        separation);                                                 \
-    return {elec};                                                   \
-  }
+// #define SCORE_INTRA_ELEC_ATOM_PAIR                                   \
+//   TMOL_DEVICE_FUNC(                                                  \
+//       int start_atom1,                                               \
+//       int start_atom2,                                               \
+//       int atom_tile_ind1,                                            \
+//       int atom_tile_ind2,                                            \
+//       ElecScoringData<Real> const& intra_dat)                        \
+//       ->std::array<Real, 1> {                                        \
+//     int const atom_ind1 = start_atom1 + atom_tile_ind1;              \
+//     int const atom_ind2 = start_atom2 + atom_tile_ind2;              \
+//     int const separation =                                           \
+//         block_type_intra_repr_path_distance[intra_dat.r1.block_type] \
+//                                            [atom_ind1][atom_ind2];   \
+//     Real elec = elec_atom_energy_and_derivs(                         \
+//         atom_tile_ind1,                                              \
+//         atom_tile_ind2,                                              \
+//         start_atom1,                                                 \
+//         start_atom2,                                                 \
+//         intra_dat,                                                   \
+//         separation);                                                 \
+//     return {elec};                                                   \
+//   }
 
-#define LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED                           \
-  TMOL_DEVICE_FUNC(                                                        \
-      int pose_ind,                                                        \
-      ElecSingleResData<Real>& r_dat,                                      \
-      int n_atoms_to_load,                                                 \
-      int start_atom) {                                                    \
-    elec_load_block_coords_and_charges_into_shared<DeviceDispatch, D, nt>( \
-        rot_coords,                                                        \
-        block_type_partial_charge,                                         \
-        pose_ind,                                                          \
-        r_dat,                                                             \
-        n_atoms_to_load,                                                   \
-        start_atom);                                                       \
-  }
+// #define LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED                           \
+//   TMOL_DEVICE_FUNC(                                                        \
+//       int pose_ind,                                                        \
+//       ElecSingleResData<Real>& r_dat,                                      \
+//       int n_atoms_to_load,                                                 \
+//       int start_atom) {                                                    \
+//     elec_load_block_coords_and_charges_into_shared<DeviceOperations, D, nt>(
+//     \
+//         rot_coords,                                                        \
+//         block_type_partial_charge,                                         \
+//         pose_ind,                                                          \
+//         r_dat,                                                             \
+//         n_atoms_to_load,                                                   \
+//         start_atom);                                                       \
+//   }
 
-#define LOAD_BLOCK_INTO_SHARED                                     \
-  TMOL_DEVICE_FUNC(                                                \
-      int pose_ind,                                                \
-      ElecSingleResData<Real>& r_dat,                              \
-      int n_atoms_to_load,                                         \
-      int start_atom,                                              \
-      bool count_pair_striking_dist,                               \
-      unsigned char* __restrict__ conn_ats) {                      \
-    elec_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>( \
-        rot_coords,                                                \
-        block_type_partial_charge,                                 \
-        block_type_inter_repr_path_distance,                       \
-        pose_ind,                                                  \
-        r_dat,                                                     \
-        n_atoms_to_load,                                           \
-        start_atom,                                                \
-        count_pair_striking_dist,                                  \
-        conn_ats);                                                 \
-  }
+// #define LOAD_BLOCK_INTO_SHARED                                     \
+//   TMOL_DEVICE_FUNC(                                                \
+//       int pose_ind,                                                \
+//       ElecSingleResData<Real>& r_dat,                              \
+//       int n_atoms_to_load,                                         \
+//       int start_atom,                                              \
+//       bool count_pair_striking_dist,                               \
+//       unsigned char* __restrict__ conn_ats) {                      \
+//     elec_load_block_into_shared<DeviceOperations, D, nt, TILE_SIZE>( \
+//         rot_coords,                                                \
+//         block_type_partial_charge,                                 \
+//         block_type_inter_repr_path_distance,                       \
+//         pose_ind,                                                  \
+//         r_dat,                                                     \
+//         n_atoms_to_load,                                           \
+//         start_atom,                                                \
+//         count_pair_striking_dist,                                  \
+//         conn_ats);                                                 \
+//   }
 
-#define LOAD_TILE_INVARIANT_INTERRES_DATA                          \
-  TMOL_DEVICE_FUNC(                                                \
-      int pose_ind,                                                \
-      int rot_ind1,                                                \
-      int rot_ind2,                                                \
-      int block_ind1,                                              \
-      int block_ind2,                                              \
-      int block_type1,                                             \
-      int block_type2,                                             \
-      int n_atoms1,                                                \
-      int n_atoms2,                                                \
-      ElecScoringData<Real>& inter_dat,                            \
-      shared_mem_union& shared) {                                  \
-    elec_load_tile_invariant_interres_data<DeviceDispatch, D, nt>( \
-        rot_coord_offset,                                          \
-        pose_stack_min_bond_separation,                            \
-        block_type_n_interblock_bonds,                             \
-        block_type_atoms_forming_chemical_bonds,                   \
-        pose_stack_inter_block_bondsep,                            \
-        global_params,                                             \
-        max_important_bond_separation,                             \
-        pose_ind,                                                  \
-        rot_ind1,                                                  \
-        rot_ind2,                                                  \
-        block_ind1,                                                \
-        block_ind2,                                                \
-        block_type1,                                               \
-        block_type2,                                               \
-        n_atoms1,                                                  \
-        n_atoms2,                                                  \
-        inter_dat,                                                 \
-        shared.m);                                                 \
-  }
+// #define LOAD_TILE_INVARIANT_INTERRES_DATA                          \
+//   TMOL_DEVICE_FUNC(                                                \
+//       int pose_ind,                                                \
+//       int rot_ind1,                                                \
+//       int rot_ind2,                                                \
+//       int block_ind1,                                              \
+//       int block_ind2,                                              \
+//       int block_type1,                                             \
+//       int block_type2,                                             \
+//       int n_atoms1,                                                \
+//       int n_atoms2,                                                \
+//       ElecScoringData<Real>& inter_dat,                            \
+//       shared_mem_union& shared) {                                  \
+//     elec_load_tile_invariant_interres_data<DeviceOperations, D, nt>( \
+//         rot_coord_offset,                                          \
+//         pose_stack_min_bond_separation,                            \
+//         block_type_n_interblock_bonds,                             \
+//         block_type_atoms_forming_chemical_bonds,                   \
+//         pose_stack_inter_block_bondsep,                            \
+//         global_params,                                             \
+//         max_important_bond_separation,                             \
+//         pose_ind,                                                  \
+//         rot_ind1,                                                  \
+//         rot_ind2,                                                  \
+//         block_ind1,                                                \
+//         block_ind2,                                                \
+//         block_type1,                                               \
+//         block_type2,                                               \
+//         n_atoms1,                                                  \
+//         n_atoms2,                                                  \
+//         inter_dat,                                                 \
+//         shared.m);                                                 \
+//   }
 
-#define LOAD_INTERRES1_TILE_DATA_TO_SHARED                          \
-  TMOL_DEVICE_FUNC(                                                 \
-      int tile_ind,                                                 \
-      int start_atom1,                                              \
-      int n_atoms_to_load1,                                         \
-      ElecScoringData<Real>& inter_dat,                             \
-      shared_mem_union& shared) {                                   \
-    elec_load_interres1_tile_data_to_shared<DeviceDispatch, D, nt>( \
-        rot_coords,                                                 \
-        block_type_partial_charge,                                  \
-        block_type_inter_repr_path_distance,                        \
-        tile_ind,                                                   \
-        start_atom1,                                                \
-        n_atoms_to_load1,                                           \
-        inter_dat,                                                  \
-        shared.m);                                                  \
-  }
+// #define LOAD_INTERRES1_TILE_DATA_TO_SHARED                          \
+//   TMOL_DEVICE_FUNC(                                                 \
+//       int tile_ind,                                                 \
+//       int start_atom1,                                              \
+//       int n_atoms_to_load1,                                         \
+//       ElecScoringData<Real>& inter_dat,                             \
+//       shared_mem_union& shared) {                                   \
+//     elec_load_interres1_tile_data_to_shared<DeviceOperations, D, nt>( \
+//         rot_coords,                                                 \
+//         block_type_partial_charge,                                  \
+//         block_type_inter_repr_path_distance,                        \
+//         tile_ind,                                                   \
+//         start_atom1,                                                \
+//         n_atoms_to_load1,                                           \
+//         inter_dat,                                                  \
+//         shared.m);                                                  \
+//   }
 
-#define LOAD_INTERRES2_TILE_DATA_TO_SHARED                          \
-  TMOL_DEVICE_FUNC(                                                 \
-      int tile_ind,                                                 \
-      int start_atom2,                                              \
-      int n_atoms_to_load2,                                         \
-      ElecScoringData<Real>& inter_dat,                             \
-      shared_mem_union& shared) {                                   \
-    elec_load_interres2_tile_data_to_shared<DeviceDispatch, D, nt>( \
-        rot_coords,                                                 \
-        block_type_partial_charge,                                  \
-        block_type_inter_repr_path_distance,                        \
-        tile_ind,                                                   \
-        start_atom2,                                                \
-        n_atoms_to_load2,                                           \
-        inter_dat,                                                  \
-        shared.m);                                                  \
-  }
+// #define LOAD_INTERRES2_TILE_DATA_TO_SHARED                          \
+//   TMOL_DEVICE_FUNC(                                                 \
+//       int tile_ind,                                                 \
+//       int start_atom2,                                              \
+//       int n_atoms_to_load2,                                         \
+//       ElecScoringData<Real>& inter_dat,                             \
+//       shared_mem_union& shared) {                                   \
+//     elec_load_interres2_tile_data_to_shared<DeviceOperations, D, nt>( \
+//         rot_coords,                                                 \
+//         block_type_partial_charge,                                  \
+//         block_type_inter_repr_path_distance,                        \
+//         tile_ind,                                                   \
+//         start_atom2,                                                \
+//         n_atoms_to_load2,                                           \
+//         inter_dat,                                                  \
+//         shared.m);                                                  \
+//   }
 
-#define LOAD_INTERRES_DATA_FROM_SHARED \
-  TMOL_DEVICE_FUNC(int, int, shared_mem_union&, ElecScoringData<Real>&) {}
+// #define LOAD_INTERRES_DATA_FROM_SHARED \
+//   TMOL_DEVICE_FUNC(int, int, shared_mem_union&, ElecScoringData<Real>&) {}
 
-#define EVAL_INTERRES_ATOM_PAIR_SCORES                                      \
-  TMOL_DEVICE_FUNC(                                                         \
-      ElecScoringData<Real>& inter_dat, int start_atom1, int start_atom2) { \
-    auto eval_scores_for_atom_pairs = ([&](int tid) {                       \
-      auto elecE = tmol::score::common::InterResBlockEvaluation<            \
-          ElecScoringData,                                                  \
-          AllAtomPairSelector,                                              \
-          D,                                                                \
-          TILE_SIZE,                                                        \
-          nt,                                                               \
-          1,                                                                \
-          Real,                                                             \
-          Int>::                                                            \
-          eval_interres_atom_pair(                                          \
-              tid,                                                          \
-              start_atom1,                                                  \
-              start_atom2,                                                  \
-              score_inter_elec_atom_pair,                                   \
-              inter_dat);                                                   \
-      inter_dat.total_elec += std::get<0>(elecE);                           \
-    });                                                                     \
-    DeviceDispatch<D>::template for_each_in_workgroup<nt>(                  \
-        eval_scores_for_atom_pairs);                                        \
-  }
+// #define EVAL_INTERRES_ATOM_PAIR_SCORES                                      \
+//   TMOL_DEVICE_FUNC(                                                         \
+//       ElecScoringData<Real>& inter_dat, int start_atom1, int start_atom2) { \
+//     auto eval_scores_for_atom_pairs = ([&](int tid) {                       \
+//       auto elecE = tmol::score::common::InterResBlockEvaluation<            \
+//           ElecScoringData,                                                  \
+//           AllAtomPairSelector,                                              \
+//           D,                                                                \
+//           TILE_SIZE,                                                        \
+//           nt,                                                               \
+//           1,                                                                \
+//           Real,                                                             \
+//           Int>::                                                            \
+//           eval_interres_atom_pair(                                          \
+//               tid,                                                          \
+//               start_atom1,                                                  \
+//               start_atom2,                                                  \
+//               score_inter_elec_atom_pair,                                   \
+//               inter_dat);                                                   \
+//       inter_dat.total_elec += std::get<0>(elecE);                           \
+//     });                                                                     \
+//     DeviceOperations<D>::template for_each_in_workgroup<nt>( \
+//         eval_scores_for_atom_pairs);                                        \
+//   }
 
-// In block-pair scoring mode, we are safe to simply write the calculated
-// energies to the output tensor, since each block-pair energy is assigned
-// to its own CTA: no need for an atomic-add call.
-#define STORE_CALCULATED_POSE_ENERGIES                                      \
-  TMOL_DEVICE_FUNC(                                                         \
-      ElecScoringData<Real>& score_dat, shared_mem_union& shared) {         \
-    auto reduce_energies = ([&](int tid) {                                  \
-      Real const cta_total_elec =                                           \
-          DeviceDispatch<D>::template reduce_in_workgroup<nt>(              \
-              score_dat.total_elec, shared, mgpu::plus_t<Real>());          \
-      if (tid == 0) {                                                       \
-        if (!output_block_pair_energies) {                                  \
-          accumulate<D, Real>::add(                                         \
-              output[0][score_dat.pose_ind][0][0], cta_total_elec);         \
-        } else {                                                            \
-          int const p = score_dat.pose_ind;                                 \
-          int const b1 = score_dat.block_ind1;                              \
-          int const b2 = score_dat.block_ind2;                              \
-          output[0][p][b1][b2] = cta_total_elec;                            \
-        }                                                                   \
-      }                                                                     \
-    });                                                                     \
-    DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies); \
-  }
+// // In block-pair scoring mode, we are safe to simply write the calculated
+// // energies to the output tensor, since each block-pair energy is assigned
+// // to its own CTA: no need for an atomic-add call.
+// #define STORE_CALCULATED_POSE_ENERGIES                                      \
+//   TMOL_DEVICE_FUNC(                                                         \
+//       ElecScoringData<Real>& score_dat, shared_mem_union& shared) {         \
+//     auto reduce_energies = ([&](int tid) {                                  \
+//       Real const cta_total_elec =                                           \
+//           DeviceOperations<D>::template reduce_in_workgroup<nt>( \
+//               score_dat.total_elec, shared, mgpu::plus_t<Real>());          \
+//       if (tid == 0) {                                                       \
+//         if (!output_block_pair_energies) {                                  \
+//           accumulate<D, Real>::add(                                         \
+//               output[0][score_dat.pose_ind][0][0], cta_total_elec);         \
+//         } else {                                                            \
+//           int const p = score_dat.pose_ind;                                 \
+//           int const b1 = score_dat.block_ind1;                              \
+//           int const b2 = score_dat.block_ind2;                              \
+//           output[0][p][b1][b2] = cta_total_elec;                            \
+//         }                                                                   \
+//       }                                                                     \
+//     });                                                                     \
+//     DeviceOperations<D>::template for_each_in_workgroup<nt>(reduce_energies);
+//     \
+//   }
 
-#define STORE_CALCULATED_ROTAMER_ENERGIES                                   \
-  TMOL_DEVICE_FUNC(                                                         \
-      ElecScoringData<Real>& score_dat, shared_mem_union& shared) {         \
-    auto reduce_energies = ([&](int tid) {                                  \
-      Real const cta_total_elec =                                           \
-          DeviceDispatch<D>::template reduce_in_workgroup<nt>(              \
-              score_dat.total_elec, shared, mgpu::plus_t<Real>());          \
-      if (tid == 0) {                                                       \
-        output[0][cta] = cta_total_elec;                                    \
-      }                                                                     \
-    });                                                                     \
-    DeviceDispatch<D>::template for_each_in_workgroup<nt>(reduce_energies); \
-  }
+// #define STORE_CALCULATED_ROTAMER_ENERGIES                                   \
+//   TMOL_DEVICE_FUNC(                                                         \
+//       ElecScoringData<Real>& score_dat, shared_mem_union& shared) {         \
+//     auto reduce_energies = ([&](int tid) {                                  \
+//       Real const cta_total_elec =                                           \
+//           DeviceOperations<D>::template reduce_in_workgroup<nt>( \
+//               score_dat.total_elec, shared, mgpu::plus_t<Real>());          \
+//       if (tid == 0) {                                                       \
+//         output[0][cta] = cta_total_elec;                                    \
+//       }                                                                     \
+//     });                                                                     \
+//     DeviceOperations<D>::template for_each_in_workgroup<nt>(reduce_energies);
+//     \
+//   }
 
-#define LOAD_TILE_INVARIANT_INTRARES_DATA                          \
-  TMOL_DEVICE_FUNC(                                                \
-      int pose_ind,                                                \
-      int rot_ind1,                                                \
-      int block_ind1,                                              \
-      int block_type1,                                             \
-      int n_atoms1,                                                \
-      ElecScoringData<Real>& intra_dat,                            \
-      shared_mem_union& shared) {                                  \
-    elec_load_tile_invariant_intrares_data<DeviceDispatch, D, nt>( \
-        rot_coord_offset,                                          \
-        global_params,                                             \
-        max_important_bond_separation,                             \
-        pose_ind,                                                  \
-        rot_ind1,                                                  \
-        block_ind1,                                                \
-        block_type1,                                               \
-        n_atoms1,                                                  \
-        intra_dat,                                                 \
-        shared.m);                                                 \
-  }
+// #define LOAD_TILE_INVARIANT_INTRARES_DATA                          \
+//   TMOL_DEVICE_FUNC(                                                \
+//       int pose_ind,                                                \
+//       int rot_ind1,                                                \
+//       int block_ind1,                                              \
+//       int block_type1,                                             \
+//       int n_atoms1,                                                \
+//       ElecScoringData<Real>& intra_dat,                            \
+//       shared_mem_union& shared) {                                  \
+//     elec_load_tile_invariant_intrares_data<DeviceOperations, D, nt>( \
+//         rot_coord_offset,                                          \
+//         global_params,                                             \
+//         max_important_bond_separation,                             \
+//         pose_ind,                                                  \
+//         rot_ind1,                                                  \
+//         block_ind1,                                                \
+//         block_type1,                                               \
+//         n_atoms1,                                                  \
+//         intra_dat,                                                 \
+//         shared.m);                                                 \
+//   }
 
-#define LOAD_INTRARES1_TILE_DATA_TO_SHARED                          \
-  TMOL_DEVICE_FUNC(                                                 \
-      int tile_ind,                                                 \
-      int start_atom1,                                              \
-      int n_atoms_to_load1,                                         \
-      ElecScoringData<Real>& intra_dat,                             \
-      shared_mem_union& shared) {                                   \
-    elec_load_intrares1_tile_data_to_shared<DeviceDispatch, D, nt>( \
-        rot_coords,                                                 \
-        block_type_partial_charge,                                  \
-        tile_ind,                                                   \
-        start_atom1,                                                \
-        n_atoms_to_load1,                                           \
-        intra_dat,                                                  \
-        shared.m);                                                  \
-  }
+// #define LOAD_INTRARES1_TILE_DATA_TO_SHARED                          \
+//   TMOL_DEVICE_FUNC(                                                 \
+//       int tile_ind,                                                 \
+//       int start_atom1,                                              \
+//       int n_atoms_to_load1,                                         \
+//       ElecScoringData<Real>& intra_dat,                             \
+//       shared_mem_union& shared) {                                   \
+//     elec_load_intrares1_tile_data_to_shared<DeviceOperations, D, nt>( \
+//         rot_coords,                                                 \
+//         block_type_partial_charge,                                  \
+//         tile_ind,                                                   \
+//         start_atom1,                                                \
+//         n_atoms_to_load1,                                           \
+//         intra_dat,                                                  \
+//         shared.m);                                                  \
+//   }
 
-#define LOAD_INTRARES2_TILE_DATA_TO_SHARED                          \
-  TMOL_DEVICE_FUNC(                                                 \
-      int tile_ind,                                                 \
-      int start_atom2,                                              \
-      int n_atoms_to_load2,                                         \
-      ElecScoringData<Real>& intra_dat,                             \
-      shared_mem_union& shared) {                                   \
-    elec_load_intrares2_tile_data_to_shared<DeviceDispatch, D, nt>( \
-        rot_coords,                                                 \
-        block_type_partial_charge,                                  \
-        tile_ind,                                                   \
-        start_atom2,                                                \
-        n_atoms_to_load2,                                           \
-        intra_dat,                                                  \
-        shared.m);                                                  \
-  }
+// #define LOAD_INTRARES2_TILE_DATA_TO_SHARED                          \
+//   TMOL_DEVICE_FUNC(                                                 \
+//       int tile_ind,                                                 \
+//       int start_atom2,                                              \
+//       int n_atoms_to_load2,                                         \
+//       ElecScoringData<Real>& intra_dat,                             \
+//       shared_mem_union& shared) {                                   \
+//     elec_load_intrares2_tile_data_to_shared<DeviceOperations, D, nt>( \
+//         rot_coords,                                                 \
+//         block_type_partial_charge,                                  \
+//         tile_ind,                                                   \
+//         start_atom2,                                                \
+//         n_atoms_to_load2,                                           \
+//         intra_dat,                                                  \
+//         shared.m);                                                  \
+//   }
 
-#define LOAD_INTRARES_DATA_FROM_SHARED              \
-  TMOL_DEVICE_FUNC(                                 \
-      int tile_ind1,                                \
-      int tile_ind2,                                \
-      shared_mem_union& shared,                     \
-      ElecScoringData<Real>& intra_dat) {           \
-    elec_load_intrares_data_from_shared(            \
-        tile_ind1, tile_ind2, shared.m, intra_dat); \
-  }
+// #define LOAD_INTRARES_DATA_FROM_SHARED              \
+//   TMOL_DEVICE_FUNC(                                 \
+//       int tile_ind1,                                \
+//       int tile_ind2,                                \
+//       shared_mem_union& shared,                     \
+//       ElecScoringData<Real>& intra_dat) {           \
+//     elec_load_intrares_data_from_shared(            \
+//         tile_ind1, tile_ind2, shared.m, intra_dat); \
+//   }
 
-#define EVAL_INTRARES_ATOM_PAIR_SCORES                                      \
-  TMOL_DEVICE_FUNC(                                                         \
-      ElecScoringData<Real>& intra_dat, int start_atom1, int start_atom2) { \
-    auto eval_scores_for_atom_pairs = ([&](int tid) {                       \
-      auto elecE = tmol::score::common::IntraResBlockEvaluation<            \
-          ElecScoringData,                                                  \
-          AllAtomPairSelector,                                              \
-          D,                                                                \
-          TILE_SIZE,                                                        \
-          nt,                                                               \
-          1,                                                                \
-          Real,                                                             \
-          Int>::                                                            \
-          eval_intrares_atom_pairs(                                         \
-              tid,                                                          \
-              start_atom1,                                                  \
-              start_atom2,                                                  \
-              score_intra_elec_atom_pair,                                   \
-              intra_dat);                                                   \
-      intra_dat.total_elec += std::get<0>(elecE);                           \
-    });                                                                     \
-    DeviceDispatch<D>::template for_each_in_workgroup<nt>(                  \
-        eval_scores_for_atom_pairs);                                        \
-  }
+// #define EVAL_INTRARES_ATOM_PAIR_SCORES                                      \
+//   TMOL_DEVICE_FUNC(                                                         \
+//       ElecScoringData<Real>& intra_dat, int start_atom1, int start_atom2) { \
+//     auto eval_scores_for_atom_pairs = ([&](int tid) {                       \
+//       auto elecE = tmol::score::common::IntraResBlockEvaluation<            \
+//           ElecScoringData,                                                  \
+//           AllAtomPairSelector,                                              \
+//           D,                                                                \
+//           TILE_SIZE,                                                        \
+//           nt,                                                               \
+//           1,                                                                \
+//           Real,                                                             \
+//           Int>::                                                            \
+//           eval_intrares_atom_pairs(                                         \
+//               tid,                                                          \
+//               start_atom1,                                                  \
+//               start_atom2,                                                  \
+//               score_intra_elec_atom_pair,                                   \
+//               intra_dat);                                                   \
+//       intra_dat.total_elec += std::get<0>(elecE);                           \
+//     });                                                                     \
+//     DeviceOperations<D>::template for_each_in_workgroup<nt>( \
+//         eval_scores_for_atom_pairs);                                        \
+//   }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device> class DeviceOperations,
     tmol::Device D,
     typename Real,
     typename Int>
-auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+auto ElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -508,7 +492,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // printf("starting!\n");
 
   score::common::sphere_overlap::
-      compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
+      compute_block_spheres<DeviceOperations, D, Real, Int>::f(
           rot_coords,
           rot_coord_offset,
           block_ind_for_rot,
@@ -519,7 +503,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // printf("computed block spheres\n");
 
   score::common::sphere_overlap::
-      detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
+      detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
           first_rot_block_type,
           scratch_rot_spheres,
           scratch_rot_neighbors,
@@ -656,7 +640,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
     tmol::score::common::tile_evaluate_rot_pair<
-        DeviceDispatch,
+        DeviceOperations,
         D,
         ElecScoringData<Real>,
         ElecScoringData<Real>,
@@ -797,7 +781,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
     tmol::score::common::tile_evaluate_rot_pair<
-        DeviceDispatch,
+        DeviceOperations,
         D,
         ElecScoringData<Real>,
         ElecScoringData<Real>,
@@ -838,7 +822,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // within striking distance
 
   // 0
-  // TO DO: let DeviceDispatch hold a cuda stream (??)
+  // TO DO: let DeviceOperations hold a cuda stream (??)
   // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
   // mgpu::standard_context_t context(wrapped_stream.stream());
 
@@ -847,23 +831,23 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // n_poses, max_n_upper_triangle_inds,
   //  n_poses * max_n_upper_triangle_inds, max_n_blocks, max_n_blocks);
   if (output_block_pair_energies) {
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+    DeviceOperations<D>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
   } else {
-    DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+    DeviceOperations<D>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies);
   }
 
-  // DeviceDispatch<D>::synchronize_device();
+  // DeviceOperations<D>::synchronize_device();
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
 }  // namespace potentials
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device> class DeviceOperations,
     tmol::Device D,
     typename Real,
     typename Int>
-auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+auto ElecPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -928,7 +912,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     TView<Int, 3, D> scratch_rot_neighbors,
 
     TView<Real, 4, D> dTdV  // nterms x nposes x len x len
-    ) -> TPack<Vec<Real, 3>, 2, D> {
+    ) -> TPack<Vec<Real, 3>, 1, D> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -981,7 +965,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 1, D>::zeros({n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -1088,7 +1072,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
     tmol::score::common::tile_evaluate_rot_pair<
-        DeviceDispatch,
+        DeviceOperations,
         D,
         ElecScoringData<Real>,
         ElecScoringData<Real>,
@@ -1120,18 +1104,18 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
   // Since we have the sphere overlap results from the forward pass,
   // there's only a single kernel launch here
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+  DeviceOperations<D>::template foreach_workgroup<launch_t>(
       n_poses * max_n_upper_triangle_inds, eval_derivs);
 
   return dV_dcoords_t;
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device> class DeviceOperations,
     tmol::Device D,
     typename Real,
     typename Int>
-auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
+auto ElecRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1260,7 +1244,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
   score::common::sphere_overlap::
-      compute_rot_spheres<DeviceDispatch, D, Real, Int>::f(
+      compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
           rot_coords,
           rot_coord_offset,
           block_type_ind_for_rot,
@@ -1268,7 +1252,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           scratch_rot_spheres);
 
   score::common::sphere_overlap::
-      detect_rot_neighbors<DeviceDispatch, D, Real, Int>::f(
+      detect_rot_neighbors<DeviceOperations, D, Real, Int>::f(
           max_n_rots_per_pose,
           block_ind_for_rot,
           block_type_ind_for_rot,
@@ -1281,7 +1265,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
 
   auto dispatch_indices_t = score::common::sphere_overlap::
-      rot_neighbor_indices<DeviceDispatch, D, Int>::f(
+      rot_neighbor_indices<DeviceOperations, D, Int>::f(
           scratch_rot_neighbors, rot_offset_for_pose);
 
   auto dispatch_indices = dispatch_indices_t.view;
@@ -1399,7 +1383,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
     tmol::score::common::tile_evaluate_rot_pair<
-        DeviceDispatch,
+        DeviceOperations,
         D,
         ElecScoringData<Real>,
         ElecScoringData<Real>,
@@ -1523,7 +1507,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   //   EVAL_INTRARES_ATOM_PAIR_SCORES);
 
   //   tmol::score::common::tile_evaluate_rot_pair<
-  //       DeviceDispatch,
+  //       DeviceOperations,
   //       D,
   //       ElecScoringData<Real>,
   //       ElecScoringData<Real>,
@@ -1564,30 +1548,30 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // within striking distance
 
   // 0
-  // TO DO: let DeviceDispatch hold a cuda stream (??)
+  // TO DO: let DeviceOperations hold a cuda stream (??)
   // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
   // mgpu::standard_context_t context(wrapped_stream.stream());
 
   // 3
   // if (output_block_pair_energies) {
   // Rotamer energy evaluation is only done "by block"
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+  DeviceOperations<D>::template foreach_workgroup<launch_t>(
       dispatch_indices.size(1), eval_energies_by_block);
   // } else {
-  //   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+  //   DeviceOperations<D>::template foreach_workgroup<launch_t>(
   //       dispatch_indices.size(1), eval_energies);
   // }
 
-  // DeviceDispatch<D>::synchronize_device();
+  // DeviceOperations<D>::synchronize_device();
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // namespace potentials
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device> class DeviceOperations,
     tmol::Device D,
     typename Real,
     typename Int>
-auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
+auto ElecRotamerScoreDispatch<DeviceOperations, D, Real, Int>::backward(
     // common params
     TView<Vec<Real, 3>, 1, D> rot_coords,
     TView<Int, 1, D> rot_coord_offset,
@@ -1652,7 +1636,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
     TView<Int, 2, D> dispatch_indices,  // from forward pass
     TView<Real, 2, D> dTdV              // nterms x nposes x len x len
-    ) -> TPack<Vec<Real, 3>, 2, D> {
+    ) -> TPack<Vec<Real, 3>, 1, D> {
   using tmol::score::common::accumulate;
   using Real3 = Vec<Real, 3>;
 
@@ -1705,7 +1689,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   assert(block_type_intra_repr_path_distance.size(1) == max_n_block_atoms);
   assert(block_type_intra_repr_path_distance.size(2) == max_n_block_atoms);
 
-  auto dV_dcoords_t = TPack<Vec<Real, 3>, 2, D>::zeros({1, n_atoms});
+  auto dV_dcoords_t = TPack<Vec<Real, 3>, 1, D>::zeros({n_atoms});
   auto dV_dcoords = dV_dcoords_t.view;
 
   // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -1802,7 +1786,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
     tmol::score::common::tile_evaluate_rot_pair<
-        DeviceDispatch,
+        DeviceOperations,
         D,
         ElecScoringData<Real>,
         ElecScoringData<Real>,
@@ -1834,7 +1818,7 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 
   // Since we have the sphere overlap results from the forward pass,
   // there's only a single kernel launch here
-  DeviceDispatch<D>::template foreach_workgroup<launch_t>(
+  DeviceOperations<D>::template foreach_workgroup<launch_t>(
       dispatch_indices.size(1), eval_derivs);
 
   return dV_dcoords_t;

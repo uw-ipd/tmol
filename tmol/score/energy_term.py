@@ -1,3 +1,5 @@
+import torch
+
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -147,6 +149,9 @@ class EnergyTerm:
         )
 
     def render_fusion_module(
-        self, pose_stack: PoseStack, output_block_pair_energies: bool = False
+        self,
+        pose_stack: PoseStack,
+        dtype=torch.float32,
+        output_block_pair_energies: bool = False,
     ):
         raise NotImplementedError()

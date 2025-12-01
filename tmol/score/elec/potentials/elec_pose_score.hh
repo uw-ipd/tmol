@@ -158,7 +158,7 @@ struct ElecPoseScoreDispatch {
       TView<ElecGlobalParams<Real>, 1, D> global_params,
       TView<Int, 3, D> scratch_rot_neighbors,
       TView<Real, 4, D> dTdV  // nterms x n_poses x max_n_blocks x max_n_blocks
-      ) -> TPack<Vec<Real, 3>, 2, D>;
+      ) -> TPack<Vec<Real, 3>, 1, D>;
 };
 
 template <
@@ -297,7 +297,7 @@ struct ElecRotamerScoreDispatch {
 
       TView<Int, 2, D> dispatch_indices,  // from forward pass
       TView<Real, 2, D> dTdV              // nterms x n_block_pairs
-      ) -> TPack<Vec<Real, 3>, 2, D>;
+      ) -> TPack<Vec<Real, 3>, 1, D>;
 };
 
 }  // namespace potentials

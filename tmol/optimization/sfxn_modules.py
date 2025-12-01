@@ -15,7 +15,8 @@ class CartesianSfxnNetwork(torch.nn.Module):
     ):
         super(CartesianSfxnNetwork, self).__init__()
 
-        wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        # wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        wpsm = score_function.render_fused_score_function(pose_stack)
         self.whole_pose_scoring_module = wpsm
 
         self.full_coords = pose_stack.coords
@@ -51,7 +52,8 @@ class KinForestSfxnNetwork(torch.nn.Module):
 
         torch_device = pose_stack.device
         self.pose_stack = pose_stack
-        wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        # wpsm = score_function.render_whole_pose_scoring_module(pose_stack)
+        wpsm = score_function.render_fused_score_function(pose_stack)
         kmd = kin_module.kmd
         self.kin_module = kin_module
         self.whole_pose_scoring_module = wpsm

@@ -6,7 +6,11 @@ from ..bond_dependent_term import BondDependentTerm
 from tmol.database import ParameterDatabase
 from tmol.score.elec.params import ElecParamResolver, ElecGlobalParams
 from tmol.score.elec.elec_whole_pose_module import ElecWholePoseScoringModule
-from tmol.score.elec.potentials.compiled import elec_pose_scores, elec_rotamer_scores
+from tmol.score.elec.potentials.compiled import (
+    elec_pose_scores,
+    elec_rotamer_scores,
+    create_elec_fusion_module,
+)
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -131,6 +135,20 @@ class ElecEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
 
     def get_rotamer_score_term_function(self):
         return elec_rotamer_scores
+
+    def render_fusion_module(
+        self,
+        pose_stack: PoseStack,
+        dtype=torch.float32,
+        output_block_pair_energies: bool = False,
+    ):
+        scoring_module = self.render_whole_pose_scoring_module(pose_stack)
+        fusion_module_tensor = create_elec_fusion_module(
+            *scoring_module.format_arguments(
+                pose_stack.coords.reshape(-1, 3).to(dtype), output_block_pair_energies
+            )
+        )
+        return fusion_module_tensor
 
     def get_score_term_attributes(self, pose_stack):
         def _t(ts):

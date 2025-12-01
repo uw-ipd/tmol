@@ -145,12 +145,12 @@ struct DeviceOperations<tmol::Device::CPU> {
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void submit_scan_w_event(
       void* context, T* src, T* dst, int n, void* event, void* total, OP op) {
-    printf("cpu submit scan w/ event\n");
+    // printf("cpu submit scan w/ event\n");
     T tot = DeviceOperations<tmol::Device::CPU>::template scan_and_return_total<
         scan_type>(src, dst, n, op);
 
     T* total_T = reinterpret_cast<T*>(total);
-    printf("writing total of %d to %p", total, total_T);
+    // printf("writing total of %d to %p", total, total_T);
     *total_T = tot;
   }
 

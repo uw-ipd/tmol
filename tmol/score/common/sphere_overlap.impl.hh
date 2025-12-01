@@ -621,7 +621,7 @@ struct asynch_block_neighbor_indices {
     int n_res = block_neighbors.size(1);
     int n_cells = n_pose * n_res * n_res;
 
-    printf("launch scan w/ event\n");
+    // printf("launch scan w/ event\n");
     DeviceDispatch<D>::template submit_scan_w_event<mgpu::scan_type_exc>(
         context,
         block_neighbors.data(),
@@ -644,7 +644,7 @@ struct asynch_block_neighbor_indices {
         block_neighbor_indices[2][offset] = res2;
       }
     });
-    printf("launch fill indices\n");
+    // printf("launch fill indices\n");
     DeviceDispatch<D>::template forall<launch_t>(
         context, n_cells, fill_indices);
   }

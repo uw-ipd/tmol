@@ -169,7 +169,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
   static void deallocate_scan_total_storage(void* context, void* total) {
     // This will synchronize with the device, so we only do this when we're done
     // done.
-    printf("CUDA deallocate scan total storage %p\n", total);
+    // printf("CUDA deallocate scan total storage %p\n", total);
     delete reinterpret_cast<mgpu::mem_t<T>*>(total);
   }
 
@@ -177,7 +177,7 @@ struct DeviceOperations<tmol::Device::CUDA> {
     // Allocate a cudaEvent_t object, create the event, and return the pointer
     cudaEvent_t* cuda_event = new cudaEvent_t();
     cudaEventCreate(cuda_event);
-    printf("allocated cuda event %p\n", cuda_event);
+    // printf("allocated cuda event %p\n", cuda_event);
     return reinterpret_cast<void*>(cuda_event);
   }
 
@@ -190,9 +190,9 @@ struct DeviceOperations<tmol::Device::CUDA> {
 
   static void synchronize_on_event(void* event) {
     // Destroy the event _and_ the cudaEvent_t object
-    printf("CUDA synchronize on event\n");
+    // printf("CUDA synchronize on event\n");
     cudaEvent_t* cuda_event = reinterpret_cast<cudaEvent_t*>(event);
-    printf("cuda_event %p\n", event);
+    // printf("cuda_event %p\n", event);
     cudaEventSynchronize(*cuda_event);
   }
 

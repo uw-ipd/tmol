@@ -186,7 +186,7 @@ class ScoreFunction:
         ]
         return RotamerScoringModule(self.weights_tensor(), term_modules)
 
-    def render_fused_score_function(self, pose_stack: PoseStack):
+    def render_fused_score_function(self, pose_stack: PoseStack, dtype=torch.float32):
         """Create an object designed to evaluate the score of a set of Poses
         repeatedly as the Poses change their conformation, e.g., as in
         minimization. This object will utilize fused scoring modules where
@@ -197,7 +197,7 @@ class ScoreFunction:
         """
         self.pre_work_initialization(pose_stack)
         return FusedScoreFunction(
-            self.all_terms(), self.weights_tensor(), pose_stack, self._device
+            self.all_terms(), self.weights_tensor(), pose_stack, self._device, dtype
         )
 
     def pre_work_initialization(self, pose_stack: PoseStack):
@@ -392,7 +392,9 @@ class RotamerScoringModule:
 
 
 class FusedScoreFunction:
-    def __init__(self, all_terms, weights, pose_stack, device: torch.device):
+    def __init__(
+        self, all_terms, weights, pose_stack, device: torch.device, dtype=torch.float32
+    ):
         self._device = device
         fused_modules = []
         unfused_modules = []
@@ -403,7 +405,7 @@ class FusedScoreFunction:
         for term in all_terms:
             n_sts = len(term.score_types())
             try:
-                module = term.render_fusion_module(pose_stack, False)
+                module = term.render_fusion_module(pose_stack, dtype, False)
                 fused_modules.append(module)
                 fused_weights.append(weights[st_offset : st_offset + n_sts])
             except Exception as e:
@@ -417,13 +419,18 @@ class FusedScoreFunction:
         self._fused_modules = torch.tensor(
             fused_modules, dtype=torch.int64, device=torch.device("cpu")
         )
-        self._fused_weights = torch.stack(fused_weights).to(self._device)
+        self._fused_weights = torch.cat(fused_weights).to(self._device)
         self._unfused_modules = unfused_modules if len(unfused_modules) > 0 else None
+        self._unfused_weights = (
+            torch.cat(unfused_weights).to(self._device).unsqueeze(1)
+            if len(unfused_weights) > 0
+            else None
+        )
 
     def __call__(self, coords):
         from tmol.score.compiled.compiled import fused_score_function
 
-        fused_score = fused_score_function(coords, self._fused_modules)
+        fused_score = fused_score_function(coords.view(-1, 3), self._fused_modules)
         fused_score_sum = torch.sum(self._fused_weights * fused_score, dim=0)
 
         if self._unfused_modules is not None:
@@ -433,6 +440,8 @@ class FusedScoreFunction:
                 scores += values
 
             unweighted_scores = torch.stack(scores)
+            # print("unweighted_scores", unweighted_scores.shape)
+            # print("unfused_weights", self._unfused_weights.shape)
 
             unfused_score_sum = torch.sum(
                 self._unfused_weights * unweighted_scores,

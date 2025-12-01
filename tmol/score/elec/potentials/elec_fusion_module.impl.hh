@@ -21,13 +21,11 @@
 #include <tmol/score/common/warp_segreduce.hh>
 #include <tmol/score/common/warp_stride_reduce.hh>
 
-#include <tmol/score/ljlk/potentials/ljlk_fusion_module.hh>
-
-#include <tmol/score/ljlk/potentials/lj.hh>
-#include <tmol/score/ljlk/potentials/ljlk.hh>
-#include <tmol/score/ljlk/potentials/ljlk_scoring_macros.hh>
-#include <tmol/score/ljlk/potentials/ljlk_pose_score.hh>
-#include <tmol/score/ljlk/potentials/lk_isotropic.hh>
+#include <tmol/score/elec/potentials/elec_fusion_module.hh>
+#include <tmol/score/elec/potentials/elec.hh>
+#include <tmol/score/elec/potentials/params.hh>
+#include <tmol/score/elec/potentials/elec_pose_score.hh>
+#include <tmol/score/elec/potentials/elec_scoring_macros.hh>
 
 // Operator definitions; safe for CPU compilation
 #include <moderngpu/operators.hxx>
@@ -40,7 +38,7 @@
 
 namespace tmol {
 namespace score {
-namespace ljlk {
+namespace elec {
 namespace potentials {
 
 template <typename Real, int N>
@@ -53,8 +51,8 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
-    LJLKPoseScoreFusionModule(
+ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
+    ElecPoseScoreFusionModule(
         Tensor rot_coords,
         Tensor rot_coord_offset,
         Tensor pose_ind_for_atom,
@@ -68,17 +66,16 @@ LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
         Tensor n_rots_for_block,
         Tensor rot_offset_for_block,
         Int max_n_rots_per_pose,
+
         Tensor pose_stack_min_bond_separation,
         Tensor pose_stack_inter_block_bondsep,
         Tensor block_type_n_atoms,
-        Tensor block_type_n_heavy_atoms_in_tile,
-        Tensor block_type_heavy_atoms_in_tile,
-        Tensor block_type_atom_types,
+        Tensor block_type_partial_charge,
         Tensor block_type_n_interblock_bonds,
+
         Tensor block_type_atoms_forming_chemical_bonds,
-        Tensor block_type_path_distance,
-        // LJ parameter,
-        Tensor type_params,
+        Tensor block_type_inter_repr_path_distance,
+        Tensor block_type_intra_repr_path_distance,
         Tensor global_params,
         bool output_block_pair_energies)
     : rot_coord_offset_t_(rot_coord_offset),
@@ -93,21 +90,23 @@ LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
       n_rots_for_block_t_(n_rots_for_block),
       rot_offset_for_block_t_(rot_offset_for_block),
       max_n_rots_per_pose_(max_n_rots_per_pose),
+
       pose_stack_min_bond_separation_t_(pose_stack_min_bond_separation),
       pose_stack_inter_block_bondsep_t_(pose_stack_inter_block_bondsep),
       block_type_n_atoms_t_(block_type_n_atoms),
-      block_type_n_heavy_atoms_in_tile_t_(block_type_n_heavy_atoms_in_tile),
-      block_type_heavy_atoms_in_tile_t_(block_type_heavy_atoms_in_tile),
-      block_type_atom_types_t_(block_type_atom_types),
+      block_type_partial_charge_t_(block_type_partial_charge),
       block_type_n_interblock_bonds_t_(block_type_n_interblock_bonds),
+
       block_type_atoms_forming_chemical_bonds_t_(
           block_type_atoms_forming_chemical_bonds),
-      block_type_path_distance_t_(block_type_path_distance),
-      type_params_t_(type_params),
+      block_type_inter_repr_path_distance_t_(
+          block_type_inter_repr_path_distance),
+      block_type_intra_repr_path_distance_t_(
+          block_type_intra_repr_path_distance),
       global_params_t_(global_params),
       output_block_pair_energies_(output_block_pair_energies),
       require_gradient_(false) {
-  std::cout << "Constructing LJLKPoseScoreFusionModule\n";
+  std::cout << "Constructing ElecPoseScoreFusionModule\n";
   int const n_poses = first_rot_for_block_t_.size(0);
   int const n_atoms = pose_ind_for_atom_t_.size(0);
   int const max_n_blocks = first_rot_for_block_t_.size(1);
@@ -120,7 +119,7 @@ LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
   scratch_rot_neighbors_offset_t_ = first_rot_for_block_t_.new_zeros(
       {n_poses * max_n_blocks * max_n_blocks}, torch::kInt32);
   dV_dcoords_t_ = first_rot_for_block_t_.new_zeros(
-      {3, n_atoms, 3}, rot_coords.scalar_type());
+      {1, n_atoms, 3}, rot_coords.scalar_type());
   dispatch_indices_t_ = first_rot_for_block_t_.new_zeros(
       {3, n_poses * max_n_blocks * max_n_blocks}, torch::kInt32);
 
@@ -138,9 +137,9 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
-    ~LJLKPoseScoreFusionModule() {
-  //   printf("LJLKPoseScoreFusionModule destructor\n");
+ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
+    ~ElecPoseScoreFusionModule() {
+  //   printf("ElecPoseScoreFusionModule destructor\n");
   if (events_[0]) {
     // printf("deallocating synchronization event %p\n", events_[0]);
     DeviceOperations<D>::deallocate_synchronization_event(events_[0]);
@@ -162,9 +161,9 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
+void ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
     prepare_for_scoring(Tensor rot_coords_t) {
-  //   printf("LJLKPoseScoreFusionModule::prepare_for_scoring\n");
+  //   printf("ElecPoseScoreFusionModule::prepare_for_scoring\n");
 
   require_gradient_ = rot_coords_t.requires_grad();
   //   std::cout << "Require gradient in prepare_for_scoring: " <<
@@ -252,9 +251,9 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::forward(
+void ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::forward(
     Tensor coords_t, Tensor V_t) {
-  //   printf("LJLKPoseScoreFusionModule::forward\n");
+  //   printf("ElecPoseScoreFusionModule::forward\n");
   //   printf(
   //       "V size: %d %d %d %d\n",
   //       V_t.size(0),
@@ -277,31 +276,31 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::forward(
   auto rot_offset_for_pose = view_tensor<Int, 1, D>(rot_offset_for_pose_t_);
   auto n_rots_for_block = view_tensor<Int, 2, D>(n_rots_for_block_t_);
   auto rot_offset_for_block = view_tensor<Int, 2, D>(rot_offset_for_block_t_);
+
   auto pose_stack_min_bond_separation =
       view_tensor<Int, 3, D>(pose_stack_min_bond_separation_t_);
   auto pose_stack_inter_block_bondsep =
       view_tensor<Int, 5, D>(pose_stack_inter_block_bondsep_t_);
   auto block_type_n_atoms = view_tensor<Int, 1, D>(block_type_n_atoms_t_);
-  auto block_type_n_heavy_atoms_in_tile =
-      view_tensor<Int, 2, D>(block_type_n_heavy_atoms_in_tile_t_);
-  auto block_type_heavy_atoms_in_tile =
-      view_tensor<Int, 2, D>(block_type_heavy_atoms_in_tile_t_);
-  auto block_type_atom_types = view_tensor<Int, 2, D>(block_type_atom_types_t_);
+
+  auto block_type_partial_charge =
+      view_tensor<Real, 2, D>(block_type_partial_charge_t_);
   auto block_type_n_interblock_bonds =
       view_tensor<Int, 1, D>(block_type_n_interblock_bonds_t_);
   auto block_type_atoms_forming_chemical_bonds =
       view_tensor<Int, 2, D>(block_type_atoms_forming_chemical_bonds_t_);
-  auto block_type_path_distance =
-      view_tensor<Int, 3, D>(block_type_path_distance_t_);
-  auto type_params = view_tensor<LJLKTypeParams<Real>, 1, D>(type_params_t_);
+  auto block_type_inter_repr_path_distance =
+      view_tensor<Int, 3, D>(block_type_inter_repr_path_distance_t_);
+  auto block_type_intra_repr_path_distance =
+      view_tensor<Int, 3, D>(block_type_intra_repr_path_distance_t_);
   auto global_params =
-      view_tensor<LJGlobalParams<Real>, 1, D>(global_params_t_);
+      view_tensor<ElecGlobalParams<Real>, 1, D>(global_params_t_);
   auto dV_dcoords = view_tensor<Vec<Real, 3>, 2, D>(dV_dcoords_t_);
   auto dispatch_indices = view_tensor<Int, 2, D>(dispatch_indices_t_);
 
   // rename for the sake of capture
   bool const output_block_pair_energies = output_block_pair_energies_;
-  bool const require_gradient = require_gradient_;
+  bool const compute_derivs = require_gradient_;
   // std::cout << "Require gradient in forward: " << require_gradient <<
   // std::endl;
 
@@ -315,21 +314,33 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::forward(
   CTA_REAL_REDUCE_T_TYPEDEF;
 
   auto eval_energies_sparse_dispatch = ([=] TMOL_DEVICE_FUNC(int cta) {
-    auto atom_pair_lj_fn = ([=] ATOM_PAIR_LJ_SCORE_W_GRADIENT_EVAL);
+    auto elec_atom_energy_and_derivs =
+        ([=] TMOL_DEVICE_FUNC(
+             int atom_tile_ind1,
+             int atom_tile_ind2,
+             int start_atom1,
+             int start_atom2,
+             ElecScoringData<Real> const& score_dat,
+             int cp_separation) {
+          if (compute_derivs) {
+            auto val = elec_atom_energy_and_derivs_full(
+                atom_tile_ind1,
+                atom_tile_ind2,
+                start_atom1,
+                start_atom2,
+                score_dat,
+                cp_separation,
+                dV_dcoords);
+            return val;
+          } else {
+            return elec_atom_energy(
+                atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
+          }
+        });
 
-    auto atom_pair_lk_fn = ([=] ATOM_PAIR_LK_SCORE_W_GRADIENT_EVAL);
+    auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
-    auto score_inter_lj_atom_pair =
-        ([=] SCORE_INTER_LJ_ATOM_PAIR(atom_pair_lj_fn));
-
-    auto score_intra_lj_atom_pair =
-        ([=] SCORE_INTRA_LJ_ATOM_PAIR(atom_pair_lj_fn));
-
-    auto score_inter_lk_atom_pair =
-        ([=] SCORE_INTER_LK_ATOM_PAIR(atom_pair_lk_fn));
-
-    auto score_intra_lk_atom_pair =
-        ([=] SCORE_INTRA_LK_ATOM_PAIR(atom_pair_lk_fn));
+    auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);
 
     auto load_block_coords_and_params_into_shared =
         ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
@@ -338,13 +349,10 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::forward(
 
     SHARED_MEMORY union shared_mem_union {
       shared_mem_union() {}
-      LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
+      ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
       CTA_REAL_REDUCE_T_VARIABLE;
-    } shared;
 
-    Real total_ljatr = 0;
-    Real total_ljrep = 0;
-    Real total_lk = 0;
+    } shared;
 
     int const max_important_bond_separation = 4;
 
@@ -377,12 +385,9 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::forward(
 
     auto load_interres_data_from_shared = ([=] LOAD_INTERRES_DATA_FROM_SHARED);
 
-    // Evaluate both the LJ and LK scores in separate dispatches
-    // over all atoms in the tile and the subset of heavy atoms in
-    // the tile
     auto eval_interres_atom_pair_scores = ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
-    auto store_calculated_energies = ([=] STORE_POSE_CALCULATED_ENERGIES);
+    auto store_calculated_energies = ([=] STORE_CALCULATED_POSE_ENERGIES);
 
     auto load_tile_invariant_intrares_data =
         ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
@@ -395,16 +400,13 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::forward(
 
     auto load_intrares_data_from_shared = ([=] LOAD_INTRARES_DATA_FROM_SHARED);
 
-    // Evaluate both the LJ and LK scores in separate dispatches
-    // over all atoms in the tile and the subset of heavy atoms in
-    // the tile
     auto eval_intrares_atom_pair_scores = ([=] EVAL_INTRARES_ATOM_PAIR_SCORES);
 
     tmol::score::common::tile_evaluate_rot_pair<
         DeviceOperations,
         D,
-        LJLKScoringData<Real>,
-        LJLKScoringData<Real>,
+        ElecScoringData<Real>,
+        ElecScoringData<Real>,
         Real,
         TILE_SIZE>(
         shared,
@@ -456,9 +458,9 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::backward(
+void ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::backward(
     Tensor coords_t, Tensor dTdV_t, Tensor dVdxyz_t) {
-  // printf("LJLKPoseScoreFusionModule::backward\n");
+  printf("ElecPoseScoreFusionModule::backward\n");
   // printf("dTdV_t size: %d %d\n", dTdV_t.size(0), dTdV_t.size(1));
   // printf("dVdxyz_t size: %d %d\n", dVdxyz_t.size(0), dVdxyz_t.size(1));
   // Optimal launch box on v100 and a100 is nt=32, vt=1
@@ -478,13 +480,11 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::backward(
     auto increment_derivs = ([=] TMOL_DEVICE_FUNC(int atom_id) {
       Int pose_ind = pose_ind_for_atom[atom_id];
       for (int i = 0; i < 3; i++) {
-        Real coord_i_grad_contribution = 0;
-        for (int j = 0; j < 3; j++) {
-          coord_i_grad_contribution +=
-              dV_dcoords[j][atom_id][i] * dTdV[j][pose_ind];
-        }
-        // printf("atom %d on pose %d coord %d grad contribution: %f\n",
-        // atom_id, pose_ind, i, coord_i_grad_contribution);
+        Real coord_i_grad_contribution =
+            dV_dcoords[0][atom_id][i] * dTdV[0][pose_ind];
+        // printf("atom %d on pose %d coord %d grad contribution: %f for dTdV
+        // %f\n", atom_id, pose_ind, i, coord_i_grad_contribution,
+        // dTdV[0][pose_ind]);
         accumulate<D, Real>::add(dVdxyz[atom_id][i], coord_i_grad_contribution);
       }
     });
@@ -505,27 +505,25 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::backward(
     auto rot_offset_for_pose = view_tensor<Int, 1, D>(rot_offset_for_pose_t_);
     auto n_rots_for_block = view_tensor<Int, 2, D>(n_rots_for_block_t_);
     auto rot_offset_for_block = view_tensor<Int, 2, D>(rot_offset_for_block_t_);
+
     auto pose_stack_min_bond_separation =
         view_tensor<Int, 3, D>(pose_stack_min_bond_separation_t_);
     auto pose_stack_inter_block_bondsep =
         view_tensor<Int, 5, D>(pose_stack_inter_block_bondsep_t_);
     auto block_type_n_atoms = view_tensor<Int, 1, D>(block_type_n_atoms_t_);
-    auto block_type_n_heavy_atoms_in_tile =
-        view_tensor<Int, 2, D>(block_type_n_heavy_atoms_in_tile_t_);
-    auto block_type_heavy_atoms_in_tile =
-        view_tensor<Int, 2, D>(block_type_heavy_atoms_in_tile_t_);
-    auto block_type_atom_types =
-        view_tensor<Int, 2, D>(block_type_atom_types_t_);
+
+    auto block_type_partial_charge =
+        view_tensor<Real, 2, D>(block_type_partial_charge_t_);
     auto block_type_n_interblock_bonds =
         view_tensor<Int, 1, D>(block_type_n_interblock_bonds_t_);
     auto block_type_atoms_forming_chemical_bonds =
         view_tensor<Int, 2, D>(block_type_atoms_forming_chemical_bonds_t_);
-    auto block_type_path_distance =
-        view_tensor<Int, 3, D>(block_type_path_distance_t_);
-    auto type_params = view_tensor<LJLKTypeParams<Real>, 1, D>(type_params_t_);
+    auto block_type_inter_repr_path_distance =
+        view_tensor<Int, 3, D>(block_type_inter_repr_path_distance_t_);
+    auto block_type_intra_repr_path_distance =
+        view_tensor<Int, 3, D>(block_type_intra_repr_path_distance_t_);
     auto global_params =
-        view_tensor<LJGlobalParams<Real>, 1, D>(global_params_t_);
-    // auto dV_dcoords = view_tensor<Vec<Real, 3>, 2, D>(dV_dcoords_t_);
+        view_tensor<ElecGlobalParams<Real>, 1, D>(global_params_t_);
     auto dispatch_indices = view_tensor<Int, 2, D>(dispatch_indices_t_);
     auto dTdV = view_tensor<Real, 4, D>(dTdV_t);
     auto dV_dcoords = view_tensor<Vec<Real, 3>, 1, D>(dVdxyz_t);
@@ -534,21 +532,30 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::backward(
     bool const output_block_pair_energies = output_block_pair_energies_;
 
     auto eval_derivs = ([=] TMOL_DEVICE_FUNC(int cta) {
-      auto atom_pair_lj_fn = ([=] ATOM_PAIR_LJ_BLOCK_SCORING_DERIVS_EVAL);
+      auto elec_atom_energy_and_derivs =
+          ([=] TMOL_DEVICE_FUNC(
+               int atom_tile_ind1,
+               int atom_tile_ind2,
+               int start_atom1,
+               int start_atom2,
+               ElecScoringData<Real> const& score_dat,
+               int cp_separation) {
+            elec_atom_derivs(
+                atom_tile_ind1,
+                atom_tile_ind2,
+                start_atom1,
+                start_atom2,
+                score_dat,
+                cp_separation,
+                dTdV[0][score_dat.pose_ind][score_dat.block_ind1]
+                    [score_dat.block_ind2],
+                dV_dcoords);
+            return 0.0;
+          });
+      // TEST!
+      auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
-      auto atom_pair_lk_fn = ([=] ATOM_PAIR_LK_BLOCK_SCORING_DERIVS_EVAL);
-
-      auto score_inter_lj_atom_pair =
-          ([=] SCORE_INTER_LJ_ATOM_PAIR(atom_pair_lj_fn));
-
-      auto score_intra_lj_atom_pair =
-          ([=] SCORE_INTRA_LJ_ATOM_PAIR(atom_pair_lj_fn));
-
-      auto score_inter_lk_atom_pair =
-          ([=] SCORE_INTER_LK_ATOM_PAIR(atom_pair_lk_fn));
-
-      auto score_intra_lk_atom_pair =
-          ([=] SCORE_INTRA_LK_ATOM_PAIR(atom_pair_lk_fn));
+      auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);
 
       auto load_block_coords_and_params_into_shared =
           ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
@@ -557,13 +564,10 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::backward(
 
       SHARED_MEMORY union shared_mem_union {
         shared_mem_union() {}
-        LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
+        ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
         CTA_REAL_REDUCE_T_VARIABLE;
 
       } shared;
-
-      Real total_lj = 0;
-      Real total_lk = 0;
 
       int const max_important_bond_separation = 4;
 
@@ -601,8 +605,8 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::backward(
           ([=] EVAL_INTERRES_ATOM_PAIR_SCORES);
 
       auto store_calculated_energies =
-          ([=](LJLKScoringData<Real>& score_dat, shared_mem_union& shared) {
-            ;  // no op for gradients ()
+          ([=](ElecScoringData<Real>& score_dat, shared_mem_union& shared) {
+            ;  // no op when what we're computing are the gradients ()
           });
 
       auto load_tile_invariant_intrares_data =
@@ -623,8 +627,8 @@ void LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::backward(
       tmol::score::common::tile_evaluate_rot_pair<
           DeviceOperations,
           D,
-          LJLKScoringData<Real>,
-          LJLKScoringData<Real>,
+          ElecScoringData<Real>,
+          ElecScoringData<Real>,
           Real,
           TILE_SIZE>(
           shared,
@@ -672,7 +676,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-int LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::n_terms() const {
+int ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::n_terms() const {
   return 3;  // LJatr, LJrep, + LKiso
 }
 
@@ -681,7 +685,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-int LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::n_poses() const {
+int ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::n_poses() const {
   return first_rot_for_block_t_.size(0);
 }
 
@@ -690,7 +694,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-int LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::max_n_blocks()
+int ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::max_n_blocks()
     const {
   return first_rot_for_block_t_.size(1);
 }
@@ -700,7 +704,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-bool LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
+bool ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::
     output_block_pair_energies() const {
   return output_block_pair_energies_;
 }
@@ -710,7 +714,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-int LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::n_atoms() const {
+int ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::n_atoms() const {
   return pose_ind_for_atom_t_.size(0);
 }
 
@@ -719,12 +723,12 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-int LJLKPoseScoreFusionModule<DeviceOperations, D, Real, Int>::n_rotamers()
+int ElecPoseScoreFusionModule<DeviceOperations, D, Real, Int>::n_rotamers()
     const {
   return block_ind_for_rot_t_.size(0);
 }
 
 }  // namespace potentials
-}  // namespace ljlk
+}  // namespace elec
 }  // namespace score
 }  // namespace tmol

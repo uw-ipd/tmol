@@ -697,6 +697,7 @@ Tensor create_ljlk_fusion_module(
         constexpr tmol::Device Dev = device_t;
         common::PoseScoreFusionModule* fusion_module =
             new LJLKPoseScoreFusionModule<DispatchMethod, Dev, Real, Int>(
+                rot_coords,
                 rot_coord_offset,
                 pose_ind_for_atom,
                 first_rot_for_block,
@@ -720,8 +721,7 @@ Tensor create_ljlk_fusion_module(
                 block_type_path_distance,
                 ljlk_type_params,
                 global_params,
-                output_block_pair_energies,
-                rot_coords.requires_grad());
+                output_block_pair_energies);
         fusion_module_ptr[0] = reinterpret_cast<int64_t>(fusion_module);
       }));
 
@@ -746,7 +746,7 @@ void free_fusion_module(Tensor fusion_module) {
           fusion_module[0].item<int64_t>());
   delete fusion_module_ptr;
   fusion_module[0] = 0;
-  printf("freed fusion module ptr\n");
+  // printf("freed fusion module ptr\n");
 }
 
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion

@@ -350,6 +350,15 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
+    def test_fused_whole_pose_scoring_gradcheck(
+        cls, ubq_pdb, default_database, torch_device
+    ):
+        resnums = [(0, 4)]
+        return super().test_fused_whole_pose_scoring_gradcheck(
+            ubq_pdb, default_database, torch_device, resnums=resnums
+        )
+
+    @classmethod
     def test_whole_pose_scoring_jagged(
         cls,
         ubq_pdb,
@@ -411,9 +420,11 @@ class TestLJLKEnergyTerm(EnergyTermTestBase):
         energy_term.setup_poses(pn)
 
         # pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
-        fusion_module = energy_term.render_fusion_module(pn, False)
-        print("fusion_module:", fusion_module)
+        fusion_module = energy_term.render_fusion_module(
+            pn, dtype=torch.float32, output_block_pair_energies=False
+        )
+        # print("fusion_module:", fusion_module)
         scores = test_run_forward(fusion_module, pn.coords.reshape(-1, 3))
-        print("Scores:", scores)
+        # print("Scores:", scores)
         free_fusion_module(fusion_module)
-        print("freed fusion module", fusion_module)
+        # print("freed fusion module", fusion_module)

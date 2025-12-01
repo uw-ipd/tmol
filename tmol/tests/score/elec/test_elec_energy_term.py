@@ -7,6 +7,11 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
+# temp
+from tmol.io import pose_stack_from_pdb
+from tmol.pose.pose_stack_builder import PoseStackBuilder
+from tmol.tests.score.common.test_energy_term import pose_stack_from_pdb_and_resnums
+
 
 def test_smoke(default_database, torch_device):
     elec_energy = ElecEnergyTerm(param_db=default_database, device=torch_device)
@@ -97,6 +102,15 @@ class TestElecEnergyTerm(EnergyTermTestBase):
         )
 
     @classmethod
+    def test_fused_whole_pose_scoring_gradcheck(
+        cls, ubq_pdb, default_database, torch_device
+    ):
+        resnums = [(0, 4)]
+        return super().test_fused_whole_pose_scoring_gradcheck(
+            ubq_pdb, default_database, torch_device, resnums=resnums
+        )
+
+    @classmethod
     def test_block_scoring_matches_whole_pose_scoring(
         cls, ubq_pdb, default_database, torch_device
     ):
@@ -127,3 +141,36 @@ class TestElecEnergyTerm(EnergyTermTestBase):
             resnums=resnums,
             nondet_tol=1e-6,  # fd this is necessary here...
         )
+
+    @classmethod
+    def test_create_fusion_module_smoke(
+        cls, ubq_pdb, default_database, torch_device: torch.device
+    ):
+        from tmol.score.elec.potentials.compiled import (
+            test_run_forward,
+            free_fusion_module,
+        )
+
+        n_poses = 10
+
+        p1 = pose_stack_from_pdb_and_resnums(ubq_pdb, torch_device, None)
+        pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
+
+        energy_term = cls.energy_term_class(
+            param_db=default_database, device=torch_device
+        )
+
+        for bt in pn.packed_block_types.active_block_types:
+            energy_term.setup_block_type(bt)
+        energy_term.setup_packed_block_types(pn.packed_block_types)
+        energy_term.setup_poses(pn)
+
+        # pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
+        fusion_module = energy_term.render_fusion_module(
+            pn, dtype=torch.float32, output_block_pair_energies=False
+        )
+        # print("fusion_module:", fusion_module)
+        scores = test_run_forward(fusion_module, pn.coords.reshape(-1, 3))
+        # print("Scores:", scores)
+        free_fusion_module(fusion_module)
+        # print("freed fusion module", fusion_module)

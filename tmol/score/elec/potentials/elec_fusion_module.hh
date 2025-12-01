@@ -15,13 +15,13 @@
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/pose_score_fusion_module.hh>
 
-#include "lj.hh"
-#include "params.hh"
+// #include "lj.hh"
+// #include "params.hh"
 // #include "rotamer_pair_energy_lj.hh"
 
 namespace tmol {
 namespace score {
-namespace ljlk {
+namespace elec {
 namespace potentials {
 
 template <
@@ -29,7 +29,7 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-class LJLKPoseScoreFusionModule : public common::PoseScoreFusionModule {
+class ElecPoseScoreFusionModule : public common::PoseScoreFusionModule {
  private:
   torch::Tensor rot_coord_offset_t_;
   torch::Tensor pose_ind_for_atom_t_;
@@ -43,18 +43,16 @@ class LJLKPoseScoreFusionModule : public common::PoseScoreFusionModule {
   torch::Tensor n_rots_for_block_t_;
   torch::Tensor rot_offset_for_block_t_;
   Int max_n_rots_per_pose_;
+
   torch::Tensor pose_stack_min_bond_separation_t_;
   torch::Tensor pose_stack_inter_block_bondsep_t_;
   torch::Tensor block_type_n_atoms_t_;
-  torch::Tensor block_type_n_heavy_atoms_in_tile_t_;
-  torch::Tensor block_type_heavy_atoms_in_tile_t_;
-  torch::Tensor block_type_atom_types_t_;
+  torch::Tensor block_type_partial_charge_t_;
   torch::Tensor block_type_n_interblock_bonds_t_;
-  torch::Tensor block_type_atoms_forming_chemical_bonds_t_;
-  torch::Tensor block_type_path_distance_t_;
 
-  // LJ parameters
-  torch::Tensor type_params_t_;
+  torch::Tensor block_type_atoms_forming_chemical_bonds_t_;
+  torch::Tensor block_type_inter_repr_path_distance_t_;
+  torch::Tensor block_type_intra_repr_path_distance_t_;
   torch::Tensor global_params_t_;
   bool output_block_pair_energies_;
 
@@ -67,14 +65,13 @@ class LJLKPoseScoreFusionModule : public common::PoseScoreFusionModule {
   torch::Tensor dV_dcoords_t_;
   torch::Tensor dispatch_indices_t_;
 
-  void* context_;  // on GPU, the CUDA context
-  std::vector<void*>
-      events_;            // for cuda events; we need pointers to cudaEvent_t
-                          // for forward and backward passes that we'll wait on
-  void* n_dispatch_ptr_;  // IDEA: we need a mgpu::mem_t for CUDA and just a
-                          // wimpy int on CPU
+  // Variables whose choice is device dependent:
+  void* context_;
+  std::vector<void*> events_;
+  void* n_dispatch_ptr_;
+
  public:
-  LJLKPoseScoreFusionModule(
+  ElecPoseScoreFusionModule(
       torch::Tensor rot_coords,  // to communicate dtype
       torch::Tensor rot_coord_offset,
       torch::Tensor pose_ind_for_atom,
@@ -88,20 +85,20 @@ class LJLKPoseScoreFusionModule : public common::PoseScoreFusionModule {
       torch::Tensor n_rots_for_block,
       torch::Tensor rot_offset_for_block,
       Int max_n_rots_per_pose,
+
       torch::Tensor pose_stack_min_bond_separation,
       torch::Tensor pose_stack_inter_block_bondsep,
       torch::Tensor block_type_n_atoms,
-      torch::Tensor block_type_n_heavy_atoms_in_tile,
-      torch::Tensor block_type_heavy_atoms_in_tile,
-      torch::Tensor block_type_atom_types,
+      torch::Tensor block_type_partial_charge,
       torch::Tensor block_type_n_interblock_bonds,
+
       torch::Tensor block_type_atoms_forming_chemical_bonds,
-      torch::Tensor block_type_path_distance,
-      torch::Tensor type_params,
+      torch::Tensor block_type_inter_repr_path_distance,
+      torch::Tensor block_type_intra_repr_path_distance,
       torch::Tensor global_params,
       bool output_block_pair_energies);
 
-  ~LJLKPoseScoreFusionModule() override;
+  ~ElecPoseScoreFusionModule() override;
 
   void prepare_for_scoring(torch::Tensor coords) override;
   void forward(torch::Tensor coords, torch::Tensor V) override;
@@ -118,6 +115,6 @@ class LJLKPoseScoreFusionModule : public common::PoseScoreFusionModule {
 };
 
 }  // namespace potentials
-}  // namespace ljlk
+}  // namespace elec
 }  // namespace score
 }  // namespace tmol

@@ -8,7 +8,8 @@
 #include <tmol/score/common/forall_dispatch.hh>
 #include <tmol/score/common/device_operations.hh>
 
-#include "elec_pose_score.hh"
+#include <tmol/score/elec/potentials/elec_pose_score.hh>
+#include <tmol/score/elec/potentials/elec_fusion_module.hh>
 
 namespace tmol {
 namespace score {
@@ -638,6 +639,98 @@ std::vector<Tensor> elec_rotamer_scores_op(
       output_block_pair_energies);
 }
 
+template <template <tmol::Device> class DispatchMethod>
+Tensor create_elec_fusion_module(
+    // common params
+    Tensor rot_coords,  // These coordinates are only used to determine device
+                        // and type
+
+    Tensor rot_coord_offset,
+    Tensor pose_ind_for_atom,
+    Tensor first_rot_for_block,
+    Tensor first_rot_block_type,
+    Tensor block_ind_for_rot,
+    Tensor pose_ind_for_rot,
+    Tensor block_type_ind_for_rot,
+    Tensor n_rots_for_pose,
+    Tensor rot_offset_for_pose,
+    Tensor n_rots_for_block,
+    Tensor rot_offset_for_block,
+    int64_t max_n_rots_per_pose,
+
+    Tensor pose_stack_min_bond_separation,
+    Tensor pose_stack_inter_block_bondsep,
+
+    Tensor block_type_n_atoms,
+    Tensor block_type_partial_charge,
+    Tensor block_type_n_interblock_bonds,
+    Tensor block_type_atoms_forming_chemical_bonds,
+    Tensor block_type_inter_repr_path_distance,
+
+    Tensor block_type_intra_repr_path_distance,
+    Tensor global_params,
+    bool output_block_pair_energies) {
+  using Int = int32_t;
+  at::Tensor fusion_module_ptr =
+      at::zeros({1}, torch::dtype(torch::kInt64).device(torch::kCPU));
+  TMOL_DISPATCH_FLOATING_DEVICE(
+      rot_coords.options(), "create_elec_fusion_module", ([&] {
+        using Real = scalar_t;
+        constexpr tmol::Device Dev = device_t;
+        common::PoseScoreFusionModule* fusion_module =
+            new ElecPoseScoreFusionModule<DispatchMethod, Dev, Real, Int>(
+                rot_coords,
+                rot_coord_offset,
+                pose_ind_for_atom,
+                first_rot_for_block,
+                first_rot_block_type,
+                block_ind_for_rot,
+                pose_ind_for_rot,
+                block_type_ind_for_rot,
+                n_rots_for_pose,
+                rot_offset_for_pose,
+                n_rots_for_block,
+                rot_offset_for_block,
+                max_n_rots_per_pose,
+                pose_stack_min_bond_separation,
+                pose_stack_inter_block_bondsep,
+
+                block_type_n_atoms,
+                block_type_partial_charge,
+                block_type_n_interblock_bonds,
+                block_type_atoms_forming_chemical_bonds,
+                block_type_inter_repr_path_distance,
+
+                block_type_intra_repr_path_distance,
+                global_params,
+                output_block_pair_energies);
+        fusion_module_ptr[0] = reinterpret_cast<int64_t>(fusion_module);
+      }));
+
+  return {fusion_module_ptr};
+}
+
+Tensor test_run_forward(Tensor fusion_module, Tensor rot_coords) {
+  common::PoseScoreFusionModule* fusion_module_ptr =
+      reinterpret_cast<common::PoseScoreFusionModule*>(
+          fusion_module[0].item<int64_t>());
+  fusion_module_ptr->prepare_for_scoring(rot_coords);
+  int const n_poses = fusion_module_ptr->n_poses();
+  Tensor V = torch::zeros(
+      {fusion_module_ptr->n_terms(), n_poses, 1, 1}, rot_coords.options());
+  fusion_module_ptr->forward(rot_coords, V);
+  return V;
+}
+
+void free_fusion_module(Tensor fusion_module) {
+  common::PoseScoreFusionModule* fusion_module_ptr =
+      reinterpret_cast<common::PoseScoreFusionModule*>(
+          fusion_module[0].item<int64_t>());
+  delete fusion_module_ptr;
+  fusion_module[0] = 0;
+  // printf("freed fusion module ptr\n");
+}
+
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
@@ -645,6 +738,11 @@ TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
   m.def("elec_pose_scores", &elec_pose_scores_op<common::DeviceOperations>);
   m.def(
       "elec_rotamer_scores", &elec_rotamer_scores_op<common::DeviceOperations>);
+  m.def(
+      "create_elec_fusion_module",
+      &create_elec_fusion_module<common::DeviceOperations>);
+  m.def("test_run_forward", &test_run_forward);
+  m.def("free_fusion_module", &free_fusion_module);
 }
 
 }  // namespace potentials
