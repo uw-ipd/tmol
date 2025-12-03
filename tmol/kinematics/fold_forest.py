@@ -1,8 +1,10 @@
 import numpy
+import torch
 import attr
 import enum
 
 from tmol.types.array import NDArray
+from tmol.pose.pose_stack import PoseStack
 
 
 class EdgeType(enum.IntEnum):
@@ -54,9 +56,129 @@ class FoldForest:
     edges: NDArray[int][:, :, 4]
 
     @classmethod
+    def reasonable_fold_forest(cls, pose_stack: PoseStack):
+        """Create a fold tree consisting of N->C segments for each chain
+        for each Pose in the input PoseStack.
+
+        """
+        # one edge from the root to each chain's first residue
+        # and one n->c polymer edge for each chain
+        pose_n_residues = torch.sum(pose_stack.block_type_ind != -1, dim=1)
+        print("pose_n_residues")
+        print(pose_n_residues)
+
+        print("torch.max(pose_stack.chain_id64, dim=1)")
+        print(torch.max(pose_stack.chain_id64, dim=1)[0])
+
+        n_chains_per_pose = torch.max(pose_stack.chain_id64, dim=1)[0] + 1
+        print("n_chains_per_pose", n_chains_per_pose)
+        print(" torch.max(n_chains_per_pose)", torch.max(n_chains_per_pose))
+        max_n_chains = torch.max(n_chains_per_pose).cpu().item()
+        max_n_edges = 2 * max_n_chains
+        is_pci_chain_real = torch.arange(
+            max_n_chains, dtype=torch.int64, device=pose_stack.device
+        ).unsqueeze(0) < (n_chains_per_pose.unsqueeze(1))
+        real_chain_indices = torch.nonzero(is_pci_chain_real, as_tuple=False)
+        print("real_chain_indices", real_chain_indices)
+        is_pose_last_chain = torch.arange(
+            max_n_chains, dtype=torch.int32, device=pose_stack.device
+        ).unsqueeze(0) == (n_chains_per_pose - 1).unsqueeze(1)
+
+        edges = torch.full(
+            (pose_stack.n_poses, max_n_edges, 4),
+            -1,
+            dtype=torch.int64,
+            device=pose_stack.device,
+        )
+        n_edges = torch.zeros(
+            (pose_stack.n_poses,), dtype=int, device=pose_stack.device
+        )
+
+        print("chain_id64", pose_stack.chain_id64.shape)
+        print("pose_stack.chain_id64[:, 1:]", pose_stack.chain_id64[:, 1:].shape)
+        print("se_stack.chain_id64[:, :-1]", pose_stack.chain_id64[:, :-1].shape)
+        chain_boundaries = torch.zeros(
+            (pose_stack.n_poses, pose_stack.max_n_blocks),
+            dtype=torch.bool,
+            device=pose_stack.device,
+        )
+        chain_boundaries[:, :-1] = (
+            pose_stack.chain_id64[:, 1:] != pose_stack.chain_id64[:, :-1]
+        )
+        # last residue is end of a chain; but will not be marked as such if n_res == max_n_res
+        chain_boundaries[:, pose_n_residues - 1] = True
+
+        # the index for each chain's last residue
+        chain_end_indices_ci = torch.nonzero(chain_boundaries, as_tuple=False)
+        print("chain_end_indices_ci", chain_end_indices_ci)
+
+        # now lets construct a pair of tensors of n_poses x max_n_chains
+        # with the beginning and ending residue indices for each chain
+        chain_end_indices_pci = torch.zeros(
+            (pose_stack.n_poses, max_n_chains),
+            dtype=torch.int64,
+            device=pose_stack.device,
+        )
+        chain_end_indices_pci[is_pci_chain_real] = chain_end_indices_ci[:, 1]
+        print("chain_end_indices_pci", chain_end_indices_pci)
+        chain_begin_indices_pci = torch.zeros_like(chain_end_indices_pci)
+        print("chain_begin_indices_pci", chain_begin_indices_pci)
+        real_pci_chains = torch.nonzero(is_pci_chain_real, as_tuple=False)
+        print("real_pci_chains", real_pci_chains)
+
+        # chain_begin_indices_pci:
+        # the index of the first residue in each chain.
+        # This is just one greater than the last residue of the previous chain,
+        # except, we have to overwrite the index of the first chain in each
+        # pose to be zero.
+        chain_begin_indices_pci[real_pci_chains[1:, 0], real_pci_chains[1:, 1]] = (
+            chain_end_indices_ci[:-1, 1] + 1
+        )
+        print("chain_begin_indices_pci before fixup", chain_begin_indices_pci)
+        chain_begin_indices_pci[:, 0] = 0
+        print("chain_begin_indices_pci after fixup", chain_begin_indices_pci)
+
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 0] = (
+            EdgeType.polymer
+        )
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 1] = (
+            chain_begin_indices_pci[real_chain_indices[:, 0], real_chain_indices[:, 1]]
+        )
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1], 2] = (
+            chain_end_indices_pci[real_chain_indices[:, 0], real_chain_indices[:, 1]]
+        )
+
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 0] = (
+            EdgeType.root_jump
+        )
+        # edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1]+ 1, 0] == -1 already
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 2] = (
+            chain_begin_indices_pci[real_chain_indices[:, 0], real_chain_indices[:, 1]]
+        )
+        edges[real_chain_indices[:, 0], 2 * real_chain_indices[:, 1] + 1, 3] = (
+            torch.arange(
+                max_n_chains, dtype=torch.int64, device=pose_stack.device
+            ).unsqueeze(0)
+        )
+        edges = edges.cpu().numpy()
+        n_edges = (2 * n_chains_per_pose).cpu().numpy()
+
+        print("edges", edges)
+
+        return cls(
+            max_n_edges=max_n_edges,
+            n_edges=n_edges,
+            edges=edges,
+        )
+
+    @classmethod
     # soon! @validate_args
     def polymeric_forest(cls, n_res_per_tree: NDArray[numpy.int32][:]):
-        """Create an N->C fold tree for a collection of monomers in a PoseStack."""
+        """Create an N->C fold tree for a collection of monomers in a PoseStack.
+
+        This will define a fold tree for each pose with a just one edge, and thus
+        will be a very bad fold tree in general.
+        """
         # n_trees = len(residues)
         # n_res_per_tree = [len(reslist) for reslist in residues]
         n_trees = n_res_per_tree.shape[0]
