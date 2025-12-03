@@ -236,6 +236,8 @@ def pose_stack_from_canonical_form(
         inter_block_bondsep64=i64(inter_block_bondsep),
         block_type_ind=i32(block_types64),
         block_type_ind64=block_types64,
+        chain_id=chain_id,
+        chain_id64=i64(chain_id),
         device=pbt.device,
     )
 

@@ -143,6 +143,8 @@ def impose_top_rotamer_assignments(
         inter_block_bondsep64=orig_pose_stack.inter_block_bondsep64,
         block_type_ind=new_block_type_ind64.to(torch.int32),
         block_type_ind64=new_block_type_ind64,
+        chain_id=orig_pose_stack.chain_id,
+        chain_id64=orig_pose_stack.chain_id64,
         device=device,
     )
     return new_pose_stack

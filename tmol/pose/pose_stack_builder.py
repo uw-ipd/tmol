@@ -84,6 +84,10 @@ class PoseStackBuilder:
             packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
         )
 
+        chain_id = cls._chain_id_from_pose_stacks(
+            pose_stacks, ps_offset, max_n_blocks, device
+        )
+
         def i64(t):
             return t.to(torch.int64)
 
@@ -98,6 +102,8 @@ class PoseStackBuilder:
             inter_block_bondsep64=i64(inter_block_bondsep),
             block_type_ind=block_type_ind,
             block_type_ind64=i64(block_type_ind),
+            chain_id=chain_id,
+            chain_id64=i64(chain_id),
             device=device,
         )
 
@@ -146,7 +152,7 @@ class PoseStackBuilder:
         # in the line where you assign it from a function with a descriptive name
         # and then assign it to the variable you really want in a second step.
         # what a waste!
-        irc64 = cls._inter_residue_connections_for_polymeric_monomers(
+        irc64, chain_id = cls._inter_residue_connections_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
         )
         inter_residue_connections64 = irc64
@@ -174,6 +180,8 @@ class PoseStackBuilder:
             inter_block_bondsep64=inter_block_bondsep64,
             block_type_ind=block_type_ind64.to(torch.int32),
             block_type_ind64=block_type_ind64,
+            chain_id=chain_id,
+            chain_id64=chain_id.to(torch.int64),
             device=device,
         )
 
@@ -253,7 +261,7 @@ class PoseStackBuilder:
         )
 
         # 2a
-        irc64 = cls._inter_residue_connections_for_polymeric_monomers(
+        irc64, chain_id = cls._inter_residue_connections_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, None
         )
         inter_residue_connections64 = irc64
@@ -301,6 +309,8 @@ class PoseStackBuilder:
             inter_block_bondsep64=inter_block_bondsep64,
             block_type_ind=block_type_ind64.to(torch.int32),
             block_type_ind64=block_type_ind64,
+            chain_id=chain_id,
+            chain_id64=chain_id.to(torch.int64),
             device=device,
         )
 
@@ -382,7 +392,7 @@ class PoseStackBuilder:
         )
 
         # 2a
-        irc64 = cls._inter_residue_connections_for_polymeric_monomers(
+        irc64, chain_id = cls._inter_residue_connections_for_polymeric_monomers(
             pbt, n_poses, max_n_res, real_res, n_res, block_type_ind64, chain_lengths
         )
         inter_residue_connections64 = irc64
@@ -430,6 +440,8 @@ class PoseStackBuilder:
             inter_block_bondsep64=inter_block_bondsep64,
             block_type_ind=block_type_ind64.to(torch.int32),
             block_type_ind64=block_type_ind64,
+            chain_id=chain_id,
+            chain_id64=chain_id.to(torch.int64),
             device=device,
         )
 
@@ -482,6 +494,8 @@ class PoseStackBuilder:
             inter_block_bondsep64=ps.inter_block_bondsep64,
             block_type_ind=block_type_ind,
             block_type_ind64=i64(block_type_ind),
+            chain_id=ps.chain_id,
+            chain_id64=i64(ps.chain_id),
             device=ps.device,
         )
 
@@ -843,6 +857,30 @@ class PoseStackBuilder:
 
     @classmethod
     @validate_args
+    def _chain_id_from_pose_stacks(
+        cls,
+        pose_stacks,  # : List["PoseStack"],
+        ps_offsets: Tensor[torch.int64][:],
+        max_n_blocks: int,
+        device: torch.device,
+    ) -> Tensor[torch.int32][:, :]:
+        n_poses = sum(len(ps) for ps in pose_stacks)
+        chain_id = torch.full(
+            (n_poses, max_n_blocks),
+            -1,
+            dtype=torch.int32,
+            device=device,
+        )
+        for i, pose_stack in enumerate(pose_stacks):
+            offset = ps_offsets[i]
+            i_nblocks = pose_stack.chain_id.shape[1]
+            chain_id[offset : (offset + len(pose_stack)), :i_nblocks] = (
+                pose_stack.chain_id
+            )
+        return chain_id
+
+    @classmethod
+    @validate_args
     def _annotate_pbt_w_canonical_aa1lc_lookup(cls, pbt: PackedBlockTypes):
         """Annotate the PBT with a pandas dictionary mapping the (unique!) names
         of each of the block types to their index in the active_block_types list,
@@ -1092,7 +1130,7 @@ class PoseStackBuilder:
         n_res: Tensor[torch.int64][:],
         block_type_ind64: Tensor[torch.int64][:, :],
         chain_lengths: Optional[List[List[int]]],
-    ) -> Tensor[torch.int64][:, :, :, 2]:
+    ) -> Tuple[Tensor[torch.int64][:, :, :, 2], Tensor[torch.int32][:, :]]:
         assert real_res.shape[0] == n_poses
         assert real_res.shape[1] == max_n_res
         assert n_res.shape[0] == n_poses
@@ -1176,6 +1214,18 @@ class PoseStackBuilder:
             chain_lengths_t = chain_lengths_t.to(device)
             cl_real = chain_lengths_t != -1
             cl_offsets = torch.cumsum(chain_lengths_t, dim=1)
+
+            # mark the first residue of each chain with a 1, then run inclusive cumsum
+            # to get chain IDs
+            cl_real_real = (chain_lengths_t != -1) & (cl_offsets <= n_res[:, None])
+            cl_real_real_pose_ind, _ = torch.nonzero(cl_real_real, as_tuple=True)
+            chain_id = torch.zeros(
+                (n_poses, max_n_res), dtype=torch.int32, device=device
+            )
+            chain_id[cl_real_real_pose_ind, cl_offsets[cl_real_real]] = 1
+            chain_id = torch.cumsum(chain_id, dim=1).to(torch.int32)
+            chain_id[torch.logical_not(real_res)] = -1
+
             nz_cl_real_pose_ind, _ = torch.nonzero(cl_real, as_tuple=True)
             n_term_res = cl_offsets[cl_real]
             c_term_res = n_term_res - 1
@@ -1194,8 +1244,14 @@ class PoseStackBuilder:
             inter_residue_connections64[
                 nz_cl_real_pose_ind, c_term_res, up_conn_for_cterm, 0:1
             ] = -1
+        else:
+            # everything is in a single chain, so mark the real residues as chain 0
+            chain_id = torch.full(
+                (n_poses, max_n_res), -1, dtype=torch.int32, device=device
+            )
+            chain_id[real_res] = 0
 
-        return inter_residue_connections64
+        return inter_residue_connections64, chain_id
 
     @classmethod
     @validate_args

@@ -84,6 +84,9 @@ class PoseStack:
     block_type_ind: Tensor[torch.int32][:, :]
     block_type_ind64: Tensor[torch.int64][:, :]
 
+    chain_id: Tensor[torch.int32][:, :]
+    chain_id64: Tensor[torch.int64][:, :]
+
     device: torch.device
 
     #################### INIT #####################
@@ -211,6 +214,8 @@ class PoseStack:
             inter_block_bondsep64=self.inter_block_bondsep64.detach().clone(),
             block_type_ind=self.block_type_ind.detach().clone(),
             block_type_ind64=self.block_type_ind64.detach().clone(),
+            chain_id=self.chain_id.detach().clone(),
+            chain_id64=self.chain_id64.detach().clone(),
             device=self.device,
         )
 
