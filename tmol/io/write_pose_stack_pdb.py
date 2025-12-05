@@ -75,13 +75,13 @@ def atom_records_from_pose_stack(
     can have different chain labels) or a [max-n-chains] numpy array of
     characters (when each PoseStack has the same chain labels).
     """
-    from tmol.io.chain_deduction import chain_inds_for_pose_stack
+    # from tmol.io.chain_deduction import chain_inds_for_pose_stack
 
-    if chain_ind_for_block is None:
-        chain_ind_for_block = chain_inds_for_pose_stack(pose_stack)
+    # if chain_ind_for_block is None:
+    #     chain_ind_for_block = chain_inds_for_pose_stack(pose_stack)
     return atom_records_from_coords(
         pose_stack.packed_block_types,
-        chain_ind_for_block,
+        pose_stack.chain_id64,
         pose_stack.block_type_ind64,
         pose_stack.coords,
         pose_stack.block_coord_offset,
@@ -92,7 +92,7 @@ def atom_records_from_pose_stack(
 @validate_args
 def atom_records_from_coords(
     pbt: "PackedBlockTypes",
-    chain_ind_for_block: Union[Tensor[torch.int64][:, :], NDArray[numpy.int64][:, :]],
+    chain_ind_for_block: Tensor[torch.int64][:, :],
     block_types64: Tensor[torch.int64][:, :],
     pose_like_coords: Tensor[torch.float32][:, :, 3],
     block_coord_offset: Tensor[torch.int32][:, :],
@@ -190,6 +190,7 @@ def atom_records_from_coords(
         block_local_atom_index_for_real_atom.cpu().numpy()
     )
     pose_atom_offsets = pose_atom_offsets.cpu().numpy()
+    chain_ind_for_block = chain_ind_for_block.cpu().numpy()
 
     chain_ind_for_real_atom = chain_ind_for_block[
         pose_for_real_atom, block_for_real_atom
