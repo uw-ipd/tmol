@@ -55,27 +55,27 @@ def test_atom_records_for_multi_chain_pdb(pertuzumab_pdb, torch_device):
     canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
-    records = atom_records_from_pose_stack(
-        pose_stack, None, numpy.array([x for x in "LH"], dtype=str)
-    )
+    records = atom_records_from_pose_stack(pose_stack)
     pdb_lines = to_pdb(records)
     pdb_atom_lines = [x for x in pdb_lines.split("\n") if x[:6] == "ATOM  "]
     pertuzumab_atom_lines = [x for x in pertuzumab_pdb.split("\n") if x[:6] == "ATOM  "]
     assert len(pdb_atom_lines) > len(pertuzumab_atom_lines)
 
 
-def test_write_pose_stack_pdb(ubq_pdb):
+def test_write_pose_stack_pdb(ubq_pdb, pertuzumab_pdb):
     device = torch.device("cpu")
-    ps = pose_stack_from_pdb(ubq_pdb, device)
     output_fname = "tmol/tests/io/write_pose_stack_pdb.pdb"
-    assert not os.path.isfile(output_fname)
-    write_pose_stack_pdb(ps, output_fname)
-    assert os.path.isfile(output_fname)
+    for pdb in [ubq_pdb, pertuzumab_pdb]:
+        ps = pose_stack_from_pdb(ubq_pdb, device)
+        assert not os.path.isfile(output_fname)
+        write_pose_stack_pdb(ps, output_fname)
+        assert os.path.isfile(output_fname)
 
-    # incidentally: test the call path that reads a PDB from disk
-    # instead of from the contents of file
-    ps2 = pose_stack_from_pdb(output_fname, device)
+        # incidentally: test the call path that reads a PDB from disk
+        # instead of from the contents of file
+        ps2 = pose_stack_from_pdb(output_fname, device)
 
-    torch.testing.assert_close(ps.coords, ps2.coords)
+        torch.testing.assert_close(ps.coords, ps2.coords)
+        numpy.testing.assert_equal(ps.chain_labels, ps2.chain_labels)
 
-    os.remove(output_fname)
+        os.remove(output_fname)

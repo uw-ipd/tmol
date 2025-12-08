@@ -241,21 +241,18 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
         for x in ["chain_id", "res_types", "coords", "chain_labels"]
     )
 
-    (
-        chain_id,
-        cf_res_types,
-        cf_coords,
-        disulfides,
-        res_not_connected,
-    ) = tuple(
-        restored_canonical_form[x]
-        for x in [
-            "chain_id",
-            "res_types",
-            "coords",
-            "disulfides",
-            "res_not_connected",
-        ]
+    (chain_id, cf_res_types, cf_coords, disulfides, res_not_connected, chain_labels) = (
+        tuple(
+            restored_canonical_form[x]
+            for x in [
+                "chain_id",
+                "res_types",
+                "coords",
+                "disulfides",
+                "res_not_connected",
+                "chain_labels",
+            ]
+        )
     )
 
     numpy.testing.assert_equal(
@@ -267,6 +264,7 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     numpy.testing.assert_equal(
         cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy()
     )
+    numpy.testing.assert_equal(cf_orig_chain_labels, cf_orig_chain_labels2)
 
     assert chain_id.device == torch_device
     assert cf_res_types.device == torch_device
@@ -277,6 +275,7 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     numpy.testing.assert_equal(
         cf_res_types.cpu().numpy(), cf_orig_res_types.cpu().numpy()
     )
+    numpy.testing.assert_equal(chain_labels, cf_orig_chain_labels)
 
     np_cf_coords = cf_coords.cpu().numpy()
     np_cf_orig_coords = cf_orig_coords.cpu().numpy()
