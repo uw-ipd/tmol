@@ -2,6 +2,7 @@ import attr
 import torch
 
 from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.constraint_set import ConstraintSet
@@ -59,6 +60,12 @@ class PoseStack:
     PoseStack's PackedBlockTypes object. A sentinel of -1 for positions
     where there is no block type.
 
+    chain_id: the integer chain identifier for each residue
+
+    chain_labels: numpy array of strings giving chain labels for each residue.
+    No calculations rely on chain_labels; they're just convenient for
+    writing structures out.
+
     device: the torch.device that this collection of structures lives on
     """
 
@@ -86,6 +93,8 @@ class PoseStack:
 
     chain_id: Tensor[torch.int32][:, :]
     chain_id64: Tensor[torch.int64][:, :]
+
+    chain_labels: NDArray[object][:, :]
 
     device: torch.device
 
@@ -216,6 +225,7 @@ class PoseStack:
             block_type_ind64=self.block_type_ind64.detach().clone(),
             chain_id=self.chain_id.detach().clone(),
             chain_id64=self.chain_id64.detach().clone(),
+            chain_labels=self.chain_labels.copy(),
             device=self.device,
         )
 

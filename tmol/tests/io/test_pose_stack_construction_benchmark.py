@@ -1,3 +1,4 @@
+import numpy
 import pytest
 from tmol.tests.torch import zero_padded_counts
 from tmol.io.canonical_ordering import (
@@ -84,6 +85,10 @@ def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
     canonical_form["chain_id"] = canonical_form["chain_id"].expand(n_poses, -1)
     canonical_form["res_types"] = canonical_form["res_types"].expand(n_poses, -1)
     canonical_form["coords"] = canonical_form["coords"].expand(n_poses, -1, -1, -1)
+    canonical_form["chain_labels"] = numpy.broadcast_to(
+        canonical_form["chain_labels"],
+        (n_poses, canonical_form["chain_labels"].shape[1]),
+    )
 
     # warmup
     p = pose_stack_from_canonical_form(co, pbt, **canonical_form)
@@ -108,6 +113,10 @@ def test_build_and_score_pertuzumab_benchmark(
     canonical_form["chain_id"] = canonical_form["chain_id"].expand(n_poses, -1)
     canonical_form["res_types"] = canonical_form["res_types"].expand(n_poses, -1)
     canonical_form["coords"] = canonical_form["coords"].expand(n_poses, -1, -1, -1)
+    canonical_form["chain_labels"] = numpy.broadcast_to(
+        canonical_form["chain_labels"],
+        (n_poses, canonical_form["chain_labels"].shape[1]),
+    )
 
     # warmup
     ps = pose_stack_from_canonical_form(co, pbt, **canonical_form)

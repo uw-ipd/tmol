@@ -259,6 +259,7 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
         block_type_ind64=_to_cuda(cpu_pose_stack.block_type_ind64),
         chain_id=_to_cuda(cpu_pose_stack.chain_id),
         chain_id64=_to_cuda(cpu_pose_stack.chain_id64),
+        chain_labels=cpu_pose_stack.chain_labels,
         device=cuda_device,
     )
     cuda_kinematics_module = PoseStackKinematicsModule(

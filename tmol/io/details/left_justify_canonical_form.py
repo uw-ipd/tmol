@@ -1,5 +1,7 @@
 import torch
+import numpy
 from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
 from typing import Optional
 from tmol.score.common.stack_condense import (
     condense_torch_inds,
@@ -13,6 +15,7 @@ def left_justify_canonical_form(
     atom_is_present: Optional[Tensor[torch.bool][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
+    chain_labels: Optional[NDArray[str][:, :]] = None,
 ):
     old_res_types_real = res_types != -1
     cinds = condense_torch_inds(old_res_types_real, res_types.device)
@@ -58,4 +61,23 @@ def left_justify_canonical_form(
     if res_not_connected is not None:
         res_not_connected = lj(res_not_connected, False)
 
-    return chain_id, res_types, coords, atom_is_present, disulfides, res_not_connected
+    if chain_labels is not None:
+        new_chain_labels = numpy.full_like(chain_labels, "")
+        # print("new_chain_labels shape:", new_chain_labels.shape)
+        np_nz_cinds = nz_cinds.cpu().numpy()
+        # print("np_nz_cinds:", np_nz_cinds)
+        # print("good_cinds:", good_cinds)
+        new_chain_labels[np_nz_cinds[:, 0], np_nz_cinds[:, 1]] = chain_labels[
+            np_nz_cinds[:, 0], good_cinds.cpu().numpy()
+        ]
+        chain_labels = new_chain_labels
+
+    return (
+        chain_id,
+        res_types,
+        coords,
+        atom_is_present,
+        disulfides,
+        res_not_connected,
+        chain_labels,
+    )

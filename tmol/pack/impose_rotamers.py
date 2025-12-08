@@ -145,6 +145,7 @@ def impose_top_rotamer_assignments(
         block_type_ind64=new_block_type_ind64,
         chain_id=orig_pose_stack.chain_id,
         chain_id64=orig_pose_stack.chain_id64,
+        chain_labels=orig_pose_stack.chain_labels,
         device=device,
     )
     return new_pose_stack

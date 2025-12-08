@@ -141,6 +141,7 @@ def canonical_form_from_rosettafold2(
         chain_id=chain_id,
         res_types=tmol_restypes.to(torch.int32),
         coords=tmol_coords,
+        chain_labels=None,
     )
 
 

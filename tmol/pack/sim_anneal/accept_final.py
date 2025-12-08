@@ -116,5 +116,6 @@ def poses_from_assigned_rotamers(
         block_type_ind64=context_block_type64,
         chain_id=orig_poses.chain_id[pid4c_64],
         chain_id64=orig_poses.chain_id64[pid4c_64],
+        chain_labels=orig_poses.chain_labels[pid4c_64],
         device=orig_poses.device,
     )

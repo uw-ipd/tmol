@@ -25,7 +25,31 @@ def test_build_pose_stack_from_canonical_form_ubq(torch_device, ubq_pdb):
     assert pose_stack.inter_block_bondsep64.device == torch_device
     assert pose_stack.block_type_ind.device == torch_device
     assert pose_stack.block_type_ind64.device == torch_device
+    assert pose_stack.chain_labels.dtype.type is numpy.object_
+    chain_labels_gold = numpy.array([["A"] * 76])
+    numpy.testing.assert_array_equal(pose_stack.chain_labels, chain_labels_gold)
     assert pose_stack.device == torch_device
+
+
+# def test_build_pose_stack_w_chain_labels(torch_device, ubq_pdb):
+#     co = default_canonical_ordering()
+#     pbt = default_packed_block_types(torch_device)
+#     canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
+#     pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+
+#     assert pose_stack.packed_block_types.device == torch_device
+#     assert pose_stack.coords.device == torch_device
+#     assert pose_stack.block_coord_offset.device == torch_device
+#     assert pose_stack.block_coord_offset64.device == torch_device
+#     assert pose_stack.inter_residue_connections.device == torch_device
+#     assert pose_stack.inter_residue_connections64.device == torch_device
+#     assert pose_stack.inter_block_bondsep.device == torch_device
+#     assert pose_stack.inter_block_bondsep64.device == torch_device
+#     assert pose_stack.block_type_ind.device == torch_device
+#     assert pose_stack.block_type_ind64.device == torch_device
+#     assert pose_stack.device == torch_device
+#     assert chain_labels.shape == pose_stack.block_type_ind.shape
+#     assert chain_labels.dtype.type is numpy.object_
 
 
 def test_build_pose_stack_from_canonical_form_pert(torch_device, pertuzumab_pdb):
@@ -135,15 +159,26 @@ def test_build_pose_stack_w_disconn_segs_and_insertions(
         return fill_shape
 
     def add_two_res(x, fill_value):
-        fill_shape = get_add_two_fill_shape(x)
-        return torch.cat(
-            [
-                x[:, :50],
-                torch.full(fill_shape, fill_value, dtype=x.dtype, device=x.device),
-                x[:, 50:],
-            ],
-            dim=1,
-        )
+        if isinstance(x, numpy.ndarray):
+            fill_shape = get_add_two_fill_shape(x)
+            return numpy.concatenate(
+                [
+                    x[:, :50],
+                    numpy.full(fill_shape, fill_value, dtype=x.dtype),
+                    x[:, 50:],
+                ],
+                axis=1,
+            )
+        else:
+            fill_shape = get_add_two_fill_shape(x)
+            return torch.cat(
+                [
+                    x[:, :50],
+                    torch.full(fill_shape, fill_value, dtype=x.dtype, device=x.device),
+                    x[:, 50:],
+                ],
+                dim=1,
+            )
 
     canonical_form = {n: add_two_res(x, -1) for n, x in canonical_form.items()}
 

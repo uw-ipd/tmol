@@ -488,12 +488,14 @@ def canonical_form_from_atom_records(
     )
 
     chains_seen = {}
+    chain_id_to_label = {}
     chain_id_counter = 0  # TO DO: determine if this is wholly redundant w/ "chaini"
     for i, row in atom_records.iterrows():
         resid = (row["chain"], row["resi"], row["insert"])
         res_ind = uniq_res_ind[resid]
         if row["chaini"] not in chains_seen:
             chains_seen[row["chaini"]] = chain_id_counter
+            chain_id_to_label[chain_id_counter] = row["chain"]
             chain_id_counter += 1
         chain_id[0, res_ind] = chains_seen[row["chaini"]]
         if res_types[0, res_ind] == -2:
@@ -522,8 +524,16 @@ def canonical_form_from_atom_records(
     def _tf32(x):
         return torch.tensor(x, dtype=torch.float32, device=device)
 
-    return dict(
+    chain_labels = numpy.empty((1, n_res), dtype=object)
+    for i in range(n_res):
+        if res_types[0, i] >= 0:
+            chain_labels[0, i] = chain_id_to_label[chain_id[0, i]]
+
+    canonical_form = dict(
         chain_id=_ti32(chain_id),
         res_types=_ti32(res_types),
         coords=_tf32(coords),
+        chain_labels=chain_labels,
     )
+
+    return canonical_form

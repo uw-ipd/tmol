@@ -21,8 +21,13 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     co = default_canonical_ordering()
     canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     # unpack
-    (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords) = tuple(
-        canonical_form[x].clone() for x in ["chain_id", "res_types", "coords"]
+    (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels) = tuple(
+        (
+            canonical_form[x].clone()
+            if isinstance(canonical_form[x], torch.Tensor)
+            else canonical_form[x].copy()
+        )
+        for x in ["chain_id", "res_types", "coords", "chain_labels"]
     )
 
     pbt = default_packed_block_types(torch_device)
@@ -35,7 +40,15 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
         cf_orig_chain_id2,
         cf_orig_res_types2,
         cf_orig_coords2,
-    ) = tuple(canonical_form[x].clone() for x in ["chain_id", "res_types", "coords"])
+        cf_orig_chain_labels2,
+    ) = tuple(
+        (
+            canonical_form[x].clone()
+            if isinstance(canonical_form[x], torch.Tensor)
+            else canonical_form[x].copy()
+        )
+        for x in ["chain_id", "res_types", "coords", "chain_labels"]
+    )
 
     (
         chain_id,
@@ -43,6 +56,7 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
         cf_coords,
         disulfides,
         res_not_connected,
+        chain_labels,
     ) = tuple(
         restored_canonical_form[x]
         for x in [
@@ -51,6 +65,7 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
             "coords",
             "disulfides",
             "res_not_connected",
+            "chain_labels",
         ]
     )
 
@@ -63,12 +78,14 @@ def test_canonical_form_from_ubq_pose(ubq_pdb, torch_device):
     numpy.testing.assert_equal(
         cf_orig_coords.cpu().numpy(), cf_orig_coords2.cpu().numpy()
     )
+    numpy.testing.assert_equal(cf_orig_chain_labels, cf_orig_chain_labels2)
 
     assert chain_id.device == torch_device
     assert cf_res_types.device == torch_device
     assert cf_coords.device == torch_device
     assert res_not_connected.device == torch_device
     numpy.testing.assert_equal(chain_id.cpu().numpy(), cf_orig_chain_id.cpu().numpy())
+    numpy.testing.assert_equal(chain_labels, cf_orig_chain_labels)
     numpy.testing.assert_equal(
         cf_res_types.cpu().numpy(), cf_orig_res_types.cpu().numpy()
     )
@@ -95,7 +112,15 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         cf_orig_chain_id4,
         cf_orig_res_types4,
         cf_orig_coords4,
-    ) = tuple(canonical_form4[x].clone() for x in ["chain_id", "res_types", "coords"])
+        cf_orig_chain_labels4,
+    ) = tuple(
+        (
+            canonical_form4[x].clone()
+            if isinstance(canonical_form4[x], torch.Tensor)
+            else canonical_form4[x].copy()
+        )
+        for x in ["chain_id", "res_types", "coords", "chain_labels"]
+    )
 
     canonical_form6 = canonical_form_from_pdb(co, ubq_lines6, torch_device)
     # unpack
@@ -103,7 +128,15 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         cf_orig_chain_id6,
         cf_orig_res_types6,
         cf_orig_coords6,
-    ) = tuple(canonical_form6[x].clone() for x in ["chain_id", "res_types", "coords"])
+        cf_orig_chain_labels6,
+    ) = tuple(
+        (
+            canonical_form6[x].clone()
+            if isinstance(canonical_form6[x], torch.Tensor)
+            else canonical_form6[x].copy()
+        )
+        for x in ["chain_id", "res_types", "coords", "chain_labels"]
+    )
 
     orig_chain_id = torch.full((2, 6), -1, dtype=torch.int32, device=torch_device)
     orig_res_types = torch.full((2, 6), -1, dtype=torch.int32, device=torch_device)
@@ -113,6 +146,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     orig_res_not_connected = torch.zeros(
         (2, 6, 2), dtype=torch.bool, device=torch_device
     )
+    orig_chain_labels = numpy.full((2, 6), "", dtype=object)
 
     orig_chain_id[0, :4] = cf_orig_chain_id4
     orig_chain_id[1, :6] = cf_orig_chain_id6
@@ -122,6 +156,8 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
     orig_coords[1, :6] = cf_orig_coords6
     orig_res_not_connected[0, 3, 1] = True  # don't add OXT
     orig_res_not_connected[1, 5, 1] = True  # don't add OXT
+    orig_chain_labels[0, :4] = cf_orig_chain_labels4
+    orig_chain_labels[1, :6] = cf_orig_chain_labels6
 
     pbt = default_packed_block_types(torch_device)
     pose_stack = pose_stack_from_canonical_form(
@@ -130,6 +166,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         chain_id=orig_chain_id,
         res_types=orig_res_types,
         coords=orig_coords,
+        chain_labels=orig_chain_labels,
         res_not_connected=orig_res_not_connected,
     )
 
@@ -141,6 +178,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
         cf_coords,
         disulfides,
         res_not_connected,
+        chain_labels,
     ) = tuple(
         restored_canonical_form[x]
         for x in [
@@ -149,6 +187,7 @@ def test_canonical_form_from_jagged_ubq_pose(ubq_pdb, torch_device):
             "coords",
             "disulfides",
             "res_not_connected",
+            "chain_labels",
         ]
     )
 
@@ -172,8 +211,13 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
     co = default_canonical_ordering()
     canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
     # unpack and copy before pose stack construction
-    (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords) = tuple(
-        canonical_form[x].clone() for x in ["chain_id", "res_types", "coords"]
+    (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels) = tuple(
+        (
+            canonical_form[x].clone()
+            if isinstance(canonical_form[x], torch.Tensor)
+            else canonical_form[x].copy()
+        )
+        for x in ["chain_id", "res_types", "coords", "chain_labels"]
     )
     cf_orig_at_is_pres = not_any_nancoord(cf_orig_coords)
 
@@ -187,7 +231,15 @@ def test_canonical_form_from_pertuzumab_pose(pertuzumab_pdb, torch_device):
         cf_orig_chain_id2,
         cf_orig_res_types2,
         cf_orig_coords2,
-    ) = tuple(canonical_form[x].clone() for x in ["chain_id", "res_types", "coords"])
+        cf_orig_chain_labels2,
+    ) = tuple(
+        (
+            canonical_form[x].clone()
+            if isinstance(canonical_form[x], torch.Tensor)
+            else canonical_form[x].copy()
+        )
+        for x in ["chain_id", "res_types", "coords", "chain_labels"]
+    )
 
     (
         chain_id,
@@ -259,8 +311,13 @@ def test_canonical_form_from_pertuzumab_and_antigen_pose(
         res_not_connected_orig_np, device=torch_device
     )
     # unpack and copy before pose stack construction
-    (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords) = tuple(
-        canonical_form[x].clone() for x in ["chain_id", "res_types", "coords"]
+    (cf_orig_chain_id, cf_orig_res_types, cf_orig_coords, cf_orig_chain_labels) = tuple(
+        (
+            canonical_form[x].clone()
+            if isinstance(canonical_form[x], torch.Tensor)
+            else canonical_form[x].copy()
+        )
+        for x in ["chain_id", "res_types", "coords", "chain_labels"]
     )
     cf_orig_at_is_pres = not_any_nancoord(cf_orig_coords)
     assert not torch.any(torch.isnan(cf_orig_coords[cf_orig_at_is_pres.to(torch.bool)]))

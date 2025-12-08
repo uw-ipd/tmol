@@ -87,6 +87,9 @@ class PoseStackBuilder:
         chain_id = cls._chain_id_from_pose_stacks(
             pose_stacks, ps_offset, max_n_blocks, device
         )
+        chain_labels = cls._chain_labels_from_pose_stacks(
+            pose_stacks, ps_offset, max_n_blocks, device
+        )
 
         def i64(t):
             return t.to(torch.int64)
@@ -104,6 +107,7 @@ class PoseStackBuilder:
             block_type_ind64=i64(block_type_ind),
             chain_id=chain_id,
             chain_id64=i64(chain_id),
+            chain_labels=chain_labels,
             device=device,
         )
 
@@ -167,6 +171,10 @@ class PoseStackBuilder:
 
         max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
 
+        chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
+        real_res_np = real_res.cpu().numpy()
+        chain_labels[real_res_np] = "A"
+
         return PoseStack(
             packed_block_types=packed_block_types,
             coords=torch.zeros(
@@ -182,6 +190,7 @@ class PoseStackBuilder:
             block_type_ind64=block_type_ind64,
             chain_id=chain_id,
             chain_id64=chain_id.to(torch.int64),
+            chain_labels=chain_labels,
             device=device,
         )
 
@@ -296,6 +305,10 @@ class PoseStackBuilder:
 
         max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
 
+        chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
+        real_res_np = real_res.cpu().numpy()
+        chain_labels[real_res_np] = "A"
+
         return PoseStack(
             packed_block_types=packed_block_types,
             coords=torch.zeros(
@@ -311,6 +324,7 @@ class PoseStackBuilder:
             block_type_ind64=block_type_ind64,
             chain_id=chain_id,
             chain_id64=chain_id.to(torch.int64),
+            chain_labels=chain_labels,
             device=device,
         )
 
@@ -427,6 +441,16 @@ class PoseStackBuilder:
 
         max_n_atoms = torch.max(torch.sum(n_atoms, dim=1)).item()
 
+        max_n_chains = max(len(clens) for clens in chain_lengths)
+        chain_ind_to_label = numpy.array(
+            [chr(ord("A") + i) for i in range(max_n_chains)], dtype=object
+        )
+        chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
+        real_res_np = real_res.cpu().numpy()
+        chain_labels[real_res_np] = chain_ind_to_label[
+            chain_id.cpu().numpy()[real_res_np]
+        ]
+
         return PoseStack(
             packed_block_types=packed_block_types,
             coords=torch.zeros(
@@ -442,6 +466,7 @@ class PoseStackBuilder:
             block_type_ind64=block_type_ind64,
             chain_id=chain_id,
             chain_id64=chain_id.to(torch.int64),
+            chain_labels=chain_labels,
             device=device,
         )
 
@@ -496,6 +521,7 @@ class PoseStackBuilder:
             block_type_ind64=i64(block_type_ind),
             chain_id=ps.chain_id,
             chain_id64=i64(ps.chain_id),
+            chain_labels=ps.chain_labels,
             device=ps.device,
         )
 
@@ -878,6 +904,25 @@ class PoseStackBuilder:
                 pose_stack.chain_id
             )
         return chain_id
+
+    @classmethod
+    @validate_args
+    def _chain_labels_from_pose_stacks(
+        cls,
+        pose_stacks,  # : List["PoseStack"],
+        ps_offsets: Tensor[torch.int64][:],
+        max_n_blocks: int,
+        device: torch.device,
+    ) -> NDArray[object][:, :]:
+        n_poses = sum(len(ps) for ps in pose_stacks)
+        chain_labels = numpy.full((n_poses, max_n_blocks), "", dtype=object)
+        for i, pose_stack in enumerate(pose_stacks):
+            offset = ps_offsets[i]
+            i_nblocks = pose_stack.chain_labels.shape[1]
+            chain_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
+                pose_stack.chain_labels
+            )
+        return chain_labels
 
     @classmethod
     @validate_args

@@ -115,6 +115,7 @@ def canonical_form_from_pose_stack(
         chain_id=chain_id,
         res_types=cf_res_types.to(torch.int32),
         coords=cf_coords,
+        chain_labels=pose_stack.chain_labels,
         disulfides=disulfides,
         res_not_connected=res_not_connected,
     )

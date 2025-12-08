@@ -1,5 +1,6 @@
 import torch
 from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
 from typing import Optional
 from tmol.types.functional import validate_args
 from tmol.pose.pose_stack import PoseStack
@@ -14,6 +15,7 @@ def pose_stack_from_canonical_form(
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
+    chain_labels: Optional[NDArray[object][:, :]],
     *,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
     find_additional_disulfides: Optional[bool] = True,
@@ -161,8 +163,15 @@ def pose_stack_from_canonical_form(
         atom_is_present,
         disulfides,
         res_not_connected,
+        chain_labels,
     ) = left_justify_canonical_form(
-        chain_id, res_types, coords, atom_is_present, disulfides, res_not_connected
+        chain_id,
+        res_types,
+        coords,
+        atom_is_present,
+        disulfides,
+        res_not_connected,
+        chain_labels,
     )
 
     # 3
@@ -238,6 +247,7 @@ def pose_stack_from_canonical_form(
         block_type_ind64=block_types64,
         chain_id=chain_id,
         chain_id64=i64(chain_id),
+        chain_labels=chain_labels,
         device=pbt.device,
     )
 
@@ -272,18 +282,20 @@ def pose_stack_from_canonical_form(
             dim=1,
         )
 
+    # return the variable outputs as a tuple sorted by
+    # pose-stack 1st
+    # chain-ind 2nd
+    # atom-mapping 3rd & 4th
+    # chain-labels 5th
+    # and un-wrap if only pose-stack is requested
+    return_list = [ps]
     if return_chain_ind:
-        if return_atom_mapping:
-            return (
-                ps,
-                chain_id,
-                can_atom_mapping,
-                ps_atom_mapping,
-            )
-        else:
-            return (ps, chain_id)
+        return_list.append(chain_id)
+    if return_atom_mapping:
+        return_list.append(can_atom_mapping)
+        return_list.append(ps_atom_mapping)
+
+    if len(return_list) == 1:
+        return ps
     else:
-        if return_atom_mapping:
-            return (ps, can_atom_mapping, ps_atom_mapping)
-        else:
-            return ps
+        return tuple(return_list)

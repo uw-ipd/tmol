@@ -116,6 +116,7 @@ def canonical_form_from_openfold(openfold_result_dictionary) -> Mapping:
         chain_id=of_chain_ind.to(torch.int32),
         res_types=tmol_restypes.to(torch.int32),
         coords=tmol_coords,
+        chain_labels=None,
     )
 
 
