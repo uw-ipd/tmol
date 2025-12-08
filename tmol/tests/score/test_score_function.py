@@ -84,9 +84,16 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
             new_restypes[0, :-1] = orig_restypes
             new_restypes[0, -1] = vrt_co_ind
 
+            orig_chain_labels = canonical_form.get("chain_labels", None)
+            ocls = orig_chain_labels.shape
+            new_chain_labels = numpy.full((ocls[0], ocls[1] + 1), "", dtype=object)
+            new_chain_labels[0, :-1] = orig_chain_labels
+            new_chain_labels[0, -1] = "V"
+
             canonical_form["coords"] = new_coords
             canonical_form["chain_id"] = new_chain_id
             canonical_form["res_types"] = new_restypes
+            canonical_form["chain_labels"] = new_chain_labels
 
         return pose_stack_from_canonical_form(co, pbt, **canonical_form)
 
