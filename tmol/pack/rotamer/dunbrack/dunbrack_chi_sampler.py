@@ -414,16 +414,16 @@ class DunbrackChiSampler(ChiSampler):
         uniq_block_for_bbt, uniq_inds = torch.unique(block_for_bbt, return_inverse=True)
         uniq_block_for_bbt = uniq_block_for_bbt.to(torch.int64)
 
-        rottable_set_for_bbt = torch.tensor(
+        rottable_set_for_bbt = (
             torch.cat(
                 (
                     uniq_inds.reshape(-1, 1),
                     rottable_set_for_bbt.reshape(-1, 1),
                 ),
                 dim=1,
-            ),
-            dtype=torch.int32,
-            device=self.device,
+            )
+            .to(torch.int32)
+            .to(device=self.device)
         )
 
         # phi_psi_res_inds = numpy.arange(n_sys * max_n_blocks, dtype=numpy.int32)
@@ -740,7 +740,7 @@ class DunbrackChiSampler(ChiSampler):
             new_chi_for_rotamers = torch.zeros(
                 (chi_for_rotamers.shape[0], max_n_chi),
                 dtype=chi_for_rotamers.dtype,
-                device=chi_for_rotamers.device
+                device=chi_for_rotamers.device,
             )
             old_n_chi = chi_for_rotamers.shape[1]
             new_chi_for_rotamers[:, :old_n_chi] = chi_for_rotamers

@@ -969,7 +969,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
 
     gbt_for_conformer_np = gbt_for_conformer.cpu().numpy()
 
-    gbt_for_conformer_torch = _t(gbt_for_conformer, torch.int64)
+    gbt_for_conformer_torch = gbt_for_conformer.to(dtype=torch.int64, device=pbt.device)
 
     # apl: I hope to have fixed that
     # fd NOTE: THIS CODE FAILS IF n_rots_for_gbt CONTAINS 0s
@@ -997,7 +997,7 @@ def build_rotamers(poses: PoseStack, task: PackerTask, chem_db: ChemicalDatabase
         pbt,
         block_type_ind_for_conformer,
         n_atoms_total,
-        torch.tensor(n_atoms_for_conformer, dtype=torch.int32),
+        n_atoms_for_conformer.to(dtype=torch.int32),
         n_atoms_offset_for_conformer,
         pbt.device,
     )

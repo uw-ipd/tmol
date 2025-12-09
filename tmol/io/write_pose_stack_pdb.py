@@ -172,7 +172,7 @@ def atom_records_from_coords(
     results["chain"] = chain_labels[pose_for_real_atom, block_for_real_atom]
 
     # create lookup for atom names
-    bt_names = numpy.array([bt.name[:3] for bt in pbt.active_block_types])
+    bt_names = numpy.array([bt.name3 for bt in pbt.active_block_types])
     bt_atom_names = numpy.empty((pbt.n_types, pbt.max_n_atoms), dtype=object)
     for i, bt in enumerate(pbt.active_block_types):
         for j, at in enumerate(bt.atoms):

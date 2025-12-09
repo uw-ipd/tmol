@@ -233,7 +233,7 @@ class LBFGS_Armijo(Optimizer):
 
         # evaluate initial f(x)
         orig_loss = closure()
-        loss = float(orig_loss)
+        loss = float(orig_loss.detach().cpu().item())
         current_evals = 1
         state["func_evals"] += 1
 

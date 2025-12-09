@@ -233,7 +233,7 @@ class DunbrackEnergyTerm(EnergyTerm):
                 if not isinstance(bt_data, int)
                 else []
             )
-            tensor[slices] = torch.tensor(
+            tensor[tuple(slices)] = torch.tensor(
                 bt_data, dtype=dtype_conversion[dtype], device=device
             )
 
