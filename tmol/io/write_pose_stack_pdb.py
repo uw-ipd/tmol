@@ -58,7 +58,7 @@ def atom_records_from_coords(
     block_types64: Tensor[torch.int64][:, :],
     pose_like_coords: Tensor[torch.float32][:, :, 3],
     block_coord_offset: Tensor[torch.int32][:, :],
-    chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
+    chain_labels=NDArray[str][:, :],
 ) -> NDArray[atom_record_dtype][:]:
     """Create a numpy array holding the atom records needed to write a
     PDB file from the coordinates and block types of a stack of structures,
@@ -169,14 +169,7 @@ def atom_records_from_coords(
         - pose_atom_offsets[pose_for_real_atom]
     )
     results["model"] = pose_for_real_atom + 1
-
-    if chain_labels is None:
-        chain_labels = numpy.array([x for x in "ABCDEFGHIJKLKMNOPQRSTUVWXY"])
-
-    if len(chain_labels.shape) == 1:
-        results["chain"] = chain_labels[chain_ind_for_real_atom]
-    elif len(chain_labels.shape) == 2:
-        results["chain"] = chain_labels[pose_for_real_atom, chain_ind_for_real_atom]
+    results["chain"] = chain_labels[pose_for_real_atom, block_for_real_atom]
 
     # create lookup for atom names
     bt_names = numpy.array([bt.name[:3] for bt in pbt.active_block_types])
