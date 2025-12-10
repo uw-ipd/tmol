@@ -14,6 +14,19 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
 
+import os, sys
+
+
+class HiddenPrints:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, "w")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
+
+
 class ConstraintEnergyTerm(EnergyTerm):
     device: torch.device  # = attr.ib()
 
@@ -39,6 +52,13 @@ class ConstraintEnergyTerm(EnergyTerm):
     def harmonic(cls, atoms, params):
         atoms1 = atoms[:, 0]
         atoms2 = atoms[:, 1]
+        dist = torch.linalg.norm(atoms1 - atoms2, dim=-1)
+        return (dist - params[:, 0]) ** 2
+
+    @classmethod
+    def harmonic_coordinate(cls, atoms, params):
+        atoms1 = atoms[:, 0]
+        atoms2 = params[:, 1:4]
         dist = torch.linalg.norm(atoms1 - atoms2, dim=-1)
         return (dist - params[:, 0]) ** 2
 
@@ -98,16 +118,16 @@ class ConstraintEnergyTerm(EnergyTerm):
     def setup_poses(self, poses: PoseStack):
         super(ConstraintEnergyTerm, self).setup_poses(poses)
 
-    def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        pbt = pose_stack.packed_block_types
+    # def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
+    # pbt = pose_stack.packed_block_types
 
-        return ConstraintWholePoseScoringModule(
-            pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-            pose_stack_block_types=pose_stack.block_type_ind,
-            pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
-            bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
-            constraint_set=pose_stack.get_constraint_set(),
-        )
+    # return ConstraintWholePoseScoringModule(
+    # pose_stack_block_coord_offset=pose_stack.block_coord_offset,
+    # pose_stack_block_types=pose_stack.block_type_ind,
+    # pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
+    # bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
+    # constraint_set=pose_stack.get_constraint_set(),
+    # )
 
     def get_score_term_function(self):
         return self.constraint_pose_scores
@@ -141,41 +161,14 @@ class ConstraintEnergyTerm(EnergyTerm):
         constraint_fn_inds = constraint_set.constraint_function_inds
         constraint_params = constraint_set.constraint_params
 
+        constraint_poses = constraint_atoms[:, :, 0]
+        constraint_blocks = constraint_atoms[:, :, 1]
+        constraint_ats = constraint_atoms[:, :, 2]
+
         onebody = (unique_blocks == 1).nonzero()
         twobody = (unique_blocks == 2).nonzero().squeeze(-1)
         twobody_old = (unique_blocks == 2).nonzero()
         multibody = (unique_blocks > 2).nonzero()
-
-        atom_0_rot_count = n_rots_for_block[
-            constraint_atoms[:, 0, 0], constraint_atoms[:, 0, 1]
-        ]
-        atom_1_rot_count = n_rots_for_block[
-            constraint_atoms[:, 1, 0], constraint_atoms[:, 1, 1]
-        ]
-        atom_2_rot_count = n_rots_for_block[
-            constraint_atoms[:, 2, 0], constraint_atoms[:, 2, 1]
-        ]
-        atom_3_rot_count = n_rots_for_block[
-            constraint_atoms[:, 3, 0], constraint_atoms[:, 3, 1]
-        ]
-
-        atom_0_first_rot = rot_offset_for_block[
-            constraint_atoms[:, 0, 0], constraint_atoms[:, 0, 1]
-        ]
-        atom_1_first_rot = rot_offset_for_block[
-            constraint_atoms[:, 1, 0], constraint_atoms[:, 1, 1]
-        ]
-        atom_2_first_rot = rot_offset_for_block[
-            constraint_atoms[:, 2, 0], constraint_atoms[:, 2, 1]
-        ]
-        atom_3_first_rot = rot_offset_for_block[
-            constraint_atoms[:, 3, 0], constraint_atoms[:, 3, 1]
-        ]
-
-        atom_0_atom_offset = constraint_atoms[:, 0, 2]
-        atom_1_atom_offset = constraint_atoms[:, 1, 2]
-        atom_2_atom_offset = constraint_atoms[:, 2, 2]
-        atom_3_atom_offset = constraint_atoms[:, 2, 2]
 
         rotamerized_atoms = torch.zeros((0, 4), dtype=torch.int32, device=device)
         rotamerized_fn_inds = torch.zeros((0,), dtype=torch.int32, device=device)
@@ -232,131 +225,137 @@ class ConstraintEnergyTerm(EnergyTerm):
                 )
 
         def add_twobody_vectorized():
-            print("twobody vectorized start")
-            # first, compute how many copies of each constraint we get
+            with HiddenPrints():
+                print("twobody vectorized start")
+                # first, compute how many copies of each constraint we get
+                if twobody.count_nonzero() == 0:
+                    return
 
-            print(constraint_atoms)
-            # first, compute the index of the first occurance of the second block, per constraint
-            constraint_poses = constraint_atoms[twobody][:, 0, 0]
-            constraint_blocks = constraint_atoms[twobody][:, :, 1]
-            constraint_ats = constraint_atoms[twobody][:, :, 2]
+                print(constraint_atoms)
+                # first, compute the index of the first occurance of the second block, per constraint
+                constraint_poses = constraint_atoms[twobody][:, 0, 0]
+                constraint_blocks = constraint_atoms[twobody][:, :, 1]
+                constraint_ats = constraint_atoms[twobody][:, :, 2]
 
-            print(constraint_atoms[twobody])
-            print(constraint_blocks)
-            constraint_blocks_rolled = constraint_blocks.roll(shifts=1, dims=-1)
-            constraint_blocks_changed = (
-                constraint_blocks != constraint_blocks_rolled
-            ).to(torch.int32)
-            constraint_blocks_changed[:, 0] = 0
-            constraint_block_first_change = torch.argmax(
-                constraint_blocks_changed, dim=1
-            ).unsqueeze(-1)
+                print(constraint_atoms[twobody])
+                print(constraint_blocks)
+                constraint_blocks_rolled = constraint_blocks.roll(shifts=1, dims=-1)
+                constraint_blocks_changed = (
+                    constraint_blocks != constraint_blocks_rolled
+                ).to(torch.int32)
+                constraint_blocks_changed[:, 0] = 0
+                constraint_block_first_change = torch.argmax(
+                    constraint_blocks_changed, dim=1
+                ).unsqueeze(-1)
 
-            first_block_inds = constraint_blocks[:, 0]
-            second_block_inds = constraint_blocks.gather(
-                1, constraint_block_first_change
-            ).squeeze(-1)
+                first_block_inds = constraint_blocks[:, 0]
+                second_block_inds = constraint_blocks.gather(
+                    1, constraint_block_first_change
+                ).squeeze(-1)
 
-            n_rots_for_first = n_rots_for_block[constraint_poses, first_block_inds]
-            n_rots_for_second = n_rots_for_block[constraint_poses, second_block_inds]
+                n_rots_for_first = n_rots_for_block[constraint_poses, first_block_inds]
+                n_rots_for_second = n_rots_for_block[
+                    constraint_poses, second_block_inds
+                ]
 
-            # now compute how many copies of each constraint we'll need
-            num_copies_per_constraint = n_rots_for_first * n_rots_for_second
-            num_copies_prev_constraint = num_copies_per_constraint.roll(shifts=1)
-            num_copies_prev_constraint[0] = 0
+                # now compute how many copies of each constraint we'll need
+                num_copies_per_constraint = n_rots_for_first * n_rots_for_second
+                num_copies_prev_constraint = num_copies_per_constraint.roll(shifts=1)
+                num_copies_prev_constraint[0] = 0
 
-            # then use repeat_interleave to create new tensors for atoms, fn_inds, and params
-            new_fn_inds = constraint_fn_inds[twobody].repeat_interleave(
-                num_copies_per_constraint
-            )
-            new_params = constraint_params[twobody].repeat_interleave(
-                num_copies_per_constraint, dim=0
-            )
-            new_atoms = torch.zeros(
-                (
-                    new_params.size(0),
-                    4,
-                ),
-                dtype=torch.int32,
-                device=device,
-            )
-            # fn_inds and params are good to go, but the atoms need to be updated to point to the right rotamer atoms
+                # then use repeat_interleave to create new tensors for atoms, fn_inds, and params
+                new_fn_inds = constraint_fn_inds[twobody].repeat_interleave(
+                    num_copies_per_constraint
+                )
+                new_params = constraint_params[twobody].repeat_interleave(
+                    num_copies_per_constraint, dim=0
+                )
+                new_atoms = torch.zeros(
+                    (
+                        new_params.size(0),
+                        4,
+                    ),
+                    dtype=torch.int32,
+                    device=device,
+                )
+                # fn_inds and params are good to go, but the atoms need to be updated to point to the right rotamer atoms
 
-            cs = torch.ones_like(new_fn_inds, dtype=torch.int32)
-            start_inds = num_copies_prev_constraint.cumsum(0)
-            cs[start_inds] = -(num_copies_prev_constraint - 1)
-            print("num_cnstrs", num_copies_per_constraint)
-            print("num_prev_cnstrs", num_copies_prev_constraint)
-            print("PRE-CSUM", cs)
-            cs[0] = 0
-            cs = cs.cumsum(0)
-            print(num_copies_per_constraint)
-            print("CSUM", cs)
+                # 01111-4111-3
+                cs = torch.ones_like(new_fn_inds, dtype=torch.int32)
+                start_inds = num_copies_prev_constraint.cumsum(0)
+                cs[start_inds] = -(num_copies_prev_constraint - 1)
+                print("num_cnstrs", num_copies_per_constraint)
+                print("num_prev_cnstrs", num_copies_prev_constraint)
+                print("PRE-CSUM", cs)
+                cs[0] = 0
+                cs = cs.cumsum(0)
+                print(num_copies_per_constraint)
+                print("CSUM", cs)
 
-            first_nrot_rep = n_rots_for_first.repeat_interleave(
-                num_copies_per_constraint
-            )
-            second_nrot_rep = n_rots_for_second.repeat_interleave(
-                num_copies_per_constraint
-            )
+                first_nrot_rep = n_rots_for_first.repeat_interleave(
+                    num_copies_per_constraint
+                )
+                second_nrot_rep = n_rots_for_second.repeat_interleave(
+                    num_copies_per_constraint
+                )
 
-            first_block_subrot = cs % n_rots_for_first.repeat_interleave(
-                num_copies_per_constraint
-            )
-            second_block_subrot = cs // n_rots_for_first.repeat_interleave(
-                num_copies_per_constraint
-            )
+                first_block_subrot = cs % n_rots_for_first.repeat_interleave(
+                    num_copies_per_constraint
+                )
+                second_block_subrot = cs // n_rots_for_first.repeat_interleave(
+                    num_copies_per_constraint
+                )
 
-            print("n_rots:", first_nrot_rep, second_nrot_rep)
-            print("subrots:", first_block_subrot, second_block_subrot)
+                print("n_rots:", first_nrot_rep, second_nrot_rep)
+                print("subrots:", first_block_subrot, second_block_subrot)
 
-            # first, get the rotamer offset for the first and second unique blocks
-            block_first_rotamer_offset = rot_offset_for_block[
-                constraint_poses, first_block_inds
-            ].repeat_interleave(num_copies_per_constraint)
-            block_second_rotamer_offset = rot_offset_for_block[
-                constraint_poses, second_block_inds
-            ].repeat_interleave(num_copies_per_constraint)
+                # first, get the rotamer offset for the first and second unique blocks
+                block_first_rotamer_offset = rot_offset_for_block[
+                    constraint_poses, first_block_inds
+                ].repeat_interleave(num_copies_per_constraint)
+                block_second_rotamer_offset = rot_offset_for_block[
+                    constraint_poses, second_block_inds
+                ].repeat_interleave(num_copies_per_constraint)
 
-            # compute the rotamer offset from the first rotamer
-            print(
-                "first_coord_offset:",
-                rot_coord_offset[block_first_rotamer_offset + first_block_subrot],
-            )
-            print(
-                "second_coord_offset:",
-                rot_coord_offset[block_second_rotamer_offset + second_block_subrot],
-            )
+                # compute the rotamer offset from the first rotamer
+                print(
+                    "first_coord_offset:",
+                    rot_coord_offset[block_first_rotamer_offset + first_block_subrot],
+                )
+                print(
+                    "second_coord_offset:",
+                    rot_coord_offset[block_second_rotamer_offset + second_block_subrot],
+                )
 
-            # get the matching blocks within each constraint
-            constraint_blocks_match_first = (
-                constraint_blocks == constraint_blocks[:, 0].unsqueeze(-1)
-            ).repeat_interleave(num_copies_per_constraint, dim=0)
-            constraint_blocks_match_second = (
-                constraint_blocks != constraint_blocks[:, 0].unsqueeze(-1)
-            ).repeat_interleave(num_copies_per_constraint, dim=0)
+                # get the matching blocks within each constraint
+                constraint_blocks_match_first = (
+                    constraint_blocks == constraint_blocks[:, 0].unsqueeze(-1)
+                ).repeat_interleave(num_copies_per_constraint, dim=0)
+                constraint_blocks_match_second = (
+                    constraint_blocks != constraint_blocks[:, 0].unsqueeze(-1)
+                ).repeat_interleave(num_copies_per_constraint, dim=0)
 
-            print(constraint_blocks_match_first, constraint_blocks_match_second)
-            print(constraint_ats)
-            atoms_rep = constraint_ats.repeat_interleave(
-                num_copies_per_constraint, dim=0
-            )
+                print(constraint_blocks_match_first, constraint_blocks_match_second)
+                print(constraint_ats)
+                atoms_rep = constraint_ats.repeat_interleave(
+                    num_copies_per_constraint, dim=0
+                )
 
-            print(new_atoms[constraint_blocks_match_second])
-            first_counts_per_row = constraint_blocks_match_first.sum(dim=1)
-            second_counts_per_row = constraint_blocks_match_second.sum(dim=1)
-            new_atoms[constraint_blocks_match_first] = rot_coord_offset[
-                block_first_rotamer_offset + first_block_subrot
-            ].repeat_interleave(first_counts_per_row)
-            new_atoms[constraint_blocks_match_second] = rot_coord_offset[
-                block_second_rotamer_offset + second_block_subrot
-            ].repeat_interleave(second_counts_per_row)
+                print(new_atoms[constraint_blocks_match_second])
+                first_counts_per_row = constraint_blocks_match_first.sum(dim=1)
+                second_counts_per_row = constraint_blocks_match_second.sum(dim=1)
+                new_atoms[constraint_blocks_match_first] = rot_coord_offset[
+                    block_first_rotamer_offset + first_block_subrot
+                ].repeat_interleave(first_counts_per_row)
+                new_atoms[constraint_blocks_match_second] = rot_coord_offset[
+                    block_second_rotamer_offset + second_block_subrot
+                ].repeat_interleave(second_counts_per_row)
 
-            new_atoms += atoms_rep
+                new_atoms += atoms_rep
 
-            print("FINAL ATOMS", new_atoms)
+                print("FINAL ATOMS", new_atoms)
 
-            # combine them
+                # combine them
 
         def add_twobody():
 
@@ -439,19 +438,34 @@ class ConstraintEnergyTerm(EnergyTerm):
                     )
                 )
 
+        # convert all pose+block+atom inds into just global atom inds
+        def add_non_rotamerized_cnstrs():
+
+            # get the rotamer for every constraint atom
+            constraint_rots = rot_offset_for_block[constraint_poses, constraint_blocks]
+
+            # finally, compute the offset into the coordinates tensor
+            constraint_atom_inds = rot_coord_offset[constraint_rots] + constraint_ats
+
+            # print('cstr5',constraint_atom_inds)
+            nonlocal rotamerized_atoms
+            rotamerized_atoms = torch.cat((rotamerized_atoms, constraint_atom_inds))
+
         def add_multibody():
             if torch.max(n_rots_for_block) > 1:
                 return
             pass
 
-        add_twobody_vectorized()
-        add_twobody()
-        exit()
+        # add_twobody_vectorized()
+        # add_twobody()
+        # exit()
 
-        add_onebody()
-        print(rotamerized_atoms)
-        print(rotamerized_fn_inds)
-        print(rotamerized_params)
+        # add_onebody()
+
+        add_non_rotamerized_cnstrs()
+        # print(rotamerized_atoms)
+        # print(rotamerized_fn_inds)
+        # print(rotamerized_params)
 
         # new_constraint_atoms = torch.repeat_interleave(constraint_atoms, n_cnstrs_for_rot_pairs, dim=0)
         # first_rot_for_cnstr = torch.cat([torch.arange])
@@ -466,33 +480,38 @@ class ConstraintEnergyTerm(EnergyTerm):
                 # get the constraints that match this constraint type
                 c_inds = torch.nonzero(types == ind)
 
+                # compute the scores for this function
                 fn_coords = atom_coords[c_inds].squeeze(1)
                 result = fn(fn_coords, params[c_inds].squeeze(1))
                 result = result.unsqueeze(1)
+
+                # add the result to the output tensor
                 cnstr_scores[c_inds] += result
 
             return cnstr_scores
 
+        # extract coordinates from the computed global atom indices
         atom_coords = coords[rotamerized_atoms.flatten()].view(
             rotamerized_atoms.size(0), rotamerized_atoms.size(1), 3
         )
 
+        # score the constraints
         scores = score_cnstrs(
             constraint_set.constraint_functions,
-            rotamerized_fn_inds,
+            constraint_fn_inds,
             atom_coords,
-            rotamerized_params,
+            constraint_params,
         )
 
         if output_block_pair_energies:
             pass
         else:
             # for each pose, sum up the block scores
-            pass
-            # scores = torch.sum(scores, (1, 2))
+            print(constraint_poses.shape)
+            scores = torch.bincount(constraint_poses[:, 0].squeeze(0), weights=scores)
 
-        # wrap this all in an extra dim (the output expects an outer dim to separate sub-terms)
-        # scores = torch.unsqueeze(scores, 0)
-        # print("scores size", scores.unsqueeze(0))
-        # print("inds size", rotamerized_inds.transpose(0,1))
-        return scores.unsqueeze(0), rotamerized_inds.transpose(0, 1)
+        print(scores)
+
+        return scores.unsqueeze(0), constraint_set.constraint_unique_blocks.transpose(
+            0, 1
+        )

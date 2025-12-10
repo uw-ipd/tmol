@@ -14,6 +14,7 @@ class ConstraintSet:
     constraint_atom: Tensor[torch.int][:, 4, 3]
     constraint_params: Tensor[torch.float32][:, :]
     constraint_num_unique_blocks: Tensor[torch.int][:]
+    constraint_unique_blocks: Tensor[torch.int][:, :]
 
     def __init__(self, device):
         self.constraint_function_inds = torch.full(
@@ -27,6 +28,9 @@ class ConstraintSet:
         )
         self.constraint_num_unique_blocks = torch.full(
             (0,), 0, dtype=torch.int32, device=device
+        )
+        self.constraint_unique_blocks = torch.full(
+            (0, 3), 0, dtype=torch.int32, device=device
         )
         self.device = device
         self.constraint_functions = []
@@ -42,12 +46,54 @@ class ConstraintSet:
         diffs = constraint_blocks[:, 1:] != constraint_blocks[:, :-1]
 
         temp = diffs.sum(dim=1) + 1
-        print(temp)
+        # print(temp)
         return temp
 
     def add_constraints_to_all_poses(self, fn, atom_indices, params=None):
         nposes = self.pose_stack.n_poses
         self.add_constraints(fn, atom_indices, params, nposes=nposes)
+
+    def constrain_all_ca(self):
+        ps = self.pose_stack
+        cnstr_atoms = torch.full((0, 1, 3), 0, dtype=torch.int32, device=ps.device)
+        cnstr_params = torch.full((0, 3), 0, dtype=torch.float32, device=ps.device)
+
+        for pose_ind in range(ps.n_poses):
+            for block_ind in range(ps.max_n_blocks):
+                if ps.is_real_block(pose_ind, block_ind):
+                    block_type = ps.block_type(pose_ind, block_ind)
+
+                    # C vs CA? check if has C?
+                    ca_ind = block_type.atom_to_idx["C"]
+                    ca_coords = ps.coords[pose_ind][
+                        ps.block_coord_offset[pose_ind, block_ind] + ca_ind
+                    ]
+
+                    # print('atom_inds',torch.tensor([pose_ind, block_ind, ca_ind]))
+                    # print('ca_coords',ca_coords)
+
+                    cnstr_atoms = torch.cat(
+                        [
+                            cnstr_atoms,
+                            torch.tensor(
+                                [[[pose_ind, block_ind, ca_ind]]],
+                                dtype=torch.int32,
+                                device=ps.device,
+                            ),
+                        ]
+                    )
+                    cnstr_params = torch.cat([cnstr_params, ca_coords.unsqueeze(0)])
+
+        # print(cnstr_atoms)
+        # print(cnstr_params)
+
+        def harmonic_coordinate(atoms, params):
+            atoms1 = atoms[:, 0]
+            atoms2 = params[:, :]
+            dist = torch.linalg.norm(atoms1 - atoms2, dim=-1)
+            return (dist) ** 2
+
+        self.add_constraints(harmonic_coordinate, cnstr_atoms, cnstr_params)
 
     def add_constraints(self, fn, atom_indices, params=None, nposes=0):
         def find_or_insert(value, lst):
@@ -84,6 +130,34 @@ class ConstraintSet:
             raise Exception(
                 "One or more constraints contains atoms from multiple poses"
             )
+
+        constraint_poses = atom_indices[:, 0, 0]
+        constraint_blocks = atom_indices[:, :, 1]
+        constraint_blocks_rolled = constraint_blocks.roll(shifts=1, dims=-1)
+        constraint_blocks_changed = (constraint_blocks != constraint_blocks_rolled).to(
+            torch.int32
+        )
+        constraint_blocks_changed[:, 0] = 0
+        constraint_block_first_change = torch.argmax(
+            constraint_blocks_changed, dim=1
+        ).unsqueeze(-1)
+        first_block_inds = constraint_blocks[:, 0]
+        second_block_inds = constraint_blocks.gather(
+            1, constraint_block_first_change
+        ).squeeze(-1)
+
+        # print("POSES", constraint_poses)
+        # print("BLOCK1", first_block_inds)
+        # print("BLOCK2", second_block_inds)
+        self.constraint_unique_blocks = torch.cat(
+            [
+                self.constraint_unique_blocks,
+                torch.stack(
+                    [constraint_poses, first_block_inds, second_block_inds], dim=1
+                ),
+            ]
+        )
+        # print(self.constraint_unique_blocks)
 
         new_constraint_function_inds = torch.full(
             (num_to_add,), 0, dtype=torch.int32, device=self.device
