@@ -570,8 +570,8 @@ def test_resolve_his_taut_no_his_in_canonical_ordering(
     small_co = CanonicalOrdering.from_chemdb(small_patched_chem_db)
     cf = canonical_form_from_pdb(small_co, ubq_pdb, torch_device, residue_end=1)
 
-    res_types = cf["res_types"]
-    coords = cf["coords"]
+    res_types = cf.res_types
+    coords = cf.coords
     atom_is_present = torch.all(torch.logical_not(torch.isnan(coords)), dim=3)
     orig_res_type_variants = torch.full_like(res_types, 0)
 

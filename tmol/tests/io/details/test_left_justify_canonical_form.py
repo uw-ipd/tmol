@@ -66,12 +66,7 @@ def add_two_res_at_end(x, fill_value):
 
 def cf_as_tuple_from_pdb_lines(co, pdblines, device):
     cf = canonical_form_from_pdb(co, pdblines, device)
-    return (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
-    )
+    return tuple([*cf])
 
 
 def not_any_nancoord(coords):
@@ -84,9 +79,16 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     # take ten residues
-    ch_id_10, can_rts_10, coords_10, ch_lab_10 = cf_as_tuple_from_pdb_lines(
-        co, ubq_pdb[: 81 * 167], torch_device
-    )
+    (
+        ch_id_10,
+        can_rts_10,
+        coords_10,
+        res_lab_10,
+        res_ins_10,
+        ch_lab_10,
+        occ_10,
+        bf_10,
+    ) = cf_as_tuple_from_pdb_lines(co, ubq_pdb[: 81 * 167], torch_device)
 
     # put two empty residues in between res 5 and 6
     add_two_res = partial(add_two_res_at_gap, 5)
@@ -94,25 +96,47 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     ch_id = add_two_res(ch_id_10, 0)
     can_rts = add_two_res(can_rts_10, -1)
     coords = add_two_res(coords_10, float("nan"))
+    res_lab = add_two_res(res_lab_10, 0)
+    res_ins = add_two_res(res_ins_10, "")
     ch_lab = add_two_res(ch_lab_10, "")
+    occ = add_two_res(occ_10, 1.0)
+    bf = add_two_res(bf_10, 0.0)
     at_is_pres_10 = not_any_nancoord(coords_10)
     at_is_pres = not_any_nancoord(coords)
 
-    ch_id, can_rts, coords, at_is_pres, _1, _2, ch_lab = left_justify_canonical_form(
-        ch_id, can_rts, coords, at_is_pres, chain_labels=ch_lab
+    ch_id, can_rts, coords, at_is_pres, _1, _2, res_lab, res_ins, ch_lab, occ, bf = (
+        left_justify_canonical_form(
+            ch_id,
+            can_rts,
+            coords,
+            at_is_pres,
+            res_labels=res_lab,
+            res_ins_codes=res_ins,
+            chain_labels=ch_lab,
+            atom_occupancy=occ,
+            atom_b_factor=bf,
+        )
     )
 
     ch_id_lj_gold = add_two_res_at_end(ch_id_10, -1).cpu().numpy()
     can_rts_lj_gold = add_two_res_at_end(can_rts_10, -1).cpu().numpy()
     coords_lj_gold = add_two_res_at_end(coords_10, float("nan")).cpu().numpy()
     at_is_pres_lj_gold = add_two_res_at_end(at_is_pres_10, False).cpu().numpy()
+    res_lab_lj_gold = add_two_res_at_end(res_lab_10, 0)
+    res_ins_lj_gold = add_two_res_at_end(res_ins_10, "")
     ch_lab_lj_gold = add_two_res_at_end(ch_lab_10, "")
+    occ_lj_gold = add_two_res_at_end(occ_10, 1.0)
+    bf_lj_gold = add_two_res_at_end(bf_10, 0.0)
 
     numpy.testing.assert_equal(ch_id_lj_gold, ch_id.cpu().numpy())
     numpy.testing.assert_equal(can_rts_lj_gold, can_rts.cpu().numpy())
     numpy.testing.assert_equal(coords_lj_gold, coords.cpu().numpy())
     numpy.testing.assert_equal(at_is_pres_lj_gold, at_is_pres.cpu().numpy())
+    numpy.testing.assert_equal(res_lab_lj_gold, res_lab)
+    numpy.testing.assert_equal(res_ins_lj_gold, res_ins)
     numpy.testing.assert_equal(ch_lab_lj_gold, ch_lab)
+    numpy.testing.assert_equal(occ_lj_gold, occ)
+    numpy.testing.assert_equal(bf_lj_gold, bf)
 
 
 def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
@@ -124,7 +148,11 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
         orig_ch_id,
         orig_can_rts,
         orig_coords,
+        orig_res_lab,
+        orig_res_ins,
         orig_ch_lab,
+        orig_occ,
+        orig_bf,
     ) = cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch_device)
 
     # the actual disulfides
@@ -155,7 +183,11 @@ def test_left_justify_can_form_with_gaps_in_dslf(pertuzumab_pdb, torch_device):
         lj_at_is_pres,
         lj_dslf,
         _2,
+        _res_lab,
+        _res_ins,
         ch_lab,
+        _occ,
+        _bf,
     ) = left_justify_canonical_form(
         ch_id, can_rts, coords, at_is_pres, disulfides_shifted, chain_labels=ch_lab
     )
@@ -191,7 +223,11 @@ def test_assign_block_types_for_pert_and_antigen(
         orig_ch_id,
         orig_can_rts,
         orig_coords,
+        orig_res_lab,
+        orig_res_ins,
         orig_ch_lab,
+        orig_occ,
+        orig_bf,
     ) = cf_as_tuple_from_pdb_lines(co, pert_and_erbb2_lines, torch_device)
 
     orig_res_not_connected = torch.tensor(res_not_connected, device=torch_device)
@@ -212,7 +248,11 @@ def test_assign_block_types_for_pert_and_antigen(
         lj_at_is_pres,
         _1,
         lj_res_not_connected,
+        lj_res_lab,
+        lj_res_ins,
         lj_ch_lab,
+        lj_occ,
+        lj_bf,
     ) = left_justify_canonical_form(
         ch_id, can_rts, coords, at_is_pres, None, res_not_connected, chain_labels=ch_lab
     )

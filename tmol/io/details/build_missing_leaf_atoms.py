@@ -57,7 +57,7 @@ def build_missing_leaf_atoms(
         inter_residue_connections,
     )
 
-    return new_pose_coords, block_coord_offset
+    return new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real
 
 
 def _setup_for_leaf_atom_coord_building(

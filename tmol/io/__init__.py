@@ -36,4 +36,7 @@ def pose_stack_from_pdb(
         residue_start=residue_start,
         residue_end=residue_end,
     )
-    return pose_stack_from_canonical_form(co, pbt, **cf, **kwargs)
+    # print("cf.res_labels", cf.res_labels)
+    # print("cf.atom_occupancy", cf.atom_occupancy)
+
+    return pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)

@@ -63,7 +63,7 @@ def pose_stack_system1(
     canonical_form = canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=0, residue_end=2
     )
-    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     # ff_roots = numpy.full((1,), 0, dtype=int)  # residue 0 is the root
     ff_n_edges = numpy.full(
         (1,), 1, dtype=int
@@ -115,7 +115,7 @@ def pose_stack_system2(
     canonical_form = canonical_form_from_pdb(
         co, ubq_pdb, torch_device, residue_start=0, residue_end=6
     )
-    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     # capital letter H fold forest
     # "*" designates the root-jump residue

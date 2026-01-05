@@ -1,10 +1,12 @@
 import torch
+import numpy
 
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.io.canonical_ordering import (
     CanonicalOrdering,
 )
+from tmol.io.canonical_form import CanonicalForm
 from tmol.io.chain_deduction import chain_inds_for_pose_stack
 from tmol.io.details.select_from_canonical import (
     _annotate_packed_block_types_w_canonical_res_order,
@@ -37,7 +39,38 @@ def canonical_form_from_pose_stack(
         real_bt_inds64
     ]
 
-    expanded_coords, _ = pose_stack.expand_coords()
+    expanded_coords, real_expanded_pose_ats = pose_stack.expand_coords()
+    if (
+        pose_stack.pdb_info.atom_occupancy is not None
+        or pose_stack.pdb_info.atom_b_factor is not None
+    ):
+        real_expanded_pose_ats = real_expanded_pose_ats.cpu().numpy()
+        real_atoms = pose_stack.real_atoms.cpu().numpy()
+
+    if pose_stack.pdb_info.atom_b_factor is not None:
+        expanded_b_factor = numpy.full(
+            (n_poses, max_n_res, max_n_atoms_per_res),
+            0.0,
+            dtype=numpy.float32,
+        )
+        expanded_b_factor[real_expanded_pose_ats] = pose_stack.pdb_info.atom_b_factor[
+            real_atoms
+        ]
+    else:
+        expanded_b_factor = None
+
+    if pose_stack.pdb_info.atom_occupancy is not None:
+        expanded_occupancy = numpy.full(
+            (n_poses, max_n_res, max_n_atoms_per_res),
+            0.0,
+            dtype=numpy.float32,
+        )
+        expanded_occupancy[real_expanded_pose_ats] = pose_stack.pdb_info.atom_occupancy[
+            real_atoms
+        ]
+    else:
+        expanded_occupancy = None
+
     block_atom_is_real = torch.zeros(
         (n_poses, max_n_res, max_n_atoms_per_res), dtype=torch.bool, device=device
     )
@@ -111,13 +144,17 @@ def canonical_form_from_pose_stack(
         co, pose_stack, chain_id, is_real_block, real_bt_inds64
     )
 
-    return dict(
+    return CanonicalForm(
         chain_id=chain_id,
         res_types=cf_res_types.to(torch.int32),
         coords=cf_coords,
-        chain_labels=pose_stack.chain_labels,
-        disulfides=disulfides,
+        res_labels=pose_stack.pdb_info.residue_labels,
+        residue_insertion_codes=pose_stack.pdb_info.residue_insertion_codes,
+        chain_labels=pose_stack.pdb_info.chain_labels,
+        atom_occupancy=expanded_occupancy,
+        atom_b_factor=expanded_b_factor,
         res_not_connected=res_not_connected,
+        disulfides=disulfides,
     )
 
 

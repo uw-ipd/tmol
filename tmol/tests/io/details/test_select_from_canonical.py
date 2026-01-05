@@ -36,10 +36,20 @@ def not_any_nancoord(coords):
 def dslf_and_his_resolved_pose_stack_from_canonical_form(
     co, pbt, ch_id, can_rts, coords, at_is_pres, chain_labels
 ):
-    ch_id, can_rts, coords, at_is_pres, _1, _2, chain_labels = (
-        left_justify_canonical_form(
-            ch_id, can_rts, coords, at_is_pres, chain_labels=chain_labels
-        )
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        _1,
+        _2,
+        _res_labs,
+        _res_ins,
+        chain_labels,
+        _occ,
+        _bf,
+    ) = left_justify_canonical_form(
+        ch_id, can_rts, coords, at_is_pres, chain_labels=chain_labels
     )
 
     # 2
@@ -104,10 +114,10 @@ def test_assign_block_types(torch_device, ubq_pdb):
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
     )
     at_is_pres = not_any_nancoord(coords)
     (
@@ -232,10 +242,10 @@ def test_assign_block_types_w_exotic_termini_options(
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
     )
     at_is_pres = not_any_nancoord(coords)
     (
@@ -293,19 +303,19 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
     # first 4 res
     cf4 = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=4)
     ch_id_4, can_rts_4, coords_4, ch_lab_4 = (
-        cf4["chain_id"],
-        cf4["res_types"],
-        cf4["coords"],
-        cf4["chain_labels"],
+        cf4.chain_id,
+        cf4.res_types,
+        cf4.coords,
+        cf4.chain_labels,
     )
     at_is_pres_4 = not_any_nancoord(coords_4)
     # first 6 res
     cf6 = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=6)
     ch_id_6, can_rts_6, coords_6, ch_lab_6 = (
-        cf6["chain_id"],
-        cf6["res_types"],
-        cf6["coords"],
-        cf6["chain_labels"],
+        cf6.chain_id,
+        cf6.res_types,
+        cf6.coords,
+        cf6.chain_labels,
     )
     at_is_pres_6 = not_any_nancoord(coords_6)
 
@@ -394,10 +404,10 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     # take ten residues
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=10)
     ch_id, can_rts, coords, ch_lab = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
     )
     at_is_pres = not_any_nancoord(coords)
 
@@ -492,7 +502,7 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
 
     # Now let's add a virtual residue to the end of the chain
     vrt_co_ind = co.restype_io_equiv_classes.index("VRT")
-    orig_coords = cf["coords"]
+    orig_coords = cf.coords
     ocs = orig_coords.shape
     new_coords = torch.full(
         (ocs[0], ocs[1] + 1, ocs[2], ocs[3]),
@@ -509,7 +519,7 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
     new_coords[0, -1, 0, :] = xyz(26.849, 29.656, 6.217)
     new_coords[0, -1, 1, :] = xyz(26.849, 29.656, 6.217) + xyz(1.0, 0.0, 0.0)
     new_coords[0, -1, 2, :] = xyz(26.849, 29.656, 6.217) + xyz(0.0, 1.0, 0.0)
-    orig_chain_id = cf["chain_id"]
+    orig_chain_id = cf.chain_id
 
     ocis = orig_chain_id.shape
     new_chain_id = torch.zeros(
@@ -520,7 +530,7 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
         0, -1
     ]  # give the vrt res the same chain id as the last residue
 
-    orig_restypes = cf["res_types"]
+    orig_restypes = cf.res_types
     ors = orig_restypes.shape
     new_restypes = torch.full(
         (ors[0], ors[1] + 1), -1, dtype=torch.int32, device=torch_device
@@ -528,7 +538,7 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
     new_restypes[0, :-1] = orig_restypes
     new_restypes[0, -1] = vrt_co_ind
 
-    orig_chain_labels = cf["chain_labels"]
+    orig_chain_labels = cf.chain_labels
     ocls = orig_chain_labels.shape
     new_chain_labels = numpy.full(
         (ocls[0], ocls[1] + 1), "", dtype=orig_chain_labels.dtype
@@ -536,16 +546,24 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
     new_chain_labels[0, :-1] = orig_chain_labels
     new_chain_labels[0, -1] = orig_chain_labels[0, -1]  # same chain label
 
-    cf["coords"] = new_coords
-    cf["chain_id"] = new_chain_id
-    cf["res_types"] = new_restypes
-    cf["chain_labels"] = new_chain_labels
+    cf = evolve(
+        cf,
+        coords=new_coords,
+        chain_id=new_chain_id,
+        res_types=new_restypes,
+        chain_labels=new_chain_labels,
+    )
+
+    # cf.coords = new_coords
+    # cf.chain_id = new_chain_id
+    # cf.res_types = new_restypes
+    # cf.chain_labels = new_chain_labels
 
     ch_id, can_rts, coords, ch_lab = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
     )
     at_is_pres = not_any_nancoord(coords)
 
@@ -592,10 +610,10 @@ def test_assign_block_types_for_pert_and_antigen(
 
     cf = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
     ch_id, can_rts, coords, ch_lab = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
     )
     at_is_pres = not_any_nancoord(coords)
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
@@ -683,10 +701,10 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
     )
     at_is_pres = not_any_nancoord(coords)
     (
@@ -718,7 +736,11 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
         missing_atoms,
         real_atoms,
         real_canonical_atom_inds,
-    ) = take_block_type_atoms_from_canonical(pbt, block_types64, coords, at_is_pres)
+        _occ,
+        _bf,
+    ) = take_block_type_atoms_from_canonical(
+        pbt, block_types64, coords, at_is_pres, cf.atom_occupancy, cf.atom_b_factor
+    )
 
     assert block_coords.device == torch_device
     assert missing_atoms.device == torch_device
@@ -850,10 +872,10 @@ def test_select_best_block_type_candidate_choosing_default_term(
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
     )
     at_is_pres = not_any_nancoord(coords)
 
@@ -967,10 +989,10 @@ def test_select_best_block_type_candidate_w_mult_opts(
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
     )
     at_is_pres = not_any_nancoord(coords)
 
@@ -1049,10 +1071,10 @@ def test_select_best_block_type_candidate_error_impossible_combo(
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
     ch_id, can_rts, coords, ch_lab = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
-        cf["chain_labels"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
     )
     at_is_pres = not_any_nancoord(coords)
 

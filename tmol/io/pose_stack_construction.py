@@ -1,9 +1,11 @@
 import torch
+import numpy
+
 from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 from typing import Optional
 from tmol.types.functional import validate_args
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack import PDBInfo, PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.io.canonical_ordering import CanonicalOrdering
 
@@ -15,11 +17,15 @@ def pose_stack_from_canonical_form(
     chain_id: Tensor[torch.int32][:, :],
     res_types: Tensor[torch.int32][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
+    res_labels: Optional[NDArray[int][:, :]],
+    res_ins_codes: Optional[NDArray[object][:, :]],
     chain_labels: Optional[NDArray[object][:, :]],
-    *,
+    atom_occupancy: Optional[NDArray[numpy.float32][:, :, :]] = None,
+    atom_b_factor: Optional[NDArray[numpy.float32][:, :, :]] = None,
     disulfides: Optional[Tensor[torch.int64][:, 3]] = None,
-    find_additional_disulfides: Optional[bool] = True,
     res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
+    *,
+    find_additional_disulfides: Optional[bool] = True,
     return_chain_ind: bool = False,
     return_atom_mapping: bool = False,
 ):
@@ -163,7 +169,11 @@ def pose_stack_from_canonical_form(
         atom_is_present,
         disulfides,
         res_not_connected,
+        res_labels,
+        res_ins_codes,
         chain_labels,
+        atom_occupancy,
+        atom_b_factor,
     ) = left_justify_canonical_form(
         chain_id,
         res_types,
@@ -171,7 +181,11 @@ def pose_stack_from_canonical_form(
         atom_is_present,
         disulfides,
         res_not_connected,
+        res_labels,
+        res_ins_codes,
         chain_labels,
+        atom_occupancy,
+        atom_b_factor,
     )
 
     # 3
@@ -211,19 +225,23 @@ def pose_stack_from_canonical_form(
         missing_atoms,
         real_atoms,
         real_canonical_atom_inds,
+        atom_occupancy,
+        atom_b_factor,
     ) = take_block_type_atoms_from_canonical(
-        pbt, block_types64, coords, atom_is_present
+        pbt, block_types64, coords, atom_is_present, atom_occupancy, atom_b_factor
     )
 
     # 7
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
-    pose_stack_coords, block_coord_offset = build_missing_leaf_atoms(
-        pbt,
-        block_types64,
-        real_atoms,
-        block_coords,
-        missing_atoms,
-        inter_residue_connections,
+    pose_stack_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
+        build_missing_leaf_atoms(
+            pbt,
+            block_types64,
+            real_atoms,
+            block_coords,
+            missing_atoms,
+            inter_residue_connections,
+        )
     )
 
     def i64(x):
@@ -233,6 +251,30 @@ def pose_stack_from_canonical_form(
         return x.to(torch.int32)
 
     # 8
+    if atom_occupancy is not None or atom_b_factor is not None:
+        real_block_atoms = real_block_atoms.cpu().numpy()
+        pose_at_is_real = pose_at_is_real.cpu().numpy()
+    if atom_occupancy is not None:
+        atom_occupancy_pose_layout = numpy.full(
+            pose_stack_coords.shape[:2], 1.0, dtype=numpy.float32
+        )
+        atom_occupancy_pose_layout[pose_at_is_real] = atom_occupancy[real_block_atoms]
+        atom_occupancy = atom_occupancy_pose_layout
+    if atom_b_factor is not None:
+        atom_b_factor_pose_layout = numpy.full(
+            pose_stack_coords.shape[:2], 0.0, dtype=numpy.float32
+        )
+        atom_b_factor_pose_layout[pose_at_is_real] = atom_b_factor[real_block_atoms]
+        atom_b_factor = atom_b_factor_pose_layout
+
+    pdb_info = PDBInfo(
+        residue_labels=res_labels,
+        residue_insertion_codes=res_ins_codes,
+        chain_labels=chain_labels,
+        atom_occupancy=atom_occupancy,
+        atom_b_factor=atom_b_factor,
+    )
+
     block_coord_offset64 = i64(block_coord_offset)
     ps = PoseStack(
         packed_block_types=pbt,
@@ -247,7 +289,7 @@ def pose_stack_from_canonical_form(
         block_type_ind64=block_types64,
         chain_id=chain_id,
         chain_id64=i64(chain_id),
-        chain_labels=chain_labels,
+        pdb_info=pdb_info,
         device=pbt.device,
     )
 

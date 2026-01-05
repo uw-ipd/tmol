@@ -19,7 +19,7 @@ from tmol.chemical.restypes import (
 )
 
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pose_stack import PDBInfo, PoseStack
 
 from tmol.utility.tensor.common_operations import (
     exclusive_cumsum1d,
@@ -87,9 +87,10 @@ class PoseStackBuilder:
         chain_id = cls._chain_id_from_pose_stacks(
             pose_stacks, ps_offset, max_n_blocks, device
         )
-        chain_labels = cls._chain_labels_from_pose_stacks(
-            pose_stacks, ps_offset, max_n_blocks, device
-        )
+        # chain_labels = cls._chain_labels_from_pose_stacks(
+        #     pose_stacks, ps_offset, max_n_blocks, device
+        # )
+        pdb_info = cls._pdb_info_from_pose_stacks(pose_stacks, ps_offset, max_n_blocks)
 
         def i64(t):
             return t.to(torch.int64)
@@ -107,7 +108,7 @@ class PoseStackBuilder:
             block_type_ind64=i64(block_type_ind),
             chain_id=chain_id,
             chain_id64=i64(chain_id),
-            chain_labels=chain_labels,
+            pdb_info=pdb_info,
             device=device,
         )
 
@@ -445,11 +446,11 @@ class PoseStackBuilder:
         chain_ind_to_label = numpy.array(
             [chr(ord("A") + i) for i in range(max_n_chains)], dtype=object
         )
-        chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
+        # chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
         real_res_np = real_res.cpu().numpy()
-        chain_labels[real_res_np] = chain_ind_to_label[
-            chain_id.cpu().numpy()[real_res_np]
-        ]
+        # chain_labels[real_res_np] = chain_ind_to_label[
+        #     chain_id.cpu().numpy()[real_res_np]
+        # ]
 
         return PoseStack(
             packed_block_types=packed_block_types,
@@ -904,6 +905,54 @@ class PoseStackBuilder:
                 pose_stack.chain_id
             )
         return chain_id
+
+    @classmethod
+    def _pdb_info_from_pose_stacks(
+        cls,
+        pose_stacks,  # : List["PoseStack"],
+        ps_offsets: Tensor[torch.int64][:],
+        max_n_blocks: int,
+    ) -> PDBInfo:
+        ps_offsets = ps_offsets.cpu().numpy()
+
+        n_poses = sum(len(ps) for ps in pose_stacks)
+        max_n_atoms = max(ps.coords.shape[1] for ps in pose_stacks)
+
+        residue_labels = numpy.full((n_poses, max_n_blocks), 0, dtype=int)
+        residue_insertion_codes = numpy.full((n_poses, max_n_blocks), "", dtype=object)
+        chain_labels = numpy.full((n_poses, max_n_blocks), "", dtype=object)
+        atom_occupancy = numpy.full((n_poses, max_n_atoms), 1.0, dtype=numpy.float32)
+        atom_b_factor = numpy.full((n_poses, max_n_atoms), 0.0, dtype=numpy.float32)
+
+        for i, pose_stack in enumerate(pose_stacks):
+            offset = ps_offsets[i]
+            i_nblocks = pose_stack.pdb_info.residue_labels.shape[1]
+            residue_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
+                pose_stack.pdb_info.residue_labels
+            )
+            residue_insertion_codes[offset : (offset + len(pose_stack)), :i_nblocks] = (
+                pose_stack.pdb_info.residue_insertion_codes
+            )
+            chain_labels[offset : (offset + len(pose_stack)), :i_nblocks] = (
+                pose_stack.pdb_info.chain_labels
+            )
+            i_natoms = pose_stack.coords.shape[1]
+            # print("i", i, "i_natoms", i_natoms)
+            # print("atom_occupancy shape", atom_occupancy.shape)
+            # print("pose_stack atom_occupancy shape", pose_stack.pdb_info.atom_occupancy.shape)
+            atom_occupancy[offset : (offset + len(pose_stack)), :i_natoms] = (
+                pose_stack.pdb_info.atom_occupancy
+            )
+            atom_b_factor[offset : (offset + len(pose_stack)), :i_natoms] = (
+                pose_stack.pdb_info.atom_b_factor
+            )
+        return PDBInfo(
+            residue_labels=residue_labels,
+            residue_insertion_codes=residue_insertion_codes,
+            chain_labels=chain_labels,
+            atom_occupancy=atom_occupancy,
+            atom_b_factor=atom_b_factor,
+        )
 
     @classmethod
     @validate_args

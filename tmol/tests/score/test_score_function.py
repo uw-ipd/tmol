@@ -95,7 +95,7 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
             canonical_form["res_types"] = new_restypes
             canonical_form["chain_labels"] = new_chain_labels
 
-        return pose_stack_from_canonical_form(co, pbt, **canonical_form)
+        return pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     ps_wo_vrt = PoseStackBuilder.from_poses(
         [pose_stack_of_nres(x, False) for x in [4, 6, 5]], torch_device

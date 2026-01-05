@@ -131,7 +131,7 @@ def pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums=None):
     )
 
     pose_stack = pose_stack_from_canonical_form(
-        canonical_ordering, packed_block_types, **canonical_form
+        canonical_ordering, packed_block_types, *canonical_form
     )
     return pose_stack
 

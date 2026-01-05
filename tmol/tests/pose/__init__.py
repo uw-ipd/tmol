@@ -39,7 +39,7 @@ def stack_of_two_six_res_ubqs(ubq_pdb, torch_device):
         co, ubq_pdb, torch_device, residue_start=0, residue_end=6
     )
 
-    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     return PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
 
 
@@ -55,7 +55,7 @@ def stack_of_two_six_res_ubqs_no_term(ubq_pdb, torch_device):
     res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
     res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
     pose_stack = pose_stack_from_canonical_form(
-        co, pbt, **canonical_form, res_not_connected=res_not_connected
+        co, pbt, *canonical_form, res_not_connected=res_not_connected
     )
     return PoseStackBuilder.from_poses([pose_stack, pose_stack], torch_device)
 
@@ -69,7 +69,7 @@ def jagged_stack_of_465_res_ubqs(ubq_pdb, torch_device):
         canonical_form = canonical_form_from_pdb(
             co, ubq_pdb, torch_device, residue_start=0, residue_end=nres
         )
-        return pose_stack_from_canonical_form(co, pbt, **canonical_form)
+        return pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     return PoseStackBuilder.from_poses(
         [pose_stack_of_nres(x) for x in [4, 6, 5]], torch_device

@@ -5,6 +5,7 @@ import attr
 from collections import defaultdict
 from typing import Optional, Tuple
 from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
 from tmol.types.functional import validate_args
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -630,6 +631,8 @@ def take_block_type_atoms_from_canonical(
     block_types64: Tensor[torch.int64][:, :],
     coords: Tensor[torch.float32][:, :, :, 3],
     atom_is_present: Tensor[torch.bool][:, :, :],
+    atom_occupancy: Optional[NDArray[numpy.float32][:, :, :]] = None,
+    atom_b_factor: Optional[NDArray[numpy.float32][:, :, :]] = None,
 ):
     """Now that we have decided which block type each canonical residue
     is, we want to select only those atoms from the canonically-ordered
@@ -679,7 +682,34 @@ def take_block_type_atoms_from_canonical(
         atom_is_present[nz_real_pose_ind, nz_real_block_ind, real_canonical_atom_inds]
     )
 
-    return (block_coords, missing_atoms, real_atoms, real_canonical_atom_inds)
+    canonical_atom_occupancy = numpy.zeros(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+    )
+    canonical_atom_b_factor = numpy.zeros(
+        (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+    )
+
+    if atom_occupancy is not None:
+        canonical_atom_occupancy[real_atoms.cpu().numpy()] = atom_occupancy[
+            nz_real_pose_ind.cpu().numpy(),
+            nz_real_block_ind.cpu().numpy(),
+            real_canonical_atom_inds.cpu().numpy(),
+        ]
+    if atom_b_factor is not None:
+        canonical_atom_b_factor[real_atoms.cpu().numpy()] = atom_b_factor[
+            nz_real_pose_ind.cpu().numpy(),
+            nz_real_block_ind.cpu().numpy(),
+            real_canonical_atom_inds.cpu().numpy(),
+        ]
+
+    return (
+        block_coords,
+        missing_atoms,
+        real_atoms,
+        real_canonical_atom_inds,
+        canonical_atom_occupancy,
+        canonical_atom_b_factor,
+    )
 
 
 @attr.s(auto_attribs=True, frozen=True)

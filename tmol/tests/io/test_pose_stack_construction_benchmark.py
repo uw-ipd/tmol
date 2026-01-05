@@ -19,12 +19,12 @@ def test_build_pose_stack_from_canonical_form_ubq_benchmark(
     canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
 
     # warmup
-    p = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    p = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     assert p.coords.shape[0] == 1
 
     @benchmark
     def create_pose_stack():
-        pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+        pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
         return pose_stack
 
 
@@ -37,12 +37,12 @@ def test_build_pose_stack_from_canonical_form_pert_benchmark(
     canonical_form = canonical_form_from_pdb(co, pertuzumab_pdb, torch_device)
 
     # warmup
-    p = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    p = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     assert p.coords.shape[0] == 1
 
     @benchmark
     def create_pose_stack():
-        pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+        pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
         return pose_stack
 
 
@@ -53,7 +53,7 @@ def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
     canonical_form = canonical_form_from_pdb(co, ubq_pdb, torch_device)
 
     # warmup
-    ps = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    ps = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     sfxn = beta2016_score_function(torch_device)
     scorer = sfxn.render_whole_pose_scoring_module(ps)
     sc = scorer(ps.coords)
@@ -61,7 +61,7 @@ def test_build_and_score_ubq_benchmark(benchmark, torch_device, ubq_pdb):
 
     @benchmark
     def create_and_score_pose_stack():
-        pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+        pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
         scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
         score = scorer(pose_stack.coords)
 
@@ -91,12 +91,12 @@ def test_build_pose_stack_from_canonical_form_pertuzumab_benchmark(
     )
 
     # warmup
-    p = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    p = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     assert p.coords.shape[0] == n_poses
 
     @benchmark
     def create_pose_stack():
-        pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+        pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
         return pose_stack
 
 
@@ -119,7 +119,7 @@ def test_build_and_score_pertuzumab_benchmark(
     )
 
     # warmup
-    ps = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    ps = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     sfxn = beta2016_score_function(torch_device)
     scorer = sfxn.render_whole_pose_scoring_module(ps)
     sc = scorer(ps.coords)
@@ -127,7 +127,7 @@ def test_build_and_score_pertuzumab_benchmark(
 
     @benchmark
     def create_and_score_pose_stack():
-        pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+        pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
         scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
         score = scorer(pose_stack.coords)
 

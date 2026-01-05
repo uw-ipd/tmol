@@ -37,7 +37,7 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
     res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
     res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
     pose_stack = pose_stack_from_canonical_form(
-        co, pbt, **canonical_form, res_not_connected=res_not_connected
+        co, pbt, *canonical_form, res_not_connected=res_not_connected
     )
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
@@ -81,7 +81,7 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
     res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
     res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
     pose_stack = pose_stack_from_canonical_form(
-        co, pbt, **canonical_form, res_not_connected=res_not_connected
+        co, pbt, *canonical_form, res_not_connected=res_not_connected
     )
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
@@ -441,7 +441,7 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
     res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
     res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
     pose_stack = pose_stack_from_canonical_form(
-        co, pbt, **canonical_form, res_not_connected=res_not_connected
+        co, pbt, *canonical_form, res_not_connected=res_not_connected
     )
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs

@@ -57,9 +57,9 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
         can_rts,
         coords,
     ) = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
     )
     at_is_pres = not_any_nancoord(coords)
 
@@ -88,8 +88,10 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
         found_disulfides,
     )
 
-    block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
-        pbt, block_types64, coords, at_is_pres
+    block_coords, missing_atoms, real_atoms, _, _occ, _b_factor = (
+        take_block_type_atoms_from_canonical(
+            pbt, block_types64, coords, at_is_pres, cf.atom_occupancy, cf.atom_b_factor
+        )
     )
 
     # now let's just say that all the hydrogen atoms are missing so we can build
@@ -117,14 +119,23 @@ def test_build_missing_leaf_atoms(torch_device, ubq_pdb):
     missing_atoms[block_at_to_rebuild] = True
 
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
-    new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
-        pbt,
-        block_types64,
-        real_atoms,
-        block_coords,
-        missing_atoms,
-        inter_residue_connections,
+    new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
+        build_missing_leaf_atoms(
+            pbt,
+            block_types64,
+            real_atoms,
+            block_coords,
+            missing_atoms,
+            inter_residue_connections,
+        )
     )
+
+    assert real_block_atoms.shape[0] == n_poses
+    assert real_block_atoms.shape[1] == max_n_blocks
+    assert real_block_atoms.shape[2] == pbt.max_n_atoms
+
+    assert pose_at_is_real.shape[0] == n_poses
+    assert pose_at_is_real.shape[1] == new_pose_coords.shape[1]
 
     # now expand the pose coords back out to n-poses x max-n-res x max-n-ats x 3
     # and then lets compare the coordinates of the newly built coordinates to what
@@ -161,15 +172,15 @@ def test_build_missing_leaf_atoms_error_handling(torch_device, ubq_pdb):
     co = default_canonical_ordering()
     pbt = default_packed_block_types(torch_device)
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    cf["coords"][0, :, 1, :] = numpy.nan  # turn off all the CAlphas!
+    cf.coords[0, :, 1, :] = numpy.nan  # turn off all the CAlphas!
     (
         ch_id,
         can_rts,
         coords,
     ) = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
     )
 
     at_is_pres = not_any_nancoord(coords)
@@ -199,8 +210,10 @@ def test_build_missing_leaf_atoms_error_handling(torch_device, ubq_pdb):
         found_disulfides,
     )
 
-    block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
-        pbt, block_types64, coords, at_is_pres
+    block_coords, missing_atoms, real_atoms, _, _occ, _bf = (
+        take_block_type_atoms_from_canonical(
+            pbt, block_types64, coords, at_is_pres, cf.atom_occupancy, cf.atom_b_factor
+        )
     )
 
     # now let's just say that all the hydrogen atoms are missing so we can build
@@ -269,9 +282,9 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
         can_rts,
         coords,
     ) = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
     )
     at_is_pres = not_any_nancoord(coords)
 
@@ -312,13 +325,15 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
                 found_disulfides,
             )
 
-            (
-                block_coords,
-                missing_atoms,
-                real_atoms,
-                _,
-            ) = take_block_type_atoms_from_canonical(
-                pbt, block_types64, self.coords, at_is_pres
+            (block_coords, missing_atoms, real_atoms, _, _occ, _bf) = (
+                take_block_type_atoms_from_canonical(
+                    pbt,
+                    block_types64,
+                    self.coords,
+                    at_is_pres,
+                    cf.atom_occupancy,
+                    cf.atom_b_factor,
+                )
             )
 
             # now let's just say that all the hydrogen atoms are missing so we can build
@@ -352,13 +367,15 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
             missing_atoms[block_at_to_rebuild] = True
 
             inter_residue_connections = inter_residue_connections64.to(torch.int32)
-            new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
-                pbt,
-                block_types64,
-                real_atoms,
-                block_coords,
-                missing_atoms,
-                inter_residue_connections,
+            new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
+                build_missing_leaf_atoms(
+                    pbt,
+                    block_types64,
+                    real_atoms,
+                    block_coords,
+                    missing_atoms,
+                    inter_residue_connections,
+                )
             )
 
             return torch.sum(new_pose_coords[:, :, :])
@@ -385,9 +402,9 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
         can_rts,
         coords,
     ) = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
     )
     at_is_pres = not_any_nancoord(coords)
 
@@ -423,8 +440,10 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
         res_not_connected,
     )
 
-    block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
-        pbt, block_types64, coords, at_is_pres
+    block_coords, missing_atoms, real_atoms, _, _occ, _bf = (
+        take_block_type_atoms_from_canonical(
+            pbt, block_types64, coords, at_is_pres, cf.atom_occupancy, cf.atom_b_factor
+        )
     )
 
     # now let's just say that all the hydrogen atoms are missing so we can build
@@ -453,13 +472,15 @@ def test_coord_sum_gradcheck(torch_device, ubq_pdb):
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
 
     def coord_score(block_coords):
-        new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
-            pbt,
-            block_types64,
-            real_atoms,
-            block_coords,
-            missing_atoms,
-            inter_residue_connections,
+        new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
+            build_missing_leaf_atoms(
+                pbt,
+                block_types64,
+                real_atoms,
+                block_coords,
+                missing_atoms,
+                inter_residue_connections,
+            )
         )
         return torch.sum(new_pose_coords[:])
 
@@ -481,9 +502,9 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
         can_rts,
         coords,
     ) = (
-        cf["chain_id"],
-        cf["res_types"],
-        cf["coords"],
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
     )
     at_is_pres = not_any_nancoord(coords)
     # currently: don't treat this as MET:nterm:cterm even though it is both the first
@@ -518,8 +539,10 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
         res_not_connected,
     )
 
-    block_coords, missing_atoms, real_atoms, _ = take_block_type_atoms_from_canonical(
-        pbt, block_types64, coords, at_is_pres
+    block_coords, missing_atoms, real_atoms, _, _occ, _bf = (
+        take_block_type_atoms_from_canonical(
+            pbt, block_types64, coords, at_is_pres, cf.atom_occupancy, cf.atom_b_factor
+        )
     )
 
     # now let's just say that all the hydrogen atoms are missing so we can build
@@ -546,24 +569,28 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
     missing_atoms[block_at_to_rebuild] = True
 
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
-    new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
-        pbt,
-        block_types64,
-        real_atoms,
-        block_coords,
-        missing_atoms,
-        inter_residue_connections,
+    new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
+        build_missing_leaf_atoms(
+            pbt,
+            block_types64,
+            real_atoms,
+            block_coords,
+            missing_atoms,
+            inter_residue_connections,
+        )
     )
 
     def coord_score(bc):
         # nonlocal new_pose_coords
-        new_pose_coords, block_coord_offset = build_missing_leaf_atoms(
-            pbt,
-            block_types64,
-            real_atoms,
-            bc,
-            missing_atoms,
-            inter_residue_connections,
+        new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
+            build_missing_leaf_atoms(
+                pbt,
+                block_types64,
+                real_atoms,
+                bc,
+                missing_atoms,
+                inter_residue_connections,
+            )
         )
 
         # slice the coords tensor to create a temp that will avoid a stride of 0

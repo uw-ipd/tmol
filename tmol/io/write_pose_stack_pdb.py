@@ -47,7 +47,10 @@ def atom_records_from_pose_stack(
         pose_stack.block_type_ind64,
         pose_stack.coords,
         pose_stack.block_coord_offset,
-        pose_stack.chain_labels,
+        pose_stack.pdb_info.residue_ids,
+        pose_stack.pdb_info.residue_insertion_codes,
+        pose_stack.pdb_info.chain_labels,
+        pose_stack.pdb_info.bfactors,
     )
 
 
@@ -58,7 +61,10 @@ def atom_records_from_coords(
     block_types64: Tensor[torch.int64][:, :],
     pose_like_coords: Tensor[torch.float32][:, :, 3],
     block_coord_offset: Tensor[torch.int32][:, :],
-    chain_labels=NDArray[str][:, :],
+    residue_ids: NDArray[str][:, :],
+    residue_insertion_codes: NDArray[str][:, :],
+    chain_labels: NDArray[str][:, :],
+    bfactors: NDArray[float][:, :],
 ) -> NDArray[atom_record_dtype][:]:
     """Create a numpy array holding the atom records needed to write a
     PDB file from the coordinates and block types of a stack of structures,
@@ -134,6 +140,50 @@ def atom_records_from_coords(
         atom_is_real
     ]
 
+    # BEGIN BLOCK OF CODE FOR CREATING FROM-1 RESIDUE INDICES FROM CHAIN INDICES
+    max_n_chains = torch.max(chain_ind_for_block) + 1
+    global_chain_ind_for_block = (
+        chain_ind_for_block
+        + (
+            torch.arange(n_poses, dtype=torch.int64, device=pbt.device).unsqueeze(1)
+            * max_n_chains
+        )
+    ).view(-1)
+    n_blocks_per_global_chain = torch.zeros(
+        (n_poses * max_n_chains), dtype=torch.int64, device=pbt.device
+    )
+    print(
+        "index add?",
+        n_poses,
+        max_n_chains,
+        "global_chain_ind_for_block",
+        global_chain_ind_for_block.shape,
+        "is_real_block.view(-1).shape",
+        is_real_block.view(-1).shape,
+    )
+    n_blocks_per_global_chain.index_add_(
+        0,
+        global_chain_ind_for_block,
+        is_real_block.to(torch.int64).view(-1),
+    )
+    n_blocks_per_chain = n_blocks_per_global_chain.view(n_poses, max_n_chains)
+
+    block_offset_for_chain = torch.zeros(
+        (n_poses, max_n_chains), dtype=torch.int64, device=pbt.device
+    )
+    block_offset_for_chain[:, 1:] = torch.cumsum(n_blocks_per_chain[:, :-1], dim=1)
+    # END BLOCK OF CODE FOR CREATING FROM-1 RESIDUE INDICES FROM CHAIN INDICES
+
+    block_chain_local_index_for_real_atom = (
+        block_for_atom
+        - block_offset_for_chain[
+            pose_for_pose_atom, chain_ind_for_block[pose_for_pose_atom, block_for_atom]
+        ]
+    )
+    print(
+        "block_chain_local_index_for_real_atom:", block_chain_local_index_for_real_atom
+    )
+
     pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
 
     # ok, let's move everything to the cpu/numpy from here forward
@@ -148,6 +198,9 @@ def atom_records_from_coords(
     atom_is_real = atom_is_real.cpu().numpy()
     block_for_atom = block_for_atom.cpu().numpy()
     block_for_real_atom = block_for_real_atom.cpu().numpy()
+    block_chain_local_index_for_real_atom = (
+        block_chain_local_index_for_real_atom.cpu().numpy()
+    )
     block_local_atom_index_for_real_atom = (
         block_local_atom_index_for_real_atom.cpu().numpy()
     )
@@ -162,7 +215,7 @@ def atom_records_from_coords(
     results["record_name"] = numpy.full((n_atoms_total,), "ATOM  ", dtype=str)
     results["modeli"] = pose_for_real_atom
     results["chaini"] = chain_ind_for_real_atom
-    results["resi"] = block_for_atom[atom_is_real] + 1
+    results["resi"] = block_chain_local_index_for_real_atom + 1
     results["atomi"] = (
         numpy.arange(n_atoms_total, dtype=int)
         + 1

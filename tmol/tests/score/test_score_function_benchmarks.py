@@ -210,7 +210,7 @@ def test_build_posestack(
         canonical_form = canonical_form_from_pdb(
             co, systems_bysize[system_size], torch_device
         )
-        _ = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+        _ = pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     setup
 
@@ -225,7 +225,7 @@ def test_render_module(
     canonical_form = canonical_form_from_pdb(
         co, systems_bysize[system_size], torch_device
     )
-    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
     @benchmark
     def setup():
@@ -243,7 +243,7 @@ def test_full(benchmark, systems_bysize, system_size, torch_device):
     canonical_form = canonical_form_from_pdb(
         co, systems_bysize[system_size], torch_device
     )
-    pose_stack = pose_stack_from_canonical_form(co, pbt, **canonical_form)
+    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     pose_stack.coords.requires_grad_(True)
 
     sfxn = beta2016_score_function(torch_device)

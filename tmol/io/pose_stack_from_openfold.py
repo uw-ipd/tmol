@@ -32,9 +32,9 @@ def pose_stack_from_openfold(openfold_result_dictionary, **kwargs) -> PoseStack:
     cf = canonical_form_from_openfold(openfold_result_dictionary)
 
     co = canonical_ordering_for_openfold()
-    pbt = packed_block_types_for_openfold(cf["coords"].device)
+    pbt = packed_block_types_for_openfold(cf.coords.device)
 
-    return pose_stack_from_canonical_form(co, pbt, **cf, **kwargs)
+    return pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)
 
 
 @validate_args
@@ -56,7 +56,7 @@ def canonical_form_from_openfold(openfold_result_dictionary) -> Mapping:
         cf2 = {x: y.to(device) for x,y in torch.load("saved_canonical_form.pt")}
         co = canonical_ordering_for_openfold()
         pbt = packed_block_types_for_openfold(device)
-        pose_stack = tmol.pose_stack_from_canonical_form(co, pbt, **cf2)
+        pose_stack = tmol.pose_stack_from_canonical_form(co, pbt, *cf2)
 
     """
 
