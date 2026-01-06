@@ -122,7 +122,7 @@ def test_find_disulfide_pairs():
 
 def test_find_disulf_in_pdb(pertuzumab_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf = (
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
         cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch.device("cpu"))
     )
 
@@ -145,7 +145,7 @@ def test_find_disulf_in_pdb(pertuzumab_pdb):
 
 def test_find_disulf_w_some_provided(pertuzumab_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf = (
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
         cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch.device("cpu"))
     )
 
@@ -174,7 +174,7 @@ def test_find_disulf_w_some_provided(pertuzumab_pdb):
 
 def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf = (
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
         cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch.device("cpu"))
     )
 
@@ -199,7 +199,7 @@ def test_find_disulf_w_some_provided_but_rest_skipped(pertuzumab_pdb):
 
 def test_find_disulf_w_all_provided(pertuzumab_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf = (
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
         cf_as_tuple_from_pdb_lines(co, pertuzumab_pdb, torch.device("cpu"))
     )
 
@@ -235,7 +235,7 @@ def test_find_disulf_w_all_provided(pertuzumab_pdb):
 
 def test_find_disulf_w_no_cys(ubq_pdb):
     co = default_canonical_ordering()
-    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf = (
+    chain_id, res_types, coords, res_lab, res_ins, ch_lab, occ, bf, dslf, rnc = (
         cf_as_tuple_from_pdb_lines(co, ubq_pdb, torch.device("cpu"))
     )
 
