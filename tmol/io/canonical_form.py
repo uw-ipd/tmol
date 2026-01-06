@@ -37,3 +37,17 @@ class CanonicalForm:
         yield self.atom_b_factor
         yield self.disulfides
         yield self.res_not_connected
+
+    def as_dict(self):
+        return {
+            "chain_id": self.chain_id,
+            "res_types": self.res_types,
+            "coords": self.coords,
+            "res_labels": self.res_labels,
+            "residue_insertion_codes": self.residue_insertion_codes,
+            "chain_labels": self.chain_labels,
+            "atom_occupancy": self.atom_occupancy,
+            "atom_b_factor": self.atom_b_factor,
+            "disulfides": self.disulfides,
+            "res_not_connected": self.res_not_connected,
+        }

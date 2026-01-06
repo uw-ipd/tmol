@@ -6,6 +6,7 @@ from typing import Mapping
 from tmol.types.functional import validate_args
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
+from tmol.io.canonical_form import CanonicalForm
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -38,7 +39,7 @@ def pose_stack_from_openfold(openfold_result_dictionary, **kwargs) -> PoseStack:
 
 
 @validate_args
-def canonical_form_from_openfold(openfold_result_dictionary) -> Mapping:
+def canonical_form_from_openfold(openfold_result_dictionary) -> CanonicalForm:
     """The canonical form is intended to represent a stable, serializable intermediate format
     for a structure so that it can be created today and then be read in years from now
     and be used to construct a PoseStack in tmol. As residue types (aatype) are integers,
@@ -112,11 +113,17 @@ def canonical_form_from_openfold(openfold_result_dictionary) -> Mapping:
         atom_mapping[of_at_is_real],
     ] = of_coords[of_at_is_real]
 
-    return dict(
+    return CanonicalForm(
         chain_id=of_chain_ind.to(torch.int32),
         res_types=tmol_restypes.to(torch.int32),
         coords=tmol_coords,
         chain_labels=None,
+        res_labels=None,
+        residue_insertion_codes=None,
+        atom_occupancy=None,
+        atom_b_factor=None,
+        disulfides=None,
+        res_not_connected=None,
     )
 
 
