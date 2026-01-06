@@ -418,6 +418,7 @@ def canonical_form_from_pdb(
     *,
     residue_start: Optional[int] = None,
     residue_end: Optional[int] = None,
+    res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
 ) -> CanonicalForm:
     """Create a canonical form from either the contents of a PDB file
     as one long string or a list of individual lines from the file or
@@ -432,7 +433,9 @@ def canonical_form_from_pdb(
         atom_records = select_atom_records_res_subset(
             atom_records, residue_start, residue_end
         )
-    return canonical_form_from_atom_records(canonical_ordering, atom_records, device)
+    return canonical_form_from_atom_records(
+        canonical_ordering, atom_records, device, res_not_connected
+    )
 
 
 def select_atom_records_res_subset(
@@ -470,7 +473,8 @@ def canonical_form_from_atom_records(
     canonical_ordering: CanonicalOrdering,
     atom_records: pandas.DataFrame,
     device: torch.device,
-):
+    res_not_connected: Optional[Tensor] = None,
+) -> CanonicalForm:
     max_n_canonical_atoms = canonical_ordering.max_n_canonical_atoms
 
     uniq_res_ind = {}
@@ -540,6 +544,9 @@ def canonical_form_from_atom_records(
     def _tf32(x):
         return torch.tensor(x, dtype=torch.float32, device=device)
 
+    if res_not_connected is not None:
+        assert res_not_connected.shape == (1, n_res, 2)
+
     canonical_form = CanonicalForm(
         chain_id=_ti32(chain_id),
         res_types=_ti32(res_types),
@@ -549,7 +556,7 @@ def canonical_form_from_atom_records(
         chain_labels=chain_labels,
         atom_occupancy=atom_occupancy,
         atom_b_factor=atom_b_factor,
-        res_not_connected=None,
+        res_not_connected=res_not_connected,
         disulfides=None,
     )
 

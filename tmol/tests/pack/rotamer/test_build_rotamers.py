@@ -1281,7 +1281,8 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
 
     pose_scorer = energy_term.render_block_pair_scoring_module(poses)
     coords = torch.nn.Parameter(poses.coords.clone())
-    block_scores = pose_scorer(coords).coalesce()
+    block_scores = pose_scorer(coords).sum(dim=0)
+    # print("Block scores", block_scores.shape)
     # print("block_scores", block_scores)
     # print("block_scores.values.shape", block_scores.values().shape)
 
@@ -1290,19 +1291,21 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     # print("BLOCK SCORES")
 
     # print(f"{'ind':>3}: {'score':>10} {'pose':>4}  {'blocks':>7}")
-    for i in range(block_scores.values().shape[0]):
-        # print(
-        #     f"{i:>3}: {block_scores.values()[i]:>10.4f} {block_scores.indices()[1, i]:>4} {block_scores.indices()[2,i]:>3}:{block_scores.indices()[3,i]:<3}"
-        # )
-        pose_ind = int(block_scores.indices()[1, i])
-        block1_ind = int(block_scores.indices()[2, i])
-        block2_ind = int(block_scores.indices()[3, i])
-        if (pose_ind, block1_ind, block2_ind) in rot_scores_for_pose:
-            # print("comparing", rot_scores_for_pose[(pose_ind, block1_ind, block2_ind)], float(block_scores.values()[i].item()))
-            numpy.testing.assert_allclose(
-                rot_scores_for_pose[(pose_ind, block1_ind, block2_ind)],
-                float(block_scores.values()[i].item()),
-            )
+    for i in range(block_scores.shape[0]):
+        for j in range(block_scores.shape[1]):
+            for k in range(block_scores.shape[2]):
+                # print(
+                #     f"{i:>3}: {block_scores.values()[i]:>10.4f} {block_scores.indices()[1, i]:>4} {block_scores.indices()[2,i]:>3}:{block_scores.indices()[3,i]:<3}"
+                # )
+                pose_ind = i
+                block1_ind = j
+                block2_ind = k
+                if (pose_ind, block1_ind, block2_ind) in rot_scores_for_pose:
+                    # print("comparing", rot_scores_for_pose[(pose_ind, block1_ind, block2_ind)], float(block_scores.values()[i].item()))
+                    numpy.testing.assert_allclose(
+                        rot_scores_for_pose[(pose_ind, block1_ind, block2_ind)],
+                        float(block_scores[0, i, j, k].item()),
+                    )
 
 
 def test_create_dofs_for_many_rotamers(

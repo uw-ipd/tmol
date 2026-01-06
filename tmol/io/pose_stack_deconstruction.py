@@ -2,6 +2,7 @@ import torch
 import numpy
 
 from tmol.pose.pose_stack import PoseStack
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.io.canonical_ordering import (
     CanonicalOrdering,
@@ -50,7 +51,7 @@ def canonical_form_from_pose_stack(
     if pose_stack.pdb_info.atom_b_factor is not None:
         expanded_b_factor = numpy.full(
             (n_poses, max_n_res, max_n_atoms_per_res),
-            0.0,
+            DEFAULT_ATOM_B_FACTOR,
             dtype=numpy.float32,
         )
         expanded_b_factor[real_expanded_pose_ats] = pose_stack.pdb_info.atom_b_factor[
@@ -62,7 +63,7 @@ def canonical_form_from_pose_stack(
     if pose_stack.pdb_info.atom_occupancy is not None:
         expanded_occupancy = numpy.full(
             (n_poses, max_n_res, max_n_atoms_per_res),
-            0.0,
+            DEFAULT_ATOM_OCCUPANCY,
             dtype=numpy.float32,
         )
         expanded_occupancy[real_expanded_pose_ats] = pose_stack.pdb_info.atom_occupancy[

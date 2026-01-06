@@ -33,12 +33,12 @@ def test_calculate_ff_edge_delays_for_two_res_ubq(ubq_pdb, torch_device):
         co, ubq_pdb, torch_device, residue_start=1, residue_end=3
     )
 
-    res_not_connected = torch.zeros((1, 2, 2), dtype=torch.bool, device=torch_device)
-    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
-    res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
-    pose_stack = pose_stack_from_canonical_form(
-        co, pbt, *canonical_form, res_not_connected=res_not_connected
+    canonical_form.res_not_connected = torch.zeros(
+        (1, 2, 2), dtype=torch.bool, device=torch_device
     )
+    canonical_form.res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
+    canonical_form.res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
+    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
@@ -77,12 +77,12 @@ def test_calculate_ff_edge_delays_for_6_res_ubq(ubq_pdb):
         co, ubq_pdb, torch_device, residue_start=1, residue_end=7
     )
 
-    res_not_connected = torch.zeros((1, 6, 2), dtype=torch.bool, device=torch_device)
-    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
-    res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
-    pose_stack = pose_stack_from_canonical_form(
-        co, pbt, *canonical_form, res_not_connected=res_not_connected
+    canonical_form.res_not_connected = torch.zeros(
+        (1, 6, 2), dtype=torch.bool, device=torch_device
     )
+    canonical_form.res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
+    canonical_form.res_not_connected[0, 5, 1] = True  # simplest test case: not C-term
+    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 
@@ -437,12 +437,12 @@ def test_get_kfo_indices_for_atoms(ubq_pdb):
         co, ubq_pdb, torch_device, residue_start=1, residue_end=3
     )
 
-    res_not_connected = torch.zeros((1, 2, 2), dtype=torch.bool, device=torch_device)
-    res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
-    res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
-    pose_stack = pose_stack_from_canonical_form(
-        co, pbt, *canonical_form, res_not_connected=res_not_connected
+    canonical_form.res_not_connected = torch.zeros(
+        (1, 2, 2), dtype=torch.bool, device=torch_device
     )
+    canonical_form.res_not_connected[0, 0, 0] = True  # simplest test case: not N-term
+    canonical_form.res_not_connected[0, 1, 1] = True  # simplest test case: not C-term
+    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
     _annotate_packed_block_type_with_gen_scan_path_segs(pbt)
     pbt_gssps = pbt.gen_seg_scan_path_segs
 

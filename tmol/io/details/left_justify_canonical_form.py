@@ -6,6 +6,7 @@ from typing import Optional
 from tmol.score.common.stack_condense import (
     condense_torch_inds,
 )
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 
 
 def left_justify_canonical_form(
@@ -83,8 +84,16 @@ def left_justify_canonical_form(
     res_labels = lj_np(res_labels, 0) if res_labels is not None else None
     res_ins_codes = lj_np(res_ins_codes, "") if res_ins_codes is not None else None
     chain_labels = lj_np(chain_labels, "") if chain_labels is not None else None
-    atom_occupancy = lj_np(atom_occupancy, 1.0) if atom_occupancy is not None else None
-    atom_b_factor = lj_np(atom_b_factor, 0.0) if atom_b_factor is not None else None
+    atom_occupancy = (
+        lj_np(atom_occupancy, DEFAULT_ATOM_OCCUPANCY)
+        if atom_occupancy is not None
+        else None
+    )
+    atom_b_factor = (
+        lj_np(atom_b_factor, DEFAULT_ATOM_B_FACTOR)
+        if atom_b_factor is not None
+        else None
+    )
 
     return (
         chain_id,

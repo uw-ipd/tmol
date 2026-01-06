@@ -1,6 +1,8 @@
 import torch
+import numpy
 
 from tmol.types.torch import Tensor
+from tmol.pose.pdb_info import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.pose.pose_stack import PoseStack
 from tmol.pack.rotamer.build_rotamers import RotamerSet
 from tmol.utility.cumsum import exclusive_cumsum2d_w_totals
@@ -52,6 +54,9 @@ def impose_top_rotamer_assignments(
     new_block_type_ind64[is_real_block] = rotamer_set.block_type_ind_for_rot[
         new_rot_for_block64[is_real_block]
     ]
+    blocks_with_changed_types = new_block_type_ind64 != orig_pose_stack.block_type_ind64
+    any_block_types_changed = torch.any(blocks_with_changed_types).item()
+
     new_n_atoms_per_block32 = torch.zeros(
         (n_poses, max_n_blocks), dtype=torch.int32, device=device
     )
@@ -60,12 +65,17 @@ def impose_top_rotamer_assignments(
     ]
     new_n_atoms_per_block64 = new_n_atoms_per_block32.to(torch.int64)
 
-    # get the per-pose offset for each block w/ exclusive cumsum on n-atoms-per-block
-    new_n_atoms_offset32, new_n_pose_atoms = exclusive_cumsum2d_w_totals(
-        new_n_atoms_per_block32
-    )
-    new_n_atoms_offset64 = new_n_atoms_offset32.to(torch.int64)
-    new_max_n_pose_atoms = int(torch.max(new_n_pose_atoms).item())
+    if any_block_types_changed:
+        # get the per-pose offset for each block w/ exclusive cumsum on n-atoms-per-block
+        new_n_atoms_offset32, new_n_pose_atoms = exclusive_cumsum2d_w_totals(
+            new_n_atoms_per_block32
+        )
+        new_n_atoms_offset64 = new_n_atoms_offset32.to(torch.int64)
+        new_max_n_pose_atoms = int(torch.max(new_n_pose_atoms).item())
+    else:
+        new_n_atoms_offset32 = orig_pose_stack.block_coord_offset
+        new_n_atoms_offset64 = orig_pose_stack.block_coord_offset64
+        new_max_n_pose_atoms = orig_pose_stack.max_n_pose_atoms
 
     # okay, now lets preprare the indices for our copy operation
     # let's think about it like this: we have a 3D tensor with i, j, k indices representing
@@ -111,6 +121,11 @@ def impose_top_rotamer_assignments(
     dst_inds = (pose_coords1d_offset_for_atom64 + max_n_atoms_arange64)[
         is_pose_atom_real
     ]
+    # print("pose_coords1d_offset_for_atom64", pose_coords1d_offset_for_atom64.shape,
+    #       pose_coords1d_offset_for_atom64)
+    # print("max_n_atoms_arange64", max_n_atoms_arange64.shape, max_n_atoms_arange64)
+    # print("dst_inds", dst_inds.shape, dst_inds)
+    # print("is_pose_atom_real", is_pose_atom_real.shape, is_pose_atom_real)
 
     rot_coord_offset_for_block32 = torch.full(
         (n_poses, max_n_blocks), -1, dtype=torch.int32, device=device
@@ -131,6 +146,97 @@ def impose_top_rotamer_assignments(
     new_coords[dst_inds] = rotamer_set.coords[src_inds]
     new_coords = new_coords.view(n_poses, new_max_n_pose_atoms, 3)
 
+    # Now let's create a new PDBInfo object for the new PoseStack
+    # We can mostly copy from the original PoseStack's PDBInfo,
+    # but where block-types have changed, we have to be careful with
+    # the occupancies and b-factors
+    if any_block_types_changed:
+        # need to make new atom_occupancy and atom_b_factor arrays
+        orig_pdb_info = orig_pose_stack.pdb_info
+        new_atom_occupancy = numpy.zeros(
+            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+        )
+        new_atom_b_factor = numpy.zeros(
+            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+        )
+        _, real_expanded_pose_ats = orig_pose_stack.expand_coords()
+        real_expanded_pose_ats = real_expanded_pose_ats.cpu().numpy()
+        orig_real_atoms = orig_pose_stack.real_atoms.cpu().numpy()
+        expanded_b_factor = numpy.full(
+            (n_poses, max_n_blocks, pbt.max_n_atoms),
+            DEFAULT_ATOM_B_FACTOR,
+            dtype=numpy.float32,
+        )
+        expanded_occupancy = numpy.full(
+            (n_poses, max_n_blocks, pbt.max_n_atoms),
+            DEFAULT_ATOM_OCCUPANCY,
+            dtype=numpy.float32,
+        )
+        new_expanded_b_factor = numpy.full(
+            (n_poses, max_n_blocks, pbt.max_n_atoms),
+            DEFAULT_ATOM_B_FACTOR,
+            dtype=numpy.float32,
+        )
+        new_expanded_occupancy = numpy.full(
+            (n_poses, max_n_blocks, pbt.max_n_atoms),
+            DEFAULT_ATOM_OCCUPANCY,
+            dtype=numpy.float32,
+        )
+        # keep all the b-factors for blocks that did not change block type
+        blocks_w_unchanged_types = (
+            torch.logical_not(blocks_with_changed_types).cpu().numpy()
+        )
+        expanded_b_factor[real_expanded_pose_ats] = orig_pdb_info.atom_b_factor[
+            orig_real_atoms
+        ]
+        expanded_occupancy[real_expanded_pose_ats] = orig_pdb_info.atom_occupancy[
+            orig_real_atoms
+        ]
+        new_expanded_b_factor[blocks_w_unchanged_types] = expanded_b_factor[
+            blocks_w_unchanged_types
+        ]
+        new_expanded_occupancy[blocks_w_unchanged_types] = expanded_occupancy[
+            blocks_w_unchanged_types
+        ]
+        # TO DO: now handle blocks that did change type?
+        # PUNT!
+
+        is_real_atom_new = torch.zeros(
+            (n_poses, max_n_blocks, pbt.max_n_atoms),
+            dtype=torch.bool,
+            device=pbt.device,
+        )
+        is_real_atom_new[is_real_block] = pbt.atom_is_real[
+            new_block_type_ind64[is_real_block]
+        ]
+        nz_is_real_pose_ind_new, nz_is_real_block_ind_new, nz_is_real_atom_ind_new = (
+            torch.nonzero(is_real_atom_new, as_tuple=True)
+        )
+        new_atom_b_factor[is_real_atom]
+        new_pose_at_is_real = torch.arange(
+            new_max_n_pose_atoms, dtype=torch.int64, device=device
+        ).repeat(n_poses, 1) < new_n_pose_atoms.unsqueeze(1)
+
+        new_atom_b_factor[new_pose_at_is_real] = new_expanded_b_factor[
+            nz_is_real_pose_ind_new.cpu().numpy(),
+            nz_is_real_block_ind_new.cpu().numpy(),
+            nz_is_real_atom_ind_new.cpu().numpy(),
+        ]
+        new_atom_occupancy[new_pose_at_is_real] = new_expanded_occupancy[
+            nz_is_real_pose_ind_new.cpu().numpy(),
+            nz_is_real_block_ind_new.cpu().numpy(),
+            nz_is_real_atom_ind_new.cpu().numpy(),
+        ]
+        new_pdb_info = PDBInfo(
+            residue_labels=orig_pose_stack.pdb_info.residue_labels,
+            residue_insertion_codes=orig_pose_stack.pdb_info.residue_insertion_codes,
+            chain_labels=orig_pose_stack.pdb_info.chain_labels,
+            atom_occupancy=new_atom_occupancy,
+            atom_b_factor=new_atom_b_factor,
+        )
+    else:
+        new_pdb_info = orig_pose_stack.pdb_info
+
     # now construct the new PoseStack
     new_pose_stack = PoseStack(
         packed_block_types=pbt,
@@ -145,7 +251,7 @@ def impose_top_rotamer_assignments(
         block_type_ind64=new_block_type_ind64,
         chain_id=orig_pose_stack.chain_id,
         chain_id64=orig_pose_stack.chain_id64,
-        chain_labels=orig_pose_stack.chain_labels,
+        pdb_info=new_pdb_info,
         device=device,
     )
     return new_pose_stack
