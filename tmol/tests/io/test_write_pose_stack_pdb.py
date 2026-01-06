@@ -76,6 +76,18 @@ def test_write_pose_stack_pdb(ubq_pdb, pertuzumab_pdb):
         ps2 = pose_stack_from_pdb(output_fname, device)
 
         torch.testing.assert_close(ps.coords, ps2.coords)
-        numpy.testing.assert_equal(ps.chain_labels, ps2.chain_labels)
+        numpy.testing.assert_equal(ps.pdb_info.chain_labels, ps2.pdb_info.chain_labels)
+        numpy.testing.assert_equal(
+            ps.pdb_info.residue_labels, ps2.pdb_info.residue_labels
+        )
+        numpy.testing.assert_equal(
+            ps.pdb_info.residue_insertion_codes, ps2.pdb_info.residue_insertion_codes
+        )
+        numpy.testing.assert_equal(
+            ps.pdb_info.atom_occupancy, ps2.pdb_info.atom_occupancy
+        )
+        numpy.testing.assert_equal(
+            ps.pdb_info.atom_b_factor, ps2.pdb_info.atom_b_factor
+        )
 
         os.remove(output_fname)

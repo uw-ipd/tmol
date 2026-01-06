@@ -47,10 +47,11 @@ def atom_records_from_pose_stack(
         pose_stack.block_type_ind64,
         pose_stack.coords,
         pose_stack.block_coord_offset,
-        pose_stack.pdb_info.residue_ids,
+        pose_stack.pdb_info.residue_labels,
         pose_stack.pdb_info.residue_insertion_codes,
         pose_stack.pdb_info.chain_labels,
-        pose_stack.pdb_info.bfactors,
+        pose_stack.pdb_info.atom_occupancy,
+        pose_stack.pdb_info.atom_b_factor,
     )
 
 
@@ -61,10 +62,11 @@ def atom_records_from_coords(
     block_types64: Tensor[torch.int64][:, :],
     pose_like_coords: Tensor[torch.float32][:, :, 3],
     block_coord_offset: Tensor[torch.int32][:, :],
-    residue_ids: NDArray[str][:, :],
-    residue_insertion_codes: NDArray[str][:, :],
-    chain_labels: NDArray[str][:, :],
-    bfactors: NDArray[float][:, :],
+    residue_labels: Optional[NDArray[int][:, :]],
+    residue_insertion_codes: Optional[NDArray[object][:, :]],
+    chain_labels: Optional[NDArray[object][:, :]],
+    atom_occupancy: Optional[NDArray[numpy.float32][:, :]],
+    atom_b_factor: Optional[NDArray[numpy.float32][:, :]],
 ) -> NDArray[atom_record_dtype][:]:
     """Create a numpy array holding the atom records needed to write a
     PDB file from the coordinates and block types of a stack of structures,
@@ -152,14 +154,18 @@ def atom_records_from_coords(
     n_blocks_per_global_chain = torch.zeros(
         (n_poses * max_n_chains), dtype=torch.int64, device=pbt.device
     )
-    print(
-        "index add?",
-        n_poses,
-        max_n_chains,
-        "global_chain_ind_for_block",
-        global_chain_ind_for_block.shape,
-        "is_real_block.view(-1).shape",
-        is_real_block.view(-1).shape,
+    # print(
+    #     "index add?",
+    #     n_poses,
+    #     max_n_chains,
+    #     "global_chain_ind_for_block",
+    #     global_chain_ind_for_block.shape,
+    #     "is_real_block.view(-1).shape",
+    #     is_real_block.view(-1).shape,
+    # )
+    is_not_real_block = torch.logical_not(is_real_block)
+    global_chain_ind_for_block[is_not_real_block.view(-1)] = (
+        0  # avoid index add to invalid locations
     )
     n_blocks_per_global_chain.index_add_(
         0,
@@ -180,9 +186,9 @@ def atom_records_from_coords(
             pose_for_pose_atom, chain_ind_for_block[pose_for_pose_atom, block_for_atom]
         ]
     )
-    print(
-        "block_chain_local_index_for_real_atom:", block_chain_local_index_for_real_atom
-    )
+    # print(
+    #     "block_chain_local_index_for_real_atom:", block_chain_local_index_for_real_atom
+    # )
 
     pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
 
@@ -215,13 +221,31 @@ def atom_records_from_coords(
     results["record_name"] = numpy.full((n_atoms_total,), "ATOM  ", dtype=str)
     results["modeli"] = pose_for_real_atom
     results["chaini"] = chain_ind_for_real_atom
-    results["resi"] = block_chain_local_index_for_real_atom + 1
+    if residue_labels is not None:
+        results["resi"] = residue_labels[pose_for_real_atom, block_for_real_atom]
+    else:
+        results["resi"] = block_chain_local_index_for_real_atom + 1
+
     results["atomi"] = (
         numpy.arange(n_atoms_total, dtype=int)
         + 1
         - pose_atom_offsets[pose_for_real_atom]
     )
     results["model"] = pose_for_real_atom + 1
+    if chain_labels is None:
+        # create default chain labels as A, B, ..., Z, AA, AB, ... ZZ; max 702 chains.
+        assert max_n_chains <= 26 * 27
+        chain_labels = numpy.array(
+            [
+                (
+                    chr(i + ord("A"))
+                    if i < 26
+                    else chr((i // 26) + ord("A")) + chr((i % 26) + ord("A"))
+                )
+                for i in range(max_n_chains)
+            ],
+            dtype=object,
+        )
     results["chain"] = chain_labels[pose_for_real_atom, block_for_real_atom]
 
     # create lookup for atom names
@@ -240,8 +264,14 @@ def atom_records_from_coords(
     results["x"] = real_atom_coords[:, 0]
     results["y"] = real_atom_coords[:, 1]
     results["z"] = real_atom_coords[:, 2]
-    results["insert"] = " "
-    results["occupancy"] = 1
-    results["b"] = 0
+    results["insert"] = (
+        residue_insertion_codes[pose_for_real_atom, block_for_real_atom]
+        if residue_insertion_codes is not None
+        else " "
+    )
+    results["occupancy"] = (
+        atom_occupancy[atom_is_real] if atom_occupancy is not None else 1.0
+    )
+    results["b"] = atom_b_factor[atom_is_real] if atom_b_factor is not None else 0.0
 
     return results
