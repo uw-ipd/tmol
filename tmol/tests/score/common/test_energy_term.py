@@ -398,9 +398,6 @@ class EnergyTermTestBase:
         block_pair_scores = block_pair_scorer(coords).to_dense().cpu().detach().numpy()
         full_pose_scores = pose_scorer(coords).cpu().detach().numpy()
 
-        print("block_pair_scores", block_pair_scores)
-        print("full_pose_scores", full_pose_scores)
-
         assert_allclose(full_pose_scores, block_pair_scores.sum((2, 3)), atol, rtol)
 
     @classmethod

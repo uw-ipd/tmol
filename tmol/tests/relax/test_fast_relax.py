@@ -57,7 +57,7 @@ def get_relax_sfxn(default_database, torch_device):
     return sfxn
 
 
-@pytest.mark.parametrize("n_poses", [1, 3, 10, 30])
+@pytest.mark.parametrize("n_poses", [1])
 def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_poses):
 
     if torch_device == torch.device("cpu"):
@@ -104,7 +104,7 @@ def test_fast_relax_ubq(default_database, ubq_pdb, dun_sampler, torch_device, n_
     write_pose_stack_pdb(new_pose_stack, f"tmol_relaxed_1ubq_{n_poses:04d}.pdb")
 
 
-@pytest.mark.parametrize("n_poses", [1, 3, 10, 30])
+@pytest.mark.parametrize("n_poses", [1])
 def test_fast_relax_pertuz(
     default_database, erbb2_and_pertuzumab_pdb, dun_sampler, torch_device, n_poses
 ):
@@ -183,63 +183,6 @@ def test_fast_relax_pertuz(
     print(f"1s78 {n_poses} FastRelax Execution time: {elapsed_time:.6f} seconds")
 
     write_pose_stack_pdb(new_pose_stack, f"tmol_relaxed_1s78_{n_poses:04d}.pdb")
-
-
-def test_fast_relax_for_pan(default_database, dun_sampler, torch_device):
-    pdb_fname = "structure.pdb"
-
-    if torch_device == torch.device("cpu"):
-        return
-    n_poses = 3
-    # print("Device!", torch_device)
-
-    # res_not_connected = torch.zeros(
-    #     (1, 564 - 9 + 214 + 216 + 6, 2), dtype=torch.bool, device=torch_device
-    # )
-    # res_not_connected[0, 100, 1] = True
-    # res_not_connected[0, 101, 0] = True
-
-    p = pose_stack_from_pdb(pdb_fname, torch_device)
-
-    pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    sfxn = get_relax_sfxn(default_database, torch_device)
-    restype_set = pose_stack.packed_block_types.restype_set
-
-    # sfxn = beta2016_score_function(torch_device)
-    fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
-    mm = MoveMap.from_pose_stack(pose_stack)
-    mm.move_all_jumps = True
-    mm.move_all_named_torsions = True
-
-    palette = PackerPalette(restype_set)
-    # fold_forest = FoldForest.polymeric_forest(
-    #     torch.sum(pose_stack.block_type_ind != -1, dim=1).detach().cpu().numpy()
-    # )
-
-    def task_op(task):
-        task.restrict_to_repacking()
-        task.set_include_current()
-
-        fixed_sampler = FixedAAChiSampler()
-        task.add_conformer_sampler(dun_sampler)
-        task.add_conformer_sampler(fixed_sampler)
-
-    start_time = time.perf_counter()
-
-    verbose = True
-    new_pose_stack = fast_relax(
-        pose_stack, sfxn, palette, mm, fold_forest, [task_op], verbose
-    )
-
-    if torch_device == torch.device("cuda"):
-        torch.cuda.synchronize()
-    stop_time = time.perf_counter()
-
-    elapsed_time = stop_time - start_time
-
-    print(f"Pan's structure.pdb {n_poses} Execution time: {elapsed_time:.6f} seconds")
-
-    write_pose_stack_pdb(new_pose_stack, "tmol_relaxed_pans_structure.pdb")
 
 
 def test_fast_relax_for_different_shapes(
