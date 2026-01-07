@@ -4,6 +4,7 @@ import numpy
 from tmol.score import _non_memoized_beta2016
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol import (
     pose_stack_from_pdb,
@@ -84,16 +85,49 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
             new_restypes[0, :-1] = orig_restypes
             new_restypes[0, -1] = vrt_co_ind
 
-            orig_chain_labels = canonical_form.get("chain_labels", None)
+            orig_chain_labels = canonical_form.chain_labels
             ocls = orig_chain_labels.shape
             new_chain_labels = numpy.full((ocls[0], ocls[1] + 1), "", dtype=object)
             new_chain_labels[0, :-1] = orig_chain_labels
             new_chain_labels[0, -1] = "V"
 
+            new_res_labels = numpy.full((ocls[0], ocls[1] + 1), 0, dtype=int)
+            new_res_labels[0, :-1] = canonical_form.res_labels
+            new_res_labels[0, -1] = nres + 1
+            new_res_ins_codes = numpy.full((ocls[0], ocls[1] + 1), "", dtype=object)
+            new_res_ins_codes[0, :-1] = canonical_form.residue_insertion_codes
+            new_res_ins_codes[0, -1] = ""
+
+            orig_occupancy = canonical_form.atom_occupancy
+            new_atom_occupancy = numpy.full(
+                (
+                    orig_occupancy.shape[0],
+                    orig_occupancy.shape[1] + 1,
+                    orig_occupancy.shape[2],
+                ),
+                DEFAULT_ATOM_OCCUPANCY,
+                dtype=numpy.float32,
+            )
+            new_atom_b_factor = numpy.full(
+                (
+                    orig_occupancy.shape[0],
+                    orig_occupancy.shape[1] + 1,
+                    orig_occupancy.shape[2],
+                ),
+                DEFAULT_ATOM_B_FACTOR,
+                dtype=numpy.float32,
+            )
+            new_atom_occupancy[0, :-1, :] = canonical_form.atom_occupancy
+            new_atom_b_factor[0, :-1, :] = canonical_form.atom_b_factor
+
             canonical_form.coords = new_coords
             canonical_form.chain_id = new_chain_id
             canonical_form.res_types = new_restypes
             canonical_form.chain_labels = new_chain_labels
+            canonical_form.res_labels = new_res_labels
+            canonical_form.residue_insertion_codes = new_res_ins_codes
+            canonical_form.atom_occupancy = new_atom_occupancy
+            canonical_form.atom_b_factor = new_atom_b_factor
 
         return pose_stack_from_canonical_form(co, pbt, *canonical_form)
 
@@ -134,10 +168,12 @@ def test_score_function_all_score_types(ubq_pdb):
     def n(x):
         return numpy.array(x)
 
+    # edit 2026/1/7: torsions change slightly due to improper double-counting of
+    # hydroxyl torsions in old version.
     gold_score_map = {
         ScoreType.cart_lengths: n([37.762318]),
         ScoreType.cart_angles: n([183.56915]),
-        ScoreType.cart_torsions: n([50.584225]),
+        ScoreType.cart_torsions: n([46.02357]),
         ScoreType.cart_impropers: n([9.430529]),
         ScoreType.cart_hxltorsions: n([47.41971]),
         ScoreType.disulfide: n([0.0]),
