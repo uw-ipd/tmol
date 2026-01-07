@@ -37,16 +37,16 @@ struct build_don_water {
 
     def astuple() { return tmol::score::common::make_tuple(dD, dH); }
 
-    static def Zero() -> dV_t { return {RealMat::Zero(), RealMat::Zero()}; }
+    static def Zero()->dV_t { return {RealMat::Zero(), RealMat::Zero()}; }
   };
 
-  static def V(Real3 D, Real3 H, Real dist) -> Real3 {
+  static def V(Real3 D, Real3 H, Real dist)->Real3 {
     return D + dist * (H - D).normalized();
   }
 
-  static def square(Real v) -> Real { return v * v; }
+  static def square(Real v)->Real { return v * v; }
 
-  static def dV(Real3 D, Real3 H, Real dist) -> dV_t {
+  static def dV(Real3 D, Real3 H, Real dist)->dV_t {
     Real dhx = -D[0] + H[0];
     Real dhx2 = dhx * dhx;
     Real dhy = -D[1] + H[1];
@@ -162,7 +162,8 @@ struct WaterGenSharedData {
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Real,
@@ -222,7 +223,8 @@ void TMOL_DEVICE_FUNC water_gen_load_block_coords_and_params_into_shared(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Int,
@@ -350,13 +352,6 @@ void TMOL_DEVICE_FUNC build_water_for_don(
   // Now record the coordinates to global memory:
   int const which_water = res_dat.which_donH_for_hvy[don_h_ind];
 
-  // if (res_dat.rot_coord_offset + Dind == 94) {
-  //   printf("AT94\n");
-  //   printf("%i\n", res_dat.rot_ind);
-  //   printf("%i\n", res_dat.rot_coord_offset);
-  //   printf("%i\n", Dind);
-  // }
-
   water_coords[res_dat.rot_coord_offset + Dind][which_water] = Wxyz;
 }
 
@@ -439,13 +434,6 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
   // offset the water by the number of polar hydrogens on
   // this acceptor
   unsigned char water_offset = res_dat.acc_n_attached_H[acc_ind];
-
-  // if (res_dat.rot_coord_offset + A.atom == 94) {
-  //   printf("AT94 acc\n");
-  //   printf("%i\n", res_dat.rot_ind);
-  //   printf("%i\n", res_dat.rot_coord_offset);
-  //   printf("%i\n", A.atom);
-  // }
 
   water_coords[res_dat.rot_coord_offset + A.atom][water_ind + water_offset] =
       Wxyz;

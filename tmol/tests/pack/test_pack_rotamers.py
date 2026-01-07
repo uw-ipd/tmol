@@ -1,5 +1,6 @@
 import torch
 import time
+import math
 
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.score_function import ScoreFunction
@@ -20,31 +21,34 @@ from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
 
 from tmol.pack.pack_rotamers import pack_rotamers
 
+from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
+
 
 def get_packer_sfxn(default_database, torch_device):
     sfxn = ScoreFunction(param_db=default_database, device=torch_device)
-    sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
-    sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
-    sfxn.set_weight(ScoreType.fa_lk, 1.0)
-    sfxn.set_weight(ScoreType.fa_elec, 1.0)
-    sfxn.set_weight(ScoreType.hbond, 1.0)
-    sfxn.set_weight(ScoreType.hbond, 1.0)
-    sfxn.set_weight(ScoreType.lk_ball_iso, -0.38)
-    sfxn.set_weight(ScoreType.lk_ball, 0.92)
-    sfxn.set_weight(ScoreType.lk_bridge, -0.33)
-    sfxn.set_weight(ScoreType.lk_bridge_uncpl, -0.33)
-    sfxn.set_weight(ScoreType.dunbrack_rot, 0.76)
-    sfxn.set_weight(ScoreType.dunbrack_rotdev, 0.69)
-    sfxn.set_weight(ScoreType.dunbrack_semirot, 0.78)
-    sfxn.set_weight(ScoreType.cart_lengths, 0.5)
-    sfxn.set_weight(ScoreType.cart_angles, 0.5)
-    sfxn.set_weight(ScoreType.cart_torsions, 0.5)
-    sfxn.set_weight(ScoreType.cart_impropers, 0.5)
-    sfxn.set_weight(ScoreType.cart_hxltorsions, 0.5)
-    sfxn.set_weight(ScoreType.omega, 0.48)
-    sfxn.set_weight(ScoreType.rama, 0.50)
-    sfxn.set_weight(ScoreType.ref, 1.0)
-    sfxn.set_weight(ScoreType.disulfide, 1.0)
+    # sfxn.set_weight(ScoreType.fa_ljatr, 1.0)
+    # sfxn.set_weight(ScoreType.fa_ljrep, 0.55)
+    # sfxn.set_weight(ScoreType.fa_lk, 1.0)
+    # sfxn.set_weight(ScoreType.fa_elec, 1.0)
+    # sfxn.set_weight(ScoreType.hbond, 1.0)
+    # sfxn.set_weight(ScoreType.hbond, 1.0)
+    # sfxn.set_weight(ScoreType.lk_ball_iso, -0.38)
+    # sfxn.set_weight(ScoreType.lk_ball, 0.92)
+    # sfxn.set_weight(ScoreType.lk_bridge, -0.33)
+    # sfxn.set_weight(ScoreType.lk_bridge_uncpl, -0.33)
+    # sfxn.set_weight(ScoreType.dunbrack_rot, 0.76)
+    # sfxn.set_weight(ScoreType.dunbrack_rotdev, 0.69)
+    # sfxn.set_weight(ScoreType.dunbrack_semirot, 0.78)
+    # sfxn.set_weight(ScoreType.cart_lengths, 0.5)
+    # sfxn.set_weight(ScoreType.cart_angles, 0.5)
+    # sfxn.set_weight(ScoreType.cart_torsions, 0.5)
+    # sfxn.set_weight(ScoreType.cart_impropers, 0.5)
+    # sfxn.set_weight(ScoreType.cart_hxltorsions, 0.5)
+    # sfxn.set_weight(ScoreType.omega, 0.48)
+    # sfxn.set_weight(ScoreType.rama, 0.50)
+    # sfxn.set_weight(ScoreType.ref, 1.0)
+    # sfxn.set_weight(ScoreType.disulfide, 1.0)
+    sfxn.set_weight(ScoreType.constraint, 1.0)
 
     return sfxn
 
@@ -76,6 +80,55 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
 
     pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
     print("Built", rotamer_set.n_rotamers_total, "rotamers")
+
+    constraints = pose_stack.get_constraint_set()
+
+    # a distance constraint
+    cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
+    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
+
+    res1_type = pose_stack.block_type(0, 3)
+    res2_type = pose_stack.block_type(0, 4)
+    cnstr_atoms[0, 0] = torch.tensor([0, 3, res1_type.atom_to_idx["C"]])
+    cnstr_atoms[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
+    cnstr_params[0, 0] = 1.47
+
+    constraints.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
+    )
+
+    # a distance constraint
+    cnstr_atoms = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
+    cnstr_params = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
+
+    res1_type = pose_stack.block_type(0, 5)
+    res2_type = pose_stack.block_type(0, 6)
+    cnstr_atoms[0, 0] = torch.tensor([0, 5, res1_type.atom_to_idx["C"]])
+    cnstr_atoms[0, 1] = torch.tensor([0, 6, res2_type.atom_to_idx["N"]])
+    cnstr_params[0, 0] = 1.47
+
+    constraints.add_constraints(
+        ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
+    )
+
+    # a circular harmonic constraint
+    cnstr_atoms = torch.full((1, 4, 3), 0, dtype=torch.int32, device=torch_device)
+    cnstr_params = torch.full((1, 3), 0, dtype=torch.float32, device=torch_device)
+
+    # get the omega between res1 and res2
+    res1_type = pose_stack.block_type(0, 0)
+    res2_type = pose_stack.block_type(0, 1)
+    cnstr_atoms[0, 0] = torch.tensor([0, 0, res1_type.atom_to_idx["CA"]])
+    cnstr_atoms[0, 1] = torch.tensor([0, 0, res1_type.atom_to_idx["C"]])
+    cnstr_atoms[0, 2] = torch.tensor([0, 1, res2_type.atom_to_idx["N"]])
+    cnstr_atoms[0, 3] = torch.tensor([0, 1, res2_type.atom_to_idx["CA"]])
+    cnstr_params[0, 0] = math.pi
+    cnstr_params[0, 1] = 0.1
+    cnstr_params[0, 2] = 0.0
+
+    constraints.add_constraints(
+        ConstraintEnergyTerm.circularharmonic, cnstr_atoms, cnstr_params
+    )
 
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
 

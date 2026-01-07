@@ -556,7 +556,7 @@ class LKBallPoseScoreOp : public torch::autograd::Function<LKBallPoseScoreOp> {
 
     auto max_n_rots_per_pose_tp =
         TPack<Int, 1, tmol::Device::CPU>::full(1, max_n_rots_per_pose);
-    // std::cout << "Saving for backwards" << std::endl;
+
     ctx->save_for_backward(
         {// common params
          rot_coords,
