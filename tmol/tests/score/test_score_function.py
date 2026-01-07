@@ -52,7 +52,7 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
         if add_vrt:
             vrt_co_ind = co.restype_io_equiv_classes.index("VRT")
             # print("vrt_co_ind", vrt_co_ind)
-            orig_coords = canonical_form["coords"]
+            orig_coords = canonical_form.coords
             ocs = orig_coords.shape
             new_coords = torch.full(
                 (ocs[0], ocs[1] + 1, ocs[2], ocs[3]),
@@ -65,7 +65,7 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
             new_coords[0, -1, 0, :] = xyz(26.849, 29.656, 6.217)
             new_coords[0, -1, 1, :] = xyz(26.849, 29.656, 6.217) + xyz(1.0, 0.0, 0.0)
             new_coords[0, -1, 2, :] = xyz(26.849, 29.656, 6.217) + xyz(0.0, 1.0, 0.0)
-            orig_chain_id = canonical_form["chain_id"]
+            orig_chain_id = canonical_form.chain_id
 
             ocis = orig_chain_id.shape
             new_chain_id = torch.zeros(
@@ -76,7 +76,7 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
                 orig_chain_id[0, -1] + 1
             )  # give the vrt res a new chain id
 
-            orig_restypes = canonical_form["res_types"]
+            orig_restypes = canonical_form.res_types
             ors = orig_restypes.shape
             new_restypes = torch.full(
                 (ors[0], ors[1] + 1), -1, dtype=torch.int32, device=torch_device
@@ -90,10 +90,10 @@ def test_virtual_residue_scoring(ubq_pdb, torch_device):
             new_chain_labels[0, :-1] = orig_chain_labels
             new_chain_labels[0, -1] = "V"
 
-            canonical_form["coords"] = new_coords
-            canonical_form["chain_id"] = new_chain_id
-            canonical_form["res_types"] = new_restypes
-            canonical_form["chain_labels"] = new_chain_labels
+            canonical_form.coords = new_coords
+            canonical_form.chain_id = new_chain_id
+            canonical_form.res_types = new_restypes
+            canonical_form.chain_labels = new_chain_labels
 
         return pose_stack_from_canonical_form(co, pbt, *canonical_form)
 

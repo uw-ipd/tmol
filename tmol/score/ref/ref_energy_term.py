@@ -64,7 +64,10 @@ class RefEnergyTerm(EnergyTerm):
     def setup_poses(self, poses: PoseStack):
         super(RefEnergyTerm, self).setup_poses(poses)
 
-    def get_score_term_function(self):
+    def get_pose_score_term_function(self):
+        return eval_ref_energy_for_pose
+
+    def get_rotamer_score_term_function(self):
         return eval_ref_energy_for_rotamers
 
     def get_score_term_attributes(self, pose_stack):
@@ -72,6 +75,54 @@ class RefEnergyTerm(EnergyTerm):
         atts = [pose_stack.packed_block_types.ref_weights]
         # print("n atts:", len(atts))
         return atts
+
+
+def eval_ref_energy_for_pose(
+    # common args
+    rot_coords,
+    _rot_coord_offset,
+    _pose_ind_for_atom,
+    first_rot_for_block,
+    _first_rot_block_type,
+    _block_ind_for_rot,
+    pose_ind_for_rot,
+    block_type_ind_for_rot,
+    _n_rots_for_pose,
+    _rot_offset_for_pose,
+    _n_rots_for_block,
+    _rot_offset_for_block,
+    _max_n_rots_per_pose,
+    ref_weights,
+    output_block_pair_energies: bool,
+):
+    n_poses = first_rot_for_block.shape[0]
+    max_n_blocks = first_rot_for_block.shape[1]
+    block_type_ind_for_rot = block_type_ind_for_rot.view(n_poses, max_n_blocks)
+    block_type_ind_for_rot64 = block_type_ind_for_rot.to(torch.int64)
+
+    # fill our per-block ref scores with zeros to start
+    score = torch.zeros_like(block_type_ind_for_rot, dtype=rot_coords.dtype)
+
+    # grab the indices of any non-negative (real) blocks
+    real_blocks = block_type_ind_for_rot >= 0
+
+    # fill out the scores for the real blocks by dereferencing the block types into the ref weights
+    score[real_blocks] = torch.index_select(
+        ref_weights, 0, block_type_ind_for_rot[real_blocks]
+    )
+
+    if output_block_pair_energies:
+        score = torch.diag_embed(score)
+    else:
+        # for each pose, sum up the block scores
+        score = torch.sum(score, 1)
+
+    # wrap this all in an extra dim (the output expects an outer dim to separate sub-terms)
+    score = torch.unsqueeze(score, 0)
+
+    score.requires_grad = True  # a bit of a hack to make the benchmark test not error out because there are no grads
+
+    return score, None
 
 
 def eval_ref_energy_for_rotamers(

@@ -126,7 +126,7 @@ def pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums=None):
                 res_not_connected.append((False, True))
             else:
                 res_not_connected.append((False, False))
-    canonical_form["res_not_connected"] = torch.tensor(
+    canonical_form.res_not_connected = torch.tensor(
         [res_not_connected], dtype=torch.bool, device=torch_device
     )
 
@@ -397,6 +397,9 @@ class EnergyTermTestBase:
         coords = torch.nn.Parameter(p1.coords.clone())
         block_pair_scores = block_pair_scorer(coords).to_dense().cpu().detach().numpy()
         full_pose_scores = pose_scorer(coords).cpu().detach().numpy()
+
+        print("block_pair_scores", block_pair_scores)
+        print("full_pose_scores", full_pose_scores)
 
         assert_allclose(full_pose_scores, block_pair_scores.sum((2, 3)), atol, rtol)
 

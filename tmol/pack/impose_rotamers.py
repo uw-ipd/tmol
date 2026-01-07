@@ -154,10 +154,10 @@ def impose_top_rotamer_assignments(
         # need to make new atom_occupancy and atom_b_factor arrays
         orig_pdb_info = orig_pose_stack.pdb_info
         new_atom_occupancy = numpy.zeros(
-            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+            (n_poses, new_max_n_pose_atoms), dtype=numpy.float32
         )
         new_atom_b_factor = numpy.zeros(
-            (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=numpy.float32
+            (n_poses, new_max_n_pose_atoms), dtype=numpy.float32
         )
         _, real_expanded_pose_ats = orig_pose_stack.expand_coords()
         real_expanded_pose_ats = real_expanded_pose_ats.cpu().numpy()
@@ -212,10 +212,11 @@ def impose_top_rotamer_assignments(
         nz_is_real_pose_ind_new, nz_is_real_block_ind_new, nz_is_real_atom_ind_new = (
             torch.nonzero(is_real_atom_new, as_tuple=True)
         )
-        new_atom_b_factor[is_real_atom]
+        # new_atom_b_factor[is_real_atom]
         new_pose_at_is_real = torch.arange(
             new_max_n_pose_atoms, dtype=torch.int64, device=device
         ).repeat(n_poses, 1) < new_n_pose_atoms.unsqueeze(1)
+        new_pose_at_is_real = new_pose_at_is_real.cpu().numpy()
 
         new_atom_b_factor[new_pose_at_is_real] = new_expanded_b_factor[
             nz_is_real_pose_ind_new.cpu().numpy(),
