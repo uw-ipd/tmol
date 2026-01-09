@@ -5,9 +5,6 @@ from ..energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
 from tmol.score.disulfide.params import DisulfideGlobalParams
-from tmol.score.disulfide.disulfide_whole_pose_module import (
-    DisulfideWholePoseScoringModule,
-)
 from tmol.score.disulfide.potentials.compiled import (
     disulfide_pose_scores,
     disulfide_rotamer_scores,
@@ -77,18 +74,6 @@ class DisulfideEnergyTerm(EnergyTerm):
 
     def setup_poses(self, poses: PoseStack):
         super(DisulfideEnergyTerm, self).setup_poses(poses)
-
-    # def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-    #     pbt = pose_stack.packed_block_types
-
-    #     return DisulfideWholePoseScoringModule(
-    #         pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-    #         pose_stack_block_types=pose_stack.block_type_ind,
-    #         pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
-    #         bt_disulfide_conns=pbt.disulfide_conns,
-    #         bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
-    #         global_params=self.global_params,
-    #     )
 
     def get_pose_score_term_function(self):
         return disulfide_pose_scores

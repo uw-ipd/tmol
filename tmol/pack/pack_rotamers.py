@@ -29,6 +29,7 @@ def pack_rotamers(
 
     energies = rotamer_scoring_module(rotamer_set.coords)
     energies = energies.coalesce()
+
     if verbose and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time2 = time.perf_counter()

@@ -3,7 +3,6 @@ import torch
 from ..energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
-from tmol.score.ref.ref_whole_pose_module import RefWholePoseScoringModule
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes

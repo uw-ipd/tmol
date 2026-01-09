@@ -19,7 +19,8 @@ from tmol.chemical.restypes import (
 )
 
 from tmol.pose.packed_block_types import PackedBlockTypes
-from tmol.pose.pose_stack import PDBInfo, PoseStack
+from tmol.pose.pdb_info import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
+from tmol.pose.pose_stack import PoseStack
 
 from tmol.utility.tensor.common_operations import (
     exclusive_cumsum1d,
@@ -92,6 +93,10 @@ class PoseStackBuilder:
         # )
         pdb_info = cls._pdb_info_from_pose_stacks(pose_stacks, ps_offset, max_n_blocks)
 
+        # TO DO:
+        # Concatenate the constraint sets
+        constraint_set = None
+
         def i64(t):
             return t.to(torch.int64)
 
@@ -109,6 +114,7 @@ class PoseStackBuilder:
             chain_id=chain_id,
             chain_id64=i64(chain_id),
             pdb_info=pdb_info,
+            constraint_set=constraint_set,
             device=device,
         )
 
@@ -176,6 +182,24 @@ class PoseStackBuilder:
         real_res_np = real_res.cpu().numpy()
         chain_labels[real_res_np] = "A"
 
+        residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=numpy.int32)
+        arange1 = numpy.expand_dims(
+            numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0
+        ).repeat(n_poses, axis=0)
+        residue_labels[real_res_np] = arange1[real_res_np]
+        residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
+        atom_occupancy = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32)
+        atom_b_factor = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32)
+
+        pdb_info = PDBInfo(
+            residue_labels=residue_labels,
+            residue_insertion_codes=residue_insertion_codes,
+            chain_labels=chain_labels,
+            atom_occupancy=atom_occupancy,
+            atom_b_factor=atom_b_factor,
+        )
+
+
         return PoseStack(
             packed_block_types=packed_block_types,
             coords=torch.zeros(
@@ -191,7 +215,8 @@ class PoseStackBuilder:
             block_type_ind64=block_type_ind64,
             chain_id=chain_id,
             chain_id64=chain_id.to(torch.int64),
-            chain_labels=chain_labels,
+            pdb_info=pdb_info,
+            constraint_set=None,
             device=device,
         )
 
@@ -310,6 +335,23 @@ class PoseStackBuilder:
         real_res_np = real_res.cpu().numpy()
         chain_labels[real_res_np] = "A"
 
+        residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=numpy.int32)
+        arange1 = numpy.expand_dims(
+            numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0
+        ).repeat(n_poses, axis=0)
+        residue_labels[real_res_np] = arange1[real_res_np]
+        residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
+        atom_occupancy = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32)
+        atom_b_factor = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32)
+
+        pdb_info = PDBInfo(
+            residue_labels=residue_labels,
+            residue_insertion_codes=residue_insertion_codes,
+            chain_labels=chain_labels,
+            atom_occupancy=atom_occupancy,
+            atom_b_factor=atom_b_factor,
+        )
+
         return PoseStack(
             packed_block_types=packed_block_types,
             coords=torch.zeros(
@@ -325,7 +367,8 @@ class PoseStackBuilder:
             block_type_ind64=block_type_ind64,
             chain_id=chain_id,
             chain_id64=chain_id.to(torch.int64),
-            chain_labels=chain_labels,
+            pdb_info=pdb_info,
+            constraint_set=None,
             device=device,
         )
 
@@ -446,11 +489,27 @@ class PoseStackBuilder:
         chain_ind_to_label = numpy.array(
             [chr(ord("A") + i) for i in range(max_n_chains)], dtype=object
         )
-        # chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
+        chain_labels = numpy.full(block_type_ind64.shape, "", dtype=object)
         real_res_np = real_res.cpu().numpy()
-        # chain_labels[real_res_np] = chain_ind_to_label[
-        #     chain_id.cpu().numpy()[real_res_np]
-        # ]
+        chain_labels[real_res_np] = chain_ind_to_label[
+            chain_id.cpu().numpy()[real_res_np]
+        ]
+        residue_labels = numpy.full(block_type_ind64.shape, -1, dtype=numpy.int32)
+        arange1 = numpy.expand_dims(
+            numpy.arange(max_n_res, dtype=numpy.int32) + 1, axis=0
+        ).repeat(n_poses, axis=0)
+        residue_labels[real_res_np] = arange1[real_res_np]
+        residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
+        atom_occupancy = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32)
+        atom_b_factor = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32)
+
+        pdb_info = PDBInfo(
+            residue_labels=residue_labels,
+            residue_insertion_codes=residue_insertion_codes,
+            chain_labels=chain_labels,
+            atom_occupancy=atom_occupancy,
+            atom_b_factor=atom_b_factor,
+        )
 
         return PoseStack(
             packed_block_types=packed_block_types,
@@ -467,7 +526,8 @@ class PoseStackBuilder:
             block_type_ind64=block_type_ind64,
             chain_id=chain_id,
             chain_id64=chain_id.to(torch.int64),
-            chain_labels=chain_labels,
+            pdb_info=pdb_info,
+            constraint_set=None,
             device=device,
         )
 
@@ -522,7 +582,8 @@ class PoseStackBuilder:
             block_type_ind64=i64(block_type_ind),
             chain_id=ps.chain_id,
             chain_id64=i64(ps.chain_id),
-            chain_labels=ps.chain_labels,
+            pdb_info=ps.pdb_info,
+            constraint_set=ps.constraint_set,
             device=ps.device,
         )
 

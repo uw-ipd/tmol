@@ -268,7 +268,7 @@ class EnergyTermTestBase:
         # )
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(pn)
+            pn = edit_pose_stack_fn(pn)
 
         pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
 
@@ -300,7 +300,7 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(p1)
+            p1 = edit_pose_stack_fn(p1)
 
         n_score_types = len(cls.energy_term_class.score_types())
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
@@ -349,7 +349,7 @@ class EnergyTermTestBase:
         pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(pn)
+            pn = edit_pose_stack_fn(pn)
 
         pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
         scores = pose_scorer(pn.coords).cpu().detach().numpy()
@@ -387,7 +387,7 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(p1)
+            p1 = edit_pose_stack_fn(p1)
 
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
         block_pair_scorer = cls.get_block_pair_scorer(
@@ -416,7 +416,7 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(p1)
+            p1 = edit_pose_stack_fn(p1)
 
         block_pair_scorer = cls.get_block_pair_scorer(
             p1, default_database, torch_device
@@ -518,7 +518,7 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(p1)
+            p1 = edit_pose_stack_fn(p1)
 
         block_pair_scorer = cls.get_block_pair_scorer(
             p1, default_database, torch_device

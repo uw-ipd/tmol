@@ -48,6 +48,9 @@ struct DeviceOperations<tmol::Device::CPU> {
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void scan(T* src, T* dst, int n, OP op) {
+    if (n <= 0) {
+      return;
+    }
     T last_val = src[0];
     if (scan_type == mgpu::scan_type_inc) {
       dst[0] = last_val;
@@ -62,6 +65,9 @@ struct DeviceOperations<tmol::Device::CPU> {
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static T scan_and_return_total(T* src, T* dst, int n, OP op) {
+    if (n == 0) {
+      return T(0);
+    }
     T last_val = src[0];
     if (scan_type == mgpu::scan_type_inc) {
       dst[0] = last_val;
