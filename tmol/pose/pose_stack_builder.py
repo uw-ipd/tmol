@@ -21,6 +21,7 @@ from tmol.chemical.restypes import (
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pdb_info import PDBInfo, DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.pose.pose_stack import PoseStack
+from tmol.pose.constraint_set import ConstraintSet
 
 from tmol.utility.tensor.common_operations import (
     exclusive_cumsum1d,
@@ -70,32 +71,37 @@ class PoseStackBuilder:
             packed_block_types, pose_stacks, max_n_blocks, device
         )
 
+        n_poses = sum(len(ps) for ps in pose_stacks)
         ps_offset = exclusive_cumsum1d(
             torch.tensor([len(ps) for ps in pose_stacks], dtype=torch.int64)
         )
         # block_coord_offset_cpu = block_coord_offset.cpu()
 
         inter_residue_connections = cls._inter_residue_connections_from_pose_stacks(
-            packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
+            packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
         )
         inter_block_bondsep = cls._interblock_bondsep_from_pose_stacks(
-            packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
+            packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
         )
         block_type_ind = cls._resolve_block_type_ind(
-            packed_block_types, pose_stacks, ps_offset, max_n_blocks, device
+            packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
         )
 
         chain_id = cls._chain_id_from_pose_stacks(
-            pose_stacks, ps_offset, max_n_blocks, device
+            pose_stacks, n_poses, ps_offset, max_n_blocks, device
         )
         # chain_labels = cls._chain_labels_from_pose_stacks(
         #     pose_stacks, ps_offset, max_n_blocks, device
         # )
-        pdb_info = cls._pdb_info_from_pose_stacks(pose_stacks, ps_offset, max_n_blocks)
+        pdb_info = cls._pdb_info_from_pose_stacks(pose_stacks, n_poses, ps_offset, max_n_blocks)
 
-        # TO DO:
         # Concatenate the constraint sets
-        constraint_set = None
+        constraint_set = ConstraintSet.concatenate(
+            [ps.constraint_set for ps in pose_stacks],
+            from_multiple_pose_stacks=True,
+            n_poses=n_poses,
+            ps_offset=ps_offset,
+        )
 
         def i64(t):
             return t.to(torch.int64)
@@ -854,11 +860,11 @@ class PoseStackBuilder:
         cls,
         packed_block_types: PackedBlockTypes,
         pose_stacks,  # : List["PoseStack"],
+        n_poses: int,
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
         device: torch.device,
     ) -> Tensor[torch.int32][:, :, :, 2]:
-        n_poses = sum(len(ps) for ps in pose_stacks)
         max_n_conn = max(
             len(rt.connections) for rt in packed_block_types.active_block_types
         )
@@ -880,11 +886,11 @@ class PoseStackBuilder:
         cls,
         packed_block_types: PackedBlockTypes,
         pose_stacks,  # : List["PoseStack"],
+        n_poses: int,
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
         device: torch.device,
     ) -> Tensor[torch.int32][:, :, :, :, :]:
-        n_poses = sum(len(ps) for ps in pose_stacks)
         max_n_conn = max(
             len(rt.connections) for rt in packed_block_types.active_block_types
         )
@@ -913,11 +919,11 @@ class PoseStackBuilder:
         cls,
         packed_block_types: PackedBlockTypes,
         pose_stacks,  #: List["PoseStack"],
+        n_poses: int,
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
         device: torch.device,
     ):
-        n_poses = sum(len(ps) for ps in pose_stacks)
         block_type_ind = torch.full(
             (n_poses, max_n_blocks), -1, dtype=torch.int32, device=device
         )
@@ -948,11 +954,11 @@ class PoseStackBuilder:
     def _chain_id_from_pose_stacks(
         cls,
         pose_stacks,  # : List["PoseStack"],
+        n_poses: int,
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
         device: torch.device,
     ) -> Tensor[torch.int32][:, :]:
-        n_poses = sum(len(ps) for ps in pose_stacks)
         chain_id = torch.full(
             (n_poses, max_n_blocks),
             -1,
@@ -971,12 +977,12 @@ class PoseStackBuilder:
     def _pdb_info_from_pose_stacks(
         cls,
         pose_stacks,  # : List["PoseStack"],
+        n_poses: int,
         ps_offsets: Tensor[torch.int64][:],
         max_n_blocks: int,
     ) -> PDBInfo:
         ps_offsets = ps_offsets.cpu().numpy()
 
-        n_poses = sum(len(ps) for ps in pose_stacks)
         max_n_atoms = max(ps.coords.shape[1] for ps in pose_stacks)
 
         residue_labels = numpy.full((n_poses, max_n_blocks), 0, dtype=int)
