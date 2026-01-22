@@ -105,24 +105,43 @@ class ConstraintSet:
         cs_offset = exclusive_cumsum1d(
             torch.tensor(
                 [
-                    cs.constraint_function_inds[0] if cs is not None else 0
+                    cs.constraint_atoms.shape[0] if cs is not None else 0
                     for cs in constraint_sets 
                 ], dtype=torch.int64
             )
         )
 
-        constraint_functions_list = list(set([
-            func for cs in constraint_sets if cs is not None
-            for func in cs.constraint_functions
-        ]))
-        constraint_function_inds = {
-            id(func): i for i, func in enumerate(constraint_functions_list)
-        }
+        # constraint_functions_list = list(set([
+        #     func for cs in constraint_sets if cs is not None
+        #     for func in cs.constraint_functions
+        # ]))
+        constraint_functions_list = []
+        constraint_function_inds = []
+        for i, cs in enumerate(constraint_sets):
+            if cs is not None:
+                constraint_function_inds.append([])
+                for j, func in enumerate(cs.constraint_functions):
+                    found_existing = False
+                    for k, func_existing in enumerate(constraint_functions_list):
+                        if func_existing == func:
+                            constraint_function_inds[-1].append(k)
+                            found_existing = True
+                            break
+                    if not found_existing:
+                        constraint_functions_list.append(func)
+                        constraint_function_inds[-1].append(len(constraint_functions_list)-1)
+
+
+        # print("constraint function list:", constraint_functions_list)
+        # constraint_function_inds = {
+        #     id(func): i for i, func in enumerate(constraint_functions_list)
+        # }
+        # print("constraint function inds:", constraint_function_inds)
         new_constraint_function_inds = torch.tensor(
             [
-                constraint_function_inds[id(func)]
-                for cs in constraint_sets if cs is not None
-                for func in cs.constraint_functions
+                constraint_function_inds[i][j]
+                for i, cs in enumerate(constraint_sets) if cs is not None
+                for j, func in enumerate(cs.constraint_functions)
             ], device=device, dtype=torch.int32
         )
         n_constraints = new_constraint_function_inds.size(0)
@@ -142,13 +161,14 @@ class ConstraintSet:
         for i, cs in enumerate(constraint_sets):
             if cs is not None:
                 n_cs_constraints = cs.constraint_function_inds.size(0)
+                constraint_atoms_shifted = cs.constraint_atoms.detach().clone()
+                constraint_atoms_pose = constraint_atoms_shifted[:, :, 0]
+                is_real_pose = constraint_atoms_pose[:, :] != -1
+                constraint_atoms_pose[is_real_pose] += ps_offset[i]
+                constraint_atoms_shifted[:, :, 0] = constraint_atoms_pose
                 new_constraint_atoms[
                     cs_offset[i] : cs_offset[i] + n_cs_constraints, :, :
-                ] = cs.constraint_atoms
-                # update the pose indices
-                new_constraint_atoms[
-                    cs_offset[i]: cs_offset[i] + n_cs_constraints, :, 0
-                ] += ps_offset[i]
+                ] = constraint_atoms_shifted
                 new_constraint_params[
                     cs_offset[i] : cs_offset[i] + n_cs_constraints, 0 : cs.constraint_params.size(1)
                 ] = cs.constraint_params
