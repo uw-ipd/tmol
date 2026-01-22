@@ -145,4 +145,3 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
             type_params,
             global_params,
         ]
-

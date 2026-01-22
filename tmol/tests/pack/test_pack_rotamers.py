@@ -55,12 +55,12 @@ def get_packer_sfxn(default_database, torch_device):
 
     return sfxn
 
+
 def get_constraints_only_sfxn(default_database, torch_device):
     sfxn = ScoreFunction(param_db=default_database, device=torch_device)
     sfxn.set_weight(ScoreType.constraint, 1.0)
 
     return sfxn
-
 
 
 def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
@@ -552,7 +552,7 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
 
     # print(f"warmup execution time: {elapsed_time:.6f} seconds")
 
-    #print("starting packer steps")
+    # print("starting packer steps")
     start_time = time.perf_counter()
 
     new_pose_stack = pack_rotamers(pose_stack, sfxn, task)

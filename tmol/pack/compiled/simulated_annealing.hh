@@ -9,8 +9,7 @@ namespace compiled {
 #ifdef __CUDACC__
 __device__
 #endif
-    inline bool
-    pass_metropolis(
+    inline bool pass_metropolis(
         float kT,
         float uniform_random,
         float deltaE,
@@ -63,8 +62,7 @@ inline
 #ifdef __CUDACC__
     __device__
 #endif
-    float
-    total_energy_for_assignment(
+    float total_energy_for_assignment(
         TensorAccessor<int, 1, D> n_rotamers_for_res,  // max-n-res
         TensorAccessor<int, 1, D> oneb_offsets,        // max-n-res
         int32_t const chunk_size,
@@ -157,8 +155,7 @@ inline
 #ifdef __CUDACC__
     __device__
 #endif
-    float
-    total_energy_for_assignment(
+    float total_energy_for_assignment(
         TensorAccessor<int, 1, D> n_rotamers_for_res,  // max-n-res
         TensorAccessor<int, 1, D> oneb_offsets,        // max-n-res
         int32_t const chunk_size,

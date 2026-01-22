@@ -21,10 +21,10 @@ class LJLKSingleResData {
   int n_atoms;
   int n_conn;
   int n_heavy;
-  Real *coords;
-  LJLKTypeParams<Real> *params;
-  unsigned char *heavy_inds;
-  unsigned char *path_dist;
+  Real* coords;
+  LJLKTypeParams<Real>* params;
+  unsigned char* heavy_inds;
+  unsigned char* path_dist;
 };
 
 template <typename Real>
@@ -40,7 +40,7 @@ class LJLKScoringData {
   int max_important_bond_separation;
   int min_separation;
   bool in_count_pair_striking_dist;
-  unsigned char *conn_seps;
+  unsigned char* conn_seps;
   LJGlobalParams<Real> global_params;
   Real total_ljatr;
   Real total_ljrep;
@@ -76,7 +76,7 @@ void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
     TView<LJLKTypeParams<Real>, 1, D> type_params,
     TView<Int, 2, D> block_type_heavy_atoms_in_tile,
     int pose_ind,
-    LJLKSingleResData<Real> &r_dat,
+    LJLKSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom) {
   // pre-condition: n_atoms_to_load < TILE_SIZE
@@ -84,7 +84,7 @@ void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
   // in r_dat.coords allocation
   DeviceDispatch<D>::template copy_contiguous_data<nt, 3>(
       r_dat.coords,
-      reinterpret_cast<Real *>(&coords[r_dat.rot_coord_offset + start_atom]),
+      reinterpret_cast<Real*>(&coords[r_dat.rot_coord_offset + start_atom]),
       n_atoms_to_load * 3);
   auto copy_atom_types = ([=](int tid) {
     for (int count = tid; count < n_atoms_to_load; count += nt) {
@@ -119,11 +119,11 @@ void TMOL_DEVICE_FUNC ljlk_load_block_into_shared(
     TView<Int, 2, D> block_type_heavy_atoms_in_tile,
     TView<Int, 3, D> block_type_path_distance,
     int pose_ind,
-    LJLKSingleResData<Real> &r_dat,
+    LJLKSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom,
     bool count_pair_striking_dist,
-    unsigned char *__restrict__ conn_ats) {
+    unsigned char* __restrict__ conn_ats) {
   ljlk_load_block_coords_and_params_into_shared<DeviceDispatch, D, nt>(
       coords,
       block_type_atom_types,
@@ -175,8 +175,8 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
     int block_type2,
     int n_atoms1,
     int n_atoms2,
-    LJLKScoringData<Real> &inter_dat,
-    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    LJLKScoringData<Real>& inter_dat,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   inter_dat.pose_ind = pose_ind;
   inter_dat.r1.rot_ind = rot_ind1;
   inter_dat.r2.rot_ind = rot_ind2;
@@ -270,8 +270,8 @@ void TMOL_DEVICE_FUNC ljlk_load_interres1_tile_data_to_shared(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    LJLKScoringData<Real> &inter_dat,
-    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    LJLKScoringData<Real>& inter_dat,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   auto store_n_heavy1 = ([&](int tid) {
     if (tid == 0) {
       shared_m.n_heavy1 =
@@ -312,8 +312,8 @@ void TMOL_DEVICE_FUNC ljlk_load_interres2_tile_data_to_shared(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    LJLKScoringData<Real> &inter_dat,
-    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    LJLKScoringData<Real>& inter_dat,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   auto store_n_heavy2 = ([&](int tid) {
     if (tid == 0) {
       shared_m.n_heavy2 =
@@ -340,8 +340,8 @@ void TMOL_DEVICE_FUNC ljlk_load_interres2_tile_data_to_shared(
 
 template <int TILE_SIZE, int MAX_N_CONN, typename Real>
 void TMOL_DEVICE_FUNC ljlk_load_interres_data_from_shared(
-    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m,
-    LJLKScoringData<Real> &inter_dat) {
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m,
+    LJLKScoringData<Real>& inter_dat) {
   inter_dat.r1.n_heavy = shared_m.n_heavy1;
   inter_dat.r2.n_heavy = shared_m.n_heavy2;
 }
@@ -363,8 +363,8 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_intrares_data(
     int block_ind1,
     int block_type1,
     int n_atoms1,
-    LJLKScoringData<Real> &intra_dat,
-    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    LJLKScoringData<Real>& intra_dat,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   intra_dat.pose_ind = pose_ind;
   intra_dat.r1.rot_ind = rot_ind1;
   intra_dat.r2.rot_ind = rot_ind1;
@@ -427,8 +427,8 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    LJLKScoringData<Real> &intra_dat,
-    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    LJLKScoringData<Real>& intra_dat,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   auto store_n_heavy1 = ([&](int tid) {
     if (tid == 0) {
       shared_m.n_heavy1 =
@@ -467,8 +467,8 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares2_tile_data_to_shared(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    LJLKScoringData<Real> &intra_dat,
-    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    LJLKScoringData<Real>& intra_dat,
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   auto store_n_heavy2 = ([&](int tid) {
     if (tid == 0) {
       shared_m.n_heavy2 =
@@ -491,8 +491,8 @@ template <int TILE_SIZE, int MAX_N_CONN, typename Real>
 void TMOL_DEVICE_FUNC ljlk_load_intrares_data_from_shared(
     int tile_ind1,
     int tile_ind2,
-    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m,
-    LJLKScoringData<Real> &intra_dat) {
+    LJLKBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m,
+    LJLKScoringData<Real>& intra_dat) {
   // set the pointers in intra_dat to point at the shared-memory arrays
   // If we are evaluating the energies between atoms in the same tile
   // then only the "1" shared-memory arrays will be loaded with data;
@@ -514,7 +514,7 @@ template <typename Real>
 TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy(
     int atom_tile_ind1,
     int atom_tile_ind2,
-    LJLKScoringData<Real> const &score_dat,
+    LJLKScoringData<Real> const& score_dat,
     int cp_separation) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
 
@@ -537,7 +537,7 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
     int atom_tile_ind2,
     int start_atom1,
     int start_atom2,
-    LJLKScoringData<Real> const &score_dat,
+    LJLKScoringData<Real> const& score_dat,
     int cp_separation,
     Real dTdV_atr,
     Real dTdV_rep,
@@ -548,9 +548,9 @@ TMOL_DEVICE_FUNC void lj_atom_derivs(
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
 
   auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto &dist = dist_r.V;
-  auto &ddist_dat1 = dist_r.dV_dA;
-  auto &ddist_dat2 = dist_r.dV_dB;
+  auto& dist = dist_r.V;
+  auto& ddist_dat1 = dist_r.dV_dA;
+  auto& ddist_dat2 = dist_r.dV_dB;
 
   auto lj = lj_score<Real>::V_dV(
       dist,
@@ -606,7 +606,7 @@ TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy_and_derivs_full(
     int atom_tile_ind2,
     int start_atom1,
     int start_atom2,
-    LJLKScoringData<Real> const &score_dat,
+    LJLKScoringData<Real> const& score_dat,
     int cp_separation,
     TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
@@ -615,9 +615,9 @@ TMOL_DEVICE_FUNC std::array<Real, 2> lj_atom_energy_and_derivs_full(
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
 
   auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto &dist = dist_r.V;
-  auto &ddist_dat1 = dist_r.dV_dA;
-  auto &ddist_dat2 = dist_r.dV_dB;
+  auto& dist = dist_r.V;
+  auto& ddist_dat1 = dist_r.dV_dA;
+  auto& ddist_dat2 = dist_r.dV_dB;
   auto lj = lj_score<Real>::V_dV(
       dist,
       cp_separation,
@@ -671,7 +671,7 @@ template <typename Real>
 TMOL_DEVICE_FUNC Real lk_atom_energy(
     int atom_tile_ind1,
     int atom_tile_ind2,
-    LJLKScoringData<Real> const &score_dat,
+    LJLKScoringData<Real> const& score_dat,
     int cp_separation) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   Real3 coord1 = coord_from_shared(score_dat.r1.coords, atom_tile_ind1);
@@ -692,7 +692,7 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
     int atom_tile_ind2,
     int start_atom1,
     int start_atom2,
-    LJLKScoringData<Real> const &score_dat,
+    LJLKScoringData<Real> const& score_dat,
     int cp_separation,
     Real dTdV,
     TView<Eigen::Matrix<Real, 3, 1>, 1, D> dV_dcoords) {
@@ -702,9 +702,9 @@ TMOL_DEVICE_FUNC void lk_atom_derivs(
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
 
   auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto &dist = dist_r.V;
-  auto &ddist_dat1 = dist_r.dV_dA;
-  auto &ddist_dat2 = dist_r.dV_dB;
+  auto& dist = dist_r.V;
+  auto& ddist_dat1 = dist_r.dV_dA;
+  auto& ddist_dat2 = dist_r.dV_dB;
 
   auto lk = lk_isotropic_score<Real>::V_dV(
       dist,
@@ -744,7 +744,7 @@ TMOL_DEVICE_FUNC Real lk_atom_energy_and_derivs_full(
     int atom_tile_ind2,
     int start_atom1,
     int start_atom2,
-    LJLKScoringData<Real> const &score_dat,
+    LJLKScoringData<Real> const& score_dat,
     int cp_separation,
     TView<Eigen::Matrix<Real, 3, 1>, 2, D> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
@@ -752,9 +752,9 @@ TMOL_DEVICE_FUNC Real lk_atom_energy_and_derivs_full(
   Real3 coord2 = coord_from_shared(score_dat.r2.coords, atom_tile_ind2);
 
   auto dist_r = distance<Real>::V_dV(coord1, coord2);
-  auto &dist = dist_r.V;
-  auto &ddist_dat1 = dist_r.dV_dA;
-  auto &ddist_dat2 = dist_r.dV_dB;
+  auto& dist = dist_r.V;
+  auto& ddist_dat1 = dist_r.dV_dA;
+  auto& ddist_dat2 = dist_r.dV_dB;
   auto lk = lk_isotropic_score<Real>::V_dV(
       dist,
       cp_separation,

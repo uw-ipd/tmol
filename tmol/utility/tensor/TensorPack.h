@@ -21,12 +21,12 @@ struct TPack {
   tmol::TView<T, N, D, P> view;
 
   TPack(at::Tensor tensor, tmol::TView<T, N, D, P> view)
-      : tensor(tensor), view(view){};
+      : tensor(tensor), view(view) {};
 
   TPack(at::Tensor tensor)
-      : tensor(tensor), view(tmol::view_tensor<T, N, D, P>(tensor)){};
+      : tensor(tensor), view(tmol::view_tensor<T, N, D, P>(tensor)) {};
 
-  TPack() : tensor(), view(){};
+  TPack() : tensor(), view() {};
 
   int64_t dim() { return view.dim(); }
   int64_t size(int64_t d) { return view.size(d); }

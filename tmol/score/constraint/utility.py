@@ -1,4 +1,5 @@
 import torch
+import attrs
 
 from tmol.pose.constraint_set import ConstraintSet
 from tmol.pose.pose_stack import PoseStack
@@ -33,8 +34,13 @@ def constrain_all_ca(pose_stack: PoseStack) -> PoseStack
                     ]
                 )
                 cnstr_params = torch.cat([cnstr_params, ca_coords.unsqueeze(0)])
+    if constraint_set is None:
+        constraint_set = ConstraintSet.create_empty(pose_stack.device, pose_stack.n_poses)
+    constraint_set = constraint_set.add_constraints(
+        ConstraintEnergyTerm.harmonic_coordinate, cnstr_atoms, cnstr_params
+    )
 
     return attrs.evolve(
         pose_stack,
-        constraint_set=constraint_set.add_constraints(ConstraintEnergyTerm.harmonic_coordinate, cnstr_atoms, cnstr_params)
+        constraint_set=constraint_set,
     ) 

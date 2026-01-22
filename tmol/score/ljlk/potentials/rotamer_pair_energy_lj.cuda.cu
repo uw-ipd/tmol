@@ -51,7 +51,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 cudaStream_t ljlk_stream = 0;
 
-void clear_old_score_events(std::list<cudaEvent_t> &previously_created_events) {
+void clear_old_score_events(std::list<cudaEvent_t>& previously_created_events) {
   return;
   for (auto event_iter = previously_created_events.begin();
        event_iter != previously_created_events.end();
@@ -101,7 +101,7 @@ void record_scoring_event(
 }
 
 void sync_and_destroy_old_score_events(
-    std::list<cudaEvent_t> &previously_created_events) {
+    std::list<cudaEvent_t>& previously_created_events) {
   for (auto event : previously_created_events) {
     cudaEventSynchronize(event);
     cudaEventDestroy(event);
@@ -110,8 +110,7 @@ void sync_and_destroy_old_score_events(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -251,10 +250,10 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            int tid,
            int alt_start_atom,
            int neighb_start_atom,
-           Real *__restrict__ alt_coords,                     // shared
-           Real *__restrict__ neighb_coords,                  // shared
-           LJLKTypeParams<Real> *__restrict__ alt_params,     // shared
-           LJLKTypeParams<Real> *__restrict__ neighb_params,  // shared
+           Real* __restrict__ alt_coords,                     // shared
+           Real* __restrict__ neighb_coords,                  // shared
+           LJLKTypeParams<Real>* __restrict__ alt_params,     // shared
+           LJLKTypeParams<Real>* __restrict__ neighb_params,  // shared
            int const max_important_bond_separation,
            int const min_separation,
 
@@ -262,9 +261,9 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            int const neighb_n_atoms,
            int const alt_n_conn,
            int const neighb_n_conn,
-           unsigned char const *__restrict__ alt_path_dist,     // shared
-           unsigned char const *__restrict__ neighb_path_dist,  // shared
-           unsigned char const *__restrict__ conn_seps) {       // shared
+           unsigned char const* __restrict__ alt_path_dist,     // shared
+           unsigned char const* __restrict__ neighb_path_dist,  // shared
+           unsigned char const* __restrict__ conn_seps) {       // shared
         Real score_total = 0;
         Real coord1[3];
         Real coord2[3];
@@ -327,21 +326,21 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            int tid,
            int alt_n_heavy,
            int neighb_n_heavy,
-           Real *__restrict__ alt_coords,                        // shared
-           Real *__restrict__ neighb_coords,                     // shared
-           LJLKTypeParams<Real> *__restrict__ alt_params,        // shared
-           LJLKTypeParams<Real> *__restrict__ neighb_params,     // shared
-           unsigned char const *__restrict__ alt_heavy_inds,     // shared
-           unsigned char const *__restrict__ neighb_heavy_inds,  // shared
+           Real* __restrict__ alt_coords,                        // shared
+           Real* __restrict__ neighb_coords,                     // shared
+           LJLKTypeParams<Real>* __restrict__ alt_params,        // shared
+           LJLKTypeParams<Real>* __restrict__ neighb_params,     // shared
+           unsigned char const* __restrict__ alt_heavy_inds,     // shared
+           unsigned char const* __restrict__ neighb_heavy_inds,  // shared
            int const max_important_bond_separation,
            int const min_separation,
            int const alt_n_atoms,
            int const neighb_n_atoms,
            int const alt_n_conn,
            int const neighb_n_conn,
-           unsigned char const *__restrict__ alt_path_dist,     // shared
-           unsigned char const *__restrict__ neighb_path_dist,  // shared
-           unsigned char const *__restrict__ conn_seps) {       // shared
+           unsigned char const* __restrict__ alt_path_dist,     // shared
+           unsigned char const* __restrict__ neighb_path_dist,  // shared
+           unsigned char const* __restrict__ conn_seps) {       // shared
         Real score_total = 0;
         // return score_total;
 
@@ -410,10 +409,10 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                    int tid,
                                    int start_atom1,
                                    int start_atom2,
-                                   Real *coords1,
-                                   Real *coords2,
-                                   LJLKTypeParams<Real> *params1,
-                                   LJLKTypeParams<Real> *params2,
+                                   Real* coords1,
+                                   Real* coords2,
+                                   LJLKTypeParams<Real>* params1,
+                                   LJLKTypeParams<Real>* params2,
                                    int const max_important_bond_separation,
                                    int const block_type,
                                    int const n_atoms) {
@@ -471,12 +470,12 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                    int start_atom2,
                                    int n_heavy1,
                                    int n_heavy2,
-                                   Real *coords1,
-                                   Real *coords2,
-                                   LJLKTypeParams<Real> *params1,
-                                   LJLKTypeParams<Real> *params2,
-                                   unsigned char const *heavy_inds1,
-                                   unsigned char const *heavy_inds2,
+                                   Real* coords1,
+                                   Real* coords2,
+                                   LJLKTypeParams<Real>* params1,
+                                   LJLKTypeParams<Real>* params2,
+                                   unsigned char const* heavy_inds1,
+                                   unsigned char const* heavy_inds2,
                                    int const max_important_bond_separation,
                                    int const block_type,
                                    int const n_atoms) {
@@ -545,12 +544,12 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            int tid,
            int tile_ind,
            bool new_context_ind,
-           Real *__restrict__ shared_coords,
-           LJLKTypeParams<Real> *__restrict__ params,
-           unsigned char *__restrict__ heavy_inds) {
+           Real* __restrict__ shared_coords,
+           LJLKTypeParams<Real>* __restrict__ params,
+           unsigned char* __restrict__ heavy_inds) {
         if (new_context_ind || n_atoms > TILE_SIZE) {
           mgpu::mem_to_shared<TILE_SIZE, 3>(
-              reinterpret_cast<Real *>(
+              reinterpret_cast<Real*>(
                   &alternate_coords[rot_coord_offset + TILE_SIZE * tile_ind]),
               tid,
               n_atoms_to_load * 3,
@@ -587,11 +586,11 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
            bool new_context_ind,
            bool count_pair_data_loaded,
            bool count_pair_striking_dist,
-           unsigned char *__restrict__ conn_ats,
-           Real *__restrict__ shared_coords,
-           LJLKTypeParams<Real> *__restrict__ params,
-           unsigned char *__restrict__ heavy_inds,
-           unsigned char *__restrict__ path_dist  // to conn
+           unsigned char* __restrict__ conn_ats,
+           Real* __restrict__ shared_coords,
+           LJLKTypeParams<Real>* __restrict__ params,
+           unsigned char* __restrict__ heavy_inds,
+           unsigned char* __restrict__ path_dist  // to conn
        ) {
         load_alt_coords_and_params_into_shared(
             rot_ind,
@@ -874,7 +873,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             int j_n_atoms_to_load =
                 min(Int(TILE_SIZE), Int((neighb_n_atoms - TILE_SIZE * j)));
             mgpu::mem_to_shared<TILE_SIZE, 3>(
-                reinterpret_cast<Real *>(
+                reinterpret_cast<Real*>(
                     &context_coords[alt_context]
                                    [neighb_coord_offset + j * TILE_SIZE]),
                 tid,
@@ -1055,7 +1054,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
             //
             // }
           }  // for j
-        }    // for i
+        }  // for i
       } else {
         // alt_block_ind == neighb_block_ind
 
@@ -1246,8 +1245,8 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                 alt_n_atoms2);
 
           }  // for j
-        }    // for i
-      }      // else
+        }  // for i
+      }  // else
 
       // Make sure all energy calculations are complete before we overwrite
       // the neighbor-residue data in the shared memory union
@@ -1296,8 +1295,7 @@ auto LJLKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1466,8 +1464,7 @@ class LJLKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1540,7 +1537,7 @@ auto LJLKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
   using tmol::pack::sim_anneal::compiled::SimAnnealer;
 
   int64_t annealer_uint = annealer[0];
-  SimAnnealer *sim_annealer = reinterpret_cast<SimAnnealer *>(annealer_uint);
+  SimAnnealer* sim_annealer = reinterpret_cast<SimAnnealer*>(annealer_uint);
   std::shared_ptr<RPECalc> calc =
       std::make_shared<LJLKRPECudaCalc<DeviceDispatch, D, Real, Int>>(
           context_coords,

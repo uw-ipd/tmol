@@ -13,10 +13,10 @@ namespace common {
 template <template <typename T> typename InterPairData, typename T>
 class AllAtomPairSelector {
  public:
-  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const &inter_data) {
+  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const& inter_data) {
     return inter_data.r1.n_atoms;
   }
-  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const &inter_data) {
+  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const& inter_data) {
     return inter_data.r2.n_atoms;
   }
 };
@@ -27,10 +27,10 @@ class AllAtomPairSelector {
 template <template <typename T> typename InterPairData, typename T>
 class HeavyAtomPairSelector {
  public:
-  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const &inter_data) {
+  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const& inter_data) {
     return inter_data.r1.n_heavy;
   }
-  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const &inter_data) {
+  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const& inter_data) {
     return inter_data.r2.n_heavy;
   }
 };
@@ -77,7 +77,7 @@ class InterResBlockEvaluation {
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
-      InterEnergyData<Real> const &inter_dat) {
+      InterEnergyData<Real> const& inter_dat) {
     std::array<Real, NTERMS> score_total = {};
     int const n_remain1 = min(
         TILE,
@@ -121,7 +121,7 @@ class IntraResBlockEvaluation {
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
-      IntraEnergyData<Real> const &intra_dat) {
+      IntraEnergyData<Real> const& intra_dat) {
     std::array<Real, NTERMS> score_total = {};
     int const n_remain1 = min(
         TILE,
@@ -212,7 +212,7 @@ template <
     typename CalcIntraFunc,
     typename StoreEnergyFunc>
 TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
-    SharedMemData &shared_data,
+    SharedMemData& shared_data,
     int pose_ind,
     int block_ind1,
     int block_ind2,
@@ -364,7 +364,7 @@ template <
     typename CalcIntraFunc,
     typename StoreEnergyFunc>
 TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
-    SharedMemData &shared_data,
+    SharedMemData& shared_data,
     int pose_ind,
     int rot_ind1,
     int rot_ind2,

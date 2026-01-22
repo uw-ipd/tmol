@@ -32,9 +32,7 @@ class ConstraintSet:
             constraint_atoms=torch.full(
                 (0, cls.MAX_N_ATOMS, 3), 0, dtype=torch.int32, device=device
             ),
-            constraint_params=torch.full(
-                (0, 1), 0, dtype=torch.float32, device=device
-            ),
+            constraint_params=torch.full((0, 1), 0, dtype=torch.float32, device=device),
             constraint_num_unique_blocks=torch.full(
                 (0,), 0, dtype=torch.int32, device=device
             ),
@@ -43,7 +41,7 @@ class ConstraintSet:
             ),
             constraint_functions=tuple(),
         )
-    
+
     @classmethod
     def concatenate(
         cls,
@@ -53,12 +51,12 @@ class ConstraintSet:
         ps_offset: Optional[Tensor[torch.int64][:]] = None,
     ) -> Optional["ConstraintSet"]:
         """Concatenate multiple ConstraintSets into a single ConstraintSet.
-        
+
         This function is particularly useful if you're creating a PoseStack from multiple
         PoseStacks, each of which has its own ConstraintSet. In that case, n_poses
         and ps_offset will be readily available. In this use case, "from_multiple_pose_stacks"
         should be set to True.
-        
+
         The other use case is in creating multiple types of constraints for a single
         PoseStack and then combining them in a single go. This will be more efficient
         than repeatedly invoking add_constraints() as it skips the N^2 copy operations.
@@ -71,11 +69,13 @@ class ConstraintSet:
                 if device is None:
                     device = cs.device
                 else:
-                    assert device == cs.device, "All ConstraintSets must be on the same device"
-                
+                    assert (
+                        device == cs.device
+                    ), "All ConstraintSets must be on the same device"
+
         if device is None:
             return None
-        
+
         # now set up n_poses and ps_offset if not provided based on wether these
         # constraint sets are coming from multiple pose stacks or all from the
         # same pose stack
@@ -88,26 +88,23 @@ class ConstraintSet:
             if from_multiple_pose_stacks:
                 ps_offset = exclusive_cumsum1d(
                     torch.tensor(
-                        [
-                            cs.n_poses if cs is not None else 0
-                            for cs in constraint_sets 
-                        ], dtype=torch.int64, device=device
+                        [cs.n_poses if cs is not None else 0 for cs in constraint_sets],
+                        dtype=torch.int64,
+                        device=device,
                     )
                 )
             else:
                 ps_offset = torch.zeros(
-                    (len(constraint_sets),),
-                    dtype=torch.int64,
-                    device=device
+                    (len(constraint_sets),), dtype=torch.int64, device=device
                 )
-
 
         cs_offset = exclusive_cumsum1d(
             torch.tensor(
                 [
                     cs.constraint_atoms.shape[0] if cs is not None else 0
-                    for cs in constraint_sets 
-                ], dtype=torch.int64
+                    for cs in constraint_sets
+                ],
+                dtype=torch.int64,
             )
         )
 
@@ -129,8 +126,9 @@ class ConstraintSet:
                             break
                     if not found_existing:
                         constraint_functions_list.append(func)
-                        constraint_function_inds[-1].append(len(constraint_functions_list)-1)
-
+                        constraint_function_inds[-1].append(
+                            len(constraint_functions_list) - 1
+                        )
 
         # print("constraint function list:", constraint_functions_list)
         # constraint_function_inds = {
@@ -140,15 +138,24 @@ class ConstraintSet:
         new_constraint_function_inds = torch.tensor(
             [
                 constraint_function_inds[i][j]
-                for i, cs in enumerate(constraint_sets) if cs is not None
+                for i, cs in enumerate(constraint_sets)
+                if cs is not None
                 for j, func in enumerate(cs.constraint_functions)
-            ], device=device, dtype=torch.int32
+            ],
+            device=device,
+            dtype=torch.int32,
         )
         n_constraints = new_constraint_function_inds.size(0)
         new_constraint_atoms = torch.full(
             (n_constraints, cls.MAX_N_ATOMS, 3), -1, dtype=torch.int32, device=device
         )
-        max_n_params = max(cs.constraint_params.size(1) for cs in constraint_sets if cs is not None) if n_constraints > 0 else 0
+        max_n_params = (
+            max(
+                cs.constraint_params.size(1) for cs in constraint_sets if cs is not None
+            )
+            if n_constraints > 0
+            else 0
+        )
         new_constraint_params = torch.full(
             (n_constraints, max_n_params), 0.0, dtype=torch.float32, device=device
         )
@@ -170,7 +177,8 @@ class ConstraintSet:
                     cs_offset[i] : cs_offset[i] + n_cs_constraints, :, :
                 ] = constraint_atoms_shifted
                 new_constraint_params[
-                    cs_offset[i] : cs_offset[i] + n_cs_constraints, 0 : cs.constraint_params.size(1)
+                    cs_offset[i] : cs_offset[i] + n_cs_constraints,
+                    0 : cs.constraint_params.size(1),
                 ] = cs.constraint_params
                 new_constraint_num_unique_blocks[
                     cs_offset[i] : cs_offset[i] + n_cs_constraints
@@ -187,8 +195,8 @@ class ConstraintSet:
             constraint_num_unique_blocks=new_constraint_num_unique_blocks,
             constraint_unique_blocks=new_constraint_unique_blocks,
             constraint_functions=tuple(constraint_functions_list),
-        )                
-    
+        )
+
     def clone(self) -> "ConstraintSet":
         return attr.evolve(
             self,
@@ -198,7 +206,7 @@ class ConstraintSet:
             constraint_num_unique_blocks=self.constraint_num_unique_blocks.clone(),
             constraint_unique_blocks=self.constraint_unique_blocks.clone(),
         )
-    
+
     def to(self, device: torch.device) -> "ConstraintSet":
         return attr.evolve(
             self,
@@ -224,7 +232,9 @@ class ConstraintSet:
         # print(temp)
         return temp
 
-    def add_constraints_to_all_poses(self, fn, atom_indices, params=None) -> "ConstraintSet":
+    def add_constraints_to_all_poses(
+        self, fn, atom_indices, params=None
+    ) -> "ConstraintSet":
         """If all Poses in the PoseStack should be constrained in the same way, then
         this convenience function will take a list of atom indices for a single Pose
         and replicate them across all the Poses in the PoseStack."""
@@ -233,7 +243,6 @@ class ConstraintSet:
             # the normal call to add_constraints will apply it to all poses
             atom_indices = atom_indices[:, :, 1:3]
         return self.add_constraints(fn, atom_indices, params)
-
 
     def add_constraints(self, fn, atom_indices, params=None) -> "ConstraintSet":
         """
@@ -346,7 +355,7 @@ class ConstraintSet:
         )
         t2[:, 0 : new_params.size(1)] = new_params
         new_constraint_params = torch.cat((t1, t2))
-    
+
         return attr.evolve(
             self,
             constraint_function_inds=new_constraint_function_inds,

@@ -176,7 +176,10 @@ class ConstraintEnergyTerm(EnergyTerm):
                 else:
                     return (
                         torch.zeros(
-                            (1, n_poses,),
+                            (
+                                1,
+                                n_poses,
+                            ),
                             dtype=torch.float32,
                             device=device,
                         ),

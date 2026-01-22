@@ -7,7 +7,7 @@ from tmol.types.functional import validate_args
 
 @validate_args
 def exclusive_cumsum1d(
-    inds: Union[NDArray[numpy.int32][:], NDArray[numpy.int64][:]]
+    inds: Union[NDArray[numpy.int32][:], NDArray[numpy.int64][:]],
 ) -> Union[NDArray[numpy.int32][:], NDArray[numpy.int64][:]]:
     return numpy.concatenate(
         (
@@ -20,7 +20,7 @@ def exclusive_cumsum1d(
 
 @validate_args
 def exclusive_cumsum2d(
-    inds: Union[NDArray[numpy.int32][:, :], NDArray[numpy.int64][:, :]]
+    inds: Union[NDArray[numpy.int32][:, :], NDArray[numpy.int64][:, :]],
 ) -> Union[NDArray[numpy.int32][:, :], NDArray[numpy.int64][:, :]]:
     return numpy.concatenate(
         (

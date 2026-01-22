@@ -216,7 +216,9 @@ class PoseStack:
 
     def clone(self) -> "PoseStack":
         """Deep-copy clone of this PoseStack"""
-        new_constraint_set = self.constraint_set.clone() if self.constraint_set is not None else None
+        new_constraint_set = (
+            self.constraint_set.clone() if self.constraint_set is not None else None
+        )
         return PoseStack(
             packed_block_types=self.packed_block_types,
             coords=self.coords.detach().clone(),

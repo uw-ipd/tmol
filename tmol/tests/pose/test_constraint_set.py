@@ -13,6 +13,7 @@ from tmol.io import pose_stack_from_pdb
 
 from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
+
 def test_constraint_set_empty_initialization(torch_device):
     cs = ConstraintSet.create_empty(torch_device, 1)
 
@@ -22,8 +23,9 @@ def test_constraint_set_empty_initialization(torch_device):
     assert cs.constraint_atoms.shape == (0, 4, 3)
     assert cs.constraint_params.shape == (0, 1)
     assert cs.constraint_num_unique_blocks.shape == (0,)
-    assert cs.constraint_unique_blocks.shape == (0,3)
+    assert cs.constraint_unique_blocks.shape == (0, 3)
     assert len(cs.constraint_functions) == 0
+
 
 def test_constraint_set_add_constraints(torch_device, ubq_pdb):
     n_poses = 2
@@ -49,9 +51,7 @@ def test_constraint_set_add_constraints(torch_device, ubq_pdb):
     cnstr_atoms[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
     cnstr_params[0, 0] = 1.47
 
-    cs = cs.add_constraints(
-        ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params
-    )
+    cs = cs.add_constraints(ConstraintEnergyTerm.harmonic, cnstr_atoms, cnstr_params)
 
     assert cs.device == torch_device
     assert cs.n_poses == n_poses
@@ -61,6 +61,7 @@ def test_constraint_set_add_constraints(torch_device, ubq_pdb):
     assert cs.constraint_params.shape == (1, 1)
     assert cs.constraint_num_unique_blocks.shape == (1,)
     assert cs.constraint_unique_blocks.shape == (1, 3)
+
 
 def test_constraint_set_concatenate_constraints(torch_device, ubq_pdb):
     n_poses = 2
@@ -121,6 +122,7 @@ def test_constraint_set_concatenate_constraints(torch_device, ubq_pdb):
     assert cs.constraint_unique_blocks.shape == (2, 3)
     assert len(cs.constraint_functions) == 1
 
+
 def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
     n_poses_A = 2
     n_poses_B = 3
@@ -163,7 +165,9 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
     cs2 = ConstraintSet.create_empty(torch_device, n_poses_B)
     # a distance constraint
     cnstr_atoms2 = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
-    shifted_cnstr_atoms2 = torch.full((1, 2, 3), 0, dtype=torch.int32, device=torch_device)
+    shifted_cnstr_atoms2 = torch.full(
+        (1, 2, 3), 0, dtype=torch.int32, device=torch_device
+    )
     cnstr_params2 = torch.full((1, 1), 0, dtype=torch.float32, device=torch_device)
 
     res1_type = pose_stack_B.block_type(2, 6)

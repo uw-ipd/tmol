@@ -271,8 +271,14 @@ def atom_records_from_coords(
         else " "
     )
     results["occupancy"] = (
-        atom_occupancy[atom_is_real] if atom_occupancy is not None else DEFAULT_ATOM_OCCUPANCY
+        atom_occupancy[atom_is_real]
+        if atom_occupancy is not None
+        else DEFAULT_ATOM_OCCUPANCY
     )
-    results["b"] = atom_b_factor[atom_is_real] if atom_b_factor is not None else DEFAULT_ATOM_B_FACTOR
+    results["b"] = (
+        atom_b_factor[atom_is_real]
+        if atom_b_factor is not None
+        else DEFAULT_ATOM_B_FACTOR
+    )
 
     return results

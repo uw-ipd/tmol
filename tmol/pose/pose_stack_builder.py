@@ -93,7 +93,9 @@ class PoseStackBuilder:
         # chain_labels = cls._chain_labels_from_pose_stacks(
         #     pose_stacks, ps_offset, max_n_blocks, device
         # )
-        pdb_info = cls._pdb_info_from_pose_stacks(pose_stacks, n_poses, ps_offset, max_n_blocks)
+        pdb_info = cls._pdb_info_from_pose_stacks(
+            pose_stacks, n_poses, ps_offset, max_n_blocks
+        )
 
         # Concatenate the constraint sets
         constraint_set = ConstraintSet.concatenate(
@@ -194,8 +196,12 @@ class PoseStackBuilder:
         ).repeat(n_poses, axis=0)
         residue_labels[real_res_np] = arange1[real_res_np]
         residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
-        atom_occupancy = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32)
-        atom_b_factor = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32)
+        atom_occupancy = numpy.full(
+            block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
+        )
+        atom_b_factor = numpy.full(
+            block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
+        )
 
         pdb_info = PDBInfo(
             residue_labels=residue_labels,
@@ -204,7 +210,6 @@ class PoseStackBuilder:
             atom_occupancy=atom_occupancy,
             atom_b_factor=atom_b_factor,
         )
-
 
         return PoseStack(
             packed_block_types=packed_block_types,
@@ -347,8 +352,12 @@ class PoseStackBuilder:
         ).repeat(n_poses, axis=0)
         residue_labels[real_res_np] = arange1[real_res_np]
         residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
-        atom_occupancy = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32)
-        atom_b_factor = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32)
+        atom_occupancy = numpy.full(
+            block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
+        )
+        atom_b_factor = numpy.full(
+            block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
+        )
 
         pdb_info = PDBInfo(
             residue_labels=residue_labels,
@@ -506,8 +515,12 @@ class PoseStackBuilder:
         ).repeat(n_poses, axis=0)
         residue_labels[real_res_np] = arange1[real_res_np]
         residue_insertion_codes = numpy.full(block_type_ind64.shape, "", dtype=object)
-        atom_occupancy = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32)
-        atom_b_factor = numpy.full(block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32)
+        atom_occupancy = numpy.full(
+            block_type_ind64.shape, DEFAULT_ATOM_OCCUPANCY, dtype=numpy.float32
+        )
+        atom_b_factor = numpy.full(
+            block_type_ind64.shape, DEFAULT_ATOM_B_FACTOR, dtype=numpy.float32
+        )
 
         pdb_info = PDBInfo(
             residue_labels=residue_labels,

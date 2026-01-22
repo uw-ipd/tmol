@@ -9,8 +9,7 @@ namespace ljlk {
 namespace potentials {
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -172,8 +171,7 @@ class LJLKRPECPUCalc : public pack::sim_anneal::compiled::RPECalc {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
