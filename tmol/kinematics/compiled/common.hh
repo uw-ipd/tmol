@@ -357,7 +357,8 @@ struct common {
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 struct KinForestFromStencil {

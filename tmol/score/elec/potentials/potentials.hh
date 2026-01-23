@@ -29,7 +29,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define Real3 Vec<Real, 3>
 
-def connectivity_weight(Real bonded_path_length) -> Real {
+def connectivity_weight(Real bonded_path_length)->Real {
   if (bonded_path_length > 4) {
     return 1.0;
   } else if (bonded_path_length == 4) {
@@ -40,14 +40,14 @@ def connectivity_weight(Real bonded_path_length) -> Real {
 }
 
 // sigmoidal distance-dependant dielectric
-def eps(Real dist, float D, float D0, float S) -> Real {
+def eps(Real dist, float D, float D0, float S)->Real {
   return (
       D
       - 0.5 * (D - D0) * (2 + 2 * dist * S + dist * dist * S * S)
             * std::exp(-dist * S));
 }
 
-def deps_ddist(Real dist, float D, float D0, float S) -> Real {
+def deps_ddist(Real dist, float D, float D0, float S)->Real {
   return (0.5 * (D - D0) * dist * dist * S * S * S * std::exp(-dist * S));
 }
 
@@ -60,7 +60,8 @@ def elec_delec_ddist(
     float D0,
     float S,
     float min_dis,
-    float max_dis) -> tuple<Real, Real> {
+    float max_dis)
+    ->tuple<Real, Real> {
   Real low_poly_start = min_dis - 0.25;
   Real low_poly_end = min_dis + 0.25;
   Real hi_poly_start = max_dis - 1.0;
@@ -140,7 +141,8 @@ def elec(
     float D0,
     float S,
     float min_dis,
-    float max_dis) -> Real {
+    float max_dis)
+    ->Real {
   Real low_poly_start = min_dis - 0.25;
   Real low_poly_end = min_dis + 0.25;
   Real hi_poly_start = max_dis - 1.0;

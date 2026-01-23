@@ -41,7 +41,8 @@ using CoordQuad = Eigen::Matrix<Real, 4, 3>;
 #define Real3 Vec<Real, 3>
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real>
 auto GetTorsionAngleDispatch<DeviceDispatch, D, Real>::forward(

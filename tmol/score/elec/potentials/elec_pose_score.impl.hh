@@ -372,7 +372,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
   }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -859,7 +860,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 }  // namespace potentials
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1127,7 +1129,8 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1583,7 +1586,8 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 }  // namespace potentials
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>

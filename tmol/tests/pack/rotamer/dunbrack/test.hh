@@ -8,7 +8,8 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <Device> class Dispatch,
+    template <Device>
+    class Dispatch,
     Device D,
     typename Real,
     typename Int>

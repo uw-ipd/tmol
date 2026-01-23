@@ -8,7 +8,8 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <Device> class Dispatch,
+    template <Device>
+    class Dispatch,
     Device D,
     typename Real,
     typename Int>
@@ -25,7 +26,8 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
 }
 
 template <
-    template <Device> class Dispatch,
+    template <Device>
+    class Dispatch,
     Device D,
     typename Real,
     typename Int>
@@ -38,7 +40,8 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::fill_in_brt_for_possrots(
 }
 
 template <
-    template <Device> class Dispatch,
+    template <Device>
+    class Dispatch,
     Device D,
     typename Real,
     typename Int>
@@ -75,7 +78,8 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
 }
 
 template <
-    template <Device> class Dispatch,
+    template <Device>
+    class Dispatch,
     Device D,
     typename Real,
     typename Int>
@@ -98,7 +102,8 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
 }
 
 template <
-    template <Device> class Dispatch,
+    template <Device>
+    class Dispatch,
     Device D,
     typename Real,
     typename Int>
@@ -126,7 +131,8 @@ Int DunbrackChiSamplerTester<Dispatch, D, Real, Int>::count_expanded_rotamers(
 }
 
 template <
-    template <Device> class Dispatch,
+    template <Device>
+    class Dispatch,
     Device D,
     typename Real,
     typename Int>
@@ -140,7 +146,8 @@ void DunbrackChiSamplerTester<Dispatch, D, Real, Int>::
 }
 
 template <
-    template <Device> class Dispatch,
+    template <Device>
+    class Dispatch,
     Device D,
     typename Real,
     typename Int>

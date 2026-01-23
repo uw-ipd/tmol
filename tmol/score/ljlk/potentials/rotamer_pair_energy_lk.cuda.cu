@@ -48,7 +48,8 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 #define TILE_SIZE 16
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -564,7 +565,7 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               shared.vals.path_dist2,
               shared.vals.conn_seps);
         }  // for j
-      }  // for i
+      }    // for i
     } else {
       int const alt_n_heavy_atoms = block_type_n_heavy_atoms[alt_block_type];
 
@@ -630,8 +631,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
               alt_block_type,
               alt_n_heavy_atoms);
         }  // for j
-      }  // for i
-    }  // else
+      }    // for i
+    }      // else
 
     // wait for all calcs to conclude before overwriting
     // shared memory in the reduction
@@ -674,7 +675,8 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -765,7 +767,8 @@ class LKRPECudaCalc : public pack::sim_anneal::compiled::RPECalc {
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>

@@ -25,13 +25,13 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 #define Real3 Vec<Real, 3>
 
 template <typename Real>
-static def square(Real v) -> Real {
+static def square(Real v)->Real {
   return v * v;
 }
 
 template <typename Real>
 def cblength_V_dV_old(Real3 atm1, Real3 atm2, Real K, Real x0)
-    -> tuple<Real, Real3, Real3> {
+    ->tuple<Real, Real3, Real3> {
   auto dist = distance<Real>::V_dV(atm1, atm2);
   Real E = 0.5 * K * square(dist.V - x0);
   Real dE = K * (dist.V - x0);
@@ -40,7 +40,7 @@ def cblength_V_dV_old(Real3 atm1, Real3 atm2, Real K, Real x0)
 
 template <typename Real>
 def cblength_V_dV(Real3 atm1, Real3 atm2, Real K, Real x0)
-    -> tuple<Real, Vec<Real3, 2>> {
+    ->tuple<Real, Vec<Real3, 2>> {
   auto dist = distance<Real>::V_dV(atm1, atm2);
   Real E = 0.5 * K * square(dist.V - x0);
   Real dE = K * (dist.V - x0);
@@ -53,7 +53,7 @@ def cblength_V_dV(Real3 atm1, Real3 atm2, Real K, Real x0)
 
 template <typename Real>
 def cbangle_V_dV(Real3 atm1, Real3 atm2, Real3 atm3, Real K, Real x0)
-    -> tuple<Real, Vec<Real3, 3>> {
+    ->tuple<Real, Vec<Real3, 3>> {
   auto angle = pt_interior_angle<Real>::V_dV(atm1, atm2, atm3);
   Real E = 0.5 * K * square(angle.V - x0);
   Real dE = K * (angle.V - x0);
@@ -78,7 +78,8 @@ def cbtorsion_V_dV(
     Real K3,
     Real phi1,
     Real phi2,
-    Real phi3) -> tuple<Real, Vec<Real3, 4>> {
+    Real phi3)
+    ->tuple<Real, Vec<Real3, 4>> {
   auto torsion = dihedral_angle<Real>::V_dV(atm1, atm2, atm3, atm4);
 
   Real E = K1 * (std::cos(1.0 * torsion.V - phi1) + 1.0)
@@ -98,7 +99,7 @@ def cbtorsion_V_dV(
 
 template <typename Real>
 def cbangle_V_dV_old(Real3 atm1, Real3 atm2, Real3 atm3, Real K, Real x0)
-    -> tuple<Real, Real3, Real3, Real3> {
+    ->tuple<Real, Real3, Real3, Real3> {
   auto angle = pt_interior_angle<Real>::V_dV(atm1, atm2, atm3);
   Real E = 0.5 * K * square(angle.V - x0);
   Real dE = K * (angle.V - x0);
@@ -110,7 +111,7 @@ def cbangle_V_dV_old(Real3 atm1, Real3 atm2, Real3 atm3, Real K, Real x0)
 template <typename Real, typename Int>
 def cbtorsion_V_dV_old(
     Real3 atm1, Real3 atm2, Real3 atm3, Real3 atm4, Real K, Real x0, Int period)
-    -> tuple<Real, Real3, Real3, Real3, Real3> {
+    ->tuple<Real, Real3, Real3, Real3, Real3> {
   auto torsion = dihedral_angle<Real>::V_dV(atm1, atm2, atm3, atm4);
 
   Real Keff = K / (period * period);  // map spring constant to cos
@@ -137,7 +138,8 @@ def cbhxltorsion_V_dV_old(
     Real K3,
     Real phi1,
     Real phi2,
-    Real phi3) -> tuple<Real, Real3, Real3, Real3, Real3> {
+    Real phi3)
+    ->tuple<Real, Real3, Real3, Real3, Real3> {
   auto torsion = dihedral_angle<Real>::V_dV(atm1, atm2, atm3, atm4);
 
   Real E = K1 * (std::cos(1.0 * torsion.V - phi1) + 1.0)

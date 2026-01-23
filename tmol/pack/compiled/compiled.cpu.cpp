@@ -272,7 +272,7 @@ auto AnnealerDispatch<D>::forward(
       // std::cout << "Traj " << traj << " for pose " << pose << " with score "
       // << scores[pose][traj] << std::endl;
     }  // end trajectory loop
-  }  // end pose loop
+  }    // end pose loop
 
   // find the stdev of rotamer attempts
   // float variance = 0;

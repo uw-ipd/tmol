@@ -5,7 +5,6 @@ import pandas
 from collections import defaultdict
 
 from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from tmol.types.functional import validate_args
 from tmol.database import ParameterDatabase
 from tmol.pose.packed_block_types import PackedBlockTypes

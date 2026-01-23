@@ -8,7 +8,7 @@ from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from typing import Optional, Union
+from typing import Optional
 
 
 @validate_args

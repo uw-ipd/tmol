@@ -16,7 +16,7 @@ namespace common {
 namespace internal {
 
 template <typename T, typename T2, size_t... Is>
-def iadd(T& t1, const T2& t2, integer_sequence<size_t, Is...>) -> void {
+def iadd(T& t1, const T2& t2, integer_sequence<size_t, Is...>)->void {
   auto l = {(get<Is>(t1) += get<Is>(t2), 0)...};
   (void)l;
 }
@@ -24,7 +24,7 @@ def iadd(T& t1, const T2& t2, integer_sequence<size_t, Is...>) -> void {
 }  // namespace internal
 
 template <typename... T, typename... T2>
-def iadd(tuple<T&...> lhs, const tuple<T2...>& rhs) -> void {
+def iadd(tuple<T&...> lhs, const tuple<T2...>& rhs)->void {
   internal::iadd(lhs, rhs, index_sequence_for<T...>{});
 }
 
@@ -32,7 +32,7 @@ def iadd(tuple<T&...> lhs, const tuple<T2...>& rhs) -> void {
 namespace internal {
 
 template <typename T, typename T2, size_t... Is>
-def assign(T& t1, const T2& t2, integer_sequence<size_t, Is...>) -> void {
+def assign(T& t1, const T2& t2, integer_sequence<size_t, Is...>)->void {
   auto l = {(get<Is>(t1) = get<Is>(t2), 0)...};
   (void)l;
 }
@@ -40,7 +40,7 @@ def assign(T& t1, const T2& t2, integer_sequence<size_t, Is...>) -> void {
 }  // namespace internal
 
 template <typename... T, typename... T2>
-def assign(tuple<T&...> lhs, const tuple<T2...>& rhs) -> void {
+def assign(tuple<T&...> lhs, const tuple<T2...>& rhs)->void {
   internal::assign(lhs, rhs, index_sequence_for<T...>{});
 }
 
@@ -48,7 +48,7 @@ namespace internal {
 
 template <size_t I, typename... T, typename... T2>
 def add_i(const tuple<T...>& a, const tuple<T2...>& b)
-    -> decltype(get<I>(a) + get<I>(b)) {
+    ->decltype(get<I>(a) + get<I>(b)) {
   return get<I>(a) + get<I>(b);
 }
 

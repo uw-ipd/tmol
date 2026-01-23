@@ -20,7 +20,8 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -106,7 +107,8 @@ struct compute_rot_spheres {
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -202,7 +204,8 @@ struct compute_block_spheres {
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -289,7 +292,8 @@ struct detect_rot_neighbors {
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -355,7 +359,8 @@ struct detect_block_neighbors {
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 struct rot_neighbor_indices {
@@ -403,14 +408,14 @@ struct rot_neighbor_indices {
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 struct block_neighbor_indices {
-  static auto f(
-      TView<Int, 3, D> block_neighbors
-      // TPack<Int, 2, D> block_neighbor_indices
-      ) -> TPack<Int, 2, D> {
+  static auto f(TView<Int, 3, D> block_neighbors
+                // TPack<Int, 2, D> block_neighbor_indices
+                ) -> TPack<Int, 2, D> {
     LAUNCH_BOX_32;
 
     int n_pose = block_neighbors.size(0);

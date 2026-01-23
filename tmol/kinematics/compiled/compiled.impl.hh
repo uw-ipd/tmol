@@ -19,10 +19,8 @@ namespace kinematics {
 #ifdef __CUDACC__
 #define gpuErrPeek gpuAssert(cudaPeekAtLastError(), __FILE__, __LINE__);
 #define gpuErrSync gpuAssert(cudaDeviceSynchronize(), __FILE__, __LINE__);
-#define gpuErrchk(ans)                    \
-  {                                       \
-    gpuAssert((ans), __FILE__, __LINE__); \
-  }
+#define gpuErrchk(ans) \
+  { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(
     cudaError_t code, const char* file, int line, bool abort = true) {
   if (code != cudaSuccess) {
@@ -35,13 +33,12 @@ inline void gpuAssert(
 #define gpuErrPeek
 #define gpuErrSync
 #define gpuErrchk(ans) \
-  {                    \
-    ans;               \
-  }
+  { ans; }
 #endif
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_indices_for_atoms(
@@ -142,7 +139,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_indices_for_atoms(
 // N = maximum number of nodes in any generation in any block type
 // S = maximum number of scan path segments in any generation in any block type
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::
@@ -294,7 +292,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::
 // O -- number of output connection types; i.e. max-n-conn + 2
 // A -- maximum number of atoms in a block
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
@@ -385,7 +384,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_kfo_atom_parents(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
@@ -549,7 +549,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_children(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
@@ -828,7 +829,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_id_and_frame_xyz(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_jump_atom_indices(
@@ -899,7 +901,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_jump_atom_indices(
 // N = maximum number of nodes in any generation in any block type
 // S = maximum number of scan path segs in any generation in any block type
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
@@ -1324,7 +1327,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::calculate_ff_edge_delays(
 // N = maximum number of nodes in any generation in any block type
 // S = maximum number of scan path segmentss in any generation in any block type
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
@@ -1709,44 +1713,44 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       TPack<Int, 1, D>::zeros({n_poses * max_n_edges_per_ff * n_gens_total});
   auto n_blocks_that_build_tsedge_for_gen_bw =
       n_blocks_that_build_tsedge_for_gen_bw_tp.view;
-  auto count_n_blocks_for_ffedge_for_gen_by_topo_sort = ([=] TMOL_DEVICE_FUNC(
-                                                             int ind) {
-    int i = ind;
-    int const pose = i / (max_n_gens_per_bt * max_n_edges_per_ff);
-    i = i - pose * (max_n_gens_per_bt * max_n_edges_per_ff);
-    int const edge = i / max_n_gens_per_bt;
-    int const gen = i % max_n_gens_per_bt;
+  auto count_n_blocks_for_ffedge_for_gen_by_topo_sort =
+      ([=] TMOL_DEVICE_FUNC(int ind) {
+        int i = ind;
+        int const pose = i / (max_n_gens_per_bt * max_n_edges_per_ff);
+        i = i - pose * (max_n_gens_per_bt * max_n_edges_per_ff);
+        int const edge = i / max_n_gens_per_bt;
+        int const gen = i % max_n_gens_per_bt;
 
-    int const edge_type = ff_edges[pose][edge][0];
-    if (edge_type == -1) {
-      return;
-    }
-    // Look, we can be extra generous and allocate space
-    // for a block that is not truly built by this edge,
-    // if, e.g., the edge is a jump/root-jump and the start
-    // block would have already been built by another edge.
-    int const ff_edge_start = ff_edges[pose][edge][1];
-    int const ff_edge_end = ff_edges[pose][edge][2];
-    int const n_blocks =
-        (edge_type == ff_polymer_edge
-             ? (ff_edge_end > ff_edge_start ? ff_edge_end - ff_edge_start + 1
-                                            : ff_edge_start - ff_edge_end + 1)
-             : 2);
-    int const edge_delay = delay_for_edge[pose][edge];
-    int const ff_edge_gen = gen + edge_delay;
-    int const ff_edge_gen_bw = (n_gens_total - 1) - ff_edge_gen;
-    int const edge_toposort_index =
-        topo_sort_index_for_edge[pose * max_n_edges_per_ff + edge];
-    int const edge_toposort_index_bw =
-        n_poses * max_n_edges_per_ff - 1 - edge_toposort_index;
+        int const edge_type = ff_edges[pose][edge][0];
+        if (edge_type == -1) {
+          return;
+        }
+        // Look, we can be extra generous and allocate space
+        // for a block that is not truly built by this edge,
+        // if, e.g., the edge is a jump/root-jump and the start
+        // block would have already been built by another edge.
+        int const ff_edge_start = ff_edges[pose][edge][1];
+        int const ff_edge_end = ff_edges[pose][edge][2];
+        int const n_blocks =
+            (edge_type == ff_polymer_edge ? (
+                 ff_edge_end > ff_edge_start ? ff_edge_end - ff_edge_start + 1
+                                             : ff_edge_start - ff_edge_end + 1)
+                                          : 2);
+        int const edge_delay = delay_for_edge[pose][edge];
+        int const ff_edge_gen = gen + edge_delay;
+        int const ff_edge_gen_bw = (n_gens_total - 1) - ff_edge_gen;
+        int const edge_toposort_index =
+            topo_sort_index_for_edge[pose * max_n_edges_per_ff + edge];
+        int const edge_toposort_index_bw =
+            n_poses * max_n_edges_per_ff - 1 - edge_toposort_index;
 
-    n_blocks_that_build_tsedge_for_gen
-        [ff_edge_gen * n_poses * max_n_edges_per_ff + edge_toposort_index] =
-            n_blocks;
-    n_blocks_that_build_tsedge_for_gen_bw
-        [ff_edge_gen_bw * n_poses * max_n_edges_per_ff
-         + edge_toposort_index_bw] = n_blocks;
-  });
+        n_blocks_that_build_tsedge_for_gen
+            [ff_edge_gen * n_poses * max_n_edges_per_ff + edge_toposort_index] =
+                n_blocks;
+        n_blocks_that_build_tsedge_for_gen_bw
+            [ff_edge_gen_bw * n_poses * max_n_edges_per_ff
+             + edge_toposort_index_bw] = n_blocks;
+      });
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_edges_per_ff * max_n_gens_per_bt,
       count_n_blocks_for_ffedge_for_gen_by_topo_sort);
@@ -2145,11 +2149,11 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
       int const gen_bw = n_gens_total - ind;
       int const tsedge0_block_offset =
           ind < n_gens_total ? block_offset_for_tsedge_for_gen
-                                   [ind * n_poses * max_n_edges_per_ff]
+                  [ind * n_poses * max_n_edges_per_ff]
                              : n_blocks_building_edges_total;
       int const tsedge0_block_offset_bw =
           gen_bw < n_gens_total ? block_offset_for_tsedge_for_gen_bw
-                                      [gen_bw * n_poses * max_n_edges_per_ff]
+                  [gen_bw * n_poses * max_n_edges_per_ff]
                                 : n_blocks_building_edges_total;
       int const tsedge0_for_gen =
           tsedge0_block_offset < n_blocks_building_edges_total
@@ -2286,14 +2290,13 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
     // What is the block offset for the first edge (topo-sort edge 0) for
     // this generation?
     int const tsedge0_block_offset =
-        ff_edge_gen < n_gens_total
-            ? block_offset_for_tsedge_for_gen
-                  [ff_edge_gen * n_poses * max_n_edges_per_ff]
-            : n_blocks_building_edges_total;
+        ff_edge_gen < n_gens_total ? block_offset_for_tsedge_for_gen
+                [ff_edge_gen * n_poses * max_n_edges_per_ff]
+                                   : n_blocks_building_edges_total;
     int const tsedge0_block_offset_bw =
         ff_edge_gen_bw < n_gens_total
             ? block_offset_for_tsedge_for_gen_bw
-                  [ff_edge_gen_bw * n_poses * max_n_edges_per_ff]
+                [ff_edge_gen_bw * n_poses * max_n_edges_per_ff]
             : n_blocks_building_edges_total;  // What is the offset for the
                                               // first scan path segment for
                                               // tsegde0?
@@ -2401,7 +2404,8 @@ auto KinForestFromStencil<DeviceDispatch, D, Int>::get_scans2(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Int>
 auto KinForestFromStencil<DeviceDispatch, D, Int>::create_minimizer_map(

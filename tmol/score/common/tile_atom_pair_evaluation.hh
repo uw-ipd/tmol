@@ -61,8 +61,10 @@ TMOL_DEVICE_FUNC void for_(F func) {
 // across only the heavy-atom pairs. The AllAtomPairSelector or
 // HeavyAtomPairSelectors defined above can be used for this purpose.
 template <
-    template <typename> typename InterEnergyData,
-    template <template <typename> typename, typename> typename PairSelector,
+    template <typename>
+    typename InterEnergyData,
+    template <template <typename> typename, typename>
+    typename PairSelector,
     tmol::Device D,
     int TILE,
     int nt,
@@ -105,8 +107,10 @@ class InterResBlockEvaluation {
 // so if the atom1 index is >= the atom2 index, the work is skipped.
 // TO DO: replace with upper-triangle indexing to reduce idle threads
 template <
-    template <typename> typename IntraEnergyData,
-    template <template <typename> typename, typename> typename PairSelector,
+    template <typename>
+    typename IntraEnergyData,
+    template <template <typename> typename, typename>
+    typename PairSelector,
     tmol::Device D,
     int TILE,
     int nt,
@@ -193,7 +197,8 @@ class IntraResBlockEvaluation {
 // "block1" data in the "LoadInterDataFunc1" or in the
 // "LoadIntraSharedDatFunc."
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename InterResScoringData,
     typename IntraResScoringData,
@@ -345,7 +350,8 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename InterResScoringData,
     typename IntraResScoringData,
