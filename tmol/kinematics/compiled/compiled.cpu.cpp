@@ -155,10 +155,6 @@ struct KinDerivDispatch {
     auto dsc_ddofs_t = TPack<KintreeDof, 1, D>::empty({num_atoms});
     auto dsc_ddofs = dsc_ddofs_t.view;
 
-    for (int i = 0; i < num_atoms; i++) {
-      std::cout << "dVdx[" << i << "] = " << dVdx[i].transpose() << "\n";
-    }
-
     // calculate f1s and f2s from dVdx and HT
     auto k_f1f2s = ([=] EIGEN_DEVICE_FUNC(int i) {
       Coord trans = hts[i].block(3, 0, 1, 3).transpose();
