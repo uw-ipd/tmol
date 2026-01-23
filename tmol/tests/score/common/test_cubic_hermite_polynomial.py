@@ -36,7 +36,6 @@ def cubic_hermite_polynomial():
 
 @hypothesis.given(real, real, real, real)
 def test_unit_interpolate(cubic_hermite_polynomial, p0, dp0, p1, dp1):
-    # add meaningless comment
     from tmol.score.common.cubic_hermite_polynomial import interpolate_t, interpolate_dt
 
     params = (p0, dp0, p1, dp1)
