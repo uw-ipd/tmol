@@ -1,7 +1,9 @@
 import torch
 import math
+import os
+import sys
 
-import torch.nn.functional
+# import torch.nn.functional
 
 from ..energy_term import EnergyTerm
 
@@ -11,9 +13,6 @@ from tmol.score.constraint.potentials.compiled import get_torsion_angle
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-
-
-import os, sys
 
 
 class HiddenPrints:

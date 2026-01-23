@@ -1,10 +1,8 @@
 import attr
 import torch
-import numpy
 from typing import Optional
 
 from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.packed_block_types import PackedBlockTypes

@@ -9,24 +9,13 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 
-# from tmol.pack.compiled.compiled import build_interaction_graph
 from tmol.pack.packer_task import PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.kinematics.move_map import MoveMap
 from tmol.kinematics.fold_forest import EdgeType, FoldForest
 
-# from tmol.pack.rotamer.build_rotamers import build_rotamers
-# from tmol.pack.rotamer.fixed_aa_chi_sampler import (
-#     FixedAAChiSampler,
-# )
-# from tmol.pack.datatypes import PackerEnergyTables
-# from tmol.pack.simulated_annealing import run_simulated_annealing
-# from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
-
 from tmol.io import pose_stack_from_pdb
 from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
-
-from tmol.pack.pack_rotamers import pack_rotamers
 
 
 def get_relax_sfxn(default_database, torch_device):

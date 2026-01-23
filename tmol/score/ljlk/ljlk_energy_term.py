@@ -13,12 +13,6 @@ from tmol.score.ljlk.potentials.compiled import ljlk_pose_scores, ljlk_rotamer_s
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-from tmol.types.torch import Tensor
-
-# from tmol.score.ljlk.potentials.compiled import (
-#     score_ljlk_inter_system_scores,
-#     register_lj_lk_rotamer_pair_energy_eval,
-# )
 
 
 class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):

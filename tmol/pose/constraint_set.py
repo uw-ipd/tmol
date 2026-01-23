@@ -307,28 +307,39 @@ class ConstraintSet:
         # print("POSES", constraint_poses)
         # print("BLOCK1", first_block_inds)
         # print("BLOCK2", second_block_inds)
-        new_constraint_unique_blocks = torch.cat(
-            [
-                self.constraint_unique_blocks,
-                torch.stack(
-                    [constraint_poses, first_block_inds, second_block_inds], dim=1
-                ),
-            ]
-        )
-        # print(self.constraint_unique_blocks)
+        if not empty_at_start:
+            new_constraint_unique_blocks = torch.cat(
+                [
+                    self.constraint_unique_blocks,
+                    torch.stack(
+                        [constraint_poses, first_block_inds, second_block_inds], dim=1
+                    ),
+                ]
+            )
+            # print(self.constraint_unique_blocks)
+        else:
+            new_constraint_unique_blocks = torch.stack(
+                [constraint_poses, first_block_inds, second_block_inds], dim=1
+            )
 
         constraint_function_inds = torch.full(
             (num_to_add,), 0, dtype=torch.int32, device=self.device
         )
         constraint_function_inds[:] = fn_index
-        new_constraint_function_inds = torch.cat(
-            (self.constraint_function_inds, constraint_function_inds)
-        )
+        if not empty_at_start:
+            new_constraint_function_inds = torch.cat(
+                (self.constraint_function_inds, constraint_function_inds)
+            )
+        else:
+            new_constraint_function_inds = constraint_function_inds
 
         num_unique_blocks_per_constraint = self.count_unique_blocks(atom_indices)
-        new_constraint_num_unique_blocks = torch.cat(
-            (self.constraint_num_unique_blocks, num_unique_blocks_per_constraint)
-        )
+        if not empty_at_start:
+            new_constraint_num_unique_blocks = torch.cat(
+                (self.constraint_num_unique_blocks, num_unique_blocks_per_constraint)
+            )
+        else:
+            new_constraint_num_unique_blocks = num_unique_blocks_per_constraint
 
         new_atom_indices = torch.full(
             (num_to_add, self.MAX_N_ATOMS, 3), -1, dtype=torch.int32, device=self.device
@@ -336,7 +347,10 @@ class ConstraintSet:
         new_atom_indices[:, 0 : atom_indices.size(1), :] = atom_indices
         # now copy the last real atom into the final atom slot so that we can attribute score correctly later
         new_atom_indices[:, self.MAX_N_ATOMS - 1, :] = atom_indices[:, -1, :]
-        new_constraint_atoms = torch.cat((self.constraint_atoms, new_atom_indices))
+        if not empty_at_start:
+            new_constraint_atoms = torch.cat((self.constraint_atoms, new_atom_indices))
+        else:
+            new_constraint_atoms = new_atom_indices
 
         new_params = torch.full(
             (num_to_add, 0), 0.0, dtype=torch.float32, device=self.device
@@ -344,17 +358,21 @@ class ConstraintSet:
         if params is not None:
             new_params = params
         max_params = max(new_params.size(1), self.constraint_params.size(1))
-        t1 = torch.zeros(
-            (self.constraint_params.size(0), max_params),
-            dtype=torch.float32,
-            device=self.device,
-        )
-        t1[:, 0 : self.constraint_params.size(1)] = self.constraint_params
+        if not empty_at_start:
+            t1 = torch.zeros(
+                (self.constraint_params.size(0), max_params),
+                dtype=torch.float32,
+                device=self.device,
+            )
+            t1[:, 0 : self.constraint_params.size(1)] = self.constraint_params
         t2 = torch.zeros(
             (new_params.size(0), max_params), dtype=torch.float32, device=self.device
         )
         t2[:, 0 : new_params.size(1)] = new_params
-        new_constraint_params = torch.cat((t1, t2))
+        if not empty_at_start:
+            new_constraint_params = torch.cat((t1, t2))
+        else:
+            new_constraint_params = t2
 
         return attr.evolve(
             self,

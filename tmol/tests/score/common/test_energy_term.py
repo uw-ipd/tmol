@@ -5,7 +5,6 @@ import yaml
 import importlib
 import functools
 import pandas
-import torchshow
 
 from tmol.io import pose_stack_from_pdb
 from tmol.io.pdb_parsing import parse_pdb
@@ -492,13 +491,6 @@ class EnergyTermTestBase:
         scores_upper_triangle[:, :, ij_is_upper_triangle] += scores_transposed[
             :, :, ij_is_upper_triangle
         ]
-
-        # print("gold vals upper triangle")
-        # print(gold_vals_upper_triangle)
-
-        gold_vals_sum = gold_vals_upper_triangle.sum(-1).sum(-1)
-        scores_sum = scores.sum(-1).sum(-1)
-        # print("GOLD SUM:", gold_vals_sum, "SCORES SUM", scores_sum)
 
         assert_allclose(gold_vals_upper_triangle, scores_upper_triangle, atol, rtol)
 

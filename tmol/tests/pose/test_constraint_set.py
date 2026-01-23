@@ -1,17 +1,10 @@
-import attrs
-import numpy
 import torch
-import math
-import pytest
 
 from tmol.pose.constraint_set import ConstraintSet
 from tmol.score.constraint.constraint_energy_term import ConstraintEnergyTerm
 
-from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.io import pose_stack_from_pdb
-
-from tmol.tests.score.common.test_energy_term import EnergyTermTestBase
 
 
 def test_constraint_set_empty_initialization(torch_device):
