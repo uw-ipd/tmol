@@ -32,7 +32,7 @@ real = hypothesis.strategies.floats(allow_infinity=False, width=16)
 
 
 @hypothesis.given(real, real, real, real)
-@hypothesis.settings(deadline=None, derandomize=True)
+@hypothesis.settings(deadline=None, derandomize=True, max_examples=100)
 def test_unit_interpolate(p0, dp0, p1, dp1):
     params = (p0, dp0, p1, dp1)
     if any(map(math.isnan, params)):
@@ -48,7 +48,7 @@ def test_unit_interpolate(p0, dp0, p1, dp1):
 
 
 @hypothesis.given(real, real)
-@hypothesis.settings(deadline=None, derandomize=True)
+@hypothesis.settings(deadline=None, derandomize=True, max_examples=100)
 def test_unit_interpolate_to_zero(p0, dp0):
     params = (p0, dp0)
     if any(map(math.isnan, params)):
@@ -64,7 +64,7 @@ def test_unit_interpolate_to_zero(p0, dp0):
 
 
 @hypothesis.given(real, real, real, real, real, real)
-@hypothesis.settings(deadline=None, derandomize=True)
+@hypothesis.settings(deadline=None, derandomize=True, max_examples=100)
 def test_interpolate(x0, p0, dpdx0, x1, p1, dpdx1):
     params = (x0, p0, dpdx0, x1, p1, dpdx1)
     if x0 == x1:
@@ -89,8 +89,9 @@ def test_interpolate(x0, p0, dpdx0, x1, p1, dpdx1):
 
 
 @hypothesis.given(real, real, real, real, real, real)
-@hypothesis.settings(deadline=None, derandomize=True)
+@hypothesis.settings(deadline=None, derandomize=True, max_examples=100)
 def test_interpolate_to_zero(x0, p0, dpdx0, x1, p1, dpdx1):
+    print("x0, p0, dpdx0, x1 =", x0, p0, dpdx0, x1)
     params = (x0, p0, dpdx0, x1)
     if x0 == x1:
         with pytest.raises(ZeroDivisionError):
