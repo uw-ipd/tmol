@@ -21,7 +21,7 @@ nvcc --version
 
 echo "+++ tests"
 set -e
-pytest -v --durations=25 "$@"
+pytest -s -v --durations=25 "$@"
 
 echo "--- codecov"
 codecov -F `echo "${BUILDKITE_LABEL}" | sed -r 's/(\W)+/_/g'`
