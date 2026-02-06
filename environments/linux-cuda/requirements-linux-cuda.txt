@@ -38,7 +38,7 @@ frozendict==2.4.6
     # via -r ../../requirements.in
 fsspec==2025.3.2
     # via torch
-hypothesis==6.131.3
+hypothesis==6.151.5
     # via -r ../../requirements.in
 idna==3.10
     # via requests
