@@ -15,6 +15,16 @@ def test_canonical_form_from_biotite(biotite_1r21, torch_device):
     pdb = canonical_form_from_biotite(biotite_1r21, torch_device=torch_device)
 
 
+def test_pose_stack_from_biotite_1ubq(biotite_1ubq, torch_device):
+    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+
+
+def test_pose_stack_from_biotite_1ubq_slice(biotite_1ubq, torch_device):
+    starts = biotite.structure.get_residue_starts(biotite_1ubq)
+    bt = biotite_1ubq[0 : starts[30]]
+    pose_stack = pose_stack_from_biotite(bt, torch_device=torch_device)
+
+
 def test_pose_stack_from_biotite_n_term(biotite_1r21, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1r21)
     bt = biotite_1r21[0][0 : starts[3]]  # subscript 0 to get the first structure
