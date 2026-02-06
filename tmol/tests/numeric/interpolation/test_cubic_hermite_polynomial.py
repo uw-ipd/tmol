@@ -49,6 +49,8 @@ def test_unit_interpolate(p0, dp0, p1, dp1):
         assert interpolate_t(1.0, p0, dp0, p1, dp1) == approx(p1)
         assert interpolate_dt(1.0, p0, dp0, p1, dp1) == approx(dp1)
 
+    print("done")
+
 
 @hypothesis.given(real, real)
 @hypothesis.settings(deadline=None, derandomize=True, max_examples=100)
@@ -66,6 +68,7 @@ def test_unit_interpolate_to_zero(p0, dp0):
         assert interpolate_to_zero_dt(0.0, p0, dp0) == approx(dp0)
         assert interpolate_to_zero_t(1.0, p0, dp0) == approx(0.0)
         assert interpolate_to_zero_dt(1.0, p0, dp0) == approx(0.0)
+    print("done")
 
 
 @hypothesis.given(real, real, real, real, real, real)
@@ -95,6 +98,7 @@ def test_interpolate(x0, p0, dpdx0, x1, p1, dpdx1):
         assert interpolate_dx(x0, x0, p0, dpdx0, x1, p1, dpdx1) == approx(dpdx0)
         assert interpolate(x1, x0, p0, dpdx0, x1, p1, dpdx1) == approx(p1)
         assert interpolate_dx(x1, x0, p0, dpdx0, x1, p1, dpdx1) == approx(dpdx1)
+    print("done")
 
 
 @hypothesis.given(real, real, real, real, real, real)
