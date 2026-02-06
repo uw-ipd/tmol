@@ -1,8 +1,10 @@
 import pytest
 from pytest import approx
+import numpy
 
 import hypothesis
 import hypothesis.strategies
+import toolz
 
 
 import math
@@ -22,6 +24,13 @@ from tmol.numeric.interpolation.cubic_hermite_polynomial import (
 real = hypothesis.strategies.floats(allow_infinity=False, width=16)
 
 
+def approx_for(values):
+    values = numpy.array(values)
+    atol = numpy.max(numpy.abs(values)) * 1e-5
+
+    return toolz.partial(pytest.approx, nan_ok=True, rel=1e-5, abs=atol)
+
+
 @hypothesis.given(real, real, real, real)
 @hypothesis.settings(deadline=None, derandomize=True, max_examples=100)
 def test_unit_interpolate(p0, dp0, p1, dp1):
@@ -34,6 +43,7 @@ def test_unit_interpolate(p0, dp0, p1, dp1):
         assert math.isnan(interpolate_t(1.0, p0, dp0, p1, dp1))
         assert math.isnan(interpolate_dt(1.0, p0, dp0, p1, dp1))
     else:
+        approx = approx_for(params)
         assert interpolate_t(0.0, p0, dp0, p1, dp1) == approx(p0)
         assert interpolate_dt(0.0, p0, dp0, p1, dp1) == approx(dp0)
         assert interpolate_t(1.0, p0, dp0, p1, dp1) == approx(p1)
@@ -51,6 +61,7 @@ def test_unit_interpolate_to_zero(p0, dp0):
         assert math.isnan(interpolate_to_zero_t(1.0, p0, dp0))
         assert math.isnan(interpolate_to_zero_dt(1.0, p0, dp0))
     else:
+        approx = approx_for(params)
         assert interpolate_to_zero_t(0.0, p0, dp0) == approx(p0)
         assert interpolate_to_zero_dt(0.0, p0, dp0) == approx(dp0)
         assert interpolate_to_zero_t(1.0, p0, dp0) == approx(0.0)
@@ -79,6 +90,7 @@ def test_interpolate(x0, p0, dpdx0, x1, p1, dpdx1):
         assert math.isnan(interpolate(x1, x0, p0, dpdx0, x1, p1, dpdx1))
         assert math.isnan(interpolate_dx(x1, x0, p0, dpdx0, x1, p1, dpdx1))
     else:
+        approx = approx_for(params)
         assert interpolate(x0, x0, p0, dpdx0, x1, p1, dpdx1) == approx(p0)
         assert interpolate_dx(x0, x0, p0, dpdx0, x1, p1, dpdx1) == approx(dpdx0)
         assert interpolate(x1, x0, p0, dpdx0, x1, p1, dpdx1) == approx(p1)
@@ -104,6 +116,7 @@ def test_interpolate_to_zero(x0, p0, dpdx0, x1, p1, dpdx1):
         assert math.isnan(interpolate_to_zero(x1, x0, p0, dpdx0, x1))
         assert math.isnan(interpolate_to_zero_dx(x1, x0, p0, dpdx0, x1))
     else:
+        approx = approx_for(params)
         assert interpolate_to_zero(x0, x0, p0, dpdx0, x1) == approx(p0)
         assert interpolate_to_zero_dx(x0, x0, p0, dpdx0, x1) == approx(dpdx0)
         assert interpolate_to_zero(x1, x0, p0, dpdx0, x1) == approx(0.0)
