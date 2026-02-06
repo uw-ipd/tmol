@@ -6,9 +6,6 @@ import hypothesis.strategies
 
 
 import math
-import numba
-
-# import tmol.numeric.interpolation.cubic_hermite_polynomial as cubic_hermite_polynomial
 from tmol.numeric.interpolation.cubic_hermite_polynomial import (
     interpolate_t,
     interpolate_dt,
@@ -20,22 +17,6 @@ from tmol.numeric.interpolation.cubic_hermite_polynomial import (
     interpolate_to_zero_dt,
 )
 
-# interpolate_t = numba.jit(cubic_hermite_polynomial.interpolate_t, nopython=True)
-# interpolate_dt = numba.jit(cubic_hermite_polynomial.interpolate_dt, nopython=True)
-# interpolate_to_zero_t = numba.jit(
-#     cubic_hermite_polynomial.interpolate_to_zero_t, nopython=True
-# )
-# interpolate_to_zero_dt = numba.jit(
-#     cubic_hermite_polynomial.interpolate_to_zero_dt, nopython=True
-# )
-# interpolate = numba.jit(cubic_hermite_polynomial.interpolate, nopython=True)
-# interpolate_dx = numba.jit(cubic_hermite_polynomial.interpolate_dx, nopython=True)
-# interpolate_to_zero = numba.jit(
-#     cubic_hermite_polynomial.interpolate_to_zero, nopython=True
-# )
-# interpolate_to_zero_dx = numba.jit(
-#     cubic_hermite_polynomial.interpolate_to_zero_dx, nopython=True
-# )
 
 # Use width=16 restricting test values to "reasonable" precision (e > -8)
 real = hypothesis.strategies.floats(allow_infinity=False, width=16)
