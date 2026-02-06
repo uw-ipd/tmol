@@ -22,6 +22,8 @@ from .data import (  # noqa: F401
     openfold_ubq_and_sumo_pred,
     rosettafold2_ubq_pred,
     rosettafold2_sumo_pred,
+    biotite_1r21,
+    biotite_1bl8,
 )
 
 from .chemical import (  # noqa: F401

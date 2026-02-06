@@ -1,6 +1,7 @@
 import pytest
 import os
 import torch
+import biotite
 
 from . import pdb
 
@@ -138,6 +139,22 @@ def rosettafold2_ubq_pred(torch_device):
 def rosettafold2_sumo_pred(torch_device):
     fname = os.path.join(__file__.rpartition("/")[0], "rosettafold2", "sumo.pt")
     return torch.load(fname, map_location=torch_device)
+
+
+@pytest.fixture()
+def biotite_1r21():
+    import biotite.structure.io
+
+    fname = os.path.join(__file__.rpartition("/")[0], "1R21.pdb")
+    return biotite.structure.io.load_structure(fname)
+
+
+@pytest.fixture()
+def biotite_1bl8():
+    import biotite.structure.io
+
+    fname = os.path.join(__file__.rpartition("/")[0], "1BL8.pdb")
+    return biotite.structure.io.load_structure(fname)
 
 
 def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end):
