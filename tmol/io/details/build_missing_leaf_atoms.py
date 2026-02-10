@@ -99,9 +99,6 @@ def _setup_for_leaf_atom_coord_building(
         < n_ats_inccumsum[:, -1:]
     )
 
-    # SHORT CIRCUIT
-    # return (pose_like_coords, block_coord_offset)
-
     block_at_is_leaf = torch.zeros(
         (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=device
     )

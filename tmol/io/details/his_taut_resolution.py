@@ -9,10 +9,12 @@ from tmol.utility.auto_number import AutoNumber
 
 
 # Special case variant-type handling for HIS
-# The I/O code knows that spcase variant 0 for HIS is HIS-E
-# and the spcase variant 1 for HIS is HIS-D
+# The I/O code knows that spcase variant 0 for HIS is HIS-E,
+# the spcase variant 1 for HIS is HIS-D, and
+# the spcase variant 2 for HIS is both ND1 and NE2 protonated
 his_taut_variant_NE2_protonated = 0
 his_taut_variant_ND1_protonated = 1
+his_taut_variant_both_ND1_and_NE2_protonated = 2
 
 
 class HisTautomerResolution(AutoNumber):
@@ -21,7 +23,7 @@ class HisTautomerResolution(AutoNumber):
     his_taut_HE2 = ()
     his_taut_NH_is_ND1 = ()
     his_taut_NN_is_ND1 = ()
-    his_taut_HD1_HE2 = ()  # future
+    his_taut_HD1_HE2 = ()
     his_taut_unresolved = ()  # future
 
 

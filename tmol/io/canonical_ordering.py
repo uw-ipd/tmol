@@ -269,6 +269,7 @@ class CanonicalOrdering:
             "GLY": ("nterm", "cterm"),
             "HIS": ("nterm", "cterm"),
             "HIS_D": ("nterm", "cterm"),
+            "HIS_POS": ("nterm", "cterm"),
             "ILE": ("nterm", "cterm"),
             "LYS": ("nterm", "cterm"),
             "LEU": ("nterm", "cterm"),
