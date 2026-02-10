@@ -36,7 +36,14 @@ class BenchmarkPlot:
             return rows
 
         else:
-            return pandas.concat([cls.load_benchmarks(f) for f in benchmark_datafiles])
+            loaded = []
+            for f in benchmark_datafiles:
+                try:
+                    loaded.append(cls.load_benchmarks(f))
+                except Exception as e:
+                    pass
+
+            return pandas.concat(loaded) if loaded else pandas.DataFrame()
 
     @staticmethod
     def extract_benchmark_rows(benchmark_data):
