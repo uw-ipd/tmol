@@ -284,8 +284,10 @@ struct detect_rot_neighbors {
         rot_neighbors[pose_ind][rot_ind1][rot_ind2] = 1;
       }
     });
-    int n_rot_pairs =
-        n_rots_for_block.size(0) * max_n_rots_per_pose * max_n_rots_per_pose;
+    std::uint64_t n_rot_pairs = std::uint64_t(n_rots_for_block.size(0))
+                                * max_n_rots_per_pose * max_n_rots_per_pose;
+    // std::cout << "Trying to detect rot neighbors for n_rot_pairs ="
+    //          << n_rot_pairs << std::endl;
 
     DeviceDispatch<D>::template forall<launch_t>(n_rot_pairs, detect_neighbors);
   }

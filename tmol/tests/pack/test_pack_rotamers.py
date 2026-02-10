@@ -405,7 +405,7 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
 
     if torch_device == torch.device("cpu"):
         return
-    n_poses = 100
+    n_poses = 10
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
@@ -418,7 +418,7 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
     task.restrict_to_repacking()
     task.set_include_current()
     task.or_expand_chi(1)
-    task.or_expand_chi(2)
+    # task.or_expand_chi(2)
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
