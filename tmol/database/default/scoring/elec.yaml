@@ -445,8 +445,8 @@ atom_charge_parameters:
   - { *r: HIS_POS, *a: H, *e: 0.31}
   - { *r: HIS_POS, *a: HE2, *e: 0.44}
   - { *r: HIS_POS, *a: HA, *e: 0.09}
-  - { *r: HIS_POS, *a: 1HB, *e: 0.09}
-  - { *r: HIS_POS, *a: 2HB, *e: 0.09}
+  - { *r: HIS_POS, *a: HB2, *e: 0.09}
+  - { *r: HIS_POS, *a: HB3, *e: 0.09}
   - { *r: HIS_POS, *a: HE1, *e: 0.18}
   - { *r: HIS_POS, *a: HD2, *e: 0.13}
   - { *r: HIS_POS, *a: HD1, *e: 0.44}
