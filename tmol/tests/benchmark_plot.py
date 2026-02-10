@@ -40,7 +40,7 @@ class BenchmarkPlot:
             for f in benchmark_datafiles:
                 try:
                     loaded.append(cls.load_benchmarks(f))
-                except Exception as e:
+                except Exception:
                     pass
 
             return pandas.concat(loaded) if loaded else pandas.DataFrame()
