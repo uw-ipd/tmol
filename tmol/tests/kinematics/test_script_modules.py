@@ -54,6 +54,25 @@ def kincoords_and_dofs_for_pose_stack_system(
     return kincoords, dofs
 
 
+def coord_weights_for_device(torch_device):
+    return (torch.arange(3, dtype=torch.float32, device=torch_device) + 1).unsqueeze(0)
+
+
+@pytest.fixture
+def coord_weights(torch_device):
+    # Look: the backward pass assumes the stride for the dVdx is not 0.
+    # If we sum the coordinates and then run backwards, then the stride gets
+    # set to 0 because x y and z all have the same dVdx and so torch colapses
+    # that dimension.
+    # This is a very reasonable assumption because no one is ever going to
+    # want "minimize the xyz coordinates towards negative infinity" -- it is
+    # biologically meaningless. So, in the absence of some real function of
+    # energy from coordinates in this unit test, we have to come up with
+    # something else that will do: thus, we will weight the coordinates
+    # arbitrarily
+    return coord_weights_for_device(torch_device)
+
+
 @pytest.fixture
 def pose_stack_system1(
     ubq_pdb: str, torch_device: torch.device
@@ -179,7 +198,10 @@ def pose_stack_gradcheck_test_system2(
 
 
 def test_pose_stack_kinematics_module_smoke(
-    pose_stack_gradcheck_test_system1, torch_backward_coverage, torch_device
+    pose_stack_gradcheck_test_system1,
+    torch_backward_coverage,
+    coord_weights,
+    torch_device,
 ):
     """Smoke test of kinematic operation with backward-pass code coverage."""
     _1, kinematics_module, _2, dofs = pose_stack_gradcheck_test_system1
@@ -187,14 +209,14 @@ def test_pose_stack_kinematics_module_smoke(
     coords = kinematics_module(dofs.raw)
     coords.register_hook(torch_backward_coverage)
 
-    total = torch.sum(coords[:, :])
+    total = torch.sum(coord_weights * coords[:, :])
     total.backward()
 
     assert dofs.raw.grad is not None
 
 
 def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
-    pose_stack_gradcheck_test_system1,
+    pose_stack_gradcheck_test_system1, coord_weights, torch_device
 ):
     pose_stack, kinematics_module, kincoords, dofs = pose_stack_gradcheck_test_system1
 
@@ -207,7 +229,7 @@ def test_pose_stack_kinematic_torch_op_gradcheck_perturbed(
     )
 
     def func(dofs):
-        return torch.sum(kinematics_module(dofs)[:, :])
+        return torch.sum(coord_weights * kinematics_module(dofs)[:, :])
 
     kop_gradcheck_report(func, start_dofs)
 
@@ -244,6 +266,7 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
         return x.to(cuda_device)
 
     # TO DO: make moving a PoseStack to the device more efficient!
+
     cuda_pose_stack = PoseStack(
         packed_block_types=cuda_packed_block_types,
         coords=_to_cuda(cpu_pose_stack.coords),
@@ -259,7 +282,8 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
         block_type_ind64=_to_cuda(cpu_pose_stack.block_type_ind64),
         chain_id=_to_cuda(cpu_pose_stack.chain_id),
         chain_id64=_to_cuda(cpu_pose_stack.chain_id64),
-        chain_labels=cpu_pose_stack.chain_labels,
+        pdb_info=cpu_pose_stack.pdb_info,
+        constraint_set=cpu_pose_stack.constraint_set,
         device=cuda_device,
     )
     cuda_kinematics_module = PoseStackKinematicsModule(
@@ -303,11 +327,13 @@ def test_pose_stack_kinematics_op_device(pose_stack_system1, torch_device):
     # let's trigger a call to backwards on both the CPU and GPU and
     # make sure the calculated gradients are the same
 
-    cpu_total = torch.sum(cpu_coords[:, :])
+    coord_weights = coord_weights_for_device(cpu_device)
+    cpu_total = torch.sum(coord_weights * cpu_coords[:, :])
     cpu_total.backward()
     cpu_grads = cpu_dofs.raw.grad
 
-    cuda_total = torch.sum(cuda_coords[:, :])
+    cuda_coord_weights = coord_weights_for_device(cuda_device)
+    cuda_total = torch.sum(cuda_coord_weights * cuda_coords[:, :])
     cuda_total.backward()
     cuda_grads = cuda_dofs.raw.grad
 
