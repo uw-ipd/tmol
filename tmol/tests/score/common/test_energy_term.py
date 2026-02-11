@@ -5,7 +5,6 @@ import yaml
 import importlib
 import functools
 import pandas
-import torchshow
 
 from tmol.io import pose_stack_from_pdb
 from tmol.io.pdb_parsing import parse_pdb
@@ -268,7 +267,7 @@ class EnergyTermTestBase:
         # )
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(pn)
+            pn = edit_pose_stack_fn(pn)
 
         pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
 
@@ -300,7 +299,7 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(p1)
+            p1 = edit_pose_stack_fn(p1)
 
         n_score_types = len(cls.energy_term_class.score_types())
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
@@ -349,7 +348,7 @@ class EnergyTermTestBase:
         pn = PoseStackBuilder.from_poses([p1, p2, p3], device=torch_device)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(pn)
+            pn = edit_pose_stack_fn(pn)
 
         pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
         scores = pose_scorer(pn.coords).cpu().detach().numpy()
@@ -387,7 +386,7 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(p1)
+            p1 = edit_pose_stack_fn(p1)
 
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
         block_pair_scorer = cls.get_block_pair_scorer(
@@ -416,7 +415,7 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(p1)
+            p1 = edit_pose_stack_fn(p1)
 
         block_pair_scorer = cls.get_block_pair_scorer(
             p1, default_database, torch_device
@@ -493,13 +492,6 @@ class EnergyTermTestBase:
             :, :, ij_is_upper_triangle
         ]
 
-        # print("gold vals upper triangle")
-        # print(gold_vals_upper_triangle)
-
-        gold_vals_sum = gold_vals_upper_triangle.sum(-1).sum(-1)
-        scores_sum = scores.sum(-1).sum(-1)
-        # print("GOLD SUM:", gold_vals_sum, "SCORES SUM", scores_sum)
-
         assert_allclose(gold_vals_upper_triangle, scores_upper_triangle, atol, rtol)
 
     @classmethod
@@ -518,7 +510,7 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
 
         if edit_pose_stack_fn is not None:
-            edit_pose_stack_fn(p1)
+            p1 = edit_pose_stack_fn(p1)
 
         block_pair_scorer = cls.get_block_pair_scorer(
             p1, default_database, torch_device

@@ -176,7 +176,7 @@ class TermRotamerScoringModule(TermScoringModule):
         #     f"{self.classname} RotamerScoringModule forward"
         # ):
         scores, indices = self.term_score_poses(*self.format_arguments(coords, True))
-        print("scores", scores.shape, "indices", indices.shape)
+        # print("scores", scores.shape, "indices", indices.shape)
         sparse_result = torch.stack(
             [
                 torch.sparse_coo_tensor(

@@ -251,8 +251,6 @@ def test_profile_minimizer2(erbb2_and_pertuzumab_pdb, torch_device):
     )
     pose_stackN = PoseStackBuilder.from_poses([pose_stack1] * N_poses, torch_device)
 
-    pose_stackN_orig_coords = pose_stackN.coords.detach().clone()
-
     edges = numpy.array(
         [
             [EdgeType.root_jump, -1, 0, 0],

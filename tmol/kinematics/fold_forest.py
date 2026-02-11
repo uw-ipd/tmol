@@ -72,9 +72,9 @@ class FoldForest:
             max_n_chains, dtype=torch.int64, device=pose_stack.device
         ).unsqueeze(0) < (n_chains_per_pose.unsqueeze(1))
         real_chain_indices = torch.nonzero(is_pci_chain_real, as_tuple=False)
-        is_pose_last_chain = torch.arange(
-            max_n_chains, dtype=torch.int32, device=pose_stack.device
-        ).unsqueeze(0) == (n_chains_per_pose - 1).unsqueeze(1)
+        # is_pose_last_chain = torch.arange(
+        #     max_n_chains, dtype=torch.int32, device=pose_stack.device
+        # ).unsqueeze(0) == (n_chains_per_pose - 1).unsqueeze(1)
 
         edges = torch.full(
             (pose_stack.n_poses, max_n_edges, 4),

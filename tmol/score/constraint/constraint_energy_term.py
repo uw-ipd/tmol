@@ -1,22 +1,18 @@
 import torch
 import math
+import os
+import sys
 
-import torch.nn.functional
+# import torch.nn.functional
 
 from ..energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
-from tmol.score.constraint.constraint_whole_pose_module import (
-    ConstraintWholePoseScoringModule,
-)
 from tmol.score.constraint.potentials.compiled import get_torsion_angle
 
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
-
-
-import os, sys
 
 
 class HiddenPrints:
@@ -153,7 +149,42 @@ class ConstraintEnergyTerm(EnergyTerm):
         constraint_set,
         output_block_pair_energies=False,
     ):
-        device = constraint_set.constraint_atoms.device
+        device = coords.device
+
+        # Early exit if we have no constraints
+        if constraint_set is None:
+            max_n_rots_per_block = n_rots_for_block.max().item()
+            # print("max_n_rots_per_block", max_n_rots_per_block)
+            if max_n_rots_per_block > 1:
+                return (
+                    torch.zeros((1, 0), dtype=coords.dtype, device=device),
+                    torch.zeros((3, 0), dtype=torch.int32, device=device),
+                )
+            else:
+                n_poses = first_rot_block_type.shape[0]
+                max_n_blocks = first_rot_block_type.shape[1]
+                if output_block_pair_energies:
+                    return (
+                        torch.zeros(
+                            (1, n_poses, max_n_blocks, max_n_blocks),
+                            dtype=torch.float32,
+                            device=device,
+                        ),
+                        torch.zeros((3, 0), dtype=torch.int32, device=device),
+                    )
+                else:
+                    return (
+                        torch.zeros(
+                            (
+                                1,
+                                n_poses,
+                            ),
+                            dtype=torch.float32,
+                            device=device,
+                        ),
+                        torch.zeros((3, 0), dtype=torch.int32, device=device),
+                    )
+
         unique_blocks = constraint_set.constraint_num_unique_blocks
         constraint_atoms = constraint_set.constraint_atoms
         constraint_fn_inds = constraint_set.constraint_function_inds

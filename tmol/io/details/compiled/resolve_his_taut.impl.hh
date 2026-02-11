@@ -75,13 +75,14 @@ struct ResolveHisTaut {
       bool const CG_present = atom_is_present[ip][ir][atom_inds.his_CG_in_co];
 
       int state = his_taut_unresolved;
+      int variant = his_taut_variant_unresolved;
 
       if (HD1_present && !HE2_present) {
         state = his_taut_HD1;
-        res_type_variants[ip][ir] = his_taut_variant_ND1_protonated;
+        variant = his_taut_variant_ND1_protonated;
       } else if (HE2_present && !HD1_present) {
         state = his_taut_HE2;
-        res_type_variants[ip][ir] = his_taut_variant_NE2_protonated;
+        variant = his_taut_variant_NE2_protonated;
       } else if (
           HN_present && !HD1_present && !HE2_present && ND1_present
           && NE2_present) {
@@ -93,12 +94,12 @@ struct ResolveHisTaut {
 
         if (dis2_ND1 < dis2_NE2) {
           state = his_taut_HD1;
-          res_type_variants[ip][ir] = his_taut_variant_ND1_protonated;
+          variant = his_taut_variant_ND1_protonated;
           his_remapping_dst_index[ip][ir][atom_inds.his_HD1_in_co] =
               atom_inds.his_HN_in_co;
         } else {
           state = his_taut_HE2;
-          res_type_variants[ip][ir] = his_taut_variant_NE2_protonated;
+          variant = his_taut_variant_NE2_protonated;
           his_remapping_dst_index[ip][ir][atom_inds.his_HE2_in_co] =
               atom_inds.his_HN_in_co;
         }
@@ -116,7 +117,7 @@ struct ResolveHisTaut {
               atom_inds.his_HN_in_co;
           his_remapping_dst_index[ip][ir][atom_inds.his_NE2_in_co] =
               atom_inds.his_NN_in_co;
-          res_type_variants[ip][ir] = his_taut_variant_ND1_protonated;
+          variant = his_taut_variant_ND1_protonated;
         } else {
           state = his_taut_NN_is_ND1;
           his_remapping_dst_index[ip][ir][atom_inds.his_ND1_in_co] =
@@ -125,14 +126,19 @@ struct ResolveHisTaut {
               atom_inds.his_HN_in_co;
           his_remapping_dst_index[ip][ir][atom_inds.his_NE2_in_co] =
               atom_inds.his_NH_in_co;
-          res_type_variants[ip][ir] = his_taut_variant_NE2_protonated;
+          variant = his_taut_variant_NE2_protonated;
         }
 
       } else if (!HD1_present && !HE2_present && !HN_present) {
         // arbitrary choice: go with his_taut_HE2
         state = his_taut_HE2;
+        variant = his_taut_variant_NE2_protonated;
+      } else if (HD1_present && HE2_present) {
+        state = his_taut_HD1_HE2;
+        variant = his_taut_variant_both_ND1_and_NE2_protonated;
       }
       his_taut[ip][ir] = state;
+      res_type_variants[ip][ir] = variant;
     });
 
     DeviceOps<Dev>::template forall<launch_t>(n_his, f_his_resolver);

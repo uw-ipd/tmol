@@ -28,48 +28,47 @@ enum subgraph_type { subgraph_length = 0, subgraph_angle, subgraph_torsion };
 template <typename Int>
 TMOL_DEVICE_FUNC tuple<Int, Int, Int> get_connection_spanning_subgraph_indices(
     Int index) {
-  static const int CON_PATH_INDICES[][3] = {
-      // Length
-      {Int(subgraph_length), 0, 0},
+  static const int CON_PATH_INDICES[][3] = {// Length
+                                            {Int(subgraph_length), 0, 0},
 
-      // Angles
-      {Int(subgraph_angle), 0, 1},
-      {Int(subgraph_angle), 0, 2},
-      {Int(subgraph_angle), 0, 3},
-      {Int(subgraph_angle), 1, 0},
-      {Int(subgraph_angle), 2, 0},
-      {Int(subgraph_angle), 3, 0},
+                                            // Angles
+                                            {Int(subgraph_angle), 0, 1},
+                                            {Int(subgraph_angle), 0, 2},
+                                            {Int(subgraph_angle), 0, 3},
+                                            {Int(subgraph_angle), 1, 0},
+                                            {Int(subgraph_angle), 2, 0},
+                                            {Int(subgraph_angle), 3, 0},
 
-      // Torsions
-      {Int(subgraph_torsion), 0, 4},
-      {Int(subgraph_torsion), 0, 5},
-      {Int(subgraph_torsion), 0, 6},
-      {Int(subgraph_torsion), 0, 7},
-      {Int(subgraph_torsion), 0, 8},
-      {Int(subgraph_torsion), 0, 9},
-      {Int(subgraph_torsion), 0, 10},
-      {Int(subgraph_torsion), 0, 11},
-      {Int(subgraph_torsion), 0, 12},
+                                            // Torsions
+                                            {Int(subgraph_torsion), 0, 4},
+                                            {Int(subgraph_torsion), 0, 5},
+                                            {Int(subgraph_torsion), 0, 6},
+                                            {Int(subgraph_torsion), 0, 7},
+                                            {Int(subgraph_torsion), 0, 8},
+                                            {Int(subgraph_torsion), 0, 9},
+                                            {Int(subgraph_torsion), 0, 10},
+                                            {Int(subgraph_torsion), 0, 11},
+                                            {Int(subgraph_torsion), 0, 12},
 
-      {Int(subgraph_torsion), 1, 1},
-      {Int(subgraph_torsion), 1, 2},
-      {Int(subgraph_torsion), 1, 3},
-      {Int(subgraph_torsion), 2, 1},
-      {Int(subgraph_torsion), 2, 2},
-      {Int(subgraph_torsion), 2, 3},
-      {Int(subgraph_torsion), 3, 1},
-      {Int(subgraph_torsion), 3, 2},
-      {Int(subgraph_torsion), 3, 3},
+                                            {Int(subgraph_torsion), 1, 1},
+                                            {Int(subgraph_torsion), 1, 2},
+                                            {Int(subgraph_torsion), 1, 3},
+                                            {Int(subgraph_torsion), 2, 1},
+                                            {Int(subgraph_torsion), 2, 2},
+                                            {Int(subgraph_torsion), 2, 3},
+                                            {Int(subgraph_torsion), 3, 1},
+                                            {Int(subgraph_torsion), 3, 2},
+                                            {Int(subgraph_torsion), 3, 3},
 
-      {Int(subgraph_torsion), 4, 0},
-      {Int(subgraph_torsion), 5, 0},
-      {Int(subgraph_torsion), 6, 0},
-      {Int(subgraph_torsion), 7, 0},
-      {Int(subgraph_torsion), 8, 0},
-      {Int(subgraph_torsion), 9, 0},
-      {Int(subgraph_torsion), 10, 0},
-      {Int(subgraph_torsion), 11, 0},
-      {Int(subgraph_torsion), 12, 0}};
+                                            {Int(subgraph_torsion), 4, 0},
+                                            {Int(subgraph_torsion), 5, 0},
+                                            {Int(subgraph_torsion), 6, 0},
+                                            {Int(subgraph_torsion), 7, 0},
+                                            {Int(subgraph_torsion), 8, 0},
+                                            {Int(subgraph_torsion), 9, 0},
+                                            {Int(subgraph_torsion), 10, 0},
+                                            {Int(subgraph_torsion), 11, 0},
+                                            {Int(subgraph_torsion), 12, 0}};
   return {
       CON_PATH_INDICES[index][0],
       CON_PATH_INDICES[index][1],

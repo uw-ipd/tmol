@@ -156,7 +156,6 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
         dtype=torch.int64,
         device=poses.device,
     )
-    pose_ind_for_gbt = torch.floor_divide(res_ind_for_gbt, max_n_blocks).to(torch.int64)
 
     gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]
     res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]

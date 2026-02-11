@@ -2,12 +2,13 @@ import numpy
 import torch
 
 from tmol.io.pdb_parsing import atom_record_dtype
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from typing import Optional, Union
+from typing import Optional
 
 
 @validate_args
@@ -270,8 +271,14 @@ def atom_records_from_coords(
         else " "
     )
     results["occupancy"] = (
-        atom_occupancy[atom_is_real] if atom_occupancy is not None else 1.0
+        atom_occupancy[atom_is_real]
+        if atom_occupancy is not None
+        else DEFAULT_ATOM_OCCUPANCY
     )
-    results["b"] = atom_b_factor[atom_is_real] if atom_b_factor is not None else 0.0
+    results["b"] = (
+        atom_b_factor[atom_is_real]
+        if atom_b_factor is not None
+        else DEFAULT_ATOM_B_FACTOR
+    )
 
     return results

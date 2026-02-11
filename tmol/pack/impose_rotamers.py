@@ -253,6 +253,7 @@ def impose_top_rotamer_assignments(
         chain_id=orig_pose_stack.chain_id,
         chain_id64=orig_pose_stack.chain_id64,
         pdb_info=new_pdb_info,
+        constraint_set=orig_pose_stack.constraint_set,
         device=device,
     )
     return new_pose_stack

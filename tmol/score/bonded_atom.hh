@@ -161,7 +161,7 @@ struct RotamerCentricIndexedBonds {
   // neighboring block. We will represent the remainder of the
   // structure by a single block type at each position; an example
   // rotamer, e.g., with the requirement that in order for an energy
-  // function to work properly in the context of the packer that 
+  // function to work properly in the context of the packer that
   // the parts of the structure the packer moves will not affect the
   // set of atoms at inter-residue connections in a way that impacts
   // scoring.  E.g. for LK-ball, which depends on iterating across bonds
@@ -175,7 +175,6 @@ struct RotamerCentricIndexedBonds {
   // to focus on a particular Pose in the PoseStack
   TensorAccessor<Vec<Int, 2>, 2, D> inter_block_connections;
   TensorAccessor<Int, 1, D> neighbor_example_block_types;
-
 
   // Properties of the block types in this molecular system
   TView<Int, 1, D> block_type_n_all_bonds;
@@ -232,7 +231,7 @@ struct RotamerCentricIndexedBonds {
           // position
           nbr_block_type = parent.rot_block_type;
         } else {
-           nbr_block_type = parent.neighbor_example_block_types[nbr_block];
+          nbr_block_type = parent.neighbor_example_block_types[nbr_block];
         }
 
         Int nbr_conn_atom =
@@ -267,7 +266,6 @@ struct RotamerCentricIndexedBonds {
     return BondAtomRange{bcat, *this};
   }
 };
-
 
 #undef def
 

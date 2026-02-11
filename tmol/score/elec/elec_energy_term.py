@@ -5,7 +5,6 @@ from ..bond_dependent_term import BondDependentTerm
 
 from tmol.database import ParameterDatabase
 from tmol.score.elec.params import ElecParamResolver, ElecGlobalParams
-from tmol.score.elec.elec_whole_pose_module import ElecWholePoseScoringModule
 from tmol.score.elec.potentials.compiled import elec_pose_scores, elec_rotamer_scores
 
 from tmol.chemical.restypes import RefinedResidueType

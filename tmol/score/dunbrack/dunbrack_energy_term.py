@@ -6,9 +6,6 @@ import numpy
 from ..energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
-from tmol.score.dunbrack.dunbrack_whole_pose_module import (
-    DunbrackWholePoseScoringModule,
-)
 from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.score.dunbrack.params import ScoringDunbrackDatabaseView
 from tmol.score.dunbrack.potentials.compiled import (
@@ -263,15 +260,3 @@ class DunbrackEnergyTerm(EnergyTerm):
             *self.dunbrack_db,
             *pbt.dunbrack_packed_block_data,
         ]
-
-    # def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-    #     pbt = pose_stack.packed_block_types
-
-    #     return DunbrackWholePoseScoringModule(
-    #         pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-    #         pose_stack_block_types=pose_stack.block_type_ind,
-    #         pose_stack_inter_block_connections=pose_stack.inter_residue_connections,
-    #         bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
-    #         global_params=self.dunbrack_db,
-    #         dunbrack_packed_block_data=pbt.dunbrack_packed_block_data,
-    #     )

@@ -13,10 +13,10 @@ namespace common {
 template <template <typename T> typename InterPairData, typename T>
 class AllAtomPairSelector {
  public:
-  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const &inter_data) {
+  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const& inter_data) {
     return inter_data.r1.n_atoms;
   }
-  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const &inter_data) {
+  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const& inter_data) {
     return inter_data.r2.n_atoms;
   }
 };
@@ -27,10 +27,10 @@ class AllAtomPairSelector {
 template <template <typename T> typename InterPairData, typename T>
 class HeavyAtomPairSelector {
  public:
-  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const &inter_data) {
+  static EIGEN_DEVICE_FUNC int n_atoms1(InterPairData<T> const& inter_data) {
     return inter_data.r1.n_heavy;
   }
-  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const &inter_data) {
+  static EIGEN_DEVICE_FUNC int n_atoms2(InterPairData<T> const& inter_data) {
     return inter_data.r2.n_heavy;
   }
 };
@@ -61,8 +61,10 @@ TMOL_DEVICE_FUNC void for_(F func) {
 // across only the heavy-atom pairs. The AllAtomPairSelector or
 // HeavyAtomPairSelectors defined above can be used for this purpose.
 template <
-    template <typename> typename InterEnergyData,
-    template <template <typename> typename, typename> typename PairSelector,
+    template <typename>
+    typename InterEnergyData,
+    template <template <typename> typename, typename>
+    typename PairSelector,
     tmol::Device D,
     int TILE,
     int nt,
@@ -77,7 +79,7 @@ class InterResBlockEvaluation {
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
-      InterEnergyData<Real> const &inter_dat) {
+      InterEnergyData<Real> const& inter_dat) {
     std::array<Real, NTERMS> score_total = {};
     int const n_remain1 = min(
         TILE,
@@ -105,8 +107,10 @@ class InterResBlockEvaluation {
 // so if the atom1 index is >= the atom2 index, the work is skipped.
 // TO DO: replace with upper-triangle indexing to reduce idle threads
 template <
-    template <typename> typename IntraEnergyData,
-    template <template <typename> typename, typename> typename PairSelector,
+    template <typename>
+    typename IntraEnergyData,
+    template <template <typename> typename, typename>
+    typename PairSelector,
     tmol::Device D,
     int TILE,
     int nt,
@@ -121,7 +125,7 @@ class IntraResBlockEvaluation {
       int start_atom1,
       int start_atom2,
       AtomPairFunc f,
-      IntraEnergyData<Real> const &intra_dat) {
+      IntraEnergyData<Real> const& intra_dat) {
     std::array<Real, NTERMS> score_total = {};
     int const n_remain1 = min(
         TILE,
@@ -193,7 +197,8 @@ class IntraResBlockEvaluation {
 // "block1" data in the "LoadInterDataFunc1" or in the
 // "LoadIntraSharedDatFunc."
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename InterResScoringData,
     typename IntraResScoringData,
@@ -212,7 +217,7 @@ template <
     typename CalcIntraFunc,
     typename StoreEnergyFunc>
 TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
-    SharedMemData &shared_data,
+    SharedMemData& shared_data,
     int pose_ind,
     int block_ind1,
     int block_ind2,
@@ -345,7 +350,8 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename InterResScoringData,
     typename IntraResScoringData,
@@ -364,7 +370,7 @@ template <
     typename CalcIntraFunc,
     typename StoreEnergyFunc>
 TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
-    SharedMemData &shared_data,
+    SharedMemData& shared_data,
     int pose_ind,
     int rot_ind1,
     int rot_ind2,

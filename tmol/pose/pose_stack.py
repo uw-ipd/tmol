@@ -1,10 +1,8 @@
 import attr
 import torch
-import numpy
 from typing import Optional
 
 from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -98,6 +96,7 @@ class PoseStack:
     chain_id64: Tensor[torch.int64][:, :]
 
     pdb_info: PDBInfo
+    constraint_set: Optional[ConstraintSet]
 
     device: torch.device
 
@@ -215,6 +214,9 @@ class PoseStack:
 
     def clone(self) -> "PoseStack":
         """Deep-copy clone of this PoseStack"""
+        new_constraint_set = (
+            self.constraint_set.clone() if self.constraint_set is not None else None
+        )
         return PoseStack(
             packed_block_types=self.packed_block_types,
             coords=self.coords.detach().clone(),
@@ -229,6 +231,7 @@ class PoseStack:
             chain_id=self.chain_id.detach().clone(),
             chain_id64=self.chain_id64.detach().clone(),
             pdb_info=self.pdb_info,
+            constraint_set=new_constraint_set,
             device=self.device,
         )
 
@@ -278,13 +281,7 @@ class PoseStack:
         ]
 
     def get_constraint_set(self):
-        # make a constraint set if it doesn't exist
-        if not hasattr(self, "_constraint_set"):
-            self._constraint_set = ConstraintSet(device=self.device)
-
-        # ensure the constraint set points back at us (after creation or deep copy)
-        self._constraint_set.pose_stack = self
-        return self._constraint_set
+        return self.constraint_set
 
     def block_identity_map(self):
         # print("bco size: ", self.block_coord_offset.size())

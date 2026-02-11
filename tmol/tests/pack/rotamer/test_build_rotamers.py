@@ -52,8 +52,6 @@ from tmol.tests.data import no_termini_pose_stack_from_pdb
 
 from tmol.score.hbond.hbond_energy_term import (
     HBondEnergyTerm,
-    # HBondRotamerScoringModule,
-    # HBondWholePoseScoringModule,
 )
 
 

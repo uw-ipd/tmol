@@ -7,10 +7,6 @@ from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
 
 from tmol.database import ParameterDatabase
 
-# from tmol.score.cartbonded.params import CartBondedGlobalParams
-from tmol.score.cartbonded.cartbonded_whole_pose_module import (
-    CartBondedWholePoseScoringModule,
-)
 from tmol.score.cartbonded.potentials.compiled import (
     cartbonded_pose_scores,
     cartbonded_rotamer_scores,

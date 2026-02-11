@@ -56,7 +56,8 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 // (that is, two disulfide bonds between residues i and j) without
 // double counting.
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -311,7 +312,8 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -465,7 +467,8 @@ auto DisulfidePoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -750,7 +753,8 @@ auto DisulfideRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>

@@ -371,8 +371,6 @@ class LBFGS_Armijo(Optimizer):
             # check 2: if derivative is still positive, reset Hessian
             if gtd > -1e-5:
                 d = flat_grad.neg()
-                old_dirs = []
-                old_stps = []
                 gtd = flat_grad.dot(d)
 
             # define the line search function
