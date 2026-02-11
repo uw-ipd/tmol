@@ -2,7 +2,7 @@ import torch
 import numpy
 import toolz
 
-from typing import List, Mapping
+from typing import List
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 from tmol.chemical.restypes import ResidueTypeSet

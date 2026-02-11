@@ -1,4 +1,4 @@
-""" Parse and import rosetta hydrogen bond parameters.
+"""Parse and import rosetta hydrogen bond parameters.
 
 Manages parsing and import a subset of rosetta hydrogen bond parameters into a
 hydrogen bond parameter database file. Selects a minimal subset of polynomial

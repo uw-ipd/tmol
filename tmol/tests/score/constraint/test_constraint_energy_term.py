@@ -193,7 +193,9 @@ def modify_distances_and_check_constraints(pose_stack):
         cnstr_params[res, 2] = 1.0  # sd
         cnstr_params[res, 3] = 1.0  # rswitch
 
-    constraints = constraints.add_constraints(ConstraintEnergyTerm.bounded, cnstr_atoms, cnstr_params)
+    constraints = constraints.add_constraints(
+        ConstraintEnergyTerm.bounded, cnstr_atoms, cnstr_params
+    )
     return attrs.evolve(
         pose_stack,
         constraint_set=constraints,

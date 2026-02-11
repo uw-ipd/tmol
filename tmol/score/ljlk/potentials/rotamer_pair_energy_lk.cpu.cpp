@@ -169,7 +169,7 @@ auto LKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
   using tmol::pack::sim_anneal::compiled::SimAnnealer;
 
   int64_t annealer_uint = annealer[0];
-  SimAnnealer *sim_annealer = reinterpret_cast<SimAnnealer *>(annealer_uint);
+  SimAnnealer* sim_annealer = reinterpret_cast<SimAnnealer*>(annealer_uint);
   std::shared_ptr<RPECalc> calc =
       std::make_shared<LKRPECPUCalc<DeviceDispatch, D, Real, Int>>(
           context_coords,

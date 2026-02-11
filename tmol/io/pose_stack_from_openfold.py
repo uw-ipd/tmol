@@ -2,7 +2,6 @@ import torch
 import numpy
 import toolz
 
-from typing import Mapping
 from tmol.types.functional import validate_args
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
