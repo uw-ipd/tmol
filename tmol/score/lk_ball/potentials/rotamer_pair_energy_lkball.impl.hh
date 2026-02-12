@@ -170,7 +170,7 @@ auto LKBallRPEDispatch<DeviceDispatch, D, Real, Int, MAX_WATER>::f(
 
       Real dist;
       Real angle;
-      Real *tors;
+      Real* tors;
       Int ntors;
 
       if (hyb == hbond::AcceptorHybridization::sp2) {

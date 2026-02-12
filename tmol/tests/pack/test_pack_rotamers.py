@@ -1,10 +1,8 @@
 import attrs
 import torch
-import time
 import math
 
 from tmol.pose.constraint_set import ConstraintSet
-from tmol.pose.pose_stack import PoseStack
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
@@ -55,6 +53,7 @@ def get_packer_sfxn(default_database, torch_device):
 
     return sfxn
 
+
 def get_constraints_only_sfxn(default_database, torch_device):
     sfxn = ScoreFunction(param_db=default_database, device=torch_device)
     sfxn.set_weight(ScoreType.constraint, 1.0)
@@ -62,9 +61,7 @@ def get_constraints_only_sfxn(default_database, torch_device):
     return sfxn
 
 
-
 def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
-    # print("starting test_pack_rotamers")
     n_poses = 4
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
@@ -85,21 +82,12 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
 
     pbt = pose_stack.packed_block_types
 
-    # print("starting packer steps")
-    start_time = time.perf_counter()
-
     pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
-    # print("Built", rotamer_set.n_rotamers_total, "rotamers")
 
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
 
-    # print("starting energy calculation")
     energies = rotamer_scoring_module(rotamer_set.coords)
     energies = energies.coalesce()
-    # print("done")
-
-    # n_rots_total = rotamer_set.n_rotamers_total
-    # energy1b = torch.zeros((n_rots_total), dtype=torch.float32, device=torch_device)
 
     chunk_size = 16
 
@@ -135,32 +123,17 @@ def test_pack_rotamers(default_database, ubq_pdb, dun_sampler, torch_device):
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    # print("top scores", scores[:, 0])
-    # for i in range(n_poses):
-    #     for j in range(scores.shape[1]):
-    #         print("score", i, j, scores[i,j])
-
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack, rotamer_set, rotamer_assignments
     )
-    if torch_device == torch.device("cuda"):
-        torch.cuda.synchronize()
-    stop_time = time.perf_counter()
-
-    elapsed_time = stop_time - start_time
-
-    # print(f"Execution time: {elapsed_time:.6f} seconds")
-
     write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
 
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
     new_scores = wpsm(new_pose_stack.coords)
-    # print("confirm new scores", new_scores, scores[:, 0])
     torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
 
 
 def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_device):
-    # print("starting test_pack_rotamers_w_cst")
     n_poses = 4
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
@@ -181,11 +154,7 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
 
     pbt = pose_stack.packed_block_types
 
-    # print("starting packer steps")
-    start_time = time.perf_counter()
-
     pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
-    # print("Built", rotamer_set.n_rotamers_total, "rotamers")
     constraints = ConstraintSet.create_empty(device=torch_device, n_poses=n_poses)
 
     # a distance constraint
@@ -239,13 +208,8 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
 
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
 
-    # print("starting energy calculation")
     energies = rotamer_scoring_module(rotamer_set.coords)
     energies = energies.coalesce()
-    # print("done")
-
-    # n_rots_total = rotamer_set.n_rotamers_total
-    # energy1b = torch.zeros((n_rots_total), dtype=torch.float32, device=torch_device)
 
     chunk_size = 16
 
@@ -281,27 +245,14 @@ def test_pack_rotamers_w_cst(default_database, ubq_pdb, dun_sampler, torch_devic
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    # print("top scores", scores[:, 0])
-    # for i in range(n_poses):
-    #     for j in range(scores.shape[1]):
-    #         print("score", i, j, scores[i,j])
-
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack, rotamer_set, rotamer_assignments
     )
     if torch_device == torch.device("cuda"):
         torch.cuda.synchronize()
-    # stop_time = time.perf_counter()
-
-    # elapsed_time = stop_time - start_time
-
-    # print(f"Execution time: {elapsed_time:.6f} seconds")
-
-    # write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
 
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
     new_scores = wpsm(new_pose_stack.coords)
-    # print("confirm new scores", new_scores, scores[:, 0])
     torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
 
 
@@ -328,22 +279,11 @@ def test_pack_rotamers_w_empty_interaction_graph(
 
     pbt = pose_stack.packed_block_types
 
-    # print("starting packer steps")
-    # start_time = time.perf_counter()
-
     pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
-    # print("Built", rotamer_set.n_rotamers_total, "rotamers")
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
 
-    # print("starting energy calculation")
     energies = rotamer_scoring_module(rotamer_set.coords)
     energies = energies.coalesce()
-    # print("done")
-
-    # print("energies", energies.shape)
-
-    # n_rots_total = rotamer_set.n_rotamers_total
-    # energy1b = torch.zeros((n_rots_total), dtype=torch.float32, device=torch_device)
 
     chunk_size = 16
 
@@ -361,10 +301,6 @@ def test_pack_rotamers_w_empty_interaction_graph(
             energies.values(),
         )
     )
-    # print("energy1b", energy1b.shape)
-    # print("chunk_pair_offset_for_block_pair", chunk_pair_offset_for_block_pair.shape)
-    # print("chunk_pair_offset", chunk_pair_offset.shape)
-    # print("energy2b", energy2b.shape)
 
     packer_energy_tables = PackerEnergyTables(
         max_n_rotamers_per_pose=rotamer_set.max_n_rots_per_pose,
@@ -383,27 +319,12 @@ def test_pack_rotamers_w_empty_interaction_graph(
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    # print("top scores", scores[:, 0])
-    # for i in range(n_poses):
-    #     for j in range(scores.shape[1]):
-    #         print("score", i, j, scores[i,j])
-
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack, rotamer_set, rotamer_assignments
     )
-    if torch_device == torch.device("cuda"):
-        torch.cuda.synchronize()
-    # stop_time = time.perf_counter()
-
-    # elapsed_time = stop_time - start_time
-
-    # print(f"Execution time: {elapsed_time:.6f} seconds")
-
-    # write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
 
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
     new_scores = wpsm(new_pose_stack.coords)
-    # print("confirm new scores", new_scores)
     torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
 
 
@@ -430,23 +351,12 @@ def test_pack_rotamers_w_dslf(
 
     pbt = pose_stack.packed_block_types
 
-    # print("starting packer steps")
-    start_time = time.perf_counter()
-
     pose_stack, rotamer_set = build_rotamers(pose_stack, task, pbt.chem_db)
-    # print("Built", rotamer_set.n_rotamers_total, "rotamers")
 
     rotamer_scoring_module = sfxn.render_rotamer_scoring_module(pose_stack, rotamer_set)
 
-    # print("starting energy calculation")
     energies = rotamer_scoring_module(rotamer_set.coords)
     energies = energies.coalesce()
-    # print("done")
-
-    # print("energies", energies.shape)
-
-    # n_rots_total = rotamer_set.n_rotamers_total
-    # energy1b = torch.zeros((n_rots_total), dtype=torch.float32, device=torch_device)
 
     chunk_size = 16
 
@@ -486,27 +396,12 @@ def test_pack_rotamers_w_dslf(
 
     scores, rotamer_assignments = run_simulated_annealing(packer_energy_tables)
 
-    # print("top scores", scores[:, 0])
-    # for i in range(n_poses):
-    #     for j in range(scores.shape[1]):
-    #         print("score", i, j, scores[i,j])
-
     new_pose_stack = impose_top_rotamer_assignments(
         pose_stack, rotamer_set, rotamer_assignments
     )
-    if torch_device == torch.device("cuda"):
-        torch.cuda.synchronize()
-    stop_time = time.perf_counter()
-
-    elapsed_time = stop_time - start_time
-
-    # print(f"Execution time: {elapsed_time:.6f} seconds")
-
-    # write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
 
     wpsm = sfxn.render_whole_pose_scoring_module(new_pose_stack)
     new_scores = wpsm(new_pose_stack.coords)
-    # print("confirm new scores", new_scores)
     torch.testing.assert_close(scores[:, 0], new_scores, atol=1e-3, rtol=1e-5)
 
 
@@ -514,16 +409,11 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
 
     if torch_device == torch.device("cpu"):
         return
-    n_poses = 100
-    # print("Device!", torch_device)
+    n_poses = 10
 
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
 
     pose_stack = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
-    # from tmol.io.chain_deduction import chain_inds_for_pose_stack
-    # chain_ind_for_block = chain_inds_for_pose_stack(pose_stack)
-    # print("chain_ind_for_block", chain_ind_for_block[:,0])
-    # return
 
     restype_set = pose_stack.packed_block_types.restype_set
 
@@ -532,7 +422,7 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
     task.restrict_to_repacking()
     task.set_include_current()
     task.or_expand_chi(1)
-    task.or_expand_chi(2)
+    # task.or_expand_chi(2)
 
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dun_sampler)
@@ -540,32 +430,7 @@ def test_pack_rotamers2(default_database, ubq_pdb, dun_sampler, torch_device):
 
     sfxn = get_packer_sfxn(default_database, torch_device)
 
-    # warmup:
-    # print("starting warmup packer run")
-    start_time = time.perf_counter()
-    new_pose_stack = pack_rotamers(pose_stack, sfxn, task)
-    if torch_device == torch.device("cuda"):
-        torch.cuda.synchronize()
-    stop_time = time.perf_counter()
-
-    elapsed_time = stop_time - start_time
-
-    # print(f"warmup execution time: {elapsed_time:.6f} seconds")
-
-    #print("starting packer steps")
-    start_time = time.perf_counter()
-
-    new_pose_stack = pack_rotamers(pose_stack, sfxn, task)
-
-    if torch_device == torch.device("cuda"):
-        torch.cuda.synchronize()
-    stop_time = time.perf_counter()
-
-    elapsed_time = stop_time - start_time
-
-    # print(f"Execution time: {elapsed_time:.6f} seconds")
-
-    # write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
+    pack_rotamers(pose_stack, sfxn, task)
 
 
 def test_pack_rotamers_irregular_sized_poses(
@@ -575,7 +440,6 @@ def test_pack_rotamers_irregular_sized_poses(
     if torch_device == torch.device("cpu"):
         return
     n_poses = 20
-    # print("Device!", torch_device)
 
     pose_stack = PoseStackBuilder.from_poses(
         [
@@ -586,10 +450,6 @@ def test_pack_rotamers_irregular_sized_poses(
         ],
         torch_device,
     )
-    # from tmol.io.chain_deduction import chain_inds_for_pose_stack
-    # chain_ind_for_block = chain_inds_for_pose_stack(pose_stack)
-    # print("chain_ind_for_block", chain_ind_for_block[:,0])
-    # return
 
     restype_set = pose_stack.packed_block_types.restype_set
 
@@ -606,28 +466,4 @@ def test_pack_rotamers_irregular_sized_poses(
 
     sfxn = get_packer_sfxn(default_database, torch_device)
 
-    # warmup:
-    # print("starting warmup packer run")
-    # start_time = time.perf_counter()
-    new_pose_stack = pack_rotamers(pose_stack, sfxn, task)
-    if torch_device == torch.device("cuda"):
-        torch.cuda.synchronize()
-    # stop_time = time.perf_counter()
-
-    # elapsed_time = stop_time - start_time
-
-    # print(f"warmup execution time: {elapsed_time:.6f} seconds")
-    # print("starting packer steps")
-    # start_time = time.perf_counter()
-
-    new_pose_stack = pack_rotamers(pose_stack, sfxn, task)
-
-    if torch_device == torch.device("cuda"):
-        torch.cuda.synchronize()
-    # stop_time = time.perf_counter()
-
-    # elapsed_time = stop_time - start_time
-
-    # print(f"Execution time: {elapsed_time:.6f} seconds")
-
-    # write_pose_stack_pdb(new_pose_stack, "pack_rotamers_1ubq_ex1ex2.pdb")
+    pack_rotamers(pose_stack, sfxn, task)

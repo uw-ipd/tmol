@@ -1,10 +1,8 @@
 import attr
 import torch
-import numpy
 from typing import Optional
 
 from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -216,7 +214,9 @@ class PoseStack:
 
     def clone(self) -> "PoseStack":
         """Deep-copy clone of this PoseStack"""
-        new_constraint_set = self.constraint_set.clone() if self.constraint_set is not None else None
+        new_constraint_set = (
+            self.constraint_set.clone() if self.constraint_set is not None else None
+        )
         return PoseStack(
             packed_block_types=self.packed_block_types,
             coords=self.coords.detach().clone(),

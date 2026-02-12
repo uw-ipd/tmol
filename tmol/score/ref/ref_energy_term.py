@@ -97,7 +97,7 @@ def eval_ref_energy_for_pose(
     n_poses = first_rot_for_block.shape[0]
     max_n_blocks = first_rot_for_block.shape[1]
     block_type_ind_for_rot = block_type_ind_for_rot.view(n_poses, max_n_blocks)
-    block_type_ind_for_rot64 = block_type_ind_for_rot.to(torch.int64)
+    # block_type_ind_for_rot64 = block_type_ind_for_rot.to(torch.int64)
 
     # fill our per-block ref scores with zeros to start
     score = torch.zeros_like(block_type_ind_for_rot, dtype=rot_coords.dtype)

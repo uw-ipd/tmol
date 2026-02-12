@@ -19,6 +19,7 @@ from tmol.io.details.build_missing_leaf_atoms import (
 
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.tests.autograd import gradcheck
+from tmol.tests.kinematics.test_script_modules import coord_weights_for_device
 
 
 def not_any_nancoord(coords):
@@ -295,6 +296,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
             super(FauxModule, self).__init__()
 
             self.coords = torch.nn.Parameter(coords)
+            self.coord_weights = coord_weights_for_device(torch_device).unsqueeze(0)
 
         def forward(self):
             found_disulfides, res_type_variants = find_disulfides(
@@ -378,7 +380,7 @@ def test_build_missing_leaf_atoms_backwards(torch_device, ubq_pdb):
                 )
             )
 
-            return torch.sum(new_pose_coords[:, :, :])
+            return torch.sum(self.coord_weights * new_pose_coords[:, :, :])
 
     faux_module = FauxModule(coords)
 
@@ -580,6 +582,8 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
         )
     )
 
+    coord_weights = coord_weights_for_device(torch_device).unsqueeze(0)
+
     def coord_score(bc):
         # nonlocal new_pose_coords
         new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
@@ -593,8 +597,7 @@ def test_build_missing_hydrogens_and_oxygens_gradcheck(ubq_pdb, torch_device):
             )
         )
 
-        # slice the coords tensor to create a temp that will avoid a stride of 0
-        return torch.sum(new_pose_coords[:, :, :])
+        return torch.sum(coord_weights * new_pose_coords)
 
     gradcheck(
         coord_score,

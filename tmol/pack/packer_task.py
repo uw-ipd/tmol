@@ -44,6 +44,8 @@ class PackerPalette:
     def block_types_from_original(self, orig: RefinedResidueType):
         # ok, this is where we figure out what the allowed restypes
         # are for a residue; this might be complex logic.
+        # Derived versions of this class can override this method to
+        # implement different logic, e.g., to allow HIS_POS or D-AAs.
 
         keepers = []
         for bt in self.rts.residue_types:

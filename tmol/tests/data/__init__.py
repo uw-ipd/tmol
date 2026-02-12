@@ -21,6 +21,11 @@ def ubq_pdb():
 
 
 @pytest.fixture(scope="session")
+def pdb_1r21():
+    return pdb.data["1r21"]
+
+
+@pytest.fixture(scope="session")
 def disulfide_pdb():
     return pdb.data["3plc"]
 

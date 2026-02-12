@@ -1134,6 +1134,115 @@ residues:
       virtual: []
     chi_samples: []
     default_jump_connection_atom: CA
+  - name:  HIS_POS
+    base_name: HIS_POS
+    name3: HIS
+    io_equiv_class: HIS
+    atoms:
+    - { name: N   ,  atom_type: Nbb  }
+    - { name: CA  ,  atom_type: CAbb }
+    - { name: C   ,  atom_type: CObb }
+    - { name: O   ,  atom_type: OCbb }
+    - { name: CB  ,  atom_type: CH2  }
+    - { name: CG  ,  atom_type: CH0  }
+    - { name: ND1 ,  atom_type: NhisD}
+    - { name: CD2 ,  atom_type: Caro }
+    - { name: CE1 ,  atom_type: Caro }
+    - { name: NE2 ,  atom_type: NhisEDepro }
+    #- { name: NE2 ,  atom_type: NtrpDepro }
+    - { name: H   ,  atom_type: HNbb }
+    - { name: HA  ,  atom_type: Hapo }
+    - { name: HB2 ,  atom_type: Hapo }
+    - { name: HB3 ,  atom_type: Hapo }
+    - { name: HD2 ,  atom_type: Hapo }
+    - { name: HE1 ,  atom_type: Hapo }
+    - { name: HD1 ,  atom_type: Hpol }
+    - { name: HE2 ,  atom_type: Hpol }
+    atom_aliases:
+    - { name: HB2 , alt_name: 1HB}
+    - { name: HB3 , alt_name: 2HB}
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  HB2]
+    - [  CB,  HB3]
+    - [  CG,  ND1]
+    - [  CG,  CD2]
+    - [ ND1,  CE1]
+    - [ CD2,  NE2]
+    - [ CD2,  HD2]
+    - [ CE1,  NE2]
+    - [ CE1,  HE1]
+    - [ ND1,  HD1]
+    - [ NE2,  HE2]
+    connections:
+    - { name:  down, atom: N }
+    - { name:    up, atom: C }
+    torsions:
+    - name: phi
+      a: { connection: down, bond_sep_from_conn: 0 }
+      b: { atom: N }
+      c: { atom: CA }
+      d: { atom: C }
+    - name: psi
+      a: { atom: N }
+      b: { atom: CA }
+      c: { atom: C }
+      d: { connection: up, bond_sep_from_conn: 0 }
+    - name: omega
+      a: { atom: CA }
+      b: { atom: C }
+      c: { connection: up, bond_sep_from_conn: 0 }
+      d: { connection: up, bond_sep_from_conn: 1 }
+    - { name: chi1,  a: {atom:  N}, b: {atom: CA}, c: {atom: CB}, d: {atom: CG}}
+    - { name: chi2,  a: {atom: CA}, b: {atom: CB}, c: {atom: CG}, d: {atom: ND1}}
+    icoors:
+    - { name:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458003, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     C, phi:    0.000000 deg, theta:   68.800072 deg, d:    1.523257, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    up, phi:  150.000183 deg, theta:   63.799999 deg, d:    1.328683, parent:     C, grand_parent:    CA, great_grand_parent:     N}
+    - { name:     O, phi:  179.999771 deg, theta:   59.199989 deg, d:    1.231017, parent:     C, grand_parent:    CA, great_grand_parent:    up}
+    - { name:    CB, phi: -122.200000 deg, theta:   69.311104 deg, d:    1.532122, parent:    CA, grand_parent:     N, great_grand_parent:     C}
+    - { name:    CG, phi:   -0.000339 deg, theta:   66.309753 deg, d:    1.497172, parent:    CB, grand_parent:    CA, great_grand_parent:     N}
+    - { name:   ND1, phi:   -0.000073 deg, theta:   57.370518 deg, d:    1.379169, parent:    CG, grand_parent:    CB, great_grand_parent:    CA}
+    - { name:   CE1, phi:  179.999710 deg, theta:   70.715340 deg, d:    1.321934, parent:   ND1, grand_parent:    CG, great_grand_parent:    CB}
+    - { name:   NE2, phi:    0.043939 deg, theta:   71.617325 deg, d:    1.320373, parent:   CE1, grand_parent:   ND1, great_grand_parent:    CG}
+    - { name:   CD2, phi:   -0.028616 deg, theta:   70.994118 deg, d:    1.373207, parent:   NE2, grand_parent:   CE1, great_grand_parent:   ND1}
+    - { name:   HD2, phi:  179.968964 deg, theta:   59.948441 deg, d:    1.090333, parent:   CD2, grand_parent:   NE2, great_grand_parent:   CE1}
+    - { name:   HE1, phi: -179.977829 deg, theta:   59.391884 deg, d:    1.089789, parent:   CE1, grand_parent:   ND1, great_grand_parent:   NE2}
+    - { name:   HD1, phi: -174.670059 deg, theta:   53.757050 deg, d:    1.000244, parent:   ND1, grand_parent:    CG, great_grand_parent:   CE1}
+    - { name:   HE2, phi: -179.986603 deg, theta:   54.200000 deg, d:    1.010082, parent:   NE2, grand_parent:   CE1, great_grand_parent:   CD2}
+    - { name:   HB2, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090565, parent:    CB, grand_parent:    CA, great_grand_parent:    CG}
+    - { name:   HB3, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089660, parent:    CB, grand_parent:    CA, great_grand_parent:   HB2}
+    - { name:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089614, parent:    CA, grand_parent:     N, great_grand_parent:    CB}
+    - { name:  down, phi: -149.999908 deg, theta:   58.300098 deg, d:    1.328686, parent:     N, grand_parent:    CA, great_grand_parent:     C}
+    - { name:     H, phi:  179.999939 deg, theta:   60.850052 deg, d:    1.010001, parent:     N, grand_parent:    CA, great_grand_parent:  down}
+    properties:
+      is_canonical: true
+      polymer:
+        is_polymer: true
+        polymer_type: amino_acid
+        backbone_type: alpha
+        mainchain_atoms:
+        - N
+        - CA
+        - C
+        sidechain_chirality: l
+        termini_variants: []
+      chemical_modifications: []
+      connectivity: []
+      protonation:
+        protonated_atoms: [ND1, NE2]
+        protonation_state: positively_charged
+        pH: 7
+      virtual: []
+    chi_samples: []
+    default_jump_connection_atom: CA
   - name:  ILE
     base_name: ILE
     name3: ILE

@@ -172,14 +172,14 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                 int tid,
                                 int alt_start_heavy_atom,
                                 int neighb_start_heavy_atom,
-                                Real *alt_coords,
-                                Real *neighb_coords,
-                                Int *alt_atom_ind,
-                                Int *neighb_atom_ind,
+                                Real* alt_coords,
+                                Real* neighb_coords,
+                                Int* alt_atom_ind,
+                                Int* neighb_atom_ind,
                                 // Int *alt_atom_type,
                                 // Int *neighb_atom_type,
-                                LKTypeParams<Real> *params1,
-                                LKTypeParams<Real> *params2,
+                                LKTypeParams<Real>* params1,
+                                LKTypeParams<Real>* params2,
                                 int const max_important_bond_separation,
                                 int const alt_block_ind,
                                 int const neighb_block_ind,
@@ -193,9 +193,9 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                 int const neighb_n_heavy_atoms,
                                 int const n_conn1,
                                 int const n_conn2,
-                                int const *path_dist1,
-                                int const *path_dist2,
-                                int const *conn_seps) {
+                                int const* path_dist1,
+                                int const* path_dist2,
+                                int const* conn_seps) {
     Real score_total = 0;
     Real coord1[3];
     Real coord2[3];
@@ -295,14 +295,14 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
                                 int tid,
                                 int start_heavy_atom1,
                                 int start_heavy_atom2,
-                                Real *coords1,
-                                Real *coords2,
-                                Int *atom_ind1,
-                                Int *atom_ind2,
+                                Real* coords1,
+                                Real* coords2,
+                                Int* atom_ind1,
+                                Int* atom_ind2,
                                 // Int *atom_type1,
                                 // Int *atom_type2,
-                                LKTypeParams<Real> *params1,
-                                LKTypeParams<Real> *params2,
+                                LKTypeParams<Real>* params1,
+                                LKTypeParams<Real>* params2,
                                 int const max_important_bond_separation,
                                 int const block_type,
                                 int const n_heavy_atoms) {
@@ -394,14 +394,14 @@ auto LKRPEDispatch<DeviceDispatch, D, Real, Int>::f(
       typename reduce_t::storage_t reduce;
     } shared;
 
-    Real *coords1 = shared.vals.coords1;
-    Real *coords2 = shared.vals.coords2;
-    Int *at_ind1 = shared.vals.at_ind1;
-    Int *at_ind2 = shared.vals.at_ind2;
+    Real* coords1 = shared.vals.coords1;
+    Real* coords2 = shared.vals.coords2;
+    Int* at_ind1 = shared.vals.at_ind1;
+    Int* at_ind2 = shared.vals.at_ind2;
     // Int *at_type1 = shared.vals.at_type1;
     // Int *at_type2 = shared.vals.at_type2;
-    LKTypeParams<Real> *params1 = shared.vals.params1;
-    LKTypeParams<Real> *params2 = shared.vals.params2;
+    LKTypeParams<Real>* params1 = shared.vals.params1;
+    LKTypeParams<Real>* params2 = shared.vals.params2;
 
     int alt_ind = cta / max_n_neighbors;
     int neighb_ind = cta % max_n_neighbors;
@@ -835,7 +835,7 @@ auto LKRPERegistratorDispatch<DeviceDispatch, D, Real, Int>::f(
   using tmol::pack::sim_anneal::compiled::SimAnnealer;
 
   int64_t annealer_uint = annealer[0];
-  SimAnnealer *sim_annealer = reinterpret_cast<SimAnnealer *>(annealer_uint);
+  SimAnnealer* sim_annealer = reinterpret_cast<SimAnnealer*>(annealer_uint);
   std::shared_ptr<RPECalc> calc =
       std::make_shared<LKRPECudaCalc<DeviceDispatch, D, Real, Int>>(
           context_coords,

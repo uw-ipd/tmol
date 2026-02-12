@@ -107,6 +107,26 @@ def test_build_pose_stack_from_canonical_form_pert_w_dslf(torch_device, pertuzum
     assert pose_stack.device == torch_device
 
 
+def test_build_pose_stack_from_canonical_form_1r21(torch_device, pdb_1r21):
+    co = default_canonical_ordering()
+    pbt = default_packed_block_types(torch_device)
+    canonical_form = canonical_form_from_pdb(co, pdb_1r21, torch_device)
+
+    pose_stack = pose_stack_from_canonical_form(co, pbt, *canonical_form)
+
+    assert pose_stack.packed_block_types.device == torch_device
+    assert pose_stack.coords.device == torch_device
+    assert pose_stack.block_coord_offset.device == torch_device
+    assert pose_stack.block_coord_offset64.device == torch_device
+    assert pose_stack.inter_residue_connections.device == torch_device
+    assert pose_stack.inter_residue_connections64.device == torch_device
+    assert pose_stack.inter_block_bondsep.device == torch_device
+    assert pose_stack.inter_block_bondsep64.device == torch_device
+    assert pose_stack.block_type_ind.device == torch_device
+    assert pose_stack.block_type_ind64.device == torch_device
+    assert pose_stack.device == torch_device
+
+
 def test_build_pose_stack_w_disconn_segs(
     torch_device, pertuzumab_and_nearby_erbb2_pdb_and_segments
 ):

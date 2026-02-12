@@ -1100,15 +1100,15 @@ def test_select_best_block_type_candidate_error_impossible_combo(
 
     expected_err_msg = """failed to resolve a block type from the candidates available
  Failed to resolve block type for 0 19 SER
- 0 19 0 68 SER restype 15 equiv class SER
+ 0 19 0 72 SER restype 15 equiv class SER
   atom P provided but absent from candidate SER
   atom M provided but absent from candidate SER
  Failed to resolve block type for 0 19 SER
- 0 19 1 71 SER:phospho restype 15 equiv class SER
+ 0 19 1 75 SER:phospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:phospho
   atom M provided but absent from candidate SER:phospho
  Failed to resolve block type for 0 19 SER
- 0 19 2 72 SER:mospho restype 15 equiv class SER
+ 0 19 2 76 SER:mospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:mospho
   atom P provided but absent from candidate SER:mospho
 """

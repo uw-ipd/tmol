@@ -1,6 +1,5 @@
 import attr
 import numpy
-from typing import Optional
 
 from tmol.types.array import NDArray
 

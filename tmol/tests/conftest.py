@@ -14,6 +14,7 @@ from .data import (  # noqa: F401
     big_pdb,
     water_box_pdb,
     ubq_pdb,
+    pdb_1r21,
     disulfide_pdb,
     systems_bysize,
     pertuzumab_pdb,
