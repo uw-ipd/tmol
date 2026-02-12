@@ -66,6 +66,8 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
     biotite_chain_id_for_res = biotite.structure.chains.get_all_chain_positions(
         biotite_structure
     )[biotite_residue_starts]
+    biotite_chain_labels = biotite_structure.chain_id
+    biotite_insertion_codes = biotite_structure.ins_code
     biotite_res_ind_for_atom = biotite.structure.get_all_residue_positions(
         biotite_structure
     )  # res_id
@@ -73,6 +75,7 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
     biotite_res_name_for_atom = biotite_structure.res_name
 
     # get the tmol residue indices
+    biotite_residue_labels = biotite.structure.get_residues(biotite_structure)[0]
     biotite_residues = biotite.structure.get_residues(biotite_structure)[1]
     biotite_residue_names = numpy.unique(biotite_residues)
 
@@ -116,6 +119,22 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
         for pose_ind in range(n_poses):
             tmol_coords[pose_ind, res_inds, atom_inds] = biotite_coords[pose_ind]
 
+    def copy_for_all_poses(dat):
+        return numpy.repeat(dat[numpy.newaxis, ...], n_poses, axis=0)
+
+    biotite_b_factors = None
+    biotite_occupancy = None
+
+    if hasattr(biotite_structure, "b_factor"):
+        biotite_b_factors = copy_for_all_poses(biotite_structure.b_factors)
+
+    if hasattr(biotite_structure, "occupancy"):
+        biotite_occupancy = copy_for_all_poses(biotite_structure.occupancy)
+
+    biotite_residue_labels = copy_for_all_poses(biotite_residue_labels)
+    biotite_chain_labels = copy_for_all_poses(biotite_chain_labels)
+    biotite_insertion_codes = copy_for_all_poses(biotite_insertion_codes)
+
     # print(tmol_coords)
 
     # res_chain_id = torch.zeros((1, len(tmol_restypes)), dtype=torch.int32, device=torch_device)
@@ -137,11 +156,11 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
         chain_id=chain_id,  # TODO
         res_types=res_types,
         coords=tmol_coords,
-        chain_labels=None,
-        res_labels=None,
-        residue_insertion_codes=None,
-        atom_occupancy=None,
-        atom_b_factor=None,
+        chain_labels=biotite_chain_labels,
+        res_labels=biotite_residue_labels,
+        residue_insertion_codes=biotite_insertion_codes,
+        atom_occupancy=biotite_occupancy,
+        atom_b_factor=biotite_b_factors,
         disulfides=None,
         res_not_connected=None,
     )
