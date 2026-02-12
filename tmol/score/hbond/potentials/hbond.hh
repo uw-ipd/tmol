@@ -114,21 +114,6 @@ struct HBondBlockPairSharedData {
   unsigned char conn_seps[MAX_N_CONN * MAX_N_CONN];  // 64 bytes
 };
 
-// ROT
-// ROT
-// ROT
-// ROT
-// ROT
-// ROT
-// ROT
-// ROT
-// ROT
-// ROT
-// ROT
-// ROT
-// ROT
-
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -178,7 +163,6 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
       r_dat.n_acc);
 }
 
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -230,7 +214,6 @@ void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
   }
 }
 
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -371,7 +354,6 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
   inter_dat.pair_data.pair_polynomials = pair_polynomials;
 }
 
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -425,7 +407,6 @@ void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared(
       shared_m.conn_ats1);
 }
 
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -478,7 +459,6 @@ void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared(
       shared_m.conn_ats2);
 }
 
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -581,7 +561,6 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
   intra_dat.pair_data.pair_polynomials = pair_polynomials;
 }
 
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -630,7 +609,6 @@ void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared(
       start_atom1);
 }
 
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -679,7 +657,6 @@ void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared(
       start_atom2);
 }
 
-// done
 template <
     int TILE_SIZE,
     int MAX_N_CONN,
@@ -718,7 +695,6 @@ void TMOL_DEVICE_FUNC hbond_load_intrares_data_from_shared(
   }
 }
 
-// done
 // Some coordinates are available in shared memory, some we will
 // have to go out to global memory for.
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
@@ -752,7 +728,6 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
   return xyz;
 }
 
-// done
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
 TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
     int donH_ind,             // in [0:n_donH)
@@ -822,7 +797,6 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
   }
 }
 
-// done
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
 TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     int donH_ind,             // in [0:n_donH)
@@ -889,11 +863,6 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
         respair_dat.pair_params[dt][at],
         respair_dat.pair_polynomials[dt][at],
         respair_dat.global_params);
-
-    // printf("RESDAT:\n");
-    //  printf("%i %i %i\n", donH_ind, don_dat.block_ind, don_h_atom_tile_ind);
-    //  printf("%i %i %i\n", acc_ind, acc_dat.block_ind, acc_atom_tile_ind);
-    // printf("%f\n", dTdV);
 
     Real dVdT_m = dTdV;
     // 0.5
@@ -967,7 +936,6 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
   }
 }
 
-// done
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
 TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     int donH_ind,             // in [0:n_donH)
@@ -1100,7 +1068,6 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
   }
 }
 
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,
@@ -1138,7 +1105,6 @@ void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
       eval_scores_for_don_acc_pairs);
 }
 
-// done
 template <
     template <tmol::Device>
     class DeviceDispatch,

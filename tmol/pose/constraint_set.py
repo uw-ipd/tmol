@@ -108,10 +108,6 @@ class ConstraintSet:
             )
         )
 
-        # constraint_functions_list = list(set([
-        #     func for cs in constraint_sets if cs is not None
-        #     for func in cs.constraint_functions
-        # ]))
         constraint_functions_list = []
         constraint_function_inds = []
         for i, cs in enumerate(constraint_sets):
@@ -130,11 +126,6 @@ class ConstraintSet:
                             len(constraint_functions_list) - 1
                         )
 
-        # print("constraint function list:", constraint_functions_list)
-        # constraint_function_inds = {
-        #     id(func): i for i, func in enumerate(constraint_functions_list)
-        # }
-        # print("constraint function inds:", constraint_function_inds)
         new_constraint_function_inds = torch.tensor(
             [
                 constraint_function_inds[i][j]
@@ -229,7 +220,6 @@ class ConstraintSet:
         diffs = constraint_blocks[:, 1:] != constraint_blocks[:, :-1]
 
         temp = diffs.sum(dim=1) + 1
-        # print(temp)
         return temp
 
     def add_constraints_to_all_poses(
@@ -304,9 +294,6 @@ class ConstraintSet:
             1, constraint_block_first_change
         ).squeeze(-1)
 
-        # print("POSES", constraint_poses)
-        # print("BLOCK1", first_block_inds)
-        # print("BLOCK2", second_block_inds)
         if not empty_at_start:
             new_constraint_unique_blocks = torch.cat(
                 [
@@ -316,7 +303,6 @@ class ConstraintSet:
                     ),
                 ]
             )
-            # print(self.constraint_unique_blocks)
         else:
             new_constraint_unique_blocks = torch.stack(
                 [constraint_poses, first_block_inds, second_block_inds], dim=1

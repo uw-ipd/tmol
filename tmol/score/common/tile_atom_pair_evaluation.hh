@@ -237,11 +237,9 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
     LoadIntraSharedDatFunc load_intrares_data_from_shared,
     CalcIntraFunc eval_intrares_atom_pair_scores,
     StoreEnergyFunc store_calculated_intrares_energies) {
-  // printf("starting %d %d\n", block_ind1, block_ind2);
   if (block_ind1 != block_ind2) {
     // Step 1: load any data that is consistent across all tile pairs
     InterResScoringData interres_data;
-    // printf("calling load_tile_invariant_interres_data\n");
     load_tile_invariant_interres_data(
         pose_ind,
         block_ind1,
@@ -267,7 +265,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
 
       int const i_n_atoms_to_load1 =
           max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
-      // printf("calling load_interres1_tile_data_to_shared\n");
       load_interres1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, interres_data, shared_data);
       for (int j = 0; j < n_iterations2; ++j) {
@@ -280,7 +277,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
           DeviceDispatch<D>::synchronize_workgroup();
         }
         int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
-        // printf("calling load_interres2_tile_data_to_shared\n");
         load_interres2_tile_data_to_shared(
             j, TILE * j, j_n_atoms_to_load2, interres_data, shared_data);
 
@@ -289,10 +285,8 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
         DeviceDispatch<D>::synchronize_workgroup();
 
         // Step 3: initialize combo shared/
-        // printf("calling load_interres_data_from_shared\n");
         load_interres_data_from_shared(i, j, shared_data, interres_data);
 
-        // printf("calling eval_interres_atom_pair_scores\n");
         eval_interres_atom_pair_scores(interres_data, i * TILE, j * TILE);
       }
     }
@@ -302,7 +296,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
   } else {
     // Step 1: load any data that is consistent across all tile pairs
     IntraResScoringData intrares_data;
-    // printf("calling load_tile_invariant_intrares_data\n");
     load_tile_invariant_intrares_data(
         pose_ind,
         block_ind1,
@@ -319,7 +312,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
       // we overwrite the contents of shared memory
       DeviceDispatch<D>::synchronize_workgroup();
       int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
-      // printf("calling load_intrares1_tile_data_to_shared\n");
       load_intrares1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
       for (int j = i; j < n_iterations; ++j) {
@@ -331,16 +323,13 @@ TMOL_DEVICE_FUNC void tile_evaluate_block_pair(
           // completed before we overwrite the contents of shared
           // memory
           DeviceDispatch<D>::synchronize_workgroup();
-          // printf("calling load_intrares2_tile_data_to_shared\n");
           load_intrares2_tile_data_to_shared(
               j, TILE * j, j_n_atoms_to_load2, intrares_data, shared_data);
         }
         // Make sure that all the data has been loaded into shared memory
         // before we start any calculations
         DeviceDispatch<D>::synchronize_workgroup();
-        // printf("calling load_intrares_data_from_shared\n");
         load_intrares_data_from_shared(i, j, shared_data, intrares_data);
-        // printf("calling eval_intrares_atom_pair_scores\n");
         eval_intrares_atom_pair_scores(intrares_data, i * TILE, j * TILE);
       }
     }
@@ -392,15 +381,12 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
     LoadIntraSharedDatFunc load_intrares_data_from_shared,
     CalcIntraFunc eval_intrares_atom_pair_scores,
     StoreEnergyFunc store_calculated_intrares_energies) {
-  // printf("")
   assert(
       !(block_ind1 == block_ind2
         && rot_ind1 != rot_ind2));  // working under this assumption
-  // printf("starting %d %d\n", block_ind1, block_ind2);
   if (block_ind1 != block_ind2) {
     // Step 1: load any data that is consistent across all tile pairs
     InterResScoringData interres_data;
-    // printf("calling load_tile_invariant_interres_data\n");
     load_tile_invariant_interres_data(
         pose_ind,
         rot_ind1,
@@ -428,7 +414,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
 
       int const i_n_atoms_to_load1 =
           max(0, min(int(TILE), int((n_atoms1 - TILE * i))));
-      // printf("calling load_interres1_tile_data_to_shared\n");
       load_interres1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, interres_data, shared_data);
       for (int j = 0; j < n_iterations2; ++j) {
@@ -441,7 +426,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
           DeviceDispatch<D>::synchronize_workgroup();
         }
         int j_n_atoms_to_load2 = min(int(TILE), int((n_atoms2 - TILE * j)));
-        // printf("calling load_interres2_tile_data_to_shared\n");
         load_interres2_tile_data_to_shared(
             j, TILE * j, j_n_atoms_to_load2, interres_data, shared_data);
 
@@ -450,10 +434,8 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
         DeviceDispatch<D>::synchronize_workgroup();
 
         // Step 3: initialize combo shared/
-        // printf("calling load_interres_data_from_shared\n");
         load_interres_data_from_shared(i, j, shared_data, interres_data);
 
-        // printf("calling eval_interres_atom_pair_scores\n");
         eval_interres_atom_pair_scores(interres_data, i * TILE, j * TILE);
       }
     }
@@ -463,7 +445,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
   } else {
     // Step 1: load any data that is consistent across all tile pairs
     IntraResScoringData intrares_data;
-    // printf("calling load_tile_invariant_intrares_data\n");
     load_tile_invariant_intrares_data(
         pose_ind,
         rot_ind1,
@@ -481,7 +462,6 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
       // we overwrite the contents of shared memory
       DeviceDispatch<D>::synchronize_workgroup();
       int const i_n_atoms_to_load1 = min(int(TILE), int((n_atoms1 - TILE * i)));
-      // printf("calling load_intrares1_tile_data_to_shared\n");
       load_intrares1_tile_data_to_shared(
           i, TILE * i, i_n_atoms_to_load1, intrares_data, shared_data);
       for (int j = i; j < n_iterations; ++j) {
@@ -493,16 +473,13 @@ TMOL_DEVICE_FUNC void tile_evaluate_rot_pair(
           // completed before we overwrite the contents of shared
           // memory
           DeviceDispatch<D>::synchronize_workgroup();
-          // printf("calling load_intrares2_tile_data_to_shared\n");
           load_intrares2_tile_data_to_shared(
               j, TILE * j, j_n_atoms_to_load2, intrares_data, shared_data);
         }
         // Make sure that all the data has been loaded into shared memory
         // before we start any calculations
         DeviceDispatch<D>::synchronize_workgroup();
-        // printf("calling load_intrares_data_from_shared\n");
         load_intrares_data_from_shared(i, j, shared_data, intrares_data);
-        // printf("calling eval_intrares_atom_pair_scores\n");
         eval_intrares_atom_pair_scores(intrares_data, i * TILE, j * TILE);
       }
     }

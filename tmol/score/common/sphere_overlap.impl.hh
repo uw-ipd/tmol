@@ -62,7 +62,6 @@ struct compute_rot_spheres {
       // The center of mass
       Real dmax(0);
 
-      // __syncthreads();
       DeviceDispatch<D>::synchronize_workgroup();
       Vec<Real, 3> com =
           DeviceDispatch<D>::template shuffle_reduce_and_broadcast_in_workgroup<
@@ -126,17 +125,10 @@ struct compute_block_spheres {
     auto compute_spheres = ([=] TMOL_DEVICE_FUNC(int cta) {
       CTA_LAUNCH_T_PARAMS;
 
-      // int const n_poses = coords.size(0);
-      // int const max_n_pose_atoms = coords.size(1);
-      // int const max_n_blocks = pose_stack_block_type.size(1);
-
       int const pose_ind = pose_ind_for_rot[cta];
       int const block_ind = block_ind_for_rot[cta];
       int const block_type = block_type_ind_for_rot[cta];
       int const coord_offset = rot_coord_offset[cta];
-      // printf("compute spheres cta %d pose_ind %d block_ind %d block_type
-      // %d\n",
-      //   cta, pose_ind, block_ind, block_type);
 
       if (block_type < 0) return;
       int const n_atoms = block_type_n_atoms[block_type];
@@ -159,7 +151,6 @@ struct compute_block_spheres {
       // The center of mass
       Real dmax(0);
 
-      // __syncthreads();
       DeviceDispatch<D>::synchronize_workgroup();
       Vec<Real, 3> com =
           DeviceDispatch<D>::template shuffle_reduce_and_broadcast_in_workgroup<
@@ -286,8 +277,6 @@ struct detect_rot_neighbors {
     });
     std::uint64_t n_rot_pairs = std::uint64_t(n_rots_for_block.size(0))
                                 * max_n_rots_per_pose * max_n_rots_per_pose;
-    // std::cout << "Trying to detect rot neighbors for n_rot_pairs ="
-    //          << n_rot_pairs << std::endl;
 
     DeviceDispatch<D>::template forall<launch_t>(n_rot_pairs, detect_neighbors);
   }
@@ -310,7 +299,6 @@ struct detect_block_neighbors {
     auto detect_neighbors = ([=] TMOL_DEVICE_FUNC(int ind) {
       int const n_poses = pose_stack_block_type.size(0);
       int const max_n_blocks = pose_stack_block_type.size(1);
-      // int const n_block_types = block_type_n_atoms.size(0);
 
       if (ind >= n_poses * max_n_blocks * max_n_blocks) return;
 
@@ -415,9 +403,7 @@ template <
     tmol::Device D,
     typename Int>
 struct block_neighbor_indices {
-  static auto f(TView<Int, 3, D> block_neighbors
-                // TPack<Int, 2, D> block_neighbor_indices
-                ) -> TPack<Int, 2, D> {
+  static auto f(TView<Int, 3, D> block_neighbors) -> TPack<Int, 2, D> {
     LAUNCH_BOX_32;
 
     int n_pose = block_neighbors.size(0);

@@ -259,7 +259,6 @@ class BackboneTorsionPoseScoreOp
           }));
     }
 
-    // TO DO! COUNT N INPUT TENSORS
     return {// common: rot_coords + 12 more arguments
             dV_d_rot_coords,
 
@@ -541,7 +540,6 @@ class BackboneTorsionRotamerScoreOp
           }));
     }
 
-    // TO DO! COUNT N INPUT TENSORS
     return {// common: rot_coords + 12 more arguments
             dV_d_rot_coords,
 

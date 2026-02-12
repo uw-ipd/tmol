@@ -511,21 +511,6 @@ class HBondRotamerScoresOp
 
       });
     } else {
-      // score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
-      //  block_neighbors = TPack<Int, 2, D>::full({1,n_poses}, -1);
-
-      // DEPRECATED!
-      // auto pose_atom_offsets =
-      //     rot_coord_offset.index_select(0, rot_offset_for_pose);
-      // auto atom_pose = torch::zeros(
-      //     {rot_coords.size(0)},
-      //     torch::TensorOptions()
-      //         .dtype(torch::kInt32)
-      //         .device(rot_coord_offset.device()));
-      // atom_pose.index({pose_atom_offsets}) = 1;
-      // atom_pose[0] = 0;
-      // auto atom_to_pose = atom_pose.cumsum(0, torch::kInt32);
-
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 

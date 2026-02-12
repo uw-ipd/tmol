@@ -51,8 +51,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
   assert(sparse_inds.size(0) == 3);
   assert(sparse_energies.size(0) == n_sparse_entries);
 
-  //   std::cout << "N sparse energies " << n_sparse_entries << std::endl;
-
   auto energy1b_tp = TPack<Real, 1, D>::zeros({n_rotamers});
   auto energy1b = energy1b_tp.view;
   auto n_chunks_for_block_tp =
@@ -67,7 +65,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     if (n_rots != 0) {
       int const n_chunks = (n_rots - 1) / chunk_size + 1;
       n_chunks_for_block[pose][block] = n_chunks;
-      // printf("n_chunks_for_block[%d][%d] == %d\n", pose, block, n_rots);
     }
   });
   DeviceDispatch<D>::template forall<launch_t>(
@@ -84,20 +81,13 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int const block1 = block_ind_for_rot[rot1];
     int const block2 = block_ind_for_rot[rot2];
     if (block1 == block2) {
-      return;  // printf("block1 %d == block2 %d for rot1 %d rot2 %d\n", block1,
-               // block2, rot1, rot2);
+      return;
     }
     // Assert: block1 < block2
     respair_is_adjacent[pose][block1][block2] = 1;
-    // if (index < 100) {
-    //   printf("note_adjacent_respairs %d %d %d %d %d\n", pose, rot1, rot2,
-    //   block1, block2);
-    // }
   });
-  //   std::cout << "1" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
       n_sparse_entries, note_adjacent_respairs);
-  //   std::cout << "2" << std::endl;
 
   auto n_chunks_for_block_pair_tp =
       TPack<int64_t, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
@@ -116,34 +106,24 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       int const n_chunks1 = n_chunks_for_block[pose][block1];
       int const n_chunks2 = n_chunks_for_block[pose][block2];
       int const n_chunk_pairs = n_chunks1 * n_chunks2;
-      // printf("respair adjacent %d %d %d; nchunk pairs %d\n", pose, block1,
-      // block2, n_chunk_pairs);
       n_chunks_for_block_pair[pose][block1][block2] = n_chunk_pairs;
       n_chunks_for_block_pair[pose][block2][block1] = n_chunk_pairs;
     }
   });
-  //   std::cout << "3" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_blocks * max_n_blocks, note_n_chunks_for_block_pair);
-  //   std::cout << "4" << std::endl;
-  // printf("note_n_chunks_for_block_pair\n");
 
   auto chunk_pair_offset_for_block_pair_tp =
       TPack<int64_t, 3, D>::zeros({n_poses, max_n_blocks, max_n_blocks});
   auto chunk_pair_offset_for_block_pair =
       chunk_pair_offset_for_block_pair_tp.view;
 
-  // Okay, now let's figure out which chunk pairs are near each other
-  //   std::cout << "5" << std::endl;
   int const n_adjacent_chunk_pairs_total =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           n_chunks_for_block_pair.data(),
           chunk_pair_offset_for_block_pair.data(),
           n_poses * max_n_blocks * max_n_blocks,
           mgpu::plus_t<Int>());
-  // std::cout << "6" << std::endl;
-  //   std::cout << "n_adjacent_chunk_pairs_total " <<
-  //   n_adjacent_chunk_pairs_total << std::endl;
 
   auto chunk_pair_adjacency_tp =
       TPack<int64_t, 1, D>::zeros({n_adjacent_chunk_pairs_total});
@@ -180,18 +160,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int const block_pair_chunk_offset_ji =
         chunk_pair_offset_for_block_pair[pose][block2][block1];
 
-    // if (index < 100) {
-    //   printf("pose %d rot1 %d rot2 %d block1 %d block2 %d block1_rot_offset
-    //   %d block2_rot_offset %d local_rot1 %d local_rot2 %d chunk1 %d chunk2 %d
-    //   n_rots_block1 %d n_rots_block2 %d n_chunks1 %d n_chunks2 %d overhang1
-    //   %d overhang2 %d chunk1_size %d chunk2_size %d
-    //   block_pair_chunk_offset_ij %d block_pair_chunk_offset_ji %d\n", pose,
-    //   rot1, rot2, block1, block2, block1_rot_offset, block2_rot_offset,
-    //   local_rot1, local_rot2, chunk1, chunk2, n_rots_block1, n_rots_block2,
-    //   n_chunks1, n_chunks2, overhang1, overhang2, chunk1_size, chunk2_size,
-    //   block_pair_chunk_offset_ij, block_pair_chunk_offset_ji);
-    // }
-
     // multiple threads will write exactly these values to these entries in the
     // chunk_pair_adjacency table
     chunk_pair_adjacency
@@ -201,23 +169,19 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
         [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1] =
             chunk1_size * chunk2_size;
   });
-  //   std::cout << "7" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
       n_sparse_entries, note_adjacent_chunk_pairs);
-  // std::cout << "8" << std::endl;
 
   auto chunk_pair_offsets_tp =
       TPack<int64_t, 1, D>::zeros({n_adjacent_chunk_pairs_total});
   auto chunk_pair_offsets = chunk_pair_offsets_tp.view;
 
-  //   std::cout << "9 " << n_adjacent_chunk_pairs_total << std::endl;
   int64_t const n_two_body_energies =
       DeviceDispatch<D>::template scan_and_return_total<mgpu::scan_type_exc>(
           chunk_pair_adjacency.data(),
           chunk_pair_offsets.data(),
           n_adjacent_chunk_pairs_total,
           mgpu::plus_t<Int>());
-  // std::cout << "10" << std::endl;
 
   auto energy2b_tp = TPack<Real, 1, D>::zeros({n_two_body_energies});
   auto energy2b = energy2b_tp.view;
@@ -231,8 +195,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
     int const block1 = block_ind_for_rot[rot1];
     int const block2 = block_ind_for_rot[rot2];
     if (block1 == block2) {
-      // printf("setting one body energy? %d %d %d %d of %d\n", block1, block2,
-      // rot1, rot2, n_rotamers);
       energy1b[rot1] = energy;
     } else {
       int const block1_rot_offset = rot_offset_for_block[pose][block1];
@@ -264,20 +226,6 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
       int const chunk_offset_ji = chunk_pair_offsets
           [block_pair_chunk_offset_ji + chunk2 * n_chunks1 + chunk1];
 
-      // if (index < 100) {
-      //   printf("record: pose %d rot1 %d rot2 %d E %6.3f block1 %d block2 %d
-      //   block1_rot_offset %d block2_rot_offset %d local_rot1 %d local_rot2 %d
-      //   chunk1 %d chunk2 %d n_rots_block1 %d n_rots_block2 %d n_chunks1 %d
-      //   n_chunks2 %d overhang1 %d overhang2 %d chunk1_size %d chunk2_size %d
-      //   rot_ind_wi_chunk1 %d rot_ind_wi_chunk2 %d block_pair_chunk_offset_ij
-      //   %d block_pair_chunk_offset_ji %d\n", pose, rot1, rot2, energy,
-      //   block1, block2, block1_rot_offset, block2_rot_offset, local_rot1,
-      //   local_rot2, chunk1, chunk2, n_rots_block1, n_rots_block2, n_chunks1,
-      //   n_chunks2, overhang1, overhang2, chunk1_size, chunk2_size,
-      //   rot_ind_wi_chunk1, rot_ind_wi_chunk2, block_pair_chunk_offset_ij,
-      //   block_pair_chunk_offset_ji);
-      // }
-
       energy2b
           [chunk_offset_ij + rot_ind_wi_chunk1 * chunk2_size
            + rot_ind_wi_chunk2] = energy;
@@ -286,10 +234,8 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
            + rot_ind_wi_chunk1] = energy;
     }
   });
-  //   std::cout << "11" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
       n_sparse_entries, record_energies_in_energy1b_and_energy2b);
-  // std::cout << "12" << std::endl;
 
   // Mark the chunk_pair_offset_for_block_pair that are not adjacent w/ -1s
   // Mark the chunk_pair_offsets that are not adjacent w/ -1s
@@ -308,26 +254,19 @@ auto InteractionGraphBuilder<DeviceDispatch, D, Real, Int>::f(
           chunk_pair_offset_for_block_pair[pose][block2][block1] = -1;
         }
       });
-  // std::cout << "13" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
       n_poses * max_n_blocks * max_n_blocks,
       sentinel_out_non_adjacent_block_pairs);
-  // std::cout << "14" << std::endl;
 
   auto sentinel_out_non_adjacent_chunk_pairs =
       ([=] TMOL_DEVICE_FUNC(int index) {
         int const n_pairs_for_chunk = chunk_pair_adjacency.data()[index];
         if (n_pairs_for_chunk == 0) {
-          // if (index < 100) {
-          // 	printf("Non adjacent chunk pair %d\n", index);
-          // }
           chunk_pair_offsets[index] = -1;
         }
       });
-  // std::cout << "15" << std::endl;
   DeviceDispatch<D>::template forall<launch_t>(
       n_adjacent_chunk_pairs_total, sentinel_out_non_adjacent_chunk_pairs);
-  // std::cout << "16" << std::endl;
 
   return std::make_tuple(
       energy1b_tp,

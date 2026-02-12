@@ -41,13 +41,9 @@ def impose_top_rotamer_assignments(
     new_block_type_ind64 = torch.full(
         (n_poses, max_n_blocks), -1, dtype=torch.int64, device=device
     )
-    # rot_for_block = torch.zeros((n_poses, max_n_blocks), dtype=torch.int64, device=device)
     new_rot_for_block64 = (
         assignment[:, 0, :].to(torch.int64) + rotamer_set.rot_offset_for_block
     )
-
-    # print("New rot for block")
-    # print(new_rot_for_block64)
 
     is_real_block = orig_pose_stack.block_type_ind64 != -1
 
@@ -121,11 +117,6 @@ def impose_top_rotamer_assignments(
     dst_inds = (pose_coords1d_offset_for_atom64 + max_n_atoms_arange64)[
         is_pose_atom_real
     ]
-    # print("pose_coords1d_offset_for_atom64", pose_coords1d_offset_for_atom64.shape,
-    #       pose_coords1d_offset_for_atom64)
-    # print("max_n_atoms_arange64", max_n_atoms_arange64.shape, max_n_atoms_arange64)
-    # print("dst_inds", dst_inds.shape, dst_inds)
-    # print("is_pose_atom_real", is_pose_atom_real.shape, is_pose_atom_real)
 
     rot_coord_offset_for_block32 = torch.full(
         (n_poses, max_n_blocks), -1, dtype=torch.int32, device=device

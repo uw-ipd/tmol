@@ -132,6 +132,14 @@ def _paramdb_for_openfold() -> ParameterDatabase:
     are "used" in OpenFold: the canonical amino acids (including the
     two histidine tautomers and the disulfid-bonded cysteine) and
     the canonical n- and c-termini patches.
+
+    Note: HIS_POS was added 2026/02 but will not affect the OpenFold
+    CanonicalOrdering or CanonicalForm objects constructed from the
+    OpenFold CanonicalOrdering. This is an example of the stability
+    that CanonicalOrdering / CanonicalForm offer, or would be if the
+    nature of CanonicalForm hadn't been altered quite radically at
+    the same time to include the other parts of describing a system
+    that are needed for good I/O (e.g. PDBInfo data).
     """
 
     from tmol.chemical.restypes import one2three

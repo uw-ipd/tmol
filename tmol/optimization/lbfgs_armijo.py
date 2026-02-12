@@ -11,7 +11,7 @@ def armijo_linesearch(
     factor=0.5,
     sigma_decrease=0.1,
     sigma_increase=0.8,
-    minstep=1e-12,
+    minstep=1e-6,
 ):
     """Minimize over alpha, the function ``f(xk+alpha pk)``.
 

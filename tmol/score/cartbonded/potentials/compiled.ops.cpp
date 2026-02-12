@@ -201,9 +201,6 @@ class CartBondedPoseScoreOp
       auto cart_subgraph_type_counts = saved[i++];
       auto cart_subgraph_type_offsets = saved[i++];
 
-      // int max_subgraphs_per_block =
-      // ctx->saved_data["block_pair_scoring"].toInt();
-
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -468,9 +465,6 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       auto dispatch_indices = saved[i++];
       auto n_output_intxns_for_rot_conn_offset = saved[i++];
       auto rotconn_for_output_intxn = saved[i++];
-
-      // int max_subgraphs_per_block =
-      // ctx->saved_data["block_pair_scoring"].toInt();
 
       using Int = int32_t;
 

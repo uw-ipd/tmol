@@ -155,15 +155,7 @@ def atom_records_from_coords(
     n_blocks_per_global_chain = torch.zeros(
         (n_poses * max_n_chains), dtype=torch.int64, device=pbt.device
     )
-    # print(
-    #     "index add?",
-    #     n_poses,
-    #     max_n_chains,
-    #     "global_chain_ind_for_block",
-    #     global_chain_ind_for_block.shape,
-    #     "is_real_block.view(-1).shape",
-    #     is_real_block.view(-1).shape,
-    # )
+
     is_not_real_block = torch.logical_not(is_real_block)
     global_chain_ind_for_block[is_not_real_block.view(-1)] = (
         0  # avoid index add to invalid locations
@@ -187,9 +179,6 @@ def atom_records_from_coords(
             pose_for_pose_atom, chain_ind_for_block[pose_for_pose_atom, block_for_atom]
         ]
     )
-    # print(
-    #     "block_chain_local_index_for_real_atom:", block_chain_local_index_for_real_atom
-    # )
 
     pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
 

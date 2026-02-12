@@ -506,8 +506,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       {n_poses, max_n_rots_per_pose, max_n_rots_per_pose});
   auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
-  // printf("starting!\n");
-
   score::common::sphere_overlap::
       compute_block_spheres<DeviceDispatch, D, Real, Int>::f(
           rot_coords,
@@ -517,7 +515,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           block_type_ind_for_rot,
           block_type_n_atoms,
           scratch_rot_spheres);
-  // printf("computed block spheres\n");
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceDispatch, D, Real, Int>::f(
@@ -525,11 +522,7 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           scratch_rot_spheres,
           scratch_rot_neighbors,
           Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
-  // printf("computed block neighbors\n");
 
-  // auto output_t = TPack<Real, 2, D>::zeros({1, n_poses});
-  //  auto output_t =
-  //      TPack<Real, 4, D>::zeros({3, n_poses, max_n_blocks, max_n_blocks});
   TPack<Real, 4, D> output_t;
   if (output_block_pair_energies) {
     output_t =
@@ -596,11 +589,10 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         block_ind_pair, max_n_blocks + 1);
     int const block_ind1 = common::get<0>(upper_triangle_ind);
     int const block_ind2 = common::get<1>(upper_triangle_ind) - 1;
-    // printf("eval_energies_by_block cta %d pose_ind %d block_ind1 %d
-    // block_ind2 %d\n", cta, pose_ind, block_ind1, block_ind2);
 
     // We do not have to kill half of our thread blocks simply because they
-    // represent the lower triangle now that we're using upper-triangle indices
+    // represent the lower triangle now that we're using upper-triangle indices,
+    // So no need for this check:
     // if (block_ind1 > block_ind2) {
     //   return;
     // }
@@ -737,8 +729,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         block_ind_pair, max_n_blocks + 1);
     int const block_ind1 = common::get<0>(upper_triangle_ind);
     int const block_ind2 = common::get<1>(upper_triangle_ind) - 1;
-    // printf("eval_energies cta %d pose_ind %d block_ind1 %d block_ind2 %d\n",
-    // cta, pose_ind, block_ind1, block_ind2);
 
     // We do not have to kill half of our thread blocks simply because they
     // represent the lower triangle now that we're using upper-triangle indices
@@ -844,9 +834,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   // mgpu::standard_context_t context(wrapped_stream.stream());
 
   // 3
-  // printf("Computing %d * %d = %d energies for %d * (%d+1) / 2 blocks\n",
-  // n_poses, max_n_upper_triangle_inds,
-  //  n_poses * max_n_upper_triangle_inds, max_n_blocks, max_n_blocks);
   if (output_block_pair_energies) {
     DeviceDispatch<D>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
@@ -855,7 +842,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         n_poses * max_n_upper_triangle_inds, eval_energies);
   }
 
-  // DeviceDispatch<D>::synchronize_device();
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
 }  // namespace potentials
 
@@ -1015,7 +1001,6 @@ auto ElecPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
               dV_dcoords);
           return 0.0;
         });
-    // TEST!
     auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
 
     auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);
@@ -1289,9 +1274,6 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 
   auto dispatch_indices = dispatch_indices_t.view;
 
-  // auto output_t = TPack<Real, 2, D>::zeros({1, n_poses});
-  //  auto output_t =
-  //      TPack<Real, 4, D>::zeros({3, n_poses, max_n_blocks, max_n_blocks});
   TPack<Real, 2, D> output_t;
   if (output_block_pair_energies) {
     output_t = TPack<Real, 2, D>::zeros({1, dispatch_indices.size(1)});
@@ -1354,25 +1336,6 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
     int const n_atoms1 = block_type_n_atoms[block_type1];
     int const n_atoms2 = block_type_n_atoms[block_type2];
 
-    // int const pose_ind = cta / (max_n_blocks * max_n_blocks);
-    // int const block_ind_pair = cta % (max_n_blocks * max_n_blocks);
-    // int const block_ind1 = block_ind_pair / max_n_blocks;
-    // int const block_ind2 = block_ind_pair % max_n_blocks;
-    // if (block_ind1 > block_ind2) {
-    //   return;
-    // }
-
-    // if (scratch_block_neighbors[pose_ind][block_ind1][block_ind2] == 0) {
-    //   return;
-    // }
-
-    // int const block_type1 = pose_stack_block_type[pose_ind][block_ind1];
-    // int const block_type2 = pose_stack_block_type[pose_ind][block_ind2];
-
-    // if (block_type1 < 0 || block_type2 < 0) {
-    //   return;
-    // }
-
     auto load_tile_invariant_interres_data =
         ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
 
@@ -1432,156 +1395,22 @@ auto ElecRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         store_calculated_energies);
   });
 
-  // auto eval_energies = ([=] TMOL_DEVICE_FUNC(int cta) {
-  //   auto elec_atom_energy_and_derivs =
-  //       ([=] TMOL_DEVICE_FUNC(
-  //            int atom_tile_ind1,
-  //            int atom_tile_ind2,
-  //            int start_atom1,
-  //            int start_atom2,
-  //            ElecScoringData<Real> const &score_dat,
-  //            int cp_separation) {
-  //         if (compute_derivs) {
-  //           auto val = elec_atom_energy_and_derivs_full(
-  //               atom_tile_ind1,
-  //               atom_tile_ind2,
-  //               start_atom1,
-  //               start_atom2,
-  //               score_dat,
-  //               cp_separation,
-  //               dV_dcoords);
-  //           return val;
-  //         } else {
-  //           return elec_atom_energy(
-  //               atom_tile_ind1, atom_tile_ind2, score_dat, cp_separation);
-  //         }
-  //       });
-
-  //   auto score_inter_elec_atom_pair = ([=] SCORE_INTER_ELEC_ATOM_PAIR);
-
-  //   auto score_intra_elec_atom_pair = ([=] SCORE_INTRA_ELEC_ATOM_PAIR);
-
-  //   auto load_block_coords_and_params_into_shared =
-  //       ([=] LOAD_BLOCK_COORDS_AND_PARAMS_INTO_SHARED);
-
-  //   auto load_block_into_shared = ([=] LOAD_BLOCK_INTO_SHARED);
-
-  //   SHARED_MEMORY union shared_mem_union {
-  //     shared_mem_union() {}
-  //     ElecBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> m;
-  //     CTA_REAL_REDUCE_T_VARIABLE;
-
-  //   } shared;
-
-  //   int const max_important_bond_separation = 4;
-
-  //   int const pose_ind = dispatch_indices[0][cta];
-
-  //   int const rot_ind1 = dispatch_indices[1][cta];
-  //   int const rot_ind2 = dispatch_indices[2][cta];
-
-  //   int const block_ind1 = block_ind_for_rot[rot_ind1];
-  //   int const block_ind2 = block_ind_for_rot[rot_ind2];
-
-  //   int const block_type1 = block_type_ind_for_rot[rot_ind1];
-  //   int const block_type2 = block_type_ind_for_rot[rot_ind2];
-
-  //   if (block_type1 < 0 || block_type2 < 0) {
-  //     return;
-  //   }
-
-  //   int const n_atoms1 = block_type_n_atoms[block_type1];
-  //   int const n_atoms2 = block_type_n_atoms[block_type2];
-
-  //   auto load_tile_invariant_interres_data =
-  //       ([=] LOAD_TILE_INVARIANT_INTERRES_DATA);
-
-  //   auto load_interres1_tile_data_to_shared =
-  //       ([=] LOAD_INTERRES1_TILE_DATA_TO_SHARED);
-
-  //   auto load_interres2_tile_data_to_shared =
-  //       ([=] LOAD_INTERRES2_TILE_DATA_TO_SHARED);
-
-  //   auto load_interres_data_from_shared = ([=]
-  //   LOAD_INTERRES_DATA_FROM_SHARED);
-
-  //   auto eval_interres_atom_pair_scores = ([=]
-  //   EVAL_INTERRES_ATOM_PAIR_SCORES);
-
-  //   auto store_calculated_energies = ([=] STORE_CALCULATED_ENERGIES);
-
-  //   auto load_tile_invariant_intrares_data =
-  //       ([=] LOAD_TILE_INVARIANT_INTRARES_DATA);
-
-  //   auto load_intrares1_tile_data_to_shared =
-  //       ([=] LOAD_INTRARES1_TILE_DATA_TO_SHARED);
-
-  //   auto load_intrares2_tile_data_to_shared =
-  //       ([=] LOAD_INTRARES2_TILE_DATA_TO_SHARED);
-
-  //   auto load_intrares_data_from_shared = ([=]
-  //   LOAD_INTRARES_DATA_FROM_SHARED);
-
-  //   auto eval_intrares_atom_pair_scores = ([=]
-  //   EVAL_INTRARES_ATOM_PAIR_SCORES);
-
-  //   tmol::score::common::tile_evaluate_rot_pair<
-  //       DeviceDispatch,
-  //       D,
-  //       ElecScoringData<Real>,
-  //       ElecScoringData<Real>,
-  //       Real,
-  //       TILE_SIZE>(
-  //       shared,
-  //       pose_ind,
-  //       rot_ind1,
-  //       rot_ind2,
-  //       block_ind1,
-  //       block_ind2,
-  //       block_type1,
-  //       block_type2,
-  //       n_atoms1,
-  //       n_atoms2,
-  //       load_tile_invariant_interres_data,
-  //       load_interres1_tile_data_to_shared,
-  //       load_interres2_tile_data_to_shared,
-  //       load_interres_data_from_shared,
-  //       eval_interres_atom_pair_scores,
-  //       store_calculated_energies,
-  //       load_tile_invariant_intrares_data,
-  //       load_intrares1_tile_data_to_shared,
-  //       load_intrares2_tile_data_to_shared,
-  //       load_intrares_data_from_shared,
-  //       eval_intrares_atom_pair_scores,
-  //       store_calculated_energies);
-  // });
-
   ///////////////////////////////////////////////////////////////////////
 
-  // Three steps
-  // 0: setup
-  // 1: launch a kernel to find a small bounding sphere surrounding the blocks
-  // 2: launch a kernel to look for spheres that are within striking distance of
-  // each other
-  // 3: launch a kernel to evaluate lj/lk between pairs of blocks
+  // Two steps
+  // 1: setup
+  // 2 launch a kernel to evaluate lj/lk between pairs of blocks
   // within striking distance
 
-  // 0
+  // 1
   // TO DO: let DeviceDispatch hold a cuda stream (??)
   // at::cuda::CUDAStream wrapped_stream = at::cuda::getDefaultCUDAStream();
   // mgpu::standard_context_t context(wrapped_stream.stream());
 
-  // 3
-  // if (output_block_pair_energies) {
-  // Rotamer energy evaluation is only done "by block"
+  // 2
   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
       dispatch_indices.size(1), eval_energies_by_block);
-  // } else {
-  //   DeviceDispatch<D>::template foreach_workgroup<launch_t>(
-  //       dispatch_indices.size(1), eval_energies);
-  // }
 
-  // DeviceDispatch<D>::synchronize_device();
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // namespace potentials
 

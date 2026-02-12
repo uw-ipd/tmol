@@ -248,12 +248,6 @@ class DunbrackEnergyTerm(EnergyTerm):
     def get_score_term_attributes(self, pose_stack):
         pbt = pose_stack.packed_block_types
 
-        # def _t(ts):
-        #     return tuple(map(lambda t: t.to(torch.float), ts))
-
-        # dunbrack_database = [f for f in self.dunbrack_db]
-        # dunbrack_packed_block_data = [f for f in pbt.dunbrack_packed_block_data]
-
         return [
             pose_stack.inter_residue_connections,
             pbt.atom_downstream_of_conn,

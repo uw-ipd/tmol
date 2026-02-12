@@ -3,8 +3,6 @@ import math
 import os
 import sys
 
-# import torch.nn.functional
-
 from ..energy_term import EnergyTerm
 
 from tmol.database import ParameterDatabase
@@ -154,7 +152,6 @@ class ConstraintEnergyTerm(EnergyTerm):
         # Early exit if we have no constraints
         if constraint_set is None:
             max_n_rots_per_block = n_rots_for_block.max().item()
-            # print("max_n_rots_per_block", max_n_rots_per_block)
             if max_n_rots_per_block > 1:
                 return (
                     torch.zeros((1, 0), dtype=coords.dtype, device=device),
@@ -399,7 +396,6 @@ class ConstraintEnergyTerm(EnergyTerm):
             # finally, compute the offset into the coordinates tensor
             constraint_atom_inds = rot_coord_offset[constraint_rots] + constraint_ats
 
-            # print('cstr5',constraint_atom_inds)
             nonlocal rotamerized_atoms
             rotamerized_atoms = torch.cat((rotamerized_atoms, constraint_atom_inds))
 

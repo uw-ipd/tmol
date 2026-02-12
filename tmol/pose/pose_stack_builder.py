@@ -75,7 +75,6 @@ class PoseStackBuilder:
         ps_offset = exclusive_cumsum1d(
             torch.tensor([len(ps) for ps in pose_stacks], dtype=torch.int64)
         )
-        # block_coord_offset_cpu = block_coord_offset.cpu()
 
         inter_residue_connections = cls._inter_residue_connections_from_pose_stacks(
             packed_block_types, pose_stacks, n_poses, ps_offset, max_n_blocks, device
@@ -90,9 +89,6 @@ class PoseStackBuilder:
         chain_id = cls._chain_id_from_pose_stacks(
             pose_stacks, n_poses, ps_offset, max_n_blocks, device
         )
-        # chain_labels = cls._chain_labels_from_pose_stacks(
-        #     pose_stacks, ps_offset, max_n_blocks, device
-        # )
         pdb_info = cls._pdb_info_from_pose_stacks(
             pose_stacks, n_poses, ps_offset, max_n_blocks
         )
@@ -1021,9 +1017,6 @@ class PoseStackBuilder:
                 pose_stack.pdb_info.chain_labels
             )
             i_natoms = pose_stack.coords.shape[1]
-            # print("i", i, "i_natoms", i_natoms)
-            # print("atom_occupancy shape", atom_occupancy.shape)
-            # print("pose_stack atom_occupancy shape", pose_stack.pdb_info.atom_occupancy.shape)
             atom_occupancy[offset : (offset + len(pose_stack)), :i_natoms] = (
                 pose_stack.pdb_info.atom_occupancy
             )

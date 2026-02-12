@@ -1148,8 +1148,7 @@ residues:
     - { name: ND1 ,  atom_type: NhisD}
     - { name: CD2 ,  atom_type: Caro }
     - { name: CE1 ,  atom_type: Caro }
-    - { name: NE2 ,  atom_type: NhisEDepro }
-    #- { name: NE2 ,  atom_type: NtrpDepro }
+    - { name: NE2 ,  atom_type: NhisE }
     - { name: H   ,  atom_type: HNbb }
     - { name: HA  ,  atom_type: Hapo }
     - { name: HB2 ,  atom_type: Hapo }

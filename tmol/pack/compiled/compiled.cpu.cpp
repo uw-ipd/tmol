@@ -60,40 +60,28 @@ auto AnnealerDispatch<D>::forward(
   int const n_outer_iterations = 20;
   int const n_inner_iterations_factor = 20;
 
-  // move to inside for(n_poses) loop:
-  // int const n_inner_iterations = n_inner_iterations_factor * n_rotamers;
-
   auto scores_t = TPack<float, 2, D>::zeros({n_poses, n_traj});
   auto current_rotamer_assignments_t =
       TPack<int, 3, D>::zeros({n_poses, n_traj, max_n_res});
   auto best_rotamer_assignments_t =
       TPack<int, 3, D>::zeros({n_poses, n_traj, max_n_res});
   auto quench_order_t = TPack<int, 1, D>::zeros({n_rotamers});
-  // auto rotamer_attempts_t = TPack<int, 1, D>::zeros({n_rotamers});
 
   auto scores = scores_t.view;
   auto current_rotamer_assignments = current_rotamer_assignments_t.view;
   auto best_rotamer_assignments = best_rotamer_assignments_t.view;
   auto quench_order = quench_order_t.view;
-  // auto rotamer_attempts = rotamer_attempts_t.view;
 
   float const high_temp = 100;
   float const low_temp = 0.2;
-
-  // std::cout << "Startng simulated annealing, first rng:" << rand() <<
-  // std::endl;
 
   for (int pose = 0; pose < n_poses; ++pose) {
     int const n_res = pose_n_res[pose];
     int const pose_n_rotamers = n_rotamers_for_pose[pose];
     int const pose_rotamer_offset = rotamer_offset_for_pose[pose];
     int const n_inner_iterations = n_inner_iterations_factor * pose_n_rotamers;
-    // std::cout << "Starting pose " << pose << " with " << pose_n_rotamers << "
-    // rotamers and offset " << pose_rotamer_offset << std::endl;
 
     for (int traj = 0; traj < n_traj; ++traj) {
-      // std::cout << "Starting trajectory " << traj+1 << std::endl;
-
       // Initial assignment: assign a rotamer to every residue
       for (int i = 0; i < max_n_res; ++i) {
         int const i_n_rots = n_rotamers_for_res[pose][i];
@@ -101,7 +89,6 @@ auto AnnealerDispatch<D>::forward(
         current_rotamer_assignments[pose][traj][i] = rand_rot;
         best_rotamer_assignments[pose][traj][i] = rand_rot;
       }
-      // std::cout << "Assigned random rotamers to all residues" << std::endl;
 
       float temperature = high_temp;
       double best_energy = total_energy_for_assignment(
@@ -116,7 +103,6 @@ auto AnnealerDispatch<D>::forward(
       double current_total_energy = best_energy;
       int naccepts = 0;
       for (int i = 0; i < n_outer_iterations; ++i) {
-        // std::cout << "starting round " << i+1 << std::endl;
         bool quench = false;
         if (i == n_outer_iterations - 1) {
           quench = true;
@@ -140,16 +126,17 @@ auto AnnealerDispatch<D>::forward(
           int global_ran_rot;
           if (quench) {
             if (j % pose_n_rotamers == 0) {
-              // std::cout << "setting quench order..." << std::flush;
+              // Reset the quench order every pose_n_rotamers iterations
+              // as it will attempt all pose_n_rotamers in a particular
+              // random order before starting over with a different
+              // random order.
               set_quench_order(
                   quench_order, pose_n_rotamers, pose_rotamer_offset);
-              // std::cout << "...done" << std::endl;
             }
             global_ran_rot = quench_order[j % pose_n_rotamers];
           } else {
             global_ran_rot = rand() % pose_n_rotamers + pose_rotamer_offset;
           }
-          // ++rotamer_attempts[ran_rot];
 
           int const ran_res = res_for_rot[global_ran_rot];
           int const local_prev_rot =
@@ -174,7 +161,7 @@ auto AnnealerDispatch<D>::forward(
           double prev_e = energy1b[global_prev_rot];
           double deltaE = new_e - prev_e;
 
-          // Temp: iterate across all residues instead of just the
+          // TO DO: iterate across all residues instead of just the
           // neighbors of ran_rot_res
           for (int k = 0; k < n_res; ++k) {
             if (k == ran_res) continue;
@@ -246,20 +233,14 @@ auto AnnealerDispatch<D>::forward(
 
         }  // end inner loop
 
-        // std::cout << "temperature " << temperature << " energy " <<
-        //   total_energy_for_assignment(n_rotamers_for_res, oneb_offsets,
-        //     res_for_rot, nenergies, twob_offsets, energy1b, energy2b,
-        //     rotamer_assignments, traj) <<
-        //   std::endl;
-
-        // geometric cooling toward 0.3
+        // geometric cooling toward the low temperature
+        // e.g. if towards 0.3, then:
         // temperature = 0.35 * (temperature - 0.3) + 0.3;
         temperature =
             (high_temp - low_temp) * std::exp(-1 * (i + 1)) + low_temp;
 
       }  // end outer loop
 
-      // std::cout << "calc total energy" << std::flush;
       scores[pose][traj] = total_energy_for_assignment(
           n_rotamers_for_res[pose],
           oneb_offsets[pose],
@@ -269,28 +250,9 @@ auto AnnealerDispatch<D>::forward(
           energy1b,
           energy2b,
           best_rotamer_assignments[pose][traj]);
-      // std::cout << "Traj " << traj << " for pose " << pose << " with score "
-      // << scores[pose][traj] << std::endl;
     }  // end trajectory loop
   }    // end pose loop
 
-  // find the stdev of rotamer attempts
-  // float variance = 0;
-  // float mean = n_outer_iterations * n_inner_iterations_factor;
-  // for (int i = 0; i < n_rotamers; ++i) {
-  //   int iattempts = rotamer_attempts[i];
-  //   variance += (iattempts - mean)*(iattempts - mean);
-  // }
-  // variance /= n_rotamers;
-  // float sdev = std::sqrt(variance);
-  // std::cout << "attempts variance" << variance << std::endl;
-  // for (int i = 0; i < n_rotamers; ++i) {
-  //   int iattempts = rotamer_attempts[i];
-  //   if (std::abs(iattempts - mean) > 2*sdev) {
-  // 	std::cout << "Rotamer " << i << " on res " << res_for_rot[i] << "
-  // attempted " << 	  iattempts << " times." << std::endl;
-  //   }
-  // }
   clock_t stop = clock();
   std::cout << "CPU simulated annealing in "
             << ((double)stop - start) / CLOCKS_PER_SEC << " seconds"
