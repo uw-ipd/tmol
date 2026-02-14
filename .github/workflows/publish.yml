@@ -1,7 +1,8 @@
-# Publish wheels + sdist to TestPyPI (or PyPI).
+# Publish sdist to TestPyPI + wheels to GitHub Release.
 #
-# Trigger: manual workflow_dispatch only.
-# Optionally also runs on tag pushes (uncomment the tag trigger below).
+# PyPI/TestPyPI rejects wheel filenames with "+" local version segments
+# (e.g. +cu12torch2.5), so wheels are distributed via GitHub Releases
+# and installed with: pip install tmol --find-links <release-url>
 #
 # Three separate jobs so you can RE-RUN just the upload if it fails
 # without rebuilding wheels/sdist.
@@ -26,10 +27,6 @@ on:
           Leave blank to use setuptools-scm (git-based version).
         required: false
         type: string
-  # Uncomment to also trigger on version tags:
-  # push:
-  #   tags:
-  #     - "v*"
 
 jobs:
   # ── Job 1: Build wheels ─────────────────────────────────────────────
@@ -93,12 +90,14 @@ jobs:
           name: sdist
           path: dist/*.tar.gz
 
-  # ── Job 3: Upload to TestPyPI ───────────────────────────────────────
+  # ── Job 3: Upload ──────────────────────────────────────────────────
   #
-  # This job only downloads artifacts + uploads.  If it fails (e.g. 400
-  # from PyPI) you can RE-RUN just this job without rebuilding anything.
+  # sdist → TestPyPI  (no local version segment, PyPI accepts it)
+  # wheels → GitHub Release  (local version +cu... is fine here)
+  #
+  # If this job fails you can RE-RUN just this job from the Actions UI.
   upload:
-    name: Upload to TestPyPI
+    name: Upload sdist to TestPyPI + wheels to GitHub Release
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
     steps:
@@ -109,6 +108,7 @@ jobs:
       - name: Install twine
         run: pip install twine
 
+      # ── Download artifacts ──
       - name: Download sdist artifact
         uses: actions/download-artifact@v4
         with:
@@ -129,26 +129,40 @@ jobs:
           echo "=== wheels ==="
           ls -lh wheels/ || echo "(no wheels)"
 
+      # ── Upload sdist to TestPyPI ──
       - name: Upload sdist to TestPyPI
         env:
           TWINE_USERNAME: "__token__"
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
-      - name: Upload wheels to TestPyPI
-        env:
-          TWINE_USERNAME: "__token__"
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
+      # ── Upload wheels to a GitHub Release ──
+      # Creates (or reuses) a release named after the sdist version.
+      - name: Determine version from sdist filename
+        id: version
         run: |
-          if ls wheels/*.whl 1>/dev/null 2>&1; then
-            python -m twine upload --repository-url https://test.pypi.org/legacy/ wheels/*.whl
-          else
-            echo "No wheels found — skipping wheel upload"
-          fi
+          SDIST=$(ls dist/*.tar.gz | head -1 | xargs basename)
+          # tmol-0.0.2.post1.dev230.tar.gz → 0.0.2.post1.dev230
+          VERSION=$(echo "$SDIST" | sed 's/^tmol-//;s/\.tar\.gz$//')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
 
-      # Uncomment for real PyPI releases:
-      # - name: Upload to PyPI
+      - name: Create or get GitHub Release
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ steps.version.outputs.version }}"
+          name: "v${{ steps.version.outputs.version }}"
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+          files: wheels/*.whl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Uncomment for real PyPI releases (sdist only):
+      # - name: Upload sdist to PyPI
       #   env:
       #     TWINE_USERNAME: "__token__"
       #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      #   run: python -m twine upload dist/* wheels/*.whl
+      #   run: python -m twine upload dist/*
