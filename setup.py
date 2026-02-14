@@ -36,7 +36,10 @@ FORCE_BUILD = os.getenv("TMOL_FORCE_BUILD", "FALSE") == "TRUE"
 NVCC_THREADS = os.getenv("NVCC_THREADS", "4")
 
 THIS_DIR = Path(__file__).parent.resolve()
+# Include dirs can be absolute (setuptools allows it for -I flags)
 INCLUDE_DIRS = [str(THIS_DIR), str(THIS_DIR / "tmol" / "extern")]
+# Source paths must be relative to setup.py directory
+
 
 PACKAGE_NAME = "tmol"
 
@@ -156,7 +159,7 @@ def _make_cuda_ext(name, sources, define_macros=None, extra_include_dirs=None):
     inc = list(INCLUDE_DIRS) + _nvtx_include_dirs() + list(extra_include_dirs or [])
     return CUDAExtension(
         name=name,
-        sources=[str(THIS_DIR / s) for s in sources],
+        sources=list(sources),
         include_dirs=inc,
         define_macros=macros,
         extra_compile_args={
@@ -172,7 +175,7 @@ def _make_cpp_ext(name, sources, define_macros=None, extra_include_dirs=None):
     inc = list(INCLUDE_DIRS) + list(extra_include_dirs or [])
     return CppExtension(
         name=name,
-        sources=[str(THIS_DIR / s) for s in sources],
+        sources=list(sources),
         include_dirs=inc,
         define_macros=macros,
         extra_compile_args={
