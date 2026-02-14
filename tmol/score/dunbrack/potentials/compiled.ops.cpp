@@ -1057,10 +1057,8 @@ std::vector<Tensor> dunbrack_rotamer_scores_op(
       output_block_pair_energies);
 }
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_dunbrack, m) {
   m.def("dunbrack_pose_scores", &dunbrack_pose_scores_op<DeviceOperations>);
   m.def(
       "dunbrack_rotamer_scores", &dunbrack_rotamer_scores_op<DeviceOperations>);

@@ -1,45 +1,31 @@
-import torch
-import numpy
-
 import cattr
+import numpy
+import torch
 
 import tmol.pack.rotamer.dunbrack.compiled  # noqa F401
-
-from tmol.utility.tensor.common_operations import exclusive_cumsum1d
-
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
+from tmol.io import pose_stack_from_pdb
+from tmol.pack.packer_task import PackerPalette, PackerTask
+from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
-
-from tmol.io import pose_stack_from_pdb
 from tmol.score.dunbrack.params import DunbrackParamResolver
-from tmol.pack.packer_task import PackerTask, PackerPalette
-from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import DunbrackChiSampler
-
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 from tmol.tests.data import no_termini_pose_stack_from_pdb
+from tmol.utility.tensor.common_operations import exclusive_cumsum1d
 
 
 def get_compiled():
-    compiled = load(
-        modulename(__name__),
-        cuda_if_available(
-            relpaths(__file__, ["compiled.pybind.cpp", "test.cpp", "test.cu"])
-        ),
-    )
-    return compiled
+    from tmol.tests.pack.rotamer.dunbrack import _ext
+
+    return _ext
 
 
 def test_annotate_residue_type(default_database):
     torch_device = torch.device("cpu")
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
 
     tyr_restype = cattr.structure(
-        cattr.unstructure(
-            next(res for res in default_database.chemical.residues if res.name == "TYR")
-        ),
+        cattr.unstructure(next(res for res in default_database.chemical.residues if res.name == "TYR")),
         RefinedResidueType,
     )
 
@@ -59,35 +45,29 @@ def test_annotate_residue_type(default_database):
 
     assert isinstance(tyr_restype.dun_sampler_cache.chi_defining_atom, numpy.ndarray)
     assert tyr_restype.dun_sampler_cache.chi_defining_atom.shape == (3,)
-    tyr_restype.dun_sampler_cache.chi_defining_atom[0] == tyr_restype.atom_to_idx["CA"]
-    tyr_restype.dun_sampler_cache.chi_defining_atom[1] == tyr_restype.atom_to_idx["CB"]
-    tyr_restype.dun_sampler_cache.chi_defining_atom[2] == tyr_restype.atom_to_idx["CZ"]
+    assert tyr_restype.dun_sampler_cache.chi_defining_atom[0] == tyr_restype.atom_to_idx["CA"]
+    assert tyr_restype.dun_sampler_cache.chi_defining_atom[1] == tyr_restype.atom_to_idx["CB"]
+    assert tyr_restype.dun_sampler_cache.chi_defining_atom[2] == tyr_restype.atom_to_idx["CZ"]
 
 
 def test_annotate_packed_block_types(default_database, torch_device):
     # torch_device = torch.device("cpu")
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
 
-    desired = set(["ALA", "CYS", "ASP", "GLU", "PHE", "HIS", "ARG", "SER", "TYR"])
+    desired = {"ALA", "CYS", "ASP", "GLU", "PHE", "HIS", "ARG", "SER", "TYR"}
 
     all_restypes = [
         cattr.structure(cattr.unstructure(res), RefinedResidueType)
         for res in default_database.chemical.residues
         if res.name in desired
     ]
-    restype_set = ResidueTypeSet.from_restype_list(
-        default_database.chemical, all_restypes
-    )
+    restype_set = ResidueTypeSet.from_restype_list(default_database.chemical, all_restypes)
 
     sampler = DunbrackChiSampler.from_database(param_resolver)
     for restype in all_restypes:
         sampler.annotate_residue_type(restype)
 
-    pbt = PackedBlockTypes.from_restype_list(
-        default_database.chemical, restype_set, all_restypes, torch_device
-    )
+    pbt = PackedBlockTypes.from_restype_list(default_database.chemical, restype_set, all_restypes, torch_device)
     sampler.annotate_packed_block_types(pbt)
 
     assert hasattr(pbt, "dun_sampler_cache")
@@ -103,9 +83,7 @@ def test_annotate_packed_block_types(default_database, torch_device):
 
 def test_determine_n_possible_rots(default_database, torch_device):
     compiled = get_compiled()
-    resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
     dun_params = resolver.sampling_db
 
     rottable_set_for_buildable_restype = torch.tensor(
@@ -121,9 +99,7 @@ def test_determine_n_possible_rots(default_database, torch_device):
         device=torch_device,
     )
 
-    n_possible_rotamers_per_brt = torch.zeros(
-        (6,), dtype=torch.int32, device=torch_device
-    )
+    n_possible_rotamers_per_brt = torch.zeros((6,), dtype=torch.int32, device=torch_device)
 
     compiled.determine_n_possible_rots(
         rottable_set_for_buildable_restype,
@@ -131,12 +107,10 @@ def test_determine_n_possible_rots(default_database, torch_device):
         n_possible_rotamers_per_brt,
     )
 
-    n_poss_gold = dun_params.n_rotamers_for_tableset[
-        rottable_set_for_buildable_restype[:, 1].to(torch.int64)
-    ].to(torch.int32)
-    numpy.testing.assert_equal(
-        n_poss_gold.cpu().numpy(), n_possible_rotamers_per_brt.cpu().numpy()
+    n_poss_gold = dun_params.n_rotamers_for_tableset[rottable_set_for_buildable_restype[:, 1].to(torch.int64)].to(
+        torch.int32
     )
+    numpy.testing.assert_equal(n_poss_gold.cpu().numpy(), n_possible_rotamers_per_brt.cpu().numpy())
 
 
 def test_fill_in_brt_for_possrots(torch_device):
@@ -150,40 +124,26 @@ def test_fill_in_brt_for_possrots(torch_device):
     brt_for_possrot = torch.zeros((20,), dtype=torch.int32, device=torch_device)
     compiled.fill_in_brt_for_possrots(possible_rotamer_offset_for_brt, brt_for_possrot)
 
-    brt_for_possrot_gold = numpy.array(
-        [0] * 5 + [1] * 5 + [2] * 5 + [3] * 5, dtype=numpy.int32
-    )
+    brt_for_possrot_gold = numpy.array([0] * 5 + [1] * 5 + [2] * 5 + [3] * 5, dtype=numpy.int32)
     numpy.testing.assert_equal(brt_for_possrot_gold, brt_for_possrot.cpu())
 
 
-def test_interpolate_probabilities_for_possible_rotamers(
-    default_database, torch_device
-):
+def test_interpolate_probabilities_for_possible_rotamers(default_database, torch_device):
     # let's just test phe at a grid point
 
     compiled = get_compiled()
-    resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
     dun_params = resolver.sampling_db
 
-    rottable_set_for_buildable_restype = torch.tensor(
-        [[0, 12]], dtype=torch.int32, device=torch_device
-    )
-    brt_for_possible_rotamer = torch.zeros(
-        (18,), dtype=torch.int32, device=torch_device
-    )
-    possible_rotamer_offset_for_brt = torch.zeros(
-        (1,), dtype=torch.int32, device=torch_device
-    )
+    rottable_set_for_buildable_restype = torch.tensor([[0, 12]], dtype=torch.int32, device=torch_device)
+    brt_for_possible_rotamer = torch.zeros((18,), dtype=torch.int32, device=torch_device)
+    possible_rotamer_offset_for_brt = torch.zeros((1,), dtype=torch.int32, device=torch_device)
     backbone_dihedrals = torch.tensor(
         numpy.pi / 180 * numpy.array([-110, 140]),
         dtype=torch.float32,
         device=torch_device,
     )
-    rotamer_probability = torch.full(
-        (18,), -1.0, dtype=torch.float32, device=torch_device
-    )
+    rotamer_probability = torch.full((18,), -1.0, dtype=torch.float32, device=torch_device)
 
     compiled.interpolate_probabilities_for_possible_rotamers(
         dun_params.rotameric_prob_tables,
@@ -245,17 +205,13 @@ def test_interpolate_probabilities_for_possible_rotamers(
             reverse=True,
         )
     )
-    numpy.testing.assert_allclose(
-        rotprob_gold, rotamer_probability.cpu().numpy(), rtol=1e-5, atol=1e-5
-    )
+    numpy.testing.assert_allclose(rotprob_gold, rotamer_probability.cpu().numpy(), rtol=1e-5, atol=1e-5)
 
 
 def test_determine_n_base_rotamers_to_build_1(torch_device):
     compiled = get_compiled()
     prob_cumsum_limit_for_buildable_restype = torch.tensor([0.95], device=torch_device)
-    n_possible_rotamers_per_brt = torch.tensor(
-        [18], dtype=torch.int32, device=torch_device
-    )
+    n_possible_rotamers_per_brt = torch.tensor([18], dtype=torch.int32, device=torch_device)
     brt_for_possrot = torch.zeros((18,), dtype=torch.int32, device=torch_device)
     possrot_offset_for_brt = torch.zeros((1,), dtype=torch.int32, device=torch_device)
 
@@ -285,12 +241,8 @@ def test_determine_n_base_rotamers_to_build_1(torch_device):
         )
     )
 
-    rotamer_probability = torch.tensor(
-        rotprob_gold, dtype=torch.float32, device=torch_device
-    )
-    n_rotamers_to_build_per_brt = torch.zeros(
-        (1,), dtype=torch.int32, device=torch_device
-    )
+    rotamer_probability = torch.tensor(rotprob_gold, dtype=torch.float32, device=torch_device)
+    n_rotamers_to_build_per_brt = torch.zeros((1,), dtype=torch.int32, device=torch_device)
 
     compiled.determine_n_base_rotamers_to_build(
         prob_cumsum_limit_for_buildable_restype,
@@ -301,17 +253,13 @@ def test_determine_n_base_rotamers_to_build_1(torch_device):
         n_rotamers_to_build_per_brt,
     )
 
-    assert 9 == n_rotamers_to_build_per_brt[0]
+    assert n_rotamers_to_build_per_brt[0] == 9
 
 
 def test_determine_n_base_rotamers_to_build_2(torch_device):
     compiled = get_compiled()
-    prob_cumsum_limit_for_buildable_restype = torch.tensor(
-        [0.95, 0.99], device=torch_device
-    )
-    n_possible_rotamers_per_brt = torch.tensor(
-        [18, 18], dtype=torch.int32, device=torch_device
-    )
+    prob_cumsum_limit_for_buildable_restype = torch.tensor([0.95, 0.99], device=torch_device)
+    n_possible_rotamers_per_brt = torch.tensor([18, 18], dtype=torch.int32, device=torch_device)
     brt_for_possrot_a = torch.zeros((18,), dtype=torch.int32, device=torch_device)
     brt_for_possrot_b = torch.ones((18,), dtype=torch.int32, device=torch_device)
     brt_for_possrot = torch.cat((brt_for_possrot_a, brt_for_possrot_b))
@@ -362,9 +310,7 @@ def test_determine_n_base_rotamers_to_build_2(torch_device):
     # 30 0.991915 31 0.996272 32 0.999161 33 0.999783 34 0.999879
     # 35 0.999975
 
-    n_rotamers_to_build_per_brt = torch.zeros(
-        (2,), dtype=torch.int32, device=torch_device
-    )
+    n_rotamers_to_build_per_brt = torch.zeros((2,), dtype=torch.int32, device=torch_device)
 
     compiled.determine_n_base_rotamers_to_build(
         prob_cumsum_limit_for_buildable_restype,
@@ -375,15 +321,13 @@ def test_determine_n_base_rotamers_to_build_2(torch_device):
         n_rotamers_to_build_per_brt,
     )
 
-    assert 9 == n_rotamers_to_build_per_brt[0]
-    assert 12 == n_rotamers_to_build_per_brt[1]
+    assert n_rotamers_to_build_per_brt[0] == 9
+    assert n_rotamers_to_build_per_brt[1] == 12
 
 
 def test_count_expanded_rotamers(default_database, torch_device):
     compiled = get_compiled()
-    resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
     dun_params = resolver.sampling_db
 
     def _ti32(the_list):
@@ -430,7 +374,7 @@ def test_count_expanded_rotamers(default_database, torch_device):
         n_rotamers_to_build_per_brt,
         n_rotamers_to_build_per_brt_offsets,
     )
-    assert 200 == nrots
+    assert nrots == 200
     n_expansions_for_brt_gold = numpy.array([9, 54, 1, 9, 9, 18], dtype=numpy.int32)
     expansion_dim_prods_for_brt_gold = numpy.array(
         [
@@ -443,20 +387,12 @@ def test_count_expanded_rotamers(default_database, torch_device):
         ],
         dtype=numpy.int32,
     )
-    n_rotamers_to_build_per_brt_gold = numpy.array(
-        [18, 108, 2, 18, 18, 36], dtype=numpy.int32
-    )
-    n_rotamers_to_build_per_brt_offsets_gold = numpy.array(
-        [0, 18, 126, 128, 146, 164], dtype=numpy.int32
-    )
+    n_rotamers_to_build_per_brt_gold = numpy.array([18, 108, 2, 18, 18, 36], dtype=numpy.int32)
+    n_rotamers_to_build_per_brt_offsets_gold = numpy.array([0, 18, 126, 128, 146, 164], dtype=numpy.int32)
 
     numpy.testing.assert_equal(n_expansions_for_brt_gold, n_expansions_for_brt.cpu())
-    numpy.testing.assert_equal(
-        expansion_dim_prods_for_brt_gold, expansion_dim_prods_for_brt.cpu()
-    )
-    numpy.testing.assert_equal(
-        n_rotamers_to_build_per_brt_gold, n_rotamers_to_build_per_brt.cpu()
-    )
+    numpy.testing.assert_equal(expansion_dim_prods_for_brt_gold, expansion_dim_prods_for_brt.cpu())
+    numpy.testing.assert_equal(n_rotamers_to_build_per_brt_gold, n_rotamers_to_build_per_brt.cpu())
     numpy.testing.assert_equal(
         n_rotamers_to_build_per_brt_offsets_gold,
         n_rotamers_to_build_per_brt_offsets.cpu(),
@@ -470,9 +406,7 @@ def test_map_from_rotamer_index_to_brt(torch_device):
     )
     brt_for_rotamer = torch.zeros((200,), dtype=torch.int32, device=torch_device)
 
-    compiled.map_from_rotamer_index_to_brt(
-        n_rotamers_to_build_per_brt_offsets, brt_for_rotamer
-    )
+    compiled.map_from_rotamer_index_to_brt(n_rotamers_to_build_per_brt_offsets, brt_for_rotamer)
 
     brt_for_rotamer_gold = numpy.array(
         [0] * 18 + [1] * 108 + [2] * 2 + [3] * 18 + [4] * 18 + [5] * 36,
@@ -486,9 +420,7 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
         return torch.tensor(the_list, dtype=torch.int32, device=torch_device)
 
     compiled = get_compiled()
-    resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
     dun_params = resolver.sampling_db
 
     # look, we're going to use phe but treat it like tyr.
@@ -521,9 +453,7 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     brt_for_rotamer = _ti32([0] * 18 * 9)
     n_expansions_for_brt = _ti32([18])
     expansion_dim_prods_for_brt = _ti32([[6, 2, 1]])
-    chi_for_rotamers = torch.zeros(
-        (18 * 9, 3), dtype=torch.float32, device=torch_device
-    )
+    chi_for_rotamers = torch.zeros((18 * 9, 3), dtype=torch.float32, device=torch_device)
 
     compiled.sample_chi_for_rotamers(
         dun_params.rotameric_mean_tables,
@@ -559,9 +489,7 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     # PHE -110 140 0 2 2 0 0 0.0801794  178.4  101   0 0 10.5 6.7 0 0
     # PHE -110 140 0 2 6 0 0 0.0376458  178.4  54.5  0 0 10.5 7   0 0
 
-    chi1_means = numpy.array(
-        [-66.8, 178.4, -66.8, -66.8, -66.8, -66.8, -66.8, 178.4, 178.4]
-    )
+    chi1_means = numpy.array([-66.8, 178.4, -66.8, -66.8, -66.8, -66.8, -66.8, 178.4, 178.4])
     chi2_means = numpy.array([93, 78.2, 119.6, -26.6, 2.1, 35.2, 71, 101, 54.5])
     chi1_sdevs = numpy.array([8.4, 10.5, 8.4, 8.4, 8.4, 8.4, 8.4, 10.5, 10.5])
     chi2_sdevs = numpy.array([8.1, 8, 8.1, 8.7, 8.4, 9.3, 6.8, 6.7, 7])
@@ -582,25 +510,17 @@ def test_sample_chi_for_rotamers(default_database, torch_device):
     chi_for_rotamers_gold[ar162 % 2 == 0, 2] = 0.25
     chi_for_rotamers_gold[ar162 % 2 == 1, 2] = 1.25
 
-    numpy.testing.assert_allclose(
-        chi_for_rotamers_gold, chi_for_rotamers.cpu(), atol=1e-5, rtol=1e-5
-    )
+    numpy.testing.assert_allclose(chi_for_rotamers_gold, chi_for_rotamers.cpu(), atol=1e-5, rtol=1e-5)
 
 
 def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
     dun_sampler = DunbrackChiSampler.from_database(param_resolver)
 
     rts = ResidueTypeSet.from_database(default_database.chemical)
 
-    p1 = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=5, residue_end=11
-    )
-    p2 = no_termini_pose_stack_from_pdb(
-        ubq_pdb, torch_device, residue_start=1, residue_end=8
-    )
+    p1 = no_termini_pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=5, residue_end=11)
+    p2 = no_termini_pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=1, residue_end=8)
     pose_stack = PoseStackBuilder.from_poses([p1, p2], torch_device)
     pbt = pose_stack.packed_block_types
 
@@ -637,19 +557,12 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     )
     n_gbt_total = is_gbt_dun_allowed.shape[0]
     # equiv: numpy.nonzero(is_gbt_dun_allowed)
-    dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[
-        is_gbt_dun_allowed
-    ]
-    dun_allowed_bt_to_gbt_torch = torch.tensor(
-        dun_allowed_bt_to_gbt, device=dun_sampler.device
-    )
+    dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[is_gbt_dun_allowed]
+    dun_allowed_bt_to_gbt_torch = torch.tensor(dun_allowed_bt_to_gbt, device=dun_sampler.device)
 
-    dun_allowed_bt_names = numpy.array(
-        [bt.name for bt in dun_allowed_blocktypes], dtype=object
-    )
-    dun_allowed_bt_base_names = numpy.array(
-        [bt.name.partition(":")[0] for bt in dun_allowed_blocktypes], dtype=object
-    )
+    dun_allowed_bt_names = numpy.array([bt.name for bt in dun_allowed_blocktypes], dtype=object)
+    dun_allowed_bt_base_names = numpy.array([bt.name.partition(":")[0] for bt in dun_allowed_blocktypes], dtype=object)
+    # print("dun_allowed_bt_base_names[:20]", dun_allowed_bt_base_names[:20])
     pbt = pose_stack.packed_block_types
 
     # the source block for each dun-allowed block type
@@ -676,19 +589,13 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     # the subset of dun_rot_inds_for_dun_allowed_bts with a non-sentinel
     # value represents the buildable block types
     block_type_ind_for_bbt = torch.tensor(
-        pbt.restype_index.get_indexer(
-            dun_allowed_bt_names[dun_rot_inds_for_dun_allowed_bts.cpu().numpy() != -1]
-        ),
+        pbt.restype_index.get_indexer(dun_allowed_bt_names[dun_rot_inds_for_dun_allowed_bts.cpu().numpy() != -1]),
         dtype=torch.int64,
         device=dun_sampler.device,
     )
 
-    inds_of_phi = dun_sampler.atom_indices_for_backbone_dihedral(pose_stack, 0).reshape(
-        -1, 4
-    )
-    inds_of_psi = dun_sampler.atom_indices_for_backbone_dihedral(pose_stack, 1).reshape(
-        -1, 4
-    )
+    inds_of_phi = dun_sampler.atom_indices_for_backbone_dihedral(pose_stack, 0).reshape(-1, 4)
+    inds_of_psi = dun_sampler.atom_indices_for_backbone_dihedral(pose_stack, 1).reshape(-1, 4)
 
     is_dun_allowed_bt_bbt = dun_rot_inds_for_dun_allowed_bts != -1
     dun_allowed_bt_that_are_bbt = torch.nonzero(is_dun_allowed_bt_bbt)[:, 0]
@@ -724,43 +631,30 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
 
     # map the residue-numbered list of dihedral angles to their positions in
     # the set of residues that the Dunbrack library will provide chi samples for
-    dihedral_atom_inds = torch.full(
-        (2 * n_sampling_blocks, 4), -1, dtype=torch.int32, device=dun_sampler.device
-    )
+    dihedral_atom_inds = torch.full((2 * n_sampling_blocks, 4), -1, dtype=torch.int32, device=dun_sampler.device)
     dihedral_atom_inds[
-        2
-        * torch.arange(n_sampling_blocks, dtype=torch.int64, device=dun_sampler.device),
+        2 * torch.arange(n_sampling_blocks, dtype=torch.int64, device=dun_sampler.device),
         :,
     ] = inds_of_phi[uniq_block_for_bbt, :]
     dihedral_atom_inds[
-        2
-        * torch.arange(n_sampling_blocks, dtype=torch.int64, device=dun_sampler.device)
-        + 1,
+        2 * torch.arange(n_sampling_blocks, dtype=torch.int64, device=dun_sampler.device) + 1,
         :,
     ] = inds_of_psi[uniq_block_for_bbt, :]
 
-    n_dihe_for_block = torch.full(
-        (n_sampling_blocks,), 2, dtype=torch.int32, device=dun_sampler.device
-    )
-    dihedral_offset_for_block = 2 * torch.arange(
-        n_sampling_blocks, dtype=torch.int32, device=dun_sampler.device
-    )
+    n_dihe_for_block = torch.full((n_sampling_blocks,), 2, dtype=torch.int32, device=dun_sampler.device)
+    dihedral_offset_for_block = 2 * torch.arange(n_sampling_blocks, dtype=torch.int32, device=dun_sampler.device)
 
     n_bbts = dun_allowed_bt_that_are_bbt.shape[0]
 
     max_n_chi = pose_stack.packed_block_types.dun_sampler_cache.max_n_chi
-    chi_expansion_for_bbt = torch.full(
-        (n_bbts, max_n_chi), 0, dtype=torch.int32, device=dun_sampler.device
-    )
+    chi_expansion_for_bbt = torch.full((n_bbts, max_n_chi), 0, dtype=torch.int32, device=dun_sampler.device)
 
     # ok, we'll go to the block types and look at their protonation
     # state expansions and we'll put that information into the
     # chi_expansions_for_buildable_restype tensor
 
     sampling_db = dun_sampler.dun_param_resolver.sampling_db
-    n_chi_for_bbt = sampling_db.nchi_for_table_set[
-        rottable_set_for_bbt[:, 1].to(torch.int64)
-    ]
+    n_chi_for_bbt = sampling_db.nchi_for_table_set[rottable_set_for_bbt[:, 1].to(torch.int64)]
 
     non_dunbrack_expansion_counts_for_bbt = torch.zeros(
         (n_bbts, max_n_chi), dtype=torch.int32, device=dun_sampler.device
@@ -775,9 +669,7 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     non_dunbrack_expansion_for_bbt = sc.non_dunbrack_samples[block_type_ind_for_bbt, 0]
 
     # treat all residues as if they are exposed
-    prob_cumsum_limit_for_bbt = torch.full(
-        (n_bbts,), 0.95, dtype=torch.float32, device=dun_sampler.device
-    )
+    prob_cumsum_limit_for_bbt = torch.full((n_bbts,), 0.95, dtype=torch.float32, device=dun_sampler.device)
 
     # the sampled chi returned are a tuple containing info for BBTs:
     # these have to be mapped back to info for GBTs, which is handled
@@ -815,27 +707,18 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     ) = results
 
     all_considered_restypes = numpy.array(
-        [
-            bt
-            for one_pose_blts in task.blts
-            for blt in one_pose_blts
-            for i, bt in enumerate(blt.considered_block_types)
-        ],
+        [bt for one_pose_blts in task.blts for blt in one_pose_blts for i, bt in enumerate(blt.considered_block_types)],
         dtype=object,
     )
     offsets_for_gbt = exclusive_cumsum1d(n_rots_for_gbt)
 
-    n_rots_for_gbt_gold = numpy.zeros(
-        all_considered_restypes.shape[0], dtype=numpy.int32
-    )
+    n_rots_for_gbt_gold = numpy.zeros(all_considered_restypes.shape[0], dtype=numpy.int32)
 
-    n_rots_for_gbt_gold[dun_allowed_bt_to_gbt[is_dun_allowed_bt_bbt.cpu().numpy()]] = (
-        n_rots_for_bbt.cpu().numpy()
-    )
+    n_rots_for_gbt_gold[dun_allowed_bt_to_gbt[is_dun_allowed_bt_bbt.cpu().numpy()]] = n_rots_for_bbt.cpu().numpy()
 
     rt_for_rot_gold = numpy.zeros((n_rots + 1,), dtype=numpy.int32)
     offsets_for_gbt_np = offsets_for_gbt.cpu().numpy()
-    for i, rotamer in enumerate(offsets_for_gbt_np):
+    for _i, rotamer in enumerate(offsets_for_gbt_np):
         rt_for_rot_gold[rotamer] += 1
     rt_for_rot_gold = rt_for_rot_gold[:-1]  # lop off the "last" rotamer
     rt_for_rot_gold = numpy.cumsum(rt_for_rot_gold) - 1
@@ -858,9 +741,7 @@ def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
     sampler = DunbrackChiSampler.from_database(param_resolver)
     task.add_conformer_sampler(sampler)
 
@@ -870,9 +751,7 @@ def test_chi_sampler_smoke(ubq_pdb, default_database, default_restype_set):
     sampler.sample_chi_for_poses(poses, task)
 
 
-def test_chi_sampler_build_lots_of_rotamers(
-    ubq_pdb, default_database, default_restype_set, torch_device
-):
+def test_chi_sampler_build_lots_of_rotamers(ubq_pdb, default_database, default_restype_set, torch_device):
     n_poses = 10
     p = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=10)
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
@@ -880,9 +759,7 @@ def test_chi_sampler_build_lots_of_rotamers(
     task = PackerTask(poses, palette)
     task.restrict_to_repacking()
 
-    param_resolver = DunbrackParamResolver.from_database(
-        default_database.scoring.dun, torch_device
-    )
+    param_resolver = DunbrackParamResolver.from_database(default_database.scoring.dun, torch_device)
     sampler = DunbrackChiSampler.from_database(param_resolver)
     task.add_conformer_sampler(sampler)
 

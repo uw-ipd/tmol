@@ -218,10 +218,8 @@ Tensor resolve_his_tautomerization(
   return his_taut;
 }
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_io, m) {
   m.def("gen_pose_leaf_atoms", &pose_leaf_atom_gen_op);
   m.def("resolve_his_taut", &resolve_his_tautomerization);
 }

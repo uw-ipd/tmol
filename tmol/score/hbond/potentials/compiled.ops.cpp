@@ -851,10 +851,8 @@ std::vector<Tensor> hbond_rotamer_scores_op(
       output_block_pair_energies);
 }
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_hbond, m) {
   m.def("hbond_pose_scores", &hbond_pose_scores_op<common::DeviceOperations>);
   m.def(
       "hbond_rotamer_scores",
