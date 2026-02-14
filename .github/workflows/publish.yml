@@ -88,12 +88,21 @@ jobs:
           pip install "setuptools>=68" wheel setuptools-scm ninja
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
+      - name: Compute version from git
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+          DISTANCE=$(git rev-list ${TAG}..HEAD --count)
+          NEXT=$(echo "$TAG" | awk -F. -v OFS=. '{$NF=$NF+1; print}')
+          VERSION="${NEXT}.dev${DISTANCE}"
+          echo "SETUPTOOLS_SCM_PRETEND_VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "Computed version: ${VERSION}"
+
       - name: Build sdist
         env:
           TMOL_SKIP_CUDA_BUILD: "TRUE"
           TMOL_SKIP_TEST_EXTS: "TRUE"
         run: |
-          # If a manual version was provided, override setuptools-scm
+          # Manual version override takes precedence
           if [ -n "${{ inputs.version_override }}" ]; then
             export SETUPTOOLS_SCM_PRETEND_VERSION="${{ inputs.version_override }}"
           fi
