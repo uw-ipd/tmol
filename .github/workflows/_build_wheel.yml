@@ -67,8 +67,13 @@ jobs:
           export TMOL_FORCE_BUILD=TRUE
           export TMOL_FORCE_CXX11_ABI=${{ inputs.cxx11_abi }}
           export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0+PTX"
-          export MAX_JOBS=2
-          export NVCC_THREADS=4
+          # GitHub free runner: 2 vCPU, 7 GB RAM.
+          # Each nvcc fatbinary compilation uses ~2-3 GB per thread.
+          # MAX_JOBS=1 × NVCC_THREADS=2 = 2 concurrent nvcc threads ≈ 4-6 GB peak.
+          export MAX_JOBS=1
+          export NVCC_THREADS=2
+          # Skip test extensions in wheel builds — tests are run separately
+          export TMOL_SKIP_TEST_EXTS=TRUE
 
           python3 setup.py bdist_wheel --dist-dir=dist
 

@@ -10,6 +10,7 @@ Patterns adapted from:
 
 Environment variables:
   TMOL_SKIP_CUDA_BUILD=TRUE   Skip C++/CUDA compilation (for sdist creation)
+  TMOL_SKIP_TEST_EXTS=TRUE    Skip test extensions (for wheel builds)
   TMOL_FORCE_CXX11_ABI=TRUE   Force C++11 ABI (for nvcr container compat)
   TORCH_CUDA_ARCH_LIST         GPU architectures (default: "8.0 8.6 8.9 9.0+PTX")
   MAX_JOBS                     Max parallel compilation jobs
@@ -31,6 +32,7 @@ from setuptools import setup
 # ---------------------------------------------------------------------------
 
 SKIP_CUDA_BUILD = os.getenv("TMOL_SKIP_CUDA_BUILD", "FALSE") == "TRUE"
+SKIP_TEST_EXTS = os.getenv("TMOL_SKIP_TEST_EXTS", "FALSE") == "TRUE"
 FORCE_CXX11_ABI = os.getenv("TMOL_FORCE_CXX11_ABI", "FALSE") == "TRUE"
 FORCE_BUILD = os.getenv("TMOL_FORCE_BUILD", "FALSE") == "TRUE"
 NVCC_THREADS = os.getenv("NVCC_THREADS", "4")
@@ -608,7 +610,9 @@ if not SKIP_CUDA_BUILD:
             stacklevel=2,
         )
     else:
-        ext_modules = _production_extensions() + _test_extensions()
+        ext_modules = _production_extensions()
+        if not SKIP_TEST_EXTS:
+            ext_modules += _test_extensions()
 
 cmdclass = {"build_ext": NinjaBuildExtension}
 if CachedWheelsCommand is not None:
