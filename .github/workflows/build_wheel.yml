@@ -1,12 +1,13 @@
-# Full wheel build + TestPyPI upload.
-# Triggers on push to precompiled_extensions branch.
+# CI wheel build — validates that extensions compile.
+# Wheels saved as artifacts only (no upload).
+# For publishing, use publish.yml (manual workflow_dispatch).
 #
-# Builds wheels for PyTorch 2.5, 2.6, 2.7 with CXX11 ABI (NGC containers).
-# Each NGC container pins a specific CUDA version (12.6-12.9) — this determines
-# the CUDA runtime the .so links against. The SM architectures (8.0-9.0+PTX)
+# Builds wheels for PyTorch 2.5, 2.8, 2.10 with CXX11 ABI (NGC containers).
+# Each NGC container pins a specific CUDA version (12.6–13.1) — this determines
+# the CUDA runtime the .so links against.  The SM architectures (8.0-9.0+PTX)
 # in the fatbinary determine which GPU hardware is supported at runtime.
 
-name: Build and publish wheels
+name: Build wheels (CI)
 
 on:
   push:
@@ -43,41 +44,3 @@ jobs:
       torch-version: ${{ matrix.torch-version }}
       # NGC containers use CXX11 ABI. Add FALSE variants later for pip torch users.
       cxx11_abi: "TRUE"
-
-  publish_sdist:
-    name: Build sdist + upload to TestPyPI
-    needs: [build_wheels]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          pip install setuptools>=68 wheel twine setuptools-scm ninja
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
-
-      - name: Build sdist (no CUDA)
-        env:
-          TMOL_SKIP_CUDA_BUILD: "TRUE"
-        run: python setup.py sdist --dist-dir=dist
-
-      - name: Upload sdist to TestPyPI
-        env:
-          TWINE_USERNAME: "__token__"
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
-
-      - name: Download all wheel artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: wheels/
-          merge-multiple: true
-
-      - name: Upload wheels to TestPyPI
-        env:
-          TWINE_USERNAME: "__token__"
-          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: python -m twine upload --repository-url https://test.pypi.org/legacy/ wheels/*.whl || true
