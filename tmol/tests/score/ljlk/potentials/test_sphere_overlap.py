@@ -1,8 +1,5 @@
 import pytest
-
 import torch
-
-from tmol.utility.cpp_extension import load, relpaths, modulename
 
 from tmol.tests.torch import requires_cuda
 
@@ -10,7 +7,9 @@ from tmol.tests.torch import requires_cuda
 @requires_cuda
 @pytest.fixture
 def extension():
-    return load(modulename(f"{__name__}.cuda"), relpaths(__file__, "sphere_overlap.cu"))
+    from tmol.tests.score.ljlk.potentials import _sphere_overlap
+
+    return _sphere_overlap
 
 
 @requires_cuda
@@ -19,12 +18,8 @@ def test_compute_block_spheres(extension):
     dev = torch.device("cuda")
     coords = some_coords()[None, :, :].to(dev)
     block_type_n_atoms = torch.tensor([5, 6, 4, 3, 6, 4], dtype=torch.int32, device=dev)
-    pose_stack_block_type = torch.tensor(
-        [[0, 1, 2, 1, 0, 2, 1]], dtype=torch.int32, device=dev
-    )
-    pose_stack_block_coord_offset = torch.tensor(
-        [[0, 5, 11, 15, 21, 26, 30]], dtype=torch.int32, device=dev
-    )
+    pose_stack_block_type = torch.tensor([[0, 1, 2, 1, 0, 2, 1]], dtype=torch.int32, device=dev)
+    pose_stack_block_coord_offset = torch.tensor([[0, 5, 11, 15, 21, 26, 30]], dtype=torch.int32, device=dev)
     spheres = extension.compute_block_spheres_float(
         coords, pose_stack_block_coord_offset, pose_stack_block_type, block_type_n_atoms
     )
@@ -49,9 +44,7 @@ def test_compute_block_spheres(extension):
     dist_by_res[at_is_real] = dist.flatten()
     gold_sphere_radii, _ = torch.max(dist_by_res, dim=1)
 
-    gold_spheres = torch.cat(
-        (gold_com.reshape((-1, 3)), gold_sphere_radii.reshape((-1, 1))), dim=1
-    ).reshape((1, 7, 4))
+    gold_spheres = torch.cat((gold_com.reshape((-1, 3)), gold_sphere_radii.reshape((-1, 1))), dim=1).reshape((1, 7, 4))
 
     torch.testing.assert_close(gold_spheres, spheres, rtol=1e-5, atol=1e-5)
 
@@ -62,12 +55,8 @@ def test_compute_block_spheres2(extension):
     dev = torch.device("cuda")
     coords = some_coords()[None, :, :].to(dev)
     block_type_n_atoms = torch.tensor([5, 6, 4, 3, 6, 4], dtype=torch.int32, device=dev)
-    pose_stack_block_type = torch.tensor(
-        [[0, 1, 2, 1, 0, 2, 1]], dtype=torch.int32, device=dev
-    )
-    pose_stack_block_coord_offset = torch.tensor(
-        [[0, 5, 11, 15, 21, 26, 30]], dtype=torch.int32, device=dev
-    )
+    pose_stack_block_type = torch.tensor([[0, 1, 2, 1, 0, 2, 1]], dtype=torch.int32, device=dev)
+    pose_stack_block_coord_offset = torch.tensor([[0, 5, 11, 15, 21, 26, 30]], dtype=torch.int32, device=dev)
 
     def double_stack_depth(x):
         return torch.cat((x, x), dim=0)
@@ -104,9 +93,7 @@ def test_compute_block_spheres2(extension):
     dist_by_res[at_is_real] = dist.flatten()
     gold_sphere_radii, _ = torch.max(dist_by_res, dim=1)
 
-    gold_spheres = torch.cat(
-        (gold_com.reshape((-1, 3)), gold_sphere_radii.reshape((-1, 1))), dim=1
-    ).reshape((1, 7, 4))
+    gold_spheres = torch.cat((gold_com.reshape((-1, 3)), gold_sphere_radii.reshape((-1, 1))), dim=1).reshape((1, 7, 4))
     gold_spheres2 = double_stack_depth(gold_spheres)
 
     torch.testing.assert_close(gold_spheres2, spheres, rtol=1e-5, atol=1e-5)

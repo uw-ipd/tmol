@@ -1,6 +1,4 @@
-import torch
-from tmol.utility.cpp_extension import load, relpaths, modulename
+import torch  # noqa: F401
 
-load(modulename(__name__), relpaths(__file__, "custom_op.cpp"), is_python_module=False)
-
-cpow = getattr(torch.ops, modulename(__name__)).cpow
+# Load the pre-compiled TORCH_LIBRARY extension
+from tmol.tests.utility.torchscript import _custom_op  # noqa: F401

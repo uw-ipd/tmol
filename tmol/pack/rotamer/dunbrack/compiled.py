@@ -1,15 +1,8 @@
 import torch
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
+from tmol._cpp_lib import _ensure_loaded
 
-load(
-    modulename(__name__),
-    cuda_if_available(
-        relpaths(__file__, ["compiled.ops.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"])
-    ),
-    is_python_module=False,
-)
+_ensure_loaded()
 
-_ops = getattr(torch.ops, modulename(__name__))
-
+_ops = torch.ops.tmol_dun_sampler
 dun_sample_chi = _ops.dun_sample_chi

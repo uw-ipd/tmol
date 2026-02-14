@@ -1,17 +1,14 @@
-import pytest
-import torch
-import toolz
 import attr
-
-import tmol.utility.cpp_extension as cpp_extension
-from tmol.utility.cpp_extension import relpaths, modulename
+import pytest
+import toolz
+import torch
 
 
 @pytest.fixture(scope="session")
 def tensor_struct():
-    return cpp_extension.load(
-        modulename(__name__), relpaths(__file__, "tensor_struct.cpp"), verbose=True
-    )
+    from tmol.tests.utility.tensor import _tensor_struct
+
+    return _tensor_struct
 
 
 def test_tensor_struct(tensor_struct):
@@ -29,12 +26,10 @@ def test_tensor_struct(tensor_struct):
         asum = tdata.a.sum()
 
         # Data structure w/ required tensor fields a, b is converted successfully.
-        accessor(attr.asdict(tdata)) == asum
+        assert accessor(attr.asdict(tdata)) == asum
 
         # Data structure extra fields are ignored.
-        accessor(
-            toolz.merge(attr.asdict(tdata), {"c": torch.full((100,), 2.998e8)})
-        ) == asum
+        assert accessor(toolz.merge(attr.asdict(tdata), {"c": torch.full((100,), 2.998e8)})) == asum
 
         # Direct pass of attrs-class raises type error
         with pytest.raises(TypeError):
@@ -63,7 +58,7 @@ def test_tensor_view(tensor_struct):
     dsum = dat.sum()
 
     # Tensor of correct type is converted
-    tensor_struct.sum(dat) == dsum
+    assert tensor_struct.sum(dat) == dsum
 
     # Incorrect tensor dtype
     with pytest.raises(RuntimeError, match="tensor_data"):

@@ -2,7 +2,8 @@
 name = "tmol"
 description = "GPU-accelerated PyTorch reimplementation of the Rosetta energy function"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [
     { name = "Institute for Protein Design", email = "contact@ipd.uw.edu" },
@@ -19,7 +20,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
-    "License :: OSI Approved :: Apache Software License",
 ]
 dynamic = ["version"]
 
@@ -46,9 +46,6 @@ dependencies = [
     "pint>=0.23,<1",
     "psutil>=5.9,<7",
     "requests>=2.31,<3",
-    # Code generation & compilation
-    "astor>=0.8,<1",
-    "ninja>=1.11,<2",
     # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
     "sparse>=0.16,<1",
     # numba/llvmlite must be recent enough for Python 3.12+
@@ -61,10 +58,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-cuda = [
-    # CUDA nvcc compiler for JIT compilation of custom kernels
-    "nvidia-cuda-nvcc>=12.4,<14",
-]
 dev = [
     # Linters & formatters
     "ruff>=0.8,<1",
@@ -87,45 +80,28 @@ repository = "https://github.com/uw-ipd/tmol"
 
 # Build settings ---------------------------------------------------------------
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=68", "wheel", "setuptools-scm>=8", "torch>=2.5", "ninja", "psutil", "packaging"]
+build-backend = "setuptools.build_meta"
 
-[tool.hatch.version]
-source = "vcs"
+[tool.setuptools]
+packages = { find = { include = ["tmol*"] } }
 
-[tool.hatch.version.raw-options]
+[tool.setuptools.package-data]
+"tmol" = [
+    # Database YAML
+    "database/default/chemical/**/*.yaml",
+    "database/default/scoring/**/*.yaml",
+    # Test fixture data
+    "tests/data/pdb/**/*.pdb",
+    "tests/data/rosetta_baselines/**/*.pickle",
+    "tests/data/constraints/**/*.fa",
+    "tests/data/constraints/**/*.npz",
+]
+
+[tool.setuptools_scm]
 version_scheme = "no-guess-dev"
 local_scheme = "node-and-date"
 fallback_version = "0.0.0"
-
-[tool.hatch.build.targets.wheel]
-packages = ["tmol"]
-
-# Include C++/CUDA source files needed for JIT compilation, database YAML,
-# and test fixture data in the wheel.
-[tool.hatch.build.targets.wheel.sources]
-"" = ""
-
-[tool.hatch.build]
-artifacts = [
-    "tmol/**/*.hh",
-    "tmol/**/*.cpp",
-    "tmol/**/*.cu",
-    "tmol/**/*.cuh",
-    "tmol/**/*.cc",
-    "tmol/**/*.hpp",
-    "tmol/**/*.h",
-    "tmol/**/*.hxx",
-    "tmol/database/default/chemical/**/*.yaml",
-    "tmol/database/default/scoring/**/*.yaml",
-    "tmol/tests/data/pdb/**/*.pdb",
-    "tmol/tests/data/rosetta_baselines/**/*.pickle",
-    "tmol/tests/data/constraints/**/*.fa",
-    "tmol/tests/data/constraints/**/*.npz",
-]
-
-[tool.hatch.metadata]
-allow-direct-references = true
 
 # Code style settings ----------------------------------------------------------
 [tool.ruff]
@@ -196,6 +172,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "tmol/tests/*" = ["D", "E", "RUF"]
+"setup.py" = ["E402"]  # torch must be imported after setuptools
 
 # Test settings ----------------------------------------------------------------
 [tool.pytest.ini_options]

@@ -1073,10 +1073,8 @@ std::vector<Tensor> lkball_rotamer_score(
       output_block_pair_energies);
 }
 
-// Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
-#define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)
-TORCH_LIBRARY_(TORCH_EXTENSION_NAME, m) {
+TORCH_LIBRARY(tmol_lk_ball, m) {
   // m.def(
   //     "score_lkball_inter_system_scores",
   //     &rotamer_pair_energies<common::ForallDispatch>);
