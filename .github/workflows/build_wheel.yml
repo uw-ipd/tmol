@@ -17,6 +17,7 @@ on:
       - "pyproject.toml"
       - "tmol/**"
       - ".github/workflows/**"
+      - "MANIFEST.in"
   workflow_dispatch:
 
 jobs:

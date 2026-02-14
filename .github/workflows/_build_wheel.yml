@@ -27,7 +27,8 @@ on:
 
 defaults:
   run:
-    shell: bash -x -e -u -o pipefail {0}
+    # Note: -u omitted because NGC container's /etc/bash.bashrc has unbound PS1
+    shell: bash -x -e -o pipefail {0}
 
 jobs:
   build-wheel:
@@ -41,6 +42,7 @@ jobs:
         with:
           ref: ${{ inputs.release-version }}
           submodules: recursive
+          fetch-depth: 0  # Full history needed for setuptools-scm versioning
 
       - name: Set version variables
         run: |
