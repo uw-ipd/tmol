@@ -1,39 +1,31 @@
-# Build wheels for all supported configurations and publish on tag push.
+# Publish wheels + sdist to TestPyPI (or PyPI).
 #
-# Wheels are uploaded to GitHub Releases.
-# The sdist (source only, no CUDA) is uploaded to TestPyPI.
+# Trigger: manual workflow_dispatch only.
+# Optionally also runs on tag pushes (uncomment the tag trigger below).
 #
-# Uses NGC PyTorch containers which provide nvcc + torch + Python.
+# Three separate jobs so you can RE-RUN just the upload if it fails
+# without rebuilding wheels/sdist.
 
-name: Build wheels and publish
+name: Publish to TestPyPI
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: >
+          Explicit version string (e.g. "0.1.0").
+          Leave blank to use setuptools-scm (git-based version).
+        required: false
+        type: string
+  # Uncomment to also trigger on version tags:
+  # push:
+  #   tags:
+  #     - "v*"
 
 jobs:
-  create_release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    outputs:
-      release-version: ${{ steps.extract_tag.outputs.tag }}
-    steps:
-      - name: Get tag
-        id: extract_tag
-        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.extract_tag.outputs.tag }}
-          release_name: ${{ steps.extract_tag.outputs.tag }}
-
+  # ── Job 1: Build wheels ─────────────────────────────────────────────
   build_wheels:
-    name: Build Wheel
-    needs: create_release
+    name: Build Wheel (${{ matrix.torch-version }})
     strategy:
       fail-fast: false
       matrix:
@@ -53,30 +45,80 @@ jobs:
       container-image: ${{ matrix.container-image }}
       torch-version: ${{ matrix.torch-version }}
       cxx11_abi: "TRUE"
-      release-version: ${{ needs.create_release.outputs.release-version }}
-      upload-to-release: true
 
-  publish_sdist:
-    name: Publish sdist to TestPyPI
-    needs: [build_wheels]
+  # ── Job 2: Build sdist ──────────────────────────────────────────────
+  build_sdist:
+    name: Build sdist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install dependencies
         run: |
-          pip install setuptools>=68 wheel twine setuptools-scm ninja
+          pip install "setuptools>=68" wheel setuptools-scm ninja
           pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-      - name: Build sdist (no CUDA)
+      - name: Build sdist
         env:
           TMOL_SKIP_CUDA_BUILD: "TRUE"
-        run: python setup.py sdist --dist-dir=dist
+          TMOL_SKIP_TEST_EXTS: "TRUE"
+        run: |
+          # If a manual version was provided, override setuptools-scm
+          if [ -n "${{ inputs.version_override }}" ]; then
+            export SETUPTOOLS_SCM_PRETEND_VERSION="${{ inputs.version_override }}"
+          fi
+          python setup.py sdist --dist-dir=dist
+
+      - name: Log sdist
+        run: ls -lh dist/
+
+      - name: Upload sdist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  # ── Job 3: Upload to TestPyPI ───────────────────────────────────────
+  #
+  # This job only downloads artifacts + uploads.  If it fails (e.g. 400
+  # from PyPI) you can RE-RUN just this job without rebuilding anything.
+  upload:
+    name: Upload to TestPyPI
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install twine
+        run: pip install twine
+
+      - name: Download sdist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: Download wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: wheels/
+          pattern: wheel-*
+          merge-multiple: true
+
+      - name: List all packages
+        run: |
+          echo "=== sdist ==="
+          ls -lh dist/
+          echo "=== wheels ==="
+          ls -lh wheels/ || echo "(no wheels)"
 
       - name: Upload sdist to TestPyPI
         env:
@@ -84,19 +126,18 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
         run: python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
-      - name: Download all wheel artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: wheels/
-          merge-multiple: true
-
       - name: Upload wheels to TestPyPI
         env:
           TWINE_USERNAME: "__token__"
           TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        run: python -m twine upload --repository-url https://test.pypi.org/legacy/ wheels/*.whl || true
+        run: |
+          if ls wheels/*.whl 1>/dev/null 2>&1; then
+            python -m twine upload --repository-url https://test.pypi.org/legacy/ wheels/*.whl
+          else
+            echo "No wheels found — skipping wheel upload"
+          fi
 
-      # Uncomment below (and remove TestPyPI steps above) for real PyPI releases:
+      # Uncomment for real PyPI releases:
       # - name: Upload to PyPI
       #   env:
       #     TWINE_USERNAME: "__token__"
