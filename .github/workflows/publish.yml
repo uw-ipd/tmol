@@ -1,10 +1,11 @@
 # Publish sdist to TestPyPI + wheels to GitHub Release.
 #
+# MANUAL TRIGGER ONLY — runs when you bump the version in pyproject.toml
+# and intentionally want to publish.
+#
 # PyPI/TestPyPI rejects wheel filenames with "+" local version segments
 # (e.g. +cu12torch2.5), so wheels are distributed via GitHub Releases
 # and installed with: pip install tmol --find-links <release-url>
-#
-# Matrix covers both CXX11 ABI = TRUE (NGC/conda) and FALSE (pip torch).
 #
 # Three separate jobs so you can RE-RUN just the upload if it fails
 # without rebuilding wheels/sdist.
@@ -12,23 +13,7 @@
 name: Publish to TestPyPI
 
 on:
-  push:
-    branches:
-      - "kdidi/precompiled_extensions"
-    paths:
-      - "setup.py"
-      - "pyproject.toml"
-      - "tmol/**"
-      - ".github/workflows/**"
-      - "MANIFEST.in"
   workflow_dispatch:
-    inputs:
-      version_override:
-        description: >
-          Explicit version string (e.g. "0.1.0").
-          Leave blank to use setuptools-scm (git-based version).
-        required: false
-        type: string
 
 jobs:
   # ── Job 1: Build wheels ─────────────────────────────────────────────
@@ -76,8 +61,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -85,28 +68,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install "setuptools>=68" wheel setuptools-scm ninja
+          pip install "setuptools>=68" wheel ninja
           pip install torch --index-url https://download.pytorch.org/whl/cpu
-
-      - name: Compute version from git
-        run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
-          DISTANCE=$(git rev-list ${TAG}..HEAD --count)
-          NEXT=$(echo "$TAG" | awk -F. -v OFS=. '{$NF=$NF+1; print}')
-          VERSION="${NEXT}.dev${DISTANCE}"
-          echo "SETUPTOOLS_SCM_PRETEND_VERSION=${VERSION}" >> $GITHUB_ENV
-          echo "Computed version: ${VERSION}"
 
       - name: Build sdist
         env:
           TMOL_SKIP_CUDA_BUILD: "TRUE"
           TMOL_SKIP_TEST_EXTS: "TRUE"
-        run: |
-          # Manual version override takes precedence
-          if [ -n "${{ inputs.version_override }}" ]; then
-            export SETUPTOOLS_SCM_PRETEND_VERSION="${{ inputs.version_override }}"
-          fi
-          python setup.py sdist --dist-dir=dist
+        run: python setup.py sdist --dist-dir=dist
 
       - name: Log sdist
         run: ls -lh dist/
@@ -164,12 +133,10 @@ jobs:
         run: python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
       # ── Upload wheels to a GitHub Release ──
-      # Creates (or reuses) a release named after the sdist version.
       - name: Determine version from sdist filename
         id: version
         run: |
           SDIST=$(ls dist/*.tar.gz | head -1 | xargs basename)
-          # tmol-0.0.2.post1.dev230.tar.gz → 0.0.2.post1.dev230
           VERSION=$(echo "$SDIST" | sed 's/^tmol-//;s/\.tar\.gz$//')
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Detected version: $VERSION"
