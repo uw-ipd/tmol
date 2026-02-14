@@ -99,7 +99,7 @@ packages = { find = { include = ["tmol*"] } }
 ]
 
 [tool.setuptools_scm]
-version_scheme = "no-guess-dev"
+version_scheme = "guess-next-dev"
 local_scheme = "no-local-version"
 fallback_version = "0.0.0"
 
