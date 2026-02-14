@@ -9,6 +9,15 @@
 name: Publish to TestPyPI
 
 on:
+  push:
+    branches:
+      - "kdidi/precompiled_extensions"
+    paths:
+      - "setup.py"
+      - "pyproject.toml"
+      - "tmol/**"
+      - ".github/workflows/**"
+      - "MANIFEST.in"
   workflow_dispatch:
     inputs:
       version_override:
