@@ -1,30 +1,214 @@
 [project]
 name = "tmol"
-dynamic = ["version", "readme", "dependencies", "optional-dependencies"]
-requires-python = ">=3.9"
+description = "GPU-accelerated PyTorch reimplementation of the Rosetta energy function"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11"
+authors = [
+    { name = "Institute for Protein Design", email = "contact@ipd.uw.edu" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "License :: OSI Approved :: Apache Software License",
+]
+dynamic = ["version"]
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.in"]}
-readme = {file = "README.md"}
-optional-dependencies = {dev = {file = ["requirements-dev.in"]}}
+dependencies = [
+    # Core ML framework
+    "torch>=2.5,<3",
+    "numpy>=1.26,<3",
+    "scipy>=1.12,<2",
+    # Data structures & serialization
+    "attrs>=23.2,<26",
+    "attrs_strict>=1.0,<2",
+    "cattrs>=23.2,<25",
+    "frozendict>=2.4,<3",
+    "pandas>=2.2,<3",
+    "pyarrow>=15,<20",
+    "pyyaml>=6.0,<7",
+    # Graphs & algorithms
+    "networkx>=3.2,<4",
+    # Utilities
+    "toolz>=0.12,<1",
+    "decorator>=5.1,<6",
+    "typing_extensions>=4.9,<5",
+    "typing_inspect>=0.9,<1",
+    "pint>=0.23,<1",
+    "psutil>=5.9,<7",
+    "requests>=2.31,<3",
+    # Code generation & compilation
+    "astor>=0.8,<1",
+    "ninja>=1.11,<2",
+    # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
+    "sparse>=0.16,<1",
+    # numba/llvmlite must be recent enough for Python 3.12+
+    "numba>=0.60,<1",
+    "llvmlite>=0.43,<1",
+    # Testing (hypothesis is used at runtime for property-based data generation)
+    "hypothesis>=6.98,<7",
+    # Interactive
+    "ipython>=8.21",
+]
 
-[tool.setuptools]
-packages = ["tmol"]
+[project.optional-dependencies]
+cuda = [
+    # CUDA nvcc compiler for JIT compilation of custom kernels
+    "nvidia-cuda-nvcc>=12.4,<14",
+]
+dev = [
+    # Linters & formatters
+    "ruff>=0.8,<1",
+    "pre-commit>=4.0,<5",
+    "clang-format>=17,<19",
+    # Testing
+    "pytest>=8.0,<9",
+    "pytest-cov>=4.1,<7",
+    "pytest-benchmark>=5.1,<6",
+    "pytest-forked>=1.6,<2",
+    "pytest-instafail>=0.5,<1",
+    "pytest-repeat>=0.9,<1",
+    "pytest-watch>=4.2,<5",
+    # Visualization
+    "seaborn>=0.13,<1",
+]
 
-[tool.setuptools.package-data]
-"*" = ["*.hh", "*.cpp", "*.cu", "*.cuh", "*.cc", ".hpp", "*.h", "*.hxx"]
-"tmol.database.default.chemical" = ["**/*.yaml"]
-"tmol.database.default.scoring" = ["**/*.yaml"]
-"tmol.tests.data.pdb" = ["**/*.pdb"]
-"tmol.tests.data.rosetta_baselines" = ["**/*.pickle"]
-"tmol.tests.data.constraints" = ["**/*.fa", "**/*.npz"]
+[project.urls]
+repository = "https://github.com/uw-ipd/tmol"
 
+# Build settings ---------------------------------------------------------------
 [build-system]
-requires = ["setuptools >= 65", "setuptools_scm[toml]>=6.2"]
-build-backend = 'setuptools.build_meta'
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
-[tool.setuptools_scm]
-search_parent_directories = true
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
 version_scheme = "no-guess-dev"
 local_scheme = "node-and-date"
 fallback_version = "0.0.0"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tmol"]
+
+# Include C++/CUDA source files needed for JIT compilation, database YAML,
+# and test fixture data in the wheel.
+[tool.hatch.build.targets.wheel.sources]
+"" = ""
+
+[tool.hatch.build]
+artifacts = [
+    "tmol/**/*.hh",
+    "tmol/**/*.cpp",
+    "tmol/**/*.cu",
+    "tmol/**/*.cuh",
+    "tmol/**/*.cc",
+    "tmol/**/*.hpp",
+    "tmol/**/*.h",
+    "tmol/**/*.hxx",
+    "tmol/database/default/chemical/**/*.yaml",
+    "tmol/database/default/scoring/**/*.yaml",
+    "tmol/tests/data/pdb/**/*.pdb",
+    "tmol/tests/data/rosetta_baselines/**/*.pickle",
+    "tmol/tests/data/constraints/**/*.fa",
+    "tmol/tests/data/constraints/**/*.npz",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+# Code style settings ----------------------------------------------------------
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py311"
+exclude = [
+    "tmol/extern/",
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "env",
+    "venv",
+    "dev",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = 120
+
+[tool.ruff.lint]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+extend-select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "RUF", # Ruff-specific rules
+    "T10", # catch accidental debugger breakpoints
+]
+ignore = [
+    "B006",   # mutable default arguments
+    "E501",   # line too long (handled by formatter)
+    "SIM108", # ternary operator suggestions
+    "E741",   # ambiguous variable names (common in scientific code)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tmol/tests/*" = ["D", "E", "RUF"]
+
+# Test settings ----------------------------------------------------------------
+[tool.pytest.ini_options]
+addopts = "--benchmark-disable --benchmark-columns=ops,mean,iqr"
+filterwarnings = [
+    "ignore:(?s).*is not compatible with the compiler Pytorch.*:",
+    "ignore:(?s).*Benchmark fixture was not used.*:",
+    "ignore:(?s).*one of the inputs that requires gradient is not of double precision.*:",
+    "ignore:(?s).*Distutils was imported before Setuptools*:",
+    "ignore:(?s).*To copy construct from a tensor, it is recommended to use*:",
+    "ignore:(?s).*pkg_resources is deprecated*:",
+    "ignore:(?s).*Deprecated call to `pkg_resources.declare_namespace*:",
+]
+
+[tool.pytest-watch]
+ext = ".cpp,.hh,.h,.cu,.py,.yaml"

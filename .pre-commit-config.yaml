@@ -13,17 +13,25 @@ repos:
                 tmol/extern/.* |
                 dev/.* 
             )$
-      - id: black
-        name: black
-        description: 'Black: The uncompromising Python code formatter'
-        entry: black
-        language: python
-        language_version: python3.11
-        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        description: 'Format Python files with ruff.'
+        entry: ruff format
+        language: system
         types: [python]
         exclude: >
             (?x)^(
                 tmol/extern/.* |
                 dev/.* 
-                \.conda/.*
+            )$
+      - id: ruff-check
+        name: ruff check
+        description: 'Lint Python files with ruff.'
+        entry: ruff check --fix
+        language: system
+        types: [python]
+        exclude: >
+            (?x)^(
+                tmol/extern/.* |
+                dev/.* 
             )$
