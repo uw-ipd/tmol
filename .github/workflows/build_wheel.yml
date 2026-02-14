@@ -1,0 +1,31 @@
+# Manual trigger for testing a single wheel build configuration.
+
+name: Build wheel (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      container-image:
+        description: "NGC PyTorch container image"
+        required: true
+        type: string
+        default: "nvcr.io/nvidia/pytorch:25.04-py3"
+      torch-version:
+        description: "PyTorch version label (for wheel naming)"
+        required: true
+        type: string
+        default: "2.7"
+      cxx11_abi:
+        description: "C++11 ABI (TRUE/FALSE)"
+        required: true
+        type: string
+        default: "TRUE"
+
+jobs:
+  build:
+    uses: ./.github/workflows/_build_wheel.yml
+    with:
+      runs-on: ubuntu-22.04
+      container-image: ${{ inputs.container-image }}
+      torch-version: ${{ inputs.torch-version }}
+      cxx11_abi: ${{ inputs.cxx11_abi }}

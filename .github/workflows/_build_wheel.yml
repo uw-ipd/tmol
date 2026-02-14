@@ -1,0 +1,97 @@
+name: ~Build wheel template
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        required: true
+        type: string
+        default: ubuntu-22.04
+      container-image:
+        required: true
+        type: string
+        description: "NGC PyTorch container (provides nvcc, torch, Python)"
+      torch-version:
+        required: true
+        type: string
+      cxx11_abi:
+        required: true
+        type: string
+      upload-to-release:
+        required: false
+        type: boolean
+        default: false
+      release-version:
+        required: false
+        type: string
+
+defaults:
+  run:
+    shell: bash -x -e -u -o pipefail {0}
+
+jobs:
+  build-wheel:
+    runs-on: ${{ inputs.runs-on }}
+    container:
+      image: ${{ inputs.container-image }}
+    name: Build (pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.release-version }}
+          submodules: recursive
+
+      - name: Set version variables
+        run: |
+          PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
+          TORCH_VERSION=$(python3 -c "import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')")
+          CUDA_VERSION=$(python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
+
+          echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> $GITHUB_ENV
+          echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> $GITHUB_ENV
+          echo "WHEEL_CUDA_VERSION=${CUDA_VERSION%%[0-9]}" >> $GITHUB_ENV
+
+          # Verify the container has what we need
+          nvcc --version
+          python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
+
+      - name: Install build dependencies
+        run: |
+          pip install --break-system-packages setuptools>=68 ninja packaging wheel psutil setuptools-scm
+
+      - name: Build wheel
+        run: |
+          export TMOL_FORCE_BUILD=TRUE
+          export TMOL_FORCE_CXX11_ABI=${{ inputs.cxx11_abi }}
+          export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0+PTX"
+          export MAX_JOBS=2
+          export NVCC_THREADS=4
+
+          python3 setup.py bdist_wheel --dist-dir=dist
+
+          # Rename wheel with CUDA/torch/ABI tags
+          tmpname=cu${WHEEL_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}cxx11abi${{ inputs.cxx11_abi }}
+          wheel_name=$(ls dist/*whl | xargs -n 1 basename | sed "s/-/+$tmpname-/2")
+          ls dist/*whl | xargs -I {} mv {} dist/${wheel_name}
+          echo "wheel_name=${wheel_name}" >> $GITHUB_ENV
+
+      - name: Log built wheels
+        run: ls -lh dist/
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }}
+          path: dist/*.whl
+
+      - name: Upload to GitHub Release
+        if: inputs.upload-to-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dist/${{ env.wheel_name }}
+          asset_name: ${{ env.wheel_name }}
+          asset_content_type: application/*
