@@ -1,22 +1,19 @@
 #!/bin/bash
-
 set -e
 
-# conda setup
-source ~/.bashrc
 export TORCH_EXTENSIONS_DIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/torch_extensions
 export NUMBA_CACHE_DIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/numba_cache
 export NUMBA_TMPDIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/numba_temp
 
-# create env
-conda clean --all -y
-conda create -n $BUILDKITE_BUILD_ID -y
-conda env update -n $BUILDKITE_BUILD_ID  --file environments/linux-cuda/env.yml --prune
-conda activate $BUILDKITE_BUILD_ID
-
 set -x
 
-# install pkg
-# pip install .[dev]
-pip install -r environments/linux-cuda/requirements-dev-linux-cuda.txt
+# Install uv if not present
+command -v uv >/dev/null 2>&1 || pip install --break-system-packages uv
 
+# Install Python dependencies + dev tools via uv (fast)
+uv pip install --system --break-system-packages -e ".[dev]" --no-build-isolation
+
+# Build C++/CUDA extensions in-place (AOT — no JIT needed)
+export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-8.0 9.0+PTX}"
+MAX_JOBS=4 NVCC_THREADS=2 python setup.py build_ext --inplace

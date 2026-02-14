@@ -1,22 +1,13 @@
 #!/bin/bash
-#http://redsymbol.net/articles/unofficial-bash-strict-mode/
-
-source ~/.bashrc
-conda activate $BUILDKITE_BUILD_ID
-
 set -euo pipefail
-IFS=$'\n\t'
-
-set +e
 set -x
 
 error=0
 
-pre-commit install
-pre-commit run --all --show-diff-on-failure
-(( error |= $? ))
+ruff check .
+(( error |= $? )) || true
 
-flake8 
-(( error |= $? ))
+ruff format --check .
+(( error |= $? )) || true
 
 exit $error
