@@ -4,20 +4,61 @@
 
 ## Installation
 
-### From PyPI
+### Pre-built wheels (recommended)
+
+Pre-built wheels are available for Linux x86_64 with CUDA. Pick the one matching your **PyTorch version** and **ABI**:
+
+**Which ABI do I have?**
+```bash
+python -c "import torch; print('CXX11 ABI:', torch._C._GLIBCXX_USE_CXX11_ABI)"
+```
+- `True` → NGC container, conda, or source-built PyTorch → use **cxx11abiTRUE** wheels
+- `False` → `pip install torch` on bare metal → use **cxx11abiFALSE** wheels
+
+| PyTorch | CUDA | ABI | Wheel tag |
+|---------|------|-----|-----------|
+| 2.5     | 12.6 | TRUE  | `+cu126torch2.5cxx11abiTRUE` |
+| 2.5     | 12.4 | FALSE | `+cu124torch2.5cxx11abiFALSE` |
+| 2.8     | 12.9 | TRUE  | `+cu129torch2.8cxx11abiTRUE` |
+| 2.8     | 12.6 | FALSE | `+cu126torch2.8cxx11abiFALSE` |
+| 2.10    | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE` |
+| 2.10    | 12.6 | FALSE | `+cu126torch2.10cxx11abiFALSE` |
+
+> [!TIP]
+> CUDA wheels are **forward-compatible** within a major version: a `cu124` wheel works on any CUDA 12.x driver ≥ 12.4. You don't need an exact CUDA version match.
+
+Check your full environment:
+```bash
+python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, ABI: {torch._C._GLIBCXX_USE_CXX11_ABI}')"
+```
+
+Install from [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
+```bash
+# Direct URL (replace RELEASE_TAG and WHEEL_FILENAME):
+pip install https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/WHEEL_FILENAME.whl
+
+# Or use --find-links to let pip resolve by version:
+pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/
+```
+
+### From PyPI (source build)
+
+The source distribution on PyPI compiles C++/CUDA extensions during installation.
+This requires `nvcc` (CUDA toolkit) to be available.
 
 ```bash
-pip install tmol                # base
-pip install tmol[cuda]          # with nvcc for JIT compilation of custom kernels
-pip install tmol[dev]           # with development tools (ruff, pytest, etc.)
-pip install tmol[dev,cuda]      # everything
+pip install tmol              # base (requires nvcc for kernel compilation)
+pip install tmol[dev]         # with development tools (ruff, pytest, etc.)
 ```
 
 ### From source (development)
 
 ```bash
 git clone https://github.com/uw-ipd/tmol.git && cd tmol
-pip install -e .[dev,cuda]
+pip install -e ".[dev]"
+
+# Build C++/CUDA extensions in-place
+python setup.py build_ext --inplace
 ```
 
 ### Container (recommended for GPU clusters)
@@ -35,6 +76,14 @@ pip install -e .  # inside container
 ```bash
 apptainer build tmol-dev.sif containers/apptainer/tmol-dev.def
 apptainer run --nv --bind $(pwd):/tmol_host tmol-dev.sif
+```
+
+### Verifying the installation
+
+```python
+import tmol
+# If extensions are loaded correctly, this will print without error:
+print("tmol loaded successfully")
 ```
 
 ## Usage
@@ -89,7 +138,7 @@ To use `tmol` within RosettaFold2, install `tmol` into your RF2 environment:
 
 ```bash
 cd <your local tmol repository root directory>
-pip install -e .[cuda]
+pip install -e .
 ```
 
 >[!NOTE]
@@ -128,13 +177,26 @@ pose_stack = tmol.pose_stack_from_openfold(output)
 
 `tmol` uses Test-Driven Development. If you are writing `tmol` code, [you should start by writing test cases for your code](https://github.com/uw-ipd/tmol/wiki/Testing#writing-tests).
 
+### Building extensions locally
+
+```bash
+# Build all extensions (production + test)
+python setup.py build_ext --inplace
+
+# Skip test extensions (faster)
+TMOL_SKIP_TEST_EXTS=TRUE python setup.py build_ext --inplace
+
+# Specify GPU architectures (default: "8.0 8.6 8.9 9.0+PTX")
+TORCH_CUDA_ARCH_LIST="8.0 9.0+PTX" python setup.py build_ext --inplace
+```
+
 ### Committing
 
 tmol uses pre-commit hooks to ensure uniform code formatting. These pre-commit hooks run `clang-format` and `ruff`. If your code needed reformatting, the initial commit will fail, and clang-format/ruff will reformat your code. You can see these changes via `git diff`, and you can `git add` the files to accept the new formatting before committing again.
 
 To install the pre-commit hooks:
 ```bash
-pip install -e .[dev]
+pip install -e ".[dev]"
 pre-commit install
 ```
 

@@ -17,6 +17,15 @@ on:
       cxx11_abi:
         required: true
         type: string
+      pip-torch-cuda-url:
+        required: false
+        type: string
+        default: ""
+        description: >
+          When non-empty, reinstall PyTorch from pip using this --index-url
+          (e.g. https://download.pytorch.org/whl/cu124).
+          Used for CXX11_ABI=FALSE builds where we need pip's torch (old ABI)
+          but still use the NGC container's nvcc for compilation.
       upload-to-release:
         required: false
         type: boolean
@@ -43,6 +52,15 @@ jobs:
           ref: ${{ inputs.release-version }}
           submodules: recursive
           fetch-depth: 0  # Full history needed for setuptools-scm versioning
+
+      - name: Reinstall PyTorch from pip (ABI=FALSE)
+        if: inputs.pip-torch-cuda-url != ''
+        run: |
+          echo "Replacing NGC PyTorch with pip PyTorch (CXX11_ABI=FALSE)"
+          pip install --break-system-packages --force-reinstall \
+            torch==${{ inputs.torch-version }}.* \
+            --index-url ${{ inputs.pip-torch-cuda-url }}
+          python3 -c "import torch; print(f'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}')"
 
       - name: Set version variables
         run: |
