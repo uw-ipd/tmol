@@ -532,11 +532,14 @@ BASE_WHEEL_URL = "https://github.com/uw-ipd/tmol/releases/download/{tag_name}/{w
 
 
 def _get_package_version():
-    """Read version from tmol/__init__.py or setuptools-scm."""
+    """Read version from pyproject.toml."""
     try:
-        from setuptools_scm import get_version
-
-        return get_version(version_scheme="no-guess-dev", local_scheme="node-and-date")
+        import tomllib
+    except ModuleNotFoundError:
+        import tomli as tomllib  # Python < 3.11
+    try:
+        with open(Path(__file__).parent / "pyproject.toml", "rb") as f:
+            return tomllib.load(f)["project"]["version"]
     except Exception:
         return "0.0.0"
 

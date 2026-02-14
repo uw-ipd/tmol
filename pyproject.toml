@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-dynamic = ["version"]
+version = "0.1.0"
 
 dependencies = [
     # Core ML framework
@@ -80,7 +80,7 @@ repository = "https://github.com/uw-ipd/tmol"
 
 # Build settings ---------------------------------------------------------------
 [build-system]
-requires = ["setuptools>=68", "wheel", "setuptools-scm>=8", "torch>=2.5", "ninja", "psutil", "packaging"]
+requires = ["setuptools>=68", "wheel", "torch>=2.5", "ninja", "psutil", "packaging"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -97,11 +97,6 @@ packages = { find = { include = ["tmol*"] } }
     "tests/data/constraints/**/*.fa",
     "tests/data/constraints/**/*.npz",
 ]
-
-[tool.setuptools_scm]
-version_scheme = "guess-next-dev"
-local_scheme = "no-local-version"
-fallback_version = "0.0.0"
 
 # Code style settings ----------------------------------------------------------
 [tool.ruff]
