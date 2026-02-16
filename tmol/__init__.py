@@ -4,12 +4,12 @@
 import contextlib
 from importlib.metadata import PackageNotFoundError, version
 
-from tmol._cpp_lib import _ensure_loaded as _load_cpp_lib
+from tmol._load_ext import ensure_compiled_or_jit as _ensure_compiled_or_jit
 
 # Extensions may not be built yet (e.g. during setup.py or sdist).
 # Individual compiled.py modules will raise a clear error if needed.
 with contextlib.suppress(Exception):
-    _load_cpp_lib()
+    _ensure_compiled_or_jit()
 
 from tmol.chemical.restypes import one2three, three2one
 from tmol.database import ParameterDatabase

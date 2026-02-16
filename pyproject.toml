@@ -74,6 +74,14 @@ dev = [
     # Visualization
     "seaborn>=0.13,<1",
 ]
+cuda = [
+    # CUDA nvcc compiler for JIT compilation of custom kernels.
+    # Only the unsuffixed (cu13) package ships the full nvcc binary;
+    # nvidia-cuda-nvcc-cu12 only contains ptxas.
+    "nvidia-cuda-nvcc>=13,<14",
+    # CCCL headers (nv/target, cub/, thrust/) needed by nvcc
+    "nvidia-cuda-cccl>=13,<14",
+]
 
 [project.urls]
 repository = "https://github.com/uw-ipd/tmol"

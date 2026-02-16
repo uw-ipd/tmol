@@ -2,6 +2,19 @@
 
 `tmol`, short for TensorMol, is a faithful reimplementation of the Rosetta molecular modeling energy function ("beta_nov2016_cart") in PyTorch with custom kernels written in C++ and CUDA. Given the coordinates of one or more proteins, `tmol` can compute both energies and derivatives. `tmol` can also perform gradient-based minimization on those structures. Thus, ML models that produce cartesian coordinates for proteins can include biophysical features in their loss during training or refine their output structures using Rosetta's experimentally validated energy function. You can read the full wiki [here](https://github.com/uw-ipd/tmol/wiki/DevHome).
 
+## Table of Contents
+
+- Installation
+- JIT Development Mode
+- Containers
+- Verification
+- Usage
+- RosettaFold2
+- OpenFold
+- CI Strategy
+- Development Workflow
+- Citation
+
 ## Installation
 
 ### Pre-built wheels (recommended)
@@ -14,6 +27,9 @@ python -c "import torch; print('CXX11 ABI:', torch._C._GLIBCXX_USE_CXX11_ABI)"
 ```
 - `True` → NGC container, conda, or source-built PyTorch → use **cxx11abiTRUE** wheels
 - `False` → `pip install torch` on bare metal → use **cxx11abiFALSE** wheels
+
+If you want more background on the CXX11 ABI split, see this discussion:
+https://github.com/Dao-AILab/flash-attention/issues/457
 
 | PyTorch | CUDA | ABI | Wheel tag |
 |---------|------|-----|-----------|
@@ -61,7 +77,35 @@ pip install -e ".[dev]"
 python setup.py build_ext --inplace
 ```
 
-### Container (recommended for GPU clusters)
+## JIT Development Mode
+
+By default, tmol loads the precompiled `_C` extension if present. For kernel
+development you can opt into JIT compilation:
+
+```bash
+export TMOL_USE_JIT=1
+```
+
+Optional fallback when the precompiled extension is missing:
+
+```bash
+export TMOL_JIT_FALLBACK=1
+```
+
+JIT mode requires `nvcc` and the CUDA headers/libraries to be discoverable:
+
+1. **Provide your own CUDA toolkit** (e.g., CUDA-enabled container or system CUDA with `CUDA_HOME` set)
+2. **Install the pip CUDA extra** and let tmol auto-configure the environment
+
+```bash
+pip install .[cuda]
+```
+
+When using the pip CUDA extra, tmol auto-detects `nvcc` and sets `CUDA_HOME`,
+`PATH`, and `LD_LIBRARY_PATH`, plus creates compatibility symlinks needed by
+PyTorch (e.g., `nvidia/cu12 -> nvidia/cu13`, `libcudart.so -> libcudart.so.N`).
+
+## Containers
 
 The container definitions install all dependencies into an NVIDIA NGC PyTorch base image that already provides `torch`, `numpy`, `nvcc`, and CUDA libraries. Bind-mount your tmol checkout at runtime.
 
@@ -78,7 +122,7 @@ apptainer build tmol-dev.sif containers/apptainer/tmol-dev.def
 apptainer run --nv --bind $(pwd):/tmol_host tmol-dev.sif
 ```
 
-### Verifying the installation
+## Verification
 
 ```python
 import tmol
@@ -172,6 +216,17 @@ Full OpenFold documentation coming soon.
 output = openfold_model.infer(sequences)
 pose_stack = tmol.pose_stack_from_openfold(output)
 ```
+
+## CI Strategy
+
+We use a hybrid CI setup:
+
+- **Buildkite (GPU runners)** runs CUDA-heavy tests and benchmarks.
+- **GitHub Actions** builds the wheel matrix, builds sdist, and publishes to TestPyPI/GitHub Releases.
+
+To enable Buildkite on a branch, the Buildkite pipeline must be connected to this repo
+in the Buildkite UI and the GitHub webhook must be configured to trigger builds for
+the desired branches/PRs. The pipeline definition lives in `.buildkite/pipeline.yml`.
 
 ## Development Workflow
 

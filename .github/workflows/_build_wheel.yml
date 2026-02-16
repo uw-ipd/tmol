@@ -56,7 +56,10 @@ jobs:
         if: inputs.pip-torch-cuda-url != ''
         run: |
           echo "Replacing NGC PyTorch with pip PyTorch (CXX11_ABI=FALSE)"
-          pip install --break-system-packages --force-reinstall \
+          # Some NGC images pin torch via pip constraints; clear those to allow pip torch.
+          pip config unset global.constraint || true
+          export PIP_CONSTRAINT=""
+          pip install --break-system-packages --force-reinstall --no-deps \
             torch==${{ inputs.torch-version }}.* \
             --index-url ${{ inputs.pip-torch-cuda-url }}
           python3 -c "import torch; print(f'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}')"
