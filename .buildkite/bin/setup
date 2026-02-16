@@ -13,7 +13,8 @@ command -v uv >/dev/null 2>&1 || pip install --break-system-packages uv
 export PATH="$HOME/.local/bin:$PATH"
 
 # Install Python dependencies + dev tools via uv (fast)
-uv pip install --system --break-system-packages -e ".[dev]" --no-build-isolation
+# Allow build isolation so build-system.requires/uv extra-build-deps are honored.
+uv pip install --system --break-system-packages -e ".[dev]"
 
 # Build C++/CUDA extensions in-place (AOT — no JIT needed)
 if [[ "${TMOL_SKIP_AOT_BUILD:-}" != "TRUE" ]]; then
