@@ -9,11 +9,15 @@ set -x
 
 # Install uv if not present
 command -v uv >/dev/null 2>&1 || pip install --break-system-packages uv
+# Ensure user-local bin is on PATH for uv when pip installs to ~/.local/bin
+export PATH="$HOME/.local/bin:$PATH"
 
 # Install Python dependencies + dev tools via uv (fast)
 uv pip install --system --break-system-packages -e ".[dev]" --no-build-isolation
 
 # Build C++/CUDA extensions in-place (AOT — no JIT needed)
-export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-8.0 9.0+PTX}"
-MAX_JOBS=4 NVCC_THREADS=2 python setup.py build_ext --inplace
+if [[ "${TMOL_SKIP_AOT_BUILD:-}" != "TRUE" ]]; then
+  export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+  export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-8.0 9.0+PTX}"
+  MAX_JOBS=4 NVCC_THREADS=2 python setup.py build_ext --inplace
+fi
