@@ -91,6 +91,9 @@ repository = "https://github.com/uw-ipd/tmol"
 requires = ["setuptools>=68", "wheel", "torch>=2.5", "ninja", "psutil", "packaging"]
 build-backend = "setuptools.build_meta"
 
+[tool.uv.extra-build-dependencies]
+tmol = ["torch>=2.5"]
+
 [tool.setuptools]
 packages = { find = { include = ["tmol*"] } }
 
