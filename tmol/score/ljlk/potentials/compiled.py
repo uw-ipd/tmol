@@ -2,8 +2,20 @@ import torch
 
 from tmol._load_ext import ensure_compiled_or_jit
 
-if ensure_compiled_or_jit():
-    from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
+load(
+    modulename(__name__),
+    cuda_if_available(
+        relpaths(
+            __file__,
+            [
+                "compiled.ops.cpp",
+                "ljlk_pose_score.cpu.cpp",
+                "ljlk_pose_score.cuda.cu",
+            ],
+        )
+    ),
+    is_python_module=False,
+)
 
     load(
         modulename(__name__),

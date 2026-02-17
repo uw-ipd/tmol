@@ -410,7 +410,39 @@ class EnergyTermTestBase:
             cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(scores))
         gold_vals = cls.get_test_baseline_data(test_name)
 
-        assert_allclose(gold_vals, scores, atol, rtol)
+        # reshape these values for the new block-pair scoring scheme
+        gold_vals_upper_triangle = numpy.zeros_like(gold_vals)
+        assert gold_vals.shape[2] == gold_vals.shape[3]
+        n_poses = gold_vals.shape[1]
+        n_res = gold_vals.shape[2]
+        assert n_poses == 1
+        inds_arange = numpy.arange(n_res, dtype=int)
+        inds_arange_i = inds_arange.reshape(-1, 1)
+        inds_arange_j = inds_arange.reshape(1, -1)
+        ij_is_upper_triangle = inds_arange_i < inds_arange_j
+        ij_is_diagonal = inds_arange_i == inds_arange_j
+        gold_vals_upper_triangle[:, :, ij_is_diagonal] = gold_vals[:, :, ij_is_diagonal]
+        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] = gold_vals[
+            :, :, ij_is_upper_triangle
+        ]
+        gold_vals_transposed = numpy.transpose(gold_vals, (0, 1, 3, 2))
+        # print("gold_vals_transposed")
+        # print(gold_vals_transposed)
+        gold_vals_upper_triangle[:, :, ij_is_upper_triangle] += gold_vals_transposed[
+            :, :, ij_is_upper_triangle
+        ]
+
+        scores_upper_triangle = numpy.zeros_like(scores)
+        scores_upper_triangle[:, :, ij_is_diagonal] = scores[:, :, ij_is_diagonal]
+        scores_upper_triangle[:, :, ij_is_upper_triangle] = scores[
+            :, :, ij_is_upper_triangle
+        ]
+        scores_transposed = numpy.transpose(scores, (0, 1, 3, 2))
+        scores_upper_triangle[:, :, ij_is_upper_triangle] += scores_transposed[
+            :, :, ij_is_upper_triangle
+        ]
+
+        assert_allclose(gold_vals_upper_triangle, scores_upper_triangle, atol, rtol)
 
     @classmethod
     def test_block_scoring_reweighted_gradcheck(
