@@ -62,7 +62,6 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device, default_restype_se
 
     sampler = IncludeCurrentSampler()
     task.add_conformer_sampler(sampler)
-    # task.add_conformer_sampler(sampler)
 
     residues_to_fix = [(0, 0), (0, 2), (0, 4), (1, 1), (1, 3), (1, 5)]
     for pose, res in residues_to_fix:
@@ -79,7 +78,6 @@ def test_include_current_sampler_smoke(ubq_pdb, torch_device, default_restype_se
     assert results[0].device == torch_device
     assert results[1].device == torch_device
     assert results[2] == {}
-    # assert results[3].device == torch_device
 
     n_rots_for_rt_gold = numpy.zeros((21 * 13,), dtype=numpy.int32)
     rt_for_rot_gold = numpy.full((6,), -1, dtype=numpy.int32)

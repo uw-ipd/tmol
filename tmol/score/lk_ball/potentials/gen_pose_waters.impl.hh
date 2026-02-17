@@ -18,8 +18,6 @@
 #include "water.hh"
 #include <tmol/score/lk_ball/potentials/constants.hh>
 
-#include <iostream>  // TEMP!
-
 namespace tmol {
 namespace score {
 namespace lk_ball {
@@ -28,8 +26,7 @@ namespace potentials {
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 template <
-    template <tmol::Device>
-    class DeviceOps,
+    template <tmol::Device> class DeviceOps,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -95,40 +92,6 @@ struct GeneratePoseWaters {
     int const max_n_block_atoms = block_type_atom_all_bond_ranges.size(1);
     int const max_n_tiles = block_type_tile_n_donH.size(1);
 
-    /*
-    assert(pose_stack_block_coord_offset.size(0) == n_poses);
-    assert(pose_stack_block_type.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
-    assert(block_type_n_interblock_bonds.size(0) == n_block_types);
-    assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
-    assert(block_type_atoms_forming_chemical_bonds.size(1) == max_n_conn);
-    assert(block_type_n_all_bonds.size(0) == n_block_types);
-    assert(block_type_atom_all_bond_ranges.size(0) == n_block_types);
-    assert(block_type_tile_n_donH.size(0) == n_block_types);
-    assert(block_type_tile_n_acc.size(0) == n_block_types);
-    assert(block_type_tile_n_acc.size(1) == max_n_tiles);
-    assert(block_type_tile_donH_inds.size(0) == n_block_types);
-    assert(block_type_tile_donH_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_donH_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_don_hvy_inds.size(0) == n_block_types);
-    assert(block_type_tile_don_hvy_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_don_hvy_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_which_donH_for_hvy.size(0) == n_block_types);
-    assert(block_type_tile_which_donH_for_hvy.size(1) == max_n_tiles);
-    assert(block_type_tile_which_donH_for_hvy.size(2) == TILE_SIZE);
-    assert(block_type_tile_acc_inds.size(0) == n_block_types);
-    assert(block_type_tile_acc_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_acc_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_hybridization.size(0) == n_block_types);
-    assert(block_type_tile_hybridization.size(1) == max_n_tiles);
-    assert(block_type_tile_hybridization.size(2) == TILE_SIZE);
-    assert(block_type_tile_acc_n_attached_H.size(0) == n_block_types);
-    assert(block_type_tile_acc_n_attached_H.size(1) == max_n_tiles);
-    assert(block_type_tile_acc_n_attached_H.size(2) == TILE_SIZE);
-    assert(block_type_atom_is_hydrogen.size(0) == n_block_types);
-    assert(block_type_atom_is_hydrogen.size(1) == max_n_block_atoms);*/
-
     NVTXRange _function(__FUNCTION__);
 
     using tmol::score::hbond::AcceptorBases;
@@ -149,8 +112,6 @@ struct GeneratePoseWaters {
       int const pose_ind = pose_ind_for_rot[rot_ind];
       int const block_type = block_type_ind_for_rot[rot_ind];
       int const block_ind = block_ind_for_rot[rot_ind];
-      // std::cout << "f_watergen " << pose_ind << " " << block_type << " " <<
-      // block_ind << std::endl;
       if (block_type == -1) {
         return;
       }
@@ -257,14 +218,10 @@ struct GeneratePoseWaters {
         // Step 4: ...before performing the work for each tile
         DeviceOps<Dev>::template for_each_in_workgroup<nt>(gen_tile_waters);
       }
-      // std::cout << "f_watergen done" << std::endl;
     });
 
     int const n_blocks = n_poses * max_n_blocks;
-    // std::cout << "Build waters" << std::endl;
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
-    // std::cout << "Done" << std::endl;
-    // DeviceOps<Dev>::synchronize_device();
 
     return water_coords_t;
   };
@@ -464,13 +421,10 @@ struct GeneratePoseWaters {
 
     int const n_blocks = n_poses * max_n_blocks;
     nvtx_range_push("watergen::dgen");
-    // std::cout << "Build waters backwards" << std::endl;
     DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
-    // std::cout << "done" << std::endl;
 
     nvtx_range_pop();
 
-    // std::cout << "d watergen end" << std::endl;
     return dE_d_pose_coords_t;
   };
 };

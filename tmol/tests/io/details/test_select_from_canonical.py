@@ -412,19 +412,6 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     at_is_pres = not_any_nancoord(coords)
 
     # put two empty residues in between res 5 and 6
-    # def add_two_res(x, fill_value):
-    #     if len(x.shape) >= 3:
-    #         fill_shape = (x.shape[0], 2, *x.shape[2:])
-    #     else:
-    #         fill_shape = (x.shape[0], 2)
-    #     return torch.cat(
-    #         [
-    #             x[:, :5],
-    #             torch.full(fill_shape, fill_value, dtype=x.dtype, device=x.device),
-    #             x[:, 5:],
-    #         ],
-    #         dim=1,
-    #     )
     add_two_res = partial(add_two_res_at_gap, 5)
 
     ch_id = add_two_res(ch_id, 0)
@@ -553,11 +540,6 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
         res_types=new_restypes,
         chain_labels=new_chain_labels,
     )
-
-    # cf.coords = new_coords
-    # cf.chain_id = new_chain_id
-    # cf.res_types = new_restypes
-    # cf.chain_labels = new_chain_labels
 
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
