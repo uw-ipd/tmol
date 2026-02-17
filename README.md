@@ -241,7 +241,7 @@ python setup.py build_ext --inplace
 # Skip test extensions (faster)
 TMOL_SKIP_TEST_EXTS=TRUE python setup.py build_ext --inplace
 
-# Specify GPU architectures (default: "8.0 8.6 8.9 9.0+PTX")
+# Specify GPU architectures (default: "8.0 8.6 8.9 9.0 10.0+PTX")
 TORCH_CUDA_ARCH_LIST="8.0 9.0+PTX" python setup.py build_ext --inplace
 ```
 

@@ -86,7 +86,13 @@ jobs:
         run: |
           export TMOL_FORCE_BUILD=TRUE
           export TMOL_FORCE_CXX11_ABI=${{ inputs.cxx11_abi }}
-          export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0+PTX"
+          # Include Blackwell (sm_100) native when CUDA >= 13; otherwise PTX-only.
+          CUDA_MAJOR=$(python3 -c "import torch; print(torch.version.cuda.split('.')[0])")
+          if [ "$CUDA_MAJOR" -ge 13 ]; then
+            export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0 10.0+PTX"
+          else
+            export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0+PTX"
+          fi
           # GitHub free runner: 2 vCPU, 7 GB RAM.
           # Each nvcc fatbinary compilation uses ~2-3 GB per thread.
           # MAX_JOBS=1 × NVCC_THREADS=2 = 2 concurrent nvcc threads ≈ 4-6 GB peak.

@@ -12,7 +12,7 @@ Environment variables:
   TMOL_SKIP_CUDA_BUILD=TRUE   Skip C++/CUDA compilation (for sdist creation)
   TMOL_SKIP_TEST_EXTS=TRUE    Skip test extensions (for wheel builds)
   TMOL_FORCE_CXX11_ABI=TRUE   Force C++11 ABI (for nvcr container compat)
-  TORCH_CUDA_ARCH_LIST         GPU architectures (default: "8.0 8.6 8.9 9.0+PTX")
+  TORCH_CUDA_ARCH_LIST         GPU architectures (default: "8.0 8.6 8.9 9.0 10.0+PTX")
   MAX_JOBS                     Max parallel compilation jobs
   NVCC_THREADS                 Threads per nvcc invocation (default: 4)
 """
@@ -124,7 +124,7 @@ NVCC_FLAGS += [
 
 # If TORCH_CUDA_ARCH_LIST is not set, default to modern GPUs
 if not os.environ.get("TORCH_CUDA_ARCH_LIST"):
-    os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0 8.6 8.9 9.0+PTX"
+    os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0 8.6 8.9 9.0 10.0+PTX"
 
 
 # ---------------------------------------------------------------------------
