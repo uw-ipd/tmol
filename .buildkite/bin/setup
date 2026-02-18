@@ -5,20 +5,40 @@ export TORCH_EXTENSIONS_DIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/torch_ex
 export NUMBA_CACHE_DIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/numba_cache
 export NUMBA_TMPDIR=~/$BUILDKITE_BUILD_ID/$BUILDKITE_AGENT_NAME/numba_temp
 
+# Set CUDA arch list early — before any pip install that might trigger setup.py.
+# The Buildkite agent has CUDA 12.6 which doesn't support compute_100 (Blackwell).
+# PyTorch 2.10's default TORCH_CUDA_ARCH_LIST includes compute_100, causing
+# "nvcc fatal: Unsupported gpu architecture 'compute_100'".
+export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-8.0 9.0+PTX}"
+
 set -x
+
+# Show CUDA and compiler versions for debugging
+nvcc --version || echo "WARNING: nvcc not found"
+c++ --version 2>&1 | head -1 || echo "WARNING: c++ not found"
 
 # Install uv if not present
 command -v uv >/dev/null 2>&1 || pip install --break-system-packages uv
 # Ensure user-local bin is on PATH for uv when pip installs to ~/.local/bin
 export PATH="$HOME/.local/bin:$PATH"
 
-# Install Python dependencies + dev tools via uv (fast)
-# Allow build isolation so build-system.requires/uv extra-build-deps are honored.
+# Skip C++/CUDA compilation during pip install — we build separately below
+# with explicit env vars. Without this, the editable install triggers setup.py
+# which tries to compile with potentially wrong CUDA arch or missing headers.
+export TMOL_SKIP_CUDA_BUILD=TRUE
 uv pip install --system --break-system-packages -e ".[dev]"
+unset TMOL_SKIP_CUDA_BUILD
 
 # Build C++/CUDA extensions in-place (AOT — no JIT needed)
 if [[ "${TMOL_SKIP_AOT_BUILD:-}" != "TRUE" ]]; then
-  export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-  export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-8.0 9.0+PTX}"
+  # Verify system headers are available (conda envs can be missing sysroot)
+  if ! echo '#include <math.h>' | c++ -x c++ -E - >/dev/null 2>&1; then
+    echo "ERROR: System C headers (math.h, stdlib.h) not found."
+    echo "  If using conda: conda install -c conda-forge sysroot_linux-64"
+    echo "  If using apt:   sudo apt-get install -y build-essential"
+    exit 1
+  fi
+
   MAX_JOBS=4 NVCC_THREADS=2 python setup.py build_ext --inplace
 fi
