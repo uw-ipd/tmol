@@ -1,54 +1,64 @@
 # Tmol
 
-`tmol`, short for TensorMol, is a faithful reimplementation of the Rosetta molecular modeling energy function ("beta_nov2016_cart") in PyTorch with custom kernels written in C++ and CUDA. Given the coordinates of one or more proteins, `tmol` can compute both energies and derivatives. `tmol` can also perform gradient-based minimization on those structures. Thus, ML models that produce cartesian coordinates for proteins can include biophysical features in their loss during training or refine their output structures using Rosetta's experimentally validated energy function. You can read the full wiki [here](https://github.com/uw-ipd/tmol/wiki/DevHome).
+`tmol` (TensorMol) is a GPU-accelerated reimplementation of the Rosetta molecular modeling energy function (`beta_nov2016_cart`) in PyTorch with custom C++/CUDA kernels. It computes energies and derivatives for protein structures and supports gradient-based minimization, enabling ML models to incorporate biophysical scoring during training or to refine predicted structures with Rosetta's experimentally validated energy function.
+
+Full documentation: [tmol Wiki](https://github.com/uw-ipd/tmol/wiki/DevHome)
 
 ## Table of Contents
 
-- Installation
-- JIT Development Mode
-- Containers
-- Verification
-- Usage
-- RosettaFold2
-- OpenFold
-- CI Strategy
-- Development Workflow
-- Citation
+- [Installation](#installation)
+- [Extension Loading: AOT vs JIT](#extension-loading-aot-vs-jit)
+- [Containers](#containers)
+- [Usage](#usage)
+- [Integrations](#integrations)
+- [CI Strategy](#ci-strategy)
+- [Development Workflow](#development-workflow)
+- [Citation](#citation)
 
 ## Installation
 
 ### Pre-built wheels (recommended)
 
-Pre-built wheels are available for Linux x86_64 with CUDA. Pick the one matching your **PyTorch version** and **ABI**:
+Pre-built wheels ship with **ahead-of-time (AOT) compiled** C++/CUDA extensions -- no `nvcc` or CUDA toolkit needed at install time.
 
-**Which ABI do I have?**
+Wheels are available for Linux x86_64. Pick the one matching your **PyTorch version** and **CXX11 ABI**:
+
+<details>
+<summary><b>Which ABI do I have?</b></summary>
+
 ```bash
 python -c "import torch; print('CXX11 ABI:', torch._C._GLIBCXX_USE_CXX11_ABI)"
 ```
-- `True` → NGC container, conda, or source-built PyTorch → use **cxx11abiTRUE** wheels
-- `False` → `pip install torch` on bare metal → use **cxx11abiFALSE** wheels
 
-If you want more background on the CXX11 ABI split, see this discussion:
-https://github.com/Dao-AILab/flash-attention/issues/457
+| Result  | Typical source                           | Wheel suffix        |
+|---------|------------------------------------------|---------------------|
+| `True`  | NGC container, conda, source-built torch | `cxx11abiTRUE`      |
+| `False` | `pip install torch` on bare metal        | `cxx11abiFALSE`     |
 
-| PyTorch | CUDA | ABI | Wheel tag |
-|---------|------|-----|-----------|
-| 2.5     | 12.6 | TRUE  | `+cu126torch2.5cxx11abiTRUE` |
-| 2.5     | 12.4 | FALSE | `+cu124torch2.5cxx11abiFALSE` |
-| 2.8     | 12.9 | TRUE  | `+cu129torch2.8cxx11abiTRUE` |
-| 2.8     | 12.6 | FALSE | `+cu126torch2.8cxx11abiFALSE` |
-| 2.10    | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE` |
-| 2.10    | 12.6 | FALSE | `+cu126torch2.10cxx11abiFALSE` |
+The ABI must match because C++ extensions are linked against PyTorch's C++ standard library. A mismatch causes segfaults or missing-symbol errors. See [flash-attention#457](https://github.com/Dao-AILab/flash-attention/issues/457) for more background.
+
+</details>
+
+| PyTorch | CUDA | ABI   | Wheel tag                              |
+|---------|------|-------|----------------------------------------|
+| 2.5     | 12.6 | TRUE  | `+cu126torch2.5cxx11abiTRUE`          |
+| 2.5     | 12.4 | FALSE | `+cu124torch2.5cxx11abiFALSE`         |
+| 2.8     | 12.9 | TRUE  | `+cu129torch2.8cxx11abiTRUE`          |
+| 2.8     | 12.6 | FALSE | `+cu126torch2.8cxx11abiFALSE`         |
+| 2.10    | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE`         |
+| 2.10    | 12.6 | FALSE | `+cu126torch2.10cxx11abiFALSE`        |
 
 > [!TIP]
-> CUDA wheels are **forward-compatible** within a major version: a `cu124` wheel works on any CUDA 12.x driver ≥ 12.4. You don't need an exact CUDA version match.
+> CUDA wheels are **forward-compatible** within a major version: a `cu124` wheel works on any CUDA 12.x driver >= 12.4. You do not need an exact CUDA version match.
 
-Check your full environment:
+Check your environment:
+
 ```bash
 python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, ABI: {torch._C._GLIBCXX_USE_CXX11_ABI}')"
 ```
 
 Install from [GitHub Releases](https://github.com/uw-ipd/tmol/releases):
+
 ```bash
 # Direct URL (replace RELEASE_TAG and WHEEL_FILENAME):
 pip install https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/WHEEL_FILENAME.whl
@@ -57,14 +67,14 @@ pip install https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/WHEEL_F
 pip install tmol --find-links https://github.com/uw-ipd/tmol/releases/download/RELEASE_TAG/
 ```
 
-### From PyPI (source build)
+### From PyPI (source distribution)
 
 The source distribution on PyPI compiles C++/CUDA extensions during installation.
-This requires `nvcc` (CUDA toolkit) to be available.
+This requires `nvcc` (CUDA toolkit) and a C++17-capable compiler.
 
 ```bash
-pip install tmol              # base (requires nvcc for kernel compilation)
-pip install tmol[dev]         # with development tools (ruff, pytest, etc.)
+pip install tmol              # requires nvcc for kernel compilation
+pip install tmol[dev]         # includes development tools (ruff, pytest, etc.)
 ```
 
 ### From source (development)
@@ -77,39 +87,63 @@ pip install -e ".[dev]"
 python setup.py build_ext --inplace
 ```
 
-## JIT Development Mode
+## Extension Loading: AOT vs JIT
 
-By default, tmol loads the precompiled `_C` extension if present. For kernel
-development you can opt into JIT compilation:
+tmol's C++/CUDA kernels can be loaded in two ways:
 
-```bash
-export TMOL_USE_JIT=1
+- **AOT (Ahead-Of-Time)**: Pre-compiled `.so` libraries are bundled inside the installed package (e.g., from a wheel). Operations are registered in `torch.ops.tmol_*` namespaces. This is the default and requires no compiler at runtime.
+
+- **JIT (Just-In-Time)**: Source files (`.cpp`, `.cu`) are compiled on first use via `torch.utils.cpp_extension.load()`. This requires `nvcc` and a C++ compiler to be available. Useful for kernel development where you want to edit and reload C++/CUDA code without rebuilding the whole package.
+
+Two environment variables control which path is taken:
+
+| Variable           | Effect                                                                 |
+|--------------------|------------------------------------------------------------------------|
+| `TMOL_USE_JIT=1`   | **Force JIT mode.** Skip AOT entirely; always compile from source.     |
+| `TMOL_JIT_FALLBACK=1` | **Fallback to JIT** if the precompiled `_C` library is missing or incompatible. Silent degradation instead of an error. |
+
+When neither variable is set, tmol tries to load the precompiled library and raises an error if it is not found.
+
+```mermaid
+flowchart TD
+    A["import tmol"] --> B{"TMOL_USE_JIT=1?"}
+    B -- Yes --> JIT["JIT mode\n(compile .cpp/.cu on first use)"]
+    B -- No --> C["Try loading precompiled _C library"]
+    C --> D{"_C found and compatible?"}
+    D -- Yes --> AOT["AOT mode\n(use precompiled torch.ops.tmol_*)"]
+    D -- No --> E{"TMOL_JIT_FALLBACK=1?"}
+    E -- Yes --> JIT
+    E -- No --> ERR["TmolExtensionNotBuiltError"]
 ```
 
-Optional fallback when the precompiled extension is missing:
+**Typical scenarios:**
 
-```bash
-export TMOL_JIT_FALLBACK=1
-```
+| User                          | Install method     | Env vars needed | Mode |
+|-------------------------------|--------------------|-----------------|------|
+| End user                      | Pre-built wheel    | None            | AOT  |
+| End user                      | `pip install tmol` (sdist) | None   | AOT (compiled at install time) |
+| Kernel developer              | `pip install -e .` | `TMOL_USE_JIT=1` | JIT |
+| CI without GPU                | Pre-built wheel    | None            | AOT  |
 
-JIT mode requires `nvcc` and the CUDA headers/libraries to be discoverable:
+### CUDA toolkit for JIT mode
 
-1. **Provide your own CUDA toolkit** (e.g., CUDA-enabled container or system CUDA with `CUDA_HOME` set)
-2. **Install the pip CUDA extra** and let tmol auto-configure the environment
+JIT mode requires `nvcc` and CUDA headers. You can either:
+
+1. **Use a CUDA-enabled container** (NGC, conda) or set `CUDA_HOME` to point to your system CUDA toolkit.
+2. **Install the pip CUDA extra**, which downloads `nvcc` and runtime libraries:
 
 ```bash
 pip install .[cuda]
 ```
 
-When using the pip CUDA extra, tmol auto-detects `nvcc` and sets `CUDA_HOME`,
-`PATH`, and `LD_LIBRARY_PATH`, plus creates compatibility symlinks needed by
-PyTorch (e.g., `nvidia/cu12 -> nvidia/cu13`, `libcudart.so -> libcudart.so.N`).
+The pip CUDA extra auto-detects `nvcc` and configures `CUDA_HOME`, `PATH`, and `LD_LIBRARY_PATH`, including compatibility symlinks needed by PyTorch (e.g., `nvidia/cu12 -> nvidia/cu13`).
 
 ## Containers
 
 The container definitions install all dependencies into an NVIDIA NGC PyTorch base image that already provides `torch`, `numpy`, `nvcc`, and CUDA libraries. Bind-mount your tmol checkout at runtime.
 
 **Docker:**
+
 ```bash
 docker build -t tmol-dev -f containers/docker/tmol-dev.Dockerfile .
 docker run --gpus all -it -v $(pwd):/tmol_host -w /tmol_host tmol-dev bash
@@ -117,48 +151,33 @@ pip install -e .  # inside container
 ```
 
 **Apptainer:**
+
 ```bash
 apptainer build tmol-dev.sif containers/apptainer/tmol-dev.def
 apptainer run --nv --bind $(pwd):/tmol_host tmol-dev.sif
 ```
 
-## Verification
-
-```python
-import tmol
-# If extensions are loaded correctly, this will print without error:
-print("tmol loaded successfully")
-```
-
 ## Usage
 
-`tmol` can be used as a standalone library, or integrated with [RosettaFold2](https://github.com/uw-ipd/tmol/wiki/DevHome#RosettaFold2) or [OpenFold](https://github.com/uw-ipd/tmol/wiki/DevHome#OpenFold).
+### Quick start
 
-Each platform has functions for constructing a [PoseStack](https://github.com/uw-ipd/tmol/wiki/PoseStack), performing operations on that PoseStack, and retrieving the structure back from `tmol`.
-
-#### Create a PoseStack from a PDB file
 ```python
 import tmol
-tmol.pose_stack_from_pdb('1ubq.pdb')
-```
 
-#### Create a ScoreFunction and score a PoseStack
-```python
+# Load a structure
+pose_stack = tmol.pose_stack_from_pdb("1ubq.pdb")
+
+# Score it
 sfxn = tmol.beta2016_score_function(pose_stack.device)
 scorer = sfxn.render_whole_pose_scoring_module(pose_stack)
 print(scorer(pose_stack.coords))
 ```
 
-#### Create a Minimizer and run it on a PoseStack with our ScoreFunction
-```python
-start_coords = pose_stack.coords.clone()
-pose_stack.coords[:] = start_coords
+### Minimization
 
+```python
 cart_sfxn_network = tmol.cart_sfxn_network(sfxn, pose_stack)
 optimizer = tmol.lbfgs_armijo(cart_sfxn_network.parameters())
-
-cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
-
 
 def closure():
     optimizer.zero_grad()
@@ -167,51 +186,52 @@ def closure():
     return E
 
 optimizer.step(closure)
-
-cart_sfxn_network.whole_pose_scoring_module(cart_sfxn_network.full_coords)
 ```
 
-#### Save a PoseStack to a PDB
+### Save output
+
 ```python
-tmol.write_pose_stack_pdb(pose_stack, 'output.pdb')
+tmol.write_pose_stack_pdb(pose_stack, "output.pdb")
 ```
 
-## RosettaFold2
+### Verify installation
 
-To use `tmol` within RosettaFold2, install `tmol` into your RF2 environment:
+```python
+import tmol
+print(f"tmol {tmol.__version__} loaded successfully")
+```
+
+## Integrations
+
+### RosettaFold2
+
+Install tmol into your RF2 environment:
 
 ```bash
-cd <your local tmol repository root directory>
+cd <tmol repo root>
 pip install -e .
 ```
 
->[!NOTE]
->This has been tested on Ubuntu 20.04 - other platforms should work but are currently untested.
-
-Example usage from within RosettaFold2:
-
-#### Create a PoseStack from RF2 coordinates
 ```python
+# RF2 -> tmol
 seq, xyz, chainlens = rosettafold2_model.infer(sequence)
 pose_stack = tmol.pose_stack_from_rosettafold2(seq[0], xyz[0], chainlens[0])
+
+# tmol -> RF2
+xyz = tmol.pose_stack_to_rosettafold2(...)
 ```
 
-#### Load a PoseStack into RF2 coordinates
-```python
-xyz = tmol.pose_stack_to_rosettafold2( ... )
-```
+> [!NOTE]
+> Tested on Ubuntu 20.04. Other platforms should work but are not yet verified.
 
->[!NOTE]
->Hydrogens and OXT coordinates from the terminal residues in RosettaFold are not preserved across the RF2<->tmol interface.
+> [!NOTE]
+> Hydrogens and OXT coordinates from terminal residues are not preserved across the RF2/tmol interface.
 
->[!WARNING]
->You must call `torch.set_grad_enabled(True)` if you wish to use the `tmol` minimizer, as by default RF2 has grad disabled during inference.
+> [!WARNING]
+> Call `torch.set_grad_enabled(True)` before using the tmol minimizer, since RF2 disables gradients during inference by default.
 
-## OpenFold
+### OpenFold
 
-Full OpenFold documentation coming soon.
-
-#### Create a PoseStack from an OpenFold dictionary
 ```python
 output = openfold_model.infer(sequences)
 pose_stack = tmol.pose_stack_from_openfold(output)
@@ -219,18 +239,18 @@ pose_stack = tmol.pose_stack_from_openfold(output)
 
 ## CI Strategy
 
-We use a hybrid CI setup:
+tmol uses a hybrid CI setup:
 
-- **Buildkite (GPU runners)** runs CUDA-heavy tests and benchmarks.
-- **GitHub Actions** builds the wheel matrix, builds sdist, and publishes to TestPyPI/GitHub Releases.
+| System              | Purpose                                                                 |
+|---------------------|-------------------------------------------------------------------------|
+| **Buildkite**       | GPU runners for CUDA-heavy tests and benchmarks                         |
+| **GitHub Actions**  | Wheel matrix builds, sdist builds, publishing to TestPyPI/GitHub Releases |
 
-To enable Buildkite on a branch, the Buildkite pipeline must be connected to this repo
-in the Buildkite UI and the GitHub webhook must be configured to trigger builds for
-the desired branches/PRs. The pipeline definition lives in `.buildkite/pipeline.yml`.
+The Buildkite pipeline definition lives in `.buildkite/pipeline.yml`. To enable it on a branch, connect the pipeline in the Buildkite UI and configure the GitHub webhook for the desired branches/PRs.
 
 ## Development Workflow
 
-`tmol` uses Test-Driven Development. If you are writing `tmol` code, [you should start by writing test cases for your code](https://github.com/uw-ipd/tmol/wiki/Testing#writing-tests).
+tmol uses [Test-Driven Development](https://github.com/uw-ipd/tmol/wiki/Testing#writing-tests). Write tests first, then implement.
 
 ### Building extensions locally
 
@@ -238,32 +258,27 @@ the desired branches/PRs. The pipeline definition lives in `.buildkite/pipeline.
 # Build all extensions (production + test)
 python setup.py build_ext --inplace
 
-# Skip test extensions (faster)
+# Skip test extensions (faster builds)
 TMOL_SKIP_TEST_EXTS=TRUE python setup.py build_ext --inplace
 
-# Specify GPU architectures (default: "8.0 8.6 8.9 9.0 10.0+PTX")
+# Target specific GPU architectures (default: "8.0 8.6 8.9 9.0 10.0+PTX")
 TORCH_CUDA_ARCH_LIST="8.0 9.0+PTX" python setup.py build_ext --inplace
 ```
 
-### Committing
+### Pre-commit hooks
 
-tmol uses pre-commit hooks to ensure uniform code formatting. These pre-commit hooks run `clang-format` and `ruff`. If your code needed reformatting, the initial commit will fail, and clang-format/ruff will reformat your code. You can see these changes via `git diff`, and you can `git add` the files to accept the new formatting before committing again.
+tmol uses pre-commit hooks for `clang-format` (C++) and `ruff` (Python). If formatting changes are needed, the first commit attempt will fail and the tools will reformat your code. Run `git diff` to review, then `git add` and commit again.
 
-To install the pre-commit hooks:
 ```bash
 pip install -e ".[dev]"
 pre-commit install
 ```
 
-### Submitting changes to master
+### Pull requests
 
-All changes to master should be performed via pull request flow, with a PR serving as a core point of development, discussion, testing and review. We close pull requests via squash or rebase, so that master contains a tidy, linear project history.
+All changes to master go through pull requests. PRs are merged via squash or rebase to keep a linear history. Each PR should be an atomic unit of work. If a PR grows too large, split it into stacked PRs.
 
-A pull request should land as an "atomic" unit of work, representing a single set of related changes. A larger feature may span multiple pull requests, however each pull request should stand alone. If a request appears to be growing "too large" to review, utilize a stacked pull to partition the work.
-
-### Automated Testing
-
-We maintain an automated test suite. The test suite must always be passing for master, and is available for any open branch via pull request.
+### Running tests
 
 ```bash
 pytest tmol/tests/ -v
@@ -271,6 +286,6 @@ pytest tmol/tests/ -v
 
 ## Citation
 
-If you use `tmol` in your work, please cite:
+If you use tmol in your work, please cite:
 
-Andrew Leaver-Fay, Jeff Flatten, Alex Ford, Joseph Kleinhenz, Henry Solberg, David Baker, Andrew M. Watkins, Brian Kuhlman, Frank DiMaio, _tmol: a GPU-accelerated, PyTorch implementation of Rosetta's relax protocol_, (manuscript in preparation)
+> Andrew Leaver-Fay, Jeff Flatten, Alex Ford, Joseph Kleinhenz, Henry Solberg, David Baker, Andrew M. Watkins, Brian Kuhlman, Frank DiMaio, *tmol: a GPU-accelerated, PyTorch implementation of Rosetta's relax protocol*, (manuscript in preparation)
