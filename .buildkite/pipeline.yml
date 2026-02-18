@@ -2,30 +2,28 @@ cuda_test_agent: &cuda_test_agent
   agents:
     queue: cuda
 
+cpu_test_agent: &cpu_test_agent
+  agents:
+    queue: nocuda
+
 steps:
-  ### Setup — install deps + build extensions (AOT)
+  # Setup builds AOT extensions (persists in checkout dir via --inplace)
   - label: ':hammer: Setup'
-    key: setup
     command: .buildkite/bin/setup
     <<: *cuda_test_agent
 
-  ### Lint — runs after setup
   - label: ':mag: Linting'
-    depends_on: setup
     command: .buildkite/bin/linting
     <<: *cuda_test_agent
 
-  ### Tests — run after setup, on cuda agents (nocuda queue is broken)
   - label: ':python: Testing - CPU'
-    depends_on: setup
-    command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cpu.junit.xml -m "not cuda"
+    command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cpu.junit.xml
     artifact_paths:
       - testing.cpu.junit.xml
       - .coverage
-    <<: *cuda_test_agent
+    <<: *cpu_test_agent
 
   - label: ':gpu: Testing - CUDA'
-    depends_on: setup
     command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cuda.junit.xml
     artifact_paths:
       - testing.cuda.junit.xml
@@ -33,7 +31,6 @@ steps:
     <<: *cuda_test_agent
 
   - label: ':chart_with_upwards_trend: Benchmark'
-    depends_on: setup
     command: .buildkite/bin/benchmark --benchmark-max-time=.1
     artifact_paths:
       - benchmark/**/*
@@ -42,14 +39,8 @@ steps:
   - wait: ~
     continue_on_failure: true
 
-  ### JIT pipeline — compile at import time (no AOT build)
-  - label: ':zap: Setup (JIT)'
-    key: setup_jit
-    command: TMOL_SKIP_AOT_BUILD=TRUE .buildkite/bin/setup
-    <<: *cuda_test_agent
-
+  # JIT — TMOL_USE_JIT=1 skips precompiled extensions, no separate setup needed
   - label: ':zap: Testing - CUDA (JIT)'
-    depends_on: setup_jit
     command: TMOL_USE_JIT=1 .buildkite/bin/testing --cov=./tmol --junitxml=testing.cuda.jit.junit.xml
     artifact_paths:
       - testing.cuda.jit.junit.xml

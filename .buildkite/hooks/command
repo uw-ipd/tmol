@@ -1,0 +1,26 @@
+#!/bin/bash
+set -eo pipefail
+
+# Wrap every pipeline command inside the Apptainer container with GPU access.
+# The agent runs bare metal; this hook runs the actual command inside the SIF.
+#
+# --nv            : NVIDIA GPU support
+# --writable-tmpfs: allow pip installs into a tmpfs overlay (per-step)
+# --pwd           : run from the checkout directory inside the container
+
+SIF="${APPTAINER_SIF:-/net/scratch/kdidi/buildkite-pytorch.sif}"
+
+echo "~~~ Running inside Apptainer: $(basename $SIF)"
+
+apptainer exec --nv --writable-tmpfs --pwd "$PWD" "$SIF" bash -c '
+  set -eo pipefail
+
+  # Quick dep install — uv cache makes this ~5s after the first run
+  command -v uv >/dev/null 2>&1 || pip install --break-system-packages --quiet uv
+  export PATH=$HOME/.local/bin:$PATH
+  uv pip install --system --break-system-packages --quiet -e ".[dev]" 2>/dev/null
+
+  # Run the actual Buildkite command
+  '"$BUILDKITE_COMMAND"'
+'
+
