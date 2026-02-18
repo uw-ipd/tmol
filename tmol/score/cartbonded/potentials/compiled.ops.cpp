@@ -201,9 +201,6 @@ class CartBondedPoseScoreOp
       auto cart_subgraph_type_counts = saved[i++];
       auto cart_subgraph_type_offsets = saved[i++];
 
-      // int max_subgraphs_per_block =
-      // ctx->saved_data["block_pair_scoring"].toInt();
-
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -248,38 +245,37 @@ class CartBondedPoseScoreOp
           }));
     }
 
-    return {
-        // Common params
-        dV_d_pose_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+    return {// Common params
+            dV_d_pose_coords,
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        // Cart-bonded specific parameters
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            // Cart-bonded specific parameters
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        torch::Tensor()};
+            torch::Tensor()};
   }
 };
 
@@ -470,9 +466,6 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
       auto n_output_intxns_for_rot_conn_offset = saved[i++];
       auto rotconn_for_output_intxn = saved[i++];
 
-      // int max_subgraphs_per_block =
-      // ctx->saved_data["block_pair_scoring"].toInt();
-
       using Int = int32_t;
 
       auto dTdV = grad_outputs[0];
@@ -521,38 +514,37 @@ class CartBondedRotamerScoreOp : public torch::autograd::Function<
           }));
     }
 
-    return {
-        // Common params
-        dV_d_pose_coords,
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+    return {// Common params
+            dV_d_pose_coords,
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        // Cart-bonded specific parameters
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            // Cart-bonded specific parameters
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
+            torch::Tensor(),
 
-        torch::Tensor()};
+            torch::Tensor()};
   }
 };
 

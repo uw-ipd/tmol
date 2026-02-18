@@ -8,7 +8,6 @@ from tmol.types.array import NDArray
 
 from tmol.score.energy_term import EnergyTerm
 from .params import BackboneTorsionParamResolver
-from .bb_torsion_whole_pose_module import BackboneTorsionWholePoseScoringModule
 from tmol.database import ParameterDatabase
 
 from tmol.chemical.restypes import RefinedResidueType, uaid_t
@@ -209,22 +208,3 @@ class BackboneTorsionEnergyTerm(EnergyTerm):
             self.omega_tables,
             self.omega_table_params,
         ]
-
-    # def render_whole_pose_scoring_module_old(self, pose_stack: PoseStack):
-    #     pbt = pose_stack.packed_block_types
-
-    #     return BackboneTorsionWholePoseScoringModule(
-    #         pose_stack_block_coord_offset=pose_stack.block_coord_offset,
-    #         pose_stack_block_type=pose_stack.block_type_ind,
-    #         pose_stack_inter_residue_connections=pose_stack.inter_residue_connections,
-    #         bt_atom_downstream_of_conn=pbt.atom_downstream_of_conn,
-    #         bt_rama_table=pbt.backbone_torsion_params.bt_rama_table,
-    #         bt_omega_table=pbt.backbone_torsion_params.bt_omega_table,
-    #         bt_upper_conn_ind=pbt.backbone_torsion_params.bt_upper_conn_ind,
-    #         bt_is_pro=pbt.backbone_torsion_params.bt_is_pro,
-    #         bt_backbone_torsion_atoms=pbt.backbone_torsion_params.bt_backbone_torsion_atoms,
-    #         rama_tables=self.rama_tables,
-    #         rama_table_params=self.rama_table_params,
-    #         omega_tables=self.omega_tables,
-    #         omega_table_params=self.omega_table_params,
-    #     )

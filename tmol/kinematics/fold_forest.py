@@ -72,9 +72,6 @@ class FoldForest:
             max_n_chains, dtype=torch.int64, device=pose_stack.device
         ).unsqueeze(0) < (n_chains_per_pose.unsqueeze(1))
         real_chain_indices = torch.nonzero(is_pci_chain_real, as_tuple=False)
-        is_pose_last_chain = torch.arange(
-            max_n_chains, dtype=torch.int32, device=pose_stack.device
-        ).unsqueeze(0) == (n_chains_per_pose - 1).unsqueeze(1)
 
         edges = torch.full(
             (pose_stack.n_poses, max_n_edges, 4),
@@ -167,10 +164,9 @@ class FoldForest:
         """Create an N->C fold tree for a collection of monomers in a PoseStack.
 
         This will define a fold tree for each pose with a just one edge, and thus
-        will be a very bad fold tree in general.
+        will be a very bad fold tree except for the not-so-common case that all
+        of the Poses in the PoseStack are monomers.
         """
-        # n_trees = len(residues)
-        # n_res_per_tree = [len(reslist) for reslist in residues]
         n_trees = n_res_per_tree.shape[0]
 
         edges = numpy.full((n_trees, 2, 4), -1, dtype=int)

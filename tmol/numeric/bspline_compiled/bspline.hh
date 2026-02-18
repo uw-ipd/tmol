@@ -34,7 +34,7 @@ struct ndspline {
       Eigen::Matrix<Real, Eigen::Dynamic, 1> line,
       Int start,
       Int step) {
-    Real *vptr = &coeffs.data()[start];
+    Real* vptr = &coeffs.data()[start];
     for (int i = 0; i < line.size(); i++) {
       *vptr = line[i];
       vptr = &vptr[step];
@@ -44,10 +44,10 @@ struct ndspline {
   // 1D stripe getter
   static auto EIGEN_DEVICE_FUNC _get_line(
       TensorAccessor<Real, NDIM, D> coeffs,
-      Eigen::Matrix<Real, Eigen::Dynamic, 1> &line,
+      Eigen::Matrix<Real, Eigen::Dynamic, 1>& line,
       Int start,
       Int step) {
-    Real *vptr = &coeffs.data()[start];
+    Real* vptr = &coeffs.data()[start];
     for (int i = 0; i < line.size(); i++) {
       line[i] = *vptr;
       vptr = &vptr[step];
@@ -55,7 +55,7 @@ struct ndspline {
   }
 
   static auto EIGEN_DEVICE_FUNC
-  _init_causal_coeff(Eigen::Matrix<Real, Eigen::Dynamic, 1> &line, Real pole) {
+  _init_causal_coeff(Eigen::Matrix<Real, Eigen::Dynamic, 1>& line, Real pole) {
     // inplace calculation of "cell 0" coefficient
     // ** currently, initialization corresponds to periodic boundaries
     //    (if one were to add alternate boundary conditions, this would be the
@@ -80,7 +80,7 @@ struct ndspline {
   }
 
   static auto EIGEN_DEVICE_FUNC _init_anticausal_coeff(
-      Eigen::Matrix<Real, Eigen::Dynamic, 1> &line, Real pole) {
+      Eigen::Matrix<Real, Eigen::Dynamic, 1>& line, Real pole) {
     // inplace calculation of "cell (N-1)" coefficient
     // ** currently, initialization corresponds to periodic boundaries
     Int N = line.size();
@@ -104,7 +104,7 @@ struct ndspline {
   }
 
   static auto EIGEN_DEVICE_FUNC _convert_interp_coeffs(
-      Eigen::Matrix<Real, Eigen::Dynamic, 1> &line,
+      Eigen::Matrix<Real, Eigen::Dynamic, 1>& line,
       Eigen::Matrix<Real, DEGREE / 2, 1> poles) {
     // interpolation coefficients along one line (in place)
     Real lambda = 1.0;

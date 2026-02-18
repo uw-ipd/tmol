@@ -28,23 +28,6 @@
 
 #include "compiled.impl.hh"
 
-// Stolen from torch, v1.0.0
-// Expose part of the torch library that otherwise is
-// not part of the API.
-// THCGenerator* THCRandom_getGenerator(THCState* state);
-
-// Stolen from torch, v1.0.0;
-// unnecessary in the latest release, where this function
-// is built in to CUDAGenerator.
-// Modified slightly as the input Generator is unused.
-// increment should be at least the number of curand() random numbers used in
-// each thread.
-/*std::pair<uint64_t, uint64_t> next_philox_seed(uint64_t increment) {
-  auto gen_ = THCRandom_getGenerator(at::globalContext().getTHCState());
-  uint64_t offset = gen_->state.philox_seed_offset.fetch_add(increment);
-  return std::make_pair(gen_->state.initial_seed, offset);
-}*/
-
 namespace tmol {
 namespace pack {
 namespace compiled {
@@ -52,12 +35,6 @@ namespace compiled {
 template <unsigned int n_threads, typename T, typename op_t>
 MGPU_DEVICE __inline__ T reduce_shfl_and_broadcast(
     cooperative_groups::thread_block_tile<n_threads> g, T val, op_t op) {
-  // T val_orig(val);
-  // mgpu::shfl_reduce_t<T, n_threads> reducer;
-  // val = reducer. template reduce<op_t>(
-  //   g.thread_rank(), val, n_threads, op);
-  //
-  // T hand_rolled_val(val_orig);
   for (unsigned int i = n_threads / 2; i > 0; i /= 2) {
     T const shfl_val = g.shfl_down(val, i);
     if (g.thread_rank() < 32 - i) {
@@ -66,13 +43,9 @@ MGPU_DEVICE __inline__ T reduce_shfl_and_broadcast(
   }
 
   // thread 0 shares its reduced value with everyone
-  // so that there is no disagreement on the
-  // partition function value
+  // so that there is no disagreement on the partition
+  // function value as a result of numerical imprecision
   T val_bcast = g.shfl(val, 0);
-
-  // printf("%d %d shfl orig %f reduce %f bcast %f vs %f\n", g.thread_rank(),
-  // threadIdx.x, float(val_orig), float(val), float(val_bcast),
-  // float(hand_rolled_val));
 
   return val_bcast;
 }
@@ -141,7 +114,7 @@ struct InteractionGraph {
     int sub_rot_chunk_size =
         min(chunk_size_, sub_res_n_rots - chunk_size_ * sub_rot_chunk);
 
-    // Temp: iterate across all residues instead of just the
+    // TO DO: iterate across all residues instead of just the
     // neighbors of ran_rot_res
     if (this_thread_active) {
       for (int k = 0; k < n_res(pose); ++k) {
@@ -171,15 +144,6 @@ struct InteractionGraph {
         new_e += energy2b_
             [k_sub_chunk_start + sub_rot_chunk_size * k_in_chunk
              + sub_rot_in_chunk];
-        // printf("%d inds %d %d, %lld, %lld, %d * %d + %d = %d; e2b[%lld] = %f
-        // \n",
-        //   threadIdx.x, sub_res, k,
-        //   chunk_offset_offsets_[pose][k][sub_res],
-        //   k_sub_chunk_start, sub_rot_chunk_size, k_in_chunk,
-        //   sub_rot_in_chunk, sub_rot_chunk_size * k_in_chunk +
-        //   sub_rot_in_chunk, k_sub_chunk_start + sub_rot_chunk_size *
-        //   k_in_chunk + sub_rot_in_chunk, new_e
-        // );
       }
     }
     return new_e;
@@ -360,10 +324,6 @@ MGPU_DEVICE float warp_wide_sim_annealing(
   float current_total_energy = best_energy;
   int n_trials = 0;
   for (int i = 0; i < n_outer_iterations; ++i) {
-    // if (g.thread_rank() == 0 && traj_id == 0) {
-    //   printf("p %d t %d top of outer loop %d currentE %f bestE %f temp %f\n",
-    // 	pose, traj_id, i, current_total_energy, best_energy, temperature);
-    // }
     bool quench = false;
     int quench_period = n_rotamers;
     int i_n_inner_iterations = n_inner_iterations;
@@ -462,34 +422,13 @@ MGPU_DEVICE float warp_wide_sim_annealing(
           current_rotamer_assignment,
           this_thread_active);
 
-      // if (g.thread_rank() == 0) {
-      //   printf("minimum<float>\n");
-      // }
       float const min_e =
           reduce_shfl_and_broadcast(g, new_e, mgpu::minimum_t<float>());
-      // if (traj_id == 0) {
-      // 	printf("thread %d new_e %f min_e %f\n", g.thread_rank(), new_e,
-      // min_e);
-      // }
       float myexp = expf(-1 * (new_e - min_e) / temperature);
-      // printf("thread %d myexp %f\n", thread_id, myexp);
-      // if (g.thread_rank() == 0) {
-      //   printf("plus<float>\n");
-      // }
       float const partition =
           reduce_shfl_and_broadcast(g, myexp, mgpu::plus_t<float>());
-      // printf("thread %d partition %f\n", thread_id, partition);
       float const myprob = this_thread_active ? myexp / partition : 0;
-      // printf("thread %d myprob %f\n", thread_id, myprob);
-      // if (g.thread_rank() == 0) {
-      //   printf("inclusive scan plus<float>\n");
-      // }
       float scan_prob = inclusive_scan_shfl(g, myprob, mgpu::plus_t<float>());
-      // printf("thread %d prev rotamer %d new rotamer %d new_e %f active? %d
-      // temp %f\n", thread_id, local_prev_rot, local_ran_rot, new_e,
-      // this_thread_active, temperature); printf("thread %d myexp %f part %f
-      // myprob %f scan_prob %f accept_prob %f\n", thread_id, myexp, partition,
-      // myprob, scan_prob, accept_prob);
       if (this_thread_last_active) {
         // due to numerical imprecision, it's entirely likely that the scan
         // probability for the last active thread to be slightly more or
@@ -498,41 +437,19 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         scan_prob = 1;
       }
       int accept_rank = (this_thread_active && accept_prob <= scan_prob);
-      // printf("thread %d accept_rank %d\n", thread_id, accept_rank);
-      // if (g.thread_rank() == 0) {
-      //   printf("inclusive scan plus<int>\n");
-      // }
       accept_rank = inclusive_scan_shfl(g, accept_rank, mgpu::plus_t<int>());
-      // printf("thread %d accept_rank after scan %d\n", thread_id,
-      // accept_rank);
 
       bool accept = accept_rank == 1 && this_thread_active;
-      // printf("thread %d accept %d\n", thread_id, accept);
-      // if (g.thread_rank() == 0) {
-      //   printf("max<int>\n");
-      // }
       int const accept_thread = reduce_shfl_and_broadcast(
           g, accept ? int(g.thread_rank()) : int(-1), mgpu::maximum_t<int>());
-      // if (g.thread_rank() == 0) {
-      //   printf("thread %d accept_thread %d\n", thread_id, accept_thread);
-      // }
 
       float prev_e = g.shfl(new_e, thread_w_prev_rot);
-      // printf("thread %d prev_e %f\n", thread_id, prev_e);
 
       bool new_best = false;
       if (accept) {
         float deltaE = new_e - prev_e;
-        // if (traj_id == 0 ) {
-        //   printf("deltaE: %f (%f - %f)\n", deltaE, new_e, prev_e);
-        // }
         current_rotamer_assignment[ran_res] = local_ran_rot;
         current_total_energy = current_total_energy + deltaE;
-        // for (int k=0; k < nres; ++k) {
-        //   float k_energy = alt_energies[k][thread_id];
-        //   curr_pair_energies[ran_res][k][thread_id] = k_energy;
-        //   curr_pair_energies[k][ran_res][thread_id] = k_energy;
-        // }
         if (current_total_energy < best_energy) {
           new_best = true;
           best_energy = current_total_energy;
@@ -544,8 +461,7 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         for (int k = g.thread_rank(); k < n_res; k += 32) {
           best_rotamer_assignment[k] = current_rotamer_assignment[k];
         }
-        best_energy =
-            current_total_energy;  // g.shfl(best_energy, accept_thread);
+        best_energy = current_total_energy;
       }
 
       ++n_trials;
@@ -553,18 +469,11 @@ MGPU_DEVICE float warp_wide_sim_annealing(
         n_trials = 0;
         current_total_energy = ig.total_energy_for_assignment_parallel(
             pose, g, current_rotamer_assignment);
-        // if (g.thread_rank() == 0) {
-        //   printf("refresh total energy currentE %f\n", current_total_energy);
-        // }
       }
 
     }  // end inner loop
 
-    // geometric cooling toward 0.3
-    // std::cout << "temperature " << temperature << " energy " <<
-    //  total_energy_for_assignment(n_rotamers_for_res, oneb_offsets,
-    //    res_for_rot, nenergies, twob_offsets, energy1b, energy2b,
-    //    my_rotamer_assignment) << std::endl;
+    // geometric cooling toward lo_temp
     temperature = 0.35 * (temperature - lo_temp) + lo_temp;
 
   }  // end outer loop
@@ -574,106 +483,6 @@ MGPU_DEVICE float warp_wide_sim_annealing(
 
   return totalE;
 }
-
-// template <tmol::Device D, uint n_threads, class Int, class Real>
-// MGPU_DEVICE float spbr(
-//     curandStatePhilox4_32_10_t* state,
-//     cooperative_groups::thread_block_tile<n_threads> g,
-//     InteractionGraph<D, Int, Real> ig,
-//     int warp_id,
-//     int n_spbr,
-//     TView<int, 2, D> spbr_rotamer_assignments,
-//     TView<int, 2, D> spbr_perturbed_assignments) {
-//   int const nres = ig.n_rotamers_for_res.size(0);
-//   int const nrotamers = ig.res_for_rot.size(0);
-//
-//   float energy = ig.total_energy_for_assignment_parallel(
-//       g, spbr_rotamer_assignments[warp_id]);
-//
-//   for (int spbr_iteration = 0; spbr_iteration < n_spbr; ++spbr_iteration) {
-//     // 1. pick a rotamer
-//     int ran_rot;
-//     if (g.thread_rank() == 0) {
-//       float rand_num = curand_uniform(state);
-//       ran_rot = int(rand_num * nrotamers) % nrotamers;
-//     }
-//     ran_rot = g.shfl(ran_rot, 0);
-//     int const ran_res = ig.res_for_rot[ran_rot];
-//     int const ran_res_nrots = ig.nrotamers_for_res[ran_res];
-//     int const ran_rot_local = ran_rot - ig.oneb_offsets[ran_res];
-//
-//     // initialize the perturbed assignments array for this iteration.
-//     // many of these will be overwritten, but for memory access efficiency
-//     // copy everything over now.
-//     for (int i = g.thread_rank(); i < nres; i += 32) {
-//       int irot =
-//           i == ran_res ? ran_rot_local :
-//           spbr_rotamer_assignments[warp_id][i];
-//       spbr_perturbed_assignments[warp_id][i] = irot;
-//     }
-//
-//     // 2. relax the neighbors of this residue
-//     for (int i = 0; i < nres; ++i) {
-//       // 4a. Find the lowest energy rotamer for residue i
-//       if (ran_res == i || ig.nenergies[ran_res][i] == 0) {
-//         continue;
-//       }
-//
-//       int my_best_rot = 0;
-//       float my_best_rot_E = 9999;
-//       int i_nrots = ig.nrotamers_for_res[i];
-//       for (int j = g.thread_rank(); j < i_nrots; j += 32) {
-//         int const j_global = j + ig.oneb_offsets[i];
-//         float jE = ig.energy1b[j_global];
-//         for (int k = 0; k < nres; ++k) {
-//           if (k == i || ig.nenergies[k][i] == 0) continue;
-//
-//           int const k_rotamer = k == ran_res
-//                                     ? ran_rot_local
-//                                     : spbr_rotamer_assignments[warp_id][k];
-//           jE += ig.energy2b[ig.twob_offsets[k][i] + i_nrots * k_rotamer + j];
-//         }
-//
-//         if (j == g.thread_rank() || jE < my_best_rot_E) {
-//           my_best_rot = j;
-//           my_best_rot_E = jE;
-//         }
-//       }
-//       // now all threads compare: who has the lowest energy
-//       // if (g.thread_rank() == 0) {
-//       //   printf("minimum<float>\n");
-//       // }
-//       float best_rot_E =
-//           reduce_shfl_and_broadcast(g, my_best_rot_E,
-//           mgpu::minimum_t<float>());
-//       int mine_is_best = best_rot_E == my_best_rot_E;
-//       int scan_val = inclusive_scan_shfl(g, mine_is_best,
-//       mgpu::plus_t<int>()); if (mine_is_best && scan_val == 1) {
-//         // exactly one thread saves the assigned rotamer to the
-//         // spbr_perturbed_assignemnt array
-//         spbr_perturbed_assignments[warp_id][i] = my_best_rot;
-//       }
-//     }
-//
-//     // 5. compute the new total energy after relaxation
-//     float alt_energy = ig.total_energy_for_assignment_parallel(
-//         g, spbr_perturbed_assignments[warp_id]);
-//
-//     // 6. if the energy decreases, accept the perturbed conformation
-//     if (alt_energy < energy) {
-//       // if (g.thread_rank() == 0) {
-//       //   printf("%d prevE %f newE %f\n", warp_id, energy, alt_energy);
-//       // }
-//
-//       energy = alt_energy;
-//       for (int i = g.thread_rank(); i < nres; i += 32) {
-//         spbr_rotamer_assignments[warp_id][i] =
-//             spbr_perturbed_assignments[warp_id][i];
-//       }
-//     }
-//   }
-//   return energy;
-// }
 
 // IG must respond to
 // - nres()
@@ -693,9 +502,6 @@ struct Annealer {
     int const n_rotamers_total =
         ig.n_rotamers_total_cpu();  // res_for_rot.size(0);
     int const max_n_rotamers = ig.max_n_rotamers_per_pose_cpu();
-    // printf(
-    //     "n poses: %d, max_n_res %d, n_rotamers_total %d, max_n_rotamers
-    //     %d\n", n_poses, max_n_res, n_rotamers_total, max_n_rotamers);
 
     int const n_hitemp_simA_traj = 2000;
     int const n_hitemp_simA_threads = 32 * n_poses * n_hitemp_simA_traj;
@@ -729,12 +535,9 @@ struct Annealer {
         TPack<int, 3, D>::zeros({n_poses, n_hitemp_simA_traj, max_n_res});
     auto sorted_hitemp_traj_t =
         TPack<int, 2, D>::zeros({n_poses, n_hitemp_simA_traj});
-    auto segment_heads_hitemp_t = TPack<int, 1, D>::zeros(
-        {n_poses});  // arange(n_poses) * n_hitemp_simA_traj
-    auto segment_heads_lotemp_t = TPack<int, 1, D>::zeros(
-        {n_poses});  // arange(n_poses) * n_lotemp_simA_traj
-    auto segment_heads_fullquench_t = TPack<int, 1, D>::zeros(
-        {n_poses});  // arange(n_poses) * n_fulquench_traj
+    auto segment_heads_hitemp_t = TPack<int, 1, D>::zeros({n_poses});
+    auto segment_heads_lotemp_t = TPack<int, 1, D>::zeros({n_poses});
+    auto segment_heads_fullquench_t = TPack<int, 1, D>::zeros({n_poses});
 
     auto scores_lotemp_t =
         TPack<float, 2, D>::zeros({n_poses, n_lotemp_simA_traj});
@@ -779,8 +582,6 @@ struct Annealer {
         current_rotamer_assignments_lotemp_t.view;
     auto best_rotamer_assignments_lotemp =
         best_rotamer_assignments_lotemp_t.view;
-    // auto rotamer_assignments_lotemp_quenchlite =
-    // rotamer_assignments_lotemp_quenchlite_t.view;
     auto sorted_lotemp_traj = sorted_lotemp_traj_t.view;
 
     auto scores_fullquench = scores_fullquench_t.view;
@@ -789,7 +590,6 @@ struct Annealer {
     auto best_rotamer_assignments_fullquench =
         best_rotamer_assignments_fullquench_t.view;
     auto sorted_fullquench_traj = sorted_fullquench_traj_t.view;
-    // auto sorted_fullquench_traj = sorted_lotem_traj_t.view;
 
     auto scores_final = scores_final_t.view;
     auto rotamer_assignments_final = rotamer_assignments_final_t.view;
@@ -862,10 +662,6 @@ struct Annealer {
       int const cta_id = thread_id / 32;
       int const pose = cta_id / n_hitemp_simA_traj;
       int const traj_id = cta_id % n_hitemp_simA_traj;
-      // printf("hitemp thread %d cta %d pose %d traj_id %d\n", thread_id,
-      // cta_id,
-      //   pose, traj_id);
-
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
 
@@ -905,13 +701,6 @@ struct Annealer {
           n_rotamers,  // irrelevant; no quench here
           false,
           false);
-      // if (g.thread_rank() == 0) {
-      //   printf(
-      //       "hitemp wwsa done: pose %d traj %d E = %f\n",
-      //       pose,
-      //       traj_id,
-      //       rotstate_energy_after_high_temp);
-      // }
 
       // Save the state before moving into quench
       for (int i = g.thread_rank(); i < n_res; i += 32) {
@@ -965,10 +754,6 @@ struct Annealer {
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
 
-      // printf("lotemp thread %d cta %d pose %d traj_id %d source_traj %d\n",
-      // thread_id, cta_id,
-      //   pose, traj_id, source_traj);
-
       if (g.thread_rank() == 0) {
         sorted_lotemp_traj[pose][traj_id] = traj_id;
       }
@@ -999,13 +784,6 @@ struct Annealer {
           false,
           false);
 
-      // if (g.thread_rank() == 0) {
-      //   printf(
-      //       "lotemp wwsa done: pose %d traj %d E = %f\n",
-      //       pose,
-      //       traj_id,
-      //       low_temp_totalE);
-      // }
       // now we'll run a quench-lite
       // ok, we will run quench lite on first state
       float after_lotemp_quench_lite_totalE = warp_wide_sim_annealing(
@@ -1044,11 +822,6 @@ struct Annealer {
 
       int const n_res = ig.n_res(pose);
       int const n_rotamers = ig.n_rotamers(pose);
-      // if (g.thread_rank() == 0) {
-      //         printf("warp %d fullquench source_traj %d (%d) %f\n", warp_id,
-      //         source_traj,
-      //           n_lotemp_simA_traj, scores_lotemp[warp_id]);
-      // }
 
       // initialize the rotamer assignment from one of the top trajectories
       // of the high-temperature annealing trajectory
@@ -1102,12 +875,10 @@ struct Annealer {
 
     mgpu::standard_context_t context;
 
-    // printf("launch hitemp\n");
     mgpu::transform<32, 1>(
         hitemp_simulated_annealing, n_hitemp_simA_threads, context);
 
     // now let's rank the trajectories for each pose
-    // printf("launch segsort\n");
     mgpu::segmented_sort(
         scores_hitemp.data(),
         sorted_hitemp_traj.data(),
@@ -1117,11 +888,9 @@ struct Annealer {
         mgpu::less_t<float>(),
         context);
 
-    // printf("temp no launch lotemp\n");
     mgpu::transform<32, 1>(
         lotemp_simulated_annealing, n_lotemp_simA_threads, context);
 
-    // printf("temp no launch segsort2\n");
     mgpu::segmented_sort(
         scores_lotemp.data(),
         sorted_lotemp_traj.data(),
@@ -1131,7 +900,6 @@ struct Annealer {
         mgpu::less_t<float>(),
         context);
 
-    // printf("temp no launch fullquench\n");
     mgpu::transform<32, 1>(fullquench, n_fullquench_threads, context);
 
     mgpu::segmented_sort(
@@ -1143,10 +911,8 @@ struct Annealer {
         mgpu::less_t<float>(),
         context);
 
-    // printf("temp no launch fullquench\n");
     mgpu::transform<32, 1>(final_reindexing, n_fullquench_threads, context);
 
-    // printf("done!\n");
     return {scores_final_t, rotamer_assignments_final_t};
   }
 };
@@ -1188,12 +954,6 @@ auto AnnealerDispatch<D>::forward(
   auto result =
       Annealer<D, InteractionGraph<D, int, float> >::run_simulated_annealing(
           ig, gen);
-
-  // cudaDeviceSynchronize();
-  // clock_t stop = clock();
-  // std::cout << "GPU simulated annealing in "
-  //           << ((double)stop - start) / CLOCKS_PER_SEC << " seconds"
-  //           << std::endl;
 
   return result;
 }

@@ -70,8 +70,6 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
     if hasattr(restype, "rotamer_kinforest"):
         return
 
-    # is_focused_rrt = restype.name == "PRO"
-
     torsion_pairs = numpy.array(
         [uaids[1:3] for tor, uaids in restype.torsion_to_uaids.items()]
     )
@@ -88,25 +86,12 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
                     roots=numpy.zeros((1,), dtype=numpy.int32),
                     potential_bonds=restype.bond_indices,
                     prioritized_bonds=torsion_pairs,
-                    # all_bonds=restype.bond_indices,
-                    # n_atoms_total=restype.n_atoms,
                 ),
                 to_jump_nodes=numpy.array([], dtype=numpy.int32),
             )
             .kinforest
         )
-        # if is_focused_rrt:
-        #     print("PRO")
-        #     print("id\n", kinforest.id)
-        #     print("parent\n", kinforest.parent)
-        #     print("frame_x\n", kinforest.frame_x)
-        #     print("frame_y\n", kinforest.frame_y)
-        #     print("frame_z\n", kinforest.frame_z)
-
     else:
-        # print("bonds")
-        # print(restype.bond_indices.shape)
-        # print(restype.bond_indices.dtype)
         kinforest = (
             _KinematicBuilder()
             .append_connected_components(
@@ -137,8 +122,6 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
             ),
         )
     )
-    # print("ideal coords")
-    # print(ideal_coords)
 
     dofs_ideal = inverse_kin(
         ideal_coords,
@@ -149,8 +132,6 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
         kinforest.doftype,
     )
     dofs_ideal = dofs_ideal.numpy()
-    # print("dofs ideal")
-    # print(dofs_ideal[:,:4])
 
     kinforest_idx = numpy.zeros((restype.n_atoms,), dtype=numpy.int32)
     kinforest_idx[kinforest.id.numpy()[1:]] = numpy.arange(

@@ -375,7 +375,6 @@ class ElecRotamerScoreOp
            global_params,
            dispatch_inds});
     } else {
-      // score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
 
@@ -403,15 +402,6 @@ class ElecRotamerScoreOp
       }
       result.emplace_back(saved_grad * atom_ingrads);
 
-      // for (auto& saved_grad : saved_grads) {
-      //   auto ingrad = grad_outputs[0];
-      //   while (ingrad.dim() < saved_grad.dim()) {
-      //     ingrad = ingrad.unsqueeze(-1);
-      //   }
-
-      //   result.emplace_back(saved_grad * ingrad);
-      // }
-
       int i = 0;
       dV_d_pose_coords = result[i++];
 
@@ -434,10 +424,6 @@ class ElecRotamerScoreOp
       auto rot_offset_for_block = saved[i++];
       auto max_n_rots_per_pose =
           TPack<int32_t, 1, tmol::Device::CPU>(saved[i++]).view[0];
-
-      // auto coords = saved[i++];
-      // auto pose_stack_block_coord_offset = saved[i++];
-      // auto pose_stack_block_type = saved[i++];
 
       auto pose_stack_min_bond_separation = saved[i++];
       auto pose_stack_inter_block_bondsep = saved[i++];
@@ -533,9 +519,6 @@ std::vector<Tensor> elec_pose_scores_op(
     Tensor rot_offset_for_block,
     int64_t max_n_rots_per_pose,
 
-    // Tensor coords,
-    // Tensor pose_stack_block_coord_offset,
-    // Tensor pose_stack_block_type,
     Tensor pose_stack_min_bond_separation,
     Tensor pose_stack_inter_block_bondsep,
 
@@ -594,9 +577,6 @@ std::vector<Tensor> elec_rotamer_scores_op(
     Tensor rot_offset_for_block,
     int64_t max_n_rots_per_pose,
 
-    // Tensor coords,
-    // Tensor pose_stack_block_coord_offset,
-    // Tensor pose_stack_block_type,
     Tensor pose_stack_min_bond_separation,
     Tensor pose_stack_inter_block_bondsep,
 

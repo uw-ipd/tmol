@@ -626,7 +626,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         ],
         dtype=object,
     )
-    # print("dun_allowed_blocktypes shape", dun_allowed_blocktypes.shape)
     is_gbt_dun_allowed = numpy.array(
         [
             dun_sampler in blt.conformer_samplers and blt.block_type_allowed[i]
@@ -637,7 +636,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         dtype=bool,
     )
     n_gbt_total = is_gbt_dun_allowed.shape[0]
-    # print("is_gbt_dun_allowed shape", is_gbt_dun_allowed.shape)
     # equiv: numpy.nonzero(is_gbt_dun_allowed)
     dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[
         is_gbt_dun_allowed
@@ -652,7 +650,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     dun_allowed_bt_base_names = numpy.array(
         [bt.name.partition(":")[0] for bt in dun_allowed_blocktypes], dtype=object
     )
-    # print("dun_allowed_bt_base_names[:20]", dun_allowed_bt_base_names[:20])
     pbt = pose_stack.packed_block_types
 
     # the source block for each dun-allowed block type
@@ -695,7 +692,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
 
     is_dun_allowed_bt_bbt = dun_rot_inds_for_dun_allowed_bts != -1
     dun_allowed_bt_that_are_bbt = torch.nonzero(is_dun_allowed_bt_bbt)[:, 0]
-    # print("dun_allowed_bt_that_are_bbt", dun_allowed_bt_that_are_bbt.shape)
     bbt_to_gbt_torch = dun_allowed_bt_to_gbt_torch[dun_allowed_bt_that_are_bbt]
     rottable_set_for_bbt = dun_rot_inds_for_dun_allowed_bts[dun_allowed_bt_that_are_bbt]
 
@@ -818,16 +814,6 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         chi_for_rotamers,
     ) = results
 
-    # all_allowed_restypes = numpy.array(
-    #     [
-    #         bt
-    #         for one_pose_blts in task.blts
-    #         for blt in one_pose_blts
-    #         for i, bt in enumerate(blt.considered_block_types)
-    #         if blt.block_type_allowed[i]
-    #     ],
-    #     dtype=object,
-    # )
     all_considered_restypes = numpy.array(
         [
             bt
@@ -837,76 +823,7 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
         ],
         dtype=object,
     )
-    # n_gbt_total = all_considered_restypes.shape[0]
-    # considered_restypes_allowed = numpy.array(
-    #     [
-    #         blt.block_type_allowed[i]
-    #         for one_pose_blts in task.blts
-    #         for blt in one_pose_blts
-    #         for i, bt in enumerate(blt.considered_block_types)
-    #     ],
-    #     dtype=object,
-    # )
-    # dun_considered_restype_allowed = numpy.array(
-    #     [
-    #         (
-    #             rt.name != "ALA"
-    #             and rt.name != "GLY"
-    #             and considered_restypes_allowed[i]
-    #         )
-    #         for i, rt in enumerate(all_considered_restypes)
-    #     ],
-    #     dtype=bool,
-    # )
-    # rt_names = numpy.array([rt.name for rt in all_allowed_restypes], dtype=object)
-    # rt_base_names = numpy.array(
-    #     [rt.name.partition(":")[0] for rt in all_allowed_restypes], dtype=object
-    # )
-    #
-    # dun_rot_inds_for_rts = param_resolver._indices_from_names(
-    #     param_resolver.all_table_indices, rt_base_names[None, :], torch.device("cpu")
-    # ).squeeze()
-    # block_type_ind_for_brt = torch.tensor(
-    #     pbt.restype_index.get_indexer(
-    #         rt_names[dun_rot_inds_for_rts.cpu().numpy() != -1]
-    #     ),
-    #     dtype=torch.int64,
-    #     device=torch_device,
-    # )
-    #
-    # nonzero_dunrot_inds_for_rts = torch.nonzero(dun_rot_inds_for_rts != -1)
-    #
-    # # let the sampler annotate the residue types and the PBT
-    # for rt in poses.packed_block_types.active_block_types:
-    #     dun_sampler.annotate_residue_type(rt)
-    # dun_sampler.annotate_packed_block_types(poses.packed_block_types)
-    #
-    # n_rots_for_brt = torch.arange(12, dtype=torch.int32, device=torch_device) + 1
     offsets_for_gbt = exclusive_cumsum1d(n_rots_for_gbt)
-    # n_rots = torch.sum(n_rots_for_brt).item()
-    # brt_for_rotamer = torch.zeros((n_rots,), dtype=torch.int32, device=torch_device)
-    # brt_for_rotamer[offsets_for_brt.to(torch.int64)] = 1
-    # brt_for_rotamer[0] = 0
-    # brt_for_rotamer = torch.cumsum(brt_for_rotamer, dim=0)
-    # chi_for_rotamers = torch.zeros(
-    #     (n_rots, 4), dtype=torch.float32, device=torch_device
-    # )
-    #
-    # sampled_chi = (n_rots_for_brt, offsets_for_brt, {"brt_for_rotamer": brt_for_rotamer, "chi_for_rotamers": chi_for_rotamers})
-    #
-    # dun_considered_restype_allowed = torch.tensor(dun_considered_restype_allowed, dtype=torch.bool, device=torch_device)
-    # dun_allowed_bt_that_are_bbt = torch.nonzero(dun_considered_restype_allowed)[:, 0]
-    # dun_allowed_bt_to_gbt = numpy.arange(n_gbt_total, dtype=numpy.int64)[
-    #     dun_considered_restype_allowed
-    # ]
-    # dun_allowed_bt_to_gbt_torch = torch.tensor(
-    #     dun_allowed_bt_to_gbt, device=torch_device
-    # )
-    # bbt_to_gbt_torch = dun_allowed_bt_to_gbt_torch[dun_allowed_bt_that_are_bbt]
-    #
-    # results = dun_sampler.package_samples_for_output(
-    #     pbt, task, n_gbt_total, dun_allowed_bt_to_gbt_torch, block_type_ind_for_brt, 4, nonzero_dunrot_inds_for_rts, sampled_chi
-    # )
 
     n_rots_for_gbt_gold = numpy.zeros(
         all_considered_restypes.shape[0], dtype=numpy.int32
@@ -920,21 +837,8 @@ def test_package_samples_for_output(default_database, ubq_pdb, torch_device):
     offsets_for_gbt_np = offsets_for_gbt.cpu().numpy()
     for i, rotamer in enumerate(offsets_for_gbt_np):
         rt_for_rot_gold[rotamer] += 1
-    # print("rt_for_rot_gold before cumsum")
-    # print(rt_for_rot_gold)
-    # rt_for_rot_gold[offsets_for_gbt.cpu().numpy()] += 1
     rt_for_rot_gold = rt_for_rot_gold[:-1]  # lop off the "last" rotamer
-    # rt_for_rot_gold[0] = 0
-    # rt_for_rot_gold[offsets_for_gbt[4].cpu()] += 1
     rt_for_rot_gold = numpy.cumsum(rt_for_rot_gold) - 1
-    # print("offsets_for_gbt")
-    # print(offsets_for_gbt.cpu().numpy())
-    # print("rt_for_rot_gold")
-    # print(rt_for_rot_gold)
-    # print("results[0].cpu().numpy()")
-    # print(results[0].cpu().numpy())
-    # print("results[1].cpu().numpy()")
-    # print(results[1].cpu().numpy())
 
     assert results[0].device == torch_device
     assert results[1].device == torch_device

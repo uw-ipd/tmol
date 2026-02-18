@@ -138,12 +138,6 @@ class LJLKPoseScoreOp
            global_params,
            block_neighbors});
     } else {
-      /*for(int i = 0; i < dscore_dcoords.size(0); i++)
-        if ((dscore_dcoords[i][0].item<float>() > 0.000001) ||
-        (dscore_dcoords[i][1].item<float>() > 0.000001) ||
-        (dscore_dcoords[i][2].item<float>() > 0.000001)) printf("FGRAD %i %f %f
-        %f\n", i,
-        dscore_dcoords[i][0].item<float>(),dscore_dcoords[i][1].item<float>(),dscore_dcoords[i][2].item<float>());*/
       score = score.squeeze(-1).squeeze(-1);  // remove final 2 "dummy" dims
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
@@ -248,12 +242,7 @@ class LJLKPoseScoreOp
                     TCAST(block_neighbors),
                     TCAST(dTdV));
 
-            dV_d_pose_coords = result.tensor;  // torch::stack({result.tensor /
-                                               // 3, 3 * result.tensor / 3});
-            // printf(
-            //     "tensor dims: %i %i\n",
-            //     result.tensor.size(0),
-            //     result.tensor.size(1));
+            dV_d_pose_coords = result.tensor;
           }));
     }
 
@@ -391,12 +380,6 @@ class LJLKRotamerScoreOp
            global_params,
            dispatch_indices});
     } else {
-      /*for(int i = 0; i < dscore_dcoords.size(0); i++)
-        if ((dscore_dcoords[i][0].item<float>() > 0.000001) ||
-        (dscore_dcoords[i][1].item<float>() > 0.000001) ||
-        (dscore_dcoords[i][2].item<float>() > 0.000001)) printf("FGRAD %i %f %f
-        %f\n", i,
-        dscore_dcoords[i][0].item<float>(),dscore_dcoords[i][1].item<float>(),dscore_dcoords[i][2].item<float>());*/
       ctx->save_for_backward({dscore_dcoords, pose_ind_for_atom});
     }
     return {score, dispatch_indices};
@@ -500,12 +483,7 @@ class LJLKRotamerScoreOp
                     TCAST(dispatch_indices),
                     TCAST(dTdV));
 
-            dV_d_pose_coords = result.tensor;  // torch::stack({result.tensor /
-                                               // 3, 3 * result.tensor / 3});
-            printf(
-                "tensor dims: %i %i\n",
-                result.tensor.size(0),
-                result.tensor.size(1));
+            dV_d_pose_coords = result.tensor;
           }));
     }
 

@@ -437,49 +437,6 @@ class LKBallPoseScoreDispatch {
         block_type_atoms_forming_chemical_bonds.size(1);
     int const max_n_tiles = block_type_tile_pol_occ_inds.size(1);
 
-    /*assert(max_n_interblock_bonds <= MAX_N_CONN);
-
-    assert(water_coords.size(0) == n_poses);
-    assert(water_coords.size(1) == max_n_pose_atoms);
-    assert(water_coords.size(2) == MAX_N_WATER);
-
-    assert(pose_stack_block_coord_offset.size(0) == n_poses);
-    assert(pose_stack_block_coord_offset.size(1) == max_n_blocks);
-
-    assert(pose_stack_block_type.size(0) == n_poses);
-
-    assert(pose_stack_inter_residue_connections.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
-
-    assert(pose_stack_min_bond_separation.size(0) == n_poses);
-    assert(pose_stack_min_bond_separation.size(1) == max_n_blocks);
-    assert(pose_stack_min_bond_separation.size(2) == max_n_blocks);
-
-    assert(pose_stack_inter_block_bondsep.size(0) == n_poses);
-    assert(pose_stack_inter_block_bondsep.size(1) == max_n_blocks);
-    assert(pose_stack_inter_block_bondsep.size(2) == max_n_blocks);
-    assert(pose_stack_inter_block_bondsep.size(3) == max_n_interblock_bonds);
-    assert(pose_stack_inter_block_bondsep.size(4) == max_n_interblock_bonds);
-
-    assert(block_type_n_interblock_bonds.size(0) == n_block_types);
-
-    assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
-
-    assert(block_type_tile_n_polar_atoms.size(0) == n_block_types);
-    assert(block_type_tile_n_polar_atoms.size(1) == max_n_tiles);
-    assert(block_type_tile_n_occluder_atoms.size(0) == n_block_types);
-    assert(block_type_tile_n_occluder_atoms.size(1) == max_n_tiles);
-    assert(block_type_tile_pol_occ_inds.size(0) == n_block_types);
-    assert(block_type_tile_pol_occ_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_pol_occ_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_lk_ball_params.size(0) == n_block_types);
-    assert(block_type_tile_lk_ball_params.size(1) == max_n_tiles);
-    assert(block_type_tile_lk_ball_params.size(2) == TILE_SIZE);
-
-    assert(block_type_path_distance.size(0) == n_block_types);
-    assert(block_type_path_distance.size(1) == max_n_block_atoms);
-    assert(block_type_path_distance.size(2) == max_n_block_atoms);*/
-
     auto scratch_rot_spheres_t =
         TPack<Real, 3, Dev>::zeros({n_poses, max_n_rots_per_pose, 4});
     auto scratch_rot_spheres = scratch_rot_spheres_t.view;
@@ -488,53 +445,11 @@ class LKBallPoseScoreDispatch {
         {n_poses, max_n_rots_per_pose, max_n_rots_per_pose});
     auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
-    // score::common::sphere_overlap::
-    //     compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
-    //         rot_coords,
-    //         rot_coord_offset,
-    //         block_type_ind_for_rot,
-    //         block_type_n_atoms,
-    //         scratch_rot_spheres);
-
-    // score::common::sphere_overlap::
-    //     detect_rot_neighbors<DeviceDispatch, Dev, Real, Int>::f(
-    //         max_n_rots_per_pose,
-    //         block_ind_for_rot,
-    //         block_type_ind_for_rot,
-    //         block_type_n_atoms,
-    //         n_rots_for_pose,
-    //         rot_offset_for_pose,
-    //         n_rots_for_block,
-    //         scratch_rot_spheres,
-    //         scratch_rot_neighbors,
-    //         Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
-
-    // auto dispatch_indices_t = score::common::sphere_overlap::
-    //     rot_neighbor_indices<DeviceDispatch, Dev, Int>::f(
-    //         scratch_rot_neighbors, rot_offset_for_pose);
-    // auto rni_result = score::common::sphere_overlap::
-    //     rot_neighbor_indices<DeviceDispatch, Dev, Int>::f(
-    //         scratch_rot_neighbors, rot_offset_for_pose);
-    // auto dispatch_indices_t = std::get<0>(rni_result);
-    // auto offset_for_cell_t = std::get<1>(rni_result);
-    // auto dispatch_indices = dispatch_indices_t.view;
-
     TPack<Real, 4, Dev> output_t;
     if (output_block_pair_energies) {
-      //   printf("Allocating output_t in block-pair mode with sizes %d %d %d
-      //   %d\n",
-      //       n_lk_ball_score_types,
-      //       n_poses,
-      //       max_n_blocks,
-      //       max_n_blocks);
       output_t = TPack<Real, 4, Dev>::zeros(
           {n_lk_ball_score_types, n_poses, max_n_blocks, max_n_blocks});
     } else {
-      //   printf("Allocating output_t with sizes %d %d %d %d\n",
-      //       n_lk_ball_score_types,
-      //       n_poses,
-      //       1,
-      //       1);
       output_t =
           TPack<Real, 4, Dev>::zeros({n_lk_ball_score_types, n_poses, 1, 1});
     }
@@ -745,7 +660,6 @@ class LKBallPoseScoreDispatch {
             block_type_ind_for_rot,
             block_type_n_atoms,
             scratch_rot_spheres);
-    // printf("computed block spheres\n");
 
     score::common::sphere_overlap::
         detect_block_neighbors<DeviceDispatch, Dev, Real, Int>::f(
@@ -754,11 +668,8 @@ class LKBallPoseScoreDispatch {
             scratch_rot_neighbors,
             Real(5.5));
     // 3 Only the forward pass in this calculation
-    // std::cout << "lkball forward" << std::endl;
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies_by_block);
-    // std::cout << "done (forward)" << std::endl;
-    // DeviceDispatch<Dev>::synchronize_device();
 
     return {output_t, scratch_rot_neighbors_t};
   }
@@ -1078,11 +989,8 @@ class LKBallPoseScoreDispatch {
 
     // Since we have the sphere overlap results from the forward pass,
     // there's only a single kernel launch here
-    // std::cout << "lkball backward" << std::endl;
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_derivs);
-    // std::cout << "done lkball backward" << std::endl;
-    // std::cout << "d lkball end" << std::endl;
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
   }
@@ -1234,8 +1142,6 @@ class LKBallRotamerScoreDispatch {
         {n_poses, max_n_rots_per_pose, max_n_rots_per_pose});
     auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
-    // TPack<Int, 2, Dev> dispatch_indices_t;
-
     score::common::sphere_overlap::
         compute_rot_spheres<DeviceDispatch, Dev, Real, Int>::f(
             rot_coords,
@@ -1260,11 +1166,6 @@ class LKBallRotamerScoreDispatch {
     auto dispatch_indices_t = score::common::sphere_overlap::
         rot_neighbor_indices<DeviceDispatch, Dev, Int>::f(
             scratch_rot_neighbors, rot_offset_for_pose);
-    // auto rni_result = score::common::sphere_overlap::
-    //     rot_neighbor_indices<DeviceDispatch, Dev, Int>::f(
-    //         scratch_rot_neighbors, rot_offset_for_pose);
-    // auto dispatch_indices_t = std::get<0>(rni_result);
-    // auto offset_for_cell_t = std::get<1>(rni_result);
     auto dispatch_indices = dispatch_indices_t.view;
 
     TPack<Real, 2, Dev> output_t;
@@ -1452,11 +1353,8 @@ class LKBallRotamerScoreDispatch {
     // context(wrapped_stream.stream());
 
     // 3 Only the forward pass in this calculation
-    // std::cout << "lkball forward" << std::endl;
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         dispatch_indices.size(1), eval_energies_by_block);
-    // std::cout << "done" << std::endl;
-    // DeviceDispatch<Dev>::synchronize_device();
 
     return {output_t, dispatch_indices_t};
   }
@@ -1527,7 +1425,6 @@ class LKBallRotamerScoreDispatch {
       TView<Real, 2, Dev> dTdV,
       bool block_pair_scoring)
       -> std::tuple<TPack<Vec<Real, 3>, 1, Dev>, TPack<Vec<Real, 3>, 2, Dev>> {
-    // std::cout << "d lkball start" << std::endl;
     using tmol::score::common::accumulate;
     using Real3 = Vec<Real, 3>;
 
@@ -1795,11 +1692,8 @@ class LKBallRotamerScoreDispatch {
 
     // Since we have the sphere overlap results from the forward pass,
     // there's only a single kernel launch here
-    // std::cout << "lkball backward" << std::endl;
     DeviceDispatch<Dev>::template foreach_workgroup<launch_t>(
         dispatch_indices.size(1), eval_derivs);
-    // std::cout << "done" << std::endl;
-    // std::cout << "d lkball end" << std::endl;
 
     return {dV_d_pose_coords_t, dV_d_water_coords_t};
   }

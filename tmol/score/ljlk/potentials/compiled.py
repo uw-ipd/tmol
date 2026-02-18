@@ -11,8 +11,6 @@ load(
                 "compiled.ops.cpp",
                 "ljlk_pose_score.cpu.cpp",
                 "ljlk_pose_score.cuda.cu",
-                # "rotamer_pair_energy_lk.cpu.cpp",
-                # "rotamer_pair_energy_lk.cuda.cu",
             ],
         )
     ),

@@ -51,12 +51,6 @@ class ChiSampler(ConformerSampler):
             chi_defining_atom_for_rotamer,
             chi_for_rotamers,
         ) = self.sample_chi_for_poses(pose_stack, task)
-        # print("Sampling:", self.sampler_name(), chi_for_rotamers.shape)
-        # print(self.sampler_name())
-        # print("chi_defining_atom_for_rotamer")
-        # print(chi_defining_atom_for_rotamer.shape)
-        # print("chi_for_rotamers")
-        # print(chi_for_rotamers.shape)
         return (
             n_rots_for_gbt,
             gbt_for_rotamer,
@@ -183,16 +177,12 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
     )
 
     # consider making this an argument and passing in
-    # print("poses.block_type_ind.shape", poses.block_type_ind.shape)
     poses_res_to_real_poses_res = torch.full(
         (poses.block_type_ind.shape[0] * poses.block_type_ind.shape[1],),
         -1,
         dtype=torch.int64,
         device=poses.device,
     )
-    # print("poses_res_to_real_poses_res")
-    # print(poses_res_to_real_poses_res.shape)
-    # print(poses_res_to_real_poses_res[-10:])
     poses_res_to_real_poses_res[poses.block_type_ind.view(-1) != -1] = torch.arange(
         orig_block_type_ind.shape[0], dtype=torch.int64, device=poses.device
     )
@@ -209,20 +199,11 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         dtype=torch.int64,
         device=poses.device,
     )
-    # print("res_ind_for_gbt")
-    # print(res_ind_for_gbt)
     gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]
-    # torch.set_printoptions(threshold=10000)
-    # print("gbt_for_samplers_rots")
-    # print(gbt_for_samplers_rots)
     res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
-    # print("res_ind_for_samplers_rots")
-    # print(res_ind_for_samplers_rots)
     real_res_ind_for_samplers_rots = poses_res_to_real_poses_res[
         res_ind_for_samplers_rots
     ]
-    # print("real_res_ind_for_samplers_rots")
-    # print(real_res_ind_for_samplers_rots)
     block_type_ind_for_samplers_rots = block_type_ind_for_rot[conf_inds_for_sampler]
 
     # look up which mainchain fingerprint each
@@ -251,7 +232,6 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         is_samplers_rots_mcfp_at_inds_rto_real
     ]
 
-    # print("block_type_ind_for_samplers_rots", block_type_ind_for_samplers_rots.shape)
     real_samplers_rots_block_type_ind_for_mcfp_ats = stretch(
         block_type_ind_for_samplers_rots, max_n_mcfp_atoms
     )[is_samplers_rots_mcfp_at_inds_rto_real]
@@ -267,19 +247,8 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
             device=pbt.device,
         )
     )
-    # print(
-    #     "real_samplers_rots_block_type_ind_for_mcfp_ats",
-    #     real_samplers_rots_block_type_ind_for_mcfp_ats.shape,
-    # )
 
     is_samplers_rots_mcfp_at_inds_kto_real = samplers_rots_mcfp_at_inds_kto != -1
-    # print(
-    #     "is_samplers_rots_mcfp_at_inds_kto_real",
-    #     is_samplers_rots_mcfp_at_inds_kto_real.shape,
-    # )
-    # print(
-    #     "n_rots_for_sampler * max_n_mcfp_atoms", n_rots_for_sampler * max_n_mcfp_atoms
-    # )
     n_dof_atoms_offset_for_samplers_rot = n_dof_atoms_offset_for_rot[
         conf_inds_for_sampler
     ]
@@ -371,13 +340,6 @@ def create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler(
         orig_mcfp_at_inds_for_samplers_rots_kto[both_present] + 1
     )
 
-    # print("samplers_rots_mcfp_at_inds_kto")
-    # print(samplers_rots_mcfp_at_inds_kto.shape)
-    # print(samplers_rots_mcfp_at_inds_kto[:30])
-    # print("orig_mcfp_at_inds_for_samplers_rots_kto")
-    # print(orig_mcfp_at_inds_for_samplers_rots_kto.shape)
-    # print(orig_mcfp_at_inds_for_samplers_rots_kto[:30])
-
     return samplers_rots_mcfp_at_inds_kto, orig_mcfp_at_inds_for_samplers_rots_kto
 
 
@@ -393,7 +355,6 @@ def assign_chi_dofs_from_samples(
     chi: Tensor[torch.float32][:, :],
     rot_dofs_kto: Tensor[torch.float32][:, 9],
 ):
-    # print("chi atoms", chi_atoms.shape, "chi",)
     assert chi_atoms.shape == chi.shape
 
     n_rots_for_sampler = sampler_gbt_for_rotamer.shape[0]
@@ -430,6 +391,3 @@ def assign_chi_dofs_from_samples(
     # overwrite the "downstream torsion" for the atoms that control
     # each chi
     rot_dofs_kto[rot_chi_atoms_kto, 3] = chi.view(-1)[real_atoms]
-
-    # print("rot_chi_atoms_kto", rot_chi_atoms_kto[:10])
-    # print("chi", chi.view(-1)[real_atoms][:10])

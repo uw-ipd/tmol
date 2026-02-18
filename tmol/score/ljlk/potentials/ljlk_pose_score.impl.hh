@@ -753,48 +753,6 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
       {n_poses, max_n_rots_per_pose, max_n_rots_per_pose});
   auto scratch_rot_neighbors = scratch_rot_neighbors_t.view;
 
-  // TPack<Int, 2, Dev> dispatch_indices_t;
-
-  // score::common::sphere_overlap::
-  //     compute_rot_spheres<DeviceOperations, D, Real, Int>::f(
-  //         rot_coords,
-  //         rot_coord_offset,
-  //         block_type_ind_for_rot,
-  //         block_type_n_atoms,
-  //         scratch_rot_spheres);
-
-  // score::common::sphere_overlap::
-  //     detect_rot_neighbors<DeviceOperations, D, Real, Int>::f(
-  //         max_n_rots_per_pose,
-  //         block_ind_for_rot,
-  //         block_type_ind_for_rot,
-  //         block_type_n_atoms,
-  //         n_rots_for_pose,
-  //         rot_offset_for_pose,
-  //         n_rots_for_block,
-  //         scratch_rot_spheres,
-  //         scratch_rot_neighbors,
-  //         Real(5.5));  // 5.5A hard coded here. Please fix! TEMP!
-
-  // auto dispatch_indices_t = score::common::sphere_overlap::
-  //     rot_neighbor_indices<DeviceOperations, D, Int>::f(
-  //         scratch_rot_neighbors, rot_offset_for_pose);
-  // auto rni_result = score::common::sphere_overlap::
-  //     rot_neighbor_indices<DeviceOperations, D, Int>::f(
-  //         scratch_rot_neighbors, rot_offset_for_pose);
-  // auto dispatch_indices_t = std::get<0>(rni_result);
-  // auto offset_for_cell_t = std::get<1>(rni_result);
-
-  // auto dispatch_indices = dispatch_indices_t.view;
-
-  // TPack<Real, 2, D> output_t;
-  // if (output_block_pair_energies) {
-  //   output_t = TPack<Real, 2, D>::zeros({3, dispatch_indices.size(1)});
-  // } else {
-  //   // printf("n poses for whole-pose scoring? %d\n", n_poses);
-  //   output_t = TPack<Real, 2, D>::zeros({3, n_poses});
-  // }
-  // auto output = output_t.view;
   TPack<Real, 4, D> output_t;
   if (output_block_pair_energies) {
     output_t =
@@ -1082,15 +1040,6 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     if (block_type1 < 0 || block_type2 < 0) {
       return;
     }
-    // printf("scoring pose %d, block pair (%d, %d) rotamers (%d, %d) types (%d,
-    // %d)\n",
-    //        pose_ind,
-    //        block_ind1,
-    //        block_ind2,
-    //        rot_ind1,
-    //        rot_ind2,
-    //        block_type1,
-    //        block_type2);
 
     int const n_atoms1 = block_type_n_atoms[block_type1];
     int const n_atoms2 = block_type_n_atoms[block_type2];
@@ -1172,7 +1121,6 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
           block_type_ind_for_rot,
           block_type_n_atoms,
           scratch_rot_spheres);
-  // printf("computed block spheres\n");
 
   score::common::sphere_overlap::
       detect_block_neighbors<DeviceOperations, D, Real, Int>::f(
@@ -1180,7 +1128,6 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
           scratch_rot_spheres,
           scratch_rot_neighbors,
           Real(5.5));
-  // printf("detected block neighbors\n");
 
   if (output_block_pair_energies) {
     DeviceOperations<D>::template foreach_workgroup<launch_t>(
@@ -1189,8 +1136,6 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
     DeviceOperations<D>::template foreach_workgroup<launch_t>(
         n_poses * max_n_upper_triangle_inds, eval_energies);
   }
-  // printf("evaluated energies\n");
-  // DeviceOperations<D>::synchronize_device();
 
   return {output_t, dV_dcoords_t, scratch_rot_neighbors_t};
 }  // LJLKPoseScoreDispatch::forward
@@ -1676,11 +1621,6 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   auto dispatch_indices_t = score::common::sphere_overlap::
       rot_neighbor_indices<DeviceOperations, D, Int>::f(
           scratch_rot_neighbors, rot_offset_for_pose);
-  // auto rni_result = score::common::sphere_overlap::
-  //     rot_neighbor_indices<DeviceOperations, D, Int>::f(
-  //         scratch_rot_neighbors, rot_offset_for_pose);
-  // auto dispatch_indices_t = std::get<0>(rni_result);
-  // auto offset_for_cell_t = std::get<1>(rni_result);
 
   auto dispatch_indices = dispatch_indices_t.view;
 
@@ -1688,7 +1628,6 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   if (output_block_pair_energies) {
     output_t = TPack<Real, 2, D>::zeros({3, dispatch_indices.size(1)});
   } else {
-    // printf("n poses for whole-pose scoring? %d\n", n_poses);
     output_t = TPack<Real, 2, D>::zeros({3, n_poses});
   }
   auto output = output_t.view;
@@ -1846,7 +1785,6 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
   assert(output_block_pair_energies);
   DeviceOperations<D>::template foreach_workgroup<launch_t>(
       dispatch_indices.size(1), eval_energies_by_block);
-  // DeviceOperations<D>::synchronize_device();
 
   return {output_t, dV_dcoords_t, dispatch_indices_t};
 }  // LJLKRotamerScoreDispatch::forward

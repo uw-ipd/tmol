@@ -39,7 +39,8 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -209,11 +210,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
       // This should never happen
       return;
     }
-    // printf(
-    //     "Dunbrack forward p %d b %d r %d\n",
-    //     pose_index,
-    //     block_index,
-    //     rotamer_index);
 
     for (int ii = 0; ii < block_n_dihedrals[block_type_index]; ii++) {
       auto dih_uaids = block_dih_uaids[block_type_index][ii];
@@ -361,7 +357,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
         }
       }
     }
-    // common::accumulate<D, Real>::add(V[1][V_index], Erotdev);
     if (output_block_pair_energies) {
       if (rotameric_chi_dev_penalty != 0.0) {
         V[1][pose_index][block_index][block_index] = rotameric_chi_dev_penalty;
@@ -392,7 +387,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
           dneglnprob_nonrot_dtor_xyz[rotamer_index],
           dihedral_deriv[rotamer_index]);
 
-      // common::accumulate<D, Real>::add(V[2][V_index], Esemi);
       if (output_block_pair_energies) {
         V[2][pose_index][block_index][block_index] = Esemi;
       } else {
@@ -424,13 +418,13 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
   });
 
   DeviceDispatch<D>::template forall<launch_t>(n_poses * max_n_blocks, func);
-  //   DeviceDispatch<D>::synchronize_device();
 
   return {V_t, dV_dx_t};
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -593,11 +587,6 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
       // This should never happen
       return;
     }
-    // printf(
-    //     "Dunbrack backward p %d b %d r %d\n",
-    //     pose_index,
-    //     block_index,
-    //     rotamer_index);
 
     for (int ii = 0; ii < block_n_dihedrals[block_type_index]; ii++) {
       auto dih_uaids = block_dih_uaids[block_type_index][ii];
@@ -786,7 +775,8 @@ auto DunbrackPoseScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
 }  // namespace potentials
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1170,7 +1160,8 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::forward(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1513,7 +1504,7 @@ auto DunbrackRotamerScoreDispatch<DeviceDispatch, D, Real, Int>::backward(
   DeviceDispatch<D>::template forall<launch_t>(n_rots, func);
 
   return dV_dx_t;
-}  // namespace potentials
+}
 
 }  // namespace potentials
 }  // namespace dunbrack

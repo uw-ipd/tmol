@@ -310,6 +310,7 @@ def pose_stack_from_canonical_form(
         chain_id=chain_id,
         chain_id64=i64(chain_id),
         pdb_info=pdb_info,
+        constraint_set=None,
         device=pbt.device,
     )
 

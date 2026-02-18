@@ -412,19 +412,6 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
     at_is_pres = not_any_nancoord(coords)
 
     # put two empty residues in between res 5 and 6
-    # def add_two_res(x, fill_value):
-    #     if len(x.shape) >= 3:
-    #         fill_shape = (x.shape[0], 2, *x.shape[2:])
-    #     else:
-    #         fill_shape = (x.shape[0], 2)
-    #     return torch.cat(
-    #         [
-    #             x[:, :5],
-    #             torch.full(fill_shape, fill_value, dtype=x.dtype, device=x.device),
-    #             x[:, 5:],
-    #         ],
-    #         dim=1,
-    #     )
     add_two_res = partial(add_two_res_at_gap, 5)
 
     ch_id = add_two_res(ch_id, 0)
@@ -553,11 +540,6 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
         res_types=new_restypes,
         chain_labels=new_chain_labels,
     )
-
-    # cf.coords = new_coords
-    # cf.chain_id = new_chain_id
-    # cf.res_types = new_restypes
-    # cf.chain_labels = new_chain_labels
 
     ch_id, can_rts, coords, ch_lab = (
         cf.chain_id,
@@ -1100,15 +1082,15 @@ def test_select_best_block_type_candidate_error_impossible_combo(
 
     expected_err_msg = """failed to resolve a block type from the candidates available
  Failed to resolve block type for 0 19 SER
- 0 19 0 68 SER restype 15 equiv class SER
+ 0 19 0 72 SER restype 15 equiv class SER
   atom P provided but absent from candidate SER
   atom M provided but absent from candidate SER
  Failed to resolve block type for 0 19 SER
- 0 19 1 71 SER:phospho restype 15 equiv class SER
+ 0 19 1 75 SER:phospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:phospho
   atom M provided but absent from candidate SER:phospho
  Failed to resolve block type for 0 19 SER
- 0 19 2 72 SER:mospho restype 15 equiv class SER
+ 0 19 2 76 SER:mospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:mospho
   atom P provided but absent from candidate SER:mospho
 """

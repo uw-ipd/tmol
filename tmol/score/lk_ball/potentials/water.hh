@@ -37,16 +37,16 @@ struct build_don_water {
 
     def astuple() { return tmol::score::common::make_tuple(dD, dH); }
 
-    static def Zero()->dV_t { return {RealMat::Zero(), RealMat::Zero()}; }
+    static def Zero() -> dV_t { return {RealMat::Zero(), RealMat::Zero()}; }
   };
 
-  static def V(Real3 D, Real3 H, Real dist)->Real3 {
+  static def V(Real3 D, Real3 H, Real dist) -> Real3 {
     return D + dist * (H - D).normalized();
   }
 
-  static def square(Real v)->Real { return v * v; }
+  static def square(Real v) -> Real { return v * v; }
 
-  static def dV(Real3 D, Real3 H, Real dist)->dV_t {
+  static def dV(Real3 D, Real3 H, Real dist) -> dV_t {
     Real dhx = -D[0] + H[0];
     Real dhx2 = dhx * dhx;
     Real dhy = -D[1] + H[1];
@@ -94,20 +94,20 @@ class WaterGenSingleResData {
   int rot_coord_offset;
   int n_atoms;
   int n_conn;
-  Real *coords;
+  Real* coords;
   unsigned char n_donH;
   unsigned char n_acc;
-  unsigned char *donH_tile_inds;
-  unsigned char *don_hvy_inds;  // block-type index of heavy atom to which a
+  unsigned char* donH_tile_inds;
+  unsigned char* don_hvy_inds;  // block-type index of heavy atom to which a
                                 // given donH binds; this is not the tile index.
                                 // The donor heavy atom may be in a different
                                 // tile NOTE: limit of 256 atoms per block.
-  unsigned char
-      *which_donH_for_hvy;  // for the given donH, what's its index in
-                            // the list of H's bound to its heavy atom?
-  unsigned char *acc_tile_inds;
-  unsigned char *acc_hybridization;
-  unsigned char *acc_n_attached_H;  // for the given acc, how many H's it have?
+  unsigned char*
+      which_donH_for_hvy;  // for the given donH, what's its index in
+                           // the list of H's bound to its heavy atom?
+  unsigned char* acc_tile_inds;
+  unsigned char* acc_hybridization;
+  unsigned char* acc_n_attached_H;  // for the given acc, how many H's it have?
 };
 
 template <tmol::Device Dev, typename Real, typename Int>
@@ -162,8 +162,7 @@ struct WaterGenSharedData {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Real,
@@ -180,7 +179,7 @@ void TMOL_DEVICE_FUNC water_gen_load_block_coords_and_params_into_shared(
     TView<Int, 3, Dev> block_type_tile_acc_n_attached_H,
     int pose_ind,
     int tile_ind,
-    WaterGenSingleResData<Real> &r_dat,
+    WaterGenSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom) {
   // pre-condition: n_atoms_to_load < TILE_SIZE
@@ -192,8 +191,7 @@ void TMOL_DEVICE_FUNC water_gen_load_block_coords_and_params_into_shared(
 
   DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
       r_dat.coords,
-      reinterpret_cast<Real *>(
-          &rot_coords[r_dat.rot_coord_offset + start_atom]),
+      reinterpret_cast<Real*>(&rot_coords[r_dat.rot_coord_offset + start_atom]),
       n_atoms_to_load * 3);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.donH_tile_inds,
@@ -223,8 +221,7 @@ void TMOL_DEVICE_FUNC water_gen_load_block_coords_and_params_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device Dev,
     int nt,
     typename Int,
@@ -252,8 +249,8 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
     int block_type,
     int n_atoms,
 
-    WaterGenData<Dev, Real, Int> &water_gen_dat,
-    WaterGenSharedData<Real, TILE_SIZE> &shared_m) {
+    WaterGenData<Dev, Real, Int>& water_gen_dat,
+    WaterGenSharedData<Real, TILE_SIZE>& shared_m) {
   water_gen_dat.pose_context.pose_ind = pose_ind;
   water_gen_dat.pose_context.global_params = global_params[0];
   water_gen_dat.r_dat.rot_ind = rot_ind;
@@ -299,8 +296,8 @@ void TMOL_DEVICE_FUNC water_gen_load_tile_invariant_data(
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
 TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
     bonded_atom::BlockCentricAtom<Int> bcat,
-    WaterGenSingleResData<Real> const &single_res_dat,
-    WaterGenPoseContextData<Dev, Real, Int> const &context_dat,
+    WaterGenSingleResData<Real> const& single_res_dat,
+    WaterGenPoseContextData<Dev, Real, Int> const& context_dat,
     int tile_start) {
   Eigen::Matrix<Real, 3, 1> xyz{Real(0), Real(0), Real(0)};
   if (bcat.atom != -1) {
@@ -370,13 +367,11 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
 
   auto res_dat = wat_gen_dat.r_dat;
   auto context_dat = wat_gen_dat.pose_context;
-  // std::cout << "bwfa " << wat_gen_dat.r_dat.block_ind << " " << acc_ind << std::flush;
 
   unsigned char hyb = res_dat.acc_hybridization[acc_ind];
   Real tor(0), ang(0);
   if (hyb == hbond::AcceptorHybridization::sp2) {
     if (water_ind >= sp2_water_tors.size(0)) {
-      // std::cout << "...done " << wat_gen_dat.r_dat.block_ind << std::endl;
       return;
     } else {
       tor = sp2_water_tors[water_ind];
@@ -384,7 +379,6 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
     }
   } else if (hyb == hbond::AcceptorHybridization::sp3) {
     if (water_ind >= sp3_water_tors.size(0)) {
-      // std::cout << "...done " << wat_gen_dat.r_dat.block_ind << std::endl;
       return;
     } else {
       tor = sp3_water_tors[water_ind];
@@ -392,7 +386,6 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
     }
   } else if (hyb == hbond::AcceptorHybridization::ring) {
     if (water_ind >= ring_water_tors.size(0)) {
-      // std::cout << "...done " << wat_gen_dat.r_dat.block_ind << std::endl;
       return;
     } else {
       tor = ring_water_tors[water_ind];
@@ -437,8 +430,6 @@ void TMOL_DEVICE_FUNC build_water_for_acc(
 
   water_coords[res_dat.rot_coord_offset + A.atom][water_ind + water_offset] =
       Wxyz;
-  // std::cout << "...done " << wat_gen_dat.r_dat.block_ind << std::endl;
-
 }
 
 template <int TILE_SIZE, tmol::Device Dev, typename Real, typename Int>

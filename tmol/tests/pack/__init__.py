@@ -2,7 +2,6 @@ import pytest
 
 from tmol.pack.rotamer.build_rotamers import build_rotamers
 
-from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pack.packer_task import PackerTask, PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
@@ -20,8 +19,6 @@ def ubq_repacking_rotamers(default_database, ubq_pdb, torch_device, dun_sampler)
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     restype_set = poses.packed_block_types.restype_set
-    # for restype in restype_set.residue_types:
-    #     print(restype.name, restype.base_name, restype.name3)
 
     palette = PackerPalette(restype_set)
     task = PackerTask(poses, palette)

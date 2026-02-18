@@ -27,37 +27,6 @@ __device__
   return uniform_random < prob_pass;
 }
 
-// soon template <tmol::Device D>
-// soon #ifdef __CUDACC__
-// soon __device__
-// soon #endif
-// soon inline
-// soon float
-// soon setup_temperature(
-// soon   int outer_loop_iteration,
-// soon   int n_outer_loops,
-// soon   TensorAccessor<float, 1, D> round_energies,
-// soon   float high_temp,
-// soon   float low_temp,
-// soon   int * since_last_jump_count,
-// soon   bool * quench
-// soon )
-// soon {
-// soon   int const i = outer_loop_iteration;
-// soon   if ( i == n_outer_loops - 1 ) {
-// soon     *quench = true;
-// soon     return 1e-20; // quench temperature
-// soon   } else {
-// soon     if (*since_last_jump_count >= 3) {
-// soon       float avgE =
-// (round_energies[i-4]+round_energies[i-3]+round_energies[i-2]) / 3; soon if
-// (round_energies[i-1] - avgE > -1 ) { soon 	// energies have plateaued --
-// jump them up! soon 	*since_last_jump_count = 0; soon 	return
-// high_temp; soon       } soon     } soon   } soon   // then we will
-// geometrically cool toward lowtemp soon   *since_last_jump_count++; soon
-// return (high_temp - low_temp) * exp( -1 * (*since_last_jump_count) ) +
-// low_temp; soon soon }
-
 template <tmol::Device D>
 inline
 #ifdef __CUDACC__
@@ -129,7 +98,6 @@ inline
       int const jrot_chunk_size =
           min(chunk_size, jres_n_rots - chunk_size * jrot_chunk);
 
-      // int const ij_chunk_offset_offset = chunk_offset_offsets[i][j];
       int64_t const ij_chunk_offset =
           (chunk_offsets
                [ij_chunk_offset_offset + irot_chunk * jres_n_chunks
@@ -179,15 +147,6 @@ inline
 #endif
   int const n_res = n_rotamers_for_res.size(0);
 
-  // std::cout << "total energy for assignment:" << std::endl;
-  // for (int i = 0; i < n_res; ++i) {
-  //   if (i % 30 == 29) {
-  //     std::cout << "\n";
-  //   }
-  //   std::cout << std::setw(4) << rotamer_assignment[i];
-  // }
-  // std::cout << std::endl;
-
   int count_out = 0;
   float totalE = 0;
   for (int i = 0; i < n_res; ++i) {
@@ -223,7 +182,6 @@ inline
       int const jrot_chunk_size =
           min(chunk_size, jres_n_rots - chunk_size * jrot_chunk);
 
-      // int const ij_chunk_offset_offset = chunk_offset_offsets[i][j];
       int64_t const ij_chunk_offset =
           (chunk_offsets
                [ij_chunk_offset_offset + irot_chunk * jres_n_chunks
@@ -236,16 +194,9 @@ inline
           (energy2b
                [ij_chunk_offset + irot_in_chunk * jrot_chunk_size
                 + jrot_in_chunk]);
-      // ++count_out;
-      // if (count_out % 10 == 9) {
-      // 	std::cout << "\n";
-      // }
-      // std::cout << std::setprecision(6) << std::setw(10) << ij_energy;
       totalE += ij_energy;
     }
   }
-  // std::cout << "\n" << totalE << std::endl;
-  // std::cout << std::endl;
   return totalE;
 }
 

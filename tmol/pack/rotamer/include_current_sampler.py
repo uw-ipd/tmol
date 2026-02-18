@@ -156,7 +156,6 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
         dtype=torch.int64,
         device=poses.device,
     )
-    pose_ind_for_gbt = torch.floor_divide(res_ind_for_gbt, max_n_blocks).to(torch.int64)
 
     gbt_for_samplers_rots = gbt_for_rot[conf_inds_for_sampler]
     res_ind_for_samplers_rots = res_ind_for_gbt[gbt_for_samplers_rots]
@@ -175,11 +174,7 @@ def create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampl
         1
     ).expand(n_rots_for_sampler, pbt.max_n_atoms)
     orig_atom_inds = (
-        (
-            # poses.block_coord_offset64.view(-1)[res_ind_for_samplers_rots] +
-            orig_dof_atom_offset[poses_res_to_real_poses_res[res_ind_for_samplers_rots]]
-            # + poses.coord_offset_for_pose[pose_ind_for_gbt[gbt_for_samplers_rots]] * poses.max_n_pose_atoms
-        )
+        orig_dof_atom_offset[poses_res_to_real_poses_res[res_ind_for_samplers_rots]]
         .unsqueeze(1)
         .expand(-1, pbt.max_n_atoms)
         + dummy_rotamer_atom_inds

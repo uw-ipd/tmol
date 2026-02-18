@@ -1,10 +1,8 @@
 import attr
 import torch
-import numpy
 from typing import Optional
 
 from tmol.types.torch import Tensor
-from tmol.types.array import NDArray
 from tmol.chemical.restypes import RefinedResidueType
 from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.packed_block_types import PackedBlockTypes
@@ -65,17 +63,17 @@ class PoseStack:
 
     chain_id: the integer chain identifier for each residue
 
-    chain_labels: numpy array of strings giving chain labels for each residue.
-    No calculations rely on chain_labels; they're just convenient for
-    writing structures out.
+    pdb_info: a PDBInfo object holding the PDB-level information that's needed
+    for writing out PDB / mmCIF files and keeping the original author labels
+    for the chains and residues + occupancy and B-factor information for the atoms;
+    none of these things are necessary for any structural manipulations or energy
+    calculations, but they are invaluable for working with structures in any kind
+    of pipeline.
 
     device: the torch.device that this collection of structures lives on
     """
 
     packed_block_types: PackedBlockTypes
-    # residues: List[List[Residue]]
-
-    # residue_coords: NDArray[numpy.float32][:, :, :, 3]
 
     # coordinates are held as [n-poses x max-n-atoms x 3]
     # where the offset for each residue are held in the
@@ -98,6 +96,7 @@ class PoseStack:
     chain_id64: Tensor[torch.int64][:, :]
 
     pdb_info: PDBInfo
+    constraint_set: Optional[ConstraintSet]
 
     device: torch.device
 
@@ -119,7 +118,6 @@ class PoseStack:
         )
         self.pose_ind_for_rot = pose_inds.flatten()
 
-        # self.rot_coord_offset = _p(rotamer_set.rot_coord_offset)
         self.block_type_ind_for_rot = self.block_type_ind.flatten()
 
         self.rot_offset_for_block = torch.arange(
@@ -139,9 +137,6 @@ class PoseStack:
         )
         self.n_rots_for_block = torch.full_like(self.block_coord_offset, 1)
 
-        # pose_coord_offset = torch.cumsum(self.n_rots_for_pose, 0).roll(1,0)
-
-        # print("pose_coord_offset: ", pose_coord_offset)
         self.rot_coord_offset = (
             self.block_coord_offset.flatten()
             + torch.repeat_interleave(coord_offset_for_pose, n_blocks)
@@ -215,6 +210,9 @@ class PoseStack:
 
     def clone(self) -> "PoseStack":
         """Deep-copy clone of this PoseStack"""
+        new_constraint_set = (
+            self.constraint_set.clone() if self.constraint_set is not None else None
+        )
         return PoseStack(
             packed_block_types=self.packed_block_types,
             coords=self.coords.detach().clone(),
@@ -229,6 +227,7 @@ class PoseStack:
             chain_id=self.chain_id.detach().clone(),
             chain_id64=self.chain_id64.detach().clone(),
             pdb_info=self.pdb_info,
+            constraint_set=new_constraint_set,
             device=self.device,
         )
 
@@ -245,8 +244,6 @@ class PoseStack:
             .repeat(self.n_poses * self.max_n_blocks)
             .view(self.n_poses, self.max_n_blocks, self.max_n_block_atoms)
         )
-
-        # n_ats_per_block = self.n_ats_per_block.to(torch.int64)
         real_expanded_pose_ats = (
             n_ats_per_block_arange_expanded < self.n_ats_per_block.unsqueeze(2)
         )
@@ -278,18 +275,10 @@ class PoseStack:
         ]
 
     def get_constraint_set(self):
-        # make a constraint set if it doesn't exist
-        if not hasattr(self, "_constraint_set"):
-            self._constraint_set = ConstraintSet(device=self.device)
-
-        # ensure the constraint set points back at us (after creation or deep copy)
-        self._constraint_set.pose_stack = self
-        return self._constraint_set
+        return self.constraint_set
 
     def block_identity_map(self):
-        # print("bco size: ", self.block_coord_offset.size())
         identity_map = torch.zeros_like(self.block_coord_offset)
-        # print("im size: ", identity_map.size())
         identity_map[:, :] = torch.arange(
             self.block_coord_offset.size(1), device=self.device
         )

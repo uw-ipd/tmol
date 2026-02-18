@@ -166,11 +166,6 @@ torch::Tensor validate_energies(
   return result.tensor;
 }
 
-/*
-static auto registry = torch::jit::RegisterOperators()
-                           .op("tmol::pack_anneal", &anneal)
-                           .op("tmol::validate_energies", &validate_energies);
-*/
 // Macro indirection to force TORCH_EXTENSION_NAME macro expansion
 // See https://stackoverflow.com/a/3221914
 #define TORCH_LIBRARY_(ns, m) TORCH_LIBRARY(ns, m)

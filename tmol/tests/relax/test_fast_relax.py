@@ -9,24 +9,13 @@ from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.score.score_function import ScoreFunction
 from tmol.score.score_types import ScoreType
 
-# from tmol.pack.compiled.compiled import build_interaction_graph
 from tmol.pack.packer_task import PackerPalette
 from tmol.pack.rotamer.fixed_aa_chi_sampler import FixedAAChiSampler
 from tmol.kinematics.move_map import MoveMap
 from tmol.kinematics.fold_forest import EdgeType, FoldForest
 
-# from tmol.pack.rotamer.build_rotamers import build_rotamers
-# from tmol.pack.rotamer.fixed_aa_chi_sampler import (
-#     FixedAAChiSampler,
-# )
-# from tmol.pack.datatypes import PackerEnergyTables
-# from tmol.pack.simulated_annealing import run_simulated_annealing
-# from tmol.pack.impose_rotamers import impose_top_rotamer_assignments
-
 from tmol.io import pose_stack_from_pdb
 from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
-
-from tmol.pack.pack_rotamers import pack_rotamers
 
 
 def get_relax_sfxn(default_database, torch_device):
@@ -142,7 +131,6 @@ def test_fast_relax_pertuz(
     edges = numpy.tile(edges, (n_poses, 1, 1)).reshape(n_poses, -1, 4)
     print("Edges", edges)
 
-    # sfxn = beta2016_score_function(torch_device)
     fold_forest = FoldForest.from_edges(edges)
     mm = MoveMap.from_pose_stack(pose_stack)
     # keep Jump 0 fixed, as this is the jump connecting the ends of the missing loop and we don't want that moving
@@ -155,9 +143,6 @@ def test_fast_relax_pertuz(
     mm.move_all_named_torsions = True
 
     palette = PackerPalette(restype_set)
-    # fold_forest = FoldForest.polymeric_forest(
-    #     torch.sum(pose_stack.block_type_ind != -1, dim=1).detach().cpu().numpy()
-    # )
 
     def task_op(task):
         task.restrict_to_repacking()
@@ -188,19 +173,20 @@ def test_fast_relax_pertuz(
 def test_fast_relax_for_different_shapes(
     ubq_pdb, erbb2_and_pertuzumab_pdb, default_database, dun_sampler, torch_device
 ):
-    pans_pdb_fname = "structure.pdb"
-
     if torch_device == torch.device("cpu"):
         return
-    # print("Device!", torch_device)
 
-    # res_not_connected = torch.zeros(
-    #     (1, 564 - 9 + 214 + 216 + 6, 2), dtype=torch.bool, device=torch_device
-    # )
-    # res_not_connected[0, 100, 1] = True
-    # res_not_connected[0, 101, 0] = True
+    res_not_connected = torch.zeros((1, 40, 2), dtype=torch.bool, device=torch_device)
+    res_not_connected[0, 0, 0] = True
+    res_not_connected[0, 39, 1] = True
 
-    p1 = pose_stack_from_pdb(pans_pdb_fname, torch_device)
+    p1 = pose_stack_from_pdb(
+        ubq_pdb,
+        torch_device,
+        residue_start=10,
+        residue_end=50,
+        res_not_connected=res_not_connected,
+    )
     p2 = pose_stack_from_pdb(ubq_pdb, torch_device)
 
     res_not_connected3 = torch.zeros(
@@ -209,7 +195,6 @@ def test_fast_relax_for_different_shapes(
     res_not_connected3[0, 100, 1] = True
     res_not_connected3[0, 101, 0] = True
 
-    # p3 = pose_stack_from_pdb(erbb2_and_pertuzumab_pdb, torch_device, res_not_connected=res_not_connected3)
     p3 = pose_stack_from_pdb(
         erbb2_and_pertuzumab_pdb, torch_device
     )  # lets pretend residues 100 and 101 are connected.
@@ -218,16 +203,12 @@ def test_fast_relax_for_different_shapes(
     sfxn = get_relax_sfxn(default_database, torch_device)
     restype_set = pose_stack.packed_block_types.restype_set
 
-    # sfxn = beta2016_score_function(torch_device)
     fold_forest = FoldForest.reasonable_fold_forest(pose_stack)
     mm = MoveMap.from_pose_stack(pose_stack)
     mm.move_all_jumps = True
     mm.move_all_named_torsions = True
 
     palette = PackerPalette(restype_set)
-    # fold_forest = FoldForest.polymeric_forest(
-    #     torch.sum(pose_stack.block_type_ind != -1, dim=1).detach().cpu().numpy()
-    # )
 
     def task_op(task):
         task.restrict_to_repacking()

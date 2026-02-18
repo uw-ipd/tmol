@@ -61,13 +61,10 @@ class _TensorType(metaclass=_TensorTypeMeta):
     @classmethod
     def validate(cls, value):
         if not isinstance(value, cls._tensortype):
-            # print("tensor validate failed", value, type(value), cls._tensortype)
             raise TypeError(f"expected {cls._tensortype!r}, received {type(value)!r}")
         if not value.dtype == cls.dtype:
-            # print("tensor dtype valication failed", value.dtype, cls.dtype)
             raise TypeError(f"expected {cls.dtype!r}, received {value.dtype!r}")
         try:
-            # print("trying shape validation", value.shape, cls.shape)
             cls.shape.validate(value.shape)
         except ValueError as err:
             raise TypeError(f"Tensor shape validation failed {str(err)}")

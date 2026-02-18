@@ -7,10 +7,6 @@ from tmol.score.atom_type_dependent_term import AtomTypeDependentTerm
 
 from tmol.database import ParameterDatabase
 
-# from tmol.score.cartbonded.params import CartBondedGlobalParams
-from tmol.score.cartbonded.cartbonded_whole_pose_module import (
-    CartBondedWholePoseScoringModule,
-)
 from tmol.score.cartbonded.potentials.compiled import (
     cartbonded_pose_scores,
     cartbonded_rotamer_scores,
@@ -96,18 +92,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                             continue
                         if atom1 >= atom4:
                             continue
-                        # if (
-                        #         block_type.name == "SER" and
-                        #         (
-                        #             block_type.atoms[atom1].name == "HG" or
-                        #             block_type.atoms[atom4].name == "HG"
-                        #         )
-                        # ):
-                        #     print("hydroxyl torsion!")
-                        #     print(block_type.atoms[atom1].name)
-                        #     print(block_type.atoms[atom2].name)
-                        #     print(block_type.atoms[atom3].name)
-                        #     print(block_type.atoms[atom4].name)
                         torsions.append((atom1, atom2, atom3, atom4))
 
         # get improper torsions
@@ -182,7 +166,6 @@ class CartBondedEnergyTerm(AtomTypeDependentTerm):
                     else self.get_atom_unique_id_name(res, atom)
                 )
 
-            # key = tuple([self.atom_unique_id_index[atom] for atom in atoms])
             key = tuple(atoms)
 
             params_by_atom_unique_id[key] = params

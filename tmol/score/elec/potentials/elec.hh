@@ -56,7 +56,8 @@ struct ElecBlockPairSharedData {
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Real>
@@ -81,7 +82,8 @@ void TMOL_DEVICE_FUNC elec_load_block_coords_and_charges_into_shared(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -122,7 +124,8 @@ void TMOL_DEVICE_FUNC elec_load_block_into_shared(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -216,7 +219,8 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_interres_data(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -245,7 +249,8 @@ void TMOL_DEVICE_FUNC elec_load_interres1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -274,7 +279,8 @@ void TMOL_DEVICE_FUNC elec_load_interres2_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -333,7 +339,8 @@ void TMOL_DEVICE_FUNC elec_load_tile_invariant_intrares_data(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -357,7 +364,8 @@ void TMOL_DEVICE_FUNC elec_load_intrares1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -517,7 +525,7 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
           dV_dcoords[0]
                     [score_dat.r1.rot_coord_offset + atom_tile_ind1
                      + start_atom1][j],
-          elec_dxyz_at1[j]);  // TEMP: F it up!
+          elec_dxyz_at1[j]);
     }
   }
 
@@ -529,23 +537,9 @@ TMOL_DEVICE_FUNC Real elec_atom_energy_and_derivs_full(
           dV_dcoords[0]
                     [score_dat.r2.rot_coord_offset + atom_tile_ind2
                      + start_atom2][j],
-          elec_dxyz_at2[j]);  // TEMP: F it up!
+          elec_dxyz_at2[j]);
     }
   }
-  // printf("deriv for atom %d (%8.3f %8.3f %8.3f) and atom %d (%8.3f %8.3f
-  // %8.3f): "
-  //        "dist %8.3f elec %8.3f dV_ddist %8.3f\n",
-  //        score_dat.r1.rot_coord_offset + atom_tile_ind1 + start_atom1,
-  //        elec_dxyz_at1[0],
-  //        elec_dxyz_at1[1],
-  //        elec_dxyz_at1[2],
-  //        score_dat.r2.rot_coord_offset + atom_tile_ind2 + start_atom2,
-  //        elec_dxyz_at2[0],
-  //        elec_dxyz_at2[1],
-  //        elec_dxyz_at2[2],
-  //        dist,
-  //        V,
-  //        dV_ddist);
 
   return V;
 }

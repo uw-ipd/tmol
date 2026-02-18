@@ -37,7 +37,8 @@ template <typename Real>
 using CoordQuad = Eigen::Matrix<Real, 4, 3>;
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -141,71 +142,6 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   auto V = V_t.view;
   auto dV_dxyz = dV_dxyz_t.view;
-
-  // auto mark_dispatch_indices = ([=] TMOL_DEVICE_FUNC(int ind) {
-  //   int const pose_ind =
-  //       ind / (max_n_blocks * max_n_rots_per_block * max_n_rots_per_block);
-  //   ind =
-  //       ind
-  //       - pose_ind * max_n_blocks * max_n_rots_per_block *
-  //       max_n_rots_per_block;
-  //   int const block1_ind = ind / (max_n_rots_per_block *
-  //   max_n_rots_per_block); ind = ind - block1_ind * max_n_rots_per_block *
-  //   max_n_rots_per_block; int const local_rot1_ind = ind /
-  //   max_n_rots_per_block; int const local_rot2_ind = ind %
-  //   max_n_rots_per_block;
-
-  //   int const pose_block_type = pose_stack_block_type[pose_ind][block1_ind];
-  //   if (pose_block_type == -1) {
-  //     // Filter out blocks that are not real
-  //     return;
-  //   }
-  //   int const n_rots1 = n_rots_for_block[pose_ind][block1_ind];
-  //   if (local_rot1_ind >= n_rots1) {
-  //     return;
-  //   }
-
-  //   int const block1_sparse_dispatch_offset =
-  //       n_energies_for_block_offset[pose_ind][block1_ind];
-  //   int const block1_rot_offset = first_rot_for_block[pose_ind][block1_ind];
-
-  //   bool block1_has_upper_neighbor = true;
-  //   int const upper_conn = block_type_upper_conn_ind[pose_block_type];
-  //   if (upper_conn < 0) {
-  //     block1_has_upper_neighbor = false;
-  //   } else {
-  //     int const upper_nbr_block_ind =
-  //         pose_stack_inter_block_connections[pose_ind][block1_ind][upper_conn]
-  //                                           [0];
-  //     if (upper_nbr_block_ind != -1) {
-  //       // the upper neighbor is a real residue: we will score
-  //       // the n_rots_i x n_rots_j rotamers for this pair
-  //       // This will properly include upper neighbors for circular peptides,
-  //       // too, unless we have a two residue circular peptide which feels
-  //       // chemically impossible.
-  //       int const upper_n_rots =
-  //           n_rots_for_block[pose_ind][upper_nbr_block_ind];
-
-  //       if (local_rot2_ind >= upper_n_rots) {
-  //         return;
-  //       }
-  //       int const sparse_index = block1_sparse_dispatch_offset
-  //                                + local_rot1_ind * upper_n_rots
-  //                                + local_rot2_ind;
-  //       int const rot1_ind = block1_rot_offset + local_rot1_ind;
-  //       int const rot2_ind =
-  //           first_rot_for_block[pose_ind][upper_nbr_block_ind] +
-  //           local_rot2_ind;
-
-  //       dispatch_indices[0][sparse_index] = pose_ind;
-  //       dispatch_indices[1][sparse_index] = rot1_ind;
-  //       dispatch_indices[2][sparse_index] = rot2_ind;
-  //     }
-  //   }
-  // });
-  // DeviceDispatch<Dev>::template forall<launch_t>(
-  //     n_poses * max_n_blocks * max_n_rots_per_block * max_n_rots_per_block,
-  //     mark_dispatch_indices);
 
   auto rama_omega_func = ([=] TMOL_DEVICE_FUNC(int ind) {
     int const pose_ind = ind / max_n_blocks;
@@ -388,13 +324,13 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::forward(
 
   DeviceDispatch<Dev>::template forall<launch_t>(
       n_poses * max_n_blocks, rama_omega_func);
-  // DeviceDispatch<Dev>::synchronize_device();
 
   return {V_t, dV_dxyz_t};
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -674,7 +610,8 @@ auto BackboneTorsionPoseScoreDispatch<DeviceDispatch, Dev, Real, Int>::backward(
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -1079,13 +1016,13 @@ auto BackboneTorsionRotamerScoreDispatch<DeviceDispatch, Dev, Real, Int>::
 
   DeviceDispatch<Dev>::template forall<launch_t>(
       n_dispatch_total, rama_omega_func);
-  // DeviceDispatch<Dev>::synchronize_device();
 
   return {V_t, dV_dxyz_t, dispatch_indices_t};
 };
 
 template <
-    template <tmol::Device> class DeviceDispatch,
+    template <tmol::Device>
+    class DeviceDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>

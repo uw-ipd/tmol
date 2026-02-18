@@ -496,8 +496,6 @@ def test_build_multi_pose_interaction_graph(ubq_ig, torch_device):
     assert energy2b.dtype == torch.float32
     assert energy2b.device == torch_device
 
-    # print("testing energy2b accuracy")
-
     for i in range(sparse_indices[:, -1000:].shape[1]):
         i_energy = energies[i].item()
         pose = sparse_indices[0, i].item()

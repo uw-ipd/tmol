@@ -95,7 +95,8 @@ TMOL_DEVICE_FUNC auto resolve_local_rotamer_atom_ind_from_uaid(
     }
 
     int other_connection_index = connection[1];
-    int other_rotamer_index = first_rot_for_block[pose_index][other_block_index];
+    int other_rotamer_index =
+        first_rot_for_block[pose_index][other_block_index];
     int other_block_type_index =
         first_rot_block_type[pose_index][other_block_index];
 
@@ -117,9 +118,9 @@ TMOL_DEVICE_FUNC auto resolve_local_rotamer_pair_atom_ind_from_uaid(
     UnresolvedAtomID<Int> uaid,
     int rotamer_index1,
     int rotamer_index2,
-    int block_index1, // <-- the source of the uaid
-    int block_index2, // <-- the residue the other rotamer
-    int block_type2, // <-- the block type of rotamer2
+    int block_index1,  // <-- the source of the uaid
+    int block_index2,  // <-- the residue the other rotamer
+    int block_type2,   // <-- the block type of rotamer2
     int pose_index,
     TView<Int, 2, D> first_rot_for_block,
     TView<Int, 2, D> first_rot_block_type,
@@ -230,20 +231,19 @@ TMOL_DEVICE_FUNC int resolve_rotamer_atom_from_uaid(
   if (resolved_atom_rotamer_index == -1 || resolved_atom_index == -1) {
     return -1;
   } else {
-    int rot_offset =
-        rot_coord_offset[resolved_atom_rotamer_index];
+    int rot_offset = rot_coord_offset[resolved_atom_rotamer_index];
     return rot_offset + resolved_atom_index;
   }
 }
 
 template <typename Int, tmol::Device D>
 TMOL_DEVICE_FUNC int resolve_rotamer_pair_atom_from_uaid(
-    UnresolvedAtomID<Int> uaid, // on block_index1
+    UnresolvedAtomID<Int> uaid,  // on block_index1
     int rotamer_index1,
     int rotamer_index2,
     int block_index1,
     int block_index2,
-    int block_type2, // <-- the block type of rotamer2
+    int block_type2,  // <-- the block type of rotamer2
     int pose_index,
 
     TView<Int, 1, D> rot_coord_offset,
@@ -269,8 +269,7 @@ TMOL_DEVICE_FUNC int resolve_rotamer_pair_atom_from_uaid(
   if (resolved_atom_rotamer_index == -1 || resolved_atom_index == -1) {
     return -1;
   } else {
-    int rot_offset =
-        rot_coord_offset[resolved_atom_rotamer_index];
+    int rot_offset = rot_coord_offset[resolved_atom_rotamer_index];
     return rot_offset + resolved_atom_index;
   }
 }

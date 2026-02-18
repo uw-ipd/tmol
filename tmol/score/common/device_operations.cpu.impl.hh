@@ -48,6 +48,9 @@ struct DeviceOperations<tmol::Device::CPU> {
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static void scan(T* src, T* dst, int n, OP op) {
+    if (n <= 0) {
+      return;
+    }
     T last_val = src[0];
     if (scan_type == mgpu::scan_type_inc) {
       dst[0] = last_val;
@@ -62,6 +65,9 @@ struct DeviceOperations<tmol::Device::CPU> {
 
   template <mgpu::scan_type_t scan_type, typename T, typename OP>
   static T scan_and_return_total(T* src, T* dst, int n, OP op) {
+    if (n == 0) {
+      return T(0);
+    }
     T last_val = src[0];
     if (scan_type == mgpu::scan_type_inc) {
       dst[0] = last_val;
@@ -97,12 +103,8 @@ struct DeviceOperations<tmol::Device::CPU> {
       int i_n_work_units =
           (i + 1 == n_generators ? n_work_units_total : exc_scan_offsets[i + 1])
           - i_offset;
-      // printf("lbs: i %d i_offset %d i_n_work_units %d\n", i, i_offset,
-      // i_n_work_units);
       for (int j = 0; j < i_n_work_units; ++j) {
         gen_for_work_item[i_offset + j] = i;
-        // printf("gen_for_work_item[%d + %d == %d] = %d\n", i_offset, j,
-        // i_offset+j, i );
       }
     }
     return gen_for_work_item_t;

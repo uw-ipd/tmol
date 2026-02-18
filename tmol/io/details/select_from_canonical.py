@@ -748,10 +748,12 @@ def _map_term_to_int(is_down_term, is_up_term):
     return 1
 
 
-def _map_spcase_var_to_int(is_cyd, is_hisd):
+def _map_spcase_var_to_int(is_cyd, is_hisd, is_hispos):
     # spcase == SPecial CASE
     if is_cyd or is_hisd:
         return 1
+    if is_hispos:
+        return 2
     return 0
 
 
@@ -771,6 +773,7 @@ def _assign_var_inds_for_bt(co, bt):
     bt_is_non_default_term = False
     bt_is_cyd = bt.base_name == "CYD"
     bt_is_hisd = bt.base_name == "HIS_D"
+    bt_is_hispos = bt.base_name == "HIS_POS"
     for var_name in bt_vars[1:]:
         if var_name in co.down_termini_patches:
             bt_is_down_term = True
@@ -781,7 +784,7 @@ def _assign_var_inds_for_bt(co, bt):
             if var_name != co.restypes_default_termini_mapping[bt.io_equiv_class][1]:
                 bt_is_non_default_term = True
     term_ind = _map_term_to_int(bt_is_down_term, bt_is_up_term)
-    spcase_var_ind = _map_spcase_var_to_int(bt_is_cyd, bt_is_hisd)
+    spcase_var_ind = _map_spcase_var_to_int(bt_is_cyd, bt_is_hisd, bt_is_hispos)
     return term_ind, spcase_var_ind, bt_is_non_default_term
 
 
@@ -939,7 +942,7 @@ def _annotate_packed_block_types_w_canonical_res_order(
 
     max_n_termini_types = 4  # 0=down-term, 1=mid, 2=up-term, 3=down+up
     max_n_special_case_aa_variant_types = (
-        2  # CYS=0, CYD=1; HISE=0, HISD=1; all others, 0
+        3  # CYS=0, CYD=1; HISE=0, HISD=1; HIS_POS=2; all others, 0
     )
 
     pbt_io_equiv_class_name_set = set(
