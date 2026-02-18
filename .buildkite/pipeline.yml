@@ -1,52 +1,41 @@
-test_agent: &cuda_test_agent
+cuda_test_agent: &cuda_test_agent
   agents:
     queue: cuda
 
-test_agent: &cpu_test_agent
+cpu_test_agent: &cpu_test_agent
   agents:
     queue: nocuda
 
-docker_plugin: &ngc_docker_plugin
-  plugins:
-    - docker#v5.10.0:
-        image: "nvcr.io/nvidia/pytorch:25.06-py3"
-        gpus: all
-        always-pull: true
-
 steps:
-  ### NGC Docker pipeline (GPU) — reproducible containerized runs
-  - label: ':docker: Setup (NGC)'
+  ### Setup + Lint
+  - label: ':hammer: Setup'
     command: .buildkite/bin/setup
-    << : *cuda_test_agent
-    << : *ngc_docker_plugin
+    <<: *cuda_test_agent
 
-  - label: ':docker: Linting (NGC)'
+  - label: ':mag: Linting'
     command: .buildkite/bin/linting
-    << : *cuda_test_agent
-    << : *ngc_docker_plugin
+    <<: *cuda_test_agent
 
-  - label: ':docker: Testing - CPU (NGC)'
-    command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cpu.docker.junit.xml
+  ### Testing (AOT build)
+  - label: ':python: Testing - CPU'
+    command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cpu.junit.xml
     artifact_paths:
-      - testing.cpu.docker.junit.xml
+      - testing.cpu.junit.xml
       - .coverage
-    << : *cuda_test_agent
-    << : *ngc_docker_plugin
+    <<: *cpu_test_agent
 
-  - label: ':docker: Testing - CUDA (NGC)'
-    command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cuda.docker.junit.xml
+  - label: ':gpu: Testing - CUDA'
+    command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cuda.junit.xml
     artifact_paths:
-      - testing.cuda.docker.junit.xml
+      - testing.cuda.junit.xml
       - .coverage
-    << : *cuda_test_agent
-    << : *ngc_docker_plugin
+    <<: *cuda_test_agent
 
-  - label: ':docker: Benchmark (NGC)'
+  - label: ':chart_with_upwards_trend: Benchmark'
     command: .buildkite/bin/benchmark --benchmark-max-time=.1
     artifact_paths:
       - benchmark/**/*
-    << : *cuda_test_agent
-    << : *ngc_docker_plugin
+    <<: *cuda_test_agent
 
   - wait: ~
     continue_on_failure: true
@@ -54,13 +43,11 @@ steps:
   ### JIT pipeline (GPU) — compile at import time
   - label: ':zap: Setup (JIT)'
     command: TMOL_SKIP_AOT_BUILD=TRUE .buildkite/bin/setup
-    << : *cuda_test_agent
-    << : *ngc_docker_plugin
+    <<: *cuda_test_agent
 
   - label: ':zap: Testing - CUDA (JIT)'
     command: TMOL_USE_JIT=1 .buildkite/bin/testing --cov=./tmol --junitxml=testing.cuda.jit.junit.xml
     artifact_paths:
       - testing.cuda.jit.junit.xml
       - .coverage
-    << : *cuda_test_agent
-    << : *ngc_docker_plugin
+    <<: *cuda_test_agent
