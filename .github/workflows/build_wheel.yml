@@ -16,6 +16,7 @@ on:
   push:
     branches:
       - "kdidi/precompiled_extensions"
+      - "kdidi/jit_and_precompiled"
     paths:
       - "setup.py"
       - "pyproject.toml"
