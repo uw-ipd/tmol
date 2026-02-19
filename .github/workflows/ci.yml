@@ -45,7 +45,7 @@ jobs:
           # Use the container's installed packages as constraints so uv
           # resolves to matching versions and doesn't try to replace large
           # packages (like pyarrow) — which would blow up the tmpfs overlay.
-          pip freeze > /tmp/container_pins.txt
+          pip freeze | grep -v '@ file://' > /tmp/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
             --constraint /tmp/container_pins.txt \
             --output-file /tmp/requirements.txt
