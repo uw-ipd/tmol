@@ -42,14 +42,20 @@ jobs:
           command -v uv >/dev/null 2>&1 || pip install --break-system-packages uv
           export PATH=$HOME/.local/bin:$PATH
 
-          # Resolve deps from pyproject.toml, then filter out packages already
-          # provided by the NGC container (torch, numpy, nvidia-*, triton, etc.)
-          # This avoids build isolation pulling in a mismatched torch.
-          uv pip compile pyproject.toml --all-extras --output-file /tmp/requirements.txt
-          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|packaging)==" \
+          # Use the container's installed packages as constraints so uv
+          # resolves to matching versions and doesn't try to replace large
+          # packages (like pyarrow) — which would blow up the tmpfs overlay.
+          pip freeze > /tmp/container_pins.txt
+          uv pip compile pyproject.toml --all-extras \
+            --constraint /tmp/container_pins.txt \
+            --output-file /tmp/requirements.txt
+
+          # Filter out packages provided by the NGC base image entirely
+          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml)==" \
             /tmp/requirements.txt > /tmp/to_install.txt
 
-          # Install only the missing deps (dev tools, test frameworks, etc.)
+          # Install only genuinely missing deps — existing packages at the
+          # same version are skipped automatically (no tmpfs space wasted)
           uv pip install --system --break-system-packages -r /tmp/to_install.txt
 
           # Register tmol as editable — no build isolation, no deps (already installed)
