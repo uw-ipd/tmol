@@ -29,8 +29,8 @@ apptainer exec --nv --writable-tmpfs --pwd "$PWD" "$SIF" bash -c '
     /tmp/requirements.txt > /tmp/to_install.txt
   uv pip install --system --break-system-packages --quiet -r /tmp/to_install.txt 2>/dev/null
 
-  # Register tmol as editable (no build isolation, no deps)
-  pip install --no-build-isolation --no-deps --break-system-packages --quiet -e . 2>/dev/null
+  # Use PYTHONPATH instead of pip install -e . (avoids tmpfs bloat from file copying)
+  export PYTHONPATH=$PWD:$PYTHONPATH
 
   # Run the actual Buildkite command
   '"$BUILDKITE_COMMAND"'

@@ -43,7 +43,8 @@ jobs:
             torch-version: "2.8"
             cxx11_abi: "FALSE"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-          - container-image: nvcr.io/nvidia/pytorch:26.01-py3
+          # Use 25.06 container (nvcc 12.6) to match pip torch+cu126
+          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.10"
             cxx11_abi: "FALSE"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"

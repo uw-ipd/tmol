@@ -58,8 +58,9 @@ jobs:
           # same version are skipped automatically (no tmpfs space wasted)
           uv pip install --system --break-system-packages -r /tmp/to_install.txt
 
-          # Register tmol as editable — no build isolation, no deps (already installed)
-          pip install --no-build-isolation --no-deps --break-system-packages -e .
+          # Use PYTHONPATH instead of `pip install -e .` — the editable install
+          # copies hundreds of source files into build/ which blows up the tmpfs.
+          export PYTHONPATH=$GITHUB_WORKSPACE:$PYTHONPATH
 
           # Build C++/CUDA extensions AOT using the container's own torch + nvcc
           export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
@@ -72,6 +73,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:$PYTHONPATH
           ruff check .
           ruff format --check .
           EOF
@@ -81,6 +83,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:$PYTHONPATH
 
           echo "--- environment"
           python --version
@@ -102,6 +105,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:$PYTHONPATH
 
           echo "--- environment"
           python --version
@@ -126,6 +130,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:$PYTHONPATH
 
           BENCHMARK_DIR=benchmark/${{ github.repository }}/${{ github.ref_name }}
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${{ github.run_number }}.json
@@ -155,6 +160,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:$PYTHONPATH
           export TMOL_USE_JIT=1
 
           echo "+++ tests (CUDA JIT)"
