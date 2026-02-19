@@ -39,14 +39,23 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          # Install uv if not present
           command -v uv >/dev/null 2>&1 || pip install --break-system-packages uv
           export PATH=$HOME/.local/bin:$PATH
 
-          # Install Python dependencies + dev tools
-          uv pip install --system --break-system-packages -e ".[dev]"
+          # Resolve deps from pyproject.toml, then filter out packages already
+          # provided by the NGC container (torch, numpy, nvidia-*, triton, etc.)
+          # This avoids build isolation pulling in a mismatched torch.
+          uv pip compile pyproject.toml --all-extras --output-file /tmp/requirements.txt
+          grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|packaging)==" \
+            /tmp/requirements.txt > /tmp/to_install.txt
 
-          # Build C++/CUDA extensions AOT
+          # Install only the missing deps (dev tools, test frameworks, etc.)
+          uv pip install --system --break-system-packages -r /tmp/to_install.txt
+
+          # Register tmol as editable — no build isolation, no deps (already installed)
+          pip install --no-build-isolation --no-deps --break-system-packages -e .
+
+          # Build C++/CUDA extensions AOT using the container's own torch + nvcc
           export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
           export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-8.0 9.0+PTX}"
           MAX_JOBS=4 NVCC_THREADS=2 python setup.py build_ext --inplace

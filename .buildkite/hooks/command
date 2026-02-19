@@ -15,13 +15,21 @@ echo "~~~ Running inside Apptainer: $(basename $SIF)"
 apptainer exec --nv --writable-tmpfs --pwd "$PWD" "$SIF" bash -c '
   set -eo pipefail
 
-  # Quick dep install — uv cache makes this ~5s after the first run
+  # Install uv if not present
   command -v uv >/dev/null 2>&1 || pip install --break-system-packages --quiet uv
   export PATH=$HOME/.local/bin:$PATH
-  uv pip install --system --break-system-packages --quiet -e ".[dev]" 2>/dev/null
+
+  # Resolve deps and install only what the container is missing.
+  # Filter out packages already provided by the NGC base image to avoid
+  # build-isolation pulling in a mismatched torch/CUDA.
+  uv pip compile pyproject.toml --all-extras --output-file /tmp/requirements.txt --quiet 2>/dev/null
+  grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml|packaging)==" \
+    /tmp/requirements.txt > /tmp/to_install.txt
+  uv pip install --system --break-system-packages --quiet -r /tmp/to_install.txt 2>/dev/null
+
+  # Register tmol as editable (no build isolation, no deps)
+  pip install --no-build-isolation --no-deps --break-system-packages --quiet -e . 2>/dev/null
 
   # Run the actual Buildkite command
   '"$BUILDKITE_COMMAND"'
 '
-
-
