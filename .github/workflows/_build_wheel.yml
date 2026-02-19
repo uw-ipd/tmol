@@ -62,13 +62,6 @@ jobs:
           pip install --break-system-packages --force-reinstall --no-deps \
             torch==${{ inputs.torch-version }}.* \
             --index-url ${{ inputs.pip-torch-cuda-url }}
-          # pip torch+cuXXX needs matching CUDA runtime libs from pip
-          # (the NGC container may ship a different CUDA major version)
-          pip install --break-system-packages \
-            nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 \
-            nvidia-cuda-cupti-cu12 nvidia-cudnn-cu12 nvidia-cufft-cu12 \
-            nvidia-curand-cu12 nvidia-cusolver-cu12 nvidia-cusparse-cu12 \
-            nvidia-nccl-cu12 nvidia-nvtx-cu12 nvidia-nvjitlink-cu12
           python3 -c "import torch; print(f'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}')"
 
       - name: Set version variables

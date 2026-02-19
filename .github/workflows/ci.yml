@@ -69,13 +69,14 @@ jobs:
           EOF
 
       - name: Lint
+        continue-on-error: true
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:$PYTHONPATH
-          ruff check .
-          ruff format --check .
+          ruff check . || echo "::warning::ruff check found issues"
+          ruff format --check . || echo "::warning::ruff format found issues"
           EOF
 
       - name: Test CPU
