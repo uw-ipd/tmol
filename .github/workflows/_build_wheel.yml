@@ -34,76 +34,93 @@ on:
         required: false
         type: string
 
-defaults:
-  run:
-    # Note: -u omitted because NGC container's /etc/bash.bashrc has unbound PS1
-    shell: bash -x -e -o pipefail {0}
-
 jobs:
   build-wheel:
     runs-on: ${{ inputs.runs-on }}
-    container:
-      image: ${{ inputs.container-image }}
+    # NOTE: no `container:` key — we free disk space first, then run Docker manually.
     name: Build (pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }})
+    env:
+      CONTAINER_IMAGE: ${{ inputs.container-image }}
+      BUILDER: builder-${{ github.run_id }}-${{ strategy.job-index }}
     steps:
+      - name: Free disk space
+        run: |
+          echo "=== Before cleanup ==="
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /usr/local/share/boost /opt/hostedtoolcache/CodeQL \
+            /usr/local/share/chromium /usr/local/share/powershell \
+            /usr/share/swift /usr/local/julia* 2>/dev/null || true
+          sudo docker image prune -af 2>/dev/null || true
+          echo "=== After cleanup ==="
+          df -h /
+
       - name: Checkout
         uses: actions/checkout@v5
         with:
           ref: ${{ inputs.release-version }}
           submodules: recursive
 
+      - name: Pull container and start builder
+        run: |
+          docker pull $CONTAINER_IMAGE
+          docker create --name $BUILDER \
+            -v $GITHUB_WORKSPACE:/workspace -w /workspace \
+            $CONTAINER_IMAGE sleep infinity
+          docker start $BUILDER
+
       - name: Reinstall PyTorch from pip (ABI=FALSE)
         if: inputs.pip-torch-cuda-url != ''
         run: |
-          echo "Replacing NGC PyTorch with pip PyTorch (CXX11_ABI=FALSE)"
-          # Some NGC images pin torch via pip constraints; clear those to allow pip torch.
-          pip config unset global.constraint || true
-          export PIP_CONSTRAINT=""
-          pip install --break-system-packages --force-reinstall --no-deps \
-            torch==${{ inputs.torch-version }}.* \
-            --index-url ${{ inputs.pip-torch-cuda-url }}
-          python3 -c "import torch; print(f'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}')"
+          docker exec $BUILDER bash -x -e -o pipefail -c '
+            source /etc/bash.bashrc 2>/dev/null || true
+            echo "Replacing NGC PyTorch with pip PyTorch (CXX11_ABI=FALSE)"
+            pip config unset global.constraint || true
+            export PIP_CONSTRAINT=""
+            pip install --break-system-packages --force-reinstall --no-deps \
+              torch==${{ inputs.torch-version }}.* \
+              --index-url ${{ inputs.pip-torch-cuda-url }}
+            python3 -c "import torch; print(f'"'"'Reinstalled: PyTorch {torch.__version__}, CUDA {torch.version.cuda}, ABI={torch._C._GLIBCXX_USE_CXX11_ABI}'"'"')"
+          '
 
       - name: Set version variables
         run: |
-          PYTHON_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-          TORCH_VERSION=$(python3 -c "import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')")
-          CUDA_VERSION=$(python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
+          PYTHON_VERSION=$(docker exec $BUILDER python3 -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
+          TORCH_VERSION=$(docker exec $BUILDER python3 -c "import torch; v=torch.__version__.split('.')[:2]; print(f'{v[0]}.{v[1]}')")
+          CUDA_VERSION=$(docker exec $BUILDER python3 -c "import torch; print(torch.version.cuda.replace('.','')[:3])")
 
           echo "MATRIX_PYTHON_VERSION=${PYTHON_VERSION}" >> $GITHUB_ENV
           echo "MATRIX_TORCH_VERSION=${TORCH_VERSION}" >> $GITHUB_ENV
           echo "WHEEL_CUDA_VERSION=${CUDA_VERSION%%[0-9]}" >> $GITHUB_ENV
 
-          # Verify the container has what we need
-          nvcc --version
-          python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
+          docker exec $BUILDER nvcc --version
+          docker exec $BUILDER python3 -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
 
       - name: Install build dependencies
         run: |
-          pip install --break-system-packages setuptools>=68 ninja packaging wheel psutil
+          docker exec $BUILDER pip install --break-system-packages setuptools>=68 ninja packaging wheel psutil
 
       - name: Build wheel
         run: |
-          export TMOL_FORCE_BUILD=TRUE
-          export TMOL_FORCE_CXX11_ABI=${{ inputs.cxx11_abi }}
-          # Include Blackwell (sm_100) native when CUDA >= 13; otherwise PTX-only.
-          CUDA_MAJOR=$(python3 -c "import torch; print(torch.version.cuda.split('.')[0])")
-          if [ "$CUDA_MAJOR" -ge 13 ]; then
-            export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0 10.0+PTX"
-          else
-            export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0+PTX"
-          fi
-          # GitHub free runner: 2 vCPU, 7 GB RAM.
-          # Each nvcc fatbinary compilation uses ~2-3 GB per thread.
-          # MAX_JOBS=1 × NVCC_THREADS=2 = 2 concurrent nvcc threads ≈ 4-6 GB peak.
-          export MAX_JOBS=1
-          export NVCC_THREADS=2
-          # Skip test extensions in wheel builds — tests are run separately
-          export TMOL_SKIP_TEST_EXTS=TRUE
+          docker exec \
+            -e TMOL_FORCE_BUILD=TRUE \
+            -e TMOL_FORCE_CXX11_ABI=${{ inputs.cxx11_abi }} \
+            -e TMOL_SKIP_TEST_EXTS=TRUE \
+            -e MAX_JOBS=1 \
+            -e NVCC_THREADS=2 \
+            $BUILDER bash -x -e -o pipefail -c '
+            source /etc/bash.bashrc 2>/dev/null || true
+            # Include Blackwell (sm_100) native when CUDA >= 13; otherwise PTX-only.
+            CUDA_MAJOR=$(python3 -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
+            if [ "$CUDA_MAJOR" -ge 13 ]; then
+              export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0 10.0+PTX"
+            else
+              export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0+PTX"
+            fi
+            python3 setup.py bdist_wheel --dist-dir=dist
+          '
 
-          python3 setup.py bdist_wheel --dist-dir=dist
-
-          # Rename wheel with CUDA/torch/ABI tags
+          # Rename wheel with CUDA/torch/ABI tags (runs on host, workspace is bind-mounted)
           tmpname=cu${WHEEL_CUDA_VERSION}torch${MATRIX_TORCH_VERSION}cxx11abi${{ inputs.cxx11_abi }}
           wheel_name=$(ls dist/*whl | xargs -n 1 basename | sed "s/-/+$tmpname-/2")
           ls dist/*whl | xargs -I {} mv {} dist/${wheel_name}
@@ -128,3 +145,7 @@ jobs:
           asset_path: ./dist/${{ env.wheel_name }}
           asset_name: ${{ env.wheel_name }}
           asset_content_type: application/*
+
+      - name: Cleanup container
+        if: always()
+        run: docker rm -f $BUILDER 2>/dev/null || true

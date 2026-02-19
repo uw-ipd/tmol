@@ -2,7 +2,7 @@
 # Wheels saved as artifacts only (no upload).
 # For publishing, use publish.yml (manual workflow_dispatch).
 #
-# Matrix covers:
+# Matrix: PyTorch 2.8, 2.9, 2.10 — both ABI=TRUE and ABI=FALSE.
 #   ABI=TRUE  — NGC PyTorch (conda, source-built, NGC containers)
 #   ABI=FALSE — pip PyTorch (bare metal: pip install torch)
 #
@@ -33,35 +33,37 @@ jobs:
       matrix:
         include:
           # ── CXX11 ABI = TRUE (NGC / conda / source-built PyTorch) ──
-          # PyTorch 2.5 — CUDA 12.6
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.5"
-            cxx11_abi: "TRUE"
-          # PyTorch 2.8 — CUDA 12.9
+          # PyTorch 2.8 — NGC 25.06 (CUDA 12.6)
           - container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
             cxx11_abi: "TRUE"
-          # PyTorch 2.10 — CUDA 13.1
+          # PyTorch 2.9 — NGC 25.10 (CUDA 13.0)
+          - container-image: nvcr.io/nvidia/pytorch:25.10-py3
+            torch-version: "2.9"
+            cxx11_abi: "TRUE"
+          # PyTorch 2.10 — NGC 26.01 (CUDA 13.1)
           - container-image: nvcr.io/nvidia/pytorch:26.01-py3
             torch-version: "2.10"
             cxx11_abi: "TRUE"
 
           # ── CXX11 ABI = FALSE (pip install torch) ──
           # Uses NGC container for nvcc, but reinstalls torch from pip (old ABI).
-          # pip torch cu124 is available for most PyTorch versions.
-          # PyTorch 2.5 — pip torch cu124
-          - container-image: nvcr.io/nvidia/pytorch:24.10-py3
-            torch-version: "2.5"
-            cxx11_abi: "FALSE"
-            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu124"
-          # PyTorch 2.8 — pip torch cu126
+          # Container must have nvcc matching pip torch's CUDA version.
+          # PyTorch 2.8 — pip torch cu126 (nvcc 12.6 from NGC 25.06)
           - container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
             cxx11_abi: "FALSE"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
-          # PyTorch 2.10 ABI=FALSE skipped — NGC containers exceed GitHub
-          # free runner disk space (~14GB). The ABI=TRUE build covers pt2.10.
-          # To re-enable, use a larger runner or self-hosted runner.
+          # PyTorch 2.9 — pip torch cu126 (nvcc 12.6 from NGC 25.06)
+          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
+            torch-version: "2.9"
+            cxx11_abi: "FALSE"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
+          # PyTorch 2.10 — pip torch cu126 (nvcc 12.6 from NGC 25.06)
+          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
+            torch-version: "2.10"
+            cxx11_abi: "FALSE"
+            pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
     uses: ./.github/workflows/_build_wheel.yml
     with:
       runs-on: ubuntu-22.04

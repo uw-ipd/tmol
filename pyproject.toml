@@ -53,6 +53,8 @@ dependencies = [
     "llvmlite>=0.43,<1",
     # Testing (hypothesis is used at runtime for property-based data generation)
     "hypothesis>=6.98,<7",
+    # AST manipulation (used by tmol.utility.args)
+    "astor>=0.8,<1",
     # Interactive
     "ipython>=8.21",
 ]
