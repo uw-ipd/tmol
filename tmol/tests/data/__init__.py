@@ -148,20 +148,22 @@ def rosettafold2_sumo_pred(torch_device):
 
 @pytest.fixture()
 def biotite_1ubq():
-    import biotite.structure.io.pdb
+    import biotite.structure.io
 
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1ubq.pdb")
-    pdbfile = biotite.structure.io.pdb.PDBFile.read(fname)
-    return pdbfile.get_assembly(extra_fields=["occupancy", "b_factor"])
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
 
 
 @pytest.fixture()
 def biotite_1r21():
-    import biotite.structure.io.pdb
+    import biotite.structure.io
 
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1R21.pdb")
-    pdbfile = biotite.structure.io.pdb.PDBFile.read(fname)
-    return pdbfile.get_assembly(extra_fields=["occupancy", "b_factor"])
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
 
 
 @pytest.fixture()
