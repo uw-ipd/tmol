@@ -18,38 +18,67 @@ on:
 jobs:
   # ── Job 1: Build wheels ─────────────────────────────────────────────
   build_wheels:
-    name: Build Wheel (${{ matrix.torch-version }}, abi=${{ matrix.cxx11_abi }})
+    name: Build Wheel (${{ matrix.torch-version }}, abi=${{ matrix.cxx11_abi }}, ${{ matrix.arch }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          # ── CXX11 ABI = TRUE (NGC / conda / source-built PyTorch) ──
+          # ── x86_64 ABI=TRUE ──
           - container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
             cxx11_abi: "TRUE"
+            runs-on: ubuntu-22.04
+            arch: x86_64
           - container-image: nvcr.io/nvidia/pytorch:25.10-py3
             torch-version: "2.9"
             cxx11_abi: "TRUE"
+            runs-on: ubuntu-22.04
+            arch: x86_64
           - container-image: nvcr.io/nvidia/pytorch:26.01-py3
             torch-version: "2.10"
             cxx11_abi: "TRUE"
+            runs-on: ubuntu-22.04
+            arch: x86_64
 
-          # ── CXX11 ABI = FALSE (pip install torch) ──
+          # ── x86_64 ABI=FALSE ──
           - container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.8"
             cxx11_abi: "FALSE"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
+            runs-on: ubuntu-22.04
+            arch: x86_64
           - container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.9"
             cxx11_abi: "FALSE"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
+            runs-on: ubuntu-22.04
+            arch: x86_64
           - container-image: nvcr.io/nvidia/pytorch:25.06-py3
             torch-version: "2.10"
             cxx11_abi: "FALSE"
             pip-torch-cuda-url: "https://download.pytorch.org/whl/cu126"
+            runs-on: ubuntu-22.04
+            arch: x86_64
+
+          # ── ARM64 ABI=TRUE only ──
+          - container-image: nvcr.io/nvidia/pytorch:25.06-py3
+            torch-version: "2.8"
+            cxx11_abi: "TRUE"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - container-image: nvcr.io/nvidia/pytorch:25.10-py3
+            torch-version: "2.9"
+            cxx11_abi: "TRUE"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
+          - container-image: nvcr.io/nvidia/pytorch:26.01-py3
+            torch-version: "2.10"
+            cxx11_abi: "TRUE"
+            runs-on: ubuntu-24.04-arm
+            arch: aarch64
     uses: ./.github/workflows/_build_wheel.yml
     with:
-      runs-on: ubuntu-22.04
+      runs-on: ${{ matrix.runs-on }}
       container-image: ${{ matrix.container-image }}
       torch-version: ${{ matrix.torch-version }}
       cxx11_abi: ${{ matrix.cxx11_abi }}

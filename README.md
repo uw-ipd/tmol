@@ -36,6 +36,8 @@ The ABI must match because C++ extensions are linked against PyTorch's C++ stand
 
 </details>
 
+**x86_64 (Linux):**
+
 | PyTorch | CUDA | ABI   | Wheel tag                              |
 |---------|------|-------|----------------------------------------|
 | 2.8     | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
@@ -44,6 +46,14 @@ The ABI must match because C++ extensions are linked against PyTorch's C++ stand
 | 2.9     | 12.6 | FALSE | `+cu126torch2.9cxx11abiFALSE`         |
 | 2.10    | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE`         |
 | 2.10    | 12.6 | FALSE | `+cu126torch2.10cxx11abiFALSE`        |
+
+**ARM64 / aarch64 (Linux, e.g., Grace Hopper, Jetson):**
+
+| PyTorch | CUDA | ABI   | Wheel tag                              |
+|---------|------|-------|----------------------------------------|
+| 2.8     | 12.6 | TRUE  | `+cu126torch2.8cxx11abiTRUE`          |
+| 2.9     | 13.0 | TRUE  | `+cu130torch2.9cxx11abiTRUE`          |
+| 2.10    | 13.1 | TRUE  | `+cu131torch2.10cxx11abiTRUE`         |
 
 > [!TIP]
 > CUDA wheels are **forward-compatible** within a major version: a `cu124` wheel works on any CUDA 12.x driver >= 12.4. You do not need an exact CUDA version match.

@@ -138,10 +138,14 @@ jobs:
       - name: Log built wheels
         run: ls -lh dist/
 
+      - name: Detect arch
+        id: arch
+        run: echo "arch=$(docker exec $BUILDER uname -m)" >> $GITHUB_OUTPUT
+
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wheel-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }}
+          name: wheel-pt${{ inputs.torch-version }}-cxx11abi${{ inputs.cxx11_abi }}-${{ steps.arch.outputs.arch }}
           path: dist/*.whl
 
       - name: Upload to GitHub Release
