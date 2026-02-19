@@ -35,6 +35,8 @@ enum HisTautomerResolution {
 enum HisTautVariants {
   his_taut_variant_NE2_protonated = 0,
   his_taut_variant_ND1_protonated = 1,
+  his_taut_variant_both_ND1_and_NE2_protonated = 2,
+  his_taut_variant_unresolved = 3,
 };
 
 }  // namespace compiled

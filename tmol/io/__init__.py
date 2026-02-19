@@ -1,6 +1,8 @@
 import torch
 from typing import Optional, Union
+
 from tmol.types.functional import validate_args
+from tmol.types.torch import Tensor
 from tmol.pose.pose_stack import PoseStack
 
 
@@ -11,6 +13,7 @@ def pose_stack_from_pdb(
     *,
     residue_start: Optional[int] = None,
     residue_end: Optional[int] = None,
+    res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
     **kwargs,
 ) -> PoseStack:
     """Construct a PoseStack given the contents of a PDB file or the name of a PDB file,
@@ -35,5 +38,7 @@ def pose_stack_from_pdb(
         device,
         residue_start=residue_start,
         residue_end=residue_end,
+        res_not_connected=res_not_connected,
     )
-    return pose_stack_from_canonical_form(co, pbt, **cf, **kwargs)
+
+    return pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)

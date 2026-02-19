@@ -109,9 +109,10 @@ struct BlockCentricIndexedBonds {
         Int conn_id = parent.block_type_all_bonds[block_type][bidx][2];
         Int nbr_conn_id = parent.inter_block_connections[block][conn_id][1];
         if (nbr_conn_id == -1) {
-          // we have an undefined connection;
-          // weird, right? But this is how
-          // we are currently handling termini!
+          // We have an undefined connection.
+          // This is how we treat non-termini residues where
+          // their neighbors are unresolved or where they
+          // have been excluded from the structure.
           return {-1, -1, -1};
         }
 
@@ -128,6 +129,122 @@ struct BlockCentricIndexedBonds {
   struct BondAtomRange {
     BlockCentricAtom<Int> bcat;
     BlockCentricIndexedBonds<Int, D> const& parent;
+
+    def begin()->BondJIter {
+      return BondJIter{
+          bcat.block,
+          bcat.block_type,
+          parent.block_type_atom_all_bond_ranges[bcat.block_type][bcat.atom][0],
+          parent};
+    }
+    def end()->BondJIter {
+      return BondJIter{
+          bcat.block,
+          bcat.block_type,
+          parent.block_type_atom_all_bond_ranges[bcat.block_type][bcat.atom][1],
+          parent};
+    }
+  };
+
+  EIGEN_DEVICE_FUNC BondAtomRange bound_to(BlockCentricAtom<Int> bcat) const {
+    return BondAtomRange{bcat, *this};
+  }
+};
+
+template <typename Int, tmol::Device D>
+struct RotamerCentricIndexedBonds {
+  // We need to iterate across the bonds for a rotamer being built
+  // at a particular position. The block-type for this rotamer may
+  // be different from the block type that is present in the original
+  // structure, so we keep track of when we're looking at this block
+  // and when we have iterated across inter-residue bonds into a
+  // neighboring block. We will represent the remainder of the
+  // structure by a single block type at each position; an example
+  // rotamer, e.g., with the requirement that in order for an energy
+  // function to work properly in the context of the packer that
+  // the parts of the structure the packer moves will not affect the
+  // set of atoms at inter-residue connections in a way that impacts
+  // scoring.  E.g. for LK-ball, which depends on iterating across bonds
+  // to neighboring residues to calculate the coordinates of waters,
+  // the packer must not move the backbone atoms of the neighbors and
+  // LK-ball must not build waters on sidechain atoms that form inter-
+  // residue bonds (such as CYD's SG atom).
+  int const rot_block;
+  int const rot_block_type;
+  // inter_block_connections and block_type have already been sliced
+  // to focus on a particular Pose in the PoseStack
+  TensorAccessor<Vec<Int, 2>, 2, D> inter_block_connections;
+  TensorAccessor<Int, 1, D> neighbor_example_block_types;
+
+  // Properties of the block types in this molecular system
+  TView<Int, 1, D> block_type_n_all_bonds;
+  TView<Vec<Int, 3>, 2, D> block_type_all_bonds;
+  TView<Vec<Int, 2>, 2, D> block_type_atom_all_bond_ranges;
+  TView<Int, 2, D> block_type_atoms_forming_chemical_bonds;
+
+  struct BondJIter {
+    Int block;
+    Int block_type;
+    Int bidx;
+    RotamerCentricIndexedBonds<Int, D> const& parent;
+
+    def operator++()->BondJIter& {
+      bidx++;
+      return *this;
+    }
+    def operator==(BondJIter const& other) const->bool {
+      return bidx == other.bidx && block == other.block
+             && block_type == other.block_type;
+    }
+    def operator!=(BondJIter const& other) const->bool {
+      return !(*this == other);
+    }
+    def operator*() const->BlockCentricAtom<Int> {
+      Int neighb_atm = parent.block_type_all_bonds[block_type][bidx][1];
+      if (neighb_atm >= 0) {
+        return {block, block_type, neighb_atm};
+      } else {
+        // Inter-block chemical bond:
+        // The neighbor atom is the one on the other side of the connection
+        // on this residue. 1. Look up the connection on this residue, conn_id.
+        // 2. Look up for this structure the connection id on the other
+        // block to which conn_id is connected, nbr_conn_id. 3. Look up
+        // for this struture the block id for the other block to which
+        // conn_id is connected, nbr_block. 4. Look up the block type of the
+        // neighbor block. 5. Look up the atom index for the connection atom
+        // on the neighbor, nbr_conn_atom.
+        Int conn_id = parent.block_type_all_bonds[block_type][bidx][2];
+        Int nbr_conn_id = parent.inter_block_connections[block][conn_id][1];
+        if (nbr_conn_id == -1) {
+          // We have an undefined connection.
+          // This is how we treat non-termini residues where
+          // their neighbors are unresolved or where they
+          // have been excluded from the structure.
+          return {-1, -1, -1};
+        }
+
+        Int nbr_block = parent.inter_block_connections[block][conn_id][0];
+        Int nbr_block_type;
+        if (nbr_block == parent.rot_block) {
+          // We have walked back to the original residue; we should use
+          // the block type for the rotamer we are considering at this
+          // position
+          nbr_block_type = parent.rot_block_type;
+        } else {
+          nbr_block_type = parent.neighbor_example_block_types[nbr_block];
+        }
+
+        Int nbr_conn_atom =
+            parent.block_type_atoms_forming_chemical_bonds[nbr_block_type]
+                                                          [nbr_conn_id];
+        return {nbr_block, nbr_block_type, nbr_conn_atom};
+      }
+    }
+  };
+
+  struct BondAtomRange {
+    BlockCentricAtom<Int> bcat;
+    RotamerCentricIndexedBonds<Int, D> const& parent;
 
     def begin()->BondJIter {
       return BondJIter{

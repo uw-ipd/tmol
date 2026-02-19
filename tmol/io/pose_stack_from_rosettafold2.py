@@ -2,11 +2,12 @@ import torch
 import numpy
 import toolz
 
-from typing import List, Mapping
+from typing import List
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
+from tmol.io.canonical_form import CanonicalForm
 from tmol.io.canonical_ordering import CanonicalOrdering
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
@@ -38,15 +39,15 @@ def pose_stack_from_rosettafold2(
     cf = canonical_form_from_rosettafold2(seq, xyz, chainlens)
 
     co = canonical_ordering_for_rosettafold2()
-    pbt = packed_block_types_for_rosettafold2(cf["coords"].device)
+    pbt = packed_block_types_for_rosettafold2(cf.coords.device)
 
-    return pose_stack_from_canonical_form(co, pbt, **cf, **kwargs)
+    return pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)
 
 
 @validate_args
 def canonical_form_from_rosettafold2(
     seq: Tensor[torch.int64][:], xyz: Tensor[torch.float32][:, :, 3], chainlens: List
-) -> Mapping:
+) -> CanonicalForm:
     """The canonical form is intended to represent a stable, serializable intermediate format
     for a structure so that it can be created today and then be read in years from now
     and be used to construct a PoseStack in tmol. As residue types are integers,
@@ -64,7 +65,7 @@ def canonical_form_from_rosettafold2(
         cf2 = {x: y.to(device) for x,y in torch.load("saved_canonical_form.pt")}
         co = canonical_ordering_for_rosettafold2()
         pbt = packed_block_types_for_rosettafold2(device)
-        pose_stack = tmol.pose_stack_from_canonical_form(co, pbt, **cf2)
+        pose_stack = tmol.pose_stack_from_canonical_form(co, pbt, *cf2)
 
     """
 
@@ -137,10 +138,17 @@ def canonical_form_from_rosettafold2(
     supress = torch.logical_and(supress_atom, nterm_atom)
     tmol_coords[supress] = numpy.nan
 
-    return dict(
+    return CanonicalForm(
         chain_id=chain_id,
         res_types=tmol_restypes.to(torch.int32),
         coords=tmol_coords,
+        chain_labels=None,
+        res_labels=None,
+        residue_insertion_codes=None,
+        atom_occupancy=None,
+        atom_b_factor=None,
+        disulfides=None,
+        res_not_connected=None,
     )
 
 

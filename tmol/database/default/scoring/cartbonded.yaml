@@ -1094,7 +1094,7 @@ residue_params:
     torsion_parameters:
     - {atm1: HB2, atm2: CB, atm3: OG, atm4: HG, k3: 0.13428888888888887, phi3: 6.283185306589793}
     - {atm1: HB3, atm2: CB, atm3: OG, atm4: HG, k3: 0.13428888888888887, phi3: 6.283185306589793}
-    - {atm1: CA, atm2: CB, atm3: OG, atm4: HG, k3: 0.13428888888888887, phi3: 6.283185306589793}
+#    - {atm1: CA, atm2: CB, atm3: OG, atm4: HG, k3: 0.13428888888888887, phi3: 6.283185306589793}
     improper_parameters:
     - {atm1: C, atm2: N, atm3: CA, atm4: CB, k1: 23.7846, phi1: 7.294592653589793}
     - {atm1: N, atm2: C, atm3: CA, atm4: CB, k1: 25.4835, phi1: 5.279692653589793}
@@ -1150,8 +1150,8 @@ residue_params:
     - {atm1: CA, atm2: CB, atm3: CG2, atm4: HG21, k3: 2.7039999999999997, phi3: -6.283185308410207}
     - {atm1: CA, atm2: CB, atm3: CG2, atm4: HG22, k3: 2.7039999999999997, phi3: 5.897931032450288e-10}
     - {atm1: CA, atm2: CB, atm3: CG2, atm4: HG23, k3: 2.7039999999999997, phi3: 6.283185306589793}
-    - {atm1: CA, atm2: CB, atm3: OG1, atm4: HG1, k3: 0.13428888888888887, phi3: 6.283185306589793}
-    - {atm1: CG2, atm2: CB, atm3: OG1, atm4: HG1, k3: 0.13428888888888887, phi3: 6.283185306589793}
+#    - {atm1: CA, atm2: CB, atm3: OG1, atm4: HG1, k3: 0.13428888888888887, phi3: 6.283185306589793}
+#    - {atm1: CG2, atm2: CB, atm3: OG1, atm4: HG1, k3: 0.13428888888888887, phi3: 6.283185306589793}
     - {atm1: HB, atm2: CB, atm3: CG2, atm4: HG21, k3: 2.7039999999999997, phi3: 5.897931032450288e-10}
     - {atm1: HB, atm2: CB, atm3: CG2, atm4: HG22, k3: 2.7039999999999997, phi3: 6.283185306589793}
     - {atm1: HB, atm2: CB, atm3: CG2, atm4: HG23, k3: 2.7039999999999997, phi3: -6.283185308410207}
@@ -1368,7 +1368,7 @@ residue_params:
     - {atm1: CD2, atm2: CG, atm3: CD1, atm4: CE1, k1: 43.352, phi1: 3.141592653589793}
     - {atm1: CD2, atm2: CG, atm3: CD1, atm4: HD1, k1: 34.552, phi1: -4.1020697949534224e-10}
     - {atm1: CE1, atm2: CZ, atm3: OH, atm4: HH, k2: 0.30215, phi2: 3.141592653589793}
-    - {atm1: CE2, atm2: CZ, atm3: OH, atm4: HH, k2: 0.30215, phi2: 3.141592653589793}
+#    - {atm1: CE2, atm2: CZ, atm3: OH, atm4: HH, k2: 0.30215, phi2: 3.141592653589793}
     - {atm1: CG, atm2: CD1, atm3: CE1, atm4: CZ, k1: 43.352, phi1: 3.141592653589793}
     - {atm1: CG, atm2: CD1, atm3: CE1, atm4: HE1, k1: 34.552, phi1: 6.283185307589793}
     - {atm1: CG, atm2: CD2, atm3: CE2, atm4: CZ, k1: 43.352, phi1: 3.141592653589793}

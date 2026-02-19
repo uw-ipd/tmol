@@ -17,6 +17,17 @@ template struct LJLKPoseScoreDispatch<
     double,
     int>;
 
+template struct LJLKRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CPU,
+    float,
+    int>;
+template struct LJLKRotamerScoreDispatch<
+    DeviceOperations,
+    tmol::Device::CPU,
+    double,
+    int>;
+
 }  // namespace potentials
 }  // namespace ljlk
 }  // namespace score

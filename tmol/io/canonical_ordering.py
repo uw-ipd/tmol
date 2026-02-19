@@ -4,12 +4,14 @@ import attr
 import pandas
 from collections import defaultdict
 
+from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.database import ParameterDatabase
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.chemical.patched_chemdb import PatchedChemicalDatabase
 from tmol.chemical.restypes import ResidueTypeSet
 from typing import List, Mapping, Optional, Tuple, Union
+from .canonical_form import CanonicalForm
 from .pdb_parsing import parse_pdb
 import toolz.functoolz
 
@@ -267,6 +269,7 @@ class CanonicalOrdering:
             "GLY": ("nterm", "cterm"),
             "HIS": ("nterm", "cterm"),
             "HIS_D": ("nterm", "cterm"),
+            "HIS_POS": ("nterm", "cterm"),
             "ILE": ("nterm", "cterm"),
             "LYS": ("nterm", "cterm"),
             "LEU": ("nterm", "cterm"),
@@ -415,8 +418,9 @@ def canonical_form_from_pdb(
     *,
     residue_start: Optional[int] = None,
     residue_end: Optional[int] = None,
-) -> Mapping:
-    """Create a canonical form dictionary from either the contents of a PDB file
+    res_not_connected: Optional[Tensor[torch.bool][:, :, 2]] = None,
+) -> CanonicalForm:
+    """Create a canonical form from either the contents of a PDB file
     as one long string or a list of individual lines from the file or
     by providing the name/path of a PDB file
 
@@ -429,7 +433,9 @@ def canonical_form_from_pdb(
         atom_records = select_atom_records_res_subset(
             atom_records, residue_start, residue_end
         )
-    return canonical_form_from_atom_records(canonical_ordering, atom_records, device)
+    return canonical_form_from_atom_records(
+        canonical_ordering, atom_records, device, res_not_connected
+    )
 
 
 def select_atom_records_res_subset(
@@ -467,7 +473,8 @@ def canonical_form_from_atom_records(
     canonical_ordering: CanonicalOrdering,
     atom_records: pandas.DataFrame,
     device: torch.device,
-):
+    res_not_connected: Optional[Tensor] = None,
+) -> CanonicalForm:
     max_n_canonical_atoms = canonical_ordering.max_n_canonical_atoms
 
     uniq_res_ind = {}
@@ -486,22 +493,35 @@ def canonical_form_from_atom_records(
     coords = numpy.full(
         (1, n_res, max_n_canonical_atoms, 3), numpy.nan, dtype=numpy.float32
     )
+    res_labels = numpy.zeros((1, n_res), dtype=int)
+    res_ins_codes = numpy.empty((1, n_res), dtype=object)
+    chain_labels = numpy.empty((1, n_res), dtype=object)
+    atom_occupancy = numpy.ones((1, n_res, max_n_canonical_atoms), dtype=numpy.float32)
+    atom_b_factor = numpy.zeros((1, n_res, max_n_canonical_atoms), dtype=numpy.float32)
 
     chains_seen = {}
+    chain_id_to_label = {}
     chain_id_counter = 0  # TO DO: determine if this is wholly redundant w/ "chaini"
     for i, row in atom_records.iterrows():
         resid = (row["chain"], row["resi"], row["insert"])
         res_ind = uniq_res_ind[resid]
         if row["chaini"] not in chains_seen:
             chains_seen[row["chaini"]] = chain_id_counter
+            chain_id_to_label[chain_id_counter] = row["chain"]
             chain_id_counter += 1
         chain_id[0, res_ind] = chains_seen[row["chaini"]]
         if res_types[0, res_ind] == -2:
             try:
                 aa_ind = canonical_ordering.restype_io_equiv_classes.index(row["resn"])
                 res_types[0, res_ind] = aa_ind
+                chain_labels[0, res_ind] = chain_id_to_label[chain_id[0, res_ind]]
+                res_labels[0, res_ind] = uniq_res_list[res_ind][1]
+                res_ins_codes[0, res_ind] = uniq_res_list[res_ind][2]
             except KeyError:
                 res_types[0, res_ind] = -1
+                chain_labels[0, res_ind] = ""
+                res_labels[0, res_ind] = ""
+                res_ins_codes[0, res_ind] = ""
         if res_types[0, res_ind] >= 0:
             res_at_mapping = canonical_ordering.restypes_atom_index_mapping[row["resn"]]
 
@@ -511,6 +531,8 @@ def canonical_form_from_atom_records(
                 coords[0, res_ind, atind, 0] = row["x"]
                 coords[0, res_ind, atind, 1] = row["y"]
                 coords[0, res_ind, atind, 2] = row["z"]
+                atom_occupancy[0, res_ind, atind] = row["occupancy"]
+                atom_b_factor[0, res_ind, atind] = row["b"]
             except KeyError:
                 # ignore atoms that are not in the canonical form
                 # TO DO: warn the user that some atoms are not being processed?
@@ -522,8 +544,20 @@ def canonical_form_from_atom_records(
     def _tf32(x):
         return torch.tensor(x, dtype=torch.float32, device=device)
 
-    return dict(
+    if res_not_connected is not None:
+        assert res_not_connected.shape == (1, n_res, 2)
+
+    canonical_form = CanonicalForm(
         chain_id=_ti32(chain_id),
         res_types=_ti32(res_types),
         coords=_tf32(coords),
+        res_labels=res_labels,
+        residue_insertion_codes=res_ins_codes,
+        chain_labels=chain_labels,
+        atom_occupancy=atom_occupancy,
+        atom_b_factor=atom_b_factor,
+        res_not_connected=res_not_connected,
+        disulfides=None,
     )
+
+    return canonical_form

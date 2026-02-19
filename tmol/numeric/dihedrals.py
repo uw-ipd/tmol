@@ -38,6 +38,6 @@ def coord_dihedrals(
     # angle between v and w in a plane is the torsion angle
     # v and w may not be normalized but that's fine since tan is y/x
     x = torch.einsum("ij,ij->i", (v, w))
-    y = torch.einsum("ij,ij->i", (torch.cross(ubc, v), w))
+    y = torch.einsum("ij,ij->i", (torch.linalg.cross(ubc, v), w))
 
     return torch.atan2(y, x).type(torch.float)

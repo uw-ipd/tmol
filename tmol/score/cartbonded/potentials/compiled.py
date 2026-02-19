@@ -18,3 +18,4 @@ load(
 
 _ops = getattr(torch.ops, modulename(__name__))
 cartbonded_pose_scores = _ops.cartbonded_pose_scores
+cartbonded_rotamer_scores = _ops.cartbonded_rotamer_scores

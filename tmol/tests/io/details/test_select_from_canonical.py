@@ -4,6 +4,7 @@ import torch
 import cattr
 import yaml
 from attrs import evolve
+from functools import partial
 from toolz.curried import groupby
 from tmol.database.chemical import ChemicalDatabase, VariantType
 from tmol.chemical.restypes import RefinedResidueType, ResidueTypeSet
@@ -25,6 +26,7 @@ from tmol.io.details.select_from_canonical import (
 )
 from tmol.pose.pose_stack_builder import PoseStackBuilder
 from tmol.pose.packed_block_types import PackedBlockTypes
+from tmol.tests.io.details.test_left_justify_canonical_form import add_two_res_at_gap
 
 
 def not_any_nancoord(coords):
@@ -32,10 +34,22 @@ def not_any_nancoord(coords):
 
 
 def dslf_and_his_resolved_pose_stack_from_canonical_form(
-    co, pbt, ch_id, can_rts, coords, at_is_pres
+    co, pbt, ch_id, can_rts, coords, at_is_pres, chain_labels
 ):
-    ch_id, can_rts, coords, at_is_pres, _1, _2 = left_justify_canonical_form(
-        ch_id, can_rts, coords, at_is_pres
+    (
+        ch_id,
+        can_rts,
+        coords,
+        at_is_pres,
+        _1,
+        _2,
+        _res_labs,
+        _res_ins,
+        chain_labels,
+        _occ,
+        _bf,
+    ) = left_justify_canonical_form(
+        ch_id, can_rts, coords, at_is_pres, chain_labels=chain_labels
     )
 
     # 2
@@ -58,6 +72,7 @@ def dslf_and_his_resolved_pose_stack_from_canonical_form(
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        chain_labels,
     )
 
 
@@ -98,7 +113,12 @@ def test_assign_block_types(torch_device, ubq_pdb):
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
     at_is_pres = not_any_nancoord(coords)
     (
         ch_id,
@@ -110,8 +130,9 @@ def test_assign_block_types(torch_device, ubq_pdb):
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
     # now we'll invoke assign_block_types
@@ -220,7 +241,12 @@ def test_assign_block_types_w_exotic_termini_options(
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
     at_is_pres = not_any_nancoord(coords)
     (
         ch_id,
@@ -232,8 +258,9 @@ def test_assign_block_types_w_exotic_termini_options(
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
     # now we'll invoke assign_block_types
@@ -275,11 +302,21 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
 
     # first 4 res
     cf4 = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=4)
-    ch_id_4, can_rts_4, coords_4 = cf4["chain_id"], cf4["res_types"], cf4["coords"]
+    ch_id_4, can_rts_4, coords_4, ch_lab_4 = (
+        cf4.chain_id,
+        cf4.res_types,
+        cf4.coords,
+        cf4.chain_labels,
+    )
     at_is_pres_4 = not_any_nancoord(coords_4)
     # first 6 res
     cf6 = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=6)
-    ch_id_6, can_rts_6, coords_6 = cf6["chain_id"], cf6["res_types"], cf6["coords"]
+    ch_id_6, can_rts_6, coords_6, ch_lab_6 = (
+        cf6.chain_id,
+        cf6.res_types,
+        cf6.coords,
+        cf6.chain_labels,
+    )
     at_is_pres_6 = not_any_nancoord(coords_6)
 
     def ext_one(x4, x6, fill_val):
@@ -289,10 +326,18 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
         x[1] = x6
         return x
 
+    def ext_one_np(x4, x6, fill_val):
+        new_shape = (2,) + x6.shape[1:]
+        x = numpy.full(new_shape, fill_val, dtype=x4.dtype)
+        x[0, : x4.shape[1]] = x4
+        x[1] = x6
+        return x
+
     ch_id = ext_one(ch_id_4, ch_id_6, -1)
     can_rts = ext_one(can_rts_4, can_rts_6, -1)
     coords = ext_one(coords_4, coords_6, numpy.nan)
     at_is_pres = ext_one(at_is_pres_4, at_is_pres_6, False)
+    ch_lab = ext_one_np(ch_lab_4, ch_lab_6, "")
 
     (
         ch_id,
@@ -304,8 +349,9 @@ def test_assign_block_types_jagged_poses(torch_device, ubq_pdb):
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
     # now we'll invoke assign_block_types
@@ -357,28 +403,22 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
 
     # take ten residues
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device, residue_end=10)
-    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
     at_is_pres = not_any_nancoord(coords)
 
     # put two empty residues in between res 5 and 6
-    def add_two_res(x, fill_value):
-        if len(x.shape) >= 3:
-            fill_shape = (x.shape[0], 2, *x.shape[2:])
-        else:
-            fill_shape = (x.shape[0], 2)
-        return torch.cat(
-            [
-                x[:, :5],
-                torch.full(fill_shape, fill_value, dtype=x.dtype, device=x.device),
-                x[:, 5:],
-            ],
-            dim=1,
-        )
+    add_two_res = partial(add_two_res_at_gap, 5)
 
     ch_id = add_two_res(ch_id, 0)
     can_rts = add_two_res(can_rts, -1)
     coords = add_two_res(coords, float("nan"))
     at_is_pres = add_two_res(at_is_pres, 0)
+    ch_lab = add_two_res(ch_lab, "")
 
     (
         ch_id,
@@ -390,8 +430,9 @@ def test_assign_block_types_with_gaps(ubq_pdb, torch_device):
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
     # now we'll invoke assign_block_types
@@ -448,7 +489,7 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
 
     # Now let's add a virtual residue to the end of the chain
     vrt_co_ind = co.restype_io_equiv_classes.index("VRT")
-    orig_coords = cf["coords"]
+    orig_coords = cf.coords
     ocs = orig_coords.shape
     new_coords = torch.full(
         (ocs[0], ocs[1] + 1, ocs[2], ocs[3]),
@@ -465,7 +506,7 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
     new_coords[0, -1, 0, :] = xyz(26.849, 29.656, 6.217)
     new_coords[0, -1, 1, :] = xyz(26.849, 29.656, 6.217) + xyz(1.0, 0.0, 0.0)
     new_coords[0, -1, 2, :] = xyz(26.849, 29.656, 6.217) + xyz(0.0, 1.0, 0.0)
-    orig_chain_id = cf["chain_id"]
+    orig_chain_id = cf.chain_id
 
     ocis = orig_chain_id.shape
     new_chain_id = torch.zeros(
@@ -476,7 +517,7 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
         0, -1
     ]  # give the vrt res the same chain id as the last residue
 
-    orig_restypes = cf["res_types"]
+    orig_restypes = cf.res_types
     ors = orig_restypes.shape
     new_restypes = torch.full(
         (ors[0], ors[1] + 1), -1, dtype=torch.int32, device=torch_device
@@ -484,11 +525,28 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
     new_restypes[0, :-1] = orig_restypes
     new_restypes[0, -1] = vrt_co_ind
 
-    cf["coords"] = new_coords
-    cf["chain_id"] = new_chain_id
-    cf["res_types"] = new_restypes
+    orig_chain_labels = cf.chain_labels
+    ocls = orig_chain_labels.shape
+    new_chain_labels = numpy.full(
+        (ocls[0], ocls[1] + 1), "", dtype=orig_chain_labels.dtype
+    )
+    new_chain_labels[0, :-1] = orig_chain_labels
+    new_chain_labels[0, -1] = orig_chain_labels[0, -1]  # same chain label
 
-    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    cf = evolve(
+        cf,
+        coords=new_coords,
+        chain_id=new_chain_id,
+        res_types=new_restypes,
+        chain_labels=new_chain_labels,
+    )
+
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
     at_is_pres = not_any_nancoord(coords)
 
     (
@@ -501,8 +559,9 @@ def test_assign_block_types_with_same_chain_cterm_vrt(ubq_pdb, torch_device):
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
     # now we'll invoke assign_block_types
@@ -532,7 +591,12 @@ def test_assign_block_types_for_pert_and_antigen(
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     cf = canonical_form_from_pdb(co, pert_and_erbb2_lines, torch_device)
-    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
     at_is_pres = not_any_nancoord(coords)
     res_not_connected = torch.tensor(res_not_connected, device=torch_device)
 
@@ -546,8 +610,9 @@ def test_assign_block_types_for_pert_and_antigen(
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
     # skip dslf and his-taut steps
 
@@ -617,7 +682,12 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
     PoseStackBuilder._annotate_pbt_w_canonical_aa1lc_lookup(pbt)
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
     at_is_pres = not_any_nancoord(coords)
     (
         ch_id,
@@ -629,8 +699,9 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
     # now we'll invoke assign_block_types
@@ -647,7 +718,11 @@ def test_take_block_type_atoms_from_canonical(torch_device, ubq_pdb):
         missing_atoms,
         real_atoms,
         real_canonical_atom_inds,
-    ) = take_block_type_atoms_from_canonical(pbt, block_types64, coords, at_is_pres)
+        _occ,
+        _bf,
+    ) = take_block_type_atoms_from_canonical(
+        pbt, block_types64, coords, at_is_pres, cf.atom_occupancy, cf.atom_b_factor
+    )
 
     assert block_coords.device == torch_device
     assert missing_atoms.device == torch_device
@@ -778,7 +853,12 @@ def test_select_best_block_type_candidate_choosing_default_term(
     assert "fake_cterm" in varnames
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
     at_is_pres = not_any_nancoord(coords)
 
     (
@@ -791,8 +871,9 @@ def test_select_best_block_type_candidate_choosing_default_term(
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
     (
@@ -889,7 +970,12 @@ def test_select_best_block_type_candidate_w_mult_opts(
     assert "THR:mospho" in bt_names
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
     at_is_pres = not_any_nancoord(coords)
 
     at_is_pres[0, 19, co_mser_M_ind] = True
@@ -906,8 +992,9 @@ def test_select_best_block_type_candidate_w_mult_opts(
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
     (
@@ -965,7 +1052,12 @@ def test_select_best_block_type_candidate_error_impossible_combo(
     assert "THR:mospho" in bt_names
 
     cf = canonical_form_from_pdb(co, ubq_pdb, torch_device)
-    ch_id, can_rts, coords = cf["chain_id"], cf["res_types"], cf["coords"]
+    ch_id, can_rts, coords, ch_lab = (
+        cf.chain_id,
+        cf.res_types,
+        cf.coords,
+        cf.chain_labels,
+    )
     at_is_pres = not_any_nancoord(coords)
 
     at_is_pres[0, 19, co_pser_P_ind] = True
@@ -983,21 +1075,22 @@ def test_select_best_block_type_candidate_error_impossible_combo(
         his_taut,
         resolved_coords,
         resolved_atom_is_present,
+        ch_lab,
     ) = dslf_and_his_resolved_pose_stack_from_canonical_form(
-        co, pbt, ch_id, can_rts, coords, at_is_pres
+        co, pbt, ch_id, can_rts, coords, at_is_pres, ch_lab
     )
 
     expected_err_msg = """failed to resolve a block type from the candidates available
  Failed to resolve block type for 0 19 SER
- 0 19 0 68 SER restype 15 equiv class SER
+ 0 19 0 72 SER restype 15 equiv class SER
   atom P provided but absent from candidate SER
   atom M provided but absent from candidate SER
  Failed to resolve block type for 0 19 SER
- 0 19 1 71 SER:phospho restype 15 equiv class SER
+ 0 19 1 75 SER:phospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:phospho
   atom M provided but absent from candidate SER:phospho
  Failed to resolve block type for 0 19 SER
- 0 19 2 72 SER:mospho restype 15 equiv class SER
+ 0 19 2 76 SER:mospho restype 15 equiv class SER
   atom HG provided but absent from candidate SER:mospho
   atom P provided but absent from candidate SER:mospho
 """

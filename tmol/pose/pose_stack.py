@@ -1,8 +1,10 @@
 import attr
 import torch
+from typing import Optional
 
 from tmol.types.torch import Tensor
 from tmol.chemical.restypes import RefinedResidueType
+from tmol.pose.pdb_info import PDBInfo
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.constraint_set import ConstraintSet
 
@@ -59,13 +61,19 @@ class PoseStack:
     PoseStack's PackedBlockTypes object. A sentinel of -1 for positions
     where there is no block type.
 
+    chain_id: the integer chain identifier for each residue
+
+    pdb_info: a PDBInfo object holding the PDB-level information that's needed
+    for writing out PDB / mmCIF files and keeping the original author labels
+    for the chains and residues + occupancy and B-factor information for the atoms;
+    none of these things are necessary for any structural manipulations or energy
+    calculations, but they are invaluable for working with structures in any kind
+    of pipeline.
+
     device: the torch.device that this collection of structures lives on
     """
 
     packed_block_types: PackedBlockTypes
-    # residues: List[List[Residue]]
-
-    # residue_coords: NDArray[numpy.float32][:, :, :, 3]
 
     # coordinates are held as [n-poses x max-n-atoms x 3]
     # where the offset for each residue are held in the
@@ -84,7 +92,69 @@ class PoseStack:
     block_type_ind: Tensor[torch.int32][:, :]
     block_type_ind64: Tensor[torch.int64][:, :]
 
+    chain_id: Tensor[torch.int32][:, :]
+    chain_id64: Tensor[torch.int64][:, :]
+
+    pdb_info: PDBInfo
+    constraint_set: Optional[ConstraintSet]
+
     device: torch.device
+
+    #################### INIT #####################
+
+    def __attrs_post_init__(self):
+
+        n_poses = self.block_coord_offset.size(0)
+        n_blocks = self.block_coord_offset.size(1)
+
+        block_inds = torch.zeros_like(self.block_coord_offset)
+        block_inds[:, :] = torch.arange(0, n_blocks)
+        self.block_ind_for_rot = block_inds.flatten()
+
+        pose_inds = (
+            torch.arange(0, n_poses, dtype=torch.int32, device=self.device)
+            .unsqueeze(1)
+            .expand((n_poses, n_blocks))
+        )
+        self.pose_ind_for_rot = pose_inds.flatten()
+
+        self.block_type_ind_for_rot = self.block_type_ind.flatten()
+
+        self.rot_offset_for_block = torch.arange(
+            0, n_poses * n_blocks, dtype=torch.int32, device=self.device
+        ).view(n_poses, n_blocks)
+        self.first_rot_for_block = self.rot_offset_for_block
+        self.first_rot_block_type = self.block_type_ind
+
+        self.n_rots_for_pose = torch.tensor(
+            [n_blocks], dtype=torch.int32, device=self.device
+        ).expand(n_poses)
+        self.rot_offset_for_pose = self.n_rots_for_pose * torch.arange(
+            0, n_poses, dtype=torch.int32, device=self.device
+        )
+        coord_offset_for_pose = self.coords.size(1) * torch.arange(
+            0, n_poses, dtype=torch.int32, device=self.device
+        )
+        self.n_rots_for_block = torch.full_like(self.block_coord_offset, 1)
+
+        self.rot_coord_offset = (
+            self.block_coord_offset.flatten()
+            + torch.repeat_interleave(coord_offset_for_pose, n_blocks)
+        )
+
+        self.max_n_rots_per_pose = n_blocks
+
+        pose_atom_offsets = self.rot_coord_offset.index_select(
+            0, self.rot_offset_for_pose
+        )
+        atom_to_pose = torch.zeros(
+            self.coords.size(0) * self.coords.size(1),
+            dtype=torch.int32,
+            device=self.device,
+        )
+        atom_to_pose[pose_atom_offsets] = 1
+        atom_to_pose[0] = 0
+        self.pose_ind_for_atom = atom_to_pose.cumsum(0, dtype=torch.int32)
 
     #################### PROPERTIES #####################
 
@@ -138,6 +208,29 @@ class PoseStack:
         n_ats_per_pose = torch.sum(self.n_ats_per_block, dim=1).unsqueeze(1)
         return n_ats_per_pose_arange_expanded < n_ats_per_pose
 
+    def clone(self) -> "PoseStack":
+        """Deep-copy clone of this PoseStack"""
+        new_constraint_set = (
+            self.constraint_set.clone() if self.constraint_set is not None else None
+        )
+        return PoseStack(
+            packed_block_types=self.packed_block_types,
+            coords=self.coords.detach().clone(),
+            block_coord_offset=self.block_coord_offset.detach().clone(),
+            block_coord_offset64=self.block_coord_offset64.detach().clone(),
+            inter_residue_connections=self.inter_residue_connections.detach().clone(),
+            inter_residue_connections64=self.inter_residue_connections64.detach().clone(),
+            inter_block_bondsep=self.inter_block_bondsep.detach().clone(),
+            inter_block_bondsep64=self.inter_block_bondsep64.detach().clone(),
+            block_type_ind=self.block_type_ind.detach().clone(),
+            block_type_ind64=self.block_type_ind64.detach().clone(),
+            chain_id=self.chain_id.detach().clone(),
+            chain_id64=self.chain_id64.detach().clone(),
+            pdb_info=self.pdb_info,
+            constraint_set=new_constraint_set,
+            device=self.device,
+        )
+
     def expand_coords(self):
         """Load the coordinates into a 4D tensor:
         n_poses x max_n_blocks x max_n_atoms_per_block x 3
@@ -151,8 +244,6 @@ class PoseStack:
             .repeat(self.n_poses * self.max_n_blocks)
             .view(self.n_poses, self.max_n_blocks, self.max_n_block_atoms)
         )
-
-        # n_ats_per_block = self.n_ats_per_block.to(torch.int64)
         real_expanded_pose_ats = (
             n_ats_per_block_arange_expanded < self.n_ats_per_block.unsqueeze(2)
         )
@@ -184,10 +275,11 @@ class PoseStack:
         ]
 
     def get_constraint_set(self):
-        # make a constraint set if it doesn't exist
-        if not hasattr(self, "_constraint_set"):
-            self._constraint_set = ConstraintSet(device=self.device)
+        return self.constraint_set
 
-        # ensure the constraint set points back at us (after creation or deep copy)
-        self._constraint_set.pose_stack = self
-        return self._constraint_set
+    def block_identity_map(self):
+        identity_map = torch.zeros_like(self.block_coord_offset)
+        identity_map[:, :] = torch.arange(
+            self.block_coord_offset.size(1), device=self.device
+        )
+        return identity_map

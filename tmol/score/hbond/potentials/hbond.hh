@@ -16,30 +16,32 @@ namespace potentials {
 template <typename Real>
 class HBondSingleResData {
  public:
+  int rot_ind;
   int block_ind;
   int block_type;
-  int block_coord_offset;
+  int rot_coord_offset;
+  int block_coord_offset;  // TODO: delete
   int n_atoms;
   int n_conn;
-  Real *coords;
+  Real* coords;
   unsigned char n_donH;
   unsigned char n_acc;
-  unsigned char *donH_tile_inds;
-  unsigned char *acc_tile_inds;
-  unsigned char *donH_type;
-  unsigned char *acc_type;
-  unsigned char *acc_hybridization;
-  unsigned char *path_dist;
+  unsigned char* donH_tile_inds;
+  unsigned char* acc_tile_inds;
+  unsigned char* donH_type;
+  unsigned char* acc_type;
+  unsigned char* acc_hybridization;
+  unsigned char* path_dist;
 };
 
 template <tmol::Device Dev, typename Real, typename Int>
-class HBondResPairData {
+class HBondRotPairData {
  public:
   int pose_ind;
   int max_important_bond_separation;
   int min_separation;
   bool in_count_pair_striking_dist;
-  unsigned char *conn_seps;
+  unsigned char* conn_seps;
 
   // load global params once; store totalE
   HBondGlobalParams<Real> global_params;
@@ -53,9 +55,12 @@ class HBondResPairData {
 
   // If the hbond involves atoms from other residues, we need
   // to be able to retrieve their coordinates
-  TView<Vec<Real, 3>, 2, Dev> coords;
-  TView<Int, 2, Dev> pose_stack_block_coord_offset;
-  TView<Int, 2, Dev> pose_stack_block_type;
+  TView<Vec<Real, 3>, 1, Dev> coords;
+  TView<Int, 1, Dev> rot_coord_offset;
+  TView<Int, 1, Dev> rot_block_type;
+
+  TView<Int, 2, Dev> first_rot_for_block;
+  TView<Int, 2, Dev> first_rot_block_type;
 
   // For determining which atoms to retrieve from neighboring
   // residues we have to know how the blocks in the Pose
@@ -80,7 +85,7 @@ class HBondScoringData {
  public:
   HBondSingleResData<Real> r1;
   HBondSingleResData<Real> r2;
-  HBondResPairData<Dev, Real, Int> pair_data;
+  HBondRotPairData<Dev, Real, Int> pair_data;
 };
 
 template <typename Real, int TILE_SIZE, int MAX_N_CONN>
@@ -117,7 +122,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
-    TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 3, Dev> block_type_tile_donH_inds,
     TView<Int, 3, Dev> block_type_tile_acc_inds,
     TView<Int, 3, Dev> block_type_tile_donor_type,
@@ -125,7 +130,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
     TView<Int, 3, Dev> block_type_tile_hybridization,
     int pose_ind,
     int tile_ind,
-    HBondSingleResData<Real> &r_dat,
+    HBondSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom) {
   // pre-condition: n_atoms_to_load < TILE_SIZE
@@ -134,8 +139,7 @@ void TMOL_DEVICE_FUNC hbond_load_block_coords_and_params_into_shared(
 
   DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
       r_dat.coords,
-      reinterpret_cast<Real *>(
-          &coords[pose_ind][r_dat.block_coord_offset + start_atom]),
+      reinterpret_cast<Real*>(&coords[r_dat.rot_coord_offset + start_atom]),
       n_atoms_to_load * 3);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.donH_tile_inds,
@@ -168,7 +172,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
-    TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 3, Dev> block_type_tile_donH_inds,
     TView<Int, 3, Dev> block_type_tile_acc_inds,
     TView<Int, 3, Dev> block_type_tile_donor_type,
@@ -177,11 +181,11 @@ void TMOL_DEVICE_FUNC hbond_load_block_into_shared(
     TView<Int, 3, Dev> block_type_path_distance,
     int pose_ind,
     int tile_ind,
-    HBondSingleResData<Real> &r_dat,
+    HBondSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom,
     bool count_pair_striking_dist,
-    unsigned char *__restrict__ conn_ats) {
+    unsigned char* __restrict__ conn_ats) {
   hbond_load_block_coords_and_params_into_shared<DeviceDispatch, Dev, nt>(
       coords,
       block_type_tile_donH_inds,
@@ -220,9 +224,11 @@ template <
     int TILE_SIZE,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
-    TView<Vec<Real, 3>, 2, Dev> coords,
-    TView<Int, 2, Dev> pose_stack_block_coord_offset,
-    TView<Int, 2, Dev> pose_stack_block_type,
+    TView<Vec<Real, 3>, 1, Dev> coords,
+    TView<Int, 2, Dev> first_rot_for_block,
+    TView<Int, 2, Dev> first_rot_block_type,
+    TView<Int, 1, Dev> rot_coord_offset,
+    TView<Int, 1, Dev> rot_block_type,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
     TView<Int, 3, Dev> pose_stack_min_bond_separation,
     TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
@@ -240,23 +246,25 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
 
     int const max_important_bond_separation,
     int pose_ind,
+    int rot_ind1,
+    int rot_ind2,
     int block_ind1,
     int block_ind2,
     int block_type1,
     int block_type2,
     int n_atoms1,
     int n_atoms2,
-    HBondScoringData<Dev, Real, Int> &inter_dat,
-    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    HBondScoringData<Dev, Real, Int>& inter_dat,
+    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   inter_dat.pair_data.pose_ind = pose_ind;
+  inter_dat.r1.rot_ind = rot_ind1;
+  inter_dat.r2.rot_ind = rot_ind2;
   inter_dat.r1.block_ind = block_ind1;
   inter_dat.r2.block_ind = block_ind2;
   inter_dat.r1.block_type = block_type1;
   inter_dat.r2.block_type = block_type2;
-  inter_dat.r1.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind1];
-  inter_dat.r2.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind2];
+  inter_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
+  inter_dat.r2.rot_coord_offset = rot_coord_offset[rot_ind2];
   inter_dat.pair_data.max_important_bond_separation =
       max_important_bond_separation;
   inter_dat.pair_data.min_separation =
@@ -329,9 +337,10 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_interres_data(
   // can be passed in to the lower-level functions when needed;
   // nvcc is smart enough not to duplicate the registers used here
   inter_dat.pair_data.coords = coords;
-  inter_dat.pair_data.pose_stack_block_coord_offset =
-      pose_stack_block_coord_offset;
-  inter_dat.pair_data.pose_stack_block_type = pose_stack_block_type;
+  inter_dat.pair_data.first_rot_for_block = first_rot_for_block;
+  inter_dat.pair_data.first_rot_block_type = first_rot_block_type;
+  inter_dat.pair_data.rot_coord_offset = rot_coord_offset;
+  inter_dat.pair_data.rot_block_type = rot_block_type;
   inter_dat.pair_data.pose_stack_inter_residue_connections =
       pose_stack_inter_residue_connections;
   inter_dat.pair_data.block_type_n_all_bonds = block_type_n_all_bonds;
@@ -355,7 +364,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
     TView<Int, 3, Dev> block_type_tile_donH_inds,
@@ -367,8 +376,8 @@ void TMOL_DEVICE_FUNC hbond_load_interres1_tile_data_to_shared(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    HBondScoringData<Dev, Real, Int> &inter_dat,
-    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    HBondScoringData<Dev, Real, Int>& inter_dat,
+    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   auto store_n_don_n_acc1 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[inter_dat.r1.block_type][tile_ind];
     int n_acc = block_type_tile_n_acc[inter_dat.r1.block_type][tile_ind];
@@ -408,7 +417,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
     TView<Int, 3, Dev> block_type_tile_donH_inds,
@@ -420,8 +429,8 @@ void TMOL_DEVICE_FUNC hbond_load_interres2_tile_data_to_shared(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    HBondScoringData<Dev, Real, Int> &inter_dat,
-    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    HBondScoringData<Dev, Real, Int>& inter_dat,
+    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   auto store_n_don_n_acc2 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[inter_dat.r2.block_type][tile_ind];
     int n_acc = block_type_tile_n_acc[inter_dat.r2.block_type][tile_ind];
@@ -460,9 +469,11 @@ template <
     int TILE_SIZE,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
-    TView<Vec<Real, 3>, 2, Dev> coords,
-    TView<Int, 2, Dev> pose_stack_block_coord_offset,
-    TView<Int, 2, Dev> pose_stack_block_type,
+    TView<Vec<Real, 3>, 1, Dev> coords,
+    TView<Int, 2, Dev> first_rot_for_block,
+    TView<Int, 2, Dev> first_rot_block_type,
+    TView<Int, 1, Dev> rot_coord_offset,
+    TView<Int, 1, Dev> rot_block_type,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
     TView<Int, 1, Dev> block_type_n_all_bonds,
     TView<Vec<Int, 3>, 2, Dev> block_type_all_bonds,
@@ -474,19 +485,21 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
     TView<HBondGlobalParams<Real>, 1, Dev> global_params,
     int const max_important_bond_separation,
     int pose_ind,
+    int rot_ind1,
     int block_ind1,
     int block_type1,
     int n_atoms1,
-    HBondScoringData<Dev, Real, Int> &intra_dat,
-    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    HBondScoringData<Dev, Real, Int>& intra_dat,
+    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   intra_dat.pair_data.pose_ind = pose_ind;
+  intra_dat.r1.rot_ind = rot_ind1;
+  intra_dat.r2.rot_ind = rot_ind1;
   intra_dat.r1.block_ind = block_ind1;
   intra_dat.r2.block_ind = block_ind1;
   intra_dat.r1.block_type = block_type1;
   intra_dat.r2.block_type = block_type1;
-  intra_dat.r1.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind1];
-  intra_dat.r2.block_coord_offset = intra_dat.r1.block_coord_offset;
+  intra_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
+  intra_dat.r2.rot_coord_offset = intra_dat.r1.rot_coord_offset;
   intra_dat.pair_data.max_important_bond_separation =
       max_important_bond_separation;
 
@@ -531,9 +544,10 @@ void TMOL_DEVICE_FUNC hbond_load_tile_invariant_intrares_data(
   // Keep a "copy" of the tensors needed during score evaluation;
   // nvcc is smart enough not to duplicate the registers used here
   intra_dat.pair_data.coords = coords;
-  intra_dat.pair_data.pose_stack_block_coord_offset =
-      pose_stack_block_coord_offset;
-  intra_dat.pair_data.pose_stack_block_type = pose_stack_block_type;
+  intra_dat.pair_data.first_rot_for_block = first_rot_for_block;
+  intra_dat.pair_data.first_rot_block_type = first_rot_block_type;
+  intra_dat.pair_data.rot_coord_offset = rot_coord_offset;
+  intra_dat.pair_data.rot_block_type = rot_block_type;
   intra_dat.pair_data.pose_stack_inter_residue_connections =
       pose_stack_inter_residue_connections;
   intra_dat.pair_data.block_type_n_all_bonds = block_type_n_all_bonds;
@@ -557,7 +571,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
     TView<Int, 3, Dev> block_type_tile_donH_inds,
@@ -568,8 +582,8 @@ void TMOL_DEVICE_FUNC hbond_load_intrares1_tile_data_to_shared(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    HBondScoringData<Dev, Real, Int> &intra_dat,
-    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    HBondScoringData<Dev, Real, Int>& intra_dat,
+    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   auto store_n_don_n_acc1 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[intra_dat.r1.block_type][tile_ind];
     int n_acc = block_type_tile_n_acc[intra_dat.r1.block_type][tile_ind];
@@ -605,7 +619,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, Dev> coords,
+    TView<Vec<Real, 3>, 1, Dev> coords,
     TView<Int, 2, Dev> block_type_tile_n_donH,
     TView<Int, 2, Dev> block_type_tile_n_acc,
     TView<Int, 3, Dev> block_type_tile_donH_inds,
@@ -616,8 +630,8 @@ void TMOL_DEVICE_FUNC hbond_load_intrares2_tile_data_to_shared(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    HBondScoringData<Dev, Real, Int> &intra_dat,
-    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m) {
+    HBondScoringData<Dev, Real, Int>& intra_dat,
+    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m) {
   auto store_n_don_n_acc2 = ([&](int tid) {
     int n_donH = block_type_tile_n_donH[intra_dat.r2.block_type][tile_ind];
     int n_acc = block_type_tile_n_acc[intra_dat.r2.block_type][tile_ind];
@@ -652,8 +666,8 @@ template <
 void TMOL_DEVICE_FUNC hbond_load_intrares_data_from_shared(
     int tile_ind1,
     int tile_ind2,
-    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN> &shared_m,
-    HBondScoringData<Dev, Real, Int> &intra_dat) {
+    HBondBlockPairSharedData<Real, TILE_SIZE, MAX_N_CONN>& shared_m,
+    HBondScoringData<Dev, Real, Int>& intra_dat) {
   // set the pointers in intra_dat to point at the shared-memory arrays
   // If we are evaluating the energies between atoms in the same tile
   // then only the "1" shared-memory arrays will be loaded with data;
@@ -686,8 +700,8 @@ void TMOL_DEVICE_FUNC hbond_load_intrares_data_from_shared(
 template <int TILE_SIZE, typename Real, typename Int, tmol::Device Dev>
 TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
     bonded_atom::BlockCentricAtom<Int> bcat,
-    HBondSingleResData<Real> const &single_res_dat,
-    HBondResPairData<Dev, Real, Int> const &respair_dat,
+    HBondSingleResData<Real> const& single_res_dat,
+    HBondRotPairData<Dev, Real, Int> const& rotpair_dat,
     int tile_start) {
   Eigen::Matrix<Real, 3, 1> xyz{Real(0), Real(0), Real(0)};
   if (bcat.atom != -1) {
@@ -703,10 +717,12 @@ TMOL_DEVICE_FUNC Eigen::Matrix<Real, 3, 1> load_coord(
       // outside of tile or on other res, retrieve from global coords
       int coord_offset =
           (bcat.block == single_res_dat.block_ind
-               ? single_res_dat.block_coord_offset
-               : respair_dat.pose_stack_block_coord_offset[respair_dat.pose_ind]
-                                                          [bcat.block]);
-      xyz = respair_dat.coords[respair_dat.pose_ind][bcat.atom + coord_offset];
+               ? single_res_dat.rot_coord_offset
+               : rotpair_dat
+                     .rot_coord_offset[rotpair_dat.first_rot_for_block
+                                           [rotpair_dat.pose_ind][bcat.block]]);
+
+      xyz = rotpair_dat.coords[bcat.atom + coord_offset];
     }
   }
   return xyz;
@@ -720,13 +736,13 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
     int acc_atom_tile_ind,    // in [0:TILE_SIZE)
     int don_start,
     int acc_start,
-    HBondSingleResData<Real> const &don_dat,
-    HBondSingleResData<Real> const &acc_dat,
-    HBondResPairData<Dev, Real, Int> const &respair_dat,
+    HBondSingleResData<Real> const& don_dat,
+    HBondSingleResData<Real> const& acc_dat,
+    HBondRotPairData<Dev, Real, Int> const& respair_dat,
     int cp_separation) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
-  using bonded_atom::BlockCentricIndexedBonds;
+  using bonded_atom::RotamerCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
@@ -740,19 +756,21 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_full(
     };
     BlockCentricAtom<Int> A{
         acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
-    BlockCentricIndexedBonds<Int, Dev> bonds{
+    RotamerCentricIndexedBonds<Int, Dev> bonds{
+        acc_dat.block_ind,
+        acc_dat.block_type,
         respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
-        respair_dat.pose_stack_block_type[respair_dat.pose_ind],
+        respair_dat.first_rot_block_type[respair_dat.pose_ind],
         respair_dat.block_type_n_all_bonds,
         respair_dat.block_type_all_bonds,
         respair_dat.block_type_atom_all_bond_ranges,
         respair_dat.block_type_atoms_forming_chemical_bonds};
-    auto acc_bases = BlockCentricAcceptorBases<Int>::for_acceptor(
+    auto acc_bases = RotamerCentricAcceptorBases<Int>::for_acceptor(
         A,
         acc_dat.acc_hybridization[acc_ind],
         bonds,
         respair_dat.block_type_atom_is_hydrogen);
-    auto don_bases = BlockCentricDonorBase<Int>::for_polar_H(
+    auto don_bases = RotamerCentricDonorBase<Int>::for_polar_H(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
@@ -787,15 +805,15 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     int acc_atom_tile_ind,    // in [0:TILE_SIZE)
     int don_start,
     int acc_start,
-    HBondSingleResData<Real> const &don_dat,
-    HBondSingleResData<Real> const &acc_dat,
-    HBondResPairData<Dev, Real, Int> const &respair_dat,
+    HBondSingleResData<Real> const& don_dat,
+    HBondSingleResData<Real> const& acc_dat,
+    HBondRotPairData<Dev, Real, Int> const& respair_dat,
     int cp_separation,
-    TView<Real, 4, Dev> dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 3, Dev> dV_dcoords) {
+    Real dTdV,
+    TView<Eigen::Matrix<Real, 3, 1>, 1, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
-  using bonded_atom::BlockCentricIndexedBonds;
+  using bonded_atom::RotamerCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
@@ -809,19 +827,21 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     };
     BlockCentricAtom<Int> A{
         acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
-    BlockCentricIndexedBonds<Int, Dev> bonds{
+    RotamerCentricIndexedBonds<Int, Dev> bonds{
+        acc_dat.block_ind,
+        acc_dat.block_type,
         respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
-        respair_dat.pose_stack_block_type[respair_dat.pose_ind],
+        respair_dat.first_rot_block_type[respair_dat.pose_ind],
         respair_dat.block_type_n_all_bonds,
         respair_dat.block_type_all_bonds,
         respair_dat.block_type_atom_all_bond_ranges,
         respair_dat.block_type_atoms_forming_chemical_bonds};
-    auto acc_bases = BlockCentricAcceptorBases<Int>::for_acceptor(
+    auto acc_bases = RotamerCentricAcceptorBases<Int>::for_acceptor(
         A,
         acc_dat.acc_hybridization[acc_ind],
         bonds,
         respair_dat.block_type_atom_is_hydrogen);
-    auto don_bases = BlockCentricDonorBase<Int>::for_polar_H(
+    auto don_bases = RotamerCentricDonorBase<Int>::for_polar_H(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
@@ -844,18 +864,17 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
         respair_dat.pair_polynomials[dt][at],
         respair_dat.global_params);
 
-    Real dVdT_m =
-        0.5
-        * (dTdV[0][respair_dat.pose_ind][don_dat.block_ind][acc_dat.block_ind]
-           + dTdV[0][respair_dat.pose_ind][acc_dat.block_ind]
-                 [don_dat.block_ind]);
+    Real dVdT_m = dTdV;
+    // 0.5
+    //* (dTdV[0][respair_dat.pose_ind][don_dat.block_ind][acc_dat.block_ind]
+    //+ dTdV[0][respair_dat.pose_ind][acc_dat.block_ind]
+    //[don_dat.block_ind]);
 
     // accumulate don D atom derivatives to global memory
     for (int j = 0; j < 3; ++j) {
       if (hbond_V_dV.dV_dD[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_dcoords[0][respair_dat.pose_ind]
-                      [don_dat.block_coord_offset + don_bases.D.atom][j],
+            dV_dcoords[don_dat.rot_coord_offset + don_bases.D.atom][j],
             dVdT_m * hbond_V_dV.dV_dD[j]);
       }
     }
@@ -863,8 +882,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     for (int j = 0; j < 3; ++j) {
       if (hbond_V_dV.dV_dH[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_dcoords[0][respair_dat.pose_ind]
-                      [don_dat.block_coord_offset + H.atom][j],
+            dV_dcoords[don_dat.rot_coord_offset + H.atom][j],
             dVdT_m * hbond_V_dV.dV_dH[j]);
       }
     }
@@ -873,8 +891,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     for (int j = 0; j < 3; ++j) {
       if (hbond_V_dV.dV_dA[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_dcoords[0][respair_dat.pose_ind]
-                      [acc_dat.block_coord_offset + A.atom][j],
+            dV_dcoords[acc_dat.rot_coord_offset + A.atom][j],
             dVdT_m * hbond_V_dV.dV_dA[j]);
       }
     }
@@ -886,31 +903,30 @@ TMOL_DEVICE_FUNC Real hbond_atom_derivs(
     // essentially identical, so a lambda here will save some
     // code duplication
 
-    auto accum_for_acc_atom = ([&] TMOL_DEVICE_FUNC(
-                                   bonded_atom::BlockCentricAtom<Int> const
-                                       &bcat,
-                                   Real3 dV_dat) {
-      bool any_nonzero = false;
-      for (int j = 0; j < 3; ++j) {
-        if (dV_dat[j] != 0 && bcat.atom >= 0) {
-          any_nonzero = true;
-          break;
-        }
-      }
-      if (any_nonzero) {
-        int coord_offset = acc_dat.block_coord_offset;
-        if (bcat.block != acc_bases.A.block) {
-          coord_offset =
-              respair_dat.pose_stack_block_coord_offset[respair_dat.pose_ind]
-                                                       [bcat.block];
-        }
-        for (int j = 0; j < 3; ++j) {
-          accumulate<Dev, Real>::add(
-              dV_dcoords[0][respair_dat.pose_ind][coord_offset + bcat.atom][j],
-              dVdT_m * dV_dat[j]);
-        }
-      }
-    });
+    auto accum_for_acc_atom =
+        ([&] TMOL_DEVICE_FUNC(
+             bonded_atom::BlockCentricAtom<Int> const& bcat, Real3 dV_dat) {
+          bool any_nonzero = false;
+          for (int j = 0; j < 3; ++j) {
+            if (dV_dat[j] != 0 && bcat.atom >= 0) {
+              any_nonzero = true;
+              break;
+            }
+          }
+          if (any_nonzero) {
+            int coord_offset = acc_dat.rot_coord_offset;
+            if (bcat.block != acc_bases.A.block) {
+              coord_offset =
+                  respair_dat
+                      .rot_coord_offset[respair_dat.first_rot_for_block
+                                            [respair_dat.pose_ind][bcat.block]];
+            }
+            for (int j = 0; j < 3; ++j) {
+              accumulate<Dev, Real>::add(
+                  dV_dcoords[coord_offset + bcat.atom][j], dVdT_m * dV_dat[j]);
+            }
+          }
+        });
 
     accum_for_acc_atom(acc_bases.B, hbond_V_dV.dV_dB);
     accum_for_acc_atom(acc_bases.B0, hbond_V_dV.dV_dB0);
@@ -928,14 +944,14 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     int acc_atom_tile_ind,    // in [0:TILE_SIZE)
     int don_start,
     int acc_start,
-    HBondSingleResData<Real> const &don_dat,
-    HBondSingleResData<Real> const &acc_dat,
-    HBondResPairData<Dev, Real, Int> const &respair_dat,
+    HBondSingleResData<Real> const& don_dat,
+    HBondSingleResData<Real> const& acc_dat,
+    HBondRotPairData<Dev, Real, Int> const& respair_dat,
     int cp_separation,
-    TView<Eigen::Matrix<Real, 3, 1>, 3, Dev> dV_dcoords) {
+    TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_dcoords) {
   using Real3 = Eigen::Matrix<Real, 3, 1>;
   using bonded_atom::BlockCentricAtom;
-  using bonded_atom::BlockCentricIndexedBonds;
+  using bonded_atom::RotamerCentricIndexedBonds;
 
   Real3 Hxyz = coord_from_shared(don_dat.coords, don_h_atom_tile_ind);
   Real3 Axyz = coord_from_shared(acc_dat.coords, acc_atom_tile_ind);
@@ -949,19 +965,21 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     };
     BlockCentricAtom<Int> A{
         acc_dat.block_ind, acc_dat.block_type, acc_start + acc_atom_tile_ind};
-    BlockCentricIndexedBonds<Int, Dev> bonds{
+    RotamerCentricIndexedBonds<Int, Dev> bonds{
+        acc_dat.block_ind,
+        acc_dat.block_type,
         respair_dat.pose_stack_inter_residue_connections[respair_dat.pose_ind],
-        respair_dat.pose_stack_block_type[respair_dat.pose_ind],
+        respair_dat.first_rot_block_type[respair_dat.pose_ind],
         respair_dat.block_type_n_all_bonds,
         respair_dat.block_type_all_bonds,
         respair_dat.block_type_atom_all_bond_ranges,
         respair_dat.block_type_atoms_forming_chemical_bonds};
-    auto acc_bases = BlockCentricAcceptorBases<Int>::for_acceptor(
+    auto acc_bases = RotamerCentricAcceptorBases<Int>::for_acceptor(
         A,
         acc_dat.acc_hybridization[acc_ind],
         bonds,
         respair_dat.block_type_atom_is_hydrogen);
-    auto don_bases = BlockCentricDonorBase<Int>::for_polar_H(
+    auto don_bases = RotamerCentricDonorBase<Int>::for_polar_H(
         H, bonds, respair_dat.block_type_atom_is_hydrogen);
 
     Real3 Dxyz =
@@ -988,8 +1006,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     for (int j = 0; j < 3; ++j) {
       if (hbond_V_dV.dV_dD[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_dcoords[0][respair_dat.pose_ind]
-                      [don_dat.block_coord_offset + don_bases.D.atom][j],
+            dV_dcoords[0][don_dat.rot_coord_offset + don_bases.D.atom][j],
             hbond_V_dV.dV_dD[j]);
       }
     }
@@ -997,8 +1014,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     for (int j = 0; j < 3; ++j) {
       if (hbond_V_dV.dV_dH[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_dcoords[0][respair_dat.pose_ind]
-                      [don_dat.block_coord_offset + H.atom][j],
+            dV_dcoords[0][don_dat.rot_coord_offset + H.atom][j],
             hbond_V_dV.dV_dH[j]);
       }
     }
@@ -1007,8 +1023,7 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     for (int j = 0; j < 3; ++j) {
       if (hbond_V_dV.dV_dA[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_dcoords[0][respair_dat.pose_ind]
-                      [acc_dat.block_coord_offset + A.atom][j],
+            dV_dcoords[0][acc_dat.rot_coord_offset + A.atom][j],
             hbond_V_dV.dV_dA[j]);
       }
     }
@@ -1020,31 +1035,30 @@ TMOL_DEVICE_FUNC Real hbond_atom_energy_and_derivs_full(
     // essentially identical, so a lambda here will save some
     // code duplication
 
-    auto accum_for_acc_atom = ([&] TMOL_DEVICE_FUNC(
-                                   bonded_atom::BlockCentricAtom<Int> const
-                                       &bcat,
-                                   Real3 dV_dat) {
-      bool any_nonzero = false;
-      for (int j = 0; j < 3; ++j) {
-        if (dV_dat[j] != 0 && bcat.atom >= 0) {
-          any_nonzero = true;
-          break;
-        }
-      }
-      if (any_nonzero) {
-        int coord_offset = acc_dat.block_coord_offset;
-        if (bcat.block != acc_bases.A.block) {
-          coord_offset =
-              respair_dat.pose_stack_block_coord_offset[respair_dat.pose_ind]
-                                                       [bcat.block];
-        }
-        for (int j = 0; j < 3; ++j) {
-          accumulate<Dev, Real>::add(
-              dV_dcoords[0][respair_dat.pose_ind][coord_offset + bcat.atom][j],
-              dV_dat[j]);
-        }
-      }
-    });
+    auto accum_for_acc_atom =
+        ([&] TMOL_DEVICE_FUNC(
+             bonded_atom::BlockCentricAtom<Int> const& bcat, Real3 dV_dat) {
+          bool any_nonzero = false;
+          for (int j = 0; j < 3; ++j) {
+            if (dV_dat[j] != 0 && bcat.atom >= 0) {
+              any_nonzero = true;
+              break;
+            }
+          }
+          if (any_nonzero) {
+            int coord_offset = acc_dat.rot_coord_offset;
+            if (bcat.block != acc_bases.A.block) {
+              coord_offset =
+                  respair_dat
+                      .rot_coord_offset[respair_dat.first_rot_for_block
+                                            [respair_dat.pose_ind][bcat.block]];
+            }
+            for (int j = 0; j < 3; ++j) {
+              accumulate<Dev, Real>::add(
+                  dV_dcoords[0][coord_offset + bcat.atom][j], dV_dat[j]);
+            }
+          }
+        });
 
     accum_for_acc_atom(acc_bases.B, hbond_V_dV.dV_dB);
     accum_for_acc_atom(acc_bases.B0, hbond_V_dV.dV_dB0);
@@ -1063,7 +1077,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
-    HBondScoringData<Dev, Real, Int> &inter_dat,
+    HBondScoringData<Dev, Real, Int>& inter_dat,
     int start_atom1,
     int start_atom2,
     Func f) {
@@ -1073,9 +1087,9 @@ void TMOL_DEVICE_FUNC eval_interres_don_acc_pair_energies(
     for (int i = tid; i < n_don_acc_pairs; i += nt) {
       bool r1_don = i < inter_dat.r1.n_donH * inter_dat.r2.n_acc;
       int pair_ind = r1_don ? i : i - inter_dat.r1.n_donH * inter_dat.r2.n_acc;
-      HBondSingleResData<Real> const &don_dat =
+      HBondSingleResData<Real> const& don_dat =
           r1_don ? inter_dat.r1 : inter_dat.r2;
-      HBondSingleResData<Real> const &acc_dat =
+      HBondSingleResData<Real> const& acc_dat =
           r1_don ? inter_dat.r2 : inter_dat.r1;
       int don_ind = pair_ind / acc_dat.n_acc;
       int acc_ind = pair_ind % acc_dat.n_acc;
@@ -1100,7 +1114,7 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC eval_intrares_don_acc_pair_energies(
-    HBondScoringData<Dev, Real, Int> &intra_dat,
+    HBondScoringData<Dev, Real, Int>& intra_dat,
     int start_atom1,
     int start_atom2,
     Func f) {
@@ -1121,7 +1135,7 @@ void TMOL_DEVICE_FUNC eval_intrares_don_acc_pair_energies(
         bool r1_don = i < intra_dat.r1.n_donH * intra_dat.r2.n_acc;
         int pair_ind =
             r1_don ? i : i - intra_dat.r1.n_donH * intra_dat.r2.n_acc;
-        HBondSingleResData<Real> const &acc_dat =
+        HBondSingleResData<Real> const& acc_dat =
             r1_don ? intra_dat.r2 : intra_dat.r1;
         int don_ind = pair_ind / acc_dat.n_acc;
         int acc_ind = pair_ind % acc_dat.n_acc;
