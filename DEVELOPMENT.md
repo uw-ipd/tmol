@@ -234,3 +234,4 @@ Pre-commit runs `clang-format` (C++) and `ruff` (Python) on staged files. If for
 
 All changes to main go through pull requests. PRs are merged via squash or rebase to keep a linear history. Each PR should be an atomic unit of work.
 
+

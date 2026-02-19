@@ -40,5 +40,6 @@ if [[ "${TMOL_SKIP_AOT_BUILD:-}" != "TRUE" ]]; then
     exit 1
   fi
 
-  MAX_JOBS=4 NVCC_THREADS=2 python setup.py build_ext --inplace
+  # fela: 56 cores / 251GB RAM, 23 ext modules, 2 GPU arch targets
+  MAX_JOBS=12 NVCC_THREADS=2 python setup.py build_ext --inplace
 fi
