@@ -21,7 +21,7 @@ apptainer exec --nv --writable-tmpfs --pwd "$PWD" "$SIF" bash -c '
 
   # Use container packages as constraints so uv resolves to matching versions
   # and does not replace large packages (pyarrow, scipy, etc.) in the tmpfs overlay.
-  pip freeze 2>/dev/null | grep -v '@ file://' > /tmp/container_pins.txt
+  pip freeze 2>/dev/null | grep -vE '(file://|^-e |^#)' > /tmp/container_pins.txt
   uv pip compile pyproject.toml --all-extras \
     --constraint /tmp/container_pins.txt \
     --output-file /tmp/requirements.txt --quiet 2>/dev/null
