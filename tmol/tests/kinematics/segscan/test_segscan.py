@@ -4,7 +4,6 @@ import torch
 from tmol.tests.torch import requires_cuda
 
 
-@requires_cuda
 @pytest.fixture
 def extension():
     from tmol.tests.kinematics.segscan import _ext

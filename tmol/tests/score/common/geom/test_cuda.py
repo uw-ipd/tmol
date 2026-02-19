@@ -7,7 +7,6 @@ import torch.testing
 from tmol.tests.torch import requires_cuda
 
 
-@requires_cuda
 @pytest.fixture
 def geom():
     from tmol.tests.score.common.geom import _ext_cuda
