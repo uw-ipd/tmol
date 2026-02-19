@@ -267,6 +267,46 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
     )
 
 
+def get_element_from_atom_name(atom_name):
+    """
+    Parses a 4-character PDB atom name to return the element symbol.
+    PDB columns 13-16:
+    - Elements with 2 letters start at col 13.
+    - Elements with 1 letter start at col 14.
+    """
+    # Remove whitespace
+    stripped = atom_name.strip()
+
+    # If the first character is a digit (e.g., '1HE2'), it's a Hydrogen
+    if stripped[0].isdigit():
+        return "H"
+
+    # According to PDB specs, if the atom name is 4 chars long and
+    # starts with H, it is Hydrogen.
+    if len(atom_name) == 4 and atom_name[0] == "H":
+        return "H"
+
+    # Otherwise, the first 1 or 2 non-digit characters are the element
+    # This regex-free approach works for 99% of PDB files
+    element = ""
+    for char in stripped:
+        if char.isalpha():
+            element += char
+            # Most elements are 1 or 2 letters;
+            # amino acid side chains use the first letter as the element.
+            if len(element) == 2:
+                # Common 2-letter ions/elements
+                if element.upper() in ["FE", "MG", "CL", "ZN", "NA", "CU"]:
+                    return element.capitalize()
+                else:
+                    # It's likely a 1-letter element with a branch ID (e.g., 'CA')
+                    return element[0].upper()
+        else:
+            break
+
+    return element.upper()
+
+
 def biotite_from_canonical_form(cf: CanonicalForm):
     import biotite.structure as struc
 
@@ -298,7 +338,7 @@ def biotite_from_canonical_form(cf: CanonicalForm):
                     continue
 
                 atom_name = atom_names[atom_id]
-                atom_element = "C"  # atom.atom_type
+                atom_element = get_element_from_atom_name(atom_name)
 
                 coords = cf.coords[pose_id, res_id, atom_id].cpu()
                 if torch.isnan(coords).any():
