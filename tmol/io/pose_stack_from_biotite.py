@@ -6,10 +6,12 @@ import biotite
 from typing import List, Mapping
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
+from tmol.types.array import NDArray
 from tmol.chemical.restypes import ResidueTypeSet
 from tmol.database import ParameterDatabase
 from tmol.io.canonical_form import CanonicalForm
 from tmol.io.canonical_ordering import CanonicalOrdering
+from tmol.io.pose_stack_deconstruction import canonical_form_from_pose_stack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.pose.pose_stack import PoseStack
 
@@ -44,6 +46,13 @@ def pose_stack_from_biotite(
     pbt = packed_block_types_for_biotite(cf.coords.device)
 
     return pose_stack_from_canonical_form(co, pbt, *cf, **kwargs)
+
+
+@validate_args
+def biotite_from_pose_stack(pose_stack):
+    co = canonical_ordering_for_biotite()
+    cf = canonical_form_from_pose_stack(co, pose_stack)
+    return biotite_from_canonical_form(cf)
 
 
 # @validate_args # TODO
@@ -98,8 +107,8 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
     pose_inds = torch.zeros(
         (len(biotite_structure.res_id),), dtype=torch.int32, device=torch_device
     )
-    res_inds = torch.tensor(biotite_res_ind_for_atom, device=torch_device)
-    atom_inds = torch.tensor(atom_mapping, device=torch_device)
+    res_inds = biotite_res_ind_for_atom  # torch.tensor(biotite_res_ind_for_atom, device=torch_device)
+    atom_inds = atom_mapping  # torch.tensor(atom_mapping, device=torch_device)
     biotite_coords = torch.tensor(biotite_structure.coord, device=torch_device)
 
     # print(pose_inds.shape)
@@ -113,12 +122,6 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
     # print(atom_inds.max())
 
     # print(n_poses)
-    if n_poses == 1:
-        tmol_coords[0, res_inds, atom_inds] = biotite_coords
-    else:
-        for pose_ind in range(n_poses):
-            tmol_coords[pose_ind, res_inds, atom_inds] = biotite_coords[pose_ind]
-
     def copy_for_all_poses(dat):
         return numpy.repeat(dat[numpy.newaxis, ...], n_poses, axis=0)
 
@@ -126,14 +129,35 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
     biotite_occupancy = None
 
     if hasattr(biotite_structure, "b_factor"):
-        biotite_b_factors = copy_for_all_poses(biotite_structure.b_factors)
+        biotite_b_factors = numpy.full(
+            (n_poses, len(biotite_residues), co.max_n_canonical_atoms),
+            0,
+            dtype=numpy.float32,
+        )
+        biotite_b_factors[0, res_inds, atom_inds] = (
+            biotite_structure.b_factor
+        )  # .astype(numpy.float32), device=torch_device)
 
     if hasattr(biotite_structure, "occupancy"):
-        biotite_occupancy = copy_for_all_poses(biotite_structure.occupancy)
+        biotite_occupancy = numpy.full(
+            (n_poses, len(biotite_residues), co.max_n_canonical_atoms),
+            0,
+            dtype=numpy.float32,
+        )
+        biotite_occupancy[0, res_inds, atom_inds] = (
+            biotite_structure.occupancy
+        )  # .astype(numpy.float32), device=torch_device)
+
+    if n_poses == 1:
+        tmol_coords[0, res_inds, atom_inds] = biotite_coords
+    else:
+        for pose_ind in range(n_poses):
+            tmol_coords[pose_ind, res_inds, atom_inds] = biotite_coords[pose_ind]
 
     biotite_residue_labels = copy_for_all_poses(biotite_residue_labels)
     biotite_chain_labels = copy_for_all_poses(biotite_chain_labels)
     biotite_insertion_codes = copy_for_all_poses(biotite_insertion_codes)
+    # biotite_insertion_codes.dtype = object
 
     # print(tmol_coords)
 
@@ -152,13 +176,17 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
     # torch.set_printoptions(threshold=10_000)
     # print(chain_id)
     # print(res_types)
+
+    # print(type(biotite_occupancy), biotite_occupancy.dtype, biotite_occupancy.shape)
+    print(type(biotite_b_factors), biotite_b_factors.dtype, biotite_b_factors.shape)
+    print(biotite_b_factors)
     return CanonicalForm(
         chain_id=chain_id,  # TODO
         res_types=res_types,
         coords=tmol_coords,
-        chain_labels=biotite_chain_labels,
+        chain_labels=biotite_chain_labels.astype(object),
         res_labels=biotite_residue_labels,
-        residue_insertion_codes=biotite_insertion_codes,
+        residue_insertion_codes=biotite_insertion_codes.astype(object),
         atom_occupancy=biotite_occupancy,
         atom_b_factor=biotite_b_factors,
         disulfides=None,
@@ -239,46 +267,6 @@ def packed_block_types_for_biotite(device: torch.device) -> PackedBlockTypes:
     )
 
 
-@toolz.functoolz.memoize
-def _get_rf2_2_tmol_mappings(device: torch.device):
-    # TO DO: How should we handle the "UNK" and "MAS" RTs?
-    # They list ALA atoms; we could reasonably treat them as ALA
-    # but that does not seem the point of having these residues.
-
-    co = canonical_ordering_for_rosettafold2()
-    from tmol.extern.rosettafold2.chemical import (
-        num2aa,
-        aa2long,
-    )
-
-    rf2_atom_names_for_name3s = {
-        x: [at.strip() if at is not None else "" for at in y]
-        for x, y in zip(num2aa, aa2long)
-    }
-
-    (rt_map, atname_map, at_is_real) = co.create_src_2_tmol_mappings(
-        num2aa, rf2_atom_names_for_name3s, device
-    )
-
-    # also want to turn off n-term "H" atoms
-    supress_atom_at_nterm = torch.zeros(
-        (
-            len(num2aa),
-            co.max_n_canonical_atoms,
-        ),
-        dtype=torch.bool,
-        device=device,
-    )
-    for i, i_3lc in enumerate(num2aa):
-        if i_3lc not in co.restype_io_equiv_classes:
-            continue
-        for atname in rf2_atom_names_for_name3s[i_3lc]:
-            if atname.strip() == "H":
-                tmol_ind = co.restypes_atom_index_mapping[i_3lc][atname.strip()]
-                supress_atom_at_nterm[i, tmol_ind] = True
-    return rt_map, atname_map, at_is_real, supress_atom_at_nterm
-
-
 def biotite_from_canonical_form(cf: CanonicalForm):
     import biotite.structure as struc
 
@@ -291,35 +279,67 @@ def biotite_from_canonical_form(cf: CanonicalForm):
     atoms = []
     for pose_id in range(cf.coords.size(0)):
         for res_id in range(cf.coords.size(1)):
-            chain_id = cf.chain_id[pose_id, res_id].cpu()
+            print("RESID: ", res_id)
+            chain_label = cf.chain_labels[pose_id, res_id]
+            res_label = cf.res_labels[pose_id, res_id]
             res_type_id = cf.res_types[pose_id, res_id].cpu()
             res_name = co.restype_io_equiv_classes[res_type_id]
-            res_type = rts.restype_map[res_name][
-                0
-            ]  # TODO: this should probably come directly from canonical ordering
+
+            atom_names = co.restypes_ordered_atom_names[res_name]
+
+            print(atom_names, len(atom_names), cf.coords.size(2))
+            # res_type = rts.restype_map[res_name][
+            # 0
+            # ]  # TODO: this should probably come directly from canonical ordering
             # print(res_id, res_type_id, res_type, res_name)
 
             for atom_id in range(cf.coords.size(2)):
-                if atom_id >= res_type.n_atoms:
-                    break
+                if atom_id >= len(atom_names):
+                    continue
+
+                atom_name = atom_names[atom_id]
+                atom_element = "C"  # atom.atom_type
 
                 coords = cf.coords[pose_id, res_id, atom_id].cpu()
+                if torch.isnan(coords).any():
+                    continue
+
+                # if cf.atom_b_factor is not None:
+                # [pose_id, res_id, atom_id].
 
                 # print(atom_id, '/', res_type.n_atoms)
 
-                atom = res_type.atoms[atom_id]
-                atom_name = atom.name
-                atom_element = atom.atom_type
+                # atom = res_type.atoms[atom_id]
+
+                # print(coords)
 
                 atoms.append(
                     struc.Atom(
                         coords,
-                        chain_id=chain_id,
-                        res_id=res_id,
+                        chain_id=chain_label,  # TODO: biotite has a limit of 1 character labels
+                        res_id=res_label,
                         res_name=res_name,
                         atom_name=atom_name,
                         element=atom_element,
+                        b_factor=cf.atom_b_factor[pose_id, res_id, atom_id],
+                        occupancy=cf.atom_occupancy[pose_id, res_id, atom_id],
                     )
                 )
+
+                print(
+                    coords,
+                    chain_label,
+                    "%i:%s" % (res_id, res_name),
+                    "%i:%s" % (atom_id, atom_name),
+                )
+
+                # print(struc.Atom(
+                # coords,
+                # chain_id=chain_id,
+                # res_id=res_id,
+                # res_name=res_name,
+                # atom_name=atom_name,
+                # element=atom_element,
+                # ))
 
     return struc.array(atoms)

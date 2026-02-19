@@ -1,12 +1,14 @@
 import os
 import torch
 import biotite.structure
+from biotite.structure.io.pdb import PDBFile
 
 
 from tmol.io.pose_stack_from_biotite import (
     biotite_from_canonical_form,
     canonical_form_from_biotite,
     pose_stack_from_biotite,
+    biotite_from_pose_stack,
 )
 from tmol.io.canonical_form import CanonicalForm
 
@@ -17,6 +19,17 @@ def test_canonical_form_from_biotite(biotite_1r21, torch_device):
 
 def test_pose_stack_from_biotite_1ubq(biotite_1ubq, torch_device):
     pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+
+
+def test_pose_stack_from_and_to_biotite_1ubq(biotite_1ubq, torch_device):
+    pose_stack = pose_stack_from_biotite(biotite_1ubq, torch_device=torch_device)
+    # print(pose_stack.coords[0,0:30])
+    biotite_atom_array = biotite_from_pose_stack(pose_stack)
+
+    file = PDBFile()
+    file.set_structure(biotite_atom_array)
+    file.write("test_out.pdb")
+    print(biotite_atom_array)
 
 
 def test_pose_stack_from_biotite_1ubq_slice(biotite_1ubq, torch_device):
