@@ -97,9 +97,6 @@ class EnergyTerm:
     def get_score_term_attributes(self, pose_stack: PoseStack):
         raise NotImplementedError()
 
-    def get_score_term_function(self):
-        raise NotImplementedError()
-
     def get_pose_score_term_function(self):
         raise NotImplementedError()
 
@@ -107,10 +104,7 @@ class EnergyTerm:
         raise NotImplementedError()
 
     def render_whole_pose_scoring_module(self, pose_stack: PoseStack):
-        try:
-            f = self.get_pose_score_term_function()
-        except NotImplementedError:
-            f = self.get_score_term_function()
+        f = self.get_pose_score_term_function()
 
         return TermWholePoseScoringModule(
             self.class_name(),
@@ -120,10 +114,7 @@ class EnergyTerm:
         )
 
     def render_block_pair_scoring_module(self, pose_stack: PoseStack):
-        try:
-            f = self.get_pose_score_term_function()
-        except NotImplementedError:
-            f = self.get_score_term_function()
+        f = self.get_pose_score_term_function()
         return TermBlockPairScoringModule(
             self.class_name(),
             pose_stack,
