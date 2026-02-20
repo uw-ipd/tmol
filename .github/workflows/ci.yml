@@ -32,11 +32,23 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Create overlay (if needed)
+        run: |
+          # Persistent ext3 overlay on disk — avoids tmpfs RAM limits.
+          # Packages installed once persist across CI runs (faster re-runs).
+          OVERLAY=/net/scratch/kdidi/ci-overlay.img
+          if [ ! -f "$OVERLAY" ]; then
+            dd if=/dev/zero of="$OVERLAY" bs=1M count=51200
+            mkfs.ext3 -F "$OVERLAY"
+            echo "Created new 50GB overlay at $OVERLAY"
+          fi
+
       - name: Start Apptainer instance
         run: |
           # Use V100s (GPU 1) — GPU 0 (RTX 4000) is often occupied by other services.
           export CUDA_VISIBLE_DEVICES=1
-          apptainer instance start --nv --writable-tmpfs \
+          apptainer instance start --nv \
+            --overlay /net/scratch/kdidi/ci-overlay.img \
             $SIF $INSTANCE_NAME
 
       - name: Setup
