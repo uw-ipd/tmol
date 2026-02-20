@@ -54,5 +54,11 @@ def test_pose_stack_from_biotite_his_d(biotite_1r21, torch_device):
 
 def test_pose_stack_from_biotite_missing_sidechain(biotite_1bl8, torch_device):
     starts = biotite.structure.get_residue_starts(biotite_1bl8)
-    bt = biotite_1bl8[starts[0] : starts[5]]
+    bt = biotite_1bl8[starts[0] : starts[6]]
     pose_stack = pose_stack_from_biotite(bt, torch_device=torch_device)
+
+    biotite_atom_array = biotite_from_pose_stack(pose_stack)
+    file = PDBFile()
+    file.set_structure(biotite_atom_array)
+    file.write("test_out.pdb")
+    print(biotite_atom_array)

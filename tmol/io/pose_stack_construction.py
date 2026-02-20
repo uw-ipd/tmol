@@ -29,6 +29,7 @@ def pose_stack_from_canonical_form(
     find_additional_disulfides: Optional[bool] = True,
     return_chain_ind: bool = False,
     return_atom_mapping: bool = False,
+    return_block_has_missing_atoms: bool = False,
 ):
     """Create a PoseStack, resolving which block type is requested by the
     presence and absence of the provided atoms for each residue type.
@@ -253,15 +254,19 @@ def pose_stack_from_canonical_form(
 
     # 7
     inter_residue_connections = inter_residue_connections64.to(torch.int32)
-    pose_stack_coords, block_coord_offset, real_block_atoms, pose_at_is_real = (
-        build_missing_leaf_atoms(
-            pbt,
-            block_types64,
-            real_atoms,
-            block_coords,
-            missing_atoms,
-            inter_residue_connections,
-        )
+    (
+        pose_stack_coords,
+        block_coord_offset,
+        real_block_atoms,
+        pose_at_is_real,
+        block_has_missing_atoms,
+    ) = build_missing_leaf_atoms(
+        pbt,
+        block_types64,
+        real_atoms,
+        block_coords,
+        missing_atoms,
+        inter_residue_connections,
     )
 
     def i64(x):
@@ -350,6 +355,7 @@ def pose_stack_from_canonical_form(
     # chain-ind 2nd
     # atom-mapping 3rd & 4th
     # chain-labels 5th
+    # block_has_missing_atoms 6th
     # and un-wrap if only pose-stack is requested
     return_list = [ps]
     if return_chain_ind:
@@ -357,6 +363,8 @@ def pose_stack_from_canonical_form(
     if return_atom_mapping:
         return_list.append(can_atom_mapping)
         return_list.append(ps_atom_mapping)
+    if return_block_has_missing_atoms:
+        return_list.append(block_has_missing_atoms)
 
     if len(return_list) == 1:
         return ps
