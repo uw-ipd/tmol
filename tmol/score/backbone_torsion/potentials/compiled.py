@@ -20,9 +20,8 @@ if ensure_compiled_or_jit():
         is_python_module=False,
     )
 
-    _ops = getattr(torch.ops, modulename(__name__))
-else:
-    _ops = torch.ops.tmol_bb_torsion
+# Ops registered under TORCH_LIBRARY(tmol_bb_torsion, ...) in C++
+_ops = torch.ops.tmol_bb_torsion
 
 backbone_torsion_pose_score = _ops.backbone_torsion_pose_score
 backbone_torsion_rotamer_score = _ops.backbone_torsion_rotamer_score

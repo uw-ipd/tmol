@@ -36,9 +36,10 @@ jobs:
         run: |
           # Persistent pip cache on /net/scratch — no overlay or tmpfs needed.
           mkdir -p /net/scratch/kdidi/ci-pip-pkgs
-          # Use V100s (GPU 1) — GPU 0 (RTX 4000) is often occupied by other services.
-          export CUDA_VISIBLE_DEVICES=1
+          # Use V100 (GPU 1) — GPU 0 (RTX 4000) is often occupied by vLLM.
+          # Must use --env so it propagates INTO the container, not just the host shell.
           apptainer instance start --nv \
+            --env CUDA_VISIBLE_DEVICES=1 \
             --bind /net/scratch/kdidi/ci-pip-pkgs:/ci-pip-pkgs \
             $SIF $INSTANCE_NAME
 
@@ -72,6 +73,9 @@ jobs:
           # Ensure packaging>=24.2 (required by setuptools>=77)
           uv pip install --target /ci-pip-pkgs/lib/python3.12/site-packages \
             'packaging>=24.2'
+
+          # Clean stale build artifacts from previous (potentially failed) builds
+          rm -rf build/
 
           # Build C++/CUDA extensions AOT using the container's own torch + nvcc
           # fela: 56 cores / 251GB RAM, 23 extension modules, 3 GPU arch targets.

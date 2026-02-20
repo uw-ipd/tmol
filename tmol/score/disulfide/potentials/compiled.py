@@ -20,9 +20,8 @@ if ensure_compiled_or_jit():
         is_python_module=False,
     )
 
-    _ops = getattr(torch.ops, modulename(__name__))
-else:
-    _ops = torch.ops.tmol_disulfide
+# Ops registered under TORCH_LIBRARY(tmol_disulfide, ...) in C++
+_ops = torch.ops.tmol_disulfide
 
 disulfide_pose_scores = _ops.disulfide_pose_scores
 disulfide_rotamer_scores = _ops.disulfide_rotamer_scores

@@ -34,9 +34,8 @@ load(
         is_python_module=False,
     )
 
-    _ops = getattr(torch.ops, modulename(__name__))
-else:
-    _ops = torch.ops.tmol_ljlk
+# Ops registered under TORCH_LIBRARY(tmol_ljlk, ...) in C++
+_ops = torch.ops.tmol_ljlk
 
 ljlk_pose_scores = _ops.ljlk_pose_scores
 ljlk_rotamer_scores = _ops.ljlk_rotamer_scores

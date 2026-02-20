@@ -13,9 +13,8 @@ if ensure_compiled_or_jit():
         is_python_module=False,
     )
 
-    _ops = getattr(torch.ops, modulename(__name__))
-else:
-    _ops = torch.ops.tmol_pack
+# Ops registered under TORCH_LIBRARY(tmol_pack, ...) in C++
+_ops = torch.ops.tmol_pack
 
 pack_anneal = _ops.pack_anneal
 validate_energies = _ops.validate_energies
