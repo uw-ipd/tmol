@@ -107,7 +107,7 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          docker exec $BUILDER pip install --break-system-packages setuptools>=68 ninja packaging wheel psutil
+          docker exec $BUILDER pip install --break-system-packages 'setuptools>=68' ninja 'packaging>=24.2' wheel psutil
 
       - name: Build wheel
         run: |
@@ -121,11 +121,12 @@ jobs:
             source /etc/bash.bashrc 2>/dev/null || true
             # Include Blackwell (sm_100) native when CUDA >= 13; otherwise PTX-only.
             CUDA_MAJOR=$(python3 -c "import torch; print(torch.version.cuda.split('"'"'.'"'"')[0])")
-            # CUDA 13+ dropped sm_70 (V100) and added sm_100 (Blackwell).
+            # sm_70 (V100) dropped in CUDA 13+; omit entirely for cross-version compat.
+            # sm_100 (Blackwell) only available in CUDA 13+.
             if [ "$CUDA_MAJOR" -ge 13 ]; then
               export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0 10.0+PTX"
             else
-              export TORCH_CUDA_ARCH_LIST="7.0 8.0 8.6 8.9 9.0+PTX"
+              export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0+PTX"
             fi
             python3 setup.py bdist_wheel --dist-dir=dist
           '
