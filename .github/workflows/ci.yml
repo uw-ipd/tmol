@@ -69,11 +69,15 @@ jobs:
           # Install missing deps to the bind-mounted directory
           uv pip install --target /ci-pip-pkgs/lib/python3.12/site-packages \
             -r /tmp/to_install.txt
+          # Ensure packaging>=24.2 (required by setuptools>=77)
+          uv pip install --target /ci-pip-pkgs/lib/python3.12/site-packages \
+            'packaging>=24.2'
 
           # Build C++/CUDA extensions AOT using the container's own torch + nvcc
           # fela: 56 cores / 251GB RAM, 23 extension modules, 3 GPU arch targets.
           export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-          export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-7.0 8.0 9.0+PTX}"
+          # Override container's default — include sm_70 for fela's V100.
+          export TORCH_CUDA_ARCH_LIST="7.0 8.0 9.0+PTX"
           MAX_JOBS=12 NVCC_THREADS=2 python setup.py build_ext --inplace
           EOF
 
