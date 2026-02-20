@@ -5,7 +5,8 @@ from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 from typing import Optional
 from tmol.types.functional import validate_args
-from tmol.pose.pose_stack import PDBInfo, PoseStack
+from tmol.pose.pdb_info import PDBInfo
+from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.io.canonical_ordering import CanonicalOrdering
 
@@ -49,7 +50,8 @@ def pose_stack_from_canonical_form(
         ordered amino acid index for each residue. A sentinel value of "-1"
         should be used to indicate that a given position does not contain
         a residue (perhaps because it belongs to a pose with fewer than
-        max-n-residue residues).
+        max-n-residue residues; each pose in the PoseStack is allowed to
+        have fewer than max-n-residue residues).
     coords: an n-pose x max-n-residue x max-n-atoms-per-residue tensor
         providing the coordinates of some or all of the atoms. The order
         in which atoms should appear in this tensor is given by the
@@ -136,6 +138,24 @@ def pose_stack_from_canonical_form(
 
     assert chain_id.device == res_types.device
     assert chain_id.device == coords.device
+
+    assert chain_id.shape[0] == res_types.shape[0]
+    assert chain_id.shape[1] == res_types.shape[1]
+    assert chain_id.shape[0] == coords.shape[0]
+    assert chain_id.shape[1] == coords.shape[1]
+    assert coords.shape[2] == canonical_ordering.max_n_canonical_atoms
+    assert res_labels is None or res_labels.shape[0] == chain_id.shape[0]
+    assert res_labels is None or res_labels.shape[1] == chain_id.shape[1]
+    assert res_ins_codes is None or res_ins_codes.shape[0] == chain_id.shape[0]
+    assert res_ins_codes is None or res_ins_codes.shape[1] == chain_id.shape[1]
+    assert chain_labels is None or chain_labels.shape[0] == chain_id.shape[0]
+    assert chain_labels is None or chain_labels.shape[1] == chain_id.shape[1]
+    assert atom_occupancy is None or atom_occupancy.shape[0] == chain_id.shape[0]
+    assert atom_occupancy is None or atom_occupancy.shape[1] == chain_id.shape[1]
+    assert atom_b_factor is None or atom_b_factor.shape[0] == chain_id.shape[0]
+    assert atom_b_factor is None or atom_b_factor.shape[1] == chain_id.shape[1]
+    assert res_not_connected is None or res_not_connected.shape[0] == chain_id.shape[0]
+    assert res_not_connected is None or res_not_connected.shape[1] == chain_id.shape[1]
 
     # step 1: record which atoms the user has given us by looking for NaNs
     #         in the input coordinate tensor.

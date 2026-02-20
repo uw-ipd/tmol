@@ -19,8 +19,6 @@ def ubq_repacking_rotamers(default_database, ubq_pdb, torch_device, dun_sampler)
     )
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     restype_set = poses.packed_block_types.restype_set
-    # for restype in restype_set.residue_types:
-    #     print(restype.name, restype.base_name, restype.name3)
 
     palette = PackerPalette(restype_set)
     task = PackerTask(poses, palette)

@@ -93,9 +93,6 @@ class LJLKEnergyTerm(AtomTypeDependentTerm, BondDependentTerm):
     def get_rotamer_score_term_function(self):
         return ljlk_rotamer_scores
 
-    # def get_score_term_function(self):
-    #     return ljlk_pose_scores
-
     def get_score_term_attributes(self, pose_stack):
         def _t(ts):
             return tuple(map(lambda t: t.to(torch.float), ts))

@@ -72,7 +72,6 @@ def get_notallclose_msg(analytical, numerical, atol, rtol):
         ind = tuple(bv)
         diff = abs(analytical[ind] - numerical[ind])
         maxval = max(diff, maxval)
-        # resstr += "%s: (analytical):%f (numerical):%f (diff):%f" % (bv, analytical[ind], numerical[ind], diff) + "\n"
     resstr += print_table(table)
 
     resstr += "Tolerances: atol=%f, rtol=%f\n" % (atol, rtol)
@@ -256,16 +255,6 @@ class EnergyTermTestBase:
         p1 = pose_stack_from_pdb_and_resnums(pdb, torch_device, resnums)
         pn = PoseStackBuilder.from_poses([p1] * n_poses, device=torch_device)
 
-        # from tmol.io.write_pose_stack_pdb import write_pose_stack_pdb
-
-        # write_pose_stack_pdb(
-        # pn,
-        # "test_whole_pose_scoring_10_new.pdb",
-        # chain_ind_for_block=torch.zeros(
-        # (pn.n_poses, pn.max_n_blocks), dtype=torch.int64
-        # ),
-        # )
-
         if edit_pose_stack_fn is not None:
             pn = edit_pose_stack_fn(pn)
 
@@ -273,7 +262,6 @@ class EnergyTermTestBase:
 
         coords = torch.nn.Parameter(pn.coords.clone())
         scores = pose_scorer(coords).cpu().detach().numpy()
-        # print("scores", scores)
 
         if update_baseline:
             cls.save_test_baseline_data(
@@ -305,13 +293,10 @@ class EnergyTermTestBase:
         pose_scorer = cls.get_whole_pose_scorer(p1, default_database, torch_device)
 
         wt = torch.rand((n_score_types,), device=torch_device)
-        # print("weight", wt)
 
         def score(coords):
             scores = pose_scorer(coords)
-            # print("scores", scores)
             wtd_score = (wt * scores).sum()
-            # print("weighted score", wtd_score)
             return wtd_score.sum()
 
         # monkeypatch more sane error reporting
@@ -353,9 +338,6 @@ class EnergyTermTestBase:
         pose_scorer = cls.get_whole_pose_scorer(pn, default_database, torch_device)
         scores = pose_scorer(pn.coords).cpu().detach().numpy()
 
-        # print("Scores (fresh)")
-        # print(scores)
-
         if update_baseline:
             cls.save_test_baseline_data(
                 cls.test_whole_pose_scoring_jagged.__name__,
@@ -364,11 +346,6 @@ class EnergyTermTestBase:
         gold_vals = cls.get_test_baseline_data(
             cls.test_whole_pose_scoring_jagged.__name__
         )
-        # print("Gold")
-        # print(gold_vals)
-
-        # print("diff")
-        # print(gold_vals - scores)
 
         assert_allclose(gold_vals, scores, atol, rtol)
 
@@ -424,44 +401,18 @@ class EnergyTermTestBase:
         coords = torch.nn.Parameter(p1.coords.clone())
         scores = block_pair_scorer(coords).to_dense().cpu().detach().numpy()
 
-        # print("Scores (fresh)")
-        # print(scores)
-
         test_name = (
             cls.test_block_scoring.__name__
             if (override_baseline_name is None)
             else override_baseline_name
         )
         if update_baseline:
-            # okay, huge annoying workaround for the sake of preserving
-            # the old residue-pair format for now:
-            # spread the scores out to upper and lower triangles
-            # gold_vals_upper_and_lower_triangle = numpy.zeros_like(scores)
-            # n_terms = scores.shape[0]
-            # n_poses = scores.shape[1]
-            # n_res = scores.shape[2]
-            # assert n_poses == 1
-            # inds_arange = numpy.arange(n_res, dtype=int)
-            # inds_arange_i = inds_arange.reshape(-1, 1)
-            # inds_arange_j = inds_arange.reshape(1, -1)
-            # ij_is_upper_triangle = inds_arange_i < inds_arange_j
-            # nz_ij_is_upper_triangle = numpy.nonzero(ij_is_upper_triangle)
-            #
-            # ij_is_diagonal = inds_arange_i == inds_arange_j
-            # gold_vals_upper_and_lower_triangle[:, :, ij_is_diagonal] = scores[:, :, ij_is_diagonal]
-            # gold_vals_upper_and_lower_triangle[:, :, nz_ij_is_upper_triangle[0], nz_ij_is_upper_triangle[1]] = 0.5 * scores[:, :, ij_is_upper_triangle]
-            # gold_vals_upper_and_lower_triangle[:, :, nz_ij_is_upper_triangle[1], nz_ij_is_upper_triangle[0]] = 0.5 * scores[:, :, ij_is_upper_triangle]
-
-            # print("gold_vals_upper_and_lower_triangle", gold_vals_upper_and_lower_triangle)
             cls.save_test_baseline_data(test_name, cls.block_pair_to_dict(scores))
         gold_vals = cls.get_test_baseline_data(test_name)
-        # print("Gold scores")
-        # print(gold_vals)
 
         # reshape these values for the new block-pair scoring scheme
         gold_vals_upper_triangle = numpy.zeros_like(gold_vals)
         assert gold_vals.shape[2] == gold_vals.shape[3]
-        # n_terms = gold_vals.shape[0]
         n_poses = gold_vals.shape[1]
         n_res = gold_vals.shape[2]
         assert n_poses == 1
@@ -469,7 +420,6 @@ class EnergyTermTestBase:
         inds_arange_i = inds_arange.reshape(-1, 1)
         inds_arange_j = inds_arange.reshape(1, -1)
         ij_is_upper_triangle = inds_arange_i < inds_arange_j
-        # ij_is_lower_triangle = inds_arange_i > inds_arange_j
         ij_is_diagonal = inds_arange_i == inds_arange_j
         gold_vals_upper_triangle[:, :, ij_is_diagonal] = gold_vals[:, :, ij_is_diagonal]
         gold_vals_upper_triangle[:, :, ij_is_upper_triangle] = gold_vals[

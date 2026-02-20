@@ -65,8 +65,7 @@ struct LJLKBlockPairSharedData {
 };
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Real,
@@ -107,8 +106,7 @@ void TMOL_DEVICE_FUNC ljlk_load_block_coords_and_params_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -152,8 +150,7 @@ void TMOL_DEVICE_FUNC ljlk_load_block_into_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -189,10 +186,6 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
   inter_dat.r2.block_type = block_type2;
   inter_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
   inter_dat.r2.rot_coord_offset = rot_coord_offset[rot_ind2];
-  // inter_dat.r1.block_coord_offset =
-  // pose_stack_block_coord_offset[pose_ind][block_ind1];
-  // inter_dat.r2.block_coord_offset =
-  // pose_stack_block_coord_offset[pose_ind][block_ind2];
   inter_dat.max_important_bond_separation = max_important_bond_separation;
   inter_dat.min_separation =
       pose_stack_min_bond_separation[pose_ind][block_ind1][block_ind2];
@@ -256,8 +249,7 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_interres_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -299,8 +291,7 @@ void TMOL_DEVICE_FUNC ljlk_load_interres1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -326,8 +317,6 @@ void TMOL_DEVICE_FUNC ljlk_load_interres2_tile_data_to_shared(
     }
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy2);
-  // inter_dat.r2.n_heavy =
-  //     block_type_n_heavy_atoms_in_tile[inter_dat.r2.block_type][tile_ind];
 
   ljlk_load_block_into_shared<DeviceDispatch, D, nt, TILE_SIZE>(
       coords,
@@ -352,8 +341,7 @@ void TMOL_DEVICE_FUNC ljlk_load_interres_data_from_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     typename Int,
@@ -417,8 +405,7 @@ void TMOL_DEVICE_FUNC ljlk_load_tile_invariant_intrares_data(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,
@@ -444,8 +431,6 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
   });
   DeviceDispatch<D>::template for_each_in_workgroup<nt>(store_n_heavy1);
 
-  // intra_dat.r1.n_heavy =
-  //     block_type_n_heavy_atoms_in_tile[intra_dat.r1.block_type][tile_ind];
   ljlk_load_block_coords_and_params_into_shared<DeviceDispatch, D, nt>(
       coords,
       block_type_atom_types,
@@ -458,8 +443,7 @@ void TMOL_DEVICE_FUNC ljlk_load_intrares1_tile_data_to_shared(
 }
 
 template <
-    template <tmol::Device>
-    class DeviceDispatch,
+    template <tmol::Device> class DeviceDispatch,
     tmol::Device D,
     int nt,
     int TILE_SIZE,

@@ -2,7 +2,6 @@ import numpy
 import torch
 
 from tmol.pack.rotamer.build_rotamers import (
-    # RotamerSet,
     annotate_restype,
     annotate_packed_block_types,
     build_rotamers,
@@ -14,28 +13,16 @@ from tmol.pack.rotamer.build_rotamers import (
     rebuild_poses_if_necessary,
     annotate_everything,
     merge_conformer_samples,
-    # copy_dofs_from_orig_to_rotamers,
-    # assign_dofs_from_samples,
-    # create_dof_inds_to_copy_from_orig_to_rotamers,
     calculate_rotamer_coords,
     get_rotamer_origin_data,
 )
 from tmol.pack.rotamer.chi_sampler import (
     create_dof_inds_to_copy_from_orig_to_rotamers_for_sampler,
-    # copy_dofs_from_orig_to_rotamers_for_sampler
 )
 
-# from tmol.pack.rotamer.dunbrack.dunbrack_chi_sampler import (
-#     DunbrackChiSampler,
-# )
 from tmol.pack.rotamer.fixed_aa_chi_sampler import (
     FixedAAChiSampler,
 )
-
-# from tmol.pack.rotamer.include_current_sampler import (
-#     IncludeCurrentSampler,
-#     create_full_dof_inds_to_copy_from_orig_to_rotamers_for_include_current_sampler,
-# )
 
 
 from tmol.io import pose_stack_from_pdb
@@ -281,7 +268,6 @@ def test_measure_pose_dofs(default_database, ubq_pdb, torch_device, dun_sampler)
     chem_db = default_database.chemical
 
     poses = pose_stack_from_pdb(ubq_pdb, torch_device, residue_start=0, residue_end=76)
-    # restype_set = poses.packed_block_types.restype_set
 
     fixed_sampler = FixedAAChiSampler()
     samplers = (dun_sampler, fixed_sampler)
@@ -308,21 +294,6 @@ def test_measure_pose_dofs(default_database, ubq_pdb, torch_device, dun_sampler)
 
     n_conformers = poses.max_n_blocks
     n_atoms_total = poses.max_n_pose_atoms
-    # conf_dofs_kto = torch.zeros(
-    #     (n_atoms_total + 1, 9), dtype=torch.float32, device=pbt.device
-    # )
-
-    # torch.set_printoptions(threshold=10000)
-    # print("orig_kinforest id")
-    # print(orig_kinforest.id)
-    # print("orig_kinforest parent")
-    # print(orig_kinforest.parent)
-    # print("orig_kinforest frame x")
-    # print(orig_kinforest.frame_x)
-    # print("orig_kinforest frame y")
-    # print(orig_kinforest.frame_y)
-    # print("orig_kinforest frame z")
-    # print(orig_kinforest.frame_z)
 
     rotamer_coords = calculate_rotamer_coords(
         pbt,
@@ -334,9 +305,6 @@ def test_measure_pose_dofs(default_database, ubq_pdb, torch_device, dun_sampler)
         gens,
         orig_dofs_kto,
     )
-    # torch.set_printoptions(threshold=10000)
-    # print("rotamer_coords")
-    # print(rotamer_coords)
 
     torch.testing.assert_close(rotamer_coords, poses.coords.view(-1, 3))
 
@@ -588,7 +556,6 @@ def test_construct_kinforest_for_rotamers(
 def test_construct_kinforest_for_rotamers2(
     default_database, fresh_default_restype_set, torch_device, dun_sampler
 ):
-    # torch_device = torch.device("cpu")
     chem_db = default_database.chemical
 
     fixed_sampler = FixedAAChiSampler()
@@ -869,18 +836,6 @@ def test_measure_original_dofs2(default_database, ubq_pdb, torch_device, dun_sam
                 decimal=5,
             )
 
-    # for writing coordinates into a pdb
-    # print("new coords")
-    # for i in range(0, new_coords.shape[0]):
-    #     print(
-    #         "%7.3f %7.3f %7.3f" %
-    #         (
-    #             new_coords[i, 0],
-    #             new_coords[i, 1],
-    #             new_coords[i, 2]
-    #         )
-    #     )
-
 
 def test_create_dof_inds_to_copy_from_orig_to_rotamers(
     default_database, ubq_pdb, torch_device, dun_sampler
@@ -936,8 +891,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers(
         (10,), leu_ind, dtype=torch.int64, device=torch_device
     )
 
-    # [pbt.mc_fingerprints.sampler_mapping[dun_sampler.sampler_name()] ] * 10
-    # sampler_for_rotamer = torch.zeros(10, dtype=torch.int64, device=torch_device)
     conf_inds_for_dun_sampler = torch.arange(10, dtype=torch.int64, device=torch_device)
     sampler_n_rots_for_gbt = torch.full((5,), 2, dtype=torch.int32, device=torch_device)
     sampler_gbt_for_rotamer = gbt_for_rot.to(torch.int32)
@@ -1028,9 +981,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
     pbt = poses.packed_block_types
     annotate_everything(default_database.chemical, samplers, pbt)
 
-    # gbt_for_rot = torch.floor_divide(
-    #     torch.arange(36, dtype=torch.int64, device=torch_device), 2
-    # )
     gbt_for_rot = torch.tensor(gbt_for_rot_list, dtype=torch.int64, device=torch_device)
 
     block_type_ind_for_rot = torch.remainder(
@@ -1038,7 +988,6 @@ def test_create_dof_inds_to_copy_from_orig_to_rotamers2(
         6,
     )
 
-    # sampler_for_rotamer = torch.zeros(36, dtype=torch.int64, device=torch_device)
     conf_inds_for_dun_sampler = torch.arange(36, dtype=torch.int64, device=torch_device)
     sampler_n_rots_for_gbt = torch.full(
         (18,), 2, dtype=torch.int32, device=torch_device
@@ -1101,8 +1050,6 @@ def test_build_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
 
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     restype_set = poses.packed_block_types.restype_set
-    # for restype in restype_set.residue_types:
-    # print(restype.name, restype.base_name, restype.name3)
 
     palette = PackerPalette(restype_set)
     task = PackerTask(poses, palette)
@@ -1144,8 +1091,6 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
 
     poses = PoseStackBuilder.from_poses([p] * n_poses, torch_device)
     restype_set = poses.packed_block_types.restype_set
-    # for restype in restype_set.residue_types:
-    # print(restype.name, restype.base_name, restype.name3)
 
     palette = PackerPalette(restype_set)
     task = PackerTask(poses, palette)
@@ -1162,47 +1107,9 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
     )
 
     n_poses = rotamer_set.n_rots_for_pose.shape[0]
-    # n_rots = rotamer_set.coords.shape[0]
-    # max_n_rotamers = torch.max(rotamer_set.n_rots_for_pose)
-    # max_n_atoms = poses.packed_block_types.max_n_atoms
-    # n_rots_for_pose = rotamer_set.n_rots_for_pose.tolist()
 
-    # split_coords = torch.split(rotamer_set.coords, n_rots_for_pose)
-    # split_block_types = torch.split(rotamer_set.block_type_ind_for_rot, n_rots_for_pose)
-
-    # coords = torch.nn.utils.rnn.pad_sequence(split_coords, batch_first=True).flatten(
-    #     start_dim=1, end_dim=-2
-    # )
-
-    # block_types = rotamer_set.block_type_ind_for_rot
-    # block_types = torch.nn.utils.rnn.pad_sequence(
-    #     split_block_types, batch_first=True, padding_value=-1
-    # )
-
-    rot_coords = rotamer_set.coords  # .flatten(start_dim=0, end_dim=-2)
+    rot_coords = rotamer_set.coords
     rot_coord_offset = rotamer_set.coord_offset_for_rot
-    # (
-    #     torch.arange(
-    #         0, rotamer_set.pose_for_rot.shape[0], dtype=torch.int32, device=torch_device
-    #     )
-    #     * max_n_atoms
-    # )
-    # print("SHAPE", rot_coords.shape)
-    # print("OFFSETS", rot_coord_offset.shape)
-    # print("MAX_N_ATOMS", max_n_atoms)
-    # print("N_ROTS", rotamer_set.pose_for_rot.shape[0])
-
-    # print(rotamer_set.block_type_ind_for_rot)
-    # print(block_types)
-
-    # block_coord_offset = torch.zeros(
-    #     (n_poses, max_n_rotamers), dtype=torch.int32, device=torch_device
-    # )
-    # block_coord_offset[:] = torch.arange(max_n_rotamers) * rotamer_set.coords.shape[1]
-
-    # print(coords.shape)
-    # print(block_coord_offset)
-    # print(rotamer_set.block_ind_for_rot)
 
     energy_term = HBondEnergyTerm(default_database, torch_device)
     for bt in poses.packed_block_types.active_block_types:
@@ -1214,12 +1121,6 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
 
     coords = torch.nn.Parameter(rotamer_set.coords.clone())
     sparse_scores = rotamer_scorer(rot_coords).coalesce()
-    # print("sparse_scores.values().shape", sparse_scores.values().shape, "sparse_scores.indices().shape", sparse_scores.indices().shape)
-
-    # print()
-    # torch.set_
-    # print("scores", scores)
-    # print("indices", indices)
 
     def copy_rot_xyz(
         pose_stack,
@@ -1234,72 +1135,45 @@ def test_score_lots_of_rotamers(default_database, ubq_pdb, torch_device, dun_sam
         coord_offset = pose_stack.block_coord_offset[pose_ind, block_ind]
         block_type = pose_stack.block_type_ind[pose_ind, block_ind]
         n_atoms = pose_stack.packed_block_types.n_atoms[block_type]
-        # print(f"Copying rotamer {rotamer_ind} for pose {pose_ind} on block {block_ind}")
         for i in range(n_atoms):
             pose_stack.coords[pose_ind, coord_offset + i] = TEMP_ROT_COORDS[
                 TEMP_ROT_COORD_OFFSET[rotamer_ind] + i
-            ]  # rotamer_set.coords[pose_ind, rotamer_ind, i]
+            ]
         pose_block_inds.append((int(pose_ind), int(block_ind)))
 
     torch.set_printoptions(threshold=10000)
     nz_vals = sparse_scores.values() != 0
-    # print("nz_vals.shape", nz_vals.shape)
     rot_scores = sparse_scores.values()[nz_vals]
     rot_inds = sparse_scores.indices()[:, nz_vals]
-    # rot_block_ind1 = rotamer_set.block_ind_for_rot[rot_inds[1, :]]
-    # rot_block_ind2 = rotamer_set.block_ind_for_rot[rot_inds[2, :]]
-
-    # blo = rotamer_set.block
-
-    # print(f"{'ind':>3}: {'score':>10} {'pose':>4}  {'blocks':>7} {'rots':>5}")
-    # for i in range(rot_scores.shape[0]):
-    #     print(
-    #         f"{i:>3}: {rot_scores[i]:>10.4f} {rot_inds[0, i]:>4} {rot_block_ind1[i]:>3}:{rot_block_ind2[i]:<3} {rot_inds[1, i]:>3}:{rot_inds[2, i]:<3}"
-    #     )
 
     rots_to_sub = [16, 35, 56, 63, 67, 84]
     pbs = []
     for rot in rots_to_sub:
         copy_rot_xyz(poses, rotamer_set, rot, rot_coords, rot_coord_offset, pbs)
     rots_to_pb = {rot: (pose, block) for rot, (pose, block) in zip(rots_to_sub, pbs)}
-    # print("rots to pb:", rots_to_pb)
 
     # now let's keep track of the scores we expect to see in the output pose
     rot_scores_for_pose = {}
     for i in range(rot_scores.shape[0]):
         rot1_ind = int(rot_inds[1, i].item())
         rot2_ind = int(rot_inds[2, i].item())
-        # print(f"rot1 {rot1_ind} and {rot2_ind}?? {rot1_ind in rots_to_pb} and {rot2_ind in rots_to_pb}")
         if rot1_ind in rots_to_pb and rot2_ind in rots_to_pb:
             p1, b1 = rots_to_pb[rot1_ind]
             p2, b2 = rots_to_pb[rot2_ind]
             assert p1 == p2
-            # print(f"saving score [({p1}, {b1}, {b2})] = {rot_scores[i]}")
             rot_scores_for_pose[(p1, b1, b2)] = float(rot_scores[i].item())
 
     pose_scorer = energy_term.render_block_pair_scoring_module(poses)
     coords = torch.nn.Parameter(poses.coords.clone())
     block_scores = pose_scorer(coords).sum(dim=0)
-    # print("Block scores", block_scores.shape)
-    # print("block_scores", block_scores)
-    # print("block_scores.values.shape", block_scores.values().shape)
 
-    # blo = rotamer_set.block
-
-    # print("BLOCK SCORES")
-
-    # print(f"{'ind':>3}: {'score':>10} {'pose':>4}  {'blocks':>7}")
     for i in range(block_scores.shape[0]):
         for j in range(block_scores.shape[1]):
             for k in range(block_scores.shape[2]):
-                # print(
-                #     f"{i:>3}: {block_scores.values()[i]:>10.4f} {block_scores.indices()[1, i]:>4} {block_scores.indices()[2,i]:>3}:{block_scores.indices()[3,i]:<3}"
-                # )
                 pose_ind = i
                 block1_ind = j
                 block2_ind = k
                 if (pose_ind, block1_ind, block2_ind) in rot_scores_for_pose:
-                    # print("comparing", rot_scores_for_pose[(pose_ind, block1_ind, block2_ind)], float(block_scores.values()[i].item()))
                     numpy.testing.assert_allclose(
                         rot_scores_for_pose[(pose_ind, block1_ind, block2_ind)],
                         float(block_scores[0, i, j, k].item()),
@@ -1485,9 +1359,7 @@ def test_new_rotamer_building_logic1(
     ###########################################
 
     # Step 1
-    # print("A n poses:", poses.n_poses, poses.block_type_ind.shape)
     poses, samplers = rebuild_poses_if_necessary(poses, task)
-    # print("B n poses:", poses.n_poses, poses.block_type_ind.shape)
     pbt = poses.packed_block_types
 
     # Step 2
@@ -1506,8 +1378,6 @@ def test_new_rotamer_building_logic1(
     conformer_samples = [
         sampler.create_samples_for_poses(poses, task) for sampler in samplers
     ]
-    # for i, samples in enumerate(conformer_samples):
-    #     print("i", i, "samples", samples[0].shape, samples[1].shape)
 
     # Step 5
     (
@@ -1580,7 +1450,6 @@ def test_new_rotamer_building_logic1(
     )
 
     for i, sampler in enumerate(samplers):
-        # print("fill dofs for samples", sampler.sampler_name())
         sampler.fill_dofs_for_samples(
             poses,
             task,
@@ -1617,20 +1486,6 @@ def test_new_rotamer_building_logic1(
     ) = get_rotamer_origin_data(task, gbt_for_conformer_torch)
 
     assert rotamer_coords is not None
-
-    # return (
-    #     poses,
-    #     RotamerSet(
-    #         n_rots_for_pose=n_rots_for_pose,
-    #         rot_offset_for_pose=rot_offset_for_pose,
-    #         n_rots_for_block=n_rots_for_block,
-    #         rot_offset_for_block=rot_offset_for_block,
-    #         pose_for_rot=pose_for_rot,
-    #         block_type_ind_for_rot=block_type_ind_for_conformer_torch,
-    #         block_ind_for_rot=block_ind_for_rot,
-    #         coords=rotamer_coords,
-    #     ),
-    # )
 
 
 def test_new_rotamer_building_logic2(
@@ -1716,31 +1571,7 @@ def test_new_rotamer_building_logic3(
         current_rot_n_atoms = poses.packed_block_types.n_atoms[current_rot_blocktype]
         assert current_rot_blocktype == poses.block_type_ind[p, r]
 
-        # torch.testing.assert_close(
-        #     poses.coords[
-        #         p,
-        #         pose_stack_coord_offset : (
-        #             pose_stack_coord_offset + current_rot_n_atoms
-        #         ),
-        #     ],
-        #     rotamer_set.coords[
-        #         (current_rot_offset) : (current_rot_offset + current_rot_n_atoms), :
-        #     ],
-        #     atol=1e-3,
-        #     rtol=1e-5,
-        # )
-
         pose_stack_coord_offset = poses.block_coord_offset64[p, r]
-        # dst = torch.linalg.norm(
-        #     poses.coords[
-        #         p,
-        #         pose_stack_coord_offset : (
-        #             pose_stack_coord_offset + current_rot_n_atoms
-        #         ),
-        #     ] - rotamer_set.coords[
-        #         (current_rot_offset) : (current_rot_offset + current_rot_n_atoms), :
-        #     ]
-        # )
 
         torch.testing.assert_close(
             poses.coords[

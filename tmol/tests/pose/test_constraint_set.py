@@ -78,7 +78,6 @@ def test_constraint_set_concatenate_constraints(torch_device, ubq_pdb):
     res2_type = pose_stack.block_type(0, 4)
     cnstr_atoms1[0, 0] = torch.tensor([0, 3, res1_type.atom_to_idx["C"]])
     cnstr_atoms1[0, 1] = torch.tensor([0, 4, res2_type.atom_to_idx["N"]])
-    # print("cnstr_atoms1:", cnstr_atoms1)
     cnstr_params1[0, 0] = 1.47
 
     cs1 = cs1.add_constraints(
@@ -94,7 +93,6 @@ def test_constraint_set_concatenate_constraints(torch_device, ubq_pdb):
     res2_type = pose_stack.block_type(0, 7)
     cnstr_atoms2[0, 0] = torch.tensor([0, 6, res1_type.atom_to_idx["C"]])
     cnstr_atoms2[0, 1] = torch.tensor([0, 7, res2_type.atom_to_idx["N"]])
-    # print("cnstr_atoms2:", cnstr_atoms2)
     cnstr_params2[0, 0] = 1.47
 
     cs2 = cs2.add_constraints(
@@ -102,7 +100,6 @@ def test_constraint_set_concatenate_constraints(torch_device, ubq_pdb):
     )
 
     cs = ConstraintSet.concatenate([cs1, cs2], from_multiple_pose_stacks=False)
-    # print("cs.constraint_atoms:", cs.constraint_atoms)
 
     assert cs.device == torch_device
     assert cs.n_poses == n_poses
@@ -169,7 +166,6 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
     cnstr_atoms2[0, 1] = torch.tensor([2, 7, res2_type.atom_to_idx["N"]])
     shifted_cnstr_atoms2[0, 0] = torch.tensor([4, 6, res1_type.atom_to_idx["C"]])
     shifted_cnstr_atoms2[0, 1] = torch.tensor([4, 7, res2_type.atom_to_idx["N"]])
-    # print("cnstr_atoms2:", cnstr_atoms2)
     cnstr_params2[0, 0] = 1.47
 
     cs2 = cs2.add_constraints(
@@ -177,7 +173,6 @@ def test_constraint_set_concatenate_constraints_2(torch_device, ubq_pdb):
     )
 
     cs = ConstraintSet.concatenate([cs1, cs2], from_multiple_pose_stacks=True)
-    # print("cs.constraint_atoms:", cs.constraint_atoms)
 
     assert cs.device == torch_device
     assert cs.n_poses == n_poses_A + n_poses_B

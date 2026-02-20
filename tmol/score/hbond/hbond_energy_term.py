@@ -46,8 +46,6 @@ class HBondEnergyTerm(AtomTypeDependentTerm, HBondDependentTerm):
     def setup_poses(self, poses: PoseStack):
         super(HBondEnergyTerm, self).setup_poses(poses)
 
-    # def get_score_term_function(self):
-    #     return hbond_pose_scores
     def get_pose_score_term_function(self):
         return hbond_pose_scores
 
