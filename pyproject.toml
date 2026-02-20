@@ -50,7 +50,7 @@ dependencies = [
     "sparse>=0.16,<1",
     # numba/llvmlite must be recent enough for Python 3.12+
     "numba>=0.60,<1",
-    "llvmlite>=0.43,<1",
+    "llvmlite>=0.42,<1",
     # Testing (hypothesis is used at runtime for property-based data generation)
     "hypothesis>=6.98,<7",
     # AST manipulation (used by tmol.utility.args)
