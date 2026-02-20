@@ -21,7 +21,7 @@ AHD_angle_V_dV = numpy.vectorize(
 )
 BAH_angle_V_dV = numpy.vectorize(
     _BAH_angle_V_dV,
-    signature="(3),(3),(3),(3),(),(n),(m)->(),(3),(3),(3),(3)",
+    signature="(3),(3),(3),(3),(),(n),()->(),(3),(3),(3),(3)",
 )
 sp2chi_energy_V_dV = numpy.vectorize(
     _sp2chi_energy_V_dV, signature="(),(),(),(),()->(),(),()"

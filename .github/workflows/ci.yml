@@ -36,17 +36,17 @@ jobs:
         run: |
           # Persistent pip cache on /net/scratch — no overlay or tmpfs needed.
           mkdir -p /net/scratch/kdidi/ci-pip-pkgs
-          # Use V100 (GPU 1) — GPU 0 (RTX 4000) is often occupied by vLLM.
-          # Must use --env so it propagates INTO the container, not just the host shell.
+          # GPU selection is done inside each step's heredoc (export CUDA_VISIBLE_DEVICES=...)
+          # because --env on apptainer doesn't reliably propagate.
           apptainer instance start --nv \
-            --env CUDA_VISIBLE_DEVICES=1 \
             --bind /net/scratch/kdidi/ci-pip-pkgs:/ci-pip-pkgs \
             $SIF $INSTANCE_NAME
 
       - name: Setup
         run: |
-          apptainer exec --env CUDA_VISIBLE_DEVICES=1 --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          export CUDA_VISIBLE_DEVICES=1
           # Install packages to /ci-pip-pkgs (bind-mounted from /net/scratch).
           # No overlay needed — writes go straight to disk.
           export PYTHONUSERBASE=/ci-pip-pkgs
@@ -88,7 +88,7 @@ jobs:
       - name: Lint
         continue-on-error: true
         run: |
-          apptainer exec --env CUDA_VISIBLE_DEVICES=1 --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
@@ -109,7 +109,7 @@ jobs:
           python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
 
           echo "+++ tests (CPU only)"
-          pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda"
+          CUDA_VISIBLE_DEVICES="" pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda"
           EOF
 
       - name: Upload CPU test results
@@ -124,12 +124,15 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          # Use both V100s (GPUs 1,2) — skip RTX 4000 (GPU 0) occupied by vLLM.
+          # Set inside the script because --env on apptainer exec doesn't reliably propagate.
+          export CUDA_VISIBLE_DEVICES=1,2
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
 
           echo "--- environment"
           python --version
-          python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
+          python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}, GPUs: {torch.cuda.device_count()}')"
 
           echo "--- nvidia-smi"
           nvidia-smi || true
@@ -150,6 +153,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          export CUDA_VISIBLE_DEVICES=1,2
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
 
@@ -181,6 +185,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          export CUDA_VISIBLE_DEVICES=1,2
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
           export TMOL_USE_JIT=1

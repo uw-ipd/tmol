@@ -45,8 +45,12 @@ def test_annotate_residue_type(default_database):
 
     assert isinstance(tyr_restype.dun_sampler_cache.chi_defining_atom, numpy.ndarray)
     assert tyr_restype.dun_sampler_cache.chi_defining_atom.shape == (3,)
-    assert tyr_restype.dun_sampler_cache.chi_defining_atom[0] == tyr_restype.atom_to_idx["CA"]
-    assert tyr_restype.dun_sampler_cache.chi_defining_atom[1] == tyr_restype.atom_to_idx["CB"]
+    # chi_defining_atom stores the 3rd atom of each chi dihedral (the rotating atom):
+    # chi1: N-CA-CB-CG  →  CB (idx 4)
+    # chi2: CA-CB-CG-CD1  →  CG (idx 5)
+    # chi2.5 (chi about CZ): CB-CG-...-CZ  →  CZ (idx 10)
+    assert tyr_restype.dun_sampler_cache.chi_defining_atom[0] == tyr_restype.atom_to_idx["CB"]
+    assert tyr_restype.dun_sampler_cache.chi_defining_atom[1] == tyr_restype.atom_to_idx["CG"]
     assert tyr_restype.dun_sampler_cache.chi_defining_atom[2] == tyr_restype.atom_to_idx["CZ"]
 
 

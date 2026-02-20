@@ -169,16 +169,14 @@ class LKBallScore:
                 },
             )
 
-        params_i = cattr.unstructure(
-            type_params[self.param_resolver.type_idx([atom_type_i])]
-        )
+        iidx = self.param_resolver.atom_type_index.get_loc(atom_type_i)
+        params_i = cattr.unstructure(type_params[iidx])
         params_i = LKBallTypeParams(
             **{x.name: params_i[x.name] for x in attr.fields(LKBallTypeParams)}
         )
 
-        params_j = cattr.unstructure(
-            type_params[self.param_resolver.type_idx([atom_type_j])]
-        )
+        jidx = self.param_resolver.atom_type_index.get_loc(atom_type_j)
+        params_j = cattr.unstructure(type_params[jidx])
         params_j = LKBallTypeParams(
             **{x.name: params_j[x.name] for x in attr.fields(LKBallTypeParams)}
         )
