@@ -49,7 +49,7 @@ dependencies = [
     # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
     "sparse>=0.16,<1",
     # numba/llvmlite must be recent enough for Python 3.12+
-    "numba>=0.60,<1",
+    "numba>=0.59,<1",
     "llvmlite>=0.42,<1",
     # Testing (hypothesis is used at runtime for property-based data generation)
     "hypothesis>=6.98,<7",
