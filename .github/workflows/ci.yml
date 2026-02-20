@@ -45,7 +45,7 @@ jobs:
 
       - name: Setup
         run: |
-          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          apptainer exec --env CUDA_VISIBLE_DEVICES=1 --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           # Install packages to /ci-pip-pkgs (bind-mounted from /net/scratch).
           # No overlay needed — writes go straight to disk.
@@ -88,7 +88,7 @@ jobs:
       - name: Lint
         continue-on-error: true
         run: |
-          apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
+          apptainer exec --env CUDA_VISIBLE_DEVICES=1 --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
@@ -108,8 +108,8 @@ jobs:
           python --version
           python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.version.cuda}')"
 
-          echo "+++ tests (CPU)"
-          pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cpu.junit.xml
+          echo "+++ tests (CPU only)"
+          pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cpu.junit.xml -k "not cuda"
           EOF
 
       - name: Upload CPU test results
@@ -134,8 +134,8 @@ jobs:
           echo "--- nvidia-smi"
           nvidia-smi || true
 
-          echo "+++ tests (CUDA)"
-          pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cuda.junit.xml
+          echo "+++ tests (CUDA only)"
+          pytest -s -v --durations=25 --cov=./tmol --junitxml=testing.cuda.junit.xml -k "cuda"
           EOF
 
       - name: Upload CUDA test results
