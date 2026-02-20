@@ -32,59 +32,47 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Create overlay (if needed)
-        run: |
-          # Persistent ext3 overlay on disk — avoids tmpfs RAM limits.
-          # Packages installed once persist across CI runs (faster re-runs).
-          OVERLAY=/net/scratch/kdidi/ci-overlay.img
-          if [ ! -f "$OVERLAY" ]; then
-            dd if=/dev/zero of="$OVERLAY" bs=1M count=51200
-            mkfs.ext3 -F "$OVERLAY"
-            echo "Created new 50GB overlay at $OVERLAY"
-          fi
-
       - name: Start Apptainer instance
         run: |
+          # Persistent pip cache on /net/scratch — no overlay or tmpfs needed.
+          mkdir -p /net/scratch/kdidi/ci-pip-pkgs
           # Use V100s (GPU 1) — GPU 0 (RTX 4000) is often occupied by other services.
           export CUDA_VISIBLE_DEVICES=1
           apptainer instance start --nv \
-            --overlay /net/scratch/kdidi/ci-overlay.img \
+            --bind /net/scratch/kdidi/ci-pip-pkgs:/ci-pip-pkgs \
             $SIF $INSTANCE_NAME
 
       - name: Setup
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          command -v uv >/dev/null 2>&1 || pip install --break-system-packages uv
-          export PATH=$HOME/.local/bin:$PATH
+          # Install packages to /ci-pip-pkgs (bind-mounted from /net/scratch).
+          # No overlay needed — writes go straight to disk.
+          export PYTHONUSERBASE=/ci-pip-pkgs
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
+
+          # Install uv if not present (persists across runs)
+          command -v uv >/dev/null 2>&1 || pip install --user uv
 
           # Use the container's installed packages as constraints so uv
-          # resolves to matching versions and doesn't try to replace large
-          # packages (like pyarrow) — which would blow up the tmpfs overlay.
+          # resolves to matching versions and doesn't try to replace them.
           pip freeze | grep -vE '(file://|^-e |^#)' > /tmp/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
             --constraint /tmp/container_pins.txt \
             --output-file /tmp/requirements.txt
 
-          # Filter out packages provided by the NGC base image entirely
+          # Filter out packages provided by the NGC base image
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml)==" \
             /tmp/requirements.txt > /tmp/to_install.txt
 
-          # Install only genuinely missing deps — existing packages at the
-          # same version are skipped automatically (no tmpfs space wasted)
-          uv pip install --system --break-system-packages -r /tmp/to_install.txt
-
-          # Use PYTHONPATH instead of `pip install -e .` — the editable install
-          # copies hundreds of source files into build/ which blows up the tmpfs.
-          export PYTHONPATH=$GITHUB_WORKSPACE:$PYTHONPATH
+          # Install missing deps to the bind-mounted directory
+          uv pip install --target /ci-pip-pkgs/lib/python3.12/site-packages \
+            -r /tmp/to_install.txt
 
           # Build C++/CUDA extensions AOT using the container's own torch + nvcc
-          # fela: 56 cores / 251GB RAM, 23 extension modules, 2 GPU arch targets.
-          # MAX_JOBS=12 compiles 12 modules in parallel.
-          # NVCC_THREADS=2 matches the 2 arch targets (8.0, 9.0+PTX).
-          # Peak: 24 nvcc threads × ~2.5GB = ~60GB RAM, well within limits.
+          # fela: 56 cores / 251GB RAM, 23 extension modules, 3 GPU arch targets.
           export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
-          # Include sm_70 for fela's V100 GPUs (CUDA 12.6 supports it).
           export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-7.0 8.0 9.0+PTX}"
           MAX_JOBS=12 NVCC_THREADS=2 python setup.py build_ext --inplace
           EOF
@@ -94,8 +82,8 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          export PATH=$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:$PYTHONPATH
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
           ruff check . || echo "::warning::ruff check found issues"
           ruff format --check . || echo "::warning::ruff format found issues"
           EOF
@@ -105,8 +93,8 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          export PATH=$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:$PYTHONPATH
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
 
           echo "--- environment"
           python --version
@@ -128,8 +116,8 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          export PATH=$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:$PYTHONPATH
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
 
           echo "--- environment"
           python --version
@@ -154,8 +142,8 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          export PATH=$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:$PYTHONPATH
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
 
           BENCHMARK_DIR=benchmark/${{ github.repository }}/${{ github.ref_name }}
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${{ github.run_number }}.json
@@ -185,8 +173,8 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          export PATH=$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:$PYTHONPATH
+          export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
           export TMOL_USE_JIT=1
 
           echo "+++ tests (CUDA JIT)"
