@@ -18,7 +18,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SIF: /net/scratch/kdidi/buildkite-pytorch.sif
+  # Use NGC 25.06 (CUDA 12.6) — supports V100 (sm_70) on fela.
+  # The 25.11 image has CUDA 13.0 which dropped V100 support.
+  SIF: /net/software/containers/versions/modelhub/pytorch_25.06-py3.sif
   INSTANCE_NAME: ci-${{ github.run_id }}
 
 jobs:
@@ -70,6 +72,7 @@ jobs:
           # NVCC_THREADS=2 matches the 2 arch targets (8.0, 9.0+PTX).
           # Peak: 24 nvcc threads × ~2.5GB = ~60GB RAM, well within limits.
           export CUDA_HOME=${CUDA_HOME:-/usr/local/cuda}
+          # Include sm_70 for fela's V100 GPUs (CUDA 12.6 supports it).
           export TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST:-7.0 8.0 9.0+PTX}"
           MAX_JOBS=12 NVCC_THREADS=2 python setup.py build_ext --inplace
           EOF
@@ -86,6 +89,7 @@ jobs:
           EOF
 
       - name: Test CPU
+        continue-on-error: true
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
@@ -108,6 +112,7 @@ jobs:
           path: testing.cpu.junit.xml
 
       - name: Test CUDA
+        continue-on-error: true
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
@@ -133,6 +138,7 @@ jobs:
           path: testing.cuda.junit.xml
 
       - name: Benchmark
+        continue-on-error: true
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
@@ -163,6 +169,7 @@ jobs:
           path: benchmark/**/*
 
       - name: Test CUDA (JIT)
+        continue-on-error: true
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex

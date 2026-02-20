@@ -2,7 +2,7 @@
 name = "tmol"
 description = "GPU-accelerated PyTorch reimplementation of the Rosetta energy function"
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
     { name = "Institute for Protein Design", email = "contact@ipd.uw.edu" },

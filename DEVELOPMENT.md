@@ -171,7 +171,7 @@ tmol uses GitHub Actions for all CI:
 Push/PR -> GitHub Actions -> self-hosted runner (fela, bare metal)
                                   |
                                   v
-                          apptainer exec --nv buildkite-pytorch.sif
+                          apptainer exec --nv pytorch_25.06-py3.sif
                                   |
                                   v
                           NGC PyTorch container (GPU access)
