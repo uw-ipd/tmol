@@ -59,7 +59,9 @@ jobs:
 
           # Use the container's installed packages as constraints so uv
           # resolves to matching versions and doesn't try to replace them.
-          pip freeze | grep -vE '(file://|^-e |^#)' > /tmp/container_pins.txt
+          # Freeze container packages as constraints, but exclude packages
+          # not in the container (they'll be resolved freely by uv for the correct Python version).
+          pip freeze --path /usr/local/lib/python${PYVER}/dist-packages 2>/dev/null | grep -vE '(file://|^-e |^#)' > /tmp/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
             --constraint /tmp/container_pins.txt \
             --output-file /tmp/requirements.txt
