@@ -29,9 +29,9 @@ dependencies = [
     "numpy>=1.26,<3",
     "scipy>=1.12,<2",
     # Data structures & serialization
-    "attrs>=23.2,<26",
+    "attrs>=21.0,<26",
     "attrs_strict>=1.0,<2",
-    "cattrs>=23.2,<25",
+    "cattrs>=22.0,<25",
     "frozendict>=2.4,<3",
     "pandas>=2.2,<3",
     "pyarrow>=15,<23", 
@@ -41,7 +41,7 @@ dependencies = [
     # Utilities
     "toolz>=0.12,<1",
     "decorator>=5.1,<6",
-    "typing_extensions>=4.9,<5",
+    "typing_extensions>=4.0,<5",
     "typing_inspect>=0.9,<1",
     "pint>=0.23,<1",
     "psutil>=5.9,<8",
@@ -49,14 +49,14 @@ dependencies = [
     # Sparse arrays (requires SPARSE_AUTO_DENSIFY=1 for sparse>0.3.1)
     "sparse>=0.16,<1",
     # numba/llvmlite must be recent enough for Python 3.12+
-    "numba>=0.59,<1",
-    "llvmlite>=0.42,<1",
+    "numba>=0.56,<1",
+    "llvmlite>=0.39,<1",
     # Testing (hypothesis is used at runtime for property-based data generation)
-    "hypothesis>=6.98,<7",
+    "hypothesis>=5.35,<7",
     # AST manipulation (used by tmol.utility.args)
     "astor>=0.8,<1",
     # Interactive
-    "ipython>=8.21",
+    "ipython>=8.0",
 ]
 
 [project.optional-dependencies]
