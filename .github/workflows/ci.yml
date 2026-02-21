@@ -70,7 +70,8 @@ jobs:
 
           # Install missing deps to the bind-mounted directory.
           # Use --prefix (not --target) so bin/ scripts are created for CLI tools.
-          uv pip install --prefix /ci-pip-pkgs --break-system-packages \
+          # Use --python to force the container's Python (not any venv on /net/scratch).
+          uv pip install --prefix /ci-pip-pkgs --python /usr/bin/python3 --break-system-packages \
             -r /tmp/to_install.txt 'packaging>=24.2'
 
           # Clean stale build artifacts from previous (potentially failed) builds
