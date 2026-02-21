@@ -118,8 +118,10 @@ def canonical_form_from_biotite(biotite_structure, torch_device) -> CanonicalFor
     biotite_chain_id_for_res = biotite.structure.chains.get_all_chain_positions(
         biotite_structure
     )[biotite_residue_starts]
-    biotite_chain_labels = biotite_structure.chain_id
-    biotite_insertion_codes = biotite_structure.ins_code
+    biotite_chain_labels = biotite_structure.chain_id[biotite_residue_starts]
+    biotite_insertion_codes = biotite_structure.ins_code[biotite_residue_starts]
+    print("INS_CODES", biotite_insertion_codes)
+    print("chain_id", biotite_chain_labels)
     biotite_res_ind_for_atom = biotite.structure.get_all_residue_positions(
         biotite_structure
     )  # res_id
