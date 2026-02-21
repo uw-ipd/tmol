@@ -18,9 +18,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Use NGC 25.06 (CUDA 12.6) — supports V100 (sm_70) on fela.
-  # The 25.11 image has CUDA 13.0 which dropped V100 support.
-  SIF: /net/software/containers/versions/modelhub/pytorch_25.06-py3.sif
+  # Use NGC 24.10 (PyTorch 2.5, CUDA 12.4) — last version with V100 (sm_70) support.
+  # NGC 25.06+ dropped V100 (minimum capability 7.5).
+  SIF: /net/software/containers/versions/modelhub/pytorch_24.10-py3.sif
   INSTANCE_NAME: ci-${{ github.run_id }}
 
 jobs:
@@ -67,12 +67,10 @@ jobs:
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml)==" \
             /tmp/requirements.txt > /tmp/to_install.txt
 
-          # Install missing deps to the bind-mounted directory
-          uv pip install --target /ci-pip-pkgs/lib/python3.12/site-packages \
-            -r /tmp/to_install.txt
-          # Ensure packaging>=24.2 (required by setuptools>=77)
-          uv pip install --target /ci-pip-pkgs/lib/python3.12/site-packages \
-            'packaging>=24.2'
+          # Install missing deps to the bind-mounted directory.
+          # Use --prefix (not --target) so bin/ scripts are created for CLI tools.
+          uv pip install --prefix /ci-pip-pkgs --break-system-packages \
+            -r /tmp/to_install.txt 'packaging>=24.2'
 
           # Clean stale build artifacts from previous (potentially failed) builds
           rm -rf build/
@@ -124,8 +122,8 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
-          # Use both V100s (GPUs 1,2) — skip RTX 4000 (GPU 0) occupied by vLLM.
-          # Set inside the script because --env on apptainer exec doesn't reliably propagate.
+          # Use V100s (GPUs 1,2, sm_70) — supported by PyTorch 2.5 (24.10 container).
+          # Skip RTX 4000 (GPU 0) which is occupied by vLLM.
           export CUDA_VISIBLE_DEVICES=1,2
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
