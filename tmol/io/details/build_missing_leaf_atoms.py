@@ -156,7 +156,6 @@ def _setup_for_leaf_atom_coord_building(
     ]
 
     # Create block_has_missing_atoms tensor: True for blocks that have any missing atoms
-    # This includes both leaf and non-leaf atoms
     block_has_missing_atoms = torch.any(non_leaf_atom_is_missing, dim=2)
 
     return (
