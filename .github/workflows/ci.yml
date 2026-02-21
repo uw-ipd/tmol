@@ -47,11 +47,12 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export CUDA_VISIBLE_DEVICES=1
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           # Install packages to /ci-pip-pkgs (bind-mounted from /net/scratch).
           # No overlay needed — writes go straight to disk.
           export PYTHONUSERBASE=/ci-pip-pkgs
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
+          export PYTHONPATH=$GITHUB_WORKSPACE:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
           # Install uv if not present (persists across runs)
           command -v uv >/dev/null 2>&1 || pip install --user uv
@@ -89,7 +90,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           ruff check . || echo "::warning::ruff check found issues"
           ruff format --check . || echo "::warning::ruff format found issues"
           EOF
@@ -100,7 +101,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
           echo "--- environment"
           python --version
@@ -126,7 +127,7 @@ jobs:
           # Skip RTX 4000 (GPU 0) which is occupied by vLLM.
           export CUDA_VISIBLE_DEVICES=1,2
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
           echo "--- environment"
           python --version
@@ -153,7 +154,7 @@ jobs:
           set -ex
           export CUDA_VISIBLE_DEVICES=1,2
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
           BENCHMARK_DIR=benchmark/${{ github.repository }}/${{ github.ref_name }}
           BENCHMARK_RESULT=${BENCHMARK_DIR}/${{ github.run_number }}.json
@@ -185,7 +186,7 @@ jobs:
           set -ex
           export CUDA_VISIBLE_DEVICES=1,2
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
-          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python3.12/site-packages:$PYTHONPATH
+          export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           export TMOL_USE_JIT=1
 
           echo "+++ tests (CUDA JIT)"
