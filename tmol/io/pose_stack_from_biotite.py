@@ -69,8 +69,6 @@ def pose_stack_from_biotite(
 
     # If there are missing atoms, build the missing sidechains
     if block_has_missing_atoms is not None and torch.any(block_has_missing_atoms):
-        # print("MISSING", block_has_missing_atoms)
-
         db = _paramdb_for_biotite()
 
         # Create beta2016 score function
