@@ -63,6 +63,7 @@ jobs:
           # not in the container (they'll be resolved freely by uv for the correct Python version).
           pip freeze --path /usr/local/lib/python${PYVER}/dist-packages 2>/dev/null | grep -vE '(file://|^-e |^#)' > /tmp/container_pins.txt
           uv pip compile pyproject.toml --all-extras \
+            --python /usr/bin/python3 \
             --constraint /tmp/container_pins.txt \
             --output-file /tmp/requirements.txt
 
@@ -92,6 +93,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           ruff check . || echo "::warning::ruff check found issues"
@@ -103,6 +105,7 @@ jobs:
         run: |
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -129,6 +132,7 @@ jobs:
           # Use V100s (GPUs 1,2, sm_70) — supported by PyTorch 2.5 (24.10 container).
           # Skip RTX 4000 (GPU 0) which is occupied by vLLM.
           export CUDA_VISIBLE_DEVICES=1,2
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -156,6 +160,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export CUDA_VISIBLE_DEVICES=1,2
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
 
@@ -188,6 +193,7 @@ jobs:
           apptainer exec --pwd $GITHUB_WORKSPACE instance://$INSTANCE_NAME bash << 'EOF'
           set -ex
           export CUDA_VISIBLE_DEVICES=1,2
+          PYVER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
           export PATH=/ci-pip-pkgs/bin:$HOME/.local/bin:$PATH
           export PYTHONPATH=$PWD:/ci-pip-pkgs/lib/python${PYVER}/site-packages:$PYTHONPATH
           export TMOL_USE_JIT=1
