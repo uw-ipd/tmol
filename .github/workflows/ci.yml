@@ -68,6 +68,9 @@ jobs:
             --output-file /tmp/requirements.txt
 
           # Filter out packages provided by the NGC base image
+          # Filter out packages provided by the NGC base image.
+          # Filter out packages provided by the NGC base image.
+          # numpy must not be shadowed (container's 1.x vs PyPI's 2.x breaks torch).
           grep -vE "^(torch(|vision|audio)|numpy|nvidia-.*|triton|tensorrt|pynvml)==" \
             /tmp/requirements.txt > /tmp/to_install.txt
 
@@ -75,7 +78,7 @@ jobs:
           # Use --prefix (not --target) so bin/ scripts are created for CLI tools.
           # Use --python to force the container's Python (not any venv on /net/scratch).
           uv pip install --prefix /ci-pip-pkgs --python /usr/bin/python3 --break-system-packages \
-            -r /tmp/to_install.txt 'packaging>=24.2'
+            -r /tmp/to_install.txt 'packaging>=24.2' 'setuptools>=77'
 
           # Clean stale build artifacts from previous (potentially failed) builds
           rm -rf build/
