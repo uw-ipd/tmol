@@ -171,7 +171,9 @@ def biotite_1bl8():
     import biotite.structure.io
 
     fname = os.path.join(__file__.rpartition("/")[0], "pdb", "1BL8.pdb")
-    return biotite.structure.io.load_structure(fname)
+    return biotite.structure.io.load_structure(
+        fname, extra_fields=["occupancy", "b_factor"]
+    )
 
 
 def no_termini_pose_stack_from_pdb(pdb, torch_device, residue_start, residue_end):

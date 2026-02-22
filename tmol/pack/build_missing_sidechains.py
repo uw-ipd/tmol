@@ -38,49 +38,25 @@ def build_missing_sidechains_with_missing_atoms(
     Returns:
         PoseStack: A new pose stack with missing sidechains built
     """
-    n_poses = pose_stack.block_type_ind.shape[0]
-    max_n_blocks = pose_stack.block_type_ind.shape[1]
+
+    restype_set = pose_stack.packed_block_types.restype_set
 
     # Create a PackerPalette and PackerTask
-    palette = PackerPalette(rts)
+    palette = PackerPalette(restype_set)
     task = PackerTask(pose_stack, palette)
+    task.restrict_to_repacking()  # no design
 
-    # Add conformer samplers based on missing atoms status
-    for pose_ind in range(n_poses):
-        for block_ind in range(max_n_blocks):
-            # Check if this is a real block (not padding)
+    # Iterate through the block level tasks and either disable packing if the sidechain already exists, or else make sure we dont try and load the current sidechain with missing atoms
+    for pose_ind in range(block_has_missing_atoms.size(0)):
+        for block_ind in range(block_has_missing_atoms.size(1)):
             if pose_stack.is_real_block(pose_ind, block_ind):
                 has_missing = block_has_missing_atoms[pose_ind, block_ind]
-
-                # Get the block-level task for this position
-                # Note: task.blts is organized as [pose][block], but we need to find
-                # the correct index since not all blocks are real
-                blt = None
-                blt_index = 0
-                for i, one_pose_blts in enumerate(task.blts):
-                    if i == pose_ind:
-                        for j, candidate_blt in enumerate(one_pose_blts):
-                            if j == block_ind:
-                                blt = candidate_blt
-                                break
-                        break
-
-                if blt is None:
-                    continue
-
                 if has_missing:
-                    # Block has missing atoms - add Dunbrack and FixedAA samplers
-                    # to build new sidechains
-                    blt.add_conformer_sampler(dunbrack_sampler)
-                    blt.add_conformer_sampler(FixedAAChiSampler())
+                    task.blts[pose_ind][block_ind].include_current = False
                 else:
-                    # Block has no missing atoms - add IncludeCurrent sampler
-                    # to preserve existing sidechains
-                    blt.add_conformer_sampler(IncludeCurrentSampler())
-    task = PackerTask(pose_stack, palette)
-    task.restrict_to_repacking()
-    task.set_include_current()
+                    task.blts[pose_ind][block_ind].disable_packing()
 
+    # Add the samplers
     fixed_sampler = FixedAAChiSampler()
     task.add_conformer_sampler(dunbrack_sampler)
     task.add_conformer_sampler(fixed_sampler)
