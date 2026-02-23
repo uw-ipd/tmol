@@ -163,18 +163,23 @@ extend-select = [
     "F",   # pyflakes
     "W",   # pycodestyle warnings
     "I",   # isort
-    "UP",  # pyupgrade
     "B",   # flake8-bugbear
     "C4",  # flake8-comprehensions
-    "SIM", # flake8-simplify
-    "RUF", # Ruff-specific rules
     "T10", # catch accidental debugger breakpoints
 ]
 ignore = [
-    "B006",   # mutable default arguments
+    # Matching old flake8 config ignores
+    "E203",   # whitespace before ':' (formatter handles this)
+    "E266",   # too many leading '#' for block comment
     "E501",   # line too long (handled by formatter)
-    "SIM108", # ternary operator suggestions
+    "E711",   # comparison to None (vectorized checks use != None)
     "E741",   # ambiguous variable names (common in scientific code)
+    "W503",   # line break before binary operator (formatter handles)
+    "B006",   # mutable default arguments
+    "B009",   # do not call getattr with a constant attribute
+    "B010",   # do not call setattr with a constant attribute
+    "B020",   # loop control variable overrides iterable
+    "B023",   # function definition does not bind loop variable
 ]
 
 [tool.ruff.lint.per-file-ignores]
