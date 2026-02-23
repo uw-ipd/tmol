@@ -224,6 +224,14 @@ struct ForwardKinDispatch {
       // reindexing function
       nvtx_range_push("dispatch::segscan");
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
+        if (nodestart + index >= nodes.size(0) || nodestart + index < 0) {
+          return *((HTRawBuffer<Real>*)HTs[0].data());
+        }
+        if (nodes[nodestart + index] >= HTs.size(0)
+            || nodes[nodestart + index] < 0) {
+          return *((HTRawBuffer<Real>*)HTs[0].data());
+        }
+
         assert(nodestart + index < nodes.size(0) && nodestart + index >= 0);
         assert(
             nodes[nodestart + index] < HTs.size(0)
@@ -255,7 +263,15 @@ struct ForwardKinDispatch {
       // is)
       nvtx_range_push("dispatch::unindex");
       auto k_unindex = [=] MGPU_DEVICE(int index) {
+        if (nodestart + index >= nodes.size(0) || nodestart + index < 0) {
+          return;  // *((HTRawBuffer<Real>*)HTs[0].data());
+        }
         assert(nodestart + index < nodes.size(0) && nodestart + index >= 0);
+        if (nodes[nodestart + index] >= HTs.size(0)
+            || nodes[nodestart + index] < 0) {
+          return;  // *((HTRawBuffer<Real>*)HTs[0].data());
+        }
+
         assert(
             nodes[nodestart + index] < HTs.size(0)
             && nodes[nodestart + index] >= 0);
@@ -264,8 +280,6 @@ struct ForwardKinDispatch {
 
       mgpu::transform(k_unindex, nnodes, context);
       nvtx_range_pop();
-      // gpuErrPeek;
-      // gpuErrSync;
       nvtx_range_pop();
     }
 
@@ -276,8 +290,6 @@ struct ForwardKinDispatch {
     });
 
     mgpu::transform(k_getcoords, num_atoms, context);
-    // gpuErrPeek;
-    // gpuErrSync;
 
     return {xs_t, HTs_t};
   }

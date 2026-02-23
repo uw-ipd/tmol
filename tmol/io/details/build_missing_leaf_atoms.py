@@ -57,7 +57,7 @@ def build_missing_leaf_atoms(
         inter_residue_connections,
     )
 
-    return new_pose_coords, block_coord_offset
+    return new_pose_coords, block_coord_offset, real_block_atoms, pose_at_is_real
 
 
 def _setup_for_leaf_atom_coord_building(
@@ -98,9 +98,6 @@ def _setup_for_leaf_atom_coord_building(
         torch.arange(max_n_ats, dtype=torch.int64, device=device).repeat(n_poses, 1)
         < n_ats_inccumsum[:, -1:]
     )
-
-    # SHORT CIRCUIT
-    # return (pose_like_coords, block_coord_offset)
 
     block_at_is_leaf = torch.zeros(
         (n_poses, max_n_blocks, pbt.max_n_atoms), dtype=torch.bool, device=device

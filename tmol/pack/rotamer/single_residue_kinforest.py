@@ -86,17 +86,12 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
                     roots=numpy.zeros((1,), dtype=numpy.int32),
                     potential_bonds=restype.bond_indices,
                     prioritized_bonds=torsion_pairs,
-                    # all_bonds=restype.bond_indices,
-                    # n_atoms_total=restype.n_atoms,
                 ),
                 to_jump_nodes=numpy.array([], dtype=numpy.int32),
             )
             .kinforest
         )
     else:
-        # print("bonds")
-        # print(restype.bond_indices.shape)
-        # print(restype.bond_indices.dtype)
         kinforest = (
             _KinematicBuilder()
             .append_connected_components(
@@ -127,8 +122,6 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
             ),
         )
     )
-    # print("ideal coords")
-    # print(ideal_coords)
 
     dofs_ideal = inverse_kin(
         ideal_coords,
@@ -139,8 +132,6 @@ def construct_single_residue_kinforest(restype: RefinedResidueType):
         kinforest.doftype,
     )
     dofs_ideal = dofs_ideal.numpy()
-    # print("dofs ideal")
-    # print(dofs_ideal[:,:4])
 
     kinforest_idx = numpy.zeros((restype.n_atoms,), dtype=numpy.int32)
     kinforest_idx[kinforest.id.numpy()[1:]] = numpy.arange(

@@ -88,7 +88,7 @@ class TestElecEnergyTerm(EnergyTermTestBase):
 
     @classmethod
     def test_whole_pose_scoring_gradcheck(cls, ubq_pdb, default_database, torch_device):
-        resnums = [(0, 4)]
+        resnums = [(0, 5)]
         return super().test_whole_pose_scoring_gradcheck(
             ubq_pdb, default_database, torch_device, resnums=resnums
         )

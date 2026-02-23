@@ -20,3 +20,4 @@ _compiled = load(
 _ops = getattr(torch.ops, modulename(__name__))
 
 backbone_torsion_pose_score = _ops.backbone_torsion_pose_score
+backbone_torsion_rotamer_score = _ops.backbone_torsion_rotamer_score

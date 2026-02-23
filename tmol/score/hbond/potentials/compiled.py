@@ -20,3 +20,4 @@ load(
 _ops = getattr(torch.ops, modulename(__name__))
 
 hbond_pose_scores = _ops.hbond_pose_scores
+hbond_rotamer_scores = _ops.hbond_rotamer_scores

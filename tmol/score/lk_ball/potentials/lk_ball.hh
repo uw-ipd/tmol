@@ -498,18 +498,19 @@ struct lk_ball_score {
 template <typename Real>
 class LKBallSingleResData {
  public:
+  int rot_ind;
   int block_ind;
   int block_type;
-  int block_coord_offset;
+  int rot_coord_offset;
   int n_atoms;
   int n_conn;
-  Real *pose_coords;
-  Real *water_coords;
+  Real* pose_coords;
+  Real* water_coords;
   unsigned char n_polars;
   unsigned char n_occluders;
-  unsigned char *pol_occ_tile_inds;
-  LKBallTypeParams<Real> *lk_ball_params;
-  unsigned char *path_dist;
+  unsigned char* pol_occ_tile_inds;
+  LKBallTypeParams<Real>* lk_ball_params;
+  unsigned char* path_dist;
 };
 
 template <typename Real>
@@ -519,7 +520,7 @@ class LKBallResPairData {
   int max_important_bond_separation;
   int min_separation;
   bool in_count_pair_striking_dist;
-  unsigned char *conn_seps;
+  unsigned char* conn_seps;
 
   // load global params once; store totalE's
   LKBallGlobalParams<Real> global_params;
@@ -571,13 +572,13 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC lk_ball_load_block_coords_and_params_into_shared(
-    TView<Vec<Real, 3>, 2, Dev> pose_coords,
-    TView<Vec<Real, 3>, 3, Dev> water_coords,
+    TView<Vec<Real, 3>, 1, Dev> pose_coords,
+    TView<Vec<Real, 3>, 2, Dev> water_coords,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
     TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     int pose_ind,
     int tile_ind,
-    LKBallSingleResData<Real> &r_dat,
+    LKBallSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom) {
   // pre-condition: n_atoms_to_load < TILE_SIZE
@@ -586,13 +587,13 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_coords_and_params_into_shared(
 
   DeviceDispatch<Dev>::template copy_contiguous_data<nt, 3>(
       r_dat.pose_coords,
-      reinterpret_cast<Real *>(
-          &pose_coords[pose_ind][r_dat.block_coord_offset + start_atom]),
+      reinterpret_cast<Real*>(
+          &pose_coords[r_dat.rot_coord_offset + start_atom]),
       n_atoms_to_load * 3);
   DeviceDispatch<Dev>::template copy_contiguous_data<nt, MAX_N_WATER * 3>(
       r_dat.water_coords,
-      reinterpret_cast<Real *>(
-          &water_coords[pose_ind][r_dat.block_coord_offset + start_atom][0]),
+      reinterpret_cast<Real*>(
+          &water_coords[r_dat.rot_coord_offset + start_atom][0]),
       n_atoms_to_load * MAX_N_WATER * 3);
   DeviceDispatch<Dev>::template copy_contiguous_data_and_cast<nt, 1>(
       r_dat.pol_occ_tile_inds,
@@ -600,8 +601,8 @@ void TMOL_DEVICE_FUNC lk_ball_load_block_coords_and_params_into_shared(
       r_dat.n_occluders);
   int const N_PARAMS = sizeof(LKBallTypeParams<Real>) / sizeof(Real);
   DeviceDispatch<Dev>::template copy_contiguous_data<nt, N_PARAMS>(
-      reinterpret_cast<Real *>(r_dat.lk_ball_params),
-      reinterpret_cast<Real *>(
+      reinterpret_cast<Real*>(r_dat.lk_ball_params),
+      reinterpret_cast<Real*>(
           &block_type_tile_lk_ball_params[r_dat.block_type][tile_ind][0]),
       r_dat.n_occluders * N_PARAMS);
 }
@@ -616,18 +617,18 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC lk_ball_load_block_into_shared(
-    TView<Vec<Real, 3>, 2, Dev> pose_coords,
-    TView<Vec<Real, 3>, 3, Dev> water_coords,
+    TView<Vec<Real, 3>, 1, Dev> pose_coords,
+    TView<Vec<Real, 3>, 2, Dev> water_coords,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
     TView<LKBallTypeParams<Real>, 3, Dev> block_type_tile_lk_ball_params,
     TView<Int, 3, Dev> block_type_path_distance,
     int pose_ind,
     int tile_ind,
-    LKBallSingleResData<Real> &r_dat,
+    LKBallSingleResData<Real>& r_dat,
     int n_atoms_to_load,
     int start_atom,
     bool count_pair_striking_dist,
-    unsigned char *__restrict__ conn_ats) {
+    unsigned char* __restrict__ conn_ats) {
   lk_ball_load_block_coords_and_params_into_shared<
       DeviceDispatch,
       Dev,
@@ -669,8 +670,8 @@ template <
     int MAX_N_WATER,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
-    TView<Int, 2, Dev> pose_stack_block_coord_offset,
-    TView<Int, 2, Dev> pose_stack_block_type,
+    TView<Int, 1, Dev> rot_coord_offset,
+    TView<Int, 1, Dev> block_type_ind_for_rot,
     TView<Vec<Int, 2>, 3, Dev> pose_stack_inter_residue_connections,
     TView<Int, 3, Dev> pose_stack_min_bond_separation,
     TView<Int, 5, Dev> pose_stack_inter_block_bondsep,
@@ -679,24 +680,26 @@ void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_interres_data(
     TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
     int const max_important_bond_separation,
     int pose_ind,
+    int rot_ind1,
+    int rot_ind2,
     int block_ind1,
     int block_ind2,
     int block_type1,
     int block_type2,
     int n_atoms1,
     int n_atoms2,
-    LKBallScoringData<Real> &inter_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>
-        &shared_m) {
+    LKBallScoringData<Real>& inter_dat,
+    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
+        shared_m) {
   inter_dat.pair_data.pose_ind = pose_ind;
+  inter_dat.r1.rot_ind = rot_ind1;
+  inter_dat.r2.rot_ind = rot_ind2;
   inter_dat.r1.block_ind = block_ind1;
   inter_dat.r2.block_ind = block_ind2;
   inter_dat.r1.block_type = block_type1;
   inter_dat.r2.block_type = block_type2;
-  inter_dat.r1.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind1];
-  inter_dat.r2.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind2];
+  inter_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
+  inter_dat.r2.rot_coord_offset = rot_coord_offset[rot_ind2];
   inter_dat.pair_data.max_important_bond_separation =
       max_important_bond_separation;
   inter_dat.pair_data.min_separation =
@@ -775,8 +778,8 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, Dev> pose_coords,
-    TView<Vec<Real, 3>, 3, Dev> water_coords,
+    TView<Vec<Real, 3>, 1, Dev> pose_coords,
+    TView<Vec<Real, 3>, 2, Dev> water_coords,
     TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
@@ -785,9 +788,9 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres1_tile_data_to_shared(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    LKBallScoringData<Real> &inter_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>
-        &shared_m) {
+    LKBallScoringData<Real>& inter_dat,
+    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
+        shared_m) {
   auto store_n_pol_n_occ1 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[inter_dat.r1.block_type][tile_ind];
@@ -833,8 +836,8 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, Dev> pose_coords,
-    TView<Vec<Real, 3>, 3, Dev> water_coords,
+    TView<Vec<Real, 3>, 1, Dev> pose_coords,
+    TView<Vec<Real, 3>, 2, Dev> water_coords,
     TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
@@ -843,9 +846,9 @@ void TMOL_DEVICE_FUNC lk_ball_load_interres2_tile_data_to_shared(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    LKBallScoringData<Real> &inter_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>
-        &shared_m) {
+    LKBallScoringData<Real>& inter_dat,
+    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
+        shared_m) {
   auto store_n_pol_n_occ2 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[inter_dat.r2.block_type][tile_ind];
@@ -891,25 +894,25 @@ template <
     int MAX_N_WATER,
     int MAX_N_CONN>
 void TMOL_DEVICE_FUNC lk_ball_load_tile_invariant_intrares_data(
-    TView<Int, 2, Dev> pose_stack_block_coord_offset,
-    TView<Int, 2, Dev> pose_stack_block_type,
+    TView<Int, 1, Dev> rot_coord_offset,
+    TView<Int, 1, Dev> block_type_ind_for_rot,
     TView<LKBallGlobalParams<Real>, 1, Dev> global_params,
     int const max_important_bond_separation,
     int pose_ind,
+    int rot_ind1,
     int block_ind1,
     int block_type1,
     int n_atoms1,
-    LKBallScoringData<Real> &intra_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>
-        &shared_m) {
+    LKBallScoringData<Real>& intra_dat,
+    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
+        shared_m) {
   intra_dat.pair_data.pose_ind = pose_ind;
   intra_dat.r1.block_ind = block_ind1;
   intra_dat.r2.block_ind = block_ind1;
   intra_dat.r1.block_type = block_type1;
   intra_dat.r2.block_type = block_type1;
-  intra_dat.r1.block_coord_offset =
-      pose_stack_block_coord_offset[pose_ind][block_ind1];
-  intra_dat.r2.block_coord_offset = intra_dat.r1.block_coord_offset;
+  intra_dat.r1.rot_coord_offset = rot_coord_offset[rot_ind1];
+  intra_dat.r2.rot_coord_offset = intra_dat.r1.rot_coord_offset;
   intra_dat.pair_data.max_important_bond_separation =
       max_important_bond_separation;
 
@@ -962,8 +965,8 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, Dev> pose_coords,
-    TView<Vec<Real, 3>, 3, Dev> water_coords,
+    TView<Vec<Real, 3>, 1, Dev> pose_coords,
+    TView<Vec<Real, 3>, 2, Dev> water_coords,
     TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
@@ -971,9 +974,9 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares1_tile_data_to_shared(
     int tile_ind,
     int start_atom1,
     int n_atoms_to_load1,
-    LKBallScoringData<Real> &intra_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>
-        &shared_m) {
+    LKBallScoringData<Real>& intra_dat,
+    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
+        shared_m) {
   auto store_n_pol_n_occ1 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[intra_dat.r1.block_type][tile_ind];
@@ -1014,8 +1017,8 @@ template <
     typename Real,
     typename Int>
 void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
-    TView<Vec<Real, 3>, 2, Dev> pose_coords,
-    TView<Vec<Real, 3>, 3, Dev> water_coords,
+    TView<Vec<Real, 3>, 1, Dev> pose_coords,
+    TView<Vec<Real, 3>, 2, Dev> water_coords,
     TView<Int, 2, Dev> block_type_tile_n_polar_atoms,
     TView<Int, 2, Dev> block_type_tile_n_occluder_atoms,
     TView<Int, 3, Dev> block_type_tile_pol_occ_inds,
@@ -1023,9 +1026,9 @@ void TMOL_DEVICE_FUNC lk_ball_load_intrares2_tile_data_to_shared(
     int tile_ind,
     int start_atom2,
     int n_atoms_to_load2,
-    LKBallScoringData<Real> &intra_dat,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>
-        &shared_m) {
+    LKBallScoringData<Real>& intra_dat,
+    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
+        shared_m) {
   auto store_n_pol_n_occ2 = ([&](int tid) {
     int n_pol =
         block_type_tile_n_polar_atoms[intra_dat.r2.block_type][tile_ind];
@@ -1059,9 +1062,9 @@ template <int TILE_SIZE, int MAX_N_WATER, int MAX_N_CONN, typename Real>
 void TMOL_DEVICE_FUNC lk_ball_load_intrares_data_from_shared(
     int tile_ind1,
     int tile_ind2,
-    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>
-        &shared_m,
-    LKBallScoringData<Real> &intra_dat) {
+    LKBallBlockPairSharedData<Real, TILE_SIZE, MAX_N_WATER, MAX_N_CONN>&
+        shared_m,
+    LKBallScoringData<Real>& intra_dat) {
   // set the pointers in intra_dat to point at the shared-memory arrays
   // If we are evaluating the energies between atoms in the same tile
   // then only the "1" shared-memory arrays will be loaded with data;
@@ -1093,9 +1096,9 @@ TMOL_DEVICE_FUNC lk_ball_Vt<Real> lk_ball_atom_energy_full(
     int occluder_atom_tile_ind,  // in [0:TILE_SIZE)
     int polar_start,
     int occluder_start,
-    LKBallSingleResData<Real> const &polar_block_dat,
-    LKBallSingleResData<Real> const &occluder_block_dat,
-    LKBallResPairData<Real> const &block_pair_dat,
+    LKBallSingleResData<Real> const& polar_block_dat,
+    LKBallSingleResData<Real> const& occluder_block_dat,
+    LKBallResPairData<Real> const& block_pair_dat,
     int cp_separation) {
   using tmol::score::common::coord_from_shared;
   using tmol::score::common::distance;
@@ -1148,13 +1151,14 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
     int occluder_atom_tile_ind,  // in [0:TILE_SIZE)
     int polar_start,
     int occluder_start,
-    LKBallSingleResData<Real> const &polar_block_dat,
-    LKBallSingleResData<Real> const &occluder_block_dat,
-    LKBallResPairData<Real> const &block_pair_dat,
+    LKBallSingleResData<Real> const& polar_block_dat,
+    LKBallSingleResData<Real> const& occluder_block_dat,
+    LKBallResPairData<Real> const& block_pair_dat,
     int cp_separation,
-    TView<Real, 4, Dev> dTdV,
-    TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_d_pose_coords,
-    TView<Eigen::Matrix<Real, 3, 1>, 3, Dev> dV_d_water_coords,
+    Vec<Real, 4> dTdV,
+    int cta,
+    TView<Eigen::Matrix<Real, 3, 1>, 1, Dev> dV_d_pose_coords,
+    TView<Eigen::Matrix<Real, 3, 1>, 2, Dev> dV_d_water_coords,
     bool block_pair_scoring) {
   using WatersMat = Eigen::Matrix<Real, MAX_N_WATER, 3>;
   using Real3 = Eigen::Matrix<Real, 3, 1>;
@@ -1177,9 +1181,6 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   Eigen::Matrix<Real, MAX_N_WATER, 3> wmat_polar;
   Eigen::Matrix<Real, MAX_N_WATER, 3> wmat_occluder;
 
-  int block1_ind = (block_pair_scoring) ? polar_block_dat.block_ind : 0;
-  int block2_ind = (block_pair_scoring) ? occluder_block_dat.block_ind : 0;
-
   for (int wi = 0; wi < MAX_N_WATER; wi++) {
     wmat_polar.row(wi) = coord_from_shared(
         polar_block_dat.water_coords, MAX_N_WATER * polar_atom_tile_ind + wi);
@@ -1199,28 +1200,24 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
       block_pair_dat.global_params);
 
   auto accum_derivs1 = ([&] TMOL_DEVICE_FUNC(
-                            LKBallSingleResData<Real> const &block_dat,
+                            LKBallSingleResData<Real> const& block_dat,
                             int atom_ind,
                             Real3 dV,
                             lk_ball_score_type st) {
+    auto dTdV_val = dTdV[st];
     for (int j = 0; j < 3; ++j) {
       if (dV[j] != 0) {
         accumulate<Dev, Real>::add(
-            dV_d_pose_coords[block_pair_dat.pose_ind]
-                            [block_dat.block_coord_offset + atom_ind][j],
-            0.5
-                * (dTdV[st][block_pair_dat.pose_ind][block1_ind][block2_ind]
-                       * dV[j]
-                   + dTdV[st][block_pair_dat.pose_ind][block2_ind][block1_ind]
-                         * dV[j]));
+            dV_d_pose_coords[block_dat.rot_coord_offset + atom_ind][j],
+            dTdV_val * dV[j]);
       }
     }
   });
 
   auto accum_derivs4 = ([&] TMOL_DEVICE_FUNC(
-                            LKBallSingleResData<Real> const &block_dat,
+                            LKBallSingleResData<Real> const& block_dat,
                             int atom_ind,
-                            lk_ball_dV_dReal3<Real> const &dV) {
+                            lk_ball_dV_dReal3<Real> const& dV) {
     accum_derivs1(block_dat, atom_ind, dV.d_lkball_iso, w_lk_ball_iso);
     accum_derivs1(block_dat, atom_ind, dV.d_lkball, w_lk_ball);
     accum_derivs1(block_dat, atom_ind, dV.d_lkbridge, w_lk_bridge);
@@ -1228,32 +1225,29 @@ TMOL_DEVICE_FUNC void lk_ball_atom_derivs_full(
   });
 
   auto water_accum_derivs1 = ([&] TMOL_DEVICE_FUNC(
-                                  LKBallSingleResData<Real> const &block_dat,
+                                  LKBallSingleResData<Real> const& block_dat,
                                   int atom_ind,
                                   int water_ind,
                                   WatersMat dV,
                                   lk_ball_score_type st) {
+    auto dTdV_val = dTdV[st];
+
     for (int j = 0; j < 3; ++j) {
       if (dV(water_ind, j) != 0) {
         accumulate<Dev, Real>::add(
-            dV_d_water_coords[block_pair_dat.pose_ind]
-                             [block_dat.block_coord_offset + atom_ind]
-                             [water_ind][j],
-            0.5
-                * (dTdV[st][block_pair_dat.pose_ind][block1_ind][block2_ind]
-                       * dV(water_ind, j)
-                   + dTdV[st][block_pair_dat.pose_ind][block2_ind][block1_ind]
-                         * dV(water_ind, j)));
+            dV_d_water_coords[block_dat.rot_coord_offset + atom_ind][water_ind]
+                             [j],
+            dTdV_val * dV(water_ind, j));
       }
     }
   });
 
   auto water_accum_derivs4 = ([&] TMOL_DEVICE_FUNC(
-                                  LKBallSingleResData<Real> const &block_dat,
+                                  LKBallSingleResData<Real> const& block_dat,
                                   int atom_ind,
                                   int water_ind,
-                                  lk_ball_dV_dWater<Real, MAX_N_WATER> const
-                                      &dV) {
+                                  lk_ball_dV_dWater<Real, MAX_N_WATER> const&
+                                      dV) {
     water_accum_derivs1(
         block_dat, atom_ind, water_ind, dV.d_lkball_iso, w_lk_ball_iso);
     water_accum_derivs1(block_dat, atom_ind, water_ind, dV.d_lkball, w_lk_ball);
@@ -1282,7 +1276,7 @@ template <
     typename Func,
     typename Real>
 void TMOL_DEVICE_FUNC eval_interres_pol_occ_pair_energies(
-    LKBallScoringData<Real> &inter_dat,
+    LKBallScoringData<Real>& inter_dat,
     int start_atom1,
     int start_atom2,
     Func f) {
@@ -1294,9 +1288,9 @@ void TMOL_DEVICE_FUNC eval_interres_pol_occ_pair_energies(
       bool r1_polar = i < inter_dat.r1.n_polars * inter_dat.r2.n_occluders;
       int pair_ind =
           r1_polar ? i : i - inter_dat.r1.n_polars * inter_dat.r2.n_occluders;
-      LKBallSingleResData<Real> const &pol_dat =
+      LKBallSingleResData<Real> const& pol_dat =
           r1_polar ? inter_dat.r1 : inter_dat.r2;
-      LKBallSingleResData<Real> const &occ_dat =
+      LKBallSingleResData<Real> const& occ_dat =
           r1_polar ? inter_dat.r2 : inter_dat.r1;
       int pol_ind = pair_ind / occ_dat.n_occluders;
       int occ_ind = pair_ind % occ_dat.n_occluders;
@@ -1320,7 +1314,7 @@ template <
     typename Func,
     typename Real>
 void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
-    LKBallScoringData<Real> &intra_dat,
+    LKBallScoringData<Real>& intra_dat,
     int start_atom1,
     int start_atom2,
     Func f) {
@@ -1349,7 +1343,7 @@ void TMOL_DEVICE_FUNC eval_intrares_pol_occ_pair_energies(
         bool r1_polar = i < intra_dat.r1.n_polars * intra_dat.r2.n_occluders;
         int pair_ind =
             r1_polar ? i : i - intra_dat.r1.n_polars * intra_dat.r2.n_occluders;
-        LKBallSingleResData<Real> const &occ_dat =
+        LKBallSingleResData<Real> const& occ_dat =
             r1_polar ? intra_dat.r2 : intra_dat.r1;
         int pol_ind = pair_ind / occ_dat.n_occluders;
         int occ_ind = pair_ind % occ_dat.n_occluders;

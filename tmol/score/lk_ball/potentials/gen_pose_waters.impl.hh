@@ -18,8 +18,6 @@
 #include "water.hh"
 #include <tmol/score/lk_ball/potentials/constants.hh>
 
-#include <iostream>  // TEMP!
-
 namespace tmol {
 namespace score {
 namespace lk_ball {
@@ -35,9 +33,19 @@ template <
     typename Int>
 struct GeneratePoseWaters {
   static auto forward(
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Int, 2, Dev> pose_stack_block_coord_offset,
-      TView<Int, 2, Dev> pose_stack_block_type,
+      TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Int, 1, Dev> rot_coord_offset,
+      TView<Int, 1, Dev> pose_ind_for_atom,
+      TView<Int, 2, Dev> first_rot_for_block,
+      TView<Int, 2, Dev> first_rot_block_type,
+      TView<Int, 1, Dev> block_ind_for_rot,
+      TView<Int, 1, Dev> pose_ind_for_rot,
+      TView<Int, 1, Dev> block_type_ind_for_rot,
+      TView<Int, 1, Dev> n_rots_for_pose,
+      TView<Int, 1, Dev> rot_offset_for_pose,
+      TView<Int, 2, Dev> n_rots_for_block,
+      TView<Int, 2, Dev> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
@@ -75,47 +83,15 @@ struct GeneratePoseWaters {
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
-      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 3, Dev> {
-    int const n_poses = pose_coords.size(0);
-    int const max_n_pose_atoms = pose_coords.size(1);
-    int const max_n_blocks = pose_stack_block_type.size(1);
+      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev> {
+    int const n_poses = first_rot_for_block.size(0);
+    int const n_rots = rot_coord_offset.size(0);
+    int const n_atoms = rot_coords.size(0);
+    int const max_n_blocks = block_type_ind_for_rot.size(1);
     int const max_n_conn = pose_stack_inter_residue_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_atom_all_bond_ranges.size(1);
     int const max_n_tiles = block_type_tile_n_donH.size(1);
-
-    assert(pose_stack_block_coord_offset.size(0) == n_poses);
-    assert(pose_stack_block_type.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
-    assert(block_type_n_interblock_bonds.size(0) == n_block_types);
-    assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
-    assert(block_type_atoms_forming_chemical_bonds.size(1) == max_n_conn);
-    assert(block_type_n_all_bonds.size(0) == n_block_types);
-    assert(block_type_atom_all_bond_ranges.size(0) == n_block_types);
-    assert(block_type_tile_n_donH.size(0) == n_block_types);
-    assert(block_type_tile_n_acc.size(0) == n_block_types);
-    assert(block_type_tile_n_acc.size(1) == max_n_tiles);
-    assert(block_type_tile_donH_inds.size(0) == n_block_types);
-    assert(block_type_tile_donH_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_donH_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_don_hvy_inds.size(0) == n_block_types);
-    assert(block_type_tile_don_hvy_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_don_hvy_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_which_donH_for_hvy.size(0) == n_block_types);
-    assert(block_type_tile_which_donH_for_hvy.size(1) == max_n_tiles);
-    assert(block_type_tile_which_donH_for_hvy.size(2) == TILE_SIZE);
-    assert(block_type_tile_acc_inds.size(0) == n_block_types);
-    assert(block_type_tile_acc_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_acc_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_hybridization.size(0) == n_block_types);
-    assert(block_type_tile_hybridization.size(1) == max_n_tiles);
-    assert(block_type_tile_hybridization.size(2) == TILE_SIZE);
-    assert(block_type_tile_acc_n_attached_H.size(0) == n_block_types);
-    assert(block_type_tile_acc_n_attached_H.size(1) == max_n_tiles);
-    assert(block_type_tile_acc_n_attached_H.size(2) == TILE_SIZE);
-    assert(block_type_atom_is_hydrogen.size(0) == n_block_types);
-    assert(block_type_atom_is_hydrogen.size(1) == max_n_block_atoms);
 
     NVTXRange _function(__FUNCTION__);
 
@@ -123,8 +99,8 @@ struct GeneratePoseWaters {
     using tmol::score::hbond::AcceptorHybridization;
 
     nvtx_range_push("watergen::setup");
-    auto water_coords_t = TPack<Vec<Real, 3>, 3, Dev>::full(
-        {n_poses, max_n_pose_atoms, MAX_N_WATER}, NAN);
+    auto water_coords_t =
+        TPack<Vec<Real, 3>, 2, Dev>::full({n_atoms, MAX_N_WATER}, NAN);
     auto water_coords = water_coords_t.view;
 
     nvtx_range_pop();
@@ -133,12 +109,13 @@ struct GeneratePoseWaters {
     LAUNCH_BOX_32;
     CTA_LAUNCH_T_PARAMS;
 
-    auto f_watergen = ([=] TMOL_DEVICE_FUNC(int ind) {
-      int const pose_ind = ind / max_n_blocks;
-      int const block_ind = ind % max_n_blocks;
-      int const block_type = pose_stack_block_type[pose_ind][block_ind];
-
-      if (block_type < 0) return;
+    auto f_watergen = ([=] TMOL_DEVICE_FUNC(int rot_ind) {
+      int const pose_ind = pose_ind_for_rot[rot_ind];
+      int const block_type = block_type_ind_for_rot[rot_ind];
+      int const block_ind = block_ind_for_rot[rot_ind];
+      if (block_type == -1) {
+        return;
+      }
 
       int const n_atoms = block_type_n_atoms[block_type];
 
@@ -151,9 +128,11 @@ struct GeneratePoseWaters {
       // TO DO: make this "1 body" tile action templated
       // Step 1: load in tile-invariant data for this block
       water_gen_load_tile_invariant_data<DeviceOps, Dev, nt>(
-          pose_coords,
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
+          rot_coords,
+          first_rot_for_block,
+          first_rot_block_type,
+          rot_coord_offset,
+          block_type_ind_for_rot,
           pose_stack_inter_residue_connections,
 
           block_type_n_all_bonds,
@@ -165,6 +144,7 @@ struct GeneratePoseWaters {
           global_params,
 
           pose_ind,
+          rot_ind,
           block_ind,
           block_type,
           n_atoms,
@@ -184,7 +164,7 @@ struct GeneratePoseWaters {
 
         // Step 3: and load data for each tile into shared memory
         water_gen_load_block_coords_and_params_into_shared<DeviceOps, Dev, nt>(
-            pose_coords,
+            rot_coords,
             block_type_tile_n_donH,
             block_type_tile_n_acc,
             block_type_tile_donH_inds,
@@ -242,16 +222,26 @@ struct GeneratePoseWaters {
     });
 
     int const n_blocks = n_poses * max_n_blocks;
-    DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_blocks, f_watergen);
+    DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
 
     return water_coords_t;
   };
 
   static auto backward(
-      TView<Vec<Real, 3>, 3, Dev> dE_dWxyz,
-      TView<Vec<Real, 3>, 2, Dev> pose_coords,
-      TView<Int, 2, Dev> pose_stack_block_coord_offset,
-      TView<Int, 2, Dev> pose_stack_block_type,
+      TView<Vec<Real, 3>, 2, Dev> dE_dWxyz,
+      TView<Vec<Real, 3>, 1, Dev> rot_coords,
+      TView<Int, 1, Dev> rot_coord_offset,
+      TView<Int, 1, Dev> pose_ind_for_atom,
+      TView<Int, 2, Dev> first_rot_for_block,
+      TView<Int, 2, Dev> first_rot_block_type,
+      TView<Int, 1, Dev> block_ind_for_rot,
+      TView<Int, 1, Dev> pose_ind_for_rot,
+      TView<Int, 1, Dev> block_type_ind_for_rot,
+      TView<Int, 1, Dev> n_rots_for_pose,
+      TView<Int, 1, Dev> rot_offset_for_pose,
+      TView<Int, 2, Dev> n_rots_for_block,
+      TView<Int, 2, Dev> rot_offset_for_block,
+      Int max_n_rots_per_pose,
 
       // For determining which atoms to retrieve from neighboring
       // residues we have to know how the blocks in the Pose
@@ -289,75 +279,39 @@ struct GeneratePoseWaters {
       TView<LKBallWaterGenGlobalParams<Real>, 1, Dev> global_params,
       TView<Real, 1, Dev> sp2_water_tors,
       TView<Real, 1, Dev> sp3_water_tors,
-      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 2, Dev> {
-    int const n_poses = pose_coords.size(0);
-    int const max_n_pose_atoms = pose_coords.size(1);
-    int const max_n_blocks = pose_stack_block_type.size(1);
+      TView<Real, 1, Dev> ring_water_tors) -> TPack<Vec<Real, 3>, 1, Dev> {
+    int const n_poses = first_rot_for_block.size(0);
+    int const n_rots = rot_coord_offset.size(0);
+    int const n_atoms = rot_coords.size(0);
+    int const max_n_blocks = block_type_ind_for_rot.size(1);
     int const max_n_conn = pose_stack_inter_residue_connections.size(2);
     int const n_block_types = block_type_n_atoms.size(0);
     int const max_n_block_atoms = block_type_atom_all_bond_ranges.size(1);
     int const max_n_tiles = block_type_tile_n_donH.size(1);
 
-    assert(pose_stack_block_coord_offset.size(0) == n_poses);
-    assert(pose_stack_block_type.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(0) == n_poses);
-    assert(pose_stack_inter_residue_connections.size(1) == max_n_blocks);
-    assert(block_type_n_interblock_bonds.size(0) == n_block_types);
-    assert(block_type_atoms_forming_chemical_bonds.size(0) == n_block_types);
-    assert(block_type_atoms_forming_chemical_bonds.size(1) == max_n_conn);
-    assert(block_type_n_all_bonds.size(0) == n_block_types);
-    assert(block_type_atom_all_bond_ranges.size(0) == n_block_types);
-    assert(block_type_tile_n_donH.size(0) == n_block_types);
-    assert(block_type_tile_n_acc.size(0) == n_block_types);
-    assert(block_type_tile_n_acc.size(1) == max_n_tiles);
-    assert(block_type_tile_donH_inds.size(0) == n_block_types);
-    assert(block_type_tile_donH_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_donH_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_don_hvy_inds.size(0) == n_block_types);
-    assert(block_type_tile_don_hvy_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_don_hvy_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_which_donH_for_hvy.size(0) == n_block_types);
-    assert(block_type_tile_which_donH_for_hvy.size(1) == max_n_tiles);
-    assert(block_type_tile_which_donH_for_hvy.size(2) == TILE_SIZE);
-    assert(block_type_tile_acc_inds.size(0) == n_block_types);
-    assert(block_type_tile_acc_inds.size(1) == max_n_tiles);
-    assert(block_type_tile_acc_inds.size(2) == TILE_SIZE);
-    assert(block_type_tile_hybridization.size(0) == n_block_types);
-    assert(block_type_tile_hybridization.size(1) == max_n_tiles);
-    assert(block_type_tile_hybridization.size(2) == TILE_SIZE);
-    assert(block_type_tile_acc_n_attached_H.size(0) == n_block_types);
-    assert(block_type_tile_acc_n_attached_H.size(1) == max_n_tiles);
-    assert(block_type_tile_acc_n_attached_H.size(2) == TILE_SIZE);
-    assert(block_type_atom_is_hydrogen.size(0) == n_block_types);
-    assert(block_type_atom_is_hydrogen.size(1) == max_n_block_atoms);
-
-    // std::cout << "d watergen start" << std::endl;
-
     NVTXRange _function(__FUNCTION__);
-
-    nvtx_range_push("watergen::dsetup");
 
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
-    auto dE_d_pose_coords_t =
-        TPack<Vec<Real, 3>, 2, Dev>::zeros({n_poses, max_n_pose_atoms});
+    nvtx_range_push("watergen::setup");
+
+    auto dE_d_pose_coords_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({n_atoms});
     auto dE_d_pose_coords = dE_d_pose_coords_t.view;
 
-    int nsp2wats = sp2_water_tors.size(0);
-    int nsp3wats = sp3_water_tors.size(0);
-    int nringwats = ring_water_tors.size(0);
     nvtx_range_pop();
 
+    nvtx_range_push("watergen::gen");
     LAUNCH_BOX_32;
     CTA_LAUNCH_T_PARAMS;
 
-    auto f_watergen = ([=] TMOL_DEVICE_FUNC(int ind) {
-      int const pose_ind = ind / max_n_blocks;
-      int const block_ind = ind % max_n_blocks;
-      int const block_type = pose_stack_block_type[pose_ind][block_ind];
-
-      if (block_type < 0) return;
+    auto f_watergen = ([=] TMOL_DEVICE_FUNC(int rot_ind) {
+      int const pose_ind = pose_ind_for_rot[rot_ind];
+      int const block_type = block_type_ind_for_rot[rot_ind];
+      int const block_ind = block_ind_for_rot[rot_ind];
+      if (block_type == -1) {
+        return;
+      }
 
       int const n_atoms = block_type_n_atoms[block_type];
 
@@ -369,11 +323,12 @@ struct GeneratePoseWaters {
 
       // TO DO: make this "1 body" tile action templated
       // Step 1: load in tile-invariant data for this block
-      // printf("water_gen_load_tile_invariant_data %d\n", ind);
       water_gen_load_tile_invariant_data<DeviceOps, Dev, nt>(
-          pose_coords,
-          pose_stack_block_coord_offset,
-          pose_stack_block_type,
+          rot_coords,
+          first_rot_for_block,
+          first_rot_block_type,
+          rot_coord_offset,
+          block_type_ind_for_rot,
           pose_stack_inter_residue_connections,
 
           block_type_n_all_bonds,
@@ -385,6 +340,7 @@ struct GeneratePoseWaters {
           global_params,
 
           pose_ind,
+          rot_ind,
           block_ind,
           block_type,
           n_atoms,
@@ -403,10 +359,8 @@ struct GeneratePoseWaters {
         }
 
         // Step 3: and load data for each tile into shared memory
-        // printf("water_gen_load_block_coords_and_params_into_shared %d %d\n",
-        // ind, tile_ind);
         water_gen_load_block_coords_and_params_into_shared<DeviceOps, Dev, nt>(
-            pose_coords,
+            rot_coords,
             block_type_tile_n_donH,
             block_type_tile_n_acc,
             block_type_tile_donH_inds,
@@ -468,10 +422,9 @@ struct GeneratePoseWaters {
 
     int const n_blocks = n_poses * max_n_blocks;
     nvtx_range_push("watergen::dgen");
-    DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_blocks, f_watergen);
-    nvtx_range_pop();
+    DeviceOps<Dev>::template foreach_workgroup<launch_t>(n_rots, f_watergen);
 
-    // std::cout << "d watergen end" << std::endl;
+    nvtx_range_pop();
 
     return dE_d_pose_coords_t;
   };

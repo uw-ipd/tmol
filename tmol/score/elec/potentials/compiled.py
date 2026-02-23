@@ -19,3 +19,4 @@ load(
 _ops = getattr(torch.ops, modulename(__name__))
 
 elec_pose_scores = _ops.elec_pose_scores
+elec_rotamer_scores = _ops.elec_rotamer_scores

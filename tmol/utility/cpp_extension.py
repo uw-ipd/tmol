@@ -77,7 +77,6 @@ if torch.cuda.is_available():
     import sys
 
     path = subprocess.run(["which", "nvcc"], capture_output=True, text=True)
-    print("NVCC PATH:", path.stdout)
     nvcc_dir = os.path.dirname(path.stdout)
 
     ver_info = sys.version_info

@@ -1,0 +1,166 @@
+import torch
+
+# from tmol.score.hbond.potentials.compiled import hbond_pose_scores
+from tmol.score.common.convert_float64 import convert_float64
+
+
+class TermScoringModule(torch.nn.Module):
+    def __init__(
+        self,
+        classname,
+        term_parameters,
+        term_score_poses,
+    ):
+        super(TermScoringModule, self).__init__()
+        self.classname = classname
+        self.term_parameters = []
+
+        self.add_parameters(self.term_parameters, term_parameters)
+
+        self.term_score_poses = term_score_poses
+
+    def format_arguments(self, coords, block_pair_scoring):
+        params = (
+            [coords.flatten(start_dim=0, end_dim=-2)]
+            + self.common_parameters
+            + self.term_parameters
+            + [block_pair_scoring]
+        )
+
+        if coords.dtype == torch.float64:
+            convert_float64(params)
+
+        return params
+
+    def add_parameters(self, table, params):
+        def _p(t):
+            return torch.nn.Parameter(t, requires_grad=False)
+
+        for param in params:
+            table += [_p(param) if type(param) is torch.Tensor else param]
+
+
+class TermPoseScoringModule(TermScoringModule):
+    def __init__(
+        self,
+        classname,
+        pose_stack,
+        term_parameters,
+        term_score_poses,
+    ):
+        super(TermPoseScoringModule, self).__init__(
+            classname, term_parameters, term_score_poses
+        )
+
+        self.common_parameters = []
+
+        self.add_parameters(
+            self.common_parameters,
+            [
+                pose_stack.rot_coord_offset,
+                pose_stack.pose_ind_for_atom,
+                pose_stack.first_rot_for_block,
+                pose_stack.block_type_ind,  # block_type for first rot for block
+                pose_stack.block_ind_for_rot,
+                pose_stack.pose_ind_for_rot,
+                pose_stack.block_type_ind_for_rot,
+                pose_stack.n_rots_for_pose,
+                pose_stack.rot_offset_for_pose,
+                pose_stack.n_rots_for_block,
+                pose_stack.rot_offset_for_block,
+                pose_stack.max_n_rots_per_pose,
+            ],
+        )
+        self.n_poses = pose_stack.first_rot_for_block.shape[0]
+        self.max_n_blocks = pose_stack.first_rot_for_block.shape[1]
+
+
+class TermWholePoseScoringModule(TermPoseScoringModule):
+    def __init__(
+        self,
+        classname,
+        pose_stack,
+        term_parameters,
+        term_score_poses,
+    ):
+        super(TermWholePoseScoringModule, self).__init__(
+            classname, pose_stack, term_parameters, term_score_poses
+        )
+        self.count = 0
+
+    def forward(
+        self,
+        coords,
+    ):
+        # ignore the dispatch_indices return tensor
+        args = self.format_arguments(coords, False)
+        scores, _ = self.term_score_poses(*args)
+        return scores
+
+
+class TermBlockPairScoringModule(TermPoseScoringModule):
+    def forward(
+        self,
+        coords,
+    ):
+        scores, _ = self.term_score_poses(*self.format_arguments(coords, True))
+
+        return scores
+
+
+class TermRotamerScoringModule(TermScoringModule):
+    def __init__(
+        self,
+        classname,
+        rotamer_set,
+        term_parameters,
+        term_score_poses,
+    ):
+        super(TermRotamerScoringModule, self).__init__(
+            classname, term_parameters, term_score_poses
+        )
+
+        self.common_parameters = []
+
+        def _i32(x):
+            return x if isinstance(x, int) else x.to(torch.int32)
+
+        self.add_parameters(
+            self.common_parameters,
+            [
+                _i32(t)
+                for t in [
+                    rotamer_set.coord_offset_for_rot,  # rot coord offset
+                    rotamer_set.pose_ind_for_atom,  # pose_ind_for_atom?? unused
+                    rotamer_set.rot_offset_for_block,  # first rot for block
+                    rotamer_set.first_rot_block_type,  # first rot block type
+                    rotamer_set.block_ind_for_rot,
+                    rotamer_set.pose_for_rot,
+                    rotamer_set.block_type_ind_for_rot,
+                    rotamer_set.n_rots_for_pose,
+                    rotamer_set.rot_offset_for_pose,
+                    rotamer_set.n_rots_for_block,
+                    rotamer_set.rot_offset_for_block,  # three times?!
+                    rotamer_set.max_n_rots_per_pose,
+                ]
+            ],
+        )
+        self.n_poses = rotamer_set.n_rots_for_pose.shape[0]
+        self.n_rots = rotamer_set.coord_offset_for_rot.shape[0]
+
+    def forward(
+        self,
+        coords,
+    ):
+        scores, indices = self.term_score_poses(*self.format_arguments(coords, True))
+        sparse_result = torch.stack(
+            [
+                torch.sparse_coo_tensor(
+                    indices,
+                    scores[subterm, :],
+                    size=(self.n_poses, self.n_rots, self.n_rots),
+                )
+                for subterm in range(scores.size(0))
+            ]
+        )
+        return sparse_result

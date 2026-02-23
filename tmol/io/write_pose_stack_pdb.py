@@ -2,12 +2,13 @@ import numpy
 import torch
 
 from tmol.io.pdb_parsing import atom_record_dtype
+from tmol.pose.pdb_info import DEFAULT_ATOM_B_FACTOR, DEFAULT_ATOM_OCCUPANCY
 from tmol.pose.pose_stack import PoseStack
 from tmol.pose.packed_block_types import PackedBlockTypes
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from typing import Optional, Union
+from typing import Optional
 
 
 @validate_args
@@ -36,67 +37,37 @@ def write_pose_stack_pdb(
 @validate_args
 def atom_records_from_pose_stack(
     pose_stack: PoseStack,
-    chain_ind_for_block: Optional[Tensor[torch.int64][:, :]] = None,
-    chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
 ) -> NDArray[atom_record_dtype][:]:
     """Create a numpy array holding the atom records needed to write a
     PDB file from a PoseStack.
-
-    Now, whereas PoseStack does not have a concept of a "chain," a PDB most
-    certainly does. The good news is that "chain" is an emergent concept from
-    the set of chemical bonds in the system. This function uses the set of
-    chemical bonds and declares any residues that are chemically bonded to be
-    part of the same chain (with the exception of disulfide bonds, which often
-    span between two chains), and then the Union/Find algorithm from there to
-    label each residue with a chain index, with residue 0 always being on chain
-    0, and then chain index increasing monotonically with residue index. These
-    chain indices are then turned into chain letters starting at 'A.' These
-    default chain-handling behaviors can be intercepted by using either or both
-    of the two arguments: chain_ind_for_block and chain_labels.
-
-    If chain_ind_for_block is given, then each residue (aka block) will be
-    labeled by the chain index indicated instead of relying on the Union/Find
-    algorithm on the bond graph. This is especially needed if you have constructed
-    a PoseStack using the res_not_connected argument to pose_stack_from_canonical_form
-    (or any of the PoseStack-construction functions that call it) to state
-    that two adjacent residues belong to the same chain but should not either
-    be treated as termini residues or have chemical bonds between them. The
-    Union/Find algorithm on the chemical graph will declare such residues to
-    be parts of different chains. When constructing such a PoseStack, it is
-    recommended to pass "return_chain_ind=True" and then give that tensor back to
-    this function when saving that PoseStack in PDB format.
-    chain_ind_for_block should be an [n-poses x max-n-residues] tensor.
-
-    If chain_labels is given, then the alphabetical characters for the chains
-    will be taken from there instead of in ascending order starting from 'A.'
-    For an antibody, e.g., chains are typically labeled 'H' and 'L' instead
-    of 'A' and 'B.' chain_labels can either be an [n-poses x max-n-chains]
-    numpy array of characters (so that different poses in the PoseStack
-    can have different chain labels) or a [max-n-chains] numpy array of
-    characters (when each PoseStack has the same chain labels).
     """
-    from tmol.io.chain_deduction import chain_inds_for_pose_stack
 
-    if chain_ind_for_block is None:
-        chain_ind_for_block = chain_inds_for_pose_stack(pose_stack)
     return atom_records_from_coords(
         pose_stack.packed_block_types,
-        chain_ind_for_block,
+        pose_stack.chain_id64,
         pose_stack.block_type_ind64,
         pose_stack.coords,
         pose_stack.block_coord_offset,
-        chain_labels,
+        pose_stack.pdb_info.residue_labels,
+        pose_stack.pdb_info.residue_insertion_codes,
+        pose_stack.pdb_info.chain_labels,
+        pose_stack.pdb_info.atom_occupancy,
+        pose_stack.pdb_info.atom_b_factor,
     )
 
 
 @validate_args
 def atom_records_from_coords(
     pbt: "PackedBlockTypes",
-    chain_ind_for_block: Union[Tensor[torch.int64][:, :], NDArray[numpy.int64][:, :]],
+    chain_ind_for_block: Tensor[torch.int64][:, :],
     block_types64: Tensor[torch.int64][:, :],
     pose_like_coords: Tensor[torch.float32][:, :, 3],
     block_coord_offset: Tensor[torch.int32][:, :],
-    chain_labels=None,  # : Optional[Union[NDArray[str][:], NDArray[str][:, :]]] = None,
+    residue_labels: Optional[NDArray[int][:, :]],
+    residue_insertion_codes: Optional[NDArray[object][:, :]],
+    chain_labels: Optional[NDArray[object][:, :]],
+    atom_occupancy: Optional[NDArray[numpy.float32][:, :]],
+    atom_b_factor: Optional[NDArray[numpy.float32][:, :]],
 ) -> NDArray[atom_record_dtype][:]:
     """Create a numpy array holding the atom records needed to write a
     PDB file from the coordinates and block types of a stack of structures,
@@ -172,6 +143,43 @@ def atom_records_from_coords(
         atom_is_real
     ]
 
+    # BEGIN BLOCK OF CODE FOR CREATING FROM-1 RESIDUE INDICES FROM CHAIN INDICES
+    max_n_chains = torch.max(chain_ind_for_block) + 1
+    global_chain_ind_for_block = (
+        chain_ind_for_block
+        + (
+            torch.arange(n_poses, dtype=torch.int64, device=pbt.device).unsqueeze(1)
+            * max_n_chains
+        )
+    ).view(-1)
+    n_blocks_per_global_chain = torch.zeros(
+        (n_poses * max_n_chains), dtype=torch.int64, device=pbt.device
+    )
+
+    is_not_real_block = torch.logical_not(is_real_block)
+    global_chain_ind_for_block[is_not_real_block.view(-1)] = (
+        0  # avoid index add to invalid locations
+    )
+    n_blocks_per_global_chain.index_add_(
+        0,
+        global_chain_ind_for_block,
+        is_real_block.to(torch.int64).view(-1),
+    )
+    n_blocks_per_chain = n_blocks_per_global_chain.view(n_poses, max_n_chains)
+
+    block_offset_for_chain = torch.zeros(
+        (n_poses, max_n_chains), dtype=torch.int64, device=pbt.device
+    )
+    block_offset_for_chain[:, 1:] = torch.cumsum(n_blocks_per_chain[:, :-1], dim=1)
+    # END BLOCK OF CODE FOR CREATING FROM-1 RESIDUE INDICES FROM CHAIN INDICES
+
+    block_chain_local_index_for_real_atom = (
+        block_for_atom
+        - block_offset_for_chain[
+            pose_for_pose_atom, chain_ind_for_block[pose_for_pose_atom, block_for_atom]
+        ]
+    )
+
     pose_atom_offsets = exclusive_cumsum1d(n_pose_atoms)
 
     # ok, let's move everything to the cpu/numpy from here forward
@@ -186,10 +194,14 @@ def atom_records_from_coords(
     atom_is_real = atom_is_real.cpu().numpy()
     block_for_atom = block_for_atom.cpu().numpy()
     block_for_real_atom = block_for_real_atom.cpu().numpy()
+    block_chain_local_index_for_real_atom = (
+        block_chain_local_index_for_real_atom.cpu().numpy()
+    )
     block_local_atom_index_for_real_atom = (
         block_local_atom_index_for_real_atom.cpu().numpy()
     )
     pose_atom_offsets = pose_atom_offsets.cpu().numpy()
+    chain_ind_for_block = chain_ind_for_block.cpu().numpy()
 
     chain_ind_for_real_atom = chain_ind_for_block[
         pose_for_real_atom, block_for_real_atom
@@ -199,24 +211,35 @@ def atom_records_from_coords(
     results["record_name"] = numpy.full((n_atoms_total,), "ATOM  ", dtype=str)
     results["modeli"] = pose_for_real_atom
     results["chaini"] = chain_ind_for_real_atom
-    results["resi"] = block_for_atom[atom_is_real] + 1
+    if residue_labels is not None:
+        results["resi"] = residue_labels[pose_for_real_atom, block_for_real_atom]
+    else:
+        results["resi"] = block_chain_local_index_for_real_atom + 1
+
     results["atomi"] = (
         numpy.arange(n_atoms_total, dtype=int)
         + 1
         - pose_atom_offsets[pose_for_real_atom]
     )
     results["model"] = pose_for_real_atom + 1
-
     if chain_labels is None:
-        chain_labels = numpy.array([x for x in "ABCDEFGHIJKLKMNOPQRSTUVWXY"])
-
-    if len(chain_labels.shape) == 1:
-        results["chain"] = chain_labels[chain_ind_for_real_atom]
-    elif len(chain_labels.shape) == 2:
-        results["chain"] = chain_labels[pose_for_real_atom, chain_ind_for_real_atom]
+        # create default chain labels as A, B, ..., Z, AA, AB, ... ZZ; max 702 chains.
+        assert max_n_chains <= 26 * 27
+        chain_labels = numpy.array(
+            [
+                (
+                    chr(i + ord("A"))
+                    if i < 26
+                    else chr((i // 26) + ord("A")) + chr((i % 26) + ord("A"))
+                )
+                for i in range(max_n_chains)
+            ],
+            dtype=object,
+        )
+    results["chain"] = chain_labels[pose_for_real_atom, block_for_real_atom]
 
     # create lookup for atom names
-    bt_names = numpy.array([bt.name[:3] for bt in pbt.active_block_types])
+    bt_names = numpy.array([bt.name3 for bt in pbt.active_block_types])
     bt_atom_names = numpy.empty((pbt.n_types, pbt.max_n_atoms), dtype=object)
     for i, bt in enumerate(pbt.active_block_types):
         for j, at in enumerate(bt.atoms):
@@ -231,8 +254,20 @@ def atom_records_from_coords(
     results["x"] = real_atom_coords[:, 0]
     results["y"] = real_atom_coords[:, 1]
     results["z"] = real_atom_coords[:, 2]
-    results["insert"] = " "
-    results["occupancy"] = 1
-    results["b"] = 0
+    results["insert"] = (
+        residue_insertion_codes[pose_for_real_atom, block_for_real_atom]
+        if residue_insertion_codes is not None
+        else " "
+    )
+    results["occupancy"] = (
+        atom_occupancy[atom_is_real]
+        if atom_occupancy is not None
+        else DEFAULT_ATOM_OCCUPANCY
+    )
+    results["b"] = (
+        atom_b_factor[atom_is_real]
+        if atom_b_factor is not None
+        else DEFAULT_ATOM_B_FACTOR
+    )
 
     return results
