@@ -126,6 +126,10 @@ def pose_stack_from_canonical_form(
         - position [i, 0] is the pose index, and
         - position [i, 1] is the pose-ordered atom index
 
+    return_block_has_missing_atoms: returns a [n_pose x max_n_res] bool tensor with
+        elements being true iff any non-leaf atoms were missing (NaN). To be used
+        with a packer to build these missing atoms. If this argument is False, an
+        exception will be thrown when these missing atoms are encountered.
     """
 
     from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
@@ -267,6 +271,7 @@ def pose_stack_from_canonical_form(
         block_coords,
         missing_atoms,
         inter_residue_connections,
+        fail_on_missing_nonleaf_atoms=not return_block_has_missing_atoms,
     )
 
     def i64(x):
