@@ -101,6 +101,7 @@ def pose_stack_from_canonical_form(
         nonsense bond lengths and angles.
 
 
+<<<<<<< HEAD
     Optional return values:
         If any of the following flags are provided, this function will return a tuple
         instead of just a pose stack, with the first argument being the pose stack and
@@ -140,6 +141,13 @@ def pose_stack_from_canonical_form(
             elements being true iff any non-leaf atoms were missing (NaN). To be used
             with a packer to build these missing atoms. If this argument is False, an
             exception will be thrown when these missing atoms are encountered.
+||||||| constructed merge base
+=======
+    return_block_has_missing_atoms: returns a [n_pose x max_n_res] bool tensor with
+        elements being true iff any non-leaf atoms were missing (NaN). To be used
+        with a packer to build these missing atoms. If this argument is False, an
+        exception will be thrown when these missing atoms are encountered.
+>>>>>>> Default is now to fail on missing non-leaf atoms (like before), with an option to return a tensor of the missing atoms. Add check to C++ to ensure we aren't deriving locations from NaN atoms.
     """
 
     from tmol.io.details.left_justify_canonical_form import left_justify_canonical_form
