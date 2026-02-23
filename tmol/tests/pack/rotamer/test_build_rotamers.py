@@ -1395,14 +1395,7 @@ def test_new_rotamer_building_logic1(
 
     gbt_for_conformer_torch = _t(gbt_for_conformer, torch.int64)
 
-    # apl: fingers crossed this is no longer true!
-    # fd NOTE: THIS CODE FAILS IF n_rots_for_gbt CONTAINS 0s
-    # assert 0 not in n_rots_for_gbt
-
     n_conformers = sampler_for_conformer.shape[0]
-    # gbt_for_rot = torch.zeros(n_conformers, dtype=torch.int64, device=poses.device)
-    # gbt_for_rot[n_rots_for_gbt_cumsum[:-1]] = 1
-    # gbt_for_rot = torch.cumsum(gbt_for_rot, dim=0).cpu().numpy()
 
     block_type_ind_for_conformer = gbt_block_type_ind[gbt_for_conformer_np]
     block_type_ind_for_conformer_torch = _t(block_type_ind_for_conformer, torch.int64)

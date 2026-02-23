@@ -615,7 +615,8 @@ EIGEN_DEVICE_FUNC int interres_count_pair_separation(
 // end of macro definitions
 
 template <
-    template <tmol::Device> class DeviceOperations,
+    template <tmol::Device>
+    class DeviceOperations,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1141,7 +1142,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 }  // LJLKPoseScoreDispatch::forward
 
 template <
-    template <tmol::Device> class DeviceOperations,
+    template <tmol::Device>
+    class DeviceOperations,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1458,7 +1460,8 @@ auto LJLKPoseScoreDispatch<DeviceOperations, D, Real, Int>::backward(
 }
 
 template <
-    template <tmol::Device> class DeviceOperations,
+    template <tmol::Device>
+    class DeviceOperations,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -1790,7 +1793,8 @@ auto LJLKRotamerScoreDispatch<DeviceOperations, D, Real, Int>::forward(
 }  // LJLKRotamerScoreDispatch::forward
 
 template <
-    template <tmol::Device> class DeviceOperations,
+    template <tmol::Device>
+    class DeviceOperations,
     tmol::Device D,
     typename Real,
     typename Int>
